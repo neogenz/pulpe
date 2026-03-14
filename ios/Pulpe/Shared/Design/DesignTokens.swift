@@ -115,6 +115,8 @@ enum DesignTokens {
         static let badge: CGFloat = 36
         /// Small inline icons
         static let compact: CGFloat = 28
+        /// Social login button icons (Apple logo, Google logo)
+        static let socialButton: CGFloat = 20
     }
 
     // MARK: - List Row

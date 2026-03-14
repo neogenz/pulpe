@@ -4,7 +4,16 @@ import UIKit
 
 @MainActor
 final class GoogleSignInCoordinator {
+    private var isInProgress = false
+
     func signIn() async throws -> (idToken: String, accessToken: String) {
+        guard !isInProgress else {
+            throw GoogleSignInError.inProgress
+        }
+
+        isInProgress = true
+        defer { isInProgress = false }
+
         guard let clientID = AppConfiguration.googleClientID else {
             throw GoogleSignInError.missingClientID
         }
@@ -13,8 +22,9 @@ final class GoogleSignInCoordinator {
         GIDSignIn.sharedInstance.configuration = config
 
         guard let windowScene = UIApplication.shared.connectedScenes
-            .compactMap({ $0 as? UIWindowScene }).first,
-              let rootViewController = windowScene.windows.first?.rootViewController else {
+            .compactMap({ $0 as? UIWindowScene })
+            .first(where: { $0.activationState == .foregroundActive }),
+              let rootViewController = windowScene.keyWindow?.rootViewController else {
             throw GoogleSignInError.noRootViewController
         }
 
@@ -41,6 +51,7 @@ enum GoogleSignInError: LocalizedError {
     case noRootViewController
     case missingToken
     case canceled
+    case inProgress
 
     var errorDescription: String? {
         switch self {
@@ -50,7 +61,7 @@ enum GoogleSignInError: LocalizedError {
             return "Impossible d'afficher l'écran de connexion Google"
         case .missingToken:
             return "Impossible de récupérer les informations Google — réessaie"
-        case .canceled:
+        case .canceled, .inProgress:
             return nil
         }
     }

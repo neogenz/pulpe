@@ -1,15 +1,12 @@
 import AuthenticationServices
 import CryptoKit
 import Foundation
+import UIKit
 
 @MainActor
 final class AppleSignInCoordinator: NSObject {
     nonisolated(unsafe) private var continuation: CheckedContinuation<(idToken: String, nonce: String), Error>?
     private var currentNonce: String?
-
-    deinit {
-        continuation?.resume(throwing: CancellationError())
-    }
 
     func signIn() async throws -> (idToken: String, nonce: String) {
         guard continuation == nil else {
@@ -19,33 +16,56 @@ final class AppleSignInCoordinator: NSObject {
         let nonce = Self.randomNonceString()
         currentNonce = nonce
 
-        return try await withCheckedThrowingContinuation { continuation in
-            self.continuation = continuation
+        return try await withTaskCancellationHandler {
+            try await withCheckedThrowingContinuation { continuation in
+                self.continuation = continuation
 
-            let request = ASAuthorizationAppleIDProvider().createRequest()
-            request.requestedScopes = [.fullName, .email]
-            request.nonce = Self.sha256(nonce)
+                let request = ASAuthorizationAppleIDProvider().createRequest()
+                request.requestedScopes = [.fullName, .email]
+                request.nonce = Self.sha256(nonce)
 
-            let controller = ASAuthorizationController(authorizationRequests: [request])
-            controller.delegate = self
-            controller.performRequests()
+                let controller = ASAuthorizationController(authorizationRequests: [request])
+                controller.delegate = self
+                controller.presentationContextProvider = self
+                controller.performRequests()
+            }
+        } onCancel: {
+            // onCancel runs on an arbitrary thread — hop to MainActor to access continuation safely
+            Task { @MainActor [weak self] in
+                self?.continuation?.resume(throwing: CancellationError())
+                self?.continuation = nil
+                self?.currentNonce = nil
+            }
         }
     }
 
     // MARK: - Nonce Helpers
 
-    private static func randomNonceString(length: Int = 32) -> String {
+    static func randomNonceString(length: Int = 32) -> String {
         var bytes = [UInt8](repeating: 0, count: length)
         let result = SecRandomCopyBytes(kSecRandomDefault, bytes.count, &bytes)
         precondition(result == errSecSuccess, "Failed to generate random nonce")
-        let charset = Array("0123456789ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz-._")
+        let charset = Array("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-._")
         return String(bytes.map { charset[Int($0) % charset.count] })
     }
 
-    private static func sha256(_ input: String) -> String {
+    static func sha256(_ input: String) -> String {
         let data = Data(input.utf8)
         let hash = SHA256.hash(data: data)
         return hash.compactMap { String(format: "%02x", $0) }.joined()
+    }
+}
+
+// MARK: - ASAuthorizationControllerPresentationContextProviding
+
+extension AppleSignInCoordinator: ASAuthorizationControllerPresentationContextProviding {
+    nonisolated func presentationAnchor(for controller: ASAuthorizationController) -> ASPresentationAnchor {
+        MainActor.assumeIsolated {
+            UIApplication.shared.connectedScenes
+                .compactMap { $0 as? UIWindowScene }
+                .flatMap(\.windows)
+                .first(where: \.isKeyWindow) ?? ASPresentationAnchor()
+        }
     }
 }
 

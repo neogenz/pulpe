@@ -12,6 +12,8 @@ struct ResetPasswordFlowView: View {
     let onComplete: () async -> Void
     let onCancel: () async -> Void
 
+    @State private var keyboardHeight: CGFloat = 0
+
     private enum Field: Hashable {
         case newPassword
         case confirmPassword
@@ -30,6 +32,7 @@ struct ResetPasswordFlowView: View {
             }
             .padding(DesignTokens.Spacing.xl)
             .background(Color.sheetBackground)
+            .dismissKeyboardOnTap()
             .navigationTitle("Réinitialiser le mot de passe")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -39,6 +42,17 @@ struct ResetPasswordFlowView: View {
                     }
                 }
             }
+        }
+        .ignoresSafeArea(.keyboard)
+        .onReceive(
+            NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)
+        ) { notification in
+            if let frame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect {
+                keyboardHeight = frame.height
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
+            keyboardHeight = 0
         }
         .task {
             await viewModel.prepare(with: callbackURL)
@@ -90,42 +104,46 @@ struct ResetPasswordFlowView: View {
     }
 
     private var formState: some View {
-        VStack(spacing: DesignTokens.Spacing.xl) {
-            Text("Définis ton nouveau mot de passe.")
-                .font(PulpeTypography.bodyLarge)
-                .multilineTextAlignment(.center)
+        ScrollView {
+            VStack(spacing: DesignTokens.Spacing.xl) {
+                Text("Définis ton nouveau mot de passe.")
+                    .font(PulpeTypography.bodyLarge)
+                    .multilineTextAlignment(.center)
 
-            newPasswordField
-            confirmPasswordField
+                newPasswordField
+                confirmPasswordField
 
-            if let error = viewModel.errorMessage {
-                Text(error)
-                    .font(PulpeTypography.labelMedium)
-                    .foregroundStyle(Color.errorPrimary)
-                    .padding(.horizontal, DesignTokens.Spacing.xs)
-            }
+                if let error = viewModel.errorMessage {
+                    Text(error)
+                        .font(PulpeTypography.labelMedium)
+                        .foregroundStyle(Color.errorPrimary)
+                        .padding(.horizontal, DesignTokens.Spacing.xs)
+                }
 
-            Spacer()
-
-            Button {
-                Task {
-                    await viewModel.submit()
-                    if viewModel.isCompleted {
-                        await finishFlow()
+                Button {
+                    Task {
+                        await viewModel.submit()
+                        if viewModel.isCompleted {
+                            await finishFlow()
+                        }
+                    }
+                } label: {
+                    if viewModel.isSubmitting {
+                        ProgressView()
+                            .tint(.white)
+                            .accessibilityLabel("Réinitialisation en cours")
+                    } else {
+                        Text("Valider")
                     }
                 }
-            } label: {
-                if viewModel.isSubmitting {
-                    ProgressView()
-                        .tint(.white)
-                        .accessibilityLabel("Réinitialisation en cours")
-                } else {
-                    Text("Valider")
-                }
+                .primaryButtonStyle(isEnabled: viewModel.canSubmit)
+                .disabled(!viewModel.canSubmit)
             }
-            .primaryButtonStyle(isEnabled: viewModel.canSubmit)
-            .disabled(!viewModel.canSubmit)
         }
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            Color.clear.frame(height: keyboardHeight)
+        }
+        .scrollDismissesKeyboard(.interactively)
     }
 
     private var newPasswordField: some View {

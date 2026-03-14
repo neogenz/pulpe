@@ -11,9 +11,7 @@
       "mcp__vercel",
       "mcp__angular-cli",
       "Bash(railway *)"
-    ],
-    "deny": [],
-    "defaultMode": "acceptEdits"
+    ]
   },
   "enableAllProjectMcpServers": true,
   "enabledPlugins": {

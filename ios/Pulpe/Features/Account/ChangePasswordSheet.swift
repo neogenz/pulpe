@@ -12,6 +12,8 @@ struct ChangePasswordSheet: View {
 
     let onSuccess: () -> Void
 
+    @State private var keyboardHeight: CGFloat = 0
+
     private enum Field: Hashable {
         case currentPassword
         case newPassword
@@ -73,6 +75,9 @@ struct ChangePasswordSheet: View {
                 }
                 .padding(DesignTokens.Spacing.xl)
             }
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                Color.clear.frame(height: keyboardHeight)
+            }
             .scrollDismissesKeyboard(.interactively)
             .navigationTitle("Changer le mot de passe")
             .navigationBarTitleDisplayMode(.inline)
@@ -82,6 +87,19 @@ struct ChangePasswordSheet: View {
                 }
             }
             .background(Color.sheetBackground)
+            .dismissKeyboardOnTap()
+        }
+        .ignoresSafeArea(.keyboard)
+        .standardSheetPresentation()
+        .onReceive(
+            NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)
+        ) { notification in
+            if let frame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect {
+                keyboardHeight = frame.height
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
+            keyboardHeight = 0
         }
     }
 

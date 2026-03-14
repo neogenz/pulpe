@@ -1,22 +1,36 @@
+import OSLog
 import SwiftUI
 
 // MARK: - Social Login Section
 
+struct SocialLoginDependencies {
+    var appleSignIn: () async throws -> (idToken: String, nonce: String)
+    var googleSignIn: () async throws -> (idToken: String, accessToken: String)
+}
+
 struct SocialLoginSection: View {
     @Environment(AppState.self) private var appState
-    private let appleCoordinator = AppleSignInCoordinator()
-    private let googleCoordinator = GoogleSignInCoordinator()
+    @State private var appleCoordinator = AppleSignInCoordinator()
+    @State private var googleCoordinator = GoogleSignInCoordinator()
     @State private var isAppleLoading = false
     @State private var isGoogleLoading = false
     @State private var errorMessage: String?
 
+    private let dependencies: SocialLoginDependencies?
     var onSuccess: (() -> Void)?
+
+    init(dependencies: SocialLoginDependencies? = nil, onSuccess: (() -> Void)? = nil) {
+        self.dependencies = dependencies
+        self.onSuccess = onSuccess
+    }
 
     private var isAnyLoading: Bool { isAppleLoading || isGoogleLoading }
 
     var body: some View {
         VStack(spacing: DesignTokens.Spacing.md) {
-            SocialErrorBanner(message: errorMessage)
+            if let errorMessage {
+                ErrorBanner(message: errorMessage)
+            }
 
             AppleSignInButtonView(isLoading: isAppleLoading) {
                 guard !isAnyLoading else { return }
@@ -39,52 +53,52 @@ struct SocialLoginSection: View {
     private func signInWithApple() async {
         errorMessage = nil
         do {
-            let (idToken, nonce) = try await appleCoordinator.signIn()
+            let result: (idToken: String, nonce: String)
+            if let dependencies {
+                result = try await dependencies.appleSignIn()
+            } else {
+                result = try await appleCoordinator.signIn()
+            }
+            let (idToken, nonce) = result
             try await appState.loginWithApple(idToken: idToken, nonce: nonce)
             AnalyticsService.shared.capture(.loginCompleted, properties: ["method": "apple"])
             onSuccess?()
         } catch AppleSignInError.canceled, AppleSignInError.inProgress {
             // User canceled or flow already in progress — no error
         } catch {
-            errorMessage = AuthErrorLocalizer.localize(error)
+            Logger.auth.error("Apple sign-in failed: \(error.localizedDescription, privacy: .public)")
+            errorMessage = socialErrorMessage(for: error)
         }
     }
 
     private func signInWithGoogle() async {
         errorMessage = nil
         do {
-            let (idToken, accessToken) = try await googleCoordinator.signIn()
+            let result: (idToken: String, accessToken: String)
+            if let dependencies {
+                result = try await dependencies.googleSignIn()
+            } else {
+                result = try await googleCoordinator.signIn()
+            }
+            let (idToken, accessToken) = result
             try await appState.loginWithGoogle(idToken: idToken, accessToken: accessToken)
             AnalyticsService.shared.capture(.loginCompleted, properties: ["method": "google"])
             onSuccess?()
         } catch GoogleSignInError.canceled {
             // User canceled — no error
         } catch {
-            errorMessage = AuthErrorLocalizer.localize(error)
+            Logger.auth.error("Google sign-in failed: \(error.localizedDescription, privacy: .public)")
+            errorMessage = socialErrorMessage(for: error)
         }
     }
-}
 
-// MARK: - Social Error Banner
-
-struct SocialErrorBanner: View {
-    let message: String?
-
-    var body: some View {
-        if let message {
-            HStack(spacing: DesignTokens.Spacing.sm) {
-                Image(systemName: "exclamationmark.triangle.fill")
-                    .font(PulpeTypography.body)
-                    .foregroundStyle(Color.errorPrimary)
-                Text(message)
-                    .font(PulpeTypography.subheadline)
-                    .multilineTextAlignment(.leading)
-                    .foregroundStyle(Color.textPrimary)
-            }
-            .padding(DesignTokens.Spacing.lg)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color.errorBackground, in: .rect(cornerRadius: DesignTokens.CornerRadius.button))
+    /// OAuth errors have their own French messages — use them directly.
+    /// For Supabase errors, fall back to AuthErrorLocalizer.
+    private func socialErrorMessage(for error: Error) -> String {
+        if error is GoogleSignInError || error is AppleSignInError {
+            return error.localizedDescription
         }
+        return AuthErrorLocalizer.localize(error)
     }
 }
 
@@ -125,7 +139,7 @@ struct AppleSignInButtonView: View {
                         .tint(.white)
                 } else {
                     Image(systemName: "apple.logo")
-                        .font(.system(size: 18))
+                        .font(.system(size: DesignTokens.IconSize.socialButton))
                 }
                 Text(isLoading ? "Connexion en cours…" : "Continuer avec Apple")
                     .font(PulpeTypography.buttonPrimary)
@@ -136,7 +150,7 @@ struct AppleSignInButtonView: View {
             .background(.black)
             .clipShape(Capsule())
         }
-        .buttonStyle(.plain)
+        .plainPressedButtonStyle()
         .disabled(isLoading)
         .accessibilityIdentifier("appleSignInButton")
         .accessibilityLabel("Continuer avec Apple")
@@ -161,7 +175,7 @@ struct GoogleSignInButtonView: View {
                     Image("google-logo")
                         .resizable()
                         .scaledToFit()
-                        .frame(width: 20, height: 20)
+                        .frame(width: DesignTokens.IconSize.socialButton, height: DesignTokens.IconSize.socialButton)
                 }
                 Text(isLoading ? "Connexion en cours…" : "Continuer avec Google")
                     .font(PulpeTypography.buttonPrimary)
@@ -176,7 +190,7 @@ struct GoogleSignInButtonView: View {
                     .strokeBorder(Color.authInputBorder, lineWidth: 1.5)
             )
         }
-        .buttonStyle(.plain)
+        .plainPressedButtonStyle()
         .disabled(isLoading)
         .accessibilityIdentifier("googleSignInButton")
         .accessibilityLabel("Continuer avec Google")
