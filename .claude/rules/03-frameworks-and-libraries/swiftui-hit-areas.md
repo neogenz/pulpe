@@ -56,6 +56,17 @@ Button { action() } label: {
 .buttonStyle(.plain)
 ```
 
+## TextField / SecureField in Custom Containers
+
+SwiftUI TextFields only respond to taps on the text line, not the full container.
+`.contentShape(.interaction, Rectangle())` expands the hit area but does NOT auto-focus — pair it with `.onTapGesture` + `@FocusState`.
+
+| Pattern | Fix |
+|---------|-----|
+| TextField in fixed-height HStack | `.contentShape(.interaction, Rectangle())` on container + `.onTapGesture { focus = true }` |
+| TextField with padding + background | Same: `.contentShape(.interaction, Rectangle())` + `.onTapGesture` after `.clipShape()` |
+| Use `FormTextField` component | Already includes focus-forwarding tap target |
+
 ## Anti-Patterns
 
 | Don't | Do |
