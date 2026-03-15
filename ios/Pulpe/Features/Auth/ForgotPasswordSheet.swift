@@ -43,7 +43,7 @@ struct ForgotPasswordSheet: View {
                 .multilineTextAlignment(.center)
                 .padding(.top, DesignTokens.Spacing.md)
 
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                 Text("Adresse e-mail")
                     .font(PulpeTypography.buttonSecondary)
                     .foregroundStyle(Color.textPrimaryOnboarding)

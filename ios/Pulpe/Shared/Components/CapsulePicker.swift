@@ -8,10 +8,10 @@ struct CapsulePicker<T: CaseIterable & Hashable, ItemLabel: View>: View where T.
     @ViewBuilder let itemLabel: (T) -> ItemLabel
 
     var body: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
             Text(title)
-                .font(PulpeTypography.inputLabel)
-                .foregroundStyle(Color.pulpeTextTertiary)
+                .font(PulpeTypography.labelMedium)
+                .foregroundStyle(Color.onSurfaceVariant)
 
             HStack(spacing: DesignTokens.Spacing.sm) {
                 ForEach(T.allCases, id: \.self) { item in

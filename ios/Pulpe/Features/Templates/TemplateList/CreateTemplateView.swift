@@ -235,8 +235,17 @@ struct AddTemplateLineSheet: View {
     // MARK: - Recurrence Selector
 
     private var recurrenceSelector: some View {
-        CapsulePicker(selection: $recurrence, title: "Récurrence") { type in
-            Text(type.label)
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+            Text("Récurrence")
+                .font(PulpeTypography.labelMedium)
+                .foregroundStyle(Color.onSurfaceVariant)
+
+            Picker("Récurrence", selection: $recurrence) {
+                ForEach(TransactionRecurrence.allCases, id: \.self) { type in
+                    Text(type.label).tag(type)
+                }
+            }
+            .pickerStyle(.segmented)
         }
     }
 
