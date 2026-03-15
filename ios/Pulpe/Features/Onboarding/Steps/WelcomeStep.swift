@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct WelcomeStep: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var showLogin = false
     @State private var isAppeared = false
     let state: OnboardingState
@@ -19,6 +20,7 @@ struct WelcomeStep: View {
                     .shadow(DesignTokens.Shadow.elevated)
                     .scaleEffect(isAppeared ? 1 : 0.6)
                     .opacity(isAppeared ? 1 : 0)
+                    .animation(reduceMotion ? nil : DesignTokens.Animation.entranceSpring, value: isAppeared)
 
                 Spacer()
                     .frame(height: DesignTokens.Spacing.xxl)
@@ -38,6 +40,7 @@ struct WelcomeStep: View {
                 .padding(.horizontal, DesignTokens.Spacing.xxxl)
                 .opacity(isAppeared ? 1 : 0)
                 .offset(y: isAppeared ? 0 : 20)
+                .animation(reduceMotion ? nil : DesignTokens.Animation.entranceSpring.delay(0.1), value: isAppeared)
 
                 Spacer()
                     .frame(height: DesignTokens.Spacing.xxxl)
@@ -74,6 +77,7 @@ struct WelcomeStep: View {
                 .padding(.bottom, DesignTokens.Spacing.xxxl)
                 .opacity(isAppeared ? 1 : 0)
                 .offset(y: isAppeared ? 0 : 10)
+                .animation(reduceMotion ? nil : DesignTokens.Animation.entranceSpring.delay(0.2), value: isAppeared)
             }
         }
         .task { AnalyticsService.shared.capture(.welcomeScreenViewed) }
@@ -81,8 +85,12 @@ struct WelcomeStep: View {
             LoginView(isPresented: $showLogin)
         }
         .task {
-            withAnimation(DesignTokens.Animation.entranceSpring.delay(0.1)) {
+            if reduceMotion {
                 isAppeared = true
+            } else {
+                withAnimation(DesignTokens.Animation.entranceSpring.delay(0.1)) {
+                    isAppeared = true
+                }
             }
         }
     }

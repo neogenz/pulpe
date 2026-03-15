@@ -10,7 +10,7 @@ struct SectionHeader: View {
     var body: some View {
         HStack(spacing: DesignTokens.Spacing.sm) {
             // Title
-            Text(title)
+            Text("\(title) CHF")
                 .font(PulpeTypography.headline)
                 .foregroundStyle(Color.textPrimary)
                 .lineLimit(1)
@@ -28,7 +28,7 @@ struct SectionHeader: View {
 
             // Total amount (optional)
             if let total = totalAmount {
-                Text(total.asCHF)
+                Text(total.asAmount)
                     .font(PulpeTypography.labelLarge)
                     .foregroundStyle(totalColor)
                     .sensitiveAmount()

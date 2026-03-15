@@ -18,7 +18,17 @@ struct AddTransactionSheet: View {
     @State private var amountText = ""
     @State private var submitSuccessTrigger = false
 
-    private let transactionService = TransactionService.shared
+    private let dependencies: AddTransactionDependencies
+
+    init(
+        budgetId: String,
+        dependencies: AddTransactionDependencies = .live,
+        onAdd: @escaping (Transaction) -> Void
+    ) {
+        self.budgetId = budgetId
+        self.dependencies = dependencies
+        self.onAdd = onAdd
+    }
 
     private var canSubmit: Bool {
         !name.trimmingCharacters(in: .whitespaces).isEmpty &&
@@ -120,7 +130,7 @@ struct AddTransactionSheet: View {
         )
 
         do {
-            let transaction = try await transactionService.createTransaction(data)
+            let transaction = try await dependencies.createTransaction(data)
             AnalyticsService.shared.capture(.transactionCreated, properties: ["type": kind.rawValue])
             submitSuccessTrigger.toggle()
             onAdd(transaction)
@@ -130,6 +140,16 @@ struct AddTransactionSheet: View {
             self.error = error
         }
     }
+}
+
+struct AddTransactionDependencies: Sendable {
+    var createTransaction: @Sendable (TransactionCreate) async throws -> Transaction
+
+    static let live = AddTransactionDependencies(
+        createTransaction: { data in
+            try await TransactionService.shared.createTransaction(data)
+        }
+    )
 }
 
 #Preview {

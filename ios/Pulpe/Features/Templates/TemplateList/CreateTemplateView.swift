@@ -77,9 +77,7 @@ struct CreateTemplateView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Annuler") {
-                        dismiss()
-                    }
+                    SheetCloseButton()
                 }
 
                 ToolbarItem(placement: .confirmationAction) {

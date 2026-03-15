@@ -91,8 +91,6 @@ final class PreviousBudgetSheetViewModel {
 
 struct PreviousBudgetSheet: View {
     @State private var viewModel: PreviousBudgetSheetViewModel
-    @State private var detent: PresentationDetent = .large
-    @Environment(\.dismiss) private var dismiss
 
     init(budgetId: String) {
         self._viewModel = State(initialValue: PreviousBudgetSheetViewModel(budgetId: budgetId))
@@ -114,14 +112,12 @@ struct PreviousBudgetSheet: View {
             .navigationTitle(viewModel.budget?.monthYear ?? "Budget")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Fermer") { dismiss() }
+                ToolbarItem(placement: .cancellationAction) {
+                    SheetCloseButton()
                 }
             }
         }
-        .presentationDetents([.medium, .large], selection: $detent)
-        .presentationDragIndicator(.visible)
-        .presentationBackground(Color.sheetBackground)
+        .standardSheetPresentation(detents: [.medium, .large])
         .task { await viewModel.loadDetails() }
     }
 

@@ -12,8 +12,6 @@ struct ChangePasswordSheet: View {
 
     let onSuccess: () -> Void
 
-    @State private var keyboardHeight: CGFloat = 0
-
     private enum Field: Hashable {
         case currentPassword
         case newPassword
@@ -36,18 +34,7 @@ struct ChangePasswordSheet: View {
                     confirmPasswordField
 
                     if let error = viewModel.errorMessage {
-                        HStack(alignment: .top, spacing: DesignTokens.Spacing.sm) {
-                            Image(systemName: "exclamationmark.circle.fill")
-                                .foregroundStyle(Color.errorPrimary)
-                            Text(error)
-                                .font(PulpeTypography.labelMedium)
-                                .foregroundStyle(Color.errorPrimary)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(DesignTokens.Spacing.md)
-                        .background(Color.errorPrimary.opacity(0.1))
-                        .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
+                        ErrorBanner(message: error)
                     }
 
                     Spacer(minLength: DesignTokens.Spacing.xl)
@@ -75,39 +62,26 @@ struct ChangePasswordSheet: View {
                 }
                 .padding(DesignTokens.Spacing.xl)
             }
-            .safeAreaInset(edge: .bottom, spacing: 0) {
-                Color.clear.frame(height: keyboardHeight)
-            }
+            .contentMargins(.bottom, DesignTokens.Spacing.xxl, for: .scrollContent)
             .scrollDismissesKeyboard(.interactively)
             .navigationTitle("Changer le mot de passe")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Annuler") { dismiss() }
+                    SheetCloseButton()
                 }
             }
             .background(Color.sheetBackground)
             .dismissKeyboardOnTap()
         }
-        .ignoresSafeArea(.keyboard)
         .standardSheetPresentation()
-        .onReceive(
-            NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)
-        ) { notification in
-            if let frame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect {
-                keyboardHeight = frame.height
-            }
-        }
-        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
-            keyboardHeight = 0
-        }
     }
 
     private var currentPasswordField: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
             Text("Mot de passe actuel")
-                .font(PulpeTypography.buttonSecondary)
-                .foregroundStyle(Color.textPrimaryOnboarding)
+                .font(PulpeTypography.labelMedium)
+                .foregroundStyle(Color.onSurfaceVariant)
 
             AuthSecureField(
                 prompt: "Ton mot de passe actuel",
@@ -125,8 +99,8 @@ struct ChangePasswordSheet: View {
     private var newPasswordField: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
             Text("Nouveau mot de passe")
-                .font(PulpeTypography.buttonSecondary)
-                .foregroundStyle(Color.textPrimaryOnboarding)
+                .font(PulpeTypography.labelMedium)
+                .foregroundStyle(Color.onSurfaceVariant)
 
             AuthSecureField(
                 prompt: "Ton nouveau mot de passe",
@@ -151,8 +125,8 @@ struct ChangePasswordSheet: View {
     private var confirmPasswordField: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
             Text("Confirmer le nouveau mot de passe")
-                .font(PulpeTypography.buttonSecondary)
-                .foregroundStyle(Color.textPrimaryOnboarding)
+                .font(PulpeTypography.labelMedium)
+                .foregroundStyle(Color.onSurfaceVariant)
 
             AuthSecureField(
                 prompt: "Confirme ton nouveau mot de passe",

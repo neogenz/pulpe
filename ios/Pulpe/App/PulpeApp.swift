@@ -106,8 +106,10 @@ struct PulpeApp: App {
             return
         }
 
-        // OAuth callbacks (Google Sign-In)
-        GIDSignIn.sharedInstance.handle(url)
+        // OAuth callbacks (Google Sign-In) — only forward matching scheme
+        if url.scheme?.hasPrefix("com.googleusercontent.apps") == true {
+            GIDSignIn.sharedInstance.handle(url)
+        }
     }
 }
 

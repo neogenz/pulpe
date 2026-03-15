@@ -12,8 +12,6 @@ struct ResetPasswordFlowView: View {
     let onComplete: () async -> Void
     let onCancel: () async -> Void
 
-    @State private var keyboardHeight: CGFloat = 0
-
     private enum Field: Hashable {
         case newPassword
         case confirmPassword
@@ -42,17 +40,6 @@ struct ResetPasswordFlowView: View {
                     }
                 }
             }
-        }
-        .ignoresSafeArea(.keyboard)
-        .onReceive(
-            NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)
-        ) { notification in
-            if let frame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect {
-                keyboardHeight = frame.height
-            }
-        }
-        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
-            keyboardHeight = 0
         }
         .task {
             await viewModel.prepare(with: callbackURL)
@@ -139,9 +126,6 @@ struct ResetPasswordFlowView: View {
                 .primaryButtonStyle(isEnabled: viewModel.canSubmit)
                 .disabled(!viewModel.canSubmit)
             }
-        }
-        .safeAreaInset(edge: .bottom, spacing: 0) {
-            Color.clear.frame(height: keyboardHeight)
         }
         .scrollDismissesKeyboard(.interactively)
     }
