@@ -67,10 +67,10 @@ final class AppleSignInCoordinator: NSObject {
 
 extension AppleSignInCoordinator: ASAuthorizationControllerPresentationContextProviding {
     nonisolated func presentationAnchor(for controller: ASAuthorizationController) -> ASPresentationAnchor {
-        // Use DispatchQueue.main.sync to safely access the cached window from any thread.
-        // presentationAnchor(for:) is called synchronously by ASAuthorizationController,
-        // and while it's typically on the main thread, the API contract doesn't guarantee it.
-        DispatchQueue.main.sync {
+        // Apple always calls this on the main thread (the protocol is @MainActor).
+        // Using DispatchQueue.main.sync here would deadlock because performRequests()
+        // calls this synchronously from the main thread.
+        MainActor.assumeIsolated {
             cachedWindow ?? ASPresentationAnchor()
         }
     }

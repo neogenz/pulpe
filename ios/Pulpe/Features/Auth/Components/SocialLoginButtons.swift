@@ -38,14 +38,12 @@ struct SocialLoginSection: View {
             }
 
             AppleSignInButtonView(isLoading: isAppleLoading, isDisabled: isAnyLoading) {
-                guard !isAnyLoading else { return }
                 isAppleLoading = true
                 await signInWithApple()
                 isAppleLoading = false
             }
 
             GoogleSignInButtonView(isLoading: isGoogleLoading, isDisabled: isAnyLoading) {
-                guard !isAnyLoading else { return }
                 isGoogleLoading = true
                 await signInWithGoogle()
                 isGoogleLoading = false
