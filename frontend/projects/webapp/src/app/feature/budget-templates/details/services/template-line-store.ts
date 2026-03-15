@@ -1,11 +1,12 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
-import { firstValueFrom } from 'rxjs';
 import { TranslocoService } from '@jsverse/transloco';
+import { cachedMutation } from 'ngx-ziflux';
 import { BudgetTemplatesApi } from '@core/budget-template/budget-templates-api';
 import type { TransactionFormData } from '../../services/transaction-form';
 import type {
   TemplateLine,
   TemplateLinesBulkOperations,
+  TemplateLinesBulkOperationsResponse,
   TemplateLineCreateWithoutTemplateId,
   TemplateLineUpdateWithId,
 } from 'pulpe-shared';
@@ -44,6 +45,20 @@ export class TemplateLineStore {
   );
 
   readonly #deletedIds = signal<Set<string>>(new Set());
+
+  readonly #bulkSaveMutation = cachedMutation<
+    { templateId: string; operations: TemplateLinesBulkOperations },
+    TemplateLinesBulkOperationsResponse,
+    void
+  >({
+    cache: this.#budgetTemplatesApi.cache,
+    mutationFn: ({ templateId, operations }) =>
+      this.#budgetTemplatesApi.bulkOperationsTemplateLines$(
+        templateId,
+        operations,
+      ),
+    invalidateKeys: () => [['templates']],
+  });
 
   getLineById(id: string): EditableLine | undefined {
     const line = this.lines().find((line) => line.id === id);
@@ -129,12 +144,20 @@ export class TemplateLineStore {
 
     try {
       const operations = this.#generateBulkOperations(propagateToBudgets);
-      const response = await firstValueFrom(
-        this.#budgetTemplatesApi.bulkOperationsTemplateLines$(
-          templateId,
-          operations,
-        ),
-      );
+      const response = await this.#bulkSaveMutation.mutate({
+        templateId,
+        operations,
+      });
+
+      if (!response) {
+        const mutationError = this.#bulkSaveMutation.error();
+        const errorMessage =
+          mutationError instanceof Error
+            ? mutationError.message
+            : this.#transloco.translate('template.saveError');
+        this.#error.set(errorMessage);
+        return { success: false, error: errorMessage };
+      }
 
       this.#updateStateAfterSave(response.data);
 

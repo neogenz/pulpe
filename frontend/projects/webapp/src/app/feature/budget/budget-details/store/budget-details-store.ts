@@ -46,6 +46,12 @@ function generateTempId(): string {
   return `${TEMP_ID_PREFIX}${uuidv4()}`;
 }
 
+const BUDGET_DETAIL_INVALIDATION_KEYS: string[][] = [
+  ['budget', 'list'],
+  ['budget', 'dashboard'],
+  ['budget', 'history'],
+];
+
 @Injectable()
 export class BudgetDetailsStore {
   // ── 1. Dependencies ──
@@ -297,11 +303,7 @@ export class BudgetDetailsStore {
     BudgetDetailsViewModel | null
   >({
     cache: this.#budgetApi.cache,
-    invalidateKeys: () => [
-      ['budget', 'list'],
-      ['budget', 'dashboard'],
-      ['budget', 'history'],
-    ],
+    invalidateKeys: () => BUDGET_DETAIL_INVALIDATION_KEYS,
     mutationFn: ({ budgetLine }) =>
       this.#budgetApi.createBudgetLine$(budgetLine),
     onMutate: ({ budgetLine, tempId }) => {
@@ -336,8 +338,8 @@ export class BudgetDetailsStore {
       });
       this.#onFinancialMutationSuccess();
     },
-    onError: () => {
-      this.reloadBudgetDetails();
+    onError: (_err, _args, previous) => {
+      if (previous) this.#budgetDetailsResource.set(previous);
       this.#setError(this.#transloco.translate('budget.forecastCreateError'));
     },
   });
@@ -355,11 +357,7 @@ export class BudgetDetailsStore {
     BudgetDetailsViewModel | null
   >({
     cache: this.#budgetApi.cache,
-    invalidateKeys: () => [
-      ['budget', 'list'],
-      ['budget', 'dashboard'],
-      ['budget', 'history'],
-    ],
+    invalidateKeys: () => BUDGET_DETAIL_INVALIDATION_KEYS,
     mutationFn: (data) => this.#budgetApi.updateBudgetLine$(data.id, data),
     onMutate: (data) => {
       const previous = this.budgetDetails();
@@ -377,8 +375,8 @@ export class BudgetDetailsStore {
       return previous;
     },
     onSuccess: () => this.#onFinancialMutationSuccess(),
-    onError: () => {
-      this.reloadBudgetDetails();
+    onError: (_err, _args, previous) => {
+      if (previous) this.#budgetDetailsResource.set(previous);
       this.#setError(this.#transloco.translate('budget.forecastUpdateError'));
     },
   });
@@ -393,11 +391,7 @@ export class BudgetDetailsStore {
     BudgetDetailsViewModel | null
   >({
     cache: this.#budgetApi.cache,
-    invalidateKeys: () => [
-      ['budget', 'list'],
-      ['budget', 'dashboard'],
-      ['budget', 'history'],
-    ],
+    invalidateKeys: () => BUDGET_DETAIL_INVALIDATION_KEYS,
     mutationFn: ({ id, data }) => this.#budgetApi.updateTransaction$(id, data),
     onMutate: ({ id, data }) => {
       const previous = this.budgetDetails();
@@ -415,8 +409,8 @@ export class BudgetDetailsStore {
       return previous;
     },
     onSuccess: () => this.#onFinancialMutationSuccess(),
-    onError: () => {
-      this.reloadBudgetDetails();
+    onError: (_err, _args, previous) => {
+      if (previous) this.#budgetDetailsResource.set(previous);
       this.#setError(
         this.#transloco.translate('budget.transactionUpdateError'),
       );
@@ -433,11 +427,7 @@ export class BudgetDetailsStore {
     BudgetDetailsViewModel | null
   >({
     cache: this.#budgetApi.cache,
-    invalidateKeys: () => [
-      ['budget', 'list'],
-      ['budget', 'dashboard'],
-      ['budget', 'history'],
-    ],
+    invalidateKeys: () => BUDGET_DETAIL_INVALIDATION_KEYS,
     mutationFn: (id) =>
       this.#budgetApi.deleteBudgetLine$(id).pipe(map(() => void 0 as void)),
     onMutate: (id) => {
@@ -455,8 +445,8 @@ export class BudgetDetailsStore {
       return previous;
     },
     onSuccess: () => this.#onFinancialMutationSuccess(),
-    onError: () => {
-      this.reloadBudgetDetails();
+    onError: (_err, _args, previous) => {
+      if (previous) this.#budgetDetailsResource.set(previous);
       this.#setError(this.#transloco.translate('budget.forecastDeleteError'));
     },
   });
@@ -471,11 +461,7 @@ export class BudgetDetailsStore {
     BudgetDetailsViewModel | null
   >({
     cache: this.#budgetApi.cache,
-    invalidateKeys: () => [
-      ['budget', 'list'],
-      ['budget', 'dashboard'],
-      ['budget', 'history'],
-    ],
+    invalidateKeys: () => BUDGET_DETAIL_INVALIDATION_KEYS,
     mutationFn: (id) =>
       this.#budgetApi.deleteTransaction$(id).pipe(map(() => void 0 as void)),
     onMutate: (id) => {
@@ -491,8 +477,8 @@ export class BudgetDetailsStore {
       return previous;
     },
     onSuccess: () => this.#onFinancialMutationSuccess(),
-    onError: () => {
-      this.reloadBudgetDetails();
+    onError: (_err, _args, previous) => {
+      if (previous) this.#budgetDetailsResource.set(previous);
       this.#setError(
         this.#transloco.translate('budget.transactionDeleteError'),
       );
@@ -509,11 +495,7 @@ export class BudgetDetailsStore {
     BudgetDetailsViewModel | null
   >({
     cache: this.#budgetApi.cache,
-    invalidateKeys: () => [
-      ['budget', 'list'],
-      ['budget', 'dashboard'],
-      ['budget', 'history'],
-    ],
+    invalidateKeys: () => BUDGET_DETAIL_INVALIDATION_KEYS,
     mutationFn: ({ data }) =>
       this.#budgetApi.createTransaction$({
         ...data,
@@ -555,8 +537,8 @@ export class BudgetDetailsStore {
       });
       this.#onFinancialMutationSuccess();
     },
-    onError: () => {
-      this.reloadBudgetDetails();
+    onError: (_err, _args, previous) => {
+      if (previous) this.#budgetDetailsResource.set(previous);
       this.#setError(
         this.#transloco.translate('budget.transactionCreateError'),
       );
@@ -578,11 +560,7 @@ export class BudgetDetailsStore {
     void
   >({
     cache: this.#budgetApi.cache,
-    invalidateKeys: () => [
-      ['budget', 'list'],
-      ['budget', 'dashboard'],
-      ['budget', 'history'],
-    ],
+    invalidateKeys: () => BUDGET_DETAIL_INVALIDATION_KEYS,
     mutationFn: (id) => this.#budgetApi.resetBudgetLineFromTemplate$(id),
     onSuccess: (response, id) => {
       this.#budgetDetailsResource.update((details) => {
@@ -597,7 +575,6 @@ export class BudgetDetailsStore {
       this.#onFinancialMutationSuccess();
     },
     onError: (error) => {
-      this.reloadBudgetDetails();
       const errorMessage = isApiError(error)
         ? this.#apiErrorLocalizer.localizeApiError(error)
         : this.#transloco.translate('budget.forecastResetError');
@@ -633,6 +610,7 @@ export class BudgetDetailsStore {
 
     this.#mutatingIds.add(id);
 
+    const previous = this.budgetDetails();
     this.#budgetDetailsResource.update((d) => {
       if (!d) return d!;
       return {
@@ -658,13 +636,13 @@ export class BudgetDetailsStore {
         };
       });
 
-      this.#budgetApi.cache.invalidate(['budget', 'list']);
-      this.#budgetApi.cache.invalidate(['budget', 'dashboard']);
-      this.#budgetApi.cache.invalidate(['budget', 'history']);
+      BUDGET_DETAIL_INVALIDATION_KEYS.forEach((key) =>
+        this.#budgetApi.cache.invalidate(key),
+      );
       this.#onFinancialMutationSuccess();
       return true;
     } catch (error) {
-      this.reloadBudgetDetails();
+      if (previous) this.#budgetDetailsResource.set(previous);
       this.#setError(this.#transloco.translate('budget.forecastToggleError'));
       this.#logger.error('Error toggling budget line check', error);
       return false;
@@ -688,6 +666,7 @@ export class BudgetDetailsStore {
 
     this.#mutatingIds.add(id);
 
+    const previous = this.budgetDetails();
     this.#budgetDetailsResource.update((d) => {
       if (!d) return d!;
       return {
@@ -711,12 +690,12 @@ export class BudgetDetailsStore {
         };
       });
 
-      this.#budgetApi.cache.invalidate(['budget', 'list']);
-      this.#budgetApi.cache.invalidate(['budget', 'dashboard']);
-      this.#budgetApi.cache.invalidate(['budget', 'history']);
+      BUDGET_DETAIL_INVALIDATION_KEYS.forEach((key) =>
+        this.#budgetApi.cache.invalidate(key),
+      );
       this.#onFinancialMutationSuccess();
     } catch (error) {
-      this.reloadBudgetDetails();
+      if (previous) this.#budgetDetailsResource.set(previous);
       this.#setError(
         this.#transloco.translate('budget.transactionToggleError'),
       );
@@ -742,6 +721,7 @@ export class BudgetDetailsStore {
 
     this.#mutatingIds.add(budgetLineId);
 
+    const previous = this.budgetDetails();
     const now = new Date().toISOString();
     const uncheckedIds = new Set(uncheckedTransactions.map((tx) => tx.id));
     this.#budgetDetailsResource.update((d) => {
@@ -775,12 +755,12 @@ export class BudgetDetailsStore {
           }),
         };
       });
-      this.#budgetApi.cache.invalidate(['budget', 'list']);
-      this.#budgetApi.cache.invalidate(['budget', 'dashboard']);
-      this.#budgetApi.cache.invalidate(['budget', 'history']);
+      BUDGET_DETAIL_INVALIDATION_KEYS.forEach((key) =>
+        this.#budgetApi.cache.invalidate(key),
+      );
       this.#onFinancialMutationSuccess();
     } catch (error) {
-      this.reloadBudgetDetails();
+      if (previous) this.#budgetDetailsResource.set(previous);
       this.#setError(this.#transloco.translate('budget.checkAllError'));
       this.#logger.error('Error checking all allocated transactions', error);
     } finally {

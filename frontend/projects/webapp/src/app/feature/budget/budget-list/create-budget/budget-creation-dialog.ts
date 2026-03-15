@@ -347,6 +347,7 @@ export class CreateBudgetDialogComponent {
 
     try {
       await firstValueFrom(this.#budgetApi.createBudget$(budgetData));
+      this.#budgetApi.cache.invalidate(['budget']);
 
       // Success - close dialog with success indicator
       this.isCreating.set(false);

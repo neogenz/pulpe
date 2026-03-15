@@ -12,7 +12,10 @@ import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 describe('ProfileSetupService', () => {
   let service: ProfileSetupService;
   let mockApiClient: { post$: ReturnType<typeof vi.fn> };
-  let mockBudgetApi: { createBudget$: ReturnType<typeof vi.fn> };
+  let mockBudgetApi: {
+    createBudget$: ReturnType<typeof vi.fn>;
+    cache: unknown;
+  };
   let mockPostHogService: { enableTracking: ReturnType<typeof vi.fn> };
   let mockLogger: {
     info: ReturnType<typeof vi.fn>;
@@ -32,6 +35,7 @@ describe('ProfileSetupService', () => {
       createBudget$: vi
         .fn()
         .mockReturnValue(of({ budget: { id: 'budget-123' } })),
+      cache: { invalidate: vi.fn(), clear: vi.fn() },
     };
 
     mockPostHogService = {
