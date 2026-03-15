@@ -208,50 +208,33 @@ export class BudgetApi {
   }
 
   createBudgetLine$(data: BudgetLineCreate): Observable<BudgetLineResponse> {
-    return this.#api
-      .post$('/budget-lines', data, budgetLineResponseSchema)
-      .pipe(
-        tap(() => {
-          this.cache.invalidate(['budget']);
-        }),
-      );
+    return this.#api.post$('/budget-lines', data, budgetLineResponseSchema);
   }
 
   updateBudgetLine$(
     id: string,
     data: BudgetLineUpdate,
   ): Observable<BudgetLineResponse> {
-    return this.#api
-      .patch$(`/budget-lines/${id}`, data, budgetLineResponseSchema)
-      .pipe(
-        tap(() => {
-          this.cache.invalidate(['budget']);
-        }),
-      );
+    return this.#api.patch$(
+      `/budget-lines/${id}`,
+      data,
+      budgetLineResponseSchema,
+    );
   }
 
   deleteBudgetLine$(id: string): Observable<BudgetLineDeleteResponse> {
-    return this.#api
-      .delete$(`/budget-lines/${id}`, budgetLineDeleteResponseSchema)
-      .pipe(
-        tap(() => {
-          this.cache.invalidate(['budget']);
-        }),
-      );
+    return this.#api.delete$(
+      `/budget-lines/${id}`,
+      budgetLineDeleteResponseSchema,
+    );
   }
 
   resetBudgetLineFromTemplate$(id: string): Observable<BudgetLineResponse> {
-    return this.#api
-      .post$(
-        `/budget-lines/${id}/reset-from-template`,
-        {},
-        budgetLineResponseSchema,
-      )
-      .pipe(
-        tap(() => {
-          this.cache.invalidate(['budget']);
-        }),
-      );
+    return this.#api.post$(
+      `/budget-lines/${id}/reset-from-template`,
+      {},
+      budgetLineResponseSchema,
+    );
   }
 
   toggleBudgetLineCheck$(budgetLineId: string): Observable<BudgetLineResponse> {
@@ -287,30 +270,18 @@ export class BudgetApi {
   createTransaction$(
     data: TransactionCreate,
   ): Observable<TransactionCreateResponse> {
-    return this.#transactionApi.create$(data).pipe(
-      tap(() => {
-        this.cache.invalidate(['budget']);
-      }),
-    );
+    return this.#transactionApi.create$(data);
   }
 
   updateTransaction$(
     id: string,
     data: TransactionUpdate,
   ): Observable<TransactionUpdateResponse> {
-    return this.#transactionApi.update$(id, data).pipe(
-      tap(() => {
-        this.cache.invalidate(['budget']);
-      }),
-    );
+    return this.#transactionApi.update$(id, data);
   }
 
   deleteTransaction$(id: string): Observable<void> {
-    return this.#transactionApi.remove$(id).pipe(
-      tap(() => {
-        this.cache.invalidate(['budget']);
-      }),
-    );
+    return this.#transactionApi.remove$(id);
   }
 
   toggleTransactionCheck$(id: string): Observable<TransactionUpdateResponse> {
