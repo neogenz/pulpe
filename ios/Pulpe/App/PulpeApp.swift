@@ -152,7 +152,6 @@ struct RootView: View {
         }
         .toastOverlay(appState.toastManager)
         .environment(appState.toastManager)
-        .animation(.easeInOut(duration: DesignTokens.Animation.normal), value: appState.currentRoute)
         .onReceive(NotificationCenter.default.publisher(for: .maintenanceModeDetected)) { _ in
             appState.send(.maintenanceChecked(isInMaintenance: true))
         }
