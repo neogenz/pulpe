@@ -1,4 +1,5 @@
-import { inject, Injectable, signal, computed, resource } from '@angular/core';
+import { inject, Injectable, computed } from '@angular/core';
+import { DataCache, cachedResource } from 'ngx-ziflux';
 import {
   type UserSettings,
   type UpdateUserSettings,
@@ -13,16 +14,6 @@ import { ClientKeyService } from '../encryption/client-key.service';
 import { DemoModeService } from '../demo/demo-mode.service';
 import { Logger } from '../logging/logger';
 
-/**
- * Hybrid API + Store service for user settings.
- *
- * Combines API calls with local resource caching because settings are:
- * - Read frequently (every component that needs payDayOfMonth)
- * - Written rarely (only from settings page)
- * - Needed at app startup (PreloadService)
- *
- * This avoids an extra store layer for a single, rarely-mutated resource.
- */
 @Injectable({
   providedIn: 'root',
 })
@@ -33,20 +24,25 @@ export class UserSettingsApi {
   readonly #demoMode = inject(DemoModeService);
   readonly #logger = inject(Logger);
 
-  readonly #reloadTrigger = signal(0);
+  readonly cache = new DataCache({
+    name: 'settings',
+    staleTime: 60_000,
+    expireTime: 600_000,
+  });
 
-  readonly #settingsResource = resource<
+  readonly #settingsResource = cachedResource<
     UserSettings | null,
-    { isReady: boolean; trigger: number }
+    { isReady: boolean }
   >({
-    params: () => ({
-      isReady:
+    cache: this.cache,
+    cacheKey: ['settings', 'user'],
+    params: () => {
+      const isReady =
         this.#authState.isAuthenticated() &&
-        (this.#clientKey.hasClientKey() || this.#demoMode.isDemoMode()),
-      trigger: this.#reloadTrigger(),
-    }),
-    loader: async ({ params }) =>
-      params.isReady ? this.#loadSettings() : null,
+        (this.#clientKey.hasClientKey() || this.#demoMode.isDemoMode());
+      return isReady ? { isReady } : undefined;
+    },
+    loader: async () => this.#loadSettings(),
   });
 
   readonly settings = computed(() => this.#settingsResource.value());
@@ -55,9 +51,9 @@ export class UserSettingsApi {
     () => this.settings()?.payDayOfMonth ?? null,
   );
 
-  readonly isLoading = computed(() => this.#settingsResource.isLoading());
+  readonly isLoading = this.#settingsResource.isLoading;
 
-  readonly error = computed(() => this.#settingsResource.error());
+  readonly error = this.#settingsResource.error;
 
   async updateSettings(settings: UpdateUserSettings): Promise<UserSettings> {
     const response = await firstValueFrom(
@@ -68,12 +64,12 @@ export class UserSettingsApi {
   }
 
   reload(): void {
-    this.#reloadTrigger.update((v) => v + 1);
+    this.#settingsResource.reload();
   }
 
   reset(): void {
+    this.cache.clear();
     this.#settingsResource.set(null);
-    this.#reloadTrigger.set(0);
   }
 
   async deleteAccount(): Promise<DeleteAccountResponse> {

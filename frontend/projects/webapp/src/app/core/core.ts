@@ -41,6 +41,7 @@ import { PreloadService } from './preload/preload.service';
 import { PageLifecycleRecoveryService } from './lifecycle/page-lifecycle-recovery.service';
 import { ThemeService } from './theme/theme.service';
 import { provideAppTransloco } from './i18n/transloco-config';
+import { provideZiflux, withDevtools } from 'ngx-ziflux';
 
 export interface CoreOptions {
   routes: Routes; // possible to extend options with more props in the future
@@ -122,6 +123,9 @@ export function provideCore({ routes }: CoreOptions) {
 
     // HTTP Client must be provided before anything that uses it
     ...provideAuth(),
+
+    // SWR caching layer for resource API
+    provideZiflux({ staleTime: 30_000, expireTime: 300_000 }, withDevtools()),
 
     // Global error handler with PostHog integration (needs HttpClient via PostHogService)
     provideGlobalErrorHandler(),

@@ -4,7 +4,6 @@ import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { of, throwError, NEVER } from 'rxjs';
 import { DashboardStore, DASHBOARD_NOW } from './dashboard-store';
 import { BudgetApi } from '@core/budget';
-import { BudgetInvalidationService } from '@core/budget/budget-invalidation.service';
 import { UserSettingsApi } from '@core/user-settings';
 import type { Budget, BudgetLine, Transaction } from 'pulpe-shared';
 import { BudgetFormulas } from 'pulpe-shared';
@@ -78,19 +77,22 @@ function createMocks() {
       getBudgetById$: vi.fn().mockReturnValue(of(createMockBudget())),
       createTransaction$: vi.fn(),
       toggleBudgetLineCheck$: vi.fn(),
-      seedDashboardCache: vi.fn(),
-      getDashboardCached: vi.fn().mockReturnValue(null),
       cache: {
+        version: signal(0),
         get: vi.fn().mockReturnValue(null),
         set: vi.fn(),
+        invalidate: vi.fn(),
+        deduplicate: vi
+          .fn()
+          .mockImplementation((_key: unknown, fn: () => Promise<unknown>) =>
+            fn(),
+          ),
+        prefetch: vi.fn(),
       },
     },
     userSettingsApi: {
       payDayOfMonth: signal<number | null>(1),
       isLoading: signal(false),
-    },
-    invalidationService: {
-      version: signal(0),
     },
   };
 }
@@ -103,10 +105,6 @@ function setup(mocks = createMocks()) {
       provideZonelessChangeDetection(),
       { provide: BudgetApi, useValue: mocks.budgetApi },
       { provide: UserSettingsApi, useValue: mocks.userSettingsApi },
-      {
-        provide: BudgetInvalidationService,
-        useValue: mocks.invalidationService,
-      },
       { provide: DASHBOARD_NOW, useValue: FIXED_DATE },
     ],
   });
@@ -236,33 +234,6 @@ describe('DashboardStore - Business Scenarios', () => {
       expect(store.dashboardData()).not.toBeNull();
       expect(store.isInitialLoading()).toBe(false);
     });
-
-    it('should return reloading status when loading with existing data', async () => {
-      const mocks = createMocks();
-      const budget = createMockBudget();
-      const dashboardData = { budget, transactions: [], budgetLines: [] };
-      mocks.budgetApi.getDashboardData$.mockReturnValue(of(dashboardData));
-      const { store } = setup(mocks);
-
-      TestBed.tick();
-      await vi.waitFor(() => {
-        expect(store.dashboardData()).not.toBeNull();
-      });
-
-      // Simulate cache returning stale data (resource clears value on reload)
-      mocks.budgetApi.getDashboardCached.mockReturnValue(dashboardData);
-
-      // Trigger reload by making the next load hang
-      mocks.budgetApi.getDashboardData$.mockReturnValue(NEVER);
-      mocks.invalidationService.version.set(1);
-
-      TestBed.tick();
-
-      // With existing cached data + loading → 'reloading'
-      await vi.waitFor(() => {
-        expect(store.status()).toBe('reloading');
-      });
-    });
   });
 
   describe('User can manage transactions', () => {
@@ -323,16 +294,15 @@ describe('DashboardStore - Business Scenarios', () => {
         expect(store.transactions().length).toBe(1);
       });
 
-      await expect(
-        store.addTransaction({
-          budgetId: 'budget-1',
-          name: 'Fail',
-          amount: 100,
-          kind: 'expense',
-        }),
-      ).rejects.toThrow('API error');
+      // cachedMutation.mutate() never rejects — errors go to error signal
+      await store.addTransaction({
+        budgetId: 'budget-1',
+        name: 'Fail',
+        amount: 100,
+        kind: 'expense',
+      });
 
-      // Should rollback to original data
+      // Should rollback to original data (via onError)
       expect(store.transactions().length).toBe(1);
       expect(store.transactions()[0].id).toBe('tx-existing');
     });
@@ -1075,10 +1045,6 @@ describe('DashboardStore - Upcoming Budgets Data', () => {
         provideZonelessChangeDetection(),
         { provide: BudgetApi, useValue: mocks.budgetApi },
         { provide: UserSettingsApi, useValue: mocks.userSettingsApi },
-        {
-          provide: BudgetInvalidationService,
-          useValue: mocks.invalidationService,
-        },
         { provide: DASHBOARD_NOW, useValue: decemberDate },
       ],
     });

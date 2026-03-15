@@ -26,13 +26,12 @@ import {
   type TransactionListResponse,
   transactionListResponseSchema,
 } from 'pulpe-shared';
-import { type Observable, firstValueFrom, from, of } from 'rxjs';
+import { type Observable, of } from 'rxjs';
 import { map, switchMap, tap } from 'rxjs/operators';
 import { ApiClient } from '../api/api-client';
 import { HasBudgetCache } from '../auth/has-budget-cache';
-import { DataCache } from '../cache/data-cache';
+import { DataCache } from 'ngx-ziflux';
 import { TransactionApi } from '../transaction/transaction-api';
-import { BudgetInvalidationService } from './budget-invalidation.service';
 
 export interface CreateBudgetApiResponse {
   readonly budget: Budget;
@@ -45,9 +44,12 @@ export interface CreateBudgetApiResponse {
 export class BudgetApi {
   readonly #api = inject(ApiClient);
   readonly #hasBudgetCache = inject(HasBudgetCache);
-  readonly #invalidationService = inject(BudgetInvalidationService);
   readonly #transactionApi = inject(TransactionApi);
-  readonly cache = new DataCache({ freshTime: 30_000, gcTime: 600_000 });
+  readonly cache = new DataCache({
+    staleTime: 30_000,
+    expireTime: 600_000,
+    name: 'budgets',
+  });
 
   createBudget$(
     templateData: BudgetCreate,
@@ -56,11 +58,7 @@ export class BudgetApi {
     return this.#api
       .post$('/budgets', validatedRequest, budgetResponseSchema)
       .pipe(
-        tap(() => {
-          this.#hasBudgetCache.setHasBudget(true);
-          this.#invalidationService.invalidate();
-          this.cache.invalidate(['budget']);
-        }),
+        tap(() => this.#hasBudgetCache.setHasBudget(true)),
         map((response) => ({
           budget: response.data,
           message: 'Budget créé avec succès à partir du template',
@@ -69,40 +67,24 @@ export class BudgetApi {
   }
 
   getAllBudgets$(): Observable<Budget[]> {
-    const cacheKey: string[] = ['budget', 'list'];
-    const cached = this.cache.get<Budget[]>(cacheKey);
-
-    if (cached?.fresh) {
-      return of(cached.data);
-    }
-
-    return from(
-      this.cache.deduplicate(cacheKey, async () => {
-        const response = await firstValueFrom(
-          this.#api.get$('/budgets', budgetListResponseSchema),
-        );
-        this.#hasBudgetCache.setHasBudget(response.data.length > 0);
-        return response.data;
-      }),
+    return this.#api.get$('/budgets', budgetListResponseSchema).pipe(
+      tap((response) =>
+        this.#hasBudgetCache.setHasBudget(response.data.length > 0),
+      ),
+      map((response) => response.data),
+      map((budgets) =>
+        [...budgets].sort((a, b) => {
+          if (a.year !== b.year) return a.year - b.year;
+          return a.month - b.month;
+        }),
+      ),
     );
   }
 
   checkBudgetExists$(): Observable<boolean> {
-    const cacheKey: string[] = ['budget', 'exists'];
-    const cached = this.cache.get<boolean>(cacheKey);
-
-    if (cached?.fresh) {
-      return of(cached.data);
-    }
-
-    return from(
-      this.cache.deduplicate(cacheKey, async () => {
-        const response = await firstValueFrom(
-          this.#api.get$('/budgets/exists', budgetExistsResponseSchema),
-        );
-        this.#hasBudgetCache.setHasBudget(response.hasBudget);
-        return response.hasBudget;
-      }),
+    return this.#api.get$('/budgets/exists', budgetExistsResponseSchema).pipe(
+      tap((response) => this.#hasBudgetCache.setHasBudget(response.hasBudget)),
+      map((response) => response.hasBudget),
     );
   }
 
@@ -141,92 +123,24 @@ export class BudgetApi {
     transactions: Transaction[];
     budgetLines: BudgetLine[];
   }> {
-    const cacheKey: string[] = ['budget', 'dashboard', month, year];
-    const cached = this.cache.get<{
-      budget: Budget | null;
-      transactions: Transaction[];
-      budgetLines: BudgetLine[];
-    }>(cacheKey);
-
-    if (cached?.fresh) {
-      return of(cached.data);
-    }
-
-    return from(
-      this.cache.deduplicate(cacheKey, async () => {
-        const budget = await firstValueFrom(
-          this.getBudgetForMonth$(month, year),
-        );
-
+    return this.getBudgetForMonth$(month, year).pipe(
+      switchMap((budget) => {
         if (!budget) {
-          return {
+          return of({
             budget: null,
             transactions: [] as Transaction[],
             budgetLines: [] as BudgetLine[],
-          };
+          });
         }
 
-        const detailsCached = this.cache.get<{
-          budgetLines: BudgetLine[];
-          transactions: Transaction[];
-          rollover: number;
-          previousBudgetId: string | null;
-        }>(['budget', 'details', budget.id]);
-
-        if (detailsCached?.fresh) {
-          const details = detailsCached.data;
-          return {
-            budget: {
-              ...budget,
-              rollover: details.rollover,
-              previousBudgetId: details.previousBudgetId,
-            },
-            transactions: details.transactions,
-            budgetLines: details.budgetLines,
-          };
-        }
-
-        const response = await firstValueFrom(
-          this.getBudgetWithDetails$(budget.id),
+        return this.getBudgetWithDetails$(budget.id).pipe(
+          map((response) => ({
+            budget: response.data.budget,
+            transactions: response.data.transactions,
+            budgetLines: response.data.budgetLines,
+          })),
         );
-
-        return {
-          budget: response.data.budget,
-          transactions: response.data.transactions,
-          budgetLines: response.data.budgetLines,
-        };
       }),
-    );
-  }
-
-  seedDashboardCache(
-    month: string,
-    year: string,
-    data: {
-      budget: Budget | null;
-      transactions: Transaction[];
-      budgetLines: BudgetLine[];
-    },
-  ): void {
-    const paddedMonth = month.padStart(2, '0');
-    this.cache.set(['budget', 'dashboard', paddedMonth, year], data);
-  }
-
-  getDashboardCached(
-    month: string,
-    year: string,
-  ): {
-    budget: Budget | null;
-    transactions: Transaction[];
-    budgetLines: BudgetLine[];
-  } | null {
-    const paddedMonth = month.padStart(2, '0');
-    return (
-      this.cache.get<{
-        budget: Budget | null;
-        transactions: Transaction[];
-        budgetLines: BudgetLine[];
-      }>(['budget', 'dashboard', paddedMonth, year])?.data ?? null
     );
   }
 
@@ -240,41 +154,23 @@ export class BudgetApi {
       savings: number;
     }[]
   > {
-    const cacheKey: string[] = ['budget', 'history'];
-    const cached = this.cache.get<
-      {
-        id: string;
-        month: number;
-        year: number;
-        income: number;
-        expenses: number;
-        savings: number;
-      }[]
-    >(cacheKey);
-
-    if (cached?.fresh) {
-      return of(cached.data);
-    }
-
-    return from(
-      this.cache.deduplicate(cacheKey, async () => {
-        const response = await firstValueFrom(
-          this.#api.get$(
-            '/budgets?fields=month,year,totalIncome,totalExpenses,totalSavings&limit=24',
-            budgetSparseListResponseSchema,
-          ),
-        );
-
-        return response.data.map((b) => ({
-          id: b.id,
-          month: b.month!,
-          year: b.year!,
-          income: b.totalIncome ?? 0,
-          expenses: b.totalExpenses ?? 0,
-          savings: b.totalSavings ?? 0,
-        }));
-      }),
-    );
+    return this.#api
+      .get$(
+        '/budgets?fields=month,year,totalIncome,totalExpenses,totalSavings&limit=24',
+        budgetSparseListResponseSchema,
+      )
+      .pipe(
+        map((response) =>
+          response.data.map((b) => ({
+            id: b.id,
+            month: b.month!,
+            year: b.year!,
+            income: b.totalIncome ?? 0,
+            expenses: b.totalExpenses ?? 0,
+            savings: b.totalSavings ?? 0,
+          })),
+        ),
+      );
   }
 
   updateBudget$(
@@ -283,13 +179,7 @@ export class BudgetApi {
   ): Observable<Budget> {
     return this.#api
       .patch$(`/budgets/${budgetId}`, updateData, budgetResponseSchema)
-      .pipe(
-        tap(() => {
-          this.#invalidationService.invalidate();
-          this.cache.invalidate(['budget']);
-        }),
-        map((response) => response.data),
-      );
+      .pipe(map((response) => response.data));
   }
 
   deleteBudget$(budgetId: string): Observable<void> {
@@ -297,11 +187,7 @@ export class BudgetApi {
       switchMap(() =>
         this.#api.get$('/budgets/exists', budgetExistsResponseSchema),
       ),
-      tap((response) => {
-        this.#hasBudgetCache.setHasBudget(response.hasBudget);
-        this.#invalidationService.invalidate();
-        this.cache.invalidate(['budget']);
-      }),
+      tap((response) => this.#hasBudgetCache.setHasBudget(response.hasBudget)),
       map(() => void 0),
     );
   }
@@ -311,126 +197,71 @@ export class BudgetApi {
   }
 
   createBudgetLine$(data: BudgetLineCreate): Observable<BudgetLineResponse> {
-    return this.#api
-      .post$('/budget-lines', data, budgetLineResponseSchema)
-      .pipe(
-        tap(() => {
-          this.#invalidationService.invalidate();
-          this.cache.invalidate(['budget']);
-        }),
-      );
+    return this.#api.post$('/budget-lines', data, budgetLineResponseSchema);
   }
 
   updateBudgetLine$(
     id: string,
     data: BudgetLineUpdate,
   ): Observable<BudgetLineResponse> {
-    return this.#api
-      .patch$(`/budget-lines/${id}`, data, budgetLineResponseSchema)
-      .pipe(
-        tap(() => {
-          this.#invalidationService.invalidate();
-          this.cache.invalidate(['budget']);
-        }),
-      );
+    return this.#api.patch$(
+      `/budget-lines/${id}`,
+      data,
+      budgetLineResponseSchema,
+    );
   }
 
   deleteBudgetLine$(id: string): Observable<BudgetLineDeleteResponse> {
-    return this.#api
-      .delete$(`/budget-lines/${id}`, budgetLineDeleteResponseSchema)
-      .pipe(
-        tap(() => {
-          this.#invalidationService.invalidate();
-          this.cache.invalidate(['budget']);
-        }),
-      );
+    return this.#api.delete$(
+      `/budget-lines/${id}`,
+      budgetLineDeleteResponseSchema,
+    );
   }
 
   resetBudgetLineFromTemplate$(id: string): Observable<BudgetLineResponse> {
-    return this.#api
-      .post$(
-        `/budget-lines/${id}/reset-from-template`,
-        {},
-        budgetLineResponseSchema,
-      )
-      .pipe(
-        tap(() => {
-          this.#invalidationService.invalidate();
-          this.cache.invalidate(['budget']);
-        }),
-      );
+    return this.#api.post$(
+      `/budget-lines/${id}/reset-from-template`,
+      {},
+      budgetLineResponseSchema,
+    );
   }
 
   toggleBudgetLineCheck$(budgetLineId: string): Observable<BudgetLineResponse> {
-    return this.#api
-      .post$(
-        `/budget-lines/${budgetLineId}/toggle-check`,
-        {},
-        budgetLineResponseSchema,
-      )
-      .pipe(
-        tap(() => {
-          this.#invalidationService.invalidate();
-          this.cache.invalidate(['budget']);
-        }),
-      );
+    return this.#api.post$(
+      `/budget-lines/${budgetLineId}/toggle-check`,
+      {},
+      budgetLineResponseSchema,
+    );
   }
 
   checkBudgetLineTransactions$(
     budgetLineId: string,
   ): Observable<TransactionListResponse> {
-    return this.#api
-      .post$(
-        `/budget-lines/${budgetLineId}/check-transactions`,
-        {},
-        transactionListResponseSchema,
-      )
-      .pipe(
-        tap(() => {
-          this.#invalidationService.invalidate();
-          this.cache.invalidate(['budget']);
-        }),
-      );
+    return this.#api.post$(
+      `/budget-lines/${budgetLineId}/check-transactions`,
+      {},
+      transactionListResponseSchema,
+    );
   }
 
   createTransaction$(
     data: TransactionCreate,
   ): Observable<TransactionCreateResponse> {
-    return this.#transactionApi.create$(data).pipe(
-      tap(() => {
-        this.#invalidationService.invalidate();
-        this.cache.invalidate(['budget']);
-      }),
-    );
+    return this.#transactionApi.create$(data);
   }
 
   updateTransaction$(
     id: string,
     data: TransactionUpdate,
   ): Observable<TransactionUpdateResponse> {
-    return this.#transactionApi.update$(id, data).pipe(
-      tap(() => {
-        this.#invalidationService.invalidate();
-        this.cache.invalidate(['budget']);
-      }),
-    );
+    return this.#transactionApi.update$(id, data);
   }
 
   deleteTransaction$(id: string): Observable<void> {
-    return this.#transactionApi.remove$(id).pipe(
-      tap(() => {
-        this.#invalidationService.invalidate();
-        this.cache.invalidate(['budget']);
-      }),
-    );
+    return this.#transactionApi.remove$(id);
   }
 
   toggleTransactionCheck$(id: string): Observable<TransactionUpdateResponse> {
-    return this.#transactionApi.toggleCheck$(id).pipe(
-      tap(() => {
-        this.#invalidationService.invalidate();
-        this.cache.invalidate(['budget']);
-      }),
-    );
+    return this.#transactionApi.toggleCheck$(id);
   }
 }

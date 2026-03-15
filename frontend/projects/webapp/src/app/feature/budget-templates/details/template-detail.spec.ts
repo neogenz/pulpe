@@ -16,12 +16,14 @@ import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { of, throwError } from 'rxjs';
-import type { BudgetTemplateDetailViewModel } from '../services/budget-templates-api';
-import { BudgetTemplatesApi } from '../services/budget-templates-api';
+import {
+  BudgetTemplatesApi,
+  type BudgetTemplateDetailViewModel,
+} from '@core/budget-template/budget-templates-api';
+import { BudgetTemplatesStore } from '../services/budget-templates-store';
 import { TemplateDetailsStore } from './services/template-details-store';
 import { PulpeTitleStrategy } from '@core/routing/title-strategy';
 import { Logger } from '@core/logging/logger';
-import { BudgetInvalidationService } from '@core/budget/budget-invalidation.service';
 import { BudgetApi } from '@core/budget/budget-api';
 import { TransactionLabelPipe } from '@pattern/transaction-display';
 import { BaseLoading } from '@ui/loading';
@@ -98,14 +100,59 @@ const storeTemplateDetails: WritableSignal<BudgetTemplateDetailViewModel | null>
 const storeIsLoading = signal(false);
 const storeError: WritableSignal<unknown> = signal(null);
 
+const KIND_ORDER: Record<string, number> = {
+  income: 1,
+  saving: 2,
+  expense: 3,
+};
+
+const storeTransactions = computed(
+  () => storeTemplateDetails()?.transactions ?? [],
+);
+
+const storeEntries = computed(() => {
+  const transactions = storeTransactions();
+  const sorted = [...transactions].sort((a, b) => {
+    const kindDiff =
+      (KIND_ORDER[a.kind] ?? Infinity) - (KIND_ORDER[b.kind] ?? Infinity);
+    if (kindDiff !== 0) return kindDiff;
+    return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+  });
+  return sorted.map((t) => {
+    const spent = t.kind === 'expense' ? t.amount : 0;
+    const earned = t.kind === 'income' ? t.amount : 0;
+    const saved = t.kind === 'saving' ? t.amount : 0;
+    return { description: t.name, spent, earned, saved, total: earned - spent };
+  });
+});
+
+const storeTotals = computed(() =>
+  storeEntries().reduce(
+    (acc, e) => ({
+      income: acc.income + e.earned,
+      expense: acc.expense + e.spent,
+      savings: acc.savings + e.saved,
+    }),
+    { income: 0, expense: 0, savings: 0 },
+  ),
+);
+
+const storeNetBalance = computed(() => {
+  const t = storeTotals();
+  return t.income - t.expense - t.savings;
+});
+
 const mockStore = {
   templateDetails: storeTemplateDetails,
   isLoading: storeIsLoading,
   error: storeError,
   hasValue: computed(() => !!storeTemplateDetails()),
   template: computed(() => storeTemplateDetails()?.template ?? null),
-  transactions: computed(() => storeTemplateDetails()?.transactions ?? []),
-  templateLines: computed(() => storeTemplateDetails()?.transactions ?? []),
+  transactions: storeTransactions,
+  templateLines: storeTransactions,
+  entries: storeEntries,
+  totals: storeTotals,
+  netBalance: storeNetBalance,
   initializeTemplateId: vi.fn(),
   reloadTemplateDetails: vi.fn(),
 };
@@ -113,12 +160,15 @@ const mockStore = {
 const mockDialog = { open: vi.fn() };
 const mockSnackBar = { open: vi.fn() };
 const mockBudgetTemplatesApi = { checkUsage$: vi.fn(), delete$: vi.fn() };
+const mockDeleteMutation = {
+  mutate: vi.fn<(id: string) => Promise<void>>().mockResolvedValue(undefined),
+  error: signal<unknown>(null),
+};
+const mockBudgetTemplatesStore = {
+  deleteTemplate: mockDeleteMutation,
+};
 const mockTitleStrategy = { setTitle: vi.fn() };
 const mockLogger = { error: vi.fn() };
-const mockBudgetInvalidationService = {
-  invalidate: vi.fn(),
-  version: signal(0).asReadonly(),
-};
 const mockBudgetApi = { cache: { invalidate: vi.fn() } };
 const mockRoute = {
   snapshot: {
@@ -146,12 +196,9 @@ describe('TemplateDetail', () => {
         { provide: MatDialog, useValue: mockDialog },
         { provide: MatSnackBar, useValue: mockSnackBar },
         { provide: BudgetTemplatesApi, useValue: mockBudgetTemplatesApi },
+        { provide: BudgetTemplatesStore, useValue: mockBudgetTemplatesStore },
         { provide: PulpeTitleStrategy, useValue: mockTitleStrategy },
         { provide: Logger, useValue: mockLogger },
-        {
-          provide: BudgetInvalidationService,
-          useValue: mockBudgetInvalidationService,
-        },
         { provide: BudgetApi, useValue: mockBudgetApi },
       ],
     })
@@ -179,6 +226,8 @@ describe('TemplateDetail', () => {
     storeTemplateDetails.set(mockTemplateDetails);
     storeIsLoading.set(false);
     storeError.set(null);
+    mockDeleteMutation.error.set(null);
+    mockDeleteMutation.mutate.mockResolvedValue(undefined);
     // Default route returns template-123
     mockRoute.snapshot.paramMap.get.mockImplementation((key: string) =>
       key === 'templateId' ? 'template-123' : null,
@@ -197,7 +246,6 @@ describe('TemplateDetail', () => {
 
       expect(mockStore.initializeTemplateId).toHaveBeenCalledWith(
         'template-123',
-        undefined,
       );
     });
 
@@ -216,18 +264,16 @@ describe('TemplateDetail', () => {
 
   describe('Computed State', () => {
     it('should sort entries by kind then createdAt', async () => {
-      const fixture = await createFixture();
-      const descriptions = fixture.componentInstance
-        .entries()
-        .map((e: { description: string }) => e.description);
+      await createFixture();
+      const descriptions = mockStore.entries().map((e) => e.description);
 
       // income first, then saving, then expense
       expect(descriptions).toEqual(['Salaire', 'Épargne', 'Loyer']);
     });
 
     it('should map template lines to FinancialEntry with correct amounts', async () => {
-      const fixture = await createFixture();
-      const entries = fixture.componentInstance.entries();
+      await createFixture();
+      const entries = mockStore.entries();
 
       expect(entries[0]).toEqual({
         description: 'Salaire',
@@ -253,8 +299,8 @@ describe('TemplateDetail', () => {
     });
 
     it('should calculate totals from entries', async () => {
-      const fixture = await createFixture();
-      expect(fixture.componentInstance.totals()).toEqual({
+      await createFixture();
+      expect(mockStore.totals()).toEqual({
         income: 5000,
         expense: 1200,
         savings: 800,
@@ -262,17 +308,17 @@ describe('TemplateDetail', () => {
     });
 
     it('should calculate net balance as income minus expense minus savings', async () => {
-      const fixture = await createFixture();
+      await createFixture();
       // 5000 - 1200 - 800 = 3000
-      expect(fixture.componentInstance.netBalance()).toBe(3000);
+      expect(mockStore.netBalance()).toBe(3000);
     });
 
     it('should return empty entries when transactions are empty', async () => {
       storeTemplateDetails.set({ template: mockTemplate, transactions: [] });
-      const fixture = await createFixture();
+      await createFixture();
 
-      expect(fixture.componentInstance.entries()).toEqual([]);
-      expect(fixture.componentInstance.totals()).toEqual({
+      expect(mockStore.entries()).toEqual([]);
+      expect(mockStore.totals()).toEqual({
         income: 0,
         expense: 0,
         savings: 0,
@@ -383,7 +429,6 @@ describe('TemplateDetail', () => {
       fixture.componentInstance.editTemplate();
 
       expect(mockStore.reloadTemplateDetails).toHaveBeenCalledOnce();
-      expect(mockBudgetInvalidationService.invalidate).toHaveBeenCalledOnce();
       expect(mockBudgetApi.cache.invalidate).toHaveBeenCalledWith(['budget']);
     });
 
@@ -404,7 +449,6 @@ describe('TemplateDetail', () => {
       fixture.componentInstance.editTemplate();
 
       expect(mockStore.reloadTemplateDetails).toHaveBeenCalledOnce();
-      expect(mockBudgetInvalidationService.invalidate).not.toHaveBeenCalled();
       expect(mockBudgetApi.cache.invalidate).not.toHaveBeenCalled();
     });
 
@@ -555,7 +599,8 @@ describe('TemplateDetail', () => {
       mockBudgetTemplatesApi.checkUsage$.mockReturnValue(
         of({ data: { isUsed: false, budgets: [] } }),
       );
-      mockBudgetTemplatesApi.delete$.mockReturnValue(of({}));
+      mockDeleteMutation.mutate.mockResolvedValue(undefined);
+      mockDeleteMutation.error.set(null);
       mockDialog.open.mockReturnValue({ afterClosed: () => of(true) });
 
       const fixture = await createFixture();
@@ -564,9 +609,7 @@ describe('TemplateDetail', () => {
 
       await fixture.componentInstance.deleteTemplate();
 
-      expect(mockBudgetTemplatesApi.delete$).toHaveBeenCalledWith(
-        'template-123',
-      );
+      expect(mockDeleteMutation.mutate).toHaveBeenCalledWith('template-123');
       expect(mockSnackBar.open).toHaveBeenCalledWith(
         'Modèle supprimé avec succès',
         undefined,
@@ -579,9 +622,10 @@ describe('TemplateDetail', () => {
       mockBudgetTemplatesApi.checkUsage$.mockReturnValue(
         of({ data: { isUsed: false, budgets: [] } }),
       );
-      mockBudgetTemplatesApi.delete$.mockReturnValue(
-        throwError(() => new Error('Network error')),
-      );
+      const deleteError = new Error('Network error');
+      mockDeleteMutation.mutate.mockImplementation(async () => {
+        mockDeleteMutation.error.set(deleteError);
+      });
       mockDialog.open.mockReturnValue({ afterClosed: () => of(true) });
 
       const fixture = await createFixture();

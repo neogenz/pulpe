@@ -357,6 +357,14 @@
     "exportExcelDone": "Export Excel terminé — fichier téléchargé",
     "exportError": "L'export a échoué — réessaie",
     "exportExcelError": "L'export Excel a échoué — réessaie",
+    "exportJsonTooltip": "Exporter tous les budgets en JSON",
+    "exportJsonAriaLabel": "Exporter en JSON",
+    "exportExcelTooltip": "Exporter tous les budgets en Excel",
+    "exportExcelAriaLabel": "Exporter en Excel",
+    "searchTooltip": "Rechercher dans les transactions",
+    "searchAriaLabel": "Rechercher",
+    "addShort": "Ajouter",
+    "addBudget": "Ajouter un budget",
     "modificationSaved": "Modification enregistrée",
     "transactionAdded": "Transaction ajoutée",
     "envelopes": "Tes enveloppes",
@@ -558,7 +566,8 @@
     "colAmount": "Montant",
     "colType": "Type",
     "colTotal": "Total",
-    "colActions": "Actions"
+    "colActions": "Actions",
+    "saveError": "Une erreur est survenue lors de la sauvegarde"
   },
   "currentMonth": {
     "pageTitle": "Tableau de bord",

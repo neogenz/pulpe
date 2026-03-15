@@ -1,7 +1,7 @@
 import { Injectable, inject, DestroyRef } from '@angular/core';
 
 import { BudgetApi } from '@core/budget';
-import { BudgetInvalidationService } from '../budget/budget-invalidation.service';
+import { BudgetTemplatesApi } from '@core/budget-template/budget-templates-api';
 import { ClientKeyService } from '@core/encryption';
 
 import { DemoModeService } from '../demo/demo-mode.service';
@@ -21,7 +21,7 @@ const CLEANUP_RESET_DELAY_MS = 100;
 })
 export class AuthCleanupService {
   readonly #budgetApi = inject(BudgetApi);
-  readonly #budgetInvalidationService = inject(BudgetInvalidationService);
+  readonly #budgetTemplatesApi = inject(BudgetTemplatesApi);
   readonly #clientKeyService = inject(ClientKeyService);
   readonly #demoModeService = inject(DemoModeService);
   readonly #hasBudgetCache = inject(HasBudgetCache);
@@ -72,11 +72,11 @@ export class AuthCleanupService {
         () => this.#budgetApi.cache.clear(),
         'budget data cache',
       );
-      this.#safeCleanup(() => this.#preloadService.reset(), 'preload state');
       this.#safeCleanup(
-        () => this.#budgetInvalidationService.reset(),
-        'budget invalidation',
+        () => this.#budgetTemplatesApi.cache.clear(),
+        'templates data cache',
       );
+      this.#safeCleanup(() => this.#preloadService.reset(), 'preload state');
       this.#safeCleanup(() => this.#userSettingsApi.reset(), 'user settings');
       this.#safeCleanup(() => this.#postHogService.reset(), 'PostHog');
       this.#safeCleanup(

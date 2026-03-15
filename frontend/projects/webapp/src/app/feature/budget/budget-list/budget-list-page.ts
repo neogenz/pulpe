@@ -71,8 +71,8 @@ const YEARS_TO_DISPLAY = 8; // Current year + 7 future years for planning
             matIconButton
             (click)="onExportBudgets()"
             [disabled]="isExporting()"
-            matTooltip="Exporter tous les budgets en JSON"
-            aria-label="Exporter en JSON"
+            [matTooltip]="'budget.exportJsonTooltip' | transloco"
+            [attr.aria-label]="'budget.exportJsonAriaLabel' | transloco"
             data-testid="export-budgets-btn"
           >
             @if (isExporting()) {
@@ -85,8 +85,8 @@ const YEARS_TO_DISPLAY = 8; // Current year + 7 future years for planning
             matIconButton
             (click)="onExportBudgetsAsExcel()"
             [disabled]="isExportingExcel()"
-            matTooltip="Exporter tous les budgets en Excel"
-            aria-label="Exporter en Excel"
+            [matTooltip]="'budget.exportExcelTooltip' | transloco"
+            [attr.aria-label]="'budget.exportExcelAriaLabel' | transloco"
             data-testid="export-budgets-excel-btn"
           >
             @if (isExportingExcel()) {
@@ -98,8 +98,8 @@ const YEARS_TO_DISPLAY = 8; // Current year + 7 future years for planning
           <button
             matIconButton
             (click)="openSearchDialog()"
-            matTooltip="Rechercher dans les transactions"
-            aria-label="Rechercher"
+            [matTooltip]="'budget.searchTooltip' | transloco"
+            [attr.aria-label]="'budget.searchAriaLabel' | transloco"
             data-testid="search-transactions-btn"
           >
             <mat-icon>search</mat-icon>
@@ -107,53 +107,47 @@ const YEARS_TO_DISPLAY = 8; // Current year + 7 future years for planning
           <button
             matButton="filled"
             (click)="openCreateBudgetDialog()"
-            [disabled]="state.budgets.isLoading()"
+            [disabled]="state.isLoading()"
             data-testid="create-budget-btn"
             data-tour="create-budget"
           >
             <mat-icon class="md:inline hidden">add_circle</mat-icon>
-            <span class="md:hidden">Ajouter</span>
-            <span class="hidden md:inline">Ajouter un budget</span>
+            <span class="md:hidden">{{ 'budget.addShort' | transloco }}</span>
+            <span class="hidden md:inline">{{
+              'budget.addBudget' | transloco
+            }}</span>
           </button>
         </div>
       </header>
 
-      @switch (true) {
-        @case (state.budgets.status() === 'loading') {
-          <pulpe-base-loading
-            [message]="'budget.loadingBudgets' | transloco"
-            size="large"
-            testId="months-loading"
-          />
-        }
-        @case (state.budgets.status() === 'error') {
-          <pulpe-months-error (reload)="state.refreshData()" />
-        }
-        @case (
-          state.budgets.status() === 'resolved' ||
-          state.budgets.status() === 'local' ||
-          state.budgets.status() === 'reloading'
-        ) {
-          <mat-tab-group
-            mat-stretch-tabs="false"
-            mat-align-tabs="start"
-            fitInkBarToContent
-            [selectedIndex]="state.selectedYearIndex()"
-            (selectedIndexChange)="onTabChange($event)"
-            data-tour="year-tabs"
-          >
-            @for (budgetsOfYear of calendarYears(); track budgetsOfYear.year) {
-              <mat-tab [label]="budgetsOfYear.year.toString()">
-                <pulpe-year-calendar
-                  [calendarYear]="budgetsOfYear"
-                  [currentDate]="currentDate()"
-                  (monthClick)="navigateToDetails($event)"
-                  (createMonth)="onCreateMonth($event)"
-                />
-              </mat-tab>
-            }
-          </mat-tab-group>
-        }
+      @if (state.isLoading()) {
+        <pulpe-base-loading
+          [message]="'budget.loadingBudgets' | transloco"
+          size="large"
+          testId="months-loading"
+        />
+      } @else if (state.error()) {
+        <pulpe-months-error (reload)="state.refreshData()" />
+      } @else {
+        <mat-tab-group
+          mat-stretch-tabs="false"
+          mat-align-tabs="start"
+          fitInkBarToContent
+          [selectedIndex]="selectedYearIndex()"
+          (selectedIndexChange)="onTabChange($event)"
+          data-tour="year-tabs"
+        >
+          @for (budgetsOfYear of calendarYears(); track budgetsOfYear.year) {
+            <mat-tab [label]="budgetsOfYear.year.toString()">
+              <pulpe-year-calendar
+                [calendarYear]="budgetsOfYear"
+                [currentDate]="currentDate()"
+                (monthClick)="navigateToDetails($event)"
+                (createMonth)="onCreateMonth($event)"
+              />
+            </mat-tab>
+          }
+        </mat-tab-group>
       }
     </div>
   `,
@@ -206,6 +200,14 @@ export default class BudgetListPage {
       }
     });
   }
+
+  protected readonly selectedYearIndex = computed(() => {
+    const year = this.state.selectedYear();
+    const years = this.calendarYears();
+    if (!year || years.length === 0) return 0;
+    const idx = years.findIndex((y) => y.year === year);
+    return Math.max(0, idx);
+  });
 
   protected readonly calendarYears = computed<CalendarYear[]>(() => {
     const currentYear = new Date().getFullYear();
@@ -292,7 +294,7 @@ export default class BudgetListPage {
         },
       });
 
-      // Store auto-refreshes via BudgetInvalidationService when budget is created
+      // Store auto-refreshes via cache invalidation when budget is created
       await firstValueFrom(dialogRef.afterClosed());
     } catch (error) {
       this.#logger.error('Error opening create budget dialog', error);
@@ -305,9 +307,9 @@ export default class BudgetListPage {
   }
 
   onTabChange(selectedIndex: number): void {
-    const availableYears = this.state.plannedYears();
-    if (selectedIndex >= 0 && selectedIndex < availableYears.length) {
-      this.state.setSelectedYear(availableYears[selectedIndex]);
+    const years = this.calendarYears();
+    if (selectedIndex >= 0 && selectedIndex < years.length) {
+      this.state.setSelectedYear(years[selectedIndex].year);
     }
   }
 
@@ -322,7 +324,7 @@ export default class BudgetListPage {
         data: { month, year },
       });
 
-      // Store auto-refreshes via BudgetInvalidationService when budget is created
+      // Store auto-refreshes via cache invalidation when budget is created
       await firstValueFrom(dialogRef.afterClosed());
     } catch (error) {
       this.#logger.error('Error opening create budget dialog', error);

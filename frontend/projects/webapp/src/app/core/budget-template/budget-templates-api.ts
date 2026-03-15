@@ -23,10 +23,18 @@ import {
   templateUsageResponseSchema,
 } from 'pulpe-shared';
 import { ApiClient } from '@core/api/api-client';
+import { DataCache } from 'ngx-ziflux';
 
-@Injectable()
+@Injectable({
+  providedIn: 'root',
+})
 export class BudgetTemplatesApi {
   readonly #api = inject(ApiClient);
+  readonly cache = new DataCache({
+    name: 'templates',
+    staleTime: 30_000,
+    expireTime: 300_000,
+  });
 
   getAll$(): Observable<BudgetTemplateListResponse> {
     return this.#api.get$(
@@ -109,6 +117,15 @@ export class BudgetTemplatesApi {
       `/budget-templates/${id}`,
       budgetTemplateDeleteResponseSchema,
     );
+  }
+
+  cacheTemplateDetail(data: BudgetTemplateCreateResponse['data']): void {
+    if (data.template) {
+      this.cache.set(['templates', 'details', data.template.id], {
+        template: data.template,
+        transactions: data.lines ?? [],
+      });
+    }
   }
 
   checkUsage$(id: string): Observable<TemplateUsageResponse> {

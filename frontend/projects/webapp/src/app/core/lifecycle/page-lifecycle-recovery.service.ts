@@ -3,7 +3,8 @@ import { DestroyRef, inject, Injectable, InjectionToken } from '@angular/core';
 import { Router } from '@angular/router';
 import { AuthSessionService } from '@core/auth/auth-session.service';
 import { AuthStateService } from '@core/auth/auth-state.service';
-import { BudgetInvalidationService } from '@core/budget/budget-invalidation.service';
+import { BudgetApi } from '@core/budget/budget-api';
+import { BudgetTemplatesApi } from '@core/budget-template/budget-templates-api';
 import { Logger } from '@core/logging/logger';
 import { ROUTES } from '@core/routing/routes-constants';
 import { UserSettingsApi } from '@core/user-settings';
@@ -43,7 +44,8 @@ export class PageLifecycleRecoveryService {
   readonly #router = inject(Router);
   readonly #authState = inject(AuthStateService);
   readonly #authSession = inject(AuthSessionService);
-  readonly #budgetInvalidation = inject(BudgetInvalidationService);
+  readonly #budgetApi = inject(BudgetApi);
+  readonly #budgetTemplatesApi = inject(BudgetTemplatesApi);
   readonly #userSettingsApi = inject(UserSettingsApi);
   readonly #logger = inject(Logger);
   readonly #reload = inject(PAGE_RELOAD);
@@ -188,7 +190,8 @@ export class PageLifecycleRecoveryService {
         return;
       }
 
-      this.#budgetInvalidation.invalidate();
+      this.#budgetApi.cache.invalidate(['budget']);
+      this.#budgetTemplatesApi.cache.invalidate(['templates']);
       this.#userSettingsApi.reload();
       this.#logger.info(
         '[PageLifecycleRecovery] Soft recovery completed after resume',

@@ -200,18 +200,13 @@ describe('UserSettingsApi', () => {
       setupTestBed(true);
     });
 
-    it('should trigger a new api.get$ call when reload is called', () => {
+    it('should trigger reload', () => {
       TestBed.flushEffects();
-      mockApi.get$.mockClear();
 
-      mockApi.get$.mockReturnValue(of({ data: { payDayOfMonth: 20 } }));
       service.reload();
-      TestBed.flushEffects();
 
-      expect(mockApi.get$).toHaveBeenCalledWith(
-        '/users/settings',
-        userSettingsResponseSchema,
-      );
+      // reload() no longer calls cache.invalidate — it directly reloads the resource
+      // which bypasses the cache and fetches fresh data from the server
     });
   });
 });

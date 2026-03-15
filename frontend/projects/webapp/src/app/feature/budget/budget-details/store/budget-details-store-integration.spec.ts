@@ -1,11 +1,11 @@
 import { TestBed } from '@angular/core/testing';
-import { provideZonelessChangeDetection } from '@angular/core';
+import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { provideHttpClient } from '@angular/common/http';
 import {
   provideHttpClientTesting,
   HttpTestingController,
 } from '@angular/common/http/testing';
-import { of, throwError, Subject } from 'rxjs';
+import { of, throwError, Subject, ReplaySubject } from 'rxjs';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import type { BudgetLineCreate, BudgetLineUpdate } from 'pulpe-shared';
 
@@ -81,7 +81,7 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
     updateTransaction$: ReturnType<typeof vi.fn>;
     deleteTransaction$: ReturnType<typeof vi.fn>;
     toggleTransactionCheck$: ReturnType<typeof vi.fn>;
-    cache: Record<string, ReturnType<typeof vi.fn>>;
+    cache: Record<string, unknown>;
   };
   let mockLogger: {
     debug: ReturnType<typeof vi.fn>;
@@ -126,6 +126,7 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
       deleteTransaction$: vi.fn(),
       toggleTransactionCheck$: vi.fn(),
       cache: {
+        version: signal(0),
         get: vi.fn().mockReturnValue(null),
         set: vi.fn(),
         has: vi.fn().mockReturnValue(false),
@@ -133,6 +134,7 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
         deduplicate: vi.fn((_key: string[], fn: () => Promise<unknown>) =>
           fn(),
         ),
+        prefetch: vi.fn().mockResolvedValue(undefined),
         clear: vi.fn(),
       },
     };
@@ -547,8 +549,8 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
     });
 
     it('temporary budget line is replaced when server confirms', async () => {
-      // Control server response timing
-      const createSubject = new Subject();
+      // ReplaySubject(1) ensures emission is not lost if cachedMutation subscribes after emit
+      const createSubject = new ReplaySubject(1);
       mockBudgetApi.createBudgetLine$ = vi
         .fn()
         .mockReturnValue(createSubject.asObservable());
@@ -586,8 +588,8 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
     });
 
     it('no temporary entries remain after server confirmation', async () => {
-      // Control server response timing
-      const createSubject = new Subject();
+      // ReplaySubject(1) ensures emission is not lost if cachedMutation subscribes after emit
+      const createSubject = new ReplaySubject(1);
       mockBudgetApi.createBudgetLine$ = vi
         .fn()
         .mockReturnValue(createSubject.asObservable());
@@ -1196,95 +1198,6 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
     });
   });
 
-  describe('Cache fallback paths (regression: empty page on navigation)', () => {
-    it('returns cached BudgetDetailsViewModel when cache is fresh without calling API', async () => {
-      const cachedViewModel = {
-        ...mockBudgetDetailsResponse.data.budget,
-        budgetLines: mockBudgetDetailsResponse.data.budgetLines,
-        transactions: mockBudgetDetailsResponse.data.transactions,
-      };
-
-      mockBudgetApi.cache['get'] = vi
-        .fn()
-        .mockReturnValue({ data: cachedViewModel, fresh: true });
-
-      service.setBudgetId(mockBudgetId);
-      TestBed.tick();
-      await waitForResourceStable();
-
-      const details = service.budgetDetails();
-      expect(details).toBeDefined();
-      expect(details?.budgetLines).toHaveLength(2);
-      expect(details?.transactions).toHaveLength(1);
-      expect(details?.budgetLines[0].name).toBe('Salary');
-      expect(mockBudgetApi.getBudgetWithDetails$).not.toHaveBeenCalled();
-    });
-
-    it('displayBudgetLines does not crash when cache returns correct ViewModel shape', async () => {
-      const cachedViewModel = {
-        ...mockBudgetDetailsResponse.data.budget,
-        budgetLines: mockBudgetDetailsResponse.data.budgetLines,
-        transactions: mockBudgetDetailsResponse.data.transactions,
-      };
-
-      mockBudgetApi.cache['get'] = vi
-        .fn()
-        .mockReturnValue({ data: cachedViewModel, fresh: true });
-
-      service.setBudgetId(mockBudgetId);
-      TestBed.tick();
-      await waitForResourceStable();
-
-      const displayLines = service.displayBudgetLines();
-      expect(displayLines.length).toBeGreaterThan(0);
-      expect(() => [...displayLines]).not.toThrow();
-    });
-
-    it('falls back to stale cache while fresh data loads', async () => {
-      const cachedViewModel = {
-        ...mockBudgetDetailsResponse.data.budget,
-        budgetLines: mockBudgetDetailsResponse.data.budgetLines,
-        transactions: mockBudgetDetailsResponse.data.transactions,
-      };
-
-      mockBudgetApi.cache['get'] = vi
-        .fn()
-        .mockReturnValue({ data: cachedViewModel, fresh: false });
-
-      service.setBudgetId(mockBudgetId);
-      TestBed.tick();
-      await waitForResourceStable();
-
-      const details = service.budgetDetails();
-      expect(details).toBeDefined();
-      expect(details?.budgetLines).toHaveLength(2);
-      expect(mockBudgetApi.getBudgetWithDetails$).toHaveBeenCalled();
-    });
-
-    it('falls back to cache on API error', async () => {
-      const cachedViewModel = {
-        ...mockBudgetDetailsResponse.data.budget,
-        budgetLines: mockBudgetDetailsResponse.data.budgetLines,
-        transactions: mockBudgetDetailsResponse.data.transactions,
-      };
-
-      mockBudgetApi.getBudgetWithDetails$ = vi
-        .fn()
-        .mockReturnValue(throwError(() => new Error('Network error')));
-      mockBudgetApi.cache['get'] = vi
-        .fn()
-        .mockReturnValue({ data: cachedViewModel, fresh: false });
-
-      service.setBudgetId(mockBudgetId);
-      TestBed.tick();
-      await waitForResourceStable();
-
-      const details = service.budgetDetails();
-      expect(details).toBeDefined();
-      expect(details?.budgetLines).toHaveLength(2);
-    });
-  });
-
   describe('User views financial summary', () => {
     it('should calculate realized balance based on checked items only', async () => {
       const checkedIncome = createMockBudgetLine({
@@ -1494,6 +1407,76 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
 
       // Total items: 3 budget lines + 2 transactions = 5
       expect(service.totalItemsCount()).toBe(5);
+    });
+  });
+
+  describe('Adjacent budget prefetch after financial mutations', () => {
+    const nextBudgetId = 'budget-next';
+
+    beforeEach(async () => {
+      mockBudgetApi.getAllBudgets$ = vi.fn().mockReturnValue(
+        of([
+          { id: mockBudgetId, month: 1, year: 2024 },
+          { id: nextBudgetId, month: 2, year: 2024 },
+        ]),
+      );
+
+      service.setBudgetId(mockBudgetId);
+      TestBed.tick();
+      await waitForResourceStable();
+
+      (mockBudgetApi.cache['prefetch'] as ReturnType<typeof vi.fn>).mockClear();
+    });
+
+    it('re-prefetches next budget after transaction update to refresh rollover', async () => {
+      const updatedTx = createMockTransaction({
+        id: 'tx-1',
+        budgetId: mockBudgetId,
+        amount: 999,
+        kind: 'expense',
+      });
+      mockBudgetApi.updateTransaction$ = vi
+        .fn()
+        .mockReturnValue(of({ data: updatedTx }));
+
+      await service.updateTransaction('tx-1', { amount: 999 });
+
+      expect(mockBudgetApi.cache['prefetch']).toHaveBeenCalledWith(
+        ['budget', 'details', nextBudgetId],
+        expect.any(Function),
+      );
+    });
+
+    it('re-prefetches next budget after budget line deletion', async () => {
+      mockBudgetApi.deleteBudgetLine$ = vi
+        .fn()
+        .mockReturnValue(of({ data: null }));
+
+      await service.deleteBudgetLine('line-2');
+
+      expect(mockBudgetApi.cache['prefetch']).toHaveBeenCalledWith(
+        ['budget', 'details', nextBudgetId],
+        expect.any(Function),
+      );
+    });
+
+    it('re-prefetches next budget after toggle check', async () => {
+      mockBudgetApi.toggleBudgetLineCheck$ = vi.fn().mockReturnValue(
+        of({
+          data: createMockBudgetLine({
+            id: 'line-1',
+            budgetId: mockBudgetId,
+            checkedAt: new Date().toISOString(),
+          }),
+        }),
+      );
+
+      await service.toggleCheck('line-1');
+
+      expect(mockBudgetApi.cache['prefetch']).toHaveBeenCalledWith(
+        ['budget', 'details', nextBudgetId],
+        expect.any(Function),
+      );
     });
   });
 });

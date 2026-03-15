@@ -1,54 +1,35 @@
-import {
-  Injectable,
-  computed,
-  inject,
-  linkedSignal,
-  resource,
-} from '@angular/core';
+import { Injectable, computed, inject, linkedSignal } from '@angular/core';
 import { BudgetApi } from '@core/budget/budget-api';
-import { BudgetInvalidationService } from '@core/budget/budget-invalidation.service';
-import { Logger } from '@core/logging/logger';
 import { type Budget } from 'pulpe-shared';
-import { firstValueFrom } from 'rxjs';
+import { cachedResource } from 'ngx-ziflux';
 
 export interface BudgetPlaceholder {
   month: number;
   year: number;
 }
 
+const MAX_FUTURE_MONTHS_TO_SEARCH = 36;
+
 @Injectable()
 export class BudgetListStore {
   readonly #budgetApi = inject(BudgetApi);
-  readonly #logger = inject(Logger);
-  readonly #invalidationService = inject(BudgetInvalidationService);
 
-  private static readonly MAX_FUTURE_MONTHS_TO_SEARCH = 36;
-
-  /**
-   * Resource that auto-reloads when budget invalidation version changes.
-   * This enables automatic cache invalidation across stores.
-   */
-  readonly budgets = resource<Budget[], { version: number }>({
-    params: () => ({ version: this.#invalidationService.version() }),
-    loader: async () => this.#loadBudgets(),
+  readonly budgets = cachedResource({
+    cache: this.#budgetApi.cache,
+    cacheKey: ['budget', 'list'],
+    loader: () => this.#budgetApi.getAllBudgets$(),
   });
 
-  readonly isLoading = computed(() => this.budgets.isLoading());
+  readonly isLoading = this.budgets.isInitialLoading;
   readonly hasValue = computed(() => this.budgets.hasValue());
   readonly error = computed(() => this.budgets.error());
 
-  readonly budgetsList = computed(() => {
-    const resourceValue = this.budgets.value();
-    if (resourceValue) return resourceValue;
-
-    const cached = this.#budgetApi.cache.get<Budget[]>(['budget', 'list']);
-    return cached ? this.#sortBudgets(cached.data) : [];
-  });
+  readonly budgetsList = computed(() => this.budgets.value() ?? []);
 
   readonly plannedYears = computed(() => {
     const months = this.budgetsList();
     const years = [...new Set(months.map((month) => month.year))];
-    return years.sort((a, b) => a - b); // Tri croissant
+    return years.toSorted((a, b) => a - b); // Tri croissant
   });
 
   /**
@@ -67,7 +48,7 @@ export class BudgetListStore {
     groupedByYear.forEach((months, year) => {
       groupedByYear.set(
         year,
-        months.sort((a, b) => b.month - a.month),
+        months.toSorted((a, b) => b.month - a.month),
       );
     });
 
@@ -107,26 +88,9 @@ export class BudgetListStore {
 
   readonly selectedYear = linkedSignal<number[], number | null>({
     source: this.plannedYears,
-    computation: (years, previous) => {
-      // Garder la sélection précédente si elle existe encore
-      const currentYear = previous?.value ?? new Date().getFullYear();
-      const isExistingYear = years.includes(currentYear);
-      if (isExistingYear) {
-        return currentYear;
-      }
-
-      // Fallback sur la première année
-      return years[0] ?? null;
+    computation: (_years, previous) => {
+      return previous?.value ?? new Date().getFullYear();
     },
-  });
-
-  readonly selectedYearIndex = computed(() => {
-    const year = this.selectedYear();
-    const years = this.plannedYears();
-
-    if (!year || years.length === 0) return 0;
-
-    return Math.max(0, years.indexOf(year));
   });
 
   /**
@@ -151,7 +115,7 @@ export class BudgetListStore {
     );
 
     // Parcourir les mois futurs pour trouver le premier disponible
-    for (let i = 0; i < BudgetListStore.MAX_FUTURE_MONTHS_TO_SEARCH; i++) {
+    for (let i = 0; i < MAX_FUTURE_MONTHS_TO_SEARCH; i++) {
       // Calculer le mois et l'année à vérifier
       const totalMonths = currentYear * 12 + currentMonth - 1 + i;
       const year = Math.floor(totalMonths / 12);
@@ -169,36 +133,12 @@ export class BudgetListStore {
   });
 
   refreshData(): void {
-    if (!this.isLoading()) {
+    if (!this.budgets.isLoading()) {
       this.budgets.reload();
     }
   }
 
   setSelectedYear(year: number): void {
     this.selectedYear.set(year);
-  }
-
-  async #loadBudgets(): Promise<Budget[]> {
-    const cacheKey: string[] = ['budget', 'list'];
-    const cached = this.#budgetApi.cache.get<Budget[]>(cacheKey);
-
-    if (cached?.fresh) {
-      return this.#sortBudgets(cached.data);
-    }
-
-    try {
-      const budgets = await firstValueFrom(this.#budgetApi.getAllBudgets$());
-      return this.#sortBudgets(budgets);
-    } catch (error) {
-      this.#logger.error('Erreur lors du chargement des mois:', error);
-      throw error;
-    }
-  }
-
-  #sortBudgets(budgets: Budget[]): Budget[] {
-    return [...budgets].sort((a, b) => {
-      if (a.year !== b.year) return a.year - b.year;
-      return a.month - b.month;
-    });
   }
 }

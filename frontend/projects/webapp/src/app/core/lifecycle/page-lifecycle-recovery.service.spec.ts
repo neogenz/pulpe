@@ -10,7 +10,8 @@ import {
 import { Logger } from '@core/logging/logger';
 import { AuthSessionService } from '@core/auth/auth-session.service';
 import { AuthStateService } from '@core/auth/auth-state.service';
-import { BudgetInvalidationService } from '@core/budget/budget-invalidation.service';
+import { BudgetApi } from '@core/budget/budget-api';
+import { BudgetTemplatesApi } from '@core/budget-template/budget-templates-api';
 import { UserSettingsApi } from '@core/user-settings';
 
 function setVisibilityState(state: DocumentVisibilityState): void {
@@ -39,8 +40,11 @@ describe('PageLifecycleRecoveryService', () => {
   const mockAuthSession = {
     refreshSession: vi.fn<() => Promise<boolean>>().mockResolvedValue(true),
   };
-  const mockBudgetInvalidation = {
-    invalidate: vi.fn(),
+  const mockBudgetApi = {
+    cache: { invalidate: vi.fn() },
+  };
+  const mockBudgetTemplatesApi = {
+    cache: { invalidate: vi.fn() },
   };
   const mockUserSettingsApi = {
     reload: vi.fn(),
@@ -64,7 +68,8 @@ describe('PageLifecycleRecoveryService', () => {
     mockAuthState.isAuthenticated.mockReturnValue(true);
     mockAuthSession.refreshSession.mockReset();
     mockAuthSession.refreshSession.mockResolvedValue(true);
-    mockBudgetInvalidation.invalidate.mockReset();
+    mockBudgetApi.cache.invalidate.mockReset();
+    mockBudgetTemplatesApi.cache.invalidate.mockReset();
     mockUserSettingsApi.reload.mockReset();
     mockLogger.warn.mockReset();
     mockLogger.info.mockReset();
@@ -85,10 +90,8 @@ describe('PageLifecycleRecoveryService', () => {
         { provide: Router, useValue: mockRouter },
         { provide: AuthStateService, useValue: mockAuthState },
         { provide: AuthSessionService, useValue: mockAuthSession },
-        {
-          provide: BudgetInvalidationService,
-          useValue: mockBudgetInvalidation,
-        },
+        { provide: BudgetApi, useValue: mockBudgetApi },
+        { provide: BudgetTemplatesApi, useValue: mockBudgetTemplatesApi },
         { provide: UserSettingsApi, useValue: mockUserSettingsApi },
         { provide: Logger, useValue: mockLogger },
       ],
@@ -103,7 +106,7 @@ describe('PageLifecycleRecoveryService', () => {
     await vi.waitFor(() => {
       expect(mockAuthSession.refreshSession).toHaveBeenCalledOnce();
     });
-    expect(mockBudgetInvalidation.invalidate).toHaveBeenCalledOnce();
+    expect(mockBudgetApi.cache.invalidate).toHaveBeenCalledOnce();
     expect(mockUserSettingsApi.reload).toHaveBeenCalledOnce();
     expect(reloadSpy).not.toHaveBeenCalled();
   });
@@ -118,7 +121,7 @@ describe('PageLifecycleRecoveryService', () => {
     await vi.waitFor(() => {
       expect(mockAuthSession.refreshSession).toHaveBeenCalledOnce();
     });
-    expect(mockBudgetInvalidation.invalidate).toHaveBeenCalledOnce();
+    expect(mockBudgetApi.cache.invalidate).toHaveBeenCalledOnce();
     expect(mockUserSettingsApi.reload).toHaveBeenCalledOnce();
     expect(reloadSpy).not.toHaveBeenCalled();
   });
@@ -150,7 +153,7 @@ describe('PageLifecycleRecoveryService', () => {
     await vi.waitFor(() => {
       expect(mockAuthSession.refreshSession).toHaveBeenCalledOnce();
     });
-    expect(mockBudgetInvalidation.invalidate).toHaveBeenCalledOnce();
+    expect(mockBudgetApi.cache.invalidate).toHaveBeenCalledOnce();
     expect(mockUserSettingsApi.reload).toHaveBeenCalledOnce();
     expect(reloadSpy).not.toHaveBeenCalled();
   });
@@ -163,7 +166,7 @@ describe('PageLifecycleRecoveryService', () => {
     await vi.waitFor(() => {
       expect(reloadSpy).toHaveBeenCalledOnce();
     });
-    expect(mockBudgetInvalidation.invalidate).not.toHaveBeenCalled();
+    expect(mockBudgetApi.cache.invalidate).not.toHaveBeenCalled();
     expect(mockUserSettingsApi.reload).not.toHaveBeenCalled();
   });
 
@@ -252,7 +255,7 @@ describe('PageLifecycleRecoveryService', () => {
     await vi.waitFor(() => {
       expect(mockAuthSession.refreshSession).toHaveBeenCalledOnce();
     });
-    expect(mockBudgetInvalidation.invalidate).toHaveBeenCalledOnce();
+    expect(mockBudgetApi.cache.invalidate).toHaveBeenCalledOnce();
     expect(mockUserSettingsApi.reload).toHaveBeenCalledOnce();
     expect(reloadSpy).not.toHaveBeenCalled();
   });

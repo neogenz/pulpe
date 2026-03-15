@@ -48,27 +48,27 @@ export class PreloadService {
   async #preloadCriticalData(): Promise<void> {
     this.#logger.debug('[PreloadService] Preloading critical data');
 
-    const operations = [
-      {
-        name: 'checkBudgetExists',
-        task: firstValueFrom(this.#budgetApi.checkBudgetExists$()),
-      },
-      {
-        name: 'getAllBudgets',
-        task: firstValueFrom(this.#budgetApi.getAllBudgets$()),
-      },
-    ];
+    // checkBudgetExists — only needs HasBudgetCache side-effect, no cache needed
+    try {
+      await firstValueFrom(this.#budgetApi.checkBudgetExists$());
+    } catch (error) {
+      this.#logger.warn(
+        '[PreloadService] Failed to preload checkBudgetExists',
+        error,
+      );
+    }
 
-    const results = await Promise.allSettled(operations.map((op) => op.task));
-
-    results.forEach((result, index) => {
-      if (result.status === 'rejected') {
-        this.#logger.warn(
-          `[PreloadService] Failed to preload ${operations[index].name}`,
-          result.reason,
-        );
-      }
-    });
+    // getAllBudgets — prefetch into DataCache so #prefetchCurrentMonthDetails can read it
+    try {
+      await this.#budgetApi.cache.prefetch(['budget', 'list'], () =>
+        firstValueFrom(this.#budgetApi.getAllBudgets$()),
+      );
+    } catch (error) {
+      this.#logger.warn(
+        '[PreloadService] Failed to preload getAllBudgets',
+        error,
+      );
+    }
 
     // Prefetch current month's budget details (fire-and-forget)
     this.#prefetchCurrentMonthDetails();
@@ -93,7 +93,7 @@ export class PreloadService {
     // Transform to BudgetDetailsViewModel so the cache entry matches
     // what BudgetDetailsStore expects from this key
     this.#budgetApi.cache
-      .deduplicate(['budget', 'details', currentBudget.id], async () => {
+      .prefetch(['budget', 'details', currentBudget.id], async () => {
         const response = await firstValueFrom(
           this.#budgetApi.getBudgetWithDetails$(currentBudget.id),
         );

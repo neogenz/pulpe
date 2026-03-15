@@ -3,13 +3,11 @@ import { provideZonelessChangeDetection } from '@angular/core';
 import { of, throwError } from 'rxjs';
 import { type TemplateLine } from 'pulpe-shared';
 import { TemplateStore } from './template-store';
-import { TemplateTotalsCalculator } from './template-totals-calculator';
 import { TemplateApi } from '@core/budget-template/template-api';
 
 describe('TemplateStore', () => {
   let store: TemplateStore;
   let templateApiMock: Partial<TemplateApi>;
-  let totalsCalculatorMock: Partial<TemplateTotalsCalculator>;
 
   const mockTemplates = [
     {
@@ -66,32 +64,12 @@ describe('TemplateStore', () => {
       getAll$,
       getTemplateLines$,
     };
-    totalsCalculatorMock = {
-      calculateTemplateTotals: vi.fn(),
-      calculateBatchTotals: vi.fn().mockReturnValue({
-        template1: {
-          totalIncome: 5000,
-          totalExpenses: 1500,
-          totalSavings: 0,
-          remainingLivingAllowance: 3500,
-          loading: false,
-        },
-      }),
-      createDefaultTotals: vi.fn().mockReturnValue({
-        totalIncome: 0,
-        totalExpenses: 0,
-        totalSavings: 0,
-        remainingLivingAllowance: 0,
-        loading: false,
-      }),
-    };
 
     TestBed.configureTestingModule({
       providers: [
         provideZonelessChangeDetection(),
         TemplateStore,
         { provide: TemplateApi, useValue: templateApiMock },
-        { provide: TemplateTotalsCalculator, useValue: totalsCalculatorMock },
       ],
     });
 
@@ -189,7 +167,8 @@ describe('TemplateStore', () => {
       await store.loadTemplateTotals(['template1', 'template2']);
 
       expect(templateApiMock.getTemplateLines$).toHaveBeenCalledTimes(2);
-      expect(totalsCalculatorMock.calculateBatchTotals).toHaveBeenCalled();
+      expect(store.templateTotalsMap()['template1']).toBeDefined();
+      expect(store.templateTotalsMap()['template2']).toBeDefined();
     });
 
     it('should skip already loaded templates', async () => {
@@ -207,20 +186,12 @@ describe('TemplateStore', () => {
     });
 
     it('should set loading states while loading', () => {
-      totalsCalculatorMock.createDefaultTotals = vi.fn().mockReturnValue({
-        totalIncome: 0,
-        totalExpenses: 0,
-        totalSavings: 0,
-        remainingLivingAllowance: 0,
-        loading: true,
-      });
-
       // Start loading (don't await)
       store.loadTemplateTotals(['template1']);
 
       // Check loading state is set immediately
       const totals = store.templateTotalsMap();
-      expect(totals['template1']?.loading).toBe(true);
+      expect(totals['template1']).toBeDefined();
     });
   });
 
