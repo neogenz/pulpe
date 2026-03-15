@@ -23,7 +23,8 @@ import {
   AuthSessionService,
   AuthStateService,
   PASSWORD_MIN_LENGTH,
-  VAULT_CODE_MIN_LENGTH,
+  VAULT_CODE_LENGTH,
+  VAULT_CODE_VALIDATORS,
 } from '@core/auth';
 import { EncryptionApi, deriveClientKey } from '@core/encryption';
 import { Logger } from '@core/logging/logger';
@@ -73,6 +74,7 @@ import { ErrorAlert } from '@ui/error-alert';
               matInput
               [type]="isVaultCodeHidden() ? 'password' : 'text'"
               inputmode="numeric"
+              [attr.maxlength]="VAULT_CODE_LENGTH"
               formControlName="vaultCode"
               data-testid="delete-confirm-vault-code-input"
             />
@@ -93,10 +95,13 @@ import { ErrorAlert } from '@ui/error-alert';
               <mat-error>{{
                 'settings.pinCodeRequired' | transloco
               }}</mat-error>
-            } @else if (vaultCodeForm.get('vaultCode')?.hasError('minlength')) {
+            } @else if (
+              vaultCodeForm.get('vaultCode')?.hasError('minlength') ||
+              vaultCodeForm.get('vaultCode')?.hasError('maxlength')
+            ) {
               <mat-error>{{
-                'settings.pinCodeMinLength'
-                  | transloco: { min: VAULT_CODE_MIN_LENGTH }
+                'settings.pinCodeLength'
+                  | transloco: { length: VAULT_CODE_LENGTH }
               }}</mat-error>
             } @else if (vaultCodeForm.get('vaultCode')?.hasError('pattern')) {
               <mat-error>{{
@@ -203,7 +208,7 @@ export class DeleteAccountDialog {
   protected readonly isVaultCodeHidden = signal(true);
 
   protected readonly PASSWORD_MIN_LENGTH = PASSWORD_MIN_LENGTH;
-  protected readonly VAULT_CODE_MIN_LENGTH = VAULT_CODE_MIN_LENGTH;
+  protected readonly VAULT_CODE_LENGTH = VAULT_CODE_LENGTH;
 
   protected readonly deleteForm = new FormGroup({
     password: new FormControl('', {
@@ -218,11 +223,7 @@ export class DeleteAccountDialog {
   protected readonly vaultCodeForm = new FormGroup({
     vaultCode: new FormControl('', {
       nonNullable: true,
-      validators: [
-        Validators.required,
-        Validators.minLength(VAULT_CODE_MIN_LENGTH),
-        Validators.pattern(/^\d+$/),
-      ],
+      validators: VAULT_CODE_VALIDATORS,
     }),
   });
 

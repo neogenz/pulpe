@@ -830,7 +830,7 @@ export default class MainLayout {
     }
   }
 
-  async onLogout(): Promise<void> {
+  protected async onLogout(): Promise<void> {
     if (this.#isLoggingOut()) return;
 
     this.#isLoggingOut.set(true);

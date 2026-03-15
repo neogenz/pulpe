@@ -37,13 +37,27 @@ struct PinSetupViewModelTests {
         #expect(sut.digits == [1, 2, 3])
     }
 
-    @Test func appendDigit_stopsBeforeMaxToAvoidAutoComplete() {
+    @Test func appendDigit_respectsMaxDigits() {
         let sut = makeSUT()
-        // Add up to maxDigits - 1 to avoid triggering completeSetup Task
-        for i in 0..<(sut.maxDigits - 1) {
+        for i in 0..<sut.pinLength {
             sut.appendDigit(i)
         }
-        #expect(sut.digits.count == sut.maxDigits - 1)
+        sut.appendDigit(9)
+        #expect(sut.digits.count == sut.pinLength)
+    }
+
+    @Test func appendDigit_noAutoSubmitAtMaxDigits() async {
+        let sut = makeSUT()
+        for i in 0..<sut.pinLength {
+            sut.appendDigit(i)
+        }
+
+        // Give time for any erroneous async task to fire
+        try? await Task.sleep(for: .milliseconds(100))
+
+        // Should still be on enterPin step — no auto-submit
+        #expect(sut.currentStep == .enterPin)
+        #expect(sut.digits.count == sut.pinLength)
     }
 
     // MARK: - deleteLastDigit
@@ -72,31 +86,23 @@ struct PinSetupViewModelTests {
 
     // MARK: - canConfirm
 
-    @Test func canConfirm_falseWithLessThanMinDigits() {
+    @Test func canConfirm_falseWithLessThanPinLength() {
         let sut = makeSUT()
-        for _ in 0..<(sut.minDigits - 1) {
+        for _ in 0..<(sut.pinLength - 1) {
             sut.appendDigit(1)
         }
         #expect(sut.canConfirm == false)
     }
 
-    @Test func canConfirm_trueAtMinDigits() {
+    @Test func canConfirm_trueAtPinLength() {
         let sut = makeSUT()
-        for _ in 0..<sut.minDigits {
+        for _ in 0..<sut.pinLength {
             sut.appendDigit(1)
         }
         #expect(sut.canConfirm == true)
     }
 
-    @Test func canConfirm_trueAboveMinDigits() {
-        let sut = makeSUT()
-        for _ in 0..<(sut.minDigits + 1) {
-            sut.appendDigit(1)
-        }
-        #expect(sut.canConfirm == true)
-    }
-
-    @Test func confirm_withLessThanMinDigits_doesNothing() async {
+    @Test func confirm_withLessThanPinLength_doesNothing() async {
         let sut = makeSUT()
         sut.appendDigit(1)
         sut.appendDigit(2)
@@ -112,8 +118,7 @@ struct PinSetupViewModelTests {
 
     @Test func constants() {
         let sut = makeSUT()
-        #expect(sut.maxDigits == 6)
-        #expect(sut.minDigits == 4)
+        #expect(sut.pinLength == 4)
     }
 }
 

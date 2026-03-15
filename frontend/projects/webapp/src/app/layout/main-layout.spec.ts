@@ -1,6 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { TranslocoPipe } from '@jsverse/transloco';
-import { provideZonelessChangeDetection, signal } from '@angular/core';
+import {
+  provideZonelessChangeDetection,
+  signal,
+  type Signal,
+} from '@angular/core';
 import { TestBed, type ComponentFixture } from '@angular/core/testing';
 import { Router, type NavigationEnd, ActivatedRoute } from '@angular/router';
 import { BreakpointObserver } from '@angular/cdk/layout';
@@ -100,15 +104,21 @@ class MockPulpeBreadcrumbComponent {
   readonly items = input<unknown[]>([]);
 }
 
+interface MockAuthStateService {
+  signOut: ReturnType<typeof vi.fn>;
+  authState: ReturnType<typeof vi.fn>;
+  user: Signal<unknown>;
+  session: Signal<null>;
+  isLoading: Signal<boolean>;
+  isAuthenticated: Signal<boolean>;
+  isEarlyAdopter: Signal<boolean>;
+  isOAuthOnly: Signal<boolean>;
+}
+
 describe('MainLayout', () => {
   let component: MainLayout;
   let fixture: ComponentFixture<MainLayout>;
-  let mockAuthStateService: {
-    signOut: ReturnType<typeof vi.fn>;
-    authState: ReturnType<typeof vi.fn>;
-    user: ReturnType<typeof signal<{ email: string } | null>>;
-    isEarlyAdopter: ReturnType<typeof signal<boolean>>;
-  };
+  let mockAuthStateService: MockAuthStateService;
   let mockAuthSessionService: {
     signOut: ReturnType<typeof vi.fn>;
   };
@@ -158,8 +168,12 @@ describe('MainLayout', () => {
         isLoading: false,
         isAuthenticated: true,
       }),
-      user: signal<{ email: string } | null>({ email: 'test@example.com' }),
+      user: signal({ email: 'test@example.com' } as unknown),
+      session: signal(null),
+      isLoading: signal(false),
+      isAuthenticated: signal(true),
       isEarlyAdopter: signal(false),
+      isOAuthOnly: signal(false),
     };
     mockAuthSessionService = {
       signOut: vi.fn().mockResolvedValue(undefined),
@@ -376,10 +390,10 @@ describe('MainLayout', () => {
 
     it('should not allow multiple logout attempts', async () => {
       // Start first logout attempt
-      const firstLogout = component.onLogout();
+      const firstLogout = component['onLogout']();
 
       // Try to start another logout while first is in progress
-      await component.onLogout();
+      await component['onLogout']();
 
       // Wait for first logout to complete
       await firstLogout;
@@ -392,7 +406,7 @@ describe('MainLayout', () => {
     it('should successfully logout and redirect via full page reload', async () => {
       mockAuthSessionService.signOut.mockResolvedValue(undefined);
 
-      const logoutPromise = component.onLogout();
+      const logoutPromise = component['onLogout']();
 
       // Check loading state is set
       expect(component.isLoggingOut()).toBe(true);
@@ -409,7 +423,7 @@ describe('MainLayout', () => {
       mockAuthSessionService.signOut.mockRejectedValue(authError);
 
       // Test the business behavior: error handling should not crash the app
-      await component.onLogout();
+      await component['onLogout']();
 
       // Verify business requirements
       expect(mockAuthSessionService.signOut).toHaveBeenCalledOnce();

@@ -17,7 +17,11 @@ import { MatDialog } from '@angular/material/dialog';
 import { firstValueFrom } from 'rxjs';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 
-import { AuthSessionService, VAULT_CODE_MIN_LENGTH } from '@core/auth';
+import {
+  AuthSessionService,
+  VAULT_CODE_LENGTH,
+  VAULT_CODE_VALIDATORS,
+} from '@core/auth';
 import {
   ClientKeyService,
   EncryptionApi,
@@ -80,6 +84,7 @@ import { PostHogService } from '@core/analytics';
             matInput
             [type]="isCodeHidden() ? 'password' : 'text'"
             inputmode="numeric"
+            [attr.maxlength]="VAULT_CODE_LENGTH"
             formControlName="vaultCode"
             data-testid="vault-code-input"
             (input)="clearError()"
@@ -105,8 +110,11 @@ import { PostHogService } from '@core/analytics';
             <mat-error>
               @if (form.get('vaultCode')?.hasError('required')) {
                 {{ 'auth.vaultCode.pinRequired' | transloco }}
-              } @else if (form.get('vaultCode')?.hasError('minlength')) {
-                {{ 'auth.vaultCode.pinMinLength' | transloco }}
+              } @else if (
+                form.get('vaultCode')?.hasError('minlength') ||
+                form.get('vaultCode')?.hasError('maxlength')
+              ) {
+                {{ 'auth.vaultCode.pinLength' | transloco }}
               } @else if (form.get('vaultCode')?.hasError('pattern')) {
                 {{ 'auth.vaultCode.pinPattern' | transloco }}
               }
@@ -122,6 +130,7 @@ import { PostHogService } from '@core/analytics';
             matInput
             [type]="isConfirmCodeHidden() ? 'password' : 'text'"
             inputmode="numeric"
+            [attr.maxlength]="VAULT_CODE_LENGTH"
             formControlName="confirmCode"
             data-testid="confirm-vault-code-input"
             (input)="clearError()"
@@ -206,6 +215,7 @@ export default class SetupVaultCode {
   readonly #transloco = inject(TranslocoService);
 
   protected readonly ROUTES = ROUTES;
+  protected readonly VAULT_CODE_LENGTH = VAULT_CODE_LENGTH;
   protected readonly isSubmitting = signal(false);
   protected readonly isLoggingOut = signal(false);
   protected readonly errorMessage = signal('');
@@ -214,14 +224,7 @@ export default class SetupVaultCode {
 
   protected readonly form = this.#formBuilder.nonNullable.group(
     {
-      vaultCode: [
-        '',
-        [
-          Validators.required,
-          Validators.minLength(VAULT_CODE_MIN_LENGTH),
-          Validators.pattern(/^\d+$/),
-        ],
-      ],
+      vaultCode: ['', VAULT_CODE_VALIDATORS],
       confirmCode: ['', [Validators.required]],
       rememberDevice: [false],
     },

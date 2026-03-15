@@ -52,7 +52,7 @@ struct PinRecoveryView: View {
             case .enterRecoveryKey:
                 recoveryKeyStep
             case .createPin:
-                pinStep(title: "Nouveau code PIN", subtitle: "4 chiffres minimum")
+                pinStep(title: "Nouveau code PIN", subtitle: "\(PinConstants.length) chiffres")
             case .confirmPin:
                 pinStep(title: "Confirme ton code PIN", subtitle: nil)
             case .processing:
@@ -161,7 +161,7 @@ struct PinRecoveryView: View {
 
             PinDotsErrorView(
                 enteredCount: viewModel.digits.count,
-                maxDigits: viewModel.maxDigits,
+                maxDigits: viewModel.pinLength,
                 isError: viewModel.isError,
                 errorMessage: viewModel.errorMessage
             )
@@ -241,11 +241,10 @@ final class PinRecoveryViewModel {
     var showRecoveryKeyWarning = false
     var recoveryKeyInput = ""
 
-    let maxDigits = 6
-    let minDigits = 4
+    let pinLength = PinConstants.length
 
     var isRecoveryKeyValid: Bool { RecoveryKeyFormatter.strip(recoveryKey).count == 52 }
-    var canConfirm: Bool { digits.count >= minDigits && !isProcessing }
+    var canConfirm: Bool { digits.count == pinLength && !isProcessing }
 
     // MARK: - Private
 
@@ -292,13 +291,8 @@ final class PinRecoveryViewModel {
     // MARK: - PIN Input Actions
 
     func appendDigit(_ digit: Int) {
-        guard digits.count < maxDigits, !isProcessing else { return }
-        if isError { clearError() }
+        guard digits.count < pinLength, !isProcessing, !isError else { return }
         digits.append(digit)
-
-        if digits.count == maxDigits {
-            Task { await handlePinComplete() }
-        }
     }
 
     func deleteLastDigit() {
@@ -449,6 +443,7 @@ final class PinRecoveryViewModel {
     private func showError(_ message: String) {
         errorMessage = message
         isError = true
+        digits = []
 
         errorResetTask?.cancel()
         errorResetTask = Task {

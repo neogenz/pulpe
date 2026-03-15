@@ -77,7 +77,7 @@ describe('DeleteAccountDialog', () => {
     });
 
     it('should have valid vault code form with numeric PIN', () => {
-      component['vaultCodeForm'].patchValue({ vaultCode: '123456' });
+      component['vaultCodeForm'].patchValue({ vaultCode: '1234' });
       expect(component['vaultCodeForm'].valid).toBe(true);
     });
 
@@ -95,7 +95,7 @@ describe('DeleteAccountDialog', () => {
       deriveClientKeyMock.mockResolvedValue('test-client-key-hex');
       mockEncryptionApi.validateKey$.mockReturnValue(of(undefined));
 
-      component['vaultCodeForm'].patchValue({ vaultCode: '123456' });
+      component['vaultCodeForm'].patchValue({ vaultCode: '1234' });
 
       await component['onSubmit']();
 
@@ -111,7 +111,7 @@ describe('DeleteAccountDialog', () => {
         throwError(() => new Error('Invalid key')),
       );
 
-      component['vaultCodeForm'].patchValue({ vaultCode: '999999' });
+      component['vaultCodeForm'].patchValue({ vaultCode: '9999' });
 
       await component['onSubmit']();
 
@@ -128,7 +128,7 @@ describe('DeleteAccountDialog', () => {
       deriveClientKeyMock.mockResolvedValue('test-client-key-hex');
       mockEncryptionApi.validateKey$.mockReturnValue(of(undefined));
 
-      component['vaultCodeForm'].patchValue({ vaultCode: '123456' });
+      component['vaultCodeForm'].patchValue({ vaultCode: '1234' });
 
       await component['onSubmit']();
 
@@ -137,7 +137,7 @@ describe('DeleteAccountDialog', () => {
 
     it('should not submit when already submitting', async () => {
       component['isSubmitting'].set(true);
-      component['vaultCodeForm'].patchValue({ vaultCode: '123456' });
+      component['vaultCodeForm'].patchValue({ vaultCode: '1234' });
 
       await component['onSubmit']();
 

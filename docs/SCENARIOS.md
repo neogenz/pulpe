@@ -897,10 +897,10 @@ Après inscription :
 
 ### 12.2 Configuration du code PIN et création du budget
 
-**Workflow** : Après inscription (12.1) > PinSetupView > Saisir un code PIN (4-6 chiffres) > Sauvegarder la recovery key > Arriver sur le dashboard
+**Workflow** : Après inscription (12.1) > PinSetupView > Saisir un code PIN (4 chiffres) > Sauvegarder la recovery key > Arriver sur le dashboard
 
 **Détail technique** :
-1. PinSetupView → l'utilisateur crée son PIN (4-6 chiffres)
+1. PinSetupView → l'utilisateur crée son PIN (4 chiffres)
 2. Dérivation PBKDF2-SHA256 (600k iterations) → clé client 256 bits
 3. Le PIN n'est **jamais stocké**, seule la clé dérivée est conservée
 4. Validation de la clé avec le serveur (endpoint key_check)
@@ -965,7 +965,7 @@ Après inscription :
 **Workflow** : Après connexion email/mot de passe (12.4) ou retour dans l'app > Écran de saisie du PIN
 
 **Détail technique** :
-1. L'utilisateur saisit 4-6 chiffres → bouton "Confirmer" disponible à partir de 4 chiffres
+1. L'utilisateur saisit 4 chiffres → bouton "Confirmer" activé automatiquement
 2. `getSalt()` → `deriveClientKey(pin, salt, iterations)` → `validateKey(clientKeyHex)`
 3. Si valide : `store(clientKeyHex)` → cache + Keychain régulier → `completePinEntry()` → `transitionToAuthenticated()`
 4. Si invalide : erreur affichée, chiffres effacés, `isError = true` pendant 1 seconde
@@ -1355,7 +1355,7 @@ Ce qui est **perdu** :
 | 4 | PIN : tentatives restantes | Afficher un compteur "X tentatives restantes" après un échec | Erreur générique "Ce code ne semble pas correct" sans compteur | L'utilisateur ne sait pas combien de tentatives restent avant le rate limit |
 | 5 | Grace period configurable | L'utilisateur choisit la durée (immédiat, 1min, 5min, 15min) dans les réglages | Fixe à 30 secondes (`AppConfiguration.backgroundGracePeriod`), non configurable | Pas de personnalisation selon les préférences de sécurité de l'utilisateur |
 | 6 | ~~Pré-remplir email au login~~ | Mémoriser le dernier email utilisé (Keychain ou UserDefaults) | ✓ Dernier email sauvegardé dans le Keychain (`last_used_email`), pré-rempli dans `LoginViewModel.init()`, effacé à la suppression de compte | - |
-| 7 | PIN longueur minimale | 6 chiffres recommandé pour les apps financières (1M combinaisons vs 10K) | 4 chiffres minimum accepté (`AppConfiguration.minPinLength = 4`) | Espace de recherche plus petit (10K combinaisons pour 4 chiffres) |
+| 7 | PIN longueur fixe | 6 chiffres recommandé pour les apps financières (1M combinaisons vs 10K) | 4 chiffres exactement (`AppConfiguration.pinLength = 4`) | Espace de recherche plus petit (10K combinaisons pour 4 chiffres) |
 
 ### 13.3 Points conformes aux bonnes pratiques
 

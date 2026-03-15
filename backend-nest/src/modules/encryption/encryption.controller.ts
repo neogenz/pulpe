@@ -239,6 +239,11 @@ export class EncryptionController {
     return { success: true };
   }
 
+  /**
+   * PIN length (exactly 4 digits) is enforced client-side before PBKDF2 derivation.
+   * The backend only receives hex-encoded derived keys (64 chars) validated by
+   * {@link #validateClientKeyHex}. No raw PIN digits ever reach the server.
+   */
   @SkipClientKey()
   @Post('change-pin')
   @HttpCode(HttpStatus.OK)

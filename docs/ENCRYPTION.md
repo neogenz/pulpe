@@ -12,7 +12,7 @@ DEK = HKDF-SHA256(clientKey + masterKey, salt, "pulpe-dek-{userId}")
 
 | Facteur | Origine | Stockage |
 |---------|---------|----------|
-| `clientKey` | Dérivé du **code PIN** (4 chiffres minimum) côté frontend (PBKDF2). | Conservé en `sessionStorage` par défaut (ou `localStorage` via « Se souvenir de cet appareil »). Effacé au logout. Envoyé dans le header `X-Client-Key` à chaque requête. Voir section « Stockage du clientKey » ci-dessous. |
+| `clientKey` | Dérivé du **code PIN** (4 chiffres) côté frontend (PBKDF2). | Conservé en `sessionStorage` par défaut (ou `localStorage` via « Se souvenir de cet appareil »). Effacé au logout. Envoyé dans le header `X-Client-Key` à chaque requête. Voir section « Stockage du clientKey » ci-dessous. |
 | `masterKey` | Variable d'environnement `ENCRYPTION_MASTER_KEY` | Serveur uniquement. GitHub Secrets en prod, `.env` en local. |
 | `salt` | Généré aléatoirement par utilisateur | Table `user_encryption_key` (accessible uniquement au `service_role`). |
 
@@ -194,7 +194,7 @@ Cependant, l'architecture split-key atténue ce risque : DEK = HKDF(clientKey + 
 De plus :
 - La table `user_encryption_key` est accessible uniquement au `service_role` (`REVOKE ALL` sur les rôles `authenticated` et `anon`)
 - Le brute-force en ligne est bloqué par le rate limiting (5 tentatives/min sur `validate-key`)
-- La constante `minDigits` dans `CryptoService` peut être augmentée si la réglementation l'exige
+- La constante `pinLength` dans `CryptoService` est fixée à 4 chiffres (peut être augmentée si la réglementation l'exige)
 
 ## Transport du client key via header HTTP (risque accepté)
 
