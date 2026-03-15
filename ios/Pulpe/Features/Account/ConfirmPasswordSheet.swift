@@ -38,7 +38,7 @@ struct ConfirmPasswordSheet: View {
 
                     if let error = errorMessage {
                         Text(error)
-                            .font(PulpeTypography.caption)
+                            .font(PulpeTypography.labelMedium)
                             .foregroundStyle(Color.errorPrimary)
                             .padding(.leading, DesignTokens.Spacing.xs)
                     }
