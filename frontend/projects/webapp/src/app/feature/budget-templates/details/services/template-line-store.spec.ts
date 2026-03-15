@@ -19,6 +19,10 @@ describe('TemplateLineStore - Unit Tests', () => {
   let store: TemplateLineStore;
   let mockBudgetTemplatesApi: {
     bulkOperationsTemplateLines$: ReturnType<typeof vi.fn>;
+    cache: {
+      invalidate: ReturnType<typeof vi.fn>;
+      clear: ReturnType<typeof vi.fn>;
+    };
   };
   let mockTransactionFormService: {
     createTransactionFormGroup: ReturnType<typeof vi.fn>;
@@ -66,6 +70,7 @@ describe('TemplateLineStore - Unit Tests', () => {
   beforeEach(() => {
     mockBudgetTemplatesApi = {
       bulkOperationsTemplateLines$: vi.fn(),
+      cache: { invalidate: vi.fn(), clear: vi.fn() },
     };
 
     mockTransactionFormService = {

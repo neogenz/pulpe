@@ -74,6 +74,7 @@ export class ProfileSetupService {
       };
 
       await firstValueFrom(this.#budgetApi.createBudget$(budgetRequest));
+      this.#budgetApi.cache.invalidate(['budget']);
 
       // 3. Enable PostHog tracking (user has accepted terms)
       this.#postHogService.enableTracking();

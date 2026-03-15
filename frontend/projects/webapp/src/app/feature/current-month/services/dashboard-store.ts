@@ -34,6 +34,13 @@ const HISTORY_MONTHS_LIMIT = 6;
 const UPCOMING_MONTHS_LIMIT = 12;
 const PACE_TOLERANCE_PERCENT = 5;
 
+const DASHBOARD_INVALIDATION_KEYS: string[][] = [
+  ['budget', 'list'],
+  ['budget', 'details'],
+  ['budget', 'dashboard'],
+  ['budget', 'history'],
+];
+
 export const DASHBOARD_NOW = new InjectionToken<Date>('DASHBOARD_NOW', {
   factory: () => new Date(),
 });
@@ -271,11 +278,7 @@ export class DashboardStore {
     DashboardData | null
   >({
     cache: this.#budgetApi.cache,
-    invalidateKeys: () => [
-      ['budget', 'list'],
-      ['budget', 'details'],
-      ['budget', 'history'],
-    ],
+    invalidateKeys: () => DASHBOARD_INVALIDATION_KEYS,
     mutationFn: (data) => this.#budgetApi.createTransaction$(data),
     onSuccess: (response) => {
       this.#dashboardResource.update((current) => {
@@ -285,9 +288,6 @@ export class DashboardStore {
           transactions: [...current.transactions, response.data],
         };
       });
-    },
-    onError: (_err, _data, previous) => {
-      if (previous) this.#dashboardResource.set(previous);
     },
   });
 
@@ -342,9 +342,9 @@ export class DashboardStore {
       await firstValueFrom(
         this.#budgetApi.toggleBudgetLineCheck$(budgetLineId),
       );
-      this.#budgetApi.cache.invalidate(['budget', 'list']);
-      this.#budgetApi.cache.invalidate(['budget', 'details']);
-      this.#budgetApi.cache.invalidate(['budget', 'history']);
+      DASHBOARD_INVALIDATION_KEYS.forEach((key) =>
+        this.#budgetApi.cache.invalidate(key),
+      );
     } catch (error) {
       this.#pendingChecks.update((s) => {
         const next = new Set(s);

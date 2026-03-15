@@ -1,5 +1,5 @@
 import { inject, Injectable } from '@angular/core';
-import { type Observable, forkJoin, map, tap } from 'rxjs';
+import { type Observable, forkJoin, map } from 'rxjs';
 import {
   type BudgetTemplateCreate,
   type BudgetTemplateCreateFromOnboarding,
@@ -53,9 +53,11 @@ export class BudgetTemplatesApi {
   create$(
     template: BudgetTemplateCreate,
   ): Observable<BudgetTemplateCreateResponse> {
-    return this.#api
-      .post$('/budget-templates', template, budgetTemplateCreateResponseSchema)
-      .pipe(tap(() => this.cache.invalidate(['templates'])));
+    return this.#api.post$(
+      '/budget-templates',
+      template,
+      budgetTemplateCreateResponseSchema,
+    );
   }
 
   createFromOnboarding$(
@@ -72,9 +74,11 @@ export class BudgetTemplatesApi {
     id: string,
     updates: Partial<BudgetTemplateCreate>,
   ): Observable<BudgetTemplateResponse> {
-    return this.#api
-      .patch$(`/budget-templates/${id}`, updates, budgetTemplateResponseSchema)
-      .pipe(tap(() => this.cache.invalidate(['templates'])));
+    return this.#api.patch$(
+      `/budget-templates/${id}`,
+      updates,
+      budgetTemplateResponseSchema,
+    );
   }
 
   getTemplateTransactions$(
@@ -90,32 +94,29 @@ export class BudgetTemplatesApi {
     templateId: string,
     bulkUpdate: TemplateLinesBulkUpdate,
   ): Observable<TemplateLinesBulkUpdateResponse> {
-    return this.#api
-      .patch$(
-        `/budget-templates/${templateId}/lines`,
-        bulkUpdate,
-        templateLinesBulkUpdateResponseSchema,
-      )
-      .pipe(tap(() => this.cache.invalidate(['templates'])));
+    return this.#api.patch$(
+      `/budget-templates/${templateId}/lines`,
+      bulkUpdate,
+      templateLinesBulkUpdateResponseSchema,
+    );
   }
 
   bulkOperationsTemplateLines$(
     templateId: string,
     bulkOperations: TemplateLinesBulkOperations,
   ): Observable<TemplateLinesBulkOperationsResponse> {
-    return this.#api
-      .post$(
-        `/budget-templates/${templateId}/lines/bulk-operations`,
-        bulkOperations,
-        templateLinesBulkOperationsResponseSchema,
-      )
-      .pipe(tap(() => this.cache.invalidate(['templates'])));
+    return this.#api.post$(
+      `/budget-templates/${templateId}/lines/bulk-operations`,
+      bulkOperations,
+      templateLinesBulkOperationsResponseSchema,
+    );
   }
 
   delete$(id: string): Observable<BudgetTemplateDeleteResponse> {
-    return this.#api
-      .delete$(`/budget-templates/${id}`, budgetTemplateDeleteResponseSchema)
-      .pipe(tap(() => this.cache.invalidate(['templates'])));
+    return this.#api.delete$(
+      `/budget-templates/${id}`,
+      budgetTemplateDeleteResponseSchema,
+    );
   }
 
   cacheTemplateDetail(data: BudgetTemplateCreateResponse['data']): void {

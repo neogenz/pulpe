@@ -15,6 +15,10 @@ describe('TemplateLineStore - Integration Tests', () => {
   let store: TemplateLineStore;
   let mockBudgetTemplatesApi: {
     bulkOperationsTemplateLines$: ReturnType<typeof vi.fn>;
+    cache: {
+      invalidate: ReturnType<typeof vi.fn>;
+      clear: ReturnType<typeof vi.fn>;
+    };
   };
 
   const templateId = 'template-123';
@@ -59,6 +63,7 @@ describe('TemplateLineStore - Integration Tests', () => {
   beforeEach(() => {
     mockBudgetTemplatesApi = {
       bulkOperationsTemplateLines$: vi.fn(),
+      cache: { invalidate: vi.fn(), clear: vi.fn() },
     };
 
     TestBed.configureTestingModule({

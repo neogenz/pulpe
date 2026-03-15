@@ -225,7 +225,7 @@ describe('BudgetTemplatesStore', () => {
       expect(mockApi.create$).toHaveBeenCalledWith(newTemplate);
     });
 
-    it('should handle error when creation fails', async () => {
+    it('should return void when creation fails (cachedMutation captures error)', async () => {
       const newTemplate: BudgetTemplateCreate = {
         name: 'New Default Template',
         description: 'This will fail',
@@ -239,12 +239,11 @@ describe('BudgetTemplatesStore', () => {
 
       await new Promise((resolve) => setTimeout(resolve, 100));
 
-      await expect(store.addTemplate(newTemplate)).rejects.toThrow(
-        'Creation failed',
-      );
+      const result = await store.addTemplate(newTemplate);
+      expect(result).toBeUndefined();
     });
 
-    it('should rollback optimistic update when creation fails', async () => {
+    it('should not modify state when creation fails', async () => {
       const newTemplate: BudgetTemplateCreate = {
         name: 'New Default Template',
         description: 'Creation will fail',
@@ -260,7 +259,7 @@ describe('BudgetTemplatesStore', () => {
 
       const initialCount = store.templateCount();
 
-      await expect(store.addTemplate(newTemplate)).rejects.toThrow();
+      await store.addTemplate(newTemplate);
 
       expect(store.templateCount()).toBe(initialCount);
     });
@@ -378,11 +377,7 @@ describe('BudgetTemplatesStore', () => {
 
       const initialCount = store.templateCount();
 
-      try {
-        await store.addTemplate(newTemplate);
-      } catch {
-        // Expected error
-      }
+      await store.addTemplate(newTemplate);
 
       expect(store.templateCount()).toBe(initialCount);
     });

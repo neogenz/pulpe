@@ -58,10 +58,7 @@ export class BudgetApi {
     return this.#api
       .post$('/budgets', validatedRequest, budgetResponseSchema)
       .pipe(
-        tap(() => {
-          this.#hasBudgetCache.setHasBudget(true);
-          this.cache.invalidate(['budget']);
-        }),
+        tap(() => this.#hasBudgetCache.setHasBudget(true)),
         map((response) => ({
           budget: response.data,
           message: 'Budget créé avec succès à partir du template',
@@ -182,12 +179,7 @@ export class BudgetApi {
   ): Observable<Budget> {
     return this.#api
       .patch$(`/budgets/${budgetId}`, updateData, budgetResponseSchema)
-      .pipe(
-        tap(() => {
-          this.cache.invalidate(['budget']);
-        }),
-        map((response) => response.data),
-      );
+      .pipe(map((response) => response.data));
   }
 
   deleteBudget$(budgetId: string): Observable<void> {
@@ -195,10 +187,7 @@ export class BudgetApi {
       switchMap(() =>
         this.#api.get$('/budgets/exists', budgetExistsResponseSchema),
       ),
-      tap((response) => {
-        this.#hasBudgetCache.setHasBudget(response.hasBudget);
-        this.cache.invalidate(['budget']);
-      }),
+      tap((response) => this.#hasBudgetCache.setHasBudget(response.hasBudget)),
       map(() => void 0),
     );
   }

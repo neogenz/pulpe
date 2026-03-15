@@ -8,6 +8,7 @@ import {
   signal,
   type WritableSignal,
 } from '@angular/core';
+import type { DataCache } from 'ngx-ziflux';
 import { TestBed, type ComponentFixture } from '@angular/core/testing';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import {
@@ -140,6 +141,7 @@ describe('CreateBudgetDialogComponent', () => {
 
     mockBudgetApi = {
       createBudget$: vi.fn(),
+      cache: { invalidate: vi.fn(), clear: vi.fn() } as unknown as DataCache,
     };
 
     mockTemplateApi = {

@@ -4,7 +4,7 @@ import {
   type BudgetTemplateCreate,
   type BudgetTemplateCreateResponse,
 } from 'pulpe-shared';
-import { firstValueFrom, map } from 'rxjs';
+import { map } from 'rxjs';
 import { cachedResource, cachedMutation } from 'ngx-ziflux';
 import { BudgetTemplatesApi } from '@core/budget-template/budget-templates-api';
 
@@ -29,15 +29,9 @@ export class BudgetTemplatesStore {
   });
   readonly selectedTemplate = signal<BudgetTemplate | null>(null);
 
-  // Filter out optimistic (temporary) templates for business logic computations
-  // Temporary templates have IDs starting with "temp-"
-  readonly #persistedTemplates = computed(
-    () =>
-      this.budgetTemplates.value()?.filter((t) => !t.id.startsWith('temp-')) ??
-      [],
-  );
+  readonly #templates = computed(() => this.budgetTemplates.value() ?? []);
 
-  readonly templateCount = computed(() => this.#persistedTemplates().length);
+  readonly templateCount = computed(() => this.#templates().length);
 
   readonly isTemplateLimitReached = computed(
     () => this.templateCount() >= this.MAX_TEMPLATES,
@@ -46,7 +40,7 @@ export class BudgetTemplatesStore {
     () => this.MAX_TEMPLATES - this.templateCount(),
   );
   readonly defaultBudgetTemplate = computed(
-    () => this.#persistedTemplates().find((t) => t.isDefault) ?? null,
+    () => this.#templates().find((t) => t.isDefault) ?? null,
   );
 
   readonly deleteTemplate = cachedMutation<string, void, BudgetTemplate[]>({
@@ -69,6 +63,29 @@ export class BudgetTemplatesStore {
     },
   });
 
+  // Note: We intentionally DON'T use optimistic update here.
+  // The creation is fast (< 1s) and the user sees a spinner.
+  // Optimistic update caused UI flicker issues because computed signals
+  // would react to state changes during navigation.
+  readonly #createTemplateMutation = cachedMutation<
+    BudgetTemplateCreate,
+    BudgetTemplateCreateResponse,
+    void
+  >({
+    cache: this.#budgetTemplatesApi.cache,
+    mutationFn: (template) => this.#budgetTemplatesApi.create$(template),
+    invalidateKeys: () => [['templates']],
+    onSuccess: (response) => {
+      if (response.data.template) {
+        this.budgetTemplates.update((data) => [
+          ...(data ?? []),
+          response.data.template!,
+        ]);
+        this.#budgetTemplatesApi.cacheTemplateDetail(response.data);
+      }
+    },
+  });
+
   refreshData(): void {
     this.budgetTemplates.reload();
   }
@@ -81,32 +98,11 @@ export class BudgetTemplatesStore {
   async addTemplate(
     template: BudgetTemplateCreate,
   ): Promise<BudgetTemplateCreateResponse['data'] | void> {
-    // Validate business rules
     if (this.isTemplateLimitReached()) {
       throw new Error('Template limit reached');
     }
 
-    // Note: We intentionally DON'T use optimistic update here.
-    // The creation is fast (< 1s) and the user sees a spinner.
-    // Optimistic update caused UI flicker issues because computed signals
-    // would react to state changes during navigation.
-    const response = await firstValueFrom(
-      this.#budgetTemplatesApi.create$(template),
-    );
-
-    // Update list state with template only (lines don't belong in list)
-    if (response.data.template) {
-      this.budgetTemplates.update((data) => [
-        ...(data ?? []),
-        response.data.template!,
-      ]);
-    }
-
-    if (response.data.template) {
-      this.#budgetTemplatesApi.cacheTemplateDetail(response.data);
-    }
-
-    // Return full data (template + lines) for SWR navigation
-    return response.data;
+    const result = await this.#createTemplateMutation.mutate(template);
+    return result?.data;
   }
 }
