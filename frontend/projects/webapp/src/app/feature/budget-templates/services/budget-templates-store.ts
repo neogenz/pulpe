@@ -51,6 +51,10 @@ export class BudgetTemplatesStore {
 
   readonly deleteTemplate = cachedMutation<string, void, BudgetTemplate[]>({
     cache: this.#budgetTemplatesApi.cache,
+    invalidateKeys: (id) => [
+      ['templates', 'list'],
+      ['templates', 'details', id],
+    ],
     mutationFn: (id) =>
       this.#budgetTemplatesApi.delete$(id).pipe(map(() => void 0 as void)),
     onMutate: (id) => {

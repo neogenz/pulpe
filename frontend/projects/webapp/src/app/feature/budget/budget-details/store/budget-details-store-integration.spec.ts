@@ -1460,7 +1460,7 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
       );
     });
 
-    it('does not re-prefetch after toggle check (no amount impact)', async () => {
+    it('re-prefetches next budget after toggle check', async () => {
       mockBudgetApi.toggleBudgetLineCheck$ = vi.fn().mockReturnValue(
         of({
           data: createMockBudgetLine({
@@ -1473,7 +1473,10 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
 
       await service.toggleCheck('line-1');
 
-      expect(mockBudgetApi.cache['prefetch']).not.toHaveBeenCalled();
+      expect(mockBudgetApi.cache['prefetch']).toHaveBeenCalledWith(
+        ['budget', 'details', nextBudgetId],
+        expect.any(Function),
+      );
     });
   });
 });

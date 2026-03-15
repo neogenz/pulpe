@@ -12,7 +12,7 @@ import {
   calculateAllConsumptions,
   type BudgetLineConsumption,
 } from '@core/budget';
-import { cachedResource } from 'ngx-ziflux';
+import { cachedMutation, cachedResource } from 'ngx-ziflux';
 import { UserSettingsApi } from '@core/user-settings';
 import {
   type BudgetLine,
@@ -22,7 +22,7 @@ import {
   getBudgetPeriodDates,
   getBudgetPeriodForDate,
 } from 'pulpe-shared';
-import { firstValueFrom, type Observable } from 'rxjs';
+import { firstValueFrom } from 'rxjs';
 import {
   type DashboardData,
   type HistoryDataPoint,
@@ -265,6 +265,32 @@ export class DashboardStore {
   );
 
   // ── 5. Mutations ──
+  readonly #addTransactionMutation = cachedMutation<
+    TransactionCreate,
+    { data: Transaction },
+    DashboardData | null
+  >({
+    cache: this.#budgetApi.cache,
+    invalidateKeys: () => [
+      ['budget', 'list'],
+      ['budget', 'details'],
+      ['budget', 'history'],
+    ],
+    mutationFn: (data) => this.#budgetApi.createTransaction$(data),
+    onSuccess: (response) => {
+      this.#dashboardResource.update((current) => {
+        if (!current) return current!;
+        return {
+          ...current,
+          transactions: [...current.transactions, response.data],
+        };
+      });
+    },
+    onError: (_err, _data, previous) => {
+      if (previous) this.#dashboardResource.set(previous);
+    },
+  });
+
   constructor() {
     effect(() => {
       const lines = this.budgetLines();
@@ -300,13 +326,7 @@ export class DashboardStore {
   }
 
   async addTransaction(transactionData: TransactionCreate): Promise<void> {
-    return this.#performMutationWithRefresh<Transaction>(
-      () => this.#budgetApi.createTransaction$(transactionData),
-      (currentData, response) => ({
-        ...currentData,
-        transactions: [...currentData.transactions, response],
-      }),
-    );
+    await this.#addTransactionMutation.mutate(transactionData);
   }
 
   async checkBudgetLine(budgetLineId: string): Promise<void> {
@@ -322,6 +342,9 @@ export class DashboardStore {
       await firstValueFrom(
         this.#budgetApi.toggleBudgetLineCheck$(budgetLineId),
       );
+      this.#budgetApi.cache.invalidate(['budget', 'list']);
+      this.#budgetApi.cache.invalidate(['budget', 'details']);
+      this.#budgetApi.cache.invalidate(['budget', 'history']);
     } catch (error) {
       this.#pendingChecks.update((s) => {
         const next = new Set(s);
@@ -347,74 +370,5 @@ export class DashboardStore {
         ),
       };
     });
-  }
-
-  async #performMutationWithRefresh<T>(
-    operation: () => Observable<{ data: T }>,
-    updateData: (currentData: DashboardData, response: T) => DashboardData,
-  ): Promise<void>;
-  async #performMutationWithRefresh(
-    operation: () => Observable<void>,
-    updateData: (currentData: DashboardData) => DashboardData,
-  ): Promise<void>;
-  async #performMutationWithRefresh<T>(
-    operation: () => Observable<{ data: T } | void>,
-    updateData: (currentData: DashboardData, response?: T) => DashboardData,
-  ): Promise<void> {
-    const originalData = this.#dashboardResource.value();
-
-    try {
-      const response = await firstValueFrom(operation());
-
-      const currentData = this.#dashboardResource.value();
-      if (currentData && currentData.budget) {
-        const responseData =
-          response && typeof response === 'object' && 'data' in response
-            ? response.data
-            : undefined;
-        const updatedData = updateData(currentData, responseData);
-
-        const rollover = updatedData.budget?.rollover ?? 0;
-        const metrics = BudgetFormulas.calculateAllMetrics(
-          updatedData.budgetLines,
-          updatedData.transactions,
-          rollover,
-        );
-
-        const withMetrics = {
-          ...updatedData,
-          budget: {
-            ...currentData.budget,
-            endingBalance: metrics.endingBalance,
-          },
-        };
-        this.#dashboardResource.set(withMetrics);
-
-        const budgetId = currentData.budget.id;
-        const updatedBudget = await firstValueFrom(
-          this.#budgetApi.getBudgetById$(budgetId),
-        );
-
-        const latestData = this.#dashboardResource.value();
-        if (latestData && latestData.budget && updatedBudget) {
-          const withBudget = {
-            ...latestData,
-            budget: {
-              ...updatedBudget,
-              rollover: latestData.budget.rollover,
-              previousBudgetId: latestData.budget.previousBudgetId,
-            },
-          };
-          this.#dashboardResource.set(withBudget);
-        }
-      }
-    } catch (error) {
-      if (originalData) {
-        this.#dashboardResource.set(originalData);
-      } else {
-        this.refreshData();
-      }
-      throw error;
-    }
   }
 }

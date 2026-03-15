@@ -64,7 +64,6 @@ export class UserSettingsApi {
   }
 
   reload(): void {
-    this.cache.invalidate(['settings']);
     this.#settingsResource.reload();
   }
 

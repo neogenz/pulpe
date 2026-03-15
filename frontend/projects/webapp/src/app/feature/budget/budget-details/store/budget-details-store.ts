@@ -572,12 +572,19 @@ export class BudgetDetailsStore {
     });
   }
 
-  async resetBudgetLineFromTemplate(id: string): Promise<void> {
-    try {
-      const response = await firstValueFrom(
-        this.#budgetApi.resetBudgetLineFromTemplate$(id),
-      );
-
+  readonly #resetBudgetLineMutation = cachedMutation<
+    string,
+    { data: BudgetLine },
+    void
+  >({
+    cache: this.#budgetApi.cache,
+    invalidateKeys: () => [
+      ['budget', 'list'],
+      ['budget', 'dashboard'],
+      ['budget', 'history'],
+    ],
+    mutationFn: (id) => this.#budgetApi.resetBudgetLineFromTemplate$(id),
+    onSuccess: (response, id) => {
       this.#budgetDetailsResource.update((details) => {
         if (!details) return details!;
         return {
@@ -587,19 +594,20 @@ export class BudgetDetailsStore {
           ),
         };
       });
-
-      this.#budgetApi.cache.invalidate(['budget']);
       this.#onFinancialMutationSuccess();
-    } catch (error) {
+    },
+    onError: (error) => {
       this.reloadBudgetDetails();
-
       const errorMessage = isApiError(error)
         ? this.#apiErrorLocalizer.localizeApiError(error)
         : this.#transloco.translate('budget.forecastResetError');
       this.#setError(errorMessage);
       this.#logger.error('Error resetting budget line from template', error);
-      throw error;
-    }
+    },
+  });
+
+  async resetBudgetLineFromTemplate(id: string): Promise<void> {
+    await this.#resetBudgetLineMutation.mutate(id);
   }
 
   async toggleCheck(id: string): Promise<boolean> {
@@ -650,7 +658,10 @@ export class BudgetDetailsStore {
         };
       });
 
-      this.#clearError();
+      this.#budgetApi.cache.invalidate(['budget', 'list']);
+      this.#budgetApi.cache.invalidate(['budget', 'dashboard']);
+      this.#budgetApi.cache.invalidate(['budget', 'history']);
+      this.#onFinancialMutationSuccess();
       return true;
     } catch (error) {
       this.reloadBudgetDetails();
@@ -700,7 +711,10 @@ export class BudgetDetailsStore {
         };
       });
 
-      this.#clearError();
+      this.#budgetApi.cache.invalidate(['budget', 'list']);
+      this.#budgetApi.cache.invalidate(['budget', 'dashboard']);
+      this.#budgetApi.cache.invalidate(['budget', 'history']);
+      this.#onFinancialMutationSuccess();
     } catch (error) {
       this.reloadBudgetDetails();
       this.#setError(
@@ -761,7 +775,10 @@ export class BudgetDetailsStore {
           }),
         };
       });
-      this.#clearError();
+      this.#budgetApi.cache.invalidate(['budget', 'list']);
+      this.#budgetApi.cache.invalidate(['budget', 'dashboard']);
+      this.#budgetApi.cache.invalidate(['budget', 'history']);
+      this.#onFinancialMutationSuccess();
     } catch (error) {
       this.reloadBudgetDetails();
       this.#setError(this.#transloco.translate('budget.checkAllError'));

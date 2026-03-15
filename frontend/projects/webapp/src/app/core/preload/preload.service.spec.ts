@@ -33,7 +33,7 @@ function setup({
       set: vi.fn(),
       has: vi.fn().mockReturnValue(false),
       invalidate: vi.fn(),
-      deduplicate: vi.fn((_key: string[], fn: () => Promise<unknown>) => fn()),
+      prefetch: vi.fn((_key: string[], fn: () => Promise<unknown>) => fn()),
       clear: vi.fn(),
     },
   };

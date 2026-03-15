@@ -294,16 +294,15 @@ describe('DashboardStore - Business Scenarios', () => {
         expect(store.transactions().length).toBe(1);
       });
 
-      await expect(
-        store.addTransaction({
-          budgetId: 'budget-1',
-          name: 'Fail',
-          amount: 100,
-          kind: 'expense',
-        }),
-      ).rejects.toThrow('API error');
+      // cachedMutation.mutate() never rejects — errors go to error signal
+      await store.addTransaction({
+        budgetId: 'budget-1',
+        name: 'Fail',
+        amount: 100,
+        kind: 'expense',
+      });
 
-      // Should rollback to original data
+      // Should rollback to original data (via onError)
       expect(store.transactions().length).toBe(1);
       expect(store.transactions()[0].id).toBe('tx-existing');
     });
