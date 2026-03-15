@@ -44,7 +44,7 @@ struct PinEntryView: View {
                 onDigit: { viewModel.appendDigit($0) },
                 onDelete: { viewModel.deleteLastDigit() },
                 onBiometric: onBiometric,
-                isDisabled: viewModel.isValidating
+                isDisabled: viewModel.isValidating || viewModel.isError
             )
             Spacer().frame(height: 24)
             forgotPinLink
@@ -135,10 +135,6 @@ final class PinEntryViewModel {
 
     let pinLength = PinConstants.length
 
-    var canConfirm: Bool {
-        digits.count == pinLength && !isValidating
-    }
-
     // MARK: - Private
 
     private var errorResetTask: Task<Void, Never>?
@@ -174,11 +170,6 @@ final class PinEntryViewModel {
         guard !digits.isEmpty, !isValidating else { return }
         digits.removeLast()
         clearError()
-    }
-
-    func confirm() async {
-        guard canConfirm else { return }
-        await validatePin()
     }
 
     // MARK: - Validation

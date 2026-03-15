@@ -17,7 +17,6 @@ struct PinEntryViewModelTests {
         #expect(sut.isError == false)
         #expect(sut.errorMessage == nil)
         #expect(sut.authenticated == false)
-        #expect(sut.canConfirm == false)
     }
 
     // MARK: - appendDigit
@@ -68,38 +67,6 @@ struct PinEntryViewModelTests {
         sut.appendDigit(1)
         sut.deleteLastDigit()
         #expect(sut.isError == false)
-        #expect(sut.errorMessage == nil)
-    }
-
-    // MARK: - canConfirm
-
-    @Test func canConfirm_falseWithLessThanPinLength() {
-        let sut = makeSUT()
-        for _ in 0..<(sut.pinLength - 1) {
-            sut.appendDigit(1)
-        }
-        #expect(sut.canConfirm == false)
-    }
-
-    @Test func canConfirm_falseAtPinLength_becauseAutoSubmitSetsValidating() {
-        let sut = makeSUT()
-        for _ in 0..<sut.pinLength {
-            sut.appendDigit(1)
-        }
-        // Auto-submit sets isValidating synchronously, so canConfirm is false
-        #expect(sut.canConfirm == false)
-        #expect(sut.isValidating == true)
-    }
-
-    @Test func confirm_withLessThanPinLength_doesNothing() async {
-        let sut = makeSUT()
-        sut.appendDigit(1)
-        sut.appendDigit(2)
-
-        await sut.confirm()
-
-        #expect(sut.isValidating == false)
-        #expect(sut.authenticated == false)
         #expect(sut.errorMessage == nil)
     }
 
