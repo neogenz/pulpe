@@ -238,33 +238,21 @@ export class BudgetApi {
   }
 
   toggleBudgetLineCheck$(budgetLineId: string): Observable<BudgetLineResponse> {
-    return this.#api
-      .post$(
-        `/budget-lines/${budgetLineId}/toggle-check`,
-        {},
-        budgetLineResponseSchema,
-      )
-      .pipe(
-        tap(() => {
-          this.cache.invalidate(['budget']);
-        }),
-      );
+    return this.#api.post$(
+      `/budget-lines/${budgetLineId}/toggle-check`,
+      {},
+      budgetLineResponseSchema,
+    );
   }
 
   checkBudgetLineTransactions$(
     budgetLineId: string,
   ): Observable<TransactionListResponse> {
-    return this.#api
-      .post$(
-        `/budget-lines/${budgetLineId}/check-transactions`,
-        {},
-        transactionListResponseSchema,
-      )
-      .pipe(
-        tap(() => {
-          this.cache.invalidate(['budget']);
-        }),
-      );
+    return this.#api.post$(
+      `/budget-lines/${budgetLineId}/check-transactions`,
+      {},
+      transactionListResponseSchema,
+    );
   }
 
   createTransaction$(
@@ -285,10 +273,6 @@ export class BudgetApi {
   }
 
   toggleTransactionCheck$(id: string): Observable<TransactionUpdateResponse> {
-    return this.#transactionApi.toggleCheck$(id).pipe(
-      tap(() => {
-        this.cache.invalidate(['budget']);
-      }),
-    );
+    return this.#transactionApi.toggleCheck$(id);
   }
 }
