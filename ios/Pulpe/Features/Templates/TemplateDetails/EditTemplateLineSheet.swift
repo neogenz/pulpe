@@ -17,10 +17,15 @@ struct EditTemplateLineSheet: View {
     @State private var amountText: String
     @State private var submitSuccessTrigger = false
 
-    private let templateService = TemplateService.shared
+    private let dependencies: EditTemplateLineDependencies
 
-    init(templateLine: TemplateLine, onUpdate: @escaping (TemplateLine) -> Void) {
+    init(
+        templateLine: TemplateLine,
+        dependencies: EditTemplateLineDependencies = .live,
+        onUpdate: @escaping (TemplateLine) -> Void
+    ) {
         self.templateLine = templateLine
+        self.dependencies = dependencies
         self.onUpdate = onUpdate
         _name = State(initialValue: templateLine.name)
         _amount = State(initialValue: templateLine.amount)
@@ -70,8 +75,17 @@ struct EditTemplateLineSheet: View {
     // MARK: - Recurrence Selector
 
     private var recurrenceSelector: some View {
-        CapsulePicker(selection: $recurrence, title: "Récurrence") { type in
-            Text(type.label)
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+            Text("Récurrence")
+                .font(PulpeTypography.labelMedium)
+                .foregroundStyle(Color.onSurfaceVariant)
+
+            Picker("Récurrence", selection: $recurrence) {
+                ForEach(TransactionRecurrence.allCases, id: \.self) { type in
+                    Text(type.label).tag(type)
+                }
+            }
+            .pickerStyle(.segmented)
         }
     }
 
@@ -104,7 +118,7 @@ struct EditTemplateLineSheet: View {
         )
 
         do {
-            let updatedLine = try await templateService.updateTemplateLine(id: templateLine.id, data: data)
+            let updatedLine = try await dependencies.updateTemplateLine(templateLine.id, data)
             submitSuccessTrigger.toggle()
             onUpdate(updatedLine)
             toastManager.show("Ligne modifiée")
@@ -113,6 +127,16 @@ struct EditTemplateLineSheet: View {
             self.error = error
         }
     }
+}
+
+struct EditTemplateLineDependencies: Sendable {
+    var updateTemplateLine: @Sendable (String, TemplateLineUpdate) async throws -> TemplateLine
+
+    static let live = EditTemplateLineDependencies(
+        updateTemplateLine: { id, data in
+            try await TemplateService.shared.updateTemplateLine(id: id, data: data)
+        }
+    )
 }
 
 #Preview {

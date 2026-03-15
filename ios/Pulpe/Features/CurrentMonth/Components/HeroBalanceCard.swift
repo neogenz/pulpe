@@ -29,7 +29,7 @@ struct HeroBalanceCard: View {
     // MARK: - Computed Properties
 
     private var contextLabel: String {
-        metrics.isDeficit ? "Déficit" : "Disponible"
+        metrics.isDeficit ? "Déficit CHF" : "Disponible CHF"
     }
 
     private var motivationalMessage: String {
@@ -154,7 +154,7 @@ struct HeroBalanceCard: View {
                 .foregroundStyle(.white.opacity(supportingTextOpacity))
 
             // Chunk 2 — Hero amount
-            Text("\(formattedBalance) CHF")
+            Text("\(formattedBalance)")
                 .font(PulpeTypography.amountHero)
                 .minimumScaleFactor(0.6)
                 .lineLimit(1)

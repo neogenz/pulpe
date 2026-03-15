@@ -30,6 +30,7 @@ struct ResetPasswordFlowView: View {
             }
             .padding(DesignTokens.Spacing.xl)
             .background(Color.sheetBackground)
+            .dismissKeyboardOnTap()
             .navigationTitle("Réinitialiser le mot de passe")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -90,42 +91,43 @@ struct ResetPasswordFlowView: View {
     }
 
     private var formState: some View {
-        VStack(spacing: DesignTokens.Spacing.xl) {
-            Text("Définis ton nouveau mot de passe.")
-                .font(PulpeTypography.bodyLarge)
-                .multilineTextAlignment(.center)
+        ScrollView {
+            VStack(spacing: DesignTokens.Spacing.xl) {
+                Text("Définis ton nouveau mot de passe.")
+                    .font(PulpeTypography.bodyLarge)
+                    .multilineTextAlignment(.center)
 
-            newPasswordField
-            confirmPasswordField
+                newPasswordField
+                confirmPasswordField
 
-            if let error = viewModel.errorMessage {
-                Text(error)
-                    .font(PulpeTypography.labelMedium)
-                    .foregroundStyle(Color.errorPrimary)
-                    .padding(.horizontal, DesignTokens.Spacing.xs)
-            }
+                if let error = viewModel.errorMessage {
+                    Text(error)
+                        .font(PulpeTypography.labelMedium)
+                        .foregroundStyle(Color.errorPrimary)
+                        .padding(.horizontal, DesignTokens.Spacing.xs)
+                }
 
-            Spacer()
-
-            Button {
-                Task {
-                    await viewModel.submit()
-                    if viewModel.isCompleted {
-                        await finishFlow()
+                Button {
+                    Task {
+                        await viewModel.submit()
+                        if viewModel.isCompleted {
+                            await finishFlow()
+                        }
+                    }
+                } label: {
+                    if viewModel.isSubmitting {
+                        ProgressView()
+                            .tint(.white)
+                            .accessibilityLabel("Réinitialisation en cours")
+                    } else {
+                        Text("Valider")
                     }
                 }
-            } label: {
-                if viewModel.isSubmitting {
-                    ProgressView()
-                        .tint(.white)
-                        .accessibilityLabel("Réinitialisation en cours")
-                } else {
-                    Text("Valider")
-                }
+                .primaryButtonStyle(isEnabled: viewModel.canSubmit)
+                .disabled(!viewModel.canSubmit)
             }
-            .primaryButtonStyle(isEnabled: viewModel.canSubmit)
-            .disabled(!viewModel.canSubmit)
         }
+        .scrollDismissesKeyboard(.interactively)
     }
 
     private var newPasswordField: some View {

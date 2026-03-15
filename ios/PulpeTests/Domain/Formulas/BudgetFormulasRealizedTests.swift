@@ -105,6 +105,20 @@ struct BudgetFormulasRealizedTests {
         #expect(savings == 200)
     }
 
+    @Test func realizedSavings_freeTransaction_noParentLine() {
+        let lines: [BudgetLine] = []
+        let transactions = [
+            TestDataFactory.createTransaction(
+                id: "tx-1", budgetLineId: nil,
+                amount: 75, kind: .saving, isChecked: true
+            )
+        ]
+        let savings = BudgetFormulas.calculateRealizedSavings(
+            budgetLines: lines, transactions: transactions
+        )
+        #expect(savings == 75)
+    }
+
     @Test func realizedSavings_envelope_uncheckedParent() {
         let lines = [
             TestDataFactory.createBudgetLine(

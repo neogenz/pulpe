@@ -46,6 +46,12 @@ enum AppConfiguration {
         return url
     }
 
+    // MARK: - Google Sign-In
+
+    static var googleClientID: String? {
+        optionalValue(for: "GOOGLE_CLIENT_ID")
+    }
+
     // MARK: - Feature Flags
 
     static var isDemoModeEnabled: Bool {
@@ -160,6 +166,8 @@ enum AppConfiguration {
             return "https://eu.i.posthog.com"
         case "POSTHOG_ENABLED":
             return "false"
+        case "GOOGLE_CLIENT_ID":
+            return "test-google-client-id"
         default:
             return nil
         }
