@@ -114,6 +114,7 @@ import { PostHogService } from '@core/analytics';
               }
             </mat-error>
           }
+          <mat-hint>{{ 'auth.vaultCode.pinHint' | transloco }}</mat-hint>
         </mat-form-field>
 
         <div class="flex items-center">

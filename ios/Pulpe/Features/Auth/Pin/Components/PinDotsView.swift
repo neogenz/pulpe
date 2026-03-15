@@ -41,10 +41,10 @@ struct PinDotsView: View {
     ZStack {
         Color.loginGradientBackground
         VStack(spacing: 40) {
-            PinDotsView(enteredCount: 0, maxDigits: 6, isError: false)
-            PinDotsView(enteredCount: 3, maxDigits: 6, isError: false)
-            PinDotsView(enteredCount: 6, maxDigits: 6, isError: false)
-            PinDotsView(enteredCount: 4, maxDigits: 6, isError: true)
+            PinDotsView(enteredCount: 0, maxDigits: 4, isError: false)
+            PinDotsView(enteredCount: 2, maxDigits: 4, isError: false)
+            PinDotsView(enteredCount: 4, maxDigits: 4, isError: false)
+            PinDotsView(enteredCount: 4, maxDigits: 4, isError: true)
         }
     }
 }
