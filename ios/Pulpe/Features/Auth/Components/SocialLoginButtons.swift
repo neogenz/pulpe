@@ -1,3 +1,4 @@
+import AuthenticationServices
 import OSLog
 import SwiftUI
 
@@ -29,17 +30,20 @@ struct SocialLoginSection: View {
     var body: some View {
         VStack(spacing: DesignTokens.Spacing.md) {
             if let errorMessage {
-                ErrorBanner(message: errorMessage)
+                ErrorBanner(message: errorMessage) {
+                    self.errorMessage = nil
+                }
+                .accessibilityAddTraits(.isStaticText)
             }
 
-            AppleSignInButtonView(isLoading: isAppleLoading) {
+            AppleSignInButtonView(isLoading: isAppleLoading, isDisabled: isAnyLoading) {
                 guard !isAnyLoading else { return }
                 isAppleLoading = true
                 await signInWithApple()
                 isAppleLoading = false
             }
 
-            GoogleSignInButtonView(isLoading: isGoogleLoading) {
+            GoogleSignInButtonView(isLoading: isGoogleLoading, isDisabled: isAnyLoading) {
                 guard !isAnyLoading else { return }
                 isGoogleLoading = true
                 await signInWithGoogle()
@@ -84,8 +88,8 @@ struct SocialLoginSection: View {
             try await appState.loginWithGoogle(idToken: idToken, accessToken: accessToken)
             AnalyticsService.shared.capture(.loginCompleted, properties: ["method": "google"])
             onSuccess?()
-        } catch GoogleSignInError.canceled {
-            // User canceled — no error
+        } catch GoogleSignInError.canceled, GoogleSignInError.inProgress {
+            // User canceled or flow already in progress — no error
         } catch {
             Logger.auth.error("Google sign-in failed: \(error.localizedDescription, privacy: .public)")
             errorMessage = socialErrorMessage(for: error)
@@ -123,25 +127,20 @@ struct SocialLoginDivider: View {
     }
 }
 
-// MARK: - Apple Sign In Button (visual only — auth handled by coordinator)
+// MARK: - Apple Sign In Button (uses system SignInWithAppleButton for HIG compliance)
 
 struct AppleSignInButtonView: View {
     let isLoading: Bool
+    let isDisabled: Bool
     let action: () async -> Void
 
     var body: some View {
-        Button {
-            Task { await action() }
-        } label: {
+        if isLoading {
+            // Show loading state as a custom view (SignInWithAppleButton doesn't support loading)
             HStack(spacing: DesignTokens.Spacing.sm) {
-                if isLoading {
-                    ProgressView()
-                        .tint(.white)
-                } else {
-                    Image(systemName: "apple.logo")
-                        .font(.system(size: DesignTokens.IconSize.socialButton))
-                }
-                Text(isLoading ? "Connexion en cours…" : "Continuer avec Apple")
+                ProgressView()
+                    .tint(.white)
+                Text("Connexion en cours…")
                     .font(PulpeTypography.buttonPrimary)
             }
             .foregroundStyle(.white)
@@ -149,11 +148,31 @@ struct AppleSignInButtonView: View {
             .frame(height: DesignTokens.FrameHeight.button)
             .background(.black)
             .clipShape(Capsule())
+            .accessibilityLabel("Connexion avec Apple en cours")
+            .accessibilityValue("Connexion en cours")
+        } else {
+            SignInWithAppleButton(.continue) { _ in
+                // Request configuration is handled by the coordinator, not here.
+                // We just trigger the action which calls the coordinator.
+            } onCompletion: { _ in
+                // Completion is handled by the coordinator's delegate.
+            }
+            .signInWithAppleButtonStyle(.black)
+            .frame(height: DesignTokens.FrameHeight.button)
+            .clipShape(Capsule())
+            .disabled(isDisabled)
+            .overlay {
+                // Intercept taps to use our coordinator-based flow
+                Button {
+                    Task { await action() }
+                } label: {
+                    Color.clear
+                }
+                .accessibilityIdentifier("appleSignInButton")
+                .accessibilityLabel("Continuer avec Apple")
+                .disabled(isDisabled)
+            }
         }
-        .plainPressedButtonStyle()
-        .disabled(isLoading)
-        .accessibilityIdentifier("appleSignInButton")
-        .accessibilityLabel("Continuer avec Apple")
     }
 }
 
@@ -161,6 +180,7 @@ struct AppleSignInButtonView: View {
 
 struct GoogleSignInButtonView: View {
     let isLoading: Bool
+    let isDisabled: Bool
     let action: () async -> Void
 
     var body: some View {
@@ -191,8 +211,10 @@ struct GoogleSignInButtonView: View {
             )
         }
         .plainPressedButtonStyle()
-        .disabled(isLoading)
+        .contentShape(Capsule())
+        .disabled(isDisabled)
         .accessibilityIdentifier("googleSignInButton")
         .accessibilityLabel("Continuer avec Google")
+        .accessibilityValue(isLoading ? "Connexion en cours" : "")
     }
 }

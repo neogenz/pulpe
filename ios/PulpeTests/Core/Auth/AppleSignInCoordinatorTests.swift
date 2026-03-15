@@ -12,7 +12,7 @@ struct AppleSignInCoordinatorTests {
     }
 
     @Test func randomNonceString_onlyContainsCharsetCharacters() {
-        let charset = Set("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-._")
+        let charset = Set("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-_")
         let nonce = AppleSignInCoordinator.randomNonceString(length: 128)
         for char in nonce {
             #expect(charset.contains(char), "Unexpected character: \(char)")

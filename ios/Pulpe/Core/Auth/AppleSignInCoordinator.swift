@@ -5,8 +5,11 @@ import UIKit
 
 @MainActor
 final class AppleSignInCoordinator: NSObject {
+    // SAFETY: All reads/writes happen on MainActor — delegate callbacks hop via Task { @MainActor in }.
+    // Marked nonisolated(unsafe) because the delegate methods are nonisolated and capture self.
     nonisolated(unsafe) private var continuation: CheckedContinuation<(idToken: String, nonce: String), Error>?
     private var currentNonce: String?
+    private var cachedWindow: UIWindow?
 
     func signIn() async throws -> (idToken: String, nonce: String) {
         guard continuation == nil else {
@@ -16,26 +19,23 @@ final class AppleSignInCoordinator: NSObject {
         let nonce = Self.randomNonceString()
         currentNonce = nonce
 
-        return try await withTaskCancellationHandler {
-            try await withCheckedThrowingContinuation { continuation in
-                self.continuation = continuation
+        // Cache window on MainActor so presentationAnchor can use it safely
+        cachedWindow = UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .flatMap(\.windows)
+            .first(where: \.isKeyWindow)
 
-                let request = ASAuthorizationAppleIDProvider().createRequest()
-                request.requestedScopes = [.fullName, .email]
-                request.nonce = Self.sha256(nonce)
+        return try await withCheckedThrowingContinuation { continuation in
+            self.continuation = continuation
 
-                let controller = ASAuthorizationController(authorizationRequests: [request])
-                controller.delegate = self
-                controller.presentationContextProvider = self
-                controller.performRequests()
-            }
-        } onCancel: {
-            // onCancel runs on an arbitrary thread — hop to MainActor to access continuation safely
-            Task { @MainActor [weak self] in
-                self?.continuation?.resume(throwing: CancellationError())
-                self?.continuation = nil
-                self?.currentNonce = nil
-            }
+            let request = ASAuthorizationAppleIDProvider().createRequest()
+            request.requestedScopes = [.fullName, .email]
+            request.nonce = Self.sha256(nonce)
+
+            let controller = ASAuthorizationController(authorizationRequests: [request])
+            controller.delegate = self
+            controller.presentationContextProvider = self
+            controller.performRequests()
         }
     }
 
@@ -45,7 +45,8 @@ final class AppleSignInCoordinator: NSObject {
         var bytes = [UInt8](repeating: 0, count: length)
         let result = SecRandomCopyBytes(kSecRandomDefault, bytes.count, &bytes)
         precondition(result == errSecSuccess, "Failed to generate random nonce")
-        let charset = Array("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-._")
+        // 64-char charset (power of 2) — eliminates modulo bias since 256 % 64 == 0
+        let charset = Array("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-_")
         return String(bytes.map { charset[Int($0) % charset.count] })
     }
 
@@ -54,17 +55,23 @@ final class AppleSignInCoordinator: NSObject {
         let hash = SHA256.hash(data: data)
         return hash.compactMap { String(format: "%02x", $0) }.joined()
     }
+
+    private func cleanup() {
+        continuation = nil
+        currentNonce = nil
+        cachedWindow = nil
+    }
 }
 
 // MARK: - ASAuthorizationControllerPresentationContextProviding
 
 extension AppleSignInCoordinator: ASAuthorizationControllerPresentationContextProviding {
     nonisolated func presentationAnchor(for controller: ASAuthorizationController) -> ASPresentationAnchor {
-        MainActor.assumeIsolated {
-            UIApplication.shared.connectedScenes
-                .compactMap { $0 as? UIWindowScene }
-                .flatMap(\.windows)
-                .first(where: \.isKeyWindow) ?? ASPresentationAnchor()
+        // Use DispatchQueue.main.sync to safely access the cached window from any thread.
+        // presentationAnchor(for:) is called synchronously by ASAuthorizationController,
+        // and while it's typically on the main thread, the API contract doesn't guarantee it.
+        DispatchQueue.main.sync {
+            cachedWindow ?? ASPresentationAnchor()
         }
     }
 }
@@ -82,14 +89,12 @@ extension AppleSignInCoordinator: ASAuthorizationControllerDelegate {
                   let idToken = String(data: tokenData, encoding: .utf8),
                   let nonce = currentNonce else {
                 continuation?.resume(throwing: AppleSignInError.missingToken)
-                continuation = nil
-                currentNonce = nil
+                cleanup()
                 return
             }
 
             continuation?.resume(returning: (idToken: idToken, nonce: nonce))
-            continuation = nil
-            currentNonce = nil
+            cleanup()
         }
     }
 
@@ -103,8 +108,7 @@ extension AppleSignInCoordinator: ASAuthorizationControllerDelegate {
             } else {
                 continuation?.resume(throwing: error)
             }
-            continuation = nil
-            currentNonce = nil
+            cleanup()
         }
     }
 }

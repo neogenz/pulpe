@@ -11,8 +11,6 @@ struct SheetFormContainer<Content: View>: View {
     var autoFocus: FocusState<Bool>.Binding?
     @ViewBuilder let content: Content
 
-    @State private var keyboardHeight: CGFloat = 0
-
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -23,9 +21,7 @@ struct SheetFormContainer<Content: View>: View {
                 .padding(.top, DesignTokens.Spacing.lg)
                 .padding(.bottom, DesignTokens.Spacing.xl)
             }
-            .safeAreaInset(edge: .bottom, spacing: 0) {
-                Color.clear.frame(height: keyboardHeight)
-            }
+            .contentMargins(.bottom, DesignTokens.Spacing.xxl, for: .scrollContent)
             .scrollBounceBehavior(.basedOnSize)
             .scrollDismissesKeyboard(.interactively)
             .background(Color.sheetBackground)
@@ -57,17 +53,6 @@ struct SheetFormContainer<Content: View>: View {
                 autoFocus?.wrappedValue = true
             }
         }
-        .ignoresSafeArea(.keyboard)
         .standardSheetPresentation()
-        .onReceive(
-            NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)
-        ) { notification in
-            if let frame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect {
-                keyboardHeight = frame.height
-            }
-        }
-        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
-            keyboardHeight = 0
-        }
     }
 }

@@ -17,7 +17,17 @@ struct AddAllocatedTransactionSheet: View {
     @State private var amountText = ""
     @State private var submitSuccessTrigger = false
 
-    private let transactionService = TransactionService.shared
+    private let dependencies: AddAllocatedTransactionDependencies
+
+    init(
+        budgetLine: BudgetLine,
+        dependencies: AddAllocatedTransactionDependencies = .live,
+        onAdd: @escaping (Transaction) -> Void
+    ) {
+        self.budgetLine = budgetLine
+        self.dependencies = dependencies
+        self.onAdd = onAdd
+    }
 
     private var canSubmit: Bool {
         !name.trimmingCharacters(in: .whitespaces).isEmpty &&
@@ -124,7 +134,7 @@ struct AddAllocatedTransactionSheet: View {
         )
 
         do {
-            let transaction = try await transactionService.createTransaction(data)
+            let transaction = try await dependencies.createTransaction(data)
             submitSuccessTrigger.toggle()
             onAdd(transaction)
             toastManager.show("Transaction ajoutée")
@@ -133,6 +143,16 @@ struct AddAllocatedTransactionSheet: View {
             self.error = error
         }
     }
+}
+
+struct AddAllocatedTransactionDependencies: Sendable {
+    var createTransaction: @Sendable (TransactionCreate) async throws -> Transaction
+
+    static let live = AddAllocatedTransactionDependencies(
+        createTransaction: { data in
+            try await TransactionService.shared.createTransaction(data)
+        }
+    )
 }
 
 #Preview {

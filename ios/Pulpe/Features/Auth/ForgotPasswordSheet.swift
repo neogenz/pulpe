@@ -30,9 +30,7 @@ struct ForgotPasswordSheet: View {
                 }
             }
         }
-        .presentationDetents([.medium, .large])
-        .presentationDragIndicator(.visible)
-        .presentationBackground(Color.sheetBackground)
+        .standardSheetPresentation(detents: [.medium, .large])
         .task { isEmailFocused = true }
         .accessibilityIdentifier("forgotPasswordPage")
     }
