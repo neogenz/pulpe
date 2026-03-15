@@ -123,7 +123,7 @@ enum DesignTokens {
 
     enum ListRow {
         /// Vertical padding for all list/transaction/budget rows
-        static let verticalPadding: CGFloat = 4
+        static let verticalPadding: CGFloat = 8
     }
 
     // MARK: - Animation

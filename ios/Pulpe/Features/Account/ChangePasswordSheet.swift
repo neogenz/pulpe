@@ -215,16 +215,14 @@ struct ChangePasswordDependencies: Sendable {
     var verifyPassword: @Sendable (String, String) async throws -> Void
     var updatePassword: @Sendable (String) async throws -> Void
 
-    static var live: ChangePasswordDependencies {
-        ChangePasswordDependencies(
+    static let live = ChangePasswordDependencies(
         verifyPassword: { email, password in
             try await AuthService.shared.verifyPassword(email: email, password: password)
         },
         updatePassword: { newPassword in
             try await AuthService.shared.updatePassword(newPassword)
         }
-        )
-    }
+    )
 }
 
 #Preview {

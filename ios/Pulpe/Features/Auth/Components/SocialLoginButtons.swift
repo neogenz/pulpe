@@ -1,12 +1,13 @@
+import Accessibility
 import AuthenticationServices
 import OSLog
 import SwiftUI
 
 // MARK: - Social Login Section
 
-struct SocialLoginDependencies {
-    var appleSignIn: () async throws -> (idToken: String, nonce: String)
-    var googleSignIn: () async throws -> (idToken: String, accessToken: String)
+struct SocialLoginDependencies: Sendable {
+    var appleSignIn: @Sendable () async throws -> (idToken: String, nonce: String)
+    var googleSignIn: @Sendable () async throws -> (idToken: String, accessToken: String)
 }
 
 struct SocialLoginSection: View {
@@ -18,7 +19,7 @@ struct SocialLoginSection: View {
     @State private var errorMessage: String?
 
     private let dependencies: SocialLoginDependencies?
-    var onSuccess: (() -> Void)?
+    let onSuccess: (() -> Void)?
 
     init(dependencies: SocialLoginDependencies? = nil, onSuccess: (() -> Void)? = nil) {
         self.dependencies = dependencies
@@ -49,6 +50,10 @@ struct SocialLoginSection: View {
                 await signInWithGoogle()
                 isGoogleLoading = false
             }
+        }
+        .onChange(of: errorMessage) { _, newValue in
+            guard let message = newValue else { return }
+            AccessibilityNotification.Announcement(message).post()
         }
     }
 
@@ -113,7 +118,7 @@ struct SocialLoginDivider: View {
         HStack(spacing: DesignTokens.Spacing.md) {
             dividerLine
             Text("ou")
-                .font(.subheadline)
+                .font(PulpeTypography.subheadline)
                 .foregroundStyle(Color.textSecondaryOnboarding)
             dividerLine
         }
@@ -161,6 +166,7 @@ struct AppleSignInButtonView: View {
             .frame(height: DesignTokens.FrameHeight.button)
             .clipShape(Capsule())
             .disabled(isDisabled)
+            .accessibilityHidden(true)
             .overlay {
                 // Intercept taps to use our coordinator-based flow
                 Button {

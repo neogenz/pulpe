@@ -292,16 +292,14 @@ struct ResetPasswordDependencies: Sendable {
     var beginPasswordRecovery: @Sendable (URL) async throws -> PasswordRecoveryContext
     var updatePassword: @Sendable (String) async throws -> Void
 
-    static var live: ResetPasswordDependencies {
-        ResetPasswordDependencies(
-            beginPasswordRecovery: { callbackURL in
-                try await AuthService.shared.beginPasswordRecovery(from: callbackURL)
-            },
-            updatePassword: { password in
-                try await AuthService.shared.updatePassword(password)
-            }
-        )
-    }
+    static let live = ResetPasswordDependencies(
+        beginPasswordRecovery: { callbackURL in
+            try await AuthService.shared.beginPasswordRecovery(from: callbackURL)
+        },
+        updatePassword: { password in
+            try await AuthService.shared.updatePassword(password)
+        }
+    )
 }
 
 #Preview {
