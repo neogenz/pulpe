@@ -15,11 +15,8 @@ import { provideRouter, ActivatedRoute, Router } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
-import { of, throwError } from 'rxjs';
-import {
-  BudgetTemplatesApi,
-  type BudgetTemplateDetailViewModel,
-} from '@core/budget-template/budget-templates-api';
+import { of } from 'rxjs';
+import { type BudgetTemplateDetailViewModel } from './services/template-details-store';
 import { BudgetTemplatesStore } from '../services/budget-templates-store';
 import { TemplateDetailsStore } from './services/template-details-store';
 import { PulpeTitleStrategy } from '@core/routing/title-strategy';
@@ -155,11 +152,11 @@ const mockStore = {
   netBalance: storeNetBalance,
   initializeTemplateId: vi.fn(),
   reloadTemplateDetails: vi.fn(),
+  checkUsage: vi.fn(),
 };
 
 const mockDialog = { open: vi.fn() };
 const mockSnackBar = { open: vi.fn() };
-const mockBudgetTemplatesApi = { checkUsage$: vi.fn(), delete$: vi.fn() };
 const mockDeleteMutation = {
   mutate: vi.fn<(id: string) => Promise<void>>().mockResolvedValue(undefined),
   error: signal<unknown>(null),
@@ -195,7 +192,6 @@ describe('TemplateDetail', () => {
         { provide: TemplateDetailsStore, useValue: mockStore },
         { provide: MatDialog, useValue: mockDialog },
         { provide: MatSnackBar, useValue: mockSnackBar },
-        { provide: BudgetTemplatesApi, useValue: mockBudgetTemplatesApi },
         { provide: BudgetTemplatesStore, useValue: mockBudgetTemplatesStore },
         { provide: PulpeTitleStrategy, useValue: mockTitleStrategy },
         { provide: Logger, useValue: mockLogger },
@@ -549,17 +545,15 @@ describe('TemplateDetail', () => {
 
       await fixture.componentInstance.deleteTemplate();
 
-      expect(mockBudgetTemplatesApi.checkUsage$).not.toHaveBeenCalled();
+      expect(mockStore.checkUsage).not.toHaveBeenCalled();
     });
 
     it('should open usage dialog when template is in use', async () => {
-      const usageResponse = {
-        data: {
-          isUsed: true,
-          budgets: [{ id: 'b1', month: 3, year: 2024 }],
-        },
+      const usageData = {
+        isUsed: true,
+        budgets: [{ id: 'b1', month: 3, year: 2024 }],
       };
-      mockBudgetTemplatesApi.checkUsage$.mockReturnValue(of(usageResponse));
+      mockStore.checkUsage.mockResolvedValue(usageData);
 
       const mockDialogInstance = { setUsageData: vi.fn() };
       mockDialog.open.mockReturnValue({
@@ -570,33 +564,31 @@ describe('TemplateDetail', () => {
       const fixture = await createFixture();
       await fixture.componentInstance.deleteTemplate();
 
-      expect(mockBudgetTemplatesApi.checkUsage$).toHaveBeenCalledWith(
-        'template-123',
-      );
+      expect(mockStore.checkUsage).toHaveBeenCalledWith('template-123');
       expect(mockDialogInstance.setUsageData).toHaveBeenCalledWith(
-        usageResponse.data.budgets,
+        usageData.budgets,
       );
     });
 
     it('should open confirmation dialog when template is not in use', async () => {
-      mockBudgetTemplatesApi.checkUsage$.mockReturnValue(
-        of({ data: { isUsed: false, budgets: [] } }),
-      );
+      mockStore.checkUsage.mockResolvedValue({
+        isUsed: false,
+        budgets: [],
+      });
       mockDialog.open.mockReturnValue({ afterClosed: () => of(false) });
 
       const fixture = await createFixture();
       await fixture.componentInstance.deleteTemplate();
 
-      expect(mockBudgetTemplatesApi.checkUsage$).toHaveBeenCalledWith(
-        'template-123',
-      );
+      expect(mockStore.checkUsage).toHaveBeenCalledWith('template-123');
       expect(mockDialog.open).toHaveBeenCalled();
     });
 
     it('should delete and navigate back when confirmed', async () => {
-      mockBudgetTemplatesApi.checkUsage$.mockReturnValue(
-        of({ data: { isUsed: false, budgets: [] } }),
-      );
+      mockStore.checkUsage.mockResolvedValue({
+        isUsed: false,
+        budgets: [],
+      });
       mockDeleteMutation.mutate.mockResolvedValue(undefined);
       mockDeleteMutation.error.set(null);
       mockDialog.open.mockReturnValue({ afterClosed: () => of(true) });
@@ -617,9 +609,10 @@ describe('TemplateDetail', () => {
     });
 
     it('should show error snackbar when deletion fails', async () => {
-      mockBudgetTemplatesApi.checkUsage$.mockReturnValue(
-        of({ data: { isUsed: false, budgets: [] } }),
-      );
+      mockStore.checkUsage.mockResolvedValue({
+        isUsed: false,
+        budgets: [],
+      });
       const deleteError = new Error('Network error');
       mockDeleteMutation.mutate.mockImplementation(async () => {
         mockDeleteMutation.error.set(deleteError);
@@ -637,9 +630,7 @@ describe('TemplateDetail', () => {
     });
 
     it('should show error snackbar when usage check fails', async () => {
-      mockBudgetTemplatesApi.checkUsage$.mockReturnValue(
-        throwError(() => new Error('API error')),
-      );
+      mockStore.checkUsage.mockRejectedValue(new Error('API error'));
 
       const fixture = await createFixture();
       await fixture.componentInstance.deleteTemplate();

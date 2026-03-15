@@ -12,15 +12,17 @@ import {
 import { TranslocoService, TranslocoPipe } from '@jsverse/transloco';
 import { StateCard } from '@ui/state-card/state-card';
 
-interface ApiErrorDetails {
-  readonly statusCode?: number;
-  readonly message?: string;
-}
-
-interface ApiError {
-  readonly status?: number;
-  readonly error?: ApiErrorDetails;
-  readonly message?: string;
+function isApiErrorWithStatus(err: unknown, status: number): boolean {
+  if (!err || typeof err !== 'object') return false;
+  if ('status' in err && (err as Record<string, unknown>)['status'] === status)
+    return true;
+  if ('error' in err) {
+    const nested = (err as Record<string, unknown>)['error'];
+    if (nested && typeof nested === 'object' && 'statusCode' in nested) {
+      return (nested as Record<string, unknown>)['statusCode'] === status;
+    }
+  }
+  return false;
 }
 
 @Component({
@@ -63,27 +65,9 @@ export class TemplatesError {
   readonly retryCountdown = signal(0);
   readonly retryDisabled = computed(() => this.retryCountdown() > 0);
 
-  readonly isRateLimited = computed(() => {
-    const err = this.error();
-    if (!err || typeof err !== 'object') return false;
-
-    // Check for HttpErrorResponse
-    if ('status' in err && (err as ApiError).status === 429) {
-      return true;
-    }
-
-    // Check for ApiError with nested error object
-    const apiErr = err as ApiError;
-    if (
-      apiErr.error &&
-      'statusCode' in apiErr.error &&
-      apiErr.error.statusCode === 429
-    ) {
-      return true;
-    }
-
-    return false;
-  });
+  readonly isRateLimited = computed(() =>
+    isApiErrorWithStatus(this.error(), 429),
+  );
 
   readonly #rateLimitTitle = this.#transloco.translate(
     'template.rateLimitTitle',
@@ -113,6 +97,10 @@ export class TemplatesError {
   #currentIntervalId: number | null = null;
 
   constructor() {
+    this.#destroyRef.onDestroy(() => {
+      this.#clearCountdown();
+    });
+
     // Track when rate limited state changes to manage countdown
     effect(() => {
       if (this.isRateLimited()) {
@@ -142,11 +130,6 @@ export class TemplatesError {
         this.#clearCountdown();
       }
     }, 1000);
-
-    // Cleanup on destroy
-    this.#destroyRef.onDestroy(() => {
-      this.#clearCountdown();
-    });
   }
 
   #clearCountdown(): void {

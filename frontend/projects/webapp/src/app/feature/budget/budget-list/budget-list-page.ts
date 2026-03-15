@@ -17,7 +17,6 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { Router } from '@angular/router';
-import { BudgetApi } from '@core/budget/budget-api';
 import { ExcelExportService } from '@core/budget/excel-export.service';
 import { downloadAsExcelFile, downloadAsJsonFile } from '@core/file-download';
 import { ROUTES, TitleDisplay } from '@core/routing';
@@ -40,7 +39,7 @@ import {
   TOUR_START_DELAY,
 } from '@core/product-tour/product-tour.service';
 import { LoadingIndicator } from '@core/loading/loading-indicator';
-import { UserSettingsApi } from '@core/user-settings/user-settings-api';
+import { UserSettingsStore } from '@core/user-settings';
 import { TranslocoService, TranslocoPipe } from '@jsverse/transloco';
 
 const YEARS_TO_DISPLAY = 8; // Current year + 7 future years for planning
@@ -169,8 +168,7 @@ export default class BudgetListPage {
   readonly #logger = inject(Logger);
   readonly #loadingIndicator = inject(LoadingIndicator);
   readonly #destroyRef = inject(DestroyRef);
-  readonly #budgetApi = inject(BudgetApi);
-  readonly #userSettingsApi = inject(UserSettingsApi);
+  readonly #userSettingsStore = inject(UserSettingsStore);
   readonly #excelExportService = inject(ExcelExportService);
   readonly #transloco = inject(TranslocoService);
 
@@ -212,7 +210,7 @@ export default class BudgetListPage {
   protected readonly calendarYears = computed<CalendarYear[]>(() => {
     const currentYear = new Date().getFullYear();
     const budgetsGroupedByYears = this.state.allMonthsGroupedByYears();
-    const payDayOfMonth = this.#userSettingsApi.payDayOfMonth();
+    const payDayOfMonth = this.#userSettingsStore.payDayOfMonth();
 
     // Récupérer toutes les années existantes dans budgetsGroupedByYears
     const existingYears = Array.from(budgetsGroupedByYears.keys());
@@ -226,7 +224,7 @@ export default class BudgetListPage {
     // Fusionner les années existantes et calculées, puis supprimer les doublons et trier
     const years = Array.from(
       new Set([...existingYears, ...calculatedYears]),
-    ).sort((a, b) => a - b);
+    ).toSorted((a, b) => a - b);
 
     return years.map((year) => {
       // Récupérer les budgets existants ou créer des placeholders
@@ -247,7 +245,7 @@ export default class BudgetListPage {
 
   // Current budget period based on payday setting
   protected readonly currentDate = computed(() => {
-    const payDay = this.#userSettingsApi.payDayOfMonth();
+    const payDay = this.#userSettingsStore.payDayOfMonth();
     return getBudgetPeriodForDate(new Date(), payDay);
   });
 
@@ -341,7 +339,7 @@ export default class BudgetListPage {
     this.#loadingIndicator.setLoading(true);
 
     try {
-      const data = await firstValueFrom(this.#budgetApi.exportAllBudgets$());
+      const data = await this.state.exportAllBudgets();
       const today = new Date().toISOString().split('T')[0];
       downloadAsJsonFile(data, `pulpe-export-${today}`);
 
@@ -368,7 +366,7 @@ export default class BudgetListPage {
     this.#loadingIndicator.setLoading(true);
 
     try {
-      const data = await firstValueFrom(this.#budgetApi.exportAllBudgets$());
+      const data = await this.state.exportAllBudgets();
       const workbook = this.#excelExportService.buildWorkbook(data);
       const today = new Date().toISOString().split('T')[0];
       downloadAsExcelFile(workbook, `pulpe-export-${today}`);

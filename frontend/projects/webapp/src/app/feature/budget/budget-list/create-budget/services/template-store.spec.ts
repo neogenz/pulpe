@@ -1,13 +1,35 @@
 import { TestBed } from '@angular/core/testing';
-import { provideZonelessChangeDetection } from '@angular/core';
-import { of, throwError } from 'rxjs';
+import { provideZonelessChangeDetection, signal } from '@angular/core';
+import { of, switchMap } from 'rxjs';
 import { type TemplateLine } from 'pulpe-shared';
 import { TemplateStore } from './template-store';
-import { TemplateApi } from '@core/budget-template/template-api';
+import { BudgetApi } from '@core/budget/budget-api';
+import { BudgetTemplatesApi } from '@core/budget-template/budget-templates-api';
+
+const mockCache = {
+  get: vi.fn().mockReturnValue(undefined),
+  set: vi.fn(),
+  has: vi.fn().mockReturnValue(false),
+  invalidate: vi.fn(),
+  deduplicate: vi.fn((_key: string[], fn: () => Promise<unknown>) => fn()),
+  clear: vi.fn(),
+  version: signal(0),
+};
+
+const mockBudgetCache = {
+  get: vi.fn().mockReturnValue(undefined),
+  set: vi.fn(),
+  has: vi.fn().mockReturnValue(false),
+  invalidate: vi.fn(),
+  deduplicate: vi.fn((_key: string[], fn: () => Promise<unknown>) => fn()),
+  clear: vi.fn(),
+  version: signal(0),
+};
 
 describe('TemplateStore', () => {
   let store: TemplateStore;
-  let templateApiMock: Partial<TemplateApi>;
+  let budgetApiMock: Partial<BudgetApi>;
+  let budgetTemplatesApiMock: Partial<BudgetTemplatesApi>;
 
   const mockTemplates = [
     {
@@ -56,20 +78,36 @@ describe('TemplateStore', () => {
   ];
 
   beforeEach(() => {
-    // Create a function mock for the observable methods
-    const getAll$ = vi.fn().mockReturnValue(of(mockTemplates));
-    const getTemplateLines$ = vi.fn().mockReturnValue(of(mockTemplateLines));
+    mockCache.get.mockReturnValue(undefined);
+    mockCache.set.mockClear();
+    mockBudgetCache.invalidate.mockClear();
 
-    templateApiMock = {
-      getAll$,
-      getTemplateLines$,
+    budgetApiMock = {
+      createBudget$: vi.fn().mockReturnValue(
+        of({
+          budget: { id: 'new-budget', month: 3, year: 2026 },
+          message: 'Budget créé',
+        }),
+      ),
+      cache: mockBudgetCache as unknown as BudgetApi['cache'],
+    };
+
+    budgetTemplatesApiMock = {
+      getAll$: vi
+        .fn()
+        .mockReturnValue(of({ data: mockTemplates, success: true })),
+      getTemplateTransactions$: vi
+        .fn()
+        .mockReturnValue(of({ data: mockTemplateLines, success: true })),
+      cache: mockCache as unknown as BudgetTemplatesApi['cache'],
     };
 
     TestBed.configureTestingModule({
       providers: [
         provideZonelessChangeDetection(),
         TemplateStore,
-        { provide: TemplateApi, useValue: templateApiMock },
+        { provide: BudgetApi, useValue: budgetApiMock },
+        { provide: BudgetTemplatesApi, useValue: budgetTemplatesApiMock },
       ],
     });
 
@@ -93,8 +131,7 @@ describe('TemplateStore', () => {
     });
 
     it('should initialize default selection with default template', async () => {
-      // Load templates first
-      await store.loadTemplates();
+      await new Promise((resolve) => setTimeout(resolve, 100));
 
       store.initializeDefaultSelection();
       expect(store.selectedTemplateId()).toBe('template1');
@@ -105,18 +142,16 @@ describe('TemplateStore', () => {
         ...t,
         isDefault: false,
       }));
-      templateApiMock.getAll$ = vi
+      budgetTemplatesApiMock.getAll$ = vi
         .fn()
-        .mockReturnValue(of(templatesWithoutDefault));
+        .mockReturnValue(of({ data: templatesWithoutDefault, success: true }));
 
-      // Recreate store with new mock data
       store = TestBed.inject(TemplateStore);
 
-      // Load templates
-      await store.loadTemplates();
+      await new Promise((resolve) => setTimeout(resolve, 100));
 
       store.initializeDefaultSelection();
-      expect(store.selectedTemplateId()).toBe('template2'); // Newest by date
+      expect(store.selectedTemplateId()).toBe('template2');
     });
 
     it('should not change selection if already selected', () => {
@@ -131,34 +166,24 @@ describe('TemplateStore', () => {
       const lines = await store.loadTemplateLines('template1');
 
       expect(lines).toEqual(mockTemplateLines);
-      expect(templateApiMock.getTemplateLines$).toHaveBeenCalledWith(
-        'template1',
-      );
-      expect(store.getCachedTemplateLines('template1')).toEqual(
+      expect(
+        budgetTemplatesApiMock.getTemplateTransactions$,
+      ).toHaveBeenCalledWith('template1');
+      expect(mockCache.set).toHaveBeenCalledWith(
+        ['templates', 'lines', 'template1'],
         mockTemplateLines,
       );
     });
 
     it('should return cached lines without API call', async () => {
-      // First load
-      await store.loadTemplateLines('template1');
-      vi.clearAllMocks();
+      mockCache.get.mockReturnValue({ data: mockTemplateLines });
 
-      // Second load should use cache
       const lines = await store.loadTemplateLines('template1');
 
       expect(lines).toEqual(mockTemplateLines);
-      expect(templateApiMock.getTemplateLines$).not.toHaveBeenCalled();
-    });
-
-    it('should handle API errors gracefully', async () => {
-      templateApiMock.getTemplateLines$ = vi
-        .fn()
-        .mockReturnValue(throwError(() => new Error('API Error')));
-
-      const lines = await store.loadTemplateLines('template1');
-
-      expect(lines).toEqual([]);
+      expect(
+        budgetTemplatesApiMock.getTemplateTransactions$,
+      ).not.toHaveBeenCalled();
     });
   });
 
@@ -166,68 +191,69 @@ describe('TemplateStore', () => {
     it('should load totals for multiple templates', async () => {
       await store.loadTemplateTotals(['template1', 'template2']);
 
-      expect(templateApiMock.getTemplateLines$).toHaveBeenCalledTimes(2);
+      expect(
+        budgetTemplatesApiMock.getTemplateTransactions$,
+      ).toHaveBeenCalledTimes(2);
       expect(store.templateTotalsMap()['template1']).toBeDefined();
       expect(store.templateTotalsMap()['template2']).toBeDefined();
     });
 
     it('should skip already loaded templates', async () => {
-      // Pre-load template1 totals
       await store.loadTemplateTotals(['template1']);
       vi.clearAllMocks();
+      mockCache.get.mockReturnValue(undefined);
 
       await store.loadTemplateTotals(['template1', 'template2']);
 
-      // Should only load template2
-      expect(templateApiMock.getTemplateLines$).toHaveBeenCalledTimes(1);
-      expect(templateApiMock.getTemplateLines$).toHaveBeenCalledWith(
-        'template2',
-      );
-    });
-
-    it('should set loading states while loading', () => {
-      // Start loading (don't await)
-      store.loadTemplateTotals(['template1']);
-
-      // Check loading state is set immediately
-      const totals = store.templateTotalsMap();
-      expect(totals['template1']).toBeDefined();
+      expect(
+        budgetTemplatesApiMock.getTemplateTransactions$,
+      ).toHaveBeenCalledTimes(1);
+      expect(
+        budgetTemplatesApiMock.getTemplateTransactions$,
+      ).toHaveBeenCalledWith('template2');
     });
   });
 
-  describe('cache management', () => {
-    it('should clear all caches', async () => {
-      // Load some data
-      await store.loadTemplateLines('template1');
-      await store.loadTemplateTotals(['template1']);
+  describe('budget creation', () => {
+    it('should create a budget and invalidate budget cache', async () => {
+      const budgetData = {
+        month: 3,
+        year: 2026,
+        description: 'Test',
+        templateId: 'template1',
+      };
 
-      // Clear caches
-      store.clearCaches();
+      const result = await store.createBudget(budgetData);
 
-      expect(store.getCachedTemplateLines('template1')).toBeNull();
-      expect(store.templateTotalsMap()).toEqual({});
+      expect(result).toBeDefined();
+      expect(budgetApiMock.createBudget$).toHaveBeenCalledWith(budgetData);
+      expect(mockBudgetCache.invalidate).toHaveBeenCalledWith(['budget']);
     });
 
-    it('should invalidate specific template', async () => {
-      // Load data for multiple templates
-      await store.loadTemplateLines('template1');
-      await store.loadTemplateLines('template2');
-      await store.loadTemplateTotals(['template1', 'template2']);
+    it('should return undefined on error', async () => {
+      budgetApiMock.createBudget$ = vi.fn().mockReturnValue(
+        of(null).pipe(
+          switchMap(() => {
+            throw new Error('API error');
+          }),
+        ),
+      );
 
-      // Invalidate only template1
-      store.invalidateTemplate('template1');
+      const result = await store.createBudget({
+        month: 3,
+        year: 2026,
+        description: '',
+        templateId: 'template1',
+      });
 
-      expect(store.getCachedTemplateLines('template1')).toBeNull();
-      expect(store.getCachedTemplateLines('template2')).not.toBeNull();
-      expect(store.templateTotalsMap()['template1']).toBeUndefined();
-      expect(store.templateTotalsMap()['template2']).toBeDefined();
+      expect(result).toBeUndefined();
+      expect(store.createBudgetError()).toBeDefined();
     });
   });
 
   describe('computed values', () => {
     it('should compute selected template', async () => {
-      // Load templates first
-      await store.loadTemplates();
+      await new Promise((resolve) => setTimeout(resolve, 100));
 
       store.selectTemplate('template1');
       const selected = store.selectedTemplate();
@@ -241,8 +267,7 @@ describe('TemplateStore', () => {
     });
 
     it('should compute sorted templates with default first', async () => {
-      // Load templates first
-      await store.loadTemplates();
+      await new Promise((resolve) => setTimeout(resolve, 100));
 
       const sorted = store.sortedTemplates();
 

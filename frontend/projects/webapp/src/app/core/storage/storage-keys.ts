@@ -30,4 +30,7 @@ export const STORAGE_KEYS = {
 
   // Analytics: pending OAuth signup method (sessionStorage)
   PENDING_SIGNUP_METHOD: 'pulpe_pending_signup_method',
+
+  // Page lifecycle recovery: reload cooldown timestamp (sessionStorage)
+  PAGE_RELOAD_COOLDOWN: 'pulpe-page-reload-cooldown-at',
 } as const satisfies Record<string, StorageKey>;

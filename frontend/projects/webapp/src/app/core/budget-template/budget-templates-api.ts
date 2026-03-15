@@ -1,5 +1,5 @@
 import { inject, Injectable } from '@angular/core';
-import { type Observable, forkJoin, map } from 'rxjs';
+import { type Observable } from 'rxjs';
 import {
   type BudgetTemplateCreate,
   type BudgetTemplateCreateFromOnboarding,
@@ -119,41 +119,10 @@ export class BudgetTemplatesApi {
     );
   }
 
-  cacheTemplateDetail(data: BudgetTemplateCreateResponse['data']): void {
-    if (data.template) {
-      this.cache.set(['templates', 'details', data.template.id], {
-        template: data.template,
-        transactions: data.lines ?? [],
-      });
-    }
-  }
-
   checkUsage$(id: string): Observable<TemplateUsageResponse> {
     return this.#api.get$(
       `/budget-templates/${id}/usage`,
       templateUsageResponseSchema,
     );
   }
-
-  getDetail$(id: string): Observable<BudgetTemplateDetailViewModel> {
-    return forkJoin({
-      template: this.getById$(id).pipe(map((r) => r.data)),
-      transactions: this.getTemplateTransactions$(id).pipe(map((r) => r.data)),
-    }).pipe(
-      map((result) => {
-        if (!result.template) {
-          throw new Error(`Template with id ${id} not found`);
-        }
-        return {
-          template: result.template,
-          transactions: result.transactions || [],
-        };
-      }),
-    );
-  }
-}
-
-export interface BudgetTemplateDetailViewModel {
-  template: BudgetTemplateResponse['data'];
-  transactions: TemplateLineListResponse['data'];
 }

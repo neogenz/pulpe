@@ -52,7 +52,6 @@ describe('BudgetTemplatesStore', () => {
       update$: vi.fn(),
       delete$: vi.fn(),
       cache: mockCache as unknown as BudgetTemplatesApi['cache'],
-      cacheTemplateDetail: vi.fn(),
     };
 
     TestBed.configureTestingModule({
@@ -225,7 +224,7 @@ describe('BudgetTemplatesStore', () => {
       expect(mockApi.create$).toHaveBeenCalledWith(newTemplate);
     });
 
-    it('should return void when creation fails (cachedMutation captures error)', async () => {
+    it('should throw when creation fails', async () => {
       const newTemplate: BudgetTemplateCreate = {
         name: 'New Default Template',
         description: 'This will fail',
@@ -239,8 +238,7 @@ describe('BudgetTemplatesStore', () => {
 
       await new Promise((resolve) => setTimeout(resolve, 100));
 
-      const result = await store.addTemplate(newTemplate);
-      expect(result).toBeUndefined();
+      await expect(store.addTemplate(newTemplate)).rejects.toThrow();
     });
 
     it('should not modify state when creation fails', async () => {
@@ -259,7 +257,11 @@ describe('BudgetTemplatesStore', () => {
 
       const initialCount = store.templateCount();
 
-      await store.addTemplate(newTemplate);
+      try {
+        await store.addTemplate(newTemplate);
+      } catch {
+        // Expected — addTemplate now throws on failure
+      }
 
       expect(store.templateCount()).toBe(initialCount);
     });
@@ -355,10 +357,10 @@ describe('BudgetTemplatesStore', () => {
         lines: [],
       });
 
-      expect(mockApi.cacheTemplateDetail).toHaveBeenCalledWith({
-        template: createdTemplate,
-        lines,
-      });
+      expect(mockCache.set).toHaveBeenCalledWith(
+        ['templates', 'details', createdTemplate.id],
+        { template: createdTemplate, transactions: lines },
+      );
     });
 
     it('should not modify state on creation failure', async () => {
@@ -377,7 +379,11 @@ describe('BudgetTemplatesStore', () => {
 
       const initialCount = store.templateCount();
 
-      await store.addTemplate(newTemplate);
+      try {
+        await store.addTemplate(newTemplate);
+      } catch {
+        // Expected — addTemplate now throws on failure
+      }
 
       expect(store.templateCount()).toBe(initialCount);
     });

@@ -3,7 +3,7 @@ import { ProfileSetupService, type ProfileData } from '@core/complete-profile';
 import { BudgetApi } from '@core/budget';
 import { Logger } from '@core/logging/logger';
 import { PostHogService } from '@core/analytics/posthog';
-import { UserSettingsApi } from '@core/user-settings';
+import { UserSettingsStore } from '@core/user-settings';
 import { AuthOAuthService } from '@core/auth/auth-oauth.service';
 import { HasBudgetCache } from '@core/auth/has-budget-cache';
 import { firstValueFrom } from 'rxjs';
@@ -45,7 +45,7 @@ function createInitialState(): CompleteProfileState {
 export class CompleteProfileStore {
   readonly #profileSetupService = inject(ProfileSetupService);
   readonly #budgetApi = inject(BudgetApi);
-  readonly #userSettingsApi = inject(UserSettingsApi);
+  readonly #userSettingsStore = inject(UserSettingsStore);
   readonly #authOAuth = inject(AuthOAuthService);
   readonly #hasBudgetCache = inject(HasBudgetCache);
   readonly #logger = inject(Logger);
@@ -203,7 +203,7 @@ export class CompleteProfileStore {
       // Save pay day setting if user configured it
       if (state.payDayOfMonth !== null) {
         try {
-          await this.#userSettingsApi.updateSettings({
+          await this.#userSettingsStore.updateSettings({
             payDayOfMonth: state.payDayOfMonth,
           });
           this.#logger.info('Pay day setting saved', {

@@ -27,7 +27,8 @@ export class BudgetTemplatesStore {
           ),
         ),
   });
-  readonly selectedTemplate = signal<BudgetTemplate | null>(null);
+  readonly #selectedTemplate = signal<BudgetTemplate | null>(null);
+  readonly selectedTemplate = this.#selectedTemplate.asReadonly();
 
   readonly #templates = computed(() => this.budgetTemplates.value() ?? []);
 
@@ -81,7 +82,13 @@ export class BudgetTemplatesStore {
           ...(data ?? []),
           response.data.template!,
         ]);
-        this.#budgetTemplatesApi.cacheTemplateDetail(response.data);
+        this.#budgetTemplatesApi.cache.set(
+          ['templates', 'details', response.data.template.id],
+          {
+            template: response.data.template,
+            transactions: response.data.lines ?? [],
+          },
+        );
       }
     },
   });
@@ -92,17 +99,23 @@ export class BudgetTemplatesStore {
 
   selectTemplate(id: string): void {
     const template = this.budgetTemplates.value()?.find((t) => t.id === id);
-    this.selectedTemplate.set(template ?? null);
+    this.#selectedTemplate.set(template ?? null);
   }
 
   async addTemplate(
     template: BudgetTemplateCreate,
-  ): Promise<BudgetTemplateCreateResponse['data'] | void> {
+  ): Promise<BudgetTemplateCreateResponse['data'] | undefined> {
     if (this.isTemplateLimitReached()) {
       throw new Error('Template limit reached');
     }
 
     const result = await this.#createTemplateMutation.mutate(template);
-    return result?.data;
+    if (!result) {
+      throw (
+        this.#createTemplateMutation.error() ??
+        new Error('Failed to create template')
+      );
+    }
+    return result.data;
   }
 }

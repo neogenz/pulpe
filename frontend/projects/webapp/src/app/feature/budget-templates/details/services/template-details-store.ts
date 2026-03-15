@@ -1,11 +1,20 @@
 import { inject, Injectable, signal, computed } from '@angular/core';
+import { firstValueFrom } from 'rxjs';
 import { cachedResource } from 'ngx-ziflux';
+import { BudgetTemplatesApi } from '@core/budget-template/budget-templates-api';
 import {
-  BudgetTemplatesApi,
-  type BudgetTemplateDetailViewModel,
-} from '@core/budget-template/budget-templates-api';
-import { type TemplateLine, BudgetFormulas } from 'pulpe-shared';
+  type TemplateLine,
+  type BudgetTemplateResponse,
+  type TemplateLineListResponse,
+  type TemplateUsageResponse,
+  BudgetFormulas,
+} from 'pulpe-shared';
 import type { FinancialEntry } from '../components';
+
+export interface BudgetTemplateDetailViewModel {
+  template: BudgetTemplateResponse['data'];
+  transactions: TemplateLineListResponse['data'];
+}
 
 const KIND_ORDER: Record<string, number> = {
   income: 1,
@@ -29,8 +38,18 @@ export class TemplateDetailsStore {
       const id = this.#templateId();
       return id ? { templateId: id } : undefined;
     },
-    loader: ({ params }) =>
-      this.#budgetTemplatesApi.getDetail$(params.templateId),
+    loader: async ({ params }) => {
+      const [templateRes, linesRes] = await Promise.all([
+        firstValueFrom(this.#budgetTemplatesApi.getById$(params.templateId)),
+        firstValueFrom(
+          this.#budgetTemplatesApi.getTemplateTransactions$(params.templateId),
+        ),
+      ]);
+      if (!templateRes.data) {
+        throw new Error(`Template with id ${params.templateId} not found`);
+      }
+      return { template: templateRes.data, transactions: linesRes.data || [] };
+    },
   });
 
   readonly templateDetails = computed(
@@ -49,7 +68,7 @@ export class TemplateDetailsStore {
   readonly entries = computed<FinancialEntry[]>(() => {
     const transactions = this.templateLines();
 
-    const sortedTransactions = [...transactions].sort((a, b) => {
+    const sortedTransactions = transactions.toSorted((a, b) => {
       const kindDiff =
         (KIND_ORDER[a.kind] ?? Infinity) - (KIND_ORDER[b.kind] ?? Infinity);
       if (kindDiff !== 0) return kindDiff;
@@ -92,5 +111,12 @@ export class TemplateDetailsStore {
 
   reloadTemplateDetails(): void {
     this.#templateDetailsResource.reload();
+  }
+
+  async checkUsage(templateId: string): Promise<TemplateUsageResponse['data']> {
+    const response = await firstValueFrom(
+      this.#budgetTemplatesApi.checkUsage$(templateId),
+    );
+    return response.data;
   }
 }

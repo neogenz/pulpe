@@ -1,7 +1,8 @@
 import { Injectable, computed, inject, linkedSignal } from '@angular/core';
 import { BudgetApi } from '@core/budget/budget-api';
-import { type Budget } from 'pulpe-shared';
+import { type Budget, type BudgetExportResponse } from 'pulpe-shared';
 import { cachedResource } from 'ngx-ziflux';
+import { firstValueFrom } from 'rxjs';
 
 export interface BudgetPlaceholder {
   month: number;
@@ -140,5 +141,9 @@ export class BudgetListStore {
 
   setSelectedYear(year: number): void {
     this.selectedYear.set(year);
+  }
+
+  async exportAllBudgets(): Promise<BudgetExportResponse> {
+    return firstValueFrom(this.#budgetApi.exportAllBudgets$());
   }
 }

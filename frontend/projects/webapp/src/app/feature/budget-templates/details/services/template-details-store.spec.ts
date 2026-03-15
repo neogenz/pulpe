@@ -3,10 +3,8 @@ import { TestBed } from '@angular/core/testing';
 import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { of } from 'rxjs';
 import { TemplateDetailsStore } from './template-details-store';
-import {
-  BudgetTemplatesApi,
-  type BudgetTemplateDetailViewModel,
-} from '@core/budget-template/budget-templates-api';
+import { type BudgetTemplateDetailViewModel } from './template-details-store';
+import { BudgetTemplatesApi } from '@core/budget-template/budget-templates-api';
 
 const mockCache = {
   get: vi.fn().mockReturnValue(null),
@@ -56,7 +54,12 @@ describe('TemplateDetailsStore', () => {
     mockCache.invalidate.mockClear();
 
     mockApi = {
-      getDetail$: vi.fn().mockReturnValue(of(mockDetailViewModel)),
+      getById$: vi
+        .fn()
+        .mockReturnValue(of({ data: mockTemplate, success: true })),
+      getTemplateTransactions$: vi
+        .fn()
+        .mockReturnValue(of({ data: mockTransactions, success: true })),
       cache: mockCache as unknown as BudgetTemplatesApi['cache'],
     };
 
@@ -77,7 +80,10 @@ describe('TemplateDetailsStore', () => {
 
       await new Promise((resolve) => setTimeout(resolve, 100));
 
-      expect(mockApi.getDetail$).toHaveBeenCalledWith('template-1');
+      expect(mockApi.getById$).toHaveBeenCalledWith('template-1');
+      expect(mockApi.getTemplateTransactions$).toHaveBeenCalledWith(
+        'template-1',
+      );
     });
   });
 
@@ -86,7 +92,7 @@ describe('TemplateDetailsStore', () => {
       store.initializeTemplateId('template-1');
       await new Promise((resolve) => setTimeout(resolve, 100));
 
-      (mockApi.getDetail$ as ReturnType<typeof vi.fn>).mockClear();
+      (mockApi.getById$ as ReturnType<typeof vi.fn>).mockClear();
       store.reloadTemplateDetails();
     });
   });

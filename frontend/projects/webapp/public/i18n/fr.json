@@ -567,7 +567,11 @@
     "colType": "Type",
     "colTotal": "Total",
     "colActions": "Actions",
-    "saveError": "Une erreur est survenue lors de la sauvegarde"
+    "saveError": "Une erreur est survenue lors de la sauvegarde",
+    "totalIncome": "Revenus total :",
+    "totalExpenses": "Dépenses total :",
+    "netBalance": "Solde net :",
+    "noForecastInTemplate": "Pas de prévision dans ce modèle"
   },
   "currentMonth": {
     "pageTitle": "Tableau de bord",

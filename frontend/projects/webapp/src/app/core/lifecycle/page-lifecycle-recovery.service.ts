@@ -7,11 +7,12 @@ import { BudgetApi } from '@core/budget/budget-api';
 import { BudgetTemplatesApi } from '@core/budget-template/budget-templates-api';
 import { Logger } from '@core/logging/logger';
 import { ROUTES } from '@core/routing/routes-constants';
-import { UserSettingsApi } from '@core/user-settings';
+import { STORAGE_KEYS } from '@core/storage/storage-keys';
+import { StorageService } from '@core/storage/storage.service';
+import { UserSettingsStore } from '@core/user-settings';
 
 export const PAGE_RESUME_THRESHOLD_MS = 15 * 60 * 1000;
 export const PAGE_RELOAD_COOLDOWN_MS = 60 * 1000;
-const RELOAD_COOLDOWN_STORAGE_KEY = 'pulpe-page-reload-cooldown-at';
 
 export const PAGE_RELOAD = new InjectionToken<() => void>('PAGE_RELOAD', {
   providedIn: 'root',
@@ -46,9 +47,10 @@ export class PageLifecycleRecoveryService {
   readonly #authSession = inject(AuthSessionService);
   readonly #budgetApi = inject(BudgetApi);
   readonly #budgetTemplatesApi = inject(BudgetTemplatesApi);
-  readonly #userSettingsApi = inject(UserSettingsApi);
+  readonly #userSettingsStore = inject(UserSettingsStore);
   readonly #logger = inject(Logger);
   readonly #reload = inject(PAGE_RELOAD);
+  readonly #storage = inject(StorageService);
 
   #initialized = false;
   #lastHiddenAt: number | null = null;
@@ -192,7 +194,7 @@ export class PageLifecycleRecoveryService {
 
       this.#budgetApi.cache.invalidate(['budget']);
       this.#budgetTemplatesApi.cache.invalidate(['templates']);
-      this.#userSettingsApi.reload();
+      this.#userSettingsStore.reload();
       this.#logger.info(
         '[PageLifecycleRecovery] Soft recovery completed after resume',
         { reason, route: this.#router.url },
@@ -220,11 +222,11 @@ export class PageLifecycleRecoveryService {
   }
 
   #shouldReload(): boolean {
-    const storage = this.#document.defaultView?.sessionStorage;
-    if (!storage) return true;
-
     const now = Date.now();
-    const lastReloadRaw = storage.getItem(RELOAD_COOLDOWN_STORAGE_KEY);
+    const lastReloadRaw = this.#storage.getString(
+      STORAGE_KEYS.PAGE_RELOAD_COOLDOWN,
+      'session',
+    );
     const lastReload = lastReloadRaw ? Number(lastReloadRaw) : 0;
 
     if (!Number.isFinite(lastReload) || lastReload <= 0) {
@@ -235,9 +237,10 @@ export class PageLifecycleRecoveryService {
   }
 
   #markReload(): void {
-    this.#document.defaultView?.sessionStorage.setItem(
-      RELOAD_COOLDOWN_STORAGE_KEY,
+    this.#storage.setString(
+      STORAGE_KEYS.PAGE_RELOAD_COOLDOWN,
       String(Date.now()),
+      'session',
     );
   }
 }

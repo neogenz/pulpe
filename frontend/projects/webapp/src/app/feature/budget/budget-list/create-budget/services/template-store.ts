@@ -1,12 +1,17 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
+import { map } from 'rxjs/operators';
+import { cachedMutation, cachedResource } from 'ngx-ziflux';
 import {
+  type BudgetCreate,
   type TemplateLine,
-  type BudgetTemplate,
   BudgetFormulas,
 } from 'pulpe-shared';
-import { TemplateApi } from '@core/budget-template/template-api';
-import { Logger } from '@core/logging/logger';
+import {
+  BudgetApi,
+  type CreateBudgetApiResponse,
+} from '@core/budget/budget-api';
+import { BudgetTemplatesApi } from '@core/budget-template/budget-templates-api';
 
 export interface TemplateTotals {
   income: number;
@@ -15,265 +20,135 @@ export interface TemplateTotals {
   netBalance: number;
 }
 
-/**
- * Centralized state for the TemplateStore
- */
-interface TemplateStoreState {
-  templates: BudgetTemplate[];
-  selectedId: string | null;
-  templateLinesCache: Map<string, TemplateLine[]>;
-  templateTotalsMap: Record<string, TemplateTotals>;
-  isLoading: boolean;
-  error: Error | null;
-}
-
 @Injectable()
 export class TemplateStore {
-  readonly #templateApi = inject(TemplateApi);
-  readonly #logger = inject(Logger);
+  readonly #budgetApi = inject(BudgetApi);
+  readonly #budgetTemplatesApi = inject(BudgetTemplatesApi);
 
-  readonly #state = signal<TemplateStoreState>({
-    templates: [],
-    selectedId: null,
-    templateLinesCache: new Map(),
-    templateTotalsMap: {},
-    isLoading: false,
-    error: null,
+  readonly #templatesResource = cachedResource({
+    cache: this.#budgetTemplatesApi.cache,
+    cacheKey: ['templates', 'list'],
+    loader: () =>
+      this.#budgetTemplatesApi
+        .getAll$()
+        .pipe(
+          map((response) =>
+            Array.isArray(response.data) ? response.data : [],
+          ),
+        ),
   });
 
-  readonly templates = computed(() => this.#state().templates);
-  readonly selectedTemplateId = computed(() => this.#state().selectedId);
-  readonly templateTotalsMap = computed(() => this.#state().templateTotalsMap);
-  readonly isLoading = computed(() => this.#state().isLoading);
-  readonly hasValue = computed(() => this.#state().templates.length > 0);
-  readonly error = computed(() => this.#state().error);
+  readonly #selectedId = signal<string | null>(null);
+  readonly #templateTotalsMap = signal<Record<string, TemplateTotals>>({});
+
+  readonly templates = computed(() => this.#templatesResource.value() ?? []);
+  readonly selectedTemplateId = this.#selectedId.asReadonly();
+  readonly isLoading = this.#templatesResource.isInitialLoading;
+  readonly hasValue = computed(() => this.templates().length > 0);
+  readonly error = this.#templatesResource.error;
+  readonly templateTotalsMap = this.#templateTotalsMap.asReadonly();
 
   readonly selectedTemplate = computed(() => {
-    const id = this.#state().selectedId;
+    const id = this.#selectedId();
     if (!id) return null;
-
-    const allTemplates = this.#state().templates;
-    return allTemplates.find((t) => t.id === id) || null;
+    return this.templates().find((t) => t.id === id) || null;
   });
 
   readonly sortedTemplates = computed(() => {
-    const templates = this.#state().templates;
-    return [...templates].sort((a, b) => {
-      // Default template always first
+    const templates = this.templates();
+    return templates.toSorted((a, b) => {
       if (a.isDefault && !b.isDefault) return -1;
       if (!a.isDefault && b.isDefault) return 1;
-      // Then sort by creation date (newest first)
       return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
     });
   });
 
-  getCachedTemplateLines(templateId: string): TemplateLine[] | null {
-    return this.#state().templateLinesCache.get(templateId) || null;
-  }
-
-  selectTemplate(templateId: string): void {
-    this.#state.update((state) => ({
-      ...state,
-      selectedId: templateId,
-    }));
-  }
-
-  clearSelection(): void {
-    this.#state.update((state) => ({
-      ...state,
-      selectedId: null,
-    }));
-  }
-
-  initializeDefaultSelection(): void {
-    if (this.#state().selectedId) return; // Already selected
-
-    const allTemplates = this.#state().templates;
-    const defaultTemplate = allTemplates.find((t) => t.isDefault);
-
-    if (defaultTemplate) {
-      this.selectTemplate(defaultTemplate.id);
-    } else if (allTemplates.length > 0) {
-      // Select the newest template if no default
-      const sortedTemplates = [...allTemplates].sort(
-        (a, b) =>
-          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-      );
-      this.selectTemplate(sortedTemplates[0].id);
-    }
-  }
-
   async loadTemplateLines(templateId: string): Promise<TemplateLine[]> {
-    // Check cache first
-    const cached = this.getCachedTemplateLines(templateId);
-    if (cached) {
-      return cached;
-    }
+    const cached = this.#budgetTemplatesApi.cache.get<TemplateLine[]>([
+      'templates',
+      'lines',
+      templateId,
+    ]);
+    if (cached) return cached.data;
 
-    // Load from API
-    try {
-      const lines = await firstValueFrom(
-        this.#templateApi.getTemplateLines$(templateId),
-      );
-
-      // Update cache
-      this.#updateTemplateLinesCache(templateId, lines);
-
-      return lines;
-    } catch (error) {
-      this.#logger.error('Error loading template lines:', error);
-      this.#state.update((state) => ({
-        ...state,
-        error: error instanceof Error ? error : new Error('Unknown error'),
-      }));
-      return [];
-    }
+    const lines = await firstValueFrom(
+      this.#budgetTemplatesApi
+        .getTemplateTransactions$(templateId)
+        .pipe(map((r) => r.data ?? [])),
+    );
+    this.#budgetTemplatesApi.cache.set(
+      ['templates', 'lines', templateId],
+      lines,
+    );
+    return lines;
   }
 
   async loadTemplateTotals(templateIds: string[]): Promise<void> {
-    const currentTotals = this.#state().templateTotalsMap;
+    const current = this.#templateTotalsMap();
+    const toLoad = templateIds.filter((id) => !current[id]);
+    if (toLoad.length === 0) return;
 
-    // Filter templates that need loading
-    const templatesToLoad = templateIds.filter((id) => !currentTotals[id]);
-
-    if (templatesToLoad.length === 0) {
-      return;
-    }
-
-    // Set loading states
-    this.#setLoadingStates(templatesToLoad);
-
-    try {
-      // Load all template lines in parallel
-      const templateLinesPromises = templatesToLoad.map(async (id) => ({
+    const results = await Promise.all(
+      toLoad.map(async (id) => ({
         id,
         lines: await this.loadTemplateLines(id),
-      }));
+      })),
+    );
 
-      const templatesWithLines = await Promise.all(templateLinesPromises);
+    const newTotals = Object.fromEntries(
+      results.map(({ id, lines }) => [id, this.#calculateTotals(lines)]),
+    );
 
-      const calculatedTotals = Object.fromEntries(
-        templatesWithLines.map(({ id, lines }) => [
-          id,
-          this.#calculateTotals(lines),
-        ]),
-      );
-
-      // Update totals map
-      this.#state.update((state) => ({
-        ...state,
-        templateTotalsMap: {
-          ...state.templateTotalsMap,
-          ...calculatedTotals,
-        },
-      }));
-    } catch (error) {
-      this.#logger.error('Error loading template totals:', error);
-      this.#setErrorStates(templatesToLoad);
-    }
+    this.#templateTotalsMap.update((current) => ({ ...current, ...newTotals }));
   }
 
   async loadSingleTemplateTotals(templateId: string): Promise<void> {
     await this.loadTemplateTotals([templateId]);
   }
 
-  async loadTemplates(): Promise<void> {
-    this.#state.update((state) => ({
-      ...state,
-      isLoading: true,
-      error: null,
-    }));
+  selectTemplate(templateId: string): void {
+    this.#selectedId.set(templateId);
+  }
 
-    try {
-      const templates = await firstValueFrom(this.#templateApi.getAll$());
-      this.#state.update((state) => ({
-        ...state,
-        templates: templates || [],
-        isLoading: false,
-      }));
-    } catch (error) {
-      this.#logger.error('Error loading templates:', error);
-      this.#state.update((state) => ({
-        ...state,
-        isLoading: false,
-        error: error instanceof Error ? error : new Error('Unknown error'),
-      }));
+  clearSelection(): void {
+    this.#selectedId.set(null);
+  }
+
+  initializeDefaultSelection(): void {
+    if (this.#selectedId()) return;
+    const all = this.templates();
+    const defaultTemplate = all.find((t) => t.isDefault);
+    if (defaultTemplate) {
+      this.selectTemplate(defaultTemplate.id);
+    } else if (all.length > 0) {
+      const sorted = all.toSorted(
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      );
+      this.selectTemplate(sorted[0].id);
     }
   }
 
-  clearCaches(): void {
-    this.#state.update((state) => ({
-      ...state,
-      templateLinesCache: new Map(),
-      templateTotalsMap: {},
-    }));
+  reloadTemplates(): void {
+    this.#templatesResource.reload();
   }
 
-  invalidateTemplate(templateId: string): void {
-    this.#state.update((state) => {
-      const newLinesCache = new Map(state.templateLinesCache);
-      newLinesCache.delete(templateId);
+  readonly #createBudgetMutation = cachedMutation<
+    BudgetCreate,
+    CreateBudgetApiResponse
+  >({
+    cache: this.#budgetApi.cache,
+    invalidateKeys: () => [['budget']],
+    mutationFn: (data) => this.#budgetApi.createBudget$(data),
+  });
 
-      const newTotalsMap = { ...state.templateTotalsMap };
-      delete newTotalsMap[templateId];
+  readonly isCreatingBudget = this.#createBudgetMutation.isPending;
+  readonly createBudgetError = this.#createBudgetMutation.error;
 
-      return {
-        ...state,
-        templateLinesCache: newLinesCache,
-        templateTotalsMap: newTotalsMap,
-      };
-    });
-  }
-
-  async reloadTemplates(): Promise<void> {
-    await this.loadTemplates();
-  }
-
-  #updateTemplateLinesCache(templateId: string, lines: TemplateLine[]): void {
-    this.#state.update((state) => {
-      const newCache = new Map(state.templateLinesCache);
-      newCache.set(templateId, lines);
-      return {
-        ...state,
-        templateLinesCache: newCache,
-      };
-    });
-  }
-
-  #setLoadingStates(templateIds: string[]): void {
-    const loadingStates = templateIds.reduce(
-      (acc, id) => {
-        acc[id] = { income: 0, expenses: 0, savings: 0, netBalance: 0 };
-        return acc;
-      },
-      {} as Record<string, TemplateTotals>,
-    );
-
-    this.#state.update((state) => ({
-      ...state,
-      templateTotalsMap: {
-        ...state.templateTotalsMap,
-        ...loadingStates,
-      },
-    }));
-  }
-
-  #setErrorStates(templateIds: string[]): void {
-    const errorStates = templateIds.reduce(
-      (acc, id) => {
-        acc[id] = { income: 0, expenses: 0, savings: 0, netBalance: 0 };
-        return acc;
-      },
-      {} as Record<string, TemplateTotals>,
-    );
-
-    this.#state.update((state) => ({
-      ...state,
-      templateTotalsMap: {
-        ...state.templateTotalsMap,
-        ...errorStates,
-      },
-    }));
+  async createBudget(
+    data: BudgetCreate,
+  ): Promise<CreateBudgetApiResponse | undefined> {
+    return this.#createBudgetMutation.mutate(data);
   }
 
   #calculateTotals(lines: TemplateLine[]): TemplateTotals {

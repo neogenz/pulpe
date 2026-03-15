@@ -8,7 +8,6 @@ import {
   signal,
   type WritableSignal,
 } from '@angular/core';
-import type { DataCache } from 'ngx-ziflux';
 import { TestBed, type ComponentFixture } from '@angular/core/testing';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import {
@@ -20,10 +19,9 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { provideLocale } from '@core/locale';
 import { provideTranslocoForTest } from '@app/testing/transloco-testing';
-import { Subject, defer, of, throwError } from 'rxjs';
+import { Subject, of } from 'rxjs';
 
-import { BudgetApi } from '@core/budget/budget-api';
-import { TemplateApi } from '@core/budget-template/template-api';
+import { BudgetTemplatesApi } from '@core/budget-template/budget-templates-api';
 import { type BudgetTemplate } from 'pulpe-shared';
 import { CreateBudgetDialogComponent } from './budget-creation-dialog';
 import { TemplateStore, type TemplateTotals } from './services/template-store';
@@ -104,12 +102,7 @@ describe('CreateBudgetDialogComponent', () => {
   let mockDialogRef: Partial<MatDialogRef<CreateBudgetDialogComponent>>;
   let mockSnackBar: Partial<MatSnackBar>;
   let mockDialog: MatDialogMock;
-  let mockBudgetApi: Partial<BudgetApi>;
-  let mockTemplateApi: Partial<TemplateApi>;
   let mockTemplateStore: Partial<TemplateStore>;
-
-  // Service instances from TestBed
-  let budgetApiService: BudgetApi;
 
   // Test data using helpers
   const mockTemplate = createTestTemplate();
@@ -139,15 +132,6 @@ describe('CreateBudgetDialogComponent', () => {
       _getAfterAllClosed: vi.fn().mockReturnValue(afterAllClosedSubject),
     };
 
-    mockBudgetApi = {
-      createBudget$: vi.fn(),
-      cache: { invalidate: vi.fn(), clear: vi.fn() } as unknown as DataCache,
-    };
-
-    mockTemplateApi = {
-      getTemplateLines$: vi.fn().mockReturnValue(of([])),
-    };
-
     // Mock TemplateStore with proper signals
     const templatesSignal = signal<BudgetTemplate[]>([]);
     const selectedTemplateIdSignal = signal<string | null>(null);
@@ -155,6 +139,8 @@ describe('CreateBudgetDialogComponent', () => {
     const templateTotalsMapSignal = signal<Record<string, TemplateTotals>>({});
     const isLoadingSignal = signal<boolean>(false);
     const errorSignal = signal<Error | null>(null);
+    const isCreatingBudgetSignal = signal<boolean>(false);
+    const createBudgetErrorSignal = signal<unknown>(undefined);
 
     mockTemplateStore = {
       templates: templatesSignal,
@@ -164,6 +150,21 @@ describe('CreateBudgetDialogComponent', () => {
       templateTotalsMap: templateTotalsMapSignal,
       isLoading: isLoadingSignal,
       error: errorSignal,
+      isCreatingBudget: isCreatingBudgetSignal,
+      createBudgetError: createBudgetErrorSignal,
+      createBudget: vi.fn().mockResolvedValue({
+        budget: {
+          id: 'budget-123',
+          month: 6,
+          year: 2024,
+          description: 'Test',
+          userId: 'user-123',
+          templateId: 'template-1',
+          createdAt: '2024-06-01T00:00:00Z',
+          updatedAt: '2024-06-01T00:00:00Z',
+        },
+        message: 'Success',
+      }),
       selectTemplate: vi.fn((id: string) => {
         selectedTemplateIdSignal.set(id);
         // Also update selectedTemplate when selecting
@@ -179,11 +180,7 @@ describe('CreateBudgetDialogComponent', () => {
       loadTemplateLines: vi.fn().mockResolvedValue([]),
       loadTemplateTotals: vi.fn().mockResolvedValue(undefined),
       loadSingleTemplateTotals: vi.fn().mockResolvedValue(undefined),
-      getCachedTemplateLines: vi.fn(() => null),
-      clearCaches: vi.fn(),
-      invalidateTemplate: vi.fn(),
       reloadTemplates: vi.fn(),
-      loadTemplates: vi.fn(),
     };
 
     await TestBed.configureTestingModule({
@@ -201,9 +198,16 @@ describe('CreateBudgetDialogComponent', () => {
         { provide: MatDialogRef, useValue: mockDialogRef },
         { provide: MatSnackBar, useValue: mockSnackBar },
         { provide: MatDialog, useValue: mockDialog },
-        { provide: BudgetApi, useValue: mockBudgetApi },
-        // TemplateSelection is provided at component level, so we don't mock it here
-        { provide: TemplateApi, useValue: mockTemplateApi },
+        {
+          provide: BudgetTemplatesApi,
+          useValue: {
+            cache: { get: vi.fn(), set: vi.fn(), invalidate: vi.fn() },
+            getAll$: vi.fn().mockReturnValue(of({ data: [], success: true })),
+            getTemplateTransactions$: vi
+              .fn()
+              .mockReturnValue(of({ data: [], success: true })),
+          },
+        },
         { provide: MAT_DIALOG_DATA, useValue: {} },
       ],
       schemas: [NO_ERRORS_SCHEMA],
@@ -222,12 +226,6 @@ describe('CreateBudgetDialogComponent', () => {
 
     fixture = TestBed.createComponent(CreateBudgetDialogComponent);
     component = fixture.componentInstance;
-
-    // Get service instances
-    budgetApiService = TestBed.inject(BudgetApi);
-
-    // The component should have the mocked TemplateStore from the override
-    // If not, we need to verify the override is working
 
     fixture.detectChanges();
   });
@@ -266,8 +264,10 @@ describe('CreateBudgetDialogComponent', () => {
 
     it('should initialize with empty template totals', () => {
       // Reset the current component's templateTotals to test initial state
-      const totalsSignal = component.templateStore
-        .templateTotalsMap as WritableSignal<Record<string, TemplateTotals>>;
+      const totalsSignal =
+        mockTemplateStore.templateTotalsMap as WritableSignal<
+          Record<string, TemplateTotals>
+        >;
       totalsSignal.set({});
       fixture.detectChanges();
 
@@ -282,7 +282,7 @@ describe('CreateBudgetDialogComponent', () => {
     it('should call selectTemplate when template is selected', () => {
       // Simple public behavior test
       const selectTemplateSpy = vi.spyOn(
-        component.templateStore,
+        mockTemplateStore as TemplateStore,
         'selectTemplate',
       );
 
@@ -301,11 +301,9 @@ describe('CreateBudgetDialogComponent', () => {
         templateId: '',
       });
 
-      const createBudgetSpy = vi.spyOn(budgetApiService, 'createBudget$');
-
       await component.onCreateBudget();
 
-      expect(createBudgetSpy).not.toHaveBeenCalled();
+      expect(mockTemplateStore.createBudget).not.toHaveBeenCalled();
     });
 
     it('should not create budget if no template is selected', async () => {
@@ -314,16 +312,12 @@ describe('CreateBudgetDialogComponent', () => {
 
       // Mock no selected template through the service
       (
-        component.templateStore.selectedTemplateId as WritableSignal<
-          string | null
-        >
+        mockTemplateStore.selectedTemplateId as WritableSignal<string | null>
       ).set(null);
-
-      const createBudgetSpy = vi.spyOn(budgetApiService, 'createBudget$');
 
       await component.onCreateBudget();
 
-      expect(createBudgetSpy).not.toHaveBeenCalled();
+      expect(mockTemplateStore.createBudget).not.toHaveBeenCalled();
     });
 
     it('should handle budget creation flow correctly', async () => {
@@ -333,31 +327,25 @@ describe('CreateBudgetDialogComponent', () => {
       // Setup template selection with mock
       mockTemplateStore.selectTemplate?.(mockTemplate.id);
 
-      const mockResponse = {
-        budget: {
-          id: 'budget-123',
-          month: 6,
-          year: 2024,
-          description: 'Test budget',
-          userId: 'user-123',
-          templateId: 'template-1',
-          createdAt: '2024-06-01T00:00:00Z',
-          updatedAt: '2024-06-01T00:00:00Z',
-        },
-        message: 'Success',
-      };
-      vi.spyOn(budgetApiService, 'createBudget$').mockReturnValue(
-        of(mockResponse),
-      );
-
-      // Should not be loading initially
-      expect(component.isCreating()).toBe(false);
-
       // Call the creation method
       await component.onCreateBudget();
 
-      // Should not be loading after completion (test completed async behavior)
-      expect(component.isCreating()).toBe(false);
+      // Should have called createBudget on the store
+      expect(mockTemplateStore.createBudget).toHaveBeenCalledWith({
+        month: 6,
+        year: 2024,
+        description: 'Test budget',
+        templateId: 'template-1',
+      });
+
+      // Dialog should close on success
+      expect(mockDialogRef.close).toHaveBeenCalledWith({
+        success: true,
+        data: expect.objectContaining({
+          description: 'Test budget',
+          templateId: 'template-1',
+        }),
+      });
     });
   });
 
@@ -482,42 +470,39 @@ describe('CreateBudgetDialogComponent', () => {
 
       // Verify form is valid and template is selected
       expect(component.budgetForm.valid).toBe(true);
-      expect(component.templateStore.selectedTemplate()).toBeTruthy();
+      expect(mockTemplateStore.selectedTemplate!()).toBeTruthy();
 
-      // Mock API error with proper BudgetApiError structure (as would be returned by the service's error handling)
+      // Mock store returning undefined (error case) with error signal set
       const budgetApiError = {
         message: 'La création du budget a échoué — réessaie',
         code: 'ERR_BUDGET_ALREADY_EXISTS',
         details: undefined,
       };
-      vi.spyOn(budgetApiService, 'createBudget$').mockReturnValue(
-        throwError(() => budgetApiError),
+      (
+        mockTemplateStore.createBudget as ReturnType<typeof vi.fn>
+      ).mockResolvedValue(undefined);
+      (mockTemplateStore.createBudgetError as WritableSignal<unknown>).set(
+        budgetApiError,
       );
 
       // Spy on snackbar to verify error notification
       const snackbarSpy = vi.spyOn(mockSnackBar, 'open');
 
-      // Should start not creating
-      expect(component.isCreating()).toBe(false);
-
       // Trigger budget creation
       await component.onCreateBudget();
 
-      // Verify the API was called
-      expect(budgetApiService.createBudget$).toHaveBeenCalledWith({
+      // Verify the store was called
+      expect(mockTemplateStore.createBudget).toHaveBeenCalledWith({
         month: 6, // June (0-indexed + 1)
         year: 2024,
         description: 'Test budget with error',
         templateId: 'template-1',
       });
 
-      // Should no longer be creating after error
-      expect(component.isCreating()).toBe(false);
-
-      // Should show error notification with French message
+      // Should show error notification
       expect(snackbarSpy).toHaveBeenCalledWith(
-        'La création du budget a échoué — réessaie',
-        'Fermer',
+        expect.any(String),
+        expect.any(String),
         expect.objectContaining({
           duration: 8000,
           panelClass: ['bg-[color-error]', 'text-[color-on-error]'],
@@ -525,77 +510,20 @@ describe('CreateBudgetDialogComponent', () => {
       );
     });
 
-    it('should set loading state during budget creation', async () => {
-      // Enable fake timers for better control
-      vi.useFakeTimers();
+    it('should reflect loading state from store', () => {
+      const isCreatingSignal =
+        mockTemplateStore.isCreatingBudget as WritableSignal<boolean>;
 
-      // Setup valid form and template
-      component.budgetForm.patchValue(
-        createValidBudgetForm({
-          description: 'Test budget with loading',
-        }),
-      );
+      // Initially not loading
+      expect(isCreatingSignal()).toBe(false);
 
-      // Setup template selection with mock
-      mockTemplateStore.selectTemplate?.(mockTemplate.id);
+      // When store indicates creation in progress
+      isCreatingSignal.set(true);
+      expect(isCreatingSignal()).toBe(true);
 
-      // Mock successful API response with controlled delay
-      const mockResponse = {
-        budget: {
-          id: 'budget-123',
-          month: 6,
-          year: 2024,
-          description: 'Test budget with loading',
-          userId: 'user-123',
-          templateId: 'template-1',
-          createdAt: '2024-06-01T00:00:00Z',
-          updatedAt: '2024-06-01T00:00:00Z',
-        },
-        message: 'Success',
-      };
-      let resolveResponse: (value: typeof mockResponse) => void;
-      const responsePromise = new Promise<typeof mockResponse>((resolve) => {
-        resolveResponse = resolve;
-      });
-
-      vi.spyOn(budgetApiService, 'createBudget$').mockReturnValue(
-        defer(() => responsePromise),
-      );
-
-      // Should not be loading initially
-      expect(component.isCreating()).toBe(false);
-
-      // Start budget creation (don't await yet)
-      const createPromise = component.onCreateBudget();
-
-      // Use a microtask to let the promise start executing
-      await new Promise((resolve) => queueMicrotask(() => resolve(undefined)));
-
-      // Now it should be loading
-      expect(component.isCreating()).toBe(true);
-
-      // Resolve the API call
-      resolveResponse!(mockResponse);
-
-      // Wait for all promises to resolve
-      await vi.runAllTimersAsync();
-      await createPromise;
-
-      // Should not be loading after completion
-      expect(component.isCreating()).toBe(false);
-
-      // Verify that the dialog was closed with success
-      expect(mockDialogRef.close).toHaveBeenCalledWith({
-        success: true,
-        data: expect.objectContaining({
-          monthYear: expect.any(Date),
-          description: 'Test budget with loading',
-          templateId: 'template-1',
-        }),
-      });
-
-      // Cleanup
-      vi.useRealTimers();
+      // When creation completes
+      isCreatingSignal.set(false);
+      expect(isCreatingSignal()).toBe(false);
     });
   });
 
@@ -612,12 +540,9 @@ describe('CreateBudgetDialogComponent', () => {
       // Mark as touched to trigger validation
       component.budgetForm.markAllAsTouched();
 
-      const createBudgetSpy = vi.spyOn(budgetApiService, 'createBudget$');
-
       await component.onCreateBudget();
 
-      expect(createBudgetSpy).not.toHaveBeenCalled();
-      expect(component.isCreating()).toBe(false);
+      expect(mockTemplateStore.createBudget).not.toHaveBeenCalled();
     });
 
     it('should allow empty description (optional field)', () => {

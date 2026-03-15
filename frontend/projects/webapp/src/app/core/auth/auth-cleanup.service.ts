@@ -9,7 +9,7 @@ import { HasBudgetCache } from './has-budget-cache';
 import { PreloadService } from '../preload/preload.service';
 import { PostHogService } from '../analytics/posthog';
 import { StorageService } from '../storage';
-import { UserSettingsApi } from '../user-settings/user-settings-api';
+import { UserSettingsStore } from '../user-settings/user-settings-store';
 import { Logger } from '../logging/logger';
 
 // Debounce delay before allowing another cleanup. Prevents duplicate calls
@@ -28,7 +28,7 @@ export class AuthCleanupService {
   readonly #preloadService = inject(PreloadService);
   readonly #postHogService = inject(PostHogService);
   readonly #storageService = inject(StorageService);
-  readonly #userSettingsApi = inject(UserSettingsApi);
+  readonly #userSettingsStore = inject(UserSettingsStore);
   readonly #logger = inject(Logger);
   readonly #destroyRef = inject(DestroyRef);
 
@@ -77,7 +77,7 @@ export class AuthCleanupService {
         'templates data cache',
       );
       this.#safeCleanup(() => this.#preloadService.reset(), 'preload state');
-      this.#safeCleanup(() => this.#userSettingsApi.reset(), 'user settings');
+      this.#safeCleanup(() => this.#userSettingsStore.reset(), 'user settings');
       this.#safeCleanup(() => this.#postHogService.reset(), 'PostHog');
       this.#safeCleanup(
         () => this.#storageService.clearAllUserData(),

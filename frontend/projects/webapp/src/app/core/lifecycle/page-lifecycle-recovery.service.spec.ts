@@ -12,7 +12,7 @@ import { AuthSessionService } from '@core/auth/auth-session.service';
 import { AuthStateService } from '@core/auth/auth-state.service';
 import { BudgetApi } from '@core/budget/budget-api';
 import { BudgetTemplatesApi } from '@core/budget-template/budget-templates-api';
-import { UserSettingsApi } from '@core/user-settings';
+import { UserSettingsStore } from '@core/user-settings';
 
 function setVisibilityState(state: DocumentVisibilityState): void {
   Object.defineProperty(document, 'visibilityState', {
@@ -46,7 +46,7 @@ describe('PageLifecycleRecoveryService', () => {
   const mockBudgetTemplatesApi = {
     cache: { invalidate: vi.fn() },
   };
-  const mockUserSettingsApi = {
+  const mockUserSettingsStore = {
     reload: vi.fn(),
   };
   const mockLogger = {
@@ -70,7 +70,7 @@ describe('PageLifecycleRecoveryService', () => {
     mockAuthSession.refreshSession.mockResolvedValue(true);
     mockBudgetApi.cache.invalidate.mockReset();
     mockBudgetTemplatesApi.cache.invalidate.mockReset();
-    mockUserSettingsApi.reload.mockReset();
+    mockUserSettingsStore.reload.mockReset();
     mockLogger.warn.mockReset();
     mockLogger.info.mockReset();
     mockLogger.debug.mockReset();
@@ -92,7 +92,7 @@ describe('PageLifecycleRecoveryService', () => {
         { provide: AuthSessionService, useValue: mockAuthSession },
         { provide: BudgetApi, useValue: mockBudgetApi },
         { provide: BudgetTemplatesApi, useValue: mockBudgetTemplatesApi },
-        { provide: UserSettingsApi, useValue: mockUserSettingsApi },
+        { provide: UserSettingsStore, useValue: mockUserSettingsStore },
         { provide: Logger, useValue: mockLogger },
       ],
     });
@@ -107,7 +107,7 @@ describe('PageLifecycleRecoveryService', () => {
       expect(mockAuthSession.refreshSession).toHaveBeenCalledOnce();
     });
     expect(mockBudgetApi.cache.invalidate).toHaveBeenCalledOnce();
-    expect(mockUserSettingsApi.reload).toHaveBeenCalledOnce();
+    expect(mockUserSettingsStore.reload).toHaveBeenCalledOnce();
     expect(reloadSpy).not.toHaveBeenCalled();
   });
 
@@ -122,7 +122,7 @@ describe('PageLifecycleRecoveryService', () => {
       expect(mockAuthSession.refreshSession).toHaveBeenCalledOnce();
     });
     expect(mockBudgetApi.cache.invalidate).toHaveBeenCalledOnce();
-    expect(mockUserSettingsApi.reload).toHaveBeenCalledOnce();
+    expect(mockUserSettingsStore.reload).toHaveBeenCalledOnce();
     expect(reloadSpy).not.toHaveBeenCalled();
   });
 
@@ -154,7 +154,7 @@ describe('PageLifecycleRecoveryService', () => {
       expect(mockAuthSession.refreshSession).toHaveBeenCalledOnce();
     });
     expect(mockBudgetApi.cache.invalidate).toHaveBeenCalledOnce();
-    expect(mockUserSettingsApi.reload).toHaveBeenCalledOnce();
+    expect(mockUserSettingsStore.reload).toHaveBeenCalledOnce();
     expect(reloadSpy).not.toHaveBeenCalled();
   });
 
@@ -167,7 +167,7 @@ describe('PageLifecycleRecoveryService', () => {
       expect(reloadSpy).toHaveBeenCalledOnce();
     });
     expect(mockBudgetApi.cache.invalidate).not.toHaveBeenCalled();
-    expect(mockUserSettingsApi.reload).not.toHaveBeenCalled();
+    expect(mockUserSettingsStore.reload).not.toHaveBeenCalled();
   });
 
   it('should not trigger duplicate reloads within cooldown window', async () => {
@@ -256,7 +256,7 @@ describe('PageLifecycleRecoveryService', () => {
       expect(mockAuthSession.refreshSession).toHaveBeenCalledOnce();
     });
     expect(mockBudgetApi.cache.invalidate).toHaveBeenCalledOnce();
-    expect(mockUserSettingsApi.reload).toHaveBeenCalledOnce();
+    expect(mockUserSettingsStore.reload).toHaveBeenCalledOnce();
     expect(reloadSpy).not.toHaveBeenCalled();
   });
 });

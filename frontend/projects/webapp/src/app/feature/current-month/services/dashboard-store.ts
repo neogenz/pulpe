@@ -13,7 +13,7 @@ import {
   type BudgetLineConsumption,
 } from '@core/budget';
 import { cachedMutation, cachedResource } from 'ngx-ziflux';
-import { UserSettingsApi } from '@core/user-settings';
+import { UserSettingsStore } from '@core/user-settings';
 import {
   type BudgetLine,
   type Transaction,
@@ -22,7 +22,6 @@ import {
   getBudgetPeriodDates,
   getBudgetPeriodForDate,
 } from 'pulpe-shared';
-import { firstValueFrom } from 'rxjs';
 import {
   type DashboardData,
   type HistoryDataPoint,
@@ -49,15 +48,16 @@ export const DASHBOARD_NOW = new InjectionToken<Date>('DASHBOARD_NOW', {
 export class DashboardStore {
   // ── 1. Dependencies ──
   readonly #budgetApi = inject(BudgetApi);
-  readonly #userSettingsApi = inject(UserSettingsApi);
+  readonly #userSettingsStore = inject(UserSettingsStore);
 
   // ── 2. State ──
   readonly #pendingChecks = signal(new Set<string>());
   readonly pendingChecks = this.#pendingChecks.asReadonly();
+  readonly #errorMessage = signal<string | null>(null);
 
   readonly #currentDate = inject(DASHBOARD_NOW);
 
-  readonly payDayOfMonth = this.#userSettingsApi.payDayOfMonth;
+  readonly payDayOfMonth = this.#userSettingsStore.payDayOfMonth;
 
   readonly currentBudgetPeriod = computed(() => {
     const payDay = this.payDayOfMonth();
@@ -113,7 +113,7 @@ export class DashboardStore {
   );
 
   readonly isSettingsLoading = computed(() =>
-    this.#userSettingsApi.isLoading(),
+    this.#userSettingsStore.isLoading(),
   );
 
   readonly isLoading = computed(
@@ -123,7 +123,9 @@ export class DashboardStore {
       this.#historyResource.isLoading(),
   );
   readonly hasValue = computed(() => this.#dashboardResource.hasValue());
-  readonly error = computed(() => this.#dashboardResource.error());
+  readonly error = computed(
+    () => this.#dashboardResource.error() ?? this.#errorMessage(),
+  );
   readonly status = computed(() => {
     const resourceStatus = this.#dashboardResource.status();
     if (resourceStatus === 'loading' && this.dashboardData()) {
@@ -281,13 +283,13 @@ export class DashboardStore {
     invalidateKeys: () => DASHBOARD_INVALIDATION_KEYS,
     mutationFn: (data) => this.#budgetApi.createTransaction$(data),
     onSuccess: (response) => {
-      this.#dashboardResource.update((current) => {
-        if (!current) return current!;
-        return {
-          ...current,
-          transactions: [...current.transactions, response.data],
-        };
-      });
+      this.#updateDashboard((current) => ({
+        ...current,
+        transactions: [...current.transactions, response.data],
+      }));
+    },
+    onError: () => {
+      this.#setError('transaction-add-failed');
     },
   });
 
@@ -317,6 +319,7 @@ export class DashboardStore {
   }
 
   refreshData(): void {
+    this.#clearError();
     if (!this.#dashboardResource.isLoading()) {
       this.#dashboardResource.reload();
     }
@@ -329,46 +332,65 @@ export class DashboardStore {
     await this.#addTransactionMutation.mutate(transactionData);
   }
 
-  async checkBudgetLine(budgetLineId: string): Promise<void> {
-    if (this.#pendingChecks().has(budgetLineId)) return;
-
-    const budgetLine = this.budgetLines().find((l) => l.id === budgetLineId);
-    if (!budgetLine || budgetLine.checkedAt !== null) return;
-
-    this.#pendingChecks.update((s) => new Set([...s, budgetLineId]));
-    this.#patchBudgetLineCheckedAt(budgetLineId, new Date().toISOString());
-
-    try {
-      await firstValueFrom(
-        this.#budgetApi.toggleBudgetLineCheck$(budgetLineId),
-      );
-      DASHBOARD_INVALIDATION_KEYS.forEach((key) =>
-        this.#budgetApi.cache.invalidate(key),
-      );
-    } catch (error) {
+  readonly #checkBudgetLineMutation = cachedMutation<
+    string,
+    { data: BudgetLine },
+    void
+  >({
+    cache: this.#budgetApi.cache,
+    invalidateKeys: () => DASHBOARD_INVALIDATION_KEYS,
+    mutationFn: (budgetLineId) =>
+      this.#budgetApi.toggleBudgetLineCheck$(budgetLineId),
+    onMutate: (budgetLineId) => {
+      this.#pendingChecks.update((s) => new Set([...s, budgetLineId]));
+      this.#patchBudgetLineCheckedAt(budgetLineId, new Date().toISOString());
+    },
+    onError: (_err, budgetLineId) => {
       this.#pendingChecks.update((s) => {
         const next = new Set(s);
         next.delete(budgetLineId);
         return next;
       });
       this.#patchBudgetLineCheckedAt(budgetLineId, null);
-      throw error;
+    },
+  });
+
+  async checkBudgetLine(budgetLineId: string): Promise<void> {
+    if (this.#pendingChecks().has(budgetLineId)) return;
+    const budgetLine = this.budgetLines().find((l) => l.id === budgetLineId);
+    if (!budgetLine || budgetLine.checkedAt !== null) return;
+    this.#clearError();
+    const result = await this.#checkBudgetLineMutation.mutate(budgetLineId);
+    if (result === undefined) {
+      this.#setError('check-failed');
     }
   }
 
   // ── 6. Private utils ──
+  #updateDashboard(fn: (data: DashboardData) => DashboardData): void {
+    this.#dashboardResource.update((data) => {
+      if (!data) return data as unknown as DashboardData;
+      return fn(data);
+    });
+  }
+
+  #setError(message: string): void {
+    this.#errorMessage.set(message);
+  }
+
+  #clearError(): void {
+    this.#errorMessage.set(null);
+  }
+
   #patchBudgetLineCheckedAt(
     budgetLineId: string,
     checkedAt: string | null,
   ): void {
-    this.#dashboardResource.update((data) => {
-      if (!data) return data!;
-      return {
-        ...data,
-        budgetLines: data.budgetLines.map((line) =>
-          line.id === budgetLineId ? { ...line, checkedAt } : line,
-        ),
-      };
-    });
+    this.#updateDashboard((data) => ({
+      ...data,
+      budgetLines: data.budgetLines.map((line) =>
+        line.id === budgetLineId ? { ...line, checkedAt } : line,
+      ),
+    }));
   }
 }

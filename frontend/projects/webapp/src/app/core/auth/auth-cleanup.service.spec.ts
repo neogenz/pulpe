@@ -12,7 +12,7 @@ import { HasBudgetCache } from './has-budget-cache';
 import { PreloadService } from '../preload/preload.service';
 import { PostHogService } from '../analytics/posthog';
 import { StorageService } from '../storage';
-import { UserSettingsApi } from '../user-settings/user-settings-api';
+import { UserSettingsStore } from '../user-settings/user-settings-store';
 import { Logger } from '../logging/logger';
 import { type E2EWindow } from './e2e-window';
 
@@ -27,7 +27,7 @@ describe('AuthCleanupService', () => {
   let mockPreload: Partial<PreloadService>;
   let mockPostHog: Partial<PostHogService>;
   let mockStorage: Partial<StorageService>;
-  let mockUserSettings: Partial<UserSettingsApi>;
+  let mockUserSettings: Partial<UserSettingsStore>;
   let mockLogger: Partial<Logger>;
 
   const userSignal = signal<User | null>(null);
@@ -94,7 +94,7 @@ describe('AuthCleanupService', () => {
         { provide: PreloadService, useValue: mockPreload },
         { provide: PostHogService, useValue: mockPostHog },
         { provide: StorageService, useValue: mockStorage },
-        { provide: UserSettingsApi, useValue: mockUserSettings },
+        { provide: UserSettingsStore, useValue: mockUserSettings },
         { provide: Logger, useValue: mockLogger },
       ],
     });

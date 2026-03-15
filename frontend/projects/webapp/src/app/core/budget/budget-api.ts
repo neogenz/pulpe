@@ -73,7 +73,7 @@ export class BudgetApi {
       ),
       map((response) => response.data),
       map((budgets) =>
-        [...budgets].sort((a, b) => {
+        budgets.toSorted((a, b) => {
           if (a.year !== b.year) return a.year - b.year;
           return a.month - b.month;
         }),

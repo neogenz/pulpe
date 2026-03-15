@@ -28,7 +28,6 @@ import { BaseLoading } from '@ui/loading';
 import { TransactionLabelPipe } from '@pattern/transaction-display';
 import { firstValueFrom } from 'rxjs';
 import { TemplateUsageDialogComponent } from '../components/dialogs/template-usage-dialog';
-import { BudgetTemplatesApi } from '@core/budget-template/budget-templates-api';
 import { EditTransactionsDialog, TransactionsTable } from './components';
 import { BudgetTemplatesStore } from '../services/budget-templates-store';
 import { TemplateDetailsStore } from './services/template-details-store';
@@ -160,21 +159,15 @@ import { TemplateDetailsStore } from './services/template-details-store';
             <!-- Hero: Net balance -->
             <div
               class="text-center py-6 px-4 sm:py-8 sm:px-6 rounded-3xl"
-              [class.bg-primary-container]="
-                templateDetailsStore.netBalance() >= 0
-              "
-              [class.bg-error-container]="templateDetailsStore.netBalance() < 0"
+              [class.bg-primary-container]="isPositiveBalance()"
+              [class.bg-error-container]="!isPositiveBalance()"
             >
               <p
                 class="text-body-large mb-3"
-                [class.text-on-primary-container]="
-                  templateDetailsStore.netBalance() >= 0
-                "
-                [class.text-on-error-container]="
-                  templateDetailsStore.netBalance() < 0
-                "
+                [class.text-on-primary-container]="isPositiveBalance()"
+                [class.text-on-error-container]="!isPositiveBalance()"
               >
-                @if (templateDetailsStore.netBalance() >= 0) {
+                @if (isPositiveBalance()) {
                   {{ netBalanceLabel }}
                 } @else {
                   {{ deficitLabel }}
@@ -182,12 +175,8 @@ import { TemplateDetailsStore } from './services/template-details-store';
               </p>
               <div
                 class="text-display-medium sm:text-display-large font-bold tracking-tight ph-no-capture"
-                [class.text-on-primary-container]="
-                  templateDetailsStore.netBalance() >= 0
-                "
-                [class.text-on-error-container]="
-                  templateDetailsStore.netBalance() < 0
-                "
+                [class.text-on-primary-container]="isPositiveBalance()"
+                [class.text-on-error-container]="!isPositiveBalance()"
               >
                 {{ absNetBalance() | number: '1.0-0' : 'de-CH' }}
                 <span class="text-headline-small font-normal">CHF</span>
@@ -269,7 +258,6 @@ export default class TemplateDetail implements OnInit {
   readonly #budgetTemplatesStore = inject(BudgetTemplatesStore);
   readonly #router = inject(Router);
   readonly #route = inject(ActivatedRoute);
-  readonly #budgetTemplatesApi = inject(BudgetTemplatesApi);
   readonly #titleStrategy = inject(PulpeTitleStrategy);
   readonly #dialog = inject(MatDialog);
   readonly #injector = inject(Injector);
@@ -323,6 +311,10 @@ export default class TemplateDetail implements OnInit {
 
   readonly absNetBalance = computed(() =>
     Math.abs(this.templateDetailsStore.netBalance()),
+  );
+
+  protected readonly isPositiveBalance = computed(
+    () => this.templateDetailsStore.netBalance() >= 0,
   );
 
   readonly #incomeLabel = this.#transloco.translate('template.incomeLabel');
@@ -445,11 +437,9 @@ export default class TemplateDetail implements OnInit {
 
     try {
       // First check if template is being used
-      const usageResponse = await firstValueFrom(
-        this.#budgetTemplatesApi.checkUsage$(templateId),
-      );
+      const usageData = await this.templateDetailsStore.checkUsage(templateId);
 
-      if (usageResponse.data.isUsed) {
+      if (usageData.isUsed) {
         // Show dialog with list of budgets using this template
         const dialogRef = this.#dialog.open(TemplateUsageDialogComponent, {
           data: {
@@ -463,7 +453,7 @@ export default class TemplateDetail implements OnInit {
 
         // Set the usage data after opening the dialog
         const dialogInstance = dialogRef.componentInstance;
-        dialogInstance.setUsageData(usageResponse.data.budgets);
+        dialogInstance.setUsageData(usageData.budgets);
       } else {
         // Template is not used, show confirmation dialog
         const dialogRef = this.#dialog.open(ConfirmationDialog, {

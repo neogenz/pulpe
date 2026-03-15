@@ -6,7 +6,7 @@ import { ProfileSetupService } from '@core/complete-profile';
 import { BudgetApi } from '@core/budget';
 import { Logger } from '@core/logging/logger';
 import { PostHogService } from '@core/analytics/posthog';
-import { UserSettingsApi } from '@core/user-settings';
+import { UserSettingsStore } from '@core/user-settings';
 import { AuthOAuthService } from '@core/auth';
 import { provideTranslocoForTest } from '../../testing/transloco-testing';
 
@@ -18,7 +18,7 @@ describe('CompleteProfileStore', () => {
   let mockBudgetApi: {
     getAllBudgets$: ReturnType<typeof vi.fn>;
   };
-  let mockUserSettingsApi: {
+  let mockUserSettingsStore: {
     updateSettings: ReturnType<typeof vi.fn>;
   };
   let mockAuthOAuth: {
@@ -43,7 +43,7 @@ describe('CompleteProfileStore', () => {
       getAllBudgets$: vi.fn().mockReturnValue(of([])),
     };
 
-    mockUserSettingsApi = {
+    mockUserSettingsStore = {
       updateSettings: vi.fn().mockResolvedValue({ payDayOfMonth: null }),
     };
 
@@ -67,7 +67,7 @@ describe('CompleteProfileStore', () => {
         CompleteProfileStore,
         { provide: ProfileSetupService, useValue: mockProfileSetupService },
         { provide: BudgetApi, useValue: mockBudgetApi },
-        { provide: UserSettingsApi, useValue: mockUserSettingsApi },
+        { provide: UserSettingsStore, useValue: mockUserSettingsStore },
         { provide: AuthOAuthService, useValue: mockAuthOAuth },
         { provide: Logger, useValue: mockLogger },
         { provide: PostHogService, useValue: mockPostHogService },
@@ -370,7 +370,7 @@ describe('CompleteProfileStore', () => {
       const result = await store.submitProfile();
 
       expect(result).toBe(true);
-      expect(mockUserSettingsApi.updateSettings).toHaveBeenCalledWith({
+      expect(mockUserSettingsStore.updateSettings).toHaveBeenCalledWith({
         payDayOfMonth: 27,
       });
       expect(mockLogger.info).toHaveBeenCalledWith('Pay day setting saved', {
@@ -390,14 +390,14 @@ describe('CompleteProfileStore', () => {
       const result = await store.submitProfile();
 
       expect(result).toBe(true);
-      expect(mockUserSettingsApi.updateSettings).not.toHaveBeenCalled();
+      expect(mockUserSettingsStore.updateSettings).not.toHaveBeenCalled();
     });
 
     it('should succeed even if saving payDayOfMonth fails', async () => {
       mockProfileSetupService.createInitialBudget.mockResolvedValue({
         success: true,
       });
-      mockUserSettingsApi.updateSettings.mockRejectedValue(
+      mockUserSettingsStore.updateSettings.mockRejectedValue(
         new Error('Settings API Error'),
       );
 

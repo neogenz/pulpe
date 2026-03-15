@@ -8,6 +8,7 @@ import {
 } from '@angular/core';
 import { TranslocoService } from '@jsverse/transloco';
 import { cachedMutation, cachedResource } from 'ngx-ziflux';
+import { BudgetCalculator, calculateAllConsumptions } from '@core/budget';
 import { BudgetApi } from '@core/budget/budget-api';
 import { ApiErrorLocalizer } from '@core/api/api-error-localizer';
 import { isApiError } from '@core/api/api-error';
@@ -22,6 +23,7 @@ import {
   type BudgetLineUpdate,
   type Transaction,
   type TransactionCreate,
+  type TransactionListResponse,
   type TransactionUpdate,
   BudgetFormulas,
 } from 'pulpe-shared';
@@ -57,6 +59,7 @@ export class BudgetDetailsStore {
   // ── 1. Dependencies ──
   readonly #apiErrorLocalizer = inject(ApiErrorLocalizer);
   readonly #budgetApi = inject(BudgetApi);
+  readonly #budgetCalculator = inject(BudgetCalculator);
   readonly #logger = inject(Logger);
   readonly #storage = inject(StorageService);
   readonly #transloco = inject(TranslocoService);
@@ -211,6 +214,42 @@ export class BudgetDetailsStore {
     );
   });
 
+  readonly financialTotals = computed(() => {
+    const lines = this.displayBudgetLines();
+    const transactions = this.budgetDetails()?.transactions ?? [];
+    const consumptionMap = calculateAllConsumptions(lines, transactions);
+
+    const income = this.#budgetCalculator.calculatePlannedIncome(lines);
+    let expenses = 0;
+    let savings = 0;
+
+    lines.forEach((line) => {
+      const consumption = consumptionMap.get(line.id);
+      const effectiveAmount = consumption
+        ? Math.max(line.amount, consumption.consumed)
+        : line.amount;
+
+      switch (line.kind) {
+        case 'expense':
+          expenses += effectiveAmount;
+          break;
+        case 'saving':
+          savings += effectiveAmount;
+          break;
+      }
+    });
+
+    const freeTransactions = transactions.filter((tx) => !tx.budgetLineId);
+    const initialLivingAllowance = income - expenses - savings;
+    const transactionImpact =
+      this.#budgetCalculator.calculateActualTransactionsAmount(
+        freeTransactions,
+      );
+    const remaining = initialLivingAllowance + transactionImpact;
+
+    return { income, expenses, savings, remaining };
+  });
+
   readonly checkedItemsCount = computed<number>(() => {
     const details = this.budgetDetails();
     if (!details) return 0;
@@ -317,25 +356,19 @@ export class BudgetDetailsStore {
         savingsGoalId: null,
         checkedAt: budgetLine.checkedAt ?? null,
       };
-      this.#budgetDetailsResource.update((details) => {
-        if (!details) return details!;
-        return {
-          ...details,
-          budgetLines: [...details.budgetLines, tempBudgetLine],
-        };
-      });
+      this.#updateDetails((details) => ({
+        ...details,
+        budgetLines: [...details.budgetLines, tempBudgetLine],
+      }));
       return previous;
     },
     onSuccess: (response, { tempId }) => {
-      this.#budgetDetailsResource.update((details) => {
-        if (!details) return details!;
-        return {
-          ...details,
-          budgetLines: details.budgetLines.map((line) =>
-            line.id === tempId ? response.data : line,
-          ),
-        };
-      });
+      this.#updateDetails((details) => ({
+        ...details,
+        budgetLines: details.budgetLines.map((line) =>
+          line.id === tempId ? response.data : line,
+        ),
+      }));
       this.#onFinancialMutationSuccess();
     },
     onError: (_err, _args, previous) => {
@@ -361,17 +394,14 @@ export class BudgetDetailsStore {
     mutationFn: (data) => this.#budgetApi.updateBudgetLine$(data.id, data),
     onMutate: (data) => {
       const previous = this.budgetDetails();
-      this.#budgetDetailsResource.update((details) => {
-        if (!details) return details!;
-        return {
-          ...details,
-          budgetLines: details.budgetLines.map((line) =>
-            line.id === data.id
-              ? { ...line, ...data, updatedAt: new Date().toISOString() }
-              : line,
-          ),
-        };
-      });
+      this.#updateDetails((details) => ({
+        ...details,
+        budgetLines: details.budgetLines.map((line) =>
+          line.id === data.id
+            ? { ...line, ...data, updatedAt: new Date().toISOString() }
+            : line,
+        ),
+      }));
       return previous;
     },
     onSuccess: () => this.#onFinancialMutationSuccess(),
@@ -395,17 +425,14 @@ export class BudgetDetailsStore {
     mutationFn: ({ id, data }) => this.#budgetApi.updateTransaction$(id, data),
     onMutate: ({ id, data }) => {
       const previous = this.budgetDetails();
-      this.#budgetDetailsResource.update((details) => {
-        if (!details) return details!;
-        return {
-          ...details,
-          transactions: (details.transactions ?? []).map((tx) =>
-            tx.id === id
-              ? { ...tx, ...data, updatedAt: new Date().toISOString() }
-              : tx,
-          ),
-        };
-      });
+      this.#updateDetails((details) => ({
+        ...details,
+        transactions: (details.transactions ?? []).map((tx) =>
+          tx.id === id
+            ? { ...tx, ...data, updatedAt: new Date().toISOString() }
+            : tx,
+        ),
+      }));
       return previous;
     },
     onSuccess: () => this.#onFinancialMutationSuccess(),
@@ -432,16 +459,13 @@ export class BudgetDetailsStore {
       this.#budgetApi.deleteBudgetLine$(id).pipe(map(() => void 0 as void)),
     onMutate: (id) => {
       const previous = this.budgetDetails();
-      this.#budgetDetailsResource.update((details) => {
-        if (!details) return details!;
-        return {
-          ...details,
-          budgetLines: details.budgetLines.filter((line) => line.id !== id),
-          transactions: (details.transactions ?? []).map((tx) =>
-            tx.budgetLineId === id ? { ...tx, budgetLineId: null } : tx,
-          ),
-        };
-      });
+      this.#updateDetails((details) => ({
+        ...details,
+        budgetLines: details.budgetLines.filter((line) => line.id !== id),
+        transactions: (details.transactions ?? []).map((tx) =>
+          tx.budgetLineId === id ? { ...tx, budgetLineId: null } : tx,
+        ),
+      }));
       return previous;
     },
     onSuccess: () => this.#onFinancialMutationSuccess(),
@@ -466,14 +490,10 @@ export class BudgetDetailsStore {
       this.#budgetApi.deleteTransaction$(id).pipe(map(() => void 0 as void)),
     onMutate: (id) => {
       const previous = this.budgetDetails();
-      this.#budgetDetailsResource.update((details) => {
-        if (!details) return details!;
-        return {
-          ...details,
-          transactions:
-            details.transactions?.filter((tx) => tx.id !== id) ?? [],
-        };
-      });
+      this.#updateDetails((details) => ({
+        ...details,
+        transactions: details.transactions?.filter((tx) => tx.id !== id) ?? [],
+      }));
       return previous;
     },
     onSuccess: () => this.#onFinancialMutationSuccess(),
@@ -516,25 +536,19 @@ export class BudgetDetailsStore {
         updatedAt: new Date().toISOString(),
         checkedAt: data.checkedAt ?? null,
       };
-      this.#budgetDetailsResource.update((details) => {
-        if (!details) return details!;
-        return {
-          ...details,
-          transactions: [...(details.transactions ?? []), tempTransaction],
-        };
-      });
+      this.#updateDetails((details) => ({
+        ...details,
+        transactions: [...(details.transactions ?? []), tempTransaction],
+      }));
       return previous;
     },
     onSuccess: (response, { tempId }) => {
-      this.#budgetDetailsResource.update((details) => {
-        if (!details) return details!;
-        return {
-          ...details,
-          transactions: (details.transactions ?? []).map((tx) =>
-            tx.id === tempId ? response.data : tx,
-          ),
-        };
-      });
+      this.#updateDetails((details) => ({
+        ...details,
+        transactions: (details.transactions ?? []).map((tx) =>
+          tx.id === tempId ? response.data : tx,
+        ),
+      }));
       this.#onFinancialMutationSuccess();
     },
     onError: (_err, _args, previous) => {
@@ -563,15 +577,12 @@ export class BudgetDetailsStore {
     invalidateKeys: () => BUDGET_DETAIL_INVALIDATION_KEYS,
     mutationFn: (id) => this.#budgetApi.resetBudgetLineFromTemplate$(id),
     onSuccess: (response, id) => {
-      this.#budgetDetailsResource.update((details) => {
-        if (!details) return details!;
-        return {
-          ...details,
-          budgetLines: details.budgetLines.map((line) =>
-            line.id === id ? response.data : line,
-          ),
-        };
-      });
+      this.#updateDetails((details) => ({
+        ...details,
+        budgetLines: details.budgetLines.map((line) =>
+          line.id === id ? response.data : line,
+        ),
+      }));
       this.#onFinancialMutationSuccess();
     },
     onError: (error) => {
@@ -587,6 +598,45 @@ export class BudgetDetailsStore {
     await this.#resetBudgetLineMutation.mutate(id);
   }
 
+  readonly #toggleCheckMutation = cachedMutation<
+    string,
+    { data: BudgetLine },
+    BudgetDetailsViewModel | null
+  >({
+    cache: this.#budgetApi.cache,
+    invalidateKeys: () => BUDGET_DETAIL_INVALIDATION_KEYS,
+    mutationFn: (id) => this.#budgetApi.toggleBudgetLineCheck$(id),
+    onMutate: (id) => {
+      const details = this.budgetDetails();
+      if (!details) return null;
+      const result = calculateBudgetLineToggle(id, {
+        budgetLines: details.budgetLines,
+        transactions: details.transactions ?? [],
+      });
+      if (!result) return null;
+      const previous = details;
+      this.#updateDetails((d) => ({
+        ...d,
+        budgetLines: result.updatedBudgetLines,
+        transactions: result.updatedTransactions,
+      }));
+      return previous;
+    },
+    onSuccess: (response, id) => {
+      this.#updateDetails((d) => ({
+        ...d,
+        budgetLines: d.budgetLines.map((line) =>
+          line.id === id ? response.data : line,
+        ),
+      }));
+      this.#onFinancialMutationSuccess();
+    },
+    onError: (_err, _id, previous) => {
+      if (previous) this.#budgetDetailsResource.set(previous);
+      this.#setError(this.#transloco.translate('budget.forecastToggleError'));
+    },
+  });
+
   async toggleCheck(id: string): Promise<boolean> {
     if (id === 'rollover-display') {
       const currentCheckedAt = this.#state.rolloverCheckedAt();
@@ -595,138 +645,102 @@ export class BudgetDetailsStore {
       );
       return true;
     }
-
     if (this.#mutatingIds.has(id)) return false;
 
     const details = this.budgetDetails();
     if (!details) return false;
 
-    const result = calculateBudgetLineToggle(id, {
+    const toggleResult = calculateBudgetLineToggle(id, {
       budgetLines: details.budgetLines,
       transactions: details.transactions ?? [],
     });
-
-    if (!result) return false;
+    if (!toggleResult) return false;
 
     this.#mutatingIds.add(id);
-
-    const previous = this.budgetDetails();
-    this.#budgetDetailsResource.update((d) => {
-      if (!d) return d!;
-      return {
-        ...d,
-        budgetLines: result.updatedBudgetLines,
-        transactions: result.updatedTransactions,
-      };
-    });
-
     try {
-      const response = await firstValueFrom(
-        this.#budgetApi.toggleBudgetLineCheck$(id),
-      );
-
-      const updatedLine = response.data;
-      this.#budgetDetailsResource.update((d) => {
-        if (!d) return d!;
-        return {
-          ...d,
-          budgetLines: d.budgetLines.map((line) =>
-            line.id === id ? updatedLine : line,
-          ),
-        };
-      });
-
-      BUDGET_DETAIL_INVALIDATION_KEYS.forEach((key) =>
-        this.#budgetApi.cache.invalidate(key),
-      );
-      this.#onFinancialMutationSuccess();
-      return true;
-    } catch (error) {
-      if (previous) this.#budgetDetailsResource.set(previous);
-      this.#setError(this.#transloco.translate('budget.forecastToggleError'));
-      this.#logger.error('Error toggling budget line check', error);
-      return false;
+      const result = await this.#toggleCheckMutation.mutate(id);
+      return result !== undefined;
     } finally {
       this.#mutatingIds.delete(id);
     }
   }
 
-  async toggleTransactionCheck(id: string): Promise<void> {
-    if (this.#mutatingIds.has(id)) return;
-
-    const details = this.budgetDetails();
-    if (!details) return;
-
-    const result = calculateTransactionToggle(id, {
-      budgetLines: details.budgetLines,
-      transactions: details.transactions ?? [],
-    });
-
-    if (!result) return;
-
-    this.#mutatingIds.add(id);
-
-    const previous = this.budgetDetails();
-    this.#budgetDetailsResource.update((d) => {
-      if (!d) return d!;
-      return {
+  readonly #toggleTransactionCheckMutation = cachedMutation<
+    string,
+    { data: Transaction },
+    BudgetDetailsViewModel | null
+  >({
+    cache: this.#budgetApi.cache,
+    invalidateKeys: () => BUDGET_DETAIL_INVALIDATION_KEYS,
+    mutationFn: (id) => this.#budgetApi.toggleTransactionCheck$(id),
+    onMutate: (id) => {
+      const details = this.budgetDetails();
+      if (!details) return null;
+      const result = calculateTransactionToggle(id, {
+        budgetLines: details.budgetLines,
+        transactions: details.transactions ?? [],
+      });
+      if (!result) return null;
+      const previous = details;
+      this.#updateDetails((d) => ({
         ...d,
         transactions: result.updatedTransactions,
-      };
-    });
-
-    try {
-      const response = await firstValueFrom(
-        this.#budgetApi.toggleTransactionCheck$(id),
-      );
-
-      this.#budgetDetailsResource.update((d) => {
-        if (!d) return d!;
-        return {
-          ...d,
-          transactions: (d.transactions ?? []).map((tx) =>
-            tx.id === id ? response.data : tx,
-          ),
-        };
-      });
-
-      BUDGET_DETAIL_INVALIDATION_KEYS.forEach((key) =>
-        this.#budgetApi.cache.invalidate(key),
-      );
+      }));
+      return previous;
+    },
+    onSuccess: (response, id) => {
+      this.#updateDetails((d) => ({
+        ...d,
+        transactions: (d.transactions ?? []).map((tx) =>
+          tx.id === id ? response.data : tx,
+        ),
+      }));
       this.#onFinancialMutationSuccess();
-    } catch (error) {
+    },
+    onError: (_err, _id, previous) => {
       if (previous) this.#budgetDetailsResource.set(previous);
       this.#setError(
         this.#transloco.translate('budget.transactionToggleError'),
       );
-      this.#logger.error('Error toggling transaction check', error);
+    },
+  });
+
+  async toggleTransactionCheck(id: string): Promise<void> {
+    if (this.#mutatingIds.has(id)) return;
+    this.#mutatingIds.add(id);
+    try {
+      await this.#toggleTransactionCheckMutation.mutate(id);
     } finally {
       this.#mutatingIds.delete(id);
     }
   }
 
-  async checkAllAllocatedTransactions(budgetLineId: string): Promise<void> {
-    if (this.#mutatingIds.has(budgetLineId)) return;
-
-    const details = this.budgetDetails();
-    if (!details) return;
-
-    const uncheckedTransactions = (details.transactions ?? []).filter(
-      (tx) =>
-        tx.budgetLineId === budgetLineId &&
-        tx.checkedAt === null &&
-        !isTempId(tx.id),
-    );
-    if (uncheckedTransactions.length === 0) return;
-
-    this.#mutatingIds.add(budgetLineId);
-
-    const previous = this.budgetDetails();
-    const now = new Date().toISOString();
-    const uncheckedIds = new Set(uncheckedTransactions.map((tx) => tx.id));
-    this.#budgetDetailsResource.update((d) => {
-      if (!d) return d!;
-      return {
+  readonly #checkAllAllocatedMutation = cachedMutation<
+    string,
+    TransactionListResponse,
+    BudgetDetailsViewModel | null
+  >({
+    cache: this.#budgetApi.cache,
+    invalidateKeys: () => BUDGET_DETAIL_INVALIDATION_KEYS,
+    mutationFn: (budgetLineId) =>
+      this.#budgetApi.checkBudgetLineTransactions$(budgetLineId),
+    onMutate: (budgetLineId) => {
+      const details = this.budgetDetails();
+      if (!details) return null;
+      const previous = details;
+      const now = new Date().toISOString();
+      const uncheckedIds = new Set(
+        (details.transactions ?? [])
+          .filter(
+            (tx) =>
+              tx.budgetLineId === budgetLineId &&
+              tx.checkedAt === null &&
+              !isTempId(tx.id),
+          )
+          .map((tx) => tx.id),
+      );
+      if (uncheckedIds.size === 0) return null;
+      this.#updateDetails((d) => ({
         ...d,
         budgetLines: d.budgetLines.map((line) =>
           line.id === budgetLineId
@@ -736,33 +750,40 @@ export class BudgetDetailsStore {
         transactions: (d.transactions ?? []).map((tx) =>
           uncheckedIds.has(tx.id) ? { ...tx, checkedAt: now } : tx,
         ),
-      };
-    });
-
-    try {
-      const response = await firstValueFrom(
-        this.#budgetApi.checkBudgetLineTransactions$(budgetLineId),
-      );
-
+      }));
+      return previous;
+    },
+    onSuccess: (response) => {
       const responseMap = new Map(response.data.map((tx) => [tx.id, tx]));
-      this.#budgetDetailsResource.update((d) => {
-        if (!d) return d!;
-        return {
-          ...d,
-          transactions: (d.transactions ?? []).map((tx) => {
-            const serverTx = responseMap.get(tx.id);
-            return serverTx ? { ...tx, checkedAt: serverTx.checkedAt } : tx;
-          }),
-        };
-      });
-      BUDGET_DETAIL_INVALIDATION_KEYS.forEach((key) =>
-        this.#budgetApi.cache.invalidate(key),
-      );
+      this.#updateDetails((d) => ({
+        ...d,
+        transactions: (d.transactions ?? []).map((tx) => {
+          const serverTx = responseMap.get(tx.id);
+          return serverTx ? { ...tx, checkedAt: serverTx.checkedAt } : tx;
+        }),
+      }));
       this.#onFinancialMutationSuccess();
-    } catch (error) {
+    },
+    onError: (_err, _id, previous) => {
       if (previous) this.#budgetDetailsResource.set(previous);
       this.#setError(this.#transloco.translate('budget.checkAllError'));
-      this.#logger.error('Error checking all allocated transactions', error);
+    },
+  });
+
+  async checkAllAllocatedTransactions(budgetLineId: string): Promise<void> {
+    if (this.#mutatingIds.has(budgetLineId)) return;
+    const details = this.budgetDetails();
+    if (!details) return;
+    const hasUnchecked = (details.transactions ?? []).some(
+      (tx) =>
+        tx.budgetLineId === budgetLineId &&
+        tx.checkedAt === null &&
+        !isTempId(tx.id),
+    );
+    if (!hasUnchecked) return;
+    this.#mutatingIds.add(budgetLineId);
+    try {
+      await this.#checkAllAllocatedMutation.mutate(budgetLineId);
     } finally {
       this.#mutatingIds.delete(budgetLineId);
     }
@@ -774,6 +795,15 @@ export class BudgetDetailsStore {
   }
 
   // ── 6. Private utility methods ──
+
+  #updateDetails(
+    fn: (details: BudgetDetailsViewModel) => BudgetDetailsViewModel,
+  ): void {
+    this.#budgetDetailsResource.update((details) => {
+      if (!details) return details as unknown as BudgetDetailsViewModel;
+      return fn(details);
+    });
+  }
 
   #setError(error: string): void {
     this.#state.errorMessage.set(error);

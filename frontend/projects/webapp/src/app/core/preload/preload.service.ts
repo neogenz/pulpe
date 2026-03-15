@@ -14,7 +14,7 @@ import { Logger } from '../logging/logger';
  *
  * Must be instantiated at app startup via provideAppInitializer.
  *
- * Note: UserSettingsApi is NOT preloaded here — its internal resource()
+ * Note: UserSettingsStore is NOT preloaded here — its internal resource()
  * auto-loads when isReady becomes true (same condition as this effect),
  * so calling initialize() would cause a duplicate request.
  */

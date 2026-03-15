@@ -4,7 +4,7 @@ import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { of, throwError, NEVER } from 'rxjs';
 import { DashboardStore, DASHBOARD_NOW } from './dashboard-store';
 import { BudgetApi } from '@core/budget';
-import { UserSettingsApi } from '@core/user-settings';
+import { UserSettingsStore } from '@core/user-settings';
 import type { Budget, BudgetLine, Transaction } from 'pulpe-shared';
 import { BudgetFormulas } from 'pulpe-shared';
 
@@ -90,7 +90,7 @@ function createMocks() {
         prefetch: vi.fn(),
       },
     },
-    userSettingsApi: {
+    userSettingsStore: {
       payDayOfMonth: signal<number | null>(1),
       isLoading: signal(false),
     },
@@ -104,7 +104,7 @@ function setup(mocks = createMocks()) {
       DashboardStore,
       provideZonelessChangeDetection(),
       { provide: BudgetApi, useValue: mocks.budgetApi },
-      { provide: UserSettingsApi, useValue: mocks.userSettingsApi },
+      { provide: UserSettingsStore, useValue: mocks.userSettingsStore },
       { provide: DASHBOARD_NOW, useValue: FIXED_DATE },
     ],
   });
@@ -445,10 +445,10 @@ describe('DashboardStore - Business Scenarios', () => {
         expect(store.budgetLines().length).toBe(1);
       });
 
-      await expect(store.checkBudgetLine('line-fail')).rejects.toThrow(
-        'Toggle failed',
-      );
+      await store.checkBudgetLine('line-fail');
 
+      // Should set error signal
+      expect(store.error()).toBeTruthy();
       // Should rollback checkedAt to null
       expect(store.budgetLines()[0].checkedAt).toBeNull();
       // Should be removed from pendingChecks → reappear in uncheckedForecasts
@@ -658,7 +658,7 @@ describe('DashboardStore - Pay Day Integration', () => {
 
   it('should compute period with payDay=27 (2nd quinzaine)', () => {
     const mocks = createMocks();
-    mocks.userSettingsApi.payDayOfMonth.set(27);
+    mocks.userSettingsStore.payDayOfMonth.set(27);
     const { store } = setup(mocks);
 
     // June 15 with payDay=27: day < 27 → previous month → May
@@ -668,7 +668,7 @@ describe('DashboardStore - Pay Day Integration', () => {
 
   it('should compute period with payDay=5 (1st quinzaine)', () => {
     const mocks = createMocks();
-    mocks.userSettingsApi.payDayOfMonth.set(5);
+    mocks.userSettingsStore.payDayOfMonth.set(5);
     const { store } = setup(mocks);
 
     // June 15 with payDay=5: day >= 5 → June
@@ -678,7 +678,7 @@ describe('DashboardStore - Pay Day Integration', () => {
 
   it('should fall back to calendar month with payDay=null', () => {
     const mocks = createMocks();
-    mocks.userSettingsApi.payDayOfMonth.set(null);
+    mocks.userSettingsStore.payDayOfMonth.set(null);
     const { store } = setup(mocks);
 
     expect(store.currentBudgetPeriod()).toEqual({ month: 6, year: 2025 });
@@ -1044,7 +1044,7 @@ describe('DashboardStore - Upcoming Budgets Data', () => {
         DashboardStore,
         provideZonelessChangeDetection(),
         { provide: BudgetApi, useValue: mocks.budgetApi },
-        { provide: UserSettingsApi, useValue: mocks.userSettingsApi },
+        { provide: UserSettingsStore, useValue: mocks.userSettingsStore },
         { provide: DASHBOARD_NOW, useValue: decemberDate },
       ],
     });

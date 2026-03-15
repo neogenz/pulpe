@@ -1,9 +1,4 @@
-import {
-  ChangeDetectionStrategy,
-  Component,
-  computed,
-  inject,
-} from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 
 import { CurrencyPipe } from '@angular/common';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
@@ -11,6 +6,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatListModule } from '@angular/material/list';
 import { MatDividerModule } from '@angular/material/divider';
+import { TranslocoPipe } from '@jsverse/transloco';
 import {
   type BudgetTemplate,
   type TemplateLine,
@@ -32,6 +28,7 @@ export interface TemplateDetailsDialogData {
     MatIconModule,
     MatListModule,
     MatDividerModule,
+    TranslocoPipe,
   ],
   template: `
     <h2 mat-dialog-title class="text-headline-small">
@@ -45,23 +42,21 @@ export interface TemplateDetailsDialogData {
         </p>
       }
 
-      @let lines = templateLines();
+      @let lines = templateLines;
       @if (lines.length > 0) {
         <!-- Summary Section -->
         <div class="flex justify-between mb-4">
           <div class="flex flex-col">
-            <div>Revenus total:</div>
+            <div>{{ 'template.totalIncome' | transloco }}</div>
             <div class="ph-no-capture text-financial-income text-label-large">
-              {{
-                totalIncome() | currency: 'CHF' : 'symbol' : '1.2-2' : 'de-CH'
-              }}
+              {{ totalIncome | currency: 'CHF' : 'symbol' : '1.2-2' : 'de-CH' }}
             </div>
           </div>
           <div class="flex flex-col">
-            <div>Dépenses total:</div>
+            <div>{{ 'template.totalExpenses' | transloco }}</div>
             <div class="ph-no-capture text-financial-negative text-label-large">
               {{
-                totalExpenses() | currency: 'CHF' : 'symbol' : '1.2-2' : 'de-CH'
+                totalExpenses | currency: 'CHF' : 'symbol' : '1.2-2' : 'de-CH'
               }}
             </div>
           </div>
@@ -110,9 +105,9 @@ export interface TemplateDetailsDialogData {
         <!-- Net Balance -->
         <mat-divider class="mb-2!"></mat-divider>
         <div class="flex justify-between text-body-medium font-medium">
-          <span>Solde net:</span>
+          <span>{{ 'template.netBalance' | transloco }}</span>
           <span class="ph-no-capture">
-            {{ netBalance() | currency: 'CHF' : 'symbol' : '1.2-2' : 'de-CH' }}
+            {{ netBalance | currency: 'CHF' : 'symbol' : '1.2-2' : 'de-CH' }}
           </span>
         </div>
       } @else {
@@ -122,14 +117,16 @@ export interface TemplateDetailsDialogData {
         >
           <mat-icon class="text-display-small mb-2">inbox</mat-icon>
           <p class="text-body-medium font-medium">
-            Pas de prévision dans ce modèle
+            {{ 'template.noForecastInTemplate' | transloco }}
           </p>
         </div>
       }
     </mat-dialog-content>
 
     <mat-dialog-actions align="end">
-      <button matButton mat-dialog-close>Fermer</button>
+      <button matButton mat-dialog-close>
+        {{ 'common.close' | transloco }}
+      </button>
     </mat-dialog-actions>
   `,
   styles: `
@@ -150,17 +147,14 @@ export interface TemplateDetailsDialogData {
 export class TemplateDetailsDialog {
   readonly data = inject<TemplateDetailsDialogData>(MAT_DIALOG_DATA);
 
-  readonly templateLines = computed(() => this.data.templateLines);
-
-  readonly totalIncome = computed(() =>
-    BudgetFormulas.calculateTotalIncome(this.templateLines(), []),
+  readonly templateLines = this.data.templateLines;
+  readonly totalIncome = BudgetFormulas.calculateTotalIncome(
+    this.templateLines,
+    [],
   );
-
-  readonly totalExpenses = computed(() =>
-    BudgetFormulas.calculateTotalExpenses(this.templateLines(), []),
+  readonly totalExpenses = BudgetFormulas.calculateTotalExpenses(
+    this.templateLines,
+    [],
   );
-
-  readonly netBalance = computed(
-    () => this.totalIncome() - this.totalExpenses(),
-  );
+  readonly netBalance = this.totalIncome - this.totalExpenses;
 }
