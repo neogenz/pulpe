@@ -412,7 +412,7 @@ describe('TemplateDetail', () => {
       expect(config.width).toBe('90vw');
     });
 
-    it('should reload store and invalidate budgets on propagation mode propagate', async () => {
+    it('should reload store on propagation mode propagate', async () => {
       mockDialog.open.mockReturnValue({
         afterClosed: () =>
           of({
@@ -429,10 +429,9 @@ describe('TemplateDetail', () => {
       fixture.componentInstance.editTemplate();
 
       expect(mockStore.reloadTemplateDetails).toHaveBeenCalledOnce();
-      expect(mockBudgetApi.cache.invalidate).toHaveBeenCalledWith(['budget']);
     });
 
-    it('should reload store but not invalidate budgets on template-only mode', async () => {
+    it('should reload store on template-only mode', async () => {
       mockDialog.open.mockReturnValue({
         afterClosed: () =>
           of({
@@ -449,7 +448,6 @@ describe('TemplateDetail', () => {
       fixture.componentInstance.editTemplate();
 
       expect(mockStore.reloadTemplateDetails).toHaveBeenCalledOnce();
-      expect(mockBudgetApi.cache.invalidate).not.toHaveBeenCalled();
     });
 
     it('should show no-modification message when propagation is null', async () => {

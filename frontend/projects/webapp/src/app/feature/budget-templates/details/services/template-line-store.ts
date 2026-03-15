@@ -1,6 +1,7 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { TranslocoService } from '@jsverse/transloco';
 import { cachedMutation } from 'ngx-ziflux';
+import { BudgetApi } from '@core/budget/budget-api';
 import { BudgetTemplatesApi } from '@core/budget-template/budget-templates-api';
 import type { TransactionFormData } from '../../services/transaction-form';
 import type {
@@ -14,6 +15,7 @@ import type { EditableLine, SaveResult } from './template-line-state';
 
 @Injectable()
 export class TemplateLineStore {
+  readonly #budgetApi = inject(BudgetApi);
   readonly #budgetTemplatesApi = inject(BudgetTemplatesApi);
   readonly #transloco = inject(TranslocoService);
 
@@ -157,6 +159,10 @@ export class TemplateLineStore {
             : this.#transloco.translate('template.saveError');
         this.#error.set(errorMessage);
         return { success: false, error: errorMessage };
+      }
+
+      if (response.data.propagation?.mode === 'propagate') {
+        this.#budgetApi.cache.invalidate(['budget']);
       }
 
       this.#updateStateAfterSave(response.data);

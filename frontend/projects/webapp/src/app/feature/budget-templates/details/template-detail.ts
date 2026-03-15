@@ -16,7 +16,6 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { ActivatedRoute, Router } from '@angular/router';
 import { TranslocoService } from '@jsverse/transloco';
-import { BudgetApi } from '@core/budget/budget-api';
 import { ROUTES } from '@core/routing';
 import { Logger } from '@core/logging/logger';
 import { PulpeTitleStrategy } from '@core/routing/title-strategy';
@@ -277,7 +276,6 @@ export default class TemplateDetail implements OnInit {
   readonly #snackBar = inject(MatSnackBar);
   readonly #logger = inject(Logger);
   readonly #destroyRef = inject(DestroyRef);
-  readonly #budgetApi = inject(BudgetApi);
   readonly #transloco = inject(TranslocoService);
 
   protected readonly loadingMessage =
@@ -422,9 +420,6 @@ export default class TemplateDetail implements OnInit {
           if (propagation) {
             // Reload to sync with server state when changes were applied
             this.templateDetailsStore.reloadTemplateDetails();
-            if (propagation.mode === 'propagate') {
-              this.#budgetApi.cache.invalidate(['budget']);
-            }
           }
 
           const message = this.#buildSuccessMessage(propagation);
