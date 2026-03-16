@@ -66,8 +66,8 @@ describe('BudgetApi', () => {
   }
 
   describe('createBudget$', () => {
-    it('should create a budget and cache its ID', () => {
-      const { service, httpTesting, cacheSetSpy } = createTestBed();
+    it('should create a budget and return it', () => {
+      const { service, httpTesting } = createTestBed();
       const templateData = {
         month: 2,
         year: 2024,
@@ -94,11 +94,10 @@ describe('BudgetApi', () => {
       expect(result).toEqual({
         budget: responseBudget,
       });
-      expect(cacheSetSpy).toHaveBeenCalledWith(BUDGET_EXISTS_KEY, true);
     });
 
-    it('should NOT sync cache on HTTP error', () => {
-      const { service, httpTesting, cacheSetSpy } = createTestBed();
+    it('should propagate HTTP error', () => {
+      const { service, httpTesting } = createTestBed();
       const templateData = {
         month: 2,
         year: 2024,
@@ -127,7 +126,6 @@ describe('BudgetApi', () => {
       expect((error as ApiError).status).toBe(400);
       expect((error as ApiError).code).toBe('ERR_BUDGET_ALREADY_EXISTS');
       expect((error as ApiError).message).toBe('Budget already exists');
-      expect(cacheSetSpy).not.toHaveBeenCalled();
     });
   });
 

@@ -32,7 +32,7 @@ import { ApiClient } from '../api/api-client';
 import { DataCache } from 'ngx-ziflux';
 import { TransactionApi } from '../transaction/transaction-api';
 
-export const BUDGET_EXISTS_KEY: string[] = ['budget', 'exists'];
+export const BUDGET_EXISTS_KEY = ['budget', 'exists'];
 
 export interface CreateBudgetApiResponse {
   readonly budget: Budget;
@@ -68,10 +68,7 @@ export class BudgetApi {
     const validatedRequest = budgetCreateSchema.parse(templateData);
     return this.#api
       .post$('/budgets', validatedRequest, budgetResponseSchema)
-      .pipe(
-        tap(() => this.cache.set(BUDGET_EXISTS_KEY, true)),
-        map((response) => ({ budget: response.data })),
-      );
+      .pipe(map((response) => ({ budget: response.data })));
   }
 
   getAllBudgets$(): Observable<Budget[]> {

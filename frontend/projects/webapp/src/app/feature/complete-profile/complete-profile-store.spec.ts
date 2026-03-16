@@ -16,7 +16,7 @@ describe('CompleteProfileStore', () => {
     createInitialBudget: ReturnType<typeof vi.fn>;
   };
   let mockBudgetApi: {
-    getAllBudgets$: ReturnType<typeof vi.fn>;
+    checkBudgetExists$: ReturnType<typeof vi.fn>;
     markBudgetExists: ReturnType<typeof vi.fn>;
   };
   let mockUserSettingsStore: {
@@ -41,7 +41,7 @@ describe('CompleteProfileStore', () => {
     };
 
     mockBudgetApi = {
-      getAllBudgets$: vi.fn().mockReturnValue(of([])),
+      checkBudgetExists$: vi.fn().mockReturnValue(of(false)),
       markBudgetExists: vi.fn(),
     };
 
@@ -116,7 +116,7 @@ describe('CompleteProfileStore', () => {
 
   describe('checkExistingBudgets', () => {
     it('should return false when no budgets exist', async () => {
-      mockBudgetApi.getAllBudgets$.mockReturnValue(of([]));
+      mockBudgetApi.checkBudgetExists$.mockReturnValue(of(false));
 
       const result = await store.checkExistingBudgets();
 
@@ -125,9 +125,7 @@ describe('CompleteProfileStore', () => {
     });
 
     it('should return true when budgets exist', async () => {
-      mockBudgetApi.getAllBudgets$.mockReturnValue(
-        of([{ id: 'budget-1', name: 'Test Budget' }]),
-      );
+      mockBudgetApi.checkBudgetExists$.mockReturnValue(of(true));
 
       const result = await store.checkExistingBudgets();
 
@@ -140,7 +138,9 @@ describe('CompleteProfileStore', () => {
 
     it('should return false and track error on API failure', async () => {
       const apiError = new Error('API Error');
-      mockBudgetApi.getAllBudgets$.mockReturnValue(throwError(() => apiError));
+      mockBudgetApi.checkBudgetExists$.mockReturnValue(
+        throwError(() => apiError),
+      );
 
       const result = await store.checkExistingBudgets();
 

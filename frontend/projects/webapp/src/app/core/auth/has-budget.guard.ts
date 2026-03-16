@@ -15,6 +15,7 @@ export const hasBudgetGuard: CanActivateFn = async () => {
 
   const cached = budgetApi.getCachedBudgetExists();
 
+  // Trust fresh data always; trust stale true (budgets don't disappear); revalidate stale false
   if (cached !== null && (cached.fresh || cached.data)) {
     return cached.data ? true : redirectToCompleteProfile();
   }

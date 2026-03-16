@@ -135,8 +135,9 @@ export class CompleteProfileStore {
     this.#patchState({ isCheckingExistingBudget: true });
 
     try {
-      const budgets = await firstValueFrom(this.#budgetApi.getAllBudgets$());
-      const hasExisting = budgets.length > 0;
+      const hasExisting = await firstValueFrom(
+        this.#budgetApi.checkBudgetExists$(),
+      );
 
       this.#patchState({ isCheckingExistingBudget: false });
 
