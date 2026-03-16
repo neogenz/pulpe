@@ -17,6 +17,7 @@ describe('CompleteProfileStore', () => {
   };
   let mockBudgetApi: {
     getAllBudgets$: ReturnType<typeof vi.fn>;
+    markBudgetExists: ReturnType<typeof vi.fn>;
   };
   let mockUserSettingsStore: {
     updateSettings: ReturnType<typeof vi.fn>;
@@ -41,6 +42,7 @@ describe('CompleteProfileStore', () => {
 
     mockBudgetApi = {
       getAllBudgets$: vi.fn().mockReturnValue(of([])),
+      markBudgetExists: vi.fn(),
     };
 
     mockUserSettingsStore = {
@@ -76,10 +78,6 @@ describe('CompleteProfileStore', () => {
     });
 
     store = TestBed.inject(CompleteProfileStore);
-  });
-
-  it('should be created', () => {
-    expect(store).toBeTruthy();
   });
 
   describe('initial state', () => {
@@ -303,6 +301,27 @@ describe('CompleteProfileStore', () => {
       expect(store.error()).toContain('prénom');
     });
 
+    it('should set isLoading during submission', async () => {
+      let resolvePromise: (value: { success: true }) => void;
+      mockProfileSetupService.createInitialBudget.mockReturnValue(
+        new Promise((resolve) => {
+          resolvePromise = resolve;
+        }),
+      );
+
+      store.updateFirstName('John');
+      store.updateMonthlyIncome(5000);
+
+      const submitPromise = store.submitProfile();
+
+      expect(store.isLoading()).toBe(true);
+
+      resolvePromise!({ success: true });
+      await submitPromise;
+
+      expect(store.isLoading()).toBe(false);
+    });
+
     it('should call profileSetupService when valid', async () => {
       mockProfileSetupService.createInitialBudget.mockResolvedValue({
         success: true,
@@ -325,6 +344,7 @@ describe('CompleteProfileStore', () => {
         leasingCredit: undefined,
         payDayOfMonth: undefined,
       });
+      expect(mockBudgetApi.markBudgetExists).toHaveBeenCalledWith(true);
     });
 
     it('should pass payDayOfMonth to createInitialBudget when set', async () => {

@@ -29,13 +29,13 @@ import {
 import { type Observable, of } from 'rxjs';
 import { map, switchMap, tap } from 'rxjs/operators';
 import { ApiClient } from '../api/api-client';
-import { HasBudgetCache } from '../auth/has-budget-cache';
 import { DataCache } from 'ngx-ziflux';
 import { TransactionApi } from '../transaction/transaction-api';
 
+export const BUDGET_EXISTS_KEY: string[] = ['budget', 'exists'];
+
 export interface CreateBudgetApiResponse {
   readonly budget: Budget;
-  readonly message: string;
 }
 
 @Injectable({
@@ -43,13 +43,24 @@ export interface CreateBudgetApiResponse {
 })
 export class BudgetApi {
   readonly #api = inject(ApiClient);
-  readonly #hasBudgetCache = inject(HasBudgetCache);
   readonly #transactionApi = inject(TransactionApi);
   readonly cache = new DataCache({
     staleTime: 30_000,
     expireTime: 600_000,
     name: 'budgets',
   });
+
+  markBudgetExists(value: boolean): void {
+    this.cache.set(BUDGET_EXISTS_KEY, value);
+  }
+
+  getCachedBudgetExists(): { data: boolean; fresh: boolean } | null {
+    return this.cache.get<boolean>(BUDGET_EXISTS_KEY);
+  }
+
+  clearCache(): void {
+    this.cache.clear();
+  }
 
   createBudget$(
     templateData: BudgetCreate,
@@ -58,18 +69,15 @@ export class BudgetApi {
     return this.#api
       .post$('/budgets', validatedRequest, budgetResponseSchema)
       .pipe(
-        tap(() => this.#hasBudgetCache.setHasBudget(true)),
-        map((response) => ({
-          budget: response.data,
-          message: 'Budget créé avec succès à partir du template',
-        })),
+        tap(() => this.cache.set(BUDGET_EXISTS_KEY, true)),
+        map((response) => ({ budget: response.data })),
       );
   }
 
   getAllBudgets$(): Observable<Budget[]> {
     return this.#api.get$('/budgets', budgetListResponseSchema).pipe(
       tap((response) =>
-        this.#hasBudgetCache.setHasBudget(response.data.length > 0),
+        this.cache.set(BUDGET_EXISTS_KEY, response.data.length > 0),
       ),
       map((response) => response.data),
       map((budgets) =>
@@ -83,7 +91,7 @@ export class BudgetApi {
 
   checkBudgetExists$(): Observable<boolean> {
     return this.#api.get$('/budgets/exists', budgetExistsResponseSchema).pipe(
-      tap((response) => this.#hasBudgetCache.setHasBudget(response.hasBudget)),
+      tap((response) => this.cache.set(BUDGET_EXISTS_KEY, response.hasBudget)),
       map((response) => response.hasBudget),
     );
   }
@@ -104,6 +112,11 @@ export class BudgetApi {
   getBudgetForMonth$(month: string, year: string): Observable<Budget | null> {
     const monthNumber = parseInt(month, 10);
     const yearNumber = parseInt(year, 10);
+
+    if (Number.isNaN(monthNumber) || Number.isNaN(yearNumber)) {
+      return of(null);
+    }
+
     return this.getAllBudgets$().pipe(
       map(
         (budgets) =>
@@ -161,14 +174,19 @@ export class BudgetApi {
       )
       .pipe(
         map((response) =>
-          response.data.map((b) => ({
-            id: b.id,
-            month: b.month!,
-            year: b.year!,
-            income: b.totalIncome ?? 0,
-            expenses: b.totalExpenses ?? 0,
-            savings: b.totalSavings ?? 0,
-          })),
+          response.data
+            .filter(
+              (b): b is typeof b & { month: number; year: number } =>
+                b.month != null && b.year != null,
+            )
+            .map((b) => ({
+              id: b.id,
+              month: b.month,
+              year: b.year,
+              income: b.totalIncome ?? 0,
+              expenses: b.totalExpenses ?? 0,
+              savings: b.totalSavings ?? 0,
+            })),
         ),
       );
   }
@@ -187,7 +205,7 @@ export class BudgetApi {
       switchMap(() =>
         this.#api.get$('/budgets/exists', budgetExistsResponseSchema),
       ),
-      tap((response) => this.#hasBudgetCache.setHasBudget(response.hasBudget)),
+      tap((response) => this.cache.set(BUDGET_EXISTS_KEY, response.hasBudget)),
       map(() => void 0),
     );
   }

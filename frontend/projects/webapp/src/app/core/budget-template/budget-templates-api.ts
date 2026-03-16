@@ -36,6 +36,10 @@ export class BudgetTemplatesApi {
     expireTime: 300_000,
   });
 
+  clearCache(): void {
+    this.cache.clear();
+  }
+
   getAll$(): Observable<BudgetTemplateListResponse> {
     return this.#api.get$(
       '/budget-templates',
