@@ -57,7 +57,7 @@ describe('CreateAllocatedTransactionDialog', () => {
   });
 
   describe('submit', () => {
-    it('should close with transaction data when form is valid', () => {
+    it('should close with transaction data when form is valid', async () => {
       const midMonth = new Date(
         new Date().getFullYear(),
         new Date().getMonth(),
@@ -69,7 +69,7 @@ describe('CreateAllocatedTransactionDialog', () => {
         transactionDate: midMonth,
       });
 
-      component['submit']();
+      await component['submit']();
 
       expect(mockDialogRef.close).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -91,7 +91,7 @@ describe('CreateAllocatedTransactionDialog', () => {
       expect(mockDialogRef.close).not.toHaveBeenCalled();
     });
 
-    it('should trim whitespace from name', () => {
+    it('should trim whitespace from name', async () => {
       const midMonth = new Date(
         new Date().getFullYear(),
         new Date().getMonth(),
@@ -103,14 +103,14 @@ describe('CreateAllocatedTransactionDialog', () => {
         transactionDate: midMonth,
       });
 
-      component['submit']();
+      await component['submit']();
 
       expect(mockDialogRef.close).toHaveBeenCalledWith(
         expect.objectContaining({ name: 'Courses' }),
       );
     });
 
-    it('should apply Math.abs on amount', () => {
+    it('should apply Math.abs on amount', async () => {
       const midMonth = new Date(
         new Date().getFullYear(),
         new Date().getMonth(),
@@ -122,7 +122,7 @@ describe('CreateAllocatedTransactionDialog', () => {
         transactionDate: midMonth,
       });
 
-      component['submit']();
+      await component['submit']();
 
       expect(mockDialogRef.close).toHaveBeenCalledWith(
         expect.objectContaining({ amount: 42.5 }),

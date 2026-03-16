@@ -50,6 +50,7 @@ describe('TransactionService', () => {
       tryDecryptAmount: mock(
         (_ct: string, _dek: Buffer, _fallback: number) => 100,
       ),
+      encryptOptionalAmount: mock(() => Promise.resolve(null)),
     };
     const mockCacheService = {
       getOrSet: mock(

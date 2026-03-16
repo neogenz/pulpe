@@ -8,7 +8,7 @@ import {
   inject,
   model,
 } from '@angular/core';
-import type { SupportedCurrency } from 'pulpe-shared';
+import { type SupportedCurrency, SUPPORTED_CURRENCIES } from 'pulpe-shared';
 import { FormsModule } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -55,8 +55,9 @@ import { MatSelectModule } from '@angular/material/select';
           class="!w-[70px] text-on-surface-variant font-medium"
           aria-label="Devise"
         >
-          <mat-option value="CHF">CHF</mat-option>
-          <mat-option value="EUR">EUR</mat-option>
+          @for (c of currencies; track c) {
+            <mat-option [value]="c">{{ c }}</mat-option>
+          }
         </mat-select>
       } @else {
         <span matTextSuffix class="text-on-surface-variant font-medium">{{
@@ -85,6 +86,7 @@ export class CurrencyInput {
   readonly showCurrencySelector = input<boolean>(false);
   readonly currencyChange = output<SupportedCurrency>();
   readonly autoFocus = input<boolean>(true);
+  protected readonly currencies = SUPPORTED_CURRENCIES;
 
   constructor() {
     afterNextRender(() => {

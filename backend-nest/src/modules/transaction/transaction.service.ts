@@ -318,22 +318,18 @@ export class TransactionService {
 
       const transactionData = this.prepareTransactionData(createTransactionDto);
 
-      const { amount } = await this.encryptionService.prepareAmountData(
-        createTransactionDto.amount,
-        user.id,
-        user.clientKey,
-      );
-
-      let encryptedOriginalAmount: string | null = null;
-      if (createTransactionDto.originalAmount != null) {
-        const encryptedOriginal =
-          await this.encryptionService.prepareAmountData(
-            createTransactionDto.originalAmount,
-            user.id,
-            user.clientKey,
-          );
-        encryptedOriginalAmount = encryptedOriginal.amount;
-      }
+      const [{ amount }, encryptedOriginalAmount] = await Promise.all([
+        this.encryptionService.prepareAmountData(
+          createTransactionDto.amount,
+          user.id,
+          user.clientKey,
+        ),
+        this.encryptionService.encryptOptionalAmount(
+          createTransactionDto.originalAmount,
+          user.id,
+          user.clientKey,
+        ),
+      ]);
 
       const dataWithEncryption = {
         ...transactionData,
@@ -582,17 +578,12 @@ export class TransactionService {
       }
 
       if (updateTransactionDto.originalAmount !== undefined) {
-        if (updateTransactionDto.originalAmount === null) {
-          updateData.original_amount = null;
-        } else {
-          const encryptedOriginal =
-            await this.encryptionService.prepareAmountData(
-              updateTransactionDto.originalAmount,
-              user.id,
-              user.clientKey,
-            );
-          updateData.original_amount = encryptedOriginal.amount;
-        }
+        updateData.original_amount =
+          await this.encryptionService.encryptOptionalAmount(
+            updateTransactionDto.originalAmount,
+            user.id,
+            user.clientKey,
+          );
       }
 
       const transactionDb = await this.updateTransactionInDb(

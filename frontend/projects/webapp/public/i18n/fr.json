@@ -684,7 +684,13 @@
     "nextMonthTitle": "Mois prochain",
     "nextMonthEstimatedRollover": "Budget anticipé — report estimé :",
     "nextMonthNoBudget": "Pas encore de budget pour {{ month }}",
-    "nextMonthAnticipate": "Anticiper le mois prochain"
+    "nextMonthAnticipate": "Anticiper le mois prochain",
+    "uncheckedForecasts": {
+      "title": "Prévisions à pointer",
+      "count": "({{ count }})",
+      "allCheckedMessage": "Toutes les prévisions sont pointées.",
+      "toggleAriaLabel": "Pointer {{ name }} — {{ amount }}"
+    }
   },
   "currency": {
     "conversionTooltip": "Converti depuis {{ amount }}\nTaux : {{ rate }}",

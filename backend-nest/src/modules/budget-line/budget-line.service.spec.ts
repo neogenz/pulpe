@@ -142,6 +142,7 @@ describe('BudgetLineService', () => {
               .fn()
               .mockImplementation((_ct: string, _dek: Buffer) => 100),
             tryDecryptAmount: jest.fn().mockReturnValue(2500),
+            encryptOptionalAmount: jest.fn().mockResolvedValue(null),
           },
         },
         {

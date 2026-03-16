@@ -29,112 +29,61 @@ export class BudgetLineService {
     private readonly currencyService: CurrencyService,
   ) {}
 
+  #decryptRowWithDEK<
+    T extends { amount: string | null; original_amount: string | null },
+  >(
+    row: T,
+    dek: Buffer,
+  ): Omit<T, 'amount' | 'original_amount'> & {
+    amount: number;
+    original_amount: number | null;
+  } {
+    const decryptedAmount = row.amount
+      ? this.encryptionService.tryDecryptAmount(row.amount, dek, 0)
+      : 0;
+
+    const decryptedOriginalAmount = row.original_amount
+      ? this.encryptionService.tryDecryptAmount(row.original_amount, dek, 0)
+      : null;
+
+    return {
+      ...row,
+      amount: decryptedAmount,
+      original_amount: decryptedOriginalAmount,
+    };
+  }
+
   async #decryptBudgetLine(
     budgetLine: Database['public']['Tables']['budget_line']['Row'],
     user: AuthenticatedUser,
-  ): Promise<
-    Omit<
-      Database['public']['Tables']['budget_line']['Row'],
-      'amount' | 'original_amount'
-    > & {
-      amount: number;
-      original_amount: number | null;
-    }
-  > {
+  ) {
     const dek = await this.encryptionService.getUserDEK(
       user.id,
       user.clientKey,
     );
-
-    const decryptedAmount = budgetLine.amount
-      ? this.encryptionService.tryDecryptAmount(budgetLine.amount, dek, 0)
-      : 0;
-
-    const decryptedOriginalAmount = budgetLine.original_amount
-      ? this.encryptionService.tryDecryptAmount(
-          budgetLine.original_amount,
-          dek,
-          0,
-        )
-      : null;
-
-    return {
-      ...budgetLine,
-      amount: decryptedAmount,
-      original_amount: decryptedOriginalAmount,
-    };
+    return this.#decryptRowWithDEK(budgetLine, dek);
   }
 
   async #decryptBudgetLines(
     budgetLines: Database['public']['Tables']['budget_line']['Row'][],
     user: AuthenticatedUser,
-  ): Promise<
-    (Omit<
-      Database['public']['Tables']['budget_line']['Row'],
-      'amount' | 'original_amount'
-    > & {
-      amount: number;
-      original_amount: number | null;
-    })[]
-  > {
-    return Promise.all(
-      budgetLines.map((line) => this.#decryptBudgetLine(line, user)),
-    );
-  }
-
-  async #decryptTransaction(
-    transaction: Database['public']['Tables']['transaction']['Row'],
-    user: AuthenticatedUser,
-  ): Promise<
-    Omit<
-      Database['public']['Tables']['transaction']['Row'],
-      'amount' | 'original_amount'
-    > & {
-      amount: number;
-      original_amount: number | null;
-    }
-  > {
+  ) {
     const dek = await this.encryptionService.getUserDEK(
       user.id,
       user.clientKey,
     );
-
-    const decryptedAmount = transaction.amount
-      ? this.encryptionService.tryDecryptAmount(transaction.amount, dek, 0)
-      : 0;
-
-    const decryptedOriginalAmount = transaction.original_amount
-      ? this.encryptionService.tryDecryptAmount(
-          transaction.original_amount,
-          dek,
-          0,
-        )
-      : null;
-
-    return {
-      ...transaction,
-      amount: decryptedAmount,
-      original_amount: decryptedOriginalAmount,
-    };
+    return budgetLines.map((line) => this.#decryptRowWithDEK(line, dek));
   }
 
   async #decryptTransactions(
     transactions: Database['public']['Tables']['transaction']['Row'][],
     user: AuthenticatedUser,
-  ): Promise<
-    (Omit<
-      Database['public']['Tables']['transaction']['Row'],
-      'amount' | 'original_amount'
-    > & {
-      amount: number;
-      original_amount: number | null;
-    })[]
-  > {
-    return Promise.all(
-      transactions.map((transaction) =>
-        this.#decryptTransaction(transaction, user),
-      ),
+  ) {
+    const dek = await this.encryptionService.getUserDEK(
+      user.id,
+      user.clientKey,
     );
+    return transactions.map((t) => this.#decryptRowWithDEK(t, dek));
   }
 
   async findAll(
@@ -241,21 +190,18 @@ export class BudgetLineService {
     user: AuthenticatedUser,
     createDto: BudgetLineCreate,
   ): Promise<Database['public']['Tables']['budget_line']['Row']> {
-    const { amount } = await this.encryptionService.prepareAmountData(
-      budgetLineData.amount,
-      user.id,
-      user.clientKey,
-    );
-
-    let encryptedOriginalAmount: string | null = null;
-    if (createDto.originalAmount != null) {
-      const encryptedOriginal = await this.encryptionService.prepareAmountData(
+    const [{ amount }, encryptedOriginalAmount] = await Promise.all([
+      this.encryptionService.prepareAmountData(
+        budgetLineData.amount,
+        user.id,
+        user.clientKey,
+      ),
+      this.encryptionService.encryptOptionalAmount(
         createDto.originalAmount,
         user.id,
         user.clientKey,
-      );
-      encryptedOriginalAmount = encryptedOriginal.amount;
-    }
+      ),
+    ]);
 
     const dataWithEncryption = {
       ...budgetLineData,
@@ -532,17 +478,12 @@ export class BudgetLineService {
       }
 
       if (updateBudgetLineDto.originalAmount !== undefined) {
-        if (updateBudgetLineDto.originalAmount === null) {
-          updateData.original_amount = null;
-        } else {
-          const encryptedOriginal =
-            await this.encryptionService.prepareAmountData(
-              updateBudgetLineDto.originalAmount,
-              user.id,
-              user.clientKey,
-            );
-          updateData.original_amount = encryptedOriginal.amount;
-        }
+        updateData.original_amount =
+          await this.encryptionService.encryptOptionalAmount(
+            updateBudgetLineDto.originalAmount,
+            user.id,
+            user.clientKey,
+          );
       }
 
       const budgetLineDb = await this.updateBudgetLineInDb(

@@ -1,9 +1,4 @@
-import {
-  Component,
-  inject,
-  signal,
-  ChangeDetectionStrategy,
-} from '@angular/core';
+import { Component, inject, ChangeDetectionStrategy } from '@angular/core';
 import {
   MAT_DIALOG_DATA,
   MatDialogRef,
@@ -15,15 +10,12 @@ import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatDatepickerModule } from '@angular/material/datepicker';
-import { MatSelectModule } from '@angular/material/select';
 import { TranslocoPipe } from '@jsverse/transloco';
-import {
-  type BudgetLine,
-  type TransactionCreate,
-  type SupportedCurrency,
-} from 'pulpe-shared';
+import { CurrencySuffix } from '@ui/currency-suffix';
+import { type BudgetLine, type TransactionCreate } from 'pulpe-shared';
 import { formatLocalDate } from '@core/date/format-local-date';
-import { CurrencyConverterService } from '@core/currency';
+import type { CurrencyConverterService } from '@core/currency';
+import { injectCurrencyFormConfig } from '@core/currency';
 import {
   computeBudgetPeriodDateConstraints,
   createDateRangeValidator,
@@ -45,10 +37,10 @@ export interface CreateAllocatedTransactionDialogData {
     MatInputModule,
     MatButtonModule,
     MatIconModule,
-    MatSelectModule,
     MatDatepickerModule,
     ReactiveFormsModule,
     TranslocoPipe,
+    CurrencySuffix,
   ],
   template: `
     <h2 mat-dialog-title class="text-headline-small">
@@ -94,20 +86,12 @@ export interface CreateAllocatedTransactionDialogData {
             inputmode="decimal"
             data-testid="transaction-amount"
           />
-          @if (showCurrencySelector()) {
-            <mat-select
-              matTextSuffix
-              [value]="inputCurrency()"
-              (selectionChange)="inputCurrency.set($event.value)"
-              class="!w-[70px] text-on-surface-variant font-medium"
-              aria-label="Devise"
-            >
-              <mat-option value="CHF">CHF</mat-option>
-              <mat-option value="EUR">EUR</mat-option>
-            </mat-select>
-          } @else {
-            <span matTextSuffix>{{ currency() }}</span>
-          }
+          <pulpe-currency-suffix
+            matTextSuffix
+            [showSelector]="showCurrencySelector()"
+            [currency]="inputCurrency()"
+            (currencyChange)="inputCurrency.set($event)"
+          />
           @if (
             form.get('amount')?.hasError('required') &&
             form.get('amount')?.touched
@@ -183,11 +167,12 @@ export interface CreateAllocatedTransactionDialogData {
 })
 export class CreateAllocatedTransactionDialog {
   readonly #userSettings = inject(UserSettingsStore);
-  readonly #converter = inject(CurrencyConverterService);
+  readonly #currencyConfig = injectCurrencyFormConfig();
   protected readonly currency = this.#userSettings.currency;
   protected readonly showCurrencySelector =
-    this.#userSettings.showCurrencySelector;
-  protected readonly inputCurrency = signal<SupportedCurrency>(this.currency());
+    this.#currencyConfig.showCurrencySelector;
+  protected readonly inputCurrency = this.#currencyConfig.inputCurrency;
+  protected readonly conversionError = this.#currencyConfig.conversionError;
   readonly data = inject<CreateAllocatedTransactionDialogData>(MAT_DIALOG_DATA);
   readonly #dialogRef = inject(
     MatDialogRef<CreateAllocatedTransactionDialog, TransactionCreate>,
@@ -217,8 +202,6 @@ export class CreateAllocatedTransactionDialog {
     ],
   });
 
-  protected readonly conversionError = signal(false);
-
   cancel(): void {
     this.#dialogRef.close();
   }
@@ -228,13 +211,14 @@ export class CreateAllocatedTransactionDialog {
 
     const formValue = this.form.getRawValue();
 
+    this.conversionError.set(false);
     let convertedAmount: number;
     let metadata: Awaited<
       ReturnType<CurrencyConverterService['convertWithMetadata']>
     >['metadata'];
     try {
       ({ convertedAmount, metadata } =
-        await this.#converter.convertWithMetadata(
+        await this.#currencyConfig.converter.convertWithMetadata(
           formValue.amount!,
           this.inputCurrency(),
           this.currency(),
