@@ -7,7 +7,6 @@ import { CURRENCY_CONFIG, DEFAULT_DIGITS_INFO } from './currency-config';
 
 @Pipe({
   name: 'appCurrency',
-  pure: false,
 })
 export class AppCurrencyPipe implements PipeTransform {
   readonly #currencyPipe = new CurrencyPipe('en');

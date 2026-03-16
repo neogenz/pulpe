@@ -42,8 +42,11 @@ export class CurrencyService {
     const cacheKey = `${base}_${target}`;
     const cached = this.#cache.get(cacheKey);
 
-    if (cached && cached.expiresAt > Date.now()) {
-      return { base, target, rate: cached.rate, date: cached.date };
+    if (cached) {
+      if (cached.expiresAt > Date.now()) {
+        return { base, target, rate: cached.rate, date: cached.date };
+      }
+      this.#cache.delete(cacheKey);
     }
 
     return this.#fetchAndCache(base, target, cacheKey);

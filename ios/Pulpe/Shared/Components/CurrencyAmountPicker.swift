@@ -7,7 +7,7 @@ struct CurrencyAmountPicker: View {
     let baseCurrency: String
 
     private var currencies: [String] {
-        let options = ["CHF", "EUR"]
+        let options = SupportedCurrency.allCases.map(\.rawValue)
         // Ensure base currency is first
         if let index = options.firstIndex(of: baseCurrency), index != 0 {
             return [baseCurrency] + options.filter { $0 != baseCurrency }

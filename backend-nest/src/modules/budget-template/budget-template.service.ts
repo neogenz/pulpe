@@ -701,28 +701,25 @@ export class BudgetTemplateService {
       validated = await this.currencyService.overrideExchangeRate(validated);
     }
 
-    const { amount } = await this.encryptionService.prepareAmountData(
-      validated.amount,
-      user.id,
-      user.clientKey,
-    );
-
-    let encryptedOriginalAmount: string | undefined;
-    if (validated.originalAmount != null) {
-      const prepared = await this.encryptionService.prepareAmountData(
+    const [{ amount }, encryptedOriginalAmount] = await Promise.all([
+      this.encryptionService.prepareAmountData(
+        validated.amount,
+        user.id,
+        user.clientKey,
+      ),
+      this.encryptionService.encryptOptionalAmount(
         validated.originalAmount,
         user.id,
         user.clientKey,
-      );
-      encryptedOriginalAmount = prepared.amount;
-    }
+      ),
+    ]);
 
     return this.insertTemplateLine(
       validated,
       templateId,
       supabase,
       amount,
-      encryptedOriginalAmount,
+      encryptedOriginalAmount ?? undefined,
     );
   }
 
@@ -912,20 +909,14 @@ export class BudgetTemplateService {
       encryptedAmount = prepared.amount;
     }
 
-    let encryptedOriginalAmount: string | null | undefined;
-    if (validated.originalAmount !== undefined) {
-      if (validated.originalAmount === null) {
-        encryptedOriginalAmount = null;
-      } else {
-        const encryptedOriginal =
-          await this.encryptionService.prepareAmountData(
+    const encryptedOriginalAmount =
+      validated.originalAmount !== undefined
+        ? await this.encryptionService.encryptOptionalAmount(
             validated.originalAmount,
             user.id,
             user.clientKey,
-          );
-        encryptedOriginalAmount = encryptedOriginal.amount;
-      }
-    }
+          )
+        : undefined;
 
     const updateData: Partial<TablesInsert<'template_line'>> = {
       ...budgetTemplateMappers.toDbTemplateLineUpdate(
