@@ -23,6 +23,8 @@ struct PinRecoveryView: View {
         content
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .pulpeBackground()
+            .sensoryFeedback(.error, trigger: viewModel.hapticError)
+            .sensoryFeedback(.success, trigger: viewModel.hapticSuccess)
             .sheet(item: recoveryKeySheetItemBinding) { item in
                 RecoveryKeySheet(recoveryKey: item.recoveryKey) {
                     onComplete()
@@ -237,6 +239,8 @@ final class PinRecoveryViewModel {
     private(set) var isProcessing = false
     private(set) var requiresReauthentication = false
     private(set) var newRecoveryKey: String?
+    private(set) var hapticSuccess = false
+    private(set) var hapticError = false
     var showRecoverySheet = false
     var showRecoveryKeyWarning = false
     var recoveryKeyInput = ""
@@ -374,6 +378,7 @@ final class PinRecoveryViewModel {
             await generateNewRecoveryKey()
 
             firstPin = nil
+            hapticSuccess.toggle()
             isProcessing = false
         } catch let error as APIError {
             isProcessing = false
@@ -444,6 +449,7 @@ final class PinRecoveryViewModel {
         errorMessage = message
         isError = true
         digits = []
+        hapticError.toggle()
 
         errorResetTask?.cancel()
         errorResetTask = Task {
