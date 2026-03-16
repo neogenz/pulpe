@@ -27,6 +27,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
 import { MatTableModule } from '@angular/material/table';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { CurrencySuffix } from '@ui/currency-suffix';
 import {
   type TemplateLine,
   type TemplateLinesPropagationSummary,
@@ -78,6 +79,7 @@ interface EditTransactionsDialogResult {
     MatSelectModule,
     MatTooltipModule,
     TranslocoPipe,
+    CurrencySuffix,
   ],
   providers: [TemplateLineStore],
   template: `
@@ -198,20 +200,12 @@ interface EditTransactionsDialogResult {
                     [attr.id]="'amount-' + transaction.id"
                     data-testid="edit-line-amount"
                   />
-                  @if (showCurrencySelector()) {
-                    <mat-select
-                      matTextSuffix
-                      [value]="inputCurrency()"
-                      (selectionChange)="inputCurrency.set($event.value)"
-                      class="!w-[70px] text-on-surface-variant font-medium"
-                      aria-label="Devise"
-                    >
-                      <mat-option value="CHF">CHF</mat-option>
-                      <mat-option value="EUR">EUR</mat-option>
-                    </mat-select>
-                  } @else {
-                    <span matTextSuffix>{{ currencySymbol() }}</span>
-                  }
+                  <pulpe-currency-suffix
+                    matTextSuffix
+                    [showSelector]="showCurrencySelector()"
+                    [currency]="inputCurrency()"
+                    (currencyChange)="inputCurrency.set($event)"
+                  />
                   @if (transaction.formData.amount < 0) {
                     <mat-error>{{
                       'template.amountPositive' | transloco

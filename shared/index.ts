@@ -91,6 +91,7 @@ export {
 
   // Currency schemas
   supportedCurrencySchema,
+  SUPPORTED_CURRENCIES,
 
   // User schemas
   userProfileSchema,

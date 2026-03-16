@@ -60,6 +60,7 @@ export function toApiList(
 export function toInsert(
   createDto: TransactionCreate,
   budgetId?: string,
+  amountEncrypted?: string,
 ): TransactionInsert {
   // Validate with Zod schema - fail fast on invalid data
   const validationResult = transactionCreateSchema.safeParse(createDto);
@@ -85,7 +86,7 @@ export function toInsert(
   return {
     budget_id: finalBudgetId,
     budget_line_id: createDto.budgetLineId ?? null,
-    amount: createDto.amount as any, // Encryption handled by service
+    amount: amountEncrypted ?? null,
     name: createDto.name,
     kind: createDto.kind, // Pas de conversion - les enums sont maintenant unifiés
     transaction_date: createDto.transactionDate || new Date().toISOString(),
@@ -100,11 +101,12 @@ export function toInsert(
  */
 export function toUpdate(
   updateDto: TransactionUpdate,
+  amountEncrypted?: string,
 ): Partial<TransactionInsert> {
   const updateData: Partial<TransactionInsert> = {};
 
-  if (updateDto.amount !== undefined) {
-    updateData.amount = updateDto.amount as any; // Encryption handled by service
+  if (amountEncrypted !== undefined) {
+    updateData.amount = amountEncrypted;
   }
   if (updateDto.name !== undefined) {
     updateData.name = updateDto.name;

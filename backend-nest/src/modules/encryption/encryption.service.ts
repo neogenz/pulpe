@@ -137,6 +137,20 @@ export class EncryptionService {
     return { amount: encrypted };
   }
 
+  async encryptOptionalAmount(
+    amount: number | null | undefined,
+    userId: string,
+    clientKey: Buffer,
+  ): Promise<string | null> {
+    if (amount == null) return null;
+    const { amount: encrypted } = await this.prepareAmountData(
+      amount,
+      userId,
+      clientKey,
+    );
+    return encrypted;
+  }
+
   async prepareAmountsData(
     amounts: number[],
     userId: string,

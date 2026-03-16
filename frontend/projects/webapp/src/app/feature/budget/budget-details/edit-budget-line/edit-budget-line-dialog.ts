@@ -1,9 +1,4 @@
-import {
-  Component,
-  inject,
-  signal,
-  ChangeDetectionStrategy,
-} from '@angular/core';
+import { Component, inject, ChangeDetectionStrategy } from '@angular/core';
 import {
   MatDialogRef,
   MAT_DIALOG_DATA,
@@ -20,13 +15,14 @@ import {
   type BudgetLineUpdate,
   type TransactionKind,
   type TransactionRecurrence,
-  type SupportedCurrency,
 } from 'pulpe-shared';
 import { TranslocoPipe } from '@jsverse/transloco';
+import { CurrencySuffix } from '@ui/currency-suffix';
 import { TransactionIconPipe } from '@ui/transaction-display';
 import { TransactionLabelPipe } from '@ui/transaction-display';
 import { UserSettingsStore } from '@core/user-settings';
-import { CurrencyConverterService } from '@core/currency';
+import type { CurrencyConverterService } from '@core/currency';
+import { injectCurrencyFormConfig } from '@core/currency';
 
 export interface EditBudgetLineDialogData {
   budgetLine: BudgetLine;
@@ -45,6 +41,7 @@ export interface EditBudgetLineDialogData {
     TranslocoPipe,
     TransactionIconPipe,
     TransactionLabelPipe,
+    CurrencySuffix,
   ],
   template: `
     <h2 mat-dialog-title class="text-headline-small">
@@ -94,20 +91,12 @@ export interface EditBudgetLineDialogData {
               inputmode="decimal"
               data-testid="edit-line-amount"
             />
-            @if (showCurrencySelector()) {
-              <mat-select
-                matTextSuffix
-                [value]="inputCurrency()"
-                (selectionChange)="inputCurrency.set($event.value)"
-                class="!w-[70px] text-on-surface-variant font-medium"
-                aria-label="Devise"
-              >
-                <mat-option value="CHF">CHF</mat-option>
-                <mat-option value="EUR">EUR</mat-option>
-              </mat-select>
-            } @else {
-              <span matTextSuffix>{{ currency() }}</span>
-            }
+            <pulpe-currency-suffix
+              matTextSuffix
+              [showSelector]="showCurrencySelector()"
+              [currency]="inputCurrency()"
+              (currencyChange)="inputCurrency.set($event)"
+            />
             @if (
               form.get('amount')?.hasError('required') &&
               form.get('amount')?.touched
@@ -158,6 +147,11 @@ export interface EditBudgetLineDialogData {
       </div>
     </mat-dialog-content>
 
+    @if (conversionError()) {
+      <p class="text-error text-body-small px-6 pb-2">
+        {{ 'common.conversionError' | transloco }}
+      </p>
+    }
     <mat-dialog-actions align="end">
       <button matButton (click)="handleCancel()" data-testid="cancel-edit-line">
         {{ 'common.cancel' | transloco }}
@@ -180,12 +174,13 @@ export class EditBudgetLineDialog {
   readonly #dialogRef = inject(MatDialogRef<EditBudgetLineDialog>);
   readonly #data = inject<EditBudgetLineDialogData>(MAT_DIALOG_DATA);
   readonly #fb = inject(FormBuilder);
-  readonly #converter = inject(CurrencyConverterService);
   readonly #userSettings = inject(UserSettingsStore);
+  readonly #currencyConfig = injectCurrencyFormConfig();
   protected readonly currency = this.#userSettings.currency;
   protected readonly showCurrencySelector =
-    this.#userSettings.showCurrencySelector;
-  protected readonly inputCurrency = signal<SupportedCurrency>(this.currency());
+    this.#currencyConfig.showCurrencySelector;
+  protected readonly inputCurrency = this.#currencyConfig.inputCurrency;
+  protected readonly conversionError = this.#currencyConfig.conversionError;
 
   readonly form = this.#fb.group({
     name: [
@@ -206,12 +201,23 @@ export class EditBudgetLineDialog {
   async handleSubmit(): Promise<void> {
     if (!this.form.valid) return;
     const value = this.form.value;
-    const { convertedAmount, metadata } =
-      await this.#converter.convertWithMetadata(
-        value.amount!,
-        this.inputCurrency(),
-        this.currency(),
-      );
+
+    let convertedAmount: number;
+    let metadata: Awaited<
+      ReturnType<CurrencyConverterService['convertWithMetadata']>
+    >['metadata'];
+    this.conversionError.set(false);
+    try {
+      ({ convertedAmount, metadata } =
+        await this.#currencyConfig.converter.convertWithMetadata(
+          value.amount!,
+          this.inputCurrency(),
+          this.currency(),
+        ));
+    } catch {
+      this.conversionError.set(true);
+      return;
+    }
 
     const update: BudgetLineUpdate = {
       id: this.#data.budgetLine.id,

@@ -20,12 +20,14 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
-import type { TransactionCreate, SupportedCurrency } from 'pulpe-shared';
+import type { TransactionCreate } from 'pulpe-shared';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { TransactionValidators } from '@core/transaction';
 import { TransactionLabelPipe } from '@ui/transaction-display';
 import { UserSettingsStore } from '@core/user-settings';
-import { CurrencyConverterService } from '@core/currency';
+import type { CurrencyConverterService } from '@core/currency';
+import { injectCurrencyFormConfig } from '@core/currency';
+import { CurrencySuffix } from '@ui/currency-suffix';
 
 export type TransactionFormData = Pick<
   TransactionCreate,
@@ -59,6 +61,7 @@ interface TransactionFormControls {
     MatSlideToggleModule,
     TranslocoPipe,
     TransactionLabelPipe,
+    CurrencySuffix,
   ],
   template: `
     <div class="flex flex-col gap-4">
@@ -112,20 +115,12 @@ interface TransactionFormControls {
             max="999999.99"
             required
           />
-          @if (showCurrencySelector()) {
-            <mat-select
-              matTextSuffix
-              [value]="inputCurrency()"
-              (selectionChange)="inputCurrency.set($event.value)"
-              class="!w-[70px] text-on-surface-variant font-medium"
-              aria-label="Devise"
-            >
-              <mat-option value="CHF">CHF</mat-option>
-              <mat-option value="EUR">EUR</mat-option>
-            </mat-select>
-          } @else {
-            <span matTextSuffix>{{ currency() }}</span>
-          }
+          <pulpe-currency-suffix
+            matTextSuffix
+            [showSelector]="showCurrencySelector()"
+            [currency]="inputCurrency()"
+            (currencyChange)="inputCurrency.set($event)"
+          />
           @if (
             transactionForm.get('amount')?.hasError('required') &&
             transactionForm.get('amount')?.touched
@@ -302,12 +297,13 @@ export class AddTransactionBottomSheet {
     MatBottomSheetRef<AddTransactionBottomSheet>,
   );
   readonly #transloco = inject(TranslocoService);
-  readonly #converter = inject(CurrencyConverterService);
   readonly #userSettings = inject(UserSettingsStore);
+  readonly #currencyConfig = injectCurrencyFormConfig();
   protected readonly currency = this.#userSettings.currency;
   protected readonly showCurrencySelector =
-    this.#userSettings.showCurrencySelector;
-  protected readonly inputCurrency = signal<SupportedCurrency>(this.currency());
+    this.#currencyConfig.showCurrencySelector;
+  protected readonly inputCurrency = this.#currencyConfig.inputCurrency;
+  protected readonly conversionError = this.#currencyConfig.conversionError;
 
   // View child for focus management
   protected readonly amountInput =
@@ -315,7 +311,6 @@ export class AddTransactionBottomSheet {
 
   // Predefined amounts for quick selection
   protected readonly predefinedAmounts = signal([10, 15, 20, 30]);
-  protected readonly conversionError = signal(false);
 
   // Reactive form with shared validators for consistency
   protected readonly transactionForm: FormGroup<TransactionFormControls> =
@@ -361,13 +356,14 @@ export class AddTransactionBottomSheet {
       return;
     }
 
+    this.conversionError.set(false);
     let convertedAmount: number;
     let metadata: Awaited<
       ReturnType<CurrencyConverterService['convertWithMetadata']>
     >['metadata'];
     try {
       ({ convertedAmount, metadata } =
-        await this.#converter.convertWithMetadata(
+        await this.#currencyConfig.converter.convertWithMetadata(
           formValue.amount,
           this.inputCurrency(),
           this.currency(),

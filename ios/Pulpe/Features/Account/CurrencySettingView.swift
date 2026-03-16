@@ -39,8 +39,9 @@ struct CurrencySettingView: View {
                 }
             }
         )) {
-            Text("CHF").tag("CHF")
-            Text("EUR").tag("EUR")
+            ForEach(SupportedCurrency.allCases) { currency in
+                Text(currency.rawValue).tag(currency.rawValue)
+            }
         }
         .pickerStyle(.segmented)
     }
