@@ -65,7 +65,7 @@ struct EditTemplateLineSheet: View {
 
     private var descriptionField: some View {
         FormTextField(
-            placeholder: kind.descriptionPlaceholder,
+            hint: kind.descriptionPlaceholder,
             text: $name,
             label: "Description",
             accessibilityLabel: "Nom de la ligne du modèle"

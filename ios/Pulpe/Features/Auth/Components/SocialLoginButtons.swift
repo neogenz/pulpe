@@ -20,10 +20,16 @@ struct SocialLoginSection: View {
 
     private let dependencies: SocialLoginDependencies?
     let onSuccess: (() -> Void)?
+    let onAuthenticated: ((UserInfo) async -> Void)?
 
-    init(dependencies: SocialLoginDependencies? = nil, onSuccess: (() -> Void)? = nil) {
+    init(
+        dependencies: SocialLoginDependencies? = nil,
+        onSuccess: (() -> Void)? = nil,
+        onAuthenticated: ((UserInfo) async -> Void)? = nil
+    ) {
         self.dependencies = dependencies
         self.onSuccess = onSuccess
+        self.onAuthenticated = onAuthenticated
     }
 
     private var isAnyLoading: Bool { isAppleLoading || isGoogleLoading }
@@ -67,9 +73,16 @@ struct SocialLoginSection: View {
                 result = try await appleCoordinator.signIn()
             }
             let (idToken, nonce) = result
-            try await appState.loginWithApple(idToken: idToken, nonce: nonce)
-            AnalyticsService.shared.capture(.loginCompleted, properties: ["method": "apple"])
-            onSuccess?()
+
+            if let onAuthenticated {
+                let user = try await appState.authenticateWithApple(idToken: idToken, nonce: nonce)
+                AnalyticsService.shared.capture(.loginCompleted, properties: ["method": "apple_onboarding"])
+                await onAuthenticated(user)
+            } else {
+                try await appState.loginWithApple(idToken: idToken, nonce: nonce)
+                AnalyticsService.shared.capture(.loginCompleted, properties: ["method": "apple"])
+                onSuccess?()
+            }
         } catch AppleSignInError.canceled, AppleSignInError.inProgress {
             // User canceled or flow already in progress — no error
         } catch {
@@ -88,9 +101,16 @@ struct SocialLoginSection: View {
                 result = try await googleCoordinator.signIn()
             }
             let (idToken, accessToken) = result
-            try await appState.loginWithGoogle(idToken: idToken, accessToken: accessToken)
-            AnalyticsService.shared.capture(.loginCompleted, properties: ["method": "google"])
-            onSuccess?()
+
+            if let onAuthenticated {
+                let user = try await appState.authenticateWithGoogle(idToken: idToken, accessToken: accessToken)
+                AnalyticsService.shared.capture(.loginCompleted, properties: ["method": "google_onboarding"])
+                await onAuthenticated(user)
+            } else {
+                try await appState.loginWithGoogle(idToken: idToken, accessToken: accessToken)
+                AnalyticsService.shared.capture(.loginCompleted, properties: ["method": "google"])
+                onSuccess?()
+            }
         } catch GoogleSignInError.canceled, GoogleSignInError.inProgress {
             // User canceled or flow already in progress — no error
         } catch {

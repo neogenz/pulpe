@@ -77,6 +77,10 @@ final class AppState {
 
     var hasReturningUser: Bool = false
 
+    /// Social user awaiting onboarding. Set when a social login results in
+    /// `.needsPinSetup` but no onboarding data was collected yet.
+    var pendingSocialUser: UserInfo?
+
     var pendingOnboardingData: BudgetTemplateCreateFromOnboarding? {
         get { onboardingBootstrapper.pendingOnboardingData }
         set { onboardingBootstrapper.setPendingData(newValue) }

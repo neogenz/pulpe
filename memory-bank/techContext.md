@@ -29,6 +29,57 @@
 | DR-007 | Zoneless Testing — Child Input Signal Limitation | 2026-02-13 |
 | DR-008 | Centralized ApiClient with Mandatory Zod Validation | 2026-02-13 |
 | DR-009 | Signal Store Pattern with SWR | 2026-02-13 |
+| DR-010 | Greenlight Preflight & FormTextField `hint:` Rename | 2026-03-16 |
+
+---
+
+## DR-010: Greenlight Preflight & FormTextField `hint:` Rename
+
+**Date**: 2026-03-16
+
+### Problem
+
+L'outil `greenlight preflight` (scanner App Store pre-submission) flaggait deux faux positifs sur le mot "placeholder" :
+1. Le paramètre `placeholder:` de `FormTextField` — détecté comme contenu placeholder user-facing
+2. La méthode `placeholder(in:)` du protocol `TimelineProvider` (WidgetKit) — une méthode Apple obligatoire
+
+### Decision Drivers
+
+- Greenlight v0.1.0 (Homebrew) n'a pas de mécanisme d'ignore/suppress (pas de config, pas de comment inline)
+- `placeholder(in:)` est requis par Apple sur `TimelineProvider`, `IntentTimelineProvider` ET `AppIntentTimelineProvider` (iOS 17+) — aucune alternative
+- Le scan doit retourner 0 findings pour le CI
+
+### Options Considered
+
+| Option | Description | Verdict |
+|--------|-------------|---------|
+| A: Renommer `FormTextField.placeholder:` → `hint:` | Supprime le faux positif #1 | Chosen |
+| B: Déplacer le fichier widget hors de `ios/` | Le scanner ne le trouve plus | Rejected — code smell |
+| C: Script wrapper avec filtre `jq` | Filtre les faux positifs connus | Rejected — masque les vrais problèmes |
+| D: Build greenlight from source (main) | Le `main` branch a des `ignorePatterns` pour WidgetKit | Chosen |
+
+### Decision
+
+1. **FormTextField** : renommer le paramètre `placeholder:` → `hint:` dans `FormTextField` et ses 7 call sites
+2. **WidgetKit** : installer greenlight depuis `main` (pas la release Homebrew 0.1.0) car le code source a déjà des `ignorePatterns` pour `func placeholder(` mais ce fix n'est pas encore dans la release Homebrew
+
+### Rationale
+
+- `hint:` est sémantiquement correct (c'est le hint text d'un TextField) et évite le grep bête du scanner
+- Le fix WidgetKit existe dans le source Go de greenlight (`internal/codescan/rules.go`) avec un `ignorePatterns` explicite pour `func\s+placeholder\s*\(`, mais le tag v0.1.0 ne l'inclut pas
+- Pas de solution propre côté code Swift — la méthode `placeholder(in:)` est un requirement protocolaire Apple non-modifiable
+
+### Consequences
+
+- **Positive** : 0 findings greenlight avec la version `dev` buildée depuis `main`
+- **Trade-off** : Dépendance à une version non-released de greenlight — surveiller la prochaine release Homebrew pour repasser sur `brew install`
+- **Impact** : `FormTextField.swift`, 7 call sites renommés, `CLAUDE.md` iOS mis à jour
+
+### Notes
+
+- Quand greenlight publie une nouvelle release Homebrew avec les `ignorePatterns`, repasser sur `brew install revylai/tap/greenlight` et supprimer le binary custom de `/opt/homebrew/bin/`
+- La version actuelle installée : `greenlight dev` (build from `main` 2026-03-16)
+- Commande d'installation : `git clone https://github.com/RevylAI/greenlight.git && go build -o greenlight ./cmd/greenlight`
 
 ---
 

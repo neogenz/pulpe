@@ -79,7 +79,7 @@ struct AddAllocatedTransactionSheet: View {
 
     private var descriptionField: some View {
         FormTextField(
-            placeholder: budgetLine.kind.descriptionPlaceholder,
+            hint: budgetLine.kind.descriptionPlaceholder,
             text: $name,
             label: "Description",
             accessibilityLabel: "Description de la transaction"

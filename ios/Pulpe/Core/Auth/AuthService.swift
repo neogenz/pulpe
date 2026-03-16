@@ -352,7 +352,7 @@ actor AuthService {
 
     /// Decode the JWT payload (base64url middle segment) and extract the "email" claim.
     /// No signature verification — Supabase validates the token server-side.
-    private static func extractEmailFromToken(_ idToken: String) -> String? {
+    static func extractEmailFromToken(_ idToken: String) -> String? {
         let segments = idToken.split(separator: ".")
         guard segments.count == 3 else { return nil }
 

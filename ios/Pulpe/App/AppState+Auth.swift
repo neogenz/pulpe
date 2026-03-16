@@ -27,12 +27,20 @@ extension AppState {
         authDebug("AUTH_LOGIN_GOOGLE", "complete")
     }
 
-    private func completeLogin(user: UserInfo) async {
+    private func clearPreLoginFlags() {
         clearExplicitLogoutFlag()
         clearManualBiometricRetryRequiredFlag()
+    }
+
+    private func prepareSession(user: UserInfo) async {
+        clearPreLoginFlags()
         if !user.email.isEmpty {
             await keychainManager.saveLastUsedEmail(user.email)
         }
+    }
+
+    private func completeLogin(user: UserInfo) async {
+        await prepareSession(user: user)
         hasReturningUser = true
         returningUserFlagLoaded = true
         await resolvePostAuth(user: user)
@@ -40,8 +48,7 @@ extension AppState {
 
     func loginWithBiometric() async {
         authDebug("AUTH_LOGIN_BIO", "begin")
-        clearExplicitLogoutFlag()
-        clearManualBiometricRetryRequiredFlag()
+        clearPreLoginFlags()
         await applyColdStartResult(
             sessionLifecycleCoordinator.attemptBiometricSessionValidation()
         )
@@ -63,9 +70,13 @@ extension AppState {
 
         switch destination {
         case .needsPinSetup:
-            authDebug("AUTH_POST_AUTH_DEST", "needsPinSetup")
             recoveryFlowCoordinator.reset()
-            authState = .needsPinSetup
+            if onboardingBootstrapper.pendingOnboardingData == nil {
+                redirectToOnboardingForSocialUser()
+            } else {
+                authDebug("AUTH_POST_AUTH_DEST", "needsPinSetup")
+                authState = .needsPinSetup
+            }
         case .needsPinEntry(let needsRecoveryConsent):
             authDebug("AUTH_POST_AUTH_DEST", "needsPinEntry needsRecoveryConsent=\(needsRecoveryConsent)")
             recoveryFlowCoordinator.setPendingConsent(needsRecoveryConsent)
@@ -137,20 +148,55 @@ extension AppState {
         enrollmentPolicy.markComplete(context: context.reason, outcome: enabled ? .success : .deniedOrFailed)
     }
 
+    private func redirectToOnboardingForSocialUser() {
+        authDebug("AUTH_POST_AUTH_DEST", "needsPinSetup → redirecting to onboarding (no pending data)")
+        pendingSocialUser = currentUser
+        hasReturningUser = false
+        returningUserFlagLoaded = true
+        authState = .unauthenticated
+    }
+
+    // MARK: - Social Auth for Onboarding (authenticate without routing)
+
+    /// Authenticates with a social provider without triggering post-auth routing.
+    /// Email is NOT saved to keychain — deferred to `completeOnboarding`.
+    private func authenticateForOnboarding(
+        tag: String,
+        signIn: () async throws -> UserInfo
+    ) async throws -> UserInfo {
+        authDebug(tag, "begin")
+        let user = try await signIn()
+        clearPreLoginFlags()
+        authDebug(tag, "complete — deferring routing to onboarding")
+        return user
+    }
+
+    func authenticateWithApple(idToken: String, nonce: String) async throws -> UserInfo {
+        try await authenticateForOnboarding(tag: "AUTH_SOCIAL_ONBOARDING_APPLE") {
+            try await authService.signInWithApple(idToken: idToken, nonce: nonce)
+        }
+    }
+
+    func authenticateWithGoogle(idToken: String, accessToken: String) async throws -> UserInfo {
+        try await authenticateForOnboarding(tag: "AUTH_SOCIAL_ONBOARDING_GOOGLE") {
+            try await authService.signInWithGoogle(idToken: idToken, accessToken: accessToken)
+        }
+    }
+
     // MARK: - Signup & Onboarding
 
     func enterSignupFlow() {
         authDebug("AUTH_SIGNUP", "entering signup flow")
         OnboardingState.clearPersistedData()
         onboardingBootstrapper.clearPendingData()
+        pendingSocialUser = nil
         hasReturningUser = false
         returningUserFlagLoaded = true
     }
 
     func completeOnboarding(user: UserInfo, onboardingData: BudgetTemplateCreateFromOnboarding) async {
         authDebug("AUTH_ONBOARDING", "complete email=\(user.email.prefix(3))***")
-        clearExplicitLogoutFlag()
-        clearManualBiometricRetryRequiredFlag()
+        clearPreLoginFlags()
         currentUser = user
         await keychainManager.saveLastUsedEmail(user.email)
         hasReturningUser = true

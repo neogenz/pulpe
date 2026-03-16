@@ -8,7 +8,7 @@ import SwiftUI
 /// When a `label` is provided, renders the standard description field
 /// pattern used across all form sheets (label + bordered text field).
 struct FormTextField: View {
-    let placeholder: String
+    let hint: String
     @Binding var text: String
     var label: String?
     var accessibilityLabel: String?
@@ -30,12 +30,12 @@ struct FormTextField: View {
             }
         } else {
             textField
-                .accessibilityLabel(accessibilityLabel ?? placeholder)
+                .accessibilityLabel(accessibilityLabel ?? hint)
         }
     }
 
     private var textField: some View {
-        TextField(placeholder, text: $text)
+        TextField(hint, text: $text)
             .font(PulpeTypography.bodyLarge)
             .focused($isFocused)
             .padding(DesignTokens.Spacing.lg)

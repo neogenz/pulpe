@@ -225,7 +225,7 @@ struct AddTemplateLineSheet: View {
 
     private var descriptionField: some View {
         FormTextField(
-            placeholder: "Nom de la ligne",
+            hint: "Nom de la ligne",
             text: $name,
             label: "Description",
             accessibilityLabel: "Nom de la ligne budgétaire"
