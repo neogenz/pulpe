@@ -34,6 +34,7 @@
 | DR-011 | iOS Swift 6 Migration & Build Optimization | 2026-03-31 |
 | DR-012 | VariableBlur for Progressive Blur Effects | 2026-04-10 |
 | DR-013 | Onboarding Step Visibility & Apple App Store Compliance | 2026-04-12 |
+| DR-014 | Multi-Currency with Conversion Metadata | 2026-03-06 |
 
 ---
 
@@ -252,7 +253,6 @@ L'outil `greenlight preflight` (scanner App Store pre-submission) flaggait deux 
 - Quand greenlight publie une nouvelle release Homebrew avec les `ignorePatterns`, repasser sur `brew install revylai/tap/greenlight` et supprimer le binary custom de `/opt/homebrew/bin/`
 - La version actuelle installée : `greenlight dev` (build from `main` 2026-03-16)
 - Commande d'installation : `git clone https://github.com/RevylAI/greenlight.git && go build -o greenlight ./cmd/greenlight`
-
 ---
 
 ## DR-009: Signal Store Pattern with SWR
@@ -628,7 +628,7 @@ Architecture split-key :
 - **DEK jamais stockée** : dérivée à chaque requête, jetée après traitement (cache 5 min en mémoire)
 - **Table `user_encryption_key`** : stocke `salt`, `kdf_iterations`, `key_check` (canary), `wrapped_dek` (recovery)
 - **Recovery key** : DEK wrappée avec une clé de récupération utilisateur (AES-256-GCM)
-- **Colonnes chiffrées** : `amount`, `target_amount`, `ending_balance` sont des colonnes `text` contenant des ciphertexts base64
+- **Colonnes chiffrées** : `amount`, `original_amount`, `target_amount`, `original_target_amount`, `ending_balance` sont des colonnes `text` contenant des ciphertexts base64
 
 ### Rationale
 
@@ -649,6 +649,113 @@ Architecture split-key :
 - Issue GitHub : [#274](https://github.com/neogenz/pulpe/issues/274)
 - Tables impactées : `budget_line`, `transaction`, `template_line`, `savings_goal`, `monthly_budget`
 - Le re-chiffrement row-by-row est acceptable pour le volume actuel ; à batcher si >1000 users
+
+---
+
+## DR-014: Multi-Currency with Conversion Metadata
+
+**Date**: 2026-03-06
+
+### Problem
+
+Pulpe était verrouillé sur CHF uniquement. Les utilisateurs suisses proches de la frontière (Genève, Bâle) effectuent régulièrement des dépenses en EUR.
+
+### Decision Drivers
+
+- Besoin réel des utilisateurs frontaliers (CHF ↔ EUR)
+- Les montants convertis doivent rester traçables (quel montant original, quel taux)
+- Le chiffrement existant (DR-006) doit couvrir les nouveaux montants
+
+### Options Considered
+
+| Option | Description | Verdict |
+|--------|-------------|---------|
+| A: Conversion à la volée (pas de stockage) | Convertir au taux du jour à chaque affichage | Rejected — perte de traçabilité |
+| B: Métadonnées de conversion persistées | Stocker le montant original, la devise, le taux au moment de la saisie | Chosen |
+
+### Decision
+
+Chaque entité financière (transaction, budget_line, template_line, savings_goal) stocke 4 colonnes optionnelles de métadonnées de conversion :
+- `original_amount` / `original_target_amount` — montant saisi dans la devise d'origine (chiffré AES-256-GCM)
+- `original_currency` — devise d'origine (ex: EUR)
+- `target_currency` — devise cible (ex: CHF)
+- `exchange_rate` — taux figé au moment de la saisie
+
+Le backend expose un `CurrencyModule` avec :
+- `CurrencyService` — fetch des taux via Frankfurter API (`frankfurter.dev`), cache 24h, auto-fill du taux si absent
+- `CurrencyController` — `GET /currency/rate?base=CHF&target=EUR`
+
+Devises supportées : CHF, EUR (validées par `supportedCurrencySchema` Zod).
+
+Paramètres utilisateur étendus : `currency` (devise préférée, défaut CHF) + `showCurrencySelector` (toggle) dans `user_metadata` Supabase.
+
+### Rationale
+
+- Les métadonnées sont historiques, pas live — le taux est figé définitivement à la saisie
+- Toutes les colonnes nullable pour backward compatibility (données existantes = pas de conversion)
+- Le RPC `rekey_user_encrypted_data` re-chiffre aussi `original_amount` / `original_target_amount` lors d'un changement de PIN
+
+### Consequences
+
+- **Positive** : Traçabilité complète des conversions, extensible à d'autres devises
+- **Trade-off** : Dépendance à Frankfurter API (fallback 503 si indisponible)
+- **Impact** : 4 migrations DB, nouveau module backend, services frontend + iOS, paramètres utilisateur étendus
+
+### Notes
+
+- Issue GitHub : [#248](https://github.com/neogenz/pulpe/issues/248)
+- Frontend : `CurrencyConverterService` (cache 5 min), `CurrencyConversionBadge` (badge avec tooltip)
+- iOS : `CurrencyConversionService`, `CurrencySettingView`
+
+---
+
+## DR-011: Greenlight Preflight & FormTextField `hint:` Rename
+
+**Date**: 2026-03-16
+
+### Problem
+
+L'outil `greenlight preflight` (scanner App Store pre-submission) flaggait deux faux positifs sur le mot "placeholder" :
+1. Le paramètre `placeholder:` de `FormTextField` — détecté comme contenu placeholder user-facing
+2. La méthode `placeholder(in:)` du protocol `TimelineProvider` (WidgetKit) — une méthode Apple obligatoire
+
+### Decision Drivers
+
+- Greenlight v0.1.0 (Homebrew) n'a pas de mécanisme d'ignore/suppress (pas de config, pas de comment inline)
+- `placeholder(in:)` est requis par Apple sur `TimelineProvider`, `IntentTimelineProvider` ET `AppIntentTimelineProvider` (iOS 17+) — aucune alternative
+- Le scan doit retourner 0 findings pour le CI
+
+### Options Considered
+
+| Option | Description | Verdict |
+|--------|-------------|---------|
+| A: Renommer `FormTextField.placeholder:` → `hint:` | Supprime le faux positif #1 | Chosen |
+| B: Déplacer le fichier widget hors de `ios/` | Le scanner ne le trouve plus | Rejected — code smell |
+| C: Script wrapper avec filtre `jq` | Filtre les faux positifs connus | Rejected — masque les vrais problèmes |
+| D: Build greenlight from source (main) | Le `main` branch a des `ignorePatterns` pour WidgetKit | Chosen |
+
+### Decision
+
+1. **FormTextField** : renommer le paramètre `placeholder:` → `hint:` dans `FormTextField` et ses 7 call sites
+2. **WidgetKit** : installer greenlight depuis `main` (pas la release Homebrew 0.1.0) car le code source a déjà des `ignorePatterns` pour `func placeholder(` mais ce fix n'est pas encore dans la release Homebrew
+
+### Rationale
+
+- `hint:` est sémantiquement correct (c'est le hint text d'un TextField) et évite le grep bête du scanner
+- Le fix WidgetKit existe dans le source Go de greenlight (`internal/codescan/rules.go`) avec un `ignorePatterns` explicite pour `func\s+placeholder\s*\(`, mais le tag v0.1.0 ne l'inclut pas
+- Pas de solution propre côté code Swift — la méthode `placeholder(in:)` est un requirement protocolaire Apple non-modifiable
+
+### Consequences
+
+- **Positive** : 0 findings greenlight avec la version `dev` buildée depuis `main`
+- **Trade-off** : Dépendance à une version non-released de greenlight — surveiller la prochaine release Homebrew pour repasser sur `brew install`
+- **Impact** : `FormTextField.swift`, 7 call sites renommés, `CLAUDE.md` iOS mis à jour
+
+### Notes
+
+- Quand greenlight publie une nouvelle release Homebrew avec les `ignorePatterns`, repasser sur `brew install revylai/tap/greenlight` et supprimer le binary custom de `/opt/homebrew/bin/`
+- La version actuelle installée : `greenlight dev` (build from `main` 2026-03-16)
+- Commande d'installation : `git clone https://github.com/RevylAI/greenlight.git && go build -o greenlight ./cmd/greenlight`
 
 ---
 
