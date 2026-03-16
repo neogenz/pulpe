@@ -80,7 +80,7 @@ struct PinSetupView: View {
                 onConfirm: viewModel.canConfirm ? {
                     Task { await viewModel.confirm() }
                 } : nil,
-                isDisabled: viewModel.isValidating
+                isDisabled: viewModel.isValidating || viewModel.isError
             )
             Spacer().frame(height: DesignTokens.Spacing.xxxl + DesignTokens.Spacing.xxl)
         }

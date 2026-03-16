@@ -85,7 +85,7 @@ struct ChangePinView: View {
                 onConfirm: viewModel.canConfirm ? {
                     Task { await viewModel.confirm() }
                 } : nil,
-                isDisabled: viewModel.isProcessing
+                isDisabled: viewModel.isProcessing || viewModel.isError
             )
 
             Spacer().frame(height: DesignTokens.Spacing.xxl)

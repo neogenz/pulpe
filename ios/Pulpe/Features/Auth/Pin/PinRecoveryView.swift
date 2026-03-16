@@ -125,22 +125,11 @@ struct PinRecoveryView: View {
     }
 
     private var continueButton: some View {
-        Button {
+        Button("Continuer") {
             viewModel.submitRecoveryKey()
-        } label: {
-            Text("Continuer")
-                .font(PulpeTypography.buttonPrimary)
-                .frame(maxWidth: .infinity)
-                .frame(height: DesignTokens.FrameHeight.button)
-                .background(
-                    viewModel.isRecoveryKeyValid
-                        ? AnyShapeStyle(Color.onboardingGradient)
-                        : AnyShapeStyle(Color(uiColor: .systemGray4))
-                )
-                .foregroundStyle(Color.textOnPrimary)
-                .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.button))
         }
         .disabled(!viewModel.isRecoveryKeyValid)
+        .primaryButtonStyle(isEnabled: viewModel.isRecoveryKeyValid)
     }
 
     // MARK: - PIN Steps
@@ -176,7 +165,7 @@ struct PinRecoveryView: View {
                 onConfirm: viewModel.canConfirm ? {
                     Task { await viewModel.confirmPin() }
                 } : nil,
-                isDisabled: viewModel.isProcessing
+                isDisabled: viewModel.isProcessing || viewModel.isError
             )
 
             Spacer().frame(height: DesignTokens.Spacing.xxl)
