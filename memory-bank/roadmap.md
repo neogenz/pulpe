@@ -89,19 +89,23 @@ Pulpe is an open-source passion project, in production with 3 users, no marketin
 
 ---
 
-## Ice Box (7 issues)
+## Ice Box (10 issues)
 
 > Ideas without spec, demand, or explicitly out of V1 scope. Revisit after R2.
 
 | Issue | Description | Reason |
 |-------|-------------|--------|
-| PUL-26 | Convertisseur de devise | CHF only in V1 |
-| PUL-25 | Import JSON des depenses | No demand |
-| PUL-11 | Mode hors-ligne basique | Enormous complexity, no demand |
-| PUL-35 | Renommage BudgetLine/Transaction → Prevu/Realise | Refactoring scope a definir |
-| PUL-49 | Afficher un signe "-" devant les montants de depenses | Exploration UX |
-| PUL-50 | Uniformiser l'acces donnees via repositories (backend) | Tech debt, pas urgent |
-| PUL-45 | Preremplir les montants du onboarding en mode localhost | DX uniquement |
+| ~~#248~~ | ~~Convertisseur de devise~~ | → Moved to Closed (implemented) |
+| #247 | Import JSON des dépenses | No demand |
+| #36 | Mode hors-ligne basique | Enormous complexity, no demand |
+| #284 | Explorer le skill Remotion pour générer des vidéos | Exploration |
+| #283 | Renommage BudgetLine/Transaction → Prévu/Réalisé | Refactoring scope à définir |
+| #310 | Afficher un signe "-" devant les montants de dépenses | Exploration UX |
+| #311 | Uniformiser l'accès données via repositories (backend) | Tech debt, pas urgent |
+| #312 | Cache in-memory simple (backend) | Pas de problème de perf constaté |
+| #299 | Alternative : chiffrement server-side (sans zero-knowledge) | Alternative architecture |
+| #301 | Alternative : chiffrement Google OAuth device-bound | Alternative architecture |
+| #304 | Préremplir les montants du onboarding en mode localhost | DX uniquement |
 
 ---
 
@@ -109,10 +113,15 @@ Pulpe is an open-source passion project, in production with 3 users, no marketin
 
 | Issue | Reason |
 |-------|--------|
-| PUL-41 | Architecture ZK livree, alternative server-side ecartee |
-| PUL-42 | Architecture ZK livree, alternative Google OAuth device-bound ecartee |
-| PUL-36 | Exploration Remotion, hors scope produit |
-| PUL-10 | Redondant — pointage epargne existe, suivi avance absorbe par PUL-12 + PUL-8 |
+| #316 | Livré dans v0.19.0 (recherche budget details) |
+| #270 | Doublon de #302 |
+| #27 | Superseded by #271 |
+| #33 | Duplicate of #85 |
+| #119 | Already implemented (payday) |
+| #274 | Completed — AES-256-GCM encryption for financial amounts |
+| #293 | Completed — encryption migration cleanup (68f2157c) |
+| #248 | Completed — multi-currency support (CHF/EUR, Frankfurter API, conversion metadata) |
+| #98 | Replaced by #274 |
 
 ---
 

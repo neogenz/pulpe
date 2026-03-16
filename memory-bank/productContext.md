@@ -131,6 +131,20 @@ Applies to **expense lines only**. Income and saving lines always display as `he
 - Account itself can be recovered via email password reset, but encrypted amounts become undecipherable
 - iOS: "J'ai noté ma clé" button dismisses without paste-back confirmation (spec says `Confirmation obligatoire` but iOS does not enforce it — known deviation)
 
+### RG-009: Multi-Currency & Conversion
+
+| Aspect | Règle |
+|--------|-------|
+| Devises supportées | CHF, EUR (extensible) |
+| Devise par défaut | CHF (configurable dans les paramètres utilisateur) |
+| Source des taux | Frankfurter API (`frankfurter.dev`), cache 24h côté backend |
+| Métadonnées de conversion | Chaque transaction/prévision/template/objectif d'épargne stocke : `originalAmount`, `originalCurrency`, `targetCurrency`, `exchangeRate` |
+| Nature des métadonnées | Historique, pas live — le taux au moment de la saisie est figé définitivement |
+| Même devise | Si base === target, taux = 1 sans appel API |
+| Colonnes chiffrées | `original_amount` / `original_target_amount` chiffrés comme `amount` (AES-256-GCM) |
+| Affichage | Badge `currency_exchange` avec tooltip quand des métadonnées de conversion existent |
+| Paramètre utilisateur | `currency` (devise préférée) + `showCurrencySelector` (toggle) dans `user_metadata` Supabase |
+
 ### RG-008: Widget Data Privacy
 
 - Widget caches `available` (remaining budget) as plaintext `Decimal` in App Group UserDefaults
@@ -215,6 +229,9 @@ Applies to **expense lines only**. Income and saving lines always display as `he
 | Remaining | Available - expenses |
 | Rollover | Surplus/deficit carried to next month |
 | Ending Balance | Month result (becomes next rollover) |
+| Original Amount | Montant saisi dans la devise d'origine (avant conversion) |
+| Exchange Rate | Taux de change figé au moment de la saisie |
+| Currency Metadata | Ensemble {originalAmount, originalCurrency, targetCurrency, exchangeRate} |
 
 ---
 

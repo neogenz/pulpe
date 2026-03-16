@@ -10,7 +10,7 @@
 
 **Target Users**: Swiss residents with regular monthly income who prefer planning over reactive tracking.
 
-**Currency**: CHF only (V1)
+**Currency**: CHF, EUR (extensible à d'autres devises)
 
 **Project Context**: Single developer, YAGNI/KISS principles throughout.
 
@@ -37,10 +37,10 @@
 - Overspending alerts (80%, 90%, 100%)
 - Plan (budget lines) vs. reality (transactions) distinction
 - Demo mode for product exploration
+- Multi-currency (CHF/EUR) with real-time conversion
 
 ### Not Included (Future)
 
-- Multi-currency
 - Bank synchronization
 - Shared budgets
 - Advanced categorization
@@ -61,7 +61,7 @@
 
 ## Key Constraints
 
-- Single currency (CHF) - no multi-currency complexity
+- Devises limitées (CHF, EUR) — conversion via Frankfurter API
 - Manual transaction entry only - no bank sync
 - One budget per month per user
 - One default template per user
