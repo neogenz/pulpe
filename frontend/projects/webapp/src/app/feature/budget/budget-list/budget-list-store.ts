@@ -89,8 +89,9 @@ export class BudgetListStore {
 
   readonly selectedYear = linkedSignal<number[], number | null>({
     source: this.plannedYears,
-    computation: (_years, previous) => {
-      return previous?.value ?? new Date().getFullYear();
+    computation: (years, previous) => {
+      const currentYear = previous?.value ?? new Date().getFullYear();
+      return years.includes(currentYear) ? currentYear : (years[0] ?? null);
     },
   });
 
