@@ -68,23 +68,28 @@ extension AppState {
         }
         authState = .loading
 
+        // Social users who never completed onboarding get redirected
+        // regardless of which PIN/vault destination was resolved.
+        switch destination {
+        case .needsPinSetup, .needsPinEntry, .vaultCheckFailed:
+            if isIncompleteOnboarding {
+                recoveryFlowCoordinator.reset()
+                redirectToOnboardingForSocialUser()
+                return
+            }
+        default:
+            break
+        }
+
         switch destination {
         case .needsPinSetup:
             recoveryFlowCoordinator.reset()
-            if isIncompleteOnboarding {
-                redirectToOnboardingForSocialUser()
-            } else {
-                authDebug("AUTH_POST_AUTH_DEST", "needsPinSetup")
-                authState = .needsPinSetup
-            }
+            authDebug("AUTH_POST_AUTH_DEST", "needsPinSetup")
+            authState = .needsPinSetup
         case .needsPinEntry(let needsRecoveryConsent):
-            if isIncompleteOnboarding {
-                redirectToOnboardingForSocialUser()
-            } else {
-                authDebug("AUTH_POST_AUTH_DEST", "needsPinEntry needsRecoveryConsent=\(needsRecoveryConsent)")
-                recoveryFlowCoordinator.setPendingConsent(needsRecoveryConsent)
-                authState = .needsPinEntry
-            }
+            authDebug("AUTH_POST_AUTH_DEST", "needsPinEntry needsRecoveryConsent=\(needsRecoveryConsent)")
+            recoveryFlowCoordinator.setPendingConsent(needsRecoveryConsent)
+            authState = .needsPinEntry
         case .authenticated(let needsRecoveryConsent):
             authDebug("AUTH_POST_AUTH_DEST", "authenticated needsRecoveryConsent=\(needsRecoveryConsent)")
             recoveryFlowCoordinator.setPendingConsent(false)
@@ -101,12 +106,8 @@ extension AppState {
             authState = .unauthenticated
         case .vaultCheckFailed:
             recoveryFlowCoordinator.reset()
-            if isIncompleteOnboarding {
-                redirectToOnboardingForSocialUser()
-            } else {
-                authDebug("AUTH_POST_AUTH_DEST", "vaultCheckFailed")
-                authState = .needsPinEntry
-            }
+            authDebug("AUTH_POST_AUTH_DEST", "vaultCheckFailed")
+            authState = .needsPinEntry
         }
     }
 
