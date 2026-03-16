@@ -14,18 +14,21 @@ struct AppStateAuthTransitionMatrixTests {
         destination: PostAuthDestination = .needsPinEntry(needsRecoveryKeyConsent: false),
         biometricEnabled: Bool = false,
         capability: Bool = true,
+        hasReturningUser: Bool = true,
         onAuthenticate: (@Sendable () async throws -> Void)? = nil
     ) -> AppState {
         let store = BiometricPreferenceStore(
             keychain: StubBiometricKeychain(initial: biometricEnabled),
             defaults: StubBiometricDefaults(initial: false)
         )
-        return AppState(
+        let sut = AppState(
             postAuthResolver: StubTransitionResolver(destination: destination),
             biometricPreferenceStore: store,
             biometricCapability: { capability },
             biometricAuthenticate: onAuthenticate ?? { }
         )
+        sut.hasReturningUser = hasReturningUser
+        return sut
     }
 
     // MARK: - Matrix Row 0: Direct authenticated path skips enrollment via pipeline
@@ -158,6 +161,7 @@ struct AppStateAuthTransitionMatrixTests {
                 throw DenialError()
             }
         )
+        sut.hasReturningUser = true
 
         await sut.resolvePostAuth(user: user)
 
@@ -213,6 +217,7 @@ struct AppStateAuthTransitionMatrixTests {
             biometricCapability: { false },
             biometricAuthenticate: { await spy.record() }
         )
+        sut.hasReturningUser = true
 
         await sut.resolvePostAuth(user: user)
         await sut.completePinEntry()
@@ -235,6 +240,7 @@ struct AppStateAuthTransitionMatrixTests {
             biometricCapability: { true },
             biometricAuthenticate: { await spy.recordAndWait() }
         )
+        sut.hasReturningUser = true
 
         await sut.resolvePostAuth(user: user)
         try #require(sut.authState == .needsPinEntry)
@@ -262,6 +268,8 @@ struct AppStateAuthTransitionMatrixTests {
             biometricCapability: { true },
             biometricAuthenticate: { await spy.record() }
         )
+        sut.hasReturningUser = true
+        sut.returningUserFlagLoaded = true
 
         await sut.bootstrap()
 
@@ -299,6 +307,39 @@ struct AppStateAuthTransitionMatrixTests {
 
         // Per-transition policy resets on each enterAuthenticated call → retry allowed
         #expect(await spy.callCount() == 2, "Per-transition policy allows retry on subsequent session")
+    }
+    // MARK: - Matrix Row 10: Cold restart after social signup mid-onboarding (PUL-71 regression)
+
+    @Test("vaultCheckFailed with incomplete onboarding redirects to onboarding, not PIN")
+    func vaultCheckFailed_incompleteOnboarding_redirectsToOnboarding() async {
+        let sut = makeSUT(destination: .vaultCheckFailed, hasReturningUser: false)
+
+        await sut.resolvePostAuth(user: user)
+
+        #expect(sut.authState == .unauthenticated, "Should redirect to onboarding, not PIN entry")
+        #expect(sut.pendingSocialUser == user, "Should set pending social user for onboarding")
+    }
+
+    @Test("needsPinEntry with incomplete onboarding redirects to onboarding, not PIN")
+    func needsPinEntry_incompleteOnboarding_redirectsToOnboarding() async {
+        let sut = makeSUT(
+            destination: .needsPinEntry(needsRecoveryKeyConsent: false),
+            hasReturningUser: false
+        )
+
+        await sut.resolvePostAuth(user: user)
+
+        #expect(sut.authState == .unauthenticated, "Should redirect to onboarding, not PIN entry")
+        #expect(sut.pendingSocialUser == user, "Should set pending social user for onboarding")
+    }
+
+    @Test("vaultCheckFailed for returning user still shows PIN entry")
+    func vaultCheckFailed_returningUser_showsPinEntry() async {
+        let sut = makeSUT(destination: .vaultCheckFailed, hasReturningUser: true)
+
+        await sut.resolvePostAuth(user: user)
+
+        #expect(sut.authState == .needsPinEntry, "Returning user should see PIN entry on vault failure")
     }
 }
 

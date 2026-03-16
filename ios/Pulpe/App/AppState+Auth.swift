@@ -71,16 +71,20 @@ extension AppState {
         switch destination {
         case .needsPinSetup:
             recoveryFlowCoordinator.reset()
-            if onboardingBootstrapper.pendingOnboardingData == nil {
+            if isIncompleteOnboarding {
                 redirectToOnboardingForSocialUser()
             } else {
                 authDebug("AUTH_POST_AUTH_DEST", "needsPinSetup")
                 authState = .needsPinSetup
             }
         case .needsPinEntry(let needsRecoveryConsent):
-            authDebug("AUTH_POST_AUTH_DEST", "needsPinEntry needsRecoveryConsent=\(needsRecoveryConsent)")
-            recoveryFlowCoordinator.setPendingConsent(needsRecoveryConsent)
-            authState = .needsPinEntry
+            if isIncompleteOnboarding {
+                redirectToOnboardingForSocialUser()
+            } else {
+                authDebug("AUTH_POST_AUTH_DEST", "needsPinEntry needsRecoveryConsent=\(needsRecoveryConsent)")
+                recoveryFlowCoordinator.setPendingConsent(needsRecoveryConsent)
+                authState = .needsPinEntry
+            }
         case .authenticated(let needsRecoveryConsent):
             authDebug("AUTH_POST_AUTH_DEST", "authenticated needsRecoveryConsent=\(needsRecoveryConsent)")
             recoveryFlowCoordinator.setPendingConsent(false)
@@ -96,10 +100,13 @@ extension AppState {
             biometricError = "Ta session a expiré, connecte-toi avec ton mot de passe"
             authState = .unauthenticated
         case .vaultCheckFailed:
-            authDebug("AUTH_POST_AUTH_DEST", "vaultCheckFailed")
-            // Safe fallback for existing users: assume PIN entry.
             recoveryFlowCoordinator.reset()
-            authState = .needsPinEntry
+            if isIncompleteOnboarding {
+                redirectToOnboardingForSocialUser()
+            } else {
+                authDebug("AUTH_POST_AUTH_DEST", "vaultCheckFailed")
+                authState = .needsPinEntry
+            }
         }
     }
 
@@ -146,6 +153,14 @@ extension AppState {
         enrollmentPolicy.markInFlight(context: context.reason)
         let enabled = await biometric.enable(source: .automatic, reason: context.reason)
         enrollmentPolicy.markComplete(context: context.reason, outcome: enabled ? .success : .deniedOrFailed)
+    }
+
+    /// True when the user authenticated (e.g. social sign-in) but never completed onboarding.
+    /// `pendingOnboardingData` is only set in `completeOnboarding`, so nil means onboarding
+    /// was never finished. Combined with `!hasReturningUser` (email not yet saved to keychain),
+    /// this reliably identifies a social user who killed the app mid-onboarding.
+    private var isIncompleteOnboarding: Bool {
+        onboardingBootstrapper.pendingOnboardingData == nil && !hasReturningUser
     }
 
     private func redirectToOnboardingForSocialUser() {
