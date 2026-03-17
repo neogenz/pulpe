@@ -355,15 +355,17 @@ export class DashboardStore {
     },
   });
 
-  async checkBudgetLine(budgetLineId: string): Promise<void> {
-    if (this.#pendingChecks().has(budgetLineId)) return;
+  async checkBudgetLine(budgetLineId: string): Promise<boolean> {
+    if (this.#pendingChecks().has(budgetLineId)) return true;
     const budgetLine = this.budgetLines().find((l) => l.id === budgetLineId);
-    if (!budgetLine || budgetLine.checkedAt !== null) return;
+    if (!budgetLine || budgetLine.checkedAt !== null) return true;
     this.#clearError();
     const result = await this.#checkBudgetLineMutation.mutate(budgetLineId);
     if (result === undefined) {
       this.#setError('check-failed');
+      return false;
     }
+    return true;
   }
 
   // ── 6. Private utils ──

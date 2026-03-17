@@ -188,25 +188,6 @@ export class BudgetApi {
       );
   }
 
-  updateBudget$(
-    budgetId: string,
-    updateData: Partial<BudgetCreate>,
-  ): Observable<Budget> {
-    return this.#api
-      .patch$(`/budgets/${budgetId}`, updateData, budgetResponseSchema)
-      .pipe(map((response) => response.data));
-  }
-
-  deleteBudget$(budgetId: string): Observable<void> {
-    return this.#api.deleteVoid$(`/budgets/${budgetId}`).pipe(
-      switchMap(() =>
-        this.#api.get$('/budgets/exists', budgetExistsResponseSchema),
-      ),
-      tap((response) => this.cache.set(BUDGET_EXISTS_KEY, response.hasBudget)),
-      map(() => void 0),
-    );
-  }
-
   exportAllBudgets$(): Observable<BudgetExportResponse> {
     return this.#api.get$('/budgets/export', budgetExportResponseSchema);
   }
