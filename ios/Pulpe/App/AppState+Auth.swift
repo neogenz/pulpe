@@ -161,7 +161,9 @@ extension AppState {
     /// was never finished. Combined with `!hasReturningUser` (email not yet saved to keychain),
     /// this reliably identifies a social user who killed the app mid-onboarding.
     private var isIncompleteOnboarding: Bool {
-        onboardingBootstrapper.pendingOnboardingData == nil && !hasReturningUser
+        returningUserFlagLoaded
+            && onboardingBootstrapper.pendingOnboardingData == nil
+            && !hasReturningUser
     }
 
     private func redirectToOnboardingForSocialUser() {
