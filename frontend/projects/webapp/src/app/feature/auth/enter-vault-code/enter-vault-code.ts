@@ -14,7 +14,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatCheckboxModule } from '@angular/material/checkbox';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { SpinnerComponent } from 'ngx-unicode-spinners';
 import { filter, firstValueFrom } from 'rxjs';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 
@@ -41,7 +41,7 @@ import { PostHogService } from '@core/analytics';
     MatButtonModule,
     MatIconModule,
     MatCheckboxModule,
-    MatProgressSpinnerModule,
+    SpinnerComponent,
     RouterLink,
     ErrorAlert,
     TranslocoPipe,
@@ -132,7 +132,12 @@ import { PostHogService } from '@core/analytics';
 
         @if (isSubmitting()) {
           <div class="flex justify-center">
-            <mat-spinner diameter="24" />
+            <ngx-unicode-spinners
+              name="braille"
+              fontSize="1.5rem"
+              color="var(--mat-sys-primary)"
+              ariaLabel="Vérification en cours"
+            />
           </div>
         }
 
@@ -204,6 +209,8 @@ export default class EnterVaultCode {
   }
 
   protected async onSubmit(): Promise<void> {
+    if (this.isSubmitting()) return;
+
     if (!this.form.valid) {
       this.form.markAllAsTouched();
       return;

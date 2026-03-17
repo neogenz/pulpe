@@ -3,12 +3,12 @@ import { type ValidatorFn, Validators } from '@angular/forms';
 export const PASSWORD_MIN_LENGTH = 8;
 export const VAULT_CODE_LENGTH = 4;
 
-export const VAULT_CODE_VALIDATORS = Object.freeze([
+export const VAULT_CODE_VALIDATORS: ValidatorFn[] = [
   Validators.required,
   Validators.minLength(VAULT_CODE_LENGTH),
   Validators.maxLength(VAULT_CODE_LENGTH),
   Validators.pattern(/^\d+$/),
-]) as ValidatorFn[];
+];
 
 export const SCHEDULED_DELETION_PARAMS = {
   REASON: 'reason',
