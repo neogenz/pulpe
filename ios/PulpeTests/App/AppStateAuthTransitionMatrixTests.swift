@@ -28,6 +28,7 @@ struct AppStateAuthTransitionMatrixTests {
             biometricAuthenticate: onAuthenticate ?? { }
         )
         sut.hasReturningUser = hasReturningUser
+        sut.returningUserFlagLoaded = true
         return sut
     }
 
