@@ -336,7 +336,7 @@ export class CreateBudgetDialogComponent {
 
     const result = await this.templateStore.createBudget(budgetData);
 
-    if (result) {
+    if (result !== undefined) {
       this.#dialogRef.close({ success: true, data: formData });
 
       this.#snackBar.open(

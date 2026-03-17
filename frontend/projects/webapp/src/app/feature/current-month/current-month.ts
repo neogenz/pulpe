@@ -363,27 +363,18 @@ export default class Dashboard {
   }
 
   async #addTransaction(transaction: TransactionFormData): Promise<void> {
-    try {
-      const budgetId = this.store.dashboardData()?.budget?.id;
-      if (!budgetId) {
-        throw new Error('Budget ID not found');
-      }
-      await this.store.addTransaction({
-        budgetId,
-        amount: transaction.amount ?? 0,
-        name: transaction.name,
-        kind: transaction.kind,
-        transactionDate: formatLocalDate(new Date()),
-        category: transaction.category ?? null,
-        checkedAt: transaction.checkedAt ?? null,
-      });
-    } catch (error) {
-      this.#logger.error('Error adding transaction:', error);
-      this.#snackBar.open(
-        this.#transloco.translate('currentMonth.addError'),
-        this.#transloco.translate('currentMonth.close'),
-        { duration: 5000 },
-      );
+    const budgetId = this.store.dashboardData()?.budget?.id;
+    if (!budgetId) {
+      return;
     }
+    await this.store.addTransaction({
+      budgetId,
+      amount: transaction.amount ?? 0,
+      name: transaction.name,
+      kind: transaction.kind,
+      transactionDate: formatLocalDate(new Date()),
+      category: transaction.category ?? null,
+      checkedAt: transaction.checkedAt ?? null,
+    });
   }
 }
