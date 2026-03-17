@@ -109,6 +109,7 @@ Applies to **expense lines only**. Income and saving lines always display as `he
 
 | Rule | Value |
 |------|-------|
+| PIN length | Exactly 4 digits (enforced client-side before PBKDF2 derivation) |
 | Grace period | 30 seconds in background |
 | Cold start | Always requires Face ID/PIN (no grace period) |
 | Lock behavior | In-memory client key cleared, biometric keychain preserved |

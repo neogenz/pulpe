@@ -37,10 +37,10 @@ test.describe('Google OAuth', () => {
     await page.goto('/dashboard', { waitUntil: 'domcontentloaded' });
     await expect(page).toHaveURL(/\/setup-vault-code/);
 
-    await page.getByTestId('vault-code-input').fill('12345678');
+    await page.getByTestId('vault-code-input').fill('1234');
     await page
       .getByTestId('confirm-vault-code-input')
-      .fill('12345678');
+      .fill('1234');
     await page.getByTestId('setup-vault-code-submit-button').click();
 
     await expect(page.getByTestId('recovery-key-dialog')).toBeVisible();
@@ -81,8 +81,8 @@ test.describe('Google OAuth', () => {
     await page.goto('/dashboard', { waitUntil: 'domcontentloaded' });
     await expect(page).toHaveURL(/\/enter-vault-code/);
 
-    await page.getByTestId('vault-code-input').fill('12345678');
-    await page.getByTestId('enter-vault-code-submit-button').click();
+    await page.getByTestId('vault-code-input').fill('1234');
+    await page.getByTestId('vault-code-input').press('Enter');
 
     await expect(page).toHaveURL(/\/dashboard/);
   });

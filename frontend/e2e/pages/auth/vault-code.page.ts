@@ -61,7 +61,9 @@ export class VaultCodePage {
   }
 
   async submitEnter() {
-    await this.page.getByTestId('enter-vault-code-submit-button').click();
+    // Auto-submit fires when the 4th digit is entered via fillVaultCode().
+    // Pressing Enter acts as a keyboard a11y fallback (ngSubmit).
+    await this.page.getByTestId('vault-code-input').press('Enter');
   }
 
   async submitRecover() {

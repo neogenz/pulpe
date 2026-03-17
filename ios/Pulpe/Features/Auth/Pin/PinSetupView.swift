@@ -14,7 +14,7 @@ enum PinSetupMode: Equatable, Sendable {
         }
     }
 
-    var subtitle: String { "4 chiffres minimum" }
+    var subtitle: String { "\(PinConstants.length) chiffres" }
 }
 
 // MARK: - Setup Step
@@ -80,7 +80,7 @@ struct PinSetupView: View {
                 onConfirm: viewModel.canConfirm ? {
                     Task { await viewModel.confirm() }
                 } : nil,
-                isDisabled: viewModel.isValidating
+                isDisabled: viewModel.isValidating || viewModel.isError
             )
             Spacer().frame(height: DesignTokens.Spacing.xxxl + DesignTokens.Spacing.xxl)
         }
@@ -123,7 +123,7 @@ struct PinSetupView: View {
     private var dotsSection: some View {
         PinDotsErrorView(
             enteredCount: viewModel.digits.count,
-            maxDigits: viewModel.maxDigits,
+            maxDigits: viewModel.pinLength,
             isError: viewModel.isError,
             errorMessage: viewModel.errorMessage
         )
@@ -162,11 +162,10 @@ final class PinSetupViewModel {
     private(set) var hapticSuccess = false
     private(set) var hapticError = false
 
-    let maxDigits = 6
-    let minDigits = 4
+    let pinLength = PinConstants.length
 
     var canConfirm: Bool {
-        digits.count >= minDigits && !isValidating
+        digits.count == pinLength && !isValidating
     }
 
     var title: String {
@@ -179,7 +178,7 @@ final class PinSetupViewModel {
 
     var subtitle: String {
         switch currentStep {
-        case .enterPin: return "4 chiffres minimum"
+        case .enterPin: return "\(PinConstants.length) chiffres"
         case .confirmPin: return "Saisis à nouveau ton code"
         }
     }
@@ -208,13 +207,8 @@ final class PinSetupViewModel {
     // MARK: - Actions
 
     func appendDigit(_ digit: Int) {
-        guard digits.count < maxDigits, !isValidating else { return }
-        if isError { clearError() }
+        guard digits.count < pinLength, !isValidating, !isError else { return }
         digits.append(digit)
-
-        if digits.count == maxDigits {
-            Task { await handlePinComplete() }
-        }
     }
 
     func confirm() async {
