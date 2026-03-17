@@ -462,7 +462,8 @@
       "envelopeOver": "Comptabilisé {{ consumed }} sur {{ envelope }} CHF (enveloppe)",
       "envelopeWithin": "Comptabilisé {{ envelope }} CHF (enveloppe)",
       "transactionChecked": "Comptabilisé {{ amount }} CHF"
-    }
+    },
+    "forecastCheckedToggle": "Déjà pointé"
   },
   "budgetLine": {
     "checkLabel": "Marquer {{ name }} comme vérifié",
@@ -919,6 +920,7 @@
     "notesPlaceholder": "Ex: Alimentation, Transport",
     "notesOptional": "(optionnel)",
     "notesMaxLength": "La catégorie ne peut pas dépasser 50 caractères",
-    "formAriaLabel": "Formulaire de modification de transaction"
+    "formAriaLabel": "Formulaire de modification de transaction",
+    "checkedToggle": "Déjà pointé"
   }
 }
