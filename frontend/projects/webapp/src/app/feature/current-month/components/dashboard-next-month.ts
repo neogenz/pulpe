@@ -14,6 +14,20 @@ import type { UpcomingMonthForecast } from '../services/dashboard-state';
 import type { SupportedCurrency } from 'pulpe-shared';
 import { CURRENCY_CONFIG } from '@core/currency';
 
+const ROLLOVER_FORMATTERS = new Map<string, Intl.NumberFormat>();
+
+function getRolloverFormatter(locale: string): Intl.NumberFormat {
+  let formatter = ROLLOVER_FORMATTERS.get(locale);
+  if (!formatter) {
+    formatter = new Intl.NumberFormat(locale, {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    });
+    ROLLOVER_FORMATTERS.set(locale, formatter);
+  }
+  return formatter;
+}
+
 @Component({
   selector: 'pulpe-dashboard-next-month',
   imports: [MatIconModule, MatButtonModule, TranslocoPipe],
@@ -107,9 +121,6 @@ export class DashboardNextMonth {
 
   protected readonly formattedRollover = computed(() => {
     const locale = CURRENCY_CONFIG[this.currency()].locale;
-    return new Intl.NumberFormat(locale, {
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(this.estimatedRollover());
+    return getRolloverFormatter(locale).format(this.estimatedRollover());
   });
 }

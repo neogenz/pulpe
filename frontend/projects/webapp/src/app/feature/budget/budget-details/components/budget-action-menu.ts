@@ -15,6 +15,26 @@ import type { BudgetLine, SupportedCurrency } from 'pulpe-shared';
 import { CURRENCY_CONFIG } from '@core/currency';
 import type { BudgetLineTableItem } from '../data-core';
 
+const BALANCE_FORMATTERS = new Map<string, Intl.NumberFormat>();
+
+function getBalanceFormatter(
+  locale: string,
+  currency: string,
+): Intl.NumberFormat {
+  const key = `${locale}-${currency}`;
+  let formatter = BALANCE_FORMATTERS.get(key);
+  if (!formatter) {
+    formatter = new Intl.NumberFormat(locale, {
+      style: 'currency',
+      currency,
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    });
+    BALANCE_FORMATTERS.set(key, formatter);
+  }
+  return formatter;
+}
+
 /**
  * Contextual action menu for budget line cards.
  * Provides edit, add transaction, reset, and delete actions.
@@ -116,11 +136,6 @@ export class BudgetActionMenu {
     const balance = this.item().metadata.cumulativeBalance;
     const currency = this.currency();
     const config = CURRENCY_CONFIG[currency];
-    return new Intl.NumberFormat(config.locale, {
-      style: 'currency',
-      currency,
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(balance);
+    return getBalanceFormatter(config.locale, currency).format(balance);
   });
 }
