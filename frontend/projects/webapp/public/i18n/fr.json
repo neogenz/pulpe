@@ -462,10 +462,11 @@
     "lockedAmountsTooltip": "Montants verrouillés",
     "viewTransactionsCount": "Voir les {{ label }}",
     "snackbar": {
-      "envelopeOver": "Pointé · {{ consumed }} CHF — {{ envelope }} CHF prévus",
-      "envelopeWithin": "Pointé · {{ envelope }} CHF",
-      "transactionChecked": "Pointé · {{ amount }} CHF"
-    }
+      "envelopeOver": "Pointé · {{ consumed }} {{ currency }} — {{ envelope }} {{ currency }} prévus",
+      "envelopeWithin": "Pointé · {{ envelope }} {{ currency }}",
+      "transactionChecked": "Pointé · {{ amount }} {{ currency }}"
+    },
+    "forecastCheckedToggle": "Déjà pointé"
   },
   "budgetLine": {
     "checkLabel": "Pointer {{ name }}",
@@ -958,6 +959,7 @@
     "notesPlaceholder": "Ex: Alimentation, Transport",
     "notesOptional": "(optionnel)",
     "notesMaxLength": "La catégorie ne peut pas dépasser 50 caractères",
-    "formAriaLabel": "Formulaire de modification de transaction"
+    "formAriaLabel": "Formulaire de modification de transaction",
+    "checkedToggle": "Déjà pointé"
   }
 }
