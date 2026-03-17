@@ -142,6 +142,7 @@ describe('BudgetDetailsStore - Search Filtering', () => {
               ),
               prefetch: vi.fn(),
               clear: vi.fn(),
+              clearDirty: vi.fn(),
             },
           },
         },

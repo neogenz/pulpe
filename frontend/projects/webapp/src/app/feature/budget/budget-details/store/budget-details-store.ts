@@ -49,6 +49,7 @@ function generateTempId(): string {
 }
 
 const BUDGET_DETAIL_INVALIDATION_KEYS: string[][] = [
+  ['budget', 'details'],
   ['budget', 'list'],
   ['budget', 'dashboard'],
   ['budget', 'history'],
@@ -142,7 +143,7 @@ export class BudgetDetailsStore {
   readonly error = computed(
     () => this.#budgetDetailsResource.error() || this.#state.errorMessage(),
   );
-  readonly status = this.#budgetDetailsResource.status;
+  readonly isStale = this.#budgetDetailsResource.isStale;
 
   readonly #budgetsList = computed(() =>
     this.#allBudgetsResource.error()

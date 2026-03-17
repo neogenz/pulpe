@@ -136,6 +136,7 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
         ),
         prefetch: vi.fn().mockResolvedValue(undefined),
         clear: vi.fn(),
+        clearDirty: vi.fn(),
       },
     };
 
@@ -1473,6 +1474,46 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
 
       await service.toggleCheck('line-1');
 
+      expect(mockBudgetApi.cache['prefetch']).toHaveBeenCalledWith(
+        ['budget', 'details', nextBudgetId],
+        expect.any(Function),
+      );
+    });
+
+    it('invalidates all budget details via invalidateKeys so carry-over revalidates on navigation', async () => {
+      (
+        mockBudgetApi.cache['invalidate'] as ReturnType<typeof vi.fn>
+      ).mockClear();
+
+      mockBudgetApi.createBudgetLine$ = vi.fn().mockReturnValue(
+        of({
+          data: createMockBudgetLine({
+            id: 'line-new',
+            budgetId: mockBudgetId,
+            name: 'Test expense',
+            amount: 10,
+            kind: 'expense',
+            recurrence: 'one_off',
+          }),
+        }),
+      );
+
+      await service.createBudgetLine({
+        budgetId: mockBudgetId,
+        name: 'Test expense',
+        amount: 10,
+        kind: 'expense',
+        recurrence: 'one_off',
+        isManuallyAdjusted: false,
+      });
+
+      // invalidateKeys includes ['budget', 'details'] — prefix-based invalidation
+      // marks ALL budget detail entries stale, ensuring carry-over revalidates
+      // regardless of which month the user navigated to during the mutation
+      expect(mockBudgetApi.cache['invalidate']).toHaveBeenCalledWith([
+        'budget',
+        'details',
+      ]);
       expect(mockBudgetApi.cache['prefetch']).toHaveBeenCalledWith(
         ['budget', 'details', nextBudgetId],
         expect.any(Function),

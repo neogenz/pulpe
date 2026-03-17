@@ -12,6 +12,7 @@ const mockCache = {
   invalidate: vi.fn(),
   deduplicate: vi.fn((key: string[], fn: () => Promise<unknown>) => fn()),
   clear: vi.fn(),
+  clearDirty: vi.fn(),
   version: signal(0),
 };
 

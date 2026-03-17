@@ -245,8 +245,8 @@ importers:
         specifier: ^1.0.0
         version: 1.0.0(@angular/core@21.0.6(@angular/compiler@21.0.6)(rxjs@7.8.2))
       ngx-ziflux:
-        specifier: ^0.0.9
-        version: 0.0.9(@angular/common@21.0.6(@angular/core@21.0.6(@angular/compiler@21.0.6)(rxjs@7.8.2))(rxjs@7.8.2))(@angular/core@21.0.6(@angular/compiler@21.0.6)(rxjs@7.8.2))(rxjs@7.8.2)
+        specifier: ^0.0.11
+        version: 0.0.11(@angular/common@21.0.6(@angular/core@21.0.6(@angular/compiler@21.0.6)(rxjs@7.8.2))(rxjs@7.8.2))(@angular/core@21.0.6(@angular/compiler@21.0.6)(rxjs@7.8.2))(rxjs@7.8.2)
       postcss:
         specifier: ^8.5.4
         version: 8.5.6
@@ -5768,8 +5768,8 @@ packages:
     peerDependencies:
       '@angular/core': ^21.0.0
 
-  ngx-ziflux@0.0.9:
-    resolution: {integrity: sha512-IEVUaK+iq1tNofZ12ZOXZDwj0ZBdfRBSfXHBXjdepP6VUz9hCzJwFJlUk9KvGOtlYyAPPrBQho66CfP8LMyMSA==}
+  ngx-ziflux@0.0.11:
+    resolution: {integrity: sha512-E9ZW4pnZORJ2F3FvzV6Vc12lggEkPikqao/ARVxCtZaRKErbP7gKp4jN/gV4En8WyMxSHVYMa6XS2VEa73wXFw==}
     engines: {node: '>=22.0.0'}
     peerDependencies:
       '@angular/common': ^21.0.0
@@ -13381,7 +13381,7 @@ snapshots:
       '@angular/core': 21.0.6(@angular/compiler@21.0.6)(rxjs@7.8.2)
       tslib: 2.8.1
 
-  ngx-ziflux@0.0.9(@angular/common@21.0.6(@angular/core@21.0.6(@angular/compiler@21.0.6)(rxjs@7.8.2))(rxjs@7.8.2))(@angular/core@21.0.6(@angular/compiler@21.0.6)(rxjs@7.8.2))(rxjs@7.8.2):
+  ngx-ziflux@0.0.11(@angular/common@21.0.6(@angular/core@21.0.6(@angular/compiler@21.0.6)(rxjs@7.8.2))(rxjs@7.8.2))(@angular/core@21.0.6(@angular/compiler@21.0.6)(rxjs@7.8.2))(rxjs@7.8.2):
     dependencies:
       '@angular/common': 21.0.6(@angular/core@21.0.6(@angular/compiler@21.0.6)(rxjs@7.8.2))(rxjs@7.8.2)
       '@angular/core': 21.0.6(@angular/compiler@21.0.6)(rxjs@7.8.2)

@@ -88,6 +88,7 @@ function createMocks() {
             fn(),
           ),
         prefetch: vi.fn(),
+        clearDirty: vi.fn(),
       },
     },
     userSettingsStore: {

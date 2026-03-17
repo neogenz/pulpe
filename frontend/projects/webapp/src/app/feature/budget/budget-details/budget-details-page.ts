@@ -178,8 +178,8 @@ export default class BudgetDetailsPage {
     });
 
     effect(() => {
-      const status = this.store.status();
-      this.#loadingIndicator.setLoading(status === 'reloading');
+      const isStale = this.store.isStale();
+      this.#loadingIndicator.setLoading(isStale);
     });
 
     this.#destroyRef.onDestroy(() => {
