@@ -363,6 +363,8 @@ struct AppStateCharacterizationTests {
             destination: .needsPinEntry(needsRecoveryKeyConsent: false),
             validateRegularSession: { [user] in user }
         )
+        sut.hasReturningUser = true
+        sut.returningUserFlagLoaded = true
 
         await sut.checkAuthState()
 
@@ -377,6 +379,8 @@ struct AppStateCharacterizationTests {
                 BiometricSessionResult(user: user, clientKeyHex: nil)
             }
         )
+        sut.hasReturningUser = true
+        sut.returningUserFlagLoaded = true
 
         await sut.bootstrap()
 
