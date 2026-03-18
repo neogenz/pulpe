@@ -5,7 +5,19 @@ struct OnboardingFlow: View {
     @Environment(AppState.self) private var appState
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.scenePhase) private var scenePhase
-    @State private var state = OnboardingState()
+    @State private var state: OnboardingState
+
+    private let hasPendingSocialUser: Bool
+
+    init(pendingSocialUser: UserInfo? = nil) {
+        let initial = OnboardingState()
+        if let user = pendingSocialUser {
+            initial.configureSocialUser(user)
+            initial.currentStep = .personalInfo
+        }
+        _state = State(initialValue: initial)
+        hasPendingSocialUser = pendingSocialUser != nil
+    }
 
     var body: some View {
         NavigationStack {
@@ -18,7 +30,9 @@ struct OnboardingFlow: View {
                     if state.currentStep.showProgressBar {
                         OnboardingProgressIndicator(
                             currentStep: state.currentStep,
-                            totalSteps: OnboardingStep.allCases.count
+                            totalSteps: state.isSocialSignup
+                                ? OnboardingStep.allCases.count - 1
+                                : OnboardingStep.allCases.count
                         )
                         .transition(.opacity.combined(with: .move(edge: .top)))
                     }
@@ -44,6 +58,16 @@ struct OnboardingFlow: View {
                     )
                 }
             }
+            .onChange(of: state.readyForSocialCompletion) { _, ready in
+                guard ready, let socialUser = state.socialUser else { return }
+                Task { await finishOnboarding(user: socialUser) }
+            }
+            .task {
+                // Clear consumed pendingSocialUser from AppState
+                if hasPendingSocialUser {
+                    appState.pendingSocialUser = nil
+                }
+            }
         }
     }
 
@@ -62,17 +86,31 @@ struct OnboardingFlow: View {
             BudgetPreviewStep(state: state)
         case .registration:
             RegistrationStep(state: state) { user in
-                Task {
-                    state.isSubmitting = true
-                    defer { state.isSubmitting = false }
-                    await appState.completeOnboarding(user: user, onboardingData: state.createTemplateData())
-                    if appState.showPostAuthError {
-                        state.error = APIError.serverError(message: "La création du budget a échoué. Réessaie.")
-                    } else {
-                        state.hasCompleted = true
-                    }
-                }
+                Task { await finishOnboarding(user: user) }
             }
+        }
+    }
+
+    // MARK: - Completion
+
+    private func finishOnboarding(user: UserInfo) async {
+        state.readyForSocialCompletion = false
+        state.isSubmitting = true
+        defer { state.isSubmitting = false }
+        await appState.completeOnboarding(
+            user: user,
+            onboardingData: state.createTemplateData()
+        )
+        if appState.showPostAuthError {
+            // Capture error locally and clear global flag
+            // to avoid dual error surfaces (global alert + local banner).
+            appState.showPostAuthError = false
+            state.error = APIError.serverError(
+                message: "La création du budget a échoué. Réessaie."
+            )
+            state.readyForSocialCompletion = false
+        } else {
+            state.hasCompleted = true
         }
     }
 
@@ -114,6 +152,7 @@ struct OnboardingStepView<Content: View>: View {
                 .padding(.bottom, DesignTokens.Spacing.xxxl)
             }
             .scrollBounceBehavior(.basedOnSize)
+            .scrollDismissesKeyboard(.interactively)
 
             Spacer()
 
@@ -148,6 +187,6 @@ struct OnboardingStepView<Content: View>: View {
 }
 
 #Preview {
-    OnboardingFlow()
+    OnboardingFlow(pendingSocialUser: nil)
         .environment(AppState())
 }

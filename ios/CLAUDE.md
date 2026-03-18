@@ -35,7 +35,7 @@ xcodebuild test -scheme PulpeUITests -destination 'platform=iOS Simulator,name=i
 | Amount input | `HeroAmountField` | Custom TextField + display amount logic |
 | Preset amounts | `QuickAmountChips` | Custom chip buttons |
 | Kind picker | `KindToggle` | Custom HStack of buttons for expense/income/saving |
-| Description field | `FormTextField(label: "Description")` | Manual VStack + Text + FormTextField + overlay |
+| Description field | `FormTextField(hint:text:label:accessibilityLabel:)` | Manual VStack + Text + FormTextField + overlay |
 | Checked toggle | `CheckedToggle` | Custom Toggle |
 | Error display | `ErrorBanner` | Custom error HStack |
 | Currency formatting | `Decimal.asCHF` / `.asCompactCHF` | Manual string concatenation |

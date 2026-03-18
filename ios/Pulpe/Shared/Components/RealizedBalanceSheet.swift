@@ -397,7 +397,7 @@ private struct CategoryRow: View {
 
 // MARK: - Preview Helpers
 
-private let previewDashboardStore: DashboardStore = {
+@MainActor private let previewDashboardStore: DashboardStore = {
     let calendar = Calendar.current
     let currentMonth = calendar.component(.month, from: Date())
     let currentYear = calendar.component(.year, from: Date())

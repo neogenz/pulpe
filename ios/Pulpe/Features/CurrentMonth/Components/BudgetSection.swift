@@ -229,19 +229,23 @@ struct BudgetLineRow: View {
 
     private var amountTextColor: Color {
         if line.isChecked { return .secondary }
-        if hasConsumption && line.kind == .expense {
+        // Expenses: always state color (icon carries category)
+        if line.kind == .expense {
             if consumption.isOverBudget { return .financialOverBudget }
             if consumption.isNearLimit { return .warningPrimary }
             return .secondary
         }
+        // Income & savings: category color when no consumption, secondary otherwise
         if hasConsumption { return .secondary }
         return line.kind.color
     }
 
     private var remainingAmountText: String {
-        guard hasConsumption else {
+        // Income & savings: always show signed budget amount
+        guard line.kind == .expense else {
             return line.amount.asSignedAmount(for: line.kind)
         }
+        // Expenses: always show remaining (= budget when no transactions)
         if consumption.available >= 0 {
             return consumption.available.asAmount
         } else {
@@ -281,6 +285,10 @@ struct BudgetLineRow: View {
                         .lineLimit(1)
                         .sensitiveAmount()
                     progressBar
+                } else if line.kind == .expense {
+                    Text("\(line.recurrence.label) · sur \(line.amount.asCompactCHF)")
+                        .font(PulpeTypography.caption)
+                        .foregroundStyle(.secondary)
                 } else {
                     Text(line.recurrence.label)
                         .font(PulpeTypography.caption)
@@ -299,7 +307,6 @@ struct BudgetLineRow: View {
                 .foregroundStyle(amountTextColor)
                 .sensitiveAmount()
         }
-        .padding(.vertical, DesignTokens.ListRow.verticalPadding)
         }
         .contentShape(Rectangle())
         .onLongPressGesture(

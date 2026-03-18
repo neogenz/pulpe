@@ -21,8 +21,10 @@ struct SheetFormContainer<Content: View>: View {
                 .padding(.top, DesignTokens.Spacing.lg)
                 .padding(.bottom, DesignTokens.Spacing.xl)
             }
+            .contentMargins(.bottom, DesignTokens.Spacing.xxl, for: .scrollContent)
             .scrollBounceBehavior(.basedOnSize)
-            .background(Color.surface)
+            .scrollDismissesKeyboard(.interactively)
+            .background(Color.sheetBackground)
             .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

@@ -22,11 +22,6 @@ struct UncheckedForecastsCard: View {
                         onToggle: { onToggle(item) }
                     )
                     .transition(.opacity)
-
-                    if item.id != items.last?.id {
-                        Divider()
-                            .padding(.leading, 22 + 40 + DesignTokens.Spacing.md * 2)
-                    }
                 }
             }
 
@@ -95,7 +90,9 @@ private struct UncheckedItemRow: View {
                     .foregroundStyle(isChecked ? Color.financialSavings : Color.secondary)
                     .contentTransition(.symbolEffect(.replace))
             }
-            .iconButtonStyle()
+            .buttonStyle(.plain)
+            .frame(minWidth: 36, minHeight: 36)
+            .contentShape(Rectangle())
             .sensoryFeedback(.success, trigger: triggerFeedback)
             .accessibilityLabel("Pointer \(item.name)")
 
@@ -149,6 +146,10 @@ private struct UncheckedItemRow: View {
                     .font(PulpeTypography.caption)
                     .foregroundStyle(color)
                     .sensitiveAmount()
+            } else if line.kind == .expense {
+                Text("\(line.recurrence.label) \u{00B7} sur \(line.amount.asCompactCHF)")
+                    .font(PulpeTypography.caption)
+                    .foregroundStyle(.secondary)
             } else {
                 Text(line.recurrence.label)
                     .font(PulpeTypography.caption)
@@ -168,11 +169,23 @@ private struct UncheckedItemRow: View {
                 .foregroundStyle(tx.kind.color)
                 .sensitiveAmount()
 
-        case .budgetLine(let line, _):
-            Text(line.amount.asSignedAmount(for: line.kind))
-                .font(.system(.callout, weight: .regular))
-                .foregroundStyle(line.kind.color)
-                .sensitiveAmount()
+        case .budgetLine(let line, let consumption):
+            if line.kind == .expense, let consumption {
+                let text = consumption.available >= 0
+                    ? consumption.available.asAmount
+                    : "-\(consumption.available.absoluteValue.asAmount)"
+                let color: Color = consumption.isOverBudget ? .financialOverBudget :
+                    consumption.isNearLimit ? .warningPrimary : .secondary
+                Text(text)
+                    .font(.system(.callout, weight: .regular))
+                    .foregroundStyle(color)
+                    .sensitiveAmount()
+            } else {
+                Text(line.amount.asSignedAmount(for: line.kind))
+                    .font(.system(.callout, weight: .regular))
+                    .foregroundStyle(line.kind.color)
+                    .sensitiveAmount()
+            }
         }
     }
 }

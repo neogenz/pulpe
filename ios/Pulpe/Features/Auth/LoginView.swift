@@ -22,19 +22,17 @@ struct LoginView: View {
 
                 ScrollView {
                     VStack(spacing: DesignTokens.Spacing.xxl) {
-                        Spacer(minLength: 0)
                         headerSection
                         Spacer().frame(height: DesignTokens.Spacing.lg)
                         formSection
                         createAccountSection
-                        Spacer(minLength: 0)
                         termsFooter
                     }
                     .padding(.horizontal, DesignTokens.Spacing.xxl)
                     .padding(.bottom, DesignTokens.Spacing.xxxl)
-                    .containerRelativeFrame(.vertical)
                 }
                 .scrollBounceBehavior(.basedOnSize)
+                .scrollDismissesKeyboard(.interactively)
             }
             .toolbar {
                 if let isPresented {
@@ -101,6 +99,11 @@ extension LoginView {
             passwordField
             forgotPasswordButton
             loginButton
+            SocialLoginDivider()
+            SocialLoginSection {
+                appState.biometricError = nil
+                isPresented?.wrappedValue = false
+            }
             faceIDButton
         }
         .opacity(isAppeared ? 1 : 0)

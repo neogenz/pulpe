@@ -62,7 +62,7 @@ struct EditBudgetLineSheet: View {
 
     private var descriptionField: some View {
         FormTextField(
-            placeholder: kind.descriptionPlaceholder,
+            hint: kind.descriptionPlaceholder,
             text: $name,
             label: "Description",
             accessibilityLabel: "Description de la prévision"

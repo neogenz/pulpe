@@ -115,13 +115,15 @@ enum DesignTokens {
         static let badge: CGFloat = 36
         /// Small inline icons
         static let compact: CGFloat = 28
+        /// Social login button icons (Apple logo, Google logo)
+        static let socialButton: CGFloat = 20
     }
 
     // MARK: - List Row
 
     enum ListRow {
         /// Vertical padding for all list/transaction/budget rows
-        static let verticalPadding: CGFloat = 4
+        static let verticalPadding: CGFloat = 8
     }
 
     // MARK: - Animation

@@ -17,7 +17,17 @@ struct AddBudgetLineSheet: View {
     @State private var amountText = ""
     @State private var submitSuccessTrigger = false
 
-    private let budgetLineService = BudgetLineService.shared
+    private let dependencies: AddBudgetLineDependencies
+
+    init(
+        budgetId: String,
+        dependencies: AddBudgetLineDependencies = .live,
+        onAdd: @escaping (BudgetLine) -> Void
+    ) {
+        self.budgetId = budgetId
+        self.dependencies = dependencies
+        self.onAdd = onAdd
+    }
 
     private var canSubmit: Bool {
         !name.trimmingCharacters(in: .whitespaces).isEmpty &&
@@ -63,7 +73,7 @@ struct AddBudgetLineSheet: View {
 
     private var descriptionField: some View {
         FormTextField(
-            placeholder: kind.descriptionPlaceholder,
+            hint: kind.descriptionPlaceholder,
             text: $name,
             label: "Description",
             accessibilityLabel: "Description de la prévision"
@@ -109,7 +119,7 @@ struct AddBudgetLineSheet: View {
         )
 
         do {
-            let budgetLine = try await budgetLineService.createBudgetLine(data)
+            let budgetLine = try await dependencies.createBudgetLine(data)
             submitSuccessTrigger.toggle()
             onAdd(budgetLine)
             toastManager.show("Prévision ajoutée")
@@ -118,6 +128,16 @@ struct AddBudgetLineSheet: View {
             self.error = error
         }
     }
+}
+
+struct AddBudgetLineDependencies: Sendable {
+    var createBudgetLine: @Sendable (BudgetLineCreate) async throws -> BudgetLine
+
+    static let live = AddBudgetLineDependencies(
+        createBudgetLine: { data in
+            try await BudgetLineService.shared.createBudgetLine(data)
+        }
+    )
 }
 
 #Preview {

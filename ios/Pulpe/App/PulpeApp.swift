@@ -1,3 +1,4 @@
+import GoogleSignIn
 import OSLog
 import SwiftUI
 import TipKit
@@ -79,29 +80,35 @@ struct PulpeApp: App {
     }
 
     private func handleDeepLink(_ url: URL) {
-        guard url.scheme == "pulpe" else { return }
+        if url.scheme == "pulpe" {
+            let components = URLComponents(url: url, resolvingAgainstBaseURL: false)
 
-        let components = URLComponents(url: url, resolvingAgainstBaseURL: false)
+            switch url.host {
+            case "reset-password":
+                deepLinkDestination = .resetPassword(url: url)
+            case "add-expense":
+                let budgetId = components?.queryItems?.first { $0.name == "budgetId" }?.value
+                if let budgetId, UUID(uuidString: budgetId) == nil {
+                    Logger.app.warning("Deep link: invalid UUID for add-expense budgetId=\(budgetId)")
+                    break
+                }
+                deepLinkDestination = .addExpense(budgetId: budgetId)
+            case "budget":
+                if let budgetId = components?.queryItems?.first(where: { $0.name == "id" })?.value,
+                   UUID(uuidString: budgetId) != nil {
+                    deepLinkDestination = .viewBudget(budgetId: budgetId)
+                } else {
+                    Logger.app.warning("Deep link: invalid or missing UUID for budget path")
+                }
+            default:
+                Logger.app.warning("Deep link: unrecognized host=\(url.host ?? "nil")")
+            }
+            return
+        }
 
-        switch url.host {
-        case "reset-password":
-            deepLinkDestination = .resetPassword(url: url)
-        case "add-expense":
-            let budgetId = components?.queryItems?.first { $0.name == "budgetId" }?.value
-            if let budgetId, UUID(uuidString: budgetId) == nil {
-                Logger.app.warning("Deep link: invalid UUID for add-expense budgetId=\(budgetId)")
-                break
-            }
-            deepLinkDestination = .addExpense(budgetId: budgetId)
-        case "budget":
-            if let budgetId = components?.queryItems?.first(where: { $0.name == "id" })?.value,
-               UUID(uuidString: budgetId) != nil {
-                deepLinkDestination = .viewBudget(budgetId: budgetId)
-            } else {
-                Logger.app.warning("Deep link: invalid or missing UUID for budget path")
-            }
-        default:
-            Logger.app.warning("Deep link: unrecognized host=\(url.host ?? "nil")")
+        // OAuth callbacks (Google Sign-In) — only forward matching scheme
+        if url.scheme?.hasPrefix("com.googleusercontent.apps") == true {
+            GIDSignIn.sharedInstance.handle(url)
         }
     }
 }
@@ -145,7 +152,6 @@ struct RootView: View {
         }
         .toastOverlay(appState.toastManager)
         .environment(appState.toastManager)
-        .animation(.easeInOut(duration: DesignTokens.Animation.normal), value: appState.currentRoute)
         .onReceive(NotificationCenter.default.publisher(for: .maintenanceModeDetected)) { _ in
             appState.send(.maintenanceChecked(isInMaintenance: true))
         }
@@ -304,7 +310,7 @@ struct RootView: View {
                     } : nil
                 )
             } else {
-                OnboardingFlow()
+                OnboardingFlow(pendingSocialUser: appState.pendingSocialUser)
             }
 
         case .pinSetup:

@@ -7,5 +7,5 @@ extension String {
         wholeMatch(of: Self.emailPattern) != nil
     }
 
-    private static let emailPattern = /^[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}$/
+    nonisolated(unsafe) private static let emailPattern = /^[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}$/
 }
