@@ -390,7 +390,7 @@ test.describe('Budget Line Creation', () => {
     // Before creation: income=5000, expenses=1500, remaining=3500
     // Verify initial expenses in financial overview
     const financialOverview = authenticatedPage.locator('pulpe-budget-financial-overview');
-    await expect(financialOverview).toContainText("1\u2019500");
+    await expect(financialOverview).toContainText("1\u202F500");
 
     // Click add and fill form
     await authenticatedPage.getByTestId('add-budget-line').click();
@@ -408,11 +408,11 @@ test.describe('Budget Line Creation', () => {
 
     // After creation: income=5000, expenses=1500+500=2000, remaining=3000
     // Expenses total should now show 2000
-    await expect(financialOverview).toContainText("2\u2019000");
+    await expect(financialOverview).toContainText("2\u202F000");
 
     // Remaining should show 3000
     await expect(
       financialOverview.locator('.text-display-medium, .text-display-large'),
-    ).toContainText("3\u2019000");
+    ).toContainText("3\u202F000");
   });
 });
