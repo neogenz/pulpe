@@ -1,11 +1,10 @@
 import { inject, Injectable, computed } from '@angular/core';
 import { cachedResource } from 'ngx-ziflux';
 import { type UserSettings, type UpdateUserSettings } from 'pulpe-shared';
-import { firstValueFrom } from 'rxjs';
+import { firstValueFrom, map } from 'rxjs';
 import { AuthStateService } from '../auth/auth-state.service';
 import { ClientKeyService } from '../encryption/client-key.service';
 import { DemoModeService } from '../demo/demo-mode.service';
-import { Logger } from '../logging/logger';
 import { UserSettingsApi } from './user-settings-api';
 
 @Injectable({
@@ -16,8 +15,6 @@ export class UserSettingsStore {
   readonly #authState = inject(AuthStateService);
   readonly #clientKey = inject(ClientKeyService);
   readonly #demoMode = inject(DemoModeService);
-  readonly #logger = inject(Logger);
-
   readonly #settingsResource = cachedResource<
     UserSettings | null,
     { isReady: boolean }
@@ -30,7 +27,8 @@ export class UserSettingsStore {
         (this.#clientKey.hasClientKey() || this.#demoMode.isDemoMode());
       return isReady ? { isReady } : undefined;
     },
-    loader: async () => this.#loadSettings(),
+    loader: () =>
+      this.#api.getSettings$().pipe(map((response) => response.data)),
   });
 
   readonly settings = computed(() => this.#settingsResource.value());
@@ -59,15 +57,5 @@ export class UserSettingsStore {
 
   reset(): void {
     this.#api.cache.clear();
-  }
-
-  async #loadSettings(): Promise<UserSettings> {
-    try {
-      const response = await firstValueFrom(this.#api.getSettings$());
-      return response.data;
-    } catch (error) {
-      this.#logger.error('Failed to load user settings', { error });
-      return { payDayOfMonth: null };
-    }
   }
 }
