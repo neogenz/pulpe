@@ -73,8 +73,11 @@ export class ProfileSetupService {
         description: `Budget initial de ${profileData.firstName} pour ${year}`,
       };
 
-      await firstValueFrom(this.#budgetApi.createBudget$(budgetRequest));
+      const { budget } = await firstValueFrom(
+        this.#budgetApi.createBudget$(budgetRequest),
+      );
       this.#budgetApi.cache.invalidate(['budget']);
+      this.#budgetApi.cache.set(['budget', 'list'], [budget]);
 
       // 3. Enable PostHog tracking (user has accepted terms)
       this.#postHogService.enableTracking();

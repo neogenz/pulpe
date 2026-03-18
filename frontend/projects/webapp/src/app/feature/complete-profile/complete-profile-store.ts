@@ -219,9 +219,6 @@ export class CompleteProfileStore {
         }
       }
 
-      // Update cache so guard allows navigation immediately
-      this.#budgetApi.markBudgetExists(true);
-
       this.#postHogService.captureEvent('first_budget_created', {
         signup_method: this.#determineSignupMethod(),
         has_pay_day: state.payDayOfMonth !== null,

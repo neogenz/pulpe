@@ -48,27 +48,17 @@ export class PreloadService {
   async #preloadCriticalData(): Promise<void> {
     this.#logger.debug('[PreloadService] Preloading critical data');
 
-    // checkBudgetExists + getAllBudgets — run in parallel for faster startup
-    await Promise.allSettled([
-      firstValueFrom(this.#budgetApi.checkBudgetExists$()).catch((error) => {
+    await this.#budgetApi.cache
+      .prefetch(['budget', 'list'], () =>
+        firstValueFrom(this.#budgetApi.getAllBudgets$()),
+      )
+      .catch((error) => {
         this.#logger.warn(
-          '[PreloadService] Failed to preload checkBudgetExists',
+          '[PreloadService] Failed to preload getAllBudgets',
           error,
         );
-      }),
-      this.#budgetApi.cache
-        .prefetch(['budget', 'list'], () =>
-          firstValueFrom(this.#budgetApi.getAllBudgets$()),
-        )
-        .catch((error) => {
-          this.#logger.warn(
-            '[PreloadService] Failed to preload getAllBudgets',
-            error,
-          );
-        }),
-    ]);
+      });
 
-    // Prefetch current month's budget details (fire-and-forget)
     this.#prefetchCurrentMonthDetails();
   }
 

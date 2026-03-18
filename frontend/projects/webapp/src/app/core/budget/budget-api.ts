@@ -27,12 +27,10 @@ import {
   transactionListResponseSchema,
 } from 'pulpe-shared';
 import { type Observable, of } from 'rxjs';
-import { map, switchMap, tap } from 'rxjs/operators';
+import { map, switchMap } from 'rxjs/operators';
 import { ApiClient } from '../api/api-client';
 import { DataCache } from 'ngx-ziflux';
 import { TransactionApi } from '../transaction/transaction-api';
-
-export const BUDGET_EXISTS_KEY = ['budget', 'exists'];
 
 export interface CreateBudgetApiResponse {
   readonly budget: Budget;
@@ -50,12 +48,10 @@ export class BudgetApi {
     name: 'budgets',
   });
 
-  markBudgetExists(value: boolean): void {
-    this.cache.set(BUDGET_EXISTS_KEY, value);
-  }
-
   getCachedBudgetExists(): { data: boolean; fresh: boolean } | null {
-    return this.cache.get<boolean>(BUDGET_EXISTS_KEY);
+    const listCache = this.cache.get<Budget[]>(['budget', 'list']);
+    if (!listCache) return null;
+    return { data: listCache.data.length > 0, fresh: listCache.fresh };
   }
 
   clearCache(): void {
@@ -73,9 +69,6 @@ export class BudgetApi {
 
   getAllBudgets$(): Observable<Budget[]> {
     return this.#api.get$('/budgets', budgetListResponseSchema).pipe(
-      tap((response) =>
-        this.cache.set(BUDGET_EXISTS_KEY, response.data.length > 0),
-      ),
       map((response) => response.data),
       map((budgets) =>
         budgets.toSorted((a, b) => {
@@ -87,10 +80,9 @@ export class BudgetApi {
   }
 
   checkBudgetExists$(): Observable<boolean> {
-    return this.#api.get$('/budgets/exists', budgetExistsResponseSchema).pipe(
-      tap((response) => this.cache.set(BUDGET_EXISTS_KEY, response.hasBudget)),
-      map((response) => response.hasBudget),
-    );
+    return this.#api
+      .get$('/budgets/exists', budgetExistsResponseSchema)
+      .pipe(map((response) => response.hasBudget));
   }
 
   getBudgetById$(budgetId: string): Observable<Budget> {

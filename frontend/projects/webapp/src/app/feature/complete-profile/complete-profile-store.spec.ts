@@ -17,7 +17,6 @@ describe('CompleteProfileStore', () => {
   };
   let mockBudgetApi: {
     checkBudgetExists$: ReturnType<typeof vi.fn>;
-    markBudgetExists: ReturnType<typeof vi.fn>;
   };
   let mockUserSettingsStore: {
     updateSettings: ReturnType<typeof vi.fn>;
@@ -42,7 +41,6 @@ describe('CompleteProfileStore', () => {
 
     mockBudgetApi = {
       checkBudgetExists$: vi.fn().mockReturnValue(of(false)),
-      markBudgetExists: vi.fn(),
     };
 
     mockUserSettingsStore = {
@@ -344,7 +342,6 @@ describe('CompleteProfileStore', () => {
         leasingCredit: undefined,
         payDayOfMonth: undefined,
       });
-      expect(mockBudgetApi.markBudgetExists).toHaveBeenCalledWith(true);
     });
 
     it('should pass payDayOfMonth to createInitialBudget when set', async () => {

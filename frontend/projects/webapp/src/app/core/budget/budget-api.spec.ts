@@ -7,7 +7,7 @@ import {
   provideHttpClientTesting,
 } from '@angular/common/http/testing';
 import { firstValueFrom, of } from 'rxjs';
-import { BudgetApi, BUDGET_EXISTS_KEY } from './budget-api';
+import { BudgetApi } from './budget-api';
 import { TransactionApi } from '../transaction/transaction-api';
 import { ApplicationConfiguration } from '../config/application-configuration';
 import { Logger } from '../logging/logger';
@@ -130,21 +130,6 @@ describe('BudgetApi', () => {
   });
 
   describe('checkBudgetExists$', () => {
-    it('should call /budgets/exists and sync DataCache', async () => {
-      const { service, httpTesting, cacheSetSpy } = createTestBed();
-
-      const resultPromise = firstValueFrom(service.checkBudgetExists$());
-
-      const req = httpTesting.expectOne(
-        'http://localhost:3000/api/v1/budgets/exists',
-      );
-      expect(req.request.method).toBe('GET');
-      req.flush({ hasBudget: false });
-
-      await resultPromise;
-      expect(cacheSetSpy).toHaveBeenCalledWith(BUDGET_EXISTS_KEY, false);
-    });
-
     it('should return the hasBudget boolean', async () => {
       const { service, httpTesting } = createTestBed();
 
@@ -157,10 +142,24 @@ describe('BudgetApi', () => {
 
       expect(await resultPromise).toBe(true);
     });
+
+    it('should not write to cache', async () => {
+      const { service, httpTesting, cacheSetSpy } = createTestBed();
+
+      const resultPromise = firstValueFrom(service.checkBudgetExists$());
+
+      const req = httpTesting.expectOne(
+        'http://localhost:3000/api/v1/budgets/exists',
+      );
+      req.flush({ hasBudget: true });
+
+      await resultPromise;
+      expect(cacheSetSpy).not.toHaveBeenCalled();
+    });
   });
 
   describe('getAllBudgets$', () => {
-    it('should sync DataCache to true when budgets exist', async () => {
+    it('should return sorted budgets without writing to cache', async () => {
       const { service, httpTesting, cacheSetSpy } = createTestBed();
 
       const resultPromise = firstValueFrom(service.getAllBudgets$());
@@ -181,20 +180,56 @@ describe('BudgetApi', () => {
         ],
       });
 
-      await resultPromise;
-      expect(cacheSetSpy).toHaveBeenCalledWith(BUDGET_EXISTS_KEY, true);
+      const budgets = await resultPromise;
+      expect(budgets).toHaveLength(1);
+      expect(cacheSetSpy).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('getCachedBudgetExists', () => {
+    it('should return null when list cache is empty', () => {
+      const { service } = createTestBed();
+
+      expect(service.getCachedBudgetExists()).toBeNull();
     });
 
-    it('should sync DataCache to false when no budgets exist', async () => {
-      const { service, httpTesting, cacheSetSpy } = createTestBed();
+    it('should return true when list has budgets (fresh)', () => {
+      const { service } = createTestBed();
+      const cacheGetSpy = vi.spyOn(service.cache, 'get').mockReturnValue({
+        data: [{ id: 'b1' }],
+        fresh: true,
+      });
 
-      const resultPromise = firstValueFrom(service.getAllBudgets$());
+      const result = service.getCachedBudgetExists();
 
-      const req = httpTesting.expectOne('http://localhost:3000/api/v1/budgets');
-      req.flush({ success: true, data: [] });
+      expect(cacheGetSpy).toHaveBeenCalledWith(['budget', 'list']);
+      expect(result).toEqual({ data: true, fresh: true });
+    });
 
-      await resultPromise;
-      expect(cacheSetSpy).toHaveBeenCalledWith(BUDGET_EXISTS_KEY, false);
+    it('should return false when list is empty (fresh)', () => {
+      const { service } = createTestBed();
+      vi.spyOn(service.cache, 'get').mockReturnValue({
+        data: [],
+        fresh: true,
+      });
+
+      expect(service.getCachedBudgetExists()).toEqual({
+        data: false,
+        fresh: true,
+      });
+    });
+
+    it('should return true with stale flag when list has budgets (stale)', () => {
+      const { service } = createTestBed();
+      vi.spyOn(service.cache, 'get').mockReturnValue({
+        data: [{ id: 'b1' }],
+        fresh: false,
+      });
+
+      expect(service.getCachedBudgetExists()).toEqual({
+        data: true,
+        fresh: false,
+      });
     });
   });
 

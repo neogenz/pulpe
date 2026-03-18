@@ -35,7 +35,7 @@ describe('ProfileSetupService', () => {
       createBudget$: vi
         .fn()
         .mockReturnValue(of({ budget: { id: 'budget-123' } })),
-      cache: { invalidate: vi.fn(), clear: vi.fn() },
+      cache: { invalidate: vi.fn(), set: vi.fn(), clear: vi.fn() },
     };
 
     mockPostHogService = {
@@ -135,6 +135,18 @@ describe('ProfileSetupService', () => {
       expect(mockBudgetApi.createBudget$).toHaveBeenCalledWith(
         expect.objectContaining({ month: 2, year: 2026 }),
       );
+    });
+
+    it('should set optimistic list cache with created budget', async () => {
+      const result = await service.createInitialBudget({
+        firstName: 'Test',
+        monthlyIncome: 3000,
+      });
+
+      expect(result.success).toBe(true);
+      expect(
+        (mockBudgetApi.cache as { set: ReturnType<typeof vi.fn> }).set,
+      ).toHaveBeenCalledWith(['budget', 'list'], [{ id: 'budget-123' }]);
     });
 
     it('should handle year boundary and use period year in description', async () => {
