@@ -4,7 +4,7 @@ export const CURRENCY_CONFIG: Record<
   SupportedCurrency,
   { locale: string; symbol: string }
 > = {
-  CHF: { locale: 'de-CH', symbol: 'CHF' },
+  CHF: { locale: 'fr-CH', symbol: 'CHF' },
   EUR: { locale: 'de-DE', symbol: '€' },
 };
 

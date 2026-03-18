@@ -9,7 +9,7 @@ enum Formatters {
     static func locale(for currencyCode: String) -> Locale {
         switch currencyCode {
         case "EUR": Locale(identifier: "de_DE")
-        default: Locale(identifier: "de_CH")
+        default: Locale(identifier: "fr_CH")
         }
     }
 
