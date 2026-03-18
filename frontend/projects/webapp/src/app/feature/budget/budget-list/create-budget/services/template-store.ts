@@ -102,10 +102,6 @@ export class TemplateStore {
     this.#templateTotalsMap.update((current) => ({ ...current, ...newTotals }));
   }
 
-  async loadSingleTemplateTotals(templateId: string): Promise<void> {
-    await this.loadTemplateTotals([templateId]);
-  }
-
   selectTemplate(templateId: string): void {
     this.#selectedId.set(templateId);
   }

@@ -21,12 +21,7 @@ export class TemplateLineStore {
 
   readonly #lines = signal<EditableLine[]>([]);
   readonly lines = this.#lines.asReadonly();
-  readonly #isLoading = signal(false);
   readonly #error = signal<string | null>(null);
-
-  readonly isLoading = computed(() => this.#isLoading());
-  readonly hasValue = computed(() => this.lines().length > 0 && !this.#error());
-  readonly error = computed(() => this.#error());
 
   readonly activeLines = computed(() =>
     this.lines().filter((line) => !this.#deletedIds().has(line.id)),
@@ -61,6 +56,10 @@ export class TemplateLineStore {
       ),
     invalidateKeys: () => [['templates']],
   });
+
+  readonly isLoading = this.#bulkSaveMutation.isPending;
+  readonly hasValue = computed(() => this.lines().length > 0 && !this.#error());
+  readonly error = this.#error.asReadonly();
 
   getLineById(id: string): EditableLine | undefined {
     const line = this.lines().find((line) => line.id === id);
@@ -141,7 +140,6 @@ export class TemplateLineStore {
       };
     }
 
-    this.#isLoading.set(true);
     this.#error.set(null);
 
     const operations = this.#generateBulkOperations(propagateToBudgets);
@@ -149,8 +147,6 @@ export class TemplateLineStore {
       templateId,
       operations,
     });
-
-    this.#isLoading.set(false);
 
     if (!response) {
       const mutationError = this.#bulkSaveMutation.error();

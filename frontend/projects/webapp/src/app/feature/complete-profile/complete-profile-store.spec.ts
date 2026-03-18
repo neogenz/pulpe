@@ -96,7 +96,7 @@ describe('CompleteProfileStore', () => {
     });
 
     it('should have no error', () => {
-      expect(store.error()).toBe('');
+      expect(store.error()).toBeNull();
     });
 
     it('should have null internetPlan', () => {

@@ -367,7 +367,7 @@ export default class TemplateDetail implements OnInit {
 
   editTemplate() {
     const template = this.templateDetailsStore.template();
-    const transactions = this.templateDetailsStore.transactions();
+    const transactions = this.templateDetailsStore.templateLines();
     const templateId = this.#templateId;
 
     if (!template || !transactions || !templateId) {
@@ -514,12 +514,12 @@ export default class TemplateDetail implements OnInit {
       return;
     }
 
-    await this.#budgetTemplatesStore.deleteTemplate.mutate(templateId);
+    await this.#budgetTemplatesStore.deleteTemplate(templateId);
 
-    if (this.#budgetTemplatesStore.deleteTemplate.error()) {
+    if (this.#budgetTemplatesStore.deleteTemplateError()) {
       this.#logger.error(
         'Error deleting template:',
-        this.#budgetTemplatesStore.deleteTemplate.error(),
+        this.#budgetTemplatesStore.deleteTemplateError(),
       );
       this.#snackBar.open(
         this.#transloco.translate('template.deleteCheckError'),

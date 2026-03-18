@@ -112,14 +112,14 @@ export class DashboardStore {
     () => this.dashboardData()?.budgetLines ?? [],
   );
 
-  readonly isSettingsLoading = computed(() =>
+  readonly #isSettingsLoading = computed(() =>
     this.#userSettingsStore.isLoading(),
   );
 
   readonly isLoading = computed(
     () =>
       this.#dashboardResource.isLoading() ||
-      this.isSettingsLoading() ||
+      this.#isSettingsLoading() ||
       this.#historyResource.isLoading(),
   );
   readonly hasValue = computed(() => this.#dashboardResource.hasValue());
@@ -137,7 +137,7 @@ export class DashboardStore {
   readonly isInitialLoading = computed(() => {
     if (this.dashboardData()) return false;
     return (
-      this.#dashboardResource.isInitialLoading() || this.isSettingsLoading()
+      this.#dashboardResource.isInitialLoading() || this.#isSettingsLoading()
     );
   });
 

@@ -27,8 +27,12 @@ export class BudgetTemplatesStore {
           ),
         ),
   });
-  readonly #selectedTemplate = signal<BudgetTemplate | null>(null);
-  readonly selectedTemplate = this.#selectedTemplate.asReadonly();
+  readonly #selectedTemplateId = signal<string | null>(null);
+  readonly selectedTemplate = computed(() => {
+    const id = this.#selectedTemplateId();
+    if (!id) return null;
+    return this.budgetTemplates.value()?.find((t) => t.id === id) ?? null;
+  });
 
   readonly #templates = computed(() => this.budgetTemplates.value() ?? []);
 
@@ -44,7 +48,11 @@ export class BudgetTemplatesStore {
     () => this.#templates().find((t) => t.isDefault) ?? null,
   );
 
-  readonly deleteTemplate = cachedMutation<string, void, BudgetTemplate[]>({
+  readonly #deleteTemplateMutation = cachedMutation<
+    string,
+    void,
+    BudgetTemplate[]
+  >({
     cache: this.#budgetTemplatesApi.cache,
     invalidateKeys: (id) => [
       ['templates', 'list'],
@@ -63,6 +71,10 @@ export class BudgetTemplatesStore {
       if (previous) this.budgetTemplates.set(previous);
     },
   });
+
+  readonly deleteTemplateError = computed(() =>
+    this.#deleteTemplateMutation.error(),
+  );
 
   // Note: We intentionally DON'T use optimistic update here.
   // The creation is fast (< 1s) and the user sees a spinner.
@@ -98,8 +110,11 @@ export class BudgetTemplatesStore {
   }
 
   selectTemplate(id: string): void {
-    const template = this.budgetTemplates.value()?.find((t) => t.id === id);
-    this.#selectedTemplate.set(template ?? null);
+    this.#selectedTemplateId.set(id);
+  }
+
+  async deleteTemplate(id: string): Promise<void> {
+    await this.#deleteTemplateMutation.mutate(id);
   }
 
   async addTemplate(

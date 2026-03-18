@@ -157,12 +157,12 @@ const mockStore = {
 
 const mockDialog = { open: vi.fn() };
 const mockSnackBar = { open: vi.fn() };
-const mockDeleteMutation = {
-  mutate: vi.fn<(id: string) => Promise<void>>().mockResolvedValue(undefined),
-  error: signal<unknown>(null),
-};
+const mockDeleteTemplateError = signal<unknown>(null);
 const mockBudgetTemplatesStore = {
-  deleteTemplate: mockDeleteMutation,
+  deleteTemplate: vi
+    .fn<(id: string) => Promise<void>>()
+    .mockResolvedValue(undefined),
+  deleteTemplateError: mockDeleteTemplateError,
 };
 const mockTitleStrategy = { setTitle: vi.fn() };
 const mockLogger = { error: vi.fn() };
@@ -222,8 +222,8 @@ describe('TemplateDetail', () => {
     storeTemplateDetails.set(mockTemplateDetails);
     storeIsLoading.set(false);
     storeError.set(null);
-    mockDeleteMutation.error.set(null);
-    mockDeleteMutation.mutate.mockResolvedValue(undefined);
+    mockDeleteTemplateError.set(null);
+    mockBudgetTemplatesStore.deleteTemplate.mockResolvedValue(undefined);
     // Default route returns template-123
     mockRoute.snapshot.paramMap.get.mockImplementation((key: string) =>
       key === 'templateId' ? 'template-123' : null,
@@ -589,8 +589,8 @@ describe('TemplateDetail', () => {
         isUsed: false,
         budgets: [],
       });
-      mockDeleteMutation.mutate.mockResolvedValue(undefined);
-      mockDeleteMutation.error.set(null);
+      mockBudgetTemplatesStore.deleteTemplate.mockResolvedValue(undefined);
+      mockDeleteTemplateError.set(null);
       mockDialog.open.mockReturnValue({ afterClosed: () => of(true) });
 
       const fixture = await createFixture();
@@ -599,7 +599,9 @@ describe('TemplateDetail', () => {
 
       await fixture.componentInstance.deleteTemplate();
 
-      expect(mockDeleteMutation.mutate).toHaveBeenCalledWith('template-123');
+      expect(mockBudgetTemplatesStore.deleteTemplate).toHaveBeenCalledWith(
+        'template-123',
+      );
       expect(mockSnackBar.open).toHaveBeenCalledWith(
         'Modèle supprimé avec succès',
         undefined,
@@ -614,8 +616,8 @@ describe('TemplateDetail', () => {
         budgets: [],
       });
       const deleteError = new Error('Network error');
-      mockDeleteMutation.mutate.mockImplementation(async () => {
-        mockDeleteMutation.error.set(deleteError);
+      mockBudgetTemplatesStore.deleteTemplate.mockImplementation(async () => {
+        mockDeleteTemplateError.set(deleteError);
       });
       mockDialog.open.mockReturnValue({ afterClosed: () => of(true) });
 

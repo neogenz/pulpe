@@ -20,7 +20,7 @@ interface CompleteProfileState {
   payDayOfMonth: number | null;
   isLoading: boolean;
   isCheckingExistingBudget: boolean;
-  error: string;
+  error: string | null;
 }
 
 function createInitialState(): CompleteProfileState {
@@ -36,7 +36,7 @@ function createInitialState(): CompleteProfileState {
     payDayOfMonth: null,
     isLoading: false,
     isCheckingExistingBudget: false,
-    error: '',
+    error: null,
   };
 }
 
@@ -113,7 +113,7 @@ export class CompleteProfileStore {
   }
 
   clearError(): void {
-    this.#patchState({ error: '' });
+    this.#patchState({ error: null });
   }
 
   prefillFromOAuthMetadata(): void {
@@ -172,7 +172,7 @@ export class CompleteProfileStore {
     }
 
     const state = this.#state();
-    this.#patchState({ isLoading: true, error: '' });
+    this.#patchState({ isLoading: true, error: null });
 
     const profileData: ProfileData = {
       firstName: state.firstName.trim(),

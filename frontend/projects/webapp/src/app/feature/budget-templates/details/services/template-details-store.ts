@@ -63,8 +63,6 @@ export class TemplateDetailsStore {
   readonly templateLines = computed(
     () => this.templateDetails()?.transactions ?? [],
   );
-  readonly transactions = this.templateLines;
-
   readonly entries = computed<FinancialEntry[]>(() => {
     const transactions = this.templateLines();
 
@@ -99,10 +97,8 @@ export class TemplateDetailsStore {
   });
 
   readonly netBalance = computed(() => {
-    const lines = this.templateLines();
-    const income = BudgetFormulas.calculateTotalIncome(lines);
-    const totalExpenses = BudgetFormulas.calculateTotalExpenses(lines);
-    return income - totalExpenses;
+    const t = this.totals();
+    return t.income - t.expense - t.savings;
   });
 
   initializeTemplateId(id: string): void {

@@ -421,7 +421,7 @@ describe('BudgetTemplatesStore', () => {
 
       const initialCount = store.templateCount();
 
-      store.deleteTemplate.mutate('template-2');
+      store.deleteTemplate('template-2');
 
       // Optimistic update happens synchronously via onMutate
       expect(store.templateCount()).toBe(initialCount - 1);

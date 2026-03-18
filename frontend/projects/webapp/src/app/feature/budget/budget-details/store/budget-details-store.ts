@@ -651,11 +651,8 @@ export class BudgetDetailsStore {
     const details = this.budgetDetails();
     if (!details) return false;
 
-    const toggleResult = calculateBudgetLineToggle(id, {
-      budgetLines: details.budgetLines,
-      transactions: details.transactions ?? [],
-    });
-    if (!toggleResult) return false;
+    const lineExists = details.budgetLines.some((l) => l.id === id);
+    if (!lineExists) return false;
 
     this.#mutatingIds.add(id);
     try {
