@@ -144,47 +144,37 @@ export class TemplateLineStore {
     this.#isLoading.set(true);
     this.#error.set(null);
 
-    try {
-      const operations = this.#generateBulkOperations(propagateToBudgets);
-      const response = await this.#bulkSaveMutation.mutate({
-        templateId,
-        operations,
-      });
+    const operations = this.#generateBulkOperations(propagateToBudgets);
+    const response = await this.#bulkSaveMutation.mutate({
+      templateId,
+      operations,
+    });
 
-      if (!response) {
-        const mutationError = this.#bulkSaveMutation.error();
-        const errorMessage =
-          mutationError instanceof Error
-            ? mutationError.message
-            : this.#transloco.translate('template.saveError');
-        this.#error.set(errorMessage);
-        return { success: false, error: errorMessage };
-      }
+    this.#isLoading.set(false);
 
-      if (response.data.propagation?.mode === 'propagate') {
-        this.#budgetApi.cache.invalidate(['budget']);
-      }
-
-      this.#updateStateAfterSave(response.data);
-
-      const updatedLines = [...response.data.created, ...response.data.updated];
-      return {
-        success: true,
-        updatedLines,
-        deletedIds: response.data.deleted,
-        propagation: response.data.propagation,
-      };
-    } catch (error) {
+    if (!response) {
+      const mutationError = this.#bulkSaveMutation.error();
       const errorMessage =
-        error instanceof Error
-          ? error.message
+        mutationError instanceof Error
+          ? mutationError.message
           : this.#transloco.translate('template.saveError');
-
       this.#error.set(errorMessage);
       return { success: false, error: errorMessage };
-    } finally {
-      this.#isLoading.set(false);
     }
+
+    if (response.data.propagation?.mode === 'propagate') {
+      this.#budgetApi.cache.invalidate(['budget']);
+    }
+
+    this.#updateStateAfterSave(response.data);
+
+    const updatedLines = [...response.data.created, ...response.data.updated];
+    return {
+      success: true,
+      updatedLines,
+      deletedIds: response.data.deleted,
+      propagation: response.data.propagation,
+    };
   }
 
   #createEditableLine(
@@ -271,65 +261,37 @@ export class TemplateLineStore {
     updated: TemplateLine[];
     deleted: string[];
   }): void {
-    const currentLines = this.lines();
-    let createdIndex = 0;
+    const updatedById = new Map(
+      saveResponse.updated.map((line) => [line.id, line]),
+    );
+    const createdQueue = [...saveResponse.created];
 
-    // Remove deleted lines and update existing lines
-    const updatedLines = currentLines
+    const reconciledLines = this.lines()
       .filter((line) => !this.#deletedIds().has(line.id))
       .map((line) => {
         if (!line.originalLine) {
-          // Convert new line to existing with real template line data
-          const createdLine = saveResponse.created[createdIndex++];
-          return createdLine ? this.#convertToExistingLine(createdLine) : line;
+          const created = createdQueue.shift();
+          return created ? this.#toCleanLine(created) : line;
         }
 
-        if (line.isModified) {
-          // Update existing line with fresh data from server
-          const updatedLine = saveResponse.updated.find(
-            (l) => l.id === line.originalLine!.id,
-          );
-          return this.#syncWithServerData(line, updatedLine);
-        }
-
-        return line;
+        const updated = updatedById.get(line.originalLine.id);
+        return updated ? this.#toCleanLine(updated) : line;
       });
 
-    this.#lines.set(updatedLines);
+    this.#lines.set(reconciledLines);
     this.#deletedIds.set(new Set());
   }
 
-  #convertToExistingLine(createdLine: TemplateLine): EditableLine {
+  #toCleanLine(serverLine: TemplateLine): EditableLine {
     return {
-      id: createdLine.id,
+      id: serverLine.id,
       formData: {
-        description: createdLine.name,
-        amount: createdLine.amount,
-        type: createdLine.kind,
+        description: serverLine.name,
+        amount: serverLine.amount,
+        type: serverLine.kind,
       },
       isModified: false,
-      originalLine: createdLine,
-    };
-  }
-
-  #syncWithServerData(
-    line: EditableLine,
-    updatedLine?: TemplateLine,
-  ): EditableLine {
-    const originalLine = updatedLine || line.originalLine;
-
-    return {
-      ...line,
-      id: originalLine?.id ?? line.id,
-      formData: originalLine
-        ? {
-            description: originalLine.name,
-            amount: originalLine.amount,
-            type: originalLine.kind,
-          }
-        : line.formData,
-      isModified: false,
-      originalLine,
+      originalLine: serverLine,
     };
   }
 }
