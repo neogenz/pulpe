@@ -6,6 +6,8 @@ struct InsightsCard: View {
     let alerts: [BudgetAlert]
     var onTap: (() -> Void)?
 
+    @Environment(\.amountsHidden) private var amountsHidden
+
     private let maxVisibleAlerts = 3
 
     private var hasTopSpending: Bool { topSpending != nil }
@@ -64,7 +66,7 @@ struct InsightsCard: View {
         return HStack(spacing: DesignTokens.Spacing.md) {
             Circle()
                 .fill(Color.financialExpense.opacity(DesignTokens.Opacity.accent))
-                .frame(width: 40, height: 40)
+                .frame(width: DesignTokens.IconSize.listRow, height: DesignTokens.IconSize.listRow)
                 .overlay {
                     Image(systemName: "chart.pie.fill")
                         .font(.system(size: 18))
@@ -160,8 +162,9 @@ struct InsightsCard: View {
 
         if let topSpending {
             let percentage = Self.percentageOfTotal(topSpending.amount, of: topSpending.totalExpenses)
+            let amountDescription = amountsHidden ? "Montant masqué" : topSpending.amount.asCHF
             parts.append(
-                "Où part ton argent: \(topSpending.name), \(topSpending.amount.asCHF), " +
+                "Où part ton argent: \(topSpending.name), \(amountDescription), " +
                 "\(percentage) pourcent de tes dépenses"
             )
         }

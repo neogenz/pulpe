@@ -104,7 +104,7 @@ struct CreateBudgetView: View {
 
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                 Text("Période du budget")
-                    .font(PulpeTypography.caption)
+                    .font(.system(size: 12))
                     .foregroundStyle(.secondary)
 
                 Text(viewModel.monthYearFormatted)
@@ -156,7 +156,7 @@ struct CreateBudgetView: View {
 
             // Footer hint
             Text("Le budget sera créé avec les prévisions du modèle sélectionné")
-                .font(PulpeTypography.caption)
+                .font(.system(size: 12))
                 .foregroundStyle(.tertiary)
                 .padding(.horizontal, DesignTokens.Spacing.xs)
                 .padding(.top, DesignTokens.Spacing.xs)
@@ -189,7 +189,7 @@ struct CreateBudgetView: View {
                 .foregroundStyle(.secondary)
 
             Text("Crée d'abord un modèle dans l'onglet Modèles")
-                .font(PulpeTypography.caption)
+                .font(.system(size: 12))
                 .foregroundStyle(.tertiary)
                 .multilineTextAlignment(.center)
         }

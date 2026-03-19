@@ -353,7 +353,7 @@ struct BudgetLineRow: View {
                         ? Color.progressTrack
                         : line.kind.color.opacity(DesignTokens.Opacity.badgeBackground)
                 )
-                .frame(width: 40, height: 40)
+                .frame(width: DesignTokens.IconSize.listRow, height: DesignTokens.IconSize.listRow)
 
             if line.isChecked {
                 // Show checkmark when checked
@@ -476,7 +476,7 @@ struct BudgetLineRow: View {
         )
     }
     .listStyle(.insetGrouped)
-    .listSectionSpacing(16)
+    .listSectionSpacing(DesignTokens.Spacing.lg)
     .scrollContentBackground(.hidden)
     .pulpeBackground()
 }

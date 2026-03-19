@@ -49,7 +49,7 @@ private struct RecentTransactionCardRow: View {
             // Kind icon circle
             Circle()
                 .fill(transaction.kind.color.opacity(DesignTokens.Opacity.badgeBackground))
-                .frame(width: 40, height: 40)
+                .frame(width: DesignTokens.IconSize.listRow, height: DesignTokens.IconSize.listRow)
                 .overlay {
                     Image(systemName: transaction.kind.icon)
                         .font(.system(size: 16, weight: .semibold))

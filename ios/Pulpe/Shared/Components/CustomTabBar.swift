@@ -92,7 +92,7 @@ struct CustomTabBar: UIViewRepresentable {
                                 .frame(maxWidth: .infinity)
                             }
                         }
-                        .animation(.easeInOut(duration: 0.25), value: selectedTab)
+                        .animation(.easeInOut(duration: DesignTokens.Animation.quickSnap), value: selectedTab)
                     }
             }
         }

@@ -134,7 +134,7 @@ extension AccountView {
                     .foregroundStyle(.tertiary)
                     .onLongPressGesture(minimumDuration: 5) {
                         debugToggleTrigger.toggle()
-                        withAnimation(.easeInOut(duration: DesignTokens.Animation.normal)) {
+                        withAnimation(DesignTokens.Animation.smoothEaseInOut) {
                             isDebugVisible.toggle()
                         }
                     }

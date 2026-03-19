@@ -171,7 +171,7 @@ struct LinkedTransactionsSheet: View {
             }
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 48)
+        .padding(.vertical, DesignTokens.Spacing.stepHeaderTop)
         .padding(.horizontal)
     }
 

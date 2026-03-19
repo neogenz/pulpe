@@ -177,10 +177,8 @@ struct BudgetDetailsView: View {
             Section {
                 CheckedFilterPicker(selection: checkedFilterBinding)
             }
-            .listRowBackground(Color.clear)
-            .listRowSeparator(.hidden)
+            .listRowCustomStyled(insets: fullWidthInsets)
             .listSectionSeparator(.hidden)
-            .listRowInsets(fullWidthInsets)
 
             // Hero balance card (with integrated rollover)
             Section {
@@ -194,17 +192,14 @@ struct BudgetDetailsView: View {
                     }
                 )
             }
-            .listRowBackground(Color.clear)
-            .listRowSeparator(.hidden)
+            .listRowCustomStyled(insets: fullWidthInsets)
             .listSectionSeparator(.hidden)
-            .listRowInsets(fullWidthInsets)
 
             // Empty search state
             if !searchText.isEmpty && filteredIncome.isEmpty && filteredExpenses.isEmpty &&
                 filteredSavings.isEmpty && filteredFree.isEmpty {
                 ContentUnavailableView("Aucune prévision trouvée", systemImage: "magnifyingglass")
-                    .listRowBackground(Color.clear)
-                    .listRowSeparator(.hidden)
+                    .listRowCustomStyled()
             }
 
             // All checked empty state (À pointer filter active, nothing left to check)
@@ -217,8 +212,7 @@ struct BudgetDetailsView: View {
                 } description: {
                     Text("Bien joué ! Passe sur « Toutes » pour revoir tes prévisions.")
                 }
-                .listRowBackground(Color.clear)
-                .listRowSeparator(.hidden)
+                .listRowCustomStyled()
             }
 
             // Budget line sections (tip appears in the first visible section)
@@ -353,19 +347,15 @@ private struct BudgetDetailsSkeletonView: View {
             Section {
                 SkeletonShape(height: 32, cornerRadius: DesignTokens.CornerRadius.sm)
             }
-            .listRowBackground(Color.clear)
-            .listRowSeparator(.hidden)
+            .listRowCustomStyled(insets: EdgeInsets())
             .listSectionSeparator(.hidden)
-            .listRowInsets(EdgeInsets())
 
             // Hero card placeholder
             Section {
                 SkeletonShape(height: 200, cornerRadius: DesignTokens.CornerRadius.xl)
             }
-            .listRowBackground(Color.clear)
-            .listRowSeparator(.hidden)
+            .listRowCustomStyled(insets: EdgeInsets())
             .listSectionSeparator(.hidden)
-            .listRowInsets(EdgeInsets())
 
             // Budget line sections (Revenus + Dépenses)
             ForEach(0..<2, id: \.self) { _ in

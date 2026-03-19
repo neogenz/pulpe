@@ -168,7 +168,7 @@ struct BudgetListView: View {
     private func scrollToCurrentMonth(proxy: ScrollViewProxy) {
         Task {
             try? await Task.sleep(for: .milliseconds(400))
-            withAnimation(.easeOut(duration: 0.5)) {
+            withAnimation(.easeOut(duration: DesignTokens.Animation.slow)) {
                 proxy.scrollTo("currentMonthHero", anchor: .center)
             }
         }

@@ -183,6 +183,7 @@ struct TemplateRow: View {
             }
         }
         .buttonStyle(.plain)
+        .contentShape(.rect)
     }
 }
 

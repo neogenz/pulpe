@@ -33,7 +33,7 @@ struct CapsulePicker<T: CaseIterable & Hashable, ItemLabel: View>: View where T.
                     .frame(minHeight: DesignTokens.TapTarget.minimum)
                     .contentShape(Capsule())
                     .plainPressedButtonStyle()
-                    .accessibilityAddTraits(isSelected ? .isSelected : [])
+                    .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
                 }
             }
             .sensoryFeedback(.selection, trigger: selection)

@@ -116,7 +116,7 @@ struct PayDayPickerSheet: View {
         }
         .plainPressedButtonStyle()
         .accessibilityLabel("Jour \(day)")
-        .accessibilityAddTraits(isSelected ? .isSelected : [])
+        .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
     }
 
     // MARK: - Hint Card

@@ -126,6 +126,7 @@ struct RecoveryKeySheet: View {
                     in: .capsule
                 )
             }
+            .plainPressedButtonStyle()
             .sensoryFeedback(.success, trigger: copied)
             .accessibilityLabel(
                 copied ? "Clé copiée" : "Copier la clé de récupération"

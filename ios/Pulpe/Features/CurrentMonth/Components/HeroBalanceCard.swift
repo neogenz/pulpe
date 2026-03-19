@@ -311,7 +311,7 @@ struct HeroBalanceCard: View {
 
             // Pace indicator (vertical white line)
             if timeElapsedPercentage > 0 {
-                RoundedRectangle(cornerRadius: 1)
+                RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.hairline)
                     .fill(.white.opacity(0.4))
                     .frame(width: 2, height: DesignTokens.ProgressBar.heroHeight + 4)
                     .offset(

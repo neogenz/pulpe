@@ -45,7 +45,7 @@ private struct UncheckedTransactionRow: View {
             ZStack {
                 Circle()
                     .fill(Color.financialOverBudget.opacity(DesignTokens.Opacity.badgeBackground))
-                    .frame(width: 40, height: 40)
+                    .frame(width: DesignTokens.IconSize.listRow, height: DesignTokens.IconSize.listRow)
 
                 Image(systemName: transaction.kind.icon)
                     .font(.system(size: 16, weight: .semibold))
