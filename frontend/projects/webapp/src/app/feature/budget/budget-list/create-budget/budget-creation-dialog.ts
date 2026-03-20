@@ -3,7 +3,6 @@ import {
   Component,
   inject,
   effect,
-  signal,
   computed,
 } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
@@ -23,13 +22,10 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { MAT_DATE_FORMATS } from '@angular/material/core';
 import { MAT_DATE_FNS_FORMATS } from '@angular/material-date-fns-adapter';
 import { startOfMonth, setMonth, setYear } from 'date-fns';
-import { firstValueFrom } from 'rxjs';
 import { TemplatesList } from './ui/templates-list';
 import { type TemplateViewModel } from './ui/template-view-model';
 import { TemplateDetailsDialog } from './template-details-dialog';
 import { TemplateStore } from './services/template-store';
-import { TemplateTotalsCalculator } from './services/template-totals-calculator';
-import { BudgetApi } from '@core/budget/budget-api';
 import { ApiErrorLocalizer } from '@core/api/api-error-localizer';
 import { isApiError } from '@core/api/api-error';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
@@ -67,7 +63,6 @@ const MONTH_YEAR_FORMATS = {
   ],
   providers: [
     TemplateStore,
-    TemplateTotalsCalculator,
     { provide: MAT_DATE_FORMATS, useValue: MONTH_YEAR_FORMATS },
   ],
   template: `
@@ -170,13 +165,13 @@ const MONTH_YEAR_FORMATS = {
         [disabled]="
           budgetForm.invalid ||
           !templateStore.selectedTemplate() ||
-          isCreating()
+          templateStore.isCreatingBudget()
         "
         (click)="onCreateBudget()"
         class="w-full md:w-auto min-h-[44px]"
         data-testid="create-budget-button"
       >
-        @if (isCreating()) {
+        @if (templateStore.isCreatingBudget()) {
           <mat-progress-spinner
             mode="indeterminate"
             [diameter]="24"
@@ -199,9 +194,8 @@ export class CreateBudgetDialogComponent {
   readonly #dialog = inject(MatDialog);
   readonly #snackBar = inject(MatSnackBar);
   readonly #apiErrorLocalizer = inject(ApiErrorLocalizer);
-  readonly #budgetApi = inject(BudgetApi);
   readonly #transloco = inject(TranslocoService);
-  readonly templateStore = inject(TemplateStore);
+  protected readonly templateStore = inject(TemplateStore);
   readonly #data = inject(MAT_DIALOG_DATA, { optional: true }) as {
     month?: number;
     year?: number;
@@ -222,12 +216,12 @@ export class CreateBudgetDialogComponent {
         income: totals?.income || 0,
         expenses: (totals?.expenses || 0) + (totals?.savings || 0), // Combine for display as per SPECS
         netBalance: totals?.netBalance || 0,
-        loading: totals?.loading || !totals,
+        loading: !totals,
       };
     });
 
     // Sort to put default template first
-    return [...viewModels].sort((a, b) => {
+    return viewModels.toSorted((a, b) => {
       if (a.template.isDefault && !b.template.isDefault) return -1;
       if (!a.template.isDefault && b.template.isDefault) return 1;
       return 0;
@@ -239,8 +233,6 @@ export class CreateBudgetDialogComponent {
     description: ['', [Validators.maxLength(DESCRIPTION_MAX_LENGTH)]],
     templateId: ['', Validators.required],
   });
-
-  readonly isCreating = signal(false);
 
   readonly #descriptionFormValue = toSignal(
     this.budgetForm.controls.description.valueChanges,
@@ -263,9 +255,6 @@ export class CreateBudgetDialogComponent {
   }
 
   constructor() {
-    // Initialize templates loading
-    this.templateStore.loadTemplates();
-
     // Sync selected template with form
     effect(() => {
       const selectedId = this.templateStore.selectedTemplateId();
@@ -338,8 +327,6 @@ export class CreateBudgetDialogComponent {
 
     const formData = this.budgetForm.getRawValue();
 
-    this.isCreating.set(true);
-
     const budgetData = {
       month: formData.monthYear.getMonth() + 1, // getMonth() returns 0-11, we need 1-12
       year: formData.monthYear.getFullYear(),
@@ -347,11 +334,9 @@ export class CreateBudgetDialogComponent {
       templateId: formData.templateId,
     };
 
-    try {
-      await firstValueFrom(this.#budgetApi.createBudget$(budgetData));
+    const result = await this.templateStore.createBudget(budgetData);
 
-      // Success - close dialog with success indicator
-      this.isCreating.set(false);
+    if (result !== undefined) {
       this.#dialogRef.close({ success: true, data: formData });
 
       this.#snackBar.open(
@@ -362,14 +347,12 @@ export class CreateBudgetDialogComponent {
           panelClass: ['bg-[color-primary]', 'text-[color-on-primary]'],
         },
       );
-    } catch (error: unknown) {
-      this.isCreating.set(false);
-
+    } else {
+      const error = this.templateStore.createBudgetError();
       const errorMessage = isApiError(error)
         ? this.#apiErrorLocalizer.localizeApiError(error)
         : this.#transloco.translate('budget.createError');
 
-      // Show error snackbar with the localized message
       this.#snackBar.open(
         errorMessage,
         this.#transloco.translate('common.close'),

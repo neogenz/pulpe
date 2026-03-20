@@ -12,20 +12,18 @@ import {
 import { TranslocoService, TranslocoPipe } from '@jsverse/transloco';
 import { StateCard } from '@ui/state-card/state-card';
 
-import { type HttpErrorResponse } from '@angular/common/http';
-
-interface ApiErrorDetails {
-  readonly statusCode?: number;
-  readonly message?: string;
+function isApiErrorWithStatus(err: unknown, status: number): boolean {
+  if (!err || typeof err !== 'object') return false;
+  if ('status' in err && (err as Record<string, unknown>)['status'] === status)
+    return true;
+  if ('error' in err) {
+    const nested = (err as Record<string, unknown>)['error'];
+    if (nested && typeof nested === 'object' && 'statusCode' in nested) {
+      return (nested as Record<string, unknown>)['statusCode'] === status;
+    }
+  }
+  return false;
 }
-
-interface ApiError {
-  readonly status?: number;
-  readonly error?: ApiErrorDetails;
-  readonly message?: string;
-}
-
-type TemplateErrorType = HttpErrorResponse | ApiError | Error | null;
 
 @Component({
   selector: 'pulpe-templates-error',
@@ -62,32 +60,14 @@ export class TemplatesError {
   readonly #transloco = inject(TranslocoService);
 
   readonly reload = output<void>();
-  readonly error = input<TemplateErrorType>();
+  readonly error = input<unknown>();
 
   readonly retryCountdown = signal(0);
   readonly retryDisabled = computed(() => this.retryCountdown() > 0);
 
-  readonly isRateLimited = computed(() => {
-    const err = this.error();
-    if (!err) return false;
-
-    // Check for HttpErrorResponse
-    if ('status' in err && err.status === 429) {
-      return true;
-    }
-
-    // Check for ApiError with nested error object
-    if (
-      'error' in err &&
-      err.error &&
-      'statusCode' in err.error &&
-      err.error.statusCode === 429
-    ) {
-      return true;
-    }
-
-    return false;
-  });
+  readonly isRateLimited = computed(() =>
+    isApiErrorWithStatus(this.error(), 429),
+  );
 
   readonly #rateLimitTitle = this.#transloco.translate(
     'template.rateLimitTitle',
@@ -117,6 +97,10 @@ export class TemplatesError {
   #currentIntervalId: number | null = null;
 
   constructor() {
+    this.#destroyRef.onDestroy(() => {
+      this.#clearCountdown();
+    });
+
     // Track when rate limited state changes to manage countdown
     effect(() => {
       if (this.isRateLimited()) {
@@ -146,11 +130,6 @@ export class TemplatesError {
         this.#clearCountdown();
       }
     }, 1000);
-
-    // Cleanup on destroy
-    this.#destroyRef.onDestroy(() => {
-      this.#clearCountdown();
-    });
   }
 
   #clearCountdown(): void {

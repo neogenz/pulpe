@@ -11,43 +11,33 @@ import { hasBudgetGuard } from './has-budget.guard';
 import { BudgetApi } from '@core/budget';
 import { Logger } from '@core/logging/logger';
 import { ROUTES } from '@core/routing/routes-constants';
-import { HasBudgetCache } from './has-budget-cache';
 
 describe('hasBudgetGuard', () => {
   let mockBudgetApi: {
     checkBudgetExists$: ReturnType<typeof vi.fn>;
+    getCachedBudgetExists: ReturnType<typeof vi.fn>;
   };
   let mockRouter: { createUrlTree: ReturnType<typeof vi.fn> };
   let mockLogger: { error: ReturnType<typeof vi.fn> };
-  let mockHasBudgetCache: {
-    hasBudget: ReturnType<typeof vi.fn>;
-    setHasBudget: ReturnType<typeof vi.fn>;
-  };
+  let expectedUrlTree: UrlTree;
 
   const mockRoute = {} as ActivatedRouteSnapshot;
   const mockState = {} as RouterStateSnapshot;
 
   beforeEach(() => {
+    expectedUrlTree = { toString: () => '/complete-profile' } as UrlTree;
+
     mockBudgetApi = {
       checkBudgetExists$: vi.fn(),
+      getCachedBudgetExists: vi.fn().mockReturnValue(null),
     };
 
     mockRouter = {
-      createUrlTree: vi.fn().mockReturnValue({} as UrlTree),
+      createUrlTree: vi.fn().mockReturnValue(expectedUrlTree),
     };
 
     mockLogger = {
       error: vi.fn(),
-    };
-
-    mockHasBudgetCache = {
-      hasBudget: vi.fn().mockReturnValue(null),
-      setHasBudget: vi.fn(),
-    };
-
-    mockHasBudgetCache = {
-      hasBudget: vi.fn().mockReturnValue(null),
-      setHasBudget: vi.fn(),
     };
 
     TestBed.configureTestingModule({
@@ -55,13 +45,11 @@ describe('hasBudgetGuard', () => {
         { provide: BudgetApi, useValue: mockBudgetApi },
         { provide: Router, useValue: mockRouter },
         { provide: Logger, useValue: mockLogger },
-        { provide: HasBudgetCache, useValue: mockHasBudgetCache },
       ],
     });
   });
 
   it('should allow navigation when user has budgets', async () => {
-    mockHasBudgetCache.hasBudget.mockReturnValue(null);
     mockBudgetApi.checkBudgetExists$.mockReturnValue(of(true));
 
     const result = await TestBed.runInInjectionContext(() =>
@@ -73,14 +61,13 @@ describe('hasBudgetGuard', () => {
   });
 
   it('should redirect to complete-profile when user has no budgets', async () => {
-    mockHasBudgetCache.hasBudget.mockReturnValue(null);
     mockBudgetApi.checkBudgetExists$.mockReturnValue(of(false));
 
     const result = await TestBed.runInInjectionContext(() =>
       hasBudgetGuard(mockRoute, mockState),
     );
 
-    expect(result).toEqual({});
+    expect(result).toBe(expectedUrlTree);
     expect(mockRouter.createUrlTree).toHaveBeenCalledWith([
       '/',
       ROUTES.COMPLETE_PROFILE,
@@ -88,7 +75,6 @@ describe('hasBudgetGuard', () => {
   });
 
   it('should redirect to complete-profile on API error (fail-closed)', async () => {
-    mockHasBudgetCache.hasBudget.mockReturnValue(null);
     mockBudgetApi.checkBudgetExists$.mockReturnValue(
       throwError(() => new Error('API Error')),
     );
@@ -97,20 +83,23 @@ describe('hasBudgetGuard', () => {
       hasBudgetGuard(mockRoute, mockState),
     );
 
-    expect(result).toEqual({});
+    expect(result).toBe(expectedUrlTree);
     expect(mockRouter.createUrlTree).toHaveBeenCalledWith([
       '/',
       ROUTES.COMPLETE_PROFILE,
     ]);
     expect(mockLogger.error).toHaveBeenCalledWith(
-      'hasBudgetGuard: API error during cache miss, redirecting to complete-profile (fail-closed)',
+      'hasBudgetGuard: API error, redirecting to complete-profile (fail-closed)',
       expect.any(Error),
     );
   });
 
   describe('cache behavior', () => {
-    it('should return true immediately when cache indicates user has budget (fast path)', async () => {
-      mockHasBudgetCache.hasBudget.mockReturnValue(true);
+    it('should return true immediately when fresh cache indicates user has budget', async () => {
+      mockBudgetApi.getCachedBudgetExists.mockReturnValue({
+        data: true,
+        fresh: true,
+      });
 
       const result = await TestBed.runInInjectionContext(() =>
         hasBudgetGuard(mockRoute, mockState),
@@ -120,23 +109,50 @@ describe('hasBudgetGuard', () => {
       expect(mockBudgetApi.checkBudgetExists$).not.toHaveBeenCalled();
     });
 
-    it('should redirect immediately when cache indicates no budget (fast path)', async () => {
-      mockHasBudgetCache.hasBudget.mockReturnValue(false);
+    it('should redirect immediately when fresh cache indicates no budget', async () => {
+      mockBudgetApi.getCachedBudgetExists.mockReturnValue({
+        data: false,
+        fresh: true,
+      });
 
       const result = await TestBed.runInInjectionContext(() =>
         hasBudgetGuard(mockRoute, mockState),
       );
 
-      expect(result).toEqual({});
-      expect(mockRouter.createUrlTree).toHaveBeenCalledWith([
-        '/',
-        ROUTES.COMPLETE_PROFILE,
-      ]);
+      expect(result).toBe(expectedUrlTree);
       expect(mockBudgetApi.checkBudgetExists$).not.toHaveBeenCalled();
     });
 
-    it('should fetch from API when cache is empty (slow path)', async () => {
-      mockHasBudgetCache.hasBudget.mockReturnValue(null);
+    it('should trust stale cache when data is true (budget does not disappear)', async () => {
+      mockBudgetApi.getCachedBudgetExists.mockReturnValue({
+        data: true,
+        fresh: false,
+      });
+
+      const result = await TestBed.runInInjectionContext(() =>
+        hasBudgetGuard(mockRoute, mockState),
+      );
+
+      expect(result).toBe(true);
+      expect(mockBudgetApi.checkBudgetExists$).not.toHaveBeenCalled();
+    });
+
+    it('should revalidate via API when stale cache says no budget', async () => {
+      mockBudgetApi.getCachedBudgetExists.mockReturnValue({
+        data: false,
+        fresh: false,
+      });
+      mockBudgetApi.checkBudgetExists$.mockReturnValue(of(true));
+
+      const result = await TestBed.runInInjectionContext(() =>
+        hasBudgetGuard(mockRoute, mockState),
+      );
+
+      expect(result).toBe(true);
+      expect(mockBudgetApi.checkBudgetExists$).toHaveBeenCalled();
+    });
+
+    it('should fetch from API when cache is empty', async () => {
       mockBudgetApi.checkBudgetExists$.mockReturnValue(of(true));
 
       await TestBed.runInInjectionContext(() =>

@@ -23,7 +23,7 @@ import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import type { TransactionCreate } from 'pulpe-shared';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { TransactionValidators } from '@core/transaction';
-import { TransactionLabelPipe } from '@pattern/transaction-display';
+import { TransactionLabelPipe } from '@ui/transaction-display';
 
 export type TransactionFormData = Pick<
   TransactionCreate,

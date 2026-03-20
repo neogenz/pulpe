@@ -5,34 +5,32 @@ import type { User } from '@supabase/supabase-js';
 import { AuthCleanupService } from './auth-cleanup.service';
 import { AuthStateService } from './auth-state.service';
 import { BudgetApi } from '@core/budget';
-import { BudgetInvalidationService } from '../budget/budget-invalidation.service';
+import { BudgetTemplatesApi } from '@core/budget-template/budget-templates-api';
 import { ClientKeyService } from '@core/encryption';
 import { DemoModeService } from '../demo/demo-mode.service';
-import { HasBudgetCache } from './has-budget-cache';
 import { PreloadService } from '../preload/preload.service';
 import { PostHogService } from '../analytics/posthog';
 import { StorageService } from '../storage';
-import { UserSettingsApi } from '../user-settings/user-settings-api';
+import { UserSettingsStore } from '../user-settings/user-settings-store';
 import { Logger } from '../logging/logger';
 import { type E2EWindow } from './e2e-window';
 
 describe('AuthCleanupService', () => {
   let service: AuthCleanupService;
   let mockState: Partial<AuthStateService>;
-  let mockBudgetApi: { cache: { clear: ReturnType<typeof vi.fn> } };
-  let mockBudgetInvalidation: Partial<BudgetInvalidationService>;
+  let mockBudgetApi: { clearCache: ReturnType<typeof vi.fn> };
+  let mockBudgetTemplatesApi: { clearCache: ReturnType<typeof vi.fn> };
   let mockClientKey: Partial<ClientKeyService>;
   let mockDemoMode: Partial<DemoModeService>;
-  let mockHasBudgetCache: Partial<HasBudgetCache>;
   let mockPreload: Partial<PreloadService>;
   let mockPostHog: Partial<PostHogService>;
   let mockStorage: Partial<StorageService>;
-  let mockUserSettings: Partial<UserSettingsApi>;
+  let mockUserSettings: Partial<UserSettingsStore>;
   let mockLogger: Partial<Logger>;
-
-  const userSignal = signal<User | null>(null);
+  let userSignal: ReturnType<typeof signal<User | null>>;
 
   beforeEach(() => {
+    userSignal = signal<User | null>(null);
     mockState = {
       user: userSignal.asReadonly(),
       setSession: vi.fn(),
@@ -40,11 +38,11 @@ describe('AuthCleanupService', () => {
     };
 
     mockBudgetApi = {
-      cache: { clear: vi.fn() },
+      clearCache: vi.fn(),
     };
 
-    mockBudgetInvalidation = {
-      reset: vi.fn(),
+    mockBudgetTemplatesApi = {
+      clearCache: vi.fn(),
     };
 
     mockClientKey = {
@@ -54,10 +52,6 @@ describe('AuthCleanupService', () => {
 
     mockDemoMode = {
       deactivateDemoMode: vi.fn(),
-    };
-
-    mockHasBudgetCache = {
-      clear: vi.fn(),
     };
 
     mockPreload = {
@@ -87,23 +81,18 @@ describe('AuthCleanupService', () => {
         AuthCleanupService,
         { provide: AuthStateService, useValue: mockState },
         { provide: BudgetApi, useValue: mockBudgetApi },
-        {
-          provide: BudgetInvalidationService,
-          useValue: mockBudgetInvalidation,
-        },
+        { provide: BudgetTemplatesApi, useValue: mockBudgetTemplatesApi },
         { provide: ClientKeyService, useValue: mockClientKey },
         { provide: DemoModeService, useValue: mockDemoMode },
-        { provide: HasBudgetCache, useValue: mockHasBudgetCache },
         { provide: PreloadService, useValue: mockPreload },
         { provide: PostHogService, useValue: mockPostHog },
         { provide: StorageService, useValue: mockStorage },
-        { provide: UserSettingsApi, useValue: mockUserSettings },
+        { provide: UserSettingsStore, useValue: mockUserSettings },
         { provide: Logger, useValue: mockLogger },
       ],
     });
 
     service = TestBed.inject(AuthCleanupService);
-    userSignal.set(null);
   });
 
   afterEach(() => {
@@ -122,10 +111,10 @@ describe('AuthCleanupService', () => {
 
     expect(mockClientKey.clearPreservingDeviceTrust).toHaveBeenCalled();
     expect(mockDemoMode.deactivateDemoMode).toHaveBeenCalled();
-    expect(mockHasBudgetCache.clear).toHaveBeenCalled();
-    expect(mockBudgetApi.cache.clear).toHaveBeenCalled();
+
+    expect(mockBudgetApi.clearCache).toHaveBeenCalled();
+    expect(mockBudgetTemplatesApi.clearCache).toHaveBeenCalled();
     expect(mockPreload.reset).toHaveBeenCalled();
-    expect(mockBudgetInvalidation.reset).toHaveBeenCalled();
     expect(mockUserSettings.reset).toHaveBeenCalled();
     expect(mockPostHog.reset).toHaveBeenCalled();
     expect(mockStorage.clearAllUserData).toHaveBeenCalled();
@@ -144,9 +133,9 @@ describe('AuthCleanupService', () => {
     service.performCleanup();
 
     expect(mockDemoMode.deactivateDemoMode).toHaveBeenCalledTimes(1);
-    expect(mockHasBudgetCache.clear).toHaveBeenCalledTimes(1);
+
+    expect(mockBudgetTemplatesApi.clearCache).toHaveBeenCalledTimes(1);
     expect(mockPreload.reset).toHaveBeenCalledTimes(1);
-    expect(mockBudgetInvalidation.reset).toHaveBeenCalledTimes(1);
     expect(mockUserSettings.reset).toHaveBeenCalledTimes(1);
     expect(mockPostHog.reset).toHaveBeenCalledTimes(1);
     expect(mockStorage.clearAllUserData).toHaveBeenCalledTimes(1);
@@ -197,16 +186,15 @@ describe('AuthCleanupService', () => {
       service.performCleanup();
 
       expect(mockDemoMode.deactivateDemoMode).toHaveBeenCalled();
-      expect(mockHasBudgetCache.clear).toHaveBeenCalled();
+
       expect(mockPreload.reset).toHaveBeenCalled();
-      expect(mockBudgetInvalidation.reset).toHaveBeenCalled();
       expect(mockUserSettings.reset).toHaveBeenCalled();
       expect(mockPostHog.reset).toHaveBeenCalled();
       expect(mockStorage.clearAllUserData).toHaveBeenCalled();
     });
 
     it('should continue cleanup when budgetApi.cache.clear() throws', () => {
-      mockBudgetApi.cache.clear.mockImplementation(() => {
+      mockBudgetApi.clearCache.mockImplementation(() => {
         throw new Error('Cache clear failed');
       });
 
@@ -214,9 +202,8 @@ describe('AuthCleanupService', () => {
 
       expect(mockClientKey.clearPreservingDeviceTrust).toHaveBeenCalled();
       expect(mockDemoMode.deactivateDemoMode).toHaveBeenCalled();
-      expect(mockHasBudgetCache.clear).toHaveBeenCalled();
+
       expect(mockPreload.reset).toHaveBeenCalled();
-      expect(mockBudgetInvalidation.reset).toHaveBeenCalled();
       expect(mockUserSettings.reset).toHaveBeenCalled();
       expect(mockPostHog.reset).toHaveBeenCalled();
       expect(mockStorage.clearAllUserData).toHaveBeenCalled();
@@ -233,9 +220,8 @@ describe('AuthCleanupService', () => {
 
       expect(mockClientKey.clearPreservingDeviceTrust).toHaveBeenCalled();
       expect(mockDemoMode.deactivateDemoMode).toHaveBeenCalled();
-      expect(mockHasBudgetCache.clear).toHaveBeenCalled();
+
       expect(mockPreload.reset).toHaveBeenCalled();
-      expect(mockBudgetInvalidation.reset).toHaveBeenCalled();
       expect(mockUserSettings.reset).toHaveBeenCalled();
       expect(mockPostHog.reset).toHaveBeenCalled();
     });
@@ -254,15 +240,14 @@ describe('AuthCleanupService', () => {
       service.performCleanup();
       expect(mockDemoMode.deactivateDemoMode).toHaveBeenCalledTimes(1);
       expect(mockPreload.reset).toHaveBeenCalledTimes(1);
-      expect(mockBudgetInvalidation.reset).toHaveBeenCalledTimes(1);
 
       vi.advanceTimersByTime(100);
 
       service.performCleanup();
       expect(mockDemoMode.deactivateDemoMode).toHaveBeenCalledTimes(2);
       expect(mockPreload.reset).toHaveBeenCalledTimes(2);
-      expect(mockBudgetInvalidation.reset).toHaveBeenCalledTimes(2);
       expect(mockUserSettings.reset).toHaveBeenCalledTimes(2);
+      expect(mockBudgetTemplatesApi.clearCache).toHaveBeenCalledTimes(2);
 
       vi.useRealTimers();
     });

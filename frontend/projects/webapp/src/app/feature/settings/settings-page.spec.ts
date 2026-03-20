@@ -10,7 +10,7 @@ import { type Observable, of } from 'rxjs';
 
 import { ApiError } from '@core/api/api-error';
 import { Logger } from '@core/logging/logger';
-import { UserSettingsApi } from '@core/user-settings';
+import { UserSettingsStore } from '@core/user-settings';
 import { AuthSessionService } from '@core/auth/auth-session.service';
 import { AuthStateService } from '@core/auth';
 import { EncryptionApi } from '@core/encryption';
@@ -21,10 +21,10 @@ import SettingsPage from './settings-page';
 
 describe('SettingsPage', () => {
   let fixture: ComponentFixture<SettingsPage>;
-  let mockUserSettingsApi: {
+  let mockUserSettingsStore: {
     payDayOfMonth: ReturnType<typeof signal<number | null>>;
-    deleteAccount: ReturnType<typeof vi.fn>;
     updateSettings: ReturnType<typeof vi.fn>;
+    deleteAccount: ReturnType<typeof vi.fn>;
   };
   let mockSnackBar: { open: ReturnType<typeof vi.fn> };
   let mockLogger: {
@@ -45,10 +45,10 @@ describe('SettingsPage', () => {
       open: vi.fn().mockReturnValue(mockDialogRef),
     };
 
-    mockUserSettingsApi = {
+    mockUserSettingsStore = {
       payDayOfMonth: signal<number | null>(null),
-      deleteAccount: vi.fn().mockResolvedValue({}),
       updateSettings: vi.fn().mockResolvedValue({}),
+      deleteAccount: vi.fn().mockResolvedValue(undefined),
     };
 
     mockSnackBar = {
@@ -75,7 +75,7 @@ describe('SettingsPage', () => {
         provideAnimationsAsync(),
         provideRouter([]),
         ...provideTranslocoForTest(),
-        { provide: UserSettingsApi, useValue: mockUserSettingsApi },
+        { provide: UserSettingsStore, useValue: mockUserSettingsStore },
         { provide: MatSnackBar, useValue: mockSnackBar },
         { provide: Logger, useValue: mockLogger },
         {
@@ -116,7 +116,7 @@ describe('SettingsPage', () => {
 
   describe('onDeleteAccount - ApiError handling', () => {
     it('should show network error message when ApiError has status 0', async () => {
-      mockUserSettingsApi.deleteAccount.mockRejectedValue(
+      mockUserSettingsStore.deleteAccount.mockRejectedValue(
         new ApiError('Network error', undefined, 0, null),
       );
       await clickDeleteAccount();
@@ -128,7 +128,7 @@ describe('SettingsPage', () => {
     });
 
     it('should show blocked message when ApiError has ERR_USER_ACCOUNT_BLOCKED code', async () => {
-      mockUserSettingsApi.deleteAccount.mockRejectedValue(
+      mockUserSettingsStore.deleteAccount.mockRejectedValue(
         new ApiError('Blocked', 'ERR_USER_ACCOUNT_BLOCKED', 403, null),
       );
       await clickDeleteAccount();
@@ -140,7 +140,7 @@ describe('SettingsPage', () => {
     });
 
     it('should show generic error message for other ApiError instances', async () => {
-      mockUserSettingsApi.deleteAccount.mockRejectedValue(
+      mockUserSettingsStore.deleteAccount.mockRejectedValue(
         new ApiError('Server error', undefined, 500, null),
       );
       await clickDeleteAccount();
@@ -176,7 +176,7 @@ describe('SettingsPage', () => {
 
   describe('onDeleteAccount - HttpErrorResponse handling', () => {
     it('should show network error message when HttpErrorResponse has status 0', async () => {
-      mockUserSettingsApi.deleteAccount.mockRejectedValue(
+      mockUserSettingsStore.deleteAccount.mockRejectedValue(
         new HttpErrorResponse({ status: 0 }),
       );
       await clickDeleteAccount();
@@ -188,7 +188,7 @@ describe('SettingsPage', () => {
     });
 
     it('should show blocked message when HttpErrorResponse contains ERR_USER_ACCOUNT_BLOCKED', async () => {
-      mockUserSettingsApi.deleteAccount.mockRejectedValue(
+      mockUserSettingsStore.deleteAccount.mockRejectedValue(
         new HttpErrorResponse({
           status: 403,
           error: { code: 'ERR_USER_ACCOUNT_BLOCKED' },
@@ -203,7 +203,7 @@ describe('SettingsPage', () => {
     });
 
     it('should show generic error message for other HttpErrorResponse', async () => {
-      mockUserSettingsApi.deleteAccount.mockRejectedValue(
+      mockUserSettingsStore.deleteAccount.mockRejectedValue(
         new HttpErrorResponse({ status: 500 }),
       );
       await clickDeleteAccount();

@@ -16,8 +16,6 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { ActivatedRoute, Router } from '@angular/router';
 import { TranslocoService } from '@jsverse/transloco';
-import { BudgetApi } from '@core/budget/budget-api';
-import { BudgetInvalidationService } from '@core/budget/budget-invalidation.service';
 import { ROUTES } from '@core/routing';
 import { Logger } from '@core/logging/logger';
 import { PulpeTitleStrategy } from '@core/routing/title-strategy';
@@ -27,18 +25,11 @@ import {
 } from 'pulpe-shared';
 import { ConfirmationDialog } from '@ui/dialogs/confirmation-dialog';
 import { BaseLoading } from '@ui/loading';
-import { TransactionLabelPipe } from '@pattern/transaction-display';
+import { TransactionLabelPipe } from '@ui/transaction-display';
 import { firstValueFrom } from 'rxjs';
 import { TemplateUsageDialogComponent } from '../components/dialogs/template-usage-dialog';
-import {
-  BudgetTemplatesApi,
-  type BudgetTemplateDetailViewModel,
-} from '../services/budget-templates-api';
-import {
-  EditTransactionsDialog,
-  TransactionsTable,
-  type FinancialEntry,
-} from './components';
+import { EditTransactionsDialog, TransactionsTable } from './components';
+import { BudgetTemplatesStore } from '../services/budget-templates-store';
 import { TemplateDetailsStore } from './services/template-details-store';
 
 @Component({
@@ -72,7 +63,11 @@ import { TemplateDetailsStore } from './services/template-details-store';
           aria-live="assertive"
         >
           <div class="text-center">
-            <mat-icon class="mb-4 !text-4xl" aria-hidden="true">
+            <mat-icon
+              class="mb-4"
+              style="font-size: 2.25rem; width: 2.25rem; height: 2.25rem;"
+              aria-hidden="true"
+            >
               error_outline
             </mat-icon>
             <p class="text-body-large">{{ loadingError }}</p>
@@ -164,15 +159,15 @@ import { TemplateDetailsStore } from './services/template-details-store';
             <!-- Hero: Net balance -->
             <div
               class="text-center py-6 px-4 sm:py-8 sm:px-6 rounded-3xl"
-              [class.bg-primary-container]="netBalance() >= 0"
-              [class.bg-error-container]="netBalance() < 0"
+              [class.bg-primary-container]="isPositiveBalance()"
+              [class.bg-error-container]="!isPositiveBalance()"
             >
               <p
                 class="text-body-large mb-3"
-                [class.text-on-primary-container]="netBalance() >= 0"
-                [class.text-on-error-container]="netBalance() < 0"
+                [class.text-on-primary-container]="isPositiveBalance()"
+                [class.text-on-error-container]="!isPositiveBalance()"
               >
-                @if (netBalance() >= 0) {
+                @if (isPositiveBalance()) {
                   {{ netBalanceLabel }}
                 } @else {
                   {{ deficitLabel }}
@@ -180,8 +175,8 @@ import { TemplateDetailsStore } from './services/template-details-store';
               </p>
               <div
                 class="text-display-medium sm:text-display-large font-bold tracking-tight ph-no-capture"
-                [class.text-on-primary-container]="netBalance() >= 0"
-                [class.text-on-error-container]="netBalance() < 0"
+                [class.text-on-primary-container]="isPositiveBalance()"
+                [class.text-on-error-container]="!isPositiveBalance()"
               >
                 {{ absNetBalance() | number: '1.0-0' : 'de-CH' }}
                 <span class="text-headline-small font-normal">CHF</span>
@@ -233,7 +228,7 @@ import { TemplateDetailsStore } from './services/template-details-store';
             <div class="flex-1 min-h-0 rounded-lg">
               <pulpe-transactions-table
                 class="flex-1 min-h-0"
-                [entries]="entries()"
+                [entries]="templateDetailsStore.entries()"
                 role="table"
                 [attr.aria-label]="forecastsTableLabel"
               />
@@ -259,18 +254,16 @@ import { TemplateDetailsStore } from './services/template-details-store';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export default class TemplateDetail implements OnInit {
-  readonly templateDetailsStore = inject(TemplateDetailsStore);
+  protected readonly templateDetailsStore = inject(TemplateDetailsStore);
+  readonly #budgetTemplatesStore = inject(BudgetTemplatesStore);
   readonly #router = inject(Router);
   readonly #route = inject(ActivatedRoute);
-  readonly #budgetTemplatesApi = inject(BudgetTemplatesApi);
   readonly #titleStrategy = inject(PulpeTitleStrategy);
   readonly #dialog = inject(MatDialog);
   readonly #injector = inject(Injector);
   readonly #snackBar = inject(MatSnackBar);
   readonly #logger = inject(Logger);
   readonly #destroyRef = inject(DestroyRef);
-  readonly #budgetInvalidationService = inject(BudgetInvalidationService);
-  readonly #budgetApi = inject(BudgetApi);
   readonly #transloco = inject(TranslocoService);
 
   protected readonly loadingMessage =
@@ -309,79 +302,27 @@ export default class TemplateDetail implements OnInit {
     const templateId = this.#route.snapshot.paramMap.get('templateId');
     if (!templateId) return;
 
-    // Extract stale data from router state (if navigated from create page)
-    // Note: Use history.state because getCurrentNavigation() returns null in ngOnInit
-    // (navigation is already complete when component initializes)
-    const staleData = history.state?.['initialData'] as
-      | BudgetTemplateDetailViewModel
-      | undefined;
-
-    this.templateDetailsStore.initializeTemplateId(templateId, staleData);
+    this.templateDetailsStore.initializeTemplateId(templateId);
   }
 
   get #templateId(): string | null {
     return this.#route.snapshot.paramMap.get('templateId');
   }
 
-  // Define sort order for transaction kinds
-  readonly #KIND_ORDER: Record<string, number> = {
-    income: 1,
-    saving: 2,
-    expense: 3,
-  } as const;
+  readonly absNetBalance = computed(() =>
+    Math.abs(this.templateDetailsStore.netBalance()),
+  );
 
-  readonly entries = computed<FinancialEntry[]>(() => {
-    const transactions = this.templateDetailsStore.transactions();
-
-    // Sort transactions by kind first, then by createdAt
-    const sortedTransactions = [...transactions].sort((a, b) => {
-      // First sort by kind (income → saving → expense)
-      const kindDiff =
-        (this.#KIND_ORDER[a.kind] ?? 999) - (this.#KIND_ORDER[b.kind] ?? 999);
-      if (kindDiff !== 0) return kindDiff;
-
-      // Then sort by createdAt (ascending)
-      return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
-    });
-
-    return sortedTransactions.map((transaction: TemplateLine) => {
-      const spent = transaction.kind === 'expense' ? transaction.amount : 0;
-      const earned = transaction.kind === 'income' ? transaction.amount : 0;
-      const saved = transaction.kind === 'saving' ? transaction.amount : 0;
-      return {
-        description: transaction.name,
-        spent,
-        earned,
-        saved,
-        total: earned - spent,
-      };
-    });
-  });
-
-  readonly totals = computed(() => {
-    return this.entries().reduce(
-      (acc, entry) => ({
-        income: acc.income + entry.earned,
-        expense: acc.expense + entry.spent,
-        savings: acc.savings + entry.saved,
-      }),
-      { income: 0, expense: 0, savings: 0 },
-    );
-  });
-
-  readonly netBalance = computed(() => {
-    const t = this.totals();
-    return t.income - t.expense - t.savings;
-  });
-
-  readonly absNetBalance = computed(() => Math.abs(this.netBalance()));
+  protected readonly isPositiveBalance = computed(
+    () => this.templateDetailsStore.netBalance() >= 0,
+  );
 
   readonly #incomeLabel = this.#transloco.translate('template.incomeLabel');
   readonly #expensesLabel = this.#transloco.translate('template.expensesLabel');
   readonly #savingsLabel = this.#transloco.translate('template.savingsLabel');
 
   readonly financialPills = computed(() => {
-    const t = this.totals();
+    const t = this.templateDetailsStore.totals();
     return [
       {
         testId: 'income-pill',
@@ -426,7 +367,7 @@ export default class TemplateDetail implements OnInit {
 
   editTemplate() {
     const template = this.templateDetailsStore.template();
-    const transactions = this.templateDetailsStore.transactions();
+    const transactions = this.templateDetailsStore.templateLines();
     const templateId = this.#templateId;
 
     if (!template || !transactions || !templateId) {
@@ -471,10 +412,6 @@ export default class TemplateDetail implements OnInit {
           if (propagation) {
             // Reload to sync with server state when changes were applied
             this.templateDetailsStore.reloadTemplateDetails();
-            if (propagation.mode === 'propagate') {
-              this.#budgetInvalidationService.invalidate();
-              this.#budgetApi.cache.invalidate(['budget']);
-            }
           }
 
           const message = this.#buildSuccessMessage(propagation);
@@ -500,11 +437,9 @@ export default class TemplateDetail implements OnInit {
 
     try {
       // First check if template is being used
-      const usageResponse = await firstValueFrom(
-        this.#budgetTemplatesApi.checkUsage$(templateId),
-      );
+      const usageData = await this.templateDetailsStore.checkUsage(templateId);
 
-      if (usageResponse.data.isUsed) {
+      if (usageData.isUsed) {
         // Show dialog with list of budgets using this template
         const dialogRef = this.#dialog.open(TemplateUsageDialogComponent, {
           data: {
@@ -518,7 +453,7 @@ export default class TemplateDetail implements OnInit {
 
         // Set the usage data after opening the dialog
         const dialogInstance = dialogRef.componentInstance;
-        dialogInstance.setUsageData(usageResponse.data.budgets);
+        dialogInstance.setUsageData(usageData.budgets);
       } else {
         // Template is not used, show confirmation dialog
         const dialogRef = this.#dialog.open(ConfirmationDialog, {
@@ -579,28 +514,26 @@ export default class TemplateDetail implements OnInit {
       return;
     }
 
-    try {
-      await firstValueFrom(this.#budgetTemplatesApi.delete$(templateId));
+    await this.#budgetTemplatesStore.deleteTemplate(templateId);
 
-      this.#snackBar.open(
-        this.#transloco.translate('template.deleted'),
-        undefined,
-        {
-          duration: 3000,
-        },
+    if (this.#budgetTemplatesStore.deleteTemplateError()) {
+      this.#logger.error(
+        'Error deleting template:',
+        this.#budgetTemplatesStore.deleteTemplateError(),
       );
-
-      // Navigate back to templates list
-      this.navigateBack();
-    } catch (error) {
-      this.#logger.error('Error deleting template:', error);
       this.#snackBar.open(
         this.#transloco.translate('template.deleteCheckError'),
         this.#transloco.translate('common.close'),
-        {
-          duration: 5000,
-        },
+        { duration: 5000 },
       );
+      return;
     }
+
+    this.#snackBar.open(
+      this.#transloco.translate('template.deleted'),
+      undefined,
+      { duration: 3000 },
+    );
+    this.navigateBack();
   }
 }

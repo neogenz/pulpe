@@ -26,14 +26,13 @@ function setup({
   isDemoMode?: boolean;
 } = {}) {
   const mockBudgetApi = {
-    checkBudgetExists$: vi.fn().mockReturnValue(of(true)),
     getAllBudgets$: vi.fn().mockReturnValue(of([])),
     cache: {
       get: vi.fn().mockReturnValue(null),
       set: vi.fn(),
       has: vi.fn().mockReturnValue(false),
       invalidate: vi.fn(),
-      deduplicate: vi.fn((_key: string[], fn: () => Promise<unknown>) => fn()),
+      prefetch: vi.fn((_key: string[], fn: () => Promise<unknown>) => fn()),
       clear: vi.fn(),
     },
   };
@@ -75,7 +74,6 @@ describe('PreloadService', () => {
     await TestBed.flushEffects();
 
     await vi.waitFor(() => {
-      expect(mockBudgetApi.checkBudgetExists$).toHaveBeenCalled();
       expect(mockBudgetApi.getAllBudgets$).toHaveBeenCalled();
     });
   });
@@ -89,7 +87,6 @@ describe('PreloadService', () => {
     await TestBed.flushEffects();
 
     await vi.waitFor(() => {
-      expect(mockBudgetApi.checkBudgetExists$).toHaveBeenCalled();
       expect(mockBudgetApi.getAllBudgets$).toHaveBeenCalled();
     });
   });
@@ -101,7 +98,6 @@ describe('PreloadService', () => {
 
     await TestBed.flushEffects();
 
-    expect(mockBudgetApi.checkBudgetExists$).not.toHaveBeenCalled();
     expect(mockBudgetApi.getAllBudgets$).not.toHaveBeenCalled();
   });
 
@@ -112,34 +108,11 @@ describe('PreloadService', () => {
 
     await TestBed.flushEffects();
 
-    expect(mockBudgetApi.checkBudgetExists$).not.toHaveBeenCalled();
     expect(mockBudgetApi.getAllBudgets$).not.toHaveBeenCalled();
   });
 
-  it('should handle individual preload failures without blocking others (allSettled)', async () => {
+  it('should log warning when getAllBudgets fails', async () => {
     const { mockBudgetApi } = setup();
-    mockBudgetApi.checkBudgetExists$.mockReturnValue(
-      throwError(() => new Error('Network error')),
-    );
-    mockBudgetApi.getAllBudgets$.mockReturnValue(of([]));
-
-    await TestBed.flushEffects();
-
-    await vi.waitFor(() => {
-      expect(mockLogger.warn).toHaveBeenCalledTimes(1);
-      expect(mockLogger.warn).toHaveBeenCalledWith(
-        expect.stringContaining('checkBudgetExists'),
-        expect.anything(),
-      );
-      expect(mockBudgetApi.getAllBudgets$).toHaveBeenCalled();
-    });
-  });
-
-  it('should log warnings with operation name for each failed preload item', async () => {
-    const { mockBudgetApi } = setup();
-    mockBudgetApi.checkBudgetExists$.mockReturnValue(
-      throwError(() => new Error('Budget check failed')),
-    );
     mockBudgetApi.getAllBudgets$.mockReturnValue(
       throwError(() => new Error('Budget list failed')),
     );
@@ -147,11 +120,7 @@ describe('PreloadService', () => {
     await TestBed.flushEffects();
 
     await vi.waitFor(() => {
-      expect(mockLogger.warn).toHaveBeenCalledTimes(2);
-      expect(mockLogger.warn).toHaveBeenCalledWith(
-        expect.stringContaining('checkBudgetExists'),
-        expect.anything(),
-      );
+      expect(mockLogger.warn).toHaveBeenCalledTimes(1);
       expect(mockLogger.warn).toHaveBeenCalledWith(
         expect.stringContaining('getAllBudgets'),
         expect.anything(),
