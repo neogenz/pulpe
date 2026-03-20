@@ -208,7 +208,7 @@ struct PayDaySettingRow: View {
             Text(displayValue)
                 .foregroundStyle(Color.onSurfaceVariant)
             Image(systemName: "chevron.right")
-                .font(.caption)
+                .font(PulpeTypography.caption)
                 .foregroundStyle(.tertiary)
         }
     }

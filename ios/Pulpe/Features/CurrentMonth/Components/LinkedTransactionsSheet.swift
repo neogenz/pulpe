@@ -103,6 +103,8 @@ struct LinkedTransactionsSheet: View {
                 value: consumption.allocated,
                 color: spentColor
             )
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel("Dépensé: \(consumption.allocated.asCHF)")
 
             MetricCard(
                 icon: "target",
@@ -110,6 +112,8 @@ struct LinkedTransactionsSheet: View {
                 value: budgetLine.amount,
                 color: .secondary
             )
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel("Prévu: \(budgetLine.amount.asCHF)")
 
             MetricCard(
                 icon: remaining >= 0 ? "checkmark.circle.fill" : "exclamationmark.circle.fill",
@@ -117,6 +121,8 @@ struct LinkedTransactionsSheet: View {
                 value: remaining,
                 color: remainingColor
             )
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel("Reste: \(remaining.asCHF)")
         }
     }
 

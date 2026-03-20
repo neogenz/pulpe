@@ -331,7 +331,7 @@ struct NextMonthPlaceholder: View {
                 .background(Color.pulpePrimary, in: Capsule())
             }
             .padding(.horizontal, DesignTokens.Spacing.lg)
-            .padding(.vertical, 14)
+            .padding(.vertical, DesignTokens.Spacing.lg)
             .background(
                 Color(light: Color.surfaceContainerLow.opacity(0.4), dark: Color.surfaceContainerLow.opacity(0.5))
             )

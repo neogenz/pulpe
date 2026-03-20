@@ -27,6 +27,8 @@ struct PersonalInfoStep: View {
                         .textContentType(.givenName)
                         .textInputAutocapitalization(.words)
                         .focused($isFocused)
+                        .accessibilityLabel("Prénom")
+                        .accessibilityHint("Saisis ton prénom")
                     }
 
                     CurrencyField(

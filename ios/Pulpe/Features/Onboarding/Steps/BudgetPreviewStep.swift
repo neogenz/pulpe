@@ -54,6 +54,8 @@ struct BudgetPreviewStep: View {
                 .foregroundStyle(Color.textSecondaryOnboarding)
         }
         .padding(.vertical, DesignTokens.Spacing.xl)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Disponible à dépenser: \(state.availableToSpend.asCHF)")
         .opacity(showHero ? 1 : 0)
         .offset(y: showHero ? 0 : 10)
         .task {
@@ -118,6 +120,8 @@ struct BudgetPreviewStep: View {
                 .fill(Color.onboardingCardBackground)
                 .shadow(DesignTokens.Shadow.card)
         )
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Résumé du budget")
         .scaleEffect(showCard ? 1 : 0.95)
         .opacity(showCard ? 1 : 0)
     }

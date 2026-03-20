@@ -8,6 +8,7 @@ struct ConfirmPasswordSheet: View {
     @State private var isVerifying = false
     @State private var errorMessage: String?
     @State private var verifyTask: Task<Void, Never>?
+    @State private var submitSuccessTrigger = false
     @FocusState private var isFocused: Bool
 
     var onVerify: (String) async -> String?
@@ -75,6 +76,7 @@ struct ConfirmPasswordSheet: View {
             .onDisappear { verifyTask?.cancel() }
         }
         .standardSheetPresentation()
+        .sensoryFeedback(.success, trigger: submitSuccessTrigger)
     }
 
     private func verifyPassword() async {
@@ -91,6 +93,7 @@ struct ConfirmPasswordSheet: View {
         }
 
         isVerifying = false
+        submitSuccessTrigger.toggle()
         dismiss()
     }
 }

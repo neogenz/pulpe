@@ -16,6 +16,8 @@ enum DesignTokens {
         static let xs: CGFloat = 4
         /// Small elements: badges, chips (8pt)
         static let sm: CGFloat = 8
+        /// Progress bars with visible rounding (10pt)
+        static let progressBar: CGFloat = 10
         /// Medium elements: inputs, cards (24pt)
         static let md: CGFloat = 24
         /// Primary buttons (14pt)

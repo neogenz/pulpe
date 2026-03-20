@@ -96,7 +96,7 @@ struct InsightsCard: View {
             }
         }
         .padding(.horizontal, DesignTokens.Spacing.lg)
-        .padding(.vertical, 14)
+        .padding(.vertical, DesignTokens.Spacing.lg)
     }
 
     // MARK: - Alerts Section

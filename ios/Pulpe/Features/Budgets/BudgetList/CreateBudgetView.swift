@@ -246,12 +246,12 @@ struct TemplateSelectionCard: View {
 
     var body: some View {
         Button(action: onSelect) {
-            HStack(spacing: 14) {
+            HStack(spacing: DesignTokens.Spacing.lg) {
                 // Selection indicator
                 selectionIndicator
 
                 // Template info
-                VStack(alignment: .leading, spacing: 6) {
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
                     HStack(spacing: DesignTokens.Spacing.sm) {
                         Text(template.name)
                             .font(PulpeTypography.labelLarge)
@@ -269,7 +269,7 @@ struct TemplateSelectionCard: View {
 
                 Spacer()
             }
-            .padding(14)
+            .padding(DesignTokens.Spacing.lg)
             .background(cardBackground)
             .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
             .overlay(cardBorder)

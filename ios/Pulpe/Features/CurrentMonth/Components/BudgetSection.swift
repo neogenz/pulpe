@@ -383,7 +383,7 @@ struct BudgetLineRow: View {
                 .animation(DesignTokens.Animation.gentleSpring, value: consumption.percentage)
         }
         .frame(height: DesignTokens.ProgressBar.height)
-        .clipShape(.rect(cornerRadius: 10))
+        .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.progressBar))
         .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { barWidth = $0 }
     }
 

@@ -9,6 +9,7 @@ struct ChangePasswordSheet: View {
     @State private var showCurrentPassword = false
     @State private var showNewPassword = false
     @State private var showConfirmPassword = false
+    @State private var submitSuccessTrigger = false
 
     let onSuccess: () -> Void
 
@@ -43,6 +44,7 @@ struct ChangePasswordSheet: View {
                         Task {
                             await viewModel.submit(email: appState.currentUser?.email)
                             if viewModel.isCompleted {
+                                submitSuccessTrigger.toggle()
                                 dismiss()
                                 onSuccess()
                             }
@@ -75,6 +77,7 @@ struct ChangePasswordSheet: View {
             .dismissKeyboardOnTap()
         }
         .standardSheetPresentation()
+        .sensoryFeedback(.success, trigger: submitSuccessTrigger)
     }
 
     private var currentPasswordField: some View {

@@ -24,7 +24,7 @@ enum PulpeTypography {
     static let labelLarge: Font = .system(.subheadline, weight: .semibold)
     static let labelLargeBold: Font = .system(.subheadline, weight: .bold)
 
-    // MARK: - Display / Amount
+    // MARK: - Display / Amount (fixed-size — financial layout stability)
 
     static let amountHeroLight: Font = .system(size: 44, weight: .light)
     static let amountDisplayLarge: Font = .system(size: 32)
@@ -34,23 +34,23 @@ enum PulpeTypography {
 
     // MARK: - Card / Section
 
-    static let cardTitle: Font = .system(size: 18, weight: .semibold)
-    static let sectionIcon: Font = .system(size: 22, weight: .medium)
-    static let actionIcon: Font = .system(size: 20, weight: .semibold)
+    static let cardTitle: Font = .system(.headline, weight: .semibold)
+    static let sectionIcon: Font = .system(.title2, weight: .medium)
+    static let actionIcon: Font = .system(.title3, weight: .semibold)
 
     // MARK: - List Row
 
-    static let listRowTitle: Font = .system(size: 16, weight: .semibold)
+    static let listRowTitle: Font = .system(.subheadline, weight: .semibold)
     static let listRowSubtitle: Font = .system(.callout, weight: .regular)
 
     // MARK: - Detail / Metric Labels
 
-    static let detailLabel: Font = .system(size: 12, weight: .semibold)
-    static let detailLabelBold: Font = .system(size: 12, weight: .bold)
-    static let metricLabel: Font = .system(size: 13, weight: .semibold)
-    static let metricLabelBold: Font = .system(size: 13, weight: .bold)
-    static let heroMetric: Font = .system(size: 14, weight: .semibold)
-    static let metricMini: Font = .system(size: 10, weight: .semibold)
+    static let detailLabel: Font = .system(.caption, weight: .semibold)
+    static let detailLabelBold: Font = .system(.caption, weight: .bold)
+    static let metricLabel: Font = .system(.footnote, weight: .semibold)
+    static let metricLabelBold: Font = .system(.footnote, weight: .bold)
+    static let heroMetric: Font = .system(.footnote, weight: .semibold)
+    static let metricMini: Font = .system(.caption2, weight: .semibold)
 
     // MARK: - System (SF Pro)
 

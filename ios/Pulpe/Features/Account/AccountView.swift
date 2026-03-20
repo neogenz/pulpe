@@ -226,7 +226,7 @@ extension AccountView {
                 }
                 Spacer()
                 Image(systemName: "arrow.up.right")
-                    .font(.caption)
+                    .font(PulpeTypography.caption)
                     .foregroundStyle(.tertiary)
             }
         }

@@ -12,5 +12,6 @@ struct CheckedToggle: View {
             .background(Color.inputBackgroundSoft)
             .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
             .accessibilityLabel("Marquer comme pointé")
+            .accessibilityValue(isOn ? "Pointé" : "À pointer")
     }
 }

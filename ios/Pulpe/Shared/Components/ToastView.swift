@@ -52,7 +52,7 @@ struct ToastView: View {
             .accessibilityLabel("Fermer")
         }
         .padding(.horizontal, DesignTokens.Spacing.lg)
-        .padding(.vertical, 14)
+        .padding(.vertical, DesignTokens.Spacing.lg)
         .pulpeFloatingGlass(cornerRadius: DesignTokens.CornerRadius.md)
         .padding(.horizontal, DesignTokens.Spacing.lg)
         .offset(y: offset)
