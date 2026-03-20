@@ -157,7 +157,7 @@ struct SecuritySettingsView: View {
                 }
             }
         }
-        .sensoryFeedback(.warning, trigger: showDeleteConfirmation)
+        .sensoryFeedback(.warning, trigger: showDeleteConfirmation, condition: { _, newValue in newValue })
         .alert("Supprimer mon compte", isPresented: $showDeleteConfirmation) {
             Button("Annuler", role: .cancel) { }
             Button("Supprimer", role: .destructive) {

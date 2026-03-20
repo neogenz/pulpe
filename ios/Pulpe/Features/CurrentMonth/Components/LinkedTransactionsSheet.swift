@@ -9,6 +9,7 @@ struct LinkedTransactionsSheet: View {
     let onAddTransaction: () -> Void
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.amountsHidden) private var amountsHidden
     @State private var progressBarWidth: CGFloat = 0
 
     private var consumption: BudgetFormulas.Consumption {
@@ -104,7 +105,7 @@ struct LinkedTransactionsSheet: View {
                 color: spentColor
             )
             .accessibilityElement(children: .combine)
-            .accessibilityLabel("Dépensé: \(consumption.allocated.asCHF)")
+            .accessibilityLabel("Dépensé: \(amountsHidden ? "Montant masqué" : consumption.allocated.asCHF)")
 
             MetricCard(
                 icon: "target",
@@ -113,7 +114,7 @@ struct LinkedTransactionsSheet: View {
                 color: .secondary
             )
             .accessibilityElement(children: .combine)
-            .accessibilityLabel("Prévu: \(budgetLine.amount.asCHF)")
+            .accessibilityLabel("Prévu: \(amountsHidden ? "Montant masqué" : budgetLine.amount.asCHF)")
 
             MetricCard(
                 icon: remaining >= 0 ? "checkmark.circle.fill" : "exclamationmark.circle.fill",
@@ -122,7 +123,7 @@ struct LinkedTransactionsSheet: View {
                 color: remainingColor
             )
             .accessibilityElement(children: .combine)
-            .accessibilityLabel("Reste: \(remaining.asCHF)")
+            .accessibilityLabel("Reste: \(amountsHidden ? "Montant masqué" : remaining.asCHF)")
         }
     }
 

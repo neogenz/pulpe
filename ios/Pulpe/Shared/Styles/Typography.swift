@@ -49,7 +49,7 @@ enum PulpeTypography {
     static let detailLabelBold: Font = .system(.caption, weight: .bold)
     static let metricLabel: Font = .system(.footnote, weight: .semibold)
     static let metricLabelBold: Font = .system(.footnote, weight: .bold)
-    static let heroMetric: Font = .system(.footnote, weight: .semibold)
+    static let heroMetric: Font = metricLabel
     static let metricMini: Font = .system(.caption2, weight: .semibold)
 
     // MARK: - System (SF Pro)
