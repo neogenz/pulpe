@@ -47,6 +47,7 @@ struct FormTextField: View {
             .font(PulpeTypography.bodyLarge)
             .focused(activeFocus)
             .submitLabel(.done)
+            .onSubmit { activeFocus.wrappedValue = false }
             .padding(DesignTokens.Spacing.lg)
             .background(Color.inputBackgroundSoft)
             .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))

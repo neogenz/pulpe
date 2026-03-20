@@ -90,9 +90,15 @@ struct InsightsCard: View {
                     .font(PulpeTypography.labelLarge)
                     .foregroundStyle(.primary)
                     .sensitiveAmount()
-                Text("\(percentage)% de tes dépenses")
-                    .font(PulpeTypography.caption)
-                    .foregroundStyle(.secondary)
+                if amountsHidden {
+                    Text("Détail masqué")
+                        .font(PulpeTypography.caption)
+                        .foregroundStyle(.secondary)
+                } else {
+                    Text("\(percentage)% de tes dépenses")
+                        .font(PulpeTypography.caption)
+                        .foregroundStyle(.secondary)
+                }
             }
         }
         .padding(.horizontal, DesignTokens.Spacing.lg)
@@ -161,12 +167,16 @@ struct InsightsCard: View {
         var parts: [String] = []
 
         if let topSpending {
-            let percentage = Self.percentageOfTotal(topSpending.amount, of: topSpending.totalExpenses)
             let amountDescription = amountsHidden ? "Montant masqué" : topSpending.amount.asCHF
-            parts.append(
-                "Où part ton argent: \(topSpending.name), \(amountDescription), " +
-                "\(percentage) pourcent de tes dépenses"
-            )
+            if amountsHidden {
+                parts.append("Où part ton argent: \(topSpending.name), \(amountDescription)")
+            } else {
+                let percentage = Self.percentageOfTotal(topSpending.amount, of: topSpending.totalExpenses)
+                parts.append(
+                    "Où part ton argent: \(topSpending.name), \(amountDescription), " +
+                    "\(percentage) pourcent de tes dépenses"
+                )
+            }
         }
 
         if hasAlerts {

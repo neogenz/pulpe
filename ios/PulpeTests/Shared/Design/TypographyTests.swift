@@ -51,7 +51,6 @@ struct TypographyTests {
         _ = PulpeTypography.detailLabelBold
         _ = PulpeTypography.metricLabel
         _ = PulpeTypography.metricLabelBold
-        _ = PulpeTypography.heroMetric
         _ = PulpeTypography.metricMini
         _ = PulpeTypography.inputLabel
         _ = PulpeTypography.inputValue

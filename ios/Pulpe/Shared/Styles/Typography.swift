@@ -40,7 +40,7 @@ enum PulpeTypography {
 
     // MARK: - List Row
 
-    static let listRowTitle: Font = .system(.subheadline, weight: .semibold)
+    static let listRowTitle: Font = .system(.body, weight: .semibold)
     static let listRowSubtitle: Font = .system(.callout, weight: .regular)
 
     // MARK: - Detail / Metric Labels
@@ -49,7 +49,6 @@ enum PulpeTypography {
     static let detailLabelBold: Font = .system(.caption, weight: .bold)
     static let metricLabel: Font = .system(.footnote, weight: .semibold)
     static let metricLabelBold: Font = .system(.footnote, weight: .bold)
-    static let heroMetric: Font = metricLabel
     static let metricMini: Font = .system(.caption2, weight: .semibold)
 
     // MARK: - System (SF Pro)

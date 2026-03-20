@@ -39,12 +39,19 @@ struct SheetFormContainer<Content: View>: View {
                 }
                 if autoFocus != nil {
                     ToolbarItemGroup(placement: .keyboard) {
-                        // Only show toolbar content on the decimal pad (amount field).
-                        // Text fields already have a native return key via .submitLabel(.done).
-                        if autoFocus?.wrappedValue == true {
+                        let amountFocused = autoFocus?.wrappedValue == true
+                        let descriptionFocused = descriptionFocus?.wrappedValue == true
+
+                        if amountFocused || descriptionFocused {
                             if descriptionFocus != nil {
-                                Button(action: goToNextField) {
-                                    Image(systemName: "chevron.down")
+                                if descriptionFocused {
+                                    Button(action: goToPreviousField) {
+                                        Image(systemName: "chevron.up")
+                                    }
+                                } else if amountFocused {
+                                    Button(action: goToNextField) {
+                                        Image(systemName: "chevron.down")
+                                    }
                                 }
                             }
 
@@ -76,6 +83,12 @@ struct SheetFormContainer<Content: View>: View {
         guard let autoFocus, autoFocus.wrappedValue else { return }
         autoFocus.wrappedValue = false
         descriptionFocus?.wrappedValue = true
+    }
+
+    private func goToPreviousField() {
+        guard let descriptionFocus, descriptionFocus.wrappedValue else { return }
+        descriptionFocus.wrappedValue = false
+        autoFocus?.wrappedValue = true
     }
 
     private func dismissKeyboard() {

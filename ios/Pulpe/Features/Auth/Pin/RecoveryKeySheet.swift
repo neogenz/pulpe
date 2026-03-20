@@ -61,7 +61,7 @@ struct RecoveryKeySheet: View {
                     .frame(width: 56, height: 56)
 
                 Image(systemName: "key.horizontal.fill")
-                    .font(PulpeTypography.amountXL)
+                    .font(PulpeTypography.title2)
                     .foregroundStyle(Color.pulpePrimary)
             }
 
@@ -127,6 +127,7 @@ struct RecoveryKeySheet: View {
                 )
             }
             .plainPressedButtonStyle()
+            .contentShape(.capsule)
             .sensoryFeedback(.success, trigger: copied)
             .accessibilityLabel(
                 copied ? "Clé copiée" : "Copier la clé de récupération"

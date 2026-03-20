@@ -251,7 +251,7 @@ struct HeroBalanceCard: View {
     private func chartButton(action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Image(systemName: "chart.bar.fill")
-                .font(PulpeTypography.heroMetric)
+                .font(PulpeTypography.metricLabel)
                 .foregroundStyle(.white)
                 .frame(
                     width: DesignTokens.TapTarget.minimum,
