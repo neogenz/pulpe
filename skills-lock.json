@@ -1,6 +1,11 @@
 {
   "version": 1,
   "skills": {
+    "mobile-design": {
+      "source": "sickn33/antigravity-awesome-skills",
+      "sourceType": "github",
+      "computedHash": "8f79c8ffdacb2d221cc6a2fb4527b80b6cc2b07ba8f3cb95fb572ec237942f3e"
+    },
     "posthog-instrumentation": {
       "source": "posthog/posthog-for-claude",
       "sourceType": "github",
