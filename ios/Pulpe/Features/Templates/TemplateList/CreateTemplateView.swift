@@ -184,6 +184,7 @@ struct AddTemplateLineSheet: View {
     @State private var kind: TransactionKind = .expense
     @State private var recurrence: TransactionRecurrence = .fixed
     @FocusState private var isAmountFocused: Bool
+    @FocusState private var isDescriptionFocused: Bool
     @State private var amountText = ""
     @State private var submitSuccessTrigger = false
 
@@ -204,7 +205,12 @@ struct AddTemplateLineSheet: View {
     }
 
     var body: some View {
-        SheetFormContainer(title: "Nouvelle ligne", isLoading: false, autoFocus: $isAmountFocused) {
+        SheetFormContainer(
+            title: "Nouvelle ligne",
+            isLoading: false,
+            autoFocus: $isAmountFocused,
+            descriptionFocus: $isDescriptionFocused
+        ) {
             KindToggle(selection: $kind)
             HeroAmountField(
                 amount: $amount,
@@ -228,7 +234,8 @@ struct AddTemplateLineSheet: View {
             hint: "Nom de la ligne",
             text: $name,
             label: "Description",
-            accessibilityLabel: "Nom de la ligne budgétaire"
+            accessibilityLabel: "Nom de la ligne budgétaire",
+            focusBinding: $isDescriptionFocused
         )
     }
 

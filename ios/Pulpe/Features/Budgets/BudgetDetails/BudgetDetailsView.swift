@@ -254,7 +254,12 @@ struct BudgetDetailsView: View {
         .refreshable {
             await viewModel.loadDetails(force: true)
         }
-        .searchable(text: $searchText, prompt: "Rechercher...")
+        .searchable(
+            text: $searchText,
+            placement: .navigationBarDrawer(displayMode: .automatic),
+            prompt: "Rechercher..."
+        )
+        .searchPresentationToolbarBehavior(.avoidHidingContent)
     }
 
     // MARK: - Section Builders

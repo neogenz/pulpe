@@ -14,6 +14,7 @@ struct AddAllocatedTransactionSheet: View {
     @State private var isLoading = false
     @State private var error: Error?
     @FocusState private var isAmountFocused: Bool
+    @FocusState private var isDescriptionFocused: Bool
     @State private var amountText = ""
     @State private var submitSuccessTrigger = false
 
@@ -47,7 +48,12 @@ struct AddAllocatedTransactionSheet: View {
     }
 
     var body: some View {
-        SheetFormContainer(title: budgetLine.name, isLoading: isLoading, autoFocus: $isAmountFocused) {
+        SheetFormContainer(
+            title: budgetLine.name,
+            isLoading: isLoading,
+            autoFocus: $isAmountFocused,
+            descriptionFocus: $isDescriptionFocused
+        ) {
             HeroAmountField(
                 amount: $amount,
                 amountText: $amountText,
@@ -82,7 +88,8 @@ struct AddAllocatedTransactionSheet: View {
             hint: budgetLine.kind.descriptionPlaceholder,
             text: $name,
             label: "Description",
-            accessibilityLabel: "Description de la transaction"
+            accessibilityLabel: "Description de la transaction",
+            focusBinding: $isDescriptionFocused
         )
     }
 

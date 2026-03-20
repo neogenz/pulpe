@@ -18,6 +18,8 @@ struct NumpadView: View {
                 }
             }
         }
+        .opacity(isDisabled ? DesignTokens.Opacity.strong : 1.0)
+        .animation(.easeInOut(duration: DesignTokens.Animation.fast), value: isDisabled)
     }
 
     // MARK: - Grid Data

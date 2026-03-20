@@ -65,6 +65,7 @@ struct PinEntryView: View {
                     .font(PulpeTypography.footnote)
                     .foregroundStyle(Color.textSecondaryOnboarding)
             }
+            .disabled(viewModel.isValidating)
         }
         .padding(.top, DesignTokens.Spacing.md)
     }
@@ -94,7 +95,8 @@ struct PinEntryView: View {
             enteredCount: viewModel.digits.count,
             maxDigits: viewModel.pinLength,
             isError: viewModel.isError,
-            errorMessage: viewModel.errorMessage
+            errorMessage: viewModel.errorMessage,
+            isValidating: viewModel.isValidating
         )
     }
 
@@ -108,6 +110,9 @@ struct PinEntryView: View {
                 .font(PulpeTypography.stepSubtitle)
                 .foregroundStyle(Color.textSecondaryOnboarding)
         }
+        .frame(minHeight: DesignTokens.TapTarget.minimum)
+        .contentShape(Rectangle())
+        .disabled(viewModel.isValidating)
     }
 
     private func triggerAutoBiometricIfNeeded() {

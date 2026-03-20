@@ -53,6 +53,7 @@ struct MainTabView: View {
                 .padding(.bottom, tabBarBottom)
             }
             .ignoresSafeArea(.container, edges: .bottom)
+            .ignoresSafeArea(.keyboard)
         }
         .onChange(of: appState.selectedTab) { _, newTab in
             AnalyticsService.shared.capture(.tabSwitched, properties: ["tab": newTab.rawValue])

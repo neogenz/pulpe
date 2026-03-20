@@ -14,6 +14,7 @@ struct EditTransactionSheet: View {
     @State private var isLoading = false
     @State private var error: Error?
     @FocusState private var isAmountFocused: Bool
+    @FocusState private var isDescriptionFocused: Bool
     @State private var amountText: String
     @State private var submitSuccessTrigger = false
 
@@ -45,7 +46,12 @@ struct EditTransactionSheet: View {
     }
 
     var body: some View {
-        SheetFormContainer(title: "Modifier la transaction", isLoading: isLoading, autoFocus: $isAmountFocused) {
+        SheetFormContainer(
+            title: "Modifier la transaction",
+            isLoading: isLoading,
+            autoFocus: $isAmountFocused,
+            descriptionFocus: $isDescriptionFocused
+        ) {
             KindToggle(selection: $kind)
             HeroAmountField(
                 amount: $amount, amountText: $amountText,
@@ -73,7 +79,8 @@ struct EditTransactionSheet: View {
             hint: kind.descriptionPlaceholder,
             text: $name,
             label: "Description",
-            accessibilityLabel: "Description de la transaction"
+            accessibilityLabel: "Description de la transaction",
+            focusBinding: $isDescriptionFocused
         )
     }
 
