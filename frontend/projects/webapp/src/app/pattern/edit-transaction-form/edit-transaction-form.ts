@@ -30,7 +30,6 @@ import { type Transaction, type TransactionCreate } from 'pulpe-shared';
 import { startOfMonth, endOfMonth } from 'date-fns';
 import type { CurrencyConverterService } from '@core/currency';
 import { CURRENCY_CONFIG, injectCurrencyFormConfig } from '@core/currency';
-import { UserSettingsStore } from '@core/user-settings';
 import { TransactionValidators } from '@core/transaction';
 import { TransactionLabelPipe } from '@ui/transaction-display';
 import { CurrencySuffix } from '@ui/currency-suffix';
@@ -288,7 +287,6 @@ export class EditTransactionForm implements OnInit {
   readonly #locale = inject(LOCALE_ID);
   readonly #logger = inject(Logger);
   readonly #transloco = inject(TranslocoService);
-  readonly #userSettings = inject(UserSettingsStore);
   readonly #currencyConfig = injectCurrencyFormConfig();
 
   protected readonly formAriaLabel = this.#transloco.translate(
