@@ -9,14 +9,10 @@ import {
 import { cachedResource } from 'ngx-ziflux';
 import { firstValueFrom } from 'rxjs';
 import {
+  type BudgetPlaceholder,
   buildCalendarYears,
   resolveSelectedYearIndex,
 } from './budget-list-mapper/budget-list.mapper';
-
-export interface BudgetPlaceholder {
-  month: number;
-  year: number;
-}
 
 const MAX_FUTURE_MONTHS_TO_SEARCH = 36;
 

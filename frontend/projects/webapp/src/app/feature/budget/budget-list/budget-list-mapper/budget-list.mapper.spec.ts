@@ -6,7 +6,7 @@ import {
 } from './budget-list.mapper';
 import type { Budget } from 'pulpe-shared';
 import type { CalendarYear } from '@ui/calendar/calendar-types';
-import type { BudgetPlaceholder } from '../budget-list-store';
+import type { BudgetPlaceholder } from './budget-list.mapper';
 
 function createBudget(month: number, year: number): Budget {
   return {

@@ -1,5 +1,9 @@
 import { type Budget, formatBudgetPeriod } from 'pulpe-shared';
-import { type BudgetPlaceholder } from '../budget-list-store';
+
+export interface BudgetPlaceholder {
+  month: number;
+  year: number;
+}
 import { format } from 'date-fns';
 import { frCH } from 'date-fns/locale';
 import {
