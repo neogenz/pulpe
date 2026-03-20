@@ -41,7 +41,7 @@ struct QuickAmountChips: View {
                                 isSelected
                                     ? color.opacity(DesignTokens.Opacity.strong)
                                     : Color.outlineVariant.opacity(0.6),
-                                lineWidth: 1
+                                lineWidth: DesignTokens.BorderWidth.thin
                             )
                         )
                 }

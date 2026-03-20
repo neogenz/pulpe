@@ -49,7 +49,7 @@ private struct AlertRow: View {
     let percentage: Int
 
     private var severityColor: Color {
-        percentage >= 90 ? .financialOverBudget : .orange
+        percentage >= 90 ? .financialOverBudget : .warningPrimary
     }
 
     var body: some View {

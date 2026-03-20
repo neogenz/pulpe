@@ -157,6 +157,7 @@ struct SecuritySettingsView: View {
                 }
             }
         }
+        .sensoryFeedback(.warning, trigger: showDeleteConfirmation, condition: { _, newValue in newValue })
         .alert("Supprimer mon compte", isPresented: $showDeleteConfirmation) {
             Button("Annuler", role: .cancel) { }
             Button("Supprimer", role: .destructive) {
@@ -189,7 +190,7 @@ struct SecuritySettingsView: View {
                 Text(detail)
                     .foregroundStyle(.secondary)
                 Image(systemName: "chevron.right")
-                    .font(.caption)
+                    .font(PulpeTypography.caption)
                     .foregroundStyle(.tertiary)
             }
         }

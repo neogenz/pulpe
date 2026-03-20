@@ -33,7 +33,7 @@ struct BudgetListView: View {
             } else if store.budgets.isEmpty {
                 VStack(spacing: DesignTokens.Spacing.lg) {
                     Image(systemName: "chart.bar.doc.horizontal")
-                        .font(.system(size: 48))
+                        .font(PulpeTypography.emojiDisplay)
                         .foregroundStyle(Color.pulpeTextTertiary)
                     Text("Pas encore de budget")
                         .font(PulpeTypography.stepTitle)
@@ -168,7 +168,7 @@ struct BudgetListView: View {
     private func scrollToCurrentMonth(proxy: ScrollViewProxy) {
         Task {
             try? await Task.sleep(for: .milliseconds(400))
-            withAnimation(.easeOut(duration: 0.5)) {
+            withAnimation(.easeOut(duration: DesignTokens.Animation.slow)) {
                 proxy.scrollTo("currentMonthHero", anchor: .center)
             }
         }
@@ -290,7 +290,7 @@ struct YearSection: View {
         Button(action: onToggle) {
             HStack(alignment: .center, spacing: DesignTokens.Spacing.md) {
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 13, weight: .bold))
+                    .font(PulpeTypography.metricLabelBold)
                     .foregroundStyle(data.isPastYear ? .tertiary : .secondary)
                     .rotationEffect(.degrees(isExpanded ? 90 : 0))
                 Text(String(year))

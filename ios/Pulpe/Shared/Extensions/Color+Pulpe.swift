@@ -307,22 +307,37 @@ extension Color {
     static let pinTextSecondary = Color(light: Color(hex: 0x4A4A4A), dark: Color(hex: 0xC8D0CA))
 
     /// Numpad button fill — adjusted for green-tinted PIN background
-    static let pinButtonFill = Color(light: Color(hex: 0x1A1A1A).opacity(0.06), dark: .white.opacity(0.08))
+    static let pinButtonFill = Color(
+        light: Color(hex: 0x1A1A1A).opacity(0.06),
+        dark: .white.opacity(0.08)
+    )
 
     /// Numpad button stroke
-    static let pinButtonStroke = Color(light: Color(hex: 0x1A1A1A).opacity(0.10), dark: .white.opacity(0.12))
+    static let pinButtonStroke = Color(
+        light: Color(hex: 0x1A1A1A).opacity(0.10),
+        dark: .white.opacity(0.12)
+    )
 
     /// PIN dot color (filled state)
     static let pinDotFilled = Color(light: Color(hex: 0x1A1A1A), dark: .white)
 
     /// PIN dot color (empty state)
-    static let pinDotEmpty = Color(light: Color(hex: 0x1A1A1A).opacity(0.2), dark: .white.opacity(0.3))
+    static let pinDotEmpty = Color(
+        light: Color(hex: 0x1A1A1A).opacity(0.2),
+        dark: .white.opacity(0.3)
+    )
 
     /// Recovery key input field background
-    static let pinInputBackground = Color(light: Color(hex: 0x1A1F2B).opacity(0.05), dark: .white.opacity(0.08))
+    static let pinInputBackground = Color(
+        light: Color(hex: 0x1A1F2B).opacity(0.05),
+        dark: .white.opacity(0.08)
+    )
 
     /// Recovery key input field border
-    static let pinInputBorder = Color(light: Color(hex: 0x1A1F2B).opacity(0.12), dark: .white.opacity(0.15))
+    static let pinInputBorder = Color(
+        light: Color(hex: 0x1A1F2B).opacity(0.12),
+        dark: .white.opacity(DesignTokens.Opacity.accent)
+    )
 
     // MARK: - Skeleton
 

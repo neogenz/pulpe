@@ -6,6 +6,8 @@ struct InsightsCard: View {
     let alerts: [BudgetAlert]
     var onTap: (() -> Void)?
 
+    @Environment(\.amountsHidden) private var amountsHidden
+
     private let maxVisibleAlerts = 3
 
     private var hasTopSpending: Bool { topSpending != nil }
@@ -64,10 +66,10 @@ struct InsightsCard: View {
         return HStack(spacing: DesignTokens.Spacing.md) {
             Circle()
                 .fill(Color.financialExpense.opacity(DesignTokens.Opacity.accent))
-                .frame(width: 40, height: 40)
+                .frame(width: DesignTokens.IconSize.listRow, height: DesignTokens.IconSize.listRow)
                 .overlay {
                     Image(systemName: "chart.pie.fill")
-                        .font(.system(size: 18))
+                        .font(PulpeTypography.cardTitle)
                         .foregroundStyle(Color.financialExpense)
                 }
 
@@ -88,13 +90,19 @@ struct InsightsCard: View {
                     .font(PulpeTypography.labelLarge)
                     .foregroundStyle(.primary)
                     .sensitiveAmount()
-                Text("\(percentage)% de tes dépenses")
-                    .font(PulpeTypography.caption)
-                    .foregroundStyle(.secondary)
+                if amountsHidden {
+                    Text("Détail masqué")
+                        .font(PulpeTypography.caption)
+                        .foregroundStyle(.secondary)
+                } else {
+                    Text("\(percentage)% de tes dépenses")
+                        .font(PulpeTypography.caption)
+                        .foregroundStyle(.secondary)
+                }
             }
         }
         .padding(.horizontal, DesignTokens.Spacing.lg)
-        .padding(.vertical, 14)
+        .padding(.vertical, DesignTokens.Spacing.lg)
     }
 
     // MARK: - Alerts Section
@@ -159,11 +167,16 @@ struct InsightsCard: View {
         var parts: [String] = []
 
         if let topSpending {
-            let percentage = Self.percentageOfTotal(topSpending.amount, of: topSpending.totalExpenses)
-            parts.append(
-                "Où part ton argent: \(topSpending.name), \(topSpending.amount.asCHF), " +
-                "\(percentage) pourcent de tes dépenses"
-            )
+            let amountDescription = amountsHidden ? "Montant masqué" : topSpending.amount.asCHF
+            if amountsHidden {
+                parts.append("Où part ton argent: \(topSpending.name), \(amountDescription)")
+            } else {
+                let percentage = Self.percentageOfTotal(topSpending.amount, of: topSpending.totalExpenses)
+                parts.append(
+                    "Où part ton argent: \(topSpending.name), \(amountDescription), " +
+                    "\(percentage) pourcent de tes dépenses"
+                )
+            }
         }
 
         if hasAlerts {

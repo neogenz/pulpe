@@ -13,6 +13,7 @@ struct EditBudgetLineSheet: View {
     @State private var isLoading = false
     @State private var error: Error?
     @FocusState private var isAmountFocused: Bool
+    @FocusState private var isDescriptionFocused: Bool
     @State private var amountText: String
     @State private var submitSuccessTrigger = false
 
@@ -39,7 +40,12 @@ struct EditBudgetLineSheet: View {
     }
 
     var body: some View {
-        SheetFormContainer(title: kind.editBudgetLineTitle, isLoading: isLoading, autoFocus: $isAmountFocused) {
+        SheetFormContainer(
+            title: kind.editBudgetLineTitle,
+            isLoading: isLoading,
+            autoFocus: $isAmountFocused,
+            descriptionFocus: $isDescriptionFocused
+        ) {
             KindToggle(selection: $kind)
             HeroAmountField(
                 amount: $amount, amountText: $amountText,
@@ -65,7 +71,8 @@ struct EditBudgetLineSheet: View {
             hint: kind.descriptionPlaceholder,
             text: $name,
             label: "Description",
-            accessibilityLabel: "Description de la prévision"
+            accessibilityLabel: "Description de la prévision",
+            focusBinding: $isDescriptionFocused
         )
     }
 

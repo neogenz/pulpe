@@ -116,7 +116,7 @@ struct PayDayPickerSheet: View {
         }
         .plainPressedButtonStyle()
         .accessibilityLabel("Jour \(day)")
-        .accessibilityAddTraits(isSelected ? .isSelected : [])
+        .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
     }
 
     // MARK: - Hint Card
@@ -208,7 +208,7 @@ struct PayDaySettingRow: View {
             Text(displayValue)
                 .foregroundStyle(Color.onSurfaceVariant)
             Image(systemName: "chevron.right")
-                .font(.caption)
+                .font(PulpeTypography.caption)
                 .foregroundStyle(.tertiary)
         }
     }

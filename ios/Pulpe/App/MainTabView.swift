@@ -10,7 +10,7 @@ struct MainTabView: View {
     @Environment(CurrentMonthStore.self) private var monthStore
     @State private var addTransactionBudgetId: AddTransactionItem?
 
-    private let tabBarHeight: CGFloat = 62
+    private let tabBarHeight = DesignTokens.FrameHeight.tabBar
 
     var body: some View {
         @Bindable var state = appState
@@ -53,6 +53,7 @@ struct MainTabView: View {
                 .padding(.bottom, tabBarBottom)
             }
             .ignoresSafeArea(.container, edges: .bottom)
+            .ignoresSafeArea(.keyboard)
         }
         .onChange(of: appState.selectedTab) { _, newTab in
             AnalyticsService.shared.capture(.tabSwitched, properties: ["tab": newTab.rawValue])
@@ -118,7 +119,7 @@ struct MainTabView: View {
                 addTransactionBudgetId = AddTransactionItem(id: budgetId)
             } label: {
                 Image(systemName: "plus")
-                    .font(.system(size: 22, weight: .medium))
+                    .font(PulpeTypography.sectionIcon)
                     .foregroundStyle(Color.white)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
@@ -165,7 +166,7 @@ struct MainTabView: View {
                     addTransactionBudgetId = AddTransactionItem(id: budgetId)
                 } label: {
                     Image(systemName: "plus")
-                        .font(.system(size: 22, weight: .medium))
+                        .font(PulpeTypography.sectionIcon)
                         .foregroundStyle(Color.pulpePrimary)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }

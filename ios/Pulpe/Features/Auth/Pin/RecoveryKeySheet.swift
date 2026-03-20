@@ -61,7 +61,7 @@ struct RecoveryKeySheet: View {
                     .frame(width: 56, height: 56)
 
                 Image(systemName: "key.horizontal.fill")
-                    .font(.system(size: 24, weight: .semibold))
+                    .font(PulpeTypography.title2)
                     .foregroundStyle(Color.pulpePrimary)
             }
 
@@ -126,6 +126,8 @@ struct RecoveryKeySheet: View {
                     in: .capsule
                 )
             }
+            .plainPressedButtonStyle()
+            .contentShape(.capsule)
             .sensoryFeedback(.success, trigger: copied)
             .accessibilityLabel(
                 copied ? "Clé copiée" : "Copier la clé de récupération"
@@ -138,7 +140,7 @@ struct RecoveryKeySheet: View {
                 .fill(Color.onboardingCardBackground)
                 .overlay {
                     RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.lg, style: .continuous)
-                        .strokeBorder(Color.outlineVariant.opacity(0.3), lineWidth: 1)
+                        .strokeBorder(Color.outlineVariant.opacity(0.3), lineWidth: DesignTokens.BorderWidth.thin)
                 }
         }
         .scaleEffect(showKey ? 1 : 0.95)

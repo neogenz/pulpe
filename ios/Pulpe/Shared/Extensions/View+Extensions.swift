@@ -155,7 +155,7 @@ extension View {
                     onUndo: toast.hasUndo ? { manager.executeUndo() } : nil
                 )
                 .safeAreaPadding(.top)
-                .padding(.top, 8)
+                .padding(.top, DesignTokens.Spacing.sm)
                 .transition(.move(edge: .top).combined(with: .opacity))
             }
         }

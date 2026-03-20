@@ -23,7 +23,7 @@ private struct AuthFieldContainer<Content: View>: View {
     }
 
     private var strokeWidth: CGFloat {
-        (isFocused || hasError) ? 2 : 0.75
+        (isFocused || hasError) ? DesignTokens.BorderWidth.thick : DesignTokens.BorderWidth.hairline
     }
 
     private var showCheckmark: Bool {

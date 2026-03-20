@@ -70,7 +70,7 @@ struct CustomTabBar: UIViewRepresentable {
 
 #Preview {
     @Previewable @State var selectedTab: Tab = .currentMonth
-    let tabBarHeight: CGFloat = 55
+    let tabBarHeight = DesignTokens.FrameHeight.tabBar
 
     VStack {
         Spacer()
@@ -92,7 +92,7 @@ struct CustomTabBar: UIViewRepresentable {
                                 .frame(maxWidth: .infinity)
                             }
                         }
-                        .animation(.easeInOut(duration: 0.25), value: selectedTab)
+                        .animation(.easeInOut(duration: DesignTokens.Animation.quickSnap), value: selectedTab)
                     }
             }
         }

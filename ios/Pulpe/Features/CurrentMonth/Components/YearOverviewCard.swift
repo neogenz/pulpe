@@ -54,7 +54,7 @@ struct YearOverviewCard: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, DesignTokens.Spacing.lg)
-        .padding(.vertical, 14)
+        .padding(.vertical, DesignTokens.Spacing.lg)
         .pulpeCardBackground()
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(title): \(amountsHidden ? "Montant masqué" : value.asCHF)")

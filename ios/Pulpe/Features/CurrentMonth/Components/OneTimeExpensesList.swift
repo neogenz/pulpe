@@ -201,17 +201,17 @@ struct TransactionRow: View {
                     transaction.isChecked ? Color.progressTrack :
                         transaction.kind.color.opacity(DesignTokens.Opacity.badgeBackground)
                 )
-                .frame(width: 40, height: 40)
+                .frame(width: DesignTokens.IconSize.listRow, height: DesignTokens.IconSize.listRow)
 
             if transaction.isChecked {
                 // Show checkmark when checked
                 Image(systemName: "checkmark")
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(PulpeTypography.listRowTitle)
                     .foregroundStyle(.secondary)
             } else {
                 // Show kind icon
                 Image(systemName: transaction.kind.icon)
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(PulpeTypography.listRowTitle)
                     .foregroundStyle(transaction.kind.color)
             }
         }
@@ -270,7 +270,7 @@ struct TransactionRow: View {
         )
     }
     .listStyle(.insetGrouped)
-    .listSectionSpacing(16)
+    .listSectionSpacing(DesignTokens.Spacing.lg)
     .scrollContentBackground(.hidden)
     .pulpeBackground()
 }

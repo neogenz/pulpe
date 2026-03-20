@@ -134,7 +134,7 @@ extension AccountView {
                     .foregroundStyle(.tertiary)
                     .onLongPressGesture(minimumDuration: 5) {
                         debugToggleTrigger.toggle()
-                        withAnimation(.easeInOut(duration: DesignTokens.Animation.normal)) {
+                        withAnimation(DesignTokens.Animation.smoothEaseInOut) {
                             isDebugVisible.toggle()
                         }
                     }
@@ -185,7 +185,7 @@ extension AccountView {
         NavigationLink(destination: destination) {
             HStack(spacing: DesignTokens.Spacing.md) {
                 Image(systemName: icon)
-                    .font(.system(size: 16))
+                    .font(PulpeTypography.listRowTitle)
                     .foregroundStyle(.secondary)
                     .frame(
                         width: DesignTokens.IconSize.compact,
@@ -211,7 +211,7 @@ extension AccountView {
         Link(destination: url) {
             HStack(spacing: DesignTokens.Spacing.md) {
                 Image(systemName: icon)
-                    .font(.system(size: 16))
+                    .font(PulpeTypography.listRowTitle)
                     .foregroundStyle(.secondary)
                     .frame(
                         width: DesignTokens.IconSize.compact,
@@ -226,7 +226,7 @@ extension AccountView {
                 }
                 Spacer()
                 Image(systemName: "arrow.up.right")
-                    .font(.caption)
+                    .font(PulpeTypography.caption)
                     .foregroundStyle(.tertiary)
             }
         }

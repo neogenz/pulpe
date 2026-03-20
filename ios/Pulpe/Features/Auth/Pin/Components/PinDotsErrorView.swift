@@ -7,13 +7,15 @@ struct PinDotsErrorView: View {
     let maxDigits: Int
     let isError: Bool
     let errorMessage: String?
+    var isValidating: Bool = false
 
     var body: some View {
         VStack(spacing: DesignTokens.Spacing.md) {
             PinDotsView(
                 enteredCount: enteredCount,
                 maxDigits: maxDigits,
-                isError: isError
+                isError: isError,
+                isValidating: isValidating
             )
 
             if let errorMessage {
@@ -31,6 +33,9 @@ struct PinDotsErrorView: View {
 
     private var accessibilityDescription: String {
         var description = "\(enteredCount) chiffres sur \(maxDigits) saisis"
+        if isValidating {
+            description += ". Vérification en cours"
+        }
         if let errorMessage {
             description += ". \(errorMessage)"
         }

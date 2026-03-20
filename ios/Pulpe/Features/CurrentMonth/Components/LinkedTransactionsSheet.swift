@@ -9,6 +9,7 @@ struct LinkedTransactionsSheet: View {
     let onAddTransaction: () -> Void
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.amountsHidden) private var amountsHidden
     @State private var progressBarWidth: CGFloat = 0
 
     private var consumption: BudgetFormulas.Consumption {
@@ -103,6 +104,8 @@ struct LinkedTransactionsSheet: View {
                 value: consumption.allocated,
                 color: spentColor
             )
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel("Dépensé: \(amountsHidden ? "Montant masqué" : consumption.allocated.asCHF)")
 
             MetricCard(
                 icon: "target",
@@ -110,6 +113,8 @@ struct LinkedTransactionsSheet: View {
                 value: budgetLine.amount,
                 color: .secondary
             )
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel("Prévu: \(amountsHidden ? "Montant masqué" : budgetLine.amount.asCHF)")
 
             MetricCard(
                 icon: remaining >= 0 ? "checkmark.circle.fill" : "exclamationmark.circle.fill",
@@ -117,6 +122,8 @@ struct LinkedTransactionsSheet: View {
                 value: remaining,
                 color: remainingColor
             )
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel("Reste: \(amountsHidden ? "Montant masqué" : remaining.asCHF)")
         }
     }
 
@@ -156,7 +163,7 @@ struct LinkedTransactionsSheet: View {
     private var emptyStateView: some View {
         VStack(spacing: DesignTokens.Spacing.lg) {
             Image(systemName: "tray")
-                .font(.system(size: 44, weight: .light))
+                .font(PulpeTypography.amountHeroLight)
                 .foregroundStyle(.quaternary)
 
             VStack(spacing: DesignTokens.Spacing.xs) {
@@ -171,7 +178,7 @@ struct LinkedTransactionsSheet: View {
             }
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 48)
+        .padding(.vertical, DesignTokens.Spacing.stepHeaderTop)
         .padding(.horizontal)
     }
 
@@ -234,7 +241,7 @@ private struct MetricCard: View {
     var body: some View {
         VStack(spacing: DesignTokens.Spacing.sm) {
             Image(systemName: icon)
-                .font(.system(size: 20))
+                .font(PulpeTypography.actionIcon)
                 .foregroundStyle(color)
 
             VStack(spacing: 2) {

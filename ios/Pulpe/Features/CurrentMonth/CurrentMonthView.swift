@@ -40,7 +40,7 @@ struct CurrentMonthView: View {
             } else if store.budget == nil {
                 VStack(spacing: DesignTokens.Spacing.lg) {
                     Image(systemName: "calendar.badge.plus")
-                        .font(.system(size: 48))
+                        .font(PulpeTypography.emojiDisplay)
                         .foregroundStyle(Color.pulpeTextTertiary)
                     Text("Pas encore de budget ce mois-ci")
                         .font(PulpeTypography.stepTitle)

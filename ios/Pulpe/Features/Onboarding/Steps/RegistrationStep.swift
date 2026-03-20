@@ -129,7 +129,7 @@ extension RegistrationStep {
                         .strokeBorder(
                             state.acceptTerms ? Color.pulpePrimary :
                                 Color.textPrimaryOnboarding.opacity(0.4),
-                            lineWidth: 2
+                            lineWidth: DesignTokens.BorderWidth.thick
                         )
                         .frame(width: DesignTokens.Checkbox.size, height: DesignTokens.Checkbox.size)
                         .background {

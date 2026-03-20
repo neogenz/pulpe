@@ -272,7 +272,7 @@ struct BudgetLineRow: View {
             // Main content
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                 Text(line.name)
-                    .font(.system(.body, weight: .semibold))
+                    .font(PulpeTypography.listRowTitle)
                     .foregroundStyle(line.isChecked ? .secondary : .primary)
                     .strikethrough(line.isChecked, color: .secondary)
                     .lineLimit(1)
@@ -303,7 +303,7 @@ struct BudgetLineRow: View {
 
             // Amount (remaining when transactions exist, otherwise budgeted)
             Text(remainingAmountText)
-                .font(.system(.callout, weight: .regular))
+                .font(PulpeTypography.listRowSubtitle)
                 .foregroundStyle(amountTextColor)
                 .sensitiveAmount()
         }
@@ -353,17 +353,17 @@ struct BudgetLineRow: View {
                         ? Color.progressTrack
                         : line.kind.color.opacity(DesignTokens.Opacity.badgeBackground)
                 )
-                .frame(width: 40, height: 40)
+                .frame(width: DesignTokens.IconSize.listRow, height: DesignTokens.IconSize.listRow)
 
             if line.isChecked {
                 // Show checkmark when checked
                 Image(systemName: "checkmark")
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(PulpeTypography.listRowTitle)
                     .foregroundStyle(.secondary)
             } else {
                 // Show kind icon
                 Image(systemName: line.kind.icon)
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(PulpeTypography.listRowTitle)
                     .foregroundStyle(line.kind.color)
             }
         }
@@ -383,7 +383,7 @@ struct BudgetLineRow: View {
                 .animation(DesignTokens.Animation.gentleSpring, value: consumption.percentage)
         }
         .frame(height: DesignTokens.ProgressBar.height)
-        .clipShape(.rect(cornerRadius: 10))
+        .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.progressBar))
         .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { barWidth = $0 }
     }
 
@@ -476,7 +476,7 @@ struct BudgetLineRow: View {
         )
     }
     .listStyle(.insetGrouped)
-    .listSectionSpacing(16)
+    .listSectionSpacing(DesignTokens.Spacing.lg)
     .scrollContentBackground(.hidden)
     .pulpeBackground()
 }
