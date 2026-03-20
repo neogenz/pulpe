@@ -1,8 +1,17 @@
 import { Injectable, computed, inject, linkedSignal } from '@angular/core';
 import { BudgetApi } from '@core/budget/budget-api';
-import { type Budget, type BudgetExportResponse } from 'pulpe-shared';
+import { UserSettingsStore } from '@core/user-settings';
+import {
+  type Budget,
+  type BudgetExportResponse,
+  getBudgetPeriodForDate,
+} from 'pulpe-shared';
 import { cachedResource } from 'ngx-ziflux';
 import { firstValueFrom } from 'rxjs';
+import {
+  buildCalendarYears,
+  resolveSelectedYearIndex,
+} from './budget-list-mapper/budget-list.mapper';
 
 export interface BudgetPlaceholder {
   month: number;
@@ -14,6 +23,7 @@ const MAX_FUTURE_MONTHS_TO_SEARCH = 36;
 @Injectable()
 export class BudgetListStore {
   readonly #budgetApi = inject(BudgetApi);
+  readonly #userSettingsStore = inject(UserSettingsStore);
 
   readonly budgets = cachedResource({
     cache: this.#budgetApi.cache,
@@ -21,14 +31,8 @@ export class BudgetListStore {
     loader: () => this.#budgetApi.getAllBudgets$(),
   });
 
-  readonly isLoading = this.budgets.isInitialLoading;
-  readonly hasValue = computed(() => this.budgets.hasValue());
-  readonly error = computed(() => this.budgets.error());
-
-  readonly budgetsList = computed(() => this.budgets.value() ?? []);
-
   readonly plannedYears = computed(() => {
-    const months = this.budgetsList();
+    const months = this.budgets.value() ?? [];
     const years = [...new Set(months.map((month) => month.year))];
     return years.toSorted((a, b) => a - b); // Tri croissant
   });
@@ -37,7 +41,7 @@ export class BudgetListStore {
    * Mensual budget planned, grouped by year
    */
   readonly plannedBudgetsGroupedByYears = computed(() => {
-    const months = this.budgetsList();
+    const months = this.budgets.value() ?? [];
     const groupedByYear = new Map<number, Budget[]>();
 
     months.forEach((month) => {
@@ -87,6 +91,19 @@ export class BudgetListStore {
     return allMonthsGroupedByYears;
   });
 
+  readonly calendarYears = computed(() =>
+    buildCalendarYears(
+      this.allMonthsGroupedByYears(),
+      this.#userSettingsStore.payDayOfMonth(),
+      new Date().getFullYear(),
+    ),
+  );
+
+  readonly currentDate = computed(() => {
+    const payDay = this.#userSettingsStore.payDayOfMonth();
+    return getBudgetPeriodForDate(new Date(), payDay);
+  });
+
   readonly selectedYear = linkedSignal<number[], number | null>({
     source: this.plannedYears,
     computation: (years, previous) => {
@@ -95,12 +112,16 @@ export class BudgetListStore {
     },
   });
 
+  readonly selectedYearIndex = computed(() =>
+    resolveSelectedYearIndex(this.selectedYear(), this.calendarYears()),
+  );
+
   /**
    * Calcule le prochain mois disponible sans budget existant
    * Recherche à partir du mois actuel jusqu'à 3 ans dans le futur
    */
   readonly nextAvailableMonth = computed(() => {
-    const budgetsValue = this.budgetsList();
+    const budgetsValue = this.budgets.value();
     const now = new Date();
     const currentMonth = now.getMonth() + 1; // getMonth() retourne 0-11
     const currentYear = now.getFullYear();

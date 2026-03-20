@@ -21,28 +21,23 @@ import { ExcelExportService } from '@core/budget/excel-export.service';
 import { downloadAsExcelFile, downloadAsJsonFile } from '@core/file-download';
 import { ROUTES, TitleDisplay } from '@core/routing';
 import { type CalendarMonth, YearCalendar } from '@ui/calendar';
-import { type CalendarYear } from '@ui/calendar/calendar-types';
 import { BaseLoading } from '@ui/loading';
 import { firstValueFrom, map, shareReplay } from 'rxjs';
 import { MonthsError } from '../ui/budget-error';
-import { mapToCalendarYear } from './budget-list-mapper/budget-list.mapper';
 import { BudgetListStore } from './budget-list-store';
 import { CreateBudgetDialogComponent } from './create-budget/budget-creation-dialog';
 import SearchTransactionsDialogComponent from './search-transactions-dialog/search-transactions-dialog';
 import { Logger } from '@core/logging/logger';
 import {
+  type BudgetExportResponse,
   type TransactionSearchResult,
-  getBudgetPeriodForDate,
 } from 'pulpe-shared';
 import {
   ProductTourService,
   TOUR_START_DELAY,
 } from '@core/product-tour/product-tour.service';
 import { LoadingIndicator } from '@core/loading/loading-indicator';
-import { UserSettingsStore } from '@core/user-settings';
 import { TranslocoService, TranslocoPipe } from '@jsverse/transloco';
-
-const YEARS_TO_DISPLAY = 8; // Current year + 7 future years for planning
 
 @Component({
   selector: 'pulpe-budget-list',
@@ -60,12 +55,12 @@ const YEARS_TO_DISPLAY = 8; // Current year + 7 future years for planning
     <div class="flex flex-col 2xl:h-full gap-4 2xl:min-h-0 min-w-0">
       <header class="pulpe-page-header" data-testid="page-header">
         <h1
-          class="text-headline-medium md:text-display-small truncate min-w-0 flex-shrink"
+          class="text-headline-medium md:text-display-small truncate min-w-0 shrink"
           data-testid="page-title"
         >
           {{ titleDisplay.currentTitle() }}
         </h1>
-        <div class="flex gap-2 items-center flex-shrink-0 ml-auto">
+        <div class="flex gap-2 items-center shrink-0 ml-auto">
           <button
             matIconButton
             (click)="onExportBudgets()"
@@ -106,7 +101,7 @@ const YEARS_TO_DISPLAY = 8; // Current year + 7 future years for planning
           <button
             matButton="filled"
             (click)="openCreateBudgetDialog()"
-            [disabled]="state.isLoading()"
+            [disabled]="state.budgets.isInitialLoading()"
             data-testid="create-budget-btn"
             data-tour="create-budget"
           >
@@ -119,28 +114,31 @@ const YEARS_TO_DISPLAY = 8; // Current year + 7 future years for planning
         </div>
       </header>
 
-      @if (state.isLoading()) {
+      @if (state.budgets.isInitialLoading()) {
         <pulpe-base-loading
           [message]="'budget.loadingBudgets' | transloco"
           size="large"
           testId="months-loading"
         />
-      } @else if (state.error()) {
+      } @else if (state.budgets.error()) {
         <pulpe-months-error (reload)="state.refreshData()" />
       } @else {
         <mat-tab-group
           mat-stretch-tabs="false"
           mat-align-tabs="start"
           fitInkBarToContent
-          [selectedIndex]="selectedYearIndex()"
+          [selectedIndex]="state.selectedYearIndex()"
           (selectedIndexChange)="onTabChange($event)"
           data-tour="year-tabs"
         >
-          @for (budgetsOfYear of calendarYears(); track budgetsOfYear.year) {
+          @for (
+            budgetsOfYear of state.calendarYears();
+            track budgetsOfYear.year
+          ) {
             <mat-tab [label]="budgetsOfYear.year.toString()">
               <pulpe-year-calendar
                 [calendarYear]="budgetsOfYear"
-                [currentDate]="currentDate()"
+                [currentDate]="state.currentDate()"
                 (monthClick)="navigateToDetails($event)"
                 (createMonth)="onCreateMonth($event)"
               />
@@ -168,7 +166,6 @@ export default class BudgetListPage {
   readonly #logger = inject(Logger);
   readonly #loadingIndicator = inject(LoadingIndicator);
   readonly #destroyRef = inject(DestroyRef);
-  readonly #userSettingsStore = inject(UserSettingsStore);
   readonly #excelExportService = inject(ExcelExportService);
   readonly #transloco = inject(TranslocoService);
 
@@ -176,7 +173,6 @@ export default class BudgetListPage {
   protected readonly isExportingExcel = signal(false);
 
   constructor() {
-    // Refresh data on init
     this.state.refreshData();
 
     effect(() => {
@@ -188,7 +184,6 @@ export default class BudgetListPage {
       this.#loadingIndicator.setLoading(false);
     });
 
-    // Auto-trigger tour on first visit
     afterNextRender(() => {
       if (!this.#productTourService.hasSeenPageTour('budget-list')) {
         setTimeout(
@@ -199,56 +194,6 @@ export default class BudgetListPage {
     });
   }
 
-  protected readonly selectedYearIndex = computed(() => {
-    const year = this.state.selectedYear();
-    const years = this.calendarYears();
-    if (!year || years.length === 0) return 0;
-    const idx = years.findIndex((y) => y.year === year);
-    return Math.max(0, idx);
-  });
-
-  protected readonly calendarYears = computed<CalendarYear[]>(() => {
-    const currentYear = new Date().getFullYear();
-    const budgetsGroupedByYears = this.state.allMonthsGroupedByYears();
-    const payDayOfMonth = this.#userSettingsStore.payDayOfMonth();
-
-    // Récupérer toutes les années existantes dans budgetsGroupedByYears
-    const existingYears = Array.from(budgetsGroupedByYears.keys());
-
-    // Générer la plage d'années à partir de l'année courante (année courante + 7 années suivantes)
-    const calculatedYears = Array.from(
-      { length: YEARS_TO_DISPLAY },
-      (_, i) => currentYear + i,
-    );
-
-    // Fusionner les années existantes et calculées, puis supprimer les doublons et trier
-    const years = Array.from(
-      new Set([...existingYears, ...calculatedYears]),
-    ).toSorted((a, b) => a - b);
-
-    return years.map((year) => {
-      // Récupérer les budgets existants ou créer des placeholders
-      const existingBudgets = budgetsGroupedByYears.get(year);
-
-      if (existingBudgets) {
-        return mapToCalendarYear(year, existingBudgets, payDayOfMonth);
-      } else {
-        // Créer 12 mois vides pour l'année
-        const emptyMonths = Array.from({ length: 12 }, (_, monthIndex) => ({
-          month: monthIndex + 1,
-          year,
-        }));
-        return mapToCalendarYear(year, emptyMonths, payDayOfMonth);
-      }
-    });
-  });
-
-  // Current budget period based on payday setting
-  protected readonly currentDate = computed(() => {
-    const payDay = this.#userSettingsStore.payDayOfMonth();
-    return getBudgetPeriodForDate(new Date(), payDay);
-  });
-
   readonly #isHandset = toSignal(
     this.#breakpointObserver.observe(Breakpoints.Handset).pipe(
       map((result) => result.matches),
@@ -257,7 +202,7 @@ export default class BudgetListPage {
     { initialValue: false },
   );
 
-  #dialogConfig = computed<MatDialogConfig>(() => {
+  readonly #dialogConfig = computed<MatDialogConfig>(() => {
     const isHandset = this.#isHandset();
     return {
       width: '600px',
@@ -281,31 +226,12 @@ export default class BudgetListPage {
   }
 
   async openCreateBudgetDialog(): Promise<void> {
-    try {
-      const dialogConfig = this.#dialogConfig();
-      const nextAvailableMonth = this.state.nextAvailableMonth();
-      const dialogRef = this.#dialog.open(CreateBudgetDialogComponent, {
-        ...dialogConfig,
-        data: {
-          month: nextAvailableMonth.month,
-          year: nextAvailableMonth.year,
-        },
-      });
-
-      // Store auto-refreshes via cache invalidation when budget is created
-      await firstValueFrom(dialogRef.afterClosed());
-    } catch (error) {
-      this.#logger.error('Error opening create budget dialog', error);
-      this.#snackBar.open(
-        this.#transloco.translate('budget.openDialogError'),
-        this.#transloco.translate('common.close'),
-        { duration: 5000 },
-      );
-    }
+    const { month, year } = this.state.nextAvailableMonth();
+    return this.openCreateBudgetDialogForMonth(month, year);
   }
 
   onTabChange(selectedIndex: number): void {
-    const years = this.calendarYears();
+    const years = this.state.calendarYears();
     if (selectedIndex >= 0 && selectedIndex < years.length) {
       this.state.setSelectedYear(years[selectedIndex].year);
     }
@@ -335,56 +261,54 @@ export default class BudgetListPage {
   }
 
   async onExportBudgets(): Promise<void> {
-    this.isExporting.set(true);
-    this.#loadingIndicator.setLoading(true);
-
-    try {
-      const data = await this.state.exportAllBudgets();
-      const today = new Date().toISOString().split('T')[0];
-      downloadAsJsonFile(data, `pulpe-export-${today}`);
-
-      this.#snackBar.open(
-        this.#transloco.translate('budget.exportDone'),
-        this.#transloco.translate('common.close'),
-        { duration: 3000 },
-      );
-    } catch (error) {
-      this.#logger.error('Error exporting budgets', error);
-      this.#snackBar.open(
-        this.#transloco.translate('budget.exportError'),
-        this.#transloco.translate('common.close'),
-        { duration: 5000 },
-      );
-    } finally {
-      this.isExporting.set(false);
-      this.#loadingIndicator.setLoading(false);
-    }
+    const today = new Date().toISOString().split('T')[0];
+    return this.#executeExport({
+      isLoadingSignal: this.isExporting,
+      download: (data) => downloadAsJsonFile(data, `pulpe-export-${today}`),
+      successKey: 'budget.exportDone',
+      errorKey: 'budget.exportError',
+    });
   }
 
   async onExportBudgetsAsExcel(): Promise<void> {
-    this.isExportingExcel.set(true);
+    const today = new Date().toISOString().split('T')[0];
+    return this.#executeExport({
+      isLoadingSignal: this.isExportingExcel,
+      download: (data) => {
+        const workbook = this.#excelExportService.buildWorkbook(data);
+        downloadAsExcelFile(workbook, `pulpe-export-${today}`);
+      },
+      successKey: 'budget.exportExcelDone',
+      errorKey: 'budget.exportExcelError',
+    });
+  }
+
+  async #executeExport(options: {
+    isLoadingSignal: ReturnType<typeof signal<boolean>>;
+    download: (data: BudgetExportResponse) => void;
+    successKey: string;
+    errorKey: string;
+  }): Promise<void> {
+    options.isLoadingSignal.set(true);
     this.#loadingIndicator.setLoading(true);
 
     try {
       const data = await this.state.exportAllBudgets();
-      const workbook = this.#excelExportService.buildWorkbook(data);
-      const today = new Date().toISOString().split('T')[0];
-      downloadAsExcelFile(workbook, `pulpe-export-${today}`);
-
+      options.download(data);
       this.#snackBar.open(
-        this.#transloco.translate('budget.exportExcelDone'),
+        this.#transloco.translate(options.successKey),
         this.#transloco.translate('common.close'),
         { duration: 3000 },
       );
     } catch (error) {
-      this.#logger.error('Error exporting budgets as Excel', error);
+      this.#logger.error('Export failed', error);
       this.#snackBar.open(
-        this.#transloco.translate('budget.exportExcelError'),
+        this.#transloco.translate(options.errorKey),
         this.#transloco.translate('common.close'),
         { duration: 5000 },
       );
     } finally {
-      this.isExportingExcel.set(false);
+      options.isLoadingSignal.set(false);
       this.#loadingIndicator.setLoading(false);
     }
   }

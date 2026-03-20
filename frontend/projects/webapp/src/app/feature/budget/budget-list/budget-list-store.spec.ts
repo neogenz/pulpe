@@ -4,6 +4,8 @@ import { of } from 'rxjs';
 import { type Budget } from 'pulpe-shared';
 import { BudgetListStore } from './budget-list-store';
 import { BudgetApi } from '@core/budget/budget-api';
+import { UserSettingsStore } from '@core/user-settings';
+import { createMockBudget } from '@app/testing/mock-factories';
 
 const mockCache = {
   get: vi.fn().mockReturnValue(null),
@@ -16,6 +18,10 @@ const mockCache = {
   version: signal(0),
 };
 
+const mockUserSettingsStore = {
+  payDayOfMonth: signal<number | null>(25),
+};
+
 describe('BudgetListStore', () => {
   let store: BudgetListStore;
   let budgetApiMock: Partial<BudgetApi>;
@@ -25,6 +31,7 @@ describe('BudgetListStore', () => {
 
     budgetApiMock = {
       getAllBudgets$: vi.fn().mockReturnValue(of([])),
+      exportAllBudgets$: vi.fn(),
       cache: mockCache as unknown as BudgetApi['cache'],
     };
 
@@ -33,6 +40,7 @@ describe('BudgetListStore', () => {
         provideZonelessChangeDetection(),
         BudgetListStore,
         { provide: BudgetApi, useValue: budgetApiMock },
+        { provide: UserSettingsStore, useValue: mockUserSettingsStore },
       ],
     });
 
@@ -249,6 +257,196 @@ describe('BudgetListStore', () => {
         // Should return current month as fallback
         expect(result).toEqual({ month: currentMonth, year: currentYear });
       });
+    });
+  });
+
+  describe('plannedYears', () => {
+    it('should return empty array when no budgets exist', async () => {
+      await vi.waitFor(() => {
+        expect(store.plannedYears()).toEqual([]);
+      });
+    });
+
+    it('should return sorted unique years from budgets', async () => {
+      budgetApiMock.getAllBudgets$ = vi
+        .fn()
+        .mockReturnValue(
+          of([
+            createMockBudget({ year: 2026, month: 3, id: 'b1' }),
+            createMockBudget({ year: 2025, month: 1, id: 'b2' }),
+            createMockBudget({ year: 2026, month: 7, id: 'b3' }),
+            createMockBudget({ year: 2024, month: 12, id: 'b4' }),
+          ]),
+        );
+      store.budgets.reload();
+
+      await vi.waitFor(() => {
+        expect(store.plannedYears()).toEqual([2024, 2025, 2026]);
+      });
+    });
+  });
+
+  describe('plannedBudgetsGroupedByYears', () => {
+    it('should group budgets by year with months sorted descending', async () => {
+      budgetApiMock.getAllBudgets$ = vi
+        .fn()
+        .mockReturnValue(
+          of([
+            createMockBudget({ year: 2025, month: 1, id: 'b1' }),
+            createMockBudget({ year: 2025, month: 6, id: 'b2' }),
+            createMockBudget({ year: 2025, month: 3, id: 'b3' }),
+          ]),
+        );
+      store.budgets.reload();
+
+      await vi.waitFor(() => {
+        const grouped = store.plannedBudgetsGroupedByYears();
+        const months = grouped.get(2025)!.map((b) => b.month);
+        expect(months).toEqual([6, 3, 1]);
+      });
+    });
+
+    it('should separate budgets into their respective years', async () => {
+      budgetApiMock.getAllBudgets$ = vi
+        .fn()
+        .mockReturnValue(
+          of([
+            createMockBudget({ year: 2025, month: 3, id: 'b1' }),
+            createMockBudget({ year: 2026, month: 1, id: 'b2' }),
+          ]),
+        );
+      store.budgets.reload();
+
+      await vi.waitFor(() => {
+        const grouped = store.plannedBudgetsGroupedByYears();
+        expect(grouped.has(2025)).toBe(true);
+        expect(grouped.has(2026)).toBe(true);
+        expect(grouped.get(2025)!).toHaveLength(1);
+        expect(grouped.get(2026)!).toHaveLength(1);
+      });
+    });
+  });
+
+  describe('allMonthsGroupedByYears', () => {
+    it('should fill all 12 months per year with placeholders for missing months', async () => {
+      budgetApiMock.getAllBudgets$ = vi
+        .fn()
+        .mockReturnValue(
+          of([
+            createMockBudget({ year: 2025, month: 3, id: 'b1' }),
+            createMockBudget({ year: 2025, month: 7, id: 'b2' }),
+          ]),
+        );
+      store.budgets.reload();
+
+      await vi.waitFor(() => {
+        const grouped = store.allMonthsGroupedByYears();
+        const year2025 = grouped.get(2025)!;
+        expect(year2025).toHaveLength(12);
+        // Month 3 (index 2) should be a Budget (has 'id')
+        expect('id' in year2025[2]).toBe(true);
+        // Month 7 (index 6) should be a Budget
+        expect('id' in year2025[6]).toBe(true);
+        // Month 1 (index 0) should be a placeholder
+        expect('id' in year2025[0]).toBe(false);
+        expect(year2025[0]).toEqual({ month: 1, year: 2025 });
+      });
+    });
+  });
+
+  describe('selectedYear', () => {
+    const thisYear = new Date().getFullYear();
+
+    it('should default to current year when it exists in planned years', async () => {
+      budgetApiMock.getAllBudgets$ = vi
+        .fn()
+        .mockReturnValue(
+          of([
+            createMockBudget({ year: thisYear, month: 1, id: 'b1' }),
+            createMockBudget({ year: thisYear - 1, month: 6, id: 'b2' }),
+          ]),
+        );
+      store.budgets.reload();
+
+      await vi.waitFor(() => {
+        expect(store.selectedYear()).toBe(thisYear);
+      });
+    });
+
+    it('should fall back to first year when current year is not planned', async () => {
+      budgetApiMock.getAllBudgets$ = vi
+        .fn()
+        .mockReturnValue(
+          of([
+            createMockBudget({ year: 2020, month: 1, id: 'b1' }),
+            createMockBudget({ year: 2021, month: 6, id: 'b2' }),
+          ]),
+        );
+      store.budgets.reload();
+
+      await vi.waitFor(() => {
+        expect(store.selectedYear()).toBe(2020);
+      });
+    });
+
+    it('should be null when no budgets exist', async () => {
+      await vi.waitFor(() => {
+        expect(store.selectedYear()).toBeNull();
+      });
+    });
+  });
+
+  describe('setSelectedYear', () => {
+    it('should update the selected year', async () => {
+      const thisYear = new Date().getFullYear();
+      budgetApiMock.getAllBudgets$ = vi
+        .fn()
+        .mockReturnValue(
+          of([
+            createMockBudget({ year: thisYear, month: 1, id: 'b1' }),
+            createMockBudget({ year: thisYear - 1, month: 6, id: 'b2' }),
+          ]),
+        );
+      store.budgets.reload();
+
+      await vi.waitFor(() => {
+        expect(store.selectedYear()).toBe(thisYear);
+      });
+
+      store.setSelectedYear(thisYear - 1);
+      expect(store.selectedYear()).toBe(thisYear - 1);
+    });
+  });
+
+  describe('refreshData', () => {
+    it('should refresh budget data from API', async () => {
+      await vi.waitFor(() => {
+        expect(store.budgets.value()).toEqual([]);
+      });
+
+      budgetApiMock.getAllBudgets$ = vi
+        .fn()
+        .mockReturnValue(
+          of([createMockBudget({ year: 2025, month: 1, id: 'b1' })]),
+        );
+
+      store.refreshData();
+
+      await vi.waitFor(() => {
+        expect(store.budgets.value()).toHaveLength(1);
+      });
+    });
+  });
+
+  describe('exportAllBudgets', () => {
+    it('should delegate to BudgetApi and return export data', async () => {
+      const mockExport = { data: [], success: true as const };
+      budgetApiMock.exportAllBudgets$ = vi.fn().mockReturnValue(of(mockExport));
+
+      const result = await store.exportAllBudgets();
+
+      expect(result).toEqual(mockExport);
+      expect(budgetApiMock.exportAllBudgets$).toHaveBeenCalled();
     });
   });
 });

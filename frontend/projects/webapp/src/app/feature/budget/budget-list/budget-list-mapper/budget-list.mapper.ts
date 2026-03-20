@@ -8,6 +8,47 @@ import {
 } from '@ui/calendar/calendar-types';
 import { createEmptyCalendarMonth } from '@ui/calendar/calendar-types';
 
+const YEARS_TO_DISPLAY = 8;
+
+export function resolveSelectedYearIndex(
+  selectedYear: number | null,
+  calendarYears: CalendarYear[],
+): number {
+  if (!selectedYear || calendarYears.length === 0) return 0;
+  const idx = calendarYears.findIndex((y) => y.year === selectedYear);
+  return Math.max(0, idx);
+}
+
+export function buildCalendarYears(
+  budgetsGroupedByYears: Map<number, (Budget | BudgetPlaceholder)[]>,
+  payDayOfMonth: number | null,
+  currentYear: number,
+): CalendarYear[] {
+  const existingYears = Array.from(budgetsGroupedByYears.keys());
+  const calculatedYears = Array.from(
+    { length: YEARS_TO_DISPLAY },
+    (_, i) => currentYear + i,
+  );
+
+  const years = Array.from(
+    new Set([...existingYears, ...calculatedYears]),
+  ).toSorted((a, b) => a - b);
+
+  return years.map((year) => {
+    const existingBudgets = budgetsGroupedByYears.get(year);
+
+    if (existingBudgets) {
+      return mapToCalendarYear(year, existingBudgets, payDayOfMonth);
+    } else {
+      const emptyMonths = Array.from({ length: 12 }, (_, monthIndex) => ({
+        month: monthIndex + 1,
+        year,
+      }));
+      return mapToCalendarYear(year, emptyMonths, payDayOfMonth);
+    }
+  });
+}
+
 export function mapToCalendarYear(
   year: number,
   budgets: (Budget | BudgetPlaceholder)[],

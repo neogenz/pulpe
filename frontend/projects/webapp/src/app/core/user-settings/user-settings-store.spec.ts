@@ -30,6 +30,7 @@ describe('UserSettingsStore', () => {
   beforeEach(() => {
     mockCache.get.mockReturnValue(null);
     mockCache.set.mockClear();
+    mockCache.clear.mockClear();
 
     mockApi = {
       getSettings$: vi
@@ -72,11 +73,11 @@ describe('UserSettingsStore', () => {
       store = TestBed.inject(UserSettingsStore);
       store.reload();
 
-      await new Promise((resolve) => setTimeout(resolve, 100));
-
-      expect(store.error()).toBeTruthy();
-      expect(store.error()).toBeInstanceOf(Error);
-      expect((store.error() as Error).message).toBe('Network failure');
+      await vi.waitFor(() => {
+        expect(store.error()).toBeTruthy();
+        expect(store.error()).toBeInstanceOf(Error);
+        expect((store.error() as Error).message).toBe('Network failure');
+      });
     });
 
     it('should not have settings data when loader fails without prior cache', async () => {
@@ -87,20 +88,195 @@ describe('UserSettingsStore', () => {
       store = TestBed.inject(UserSettingsStore);
       store.reload();
 
-      await new Promise((resolve) => setTimeout(resolve, 100));
-
-      expect(store.settings()).toBeUndefined();
-      expect(store.error()).toBeTruthy();
+      await vi.waitFor(() => {
+        expect(store.settings()).toBeUndefined();
+        expect(store.error()).toBeTruthy();
+      });
     });
   });
 
   describe('Successful load', () => {
     it('should load settings and expose them via settings()', async () => {
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      await vi.waitFor(() => {
+        expect(store.settings()).toEqual(mockSettings);
+        expect(store.payDayOfMonth()).toBe(25);
+        expect(store.error()).toBeUndefined();
+      });
+    });
+  });
 
-      expect(store.settings()).toEqual(mockSettings);
-      expect(store.payDayOfMonth()).toBe(25);
-      expect(store.error()).toBeUndefined();
+  describe('updateSettings', () => {
+    it('should call API and return updated settings', async () => {
+      const updated: UserSettings = { payDayOfMonth: 15 };
+      mockApi.updateSettings$ = vi
+        .fn()
+        .mockReturnValue(of({ data: updated, success: true }));
+
+      const result = await store.updateSettings({ payDayOfMonth: 15 });
+
+      expect(result).toEqual(updated);
+      expect(mockApi.updateSettings$).toHaveBeenCalledWith({
+        payDayOfMonth: 15,
+      });
+    });
+
+    it('should update local settings signal after API call', async () => {
+      const updated: UserSettings = { payDayOfMonth: 15 };
+      mockApi.updateSettings$ = vi
+        .fn()
+        .mockReturnValue(of({ data: updated, success: true }));
+
+      await store.updateSettings({ payDayOfMonth: 15 });
+
+      expect(store.settings()).toEqual(updated);
+      expect(store.payDayOfMonth()).toBe(15);
+    });
+  });
+
+  describe('deleteAccount', () => {
+    it('should call API deleteAccount', async () => {
+      mockApi.deleteAccount = vi.fn().mockResolvedValue({ success: true });
+
+      await store.deleteAccount();
+
+      expect(mockApi.deleteAccount).toHaveBeenCalled();
+    });
+  });
+
+  describe('reset', () => {
+    it('should clear the API cache', () => {
+      store.reset();
+      expect(mockCache.clear).toHaveBeenCalled();
+    });
+  });
+
+  describe('reload', () => {
+    it('should trigger a fresh load from API', async () => {
+      await vi.waitFor(() => {
+        expect(store.settings()).toEqual(mockSettings);
+      });
+
+      const newSettings: UserSettings = { payDayOfMonth: 10 };
+      mockApi.getSettings$ = vi
+        .fn()
+        .mockReturnValue(of({ data: newSettings, success: true }));
+
+      store.reload();
+
+      await vi.waitFor(() => {
+        expect(store.settings()).toEqual(newSettings);
+      });
+    });
+  });
+});
+
+describe('UserSettingsStore — loading conditions', () => {
+  beforeEach(() => {
+    mockCache.get.mockReturnValue(null);
+    mockCache.set.mockClear();
+  });
+
+  it('should not load settings when user is not authenticated', async () => {
+    const getSettingsSpy = vi.fn();
+
+    TestBed.configureTestingModule({
+      providers: [
+        provideZonelessChangeDetection(),
+        UserSettingsStore,
+        {
+          provide: UserSettingsApi,
+          useValue: { getSettings$: getSettingsSpy, cache: mockCache },
+        },
+        {
+          provide: AuthStateService,
+          useValue: { isAuthenticated: signal(false) },
+        },
+        {
+          provide: ClientKeyService,
+          useValue: { hasClientKey: signal(true) },
+        },
+        {
+          provide: DemoModeService,
+          useValue: { isDemoMode: signal(false) },
+        },
+      ],
+    });
+
+    const store = TestBed.inject(UserSettingsStore);
+    await new Promise((r) => setTimeout(r, 50));
+
+    expect(store.settings()).toBeUndefined();
+    expect(getSettingsSpy).not.toHaveBeenCalled();
+  });
+
+  it('should not load when client key is missing and not in demo mode', async () => {
+    const getSettingsSpy = vi.fn();
+
+    TestBed.configureTestingModule({
+      providers: [
+        provideZonelessChangeDetection(),
+        UserSettingsStore,
+        {
+          provide: UserSettingsApi,
+          useValue: { getSettings$: getSettingsSpy, cache: mockCache },
+        },
+        {
+          provide: AuthStateService,
+          useValue: { isAuthenticated: signal(true) },
+        },
+        {
+          provide: ClientKeyService,
+          useValue: { hasClientKey: signal(false) },
+        },
+        {
+          provide: DemoModeService,
+          useValue: { isDemoMode: signal(false) },
+        },
+      ],
+    });
+
+    const store = TestBed.inject(UserSettingsStore);
+    await new Promise((r) => setTimeout(r, 50));
+
+    expect(store.settings()).toBeUndefined();
+    expect(getSettingsSpy).not.toHaveBeenCalled();
+  });
+
+  it('should load in demo mode even without client key', async () => {
+    const demoSettings: UserSettings = { payDayOfMonth: 25 };
+
+    TestBed.configureTestingModule({
+      providers: [
+        provideZonelessChangeDetection(),
+        UserSettingsStore,
+        {
+          provide: UserSettingsApi,
+          useValue: {
+            getSettings$: vi
+              .fn()
+              .mockReturnValue(of({ data: demoSettings, success: true })),
+            cache: mockCache,
+          },
+        },
+        {
+          provide: AuthStateService,
+          useValue: { isAuthenticated: signal(true) },
+        },
+        {
+          provide: ClientKeyService,
+          useValue: { hasClientKey: signal(false) },
+        },
+        {
+          provide: DemoModeService,
+          useValue: { isDemoMode: signal(true) },
+        },
+      ],
+    });
+
+    const store = TestBed.inject(UserSettingsStore);
+
+    await vi.waitFor(() => {
+      expect(store.settings()).toEqual(demoSettings);
     });
   });
 });

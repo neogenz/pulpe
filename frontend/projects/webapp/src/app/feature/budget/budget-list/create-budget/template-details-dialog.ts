@@ -105,7 +105,7 @@ export interface TemplateDetailsDialogData {
         <!-- Net Balance -->
         <mat-divider class="mb-2!"></mat-divider>
         <div class="flex justify-between text-body-medium font-medium">
-          <span>{{ 'template.netBalance' | transloco }}</span>
+          <span>{{ 'template.netBalanceSummary' | transloco }}</span>
           <span class="ph-no-capture">
             {{ netBalance | currency: 'CHF' : 'symbol' : '1.2-2' : 'de-CH' }}
           </span>
