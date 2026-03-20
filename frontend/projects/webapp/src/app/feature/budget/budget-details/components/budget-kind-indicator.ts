@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import type { TransactionKind } from 'pulpe-shared';
-import { TransactionLabelPipe } from '@pattern/transaction-display';
+import { TransactionLabelPipe } from '@ui/transaction-display';
 
 /**
  * Colored dot indicator for budget line kind (income/expense/saving).

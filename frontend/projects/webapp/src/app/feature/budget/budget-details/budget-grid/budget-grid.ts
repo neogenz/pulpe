@@ -15,7 +15,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { FinancialKindDirective } from '@ui/financial-kind';
-import { TransactionLabelPipe } from '@pattern/transaction-display';
+import { TransactionLabelPipe } from '@ui/transaction-display';
 import type { BudgetLine, Transaction } from 'pulpe-shared';
 import type { TransactionViewModel } from '../models/transaction-view-model';
 import type { BudgetLineTableItem } from '../data-core';

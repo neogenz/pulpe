@@ -18,7 +18,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { type BudgetLine, type Transaction } from 'pulpe-shared';
 import { TranslocoPipe } from '@jsverse/transloco';
 import { FinancialKindDirective } from '@ui/financial-kind';
-import { TransactionLabelPipe } from '@pattern/transaction-display';
+import { TransactionLabelPipe } from '@ui/transaction-display';
 import {
   createBudgetLineConsumptionDisplay,
   type BudgetLineTableItem,

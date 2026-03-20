@@ -1,6 +1,11 @@
 {
   "version": 1,
   "skills": {
+    "angular-architecture": {
+      "source": "neogenz/skills",
+      "sourceType": "github",
+      "computedHash": "d1169a26af4c5d9ac281ed6f4dfc18b83fd66ccf58aa95574e117248e41bd5cc"
+    },
     "angular-component": {
       "source": "analogjs/angular-skills",
       "sourceType": "github",

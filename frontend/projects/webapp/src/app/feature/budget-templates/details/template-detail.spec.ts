@@ -22,7 +22,7 @@ import { TemplateDetailsStore } from './services/template-details-store';
 import { PulpeTitleStrategy } from '@core/routing/title-strategy';
 import { Logger } from '@core/logging/logger';
 import { BudgetApi } from '@core/budget/budget-api';
-import { TransactionLabelPipe } from '@pattern/transaction-display';
+import { TransactionLabelPipe } from '@ui/transaction-display';
 import { BaseLoading } from '@ui/loading';
 import { TransactionsTable, EditTransactionsDialog } from './components';
 import {

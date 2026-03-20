@@ -10,7 +10,7 @@ import { Router, type NavigationEnd, ActivatedRoute } from '@angular/router';
 import { BreakpointObserver } from '@angular/cdk/layout';
 import { ScrollDispatcher } from '@angular/cdk/scrolling';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
-import { Component, output, input, NO_ERRORS_SCHEMA } from '@angular/core';
+import { Component, input, NO_ERRORS_SCHEMA } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSidenavModule } from '@angular/material/sidenav';
 import { MatToolbarModule } from '@angular/material/toolbar';
@@ -85,15 +85,6 @@ type MainLayoutWithPrivates = MainLayout & {
   isHandset(): boolean;
   closeDrawerOnMobile(drawer: { close: () => void }): void;
 };
-
-// Mock NavigationMenu component
-@Component({
-  selector: 'pulpe-navigation-menu',
-  template: '<div>Mock Navigation Menu</div>',
-})
-class MockNavigationMenuComponent {
-  readonly navItemClick = output<Event>();
-}
 
 // Mock PulpeBreadcrumb component
 @Component({
@@ -217,7 +208,6 @@ describe('MainLayout', () => {
         MatListModule,
         MatTooltipModule,
         RouterModule,
-        MockNavigationMenuComponent,
         MockPulpeBreadcrumbComponent,
       ],
       providers: [
@@ -277,7 +267,6 @@ describe('MainLayout', () => {
           MatListModule,
           MatTooltipModule,
           RouterModule,
-          MockNavigationMenuComponent,
           MockPulpeBreadcrumbComponent,
           TranslocoPipe,
         ],

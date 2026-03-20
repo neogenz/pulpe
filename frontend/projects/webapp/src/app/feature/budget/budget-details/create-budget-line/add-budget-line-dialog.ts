@@ -18,7 +18,7 @@ import {
 } from 'pulpe-shared';
 import { TranslocoPipe } from '@jsverse/transloco';
 import { TransactionIconPipe } from '@ui/transaction-display';
-import { TransactionLabelPipe } from '@pattern/transaction-display';
+import { TransactionLabelPipe } from '@ui/transaction-display';
 
 export interface BudgetLineDialogData {
   budgetId: string;

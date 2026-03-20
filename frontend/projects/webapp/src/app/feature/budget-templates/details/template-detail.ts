@@ -25,7 +25,7 @@ import {
 } from 'pulpe-shared';
 import { ConfirmationDialog } from '@ui/dialogs/confirmation-dialog';
 import { BaseLoading } from '@ui/loading';
-import { TransactionLabelPipe } from '@pattern/transaction-display';
+import { TransactionLabelPipe } from '@ui/transaction-display';
 import { firstValueFrom } from 'rxjs';
 import { TemplateUsageDialogComponent } from '../components/dialogs/template-usage-dialog';
 import { EditTransactionsDialog, TransactionsTable } from './components';

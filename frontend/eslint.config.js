@@ -236,7 +236,6 @@ module.exports = tseslint.config(
                 ["lib-api"],
                 ["core", { app: "${from.app}" }],
                 ["ui", { app: "${from.app}" }],
-                ["pattern", { app: "${from.app}" }],
                 ["env", { app: "${from.app}" }],
               ],
             },
