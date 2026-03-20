@@ -119,7 +119,7 @@ struct PinRecoveryView: View {
         )
         .overlay(
             RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md)
-                .stroke(Color.pinInputBorder, lineWidth: 1)
+                .stroke(Color.pinInputBorder, lineWidth: DesignTokens.BorderWidth.thin)
         )
         .foregroundStyle(Color.textPrimaryOnboarding)
     }

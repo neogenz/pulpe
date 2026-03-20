@@ -70,7 +70,7 @@ struct CustomTabBar: UIViewRepresentable {
 
 #Preview {
     @Previewable @State var selectedTab: Tab = .currentMonth
-    let tabBarHeight: CGFloat = 55
+    let tabBarHeight = DesignTokens.FrameHeight.tabBar
 
     VStack {
         Spacer()

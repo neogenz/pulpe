@@ -86,12 +86,12 @@ private struct UncheckedItemRow: View {
                 }
             } label: {
                 Image(systemName: isChecked ? "checkmark.circle.fill" : "circle")
-                    .font(.system(size: 22))
+                    .font(PulpeTypography.sectionIcon)
                     .foregroundStyle(isChecked ? Color.financialSavings : Color.secondary)
                     .contentTransition(.symbolEffect(.replace))
             }
             .buttonStyle(.plain)
-            .frame(minWidth: 36, minHeight: 36)
+            .frame(minWidth: DesignTokens.TapTarget.minimum, minHeight: DesignTokens.TapTarget.minimum)
             .contentShape(Rectangle())
             .sensoryFeedback(.success, trigger: triggerFeedback)
             .accessibilityLabel("Pointer \(item.name)")
@@ -99,17 +99,17 @@ private struct UncheckedItemRow: View {
             // Kind icon circle (informational)
             Circle()
                 .fill(item.kind.color.opacity(DesignTokens.Opacity.badgeBackground))
-                .frame(width: 40, height: 40)
+                .frame(width: DesignTokens.IconSize.listRow, height: DesignTokens.IconSize.listRow)
                 .overlay {
                     Image(systemName: item.kind.icon)
-                        .font(.system(size: 16, weight: .semibold))
+                        .font(PulpeTypography.listRowTitle)
                         .foregroundStyle(item.kind.color)
                 }
 
             // Name + subtitle
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                 Text(item.name)
-                    .font(.system(.body, weight: .semibold))
+                    .font(PulpeTypography.listRowTitle)
                     .strikethrough(isChecked, color: .secondary)
                     .lineLimit(1)
 
@@ -165,7 +165,7 @@ private struct UncheckedItemRow: View {
         switch item {
         case .transaction(let tx, _):
             Text(tx.signedAmount.asAmount)
-                .font(.system(.callout, weight: .regular))
+                .font(PulpeTypography.listRowSubtitle)
                 .foregroundStyle(tx.kind.color)
                 .sensitiveAmount()
 
@@ -177,12 +177,12 @@ private struct UncheckedItemRow: View {
                 let color: Color = consumption.isOverBudget ? .financialOverBudget :
                     consumption.isNearLimit ? .warningPrimary : .secondary
                 Text(text)
-                    .font(.system(.callout, weight: .regular))
+                    .font(PulpeTypography.listRowSubtitle)
                     .foregroundStyle(color)
                     .sensitiveAmount()
             } else {
                 Text(line.amount.asSignedAmount(for: line.kind))
-                    .font(.system(.callout, weight: .regular))
+                    .font(PulpeTypography.listRowSubtitle)
                     .foregroundStyle(line.kind.color)
                     .sensitiveAmount()
             }
@@ -197,7 +197,7 @@ struct UncheckedForecastsEmptyState: View {
     var body: some View {
         HStack(spacing: DesignTokens.Spacing.md) {
             Image(systemName: "checkmark.circle.fill")
-                .font(.system(size: 24))
+                .font(PulpeTypography.amountXL)
                 .foregroundStyle(Color.financialSavings)
 
             Text("Tout est pointé — bien joué !")

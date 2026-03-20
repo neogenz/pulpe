@@ -21,7 +21,7 @@ struct TemplateListView: View {
             } else if viewModel.templates.isEmpty {
                 VStack(spacing: DesignTokens.Spacing.lg) {
                     Image(systemName: "doc.on.doc")
-                        .font(.system(size: 48))
+                        .font(PulpeTypography.emojiDisplay)
                         .foregroundStyle(Color.pulpeTextTertiary)
                     Text("Pas encore de modèle")
                         .font(PulpeTypography.stepTitle)

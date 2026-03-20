@@ -18,55 +18,55 @@ struct TypographyTests {
 
     // MARK: - Typography Token Existence
 
-    /// PulpeTypography enum must expose all semantic aliases matching SwiftUI text styles.
-    /// This prevents accidental deletion of tokens that views depend on.
-    @Test func allSemanticAliases_exist() {
-        // Brand & hero
+    /// Prevents accidental deletion of feature-specific typography tokens.
+    @Test func featureTokens_exist() {
         _ = PulpeTypography.brandTitle
         _ = PulpeTypography.amountHero
         _ = PulpeTypography.amountLarge
         _ = PulpeTypography.amountMedium
         _ = PulpeTypography.progressValue
         _ = PulpeTypography.progressUnit
-
-        // Onboarding
         _ = PulpeTypography.onboardingTitle
         _ = PulpeTypography.onboardingSubtitle
-
-        // Steps
         _ = PulpeTypography.stepTitle
         _ = PulpeTypography.stepSubtitle
         _ = PulpeTypography.tutorialTitle
         _ = PulpeTypography.tutorialBody
         _ = PulpeTypography.tutorialStep
-
-        // Body & labels
         _ = PulpeTypography.bodyLarge
         _ = PulpeTypography.labelLarge
         _ = PulpeTypography.labelLargeBold
         _ = PulpeTypography.labelMedium
-
-        // Input
+        _ = PulpeTypography.amountHeroLight
+        _ = PulpeTypography.amountDisplayLarge
+        _ = PulpeTypography.previewAmount
+        _ = PulpeTypography.amountXL
+        _ = PulpeTypography.emojiDisplay
+        _ = PulpeTypography.cardTitle
+        _ = PulpeTypography.sectionIcon
+        _ = PulpeTypography.actionIcon
+        _ = PulpeTypography.listRowTitle
+        _ = PulpeTypography.listRowSubtitle
+        _ = PulpeTypography.detailLabel
+        _ = PulpeTypography.detailLabelBold
+        _ = PulpeTypography.metricLabel
+        _ = PulpeTypography.metricLabelBold
+        _ = PulpeTypography.heroMetric
+        _ = PulpeTypography.metricMini
         _ = PulpeTypography.inputLabel
         _ = PulpeTypography.inputValue
         _ = PulpeTypography.inputHelper
-
-        // Buttons
         _ = PulpeTypography.buttonPrimary
         _ = PulpeTypography.buttonSecondary
-
-        // Navigation
         _ = PulpeTypography.tabLabel
-
-        // Numpad
         _ = PulpeTypography.numpadKey
         _ = PulpeTypography.numpadSubtext
-
-        // Hero icons & emoji
         _ = PulpeTypography.heroIcon
         _ = PulpeTypography.welcomeEmoji
+    }
 
-        // Semantic aliases (used to replace bare .font(.textStyle) calls)
+    /// Prevents accidental deletion of semantic alias tokens.
+    @Test func semanticAliases_exist() {
         _ = PulpeTypography.title
         _ = PulpeTypography.title2
         _ = PulpeTypography.title3

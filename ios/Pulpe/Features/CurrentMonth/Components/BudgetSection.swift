@@ -272,7 +272,7 @@ struct BudgetLineRow: View {
             // Main content
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                 Text(line.name)
-                    .font(.system(.body, weight: .semibold))
+                    .font(PulpeTypography.listRowTitle)
                     .foregroundStyle(line.isChecked ? .secondary : .primary)
                     .strikethrough(line.isChecked, color: .secondary)
                     .lineLimit(1)
@@ -303,7 +303,7 @@ struct BudgetLineRow: View {
 
             // Amount (remaining when transactions exist, otherwise budgeted)
             Text(remainingAmountText)
-                .font(.system(.callout, weight: .regular))
+                .font(PulpeTypography.listRowSubtitle)
                 .foregroundStyle(amountTextColor)
                 .sensitiveAmount()
         }
@@ -358,12 +358,12 @@ struct BudgetLineRow: View {
             if line.isChecked {
                 // Show checkmark when checked
                 Image(systemName: "checkmark")
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(PulpeTypography.listRowTitle)
                     .foregroundStyle(.secondary)
             } else {
                 // Show kind icon
                 Image(systemName: line.kind.icon)
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(PulpeTypography.listRowTitle)
                     .foregroundStyle(line.kind.color)
             }
         }

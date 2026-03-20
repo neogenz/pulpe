@@ -43,7 +43,7 @@ struct ProjectionCard: View {
                 .frame(width: DesignTokens.IconSize.listRow, height: DesignTokens.IconSize.listRow)
                 .overlay {
                     Image(systemName: icon)
-                        .font(.system(size: 18))
+                        .font(PulpeTypography.cardTitle)
                         .foregroundStyle(iconColor)
                 }
 

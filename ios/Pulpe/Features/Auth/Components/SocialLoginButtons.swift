@@ -231,7 +231,7 @@ struct GoogleSignInButtonView: View {
             .clipShape(Capsule())
             .overlay(
                 Capsule()
-                    .strokeBorder(Color.authInputBorder, lineWidth: 1.5)
+                    .strokeBorder(Color.authInputBorder, lineWidth: DesignTokens.BorderWidth.medium)
             )
         }
         .plainPressedButtonStyle()

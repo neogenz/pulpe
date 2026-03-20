@@ -61,7 +61,7 @@ struct RecoveryKeySheet: View {
                     .frame(width: 56, height: 56)
 
                 Image(systemName: "key.horizontal.fill")
-                    .font(.system(size: 24, weight: .semibold))
+                    .font(PulpeTypography.amountXL)
                     .foregroundStyle(Color.pulpePrimary)
             }
 
@@ -139,7 +139,7 @@ struct RecoveryKeySheet: View {
                 .fill(Color.onboardingCardBackground)
                 .overlay {
                     RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.lg, style: .continuous)
-                        .strokeBorder(Color.outlineVariant.opacity(0.3), lineWidth: 1)
+                        .strokeBorder(Color.outlineVariant.opacity(0.3), lineWidth: DesignTokens.BorderWidth.thin)
                 }
         }
         .scaleEffect(showKey ? 1 : 0.95)

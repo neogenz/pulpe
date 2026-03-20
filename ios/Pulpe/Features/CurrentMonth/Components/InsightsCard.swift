@@ -69,7 +69,7 @@ struct InsightsCard: View {
                 .frame(width: DesignTokens.IconSize.listRow, height: DesignTokens.IconSize.listRow)
                 .overlay {
                     Image(systemName: "chart.pie.fill")
-                        .font(.system(size: 18))
+                        .font(PulpeTypography.cardTitle)
                         .foregroundStyle(Color.financialExpense)
                 }
 

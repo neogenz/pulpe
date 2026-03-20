@@ -44,6 +44,15 @@ enum DesignTokens {
         static let stepHeaderTop: CGFloat = 48
     }
 
+    // MARK: - Border Width
+
+    enum BorderWidth {
+        static let hairline: CGFloat = 0.75
+        static let thin: CGFloat = 1
+        static let medium: CGFloat = 1.5
+        static let thick: CGFloat = 2
+    }
+
     // MARK: - Shadows
 
     enum Shadow {
@@ -216,6 +225,8 @@ enum DesignTokens {
     enum FrameHeight {
         /// Primary action buttons
         static let button: CGFloat = 54
+        /// Custom floating tab bar
+        static let tabBar: CGFloat = 62
         /// Progress bar track
         static let progressBar: CGFloat = 8
         /// Thin separator lines

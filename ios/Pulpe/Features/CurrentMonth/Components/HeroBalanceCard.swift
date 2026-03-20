@@ -222,7 +222,7 @@ struct HeroBalanceCard: View {
     private func rolloverPill(amount: Decimal) -> some View {
         HStack(spacing: DesignTokens.Spacing.sm) {
             Image(systemName: amount >= 0 ? "arrow.up.right.circle" : "arrow.down.right.circle")
-                .font(.system(size: 12, weight: .semibold))
+                .font(PulpeTypography.detailLabel)
 
             Text("Report")
                 .font(PulpeTypography.labelMedium)
@@ -236,7 +236,7 @@ struct HeroBalanceCard: View {
                 Spacer(minLength: 0)
 
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 10, weight: .semibold))
+                    .font(PulpeTypography.metricMini)
             }
         }
         .foregroundStyle(.white)
@@ -251,7 +251,7 @@ struct HeroBalanceCard: View {
     private func chartButton(action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Image(systemName: "chart.bar.fill")
-                .font(.system(size: 14, weight: .semibold))
+                .font(PulpeTypography.heroMetric)
                 .foregroundStyle(.white)
                 .frame(
                     width: DesignTokens.TapTarget.minimum,

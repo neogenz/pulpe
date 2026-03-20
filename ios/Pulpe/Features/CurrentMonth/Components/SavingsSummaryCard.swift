@@ -25,12 +25,12 @@ struct SavingsSummaryCard: View {
     private var completeView: some View {
         HStack(spacing: DesignTokens.Spacing.md) {
             Image(systemName: "checkmark.circle.fill")
-                .font(.system(size: 24))
+                .font(PulpeTypography.amountXL)
                 .foregroundStyle(Color.financialSavings)
 
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                 Text("Objectif atteint ce mois")
-                    .font(.system(.body, weight: .semibold))
+                    .font(PulpeTypography.listRowTitle)
 
                 Text("\(summary.totalRealized.asCHF) épargnés")
                     .font(PulpeTypography.caption)
@@ -49,7 +49,7 @@ struct SavingsSummaryCard: View {
             // Amount row
             HStack {
                 Text(summary.totalRealized.asCompactCHF)
-                    .font(.system(.body, weight: .semibold))
+                    .font(PulpeTypography.listRowTitle)
                     .foregroundStyle(Color.financialSavings)
                     .sensitiveAmount()
 

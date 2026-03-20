@@ -135,7 +135,7 @@ private struct NumpadButton<Label: View>: View {
             label()
                 .frame(width: DesignTokens.Numpad.buttonSize, height: DesignTokens.Numpad.buttonSize)
                 .background(Circle().fill(Color.pinButtonFill))
-                .overlay(Circle().stroke(Color.pinButtonStroke, lineWidth: 1))
+                .overlay(Circle().stroke(Color.pinButtonStroke, lineWidth: DesignTokens.BorderWidth.thin))
         }
         .buttonStyle(NumpadButtonStyle())
         .sensoryFeedback(.impact(flexibility: .soft), trigger: feedbackTrigger)

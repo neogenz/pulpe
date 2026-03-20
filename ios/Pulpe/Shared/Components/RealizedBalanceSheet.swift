@@ -192,7 +192,7 @@ struct RealizedBalanceSheet: View {
     private var tipSection: some View {
         HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
             Image(systemName: "lightbulb.fill")
-                .font(.system(size: 14))
+                .font(PulpeTypography.heroMetric)
                 .foregroundStyle(Color.warningPrimary)
                 .frame(width: 28, height: 28)
                 .background(Color.warningPrimary.opacity(DesignTokens.Opacity.badgeBackground))
@@ -349,7 +349,7 @@ private struct CategoryRow: View {
         HStack(spacing: DesignTokens.Spacing.md) {
             // Icon badge
             Image(systemName: icon)
-                .font(.system(size: 16))
+                .font(PulpeTypography.listRowTitle)
                 .foregroundStyle(.white)
                 .frame(width: DesignTokens.IconSize.badge, height: DesignTokens.IconSize.badge)
                 .background(iconColor)

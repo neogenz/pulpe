@@ -36,7 +36,7 @@ struct BudgetPreviewStep: View {
                     .frame(width: 56, height: 56)
 
                 Image(systemName: "checkmark.circle.fill")
-                    .font(.system(size: 28, weight: .medium))
+                    .font(PulpeTypography.previewAmount)
                     .foregroundStyle(Color.pulpePrimary)
                     .symbolEffect(.bounce, value: showCheckmark)
             }

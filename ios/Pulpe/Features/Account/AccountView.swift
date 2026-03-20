@@ -185,7 +185,7 @@ extension AccountView {
         NavigationLink(destination: destination) {
             HStack(spacing: DesignTokens.Spacing.md) {
                 Image(systemName: icon)
-                    .font(.system(size: 16))
+                    .font(PulpeTypography.listRowTitle)
                     .foregroundStyle(.secondary)
                     .frame(
                         width: DesignTokens.IconSize.compact,
@@ -211,7 +211,7 @@ extension AccountView {
         Link(destination: url) {
             HStack(spacing: DesignTokens.Spacing.md) {
                 Image(systemName: icon)
-                    .font(.system(size: 16))
+                    .font(PulpeTypography.listRowTitle)
                     .foregroundStyle(.secondary)
                     .frame(
                         width: DesignTokens.IconSize.compact,

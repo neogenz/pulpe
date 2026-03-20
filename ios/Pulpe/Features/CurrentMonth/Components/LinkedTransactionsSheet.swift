@@ -156,7 +156,7 @@ struct LinkedTransactionsSheet: View {
     private var emptyStateView: some View {
         VStack(spacing: DesignTokens.Spacing.lg) {
             Image(systemName: "tray")
-                .font(.system(size: 44, weight: .light))
+                .font(PulpeTypography.amountHeroLight)
                 .foregroundStyle(.quaternary)
 
             VStack(spacing: DesignTokens.Spacing.xs) {
@@ -234,7 +234,7 @@ private struct MetricCard: View {
     var body: some View {
         VStack(spacing: DesignTokens.Spacing.sm) {
             Image(systemName: icon)
-                .font(.system(size: 20))
+                .font(PulpeTypography.actionIcon)
                 .foregroundStyle(color)
 
             VStack(spacing: 2) {

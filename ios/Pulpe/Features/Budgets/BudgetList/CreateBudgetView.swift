@@ -98,13 +98,13 @@ struct CreateBudgetView: View {
                     .frame(width: 52, height: 52)
 
                 Image(systemName: "calendar")
-                    .font(.system(size: 22, weight: .medium))
+                    .font(PulpeTypography.sectionIcon)
                     .foregroundStyle(Color.pulpePrimary)
             }
 
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                 Text("Période du budget")
-                    .font(.system(size: 12))
+                    .font(PulpeTypography.detailLabel)
                     .foregroundStyle(.secondary)
 
                 Text(viewModel.monthYearFormatted)
@@ -156,7 +156,7 @@ struct CreateBudgetView: View {
 
             // Footer hint
             Text("Le budget sera créé avec les prévisions du modèle sélectionné")
-                .font(.system(size: 12))
+                .font(PulpeTypography.detailLabel)
                 .foregroundStyle(.tertiary)
                 .padding(.horizontal, DesignTokens.Spacing.xs)
                 .padding(.top, DesignTokens.Spacing.xs)
@@ -181,7 +181,7 @@ struct CreateBudgetView: View {
     private var emptyTemplates: some View {
         VStack(spacing: DesignTokens.Spacing.md) {
             Image(systemName: "doc.text.magnifyingglass")
-                .font(.system(size: 32))
+                .font(PulpeTypography.amountDisplayLarge)
                 .foregroundStyle(.tertiary)
 
             Text("Pas encore de modèle")
@@ -189,7 +189,7 @@ struct CreateBudgetView: View {
                 .foregroundStyle(.secondary)
 
             Text("Crée d'abord un modèle dans l'onglet Modèles")
-                .font(.system(size: 12))
+                .font(PulpeTypography.detailLabel)
                 .foregroundStyle(.tertiary)
                 .multilineTextAlignment(.center)
         }
@@ -290,7 +290,10 @@ struct TemplateSelectionCard: View {
     private var selectionIndicator: some View {
         ZStack {
             Circle()
-                .strokeBorder(isSelected ? Color.pulpePrimary : Color.outlineVariant, lineWidth: 2)
+                .strokeBorder(
+                    isSelected ? Color.pulpePrimary : Color.outlineVariant,
+                    lineWidth: DesignTokens.BorderWidth.thick
+                )
                 .frame(width: 24, height: 24)
 
             if isSelected {
@@ -320,7 +323,7 @@ struct TemplateSelectionCard: View {
         HStack(spacing: DesignTokens.Spacing.lg) {
             HStack(spacing: DesignTokens.Spacing.xs) {
                 Image(systemName: "arrow.down.circle.fill")
-                    .font(.system(size: 12))
+                    .font(PulpeTypography.detailLabel)
                     .foregroundStyle(Color.financialIncome)
 
                 Text(totals.totalIncome.asCompactCHF)
@@ -331,7 +334,7 @@ struct TemplateSelectionCard: View {
 
             HStack(spacing: DesignTokens.Spacing.xs) {
                 Image(systemName: "arrow.up.circle.fill")
-                    .font(.system(size: 12))
+                    .font(PulpeTypography.detailLabel)
                     .foregroundStyle(Color.financialExpense)
 
                 Text(totals.totalExpenses.asCompactCHF)
@@ -343,7 +346,7 @@ struct TemplateSelectionCard: View {
             // Balance indicator
             HStack(spacing: DesignTokens.Spacing.xs) {
                 Image(systemName: totals.balance >= 0 ? "checkmark.circle.fill" : "exclamationmark.circle.fill")
-                    .font(.system(size: 12))
+                    .font(PulpeTypography.detailLabel)
                     .foregroundStyle(totals.balance >= 0 ? Color.financialSavings : Color.financialOverBudget)
 
                 Text(totals.balance.asCompactCHF)
@@ -378,7 +381,7 @@ struct TemplateSelectionCard: View {
         RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md)
             .stroke(
                 isSelected ? Color.pulpePrimary.opacity(0.4) : Color.outlineVariant.opacity(0.2),
-                lineWidth: isSelected ? 1.5 : 0.5
+                lineWidth: isSelected ? DesignTokens.BorderWidth.medium : DesignTokens.BorderWidth.hairline
             )
     }
 }

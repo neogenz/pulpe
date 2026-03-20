@@ -48,14 +48,14 @@ private struct UncheckedTransactionRow: View {
                     .frame(width: DesignTokens.IconSize.listRow, height: DesignTokens.IconSize.listRow)
 
                 Image(systemName: transaction.kind.icon)
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(PulpeTypography.listRowTitle)
                     .foregroundStyle(Color.financialOverBudget)
             }
 
             // Name and date
             VStack(alignment: .leading, spacing: 2) {
                 Text(transaction.name)
-                    .font(.system(.body, weight: .semibold))
+                    .font(PulpeTypography.listRowTitle)
                     .lineLimit(1)
 
                 Text(transaction.transactionDate.relativeFormatted)
@@ -67,7 +67,7 @@ private struct UncheckedTransactionRow: View {
 
             // Amount
             Text(transaction.signedAmount.asAmount)
-                .font(.system(.callout, weight: .regular))
+                .font(PulpeTypography.listRowSubtitle)
                 .foregroundStyle(transaction.kind.color)
                 .sensitiveAmount()
         }

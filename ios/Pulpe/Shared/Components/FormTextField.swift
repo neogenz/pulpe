@@ -24,7 +24,7 @@ struct FormTextField: View {
                 textField
                     .overlay(
                         RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md)
-                            .strokeBorder(Color.outlineVariant.opacity(0.5), lineWidth: 1)
+                            .strokeBorder(Color.outlineVariant.opacity(0.5), lineWidth: DesignTokens.BorderWidth.thin)
                     )
                     .accessibilityLabel(accessibilityLabel ?? label)
             }

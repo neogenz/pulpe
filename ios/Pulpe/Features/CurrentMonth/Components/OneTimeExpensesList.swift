@@ -206,12 +206,12 @@ struct TransactionRow: View {
             if transaction.isChecked {
                 // Show checkmark when checked
                 Image(systemName: "checkmark")
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(PulpeTypography.listRowTitle)
                     .foregroundStyle(.secondary)
             } else {
                 // Show kind icon
                 Image(systemName: transaction.kind.icon)
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(PulpeTypography.listRowTitle)
                     .foregroundStyle(transaction.kind.color)
             }
         }

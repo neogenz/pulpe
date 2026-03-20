@@ -135,7 +135,7 @@ struct CurrencyField: View {
     }
 
     private var borderWidth: CGFloat {
-        effectiveFocus ? 2 : 0.75
+        effectiveFocus ? DesignTokens.BorderWidth.thick : DesignTokens.BorderWidth.hairline
     }
 
     @ViewBuilder

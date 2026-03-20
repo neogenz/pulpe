@@ -52,7 +52,7 @@ struct CurrentMonthHeroCard: View {
             Text("Détails")
                 .font(PulpeTypography.buttonSecondary)
             Image(systemName: "chevron.right")
-                .font(.system(size: 12, weight: .semibold))
+                .font(PulpeTypography.detailLabel)
         }
         .foregroundStyle(.white.opacity(0.8))
     }
@@ -65,7 +65,7 @@ struct CurrentMonthHeroCard: View {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
                 HStack(spacing: 6) {
                     Image(systemName: "calendar")
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(PulpeTypography.metricLabel)
                     Text("Ce mois-ci")
                         .font(PulpeTypography.labelLarge)
                 }
@@ -273,7 +273,7 @@ struct BudgetMonthRow: View {
                 }
 
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(PulpeTypography.detailLabel)
                     .foregroundStyle(.tertiary)
             }
             .padding(.horizontal, DesignTokens.Spacing.lg)
@@ -321,7 +321,7 @@ struct NextMonthPlaceholder: View {
                 Spacer()
                 HStack(spacing: DesignTokens.Spacing.xs) {
                     Image(systemName: "plus")
-                        .font(.system(size: 12, weight: .bold))
+                        .font(PulpeTypography.detailLabelBold)
                     Text("Créer")
                         .font(PulpeTypography.labelLarge)
                 }
