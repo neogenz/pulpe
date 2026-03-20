@@ -110,7 +110,7 @@ export class TemplateLineStore {
   }
 
   setCurrencyMetadata(id: string, metadata: CurrencyMetadata | null): void {
-    this.lines.update((lines) =>
+    this.#lines.update((lines) =>
       lines.map((line) =>
         line.id === id ? { ...line, currencyMetadata: metadata } : line,
       ),

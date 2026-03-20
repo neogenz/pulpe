@@ -11,6 +11,7 @@ interface CachedRate {
 }
 
 const TTL_MS = 24 * 60 * 60 * 1000;
+const IDENTITY_EXCHANGE_RATE = 1;
 
 @Injectable()
 export class CurrencyService {
@@ -34,7 +35,7 @@ export class CurrencyService {
       return {
         base,
         target,
-        rate: 1,
+        rate: IDENTITY_EXCHANGE_RATE,
         date: new Date().toISOString().slice(0, 10),
       };
     }
@@ -42,14 +43,61 @@ export class CurrencyService {
     const cacheKey = `${base}_${target}`;
     const cached = this.#cache.get(cacheKey);
 
-    if (cached) {
-      if (cached.expiresAt > Date.now()) {
-        return { base, target, rate: cached.rate, date: cached.date };
-      }
-      this.#cache.delete(cacheKey);
+    if (cached && cached.expiresAt > Date.now()) {
+      return { base, target, rate: cached.rate, date: cached.date };
     }
 
-    return this.#fetchAndCache(base, target, cacheKey);
+    try {
+      return await this.#fetchAndCache(base, target, cacheKey);
+    } catch (error) {
+      return this.#rateWhenFetchFails(base, target, cached, error);
+    }
+  }
+
+  #rateWhenFetchFails(
+    base: SupportedCurrency,
+    target: SupportedCurrency,
+    cached: CachedRate | undefined,
+    error: unknown,
+  ): {
+    base: SupportedCurrency;
+    target: SupportedCurrency;
+    rate: number;
+    date: string;
+  } {
+    if (cached) {
+      this.logger.warn(
+        { operation: 'getRate', base, target, cachedDate: cached.date },
+        'Currency API unavailable, returning stale cached rate',
+      );
+      return { base, target, rate: cached.rate, date: cached.date };
+    }
+    this.#logIdentityFallbackWarning(base, target, error);
+    return {
+      base,
+      target,
+      rate: IDENTITY_EXCHANGE_RATE,
+      date: new Date().toISOString().slice(0, 10),
+    };
+  }
+
+  #logIdentityFallbackWarning(
+    base: SupportedCurrency,
+    target: SupportedCurrency,
+    error: unknown,
+  ): void {
+    const logContext: Record<string, unknown> = {
+      operation: 'getRate',
+      base,
+      target,
+    };
+    if (error instanceof Error) {
+      logContext.err = error;
+    }
+    this.logger.warn(
+      logContext,
+      'Currency API unavailable, no cached rate, using identity exchange rate fallback',
+    );
   }
 
   async overrideExchangeRate<

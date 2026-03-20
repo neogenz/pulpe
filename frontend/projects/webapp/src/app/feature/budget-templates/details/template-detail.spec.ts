@@ -198,7 +198,7 @@ describe('TemplateDetail', () => {
         { provide: Logger, useValue: mockLogger },
         { provide: BudgetApi, useValue: mockBudgetApi },
         {
-          provide: UserSettingsApi,
+          provide: UserSettingsStore,
           useValue: { currency: signal('CHF') },
         },
       ],

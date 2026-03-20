@@ -25,7 +25,11 @@ describe('UserSettingsStore', () => {
   let store: UserSettingsStore;
   let mockApi: Partial<UserSettingsApi>;
 
-  const mockSettings: UserSettings = { payDayOfMonth: 25 };
+  const mockSettings: UserSettings = {
+    payDayOfMonth: 25,
+    currency: 'CHF',
+    showCurrencySelector: false,
+  };
 
   beforeEach(() => {
     mockCache.get.mockReturnValue(null);
@@ -107,7 +111,11 @@ describe('UserSettingsStore', () => {
 
   describe('updateSettings', () => {
     it('should call API and return updated settings', async () => {
-      const updated: UserSettings = { payDayOfMonth: 15 };
+      const updated: UserSettings = {
+        payDayOfMonth: 15,
+        currency: 'CHF',
+        showCurrencySelector: false,
+      };
       mockApi.updateSettings$ = vi
         .fn()
         .mockReturnValue(of({ data: updated, success: true }));
@@ -121,7 +129,11 @@ describe('UserSettingsStore', () => {
     });
 
     it('should update local settings signal after API call', async () => {
-      const updated: UserSettings = { payDayOfMonth: 15 };
+      const updated: UserSettings = {
+        payDayOfMonth: 15,
+        currency: 'CHF',
+        showCurrencySelector: false,
+      };
       mockApi.updateSettings$ = vi
         .fn()
         .mockReturnValue(of({ data: updated, success: true }));
@@ -156,7 +168,11 @@ describe('UserSettingsStore', () => {
         expect(store.settings()).toEqual(mockSettings);
       });
 
-      const newSettings: UserSettings = { payDayOfMonth: 10 };
+      const newSettings: UserSettings = {
+        payDayOfMonth: 10,
+        currency: 'CHF',
+        showCurrencySelector: false,
+      };
       mockApi.getSettings$ = vi
         .fn()
         .mockReturnValue(of({ data: newSettings, success: true }));
@@ -243,7 +259,11 @@ describe('UserSettingsStore — loading conditions', () => {
   });
 
   it('should load in demo mode even without client key', async () => {
-    const demoSettings: UserSettings = { payDayOfMonth: 25 };
+    const demoSettings: UserSettings = {
+      payDayOfMonth: 25,
+      currency: 'CHF',
+      showCurrencySelector: false,
+    };
 
     TestBed.configureTestingModule({
       providers: [
