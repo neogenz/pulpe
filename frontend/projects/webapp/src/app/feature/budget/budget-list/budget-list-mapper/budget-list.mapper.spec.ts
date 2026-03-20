@@ -1,7 +1,30 @@
 import { describe, it, expect } from 'vitest';
-import { mapToCalendarYear } from './budget-list.mapper';
+import {
+  buildCalendarYears,
+  mapToCalendarYear,
+  resolveSelectedYearIndex,
+} from './budget-list.mapper';
 import type { Budget } from 'pulpe-shared';
-import type { BudgetPlaceholder } from '../budget-list-store';
+import type { CalendarYear } from '@ui/calendar/calendar-types';
+import type { BudgetPlaceholder } from './budget-list.mapper';
+
+function createBudget(month: number, year: number): Budget {
+  return {
+    id: `budget-${year}-${month}`,
+    userId: 'user1',
+    month,
+    year,
+    description: `Budget ${month}/${year}`,
+    endingBalance: 1000,
+    templateId: 'template-1',
+    createdAt: '2025-01-01',
+    updatedAt: '2025-01-01',
+  };
+}
+
+function fullYearPlaceholders(year: number): BudgetPlaceholder[] {
+  return Array.from({ length: 12 }, (_, i) => ({ month: i + 1, year }));
+}
 
 describe('mapToCalendarYear', () => {
   it('should map empty budgets array to calendar year', () => {
@@ -133,5 +156,124 @@ describe('mapToCalendarYear', () => {
     expect(result.year).toBe(2024);
     expect(result.months[0].year).toBe(2024);
     expect(result.months[0].displayName).toBe('février 2024');
+  });
+});
+
+describe('buildCalendarYears', () => {
+  const CURRENT_YEAR = 2026;
+
+  it('should return 8 years with empty months when no budgets exist', () => {
+    const result = buildCalendarYears(new Map(), null, CURRENT_YEAR);
+
+    expect(result).toHaveLength(8);
+    expect(result[0].year).toBe(CURRENT_YEAR);
+    expect(result[7].year).toBe(CURRENT_YEAR + 7);
+    result.forEach((calendarYear) => {
+      expect(calendarYear.months).toHaveLength(12);
+      calendarYear.months.forEach((month) => {
+        expect(month.hasContent).toBe(false);
+      });
+    });
+  });
+
+  it('should include past years with existing budgets', () => {
+    const pastYear = CURRENT_YEAR - 2;
+    const budgets = new Map<number, (Budget | BudgetPlaceholder)[]>([
+      [pastYear, fullYearPlaceholders(pastYear)],
+    ]);
+
+    const result = buildCalendarYears(budgets, null, CURRENT_YEAR);
+
+    expect(result[0].year).toBe(pastYear);
+    expect(result).toHaveLength(9);
+  });
+
+  it('should merge existing years with future years without duplicates', () => {
+    const budgets = new Map<number, (Budget | BudgetPlaceholder)[]>([
+      [CURRENT_YEAR, [createBudget(3, CURRENT_YEAR)]],
+      [CURRENT_YEAR + 1, [createBudget(6, CURRENT_YEAR + 1)]],
+    ]);
+
+    const result = buildCalendarYears(budgets, null, CURRENT_YEAR);
+
+    const years = result.map((cy) => cy.year);
+    const uniqueYears = [...new Set(years)];
+    expect(years).toEqual(uniqueYears);
+    expect(result).toHaveLength(8);
+  });
+
+  it('should sort years ascending', () => {
+    const budgets = new Map<number, (Budget | BudgetPlaceholder)[]>([
+      [CURRENT_YEAR + 10, fullYearPlaceholders(CURRENT_YEAR + 10)],
+      [CURRENT_YEAR - 1, fullYearPlaceholders(CURRENT_YEAR - 1)],
+    ]);
+
+    const result = buildCalendarYears(budgets, null, CURRENT_YEAR);
+
+    const years = result.map((cy) => cy.year);
+    expect(years).toEqual([...years].sort((a, b) => a - b));
+  });
+
+  it('should use existing budgets data for years that have them', () => {
+    const budget = createBudget(3, CURRENT_YEAR);
+    const budgets = new Map<number, (Budget | BudgetPlaceholder)[]>([
+      [CURRENT_YEAR, [budget]],
+    ]);
+
+    const result = buildCalendarYears(budgets, null, CURRENT_YEAR);
+
+    const currentYearResult = result.find((cy) => cy.year === CURRENT_YEAR)!;
+    expect(currentYearResult.months).toHaveLength(1);
+    expect(currentYearResult.months[0].hasContent).toBe(true);
+    expect(currentYearResult.months[0].id).toBe(budget.id);
+  });
+
+  it('should create 12 empty months for years without existing budgets', () => {
+    const result = buildCalendarYears(new Map(), null, CURRENT_YEAR);
+
+    const futureYear = result.find((cy) => cy.year === CURRENT_YEAR + 3)!;
+    expect(futureYear.months).toHaveLength(12);
+    futureYear.months.forEach((month, index) => {
+      expect(month.hasContent).toBe(false);
+      expect(month.month).toBe(index + 1);
+    });
+  });
+
+  it('should pass payDayOfMonth through to calendar year mapping', () => {
+    const budget = createBudget(3, CURRENT_YEAR);
+    const budgets = new Map<number, (Budget | BudgetPlaceholder)[]>([
+      [CURRENT_YEAR, [budget]],
+    ]);
+
+    const result = buildCalendarYears(budgets, 25, CURRENT_YEAR);
+
+    const currentYearResult = result.find((cy) => cy.year === CURRENT_YEAR)!;
+    expect(currentYearResult.months[0].period).toBeDefined();
+  });
+});
+
+describe('resolveSelectedYearIndex', () => {
+  const years = [
+    { year: 2024 },
+    { year: 2025 },
+    { year: 2026 },
+  ] as CalendarYear[];
+
+  it('should return 0 when selectedYear is null', () => {
+    expect(resolveSelectedYearIndex(null, years)).toBe(0);
+  });
+
+  it('should return 0 when calendarYears is empty', () => {
+    expect(resolveSelectedYearIndex(2025, [])).toBe(0);
+  });
+
+  it('should return the index of the selected year', () => {
+    expect(resolveSelectedYearIndex(2024, years)).toBe(0);
+    expect(resolveSelectedYearIndex(2025, years)).toBe(1);
+    expect(resolveSelectedYearIndex(2026, years)).toBe(2);
+  });
+
+  it('should return 0 when selected year is not found', () => {
+    expect(resolveSelectedYearIndex(2030, years)).toBe(0);
   });
 });

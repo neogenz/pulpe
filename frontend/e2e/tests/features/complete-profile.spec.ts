@@ -27,6 +27,14 @@ base.describe('Complete Profile Flow', () => {
     await page.route('**/api/v1/budgets**', (route) => {
       const url = route.request().url();
 
+      if (url.includes('/exists')) {
+        return route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ hasBudget: true }),
+        });
+      }
+
       if (url.includes('/details')) {
         return route.fulfill({
           status: 200,
@@ -104,6 +112,16 @@ base.describe('Complete Profile Flow', () => {
 
   base('should display complete profile form for first-time user', async ({ page }) => {
     await page.route('**/api/v1/budgets**', (route) => {
+      const url = route.request().url();
+
+      if (url.includes('/exists')) {
+        return route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ hasBudget: false }),
+        });
+      }
+
       return route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -164,6 +182,14 @@ base.describe('Complete Profile Flow', () => {
     await page.route('**/api/v1/budgets**', (route) => {
       const method = route.request().method();
       const url = route.request().url();
+
+      if (url.includes('/exists')) {
+        return route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ hasBudget: budgetCreated }),
+        });
+      }
 
       if (method === 'POST') {
         budgetCreated = true;

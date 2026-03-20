@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { provideZonelessChangeDetection } from '@angular/core';
+import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { provideHttpClient } from '@angular/common/http';
 import {
   provideHttpClientTesting,
@@ -132,6 +132,7 @@ describe('BudgetDetailsStore - Search Filtering', () => {
               .mockReturnValue(of(mockBudgetDetailsResponse)),
             getAllBudgets$: vi.fn().mockReturnValue(of([])),
             cache: {
+              version: signal(0),
               get: vi.fn().mockReturnValue(null),
               set: vi.fn(),
               has: vi.fn().mockReturnValue(false),
@@ -139,7 +140,9 @@ describe('BudgetDetailsStore - Search Filtering', () => {
               deduplicate: vi.fn((_key: string[], fn: () => Promise<unknown>) =>
                 fn(),
               ),
+              prefetch: vi.fn(),
               clear: vi.fn(),
+              clearDirty: vi.fn(),
             },
           },
         },

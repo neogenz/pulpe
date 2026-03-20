@@ -25,7 +25,7 @@ import { firstValueFrom } from 'rxjs';
 import { TranslocoService, TranslocoPipe } from '@jsverse/transloco';
 import { isApiError } from '@core/api/api-error';
 import { Logger } from '@core/logging/logger';
-import { UserSettingsApi } from '@core/user-settings';
+import { UserSettingsStore } from '@core/user-settings';
 import { AuthSessionService } from '@core/auth/auth-session.service';
 import { AuthStateService } from '@core/auth';
 import { ClientKeyService, EncryptionApi } from '@core/encryption';
@@ -295,7 +295,7 @@ import { RegenerateRecoveryKeyDialog } from './components/regenerate-recovery-ke
 })
 export default class SettingsPage {
   readonly #logger = inject(Logger);
-  readonly #userSettingsApi = inject(UserSettingsApi);
+  readonly #userSettingsStore = inject(UserSettingsStore);
   readonly #snackBar = inject(MatSnackBar);
   readonly #dialog = inject(MatDialog);
   readonly #router = inject(Router);
@@ -314,10 +314,12 @@ export default class SettingsPage {
   readonly availableDays = Array.from({ length: PAY_DAY_MAX }, (_, i) => i + 1);
 
   readonly selectedPayDay = linkedSignal(
-    () => this.#userSettingsApi.payDayOfMonth() ?? null,
+    () => this.#userSettingsStore.payDayOfMonth() ?? null,
   );
 
-  readonly initialValue = computed(() => this.#userSettingsApi.payDayOfMonth());
+  readonly initialValue = computed(() =>
+    this.#userSettingsStore.payDayOfMonth(),
+  );
 
   readonly hasChanges = computed(() => {
     return this.initialValue() !== this.selectedPayDay();
@@ -333,7 +335,7 @@ export default class SettingsPage {
     try {
       this.isSaving.set(true);
 
-      await this.#userSettingsApi.updateSettings({
+      await this.#userSettingsStore.updateSettings({
         payDayOfMonth: this.selectedPayDay(),
       });
 
@@ -440,7 +442,7 @@ export default class SettingsPage {
 
     try {
       this.isDeleting.set(true);
-      await this.#userSettingsApi.deleteAccount();
+      await this.#userSettingsStore.deleteAccount();
     } catch (error) {
       this.isDeleting.set(false);
       this.#logger.error('Failed to delete account', error);

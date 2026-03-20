@@ -17,7 +17,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { RouterLink } from '@angular/router';
 import { type BudgetLine } from 'pulpe-shared';
 import { FinancialKindDirective } from '@ui/financial-kind';
-import { RecurrenceLabelPipe } from '@pattern/transaction-display';
+import { RecurrenceLabelPipe } from '@ui/transaction-display';
 import { formatMatchAnnotation, type BudgetLineTableItem } from '../data-core';
 import { SegmentedBudgetProgress } from '../components/segmented-budget-progress';
 import { BudgetKindIndicator } from '../components/budget-kind-indicator';

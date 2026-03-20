@@ -21,7 +21,7 @@ import {
   type ConfirmationDialogData,
 } from '@ui/dialogs/confirmation-dialog';
 import { FinancialKindDirective } from '@ui/financial-kind';
-import { RecurrenceLabelPipe } from '@pattern/transaction-display';
+import { RecurrenceLabelPipe } from '@ui/transaction-display';
 import { type BudgetLine, type BudgetLineUpdate } from 'pulpe-shared';
 import { ActionsCell, BalanceCell, NameCell, RemainingCell } from './cells';
 import { EditBudgetLineDialog } from '../edit-budget-line/edit-budget-line-dialog';

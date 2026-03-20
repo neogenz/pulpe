@@ -22,7 +22,6 @@ import { Router } from '@angular/router';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { formatLocalDate } from '@core/date/format-local-date';
 import { LoadingIndicator } from '@core/loading/loading-indicator';
-import { Logger } from '@core/logging/logger';
 import { ROUTES } from '@core/routing/routes-constants';
 import {
   ProductTourService,
@@ -291,7 +290,6 @@ export default class Dashboard {
   readonly #loadingIndicator = inject(LoadingIndicator);
   readonly #bottomSheet = inject(MatBottomSheet);
   readonly #router = inject(Router);
-  readonly #logger = inject(Logger);
   readonly #snackBar = inject(MatSnackBar);
   readonly #transloco = inject(TranslocoService);
 
@@ -334,10 +332,8 @@ export default class Dashboard {
   }
 
   protected async checkBudgetLine(budgetLineId: string): Promise<void> {
-    try {
-      await this.store.checkBudgetLine(budgetLineId);
-    } catch (error) {
-      this.#logger.error('Error checking budget line:', error);
+    const isSuccess = await this.store.checkBudgetLine(budgetLineId);
+    if (!isSuccess) {
       this.#snackBar.open(
         this.#transloco.translate('currentMonth.updateError'),
         this.#transloco.translate('currentMonth.close'),
@@ -363,27 +359,18 @@ export default class Dashboard {
   }
 
   async #addTransaction(transaction: TransactionFormData): Promise<void> {
-    try {
-      const budgetId = this.store.dashboardData()?.budget?.id;
-      if (!budgetId) {
-        throw new Error('Budget ID not found');
-      }
-      await this.store.addTransaction({
-        budgetId,
-        amount: transaction.amount ?? 0,
-        name: transaction.name,
-        kind: transaction.kind,
-        transactionDate: formatLocalDate(new Date()),
-        category: transaction.category ?? null,
-        checkedAt: transaction.checkedAt ?? null,
-      });
-    } catch (error) {
-      this.#logger.error('Error adding transaction:', error);
-      this.#snackBar.open(
-        this.#transloco.translate('currentMonth.addError'),
-        this.#transloco.translate('currentMonth.close'),
-        { duration: 5000 },
-      );
+    const budgetId = this.store.dashboardData()?.budget?.id;
+    if (!budgetId) {
+      return;
     }
+    await this.store.addTransaction({
+      budgetId,
+      amount: transaction.amount ?? 0,
+      name: transaction.name,
+      kind: transaction.kind,
+      transactionDate: formatLocalDate(new Date()),
+      category: transaction.category ?? null,
+      checkedAt: transaction.checkedAt ?? null,
+    });
   }
 }

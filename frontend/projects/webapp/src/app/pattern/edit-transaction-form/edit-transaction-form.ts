@@ -29,7 +29,7 @@ import { TranslocoService, TranslocoPipe } from '@jsverse/transloco';
 import { type Transaction, type TransactionCreate } from 'pulpe-shared';
 import { startOfMonth, endOfMonth } from 'date-fns';
 import { TransactionValidators } from '@core/transaction';
-import { TransactionLabelPipe } from '@pattern/transaction-display';
+import { TransactionLabelPipe } from '@ui/transaction-display';
 import { Logger } from '@core/logging/logger';
 import { formatLocalDate } from '@core/date/format-local-date';
 

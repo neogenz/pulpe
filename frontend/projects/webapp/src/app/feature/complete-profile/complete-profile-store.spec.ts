@@ -6,7 +6,7 @@ import { ProfileSetupService } from '@core/complete-profile';
 import { BudgetApi } from '@core/budget';
 import { Logger } from '@core/logging/logger';
 import { PostHogService } from '@core/analytics/posthog';
-import { UserSettingsApi } from '@core/user-settings';
+import { UserSettingsStore } from '@core/user-settings';
 import { AuthOAuthService } from '@core/auth';
 import { provideTranslocoForTest } from '../../testing/transloco-testing';
 
@@ -16,9 +16,9 @@ describe('CompleteProfileStore', () => {
     createInitialBudget: ReturnType<typeof vi.fn>;
   };
   let mockBudgetApi: {
-    getAllBudgets$: ReturnType<typeof vi.fn>;
+    checkBudgetExists$: ReturnType<typeof vi.fn>;
   };
-  let mockUserSettingsApi: {
+  let mockUserSettingsStore: {
     updateSettings: ReturnType<typeof vi.fn>;
   };
   let mockAuthOAuth: {
@@ -40,10 +40,10 @@ describe('CompleteProfileStore', () => {
     };
 
     mockBudgetApi = {
-      getAllBudgets$: vi.fn().mockReturnValue(of([])),
+      checkBudgetExists$: vi.fn().mockReturnValue(of(false)),
     };
 
-    mockUserSettingsApi = {
+    mockUserSettingsStore = {
       updateSettings: vi.fn().mockResolvedValue({ payDayOfMonth: null }),
     };
 
@@ -67,7 +67,7 @@ describe('CompleteProfileStore', () => {
         CompleteProfileStore,
         { provide: ProfileSetupService, useValue: mockProfileSetupService },
         { provide: BudgetApi, useValue: mockBudgetApi },
-        { provide: UserSettingsApi, useValue: mockUserSettingsApi },
+        { provide: UserSettingsStore, useValue: mockUserSettingsStore },
         { provide: AuthOAuthService, useValue: mockAuthOAuth },
         { provide: Logger, useValue: mockLogger },
         { provide: PostHogService, useValue: mockPostHogService },
@@ -76,10 +76,6 @@ describe('CompleteProfileStore', () => {
     });
 
     store = TestBed.inject(CompleteProfileStore);
-  });
-
-  it('should be created', () => {
-    expect(store).toBeTruthy();
   });
 
   describe('initial state', () => {
@@ -100,7 +96,7 @@ describe('CompleteProfileStore', () => {
     });
 
     it('should have no error', () => {
-      expect(store.error()).toBe('');
+      expect(store.error()).toBeNull();
     });
 
     it('should have null internetPlan', () => {
@@ -118,7 +114,7 @@ describe('CompleteProfileStore', () => {
 
   describe('checkExistingBudgets', () => {
     it('should return false when no budgets exist', async () => {
-      mockBudgetApi.getAllBudgets$.mockReturnValue(of([]));
+      mockBudgetApi.checkBudgetExists$.mockReturnValue(of(false));
 
       const result = await store.checkExistingBudgets();
 
@@ -127,9 +123,7 @@ describe('CompleteProfileStore', () => {
     });
 
     it('should return true when budgets exist', async () => {
-      mockBudgetApi.getAllBudgets$.mockReturnValue(
-        of([{ id: 'budget-1', name: 'Test Budget' }]),
-      );
+      mockBudgetApi.checkBudgetExists$.mockReturnValue(of(true));
 
       const result = await store.checkExistingBudgets();
 
@@ -142,7 +136,9 @@ describe('CompleteProfileStore', () => {
 
     it('should return false and track error on API failure', async () => {
       const apiError = new Error('API Error');
-      mockBudgetApi.getAllBudgets$.mockReturnValue(throwError(() => apiError));
+      mockBudgetApi.checkBudgetExists$.mockReturnValue(
+        throwError(() => apiError),
+      );
 
       const result = await store.checkExistingBudgets();
 
@@ -303,6 +299,27 @@ describe('CompleteProfileStore', () => {
       expect(store.error()).toContain('prénom');
     });
 
+    it('should set isLoading during submission', async () => {
+      let resolvePromise: (value: { success: true }) => void;
+      mockProfileSetupService.createInitialBudget.mockReturnValue(
+        new Promise((resolve) => {
+          resolvePromise = resolve;
+        }),
+      );
+
+      store.updateFirstName('John');
+      store.updateMonthlyIncome(5000);
+
+      const submitPromise = store.submitProfile();
+
+      expect(store.isLoading()).toBe(true);
+
+      resolvePromise!({ success: true });
+      await submitPromise;
+
+      expect(store.isLoading()).toBe(false);
+    });
+
     it('should call profileSetupService when valid', async () => {
       mockProfileSetupService.createInitialBudget.mockResolvedValue({
         success: true,
@@ -370,7 +387,7 @@ describe('CompleteProfileStore', () => {
       const result = await store.submitProfile();
 
       expect(result).toBe(true);
-      expect(mockUserSettingsApi.updateSettings).toHaveBeenCalledWith({
+      expect(mockUserSettingsStore.updateSettings).toHaveBeenCalledWith({
         payDayOfMonth: 27,
       });
       expect(mockLogger.info).toHaveBeenCalledWith('Pay day setting saved', {
@@ -390,14 +407,14 @@ describe('CompleteProfileStore', () => {
       const result = await store.submitProfile();
 
       expect(result).toBe(true);
-      expect(mockUserSettingsApi.updateSettings).not.toHaveBeenCalled();
+      expect(mockUserSettingsStore.updateSettings).not.toHaveBeenCalled();
     });
 
     it('should succeed even if saving payDayOfMonth fails', async () => {
       mockProfileSetupService.createInitialBudget.mockResolvedValue({
         success: true,
       });
-      mockUserSettingsApi.updateSettings.mockRejectedValue(
+      mockUserSettingsStore.updateSettings.mockRejectedValue(
         new Error('Settings API Error'),
       );
 

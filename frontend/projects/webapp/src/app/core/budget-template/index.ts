@@ -1,1 +1,1 @@
-export { TemplateApi } from './template-api';
+export { BudgetTemplatesApi } from './budget-templates-api';

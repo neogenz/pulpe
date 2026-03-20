@@ -1,5 +1,5 @@
 import { inject, Injectable } from '@angular/core';
-import { type Observable, forkJoin, map } from 'rxjs';
+import { type Observable } from 'rxjs';
 import {
   type BudgetTemplateCreate,
   type BudgetTemplateCreateFromOnboarding,
@@ -23,10 +23,22 @@ import {
   templateUsageResponseSchema,
 } from 'pulpe-shared';
 import { ApiClient } from '@core/api/api-client';
+import { DataCache } from 'ngx-ziflux';
 
-@Injectable()
+@Injectable({
+  providedIn: 'root',
+})
 export class BudgetTemplatesApi {
   readonly #api = inject(ApiClient);
+  readonly cache = new DataCache({
+    name: 'templates',
+    staleTime: 30_000,
+    expireTime: 300_000,
+  });
+
+  clearCache(): void {
+    this.cache.clear();
+  }
 
   getAll$(): Observable<BudgetTemplateListResponse> {
     return this.#api.get$(
@@ -117,26 +129,4 @@ export class BudgetTemplatesApi {
       templateUsageResponseSchema,
     );
   }
-
-  getDetail$(id: string): Observable<BudgetTemplateDetailViewModel> {
-    return forkJoin({
-      template: this.getById$(id).pipe(map((r) => r.data)),
-      transactions: this.getTemplateTransactions$(id).pipe(map((r) => r.data)),
-    }).pipe(
-      map((result) => {
-        if (!result.template) {
-          throw new Error(`Template with id ${id} not found`);
-        }
-        return {
-          template: result.template,
-          transactions: result.transactions || [],
-        };
-      }),
-    );
-  }
-}
-
-export interface BudgetTemplateDetailViewModel {
-  template: BudgetTemplateResponse['data'];
-  transactions: TemplateLineListResponse['data'];
 }

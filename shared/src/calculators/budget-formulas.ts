@@ -132,6 +132,18 @@ export class BudgetFormulas {
     );
   }
 
+  /** Total expense-only (excludes savings) with envelope logic. */
+  static calculateTotalExpenseOnly(
+    budgetLines: FinancialItemWithId[],
+    transactions: TransactionWithBudgetLineId[] = [],
+  ): number {
+    return this.#calculateEnvelopeTotal(
+      budgetLines,
+      this.#indexByLineId(transactions),
+      (kind) => kind === 'expense',
+    );
+  }
+
   /**
    * Calcule le revenu réalisé (uniquement les éléments pointés)
    * Formule: Σ(items WHERE kind = 'income' AND checkedAt != null)
