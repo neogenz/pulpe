@@ -44,6 +44,7 @@ import {
   BudgetCreateDto,
   BudgetUpdateDto,
   BudgetGenerateDto,
+  BudgetGenerateResponseDto,
   BudgetResponseDto,
   BudgetDeleteResponseDto,
   BudgetDetailsResponseDto,
@@ -139,6 +140,7 @@ export class BudgetController {
   })
   @ApiCreatedResponse({
     description: 'Budgets generated successfully',
+    type: BudgetGenerateResponseDto,
   })
   @ApiBadRequestResponse({
     description: 'Invalid input data',

@@ -133,6 +133,36 @@ export class BudgetRepository {
   }
 
   /**
+   * Checks if a budget already exists for a given month/year
+   */
+  async hasBudgetForPeriod(
+    supabase: AuthenticatedSupabaseClient,
+    month: number,
+    year: number,
+  ): Promise<boolean> {
+    const { data: existingBudget, error } = await supabase
+      .from('monthly_budget')
+      .select('id')
+      .eq('month', month)
+      .eq('year', year)
+      .maybeSingle();
+
+    if (error) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.BUDGET_FETCH_FAILED,
+        undefined,
+        {
+          operation: 'hasBudgetForPeriod',
+          entityType: 'budget',
+        },
+        { cause: error },
+      );
+    }
+
+    return existingBudget !== null;
+  }
+
+  /**
    * Fetches budget data with configurable options
    * @param budgetId - Budget ID
    * @param supabase - Authenticated Supabase client

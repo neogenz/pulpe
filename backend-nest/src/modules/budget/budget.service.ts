@@ -613,6 +613,11 @@ export class BudgetService {
         } else {
           createdBudgets.push(result.budget);
           createdBudgetIds.push(result.budgetId);
+          await this.calculator.recalculateAndPersist(
+            result.budgetId,
+            supabase,
+            user.clientKey,
+          );
         }
       }
     } catch (error) {
@@ -652,7 +657,7 @@ export class BudgetService {
     user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetCreationResult> {
-    const isDuplicate = await this.isDuplicatePeriod(
+    const isDuplicate = await this.repository.hasBudgetForPeriod(
       supabase,
       target.month,
       target.year,
@@ -679,45 +684,11 @@ export class BudgetService {
       dto.templateId,
     );
 
-    await this.calculator.recalculateAndPersist(
-      processedResult.budgetData.id,
-      supabase,
-      user.clientKey,
-    );
-
     return {
       kind: 'created',
       budget: budgetMappers.toApi(processedResult.budgetData),
       budgetId: processedResult.budgetData.id,
     };
-  }
-
-  private async isDuplicatePeriod(
-    supabase: AuthenticatedSupabaseClient,
-    month: number,
-    year: number,
-  ): Promise<boolean> {
-    const { data: existingBudget, error } = await supabase
-      .from('monthly_budget')
-      .select('id')
-      .eq('month', month)
-      .eq('year', year)
-      .maybeSingle();
-
-    if (error) {
-      throw new BusinessException(
-        ERROR_DEFINITIONS.BUDGET_FETCH_FAILED,
-        undefined,
-        {
-          operation: 'isDuplicatePeriod',
-          entityType: 'budget',
-          supabaseError: error,
-        },
-        { cause: error },
-      );
-    }
-
-    return existingBudget !== null;
   }
 
   private computeTargetMonths(

@@ -46,6 +46,7 @@ describe('BudgetService.generateBudgets', () => {
   let mockSupabaseClient: MockSupabaseClient;
   let mockCalculator: Record<string, Mock<any>>;
   let mockCacheService: Record<string, Mock<any>>;
+  let mockRepository: Record<string, Mock<any>>;
   const mockUser = createMockAuthenticatedUser();
   const mockPinoLogger = createMockPinoLogger();
 
@@ -95,6 +96,32 @@ describe('BudgetService.generateBudgets', () => {
       ),
     };
 
+    mockRepository = {
+      hasBudgetForPeriod: spyOn(
+        { fn: () => Promise.resolve(false) },
+        'fn',
+      ).mockResolvedValue(false),
+      fetchBudgetById: spyOn(
+        { fn: () => Promise.resolve(createMockBudgetEntity()) },
+        'fn',
+      ),
+      fetchBudgetData: spyOn(
+        {
+          fn: () =>
+            Promise.resolve({
+              budget: null,
+              transactions: [],
+              budgetLines: [],
+            }),
+        },
+        'fn',
+      ),
+      updateBudgetInDb: spyOn(
+        { fn: () => Promise.resolve(createMockBudgetEntity()) },
+        'fn',
+      ),
+    };
+
     const module = await Test.createTestingModule({
       providers: [
         BudgetService,
@@ -120,14 +147,14 @@ describe('BudgetService.generateBudgets', () => {
         {
           provide: BudgetRepository,
           useValue: {
-            fetchBudgetById: () => Promise.resolve(createMockBudgetEntity()),
-            fetchBudgetData: () =>
-              Promise.resolve({
-                budget: null,
-                transactions: [],
-                budgetLines: [],
-              }),
-            updateBudgetInDb: () => Promise.resolve(createMockBudgetEntity()),
+            hasBudgetForPeriod: (...args: unknown[]) =>
+              mockRepository.hasBudgetForPeriod(...args),
+            fetchBudgetById: (...args: unknown[]) =>
+              mockRepository.fetchBudgetById(...args),
+            fetchBudgetData: (...args: unknown[]) =>
+              mockRepository.fetchBudgetData(...args),
+            updateBudgetInDb: (...args: unknown[]) =>
+              mockRepository.updateBudgetInDb(...args),
           },
         },
         {
@@ -162,10 +189,8 @@ describe('BudgetService.generateBudgets', () => {
   describe('happy path', () => {
     it('should create N budgets with correct month sequence', async () => {
       // Arrange: no duplicates, RPC succeeds for each month
-      const isDuplicateSpy = spyOn(
-        service as any,
-        'isDuplicatePeriod',
-      ).mockResolvedValue(false);
+      const isDuplicateSpy =
+        mockRepository.hasBudgetForPeriod.mockResolvedValue(false);
 
       const executeSpy = spyOn(service as any, 'executeBudgetCreationRpc');
       executeSpy
@@ -203,7 +228,7 @@ describe('BudgetService.generateBudgets', () => {
         count: 4,
       };
 
-      spyOn(service as any, 'isDuplicatePeriod').mockResolvedValue(false);
+      mockRepository.hasBudgetForPeriod.mockResolvedValue(false);
 
       const executeSpy = spyOn(service as any, 'executeBudgetCreationRpc');
       executeSpy
@@ -231,8 +256,7 @@ describe('BudgetService.generateBudgets', () => {
   describe('skip existing months', () => {
     it('should skip months where budget already exists', async () => {
       // Arrange: month 2 already exists
-      const isDuplicateSpy = spyOn(service as any, 'isDuplicatePeriod');
-      isDuplicateSpy
+      mockRepository.hasBudgetForPeriod
         .mockResolvedValueOnce(false) // Jan
         .mockResolvedValueOnce(true) // Feb (exists)
         .mockResolvedValueOnce(false); // Mar
@@ -260,7 +284,7 @@ describe('BudgetService.generateBudgets', () => {
   describe('compensating transaction (rollback)', () => {
     it('should delete created budgets when RPC fails mid-generation', async () => {
       // Arrange: first 2 succeed, third fails
-      spyOn(service as any, 'isDuplicatePeriod').mockResolvedValue(false);
+      mockRepository.hasBudgetForPeriod.mockResolvedValue(false);
 
       const executeSpy = spyOn(service as any, 'executeBudgetCreationRpc');
       executeSpy
@@ -289,7 +313,7 @@ describe('BudgetService.generateBudgets', () => {
   describe('cache invalidation', () => {
     it('should invalidate cache once after all budgets are created', async () => {
       // Arrange
-      spyOn(service as any, 'isDuplicatePeriod').mockResolvedValue(false);
+      mockRepository.hasBudgetForPeriod.mockResolvedValue(false);
       spyOn(service as any, 'executeBudgetCreationRpc').mockResolvedValue(
         createRpcResult(1, 2026),
       );
@@ -312,7 +336,7 @@ describe('BudgetService.generateBudgets', () => {
   describe('recalculateAndPersist', () => {
     it('should call recalculateAndPersist for each created budget', async () => {
       // Arrange
-      spyOn(service as any, 'isDuplicatePeriod').mockResolvedValue(false);
+      mockRepository.hasBudgetForPeriod.mockResolvedValue(false);
       spyOn(service as any, 'executeBudgetCreationRpc')
         .mockResolvedValueOnce(createRpcResult(1, 2026))
         .mockResolvedValueOnce(createRpcResult(2, 2026));
