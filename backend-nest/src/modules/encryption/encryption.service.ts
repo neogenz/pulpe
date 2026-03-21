@@ -394,6 +394,44 @@ export class EncryptionService {
     }
   }
 
+  async verifyRecoveryKey(
+    userId: string,
+    recoveryKeyFormatted: string,
+  ): Promise<void> {
+    const row = await this.#repository.findByUserId(userId);
+    if (!row?.wrapped_dek) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.RECOVERY_KEY_NOT_CONFIGURED,
+      );
+    }
+
+    const trimmedKey = recoveryKeyFormatted.trim();
+    if (!trimmedKey) {
+      throw new BusinessException(ERROR_DEFINITIONS.RECOVERY_KEY_INVALID);
+    }
+
+    let recoveryKey: Buffer | null = null;
+    let dek: Buffer | null = null;
+    try {
+      try {
+        recoveryKey = decodeBase32(trimmedKey.replace(/-/g, ''));
+      } catch {
+        throw new BusinessException(ERROR_DEFINITIONS.RECOVERY_KEY_INVALID);
+      }
+      if (recoveryKey.length !== KEY_LENGTH) {
+        throw new BusinessException(ERROR_DEFINITIONS.RECOVERY_KEY_INVALID);
+      }
+      try {
+        dek = this.unwrapDEK(row.wrapped_dek, recoveryKey);
+      } catch {
+        throw new BusinessException(ERROR_DEFINITIONS.RECOVERY_KEY_INVALID);
+      }
+    } finally {
+      recoveryKey?.fill(0);
+      dek?.fill(0);
+    }
+  }
+
   async changePinRekey(
     userId: string,
     oldClientKey: Buffer,

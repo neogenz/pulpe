@@ -2,6 +2,7 @@ import { createZodDto } from 'nestjs-zod';
 import {
   encryptionValidateKeyRequestSchema,
   encryptionRecoverRequestSchema,
+  encryptionVerifyRecoveryKeyRequestSchema,
   encryptionChangePinRequestSchema,
   encryptionVaultStatusResponseSchema,
   encryptionSaltResponseSchema,
@@ -16,6 +17,9 @@ export class EncryptionValidateKeyRequestDto extends createZodDto(
 ) {}
 export class EncryptionRecoverRequestDto extends createZodDto(
   encryptionRecoverRequestSchema,
+) {}
+export class EncryptionVerifyRecoveryKeyRequestDto extends createZodDto(
+  encryptionVerifyRecoveryKeyRequestSchema,
 ) {}
 export class EncryptionChangePinRequestDto extends createZodDto(
   encryptionChangePinRequestSchema,

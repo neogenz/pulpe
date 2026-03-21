@@ -32,6 +32,12 @@ export class EncryptionApi {
     });
   }
 
+  verifyRecoveryKey$(recoveryKey: string): Observable<void> {
+    return this.#api.postVoid$('/encryption/verify-recovery-key', {
+      recoveryKey,
+    });
+  }
+
   setupRecoveryKey$(): Observable<EncryptionSetupRecoveryResponse> {
     return this.#api.post$(
       '/encryption/setup-recovery',

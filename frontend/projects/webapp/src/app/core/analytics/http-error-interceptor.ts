@@ -4,9 +4,12 @@ import type {
 } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { catchError, throwError } from 'rxjs';
+import { isExpectedBusinessHttpError } from '@core/api/http-expected-business-noise';
 import { PostHogService, sanitizeUrl, sanitizeRecord } from '@core/analytics';
 import { Logger } from '../logging/logger';
 import { ApplicationConfiguration } from '../config/application-configuration';
+
+export { isExpectedBusinessHttpError as shouldSkipPostHogHttpCapture };
 
 /**
  * HTTP error interceptor for PostHog error tracking.
@@ -48,6 +51,10 @@ function captureHttpError(
   applicationConfiguration: ApplicationConfiguration,
 ): void {
   if (AUTH_HANDLED_STATUSES.has(error.status)) {
+    return;
+  }
+
+  if (isExpectedBusinessHttpError(error)) {
     return;
   }
 

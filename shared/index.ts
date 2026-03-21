@@ -115,6 +115,7 @@ export {
   // Encryption schemas — requests
   encryptionValidateKeyRequestSchema,
   encryptionRecoverRequestSchema,
+  encryptionVerifyRecoveryKeyRequestSchema,
   encryptionChangePinRequestSchema,
   // Encryption schemas — responses
   encryptionVaultStatusResponseSchema,
@@ -260,6 +261,7 @@ export type {
   // Encryption types — requests
   EncryptionValidateKeyRequest,
   EncryptionRecoverRequest,
+  EncryptionVerifyRecoveryKeyRequest,
   EncryptionChangePinRequest,
   // Encryption types — responses
   EncryptionVaultStatusResponse,

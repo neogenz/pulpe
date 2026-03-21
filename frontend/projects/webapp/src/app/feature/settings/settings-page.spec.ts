@@ -86,7 +86,10 @@ describe('SettingsPage', () => {
         { provide: AuthStateService, useValue: mockAuthState },
         {
           provide: EncryptionApi,
-          useValue: { regenerateRecoveryKey$: vi.fn() },
+          useValue: {
+            regenerateRecoveryKey$: vi.fn(),
+            verifyRecoveryKey$: vi.fn().mockReturnValue(of(undefined)),
+          },
         },
         { provide: DemoModeService, useValue: { isDemoMode: signal(false) } },
       ],

@@ -40,6 +40,7 @@ import { ChangePasswordDialog } from './components/change-password-dialog';
 import { ChangePinDialog } from './components/change-pin-dialog';
 import { DeleteAccountDialog } from './components/delete-account-dialog';
 import { RegenerateRecoveryKeyDialog } from './components/regenerate-recovery-key-dialog';
+import { VerifyRecoveryKeyDialog } from './components/verify-recovery-key-dialog';
 
 @Component({
   selector: 'pulpe-settings-page',
@@ -217,8 +218,10 @@ import { RegenerateRecoveryKeyDialog } from './components/regenerate-recovery-ke
             </div>
 
             <!-- Clé de récupération -->
-            <div class="flex items-center justify-between gap-6">
-              <div class="space-y-1">
+            <div
+              class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6"
+            >
+              <div class="space-y-1 min-w-0">
                 <h3 class="text-title-small">
                   {{ 'settings.recoveryKey' | transloco }}
                 </h3>
@@ -226,19 +229,28 @@ import { RegenerateRecoveryKeyDialog } from './components/regenerate-recovery-ke
                   {{ 'settings.recoveryKeyDescription' | transloco }}
                 </p>
               </div>
-              <button
-                matButton="outlined"
-                data-testid="generate-recovery-key-button"
-                [disabled]="isGeneratingRecoveryKey()"
-                (click)="onRegenerateRecoveryKey()"
-              >
-                <span class="flex items-center justify-center">
-                  @if (isGeneratingRecoveryKey()) {
-                    <mat-spinner diameter="20" class="mr-2" />
-                  }
-                  {{ 'settings.regenerateKey' | transloco }}
-                </span>
-              </button>
+              <div class="flex flex-wrap gap-3 items-center shrink-0">
+                <button
+                  matButton="outlined"
+                  data-testid="generate-recovery-key-button"
+                  [disabled]="isGeneratingRecoveryKey()"
+                  (click)="onRegenerateRecoveryKey()"
+                >
+                  <span class="flex items-center justify-center">
+                    @if (isGeneratingRecoveryKey()) {
+                      <mat-spinner diameter="20" class="mr-2" />
+                    }
+                    {{ 'settings.regenerateKey' | transloco }}
+                  </span>
+                </button>
+                <button
+                  matButton="outlined"
+                  data-testid="verify-recovery-key-button"
+                  (click)="onVerifyRecoveryKey()"
+                >
+                  {{ 'settings.verifyRecoveryKeySubmit' | transloco }}
+                </button>
+              </div>
             </div>
           </div>
         </section>
@@ -417,6 +429,10 @@ export default class SettingsPage {
         verticalPosition: 'bottom',
       },
     );
+  }
+
+  onVerifyRecoveryKey(): void {
+    this.#dialog.open(VerifyRecoveryKeyDialog, { width: '480px' });
   }
 
   async onRegenerateRecoveryKey(): Promise<void> {
