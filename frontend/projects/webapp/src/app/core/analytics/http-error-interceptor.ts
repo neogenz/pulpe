@@ -9,8 +9,6 @@ import { PostHogService, sanitizeUrl, sanitizeRecord } from '@core/analytics';
 import { Logger } from '../logging/logger';
 import { ApplicationConfiguration } from '../config/application-configuration';
 
-export { isExpectedBusinessHttpError as shouldSkipPostHogHttpCapture };
-
 /**
  * HTTP error interceptor for PostHog error tracking.
  * Leverages PostHog's built-in data sanitization for security.
