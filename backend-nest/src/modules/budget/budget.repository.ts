@@ -132,6 +132,17 @@ export class BudgetRepository {
     return budgetDb;
   }
 
+  async deleteBudgetsByIds(
+    supabase: AuthenticatedSupabaseClient,
+    budgetIds: string[],
+  ): Promise<boolean> {
+    const { error } = await supabase
+      .from('monthly_budget')
+      .delete()
+      .in('id', budgetIds);
+    return !error;
+  }
+
   /**
    * Returns existing budget periods from a list of target months (batch query).
    * Avoids N+1 by checking all months in a single query.

@@ -101,10 +101,10 @@ describe('BudgetService.generateBudgets', () => {
         { fn: () => Promise.resolve(new Set<string>()) },
         'fn',
       ).mockResolvedValue(new Set<string>()),
-      hasBudgetForPeriod: spyOn(
-        { fn: () => Promise.resolve(false) },
+      deleteBudgetsByIds: spyOn(
+        { fn: () => Promise.resolve(true) },
         'fn',
-      ).mockResolvedValue(false),
+      ).mockResolvedValue(true),
       fetchBudgetById: spyOn(
         { fn: () => Promise.resolve(createMockBudgetEntity()) },
         'fn',
@@ -153,8 +153,8 @@ describe('BudgetService.generateBudgets', () => {
           useValue: {
             getExistingPeriods: (...args: unknown[]) =>
               mockRepository.getExistingPeriods(...args),
-            hasBudgetForPeriod: (...args: unknown[]) =>
-              mockRepository.hasBudgetForPeriod(...args),
+            deleteBudgetsByIds: (...args: unknown[]) =>
+              mockRepository.deleteBudgetsByIds(...args),
             fetchBudgetById: (...args: unknown[]) =>
               mockRepository.fetchBudgetById(...args),
             fetchBudgetData: (...args: unknown[]) =>
@@ -294,21 +294,31 @@ describe('BudgetService.generateBudgets', () => {
         .mockResolvedValueOnce(createRpcResult(2, 2026))
         .mockRejectedValueOnce(new Error('RPC failure'));
 
-      const rollbackSpy = spyOn(
-        service as any,
-        'rollbackCreatedBudgets',
-      ).mockResolvedValue(undefined);
+      // Act + Assert
+      await expect(
+        service.generateBudgets(baseDto, mockUser, mockSupabaseClient as any),
+      ).rejects.toThrow(BusinessException);
+
+      expect(mockRepository.deleteBudgetsByIds).toHaveBeenCalledWith(
+        mockSupabaseClient,
+        [budgetUuid(1, 2026), budgetUuid(2, 2026)],
+      );
+    });
+
+    it('should not call repository delete when no budgets were created', async () => {
+      // Arrange: first RPC call fails immediately
+      mockRepository.getExistingPeriods.mockResolvedValue(new Set<string>());
+
+      spyOn(service as any, 'executeBudgetCreationRpc').mockRejectedValueOnce(
+        new Error('RPC failure'),
+      );
 
       // Act + Assert
       await expect(
         service.generateBudgets(baseDto, mockUser, mockSupabaseClient as any),
       ).rejects.toThrow(BusinessException);
 
-      expect(rollbackSpy).toHaveBeenCalledWith(
-        [budgetUuid(1, 2026), budgetUuid(2, 2026)],
-        mockSupabaseClient,
-        MOCK_USER_ID,
-      );
+      expect(mockRepository.deleteBudgetsByIds).not.toHaveBeenCalled();
     });
   });
 

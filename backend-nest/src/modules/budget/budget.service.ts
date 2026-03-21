@@ -625,11 +625,11 @@ export class BudgetService {
       }
     } catch (error) {
       await this.rollbackCreatedBudgets(createdBudgetIds, supabase, user.id);
-      throw handleServiceError(
-        error,
+      throw new BusinessException(
         ERROR_DEFINITIONS.BUDGET_GENERATE_FAILED,
         undefined,
         { operation: 'generateBudgets', userId: user.id },
+        { cause: error },
       );
     }
 
@@ -719,11 +719,11 @@ export class BudgetService {
       },
       'Rolling back created budgets after generation failure',
     );
-    const { error } = await supabase
-      .from('monthly_budget')
-      .delete()
-      .in('id', budgetIds);
-    if (error) {
+    const deleted = await this.repository.deleteBudgetsByIds(
+      supabase,
+      budgetIds,
+    );
+    if (!deleted) {
       this.logger.warn(
         { userId, budgetIds, operation: 'budget.generate.rollback.failed' },
         'Failed to rollback created budgets — orphaned budgets may remain',
