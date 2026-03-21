@@ -191,6 +191,18 @@ base.describe('Complete Profile Flow', () => {
         });
       }
 
+      if (url.includes('/generate') && method === 'POST') {
+        budgetCreated = true;
+        return route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            success: true,
+            data: { budgets: [createdBudget], skippedMonths: [] },
+          }),
+        });
+      }
+
       if (method === 'POST') {
         budgetCreated = true;
         return route.fulfill({
