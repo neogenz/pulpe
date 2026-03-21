@@ -16,39 +16,39 @@ extension Color {
     /// Over-budget indicator - Warm amber, not aggressive red (#A86800 light, #E5A33A dark)
     static let financialOverBudget = Color(light: Color(hex: 0xA86800), dark: Color(hex: 0xE5A33A))
 
-    // MARK: - Hero Card Gradient Colors (4-stop, 150° linear)
-    // Aligned with frontend --pulpe-hero-* tokens (base → color-mix 75% black)
+    // MARK: - Hero Card Gradient Colors (4-stop, ~128° linear)
+    // Designed in oklch for perceptual uniformity, converted to hex for SwiftUI.
+    // Gradient direction: dark → bright for depth and punch.
 
-    /// Comfortable state gradient stops — dark→bright for depth and punch
+    /// Emerald Bright — oklch(0.45-0.75, C 0.16-0.22, H 147)
     static let heroGradientComfortable: [Color] = [
-        Color(light: Color(hex: 0x004D1A), dark: Color(hex: 0x003310)),
-        Color(light: Color(hex: 0x006E25), dark: Color(hex: 0x004D1A)),
-        Color(light: Color(hex: 0x008B3A), dark: Color(hex: 0x006228)),
-        Color(light: Color(hex: 0x1AA855), dark: Color(hex: 0x0C7A35))
+        Color(light: Color(hex: 0x006B1E), dark: Color(hex: 0x003D10)),
+        Color(light: Color(hex: 0x008C30), dark: Color(hex: 0x005C20)),
+        Color(light: Color(hex: 0x14AD45), dark: Color(hex: 0x007C32)),
+        Color(light: Color(hex: 0x38D062), dark: Color(hex: 0x109E48))
     ]
 
-    /// Tight state gradient stops — warm amber, dark→bright golden
+    /// Tangerine — oklch(0.48-0.80, C 0.15-0.18, H 65-70)
     static let heroGradientTight: [Color] = [
-        Color(light: Color(hex: 0x8B4000), dark: Color(hex: 0x5C2A00)),
-        Color(light: Color(hex: 0xB35800), dark: Color(hex: 0x7A3A00)),
-        Color(light: Color(hex: 0xCC6E14), dark: Color(hex: 0x985010)),
-        Color(light: Color(hex: 0xE88A2E), dark: Color(hex: 0xB06820))
+        Color(light: Color(hex: 0x8C4400), dark: Color(hex: 0x4C2400)),
+        Color(light: Color(hex: 0xB86200), dark: Color(hex: 0x6E3A00)),
+        Color(light: Color(hex: 0xD88010), dark: Color(hex: 0x925208)),
+        Color(light: Color(hex: 0xF49E28), dark: Color(hex: 0xB86C14))
     ]
 
-    /// Deficit state gradient stops — warm coral, dark→bright peach
+    /// Sunset Coral — oklch(0.48-0.78, C 0.16, H 35-40)
     /// DA.md: "Le rouge est factuel et contextuel, pas punitif"
     static let heroGradientDeficit: [Color] = [
-        Color(light: Color(hex: 0x9E2E1A), dark: Color(hex: 0x6B1C10)),
-        Color(light: Color(hex: 0xD95535), dark: Color(hex: 0x903828)),
-        Color(light: Color(hex: 0xE46B45), dark: Color(hex: 0xA84E38)),
-        Color(light: Color(hex: 0xF08860), dark: Color(hex: 0xC06648))
+        Color(light: Color(hex: 0x9C3418), dark: Color(hex: 0x561C0C)),
+        Color(light: Color(hex: 0xC45028), dark: Color(hex: 0x7C3418)),
+        Color(light: Color(hex: 0xE06C38), dark: Color(hex: 0xA04C28)),
+        Color(light: Color(hex: 0xF48A4C), dark: Color(hex: 0xC46438))
     ]
 
-    /// Glass tint for hero card overlay elements — non-adaptive, always on gradient background.
-    /// Must match the base (first stop, light variant) of each hero gradient.
-    static let heroTintComfortable = Color(hex: 0x008B3A)
-    static let heroTintTight = Color(hex: 0xCC6E14)
-    static let heroTintDeficit = Color(hex: 0xD95535)
+    /// Glass tint for hero card overlay elements — mid-tone of each gradient.
+    static let heroTintComfortable = Color(hex: 0x14AD45)
+    static let heroTintTight = Color(hex: 0xD88010)
+    static let heroTintDeficit = Color(hex: 0xC45028)
 
     // MARK: - Brand Colors
 
@@ -342,12 +342,12 @@ extension Color {
 
     // MARK: - Dashboard Emotion Zone (DA.md §3.1 — zone d'émotion header)
 
-    /// Comfortable state: pale green → neutral warm (transition over ~60pt)
-    static let dashboardGradientComfortable = Color(light: Color(hex: 0xD4EDDA), dark: Color(hex: 0x0A1F0E))
-    /// Tight state: pale amber → neutral warm
-    static let dashboardGradientTight = Color(light: Color(hex: 0xFEF0D4), dark: Color(hex: 0x1A1508))
-    /// Deficit state: vivid warm peach → neutral warm
-    static let dashboardGradientDeficit = Color(light: Color(hex: 0xFBDAD0), dark: Color(hex: 0x221410))
+    /// Comfortable (Emerald): pale green → neutral warm
+    static let dashboardGradientComfortable = Color(light: Color(hex: 0xD0F0DC), dark: Color(hex: 0x0C200E))
+    /// Tight (Tangerine): pale warm orange → neutral warm
+    static let dashboardGradientTight = Color(light: Color(hex: 0xFCECD0), dark: Color(hex: 0x1C1408))
+    /// Deficit (Sunset Coral): warm peach → neutral warm
+    static let dashboardGradientDeficit = Color(light: Color(hex: 0xFADCD0), dark: Color(hex: 0x201008))
 
     // MARK: - Skeleton
 
