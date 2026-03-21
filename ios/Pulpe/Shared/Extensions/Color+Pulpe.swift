@@ -35,21 +35,20 @@ extension Color {
         Color(light: Color(hex: 0x703800), dark: Color(hex: 0x261500))
     ]
 
-    /// Deficit state gradient stops — vivid warm coral, not aggressive red
+    /// Deficit state gradient stops — punchy warm coral (hue ~12°, sat 75%, bright 85%)
     /// DA.md: "Le rouge est factuel et contextuel, pas punitif"
-    /// Hue ~12° (warm coral), high saturation+brightness = punchy but not anxious
     static let heroGradientDeficit: [Color] = [
-        Color(light: Color(hex: 0xC45A42), dark: Color(hex: 0x5A2820)),
-        Color(light: Color(hex: 0xB05038), dark: Color(hex: 0x4E2218)),
-        Color(light: Color(hex: 0x9C4630), dark: Color(hex: 0x421C14)),
-        Color(light: Color(hex: 0x883C28), dark: Color(hex: 0x361610))
+        Color(light: Color(hex: 0xD95535), dark: Color(hex: 0x6B2A18)),
+        Color(light: Color(hex: 0xC04A2E), dark: Color(hex: 0x5C2414)),
+        Color(light: Color(hex: 0xA84028), dark: Color(hex: 0x4D1E12)),
+        Color(light: Color(hex: 0x903622), dark: Color(hex: 0x3E180E))
     ]
 
     /// Glass tint for hero card overlay elements — non-adaptive, always on gradient background.
     /// Must match the base (first stop, light variant) of each hero gradient.
     static let heroTintComfortable = Color(hex: 0x006E25)
     static let heroTintTight = Color(hex: 0xB35800)
-    static let heroTintDeficit = Color(hex: 0xC45A42)
+    static let heroTintDeficit = Color(hex: 0xD95535)
 
     // MARK: - Brand Colors
 
@@ -347,8 +346,8 @@ extension Color {
     static let dashboardGradientComfortable = Color(light: Color(hex: 0xD4EDDA), dark: Color(hex: 0x0A1F0E))
     /// Tight state: pale amber → neutral warm
     static let dashboardGradientTight = Color(light: Color(hex: 0xFEF0D4), dark: Color(hex: 0x1A1508))
-    /// Deficit state: warm bright peach → neutral warm
-    static let dashboardGradientDeficit = Color(light: Color(hex: 0xFADDD4), dark: Color(hex: 0x1F120E))
+    /// Deficit state: vivid warm peach → neutral warm
+    static let dashboardGradientDeficit = Color(light: Color(hex: 0xFBDAD0), dark: Color(hex: 0x221410))
 
     // MARK: - Skeleton
 
