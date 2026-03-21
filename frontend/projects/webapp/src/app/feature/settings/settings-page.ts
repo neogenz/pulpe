@@ -248,7 +248,7 @@ import { VerifyRecoveryKeyDialog } from './components/verify-recovery-key-dialog
                   data-testid="verify-recovery-key-button"
                   (click)="onVerifyRecoveryKey()"
                 >
-                  {{ 'settings.verifyRecoveryKeySubmit' | transloco }}
+                  {{ 'settings.verifyRecoveryKeyAction' | transloco }}
                 </button>
               </div>
             </div>

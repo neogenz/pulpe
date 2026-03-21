@@ -234,6 +234,7 @@
     "verifyRecoveryKeyHint": "Tu peux vérifier qu'une clé notée correspond bien à ton compte, sans rien modifier.",
     "verifyRecoveryKeyLabel": "Saisis ta clé (avec ou sans tirets)",
     "verifyRecoveryKeySubmit": "Vérifier",
+    "verifyRecoveryKeyAction": "Vérifier",
     "verifyRecoveryKeySuccess": "Cette clé est valide pour ton compte.",
     "regenerateKey": "Régénérer",
     "newRecoveryKeySaved": "Nouvelle clé de récupération enregistrée",
