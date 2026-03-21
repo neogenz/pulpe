@@ -30,7 +30,7 @@ struct SecuritySettingsView: View {
                 }
                 .disabled(securityViewModel.isRegenerating)
 
-                chevronRow("Vérifier ma clé de récupération", detail: "Tester") {
+                chevronRow("Vérifier ma clé de récupération", detail: "Vérifier") {
                     showVerifyRecoveryKey = true
                 }
             }

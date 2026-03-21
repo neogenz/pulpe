@@ -39,7 +39,7 @@ enum APIError: LocalizedError {
         case .forbidden:
             return "Tu n'as pas accès à cette ressource"
         case .notFound:
-            return "Cette page n'existe plus ou a été déplacée"
+            return "Ressource introuvable — réessaie ou mets l'app à jour"
         case .conflict(let message):
             return message
         case .validationError(let details):
