@@ -14,11 +14,13 @@ describe('ProfileSetupService', () => {
   let mockApiClient: { post$: ReturnType<typeof vi.fn> };
   let mockBudgetApi: {
     createBudget$: ReturnType<typeof vi.fn>;
+    getAllBudgets$: ReturnType<typeof vi.fn>;
     cache: unknown;
   };
   let mockPostHogService: { enableTracking: ReturnType<typeof vi.fn> };
   let mockLogger: {
     info: ReturnType<typeof vi.fn>;
+    warn: ReturnType<typeof vi.fn>;
     error: ReturnType<typeof vi.fn>;
   };
 
@@ -35,7 +37,20 @@ describe('ProfileSetupService', () => {
       createBudget$: vi
         .fn()
         .mockReturnValue(of({ budget: { id: 'budget-123' } })),
-      cache: { invalidate: vi.fn(), set: vi.fn(), clear: vi.fn() },
+      getAllBudgets$: vi
+        .fn()
+        .mockReturnValue(of([{ id: 'budget-123', remaining: 500 }])),
+      cache: {
+        invalidate: vi.fn(),
+        prefetch: vi
+          .fn()
+          .mockImplementation(
+            async (_key: string[], fn: () => Promise<unknown>) => {
+              await fn();
+            },
+          ),
+        clear: vi.fn(),
+      },
     };
 
     mockPostHogService = {
@@ -44,6 +59,7 @@ describe('ProfileSetupService', () => {
 
     mockLogger = {
       info: vi.fn(),
+      warn: vi.fn(),
       error: vi.fn(),
     };
 
@@ -137,7 +153,7 @@ describe('ProfileSetupService', () => {
       );
     });
 
-    it('should set optimistic list cache with created budget', async () => {
+    it('should prefetch full budget list after create to align list amounts', async () => {
       const result = await service.createInitialBudget({
         firstName: 'Test',
         monthlyIncome: 3000,
@@ -145,8 +161,14 @@ describe('ProfileSetupService', () => {
 
       expect(result.success).toBe(true);
       expect(
-        (mockBudgetApi.cache as { set: ReturnType<typeof vi.fn> }).set,
-      ).toHaveBeenCalledWith(['budget', 'list'], [{ id: 'budget-123' }]);
+        (mockBudgetApi.cache as { invalidate: ReturnType<typeof vi.fn> })
+          .invalidate,
+      ).toHaveBeenCalledWith(['budget']);
+      expect(mockBudgetApi.getAllBudgets$).toHaveBeenCalled();
+      expect(
+        (mockBudgetApi.cache as { prefetch: ReturnType<typeof vi.fn> })
+          .prefetch,
+      ).toHaveBeenCalledWith(['budget', 'list'], expect.any(Function));
     });
 
     it('should handle year boundary and use period year in description', async () => {

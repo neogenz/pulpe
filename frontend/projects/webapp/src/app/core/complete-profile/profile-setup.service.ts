@@ -73,11 +73,18 @@ export class ProfileSetupService {
         description: `Budget initial de ${profileData.firstName} pour ${year}`,
       };
 
-      const { budget } = await firstValueFrom(
-        this.#budgetApi.createBudget$(budgetRequest),
-      );
+      await firstValueFrom(this.#budgetApi.createBudget$(budgetRequest));
       this.#budgetApi.cache.invalidate(['budget']);
-      this.#budgetApi.cache.set(['budget', 'list'], [budget]);
+      await this.#budgetApi.cache
+        .prefetch(['budget', 'list'], () =>
+          firstValueFrom(this.#budgetApi.getAllBudgets$()),
+        )
+        .catch((error: unknown) => {
+          this.#logger.warn(
+            '[ProfileSetupService] Failed to prefetch budget list after onboarding',
+            error,
+          );
+        });
 
       // 3. Enable PostHog tracking (user has accepted terms)
       this.#postHogService.enableTracking();
