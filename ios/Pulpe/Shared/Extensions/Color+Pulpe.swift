@@ -19,35 +19,35 @@ extension Color {
     // MARK: - Hero Card Gradient Colors (4-stop, 150° linear)
     // Aligned with frontend --pulpe-hero-* tokens (base → color-mix 75% black)
 
-    /// Comfortable state gradient stops — based on #006E25 (mat-sys-primary)
+    /// Comfortable state gradient stops — dark→bright for depth and punch
     static let heroGradientComfortable: [Color] = [
-        Color(light: Color(hex: 0x006E25), dark: Color(hex: 0x00390F)),
-        Color(light: Color(hex: 0x005F20), dark: Color(hex: 0x00320D)),
-        Color(light: Color(hex: 0x00521B), dark: Color(hex: 0x002B0B)),
-        Color(light: Color(hex: 0x004516), dark: Color(hex: 0x002409))
+        Color(light: Color(hex: 0x004D1A), dark: Color(hex: 0x003310)),
+        Color(light: Color(hex: 0x006E25), dark: Color(hex: 0x004D1A)),
+        Color(light: Color(hex: 0x008B3A), dark: Color(hex: 0x006228)),
+        Color(light: Color(hex: 0x1AA855), dark: Color(hex: 0x0C7A35))
     ]
 
-    /// Tight state gradient stops — based on #B35800 (pulpe-amber)
+    /// Tight state gradient stops — warm amber, dark→bright golden
     static let heroGradientTight: [Color] = [
-        Color(light: Color(hex: 0xB35800), dark: Color(hex: 0x3D2200)),
-        Color(light: Color(hex: 0x9C4D00), dark: Color(hex: 0x351E00)),
-        Color(light: Color(hex: 0x864200), dark: Color(hex: 0x2E1A00)),
-        Color(light: Color(hex: 0x703800), dark: Color(hex: 0x261500))
+        Color(light: Color(hex: 0x8B4000), dark: Color(hex: 0x5C2A00)),
+        Color(light: Color(hex: 0xB35800), dark: Color(hex: 0x7A3A00)),
+        Color(light: Color(hex: 0xCC6E14), dark: Color(hex: 0x985010)),
+        Color(light: Color(hex: 0xE88A2E), dark: Color(hex: 0xB06820))
     ]
 
-    /// Deficit state gradient stops — punchy warm coral (hue ~12°, sat 75%, bright 85%)
+    /// Deficit state gradient stops — warm coral, dark→bright peach
     /// DA.md: "Le rouge est factuel et contextuel, pas punitif"
     static let heroGradientDeficit: [Color] = [
-        Color(light: Color(hex: 0xD95535), dark: Color(hex: 0x6B2A18)),
-        Color(light: Color(hex: 0xC04A2E), dark: Color(hex: 0x5C2414)),
-        Color(light: Color(hex: 0xA84028), dark: Color(hex: 0x4D1E12)),
-        Color(light: Color(hex: 0x903622), dark: Color(hex: 0x3E180E))
+        Color(light: Color(hex: 0x9E2E1A), dark: Color(hex: 0x6B1C10)),
+        Color(light: Color(hex: 0xD95535), dark: Color(hex: 0x903828)),
+        Color(light: Color(hex: 0xE46B45), dark: Color(hex: 0xA84E38)),
+        Color(light: Color(hex: 0xF08860), dark: Color(hex: 0xC06648))
     ]
 
     /// Glass tint for hero card overlay elements — non-adaptive, always on gradient background.
     /// Must match the base (first stop, light variant) of each hero gradient.
-    static let heroTintComfortable = Color(hex: 0x006E25)
-    static let heroTintTight = Color(hex: 0xB35800)
+    static let heroTintComfortable = Color(hex: 0x008B3A)
+    static let heroTintTight = Color(hex: 0xCC6E14)
     static let heroTintDeficit = Color(hex: 0xD95535)
 
     // MARK: - Brand Colors
