@@ -44,10 +44,6 @@ interface BudgetDetailsData {
   budgetLines: BudgetLine[];
 }
 
-type BudgetCreationResult =
-  | { kind: 'created'; budget: Budget; budgetId: string }
-  | { kind: 'skipped'; period: { month: number; year: number } };
-
 @Injectable()
 export class BudgetService {
   constructor(
@@ -600,25 +596,32 @@ export class BudgetService {
     const skippedMonths: { month: number; year: number }[] = [];
     const createdBudgetIds: string[] = [];
 
+    const existingPeriods = await this.repository.getExistingPeriods(
+      supabase,
+      user.id,
+      targetMonths,
+    );
+
     try {
       for (const target of targetMonths) {
+        if (existingPeriods.has(`${target.month}/${target.year}`)) {
+          skippedMonths.push(target);
+          continue;
+        }
+
         const result = await this.tryCreateSingleBudget(
           target,
           dto,
           user,
           supabase,
         );
-        if (result.kind === 'skipped') {
-          skippedMonths.push(result.period);
-        } else {
-          createdBudgets.push(result.budget);
-          createdBudgetIds.push(result.budgetId);
-          await this.calculator.recalculateAndPersist(
-            result.budgetId,
-            supabase,
-            user.clientKey,
-          );
-        }
+        createdBudgets.push(result.budget);
+        createdBudgetIds.push(result.budgetId);
+        await this.calculator.recalculateAndPersist(
+          result.budgetId,
+          supabase,
+          user.clientKey,
+        );
       }
     } catch (error) {
       await this.rollbackCreatedBudgets(createdBudgetIds, supabase, user.id);
@@ -656,16 +659,7 @@ export class BudgetService {
     dto: BudgetGenerate,
     user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient,
-  ): Promise<BudgetCreationResult> {
-    const isDuplicate = await this.repository.hasBudgetForPeriod(
-      supabase,
-      target.month,
-      target.year,
-    );
-    if (isDuplicate) {
-      return { kind: 'skipped', period: target };
-    }
-
+  ): Promise<{ budget: Budget; budgetId: string }> {
     const budgetDto: BudgetCreate = {
       templateId: dto.templateId,
       month: target.month,
@@ -685,7 +679,6 @@ export class BudgetService {
     );
 
     return {
-      kind: 'created',
       budget: budgetMappers.toApi(processedResult.budgetData),
       budgetId: processedResult.budgetData.id,
     };

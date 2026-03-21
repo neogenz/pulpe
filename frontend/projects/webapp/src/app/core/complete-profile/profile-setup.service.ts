@@ -111,7 +111,9 @@ export class ProfileSetupService {
       if (errorMessage.includes('budget')) {
         return {
           success: false,
-          error: this.#transloco.translate('completeProfile.budgetCreateError'),
+          error: this.#transloco.translate(
+            'completeProfile.budgetGenerateError',
+          ),
         };
       }
 

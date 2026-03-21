@@ -97,6 +97,10 @@ describe('BudgetService.generateBudgets', () => {
     };
 
     mockRepository = {
+      getExistingPeriods: spyOn(
+        { fn: () => Promise.resolve(new Set<string>()) },
+        'fn',
+      ).mockResolvedValue(new Set<string>()),
       hasBudgetForPeriod: spyOn(
         { fn: () => Promise.resolve(false) },
         'fn',
@@ -147,6 +151,8 @@ describe('BudgetService.generateBudgets', () => {
         {
           provide: BudgetRepository,
           useValue: {
+            getExistingPeriods: (...args: unknown[]) =>
+              mockRepository.getExistingPeriods(...args),
             hasBudgetForPeriod: (...args: unknown[]) =>
               mockRepository.hasBudgetForPeriod(...args),
             fetchBudgetById: (...args: unknown[]) =>
@@ -188,9 +194,8 @@ describe('BudgetService.generateBudgets', () => {
 
   describe('happy path', () => {
     it('should create N budgets with correct month sequence', async () => {
-      // Arrange: no duplicates, RPC succeeds for each month
-      const isDuplicateSpy =
-        mockRepository.hasBudgetForPeriod.mockResolvedValue(false);
+      // Arrange: no existing periods, RPC succeeds for each month
+      mockRepository.getExistingPeriods.mockResolvedValue(new Set<string>());
 
       const executeSpy = spyOn(service as any, 'executeBudgetCreationRpc');
       executeSpy
@@ -213,7 +218,7 @@ describe('BudgetService.generateBudgets', () => {
       expect(result.data.budgets[1].month).toBe(2);
       expect(result.data.budgets[2].month).toBe(3);
 
-      expect(isDuplicateSpy).toHaveBeenCalledTimes(3);
+      expect(mockRepository.getExistingPeriods).toHaveBeenCalledTimes(1);
       expect(executeSpy).toHaveBeenCalledTimes(3);
     });
   });
@@ -228,7 +233,7 @@ describe('BudgetService.generateBudgets', () => {
         count: 4,
       };
 
-      mockRepository.hasBudgetForPeriod.mockResolvedValue(false);
+      mockRepository.getExistingPeriods.mockResolvedValue(new Set<string>());
 
       const executeSpy = spyOn(service as any, 'executeBudgetCreationRpc');
       executeSpy
@@ -255,11 +260,8 @@ describe('BudgetService.generateBudgets', () => {
 
   describe('skip existing months', () => {
     it('should skip months where budget already exists', async () => {
-      // Arrange: month 2 already exists
-      mockRepository.hasBudgetForPeriod
-        .mockResolvedValueOnce(false) // Jan
-        .mockResolvedValueOnce(true) // Feb (exists)
-        .mockResolvedValueOnce(false); // Mar
+      // Arrange: month 2 already exists (returned by batch query)
+      mockRepository.getExistingPeriods.mockResolvedValue(new Set(['2/2026']));
 
       const executeSpy = spyOn(service as any, 'executeBudgetCreationRpc');
       executeSpy
@@ -284,7 +286,7 @@ describe('BudgetService.generateBudgets', () => {
   describe('compensating transaction (rollback)', () => {
     it('should delete created budgets when RPC fails mid-generation', async () => {
       // Arrange: first 2 succeed, third fails
-      mockRepository.hasBudgetForPeriod.mockResolvedValue(false);
+      mockRepository.getExistingPeriods.mockResolvedValue(new Set<string>());
 
       const executeSpy = spyOn(service as any, 'executeBudgetCreationRpc');
       executeSpy
@@ -313,7 +315,7 @@ describe('BudgetService.generateBudgets', () => {
   describe('cache invalidation', () => {
     it('should invalidate cache once after all budgets are created', async () => {
       // Arrange
-      mockRepository.hasBudgetForPeriod.mockResolvedValue(false);
+      mockRepository.getExistingPeriods.mockResolvedValue(new Set<string>());
       spyOn(service as any, 'executeBudgetCreationRpc').mockResolvedValue(
         createRpcResult(1, 2026),
       );
@@ -336,7 +338,7 @@ describe('BudgetService.generateBudgets', () => {
   describe('recalculateAndPersist', () => {
     it('should call recalculateAndPersist for each created budget', async () => {
       // Arrange
-      mockRepository.hasBudgetForPeriod.mockResolvedValue(false);
+      mockRepository.getExistingPeriods.mockResolvedValue(new Set<string>());
       spyOn(service as any, 'executeBudgetCreationRpc')
         .mockResolvedValueOnce(createRpcResult(1, 2026))
         .mockResolvedValueOnce(createRpcResult(2, 2026));
