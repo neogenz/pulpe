@@ -1,0 +1,45 @@
+---
+description: "Inline spinner inside Material buttons must use a flex wrapper"
+globs: "frontend/**/*.ts"
+alwaysApply: false
+---
+
+# Button Spinner Layout
+
+## Rule
+
+When placing a `mat-spinner` / `mat-progress-spinner` **inside a button alongside text**, wrap both in a flex container. Without it, the spinner (block-level) stacks above the label.
+
+## Correct
+
+```html
+<button matButton="filled" [disabled]="isLoading()">
+  <span class="flex items-center justify-center">
+    @if (isLoading()) {
+      <mat-spinner diameter="20" class="mr-2" />
+    }
+    {{ label }}
+  </span>
+</button>
+```
+
+## Wrong
+
+```html
+<!-- Spinner appears ABOVE the label, not inline -->
+<button matButton="filled" [disabled]="isLoading()">
+  @if (isLoading()) {
+    <mat-spinner diameter="20" class="mr-2" />
+  }
+  {{ label }}
+</button>
+```
+
+## Why
+
+`mat-spinner` renders as a block-level `<svg>` wrapper. Material buttons do not apply `display: flex` to their content projection area. Without an explicit flex container the spinner and text flow as stacked blocks.
+
+## Alternatives
+
+- Use the `<pulpe-loading-button>` component (`ui/loading-button/`) which handles this internally.
+- If building a custom button, the flex wrapper is mandatory whenever spinner + text coexist.
