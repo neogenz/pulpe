@@ -4,15 +4,21 @@ import SwiftUI
 /// Adapts tone and color to the current budget emotion state.
 struct DashboardGreeting: View {
     let emotionState: BudgetFormulas.EmotionState
+    var firstName: String?
 
     private var greeting: String {
         let hour = Calendar.current.component(.hour, from: .now)
+        let timeGreeting: String
         switch hour {
-        case 5..<12: return "Bonjour"
-        case 12..<18: return "Bon après-midi"
-        case 18..<22: return "Bonsoir"
-        default: return "Bonsoir"
+        case 5..<12: timeGreeting = "Bonjour"
+        case 12..<18: timeGreeting = "Bon après-midi"
+        case 18..<22: timeGreeting = "Bonsoir"
+        default: timeGreeting = "Bonsoir"
         }
+        if let name = firstName, !name.isEmpty {
+            return "\(timeGreeting) \(name)"
+        }
+        return timeGreeting
     }
 
     private var headline: String {

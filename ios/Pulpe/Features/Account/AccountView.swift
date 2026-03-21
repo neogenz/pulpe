@@ -17,6 +17,8 @@ struct AccountView: View {
                 logoutSection
                 versionFooterSection
             }
+            .scrollContentBackground(.hidden)
+            .pulpeBackground()
             .alert("Déconnexion", isPresented: $showLogoutConfirmation) {
                 Button("Annuler", role: .cancel) { }
                 Button("Déconnecter", role: .destructive) {
@@ -38,6 +40,7 @@ struct AccountView: View {
                 }
             }
         }
+        .standardSheetPresentation()
     }
 }
 

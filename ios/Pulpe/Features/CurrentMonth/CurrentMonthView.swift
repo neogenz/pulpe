@@ -60,7 +60,7 @@ struct CurrentMonthView: View {
         }
         .trackScreen("Dashboard")
         .animation(DesignTokens.Animation.smoothEaseOut, value: store.isLoading)
-        .navigationTitle("Accueil")
+        .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
@@ -137,7 +137,10 @@ struct CurrentMonthView: View {
             ScrollView {
                 VStack(spacing: DesignTokens.Spacing.xxl) {
                     // 1. Greeting + motivational headline
-                    DashboardGreeting(emotionState: store.metrics.emotionState)
+                    DashboardGreeting(
+                        emotionState: store.metrics.emotionState,
+                        firstName: appState.currentUser?.firstName
+                    )
                         .staggeredEntrance(isVisible: hasAppeared, index: 0)
 
                     // 2. Hero card — primary metric

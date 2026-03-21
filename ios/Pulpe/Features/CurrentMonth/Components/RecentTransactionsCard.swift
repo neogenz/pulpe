@@ -70,7 +70,7 @@ private struct RecentTransactionCardRow: View {
             Spacer()
 
             // Amount
-            Text(transaction.signedAmount.asAmount)
+            Text(transaction.amount.asAmount)
                 .font(PulpeTypography.listRowSubtitle)
                 .foregroundStyle(transaction.kind.color)
                 .sensitiveAmount()
@@ -80,7 +80,7 @@ private struct RecentTransactionCardRow: View {
         .accessibilityLabel(
             "\(transaction.name), \(transaction.kind.label), "
             + "\(transaction.transactionDate.relativeFormatted), "
-            + "\(amountsHidden ? "Montant masqué" : transaction.signedAmount.asCHF)"
+            + "\(amountsHidden ? "Montant masqué" : transaction.amount.asCHF)"
         )
     }
 }

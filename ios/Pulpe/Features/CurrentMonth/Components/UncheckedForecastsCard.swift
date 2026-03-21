@@ -164,7 +164,7 @@ private struct UncheckedItemRow: View {
     private var amountText: some View {
         switch item {
         case .transaction(let tx, _):
-            Text(tx.signedAmount.asAmount)
+            Text(tx.amount.asAmount)
                 .font(PulpeTypography.listRowSubtitle)
                 .foregroundStyle(tx.kind.color)
                 .sensitiveAmount()
@@ -181,7 +181,7 @@ private struct UncheckedItemRow: View {
                     .foregroundStyle(color)
                     .sensitiveAmount()
             } else {
-                Text(line.amount.asSignedAmount(for: line.kind))
+                Text(line.amount.asAmount)
                     .font(PulpeTypography.listRowSubtitle)
                     .foregroundStyle(line.kind.color)
                     .sensitiveAmount()
