@@ -421,11 +421,12 @@ export class EncryptionService {
     try {
       try {
         recoveryKey = decodeBase32(trimmedKey.replace(/-/g, ''));
-      } catch {
+      } catch (error) {
         throw new BusinessException(
           ERROR_DEFINITIONS.RECOVERY_KEY_INVALID,
           undefined,
           { userId, operation: 'verify_recovery_key.decode_failed' },
+          { cause: error },
         );
       }
       if (recoveryKey.length !== KEY_LENGTH) {
@@ -437,11 +438,12 @@ export class EncryptionService {
       }
       try {
         dek = this.unwrapDEK(row.wrapped_dek, recoveryKey);
-      } catch {
+      } catch (error) {
         throw new BusinessException(
           ERROR_DEFINITIONS.RECOVERY_KEY_INVALID,
           undefined,
           { userId, operation: 'verify_recovery_key.unwrap_failed' },
+          { cause: error },
         );
       }
     } finally {
