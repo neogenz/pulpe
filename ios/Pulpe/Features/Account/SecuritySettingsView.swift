@@ -150,7 +150,9 @@ struct SecuritySettingsView: View {
             }
         }
         .sheet(isPresented: $showVerifyRecoveryKey) {
-            VerifyRecoveryKeySheet()
+            VerifyRecoveryKeySheet {
+                appState.toastManager.show("Cette clé est valide pour ton compte.", type: .success)
+            }
         }
         .overlay {
             if securityViewModel.isRegenerating {

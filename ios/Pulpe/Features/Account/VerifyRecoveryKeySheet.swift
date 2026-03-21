@@ -1,8 +1,8 @@
 import SwiftUI
 
 struct VerifyRecoveryKeySheet: View {
-    @Environment(AppState.self) private var appState
     @Environment(\.dismiss) private var dismiss
+    let onSuccess: () -> Void
     @State private var recoveryKey = ""
     @State private var isVerifying = false
     @State private var errorMessage: String?
@@ -31,7 +31,10 @@ struct VerifyRecoveryKeySheet: View {
                 focusBinding: $isKeyFieldFocused
             )
             .onChange(of: recoveryKey) { _, newValue in
-                let stripped = RecoveryKeyFormatter.strip(newValue)
+                let stripped = String(
+                    RecoveryKeyFormatter.strip(newValue)
+                        .prefix(RecoveryKeyFormatter.strippedKeyCharacterCount)
+                )
                 let formatted = RecoveryKeyFormatter.format(stripped)
                 if formatted != newValue {
                     recoveryKey = formatted
@@ -76,8 +79,8 @@ struct VerifyRecoveryKeySheet: View {
         do {
             try await EncryptionAPI.shared.verifyRecoveryKey(stripped)
             submitSuccessTrigger.toggle()
-            appState.toastManager.show("Cette clé est valide pour ton compte.", type: .success)
             dismiss()
+            onSuccess()
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -87,6 +90,6 @@ struct VerifyRecoveryKeySheet: View {
 }
 
 #Preview {
-    VerifyRecoveryKeySheet()
+    VerifyRecoveryKeySheet(onSuccess: {})
         .environment(AppState())
 }
