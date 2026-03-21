@@ -35,19 +35,20 @@ extension Color {
         Color(light: Color(hex: 0x703800), dark: Color(hex: 0x261500))
     ]
 
-    /// Deficit state gradient stops — based on #BA1A1A (mat-sys-error)
+    /// Deficit state gradient stops — warm rosewood, not aggressive red
+    /// DA.md: "Le rouge est factuel et contextuel, pas punitif"
     static let heroGradientDeficit: [Color] = [
-        Color(light: Color(hex: 0xBA1A1A), dark: Color(hex: 0x930009)),
-        Color(light: Color(hex: 0xA51717), dark: Color(hex: 0x830008)),
-        Color(light: Color(hex: 0x8F1313), dark: Color(hex: 0x6E0007)),
-        Color(light: Color(hex: 0x7A1010), dark: Color(hex: 0x5C0005))
+        Color(light: Color(hex: 0x9B4D4D), dark: Color(hex: 0x4A1E1E)),
+        Color(light: Color(hex: 0x8B4444), dark: Color(hex: 0x401A1A)),
+        Color(light: Color(hex: 0x7B3B3B), dark: Color(hex: 0x361616)),
+        Color(light: Color(hex: 0x6B3232), dark: Color(hex: 0x2C1212))
     ]
 
     /// Glass tint for hero card overlay elements — non-adaptive, always on gradient background.
     /// Must match the base (first stop, light variant) of each hero gradient.
     static let heroTintComfortable = Color(hex: 0x006E25)
     static let heroTintTight = Color(hex: 0xB35800)
-    static let heroTintDeficit = Color(hex: 0xBA1A1A)
+    static let heroTintDeficit = Color(hex: 0x9B4D4D)
 
     // MARK: - Brand Colors
 
@@ -345,8 +346,8 @@ extension Color {
     static let dashboardGradientComfortable = Color(light: Color(hex: 0xD4EDDA), dark: Color(hex: 0x0A1F0E))
     /// Tight state: pale amber → neutral warm
     static let dashboardGradientTight = Color(light: Color(hex: 0xFEF0D4), dark: Color(hex: 0x1A1508))
-    /// Deficit state: pale rose → neutral warm
-    static let dashboardGradientDeficit = Color(light: Color(hex: 0xFDE2E2), dark: Color(hex: 0x1A0A0A))
+    /// Deficit state: warm peach-cream → neutral warm (not pink/rose)
+    static let dashboardGradientDeficit = Color(light: Color(hex: 0xF5E0DA), dark: Color(hex: 0x1A0F0C))
 
     // MARK: - Skeleton
 
