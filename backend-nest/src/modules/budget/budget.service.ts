@@ -11,6 +11,8 @@ import { validateCreateBudgetResponse } from './schemas/rpc-responses.schema';
 import {
   type BudgetCreate,
   type BudgetDeleteResponse,
+  type BudgetGenerate,
+  type BudgetGenerateResponse,
   type BudgetListResponse,
   type BudgetResponse,
   type BudgetUpdate,
@@ -564,6 +566,167 @@ export class BudgetService {
           userId: user.id,
           entityType: 'budget',
         },
+      );
+    }
+  }
+
+  async generateBudgets(
+    dto: BudgetGenerate,
+    user: AuthenticatedUser,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<BudgetGenerateResponse> {
+    const targetMonths = this.computeTargetMonths(
+      dto.startMonth,
+      dto.startYear,
+      dto.count,
+    );
+
+    this.logger.info(
+      {
+        userId: user.id,
+        count: dto.count,
+        startMonth: dto.startMonth,
+        startYear: dto.startYear,
+        operation: 'budget.generate.start',
+      },
+      'Starting budget generation',
+    );
+
+    const createdBudgets: Budget[] = [];
+    const skippedMonths: { month: number; year: number }[] = [];
+    const createdBudgetIds: string[] = [];
+
+    const existingPeriods = await this.repository.getExistingPeriods(
+      supabase,
+      user.id,
+      targetMonths,
+    );
+
+    try {
+      for (const target of targetMonths) {
+        if (existingPeriods.has(`${target.month}/${target.year}`)) {
+          skippedMonths.push(target);
+          continue;
+        }
+
+        const result = await this.tryCreateSingleBudget(
+          target,
+          dto,
+          user,
+          supabase,
+        );
+        createdBudgets.push(result.budget);
+        createdBudgetIds.push(result.budgetId);
+        await this.calculator.recalculateAndPersist(
+          result.budgetId,
+          supabase,
+          user.clientKey,
+        );
+      }
+    } catch (error) {
+      await this.rollbackCreatedBudgets(createdBudgetIds, supabase, user.id);
+      throw new BusinessException(
+        ERROR_DEFINITIONS.BUDGET_GENERATE_FAILED,
+        undefined,
+        { operation: 'generateBudgets', userId: user.id },
+        { cause: error },
+      );
+    }
+
+    await this.cacheService.invalidateForUser(user.id);
+
+    this.logger.info(
+      {
+        userId: user.id,
+        createdCount: createdBudgets.length,
+        skippedCount: skippedMonths.length,
+        operation: 'budget.generate.success',
+      },
+      'Budget generation completed',
+    );
+
+    return {
+      success: true,
+      data: {
+        budgets: createdBudgets,
+        skippedMonths,
+      },
+    };
+  }
+
+  private async tryCreateSingleBudget(
+    target: { month: number; year: number },
+    dto: BudgetGenerate,
+    user: AuthenticatedUser,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<{ budget: Budget; budgetId: string }> {
+    const budgetDto: BudgetCreate = {
+      templateId: dto.templateId,
+      month: target.month,
+      year: target.year,
+      description: `Budget ${target.month}/${target.year}`,
+    };
+
+    const result = await this.executeBudgetCreationRpc(
+      budgetDto,
+      user,
+      supabase,
+    );
+    const processedResult = this.processBudgetCreationResult(
+      result,
+      user.id,
+      dto.templateId,
+    );
+
+    return {
+      budget: budgetMappers.toApi(processedResult.budgetData),
+      budgetId: processedResult.budgetData.id,
+    };
+  }
+
+  private computeTargetMonths(
+    startMonth: number,
+    startYear: number,
+    count: number,
+  ): { month: number; year: number }[] {
+    const MONTHS_PER_YEAR = 12;
+    const targets: { month: number; year: number }[] = [];
+    let month = startMonth;
+    let year = startYear;
+
+    for (let i = 0; i < count; i++) {
+      targets.push({ month, year });
+      month++;
+      if (month > MONTHS_PER_YEAR) {
+        month = 1;
+        year++;
+      }
+    }
+    return targets;
+  }
+
+  private async rollbackCreatedBudgets(
+    budgetIds: string[],
+    supabase: AuthenticatedSupabaseClient,
+    userId: string,
+  ): Promise<void> {
+    if (budgetIds.length === 0) return;
+    this.logger.warn(
+      {
+        userId,
+        budgetIds,
+        operation: 'budget.generate.rollback',
+      },
+      'Rolling back created budgets after generation failure',
+    );
+    const deleted = await this.repository.deleteBudgetsByIds(
+      supabase,
+      budgetIds,
+    );
+    if (!deleted) {
+      this.logger.warn(
+        { userId, budgetIds, operation: 'budget.generate.rollback.failed' },
+        'Failed to rollback created budgets — orphaned budgets may remain',
       );
     }
   }

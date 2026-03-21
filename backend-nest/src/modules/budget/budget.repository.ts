@@ -132,6 +132,59 @@ export class BudgetRepository {
     return budgetDb;
   }
 
+  async deleteBudgetsByIds(
+    supabase: AuthenticatedSupabaseClient,
+    budgetIds: string[],
+  ): Promise<boolean> {
+    const { error } = await supabase
+      .from('monthly_budget')
+      .delete()
+      .in('id', budgetIds);
+    return !error;
+  }
+
+  /**
+   * Returns existing budget periods from a list of target months (batch query).
+   * Avoids N+1 by checking all months in a single query.
+   */
+  async getExistingPeriods(
+    supabase: AuthenticatedSupabaseClient,
+    userId: string,
+    targetMonths: { month: number; year: number }[],
+  ): Promise<Set<string>> {
+    if (targetMonths.length === 0) {
+      return new Set();
+    }
+
+    const periodFilters = targetMonths
+      .map((t) => `and(month.eq.${t.month},year.eq.${t.year})`)
+      .join(',');
+
+    const { data, error } = await supabase
+      .from('monthly_budget')
+      .select('month, year')
+      .eq('user_id', userId)
+      .or(periodFilters);
+
+    if (error) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.BUDGET_FETCH_FAILED,
+        undefined,
+        {
+          operation: 'getExistingPeriods',
+          entityType: 'budget',
+        },
+        { cause: error },
+      );
+    }
+
+    return new Set(
+      (data ?? []).map(
+        (row: { month: number; year: number }) => `${row.month}/${row.year}`,
+      ),
+    );
+  }
+
   /**
    * Fetches budget data with configurable options
    * @param budgetId - Budget ID

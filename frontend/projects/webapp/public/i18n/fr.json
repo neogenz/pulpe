@@ -679,7 +679,8 @@
     "templateCreateError": "Erreur lors de la création de votre template budgétaire.",
     "budgetCreateError": "Erreur lors de la création de votre budget initial.",
     "createBudgetError": "Erreur lors de la création du budget",
-    "unexpectedError": "Une erreur inattendue s'est produite"
+    "unexpectedError": "Une erreur inattendue s'est produite",
+    "budgetGenerateError": "Erreur lors de la génération des budgets mensuels"
   },
   "legal": {
     "privacyPolicyTitle": "Politique de Confidentialité",

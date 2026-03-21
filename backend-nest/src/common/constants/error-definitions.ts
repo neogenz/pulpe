@@ -156,6 +156,11 @@ export const ERROR_DEFINITIONS = {
         : 'A budget already exists for this month',
     httpStatus: HttpStatus.CONFLICT,
   },
+  BUDGET_GENERATE_FAILED: {
+    code: API_ERROR_CODES.BUDGET_GENERATE_FAILED,
+    message: () => 'Failed to generate budgets',
+    httpStatus: HttpStatus.INTERNAL_SERVER_ERROR,
+  },
   BUDGET_INVALID_MONTH_FORMAT: {
     code: API_ERROR_CODES.BUDGET_INVALID_MONTH,
     message: (details?: Record<string, unknown>) =>

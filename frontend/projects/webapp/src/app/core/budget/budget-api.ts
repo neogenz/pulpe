@@ -8,6 +8,9 @@ import {
   budgetExistsResponseSchema,
   type BudgetExportResponse,
   budgetExportResponseSchema,
+  type BudgetGenerate,
+  type BudgetGenerateResponse,
+  budgetGenerateResponseSchema,
   budgetListResponseSchema,
   budgetResponseSchema,
   budgetSparseListResponseSchema,
@@ -65,6 +68,14 @@ export class BudgetApi {
     return this.#api
       .post$('/budgets', validatedRequest, budgetResponseSchema)
       .pipe(map((response) => ({ budget: response.data })));
+  }
+
+  generateBudgets$(data: BudgetGenerate): Observable<BudgetGenerateResponse> {
+    return this.#api.post$(
+      '/budgets/generate',
+      data,
+      budgetGenerateResponseSchema,
+    );
   }
 
   getAllBudgets$(): Observable<Budget[]> {
