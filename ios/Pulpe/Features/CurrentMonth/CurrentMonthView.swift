@@ -42,6 +42,7 @@ struct CurrentMonthView: View {
                     Image(systemName: "calendar.badge.plus")
                         .font(PulpeTypography.emojiDisplay)
                         .foregroundStyle(Color.pulpeTextTertiary)
+                        .symbolEffect(.pulse, options: .repeating)
                     Text("Pas encore de budget ce mois-ci")
                         .font(PulpeTypography.stepTitle)
                         .foregroundStyle(Color.textPrimary)
@@ -60,6 +61,7 @@ struct CurrentMonthView: View {
         .trackScreen("Dashboard")
         .animation(DesignTokens.Animation.smoothEaseOut, value: store.isLoading)
         .navigationTitle("Accueil")
+        .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Button {
@@ -128,52 +130,88 @@ struct CurrentMonthView: View {
     // MARK: - Dashboard Content
 
     private var dashboardContent: some View {
-        ScrollView {
-            VStack(spacing: DesignTokens.Spacing.xxl) {
-                // 1. Hero card — primary metric
-                HeroBalanceCard(
-                    metrics: store.metrics,
-                    timeElapsedPercentage: timeElapsedPercentage,
-                    onTapProgress: { activeSheet = .realizedBalance }
-                )
-                .staggeredEntrance(isVisible: hasAppeared, index: 0)
+        ZStack(alignment: .top) {
+            // Emotion zone gradient — DA.md §3.1
+            emotionZoneGradient
 
-                // 2. Unchecked forecasts — tap to check
-                uncheckedForecastsSection
+            ScrollView {
+                VStack(spacing: DesignTokens.Spacing.xxl) {
+                    // 1. Greeting + motivational headline
+                    DashboardGreeting(emotionState: store.metrics.emotionState)
+                        .staggeredEntrance(isVisible: hasAppeared, index: 0)
+
+                    // 2. Hero card — primary metric
+                    HeroBalanceCard(
+                        metrics: store.metrics,
+                        timeElapsedPercentage: timeElapsedPercentage,
+                        onTapProgress: { activeSheet = .realizedBalance }
+                    )
                     .staggeredEntrance(isVisible: hasAppeared, index: 1)
 
-                // 3. Recent transactions
-                if !store.recentTransactions.isEmpty {
-                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-                        Text("Transactions récentes")
-                            .pulpeSectionHeader()
+                    // 3. Unchecked forecasts — tap to check
+                    uncheckedForecastsSection
+                        .staggeredEntrance(isVisible: hasAppeared, index: 2)
 
-                        RecentTransactionsCard(
-                            transactions: store.recentTransactions,
-                            onViewAll: { navigateToBudget = true }
-                        )
+                    // 4. Recent transactions
+                    if !store.recentTransactions.isEmpty {
+                        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+                            HStack(spacing: DesignTokens.Spacing.sm) {
+                                Text("Transactions récentes")
+                                    .pulpeSectionHeader()
+                                Text("\(store.recentTransactions.count)")
+                                    .font(PulpeTypography.caption2)
+                                    .fontWeight(.semibold)
+                                    .foregroundStyle(Color.pulpePrimary)
+                                    .padding(.horizontal, DesignTokens.Spacing.sm)
+                                    .padding(.vertical, DesignTokens.Spacing.xs)
+                                    .background(Color.pulpePrimary.opacity(0.12), in: Capsule())
+                            }
+
+                            RecentTransactionsCard(
+                                transactions: store.recentTransactions,
+                                onViewAll: { navigateToBudget = true }
+                            )
+                        }
+                        .staggeredEntrance(isVisible: hasAppeared, index: 3)
                     }
-                    .staggeredEntrance(isVisible: hasAppeared, index: 2)
-                }
 
-                // 4. Savings progress
-                if store.savingsSummary.hasSavings {
-                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-                        Text("Épargne")
-                            .pulpeSectionHeader()
+                    // 5. Savings progress
+                    if store.savingsSummary.hasSavings {
+                        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+                            Text("Épargne")
+                                .pulpeSectionHeader()
 
-                        SavingsSummaryCard(summary: store.savingsSummary)
+                            SavingsSummaryCard(summary: store.savingsSummary)
+                        }
+                        .staggeredEntrance(isVisible: hasAppeared, index: 4)
                     }
-                    .staggeredEntrance(isVisible: hasAppeared, index: 3)
                 }
+                .padding(.horizontal, DesignTokens.Spacing.lg)
+                .padding(.vertical, DesignTokens.Spacing.lg)
             }
-            .padding(.horizontal, DesignTokens.Spacing.lg)
-            .padding(.vertical, DesignTokens.Spacing.lg)
+            .refreshable {
+                await store.forceRefresh()
+            }
         }
-        .pulpeBackground()
-        .refreshable {
-            await store.forceRefresh()
+        .background { Color.appBackground.ignoresSafeArea() }
+    }
+
+    @ViewBuilder
+    private var emotionZoneGradient: some View {
+        let gradientColor: Color = switch store.metrics.emotionState {
+        case .comfortable: .dashboardGradientComfortable
+        case .tight: .dashboardGradientTight
+        case .deficit: .dashboardGradientDeficit
         }
+
+        LinearGradient(
+            colors: [gradientColor, Color.appBackground],
+            startPoint: .top,
+            endPoint: .bottom
+        )
+        .containerRelativeFrame(.vertical) { height, _ in height * 0.4 }
+        .ignoresSafeArea()
+        .animation(.easeInOut(duration: 0.8), value: store.metrics.emotionState)
     }
 
     // MARK: - Unchecked Forecasts Section
@@ -182,8 +220,17 @@ struct CurrentMonthView: View {
     private var uncheckedForecastsSection: some View {
         if !store.uncheckedItems.isEmpty {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-                Text("À pointer")
-                    .pulpeSectionHeader()
+                HStack(spacing: DesignTokens.Spacing.sm) {
+                    Text("À pointer")
+                        .pulpeSectionHeader()
+                    Text("\(store.uncheckedItems.count)")
+                        .font(PulpeTypography.caption2)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(Color.pulpePrimary)
+                        .padding(.horizontal, DesignTokens.Spacing.sm)
+                        .padding(.vertical, DesignTokens.Spacing.xs)
+                        .background(Color.pulpePrimary.opacity(0.12), in: Capsule())
+                }
 
                 UncheckedForecastsCard(
                     items: store.uncheckedItems,
@@ -212,49 +259,59 @@ struct CurrentMonthView: View {
 
 private struct CurrentMonthSkeletonView: View {
     var body: some View {
-        ScrollView {
-            VStack(spacing: DesignTokens.Spacing.xxl) {
-                // Hero card placeholder
-                SkeletonShape(height: 200, cornerRadius: DesignTokens.CornerRadius.xl)
+        ZStack(alignment: .top) {
+            LinearGradient(
+                colors: [Color.dashboardGradientComfortable, Color.appBackground],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .containerRelativeFrame(.vertical) { height, _ in height * 0.4 }
+            .ignoresSafeArea()
 
-                // Unchecked forecasts section
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-                    SkeletonShape(width: 80, height: 14)
-                    VStack(spacing: DesignTokens.Spacing.sm) {
-                        ForEach(0..<3, id: \.self) { _ in
-                            SkeletonRow()
+            ScrollView {
+                VStack(spacing: DesignTokens.Spacing.xxl) {
+                    // Hero card placeholder
+                    SkeletonShape(height: 200, cornerRadius: DesignTokens.CornerRadius.xl)
+
+                    // Unchecked forecasts section
+                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+                        SkeletonShape(width: 80, height: 14)
+                        VStack(spacing: DesignTokens.Spacing.sm) {
+                            ForEach(0..<3, id: \.self) { _ in
+                                SkeletonRow()
+                            }
                         }
+                        .padding(DesignTokens.Spacing.lg)
+                        .pulpeCardBackground()
                     }
-                    .padding(DesignTokens.Spacing.lg)
-                    .pulpeCardBackground()
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
+                    .frame(maxWidth: .infinity, alignment: .leading)
 
-                // Recent transactions section
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-                    SkeletonShape(width: 160, height: 14)
-                    VStack(spacing: DesignTokens.Spacing.sm) {
-                        ForEach(0..<3, id: \.self) { _ in
-                            SkeletonRow()
+                    // Recent transactions section
+                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+                        SkeletonShape(width: 160, height: 14)
+                        VStack(spacing: DesignTokens.Spacing.sm) {
+                            ForEach(0..<3, id: \.self) { _ in
+                                SkeletonRow()
+                            }
                         }
+                        .padding(DesignTokens.Spacing.lg)
+                        .pulpeCardBackground()
                     }
-                    .padding(DesignTokens.Spacing.lg)
-                    .pulpeCardBackground()
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
+                    .frame(maxWidth: .infinity, alignment: .leading)
 
-                // Savings section
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-                    SkeletonShape(width: 70, height: 14)
-                    SkeletonShape(height: 80, cornerRadius: DesignTokens.CornerRadius.lg)
+                    // Savings section
+                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+                        SkeletonShape(width: 70, height: 14)
+                        SkeletonShape(height: 80, cornerRadius: DesignTokens.CornerRadius.lg)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, DesignTokens.Spacing.lg)
+                .padding(.vertical, DesignTokens.Spacing.lg)
             }
-            .padding(.horizontal, DesignTokens.Spacing.lg)
-            .padding(.vertical, DesignTokens.Spacing.lg)
+            .shimmering()
         }
-        .shimmering()
-        .pulpeBackground()
+        .background { Color.appBackground.ignoresSafeArea() }
         .accessibilityLabel("Préparation de ton tableau de bord")
     }
 }

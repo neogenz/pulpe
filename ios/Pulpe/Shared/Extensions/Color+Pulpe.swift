@@ -65,26 +65,26 @@ extension Color {
     static let secondaryContainer = Color(light: Color(hex: 0xC1EEBE), dark: Color(hex: 0x294F2B))
 
     // MARK: - App Background
-    // Single place to tweak the main screen background.
-    // iOS default systemGroupedBackground is #F2F2F7 light / #000000 dark.
-    static let appBackground = Color(uiColor: .systemGroupedBackground)
+    // DA.md §3.1: neutral warm — not cold (no blue-gray), not green.
+    // Light: #F7F6F3 (warm neutral). Dark: #141210 (warm near-black, not pure #000).
+    static let appBackground = Color(light: Color(hex: 0xF7F6F3), dark: Color(hex: 0x141210))
 
     // MARK: - Sheet Background
-    // Custom color to ensure visible contrast between sheet bg and row bg in dark mode.
-    // Light: system grouped background (#F2F2F7). Dark: #111111 (darker than row bg #1C1C1E).
-    static let sheetBackground = Color(light: Color(uiColor: .systemGroupedBackground), dark: Color(hex: 0x111111))
+    // Warm sheet surface with visible contrast against card bg in dark mode.
+    // Light: slightly cooler warm (#F5F3F0). Dark: #111111 (darker than card bg).
+    static let sheetBackground = Color(light: Color(hex: 0xF5F3F0), dark: Color(hex: 0x111111))
 
-    // MARK: - Surface (iOS System Colors — neutral gray hierarchy)
+    // MARK: - Surface (warm hierarchy — DA.md §3.1)
 
-    static let surface = Color(uiColor: .systemBackground)
-    static let surfaceDim = Color(uiColor: .systemGray5)
-    static let surfaceBright = Color(uiColor: .systemBackground)
-    static let surfaceContainerLowest = Color(uiColor: .secondarySystemGroupedBackground)
-    static let surfaceContainerLow = Color(uiColor: .secondarySystemBackground)
-    static let surfaceContainer = Color(uiColor: .systemGray6)
-    static let surfaceContainerHigh = Color(uiColor: .systemGray6)
-    static let surfaceContainerHighest = Color(uiColor: .systemGray4)
-    static let surfaceVariant = Color(uiColor: .systemGray5)
+    static let surface = Color(light: .white, dark: Color(hex: 0x1A1816))
+    static let surfaceDim = Color(light: Color(hex: 0xEBE9E5), dark: Color(hex: 0x161412))
+    static let surfaceBright = Color(light: .white, dark: Color(hex: 0x1A1816))
+    static let surfaceContainerLowest = Color(light: .white, dark: Color(hex: 0x1E1C1A))
+    static let surfaceContainerLow = Color(light: Color(hex: 0xFCFAF7), dark: Color(hex: 0x1C1A18))
+    static let surfaceContainer = Color(light: Color(hex: 0xF5F3F0), dark: Color(hex: 0x201E1C))
+    static let surfaceContainerHigh = Color(light: Color(hex: 0xF0EDE9), dark: Color(hex: 0x242220))
+    static let surfaceContainerHighest = Color(light: Color(hex: 0xE8E5E1), dark: Color(hex: 0x2A2826))
+    static let surfaceVariant = Color(light: Color(hex: 0xEBE9E5), dark: Color(hex: 0x242220))
 
     // MARK: - Semantic Text Colors
 
@@ -339,10 +339,19 @@ extension Color {
         dark: .white.opacity(DesignTokens.Opacity.accent)
     )
 
+    // MARK: - Dashboard Emotion Zone (DA.md §3.1 — zone d'émotion header)
+
+    /// Comfortable state: pale green → neutral warm (transition over ~60pt)
+    static let dashboardGradientComfortable = Color(light: Color(hex: 0xD4EDDA), dark: Color(hex: 0x0A1F0E))
+    /// Tight state: pale amber → neutral warm
+    static let dashboardGradientTight = Color(light: Color(hex: 0xFEF0D4), dark: Color(hex: 0x1A1508))
+    /// Deficit state: pale rose → neutral warm
+    static let dashboardGradientDeficit = Color(light: Color(hex: 0xFDE2E2), dark: Color(hex: 0x1A0A0A))
+
     // MARK: - Skeleton
 
-    /// Placeholder fill for skeleton loading shapes
-    static let skeletonPlaceholder = Color(uiColor: .systemGray5)
+    /// Placeholder fill for skeleton loading shapes — warm tint to match neutral warm bg
+    static let skeletonPlaceholder = Color(light: Color(hex: 0xE8E5E1), dark: Color(hex: 0x242220))
 
     // MARK: - Initializers
 

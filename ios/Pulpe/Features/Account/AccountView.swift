@@ -10,7 +10,7 @@ struct AccountView: View {
     var body: some View {
         NavigationStack {
             List {
-                personalInfoSection
+                profileHeaderSection
                 appSettingsSection
                 supportSection
                 legalSection
@@ -44,18 +44,36 @@ struct AccountView: View {
 // MARK: - Sections
 
 extension AccountView {
-    private var personalInfoSection: some View {
+    private var profileHeaderSection: some View {
         Section {
-            LabeledContent("E-mail", value: appState.currentUser?.email ?? "Non connecté(e)")
-        } header: {
-            Text("INFORMATIONS PERSONNELLES")
+            VStack(spacing: DesignTokens.Spacing.sm) {
+                let email = appState.currentUser?.email ?? ""
+                let initial = email.first.map { String($0).uppercased() } ?? "?"
+                ZStack {
+                    Circle()
+                        .fill(Color.pulpePrimary)
+                        .frame(width: 56, height: 56)
+                    Text(initial)
+                        .font(PulpeTypography.amountXL)
+                        .foregroundStyle(.white)
+                }
+                Text(email.isEmpty ? "Non connecté(e)" : email)
+                    .font(PulpeTypography.bodyLarge)
+                Text("Pulpe")
+                    .font(PulpeTypography.caption)
+                    .foregroundStyle(.secondary)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, DesignTokens.Spacing.lg)
         }
+        .listRowBackground(Color.clear)
     }
 
     private var appSettingsSection: some View {
         Section {
             settingsNavigationRow(
                 icon: "lock.shield",
+                iconColor: Color.pulpePrimary,
                 title: "Sécurité",
                 subtitle: "Code PIN, Mot de passe, Biométrie"
             ) {
@@ -64,6 +82,7 @@ extension AccountView {
 
             settingsNavigationRow(
                 icon: "gearshape",
+                iconColor: .secondary,
                 title: "Préférences",
                 subtitle: "Jour de paie"
             ) {
@@ -78,6 +97,7 @@ extension AccountView {
         Section {
             iconChevronLink(
                 icon: "questionmark.circle",
+                iconColor: Color.financialIncome,
                 title: "FAQ et support",
                 subtitle: "Aide et questions fréquentes",
                 url: AppURLs.support
@@ -85,6 +105,7 @@ extension AccountView {
 
             iconChevronLink(
                 icon: "sparkles",
+                iconColor: Color.pulpePrimary,
                 title: "Nouveautés",
                 subtitle: "Dernières mises à jour",
                 url: AppURLs.changelog
@@ -110,6 +131,7 @@ extension AccountView {
         Section {
             iconChevronLink(
                 icon: "doc.text",
+                iconColor: .secondary,
                 title: "Conditions générales",
                 subtitle: "Conditions d'utilisation de Pulpe",
                 url: AppURLs.terms
@@ -117,6 +139,7 @@ extension AccountView {
 
             iconChevronLink(
                 icon: "hand.raised",
+                iconColor: .secondary,
                 title: "Avis de confidentialité",
                 subtitle: "Protection de vos données",
                 url: AppURLs.privacy
@@ -178,6 +201,7 @@ extension AccountView {
 extension AccountView {
     private func settingsNavigationRow<Destination: View>(
         icon: String,
+        iconColor: Color,
         title: String,
         subtitle: String,
         @ViewBuilder destination: () -> Destination
@@ -186,7 +210,7 @@ extension AccountView {
             HStack(spacing: DesignTokens.Spacing.md) {
                 Image(systemName: icon)
                     .font(PulpeTypography.listRowTitle)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(iconColor)
                     .frame(
                         width: DesignTokens.IconSize.compact,
                         height: DesignTokens.IconSize.compact
@@ -204,6 +228,7 @@ extension AccountView {
 
     private func iconChevronLink(
         icon: String,
+        iconColor: Color,
         title: String,
         subtitle: String,
         url: URL
@@ -212,7 +237,7 @@ extension AccountView {
             HStack(spacing: DesignTokens.Spacing.md) {
                 Image(systemName: icon)
                     .font(PulpeTypography.listRowTitle)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(iconColor)
                     .frame(
                         width: DesignTokens.IconSize.compact,
                         height: DesignTokens.IconSize.compact

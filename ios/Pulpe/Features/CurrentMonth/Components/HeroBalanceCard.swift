@@ -32,25 +32,6 @@ struct HeroBalanceCard: View {
         metrics.isDeficit ? "Déficit CHF" : "Disponible CHF"
     }
 
-    private var motivationalMessage: String {
-        switch metrics.emotionState {
-        case .deficit: "Ça arrive — on gère"
-        case .tight: "Serré — mais tu le sais"
-        case .comfortable: comfortableMessage
-        }
-    }
-
-    private var comfortableMessage: String {
-        let twentyPercent: Decimal = 2 / 10
-        if metrics.totalIncome > 0, metrics.remaining > metrics.totalIncome * twentyPercent {
-            return "Belle marge ce mois"
-        }
-        if metrics.remaining > 0 {
-            return "Tu gères bien"
-        }
-        return "Pile à l\u{2019}équilibre"
-    }
-
     private var fillPercentage: Double {
         min(max(metrics.usagePercentage / 100, 0), 1)
     }
@@ -101,11 +82,10 @@ struct HeroBalanceCard: View {
 
     private var accessibilityDescription: String {
         if amountsHidden {
-            return "\(contextLabel) — montant masqué. \(motivationalMessage)"
+            return "\(contextLabel) — montant masqué"
         }
         var desc = """
         \(contextLabel) \(formattedBalance) CHF. \
-        \(motivationalMessage). \
         Dépensé \(formattedSpent) sur \(formattedAvailable)
         """
         if let rolloverAmount {
@@ -162,11 +142,6 @@ struct HeroBalanceCard: View {
                 .foregroundStyle(.white)
                 .contentTransition(.numericText())
                 .sensitiveAmount()
-
-            // Chunk 3 — Motivational message
-            Text(motivationalMessage)
-                .font(PulpeTypography.labelMedium)
-                .foregroundStyle(.white.opacity(subduedTextOpacity))
 
             Spacer()
                 .frame(height: DesignTokens.Spacing.md)

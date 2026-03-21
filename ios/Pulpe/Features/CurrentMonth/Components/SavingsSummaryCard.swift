@@ -27,6 +27,7 @@ struct SavingsSummaryCard: View {
             Image(systemName: "checkmark.circle.fill")
                 .font(PulpeTypography.amountXL)
                 .foregroundStyle(Color.financialSavings)
+                .symbolEffect(.bounce, value: summary.isComplete)
 
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                 Text("Objectif atteint ce mois")

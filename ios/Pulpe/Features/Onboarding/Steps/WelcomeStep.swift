@@ -18,6 +18,7 @@ struct WelcomeStep: View {
                 // Hero — PulpeIcon at the gradient/white transition
                 PulpeIcon(size: 80)
                     .shadow(DesignTokens.Shadow.elevated)
+                    .shadow(color: Color.pulpePrimary.opacity(0.3), radius: 20, y: 8)
                     .scaleEffect(isAppeared ? 1 : 0.6)
                     .opacity(isAppeared ? 1 : 0)
                     .animation(reduceMotion ? nil : DesignTokens.Animation.entranceSpring, value: isAppeared)
@@ -40,7 +41,7 @@ struct WelcomeStep: View {
                 .padding(.horizontal, DesignTokens.Spacing.xxxl)
                 .opacity(isAppeared ? 1 : 0)
                 .offset(y: isAppeared ? 0 : 20)
-                .animation(reduceMotion ? nil : DesignTokens.Animation.entranceSpring.delay(0.1), value: isAppeared)
+                .animation(reduceMotion ? nil : DesignTokens.Animation.entranceSpring.delay(0.15), value: isAppeared)
 
                 Spacer()
                     .frame(height: DesignTokens.Spacing.xxxl)
@@ -80,7 +81,7 @@ struct WelcomeStep: View {
                 .padding(.bottom, DesignTokens.Spacing.xxxl)
                 .opacity(isAppeared ? 1 : 0)
                 .offset(y: isAppeared ? 0 : 10)
-                .animation(reduceMotion ? nil : DesignTokens.Animation.entranceSpring.delay(0.2), value: isAppeared)
+                .animation(reduceMotion ? nil : DesignTokens.Animation.entranceSpring.delay(0.35), value: isAppeared)
             }
         }
         .task { AnalyticsService.shared.capture(.welcomeScreenViewed) }

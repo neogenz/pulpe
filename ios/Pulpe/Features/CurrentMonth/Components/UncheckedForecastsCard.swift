@@ -194,18 +194,28 @@ private struct UncheckedItemRow: View {
 
 /// Shown when all items are checked — parent controls visibility
 struct UncheckedForecastsEmptyState: View {
+    @State private var hasAppeared = false
+
     var body: some View {
         HStack(spacing: DesignTokens.Spacing.md) {
             Image(systemName: "checkmark.circle.fill")
                 .font(PulpeTypography.amountXL)
                 .foregroundStyle(Color.financialSavings)
+                .symbolEffect(.bounce, value: hasAppeared)
 
             Text("Tout est pointé — bien joué !")
                 .font(PulpeTypography.bodyLarge)
                 .foregroundStyle(.secondary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+        .scaleEffect(hasAppeared ? 1.0 : 0.92)
+        .opacity(hasAppeared ? 1 : 0)
         .pulpeCard()
+        .task {
+            withAnimation(DesignTokens.Animation.gentleSpring) {
+                hasAppeared = true
+            }
+        }
     }
 }
 

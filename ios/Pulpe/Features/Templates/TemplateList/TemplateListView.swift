@@ -23,6 +23,7 @@ struct TemplateListView: View {
                     Image(systemName: "doc.on.doc")
                         .font(PulpeTypography.emojiDisplay)
                         .foregroundStyle(Color.pulpeTextTertiary)
+                        .symbolEffect(.pulse, options: .repeating)
                     Text("Pas encore de modèle")
                         .font(PulpeTypography.stepTitle)
                         .foregroundStyle(Color.textPrimary)

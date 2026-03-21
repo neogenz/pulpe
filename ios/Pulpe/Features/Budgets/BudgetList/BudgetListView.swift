@@ -35,6 +35,7 @@ struct BudgetListView: View {
                     Image(systemName: "chart.bar.doc.horizontal")
                         .font(PulpeTypography.emojiDisplay)
                         .foregroundStyle(Color.pulpeTextTertiary)
+                        .symbolEffect(.pulse, options: .repeating)
                     Text("Pas encore de budget")
                         .font(PulpeTypography.stepTitle)
                         .foregroundStyle(Color.textPrimary)
@@ -352,7 +353,6 @@ struct YearSection: View {
             }
         }
         .pulpeCardBackground(cornerRadius: DesignTokens.CornerRadius.lg)
-        .shadow(DesignTokens.Shadow.card)
     }
 }
 
