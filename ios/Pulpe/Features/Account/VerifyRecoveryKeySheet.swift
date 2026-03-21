@@ -17,7 +17,7 @@ struct VerifyRecoveryKeySheet: View {
                 "Saisis ta clé telle que tu l'as notée (tirets optionnels). " +
                     "Elle sert uniquement à cette vérification et n'est pas enregistrée."
             )
-            .font(PulpeTypography.bodyMedium)
+            .font(PulpeTypography.bodyLarge)
             .foregroundStyle(Color.textSecondaryOnboarding)
             .multilineTextAlignment(.center)
 
