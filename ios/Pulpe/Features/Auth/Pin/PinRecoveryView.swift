@@ -236,7 +236,9 @@ final class PinRecoveryViewModel {
 
     let pinLength = PinConstants.length
 
-    var isRecoveryKeyValid: Bool { RecoveryKeyFormatter.strip(recoveryKey).count == 52 }
+    var isRecoveryKeyValid: Bool {
+        RecoveryKeyFormatter.strip(recoveryKey).count == RecoveryKeyFormatter.strippedKeyCharacterCount
+    }
     var canConfirm: Bool { digits.count == pinLength && !isProcessing }
 
     // MARK: - Private

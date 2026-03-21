@@ -26,6 +26,7 @@ enum APIError: LocalizedError {
     case maintenance
     case clientKeyInvalid
     case recoveryKeyInvalid
+    case recoveryKeyNotConfigured
 
     var errorDescription: String? {
         switch self {
@@ -38,7 +39,7 @@ enum APIError: LocalizedError {
         case .forbidden:
             return "Tu n'as pas accès à cette ressource"
         case .notFound:
-            return "Cette page n'existe plus ou a été déplacée"
+            return "Ressource introuvable — réessaie ou mets l'app à jour"
         case .conflict(let message):
             return message
         case .validationError(let details):
@@ -73,6 +74,8 @@ enum APIError: LocalizedError {
             return "Ton code d'accès a été modifié — saisis ton nouveau code"
         case .recoveryKeyInvalid:
             return "Clé de récupération invalide — vérifie que tu as bien copié la clé"
+        case .recoveryKeyNotConfigured:
+            return "Aucune clé de secours n'est enregistrée — génère-en une depuis « Clé de secours »."
         }
     }
 
@@ -89,6 +92,7 @@ enum APIError: LocalizedError {
         "MAINTENANCE": .maintenance,
         "ERR_ENCRYPTION_KEY_CHECK_FAILED": .clientKeyInvalid,
         "ERR_RECOVERY_KEY_INVALID": .recoveryKeyInvalid,
+        "ERR_RECOVERY_KEY_NOT_CONFIGURED": .recoveryKeyNotConfigured,
     ]
 
     /// Create APIError from server error code

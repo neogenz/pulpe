@@ -955,6 +955,14 @@ export type EncryptionRecoverRequest = z.infer<
   typeof encryptionRecoverRequestSchema
 >;
 
+/** POST /verify-recovery-key — read-only unwrap check */
+export const encryptionVerifyRecoveryKeyRequestSchema = z.object({
+  recoveryKey: z.string().min(1).max(512),
+});
+export type EncryptionVerifyRecoveryKeyRequest = z.infer<
+  typeof encryptionVerifyRecoveryKeyRequestSchema
+>;
+
 /** POST /change-pin — old + new hex-encoded client keys */
 export const encryptionChangePinRequestSchema = z.object({
   oldClientKey: hexKey64,

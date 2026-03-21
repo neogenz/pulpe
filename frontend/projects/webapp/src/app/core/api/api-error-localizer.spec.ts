@@ -69,6 +69,18 @@ describe('ApiErrorLocalizer', () => {
     );
   });
 
+  it('should localize HTTP 429 before error code mapping', () => {
+    const rateLimited = new ApiError(
+      'Too Many Requests',
+      'HTTP_429',
+      429,
+      null,
+    );
+    expect(service.localizeApiError(rateLimited)).toBe(
+      'Trop de tentatives — patiente une minute avant de réessayer',
+    );
+  });
+
   it('should return generic message for unknown error codes', () => {
     const error = new ApiError('Unknown', 'ERR_UNKNOWN_CODE', 500, null);
     expect(service.localizeApiError(error)).toBe(

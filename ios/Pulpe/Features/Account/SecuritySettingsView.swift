@@ -8,6 +8,7 @@ struct SecuritySettingsView: View {
     @State private var showChangePin = false
     @State private var showChangePassword = false
     @State private var showDeleteConfirmation = false
+    @State private var showVerifyRecoveryKey = false
     @State private var securityViewModel = AccountSecurityViewModel()
 
     private let canUseBiometrics = BiometricService.shared.canUseBiometrics()
@@ -28,6 +29,10 @@ struct SecuritySettingsView: View {
                     securityViewModel.showConfirmPassword = true
                 }
                 .disabled(securityViewModel.isRegenerating)
+
+                chevronRow("Vérifier ma clé de récupération", detail: "Vérifier") {
+                    showVerifyRecoveryKey = true
+                }
             }
 
             if canUseBiometrics {
@@ -142,6 +147,11 @@ struct SecuritySettingsView: View {
                 RecoveryKeySheet(recoveryKey: recoveryKey) {
                     securityViewModel.showRecoveryKeySheet = false
                 }
+            }
+        }
+        .sheet(isPresented: $showVerifyRecoveryKey) {
+            VerifyRecoveryKeySheet {
+                appState.toastManager.show("Cette clé est valide pour ton compte.", type: .success)
             }
         }
         .overlay {

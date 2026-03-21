@@ -14,6 +14,7 @@ const createMockEncryptionService = (overrides?: {
   createRecoveryKey?: ReturnType<typeof mock>;
   regenerateRecoveryKey?: ReturnType<typeof mock>;
   recoverWithKey?: ReturnType<typeof mock>;
+  verifyRecoveryKey?: ReturnType<typeof mock>;
   reEncryptAllUserData?: ReturnType<typeof mock>;
   changePinRekey?: ReturnType<typeof mock>;
 }) => ({
@@ -41,6 +42,8 @@ const createMockEncryptionService = (overrides?: {
     overrides?.regenerateRecoveryKey ??
     mock(() => Promise.resolve({ formatted: 'XXXX-YYYY-ZZZZ-5678' })),
   recoverWithKey: overrides?.recoverWithKey ?? mock(() => Promise.resolve()),
+  verifyRecoveryKey:
+    overrides?.verifyRecoveryKey ?? mock(() => Promise.resolve()),
   reEncryptAllUserData:
     overrides?.reEncryptAllUserData ?? mock(() => Promise.resolve()),
   changePinRekey:
@@ -543,6 +546,23 @@ describe('EncryptionController', () => {
         expect(error).toBe(originalError);
         expect(error.message).toBe('DB connection lost');
       }
+    });
+  });
+
+  describe('verifyRecoveryKey', () => {
+    it('should call encryption service with user id and recovery key', async () => {
+      const user = createMockUser();
+      const body = { recoveryKey: 'ABCD-EFGH-IJKL-MNOP-QRST-UVWX-YZ23-4567' };
+
+      const { controller, mockEncryptionService } = setupController();
+
+      await controller.verifyRecoveryKey(user, body);
+
+      expect(mockEncryptionService.verifyRecoveryKey).toHaveBeenCalledTimes(1);
+      expect(mockEncryptionService.verifyRecoveryKey).toHaveBeenCalledWith(
+        user.id,
+        body.recoveryKey,
+      );
     });
   });
 

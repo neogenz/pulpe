@@ -62,6 +62,7 @@ enum Endpoint {
     case encryptionSetupRecovery
     case encryptionRegenerateRecovery
     case encryptionRecover
+    case encryptionVerifyRecoveryKey
     case encryptionChangePin
 
     // MARK: - Path
@@ -118,6 +119,7 @@ enum Endpoint {
         case .encryptionSetupRecovery: return "/encryption/setup-recovery"
         case .encryptionRegenerateRecovery: return "/encryption/regenerate-recovery"
         case .encryptionRecover: return "/encryption/recover"
+        case .encryptionVerifyRecoveryKey: return "/encryption/verify-recovery-key"
         case .encryptionChangePin: return "/encryption/change-pin"
         }
     }
@@ -130,7 +132,7 @@ enum Endpoint {
              .templateLines, .templateFromOnboarding, .templateLinesBulk,
              .budgetLineToggle, .budgetLineResetFromTemplate, .transactionToggle,
              .encryptionValidateKey, .encryptionSetupRecovery, .encryptionRegenerateRecovery, .encryptionRecover,
-             .encryptionChangePin:
+             .encryptionVerifyRecoveryKey, .encryptionChangePin:
             return .post
 
         case .validateSession, .userProfile, .budget, .budgetDetails, .budgetsExport,

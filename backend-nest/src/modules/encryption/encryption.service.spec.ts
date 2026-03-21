@@ -1583,6 +1583,97 @@ describe('EncryptionService', () => {
     });
   });
 
+  describe('verifyRecoveryKey', () => {
+    beforeEach(() => {
+      service = new EncryptionService(
+        createMockLogger() as any,
+        mockConfigService as any,
+        mockRepository as any,
+      );
+    });
+
+    it('should resolve when recovery key unwraps wrapped_dek', async () => {
+      const dek = randomBytes(32);
+      const { raw, formatted } = service.generateRecoveryKey();
+      const wrapped = service.wrapDEK(dek, raw);
+      raw.fill(0);
+
+      const findByUserId = mock(() =>
+        Promise.resolve({
+          salt: randomBytes(16).toString('hex'),
+          kdf_iterations: 600000,
+          wrapped_dek: wrapped,
+          key_check: null,
+        }),
+      );
+      const repo = createMockRepository({ findByUserId });
+      const svc = new EncryptionService(
+        createMockLogger() as any,
+        mockConfigService as any,
+        repo as any,
+      );
+
+      await svc.verifyRecoveryKey(TEST_USER_ID, formatted);
+    });
+
+    it('should throw RECOVERY_KEY_NOT_CONFIGURED when wrapped_dek is null', async () => {
+      const findByUserId = mock(() =>
+        Promise.resolve({
+          salt: randomBytes(16).toString('hex'),
+          kdf_iterations: 600000,
+          wrapped_dek: null,
+          key_check: null,
+        }),
+      );
+      const repo = createMockRepository({ findByUserId });
+      const svc = new EncryptionService(
+        createMockLogger() as any,
+        mockConfigService as any,
+        repo as any,
+      );
+
+      try {
+        await svc.verifyRecoveryKey(TEST_USER_ID, 'AAAA-BBBB');
+        expect.unreachable('Should have thrown');
+      } catch (error: any) {
+        expect(error).toBeInstanceOf(BusinessException);
+        expect(error.code).toBe(
+          ERROR_DEFINITIONS.RECOVERY_KEY_NOT_CONFIGURED.code,
+        );
+      }
+    });
+
+    it('should throw RECOVERY_KEY_INVALID for wrong recovery key', async () => {
+      const dek = randomBytes(32);
+      const { formatted: wrongFormatted } = service.generateRecoveryKey();
+      const { raw: actualWrapKey } = service.generateRecoveryKey();
+      const wrapped = service.wrapDEK(dek, actualWrapKey);
+      actualWrapKey.fill(0);
+      const findByUserId = mock(() =>
+        Promise.resolve({
+          salt: randomBytes(16).toString('hex'),
+          kdf_iterations: 600000,
+          wrapped_dek: wrapped,
+          key_check: null,
+        }),
+      );
+      const repo = createMockRepository({ findByUserId });
+      const svc = new EncryptionService(
+        createMockLogger() as any,
+        mockConfigService as any,
+        repo as any,
+      );
+
+      try {
+        await svc.verifyRecoveryKey(TEST_USER_ID, wrongFormatted);
+        expect.unreachable('Should have thrown');
+      } catch (error: any) {
+        expect(error).toBeInstanceOf(BusinessException);
+        expect(error.code).toBe(ERROR_DEFINITIONS.RECOVERY_KEY_INVALID.code);
+      }
+    });
+  });
+
   describe('recoverWithKey', () => {
     beforeEach(() => {
       service = new EncryptionService(

@@ -394,6 +394,64 @@ export class EncryptionService {
     }
   }
 
+  async verifyRecoveryKey(
+    userId: string,
+    recoveryKeyFormatted: string,
+  ): Promise<void> {
+    const row = await this.#repository.findByUserId(userId);
+    if (!row?.wrapped_dek) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.RECOVERY_KEY_NOT_CONFIGURED,
+        undefined,
+        { userId, operation: 'verify_recovery_key.not_configured' },
+      );
+    }
+
+    const trimmedKey = recoveryKeyFormatted.trim();
+    if (!trimmedKey) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.RECOVERY_KEY_INVALID,
+        undefined,
+        { userId, operation: 'verify_recovery_key.empty_key' },
+      );
+    }
+
+    let recoveryKey: Buffer | null = null;
+    let dek: Buffer | null = null;
+    try {
+      try {
+        recoveryKey = decodeBase32(trimmedKey.replace(/-/g, ''));
+      } catch (error) {
+        throw new BusinessException(
+          ERROR_DEFINITIONS.RECOVERY_KEY_INVALID,
+          undefined,
+          { userId, operation: 'verify_recovery_key.decode_failed' },
+          { cause: error },
+        );
+      }
+      if (recoveryKey.length !== KEY_LENGTH) {
+        throw new BusinessException(
+          ERROR_DEFINITIONS.RECOVERY_KEY_INVALID,
+          undefined,
+          { userId, operation: 'verify_recovery_key.invalid_length' },
+        );
+      }
+      try {
+        dek = this.unwrapDEK(row.wrapped_dek, recoveryKey);
+      } catch (error) {
+        throw new BusinessException(
+          ERROR_DEFINITIONS.RECOVERY_KEY_INVALID,
+          undefined,
+          { userId, operation: 'verify_recovery_key.unwrap_failed' },
+          { cause: error },
+        );
+      }
+    } finally {
+      recoveryKey?.fill(0);
+      dek?.fill(0);
+    }
+  }
+
   async changePinRekey(
     userId: string,
     oldClientKey: Buffer,

@@ -230,6 +230,12 @@
     "changePassword": "Modifier",
     "recoveryKey": "Clé de récupération",
     "recoveryKeyDescription": "Indispensable si tu oublies ton code PIN.",
+    "verifyRecoveryKeyTitle": "Vérifier la clé de récupération",
+    "verifyRecoveryKeyHint": "Tu peux vérifier qu'une clé notée correspond bien à ton compte, sans rien modifier.",
+    "verifyRecoveryKeyLabel": "Saisis ta clé (avec ou sans tirets)",
+    "verifyRecoveryKeySubmit": "Vérifier",
+    "verifyRecoveryKeyAction": "Vérifier",
+    "verifyRecoveryKeySuccess": "Cette clé est valide pour ton compte.",
     "regenerateKey": "Régénérer",
     "newRecoveryKeySaved": "Nouvelle clé de récupération enregistrée",
     "generateKeyError": "La génération de la clé a échoué — réessaie plus tard",
@@ -817,7 +823,10 @@
     "profileUpdateFailed": "La mise à jour du profil a échoué — réessaie",
     "validationFailed": "Les données envoyées ne sont pas valides",
     "unauthorized": "Tu dois te connecter pour continuer",
-    "forbidden": "Tu n'as pas accès à cette ressource"
+    "forbidden": "Tu n'as pas accès à cette ressource",
+    "rateLimited": "Trop de tentatives — patiente une minute avant de réessayer",
+    "recoveryKeyInvalid": "Cette clé ne correspond pas — vérifie ta saisie",
+    "recoveryKeyNotConfigured": "Aucune clé de récupération n'est enregistrée — génère-en une avec « Régénérer »"
   },
   "logout": {
     "inProgress": "Déconnexion...",
