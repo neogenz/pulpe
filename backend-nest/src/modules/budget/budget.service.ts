@@ -11,6 +11,8 @@ import { validateCreateBudgetResponse } from './schemas/rpc-responses.schema';
 import {
   type BudgetCreate,
   type BudgetDeleteResponse,
+  type BudgetGenerate,
+  type BudgetGenerateResponse,
   type BudgetListResponse,
   type BudgetResponse,
   type BudgetUpdate,
@@ -41,6 +43,10 @@ interface BudgetDetailsData {
   transactions: Transaction[];
   budgetLines: BudgetLine[];
 }
+
+type BudgetCreationResult =
+  | { kind: 'created'; budget: Budget; budgetId: string }
+  | { kind: 'skipped'; period: { month: number; year: number } };
 
 @Injectable()
 export class BudgetService {
@@ -564,6 +570,199 @@ export class BudgetService {
           userId: user.id,
           entityType: 'budget',
         },
+      );
+    }
+  }
+
+  async generateBudgets(
+    dto: BudgetGenerate,
+    user: AuthenticatedUser,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<BudgetGenerateResponse> {
+    const targetMonths = this.computeTargetMonths(
+      dto.startMonth,
+      dto.startYear,
+      dto.count,
+    );
+
+    this.logger.info(
+      {
+        userId: user.id,
+        count: dto.count,
+        startMonth: dto.startMonth,
+        startYear: dto.startYear,
+        operation: 'budget.generate.start',
+      },
+      'Starting budget generation',
+    );
+
+    const createdBudgets: Budget[] = [];
+    const skippedMonths: { month: number; year: number }[] = [];
+    const createdBudgetIds: string[] = [];
+
+    try {
+      for (const target of targetMonths) {
+        const result = await this.tryCreateSingleBudget(
+          target,
+          dto,
+          user,
+          supabase,
+        );
+        if (result.kind === 'skipped') {
+          skippedMonths.push(result.period);
+        } else {
+          createdBudgets.push(result.budget);
+          createdBudgetIds.push(result.budgetId);
+        }
+      }
+    } catch (error) {
+      await this.rollbackCreatedBudgets(createdBudgetIds, supabase, user.id);
+      throw handleServiceError(
+        error,
+        ERROR_DEFINITIONS.BUDGET_GENERATE_FAILED,
+        undefined,
+        { operation: 'generateBudgets', userId: user.id },
+      );
+    }
+
+    await this.cacheService.invalidateForUser(user.id);
+
+    this.logger.info(
+      {
+        userId: user.id,
+        createdCount: createdBudgets.length,
+        skippedCount: skippedMonths.length,
+        operation: 'budget.generate.success',
+      },
+      'Budget generation completed',
+    );
+
+    return {
+      success: true,
+      data: {
+        budgets: createdBudgets,
+        skippedMonths,
+      },
+    };
+  }
+
+  private async tryCreateSingleBudget(
+    target: { month: number; year: number },
+    dto: BudgetGenerate,
+    user: AuthenticatedUser,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<BudgetCreationResult> {
+    const isDuplicate = await this.isDuplicatePeriod(
+      supabase,
+      target.month,
+      target.year,
+    );
+    if (isDuplicate) {
+      return { kind: 'skipped', period: target };
+    }
+
+    const budgetDto: BudgetCreate = {
+      templateId: dto.templateId,
+      month: target.month,
+      year: target.year,
+      description: `Budget ${target.month}/${target.year}`,
+    };
+
+    const result = await this.executeBudgetCreationRpc(
+      budgetDto,
+      user,
+      supabase,
+    );
+    const processedResult = this.processBudgetCreationResult(
+      result,
+      user.id,
+      dto.templateId,
+    );
+
+    await this.calculator.recalculateAndPersist(
+      processedResult.budgetData.id,
+      supabase,
+      user.clientKey,
+    );
+
+    return {
+      kind: 'created',
+      budget: budgetMappers.toApi(processedResult.budgetData),
+      budgetId: processedResult.budgetData.id,
+    };
+  }
+
+  private async isDuplicatePeriod(
+    supabase: AuthenticatedSupabaseClient,
+    month: number,
+    year: number,
+  ): Promise<boolean> {
+    const { data: existingBudget, error } = await supabase
+      .from('monthly_budget')
+      .select('id')
+      .eq('month', month)
+      .eq('year', year)
+      .maybeSingle();
+
+    if (error) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.BUDGET_FETCH_FAILED,
+        undefined,
+        {
+          operation: 'isDuplicatePeriod',
+          entityType: 'budget',
+          supabaseError: error,
+        },
+        { cause: error },
+      );
+    }
+
+    return existingBudget !== null;
+  }
+
+  private computeTargetMonths(
+    startMonth: number,
+    startYear: number,
+    count: number,
+  ): { month: number; year: number }[] {
+    const MONTHS_PER_YEAR = 12;
+    const targets: { month: number; year: number }[] = [];
+    let month = startMonth;
+    let year = startYear;
+
+    for (let i = 0; i < count; i++) {
+      targets.push({ month, year });
+      month++;
+      if (month > MONTHS_PER_YEAR) {
+        month = 1;
+        year++;
+      }
+    }
+    return targets;
+  }
+
+  private async rollbackCreatedBudgets(
+    budgetIds: string[],
+    supabase: AuthenticatedSupabaseClient,
+    userId: string,
+  ): Promise<void> {
+    if (budgetIds.length === 0) return;
+    this.logger.warn(
+      {
+        userId,
+        budgetIds,
+        operation: 'budget.generate.rollback',
+      },
+      'Rolling back created budgets after generation failure',
+    );
+    const { error } = await supabase
+      .from('monthly_budget')
+      .delete()
+      .in('id', budgetIds);
+    if (error) {
+      this.logger.warn(
+        { userId, budgetIds, operation: 'budget.generate.rollback.failed' },
+        'Failed to rollback created budgets — orphaned budgets may remain',
       );
     }
   }

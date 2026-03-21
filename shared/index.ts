@@ -14,6 +14,8 @@ export {
   budgetSchema,
   budgetCreateSchema,
   budgetUpdateSchema,
+  budgetGenerateSchema,
+  budgetGenerateResponseSchema,
   onboardingTransactionSchema,
 
   // Transaction schemas
@@ -160,6 +162,8 @@ export type {
   Budget,
   BudgetCreate,
   BudgetUpdate,
+  BudgetGenerate,
+  BudgetGenerateResponse,
 
   // Transaction types
   Transaction,

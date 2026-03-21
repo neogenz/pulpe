@@ -2,7 +2,7 @@ import { inject, Injectable } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { TranslocoService } from '@jsverse/transloco';
 import {
-  type BudgetCreate,
+  type BudgetGenerate,
   type BudgetTemplateCreateFromOnboarding,
   budgetTemplateCreateResponseSchema,
   getBudgetPeriodForDate,
@@ -60,20 +60,20 @@ export class ProfileSetupService {
         this.#createTemplateFromOnboarding$(templateRequest),
       );
 
-      // 2. Create budget
+      // 2. Generate 12 months of budgets
       const currentDate = new Date();
       const { month, year } = getBudgetPeriodForDate(
         currentDate,
         profileData.payDayOfMonth,
       );
-      const budgetRequest: BudgetCreate = {
+      const generateRequest: BudgetGenerate = {
         templateId: templateResponse.data.template.id,
-        month,
-        year,
-        description: `Budget initial de ${profileData.firstName} pour ${year}`,
+        startMonth: month,
+        startYear: year,
+        count: 12,
       };
 
-      await firstValueFrom(this.#budgetApi.createBudget$(budgetRequest));
+      await firstValueFrom(this.#budgetApi.generateBudgets$(generateRequest));
       this.#budgetApi.cache.invalidate(['budget']);
       await this.#budgetApi.cache
         .prefetch(['budget', 'list'], () =>

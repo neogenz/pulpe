@@ -28,6 +28,7 @@ import {
   type BudgetResponse,
   type BudgetDeleteResponse,
   type BudgetDetailsResponse,
+  type BudgetGenerateResponse,
   type BudgetSparseListResponse,
   type ListBudgetsQuery,
 } from 'pulpe-shared';
@@ -42,6 +43,7 @@ import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.ser
 import {
   BudgetCreateDto,
   BudgetUpdateDto,
+  BudgetGenerateDto,
   BudgetResponseDto,
   BudgetDeleteResponseDto,
   BudgetDetailsResponseDto,
@@ -129,6 +131,25 @@ export class BudgetController {
     @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetResponse> {
     return this.budgetService.create(createBudgetDto, user, supabase);
+  }
+
+  @Post('generate')
+  @ApiOperation({
+    summary: 'Generate consecutive monthly budgets from template',
+  })
+  @ApiCreatedResponse({
+    description: 'Budgets generated successfully',
+  })
+  @ApiBadRequestResponse({
+    description: 'Invalid input data',
+    type: ErrorResponseDto,
+  })
+  async generate(
+    @Body() dto: BudgetGenerateDto,
+    @User() user: AuthenticatedUser,
+    @SupabaseClient() supabase: AuthenticatedSupabaseClient,
+  ): Promise<BudgetGenerateResponse> {
+    return this.budgetService.generateBudgets(dto, user, supabase);
   }
 
   @Get('export')
