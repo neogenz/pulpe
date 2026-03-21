@@ -1,0 +1,118 @@
+name: 🚀 .NET CI Pipeline
+
+on:
+  push:
+    branches: [main, preview]
+    paths: ['backend-dotnet/**']
+  pull_request:
+    branches: [main, preview]
+    paths: ['backend-dotnet/**']
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  checks: write
+  pull-requests: write
+
+env:
+  DOTNET_VERSION: "10.0.x"
+
+jobs:
+  build:
+    name: 🏗️ Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: backend-dotnet
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+      - run: dotnet restore
+      - run: dotnet build -c Release --no-restore
+
+  test-unit:
+    name: 🧪 Unit Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: build
+    defaults:
+      run:
+        working-directory: backend-dotnet
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+      - run: dotnet test --filter "Category!=Integration" --logger "trx;LogFileName=test-results.trx" -c Release
+        env:
+          ASPNETCORE_ENVIRONMENT: test
+          Supabase__Url: http://127.0.0.1:54321
+          Supabase__AnonKey: test-anon-key
+          Supabase__ServiceRoleKey: test-service-role-key
+          Encryption__MasterKey: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+          Turnstile__SecretKey: test-turnstile-key
+
+  test-integration:
+    name: 🔗 Integration Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: build
+    defaults:
+      run:
+        working-directory: backend-dotnet
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Start Supabase
+        working-directory: backend-nest
+        run: |
+          supabase start --exclude studio,inbucket,imgproxy,edge-runtime
+          timeout=120; counter=0
+          until curl -s http://127.0.0.1:54321/rest/v1/ >/dev/null; do
+            [ $counter -gt $timeout ] && exit 1
+            sleep 1; counter=$((counter + 1))
+          done
+      - run: dotnet test --filter "Category=Integration" -c Release
+        env:
+          Supabase__Url: http://127.0.0.1:54321
+          Supabase__AnonKey: ${{ steps.supabase.outputs.ANON_KEY }}
+          Supabase__ServiceRoleKey: ${{ steps.supabase.outputs.SERVICE_ROLE_KEY }}
+          Encryption__MasterKey: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+
+  quality:
+    name: 🔍 Code Quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs: build
+    defaults:
+      run:
+        working-directory: backend-dotnet
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+      - run: dotnet format --verify-no-changes
+      - run: dotnet build -c Release --no-restore -warnaserror
+
+  ci-success:
+    name: ✅ CI Success
+    runs-on: ubuntu-latest
+    needs: [build, test-unit, quality]
+    if: always()
+    steps:
+      - name: Check results
+        if: needs.build.result != 'success' || needs.test-unit.result != 'success' || needs.quality.result != 'success'
+        run: exit 1
+      - run: echo "All checks passed"

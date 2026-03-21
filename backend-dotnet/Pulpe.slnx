@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Pulpe.Api/Pulpe.Api.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Pulpe.Api.Tests/Pulpe.Api.Tests.csproj" />
+  </Folder>
+</Solution>
