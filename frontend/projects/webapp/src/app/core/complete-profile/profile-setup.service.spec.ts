@@ -20,6 +20,7 @@ describe('ProfileSetupService', () => {
   let mockPostHogService: { enableTracking: ReturnType<typeof vi.fn> };
   let mockLogger: {
     info: ReturnType<typeof vi.fn>;
+    warn: ReturnType<typeof vi.fn>;
     error: ReturnType<typeof vi.fn>;
   };
 
@@ -58,6 +59,7 @@ describe('ProfileSetupService', () => {
 
     mockLogger = {
       info: vi.fn(),
+      warn: vi.fn(),
       error: vi.fn(),
     };
 
