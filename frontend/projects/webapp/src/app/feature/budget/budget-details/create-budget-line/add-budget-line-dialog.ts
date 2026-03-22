@@ -17,8 +17,12 @@ import {
   type TransactionRecurrence,
 } from 'pulpe-shared';
 import { TranslocoPipe } from '@jsverse/transloco';
+import { CurrencySuffix } from '@ui/currency-suffix';
 import { TransactionIconPipe } from '@ui/transaction-display';
 import { TransactionLabelPipe } from '@ui/transaction-display';
+import { UserSettingsStore } from '@core/user-settings';
+import type { CurrencyConverterService } from '@core/currency';
+import { injectCurrencyFormConfig } from '@core/currency';
 
 export interface BudgetLineDialogData {
   budgetId: string;
@@ -38,6 +42,7 @@ export interface BudgetLineDialogData {
     TranslocoPipe,
     TransactionIconPipe,
     TransactionLabelPipe,
+    CurrencySuffix,
   ],
   template: `
     <h2 mat-dialog-title class="text-headline-small">
@@ -71,7 +76,12 @@ export interface BudgetLineDialogData {
               inputmode="decimal"
               data-testid="new-line-amount"
             />
-            <span matTextSuffix>CHF</span>
+            <pulpe-currency-suffix
+              matTextSuffix
+              [showSelector]="showCurrencySelector()"
+              [currency]="inputCurrency()"
+              (currencyChange)="inputCurrency.set($event)"
+            />
           </mat-form-field>
 
           <mat-form-field appearance="outline" class="w-full">
@@ -111,6 +121,11 @@ export interface BudgetLineDialogData {
       </div>
     </mat-dialog-content>
 
+    @if (conversionError()) {
+      <p class="text-error text-body-small px-6 pb-2">
+        {{ 'common.conversionError' | transloco }}
+      </p>
+    }
     <mat-dialog-actions align="end">
       <button matButton (click)="cancel()" data-testid="cancel-new-line">
         {{ 'common.cancel' | transloco }}
@@ -133,6 +148,13 @@ export class AddBudgetLineDialog {
   readonly #dialogRef = inject(MatDialogRef<AddBudgetLineDialog>);
   readonly #data = inject<BudgetLineDialogData>(MAT_DIALOG_DATA);
   readonly #fb = inject(FormBuilder);
+  readonly #userSettings = inject(UserSettingsStore);
+  readonly #currencyConfig = injectCurrencyFormConfig();
+  protected readonly currency = this.#userSettings.currency;
+  protected readonly showCurrencySelector =
+    this.#currencyConfig.showCurrencySelector;
+  protected readonly inputCurrency = this.#currencyConfig.inputCurrency;
+  protected readonly conversionError = this.#currencyConfig.conversionError;
 
   protected readonly form = this.#fb.group({
     name: ['', [Validators.required, Validators.minLength(1)]],
@@ -145,20 +167,39 @@ export class AddBudgetLineDialog {
     isChecked: [false],
   });
 
-  protected submit(): void {
-    if (this.form.valid) {
-      const value = this.form.getRawValue();
-      const budgetLine: BudgetLineCreate = {
-        budgetId: this.#data.budgetId,
-        name: value.name!.trim(),
-        amount: value.amount!,
-        kind: value.kind!,
-        recurrence: value.recurrence!,
-        isManuallyAdjusted: true,
-        checkedAt: value.isChecked ? new Date().toISOString() : null,
-      };
-      this.#dialogRef.close(budgetLine);
+  protected async submit(): Promise<void> {
+    if (!this.form.valid) return;
+
+    const value = this.form.getRawValue();
+
+    let convertedAmount: number;
+    let metadata: Awaited<
+      ReturnType<CurrencyConverterService['convertWithMetadata']>
+    >['metadata'];
+    this.conversionError.set(false);
+    try {
+      ({ convertedAmount, metadata } =
+        await this.#currencyConfig.converter.convertWithMetadata(
+          value.amount!,
+          this.inputCurrency(),
+          this.currency(),
+        ));
+    } catch {
+      this.conversionError.set(true);
+      return;
     }
+
+    const budgetLine: BudgetLineCreate = {
+      budgetId: this.#data.budgetId,
+      name: value.name!.trim(),
+      amount: convertedAmount,
+      kind: value.kind!,
+      recurrence: value.recurrence!,
+      isManuallyAdjusted: true,
+      checkedAt: value.isChecked ? new Date().toISOString() : null,
+      ...metadata,
+    };
+    this.#dialogRef.close(budgetLine);
   }
 
   protected cancel(): void {

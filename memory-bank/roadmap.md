@@ -112,13 +112,13 @@ Pulpe is an open-source passion project, in production with 3 users, no marketin
 
 ---
 
-## Ice Box (11 issues)
+## Ice Box (10 issues)
 
 > Ideas without spec, demand, or explicitly out of V1 scope. Revisit after R2.
 
 | Issue | Description | Reason |
 |-------|-------------|--------|
-| #248 | Convertisseur de devise | CHF only in V1 |
+| ~~#248~~ | ~~Convertisseur de devise~~ | → Moved to Closed (implemented) |
 | #247 | Import JSON des dépenses | No demand |
 | #36 | Mode hors-ligne basique | Enormous complexity, no demand |
 | #284 | Explorer le skill Remotion pour générer des vidéos | Exploration |
@@ -143,6 +143,7 @@ Pulpe is an open-source passion project, in production with 3 users, no marketin
 | #119 | Already implemented (payday) |
 | #274 | Completed — AES-256-GCM encryption for financial amounts |
 | #293 | Completed — encryption migration cleanup (68f2157c) |
+| #248 | Completed — multi-currency support (CHF/EUR, Frankfurter API, conversion metadata) |
 | #98 | Replaced by #274 |
 
 ---

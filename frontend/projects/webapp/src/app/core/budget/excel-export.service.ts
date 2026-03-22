@@ -1,6 +1,7 @@
-import { Injectable } from '@angular/core';
+import { inject, Injectable } from '@angular/core';
 import { utils, type WorkBook } from 'xlsx';
 import type {
+  SupportedCurrency,
   BudgetExportResponse,
   BudgetLine,
   BudgetWithDetails,
@@ -8,6 +9,7 @@ import type {
   TransactionKind,
   TransactionRecurrence,
 } from 'pulpe-shared';
+import { UserSettingsStore } from '@core/user-settings';
 
 const KIND_LABELS: Record<TransactionKind, string> = {
   income: 'Revenu',
@@ -35,7 +37,10 @@ const MONTH_NAMES = [
   'Décembre',
 ];
 
-const CHF_FORMAT = '"CHF" #,##0.00';
+const CURRENCY_EXCEL_FORMATS: Record<SupportedCurrency, string> = {
+  CHF: '"CHF" #,##0.00',
+  EUR: '"€" #,##0.00',
+};
 
 interface CurrencyCell {
   t: 'n';
@@ -53,6 +58,12 @@ type CellValue = string | number | CurrencyCell | FormulaCell;
 
 @Injectable({ providedIn: 'root' })
 export class ExcelExportService {
+  readonly #userSettings = inject(UserSettingsStore);
+
+  get #currencyFormat(): string {
+    return CURRENCY_EXCEL_FORMATS[this.#userSettings.currency()];
+  }
+
   buildWorkbook(response: BudgetExportResponse): WorkBook {
     const workbook = utils.book_new();
     const budgets = response.data?.budgets ?? [];
@@ -153,11 +164,11 @@ export class ExcelExportService {
   }
 
   #currencyCell(amount: number): CurrencyCell {
-    return { t: 'n', v: amount, z: CHF_FORMAT };
+    return { t: 'n', v: amount, z: this.#currencyFormat };
   }
 
   #formulaCell(formula: string): FormulaCell {
-    return { t: 'n', f: formula, z: CHF_FORMAT };
+    return { t: 'n', f: formula, z: this.#currencyFormat };
   }
 
   #formatDate(isoDate: string): string {

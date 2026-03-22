@@ -7,6 +7,7 @@ struct QuickAmountChips: View {
     @Binding var amountText: String
     var isFocused: FocusState<Bool>.Binding
     var color: Color = .pulpePrimary
+    var currency: String = "CHF"
 
     @State private var pendingQuickAmount: Int?
     @State private var selectionTrigger = false
@@ -27,7 +28,7 @@ struct QuickAmountChips: View {
                         amountText = "\(quickAmount)"
                     }
                 } label: {
-                    Text("\(quickAmount) \(DesignTokens.AmountInput.currencyCode)")
+                    Text("\(quickAmount) \(currency)")
                         .font(PulpeTypography.labelLarge)
                         .fixedSize()
                         .padding(.horizontal, DesignTokens.Spacing.md)
@@ -48,7 +49,7 @@ struct QuickAmountChips: View {
                 .frame(minHeight: DesignTokens.TapTarget.minimum)
                 .contentShape(Capsule())
                 .plainPressedButtonStyle()
-                .accessibilityHint("Définir le montant à \(quickAmount) \(DesignTokens.AmountInput.currencyCode)")
+                .accessibilityHint("Définir le montant à \(quickAmount) \(currency)")
             }
         }
         .sensoryFeedback(.selection, trigger: selectionTrigger)

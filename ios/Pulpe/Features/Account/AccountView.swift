@@ -11,6 +11,7 @@ struct AccountView: View {
         NavigationStack {
             List {
                 personalInfoSection
+                CurrencySettingView()
                 appSettingsSection
                 supportSection
                 legalSection

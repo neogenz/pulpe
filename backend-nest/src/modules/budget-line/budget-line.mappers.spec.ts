@@ -18,6 +18,10 @@ describe('BudgetLine Mappers', () => {
         checked_at: null,
         created_at: '2025-01-01T00:00:00Z',
         updated_at: '2025-01-02T00:00:00Z',
+        original_amount: null,
+        original_currency: null,
+        target_currency: null,
+        exchange_rate: null,
       };
 
       const result = toApi(dbRow);
@@ -52,6 +56,10 @@ describe('BudgetLine Mappers', () => {
         checked_at: null,
         created_at: '2025-01-01T00:00:00Z',
         updated_at: '2025-01-01T00:00:00Z',
+        original_amount: null,
+        original_currency: null,
+        target_currency: null,
+        exchange_rate: null,
       };
 
       const result = toApi(dbRow);

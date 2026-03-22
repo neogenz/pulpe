@@ -5,22 +5,35 @@ import Foundation
 enum Formatters {
     // MARK: - Currency
 
-    static let chfCompact: NumberFormatter = {
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .decimal
-        formatter.locale = Locale(identifier: "de_CH")
-        formatter.minimumFractionDigits = 2
-        formatter.maximumFractionDigits = 2
-        return formatter
-    }()
+    /// Maps a currency code to its display locale
+    static func locale(for currencyCode: String) -> Locale {
+        switch currencyCode {
+        case "EUR": Locale(identifier: "de_DE")
+        default: Locale(identifier: "fr_CH")
+        }
+    }
 
-    static let chfWholeNumber: NumberFormatter = {
+    /// Thread-safe cache for currency formatters
+    nonisolated(unsafe) private static let formatterCache = NSCache<NSString, NumberFormatter>()
+
+    /// Returns a cached NumberFormatter for the given currency code
+    static func currencyFormatter(code: String, wholeNumber: Bool = false) -> NumberFormatter {
+        let key = "\(code)_\(wholeNumber)" as NSString
+        if let cached = formatterCache.object(forKey: key) {
+            return cached
+        }
         let formatter = NumberFormatter()
-        formatter.numberStyle = .decimal
-        formatter.locale = Locale(identifier: "de_CH")
-        formatter.maximumFractionDigits = 0
+        formatter.numberStyle = .currency
+        formatter.currencyCode = code
+        formatter.locale = locale(for: code)
+        formatter.maximumFractionDigits = wholeNumber ? 0 : 2
+        formatterCache.setObject(formatter, forKey: key)
         return formatter
-    }()
+    }
+
+    static let chfCompact: NumberFormatter = currencyFormatter(code: "CHF")
+
+    static let chfWholeNumber: NumberFormatter = currencyFormatter(code: "CHF", wholeNumber: true)
 
     static let amountInput: NumberFormatter = {
         let formatter = NumberFormatter()

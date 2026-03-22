@@ -4,10 +4,10 @@ import {
   input,
   output,
 } from '@angular/core';
+import { CurrencyPipe } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { CurrencyPipe } from '@angular/common';
 import { TranslocoPipe } from '@jsverse/transloco';
 
 @Component({
@@ -48,7 +48,10 @@ import { TranslocoPipe } from '@jsverse/transloco';
             [attr.data-type]="totalAmount() >= 0 ? 'positive' : 'negative'"
             data-testid="month-card-amount"
           >
-            {{ totalAmount() | currency: 'CHF' : 'symbol' : '1.2-2' : 'de-CH' }}
+            {{
+              totalAmount()
+                | currency: currency() : 'symbol' : '1.2-2' : locale()
+            }}
           </p>
         </div>
       </mat-card-content>
@@ -95,5 +98,7 @@ export class MonthCardItem {
   }>();
   readonly totalAmount = input.required<number>();
   readonly id = input.required<string>();
+  readonly currency = input<string>('CHF');
+  readonly locale = input<string>('de-CH');
   readonly detailsClick = output<string>();
 }

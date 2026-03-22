@@ -15,6 +15,12 @@ struct BudgetLine: Codable, Identifiable, Hashable, Sendable {
     let createdAt: Date
     let updatedAt: Date
 
+    // Currency conversion metadata
+    var originalAmount: Decimal?
+    var originalCurrency: String?
+    var targetCurrency: String?
+    var exchangeRate: Decimal?
+
     // Virtual rollover fields (added client-side)
     var isRollover: Bool?
     var rolloverSourceBudgetId: String?
@@ -48,6 +54,10 @@ struct BudgetLine: Codable, Identifiable, Hashable, Sendable {
             checkedAt: isChecked ? nil : Date(),
             createdAt: createdAt,
             updatedAt: Date(),
+            originalAmount: originalAmount,
+            originalCurrency: originalCurrency,
+            targetCurrency: targetCurrency,
+            exchangeRate: exchangeRate,
             isRollover: isRollover,
             rolloverSourceBudgetId: rolloverSourceBudgetId
         )
@@ -66,6 +76,10 @@ struct BudgetLineCreate: Encodable {
     let recurrence: TransactionRecurrence
     let isManuallyAdjusted: Bool
     let checkedAt: Date?
+    let originalAmount: Decimal?
+    let originalCurrency: String?
+    let targetCurrency: String?
+    let exchangeRate: Decimal?
 
     init(
         budgetId: String,
@@ -76,7 +90,11 @@ struct BudgetLineCreate: Encodable {
         templateLineId: String? = nil,
         savingsGoalId: String? = nil,
         isManuallyAdjusted: Bool = false,
-        checkedAt: Date? = nil
+        checkedAt: Date? = nil,
+        originalAmount: Decimal? = nil,
+        originalCurrency: String? = nil,
+        targetCurrency: String? = nil,
+        exchangeRate: Decimal? = nil
     ) {
         self.budgetId = budgetId
         self.templateLineId = templateLineId
@@ -87,6 +105,10 @@ struct BudgetLineCreate: Encodable {
         self.recurrence = recurrence
         self.isManuallyAdjusted = isManuallyAdjusted
         self.checkedAt = checkedAt
+        self.originalAmount = originalAmount
+        self.originalCurrency = originalCurrency
+        self.targetCurrency = targetCurrency
+        self.exchangeRate = exchangeRate
     }
 }
 
@@ -97,6 +119,10 @@ struct BudgetLineUpdate: Encodable {
     var kind: TransactionKind?
     var isManuallyAdjusted: Bool?
     var checkedAt: Date?
+    var originalAmount: Decimal?
+    var originalCurrency: String?
+    var targetCurrency: String?
+    var exchangeRate: Decimal?
 }
 
 // MARK: - Collection Helpers

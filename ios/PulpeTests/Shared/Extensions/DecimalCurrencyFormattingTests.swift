@@ -3,18 +3,18 @@ import Foundation
 import Testing
 
 /// Regression tests for CHF currency formatting.
-/// CHF must always appear AFTER the amount (Swiss French convention: "1'234.56 CHF").
+/// CHF must always appear BEFORE the amount (Swiss French convention: "CHF 1'234.56").
 struct DecimalCurrencyFormattingTests {
-    // MARK: - asCHF — CHF suffix position
+    // MARK: - asCHF — CHF prefix position
 
-    @Test func asCHF_placesCHFAfterAmount() {
+    @Test func asCHF_placesCHFBeforeAmount() {
         let formatted = Decimal(1234.56).asCHF
-        #expect(formatted.hasSuffix("CHF"), "Expected CHF after amount, got: \(formatted)")
+        #expect(formatted.hasPrefix("CHF"), "Expected CHF before amount, got: \(formatted)")
     }
 
-    @Test func asCHF_doesNotPrefixCHF() {
+    @Test func asCHF_doesNotSuffixCHF() {
         let formatted = Decimal(500).asCHF
-        #expect(!formatted.hasPrefix("CHF"), "CHF must not appear before amount, got: \(formatted)")
+        #expect(!formatted.hasSuffix("CHF"), "CHF must not appear after amount, got: \(formatted)")
     }
 
     @Test func asCHF_formatsWithThousandsSeparator() {
@@ -35,30 +35,30 @@ struct DecimalCurrencyFormattingTests {
     @Test func asCHF_negativeAmount() {
         let formatted = Decimal(-250).asCHF
         #expect(formatted.contains("-"), "Expected minus sign, got: \(formatted)")
-        #expect(formatted.hasSuffix("CHF"), "Expected CHF after amount, got: \(formatted)")
+        #expect(formatted.hasPrefix("CHF"), "Expected CHF before amount, got: \(formatted)")
     }
 
     @Test func asCHF_zero() {
         let formatted = Decimal.zero.asCHF
-        #expect(formatted.hasSuffix("CHF"), "Expected CHF after amount, got: \(formatted)")
+        #expect(formatted.hasPrefix("CHF"), "Expected CHF before amount, got: \(formatted)")
     }
 
-    // MARK: - asCompactCHF — CHF suffix position
+    // MARK: - asCompactCHF — CHF prefix position
 
-    @Test func asCompactCHF_placesCHFAfterAmount() {
+    @Test func asCompactCHF_placesCHFBeforeAmount() {
         let formatted = Decimal(5000).asCompactCHF
-        #expect(formatted.hasSuffix("CHF"), "Expected CHF after amount, got: \(formatted)")
+        #expect(formatted.hasPrefix("CHF"), "Expected CHF before amount, got: \(formatted)")
     }
 
-    @Test func asCompactCHF_doesNotPrefixCHF() {
+    @Test func asCompactCHF_doesNotSuffixCHF() {
         let formatted = Decimal(5000).asCompactCHF
-        #expect(!formatted.hasPrefix("CHF"), "CHF must not appear before amount, got: \(formatted)")
+        #expect(!formatted.hasSuffix("CHF"), "CHF must not appear after amount, got: \(formatted)")
     }
 
     @Test func asCompactCHF_wholeNumberOmitsDecimals() {
         let formatted = Decimal(1500).asCompactCHF
         #expect(!formatted.contains(".00"), "Whole numbers should not show .00, got: \(formatted)")
-        #expect(formatted.hasSuffix("CHF"))
+        #expect(formatted.hasPrefix("CHF"))
     }
 
     @Test func asCompactCHF_fractionalKeepsDecimals() {
@@ -68,7 +68,7 @@ struct DecimalCurrencyFormattingTests {
         }
         let formatted = value.asCompactCHF
         #expect(formatted.contains("56"), "Expected fractional digits, got: \(formatted)")
-        #expect(formatted.hasSuffix("CHF"))
+        #expect(formatted.hasPrefix("CHF"))
     }
 
     // MARK: - Optional asCHF
@@ -78,10 +78,10 @@ struct DecimalCurrencyFormattingTests {
         #expect(value.asCHF() == "-")
     }
 
-    @Test func optionalAsCHF_valueFormatsCHFAfter() {
+    @Test func optionalAsCHF_valueFormatsCHFBefore() {
         let value: Decimal? = 100
         let formatted = value.asCHF()
-        #expect(formatted.hasSuffix("CHF"), "Expected CHF after amount, got: \(formatted)")
+        #expect(formatted.hasPrefix("CHF"), "Expected CHF before amount, got: \(formatted)")
     }
 
     // MARK: - asAmount (no currency code)

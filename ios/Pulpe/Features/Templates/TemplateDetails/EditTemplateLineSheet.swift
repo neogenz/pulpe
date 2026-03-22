@@ -7,6 +7,7 @@ struct EditTemplateLineSheet: View {
 
     @Environment(\.dismiss) private var dismiss
     @Environment(ToastManager.self) private var toastManager
+    @Environment(UserSettingsStore.self) private var userSettingsStore
     @State private var name: String
     @State private var amount: Decimal?
     @State private var kind: TransactionKind
@@ -17,8 +18,10 @@ struct EditTemplateLineSheet: View {
     @FocusState private var isDescriptionFocused: Bool
     @State private var amountText: String
     @State private var submitSuccessTrigger = false
+    @State private var inputCurrency = "CHF"
 
     private let dependencies: EditTemplateLineDependencies
+    private let conversionService = CurrencyConversionService.shared
 
     init(
         templateLine: TemplateLine,
@@ -49,9 +52,17 @@ struct EditTemplateLineSheet: View {
             descriptionFocus: $isDescriptionFocused
         ) {
             KindToggle(selection: $kind)
+            if userSettingsStore.showCurrencySelector {
+                CurrencyAmountPicker(selectedCurrency: $inputCurrency, baseCurrency: userSettingsStore.currency)
+            }
             HeroAmountField(
                 amount: $amount, amountText: $amountText,
-                isFocused: $isAmountFocused, accentColor: kind.color
+                isFocused: $isAmountFocused, currency: inputCurrency, accentColor: kind.color
+            )
+            CurrencyConversionBadge(
+                originalAmount: templateLine.originalAmount,
+                originalCurrency: templateLine.originalCurrency,
+                exchangeRate: templateLine.exchangeRate
             )
             descriptionField
             recurrenceSelector
@@ -65,6 +76,7 @@ struct EditTemplateLineSheet: View {
             saveButton
         }
         .sensoryFeedback(.success, trigger: submitSuccessTrigger)
+        .onAppear { inputCurrency = userSettingsStore.currency }
     }
 
     // MARK: - Description
@@ -117,14 +129,24 @@ struct EditTemplateLineSheet: View {
         defer { isLoading = false }
         error = nil
 
-        let data = TemplateLineUpdate(
-            name: name.trimmingCharacters(in: .whitespaces),
-            amount: amount,
-            kind: kind,
-            recurrence: recurrence
-        )
-
         do {
+            let conversion = try await conversionService.convert(
+                amount: amount,
+                from: inputCurrency,
+                to: userSettingsStore.currency
+            )
+
+            let data = TemplateLineUpdate(
+                name: name.trimmingCharacters(in: .whitespaces),
+                amount: conversion?.convertedAmount ?? amount,
+                kind: kind,
+                recurrence: recurrence,
+                originalAmount: conversion?.originalAmount,
+                originalCurrency: conversion?.originalCurrency,
+                targetCurrency: conversion?.targetCurrency,
+                exchangeRate: conversion?.exchangeRate
+            )
+
             let updatedLine = try await dependencies.updateTemplateLine(templateLine.id, data)
             submitSuccessTrigger.toggle()
             onUpdate(updatedLine)
@@ -163,4 +185,5 @@ struct EditTemplateLineDependencies: Sendable {
         print("Updated: \(line)")
     }
     .environment(ToastManager())
+    .environment(UserSettingsStore())
 }
