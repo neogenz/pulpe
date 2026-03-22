@@ -22,14 +22,14 @@ struct TemplateListView: View {
                 VStack(spacing: DesignTokens.Spacing.lg) {
                     Image(systemName: "doc.on.doc")
                         .font(PulpeTypography.emojiDisplay)
-                        .foregroundStyle(Color.pulpeTextTertiary)
-                        .symbolEffect(.pulse, options: .repeating)
+                        .foregroundStyle(Color.textTertiary)
+                        .symbolEffect(.pulse, options: .nonRepeating)
                     Text("Pas encore de modèle")
                         .font(PulpeTypography.stepTitle)
                         .foregroundStyle(Color.textPrimary)
                     Text("Crée-en un pour préparer tes prochains budgets plus vite")
                         .font(PulpeTypography.bodyLarge)
-                        .foregroundStyle(Color.pulpeTextTertiary)
+                        .foregroundStyle(Color.textTertiary)
                         .multilineTextAlignment(.center)
                     Button("Créer un modèle") {
                         showCreateTemplate = true
@@ -90,7 +90,7 @@ struct TemplateListView: View {
                 }
             } footer: {
                 Text("\(viewModel.templates.count)/\(AppConfiguration.maxTemplates) modèles")
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.textSecondary)
             }
         }
         .listStyle(.insetGrouped)
@@ -171,7 +171,7 @@ struct TemplateRow: View {
                     if let description = template.description, !description.isEmpty {
                         Text(description)
                             .font(PulpeTypography.caption)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Color.textSecondary)
                             .lineLimit(1)
                     }
                 }
@@ -180,7 +180,7 @@ struct TemplateRow: View {
 
                 Image(systemName: "chevron.right")
                     .font(PulpeTypography.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.textSecondary)
             }
         }
         .buttonStyle(.plain)

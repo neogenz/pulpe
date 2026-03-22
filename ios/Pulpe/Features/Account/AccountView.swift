@@ -40,7 +40,6 @@ struct AccountView: View {
                 }
             }
         }
-        .standardSheetPresentation()
     }
 }
 
@@ -64,7 +63,7 @@ extension AccountView {
                     .font(PulpeTypography.bodyLarge)
                 Text("Pulpe")
                     .font(PulpeTypography.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.textSecondary)
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, DesignTokens.Spacing.lg)
@@ -157,7 +156,7 @@ extension AccountView {
             VStack(spacing: DesignTokens.Spacing.sm) {
                 Text("Version \(AppConfiguration.appVersion) - \(AppConfiguration.buildNumber)")
                     .font(PulpeTypography.caption)
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(Color.textTertiary)
                     .onLongPressGesture(minimumDuration: 5) {
                         debugToggleTrigger.toggle()
                         withAnimation(DesignTokens.Animation.smoothEaseInOut) {
@@ -167,7 +166,7 @@ extension AccountView {
 
                 Text("iOS \(Self.iOSVersion)")
                     .font(PulpeTypography.caption)
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(Color.textTertiary)
 
                 if isDebugVisible {
                     Group {
@@ -223,7 +222,7 @@ extension AccountView {
                         .foregroundStyle(.primary)
                     Text(subtitle)
                         .font(PulpeTypography.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.textSecondary)
                 }
             }
         }
@@ -250,12 +249,12 @@ extension AccountView {
                         .foregroundStyle(.primary)
                     Text(subtitle)
                         .font(PulpeTypography.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.textSecondary)
                 }
                 Spacer()
                 Image(systemName: "arrow.up.right")
                     .font(PulpeTypography.caption)
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(Color.textTertiary)
             }
         }
         .tint(.primary)

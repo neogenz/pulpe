@@ -41,14 +41,14 @@ struct CurrentMonthView: View {
                 VStack(spacing: DesignTokens.Spacing.lg) {
                     Image(systemName: "calendar.badge.plus")
                         .font(PulpeTypography.emojiDisplay)
-                        .foregroundStyle(Color.pulpeTextTertiary)
-                        .symbolEffect(.pulse, options: .repeating)
+                        .foregroundStyle(Color.textTertiary)
+                        .symbolEffect(.pulse, options: .nonRepeating)
                     Text("Pas encore de budget ce mois-ci")
                         .font(PulpeTypography.stepTitle)
                         .foregroundStyle(Color.textPrimary)
                     Text("Crée-le pour voir ton tableau de bord")
                         .font(PulpeTypography.bodyLarge)
-                        .foregroundStyle(Color.pulpeTextTertiary)
+                        .foregroundStyle(Color.textTertiary)
                         .multilineTextAlignment(.center)
                 }
                 .padding(DesignTokens.Spacing.xxxl)
