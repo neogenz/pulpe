@@ -182,6 +182,8 @@ struct SecuritySettingsView: View {
                 "après un délai de 3 jours. Cette action est irréversible."
             )
         }
+        .scrollContentBackground(.hidden)
+        .pulpeBackground()
         .listStyle(.insetGrouped)
         .navigationTitle("Sécurité")
         .trackScreen("Security")

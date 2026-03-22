@@ -52,7 +52,7 @@ struct InsightsCard: View {
         } else {
             Text("Enregistre tes dépenses pour voir où part ton argent")
                 .font(PulpeTypography.subheadline)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.textSecondary)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .pulpeCard()
         }
@@ -76,7 +76,7 @@ struct InsightsCard: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text("Où part ton argent")
                     .font(PulpeTypography.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.textSecondary)
                 Text(spending.name)
                     .font(PulpeTypography.labelLarge)
                     .foregroundStyle(.primary)
@@ -93,11 +93,11 @@ struct InsightsCard: View {
                 if amountsHidden {
                     Text("Détail masqué")
                         .font(PulpeTypography.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.textSecondary)
                 } else {
                     Text("\(percentage)% de tes dépenses")
                         .font(PulpeTypography.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.textSecondary)
                 }
             }
         }
@@ -115,7 +115,7 @@ struct InsightsCard: View {
 
             alertText
                 .font(PulpeTypography.subheadline)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.textSecondary)
                 .lineLimit(1)
         }
         .padding(.horizontal, DesignTokens.Spacing.lg)
@@ -141,7 +141,8 @@ struct InsightsCard: View {
 
         for (index, alert) in visibleAlerts.enumerated() {
             if index > 0 {
-                result = result + Text(" · ").foregroundStyle(.tertiary) // swiftlint:disable:this shorthand_operator
+                // swiftlint:disable:next shorthand_operator
+                result = result + Text(" · ").foregroundStyle(Color.textTertiary)
             }
 
             result = result + Text("\(alert.line.name) ")
@@ -153,9 +154,9 @@ struct InsightsCard: View {
 
         if alerts.count > maxVisibleAlerts {
             let remaining = alerts.count - maxVisibleAlerts
-            result = result + Text(" · ").foregroundStyle(.tertiary)
+            result = result + Text(" · ").foregroundStyle(Color.textTertiary)
             + Text("et \(remaining) autres")
-                .foregroundStyle(.tertiary)
+                .foregroundStyle(Color.textTertiary)
         }
 
         return result

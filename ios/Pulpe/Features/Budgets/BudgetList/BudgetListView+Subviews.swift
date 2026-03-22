@@ -220,6 +220,11 @@ struct BudgetMonthRow: View {
         return .secondary
     }
 
+    private var stateDotColor: Color? {
+        guard let remaining = budget.remaining else { return nil }
+        return remaining < 0 ? .financialOverBudget : .pulpePrimary
+    }
+
     var body: some View {
         let isPast = isPast
         let color = amountColor(isPast: isPast)
@@ -229,6 +234,11 @@ struct BudgetMonthRow: View {
             onTap()
         } label: {
             HStack(spacing: DesignTokens.Spacing.md) {
+                if let dotColor = stateDotColor {
+                    Circle()
+                        .fill(dotColor)
+                        .frame(width: 6, height: 6)
+                }
                 if dynamicTypeSize.isAccessibilitySize {
                     VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                         Text(monthName)

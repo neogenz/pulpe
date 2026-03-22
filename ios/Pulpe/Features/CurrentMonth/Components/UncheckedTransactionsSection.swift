@@ -66,7 +66,7 @@ private struct UncheckedTransactionRow: View {
             Spacer()
 
             // Amount
-            Text(transaction.signedAmount.asAmount)
+            Text(transaction.amount.asAmount)
                 .font(PulpeTypography.listRowSubtitle)
                 .foregroundStyle(transaction.kind.color)
                 .sensitiveAmount()

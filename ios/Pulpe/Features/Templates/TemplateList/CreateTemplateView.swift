@@ -4,6 +4,7 @@ struct CreateTemplateView: View {
     let onCreate: (BudgetTemplate) -> Void
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(ToastManager.self) private var toastManager
     @State private var name = ""
     @State private var description = ""
     @State private var isDefault = false
@@ -11,6 +12,9 @@ struct CreateTemplateView: View {
     @State private var showAddLine = false
     @State private var isCreating = false
     @State private var error: Error?
+    @FocusState private var isNameFocused: Bool
+    @FocusState private var isDescriptionFocused: Bool
+    @State private var submitSuccessTrigger = false
 
     private let templateService = TemplateService.shared
 
@@ -19,82 +23,150 @@ struct CreateTemplateView: View {
     }
 
     var body: some View {
-        NavigationStack {
-            Form {
-                // Basic info
-                Section {
-                    TextField("Nom du modèle", text: $name)
+        SheetFormContainer(
+            title: "Nouveau modèle",
+            isLoading: isCreating,
+            autoFocus: $isNameFocused,
+            descriptionFocus: $isDescriptionFocused
+        ) {
+            // Name
+            FormTextField(
+                hint: "Nom du modèle",
+                text: $name,
+                label: "Nom",
+                accessibilityLabel: "Nom du modèle",
+                focusBinding: $isNameFocused
+            )
 
-                    TextField("Description (optionnel)", text: $description)
+            // Description
+            FormTextField(
+                hint: "Description (optionnel)",
+                text: $description,
+                label: "Description",
+                accessibilityLabel: "Description du modèle",
+                focusBinding: $isDescriptionFocused
+            )
 
-                    Toggle("Modèle par défaut", isOn: $isDefault)
-                } header: {
-                    Text("Informations")
+            // Default toggle
+            defaultToggle
+
+            // Lines
+            linesSection
+
+            // Error
+            if let error {
+                ErrorBanner(message: DomainErrorLocalizer.localize(error)) {
+                    self.error = nil
                 }
+            }
 
-                // Lines
-                Section {
-                    ForEach(lines) { line in
-                        TemplateLineInputRow(line: line) {
+            // Create button
+            createButton
+        }
+        .sheet(isPresented: $showAddLine) {
+            AddTemplateLineSheet { line in
+                lines.append(line)
+            }
+        }
+        .sensoryFeedback(.success, trigger: submitSuccessTrigger)
+    }
+
+    // MARK: - Default Toggle
+
+    private var defaultToggle: some View {
+        Toggle(isOn: $isDefault) {
+            Text("Modèle par défaut")
+                .font(PulpeTypography.bodyLarge)
+        }
+        .tint(.pulpePrimary)
+        .padding(DesignTokens.Spacing.lg)
+        .background(Color.inputBackgroundSoft)
+        .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
+    }
+
+    // MARK: - Lines Section
+
+    private var linesSection: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+            Text("Lignes budgétaires")
+                .font(PulpeTypography.labelMedium)
+                .foregroundStyle(Color.onSurfaceVariant)
+
+            VStack(spacing: 0) {
+                ForEach(lines) { line in
+                    if line.id != lines.first?.id {
+                        Divider().padding(.horizontal, DesignTokens.Spacing.lg)
+                    }
+                    TemplateLineInputRow(line: line) {
+                        withAnimation(.easeInOut(duration: DesignTokens.Animation.fast)) {
                             lines.removeAll { $0.id == line.id }
                         }
                     }
-
-                    Button {
-                        showAddLine = true
-                    } label: {
-                        Label("Ajouter une ligne", systemImage: "plus")
-                    }
-                } header: {
-                    Text("Lignes budgétaires")
-                } footer: {
-                    if !lines.isEmpty {
-                        let totals = calculateTotals()
-                        VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                            Text("Revenus: \(totals.income.asCHF)")
-                                .sensitiveAmount()
-                            Text("Dépenses: \(totals.expenses.asCHF)")
-                                .sensitiveAmount()
-                            Text("Solde: \(totals.balance.asCHF)")
-                                .foregroundStyle(
-                                    totals.balance >= 0 ? Color.financialSavings : Color.financialOverBudget
-                                )
-                                .sensitiveAmount()
-                        }
-                    }
+                    .padding(.horizontal, DesignTokens.Spacing.lg)
+                    .padding(.vertical, DesignTokens.Spacing.md)
                 }
 
-                // Error
-                if let error {
-                    Section {
-                        ErrorBanner(message: DomainErrorLocalizer.localize(error)) {
-                            self.error = nil
-                        }
-                    }
-                }
-            }
-            .navigationTitle("Nouveau modèle")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    SheetCloseButton()
+                if !lines.isEmpty {
+                    Divider().padding(.horizontal, DesignTokens.Spacing.lg)
                 }
 
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Créer") {
-                        Task { await createTemplate() }
-                    }
-                    .disabled(!canCreate)
+                Button {
+                    showAddLine = true
+                } label: {
+                    Label("Ajouter une ligne", systemImage: "plus")
+                        .font(PulpeTypography.labelLarge)
+                        .foregroundStyle(Color.pulpePrimary)
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, DesignTokens.Spacing.lg)
+                .padding(.vertical, DesignTokens.Spacing.md)
             }
-            .sheet(isPresented: $showAddLine) {
-                AddTemplateLineSheet { line in
-                    lines.append(line)
-                }
+            .background(Color.inputBackgroundSoft)
+            .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
+
+            // Totals
+            if !lines.isEmpty {
+                lineTotals
             }
-            .loadingOverlay(isCreating, message: "Création...")
         }
-        .standardSheetPresentation()
+    }
+
+    // MARK: - Totals
+
+    private var lineTotals: some View {
+        let totals = calculateTotals()
+        return HStack(spacing: DesignTokens.Spacing.lg) {
+            totalItem(label: "Revenus", amount: totals.income, color: .financialIncome)
+            totalItem(label: "Dépenses", amount: totals.expenses, color: .financialExpense)
+            totalItem(label: "Solde", amount: totals.balance,
+                      color: totals.balance >= 0 ? .financialSavings : .financialOverBudget)
+        }
+        .padding(.top, DesignTokens.Spacing.xs)
+    }
+
+    private func totalItem(label: String, amount: Decimal, color: Color) -> some View {
+        VStack(spacing: DesignTokens.Spacing.xs) {
+            Text(label)
+                .font(PulpeTypography.metricMini)
+                .foregroundStyle(Color.onSurfaceVariant)
+            Text(amount.asCompactCHF)
+                .font(PulpeTypography.metricLabelBold)
+                .foregroundStyle(color)
+                .sensitiveAmount()
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    // MARK: - Create Button
+
+    private var createButton: some View {
+        Button {
+            Task { await createTemplate() }
+        } label: {
+            Text("Créer le modèle")
+        }
+        .disabled(!canCreate)
+        .primaryButtonStyle(isEnabled: canCreate)
     }
 
     private func calculateTotals() -> LineTotals {
@@ -125,7 +197,9 @@ struct CreateTemplateView: View {
 
         do {
             let result = try await templateService.createTemplate(data)
+            submitSuccessTrigger.toggle()
             onCreate(result.template)
+            toastManager.show("Modèle créé")
             dismiss()
         } catch {
             self.error = error
@@ -293,6 +367,7 @@ struct AddTemplateLineSheet: View {
     CreateTemplateView { template in
         print("Created: \(template)")
     }
+    .environment(ToastManager())
 }
 
 struct LineTotals: Sendable {
