@@ -32,7 +32,7 @@ struct DashboardGreeting: View {
     private var greetingColor: Color {
         switch emotionState {
         case .comfortable: .pulpePrimary
-        case .tight: .financialExpense
+        case .tight: .warningPrimary
         case .deficit: .financialOverBudget
         }
     }
