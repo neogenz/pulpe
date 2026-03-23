@@ -121,8 +121,9 @@ struct EmptyStateView: View {
         } actions: {
             if let action, let actionTitle {
                 Button(actionTitle, action: action)
-                    .primaryButtonStyle()
-                    .padding(.horizontal, DesignTokens.Spacing.sectionGap)
+                    .buttonStyle(.borderedProminent)
+                    .tint(.pulpePrimary)
+                    .controlSize(.regular)
             }
         }
     }
