@@ -31,9 +31,10 @@ struct ErrorView: View {
                         Text("Réessayer")
                     }
                 }
-                .primaryButtonStyle(isEnabled: !isRetrying)
+                .buttonStyle(.borderedProminent)
+                .tint(.pulpePrimary)
+                .controlSize(.regular)
                 .disabled(isRetrying)
-                .padding(.horizontal, DesignTokens.Spacing.sectionGap)
             }
         }
     }

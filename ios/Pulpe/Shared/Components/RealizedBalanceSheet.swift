@@ -113,31 +113,25 @@ struct RealizedBalanceSheet: View {
 
             VStack(spacing: 0) {
                 CategoryRow(
-                    label: "Revenus",
-                    icon: "arrow.down.circle.fill",
-                    iconColor: .financialIncome,
+                    kind: .income,
                     realized: realizedMetrics.realizedIncome,
                     planned: metrics.totalIncome
                 )
 
                 Divider()
-                    .padding(.leading, DesignTokens.IconSize.badge + DesignTokens.Spacing.md)
+                    .padding(.leading, DesignTokens.IconSize.listRow + DesignTokens.Spacing.md)
 
                 CategoryRow(
-                    label: "Dépenses",
-                    icon: "arrow.up.circle.fill",
-                    iconColor: .financialExpense,
+                    kind: .expense,
                     realized: realizedMetrics.realizedExpenses,
                     planned: metrics.totalExpenses - metrics.totalSavings
                 )
 
                 Divider()
-                    .padding(.leading, DesignTokens.IconSize.badge + DesignTokens.Spacing.md)
+                    .padding(.leading, DesignTokens.IconSize.listRow + DesignTokens.Spacing.md)
 
                 CategoryRow(
-                    label: "Épargne",
-                    icon: TransactionKind.savingsIcon,
-                    iconColor: .financialSavings,
+                    kind: .saving,
                     realized: realizedMetrics.checkedSavingsAmount,
                     planned: metrics.totalSavings
                 )
@@ -327,9 +321,7 @@ private struct BalanceTrendChart: View {
 // MARK: - Category Row
 
 private struct CategoryRow: View {
-    let label: String
-    let icon: String
-    let iconColor: Color
+    let kind: TransactionKind
     let realized: Decimal
     let planned: Decimal
 
@@ -347,19 +339,21 @@ private struct CategoryRow: View {
 
     var body: some View {
         HStack(spacing: DesignTokens.Spacing.md) {
-            // Icon badge
-            Image(systemName: icon)
-                .font(PulpeTypography.listRowTitle)
-                .foregroundStyle(.white)
-                .frame(width: DesignTokens.IconSize.badge, height: DesignTokens.IconSize.badge)
-                .background(iconColor)
-                .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.sm + 2))
+            // Icon circle (Revolut-style — matches BudgetLineRow, TemplateLineRow)
+            Circle()
+                .fill(kind.color.opacity(DesignTokens.Opacity.badgeBackground))
+                .frame(width: DesignTokens.IconSize.listRow, height: DesignTokens.IconSize.listRow)
+                .overlay {
+                    Image(systemName: kind.icon)
+                        .font(PulpeTypography.listRowTitle)
+                        .foregroundStyle(kind.color)
+                }
 
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                 // Label + amounts
                 HStack(alignment: .firstTextBaseline) {
-                    Text(label)
-                        .font(PulpeTypography.buttonSecondary)
+                    Text(kind.label)
+                        .font(PulpeTypography.listRowTitle)
 
                     Spacer()
 
@@ -376,7 +370,7 @@ private struct CategoryRow: View {
                             .fill(Color.progressTrack)
 
                         Capsule()
-                            .fill(iconColor)
+                            .fill(kind.color)
                             .frame(width: barWidth * CGFloat(percentage))
                             .animation(DesignTokens.Animation.gentleSpring, value: percentage)
                     }

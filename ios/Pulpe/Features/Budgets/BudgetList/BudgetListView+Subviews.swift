@@ -342,16 +342,6 @@ struct NextMonthPlaceholder: View {
             }
             .padding(.horizontal, DesignTokens.Spacing.lg)
             .padding(.vertical, DesignTokens.Spacing.lg)
-            .background(
-                Color(light: Color.surfaceContainerLow.opacity(0.4), dark: Color.surfaceContainerLow.opacity(0.5))
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.lg)
-                    .strokeBorder(
-                        Color.outlineVariant.opacity(0.3),
-                        style: StrokeStyle(lineWidth: 1, dash: [8, 4])
-                    )
-            )
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)

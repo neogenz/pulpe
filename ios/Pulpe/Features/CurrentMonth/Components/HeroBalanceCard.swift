@@ -274,26 +274,13 @@ struct HeroBalanceCard: View {
 
     private var progressBar: some View {
         ZStack(alignment: .leading) {
-            // Track
             Capsule()
                 .fill(.white.opacity(0.2))
 
-            // Fill
             Capsule()
                 .fill(.white)
                 .frame(width: barWidth * fillPercentage)
-                .animation(.easeInOut(duration: 0.8), value: fillPercentage)
-
-            // Pace indicator (vertical white line)
-            if timeElapsedPercentage > 0 {
-                RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.hairline)
-                    .fill(.white.opacity(0.4))
-                    .frame(width: 2, height: DesignTokens.ProgressBar.heroHeight + 4)
-                    .offset(
-                        x: barWidth * min(timeElapsedPercentage / 100, 1) - 1,
-                        y: -2
-                    )
-            }
+                .animation(DesignTokens.Animation.smoothEaseInOut, value: fillPercentage)
         }
         .frame(height: DesignTokens.ProgressBar.heroHeight)
         .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { barWidth = $0 }
