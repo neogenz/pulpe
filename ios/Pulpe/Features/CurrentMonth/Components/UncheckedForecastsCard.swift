@@ -35,7 +35,7 @@ struct UncheckedForecastsCard: View {
                     Spacer()
                     Image(systemName: "chevron.right")
                         .font(PulpeTypography.caption)
-                        .foregroundStyle(.tertiary)
+                        .foregroundStyle(Color.textTertiary)
                 }
             }
             .textLinkButtonStyle()
@@ -135,7 +135,7 @@ private struct UncheckedItemRow: View {
         case .transaction(let tx, _):
             Text(tx.transactionDate.relativeFormatted)
                 .font(PulpeTypography.caption)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.textSecondary)
 
         case .budgetLine(let line, let consumption):
             if let consumption, line.kind == .expense, consumption.allocated > 0 {
@@ -149,11 +149,11 @@ private struct UncheckedItemRow: View {
             } else if line.kind == .expense {
                 Text("\(line.recurrence.label) \u{00B7} sur \(line.amount.asCompactCHF)")
                     .font(PulpeTypography.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.textSecondary)
             } else {
                 Text(line.recurrence.label)
                     .font(PulpeTypography.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.textSecondary)
             }
         }
     }
@@ -205,7 +205,7 @@ struct UncheckedForecastsEmptyState: View {
 
             Text("Tout est pointé — bien joué !")
                 .font(PulpeTypography.bodyLarge)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.textSecondary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .scaleEffect(hasAppeared ? 1.0 : 0.92)

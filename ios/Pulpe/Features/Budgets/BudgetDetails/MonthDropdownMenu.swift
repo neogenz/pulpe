@@ -41,7 +41,7 @@ struct MonthDropdownMenu: View {
                 .lineLimit(1)
             Image(systemName: "chevron.up.chevron.down")
                 .font(.caption2.weight(.semibold))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.textSecondary)
         }
         .padding(.horizontal, DesignTokens.Spacing.lg)
         .padding(.vertical, 10)

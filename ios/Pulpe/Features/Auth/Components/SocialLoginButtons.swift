@@ -145,7 +145,7 @@ struct SocialLoginDivider: View {
 
     private var dividerLine: some View {
         Rectangle()
-            .fill(Color.pulpeTextTertiary.opacity(0.3))
+            .fill(Color.textTertiary.opacity(0.3))
             .frame(height: 1)
     }
 }

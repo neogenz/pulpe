@@ -134,7 +134,7 @@ struct LinkedTransactionsSheet: View {
             HStack {
                 Text("Utilisation du budget")
                     .font(PulpeTypography.subheadline)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.textSecondary)
 
                 Spacer()
 
@@ -169,11 +169,11 @@ struct LinkedTransactionsSheet: View {
             VStack(spacing: DesignTokens.Spacing.xs) {
                 Text("Pas encore de transaction")
                     .font(PulpeTypography.headline)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.textSecondary)
 
                 Text("Ajoute une transaction pour suivre tes dépenses")
                     .font(PulpeTypography.subheadline)
-                    .foregroundStyle(Color.pulpeTextTertiary)
+                    .foregroundStyle(Color.textTertiary)
                     .multilineTextAlignment(.center)
             }
         }
@@ -247,7 +247,7 @@ private struct MetricCard: View {
             VStack(spacing: 2) {
                 Text(label)
                     .font(PulpeTypography.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.textSecondary)
 
                 Text(value.asCompactCHF)
                     .font(PulpeTypography.progressValue)

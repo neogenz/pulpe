@@ -39,10 +39,12 @@ struct ErrorView: View {
     }
 }
 
-/// Inline error banner
+/// Inline error banner — white card with left accent stripe
 struct ErrorBanner: View {
     let message: String
     let dismissAction: (() -> Void)?
+
+    private let cornerRadius: CGFloat = 12
 
     init(message: String, dismissAction: (() -> Void)? = nil) {
         self.message = message
@@ -52,6 +54,7 @@ struct ErrorBanner: View {
     var body: some View {
         HStack(spacing: DesignTokens.Spacing.md) {
             Image(systemName: "exclamationmark.circle.fill")
+                .font(.system(.title3))
                 .foregroundStyle(Color.errorPrimary)
 
             Text(message)
@@ -60,19 +63,30 @@ struct ErrorBanner: View {
                 .multilineTextAlignment(.leading)
                 .fixedSize(horizontal: false, vertical: true)
 
+            Spacer(minLength: 0)
+
             if let dismissAction {
-                Button {
-                    dismissAction()
-                } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .foregroundStyle(Color.errorPrimary)
+                Button(action: dismissAction) {
+                    Image(systemName: "xmark")
+                        .font(.system(.caption, weight: .bold))
+                        .foregroundStyle(Color.textTertiary)
                 }
                 .iconButtonStyle()
-                .accessibilityLabel("Fermer")
+                .accessibilityLabel("Fermer l'erreur")
             }
         }
         .padding(DesignTokens.Spacing.lg)
-        .background(Color.errorBackground, in: .rect(cornerRadius: DesignTokens.CornerRadius.md))
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.surfaceContainerLowest, in: .rect(cornerRadius: cornerRadius))
+        .overlay(alignment: .leading) {
+            UnevenRoundedRectangle(cornerRadii: .init(topLeading: cornerRadius, bottomLeading: cornerRadius))
+                .fill(Color.errorPrimary)
+                .frame(width: 4)
+        }
+        .shadow(color: .black.opacity(0.04), radius: 4, y: 1)
+        .transition(.move(edge: .top).combined(with: .opacity))
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Erreur: \(message)")
     }
 }
 

@@ -248,7 +248,7 @@ struct BudgetMonthRow: View {
                         if let periodLabel {
                             Text(periodLabel)
                                 .font(PulpeTypography.caption)
-                                .foregroundStyle(.tertiary)
+                                .foregroundStyle(Color.textTertiary)
                         }
 
                         if let remaining = budget.remaining {
@@ -269,7 +269,7 @@ struct BudgetMonthRow: View {
                         if let periodLabel {
                             Text(periodLabel)
                                 .font(PulpeTypography.caption)
-                                .foregroundStyle(.tertiary)
+                                .foregroundStyle(Color.textTertiary)
                         }
                     }
                     Spacer()
@@ -284,7 +284,7 @@ struct BudgetMonthRow: View {
 
                 Image(systemName: "chevron.right")
                     .font(PulpeTypography.detailLabel)
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(Color.textTertiary)
             }
             .padding(.horizontal, DesignTokens.Spacing.lg)
             .padding(.vertical, DesignTokens.Spacing.lg)
@@ -321,11 +321,11 @@ struct NextMonthPlaceholder: View {
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                     Text(monthName)
                         .font(PulpeTypography.onboardingSubtitle)
-                        .foregroundStyle(.tertiary)
+                        .foregroundStyle(Color.textTertiary)
 
                     Text("Pas encore de budget")
                         .font(PulpeTypography.caption)
-                        .foregroundStyle(.tertiary)
+                        .foregroundStyle(Color.textTertiary)
                 }
 
                 Spacer()

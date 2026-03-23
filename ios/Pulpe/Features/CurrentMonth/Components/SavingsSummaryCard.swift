@@ -35,7 +35,7 @@ struct SavingsSummaryCard: View {
 
                 Text("\(summary.totalRealized.asCHF) épargnés")
                     .font(PulpeTypography.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.textSecondary)
                     .sensitiveAmount()
             }
 
@@ -58,7 +58,7 @@ struct SavingsSummaryCard: View {
 
                 Text("sur \(summary.totalPlanned.asCompactCHF)")
                     .font(PulpeTypography.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.textSecondary)
                     .sensitiveAmount()
             }
 
@@ -78,7 +78,7 @@ struct SavingsSummaryCard: View {
             // Checked count subtitle
             Text("\(summary.checkedCount) sur \(summary.totalCount) pointées")
                 .font(PulpeTypography.caption)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.textSecondary)
         }
     }
 

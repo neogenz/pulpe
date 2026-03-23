@@ -222,21 +222,33 @@ struct TemplateLineInputRow: View {
     let onDelete: () -> Void
 
     var body: some View {
-        HStack {
+        HStack(spacing: DesignTokens.Spacing.md) {
+            // Kind icon circle (matches TemplateLineRow / BudgetLineRow)
+            Circle()
+                .fill(line.kind.color.opacity(DesignTokens.Opacity.badgeBackground))
+                .frame(width: DesignTokens.IconSize.listRow, height: DesignTokens.IconSize.listRow)
+                .overlay {
+                    Image(systemName: line.kind.icon)
+                        .font(PulpeTypography.listRowTitle)
+                        .foregroundStyle(line.kind.color)
+                }
+
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                 Text(line.name)
-                    .font(PulpeTypography.subheadline)
+                    .font(PulpeTypography.listRowTitle)
+                    .lineLimit(1)
 
-                HStack {
-                    KindBadge(line.kind, style: .compact)
-                    RecurrenceBadge(line.recurrence, style: .compact)
-                }
+                Text(line.recurrence.label)
+                    .font(PulpeTypography.caption)
+                    .foregroundStyle(Color.textSecondary)
             }
 
-            Spacer()
+            Spacer(minLength: 8)
 
-            CurrencyText(line.amount)
+            Text(line.amount.asAmount)
+                .font(PulpeTypography.listRowSubtitle)
                 .foregroundStyle(line.kind.color)
+                .sensitiveAmount()
 
             Button(action: onDelete) {
                 Image(systemName: "trash")

@@ -46,7 +46,7 @@ struct TemplateDetailsView: View {
                     if let description = template.description, !description.isEmpty {
                         Text(description)
                             .font(PulpeTypography.body)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Color.textSecondary)
                     }
 
                     if template.isDefaultTemplate {

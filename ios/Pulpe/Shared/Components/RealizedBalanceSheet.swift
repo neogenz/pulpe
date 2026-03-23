@@ -51,7 +51,7 @@ struct RealizedBalanceSheet: View {
         VStack(spacing: DesignTokens.Spacing.md) {
             Text("Solde à date")
                 .font(PulpeTypography.subheadline)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.textSecondary)
 
             Text(realizedMetrics.realizedBalance.asCHF)
                 .font(PulpeTypography.amountHero)
@@ -181,7 +181,7 @@ struct RealizedBalanceSheet: View {
         } else {
             Text("Crée des budgets futurs pour voir la tendance")
                 .font(PulpeTypography.subheadline)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.textSecondary)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .pulpeCard()
         }
@@ -207,7 +207,7 @@ struct RealizedBalanceSheet: View {
                     "vérifie que toutes tes dépenses sont bien pointées."
                 )
                     .font(PulpeTypography.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.textSecondary)
             }
         }
         .padding(DesignTokens.Spacing.lg)
@@ -295,7 +295,7 @@ private struct BalanceTrendChart: View {
                     if let amount = value.as(Double.self) {
                         Text(Self.formatAxisLabel(amount))
                             .font(PulpeTypography.caption2)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Color.textSecondary)
                     }
                 }
             }
@@ -365,7 +365,7 @@ private struct CategoryRow: View {
 
                     Text("\(realized.asCompactCHF) / \(planned.asCompactCHF)")
                         .font(PulpeTypography.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.textSecondary)
                         .sensitiveAmount()
                 }
 
@@ -385,7 +385,7 @@ private struct CategoryRow: View {
 
                     Text(percentageText)
                         .font(PulpeTypography.progressUnit)
-                        .foregroundStyle(Color.pulpeTextTertiary)
+                        .foregroundStyle(Color.textTertiary)
                         .monospacedDigit()
                         .frame(minWidth: 28, alignment: .trailing)
                 }

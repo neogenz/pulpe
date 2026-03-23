@@ -47,7 +47,7 @@ struct SecondaryButtonStyle: ButtonStyle {
             .contentShape(Capsule())
             .overlay(
                 Capsule()
-                    .strokeBorder(Color.pulpeTextTertiary, lineWidth: DesignTokens.BorderWidth.medium)
+                    .strokeBorder(Color.outlineVariant, lineWidth: DesignTokens.BorderWidth.thin)
             )
             .opacity(configuration.isPressed ? DesignTokens.Opacity.pressed : 1.0)
             .animation(.easeInOut(duration: DesignTokens.Animation.fast), value: configuration.isPressed)

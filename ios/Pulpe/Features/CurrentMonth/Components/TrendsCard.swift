@@ -89,7 +89,7 @@ struct TrendsCard: View {
             .overlay {
                 Text("—")
                     .font(PulpeTypography.caption)
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(Color.textTertiary)
             }
     }
 
@@ -123,7 +123,7 @@ struct TrendsEmptyState: View {
     var body: some View {
         Text("Crée plus de budgets pour voir les tendances")
             .font(PulpeTypography.subheadline)
-            .foregroundStyle(.secondary)
+            .foregroundStyle(Color.textSecondary)
             .frame(maxWidth: .infinity, alignment: .leading)
             .pulpeCard()
     }

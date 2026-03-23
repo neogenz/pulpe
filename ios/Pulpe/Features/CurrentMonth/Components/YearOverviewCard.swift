@@ -42,7 +42,7 @@ struct YearOverviewCard: View {
 
                 Text(title)
                     .font(PulpeTypography.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.textSecondary)
             }
 
             Text(value.asCHF)

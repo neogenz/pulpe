@@ -160,7 +160,7 @@ struct BudgetSection: View {
                     Spacer()
                     Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
                         .font(PulpeTypography.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.textSecondary)
                 }
             }
             .listRowSeparator(.hidden)
@@ -281,18 +281,18 @@ struct BudgetLineRow: View {
                 if hasConsumption {
                     Text("\(consumptionPercentage)% · \(consumption.allocated.asCompactCHF) dépensé")
                         .font(PulpeTypography.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.textSecondary)
                         .lineLimit(1)
                         .sensitiveAmount()
                     progressBar
                 } else if line.kind == .expense {
                     Text("\(line.recurrence.label) · sur \(line.amount.asCompactCHF)")
                         .font(PulpeTypography.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.textSecondary)
                 } else {
                     Text(line.recurrence.label)
                         .font(PulpeTypography.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.textSecondary)
                 }
             }
 
@@ -359,7 +359,7 @@ struct BudgetLineRow: View {
                 // Show checkmark when checked
                 Image(systemName: "checkmark")
                     .font(PulpeTypography.listRowTitle)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.textSecondary)
             } else {
                 // Show kind icon
                 Image(systemName: line.kind.icon)

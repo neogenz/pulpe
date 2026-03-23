@@ -105,7 +105,7 @@ struct CreateBudgetView: View {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                 Text("Période du budget")
                     .font(PulpeTypography.detailLabel)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.textSecondary)
 
                 Text(viewModel.monthYearFormatted)
                     .font(PulpeTypography.tutorialTitle)
@@ -117,7 +117,7 @@ struct CreateBudgetView: View {
             // Month indicator badge (Swiss format: MM.YYYY)
             Text(String(format: "%02d.%d", month, year))
                 .font(PulpeTypography.inputHelper).monospacedDigit()
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.textSecondary)
                 .padding(.horizontal, 10)
                 .padding(.vertical, 6)
                 .background(Color.surfaceContainerLow, in: Capsule())
@@ -157,7 +157,7 @@ struct CreateBudgetView: View {
             // Footer hint
             Text("Le budget sera créé avec les prévisions du modèle sélectionné")
                 .font(PulpeTypography.detailLabel)
-                .foregroundStyle(.tertiary)
+                .foregroundStyle(Color.textTertiary)
                 .padding(.horizontal, DesignTokens.Spacing.xs)
                 .padding(.top, DesignTokens.Spacing.xs)
         }
@@ -182,15 +182,15 @@ struct CreateBudgetView: View {
         VStack(spacing: DesignTokens.Spacing.md) {
             Image(systemName: "doc.text.magnifyingglass")
                 .font(PulpeTypography.amountDisplayLarge)
-                .foregroundStyle(.tertiary)
+                .foregroundStyle(Color.textTertiary)
 
             Text("Pas encore de modèle")
                 .font(PulpeTypography.subheadline)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.textSecondary)
 
             Text("Crée d'abord un modèle dans l'onglet Modèles")
                 .font(PulpeTypography.detailLabel)
-                .foregroundStyle(.tertiary)
+                .foregroundStyle(Color.textTertiary)
                 .multilineTextAlignment(.center)
         }
         .frame(maxWidth: .infinity)

@@ -65,7 +65,7 @@ struct SecuritySettingsView: View {
                             .foregroundStyle(Color.destructivePrimary)
                         Text("Tes données seront supprimées définitivement après 3 jours.")
                             .font(PulpeTypography.labelMedium)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Color.textSecondary)
                     }
 
                     Spacer(minLength: 0)
@@ -190,10 +190,10 @@ struct SecuritySettingsView: View {
                     .foregroundStyle(.primary)
                 Spacer()
                 Text(detail)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.textSecondary)
                 Image(systemName: "chevron.right")
                     .font(PulpeTypography.caption)
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(Color.textTertiary)
             }
         }
         .buttonStyle(.plain)

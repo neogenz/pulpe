@@ -75,7 +75,7 @@ struct RecoveryKeySheet: View {
                     "retrouver l'accès à tes données si tu oublies ton code PIN."
                 )
                     .font(PulpeTypography.subheadline)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.textSecondary)
                     .multilineTextAlignment(.center)
             }
         }

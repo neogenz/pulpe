@@ -172,7 +172,7 @@ struct CurrencyField: View {
         case .onboarding:
             return Color.textSecondaryOnboarding.opacity(0.7)
         case .flat:
-            return Color.pulpeTextTertiary
+            return Color.textTertiary
         }
     }
 

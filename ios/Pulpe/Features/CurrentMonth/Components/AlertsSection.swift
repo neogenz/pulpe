@@ -19,7 +19,7 @@ struct AlertsSection: View {
                     if alerts.count > 3 {
                         Text("+\(alerts.count - 3) autres")
                             .font(PulpeTypography.caption)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Color.textSecondary)
                     }
 
                     Button(action: onTapViewBudget) {

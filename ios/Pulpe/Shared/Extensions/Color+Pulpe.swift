@@ -95,11 +95,16 @@ extension Color {
     /// Text on primary-colored backgrounds (white in both modes)
     static let textOnPrimary = Color(light: .white, dark: .white)
 
-    /// Tertiary text — iOS system tertiary label
-    static let pulpeTextTertiary = Color(.tertiaryLabel)
+    /// Secondary text — WCAG AA on all warm surfaces (labels, subtitles, captions)
+    /// Light #524D48: 6.9:1 on #F0EDE9 (AAA) · Dark #B8B0A8: 7.6:1 on #242220 (AAA)
+    static let textSecondary = Color(light: Color(hex: 0x524D48), dark: Color(hex: 0xB8B0A8))
 
-    /// Secondary content on surface — iOS system secondary label
-    static let onSurfaceVariant = Color(.secondaryLabel)
+    /// Tertiary text — WCAG AA on all warm surfaces (hints, footers, decorative)
+    /// Light #6E6762: 4.8:1 on #F0EDE9 (AA) · Dark #958E88: 5.0:1 on #242220 (AA)
+    static let textTertiary = Color(light: Color(hex: 0x6E6762), dark: Color(hex: 0x958E88))
+
+    /// Secondary content on surface — alias for textSecondary (M3 naming)
+    static let onSurfaceVariant = textSecondary
 
     // MARK: - Outline
 
