@@ -57,7 +57,7 @@ extension AccountView {
                         .frame(width: 56, height: 56)
                     Text(initial)
                         .font(PulpeTypography.amountXL)
-                        .foregroundStyle(.white)
+                        .foregroundStyle(Color.textOnPrimary)
                 }
                 Text(email.isEmpty ? "Non connecté(e)" : email)
                     .font(PulpeTypography.bodyLarge)
@@ -84,7 +84,7 @@ extension AccountView {
 
             settingsNavigationRow(
                 icon: "gearshape",
-                iconColor: .secondary,
+                iconColor: Color.textSecondary,
                 title: "Préférences",
                 subtitle: "Jour de paie"
             ) {
@@ -133,7 +133,7 @@ extension AccountView {
         Section {
             iconChevronLink(
                 icon: "doc.text",
-                iconColor: .secondary,
+                iconColor: Color.textSecondary,
                 title: "Conditions générales",
                 subtitle: "Conditions d'utilisation de Pulpe",
                 url: AppURLs.terms
@@ -141,7 +141,7 @@ extension AccountView {
 
             iconChevronLink(
                 icon: "hand.raised",
-                iconColor: .secondary,
+                iconColor: Color.textSecondary,
                 title: "Avis de confidentialité",
                 subtitle: "Protection de vos données",
                 url: AppURLs.privacy
