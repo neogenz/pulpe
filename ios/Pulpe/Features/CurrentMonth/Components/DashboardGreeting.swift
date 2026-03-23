@@ -33,7 +33,7 @@ struct DashboardGreeting: View {
         switch emotionState {
         case .comfortable: .pulpePrimary
         case .tight: .financialExpense
-        case .deficit: .financialExpense
+        case .deficit: .financialOverBudget
         }
     }
 

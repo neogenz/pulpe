@@ -98,7 +98,7 @@ struct CreateTemplateView: View {
                         Divider().padding(.horizontal, DesignTokens.Spacing.lg)
                     }
                     TemplateLineInputRow(line: line) {
-                        withAnimation(.easeInOut(duration: DesignTokens.Animation.fast)) {
+                        withAnimation(DesignTokens.Animation.defaultSpring) {
                             lines.removeAll { $0.id == line.id }
                         }
                     }
