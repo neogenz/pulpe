@@ -194,6 +194,7 @@ private struct UncheckedItemRow: View {
 
 /// Shown when all items are checked — parent controls visibility
 struct UncheckedForecastsEmptyState: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var hasAppeared = false
 
     var body: some View {
@@ -212,8 +213,12 @@ struct UncheckedForecastsEmptyState: View {
         .opacity(hasAppeared ? 1 : 0)
         .pulpeCard()
         .task {
-            withAnimation(DesignTokens.Animation.gentleSpring) {
+            if reduceMotion {
                 hasAppeared = true
+            } else {
+                withAnimation(DesignTokens.Animation.gentleSpring) {
+                    hasAppeared = true
+                }
             }
         }
     }

@@ -94,7 +94,7 @@ struct CurrentMonthView: View {
             if reduceMotion {
                 hasAppeared = true
             } else {
-                withAnimation(.easeOut(duration: DesignTokens.Animation.normal)) {
+                withAnimation(DesignTokens.Animation.smoothEaseOut) {
                     hasAppeared = true
                 }
             }
@@ -214,7 +214,7 @@ struct CurrentMonthView: View {
         )
         .containerRelativeFrame(.vertical) { height, _ in height * 0.4 }
         .ignoresSafeArea()
-        .animation(.easeInOut(duration: 0.8), value: store.metrics.emotionState)
+        .animation(DesignTokens.Animation.smoothEaseInOut, value: store.metrics.emotionState)
     }
 
     // MARK: - Unchecked Forecasts Section
