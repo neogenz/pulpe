@@ -1,27 +1,27 @@
-import { CalendarX, TableProperties, CircleHelp } from 'lucide-react'
+import { CalendarX, TableProperties, Smartphone } from 'lucide-react'
 import { Section, FadeIn, Card } from '@/components/ui'
 
 const PAIN_POINTS = [
   {
     icon: CalendarX,
-    title: 'Mauvaises surprises',
-    text: 'Les impôts qui tombent au pire moment, une grosse dépense oubliée',
+    title: 'Les impôts tombent en juillet',
+    text: "T'avais pas prévu. Le mois déraille. Tu rattrapes comme tu peux.",
   },
   {
     icon: TableProperties,
-    title: 'Prise de tête',
-    text: 'Noter une dépense = une corvée. Résultat : on laisse tomber.',
+    title: 'Ton Excel a 12 feuilles',
+    text: "Nouvelle année ? Tout refaire. Frais fixe qui change ? 4 mois à modifier à la main.",
   },
   {
-    icon: CircleHelp,
-    title: 'Budget flou',
-    text: 'Jamais vraiment sûr de ce que tu peux dépenser ce mois-ci',
+    icon: Smartphone,
+    title: 'Tu dépenses. Tu notes pas.',
+    text: "Ouvrir ton tableur sur le tel, zoomer, trouver la cellule... Tu laisses tomber. Et ton budget décroche.",
   },
 ]
 
 export function PainPoints() {
   return (
-    <Section background="grain" id="pain-points">
+    <Section id="pain-points">
       <FadeIn variant="blur">
         <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-center max-w-3xl mx-auto leading-snug">
           Tu ouvres ton tableur.<br className="hidden md:inline" /> Tu soupires. Tu refermes.
@@ -44,7 +44,7 @@ export function PainPoints() {
 
       <FadeIn variant="blur" delay={0.4}>
         <p className="text-center text-lg md:text-xl font-semibold text-primary mt-12">
-          Pulpe a été créée pour en finir avec ça.
+          Pulpe existe pour ça.
         </p>
       </FadeIn>
     </Section>

@@ -1,6 +1,6 @@
 'use client'
 
-import { memo, useEffect, useState, useRef } from 'react'
+import { memo, useEffect, useState } from 'react'
 
 interface TypeWriterProps {
   strings: string[]
@@ -21,58 +21,55 @@ export const TypeWriter = memo(function TypeWriter({
 }: TypeWriterProps) {
   const firstString = strings[0] ?? ''
   const [text, setText] = useState(firstString)
-  const [phase, setPhase] = useState<'idle' | 'waiting' | 'deleting' | 'typing'>('idle')
-  const stringIndex = useRef(0)
-  const charIndex = useRef(firstString.length)
 
   useEffect(() => {
     if (strings.length < 2) return
-    const timer = setTimeout(() => setPhase('deleting'), backDelay)
-    return () => clearTimeout(timer)
-  }, [backDelay, strings.length])
 
-  useEffect(() => {
-    if (phase === 'idle') return
+    let stringIndex = 0
+    let charIndex = strings[0].length
+    let phase: 'waiting' | 'deleting' | 'typing' = 'waiting'
+    let timeoutId: ReturnType<typeof setTimeout>
 
-    if (phase === 'waiting') {
-      const timer = setTimeout(() => setPhase('deleting'), backDelay)
-      return () => clearTimeout(timer)
-    }
-
-    const currentString = strings[stringIndex.current]
-
-    if (phase === 'deleting') {
-      charIndex.current--
-      setText(currentString.substring(0, charIndex.current))
-
-      if (charIndex.current === 0) {
-        stringIndex.current = (stringIndex.current + 1) % strings.length
-        setPhase('typing')
+    const tick = () => {
+      if (phase === 'waiting') {
+        timeoutId = setTimeout(() => {
+          phase = 'deleting'
+          tick()
+        }, backDelay)
         return
       }
 
-      const timeout = setTimeout(() => setPhase('deleting'), backSpeed)
-      return () => clearTimeout(timeout)
-    }
+      if (phase === 'deleting') {
+        charIndex--
+        setText(strings[stringIndex].substring(0, charIndex))
 
-    if (phase === 'typing') {
-      const nextString = strings[stringIndex.current]
-      charIndex.current++
-      setText(nextString.substring(0, charIndex.current))
+        if (charIndex === 0) {
+          stringIndex = (stringIndex + 1) % strings.length
+          phase = 'typing'
+        }
 
-      if (charIndex.current === nextString.length) {
-        if (!loop && stringIndex.current === strings.length - 1) {
-          setPhase('idle')
+        timeoutId = setTimeout(tick, backSpeed)
+        return
+      }
+
+      if (phase === 'typing') {
+        charIndex++
+        setText(strings[stringIndex].substring(0, charIndex))
+
+        if (charIndex === strings[stringIndex].length) {
+          if (!loop && stringIndex === strings.length - 1) return
+          phase = 'waiting'
+          timeoutId = setTimeout(tick, backDelay)
           return
         }
-        setPhase('waiting')
-        return
-      }
 
-      const timeout = setTimeout(() => setPhase('typing'), typeSpeed)
-      return () => clearTimeout(timeout)
+        timeoutId = setTimeout(tick, typeSpeed)
+      }
     }
-  }, [phase, strings, typeSpeed, backSpeed, backDelay, loop])
+
+    timeoutId = setTimeout(tick, backDelay)
+    return () => clearTimeout(timeoutId)
+  }, [strings, typeSpeed, backSpeed, backDelay, loop])
 
   return (
     <span className={className}>

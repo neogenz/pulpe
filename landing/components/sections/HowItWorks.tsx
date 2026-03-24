@@ -9,7 +9,7 @@ const STEPS = [
   { number: '1', title: 'Tes revenus', description: 'Ce qui rentre chaque mois' },
   { number: '2', title: 'Frais fixes', description: 'Loyer, abonnements, assurances' },
   { number: '3', title: 'Frais variables', description: 'Vacances, impôts, anniversaires' },
-  { number: 'done', title: 'Ton année est prête', description: 'Tu vois chaque mois, chaque dépense, ce qu\'il te reste' },
+  { number: 'done', title: 'Tu sais ce qu\'il te reste', description: 'Chaque mois, chaque dépense — tout est là.' },
 ]
 
 export function HowItWorks() {

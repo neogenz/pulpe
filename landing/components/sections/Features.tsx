@@ -1,17 +1,7 @@
 import { Section, Badge, Screenshot, FadeIn } from '@/components/ui'
-import { Target, Zap, ShieldCheck, Sprout } from 'lucide-react'
+import { Zap, ShieldCheck, Sprout } from 'lucide-react'
 
 const FEATURES = [
-  {
-    title: 'Fini les impôts qui tombent au pire moment',
-    description: 'Ta vue annuelle affiche chaque dépense prévue sur 12 mois. Vacances, impôts, anniversaires — tu vois tout venir.',
-    badge: { Icon: Target, label: 'Clarté' },
-    screenshot: {
-      src: '/screenshots/responsive/vue-calendrier-annuel.webp',
-      desktopSrc: '/screenshots/webapp/vue-calendrier-annuel.webp',
-      label: 'Vue calendrier annuel',
-    },
-  },
   {
     title: 'Assez simple pour ne jamais lâcher',
     description: 'Note une dépense en 5 secondes, 2 clics. Pas de friction, pas de corvée — tu gardes le rythme.',
@@ -23,8 +13,8 @@ const FEATURES = [
     },
   },
   {
-    title: 'Plus jamais surpris',
-    description: 'Tes dépenses récurrentes sont planifiées automatiquement. Tu sais exactement ce qui arrive — et quand.',
+    title: 'Tes charges sont déjà là. Toi, tu pointes.',
+    description: 'Tes dépenses récurrentes apparaissent chaque mois automatiquement. Tu ne fais que confirmer ce qui a été débité.',
     badge: { Icon: ShieldCheck, label: 'Contrôle' },
     screenshot: {
       src: '/screenshots/responsive/liste-des-previsions.webp',
@@ -33,8 +23,8 @@ const FEATURES = [
     },
   },
   {
-    title: 'Chaque mois commence déjà organisé',
-    description: 'Crée un modèle une fois, et chaque nouveau mois démarre avec tes revenus, charges et objectifs en place.',
+    title: 'Un modèle. 12 mois. Zéro copier-coller.',
+    description: 'Décris ton mois type une fois. Chaque nouveau mois se génère en un clic. Un frais qui change ? Modifie le modèle, les mois suivants s\'adaptent.',
     badge: { Icon: Sprout, label: 'Légèreté' },
     screenshot: {
       src: '/screenshots/responsive/ecran-des-modeles.webp',
@@ -46,10 +36,10 @@ const FEATURES = [
 
 export function Features() {
   return (
-    <Section background="alt" id="features">
+    <Section id="features">
       <FadeIn variant="blur">
         <h2 className="text-2xl md:text-4xl font-bold text-center mb-12">
-          Comment Pulpe t&apos;aide à voir clair
+          Comment Pulpe reste simple
         </h2>
       </FadeIn>
 
