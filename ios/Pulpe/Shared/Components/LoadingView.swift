@@ -17,7 +17,7 @@ struct LoadingView: View {
             if let message {
                 Text(message)
                     .font(PulpeTypography.subheadline)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.textSecondary)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)

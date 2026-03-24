@@ -15,8 +15,10 @@ struct PreferencesView: View {
                 .buttonStyle(.plain)
             }
         }
+        .scrollContentBackground(.hidden)
+        .pulpeBackground()
         .listStyle(.insetGrouped)
-        .navigationTitle("Pr\u{00E9}f\u{00E9}rences")
+        .navigationTitle("Préférences")
         .sheet(isPresented: $showPayDayPicker) {
             PayDayPickerSheet()
         }

@@ -46,7 +46,7 @@ struct ToastView: View {
             } label: {
                 Image(systemName: "xmark")
                     .font(PulpeTypography.inputHelper)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.textSecondary)
             }
             .iconButtonStyle()
             .accessibilityLabel("Fermer")

@@ -35,7 +35,7 @@ struct UncheckedForecastsCard: View {
                     Spacer()
                     Image(systemName: "chevron.right")
                         .font(PulpeTypography.caption)
-                        .foregroundStyle(.tertiary)
+                        .foregroundStyle(Color.textTertiary)
                 }
             }
             .textLinkButtonStyle()
@@ -135,7 +135,7 @@ private struct UncheckedItemRow: View {
         case .transaction(let tx, _):
             Text(tx.transactionDate.relativeFormatted)
                 .font(PulpeTypography.caption)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.textSecondary)
 
         case .budgetLine(let line, let consumption):
             if let consumption, line.kind == .expense, consumption.allocated > 0 {
@@ -149,11 +149,11 @@ private struct UncheckedItemRow: View {
             } else if line.kind == .expense {
                 Text("\(line.recurrence.label) \u{00B7} sur \(line.amount.asCompactCHF)")
                     .font(PulpeTypography.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.textSecondary)
             } else {
                 Text(line.recurrence.label)
                     .font(PulpeTypography.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.textSecondary)
             }
         }
     }
@@ -164,7 +164,7 @@ private struct UncheckedItemRow: View {
     private var amountText: some View {
         switch item {
         case .transaction(let tx, _):
-            Text(tx.signedAmount.asAmount)
+            Text(tx.amount.asAmount)
                 .font(PulpeTypography.listRowSubtitle)
                 .foregroundStyle(tx.kind.color)
                 .sensitiveAmount()
@@ -181,7 +181,7 @@ private struct UncheckedItemRow: View {
                     .foregroundStyle(color)
                     .sensitiveAmount()
             } else {
-                Text(line.amount.asSignedAmount(for: line.kind))
+                Text(line.amount.asAmount)
                     .font(PulpeTypography.listRowSubtitle)
                     .foregroundStyle(line.kind.color)
                     .sensitiveAmount()
@@ -194,18 +194,33 @@ private struct UncheckedItemRow: View {
 
 /// Shown when all items are checked — parent controls visibility
 struct UncheckedForecastsEmptyState: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var hasAppeared = false
+
     var body: some View {
         HStack(spacing: DesignTokens.Spacing.md) {
             Image(systemName: "checkmark.circle.fill")
                 .font(PulpeTypography.amountXL)
                 .foregroundStyle(Color.financialSavings)
+                .symbolEffect(.bounce, value: hasAppeared)
 
             Text("Tout est pointé — bien joué !")
                 .font(PulpeTypography.bodyLarge)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.textSecondary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+        .scaleEffect(hasAppeared ? 1.0 : 0.92)
+        .opacity(hasAppeared ? 1 : 0)
         .pulpeCard()
+        .task {
+            if reduceMotion {
+                hasAppeared = true
+            } else {
+                withAnimation(DesignTokens.Animation.gentleSpring) {
+                    hasAppeared = true
+                }
+            }
+        }
     }
 }
 

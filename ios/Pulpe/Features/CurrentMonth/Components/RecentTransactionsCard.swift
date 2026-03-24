@@ -27,7 +27,7 @@ struct RecentTransactionsCard: View {
                     Spacer()
                     Image(systemName: "chevron.right")
                         .font(PulpeTypography.caption)
-                        .foregroundStyle(.tertiary)
+                        .foregroundStyle(Color.textTertiary)
                 }
             }
             .textLinkButtonStyle()
@@ -64,13 +64,13 @@ private struct RecentTransactionCardRow: View {
 
                 Text(transaction.transactionDate.relativeFormatted)
                     .font(PulpeTypography.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.textSecondary)
             }
 
             Spacer()
 
             // Amount
-            Text(transaction.signedAmount.asAmount)
+            Text(transaction.amount.asAmount)
                 .font(PulpeTypography.listRowSubtitle)
                 .foregroundStyle(transaction.kind.color)
                 .sensitiveAmount()
@@ -80,7 +80,7 @@ private struct RecentTransactionCardRow: View {
         .accessibilityLabel(
             "\(transaction.name), \(transaction.kind.label), "
             + "\(transaction.transactionDate.relativeFormatted), "
-            + "\(amountsHidden ? "Montant masqué" : transaction.signedAmount.asCHF)"
+            + "\(amountsHidden ? "Montant masqué" : transaction.amount.asCHF)"
         )
     }
 }

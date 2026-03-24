@@ -19,7 +19,7 @@ struct RecentTransactionsSection: View {
                         Spacer()
                         Image(systemName: "chevron.right")
                             .font(PulpeTypography.caption)
-                            .foregroundStyle(Color.pulpeTextTertiary)
+                            .foregroundStyle(Color.textTertiary)
                     }
                 }
             } header: {
@@ -56,13 +56,13 @@ private struct RecentTransactionRow: View {
 
                 Text(transaction.transactionDate.relativeFormatted)
                     .font(PulpeTypography.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.textSecondary)
             }
 
             Spacer()
 
             // Amount
-            Text(transaction.signedAmount.asAmount)
+            Text(transaction.amount.asAmount)
                 .font(PulpeTypography.listRowSubtitle)
                 .foregroundStyle(transaction.kind.color)
                 .sensitiveAmount()

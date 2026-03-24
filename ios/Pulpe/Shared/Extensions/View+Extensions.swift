@@ -269,6 +269,7 @@ private struct CardBackgroundModifier: ViewModifier {
     func body(content: Content) -> some View {
         content
             .background(Color.surfaceContainerLowest, in: .rect(cornerRadius: cornerRadius))
+            .clipShape(.rect(cornerRadius: cornerRadius))
     }
 }
 

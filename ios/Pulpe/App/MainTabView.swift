@@ -126,7 +126,10 @@ struct MainTabView: View {
             .frame(width: tabBarHeight, height: tabBarHeight)
             .contentShape(Circle())
             .glassEffect(.regular.tint(Color.pulpePrimary).interactive(), in: .capsule)
-            .transition(.scale.combined(with: .opacity))
+            .transition(.asymmetric(
+                insertion: .scale(scale: 0.5).combined(with: .opacity),
+                removal: .scale.combined(with: .opacity)
+            ))
         }
     }
 
@@ -175,7 +178,10 @@ struct MainTabView: View {
                 .contentShape(Circle())
                 .background(.ultraThinMaterial)
                 .clipShape(Capsule())
-                .transition(.scale.combined(with: .opacity))
+                .transition(.asymmetric(
+                    insertion: .scale(scale: 0.5).combined(with: .opacity),
+                    removal: .scale.combined(with: .opacity)
+                ))
             }
         }
         .frame(height: tabBarHeight)

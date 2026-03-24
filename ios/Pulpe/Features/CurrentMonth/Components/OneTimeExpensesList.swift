@@ -98,7 +98,7 @@ struct TransactionSection: View {
                     Spacer()
                     Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
                         .font(PulpeTypography.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.textSecondary)
                 }
             }
             .textLinkButtonStyle()
@@ -174,7 +174,7 @@ struct TransactionRow: View {
                 // Date (relative formatting)
                 Text(transaction.transactionDate.relativeFormatted)
                     .font(PulpeTypography.caption)
-                    .foregroundStyle(Color.pulpeTextTertiary)
+                    .foregroundStyle(Color.textTertiary)
             }
 
             Spacer(minLength: 8)
@@ -207,7 +207,7 @@ struct TransactionRow: View {
                 // Show checkmark when checked
                 Image(systemName: "checkmark")
                     .font(PulpeTypography.listRowTitle)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.textSecondary)
             } else {
                 // Show kind icon
                 Image(systemName: transaction.kind.icon)

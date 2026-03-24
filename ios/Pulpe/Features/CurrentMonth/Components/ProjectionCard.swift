@@ -55,7 +55,7 @@ struct ProjectionCard: View {
 
                 Text(subMessage)
                     .font(PulpeTypography.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.textSecondary)
                     .sensitiveAmount()
             }
 

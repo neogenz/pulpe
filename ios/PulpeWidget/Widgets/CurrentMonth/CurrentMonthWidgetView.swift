@@ -32,7 +32,7 @@ struct CurrentMonthWidgetView: View {
         VStack(spacing: 4) {
             Text("Disponible")
                 .font(.caption2)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.textSecondary)
 
             Text(entry.available.asCHF)
                 .font(.title3)
@@ -66,7 +66,7 @@ struct CurrentMonthWidgetView: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text("Disponible à dépenser")
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.textSecondary)
 
                 Text(entry.available.asCHF)
                     .font(.title)
@@ -99,11 +99,11 @@ struct CurrentMonthWidgetView: View {
         VStack(spacing: 8) {
             Image(systemName: "calendar.badge.plus")
                 .font(.title)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.textSecondary)
 
             Text("Ouvrez l'app")
                 .font(.caption)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.textSecondary)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }

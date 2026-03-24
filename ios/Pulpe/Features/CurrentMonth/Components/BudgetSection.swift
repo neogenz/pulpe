@@ -160,7 +160,7 @@ struct BudgetSection: View {
                     Spacer()
                     Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
                         .font(PulpeTypography.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.textSecondary)
                 }
             }
             .listRowSeparator(.hidden)
@@ -241,9 +241,9 @@ struct BudgetLineRow: View {
     }
 
     private var remainingAmountText: String {
-        // Income & savings: always show signed budget amount
+        // Income & savings: always show unsigned budget amount
         guard line.kind == .expense else {
-            return line.amount.asSignedAmount(for: line.kind)
+            return line.amount.asAmount
         }
         // Expenses: always show remaining (= budget when no transactions)
         if consumption.available >= 0 {
@@ -281,18 +281,18 @@ struct BudgetLineRow: View {
                 if hasConsumption {
                     Text("\(consumptionPercentage)% · \(consumption.allocated.asCompactCHF) dépensé")
                         .font(PulpeTypography.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.textSecondary)
                         .lineLimit(1)
                         .sensitiveAmount()
                     progressBar
                 } else if line.kind == .expense {
                     Text("\(line.recurrence.label) · sur \(line.amount.asCompactCHF)")
                         .font(PulpeTypography.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.textSecondary)
                 } else {
                     Text(line.recurrence.label)
                         .font(PulpeTypography.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.textSecondary)
                 }
             }
 
@@ -359,7 +359,7 @@ struct BudgetLineRow: View {
                 // Show checkmark when checked
                 Image(systemName: "checkmark")
                     .font(PulpeTypography.listRowTitle)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.textSecondary)
             } else {
                 // Show kind icon
                 Image(systemName: line.kind.icon)

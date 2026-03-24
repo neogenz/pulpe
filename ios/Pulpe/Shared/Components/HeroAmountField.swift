@@ -38,7 +38,7 @@ struct HeroAmountField: View {
 
                 Text(displayAmount)
                     .font(PulpeTypography.amountHero)
-                    .foregroundStyle((amount ?? 0) > 0 ? Color.textPrimary : Color.pulpeTextTertiary)
+                    .foregroundStyle((amount ?? 0) > 0 ? Color.textPrimary : Color.textTertiary)
                     .contentTransition(.numericText())
                     .animation(.snappy(duration: DesignTokens.Animation.fast), value: amount)
             }
@@ -55,7 +55,7 @@ struct HeroAmountField: View {
             if let hint, (amount ?? 0) <= 0 {
                 Text(hint)
                     .font(PulpeTypography.caption)
-                    .foregroundStyle(Color.pulpeTextTertiary)
+                    .foregroundStyle(Color.textTertiary)
                     .transition(.opacity)
             }
         }

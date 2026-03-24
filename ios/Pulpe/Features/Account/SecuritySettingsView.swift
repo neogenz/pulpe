@@ -70,7 +70,7 @@ struct SecuritySettingsView: View {
                             .foregroundStyle(Color.destructivePrimary)
                         Text("Tes données seront supprimées définitivement après 3 jours.")
                             .font(PulpeTypography.labelMedium)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Color.textSecondary)
                     }
 
                     Spacer(minLength: 0)
@@ -182,6 +182,8 @@ struct SecuritySettingsView: View {
                 "après un délai de 3 jours. Cette action est irréversible."
             )
         }
+        .scrollContentBackground(.hidden)
+        .pulpeBackground()
         .listStyle(.insetGrouped)
         .navigationTitle("Sécurité")
         .trackScreen("Security")
@@ -198,10 +200,10 @@ struct SecuritySettingsView: View {
                     .foregroundStyle(.primary)
                 Spacer()
                 Text(detail)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.textSecondary)
                 Image(systemName: "chevron.right")
                     .font(PulpeTypography.caption)
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(Color.textTertiary)
             }
         }
         .buttonStyle(.plain)
