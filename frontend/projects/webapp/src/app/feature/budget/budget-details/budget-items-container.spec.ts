@@ -94,6 +94,19 @@ describe('BudgetItemsContainer — contextual empty states', () => {
     expect(nativeEl.textContent).toContain('5 prévisions ce mois');
   });
 
+  it('does not show contextual filter empty state when only transactions exist (no budget lines)', () => {
+    // Use search state to avoid rendering child components (Angular #54039)
+    setTestInput(component.searchText, 'xyz');
+    setTestInput(component.isShowingOnlyUnchecked, true);
+    setTestInput(component.totalCount, 3);
+    setTestInput(component.totalBudgetLinesCount, 0);
+
+    fixture.detectChanges();
+
+    const nativeEl: HTMLElement = fixture.nativeElement;
+    expect(nativeEl.textContent).not.toContain('Tout est pointé');
+  });
+
   it('search empty state takes priority over filter empty state', () => {
     setTestInput(component.searchText, 'xyz');
     setTestInput(component.isShowingOnlyUnchecked, true);

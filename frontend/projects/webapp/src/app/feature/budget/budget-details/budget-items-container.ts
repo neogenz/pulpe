@@ -146,7 +146,7 @@ import { BudgetDetailsDialogService } from './budget-details-dialog.service';
       } @else if (
         budgetTableData().length === 0 &&
         isShowingOnlyUnchecked() &&
-        totalCount() > 0
+        totalBudgetLinesCount() > 0
       ) {
         <div class="text-center py-12 px-4">
           <div
