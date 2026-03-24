@@ -71,7 +71,7 @@ import { BudgetDetailsDialogService } from './budget-details-dialog.service';
           <p class="text-body-medium text-on-surface-variant">
             {{
               'budget.forecastsThisMonth'
-                | transloco: { count: budgetLines().length }
+                | transloco: { count: totalBudgetLinesCount() }
             }}
           </p>
         </div>
@@ -143,6 +143,24 @@ import { BudgetDetailsDialogService } from './budget-details-dialog.service';
             {{ 'budget.noForecastFound' | transloco }}
           </p>
         </div>
+      } @else if (
+        budgetTableData().length === 0 &&
+        isShowingOnlyUnchecked() &&
+        totalBudgetLinesCount() > 0
+      ) {
+        <div class="text-center py-12 px-4">
+          <div
+            class="w-16 h-16 mx-auto mb-4 rounded-full bg-primary-container/30 flex items-center justify-center"
+          >
+            <mat-icon class="text-primary shrink-0">check_circle</mat-icon>
+          </div>
+          <p class="text-body-large text-on-surface mb-2">
+            {{ 'budget.allCheckedFilterEmpty' | transloco }}
+          </p>
+          <p class="text-body-medium text-on-surface-variant">
+            {{ 'budget.allCheckedFilterDescription' | transloco }}
+          </p>
+        </div>
       } @else if (isMobile() || viewMode() === 'envelopes') {
         <pulpe-budget-grid
           [budgetLineItems]="budgetLineItems()"
@@ -212,6 +230,7 @@ export class BudgetItemsContainer {
   readonly checkedCount = input(0);
   readonly totalCount = input(0);
   readonly estimatedBalance = input(0);
+  readonly totalBudgetLinesCount = input(0);
 
   readonly isAllChecked = computed(
     () => this.totalCount() > 0 && this.checkedCount() === this.totalCount(),
