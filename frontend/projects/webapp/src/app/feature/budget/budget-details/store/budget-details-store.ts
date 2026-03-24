@@ -268,6 +268,10 @@ export class BudgetDetailsStore {
     return lines.length + transactions.length;
   });
 
+  readonly totalBudgetLinesCount = computed<number>(
+    () => this.displayBudgetLines().length,
+  );
+
   readonly filteredBudgetLines = computed<BudgetLine[]>(() => {
     let lines = this.displayBudgetLines();
     if (this.#isShowingOnlyUnchecked()) {
