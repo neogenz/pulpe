@@ -126,3 +126,5 @@ supabase-migration/
 
 supabase-migration-20260210/
 /resources/
+
+*.p8
