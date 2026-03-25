@@ -17,6 +17,9 @@ struct EditTemplateLineSheet: View {
     @FocusState private var isDescriptionFocused: Bool
     @State private var amountText: String
     @State private var submitSuccessTrigger = false
+    @State private var showPropagationAlert = false
+    @State private var usageData: TemplateUsageData?
+    @State private var pendingUpdate: TemplateLineUpdate?
 
     private let dependencies: EditTemplateLineDependencies
 
@@ -65,6 +68,26 @@ struct EditTemplateLineSheet: View {
             saveButton
         }
         .sensoryFeedback(.success, trigger: submitSuccessTrigger)
+        .task {
+            usageData = try? await dependencies.checkTemplateUsage(templateLine.templateId)
+        }
+        .alert("Propager aux budgets ?", isPresented: $showPropagationAlert) {
+            Button("Propager") {
+                Task { await saveAndPropagateToBudgets() }
+            }
+            Button("Modèle uniquement") {
+                Task { await saveTemplateOnly() }
+            }
+            Button("Annuler", role: .cancel) {
+                pendingUpdate = nil
+            }
+        } message: {
+            Text("""
+                Ce modèle est utilisé par \(usageData?.budgetCount ?? 0) budget(s).\n\n\
+                « Propager » appliquera les modifications aux budgets en cours et futurs. \
+                Les catégories modifiées manuellement ne seront pas affectées.
+                """)
+        }
     }
 
     // MARK: - Description
@@ -113,35 +136,93 @@ struct EditTemplateLineSheet: View {
     private func updateTemplateLine() async {
         guard let amount else { return }
 
-        isLoading = true
-        defer { isLoading = false }
         error = nil
-
-        let data = TemplateLineUpdate(
+        pendingUpdate = TemplateLineUpdate(
             name: name.trimmingCharacters(in: .whitespaces),
             amount: amount,
             kind: kind,
             recurrence: recurrence
         )
 
+        let budgetCount = usageData?.budgetCount ?? 0
+        if budgetCount > 0 {
+            showPropagationAlert = true
+        } else {
+            await saveTemplateOnly()
+        }
+    }
+
+    private func saveTemplateOnly() async {
+        guard let data = pendingUpdate else { return }
+
+        isLoading = true
+        defer { isLoading = false }
+        error = nil
+
         do {
-            let updatedLine = try await dependencies.updateTemplateLine(templateLine.id, data)
-            submitSuccessTrigger.toggle()
-            onUpdate(updatedLine)
-            toastManager.show("Ligne modifiée")
-            dismiss()
+            let updatedLine = try await dependencies.updateTemplateLine(templateLine.templateId, templateLine.id, data)
+            finishSave(updatedLine: updatedLine, message: "Ligne modifiée")
         } catch {
             self.error = error
         }
     }
+
+    private func saveAndPropagateToBudgets() async {
+        guard let data = pendingUpdate else { return }
+
+        isLoading = true
+        defer { isLoading = false }
+        error = nil
+
+        do {
+            let operations = TemplateLinesBulkOperations(
+                update: [TemplateLineUpdateWithId(
+                    id: templateLine.id,
+                    name: data.name,
+                    amount: data.amount,
+                    kind: data.kind,
+                    recurrence: data.recurrence,
+                    description: data.description
+                )],
+                propagateToBudgets: true
+            )
+            let response = try await dependencies.bulkUpdateWithPropagation(templateLine.templateId, operations)
+            let updatedLine = response.updated.first ?? templateLine
+            let affectedCount = response.propagation?.affectedBudgetsCount ?? 0
+            let message = affectedCount > 0
+                ? "Ligne modifiée — \(affectedCount) budget(s) mis à jour"
+                : "Ligne modifiée"
+            finishSave(updatedLine: updatedLine, message: message)
+        } catch {
+            self.error = error
+        }
+    }
+
+    private func finishSave(updatedLine: TemplateLine, message: String) {
+        submitSuccessTrigger.toggle()
+        onUpdate(updatedLine)
+        toastManager.show(message)
+        pendingUpdate = nil
+        dismiss()
+    }
 }
 
 struct EditTemplateLineDependencies: Sendable {
-    var updateTemplateLine: @Sendable (String, TemplateLineUpdate) async throws -> TemplateLine
+    var updateTemplateLine: @Sendable (String, String, TemplateLineUpdate) async throws -> TemplateLine
+    var checkTemplateUsage: @Sendable (String) async throws -> TemplateUsageData
+    var bulkUpdateWithPropagation: @Sendable (
+        String, TemplateLinesBulkOperations
+    ) async throws -> TemplateLinesBulkOperationsResponse
 
     static let live = EditTemplateLineDependencies(
-        updateTemplateLine: { id, data in
-            try await TemplateService.shared.updateTemplateLine(id: id, data: data)
+        updateTemplateLine: { templateId, lineId, data in
+            try await TemplateService.shared.updateTemplateLine(templateId: templateId, lineId: lineId, data: data)
+        },
+        checkTemplateUsage: { templateId in
+            try await TemplateService.shared.checkTemplateUsage(id: templateId)
+        },
+        bulkUpdateWithPropagation: { templateId, operations in
+            try await TemplateService.shared.bulkUpdateTemplateLines(templateId: templateId, operations: operations)
         }
     )
 }

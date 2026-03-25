@@ -51,7 +51,7 @@ enum Endpoint {
     // MARK: - Template Lines
 
     case templateLines(templateId: String)
-    case templateLine(id: String)
+    case templateLine(templateId: String, lineId: String)
     case templateLinesBulk(templateId: String)
 
     // MARK: - Encryption
@@ -109,8 +109,8 @@ enum Endpoint {
 
         // Template Lines
         case .templateLines(let templateId): return "/budget-templates/\(templateId)/lines"
-        case .templateLine(let id): return "/template-lines/\(id)"
-        case .templateLinesBulk(let templateId): return "/budget-templates/\(templateId)/lines/bulk"
+        case .templateLine(let templateId, let lineId): return "/budget-templates/\(templateId)/lines/\(lineId)"
+        case .templateLinesBulk(let templateId): return "/budget-templates/\(templateId)/lines/bulk-operations"
 
         // Encryption
         case .encryptionVaultStatus: return "/encryption/vault-status"

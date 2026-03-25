@@ -145,6 +145,26 @@ struct TemplateUsageBudget: Decodable {
     let description: String
 }
 
+// MARK: - Bulk Operations Response
+
+struct TemplateLinesBulkOperationsResponse: Decodable, Sendable {
+    let created: [TemplateLine]
+    let updated: [TemplateLine]
+    let deleted: [String]
+    let propagation: TemplateLinesPropagationSummary?
+}
+
+struct TemplateLinesPropagationSummary: Decodable, Sendable {
+    let mode: PropagationMode
+    let affectedBudgetIds: [String]
+    let affectedBudgetsCount: Int
+}
+
+enum PropagationMode: String, Codable, Sendable {
+    case templateOnly = "template-only"
+    case propagate
+}
+
 // MARK: - Onboarding Template Creation
 
 struct BudgetTemplateCreateFromOnboarding: Encodable {
