@@ -74,18 +74,20 @@ actor TemplateService {
     }
 
     /// Update a template line
-    func updateTemplateLine(id: String, data: TemplateLineUpdate) async throws -> TemplateLine {
-        try await apiClient.request(.templateLine(id: id), body: data, method: .patch)
+    func updateTemplateLine(templateId: String, lineId: String, data: TemplateLineUpdate) async throws -> TemplateLine {
+        try await apiClient.request(.templateLine(templateId: templateId, lineId: lineId), body: data, method: .patch)
     }
 
     /// Delete a template line
-    func deleteTemplateLine(id: String) async throws {
-        try await apiClient.requestVoid(.templateLine(id: id), method: .delete)
+    func deleteTemplateLine(templateId: String, lineId: String) async throws {
+        try await apiClient.requestVoid(.templateLine(templateId: templateId, lineId: lineId), method: .delete)
     }
 
-    /// Bulk update template lines
-    func bulkUpdateTemplateLines(templateId: String, operations: TemplateLinesBulkOperations) async throws {
-        try await apiClient.requestVoid(
+    /// Bulk update template lines with optional propagation
+    func bulkUpdateTemplateLines(
+        templateId: String, operations: TemplateLinesBulkOperations
+    ) async throws -> TemplateLinesBulkOperationsResponse {
+        try await apiClient.request(
             .templateLinesBulk(templateId: templateId),
             body: operations,
             method: .post

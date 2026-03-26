@@ -136,6 +136,11 @@ struct TemplateUsageData: Decodable {
     let isUsed: Bool
     let budgetCount: Int
     let budgets: [TemplateUsageBudget]
+
+    var propagationBudgetCount: Int {
+        let current = MonthYear()
+        return budgets.filter { MonthYear(month: $0.month, year: $0.year) >= current }.count
+    }
 }
 
 struct TemplateUsageBudget: Decodable {
@@ -143,6 +148,26 @@ struct TemplateUsageBudget: Decodable {
     let month: Int
     let year: Int
     let description: String
+}
+
+// MARK: - Bulk Operations Response
+
+struct TemplateLinesBulkOperationsResponse: Decodable, Sendable {
+    let created: [TemplateLine]
+    let updated: [TemplateLine]
+    let deleted: [String]
+    let propagation: TemplateLinesPropagationSummary?
+}
+
+struct TemplateLinesPropagationSummary: Decodable, Sendable {
+    let mode: PropagationMode
+    let affectedBudgetIds: [String]
+    let affectedBudgetsCount: Int
+}
+
+enum PropagationMode: String, Codable, Sendable {
+    case templateOnly = "template-only"
+    case propagate
 }
 
 // MARK: - Onboarding Template Creation

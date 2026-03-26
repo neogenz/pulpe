@@ -29,20 +29,22 @@ struct CurrentMonthView: View {
 
     var body: some View {
         ZStack {
-            if store.isLoading && store.budget == nil {
+            switch store.contentState {
+            case .idle, .loading:
                 CurrentMonthSkeletonView()
                     .transition(.opacity)
-            } else if let error = store.error, store.budget == nil {
-                ErrorView(error: error) {
+            case .failed:
+                ErrorView(error: store.error ?? .networkError(URLError(.unknown))) {
                     await store.forceRefresh()
                 }
                 .transition(.opacity)
-            } else if store.budget == nil {
+            case .empty:
                 VStack(spacing: DesignTokens.Spacing.lg) {
                     Image(systemName: "calendar.badge.plus")
                         .font(PulpeTypography.emojiDisplay)
                         .foregroundStyle(Color.textTertiary)
                         .symbolEffect(.pulse, options: .nonRepeating)
+                        .accessibilityHidden(true)
                     Text("Pas encore de budget ce mois-ci")
                         .font(PulpeTypography.stepTitle)
                         .foregroundStyle(Color.textPrimary)
@@ -53,13 +55,13 @@ struct CurrentMonthView: View {
                 }
                 .padding(DesignTokens.Spacing.xxxl)
                 .transition(.opacity)
-            } else {
+            case .loaded:
                 dashboardContent
                     .transition(.opacity)
             }
         }
         .trackScreen("Dashboard")
-        .animation(DesignTokens.Animation.smoothEaseOut, value: store.isLoading)
+        .animation(DesignTokens.Animation.smoothEaseOut, value: store.contentState)
         .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {

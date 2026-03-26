@@ -65,6 +65,7 @@ struct CurrentMonthStoreSWRIntegrationTests {
     @Test func store_initialState_hasNoCacheAndNoError() {
         let store = CurrentMonthStore()
 
+        #expect(store.contentState == .idle, "Initial contentState should be .idle")
         #expect(store.budget == nil, "Initial budget should be nil")
         #expect(store.budgetLines.isEmpty, "Initial budgetLines should be empty")
         #expect(store.transactions.isEmpty, "Initial transactions should be empty")
