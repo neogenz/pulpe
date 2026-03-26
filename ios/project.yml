@@ -88,8 +88,9 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: app.pulpe.ios
         PRODUCT_NAME: Pulpe
-        TARGETED_DEVICE_FAMILY: "1,2"
-        SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD: true
+        TARGETED_DEVICE_FAMILY: "1"
+        SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD: false
+        SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD: false
         INFOPLIST_KEY_LSApplicationCategoryType: "public.app-category.finance"
         INFOPLIST_KEY_CFBundleDisplayName: Pulpe
     info:
@@ -106,11 +107,6 @@ targets:
         UILaunchStoryboardName: LaunchScreen
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
-        UISupportedInterfaceOrientations~ipad:
-          - UIInterfaceOrientationPortrait
-          - UIInterfaceOrientationPortraitUpsideDown
-          - UIInterfaceOrientationLandscapeLeft
-          - UIInterfaceOrientationLandscapeRight
         UIRequiredDeviceCapabilities:
           - arm64
         ITSAppUsesNonExemptEncryption: false
@@ -174,7 +170,7 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: app.pulpe.ios.widget
         PRODUCT_NAME: "Pulpe Widget"
         SKIP_INSTALL: true
-        TARGETED_DEVICE_FAMILY: "1,2"
+        TARGETED_DEVICE_FAMILY: "1"
         INFOPLIST_KEY_CFBundleDisplayName: "Pulpe Widget"
     info:
       path: PulpeWidget/Info.plist
@@ -211,7 +207,7 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: app.pulpe.ios.tests
         IPHONEOS_DEPLOYMENT_TARGET: "18.0"
-        TARGETED_DEVICE_FAMILY: "1,2"
+        TARGETED_DEVICE_FAMILY: "1"
 
   PulpeUITests:
     type: bundle.ui-testing
@@ -226,7 +222,7 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: app.pulpe.ios.uitests
         IPHONEOS_DEPLOYMENT_TARGET: "18.0"
-        TARGETED_DEVICE_FAMILY: "1,2"
+        TARGETED_DEVICE_FAMILY: "1"
 
 schemes:
   PulpeLocal:
