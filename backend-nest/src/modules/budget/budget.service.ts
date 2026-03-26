@@ -1,6 +1,6 @@
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { BusinessException } from '@common/exceptions/business.exception';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 import { handleServiceError } from '@common/utils/error-handler';
@@ -205,8 +205,10 @@ export class BudgetService {
       (f) => !allowedFields.includes(f),
     );
     if (invalidFields.length > 0) {
-      throw new BadRequestException(
-        `Unknown sparse fields: ${invalidFields.join(', ')}`,
+      throw new BusinessException(
+        ERROR_DEFINITIONS.BUDGET_FETCH_FAILED,
+        { fields: invalidFields.join(', ') },
+        { operation: 'findAllSparse', userId: user.id },
       );
     }
     const needsAggregates = this.fieldsRequireAggregates(requestedFields);
@@ -624,6 +626,7 @@ export class BudgetService {
         );
       }
     } catch (error) {
+      await this.cacheService.invalidateForUser(user.id);
       await this.rollbackCreatedBudgets(createdBudgetIds, supabase, user.id);
       throw new BusinessException(
         ERROR_DEFINITIONS.BUDGET_GENERATE_FAILED,
@@ -724,9 +727,10 @@ export class BudgetService {
       budgetIds,
     );
     if (!deleted) {
-      this.logger.warn(
-        { userId, budgetIds, operation: 'budget.generate.rollback.failed' },
-        'Failed to rollback created budgets — orphaned budgets may remain',
+      throw new BusinessException(
+        ERROR_DEFINITIONS.BUDGET_GENERATE_FAILED,
+        { orphanedBudgetIds: budgetIds },
+        { operation: 'budget.generate.rollback', userId },
       );
     }
   }

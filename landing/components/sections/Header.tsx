@@ -51,6 +51,11 @@ export function Header() {
   useEffect(() => {
     if (mobileMenuOpen) {
       wasOpen.current = true
+      const handleEscape = (e: KeyboardEvent) => {
+        if (e.key === 'Escape') setMobileMenuOpen(false)
+      }
+      document.addEventListener('keydown', handleEscape)
+      return () => document.removeEventListener('keydown', handleEscape)
     } else if (wasOpen.current) {
       wasOpen.current = false
       menuButtonRef.current?.focus({ preventScroll: true })
@@ -137,6 +142,7 @@ export function Header() {
               : 'opacity-0 -translate-y-2.5 scale-95 pointer-events-none'
           }`}
           {...(mobileMenuOpen && { role: 'dialog', 'aria-modal': true, 'aria-label': 'Menu de navigation' })}
+          {...(!mobileMenuOpen && { inert: true })}
         >
           {/* Mobile: Tint — no SVG distortion filter (causes clipping artifacts on mobile) */}
           <div className="absolute inset-0 rounded-2xl bg-white/85 backdrop-blur-sm" />

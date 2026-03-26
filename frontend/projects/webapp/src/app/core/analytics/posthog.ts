@@ -250,6 +250,12 @@ export class PostHogService {
 
     url.searchParams.delete(CROSS_DOMAIN_PARAM);
     window.history.replaceState({}, '', url.toString());
+
+    if (distinctId.length > 100 || !/^[\w-]+$/.test(distinctId)) {
+      this.#logger.warn('Invalid cross-domain distinct_id format, ignoring');
+      return null;
+    }
+
     this.#logger.info('Cross-domain distinct_id received from landing');
     return distinctId;
   }
@@ -294,8 +300,8 @@ export class PostHogService {
       return sanitizeEventPayload(event);
     } catch (error) {
       this.#logger.error('Error sanitizing event', error);
-      // Return event as-is if sanitization fails to avoid data loss
-      return event;
+      // Drop event on sanitization failure — data loss is preferable to financial data leakage
+      return null;
     }
   }
 }
