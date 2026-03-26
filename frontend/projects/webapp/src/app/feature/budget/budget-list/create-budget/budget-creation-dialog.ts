@@ -270,10 +270,6 @@ export class CreateBudgetDialogComponent {
       const templates = this.templateStore.templates();
       if (!templates.length) return;
 
-      // Initialize default selection on first load
-      this.templateStore.initializeDefaultSelection();
-
-      // Load template totals for all templates
       const templateIds = templates.map((t) => t.id);
       this.templateStore.loadTemplateTotals(templateIds);
     });

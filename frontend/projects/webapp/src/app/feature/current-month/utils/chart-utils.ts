@@ -42,11 +42,9 @@ export function resolveColors<K extends string>(
       container.appendChild(el);
       return el;
     });
-    const result = {} as Record<K, string>;
-    keys.forEach((key, i) => {
-      result[key] = getComputedStyle(elements[i]).color;
-    });
-    return result;
+    return Object.fromEntries(
+      keys.map((key, i) => [key, getComputedStyle(elements[i]).color]),
+    ) as Record<K, string>;
   } finally {
     doc.body.removeChild(container);
   }

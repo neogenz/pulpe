@@ -307,6 +307,8 @@ export class DashboardStore {
       );
 
       if (confirmed.size > 0) {
+        // Reconciliation: when server data confirms a toggle, remove it from pending checks.
+        // Uses untracked() to prevent the write to #pendingChecks from re-triggering this effect.
         untracked(() => {
           this.#pendingChecks.update((s) => {
             const next = new Set(s);
@@ -371,6 +373,7 @@ export class DashboardStore {
   // ── 6. Private utils ──
   #updateDashboard(fn: (data: DashboardData) => DashboardData): void {
     this.#dashboardResource.update((data) => {
+      // Early return when resource has no value — cast required by cachedResource.update() signature
       if (!data) return data as unknown as DashboardData;
       return fn(data);
     });

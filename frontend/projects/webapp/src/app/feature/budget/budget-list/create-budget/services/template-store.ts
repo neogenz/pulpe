@@ -1,4 +1,10 @@
-import { Injectable, computed, inject, signal } from '@angular/core';
+import {
+  Injectable,
+  computed,
+  inject,
+  linkedSignal,
+  signal,
+} from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { cachedMutation, cachedResource } from 'ngx-ziflux';
@@ -12,6 +18,7 @@ import {
   type CreateBudgetApiResponse,
 } from '@core/budget/budget-api';
 import { BudgetTemplatesApi } from '@core/budget-template/budget-templates-api';
+import { Logger } from '@core/logging/logger';
 
 export interface TemplateTotals {
   income: number;
@@ -24,6 +31,7 @@ export interface TemplateTotals {
 export class TemplateStore {
   readonly #budgetApi = inject(BudgetApi);
   readonly #budgetTemplatesApi = inject(BudgetTemplatesApi);
+  readonly #logger = inject(Logger);
 
   readonly #templatesResource = cachedResource({
     cache: this.#budgetTemplatesApi.cache,
@@ -38,7 +46,18 @@ export class TemplateStore {
         ),
   });
 
-  readonly #selectedId = signal<string | null>(null);
+  readonly #selectedId = linkedSignal<string | null>(() => {
+    const all = this.templates();
+    if (all.length === 0) return null;
+    const defaultTemplate = all.find((t) => t.isDefault);
+    if (defaultTemplate) return defaultTemplate.id;
+    return (
+      all.toSorted(
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      )[0]?.id ?? null
+    );
+  });
   readonly #templateTotalsMap = signal<Record<string, TemplateTotals>>({});
 
   readonly templates = computed(() => this.#templatesResource.value() ?? []);
@@ -88,18 +107,25 @@ export class TemplateStore {
     const toLoad = templateIds.filter((id) => !current[id]);
     if (toLoad.length === 0) return;
 
-    const results = await Promise.all(
-      toLoad.map(async (id) => ({
-        id,
-        lines: await this.loadTemplateLines(id),
-      })),
-    );
+    try {
+      const results = await Promise.all(
+        toLoad.map(async (id) => ({
+          id,
+          lines: await this.loadTemplateLines(id),
+        })),
+      );
 
-    const newTotals = Object.fromEntries(
-      results.map(({ id, lines }) => [id, this.#calculateTotals(lines)]),
-    );
+      const newTotals = Object.fromEntries(
+        results.map(({ id, lines }) => [id, this.#calculateTotals(lines)]),
+      );
 
-    this.#templateTotalsMap.update((current) => ({ ...current, ...newTotals }));
+      this.#templateTotalsMap.update((current) => ({
+        ...current,
+        ...newTotals,
+      }));
+    } catch (error: unknown) {
+      this.#logger.error('Failed to load template totals', error);
+    }
   }
 
   selectTemplate(templateId: string): void {
@@ -108,21 +134,6 @@ export class TemplateStore {
 
   clearSelection(): void {
     this.#selectedId.set(null);
-  }
-
-  initializeDefaultSelection(): void {
-    if (this.#selectedId()) return;
-    const all = this.templates();
-    const defaultTemplate = all.find((t) => t.isDefault);
-    if (defaultTemplate) {
-      this.selectTemplate(defaultTemplate.id);
-    } else if (all.length > 0) {
-      const sorted = all.toSorted(
-        (a, b) =>
-          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-      );
-      this.selectTemplate(sorted[0].id);
-    }
   }
 
   reloadTemplates(): void {

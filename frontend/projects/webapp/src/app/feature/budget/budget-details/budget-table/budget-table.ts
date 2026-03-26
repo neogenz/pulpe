@@ -106,7 +106,9 @@ import type {
                 matBadgeColor="primary"
                 (click)="viewTransactions.emit(line)"
                 [matTooltip]="
-                  'Voir les ' + line.consumption.transactionCountLabel
+                  'budget.viewTransactionsTooltip'
+                    | transloco
+                      : { label: line.consumption.transactionCountLabel }
                 "
               >
                 <mat-icon class="text-base! mr-1">receipt_long</mat-icon>

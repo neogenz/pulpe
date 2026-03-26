@@ -176,7 +176,6 @@ describe('CreateBudgetDialogComponent', () => {
         selectedTemplateIdSignal.set(null);
         selectedTemplateSignal.set(null);
       }),
-      initializeDefaultSelection: vi.fn(),
       loadTemplateLines: vi.fn().mockResolvedValue([]),
       loadTemplateTotals: vi.fn().mockResolvedValue(undefined),
       reloadTemplates: vi.fn(),

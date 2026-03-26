@@ -347,53 +347,61 @@ export class ChangePinDialog {
       this.#clearSensitiveState();
       this.#dialogRef.close({ recoveryKey: response.recoveryKey });
     } catch (error) {
-      if (isApiError(error)) {
-        if (error.code === API_ERROR_CODES.ENCRYPTION_KEY_CHECK_FAILED) {
-          this.errorMessage.set(
-            this.#transloco.translate('settings.changePin.incorrectOldPin'),
-          );
-          this.#clearSensitiveState();
-          this.step.set(1);
-          this.oldPinForm.reset();
-          return;
-        }
-        if (error.code === API_ERROR_CODES.ENCRYPTION_SAME_KEY) {
-          this.errorMessage.set(
-            this.#transloco.translate('settings.changePin.samePin'),
-          );
-          return;
-        }
-        if (
-          error.code === API_ERROR_CODES.ENCRYPTION_REKEY_PARTIAL_FAILURE &&
-          newClientKey
-        ) {
-          this.#clientKeyService.setDirectKey(newClientKey, hasLocalKey);
-          this.#clearSensitiveState();
-          this.#dialogRef.close({ recoveryKey: null });
-          return;
-        }
-        if (error.code === API_ERROR_CODES.ENCRYPTION_REKEY_FAILED) {
-          this.errorMessage.set(
-            this.#transloco.translate('settings.changePin.rekeyFailed'),
-          );
-          return;
-        }
-        if (error.status === 429) {
-          this.errorMessage.set(
-            this.#transloco.translate('settings.changePin.rateLimited'),
-          );
-          return;
-        }
-      }
-      this.#clearSensitiveState();
-      this.step.set(1);
-      this.#logger.error('PIN change failed', error);
-      this.errorMessage.set(
-        this.#transloco.translate('settings.changePin.changeFailed'),
-      );
+      this.#handlePinChangeError(error, newClientKey, hasLocalKey);
     } finally {
       this.isSubmitting.set(false);
     }
+  }
+
+  #handlePinChangeError(
+    error: unknown,
+    newClientKey: string | undefined,
+    hasLocalKey: boolean,
+  ): void {
+    if (isApiError(error)) {
+      if (error.code === API_ERROR_CODES.ENCRYPTION_KEY_CHECK_FAILED) {
+        this.errorMessage.set(
+          this.#transloco.translate('settings.changePin.incorrectOldPin'),
+        );
+        this.#clearSensitiveState();
+        this.step.set(1);
+        this.oldPinForm.reset();
+        return;
+      }
+      if (error.code === API_ERROR_CODES.ENCRYPTION_SAME_KEY) {
+        this.errorMessage.set(
+          this.#transloco.translate('settings.changePin.samePin'),
+        );
+        return;
+      }
+      if (
+        error.code === API_ERROR_CODES.ENCRYPTION_REKEY_PARTIAL_FAILURE &&
+        newClientKey
+      ) {
+        this.#clientKeyService.setDirectKey(newClientKey, hasLocalKey);
+        this.#clearSensitiveState();
+        this.#dialogRef.close({ recoveryKey: null });
+        return;
+      }
+      if (error.code === API_ERROR_CODES.ENCRYPTION_REKEY_FAILED) {
+        this.errorMessage.set(
+          this.#transloco.translate('settings.changePin.rekeyFailed'),
+        );
+        return;
+      }
+      if (error.status === 429) {
+        this.errorMessage.set(
+          this.#transloco.translate('settings.changePin.rateLimited'),
+        );
+        return;
+      }
+    }
+    this.#clearSensitiveState();
+    this.step.set(1);
+    this.#logger.error('PIN change failed', error);
+    this.errorMessage.set(
+      this.#transloco.translate('settings.changePin.changeFailed'),
+    );
   }
 
   #clearSensitiveState(): void {

@@ -85,7 +85,7 @@ import { BudgetActionMenu } from '../components/budget-action-menu';
             @if (item().metadata.isPropagationLocked) {
               <mat-icon
                 class="text-sm! text-outline shrink-0"
-                matTooltip="Montants verrouillés"
+                [matTooltip]="'budget.lockedAmountsTooltip' | transloco"
               >
                 lock
               </mat-icon>
@@ -231,7 +231,9 @@ import { BudgetActionMenu } from '../components/budget-action-menu';
                   matBadgeColor="primary"
                   (click)="viewTransactions.emit(item())"
                   [matTooltip]="
-                    'Voir les ' + item().consumption!.transactionCountLabel
+                    'budget.viewTransactionsTooltip'
+                      | transloco
+                        : { label: item().consumption!.transactionCountLabel }
                   "
                 >
                   <mat-icon class="text-base! mr-1">receipt_long</mat-icon>

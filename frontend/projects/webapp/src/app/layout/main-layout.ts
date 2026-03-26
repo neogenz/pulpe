@@ -95,7 +95,7 @@ interface NavigationItem {
       <mat-sidenav
         #drawer
         class="bg-surface-container!"
-        [class.!w-auto]="!isHandset()"
+        [class.w-auto!]="!isHandset()"
         [mode]="isHandset() ? 'over' : 'side'"
         [opened]="!isHandset()"
         [fixedInViewport]="isHandset()"

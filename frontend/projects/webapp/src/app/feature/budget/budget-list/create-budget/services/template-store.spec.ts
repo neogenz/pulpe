@@ -5,6 +5,7 @@ import { type TemplateLine } from 'pulpe-shared';
 import { TemplateStore } from './template-store';
 import { BudgetApi } from '@core/budget/budget-api';
 import { BudgetTemplatesApi } from '@core/budget-template/budget-templates-api';
+import { Logger } from '@core/logging/logger';
 
 const mockCache = {
   get: vi.fn().mockReturnValue(undefined),
@@ -110,6 +111,10 @@ describe('TemplateStore', () => {
         TemplateStore,
         { provide: BudgetApi, useValue: budgetApiMock },
         { provide: BudgetTemplatesApi, useValue: budgetTemplatesApiMock },
+        {
+          provide: Logger,
+          useValue: { error: vi.fn(), warn: vi.fn(), info: vi.fn() },
+        },
       ],
     });
 
@@ -132,14 +137,13 @@ describe('TemplateStore', () => {
       expect(store.selectedTemplateId()).toBeNull();
     });
 
-    it('should initialize default selection with default template', async () => {
+    it('should auto-select default template once templates are loaded', async () => {
       await new Promise((resolve) => setTimeout(resolve, 100));
 
-      store.initializeDefaultSelection();
       expect(store.selectedTemplateId()).toBe('template1');
     });
 
-    it('should initialize selection with newest template if no default', async () => {
+    it('should auto-select newest template if no default', async () => {
       const templatesWithoutDefault = mockTemplates.map((t) => ({
         ...t,
         isDefault: false,
@@ -152,13 +156,11 @@ describe('TemplateStore', () => {
 
       await new Promise((resolve) => setTimeout(resolve, 100));
 
-      store.initializeDefaultSelection();
       expect(store.selectedTemplateId()).toBe('template2');
     });
 
-    it('should not change selection if already selected', () => {
+    it('should allow manual selection override', () => {
       store.selectTemplate('template2');
-      store.initializeDefaultSelection();
       expect(store.selectedTemplateId()).toBe('template2');
     });
   });

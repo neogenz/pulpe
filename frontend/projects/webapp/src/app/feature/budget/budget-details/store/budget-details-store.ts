@@ -255,7 +255,7 @@ export class BudgetDetailsStore {
     const details = this.budgetDetails();
     if (!details) return 0;
     const lines = this.displayBudgetLines();
-    const transactions = details.transactions ?? [];
+    const transactions = details.transactions;
     return [...lines, ...transactions].filter((item) => item.checkedAt != null)
       .length;
   });
@@ -264,7 +264,7 @@ export class BudgetDetailsStore {
     const details = this.budgetDetails();
     if (!details) return 0;
     const lines = this.displayBudgetLines();
-    const transactions = details.transactions ?? [];
+    const transactions = details.transactions;
     return lines.length + transactions.length;
   });
 
@@ -304,7 +304,7 @@ export class BudgetDetailsStore {
     const details = this.budgetDetails();
     if (!details) return [];
 
-    const transactions = details.transactions ?? [];
+    const transactions = details.transactions;
     const visibleBudgetLineIds = new Set(
       this.filteredBudgetLines().map((line) => line.id),
     );
@@ -432,7 +432,7 @@ export class BudgetDetailsStore {
       const previous = this.budgetDetails();
       this.#updateDetails((details) => ({
         ...details,
-        transactions: (details.transactions ?? []).map((tx) =>
+        transactions: details.transactions.map((tx) =>
           tx.id === id
             ? { ...tx, ...data, updatedAt: new Date().toISOString() }
             : tx,
@@ -467,7 +467,7 @@ export class BudgetDetailsStore {
       this.#updateDetails((details) => ({
         ...details,
         budgetLines: details.budgetLines.filter((line) => line.id !== id),
-        transactions: (details.transactions ?? []).map((tx) =>
+        transactions: details.transactions.map((tx) =>
           tx.budgetLineId === id ? { ...tx, budgetLineId: null } : tx,
         ),
       }));
@@ -497,7 +497,7 @@ export class BudgetDetailsStore {
       const previous = this.budgetDetails();
       this.#updateDetails((details) => ({
         ...details,
-        transactions: details.transactions?.filter((tx) => tx.id !== id) ?? [],
+        transactions: details.transactions.filter((tx) => tx.id !== id),
       }));
       return previous;
     },
@@ -543,14 +543,14 @@ export class BudgetDetailsStore {
       };
       this.#updateDetails((details) => ({
         ...details,
-        transactions: [...(details.transactions ?? []), tempTransaction],
+        transactions: [...details.transactions, tempTransaction],
       }));
       return previous;
     },
     onSuccess: (response, { tempId }) => {
       this.#updateDetails((details) => ({
         ...details,
-        transactions: (details.transactions ?? []).map((tx) =>
+        transactions: details.transactions.map((tx) =>
           tx.id === tempId ? response.data : tx,
         ),
       }));
@@ -616,7 +616,7 @@ export class BudgetDetailsStore {
       if (!details) return null;
       const result = calculateBudgetLineToggle(id, {
         budgetLines: details.budgetLines,
-        transactions: details.transactions ?? [],
+        transactions: details.transactions,
       });
       if (!result) return null;
       const previous = details;
@@ -680,7 +680,7 @@ export class BudgetDetailsStore {
       if (!details) return null;
       const result = calculateTransactionToggle(id, {
         budgetLines: details.budgetLines,
-        transactions: details.transactions ?? [],
+        transactions: details.transactions,
       });
       if (!result) return null;
       const previous = details;
@@ -693,7 +693,7 @@ export class BudgetDetailsStore {
     onSuccess: (response, id) => {
       this.#updateDetails((d) => ({
         ...d,
-        transactions: (d.transactions ?? []).map((tx) =>
+        transactions: d.transactions.map((tx) =>
           tx.id === id ? response.data : tx,
         ),
       }));
@@ -732,7 +732,7 @@ export class BudgetDetailsStore {
       const previous = details;
       const now = new Date().toISOString();
       const uncheckedIds = new Set(
-        (details.transactions ?? [])
+        details.transactions
           .filter(
             (tx) =>
               tx.budgetLineId === budgetLineId &&
@@ -749,7 +749,7 @@ export class BudgetDetailsStore {
             ? { ...line, checkedAt: line.checkedAt ?? now, updatedAt: now }
             : line,
         ),
-        transactions: (d.transactions ?? []).map((tx) =>
+        transactions: d.transactions.map((tx) =>
           uncheckedIds.has(tx.id) ? { ...tx, checkedAt: now } : tx,
         ),
       }));
@@ -759,7 +759,7 @@ export class BudgetDetailsStore {
       const responseMap = new Map(response.data.map((tx) => [tx.id, tx]));
       this.#updateDetails((d) => ({
         ...d,
-        transactions: (d.transactions ?? []).map((tx) => {
+        transactions: d.transactions.map((tx) => {
           const serverTx = responseMap.get(tx.id);
           return serverTx ? { ...tx, checkedAt: serverTx.checkedAt } : tx;
         }),
@@ -776,7 +776,7 @@ export class BudgetDetailsStore {
     if (this.#mutatingIds.has(budgetLineId)) return;
     const details = this.budgetDetails();
     if (!details) return;
-    const hasUnchecked = (details.transactions ?? []).some(
+    const hasUnchecked = details.transactions.some(
       (tx) =>
         tx.budgetLineId === budgetLineId &&
         tx.checkedAt === null &&
@@ -802,6 +802,7 @@ export class BudgetDetailsStore {
     fn: (details: BudgetDetailsViewModel) => BudgetDetailsViewModel,
   ): void {
     this.#budgetDetailsResource.update((details) => {
+      // Early return when resource has no value — cast required by cachedResource.update() signature
       if (!details) return details as unknown as BudgetDetailsViewModel;
       return fn(details);
     });
