@@ -83,7 +83,7 @@ struct EditTemplateLineSheet: View {
             }
         } message: {
             Text("""
-                Ce modèle est utilisé par \(usageData?.budgetCount ?? 0) budget(s).\n\n\
+                Ce modèle est utilisé par \(usageData?.propagationBudgetCount ?? 0) budget(s).\n\n\
                 « Propager » appliquera les modifications aux budgets en cours et futurs. \
                 Les catégories modifiées manuellement ne seront pas affectées.
                 """)
@@ -144,7 +144,7 @@ struct EditTemplateLineSheet: View {
             recurrence: recurrence
         )
 
-        let budgetCount = usageData?.budgetCount ?? 0
+        let budgetCount = usageData?.propagationBudgetCount ?? 0
         if budgetCount > 0 {
             showPropagationAlert = true
         } else {

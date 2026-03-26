@@ -136,6 +136,11 @@ struct TemplateUsageData: Decodable {
     let isUsed: Bool
     let budgetCount: Int
     let budgets: [TemplateUsageBudget]
+
+    var propagationBudgetCount: Int {
+        let current = MonthYear()
+        return budgets.filter { MonthYear(month: $0.month, year: $0.year) >= current }.count
+    }
 }
 
 struct TemplateUsageBudget: Decodable {
