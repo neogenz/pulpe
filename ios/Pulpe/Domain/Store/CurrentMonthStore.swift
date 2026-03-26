@@ -62,18 +62,34 @@ final class CurrentMonthStore: StoreProtocol {
         var hasSavings: Bool { totalPlanned > 0 || totalRealized > 0 }
     }
 
+    /// Loading lifecycle — makes invalid UI states irrepresentable.
+    /// Error details live in the separate `error` property (mutations need independent error storage).
+    enum ContentState: Equatable, Sendable {
+        /// Store just initialized — no data fetched yet
+        case idle
+        /// Actively loading — no previous data available
+        case loading
+        /// Budget and details loaded successfully
+        case loaded
+        /// API confirmed no budget for the current month
+        case empty
+        /// Loading failed — check `error` for details
+        case failed
+    }
+
     // MARK: - State
 
+    private(set) var contentState: ContentState = .idle
     private(set) var budget: Budget?
     private(set) var budgetLines: [BudgetLine] = []
     private(set) var transactions: [Transaction] = []
-    private(set) var isLoading = false
     private(set) var error: APIError?
 
+    /// Derived from `contentState` — satisfies `StoreProtocol.isLoading`
+    var isLoading: Bool { contentState == .loading }
+
     /// Returns true if the store has an error and no budget data to display
-    var hasError: Bool {
-        error != nil && budget == nil
-    }
+    var hasError: Bool { contentState == .failed }
 
     /// Custom pay day used for period resolution (set via loadBudgetSummary)
     private(set) var payDayOfMonth: Int?
@@ -133,10 +149,9 @@ final class CurrentMonthStore: StoreProtocol {
     func loadBudgetSummary(payDayOfMonth: Int? = nil) async {
         self.payDayOfMonth = payDayOfMonth
         guard budget == nil else { return }
-        isLoading = true
+        contentState = .loading
         error = nil
         let loadStart = ContinuousClock.now
-        defer { isLoading = false }
 
         do {
             let sparseBudgets = try await budgetService.getBudgetsSparse(
@@ -149,6 +164,7 @@ final class CurrentMonthStore: StoreProtocol {
                 $0.month == period.month && $0.year == period.year
             }) else {
                 try await DesignTokens.Animation.ensureMinimumSkeletonTime(since: loadStart)
+                contentState = .empty
                 return
             }
 
@@ -158,13 +174,16 @@ final class CurrentMonthStore: StoreProtocol {
             try await DesignTokens.Animation.ensureMinimumSkeletonTime(since: loadStart)
 
             budget = fetchedBudget
+            contentState = .loaded
             recomputeMetrics()
         } catch is CancellationError {
             // Task was cancelled, don't update error state
         } catch let apiError as APIError {
             self.error = apiError
+            contentState = .failed
         } catch {
             self.error = .networkError(error)
+            contentState = .failed
         }
     }
 
@@ -188,9 +207,8 @@ final class CurrentMonthStore: StoreProtocol {
             return
         }
 
-        isLoading = true
+        // Budget exists — loading details in background, stay .loaded (no skeleton)
         error = nil
-        defer { isLoading = false }
 
         do {
             let details = try await budgetService.getBudgetWithDetails(id: currentBudget.id)
@@ -225,6 +243,7 @@ final class CurrentMonthStore: StoreProtocol {
         loadGeneration = 0
         widgetSyncTask?.cancel()
         widgetSyncTask = nil
+        contentState = .idle
         budget = nil
         budgetLines = []
         transactions = []
@@ -248,17 +267,18 @@ final class CurrentMonthStore: StoreProtocol {
         let currentGeneration = loadGeneration
 
         let task = Task {
-            let showsSkeleton = budget == nil
-            isLoading = true
+            let isFirstLoad = budget == nil
+            if isFirstLoad {
+                contentState = .loading
+            }
             error = nil
             let loadStart = ContinuousClock.now
-            defer { isLoading = false }
 
             do {
                 guard let currentBudget = try await budgetService.getCurrentMonthBudget(
                     payDayOfMonth: self.payDayOfMonth
                 ) else {
-                    if showsSkeleton {
+                    if isFirstLoad {
                         try await DesignTokens.Animation.ensureMinimumSkeletonTime(since: loadStart)
                     }
                     budget = nil
@@ -266,6 +286,7 @@ final class CurrentMonthStore: StoreProtocol {
                     transactions = []
                     recomputeMetrics()
                     lastLoadTime = Date()
+                    contentState = .empty
                     return
                 }
 
@@ -274,7 +295,7 @@ final class CurrentMonthStore: StoreProtocol {
 
                 let details = try await budgetService.getBudgetWithDetails(id: currentBudget.id)
 
-                if showsSkeleton {
+                if isFirstLoad {
                     try await DesignTokens.Animation.ensureMinimumSkeletonTime(since: loadStart)
                 }
 
@@ -283,8 +304,10 @@ final class CurrentMonthStore: StoreProtocol {
                 // Task was cancelled, don't update error state
             } catch let apiError as APIError {
                 self.error = apiError
+                if isFirstLoad { contentState = .failed }
             } catch {
                 self.error = .networkError(error)
+                if isFirstLoad { contentState = .failed }
             }
         }
 
@@ -330,6 +353,7 @@ final class CurrentMonthStore: StoreProtocol {
         transactions = details.transactions
         recomputeMetrics()
         lastLoadTime = Date()
+        contentState = .loaded
         BudgetDetailCache.shared.store(
             budgetId: details.budget.id,
             budget: details.budget,
@@ -363,6 +387,7 @@ final class CurrentMonthStore: StoreProtocol {
         self.budget = budget
         self.budgetLines = budgetLines
         self.transactions = transactions
+        contentState = budget != nil ? .loaded : .empty
         recomputeMetrics()
     }
     #endif
