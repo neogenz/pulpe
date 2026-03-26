@@ -19,6 +19,7 @@ struct EditTemplateLineSheet: View {
     @State private var submitSuccessTrigger = false
     @State private var showPropagationAlert = false
     @State private var usageData: TemplateUsageData?
+    @State private var usageFetchFailed = false
     @State private var pendingUpdate: TemplateLineUpdate?
 
     private let dependencies: EditTemplateLineDependencies
@@ -69,7 +70,11 @@ struct EditTemplateLineSheet: View {
         }
         .sensoryFeedback(.success, trigger: submitSuccessTrigger)
         .task {
-            usageData = try? await dependencies.checkTemplateUsage(templateLine.templateId)
+            do {
+                usageData = try await dependencies.checkTemplateUsage(templateLine.templateId)
+            } catch {
+                usageFetchFailed = true
+            }
         }
         .alert("Propager aux budgets ?", isPresented: $showPropagationAlert) {
             Button("Propager") {
@@ -82,8 +87,12 @@ struct EditTemplateLineSheet: View {
                 pendingUpdate = nil
             }
         } message: {
+            let count = usageData?.propagationBudgetCount ?? 0
+            let intro = usageFetchFailed
+                ? "Ce modèle est peut-être utilisé par d'autres budgets."
+                : "Ce modèle est utilisé par \(count) \(count == 1 ? "budget" : "budgets")."
             Text("""
-                Ce modèle est utilisé par \(usageData?.propagationBudgetCount ?? 0) budget(s).\n\n\
+                \(intro)\n\n\
                 « Propager » appliquera les modifications aux budgets en cours et futurs. \
                 Les catégories modifiées manuellement ne seront pas affectées.
                 """)
@@ -144,8 +153,8 @@ struct EditTemplateLineSheet: View {
             recurrence: recurrence
         )
 
-        let budgetCount = usageData?.propagationBudgetCount ?? 0
-        if budgetCount > 0 {
+        let hasBudgets = usageFetchFailed || (usageData?.propagationBudgetCount ?? 0) > 0
+        if hasBudgets {
             showPropagationAlert = true
         } else {
             await saveTemplateOnly()
@@ -190,7 +199,7 @@ struct EditTemplateLineSheet: View {
             let updatedLine = response.updated.first ?? templateLine
             let affectedCount = response.propagation?.affectedBudgetsCount ?? 0
             let message = affectedCount > 0
-                ? "Ligne modifiée — \(affectedCount) budget(s) mis à jour"
+                ? "Ligne modifiée — \(affectedCount) \(affectedCount == 1 ? "budget mis à jour" : "budgets mis à jour")"
                 : "Ligne modifiée"
             finishSave(updatedLine: updatedLine, message: message)
         } catch {

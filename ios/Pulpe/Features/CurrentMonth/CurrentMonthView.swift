@@ -44,6 +44,7 @@ struct CurrentMonthView: View {
                         .font(PulpeTypography.emojiDisplay)
                         .foregroundStyle(Color.textTertiary)
                         .symbolEffect(.pulse, options: .nonRepeating)
+                        .accessibilityHidden(true)
                     Text("Pas encore de budget ce mois-ci")
                         .font(PulpeTypography.stepTitle)
                         .foregroundStyle(Color.textPrimary)
