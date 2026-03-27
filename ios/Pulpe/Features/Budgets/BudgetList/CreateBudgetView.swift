@@ -123,8 +123,7 @@ struct CreateBudgetView: View {
                 .background(Color.surfaceContainerLow, in: Capsule())
         }
         .padding(DesignTokens.Spacing.lg)
-        .background(Color.surfaceContainerHigh)
-        .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.lg))
+        .pulpeCardBackground()
     }
 
     // MARK: - Template Section
@@ -195,8 +194,7 @@ struct CreateBudgetView: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, DesignTokens.Spacing.xxxl)
-        .background(Color.surfaceContainerHigh)
-        .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
+        .pulpeCardBackground(cornerRadius: DesignTokens.CornerRadius.md)
     }
 
     // MARK: - Template List
@@ -270,8 +268,7 @@ struct TemplateSelectionCard: View {
                 Spacer()
             }
             .padding(DesignTokens.Spacing.lg)
-            .background(cardBackground)
-            .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
+            .pulpeCardBackground(cornerRadius: DesignTokens.CornerRadius.md)
             .overlay(cardBorder)
             .scaleEffect(isPressed ? 0.98 : 1)
             .animation(.spring(response: 0.25, dampingFraction: 0.7), value: isPressed)
@@ -357,30 +354,12 @@ struct TemplateSelectionCard: View {
         }
     }
 
-    // MARK: - Card Background
-
-    @ViewBuilder
-    private var cardBackground: some View {
-        if isSelected {
-            LinearGradient(
-                colors: [
-                    Color.pulpePrimary.opacity(0.06),
-                    Color.pulpePrimary.opacity(0.02)
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-        } else {
-            Color.surfaceContainerHigh
-        }
-    }
-
     // MARK: - Card Border
 
     private var cardBorder: some View {
         RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md)
             .stroke(
-                isSelected ? Color.pulpePrimary.opacity(0.4) : Color.outlineVariant.opacity(0.2),
+                isSelected ? Color.pulpePrimary : Color.outlineVariant.opacity(DesignTokens.Opacity.heavy),
                 lineWidth: isSelected ? DesignTokens.BorderWidth.medium : DesignTokens.BorderWidth.hairline
             )
     }

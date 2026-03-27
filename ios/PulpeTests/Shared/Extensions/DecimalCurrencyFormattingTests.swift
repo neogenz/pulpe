@@ -71,6 +71,25 @@ struct DecimalCurrencyFormattingTests {
         #expect(formatted.hasSuffix("CHF"))
     }
 
+    @Test func asCompactCHF_negativeWholeNumber() {
+        let formatted = Decimal(-500).asCompactCHF
+        #expect(formatted.contains("-"), "Expected minus sign, got: \(formatted)")
+        #expect(formatted.contains("500"), "Expected amount digits, got: \(formatted)")
+        #expect(formatted.hasSuffix("CHF"), "Expected CHF after amount, got: \(formatted)")
+    }
+
+    @Test func asCompactCHF_negativeFractional() {
+        guard let value = Decimal(string: "-1234.56") else {
+            Issue.record("Failed to create Decimal from valid string")
+            return
+        }
+        let formatted = value.asCompactCHF
+        #expect(formatted.contains("-"), "Expected minus sign, got: \(formatted)")
+        #expect(formatted.contains("1234") || formatted.contains("1'234") || formatted.contains("1\u{2019}234"),
+                "Expected amount digits, got: \(formatted)")
+        #expect(formatted.hasSuffix("CHF"), "Expected CHF after amount, got: \(formatted)")
+    }
+
     // MARK: - Optional asCHF
 
     @Test func optionalAsCHF_nilReturnsFallback() {

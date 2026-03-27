@@ -7,15 +7,22 @@ struct PinDotsView: View {
     var isValidating: Bool = false
 
     @State private var shakeOffset: CGFloat = 0
-    @State private var pulseScale: CGFloat = 1.0
 
     var body: some View {
         HStack(spacing: DesignTokens.Spacing.lg) {
             ForEach(0..<maxDigits, id: \.self) { index in
+                let isFilled = index < enteredCount
                 Circle()
                     .fill(dotColor(at: index))
                     .frame(width: DesignTokens.Numpad.dotSize, height: DesignTokens.Numpad.dotSize)
-                    .scaleEffect(dotScale(at: index))
+                    .scaleEffect(isFilled ? 1.0 : 0.7)
+                    .phaseAnimator(
+                        isValidating && isFilled ? [false, true] : [false]
+                    ) { content, pulsing in
+                        content.scaleEffect(pulsing ? 0.7 : 1.0)
+                    } animation: { _ in
+                        .easeInOut(duration: DesignTokens.Animation.pulseDuration)
+                    }
                     .animation(.spring(response: 0.2, dampingFraction: 0.7), value: enteredCount)
             }
         }
@@ -29,24 +36,6 @@ struct PinDotsView: View {
                 shakeOffset = 0
             }
         }
-        .onChange(of: isValidating) { _, validating in
-            if validating {
-                withAnimation(DesignTokens.Animation.pulse) {
-                    pulseScale = 0.7
-                }
-            } else {
-                withAnimation(.spring(response: 0.2, dampingFraction: 0.7)) {
-                    pulseScale = 1.0
-                }
-            }
-        }
-    }
-
-    private func dotScale(at index: Int) -> CGFloat {
-        if isValidating && index < enteredCount {
-            return pulseScale
-        }
-        return index < enteredCount ? 1.0 : 0.7
     }
 
     private func dotColor(at index: Int) -> Color {
