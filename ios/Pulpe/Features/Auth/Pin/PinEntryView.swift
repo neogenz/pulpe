@@ -223,7 +223,7 @@ final class PinEntryViewModel {
 
         errorResetTask?.cancel()
         errorResetTask = Task {
-            try? await Task.sleep(for: .seconds(1))
+            try? await Task.sleep(for: .seconds(2))
             guard !Task.isCancelled else { return }
             clearError()
         }

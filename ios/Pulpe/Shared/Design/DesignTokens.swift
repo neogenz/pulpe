@@ -126,6 +126,8 @@ enum DesignTokens {
         static let badge: CGFloat = 36
         /// Small inline icons
         static let compact: CGFloat = 28
+        /// Widget action button (plus circle in widget footers)
+        static let widgetAction: CGFloat = 44
         /// Social login button icons (Apple logo, Google logo)
         static let socialButton: CGFloat = 20
     }

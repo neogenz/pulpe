@@ -4,19 +4,20 @@ import WidgetKit
 struct YearOverviewWidgetView: View {
     var entry: YearOverviewEntry
 
-    private let columns = Array(repeating: GridItem(.flexible(), spacing: 8), count: 4)
+    private static let columns = Array(repeating: GridItem(.flexible(), spacing: DesignTokens.Spacing.sm), count: 4)
 
     private var currentMonth: MonthData? {
         entry.months.first { $0.isCurrentMonth }
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+            // Year title — brand font for identity
             Text("\(String(entry.year))")
-                .font(.headline)
-                .foregroundStyle(Color.textSecondary)
+                .font(PulpeTypography.tutorialTitle)
+                .foregroundStyle(Color.textPrimary)
 
-            LazyVGrid(columns: columns, spacing: 8) {
+            LazyVGrid(columns: Self.columns, spacing: DesignTokens.Spacing.sm) {
                 ForEach(entry.months) { month in
                     if month.hasBudget {
                         Link(destination: DeepLinks.budget(id: month.id)) {
@@ -29,28 +30,28 @@ struct YearOverviewWidgetView: View {
             }
 
             if let month = currentMonth {
-                Divider()
-
                 currentMonthSummary(month)
             }
         }
-        .padding()
-        .containerBackground(.fill.tertiary, for: .widget)
+        .padding(DesignTokens.Spacing.lg)
+        .containerBackground(.background, for: .widget)
     }
+
+    // MARK: - Current Month Summary
 
     @ViewBuilder
     private func currentMonthSummary(_ month: MonthData) -> some View {
         HStack {
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                 Text("Disponible \(month.shortName.lowercased())")
-                    .font(.caption)
+                    .font(PulpeTypography.detailLabel)
                     .foregroundStyle(Color.textSecondary)
 
                 if let available = month.available {
                     Text(available.asCHF)
-                        .font(.title2)
-                        .fontWeight(.semibold)
-                        .foregroundStyle(available >= 0 ? Color.primary : Color.financialExpense)
+                        .font(PulpeTypography.amountLarge)
+                        .monospacedDigit()
+                        .foregroundStyle(available >= 0 ? Color.pulpePrimary : Color.financialOverBudget)
                         .privacySensitive()
                 }
             }
@@ -62,43 +63,55 @@ struct YearOverviewWidgetView: View {
 
             Link(destination: DeepLinks.addExpense) {
                 Image(systemName: "plus.circle.fill")
-                    .font(.system(size: 44))
-                    .foregroundStyle(.tint)
+                    .font(.system(size: DesignTokens.IconSize.widgetAction))
+                    .foregroundStyle(Color.pulpePrimary)
             }
             .accessibilityLabel("Ajouter une dépense")
         }
+        .padding(.top, DesignTokens.Spacing.sm)
     }
+
+    // MARK: - Month Cell
 
     @ViewBuilder
     private func monthCell(_ month: MonthData) -> some View {
-        VStack(spacing: 2) {
+        VStack(spacing: DesignTokens.Spacing.xs) {
             Text(month.shortName)
-                .font(.caption2)
-                .foregroundStyle(month.isCurrentMonth ? .primary : .secondary)
+                .font(PulpeTypography.metricMini)
+                .foregroundStyle(month.isCurrentMonth ? Color.textPrimary : Color.textSecondary)
 
             if let available = month.available {
-                Text(available.asCompactCHF)
-                    .font(.caption)
-                    .fontWeight(month.isCurrentMonth ? .semibold : .regular)
-                    .foregroundStyle(available >= 0 ? Color.primary : Color.financialExpense)
-                    .minimumScaleFactor(0.7)
+                Text(available.asAmount)
+                    .font(PulpeTypography.metricMini)
+                    .fontWeight(month.isCurrentMonth ? .bold : .regular)
+                    .foregroundStyle(amountColor(for: available))
+                    .monospacedDigit()
+                    .minimumScaleFactor(0.6)
                     .lineLimit(1)
                     .privacySensitive()
             } else {
                 Text("—")
-                    .font(.caption)
-                    .foregroundStyle(Color("TextTertiary"))
+                    .font(PulpeTypography.metricMini)
+                    .foregroundStyle(Color.textTertiary)
             }
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 6)
+        .padding(.vertical, DesignTokens.Spacing.xs)
         .background(
-            RoundedRectangle(cornerRadius: 6)
-                .fill(month.isCurrentMonth ? Color.accentColor.opacity(0.15) : Color.clear)
+            RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.sm)
+                .fill(month.isCurrentMonth
+                      ? Color.surfaceContainerHighest
+                      : Color.clear)
         )
         .accessibilityElement(children: .combine)
         .accessibilityLabel(month.shortName)
         .accessibilityValue(month.available.map { "\($0.asCompactCHF)" } ?? "Pas de données")
         .accessibilityAddTraits(month.isCurrentMonth ? .isSelected : [])
+    }
+
+    // MARK: - Helpers
+
+    private func amountColor(for amount: Decimal) -> Color {
+        amount < 0 ? .financialOverBudget : .textPrimary
     }
 }

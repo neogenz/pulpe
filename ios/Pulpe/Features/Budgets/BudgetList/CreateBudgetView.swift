@@ -268,8 +268,7 @@ struct TemplateSelectionCard: View {
                 Spacer()
             }
             .padding(DesignTokens.Spacing.lg)
-            .background(cardBackground)
-            .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
+            .pulpeCardBackground(cornerRadius: DesignTokens.CornerRadius.md)
             .overlay(cardBorder)
             .scaleEffect(isPressed ? 0.98 : 1)
             .animation(.spring(response: 0.25, dampingFraction: 0.7), value: isPressed)
@@ -353,12 +352,6 @@ struct TemplateSelectionCard: View {
                     .sensitiveAmount()
             }
         }
-    }
-
-    // MARK: - Card Background
-
-    private var cardBackground: Color {
-        .surfaceContainerLowest
     }
 
     // MARK: - Card Border

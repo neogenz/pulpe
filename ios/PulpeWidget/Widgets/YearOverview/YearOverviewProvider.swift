@@ -33,17 +33,13 @@ struct YearOverviewProvider: TimelineProvider {
     private func loadEntry() -> YearOverviewEntry? {
         guard let cache = coordinator.load() else { return nil }
 
-        let now = Date()
-        let currentMonth = Calendar.current.component(.month, from: now)
-        let currentYear = Calendar.current.component(.year, from: now)
-
         let months = cache.yearBudgets.map { budget in
             MonthData(
                 id: budget.id,
                 month: budget.month,
                 shortName: budget.shortMonthName,
                 available: budget.available,
-                isCurrentMonth: budget.month == currentMonth && budget.year == currentYear
+                isCurrentMonth: budget.isCurrentMonth
             )
         }
 
