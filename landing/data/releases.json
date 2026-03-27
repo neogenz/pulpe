@@ -1,5 +1,41 @@
 [
   {
+    "version": "0.31.1",
+    "date": "2026-03-27",
+    "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.31.1",
+    "platforms": ["ios"],
+    "changes": {
+      "features": [],
+      "fixes": [
+        {
+          "title": "Race condition du jour de paie",
+          "description": "Le mois courant pouvait s'afficher incorrectement au lancement à cause d'un chargement concurrent"
+        },
+        {
+          "title": "Déverrouillage par code PIN",
+          "description": "Le jour de paie n'était pas rechargé après l'authentification, affichant des données obsolètes"
+        },
+        {
+          "title": "Refonte des widgets",
+          "description": "Les widgets adoptent le design system avec des couleurs et contrastes corrects"
+        },
+        {
+          "title": "Montants négatifs dans les widgets",
+          "description": "Les montants négatifs étaient invisibles, correction du contraste WCAG"
+        },
+        {
+          "title": "Contraste des cartes de création",
+          "description": "Meilleure lisibilité des cartes dans l'écran de création de budget"
+        },
+        {
+          "title": "Animation de chargement bloquée",
+          "description": "L'animation pulse ne s'arrêtait plus, remplacée par un mécanisme plus fiable"
+        }
+      ],
+      "technical": []
+    }
+  },
+  {
     "version": "0.31.0",
     "date": "2026-03-27",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.31.0",
