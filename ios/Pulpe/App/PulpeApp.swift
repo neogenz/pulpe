@@ -202,6 +202,15 @@ struct RootView: View {
             let new = String(describing: newAuth)
             Logger.auth.debug("[AUTH_STATE_UI] \(old, privacy: .public) → \(new, privacy: .public)")
             #endif
+            // Load settings + budget after PIN/biometric unlock
+            if oldAuth != .authenticated, newAuth == .authenticated {
+                Task {
+                    await userSettingsStore.loadIfNeeded()
+                    await currentMonthStore.loadBudgetSummary(
+                        payDayOfMonth: userSettingsStore.payDayOfMonth
+                    )
+                }
+            }
         }
         .alert(
             "Générer une clé de récupération ?",
