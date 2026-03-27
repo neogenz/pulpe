@@ -109,7 +109,13 @@ export class EncryptionService {
     ciphertext: string,
     dek: Buffer,
     fallbackAmount: number,
-  ): number {
+  ): number;
+  tryDecryptAmount(ciphertext: string, dek: Buffer, fallbackAmount: null): null;
+  tryDecryptAmount(
+    ciphertext: string,
+    dek: Buffer,
+    fallbackAmount: number | null,
+  ): number | null {
     try {
       return this.decryptAmount(ciphertext, dek);
     } catch (error) {

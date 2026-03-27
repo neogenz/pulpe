@@ -1365,7 +1365,11 @@ export class BudgetService {
         ? this.encryptionService.tryDecryptAmount(row.amount, dek, 0)
         : 0,
       original_amount: row.original_amount
-        ? this.encryptionService.tryDecryptAmount(row.original_amount, dek, 0)
+        ? this.encryptionService.tryDecryptAmount(
+            row.original_amount,
+            dek,
+            null,
+          )
         : null,
     };
   }
