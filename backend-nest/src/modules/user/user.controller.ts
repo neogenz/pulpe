@@ -282,25 +282,11 @@ export class UserController {
     type: UserSettingsResponseDto,
   })
   async getSettings(
-    @User() user: AuthenticatedUser,
+    @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<UserSettingsResponseDto> {
     try {
-      // Use service role client to read fresh user_metadata from the database,
-      // not the JWT-embedded snapshot which can be stale after updateSettings.
-      const serviceClient = this.supabaseService.getServiceRoleClient();
-      const { data: userData, error: getUserError } =
-        await serviceClient.auth.admin.getUserById(user.id);
-
-      if (getUserError || !userData.user) {
-        throw new BusinessException(
-          ERROR_DEFINITIONS.USER_FETCH_FAILED,
-          undefined,
-          undefined,
-          { cause: getUserError },
-        );
-      }
-
-      const rawPayDay = userData.user.user_metadata?.payDayOfMonth;
+      const currentUserData = await this.getCurrentUserData(supabase);
+      const rawPayDay = currentUserData.user.user_metadata?.payDayOfMonth;
       const parsed = payDayOfMonthSchema.safeParse(rawPayDay);
       const payDayOfMonth = parsed.success ? parsed.data : null;
 
