@@ -238,7 +238,7 @@ export default class EnterVaultCode {
       this.#clientKeyService.setDirectKey(clientKeyHex, rememberDevice);
 
       this.#postHogService.captureEvent('vault_code_entered');
-      this.#router.navigate(['/', ROUTES.DASHBOARD]);
+      await this.#router.navigate(['/', ROUTES.DASHBOARD]);
     } catch (error) {
       this.#logger.error('Enter vault code failed:', error);
 
