@@ -25,7 +25,8 @@
     "formErrors": "Quelques champs à vérifier avant de continuer",
     "conversionError": "La conversion de devise a échoué — réessaie",
     "networkError": "Erreur réseau — vérifie ta connexion",
-    "clear": "Effacer"
+    "clear": "Effacer",
+    "currencySelector": "Devise"
   },
   "navigation": {
     "dashboard": "Tableau de bord",

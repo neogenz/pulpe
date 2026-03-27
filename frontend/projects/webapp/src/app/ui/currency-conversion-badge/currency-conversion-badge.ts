@@ -16,6 +16,8 @@ import { MatTooltipModule } from '@angular/material/tooltip';
         [matTooltip]="tooltipText()"
         matTooltipClass="whitespace-pre-line"
         [attr.aria-label]="tooltipText()"
+        role="img"
+        tabindex="0"
         class="!text-base text-on-surface-variant inline-flex align-middle cursor-help"
         >currency_exchange</mat-icon
       >

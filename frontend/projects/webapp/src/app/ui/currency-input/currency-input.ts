@@ -14,6 +14,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSelectModule } from '@angular/material/select';
+import { TranslocoPipe } from '@jsverse/transloco';
 
 @Component({
   selector: 'pulpe-currency-input',
@@ -23,6 +24,7 @@ import { MatSelectModule } from '@angular/material/select';
     MatInputModule,
     MatIconModule,
     MatSelectModule,
+    TranslocoPipe,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -53,7 +55,7 @@ import { MatSelectModule } from '@angular/material/select';
           [value]="currency()"
           (selectionChange)="currencyChange.emit($event.value)"
           class="!w-[70px] text-on-surface-variant font-medium"
-          aria-label="Devise"
+          [attr.aria-label]="'common.currencySelector' | transloco"
         >
           @for (c of currencies; track c) {
             <mat-option [value]="c">{{ c }}</mat-option>
