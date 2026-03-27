@@ -1,5 +1,16 @@
 # pulpe-frontend
 
+## 0.31.0
+
+### Minor Changes
+
+- Génération automatique des budgets à l'inscription, vérification de la clé de récupération, connexion Apple/Google sur iOS, cache intelligent des budgets.
+
+### Patch Changes
+
+- Updated dependencies
+  - pulpe-shared@0.31.0
+
 ## 0.29.0
 
 ### Minor Changes

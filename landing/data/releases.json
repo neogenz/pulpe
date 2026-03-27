@@ -1,5 +1,79 @@
 [
   {
+    "version": "0.31.0",
+    "date": "2026-03-27",
+    "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.31.0",
+    "platforms": ["web", "ios"],
+    "changes": {
+      "features": [
+        {
+          "title": "Génération automatique des budgets",
+          "description": "À l'inscription, 12 mois de budgets sont créés automatiquement à partir du modèle choisi"
+        },
+        {
+          "title": "Vérification de la clé de récupération",
+          "description": "Vérifier sa clé de récupération depuis les paramètres pour s'assurer de pouvoir déchiffrer ses données"
+        },
+        {
+          "title": "Connexion Apple et Google sur iOS",
+          "description": "Authentification sociale via Apple Sign-In et Google Sign-In sur l'application native"
+        },
+        {
+          "title": "Cache intelligent des budgets",
+          "description": "Affichage instantané des budgets déjà consultés avec rafraîchissement en arrière-plan"
+        },
+        {
+          "title": "Refonte visuelle iOS",
+          "description": "Palette chaude, gradients hero, tokens de design harmonisés et meilleur contraste WCAG"
+        },
+        {
+          "title": "Retour haptique sur iOS",
+          "description": "Vibrations tactiles pour guider la saisie et la récupération du code PIN"
+        }
+      ],
+      "fixes": [
+        {
+          "title": "Navigation après saisie du code coffre",
+          "description": "Le spinner reste visible jusqu'au chargement complet du tableau de bord"
+        },
+        {
+          "title": "État vide contextuel",
+          "description": "Message adapté lorsque tous les éléments sont pointés dans les filtres budget"
+        },
+        {
+          "title": "Champs sparse inconnus",
+          "description": "Message d'erreur explicite avec les noms des champs non reconnus"
+        },
+        {
+          "title": "Prévention du rate limiting",
+          "description": "Suppression des requêtes multiples lors du rafraîchissement du tableau de bord"
+        },
+        {
+          "title": "Tracking inter-domaines",
+          "description": "Suivi analytique continu entre la landing page et la webapp"
+        },
+        {
+          "title": "Cohérence des montants iOS",
+          "description": "Signe, alignement et détails de modèle corrigés"
+        }
+      ],
+      "technical": [
+        {
+          "title": "Cache SWR ziflux",
+          "description": "Intégration du cache SWR ziflux sur l'ensemble des stores budget"
+        },
+        {
+          "title": "Audit clean code Angular 21",
+          "description": "Refactoring des patterns de signals et audit qualité"
+        },
+        {
+          "title": "Réécriture du copy landing",
+          "description": "Réécriture du copy de la landing page pour la conversion"
+        }
+      ]
+    }
+  },
+  {
     "version": "0.30.0",
     "date": "2026-03-13",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.30.0",

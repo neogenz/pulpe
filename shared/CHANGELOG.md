@@ -1,5 +1,11 @@
 # pulpe-shared
 
+## 0.31.0
+
+### Minor Changes
+
+- Génération automatique des budgets à l'inscription, vérification de la clé de récupération, connexion Apple/Google sur iOS, cache intelligent des budgets.
+
 ## 0.8.3
 
 ### Patch Changes

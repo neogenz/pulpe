@@ -1,5 +1,11 @@
 # pulpe-landing
 
+## 0.30.1
+
+### Patch Changes
+
+- Génération automatique des budgets à l'inscription, vérification de la clé de récupération, connexion Apple/Google sur iOS, cache intelligent des budgets.
+
 ## 0.6.0
 
 ### Minor Changes
