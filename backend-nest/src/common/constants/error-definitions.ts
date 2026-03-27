@@ -145,7 +145,10 @@ export const ERROR_DEFINITIONS = {
   },
   BUDGET_FETCH_FAILED: {
     code: API_ERROR_CODES.BUDGET_FETCH_FAILED,
-    message: () => 'Failed to fetch budgets',
+    message: (details) =>
+      details?.fields
+        ? `Unknown sparse fields: ${details.fields}`
+        : 'Failed to fetch budgets',
     httpStatus: HttpStatus.INTERNAL_SERVER_ERROR,
   },
   BUDGET_ALREADY_EXISTS_FOR_MONTH: {
