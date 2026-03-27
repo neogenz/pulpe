@@ -148,7 +148,23 @@ final class CurrentMonthStore: StoreProtocol {
     /// Use this at app startup to quickly enable the "+" button
     func loadBudgetSummary(payDayOfMonth: Int? = nil) async {
         self.payDayOfMonth = payDayOfMonth
-        guard budget == nil else { return }
+
+        // Cancel any in-flight forceRefresh that may be using a stale/nil payDay
+        loadTask?.cancel()
+
+        // If we already have a budget for the correct period, skip reload
+        if let existingBudget = budget {
+            let period = BudgetPeriodCalculator.periodForDate(Date(), payDayOfMonth: payDayOfMonth)
+            if existingBudget.month == period.month && existingBudget.year == period.year {
+                return
+            }
+            // Period mismatch — clear stale budget before reloading
+            budget = nil
+            budgetLines = []
+            transactions = []
+            recomputeMetrics()
+        }
+
         contentState = .loading
         error = nil
         let loadStart = ContinuousClock.now
