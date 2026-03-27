@@ -145,10 +145,7 @@ export const ERROR_DEFINITIONS = {
   },
   BUDGET_FETCH_FAILED: {
     code: API_ERROR_CODES.BUDGET_FETCH_FAILED,
-    message: (details) =>
-      details?.fields
-        ? `Unknown sparse fields: ${details.fields}`
-        : 'Failed to fetch budgets',
+    message: () => 'Failed to fetch budgets',
     httpStatus: HttpStatus.INTERNAL_SERVER_ERROR,
   },
   BUDGET_ALREADY_EXISTS_FOR_MONTH: {
@@ -158,6 +155,12 @@ export const ERROR_DEFINITIONS = {
         ? `A budget already exists for month ${details.month}/${details.year}`
         : 'A budget already exists for this month',
     httpStatus: HttpStatus.CONFLICT,
+  },
+  BUDGET_UNKNOWN_SPARSE_FIELDS: {
+    code: API_ERROR_CODES.BUDGET_UNKNOWN_SPARSE_FIELDS,
+    message: (details?: Record<string, unknown>) =>
+      `Unknown sparse fields: ${details?.fields ?? 'unknown'}`,
+    httpStatus: HttpStatus.BAD_REQUEST,
   },
   BUDGET_GENERATE_FAILED: {
     code: API_ERROR_CODES.BUDGET_GENERATE_FAILED,

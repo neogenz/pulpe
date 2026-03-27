@@ -206,7 +206,7 @@ export class BudgetService {
     );
     if (invalidFields.length > 0) {
       throw new BusinessException(
-        ERROR_DEFINITIONS.BUDGET_FETCH_FAILED,
+        ERROR_DEFINITIONS.BUDGET_UNKNOWN_SPARSE_FIELDS,
         { fields: invalidFields.join(', ') },
         { operation: 'findAllSparse', userId: user.id },
       );
