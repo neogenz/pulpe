@@ -545,21 +545,25 @@ describe('BudgetService', () => {
       it('should reject unknown sparse field names', async () => {
         const mockUser = createMockAuthenticatedUser();
 
-        await expect(
-          service.findAll(mockUser, mockSupabaseClient as any, {
-            fields: 'month,invalidField',
-          }),
-        ).rejects.toThrow('Unknown sparse fields: invalidField');
+        await expectBusinessExceptionThrown(
+          () =>
+            service.findAll(mockUser, mockSupabaseClient as any, {
+              fields: 'month,invalidField',
+            }),
+          ERROR_DEFINITIONS.BUDGET_UNKNOWN_SPARSE_FIELDS,
+        );
       });
 
       it('should reject all unknown fields and list them', async () => {
         const mockUser = createMockAuthenticatedUser();
 
-        await expect(
-          service.findAll(mockUser, mockSupabaseClient as any, {
-            fields: 'foo,bar',
-          }),
-        ).rejects.toThrow('Unknown sparse fields: foo, bar');
+        await expectBusinessExceptionThrown(
+          () =>
+            service.findAll(mockUser, mockSupabaseClient as any, {
+              fields: 'foo,bar',
+            }),
+          ERROR_DEFINITIONS.BUDGET_UNKNOWN_SPARSE_FIELDS,
+        );
       });
 
       it('should combine fields + year + limit filters', async () => {
