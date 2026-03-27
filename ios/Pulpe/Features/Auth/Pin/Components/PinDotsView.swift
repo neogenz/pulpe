@@ -35,7 +35,11 @@ struct PinDotsView: View {
                     pulseScale = 0.7
                 }
             } else {
-                withAnimation(.spring(response: 0.2, dampingFraction: 0.7)) {
+                // Kill the repeatForever animation by setting the value
+                // without any animation context first, then spring to rest.
+                var transaction = SwiftUI.Transaction()
+                transaction.animation = nil
+                withTransaction(transaction) {
                     pulseScale = 1.0
                 }
             }

@@ -92,6 +92,10 @@ struct CurrentMonthView: View {
             }
         }
         .task {
+            // Ensure settings (payDay) are loaded before budget loading,
+            // critical when user has PIN lock (settings aren't loaded at startup)
+            await userSettingsStore.loadIfNeeded()
+            store.setPayDay(userSettingsStore.payDayOfMonth)
             await store.loadDetailsIfNeeded()
             if reduceMotion {
                 hasAppeared = true
