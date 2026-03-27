@@ -12,9 +12,9 @@
       "computedHash": "2789fdf11e2a70832ce2e6e79954018325a010ebdd45c5d4b1e7bfdf44679b7c"
     },
     "angular-developer": {
-      "source": "angular/skills",
+      "source": "angular/angular",
       "sourceType": "github",
-      "computedHash": "f56a327a305b605a7ba24243a4b6b69cf1a8dc96f21ce630c9a9ac64a873689d"
+      "computedHash": "19665190ec60c37f59a08715b0896dfa91ee9b9f477d90cb82ce3fb52b06e328"
     },
     "angular-di": {
       "source": "analogjs/angular-skills",
