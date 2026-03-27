@@ -56,6 +56,11 @@
       "sourceType": "github",
       "computedHash": "2a67063279e8ac1b5cf3d9c4e9ed4652508564640c1fc59642857d4f6d20db11"
     },
+    "apple-appstore-reviewer": {
+      "source": "github/awesome-copilot",
+      "sourceType": "github",
+      "computedHash": "848a1946f838e1b36f4af8b65caeea9e5bfa486d6059325520bb6124c05b0526"
+    },
     "asc-app-create-ui": {
       "source": "rudrankriyam/app-store-connect-cli-skills",
       "sourceType": "github",
