@@ -218,7 +218,11 @@ struct EditTemplateLineSheet: View {
                     amount: data.amount,
                     kind: data.kind,
                     recurrence: data.recurrence,
-                    description: data.description
+                    description: data.description,
+                    originalAmount: data.originalAmount,
+                    originalCurrency: data.originalCurrency,
+                    targetCurrency: data.targetCurrency,
+                    exchangeRate: data.exchangeRate
                 )],
                 propagateToBudgets: true
             )

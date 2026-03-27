@@ -23,6 +23,9 @@ struct CurrencyConversionBadge: View {
                     .foregroundStyle(.secondary)
             }
             .buttonStyle(.plain)
+            .frame(minWidth: 44, minHeight: 44)
+            .contentShape(Rectangle())
+            .accessibilityLabel("Détails de conversion")
             .popover(isPresented: $isShowingPopover) {
                 popoverContent
                     .presentationCompactAdaptation(.popover)

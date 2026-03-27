@@ -120,8 +120,10 @@ export class CurrencyService {
 
     if (!baseResult.success || !targetResult.success) {
       throw new BusinessException(
-        ERROR_DEFINITIONS.CURRENCY_RATE_FETCH_FAILED,
-        { base: dto.originalCurrency, target: dto.targetCurrency },
+        ERROR_DEFINITIONS.VALIDATION_FAILED,
+        {
+          reason: `Unsupported currency: ${!baseResult.success ? dto.originalCurrency : dto.targetCurrency}`,
+        },
         { operation: 'overrideExchangeRate' },
       );
     }

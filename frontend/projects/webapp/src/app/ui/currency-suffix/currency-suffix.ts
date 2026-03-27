@@ -6,10 +6,11 @@ import {
 } from '@angular/core';
 import { type SupportedCurrency, SUPPORTED_CURRENCIES } from 'pulpe-shared';
 import { MatSelectModule } from '@angular/material/select';
+import { TranslocoPipe } from '@jsverse/transloco';
 
 @Component({
   selector: 'pulpe-currency-suffix',
-  imports: [MatSelectModule],
+  imports: [MatSelectModule, TranslocoPipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (showSelector()) {
@@ -17,7 +18,7 @@ import { MatSelectModule } from '@angular/material/select';
         [value]="currency()"
         (selectionChange)="currencyChange.emit($event.value)"
         class="!w-[70px] text-on-surface-variant font-medium"
-        aria-label="Devise"
+        [attr.aria-label]="'common.currencySelector' | transloco"
       >
         @for (c of currencies; track c) {
           <mat-option [value]="c">{{ c }}</mat-option>

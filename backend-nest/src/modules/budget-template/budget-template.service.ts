@@ -73,7 +73,7 @@ export class BudgetTemplateService {
       : 0;
 
     const decryptedOriginalAmount = line.original_amount
-      ? this.encryptionService.tryDecryptAmount(line.original_amount, dek, 0)
+      ? this.encryptionService.tryDecryptAmount(line.original_amount, dek, null)
       : null;
 
     return {

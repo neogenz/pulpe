@@ -68,6 +68,9 @@ struct CurrencySettingView: View {
                 .buttonStyle(.bordered)
                 .buttonBorderShape(.circle)
                 .tint(.pulpePrimary)
+                .frame(minWidth: 44, minHeight: 44)
+                .contentShape(Rectangle())
+                .accessibilityLabel("Inverser les devises")
 
                 Text(viewModel.convertedAmount)
                     .font(PulpeTypography.labelLarge)
