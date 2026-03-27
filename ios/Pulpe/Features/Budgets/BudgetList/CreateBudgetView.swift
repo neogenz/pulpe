@@ -123,8 +123,7 @@ struct CreateBudgetView: View {
                 .background(Color.surfaceContainerLow, in: Capsule())
         }
         .padding(DesignTokens.Spacing.lg)
-        .background(Color.surfaceContainerHigh)
-        .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.lg))
+        .pulpeCardBackground()
     }
 
     // MARK: - Template Section
@@ -195,8 +194,7 @@ struct CreateBudgetView: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, DesignTokens.Spacing.xxxl)
-        .background(Color.surfaceContainerHigh)
-        .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
+        .pulpeCardBackground(cornerRadius: DesignTokens.CornerRadius.md)
     }
 
     // MARK: - Template List
@@ -359,13 +357,8 @@ struct TemplateSelectionCard: View {
 
     // MARK: - Card Background
 
-    @ViewBuilder
-    private var cardBackground: some View {
-        if isSelected {
-            Color.surfaceContainerHigh
-        } else {
-            Color.surfaceContainerHigh
-        }
+    private var cardBackground: Color {
+        .surfaceContainerLowest
     }
 
     // MARK: - Card Border
@@ -373,7 +366,7 @@ struct TemplateSelectionCard: View {
     private var cardBorder: some View {
         RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md)
             .stroke(
-                isSelected ? Color.pulpePrimary : Color.outlineVariant.opacity(0.2),
+                isSelected ? Color.pulpePrimary : Color.outlineVariant.opacity(DesignTokens.Opacity.heavy),
                 lineWidth: isSelected ? DesignTokens.BorderWidth.medium : DesignTokens.BorderWidth.hairline
             )
     }
