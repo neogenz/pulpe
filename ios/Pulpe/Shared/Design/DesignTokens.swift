@@ -202,8 +202,10 @@ enum DesignTokens {
             .easeOut(duration: fast)
         }
 
+        static let pulseDuration: Double = 0.6
+
         static var pulse: SwiftUI.Animation {
-            .easeInOut(duration: 0.6).repeatForever(autoreverses: true)
+            .easeInOut(duration: pulseDuration).repeatForever(autoreverses: true)
         }
 
         // MARK: - Skeleton
