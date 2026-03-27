@@ -362,14 +362,7 @@ struct TemplateSelectionCard: View {
     @ViewBuilder
     private var cardBackground: some View {
         if isSelected {
-            LinearGradient(
-                colors: [
-                    Color.pulpePrimary.opacity(0.06),
-                    Color.pulpePrimary.opacity(0.02)
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
+            Color.surfaceContainerHigh
         } else {
             Color.surfaceContainerHigh
         }
@@ -380,7 +373,7 @@ struct TemplateSelectionCard: View {
     private var cardBorder: some View {
         RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md)
             .stroke(
-                isSelected ? Color.pulpePrimary.opacity(0.4) : Color.outlineVariant.opacity(0.2),
+                isSelected ? Color.pulpePrimary : Color.outlineVariant.opacity(0.2),
                 lineWidth: isSelected ? DesignTokens.BorderWidth.medium : DesignTokens.BorderWidth.hairline
             )
     }
