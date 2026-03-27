@@ -156,6 +156,17 @@ export const ERROR_DEFINITIONS = {
         : 'A budget already exists for this month',
     httpStatus: HttpStatus.CONFLICT,
   },
+  BUDGET_UNKNOWN_SPARSE_FIELDS: {
+    code: API_ERROR_CODES.BUDGET_UNKNOWN_SPARSE_FIELDS,
+    message: (details?: Record<string, unknown>) =>
+      `Unknown sparse fields: ${details?.fields ?? 'unknown'}`,
+    httpStatus: HttpStatus.BAD_REQUEST,
+  },
+  BUDGET_GENERATE_FAILED: {
+    code: API_ERROR_CODES.BUDGET_GENERATE_FAILED,
+    message: () => 'Failed to generate budgets',
+    httpStatus: HttpStatus.INTERNAL_SERVER_ERROR,
+  },
   BUDGET_INVALID_MONTH_FORMAT: {
     code: API_ERROR_CODES.BUDGET_INVALID_MONTH,
     message: (details?: Record<string, unknown>) =>

@@ -44,10 +44,7 @@ struct PinEntryView: View {
                 onDigit: { viewModel.appendDigit($0) },
                 onDelete: { viewModel.deleteLastDigit() },
                 onBiometric: onBiometric,
-                onConfirm: viewModel.canConfirm ? {
-                    Task { await viewModel.confirm() }
-                } : nil,
-                isDisabled: viewModel.isValidating
+                isDisabled: viewModel.isValidating || viewModel.isError
             )
             Spacer().frame(height: 24)
             forgotPinLink
@@ -68,6 +65,7 @@ struct PinEntryView: View {
                     .font(PulpeTypography.footnote)
                     .foregroundStyle(Color.textSecondaryOnboarding)
             }
+            .disabled(viewModel.isValidating)
         }
         .padding(.top, DesignTokens.Spacing.md)
     }
@@ -95,9 +93,10 @@ struct PinEntryView: View {
     private var dotsSection: some View {
         PinDotsErrorView(
             enteredCount: viewModel.digits.count,
-            maxDigits: viewModel.maxDigits,
+            maxDigits: viewModel.pinLength,
             isError: viewModel.isError,
-            errorMessage: viewModel.errorMessage
+            errorMessage: viewModel.errorMessage,
+            isValidating: viewModel.isValidating
         )
     }
 
@@ -111,6 +110,9 @@ struct PinEntryView: View {
                 .font(PulpeTypography.stepSubtitle)
                 .foregroundStyle(Color.textSecondaryOnboarding)
         }
+        .frame(minHeight: DesignTokens.TapTarget.minimum)
+        .contentShape(Rectangle())
+        .disabled(viewModel.isValidating)
     }
 
     private func triggerAutoBiometricIfNeeded() {
@@ -136,12 +138,7 @@ final class PinEntryViewModel {
     private(set) var hapticSuccess = false
     private(set) var hapticError = false
 
-    let maxDigits = 6
-    let minDigits = 4
-
-    var canConfirm: Bool {
-        digits.count >= minDigits && !isValidating
-    }
+    let pinLength = PinConstants.length
 
     // MARK: - Private
 
@@ -165,9 +162,13 @@ final class PinEntryViewModel {
     // MARK: - Actions
 
     func appendDigit(_ digit: Int) {
-        guard digits.count < maxDigits, !isValidating else { return }
-        if isError { clearError() }
+        guard digits.count < pinLength, !isValidating, !isError else { return }
         digits.append(digit)
+
+        if digits.count == pinLength {
+            isValidating = true
+            Task { await validatePin() }
+        }
     }
 
     func deleteLastDigit() {
@@ -176,15 +177,9 @@ final class PinEntryViewModel {
         clearError()
     }
 
-    func confirm() async {
-        guard canConfirm else { return }
-        await validatePin()
-    }
-
     // MARK: - Validation
 
     private func validatePin() async {
-        isValidating = true
         defer { isValidating = false }
 
         let pin = digits.map(String.init).joined()

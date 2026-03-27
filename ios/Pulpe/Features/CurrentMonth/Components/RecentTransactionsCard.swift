@@ -27,11 +27,10 @@ struct RecentTransactionsCard: View {
                     Spacer()
                     Image(systemName: "chevron.right")
                         .font(PulpeTypography.caption)
-                        .foregroundStyle(.tertiary)
+                        .foregroundStyle(Color.textTertiary)
                 }
-                .contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
+            .textLinkButtonStyle()
             .sensoryFeedback(.selection, trigger: viewAllTrigger)
         }
         .pulpeCard()
@@ -50,29 +49,29 @@ private struct RecentTransactionCardRow: View {
             // Kind icon circle
             Circle()
                 .fill(transaction.kind.color.opacity(DesignTokens.Opacity.badgeBackground))
-                .frame(width: 40, height: 40)
+                .frame(width: DesignTokens.IconSize.listRow, height: DesignTokens.IconSize.listRow)
                 .overlay {
                     Image(systemName: transaction.kind.icon)
-                        .font(.system(size: 16, weight: .semibold))
+                        .font(PulpeTypography.listRowTitle)
                         .foregroundStyle(transaction.kind.color)
                 }
 
             // Name and date
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                 Text(transaction.name)
-                    .font(.system(.body, weight: .semibold))
+                    .font(PulpeTypography.listRowTitle)
                     .lineLimit(1)
 
                 Text(transaction.transactionDate.relativeFormatted)
                     .font(PulpeTypography.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.textSecondary)
             }
 
             Spacer()
 
             // Amount
-            Text(transaction.signedAmount.asAmount)
-                .font(.system(.callout, weight: .regular))
+            Text(transaction.amount.asAmount)
+                .font(PulpeTypography.listRowSubtitle)
                 .foregroundStyle(transaction.kind.color)
                 .sensitiveAmount()
         }
@@ -81,7 +80,7 @@ private struct RecentTransactionCardRow: View {
         .accessibilityLabel(
             "\(transaction.name), \(transaction.kind.label), "
             + "\(transaction.transactionDate.relativeFormatted), "
-            + "\(amountsHidden ? "Montant masqué" : transaction.signedAmount.asCHF)"
+            + "\(amountsHidden ? "Montant masqué" : transaction.amount.asCHF)"
         )
     }
 }

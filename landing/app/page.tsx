@@ -53,9 +53,9 @@ export default function LandingPage() {
         <Solution />
         <Features />
         <HowItWorks />
+        <FinalCTA />
         <Platforms />
         <WhyFree />
-        <FinalCTA />
       </main>
 
       <Footer />

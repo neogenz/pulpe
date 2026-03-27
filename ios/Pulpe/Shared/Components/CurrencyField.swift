@@ -83,6 +83,8 @@ struct CurrencyField: View {
             .padding(.horizontal, DesignTokens.Spacing.lg)
             .frame(height: DesignTokens.FrameHeight.button)
             .background { fieldBackground }
+            .contentShape(.interaction, Rectangle())
+            .onTapGesture { (externalFocus ?? $internalFocus).wrappedValue = true }
             .ifLet(shadowStyle) { view, style in view.shadow(style) }
             .animation(.spring(response: 0.3, dampingFraction: 0.7), value: effectiveFocus)
         }
@@ -133,7 +135,7 @@ struct CurrencyField: View {
     }
 
     private var borderWidth: CGFloat {
-        effectiveFocus ? 2 : 0.75
+        effectiveFocus ? DesignTokens.BorderWidth.thick : DesignTokens.BorderWidth.hairline
     }
 
     @ViewBuilder
@@ -170,7 +172,7 @@ struct CurrencyField: View {
         case .onboarding:
             return Color.textSecondaryOnboarding.opacity(0.7)
         case .flat:
-            return Color.pulpeTextTertiary
+            return Color.textTertiary
         }
     }
 

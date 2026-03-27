@@ -31,7 +31,7 @@ const REASONS = [
   },
   {
     title: "Tes données sont protégées",
-    text: "Données hébergés en Europe, tes montants sont protégés par chiffrement et contrôle d'accès. Seul toi peut y avoir accès et lire, même pas moi.",
+    text: "Données hébergées en Europe, tes montants sont protégés par chiffrement et contrôle d'accès. Seul toi peut y avoir accès et lire, même pas moi.",
   },
 ] as const;
 

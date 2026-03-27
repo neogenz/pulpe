@@ -132,6 +132,40 @@ export const budgetUpdateSchema = z.object({
 });
 export type BudgetUpdate = z.infer<typeof budgetUpdateSchema>;
 
+const MAX_GENERATE_COUNT = 36;
+const DEFAULT_GENERATE_COUNT = 12;
+
+/** Schema for bulk-generating consecutive monthly budgets from a template */
+export const budgetGenerateSchema = z.object({
+  templateId: z.uuid(),
+  startMonth: z.number().int().min(MONTH_MIN).max(MONTH_MAX),
+  startYear: z.number().int().min(MIN_YEAR).max(MAX_YEAR),
+  count: z
+    .number()
+    .int()
+    .min(1)
+    .max(MAX_GENERATE_COUNT)
+    .default(DEFAULT_GENERATE_COUNT),
+});
+export type BudgetGenerate = z.infer<typeof budgetGenerateSchema>;
+
+/** Response for budget generation: created budgets + skipped months */
+export const budgetGenerateResponseSchema = z.object({
+  success: z.literal(true),
+  data: z.object({
+    budgets: z.array(budgetSchema),
+    skippedMonths: z.array(
+      z.object({
+        month: z.number().int().min(MONTH_MIN).max(MONTH_MAX),
+        year: z.number().int().min(MIN_YEAR),
+      }),
+    ),
+  }),
+});
+export type BudgetGenerateResponse = z.infer<
+  typeof budgetGenerateResponseSchema
+>;
+
 // Savings Goal schemas
 /**
  * SAVINGS GOAL - Objectifs d'épargne
@@ -953,6 +987,14 @@ export const encryptionRecoverRequestSchema = z.object({
 });
 export type EncryptionRecoverRequest = z.infer<
   typeof encryptionRecoverRequestSchema
+>;
+
+/** POST /verify-recovery-key — read-only unwrap check */
+export const encryptionVerifyRecoveryKeyRequestSchema = z.object({
+  recoveryKey: z.string().min(1).max(512),
+});
+export type EncryptionVerifyRecoveryKeyRequest = z.infer<
+  typeof encryptionVerifyRecoveryKeyRequestSchema
 >;
 
 /** POST /change-pin — old + new hex-encoded client keys */

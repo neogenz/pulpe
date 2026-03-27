@@ -16,6 +16,7 @@ struct DesignTokensTests {
             DesignTokens.Opacity.glow,
             DesignTokens.Opacity.strong,
             DesignTokens.Opacity.heavy,
+            DesignTokens.Opacity.pressed,
             DesignTokens.Opacity.overlay
         ]
 
@@ -93,5 +94,70 @@ struct DesignTokensTests {
         for i in 1..<radii.count {
             #expect(radii[i] > radii[i - 1])
         }
+    }
+
+    // MARK: - Border Width Tokens
+
+    @Test func borderWidthTokensArePositive() {
+        #expect(DesignTokens.BorderWidth.hairline > 0)
+        #expect(DesignTokens.BorderWidth.thin > 0)
+        #expect(DesignTokens.BorderWidth.medium > 0)
+        #expect(DesignTokens.BorderWidth.thick > 0)
+    }
+
+    @Test func borderWidthTokensAreOrdered() {
+        let widths: [CGFloat] = [
+            DesignTokens.BorderWidth.hairline,
+            DesignTokens.BorderWidth.thin,
+            DesignTokens.BorderWidth.medium,
+            DesignTokens.BorderWidth.thick
+        ]
+
+        for i in 1..<widths.count {
+            #expect(widths[i] > widths[i - 1])
+        }
+    }
+
+    // MARK: - Icon Size Tokens
+
+    @Test func iconSizeTokensArePositive() {
+        #expect(DesignTokens.IconSize.listRow > 0)
+        #expect(DesignTokens.IconSize.badge > 0)
+        #expect(DesignTokens.IconSize.compact > 0)
+        #expect(DesignTokens.IconSize.socialButton > 0)
+    }
+
+    // MARK: - Frame Height Tokens
+
+    @Test func frameHeightTokensArePositive() {
+        #expect(DesignTokens.FrameHeight.button > 0)
+        #expect(DesignTokens.FrameHeight.tabBar > 0)
+        #expect(DesignTokens.FrameHeight.progressBar > 0)
+        #expect(DesignTokens.FrameHeight.separator > 0)
+    }
+
+    // MARK: - Progress Bar Tokens
+
+    @Test func progressBarHeightsAreOrdered() {
+        let heights: [CGFloat] = [
+            DesignTokens.ProgressBar.height,
+            DesignTokens.ProgressBar.thickHeight,
+            DesignTokens.ProgressBar.heroHeight
+        ]
+
+        for i in 1..<heights.count {
+            #expect(heights[i] > heights[i - 1])
+        }
+    }
+
+    @Test func progressBarCircularLineWidthIsPositive() {
+        #expect(DesignTokens.ProgressBar.circularLineWidth > 0)
+    }
+
+    // MARK: - Animation Durations (extended)
+
+    @Test func animationQuickSnapFitsBetweenFastAndNormal() {
+        #expect(DesignTokens.Animation.quickSnap > DesignTokens.Animation.fast)
+        #expect(DesignTokens.Animation.quickSnap < DesignTokens.Animation.normal)
     }
 }

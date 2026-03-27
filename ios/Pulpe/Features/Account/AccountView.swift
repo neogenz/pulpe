@@ -10,12 +10,15 @@ struct AccountView: View {
     var body: some View {
         NavigationStack {
             List {
-                personalInfoSection
+                profileHeaderSection
                 appSettingsSection
                 supportSection
+                legalSection
                 logoutSection
-                legalFooterSection
+                versionFooterSection
             }
+            .scrollContentBackground(.hidden)
+            .pulpeBackground()
             .alert("Déconnexion", isPresented: $showLogoutConfirmation) {
                 Button("Annuler", role: .cancel) { }
                 Button("Déconnecter", role: .destructive) {
@@ -25,7 +28,7 @@ struct AccountView: View {
                     }
                 }
             } message: {
-                Text("Tu devras te reconnecter avec ton email et mot de passe.")
+                Text("Tu devras te reconnecter avec ton email et ton mot de passe.")
             }
             .sensoryFeedback(.impact, trigger: debugToggleTrigger)
             .listStyle(.insetGrouped)
@@ -43,18 +46,36 @@ struct AccountView: View {
 // MARK: - Sections
 
 extension AccountView {
-    private var personalInfoSection: some View {
+    private var profileHeaderSection: some View {
         Section {
-            LabeledContent("E-mail", value: appState.currentUser?.email ?? "Non connecté(e)")
-        } header: {
-            Text("INFORMATIONS PERSONNELLES")
+            VStack(spacing: DesignTokens.Spacing.sm) {
+                let email = appState.currentUser?.email ?? ""
+                let initial = email.first.map { String($0).uppercased() } ?? "?"
+                ZStack {
+                    Circle()
+                        .fill(Color.pulpePrimary)
+                        .frame(width: 56, height: 56)
+                    Text(initial)
+                        .font(PulpeTypography.amountXL)
+                        .foregroundStyle(Color.textOnPrimary)
+                }
+                Text(email.isEmpty ? "Non connecté(e)" : email)
+                    .font(PulpeTypography.bodyLarge)
+                Text("Pulpe")
+                    .font(PulpeTypography.caption)
+                    .foregroundStyle(Color.textSecondary)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, DesignTokens.Spacing.lg)
         }
+        .listRowBackground(Color.clear)
     }
 
     private var appSettingsSection: some View {
         Section {
             settingsNavigationRow(
                 icon: "lock.shield",
+                iconColor: Color.pulpePrimary,
                 title: "Sécurité",
                 subtitle: "Code PIN, Mot de passe, Biométrie"
             ) {
@@ -63,6 +84,7 @@ extension AccountView {
 
             settingsNavigationRow(
                 icon: "gearshape",
+                iconColor: Color.textSecondary,
                 title: "Préférences",
                 subtitle: "Jour de paie"
             ) {
@@ -77,6 +99,7 @@ extension AccountView {
         Section {
             iconChevronLink(
                 icon: "questionmark.circle",
+                iconColor: Color.financialIncome,
                 title: "FAQ et support",
                 subtitle: "Aide et questions fréquentes",
                 url: AppURLs.support
@@ -84,6 +107,7 @@ extension AccountView {
 
             iconChevronLink(
                 icon: "sparkles",
+                iconColor: Color.pulpePrimary,
                 title: "Nouveautés",
                 subtitle: "Dernières mises à jour",
                 url: AppURLs.changelog
@@ -101,42 +125,48 @@ extension AccountView {
                 Text("Déconnexion")
                     .foregroundStyle(Color.errorPrimary)
             }
-            .buttonStyle(.plain)
+            .plainPressedButtonStyle()
         }
     }
 
-    private static let legalText: AttributedString = {
-        (try? AttributedString(
-            markdown: "Les [Conditions générales](\(AppURLs.terms)) et " +
-                "l'[Avis de confidentialité](\(AppURLs.privacy)) de Pulpe s'appliquent."
-        )) ?? AttributedString(
-            "Les Conditions générales et l'Avis de confidentialité de Pulpe s'appliquent."
-        )
-    }()
+    private var legalSection: some View {
+        Section {
+            iconChevronLink(
+                icon: "doc.text",
+                iconColor: Color.textSecondary,
+                title: "Conditions générales",
+                subtitle: "Conditions d'utilisation de Pulpe",
+                url: AppURLs.terms
+            )
 
-    private var legalFooterSection: some View {
+            iconChevronLink(
+                icon: "hand.raised",
+                iconColor: Color.textSecondary,
+                title: "Avis de confidentialité",
+                subtitle: "Protection de vos données",
+                url: AppURLs.privacy
+            )
+        } header: {
+            Text("LÉGAL")
+        }
+    }
+
+    private var versionFooterSection: some View {
         Section {
             VStack(spacing: DesignTokens.Spacing.sm) {
-                Text(Self.legalText)
-                .font(PulpeTypography.caption)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-                .tint(Color.pulpePrimary)
-
                 Text("Version \(AppConfiguration.appVersion) - \(AppConfiguration.buildNumber)")
                     .font(PulpeTypography.caption)
-                    .foregroundStyle(.tertiary)
-                    .padding(.top, DesignTokens.Spacing.xs)
+                    .foregroundStyle(Color.textTertiary)
                     .onLongPressGesture(minimumDuration: 5) {
                         debugToggleTrigger.toggle()
-                        withAnimation(.easeInOut(duration: DesignTokens.Animation.normal)) {
+                        withAnimation(DesignTokens.Animation.smoothEaseInOut) {
                             isDebugVisible.toggle()
                         }
                     }
 
                 Text("iOS \(Self.iOSVersion)")
                     .font(PulpeTypography.caption)
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(Color.textTertiary)
 
                 if isDebugVisible {
                     Group {
@@ -173,6 +203,7 @@ extension AccountView {
 extension AccountView {
     private func settingsNavigationRow<Destination: View>(
         icon: String,
+        iconColor: Color,
         title: String,
         subtitle: String,
         @ViewBuilder destination: () -> Destination
@@ -180,8 +211,8 @@ extension AccountView {
         NavigationLink(destination: destination) {
             HStack(spacing: DesignTokens.Spacing.md) {
                 Image(systemName: icon)
-                    .font(.system(size: 16))
-                    .foregroundStyle(.secondary)
+                    .font(PulpeTypography.listRowTitle)
+                    .foregroundStyle(iconColor)
                     .frame(
                         width: DesignTokens.IconSize.compact,
                         height: DesignTokens.IconSize.compact
@@ -191,7 +222,7 @@ extension AccountView {
                         .foregroundStyle(.primary)
                     Text(subtitle)
                         .font(PulpeTypography.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.textSecondary)
                 }
             }
         }
@@ -199,6 +230,7 @@ extension AccountView {
 
     private func iconChevronLink(
         icon: String,
+        iconColor: Color,
         title: String,
         subtitle: String,
         url: URL
@@ -206,8 +238,8 @@ extension AccountView {
         Link(destination: url) {
             HStack(spacing: DesignTokens.Spacing.md) {
                 Image(systemName: icon)
-                    .font(.system(size: 16))
-                    .foregroundStyle(.secondary)
+                    .font(PulpeTypography.listRowTitle)
+                    .foregroundStyle(iconColor)
                     .frame(
                         width: DesignTokens.IconSize.compact,
                         height: DesignTokens.IconSize.compact
@@ -217,12 +249,12 @@ extension AccountView {
                         .foregroundStyle(.primary)
                     Text(subtitle)
                         .font(PulpeTypography.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.textSecondary)
                 }
                 Spacer()
-                Image(systemName: "chevron.right")
-                    .font(.caption)
-                    .foregroundStyle(.tertiary)
+                Image(systemName: "arrow.up.right")
+                    .font(PulpeTypography.caption)
+                    .foregroundStyle(Color.textTertiary)
             }
         }
         .tint(.primary)

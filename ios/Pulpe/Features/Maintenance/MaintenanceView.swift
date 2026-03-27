@@ -23,7 +23,7 @@ struct MaintenanceView: View {
                 "pas d'inquiétude. Réessaie dans quelques instants."
             )
                 .font(PulpeTypography.body)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.textSecondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal)
 
@@ -42,7 +42,7 @@ struct MaintenanceView: View {
                     Label("Réessayer", systemImage: "arrow.clockwise")
                 }
             }
-            .buttonStyle(.borderedProminent)
+            .primaryButtonStyle(isEnabled: !isChecking)
             .disabled(isChecking)
         }
         .padding()

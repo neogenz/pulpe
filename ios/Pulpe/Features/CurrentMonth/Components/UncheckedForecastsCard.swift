@@ -22,11 +22,6 @@ struct UncheckedForecastsCard: View {
                         onToggle: { onToggle(item) }
                     )
                     .transition(.opacity)
-
-                    if item.id != items.last?.id {
-                        Divider()
-                            .padding(.leading, 22 + 40 + DesignTokens.Spacing.md * 2)
-                    }
                 }
             }
 
@@ -40,11 +35,10 @@ struct UncheckedForecastsCard: View {
                     Spacer()
                     Image(systemName: "chevron.right")
                         .font(PulpeTypography.caption)
-                        .foregroundStyle(.tertiary)
+                        .foregroundStyle(Color.textTertiary)
                 }
-                .contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
+            .textLinkButtonStyle()
             .sensoryFeedback(.selection, trigger: viewAllTrigger)
         }
         .animation(DesignTokens.Animation.defaultSpring, value: items.map(\.id))
@@ -92,28 +86,30 @@ private struct UncheckedItemRow: View {
                 }
             } label: {
                 Image(systemName: isChecked ? "checkmark.circle.fill" : "circle")
-                    .font(.system(size: 22))
+                    .font(PulpeTypography.sectionIcon)
                     .foregroundStyle(isChecked ? Color.financialSavings : Color.secondary)
                     .contentTransition(.symbolEffect(.replace))
             }
             .buttonStyle(.plain)
+            .frame(minWidth: DesignTokens.TapTarget.minimum, minHeight: DesignTokens.TapTarget.minimum)
+            .contentShape(Rectangle())
             .sensoryFeedback(.success, trigger: triggerFeedback)
             .accessibilityLabel("Pointer \(item.name)")
 
             // Kind icon circle (informational)
             Circle()
                 .fill(item.kind.color.opacity(DesignTokens.Opacity.badgeBackground))
-                .frame(width: 40, height: 40)
+                .frame(width: DesignTokens.IconSize.listRow, height: DesignTokens.IconSize.listRow)
                 .overlay {
                     Image(systemName: item.kind.icon)
-                        .font(.system(size: 16, weight: .semibold))
+                        .font(PulpeTypography.listRowTitle)
                         .foregroundStyle(item.kind.color)
                 }
 
             // Name + subtitle
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                 Text(item.name)
-                    .font(.system(.body, weight: .semibold))
+                    .font(PulpeTypography.listRowTitle)
                     .strikethrough(isChecked, color: .secondary)
                     .lineLimit(1)
 
@@ -139,7 +135,7 @@ private struct UncheckedItemRow: View {
         case .transaction(let tx, _):
             Text(tx.transactionDate.relativeFormatted)
                 .font(PulpeTypography.caption)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.textSecondary)
 
         case .budgetLine(let line, let consumption):
             if let consumption, line.kind == .expense, consumption.allocated > 0 {
@@ -150,10 +146,14 @@ private struct UncheckedItemRow: View {
                     .font(PulpeTypography.caption)
                     .foregroundStyle(color)
                     .sensitiveAmount()
+            } else if line.kind == .expense {
+                Text("\(line.recurrence.label) \u{00B7} sur \(line.amount.asCompactCHF)")
+                    .font(PulpeTypography.caption)
+                    .foregroundStyle(Color.textSecondary)
             } else {
                 Text(line.recurrence.label)
                     .font(PulpeTypography.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.textSecondary)
             }
         }
     }
@@ -164,16 +164,28 @@ private struct UncheckedItemRow: View {
     private var amountText: some View {
         switch item {
         case .transaction(let tx, _):
-            Text(tx.signedAmount.asAmount)
-                .font(.system(.callout, weight: .regular))
+            Text(tx.amount.asAmount)
+                .font(PulpeTypography.listRowSubtitle)
                 .foregroundStyle(tx.kind.color)
                 .sensitiveAmount()
 
-        case .budgetLine(let line, _):
-            Text(line.amount.asSignedAmount(for: line.kind))
-                .font(.system(.callout, weight: .regular))
-                .foregroundStyle(line.kind.color)
-                .sensitiveAmount()
+        case .budgetLine(let line, let consumption):
+            if line.kind == .expense, let consumption {
+                let text = consumption.available >= 0
+                    ? consumption.available.asAmount
+                    : "-\(consumption.available.absoluteValue.asAmount)"
+                let color: Color = consumption.isOverBudget ? .financialOverBudget :
+                    consumption.isNearLimit ? .warningPrimary : .secondary
+                Text(text)
+                    .font(PulpeTypography.listRowSubtitle)
+                    .foregroundStyle(color)
+                    .sensitiveAmount()
+            } else {
+                Text(line.amount.asAmount)
+                    .font(PulpeTypography.listRowSubtitle)
+                    .foregroundStyle(line.kind.color)
+                    .sensitiveAmount()
+            }
         }
     }
 }
@@ -182,18 +194,33 @@ private struct UncheckedItemRow: View {
 
 /// Shown when all items are checked — parent controls visibility
 struct UncheckedForecastsEmptyState: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var hasAppeared = false
+
     var body: some View {
         HStack(spacing: DesignTokens.Spacing.md) {
             Image(systemName: "checkmark.circle.fill")
-                .font(.system(size: 24))
+                .font(PulpeTypography.amountXL)
                 .foregroundStyle(Color.financialSavings)
+                .symbolEffect(.bounce, value: hasAppeared)
 
             Text("Tout est pointé — bien joué !")
                 .font(PulpeTypography.bodyLarge)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.textSecondary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+        .scaleEffect(hasAppeared ? 1.0 : 0.92)
+        .opacity(hasAppeared ? 1 : 0)
         .pulpeCard()
+        .task {
+            if reduceMotion {
+                hasAppeared = true
+            } else {
+                withAnimation(DesignTokens.Animation.gentleSpring) {
+                    hasAppeared = true
+                }
+            }
+        }
     }
 }
 

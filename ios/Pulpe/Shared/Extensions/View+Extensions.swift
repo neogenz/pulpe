@@ -155,7 +155,7 @@ extension View {
                     onUndo: toast.hasUndo ? { manager.executeUndo() } : nil
                 )
                 .safeAreaPadding(.top)
-                .padding(.top, 8)
+                .padding(.top, DesignTokens.Spacing.sm)
                 .transition(.move(edge: .top).combined(with: .opacity))
             }
         }
@@ -269,6 +269,7 @@ private struct CardBackgroundModifier: ViewModifier {
     func body(content: Content) -> some View {
         content
             .background(Color.surfaceContainerLowest, in: .rect(cornerRadius: cornerRadius))
+            .clipShape(.rect(cornerRadius: cornerRadius))
     }
 }
 

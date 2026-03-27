@@ -15,7 +15,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { FinancialKindDirective } from '@ui/financial-kind';
-import { TransactionLabelPipe } from '@pattern/transaction-display';
+import { TransactionLabelPipe } from '@ui/transaction-display';
 import type { BudgetLine, Transaction } from 'pulpe-shared';
 import type { TransactionViewModel } from '../models/transaction-view-model';
 import type { BudgetLineTableItem } from '../data-core';
@@ -211,7 +211,7 @@ export function groupByKind<T extends { data: { kind: string } }>(
           <div class="flex items-start justify-between gap-2 mb-3">
             <div class="flex items-center gap-2 min-w-0 flex-1">
               <pulpe-budget-kind-indicator [kind]="item.data.kind" />
-              <span class="text-title-small font-medium truncate">
+              <span class="text-title-small font-medium truncate ph-no-capture">
                 {{ item.data.name }}
               </span>
             </div>
@@ -278,7 +278,7 @@ export function groupByKind<T extends { data: { kind: string } }>(
         <div class="flex items-start justify-between gap-2 mb-4 flex-1">
           <div class="flex items-center gap-2 min-w-0 flex-1">
             <pulpe-budget-kind-indicator [kind]="item.data.kind" />
-            <span class="text-title-small font-medium truncate">{{
+            <span class="text-title-small font-medium truncate ph-no-capture">{{
               item.data.name
             }}</span>
           </div>

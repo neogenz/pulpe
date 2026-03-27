@@ -47,6 +47,7 @@ import {
 import { BreadcrumbState } from '@core/routing/breadcrumb-state';
 import { ROUTES } from '@core/routing/routes-constants';
 import { TranslocoPipe } from '@jsverse/transloco';
+import { ZifluxDevtoolsComponent } from 'ngx-ziflux';
 import { PulpeBreadcrumb } from '@ui/breadcrumb/breadcrumb';
 import { LogoutDialog } from '@ui/dialogs/logout-dialog';
 import { of } from 'rxjs';
@@ -82,6 +83,7 @@ interface NavigationItem {
     MatProgressBarModule,
     WhatsNewToast,
     TranslocoPipe,
+    ZifluxDevtoolsComponent,
   ],
   template: `
     <mat-sidenav-container
@@ -93,7 +95,7 @@ interface NavigationItem {
       <mat-sidenav
         #drawer
         class="bg-surface-container!"
-        [class.!w-auto]="!isHandset()"
+        [class.w-auto!]="!isHandset()"
         [mode]="isHandset() ? 'over' : 'side'"
         [opened]="!isHandset()"
         [fixedInViewport]="isHandset()"
@@ -424,6 +426,7 @@ interface NavigationItem {
       </mat-sidenav-content>
     </mat-sidenav-container>
     <pulpe-whats-new-toast />
+    <ziflux-devtools />
   `,
   styles: [
     `
@@ -830,7 +833,7 @@ export default class MainLayout {
     }
   }
 
-  async onLogout(): Promise<void> {
+  protected async onLogout(): Promise<void> {
     if (this.#isLoggingOut()) return;
 
     this.#isLoggingOut.set(true);

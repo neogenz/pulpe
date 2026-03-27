@@ -191,6 +191,7 @@ struct PostAuthResolutionRouterTests {
         )
 
         await sut.bootstrap()
+        sut.hasReturningUser = true
         await sut.resolvePostAuth(user: user)
 
         #expect(sut.authState == .needsPinEntry)
@@ -251,6 +252,7 @@ struct PostAuthResolutionRouterTests {
         )
 
         await sut.bootstrap()
+        sut.hasReturningUser = true
         await sut.resolvePostAuth(user: user)
         #expect(sut.authState == .needsPinEntry)
 
@@ -277,6 +279,7 @@ struct PostAuthResolutionRouterTests {
         )
 
         await sut.bootstrap()
+        sut.hasReturningUser = true
 
         await sut.resolvePostAuth(user: user)
         await sut.completePinEntry()
@@ -285,6 +288,7 @@ struct PostAuthResolutionRouterTests {
         await sut.logout(source: .system)
         #expect(sut.authState == .unauthenticated)
 
+        sut.hasReturningUser = true
         await sut.resolvePostAuth(user: user)
         await sut.completePinEntry()
 
@@ -309,6 +313,7 @@ struct PostAuthResolutionRouterTests {
         )
 
         await sut.bootstrap()
+        sut.hasReturningUser = true
         await sut.resolvePostAuth(user: user)
         await sut.completePinEntry()
 
@@ -333,6 +338,7 @@ struct PostAuthResolutionRouterTests {
         )
 
         await sut.bootstrap()
+        sut.hasReturningUser = true
         await sut.resolvePostAuth(user: user)
         await sut.completePinEntry()
 
@@ -353,6 +359,7 @@ struct PostAuthResolutionRouterTests {
         )
 
         await sut.bootstrap()
+        sut.hasReturningUser = true
         await sut.resolvePostAuth(user: user)
         #expect(sut.authState == .needsPinEntry)
 

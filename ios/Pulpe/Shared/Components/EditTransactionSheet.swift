@@ -6,12 +6,17 @@ struct EditTransactionSheet: View {
     let onUpdate: (Transaction) -> Void
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(ToastManager.self) private var toastManager
     @State private var name: String
     @State private var amount: Decimal?
     @State private var kind: TransactionKind
     @State private var transactionDate: Date
     @State private var isLoading = false
     @State private var error: Error?
+    @FocusState private var isAmountFocused: Bool
+    @FocusState private var isDescriptionFocused: Bool
+    @State private var amountText: String
+    @State private var submitSuccessTrigger = false
 
     private let dependencies: EditTransactionDependencies
 
@@ -27,93 +32,77 @@ struct EditTransactionSheet: View {
         _amount = State(initialValue: transaction.amount)
         _kind = State(initialValue: transaction.kind)
         _transactionDate = State(initialValue: transaction.transactionDate)
+        let amountString = Formatters.amountInput.string(from: transaction.amount as NSDecimalNumber) ?? ""
+        _amountText = State(initialValue: amountString)
     }
 
-    private var canSubmit: Bool {
+    static func isFormValid(name: String, amount: Decimal?, isLoading: Bool) -> Bool {
         guard let amount, amount > 0 else { return false }
         return !name.trimmingCharacters(in: .whitespaces).isEmpty && !isLoading
     }
 
-    var body: some View {
-        NavigationStack {
-            Form {
-                Section {
-                    TextField(kind.descriptionPlaceholder, text: $name)
-                        .font(PulpeTypography.bodyLarge)
-                        .listRowBackground(Color.surfaceContainerHigh)
-                } header: {
-                    Text("Description")
-                        .font(PulpeTypography.labelLarge)
-                }
-
-                Section {
-                    CurrencyField(value: $amount, visualStyle: .flat)
-                        .listRowBackground(Color.surfaceContainerHigh)
-                } header: {
-                    Text("Montant")
-                        .font(PulpeTypography.labelLarge)
-                }
-
-                Section {
-                    Picker("Type", selection: $kind) {
-                        ForEach(TransactionKind.allCases, id: \.self) { type in
-                            Label(type.label, systemImage: type.icon)
-                                .tag(type)
-                        }
-                    }
-                    .pickerStyle(.segmented)
-                    .listRowBackground(Color.surfaceContainerHigh)
-                } header: {
-                    Text("Type")
-                        .font(PulpeTypography.labelLarge)
-                }
-
-                Section {
-                    DatePicker(
-                        "Date",
-                        selection: $transactionDate,
-                        displayedComponents: .date
-                    )
-                    .datePickerStyle(.graphical)
-                    .listRowBackground(Color.surfaceContainerHigh)
-                } header: {
-                    Text("Date")
-                        .font(PulpeTypography.labelLarge)
-                }
-
-                if let error {
-                    Section {
-                        ErrorBanner(message: DomainErrorLocalizer.localize(error)) {
-                            self.error = nil
-                        }
-                    }
-                }
-
-                Section {
-                    Button {
-                        Task { await updateTransaction() }
-                    } label: {
-                        Text("Enregistrer")
-                    }
-                    .disabled(!canSubmit)
-                    .primaryButtonStyle(isEnabled: canSubmit)
-                    .listRowInsets(EdgeInsets())
-                    .listRowBackground(Color.clear)
-                }
-            }
-            .scrollContentBackground(.hidden)
-            .background(Color.surface)
-            .navigationTitle("Modifier la transaction")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    SheetCloseButton()
-                }
-            }
-            .loadingOverlay(isLoading)
-        }
-        .standardSheetPresentation()
+    private var canSubmit: Bool {
+        Self.isFormValid(name: name, amount: amount, isLoading: isLoading)
     }
+
+    var body: some View {
+        SheetFormContainer(
+            title: "Modifier la transaction",
+            isLoading: isLoading,
+            autoFocus: $isAmountFocused,
+            descriptionFocus: $isDescriptionFocused
+        ) {
+            KindToggle(selection: $kind)
+            HeroAmountField(
+                amount: $amount, amountText: $amountText,
+                isFocused: $isAmountFocused, accentColor: kind.color
+            )
+
+            descriptionField
+            dateSelector
+
+            if let error {
+                ErrorBanner(message: DomainErrorLocalizer.localize(error)) {
+                    self.error = nil
+                }
+            }
+
+            saveButton
+        }
+        .sensoryFeedback(.success, trigger: submitSuccessTrigger)
+    }
+
+    // MARK: - Description
+
+    private var descriptionField: some View {
+        FormTextField(
+            hint: kind.descriptionPlaceholder,
+            text: $name,
+            label: "Description",
+            accessibilityLabel: "Description de la transaction",
+            focusBinding: $isDescriptionFocused
+        )
+    }
+
+    // MARK: - Date Selector
+
+    private var dateSelector: some View {
+        TransactionDateSelector(date: $transactionDate)
+    }
+
+    // MARK: - Save Button
+
+    private var saveButton: some View {
+        Button {
+            Task { await updateTransaction() }
+        } label: {
+            Text("Enregistrer")
+        }
+        .disabled(!canSubmit)
+        .primaryButtonStyle(isEnabled: canSubmit)
+    }
+
+    // MARK: - Logic
 
     private func updateTransaction() async {
         guard let amount else { return }
@@ -131,7 +120,9 @@ struct EditTransactionSheet: View {
 
         do {
             let updatedTransaction = try await dependencies.updateTransaction(transaction.id, data)
+            submitSuccessTrigger.toggle()
             onUpdate(updatedTransaction)
+            toastManager.show("Transaction modifiée")
             dismiss()
         } catch {
             self.error = error
@@ -167,4 +158,5 @@ struct EditTransactionDependencies: Sendable {
     ) { transaction in
         print("Updated: \(transaction)")
     }
+    .environment(ToastManager())
 }

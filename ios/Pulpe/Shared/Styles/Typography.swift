@@ -24,6 +24,33 @@ enum PulpeTypography {
     static let labelLarge: Font = .system(.subheadline, weight: .semibold)
     static let labelLargeBold: Font = .system(.subheadline, weight: .bold)
 
+    // MARK: - Display / Amount (fixed-size — financial layout stability)
+
+    static let amountHeroLight: Font = .system(size: 44, weight: .light)
+    static let amountDisplayLarge: Font = .system(size: 32)
+    static let previewAmount: Font = .system(size: 28, weight: .medium)
+    static let amountXL: Font = .system(size: 24, weight: .medium)
+    static let emojiDisplay: Font = .system(size: 48)
+
+    // MARK: - Card / Section
+
+    static let cardTitle: Font = .system(.headline, weight: .semibold)
+    static let sectionIcon: Font = .system(.title2, weight: .medium)
+    static let actionIcon: Font = .system(.title3, weight: .semibold)
+
+    // MARK: - List Row
+
+    static let listRowTitle: Font = .system(.body, weight: .semibold)
+    static let listRowSubtitle: Font = .system(.callout, weight: .regular)
+
+    // MARK: - Detail / Metric Labels
+
+    static let detailLabel: Font = .system(.caption, weight: .semibold)
+    static let detailLabelBold: Font = .system(.caption, weight: .bold)
+    static let metricLabel: Font = .system(.footnote, weight: .semibold)
+    static let metricLabelBold: Font = .system(.footnote, weight: .bold)
+    static let metricMini: Font = .system(.caption2, weight: .semibold)
+
     // MARK: - System (SF Pro)
 
     static let stepSubtitle: Font = .subheadline

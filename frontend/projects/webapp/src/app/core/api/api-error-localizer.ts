@@ -31,6 +31,9 @@ const CODE_KEY_MAP = {
   [API_ERROR_CODES.USER_PROFILE_UPDATE_FAILED]: 'apiError.profileUpdateFailed',
   [API_ERROR_CODES.VALIDATION_FAILED]: 'apiError.validationFailed',
   [API_ERROR_CODES.AUTH_UNAUTHORIZED]: 'apiError.unauthorized',
+  [API_ERROR_CODES.RECOVERY_KEY_INVALID]: 'apiError.recoveryKeyInvalid',
+  [API_ERROR_CODES.RECOVERY_KEY_NOT_CONFIGURED]:
+    'apiError.recoveryKeyNotConfigured',
 } as const satisfies Partial<Record<ApiErrorCode, string>>;
 
 @Injectable({ providedIn: 'root' })
@@ -38,6 +41,9 @@ export class ApiErrorLocalizer {
   readonly #transloco = inject(TranslocoService);
 
   localizeApiError(error: ApiError): string {
+    if (error.status === 429) {
+      return this.#transloco.translate('apiError.rateLimited');
+    }
     if (error.code && error.code in CODE_KEY_MAP) {
       const key = CODE_KEY_MAP[error.code as keyof typeof CODE_KEY_MAP];
       return this.#transloco.translate(key);

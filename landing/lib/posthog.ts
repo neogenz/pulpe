@@ -5,6 +5,8 @@ const POSTHOG_HOST = process.env.NEXT_PUBLIC_POSTHOG_HOST ?? '/ph';
 const POSTHOG_UI_HOST = 'https://eu.posthog.com';
 const POSTHOG_ENABLED = process.env.NEXT_PUBLIC_POSTHOG_ENABLED === 'true';
 
+export const CROSS_DOMAIN_PARAM = 'ph_did';
+
 const VERCEL_ENV_MAP: Record<string, string> = {
   production: 'production',
   preview: 'development',
@@ -46,4 +48,13 @@ export function initPostHog(): void {
 export function trackCTAClick(ctaName: string, ctaLocation: string, destination: string): void {
   if (!POSTHOG_ENABLED) return;
   posthog.capture('cta_clicked', { cta_name: ctaName, cta_location: ctaLocation, destination });
+}
+
+export function getDistinctId(): string | undefined {
+  if (!POSTHOG_ENABLED || !initialized) return undefined;
+  try {
+    return posthog.get_distinct_id();
+  } catch {
+    return undefined;
+  }
 }

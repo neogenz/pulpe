@@ -33,14 +33,15 @@ struct BudgetListView: View {
             } else if store.budgets.isEmpty {
                 VStack(spacing: DesignTokens.Spacing.lg) {
                     Image(systemName: "chart.bar.doc.horizontal")
-                        .font(.system(size: 48))
-                        .foregroundStyle(Color.pulpeTextTertiary)
+                        .font(PulpeTypography.emojiDisplay)
+                        .foregroundStyle(Color.textTertiary)
+                        .symbolEffect(.pulse, options: .nonRepeating)
                     Text("Pas encore de budget")
                         .font(PulpeTypography.stepTitle)
                         .foregroundStyle(Color.textPrimary)
                     Text("Crée-en un pour commencer à suivre tes dépenses")
                         .font(PulpeTypography.bodyLarge)
-                        .foregroundStyle(Color.pulpeTextTertiary)
+                        .foregroundStyle(Color.textTertiary)
                         .multilineTextAlignment(.center)
                     Button("Créer un budget") {
                         showCreateBudget = true
@@ -168,7 +169,7 @@ struct BudgetListView: View {
     private func scrollToCurrentMonth(proxy: ScrollViewProxy) {
         Task {
             try? await Task.sleep(for: .milliseconds(400))
-            withAnimation(.easeOut(duration: 0.5)) {
+            withAnimation(.easeOut(duration: DesignTokens.Animation.slow)) {
                 proxy.scrollTo("currentMonthHero", anchor: .center)
             }
         }
@@ -290,7 +291,7 @@ struct YearSection: View {
         Button(action: onToggle) {
             HStack(alignment: .center, spacing: DesignTokens.Spacing.md) {
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 13, weight: .bold))
+                    .font(PulpeTypography.metricLabelBold)
                     .foregroundStyle(data.isPastYear ? .tertiary : .secondary)
                     .rotationEffect(.degrees(isExpanded ? 90 : 0))
                 Text(String(year))
@@ -352,7 +353,6 @@ struct YearSection: View {
             }
         }
         .pulpeCardBackground(cornerRadius: DesignTokens.CornerRadius.lg)
-        .shadow(DesignTokens.Shadow.card)
     }
 }
 

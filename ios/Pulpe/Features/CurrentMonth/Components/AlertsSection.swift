@@ -19,13 +19,14 @@ struct AlertsSection: View {
                     if alerts.count > 3 {
                         Text("+\(alerts.count - 3) autres")
                             .font(PulpeTypography.caption)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Color.textSecondary)
                     }
 
                     Button(action: onTapViewBudget) {
                         Text("Voir le budget")
                             .font(PulpeTypography.buttonSecondary)
                     }
+                    .textLinkButtonStyle()
                     .padding(.top, DesignTokens.Spacing.xs)
                 }
                 .padding(.vertical, DesignTokens.Spacing.xs)
@@ -48,7 +49,7 @@ private struct AlertRow: View {
     let percentage: Int
 
     private var severityColor: Color {
-        percentage >= 90 ? .financialOverBudget : .orange
+        percentage >= 90 ? .financialOverBudget : .warningPrimary
     }
 
     var body: some View {

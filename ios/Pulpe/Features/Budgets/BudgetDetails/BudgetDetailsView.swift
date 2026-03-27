@@ -13,7 +13,7 @@ struct BudgetDetailsView: View {
     @State private var viewModel: BudgetDetailsViewModel
     @State private var selectedLineForTransaction: BudgetLine?
     @State private var showAddBudgetLine = false
-    @State private var linkedTransactionsContext: LinkedTransactionsContext?
+    @State private var linkedBudgetLineId: IdentifiableString?
     @State private var selectedBudgetLineForEdit: BudgetLine?
     @State private var selectedTransactionForEdit: Transaction?
     @State private var previousBudgetItem: PreviousBudgetItem?
@@ -96,24 +96,21 @@ struct BudgetDetailsView: View {
                 viewModel.addBudgetLine(budgetLine)
             }
         }
-        .sheet(item: $linkedTransactionsContext) { context in
-            LinkedTransactionsSheet(
-                budgetLine: context.budgetLine,
-                transactions: context.transactions,
-                onToggle: { transaction in
-                    Task { await viewModel.toggleTransaction(transaction) }
-                },
-                onEdit: { transaction in
-                    linkedTransactionsContext = nil
+        .sheet(item: $linkedBudgetLineId) { idWrapper in
+            LinkedTransactionsSheetWrapper(
+                budgetLineId: idWrapper.value,
+                viewModel: viewModel,
+                onDismissAndEdit: { transaction in
+                    linkedBudgetLineId = nil
                     selectedTransactionForEdit = transaction
                 },
-                onDelete: { transaction in
-                    linkedTransactionsContext = nil // Dismiss sheet first
+                onDismissAndDelete: { transaction in
+                    linkedBudgetLineId = nil
                     viewModel.softDeleteTransaction(transaction, toastManager: appState.toastManager)
                 },
-                onAddTransaction: {
-                    linkedTransactionsContext = nil
-                    selectedLineForTransaction = context.budgetLine
+                onDismissAndAddTransaction: { budgetLine in
+                    linkedBudgetLineId = nil
+                    selectedLineForTransaction = budgetLine
                 }
             )
         }
@@ -180,10 +177,8 @@ struct BudgetDetailsView: View {
             Section {
                 CheckedFilterPicker(selection: checkedFilterBinding)
             }
-            .listRowBackground(Color.clear)
-            .listRowSeparator(.hidden)
+            .listRowCustomStyled(insets: fullWidthInsets)
             .listSectionSeparator(.hidden)
-            .listRowInsets(fullWidthInsets)
 
             // Hero balance card (with integrated rollover)
             Section {
@@ -197,17 +192,14 @@ struct BudgetDetailsView: View {
                     }
                 )
             }
-            .listRowBackground(Color.clear)
-            .listRowSeparator(.hidden)
+            .listRowCustomStyled(insets: fullWidthInsets)
             .listSectionSeparator(.hidden)
-            .listRowInsets(fullWidthInsets)
 
             // Empty search state
             if !searchText.isEmpty && filteredIncome.isEmpty && filteredExpenses.isEmpty &&
                 filteredSavings.isEmpty && filteredFree.isEmpty {
                 ContentUnavailableView("Aucune prévision trouvée", systemImage: "magnifyingglass")
-                    .listRowBackground(Color.clear)
-                    .listRowSeparator(.hidden)
+                    .listRowCustomStyled()
             }
 
             // All checked empty state (À pointer filter active, nothing left to check)
@@ -220,8 +212,7 @@ struct BudgetDetailsView: View {
                 } description: {
                     Text("Bien joué ! Passe sur « Toutes » pour revoir tes prévisions.")
                 }
-                .listRowBackground(Color.clear)
-                .listRowSeparator(.hidden)
+                .listRowCustomStyled()
             }
 
             // Budget line sections (tip appears in the first visible section)
@@ -263,7 +254,12 @@ struct BudgetDetailsView: View {
         .refreshable {
             await viewModel.loadDetails(force: true)
         }
-        .searchable(text: $searchText, prompt: "Rechercher...")
+        .searchable(
+            text: $searchText,
+            placement: .navigationBarDrawer(displayMode: .automatic),
+            prompt: "Rechercher..."
+        )
+        .searchPresentationToolbarBehavior(.avoidHidingContent)
     }
 
     // MARK: - Section Builders
@@ -290,11 +286,8 @@ struct BudgetDetailsView: View {
             onAddTransaction: { line in
                 selectedLineForTransaction = line
             },
-            onLongPress: { line, transactions in
-                linkedTransactionsContext = LinkedTransactionsContext(
-                    budgetLine: line,
-                    transactions: transactions
-                )
+            onLongPress: { line, _ in
+                linkedBudgetLineId = IdentifiableString(value: line.id)
             },
             onEdit: { line in
                 guard !line.isManuallyAdjusted else {
@@ -311,6 +304,47 @@ struct BudgetDetailsView: View {
     }
 }
 
+/// Thin Identifiable wrapper for `.sheet(item:)` with a plain String ID
+private struct IdentifiableString: Identifiable {
+    let value: String
+    var id: String { value }
+}
+
+/// Reactive wrapper that reads budgetLine + transactions from the ViewModel
+/// so SwiftUI re-renders when `toggleTransaction` mutates the @Observable store.
+private struct LinkedTransactionsSheetWrapper: View {
+    let budgetLineId: String
+    let viewModel: BudgetDetailsViewModel
+    let onDismissAndEdit: (Transaction) -> Void
+    let onDismissAndDelete: (Transaction) -> Void
+    let onDismissAndAddTransaction: (BudgetLine) -> Void
+
+    private var budgetLine: BudgetLine? {
+        viewModel.budgetLines.first { $0.id == budgetLineId }
+    }
+
+    private var transactions: [Transaction] {
+        viewModel.transactions
+            .filter { $0.budgetLineId == budgetLineId }
+            .sorted { $0.transactionDate > $1.transactionDate }
+    }
+
+    var body: some View {
+        if let budgetLine {
+            LinkedTransactionsSheet(
+                budgetLine: budgetLine,
+                transactions: transactions,
+                onToggle: { transaction in
+                    Task { await viewModel.toggleTransaction(transaction) }
+                },
+                onEdit: { transaction in onDismissAndEdit(transaction) },
+                onDelete: { transaction in onDismissAndDelete(transaction) },
+                onAddTransaction: { onDismissAndAddTransaction(budgetLine) }
+            )
+        }
+    }
+}
+
 private struct BudgetDetailsSkeletonView: View {
     var body: some View {
         List {
@@ -318,19 +352,15 @@ private struct BudgetDetailsSkeletonView: View {
             Section {
                 SkeletonShape(height: 32, cornerRadius: DesignTokens.CornerRadius.sm)
             }
-            .listRowBackground(Color.clear)
-            .listRowSeparator(.hidden)
+            .listRowCustomStyled(insets: EdgeInsets())
             .listSectionSeparator(.hidden)
-            .listRowInsets(EdgeInsets())
 
             // Hero card placeholder
             Section {
                 SkeletonShape(height: 200, cornerRadius: DesignTokens.CornerRadius.xl)
             }
-            .listRowBackground(Color.clear)
-            .listRowSeparator(.hidden)
+            .listRowCustomStyled(insets: EdgeInsets())
             .listSectionSeparator(.hidden)
-            .listRowInsets(EdgeInsets())
 
             // Budget line sections (Revenus + Dépenses)
             ForEach(0..<2, id: \.self) { _ in

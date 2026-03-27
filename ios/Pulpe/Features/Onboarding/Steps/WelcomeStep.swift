@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct WelcomeStep: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var showLogin = false
     @State private var isAppeared = false
     let state: OnboardingState
@@ -17,8 +18,10 @@ struct WelcomeStep: View {
                 // Hero — PulpeIcon at the gradient/white transition
                 PulpeIcon(size: 80)
                     .shadow(DesignTokens.Shadow.elevated)
+                    .shadow(color: Color.pulpePrimary.opacity(0.3), radius: 20, y: 8)
                     .scaleEffect(isAppeared ? 1 : 0.6)
                     .opacity(isAppeared ? 1 : 0)
+                    .animation(reduceMotion ? nil : DesignTokens.Animation.entranceSpring, value: isAppeared)
 
                 Spacer()
                     .frame(height: DesignTokens.Spacing.xxl)
@@ -38,13 +41,22 @@ struct WelcomeStep: View {
                 .padding(.horizontal, DesignTokens.Spacing.xxxl)
                 .opacity(isAppeared ? 1 : 0)
                 .offset(y: isAppeared ? 0 : 20)
+                .animation(reduceMotion ? nil : DesignTokens.Animation.entranceSpring.delay(0.15), value: isAppeared)
 
                 Spacer()
                     .frame(height: DesignTokens.Spacing.xxxl)
 
                 // Bottom buttons
                 VStack(spacing: DesignTokens.Spacing.md) {
-                    // Primary CTA
+                    // Social login — primary path (onboarding context)
+                    SocialLoginSection(onAuthenticated: { user in
+                        state.configureSocialUser(user)
+                        state.nextStep()
+                    })
+
+                    SocialLoginDivider()
+
+                    // Email signup CTA
                     Button {
                         AnalyticsService.shared.capture(.signupStarted, properties: ["method": "email"])
                         state.nextStep()
@@ -69,6 +81,7 @@ struct WelcomeStep: View {
                 .padding(.bottom, DesignTokens.Spacing.xxxl)
                 .opacity(isAppeared ? 1 : 0)
                 .offset(y: isAppeared ? 0 : 10)
+                .animation(reduceMotion ? nil : DesignTokens.Animation.entranceSpring.delay(0.35), value: isAppeared)
             }
         }
         .task { AnalyticsService.shared.capture(.welcomeScreenViewed) }
@@ -76,8 +89,12 @@ struct WelcomeStep: View {
             LoginView(isPresented: $showLogin)
         }
         .task {
-            withAnimation(DesignTokens.Animation.entranceSpring.delay(0.1)) {
+            if reduceMotion {
                 isAppeared = true
+            } else {
+                withAnimation(DesignTokens.Animation.entranceSpring.delay(0.1)) {
+                    isAppeared = true
+                }
             }
         }
     }

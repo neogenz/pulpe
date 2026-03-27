@@ -28,11 +28,13 @@ struct KindToggle: View {
                                 isSelected
                                     ? kind.color.opacity(DesignTokens.Opacity.secondary)
                                     : Color.clear,
-                                lineWidth: 1
+                                lineWidth: DesignTokens.BorderWidth.thin
                             )
                         )
                 }
-                .buttonStyle(.plain)
+                .frame(minHeight: DesignTokens.TapTarget.minimum)
+                .contentShape(Capsule())
+                .plainPressedButtonStyle()
                 .accessibilityLabel(kind.label)
                 .accessibilityAddTraits(isSelected ? .isSelected : [])
             }

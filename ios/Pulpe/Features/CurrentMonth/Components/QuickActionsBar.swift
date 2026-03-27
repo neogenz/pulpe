@@ -43,7 +43,7 @@ private struct QuickActionButton: View {
         Button(action: action) {
             VStack(spacing: DesignTokens.Spacing.sm) {
                 Image(systemName: systemImage)
-                    .font(.system(size: 20, weight: .semibold))
+                    .font(PulpeTypography.actionIcon)
                     .foregroundStyle(color)
                     .frame(width: 44, height: 44)
                     .background(color.opacity(0.12))
@@ -58,7 +58,8 @@ private struct QuickActionButton: View {
             .background(Color.surfaceContainer)
             .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
         }
-        .buttonStyle(.plain)
+        .plainPressedButtonStyle()
+        .contentShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
         .accessibilityLabel(title)
     }
 }

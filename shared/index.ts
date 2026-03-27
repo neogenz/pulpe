@@ -14,6 +14,8 @@ export {
   budgetSchema,
   budgetCreateSchema,
   budgetUpdateSchema,
+  budgetGenerateSchema,
+  budgetGenerateResponseSchema,
   onboardingTransactionSchema,
 
   // Transaction schemas
@@ -115,6 +117,7 @@ export {
   // Encryption schemas — requests
   encryptionValidateKeyRequestSchema,
   encryptionRecoverRequestSchema,
+  encryptionVerifyRecoveryKeyRequestSchema,
   encryptionChangePinRequestSchema,
   // Encryption schemas — responses
   encryptionVaultStatusResponseSchema,
@@ -160,6 +163,8 @@ export type {
   Budget,
   BudgetCreate,
   BudgetUpdate,
+  BudgetGenerate,
+  BudgetGenerateResponse,
 
   // Transaction types
   Transaction,
@@ -260,6 +265,7 @@ export type {
   // Encryption types — requests
   EncryptionValidateKeyRequest,
   EncryptionRecoverRequest,
+  EncryptionVerifyRecoveryKeyRequest,
   EncryptionChangePinRequest,
   // Encryption types — responses
   EncryptionVaultStatusResponse,

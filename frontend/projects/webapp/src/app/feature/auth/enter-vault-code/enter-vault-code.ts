@@ -3,19 +3,19 @@ import {
   ChangeDetectionStrategy,
   signal,
   inject,
-  computed,
 } from '@angular/core';
-import { toSignal } from '@angular/core/rxjs-interop';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Router, RouterLink } from '@angular/router';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatCheckboxModule } from '@angular/material/checkbox';
-import { firstValueFrom } from 'rxjs';
+import { SpinnerComponent } from 'ngx-unicode-spinners';
+import { filter, firstValueFrom } from 'rxjs';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 
 import {
@@ -25,11 +25,10 @@ import {
 } from '@core/encryption';
 import { isApiError } from '@core/api/api-error';
 import { AuthSessionService } from '@core/auth/auth-session.service';
-import { VAULT_CODE_MIN_LENGTH } from '@core/auth';
+import { VAULT_CODE_LENGTH, VAULT_CODE_VALIDATORS } from '@core/auth';
 import { ROUTES } from '@core/routing/routes-constants';
 import { Logger } from '@core/logging/logger';
 import { ErrorAlert } from '@ui/error-alert';
-import { LoadingButton } from '@ui/loading-button';
 import { LogoutDialog } from '@ui/dialogs/logout-dialog';
 import { PostHogService } from '@core/analytics';
 
@@ -42,9 +41,9 @@ import { PostHogService } from '@core/analytics';
     MatButtonModule,
     MatIconModule,
     MatCheckboxModule,
+    SpinnerComponent,
     RouterLink,
     ErrorAlert,
-    LoadingButton,
     TranslocoPipe,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -67,6 +66,7 @@ import { PostHogService } from '@core/analytics';
         </p>
       </div>
 
+      <!-- ngSubmit kept as keyboard a11y fallback (Enter key); auto-submit fires via valueChanges -->
       <form
         [formGroup]="form"
         (ngSubmit)="onSubmit()"
@@ -79,6 +79,7 @@ import { PostHogService } from '@core/analytics';
             matInput
             [type]="isCodeHidden() ? 'password' : 'text'"
             inputmode="numeric"
+            [attr.maxlength]="VAULT_CODE_LENGTH"
             formControlName="vaultCode"
             data-testid="vault-code-input"
             (input)="clearError()"
@@ -103,13 +104,17 @@ import { PostHogService } from '@core/analytics';
             <mat-error>
               @if (form.get('vaultCode')?.hasError('required')) {
                 {{ 'auth.vaultCode.pinRequired' | transloco }}
-              } @else if (form.get('vaultCode')?.hasError('minlength')) {
-                {{ 'auth.vaultCode.pinMinLength' | transloco }}
+              } @else if (
+                form.get('vaultCode')?.hasError('minlength') ||
+                form.get('vaultCode')?.hasError('maxlength')
+              ) {
+                {{ 'auth.vaultCode.pinLength' | transloco }}
               } @else if (form.get('vaultCode')?.hasError('pattern')) {
                 {{ 'auth.vaultCode.pinPattern' | transloco }}
               }
             </mat-error>
           }
+          <mat-hint>{{ 'auth.vaultCode.pinHint' | transloco }}</mat-hint>
         </mat-form-field>
 
         <div class="flex items-center">
@@ -125,15 +130,16 @@ import { PostHogService } from '@core/analytics';
 
         <pulpe-error-alert [message]="errorMessage()" />
 
-        <pulpe-loading-button
-          [loading]="isSubmitting()"
-          [disabled]="!canSubmit()"
-          [loadingText]="'auth.vaultCode.submitting' | transloco"
-          icon="arrow_forward"
-          testId="enter-vault-code-submit-button"
-        >
-          <span class="ml-2">{{ 'auth.vaultCode.continue' | transloco }}</span>
-        </pulpe-loading-button>
+        @if (isSubmitting()) {
+          <div class="flex justify-center">
+            <ngx-unicode-spinners
+              name="braille"
+              fontSize="1.5rem"
+              color="var(--mat-sys-primary)"
+              ariaLabel="Vérification en cours"
+            />
+          </div>
+        }
 
         <div class="text-center mt-2">
           <a
@@ -173,36 +179,38 @@ export default class EnterVaultCode {
   readonly #transloco = inject(TranslocoService);
 
   protected readonly ROUTES = ROUTES;
+  protected readonly VAULT_CODE_LENGTH = VAULT_CODE_LENGTH;
   protected readonly isSubmitting = signal(false);
   protected readonly isLoggingOut = signal(false);
   protected readonly errorMessage = signal('');
   protected readonly isCodeHidden = signal(true);
 
   protected readonly form = this.#formBuilder.nonNullable.group({
-    vaultCode: [
-      '',
-      [
-        Validators.required,
-        Validators.minLength(VAULT_CODE_MIN_LENGTH),
-        Validators.pattern(/^\d+$/),
-      ],
-    ],
+    vaultCode: ['', VAULT_CODE_VALIDATORS],
     rememberDevice: [false],
   });
 
-  readonly #formStatus = toSignal(this.form.statusChanges, {
-    initialValue: this.form.status,
-  });
-
-  protected readonly canSubmit = computed(() => {
-    return this.#formStatus() === 'VALID' && !this.isSubmitting();
-  });
+  constructor() {
+    this.form.controls.vaultCode.valueChanges
+      .pipe(
+        filter((value) => value.length === VAULT_CODE_LENGTH),
+        filter(() => !this.isSubmitting()),
+        takeUntilDestroyed(),
+      )
+      .subscribe(() => {
+        // valueChanges fires before FormGroup recalculates validity — force sync
+        this.form.updateValueAndValidity({ emitEvent: false });
+        this.onSubmit();
+      });
+  }
 
   protected clearError(): void {
     this.errorMessage.set('');
   }
 
   protected async onSubmit(): Promise<void> {
+    if (this.isSubmitting()) return;
+
     if (!this.form.valid) {
       this.form.markAllAsTouched();
       return;
@@ -230,7 +238,7 @@ export default class EnterVaultCode {
       this.#clientKeyService.setDirectKey(clientKeyHex, rememberDevice);
 
       this.#postHogService.captureEvent('vault_code_entered');
-      this.#router.navigate(['/', ROUTES.DASHBOARD]);
+      await this.#router.navigate(['/', ROUTES.DASHBOARD]);
     } catch (error) {
       this.#logger.error('Enter vault code failed:', error);
 
@@ -253,6 +261,7 @@ export default class EnterVaultCode {
           this.#transloco.translate('common.somethingWentWrong'),
         );
       }
+      this.form.controls.vaultCode.setValue('', { emitEvent: false });
     } finally {
       this.form.enable();
       this.isSubmitting.set(false);

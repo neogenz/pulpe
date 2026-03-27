@@ -424,7 +424,7 @@ enum KeychainError: LocalizedError {
         case .userCanceled:
             return "Authentification annulée"
         case .authFailed:
-            return "L'authentification n'a pas fonctionné — réessaye"
+            return "L'authentification n'a pas fonctionné — réessaie"
         case .unknown(let status):
             return "Quelque chose n'a pas fonctionné (code: \(status))"
         }

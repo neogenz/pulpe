@@ -34,6 +34,7 @@ import { EncryptionService } from './encryption.service';
 import {
   EncryptionValidateKeyRequestDto,
   EncryptionRecoverRequestDto,
+  EncryptionVerifyRecoveryKeyRequestDto,
   EncryptionChangePinRequestDto,
   EncryptionVaultStatusResponseDto,
   EncryptionSaltResponseDto,
@@ -239,6 +240,35 @@ export class EncryptionController {
     return { success: true };
   }
 
+  @SkipClientKey()
+  @Post('verify-recovery-key')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  // Read-only unwrap — same ceiling as validate-key so users can retry after typos
+  // (unlike /recover which re-encrypts all data and stays at 5/hour)
+  @Throttle({ default: { limit: 30, ttl: 60000 } })
+  @ApiOperation({
+    summary: 'Verify recovery key matches stored wrapped DEK (read-only)',
+  })
+  @ApiResponse({
+    status: 204,
+    description: 'Recovery key is valid',
+  })
+  @ApiBadRequestResponse({
+    description: 'Invalid recovery key or no recovery key configured',
+    type: ErrorResponseDto,
+  })
+  async verifyRecoveryKey(
+    @User() user: AuthenticatedUser,
+    @Body() body: EncryptionVerifyRecoveryKeyRequestDto,
+  ): Promise<void> {
+    await this.encryptionService.verifyRecoveryKey(user.id, body.recoveryKey);
+  }
+
+  /**
+   * PIN length (exactly 4 digits) is enforced client-side before PBKDF2 derivation.
+   * The backend only receives hex-encoded derived keys (64 chars) validated by
+   * {@link #validateClientKeyHex}. No raw PIN digits ever reach the server.
+   */
   @SkipClientKey()
   @Post('change-pin')
   @HttpCode(HttpStatus.OK)

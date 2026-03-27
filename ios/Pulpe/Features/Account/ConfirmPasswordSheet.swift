@@ -8,6 +8,7 @@ struct ConfirmPasswordSheet: View {
     @State private var isVerifying = false
     @State private var errorMessage: String?
     @State private var verifyTask: Task<Void, Never>?
+    @State private var submitSuccessTrigger = false
     @FocusState private var isFocused: Bool
 
     var onVerify: (String) async -> String?
@@ -38,7 +39,7 @@ struct ConfirmPasswordSheet: View {
 
                     if let error = errorMessage {
                         Text(error)
-                            .font(PulpeTypography.caption)
+                            .font(PulpeTypography.labelMedium)
                             .foregroundStyle(Color.errorPrimary)
                             .padding(.leading, DesignTokens.Spacing.xs)
                     }
@@ -66,13 +67,16 @@ struct ConfirmPasswordSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Annuler") { dismiss() }
+                    SheetCloseButton()
                 }
             }
             .background(Color.sheetBackground)
+            .dismissKeyboardOnTap()
             .interactiveDismissDisabled(isVerifying)
             .onDisappear { verifyTask?.cancel() }
         }
+        .standardSheetPresentation()
+        .sensoryFeedback(.success, trigger: submitSuccessTrigger)
     }
 
     private func verifyPassword() async {
@@ -89,6 +93,7 @@ struct ConfirmPasswordSheet: View {
         }
 
         isVerifying = false
+        submitSuccessTrigger.toggle()
         dismiss()
     }
 }

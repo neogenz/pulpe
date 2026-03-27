@@ -127,7 +127,7 @@ struct BudgetSection: View {
                     ProductTips.gestures.invalidate(reason: .actionPerformed)
                 } label: {
                     Label(
-                        item.isChecked ? "Annuler" : "Comptabiliser",
+                        item.isChecked ? "Dépointer" : "Comptabiliser",
                         systemImage: item.isChecked ? "arrow.uturn.backward" : "checkmark.circle"
                     )
                 }
@@ -160,7 +160,7 @@ struct BudgetSection: View {
                     Spacer()
                     Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
                         .font(PulpeTypography.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.textSecondary)
                 }
             }
             .listRowSeparator(.hidden)
@@ -229,19 +229,23 @@ struct BudgetLineRow: View {
 
     private var amountTextColor: Color {
         if line.isChecked { return .secondary }
-        if hasConsumption && line.kind == .expense {
+        // Expenses: always state color (icon carries category)
+        if line.kind == .expense {
             if consumption.isOverBudget { return .financialOverBudget }
             if consumption.isNearLimit { return .warningPrimary }
             return .secondary
         }
+        // Income & savings: category color when no consumption, secondary otherwise
         if hasConsumption { return .secondary }
         return line.kind.color
     }
 
     private var remainingAmountText: String {
-        guard hasConsumption else {
-            return line.amount.asSignedAmount(for: line.kind)
+        // Income & savings: always show unsigned budget amount
+        guard line.kind == .expense else {
+            return line.amount.asAmount
         }
+        // Expenses: always show remaining (= budget when no transactions)
         if consumption.available >= 0 {
             return consumption.available.asAmount
         } else {
@@ -268,7 +272,7 @@ struct BudgetLineRow: View {
             // Main content
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                 Text(line.name)
-                    .font(.system(.body, weight: .semibold))
+                    .font(PulpeTypography.listRowTitle)
                     .foregroundStyle(line.isChecked ? .secondary : .primary)
                     .strikethrough(line.isChecked, color: .secondary)
                     .lineLimit(1)
@@ -277,14 +281,18 @@ struct BudgetLineRow: View {
                 if hasConsumption {
                     Text("\(consumptionPercentage)% · \(consumption.allocated.asCompactCHF) dépensé")
                         .font(PulpeTypography.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.textSecondary)
                         .lineLimit(1)
                         .sensitiveAmount()
                     progressBar
+                } else if line.kind == .expense {
+                    Text("\(line.recurrence.label) · sur \(line.amount.asCompactCHF)")
+                        .font(PulpeTypography.caption)
+                        .foregroundStyle(Color.textSecondary)
                 } else {
                     Text(line.recurrence.label)
                         .font(PulpeTypography.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.textSecondary)
                 }
             }
 
@@ -295,11 +303,10 @@ struct BudgetLineRow: View {
 
             // Amount (remaining when transactions exist, otherwise budgeted)
             Text(remainingAmountText)
-                .font(.system(.callout, weight: .regular))
+                .font(PulpeTypography.listRowSubtitle)
                 .foregroundStyle(amountTextColor)
                 .sensitiveAmount()
         }
-        .padding(.vertical, DesignTokens.ListRow.verticalPadding)
         }
         .contentShape(Rectangle())
         .onLongPressGesture(
@@ -346,17 +353,17 @@ struct BudgetLineRow: View {
                         ? Color.progressTrack
                         : line.kind.color.opacity(DesignTokens.Opacity.badgeBackground)
                 )
-                .frame(width: 40, height: 40)
+                .frame(width: DesignTokens.IconSize.listRow, height: DesignTokens.IconSize.listRow)
 
             if line.isChecked {
                 // Show checkmark when checked
                 Image(systemName: "checkmark")
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(.secondary)
+                    .font(PulpeTypography.listRowTitle)
+                    .foregroundStyle(Color.textSecondary)
             } else {
                 // Show kind icon
                 Image(systemName: line.kind.icon)
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(PulpeTypography.listRowTitle)
                     .foregroundStyle(line.kind.color)
             }
         }
@@ -376,7 +383,7 @@ struct BudgetLineRow: View {
                 .animation(DesignTokens.Animation.gentleSpring, value: consumption.percentage)
         }
         .frame(height: DesignTokens.ProgressBar.height)
-        .clipShape(.rect(cornerRadius: 10))
+        .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.progressBar))
         .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { barWidth = $0 }
     }
 
@@ -469,7 +476,7 @@ struct BudgetLineRow: View {
         )
     }
     .listStyle(.insetGrouped)
-    .listSectionSpacing(16)
+    .listSectionSpacing(DesignTokens.Spacing.lg)
     .scrollContentBackground(.hidden)
     .pulpeBackground()
 }

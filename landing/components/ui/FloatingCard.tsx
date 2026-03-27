@@ -2,7 +2,7 @@ import { memo } from 'react'
 import type { ReactNode, CSSProperties } from 'react'
 import { cn } from '@/lib/cn'
 
-type FloatingCardVariant =
+export type FloatingCardVariant =
   | 'mini'
   | 'pill'
   | 'notification'

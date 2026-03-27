@@ -19,6 +19,23 @@ final class OnboardingState {
     var email: String = ""
     var acceptTerms: Bool = false
 
+    // MARK: - Social Auth
+
+    var socialUser: UserInfo?
+    var readyForSocialCompletion: Bool = false
+    var isSocialSignup: Bool { socialUser != nil }
+
+    /// Configures state for a social signup user.
+    /// Pre-fills firstName from provider metadata and clears persisted step
+    /// so cold-start after app kill resets to welcome.
+    func configureSocialUser(_ user: UserInfo) {
+        socialUser = user
+        if let name = user.firstName, !name.isEmpty {
+            firstName = name
+        }
+        clearStorage()
+    }
+
     // MARK: - UI State
 
     var currentStep: OnboardingStep = .welcome
@@ -59,8 +76,10 @@ final class OnboardingState {
     }
 
     var progressPercentage: Double {
-        let totalSteps = OnboardingStep.allCases.count - 1 // Exclude welcome
-        guard let stepIndex = OnboardingStep.allCases.firstIndex(of: currentStep) else { return 0 }
+        // Exclude welcome; also exclude registration for social users
+        let totalSteps = OnboardingStep.allCases.count - (isSocialSignup ? 2 : 1)
+        guard totalSteps > 0,
+              let stepIndex = OnboardingStep.allCases.firstIndex(of: currentStep) else { return 0 }
         let currentIndex = max(0, stepIndex - 1)
         return Double(currentIndex) / Double(totalSteps) * 100
     }
@@ -104,9 +123,18 @@ final class OnboardingState {
         if currentStep != .welcome {
             AnalyticsService.shared.capture(.onboardingStepCompleted, properties: ["step": currentStep.analyticsName])
         }
+
+        let nextStep = OnboardingStep.allCases[currentIndex + 1]
+
+        // Social users skip registration — trigger completion from budgetPreview
+        if nextStep == .registration && isSocialSignup {
+            readyForSocialCompletion = true
+            return
+        }
+
         isMovingForward = true
         withAnimation(PulpeAnimations.stepTransition) {
-            currentStep = OnboardingStep.allCases[currentIndex + 1]
+            currentStep = nextStep
         }
         saveToStorage()
     }

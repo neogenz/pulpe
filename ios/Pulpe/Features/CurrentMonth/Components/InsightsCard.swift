@@ -6,6 +6,8 @@ struct InsightsCard: View {
     let alerts: [BudgetAlert]
     var onTap: (() -> Void)?
 
+    @Environment(\.amountsHidden) private var amountsHidden
+
     private let maxVisibleAlerts = 3
 
     private var hasTopSpending: Bool { topSpending != nil }
@@ -50,7 +52,7 @@ struct InsightsCard: View {
         } else {
             Text("Enregistre tes dépenses pour voir où part ton argent")
                 .font(PulpeTypography.subheadline)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.textSecondary)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .pulpeCard()
         }
@@ -64,17 +66,17 @@ struct InsightsCard: View {
         return HStack(spacing: DesignTokens.Spacing.md) {
             Circle()
                 .fill(Color.financialExpense.opacity(DesignTokens.Opacity.accent))
-                .frame(width: 40, height: 40)
+                .frame(width: DesignTokens.IconSize.listRow, height: DesignTokens.IconSize.listRow)
                 .overlay {
                     Image(systemName: "chart.pie.fill")
-                        .font(.system(size: 18))
+                        .font(PulpeTypography.cardTitle)
                         .foregroundStyle(Color.financialExpense)
                 }
 
             VStack(alignment: .leading, spacing: 2) {
                 Text("Où part ton argent")
                     .font(PulpeTypography.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.textSecondary)
                 Text(spending.name)
                     .font(PulpeTypography.labelLarge)
                     .foregroundStyle(.primary)
@@ -88,13 +90,19 @@ struct InsightsCard: View {
                     .font(PulpeTypography.labelLarge)
                     .foregroundStyle(.primary)
                     .sensitiveAmount()
-                Text("\(percentage)% de tes dépenses")
-                    .font(PulpeTypography.caption)
-                    .foregroundStyle(.secondary)
+                if amountsHidden {
+                    Text("Détail masqué")
+                        .font(PulpeTypography.caption)
+                        .foregroundStyle(Color.textSecondary)
+                } else {
+                    Text("\(percentage)% de tes dépenses")
+                        .font(PulpeTypography.caption)
+                        .foregroundStyle(Color.textSecondary)
+                }
             }
         }
         .padding(.horizontal, DesignTokens.Spacing.lg)
-        .padding(.vertical, 14)
+        .padding(.vertical, DesignTokens.Spacing.lg)
     }
 
     // MARK: - Alerts Section
@@ -107,7 +115,7 @@ struct InsightsCard: View {
 
             alertText
                 .font(PulpeTypography.subheadline)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.textSecondary)
                 .lineLimit(1)
         }
         .padding(.horizontal, DesignTokens.Spacing.lg)
@@ -133,7 +141,8 @@ struct InsightsCard: View {
 
         for (index, alert) in visibleAlerts.enumerated() {
             if index > 0 {
-                result = result + Text(" · ").foregroundStyle(.tertiary) // swiftlint:disable:this shorthand_operator
+                // swiftlint:disable:next shorthand_operator
+                result = result + Text(" · ").foregroundStyle(Color.textTertiary)
             }
 
             result = result + Text("\(alert.line.name) ")
@@ -145,9 +154,9 @@ struct InsightsCard: View {
 
         if alerts.count > maxVisibleAlerts {
             let remaining = alerts.count - maxVisibleAlerts
-            result = result + Text(" · ").foregroundStyle(.tertiary)
+            result = result + Text(" · ").foregroundStyle(Color.textTertiary)
             + Text("et \(remaining) autres")
-                .foregroundStyle(.tertiary)
+                .foregroundStyle(Color.textTertiary)
         }
 
         return result
@@ -159,11 +168,16 @@ struct InsightsCard: View {
         var parts: [String] = []
 
         if let topSpending {
-            let percentage = Self.percentageOfTotal(topSpending.amount, of: topSpending.totalExpenses)
-            parts.append(
-                "Où part ton argent: \(topSpending.name), \(topSpending.amount.asCHF), " +
-                "\(percentage) pourcent de tes dépenses"
-            )
+            let amountDescription = amountsHidden ? "Montant masqué" : topSpending.amount.asCHF
+            if amountsHidden {
+                parts.append("Où part ton argent: \(topSpending.name), \(amountDescription)")
+            } else {
+                let percentage = Self.percentageOfTotal(topSpending.amount, of: topSpending.totalExpenses)
+                parts.append(
+                    "Où part ton argent: \(topSpending.name), \(amountDescription), " +
+                    "\(percentage) pourcent de tes dépenses"
+                )
+            }
         }
 
         if hasAlerts {

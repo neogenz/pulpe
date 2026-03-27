@@ -52,7 +52,7 @@ struct CurrentMonthHeroCard: View {
             Text("Détails")
                 .font(PulpeTypography.buttonSecondary)
             Image(systemName: "chevron.right")
-                .font(.system(size: 12, weight: .semibold))
+                .font(PulpeTypography.detailLabel)
         }
         .foregroundStyle(.white.opacity(0.8))
     }
@@ -65,7 +65,7 @@ struct CurrentMonthHeroCard: View {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
                 HStack(spacing: 6) {
                     Image(systemName: "calendar")
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(PulpeTypography.metricLabel)
                     Text("Ce mois-ci")
                         .font(PulpeTypography.labelLarge)
                 }
@@ -220,6 +220,11 @@ struct BudgetMonthRow: View {
         return .secondary
     }
 
+    private var stateDotColor: Color? {
+        guard let remaining = budget.remaining else { return nil }
+        return remaining < 0 ? .financialOverBudget : .pulpePrimary
+    }
+
     var body: some View {
         let isPast = isPast
         let color = amountColor(isPast: isPast)
@@ -229,6 +234,11 @@ struct BudgetMonthRow: View {
             onTap()
         } label: {
             HStack(spacing: DesignTokens.Spacing.md) {
+                if let dotColor = stateDotColor {
+                    Circle()
+                        .fill(dotColor)
+                        .frame(width: 6, height: 6)
+                }
                 if dynamicTypeSize.isAccessibilitySize {
                     VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                         Text(monthName)
@@ -238,7 +248,7 @@ struct BudgetMonthRow: View {
                         if let periodLabel {
                             Text(periodLabel)
                                 .font(PulpeTypography.caption)
-                                .foregroundStyle(.tertiary)
+                                .foregroundStyle(Color.textTertiary)
                         }
 
                         if let remaining = budget.remaining {
@@ -259,7 +269,7 @@ struct BudgetMonthRow: View {
                         if let periodLabel {
                             Text(periodLabel)
                                 .font(PulpeTypography.caption)
-                                .foregroundStyle(.tertiary)
+                                .foregroundStyle(Color.textTertiary)
                         }
                     }
                     Spacer()
@@ -273,8 +283,8 @@ struct BudgetMonthRow: View {
                 }
 
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(.tertiary)
+                    .font(PulpeTypography.detailLabel)
+                    .foregroundStyle(Color.textTertiary)
             }
             .padding(.horizontal, DesignTokens.Spacing.lg)
             .padding(.vertical, DesignTokens.Spacing.lg)
@@ -311,17 +321,17 @@ struct NextMonthPlaceholder: View {
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                     Text(monthName)
                         .font(PulpeTypography.onboardingSubtitle)
-                        .foregroundStyle(.tertiary)
+                        .foregroundStyle(Color.textTertiary)
 
                     Text("Pas encore de budget")
                         .font(PulpeTypography.caption)
-                        .foregroundStyle(.tertiary)
+                        .foregroundStyle(Color.textTertiary)
                 }
 
                 Spacer()
                 HStack(spacing: DesignTokens.Spacing.xs) {
                     Image(systemName: "plus")
-                        .font(.system(size: 12, weight: .bold))
+                        .font(PulpeTypography.detailLabelBold)
                     Text("Créer")
                         .font(PulpeTypography.labelLarge)
                 }
@@ -331,17 +341,7 @@ struct NextMonthPlaceholder: View {
                 .background(Color.pulpePrimary, in: Capsule())
             }
             .padding(.horizontal, DesignTokens.Spacing.lg)
-            .padding(.vertical, 14)
-            .background(
-                Color(light: Color.surfaceContainerLow.opacity(0.4), dark: Color.surfaceContainerLow.opacity(0.5))
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.lg)
-                    .strokeBorder(
-                        Color.outlineVariant.opacity(0.3),
-                        style: StrokeStyle(lineWidth: 1, dash: [8, 4])
-                    )
-            )
+            .padding(.vertical, DesignTokens.Spacing.lg)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)

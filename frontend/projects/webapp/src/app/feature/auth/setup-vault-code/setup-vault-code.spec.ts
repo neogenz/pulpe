@@ -105,8 +105,8 @@ describe('SetupVaultCode', () => {
 
   function fillValidForm(): void {
     component['form'].patchValue({
-      vaultCode: '123456',
-      confirmCode: '123456',
+      vaultCode: '1234',
+      confirmCode: '1234',
       rememberDevice: false,
     });
   }
@@ -156,14 +156,14 @@ describe('SetupVaultCode', () => {
     });
 
     it('should require matching vault codes', () => {
-      component['form'].get('vaultCode')?.setValue('123456');
-      component['form'].get('confirmCode')?.setValue('654321');
+      component['form'].get('vaultCode')?.setValue('1234');
+      component['form'].get('confirmCode')?.setValue('4321');
       expect(component['form'].hasError('fieldsMismatch')).toBe(true);
     });
 
     it('should allow matching vault codes', () => {
-      component['form'].get('vaultCode')?.setValue('123456');
-      component['form'].get('confirmCode')?.setValue('123456');
+      component['form'].get('vaultCode')?.setValue('1234');
+      component['form'].get('confirmCode')?.setValue('1234');
       expect(component['form'].hasError('fieldsMismatch')).toBe(false);
     });
   });
@@ -198,7 +198,7 @@ describe('SetupVaultCode', () => {
     it('should call deriveClientKey with vault code and salt', async () => {
       await component['onSubmit']();
       expect(deriveClientKeySpy).toHaveBeenCalledWith(
-        '123456',
+        '1234',
         'salt-value',
         100000,
       );

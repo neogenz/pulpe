@@ -23,6 +23,9 @@ packages:
   posthog-ios:
     url: https://github.com/PostHog/posthog-ios
     from: "3.0.0"
+  google-sign-in-ios:
+    url: https://github.com/google/GoogleSignIn-iOS
+    from: "8.0.0"
 
 settings:
   base:
@@ -66,6 +69,8 @@ targets:
         product: Lottie
       - package: posthog-ios
         product: PostHog
+      - package: google-sign-in-ios
+        product: GoogleSignIn
       - target: PulpeWidget
         embed: true
     entitlements:
@@ -73,6 +78,8 @@ targets:
       properties:
         com.apple.security.application-groups:
           - group.app.pulpe.ios
+        com.apple.developer.applesignin:
+          - Default
     configFiles:
       Local: Config/Local.xcconfig
       Preview: Config/Preview.xcconfig
@@ -81,8 +88,9 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: app.pulpe.ios
         PRODUCT_NAME: Pulpe
-        TARGETED_DEVICE_FAMILY: "1,2"
-        SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD: true
+        TARGETED_DEVICE_FAMILY: "1"
+        SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD: false
+        SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD: false
         INFOPLIST_KEY_LSApplicationCategoryType: "public.app-category.finance"
         INFOPLIST_KEY_CFBundleDisplayName: Pulpe
     info:
@@ -99,11 +107,6 @@ targets:
         UILaunchStoryboardName: LaunchScreen
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
-        UISupportedInterfaceOrientations~ipad:
-          - UIInterfaceOrientationPortrait
-          - UIInterfaceOrientationPortraitUpsideDown
-          - UIInterfaceOrientationLandscapeLeft
-          - UIInterfaceOrientationLandscapeRight
         UIRequiredDeviceCapabilities:
           - arm64
         ITSAppUsesNonExemptEncryption: false
@@ -112,6 +115,9 @@ targets:
           - CFBundleURLSchemes:
               - pulpe
             CFBundleURLName: app.pulpe.ios
+          - CFBundleURLSchemes:
+              - com.googleusercontent.apps.894420283180-534drgml29aruk8ceqr1gecc5mn66gmg
+            CFBundleURLName: google-sign-in
         UIAppFonts:
           - Manrope-Bold.ttf
         UIBackgroundModes:
@@ -125,16 +131,14 @@ targets:
         POSTHOG_API_KEY: $(POSTHOG_API_KEY)
         POSTHOG_HOST: $(POSTHOG_HOST)
         POSTHOG_ENABLED: $(POSTHOG_ENABLED)
+        GOOGLE_CLIENT_ID: 894420283180-534drgml29aruk8ceqr1gecc5mn66gmg.apps.googleusercontent.com
+        GIDClientID: 894420283180-534drgml29aruk8ceqr1gecc5mn66gmg.apps.googleusercontent.com
 
   PulpeWidget:
     type: app-extension
     platform: iOS
     sources:
       - path: PulpeWidget
-        excludes:
-          - "**/.DS_Store"
-      - path: ../ios-codegen
-        group: PulpeWidget/Generated
         excludes:
           - "**/.DS_Store"
       - path: Pulpe/Domain/Models
@@ -166,7 +170,7 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: app.pulpe.ios.widget
         PRODUCT_NAME: "Pulpe Widget"
         SKIP_INSTALL: true
-        TARGETED_DEVICE_FAMILY: "1,2"
+        TARGETED_DEVICE_FAMILY: "1"
         INFOPLIST_KEY_CFBundleDisplayName: "Pulpe Widget"
     info:
       path: PulpeWidget/Info.plist
@@ -203,7 +207,7 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: app.pulpe.ios.tests
         IPHONEOS_DEPLOYMENT_TARGET: "18.0"
-        TARGETED_DEVICE_FAMILY: "1,2"
+        TARGETED_DEVICE_FAMILY: "1"
 
   PulpeUITests:
     type: bundle.ui-testing
@@ -218,7 +222,7 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: app.pulpe.ios.uitests
         IPHONEOS_DEPLOYMENT_TARGET: "18.0"
-        TARGETED_DEVICE_FAMILY: "1,2"
+        TARGETED_DEVICE_FAMILY: "1"
 
 schemes:
   PulpeLocal:

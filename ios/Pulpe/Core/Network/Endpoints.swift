@@ -51,7 +51,7 @@ enum Endpoint {
     // MARK: - Template Lines
 
     case templateLines(templateId: String)
-    case templateLine(id: String)
+    case templateLine(templateId: String, lineId: String)
     case templateLinesBulk(templateId: String)
 
     // MARK: - Encryption
@@ -62,6 +62,7 @@ enum Endpoint {
     case encryptionSetupRecovery
     case encryptionRegenerateRecovery
     case encryptionRecover
+    case encryptionVerifyRecoveryKey
     case encryptionChangePin
 
     // MARK: - Path
@@ -108,8 +109,8 @@ enum Endpoint {
 
         // Template Lines
         case .templateLines(let templateId): return "/budget-templates/\(templateId)/lines"
-        case .templateLine(let id): return "/template-lines/\(id)"
-        case .templateLinesBulk(let templateId): return "/budget-templates/\(templateId)/lines/bulk"
+        case .templateLine(let templateId, let lineId): return "/budget-templates/\(templateId)/lines/\(lineId)"
+        case .templateLinesBulk(let templateId): return "/budget-templates/\(templateId)/lines/bulk-operations"
 
         // Encryption
         case .encryptionVaultStatus: return "/encryption/vault-status"
@@ -118,6 +119,7 @@ enum Endpoint {
         case .encryptionSetupRecovery: return "/encryption/setup-recovery"
         case .encryptionRegenerateRecovery: return "/encryption/regenerate-recovery"
         case .encryptionRecover: return "/encryption/recover"
+        case .encryptionVerifyRecoveryKey: return "/encryption/verify-recovery-key"
         case .encryptionChangePin: return "/encryption/change-pin"
         }
     }
@@ -130,7 +132,7 @@ enum Endpoint {
              .templateLines, .templateFromOnboarding, .templateLinesBulk,
              .budgetLineToggle, .budgetLineResetFromTemplate, .transactionToggle,
              .encryptionValidateKey, .encryptionSetupRecovery, .encryptionRegenerateRecovery, .encryptionRecover,
-             .encryptionChangePin:
+             .encryptionVerifyRecoveryKey, .encryptionChangePin:
             return .post
 
         case .validateSession, .userProfile, .budget, .budgetDetails, .budgetsExport,

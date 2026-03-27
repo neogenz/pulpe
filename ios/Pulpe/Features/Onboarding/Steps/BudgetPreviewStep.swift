@@ -3,6 +3,8 @@ import SwiftUI
 struct BudgetPreviewStep: View {
     let state: OnboardingState
 
+    @Environment(\.amountsHidden) private var amountsHidden
+
     @State private var showCheckmark = false
     @State private var showHero = false
     @State private var showCard = false
@@ -36,7 +38,7 @@ struct BudgetPreviewStep: View {
                     .frame(width: 56, height: 56)
 
                 Image(systemName: "checkmark.circle.fill")
-                    .font(.system(size: 28, weight: .medium))
+                    .font(PulpeTypography.previewAmount)
                     .foregroundStyle(Color.pulpePrimary)
                     .symbolEffect(.bounce, value: showCheckmark)
             }
@@ -54,6 +56,12 @@ struct BudgetPreviewStep: View {
                 .foregroundStyle(Color.textSecondaryOnboarding)
         }
         .padding(.vertical, DesignTokens.Spacing.xl)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(
+            amountsHidden
+                ? "Disponible à dépenser: montant masqué"
+                : "Disponible à dépenser: \(state.availableToSpend.asCHF)"
+        )
         .opacity(showHero ? 1 : 0)
         .offset(y: showHero ? 0 : 10)
         .task {
@@ -118,6 +126,8 @@ struct BudgetPreviewStep: View {
                 .fill(Color.onboardingCardBackground)
                 .shadow(DesignTokens.Shadow.card)
         )
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Résumé du budget")
         .scaleEffect(showCard ? 1 : 0.95)
         .opacity(showCard ? 1 : 0)
     }

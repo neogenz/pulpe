@@ -67,6 +67,7 @@ function createMockEncryptionService() {
     regenerateRecoveryKey: mock(() =>
       Promise.resolve({ formatted: 'AAAA-BBBB-CCCC-5678' }),
     ),
+    verifyRecoveryKey: mock(() => Promise.resolve()),
     ensureUserDEK: mock(() => Promise.resolve(Buffer.alloc(32))),
     getUserDEK: mock(() => Promise.resolve(Buffer.alloc(32))),
     generateKeyCheck: mock(() => 'mock-key-check'),
@@ -367,6 +368,43 @@ describe('Encryption HTTP pipeline', () => {
         .expect(400);
 
       expect(res.body.code).toBe('ERR_ZOD_VALIDATION_FAILED');
+    });
+  });
+
+  describe('POST /api/v1/encryption/verify-recovery-key', () => {
+    it('returns 204 when verification succeeds', async () => {
+      await request(app.getHttpServer())
+        .post('/api/v1/encryption/verify-recovery-key')
+        .send({
+          recoveryKey:
+            'AAAA-BBBB-CCCC-DDDD-EEEE-FFFF-GGGG-HHHH-IIII-JJJJ-KKKK-LLLL-MMMM',
+        })
+        .expect(204);
+
+      expect(mockService.verifyRecoveryKey.mock.calls.length).toBe(1);
+    });
+
+    it('returns 400 Zod error when recoveryKey is missing', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/api/v1/encryption/verify-recovery-key')
+        .send({})
+        .expect(400);
+
+      expect(res.body.code).toBe('ERR_ZOD_VALIDATION_FAILED');
+    });
+
+    it('returns 400 ERR_RECOVERY_KEY_INVALID when service rejects', async () => {
+      mockService.verifyRecoveryKey.mockImplementation(() => {
+        throw new BusinessException(ERROR_DEFINITIONS.RECOVERY_KEY_INVALID);
+      });
+
+      const res = await request(app.getHttpServer())
+        .post('/api/v1/encryption/verify-recovery-key')
+        .send({ recoveryKey: 'WRONG-KEY0-WRONG-KEY0-WRONG-KEY0-WRONG-KEY0' })
+        .expect(400);
+
+      expect(res.body.code).toBe('ERR_RECOVERY_KEY_INVALID');
+      mockService.verifyRecoveryKey.mockImplementation(() => Promise.resolve());
     });
   });
 

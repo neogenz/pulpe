@@ -1,5 +1,5 @@
 ---
-description: "Angular DataCache & SWR pattern for cache-first resource loading"
+description: "Angular ngx-ziflux SWR cache pattern for resource loading"
 paths:
   - "frontend/**/*-api.ts"
   - "frontend/**/*-store.ts"
@@ -7,69 +7,43 @@ paths:
   - "frontend/**/*preload*.ts"
 ---
 
-# Cache & SWR Pattern
+# Cache & SWR Pattern (ngx-ziflux)
 
-> **Full documentation**: `docs/angular-cache-swr-pattern.md`
+> **Library**: `ngx-ziflux` — SWR caching for Angular `resource()` API
+> **Expert skill**: Use `/ziflux-expert` for detailed API reference
 
-## DataCache: Where & Why
+## Architecture
 
 Cache lives in the **Feature API layer** (singleton), never in stores (route-scoped).
 
 ```
 Component → Store → Feature API → ApiClient
                         │
-                    DataCache (Map)
+                    DataCache (ngx-ziflux)
 ```
 
 - Singletons survive navigation → cache persists
 - Multiple stores share one cache → no duplication
-- Stores don't know cache exists → transparent
+- Store reads `this.#api.cache`, never instantiates `DataCache`
 
-## DataCache Class
+## DataCache (ngx-ziflux)
 
 ```typescript
-interface CacheEntry<T> { data: T; createdAt: number; }
-
-class DataCache<T> {
-  readonly #entries = new Map<string, CacheEntry<T>>();
-  readonly #inFlight = new Map<string, Promise<T>>();
-
-  constructor(readonly config: { freshTime: number; gcTime: number }) {}
-
-  get(key: string[]): { data: T; fresh: boolean } | null {
-    const s = JSON.stringify(key);
-    const entry = this.#entries.get(s);
-    if (!entry) return null;
-    const age = Date.now() - entry.createdAt;
-    if (age > this.config.gcTime) { this.#entries.delete(s); return null; }
-    return { data: entry.data, fresh: age <= this.config.freshTime };
-  }
-
-  set(key: string[], data: T): void {
-    this.#entries.set(JSON.stringify(key), { data, createdAt: Date.now() });
-  }
-
-  has(key: string[]): boolean { return this.get(key) !== null; }
-
-  invalidate(prefix: string[]): void {
-    const p = JSON.stringify(prefix).slice(0, -1);
-    for (const [k, entry] of this.#entries) {
-      if (k.startsWith(p)) entry.createdAt = Date.now() - this.config.freshTime - 1;
-    }
-  }
-
-  clear(): void { this.#entries.clear(); this.#inFlight.clear(); }
-
-  async deduplicate(key: string[], fn: () => Promise<T>): Promise<T> {
-    const s = JSON.stringify(key);
-    const existing = this.#inFlight.get(s);
-    if (existing) return existing;
-    const p = fn().finally(() => this.#inFlight.delete(s));
-    this.#inFlight.set(s, p);
-    return p;
-  }
-}
+// In Feature API (providedIn: 'root')
+readonly cache = new DataCache({
+  name: 'orders',
+  staleTime: 30_000,    // 30s — data considered fresh
+  expireTime: 300_000,  // 5min — data evicted
+});
 ```
+
+Key methods:
+- `cache.get<T>(key: string[])` → `{ data: T; fresh: boolean } | null`
+- `cache.set<T>(key: string[], data: T)` → write to cache
+- `cache.invalidate(prefix: string[])` → marks stale (never deletes)
+- `cache.prefetch<T>(key: string[], fn)` → one in-flight per key
+- `cache.clear()` → full wipe
+- `cache.version` → `Signal<number>`, bumps on invalidate/clear
 
 ## Freshness: 3 States
 
@@ -77,127 +51,78 @@ class DataCache<T> {
 FRESH (return, no fetch) → STALE (return + background fetch) → EXPIRED (evict, fetch)
 ```
 
-| Data type | freshTime | gcTime |
-|-----------|-----------|--------|
+| Data type | staleTime | expireTime |
+|-----------|-----------|------------|
 | Rarely changes | 60s | 10min |
 | Normal entities | 30s | 5min |
 | Frequently updated | 15s | 3min |
 
 **Rule: invalidation = mark STALE, never delete.**
 
+## cachedResource (replaces manual resource + cache wiring)
+
+```typescript
+readonly orders = cachedResource({
+  cache: this.#api.cache,
+  cacheKey: ['orders', 'list'],
+  loader: () => this.#api.getOrders(),
+});
+```
+
+Returns `CachedResourceRef<T>` with: `value()`, `status()`, `isLoading()`, `isInitialLoading()`, `isStale()`, `error()`, `reload()`, `set()`, `update()`.
+
+Only show spinner when `isInitialLoading()` is true (cold cache only).
+
+## cachedMutation (replaces manual mutation + invalidation)
+
+```typescript
+readonly deleteOrder = cachedMutation({
+  cache: this.#api.cache,
+  mutationFn: (id: string) => this.#api.deleteOrder(id),
+  invalidateKeys: (id) => [['orders']],
+  onMutate: (id) => { /* optimistic update; return context */ },
+  onSuccess: (result, id) => { /* after invalidation */ },
+  onError: (err, id, context) => { /* rollback */ },
+});
+```
+
+Key behaviors:
+- `mutate()` **never rejects** — errors go to `error` signal
+- `error` is **reset to `undefined`** at the start of each `mutate()` call
+- Returns `undefined` on error, result on success
+
 ## Cache Keys
 
 Convention: `['domain', 'scope', ...identifiers]`
 
 ```typescript
-['order', 'list']
-['order', 'details', '42']
+['budget', 'list']
+['budget', 'details', budgetId]
+['budget', 'dashboard', month, year]
 ```
 
-Prefix invalidation: `invalidate(['order'])` → matches ALL order entries.
+Prefix invalidation: `invalidate(['budget'])` → matches ALL budget entries.
 
-## Resource Loader: Cache-First
-
-```typescript
-readonly #resource = resource({
-  params: () => ({ version: this.#invalidation.version() }),
-  loader: async () => {
-    const key = ['order', 'list'];
-    const cached = this.#cache.get(key);
-    if (cached?.fresh) return cached.data;
-    if (cached) this.#staleData.set(cached.data);
-    const data = await this.#cache.deduplicate(key, () =>
-      firstValueFrom(this.#orderApi.getAll$()),
-    );
-    this.#cache.set(key, data);
-    return data;
-  },
-});
-```
-
-## SWR Computed
-
-```typescript
-readonly #staleData = signal<Order[] | null>(null);
-
-readonly orders = computed(() =>
-  this.#resource.error() ? this.#staleData() : (this.#resource.value() ?? this.#staleData()),
-);
-
-readonly isInitialLoading = computed(
-  () => this.#resource.status() === 'loading' && !this.#staleData(),
-);
-```
-
-Only show spinner when `isInitialLoading()` is true.
-
-## Seeding on Params Change
-
-Set stale data **before** changing the param:
-
-```typescript
-setOrderId(id: string): void {
-  const cached = this.#cache.get(['order', 'details', id]);
-  this.#staleData.set(cached?.data ?? null);
-  this.#orderId.set(id);
-}
-```
+**Gotcha:** `invalidate(['order'])` does NOT match `['orders']`.
+**Gotcha:** `invalidate([])` is a no-op — use `clear()` for full wipe.
 
 ## Prefetch
 
-### App-level (PreloadService)
-
 ```typescript
-effect(() => {
-  if (this.#auth.isAuthenticated() && !untracked(this.#done)) {
-    this.#done.set(true);
-    untracked(() => Promise.allSettled([
-      firstValueFrom(this.#orderApi.getAll$()),
-      firstValueFrom(this.#productApi.getCategories$()),
-    ]));
-  }
-});
-```
-
-### Contextual (adjacent items)
-
-```typescript
-effect(() => {
-  const idx = this.#currentIndex();
-  const items = this.#list();
-  const ids = [items[idx - 1]?.id, items[idx + 1]?.id].filter(Boolean);
-  untracked(() => {
-    for (const id of ids) {
-      if (!this.#cache.has(['item', 'details', id])) {
-        firstValueFrom(this.#api.getDetails$(id))
-          .then((d) => this.#cache.set(['item', 'details', id], d));
-      }
-    }
-  });
-});
-```
-
-## Mutation → Invalidation
-
-```typescript
-// In Feature API
-delete$(id: string): Observable<void> {
-  return this.#api.deleteVoid$(`/items/${id}`).pipe(
-    tap(() => {
-      this.cache.invalidate(['item']);
-      this.#invalidation.invalidate();
-    }),
-  );
-}
+// In PreloadService or store
+await this.#api.cache.prefetch(['budget', 'list'], () =>
+  firstValueFrom(this.#api.getAllBudgets$()),
+);
 ```
 
 ## Anti-Patterns
 
 | Don't | Do |
 |-------|-----|
-| Cache in the store | Cache in Feature API (singleton) |
-| Delete entries on invalidation | Mark them stale |
-| Cache mutation responses | Invalidate + refetch |
-| Show spinner during SWR | Use `isInitialLoading` |
-| Skip cache for "just this call" | Always go through cache |
-| `gcTime: Infinity` | Finite eviction |
+| `DataCache` in route-scoped service | `DataCache` in `providedIn: 'root'` API |
+| Manual resource + cache wiring | `cachedResource()` from ngx-ziflux |
+| `tap(() => cache.invalidate(...))` in API methods | `invalidateKeys` in `cachedMutation` |
+| `try/catch` on `mutate()` for errors | Check `mutation.error()` signal |
+| Show spinner during SWR | Use `isInitialLoading` (cold cache only) |
+| `cache.clear()` for partial invalidation | `cache.invalidate(prefix)` |
+| `staleTime > expireTime` | Constructor throws |

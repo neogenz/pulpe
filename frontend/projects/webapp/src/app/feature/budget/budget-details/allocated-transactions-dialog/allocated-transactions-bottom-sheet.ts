@@ -119,7 +119,7 @@ import type {
                 />
                 <div class="flex flex-col gap-0.5 min-w-0 flex-1">
                   <span
-                    class="text-body-medium font-medium truncate"
+                    class="text-body-medium font-medium truncate ph-no-capture"
                     [class.line-through]="tx.checkedAt"
                     [class.text-on-surface-variant]="tx.checkedAt"
                     data-testid="deleted-amount"

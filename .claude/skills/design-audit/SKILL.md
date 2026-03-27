@@ -32,7 +32,19 @@ Before forming any opinion, read these files:
 | Business workflows, user journeys | `memory-bank/productContext.md` |
 | Features list (7 features) | `memory-bank/systemPatterns.md` → Features section |
 
-Read **all** of these. Then walk through the target screens in the codebase. Read component templates and styles to understand the current state.
+Read **all** of these. Then load the relevant Practical UI reference files for the area you're auditing:
+
+| Audit dimension | Practical UI reference |
+|---|---|
+| Hierarchy, spacing, alignment | `.claude/skills/practical-ui/references/layout-spacing.md` |
+| Typography, font sizes, line height | `.claude/skills/practical-ui/references/typography.md` |
+| Colour, contrast, dark mode | `.claude/skills/practical-ui/references/colour.md` |
+| Buttons, CTAs, destructive actions | `.claude/skills/practical-ui/references/buttons.md` |
+| Forms, labels, validation | `.claude/skills/practical-ui/references/forms.md` |
+| Microcopy, error messages, labels | `.claude/skills/practical-ui/references/copywriting.md` |
+| Accessibility, interaction states | `.claude/skills/practical-ui/references/foundations.md` |
+
+Then walk through the target screens in the codebase. Read component templates and styles to understand the current state.
 
 ## Pulpe Design Identity
 

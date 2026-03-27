@@ -8,6 +8,7 @@ struct SecuritySettingsView: View {
     @State private var showChangePin = false
     @State private var showChangePassword = false
     @State private var showDeleteConfirmation = false
+    @State private var showVerifyRecoveryKey = false
     @State private var securityViewModel = AccountSecurityViewModel()
 
     private let canUseBiometrics = BiometricService.shared.canUseBiometrics()
@@ -28,6 +29,10 @@ struct SecuritySettingsView: View {
                     securityViewModel.showConfirmPassword = true
                 }
                 .disabled(securityViewModel.isRegenerating)
+
+                chevronRow("Vérifier ma clé de récupération", detail: "Vérifier") {
+                    showVerifyRecoveryKey = true
+                }
             }
 
             if canUseBiometrics {
@@ -65,17 +70,25 @@ struct SecuritySettingsView: View {
                             .foregroundStyle(Color.destructivePrimary)
                         Text("Tes données seront supprimées définitivement après 3 jours.")
                             .font(PulpeTypography.labelMedium)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Color.textSecondary)
                     }
 
                     Spacer(minLength: 0)
 
-                    Button("Supprimer") {
+                    Button {
                         showDeleteConfirmation = true
+                    } label: {
+                        Text("Supprimer")
+                            .font(PulpeTypography.buttonSecondary)
+                            .foregroundStyle(Color.textOnPrimary)
+                            .padding(.horizontal, DesignTokens.Spacing.lg)
+                            .padding(.vertical, DesignTokens.Spacing.sm)
+                            .background(Color.destructivePrimary)
+                            .clipShape(Capsule())
                     }
-                    .buttonStyle(.borderedProminent)
-                    .buttonBorderShape(.capsule)
-                    .tint(.destructivePrimary)
+                    .frame(minHeight: DesignTokens.TapTarget.minimum)
+                    .contentShape(Capsule())
+                    .plainPressedButtonStyle()
                     .accessibilityLabel("Supprimer le compte")
                     .accessibilityHint("Demande la suppression définitive de ton compte Pulpe")
                 }
@@ -136,6 +149,11 @@ struct SecuritySettingsView: View {
                 }
             }
         }
+        .sheet(isPresented: $showVerifyRecoveryKey) {
+            VerifyRecoveryKeySheet {
+                appState.toastManager.show("Cette clé est valide pour ton compte.", type: .success)
+            }
+        }
         .overlay {
             if securityViewModel.isRegenerating {
                 Color.black.opacity(0.4)
@@ -149,6 +167,7 @@ struct SecuritySettingsView: View {
                 }
             }
         }
+        .sensoryFeedback(.warning, trigger: showDeleteConfirmation, condition: { _, newValue in newValue })
         .alert("Supprimer mon compte", isPresented: $showDeleteConfirmation) {
             Button("Annuler", role: .cancel) { }
             Button("Supprimer", role: .destructive) {
@@ -163,6 +182,8 @@ struct SecuritySettingsView: View {
                 "après un délai de 3 jours. Cette action est irréversible."
             )
         }
+        .scrollContentBackground(.hidden)
+        .pulpeBackground()
         .listStyle(.insetGrouped)
         .navigationTitle("Sécurité")
         .trackScreen("Security")
@@ -179,10 +200,10 @@ struct SecuritySettingsView: View {
                     .foregroundStyle(.primary)
                 Spacer()
                 Text(detail)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.textSecondary)
                 Image(systemName: "chevron.right")
-                    .font(.caption)
-                    .foregroundStyle(.tertiary)
+                    .font(PulpeTypography.caption)
+                    .foregroundStyle(Color.textTertiary)
             }
         }
         .buttonStyle(.plain)

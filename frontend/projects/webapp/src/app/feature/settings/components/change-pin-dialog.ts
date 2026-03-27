@@ -6,12 +6,7 @@ import {
   signal,
 } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
-import {
-  FormControl,
-  FormGroup,
-  ReactiveFormsModule,
-  Validators,
-} from '@angular/forms';
+import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -24,7 +19,7 @@ import { firstValueFrom } from 'rxjs';
 import { API_ERROR_CODES } from 'pulpe-shared';
 
 import { isApiError } from '@core/api/api-error';
-import { VAULT_CODE_MIN_LENGTH } from '@core/auth';
+import { VAULT_CODE_LENGTH, VAULT_CODE_VALIDATORS } from '@core/auth';
 import { EncryptionApi, ClientKeyService } from '@core/encryption';
 import { deriveClientKey } from '@core/encryption/crypto.utils';
 import { Logger } from '@core/logging/logger';
@@ -59,12 +54,12 @@ import { ErrorAlert } from '@ui/error-alert';
         @if (step() === 1) {
           {{
             'settings.changePin.descriptionStep1'
-              | transloco: { min: VAULT_CODE_MIN_LENGTH }
+              | transloco: { length: VAULT_CODE_LENGTH }
           }}
         } @else {
           {{
             'settings.changePin.descriptionStep2'
-              | transloco: { min: VAULT_CODE_MIN_LENGTH }
+              | transloco: { length: VAULT_CODE_LENGTH }
           }}
         }
       </p>
@@ -84,6 +79,7 @@ import { ErrorAlert } from '@ui/error-alert';
               matInput
               [type]="isOldPinHidden() ? 'password' : 'text'"
               inputmode="numeric"
+              [attr.maxlength]="VAULT_CODE_LENGTH"
               formControlName="oldPin"
               data-testid="change-pin-old-pin-input"
             />
@@ -108,10 +104,13 @@ import { ErrorAlert } from '@ui/error-alert';
               <mat-error>{{
                 'settings.changePin.oldPinRequired' | transloco
               }}</mat-error>
-            } @else if (oldPinForm.get('oldPin')?.hasError('minlength')) {
+            } @else if (
+              oldPinForm.get('oldPin')?.hasError('minlength') ||
+              oldPinForm.get('oldPin')?.hasError('maxlength')
+            ) {
               <mat-error>{{
-                'settings.pinCodeMinLength'
-                  | transloco: { min: VAULT_CODE_MIN_LENGTH }
+                'settings.pinCodeLength'
+                  | transloco: { length: VAULT_CODE_LENGTH }
               }}</mat-error>
             } @else if (oldPinForm.get('oldPin')?.hasError('pattern')) {
               <mat-error>{{
@@ -130,6 +129,7 @@ import { ErrorAlert } from '@ui/error-alert';
               matInput
               [type]="isNewPinHidden() ? 'password' : 'text'"
               inputmode="numeric"
+              [attr.maxlength]="VAULT_CODE_LENGTH"
               formControlName="newPin"
               data-testid="change-pin-new-pin-input"
             />
@@ -154,10 +154,13 @@ import { ErrorAlert } from '@ui/error-alert';
               <mat-error>{{
                 'settings.changePin.newPinRequired' | transloco
               }}</mat-error>
-            } @else if (newPinForm.get('newPin')?.hasError('minlength')) {
+            } @else if (
+              newPinForm.get('newPin')?.hasError('minlength') ||
+              newPinForm.get('newPin')?.hasError('maxlength')
+            ) {
               <mat-error>{{
-                'settings.pinCodeMinLength'
-                  | transloco: { min: VAULT_CODE_MIN_LENGTH }
+                'settings.pinCodeLength'
+                  | transloco: { length: VAULT_CODE_LENGTH }
               }}</mat-error>
             } @else if (newPinForm.get('newPin')?.hasError('pattern')) {
               <mat-error>{{
@@ -226,27 +229,19 @@ export class ChangePinDialog {
   #kdfIterations = 0;
   #oldClientKey = '';
 
-  protected readonly VAULT_CODE_MIN_LENGTH = VAULT_CODE_MIN_LENGTH;
+  protected readonly VAULT_CODE_LENGTH = VAULT_CODE_LENGTH;
 
   protected readonly oldPinForm = new FormGroup({
     oldPin: new FormControl('', {
       nonNullable: true,
-      validators: [
-        Validators.required,
-        Validators.minLength(VAULT_CODE_MIN_LENGTH),
-        Validators.pattern(/^\d+$/),
-      ],
+      validators: VAULT_CODE_VALIDATORS,
     }),
   });
 
   protected readonly newPinForm = new FormGroup({
     newPin: new FormControl('', {
       nonNullable: true,
-      validators: [
-        Validators.required,
-        Validators.minLength(VAULT_CODE_MIN_LENGTH),
-        Validators.pattern(/^\d+$/),
-      ],
+      validators: VAULT_CODE_VALIDATORS,
     }),
   });
 
@@ -352,53 +347,61 @@ export class ChangePinDialog {
       this.#clearSensitiveState();
       this.#dialogRef.close({ recoveryKey: response.recoveryKey });
     } catch (error) {
-      if (isApiError(error)) {
-        if (error.code === API_ERROR_CODES.ENCRYPTION_KEY_CHECK_FAILED) {
-          this.errorMessage.set(
-            this.#transloco.translate('settings.changePin.incorrectOldPin'),
-          );
-          this.#clearSensitiveState();
-          this.step.set(1);
-          this.oldPinForm.reset();
-          return;
-        }
-        if (error.code === API_ERROR_CODES.ENCRYPTION_SAME_KEY) {
-          this.errorMessage.set(
-            this.#transloco.translate('settings.changePin.samePin'),
-          );
-          return;
-        }
-        if (
-          error.code === API_ERROR_CODES.ENCRYPTION_REKEY_PARTIAL_FAILURE &&
-          newClientKey
-        ) {
-          this.#clientKeyService.setDirectKey(newClientKey, hasLocalKey);
-          this.#clearSensitiveState();
-          this.#dialogRef.close({ recoveryKey: null });
-          return;
-        }
-        if (error.code === API_ERROR_CODES.ENCRYPTION_REKEY_FAILED) {
-          this.errorMessage.set(
-            this.#transloco.translate('settings.changePin.rekeyFailed'),
-          );
-          return;
-        }
-        if (error.status === 429) {
-          this.errorMessage.set(
-            this.#transloco.translate('settings.changePin.rateLimited'),
-          );
-          return;
-        }
-      }
-      this.#clearSensitiveState();
-      this.step.set(1);
-      this.#logger.error('PIN change failed', error);
-      this.errorMessage.set(
-        this.#transloco.translate('settings.changePin.changeFailed'),
-      );
+      this.#handlePinChangeError(error, newClientKey, hasLocalKey);
     } finally {
       this.isSubmitting.set(false);
     }
+  }
+
+  #handlePinChangeError(
+    error: unknown,
+    newClientKey: string | undefined,
+    hasLocalKey: boolean,
+  ): void {
+    if (isApiError(error)) {
+      if (error.code === API_ERROR_CODES.ENCRYPTION_KEY_CHECK_FAILED) {
+        this.errorMessage.set(
+          this.#transloco.translate('settings.changePin.incorrectOldPin'),
+        );
+        this.#clearSensitiveState();
+        this.step.set(1);
+        this.oldPinForm.reset();
+        return;
+      }
+      if (error.code === API_ERROR_CODES.ENCRYPTION_SAME_KEY) {
+        this.errorMessage.set(
+          this.#transloco.translate('settings.changePin.samePin'),
+        );
+        return;
+      }
+      if (
+        error.code === API_ERROR_CODES.ENCRYPTION_REKEY_PARTIAL_FAILURE &&
+        newClientKey
+      ) {
+        this.#clientKeyService.setDirectKey(newClientKey, hasLocalKey);
+        this.#clearSensitiveState();
+        this.#dialogRef.close({ recoveryKey: null });
+        return;
+      }
+      if (error.code === API_ERROR_CODES.ENCRYPTION_REKEY_FAILED) {
+        this.errorMessage.set(
+          this.#transloco.translate('settings.changePin.rekeyFailed'),
+        );
+        return;
+      }
+      if (error.status === 429) {
+        this.errorMessage.set(
+          this.#transloco.translate('settings.changePin.rateLimited'),
+        );
+        return;
+      }
+    }
+    this.#clearSensitiveState();
+    this.step.set(1);
+    this.#logger.error('PIN change failed', error);
+    this.errorMessage.set(
+      this.#transloco.translate('settings.changePin.changeFailed'),
+    );
   }
 
   #clearSensitiveState(): void {

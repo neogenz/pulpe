@@ -3,9 +3,8 @@ import { ProfileSetupService, type ProfileData } from '@core/complete-profile';
 import { BudgetApi } from '@core/budget';
 import { Logger } from '@core/logging/logger';
 import { PostHogService } from '@core/analytics/posthog';
-import { UserSettingsApi } from '@core/user-settings';
+import { UserSettingsStore } from '@core/user-settings';
 import { AuthOAuthService } from '@core/auth/auth-oauth.service';
-import { HasBudgetCache } from '@core/auth/has-budget-cache';
 import { firstValueFrom } from 'rxjs';
 import { TranslocoService } from '@jsverse/transloco';
 
@@ -21,7 +20,7 @@ interface CompleteProfileState {
   payDayOfMonth: number | null;
   isLoading: boolean;
   isCheckingExistingBudget: boolean;
-  error: string;
+  error: string | null;
 }
 
 function createInitialState(): CompleteProfileState {
@@ -37,7 +36,7 @@ function createInitialState(): CompleteProfileState {
     payDayOfMonth: null,
     isLoading: false,
     isCheckingExistingBudget: false,
-    error: '',
+    error: null,
   };
 }
 
@@ -45,9 +44,8 @@ function createInitialState(): CompleteProfileState {
 export class CompleteProfileStore {
   readonly #profileSetupService = inject(ProfileSetupService);
   readonly #budgetApi = inject(BudgetApi);
-  readonly #userSettingsApi = inject(UserSettingsApi);
+  readonly #userSettingsStore = inject(UserSettingsStore);
   readonly #authOAuth = inject(AuthOAuthService);
-  readonly #hasBudgetCache = inject(HasBudgetCache);
   readonly #logger = inject(Logger);
   readonly #postHogService = inject(PostHogService);
   readonly #transloco = inject(TranslocoService);
@@ -79,43 +77,43 @@ export class CompleteProfileStore {
   });
 
   updateFirstName(value: string): void {
-    this.#state.update((s) => ({ ...s, firstName: value }));
+    this.#patchState({ firstName: value });
   }
 
   updateMonthlyIncome(value: number | null): void {
-    this.#state.update((s) => ({ ...s, monthlyIncome: value }));
+    this.#patchState({ monthlyIncome: value });
   }
 
   updateHousingCosts(value: number | null): void {
-    this.#state.update((s) => ({ ...s, housingCosts: value }));
+    this.#patchState({ housingCosts: value });
   }
 
   updateHealthInsurance(value: number | null): void {
-    this.#state.update((s) => ({ ...s, healthInsurance: value }));
+    this.#patchState({ healthInsurance: value });
   }
 
   updatePhonePlan(value: number | null): void {
-    this.#state.update((s) => ({ ...s, phonePlan: value }));
+    this.#patchState({ phonePlan: value });
   }
 
   updateInternetPlan(value: number | null): void {
-    this.#state.update((s) => ({ ...s, internetPlan: value }));
+    this.#patchState({ internetPlan: value });
   }
 
   updateTransportCosts(value: number | null): void {
-    this.#state.update((s) => ({ ...s, transportCosts: value }));
+    this.#patchState({ transportCosts: value });
   }
 
   updateLeasingCredit(value: number | null): void {
-    this.#state.update((s) => ({ ...s, leasingCredit: value }));
+    this.#patchState({ leasingCredit: value });
   }
 
   updatePayDayOfMonth(value: number | null): void {
-    this.#state.update((s) => ({ ...s, payDayOfMonth: value }));
+    this.#patchState({ payDayOfMonth: value });
   }
 
   clearError(): void {
-    this.#state.update((s) => ({ ...s, error: '' }));
+    this.#patchState({ error: null });
   }
 
   prefillFromOAuthMetadata(): void {
@@ -134,13 +132,14 @@ export class CompleteProfileStore {
   }
 
   async checkExistingBudgets(): Promise<boolean> {
-    this.#state.update((s) => ({ ...s, isCheckingExistingBudget: true }));
+    this.#patchState({ isCheckingExistingBudget: true });
 
     try {
-      const budgets = await firstValueFrom(this.#budgetApi.getAllBudgets$());
-      const hasExisting = budgets.length > 0;
+      const hasExisting = await firstValueFrom(
+        this.#budgetApi.checkBudgetExists$(),
+      );
 
-      this.#state.update((s) => ({ ...s, isCheckingExistingBudget: false }));
+      this.#patchState({ isCheckingExistingBudget: false });
 
       if (hasExisting) {
         this.#logger.info(
@@ -155,27 +154,29 @@ export class CompleteProfileStore {
         context: 'complete-profile',
         action: 'checkExistingBudgets',
       });
-      this.#state.update((s) => ({ ...s, isCheckingExistingBudget: false }));
+      this.#patchState({ isCheckingExistingBudget: false });
       return false;
     }
   }
 
   async submitProfile(): Promise<boolean> {
-    const state = this.#state();
-
-    if (!this.isStep1Valid()) {
-      this.#state.update((s) => ({
-        ...s,
-        error: this.#transloco.translate('completeProfile.validationError'),
-      }));
+    if (this.isLoading()) {
       return false;
     }
 
-    this.#state.update((s) => ({ ...s, isLoading: true, error: '' }));
+    if (!this.isStep1Valid()) {
+      this.#patchState({
+        error: this.#transloco.translate('completeProfile.validationError'),
+      });
+      return false;
+    }
+
+    const state = this.#state();
+    this.#patchState({ isLoading: true, error: null });
 
     const profileData: ProfileData = {
       firstName: state.firstName.trim(),
-      monthlyIncome: state.monthlyIncome!,
+      monthlyIncome: state.monthlyIncome as number,
       housingCosts: state.housingCosts ?? undefined,
       healthInsurance: state.healthInsurance ?? undefined,
       phonePlan: state.phonePlan ?? undefined,
@@ -190,20 +191,19 @@ export class CompleteProfileStore {
         await this.#profileSetupService.createInitialBudget(profileData);
 
       if (!result.success) {
-        this.#state.update((s) => ({
-          ...s,
+        this.#patchState({
           isLoading: false,
           error:
             result.error ||
             this.#transloco.translate('completeProfile.createBudgetError'),
-        }));
+        });
         return false;
       }
 
       // Save pay day setting if user configured it
       if (state.payDayOfMonth !== null) {
         try {
-          await this.#userSettingsApi.updateSettings({
+          await this.#userSettingsStore.updateSettings({
             payDayOfMonth: state.payDayOfMonth,
           });
           this.#logger.info('Pay day setting saved', {
@@ -219,9 +219,6 @@ export class CompleteProfileStore {
         }
       }
 
-      // Update cache so guard allows navigation immediately
-      this.#hasBudgetCache.setHasBudget(true);
-
       this.#postHogService.captureEvent('first_budget_created', {
         signup_method: this.#determineSignupMethod(),
         has_pay_day: state.payDayOfMonth !== null,
@@ -229,17 +226,20 @@ export class CompleteProfileStore {
       });
 
       this.#logger.info('Profile setup completed successfully');
-      this.#state.update((s) => ({ ...s, isLoading: false }));
+      this.#patchState({ isLoading: false });
       return true;
     } catch (error) {
       this.#logger.error('Error submitting profile:', error);
-      this.#state.update((s) => ({
-        ...s,
+      this.#patchState({
         isLoading: false,
         error: this.#transloco.translate('completeProfile.unexpectedError'),
-      }));
+      });
       return false;
     }
+  }
+
+  #patchState(partial: Partial<CompleteProfileState>): void {
+    this.#state.update((s) => ({ ...s, ...partial }));
   }
 
   #determineSignupMethod(): 'oauth' | 'email' {

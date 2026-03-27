@@ -343,6 +343,7 @@ struct AppStateBiometricColdStartTests {
         )
 
         await sut.bootstrap()
+        sut.hasReturningUser = true
 
         await sut.checkAuthState()
 
@@ -548,6 +549,7 @@ struct AppStateBiometricColdStartTests {
         #expect(sut.biometricCredentialsAvailable == false, "Credentials cleared by session expiry")
 
         // User logs in with email/password → routed to PIN entry
+        sut.hasReturningUser = true
         await sut.resolvePostAuth(user: user)
 
         #expect(sut.authState == .needsPinEntry)
@@ -574,6 +576,7 @@ struct AppStateBiometricColdStartTests {
         )
 
         await sut.bootstrap()
+        sut.hasReturningUser = true
 
         // Simulate post-session-expiry state
         sut.biometricCredentialsAvailable = false

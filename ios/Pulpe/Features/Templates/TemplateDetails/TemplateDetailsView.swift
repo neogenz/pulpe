@@ -42,15 +42,28 @@ struct TemplateDetailsView: View {
         List {
             // Template info
             Section {
-                LabeledContent("Nom", value: template.name)
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+                    if let description = template.description, !description.isEmpty {
+                        Text(description)
+                            .font(PulpeTypography.body)
+                            .foregroundStyle(Color.textSecondary)
+                    }
 
-                if let description = template.description, !description.isEmpty {
-                    LabeledContent("Description", value: description)
+                    if template.isDefaultTemplate {
+                        HStack(spacing: DesignTokens.Spacing.xs) {
+                            Image(systemName: "checkmark.circle.fill")
+                                .font(PulpeTypography.caption2)
+                            Text("Par défaut")
+                                .font(PulpeTypography.caption2)
+                                .fontWeight(.medium)
+                        }
+                        .foregroundStyle(Color.financialSavings)
+                        .padding(.horizontal, DesignTokens.Spacing.sm)
+                        .padding(.vertical, DesignTokens.Spacing.xs)
+                        .background(Color.financialSavings.opacity(DesignTokens.Opacity.badgeBackground), in: Capsule())
+                    }
                 }
-
-                LabeledContent("Par défaut", value: template.isDefaultTemplate ? "Oui" : "Non")
-            } header: {
-                Text("Informations")
+                .padding(.vertical, DesignTokens.Spacing.xs)
             }
 
             totalsSection
@@ -68,6 +81,9 @@ struct TemplateDetailsView: View {
                 templateLineSection(title: "Épargne", lines: viewModel.savingLines)
             }
         }
+        .listStyle(.insetGrouped)
+        .scrollContentBackground(.hidden)
+        .pulpeBackground()
         .refreshable {
             await viewModel.loadDetails()
         }
@@ -75,33 +91,71 @@ struct TemplateDetailsView: View {
 
     private var totalsSection: some View {
         Section {
-            HStack {
-                Label("Revenus", systemImage: "arrow.down.circle")
-                    .foregroundStyle(Color.financialIncome)
+            HStack(spacing: DesignTokens.Spacing.md) {
+                Circle()
+                    .fill(Color.financialIncome.opacity(DesignTokens.Opacity.badgeBackground))
+                    .frame(width: DesignTokens.IconSize.compact, height: DesignTokens.IconSize.compact)
+                    .overlay {
+                        Image(systemName: "arrow.down.circle")
+                            .font(PulpeTypography.caption)
+                            .foregroundStyle(Color.financialIncome)
+                    }
+                Text("Revenus")
+                    .font(PulpeTypography.subheadline)
                 Spacer()
                 Text(viewModel.totals.totalIncome.asCHF)
+                    .font(PulpeTypography.listRowSubtitle)
+                    .foregroundStyle(Color.financialIncome)
                     .sensitiveAmount()
             }
+            .padding(.vertical, DesignTokens.ListRow.verticalPadding)
 
-            HStack {
-                Label("Dépenses", systemImage: "arrow.up.circle")
-                    .foregroundStyle(Color.financialExpense)
+            HStack(spacing: DesignTokens.Spacing.md) {
+                Circle()
+                    .fill(Color.financialExpense.opacity(DesignTokens.Opacity.badgeBackground))
+                    .frame(width: DesignTokens.IconSize.compact, height: DesignTokens.IconSize.compact)
+                    .overlay {
+                        Image(systemName: "arrow.up.circle")
+                            .font(PulpeTypography.caption)
+                            .foregroundStyle(Color.financialExpense)
+                    }
+                Text("Dépenses")
+                    .font(PulpeTypography.subheadline)
                 Spacer()
                 Text(viewModel.totals.totalExpenses.asCHF)
+                    .font(PulpeTypography.listRowSubtitle)
+                    .foregroundStyle(Color.financialExpense)
                     .sensitiveAmount()
             }
+            .padding(.vertical, DesignTokens.ListRow.verticalPadding)
 
-            HStack {
-                Label("Solde", systemImage: "banknote")
+            HStack(spacing: DesignTokens.Spacing.md) {
+                Circle()
+                    .fill(
+                        (viewModel.totals.balance >= 0 ? Color.financialSavings : Color.financialOverBudget)
+                            .opacity(DesignTokens.Opacity.badgeBackground)
+                    )
+                    .frame(width: DesignTokens.IconSize.compact, height: DesignTokens.IconSize.compact)
+                    .overlay {
+                        Image(systemName: "banknote")
+                            .font(PulpeTypography.caption)
+                            .foregroundStyle(
+                                viewModel.totals.balance >= 0 ? Color.financialSavings : Color.financialOverBudget
+                            )
+                    }
+                Text("Solde")
+                    .font(PulpeTypography.subheadline)
                     .fontWeight(.semibold)
                 Spacer()
                 Text(viewModel.totals.balance.asCHF)
+                    .font(PulpeTypography.listRowSubtitle)
+                    .fontWeight(.semibold)
                     .foregroundStyle(
                         viewModel.totals.balance >= 0 ? Color.financialSavings : Color.financialOverBudget
                     )
-                    .fontWeight(.semibold)
                     .sensitiveAmount()
             }
+            .padding(.vertical, DesignTokens.ListRow.verticalPadding)
         } header: {
             Text("Récapitulatif")
         }
@@ -134,19 +188,32 @@ struct TemplateLineRow: View {
 
     var body: some View {
         Button(action: onEdit) {
-            HStack {
+            HStack(spacing: DesignTokens.Spacing.md) {
+                Circle()
+                    .fill(line.kind.color.opacity(DesignTokens.Opacity.badgeBackground))
+                    .frame(width: DesignTokens.IconSize.listRow, height: DesignTokens.IconSize.listRow)
+                    .overlay {
+                        Image(systemName: line.kind.icon)
+                            .font(PulpeTypography.listRowTitle)
+                            .foregroundStyle(line.kind.color)
+                    }
+
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                     Text(line.name)
-                        .font(PulpeTypography.subheadline)
+                        .font(PulpeTypography.listRowTitle)
+                        .lineLimit(1)
 
                     RecurrenceBadge(line.recurrence, style: .compact)
                 }
 
                 Spacer()
 
-                CurrencyText(line.amount)
+                Text(line.amount.asAmount)
+                    .font(PulpeTypography.listRowSubtitle)
                     .foregroundStyle(line.kind.color)
+                    .sensitiveAmount()
             }
+            .padding(.vertical, DesignTokens.ListRow.verticalPadding)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -238,30 +305,27 @@ private struct TemplateDetailsSkeletonView: View {
         List {
             // Info section
             Section {
-                ForEach(0..<2, id: \.self) { _ in
-                    HStack {
-                        SkeletonShape(width: 60, height: 14)
-                        Spacer()
-                        SkeletonShape(width: 120, height: 14)
-                    }
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+                    SkeletonShape(width: 200, height: 14)
+                    SkeletonShape(width: 80, height: 22, cornerRadius: DesignTokens.CornerRadius.sm)
                 }
-            } header: {
-                SkeletonShape(width: 100, height: 12)
+                .padding(.vertical, DesignTokens.Spacing.xs)
             }
 
             // Totals section
             Section {
                 ForEach(0..<3, id: \.self) { _ in
-                    HStack {
+                    HStack(spacing: DesignTokens.Spacing.md) {
                         SkeletonShape(
-                            width: 24,
-                            height: 24,
-                            cornerRadius: DesignTokens.CornerRadius.xs
+                            width: DesignTokens.IconSize.compact,
+                            height: DesignTokens.IconSize.compact,
+                            cornerRadius: DesignTokens.IconSize.compact / 2
                         )
                         SkeletonShape(width: 80, height: 14)
                         Spacer()
                         SkeletonShape(width: 80, height: 14)
                     }
+                    .padding(.vertical, DesignTokens.ListRow.verticalPadding)
                 }
             } header: {
                 SkeletonShape(width: 90, height: 12)
@@ -271,14 +335,20 @@ private struct TemplateDetailsSkeletonView: View {
             ForEach(0..<2, id: \.self) { _ in
                 Section {
                     ForEach(0..<3, id: \.self) { _ in
-                        HStack {
+                        HStack(spacing: DesignTokens.Spacing.md) {
+                            SkeletonShape(
+                                width: DesignTokens.IconSize.listRow,
+                                height: DesignTokens.IconSize.listRow,
+                                cornerRadius: DesignTokens.IconSize.listRow / 2
+                            )
                             VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                                 SkeletonShape(width: 120, height: 14)
-                                SkeletonShape(width: 70, height: 11)
+                                SkeletonShape(width: 55, height: 20, cornerRadius: DesignTokens.CornerRadius.sm)
                             }
                             Spacer()
                             SkeletonShape(width: 70, height: 14)
                         }
+                        .padding(.vertical, DesignTokens.ListRow.verticalPadding)
                     }
                 } header: {
                     HStack {

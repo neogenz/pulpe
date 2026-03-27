@@ -7,6 +7,7 @@ import { Injectable } from '@nestjs/common';
 import { BusinessException } from '@common/exceptions/business.exception';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 import { handleServiceError } from '@common/utils/error-handler';
+import { CacheService } from '@modules/cache/cache.service';
 import {
   type BudgetTemplateCreate,
   type BudgetTemplateCreateFromOnboarding,
@@ -53,6 +54,7 @@ export class BudgetTemplateService {
     private readonly logger: InfoLogger,
     private readonly budgetService: BudgetService,
     private readonly encryptionService: EncryptionService,
+    private readonly cacheService: CacheService,
   ) {}
 
   async #decryptTemplateLine(
@@ -1203,6 +1205,10 @@ export class BudgetTemplateService {
       user,
       supabase,
     );
+
+    if (propagationSummary.affectedBudgetsCount > 0) {
+      await this.cacheService.invalidateForUser(user.id);
+    }
 
     return propagationSummary;
   }

@@ -40,10 +40,10 @@ struct ProjectionCard: View {
         HStack(spacing: DesignTokens.Spacing.md) {
             Circle()
                 .fill(iconColor.opacity(DesignTokens.Opacity.accent))
-                .frame(width: 40, height: 40)
+                .frame(width: DesignTokens.IconSize.listRow, height: DesignTokens.IconSize.listRow)
                 .overlay {
                     Image(systemName: icon)
-                        .font(.system(size: 18))
+                        .font(PulpeTypography.cardTitle)
                         .foregroundStyle(iconColor)
                 }
 
@@ -55,7 +55,7 @@ struct ProjectionCard: View {
 
                 Text(subMessage)
                     .font(PulpeTypography.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.textSecondary)
                     .sensitiveAmount()
             }
 

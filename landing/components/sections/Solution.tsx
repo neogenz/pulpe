@@ -2,32 +2,19 @@ import { Section, Screenshot, FadeIn } from '@/components/ui'
 
 export function Solution() {
   return (
-    <Section id="solution">
+    <Section background="grain" id="solution">
       <FadeIn variant="blur">
         <div className="max-w-3xl mx-auto text-center">
           <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold">
-            Une app qui pense à l&apos;année
+            Planifie une fois.
             <br />
-            <span className="text-primary">pour que tu profites du mois</span>
+            <span className="text-primary">Profite 12 mois.</span>
           </h2>
-          <p className="text-lg text-text-secondary mt-4 max-w-xl mx-auto">
-            Les autres apps te montrent ce que tu as déjà dépensé. Pulpe te
-            montre ce que tu peux encore dépenser.
+          <p className="text-lg md:text-xl text-text-secondary mt-4 max-w-xl mx-auto">
+            Les autres apps te montrent ce que tu as déjà dépensé.
+            Pulpe te montre ce que tu peux <span className="text-primary font-semibold">encore dépenser</span>.
+            Et si un mois dérape, le suivant s&apos;ajuste tout seul.
           </p>
-          <ul className="text-left text-text-secondary space-y-3 max-w-xl mx-auto mt-8">
-            <li className="flex items-start gap-3">
-              <span className="text-primary mt-1 shrink-0">&#10003;</span>
-              <span>Tes impôts dans 4 mois ? Déjà budgétés.</span>
-            </li>
-            <li className="flex items-start gap-3">
-              <span className="text-primary mt-1 shrink-0">&#10003;</span>
-              <span>Vacances en août ? Anticipées depuis janvier.</span>
-            </li>
-            <li className="flex items-start gap-3">
-              <span className="text-primary mt-1 shrink-0">&#10003;</span>
-              <span>Ce qu&apos;il te reste ce mois ? Toujours visible, au centime près.</span>
-            </li>
-          </ul>
         </div>
       </FadeIn>
 

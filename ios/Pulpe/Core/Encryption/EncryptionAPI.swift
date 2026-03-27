@@ -74,6 +74,10 @@ struct RecoverRequest: Codable, Sendable {
     let newClientKey: String
 }
 
+struct VerifyRecoveryKeyRequest: Codable, Sendable {
+    let recoveryKey: String
+}
+
 struct ChangePinRequest: Codable, Sendable {
     let oldClientKey: String
     let newClientKey: String
@@ -120,6 +124,13 @@ actor EncryptionAPI {
     func regenerateRecoveryKey() async throws -> String {
         let response: RecoveryKeyResponse = try await apiClient.request(.encryptionRegenerateRecovery)
         return response.recoveryKey
+    }
+
+    /// Verify recovery key matches wrapped DEK (read-only)
+    func verifyRecoveryKey(_ recoveryKey: String) async throws {
+        let trimmed = recoveryKey.trimmingCharacters(in: .whitespacesAndNewlines)
+        let body = VerifyRecoveryKeyRequest(recoveryKey: trimmed)
+        try await apiClient.requestVoid(.encryptionVerifyRecoveryKey, body: body)
     }
 
     /// Recover encryption using recovery key and a new clientKey

@@ -19,7 +19,7 @@ struct RecentTransactionsSection: View {
                         Spacer()
                         Image(systemName: "chevron.right")
                             .font(PulpeTypography.caption)
-                            .foregroundStyle(Color.pulpeTextTertiary)
+                            .foregroundStyle(Color.textTertiary)
                     }
                 }
             } header: {
@@ -41,29 +41,29 @@ private struct RecentTransactionRow: View {
             ZStack {
                 Circle()
                     .fill(transaction.kind.color.opacity(DesignTokens.Opacity.badgeBackground))
-                    .frame(width: 40, height: 40)
+                    .frame(width: DesignTokens.IconSize.listRow, height: DesignTokens.IconSize.listRow)
 
                 Image(systemName: transaction.kind.icon)
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(PulpeTypography.listRowTitle)
                     .foregroundStyle(transaction.kind.color)
             }
 
             // Name and date
             VStack(alignment: .leading, spacing: 2) {
                 Text(transaction.name)
-                    .font(.system(.body, weight: .semibold))
+                    .font(PulpeTypography.listRowTitle)
                     .lineLimit(1)
 
                 Text(transaction.transactionDate.relativeFormatted)
                     .font(PulpeTypography.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.textSecondary)
             }
 
             Spacer()
 
             // Amount
-            Text(transaction.signedAmount.asAmount)
-                .font(.system(.callout, weight: .regular))
+            Text(transaction.amount.asAmount)
+                .font(PulpeTypography.listRowSubtitle)
                 .foregroundStyle(transaction.kind.color)
                 .sensitiveAmount()
         }

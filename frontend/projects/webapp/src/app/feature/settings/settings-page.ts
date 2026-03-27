@@ -25,7 +25,7 @@ import { firstValueFrom } from 'rxjs';
 import { TranslocoService, TranslocoPipe } from '@jsverse/transloco';
 import { isApiError } from '@core/api/api-error';
 import { Logger } from '@core/logging/logger';
-import { UserSettingsApi } from '@core/user-settings';
+import { UserSettingsStore } from '@core/user-settings';
 import { AuthSessionService } from '@core/auth/auth-session.service';
 import { AuthStateService } from '@core/auth';
 import { ClientKeyService, EncryptionApi } from '@core/encryption';
@@ -40,6 +40,7 @@ import { ChangePasswordDialog } from './components/change-password-dialog';
 import { ChangePinDialog } from './components/change-pin-dialog';
 import { DeleteAccountDialog } from './components/delete-account-dialog';
 import { RegenerateRecoveryKeyDialog } from './components/regenerate-recovery-key-dialog';
+import { VerifyRecoveryKeyDialog } from './components/verify-recovery-key-dialog';
 
 @Component({
   selector: 'pulpe-settings-page',
@@ -217,8 +218,10 @@ import { RegenerateRecoveryKeyDialog } from './components/regenerate-recovery-ke
             </div>
 
             <!-- Clé de récupération -->
-            <div class="flex items-center justify-between gap-6">
-              <div class="space-y-1">
+            <div
+              class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6"
+            >
+              <div class="space-y-1 min-w-0">
                 <h3 class="text-title-small">
                   {{ 'settings.recoveryKey' | transloco }}
                 </h3>
@@ -226,19 +229,28 @@ import { RegenerateRecoveryKeyDialog } from './components/regenerate-recovery-ke
                   {{ 'settings.recoveryKeyDescription' | transloco }}
                 </p>
               </div>
-              <button
-                matButton="outlined"
-                data-testid="generate-recovery-key-button"
-                [disabled]="isGeneratingRecoveryKey()"
-                (click)="onRegenerateRecoveryKey()"
-              >
-                <span class="flex items-center justify-center">
-                  @if (isGeneratingRecoveryKey()) {
-                    <mat-spinner diameter="20" class="mr-2" />
-                  }
-                  {{ 'settings.regenerateKey' | transloco }}
-                </span>
-              </button>
+              <div class="flex flex-wrap gap-3 items-center shrink-0">
+                <button
+                  matButton="outlined"
+                  data-testid="generate-recovery-key-button"
+                  [disabled]="isGeneratingRecoveryKey()"
+                  (click)="onRegenerateRecoveryKey()"
+                >
+                  <span class="flex items-center justify-center">
+                    @if (isGeneratingRecoveryKey()) {
+                      <mat-spinner diameter="20" class="mr-2" />
+                    }
+                    {{ 'settings.regenerateKey' | transloco }}
+                  </span>
+                </button>
+                <button
+                  matButton="outlined"
+                  data-testid="verify-recovery-key-button"
+                  (click)="onVerifyRecoveryKey()"
+                >
+                  {{ 'settings.verifyRecoveryKeyAction' | transloco }}
+                </button>
+              </div>
             </div>
           </div>
         </section>
@@ -295,7 +307,7 @@ import { RegenerateRecoveryKeyDialog } from './components/regenerate-recovery-ke
 })
 export default class SettingsPage {
   readonly #logger = inject(Logger);
-  readonly #userSettingsApi = inject(UserSettingsApi);
+  readonly #userSettingsStore = inject(UserSettingsStore);
   readonly #snackBar = inject(MatSnackBar);
   readonly #dialog = inject(MatDialog);
   readonly #router = inject(Router);
@@ -314,10 +326,12 @@ export default class SettingsPage {
   readonly availableDays = Array.from({ length: PAY_DAY_MAX }, (_, i) => i + 1);
 
   readonly selectedPayDay = linkedSignal(
-    () => this.#userSettingsApi.payDayOfMonth() ?? null,
+    () => this.#userSettingsStore.payDayOfMonth() ?? null,
   );
 
-  readonly initialValue = computed(() => this.#userSettingsApi.payDayOfMonth());
+  readonly initialValue = computed(() =>
+    this.#userSettingsStore.payDayOfMonth(),
+  );
 
   readonly hasChanges = computed(() => {
     return this.initialValue() !== this.selectedPayDay();
@@ -333,7 +347,7 @@ export default class SettingsPage {
     try {
       this.isSaving.set(true);
 
-      await this.#userSettingsApi.updateSettings({
+      await this.#userSettingsStore.updateSettings({
         payDayOfMonth: this.selectedPayDay(),
       });
 
@@ -417,6 +431,10 @@ export default class SettingsPage {
     );
   }
 
+  onVerifyRecoveryKey(): void {
+    this.#dialog.open(VerifyRecoveryKeyDialog, { width: '480px' });
+  }
+
   async onRegenerateRecoveryKey(): Promise<void> {
     if (this.isGeneratingRecoveryKey()) return;
 
@@ -440,7 +458,7 @@ export default class SettingsPage {
 
     try {
       this.isDeleting.set(true);
-      await this.#userSettingsApi.deleteAccount();
+      await this.#userSettingsStore.deleteAccount();
     } catch (error) {
       this.isDeleting.set(false);
       this.#logger.error('Failed to delete account', error);

@@ -1,6 +1,8 @@
 import Foundation
 
 public struct RecoveryKeyFormatter {
+    public static let strippedKeyCharacterCount = 52
+
     /// Formats a raw string into groups of 4 characters separated by dashes.
     /// Example: "ABCDEFGH" -> "ABCD-EFGH"
     public static func format(_ input: String) -> String {

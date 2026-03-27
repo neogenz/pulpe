@@ -72,7 +72,7 @@ struct ChangePinView: View {
 
             PinDotsErrorView(
                 enteredCount: viewModel.digits.count,
-                maxDigits: viewModel.maxDigits,
+                maxDigits: viewModel.pinLength,
                 isError: viewModel.isError,
                 errorMessage: viewModel.errorMessage
             )
@@ -85,7 +85,7 @@ struct ChangePinView: View {
                 onConfirm: viewModel.canConfirm ? {
                     Task { await viewModel.confirm() }
                 } : nil,
-                isDisabled: viewModel.isProcessing
+                isDisabled: viewModel.isProcessing || viewModel.isError
             )
 
             Spacer().frame(height: DesignTokens.Spacing.xxl)
@@ -143,11 +143,10 @@ final class ChangePinViewModel {
     private(set) var hapticError = false
     private(set) var recoveryKey: String?
 
-    let maxDigits = 6
-    let minDigits = 4
+    let pinLength = PinConstants.length
 
     var canConfirm: Bool {
-        digits.count >= minDigits && !isProcessing
+        digits.count == pinLength && !isProcessing
     }
 
     var stepLabel: String {
@@ -169,14 +168,10 @@ final class ChangePinViewModel {
     private static let logger = Logger(subsystem: "com.pulpe.app", category: "ChangePinViewModel")
     private var oldClientKeyHex: String?
     private var cachedSalt: EncryptionSaltResponse?
-    nonisolated(unsafe) private var errorResetTask: Task<Void, Never>?
+    private var errorResetTask: Task<Void, Never>?
     private let cryptoService: any PinCryptoKeyDerivation
     private let encryptionAPI: any PinEncryptionChangePin
     private let clientKeyManager: any PinClientKeyStorage
-
-    deinit {
-        errorResetTask?.cancel()
-    }
 
     // MARK: - Init
 
@@ -193,14 +188,8 @@ final class ChangePinViewModel {
     // MARK: - Actions
 
     func appendDigit(_ digit: Int) {
-        guard digits.count < maxDigits, !isProcessing else { return }
-        if isError { clearError() }
+        guard digits.count < pinLength, !isProcessing, !isError else { return }
         digits.append(digit)
-
-        if digits.count == maxDigits {
-            isProcessing = true
-            Task { await handlePinComplete() }
-        }
     }
 
     func deleteLastDigit() {
@@ -305,6 +294,8 @@ final class ChangePinViewModel {
             step = .enterNewPin
             handleCryptoError(error)
         } catch {
+            self.oldClientKeyHex = nil
+            self.cachedSalt = nil
             step = .enterNewPin
             showError("Erreur inattendue, réessaie")
         }

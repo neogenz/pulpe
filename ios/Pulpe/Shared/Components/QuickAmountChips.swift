@@ -41,11 +41,13 @@ struct QuickAmountChips: View {
                                 isSelected
                                     ? color.opacity(DesignTokens.Opacity.strong)
                                     : Color.outlineVariant.opacity(0.6),
-                                lineWidth: 1
+                                lineWidth: DesignTokens.BorderWidth.thin
                             )
                         )
                 }
-                .buttonStyle(.plain)
+                .frame(minHeight: DesignTokens.TapTarget.minimum)
+                .contentShape(Capsule())
+                .plainPressedButtonStyle()
                 .accessibilityHint("Définir le montant à \(quickAmount) \(DesignTokens.AmountInput.currencyCode)")
             }
         }

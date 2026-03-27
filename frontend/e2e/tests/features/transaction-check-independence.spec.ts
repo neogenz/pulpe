@@ -42,17 +42,30 @@ test.describe('Transaction Check Independence (Scenario 5.10)', () => {
       checkedAt: null,
     });
 
-    const mockResponse = createBudgetDetailsMock(budgetId, {
-      budgetLines: [
-        createBudgetLineMock(TEST_UUIDS.LINE_1, budgetId, {
-          name: 'Salaire',
-          amount: 5000,
-          kind: 'income',
-        }),
-        envelopeLine,
-      ],
-      transactions: [tx1, tx2, tx3],
-    });
+    // Track checked transactions so the details mock stays consistent
+    // after cache invalidation triggers a refetch.
+    const checkedTimestamp = '2025-01-15T12:00:00Z';
+    const checkedTxIds = new Set<string>();
+
+    const allTransactions = [tx1, tx2, tx3];
+
+    function buildMockResponse() {
+      return createBudgetDetailsMock(budgetId, {
+        budgetLines: [
+          createBudgetLineMock(TEST_UUIDS.LINE_1, budgetId, {
+            name: 'Salaire',
+            amount: 5000,
+            kind: 'income',
+          }),
+          envelopeLine,
+        ],
+        transactions: allTransactions.map((tx) =>
+          checkedTxIds.has(tx.id)
+            ? { ...tx, checkedAt: checkedTimestamp, updatedAt: checkedTimestamp }
+            : tx,
+        ),
+      });
+    }
 
     // Show all items (not just unchecked)
     await authenticatedPage.addInitScript(() => {
@@ -64,19 +77,16 @@ test.describe('Transaction Check Independence (Scenario 5.10)', () => {
       void route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify(mockResponse),
+        body: JSON.stringify(buildMockResponse()),
       });
     });
 
     // Mock toggle-check for each transaction
-    const checkedTimestamp = '2025-01-15T12:00:00Z';
-
-    const togglePromises: Promise<unknown>[] = [];
-
-    for (const tx of [tx1, tx2, tx3]) {
+    for (const tx of allTransactions) {
       await authenticatedPage.route(
         `**/api/v1/transactions/${tx.id}/toggle-check`,
         (route) => {
+          checkedTxIds.add(tx.id);
           void route.fulfill({
             status: 201,
             contentType: 'application/json',

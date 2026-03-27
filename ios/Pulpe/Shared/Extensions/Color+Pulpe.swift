@@ -16,38 +16,39 @@ extension Color {
     /// Over-budget indicator - Warm amber, not aggressive red (#A86800 light, #E5A33A dark)
     static let financialOverBudget = Color(light: Color(hex: 0xA86800), dark: Color(hex: 0xE5A33A))
 
-    // MARK: - Hero Card Gradient Colors (4-stop, 150° linear)
-    // Aligned with frontend --pulpe-hero-* tokens (base → color-mix 75% black)
+    // MARK: - Hero Card Gradient Colors (4-stop, ~128° linear)
+    // Designed in oklch for perceptual uniformity, converted to hex for SwiftUI.
+    // Gradient direction: dark → bright for depth and punch.
 
-    /// Comfortable state gradient stops — based on #006E25 (mat-sys-primary)
+    /// Emerald Bright — oklch(0.45-0.75, C 0.16-0.22, H 147)
     static let heroGradientComfortable: [Color] = [
-        Color(light: Color(hex: 0x006E25), dark: Color(hex: 0x00390F)),
-        Color(light: Color(hex: 0x005F20), dark: Color(hex: 0x00320D)),
-        Color(light: Color(hex: 0x00521B), dark: Color(hex: 0x002B0B)),
-        Color(light: Color(hex: 0x004516), dark: Color(hex: 0x002409))
+        Color(light: Color(hex: 0x006B1E), dark: Color(hex: 0x003D10)),
+        Color(light: Color(hex: 0x008C30), dark: Color(hex: 0x005C20)),
+        Color(light: Color(hex: 0x14AD45), dark: Color(hex: 0x007C32)),
+        Color(light: Color(hex: 0x38D062), dark: Color(hex: 0x109E48))
     ]
 
-    /// Tight state gradient stops — based on #B35800 (pulpe-amber)
+    /// Tangerine — oklch(0.48-0.80, C 0.15-0.18, H 65-70)
     static let heroGradientTight: [Color] = [
-        Color(light: Color(hex: 0xB35800), dark: Color(hex: 0x3D2200)),
-        Color(light: Color(hex: 0x9C4D00), dark: Color(hex: 0x351E00)),
-        Color(light: Color(hex: 0x864200), dark: Color(hex: 0x2E1A00)),
-        Color(light: Color(hex: 0x703800), dark: Color(hex: 0x261500))
+        Color(light: Color(hex: 0x8C4400), dark: Color(hex: 0x4C2400)),
+        Color(light: Color(hex: 0xB86200), dark: Color(hex: 0x6E3A00)),
+        Color(light: Color(hex: 0xD88010), dark: Color(hex: 0x925208)),
+        Color(light: Color(hex: 0xF49E28), dark: Color(hex: 0xB86C14))
     ]
 
-    /// Deficit state gradient stops — based on #BA1A1A (mat-sys-error)
+    /// Sunset Coral — oklch(0.48-0.78, C 0.16, H 35-40)
+    /// DA.md: "Le rouge est factuel et contextuel, pas punitif"
     static let heroGradientDeficit: [Color] = [
-        Color(light: Color(hex: 0xBA1A1A), dark: Color(hex: 0x930009)),
-        Color(light: Color(hex: 0xA51717), dark: Color(hex: 0x830008)),
-        Color(light: Color(hex: 0x8F1313), dark: Color(hex: 0x6E0007)),
-        Color(light: Color(hex: 0x7A1010), dark: Color(hex: 0x5C0005))
+        Color(light: Color(hex: 0x9C3418), dark: Color(hex: 0x561C0C)),
+        Color(light: Color(hex: 0xC45028), dark: Color(hex: 0x7C3418)),
+        Color(light: Color(hex: 0xE06C38), dark: Color(hex: 0xA04C28)),
+        Color(light: Color(hex: 0xF48A4C), dark: Color(hex: 0xC46438))
     ]
 
-    /// Glass tint for hero card overlay elements — non-adaptive, always on gradient background.
-    /// Must match the base (first stop, light variant) of each hero gradient.
-    static let heroTintComfortable = Color(hex: 0x006E25)
-    static let heroTintTight = Color(hex: 0xB35800)
-    static let heroTintDeficit = Color(hex: 0xBA1A1A)
+    /// Glass tint for hero card overlay elements — mid-tone of each gradient.
+    static let heroTintComfortable = Color(hex: 0x14AD45)
+    static let heroTintTight = Color(hex: 0xD88010)
+    static let heroTintDeficit = Color(hex: 0xC45028)
 
     // MARK: - Brand Colors
 
@@ -65,26 +66,26 @@ extension Color {
     static let secondaryContainer = Color(light: Color(hex: 0xC1EEBE), dark: Color(hex: 0x294F2B))
 
     // MARK: - App Background
-    // Single place to tweak the main screen background.
-    // iOS default systemGroupedBackground is #F2F2F7 light / #000000 dark.
-    static let appBackground = Color(uiColor: .systemGroupedBackground)
+    // DA.md §3.1: neutral warm — not cold (no blue-gray), not green.
+    // Light: #F7F6F3 (warm neutral). Dark: #141210 (warm near-black, not pure #000).
+    static let appBackground = Color(light: Color(hex: 0xF7F6F3), dark: Color(hex: 0x141210))
 
     // MARK: - Sheet Background
-    // Custom color to ensure visible contrast between sheet bg and row bg in dark mode.
-    // Light: system grouped background (#F2F2F7). Dark: #111111 (darker than row bg #1C1C1E).
-    static let sheetBackground = Color(light: Color(uiColor: .systemGroupedBackground), dark: Color(hex: 0x111111))
+    // Warm sheet surface with visible contrast against card bg in dark mode.
+    // Light: slightly cooler warm (#F5F3F0). Dark: #111111 (darker than card bg).
+    static let sheetBackground = Color(light: Color(hex: 0xF5F3F0), dark: Color(hex: 0x111111))
 
-    // MARK: - Surface (iOS System Colors — neutral gray hierarchy)
+    // MARK: - Surface (warm hierarchy — DA.md §3.1)
 
-    static let surface = Color(uiColor: .systemBackground)
-    static let surfaceDim = Color(uiColor: .systemGray5)
-    static let surfaceBright = Color(uiColor: .systemBackground)
-    static let surfaceContainerLowest = Color(uiColor: .secondarySystemGroupedBackground)
-    static let surfaceContainerLow = Color(uiColor: .secondarySystemBackground)
-    static let surfaceContainer = Color(uiColor: .systemGray6)
-    static let surfaceContainerHigh = Color(uiColor: .systemGray6)
-    static let surfaceContainerHighest = Color(uiColor: .systemGray4)
-    static let surfaceVariant = Color(uiColor: .systemGray5)
+    static let surface = Color(light: .white, dark: Color(hex: 0x1A1816))
+    static let surfaceDim = Color(light: Color(hex: 0xEBE9E5), dark: Color(hex: 0x161412))
+    static let surfaceBright = Color(light: .white, dark: Color(hex: 0x1A1816))
+    static let surfaceContainerLowest = Color(light: .white, dark: Color(hex: 0x1E1C1A))
+    static let surfaceContainerLow = Color(light: Color(hex: 0xFCFAF7), dark: Color(hex: 0x1C1A18))
+    static let surfaceContainer = Color(light: Color(hex: 0xF5F3F0), dark: Color(hex: 0x201E1C))
+    static let surfaceContainerHigh = Color(light: Color(hex: 0xF0EDE9), dark: Color(hex: 0x242220))
+    static let surfaceContainerHighest = Color(light: Color(hex: 0xE8E5E1), dark: Color(hex: 0x2A2826))
+    static let surfaceVariant = Color(light: Color(hex: 0xEBE9E5), dark: Color(hex: 0x242220))
 
     // MARK: - Semantic Text Colors
 
@@ -94,11 +95,16 @@ extension Color {
     /// Text on primary-colored backgrounds (white in both modes)
     static let textOnPrimary = Color(light: .white, dark: .white)
 
-    /// Tertiary text — iOS system tertiary label
-    static let pulpeTextTertiary = Color(.tertiaryLabel)
+    /// Secondary text — WCAG AA on all warm surfaces (labels, subtitles, captions)
+    /// Light #524D48: 6.9:1 on #F0EDE9 (AAA) · Dark #B8B0A8: 7.6:1 on #242220 (AAA)
+    static let textSecondary = Color(light: Color(hex: 0x524D48), dark: Color(hex: 0xB8B0A8))
 
-    /// Secondary content on surface — iOS system secondary label
-    static let onSurfaceVariant = Color(.secondaryLabel)
+    /// Tertiary text — WCAG AA on all warm surfaces (hints, footers, decorative)
+    /// Light #6E6762: 4.8:1 on #F0EDE9 (AA) · Dark #958E88: 5.0:1 on #242220 (AA)
+    static let textTertiary = Color(light: Color(hex: 0x6E6762), dark: Color(hex: 0x958E88))
+
+    /// Secondary content on surface — alias for textSecondary (M3 naming)
+    static let onSurfaceVariant = textSecondary
 
     // MARK: - Outline
 
@@ -307,27 +313,51 @@ extension Color {
     static let pinTextSecondary = Color(light: Color(hex: 0x4A4A4A), dark: Color(hex: 0xC8D0CA))
 
     /// Numpad button fill — adjusted for green-tinted PIN background
-    static let pinButtonFill = Color(light: Color(hex: 0x1A1A1A).opacity(0.06), dark: .white.opacity(0.08))
+    static let pinButtonFill = Color(
+        light: Color(hex: 0x1A1A1A).opacity(0.06),
+        dark: .white.opacity(0.08)
+    )
 
     /// Numpad button stroke
-    static let pinButtonStroke = Color(light: Color(hex: 0x1A1A1A).opacity(0.10), dark: .white.opacity(0.12))
+    static let pinButtonStroke = Color(
+        light: Color(hex: 0x1A1A1A).opacity(0.10),
+        dark: .white.opacity(0.12)
+    )
 
     /// PIN dot color (filled state)
     static let pinDotFilled = Color(light: Color(hex: 0x1A1A1A), dark: .white)
 
     /// PIN dot color (empty state)
-    static let pinDotEmpty = Color(light: Color(hex: 0x1A1A1A).opacity(0.2), dark: .white.opacity(0.3))
+    static let pinDotEmpty = Color(
+        light: Color(hex: 0x1A1A1A).opacity(0.2),
+        dark: .white.opacity(0.3)
+    )
 
     /// Recovery key input field background
-    static let pinInputBackground = Color(light: Color(hex: 0x1A1F2B).opacity(0.05), dark: .white.opacity(0.08))
+    static let pinInputBackground = Color(
+        light: Color(hex: 0x1A1F2B).opacity(0.05),
+        dark: .white.opacity(0.08)
+    )
 
     /// Recovery key input field border
-    static let pinInputBorder = Color(light: Color(hex: 0x1A1F2B).opacity(0.12), dark: .white.opacity(0.15))
+    static let pinInputBorder = Color(
+        light: Color(hex: 0x1A1F2B).opacity(0.12),
+        dark: .white.opacity(DesignTokens.Opacity.accent)
+    )
+
+    // MARK: - Dashboard Emotion Zone (DA.md §3.1 — zone d'émotion header)
+
+    /// Comfortable (Emerald): pale green → neutral warm
+    static let dashboardGradientComfortable = Color(light: Color(hex: 0xD0F0DC), dark: Color(hex: 0x0C200E))
+    /// Tight (Tangerine): pale warm orange → neutral warm
+    static let dashboardGradientTight = Color(light: Color(hex: 0xFCECD0), dark: Color(hex: 0x1C1408))
+    /// Deficit (Sunset Coral): warm peach → neutral warm
+    static let dashboardGradientDeficit = Color(light: Color(hex: 0xFADCD0), dark: Color(hex: 0x201008))
 
     // MARK: - Skeleton
 
-    /// Placeholder fill for skeleton loading shapes
-    static let skeletonPlaceholder = Color(uiColor: .systemGray5)
+    /// Placeholder fill for skeleton loading shapes — warm tint to match neutral warm bg
+    static let skeletonPlaceholder = Color(light: Color(hex: 0xE8E5E1), dark: Color(hex: 0x242220))
 
     // MARK: - Initializers
 

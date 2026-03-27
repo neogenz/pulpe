@@ -15,10 +15,21 @@ struct AddTransactionSheet: View {
     @State private var isLoading = false
     @State private var error: Error?
     @FocusState private var isAmountFocused: Bool
+    @FocusState private var isDescriptionFocused: Bool
     @State private var amountText = ""
     @State private var submitSuccessTrigger = false
 
-    private let transactionService = TransactionService.shared
+    private let dependencies: AddTransactionDependencies
+
+    init(
+        budgetId: String,
+        dependencies: AddTransactionDependencies = .live,
+        onAdd: @escaping (Transaction) -> Void
+    ) {
+        self.budgetId = budgetId
+        self.dependencies = dependencies
+        self.onAdd = onAdd
+    }
 
     private var canSubmit: Bool {
         !name.trimmingCharacters(in: .whitespaces).isEmpty &&
@@ -38,7 +49,12 @@ struct AddTransactionSheet: View {
     }
 
     var body: some View {
-        SheetFormContainer(title: kind.newTransactionTitle, isLoading: isLoading, autoFocus: $isAmountFocused) {
+        SheetFormContainer(
+            title: kind.newTransactionTitle,
+            isLoading: isLoading,
+            autoFocus: $isAmountFocused,
+            descriptionFocus: $isDescriptionFocused
+        ) {
             KindToggle(selection: $kind)
             HeroAmountField(
                 amount: $amount,
@@ -67,45 +83,19 @@ struct AddTransactionSheet: View {
     // MARK: - Description
 
     private var descriptionField: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-            Text("Description")
-                .font(PulpeTypography.labelMedium)
-                .foregroundStyle(Color.onSurfaceVariant)
-            TextField(kind.descriptionPlaceholder, text: $name)
-                .font(PulpeTypography.bodyLarge)
-                .padding(DesignTokens.Spacing.lg)
-                .background(Color.inputBackgroundSoft)
-                .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
-                .overlay(
-                    RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md)
-                        .strokeBorder(Color.outlineVariant.opacity(0.5), lineWidth: 1)
-                )
-                .accessibilityLabel("Description de la transaction")
-        }
+        FormTextField(
+            hint: kind.descriptionPlaceholder,
+            text: $name,
+            label: "Description",
+            accessibilityLabel: "Description de la transaction",
+            focusBinding: $isDescriptionFocused
+        )
     }
 
     // MARK: - Date Selector
 
     private var dateSelector: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-            Text("Date")
-                .font(PulpeTypography.labelMedium)
-                .foregroundStyle(Color.onSurfaceVariant)
-            HStack {
-                DatePicker("", selection: $transactionDate, displayedComponents: .date)
-                    .labelsHidden()
-                    .datePickerStyle(.compact)
-                    .accessibilityLabel("Date de la transaction")
-                Spacer()
-            }
-            .padding(DesignTokens.Spacing.lg)
-            .background(Color.inputBackgroundSoft)
-            .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
-            .overlay(
-                RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md)
-                    .strokeBorder(Color.outlineVariant.opacity(0.5), lineWidth: 1)
-            )
-        }
+        TransactionDateSelector(date: $transactionDate)
     }
 
     // MARK: - Add Button
@@ -147,7 +137,7 @@ struct AddTransactionSheet: View {
         )
 
         do {
-            let transaction = try await transactionService.createTransaction(data)
+            let transaction = try await dependencies.createTransaction(data)
             AnalyticsService.shared.capture(.transactionCreated, properties: ["type": kind.rawValue])
             submitSuccessTrigger.toggle()
             onAdd(transaction)
@@ -157,6 +147,16 @@ struct AddTransactionSheet: View {
             self.error = error
         }
     }
+}
+
+struct AddTransactionDependencies: Sendable {
+    var createTransaction: @Sendable (TransactionCreate) async throws -> Transaction
+
+    static let live = AddTransactionDependencies(
+        createTransaction: { data in
+            try await TransactionService.shared.createTransaction(data)
+        }
+    )
 }
 
 #Preview {

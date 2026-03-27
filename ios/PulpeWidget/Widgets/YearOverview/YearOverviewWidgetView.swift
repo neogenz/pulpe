@@ -14,7 +14,7 @@ struct YearOverviewWidgetView: View {
         VStack(alignment: .leading, spacing: 12) {
             Text("\(String(entry.year))")
                 .font(.headline)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.textSecondary)
 
             LazyVGrid(columns: columns, spacing: 8) {
                 ForEach(entry.months) { month in
@@ -44,7 +44,7 @@ struct YearOverviewWidgetView: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text("Disponible \(month.shortName.lowercased())")
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.textSecondary)
 
                 if let available = month.available {
                     Text(available.asCHF)

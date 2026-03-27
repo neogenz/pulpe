@@ -13,12 +13,13 @@ This class is used by the `AmountsVisibilityService` to blur values when the use
 
 ## What to mark
 
-Any element that renders a monetary value:
+Any element that renders a monetary value or sensitive user-entered text:
 
 - Budget line amounts (planned, consumed, remaining, balance)
 - Account balances and ending balances
 - Transaction amounts
 - Summary totals (available to spend, savings, income)
+- Transaction and budget-line names (user-entered, may contain personal info)
 
 ## How to apply
 

@@ -29,26 +29,7 @@ struct HeroBalanceCard: View {
     // MARK: - Computed Properties
 
     private var contextLabel: String {
-        metrics.isDeficit ? "Déficit" : "Disponible"
-    }
-
-    private var motivationalMessage: String {
-        switch metrics.emotionState {
-        case .deficit: "Ça arrive — on gère"
-        case .tight: "Serré — mais tu le sais"
-        case .comfortable: comfortableMessage
-        }
-    }
-
-    private var comfortableMessage: String {
-        let twentyPercent: Decimal = 2 / 10
-        if metrics.totalIncome > 0, metrics.remaining > metrics.totalIncome * twentyPercent {
-            return "Belle marge ce mois"
-        }
-        if metrics.remaining > 0 {
-            return "Tu gères bien"
-        }
-        return "Pile à l\u{2019}équilibre"
+        metrics.isDeficit ? "Déficit CHF" : "Disponible CHF"
     }
 
     private var fillPercentage: Double {
@@ -101,11 +82,10 @@ struct HeroBalanceCard: View {
 
     private var accessibilityDescription: String {
         if amountsHidden {
-            return "\(contextLabel) — montant masqué. \(motivationalMessage)"
+            return "\(contextLabel) — montant masqué"
         }
         var desc = """
         \(contextLabel) \(formattedBalance) CHF. \
-        \(motivationalMessage). \
         Dépensé \(formattedSpent) sur \(formattedAvailable)
         """
         if let rolloverAmount {
@@ -154,7 +134,7 @@ struct HeroBalanceCard: View {
                 .foregroundStyle(.white.opacity(supportingTextOpacity))
 
             // Chunk 2 — Hero amount
-            Text("\(formattedBalance) CHF")
+            Text("\(formattedBalance)")
                 .font(PulpeTypography.amountHero)
                 .minimumScaleFactor(0.6)
                 .lineLimit(1)
@@ -162,11 +142,6 @@ struct HeroBalanceCard: View {
                 .foregroundStyle(.white)
                 .contentTransition(.numericText())
                 .sensitiveAmount()
-
-            // Chunk 3 — Motivational message
-            Text(motivationalMessage)
-                .font(PulpeTypography.labelMedium)
-                .foregroundStyle(.white.opacity(subduedTextOpacity))
 
             Spacer()
                 .frame(height: DesignTokens.Spacing.md)
@@ -211,7 +186,7 @@ struct HeroBalanceCard: View {
     private func rolloverFooter(amount: Decimal) -> some View {
         if let onRolloverTap {
             Button(action: onRolloverTap) { rolloverPill(amount: amount) }
-                .buttonStyle(.plain)
+                .textLinkButtonStyle()
                 .padding(.top, DesignTokens.Spacing.md)
         } else {
             rolloverPill(amount: amount)
@@ -222,7 +197,7 @@ struct HeroBalanceCard: View {
     private func rolloverPill(amount: Decimal) -> some View {
         HStack(spacing: DesignTokens.Spacing.sm) {
             Image(systemName: amount >= 0 ? "arrow.up.right.circle" : "arrow.down.right.circle")
-                .font(.system(size: 12, weight: .semibold))
+                .font(PulpeTypography.detailLabel)
 
             Text("Report")
                 .font(PulpeTypography.labelMedium)
@@ -236,7 +211,7 @@ struct HeroBalanceCard: View {
                 Spacer(minLength: 0)
 
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 10, weight: .semibold))
+                    .font(PulpeTypography.metricMini)
             }
         }
         .foregroundStyle(.white)
@@ -251,12 +226,15 @@ struct HeroBalanceCard: View {
     private func chartButton(action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Image(systemName: "chart.bar.fill")
-                .font(.system(size: 14, weight: .semibold))
+                .font(PulpeTypography.metricLabel)
                 .foregroundStyle(.white)
-                .frame(width: 32, height: 32)
+                .frame(
+                    width: DesignTokens.TapTarget.minimum,
+                    height: DesignTokens.TapTarget.minimum
+                )
                 .heroGlassBackground(tint: glassTintColor, shape: .circle)
         }
-        .buttonStyle(.plain)
+        .circleIconButtonStyle()
         .accessibilityLabel("Suivi du budget")
     }
 
@@ -296,26 +274,13 @@ struct HeroBalanceCard: View {
 
     private var progressBar: some View {
         ZStack(alignment: .leading) {
-            // Track
             Capsule()
                 .fill(.white.opacity(0.2))
 
-            // Fill
             Capsule()
                 .fill(.white)
                 .frame(width: barWidth * fillPercentage)
-                .animation(.easeInOut(duration: 0.8), value: fillPercentage)
-
-            // Pace indicator (vertical white line)
-            if timeElapsedPercentage > 0 {
-                RoundedRectangle(cornerRadius: 1)
-                    .fill(.white.opacity(0.4))
-                    .frame(width: 2, height: DesignTokens.ProgressBar.heroHeight + 4)
-                    .offset(
-                        x: barWidth * min(timeElapsedPercentage / 100, 1) - 1,
-                        y: -2
-                    )
-            }
+                .animation(DesignTokens.Animation.smoothEaseInOut, value: fillPercentage)
         }
         .frame(height: DesignTokens.ProgressBar.heroHeight)
         .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { barWidth = $0 }

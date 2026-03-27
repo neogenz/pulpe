@@ -25,16 +25,17 @@ struct SavingsSummaryCard: View {
     private var completeView: some View {
         HStack(spacing: DesignTokens.Spacing.md) {
             Image(systemName: "checkmark.circle.fill")
-                .font(.system(size: 24))
+                .font(PulpeTypography.amountXL)
                 .foregroundStyle(Color.financialSavings)
+                .symbolEffect(.bounce, value: summary.isComplete)
 
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                 Text("Objectif atteint ce mois")
-                    .font(.system(.body, weight: .semibold))
+                    .font(PulpeTypography.listRowTitle)
 
                 Text("\(summary.totalRealized.asCHF) épargnés")
                     .font(PulpeTypography.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.textSecondary)
                     .sensitiveAmount()
             }
 
@@ -49,7 +50,7 @@ struct SavingsSummaryCard: View {
             // Amount row
             HStack {
                 Text(summary.totalRealized.asCompactCHF)
-                    .font(.system(.body, weight: .semibold))
+                    .font(PulpeTypography.listRowTitle)
                     .foregroundStyle(Color.financialSavings)
                     .sensitiveAmount()
 
@@ -57,7 +58,7 @@ struct SavingsSummaryCard: View {
 
                 Text("sur \(summary.totalPlanned.asCompactCHF)")
                     .font(PulpeTypography.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.textSecondary)
                     .sensitiveAmount()
             }
 
@@ -77,7 +78,7 @@ struct SavingsSummaryCard: View {
             // Checked count subtitle
             Text("\(summary.checkedCount) sur \(summary.totalCount) pointées")
                 .font(PulpeTypography.caption)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.textSecondary)
         }
     }
 

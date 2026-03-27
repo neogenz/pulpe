@@ -6,6 +6,7 @@ private struct AuthFieldContainer<Content: View>: View {
     var isFocused: Bool
     var hasError: Bool
     var isFilled: Bool = false
+    var requestFocus: (() -> Void)?
     @ViewBuilder let content: () -> Content
 
     @Environment(\.colorScheme) private var colorScheme
@@ -22,7 +23,7 @@ private struct AuthFieldContainer<Content: View>: View {
     }
 
     private var strokeWidth: CGFloat {
-        (isFocused || hasError) ? 2 : 0.75
+        (isFocused || hasError) ? DesignTokens.BorderWidth.thick : DesignTokens.BorderWidth.hairline
     }
 
     private var showCheckmark: Bool {
@@ -62,6 +63,8 @@ private struct AuthFieldContainer<Content: View>: View {
         .shadow(colorScheme == .dark
             ? ShadowStyle(color: .black.opacity(0.01), radius: 2, y: 1)
             : DesignTokens.Shadow.input)
+        .contentShape(.interaction, Rectangle())
+        .onTapGesture { requestFocus?() }
         .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isFocused)
         .animation(.spring(response: 0.3, dampingFraction: 0.7), value: showCheckmark)
     }
@@ -79,17 +82,22 @@ struct AuthTextField: View {
     var hasError: Bool = false
     var isFilled: Bool = false
 
+    @FocusState private var isFieldFocused: Bool
+
     var body: some View {
         AuthFieldContainer(
             systemImage: systemImage,
             isFocused: isFocused,
             hasError: hasError,
-            isFilled: isFilled
-        ) {
-            TextField(prompt, text: $text)
-                .font(PulpeTypography.body)
-                .foregroundStyle(Color.authInputText)
-        }
+            isFilled: isFilled,
+            requestFocus: { isFieldFocused = true },
+            content: {
+                TextField(prompt, text: $text)
+                    .font(PulpeTypography.body)
+                    .foregroundStyle(Color.authInputText)
+                    .focused($isFieldFocused)
+            }
+        )
     }
 }
 
@@ -105,33 +113,39 @@ struct AuthSecureField: View {
     var isFocused: Bool = false
     var hasError: Bool = false
 
+    @FocusState private var isFieldFocused: Bool
+
     var body: some View {
         AuthFieldContainer(
             systemImage: systemImage,
             isFocused: isFocused,
-            hasError: hasError
-        ) {
-            Group {
-                if isVisible {
-                    TextField(prompt, text: $text)
-                } else {
-                    SecureField(prompt, text: $text)
+            hasError: hasError,
+            requestFocus: { isFieldFocused = true },
+            content: {
+                Group {
+                    if isVisible {
+                        TextField(prompt, text: $text)
+                    } else {
+                        SecureField(prompt, text: $text)
+                    }
                 }
-            }
-            .font(PulpeTypography.body)
-            .foregroundStyle(Color.authInputText)
+                .font(PulpeTypography.body)
+                .foregroundStyle(Color.authInputText)
+                .focused($isFieldFocused)
 
-            Button {
-                withAnimation(.spring(response: 0.2, dampingFraction: 0.6)) {
-                    isVisible.toggle()
+                Button {
+                    withAnimation(.spring(response: 0.2, dampingFraction: 0.6)) {
+                        isVisible.toggle()
+                    }
+                } label: {
+                    Image(systemName: isVisible ? "eye.slash.fill" : "eye.fill")
+                        .font(PulpeTypography.body)
+                        .foregroundStyle(Color.authInputText.opacity(0.6))
+                        .contentTransition(.symbolEffect(.replace))
                 }
-            } label: {
-                Image(systemName: isVisible ? "eye.slash.fill" : "eye.fill")
-                    .font(PulpeTypography.body)
-                    .foregroundStyle(Color.authInputText.opacity(0.6))
-                    .contentTransition(.symbolEffect(.replace))
+                .iconButtonStyle()
+                .accessibilityLabel(isVisible ? "Masquer le mot de passe" : "Afficher le mot de passe")
             }
-            .accessibilityLabel(isVisible ? "Masquer le mot de passe" : "Afficher le mot de passe")
-        }
+        )
     }
 }

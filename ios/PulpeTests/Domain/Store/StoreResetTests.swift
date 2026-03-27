@@ -21,6 +21,7 @@ struct StoreResetTests {
 
         store.reset()
 
+        #expect(store.contentState == .idle, "contentState must be .idle after reset")
         #expect(store.budget == nil, "budget must be nil after reset")
         #expect(store.budgetLines.isEmpty, "budgetLines must be empty after reset")
         #expect(store.transactions.isEmpty, "transactions must be empty after reset")

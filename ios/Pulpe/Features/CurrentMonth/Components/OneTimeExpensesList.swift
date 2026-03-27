@@ -76,7 +76,7 @@ struct TransactionSection: View {
                 onToggle(transaction)
             } label: {
                 Label(
-                    transaction.isChecked ? "Annuler" : "Comptabiliser",
+                    transaction.isChecked ? "Dépointer" : "Comptabiliser",
                     systemImage: transaction.isChecked ? "arrow.uturn.backward" : "checkmark.circle"
                 )
             }
@@ -98,9 +98,10 @@ struct TransactionSection: View {
                     Spacer()
                     Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
                         .font(PulpeTypography.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.textSecondary)
                 }
             }
+            .textLinkButtonStyle()
             .listRowSeparator(.hidden)
         }
     }
@@ -173,7 +174,7 @@ struct TransactionRow: View {
                 // Date (relative formatting)
                 Text(transaction.transactionDate.relativeFormatted)
                     .font(PulpeTypography.caption)
-                    .foregroundStyle(Color.pulpeTextTertiary)
+                    .foregroundStyle(Color.textTertiary)
             }
 
             Spacer(minLength: 8)
@@ -200,17 +201,17 @@ struct TransactionRow: View {
                     transaction.isChecked ? Color.progressTrack :
                         transaction.kind.color.opacity(DesignTokens.Opacity.badgeBackground)
                 )
-                .frame(width: 40, height: 40)
+                .frame(width: DesignTokens.IconSize.listRow, height: DesignTokens.IconSize.listRow)
 
             if transaction.isChecked {
                 // Show checkmark when checked
                 Image(systemName: "checkmark")
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(.secondary)
+                    .font(PulpeTypography.listRowTitle)
+                    .foregroundStyle(Color.textSecondary)
             } else {
                 // Show kind icon
                 Image(systemName: transaction.kind.icon)
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(PulpeTypography.listRowTitle)
                     .foregroundStyle(transaction.kind.color)
             }
         }
@@ -269,7 +270,7 @@ struct TransactionRow: View {
         )
     }
     .listStyle(.insetGrouped)
-    .listSectionSpacing(16)
+    .listSectionSpacing(DesignTokens.Spacing.lg)
     .scrollContentBackground(.hidden)
     .pulpeBackground()
 }

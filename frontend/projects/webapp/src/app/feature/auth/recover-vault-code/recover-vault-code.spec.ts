@@ -161,7 +161,7 @@ describe('RecoverVaultCode', () => {
 
   describe('Form Validation', () => {
     it('should not allow submit when recovery key is empty', () => {
-      fillFormViaDom('', '123456', '123456');
+      fillFormViaDom('', '1234', '1234');
       expect(component['canSubmit']()).toBe(false);
     });
 
@@ -181,17 +181,17 @@ describe('RecoverVaultCode', () => {
     });
 
     it('should not allow submit when confirm code is empty', () => {
-      fillFormViaDom('ABCD-EFGH-IJKL-MNOP', '123456', '');
+      fillFormViaDom('ABCD-EFGH-IJKL-MNOP', '1234', '');
       expect(component['canSubmit']()).toBe(false);
     });
 
     it('should not allow submit when codes do not match', () => {
-      fillFormViaDom('ABCD-EFGH-IJKL-MNOP', '123456', '654321');
+      fillFormViaDom('ABCD-EFGH-IJKL-MNOP', '1234', '4321');
       expect(component['canSubmit']()).toBe(false);
     });
 
     it('should allow submit when form is valid with matching codes', () => {
-      fillFormViaDom('ABCD-EFGH-IJKL-MNOP', '123456', '123456');
+      fillFormViaDom('ABCD-EFGH-IJKL-MNOP', '1234', '1234');
       expect(component['canSubmit']()).toBe(true);
     });
   });
@@ -202,14 +202,14 @@ describe('RecoverVaultCode', () => {
     });
 
     it('should be true when form is valid', () => {
-      fillFormViaDom('ABCD-EFGH-IJKL-MNOP', '123456', '123456');
+      fillFormViaDom('ABCD-EFGH-IJKL-MNOP', '1234', '1234');
       expect(component['canSubmit']()).toBe(true);
     });
   });
 
   describe('onSubmit - Valid Form', () => {
     beforeEach(() => {
-      fillFormViaDom('ABCD-EFGH-IJKL-MNOP', '123456', '123456');
+      fillFormViaDom('ABCD-EFGH-IJKL-MNOP', '1234', '1234');
     });
 
     it('should call getSalt$ to get encryption salt', async () => {
@@ -223,7 +223,7 @@ describe('RecoverVaultCode', () => {
       await submitFormViaDom();
       await vi.waitFor(() =>
         expect(deriveClientKeySpy).toHaveBeenCalledWith(
-          '123456',
+          '1234',
           'salt-value',
           100000,
         ),
@@ -278,7 +278,7 @@ describe('RecoverVaultCode', () => {
 
   describe('onSubmit - Error Handling', () => {
     beforeEach(() => {
-      fillFormViaDom('ABCD-EFGH-IJKL-MNOP', '123456', '123456');
+      fillFormViaDom('ABCD-EFGH-IJKL-MNOP', '1234', '1234');
     });
 
     it('should show specific error message on 400 response (invalid recovery key)', async () => {
@@ -338,7 +338,7 @@ describe('RecoverVaultCode', () => {
 
   describe('onSubmit - ApiError handling', () => {
     beforeEach(() => {
-      fillFormViaDom('ABCD-EFGH-IJKL-MNOP', '123456', '123456');
+      fillFormViaDom('ABCD-EFGH-IJKL-MNOP', '1234', '1234');
     });
 
     it('should show specific error when recover$ throws ApiError with status 400', async () => {
@@ -368,7 +368,7 @@ describe('RecoverVaultCode', () => {
 
   describe('onSubmit - Incomplete recovery', () => {
     beforeEach(() => {
-      fillFormViaDom('ABCD-EFGH-IJKL-MNOP', '123456', '123456');
+      fillFormViaDom('ABCD-EFGH-IJKL-MNOP', '1234', '1234');
     });
 
     it('should show error when setDirectKey throws after successful recover$', async () => {

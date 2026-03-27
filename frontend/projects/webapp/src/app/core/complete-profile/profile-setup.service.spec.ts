@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { of } from 'rxjs';
+import { of, throwError } from 'rxjs';
 import { ProfileSetupService } from './profile-setup.service';
 import { ApplicationConfiguration } from '@core/config/application-configuration';
 import { ApiClient } from '@core/api/api-client';
@@ -12,10 +12,15 @@ import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 describe('ProfileSetupService', () => {
   let service: ProfileSetupService;
   let mockApiClient: { post$: ReturnType<typeof vi.fn> };
-  let mockBudgetApi: { createBudget$: ReturnType<typeof vi.fn> };
+  let mockBudgetApi: {
+    generateBudgets$: ReturnType<typeof vi.fn>;
+    getAllBudgets$: ReturnType<typeof vi.fn>;
+    cache: unknown;
+  };
   let mockPostHogService: { enableTracking: ReturnType<typeof vi.fn> };
   let mockLogger: {
     info: ReturnType<typeof vi.fn>;
+    warn: ReturnType<typeof vi.fn>;
     error: ReturnType<typeof vi.fn>;
   };
 
@@ -29,9 +34,26 @@ describe('ProfileSetupService', () => {
     };
 
     mockBudgetApi = {
-      createBudget$: vi
+      generateBudgets$: vi.fn().mockReturnValue(
+        of({
+          success: true,
+          data: { budgets: [{ id: 'budget-123' }], skippedMonths: [] },
+        }),
+      ),
+      getAllBudgets$: vi
         .fn()
-        .mockReturnValue(of({ budget: { id: 'budget-123' } })),
+        .mockReturnValue(of([{ id: 'budget-123', remaining: 500 }])),
+      cache: {
+        invalidate: vi.fn(),
+        prefetch: vi
+          .fn()
+          .mockImplementation(
+            async (_key: string[], fn: () => Promise<unknown>) => {
+              await fn();
+            },
+          ),
+        clear: vi.fn(),
+      },
     };
 
     mockPostHogService = {
@@ -40,6 +62,7 @@ describe('ProfileSetupService', () => {
 
     mockLogger = {
       info: vi.fn(),
+      warn: vi.fn(),
       error: vi.fn(),
     };
 
@@ -113,8 +136,12 @@ describe('ProfileSetupService', () => {
       });
 
       expect(result.success).toBe(true);
-      expect(mockBudgetApi.createBudget$).toHaveBeenCalledWith(
-        expect.objectContaining({ month: 1, year: 2026 }),
+      expect(mockBudgetApi.generateBudgets$).toHaveBeenCalledWith(
+        expect.objectContaining({
+          startMonth: 1,
+          startYear: 2026,
+          count: 12,
+        }),
       );
     });
 
@@ -128,12 +155,34 @@ describe('ProfileSetupService', () => {
       });
 
       expect(result.success).toBe(true);
-      expect(mockBudgetApi.createBudget$).toHaveBeenCalledWith(
-        expect.objectContaining({ month: 2, year: 2026 }),
+      expect(mockBudgetApi.generateBudgets$).toHaveBeenCalledWith(
+        expect.objectContaining({
+          startMonth: 2,
+          startYear: 2026,
+          count: 12,
+        }),
       );
     });
 
-    it('should handle year boundary and use period year in description', async () => {
+    it('should prefetch full budget list after create to align list amounts', async () => {
+      const result = await service.createInitialBudget({
+        firstName: 'Test',
+        monthlyIncome: 3000,
+      });
+
+      expect(result.success).toBe(true);
+      expect(
+        (mockBudgetApi.cache as { invalidate: ReturnType<typeof vi.fn> })
+          .invalidate,
+      ).toHaveBeenCalledWith(['budget']);
+      expect(mockBudgetApi.getAllBudgets$).toHaveBeenCalled();
+      expect(
+        (mockBudgetApi.cache as { prefetch: ReturnType<typeof vi.fn> })
+          .prefetch,
+      ).toHaveBeenCalledWith(['budget', 'list'], expect.any(Function));
+    });
+
+    it('should handle year boundary correctly', async () => {
       vi.useFakeTimers();
       vi.setSystemTime(new Date('2026-01-02'));
 
@@ -144,13 +193,39 @@ describe('ProfileSetupService', () => {
       });
 
       expect(result.success).toBe(true);
-      expect(mockBudgetApi.createBudget$).toHaveBeenCalledWith(
+      expect(mockBudgetApi.generateBudgets$).toHaveBeenCalledWith(
         expect.objectContaining({
-          month: 12,
-          year: 2025,
-          description: 'Budget initial de Test pour 2025',
+          startMonth: 12,
+          startYear: 2025,
+          count: 12,
         }),
       );
+    });
+
+    it('should pass templateId from template creation response', async () => {
+      const result = await service.createInitialBudget({
+        firstName: 'Test',
+        monthlyIncome: 3000,
+      });
+
+      expect(result.success).toBe(true);
+      expect(mockBudgetApi.generateBudgets$).toHaveBeenCalledWith(
+        expect.objectContaining({ templateId: 'template-123' }),
+      );
+    });
+
+    it('should return budget error when generate fails', async () => {
+      mockBudgetApi.generateBudgets$.mockReturnValue(
+        throwError(() => new Error('budget generation failed')),
+      );
+
+      const result = await service.createInitialBudget({
+        firstName: 'Test',
+        monthlyIncome: 3000,
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBeDefined();
     });
   });
 });

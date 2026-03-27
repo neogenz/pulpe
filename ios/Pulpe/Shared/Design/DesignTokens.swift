@@ -2,6 +2,13 @@ import SwiftUI
 
 /// Centralized design tokens for visual consistency across the app
 enum DesignTokens {
+    // MARK: - Tap Target
+
+    enum TapTarget {
+        /// Apple HIG minimum tap target (44pt)
+        static let minimum: CGFloat = 44
+    }
+
     // MARK: - Corner Radius
 
     enum CornerRadius {
@@ -9,6 +16,8 @@ enum DesignTokens {
         static let xs: CGFloat = 4
         /// Small elements: badges, chips (8pt)
         static let sm: CGFloat = 8
+        /// Progress bars with visible rounding (10pt)
+        static let progressBar: CGFloat = 10
         /// Medium elements: inputs, cards (24pt)
         static let md: CGFloat = 24
         /// Primary buttons (14pt)
@@ -35,6 +44,15 @@ enum DesignTokens {
         static let sectionGap: CGFloat = 40
         /// Top padding for step headers (onboarding)
         static let stepHeaderTop: CGFloat = 48
+    }
+
+    // MARK: - Border Width
+
+    enum BorderWidth {
+        static let hairline: CGFloat = 0.75
+        static let thin: CGFloat = 1
+        static let medium: CGFloat = 1.5
+        static let thick: CGFloat = 2
     }
 
     // MARK: - Shadows
@@ -93,6 +111,8 @@ enum DesignTokens {
         static let strong: Double = 0.3
         /// Heavy overlays
         static let heavy: Double = 0.5
+        /// Pressed state for interactive elements
+        static let pressed: Double = 0.8
         /// Dark overlays (tutorial, modal backdrops)
         static let overlay: Double = 0.85
     }
@@ -106,13 +126,15 @@ enum DesignTokens {
         static let badge: CGFloat = 36
         /// Small inline icons
         static let compact: CGFloat = 28
+        /// Social login button icons (Apple logo, Google logo)
+        static let socialButton: CGFloat = 20
     }
 
     // MARK: - List Row
 
     enum ListRow {
         /// Vertical padding for all list/transaction/budget rows
-        static let verticalPadding: CGFloat = 4
+        static let verticalPadding: CGFloat = 8
     }
 
     // MARK: - Animation
@@ -205,6 +227,8 @@ enum DesignTokens {
     enum FrameHeight {
         /// Primary action buttons
         static let button: CGFloat = 54
+        /// Custom floating tab bar
+        static let tabBar: CGFloat = 62
         /// Progress bar track
         static let progressBar: CGFloat = 8
         /// Thin separator lines

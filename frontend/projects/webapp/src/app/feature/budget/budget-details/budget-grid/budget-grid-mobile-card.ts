@@ -17,7 +17,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { RouterLink } from '@angular/router';
 import { type BudgetLine } from 'pulpe-shared';
 import { FinancialKindDirective } from '@ui/financial-kind';
-import { RecurrenceLabelPipe } from '@pattern/transaction-display';
+import { RecurrenceLabelPipe } from '@ui/transaction-display';
 import { formatMatchAnnotation, type BudgetLineTableItem } from '../data-core';
 import { SegmentedBudgetProgress } from '../components/segmented-budget-progress';
 import { BudgetKindIndicator } from '../components/budget-kind-indicator';
@@ -61,7 +61,7 @@ import { BudgetActionMenu } from '../components/budget-action-menu';
           <div class="flex items-center gap-2.5 min-w-0 flex-1">
             <pulpe-budget-kind-indicator [kind]="item().data.kind" />
             <span
-              class="text-title-medium font-medium truncate"
+              class="text-title-medium font-medium truncate ph-no-capture"
               [class.line-through]="item().data.checkedAt"
               [class.text-on-surface-variant]="item().data.checkedAt"
             >
@@ -85,7 +85,7 @@ import { BudgetActionMenu } from '../components/budget-action-menu';
             @if (item().metadata.isPropagationLocked) {
               <mat-icon
                 class="text-sm! text-outline shrink-0"
-                matTooltip="Montants verrouillés"
+                [matTooltip]="'budget.lockedAmountsTooltip' | transloco"
               >
                 lock
               </mat-icon>
@@ -231,7 +231,9 @@ import { BudgetActionMenu } from '../components/budget-action-menu';
                   matBadgeColor="primary"
                   (click)="viewTransactions.emit(item())"
                   [matTooltip]="
-                    'Voir les ' + item().consumption!.transactionCountLabel
+                    'budget.viewTransactionsTooltip'
+                      | transloco
+                        : { label: item().consumption!.transactionCountLabel }
                   "
                 >
                   <mat-icon class="text-base! mr-1">receipt_long</mat-icon>

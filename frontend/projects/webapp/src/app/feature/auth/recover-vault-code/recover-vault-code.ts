@@ -26,7 +26,7 @@ import {
   deriveClientKey,
 } from '@core/encryption';
 import { isApiError } from '@core/api/api-error';
-import { VAULT_CODE_MIN_LENGTH } from '@core/auth';
+import { VAULT_CODE_LENGTH, VAULT_CODE_VALIDATORS } from '@core/auth';
 import { ROUTES } from '@core/routing/routes-constants';
 import { Logger } from '@core/logging/logger';
 import {
@@ -152,6 +152,7 @@ import {
               matInput
               [type]="isVaultCodeHidden() ? 'password' : 'text'"
               inputmode="numeric"
+              [attr.maxlength]="VAULT_CODE_LENGTH"
               formControlName="newVaultCode"
               data-testid="new-vault-code-input"
               (input)="clearError()"
@@ -180,8 +181,11 @@ import {
               <mat-error>
                 @if (form.get('newVaultCode')?.hasError('required')) {
                   {{ 'auth.recoverVaultCode.newPinRequired' | transloco }}
-                } @else if (form.get('newVaultCode')?.hasError('minlength')) {
-                  {{ 'auth.vaultCode.pinMinLength' | transloco }}
+                } @else if (
+                  form.get('newVaultCode')?.hasError('minlength') ||
+                  form.get('newVaultCode')?.hasError('maxlength')
+                ) {
+                  {{ 'auth.vaultCode.pinLength' | transloco }}
                 } @else if (form.get('newVaultCode')?.hasError('pattern')) {
                   {{ 'auth.vaultCode.pinPattern' | transloco }}
                 }
@@ -197,6 +201,7 @@ import {
               matInput
               [type]="isConfirmCodeHidden() ? 'password' : 'text'"
               inputmode="numeric"
+              [attr.maxlength]="VAULT_CODE_LENGTH"
               formControlName="confirmCode"
               data-testid="confirm-vault-code-input"
               (input)="clearError()"
@@ -273,6 +278,7 @@ export default class RecoverVaultCode {
   readonly #transloco = inject(TranslocoService);
 
   protected readonly ROUTES = ROUTES;
+  protected readonly VAULT_CODE_LENGTH = VAULT_CODE_LENGTH;
   protected readonly isSubmitting = signal(false);
   protected readonly isRedirecting = signal(false);
   protected readonly errorMessage = signal('');
@@ -282,14 +288,7 @@ export default class RecoverVaultCode {
   protected readonly form = this.#formBuilder.nonNullable.group(
     {
       recoveryKey: ['', recoveryKeyValidators],
-      newVaultCode: [
-        '',
-        [
-          Validators.required,
-          Validators.minLength(VAULT_CODE_MIN_LENGTH),
-          Validators.pattern(/^\d+$/),
-        ],
-      ],
+      newVaultCode: ['', VAULT_CODE_VALIDATORS],
       confirmCode: ['', [Validators.required]],
       rememberDevice: [false],
     },

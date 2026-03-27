@@ -37,7 +37,7 @@ struct ToastView: View {
                         .fontWeight(.semibold)
                         .foregroundStyle(Color.pulpePrimary)
                 }
-                .buttonStyle(.plain)
+                .textLinkButtonStyle()
                 .accessibilityLabel("Annuler l'action")
             }
 
@@ -46,13 +46,13 @@ struct ToastView: View {
             } label: {
                 Image(systemName: "xmark")
                     .font(PulpeTypography.inputHelper)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.textSecondary)
             }
-            .buttonStyle(.plain)
+            .iconButtonStyle()
             .accessibilityLabel("Fermer")
         }
         .padding(.horizontal, DesignTokens.Spacing.lg)
-        .padding(.vertical, 14)
+        .padding(.vertical, DesignTokens.Spacing.lg)
         .pulpeFloatingGlass(cornerRadius: DesignTokens.CornerRadius.md)
         .padding(.horizontal, DesignTokens.Spacing.lg)
         .offset(y: offset)

@@ -3,6 +3,7 @@ import {
   afterNextRender,
   ChangeDetectionStrategy,
   Component,
+  DestroyRef,
   inject,
   input,
   computed,
@@ -18,12 +19,9 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { DatePipe } from '@angular/common';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
-import {
-  type BudgetLineConsumption,
-  BudgetCalculator,
-  calculateAllConsumptions,
-} from '@core/budget';
+import { type BudgetLineConsumption } from '@core/budget';
 import { Logger } from '@core/logging/logger';
+import { LoadingIndicator } from '@core/loading/loading-indicator';
 import { BreadcrumbState } from '@core/routing';
 import {
   ProductTourService,
@@ -49,7 +47,7 @@ import {
   computeEnvelopeSnackbarMessage,
   computeTransactionSnackbarMessage,
 } from './budget-details-snackbar.utils';
-import { UserSettingsApi } from '@core/user-settings/user-settings-api';
+import { UserSettingsStore } from '@core/user-settings';
 
 @Component({
   selector: 'pulpe-budget-details-page',
@@ -153,15 +151,16 @@ import { UserSettingsApi } from '@core/user-settings/user-settings-api';
 export default class BudgetDetailsPage {
   protected readonly isDevMode = isDevMode();
   protected readonly store = inject(BudgetDetailsStore);
-  readonly #budgetCalculator = inject(BudgetCalculator);
   readonly #dialogService = inject(BudgetDetailsDialogService);
   readonly #router = inject(Router);
   readonly #breadcrumbState = inject(BreadcrumbState);
   readonly #productTourService = inject(ProductTourService);
   readonly #snackBar = inject(MatSnackBar);
   readonly #logger = inject(Logger);
-  readonly #userSettingsApi = inject(UserSettingsApi);
+  readonly #userSettingsStore = inject(UserSettingsStore);
   readonly #transloco = inject(TranslocoService);
+  readonly #loadingIndicator = inject(LoadingIndicator);
+  readonly #destroyRef = inject(DestroyRef);
   readonly #breakpointObserver = inject(BreakpointObserver);
 
   readonly #isMobile = toSignal(
@@ -176,6 +175,15 @@ export default class BudgetDetailsPage {
   constructor() {
     effect(() => {
       this.store.setBudgetId(this.id());
+    });
+
+    effect(() => {
+      const isStale = this.store.isStale();
+      this.#loadingIndicator.setLoading(isStale);
+    });
+
+    this.#destroyRef.onDestroy(() => {
+      this.#loadingIndicator.setLoading(false);
     });
 
     effect((onCleanup) => {
@@ -227,46 +235,12 @@ export default class BudgetDetailsPage {
 
   readonly periodDisplay = computed(() => {
     const budget = this.store.budgetDetails();
-    const payDayOfMonth = this.#userSettingsApi.payDayOfMonth();
+    const payDayOfMonth = this.#userSettingsStore.payDayOfMonth();
     if (!budget || !payDayOfMonth || payDayOfMonth === 1) return null;
     return formatBudgetPeriod(budget.month, budget.year, payDayOfMonth);
   });
 
-  protected readonly financialTotals = computed(() => {
-    const lines = this.store.displayBudgetLines();
-    const transactions = this.store.budgetDetails()?.transactions ?? [];
-    const consumptionMap = calculateAllConsumptions(lines, transactions);
-
-    const income = this.#budgetCalculator.calculatePlannedIncome(lines);
-    let expenses = 0;
-    let savings = 0;
-
-    lines.forEach((line) => {
-      const consumption = consumptionMap.get(line.id);
-      const effectiveAmount = consumption
-        ? Math.max(line.amount, consumption.consumed)
-        : line.amount;
-
-      switch (line.kind) {
-        case 'expense':
-          expenses += effectiveAmount;
-          break;
-        case 'saving':
-          savings += effectiveAmount;
-          break;
-      }
-    });
-
-    const freeTransactions = transactions.filter((tx) => !tx.budgetLineId);
-    const initialLivingAllowance = income - expenses - savings;
-    const transactionImpact =
-      this.#budgetCalculator.calculateActualTransactionsAmount(
-        freeTransactions,
-      );
-    const remaining = initialLivingAllowance + transactionImpact;
-
-    return { income, expenses, savings, remaining };
-  });
+  protected readonly financialTotals = this.store.financialTotals;
 
   async openAddBudgetLineDialog(): Promise<void> {
     const budget = this.store.budgetDetails();
@@ -292,7 +266,6 @@ export default class BudgetDetailsPage {
       this.#transloco.translate('common.close'),
       {
         duration: 5000,
-        panelClass: ['bg-[color-primary]', 'text-[color-on-primary]'],
       },
     );
   }
@@ -306,7 +279,6 @@ export default class BudgetDetailsPage {
       this.#transloco.translate('common.close'),
       {
         duration: 5000,
-        panelClass: ['bg-[color-primary]', 'text-[color-on-primary]'],
       },
     );
   }
@@ -322,7 +294,7 @@ export default class BudgetDetailsPage {
         {
           budgetMonth: budget.month,
           budgetYear: budget.year,
-          payDayOfMonth: this.#userSettingsApi.payDayOfMonth(),
+          payDayOfMonth: this.#userSettingsStore.payDayOfMonth(),
         },
       );
     if (editResult) {
@@ -367,10 +339,7 @@ export default class BudgetDetailsPage {
       this.#snackBar.open(
         this.#transloco.translate('transaction.deleted'),
         this.#transloco.translate('common.close'),
-        {
-          duration: 5000,
-          panelClass: ['bg-[color-primary]', 'text-[color-on-primary]'],
-        },
+        { duration: 5000 },
       );
     }
   }
@@ -416,7 +385,7 @@ export default class BudgetDetailsPage {
         {
           budgetMonth: budget.month,
           budgetYear: budget.year,
-          payDayOfMonth: this.#userSettingsApi.payDayOfMonth(),
+          payDayOfMonth: this.#userSettingsStore.payDayOfMonth(),
         },
       );
 
@@ -426,7 +395,9 @@ export default class BudgetDetailsPage {
       this.#snackBar.open(
         this.#transloco.translate('budget.transactionAdded'),
         this.#transloco.translate('common.close'),
-        { duration: 3000 },
+        {
+          duration: 3000,
+        },
       );
     }
   }
@@ -445,7 +416,9 @@ export default class BudgetDetailsPage {
       this.#snackBar.open(
         this.#transloco.translate('transaction.deleted'),
         this.#transloco.translate('common.close'),
-        { duration: 3000 },
+        {
+          duration: 3000,
+        },
       );
     }
   }
@@ -457,10 +430,7 @@ export default class BudgetDetailsPage {
       this.#snackBar.open(
         this.#transloco.translate('budget.forecastReset'),
         this.#transloco.translate('common.close'),
-        {
-          duration: 5000,
-          panelClass: ['bg-[color-primary]', 'text-[color-on-primary]'],
-        },
+        { duration: 5000 },
       );
     } catch (error) {
       const errorMessage =

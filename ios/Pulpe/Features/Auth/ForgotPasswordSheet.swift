@@ -18,6 +18,7 @@ struct ForgotPasswordSheet: View {
             }
             .padding(DesignTokens.Spacing.xl)
             .background(Color.sheetBackground)
+            .dismissKeyboardOnTap()
             .navigationTitle("Mot de passe oublié")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -29,9 +30,7 @@ struct ForgotPasswordSheet: View {
                 }
             }
         }
-        .presentationDetents([.medium, .large])
-        .presentationDragIndicator(.visible)
-        .presentationBackground(Color.sheetBackground)
+        .standardSheetPresentation(detents: [.medium, .large])
         .task { isEmailFocused = true }
         .accessibilityIdentifier("forgotPasswordPage")
     }
@@ -44,7 +43,7 @@ struct ForgotPasswordSheet: View {
                 .multilineTextAlignment(.center)
                 .padding(.top, DesignTokens.Spacing.md)
 
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                 Text("Adresse e-mail")
                     .font(PulpeTypography.buttonSecondary)
                     .foregroundStyle(Color.textPrimaryOnboarding)

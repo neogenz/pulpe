@@ -46,6 +46,12 @@ enum AppConfiguration {
         return url
     }
 
+    // MARK: - Google Sign-In
+
+    static var googleClientID: String? {
+        optionalValue(for: "GOOGLE_CLIENT_ID")
+    }
+
     // MARK: - Feature Flags
 
     static var isDemoModeEnabled: Bool {
@@ -111,9 +117,6 @@ enum AppConfiguration {
     /// Grace period before requiring PIN re-entry after backgrounding (RG-006)
     static let backgroundGracePeriod: Duration = .seconds(30)
 
-    /// Minimum PIN length
-    static let minPinLength = 4
-
     // MARK: - Private
 
     private static func requiredValue(for key: String) -> String {
@@ -160,6 +163,8 @@ enum AppConfiguration {
             return "https://eu.i.posthog.com"
         case "POSTHOG_ENABLED":
             return "false"
+        case "GOOGLE_CLIENT_ID":
+            return "test-google-client-id"
         default:
             return nil
         }

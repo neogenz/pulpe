@@ -111,6 +111,7 @@ docs/angular-architecture-for-enterprise.md
 !.claude/skills/feature-intelligence/
 !.claude/skills/product-owner/
 !.claude/skills/update-changelog/
+!.claude/skills/practical-ui/
 !.claude/skills/workflow-clean-code-angular/
 
 # Design assets (generated files)
@@ -125,3 +126,5 @@ supabase-migration/
 
 supabase-migration-20260210/
 /resources/
+
+*.p8

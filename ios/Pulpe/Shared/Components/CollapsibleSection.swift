@@ -22,12 +22,13 @@ struct CollapsibleSection<Content: View>: View {
 
                     Image(systemName: "chevron.right")
                         .font(.caption.weight(.semibold))
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.textSecondary)
                         .rotationEffect(.degrees(isExpanded ? 90 : 0))
                 }
+                .frame(minHeight: DesignTokens.TapTarget.minimum)
                 .contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
+            .plainPressedButtonStyle()
             .accessibilityLabel(title)
             .accessibilityHint(isExpanded ? "Appuie pour réduire" : "Appuie pour développer")
             .accessibilityAddTraits(.isButton)

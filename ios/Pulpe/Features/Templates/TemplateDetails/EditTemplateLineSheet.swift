@@ -6,6 +6,7 @@ struct EditTemplateLineSheet: View {
     let onUpdate: (TemplateLine) -> Void
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(ToastManager.self) private var toastManager
     @State private var name: String
     @State private var amount: Decimal?
     @State private var kind: TransactionKind
@@ -13,18 +14,30 @@ struct EditTemplateLineSheet: View {
     @State private var isLoading = false
     @State private var error: Error?
     @FocusState private var isAmountFocused: Bool
+    @FocusState private var isDescriptionFocused: Bool
     @State private var amountText: String
+    @State private var submitSuccessTrigger = false
+    @State private var showPropagationAlert = false
+    @State private var usageData: TemplateUsageData?
+    @State private var usageFetchFailed = false
+    @State private var pendingUpdate: TemplateLineUpdate?
 
-    private let templateService = TemplateService.shared
+    private let dependencies: EditTemplateLineDependencies
 
-    init(templateLine: TemplateLine, onUpdate: @escaping (TemplateLine) -> Void) {
+    init(
+        templateLine: TemplateLine,
+        dependencies: EditTemplateLineDependencies = .live,
+        onUpdate: @escaping (TemplateLine) -> Void
+    ) {
         self.templateLine = templateLine
+        self.dependencies = dependencies
         self.onUpdate = onUpdate
         _name = State(initialValue: templateLine.name)
         _amount = State(initialValue: templateLine.amount)
         _kind = State(initialValue: templateLine.kind)
         _recurrence = State(initialValue: templateLine.recurrence)
-        _amountText = State(initialValue: templateLine.amount > 0 ? "\(templateLine.amount)" : "")
+        let amountString = Formatters.amountInput.string(from: templateLine.amount as NSDecimalNumber) ?? ""
+        _amountText = State(initialValue: amountString)
     }
 
     private var canSubmit: Bool {
@@ -33,13 +46,18 @@ struct EditTemplateLineSheet: View {
     }
 
     var body: some View {
-        SheetFormContainer(title: "Modifier la ligne", isLoading: isLoading, autoFocus: $isAmountFocused) {
+        SheetFormContainer(
+            title: "Modifier la ligne",
+            isLoading: isLoading,
+            autoFocus: $isAmountFocused,
+            descriptionFocus: $isDescriptionFocused
+        ) {
+            KindToggle(selection: $kind)
             HeroAmountField(
                 amount: $amount, amountText: $amountText,
                 isFocused: $isAmountFocused, accentColor: kind.color
             )
             descriptionField
-            KindToggle(selection: $kind)
             recurrenceSelector
 
             if let error {
@@ -50,16 +68,47 @@ struct EditTemplateLineSheet: View {
 
             saveButton
         }
+        .sensoryFeedback(.success, trigger: submitSuccessTrigger)
+        .task {
+            do {
+                usageData = try await dependencies.checkTemplateUsage(templateLine.templateId)
+            } catch {
+                usageFetchFailed = true
+            }
+        }
+        .alert("Propager aux budgets ?", isPresented: $showPropagationAlert) {
+            Button("Propager") {
+                Task { await saveAndPropagateToBudgets() }
+            }
+            Button("Modèle uniquement") {
+                Task { await saveTemplateOnly() }
+            }
+            Button("Annuler", role: .cancel) {
+                pendingUpdate = nil
+            }
+        } message: {
+            let count = usageData?.propagationBudgetCount ?? 0
+            let intro = usageFetchFailed
+                ? "Ce modèle est peut-être utilisé par d'autres budgets."
+                : "Ce modèle est utilisé par \(count) \(count == 1 ? "budget" : "budgets")."
+            Text("""
+                \(intro)\n\n\
+                « Propager » appliquera les modifications aux budgets en cours et futurs. \
+                Les catégories modifiées manuellement ne seront pas affectées.
+                """)
+        }
     }
 
     // MARK: - Description
 
     private var descriptionField: some View {
-        TextField(kind.descriptionPlaceholder, text: $name)
-            .font(PulpeTypography.bodyLarge)
-            .padding(DesignTokens.Spacing.lg)
-            .background(Color.inputBackgroundSoft)
-            .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
+        FormTextField(
+            hint: kind.descriptionPlaceholder,
+            text: $name,
+            label: "Description",
+            accessibilityLabel: "Nom de la ligne du modèle",
+            focusBinding: $isDescriptionFocused
+        )
     }
 
     // MARK: - Recurrence Selector
@@ -67,28 +116,15 @@ struct EditTemplateLineSheet: View {
     private var recurrenceSelector: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
             Text("Récurrence")
-                .font(PulpeTypography.inputLabel)
-                .foregroundStyle(Color.pulpeTextTertiary)
+                .font(PulpeTypography.labelMedium)
+                .foregroundStyle(Color.onSurfaceVariant)
 
-            HStack(spacing: DesignTokens.Spacing.sm) {
+            Picker("Récurrence", selection: $recurrence) {
                 ForEach(TransactionRecurrence.allCases, id: \.self) { type in
-                    Button {
-                        withAnimation(.easeInOut(duration: DesignTokens.Animation.fast)) {
-                            recurrence = type
-                        }
-                    } label: {
-                        Text(type.label)
-                            .font(PulpeTypography.buttonSecondary)
-                            .padding(.horizontal, DesignTokens.Spacing.md)
-                            .padding(.vertical, DesignTokens.Spacing.sm)
-                            .frame(maxWidth: .infinity)
-                            .background(recurrence == type ? Color.pulpePrimary : Color.surfaceContainer)
-                            .foregroundStyle(recurrence == type ? Color.textOnPrimary : Color.textPrimary)
-                            .clipShape(Capsule())
-                    }
-                    .buttonStyle(.plain)
+                    Text(type.label).tag(type)
                 }
             }
+            .pickerStyle(.segmented)
         }
     }
 
@@ -109,25 +145,95 @@ struct EditTemplateLineSheet: View {
     private func updateTemplateLine() async {
         guard let amount else { return }
 
-        isLoading = true
-        defer { isLoading = false }
         error = nil
-
-        let data = TemplateLineUpdate(
+        pendingUpdate = TemplateLineUpdate(
             name: name.trimmingCharacters(in: .whitespaces),
             amount: amount,
             kind: kind,
             recurrence: recurrence
         )
 
+        let hasBudgets = usageFetchFailed || (usageData?.propagationBudgetCount ?? 0) > 0
+        if hasBudgets {
+            showPropagationAlert = true
+        } else {
+            await saveTemplateOnly()
+        }
+    }
+
+    private func saveTemplateOnly() async {
+        guard let data = pendingUpdate else { return }
+
+        isLoading = true
+        defer { isLoading = false }
+        error = nil
+
         do {
-            let updatedLine = try await templateService.updateTemplateLine(id: templateLine.id, data: data)
-            onUpdate(updatedLine)
-            dismiss()
+            let updatedLine = try await dependencies.updateTemplateLine(templateLine.templateId, templateLine.id, data)
+            finishSave(updatedLine: updatedLine, message: "Ligne modifiée")
         } catch {
             self.error = error
         }
     }
+
+    private func saveAndPropagateToBudgets() async {
+        guard let data = pendingUpdate else { return }
+
+        isLoading = true
+        defer { isLoading = false }
+        error = nil
+
+        do {
+            let operations = TemplateLinesBulkOperations(
+                update: [TemplateLineUpdateWithId(
+                    id: templateLine.id,
+                    name: data.name,
+                    amount: data.amount,
+                    kind: data.kind,
+                    recurrence: data.recurrence,
+                    description: data.description
+                )],
+                propagateToBudgets: true
+            )
+            let response = try await dependencies.bulkUpdateWithPropagation(templateLine.templateId, operations)
+            let updatedLine = response.updated.first ?? templateLine
+            let affectedCount = response.propagation?.affectedBudgetsCount ?? 0
+            let message = affectedCount > 0
+                ? "Ligne modifiée — \(affectedCount) \(affectedCount == 1 ? "budget mis à jour" : "budgets mis à jour")"
+                : "Ligne modifiée"
+            finishSave(updatedLine: updatedLine, message: message)
+        } catch {
+            self.error = error
+        }
+    }
+
+    private func finishSave(updatedLine: TemplateLine, message: String) {
+        submitSuccessTrigger.toggle()
+        onUpdate(updatedLine)
+        toastManager.show(message)
+        pendingUpdate = nil
+        dismiss()
+    }
+}
+
+struct EditTemplateLineDependencies: Sendable {
+    var updateTemplateLine: @Sendable (String, String, TemplateLineUpdate) async throws -> TemplateLine
+    var checkTemplateUsage: @Sendable (String) async throws -> TemplateUsageData
+    var bulkUpdateWithPropagation: @Sendable (
+        String, TemplateLinesBulkOperations
+    ) async throws -> TemplateLinesBulkOperationsResponse
+
+    static let live = EditTemplateLineDependencies(
+        updateTemplateLine: { templateId, lineId, data in
+            try await TemplateService.shared.updateTemplateLine(templateId: templateId, lineId: lineId, data: data)
+        },
+        checkTemplateUsage: { templateId in
+            try await TemplateService.shared.checkTemplateUsage(id: templateId)
+        },
+        bulkUpdateWithPropagation: { templateId, operations in
+            try await TemplateService.shared.bulkUpdateTemplateLines(templateId: templateId, operations: operations)
+        }
+    )
 }
 
 #Preview {
@@ -146,4 +252,5 @@ struct EditTemplateLineSheet: View {
     ) { line in
         print("Updated: \(line)")
     }
+    .environment(ToastManager())
 }

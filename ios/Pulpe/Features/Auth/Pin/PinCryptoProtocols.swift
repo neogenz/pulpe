@@ -1,5 +1,11 @@
 import Foundation
 
+// MARK: - PIN Constants
+
+enum PinConstants {
+    static let length = 4
+}
+
 // MARK: - PIN Crypto Protocols
 //
 // Shared protocols for PIN-based cryptographic operations across the auth flow.
@@ -10,7 +16,7 @@ import Foundation
 protocol PinCryptoKeyDerivation: Sendable {
     /// Derives a hex-encoded client key from the given PIN and salt.
     /// - Parameters:
-    ///   - pin: The user's PIN (4-6 digits)
+    ///   - pin: The user's PIN (4 digits)
     ///   - saltHex: Hex-encoded salt from the server
     ///   - iterations: PBKDF2 iteration count
     /// - Returns: Hex-encoded derived key
