@@ -276,7 +276,7 @@ struct HeroBalanceCard: View {
                 .fill(.white.opacity(0.2))
 
             ProgressBarShape(progress: fillPercentage)
-                .fill(.white)
+                .fill(Color.white)
                 .animation(DesignTokens.Animation.smoothEaseInOut, value: fillPercentage)
         }
         .frame(height: DesignTokens.ProgressBar.heroHeight)
