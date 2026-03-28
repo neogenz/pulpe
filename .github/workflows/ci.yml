@@ -84,7 +84,7 @@ jobs:
         run: |
           echo "🚀 Starting Supabase local instance..."
           # Exclure les services non nécessaires pour gain de performance
-          supabase start --exclude studio,inbucket,imgproxy,edge-runtime
+          supabase start --exclude studio,mailpit,imgproxy,edge-runtime
 
           echo "⏳ Health check robuste..."
           timeout=180
@@ -174,7 +174,7 @@ jobs:
       - name: 🐳 Restore Supabase
         working-directory: backend-nest
         run: |
-          supabase start --exclude studio,inbucket,imgproxy,edge-runtime
+          supabase start --exclude studio,mailpit,imgproxy,edge-runtime
 
           # Health check rapide pour restore
           timeout=60
@@ -254,7 +254,7 @@ jobs:
         id: start-supabase-tests
         working-directory: backend-nest
         run: |
-          supabase start --exclude studio,inbucket,imgproxy,edge-runtime
+          supabase start --exclude studio,mailpit,imgproxy,edge-runtime
 
           # Health check pour tests
           timeout=60
@@ -447,7 +447,7 @@ jobs:
         id: start-supabase-performance
         working-directory: backend-nest
         run: |
-          supabase start --exclude studio,inbucket,imgproxy,edge-runtime
+          supabase start --exclude studio,mailpit,imgproxy,edge-runtime
 
           # Health check pour tests
           timeout=60
