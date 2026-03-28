@@ -243,7 +243,7 @@ export class TransactionService {
       ? this.encryptionService.tryDecryptAmount(
           transaction.original_amount,
           dek,
-          0,
+          null,
         )
       : null;
 

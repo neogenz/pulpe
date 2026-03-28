@@ -1773,15 +1773,13 @@ export class BudgetTemplateService {
     );
 
     const encryptedOriginalAmounts = await Promise.all(
-      overriddenCreates.map(async (line) => {
-        if (line.originalAmount == null) return undefined;
-        const prepared = await this.encryptionService.prepareAmountData(
+      overriddenCreates.map((line) =>
+        this.encryptionService.encryptOptionalAmount(
           line.originalAmount,
           user.id,
           user.clientKey,
-        );
-        return prepared.amount;
-      }),
+        ),
+      ),
     );
 
     const inserts = overriddenCreates.map((line, index) => ({
