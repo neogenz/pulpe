@@ -75,7 +75,7 @@ struct DecimalCurrencyFormattingTests {
         let formatted = Decimal(-500).asCompactCHF
         #expect(formatted.contains("-"), "Expected minus sign, got: \(formatted)")
         #expect(formatted.contains("500"), "Expected amount digits, got: \(formatted)")
-        #expect(formatted.hasSuffix("CHF"), "Expected CHF after amount, got: \(formatted)")
+        #expect(formatted.hasPrefix("CHF"), "Expected CHF before amount, got: \(formatted)")
     }
 
     @Test func asCompactCHF_negativeFractional() {
@@ -87,7 +87,7 @@ struct DecimalCurrencyFormattingTests {
         #expect(formatted.contains("-"), "Expected minus sign, got: \(formatted)")
         #expect(formatted.contains("1234") || formatted.contains("1'234") || formatted.contains("1\u{2019}234"),
                 "Expected amount digits, got: \(formatted)")
-        #expect(formatted.hasSuffix("CHF"), "Expected CHF after amount, got: \(formatted)")
+        #expect(formatted.hasPrefix("CHF"), "Expected CHF before amount, got: \(formatted)")
     }
 
     // MARK: - Optional asCHF
