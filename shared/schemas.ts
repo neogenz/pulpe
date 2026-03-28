@@ -840,22 +840,6 @@ export const publicInfoResponseSchema = z.object({
 });
 export type PublicInfoResponse = z.infer<typeof publicInfoResponseSchema>;
 
-export const onboardingStatusResponseSchema = z.object({
-  success: z.literal(true),
-  onboardingCompleted: z.boolean(),
-});
-export type OnboardingStatusResponse = z.infer<
-  typeof onboardingStatusResponseSchema
->;
-
-export const successMessageResponseSchema = z.object({
-  success: z.literal(true),
-  message: z.string(),
-});
-export type SuccessMessageResponse = z.infer<
-  typeof successMessageResponseSchema
->;
-
 export const deleteAccountResponseSchema = z.object({
   success: z.literal(true),
   message: z.string(),

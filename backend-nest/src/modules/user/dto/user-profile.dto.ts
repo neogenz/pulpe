@@ -3,8 +3,6 @@ import {
   updateProfileSchema,
   userProfileResponseSchema,
   publicInfoResponseSchema,
-  onboardingStatusResponseSchema,
-  successMessageResponseSchema,
   updateUserSettingsSchema,
   userSettingsResponseSchema,
   deleteAccountResponseSchema,
@@ -17,12 +15,6 @@ export class UserProfileResponseDto extends createZodDto(
 ) {}
 export class PublicInfoResponseDto extends createZodDto(
   publicInfoResponseSchema,
-) {}
-export class OnboardingStatusResponseDto extends createZodDto(
-  onboardingStatusResponseSchema,
-) {}
-export class SuccessMessageResponseDto extends createZodDto(
-  successMessageResponseSchema,
 ) {}
 
 // DTOs pour les paramètres utilisateur
