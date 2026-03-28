@@ -119,8 +119,6 @@ Tous les endpoints sont préfixés par `/api/v1` :
 
 - `GET /api/v1/users/me` - Profil utilisateur
 - `PUT /api/v1/users/profile` - Mise à jour profil
-- `PUT /api/v1/users/onboarding-completed` - Marquer onboarding terminé
-- `GET /api/v1/users/onboarding-status` - Statut onboarding
 - `GET /api/v1/users/settings` - Paramètres utilisateur
 - `PUT /api/v1/users/settings` - Modifier paramètres
 - `DELETE /api/v1/users/account` - Supprimer le compte

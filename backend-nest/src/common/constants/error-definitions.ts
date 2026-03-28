@@ -465,16 +465,6 @@ export const ERROR_DEFINITIONS = {
     message: () => 'Failed to update user profile',
     httpStatus: HttpStatus.INTERNAL_SERVER_ERROR,
   },
-  USER_ONBOARDING_UPDATE_FAILED: {
-    code: API_ERROR_CODES.USER_ONBOARDING_UPDATE_FAILED,
-    message: () => 'Failed to update onboarding status',
-    httpStatus: HttpStatus.INTERNAL_SERVER_ERROR,
-  },
-  USER_ONBOARDING_FETCH_FAILED: {
-    code: API_ERROR_CODES.USER_ONBOARDING_FETCH_FAILED,
-    message: () => 'Failed to fetch onboarding status',
-    httpStatus: HttpStatus.INTERNAL_SERVER_ERROR,
-  },
   USER_SETTINGS_UPDATE_FAILED: {
     code: API_ERROR_CODES.USER_SETTINGS_UPDATE_FAILED,
     message: () => 'Failed to update user settings',

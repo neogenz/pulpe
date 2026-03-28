@@ -24,8 +24,6 @@ import {
 import {
   UpdateProfileDto,
   UserProfileResponseDto,
-  OnboardingStatusResponseDto,
-  SuccessMessageResponseDto,
   UpdateUserSettingsDto,
   UserSettingsResponseDto,
   DeleteAccountResponseDto,
@@ -154,61 +152,6 @@ export class UserController {
     };
   }
 
-  @Put('onboarding-completed')
-  @ApiOperation({
-    summary: 'Mark onboarding as completed',
-    description: 'Updates the user metadata to mark onboarding as completed',
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Onboarding marked as completed',
-    type: SuccessMessageResponseDto,
-  })
-  async completeOnboarding(
-    @User() user: AuthenticatedUser,
-    @SupabaseClient() supabase: AuthenticatedSupabaseClient,
-  ): Promise<SuccessMessageResponseDto> {
-    try {
-      await this.updateOnboardingStatus(user.id, supabase);
-      return {
-        success: true as const,
-        message: 'Onboarding marqué comme terminé',
-      };
-    } catch (error) {
-      handleServiceError(
-        error,
-        ERROR_DEFINITIONS.USER_ONBOARDING_UPDATE_FAILED,
-        undefined,
-        { operation: 'completeOnboarding', userId: user.id },
-      );
-    }
-  }
-
-  private async updateOnboardingStatus(
-    userId: string,
-    supabase: AuthenticatedSupabaseClient,
-  ): Promise<void> {
-    const currentUserData = await this.getCurrentUserData(supabase);
-    const serviceClient = this.supabaseService.getServiceRoleClient();
-
-    const { data: updatedUser, error } =
-      await serviceClient.auth.admin.updateUserById(userId, {
-        user_metadata: {
-          ...currentUserData.user.user_metadata,
-          onboardingCompleted: true,
-        },
-      });
-
-    if (error || !updatedUser.user) {
-      throw new BusinessException(
-        ERROR_DEFINITIONS.USER_ONBOARDING_UPDATE_FAILED,
-        undefined,
-        undefined,
-        { cause: error },
-      );
-    }
-  }
-
   private async getCurrentUserData(supabase: AuthenticatedSupabaseClient) {
     const { data: currentUserData, error: getUserError } =
       await supabase.auth.getUser();
@@ -223,51 +166,6 @@ export class UserController {
     }
 
     return currentUserData;
-  }
-
-  @Get('onboarding-status')
-  @ApiOperation({
-    summary: 'Get onboarding status',
-    description:
-      'Retrieves the current onboarding completion status for the user',
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Onboarding status retrieved successfully',
-    type: OnboardingStatusResponseDto,
-  })
-  async getOnboardingStatus(
-    @User() user: AuthenticatedUser,
-    @SupabaseClient() supabase: AuthenticatedSupabaseClient,
-  ): Promise<OnboardingStatusResponseDto> {
-    try {
-      const { data: currentUserData, error: getUserError } =
-        await supabase.auth.getUser();
-
-      if (getUserError || !currentUserData.user) {
-        throw new BusinessException(
-          ERROR_DEFINITIONS.USER_FETCH_FAILED,
-          undefined,
-          undefined,
-          { cause: getUserError },
-        );
-      }
-
-      const isOnboardingCompleted =
-        currentUserData.user.user_metadata?.onboardingCompleted === true;
-
-      return {
-        success: true as const,
-        onboardingCompleted: isOnboardingCompleted,
-      };
-    } catch (error) {
-      handleServiceError(
-        error,
-        ERROR_DEFINITIONS.USER_ONBOARDING_FETCH_FAILED,
-        undefined,
-        { operation: 'getOnboardingStatus', userId: user.id },
-      );
-    }
   }
 
   @Get('settings')
