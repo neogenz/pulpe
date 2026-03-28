@@ -195,7 +195,7 @@ final class PinEntryViewModel {
 
             // Ensure at least one full pulse cycle is visible
             let elapsed = ContinuousClock.now - validationStart
-            let minimumPulseTime: Duration = .milliseconds(600)
+            let minimumPulseTime: Duration = .seconds(DesignTokens.Animation.pulseDuration)
             if elapsed < minimumPulseTime {
                 try? await Task.sleep(for: minimumPulseTime - elapsed)
             }

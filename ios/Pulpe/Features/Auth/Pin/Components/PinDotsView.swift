@@ -8,6 +8,7 @@ struct PinDotsView: View {
 
     @State private var shakeOffset: CGFloat = 0
     @State private var pulseScale: CGFloat = 1.0
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         HStack(spacing: DesignTokens.Spacing.lg) {
@@ -24,10 +25,9 @@ struct PinDotsView: View {
         .offset(x: shakeOffset)
         .accessibilityHidden(true)
         .onChange(of: isValidating) { _, validating in
+            guard !reduceMotion else { return }
             if validating {
-                let pulse = Animation.easeInOut(duration: DesignTokens.Animation.pulseDuration)
-                    .repeatForever(autoreverses: true)
-                withAnimation(pulse) {
+                withAnimation(DesignTokens.Animation.pulse) {
                     pulseScale = 0.7
                 }
             } else {
@@ -38,6 +38,7 @@ struct PinDotsView: View {
         }
         .onChange(of: isError) { _, newValue in
             guard newValue else { return }
+            guard !reduceMotion else { return }
             withAnimation(.easeInOut(duration: 0.08).repeatCount(5, autoreverses: true)) {
                 shakeOffset = 10
             } completion: {

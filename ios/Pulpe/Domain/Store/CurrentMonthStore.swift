@@ -216,8 +216,8 @@ final class CurrentMonthStore: StoreProtocol {
         }
 
         guard let currentBudget = budget else {
-            // Initial load is PulpeApp.task's job — don't compete
-            guard contentState != .idle && contentState != .loading else { return }
+            // No budget loaded — skip if already loading, otherwise trigger a full load
+            guard contentState != .loading else { return }
             await forceRefresh()
             return
         }
