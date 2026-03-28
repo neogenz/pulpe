@@ -7,6 +7,7 @@ struct EditTemplateLineSheet: View {
 
     @Environment(\.dismiss) private var dismiss
     @Environment(ToastManager.self) private var toastManager
+    @Environment(UserSettingsStore.self) private var userSettingsStore
     @State private var name: String
     @State private var amount: Decimal?
     @State private var kind: TransactionKind
@@ -21,8 +22,10 @@ struct EditTemplateLineSheet: View {
     @State private var usageData: TemplateUsageData?
     @State private var usageFetchFailed = false
     @State private var pendingUpdate: TemplateLineUpdate?
+    @State private var inputCurrency = "CHF"
 
     private let dependencies: EditTemplateLineDependencies
+    private let conversionService = CurrencyConversionService.shared
 
     init(
         templateLine: TemplateLine,
@@ -53,9 +56,17 @@ struct EditTemplateLineSheet: View {
             descriptionFocus: $isDescriptionFocused
         ) {
             KindToggle(selection: $kind)
+            if userSettingsStore.showCurrencySelector {
+                CurrencyAmountPicker(selectedCurrency: $inputCurrency, baseCurrency: userSettingsStore.currency)
+            }
             HeroAmountField(
                 amount: $amount, amountText: $amountText,
-                isFocused: $isAmountFocused, accentColor: kind.color
+                isFocused: $isAmountFocused, currency: inputCurrency, accentColor: kind.color
+            )
+            CurrencyConversionBadge(
+                originalAmount: templateLine.originalAmount,
+                originalCurrency: templateLine.originalCurrency,
+                exchangeRate: templateLine.exchangeRate
             )
             descriptionField
             recurrenceSelector
@@ -69,6 +80,7 @@ struct EditTemplateLineSheet: View {
             saveButton
         }
         .sensoryFeedback(.success, trigger: submitSuccessTrigger)
+        .onAppear { inputCurrency = userSettingsStore.currency }
         .task {
             do {
                 usageData = try await dependencies.checkTemplateUsage(templateLine.templateId)
@@ -146,18 +158,33 @@ struct EditTemplateLineSheet: View {
         guard let amount else { return }
 
         error = nil
-        pendingUpdate = TemplateLineUpdate(
-            name: name.trimmingCharacters(in: .whitespaces),
-            amount: amount,
-            kind: kind,
-            recurrence: recurrence
-        )
 
-        let hasBudgets = usageFetchFailed || (usageData?.propagationBudgetCount ?? 0) > 0
-        if hasBudgets {
-            showPropagationAlert = true
-        } else {
-            await saveTemplateOnly()
+        do {
+            let conversion = try await conversionService.convert(
+                amount: amount,
+                from: inputCurrency,
+                to: userSettingsStore.currency
+            )
+
+            pendingUpdate = TemplateLineUpdate(
+                name: name.trimmingCharacters(in: .whitespaces),
+                amount: conversion?.convertedAmount ?? amount,
+                kind: kind,
+                recurrence: recurrence,
+                originalAmount: conversion?.originalAmount,
+                originalCurrency: conversion?.originalCurrency,
+                targetCurrency: conversion?.targetCurrency,
+                exchangeRate: conversion?.exchangeRate
+            )
+
+            let hasBudgets = usageFetchFailed || (usageData?.propagationBudgetCount ?? 0) > 0
+            if hasBudgets {
+                showPropagationAlert = true
+            } else {
+                await saveTemplateOnly()
+            }
+        } catch {
+            self.error = error
         }
     }
 
@@ -191,7 +218,11 @@ struct EditTemplateLineSheet: View {
                     amount: data.amount,
                     kind: data.kind,
                     recurrence: data.recurrence,
-                    description: data.description
+                    description: data.description,
+                    originalAmount: data.originalAmount,
+                    originalCurrency: data.originalCurrency,
+                    targetCurrency: data.targetCurrency,
+                    exchangeRate: data.exchangeRate
                 )],
                 propagateToBudgets: true
             )
@@ -253,4 +284,5 @@ struct EditTemplateLineDependencies: Sendable {
         print("Updated: \(line)")
     }
     .environment(ToastManager())
+    .environment(UserSettingsStore())
 }

@@ -109,7 +109,13 @@ export class EncryptionService {
     ciphertext: string,
     dek: Buffer,
     fallbackAmount: number,
-  ): number {
+  ): number;
+  tryDecryptAmount(ciphertext: string, dek: Buffer, fallbackAmount: null): null;
+  tryDecryptAmount(
+    ciphertext: string,
+    dek: Buffer,
+    fallbackAmount: number | null,
+  ): number | null {
     try {
       return this.decryptAmount(ciphertext, dek);
     } catch (error) {
@@ -135,6 +141,20 @@ export class EncryptionService {
     const dek = await this.ensureUserDEK(userId, clientKey);
     const encrypted = this.encryptAmount(amount, dek);
     return { amount: encrypted };
+  }
+
+  async encryptOptionalAmount(
+    amount: number | null | undefined,
+    userId: string,
+    clientKey: Buffer,
+  ): Promise<string | null> {
+    if (amount == null) return null;
+    const { amount: encrypted } = await this.prepareAmountData(
+      amount,
+      userId,
+      clientKey,
+    );
+    return encrypted;
   }
 
   async prepareAmountsData(
@@ -658,18 +678,22 @@ export class EncryptionService {
       budgetLines: Array<{
         id: string;
         amount: string | null;
+        original_amount: string | null;
       }>;
       transactions: Array<{
         id: string;
         amount: string | null;
+        original_amount: string | null;
       }>;
       templateLines: Array<{
         id: string;
         amount: string | null;
+        original_amount: string | null;
       }>;
       savingsGoals: Array<{
         id: string;
         target_amount: string | null;
+        original_target_amount: string | null;
       }>;
       monthlyBudgets: Array<{
         id: string;
@@ -688,18 +712,22 @@ export class EncryptionService {
       budgetLines: rows.budgetLines.map((r) => ({
         id: r.id,
         amount: rekey(r.amount),
+        original_amount: rekey(r.original_amount),
       })),
       transactions: rows.transactions.map((r) => ({
         id: r.id,
         amount: rekey(r.amount),
+        original_amount: rekey(r.original_amount),
       })),
       templateLines: rows.templateLines.map((r) => ({
         id: r.id,
         amount: rekey(r.amount),
+        original_amount: rekey(r.original_amount),
       })),
       savingsGoals: rows.savingsGoals.map((r) => ({
         id: r.id,
         target_amount: rekey(r.target_amount),
+        original_target_amount: rekey(r.original_target_amount),
       })),
       monthlyBudgets: rows.monthlyBudgets.map((r) => ({
         id: r.id,
@@ -738,7 +766,7 @@ export class EncryptionService {
 
     const { data, error } = await supabase
       .from('budget_line')
-      .select('id, amount')
+      .select('id, amount, original_amount')
       .in('budget_id', budgetIds);
 
     if (error) throw error;
@@ -753,7 +781,7 @@ export class EncryptionService {
 
     const { data, error } = await supabase
       .from('transaction')
-      .select('id, amount')
+      .select('id, amount, original_amount')
       .in('budget_id', budgetIds);
 
     if (error) throw error;
@@ -768,7 +796,7 @@ export class EncryptionService {
 
     const { data, error } = await supabase
       .from('template_line')
-      .select('id, amount')
+      .select('id, amount, original_amount')
       .in('template_id', templateIds);
 
     if (error) throw error;
@@ -781,7 +809,7 @@ export class EncryptionService {
   ) {
     const { data, error } = await supabase
       .from('savings_goal')
-      .select('id, target_amount')
+      .select('id, target_amount, original_target_amount')
       .eq('user_id', userId);
 
     if (error) throw error;

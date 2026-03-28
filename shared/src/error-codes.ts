@@ -128,6 +128,9 @@ export const API_ERROR_CODES = {
 
   // External Service
   EXTERNAL_SERVICE_UNAVAILABLE: 'ERR_EXTERNAL_SERVICE_UNAVAILABLE',
+
+  // Currency
+  CURRENCY_RATE_FETCH_FAILED: 'ERR_CURRENCY_RATE_FETCH_FAILED',
 } as const;
 
 export type ApiErrorCode =

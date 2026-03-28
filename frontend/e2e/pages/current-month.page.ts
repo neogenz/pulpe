@@ -60,7 +60,7 @@ export class CurrentMonthPage {
 
   private normalizeSwissNumber(text: string): string {
     return text
-      .replace(/[\u2019\u0027\u2018]/g, "'")
+      .replace(/[\u2019\u0027\u2018\u202F\u00A0]/g, ' ')
       .replace(/\s+/g, ' ')
       .trim();
   }

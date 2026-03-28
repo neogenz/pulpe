@@ -30,7 +30,9 @@ import type { BudgetPeriodDates } from 'pulpe-shared';
         ('dashboard.available' | transloco) +
         ' ' +
         remaining() +
-        ' CHF — ' +
+        ' ' +
+        currency() +
+        ' — ' +
         periodLabel()
       "
     >
@@ -89,21 +91,23 @@ import type { BudgetPeriodDates } from 'pulpe-shared';
             class="font-extrabold text-display-large tracking-tighter leading-none ph-no-capture"
             data-testid="hero-remaining-amount"
           >
-            {{ remaining() | number: '1.2-2' : 'de-CH' }}
+            {{ remaining() | number: '1.2-2' : locale() }}
           </span>
-          <span class="text-title-large font-semibold opacity-70">CHF</span>
+          <span class="text-title-large font-semibold opacity-70">{{
+            currency()
+          }}</span>
         </div>
         <p class="text-body-small opacity-60 mt-1">
           {{ 'dashboard.income' | transloco }}
           <span class="ph-no-capture">{{
-            totalIncome() | number: '1.2-2' : 'de-CH'
+            totalIncome() | number: '1.2-2' : locale()
           }}</span>
           @let rollover = rolloverAmount();
           @if (rollover !== 0) {
             <span class="opacity-80 ph-no-capture">
               {{ 'dashboard.rollover' | transloco }}
               {{ rollover > 0 ? '+' : ''
-              }}{{ rollover | number: '1.2-2' : 'de-CH' }}
+              }}{{ rollover | number: '1.2-2' : locale() }}
             </span>
           }
         </p>
@@ -117,16 +121,16 @@ import type { BudgetPeriodDates } from 'pulpe-shared';
           <span>
             {{ 'dashboard.spent' | transloco }}
             <span data-testid="hero-expenses-amount" class="ph-no-capture">{{
-              absExpenses() | number: '1.2-2' : 'de-CH'
+              absExpenses() | number: '1.2-2' : locale()
             }}</span>
-            CHF
+            {{ currency() }}
           </span>
           <span class="opacity-70">
             {{ 'dashboard.on' | transloco }}
             <span class="ph-no-capture">{{
-              available() | number: '1.2-2' : 'de-CH'
+              available() | number: '1.2-2' : locale()
             }}</span>
-            CHF
+            {{ currency() }}
           </span>
         </div>
         <div
@@ -220,6 +224,8 @@ export class DashboardHero {
   readonly paceStatus = input<'on-track' | 'tight'>('on-track');
   readonly warningThreshold = input(90);
 
+  readonly currency = input<string>('CHF');
+  readonly locale = input<string>('de-CH');
   readonly remaining = input.required<number>();
   readonly budgetConsumedPercentage = input.required<number>();
 

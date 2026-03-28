@@ -20,14 +20,16 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
+import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { CurrencyInput } from '@ui/currency-input';
 import { ErrorAlert } from '@ui/error-alert';
 import { LoadingButton } from '@ui/loading-button';
 import { TranslocoPipe } from '@jsverse/transloco';
 import { PostHogService } from '@core/analytics/posthog';
+import { UserSettingsStore } from '@core/user-settings';
 import { ROUTES } from '@core/routing/routes-constants';
 import { CompleteProfileStore } from './complete-profile-store';
-import { PAY_DAY_MAX } from 'pulpe-shared';
+import { PAY_DAY_MAX, type SupportedCurrency } from 'pulpe-shared';
 
 @Component({
   selector: 'pulpe-complete-profile-page',
@@ -40,6 +42,7 @@ import { PAY_DAY_MAX } from 'pulpe-shared';
     MatProgressSpinnerModule,
     MatSelectModule,
     TranslocoPipe,
+    MatButtonToggleModule,
     CurrencyInput,
     ErrorAlert,
     LoadingButton,
@@ -141,6 +144,27 @@ import { PAY_DAY_MAX } from 'pulpe-shared';
                   />
                 </mat-form-field>
 
+                <div class="flex flex-col gap-2">
+                  <p class="text-label-medium text-on-surface-variant">
+                    {{ 'settings.currencyLabel' | transloco }}
+                  </p>
+                  <mat-button-toggle-group
+                    aria-label="Devise"
+                    [value]="selectedCurrency()"
+                    (change)="onCurrencyChange($event.value)"
+                    data-testid="currency-toggle"
+                    class="w-full"
+                    hideSingleSelectionIndicator
+                  >
+                    <mat-button-toggle value="CHF" class="flex-1">
+                      CHF
+                    </mat-button-toggle>
+                    <mat-button-toggle value="EUR" class="flex-1">
+                      EUR
+                    </mat-button-toggle>
+                  </mat-button-toggle-group>
+                </div>
+
                 <pulpe-currency-input
                   [label]="'completeProfile.monthlyIncome' | transloco"
                   [value]="store.monthlyIncome()"
@@ -149,6 +173,9 @@ import { PAY_DAY_MAX } from 'pulpe-shared';
                   icon="payments"
                   testId="monthly-income-input"
                   [autoFocus]="false"
+                  [currency]="selectedCurrency()"
+                  [showCurrencySelector]="showCurrencySelector()"
+                  (currencyChange)="onCurrencyChange($event)"
                 />
               </div>
 
@@ -258,6 +285,9 @@ import { PAY_DAY_MAX } from 'pulpe-shared';
                         placeholder="0"
                         testId="housing-costs-input"
                         [autoFocus]="false"
+                        [currency]="selectedCurrency()"
+                        [showCurrencySelector]="showCurrencySelector()"
+                        (currencyChange)="onCurrencyChange($event)"
                       />
                       <pulpe-currency-input
                         [label]="'completeProfile.health' | transloco"
@@ -267,6 +297,9 @@ import { PAY_DAY_MAX } from 'pulpe-shared';
                         placeholder="0"
                         testId="health-insurance-input"
                         [autoFocus]="false"
+                        [currency]="selectedCurrency()"
+                        [showCurrencySelector]="showCurrencySelector()"
+                        (currencyChange)="onCurrencyChange($event)"
                       />
                       <pulpe-currency-input
                         [label]="'completeProfile.phone' | transloco"
@@ -276,6 +309,9 @@ import { PAY_DAY_MAX } from 'pulpe-shared';
                         placeholder="0"
                         testId="phone-plan-input"
                         [autoFocus]="false"
+                        [currency]="selectedCurrency()"
+                        [showCurrencySelector]="showCurrencySelector()"
+                        (currencyChange)="onCurrencyChange($event)"
                       />
                       <pulpe-currency-input
                         [label]="'completeProfile.internet' | transloco"
@@ -285,6 +321,9 @@ import { PAY_DAY_MAX } from 'pulpe-shared';
                         placeholder="0"
                         testId="internet-plan-input"
                         [autoFocus]="false"
+                        [currency]="selectedCurrency()"
+                        [showCurrencySelector]="showCurrencySelector()"
+                        (currencyChange)="onCurrencyChange($event)"
                       />
                       <pulpe-currency-input
                         [label]="'completeProfile.transport' | transloco"
@@ -294,6 +333,9 @@ import { PAY_DAY_MAX } from 'pulpe-shared';
                         placeholder="0"
                         testId="transport-costs-input"
                         [autoFocus]="false"
+                        [currency]="selectedCurrency()"
+                        [showCurrencySelector]="showCurrencySelector()"
+                        (currencyChange)="onCurrencyChange($event)"
                       />
                       <pulpe-currency-input
                         [label]="'completeProfile.leasing' | transloco"
@@ -303,6 +345,9 @@ import { PAY_DAY_MAX } from 'pulpe-shared';
                         placeholder="0"
                         testId="leasing-credit-input"
                         [autoFocus]="false"
+                        [currency]="selectedCurrency()"
+                        [showCurrencySelector]="showCurrencySelector()"
+                        (currencyChange)="onCurrencyChange($event)"
                       />
                       <p
                         class="text-body-small text-on-surface-variant text-center pt-2"
@@ -362,7 +407,13 @@ export default class CompleteProfilePage {
   protected readonly store = inject(CompleteProfileStore);
   readonly #router = inject(Router);
   readonly #postHogService = inject(PostHogService);
+  readonly #userSettings = inject(UserSettingsStore);
 
+  protected readonly showCurrencySelector =
+    this.#userSettings.showCurrencySelector;
+  protected readonly selectedCurrency = signal<SupportedCurrency>(
+    this.#userSettings.currency(),
+  );
   protected readonly currentStep = signal<1 | 2>(1);
   protected readonly isChargesExpanded = signal(false);
 
@@ -385,6 +436,10 @@ export default class CompleteProfilePage {
     this.#postHogService.captureEvent('onboarding_started');
   }
 
+  protected onCurrencyChange(value: SupportedCurrency): void {
+    this.selectedCurrency.set(value);
+  }
+
   protected nextStep(): void {
     if (this.store.isStep1Valid()) {
       this.#postHogService.captureEvent('profile_step1_completed');
@@ -401,7 +456,18 @@ export default class CompleteProfilePage {
     const success = await this.store.submitProfile();
 
     if (success) {
+      await this.#saveCurrency();
       this.#router.navigate(['/', ROUTES.DASHBOARD]);
+    }
+  }
+
+  async #saveCurrency(): Promise<void> {
+    try {
+      await this.#userSettings.updateSettings({
+        currency: this.selectedCurrency(),
+      });
+    } catch {
+      // Non-blocking — budget was created successfully
     }
   }
 

@@ -7,6 +7,7 @@ struct EditTransactionSheet: View {
 
     @Environment(\.dismiss) private var dismiss
     @Environment(ToastManager.self) private var toastManager
+    @Environment(UserSettingsStore.self) private var userSettingsStore
     @State private var name: String
     @State private var amount: Decimal?
     @State private var kind: TransactionKind
@@ -17,8 +18,10 @@ struct EditTransactionSheet: View {
     @FocusState private var isDescriptionFocused: Bool
     @State private var amountText: String
     @State private var submitSuccessTrigger = false
+    @State private var inputCurrency = "CHF"
 
     private let dependencies: EditTransactionDependencies
+    private let conversionService = CurrencyConversionService.shared
 
     init(
         transaction: Transaction,
@@ -53,9 +56,20 @@ struct EditTransactionSheet: View {
             descriptionFocus: $isDescriptionFocused
         ) {
             KindToggle(selection: $kind)
+
+            if userSettingsStore.showCurrencySelector {
+                CurrencyAmountPicker(selectedCurrency: $inputCurrency, baseCurrency: userSettingsStore.currency)
+            }
+
             HeroAmountField(
                 amount: $amount, amountText: $amountText,
                 isFocused: $isAmountFocused, accentColor: kind.color
+            )
+
+            CurrencyConversionBadge(
+                originalAmount: transaction.originalAmount,
+                originalCurrency: transaction.originalCurrency,
+                exchangeRate: transaction.exchangeRate
             )
 
             descriptionField
@@ -70,6 +84,7 @@ struct EditTransactionSheet: View {
             saveButton
         }
         .sensoryFeedback(.success, trigger: submitSuccessTrigger)
+        .onAppear { inputCurrency = userSettingsStore.currency }
     }
 
     // MARK: - Description
@@ -111,14 +126,24 @@ struct EditTransactionSheet: View {
         defer { isLoading = false }
         error = nil
 
-        let data = TransactionUpdate(
-            name: name.trimmingCharacters(in: .whitespaces),
-            amount: amount,
-            kind: kind,
-            transactionDate: transactionDate
-        )
-
         do {
+            let conversion = try await conversionService.convert(
+                amount: amount,
+                from: inputCurrency,
+                to: userSettingsStore.currency
+            )
+
+            let data = TransactionUpdate(
+                name: name.trimmingCharacters(in: .whitespaces),
+                amount: conversion?.convertedAmount ?? amount,
+                kind: kind,
+                transactionDate: transactionDate,
+                originalAmount: conversion?.originalAmount,
+                originalCurrency: conversion?.originalCurrency,
+                targetCurrency: conversion?.targetCurrency,
+                exchangeRate: conversion?.exchangeRate
+            )
+
             let updatedTransaction = try await dependencies.updateTransaction(transaction.id, data)
             submitSuccessTrigger.toggle()
             onUpdate(updatedTransaction)
@@ -159,4 +184,5 @@ struct EditTransactionDependencies: Sendable {
         print("Updated: \(transaction)")
     }
     .environment(ToastManager())
+    .environment(UserSettingsStore())
 }

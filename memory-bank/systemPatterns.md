@@ -60,6 +60,7 @@ The `core/` layer contains domain-specific services:
 - `budget-template/` - Template-related API
 - `cache/` - Data caching (`DataCache`)
 - `config/` - App configuration
+- `currency/` - Currency conversion service (rate fetching, 5min cache), conversion badge component
 - `date/` - Date utilities
 - `demo/` - Demo mode services
 - `encryption/` - Client-key management, vault code
@@ -184,6 +185,7 @@ Each domain in `src/modules/[domain]/`:
 - `budget-line/` - Budget line management
 - `budget-template/` - Template CRUD
 - `cache/` - Caching service
+- `currency/` - Currency rate fetching (Frankfurter API, 24h cache) and conversion metadata mapping
 - `demo/` - Demo mode API
 - `debug/` - Debug endpoints (dev only)
 - `encryption/` - Server-side encryption key management

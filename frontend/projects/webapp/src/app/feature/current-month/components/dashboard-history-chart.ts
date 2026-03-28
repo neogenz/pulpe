@@ -15,13 +15,14 @@ import { BaseChartDirective } from 'ng2-charts';
 import { MatIconModule } from '@angular/material/icon';
 import { type ChartConfiguration } from 'chart.js';
 import type { HistoryDataPoint } from '../services/dashboard-state';
+import { UserSettingsStore } from '@core/user-settings';
 import {
   type ChartThemeColors,
   resolveChartThemeColors,
   registerChartPlugins,
   colorWithAlpha,
   formatShortMonth,
-  formatCHF,
+  formatCurrency,
   CHART_FONT_FAMILY,
 } from '../utils/chart-utils';
 
@@ -92,6 +93,7 @@ export class DashboardHistoryChart {
   readonly #amountsVisibility = inject(AmountsVisibilityService);
   readonly #locale = inject(LOCALE_ID);
   readonly #transloco = inject(TranslocoService);
+  readonly #userSettings = inject(UserSettingsStore);
   readonly history = input.required<HistoryDataPoint[]>();
 
   readonly chartType = 'bar' as const;
@@ -182,6 +184,7 @@ export class DashboardHistoryChart {
   readonly chartOptions = computed<ChartConfiguration['options']>(() => {
     const theme = this.#theme();
     const isHidden = this.#amountsVisibility.amountsHidden();
+    const currency = this.#userSettings.currency();
     const tickColor = theme?.tickColor || undefined;
     const gridColor = theme?.gridColor || undefined;
     const tooltipBg = theme?.tooltipBg || undefined;
@@ -217,7 +220,9 @@ export class DashboardHistoryChart {
                 label += ': ';
               }
               if (context.parsed.y !== null) {
-                label += isHidden ? '•••••' : formatCHF(context.parsed.y);
+                label += isHidden
+                  ? '•••••'
+                  : formatCurrency(context.parsed.y, currency);
               }
               return label;
             },

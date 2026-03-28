@@ -38,6 +38,8 @@ import { type CalendarMonth, type CalendarYear } from './calendar-types';
         @for (month of displayMonths(); track month.id) {
           <pulpe-month-tile
             [month]="month"
+            [currency]="currency()"
+            [locale]="locale()"
             [isCurrentMonth]="isCurrentMonth(month)"
             (tileClick)="handleMonthClick($event)"
           />
@@ -56,6 +58,8 @@ export class YearCalendar {
   readonly calendarYear = input.required<CalendarYear>();
 
   // Optional inputs
+  readonly currency = input<string>('CHF');
+  readonly locale = input<string>('de-CH');
   readonly currentDate = input<{ month: number; year: number }>();
 
   // Outputs

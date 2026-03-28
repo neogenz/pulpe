@@ -2,6 +2,7 @@ import type {
   TemplateLine,
   TemplateLinesPropagationSummary,
 } from 'pulpe-shared';
+import type { CurrencyMetadata } from '@core/currency';
 import type { TransactionFormData } from '../../services/transaction-form';
 
 /**
@@ -29,6 +30,11 @@ export interface EditableLine {
    * Reference to the original template line (undefined for new lines)
    */
   originalLine?: TemplateLine;
+
+  /**
+   * Currency conversion metadata (set when input currency differs from user currency)
+   */
+  currencyMetadata?: CurrencyMetadata | null;
 }
 
 /**

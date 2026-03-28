@@ -1,10 +1,13 @@
 import Foundation
 
 extension Decimal {
-    /// Format as CHF currency — always "1'234.56 CHF" (suffix position)
-    var asCHF: String {
-        "\(asAmount) CHF"
+    /// Format as currency using the appropriate locale
+    func asCurrency(_ code: String) -> String {
+        formatted(.currency(code: code).locale(Formatters.locale(for: code)))
     }
+
+    /// Format as CHF currency using Swiss locale
+    var asCHF: String { asCurrency("CHF") }
 
     /// Format as amount only (no currency code) using Swiss locale — "1'234.56"
     var asAmount: String {
@@ -20,12 +23,16 @@ extension Decimal {
         }
     }
 
-    /// Format as compact CHF (no decimals for whole numbers) — always "1'235 CHF" (suffix position)
-    var asCompactCHF: String {
-        let formatter = isWholeNumber ? Formatters.chfWholeNumber : Formatters.chfCompact
-        let amountStr = formatter.string(from: self as NSDecimalNumber) ?? asAmount
-        return "\(amountStr) CHF"
+    /// Format as compact currency (no decimals for whole numbers)
+    func asCompactCurrency(_ code: String) -> String {
+        let formatter = isWholeNumber
+            ? Formatters.currencyFormatter(code: code, wholeNumber: true)
+            : Formatters.currencyFormatter(code: code)
+        return formatter.string(from: self as NSDecimalNumber) ?? asCurrency(code)
     }
+
+    /// Format as compact CHF (no decimals for whole numbers)
+    var asCompactCHF: String { asCompactCurrency("CHF") }
 
     /// Check if the decimal is a whole number
     var isWholeNumber: Bool {

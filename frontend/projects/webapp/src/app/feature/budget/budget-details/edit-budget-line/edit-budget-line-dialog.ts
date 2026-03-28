@@ -16,8 +16,13 @@ import {
   type TransactionKind,
   type TransactionRecurrence,
 } from 'pulpe-shared';
+import { TranslocoPipe } from '@jsverse/transloco';
+import { CurrencySuffix } from '@ui/currency-suffix';
 import { TransactionIconPipe } from '@ui/transaction-display';
 import { TransactionLabelPipe } from '@ui/transaction-display';
+import { UserSettingsStore } from '@core/user-settings';
+import type { CurrencyConverterService } from '@core/currency';
+import { injectCurrencyFormConfig } from '@core/currency';
 
 export interface EditBudgetLineDialogData {
   budgetLine: BudgetLine;
@@ -33,39 +38,49 @@ export interface EditBudgetLineDialogData {
     MatButtonModule,
     MatIconModule,
     ReactiveFormsModule,
+    TranslocoPipe,
     TransactionIconPipe,
     TransactionLabelPipe,
+    CurrencySuffix,
   ],
   template: `
-    <h2 mat-dialog-title class="text-headline-small">Modifier la prévision</h2>
+    <h2 mat-dialog-title class="text-headline-small">
+      {{ 'budget.editForecast' | transloco }}
+    </h2>
 
     <mat-dialog-content>
       <div class="flex flex-col gap-4 pt-4">
         <form [formGroup]="form">
           <mat-form-field appearance="outline" class="w-full">
-            <mat-label>Nom</mat-label>
+            <mat-label>{{ 'budget.forecastNameLabel' | transloco }}</mat-label>
             <input
               matInput
               formControlName="name"
-              placeholder="Ex: Salaire, Loyer, Épargne..."
+              [placeholder]="'budget.forecastNamePlaceholder' | transloco"
               data-testid="edit-line-name"
             />
             @if (
               form.get('name')?.hasError('required') &&
               form.get('name')?.touched
             ) {
-              <mat-error>Le nom est requis</mat-error>
+              <mat-error>{{
+                'budget.forecastNameRequired' | transloco
+              }}</mat-error>
             }
             @if (
               form.get('name')?.hasError('minlength') &&
               form.get('name')?.touched
             ) {
-              <mat-error>Le nom doit contenir au moins 1 caractère</mat-error>
+              <mat-error>{{
+                'budget.forecastNameMinLength' | transloco
+              }}</mat-error>
             }
           </mat-form-field>
 
           <mat-form-field appearance="outline" class="w-full ph-no-capture">
-            <mat-label>Montant</mat-label>
+            <mat-label class="ph-no-capture">{{
+              'transactionForm.amountLabel' | transloco
+            }}</mat-label>
             <input
               matInput
               type="number"
@@ -76,22 +91,29 @@ export interface EditBudgetLineDialogData {
               inputmode="decimal"
               data-testid="edit-line-amount"
             />
-            <span matTextSuffix>CHF</span>
+            <pulpe-currency-suffix
+              matTextSuffix
+              [showSelector]="showCurrencySelector()"
+              [currency]="inputCurrency()"
+              (currencyChange)="inputCurrency.set($event)"
+            />
             @if (
               form.get('amount')?.hasError('required') &&
               form.get('amount')?.touched
             ) {
-              <mat-error>Le montant est requis</mat-error>
+              <mat-error>{{
+                'budget.forecastAmountRequired' | transloco
+              }}</mat-error>
             }
             @if (
               form.get('amount')?.hasError('min') && form.get('amount')?.touched
             ) {
-              <mat-error>Le montant doit être supérieur à 0</mat-error>
+              <mat-error>{{ 'budget.amountMinError' | transloco }}</mat-error>
             }
           </mat-form-field>
 
           <mat-form-field appearance="outline" class="w-full">
-            <mat-label>Type</mat-label>
+            <mat-label>{{ 'budget.forecastTypeLabel' | transloco }}</mat-label>
             <mat-select formControlName="kind" data-testid="edit-line-kind">
               <mat-option value="income">
                 <mat-icon class="text-financial-income">{{
@@ -116,16 +138,23 @@ export interface EditBudgetLineDialogData {
               form.get('kind')?.hasError('required') &&
               form.get('kind')?.touched
             ) {
-              <mat-error>Le type est requis</mat-error>
+              <mat-error>{{
+                'budget.forecastTypeRequired' | transloco
+              }}</mat-error>
             }
           </mat-form-field>
         </form>
       </div>
     </mat-dialog-content>
 
+    @if (conversionError()) {
+      <p class="text-error text-body-small px-6 pb-2">
+        {{ 'common.conversionError' | transloco }}
+      </p>
+    }
     <mat-dialog-actions align="end">
       <button matButton (click)="handleCancel()" data-testid="cancel-edit-line">
-        Annuler
+        {{ 'common.cancel' | transloco }}
       </button>
       <button
         matButton="filled"
@@ -135,7 +164,7 @@ export interface EditBudgetLineDialogData {
         data-testid="save-edit-line"
       >
         <mat-icon>save</mat-icon>
-        Enregistrer
+        {{ 'common.save' | transloco }}
       </button>
     </mat-dialog-actions>
   `,
@@ -145,6 +174,13 @@ export class EditBudgetLineDialog {
   readonly #dialogRef = inject(MatDialogRef<EditBudgetLineDialog>);
   readonly #data = inject<EditBudgetLineDialogData>(MAT_DIALOG_DATA);
   readonly #fb = inject(FormBuilder);
+  readonly #userSettings = inject(UserSettingsStore);
+  readonly #currencyConfig = injectCurrencyFormConfig();
+  protected readonly currency = this.#userSettings.currency;
+  protected readonly showCurrencySelector =
+    this.#currencyConfig.showCurrencySelector;
+  protected readonly inputCurrency = this.#currencyConfig.inputCurrency;
+  protected readonly conversionError = this.#currencyConfig.conversionError;
 
   readonly form = this.#fb.group({
     name: [
@@ -162,18 +198,37 @@ export class EditBudgetLineDialog {
     ],
   });
 
-  handleSubmit(): void {
+  async handleSubmit(): Promise<void> {
     if (!this.form.valid) return;
     const value = this.form.value;
+
+    let convertedAmount: number;
+    let metadata: Awaited<
+      ReturnType<CurrencyConverterService['convertWithMetadata']>
+    >['metadata'];
+    this.conversionError.set(false);
+    try {
+      ({ convertedAmount, metadata } =
+        await this.#currencyConfig.converter.convertWithMetadata(
+          value.amount!,
+          this.inputCurrency(),
+          this.currency(),
+        ));
+    } catch {
+      this.conversionError.set(true);
+      return;
+    }
+
     const update: BudgetLineUpdate = {
       id: this.#data.budgetLine.id,
       name: value.name!.trim(),
-      amount: value.amount!,
+      amount: convertedAmount,
       kind: value.kind!,
       recurrence: value.recurrence!,
       templateLineId: this.#data.budgetLine.templateLineId,
       savingsGoalId: this.#data.budgetLine.savingsGoalId,
       isManuallyAdjusted: true,
+      ...metadata,
     };
     this.#dialogRef.close(update);
   }
