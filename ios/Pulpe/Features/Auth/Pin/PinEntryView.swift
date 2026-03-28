@@ -182,6 +182,7 @@ final class PinEntryViewModel {
     private func validatePin() async {
         defer { isValidating = false }
 
+        let validationStart = ContinuousClock.now
         let pin = digits.map(String.init).joined()
 
         do {
@@ -192,7 +193,13 @@ final class PinEntryViewModel {
                 clientKeyManager: clientKeyManager
             )
 
-            digits = []
+            // Ensure at least one full pulse cycle is visible
+            let elapsed = ContinuousClock.now - validationStart
+            let minimumPulseTime: Duration = .milliseconds(600)
+            if elapsed < minimumPulseTime {
+                try? await Task.sleep(for: minimumPulseTime - elapsed)
+            }
+
             hapticSuccess.toggle()
             AnalyticsService.shared.capture(.pinEntered)
             authenticated = true

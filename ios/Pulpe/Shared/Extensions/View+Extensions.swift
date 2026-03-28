@@ -323,13 +323,11 @@ private struct ShimmerModifier: ViewModifier {
 
     func body(content: Content) -> some View {
         content
-            .opacity(isAnimating ? 0.4 : 1.0)
             .animation(
-                reduceMotion
-                    ? nil
-                    : .easeInOut(duration: 1.0).repeatForever(autoreverses: true),
-                value: isAnimating
-            )
+                reduceMotion ? nil : .easeInOut(duration: 1.0).repeatForever(autoreverses: true)
+            ) {
+                $0.opacity(isAnimating ? 0.4 : 1.0)
+            }
             .onAppear {
                 guard !reduceMotion else { return }
                 isAnimating = true
