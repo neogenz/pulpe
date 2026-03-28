@@ -5,7 +5,6 @@ struct SavingsSummaryCard: View {
     let summary: CurrentMonthStore.SavingsSummary
 
     @Environment(\.amountsHidden) private var amountsHidden
-    @State private var barWidth: CGFloat = 0
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
@@ -63,17 +62,18 @@ struct SavingsSummaryCard: View {
             }
 
             // Progress bar
-            ZStack(alignment: .leading) {
-                Capsule()
-                    .fill(Color.progressTrack)
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    Capsule()
+                        .fill(Color.progressTrack)
 
-                Capsule()
-                    .fill(Color.financialSavings)
-                    .frame(width: barWidth * CGFloat(max(0, min(summary.progressPercentage / 100, 1))))
-                    .animation(DesignTokens.Animation.gentleSpring, value: summary.progressPercentage)
+                    Capsule()
+                        .fill(Color.financialSavings)
+                        .frame(width: geo.size.width * CGFloat(max(0, min(summary.progressPercentage / 100, 1))))
+                        .animation(DesignTokens.Animation.gentleSpring, value: summary.progressPercentage)
+                }
             }
             .frame(height: DesignTokens.ProgressBar.thickHeight)
-            .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { barWidth = $0 }
 
             // Checked count subtitle
             Text("\(summary.checkedCount) sur \(summary.totalCount) pointées")

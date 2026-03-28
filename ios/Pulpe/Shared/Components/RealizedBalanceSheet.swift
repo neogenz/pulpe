@@ -325,8 +325,6 @@ private struct CategoryRow: View {
     let realized: Decimal
     let planned: Decimal
 
-    @State private var barWidth: CGFloat = 0
-
     private var percentage: Double {
         guard planned > 0 else { return 0 }
         return min(Double(truncating: NSDecimalNumber(decimal: realized / planned)), 1.0)
@@ -365,17 +363,18 @@ private struct CategoryRow: View {
 
                 // Progress bar + percentage
                 HStack(spacing: DesignTokens.Spacing.sm) {
-                    ZStack(alignment: .leading) {
-                        Capsule()
-                            .fill(Color.progressTrack)
+                    GeometryReader { geo in
+                        ZStack(alignment: .leading) {
+                            Capsule()
+                                .fill(Color.progressTrack)
 
-                        Capsule()
-                            .fill(kind.color)
-                            .frame(width: barWidth * CGFloat(percentage))
-                            .animation(DesignTokens.Animation.gentleSpring, value: percentage)
+                            Capsule()
+                                .fill(kind.color)
+                                .frame(width: geo.size.width * CGFloat(percentage))
+                                .animation(DesignTokens.Animation.gentleSpring, value: percentage)
+                        }
                     }
                     .frame(height: DesignTokens.ProgressBar.thickHeight)
-                    .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { barWidth = $0 }
 
                     Text(percentageText)
                         .font(PulpeTypography.progressUnit)

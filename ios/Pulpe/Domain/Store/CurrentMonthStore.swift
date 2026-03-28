@@ -142,10 +142,10 @@ final class CurrentMonthStore: StoreProtocol {
         self.widgetSyncService = widgetSyncService
     }
 
-    // MARK: - Smart Loading (StoreProtocol)
+    // MARK: - Loading
 
-    /// Lightweight loading: only fetches budget summary via GET /budgets
-    /// Use this at app startup to quickly enable the "+" button
+    /// Primary startup loader — called once by PulpeApp.task after auth.
+    /// Resolves the current budget period, loads budget + details in one pass.
     func loadBudgetSummary(payDayOfMonth: Int? = nil) async {
         self.payDayOfMonth = payDayOfMonth
 
@@ -186,14 +186,12 @@ final class CurrentMonthStore: StoreProtocol {
 
             try Task.checkCancellation()
 
-            let fetchedBudget = try await budgetService.getBudget(id: match.id)
+            let details = try await budgetService.getBudgetWithDetails(id: match.id)
             try await DesignTokens.Animation.ensureMinimumSkeletonTime(since: loadStart)
 
-            budget = fetchedBudget
-            contentState = .loaded
-            recomputeMetrics()
-        } catch is CancellationError {
-            // Task was cancelled, don't update error state
+            applyDetails(details)
+        } catch where error.isCancellationOrURLCancellation {
+            // Task or URLSession cancellation — silently absorb
         } catch let apiError as APIError {
             self.error = apiError
             contentState = .failed
@@ -218,7 +216,8 @@ final class CurrentMonthStore: StoreProtocol {
         }
 
         guard let currentBudget = budget else {
-            // No budget summary loaded yet, load everything
+            // Initial load is PulpeApp.task's job — don't compete
+            guard contentState != .idle && contentState != .loading else { return }
             await forceRefresh()
             return
         }
@@ -229,8 +228,8 @@ final class CurrentMonthStore: StoreProtocol {
         do {
             let details = try await budgetService.getBudgetWithDetails(id: currentBudget.id)
             applyDetails(details)
-        } catch is CancellationError {
-            // Task was cancelled, don't update error state
+        } catch where error.isCancellationOrURLCancellation {
+            // Task or URLSession cancellation — silently absorb
         } catch let apiError as APIError {
             self.error = apiError
         } catch {
@@ -250,6 +249,7 @@ final class CurrentMonthStore: StoreProtocol {
 
     func loadIfNeeded() async {
         guard !isCacheValid else { return }
+        guard contentState != .loading else { return }
         await forceRefresh()
     }
 
@@ -273,6 +273,13 @@ final class CurrentMonthStore: StoreProtocol {
         cachedSavingsSummary = nil
         error = nil
         BudgetDetailCache.shared.invalidateAll()
+    }
+
+    /// Clears stale error state before a new load cycle — prevents brief error flash on view (re-)entry
+    func prepareForReload() {
+        guard contentState == .failed else { return }
+        contentState = .idle
+        error = nil
     }
 
     func forceRefresh() async {
@@ -316,8 +323,8 @@ final class CurrentMonthStore: StoreProtocol {
                 }
 
                 applyDetails(details)
-            } catch is CancellationError {
-                // Task was cancelled, don't update error state
+            } catch where error.isCancellationOrURLCancellation {
+                // Task or URLSession cancellation — silently absorb
             } catch let apiError as APIError {
                 self.error = apiError
                 if isFirstLoad { contentState = .failed }
