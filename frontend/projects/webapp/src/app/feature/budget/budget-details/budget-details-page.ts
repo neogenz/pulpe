@@ -491,6 +491,7 @@ export default class BudgetDetailsPage {
       details.budgetLines,
       details.transactions,
       this.#userSettingsStore.currency(),
+      this.#transloco,
     );
     if (message) this.#snackBar.open(message, undefined, { duration: 3000 });
   }
@@ -507,6 +508,7 @@ export default class BudgetDetailsPage {
       transactionId,
       details.transactions,
       this.#userSettingsStore.currency(),
+      this.#transloco,
     );
     if (message) this.#snackBar.open(message, undefined, { duration: 3000 });
   }

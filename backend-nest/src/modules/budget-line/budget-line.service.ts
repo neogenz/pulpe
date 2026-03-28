@@ -3,6 +3,7 @@ import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.ser
 import { Injectable } from '@nestjs/common';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 import { BusinessException } from '@common/exceptions/business.exception';
+import { mapCurrencyMetadataToDb } from '@common/utils/currency-metadata.mapper';
 import { handleServiceError } from '@common/utils/error-handler';
 import { CacheService } from '@modules/cache/cache.service';
 import {
@@ -178,9 +179,7 @@ export class BudgetLineService {
       checked_at: createBudgetLineDto.checkedAt ?? null,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
-      original_currency: createBudgetLineDto.originalCurrency ?? null,
-      target_currency: createBudgetLineDto.targetCurrency ?? null,
-      exchange_rate: createBudgetLineDto.exchangeRate ?? null,
+      ...mapCurrencyMetadataToDb(createBudgetLineDto),
     };
   }
 

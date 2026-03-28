@@ -463,9 +463,9 @@
     "lockedAmountsTooltip": "Montants verrouillés",
     "viewTransactionsCount": "Voir les {{ label }}",
     "snackbar": {
-      "envelopeOver": "Comptabilisé {{ consumed }} sur {{ envelope }} CHF (enveloppe)",
-      "envelopeWithin": "Comptabilisé {{ envelope }} CHF (enveloppe)",
-      "transactionChecked": "Comptabilisé {{ amount }} CHF"
+      "envelopeOver": "Comptabilisé {{ consumed }} sur {{ envelope }} {{ currency }} (enveloppe)",
+      "envelopeWithin": "Comptabilisé {{ envelope }} {{ currency }} (enveloppe)",
+      "transactionChecked": "Comptabilisé {{ amount }} {{ currency }}"
     },
     "forecastCheckedToggle": "Déjà pointé"
   },

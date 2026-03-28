@@ -1,4 +1,5 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
+import type { TranslocoService } from '@jsverse/transloco';
 import type { BudgetLine, Transaction } from 'pulpe-shared';
 import {
   computeEnvelopeSnackbarMessage,
@@ -42,7 +43,26 @@ function makeTransaction(overrides: Partial<Transaction> = {}): Transaction {
   };
 }
 
+function createMockTransloco(): TranslocoService {
+  return {
+    translate: vi.fn((key: string, params?: Record<string, unknown>) => {
+      switch (key) {
+        case 'budget.snackbar.envelopeOver':
+          return `Comptabilisé ${params?.['consumed']} sur ${params?.['envelope']} ${params?.['currency']} (enveloppe)`;
+        case 'budget.snackbar.envelopeWithin':
+          return `Comptabilisé ${params?.['envelope']} ${params?.['currency']} (enveloppe)`;
+        case 'budget.snackbar.transactionChecked':
+          return `Comptabilisé ${params?.['amount']} ${params?.['currency']}`;
+        default:
+          return key;
+      }
+    }),
+  } as unknown as TranslocoService;
+}
+
 describe('computeEnvelopeSnackbarMessage', () => {
+  const transloco = createMockTransloco();
+
   it('AC1 — returns null when checkedAt is null (unchecked)', () => {
     const budgetLine = makeBudgetLine({ checkedAt: null });
 
@@ -51,6 +71,7 @@ describe('computeEnvelopeSnackbarMessage', () => {
       [budgetLine],
       [],
       'CHF',
+      transloco,
     );
 
     expect(result).toBeNull();
@@ -64,6 +85,7 @@ describe('computeEnvelopeSnackbarMessage', () => {
       [budgetLine],
       [],
       'CHF',
+      transloco,
     );
 
     expect(result).toBe('Comptabilisé 408 CHF (enveloppe)');
@@ -78,6 +100,7 @@ describe('computeEnvelopeSnackbarMessage', () => {
       [budgetLine],
       [tx],
       'CHF',
+      transloco,
     );
 
     expect(result).not.toBeNull();
@@ -95,6 +118,7 @@ describe('computeEnvelopeSnackbarMessage', () => {
       [budgetLine],
       transactions,
       'CHF',
+      transloco,
     );
 
     expect(result).toBe('Comptabilisé 1574 sur 408 CHF (enveloppe)');
@@ -109,6 +133,7 @@ describe('computeEnvelopeSnackbarMessage', () => {
       [budgetLine],
       [tx],
       'CHF',
+      transloco,
     );
 
     expect(result).toBe('Comptabilisé 408 CHF (enveloppe)');
@@ -126,6 +151,7 @@ describe('computeEnvelopeSnackbarMessage', () => {
       [budgetLine],
       transactions,
       'CHF',
+      transloco,
     );
 
     expect(result).toBe('Comptabilisé 408 CHF (enveloppe)');
@@ -139,6 +165,7 @@ describe('computeEnvelopeSnackbarMessage', () => {
       [budgetLine],
       [],
       'CHF',
+      transloco,
     );
 
     expect(result).toBe('Comptabilisé 408 CHF (enveloppe)');
@@ -166,6 +193,7 @@ describe('computeEnvelopeSnackbarMessage', () => {
       [budgetLine],
       transactions,
       'CHF',
+      transloco,
     );
 
     expect(result).toBe('Comptabilisé 408 CHF (enveloppe)');
@@ -173,10 +201,17 @@ describe('computeEnvelopeSnackbarMessage', () => {
 });
 
 describe('computeTransactionSnackbarMessage', () => {
+  const transloco = createMockTransloco();
+
   it('AC5 — returns null when checkedAt is null (unchecked)', () => {
     const tx = makeTransaction({ checkedAt: null });
 
-    const result = computeTransactionSnackbarMessage(tx.id, [tx], 'CHF');
+    const result = computeTransactionSnackbarMessage(
+      tx.id,
+      [tx],
+      'CHF',
+      transloco,
+    );
 
     expect(result).toBeNull();
   });
@@ -184,7 +219,12 @@ describe('computeTransactionSnackbarMessage', () => {
   it('AC5 — returns a message when checked', () => {
     const tx = makeTransaction({ amount: 150, checkedAt: NOW });
 
-    const result = computeTransactionSnackbarMessage(tx.id, [tx], 'CHF');
+    const result = computeTransactionSnackbarMessage(
+      tx.id,
+      [tx],
+      'CHF',
+      transloco,
+    );
 
     expect(result).not.toBeNull();
   });
@@ -192,7 +232,12 @@ describe('computeTransactionSnackbarMessage', () => {
   it('AC6 — displays the rounded absolute amount of the transaction', () => {
     const tx = makeTransaction({ amount: 42, checkedAt: NOW });
 
-    const result = computeTransactionSnackbarMessage(tx.id, [tx], 'CHF');
+    const result = computeTransactionSnackbarMessage(
+      tx.id,
+      [tx],
+      'CHF',
+      transloco,
+    );
 
     expect(result).toBe('Comptabilisé 42 CHF');
   });
