@@ -62,16 +62,13 @@ struct SavingsSummaryCard: View {
             }
 
             // Progress bar
-            GeometryReader { geo in
-                ZStack(alignment: .leading) {
-                    Capsule()
-                        .fill(Color.progressTrack)
+            ZStack {
+                Capsule()
+                    .fill(Color.progressTrack)
 
-                    Capsule()
-                        .fill(Color.financialSavings)
-                        .frame(width: geo.size.width * CGFloat(max(0, min(summary.progressPercentage / 100, 1))))
-                        .animation(DesignTokens.Animation.gentleSpring, value: summary.progressPercentage)
-                }
+                ProgressBarShape(progress: CGFloat(max(0, min(summary.progressPercentage / 100, 1))))
+                    .fill(Color.financialSavings)
+                    .animation(DesignTokens.Animation.gentleSpring, value: summary.progressPercentage)
             }
             .frame(height: DesignTokens.ProgressBar.thickHeight)
 

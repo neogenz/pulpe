@@ -363,16 +363,13 @@ private struct CategoryRow: View {
 
                 // Progress bar + percentage
                 HStack(spacing: DesignTokens.Spacing.sm) {
-                    GeometryReader { geo in
-                        ZStack(alignment: .leading) {
-                            Capsule()
-                                .fill(Color.progressTrack)
+                    ZStack {
+                        Capsule()
+                            .fill(Color.progressTrack)
 
-                            Capsule()
-                                .fill(kind.color)
-                                .frame(width: geo.size.width * CGFloat(percentage))
-                                .animation(DesignTokens.Animation.gentleSpring, value: percentage)
-                        }
+                        ProgressBarShape(progress: CGFloat(percentage))
+                            .fill(kind.color)
+                            .animation(DesignTokens.Animation.gentleSpring, value: percentage)
                     }
                     .frame(height: DesignTokens.ProgressBar.thickHeight)
 

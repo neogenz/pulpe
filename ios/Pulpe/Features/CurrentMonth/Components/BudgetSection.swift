@@ -371,16 +371,13 @@ struct BudgetLineRow: View {
     }
 
     private var progressBar: some View {
-        GeometryReader { geo in
-            ZStack(alignment: .leading) {
-                Rectangle()
-                    .fill(Color.progressTrack)
+        ZStack {
+            Rectangle()
+                .fill(Color.progressTrack)
 
-                Rectangle()
-                    .fill(consumptionColor)
-                    .frame(width: geo.size.width * CGFloat(min(consumption.percentage / 100, 1)))
-                    .animation(DesignTokens.Animation.gentleSpring, value: consumption.percentage)
-            }
+            ProgressBarShape(progress: CGFloat(min(consumption.percentage / 100, 1)))
+                .fill(consumptionColor)
+                .animation(DesignTokens.Animation.gentleSpring, value: consumption.percentage)
         }
         .frame(height: DesignTokens.ProgressBar.height)
         .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.progressBar))

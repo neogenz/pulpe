@@ -271,16 +271,13 @@ struct HeroBalanceCard: View {
     // MARK: - Progress Bar with Pace Indicator
 
     private var progressBar: some View {
-        GeometryReader { geo in
-            ZStack(alignment: .leading) {
-                Capsule()
-                    .fill(.white.opacity(0.2))
+        ZStack {
+            Capsule()
+                .fill(.white.opacity(0.2))
 
-                Capsule()
-                    .fill(.white)
-                    .frame(width: geo.size.width * fillPercentage)
-                    .animation(DesignTokens.Animation.smoothEaseInOut, value: fillPercentage)
-            }
+            ProgressBarShape(progress: fillPercentage)
+                .fill(.white)
+                .animation(DesignTokens.Animation.smoothEaseInOut, value: fillPercentage)
         }
         .frame(height: DesignTokens.ProgressBar.heroHeight)
     }

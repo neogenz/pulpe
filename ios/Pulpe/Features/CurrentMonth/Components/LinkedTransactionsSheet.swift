@@ -142,15 +142,12 @@ struct LinkedTransactionsSheet: View {
                     .foregroundStyle(progressColor)
             }
 
-            GeometryReader { geo in
-                ZStack(alignment: .leading) {
-                    Capsule()
-                        .fill(Color.progressTrack)
+            ZStack {
+                Capsule()
+                    .fill(Color.progressTrack)
 
-                    Capsule()
-                        .fill(progressColor)
-                        .frame(width: geo.size.width * CGFloat(min(consumption.percentage / 100, 1)))
-                }
+                ProgressBarShape(progress: CGFloat(min(consumption.percentage / 100, 1)))
+                    .fill(progressColor)
             }
             .frame(height: DesignTokens.ProgressBar.thickHeight)
         }
