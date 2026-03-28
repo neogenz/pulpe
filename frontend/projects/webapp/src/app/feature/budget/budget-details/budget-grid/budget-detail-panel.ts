@@ -73,7 +73,6 @@ const DETAIL_SEGMENT_COUNT = 12;
     CurrencyConversionBadge,
     FinancialKindDirective,
     TransactionLabelPipe,
-    TranslocoPipe,
     SegmentedBudgetProgress,
     BudgetKindIndicator,
   ],
