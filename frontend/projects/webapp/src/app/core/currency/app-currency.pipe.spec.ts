@@ -33,10 +33,11 @@ describe('AppCurrencyPipe', () => {
   });
 
   describe('EUR formatting', () => {
-    it('should format with EUR symbol and de-DE locale', () => {
+    it('should format with EUR symbol and fr-FR locale', () => {
       const result = pipe.transform(1234.56, 'EUR');
       expect(result).toContain('€');
-      expect(result).toContain('1.234,56');
+      expect(result).toContain('1');
+      expect(result).toContain('234,56');
     });
   });
 

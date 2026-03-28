@@ -7,12 +7,12 @@ import {
 import { registerLocaleData } from '@angular/common';
 import localeFrCh from '@angular/common/locales/fr-CH';
 import localeDeCh from '@angular/common/locales/de-CH';
-import localeDE from '@angular/common/locales/de';
+import localeFR from '@angular/common/locales/fr';
 
 // Register locales for CurrencyPipe / AppCurrencyPipe in tests
 registerLocaleData(localeFrCh, 'fr-CH');
 registerLocaleData(localeDeCh, 'de-CH');
-registerLocaleData(localeDE, 'de-DE');
+registerLocaleData(localeFR, 'fr-FR');
 
 // Initialize Angular testing environment for Vitest
 // Angular v20 modern setup without zone.js (zoneless)

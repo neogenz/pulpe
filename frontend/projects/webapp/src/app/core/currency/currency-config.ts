@@ -5,7 +5,7 @@ export const CURRENCY_CONFIG: Record<
   { locale: string; symbol: string }
 > = {
   CHF: { locale: 'fr-CH', symbol: 'CHF' },
-  EUR: { locale: 'de-DE', symbol: '€' },
+  EUR: { locale: 'fr-FR', symbol: '€' },
 };
 
 export const DEFAULT_DIGITS_INFO = '1.2-2';
