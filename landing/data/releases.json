@@ -1,5 +1,33 @@
 [
   {
+    "version": "0.31.2",
+    "date": "2026-03-29",
+    "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.31.2",
+    "platforms": ["ios"],
+    "changes": {
+      "features": [],
+      "fixes": [
+        {
+          "title": "Stabilité du tableau de bord",
+          "description": "Correction d'une condition de concurrence sur le dashboard et du gel de l'écran détails budget"
+        },
+        {
+          "title": "Animation du code PIN",
+          "description": "Correction de l'animation de pulsation des points et d'une fuite de layout du skeleton"
+        },
+        {
+          "title": "Conformité App Store",
+          "description": "Mise à jour des URLs, du manifeste de confidentialité et de la description Face ID pour la revue Apple"
+        },
+        {
+          "title": "Rafraîchissement du contenu",
+          "description": "Réinitialisation correcte de l'état lors d'une annulation de navigation"
+        }
+      ],
+      "technical": []
+    }
+  },
+  {
     "version": "0.31.1",
     "date": "2026-03-27",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.31.1",
