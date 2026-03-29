@@ -7,6 +7,8 @@ struct PinDotsView: View {
     var isValidating: Bool = false
 
     @State private var shakeOffset: CGFloat = 0
+    @State private var pulseScale: CGFloat = 1.0
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         HStack(spacing: DesignTokens.Spacing.lg) {
@@ -16,20 +18,27 @@ struct PinDotsView: View {
                     .fill(dotColor(at: index))
                     .frame(width: DesignTokens.Numpad.dotSize, height: DesignTokens.Numpad.dotSize)
                     .scaleEffect(isFilled ? 1.0 : 0.7)
-                    .phaseAnimator(
-                        isValidating && isFilled ? [false, true] : [false]
-                    ) { content, pulsing in
-                        content.scaleEffect(pulsing ? 0.7 : 1.0)
-                    } animation: { _ in
-                        .easeInOut(duration: DesignTokens.Animation.pulseDuration)
-                    }
-                    .animation(.spring(response: 0.2, dampingFraction: 0.7), value: enteredCount)
+                    .animation(.spring(response: 0.2, dampingFraction: 0.7), value: isFilled)
+                    .scaleEffect(isValidating && isFilled ? pulseScale : 1.0)
             }
         }
         .offset(x: shakeOffset)
         .accessibilityHidden(true)
+        .onChange(of: isValidating) { _, validating in
+            guard !reduceMotion else { return }
+            if validating {
+                withAnimation(DesignTokens.Animation.pulse) {
+                    pulseScale = 0.7
+                }
+            } else {
+                withAnimation(.spring(response: 0.2, dampingFraction: 0.7)) {
+                    pulseScale = 1.0
+                }
+            }
+        }
         .onChange(of: isError) { _, newValue in
             guard newValue else { return }
+            guard !reduceMotion else { return }
             withAnimation(.easeInOut(duration: 0.08).repeatCount(5, autoreverses: true)) {
                 shakeOffset = 10
             } completion: {

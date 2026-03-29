@@ -79,6 +79,15 @@ enum APIError: LocalizedError {
         }
     }
 
+    /// URLSession cancellation (Code=-999) is thrown as NSError, not Swift CancellationError.
+    var isCancellation: Bool {
+        if case .networkError(let inner) = self {
+            let nsError = inner as NSError
+            return nsError.domain == NSURLErrorDomain && nsError.code == NSURLErrorCancelled
+        }
+        return false
+    }
+
     private static let codeMapping: [String: APIError] = [
         "ERR_BUDGET_ALREADY_EXISTS": .budgetAlreadyExists,
         "ERR_TEMPLATE_NOT_FOUND": .templateNotFound,
@@ -106,5 +115,19 @@ enum APIError: LocalizedError {
         }
 
         return .serverError(message: message ?? code)
+    }
+}
+
+extension NSError {
+    var isURLCancellation: Bool {
+        domain == NSURLErrorDomain && code == NSURLErrorCancelled
+    }
+}
+
+extension Error {
+    /// Returns true for Swift CancellationError OR URLSession cancellation (Code=-999).
+    var isCancellationOrURLCancellation: Bool {
+        self is CancellationError || (self as? APIError)?.isCancellation == true ||
+            (self as NSError).isURLCancellation
     }
 }

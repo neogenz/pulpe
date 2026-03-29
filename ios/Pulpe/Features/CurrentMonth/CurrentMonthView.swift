@@ -18,6 +18,15 @@ struct CurrentMonthView: View {
     @State private var hasAppeared = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
+    private var animationPhase: Int {
+        switch store.contentState {
+        case .idle, .loading: 0
+        case .failed: 1
+        case .empty: 2
+        case .loaded: 3
+        }
+    }
+
     private var timeElapsedPercentage: Double {
         guard let budget = store.budget else { return 0 }
         return BudgetPeriodCalculator.timeElapsedPercentage(
@@ -61,7 +70,7 @@ struct CurrentMonthView: View {
             }
         }
         .trackScreen("Dashboard")
-        .animation(DesignTokens.Animation.smoothEaseOut, value: store.contentState)
+        .animation(DesignTokens.Animation.smoothEaseOut, value: animationPhase)
         .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -92,6 +101,7 @@ struct CurrentMonthView: View {
             }
         }
         .task {
+            store.prepareForReload()
             // Ensure settings (payDay) are loaded before budget loading,
             // critical when user has PIN lock (settings aren't loaded at startup)
             await userSettingsStore.loadIfNeeded()

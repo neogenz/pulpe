@@ -370,21 +370,17 @@ struct BudgetLineRow: View {
         .opacity(line.isVirtualRollover ? 0.6 : 1)
     }
 
-    @State private var barWidth: CGFloat = 0
-
     private var progressBar: some View {
-        ZStack(alignment: .leading) {
+        ZStack {
             Rectangle()
                 .fill(Color.progressTrack)
 
-            Rectangle()
+            ProgressBarShape(progress: CGFloat(min(consumption.percentage / 100, 1)))
                 .fill(consumptionColor)
-                .frame(width: barWidth * CGFloat(min(consumption.percentage / 100, 1)))
                 .animation(DesignTokens.Animation.gentleSpring, value: consumption.percentage)
         }
         .frame(height: DesignTokens.ProgressBar.height)
         .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.progressBar))
-        .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { barWidth = $0 }
     }
 
     private func handleLongPress() {

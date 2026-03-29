@@ -142,10 +142,10 @@ final class CurrentMonthStore: StoreProtocol {
         self.widgetSyncService = widgetSyncService
     }
 
-    // MARK: - Smart Loading (StoreProtocol)
+    // MARK: - Loading
 
-    /// Lightweight loading: only fetches budget summary via GET /budgets
-    /// Use this at app startup to quickly enable the "+" button
+    /// Primary startup loader — called once by PulpeApp.task after auth.
+    /// Resolves the current budget period, loads budget + details in one pass.
     func loadBudgetSummary(payDayOfMonth: Int? = nil) async {
         self.payDayOfMonth = payDayOfMonth
 
@@ -186,19 +186,14 @@ final class CurrentMonthStore: StoreProtocol {
 
             try Task.checkCancellation()
 
-            let fetchedBudget = try await budgetService.getBudget(id: match.id)
+            let details = try await budgetService.getBudgetWithDetails(id: match.id)
             try await DesignTokens.Animation.ensureMinimumSkeletonTime(since: loadStart)
 
-            budget = fetchedBudget
-            contentState = .loaded
-            recomputeMetrics()
-        } catch is CancellationError {
-            // Task was cancelled, don't update error state
-        } catch let apiError as APIError {
-            self.error = apiError
-            contentState = .failed
+            applyDetails(details)
+        } catch where error.isCancellationOrURLCancellation {
+            if contentState == .loading { contentState = .idle }
         } catch {
-            self.error = .networkError(error)
+            self.error = (error as? APIError) ?? .networkError(error)
             contentState = .failed
         }
     }
@@ -218,7 +213,8 @@ final class CurrentMonthStore: StoreProtocol {
         }
 
         guard let currentBudget = budget else {
-            // No budget summary loaded yet, load everything
+            // No budget loaded — skip if already loading, otherwise trigger a full load
+            guard contentState != .loading else { return }
             await forceRefresh()
             return
         }
@@ -229,12 +225,10 @@ final class CurrentMonthStore: StoreProtocol {
         do {
             let details = try await budgetService.getBudgetWithDetails(id: currentBudget.id)
             applyDetails(details)
-        } catch is CancellationError {
-            // Task was cancelled, don't update error state
-        } catch let apiError as APIError {
-            self.error = apiError
+        } catch where error.isCancellationOrURLCancellation {
+            // silently absorb
         } catch {
-            self.error = .networkError(error)
+            self.error = (error as? APIError) ?? .networkError(error)
         }
     }
 
@@ -250,6 +244,7 @@ final class CurrentMonthStore: StoreProtocol {
 
     func loadIfNeeded() async {
         guard !isCacheValid else { return }
+        guard contentState != .loading else { return }
         await forceRefresh()
     }
 
@@ -275,61 +270,61 @@ final class CurrentMonthStore: StoreProtocol {
         BudgetDetailCache.shared.invalidateAll()
     }
 
-    func forceRefresh() async {
-        // Cancel any existing load task to avoid duplicate requests
-        loadTask?.cancel()
+    /// Clears stale error state before a new load cycle — prevents brief error flash on view (re-)entry
+    func prepareForReload() {
+        guard contentState == .failed else { return }
+        contentState = .idle
+        error = nil
+    }
 
+    func forceRefresh() async {
+        loadTask?.cancel()
         loadGeneration += 1
         let currentGeneration = loadGeneration
-
-        let task = Task {
-            let isFirstLoad = budget == nil
-            if isFirstLoad {
-                contentState = .loading
-            }
-            error = nil
-            let loadStart = ContinuousClock.now
-
-            do {
-                guard let currentBudget = try await budgetService.getCurrentMonthBudget(
-                    payDayOfMonth: self.payDayOfMonth
-                ) else {
-                    if isFirstLoad {
-                        try await DesignTokens.Animation.ensureMinimumSkeletonTime(since: loadStart)
-                    }
-                    budget = nil
-                    budgetLines = []
-                    transactions = []
-                    recomputeMetrics()
-                    lastLoadTime = Date()
-                    contentState = .empty
-                    return
-                }
-
-                // Check for cancellation before expensive network call
-                try Task.checkCancellation()
-
-                let details = try await budgetService.getBudgetWithDetails(id: currentBudget.id)
-
-                if isFirstLoad {
-                    try await DesignTokens.Animation.ensureMinimumSkeletonTime(since: loadStart)
-                }
-
-                applyDetails(details)
-            } catch is CancellationError {
-                // Task was cancelled, don't update error state
-            } catch let apiError as APIError {
-                self.error = apiError
-                if isFirstLoad { contentState = .failed }
-            } catch {
-                self.error = .networkError(error)
-                if isFirstLoad { contentState = .failed }
-            }
-        }
-
+        let task = Task { await performRefresh() }
         loadTask = task
         await task.value
         if loadGeneration == currentGeneration { loadTask = nil }
+    }
+
+    private func performRefresh() async {
+        let isFirstLoad = budget == nil
+        if isFirstLoad {
+            contentState = .loading
+        }
+        error = nil
+        let loadStart = ContinuousClock.now
+
+        do {
+            guard let currentBudget = try await budgetService.getCurrentMonthBudget(
+                payDayOfMonth: self.payDayOfMonth
+            ) else {
+                if isFirstLoad {
+                    try await DesignTokens.Animation.ensureMinimumSkeletonTime(since: loadStart)
+                }
+                budget = nil
+                budgetLines = []
+                transactions = []
+                recomputeMetrics()
+                lastLoadTime = Date()
+                contentState = .empty
+                return
+            }
+
+            try Task.checkCancellation()
+            let details = try await budgetService.getBudgetWithDetails(id: currentBudget.id)
+
+            if isFirstLoad {
+                try await DesignTokens.Animation.ensureMinimumSkeletonTime(since: loadStart)
+            }
+
+            applyDetails(details)
+        } catch where error.isCancellationOrURLCancellation {
+            if contentState == .loading { contentState = .idle }
+        } catch {
+            self.error = (error as? APIError) ?? .networkError(error)
+            if isFirstLoad { contentState = .failed }
+        }
     }
 
     // MARK: - Widget Sync
