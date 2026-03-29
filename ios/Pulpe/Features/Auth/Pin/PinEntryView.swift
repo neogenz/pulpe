@@ -193,7 +193,8 @@ final class PinEntryViewModel {
                 clientKeyManager: clientKeyManager
             )
 
-            // Ensure at least one full pulse cycle is visible
+            // Ensure at least one full pulse cycle is visible.
+            // try?: PIN already verified — don't block auth if task is cancelled.
             let elapsed = ContinuousClock.now - validationStart
             let minimumPulseTime: Duration = .seconds(DesignTokens.Animation.pulseDuration)
             if elapsed < minimumPulseTime {
