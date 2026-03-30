@@ -83,7 +83,7 @@
     "@angular/platform-browser-dynamic": "^21.0.6",
     "@eslint/js": "^9.28.0",
     "@playwright/test": "^1.57.0",
-    "@posthog/cli": "^0.4.7",
+    "@posthog/cli": "^0.6.1",
     "@vitest/coverage-v8": "^4.0.16",
     "@vitest/ui": "^4.0.16",
     "angular-eslint": "21.1.0",

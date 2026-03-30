@@ -20,7 +20,7 @@ const path = require('path');
 
 // Configuration
 const DIST_DIR = './dist/webapp/browser';
-const POSTHOG_CLI = 'npx @posthog/cli';
+const POSTHOG_CLI = 'pnpm exec posthog-cli';
 
 // Environment detection
 const isCI = !!(process.env.CI || process.env.VERCEL || process.env.GITHUB_ACTIONS);
@@ -28,9 +28,7 @@ const apiKey = process.env.POSTHOG_PERSONAL_API_KEY;
 const envId = process.env.POSTHOG_CLI_ENV_ID;
 const host = process.env.POSTHOG_HOST || 'https://eu.i.posthog.com';
 
-function getVersionInfo() {
-  let version, commitHash;
-
+function getVersion() {
   try {
     const packageJsonPath = path.join(__dirname, '..', 'package.json');
     const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
@@ -39,42 +37,11 @@ function getVersionInfo() {
       throw new Error('package.json is missing "version" field');
     }
 
-    version = packageJson.version;
+    return packageJson.version;
   } catch (error) {
     console.error('❌ Failed to read version from package.json:', error.message);
     process.exit(1);
   }
-
-  try {
-    commitHash = execSync('git rev-parse HEAD', { encoding: 'utf8' }).trim();
-  } catch {
-    commitHash = 'unknown';
-  }
-
-  return { version, commitHash };
-}
-
-async function createPostHogRelease(version, commitHash) {
-  const url = `${host}/api/projects/${envId}/error_tracking/releases/`;
-
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`
-    },
-    body: JSON.stringify({
-      version: `pulpe-webapp-${version}`,
-      hash_id: commitHash
-    })
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`Failed to create release: ${response.status} - ${errorText}`);
-  }
-
-  return response.json();
 }
 
 async function main() {
@@ -164,31 +131,20 @@ async function main() {
       }
     }
 
-    // Step 2: Upload source maps to PostHog
+    // Step 2: Upload source maps with release info
     console.log('\n☁️  Step 2: Uploading source maps to PostHog...');
-    const uploadCmd = `${POSTHOG_CLI} sourcemap upload --directory ${DIST_DIR}`;
+    const version = getVersion();
+    console.log(`   Release: pulpe-webapp v${version}`);
+    const uploadCmd = `${POSTHOG_CLI} sourcemap upload --directory ${DIST_DIR} --release-name pulpe-webapp --release-version ${version}`;
     execSync(uploadCmd, {
       stdio: isCI ? 'pipe' : 'inherit',
       env
     });
-    console.log('✅ Source maps uploaded successfully');
-
-    // Step 3: Create PostHog release for version tracking
-    console.log('\n📦 Step 3: Creating PostHog release...');
-    const { version, commitHash } = getVersionInfo();
-    console.log(`   Version: pulpe-webapp-${version}`);
-    console.log(`   Commit: ${commitHash.substring(0, 7)}`);
-
-    try {
-      await createPostHogRelease(version, commitHash);
-      console.log('✅ PostHog release created successfully');
-    } catch (releaseError) {
-      console.warn(`⚠️  Release creation failed (non-blocking): ${releaseError.message}`);
-    }
+    console.log('✅ Source maps uploaded with release info');
 
     console.log('\n🎉 PostHog source maps processing completed!');
     console.log('Your error tracking will now show readable stack traces.');
-    console.log(`Release "pulpe-webapp-${version}" created.`);
+    console.log(`Release "pulpe-webapp v${version}" created with source linking.`);
 
   } catch (error) {
     console.error('\n❌ Error during source maps processing:', error.message);
