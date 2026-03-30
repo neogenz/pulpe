@@ -1,0 +1,531 @@
+{
+  "schema_version": "1.1.0",
+  "created_at": "2026-03-30T05:40:23.409722+00:00",
+  "build": {
+    "entrypoint": "project",
+    "path": "Pulpe.xcodeproj",
+    "scheme": "PulpeLocal",
+    "configuration": "Local",
+    "destination": "platform=iOS Simulator,name=iPhone 17 Pro Max",
+    "derived_data_path": "",
+    "command": "xcodebuild -project Pulpe.xcodeproj -scheme PulpeLocal -configuration Local -destination \"platform=iOS Simulator,name=iPhone 17 Pro Max\" CODE_SIGNING_ALLOWED=NO"
+  },
+  "environment": {
+    "host": "OpITlt1047.local",
+    "macos_version": "macOS-26.3.1-arm64-arm-64bit",
+    "xcode_version": "Xcode 26.3\nBuild version 17C529",
+    "cwd": "/Users/maximedesogus/conductor/workspaces/pulpe-workspace/tacoma/ios"
+  },
+  "runs": {
+    "clean": [
+      {
+        "id": "clean-1",
+        "build_type": "clean",
+        "duration_seconds": 50.384,
+        "success": true,
+        "exit_code": 0,
+        "command": "xcodebuild -project Pulpe.xcodeproj -scheme PulpeLocal -configuration Local -destination \"platform=iOS Simulator,name=iPhone 17 Pro Max\" CODE_SIGNING_ALLOWED=NO build -showBuildTimingSummary",
+        "raw_log_path": ".build-benchmark/20260330T053529Z-pulpelocal-clean-1.log",
+        "timing_summary_categories": [
+          {
+            "name": "SwiftCompile",
+            "seconds": 203.057,
+            "task_count": 54
+          },
+          {
+            "name": "CompileC",
+            "seconds": 36.413,
+            "task_count": 554
+          },
+          {
+            "name": "SwiftDriver",
+            "seconds": 20.731,
+            "task_count": 36
+          },
+          {
+            "name": "ScanDependencies",
+            "seconds": 8.967,
+            "task_count": 528
+          },
+          {
+            "name": "CompileAssetCatalogVariant",
+            "seconds": 7.329,
+            "task_count": 2
+          },
+          {
+            "name": "SwiftEmitModule",
+            "seconds": 4.999,
+            "task_count": 2
+          },
+          {
+            "name": "ExtractAppIntentsMetadata",
+            "seconds": 3.259,
+            "task_count": 19
+          },
+          {
+            "name": "Ld",
+            "seconds": 3.196,
+            "task_count": 64
+          },
+          {
+            "name": "RegisterExecutionPolicyException",
+            "seconds": 0.892,
+            "task_count": 43
+          },
+          {
+            "name": "ValidateEmbeddedBinary",
+            "seconds": 0.75,
+            "task_count": 1
+          },
+          {
+            "name": "Copy",
+            "seconds": 0.473,
+            "task_count": 186
+          },
+          {
+            "name": "CompileStoryboard",
+            "seconds": 0.442,
+            "task_count": 1
+          },
+          {
+            "name": "CreateUniversalBinary",
+            "seconds": 0.17,
+            "task_count": 29
+          },
+          {
+            "name": "WriteAuxiliaryFile",
+            "seconds": 0.157,
+            "task_count": 400
+          },
+          {
+            "name": "ProcessInfoPlistFile",
+            "seconds": 0.136,
+            "task_count": 14
+          },
+          {
+            "name": "CpResource",
+            "seconds": 0.101,
+            "task_count": 58
+          },
+          {
+            "name": "Touch",
+            "seconds": 0.05,
+            "task_count": 14
+          },
+          {
+            "name": "SwiftDriver Compilation Requirements",
+            "seconds": 0.047,
+            "task_count": 36
+          },
+          {
+            "name": "AppIntentsSSUTraining",
+            "seconds": 0.041,
+            "task_count": 2
+          },
+          {
+            "name": "GenerateAssetSymbols",
+            "seconds": 0.031,
+            "task_count": 2
+          },
+          {
+            "name": "CopySwiftLibs",
+            "seconds": 0.024,
+            "task_count": 1
+          },
+          {
+            "name": "SwiftMergeGeneratedHeaders",
+            "seconds": 0.023,
+            "task_count": 19
+          },
+          {
+            "name": "SwiftDriver Compilation",
+            "seconds": 0.02,
+            "task_count": 36
+          },
+          {
+            "name": "ConstructStubExecutorLinkFileList",
+            "seconds": 0.018,
+            "task_count": 2
+          },
+          {
+            "name": "LinkStoryboards",
+            "seconds": 0.009,
+            "task_count": 1
+          },
+          {
+            "name": "LinkAssetCatalog",
+            "seconds": 0.004,
+            "task_count": 2
+          },
+          {
+            "name": "Validate",
+            "seconds": 0.001,
+            "task_count": 1
+          }
+        ]
+      },
+      {
+        "id": "clean-2",
+        "build_type": "clean",
+        "duration_seconds": 48.707,
+        "success": true,
+        "exit_code": 0,
+        "command": "xcodebuild -project Pulpe.xcodeproj -scheme PulpeLocal -configuration Local -destination \"platform=iOS Simulator,name=iPhone 17 Pro Max\" CODE_SIGNING_ALLOWED=NO build -showBuildTimingSummary",
+        "raw_log_path": ".build-benchmark/20260330T053529Z-pulpelocal-clean-2.log",
+        "timing_summary_categories": [
+          {
+            "name": "SwiftCompile",
+            "seconds": 209.513,
+            "task_count": 54
+          },
+          {
+            "name": "CompileC",
+            "seconds": 38.508,
+            "task_count": 554
+          },
+          {
+            "name": "SwiftDriver",
+            "seconds": 16.538,
+            "task_count": 36
+          },
+          {
+            "name": "ScanDependencies",
+            "seconds": 8.913,
+            "task_count": 528
+          },
+          {
+            "name": "CompileAssetCatalogVariant",
+            "seconds": 8.052,
+            "task_count": 2
+          },
+          {
+            "name": "SwiftEmitModule",
+            "seconds": 5.896,
+            "task_count": 2
+          },
+          {
+            "name": "Ld",
+            "seconds": 3.689,
+            "task_count": 64
+          },
+          {
+            "name": "ExtractAppIntentsMetadata",
+            "seconds": 3.562,
+            "task_count": 19
+          },
+          {
+            "name": "RegisterExecutionPolicyException",
+            "seconds": 0.835,
+            "task_count": 43
+          },
+          {
+            "name": "ValidateEmbeddedBinary",
+            "seconds": 0.683,
+            "task_count": 1
+          },
+          {
+            "name": "Copy",
+            "seconds": 0.423,
+            "task_count": 186
+          },
+          {
+            "name": "CompileStoryboard",
+            "seconds": 0.27,
+            "task_count": 1
+          },
+          {
+            "name": "CreateUniversalBinary",
+            "seconds": 0.171,
+            "task_count": 29
+          },
+          {
+            "name": "ProcessInfoPlistFile",
+            "seconds": 0.153,
+            "task_count": 14
+          },
+          {
+            "name": "CpResource",
+            "seconds": 0.116,
+            "task_count": 58
+          },
+          {
+            "name": "WriteAuxiliaryFile",
+            "seconds": 0.093,
+            "task_count": 400
+          },
+          {
+            "name": "Touch",
+            "seconds": 0.064,
+            "task_count": 14
+          },
+          {
+            "name": "SwiftDriver Compilation",
+            "seconds": 0.05,
+            "task_count": 36
+          },
+          {
+            "name": "AppIntentsSSUTraining",
+            "seconds": 0.04,
+            "task_count": 2
+          },
+          {
+            "name": "GenerateAssetSymbols",
+            "seconds": 0.033,
+            "task_count": 2
+          },
+          {
+            "name": "CopySwiftLibs",
+            "seconds": 0.023,
+            "task_count": 1
+          },
+          {
+            "name": "SwiftDriver Compilation Requirements",
+            "seconds": 0.023,
+            "task_count": 36
+          },
+          {
+            "name": "ConstructStubExecutorLinkFileList",
+            "seconds": 0.02,
+            "task_count": 2
+          },
+          {
+            "name": "SwiftMergeGeneratedHeaders",
+            "seconds": 0.01,
+            "task_count": 19
+          },
+          {
+            "name": "LinkStoryboards",
+            "seconds": 0.006,
+            "task_count": 1
+          },
+          {
+            "name": "LinkAssetCatalog",
+            "seconds": 0.003,
+            "task_count": 2
+          },
+          {
+            "name": "Validate",
+            "seconds": 0.001,
+            "task_count": 1
+          }
+        ]
+      },
+      {
+        "id": "clean-3",
+        "build_type": "clean",
+        "duration_seconds": 48.232,
+        "success": true,
+        "exit_code": 0,
+        "command": "xcodebuild -project Pulpe.xcodeproj -scheme PulpeLocal -configuration Local -destination \"platform=iOS Simulator,name=iPhone 17 Pro Max\" CODE_SIGNING_ALLOWED=NO build -showBuildTimingSummary",
+        "raw_log_path": ".build-benchmark/20260330T053529Z-pulpelocal-clean-3.log",
+        "timing_summary_categories": [
+          {
+            "name": "SwiftCompile",
+            "seconds": 197.653,
+            "task_count": 54
+          },
+          {
+            "name": "CompileC",
+            "seconds": 37.478,
+            "task_count": 554
+          },
+          {
+            "name": "SwiftDriver",
+            "seconds": 20.567,
+            "task_count": 36
+          },
+          {
+            "name": "ScanDependencies",
+            "seconds": 9.299,
+            "task_count": 528
+          },
+          {
+            "name": "CompileAssetCatalogVariant",
+            "seconds": 7.349,
+            "task_count": 2
+          },
+          {
+            "name": "SwiftEmitModule",
+            "seconds": 5.135,
+            "task_count": 2
+          },
+          {
+            "name": "ExtractAppIntentsMetadata",
+            "seconds": 3.452,
+            "task_count": 19
+          },
+          {
+            "name": "Ld",
+            "seconds": 3.379,
+            "task_count": 64
+          },
+          {
+            "name": "RegisterExecutionPolicyException",
+            "seconds": 1.075,
+            "task_count": 43
+          },
+          {
+            "name": "ValidateEmbeddedBinary",
+            "seconds": 0.932,
+            "task_count": 1
+          },
+          {
+            "name": "Copy",
+            "seconds": 0.385,
+            "task_count": 186
+          },
+          {
+            "name": "CompileStoryboard",
+            "seconds": 0.332,
+            "task_count": 1
+          },
+          {
+            "name": "CreateUniversalBinary",
+            "seconds": 0.161,
+            "task_count": 29
+          },
+          {
+            "name": "WriteAuxiliaryFile",
+            "seconds": 0.158,
+            "task_count": 400
+          },
+          {
+            "name": "ProcessInfoPlistFile",
+            "seconds": 0.118,
+            "task_count": 14
+          },
+          {
+            "name": "CpResource",
+            "seconds": 0.094,
+            "task_count": 58
+          },
+          {
+            "name": "SwiftDriver Compilation Requirements",
+            "seconds": 0.057,
+            "task_count": 36
+          },
+          {
+            "name": "AppIntentsSSUTraining",
+            "seconds": 0.043,
+            "task_count": 2
+          },
+          {
+            "name": "GenerateAssetSymbols",
+            "seconds": 0.042,
+            "task_count": 2
+          },
+          {
+            "name": "Touch",
+            "seconds": 0.04,
+            "task_count": 14
+          },
+          {
+            "name": "SwiftDriver Compilation",
+            "seconds": 0.032,
+            "task_count": 36
+          },
+          {
+            "name": "CopySwiftLibs",
+            "seconds": 0.023,
+            "task_count": 1
+          },
+          {
+            "name": "ConstructStubExecutorLinkFileList",
+            "seconds": 0.016,
+            "task_count": 2
+          },
+          {
+            "name": "SwiftMergeGeneratedHeaders",
+            "seconds": 0.008,
+            "task_count": 19
+          },
+          {
+            "name": "LinkStoryboards",
+            "seconds": 0.007,
+            "task_count": 1
+          },
+          {
+            "name": "LinkAssetCatalog",
+            "seconds": 0.004,
+            "task_count": 2
+          },
+          {
+            "name": "Validate",
+            "seconds": 0.001,
+            "task_count": 1
+          }
+        ]
+      }
+    ],
+    "incremental": [
+      {
+        "id": "zero-change-1",
+        "build_type": "zero-change",
+        "duration_seconds": 4.341,
+        "success": true,
+        "exit_code": 0,
+        "command": "xcodebuild -project Pulpe.xcodeproj -scheme PulpeLocal -configuration Local -destination \"platform=iOS Simulator,name=iPhone 17 Pro Max\" CODE_SIGNING_ALLOWED=NO build -showBuildTimingSummary",
+        "raw_log_path": ".build-benchmark/20260330T053529Z-pulpelocal-zero-change-1.log",
+        "timing_summary_categories": [
+          {
+            "name": "ValidateEmbeddedBinary",
+            "seconds": 0.502,
+            "task_count": 1
+          },
+          {
+            "name": "Copy",
+            "seconds": 0.083,
+            "task_count": 13
+          },
+          {
+            "name": "CopySwiftLibs",
+            "seconds": 0.023,
+            "task_count": 1
+          },
+          {
+            "name": "ProcessInfoPlistFile",
+            "seconds": 0.017,
+            "task_count": 1
+          }
+        ]
+      },
+      {
+        "id": "zero-change-2",
+        "build_type": "zero-change",
+        "duration_seconds": 3.617,
+        "success": true,
+        "exit_code": 0,
+        "command": "xcodebuild -project Pulpe.xcodeproj -scheme PulpeLocal -configuration Local -destination \"platform=iOS Simulator,name=iPhone 17 Pro Max\" CODE_SIGNING_ALLOWED=NO build -showBuildTimingSummary",
+        "raw_log_path": ".build-benchmark/20260330T053529Z-pulpelocal-zero-change-2.log",
+        "timing_summary_categories": []
+      },
+      {
+        "id": "zero-change-3",
+        "build_type": "zero-change",
+        "duration_seconds": 3.635,
+        "success": true,
+        "exit_code": 0,
+        "command": "xcodebuild -project Pulpe.xcodeproj -scheme PulpeLocal -configuration Local -destination \"platform=iOS Simulator,name=iPhone 17 Pro Max\" CODE_SIGNING_ALLOWED=NO build -showBuildTimingSummary",
+        "raw_log_path": ".build-benchmark/20260330T053529Z-pulpelocal-zero-change-3.log",
+        "timing_summary_categories": []
+      }
+    ]
+  },
+  "summary": {
+    "clean": {
+      "count": 3,
+      "min_seconds": 48.232,
+      "max_seconds": 50.384,
+      "median_seconds": 48.707,
+      "average_seconds": 49.108
+    },
+    "incremental": {
+      "count": 3,
+      "min_seconds": 3.617,
+      "max_seconds": 4.341,
+      "median_seconds": 3.635,
+      "average_seconds": 3.864
+    }
+  },
+  "notes": []
+}
