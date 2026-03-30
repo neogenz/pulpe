@@ -46,7 +46,7 @@ struct ForgotPasswordViewModelTests {
 
     @Test func submit_whenSuccess_setsSuccessState() async {
         // Given
-        var requestedEmail: String?
+        nonisolated(unsafe) var requestedEmail: String?
         let viewModel = ForgotPasswordViewModel(
             dependencies: ForgotPasswordDependencies(
                 requestPasswordReset: { email in

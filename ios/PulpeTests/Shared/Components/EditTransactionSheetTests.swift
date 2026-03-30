@@ -9,8 +9,8 @@ struct EditTransactionSheetTests {
 
     @Test
     func dependencies_updateTransaction_passesCorrectIdAndData() async throws {
-        var receivedId: String?
-        var receivedData: TransactionUpdate?
+        nonisolated(unsafe) var receivedId: String?
+        nonisolated(unsafe) var receivedData: TransactionUpdate?
         let expectedTransaction = TestDataFactory.createTransaction(
             id: "tx-1",
             name: "Updated",

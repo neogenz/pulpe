@@ -217,7 +217,7 @@ struct SessionLifecycleCoordinatorTests {
     }
     @Test("isBackgroundLockRequired false before grace period")
     func isBackgroundLockRequired_beforeGrace_false() {
-        var now = Date(timeIntervalSince1970: 0)
+        nonisolated(unsafe) var now = Date(timeIntervalSince1970: 0)
         let sut = makeSUT(nowProvider: { now })
 
         sut.handleEnterBackground()
@@ -227,7 +227,7 @@ struct SessionLifecycleCoordinatorTests {
     }
     @Test("isBackgroundLockRequired true at grace period")
     func isBackgroundLockRequired_atGrace_true() {
-        var now = Date(timeIntervalSince1970: 0)
+        nonisolated(unsafe) var now = Date(timeIntervalSince1970: 0)
         let sut = makeSUT(nowProvider: { now })
 
         sut.handleEnterBackground()
@@ -237,7 +237,7 @@ struct SessionLifecycleCoordinatorTests {
     }
     @Test("isBackgroundLockRequired true after grace period")
     func isBackgroundLockRequired_afterGrace_true() {
-        var now = Date(timeIntervalSince1970: 0)
+        nonisolated(unsafe) var now = Date(timeIntervalSince1970: 0)
         let sut = makeSUT(nowProvider: { now })
 
         sut.handleEnterBackground()
@@ -249,7 +249,7 @@ struct SessionLifecycleCoordinatorTests {
     // MARK: - Background Lock: prepareForForeground
     @Test("prepareForForeground within grace does not set isRestoringSession")
     func prepareForForeground_withinGrace_noRestore() {
-        var now = Date(timeIntervalSince1970: 0)
+        nonisolated(unsafe) var now = Date(timeIntervalSince1970: 0)
         let sut = makeSUT(nowProvider: { now })
 
         sut.handleEnterBackground()
@@ -260,7 +260,7 @@ struct SessionLifecycleCoordinatorTests {
     }
     @Test("prepareForForeground beyond grace sets isRestoringSession")
     func prepareForForeground_beyondGrace_setsRestore() {
-        var now = Date(timeIntervalSince1970: 0)
+        nonisolated(unsafe) var now = Date(timeIntervalSince1970: 0)
         let sut = makeSUT(nowProvider: { now })
 
         sut.handleEnterBackground()
@@ -271,7 +271,7 @@ struct SessionLifecycleCoordinatorTests {
     }
     @Test("prepareForForeground does not set restore when not authenticated")
     func prepareForForeground_notAuthenticated_noRestore() {
-        var now = Date(timeIntervalSince1970: 0)
+        nonisolated(unsafe) var now = Date(timeIntervalSince1970: 0)
         let sut = makeSUT(nowProvider: { now })
 
         sut.handleEnterBackground()
@@ -284,7 +284,7 @@ struct SessionLifecycleCoordinatorTests {
     // MARK: - Background Lock: clearRestoringSession
     @Test("clearRestoringSession resets flag")
     func clearRestoringSession_resetsFlag() {
-        var now = Date(timeIntervalSince1970: 0)
+        nonisolated(unsafe) var now = Date(timeIntervalSince1970: 0)
         let sut = makeSUT(nowProvider: { now })
 
         sut.handleEnterBackground()
@@ -300,7 +300,7 @@ struct SessionLifecycleCoordinatorTests {
     // MARK: - Foreground: handleEnterForeground
     @Test("handleEnterForeground within grace returns noLockNeeded")
     func handleEnterForeground_withinGrace_noLock() async {
-        var now = Date(timeIntervalSince1970: 0)
+        nonisolated(unsafe) var now = Date(timeIntervalSince1970: 0)
         let sut = makeSUT(nowProvider: { now })
 
         sut.handleEnterBackground()
@@ -312,7 +312,7 @@ struct SessionLifecycleCoordinatorTests {
     }
     @Test("handleEnterForeground when not authenticated returns noLockNeeded")
     func handleEnterForeground_notAuthenticated_noLock() async {
-        var now = Date(timeIntervalSince1970: 0)
+        nonisolated(unsafe) var now = Date(timeIntervalSince1970: 0)
         let sut = makeSUT(nowProvider: { now })
 
         sut.handleEnterBackground()
@@ -324,7 +324,7 @@ struct SessionLifecycleCoordinatorTests {
     }
     @Test("handleEnterForeground beyond grace with biometric disabled returns lockRequired")
     func handleEnterForeground_beyondGrace_biometricDisabled_lockRequired() async {
-        var now = Date(timeIntervalSince1970: 0)
+        nonisolated(unsafe) var now = Date(timeIntervalSince1970: 0)
         let sut = makeSUT(nowProvider: { now })
 
         sut.handleEnterBackground()
@@ -336,7 +336,7 @@ struct SessionLifecycleCoordinatorTests {
     }
     @Test("handleEnterForeground beyond grace with biometric success returns biometricUnlockSuccess")
     func handleEnterForeground_beyondGrace_biometricSuccess_unlockSuccess() async {
-        var now = Date(timeIntervalSince1970: 0)
+        nonisolated(unsafe) var now = Date(timeIntervalSince1970: 0)
         let sut = makeSUT(
             biometricEnabled: true,
             resolveKey: { "valid-key" },
@@ -353,7 +353,7 @@ struct SessionLifecycleCoordinatorTests {
     }
     @Test("handleEnterForeground beyond grace with biometric resolveKey nil returns lockRequired")
     func handleEnterForeground_beyondGrace_biometricResolveNil_lockRequired() async {
-        var now = Date(timeIntervalSince1970: 0)
+        nonisolated(unsafe) var now = Date(timeIntervalSince1970: 0)
         let sut = makeSUT(
             biometricEnabled: true,
             resolveKey: { nil },
@@ -369,7 +369,7 @@ struct SessionLifecycleCoordinatorTests {
     }
     @Test("handleEnterForeground beyond grace with stale key returns staleKeyLockRequired")
     func handleEnterForeground_beyondGrace_staleKey_staleKeyLockRequired() async {
-        var now = Date(timeIntervalSince1970: 0)
+        nonisolated(unsafe) var now = Date(timeIntervalSince1970: 0)
         let sut = makeSUT(
             biometricEnabled: true,
             resolveKey: { "stale-key" },
@@ -388,7 +388,7 @@ struct SessionLifecycleCoordinatorTests {
     // MARK: - Edge Cases
     @Test("Rapid background/foreground within grace always returns noLockNeeded")
     func rapidTransitions_withinGrace_noLock() async {
-        var now = Date(timeIntervalSince1970: 0)
+        nonisolated(unsafe) var now = Date(timeIntervalSince1970: 0)
         let sut = makeSUT(nowProvider: { now })
 
         for _ in 1...10 {
@@ -400,7 +400,7 @@ struct SessionLifecycleCoordinatorTests {
     }
     @Test("Background date resets on each handleEnterBackground")
     func handleEnterBackground_resetsTimer() {
-        var now = Date(timeIntervalSince1970: 0)
+        nonisolated(unsafe) var now = Date(timeIntervalSince1970: 0)
         let sut = makeSUT(nowProvider: { now })
 
         sut.handleEnterBackground()
@@ -412,7 +412,7 @@ struct SessionLifecycleCoordinatorTests {
     }
     @Test("handleEnterForeground clears background date")
     func handleEnterForeground_clearsBackgroundDate() async {
-        var now = Date(timeIntervalSince1970: 0)
+        nonisolated(unsafe) var now = Date(timeIntervalSince1970: 0)
         let sut = makeSUT(nowProvider: { now })
 
         sut.handleEnterBackground()

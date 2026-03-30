@@ -72,7 +72,7 @@ struct AppStateFlowBridgeTests {
     @Test func flowState_needsPinEntry_afterBackgroundTimeout_mapsToBackgroundTimeout() async {
         // To test background timeout, we need to simulate the foreground flow
         // which sets isRestoringSession via SessionLifecycleCoordinator
-        var now = Date(timeIntervalSince1970: 0)
+        nonisolated(unsafe) var now = Date(timeIntervalSince1970: 0)
         let sut = AppState(
             postAuthResolver: MockPostAuthResolver(destination: .needsPinEntry(needsRecoveryKeyConsent: false)),
             biometricPreferenceStore: AppStateTestFactory.biometricDisabledStore(),

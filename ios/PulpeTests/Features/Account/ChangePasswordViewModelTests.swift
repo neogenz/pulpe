@@ -163,8 +163,8 @@ struct ChangePasswordViewModelTests {
 
     @Test func submit_whenVerificationAndUpdateSucceed_marksCompleted() async {
         // Given
-        var verifyCallCount = 0
-        var updateCallCount = 0
+        nonisolated(unsafe) var verifyCallCount = 0
+        nonisolated(unsafe) var updateCallCount = 0
 
         let viewModel = ChangePasswordViewModel(
             dependencies: ChangePasswordDependencies(
