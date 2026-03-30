@@ -13,9 +13,8 @@
  * - POSTHOG_HOST: PostHog instance URL (optional, defaults to EU)
  */
 
-const fs = require('fs');
-const path = require('path');
-const { execSync } = require('child_process');
+import { readFileSync } from 'fs';
+import { execSync } from 'child_process';
 
 const isCI = !!(process.env.CI || process.env.VERCEL || process.env.GITHUB_ACTIONS);
 const apiKey = process.env.POSTHOG_PERSONAL_API_KEY;
@@ -30,7 +29,7 @@ async function main() {
 
   let version;
   try {
-    const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'package.json'), 'utf8'));
+    const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
     version = pkg.version;
   } catch (error) {
     console.error('❌ Failed to read version from package.json:', error.message);
