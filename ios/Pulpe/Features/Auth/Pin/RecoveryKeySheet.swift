@@ -35,8 +35,8 @@ struct RecoveryKeySheet: View {
                 .padding(.bottom, DesignTokens.Spacing.lg)
                 .blurSlide(showButton)
         }
-        .background { Color.loginGradientBackground }
         .interactiveDismissDisabled()
+        .presentationBackground { Color.loginGradientBackground }
         .allowsHitTesting(showButton)
         .task {
             guard !showHeader else { return }
