@@ -757,30 +757,21 @@ jobs:
       - name: 📥 Checkout
         uses: actions/checkout@v5
 
-      - name: 📊 Create PostHog annotations
+      - name: 📊 Create PostHog annotation
         run: |
-          WEBAPP_VERSION=$(jq -r .version frontend/package.json)
-          LANDING_VERSION=$(jq -r .version landing/package.json)
+          VERSION=$(jq -r .version frontend/package.json)
           COMMIT="${GITHUB_SHA::7}"
           DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 
-          echo "📊 Creating annotation for Webapp v${WEBAPP_VERSION}..."
-          curl -sf -X POST "${POSTHOG_HOST}/api/projects/${POSTHOG_WEBAPP_PROJECT_ID}/annotations/" \
+          echo "📊 Creating annotation for v${VERSION} (${COMMIT})..."
+          curl -sf -X POST "${POSTHOG_HOST}/api/projects/${POSTHOG_PROJECT_ID}/annotations/" \
             -H "Authorization: Bearer ${POSTHOG_PERSONAL_API_KEY}" \
             -H "Content-Type: application/json" \
-            -d "{\"content\":\"v${WEBAPP_VERSION} (${COMMIT})\",\"scope\":\"project\",\"date_marker\":\"${DATE}\"}" \
-            || echo "⚠️  Webapp annotation failed (non-blocking)"
+            -d "{\"content\":\"v${VERSION} (${COMMIT})\",\"scope\":\"project\",\"date_marker\":\"${DATE}\"}" \
+            || echo "⚠️  Annotation failed (non-blocking)"
 
-          echo "📊 Creating annotation for Landing v${LANDING_VERSION}..."
-          curl -sf -X POST "${POSTHOG_HOST}/api/projects/${POSTHOG_LANDING_PROJECT_ID}/annotations/" \
-            -H "Authorization: Bearer ${POSTHOG_PERSONAL_API_KEY}" \
-            -H "Content-Type: application/json" \
-            -d "{\"content\":\"v${LANDING_VERSION} (${COMMIT})\",\"scope\":\"project\",\"date_marker\":\"${DATE}\"}" \
-            || echo "⚠️  Landing annotation failed (non-blocking)"
-
-          echo "✅ PostHog annotations created"
+          echo "✅ PostHog annotation created"
         env:
           POSTHOG_HOST: https://eu.i.posthog.com
           POSTHOG_PERSONAL_API_KEY: ${{ secrets.POSTHOG_PERSONAL_API_KEY }}
-          POSTHOG_WEBAPP_PROJECT_ID: ${{ secrets.POSTHOG_WEBAPP_PROJECT_ID }}
-          POSTHOG_LANDING_PROJECT_ID: ${{ secrets.POSTHOG_LANDING_PROJECT_ID }}
+          POSTHOG_PROJECT_ID: ${{ secrets.POSTHOG_WEBAPP_PROJECT_ID }}

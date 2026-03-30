@@ -102,6 +102,35 @@ POSTHOG_HOST=https://eu.i.posthog.com
 2. Copier **Project ID** (nombre entier, ex: `12345`)
 3. Utiliser pour `POSTHOG_CLI_ENV_ID`
 
+## 📦 Releases & Annotations {#releases}
+
+PostHog releases et annotations sont créées automatiquement à chaque deploy. Voir [POSTHOG_RELEASES.md](./POSTHOG_RELEASES.md) pour l'architecture complète.
+
+### Ce qui se passe automatiquement
+
+| App | Déclencheur | Actions PostHog |
+|-----|------------|-----------------|
+| Webapp (Angular) | Build Vercel | Sourcemaps upload + release avec source linking GitHub |
+| Landing (Next.js) | Build Vercel | Release via API (version + commit) |
+| iOS (SwiftUI) | Push main (paths: ios/**) | Release `ios-X.Y.Z+BUILD` + annotation |
+| Toutes | Push main (CI verte) | Annotations sur les 2 projets PostHog |
+
+### Source linking GitHub
+
+Les stack traces dans Error Tracking incluent des liens cliquables vers le code source dans GitHub au bon commit. Nécessite :
+- GitHub connecté dans PostHog (Settings → Error Tracking → Integrations)
+- Releases créées avec infos Git (automatique via le CLI)
+
+### Vérifier après un deploy
+
+- **Annotations** : n'importe quel graphique PostHog → markers verticaux avec la version
+- **Releases** : Settings → Error Tracking → Releases
+- **Source linking** : Error Tracking → cliquer sur une erreur → liens "View in GitHub" sur les frames
+
+### Variables requises
+
+Voir [DEPLOYMENT.md](./DEPLOYMENT.md) (sections GitHub Actions Secrets et Landing Vercel variables).
+
 ## 📊 Error Tracking Configuration {#error-tracking}
 
 ### Capture Automatique

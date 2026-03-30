@@ -9,16 +9,20 @@ Architecture de tracking multi-plateforme pour le monorepo Pulpe — sourcemaps,
 
 ## Architecture
 
-### Projets PostHog
+### Projet PostHog
 
-| App | Domaine | Projet PostHog | ID | Plateforme |
-|-----|---------|---------------|----|------------|
-| Angular Webapp | app.pulpe.app | Pulpe Webapp | 87621 | `web` |
-| Landing (Next.js) | pulpe.app | Pulpe Landing | 75556 | `landing` |
-| iOS (SwiftUI) | App Store | Pulpe Webapp | 87621 | `ios` |
-| Backend (NestJS) | api.pulpe.app | — | — | Non concerné |
+Toutes les apps utilisent le **même projet PostHog** : **Pulpe Webapp** (ID `87621`).
 
-L'iOS partage le même projet PostHog que le webapp. Les events se distinguent via la super property `platform`.
+| App | Domaine | Plateforme (super property) | Release format |
+|-----|---------|---------------------------|----------------|
+| Angular Webapp | app.pulpe.app | `web` | `pulpe-webapp` vX.Y.Z |
+| Landing (Next.js) | pulpe.app | `landing` | `landing-X.Y.Z` |
+| iOS (SwiftUI) | App Store | `ios` | `ios-X.Y.Z+BUILD` |
+| Backend (NestJS) | api.pulpe.app | — | Non concerné |
+
+Les events se distinguent via la super property `platform`. Les releases se distinguent par leur préfixe de nom.
+
+> **Note** : Le projet PostHog "Pulpe Landing" (ID 75556) est un ancien projet de collecte d'emails, plus utilisé.
 
 ### Intégrations actives
 
@@ -69,8 +73,8 @@ Chaque frame de stack trace dans PostHog Error Tracking devient cliquable vers l
 
 ```
 Push main → CI verte → Vercel deploy → Build Next.js →
-  1. node scripts/create-release.js → Release créée via API REST (version + commit)
-  2. CI job posthog-annotate → annotation sur projet 75556
+  1. node scripts/create-release.js → Release "landing-X.Y.Z" créée via API REST (même projet 87621)
+  2. CI job posthog-annotate → annotation sur projet 87621
 ```
 
 ### Fonctionnement
@@ -82,7 +86,7 @@ La landing utilise `output: 'export'` (site statique) — pas de sourcemaps. Le 
 | Variable | Description |
 |----------|-------------|
 | `POSTHOG_PERSONAL_API_KEY` | Clé API personnelle PostHog |
-| `POSTHOG_LANDING_ENV_ID` | ID du projet PostHog Landing (75556) |
+| `POSTHOG_CLI_ENV_ID` | ID du projet PostHog (`87621`, même que webapp) |
 | `POSTHOG_HOST` | `https://eu.i.posthog.com` (optionnel, défaut EU) |
 
 ---
@@ -123,9 +127,8 @@ PostHog supporte l'upload de dSYMs via `posthog-cli` pour la symbolication des c
 
 ```
 CI verte sur main →
-  1. Lecture des versions webapp (frontend/package.json) et landing (landing/package.json)
-  2. Annotation Webapp "v0.30.0 (abc1234)" sur projet 87621
-  3. Annotation Landing "v0.30.0 (abc1234)" sur projet 75556
+  1. Lecture de la version webapp (frontend/package.json)
+  2. Annotation "v0.30.0 (abc1234)" sur projet 87621
 ```
 
 ### Fonctionnement
@@ -143,17 +146,7 @@ Les annotations créent des markers verticaux sur tous les graphiques PostHog. Q
 | Secret | Valeur | Utilisé par |
 |--------|--------|------------|
 | `POSTHOG_PERSONAL_API_KEY` | Clé API personnelle PostHog | CI annotations, iOS release |
-| `POSTHOG_WEBAPP_PROJECT_ID` | `87621` | CI annotations webapp |
-| `POSTHOG_LANDING_PROJECT_ID` | `75556` | CI annotations landing |
-
-### Variables Vercel — projet Landing
-
-> Vercel Dashboard → Projet Landing → Settings → Environment Variables
-
-| Variable | Valeur |
-|----------|--------|
-| `POSTHOG_PERSONAL_API_KEY` | Même clé que GitHub |
-| `POSTHOG_LANDING_ENV_ID` | `75556` |
+| `POSTHOG_WEBAPP_PROJECT_ID` | `87621` | CI annotations + iOS releases |
 
 ### Variables Vercel — projet Webapp (déjà configurées)
 
@@ -162,6 +155,15 @@ Les annotations créent des markers verticaux sur tous les graphiques PostHog. Q
 | `POSTHOG_PERSONAL_API_KEY` | Clé API personnelle |
 | `POSTHOG_CLI_ENV_ID` | `87621` |
 | `POSTHOG_HOST` | `https://eu.i.posthog.com` |
+
+### Variables Vercel — projet Landing
+
+> Vercel Dashboard → Projet Landing → Settings → Environment Variables
+
+| Variable | Valeur |
+|----------|--------|
+| `POSTHOG_PERSONAL_API_KEY` | Même clé que GitHub |
+| `POSTHOG_CLI_ENV_ID` | `87621` (même projet que webapp) |
 
 ---
 

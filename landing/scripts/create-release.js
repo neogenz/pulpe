@@ -9,7 +9,7 @@
  *
  * Environment Variables:
  * - POSTHOG_PERSONAL_API_KEY: Personal API key for PostHog
- * - POSTHOG_LANDING_ENV_ID: PostHog project ID for the landing
+ * - POSTHOG_CLI_ENV_ID: PostHog project ID (same project as webapp: 87621)
  * - POSTHOG_HOST: PostHog instance URL (optional, defaults to EU)
  */
 
@@ -19,7 +19,7 @@ const { execSync } = require('child_process');
 
 const isCI = !!(process.env.CI || process.env.VERCEL || process.env.GITHUB_ACTIONS);
 const apiKey = process.env.POSTHOG_PERSONAL_API_KEY;
-const envId = process.env.POSTHOG_LANDING_ENV_ID;
+const envId = process.env.POSTHOG_CLI_ENV_ID;
 const host = process.env.POSTHOG_HOST || 'https://eu.i.posthog.com';
 
 async function main() {
@@ -54,7 +54,7 @@ async function main() {
         'Authorization': `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        version: version,
+        version: `landing-${version}`,
         hash_id: commitHash,
       }),
     });
@@ -64,7 +64,7 @@ async function main() {
       throw new Error(`${response.status} - ${errorText}`);
     }
 
-    console.log(`✅ PostHog release v${version} created for landing`);
+    console.log(`✅ PostHog release landing-${version} created`);
   } catch (error) {
     console.warn(`⚠️  Release creation failed (non-blocking): ${error.message}`);
   }

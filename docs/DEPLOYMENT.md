@@ -146,12 +146,16 @@ git diff --quiet HEAD^ HEAD -- frontend/ shared/
 
 Environment variables:
 
-| Variable | Value |
-|----------|-------|
-| `NEXT_PUBLIC_ANGULAR_APP_URL` | `https://app.pulpe.app` |
-| `NEXT_PUBLIC_SUPABASE_URL` | (same as frontend project) |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | (same as frontend project) |
-| PostHog variables | as needed |
+| Variable | Value | Description |
+|----------|-------|-------------|
+| `NEXT_PUBLIC_ANGULAR_APP_URL` | `https://app.pulpe.app` | Webapp URL for CTA links |
+| `NEXT_PUBLIC_SUPABASE_URL` | (same as frontend project) | Auth redirect detection |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | (same as frontend project) | Auth redirect detection |
+| `PUBLIC_POSTHOG_API_KEY` | `phc_...` | PostHog project key (Pulpe Landing, ID 75556) |
+| `PUBLIC_POSTHOG_HOST` | `/ph` | Reverse proxy (see landing/vercel.json) |
+| `PUBLIC_POSTHOG_ENABLED` | `true` | Enable analytics |
+| `POSTHOG_PERSONAL_API_KEY` | `phc_...` | Release creation on deploy (see [POSTHOG_RELEASES.md](./POSTHOG_RELEASES.md)) |
+| `POSTHOG_CLI_ENV_ID` | `87621` | PostHog project ID (same as webapp) |
 
 **Ignored Build Step** (skip build when only frontend changed):
 ```
@@ -259,6 +263,20 @@ Domain purchased at **Infomaniak**.
 - [ ] Turnstile: add `app.pulpe.app`
 - [ ] PostHog: add `https://app.pulpe.app` to toolbar URLs
 - [ ] Test: landing on `pulpe.app`, app on `app.pulpe.app`, auth flow, Google OAuth, legal pages from iOS
+
+### GitHub Actions Secrets
+
+> Repository Settings → Secrets and variables → Actions → New repository secret
+
+| Secret | Value | Used by |
+|--------|-------|---------|
+| `SUPABASE_ACCESS_TOKEN` | Supabase CLI token | Migration CI |
+| `PRODUCTION_DB_PASSWORD` | Supabase DB password | Migration CI |
+| `PRODUCTION_PROJECT_ID` | Supabase project ref | Migration CI |
+| `POSTHOG_PERSONAL_API_KEY` | PostHog personal API key | CI annotations + iOS releases |
+| `POSTHOG_WEBAPP_PROJECT_ID` | `87621` | CI annotations + iOS releases (single project for all apps) |
+
+See [POSTHOG_RELEASES.md](./POSTHOG_RELEASES.md) for the full PostHog release architecture.
 
 ## Release Process
 
