@@ -82,10 +82,6 @@ struct CurrencyField: View {
                             updateText(from: newValue)
                         }
                     }
-
-                Text(currency)
-                    .foregroundStyle(prefixColor)
-                    .font(PulpeTypography.bodyLarge)
             }
             .padding(.horizontal, DesignTokens.Spacing.lg)
             .frame(height: DesignTokens.FrameHeight.button)
