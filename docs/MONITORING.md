@@ -19,7 +19,7 @@ curl https://www.pulpe.app/api/debug/error  # Force une erreur (dev only)
 ### ⚡ Variables Critiques Vercel
 ```env
 # OBLIGATOIRES pour sourcemaps automatiques
-POSTHOG_PERSONAL_API_KEY=phc_your_personal_api_key_here
+POSTHOG_PERSONAL_API_KEY=phx_your_personal_api_key_here
 POSTHOG_CLI_ENV_ID=12345
 POSTHOG_HOST=https://eu.i.posthog.com
 ```
@@ -70,7 +70,7 @@ L'upload des sourcemaps est **100% automatisé** dans le processus de déploieme
 ### Variables Environnement Vercel
 ```env
 # OBLIGATOIRE: Clé API personnelle PostHog
-POSTHOG_PERSONAL_API_KEY=phc_your_personal_api_key_here
+POSTHOG_PERSONAL_API_KEY=phx_your_personal_api_key_here
 
 # OBLIGATOIRE: ID du projet PostHog (nombre entier)
 POSTHOG_CLI_ENV_ID=12345
@@ -95,7 +95,7 @@ POSTHOG_HOST=https://eu.i.posthog.com
 #### Clé API Personnelle
 1. PostHog Dashboard → **Settings > Personal API Keys**
 2. Créer nouvelle clé avec permissions `sourcemap:upload`
-3. Copier la clé (format: `phc_...`)
+3. Copier la clé (format: `phx_...`)
 
 #### Project ID
 1. PostHog Dashboard → **Settings > Project variables**

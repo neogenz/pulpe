@@ -121,7 +121,7 @@ PostHog variables (Production):
 
 ```env
 PUBLIC_POSTHOG_HOST=/ph                          # Reverse proxy (see vercel.json)
-POSTHOG_PERSONAL_API_KEY=phc_...                 # Sourcemaps upload (CI)
+POSTHOG_PERSONAL_API_KEY=phx_...                 # Sourcemaps upload (CI)
 POSTHOG_CLI_ENV_ID=12345                         # Sourcemaps upload (CI)
 POSTHOG_HOST=https://eu.i.posthog.com            # Sourcemaps upload (CI, direct access)
 ```

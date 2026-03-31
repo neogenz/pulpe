@@ -69,7 +69,7 @@ async function main() {
     console.log('⚠️  PostHog credentials not fully configured');
     console.log('Skipping sourcemap upload in local development.');
     console.log('To test locally, set these environment variables:');
-    console.log('- POSTHOG_PERSONAL_API_KEY=phc_your_key_here');
+    console.log('- POSTHOG_PERSONAL_API_KEY=phx_your_key_here');
     console.log('- POSTHOG_CLI_ENV_ID=your_project_id_here');
     return;
   }

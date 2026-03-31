@@ -14,7 +14,7 @@ Dans le dashboard Vercel de votre projet, configurez ces variables :
 
 ```env
 # OBLIGATOIRE: Clé API personnelle PostHog
-POSTHOG_PERSONAL_API_KEY=phc_your_personal_api_key_here
+POSTHOG_PERSONAL_API_KEY=phx_your_personal_api_key_here
 
 # OBLIGATOIRE: ID du projet PostHog (nombre entier)
 POSTHOG_CLI_ENV_ID=12345
