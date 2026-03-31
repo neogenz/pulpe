@@ -58,7 +58,7 @@ describe('CreateAllocatedTransactionBottomSheet', () => {
   });
 
   describe('submit', () => {
-    it('should dismiss with transaction data when form is valid', () => {
+    it('should dismiss with transaction data when form is valid', async () => {
       const midMonth = new Date(
         new Date().getFullYear(),
         new Date().getMonth(),
@@ -70,7 +70,7 @@ describe('CreateAllocatedTransactionBottomSheet', () => {
         transactionDate: midMonth,
       });
 
-      component['submit']();
+      await component['submit']();
 
       expect(mockBottomSheetRef.dismiss).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -92,7 +92,7 @@ describe('CreateAllocatedTransactionBottomSheet', () => {
       expect(mockBottomSheetRef.dismiss).not.toHaveBeenCalled();
     });
 
-    it('should trim whitespace from name', () => {
+    it('should trim whitespace from name', async () => {
       const midMonth = new Date(
         new Date().getFullYear(),
         new Date().getMonth(),
@@ -104,14 +104,14 @@ describe('CreateAllocatedTransactionBottomSheet', () => {
         transactionDate: midMonth,
       });
 
-      component['submit']();
+      await component['submit']();
 
       expect(mockBottomSheetRef.dismiss).toHaveBeenCalledWith(
         expect.objectContaining({ name: 'Courses' }),
       );
     });
 
-    it('should apply Math.abs on amount', () => {
+    it('should apply Math.abs on amount', async () => {
       const midMonth = new Date(
         new Date().getFullYear(),
         new Date().getMonth(),
@@ -123,7 +123,7 @@ describe('CreateAllocatedTransactionBottomSheet', () => {
         transactionDate: midMonth,
       });
 
-      component['submit']();
+      await component['submit']();
 
       expect(mockBottomSheetRef.dismiss).toHaveBeenCalledWith(
         expect.objectContaining({ amount: 42.5 }),
@@ -132,7 +132,7 @@ describe('CreateAllocatedTransactionBottomSheet', () => {
   });
 
   describe('checked toggle', () => {
-    it('should set checkedAt to null by default', () => {
+    it('should set checkedAt to null by default (isChecked defaults to false)', async () => {
       const midMonth = new Date(
         new Date().getFullYear(),
         new Date().getMonth(),
@@ -144,14 +144,14 @@ describe('CreateAllocatedTransactionBottomSheet', () => {
         transactionDate: midMonth,
       });
 
-      component['submit']();
+      await component['submit']();
 
       expect(mockBottomSheetRef.dismiss).toHaveBeenCalledWith(
         expect.objectContaining({ checkedAt: null }),
       );
     });
 
-    it('should set checkedAt to ISO string when isChecked is true', () => {
+    it('should set checkedAt to ISO string when isChecked is true', async () => {
       const midMonth = new Date(
         new Date().getFullYear(),
         new Date().getMonth(),
@@ -164,12 +164,32 @@ describe('CreateAllocatedTransactionBottomSheet', () => {
         isChecked: true,
       });
 
-      component['submit']();
+      await component['submit']();
 
       const callArg = mockBottomSheetRef.dismiss.mock.calls[0][0];
       expect(callArg.checkedAt).toBeDefined();
       expect(typeof callArg.checkedAt).toBe('string');
-      expect(() => new Date(callArg.checkedAt)).not.toThrow();
+      expect(() => new Date(callArg.checkedAt!)).not.toThrow();
+    });
+
+    it('should set checkedAt to null when isChecked is false', async () => {
+      const midMonth = new Date(
+        new Date().getFullYear(),
+        new Date().getMonth(),
+        15,
+      );
+      component['form'].patchValue({
+        name: 'Test',
+        amount: 10,
+        transactionDate: midMonth,
+        isChecked: false,
+      });
+
+      await component['submit']();
+
+      expect(mockBottomSheetRef.dismiss).toHaveBeenCalledWith(
+        expect.objectContaining({ checkedAt: null }),
+      );
     });
   });
 

@@ -57,7 +57,7 @@ describe('CreateAllocatedTransactionDialog', () => {
   });
 
   describe('submit', () => {
-    it('should close with transaction data when form is valid', () => {
+    it('should close with transaction data when form is valid', async () => {
       const midMonth = new Date(
         new Date().getFullYear(),
         new Date().getMonth(),
@@ -69,7 +69,7 @@ describe('CreateAllocatedTransactionDialog', () => {
         transactionDate: midMonth,
       });
 
-      component['submit']();
+      await component['submit']();
 
       expect(mockDialogRef.close).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -91,7 +91,7 @@ describe('CreateAllocatedTransactionDialog', () => {
       expect(mockDialogRef.close).not.toHaveBeenCalled();
     });
 
-    it('should trim whitespace from name', () => {
+    it('should trim whitespace from name', async () => {
       const midMonth = new Date(
         new Date().getFullYear(),
         new Date().getMonth(),
@@ -103,14 +103,14 @@ describe('CreateAllocatedTransactionDialog', () => {
         transactionDate: midMonth,
       });
 
-      component['submit']();
+      await component['submit']();
 
       expect(mockDialogRef.close).toHaveBeenCalledWith(
         expect.objectContaining({ name: 'Courses' }),
       );
     });
 
-    it('should apply Math.abs on amount', () => {
+    it('should apply Math.abs on amount', async () => {
       const midMonth = new Date(
         new Date().getFullYear(),
         new Date().getMonth(),
@@ -122,10 +122,72 @@ describe('CreateAllocatedTransactionDialog', () => {
         transactionDate: midMonth,
       });
 
-      component['submit']();
+      await component['submit']();
 
       expect(mockDialogRef.close).toHaveBeenCalledWith(
         expect.objectContaining({ amount: 42.5 }),
+      );
+    });
+  });
+
+  describe('checked toggle', () => {
+    it('should set checkedAt to null by default (isChecked defaults to false)', async () => {
+      const midMonth = new Date(
+        new Date().getFullYear(),
+        new Date().getMonth(),
+        15,
+      );
+      component['form'].patchValue({
+        name: 'Test',
+        amount: 10,
+        transactionDate: midMonth,
+      });
+
+      await component['submit']();
+
+      expect(mockDialogRef.close).toHaveBeenCalledWith(
+        expect.objectContaining({ checkedAt: null }),
+      );
+    });
+
+    it('should set checkedAt to ISO string when isChecked is true', async () => {
+      const midMonth = new Date(
+        new Date().getFullYear(),
+        new Date().getMonth(),
+        15,
+      );
+      component['form'].patchValue({
+        name: 'Test',
+        amount: 10,
+        transactionDate: midMonth,
+        isChecked: true,
+      });
+
+      await component['submit']();
+
+      const callArg = mockDialogRef.close.mock.calls[0][0];
+      expect(callArg.checkedAt).toBeDefined();
+      expect(typeof callArg.checkedAt).toBe('string');
+      expect(() => new Date(callArg.checkedAt!)).not.toThrow();
+    });
+
+    it('should set checkedAt to null when isChecked is false', async () => {
+      const midMonth = new Date(
+        new Date().getFullYear(),
+        new Date().getMonth(),
+        15,
+      );
+      component['form'].patchValue({
+        name: 'Test',
+        amount: 10,
+        transactionDate: midMonth,
+        isChecked: false,
+      });
+
+      await component['submit']();
+
+      expect(mockDialogRef.close).toHaveBeenCalledWith(
+        expect.objectContaining({ checkedAt: null }),
       );
     });
   });
@@ -175,48 +237,6 @@ describe('CreateAllocatedTransactionDialog', () => {
       expect(
         component['form'].get('transactionDate')?.hasError('required'),
       ).toBe(true);
-    });
-  });
-
-  describe('checked toggle', () => {
-    it('should set checkedAt to null by default', () => {
-      const midMonth = new Date(
-        new Date().getFullYear(),
-        new Date().getMonth(),
-        15,
-      );
-      component['form'].patchValue({
-        name: 'Test',
-        amount: 10,
-        transactionDate: midMonth,
-      });
-
-      component['submit']();
-
-      expect(mockDialogRef.close).toHaveBeenCalledWith(
-        expect.objectContaining({ checkedAt: null }),
-      );
-    });
-
-    it('should set checkedAt to ISO string when isChecked is true', () => {
-      const midMonth = new Date(
-        new Date().getFullYear(),
-        new Date().getMonth(),
-        15,
-      );
-      component['form'].patchValue({
-        name: 'Test',
-        amount: 10,
-        transactionDate: midMonth,
-        isChecked: true,
-      });
-
-      component['submit']();
-
-      const callArg = mockDialogRef.close.mock.calls[0][0];
-      expect(callArg.checkedAt).toBeDefined();
-      expect(typeof callArg.checkedAt).toBe('string');
-      expect(() => new Date(callArg.checkedAt)).not.toThrow();
     });
   });
 });

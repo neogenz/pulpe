@@ -93,6 +93,8 @@
   <!-- Financial Overview -->
   <pulpe-budget-financial-overview
     [totals]="financialTotals()"
+    [currency]="currency()"
+    [locale]="currencyLocale()"
     data-tour="financial-overview"
   />
 
@@ -104,6 +106,7 @@
     [totalCount]="store.totalItemsCount()"
     [estimatedBalance]="store.realizedBalance()"
     [totalBudgetLinesCount]="store.totalBudgetLinesCount()"
+    [currency]="currency()"
     [isShowingOnlyUnchecked]="store.isShowingOnlyUnchecked()"
     (isShowingOnlyUncheckedChange)="store.setIsShowingOnlyUnchecked($event)"
     [searchText]="store.searchText()"

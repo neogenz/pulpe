@@ -4,6 +4,7 @@ import { provideZonelessChangeDetection } from '@angular/core';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { provideTranslocoForTest } from '@app/testing/transloco-testing';
+import { CurrencyConverterService } from '@core/currency';
 import {
   AddBudgetLineDialog,
   type BudgetLineDialogData,
@@ -34,7 +35,7 @@ describe('AddBudgetLineDialog', () => {
   });
 
   describe('submit', () => {
-    it('should close with budget line data when form is valid', () => {
+    it('should close with budget line data when form is valid', async () => {
       component['form'].patchValue({
         name: 'Loyer',
         amount: 1200,
@@ -42,7 +43,7 @@ describe('AddBudgetLineDialog', () => {
         recurrence: 'fixed',
       });
 
-      component['submit']();
+      await component['submit']();
 
       expect(mockDialogRef.close).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -64,13 +65,30 @@ describe('AddBudgetLineDialog', () => {
       expect(mockDialogRef.close).not.toHaveBeenCalled();
     });
 
-    it('should trim whitespace from name', () => {
+    it('should not close when currency conversion fails', async () => {
+      const converterService = TestBed.inject(CurrencyConverterService);
+      vi.spyOn(converterService, 'convertWithMetadata').mockRejectedValue(
+        new Error('API down'),
+      );
+
+      component['form'].patchValue({
+        name: 'Loyer',
+        amount: 1200,
+        kind: 'expense',
+      });
+
+      await component['submit']();
+
+      expect(mockDialogRef.close).not.toHaveBeenCalled();
+    });
+
+    it('should trim whitespace from name', async () => {
       component['form'].patchValue({
         name: '  Assurance  ',
         amount: 385,
       });
 
-      component['submit']();
+      await component['submit']();
 
       expect(mockDialogRef.close).toHaveBeenCalledWith(
         expect.objectContaining({ name: 'Assurance' }),
@@ -79,24 +97,24 @@ describe('AddBudgetLineDialog', () => {
   });
 
   describe('checked toggle', () => {
-    it('should set checkedAt to null by default', () => {
+    it('should set checkedAt to null by default', async () => {
       component['form'].patchValue({ name: 'Test', amount: 10 });
 
-      component['submit']();
+      await component['submit']();
 
       expect(mockDialogRef.close).toHaveBeenCalledWith(
         expect.objectContaining({ checkedAt: null }),
       );
     });
 
-    it('should set checkedAt to ISO string when isChecked is true', () => {
+    it('should set checkedAt to ISO string when isChecked is true', async () => {
       component['form'].patchValue({
         name: 'Test',
         amount: 10,
         isChecked: true,
       });
 
-      component['submit']();
+      await component['submit']();
 
       const callArg = mockDialogRef.close.mock.calls[0][0];
       expect(callArg.checkedAt).toBeDefined();

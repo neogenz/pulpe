@@ -10,14 +10,18 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
+import { CurrencySuffix } from '@ui/currency-suffix';
 import { TranslocoPipe } from '@jsverse/transloco';
 import type { TransactionCreate } from 'pulpe-shared';
 import { formatLocalDate } from '@core/date/format-local-date';
+import type { CurrencyConverterService } from '@core/currency';
+import { injectCurrencyFormConfig } from '@core/currency';
 import type { CreateAllocatedTransactionDialogData } from './create-allocated-transaction-dialog';
 import {
   computeBudgetPeriodDateConstraints,
   createDateRangeValidator,
 } from './budget-period-date-constraints';
+import { UserSettingsStore } from '@core/user-settings';
 
 @Component({
   selector: 'pulpe-create-allocated-transaction-bottom-sheet',
@@ -30,6 +34,7 @@ import {
     MatSlideToggleModule,
     ReactiveFormsModule,
     TranslocoPipe,
+    CurrencySuffix,
   ],
   template: `
     <div class="flex flex-col gap-4 pb-6">
@@ -99,7 +104,12 @@ import {
             step="0.01"
             min="0.01"
           />
-          <span matTextSuffix>CHF</span>
+          <pulpe-currency-suffix
+            matTextSuffix
+            [showSelector]="showCurrencySelector()"
+            [currency]="inputCurrency()"
+            (currencyChange)="inputCurrency.set($event)"
+          />
           @if (
             form.get('amount')?.hasError('required') &&
             form.get('amount')?.touched
@@ -159,6 +169,12 @@ import {
         </div>
       </form>
 
+      @if (conversionError()) {
+        <p class="text-error text-body-small pb-2">
+          {{ 'common.conversionError' | transloco }}
+        </p>
+      }
+
       <!-- Action buttons -->
       <div class="flex gap-3 pt-2">
         <button matButton (click)="close()" class="flex-1">
@@ -184,7 +200,14 @@ import {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CreateAllocatedTransactionBottomSheet {
-  protected readonly data = inject<CreateAllocatedTransactionDialogData>(
+  readonly #userSettings = inject(UserSettingsStore);
+  readonly #currencyConfig = injectCurrencyFormConfig();
+  protected readonly currency = this.#userSettings.currency;
+  protected readonly showCurrencySelector =
+    this.#currencyConfig.showCurrencySelector;
+  protected readonly inputCurrency = this.#currencyConfig.inputCurrency;
+  protected readonly conversionError = this.#currencyConfig.conversionError;
+  readonly data = inject<CreateAllocatedTransactionDialogData>(
     MAT_BOTTOM_SHEET_DATA,
   );
   readonly #bottomSheetRef = inject(
@@ -197,10 +220,10 @@ export class CreateAllocatedTransactionBottomSheet {
     this.data.budgetYear,
     this.data.payDayOfMonth,
   );
-  protected readonly minDate = this.#dateConstraints.minDate;
-  protected readonly maxDate = this.#dateConstraints.maxDate;
+  readonly minDate = this.#dateConstraints.minDate;
+  readonly maxDate = this.#dateConstraints.maxDate;
 
-  protected readonly form = this.#fb.group({
+  readonly form = this.#fb.group({
     name: ['', [Validators.required, Validators.maxLength(100)]],
     amount: [
       null as number | null,
@@ -216,24 +239,42 @@ export class CreateAllocatedTransactionBottomSheet {
     isChecked: [false],
   });
 
-  protected close(): void {
+  close(): void {
     this.#bottomSheetRef.dismiss();
   }
 
-  protected submit(): void {
+  async submit(): Promise<void> {
     if (this.form.invalid) return;
 
     const formValue = this.form.getRawValue();
+
+    this.conversionError.set(false);
+    let convertedAmount: number;
+    let metadata: Awaited<
+      ReturnType<CurrencyConverterService['convertWithMetadata']>
+    >['metadata'];
+    try {
+      ({ convertedAmount, metadata } =
+        await this.#currencyConfig.converter.convertWithMetadata(
+          formValue.amount!,
+          this.inputCurrency(),
+          this.currency(),
+        ));
+    } catch {
+      this.conversionError.set(true);
+      return;
+    }
 
     const transaction: TransactionCreate = {
       budgetId: this.data.budgetLine.budgetId,
       budgetLineId: this.data.budgetLine.id,
       name: formValue.name!.trim(),
-      amount: Math.abs(formValue.amount!),
+      amount: convertedAmount,
       kind: this.data.budgetLine.kind,
       transactionDate: formatLocalDate(formValue.transactionDate!),
       category: null,
       checkedAt: formValue.isChecked ? new Date().toISOString() : null,
+      ...metadata,
     };
 
     this.#bottomSheetRef.dismiss(transaction);

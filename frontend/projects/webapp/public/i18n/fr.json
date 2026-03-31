@@ -23,8 +23,10 @@
     "no": "Non",
     "somethingWentWrong": "Quelque chose n'a pas fonctionné — réessaie",
     "formErrors": "Quelques champs à vérifier avant de continuer",
+    "conversionError": "La conversion de devise a échoué — réessaie",
     "networkError": "Erreur réseau — vérifie ta connexion",
-    "viewAll": "Voir tout"
+    "clear": "Effacer",
+    "currencySelector": "Devise"
   },
   "navigation": {
     "dashboard": "Tableau de bord",
@@ -220,6 +222,12 @@
     "payDayHintCustom": "Ton budget commence le {{ day }}. Si le mois a moins de jours, il débutera le dernier jour disponible.",
     "payDayHintStandard": "Ton budget commence le {{ day }} de chaque mois",
     "payDayHintDefault": "Ton budget suit le calendrier standard",
+    "currencyLabel": "Devise",
+    "currencySelectorLabel": "Sélecteur de devise",
+    "currencySelectorDescription": "Afficher un sélecteur de devise sur les champs montant",
+    "converterTitle": "Convertisseur",
+    "swapConversionAriaLabel": "Inverser la conversion",
+    "converterRateInfo": "Taux ECB : 1 {{ base }} = {{ rate }} {{ target }}",
     "saveSuccess": "C'est enregistré",
     "saveError": "L'enregistrement a échoué — réessaie",
     "passwordChanged": "Mot de passe modifié",
@@ -408,9 +416,14 @@
     "details": "Détails",
     "createdFromTemplate": "Créer depuis le template",
     "newForecast": "Nouvelle prévision",
+    "editForecast": "Modifier la prévision",
     "forecastNameLabel": "Nom",
     "forecastNamePlaceholder": "Ex: Salaire, Loyer, Épargne...",
+    "forecastNameRequired": "Le nom est requis",
+    "forecastNameMinLength": "Le nom doit contenir au moins 1 caractère",
     "forecastTypeLabel": "Type",
+    "forecastAmountRequired": "Le montant est requis",
+    "forecastTypeRequired": "Le type est requis",
     "newTransactionTitle": "Nouvelle transaction — {{ name }}",
     "newTransactionButton": "Nouvelle transaction",
     "descriptionRequired": "La description est requise",
@@ -418,7 +431,6 @@
     "amountMinError": "Le montant doit être supérieur à 0",
     "dateLabel": "Date",
     "dateOutOfBudgetPeriod": "La date doit être dans la période du budget",
-    "forecastCheckedToggle": "Pointer",
     "transactionCreateButton": "Créer",
     "transactionsDialogTitle": "Transactions — {{ name }}",
     "consumedLabel": "Consommé",
@@ -426,18 +438,36 @@
     "dateColumn": "Date",
     "noTransaction": "Pas de transaction",
     "noTransactionHint": "Ajoute des transactions pour suivre tes dépenses réelles",
+    "editTransactionAriaLabel": "Modifier la transaction",
+    "deleteTransactionAriaLabel": "Supprimer la transaction",
+    "toggleCheckAriaLabel": "Comptabiliser : {{ name }}",
     "checkTransactionsTitle": "Pointer les transactions ?",
     "checkAllConfirm": "Oui, tout pointer",
     "checkOnlyEnvelope": "Non, juste l'enveloppe",
     "closePanelLabel": "Fermer le panneau",
+    "searchTitle": "Rechercher dans le budget",
+    "filterByYear": "Filtrer par année",
+    "yearLoadError": "Erreur de chargement",
+    "searchColPeriod": "Période",
+    "searchColName": "Nom",
+    "searchColAmount": "Montant",
+    "searchError": "Erreur lors de la recherche",
+    "searchErrorRetry": "Réessaie plus tard",
+    "searchLoading": "Recherche en cours...",
+    "searchNoResult": "Pas de résultat",
+    "searchTryAnother": "Essaie avec un autre terme de recherche",
+    "searchPrompt": "Recherchez dans vos budgets",
+    "searchMinChars": "Saisissez au moins 2 caractères pour rechercher dans les prévisions et transactions",
+    "lockedAmounts": "Montants verrouillés",
     "estimatedBalanceTooltip": "Au fur et à mesure que tu pointes tes éléments, ce montant te dit combien il devrait rester sur ton compte. Compare avec ton app bancaire !",
     "lockedAmountsTooltip": "Montants verrouillés",
-    "viewTransactionsTooltip": "Voir les {{label}}",
+    "viewTransactionsCount": "Voir les {{ label }}",
     "snackbar": {
-      "envelopeOver": "Comptabilisé {{ consumed }} sur {{ envelope }} CHF (enveloppe)",
-      "envelopeWithin": "Comptabilisé {{ envelope }} CHF (enveloppe)",
-      "transactionChecked": "Comptabilisé {{ amount }} CHF"
-    }
+      "envelopeOver": "Comptabilisé {{ consumed }} sur {{ envelope }} {{ currency }} (enveloppe)",
+      "envelopeWithin": "Comptabilisé {{ envelope }} {{ currency }} (enveloppe)",
+      "transactionChecked": "Comptabilisé {{ amount }} {{ currency }}"
+    },
+    "forecastCheckedToggle": "Déjà pointé"
   },
   "budgetLine": {
     "checkLabel": "Marquer {{ name }} comme vérifié",
@@ -460,7 +490,12 @@
     "income": "Revenus",
     "incomeGroups": "Revenus",
     "savingsGroups": "Épargnes",
-    "expensesGroups": "Dépenses"
+    "expensesGroups": "Dépenses",
+    "closePanelAriaLabel": "Fermer le panneau",
+    "addTransactionAriaLabel": "Ajouter une transaction",
+    "noTransactionHint": "Ajoute une transaction pour suivre tes dépenses",
+    "editAriaLabel": "Modifier {{ name }}",
+    "deleteAriaLabel": "Supprimer {{ name }}"
   },
   "transaction": {
     "deleted": "Transaction supprimée",
@@ -578,9 +613,12 @@
     "colTotal": "Total",
     "colActions": "Actions",
     "saveError": "Une erreur est survenue lors de la sauvegarde",
+    "colSpent": "Dépensé",
+    "colEarned": "Gagné",
+    "colSaved": "Économisé",
     "totalIncome": "Total des revenus :",
     "totalExpenses": "Total des dépenses :",
-    "netBalanceSummary": "Solde net :",
+    "netBalanceLabel": "Solde net :",
     "noForecastInTemplate": "Pas de prévision dans ce modèle"
   },
   "currentMonth": {
@@ -639,16 +677,25 @@
     "addTransactionCancel": "Annuler",
     "addTransactionSubmit": "Ajouter",
     "addTransactionDefaultName": "Dépense",
+    "recentTransactionsTitle": "Dernières transactions",
+    "recentTransactionsSubtitle": "Ce mois ({{ count }})",
+    "viewAll": "Voir tout",
+    "noTransaction": "Aucune transaction",
+    "noTransactionThisMonth": "Aucune transaction ce mois",
     "nextMonthTitle": "Mois prochain",
     "nextMonthEstimatedRollover": "Budget anticipé — report estimé :",
     "nextMonthNoBudget": "Pas encore de budget pour {{ month }}",
     "nextMonthAnticipate": "Anticiper le mois prochain",
     "uncheckedForecasts": {
-      "title": "Prévisions non pointées",
-      "count": "Sur le mois courant ({{ count }})",
-      "allCheckedMessage": "Tu as pointé toutes tes prévisions pour ce mois.",
-      "toggleAriaLabel": "Pointer {{ name }} — {{ amount }} CHF"
+      "title": "Prévisions à pointer",
+      "count": "({{ count }})",
+      "allCheckedMessage": "Toutes les prévisions sont pointées.",
+      "toggleAriaLabel": "Pointer {{ name }} — {{ amount }}"
     }
+  },
+  "currency": {
+    "conversionTooltip": "Converti depuis {{ amount }}\nTaux : {{ rate }}",
+    "conversionTooltipNoRate": "Converti depuis {{ amount }}"
   },
   "completeProfile": {
     "loading": "Préparation de ton espace de liberté...",
@@ -878,6 +925,6 @@
     "notesOptional": "(optionnel)",
     "notesMaxLength": "La catégorie ne peut pas dépasser 50 caractères",
     "formAriaLabel": "Formulaire de modification de transaction",
-    "checkedToggle": "Pointer"
+    "checkedToggle": "Déjà pointé"
   }
 }

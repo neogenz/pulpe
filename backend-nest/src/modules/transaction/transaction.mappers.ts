@@ -6,6 +6,10 @@ import {
   transactionCreateSchema,
 } from 'pulpe-shared';
 import {
+  mapCurrencyMetadataToApi,
+  mapCurrencyMetadataToDb,
+} from '@common/utils/currency-metadata.mapper';
+import {
   type TransactionRow,
   type TransactionInsert,
 } from './entities/transaction.entity';
@@ -14,9 +18,15 @@ import {
  * Transform database row (snake_case) to API entity (camelCase)
  * Expects decrypted transactionDb where amount is already a number
  */
-export function toApi(
-  transactionDb: Omit<TransactionRow, 'amount'> & { amount: number },
-): Transaction {
+export type DecryptedTransactionRow = Omit<
+  TransactionRow,
+  'amount' | 'original_amount'
+> & {
+  amount: number;
+  original_amount: number | null;
+};
+
+export function toApi(transactionDb: DecryptedTransactionRow): Transaction {
   return {
     id: transactionDb.id,
     createdAt: transactionDb.created_at,
@@ -29,6 +39,7 @@ export function toApi(
     transactionDate: transactionDb.transaction_date,
     category: transactionDb.category,
     checkedAt: transactionDb.checked_at ?? null,
+    ...mapCurrencyMetadataToApi(transactionDb),
   };
 }
 
@@ -37,7 +48,7 @@ export function toApi(
  * Expects decrypted transactionsDb where amount is already a number
  */
 export function toApiList(
-  transactionsDb: (Omit<TransactionRow, 'amount'> & { amount: number })[],
+  transactionsDb: DecryptedTransactionRow[],
 ): Transaction[] {
   return transactionsDb.map((transaction) => toApi(transaction));
 }
@@ -49,6 +60,7 @@ export function toApiList(
 export function toInsert(
   createDto: TransactionCreate,
   budgetId?: string,
+  amountEncrypted?: string,
 ): TransactionInsert {
   // Validate with Zod schema - fail fast on invalid data
   const validationResult = transactionCreateSchema.safeParse(createDto);
@@ -74,11 +86,12 @@ export function toInsert(
   return {
     budget_id: finalBudgetId,
     budget_line_id: createDto.budgetLineId ?? null,
-    amount: createDto.amount as any, // Encryption handled by service
+    amount: amountEncrypted ?? null,
     name: createDto.name,
     kind: createDto.kind, // Pas de conversion - les enums sont maintenant unifiés
     transaction_date: createDto.transactionDate || new Date().toISOString(),
     category: createDto.category ?? null,
+    ...mapCurrencyMetadataToDb(createDto),
   };
 }
 
@@ -88,11 +101,12 @@ export function toInsert(
  */
 export function toUpdate(
   updateDto: TransactionUpdate,
+  amountEncrypted?: string,
 ): Partial<TransactionInsert> {
   const updateData: Partial<TransactionInsert> = {};
 
-  if (updateDto.amount !== undefined) {
-    updateData.amount = updateDto.amount as any; // Encryption handled by service
+  if (amountEncrypted !== undefined) {
+    updateData.amount = amountEncrypted;
   }
   if (updateDto.name !== undefined) {
     updateData.name = updateDto.name;
@@ -105,6 +119,13 @@ export function toUpdate(
   }
   if (updateDto.category !== undefined) {
     updateData.category = updateDto.category;
+  }
+  if (
+    updateDto.originalCurrency !== undefined ||
+    updateDto.targetCurrency !== undefined ||
+    updateDto.exchangeRate !== undefined
+  ) {
+    Object.assign(updateData, mapCurrencyMetadataToDb(updateDto));
   }
 
   return updateData;
