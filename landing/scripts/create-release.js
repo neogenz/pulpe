@@ -35,6 +35,7 @@ async function main() {
   let version;
   try {
     const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
+    if (!pkg.version) throw new Error('Missing version field in package.json');
     version = pkg.version;
   } catch (error) {
     console.error('❌ Failed to read version from package.json:', error.message);
@@ -61,6 +62,7 @@ async function main() {
         version: `landing-${version}`,
         hash_id: commitHash,
       }),
+      signal: AbortSignal.timeout(10_000),
     });
 
     if (!response.ok) {

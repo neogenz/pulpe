@@ -115,7 +115,8 @@ async function main() {
     const injectCmd = `${POSTHOG_CLI} sourcemap inject --directory ${DIST_DIR}`;
     execSync(injectCmd, {
       stdio: isCI ? 'pipe' : 'inherit',
-      env
+      env,
+      timeout: 60_000
     });
     console.log('✅ Source map metadata injected successfully');
 
@@ -138,7 +139,8 @@ async function main() {
     const uploadCmd = `${POSTHOG_CLI} sourcemap upload --directory ${DIST_DIR} --release-name pulpe-webapp --release-version ${version}`;
     execSync(uploadCmd, {
       stdio: isCI ? 'pipe' : 'inherit',
-      env
+      env,
+      timeout: 120_000
     });
     console.log('✅ Source maps uploaded with release info');
 
@@ -148,6 +150,7 @@ async function main() {
 
   } catch (error) {
     console.error('\n❌ Error during source maps processing:', error.message);
+    if (error.stderr) console.error(error.stderr.toString());
 
     if (isCI) {
       console.error('\nCI/CD Environment - Please check:');

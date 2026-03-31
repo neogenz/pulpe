@@ -78,6 +78,11 @@ jobs:
           BUILD_NUMBER=$(grep 'CURRENT_PROJECT_VERSION' project.yml | head -1 | sed 's/.*: *//' | tr -d '"' | tr -d "'")
           COMMIT="${GITHUB_SHA}"
 
+          if [ -z "$IOS_VERSION" ] || [ -z "$BUILD_NUMBER" ]; then
+            echo "⚠️  Failed to parse iOS version from project.yml, skipping PostHog release"
+            exit 0
+          fi
+
           echo "📦 Creating PostHog release for iOS v${IOS_VERSION} (build ${BUILD_NUMBER})"
 
           curl -sf -X POST "${POSTHOG_HOST}/api/projects/${POSTHOG_PROJECT_ID}/error_tracking/releases/" \
@@ -97,4 +102,5 @@ jobs:
         env:
           POSTHOG_HOST: https://eu.i.posthog.com
           POSTHOG_PERSONAL_API_KEY: ${{ secrets.POSTHOG_PERSONAL_API_KEY }}
+          # All apps share one PostHog project (87621) — secret name is webapp-specific for historical reasons
           POSTHOG_PROJECT_ID: ${{ secrets.POSTHOG_WEBAPP_PROJECT_ID }}
