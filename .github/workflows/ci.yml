@@ -745,3 +745,32 @@ jobs:
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_DB_PASSWORD: ${{ secrets.PRODUCTION_DB_PASSWORD }}
+
+  # 📊 POSTHOG RELEASE ANNOTATIONS (push main only — marks deploys on PostHog graphs)
+  posthog-annotate:
+    name: 📊 PostHog Release Annotations
+    if: always() && needs.ci-success.result == 'success' && github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    needs: [ci-success]
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v5
+
+      - name: 📊 Create PostHog annotation
+        run: |
+          VERSION=$(jq -r .version frontend/package.json)
+          COMMIT="${GITHUB_SHA::7}"
+          DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+
+          echo "📊 Creating annotation for v${VERSION} (${COMMIT})..."
+          curl -sf -X POST "${POSTHOG_HOST}/api/projects/${POSTHOG_PROJECT_ID}/annotations/" \
+            -H "Authorization: Bearer ${POSTHOG_PERSONAL_API_KEY}" \
+            -H "Content-Type: application/json" \
+            -d "{\"content\":\"v${VERSION} (${COMMIT})\",\"scope\":\"project\",\"date_marker\":\"${DATE}\"}" \
+            && echo "✅ PostHog annotation created" \
+            || echo "⚠️  Annotation failed (non-blocking)"
+        env:
+          POSTHOG_HOST: https://eu.i.posthog.com
+          POSTHOG_PERSONAL_API_KEY: ${{ secrets.POSTHOG_PERSONAL_API_KEY }}
+          POSTHOG_PROJECT_ID: ${{ secrets.POSTHOG_WEBAPP_PROJECT_ID }}

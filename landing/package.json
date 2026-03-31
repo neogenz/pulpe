@@ -17,7 +17,8 @@
     "start": "next start",
     "lint": "next lint",
     "type-check": "tsc --noEmit",
-    "generate:og": "npx tsx scripts/generate-og-image.ts"
+    "generate:og": "npx tsx scripts/generate-og-image.ts",
+    "create:release": "node scripts/create-release.js"
   },
   "dependencies": {
     "lucide-react": "^0.562.0",

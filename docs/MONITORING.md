@@ -19,7 +19,7 @@ curl https://www.pulpe.app/api/debug/error  # Force une erreur (dev only)
 ### ⚡ Variables Critiques Vercel
 ```env
 # OBLIGATOIRES pour sourcemaps automatiques
-POSTHOG_PERSONAL_API_KEY=phc_your_personal_api_key_here
+POSTHOG_PERSONAL_API_KEY=phx_your_personal_api_key_here
 POSTHOG_CLI_ENV_ID=12345
 POSTHOG_HOST=https://eu.i.posthog.com
 ```
@@ -70,7 +70,7 @@ L'upload des sourcemaps est **100% automatisé** dans le processus de déploieme
 ### Variables Environnement Vercel
 ```env
 # OBLIGATOIRE: Clé API personnelle PostHog
-POSTHOG_PERSONAL_API_KEY=phc_your_personal_api_key_here
+POSTHOG_PERSONAL_API_KEY=phx_your_personal_api_key_here
 
 # OBLIGATOIRE: ID du projet PostHog (nombre entier)
 POSTHOG_CLI_ENV_ID=12345
@@ -95,12 +95,41 @@ POSTHOG_HOST=https://eu.i.posthog.com
 #### Clé API Personnelle
 1. PostHog Dashboard → **Settings > Personal API Keys**
 2. Créer nouvelle clé avec permissions `sourcemap:upload`
-3. Copier la clé (format: `phc_...`)
+3. Copier la clé (format: `phx_...`)
 
 #### Project ID
 1. PostHog Dashboard → **Settings > Project variables**
 2. Copier **Project ID** (nombre entier, ex: `12345`)
 3. Utiliser pour `POSTHOG_CLI_ENV_ID`
+
+## 📦 Releases & Annotations {#releases}
+
+PostHog releases et annotations sont créées automatiquement à chaque deploy. Voir [POSTHOG_RELEASES.md](./POSTHOG_RELEASES.md) pour l'architecture complète.
+
+### Ce qui se passe automatiquement
+
+| App | Déclencheur | Actions PostHog |
+|-----|------------|-----------------|
+| Webapp (Angular) | Build Vercel | Sourcemaps upload + release avec source linking GitHub |
+| Landing (Next.js) | Build Vercel | Release via API (version + commit) |
+| iOS (SwiftUI) | Push main (paths: ios/**) | Release `ios-X.Y.Z+BUILD` + annotation |
+| Toutes | Push main (CI verte) | Annotation sur le projet PostHog 87621 |
+
+### Source linking GitHub
+
+Les stack traces dans Error Tracking incluent des liens cliquables vers le code source dans GitHub au bon commit. Nécessite :
+- GitHub connecté dans PostHog (Settings → Error Tracking → Integrations)
+- Releases créées avec infos Git (automatique via le CLI)
+
+### Vérifier après un deploy
+
+- **Annotations** : n'importe quel graphique PostHog → markers verticaux avec la version
+- **Releases** : Settings → Error Tracking → Releases
+- **Source linking** : Error Tracking → cliquer sur une erreur → liens "View in GitHub" sur les frames
+
+### Variables requises
+
+Voir [DEPLOYMENT.md](./DEPLOYMENT.md) (sections GitHub Actions Secrets et Landing Vercel variables).
 
 ## 📊 Error Tracking Configuration {#error-tracking}
 
