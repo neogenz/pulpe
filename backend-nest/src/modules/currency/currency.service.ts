@@ -16,6 +16,15 @@ const IDENTITY_EXCHANGE_RATE = 1;
 @Injectable()
 export class CurrencyService {
   readonly #cache = new Map<string, CachedRate>();
+  readonly #inFlight = new Map<
+    string,
+    Promise<{
+      base: SupportedCurrency;
+      target: SupportedCurrency;
+      rate: number;
+      date: string;
+    }>
+  >();
 
   constructor(
     @InjectInfoLogger(CurrencyService.name)
@@ -47,8 +56,16 @@ export class CurrencyService {
       return { base, target, rate: cached.rate, date: cached.date };
     }
 
+    const existing = this.#inFlight.get(cacheKey);
+    if (existing) return existing;
+
+    const promise = this.#fetchAndCache(base, target, cacheKey).finally(() => {
+      this.#inFlight.delete(cacheKey);
+    });
+    this.#inFlight.set(cacheKey, promise);
+
     try {
-      return await this.#fetchAndCache(base, target, cacheKey);
+      return await promise;
     } catch (error) {
       return this.#rateWhenFetchFails(base, target, cached, error);
     }
@@ -73,12 +90,12 @@ export class CurrencyService {
       return { base, target, rate: cached.rate, date: cached.date };
     }
     this.#logIdentityFallbackWarning(base, target, error);
-    return {
-      base,
-      target,
-      rate: IDENTITY_EXCHANGE_RATE,
-      date: new Date().toISOString().slice(0, 10),
-    };
+    throw new BusinessException(
+      ERROR_DEFINITIONS.CURRENCY_RATE_FETCH_FAILED,
+      { base, target },
+      { operation: 'getRate' },
+      { cause: error instanceof Error ? error : undefined },
+    );
   }
 
   #logIdentityFallbackWarning(
@@ -96,7 +113,7 @@ export class CurrencyService {
     }
     this.logger.warn(
       logContext,
-      'Currency API unavailable, no cached rate, using identity exchange rate fallback',
+      'Currency API unavailable and no cached rate, rejecting request',
     );
   }
 
@@ -185,11 +202,11 @@ export class CurrencyService {
     };
     const rate = data.rates?.[target];
 
-    if (rate === undefined) {
+    if (rate === undefined || !Number.isFinite(rate) || rate <= 0) {
       throw new BusinessException(
         ERROR_DEFINITIONS.CURRENCY_RATE_FETCH_FAILED,
         { base, target },
-        { operation: 'getRate' },
+        { operation: 'getRate', receivedRate: rate },
       );
     }
 

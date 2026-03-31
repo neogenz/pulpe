@@ -111,47 +111,37 @@ describe('CurrencyService', () => {
     dateNowSpy.mockRestore();
   });
 
-  it('should return identity rate when fetch fails and no cache exists', async () => {
+  it('should throw when fetch fails and no cache exists', async () => {
     const warnSpy = spyOn(mockLogger, 'warn');
     fetchSpy = mockFetchFailure();
-    const expectedDate = new Date().toISOString().slice(0, 10);
 
-    const result = await service.getRate('CHF', 'EUR');
-
-    expect(result).toEqual({
-      base: 'CHF',
-      target: 'EUR',
-      rate: 1,
-      date: expectedDate,
-    });
+    await expect(service.getRate('CHF', 'EUR')).rejects.toThrow(
+      'Failed to fetch exchange rate for CHF/EUR',
+    );
     expect(warnSpy).toHaveBeenCalledTimes(1);
   });
 
-  it('should return identity rate on HTTP error when no cache exists', async () => {
+  it('should throw on HTTP error when no cache exists', async () => {
     const warnSpy = spyOn(mockLogger, 'warn');
     fetchSpy = mockFetchHttpError(500);
-    const expectedDate = new Date().toISOString().slice(0, 10);
 
-    const result = await service.getRate('CHF', 'EUR');
-
-    expect(result.rate).toBe(1);
-    expect(result.date).toBe(expectedDate);
+    await expect(service.getRate('CHF', 'EUR')).rejects.toThrow(
+      'Failed to fetch exchange rate for CHF/EUR',
+    );
     expect(warnSpy).toHaveBeenCalledTimes(1);
   });
 
-  it('should return identity rate when rate is missing in response and no cache exists', async () => {
+  it('should throw when rate is missing in response and no cache exists', async () => {
     const warnSpy = spyOn(mockLogger, 'warn');
     fetchSpy = mockFetchSuccess({
       base: 'CHF',
       date: '2026-03-05',
       rates: {},
     });
-    const expectedDate = new Date().toISOString().slice(0, 10);
 
-    const result = await service.getRate('CHF', 'EUR');
-
-    expect(result.rate).toBe(1);
-    expect(result.date).toBe(expectedDate);
+    await expect(service.getRate('CHF', 'EUR')).rejects.toThrow(
+      'Failed to fetch exchange rate for CHF/EUR',
+    );
     expect(warnSpy).toHaveBeenCalledTimes(1);
   });
 
