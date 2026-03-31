@@ -13,7 +13,7 @@ final class BiometricManager {
         didSet {
             guard !isHydrating else { return }
             saveTask?.cancel()
-            saveTask = Task {
+            saveTask = Task(name: "BiometricManager.savePreference") {
                 await preferenceStore.save(isEnabled)
             }
         }

@@ -78,7 +78,7 @@ final class DashboardStore: StoreProtocol {
         loadGeneration += 1
         let currentGeneration = loadGeneration
 
-        let task = Task {
+        let task = Task(name: "Dashboard.load") {
             isLoading = true
             error = nil
             defer { isLoading = false }

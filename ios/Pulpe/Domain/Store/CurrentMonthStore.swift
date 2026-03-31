@@ -281,7 +281,7 @@ final class CurrentMonthStore: StoreProtocol {
         loadTask?.cancel()
         loadGeneration += 1
         let currentGeneration = loadGeneration
-        let task = Task { await performRefresh() }
+        let task = Task(name: "CurrentMonth.refresh") { await performRefresh() }
         loadTask = task
         await task.value
         if loadGeneration == currentGeneration { loadTask = nil }
@@ -332,7 +332,7 @@ final class CurrentMonthStore: StoreProtocol {
     private func syncWidgetAfterChange() {
         widgetSyncTask?.cancel()
 
-        widgetSyncTask = Task {
+        widgetSyncTask = Task(name: "CurrentMonth.widgetSync") {
             try? await Task.sleep(for: .seconds(AppConfiguration.widgetSyncDebounceDelay))
             guard !Task.isCancelled else { return }
             guard budget != nil else { return }

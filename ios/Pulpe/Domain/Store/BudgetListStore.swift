@@ -57,7 +57,7 @@ final class BudgetListStore: StoreProtocol {
         loadGeneration += 1
         let currentGeneration = loadGeneration
 
-        let task = Task {
+        let task = Task(name: "BudgetList.load") {
             let showsSkeleton = budgets.isEmpty
             isLoading = true
             error = nil
@@ -80,7 +80,7 @@ final class BudgetListStore: StoreProtocol {
                 hasLoadedOnce = true
 
                 // Sync widget data in background (non-blocking)
-                Task.detached(priority: .utility) { [widgetSyncService] in
+                Task.detached(name: "BudgetList.widgetSync", priority: .utility) { [widgetSyncService] in
                     await widgetSyncService.syncAll()
                 }
             } catch is CancellationError {

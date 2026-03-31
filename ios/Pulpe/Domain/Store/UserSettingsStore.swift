@@ -47,7 +47,7 @@ final class UserSettingsStore: StoreProtocol {
         loadGeneration += 1
         let currentGeneration = loadGeneration
 
-        let task = Task {
+        let task = Task(name: "UserSettings.load") {
             isLoading = true
             error = nil
             defer { isLoading = false }
