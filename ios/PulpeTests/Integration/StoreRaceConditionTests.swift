@@ -108,22 +108,6 @@ struct StoreRaceConditionTests {
 
     // MARK: - loadTask Reference Safety Tests (C2-1)
 
-    @Test("Three sequential forceRefresh calls: earlier completion does not nil out later task reference")
-    func forceRefresh_threeSequentialCalls_laterTaskNotNilledByEarlierCompletion() async throws {
-        let stores: [any StoreProtocol] = [
-            CurrentMonthStore(),
-            BudgetListStore(),
-            DashboardStore(),
-        ]
-
-        for store in stores {
-            await runConcurrent(count: 3) { await store.forceRefresh() }
-
-            let storeType = type(of: store)
-            #expect(store.isLoading == false, "\(storeType) stuck after 3 overlapping forceRefresh")
-        }
-    }
-
     @Test("Three overlapping forceRefresh calls: earlier completion does not nil out later task reference")
     func forceRefresh_threeOverlappingCalls_laterTaskNotNilledByEarlierCompletion() async throws {
         // This test exercises the race condition from finding C2-1:

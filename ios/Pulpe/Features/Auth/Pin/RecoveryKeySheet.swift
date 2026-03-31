@@ -90,7 +90,6 @@ struct RecoveryKeySheet: View {
                 .font(.system(.body, design: .monospaced))
                 .kerning(1.5)
                 .multilineTextAlignment(.center)
-                .textSelection(.enabled)
 
             Button {
                 UIPasteboard.general.setItems(

@@ -9,8 +9,8 @@ struct ResetPasswordDeepLink: Identifiable {
 }
 
 struct RecoveryKeySheetItem: Identifiable, Equatable {
+    let id = UUID()
     let recoveryKey: String
-    var id: String { recoveryKey }
 }
 
 @main
