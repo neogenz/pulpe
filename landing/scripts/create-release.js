@@ -40,6 +40,7 @@ async function main() {
   } catch (error) {
     console.error('❌ Failed to read version from package.json:', error.message);
     process.exit(isCI ? 1 : 0);
+    return;
   }
 
   let commitHash;
