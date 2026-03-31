@@ -113,7 +113,7 @@ PostHog releases et annotations sont créées automatiquement à chaque deploy. 
 | Webapp (Angular) | Build Vercel | Sourcemaps upload + release avec source linking GitHub |
 | Landing (Next.js) | Build Vercel | Release via API (version + commit) |
 | iOS (SwiftUI) | Push main (paths: ios/**) | Release `ios-X.Y.Z+BUILD` + annotation |
-| Toutes | Push main (CI verte) | Annotations sur les 2 projets PostHog |
+| Toutes | Push main (CI verte) | Annotation sur le projet PostHog 87621 |
 
 ### Source linking GitHub
 

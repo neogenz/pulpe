@@ -768,9 +768,8 @@ jobs:
             -H "Authorization: Bearer ${POSTHOG_PERSONAL_API_KEY}" \
             -H "Content-Type: application/json" \
             -d "{\"content\":\"v${VERSION} (${COMMIT})\",\"scope\":\"project\",\"date_marker\":\"${DATE}\"}" \
+            && echo "✅ PostHog annotation created" \
             || echo "⚠️  Annotation failed (non-blocking)"
-
-          echo "✅ PostHog annotation created"
         env:
           POSTHOG_HOST: https://eu.i.posthog.com
           POSTHOG_PERSONAL_API_KEY: ${{ secrets.POSTHOG_PERSONAL_API_KEY }}

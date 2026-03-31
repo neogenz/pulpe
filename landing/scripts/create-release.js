@@ -27,6 +27,11 @@ async function main() {
     return;
   }
 
+  if (process.env.VERCEL_ENV && process.env.VERCEL_ENV !== 'production') {
+    console.log('⏭️  Non-production Vercel deploy, skipping release creation.');
+    return;
+  }
+
   let version;
   try {
     const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));

@@ -151,10 +151,10 @@ Environment variables:
 | `NEXT_PUBLIC_ANGULAR_APP_URL` | `https://app.pulpe.app` | Webapp URL for CTA links |
 | `NEXT_PUBLIC_SUPABASE_URL` | (same as frontend project) | Auth redirect detection |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | (same as frontend project) | Auth redirect detection |
-| `PUBLIC_POSTHOG_API_KEY` | `phc_...` | PostHog project key (Pulpe Landing, ID 75556) |
+| `PUBLIC_POSTHOG_API_KEY` | `phc_...` | PostHog project key (Pulpe Webapp, ID 87621) |
 | `PUBLIC_POSTHOG_HOST` | `/ph` | Reverse proxy (see landing/vercel.json) |
 | `PUBLIC_POSTHOG_ENABLED` | `true` | Enable analytics |
-| `POSTHOG_PERSONAL_API_KEY` | `phc_...` | Release creation on deploy (see [POSTHOG_RELEASES.md](./POSTHOG_RELEASES.md)) |
+| `POSTHOG_PERSONAL_API_KEY` | `phx_...` | Release creation on deploy (see [POSTHOG_RELEASES.md](./POSTHOG_RELEASES.md)) |
 | `POSTHOG_CLI_ENV_ID` | `87621` | PostHog project ID (same as webapp) |
 
 **Ignored Build Step** (skip build when only frontend changed):

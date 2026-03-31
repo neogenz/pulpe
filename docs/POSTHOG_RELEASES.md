@@ -3,7 +3,6 @@
 Architecture de tracking multi-plateforme pour le monorepo Pulpe — sourcemaps, releases, annotations, source linking.
 
 **Issue** : [PUL-21](https://linear.app/pulpe/issue/PUL-21/gerer-les-releases-posthog)
-**Commit** : `94a530cf`
 
 ---
 

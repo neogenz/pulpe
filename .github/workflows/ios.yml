@@ -84,6 +84,7 @@ jobs:
             -H "Authorization: Bearer ${POSTHOG_PERSONAL_API_KEY}" \
             -H "Content-Type: application/json" \
             -d "{\"version\":\"ios-${IOS_VERSION}+${BUILD_NUMBER}\",\"hash_id\":\"${COMMIT}\"}" \
+            && echo "✅ PostHog iOS release created" \
             || echo "⚠️  PostHog release creation failed (non-blocking)"
 
           echo "📊 Creating PostHog annotation for iOS v${IOS_VERSION}..."
@@ -91,9 +92,8 @@ jobs:
             -H "Authorization: Bearer ${POSTHOG_PERSONAL_API_KEY}" \
             -H "Content-Type: application/json" \
             -d "{\"content\":\"iOS v${IOS_VERSION} (${GITHUB_SHA::7})\",\"scope\":\"project\",\"date_marker\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}" \
+            && echo "✅ PostHog iOS annotation created" \
             || echo "⚠️  PostHog annotation failed (non-blocking)"
-
-          echo "✅ PostHog iOS release and annotation created"
         env:
           POSTHOG_HOST: https://eu.i.posthog.com
           POSTHOG_PERSONAL_API_KEY: ${{ secrets.POSTHOG_PERSONAL_API_KEY }}
