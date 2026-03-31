@@ -41,6 +41,7 @@ function getVersion() {
   } catch (error) {
     console.error('❌ Failed to read version from package.json:', error.message);
     process.exit(1);
+    return undefined;
   }
 }
 
