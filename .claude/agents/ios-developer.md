@@ -73,7 +73,7 @@ Dependency flow: `Features/ → Domain/ → Core/` (strict, no reverse or cross-
 - **SWR stores** conforming to `StoreProtocol`: `loadIfNeeded()` (30s/300s TTL), `forceRefresh()`, `reset()`
 - **Task coalescing** in stores: cancel previous load before starting new one
 - **Optimistic updates** with rollback on error for toggle operations
-- **ViewModels co-located** in the same file as their view (exception: `LoginViewModel`)
+- **ViewModels co-located** in the same file as their view (exception: `BudgetDetailsViewModel` — 600+ lines, separation justified)
 - **NavigationStack(path:)** with typed `Hashable` destination enums stored in `AppState`
 - **NotificationCenter** for cross-layer communication (Core → App) to avoid circular deps
 - **Deep links** via `pulpe://` URL scheme handled in `PulpeApp`
@@ -104,7 +104,7 @@ Read `docs/ENCRYPTION.md` before ANY work involving financial amounts.
 - **SwiftLint**: `.swiftlint.yml` — line limit 120/150, force_unwrapping enabled, sorted imports
 - **SPM only**: Supabase Swift + Lottie (no other external dependencies allowed)
 - **Deployment target**: iOS 18.0
-- **Swift concurrency**: `SWIFT_STRICT_CONCURRENCY: complete`
+- **Swift 6** language mode (`SWIFT_VERSION: "6"`) with `SWIFT_STRICT_CONCURRENCY: complete`
 - **Environments**: Local / Preview / Prod via xcconfig files
 
 ## SwiftUI Rules

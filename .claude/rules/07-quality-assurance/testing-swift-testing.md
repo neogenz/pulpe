@@ -223,6 +223,39 @@ struct BudgetFormulasTests {
 - Test edge cases: zero, negative, overflow
 - Test boundary conditions
 
+## Swift 6 Concurrency in Tests
+
+### Captured Variables in Closures
+
+Swift 6 forbids mutating captured `var` in `@Sendable` closures. In tests where closures run sequentially on `@MainActor`, use `nonisolated(unsafe)`:
+
+```swift
+@Test func submit_callsService() async {
+    nonisolated(unsafe) var callCount = 0
+    let vm = ViewModel(dependencies: .init(
+        fetch: { callCount += 1 }
+    ))
+
+    await vm.submit()
+    #expect(callCount == 1)
+}
+```
+
+### Concurrent Task Testing
+
+`TaskGroup.addTask` requires `sending` closures — incompatible with `@MainActor` state. Use `Task.init` (inherits caller isolation):
+
+```swift
+// Good — Task.init inherits @MainActor from the test struct
+let tasks = (0..<5).map { _ in Task { await store.forceRefresh() } }
+for task in tasks { await task.value }
+
+// Bad — Swift 6 error with TaskGroup
+await withTaskGroup(of: Void.self) { group in
+    group.addTask { @MainActor in await store.forceRefresh() }  // ❌ sending constraint
+}
+```
+
 ## Anti-Patterns
 
 | Don't | Do |
@@ -238,3 +271,5 @@ struct BudgetFormulasTests {
 | Inline magic values | Use `TestDataFactory` |
 | Test private methods directly | Test via public API |
 | `XCTestExpectation` for async | Use `async` test methods |
+| `var x = 0` captured in closure | `nonisolated(unsafe) var x = 0` |
+| `TaskGroup.addTask { @MainActor in }` | `Task { await ... }` (inherits isolation) |

@@ -137,11 +137,31 @@ struct BudgetListView: View {
 ### Sheet-Based Forms
 
 ```swift
-// Good - sheet with completion callback
+// Good - sheet with completion callback + standard presentation
 .sheet(isPresented: $showAddExpense) {
     AddExpenseView { newExpense in
         await store.addExpense(newExpense)
     }
+    .standardSheetPresentation()  // detents + drag indicator + cornerRadius + background
+}
+```
+
+### Sheet Presentation (iOS 26 Liquid Glass)
+
+All sheets **must** have an explicit presentation background to prevent iOS 26 Liquid Glass transparency bleeding:
+
+```swift
+// Good — use the shared modifier (includes detents, drag indicator, corner radius, background)
+.standardSheetPresentation()
+.standardSheetPresentation(detents: [.medium, .large])
+
+// Good — custom background (e.g. gradient sheets like RecoveryKeySheet)
+.presentationBackground { Color.loginGradientBackground }
+.presentationBackground(Color.sheetBackground)
+
+// Bad — iOS 26 glass bleeds through without explicit presentation background
+.sheet(isPresented: $show) {
+    MyView()  // No presentationBackground → broken on iOS 26
 }
 ```
 

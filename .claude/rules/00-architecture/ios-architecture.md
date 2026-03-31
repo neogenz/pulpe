@@ -207,6 +207,6 @@ struct BudgetListView: View {
 | `@StateObject` / `@ObservedObject` | `@State` / `@Environment` |
 | Public mutable state in stores | `private(set)` for all state |
 | Models as classes | Models as `Sendable` structs |
-| ViewModel in separate file | Co-locate ViewModel in view file |
+| ViewModel in separate file | Co-locate ViewModel in view file (exception: 500+ lines) |
 | Deeply nested NavigationLink | `NavigationStack(path:)` + typed destinations |
 | `providedIn: root` equivalent | `.shared` singleton for actors |
