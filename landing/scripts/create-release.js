@@ -62,6 +62,7 @@ async function main() {
       body: JSON.stringify({
         version: `landing-${version}`,
         hash_id: commitHash,
+        project: envId,
       }),
       signal: AbortSignal.timeout(10_000),
     });

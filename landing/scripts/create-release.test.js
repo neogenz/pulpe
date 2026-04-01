@@ -163,6 +163,7 @@ describe('create-release.js API call', () => {
     const body = JSON.parse(capturedOptions.body);
     assert.ok(body.version.startsWith('landing-'), `Version should start with "landing-", got: ${body.version}`);
     assert.ok(body.hash_id, 'Should include hash_id');
+    assert.equal(body.project, '87621', 'Should include project ID');
   });
 
   it('should handle API errors gracefully (non-blocking)', async () => {

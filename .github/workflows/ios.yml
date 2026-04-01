@@ -88,7 +88,7 @@ jobs:
           curl -sf -X POST "${POSTHOG_HOST}/api/projects/${POSTHOG_PROJECT_ID}/error_tracking/releases/" \
             -H "Authorization: Bearer ${POSTHOG_PERSONAL_API_KEY}" \
             -H "Content-Type: application/json" \
-            -d "{\"version\":\"ios-${IOS_VERSION}+${BUILD_NUMBER}\",\"hash_id\":\"${COMMIT}\"}" \
+            -d "{\"version\":\"ios-${IOS_VERSION}+${BUILD_NUMBER}\",\"hash_id\":\"${COMMIT}\",\"project\":\"${POSTHOG_PROJECT_ID}\"}" \
             && echo "✅ PostHog iOS release created" \
             || echo "⚠️  PostHog release creation failed (non-blocking)"
 
