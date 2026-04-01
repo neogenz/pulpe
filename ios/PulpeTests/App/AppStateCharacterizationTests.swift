@@ -72,6 +72,7 @@ struct AppStateCharacterizationTests {
     @Test("completePinSetup from needsPinSetup results in authenticated")
     func completePinSetup_fromNeedsPinSetup_becomesAuthenticated() async {
         let sut = makeSUT(destination: .needsPinSetup)
+        sut.pendingOnboardingData = BudgetTemplateCreateFromOnboarding()
 
         await sut.resolvePostAuth(user: user)
         #expect(sut.authState == .needsPinSetup)
@@ -293,20 +294,15 @@ struct AppStateCharacterizationTests {
         #expect(sut.pendingOnboardingData == nil)
         #expect(sut.hasReturningUser == false)
     }
-    @Test("completePinSetup without pendingOnboardingData does not attempt template creation")
-    func completePinSetup_withoutOnboardingData_noTemplateCall() async {
+    @Test("resolvePostAuth needsPinSetup without pending data redirects to onboarding (PUL-102)")
+    func resolvePostAuth_needsPinSetup_noPendingData_redirectsToOnboarding() async {
         let sut = makeSUT(destination: .needsPinSetup)
 
         await sut.resolvePostAuth(user: user)
-        #expect(sut.authState == .needsPinSetup)
-        #expect(sut.pendingOnboardingData == nil)
 
-        // completePinSetup should skip the template/budget creation branch
-        await sut.completePinSetup()
-
-        #expect(sut.authState == .authenticated)
-        // If template creation was attempted without data, it would have thrown.
-        // The fact that we reached .authenticated confirms the branch was skipped.
+        #expect(sut.authState == .unauthenticated)
+        #expect(sut.pendingSocialUser == user)
+        #expect(sut.hasReturningUser == false)
     }
 
     // MARK: - Section 4: Session Lifecycle Characterization
@@ -449,8 +445,20 @@ struct AppStateCharacterizationTests {
 
         await sut.resolvePostAuth(user: user)
 
-        #expect(sut.authState == .needsPinSetup)
+        #expect(sut.authState == .unauthenticated)
+        #expect(sut.pendingSocialUser == user)
         #expect(sut.recoveryFlowState == .idle)
+    }
+    @Test("resolvePostAuth needsPinEntry with returning user proceeds normally (no regression)")
+    func resolvePostAuth_needsPinEntry_returningUser_proceedsNormally() async {
+        let sut = makeSUT(destination: .needsPinEntry(needsRecoveryKeyConsent: false))
+        sut.hasReturningUser = true
+        sut.returningUserFlagLoaded = true
+
+        await sut.resolvePostAuth(user: user)
+
+        #expect(sut.authState == .needsPinEntry)
+        #expect(sut.pendingSocialUser == nil)
     }
     @Test("resolvePostAuth authenticated with recovery consent shows consent prompt")
     func resolvePostAuth_authenticatedWithRecoveryConsent_showsConsent() async {
@@ -586,11 +594,11 @@ struct AppStateCharacterizationTests {
             }
         )
         let sut = AppState(dependencies: deps)
+        sut.pendingOnboardingData = BudgetTemplateCreateFromOnboarding()
 
         await sut.resolvePostAuth(user: user)
         #expect(sut.authState == .needsPinSetup)
 
-        sut.pendingOnboardingData = BudgetTemplateCreateFromOnboarding()
         await sut.completePinSetup()
 
         #expect(sut.authState == .authenticated)

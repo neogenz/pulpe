@@ -68,17 +68,10 @@ extension AppState {
         }
         authState = .loading
 
-        // Social users who never completed onboarding get redirected
-        // regardless of which PIN/vault destination was resolved.
-        switch destination {
-        case .needsPinSetup, .needsPinEntry, .vaultCheckFailed:
-            if isIncompleteOnboarding {
-                recoveryFlowCoordinator.reset()
-                redirectToOnboardingForSocialUser()
-                return
-            }
-        default:
-            break
+        if shouldRedirectToOnboarding(for: destination) {
+            recoveryFlowCoordinator.reset()
+            redirectToOnboardingForSocialUser()
+            return
         }
 
         switch destination {
@@ -154,6 +147,20 @@ extension AppState {
         enrollmentPolicy.markInFlight(context: context.reason)
         let enabled = await biometric.enable(source: .automatic, reason: context.reason)
         enrollmentPolicy.markComplete(context: context.reason, outcome: enabled ? .success : .deniedOrFailed)
+    }
+
+    /// Social users who never completed onboarding get redirected.
+    /// For `.needsPinSetup`: no vault + no pending data = skipped onboarding (PUL-102).
+    /// For `.needsPinEntry`/`.vaultCheckFailed`: uses `isIncompleteOnboarding` (mid-onboarding recovery).
+    private func shouldRedirectToOnboarding(for destination: PostAuthDestination) -> Bool {
+        switch destination {
+        case .needsPinSetup:
+            onboardingBootstrapper.pendingOnboardingData == nil
+        case .needsPinEntry, .vaultCheckFailed:
+            isIncompleteOnboarding
+        default:
+            false
+        }
     }
 
     /// True when the user authenticated (e.g. social sign-in) but never completed onboarding.
