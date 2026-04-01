@@ -27,7 +27,7 @@ struct AppStateLockReasonTests {
 
     @Test("Foreground return beyond grace period should produce flowState .locked(.backgroundTimeout)")
     func foregroundReturn_beyondGracePeriod_flowStateIsLockedBackgroundTimeout() async {
-        var now = Date(timeIntervalSince1970: 0)
+        nonisolated(unsafe) var now = Date(timeIntervalSince1970: 0)
         let sut = AppState(
             postAuthResolver: pinResolver,
             biometricPreferenceStore: AppStateTestFactory.biometricDisabledStore(),
@@ -73,7 +73,7 @@ struct AppStateLockReasonTests {
 
     @Test("Lock reason should not change without an explicit foreground event")
     func lockReason_doesNotFlipWithoutExplicitEvent() async {
-        var now = Date(timeIntervalSince1970: 0)
+        nonisolated(unsafe) var now = Date(timeIntervalSince1970: 0)
         let sut = AppState(
             postAuthResolver: pinResolver,
             biometricPreferenceStore: AppStateTestFactory.biometricDisabledStore(),

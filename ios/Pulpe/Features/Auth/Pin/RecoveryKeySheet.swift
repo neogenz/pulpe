@@ -35,8 +35,8 @@ struct RecoveryKeySheet: View {
                 .padding(.bottom, DesignTokens.Spacing.lg)
                 .blurSlide(showButton)
         }
-        .background { Color.loginGradientBackground }
         .interactiveDismissDisabled()
+        .presentationBackground { Color.loginGradientBackground }
         .allowsHitTesting(showButton)
         .task {
             guard !showHeader else { return }
@@ -90,7 +90,6 @@ struct RecoveryKeySheet: View {
                 .font(.system(.body, design: .monospaced))
                 .kerning(1.5)
                 .multilineTextAlignment(.center)
-                .textSelection(.enabled)
 
             Button {
                 UIPasteboard.general.setItems(

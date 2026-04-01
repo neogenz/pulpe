@@ -36,7 +36,7 @@ extension AppState {
             // immediately, session refresh happens concurrently.
             backgroundRefreshTask?.cancel()
             let validate = validateRegularSession
-            backgroundRefreshTask = Task { [weak self] in
+            backgroundRefreshTask = Task(name: "AppState.backgroundRefresh") { [weak self] in
                 defer { Task { @MainActor [weak self] in self?.backgroundRefreshTask = nil } }
                 do {
                     let user = try await validate()

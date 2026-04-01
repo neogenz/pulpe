@@ -127,8 +127,6 @@ struct RootView: View {
     @State private var showAmountsToggleAlert = false
 
     var body: some View {
-        @Bindable var appState = appState
-
         Group {
             routeContent
         }
@@ -137,19 +135,17 @@ struct RootView: View {
                 PrivacyShieldOverlay()
             }
         }
-        .alert(
-            "Petit souci de connexion",
-            isPresented: $appState.showPostAuthError
-        ) {
-            Button("Réessayer") {
-                Task { await appState.retryOnboardingPostAuth() }
-            }
-            Button("Se déconnecter", role: .destructive) {
-                appState.send(.logoutRequested(source: .userInitiated))
-            }
-        } message: {
-            Text("La configuration de ton compte n'a pas abouti — vérifie ta connexion et réessaie.")
-        }
+        .modifier(RootViewAlerts(
+            appState: appState,
+            uiPreferences: uiPreferences,
+            showAmountsToggleAlert: $showAmountsToggleAlert
+        ))
+        .modifier(RootViewSheets(
+            appState: appState,
+            showAddExpenseSheet: $showAddExpenseSheet,
+            resetPasswordDeepLink: $resetPasswordDeepLink,
+            recoveryKeySheetItemBinding: recoveryKeySheetItemBinding
+        ))
         .toastOverlay(appState.toastManager)
         .environment(appState.toastManager)
         .onReceive(NotificationCenter.default.publisher(for: .maintenanceModeDetected)) { _ in
@@ -161,25 +157,7 @@ struct RootView: View {
         .onReceive(NotificationCenter.default.publisher(for: .sessionExpired)) { _ in
             appState.send(.sessionExpired)
         }
-        .task {
-            #if DEBUG
-            Logger.auth.debug("[AUTH_ROOT_TASK] starting app")
-            #endif
-            await appState.start()
-            #if DEBUG
-            let authDesc = String(describing: appState.authState)
-            let routeDesc = String(describing: appState.currentRoute)
-            Logger.auth.debug(
-                "[AUTH_ROOT_TASK] done, auth=\(authDesc, privacy: .public) route=\(routeDesc, privacy: .public)"
-            )
-            #endif
-            if appState.authState == .authenticated {
-                await userSettingsStore.loadIfNeeded()
-                await currentMonthStore.loadBudgetSummary(
-                    payDayOfMonth: userSettingsStore.payDayOfMonth
-                )
-            }
-        }
+        .task { await handleAppStart() }
         .onChange(of: appState.isInMaintenance) { oldValue, newValue in
             // Exiting maintenance mode: trigger auth check
             if oldValue && !newValue {
@@ -203,60 +181,11 @@ struct RootView: View {
             Logger.auth.debug("[AUTH_STATE_UI] \(old, privacy: .public) → \(new, privacy: .public)")
             #endif
         }
-        .alert(
-            "Générer une clé de récupération ?",
-            isPresented: $appState.isRecoveryConsentVisible
-        ) {
-            Button("Générer maintenant") {
-                appState.send(.recoveryKeyConsentAccepted)
-            }
-            Button("Plus tard", role: .cancel) {
-                appState.send(.recoveryKeyConsentDeclined)
-            }
-        } message: {
-            Text(
-                "Ton coffre est configuré sans clé de récupération. " +
-                "Génère-la maintenant pour éviter de perdre l'accès à tes données chiffrées."
-            )
-        }
         .onChange(of: deepLinkDestination) { _, _ in
             handlePendingDeepLink()
         }
         .onChange(of: appState.authState) { _, _ in
             handlePendingDeepLink()
-        }
-        .sheet(isPresented: $showAddExpenseSheet) {
-            DeepLinkAddExpenseSheet()
-                .environment(appState.toastManager)
-        }
-        .sheet(item: $resetPasswordDeepLink) { deepLink in
-            ResetPasswordFlowView(
-                callbackURL: deepLink.url,
-                onComplete: {
-                    await appState.completePasswordResetFlow()
-                },
-                onCancel: {
-                    await appState.cancelPasswordResetFlow()
-                }
-            )
-        }
-        .sheet(item: recoveryKeySheetItemBinding) { sheet in
-            RecoveryKeySheet(recoveryKey: sheet.recoveryKey) {
-                appState.send(.recoveryKeyPresentationDismissed)
-            }
-        }
-        .onShake {
-            guard appState.authState == .authenticated else { return }
-            showAmountsToggleAlert = true
-        }
-        .alert(
-            uiPreferences.amountsHidden ? "Afficher les montants ?" : "Masquer les montants ?",
-            isPresented: $showAmountsToggleAlert
-        ) {
-            Button(uiPreferences.amountsHidden ? "Afficher" : "Masquer") {
-                uiPreferences.toggleAmountsVisibility()
-            }
-            Button("Annuler", role: .cancel) {}
         }
         .environment(\.amountsHidden, uiPreferences.amountsHidden)
     }
@@ -382,6 +311,26 @@ struct RootView: View {
         Task { await appState.handleStaleClientKey() }
     }
 
+    private func handleAppStart() async {
+        #if DEBUG
+        Logger.auth.debug("[AUTH_ROOT_TASK] starting app")
+        #endif
+        await appState.start()
+        #if DEBUG
+        let authDesc = String(describing: appState.authState)
+        let routeDesc = String(describing: appState.currentRoute)
+        Logger.auth.debug(
+            "[AUTH_ROOT_TASK] done, auth=\(authDesc, privacy: .public) route=\(routeDesc, privacy: .public)"
+        )
+        #endif
+        if appState.authState == .authenticated {
+            await userSettingsStore.loadIfNeeded()
+            await currentMonthStore.loadBudgetSummary(
+                payDayOfMonth: userSettingsStore.payDayOfMonth
+            )
+        }
+    }
+
     private func handlePendingDeepLink() {
         if let destination = deepLinkDestination {
             switch destination {
@@ -409,6 +358,91 @@ struct RootView: View {
         case .deferred, .dropped, .noPending:
             break
         }
+    }
+}
+
+// MARK: - Root View Modifiers
+
+private struct RootViewAlerts: ViewModifier {
+    @Bindable var appState: AppState
+    var uiPreferences: UIPreferencesState
+    @Binding var showAmountsToggleAlert: Bool
+
+    func body(content: Content) -> some View {
+        content
+            .alert(
+                "Petit souci de connexion",
+                isPresented: $appState.showPostAuthError
+            ) {
+                Button("Réessayer") {
+                    Task { await appState.retryOnboardingPostAuth() }
+                }
+                Button("Se déconnecter", role: .destructive) {
+                    appState.send(.logoutRequested(source: .userInitiated))
+                }
+            } message: {
+                Text("La configuration de ton compte n'a pas abouti — vérifie ta connexion et réessaie.")
+            }
+            .alert(
+                "Générer une clé de récupération ?",
+                isPresented: $appState.isRecoveryConsentVisible
+            ) {
+                Button("Générer maintenant") {
+                    appState.send(.recoveryKeyConsentAccepted)
+                }
+                Button("Plus tard", role: .cancel) {
+                    appState.send(.recoveryKeyConsentDeclined)
+                }
+            } message: {
+                Text(
+                    "Ton coffre est configuré sans clé de récupération. " +
+                    "Génère-la maintenant pour éviter de perdre l'accès à tes données chiffrées."
+                )
+            }
+            .onShake {
+                guard appState.authState == .authenticated else { return }
+                showAmountsToggleAlert = true
+            }
+            .alert(
+                uiPreferences.amountsHidden ? "Afficher les montants ?" : "Masquer les montants ?",
+                isPresented: $showAmountsToggleAlert
+            ) {
+                Button(uiPreferences.amountsHidden ? "Afficher" : "Masquer") {
+                    uiPreferences.toggleAmountsVisibility()
+                }
+                Button("Annuler", role: .cancel) {}
+            }
+    }
+}
+
+private struct RootViewSheets: ViewModifier {
+    @Bindable var appState: AppState
+    @Binding var showAddExpenseSheet: Bool
+    @Binding var resetPasswordDeepLink: ResetPasswordDeepLink?
+    var recoveryKeySheetItemBinding: Binding<RecoveryKeySheetItem?>
+
+    func body(content: Content) -> some View {
+        content
+            .sheet(isPresented: $showAddExpenseSheet) {
+                DeepLinkAddExpenseSheet()
+                    .environment(appState.toastManager)
+            }
+            .sheet(item: $resetPasswordDeepLink) { deepLink in
+                ResetPasswordFlowView(
+                    callbackURL: deepLink.url,
+                    onComplete: {
+                        await appState.completePasswordResetFlow()
+                    },
+                    onCancel: {
+                        await appState.cancelPasswordResetFlow()
+                    }
+                )
+            }
+            .sheet(item: recoveryKeySheetItemBinding) { sheet in
+                RecoveryKeySheet(recoveryKey: sheet.recoveryKey) {
+                    appState.send(.recoveryKeyPresentationDismissed)
+                }
+            }
     }
 }
 

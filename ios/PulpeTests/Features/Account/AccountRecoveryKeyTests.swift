@@ -6,7 +6,7 @@ import Testing
 struct AccountRecoveryKeyTests {
     @Test func verifyAndRegenerate_whenVerificationFails_returnsIncorrectPasswordErrorFromClassification() async {
         // Given
-        var capturedEmail: String?
+        nonisolated(unsafe) var capturedEmail: String?
         let viewModel = AccountSecurityViewModel(
             dependencies: AccountSecurityDependencies(
                 verifyPassword: { email, _ in
@@ -36,7 +36,7 @@ struct AccountRecoveryKeyTests {
 
     @Test func verifyAndRegenerate_whenRegenerationFails_returnsGenerationError() async {
         // Given
-        var capturedEmail: String?
+        nonisolated(unsafe) var capturedEmail: String?
         let viewModel = AccountSecurityViewModel(
             dependencies: AccountSecurityDependencies(
                 verifyPassword: { email, _ in capturedEmail = email },
@@ -62,9 +62,9 @@ struct AccountRecoveryKeyTests {
 
     @Test func verifyAndRegenerate_whenSuccessful_setsRecoveryKeyState() async {
         // Given
-        var verifyCallCount = 0
-        var setupCallCount = 0
-        var capturedEmail: String?
+        nonisolated(unsafe) var verifyCallCount = 0
+        nonisolated(unsafe) var setupCallCount = 0
+        nonisolated(unsafe) var capturedEmail: String?
         let expectedRecoveryKey = "ABCD-EFGH-IJKL-MNOP"
 
         let viewModel = AccountSecurityViewModel(

@@ -49,8 +49,8 @@ struct OnboardingBootstrapperTests {
 
     @Test("bootstrapIfNeeded with pending data creates template and budget")
     func bootstrapIfNeeded_withData_createsTemplateAndBudget() async {
-        var templateCreated = false
-        var budgetCreated = false
+        nonisolated(unsafe) var templateCreated = false
+        nonisolated(unsafe) var budgetCreated = false
 
         let sut = makeSUT(
             createTemplate: { _ in
@@ -72,7 +72,7 @@ struct OnboardingBootstrapperTests {
 
     @Test("bootstrapIfNeeded without pending data is a no-op")
     func bootstrapIfNeeded_withoutData_isNoOp() async {
-        var templateCreated = false
+        nonisolated(unsafe) var templateCreated = false
 
         let sut = makeSUT(
             createTemplate: { _ in
@@ -98,7 +98,7 @@ struct OnboardingBootstrapperTests {
 
     @Test("bootstrapIfNeeded called twice — second call is no-op")
     func bootstrapIfNeeded_calledTwice_secondIsNoOp() async {
-        var callCount = 0
+        nonisolated(unsafe) var callCount = 0
 
         let sut = makeSUT(
             createTemplate: { _ in
@@ -116,7 +116,7 @@ struct OnboardingBootstrapperTests {
 
     @Test("bootstrapIfNeeded passes template ID to budget creation")
     func bootstrapIfNeeded_passesTemplateIdToBudget() async {
-        var capturedBudgetData: BudgetCreate?
+        nonisolated(unsafe) var capturedBudgetData: BudgetCreate?
 
         let sut = makeSUT(
             createBudget: { data in
@@ -181,7 +181,7 @@ struct OnboardingBootstrapperTests {
     @Test("template creation error shows toast and does not create budget")
     func templateError_showsToast_noBudget() async {
         struct TemplateError: Error {}
-        var budgetCreated = false
+        nonisolated(unsafe) var budgetCreated = false
         let toast = ToastManager()
 
         let sut = makeSUT(

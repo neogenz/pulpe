@@ -10,6 +10,7 @@
 |-------|------------|
 | Frontend | Angular 21+, Signals, Material 21, Tailwind v4 |
 | Backend | NestJS 11+, Bun runtime |
+| iOS | SwiftUI, Swift 6, Xcode 26+, XcodeGen |
 | Database | Supabase (PostgreSQL + Auth + RLS) |
 | Shared | TypeScript strict, Zod schemas |
 | Orchestration | pnpm workspaces + Turborepo |
@@ -30,6 +31,60 @@
 | DR-008 | Centralized ApiClient with Mandatory Zod Validation | 2026-02-13 |
 | DR-009 | Signal Store Pattern with SWR | 2026-02-13 |
 | DR-010 | Greenlight Preflight & FormTextField `hint:` Rename | 2026-03-16 |
+| DR-011 | iOS Swift 6 Migration & Build Optimization | 2026-03-31 |
+
+---
+
+## DR-011: iOS Swift 6 Migration & Build Optimization
+
+**Date**: 2026-03-31
+
+### Problem
+
+Le projet iOS utilisait Swift 5.9 avec `SWIFT_STRICT_CONCURRENCY: complete` (warnings). Le build clean prenait ~52s avec un hotspot de type-checking de 5.2s sur `RootView.body` (133 lignes de modifiers chaînés). Plusieurs build settings n'étaient pas optimisés.
+
+### Decision Drivers
+
+- Swift 6 rend les violations de concurrency en erreurs — le projet était déjà prêt (0 warning)
+- `RootView.body` de 133 lignes causait un bottleneck type-checker sur le chemin critique du build
+- Build settings par défaut de XcodeGen n'activaient pas `EAGER_LINKING` ni `ONLY_ACTIVE_ARCH`
+- `COMPILATION_CACHING` testé et évalué deux fois (Swift 5.9 et Swift 6)
+
+### Options Considered
+
+| Option | Description | Verdict |
+|--------|-------------|---------|
+| A: Swift 6 + build optimization | Upgrade + refactor body + build settings | Chosen |
+| B: Rester en Swift 5.9 | Pas de migration, attendre Swift 6.x mature | Rejected — déjà prêt, zéro risque |
+| C: `-default-isolation MainActor` (Swift 6.2) | Tout MainActor par défaut | Rejected — ratio effort/bénéfice mauvais, ~60+ types à opt-out |
+| D: `COMPILATION_CACHING: YES` | Cache de compilation Xcode | Rejected — overhead scan +32% sur cached clean builds, projet trop petit (292 fichiers) |
+
+### Decision
+
+1. **Swift 6** : `SWIFT_VERSION: "6"` — 0 erreur app, 10 fixes tests (`nonisolated(unsafe)` pour captured vars, `Task.init` au lieu de `TaskGroup.addTask` pour contourner la limitation `sending` + `@MainActor`)
+2. **Refactor `RootView.body`** : Extraction en 2 `ViewModifier` (`RootViewAlerts`, `RootViewSheets`) + méthode `handleAppStart()` — type-check 5254ms → 715ms
+3. **Build settings** : `EAGER_LINKING: YES`, `ONLY_ACTIVE_ARCH: YES` dans `project.yml` base settings
+4. **`Task(name:)`** (Swift 6.2) : 8 tasks stockées/cancellables nommées pour visibilité Instruments
+5. **`COMPILATION_CACHING`** : évalué et **rejeté** — l'overhead de `ScanDependencies` (23s vs 10s) et `SwiftDriver` (33s vs 20s) dépasse les gains pour ce volume de code
+
+### Rationale
+
+- Swift 6 = 0 effort car `SWIFT_STRICT_CONCURRENCY: complete` avait déjà éliminé toutes les violations
+- Le refactor ViewModifier casse la chaîne de type-checking en unités indépendantes — gain mesurable sur le chemin critique
+- `-default-isolation MainActor` rejeté : retire ~44 annotations `@MainActor` (cosmétique) mais force l'ajout de `nonisolated` à ~60+ types/protocols (risque de régression sur les actors conformant aux protocols `Sendable`)
+- `COMPILATION_CACHING` rejeté après 2 benchmarks (Swift 5.9 et Swift 6) : le projet à 292 fichiers Swift ne génère pas assez de cache hits pour compenser le coût de vérification. À réévaluer à 500+ fichiers.
+
+### Consequences
+
+- **Positive** : Clean build ~49s (vs 52s), type-check `PulpeApp.body` 86% plus rapide, Swift 6 full strict
+- **Trade-off** : `nonisolated(unsafe)` dans 6 fichiers de tests — acceptable car closures séquentielles sur `@MainActor`
+- **Trade-off** : `ONLY_ACTIVE_ARCH: YES` en base (toutes configs) — correct pour iOS (arm64 uniquement) mais à vérifier si un target macOS/Catalyst est ajouté
+- **Impact** : `project.yml`, `PulpeApp.swift`, 10 fichiers tests, 6 fichiers stores (Task naming), 5 fichiers rules/agent
+
+### Notes
+
+- `ForEach(array.enumerated())` sans `Array()` : pas applicable, la conformance `Collection` de `EnumeratedSequence` est gated iOS 26.0+ et le deployment target est iOS 18.0
+- Surveiller Swift 6.3+ pour une amélioration du `COMPILATION_CACHING` et une stabilisation de `-default-isolation MainActor`
 
 ---
 
