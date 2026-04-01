@@ -66,7 +66,7 @@
     "ngx-unicode-spinners": "^1.0.0",
     "ngx-ziflux": "^0.0.11",
     "postcss": "^8.5.4",
-    "posthog-js": "^1.260.2",
+    "posthog-js": "^1.364.4",
     "pulpe-shared": "workspace:*",
     "rxjs": "~7.8.0",
     "tailwindcss": "^4.1.17",
