@@ -270,6 +270,7 @@ extension LoginView {
             appState.biometricError = nil
             isPresented?.wrappedValue = false
         } catch {
+            AnalyticsService.shared.captureAuthError(.loginFailed, error: error, method: "email")
             viewModel.errorMessage = AuthErrorLocalizer.localize(error)
             viewModel.isLoading = false
         }

@@ -44,12 +44,9 @@ actor KeychainManager {
     }
 
     func ensureAvailable() throws {
-        if let cached = isAvailableCache {
-            guard cached else { throw KeychainError.notAvailable }
-            return
-        }
+        if isAvailableCache == true { return }
         let available = Self.checkAvailability()
-        isAvailableCache = available
+        if available { isAvailableCache = true }
         guard available else { throw KeychainError.notAvailable }
     }
 
@@ -280,19 +277,29 @@ actor KeychainManager {
         ]
         let updateStatus = SecItemUpdate(baseQuery as CFDictionary, updateAttributes as CFDictionary)
 
-        // If item doesn't exist, create it
-        if updateStatus == errSecItemNotFound {
-            let addQuery: [String: Any] = [
-                kSecClass as String: kSecClassGenericPassword,
-                kSecAttrService as String: service,
-                kSecAttrAccount as String: key,
-                kSecValueData as String: data,
-                kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlockedThisDeviceOnly
-            ]
-            return SecItemAdd(addQuery as CFDictionary, nil)
+        switch updateStatus {
+        case errSecSuccess:
+            return errSecSuccess
+        case errSecItemNotFound:
+            break // Item doesn't exist — add below
+        default:
+            // Update failed (accessibility mismatch, corruption) — delete stale item and re-add
+            let deleteStatus = SecItemDelete(baseQuery as CFDictionary)
+            // Log key name only — never log value (may contain PII such as email)
+            Logger.auth.warning("Keychain update failed (\(updateStatus)), delete=\(deleteStatus) for key: \(key)")
+            guard deleteStatus == errSecSuccess || deleteStatus == errSecItemNotFound else {
+                return deleteStatus
+            }
         }
 
-        return updateStatus
+        let addQuery: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: key,
+            kSecValueData as String: data,
+            kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlockedThisDeviceOnly
+        ]
+        return SecItemAdd(addQuery as CFDictionary, nil)
     }
 
     private func get(key: String) -> String? {

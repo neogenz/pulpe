@@ -97,7 +97,10 @@ app_opened → welcome_screen_viewed → signup_started → onboarding_step_comp
 | `signup_started` | "Commencer" tapped on welcome | `method` (`email`) |
 | `onboarding_step_completed` | User completes onboarding step | `step` (`personal_info` \| `expenses` \| `budget_preview`) |
 | `signup_completed` | Registration succeeds | `method` (`email`) |
-| `login_completed` | Login succeeds | `method` (`email` \| `biometric`) |
+| `login_completed` | Login succeeds | `method` (`email` \| `biometric` \| `google` \| `apple`) |
+| `login_failed` | Login fails (any method) | `method`, `error_kind`, `error_message` |
+| `signup_failed` | Signup fails | `method`, `error_kind`, `error_message` |
+| `session_restore_failed` | Session restore at startup fails | `method`, `error_kind`, `error_message` |
 | `pin_setup_completed` | PIN created successfully | — |
 | `pin_entered` | PIN entered on return visit | — |
 | `budget_created` | Budget created | — |

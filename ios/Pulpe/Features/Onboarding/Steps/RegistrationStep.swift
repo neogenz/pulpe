@@ -179,9 +179,11 @@ extension RegistrationStep {
             state.isLoading = false
             onComplete(user)
         } catch let apiError as APIError {
+            AnalyticsService.shared.captureAuthError(.signupFailed, error: apiError, method: "email")
             state.error = apiError
             state.isLoading = false
         } catch {
+            AnalyticsService.shared.captureAuthError(.signupFailed, error: error, method: "email")
             let localizedMessage = AuthErrorLocalizer.localize(error)
             state.error = APIError.serverError(message: localizedMessage)
             state.isLoading = false

@@ -41,6 +41,15 @@ final class AnalyticsService {
         PostHogSDK.shared.capture(event.rawValue, properties: sanitized)
     }
 
+    func captureAuthError(_ event: AnalyticsEvent, error: Error, method: String) {
+        let kind = AuthErrorLocalizer.classify(error)
+        capture(event, properties: [
+            "method": method,
+            "error_kind": String(describing: kind),
+            "error_message": AuthErrorLocalizer.localize(error)
+        ])
+    }
+
     // MARK: - Screen Tracking
 
     func screen(_ name: String, properties: [String: Any] = [:]) {

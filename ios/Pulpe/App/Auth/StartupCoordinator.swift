@@ -304,7 +304,13 @@ actor StartupCoordinator {
             return .cancelled
         } catch {
             Logger.auth.warning("[STARTUP] Regular session validation failed: \(error)")
-            Logger.auth.info("[STARTUP] No valid session found - unauthenticated")
+            // AnalyticsService is @MainActor — hop required from actor context
+            await MainActor.run {
+                AnalyticsService.shared.captureAuthError(.sessionRestoreFailed, error: error, method: "regular")
+            }
+            if error is KeychainError {
+                return .biometricSessionExpired
+            }
             return .unauthenticated
         }
     }

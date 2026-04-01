@@ -87,6 +87,7 @@ struct SocialLoginSection: View {
             // User canceled or flow already in progress — no error
         } catch {
             Logger.auth.error("Apple sign-in failed: \(error.localizedDescription, privacy: .public)")
+            AnalyticsService.shared.captureAuthError(.loginFailed, error: error, method: "apple")
             errorMessage = socialErrorMessage(for: error)
         }
     }
@@ -115,6 +116,7 @@ struct SocialLoginSection: View {
             // User canceled or flow already in progress — no error
         } catch {
             Logger.auth.error("Google sign-in failed: \(error.localizedDescription, privacy: .public)")
+            AnalyticsService.shared.captureAuthError(.loginFailed, error: error, method: "google")
             errorMessage = socialErrorMessage(for: error)
         }
     }

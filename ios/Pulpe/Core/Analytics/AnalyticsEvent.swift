@@ -14,6 +14,9 @@ enum AnalyticsEvent: String, CaseIterable {
 
     // MARK: - Auth
     case loginCompleted = "login_completed"
+    case loginFailed = "login_failed"
+    case signupFailed = "signup_failed"
+    case sessionRestoreFailed = "session_restore_failed"
     case logoutCompleted = "logout_completed"
     case pinSetupCompleted = "pin_setup_completed"
     case pinEntered = "pin_entered"
