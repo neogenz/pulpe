@@ -304,6 +304,17 @@ struct AppStateCharacterizationTests {
         #expect(sut.pendingSocialUser == user)
         #expect(sut.hasReturningUser == false)
     }
+    @Test("resolvePostAuth needsPinSetup redirects even when hasReturningUser is true (PUL-102 regression guard)")
+    func resolvePostAuth_needsPinSetup_returningUserFlag_stillRedirects() async {
+        let sut = makeSUT(destination: .needsPinSetup)
+        sut.hasReturningUser = true
+        sut.returningUserFlagLoaded = true
+
+        await sut.resolvePostAuth(user: user)
+
+        #expect(sut.authState == .unauthenticated)
+        #expect(sut.pendingSocialUser == user)
+    }
 
     // MARK: - Section 4: Session Lifecycle Characterization
     @Test("handleEnterBackground then handleEnterForeground within grace keeps authenticated")
