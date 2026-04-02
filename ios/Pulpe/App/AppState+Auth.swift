@@ -34,6 +34,7 @@ extension AppState {
 
     private func prepareSession(user: UserInfo) async {
         clearPreLoginFlags()
+        await clientKeyManager.clearAll() // Clear stale biometric key from previous session
         if !user.email.isEmpty {
             await keychainManager.saveLastUsedEmail(user.email)
         }
