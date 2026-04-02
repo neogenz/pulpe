@@ -85,6 +85,8 @@ struct SocialLoginSection: View {
             }
         } catch AppleSignInError.canceled, AppleSignInError.inProgress {
             // User canceled or flow already in progress — no error
+        } catch is ExistingUserRedirectedError {
+            // Existing user — already redirected to login flow by authenticateForOnboarding
         } catch {
             Logger.auth.error("Apple sign-in failed: \(error.localizedDescription, privacy: .public)")
             AnalyticsService.shared.captureAuthError(.loginFailed, error: error, method: "apple")
@@ -114,6 +116,8 @@ struct SocialLoginSection: View {
             }
         } catch GoogleSignInError.canceled, GoogleSignInError.inProgress {
             // User canceled or flow already in progress — no error
+        } catch is ExistingUserRedirectedError {
+            // Existing user — already redirected to login flow by authenticateForOnboarding
         } catch {
             Logger.auth.error("Google sign-in failed: \(error.localizedDescription, privacy: .public)")
             AnalyticsService.shared.captureAuthError(.loginFailed, error: error, method: "google")

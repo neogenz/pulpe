@@ -1,3 +1,8 @@
+/// Thrown when a social signup detects an existing user with a configured vault.
+/// `authenticateForOnboarding` redirects to the login flow and throws this
+/// so that `SocialLoginSection` silently absorbs the control-flow change.
+struct ExistingUserRedirectedError: Error {}
+
 // MARK: - Auth (Login, Post-Auth Routing, Onboarding, PIN)
 
 extension AppState {
@@ -34,7 +39,16 @@ extension AppState {
 
     private func prepareSession(user: UserInfo) async {
         clearPreLoginFlags()
+
+        let previousEmail = await keychainManager.getLastUsedEmail()
+        let isSwitchingUser = previousEmail != nil && previousEmail != user.email
+
         await clientKeyManager.clearAll() // Clear stale biometric key from previous session
+
+        if isSwitchingUser {
+            await biometric.disable()
+        }
+
         if !user.email.isEmpty {
             await keychainManager.saveLastUsedEmail(user.email)
         }
@@ -193,6 +207,15 @@ extension AppState {
         authDebug(tag, "begin")
         let user = try await signIn()
         clearPreLoginFlags()
+
+        // Detect existing users with configured vault — redirect to login flow
+        let vaultStatus = try? await EncryptionAPI.shared.getVaultStatus()
+        if vaultStatus?.pinCodeConfigured == true {
+            authDebug(tag, "existing user detected — redirecting to login flow")
+            await completeLogin(user: user)
+            throw ExistingUserRedirectedError()
+        }
+
         authDebug(tag, "complete — deferring routing to onboarding")
         return user
     }
