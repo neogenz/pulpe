@@ -56,6 +56,7 @@ struct AppStateStrictPreconditionTests {
     @Test("completePinEntry when .needsPinSetup is a no-op")
     func completePinEntry_whenNeedsPinSetup_isNoOp() async {
         let sut = makeSUT(destination: .needsPinSetup)
+        sut.pendingOnboardingData = BudgetTemplateCreateFromOnboarding()
 
         await sut.resolvePostAuth(user: user)
         #expect(sut.authState == .needsPinSetup)

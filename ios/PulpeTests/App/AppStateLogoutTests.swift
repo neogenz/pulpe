@@ -213,6 +213,7 @@ struct AppStateLogoutTests {
     @Test("logout transitions from multiple auth states to unauthenticated")
     func logout_transitionsFromNeedsPinSetup() async throws {
         let sut = Self.makeAuthenticatedSUT(destination: .needsPinSetup)
+        sut.pendingOnboardingData = BudgetTemplateCreateFromOnboarding()
 
         let user = UserInfo(id: "user-pin-setup", email: "pinsetup@pulpe.app", firstName: "PinSetup")
         await sut.resolvePostAuth(user: user)
