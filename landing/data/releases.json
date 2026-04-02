@@ -1,5 +1,55 @@
 [
   {
+    "version": "0.32.0",
+    "date": "2026-04-02",
+    "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.32.0",
+    "platforms": ["web", "ios"],
+    "changes": {
+      "features": [
+        {
+          "title": "Suivi des releases PostHog",
+          "description": "Annotations automatiques, liaison des sources et suivi des versions dans PostHog pour le frontend et la landing page"
+        },
+        {
+          "title": "Migration Swift 6",
+          "description": "L'app iOS adopte le mode langage Swift 6 avec concurrence stricte"
+        },
+        {
+          "title": "Visibilité Instruments",
+          "description": "Les tâches asynchrones iOS sont nommées pour faciliter le profilage dans Instruments"
+        }
+      ],
+      "fixes": [
+        {
+          "title": "Connexion sociale iOS",
+          "description": "Les nouveaux utilisateurs via Apple/Google depuis l'écran de login sont correctement redirigés vers l'onboarding"
+        },
+        {
+          "title": "Clé biométrique périmée",
+          "description": "Nettoyage de la clé biométrique obsolète lors d'une nouvelle connexion pour éviter les blocages"
+        },
+        {
+          "title": "Résilience du trousseau",
+          "description": "Meilleure gestion des erreurs d'authentification et robustesse du Keychain iOS"
+        },
+        {
+          "title": "Feuille de clé de récupération",
+          "description": "Correction de la transparence et de l'identifiant sur iOS 26"
+        }
+      ],
+      "technical": [
+        {
+          "title": "Optimisation du build iOS",
+          "description": "Optimisation de la configuration de build et refactoring de la vue racine"
+        },
+        {
+          "title": "Mise à jour posthog-js",
+          "description": "Mise à jour de posthog-js (1.260.2 → 1.364.4)"
+        }
+      ]
+    }
+  },
+  {
     "version": "0.31.2",
     "date": "2026-03-29",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.31.2",

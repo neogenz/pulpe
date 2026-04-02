@@ -1,5 +1,11 @@
 # pulpe-landing
 
+## 0.31.0
+
+### Minor Changes
+
+- Suivi des releases PostHog avec annotations automatiques et liaison des sources.
+
 ## 0.30.1
 
 ### Patch Changes

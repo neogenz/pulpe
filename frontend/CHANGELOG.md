@@ -1,5 +1,11 @@
 # pulpe-frontend
 
+## 0.32.0
+
+### Minor Changes
+
+- Suivi des releases PostHog avec annotations automatiques et liaison des sources.
+
 ## 0.31.0
 
 ### Minor Changes
