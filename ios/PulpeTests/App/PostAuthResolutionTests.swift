@@ -71,6 +71,7 @@ struct PostAuthResolutionRouterTests {
 
         let resolver = StubPostAuthResolver(destination: destination)
         let sut = AppState(postAuthResolver: resolver)
+        sut.pendingOnboardingData = BudgetTemplateCreateFromOnboarding()
 
         await sut.resolvePostAuth(user: user)
 

@@ -236,6 +236,7 @@ struct AppStateFlowBridgeTests {
         let sut = AppState(
             postAuthResolver: MockPostAuthResolver(destination: .needsPinSetup)
         )
+        sut.pendingOnboardingData = BudgetTemplateCreateFromOnboarding()
         await sut.resolvePostAuth(user: testUser)
         #expect(sut.authState == .needsPinSetup)
 
@@ -294,6 +295,7 @@ struct AppStateFlowBridgeTests {
         let sut = AppState(
             postAuthResolver: MockPostAuthResolver(destination: .needsPinSetup)
         )
+        sut.pendingOnboardingData = BudgetTemplateCreateFromOnboarding()
         await sut.resolvePostAuth(user: testUser)
         #expect(sut.authState == .needsPinSetup)
 
