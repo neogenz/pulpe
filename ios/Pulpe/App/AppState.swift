@@ -203,7 +203,9 @@ final class AppState {
             validateKey: deps.validateBiometricKey
                 ?? BiometricManager.defaultValidateKey(deps.encryptionAPI)
         )
-        self.enrollmentPolicy = BiometricAutomaticEnrollmentPolicy()
+        self.enrollmentPolicy = BiometricAutomaticEnrollmentPolicy(
+            optOutStore: deps.biometricOptOutStore ?? UserDefaultsBiometricOptOutStore()
+        )
 
         let coordinators = Self.makeCoordinators(
             deps: deps, biometric: self.biometric,
@@ -298,6 +300,7 @@ final class AppState {
         syncBiometricCredentials: (@Sendable () async -> Bool)? = nil,
         resolveBiometricKey: (@Sendable () async -> String?)? = nil,
         validateBiometricKey: (@Sendable (String) async -> Bool)? = nil,
+        biometricOptOutStore: (any BiometricOptOutStoring)? = nil,
         setupRecoveryKey: (@Sendable () async throws -> String)? = nil,
         validateRegularSession: (@Sendable () async throws -> UserInfo?)? = nil,
         validateBiometricSession: (@Sendable () async throws -> BiometricSessionResult?)? = nil,
@@ -320,6 +323,7 @@ final class AppState {
             syncBiometricCredentials: syncBiometricCredentials,
             resolveBiometricKey: resolveBiometricKey,
             validateBiometricKey: validateBiometricKey,
+            biometricOptOutStore: biometricOptOutStore,
             setupRecoveryKey: setupRecoveryKey,
             validateRegularSession: validateRegularSession,
             validateBiometricSession: validateBiometricSession,
@@ -371,10 +375,12 @@ final class AppState {
 
     @discardableResult
     func enableBiometric() async -> Bool {
-        await biometric.enable(source: .manual, reason: "account_settings")
+        enrollmentPolicy.clearUserExplicitlyDisabled()
+        return await biometric.enable(source: .manual, reason: "account_settings")
     }
 
     func disableBiometric() async {
+        enrollmentPolicy.markUserExplicitlyDisabled()
         await biometric.disable()
     }
 

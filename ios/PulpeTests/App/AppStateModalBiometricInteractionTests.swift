@@ -20,7 +20,8 @@ struct AppStateModalBiometricInteractionTests {
                 defaults: StubBiometricDefaults(initial: false)
             ),
             biometricCapability: { true },
-            biometricAuthenticate: onAuthenticate ?? { }
+            biometricAuthenticate: onAuthenticate ?? { },
+            biometricOptOutStore: AppStateTestFactory.cleanOptOutStore
         )
     }
 
@@ -62,7 +63,7 @@ struct AppStateModalBiometricInteractionTests {
 
     @Test("Zero biometric prompts while recoveryFlowState is presentingKey")
     func recoveryKeySheetActive_skipsAutomaticEnrollment() async {
-        let policy = BiometricAutomaticEnrollmentPolicy()
+        let policy = BiometricAutomaticEnrollmentPolicy(optOutStore: AppStateTestFactory.biometricOptOutStore())
         policy.resetForNewTransition()
 
         let decision = policy.shouldAttempt(
@@ -116,7 +117,8 @@ struct AppStateModalBiometricInteractionTests {
                 defaults: StubBiometricDefaults(initial: false)
             ),
             biometricCapability: { true },
-            biometricAuthenticate: { await spy.recordAndWait() }
+            biometricAuthenticate: { await spy.recordAndWait() },
+            biometricOptOutStore: AppStateTestFactory.cleanOptOutStore
         )
 
         await sut.resolvePostAuth(user: user)
@@ -135,7 +137,7 @@ struct AppStateModalBiometricInteractionTests {
 
     @Test("BiometricAutomaticEnrollmentPolicy resets on new transition allowing retry")
     func policyReset_allowsRetryOnNextTransition() {
-        let policy = BiometricAutomaticEnrollmentPolicy()
+        let policy = BiometricAutomaticEnrollmentPolicy(optOutStore: AppStateTestFactory.biometricOptOutStore())
 
         // Transition N: mark as in-flight and complete
         policy.resetForNewTransition()

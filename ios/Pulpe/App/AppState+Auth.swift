@@ -1,3 +1,12 @@
+/// Result of a social auth attempt from the onboarding (signup) screen.
+/// Distinguishes new users (continue to onboarding) from existing users (redirect to login flow).
+enum SocialAuthResult: Sendable {
+    /// New user — no vault configured, continue to onboarding
+    case newUser(UserInfo)
+    /// Existing user — vault already configured, redirected to login flow (PIN entry)
+    case existingUserRedirected
+}
+
 // MARK: - Auth (Login, Post-Auth Routing, Onboarding, PIN)
 
 extension AppState {
@@ -34,7 +43,19 @@ extension AppState {
 
     private func prepareSession(user: UserInfo) async {
         clearPreLoginFlags()
-        await clientKeyManager.clearAll() // Clear stale biometric key from previous session
+
+        let previousEmail = await keychainManager.getLastUsedEmail()
+        let isSwitchingUser = previousEmail != nil && previousEmail != user.email
+
+        if isSwitchingUser {
+            authDebug("AUTH_SESSION", "user switch detected — clearing all keys + disabling biometric")
+            await clientKeyManager.clearAll()
+            await biometric.disable()
+            enrollmentPolicy.clearUserExplicitlyDisabled()
+        } else {
+            await clientKeyManager.clearSession()
+        }
+
         if !user.email.isEmpty {
             await keychainManager.saveLastUsedEmail(user.email)
         }
@@ -184,26 +205,41 @@ extension AppState {
 
     // MARK: - Social Auth for Onboarding (authenticate without routing)
 
-    /// Authenticates with a social provider without triggering post-auth routing.
+    /// Authenticates with a social provider and checks if the user already has a vault.
+    /// Returns `.existingUserRedirected` if the user already has a configured PIN (routed to login flow).
+    /// Returns `.newUser` if no vault exists (caller should continue to onboarding).
     /// Email is NOT saved to keychain — deferred to `completeOnboarding`.
     private func authenticateForOnboarding(
         tag: String,
         signIn: () async throws -> UserInfo
-    ) async throws -> UserInfo {
+    ) async throws -> SocialAuthResult {
         authDebug(tag, "begin")
         let user = try await signIn()
         clearPreLoginFlags()
+
+        // Detect existing users with configured vault — redirect to login flow
+        do {
+            let vaultStatus = try await encryptionAPI.getVaultStatus()
+            if vaultStatus.pinCodeConfigured {
+                authDebug(tag, "existing user detected — redirecting to login flow")
+                await completeLogin(user: user)
+                return .existingUserRedirected
+            }
+        } catch {
+            authDebug(tag, "vault status check failed — treating as new user: \(error)")
+        }
+
         authDebug(tag, "complete — deferring routing to onboarding")
-        return user
+        return .newUser(user)
     }
 
-    func authenticateWithApple(idToken: String, nonce: String) async throws -> UserInfo {
+    func authenticateWithApple(idToken: String, nonce: String) async throws -> SocialAuthResult {
         try await authenticateForOnboarding(tag: "AUTH_SOCIAL_ONBOARDING_APPLE") {
             try await authService.signInWithApple(idToken: idToken, nonce: nonce)
         }
     }
 
-    func authenticateWithGoogle(idToken: String, accessToken: String) async throws -> UserInfo {
+    func authenticateWithGoogle(idToken: String, accessToken: String) async throws -> SocialAuthResult {
         try await authenticateForOnboarding(tag: "AUTH_SOCIAL_ONBOARDING_GOOGLE") {
             try await authService.signInWithGoogle(idToken: idToken, accessToken: accessToken)
         }

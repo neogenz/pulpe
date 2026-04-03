@@ -237,7 +237,7 @@ actor StartupCoordinator {
         }
     }
 
-    private func handleBiometricValidationError(_ error: Error, runId: UUID) async -> StartupResult {
+    private func handleBiometricValidationError(_ error: Error, runId: UUID) async -> StartupResult? {
         if error is CancellationError {
             return .cancelled
         }
@@ -263,14 +263,14 @@ actor StartupCoordinator {
         }
     }
 
-    private func handleBiometricKeychainError(_ error: KeychainError, runId: UUID) async -> StartupResult {
+    private func handleBiometricKeychainError(_ error: KeychainError, runId: UUID) async -> StartupResult? {
         switch error {
         case .userCanceled:
-            Logger.auth.info("[STARTUP] Biometric auth cancelled by user")
-            return .unauthenticated
+            Logger.auth.info("[STARTUP] Biometric auth cancelled by user — falling back to regular session")
+            return nil
         case .authFailed:
-            Logger.auth.info("[STARTUP] Biometric auth failed")
-            return .unauthenticated
+            Logger.auth.info("[STARTUP] Biometric auth failed — falling back to regular session")
+            return nil
         default:
             Logger.auth.warning("[STARTUP] Biometric validation failed: \(error)")
             guard isCurrentRun(runId) else { return .cancelled }

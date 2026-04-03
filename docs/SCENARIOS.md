@@ -149,12 +149,12 @@
 
 ### 4.4 Modifier les lignes d'un modèle
 
-**Workflow** : Détails du modèle > Ouvrir l'édition des prévisions > Ajouter/modifier/supprimer des lignes > Choisir le mode de propagation : "Modèle uniquement" OU "Propager aux budgets futurs" > Valider
+**Workflow** : Détails du modèle > Ouvrir l'édition des prévisions > Ajouter/modifier/supprimer des lignes > Choisir le mode de mise à jour : "Modèle uniquement" OU "Appliquer aux mois suivants" > Valider
 
 **Critères** :
 - Si "Modèle uniquement" : seul le modèle est modifié, les budgets existants ne changent pas
-- Si "Propager aux futurs" : le modèle ET les budgets futurs non ajustés manuellement sont mis à jour
-- Les lignes marquées `is_manually_adjusted` dans les budgets ne sont jamais modifiées par la propagation
+- Si "Appliquer aux suivants" : le modèle ET les budgets futurs non ajustés manuellement sont mis à jour
+- Les lignes marquées `is_manually_adjusted` dans les budgets ne sont jamais modifiées par la mise à jour
 - Le nombre de budgets affectés est indiqué avant validation
 
 ### 4.5 Supprimer un modèle
@@ -221,7 +221,7 @@
 **Critères** :
 - Le montant affiché passe à 80
 - Le reste diminue de 30 supplémentaires (différence 80 - 50)
-- La ligne est marquée comme `is_manually_adjusted` (ne sera plus affectée par la propagation du modèle)
+- La ligne est marquée comme `is_manually_adjusted` (ne sera plus affectée par la mise à jour du modèle)
 - Un indicateur de verrouillage apparaît si la ligne est liée à un modèle
 
 ### 5.6 Supprimer une ligne de prévision

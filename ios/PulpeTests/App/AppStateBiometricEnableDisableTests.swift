@@ -13,7 +13,8 @@ struct AppStateBiometricEnableDisableTests {
     func enableBiometric_noBiometricCapability_returnsFalse() async {
         let sut = AppState(
             biometricPreferenceStore: AppStateTestFactory.biometricDisabledStore(),
-            biometricCapability: { false }
+            biometricCapability: { false },
+            biometricOptOutStore: AppStateTestFactory.cleanOptOutStore
         )
 
         let result = await sut.enableBiometric()
@@ -31,7 +32,8 @@ struct AppStateBiometricEnableDisableTests {
             biometricCapability: { true },
             biometricAuthenticate: {
                 throw DenialError()
-            }
+            },
+            biometricOptOutStore: AppStateTestFactory.cleanOptOutStore
         )
 
         let result = await sut.enableBiometric()
@@ -46,7 +48,8 @@ struct AppStateBiometricEnableDisableTests {
         let sut = AppState(
             biometricPreferenceStore: AppStateTestFactory.biometricDisabledStore(),
             biometricCapability: { true },
-            biometricAuthenticate: { } // succeeds
+            biometricAuthenticate: { }, // succeeds
+            biometricOptOutStore: AppStateTestFactory.cleanOptOutStore
         )
 
         let result = await sut.enableBiometric()
@@ -61,7 +64,8 @@ struct AppStateBiometricEnableDisableTests {
     func disableBiometric_clearsBiometricEnabled() async throws {
         let sut = AppState(
             biometricPreferenceStore: AppStateTestFactory.biometricEnabledStore(),
-            biometricCapability: { true }
+            biometricCapability: { true },
+            biometricOptOutStore: AppStateTestFactory.cleanOptOutStore
         )
 
         await sut.bootstrap()
@@ -76,7 +80,8 @@ struct AppStateBiometricEnableDisableTests {
     @Test("disableBiometric with already disabled biometric remains false")
     func disableBiometric_alreadyDisabled_remainsFalse() async throws {
         let sut = AppState(
-            biometricPreferenceStore: AppStateTestFactory.biometricDisabledStore()
+            biometricPreferenceStore: AppStateTestFactory.biometricDisabledStore(),
+            biometricOptOutStore: AppStateTestFactory.cleanOptOutStore
         )
 
         try #require(sut.biometricEnabled == false, "Setup: biometric should be disabled initially")
@@ -92,7 +97,8 @@ struct AppStateBiometricEnableDisableTests {
     func enableThenDisable_biometricToggles() async throws {
         let sut = AppState(
             biometricPreferenceStore: AppStateTestFactory.biometricDisabledStore(),
-            biometricCapability: { true }
+            biometricCapability: { true },
+            biometricOptOutStore: AppStateTestFactory.cleanOptOutStore
         )
 
         try #require(sut.biometricEnabled == false, "Setup: start with biometric disabled")
@@ -109,11 +115,12 @@ struct AppStateBiometricEnableDisableTests {
         #expect(sut.biometricEnabled == false, "Still disabled after disableBiometric")
     }
 
-    @Test("disableBiometric clears credentials availability")
-    func disableBiometric_clearsCredentialsAvailable() async {
+    @Test("disableBiometric hides UI via biometricEnabled while credentials remain available")
+    func disableBiometric_hidesUIWhileCredentialsRemainAvailable() async {
         let sut = AppState(
             biometricPreferenceStore: AppStateTestFactory.biometricEnabledStore(),
-            biometricCapability: { true }
+            biometricCapability: { true },
+            biometricOptOutStore: AppStateTestFactory.cleanOptOutStore
         )
 
         await sut.bootstrap()
@@ -123,6 +130,10 @@ struct AppStateBiometricEnableDisableTests {
         await sut.disableBiometric()
 
         #expect(sut.biometricEnabled == false, "biometricEnabled should be false")
+        #expect(
+            sut.biometricCredentialsAvailable == true,
+            "credentials remain available — UI is hidden by biometricEnabled being false"
+        )
         // Note: biometricCredentialsAvailable is not explicitly cleared by disableBiometric(),
         // but biometricEnabled being false prevents its use (Face ID button hidden via &&).
     }
@@ -136,7 +147,8 @@ struct AppStateBiometricEnableDisableTests {
             biometricCapability: { true },
             biometricAuthenticate: {
                 await authSpy.recordCallAndDelay()
-            }
+            },
+            biometricOptOutStore: AppStateTestFactory.cleanOptOutStore
         )
 
         let user = UserInfo(id: "concurrency-user", email: "concurrency@pulpe.app", firstName: "Concurrent")
@@ -161,7 +173,8 @@ struct AppStateBiometricEnableDisableTests {
             biometricCapability: { true },
             biometricAuthenticate: {
                 await authSpy.recordCallAndDelay()
-            }
+            },
+            biometricOptOutStore: AppStateTestFactory.cleanOptOutStore
         )
 
         let user = UserInfo(id: "recovery-consent-user", email: "recovery-consent@pulpe.app", firstName: "Recovery")
