@@ -66,7 +66,8 @@ struct CurrentMonthView: View {
                     Button("Créer un budget") {
                         showCreateBudget = true
                     }
-                    .primaryButtonStyle()
+                    .disabled(budgetListStore.nextAvailableMonth == nil)
+                    .primaryButtonStyle(isEnabled: budgetListStore.nextAvailableMonth != nil)
                 }
                 .padding(DesignTokens.Spacing.xxxl)
                 .transition(.opacity)
@@ -111,7 +112,8 @@ struct CurrentMonthView: View {
                 CreateBudgetView(
                     month: nextMonth.month,
                     year: nextMonth.year
-                ) { _ in
+                ) { budget in
+                    budgetListStore.addBudget(budget)
                     store.invalidateCache()
                     Task {
                         await store.loadDetailsIfNeeded()
