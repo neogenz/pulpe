@@ -2,13 +2,10 @@ import Foundation
 @testable import Pulpe
 import Testing
 
-/// Tests for cross-user biometric contamination:
-/// When user A (biometric enabled) logs out and user B logs in,
-/// the stale biometric key from user A must not grant access to user B's vault.
-///
-/// Two defense layers:
-/// 1. `prepareSession` proactively disables biometric on user switch (not testable via public API)
-/// 2. `attemptBiometricUnlock` reactively detects stale key and disables biometric (tested here)
+/// Tests for social auth edge cases:
+/// 1. Cross-user biometric contamination (stale key detection)
+/// 2. Same-user biometric preservation
+/// 3. SocialAuthResult enum correctness
 @MainActor
 @Suite(.serialized)
 struct AppStateSocialAuthTests {
@@ -77,13 +74,29 @@ struct AppStateSocialAuthTests {
         #expect(validateCalled.value == false, "Server should not be called when no key is available")
     }
 
-    // MARK: - ExistingUserRedirectedError
+    // MARK: - SocialAuthResult
 
-    @Test("ExistingUserRedirectedError is a distinct error type")
-    func existingUserError_isDistinct() {
-        let error: Error = ExistingUserRedirectedError()
+    @Test("SocialAuthResult.newUser carries UserInfo")
+    func socialAuthResult_newUser_carriesUserInfo() {
+        let user = UserInfo(id: "test", email: "test@pulpe.app", firstName: "Test")
+        let result = SocialAuthResult.newUser(user)
 
-        #expect(error is ExistingUserRedirectedError)
-        #expect(!(error is CancellationError))
+        if case .newUser(let carried) = result {
+            #expect(carried.id == "test")
+            #expect(carried.email == "test@pulpe.app")
+        } else {
+            Issue.record("Expected .newUser, got \(result)")
+        }
+    }
+
+    @Test("SocialAuthResult.existingUserRedirected has no payload")
+    func socialAuthResult_existingUser_noPayload() {
+        let result = SocialAuthResult.existingUserRedirected
+
+        if case .existingUserRedirected = result {
+            // OK
+        } else {
+            Issue.record("Expected .existingUserRedirected, got \(result)")
+        }
     }
 }

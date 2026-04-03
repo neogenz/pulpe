@@ -645,7 +645,7 @@ struct StartupCoordinatorBiometricDismissTests {
         )
     }
 
-    @Test func start_biometricUserCanceled_returnsUnauthenticated_preservesBiometricState() async {
+    @Test func start_biometricUserCanceled_noRegularSession_returnsUnauthenticated() async {
         let expiredHandled = AtomicFlag()
         let sut = makeCoordinator(
             validateBiometricSession: { throw KeychainError.userCanceled },
@@ -657,11 +657,11 @@ struct StartupCoordinatorBiometricDismissTests {
         )
         let result = await sut.start(context: context)
 
-        #expect(result == .unauthenticated)
+        #expect(result == .unauthenticated, "No regular session → unauthenticated")
         #expect(expiredHandled.value == false, "Biometric state must NOT be cleared on user cancel")
     }
 
-    @Test func start_biometricAuthFailed_returnsUnauthenticated_preservesBiometricState() async {
+    @Test func start_biometricAuthFailed_noRegularSession_returnsUnauthenticated() async {
         let expiredHandled = AtomicFlag()
         let sut = makeCoordinator(
             validateBiometricSession: { throw KeychainError.authFailed },
@@ -673,7 +673,55 @@ struct StartupCoordinatorBiometricDismissTests {
         )
         let result = await sut.start(context: context)
 
-        #expect(result == .unauthenticated)
+        #expect(result == .unauthenticated, "No regular session → unauthenticated")
         #expect(expiredHandled.value == false, "Biometric state must NOT be cleared on auth failure")
+    }
+
+    // MARK: - Biometric Failure + Regular Session Fallback
+
+    @Test func start_biometricUserCanceled_withRegularSession_fallsBackToAuthenticated() async {
+        let user = UserInfo(id: "test", email: "test@pulpe.app", firstName: "Test")
+        let sut = StartupCoordinator(
+            checkMaintenance: { false },
+            validateBiometricSession: { throw KeychainError.userCanceled },
+            validateRegularSession: { user },
+            resolvePostAuth: { .needsPinEntry(needsRecoveryKeyConsent: false) },
+            clearExpiredBiometricState: { }
+        )
+
+        let context = StartupCoordinator.StartupContext(
+            biometricEnabled: true, didExplicitLogout: false, manualBiometricRetryRequired: false
+        )
+        let result = await sut.start(context: context)
+
+        if case .authenticated(let resultUser, let destination) = result {
+            #expect(resultUser.id == "test")
+            #expect(destination == .needsPinEntry(needsRecoveryKeyConsent: false))
+        } else {
+            Issue.record("Expected .authenticated with regular session fallback, got \(result)")
+        }
+    }
+
+    @Test func start_biometricAuthFailed_withRegularSession_fallsBackToAuthenticated() async {
+        let user = UserInfo(id: "test", email: "test@pulpe.app", firstName: "Test")
+        let sut = StartupCoordinator(
+            checkMaintenance: { false },
+            validateBiometricSession: { throw KeychainError.authFailed },
+            validateRegularSession: { user },
+            resolvePostAuth: { .needsPinEntry(needsRecoveryKeyConsent: false) },
+            clearExpiredBiometricState: { }
+        )
+
+        let context = StartupCoordinator.StartupContext(
+            biometricEnabled: true, didExplicitLogout: false, manualBiometricRetryRequired: false
+        )
+        let result = await sut.start(context: context)
+
+        if case .authenticated(let resultUser, let destination) = result {
+            #expect(resultUser.id == "test")
+            #expect(destination == .needsPinEntry(needsRecoveryKeyConsent: false))
+        } else {
+            Issue.record("Expected .authenticated with regular session fallback, got \(result)")
+        }
     }
 }

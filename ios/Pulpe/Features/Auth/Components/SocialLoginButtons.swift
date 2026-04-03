@@ -75,9 +75,17 @@ struct SocialLoginSection: View {
             let (idToken, nonce) = result
 
             if let onAuthenticated {
-                let user = try await appState.authenticateWithApple(idToken: idToken, nonce: nonce)
-                AnalyticsService.shared.capture(.loginCompleted, properties: ["method": "apple_onboarding"])
-                await onAuthenticated(user)
+                let result = try await appState.authenticateWithApple(idToken: idToken, nonce: nonce)
+                switch result {
+                case .newUser(let user):
+                    AnalyticsService.shared.capture(.loginCompleted, properties: ["method": "apple_onboarding"])
+                    await onAuthenticated(user)
+                case .existingUserRedirected:
+                    AnalyticsService.shared.capture(
+                        .loginCompleted,
+                        properties: ["method": "apple", "source": "signup_redirect"]
+                    )
+                }
             } else {
                 try await appState.loginWithApple(idToken: idToken, nonce: nonce)
                 AnalyticsService.shared.capture(.loginCompleted, properties: ["method": "apple"])
@@ -85,11 +93,6 @@ struct SocialLoginSection: View {
             }
         } catch AppleSignInError.canceled, AppleSignInError.inProgress {
             // User canceled or flow already in progress — no error
-        } catch is ExistingUserRedirectedError {
-            AnalyticsService.shared.capture(
-                .loginCompleted,
-                properties: ["method": "apple", "source": "signup_redirect"]
-            )
         } catch {
             Logger.auth.error("Apple sign-in failed: \(error.localizedDescription, privacy: .public)")
             AnalyticsService.shared.captureAuthError(.loginFailed, error: error, method: "apple")
@@ -109,9 +112,17 @@ struct SocialLoginSection: View {
             let (idToken, accessToken) = result
 
             if let onAuthenticated {
-                let user = try await appState.authenticateWithGoogle(idToken: idToken, accessToken: accessToken)
-                AnalyticsService.shared.capture(.loginCompleted, properties: ["method": "google_onboarding"])
-                await onAuthenticated(user)
+                let result = try await appState.authenticateWithGoogle(idToken: idToken, accessToken: accessToken)
+                switch result {
+                case .newUser(let user):
+                    AnalyticsService.shared.capture(.loginCompleted, properties: ["method": "google_onboarding"])
+                    await onAuthenticated(user)
+                case .existingUserRedirected:
+                    AnalyticsService.shared.capture(
+                        .loginCompleted,
+                        properties: ["method": "google", "source": "signup_redirect"]
+                    )
+                }
             } else {
                 try await appState.loginWithGoogle(idToken: idToken, accessToken: accessToken)
                 AnalyticsService.shared.capture(.loginCompleted, properties: ["method": "google"])
@@ -119,11 +130,6 @@ struct SocialLoginSection: View {
             }
         } catch GoogleSignInError.canceled, GoogleSignInError.inProgress {
             // User canceled or flow already in progress — no error
-        } catch is ExistingUserRedirectedError {
-            AnalyticsService.shared.capture(
-                .loginCompleted,
-                properties: ["method": "google", "source": "signup_redirect"]
-            )
         } catch {
             Logger.auth.error("Google sign-in failed: \(error.localizedDescription, privacy: .public)")
             AnalyticsService.shared.captureAuthError(.loginFailed, error: error, method: "google")
