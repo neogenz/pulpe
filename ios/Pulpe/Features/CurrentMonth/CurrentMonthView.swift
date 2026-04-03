@@ -5,6 +5,7 @@ private enum SheetDestination: Identifiable {
     case addTransaction
     case realizedBalance
     case account
+    case createBudget
 
     var id: Self { self }
 }
@@ -15,7 +16,6 @@ struct CurrentMonthView: View {
     @Environment(BudgetListStore.self) private var budgetListStore
     @Environment(UserSettingsStore.self) private var userSettingsStore
     @State private var activeSheet: SheetDestination?
-    @State private var showCreateBudget = false
     @State private var navigateToBudget = false
     @State private var hasAppeared = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -63,11 +63,12 @@ struct CurrentMonthView: View {
                         .font(PulpeTypography.bodyLarge)
                         .foregroundStyle(Color.textTertiary)
                         .multilineTextAlignment(.center)
+                    let canCreateBudget = budgetListStore.nextAvailableMonth != nil
                     Button("Créer un budget") {
-                        showCreateBudget = true
+                        activeSheet = .createBudget
                     }
-                    .disabled(budgetListStore.nextAvailableMonth == nil)
-                    .primaryButtonStyle(isEnabled: budgetListStore.nextAvailableMonth != nil)
+                    .disabled(!canCreateBudget)
+                    .primaryButtonStyle(isEnabled: canCreateBudget)
                 }
                 .padding(DesignTokens.Spacing.xxxl)
                 .transition(.opacity)
@@ -105,18 +106,17 @@ struct CurrentMonthView: View {
                 )
             case .account:
                 AccountView()
-            }
-        }
-        .sheet(isPresented: $showCreateBudget) {
-            if let nextMonth = budgetListStore.nextAvailableMonth {
-                CreateBudgetView(
-                    month: nextMonth.month,
-                    year: nextMonth.year
-                ) { budget in
-                    budgetListStore.addBudget(budget)
-                    store.invalidateCache()
-                    Task {
-                        await store.loadDetailsIfNeeded()
+            case .createBudget:
+                if let nextMonth = budgetListStore.nextAvailableMonth {
+                    CreateBudgetView(
+                        month: nextMonth.month,
+                        year: nextMonth.year
+                    ) { budget in
+                        budgetListStore.addBudget(budget)
+                        store.invalidateCache()
+                        Task {
+                            await store.loadDetailsIfNeeded()
+                        }
                     }
                 }
             }
