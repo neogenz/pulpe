@@ -472,7 +472,7 @@ test.describe('Envelope Check/Uncheck Cascade', () => {
       authenticatedPage.getByText('Pointer les transactions ?'),
     ).toBeVisible();
 
-    // Decline cascade - click "Non, juste l'enveloppe"
+    // Decline cascade - click "Non, juste la prévision"
     await authenticatedPage
       .getByTestId('confirmation-cancel-button')
       .click();

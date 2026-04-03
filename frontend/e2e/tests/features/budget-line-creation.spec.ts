@@ -76,7 +76,7 @@ test.describe('Budget Line Creation', () => {
 
     await budgetDetailsPage.goto(budgetId);
 
-    // Click "Ajouter une enveloppe"
+    // Click "Ajouter une prévision"
     await authenticatedPage
       .getByTestId('add-budget-line')
       .click();
