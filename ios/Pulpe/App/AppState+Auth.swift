@@ -43,11 +43,12 @@ extension AppState {
         let previousEmail = await keychainManager.getLastUsedEmail()
         let isSwitchingUser = previousEmail != nil && previousEmail != user.email
 
-        await clientKeyManager.clearAll()
-
         if isSwitchingUser {
-            authDebug("AUTH_SESSION", "user switch detected — disabling biometric")
+            authDebug("AUTH_SESSION", "user switch detected — clearing all keys + disabling biometric")
+            await clientKeyManager.clearAll()
             await biometric.disable()
+        } else {
+            await clientKeyManager.clearSession()
         }
 
         if !user.email.isEmpty {
