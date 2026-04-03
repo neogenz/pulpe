@@ -10,6 +10,7 @@ final class BiometricAutomaticEnrollmentPolicy {
         case modalActive = "modal_active"
         case sourceNotEligible = "source_not_eligible"
         case notAuthenticated = "not_authenticated"
+        case userExplicitlyDisabled = "user_explicitly_disabled"
     }
 
     enum Outcome: String, Equatable {
@@ -25,10 +26,24 @@ final class BiometricAutomaticEnrollmentPolicy {
     private(set) var inFlight = false
     private(set) var lastDecision: PolicyDecision?
     private var attemptedThisTransition = false
+    private(set) var userExplicitlyDisabled = false
 
     func resetForNewTransition() {
         attemptedThisTransition = false
         policyDebug("RESET", context: "new_transition")
+    }
+
+    /// Mark that the user explicitly opted out of biometric. Prevents auto-enrollment
+    /// until the user manually re-enables biometric in settings.
+    func markUserExplicitlyDisabled() {
+        userExplicitlyDisabled = true
+        policyDebug("EXPLICIT_DISABLE", context: "user_action")
+    }
+
+    /// Clear the explicit opt-out flag (called when user manually re-enables biometric).
+    func clearUserExplicitlyDisabled() {
+        userExplicitlyDisabled = false
+        policyDebug("EXPLICIT_DISABLE_CLEARED", context: "user_action")
     }
 
     // swiftlint:disable:next function_parameter_count
@@ -55,6 +70,8 @@ final class BiometricAutomaticEnrollmentPolicy {
             decision = .skip(.capabilityUnavailable)
         } else if biometricEnabled {
             decision = .skip(.alreadyEnabled)
+        } else if userExplicitlyDisabled {
+            decision = .skip(.userExplicitlyDisabled)
         } else if hasActiveModal {
             decision = .skip(.modalActive)
         } else {

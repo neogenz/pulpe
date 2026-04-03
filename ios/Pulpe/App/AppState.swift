@@ -371,10 +371,12 @@ final class AppState {
 
     @discardableResult
     func enableBiometric() async -> Bool {
-        await biometric.enable(source: .manual, reason: "account_settings")
+        enrollmentPolicy.clearUserExplicitlyDisabled()
+        return await biometric.enable(source: .manual, reason: "account_settings")
     }
 
     func disableBiometric() async {
+        enrollmentPolicy.markUserExplicitlyDisabled()
         await biometric.disable()
     }
 
