@@ -70,6 +70,11 @@ extension AppState {
         case .regularSession(let user):
             await resolvePostAuth(user: user)
         case .unauthenticated:
+            // No tokens at all — biometric preference is stale, disable to hide the button
+            if biometricEnabled {
+                authDebug("AUTH_COLD_START_RESULT", "no session — clearing stale biometric preference")
+                await biometric.disable()
+            }
             await ensureReturningUserFlagLoaded()
             authState = .unauthenticated
         case .networkError(let message):
