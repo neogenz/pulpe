@@ -70,7 +70,7 @@ struct CreateBudgetView: View {
         .standardSheetPresentation()
         .sheet(isPresented: $showCreateTemplate) {
             CreateTemplateView { _ in
-                Task { await viewModel.loadTemplates() }
+                Task(name: "CreateBudget.reloadTemplates") { await viewModel.loadTemplates() }
             }
         }
     }
