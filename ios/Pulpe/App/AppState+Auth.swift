@@ -43,9 +43,10 @@ extension AppState {
         let previousEmail = await keychainManager.getLastUsedEmail()
         let isSwitchingUser = previousEmail != nil && previousEmail != user.email
 
-        await clientKeyManager.clearAll() // Clear stale biometric key from previous session
+        await clientKeyManager.clearAll()
 
         if isSwitchingUser {
+            authDebug("AUTH_SESSION", "user switch detected — disabling biometric")
             await biometric.disable()
         }
 
@@ -209,11 +210,17 @@ extension AppState {
         clearPreLoginFlags()
 
         // Detect existing users with configured vault — redirect to login flow
-        let vaultStatus = try? await EncryptionAPI.shared.getVaultStatus()
-        if vaultStatus?.pinCodeConfigured == true {
-            authDebug(tag, "existing user detected — redirecting to login flow")
-            await completeLogin(user: user)
+        do {
+            let vaultStatus = try await EncryptionAPI.shared.getVaultStatus()
+            if vaultStatus.pinCodeConfigured {
+                authDebug(tag, "existing user detected — redirecting to login flow")
+                await completeLogin(user: user)
+                throw ExistingUserRedirectedError()
+            }
+        } catch is ExistingUserRedirectedError {
             throw ExistingUserRedirectedError()
+        } catch {
+            authDebug(tag, "vault status check failed — treating as new user: \(error)")
         }
 
         authDebug(tag, "complete — deferring routing to onboarding")
