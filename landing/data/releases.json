@@ -1,5 +1,29 @@
 [
   {
+    "version": "0.32.1",
+    "date": "2026-04-03",
+    "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.32.1",
+    "platforms": ["web", "ios"],
+    "changes": {
+      "features": [],
+      "fixes": [
+        {
+          "title": "Authentification biométrique",
+          "description": "Correction de plusieurs problèmes de fiabilité sur iOS : préservation de la clé lors de la reconnexion, repli vers la session classique en cas d'échec au démarrage, et respect du choix de désactivation par l'utilisateur"
+        },
+        {
+          "title": "Inscription sociale",
+          "description": "Un utilisateur existant qui tente de s'inscrire via un réseau social est désormais redirigé vers la connexion au lieu d'obtenir une erreur"
+        },
+        {
+          "title": "Libellé « Appliquer aux mois suivants »",
+          "description": "Le bouton « Propager » dans les modèles est renommé pour une meilleure compréhension"
+        }
+      ],
+      "technical": []
+    }
+  },
+  {
     "version": "0.32.0",
     "date": "2026-04-02",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.32.0",
