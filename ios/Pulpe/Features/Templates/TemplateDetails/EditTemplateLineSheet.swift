@@ -76,8 +76,8 @@ struct EditTemplateLineSheet: View {
                 usageFetchFailed = true
             }
         }
-        .alert("Propager aux budgets ?", isPresented: $showPropagationAlert) {
-            Button("Propager") {
+        .alert("Appliquer aux mois suivants ?", isPresented: $showPropagationAlert) {
+            Button("Appliquer") {
                 Task { await saveAndPropagateToBudgets() }
             }
             Button("Modèle uniquement") {
@@ -93,7 +93,7 @@ struct EditTemplateLineSheet: View {
                 : "Ce modèle est utilisé par \(count) \(count == 1 ? "budget" : "budgets")."
             Text("""
                 \(intro)\n\n\
-                « Propager » appliquera les modifications aux budgets en cours et futurs. \
+                « Appliquer » mettra à jour les budgets en cours et futurs. \
                 Les catégories modifiées manuellement ne seront pas affectées.
                 """)
         }

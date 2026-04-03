@@ -69,9 +69,9 @@ Mar: income=5100, expenses=5200, rollover=900  → ending=800
 
 ### RG-001: Template ↔ Budget Sync
 
-- Template changes offer: "Don't propagate" or "Propagate to future months"
+- Template changes offer: "Template only" or "Apply to future months"
 - Manually adjusted budget lines (`is_manually_adjusted = true`) never modified
-- Never propagates to past months
+- Never applies to past months
 
 ### RG-002: Budget Line Consumption States
 
