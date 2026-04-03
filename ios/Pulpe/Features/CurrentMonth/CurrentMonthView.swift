@@ -29,6 +29,10 @@ struct CurrentMonthView: View {
         }
     }
 
+    private var canCreateBudget: Bool {
+        budgetListStore.nextAvailableMonth != nil
+    }
+
     private var timeElapsedPercentage: Double {
         guard let budget = store.budget else { return 0 }
         return BudgetPeriodCalculator.timeElapsedPercentage(
@@ -63,7 +67,6 @@ struct CurrentMonthView: View {
                         .font(PulpeTypography.bodyLarge)
                         .foregroundStyle(Color.textTertiary)
                         .multilineTextAlignment(.center)
-                    let canCreateBudget = budgetListStore.nextAvailableMonth != nil
                     Button("Créer un budget") {
                         activeSheet = .createBudget
                     }
