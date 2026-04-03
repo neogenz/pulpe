@@ -8,6 +8,7 @@ struct CreateBudgetView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var viewModel: CreateBudgetViewModel
     @State private var hasAppeared = false
+    @State private var showCreateTemplate = false
 
     init(month: Int, year: Int, onCreate: @escaping (Budget) -> Void) {
         self.month = month
@@ -67,6 +68,11 @@ struct CreateBudgetView: View {
             }
         }
         .standardSheetPresentation()
+        .sheet(isPresented: $showCreateTemplate) {
+            CreateTemplateView { _ in
+                Task { await viewModel.loadTemplates() }
+            }
+        }
     }
 
     // MARK: - Create Button
@@ -187,13 +193,20 @@ struct CreateBudgetView: View {
                 .font(PulpeTypography.subheadline)
                 .foregroundStyle(Color.textSecondary)
 
-            Text("Crée d'abord un modèle dans l'onglet Modèles")
+            Text("Crée-en un pour préparer ton budget")
                 .font(PulpeTypography.detailLabel)
                 .foregroundStyle(Color.textTertiary)
                 .multilineTextAlignment(.center)
+
+            Button("Créer un modèle") {
+                showCreateTemplate = true
+            }
+            .primaryButtonStyle()
+            .padding(.top, DesignTokens.Spacing.sm)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, DesignTokens.Spacing.xxxl)
+        .padding(.horizontal, DesignTokens.Spacing.lg)
         .pulpeCardBackground(cornerRadius: DesignTokens.CornerRadius.md)
     }
 

@@ -12,8 +12,10 @@ private enum SheetDestination: Identifiable {
 struct CurrentMonthView: View {
     @Environment(AppState.self) private var appState
     @Environment(CurrentMonthStore.self) private var store
+    @Environment(BudgetListStore.self) private var budgetListStore
     @Environment(UserSettingsStore.self) private var userSettingsStore
     @State private var activeSheet: SheetDestination?
+    @State private var showCreateBudget = false
     @State private var navigateToBudget = false
     @State private var hasAppeared = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -61,6 +63,10 @@ struct CurrentMonthView: View {
                         .font(PulpeTypography.bodyLarge)
                         .foregroundStyle(Color.textTertiary)
                         .multilineTextAlignment(.center)
+                    Button("Créer un budget") {
+                        showCreateBudget = true
+                    }
+                    .primaryButtonStyle()
                 }
                 .padding(DesignTokens.Spacing.xxxl)
                 .transition(.opacity)
@@ -98,6 +104,19 @@ struct CurrentMonthView: View {
                 )
             case .account:
                 AccountView()
+            }
+        }
+        .sheet(isPresented: $showCreateBudget) {
+            if let nextMonth = budgetListStore.nextAvailableMonth {
+                CreateBudgetView(
+                    month: nextMonth.month,
+                    year: nextMonth.year
+                ) { _ in
+                    store.invalidateCache()
+                    Task {
+                        await store.loadDetailsIfNeeded()
+                    }
+                }
             }
         }
         .task {
