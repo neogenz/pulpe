@@ -49,6 +49,7 @@ struct AppStateCharacterizationTests {
             syncBiometricCredentials: syncBiometricCredentials,
             resolveBiometricKey: resolveBiometricKey,
             validateBiometricKey: validateBiometricKey,
+            biometricOptOutStore: AppStateTestFactory.cleanOptOutStore,
             setupRecoveryKey: setupRecoveryKey,
             validateRegularSession: validateRegularSession,
             validateBiometricSession: validateBiometricSession,

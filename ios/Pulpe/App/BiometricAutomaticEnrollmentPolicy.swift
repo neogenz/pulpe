@@ -1,5 +1,24 @@
 import OSLog
 
+/// Protocol for persisting the user's explicit biometric opt-out preference.
+protocol BiometricOptOutStoring: Sendable {
+    func loadOptOut() -> Bool
+    func saveOptOut(_ value: Bool)
+}
+
+/// UserDefaults-backed implementation. Thread-safe per Apple documentation.
+struct UserDefaultsBiometricOptOutStore: BiometricOptOutStoring {
+    private static let key = "pulpe-biometric-user-explicitly-disabled"
+
+    func loadOptOut() -> Bool {
+        UserDefaults.standard.bool(forKey: Self.key)
+    }
+
+    func saveOptOut(_ value: Bool) {
+        UserDefaults.standard.set(value, forKey: Self.key)
+    }
+}
+
 @MainActor
 final class BiometricAutomaticEnrollmentPolicy {
     enum SkipReason: String, Equatable {
@@ -26,23 +45,30 @@ final class BiometricAutomaticEnrollmentPolicy {
     private(set) var inFlight = false
     private(set) var lastDecision: PolicyDecision?
     private var attemptedThisTransition = false
-    private(set) var userExplicitlyDisabled = false
+    private(set) var userExplicitlyDisabled: Bool
+    private let optOutStore: any BiometricOptOutStoring
+
+    init(optOutStore: any BiometricOptOutStoring = UserDefaultsBiometricOptOutStore()) {
+        self.optOutStore = optOutStore
+        self.userExplicitlyDisabled = optOutStore.loadOptOut()
+    }
 
     func resetForNewTransition() {
         attemptedThisTransition = false
         policyDebug("RESET", context: "new_transition")
     }
 
-    /// Mark that the user explicitly opted out of biometric. Prevents auto-enrollment
-    /// until the user manually re-enables biometric in settings.
+    /// Mark that the user explicitly opted out of biometric. Persisted across app launches.
     func markUserExplicitlyDisabled() {
         userExplicitlyDisabled = true
+        optOutStore.saveOptOut(true)
         policyDebug("EXPLICIT_DISABLE", context: "user_action")
     }
 
     /// Clear the explicit opt-out flag (called when user manually re-enables biometric).
     func clearUserExplicitlyDisabled() {
         userExplicitlyDisabled = false
+        optOutStore.saveOptOut(false)
         policyDebug("EXPLICIT_DISABLE_CLEARED", context: "user_action")
     }
 

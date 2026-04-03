@@ -51,6 +51,7 @@ extension AppState {
             authDebug("AUTH_SESSION", "user switch detected — clearing all keys + disabling biometric")
             await clientKeyManager.clearAll()
             await biometric.disable()
+            enrollmentPolicy.clearUserExplicitlyDisabled()
         } else {
             await clientKeyManager.clearSession()
         }
@@ -218,7 +219,7 @@ extension AppState {
 
         // Detect existing users with configured vault — redirect to login flow
         do {
-            let vaultStatus = try await EncryptionAPI.shared.getVaultStatus()
+            let vaultStatus = try await encryptionAPI.getVaultStatus()
             if vaultStatus.pinCodeConfigured {
                 authDebug(tag, "existing user detected — redirecting to login flow")
                 await completeLogin(user: user)

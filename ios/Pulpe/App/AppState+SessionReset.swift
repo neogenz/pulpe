@@ -182,6 +182,7 @@ extension AppState {
         }
 
         await keychainManager.clearLastUsedEmail()
+        enrollmentPolicy.clearUserExplicitlyDisabled()
         hasReturningUser = false
         returningUserFlagLoaded = true
         OnboardingState.clearPersistedData()

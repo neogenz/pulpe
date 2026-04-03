@@ -202,4 +202,28 @@ enum AppStateTestFactory {
     static func keychainStore(lastUsedEmail: String? = nil) -> MockKeychainStore {
         MockKeychainStore(lastUsedEmail: lastUsedEmail)
     }
+
+    /// In-memory opt-out store that avoids UserDefaults pollution in tests.
+    static func biometricOptOutStore(optedOut: Bool = false) -> InMemoryBiometricOptOutStore {
+        InMemoryBiometricOptOutStore(initial: optedOut)
+    }
+
+    /// Clean in-memory opt-out store (false). Pass to AppState convenience init
+    /// to avoid UserDefaults pollution in tests.
+    static var cleanOptOutStore: InMemoryBiometricOptOutStore { InMemoryBiometricOptOutStore() }
+}
+
+// MARK: - InMemoryBiometricOptOutStore
+
+final class InMemoryBiometricOptOutStore: BiometricOptOutStoring, @unchecked Sendable {
+    private var value: Bool
+    private(set) var lastSaved: Bool?
+
+    init(initial: Bool = false) { self.value = initial }
+
+    func loadOptOut() -> Bool { value }
+    func saveOptOut(_ newValue: Bool) {
+        value = newValue
+        lastSaved = newValue
+    }
 }
