@@ -285,6 +285,7 @@ struct CurrentMonthView: View {
                     syncingBudgetLineIds: store.syncingBudgetLineIds,
                     syncingTransactionIds: store.syncingTransactionIds,
                     onToggle: { item in
+                        ProductTips.checking.invalidate(reason: .actionPerformed)
                         Task {
                             switch item {
                             case .transaction(let tx, _):

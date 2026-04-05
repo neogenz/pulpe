@@ -382,6 +382,7 @@ final class BudgetDetailsViewModel {
         } else if effective > consumed, consumed > 0 {
             toastManager.show("Pointé · \(consumed.asCHF) — \(effective.asCHF) prévus")
             ProductTips.pessimisticCheckSeen = true
+            ProductTips.pessimisticCheck.invalidate(reason: .actionPerformed)
         } else {
             toastManager.show("Pointé · \(effective.asCHF)")
         }
