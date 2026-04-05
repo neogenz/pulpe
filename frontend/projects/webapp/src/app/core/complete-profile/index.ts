@@ -1,2 +1,6 @@
 export { ProfileSetupService } from './profile-setup.service';
-export type { ProfileData, ProfileSetupResult } from './profile-setup.types';
+export type {
+  OnboardingTransaction,
+  ProfileData,
+  ProfileSetupResult,
+} from './profile-setup.types';

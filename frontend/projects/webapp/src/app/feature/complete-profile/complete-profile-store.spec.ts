@@ -1,7 +1,10 @@
 import { TestBed } from '@angular/core/testing';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { of, throwError } from 'rxjs';
-import { CompleteProfileStore } from './complete-profile-store';
+import {
+  CompleteProfileStore,
+  ONBOARDING_SUGGESTIONS,
+} from './complete-profile-store';
 import { ProfileSetupService } from '@core/complete-profile';
 import { BudgetApi } from '@core/budget';
 import { Logger } from '@core/logging/logger';
@@ -105,6 +108,10 @@ describe('CompleteProfileStore', () => {
 
     it('should have null payDayOfMonth', () => {
       expect(store.payDayOfMonth()).toBeNull();
+    });
+
+    it('should have empty customTransactions', () => {
+      expect(store.customTransactions()).toEqual([]);
     });
 
     it('should be invalid for step 1', () => {
@@ -341,6 +348,7 @@ describe('CompleteProfileStore', () => {
         transportCosts: undefined,
         leasingCredit: undefined,
         payDayOfMonth: undefined,
+        customTransactions: [],
       });
     });
 
@@ -454,6 +462,7 @@ describe('CompleteProfileStore', () => {
           signup_method: 'email',
           has_pay_day: false,
           charges_count: 0,
+          custom_transactions_count: 0,
         },
       );
     });
@@ -499,8 +508,172 @@ describe('CompleteProfileStore', () => {
           signup_method: 'email',
           has_pay_day: true,
           charges_count: 3,
+          custom_transactions_count: 0,
         },
       );
+    });
+  });
+
+  describe('customTransactions', () => {
+    const mockTransaction = {
+      name: 'Salle de sport',
+      amount: 50,
+      type: 'expense' as const,
+      expenseType: 'fixed' as const,
+      isRecurring: true,
+    };
+
+    describe('addCustomTransaction', () => {
+      it('should add a transaction to the list', () => {
+        store.addCustomTransaction(mockTransaction);
+
+        expect(store.customTransactions()).toEqual([mockTransaction]);
+      });
+
+      it('should append to existing transactions', () => {
+        const secondTransaction = {
+          ...mockTransaction,
+          name: 'Streaming',
+          amount: 15,
+        };
+
+        store.addCustomTransaction(mockTransaction);
+        store.addCustomTransaction(secondTransaction);
+
+        expect(store.customTransactions()).toHaveLength(2);
+        expect(store.customTransactions()[0].name).toBe('Salle de sport');
+        expect(store.customTransactions()[1].name).toBe('Streaming');
+      });
+    });
+
+    describe('removeCustomTransaction', () => {
+      it('should remove a transaction by index', () => {
+        store.addCustomTransaction(mockTransaction);
+        store.addCustomTransaction({
+          ...mockTransaction,
+          name: 'Streaming',
+        });
+
+        store.removeCustomTransaction(0);
+
+        expect(store.customTransactions()).toHaveLength(1);
+        expect(store.customTransactions()[0].name).toBe('Streaming');
+      });
+
+      it('should handle removing the last transaction', () => {
+        store.addCustomTransaction(mockTransaction);
+
+        store.removeCustomTransaction(0);
+
+        expect(store.customTransactions()).toEqual([]);
+      });
+    });
+
+    it('should include customTransactions in submitProfile', async () => {
+      mockProfileSetupService.createInitialBudget.mockResolvedValue({
+        success: true,
+      });
+
+      store.updateFirstName('John');
+      store.updateMonthlyIncome(5000);
+      store.addCustomTransaction(mockTransaction);
+
+      await store.submitProfile();
+
+      expect(mockProfileSetupService.createInitialBudget).toHaveBeenCalledWith(
+        expect.objectContaining({
+          customTransactions: [mockTransaction],
+        }),
+      );
+    });
+
+    it('should track custom_transactions_count in PostHog event', async () => {
+      mockProfileSetupService.createInitialBudget.mockResolvedValue({
+        success: true,
+      });
+
+      store.updateFirstName('John');
+      store.updateMonthlyIncome(5000);
+      store.addCustomTransaction(mockTransaction);
+
+      await store.submitProfile();
+
+      expect(mockPostHogService.captureEvent).toHaveBeenCalledWith(
+        'first_budget_created',
+        expect.objectContaining({
+          custom_transactions_count: 1,
+        }),
+      );
+    });
+  });
+
+  describe('suggestions', () => {
+    const suggestion = ONBOARDING_SUGGESTIONS[0];
+
+    describe('toggleSuggestion', () => {
+      it('should add a suggestion when not present', () => {
+        store.toggleSuggestion(suggestion);
+
+        expect(store.customTransactions()).toContainEqual(suggestion);
+      });
+
+      it('should remove a suggestion when already present', () => {
+        store.toggleSuggestion(suggestion);
+        store.toggleSuggestion(suggestion);
+
+        expect(store.customTransactions()).toEqual([]);
+      });
+
+      it('should not affect other transactions when toggling off', () => {
+        const manualTx = {
+          name: 'Salle de sport',
+          amount: 50,
+          type: 'expense' as const,
+          expenseType: 'fixed' as const,
+          isRecurring: true,
+        };
+
+        store.addCustomTransaction(manualTx);
+        store.toggleSuggestion(suggestion);
+        store.toggleSuggestion(suggestion);
+
+        expect(store.customTransactions()).toEqual([manualTx]);
+      });
+    });
+
+    describe('selectedSuggestionNames', () => {
+      it('should return empty set initially', () => {
+        expect(store.selectedSuggestionNames().size).toBe(0);
+      });
+
+      it('should contain name after toggling on', () => {
+        store.toggleSuggestion(suggestion);
+
+        expect(store.selectedSuggestionNames().has(suggestion.name)).toBe(true);
+      });
+
+      it('should not contain name after toggling off', () => {
+        store.toggleSuggestion(suggestion);
+        store.toggleSuggestion(suggestion);
+
+        expect(store.selectedSuggestionNames().has(suggestion.name)).toBe(
+          false,
+        );
+      });
+
+      it('should include manually added transactions', () => {
+        store.addCustomTransaction({
+          name: 'Custom expense',
+          amount: 100,
+          type: 'expense',
+          expenseType: 'fixed',
+          isRecurring: true,
+        });
+
+        expect(store.selectedSuggestionNames().has('Custom expense')).toBe(
+          true,
+        );
+      });
     });
   });
 });

@@ -118,6 +118,45 @@ describe('ProfileSetupService', () => {
       expect(result.success).toBe(false);
       expect(result.error).toContain('prénom et ton revenu mensuel');
     });
+
+    it('should pass customTransactions to template request', async () => {
+      const customTransactions = [
+        {
+          name: 'Salle de sport',
+          amount: 50,
+          type: 'expense' as const,
+          expenseType: 'fixed' as const,
+          isRecurring: true,
+        },
+      ];
+
+      const result = await service.createInitialBudget({
+        firstName: 'John',
+        monthlyIncome: 5000,
+        customTransactions,
+      });
+
+      expect(result.success).toBe(true);
+      expect(mockApiClient.post$).toHaveBeenCalledWith(
+        '/budget-templates/from-onboarding',
+        expect.objectContaining({ customTransactions }),
+        expect.anything(),
+      );
+    });
+
+    it('should default customTransactions to empty array when not provided', async () => {
+      const result = await service.createInitialBudget({
+        firstName: 'John',
+        monthlyIncome: 5000,
+      });
+
+      expect(result.success).toBe(true);
+      expect(mockApiClient.post$).toHaveBeenCalledWith(
+        '/budget-templates/from-onboarding',
+        expect.objectContaining({ customTransactions: [] }),
+        expect.anything(),
+      );
+    });
   });
 
   describe('budget period computation', () => {
