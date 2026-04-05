@@ -38,7 +38,7 @@ struct CurrentMonthHeroCard: View {
     @ViewBuilder
     private var remainingAmount: some View {
         if let remaining = budget.remaining {
-            Text(remaining.asCHF)
+            Text(remaining.asSignedCompactCHF)
                 .font(PulpeTypography.amountLarge)
                 .monospacedDigit()
                 .foregroundStyle(.white)
