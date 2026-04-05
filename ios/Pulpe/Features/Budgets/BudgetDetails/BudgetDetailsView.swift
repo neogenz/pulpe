@@ -138,11 +138,11 @@ struct BudgetDetailsView: View {
             isPresented: $viewModel.showCheckAllTransactionsAlert,
             presenting: viewModel.budgetLineToCheckAll
         ) { line in
-            Button("Non, juste l'enveloppe", role: .cancel) {
+            Button("Non, juste la prévision", role: .cancel) {
                 Task {
                     let succeeded = await viewModel.confirmToggle(for: line, checkAll: false)
                     if succeeded {
-                        viewModel.showEnvelopeToastIfNeeded(
+                        viewModel.showCheckToastIfNeeded(
                             for: line, toastManager: appState.toastManager, amountsHidden: amountsHidden
                         )
                     }
@@ -152,14 +152,14 @@ struct BudgetDetailsView: View {
                 Task {
                     let succeeded = await viewModel.confirmToggle(for: line, checkAll: true)
                     if succeeded {
-                        viewModel.showEnvelopeToastIfNeeded(
+                        viewModel.showCheckToastIfNeeded(
                             for: line, toastManager: appState.toastManager, amountsHidden: amountsHidden
                         )
                     }
                 }
             }
         } message: { _ in
-            Text("Des transactions non pointées sont liées à cette enveloppe.")
+            Text("Des transactions non pointées sont liées à cette prévision.")
         }
     }
 
@@ -210,7 +210,7 @@ struct BudgetDetailsView: View {
                 ContentUnavailableView {
                     Label("Tout est pointé", systemImage: "checkmark.circle.fill")
                 } description: {
-                    Text("Bien joué ! Passe sur « Toutes » pour revoir tes prévisions.")
+                    Text("Bien joué ! Passe sur « Tout voir » pour revoir tes prévisions.")
                 }
                 .listRowCustomStyled()
             }
@@ -222,6 +222,12 @@ struct BudgetDetailsView: View {
             if !filteredExpenses.isEmpty {
                 budgetSection(title: "Dépenses", items: filteredExpenses,
                               tip: filteredIncome.isEmpty ? ProductTips.gestures : nil)
+
+                Section {
+                    TipView(ProductTips.pessimisticCheck)
+                }
+                .listRowCustomStyled(insets: EdgeInsets())
+                .listSectionSeparator(.hidden)
             }
             if !filteredSavings.isEmpty {
                 budgetSection(title: "Épargne", items: filteredSavings,
@@ -274,7 +280,7 @@ struct BudgetDetailsView: View {
                 Task {
                     let succeeded = await viewModel.toggleBudgetLine(line)
                     if succeeded {
-                        viewModel.showEnvelopeToastIfNeeded(
+                        viewModel.showCheckToastIfNeeded(
                             for: line, toastManager: appState.toastManager, amountsHidden: amountsHidden
                         )
                     }

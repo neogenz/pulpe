@@ -96,7 +96,7 @@ describe('ProfileSetupService', () => {
       });
 
       expect(result.success).toBe(false);
-      expect(result.error).toContain('Données obligatoires manquantes');
+      expect(result.error).toContain('prénom et ton revenu mensuel');
     });
 
     it('should return error when monthlyIncome is missing', async () => {
@@ -106,7 +106,7 @@ describe('ProfileSetupService', () => {
       });
 
       expect(result.success).toBe(false);
-      expect(result.error).toContain('Données obligatoires manquantes');
+      expect(result.error).toContain('prénom et ton revenu mensuel');
     });
 
     it('should return error when monthlyIncome is negative', async () => {
@@ -116,7 +116,7 @@ describe('ProfileSetupService', () => {
       });
 
       expect(result.success).toBe(false);
-      expect(result.error).toContain('Données obligatoires manquantes');
+      expect(result.error).toContain('prénom et ton revenu mensuel');
     });
   });
 

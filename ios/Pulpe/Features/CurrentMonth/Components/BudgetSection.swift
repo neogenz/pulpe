@@ -127,7 +127,7 @@ struct BudgetSection: View {
                     ProductTips.gestures.invalidate(reason: .actionPerformed)
                 } label: {
                     Label(
-                        item.isChecked ? "Dépointer" : "Comptabiliser",
+                        item.isChecked ? "Dépointer" : "Pointer",
                         systemImage: item.isChecked ? "arrow.uturn.backward" : "checkmark.circle"
                     )
                 }

@@ -247,7 +247,7 @@ test.describe('Budget Line Creation', () => {
     // Verify it appears in the Epargnes section
     const epargnesSection = authenticatedPage
       .locator('pulpe-budget-grid-section')
-      .filter({ hasText: /Épargnes/ });
+      .filter({ hasText: /Épargne/ });
     await expect(epargnesSection).toContainText('Vacances');
   });
 
