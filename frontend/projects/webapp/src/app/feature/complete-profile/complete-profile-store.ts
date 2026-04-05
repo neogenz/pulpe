@@ -1,5 +1,9 @@
 import { Injectable, inject, signal, computed } from '@angular/core';
-import { ProfileSetupService, type ProfileData } from '@core/complete-profile';
+import {
+  ProfileSetupService,
+  type ProfileData,
+  type OnboardingTransaction,
+} from '@core/complete-profile';
 import { BudgetApi } from '@core/budget';
 import { Logger } from '@core/logging/logger';
 import { PostHogService } from '@core/analytics/posthog';
@@ -7,6 +11,44 @@ import { UserSettingsStore } from '@core/user-settings';
 import { AuthOAuthService } from '@core/auth/auth-oauth.service';
 import { firstValueFrom } from 'rxjs';
 import { TranslocoService } from '@jsverse/transloco';
+
+export const ONBOARDING_SUGGESTIONS: readonly OnboardingTransaction[] = [
+  {
+    name: 'Courses / alimentation',
+    amount: 600,
+    type: 'expense',
+    expenseType: 'fixed',
+    isRecurring: true,
+  },
+  {
+    name: 'Restaurants & sorties',
+    amount: 150,
+    type: 'expense',
+    expenseType: 'fixed',
+    isRecurring: true,
+  },
+  {
+    name: 'Loisirs & sport',
+    amount: 100,
+    type: 'expense',
+    expenseType: 'fixed',
+    isRecurring: true,
+  },
+  {
+    name: 'Épargne',
+    amount: 500,
+    type: 'saving',
+    expenseType: 'fixed',
+    isRecurring: true,
+  },
+  {
+    name: '3ème pilier',
+    amount: 587,
+    type: 'saving',
+    expenseType: 'fixed',
+    isRecurring: true,
+  },
+];
 
 interface CompleteProfileState {
   firstName: string;
@@ -18,6 +60,7 @@ interface CompleteProfileState {
   transportCosts: number | null;
   leasingCredit: number | null;
   payDayOfMonth: number | null;
+  customTransactions: OnboardingTransaction[];
   isLoading: boolean;
   isCheckingExistingBudget: boolean;
   error: string | null;
@@ -34,6 +77,7 @@ function createInitialState(): CompleteProfileState {
     transportCosts: null,
     leasingCredit: null,
     payDayOfMonth: null,
+    customTransactions: [],
     isLoading: false,
     isCheckingExistingBudget: false,
     error: null,
@@ -61,6 +105,12 @@ export class CompleteProfileStore {
   readonly transportCosts = computed(() => this.#state().transportCosts);
   readonly leasingCredit = computed(() => this.#state().leasingCredit);
   readonly payDayOfMonth = computed(() => this.#state().payDayOfMonth);
+  readonly customTransactions = computed(
+    () => this.#state().customTransactions,
+  );
+  readonly selectedSuggestionNames = computed(
+    () => new Set(this.customTransactions().map((t) => t.name)),
+  );
   readonly isLoading = computed(() => this.#state().isLoading);
   readonly isCheckingExistingBudget = computed(
     () => this.#state().isCheckingExistingBudget,
@@ -110,6 +160,38 @@ export class CompleteProfileStore {
 
   updatePayDayOfMonth(value: number | null): void {
     this.#patchState({ payDayOfMonth: value });
+  }
+
+  addCustomTransaction(tx: OnboardingTransaction): void {
+    this.#patchState({
+      customTransactions: [...this.#state().customTransactions, tx],
+    });
+  }
+
+  removeCustomTransaction(index: number): void {
+    this.#patchState({
+      customTransactions: this.#state().customTransactions.filter(
+        (_, i) => i !== index,
+      ),
+    });
+  }
+
+  updateCustomTransactionAmount(index: number, amount: number): void {
+    this.#patchState({
+      customTransactions: this.#state().customTransactions.map((tx, i) =>
+        i === index ? { ...tx, amount } : tx,
+      ),
+    });
+  }
+
+  toggleSuggestion(suggestion: OnboardingTransaction): void {
+    const current = this.#state().customTransactions;
+    const exists = current.some((t) => t.name === suggestion.name);
+    this.#patchState({
+      customTransactions: exists
+        ? current.filter((t) => t.name !== suggestion.name)
+        : [...current, suggestion],
+    });
   }
 
   clearError(): void {
@@ -184,6 +266,7 @@ export class CompleteProfileStore {
       transportCosts: state.transportCosts ?? undefined,
       leasingCredit: state.leasingCredit ?? undefined,
       payDayOfMonth: state.payDayOfMonth ?? undefined,
+      customTransactions: state.customTransactions,
     };
 
     try {
@@ -223,6 +306,7 @@ export class CompleteProfileStore {
         signup_method: this.#determineSignupMethod(),
         has_pay_day: state.payDayOfMonth !== null,
         charges_count: this.#countOptionalCharges(state),
+        custom_transactions_count: state.customTransactions.length,
       });
 
       this.#logger.info('Profile setup completed successfully');

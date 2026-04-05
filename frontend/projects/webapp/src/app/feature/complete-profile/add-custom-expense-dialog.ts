@@ -4,10 +4,8 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
-import type { TransactionRecurrence } from 'pulpe-shared';
 import { TranslocoPipe } from '@jsverse/transloco';
 import type { OnboardingTransaction } from '@core/complete-profile';
 
@@ -19,7 +17,6 @@ import type { OnboardingTransaction } from '@core/complete-profile';
     MatInputModule,
     MatButtonModule,
     MatIconModule,
-    MatSlideToggleModule,
     MatButtonToggleModule,
     ReactiveFormsModule,
     TranslocoPipe,
@@ -34,6 +31,7 @@ import type { OnboardingTransaction } from '@core/complete-profile';
         <form [formGroup]="form">
           <mat-button-toggle-group
             formControlName="kind"
+            [hideSingleSelectionIndicator]="true"
             class="w-full mb-4"
             data-testid="custom-expense-kind"
           >
@@ -75,19 +73,6 @@ import type { OnboardingTransaction } from '@core/complete-profile';
             />
             <span matTextSuffix>CHF</span>
           </mat-form-field>
-
-          <div class="flex items-center justify-between py-2 px-1">
-            <span class="text-body-medium text-on-surface">{{
-              'completeProfile.customExpense.recurringToggle' | transloco
-            }}</span>
-            <mat-slide-toggle
-              formControlName="isRecurring"
-              [attr.aria-label]="
-                'completeProfile.customExpense.recurringToggle' | transloco
-              "
-              data-testid="custom-expense-recurring"
-            />
-          </div>
         </form>
       </div>
     </mat-dialog-content>
@@ -121,21 +106,17 @@ export class AddCustomExpenseDialog {
       null as number | null,
       [Validators.required, Validators.min(0.01)],
     ],
-    isRecurring: [true],
   });
 
   protected submit(): void {
     if (this.form.valid) {
       const value = this.form.getRawValue();
-      const expenseType: TransactionRecurrence = value.isRecurring
-        ? 'fixed'
-        : 'one_off';
       const transaction: OnboardingTransaction = {
         name: value.name!.trim(),
         amount: value.amount!,
         type: value.kind!,
-        expenseType,
-        isRecurring: value.isRecurring!,
+        expenseType: 'fixed',
+        isRecurring: true,
       };
       this.#dialogRef.close(transaction);
     }

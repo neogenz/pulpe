@@ -685,7 +685,28 @@
     "budgetCreateError": "Erreur lors de la création de ton budget initial.",
     "createBudgetError": "Erreur lors de la création du budget",
     "unexpectedError": "Quelque chose n'a pas fonctionné — réessaie",
-    "budgetGenerateError": "La génération de tes budgets a échoué — réessaie"
+    "budgetGenerateError": "La génération de tes budgets a échoué — réessaie",
+    "chargeGroups": {
+      "housing": "Logement",
+      "insuranceSubscriptions": "Assurance & Abonnements",
+      "mobilityCredit": "Mobilité & Crédit"
+    },
+    "suggestions": {
+      "sectionTitle": "Suggestions"
+    },
+    "customExpense": {
+      "dialogTitle": "Ajouter une prévision",
+      "nameLabel": "Nom de la prévision",
+      "namePlaceholder": "Ex: Salle de sport, Streaming...",
+      "amountLabel": "Montant",
+      "recurringToggle": "Prévision récurrente",
+      "sectionTitle": "Prévisions personnalisées",
+      "addButton": "Ajouter une prévision",
+      "recurringLabel": "Récurrent",
+      "oneOffLabel": "Ponctuel",
+      "kindExpense": "Dépense",
+      "kindSaving": "Épargne"
+    }
   },
   "legal": {
     "privacyPolicyTitle": "Politique de Confidentialité",
