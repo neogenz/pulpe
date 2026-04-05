@@ -145,7 +145,7 @@ struct YearPicker: View {
                         // Separator between years
                         if index < years.count - 1 {
                             Text("|")
-                                .font(.system(size: 24, weight: .light))
+                                .font(PulpeTypography.onboardingSubtitle)
                                 .foregroundStyle(
                                     Color.secondary.opacity(DesignTokens.Opacity.secondary)
                                 )
