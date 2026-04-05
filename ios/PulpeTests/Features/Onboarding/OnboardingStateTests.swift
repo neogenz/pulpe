@@ -1,3 +1,4 @@
+// swiftlint:disable file_length type_body_length
 import Foundation
 @testable import Pulpe
 import Testing
@@ -354,5 +355,152 @@ struct OnboardingStateTests {
         #expect(template.phonePlan == nil)
         #expect(template.transportCosts == nil)
         #expect(template.leasingCredit == nil)
+    }
+
+    // MARK: - Custom Transactions
+
+    @Test
+    func addCustomTransaction_appendsToArray() {
+        let state = makeSUT()
+        defer { OnboardingState.clearPersistedData() }
+
+        let tx = OnboardingTransaction(
+            amount: 50, type: .expense, name: "Spotify",
+            description: nil, expenseType: .fixed, isRecurring: true
+        )
+        state.addCustomTransaction(tx)
+
+        #expect(state.customTransactions.count == 1)
+        #expect(state.customTransactions[0].name == "Spotify")
+        #expect(state.customTransactions[0].amount == 50)
+    }
+
+    @Test
+    func removeCustomTransaction_removesAtIndex() {
+        let state = makeSUT()
+        defer { OnboardingState.clearPersistedData() }
+
+        let tx1 = OnboardingTransaction(
+            amount: 50, type: .expense, name: "Spotify",
+            description: nil, expenseType: .fixed, isRecurring: true
+        )
+        let tx2 = OnboardingTransaction(
+            amount: 30, type: .expense, name: "Netflix",
+            description: nil, expenseType: .fixed, isRecurring: true
+        )
+        state.addCustomTransaction(tx1)
+        state.addCustomTransaction(tx2)
+        state.removeCustomTransaction(at: 0)
+
+        #expect(state.customTransactions.count == 1)
+        #expect(state.customTransactions[0].name == "Netflix")
+    }
+
+    @Test
+    func totalExpenses_includesCustomTransactions() {
+        let state = makeSUT()
+        defer { OnboardingState.clearPersistedData() }
+
+        state.housingCosts = 1500
+        let tx = OnboardingTransaction(
+            amount: 50, type: .expense, name: "Spotify",
+            description: nil, expenseType: .fixed, isRecurring: true
+        )
+        state.addCustomTransaction(tx)
+
+        #expect(state.totalExpenses == 1550)
+    }
+
+    @Test
+    func createTemplateData_mapsCustomTransactions() {
+        let state = makeSUT()
+        defer { OnboardingState.clearPersistedData() }
+
+        let tx = OnboardingTransaction(
+            amount: 50, type: .expense, name: "Spotify",
+            description: nil, expenseType: .fixed, isRecurring: true
+        )
+        state.addCustomTransaction(tx)
+
+        let template = state.createTemplateData()
+        #expect(template.customTransactions.count == 1)
+        #expect(template.customTransactions[0].name == "Spotify")
+        #expect(template.customTransactions[0].amount == 50)
+        #expect(template.customTransactions[0].type == .expense)
+        #expect(template.customTransactions[0].expenseType == .fixed)
+    }
+
+    // MARK: - Suggestion Toggle
+
+    @Test
+    func toggleSuggestion_addsWhenNotSelected() {
+        let state = makeSUT()
+        defer { OnboardingState.clearPersistedData() }
+
+        let suggestion = OnboardingState.suggestions[0]
+        state.toggleSuggestion(suggestion)
+
+        #expect(state.customTransactions.count == 1)
+        #expect(state.customTransactions[0].name == suggestion.name)
+        #expect(state.customTransactions[0].amount == suggestion.amount)
+    }
+
+    @Test
+    func toggleSuggestion_removesWhenAlreadySelected() {
+        let state = makeSUT()
+        defer { OnboardingState.clearPersistedData() }
+
+        let suggestion = OnboardingState.suggestions[0]
+        state.toggleSuggestion(suggestion)
+        #expect(state.customTransactions.count == 1)
+
+        state.toggleSuggestion(suggestion)
+        #expect(state.customTransactions.isEmpty)
+    }
+
+    @Test
+    func isSuggestionSelected_returnsTrueWhenPresent() {
+        let state = makeSUT()
+        defer { OnboardingState.clearPersistedData() }
+
+        let suggestion = OnboardingState.suggestions[0]
+        #expect(!state.isSuggestionSelected(suggestion))
+
+        state.toggleSuggestion(suggestion)
+        #expect(state.isSuggestionSelected(suggestion))
+    }
+
+    @Test
+    func toggleSuggestion_doesNotAffectOtherSuggestions() {
+        let state = makeSUT()
+        defer { OnboardingState.clearPersistedData() }
+
+        let first = OnboardingState.suggestions[0]
+        let second = OnboardingState.suggestions[1]
+        state.toggleSuggestion(first)
+        state.toggleSuggestion(second)
+
+        #expect(state.customTransactions.count == 2)
+
+        state.toggleSuggestion(first)
+        #expect(state.customTransactions.count == 1)
+        #expect(state.customTransactions[0].name == second.name)
+    }
+
+    @Test
+    func totalExpenses_includesSuggestions() {
+        let state = makeSUT()
+        defer { OnboardingState.clearPersistedData() }
+
+        state.housingCosts = 1500
+        let suggestion = OnboardingState.suggestions[0] // 600
+        state.toggleSuggestion(suggestion)
+
+        #expect(state.totalExpenses == 2100)
+    }
+
+    @Test
+    func suggestions_hasExpectedCount() {
+        #expect(OnboardingState.suggestions.count == 5)
     }
 }
