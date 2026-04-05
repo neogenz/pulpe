@@ -39,7 +39,7 @@ struct CurrentMonthHeroCard: View {
     private var remainingAmount: some View {
         if let remaining = budget.remaining {
             Text(remaining.asSignedCompactCHF)
-                .font(PulpeTypography.amountLarge)
+                .font(PulpeTypography.amountHero)
                 .monospacedDigit()
                 .foregroundStyle(.white)
                 .contentTransition(.numericText())
@@ -250,7 +250,7 @@ struct BudgetMonthCard: View {
                     VStack(alignment: .trailing, spacing: 2) {
                         if let remaining = budget.remaining {
                             Text(remaining.asSignedCompactCHF)
-                                .font(PulpeTypography.tutorialTitle)
+                                .font(PulpeTypography.title3)
                                 .monospacedDigit()
                                 .foregroundStyle(isPast ? .secondary : emotionColor)
                                 .sensitiveAmount()
@@ -296,8 +296,7 @@ struct BudgetMonthCard: View {
                 .font(PulpeTypography.detailLabel)
                 .foregroundStyle(Color.textTertiary)
             Text(value?.asCompactCHF ?? "–")
-                .font(PulpeTypography.detailLabel)
-                .fontWeight(.bold)
+                .font(PulpeTypography.detailLabelBold)
                 .monospacedDigit()
                 .foregroundStyle(isPast ? .secondary : .primary)
                 .sensitiveAmount()
