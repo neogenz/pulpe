@@ -192,14 +192,13 @@ struct CurrentMonthHeroCard: View {
     }
 }
 
-struct BudgetMonthRow: View {
+struct BudgetMonthCard: View {
     let budget: BudgetSparse
     var periodLabel: String?
     var payDayOfMonth: Int?
     let onTap: () -> Void
 
     @State private var tapTrigger = false
-    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.amountsHidden) private var amountsHidden
 
     private var monthName: String {
@@ -212,92 +211,110 @@ struct BudgetMonthRow: View {
         return year < current.year || (year == current.year && month < current.month)
     }
 
-    private func amountColor(isPast: Bool) -> Color {
-        if isPast { return .secondary }
-        guard let remaining = budget.remaining else { return .secondary }
-        if remaining < 0 { return .financialOverBudget }
-        if remaining > 0 { return .financialSavings }
-        return .secondary
+    private var emotionState: BudgetFormulas.EmotionState {
+        BudgetFormulas.emotionState(
+            remaining: budget.remaining,
+            totalIncome: budget.totalIncome,
+            totalExpenses: budget.totalExpenses,
+            rollover: budget.rollover
+        )
     }
 
-    private var stateDotColor: Color? {
-        guard let remaining = budget.remaining else { return nil }
-        return remaining < 0 ? .financialOverBudget : .pulpePrimary
+    private var emotionColor: Color {
+        switch emotionState {
+        case .comfortable: return Color.pulpePrimary
+        case .tight: return Color.financialExpense
+        case .deficit: return Color.financialOverBudget
+        }
     }
 
     var body: some View {
-        let isPast = isPast
-        let color = amountColor(isPast: isPast)
-
         Button {
             tapTrigger.toggle()
             onTap()
         } label: {
-            HStack(spacing: DesignTokens.Spacing.md) {
-                if let dotColor = stateDotColor {
-                    Circle()
-                        .fill(dotColor)
-                        .frame(width: 6, height: 6)
-                }
-                if dynamicTypeSize.isAccessibilitySize {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
+                // Top: month name + remaining amount
+                HStack(alignment: .top) {
                     VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                         Text(monthName)
-                            .font(isPast ? PulpeTypography.body : PulpeTypography.onboardingSubtitle)
+                            .font(PulpeTypography.tutorialTitle)
                             .foregroundStyle(isPast ? .secondary : .primary)
-
                         if let periodLabel {
                             Text(periodLabel)
-                                .font(PulpeTypography.caption)
-                                .foregroundStyle(Color.textTertiary)
+                                .font(PulpeTypography.labelMedium)
+                                .foregroundStyle(Color.secondary)
                         }
-
+                    }
+                    Spacer()
+                    VStack(alignment: .trailing, spacing: 2) {
                         if let remaining = budget.remaining {
-                            Text(remaining.asCompactCHF)
-                                .font(PulpeTypography.amountMedium)
+                            Text(signedCompactCHF(remaining))
+                                .font(PulpeTypography.tutorialTitle)
                                 .monospacedDigit()
-                                .foregroundStyle(color)
+                                .foregroundStyle(isPast ? .secondary : emotionColor)
                                 .sensitiveAmount()
                         }
-                    }
-
-                    Spacer()
-                } else {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(monthName)
-                            .font(isPast ? PulpeTypography.body : PulpeTypography.onboardingSubtitle)
-                            .foregroundStyle(isPast ? .secondary : .primary)
-                        if let periodLabel {
-                            Text(periodLabel)
-                                .font(PulpeTypography.caption)
-                                .foregroundStyle(Color.textTertiary)
-                        }
-                    }
-                    Spacer()
-                    if let remaining = budget.remaining {
-                        Text(remaining.asCompactCHF)
-                            .font(PulpeTypography.amountMedium)
-                            .monospacedDigit()
-                            .foregroundStyle(color)
-                            .sensitiveAmount()
+                        Text("Disponible")
+                            .font(PulpeTypography.metricMini)
+                            .foregroundStyle(isPast ? Color.textTertiary : emotionColor)
+                            .textCase(.uppercase)
+                            .tracking(1)
                     }
                 }
 
-                Image(systemName: "chevron.right")
-                    .font(PulpeTypography.detailLabel)
-                    .foregroundStyle(Color.textTertiary)
+                // Bottom: income & expenses in subtle pill
+                HStack {
+                    innerMetric(label: "Revenus", value: budget.totalIncome)
+                    Spacer()
+                    innerMetric(label: "Dépenses", value: budget.totalExpenses)
+                }
+                .padding(.horizontal, DesignTokens.Spacing.lg)
+                .padding(.vertical, DesignTokens.Spacing.md)
+                .background(Color.appBackground, in: Capsule())
             }
-            .padding(.horizontal, DesignTokens.Spacing.lg)
-            .padding(.vertical, DesignTokens.Spacing.lg)
+            .padding(DesignTokens.Spacing.xxl)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .background(Color.surfaceContainerLowest)
+        .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.xl))
+        .overlay {
+            RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.xl)
+                .stroke(Color.secondary.opacity(DesignTokens.Opacity.faint), lineWidth: DesignTokens.BorderWidth.thin)
+        }
+        .shadow(DesignTokens.Shadow.subtle)
         .sensoryFeedback(.selection, trigger: tapTrigger)
-        .accessibilityLabel(
-            "\(monthName), disponible "
-            + "\(amountsHidden ? "masqué" : (budget.remaining?.asCompactCHF ?? "non défini"))"
-        )
+        .accessibilityLabel(accessibilityDescription)
         .accessibilityHint("Appuie pour voir les détails")
         .accessibilityAddTraits(.isButton)
+    }
+
+    private func signedCompactCHF(_ value: Decimal) -> String {
+        let sign = value >= 0 ? "+" : ""
+        return "\(sign)\(value.asCompactCHF)"
+    }
+
+    private func innerMetric(label: String, value: Decimal?) -> some View {
+        HStack(spacing: DesignTokens.Spacing.xs) {
+            Text(label)
+                .font(PulpeTypography.detailLabel)
+                .foregroundStyle(Color.textTertiary)
+            Text(value?.asCompactCHF ?? "–")
+                .font(PulpeTypography.detailLabel)
+                .fontWeight(.bold)
+                .monospacedDigit()
+                .foregroundStyle(isPast ? .secondary : .primary)
+                .sensitiveAmount()
+        }
+    }
+
+    private var accessibilityDescription: String {
+        let amounts = amountsHidden ? "montants masqués" :
+            "revenus \(budget.totalIncome?.asCompactCHF ?? "non défini"), " +
+            "dépenses \(budget.totalExpenses?.asCompactCHF ?? "non défini"), " +
+            "disponible \(budget.remaining?.asCompactCHF ?? "non défini")"
+        return "\(monthName), \(amounts)"
     }
 }
 
@@ -317,34 +334,67 @@ struct NextMonthPlaceholder: View {
             tapTrigger.toggle()
             onTap()
         } label: {
-            HStack(spacing: DesignTokens.Spacing.md) {
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                    Text(monthName)
-                        .font(PulpeTypography.onboardingSubtitle)
-                        .foregroundStyle(Color.textTertiary)
-
-                    Text("Pas encore de budget")
-                        .font(PulpeTypography.caption)
-                        .foregroundStyle(Color.textTertiary)
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
+                // Header: title + right badge
+                HStack(alignment: .top) {
+                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                        Text("\(monthName) — Prêt à budgétiser ?")
+                            .font(PulpeTypography.tutorialTitle)
+                            .foregroundStyle(Color.textPrimary)
+                        Text("Il est temps de poser tes bases financières.")
+                            .font(PulpeTypography.labelMedium)
+                            .foregroundStyle(Color.secondary)
+                    }
+                    Spacer()
+                    VStack(alignment: .trailing, spacing: 2) {
+                        Text("Ton mois\nt'attend")
+                            .font(PulpeTypography.detailLabel)
+                            .foregroundStyle(Color.secondary.opacity(0.6))
+                            .multilineTextAlignment(.trailing)
+                        Text("Action\nrequise")
+                            .font(PulpeTypography.metricMini)
+                            .foregroundStyle(Color.financialIncome)
+                            .textCase(.uppercase)
+                            .tracking(1)
+                            .multilineTextAlignment(.trailing)
+                    }
                 }
 
-                Spacer()
-                HStack(spacing: DesignTokens.Spacing.xs) {
-                    Image(systemName: "plus")
-                        .font(PulpeTypography.detailLabelBold)
-                    Text("Créer")
+                // Gradient CTA button
+                HStack {
+                    Text("Créer ton budget de \(monthName)")
                         .font(PulpeTypography.labelLarge)
+                        .foregroundStyle(.white)
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(PulpeTypography.detailLabel)
+                        .foregroundStyle(.white.opacity(0.8))
                 }
-                .foregroundStyle(.white)
-                .padding(.horizontal, DesignTokens.Spacing.md)
-                .padding(.vertical, DesignTokens.Spacing.sm)
-                .background(Color.pulpePrimary, in: Capsule())
+                .padding(DesignTokens.Spacing.lg)
+                .background(
+                    LinearGradient(
+                        colors: Color.heroGradientComfortable,
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    ),
+                    in: RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.sm)
+                )
+                .shadow(DesignTokens.Shadow.card)
             }
-            .padding(.horizontal, DesignTokens.Spacing.lg)
-            .padding(.vertical, DesignTokens.Spacing.lg)
+            .padding(DesignTokens.Spacing.xxl)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .background(.white)
+        .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.xl))
+        .overlay {
+            RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.xl)
+                .strokeBorder(
+                    Color.pulpePrimary.opacity(DesignTokens.Opacity.secondary),
+                    style: StrokeStyle(lineWidth: DesignTokens.BorderWidth.medium, dash: [8, 6])
+                )
+        }
+        .shadow(DesignTokens.Shadow.subtle)
         .sensoryFeedback(.selection, trigger: tapTrigger)
         .accessibilityLabel("Créer un budget pour \(monthName)")
         .accessibilityHint("Appuie pour créer un budget")
