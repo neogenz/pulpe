@@ -1,4 +1,5 @@
 import SwiftUI
+import TipKit
 import WidgetKit
 
 private enum SheetDestination: Identifiable {
@@ -275,6 +276,11 @@ struct CurrentMonthView: View {
                         .background(Color.pulpePrimary.opacity(0.12), in: Capsule())
                 }
 
+                let count = store.uncheckedItems.count
+                Text("\(count) mouvement\(count > 1 ? "s" : "") à pointer sur ton compte")
+                    .font(PulpeTypography.caption)
+                    .foregroundStyle(Color.textSecondary)
+
                 UncheckedForecastsCard(
                     items: store.uncheckedItems,
                     syncingBudgetLineIds: store.syncingBudgetLineIds,
@@ -291,6 +297,7 @@ struct CurrentMonthView: View {
                     },
                     onViewAll: { navigateToBudget = true }
                 )
+                .popoverTip(ProductTips.checking)
             }
         } else if !store.budgetLines.isEmpty || !store.transactions.isEmpty {
             UncheckedForecastsEmptyState()

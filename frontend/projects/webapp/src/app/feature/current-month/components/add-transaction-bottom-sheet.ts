@@ -62,9 +62,14 @@ interface TransactionFormControls {
 
       <!-- Header -->
       <div class="flex justify-between items-center">
-        <h2 class="text-title-large text-on-surface m-0">
-          {{ 'currentMonth.addTransactionTitle' | transloco }}
-        </h2>
+        <div>
+          <h2 class="text-title-large text-on-surface m-0">
+            {{ 'currentMonth.addTransactionTitle' | transloco }}
+          </h2>
+          <p class="text-body-small text-on-surface-variant mt-0.5 mb-0">
+            {{ 'currentMonth.addTransactionSubtitle' | transloco }}
+          </p>
+        </div>
         <button
           matIconButton
           (click)="close()"

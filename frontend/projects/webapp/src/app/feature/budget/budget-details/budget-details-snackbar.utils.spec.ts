@@ -46,12 +46,12 @@ function makeTransaction(overrides: Partial<Transaction> = {}): Transaction {
 
 const envelopeMessages: EnvelopeSnackbarMessages = {
   overEnvelope: (consumed, envelope) =>
-    `Comptabilisé ${consumed} sur ${envelope} CHF (enveloppe)`,
-  withinEnvelope: (envelope) => `Comptabilisé ${envelope} CHF (enveloppe)`,
+    `Pointé · ${consumed} CHF sur ${envelope} CHF dépensés`,
+  withinEnvelope: (envelope) => `Pointé · ${envelope} CHF`,
 };
 
 const transactionMessages: TransactionSnackbarMessages = {
-  checked: (amount) => `Comptabilisé ${amount} CHF`,
+  checked: (amount) => `Pointé · ${amount} CHF`,
 };
 
 describe('computeEnvelopeSnackbarMessage', () => {
@@ -78,7 +78,7 @@ describe('computeEnvelopeSnackbarMessage', () => {
       envelopeMessages,
     );
 
-    expect(result).toBe('Comptabilisé 408 CHF (enveloppe)');
+    expect(result).toBe('Pointé · 408 CHF');
   });
 
   it('AC2 — returns a message when checked, with transactions', () => {
@@ -109,7 +109,7 @@ describe('computeEnvelopeSnackbarMessage', () => {
       envelopeMessages,
     );
 
-    expect(result).toBe('Comptabilisé 1574 sur 408 CHF (enveloppe)');
+    expect(result).toBe('Pointé · 1574 CHF sur 408 CHF dépensés');
   });
 
   it('AC3 — displays envelope amount when consumed < envelope (123 < 408)', () => {
@@ -123,7 +123,7 @@ describe('computeEnvelopeSnackbarMessage', () => {
       envelopeMessages,
     );
 
-    expect(result).toBe('Comptabilisé 408 CHF (enveloppe)');
+    expect(result).toBe('Pointé · 408 CHF');
   });
 
   it('AC3 — displays envelope amount when consumed = envelope (408 = 408)', () => {
@@ -140,7 +140,7 @@ describe('computeEnvelopeSnackbarMessage', () => {
       envelopeMessages,
     );
 
-    expect(result).toBe('Comptabilisé 408 CHF (enveloppe)');
+    expect(result).toBe('Pointé · 408 CHF');
   });
 
   it('AC3 — displays envelope when consumed = 0', () => {
@@ -153,7 +153,7 @@ describe('computeEnvelopeSnackbarMessage', () => {
       envelopeMessages,
     );
 
-    expect(result).toBe('Comptabilisé 408 CHF (enveloppe)');
+    expect(result).toBe('Pointé · 408 CHF');
   });
 
   it('AC4 — ignores income transactions in consumed calculation', () => {
@@ -180,7 +180,7 @@ describe('computeEnvelopeSnackbarMessage', () => {
       envelopeMessages,
     );
 
-    expect(result).toBe('Comptabilisé 408 CHF (enveloppe)');
+    expect(result).toBe('Pointé · 408 CHF');
   });
 });
 
@@ -218,6 +218,6 @@ describe('computeTransactionSnackbarMessage', () => {
       transactionMessages,
     );
 
-    expect(result).toBe('Comptabilisé 42 CHF');
+    expect(result).toBe('Pointé · 42 CHF');
   });
 });

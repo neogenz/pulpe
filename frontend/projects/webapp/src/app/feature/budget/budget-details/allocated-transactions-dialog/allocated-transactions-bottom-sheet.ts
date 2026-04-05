@@ -115,7 +115,7 @@ import type {
                   (change)="onToggleCheck(tx.id)"
                   (click)="$event.stopPropagation()"
                   [attr.data-testid]="'toggle-tx-check-' + tx.id"
-                  [attr.aria-label]="'Comptabiliser : ' + tx.name"
+                  [attr.aria-label]="'Pointer : ' + tx.name"
                 />
                 <div class="flex flex-col gap-0.5 min-w-0 flex-1">
                   <span

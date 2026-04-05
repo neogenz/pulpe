@@ -143,7 +143,7 @@ extension AccountView {
                 icon: "hand.raised",
                 iconColor: Color.textSecondary,
                 title: "Avis de confidentialité",
-                subtitle: "Protection de vos données",
+                subtitle: "Protection de tes données",
                 url: AppURLs.privacy
             )
         } header: {

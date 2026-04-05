@@ -55,6 +55,11 @@ struct AddTransactionSheet: View {
             autoFocus: $isAmountFocused,
             descriptionFocus: $isDescriptionFocused
         ) {
+            Text("Pas liée à une prévision")
+                .font(PulpeTypography.caption)
+                .foregroundStyle(Color.textSecondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+
             KindToggle(selection: $kind)
             HeroAmountField(
                 amount: $amount,
