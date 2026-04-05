@@ -297,6 +297,7 @@ final class ChangePinViewModel {
             recoveryKey = response.recoveryKey
         } catch let error as APIError {
             if case .rekeyPartialFailure = error, let newKey = newClientKeyHex {
+                Self.logger.warning("Rekey partial failure: persisting new key")
                 await clientKeyManager.store(newKey, enableBiometric: biometricEnabled)
                 self.oldClientKeyHex = nil
                 self.cachedSalt = nil
