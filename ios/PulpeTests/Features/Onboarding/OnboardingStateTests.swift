@@ -430,6 +430,45 @@ struct OnboardingStateTests {
         #expect(template.customTransactions[0].expenseType == .fixed)
     }
 
+    @Test
+    func updateCustomTransactionAmount_updatesCorrectIndex() {
+        let state = makeSUT()
+        defer { OnboardingState.clearPersistedData() }
+
+        let tx1 = OnboardingTransaction(
+            amount: 50, type: .expense, name: "Spotify",
+            description: nil, expenseType: .fixed, isRecurring: true
+        )
+        let tx2 = OnboardingTransaction(
+            amount: 30, type: .saving, name: "Épargne",
+            description: nil, expenseType: .fixed, isRecurring: true
+        )
+        state.addCustomTransaction(tx1)
+        state.addCustomTransaction(tx2)
+        state.updateCustomTransactionAmount(at: 1, amount: 100)
+
+        #expect(state.customTransactions[0].amount == 50)
+        #expect(state.customTransactions[1].amount == 100)
+        #expect(state.customTransactions[1].name == "Épargne")
+        #expect(state.customTransactions[1].type == .saving)
+    }
+
+    @Test
+    func updateCustomTransactionAmount_outOfBounds_doesNothing() {
+        let state = makeSUT()
+        defer { OnboardingState.clearPersistedData() }
+
+        let tx = OnboardingTransaction(
+            amount: 50, type: .expense, name: "Spotify",
+            description: nil, expenseType: .fixed, isRecurring: true
+        )
+        state.addCustomTransaction(tx)
+        state.updateCustomTransactionAmount(at: 5, amount: 100)
+
+        #expect(state.customTransactions.count == 1)
+        #expect(state.customTransactions[0].amount == 50)
+    }
+
     // MARK: - Suggestion Toggle
 
     @Test

@@ -10,7 +10,6 @@ struct AddCustomExpenseSheet: View {
     @State private var amount: Decimal?
     @State private var amountText = ""
     @State private var kind: TransactionKind = .expense
-    @State private var recurrence: TransactionRecurrence = .fixed
     @State private var submitSuccessTrigger = false
     @FocusState private var isAmountFocused: Bool
     @FocusState private var isDescriptionFocused: Bool
@@ -56,10 +55,6 @@ struct AddCustomExpenseSheet: View {
                 .pickerStyle(.segmented)
             }
 
-            CapsulePicker(selection: $recurrence, title: "Fréquence") { item in
-                Text(item.label)
-            }
-
             addButton
         }
         .sensoryFeedback(.success, trigger: submitSuccessTrigger)
@@ -74,8 +69,8 @@ struct AddCustomExpenseSheet: View {
                 type: kind,
                 name: name.trimmingCharacters(in: .whitespaces),
                 description: nil,
-                expenseType: recurrence,
-                isRecurring: recurrence == .fixed
+                expenseType: .fixed,
+                isRecurring: true
             )
             submitSuccessTrigger.toggle()
             onAdd(tx)
