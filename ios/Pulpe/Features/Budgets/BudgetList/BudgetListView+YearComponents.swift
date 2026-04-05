@@ -150,6 +150,7 @@ struct YearPicker: View {
                                     Color.secondary.opacity(DesignTokens.Opacity.secondary)
                                 )
                                 .padding(.horizontal, DesignTokens.Spacing.xs)
+                                .accessibilityHidden(true)
                         }
                     }
                 }
