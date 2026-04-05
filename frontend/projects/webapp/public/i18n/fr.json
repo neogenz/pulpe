@@ -434,7 +434,7 @@
     "lockedAmountsTooltip": "Montants verrouillés",
     "viewTransactionsTooltip": "Voir les {{label}}",
     "snackbar": {
-      "envelopeOver": "Pointé · {{ consumed }} CHF sur {{ envelope }} CHF dépensés",
+      "envelopeOver": "Pointé · {{ consumed }} CHF — {{ envelope }} CHF prévus",
       "envelopeWithin": "Pointé · {{ envelope }} CHF",
       "transactionChecked": "Pointé · {{ amount }} CHF"
     }
