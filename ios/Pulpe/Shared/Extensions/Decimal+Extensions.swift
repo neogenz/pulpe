@@ -20,10 +20,10 @@ extension Decimal {
         }
     }
 
-    /// Format as compact CHF (no decimals for whole numbers) — always "1'235 CHF" (suffix position)
+    /// Format as compact CHF (always rounded to whole number) — "1'235 CHF" (suffix position)
     var asCompactCHF: String {
-        let formatter = isWholeNumber ? Formatters.chfWholeNumber : Formatters.chfCompact
-        let amountStr = formatter.string(from: self as NSDecimalNumber) ?? asAmount
+        let rounded = self.rounded(0, .plain)
+        let amountStr = Formatters.chfWholeNumber.string(from: rounded as NSDecimalNumber) ?? "0"
         return "\(amountStr) CHF"
     }
 
