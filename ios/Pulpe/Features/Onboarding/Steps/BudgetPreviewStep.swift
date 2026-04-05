@@ -105,6 +105,22 @@ struct BudgetPreviewStep: View {
                     color: .secondary
                 )
 
+                if !state.customTransactions.isEmpty {
+                    ForEach(Array(state.customTransactions.enumerated()), id: \.offset) { _, tx in
+                        HStack(spacing: DesignTokens.Spacing.sm) {
+                            Text(tx.name)
+                                .font(PulpeTypography.caption)
+                                .foregroundStyle(Color.textTertiary)
+                            Spacer()
+                            Text("-\(tx.amount.asCHF)")
+                                .font(PulpeTypography.caption)
+                                .monospacedDigit()
+                                .foregroundStyle(Color.textTertiary)
+                        }
+                        .padding(.leading, DesignTokens.Spacing.xl)
+                    }
+                }
+
                 Divider()
                     .opacity(0.15)
                     .padding(.horizontal, DesignTokens.Spacing.xs)

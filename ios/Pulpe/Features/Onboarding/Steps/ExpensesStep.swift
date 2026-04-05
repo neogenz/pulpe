@@ -81,6 +81,7 @@ struct ExpensesStep: View {
             ) {
                 ForEach(OnboardingState.suggestions, id: \.name) { suggestion in
                     let isSelected = state.isSuggestionSelected(suggestion)
+                    let isSaving = suggestion.type == .saving
                     Button {
                         withAnimation(.snappy(duration: DesignTokens.Animation.fast)) {
                             state.toggleSuggestion(suggestion)
@@ -93,7 +94,7 @@ struct ExpensesStep: View {
                             Text(suggestion.amount.asCompactCHF)
                                 .foregroundStyle(
                                     isSelected
-                                        ? Color.textOnPrimary.opacity(DesignTokens.Opacity.strong)
+                                        ? (isSaving ? Color.financialSavings : Color.onPrimaryContainer)
                                         : Color.onSurfaceVariant
                                 )
                         }
@@ -101,8 +102,15 @@ struct ExpensesStep: View {
                         .padding(.horizontal, DesignTokens.Spacing.md)
                         .padding(.vertical, DesignTokens.Spacing.sm)
                         .frame(maxWidth: .infinity)
-                        .background(isSelected ? Color.pulpePrimary : Color.surfaceContainer)
-                        .foregroundStyle(isSelected ? Color.textOnPrimary : Color.textPrimary)
+                        .background(isSelected ? Color.primaryContainer : Color.surfaceContainer)
+                        .foregroundStyle(isSelected ? Color.onPrimaryContainer : Color.textPrimary)
+                        .overlay {
+                            Capsule()
+                                .strokeBorder(
+                                    isSelected ? (isSaving ? Color.financialSavings : Color.pulpePrimary) : Color.clear,
+                                    lineWidth: DesignTokens.BorderWidth.hairline
+                                )
+                        }
                         .clipShape(Capsule())
                     }
                     .frame(minHeight: DesignTokens.TapTarget.minimum)
@@ -119,35 +127,19 @@ struct ExpensesStep: View {
     // MARK: - Custom Transactions
 
     private var customTransactionsSection: some View {
-        expenseSection("Mes dépenses", icon: "list.bullet") {
+        expenseSection("Mes prévisions", icon: "list.bullet") {
             ForEach(Array(state.customTransactions.enumerated()), id: \.offset) { index, tx in
-                HStack {
-                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                        Text(tx.name)
-                            .font(PulpeTypography.bodyLarge)
-                            .foregroundStyle(Color.textPrimary)
-                        Text(tx.expenseType.label)
-                            .font(PulpeTypography.caption)
-                            .foregroundStyle(Color.textTertiary)
-                    }
-
-                    Spacer()
-
-                    Text(tx.amount.asCHF)
-                        .font(PulpeTypography.bodyLarge)
-                        .foregroundStyle(Color.textPrimary)
-
-                    Button {
+                CustomTransactionRow(
+                    transaction: tx,
+                    onAmountChange: { newAmount in
+                        state.updateCustomTransactionAmount(at: index, amount: newAmount)
+                    },
+                    onRemove: {
                         withAnimation(DesignTokens.Animation.defaultSpring) {
                             state.removeCustomTransaction(at: index)
                         }
-                    } label: {
-                        Image(systemName: "xmark.circle.fill")
-                            .foregroundStyle(Color.onSurfaceVariant)
                     }
-                    .iconButtonStyle()
-                }
-                .padding(.vertical, DesignTokens.Spacing.xs)
+                )
             }
         }
     }
@@ -166,6 +158,88 @@ struct ExpensesStep: View {
         .frame(maxWidth: .infinity, minHeight: DesignTokens.TapTarget.minimum)
         .contentShape(Rectangle())
         .plainPressedButtonStyle()
+    }
+}
+
+// MARK: - Custom Transaction Row
+
+private struct CustomTransactionRow: View {
+    let transaction: OnboardingTransaction
+    let onAmountChange: (Decimal) -> Void
+    let onRemove: () -> Void
+
+    @State private var amountText: String = ""
+    @FocusState private var isAmountFocused: Bool
+
+    var body: some View {
+        HStack {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                Text(transaction.name)
+                    .font(PulpeTypography.bodyLarge)
+                    .foregroundStyle(Color.textPrimary)
+                Text(transaction.type.label)
+                    .font(PulpeTypography.caption)
+                    .foregroundStyle(transaction.type.color)
+            }
+
+            Spacer()
+
+            HStack(spacing: DesignTokens.Spacing.xs) {
+                TextField("0", text: $amountText)
+                    .keyboardType(.decimalPad)
+                    .multilineTextAlignment(.trailing)
+                    .font(PulpeTypography.bodyLarge)
+                    .monospacedDigit()
+                    .foregroundStyle(Color.textPrimary)
+                    .frame(width: 70)
+                    .focused($isAmountFocused)
+                    .onChange(of: isAmountFocused) { _, focused in
+                        if !focused { commitAmount() }
+                    }
+                    .onSubmit { commitAmount() }
+
+                Text("CHF")
+                    .font(PulpeTypography.caption)
+                    .foregroundStyle(Color.onSurfaceVariant)
+            }
+            .padding(.horizontal, DesignTokens.Spacing.sm)
+            .padding(.vertical, DesignTokens.Spacing.xs)
+            .background(
+                Color.surfaceContainer,
+                in: RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.sm, style: .continuous)
+            )
+            .overlay {
+                RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.sm, style: .continuous)
+                    .strokeBorder(
+                        isAmountFocused ? Color.pulpePrimary.opacity(0.45) : Color.clear,
+                        lineWidth: DesignTokens.BorderWidth.hairline
+                    )
+            }
+
+            Button(action: onRemove) {
+                Image(systemName: "xmark.circle.fill")
+                    .foregroundStyle(Color.onSurfaceVariant)
+            }
+            .iconButtonStyle()
+        }
+        .padding(.vertical, DesignTokens.Spacing.xs)
+        .onAppear {
+            amountText = transaction.amount.formatted(.number.grouping(.never))
+        }
+        .onChange(of: transaction.amount) { _, newValue in
+            if !isAmountFocused {
+                amountText = newValue.formatted(.number.grouping(.never))
+            }
+        }
+    }
+
+    private func commitAmount() {
+        if let value = Decimal(string: amountText.replacingOccurrences(of: ",", with: ".")),
+           value > 0 {
+            onAmountChange(value)
+        } else {
+            amountText = transaction.amount.formatted(.number.grouping(.never))
+        }
     }
 }
 
