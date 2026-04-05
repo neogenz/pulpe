@@ -199,7 +199,7 @@ import { PAY_DAY_MAX } from 'pulpe-shared';
                 </p>
               </div>
 
-              <div class="space-y-8">
+              <div class="space-y-6">
                 <mat-form-field appearance="outline" class="w-full">
                   <mat-icon matPrefix class="mr-3 text-on-surface-variant"
                     >event_repeat</mat-icon
@@ -223,232 +223,232 @@ import { PAY_DAY_MAX } from 'pulpe-shared';
                   </mat-select>
                 </mat-form-field>
 
-                <!-- Charges: Logement -->
-                <div>
-                  <div class="flex items-center gap-2 mb-3">
-                    <mat-icon class="!text-base text-on-surface-variant/60"
-                      >home</mat-icon
-                    >
-                    <span class="text-label-medium text-on-surface-variant">
-                      {{ 'completeProfile.chargeGroups.housing' | transloco }}
-                    </span>
-                  </div>
-                  <pulpe-currency-input
-                    [label]="'completeProfile.housing' | transloco"
-                    [value]="store.housingCosts()"
-                    (valueChange)="store.updateHousingCosts($event)"
-                    icon="home"
-                    placeholder="0"
-                    testId="housing-costs-input"
-                    [autoFocus]="false"
-                  />
-                </div>
-
-                <!-- Charges: Assurance & Abonnements -->
-                <div>
-                  <div class="flex items-center gap-2 mb-3">
-                    <mat-icon class="!text-base text-on-surface-variant/60"
-                      >health_and_safety</mat-icon
-                    >
-                    <span class="text-label-medium text-on-surface-variant">
-                      {{
-                        'completeProfile.chargeGroups.insuranceSubscriptions'
-                          | transloco
-                      }}
-                    </span>
-                  </div>
-                  <div class="space-y-4">
+                <!-- Charge groups (tighter spacing within) -->
+                <div class="space-y-4">
+                  <!-- Logement -->
+                  <div>
+                    <div class="flex items-center gap-2 mb-2">
+                      <mat-icon class="!text-base text-on-surface-variant/60"
+                        >home</mat-icon
+                      >
+                      <span class="text-label-medium text-on-surface-variant">
+                        {{ 'completeProfile.chargeGroups.housing' | transloco }}
+                      </span>
+                    </div>
                     <pulpe-currency-input
-                      [label]="'completeProfile.health' | transloco"
-                      [value]="store.healthInsurance()"
-                      (valueChange)="store.updateHealthInsurance($event)"
-                      icon="health_and_safety"
+                      [label]="'completeProfile.housing' | transloco"
+                      [value]="store.housingCosts()"
+                      (valueChange)="store.updateHousingCosts($event)"
+                      icon="home"
                       placeholder="0"
-                      testId="health-insurance-input"
-                      [autoFocus]="false"
-                    />
-                    <pulpe-currency-input
-                      [label]="'completeProfile.phone' | transloco"
-                      [value]="store.phonePlan()"
-                      (valueChange)="store.updatePhonePlan($event)"
-                      icon="smartphone"
-                      placeholder="0"
-                      testId="phone-plan-input"
-                      [autoFocus]="false"
-                    />
-                    <pulpe-currency-input
-                      [label]="'completeProfile.internet' | transloco"
-                      [value]="store.internetPlan()"
-                      (valueChange)="store.updateInternetPlan($event)"
-                      icon="wifi"
-                      placeholder="0"
-                      testId="internet-plan-input"
+                      testId="housing-costs-input"
                       [autoFocus]="false"
                     />
                   </div>
-                </div>
 
-                <!-- Charges: Mobilité & Crédit -->
-                <div>
-                  <div class="flex items-center gap-2 mb-3">
-                    <mat-icon class="!text-base text-on-surface-variant/60"
-                      >directions_car</mat-icon
-                    >
-                    <span class="text-label-medium text-on-surface-variant">
-                      {{
-                        'completeProfile.chargeGroups.mobilityCredit'
-                          | transloco
-                      }}
-                    </span>
+                  <!-- Assurance & Abonnements -->
+                  <div>
+                    <div class="flex items-center gap-2 mb-2">
+                      <mat-icon class="!text-base text-on-surface-variant/60"
+                        >health_and_safety</mat-icon
+                      >
+                      <span class="text-label-medium text-on-surface-variant">
+                        {{
+                          'completeProfile.chargeGroups.insuranceSubscriptions'
+                            | transloco
+                        }}
+                      </span>
+                    </div>
+                    <div class="space-y-3">
+                      <pulpe-currency-input
+                        [label]="'completeProfile.health' | transloco"
+                        [value]="store.healthInsurance()"
+                        (valueChange)="store.updateHealthInsurance($event)"
+                        icon="health_and_safety"
+                        placeholder="0"
+                        testId="health-insurance-input"
+                        [autoFocus]="false"
+                      />
+                      <pulpe-currency-input
+                        [label]="'completeProfile.phone' | transloco"
+                        [value]="store.phonePlan()"
+                        (valueChange)="store.updatePhonePlan($event)"
+                        icon="smartphone"
+                        placeholder="0"
+                        testId="phone-plan-input"
+                        [autoFocus]="false"
+                      />
+                      <pulpe-currency-input
+                        [label]="'completeProfile.internet' | transloco"
+                        [value]="store.internetPlan()"
+                        (valueChange)="store.updateInternetPlan($event)"
+                        icon="wifi"
+                        placeholder="0"
+                        testId="internet-plan-input"
+                        [autoFocus]="false"
+                      />
+                    </div>
                   </div>
-                  <div class="space-y-4">
-                    <pulpe-currency-input
-                      [label]="'completeProfile.transport' | transloco"
-                      [value]="store.transportCosts()"
-                      (valueChange)="store.updateTransportCosts($event)"
-                      icon="directions_car"
-                      placeholder="0"
-                      testId="transport-costs-input"
-                      [autoFocus]="false"
-                    />
-                    <pulpe-currency-input
-                      [label]="'completeProfile.leasing' | transloco"
-                      [value]="store.leasingCredit()"
-                      (valueChange)="store.updateLeasingCredit($event)"
-                      icon="more_horiz"
-                      placeholder="0"
-                      testId="leasing-credit-input"
-                      [autoFocus]="false"
-                    />
+
+                  <!-- Mobilité & Crédit -->
+                  <div>
+                    <div class="flex items-center gap-2 mb-2">
+                      <mat-icon class="!text-base text-on-surface-variant/60"
+                        >directions_car</mat-icon
+                      >
+                      <span class="text-label-medium text-on-surface-variant">
+                        {{
+                          'completeProfile.chargeGroups.mobilityCredit'
+                            | transloco
+                        }}
+                      </span>
+                    </div>
+                    <div class="space-y-3">
+                      <pulpe-currency-input
+                        [label]="'completeProfile.transport' | transloco"
+                        [value]="store.transportCosts()"
+                        (valueChange)="store.updateTransportCosts($event)"
+                        icon="directions_car"
+                        placeholder="0"
+                        testId="transport-costs-input"
+                        [autoFocus]="false"
+                      />
+                      <pulpe-currency-input
+                        [label]="'completeProfile.leasing' | transloco"
+                        [value]="store.leasingCredit()"
+                        (valueChange)="store.updateLeasingCredit($event)"
+                        icon="more_horiz"
+                        placeholder="0"
+                        testId="leasing-credit-input"
+                        [autoFocus]="false"
+                      />
+                    </div>
                   </div>
-                </div>
 
-                <p class="text-body-small text-on-surface-variant text-center">
-                  {{ 'completeProfile.chargesFooter' | transloco }}
-                </p>
+                  <!-- Personnaliser ton budget (same spacing as charge groups) -->
+                  <div>
+                    <div class="flex items-center gap-2 mb-4">
+                      <mat-icon class="!text-base text-on-surface-variant/60"
+                        >tune</mat-icon
+                      >
+                      <span class="text-label-medium text-on-surface-variant">
+                        {{
+                          'completeProfile.customize.sectionTitle' | transloco
+                        }}
+                      </span>
+                    </div>
 
-                <hr class="border-outline-variant/20" />
-
-                <!-- Suggestions -->
-                <div>
-                  <div class="flex items-center gap-2 mb-3">
-                    <mat-icon class="!text-base text-on-surface-variant/60"
-                      >lightbulb</mat-icon
-                    >
-                    <span class="text-label-medium text-on-surface-variant">
+                    <!-- Quick-add suggestions -->
+                    <p class="text-body-small text-on-surface-variant mb-2">
                       {{
                         'completeProfile.suggestions.sectionTitle' | transloco
                       }}
-                    </span>
-                  </div>
-                  <div
-                    class="flex flex-wrap gap-2"
-                    data-testid="suggestion-chips"
-                  >
-                    @for (suggestion of suggestions; track suggestion.name) {
-                      <button
-                        type="button"
-                        class="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-label-large transition-colors border"
-                        [class.bg-primary-container]="
-                          store.selectedSuggestionNames().has(suggestion.name)
-                        "
-                        [class.text-on-primary-container]="
-                          store.selectedSuggestionNames().has(suggestion.name)
-                        "
-                        [class.border-primary]="
-                          store.selectedSuggestionNames().has(suggestion.name)
-                        "
-                        [class.bg-surface-container]="
-                          !store.selectedSuggestionNames().has(suggestion.name)
-                        "
-                        [class.text-on-surface-variant]="
-                          !store.selectedSuggestionNames().has(suggestion.name)
-                        "
-                        [class.border-transparent]="
-                          !store.selectedSuggestionNames().has(suggestion.name)
-                        "
-                        (click)="store.toggleSuggestion(suggestion)"
-                        [attr.data-testid]="
-                          'suggestion-chip-' + suggestion.name
-                        "
-                      >
-                        {{ suggestion.name }}
-                        ·
-                        <span class="ph-no-capture"
-                          >{{ suggestion.amount }}.-</span
-                        >
-                      </button>
-                    }
-                  </div>
-                </div>
-
-                <!-- Custom expenses -->
-                <div>
-                  <div class="flex items-center gap-2 mb-3">
-                    <mat-icon class="!text-base text-on-surface-variant/60"
-                      >edit_note</mat-icon
+                    </p>
+                    <div
+                      class="flex flex-wrap gap-2 mb-5"
+                      data-testid="suggestion-chips"
                     >
-                    <span class="text-label-medium text-on-surface-variant">
-                      {{
-                        'completeProfile.customExpense.sectionTitle' | transloco
-                      }}
-                    </span>
-                  </div>
-                  @if (store.customTransactions().length > 0) {
-                    <div class="space-y-2 mb-4">
-                      @for (tx of store.customTransactions(); track $index) {
-                        <div
-                          class="flex items-center justify-between px-4 py-3 rounded-xl border border-outline-variant/30"
+                      @for (suggestion of suggestions; track suggestion.name) {
+                        <button
+                          type="button"
+                          class="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-label-large transition-colors border"
+                          [class.bg-primary-container]="
+                            store.selectedSuggestionNames().has(suggestion.name)
+                          "
+                          [class.text-on-primary-container]="
+                            store.selectedSuggestionNames().has(suggestion.name)
+                          "
+                          [class.border-primary]="
+                            store.selectedSuggestionNames().has(suggestion.name)
+                          "
+                          [class.bg-surface-container]="
+                            !store
+                              .selectedSuggestionNames()
+                              .has(suggestion.name)
+                          "
+                          [class.text-on-surface-variant]="
+                            !store
+                              .selectedSuggestionNames()
+                              .has(suggestion.name)
+                          "
+                          [class.border-transparent]="
+                            !store
+                              .selectedSuggestionNames()
+                              .has(suggestion.name)
+                          "
+                          (click)="store.toggleSuggestion(suggestion)"
+                          [attr.data-testid]="
+                            'suggestion-chip-' + suggestion.name
+                          "
                         >
-                          <span class="text-body-medium text-on-surface">{{
-                            tx.name
-                          }}</span>
-                          <div class="flex items-center gap-2">
-                            <input
-                              type="number"
-                              inputmode="decimal"
-                              class="w-20 text-right text-body-medium text-on-surface ph-no-capture bg-transparent border-b border-outline-variant/40 focus:border-primary outline-none py-0.5"
-                              [value]="tx.amount"
-                              (change)="onAmountChange($index, $event)"
-                              data-testid="custom-expense-amount"
-                            />
-                            <span
-                              class="text-body-small text-on-surface-variant"
-                              >CHF</span
-                            >
-                            <button
-                              matIconButton
-                              (click)="store.removeCustomTransaction($index)"
-                              data-testid="remove-custom-expense"
-                            >
-                              <mat-icon class="text-on-surface-variant"
-                                >close</mat-icon
-                              >
-                            </button>
-                          </div>
-                        </div>
+                          {{ suggestion.name }}
+                          ·
+                          <span class="ph-no-capture"
+                            >{{ suggestion.amount }}.-</span
+                          >
+                        </button>
                       }
                     </div>
-                  }
-                  <button
-                    matButton="outlined"
-                    class="w-full h-12 rounded-xl"
-                    (click)="openAddCustomExpenseDialog()"
-                    data-testid="add-custom-expense-button"
-                  >
-                    <span class="flex items-center justify-center gap-2">
-                      <mat-icon>add</mat-icon>
-                      {{
-                        'completeProfile.customExpense.addButton' | transloco
-                      }}
-                    </span>
-                  </button>
+
+                    <!-- Custom transactions list -->
+                    @if (store.customTransactions().length > 0) {
+                      <div class="space-y-2 mb-4">
+                        @for (tx of store.customTransactions(); track $index) {
+                          <div
+                            class="flex items-center justify-between px-4 py-3 rounded-xl border border-outline-variant/30"
+                          >
+                            <span class="text-body-medium text-on-surface">{{
+                              tx.name
+                            }}</span>
+                            <div class="flex items-center gap-2">
+                              <input
+                                type="number"
+                                inputmode="decimal"
+                                class="w-20 text-right text-body-medium text-on-surface ph-no-capture bg-transparent border-b border-outline-variant/40 focus:border-primary outline-none py-0.5"
+                                [value]="tx.amount"
+                                (change)="onAmountChange($index, $event)"
+                                data-testid="custom-expense-amount"
+                              />
+                              <span
+                                class="text-body-small text-on-surface-variant"
+                                >CHF</span
+                              >
+                              <button
+                                matIconButton
+                                (click)="store.removeCustomTransaction($index)"
+                                data-testid="remove-custom-expense"
+                              >
+                                <mat-icon class="text-on-surface-variant"
+                                  >close</mat-icon
+                                >
+                              </button>
+                            </div>
+                          </div>
+                        }
+                      </div>
+                    }
+
+                    <!-- Add custom -->
+                    <button
+                      matButton="outlined"
+                      class="w-full h-12 rounded-xl"
+                      (click)="openAddCustomExpenseDialog()"
+                      data-testid="add-custom-expense-button"
+                    >
+                      <span class="flex items-center justify-center gap-2">
+                        <mat-icon>add</mat-icon>
+                        {{
+                          'completeProfile.customExpense.addButton' | transloco
+                        }}
+                      </span>
+                    </button>
+                  </div>
                 </div>
               </div>
 
               <pulpe-error-alert [message]="store.error()" class="mt-8" />
 
-              <div class="mt-10 flex flex-col gap-3">
+              <div class="mt-16 flex flex-col gap-3">
                 <pulpe-loading-button
                   [loading]="store.isLoading()"
                   [loadingText]="'completeProfile.loadingSubmit' | transloco"
