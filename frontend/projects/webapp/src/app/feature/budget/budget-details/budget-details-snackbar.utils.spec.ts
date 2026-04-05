@@ -46,7 +46,7 @@ function makeTransaction(overrides: Partial<Transaction> = {}): Transaction {
 
 const envelopeMessages: EnvelopeSnackbarMessages = {
   overEnvelope: (consumed, envelope) =>
-    `Pointé · ${consumed} CHF sur ${envelope} CHF dépensés`,
+    `Pointé · ${consumed} CHF — ${envelope} CHF prévus`,
   withinEnvelope: (envelope) => `Pointé · ${envelope} CHF`,
 };
 
@@ -109,7 +109,7 @@ describe('computeEnvelopeSnackbarMessage', () => {
       envelopeMessages,
     );
 
-    expect(result).toBe('Pointé · 1574 CHF sur 408 CHF dépensés');
+    expect(result).toBe('Pointé · 1574 CHF — 408 CHF prévus');
   });
 
   it('AC3 — displays envelope amount when consumed < envelope (123 < 408)', () => {

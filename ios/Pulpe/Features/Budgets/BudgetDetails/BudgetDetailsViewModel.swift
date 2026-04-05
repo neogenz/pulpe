@@ -380,7 +380,7 @@ final class BudgetDetailsViewModel {
         if amountsHidden {
             toastManager.show("Pointé")
         } else if effective > consumed, consumed > 0 {
-            toastManager.show("Pointé · \(effective.asCHF) sur \(consumed.asCHF) dépensés")
+            toastManager.show("Pointé · \(effective.asCHF) — \(consumed.asCHF) dépensés")
             ProductTips.pessimisticCheckSeen = true
         } else {
             toastManager.show("Pointé · \(effective.asCHF)")

@@ -276,8 +276,7 @@ struct CurrentMonthView: View {
                         .background(Color.pulpePrimary.opacity(0.12), in: Capsule())
                 }
 
-                let count = store.uncheckedItems.count
-                Text("\(count) mouvement\(count > 1 ? "s" : "") à pointer sur ton compte")
+                Text("À réconcilier avec ton relevé")
                     .font(PulpeTypography.caption)
                     .foregroundStyle(Color.textSecondary)
 
