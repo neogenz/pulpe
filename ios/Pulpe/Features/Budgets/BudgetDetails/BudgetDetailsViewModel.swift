@@ -1,5 +1,6 @@
 // swiftlint:disable file_length
 import SwiftUI
+import TipKit
 
 // MARK: - UserDefaults Key
 
@@ -368,16 +369,27 @@ final class BudgetDetailsViewModel {
         }
     }
 
-    func showEnvelopeToastIfNeeded(for line: BudgetLine, toastManager: ToastManager, amountsHidden: Bool = false) {
+    func showCheckToastIfNeeded(for line: BudgetLine, toastManager: ToastManager, amountsHidden: Bool = false) {
         guard !line.isChecked, line.kind.isOutflow else { return }
 
         let consumed = transactions
             .filter { $0.budgetLineId == line.id && $0.isChecked && $0.kind.isOutflow }
             .reduce(Decimal.zero) { $0 + $1.amount }
         let effective = max(line.amount, consumed)
-        guard effective > consumed, consumed > 0 else { return }
-        let amountText = amountsHidden ? "" : " \(effective.asCHF)"
-        toastManager.show("Comptabilisé\(amountText) (enveloppe)")
+
+        let isPessimistic = effective > consumed && consumed > 0
+
+        if isPessimistic && !amountsHidden {
+            ProductTips.pessimisticCheckSeen = true
+        }
+
+        if amountsHidden {
+            toastManager.show("Pointé")
+        } else if isPessimistic {
+            toastManager.show("Pointé · \(consumed.asCHF) — \(effective.asCHF) prévus")
+        } else {
+            toastManager.show("Pointé · \(effective.asCHF)")
+        }
     }
 
     // MARK: - Mutations

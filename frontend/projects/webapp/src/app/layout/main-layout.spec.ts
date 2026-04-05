@@ -536,7 +536,7 @@ describe('MainLayout', () => {
         const ariaLabel = logoutButton.getAttribute('aria-label');
         expect(ariaLabel).toBeTruthy();
         expect([
-          'Se déconnecter de votre compte',
+          'Se déconnecter',
           'Déconnexion en cours, veuillez patienter',
         ]).toContain(ariaLabel);
       }

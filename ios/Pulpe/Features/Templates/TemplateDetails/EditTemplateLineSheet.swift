@@ -170,7 +170,7 @@ struct EditTemplateLineSheet: View {
 
         do {
             let updatedLine = try await dependencies.updateTemplateLine(templateLine.templateId, templateLine.id, data)
-            finishSave(updatedLine: updatedLine, message: "Ligne modifiée")
+            finishSave(updatedLine: updatedLine, message: "Prévision modifiée")
         } catch {
             self.error = error
         }
@@ -199,8 +199,9 @@ struct EditTemplateLineSheet: View {
             let updatedLine = response.updated.first ?? templateLine
             let affectedCount = response.propagation?.affectedBudgetsCount ?? 0
             let message = affectedCount > 0
-                ? "Ligne modifiée — \(affectedCount) \(affectedCount == 1 ? "budget mis à jour" : "budgets mis à jour")"
-                : "Ligne modifiée"
+                ? "Prévision modifiée — \(affectedCount) "
+                + (affectedCount == 1 ? "budget mis à jour" : "budgets mis à jour")
+                : "Prévision modifiée"
             finishSave(updatedLine: updatedLine, message: message)
         } catch {
             self.error = error

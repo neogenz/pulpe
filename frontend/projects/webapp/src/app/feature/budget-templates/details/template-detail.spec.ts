@@ -603,7 +603,7 @@ describe('TemplateDetail', () => {
         'template-123',
       );
       expect(mockSnackBar.open).toHaveBeenCalledWith(
-        'Modèle supprimé avec succès',
+        'Modèle supprimé',
         undefined,
         { duration: 3000 },
       );
