@@ -67,10 +67,7 @@ struct AddCustomExpenseSheet: View {
             let tx = OnboardingTransaction(
                 amount: amount ?? 0,
                 type: kind,
-                name: name.trimmingCharacters(in: .whitespaces),
-                description: nil,
-                expenseType: .fixed,
-                isRecurring: true
+                name: name.trimmingCharacters(in: .whitespaces)
             )
             submitSuccessTrigger.toggle()
             onAdd(tx)

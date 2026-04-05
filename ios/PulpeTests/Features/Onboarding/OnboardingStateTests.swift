@@ -366,7 +366,7 @@ struct OnboardingStateTests {
 
         let tx = OnboardingTransaction(
             amount: 50, type: .expense, name: "Spotify",
-            description: nil, expenseType: .fixed, isRecurring: true
+            description: nil
         )
         state.addCustomTransaction(tx)
 
@@ -382,11 +382,11 @@ struct OnboardingStateTests {
 
         let tx1 = OnboardingTransaction(
             amount: 50, type: .expense, name: "Spotify",
-            description: nil, expenseType: .fixed, isRecurring: true
+            description: nil
         )
         let tx2 = OnboardingTransaction(
             amount: 30, type: .expense, name: "Netflix",
-            description: nil, expenseType: .fixed, isRecurring: true
+            description: nil
         )
         state.addCustomTransaction(tx1)
         state.addCustomTransaction(tx2)
@@ -404,7 +404,7 @@ struct OnboardingStateTests {
         state.housingCosts = 1500
         let tx = OnboardingTransaction(
             amount: 50, type: .expense, name: "Spotify",
-            description: nil, expenseType: .fixed, isRecurring: true
+            description: nil
         )
         state.addCustomTransaction(tx)
 
@@ -418,7 +418,7 @@ struct OnboardingStateTests {
 
         let tx = OnboardingTransaction(
             amount: 50, type: .expense, name: "Spotify",
-            description: nil, expenseType: .fixed, isRecurring: true
+            description: nil
         )
         state.addCustomTransaction(tx)
 
@@ -437,11 +437,11 @@ struct OnboardingStateTests {
 
         let tx1 = OnboardingTransaction(
             amount: 50, type: .expense, name: "Spotify",
-            description: nil, expenseType: .fixed, isRecurring: true
+            description: nil
         )
         let tx2 = OnboardingTransaction(
             amount: 30, type: .saving, name: "Épargne",
-            description: nil, expenseType: .fixed, isRecurring: true
+            description: nil
         )
         state.addCustomTransaction(tx1)
         state.addCustomTransaction(tx2)
@@ -460,7 +460,7 @@ struct OnboardingStateTests {
 
         let tx = OnboardingTransaction(
             amount: 50, type: .expense, name: "Spotify",
-            description: nil, expenseType: .fixed, isRecurring: true
+            description: nil
         )
         state.addCustomTransaction(tx)
         state.updateCustomTransactionAmount(at: 5, amount: 100)
