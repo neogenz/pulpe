@@ -30,6 +30,7 @@ struct SectionHeader: View {
             if let total = totalAmount {
                 Text(total.asSignedCompactCHF)
                     .font(PulpeTypography.labelLarge)
+                    .monospacedDigit()
                     .foregroundStyle(totalColor)
                     .sensitiveAmount()
             }
