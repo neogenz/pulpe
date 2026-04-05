@@ -222,7 +222,6 @@ struct BudgetDetailsView: View {
             if !filteredExpenses.isEmpty {
                 budgetSection(title: "Dépenses", items: filteredExpenses,
                               tip: filteredIncome.isEmpty ? ProductTips.gestures : nil)
-                    .popoverTip(ProductTips.pessimisticCheck)
             }
             if !filteredSavings.isEmpty {
                 budgetSection(title: "Épargne", items: filteredSavings,
@@ -247,6 +246,7 @@ struct BudgetDetailsView: View {
                 )
             }
         }
+        .popoverTip(ProductTips.pessimisticCheck)
         .listStyle(.insetGrouped)
         .listRowSpacing(0)
         .listSectionSpacing(DesignTokens.Spacing.xxl)

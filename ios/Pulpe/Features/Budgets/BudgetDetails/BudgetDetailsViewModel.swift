@@ -379,7 +379,7 @@ final class BudgetDetailsViewModel {
 
         let isPessimistic = effective > consumed && consumed > 0
 
-        if isPessimistic {
+        if isPessimistic && !amountsHidden {
             ProductTips.pessimisticCheckSeen = true
         }
 
