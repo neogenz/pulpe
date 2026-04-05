@@ -28,8 +28,9 @@ struct SectionHeader: View {
 
             // Total amount (optional)
             if let total = totalAmount {
-                Text(total.asCHF)
+                Text(total.asSignedCompactCHF)
                     .font(PulpeTypography.labelLarge)
+                    .monospacedDigit()
                     .foregroundStyle(totalColor)
                     .sensitiveAmount()
             }

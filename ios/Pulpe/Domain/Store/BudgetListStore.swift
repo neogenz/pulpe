@@ -33,10 +33,12 @@ final class BudgetListStore: StoreProtocol {
 
     init(
         budgetService: BudgetService = .shared,
-        widgetSyncService: WidgetDataSyncService = .shared
+        widgetSyncService: WidgetDataSyncService = .shared,
+        initialBudgets: [BudgetSparse] = []
     ) {
         self.budgetService = budgetService
         self.widgetSyncService = widgetSyncService
+        self.budgets = initialBudgets
     }
 
     // MARK: - Smart Loading (StoreProtocol)
@@ -111,6 +113,14 @@ final class BudgetListStore: StoreProtocol {
             .map { year, budgets in
                 YearGroup(year: year, budgets: budgets.sorted { ($0.month ?? 0) < ($1.month ?? 0) })
             }
+    }
+
+    var availableYears: [Int] {
+        groupedByYear.map(\.year)
+    }
+
+    func budgets(forYear year: Int) -> [BudgetSparse] {
+        groupedByYear.first(where: { $0.year == year })?.budgets ?? []
     }
 
     var nextAvailableMonth: (month: Int, year: Int)? {

@@ -241,11 +241,14 @@ struct BudgetLineRow: View {
     }
 
     private var remainingAmountText: String {
-        // Income & savings: always show unsigned budget amount
+        // Income: show with + sign
+        guard line.kind != .income else {
+            return "+\(line.amount.asAmount)"
+        }
+        // Expenses & savings: show remaining with - sign when negative
         guard line.kind == .expense else {
             return line.amount.asAmount
         }
-        // Expenses: always show remaining (= budget when no transactions)
         if consumption.available >= 0 {
             return consumption.available.asAmount
         } else {

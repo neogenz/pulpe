@@ -62,7 +62,7 @@ private struct RecentTransactionRow: View {
             Spacer()
 
             // Amount
-            Text(transaction.amount.asAmount)
+            Text(transaction.amount.asSignedAmount(for: transaction.kind))
                 .font(PulpeTypography.listRowSubtitle)
                 .foregroundStyle(transaction.kind.color)
                 .sensitiveAmount()
