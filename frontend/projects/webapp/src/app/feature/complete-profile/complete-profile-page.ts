@@ -1,11 +1,9 @@
 import {
   Component,
   ChangeDetectionStrategy,
-  DestroyRef,
   inject,
   signal,
 } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
   trigger,
   transition,
@@ -33,6 +31,7 @@ import {
   CompleteProfileStore,
   ONBOARDING_SUGGESTIONS,
 } from './complete-profile-store';
+import { take } from 'rxjs';
 import { AddCustomExpenseDialog } from './add-custom-expense-dialog';
 import { PAY_DAY_MAX } from 'pulpe-shared';
 
@@ -496,7 +495,6 @@ export default class CompleteProfilePage {
   protected readonly store = inject(CompleteProfileStore);
   readonly #router = inject(Router);
   readonly #dialog = inject(MatDialog);
-  readonly #destroyRef = inject(DestroyRef);
   readonly #postHogService = inject(PostHogService);
 
   protected readonly suggestions = ONBOARDING_SUGGESTIONS;
@@ -546,7 +544,7 @@ export default class CompleteProfilePage {
     this.#dialog
       .open(AddCustomExpenseDialog, { width: '400px' })
       .afterClosed()
-      .pipe(takeUntilDestroyed(this.#destroyRef))
+      .pipe(take(1))
       .subscribe((result) => {
         if (result) {
           this.store.addCustomTransaction(result);
