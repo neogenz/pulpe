@@ -183,7 +183,7 @@ struct TransactionRow: View {
             SyncIndicator(isSyncing: isSyncing)
 
             // Amount
-            Text(transaction.amount.asCHF)
+            Text(transaction.amount.asSignedAmount(for: transaction.kind))
                 .font(PulpeTypography.callout.weight(.semibold))
                 .foregroundStyle(transaction.isChecked ? .secondary : transaction.kind.color)
                 .sensitiveAmount()
