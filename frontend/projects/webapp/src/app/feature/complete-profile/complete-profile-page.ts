@@ -406,7 +406,7 @@ import { PAY_DAY_MAX } from 'pulpe-shared';
                               <input
                                 type="number"
                                 inputmode="decimal"
-                                class="w-20 text-right text-body-medium text-on-surface ph-no-capture bg-transparent border-b border-outline-variant/40 focus:border-primary outline-none py-0.5"
+                                class="w-20 text-right text-body-medium text-on-surface bg-transparent border-b border-outline-variant/40 focus:border-primary outline-none py-0.5"
                                 [value]="tx.amount"
                                 (change)="onAmountChange($index, $event)"
                                 data-testid="custom-expense-amount"
@@ -533,9 +533,12 @@ export default class CompleteProfilePage {
   }
 
   protected onAmountChange(index: number, event: Event): void {
-    const value = +(event.target as HTMLInputElement).value;
+    const input = event.target as HTMLInputElement;
+    const value = +input.value;
     if (!isNaN(value) && value > 0) {
       this.store.updateCustomTransactionAmount(index, value);
+    } else {
+      input.value = String(this.store.customTransactions()[index].amount);
     }
   }
 

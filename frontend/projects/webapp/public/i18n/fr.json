@@ -702,11 +702,8 @@
       "nameLabel": "Nom de la prévision",
       "namePlaceholder": "Ex: Salle de sport, Streaming...",
       "amountLabel": "Montant",
-      "recurringToggle": "Prévision récurrente",
       "sectionTitle": "Prévisions personnalisées",
       "addButton": "Ajouter une prévision",
-      "recurringLabel": "Récurrent",
-      "oneOffLabel": "Ponctuel",
       "kindExpense": "Dépense",
       "kindSaving": "Épargne"
     }
