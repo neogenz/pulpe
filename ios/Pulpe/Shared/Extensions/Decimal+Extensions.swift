@@ -27,6 +27,12 @@ extension Decimal {
         return "\(amountStr) CHF"
     }
 
+    /// Format as signed compact CHF — "+1'235 CHF" for positive, "-1'235 CHF" for negative, "0 CHF" for zero
+    var asSignedCompactCHF: String {
+        let sign = self > 0 ? "+" : ""
+        return "\(sign)\(asCompactCHF)"
+    }
+
     /// Check if the decimal is a whole number
     var isWholeNumber: Bool {
         self == self.rounded(0, .plain)

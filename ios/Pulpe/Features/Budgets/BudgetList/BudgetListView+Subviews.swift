@@ -249,7 +249,7 @@ struct BudgetMonthCard: View {
                     Spacer()
                     VStack(alignment: .trailing, spacing: 2) {
                         if let remaining = budget.remaining {
-                            Text(signedCompactCHF(remaining))
+                            Text(remaining.asSignedCompactCHF)
                                 .font(PulpeTypography.tutorialTitle)
                                 .monospacedDigit()
                                 .foregroundStyle(isPast ? .secondary : emotionColor)
@@ -288,11 +288,6 @@ struct BudgetMonthCard: View {
         .accessibilityLabel(accessibilityDescription)
         .accessibilityHint("Appuie pour voir les détails")
         .accessibilityAddTraits(.isButton)
-    }
-
-    private func signedCompactCHF(_ value: Decimal) -> String {
-        let sign = value >= 0 ? "+" : ""
-        return "\(sign)\(value.asCompactCHF)"
     }
 
     private func innerMetric(label: String, value: Decimal?) -> some View {
