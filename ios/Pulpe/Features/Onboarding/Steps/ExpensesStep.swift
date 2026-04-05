@@ -135,16 +135,22 @@ struct ExpensesStep: View {
 
     private var customTransactionsSection: some View {
         expenseSection("Mes prévisions", icon: "list.bullet") {
-            ForEach(Array(state.customTransactions.enumerated()), id: \.offset) { index, tx in
-                if index > 0 {
+            ForEach(state.customTransactions) { tx in
+                if tx.id != state.customTransactions.first?.id {
                     Divider().opacity(DesignTokens.Opacity.accent)
                 }
                 CustomTransactionRow(
                     transaction: tx,
                     onAmountChange: { newAmount in
+                        guard let index = state.customTransactions.firstIndex(
+                            where: { $0.id == tx.id }
+                        ) else { return }
                         state.updateCustomTransactionAmount(at: index, amount: newAmount)
                     },
                     onRemove: {
+                        guard let index = state.customTransactions.firstIndex(
+                            where: { $0.id == tx.id }
+                        ) else { return }
                         withAnimation(DesignTokens.Animation.defaultSpring) {
                             state.removeCustomTransaction(at: index)
                         }
