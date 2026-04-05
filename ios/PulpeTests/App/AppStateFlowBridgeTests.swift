@@ -242,7 +242,7 @@ struct AppStateFlowBridgeTests {
 
         sut.send(.pinSetupCompleted)
 
-        await waitForCondition(timeout: .milliseconds(500), "pin setup must complete") {
+        await waitForCondition("pin setup must complete") {
             sut.authState == .authenticated
         }
     }
