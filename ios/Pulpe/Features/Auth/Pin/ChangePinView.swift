@@ -289,20 +289,12 @@ final class ChangePinViewModel {
                 newClientKeyHex: result.clientKeyHex
             )
 
-            await clientKeyManager.store(result.clientKeyHex, enableBiometric: biometricEnabled)
-            self.oldClientKeyHex = nil
-            self.cachedSalt = nil
-            hapticSuccess.toggle()
-            AnalyticsService.shared.capture(.pinChanged)
+            await completeChangePin(clientKeyHex: result.clientKeyHex)
             recoveryKey = response.recoveryKey
         } catch let error as APIError {
             if case .rekeyPartialFailure = error, let newKey = newClientKeyHex {
                 Self.logger.warning("Rekey partial failure: persisting new key")
-                await clientKeyManager.store(newKey, enableBiometric: biometricEnabled)
-                self.oldClientKeyHex = nil
-                self.cachedSalt = nil
-                hapticSuccess.toggle()
-                AnalyticsService.shared.capture(.pinChanged)
+                await completeChangePin(clientKeyHex: newKey)
                 completedWithoutRecovery = true
             } else {
                 step = .enterNewPin
@@ -317,6 +309,16 @@ final class ChangePinViewModel {
             step = .enterNewPin
             showError("Erreur inattendue, réessaie")
         }
+    }
+
+    // MARK: - Completion
+
+    private func completeChangePin(clientKeyHex: String) async {
+        await clientKeyManager.store(clientKeyHex, enableBiometric: biometricEnabled)
+        oldClientKeyHex = nil
+        cachedSalt = nil
+        hapticSuccess.toggle()
+        AnalyticsService.shared.capture(.pinChanged)
     }
 
     // MARK: - Error Handling
