@@ -223,9 +223,9 @@ struct OnboardingTransaction: Identifiable, Encodable, Sendable {
         amount: Decimal,
         type: TransactionKind,
         name: String,
-        description: String?,
-        expenseType: TransactionRecurrence,
-        isRecurring: Bool
+        description: String? = nil,
+        expenseType: TransactionRecurrence = .fixed,
+        isRecurring: Bool = true
     ) {
         self.id = id
         self.amount = amount

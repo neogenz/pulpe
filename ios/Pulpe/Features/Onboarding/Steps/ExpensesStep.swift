@@ -240,22 +240,25 @@ private struct CustomTransactionRow: View {
         }
         .padding(.vertical, DesignTokens.Spacing.xs)
         .onAppear {
-            amountText = transaction.amount.formatted(.number.grouping(.never))
+            amountText = formatAmount(transaction.amount)
         }
         .onChange(of: transaction.amount) { _, newValue in
             if !isAmountFocused {
-                amountText = newValue.formatted(.number.grouping(.never))
+                amountText = formatAmount(newValue)
             }
         }
     }
 
     private func commitAmount() {
-        if let value = Decimal(string: amountText.replacingOccurrences(of: ",", with: ".")),
-           value > 0 {
+        if let value = amountText.parsedAsAmount, value > 0 {
             onAmountChange(value)
         } else {
-            amountText = transaction.amount.formatted(.number.grouping(.never))
+            amountText = formatAmount(transaction.amount)
         }
+    }
+
+    private func formatAmount(_ value: Decimal) -> String {
+        Formatters.amountInput.string(from: value as NSDecimalNumber) ?? ""
     }
 }
 

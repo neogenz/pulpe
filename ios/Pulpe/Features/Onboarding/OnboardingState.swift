@@ -217,26 +217,11 @@ final class OnboardingState {
     // MARK: - Suggestions
 
     static let suggestions: [OnboardingTransaction] = [
-        OnboardingTransaction(
-            amount: 600, type: .expense, name: "Courses / alimentation",
-            description: nil, expenseType: .fixed, isRecurring: true
-        ),
-        OnboardingTransaction(
-            amount: 150, type: .expense, name: "Restaurants & sorties",
-            description: nil, expenseType: .fixed, isRecurring: true
-        ),
-        OnboardingTransaction(
-            amount: 100, type: .expense, name: "Loisirs & sport",
-            description: nil, expenseType: .fixed, isRecurring: true
-        ),
-        OnboardingTransaction(
-            amount: 500, type: .saving, name: "Épargne",
-            description: nil, expenseType: .fixed, isRecurring: true
-        ),
-        OnboardingTransaction(
-            amount: 587, type: .saving, name: "3ème pilier",
-            description: nil, expenseType: .fixed, isRecurring: true
-        ),
+        OnboardingTransaction(amount: 600, type: .expense, name: "Courses / alimentation"),
+        OnboardingTransaction(amount: 150, type: .expense, name: "Restaurants & sorties"),
+        OnboardingTransaction(amount: 100, type: .expense, name: "Loisirs & sport"),
+        OnboardingTransaction(amount: 500, type: .saving, name: "Épargne"),
+        OnboardingTransaction(amount: 587, type: .saving, name: "3ème pilier"),
     ]
 
     func isSuggestionSelected(_ suggestion: OnboardingTransaction) -> Bool {
