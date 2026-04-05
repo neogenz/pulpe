@@ -534,7 +534,7 @@ export default class CompleteProfilePage {
 
   protected onAmountChange(index: number, event: Event): void {
     const value = +(event.target as HTMLInputElement).value;
-    if (!isNaN(value) && value >= 0) {
+    if (!isNaN(value) && value > 0) {
       this.store.updateCustomTransactionAmount(index, value);
     }
   }
