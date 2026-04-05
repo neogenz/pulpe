@@ -101,7 +101,7 @@ export class AddCustomExpenseDialog {
 
   protected readonly form = this.#fb.group({
     kind: ['expense' as 'expense' | 'saving'],
-    name: ['', [Validators.required, Validators.minLength(1)]],
+    name: ['', [Validators.required, Validators.pattern(/\S/)]],
     amount: [
       null as number | null,
       [Validators.required, Validators.min(0.01)],
