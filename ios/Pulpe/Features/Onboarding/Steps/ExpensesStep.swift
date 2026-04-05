@@ -47,6 +47,7 @@ struct ExpensesStep: View {
             AddCustomExpenseSheet { tx in
                 state.addCustomTransaction(tx)
             }
+            .standardSheetPresentation()
         }
         .trackScreen("Onboarding_Expenses")
     }

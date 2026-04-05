@@ -1,9 +1,11 @@
 import {
   Component,
   ChangeDetectionStrategy,
+  DestroyRef,
   inject,
   signal,
 } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
   trigger,
   transition,
@@ -494,6 +496,7 @@ export default class CompleteProfilePage {
   protected readonly store = inject(CompleteProfileStore);
   readonly #router = inject(Router);
   readonly #dialog = inject(MatDialog);
+  readonly #destroyRef = inject(DestroyRef);
   readonly #postHogService = inject(PostHogService);
 
   protected readonly suggestions = ONBOARDING_SUGGESTIONS;
@@ -531,7 +534,7 @@ export default class CompleteProfilePage {
 
   protected onAmountChange(index: number, event: Event): void {
     const value = +(event.target as HTMLInputElement).value;
-    if (value > 0) {
+    if (!isNaN(value) && value >= 0) {
       this.store.updateCustomTransactionAmount(index, value);
     }
   }
@@ -540,6 +543,7 @@ export default class CompleteProfilePage {
     this.#dialog
       .open(AddCustomExpenseDialog, { width: '400px' })
       .afterClosed()
+      .pipe(takeUntilDestroyed(this.#destroyRef))
       .subscribe((result) => {
         if (result) {
           this.store.addCustomTransaction(result);
