@@ -106,7 +106,7 @@ struct BudgetPreviewStep: View {
                 )
 
                 if !state.customTransactions.isEmpty {
-                    ForEach(Array(state.customTransactions.enumerated()), id: \.offset) { _, tx in
+                    ForEach(state.customTransactions) { tx in
                         HStack(spacing: DesignTokens.Spacing.sm) {
                             Text(tx.name)
                                 .font(PulpeTypography.caption)

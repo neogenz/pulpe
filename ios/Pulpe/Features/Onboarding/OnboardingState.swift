@@ -263,14 +263,7 @@ final class OnboardingState {
 
     func updateCustomTransactionAmount(at index: Int, amount: Decimal) {
         guard customTransactions.indices.contains(index) else { return }
-        customTransactions[index] = OnboardingTransaction(
-            amount: amount,
-            type: customTransactions[index].type,
-            name: customTransactions[index].name,
-            description: customTransactions[index].description,
-            expenseType: customTransactions[index].expenseType,
-            isRecurring: customTransactions[index].isRecurring
-        )
+        customTransactions[index].amount = amount
     }
 }
 
