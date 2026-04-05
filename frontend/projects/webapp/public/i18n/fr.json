@@ -692,7 +692,10 @@
       "mobilityCredit": "Mobilité & Crédit"
     },
     "suggestions": {
-      "sectionTitle": "Suggestions"
+      "sectionTitle": "Ajouter en un clic"
+    },
+    "customize": {
+      "sectionTitle": "Personnaliser ton budget"
     },
     "customExpense": {
       "dialogTitle": "Ajouter une prévision",
