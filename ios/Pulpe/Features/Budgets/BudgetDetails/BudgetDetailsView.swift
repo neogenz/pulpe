@@ -222,12 +222,7 @@ struct BudgetDetailsView: View {
             if !filteredExpenses.isEmpty {
                 budgetSection(title: "Dépenses", items: filteredExpenses,
                               tip: filteredIncome.isEmpty ? ProductTips.gestures : nil)
-
-                Section {
-                    TipView(ProductTips.pessimisticCheck)
-                }
-                .listRowCustomStyled(insets: EdgeInsets())
-                .listSectionSeparator(.hidden)
+                    .popoverTip(ProductTips.pessimisticCheck)
             }
             if !filteredSavings.isEmpty {
                 budgetSection(title: "Épargne", items: filteredSavings,
