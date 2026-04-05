@@ -377,12 +377,16 @@ final class BudgetDetailsViewModel {
             .reduce(Decimal.zero) { $0 + $1.amount }
         let effective = max(line.amount, consumed)
 
+        let isPessimistic = effective > consumed && consumed > 0
+
+        if isPessimistic {
+            ProductTips.pessimisticCheckSeen = true
+        }
+
         if amountsHidden {
             toastManager.show("Pointé")
-        } else if effective > consumed, consumed > 0 {
+        } else if isPessimistic {
             toastManager.show("Pointé · \(consumed.asCHF) — \(effective.asCHF) prévus")
-            ProductTips.pessimisticCheckSeen = true
-            ProductTips.pessimisticCheck.invalidate(reason: .actionPerformed)
         } else {
             toastManager.show("Pointé · \(effective.asCHF)")
         }
