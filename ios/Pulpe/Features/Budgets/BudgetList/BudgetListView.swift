@@ -94,7 +94,12 @@ struct BudgetListView: View {
             let currentPeriod = BudgetPeriodCalculator.periodForDate(
                 Date(), payDayOfMonth: userSettingsStore.payDayOfMonth
             )
-            selectedYear = currentPeriod.year
+            let available = store.availableYears
+            if available.contains(currentPeriod.year) {
+                selectedYear = currentPeriod.year
+            } else if let latest = available.last {
+                selectedYear = latest
+            }
             if reduceMotion {
                 hasAppeared = true
             } else {

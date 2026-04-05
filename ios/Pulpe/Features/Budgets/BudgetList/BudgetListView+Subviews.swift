@@ -385,7 +385,7 @@ struct NextMonthPlaceholder: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .background(.white)
+        .background(Color.surfaceContainerLowest)
         .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.xl))
         .overlay {
             RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.xl)
