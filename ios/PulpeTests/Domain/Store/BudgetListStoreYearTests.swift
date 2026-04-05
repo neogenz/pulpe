@@ -69,4 +69,16 @@ struct BudgetListStoreYearTests {
         #expect(result.count == 2)
         #expect(result.allSatisfy { $0.year == 2025 })
     }
+
+    // MARK: - budgets(forYear:) edge cases
+
+    @Test func budgetsForYear_withNilYear_notIncludedInResults() {
+        // BudgetSparse with nil year should not appear in any year group
+        let store = makeStore(budgets: [
+            TestDataFactory.createBudgetSparse(id: "a", month: 1, year: 2026),
+            TestDataFactory.createBudgetSparse(id: "b", month: nil, year: nil),
+        ])
+        #expect(store.budgets(forYear: 2026).count == 1)
+        #expect(store.availableYears.contains(0)) // nil years grouped under 0
+    }
 }

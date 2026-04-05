@@ -5,7 +5,6 @@ struct BudgetListView: View {
     @Environment(BudgetListStore.self) private var store
     @Environment(UserSettingsStore.self) private var userSettingsStore
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var showCreateBudget = false
     @State private var createBudgetTarget: (month: Int, year: Int)?
     @State private var hasAppeared = false
     @State private var selectedYear: Int = Calendar.current.component(.year, from: Date())
@@ -41,7 +40,7 @@ struct BudgetListView: View {
                         .foregroundStyle(Color.textTertiary)
                         .multilineTextAlignment(.center)
                     Button("Créer un budget") {
-                        showCreateBudget = true
+                        createBudgetTarget = store.nextAvailableMonth
                     }
                     .primaryButtonStyle()
                 }
@@ -59,17 +58,6 @@ struct BudgetListView: View {
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 createButton
-            }
-        }
-        .sheet(isPresented: $showCreateBudget) {
-            if let nextMonth = store.nextAvailableMonth {
-                CreateBudgetView(
-                    month: nextMonth.month,
-                    year: nextMonth.year
-                ) { budget in
-                    store.addBudget(budget)
-                    appState.budgetPath.append(BudgetDestination.details(budgetId: budget.id))
-                }
             }
         }
         .sheet(isPresented: Binding(
@@ -112,7 +100,7 @@ struct BudgetListView: View {
 
     private var createButton: some View {
         Button {
-            showCreateBudget = true
+            createBudgetTarget = store.nextAvailableMonth
         } label: {
             Image(systemName: "plus")
         }
