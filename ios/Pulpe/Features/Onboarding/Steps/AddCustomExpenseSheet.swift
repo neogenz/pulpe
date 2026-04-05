@@ -22,7 +22,7 @@ struct AddCustomExpenseSheet: View {
 
     var body: some View {
         SheetFormContainer(
-            title: "Nouvelle dépense",
+            title: "Nouvelle prévision",
             isLoading: false,
             autoFocus: $isAmountFocused,
             descriptionFocus: $isDescriptionFocused

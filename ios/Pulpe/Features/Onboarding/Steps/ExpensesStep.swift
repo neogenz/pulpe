@@ -76,12 +76,13 @@ struct ExpensesStep: View {
     private var suggestionsSection: some View {
         expenseSection("Suggestions", icon: "lightbulb.fill") {
             LazyVGrid(
-                columns: [GridItem(.adaptive(minimum: 140), spacing: DesignTokens.Spacing.sm)],
+                columns: [GridItem(.adaptive(minimum: 155), spacing: DesignTokens.Spacing.sm)],
                 spacing: DesignTokens.Spacing.sm
             ) {
                 ForEach(OnboardingState.suggestions, id: \.name) { suggestion in
                     let isSelected = state.isSuggestionSelected(suggestion)
                     let isSaving = suggestion.type == .saving
+                    let accentColor = isSaving ? Color.financialSavings : Color.pulpePrimary
                     Button {
                         withAnimation(.snappy(duration: DesignTokens.Animation.fast)) {
                             state.toggleSuggestion(suggestion)
@@ -94,7 +95,7 @@ struct ExpensesStep: View {
                             Text(suggestion.amount.asCompactCHF)
                                 .foregroundStyle(
                                     isSelected
-                                        ? (isSaving ? Color.financialSavings : Color.onPrimaryContainer)
+                                        ? Color.onPrimaryContainer
                                         : Color.onSurfaceVariant
                                 )
                         }
@@ -102,13 +103,17 @@ struct ExpensesStep: View {
                         .padding(.horizontal, DesignTokens.Spacing.md)
                         .padding(.vertical, DesignTokens.Spacing.sm)
                         .frame(maxWidth: .infinity)
-                        .background(isSelected ? Color.primaryContainer : Color.surfaceContainer)
-                        .foregroundStyle(isSelected ? Color.onPrimaryContainer : Color.textPrimary)
+                        .background(
+                            isSelected ? Color.primaryContainer : Color.surfaceContainer
+                        )
+                        .foregroundStyle(
+                            isSelected ? Color.onPrimaryContainer : Color.textPrimary
+                        )
                         .overlay {
                             Capsule()
                                 .strokeBorder(
-                                    isSelected ? (isSaving ? Color.financialSavings : Color.pulpePrimary) : Color.clear,
-                                    lineWidth: DesignTokens.BorderWidth.hairline
+                                    isSelected ? accentColor : Color.clear,
+                                    lineWidth: DesignTokens.BorderWidth.thin
                                 )
                         }
                         .clipShape(Capsule())
@@ -116,7 +121,9 @@ struct ExpensesStep: View {
                     .frame(minHeight: DesignTokens.TapTarget.minimum)
                     .contentShape(Capsule())
                     .plainPressedButtonStyle()
-                    .accessibilityLabel("\(suggestion.name), \(suggestion.amount.asCompactCHF)")
+                    .accessibilityLabel(
+                        "\(suggestion.name), \(suggestion.amount.asCompactCHF)"
+                    )
                     .accessibilityAddTraits(isSelected ? .isSelected : [])
                 }
             }
@@ -129,6 +136,9 @@ struct ExpensesStep: View {
     private var customTransactionsSection: some View {
         expenseSection("Mes prévisions", icon: "list.bullet") {
             ForEach(Array(state.customTransactions.enumerated()), id: \.offset) { index, tx in
+                if index > 0 {
+                    Divider().opacity(DesignTokens.Opacity.accent)
+                }
                 CustomTransactionRow(
                     transaction: tx,
                     onAmountChange: { newAmount in
@@ -150,7 +160,7 @@ struct ExpensesStep: View {
         } label: {
             HStack(spacing: DesignTokens.Spacing.sm) {
                 Image(systemName: "plus.circle.fill")
-                Text("Ajouter une dépense")
+                Text("Ajouter une prévision")
             }
             .font(PulpeTypography.labelLarge)
             .foregroundStyle(Color.pulpePrimary)
@@ -211,7 +221,7 @@ private struct CustomTransactionRow: View {
             .overlay {
                 RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.sm, style: .continuous)
                     .strokeBorder(
-                        isAmountFocused ? Color.pulpePrimary.opacity(0.45) : Color.clear,
+                        isAmountFocused ? Color.pulpePrimary.opacity(0.45) : Color.outlineVariant,
                         lineWidth: DesignTokens.BorderWidth.hairline
                     )
             }
