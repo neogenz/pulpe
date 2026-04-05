@@ -127,8 +127,7 @@ struct BudgetListView: View {
         let budget: BudgetSparse?
     }
 
-    private var selectedYearMonthSlots: [MonthSlot] {
-        let budgets = store.budgets(forYear: selectedYear)
+    private func monthSlots(from budgets: [BudgetSparse]) -> [MonthSlot] {
         let currentPeriod = BudgetPeriodCalculator.periodForDate(
             Date(), payDayOfMonth: userSettingsStore.payDayOfMonth
         )
@@ -181,12 +180,11 @@ struct BudgetListView: View {
 
                 YearPicker(years: store.availableYears, selectedYear: $selectedYear)
 
-                // Year recap card
-                YearRecapCard(
-                    year: selectedYear,
-                    budgets: store.budgets(forYear: selectedYear)
-                )
-                .padding(.horizontal, DesignTokens.Spacing.xl)
+                // Year recap card — budgets fetched once for the selected year
+                let yearBudgets = store.budgets(forYear: selectedYear)
+
+                YearRecapCard(year: selectedYear, budgets: yearBudgets)
+                    .padding(.horizontal, DesignTokens.Spacing.xl)
 
                 // Section header
                 Text("Progression mensuelle")
@@ -197,7 +195,7 @@ struct BudgetListView: View {
                     .padding(.horizontal, DesignTokens.Spacing.xl)
                     .padding(.top, DesignTokens.Spacing.sm)
 
-                ForEach(selectedYearMonthSlots, id: \.month) { slot in
+                ForEach(monthSlots(from: yearBudgets), id: \.month) { slot in
                     if let budget = slot.budget {
                         if isCurrentPeriod(budget) {
                             CurrentMonthHeroCard(
