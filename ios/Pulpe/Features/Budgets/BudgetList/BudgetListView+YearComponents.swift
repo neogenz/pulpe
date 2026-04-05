@@ -8,8 +8,12 @@ struct YearRecapCard: View {
 
     @Environment(\.amountsHidden) private var amountsHidden
 
-    private var totalRemaining: Decimal {
-        budgets.compactMap(\.remaining).reduce(0, +)
+    /// Sum of endingBalance per month (remaining - rollover) to avoid double-counting rollover across months
+    private var yearTotal: Decimal {
+        budgets.compactMap { budget in
+            guard let remaining = budget.remaining else { return nil as Decimal? }
+            return remaining - (budget.rollover ?? 0)
+        }.reduce(0, +)
     }
 
     private var monthProgress: Double {
@@ -30,7 +34,7 @@ struct YearRecapCard: View {
             HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.sm) {
                 Text(
                     Formatters.chfWholeNumber.string(
-                        from: totalRemaining as NSDecimalNumber
+                        from: yearTotal as NSDecimalNumber
                     ) ?? "0"
                 )
                 .font(PulpeTypography.heroIcon)
@@ -98,7 +102,7 @@ struct YearRecapCard: View {
         .accessibilityElement(children: .combine)
         .accessibilityLabel(
             "Bilan \(year), "
-            + (amountsHidden ? "montant masqué" : "total disponible \(totalRemaining.asCompactCHF)")
+            + (amountsHidden ? "montant masqué" : "total disponible \(yearTotal.asCompactCHF)")
             + ", \(budgets.count) mois sur 12"
         )
     }

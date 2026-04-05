@@ -344,7 +344,7 @@ struct NextMonthPlaceholder: View {
                     VStack(alignment: .trailing, spacing: 2) {
                         Text("Ton mois\nt'attend")
                             .font(PulpeTypography.detailLabel)
-                            .foregroundStyle(Color.secondary.opacity(0.6))
+                            .foregroundStyle(Color.secondary.opacity(DesignTokens.Opacity.heavy))
                             .multilineTextAlignment(.trailing)
                         Text("Action\nrequise")
                             .font(PulpeTypography.metricMini)
