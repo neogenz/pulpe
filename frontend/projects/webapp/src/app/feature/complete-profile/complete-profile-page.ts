@@ -20,13 +20,19 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
+import { MatDialog } from '@angular/material/dialog';
 import { CurrencyInput } from '@ui/currency-input';
 import { ErrorAlert } from '@ui/error-alert';
 import { LoadingButton } from '@ui/loading-button';
 import { TranslocoPipe } from '@jsverse/transloco';
 import { PostHogService } from '@core/analytics/posthog';
 import { ROUTES } from '@core/routing/routes-constants';
-import { CompleteProfileStore } from './complete-profile-store';
+import {
+  CompleteProfileStore,
+  ONBOARDING_SUGGESTIONS,
+} from './complete-profile-store';
+import { take } from 'rxjs';
+import { AddCustomExpenseDialog } from './add-custom-expense-dialog';
 import { PAY_DAY_MAX } from 'pulpe-shared';
 
 @Component({
@@ -218,47 +224,43 @@ import { PAY_DAY_MAX } from 'pulpe-shared';
                   </mat-select>
                 </mat-form-field>
 
-                <!-- Collapsible charges section -->
-                <div
-                  class="rounded-2xl border border-outline-variant/30 overflow-hidden"
-                >
-                  <button
-                    type="button"
-                    class="w-full flex items-center justify-between p-4 hover:bg-surface-container/30 transition-colors"
-                    (click)="isChargesExpanded.set(!isChargesExpanded())"
-                    data-testid="toggle-charges-button"
-                  >
-                    <div class="flex items-center gap-3">
-                      <mat-icon class="text-on-surface-variant"
-                        >receipt_long</mat-icon
+                <!-- Charge groups (tighter spacing within) -->
+                <div class="space-y-4">
+                  <!-- Logement -->
+                  <div>
+                    <div class="flex items-center gap-2 mb-2">
+                      <mat-icon class="!text-base text-on-surface-variant/60"
+                        >home</mat-icon
                       >
-                      <div class="text-left">
-                        <p class="text-title-medium text-on-surface">
-                          {{ 'completeProfile.charges' | transloco }}
-                        </p>
-                        <p class="text-body-small text-on-surface-variant">
-                          {{ 'completeProfile.chargesOptional' | transloco }}
-                        </p>
-                      </div>
+                      <span class="text-label-medium text-on-surface-variant">
+                        {{ 'completeProfile.chargeGroups.housing' | transloco }}
+                      </span>
                     </div>
-                    <mat-icon
-                      class="text-on-surface-variant transition-transform duration-200"
-                      [class.rotate-180]="isChargesExpanded()"
-                      >expand_more</mat-icon
-                    >
-                  </button>
+                    <pulpe-currency-input
+                      [label]="'completeProfile.housing' | transloco"
+                      [value]="store.housingCosts()"
+                      (valueChange)="store.updateHousingCosts($event)"
+                      icon="home"
+                      placeholder="0"
+                      testId="housing-costs-input"
+                      [autoFocus]="false"
+                    />
+                  </div>
 
-                  @if (isChargesExpanded()) {
-                    <div class="px-4 pb-4 space-y-4" @staggerList>
-                      <pulpe-currency-input
-                        [label]="'completeProfile.housing' | transloco"
-                        [value]="store.housingCosts()"
-                        (valueChange)="store.updateHousingCosts($event)"
-                        icon="home"
-                        placeholder="0"
-                        testId="housing-costs-input"
-                        [autoFocus]="false"
-                      />
+                  <!-- Assurance & Abonnements -->
+                  <div>
+                    <div class="flex items-center gap-2 mb-2">
+                      <mat-icon class="!text-base text-on-surface-variant/60"
+                        >health_and_safety</mat-icon
+                      >
+                      <span class="text-label-medium text-on-surface-variant">
+                        {{
+                          'completeProfile.chargeGroups.insuranceSubscriptions'
+                            | transloco
+                        }}
+                      </span>
+                    </div>
+                    <div class="space-y-3">
                       <pulpe-currency-input
                         [label]="'completeProfile.health' | transloco"
                         [value]="store.healthInsurance()"
@@ -286,6 +288,23 @@ import { PAY_DAY_MAX } from 'pulpe-shared';
                         testId="internet-plan-input"
                         [autoFocus]="false"
                       />
+                    </div>
+                  </div>
+
+                  <!-- Mobilité & Crédit -->
+                  <div>
+                    <div class="flex items-center gap-2 mb-2">
+                      <mat-icon class="!text-base text-on-surface-variant/60"
+                        >directions_car</mat-icon
+                      >
+                      <span class="text-label-medium text-on-surface-variant">
+                        {{
+                          'completeProfile.chargeGroups.mobilityCredit'
+                            | transloco
+                        }}
+                      </span>
+                    </div>
+                    <div class="space-y-3">
                       <pulpe-currency-input
                         [label]="'completeProfile.transport' | transloco"
                         [value]="store.transportCosts()"
@@ -304,19 +323,133 @@ import { PAY_DAY_MAX } from 'pulpe-shared';
                         testId="leasing-credit-input"
                         [autoFocus]="false"
                       />
-                      <p
-                        class="text-body-small text-on-surface-variant text-center pt-2"
-                      >
-                        {{ 'completeProfile.chargesFooter' | transloco }}
-                      </p>
                     </div>
-                  }
+                  </div>
+
+                  <!-- Personnaliser ton budget (same spacing as charge groups) -->
+                  <div>
+                    <div class="flex items-center gap-2 mb-4">
+                      <mat-icon class="!text-base text-on-surface-variant/60"
+                        >tune</mat-icon
+                      >
+                      <span class="text-label-medium text-on-surface-variant">
+                        {{
+                          'completeProfile.customize.sectionTitle' | transloco
+                        }}
+                      </span>
+                    </div>
+
+                    <!-- Quick-add suggestions -->
+                    <p class="text-body-small text-on-surface-variant mb-2">
+                      {{
+                        'completeProfile.suggestions.sectionTitle' | transloco
+                      }}
+                    </p>
+                    <div
+                      class="flex flex-wrap gap-2 mb-5"
+                      data-testid="suggestion-chips"
+                    >
+                      @for (suggestion of suggestions; track suggestion.name) {
+                        <button
+                          type="button"
+                          class="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-label-large transition-colors border"
+                          [class.bg-primary-container]="
+                            store.selectedSuggestionNames().has(suggestion.name)
+                          "
+                          [class.text-on-primary-container]="
+                            store.selectedSuggestionNames().has(suggestion.name)
+                          "
+                          [class.border-primary]="
+                            store.selectedSuggestionNames().has(suggestion.name)
+                          "
+                          [class.bg-surface-container]="
+                            !store
+                              .selectedSuggestionNames()
+                              .has(suggestion.name)
+                          "
+                          [class.text-on-surface-variant]="
+                            !store
+                              .selectedSuggestionNames()
+                              .has(suggestion.name)
+                          "
+                          [class.border-transparent]="
+                            !store
+                              .selectedSuggestionNames()
+                              .has(suggestion.name)
+                          "
+                          (click)="store.toggleSuggestion(suggestion)"
+                          [attr.data-testid]="
+                            'suggestion-chip-' + suggestion.name
+                          "
+                        >
+                          {{ suggestion.name }}
+                          ·
+                          <span class="ph-no-capture"
+                            >{{ suggestion.amount }}.-</span
+                          >
+                        </button>
+                      }
+                    </div>
+
+                    <!-- Custom transactions list -->
+                    @if (store.customTransactions().length > 0) {
+                      <div class="space-y-2 mb-4">
+                        @for (tx of store.customTransactions(); track $index) {
+                          <div
+                            class="flex items-center justify-between px-4 py-3 rounded-xl border border-outline-variant/30"
+                          >
+                            <span class="text-body-medium text-on-surface">{{
+                              tx.name
+                            }}</span>
+                            <div class="flex items-center gap-2">
+                              <input
+                                type="number"
+                                inputmode="decimal"
+                                class="w-20 text-right text-body-medium text-on-surface bg-transparent border-b border-outline-variant/40 focus:border-primary outline-none py-0.5"
+                                [value]="tx.amount"
+                                (change)="onAmountChange($index, $event)"
+                                data-testid="custom-expense-amount"
+                              />
+                              <span
+                                class="text-body-small text-on-surface-variant"
+                                >CHF</span
+                              >
+                              <button
+                                matIconButton
+                                (click)="store.removeCustomTransaction($index)"
+                                data-testid="remove-custom-expense"
+                              >
+                                <mat-icon class="text-on-surface-variant"
+                                  >close</mat-icon
+                                >
+                              </button>
+                            </div>
+                          </div>
+                        }
+                      </div>
+                    }
+
+                    <!-- Add custom -->
+                    <button
+                      matButton="outlined"
+                      class="w-full h-12 rounded-xl"
+                      (click)="openAddCustomExpenseDialog()"
+                      data-testid="add-custom-expense-button"
+                    >
+                      <span class="flex items-center justify-center gap-2">
+                        <mat-icon>add</mat-icon>
+                        {{
+                          'completeProfile.customExpense.addButton' | transloco
+                        }}
+                      </span>
+                    </button>
+                  </div>
                 </div>
               </div>
 
               <pulpe-error-alert [message]="store.error()" class="mt-8" />
 
-              <div class="mt-10 flex flex-col gap-3">
+              <div class="mt-16 flex flex-col gap-3">
                 <pulpe-loading-button
                   [loading]="store.isLoading()"
                   [loadingText]="'completeProfile.loadingSubmit' | transloco"
@@ -361,10 +494,11 @@ import { PAY_DAY_MAX } from 'pulpe-shared';
 export default class CompleteProfilePage {
   protected readonly store = inject(CompleteProfileStore);
   readonly #router = inject(Router);
+  readonly #dialog = inject(MatDialog);
   readonly #postHogService = inject(PostHogService);
 
+  protected readonly suggestions = ONBOARDING_SUGGESTIONS;
   protected readonly currentStep = signal<1 | 2>(1);
-  protected readonly isChargesExpanded = signal(false);
 
   protected readonly availableDays = Array.from(
     { length: PAY_DAY_MAX },
@@ -394,6 +528,28 @@ export default class CompleteProfilePage {
 
   protected goToStep(step: 1 | 2): void {
     this.currentStep.set(step);
+  }
+
+  protected onAmountChange(index: number, event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const value = +input.value;
+    if (!isNaN(value) && value > 0) {
+      this.store.updateCustomTransactionAmount(index, value);
+    } else {
+      input.value = String(this.store.customTransactions()[index].amount);
+    }
+  }
+
+  protected openAddCustomExpenseDialog(): void {
+    this.#dialog
+      .open(AddCustomExpenseDialog, { width: '400px' })
+      .afterClosed()
+      .pipe(take(1))
+      .subscribe((result) => {
+        if (result) {
+          this.store.addCustomTransaction(result);
+        }
+      });
   }
 
   protected async onSubmit(): Promise<void> {

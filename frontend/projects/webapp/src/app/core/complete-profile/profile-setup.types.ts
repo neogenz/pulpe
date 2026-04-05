@@ -1,3 +1,8 @@
+import type { z } from 'zod';
+import type { onboardingTransactionSchema } from 'pulpe-shared';
+
+export type OnboardingTransaction = z.infer<typeof onboardingTransactionSchema>;
+
 export interface ProfileData {
   firstName: string;
   monthlyIncome: number;
@@ -8,6 +13,7 @@ export interface ProfileData {
   transportCosts?: number;
   leasingCredit?: number;
   payDayOfMonth?: number;
+  customTransactions?: OnboardingTransaction[];
 }
 
 export interface ProfileSetupResult {

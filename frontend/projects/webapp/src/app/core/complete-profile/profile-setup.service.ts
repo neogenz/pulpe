@@ -53,7 +53,7 @@ export class ProfileSetupService {
         phonePlan: profileData.phonePlan ?? 0,
         internetPlan: profileData.internetPlan ?? 0,
         transportCosts: profileData.transportCosts ?? 0,
-        customTransactions: [],
+        customTransactions: profileData.customTransactions ?? [],
       };
 
       const templateResponse = await firstValueFrom(

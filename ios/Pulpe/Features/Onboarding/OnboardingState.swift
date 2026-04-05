@@ -13,6 +13,7 @@ final class OnboardingState {
     var phonePlan: Decimal?
     var transportCosts: Decimal?
     var leasingCredit: Decimal?
+    var customTransactions: [OnboardingTransaction] = []
 
     // MARK: - Registration
 
@@ -90,7 +91,8 @@ final class OnboardingState {
         let phone: Decimal = phonePlan ?? 0
         let transport: Decimal = transportCosts ?? 0
         let leasing: Decimal = leasingCredit ?? 0
-        return housing + health + phone + transport + leasing
+        let custom = customTransactions.reduce(Decimal.zero) { $0 + $1.amount }
+        return housing + health + phone + transport + leasing + custom
     }
 
     var availableToSpend: Decimal {
@@ -197,8 +199,46 @@ final class OnboardingState {
             healthInsurance: healthInsurance,
             leasingCredit: leasingCredit,
             phonePlan: phonePlan,
-            transportCosts: transportCosts
+            transportCosts: transportCosts,
+            customTransactions: customTransactions
         )
+    }
+
+    // MARK: - Suggestions
+
+    static let suggestions: [OnboardingTransaction] = [
+        OnboardingTransaction(amount: 600, type: .expense, name: "Courses / alimentation"),
+        OnboardingTransaction(amount: 150, type: .expense, name: "Restaurants & sorties"),
+        OnboardingTransaction(amount: 100, type: .expense, name: "Loisirs & sport"),
+        OnboardingTransaction(amount: 500, type: .saving, name: "Épargne"),
+        OnboardingTransaction(amount: 587, type: .saving, name: "3ème pilier"),
+    ]
+
+    func isSuggestionSelected(_ suggestion: OnboardingTransaction) -> Bool {
+        customTransactions.contains { $0.name == suggestion.name }
+    }
+
+    func toggleSuggestion(_ suggestion: OnboardingTransaction) {
+        if let index = customTransactions.firstIndex(where: { $0.name == suggestion.name }) {
+            customTransactions.remove(at: index)
+        } else {
+            customTransactions.append(suggestion)
+        }
+    }
+
+    // MARK: - Custom Transactions
+
+    func addCustomTransaction(_ tx: OnboardingTransaction) {
+        customTransactions.append(tx)
+    }
+
+    func removeCustomTransaction(at index: Int) {
+        customTransactions.remove(at: index)
+    }
+
+    func updateCustomTransactionAmount(at index: Int, amount: Decimal) {
+        guard customTransactions.indices.contains(index) else { return }
+        customTransactions[index].amount = amount
     }
 }
 
