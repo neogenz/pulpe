@@ -41,6 +41,9 @@ import type { OnboardingTransaction } from '@core/complete-profile';
             <mat-button-toggle value="saving" class="flex-1">
               {{ 'completeProfile.customExpense.kindSaving' | transloco }}
             </mat-button-toggle>
+            <mat-button-toggle value="income" class="flex-1">
+              {{ 'completeProfile.customExpense.kindIncome' | transloco }}
+            </mat-button-toggle>
           </mat-button-toggle-group>
 
           <mat-form-field appearance="outline" class="w-full">
@@ -100,7 +103,7 @@ export class AddCustomExpenseDialog {
   readonly #fb = inject(FormBuilder);
 
   protected readonly form = this.#fb.group({
-    kind: ['expense' as 'expense' | 'saving'],
+    kind: ['expense' as 'income' | 'expense' | 'saving'],
     name: ['', [Validators.required, Validators.pattern(/\S/)]],
     amount: [
       null as number | null,

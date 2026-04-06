@@ -25,6 +25,7 @@ import { CurrencyInput } from '@ui/currency-input';
 import { ErrorAlert } from '@ui/error-alert';
 import { LoadingButton } from '@ui/loading-button';
 import { TranslocoPipe } from '@jsverse/transloco';
+import { FinancialKindDirective } from '@ui/financial-kind';
 import { PostHogService } from '@core/analytics/posthog';
 import { ROUTES } from '@core/routing/routes-constants';
 import {
@@ -46,6 +47,7 @@ import { PAY_DAY_MAX } from 'pulpe-shared';
     MatProgressSpinnerModule,
     MatSelectModule,
     TranslocoPipe,
+    FinancialKindDirective,
     CurrencyInput,
     ErrorAlert,
     LoadingButton,
@@ -398,22 +400,43 @@ import { PAY_DAY_MAX } from 'pulpe-shared';
                           <div
                             class="flex items-center justify-between px-4 py-3 rounded-xl border border-outline-variant/30"
                           >
-                            <span class="text-body-medium text-on-surface">{{
-                              tx.name
-                            }}</span>
-                            <div class="flex items-center gap-2">
-                              <input
-                                type="number"
-                                inputmode="decimal"
-                                class="w-20 text-right text-body-medium text-on-surface bg-transparent border-b border-outline-variant/40 focus:border-primary outline-none py-0.5"
-                                [value]="tx.amount"
-                                (change)="onAmountChange($index, $event)"
-                                data-testid="custom-expense-amount"
-                              />
+                            <div class="flex flex-col">
                               <span
-                                class="text-body-small text-on-surface-variant"
-                                >CHF</span
+                                class="text-body-medium text-on-surface ph-no-capture"
+                                >{{ tx.name }}</span
                               >
+                              <span
+                                class="text-label-small"
+                                [pulpeFinancialKind]="tx.type"
+                                >{{
+                                  tx.type === 'income'
+                                    ? ('completeProfile.customExpense.kindIncome'
+                                      | transloco)
+                                    : tx.type === 'saving'
+                                      ? ('completeProfile.customExpense.kindSaving'
+                                        | transloco)
+                                      : ('completeProfile.customExpense.kindExpense'
+                                        | transloco)
+                                }}</span
+                              >
+                            </div>
+                            <div class="flex items-center gap-2">
+                              <span
+                                class="ph-no-capture flex items-center gap-2"
+                              >
+                                <input
+                                  type="number"
+                                  inputmode="decimal"
+                                  class="w-20 text-right text-body-medium text-on-surface bg-transparent border-b border-outline-variant/40 focus:border-primary outline-none py-0.5 pointer-events-auto"
+                                  [value]="tx.amount"
+                                  (change)="onAmountChange($index, $event)"
+                                  data-testid="custom-expense-amount"
+                                />
+                                <span
+                                  class="text-body-small text-on-surface-variant"
+                                  >CHF</span
+                                >
+                              </span>
                               <button
                                 matIconButton
                                 (click)="store.removeCustomTransaction($index)"

@@ -97,12 +97,20 @@ final class OnboardingState {
         let phone: Decimal = phonePlan ?? 0
         let transport: Decimal = transportCosts ?? 0
         let leasing: Decimal = leasingCredit ?? 0
-        let custom = customTransactions.reduce(Decimal.zero) { $0 + $1.amount }
-        return housing + health + phone + transport + leasing + custom
+        let customOutflows = customTransactions
+            .filter { $0.type.isOutflow }
+            .reduce(Decimal.zero) { $0 + $1.amount }
+        return housing + health + phone + transport + leasing + customOutflows
+    }
+
+    var totalCustomIncome: Decimal {
+        customTransactions
+            .filter { $0.type == .income }
+            .reduce(Decimal.zero) { $0 + $1.amount }
     }
 
     var availableToSpend: Decimal {
-        (monthlyIncome ?? 0) - totalExpenses
+        (monthlyIncome ?? 0) + totalCustomIncome - totalExpenses
     }
 
     // MARK: - Navigation
@@ -225,11 +233,13 @@ final class OnboardingState {
     ]
 
     func isSuggestionSelected(_ suggestion: OnboardingTransaction) -> Bool {
-        customTransactions.contains { $0.name == suggestion.name }
+        customTransactions.contains { $0.name == suggestion.name && $0.type == suggestion.type }
     }
 
     func toggleSuggestion(_ suggestion: OnboardingTransaction) {
-        if let index = customTransactions.firstIndex(where: { $0.name == suggestion.name }) {
+        if let index = customTransactions.firstIndex(where: {
+            $0.name == suggestion.name && $0.type == suggestion.type
+        }) {
             customTransactions.remove(at: index)
         } else {
             customTransactions.append(suggestion)

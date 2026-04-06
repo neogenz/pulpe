@@ -89,38 +89,45 @@ struct BudgetPreviewStep: View {
             breakdownRow(
                 icon: "arrow.down.circle.fill",
                 label: "Revenus",
-                value: "+\((state.monthlyIncome ?? 0).asCHF)",
+                value: "+\(totalIncome.asCHF)",
                 color: .pulpePrimary
             )
+
+            ForEach(customIncomes) { tx in
+                detailRow(tx, prefix: "+", color: Color.financialIncome)
+            }
 
             Divider()
                 .opacity(0.15)
                 .padding(.horizontal, DesignTokens.Spacing.xs)
 
-            if state.totalExpenses > 0 {
+            if chargesTotal > 0 {
                 breakdownRow(
                     icon: "arrow.up.circle.fill",
                     label: "Charges fixes",
-                    value: "-\(state.totalExpenses.asCHF)",
+                    value: "-\(chargesTotal.asCHF)",
                     color: .secondary
                 )
 
-                if !state.customTransactions.isEmpty {
-                    ForEach(state.customTransactions) { tx in
-                        HStack(spacing: DesignTokens.Spacing.sm) {
-                            Text(tx.name)
-                                .font(PulpeTypography.caption)
-                                .foregroundStyle(Color.textTertiary)
-                            Spacer()
-                            Text("-\(tx.amount.asCHF)")
-                                .font(PulpeTypography.caption)
-                                .monospacedDigit()
-                                .foregroundStyle(Color.textTertiary)
-                        }
-                        .padding(.leading, DesignTokens.Spacing.xl)
-                    }
+                ForEach(customExpenses) { tx in
+                    detailRow(tx)
                 }
+            }
 
+            if savingsTotal > 0 {
+                breakdownRow(
+                    icon: "arrow.up.circle.fill",
+                    label: "Épargne prévue",
+                    value: "-\(savingsTotal.asCHF)",
+                    color: .financialSavings
+                )
+
+                ForEach(customSavings) { tx in
+                    detailRow(tx)
+                }
+            }
+
+            if chargesTotal > 0 || savingsTotal > 0 {
                 Divider()
                     .opacity(0.15)
                     .padding(.horizontal, DesignTokens.Spacing.xs)
@@ -164,7 +171,49 @@ struct BudgetPreviewStep: View {
         .blurSlide(showMessage)
     }
 
+    // MARK: - Computed
+
+    private var customIncomes: [OnboardingTransaction] {
+        state.customTransactions.filter { $0.type == .income }
+    }
+
+    private var customExpenses: [OnboardingTransaction] {
+        state.customTransactions.filter { $0.type == .expense }
+    }
+
+    private var customSavings: [OnboardingTransaction] {
+        state.customTransactions.filter { $0.type == .saving }
+    }
+
+    private var totalIncome: Decimal {
+        (state.monthlyIncome ?? 0) + state.totalCustomIncome
+    }
+
+    private var savingsTotal: Decimal {
+        customSavings.reduce(Decimal.zero) { $0 + $1.amount }
+    }
+
+    private var chargesTotal: Decimal {
+        state.totalExpenses - savingsTotal
+    }
+
     // MARK: - Helpers
+
+    private func detailRow(
+        _ tx: OnboardingTransaction, prefix: String = "-", color: Color = .textTertiary
+    ) -> some View {
+        HStack(spacing: DesignTokens.Spacing.sm) {
+            Text(tx.name)
+                .font(PulpeTypography.caption)
+                .foregroundStyle(Color.textTertiary)
+            Spacer()
+            Text("\(prefix)\(tx.amount.asCHF)")
+                .font(PulpeTypography.caption)
+                .monospacedDigit()
+                .foregroundStyle(color)
+        }
+        .padding(.leading, DesignTokens.Spacing.xl)
+    }
 
     private func breakdownRow(icon: String, label: String, value: String, color: Color) -> some View {
         HStack(spacing: DesignTokens.Spacing.sm) {

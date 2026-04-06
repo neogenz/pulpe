@@ -705,7 +705,8 @@
       "sectionTitle": "Prévisions personnalisées",
       "addButton": "Ajouter une prévision",
       "kindExpense": "Dépense",
-      "kindSaving": "Épargne"
+      "kindSaving": "Épargne",
+      "kindIncome": "Revenu"
     }
   },
   "legal": {

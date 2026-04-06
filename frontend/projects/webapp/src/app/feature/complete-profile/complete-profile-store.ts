@@ -108,9 +108,14 @@ export class CompleteProfileStore {
   readonly customTransactions = computed(
     () => this.#state().customTransactions,
   );
-  readonly selectedSuggestionNames = computed(
-    () => new Set(this.customTransactions().map((t) => t.name)),
-  );
+  readonly selectedSuggestionNames = computed(() => {
+    const txs = this.customTransactions();
+    return new Set(
+      ONBOARDING_SUGGESTIONS.filter((s) =>
+        txs.some((t) => t.name === s.name && t.type === s.type),
+      ).map((s) => s.name),
+    );
+  });
   readonly isLoading = computed(() => this.#state().isLoading);
   readonly isCheckingExistingBudget = computed(
     () => this.#state().isCheckingExistingBudget,
@@ -186,10 +191,14 @@ export class CompleteProfileStore {
 
   toggleSuggestion(suggestion: OnboardingTransaction): void {
     const current = this.#state().customTransactions;
-    const exists = current.some((t) => t.name === suggestion.name);
+    const exists = current.some(
+      (t) => t.name === suggestion.name && t.type === suggestion.type,
+    );
     this.#patchState({
       customTransactions: exists
-        ? current.filter((t) => t.name !== suggestion.name)
+        ? current.filter(
+            (t) => !(t.name === suggestion.name && t.type === suggestion.type),
+          )
         : [...current, suggestion],
     });
   }

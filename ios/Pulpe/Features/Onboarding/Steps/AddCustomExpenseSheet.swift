@@ -14,7 +14,7 @@ struct AddCustomExpenseSheet: View {
     @FocusState private var isAmountFocused: Bool
     @FocusState private var isDescriptionFocused: Bool
 
-    private static let availableKinds: [TransactionKind] = [.expense, .saving]
+    private static let availableKinds: [TransactionKind] = [.expense, .saving, .income]
 
     private var canSubmit: Bool {
         !name.trimmingCharacters(in: .whitespaces).isEmpty && (amount ?? 0) > 0
