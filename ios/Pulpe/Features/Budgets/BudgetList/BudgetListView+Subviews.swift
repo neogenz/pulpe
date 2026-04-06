@@ -76,7 +76,7 @@ struct CurrentMonthHeroCard: View {
             VStack(alignment: .trailing, spacing: DesignTokens.Spacing.xxs) {
                 if let remaining = budget.remaining {
                     Text(remaining.asSignedCompactCHF)
-                        .font(PulpeTypography.title3)
+                        .font(PulpeTypography.amountCard)
                         .monospacedDigit()
                         .foregroundStyle(emotionColor)
                         .sensitiveAmount()
@@ -172,7 +172,7 @@ struct BudgetMonthCard: View {
                     VStack(alignment: .trailing, spacing: DesignTokens.Spacing.xxs) {
                         if let remaining = budget.remaining {
                             Text(remaining.asSignedCompactCHF)
-                                .font(PulpeTypography.title3)
+                                .font(PulpeTypography.amountCard)
                                 .monospacedDigit()
                                 .foregroundStyle(isPast ? .secondary : emotionColor)
                                 .sensitiveAmount()
@@ -237,6 +237,7 @@ struct BudgetMonthCard: View {
 struct NextMonthPlaceholder: View {
     let month: Int
     let year: Int
+    var adjustment: Decimal?
     let onTap: () -> Void
 
     @State private var tapTrigger = false
@@ -245,57 +246,30 @@ struct NextMonthPlaceholder: View {
         Formatters.monthName(for: month)
     }
 
+    private var isNegative: Bool {
+        guard let adjustment else { return false }
+        return adjustment < 0
+    }
+
+    private var adjustmentColor: Color {
+        isNegative ? Color.financialExpense : Color.pulpePrimary
+    }
+
+    private var subtitle: String {
+        if isNegative {
+            return "Tu peux encore corriger si tu y vois plus clair"
+        }
+        return "Tes objectifs pour ce mois n'attendent que toi."
+    }
+
     var body: some View {
         Button {
             tapTrigger.toggle()
             onTap()
         } label: {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
-                // Header: title + right badge
-                HStack(alignment: .top) {
-                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                        Text("\(monthName) — Prêt à budgétiser ?")
-                            .font(PulpeTypography.tutorialTitle)
-                            .foregroundStyle(Color.textPrimary)
-                        Text("Il est temps de poser tes bases financières.")
-                            .font(PulpeTypography.labelMedium)
-                            .foregroundStyle(Color.secondary)
-                    }
-                    Spacer()
-                    VStack(alignment: .trailing, spacing: DesignTokens.Spacing.xxs) {
-                        Text("Ton mois\nt'attend")
-                            .font(PulpeTypography.detailLabel)
-                            .foregroundStyle(Color.secondary.opacity(DesignTokens.Opacity.heavy))
-                            .multilineTextAlignment(.trailing)
-                        Text("Action\nrequise")
-                            .font(PulpeTypography.metricMini)
-                            .foregroundStyle(Color.financialIncome)
-                            .textCase(.uppercase)
-                            .tracking(DesignTokens.Tracking.uppercaseWide)
-                            .multilineTextAlignment(.trailing)
-                    }
-                }
-
-                // Gradient CTA button
-                HStack {
-                    Text("Créer ton budget de \(monthName)")
-                        .font(PulpeTypography.labelLarge)
-                        .foregroundStyle(.white)
-                    Spacer()
-                    Image(systemName: "chevron.right")
-                        .font(PulpeTypography.detailLabel)
-                        .foregroundStyle(.white.opacity(0.8))
-                }
-                .padding(DesignTokens.Spacing.lg)
-                .background(
-                    LinearGradient(
-                        colors: Color.heroGradientComfortable,
-                        startPoint: .leading,
-                        endPoint: .trailing
-                    ),
-                    in: RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.sm)
-                )
-                .shadow(DesignTokens.Shadow.card)
+                headerRow
+                ctaButton
             }
             .padding(DesignTokens.Spacing.xxl)
             .contentShape(Rectangle())
@@ -307,7 +281,10 @@ struct NextMonthPlaceholder: View {
             RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.xl)
                 .strokeBorder(
                     Color.pulpePrimary.opacity(DesignTokens.Opacity.secondary),
-                    style: StrokeStyle(lineWidth: DesignTokens.BorderWidth.medium, dash: [8, 6])
+                    style: StrokeStyle(
+                        lineWidth: DesignTokens.BorderWidth.medium,
+                        dash: [8, 6]
+                    )
                 )
         }
         .shadow(DesignTokens.Shadow.subtle)
@@ -315,5 +292,48 @@ struct NextMonthPlaceholder: View {
         .accessibilityLabel("Créer un budget pour \(monthName)")
         .accessibilityHint("Appuie pour créer un budget")
         .accessibilityAddTraits(.isButton)
+    }
+
+    private var headerRow: some View {
+        HStack(alignment: .top) {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                Text(monthName)
+                    .font(PulpeTypography.tutorialTitle)
+                    .foregroundStyle(Color.secondary)
+                Text(subtitle)
+                    .font(PulpeTypography.labelMedium)
+                    .foregroundStyle(Color.secondary)
+            }
+            Spacer()
+            if let adjustment, adjustment != 0 {
+                VStack(alignment: .trailing, spacing: DesignTokens.Spacing.xxs) {
+                    Text(adjustment.asSignedCompactCHF)
+                        .font(PulpeTypography.amountCard)
+                        .monospacedDigit()
+                        .foregroundStyle(adjustmentColor)
+                    Text("Ajustement")
+                        .font(PulpeTypography.metricMini)
+                        .foregroundStyle(adjustmentColor)
+                        .textCase(.uppercase)
+                        .tracking(DesignTokens.Tracking.uppercaseWide)
+                }
+            }
+        }
+    }
+
+    private var ctaButton: some View {
+        HStack {
+            Text("Créer mon budget")
+                .font(PulpeTypography.labelLargeBold)
+                .textCase(.uppercase)
+                .tracking(DesignTokens.Tracking.uppercaseNarrow)
+            Spacer()
+            Image(systemName: "chevron.right")
+                .font(PulpeTypography.detailLabel)
+        }
+        .foregroundStyle(.white)
+        .padding(.horizontal, DesignTokens.Spacing.lg)
+        .padding(.vertical, DesignTokens.Spacing.md)
+        .background(Color.pulpePrimary, in: Capsule())
     }
 }

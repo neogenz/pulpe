@@ -38,7 +38,6 @@ struct YearRecapCard: View {
                     ) ?? "0"
                 )
                 .font(PulpeTypography.heroIcon)
-                .fontWeight(.heavy)
                 .monospacedDigit()
                 .tracking(DesignTokens.Tracking.hero)
                 .foregroundStyle(Color.textPrimary)

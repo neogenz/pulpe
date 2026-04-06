@@ -69,7 +69,7 @@
 	<string>$(SUPABASE_URL)</string>
 	<key>UIAppFonts</key>
 	<array>
-		<string>Manrope-Bold.ttf</string>
+		<string>Manrope-VariableFont_wght.ttf</string>
 	</array>
 	<key>UIBackgroundModes</key>
 	<array>
