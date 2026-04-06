@@ -2,35 +2,49 @@ import SwiftUI
 
 /// Typography system for Pulpe
 ///
-/// - **Manrope**: true title and brand tokens only
-/// - **System (SF Pro)**: all content, labels, captions, buttons, and amounts
+/// - **Manrope**: brand titles + financial amounts (bold/extrabold)
+/// - **System (SF Pro)**: all content, labels, captions, buttons
 ///
 /// Exceptions outside this file are limited to:
 /// - Functional monospaced text (recovery keys, codes, tabular values)
 /// - SF Symbols sizing on `Image(systemName:)`
 /// - Technical accessibility/rendering cases that cannot be expressed with an existing token
 enum PulpeTypography {
-    // MARK: - Brand Titles (Manrope)
+    // MARK: - Brand Titles (Manrope Bold)
 
-    static let brandTitle = Font.custom("Manrope-Bold", size: 34, relativeTo: .largeTitle)
-    static let onboardingTitle = Font.custom("Manrope-Bold", size: 28, relativeTo: .title)
-    static let stepTitle = Font.custom("Manrope-Bold", size: 22, relativeTo: .title2)
-    static let tutorialTitle = Font.custom("Manrope-Bold", size: 20, relativeTo: .title3)
-    static let heroIcon = Font.custom("Manrope-Bold", size: 48, relativeTo: .largeTitle)
-    static let welcomeEmoji = Font.custom("Manrope-Bold", size: 64, relativeTo: .largeTitle)
+    static let brandTitle = Font.custom("Manrope", size: 34, relativeTo: .largeTitle).weight(.bold)
+    static let onboardingTitle = Font.custom("Manrope", size: 28, relativeTo: .title).weight(.bold)
+    static let stepTitle = Font.custom("Manrope", size: 22, relativeTo: .title2).weight(.bold)
+    static let tutorialTitle = Font.custom("Manrope", size: 20, relativeTo: .title3).weight(.bold)
+
+    // MARK: - Display (Manrope ExtraBold — large decorative/hero)
+
+    /// Year display number in budget list (72pt)
+    static let displayYear = Font.custom("Manrope", size: 72, relativeTo: .largeTitle).weight(.heavy)
+    /// Hero icon / year recap amount (48pt)
+    static let heroIcon = Font.custom("Manrope", size: 48, relativeTo: .largeTitle).weight(.heavy)
+    /// Welcome/onboarding hero text (64pt)
+    static let welcomeEmoji = Font.custom("Manrope", size: 64, relativeTo: .largeTitle).weight(.bold)
+
+    // MARK: - Financial Amounts (Manrope ExtraBold — hero numbers)
+
+    static let amountHero = Font.custom("Manrope", size: 34, relativeTo: .largeTitle).weight(.heavy)
+    static let amountDisplayLarge = Font.custom("Manrope", size: 32, relativeTo: .largeTitle).weight(.heavy)
+    static let amountLarge = Font.custom("Manrope", size: 28, relativeTo: .title).weight(.heavy)
+    static let previewAmount = Font.custom("Manrope", size: 28, relativeTo: .title).weight(.bold)
+    static let amountXL = Font.custom("Manrope", size: 24, relativeTo: .title2).weight(.heavy)
+    static let amountCard = Font.custom("Manrope", size: 20, relativeTo: .title3).weight(.heavy)
+
+    // MARK: - Display / Amount (SF Pro — auxiliary)
+
+    static let amountHeroLight: Font = .system(size: 44, weight: .light)
+    static let amountMedium: Font = .system(.callout, weight: .semibold)
+    static let emojiDisplay: Font = .system(size: 48)
 
     // MARK: - Labels
 
     static let labelLarge: Font = .system(.subheadline, weight: .semibold)
     static let labelLargeBold: Font = .system(.subheadline, weight: .bold)
-
-    // MARK: - Display / Amount (fixed-size — financial layout stability)
-
-    static let amountHeroLight: Font = .system(size: 44, weight: .light)
-    static let amountDisplayLarge: Font = .system(size: 32)
-    static let previewAmount: Font = .system(size: 28, weight: .medium)
-    static let amountXL: Font = .system(size: 24, weight: .medium)
-    static let emojiDisplay: Font = .system(size: 48)
 
     // MARK: - Card / Section
 
@@ -57,7 +71,6 @@ enum PulpeTypography {
     static let bodyLarge: Font = .body
     static let labelMedium: Font = .system(.footnote, weight: .medium)
     static let progressValue: Font = .system(.callout, weight: .bold)
-    static let amountHero: Font = .system(.largeTitle, weight: .bold)
     static let onboardingSubtitle: Font = .body
     static let inputLabel: Font = .system(.subheadline, weight: .semibold)
     static let inputValue: Font = .system(.title2, weight: .medium)
@@ -65,8 +78,6 @@ enum PulpeTypography {
     static let tutorialBody: Font = .subheadline
     static let tutorialStep: Font = .system(.footnote, weight: .semibold)
     static let tabLabel: Font = .system(.caption2, weight: .medium)
-    static let amountLarge: Font = .system(.title, weight: .bold)
-    static let amountMedium: Font = .system(.callout, weight: .semibold)
     static let buttonPrimary: Font = .system(.body, weight: .semibold)
     static let buttonSecondary: Font = .system(.subheadline, weight: .medium)
     static let numpadKey: Font = .system(.title, weight: .medium)

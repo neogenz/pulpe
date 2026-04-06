@@ -118,6 +118,7 @@ struct BudgetListView: View {
     private struct MonthSlot {
         let month: Int
         let budget: BudgetSparse?
+        var adjustment: Decimal?
     }
 
     private func monthSlots(from budgets: [BudgetSparse]) -> [MonthSlot] {
@@ -133,8 +134,9 @@ struct BudgetListView: View {
         // Add one placeholder for the next missing month if selectedYear >= current year
         if selectedYear >= currentPeriod.year {
             let startMonth = (selectedYear == currentPeriod.year) ? currentPeriod.month : 1
+            let lastRemaining = slots.last?.budget?.remaining
             for month in startMonth...12 where !budgets.contains(where: { $0.month == month }) {
-                slots.append(MonthSlot(month: month, budget: nil))
+                slots.append(MonthSlot(month: month, budget: nil, adjustment: lastRemaining))
                 break
             }
         }
@@ -164,7 +166,7 @@ struct BudgetListView: View {
                 VStack(spacing: DesignTokens.Spacing.xxl) {
                     // Large year header
                     Text(String(selectedYear))
-                        .font(PulpeTypography.welcomeEmoji)
+                        .font(PulpeTypography.displayYear)
                         .foregroundStyle(Color.pulpePrimary)
                         .tracking(DesignTokens.Tracking.display)
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -213,7 +215,11 @@ struct BudgetListView: View {
                                 }
                             }
                         } else {
-                            NextMonthPlaceholder(month: slot.month, year: selectedYear) {
+                            NextMonthPlaceholder(
+                                month: slot.month,
+                                year: selectedYear,
+                                adjustment: slot.adjustment
+                            ) {
                                 createBudgetTarget = (slot.month, selectedYear)
                             }
                         }

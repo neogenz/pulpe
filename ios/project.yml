@@ -121,7 +121,7 @@ targets:
               - com.googleusercontent.apps.894420283180-534drgml29aruk8ceqr1gecc5mn66gmg
             CFBundleURLName: google-sign-in
         UIAppFonts:
-          - Manrope-Bold.ttf
+          - Manrope-VariableFont_wght.ttf
         UIBackgroundModes:
           - fetch
         BGTaskSchedulerPermittedIdentifiers:
