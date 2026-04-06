@@ -39,7 +39,7 @@ struct YearRecapCard: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
             Text(isPastYear ? "Bilan de l'année" : "Potentiel de l'année")
                 .font(PulpeTypography.stepTitle)
                 .foregroundStyle(Color.textPrimary)
@@ -52,7 +52,6 @@ struct YearRecapCard: View {
             Text(subtitle)
                 .font(PulpeTypography.detailLabel)
                 .foregroundStyle(Color.secondary)
-                .padding(.top, DesignTokens.Spacing.xs)
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel(
