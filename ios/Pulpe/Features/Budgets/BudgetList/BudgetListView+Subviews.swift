@@ -37,7 +37,10 @@ struct CurrentMonthHeroCard: View {
                         Text(monthName)
                             .font(PulpeTypography.amountCard)
                             .foregroundStyle(.primary)
-                        Text(budget.emotionState.subtitle)
+                        Text(Formatters.monthSubtitle(
+                                for: budget.month ?? 0,
+                                isPositive: budget.emotionState == .comfortable
+                            ))
                             .font(PulpeTypography.labelMedium)
                             .foregroundStyle(Color.secondary)
                     }
@@ -94,7 +97,10 @@ struct BudgetMonthCard: View {
                     Text(monthName)
                         .font(PulpeTypography.amountCard)
                         .foregroundStyle(isPast ? .secondary : .primary)
-                    Text(budget.emotionState.subtitle)
+                    Text(Formatters.monthSubtitle(
+                                for: budget.month ?? 0,
+                                isPositive: budget.emotionState == .comfortable
+                            ))
                         .font(PulpeTypography.labelMedium)
                         .foregroundStyle(Color.secondary)
                 }
@@ -256,12 +262,12 @@ struct NextMonthPlaceholder: View {
                 .textCase(.uppercase)
                 .tracking(DesignTokens.Tracking.uppercaseNarrow)
             Spacer()
-            Image(systemName: "chevron.right")
+            Image(systemName: "sparkles")
                 .font(PulpeTypography.detailLabel)
         }
-        .foregroundStyle(Color.pulpePrimary)
+        .foregroundStyle(Color.textOnPrimary)
         .padding(.horizontal, DesignTokens.Spacing.lg)
         .padding(.vertical, DesignTokens.Spacing.md)
-        .overlay(Capsule().stroke(Color.pulpePrimary, lineWidth: DesignTokens.BorderWidth.thin))
+        .background(Color.pulpePrimary, in: Capsule())
     }
 }
