@@ -57,10 +57,6 @@ struct CurrentMonthHeroCard: View {
         .buttonStyle(.plain)
         .background(Color.surfaceContainerLowest)
         .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.xl))
-        .overlay {
-            RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.xl)
-                .stroke(budget.emotionState.color, lineWidth: DesignTokens.BorderWidth.thin)
-        }
         .shadow(DesignTokens.Shadow.subtle)
         .sensoryFeedback(.impact(weight: .medium), trigger: tapTrigger)
         .accessibilityLabel(
@@ -117,15 +113,6 @@ struct BudgetMonthCard: View {
         .buttonStyle(.plain)
         .background(Color.surfaceContainerLowest)
         .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.xl))
-        .overlay {
-            RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.xl)
-                .stroke(
-                    isPast
-                        ? Color.secondary.opacity(DesignTokens.Opacity.faint)
-                        : budget.emotionState.color,
-                    lineWidth: DesignTokens.BorderWidth.thin
-                )
-        }
         .shadow(DesignTokens.Shadow.subtle)
         .sensoryFeedback(.selection, trigger: tapTrigger)
         .accessibilityLabel(
