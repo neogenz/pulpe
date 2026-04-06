@@ -311,7 +311,7 @@ struct NextMonthPlaceholder: View {
                         .font(PulpeTypography.amountCard)
                         .monospacedDigit()
                         .foregroundStyle(adjustmentColor)
-                    Text("Ajustement")
+                    Text(isNegative ? "Ajustement" : "Potentiel")
                         .font(PulpeTypography.metricMini)
                         .foregroundStyle(adjustmentColor)
                         .textCase(.uppercase)

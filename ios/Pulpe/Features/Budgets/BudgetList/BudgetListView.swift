@@ -8,6 +8,8 @@ struct BudgetListView: View {
     @State private var createBudgetTarget: (month: Int, year: Int)?
     @State private var hasAppeared = false
     @State private var selectedYear: Int = Calendar.current.component(.year, from: Date())
+    @State private var showPastMonths = false
+    @State private var templateBalance: Decimal?
 
     var body: some View {
         Group {
@@ -78,7 +80,10 @@ struct BudgetListView: View {
             await store.forceRefresh()
         }
         .task {
-            await store.loadIfNeeded()
+            async let loadBudgets: Void = store.loadIfNeeded()
+            async let loadTemplate: Void = loadDefaultTemplateBalance()
+            _ = await (loadBudgets, loadTemplate)
+
             let currentPeriod = BudgetPeriodCalculator.periodForDate(
                 Date(), payDayOfMonth: userSettingsStore.payDayOfMonth
             )
@@ -100,6 +105,9 @@ struct BudgetListView: View {
             if !years.contains(selectedYear), let latest = years.last {
                 selectedYear = latest
             }
+        }
+        .onChange(of: selectedYear) {
+            showPastMonths = false
         }
     }
 
@@ -135,8 +143,13 @@ struct BudgetListView: View {
         if selectedYear >= currentPeriod.year {
             let startMonth = (selectedYear == currentPeriod.year) ? currentPeriod.month : 1
             let lastRemaining = slots.last?.budget?.remaining
+            let projectedAmount = (templateBalance ?? 0) + (lastRemaining ?? 0)
             for month in startMonth...12 where !budgets.contains(where: { $0.month == month }) {
-                slots.append(MonthSlot(month: month, budget: nil, adjustment: lastRemaining))
+                slots.append(MonthSlot(
+                    month: month,
+                    budget: nil,
+                    adjustment: projectedAmount != 0 ? projectedAmount : nil
+                ))
                 break
             }
         }
@@ -146,6 +159,37 @@ struct BudgetListView: View {
 
     private func isCurrentPeriod(_ budget: BudgetSparse) -> Bool {
         budget.isCurrentPeriod(payDayOfMonth: userSettingsStore.payDayOfMonth)
+    }
+
+    private func monthCard(for budget: BudgetSparse) -> some View {
+        BudgetMonthCard(
+            budget: budget,
+            periodLabel: periodLabel(for: budget),
+            payDayOfMonth: userSettingsStore.payDayOfMonth
+        ) {
+            appState.budgetPath.append(
+                BudgetDestination.details(budgetId: budget.id)
+            )
+        }
+    }
+
+    private func isPast(month: Int) -> Bool {
+        let current = BudgetPeriodCalculator.periodForDate(
+            Date(), payDayOfMonth: userSettingsStore.payDayOfMonth
+        )
+        return selectedYear < current.year || (selectedYear == current.year && month < current.month)
+    }
+
+    private func loadDefaultTemplateBalance() async {
+        do {
+            guard let template = try await TemplateService.shared.getDefaultTemplate() else { return }
+            let lines = try await TemplateService.shared.getTemplateLines(templateId: template.id)
+            let income = lines.filter { $0.kind == .income }.reduce(Decimal.zero) { $0 + $1.amount }
+            let outflow = lines.filter { $0.kind != .income }.reduce(Decimal.zero) { $0 + $1.amount }
+            templateBalance = income - outflow
+        } catch {
+            // Silently fail — placeholder will show without projected amount
+        }
     }
 
     private func periodLabel(for budget: BudgetSparse) -> String? {
@@ -161,8 +205,7 @@ struct BudgetListView: View {
     // MARK: - Budget List
 
     private var budgetList: some View {
-        ScrollViewReader { proxy in
-            ScrollView {
+        ScrollView {
                 VStack(spacing: DesignTokens.Spacing.xxl) {
                     // Large year header
                     Text(String(selectedYear))
@@ -191,7 +234,56 @@ struct BudgetListView: View {
                         .padding(.horizontal, DesignTokens.Spacing.xl)
                         .padding(.top, DesignTokens.Spacing.sm)
 
-                    ForEach(monthSlots(from: yearBudgets), id: \.month) { slot in
+                    let allSlots = monthSlots(from: yearBudgets)
+                    let currentPeriod = BudgetPeriodCalculator.periodForDate(
+                        Date(), payDayOfMonth: userSettingsStore.payDayOfMonth
+                    )
+                    let isCurrentYear = selectedYear == currentPeriod.year
+                    let pastSlots = isCurrentYear
+                        ? allSlots.filter { isPast(month: $0.month) && $0.budget != nil }
+                        : []
+                    let visibleSlots = isCurrentYear
+                        ? allSlots.filter { !isPast(month: $0.month) || $0.budget == nil }
+                        : allSlots
+
+                    // Past months toggle (only for current year)
+                    if !pastSlots.isEmpty {
+                        Button {
+                            withAnimation(DesignTokens.Animation.smoothEaseInOut) {
+                                showPastMonths.toggle()
+                            }
+                        } label: {
+                            HStack(spacing: DesignTokens.Spacing.xs) {
+                                Image(systemName: "chevron.right")
+                                    .font(PulpeTypography.detailLabel)
+                                    .rotationEffect(.degrees(showPastMonths ? 90 : 0))
+                                Text(
+                                    showPastMonths
+                                        ? "Masquer les mois passés"
+                                        : "Voir les \(pastSlots.count) mois passés"
+                                )
+                                .font(PulpeTypography.labelMedium)
+                            }
+                            .foregroundStyle(Color.secondary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .frame(minHeight: DesignTokens.TapTarget.minimum)
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .padding(.horizontal, DesignTokens.Spacing.xl)
+
+                        if showPastMonths {
+                            ForEach(pastSlots, id: \.month) { slot in
+                                if let budget = slot.budget {
+                                    monthCard(for: budget)
+                                }
+                            }
+                            .padding(.horizontal, DesignTokens.Spacing.xl)
+                            .transition(.opacity.combined(with: .move(edge: .top)))
+                        }
+                    }
+
+                    ForEach(visibleSlots, id: \.month) { slot in
                         if let budget = slot.budget {
                             if isCurrentPeriod(budget) {
                                 CurrentMonthHeroCard(
@@ -202,17 +294,8 @@ struct BudgetListView: View {
                                         BudgetDestination.details(budgetId: budget.id)
                                     )
                                 }
-                                .id("currentMonthHero")
                             } else {
-                                BudgetMonthCard(
-                                    budget: budget,
-                                    periodLabel: periodLabel(for: budget),
-                                    payDayOfMonth: userSettingsStore.payDayOfMonth
-                                ) {
-                                    appState.budgetPath.append(
-                                        BudgetDestination.details(budgetId: budget.id)
-                                    )
-                                }
+                                monthCard(for: budget)
                             }
                         } else {
                             NextMonthPlaceholder(
@@ -232,11 +315,7 @@ struct BudgetListView: View {
                 .animation(.easeOut(duration: DesignTokens.Animation.fast), value: hasAppeared)
             }
             .scrollIndicators(.automatic)
-            .task {
-                proxy.scrollTo("currentMonthHero", anchor: .center)
-            }
-        }
-        .pulpeBackground()
+            .pulpeBackground()
     }
 }
 

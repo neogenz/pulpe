@@ -44,7 +44,7 @@ struct YearRecapCard: View {
                 .sensitiveAmount()
                 Text("CHF")
                     .font(PulpeTypography.tutorialTitle)
-                    .foregroundStyle(Color.pulpePrimary)
+                    .foregroundStyle(Color.textPrimary)
             }
 
             // Progress bar
