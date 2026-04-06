@@ -33,6 +33,7 @@ enum DesignTokens {
     // MARK: - Spacing
 
     enum Spacing {
+        static let xxs: CGFloat = 2
         static let xs: CGFloat = 4
         static let sm: CGFloat = 8
         static let md: CGFloat = 12
@@ -44,6 +45,23 @@ enum DesignTokens {
         static let sectionGap: CGFloat = 40
         /// Top padding for step headers (onboarding)
         static let stepHeaderTop: CGFloat = 48
+    }
+
+    // MARK: - Tracking (Letter Spacing)
+
+    enum Tracking {
+        /// Large display numbers (year headers)
+        static let display: CGFloat = -3
+        /// Hero amounts (year recap big number)
+        static let hero: CGFloat = -1.2
+        /// Section titles
+        static let title: CGFloat = -0.6
+        /// Uppercase labels — narrow
+        static let uppercaseNarrow: CGFloat = 0.5
+        /// Uppercase labels — standard
+        static let uppercase: CGFloat = 0.7
+        /// Uppercase labels — wide
+        static let uppercaseWide: CGFloat = 1
     }
 
     // MARK: - Border Width

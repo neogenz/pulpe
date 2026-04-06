@@ -79,6 +79,6 @@ struct BudgetListStoreYearTests {
             TestDataFactory.createBudgetSparse(id: "b", month: nil, year: nil),
         ])
         #expect(store.budgets(forYear: 2026).count == 1)
-        #expect(store.availableYears.contains(0)) // nil years grouped under 0
+        #expect(!store.availableYears.contains(0)) // nil-year budgets must NOT appear in the picker
     }
 }

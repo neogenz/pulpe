@@ -96,6 +96,11 @@ struct BudgetListView: View {
                 }
             }
         }
+        .onChange(of: store.availableYears) { _, years in
+            if !years.contains(selectedYear), let latest = years.last {
+                selectedYear = latest
+            }
+        }
     }
 
     private var createButton: some View {
@@ -154,72 +159,77 @@ struct BudgetListView: View {
     // MARK: - Budget List
 
     private var budgetList: some View {
-        ScrollView {
-            LazyVStack(spacing: DesignTokens.Spacing.xxl) {
-                // Large year header
-                Text(String(selectedYear))
-                    .font(PulpeTypography.welcomeEmoji)
-                    .foregroundStyle(Color.pulpePrimary)
-                    .tracking(-3)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, DesignTokens.Spacing.xl)
-                    .contentTransition(.numericText())
-                    .animation(DesignTokens.Animation.defaultSpring, value: selectedYear)
+        ScrollViewReader { proxy in
+            ScrollView {
+                VStack(spacing: DesignTokens.Spacing.xxl) {
+                    // Large year header
+                    Text(String(selectedYear))
+                        .font(PulpeTypography.welcomeEmoji)
+                        .foregroundStyle(Color.pulpePrimary)
+                        .tracking(DesignTokens.Tracking.display)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, DesignTokens.Spacing.xl)
+                        .contentTransition(.numericText())
+                        .animation(DesignTokens.Animation.defaultSpring, value: selectedYear)
 
-                YearPicker(years: store.availableYears, selectedYear: $selectedYear)
+                    YearPicker(years: store.availableYears, selectedYear: $selectedYear)
 
-                // Year recap card — budgets fetched once for the selected year
-                let yearBudgets = store.budgets(forYear: selectedYear)
+                    // Year recap card — budgets fetched once for the selected year
+                    let yearBudgets = store.budgets(forYear: selectedYear)
 
-                YearRecapCard(year: selectedYear, budgets: yearBudgets)
-                    .padding(.horizontal, DesignTokens.Spacing.xl)
+                    YearRecapCard(year: selectedYear, budgets: yearBudgets)
+                        .padding(.horizontal, DesignTokens.Spacing.xl)
 
-                // Section header
-                Text("Progression mensuelle")
-                    .font(PulpeTypography.stepTitle)
-                    .foregroundStyle(Color.textPrimary)
-                    .tracking(-0.6)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, DesignTokens.Spacing.xl)
-                    .padding(.top, DesignTokens.Spacing.sm)
+                    // Section header
+                    Text("Progression mensuelle")
+                        .font(PulpeTypography.stepTitle)
+                        .foregroundStyle(Color.textPrimary)
+                        .tracking(DesignTokens.Tracking.title)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, DesignTokens.Spacing.xl)
+                        .padding(.top, DesignTokens.Spacing.sm)
 
-                ForEach(monthSlots(from: yearBudgets), id: \.month) { slot in
-                    if let budget = slot.budget {
-                        if isCurrentPeriod(budget) {
-                            CurrentMonthHeroCard(
-                                budget: budget,
-                                periodLabel: periodLabel(for: budget)
-                            ) {
-                                appState.budgetPath.append(
-                                    BudgetDestination.details(budgetId: budget.id)
-                                )
+                    ForEach(monthSlots(from: yearBudgets), id: \.month) { slot in
+                        if let budget = slot.budget {
+                            if isCurrentPeriod(budget) {
+                                CurrentMonthHeroCard(
+                                    budget: budget,
+                                    periodLabel: periodLabel(for: budget)
+                                ) {
+                                    appState.budgetPath.append(
+                                        BudgetDestination.details(budgetId: budget.id)
+                                    )
+                                }
+                                .id("currentMonthHero")
+                            } else {
+                                BudgetMonthCard(
+                                    budget: budget,
+                                    periodLabel: periodLabel(for: budget),
+                                    payDayOfMonth: userSettingsStore.payDayOfMonth
+                                ) {
+                                    appState.budgetPath.append(
+                                        BudgetDestination.details(budgetId: budget.id)
+                                    )
+                                }
                             }
-                            .id("currentMonthHero")
                         } else {
-                            BudgetMonthCard(
-                                budget: budget,
-                                periodLabel: periodLabel(for: budget),
-                                payDayOfMonth: userSettingsStore.payDayOfMonth
-                            ) {
-                                appState.budgetPath.append(
-                                    BudgetDestination.details(budgetId: budget.id)
-                                )
+                            NextMonthPlaceholder(month: slot.month, year: selectedYear) {
+                                createBudgetTarget = (slot.month, selectedYear)
                             }
-                        }
-                    } else {
-                        NextMonthPlaceholder(month: slot.month, year: selectedYear) {
-                            createBudgetTarget = (slot.month, selectedYear)
                         }
                     }
+                    .padding(.horizontal, DesignTokens.Spacing.xl)
                 }
-                .padding(.horizontal, DesignTokens.Spacing.xl)
+                .padding(.top, DesignTokens.Spacing.sm)
+                .padding(.bottom, DesignTokens.Spacing.xxxl)
+                .opacity(hasAppeared ? 1 : 0)
+                .animation(.easeOut(duration: DesignTokens.Animation.fast), value: hasAppeared)
             }
-            .padding(.top, DesignTokens.Spacing.sm)
-            .padding(.bottom, DesignTokens.Spacing.xxxl)
-            .opacity(hasAppeared ? 1 : 0)
-            .animation(.easeOut(duration: DesignTokens.Animation.fast), value: hasAppeared)
+            .scrollIndicators(.automatic)
+            .task {
+                proxy.scrollTo("currentMonthHero", anchor: .center)
+            }
         }
-        .scrollIndicators(.automatic)
         .pulpeBackground()
     }
 }
@@ -269,7 +279,7 @@ private struct BudgetListSkeletonView: View {
                     SkeletonShape(width: 120, height: 11)
                 }
                 Spacer()
-                VStack(alignment: .trailing, spacing: 2) {
+                VStack(alignment: .trailing, spacing: DesignTokens.Spacing.xxs) {
                     SkeletonShape(width: 80, height: 14)
                     SkeletonShape(width: 60, height: 8)
                 }
