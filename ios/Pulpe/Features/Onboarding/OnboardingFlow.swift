@@ -45,6 +45,20 @@ struct OnboardingFlow: View {
                 }
             }
             .toolbar(.hidden, for: .navigationBar)
+            .toolbar {
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+                    Button {
+                        UIApplication.shared.sendAction(
+                            #selector(UIResponder.resignFirstResponder),
+                            to: nil, from: nil, for: nil
+                        )
+                    } label: {
+                        Image(systemName: "checkmark")
+                            .fontWeight(.semibold)
+                    }
+                }
+            }
             .onChange(of: scenePhase) { _, newPhase in
                 if newPhase == .background,
                    state.currentStep != .welcome,
@@ -140,6 +154,7 @@ struct OnboardingStepView<Content: View>: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var showContent = false
     @State private var showExitConfirmation = false
+    @State private var isKeyboardVisible = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -163,28 +178,31 @@ struct OnboardingStepView<Content: View>: View {
 
             Spacer()
 
-            if let error = state.error {
-                ErrorBanner(message: DomainErrorLocalizer.localize(error)) {
-                    state.error = nil
+            if !isKeyboardVisible {
+                if let error = state.error {
+                    ErrorBanner(message: DomainErrorLocalizer.localize(error)) {
+                        state.error = nil
+                    }
+                    .padding(.horizontal, DesignTokens.Spacing.xxl)
+                    .padding(.bottom, DesignTokens.Spacing.lg)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
-                .padding(.horizontal, DesignTokens.Spacing.xxl)
-                .padding(.bottom, DesignTokens.Spacing.lg)
+
+                OnboardingNavigationButtons(
+                    step: step,
+                    canProceed: canProceed,
+                    isLoading: state.isLoading,
+                    onNext: onNext,
+                    onBack: {
+                        if state.wouldExitOnBack {
+                            showExitConfirmation = true
+                        } else {
+                            state.previousStep()
+                        }
+                    }
+                )
                 .transition(.move(edge: .bottom).combined(with: .opacity))
             }
-
-            OnboardingNavigationButtons(
-                step: step,
-                canProceed: canProceed,
-                isLoading: state.isLoading,
-                onNext: onNext,
-                onBack: {
-                    if state.wouldExitOnBack {
-                        showExitConfirmation = true
-                    } else {
-                        state.previousStep()
-                    }
-                }
-            )
         }
         .background(Color.clear)
         .dismissKeyboardOnTap()
@@ -193,6 +211,16 @@ struct OnboardingStepView<Content: View>: View {
             Button("Quitter", role: .destructive) { state.previousStep() }
         } message: {
             Text("Ta progression ne sera pas sauvegardée.")
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in
+            withAnimation(.easeInOut(duration: DesignTokens.Animation.fast)) {
+                isKeyboardVisible = true
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardDidHideNotification)) { _ in
+            withAnimation(.easeInOut(duration: DesignTokens.Animation.fast)) {
+                isKeyboardVisible = false
+            }
         }
         .task {
             guard !showContent else { return }
