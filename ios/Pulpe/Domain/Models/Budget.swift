@@ -120,6 +120,15 @@ struct BudgetSparse: Decodable, Identifiable, Sendable, Hashable {
     let remaining: Decimal?
     let rollover: Decimal?
 
+    var emotionState: BudgetFormulas.EmotionState {
+        BudgetFormulas.emotionState(
+            remaining: remaining,
+            totalIncome: totalIncome,
+            totalExpenses: totalExpenses,
+            rollover: rollover
+        )
+    }
+
     var isCurrentMonth: Bool {
         let now = Date()
         let calendar = Calendar.current

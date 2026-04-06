@@ -17,16 +17,6 @@ struct CurrentMonthHeroCard: View {
         Formatters.monthName(for: budget.month ?? 0)
     }
 
-    /// SOT — delegates to BudgetFormulas shared logic (same as HeroBalanceCard)
-    private var emotionState: BudgetFormulas.EmotionState {
-        BudgetFormulas.emotionState(
-            remaining: budget.remaining,
-            totalIncome: budget.totalIncome,
-            totalExpenses: budget.totalExpenses,
-            rollover: budget.rollover
-        )
-    }
-
     private var disponibleLabel: some View {
         Text("Disponible")
             .font(PulpeTypography.inputHelper)
@@ -153,21 +143,21 @@ struct CurrentMonthHeroCard: View {
                 startPoint: UnitPoint(x: 0.1, y: 0),
                 endPoint: UnitPoint(x: 0.9, y: 1)
             )
-            .opacity(emotionState == .comfortable ? 1 : 0)
+            .opacity(budget.emotionState == .comfortable ? 1 : 0)
 
             LinearGradient(
                 colors: Color.heroGradientTight,
                 startPoint: UnitPoint(x: 0.1, y: 0),
                 endPoint: UnitPoint(x: 0.9, y: 1)
             )
-            .opacity(emotionState == .tight ? 1 : 0)
+            .opacity(budget.emotionState == .tight ? 1 : 0)
 
             LinearGradient(
                 colors: Color.heroGradientDeficit,
                 startPoint: UnitPoint(x: 0.1, y: 0),
                 endPoint: UnitPoint(x: 0.9, y: 1)
             )
-            .opacity(emotionState == .deficit ? 1 : 0)
+            .opacity(budget.emotionState == .deficit ? 1 : 0)
 
             Circle()
                 .fill(.white.opacity(0.07))
@@ -187,7 +177,7 @@ struct CurrentMonthHeroCard: View {
                 .blur(radius: 24)
                 .offset(x: -50, y: 0)
         }
-        .animation(reduceMotion ? nil : .spring(response: 0.7, dampingFraction: 0.8), value: emotionState)
+        .animation(reduceMotion ? nil : .spring(response: 0.7, dampingFraction: 0.8), value: budget.emotionState)
         .allowsHitTesting(false)
     }
 }
@@ -211,17 +201,8 @@ struct BudgetMonthCard: View {
         return year < current.year || (year == current.year && month < current.month)
     }
 
-    private var emotionState: BudgetFormulas.EmotionState {
-        BudgetFormulas.emotionState(
-            remaining: budget.remaining,
-            totalIncome: budget.totalIncome,
-            totalExpenses: budget.totalExpenses,
-            rollover: budget.rollover
-        )
-    }
-
     private var emotionColor: Color {
-        switch emotionState {
+        switch budget.emotionState {
         case .comfortable: return Color.pulpePrimary
         case .tight: return Color.financialExpense
         case .deficit: return Color.financialOverBudget
