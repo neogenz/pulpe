@@ -28,7 +28,7 @@ struct YearRecapCard: View {
                 .font(PulpeTypography.detailLabelBold)
                 .foregroundStyle(Color.secondary)
                 .textCase(.uppercase)
-                .tracking(0.7)
+                .tracking(DesignTokens.Tracking.uppercase)
 
             // Big amount
             HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.sm) {
@@ -40,7 +40,7 @@ struct YearRecapCard: View {
                 .font(PulpeTypography.heroIcon)
                 .fontWeight(.heavy)
                 .monospacedDigit()
-                .tracking(-1.2)
+                .tracking(DesignTokens.Tracking.hero)
                 .foregroundStyle(Color.textPrimary)
                 .sensitiveAmount()
                 Text("CHF")

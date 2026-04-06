@@ -107,12 +107,12 @@ final class BudgetListStore: StoreProtocol {
     }
 
     var groupedByYear: [YearGroup] {
-        let grouped = Dictionary(grouping: budgets) { $0.year ?? 0 }
-        return grouped
-            .sorted { $0.key < $1.key } // Oldest first, newest last
-            .map { year, budgets in
-                YearGroup(year: year, budgets: budgets.sorted { ($0.month ?? 0) < ($1.month ?? 0) })
+        Dictionary(grouping: budgets) { $0.year }
+            .compactMap { year, budgets -> YearGroup? in
+                guard let year else { return nil }
+                return YearGroup(year: year, budgets: budgets.sorted { ($0.month ?? 0) < ($1.month ?? 0) })
             }
+            .sorted { $0.year < $1.year }
     }
 
     var availableYears: [Int] {
