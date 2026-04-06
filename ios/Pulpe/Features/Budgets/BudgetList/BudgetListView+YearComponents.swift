@@ -39,7 +39,7 @@ struct YearRecapCard: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
             Text(isPastYear ? "Bilan de l'année" : "Potentiel de l'année")
                 .font(PulpeTypography.stepTitle)
                 .foregroundStyle(Color.textPrimary)
