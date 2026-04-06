@@ -197,13 +197,10 @@ struct BudgetListView: View {
     }
 
     private func periodLabel(for budget: BudgetSparse) -> String? {
-        budget.month.flatMap { month in
-            budget.year.flatMap { year in
-                BudgetPeriodCalculator.formatPeriod(
-                    month: month, year: year, payDayOfMonth: userSettingsStore.payDayOfMonth
-                )
-            }
-        }
+        guard let month = budget.month, let year = budget.year else { return nil }
+        return BudgetPeriodCalculator.formatPeriod(
+            month: month, year: year, payDayOfMonth: userSettingsStore.payDayOfMonth
+        )
     }
 
     // MARK: - Budget List
@@ -246,13 +243,14 @@ struct BudgetListView: View {
                     .padding(.horizontal, DesignTokens.Spacing.xl)
 
                 // Section 3: Monthly progression
-                VStack(spacing: DesignTokens.Spacing.sm) {
+                VStack(spacing: 0) {
                     Text("Progression mensuelle")
                         .font(PulpeTypography.stepTitle)
                         .foregroundStyle(Color.textPrimary)
                         .tracking(DesignTokens.Tracking.title)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.horizontal, DesignTokens.Spacing.xl)
+                        .padding(.bottom, pastSlots.isEmpty ? DesignTokens.Spacing.md : 0)
 
                     if !pastSlots.isEmpty {
                         pastMonthsToggle(count: pastSlots.count)
@@ -267,6 +265,7 @@ struct BudgetListView: View {
                                 }
                             }
                             .padding(.horizontal, DesignTokens.Spacing.xl)
+                            .padding(.bottom, DesignTokens.Spacing.md)
                         }
                     }
 
