@@ -5,6 +5,7 @@ import SwiftUI
 struct YearRecapCard: View {
     let year: Int
     let budgets: [BudgetSparse]
+    var isPastYear: Bool = false
 
     @Environment(\.amountsHidden) private var amountsHidden
 
@@ -16,94 +17,83 @@ struct YearRecapCard: View {
         }.reduce(0, +)
     }
 
+    private var emotionColor: Color {
+        yearTotal >= 0 ? Color.pulpePrimary : Color.financialExpense
+    }
+
     private var monthProgress: Double {
         guard !budgets.isEmpty else { return 0 }
         return Double(budgets.count) / 12.0
     }
 
+    private var subtitle: String {
+        let count = budgets.count
+        if count == 0 {
+            return "Aucun mois budgétisé. Commence dès maintenant."
+        }
+        if count == 12 {
+            return "Tu as budgétisé toute l'année. Bravo !"
+        }
+        return "Tu as budgétisé \(count) mois sur 12 sur l'année. "
+            + "Ton potentiel de croissance est encore incomplet."
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-            // Label
-            Text("Bilan \(String(year))")
-                .font(PulpeTypography.detailLabelBold)
-                .foregroundStyle(Color.secondary)
-                .textCase(.uppercase)
-                .tracking(DesignTokens.Tracking.uppercase)
-
-            // Big amount
-            HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.sm) {
-                Text(
-                    Formatters.chfWholeNumber.string(
-                        from: yearTotal as NSDecimalNumber
-                    ) ?? "0"
-                )
-                .font(PulpeTypography.heroIcon)
-                .monospacedDigit()
-                .tracking(DesignTokens.Tracking.hero)
+            Text(isPastYear ? "Bilan de l'année" : "Potentiel de l'année")
+                .font(PulpeTypography.stepTitle)
                 .foregroundStyle(Color.textPrimary)
-                .sensitiveAmount()
-                Text("CHF")
-                    .font(PulpeTypography.tutorialTitle)
-                    .foregroundStyle(Color.textPrimary)
-            }
+                .tracking(DesignTokens.Tracking.title)
 
-            // Progress bar
-            GeometryReader { geo in
-                ZStack(alignment: .leading) {
-                    Capsule()
-                        .fill(Color.secondary.opacity(DesignTokens.Opacity.highlightBackground))
-                        .frame(height: DesignTokens.ProgressBar.heroHeight)
-                    Capsule()
-                        .fill(
-                            LinearGradient(
-                                colors: Color.heroGradientComfortable,
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            )
-                        )
-                        .frame(
-                            width: max(
-                                geo.size.width * monthProgress,
-                                DesignTokens.ProgressBar.heroHeight
-                            ),
-                            height: DesignTokens.ProgressBar.heroHeight
-                        )
-                }
-            }
-            .frame(height: DesignTokens.ProgressBar.heroHeight)
+            heroAmount
 
-            // Subtitle
-            Text("\(budgets.count) mois budgétisés sur 12")
+            progressBar
+
+            Text(subtitle)
                 .font(PulpeTypography.detailLabel)
                 .foregroundStyle(Color.secondary)
                 .padding(.top, DesignTokens.Spacing.xs)
         }
-        .padding(DesignTokens.Spacing.xxl)
-        .background {
-            ZStack(alignment: .topTrailing) {
-                Color.surfaceContainerLowest
-                Circle()
-                    .fill(
-                        LinearGradient(
-                            colors: Color.heroGradientComfortable,
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                    .frame(width: 160, height: 160)
-                    .blur(radius: 32)
-                    .opacity(DesignTokens.Opacity.faint)
-                    .offset(x: 32, y: -32)
-            }
-        }
-        .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.xl))
-        .shadow(DesignTokens.Shadow.elevated)
         .accessibilityElement(children: .combine)
         .accessibilityLabel(
-            "Bilan \(year), "
-            + (amountsHidden ? "montant masqué" : "total disponible \(yearTotal.asCompactCHF)")
+            "Potentiel \(year), "
+            + (amountsHidden ? "montant masqué" : yearTotal.asSignedCompactCHF)
             + ", \(budgets.count) mois sur 12"
         )
+    }
+
+    private var heroAmount: some View {
+        HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.xs) {
+            Text(yearTotal.asSignedCompactCHF.replacingOccurrences(of: " CHF", with: ""))
+                .font(PulpeTypography.heroIcon)
+                .monospacedDigit()
+                .tracking(DesignTokens.Tracking.hero)
+                .foregroundStyle(emotionColor)
+                .sensitiveAmount()
+            Text("CHF")
+                .font(PulpeTypography.tutorialTitle)
+                .foregroundStyle(emotionColor)
+        }
+    }
+
+    private var progressBar: some View {
+        GeometryReader { geo in
+            ZStack(alignment: .leading) {
+                Capsule()
+                    .fill(Color.textPrimary.opacity(DesignTokens.Opacity.highlightBackground))
+                    .frame(height: DesignTokens.ProgressBar.heroHeight)
+                Capsule()
+                    .fill(emotionColor)
+                    .frame(
+                        width: max(
+                            geo.size.width * monthProgress,
+                            DesignTokens.ProgressBar.heroHeight
+                        ),
+                        height: DesignTokens.ProgressBar.heroHeight
+                    )
+            }
+        }
+        .frame(height: DesignTokens.ProgressBar.heroHeight)
     }
 }
 
@@ -125,16 +115,26 @@ struct YearPicker: View {
                             }
                         } label: {
                             Text(String(year))
-                                .font(
-                                    isSelected
-                                    ? PulpeTypography.labelLargeBold
-                                    : PulpeTypography.onboardingSubtitle
+                                .font(PulpeTypography.labelLargeBold)
+                                .foregroundStyle(
+                                    isSelected ? Color.pulpePrimary : Color.secondary
                                 )
                                 .padding(.horizontal, DesignTokens.Spacing.xxl)
                                 .padding(.vertical, DesignTokens.Spacing.sm)
-                                .background(isSelected ? Color.pulpePrimary : .clear)
-                                .foregroundStyle(isSelected ? Color.textOnPrimary : Color.secondary)
+                                .background(
+                                    isSelected
+                                        ? Color.pulpePrimary.opacity(DesignTokens.Opacity.faint)
+                                        : Color.clear
+                                )
                                 .clipShape(Capsule())
+                                .overlay(
+                                    Capsule().strokeBorder(
+                                        isSelected
+                                            ? Color.pulpePrimary
+                                            : Color.clear,
+                                        lineWidth: DesignTokens.BorderWidth.thin
+                                    )
+                                )
                         }
                         .id(year)
                         .frame(minHeight: DesignTokens.TapTarget.minimum)

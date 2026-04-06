@@ -161,23 +161,30 @@ struct BudgetListView: View {
         budget.isCurrentPeriod(payDayOfMonth: userSettingsStore.payDayOfMonth)
     }
 
-    private func monthCard(for budget: BudgetSparse) -> some View {
-        BudgetMonthCard(
-            budget: budget,
-            periodLabel: periodLabel(for: budget),
-            payDayOfMonth: userSettingsStore.payDayOfMonth
-        ) {
-            appState.budgetPath.append(
-                BudgetDestination.details(budgetId: budget.id)
-            )
-        }
+    private var currentYear: Int {
+        BudgetPeriodCalculator.periodForDate(Date(), payDayOfMonth: userSettingsStore.payDayOfMonth).year
     }
 
-    private func isPast(month: Int) -> Bool {
-        let current = BudgetPeriodCalculator.periodForDate(
-            Date(), payDayOfMonth: userSettingsStore.payDayOfMonth
-        )
-        return selectedYear < current.year || (selectedYear == current.year && month < current.month)
+    private var isPastYear: Bool { selectedYear < currentYear }
+
+    private var yearStatusBadge: some View {
+        let label = selectedYear < currentYear ? "Terminé"
+            : selectedYear == currentYear ? "En cours"
+            : "À venir"
+        return Text(label)
+            .font(PulpeTypography.detailLabelBold)
+            .textCase(.uppercase)
+            .tracking(DesignTokens.Tracking.uppercaseWide)
+            .foregroundStyle(Color.textPrimary)
+            .padding(.horizontal, DesignTokens.Spacing.lg)
+            .padding(.vertical, DesignTokens.Spacing.xs)
+            .background(Color.surfaceContainerLowest, in: Capsule())
+    }
+
+    private func monthCard(for budget: BudgetSparse, isPast: Bool = false) -> some View {
+        BudgetMonthCard(budget: budget, periodLabel: periodLabel(for: budget), isPast: isPast) {
+            appState.budgetPath.append(BudgetDestination.details(budgetId: budget.id))
+        }
     }
 
     private func loadDefaultTemplateBalance() async {
@@ -207,23 +214,30 @@ struct BudgetListView: View {
     private var budgetList: some View {
         ScrollView {
                 VStack(spacing: DesignTokens.Spacing.xxl) {
-                    // Large year header
-                    Text(String(selectedYear))
-                        .font(PulpeTypography.displayYear)
-                        .foregroundStyle(Color.pulpePrimary)
-                        .tracking(DesignTokens.Tracking.display)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal, DesignTokens.Spacing.xl)
-                        .contentTransition(.numericText())
-                        .animation(DesignTokens.Animation.defaultSpring, value: selectedYear)
+                    // Year header + status badge
+                    HStack(alignment: .bottom) {
+                        Text(String(selectedYear))
+                            .font(PulpeTypography.displayYear)
+                            .foregroundStyle(Color.textPrimary)
+                            .tracking(DesignTokens.Tracking.display)
+                            .contentTransition(.numericText())
+                        Spacer()
+                        yearStatusBadge
+                    }
+                    .padding(.horizontal, DesignTokens.Spacing.xl)
+                    .animation(DesignTokens.Animation.defaultSpring, value: selectedYear)
 
                     YearPicker(years: store.availableYears, selectedYear: $selectedYear)
 
                     // Year recap card — budgets fetched once for the selected year
                     let yearBudgets = store.budgets(forYear: selectedYear)
 
-                    YearRecapCard(year: selectedYear, budgets: yearBudgets)
-                        .padding(.horizontal, DesignTokens.Spacing.xl)
+                    YearRecapCard(
+                        year: selectedYear,
+                        budgets: yearBudgets,
+                        isPastYear: isPastYear
+                    )
+                    .padding(.horizontal, DesignTokens.Spacing.xl)
 
                     // Section header
                     Text("Progression mensuelle")
@@ -232,7 +246,6 @@ struct BudgetListView: View {
                         .tracking(DesignTokens.Tracking.title)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.horizontal, DesignTokens.Spacing.xl)
-                        .padding(.top, DesignTokens.Spacing.sm)
 
                     let allSlots = monthSlots(from: yearBudgets)
                     let currentPeriod = BudgetPeriodCalculator.periodForDate(
@@ -240,10 +253,10 @@ struct BudgetListView: View {
                     )
                     let isCurrentYear = selectedYear == currentPeriod.year
                     let pastSlots = isCurrentYear
-                        ? allSlots.filter { isPast(month: $0.month) && $0.budget != nil }
+                        ? allSlots.filter { $0.month < currentPeriod.month && $0.budget != nil }
                         : []
                     let visibleSlots = isCurrentYear
-                        ? allSlots.filter { !isPast(month: $0.month) || $0.budget == nil }
+                        ? allSlots.filter { $0.month >= currentPeriod.month || $0.budget == nil }
                         : allSlots
 
                     // Past months toggle (only for current year)
@@ -275,7 +288,7 @@ struct BudgetListView: View {
                         if showPastMonths {
                             ForEach(pastSlots, id: \.month) { slot in
                                 if let budget = slot.budget {
-                                    monthCard(for: budget)
+                                    monthCard(for: budget, isPast: true)
                                 }
                             }
                             .padding(.horizontal, DesignTokens.Spacing.xl)
