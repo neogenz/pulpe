@@ -26,16 +26,25 @@ extension Decimal {
         signedFormatted(absoluteValue.asCompactCHF, for: kind)
     }
 
+    /// Format as compact amount only (no currency code, rounded to whole number) — "1'235"
+    var asCompactAmount: String {
+        let rounded = self.rounded(0, .plain)
+        return Formatters.chfWholeNumber.string(from: rounded as NSDecimalNumber) ?? "0"
+    }
+
     /// Format as compact CHF (always rounded to whole number) — "1'235 CHF" (suffix position)
     var asCompactCHF: String {
-        let rounded = self.rounded(0, .plain)
-        let amountStr = Formatters.chfWholeNumber.string(from: rounded as NSDecimalNumber) ?? "0"
-        return "\(amountStr) CHF"
+        "\(asCompactAmount) CHF"
     }
 
     /// Format as signed CHF — "+1'234.56 CHF" for positive, "-1'234.56 CHF" for negative, "0.00 CHF" for zero
     var asSignedCHF: String {
         "\(signPrefix)\(asCHF)"
+    }
+
+    /// Format as signed compact amount only — "+1'235" for positive, "-1'235" for negative, "0" for zero
+    var asSignedCompactAmount: String {
+        "\(signPrefix)\(absoluteValue.asCompactAmount)"
     }
 
     /// Format as signed compact CHF — "+1'235 CHF" for positive, "-1'235 CHF" for negative, "0 CHF" for zero

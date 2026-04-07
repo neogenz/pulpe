@@ -144,12 +144,12 @@ struct BudgetAmountBlock: View {
                     .monospacedDigit()
                     .foregroundStyle(isPast ? .secondary : emotionColor)
                     .sensitiveAmount()
+                Text(amountLabel)
+                    .font(PulpeTypography.metricMini)
+                    .foregroundStyle(isPast ? Color.textTertiary : emotionColor)
+                    .textCase(.uppercase)
+                    .tracking(DesignTokens.Tracking.uppercaseWide)
             }
-            Text(amountLabel)
-                .font(PulpeTypography.metricMini)
-                .foregroundStyle(isPast ? Color.textTertiary : emotionColor)
-                .textCase(.uppercase)
-                .tracking(DesignTokens.Tracking.uppercaseWide)
         }
     }
 }
@@ -232,6 +232,7 @@ struct NextMonthPlaceholder: View {
                         .font(PulpeTypography.amountXL)
                         .monospacedDigit()
                         .foregroundStyle(adjustmentColor)
+                        .sensitiveAmount()
                     Text(isNegative ? "Ajustement" : "Potentiel")
                         .font(PulpeTypography.metricMini)
                         .foregroundStyle(adjustmentColor)

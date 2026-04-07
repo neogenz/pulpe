@@ -78,6 +78,7 @@ struct BudgetListView: View {
         }
         .refreshable {
             await store.forceRefresh()
+            await loadDefaultTemplateBalance()
         }
         .task {
             async let loadBudgets: Void = store.loadIfNeeded()
@@ -129,11 +130,7 @@ struct BudgetListView: View {
         var adjustment: Decimal?
     }
 
-    private func monthSlots(from budgets: [BudgetSparse]) -> [MonthSlot] {
-        let currentPeriod = BudgetPeriodCalculator.periodForDate(
-            Date(), payDayOfMonth: userSettingsStore.payDayOfMonth
-        )
-
+    private func monthSlots(from budgets: [BudgetSparse], currentPeriod: BudgetPeriod) -> [MonthSlot] {
         var slots: [MonthSlot] = budgets.compactMap { budget in
             guard let month = budget.month else { return nil }
             return MonthSlot(month: month, budget: budget)
@@ -157,14 +154,7 @@ struct BudgetListView: View {
         return slots.sorted { $0.month < $1.month }
     }
 
-    private var currentYear: Int {
-        BudgetPeriodCalculator.periodForDate(
-            Date(), payDayOfMonth: userSettingsStore.payDayOfMonth
-        ).year
-    }
-    private var isPastYear: Bool { selectedYear < currentYear }
-
-    private var yearStatusBadge: some View {
+    private func yearStatusBadge(currentYear: Int) -> some View {
         let label = selectedYear < currentYear ? "Terminé"
             : selectedYear == currentYear ? "En cours"
             : "À venir"
@@ -187,6 +177,7 @@ struct BudgetListView: View {
     private func loadDefaultTemplateBalance() async {
         do {
             guard let template = try await TemplateService.shared.getDefaultTemplate() else { return }
+            try Task.checkCancellation()
             let lines = try await TemplateService.shared.getTemplateLines(templateId: template.id)
             let income = lines.filter { $0.kind == .income }.reduce(Decimal.zero) { $0 + $1.amount }
             let outflow = lines.filter { $0.kind != .income }.reduce(Decimal.zero) { $0 + $1.amount }
@@ -206,11 +197,12 @@ struct BudgetListView: View {
     // MARK: - Budget List
 
     private var budgetList: some View {
-        let yearBudgets = store.budgets(forYear: selectedYear)
-        let allSlots = monthSlots(from: yearBudgets)
         let currentPeriod = BudgetPeriodCalculator.periodForDate(
             Date(), payDayOfMonth: userSettingsStore.payDayOfMonth
         )
+        let isPastYear = selectedYear < currentPeriod.year
+        let yearBudgets = store.budgets(forYear: selectedYear)
+        let allSlots = monthSlots(from: yearBudgets, currentPeriod: currentPeriod)
         let isCurrentYear = selectedYear == currentPeriod.year
         let pastSlots = isCurrentYear
             ? allSlots.filter { $0.month < currentPeriod.month && $0.budget != nil }
@@ -230,7 +222,7 @@ struct BudgetListView: View {
                             .tracking(DesignTokens.Tracking.display)
                             .contentTransition(.numericText())
                         Spacer()
-                        yearStatusBadge
+                        yearStatusBadge(currentYear: currentPeriod.year)
                     }
                     .padding(.horizontal, DesignTokens.Spacing.xl)
                     .animation(DesignTokens.Animation.defaultSpring, value: selectedYear)
@@ -316,6 +308,7 @@ struct BudgetListView: View {
                 Image(systemName: "chevron.right")
                     .font(PulpeTypography.detailLabel)
                     .rotationEffect(.degrees(showPastMonths ? 90 : 0))
+                    .accessibilityHidden(true)
                 Text(
                     showPastMonths
                         ? "Masquer les mois passés"
@@ -329,6 +322,7 @@ struct BudgetListView: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .accessibilityValue(showPastMonths ? "ouvert" : "fermé")
         .padding(.horizontal, DesignTokens.Spacing.xl)
     }
 }
