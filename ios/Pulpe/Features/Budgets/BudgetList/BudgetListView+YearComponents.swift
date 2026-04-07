@@ -55,7 +55,7 @@ struct YearRecapCard: View {
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel(
-            "Potentiel \(year), "
+            "\(isPastYear ? "Bilan" : "Potentiel") \(year), "
             + (amountsHidden ? "montant masqué" : yearTotal.asSignedCompactCHF)
             + ", \(budgets.count) mois sur 12"
         )
@@ -63,7 +63,7 @@ struct YearRecapCard: View {
 
     private var heroAmount: some View {
         HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.xs) {
-            Text(yearTotal.asSignedCompactCHF.replacingOccurrences(of: " CHF", with: ""))
+            Text(yearTotal.asSignedCompactAmount)
                 .font(PulpeTypography.heroIcon)
                 .monospacedDigit()
                 .tracking(DesignTokens.Tracking.hero)

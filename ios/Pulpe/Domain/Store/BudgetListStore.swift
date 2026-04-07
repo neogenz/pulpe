@@ -116,11 +116,13 @@ final class BudgetListStore: StoreProtocol {
     }
 
     var availableYears: [Int] {
-        groupedByYear.map(\.year)
+        Array(Set(budgets.compactMap(\.year))).sorted()
     }
 
     func budgets(forYear year: Int) -> [BudgetSparse] {
-        groupedByYear.first(where: { $0.year == year })?.budgets ?? []
+        budgets
+            .filter { $0.year == year }
+            .sorted { ($0.month ?? 0) < ($1.month ?? 0) }
     }
 
     var nextAvailableMonth: (month: Int, year: Int)? {
