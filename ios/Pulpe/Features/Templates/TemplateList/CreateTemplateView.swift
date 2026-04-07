@@ -137,7 +137,7 @@ struct CreateTemplateView: View {
         let totals = calculateTotals()
         return HStack(spacing: DesignTokens.Spacing.lg) {
             totalItem(label: "Revenus", amount: totals.income, color: .financialIncome)
-            totalItem(label: "Dépenses", amount: totals.expenses, color: .financialExpense)
+            totalItem(label: "Dépenses", amount: -totals.expenses, color: .financialExpense)
             totalItem(label: "Solde", amount: totals.balance,
                       color: totals.balance >= 0 ? .financialSavings : .financialOverBudget)
         }
@@ -149,7 +149,7 @@ struct CreateTemplateView: View {
             Text(label)
                 .font(PulpeTypography.metricMini)
                 .foregroundStyle(Color.onSurfaceVariant)
-            Text(amount.asCompactCHF)
+            Text(amount.asSignedCompactCHF)
                 .font(PulpeTypography.metricLabelBold)
                 .foregroundStyle(color)
                 .sensitiveAmount()
@@ -245,7 +245,7 @@ struct TemplateLineInputRow: View {
 
             Spacer(minLength: 8)
 
-            Text(line.amount.asAmount)
+            Text(line.amount.asSignedAmount(for: line.kind))
                 .font(PulpeTypography.listRowSubtitle)
                 .foregroundStyle(line.kind.color)
                 .sensitiveAmount()

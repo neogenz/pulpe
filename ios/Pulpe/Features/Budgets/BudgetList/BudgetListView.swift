@@ -371,21 +371,18 @@ private struct BudgetListSkeletonView: View {
     }
 
     private var skeletonMonthCard: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
-            HStack(alignment: .top) {
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                    SkeletonShape(width: 90, height: 18)
-                    SkeletonShape(width: 120, height: 11)
-                }
-                Spacer()
-                VStack(alignment: .trailing, spacing: DesignTokens.Spacing.xxs) {
-                    SkeletonShape(width: 80, height: 14)
-                    SkeletonShape(width: 60, height: 8)
-                }
+        HStack(alignment: .top) {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                SkeletonShape(width: 90, height: 18)
+                SkeletonShape(width: 120, height: 11)
             }
-            SkeletonShape(height: 36, cornerRadius: DesignTokens.CornerRadius.sm)
+            Spacer()
+            VStack(alignment: .trailing, spacing: DesignTokens.Spacing.xxs) {
+                SkeletonShape(width: 80, height: 14)
+                SkeletonShape(width: 60, height: 8)
+            }
         }
-        .padding(DesignTokens.Spacing.lg)
-        .pulpeCardBackground(cornerRadius: DesignTokens.CornerRadius.md)
+        .padding(DesignTokens.Spacing.xxl)
+        .pulpeCardBackground(cornerRadius: DesignTokens.CornerRadius.xl)
     }
 }

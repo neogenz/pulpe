@@ -164,16 +164,14 @@ private struct UncheckedItemRow: View {
     private var amountText: some View {
         switch item {
         case .transaction(let tx, _):
-            Text(tx.amount.asAmount)
+            Text(tx.amount.asSignedAmount(for: tx.kind))
                 .font(PulpeTypography.listRowSubtitle)
                 .foregroundStyle(tx.kind.color)
                 .sensitiveAmount()
 
         case .budgetLine(let line, let consumption):
             if line.kind == .expense, let consumption {
-                let text = consumption.available >= 0
-                    ? consumption.available.asAmount
-                    : "-\(consumption.available.absoluteValue.asAmount)"
+                let text = consumption.available.asSignedAmount(for: line.kind)
                 let color: Color = consumption.isOverBudget ? .financialOverBudget :
                     consumption.isNearLimit ? .warningPrimary : .secondary
                 Text(text)
@@ -181,7 +179,7 @@ private struct UncheckedItemRow: View {
                     .foregroundStyle(color)
                     .sensitiveAmount()
             } else {
-                Text(line.amount.asAmount)
+                Text(line.amount.asSignedAmount(for: line.kind))
                     .font(PulpeTypography.listRowSubtitle)
                     .foregroundStyle(line.kind.color)
                     .sensitiveAmount()

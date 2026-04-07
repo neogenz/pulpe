@@ -336,7 +336,7 @@ struct TemplateSelectionCard: View {
                     .font(PulpeTypography.detailLabel)
                     .foregroundStyle(Color.financialIncome)
 
-                Text(totals.totalIncome.asCompactCHF)
+                Text(totals.totalIncome.asSignedCompactCHF)
                     .font(PulpeTypography.inputHelper)
                     .foregroundStyle(Color.financialIncome)
                     .sensitiveAmount()
@@ -347,7 +347,7 @@ struct TemplateSelectionCard: View {
                     .font(PulpeTypography.detailLabel)
                     .foregroundStyle(Color.financialExpense)
 
-                Text(totals.totalExpenses.asCompactCHF)
+                Text(totals.totalExpenses.asSignedCompactCHF(for: .expense))
                     .font(PulpeTypography.inputHelper)
                     .foregroundStyle(Color.financialExpense)
                     .sensitiveAmount()
@@ -359,7 +359,7 @@ struct TemplateSelectionCard: View {
                     .font(PulpeTypography.detailLabel)
                     .foregroundStyle(totals.balance >= 0 ? Color.financialSavings : Color.financialOverBudget)
 
-                Text(totals.balance.asCompactCHF)
+                Text(totals.balance.asSignedCompactCHF)
                     .font(PulpeTypography.inputHelper)
                     .foregroundStyle(totals.balance >= 0 ? Color.financialSavings : Color.financialOverBudget)
                     .sensitiveAmount()
