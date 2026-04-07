@@ -22,9 +22,9 @@ struct OnboardingTransactionRow: View {
             Spacer()
 
             Button(action: onEdit) {
-                Image(systemName: "pencil.circle.fill")
+                Image(systemName: "pencil")
                     .font(PulpeTypography.body)
-                    .foregroundStyle(Color.pulpePrimary)
+                    .foregroundStyle(Color.onSurfaceVariant)
             }
             .iconButtonStyle()
 
