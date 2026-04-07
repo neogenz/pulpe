@@ -66,18 +66,30 @@ struct SocialLoginSection: View {
     private func signInWithApple() async {
         errorMessage = nil
         do {
-            let result: (idToken: String, nonce: String)
+            let idToken: String
+            let nonce: String
+            var givenName: String?
+
             if let dependencies {
-                result = try await dependencies.appleSignIn()
+                let result = try await dependencies.appleSignIn()
+                idToken = result.idToken
+                nonce = result.nonce
             } else {
-                result = try await appleCoordinator.signIn()
+                let result = try await appleCoordinator.signIn()
+                idToken = result.idToken
+                nonce = result.nonce
+                givenName = result.givenName
             }
-            let (idToken, nonce) = result
 
             if let onAuthenticated {
                 let result = try await appState.authenticateWithApple(idToken: idToken, nonce: nonce)
                 switch result {
-                case .newUser(let user):
+                case .newUser(var user):
+                    if user.firstName == nil || user.firstName?.isEmpty == true,
+                       let name = givenName, !name.isEmpty {
+                        user.firstName = name
+                        Task { try? await AuthService.shared.updateUserFirstName(name) }
+                    }
                     AnalyticsService.shared.capture(.loginCompleted, properties: ["method": "apple_onboarding"])
                     await onAuthenticated(user)
                 case .existingUserRedirected:
@@ -103,18 +115,30 @@ struct SocialLoginSection: View {
     private func signInWithGoogle() async {
         errorMessage = nil
         do {
-            let result: (idToken: String, accessToken: String)
+            let idToken: String
+            let accessToken: String
+            var givenName: String?
+
             if let dependencies {
-                result = try await dependencies.googleSignIn()
+                let result = try await dependencies.googleSignIn()
+                idToken = result.idToken
+                accessToken = result.accessToken
             } else {
-                result = try await googleCoordinator.signIn()
+                let result = try await googleCoordinator.signIn()
+                idToken = result.idToken
+                accessToken = result.accessToken
+                givenName = result.givenName
             }
-            let (idToken, accessToken) = result
 
             if let onAuthenticated {
                 let result = try await appState.authenticateWithGoogle(idToken: idToken, accessToken: accessToken)
                 switch result {
-                case .newUser(let user):
+                case .newUser(var user):
+                    if user.firstName == nil || user.firstName?.isEmpty == true,
+                       let name = givenName, !name.isEmpty {
+                        user.firstName = name
+                        Task { try? await AuthService.shared.updateUserFirstName(name) }
+                    }
                     AnalyticsService.shared.capture(.loginCompleted, properties: ["method": "google_onboarding"])
                     await onAuthenticated(user)
                 case .existingUserRedirected:

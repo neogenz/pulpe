@@ -149,6 +149,14 @@ actor AuthService {
     }
 
     /// Update the current user's password in Supabase auth.
+    /// Persist a first name to Supabase user_metadata.
+    /// Called fire-and-forget after social sign-in provides a name not in the JWT.
+    func updateUserFirstName(_ name: String) async throws {
+        _ = try await supabase.auth.update(
+            user: UserAttributes(data: ["firstName": .string(name)])
+        )
+    }
+
     func updatePassword(_ newPassword: String) async throws {
         _ = try await supabase.auth.update(user: UserAttributes(password: newPassword))
 

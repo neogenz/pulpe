@@ -3,15 +3,21 @@ import CryptoKit
 import Foundation
 import UIKit
 
+struct AppleSignInResult: Sendable {
+    let idToken: String
+    let nonce: String
+    let givenName: String?
+}
+
 @MainActor
 final class AppleSignInCoordinator: NSObject {
     // SAFETY: All reads/writes happen on MainActor — delegate callbacks hop via Task { @MainActor in }.
     // Marked nonisolated(unsafe) because the delegate methods are nonisolated and capture self.
-    nonisolated(unsafe) private var continuation: CheckedContinuation<(idToken: String, nonce: String), Error>?
+    nonisolated(unsafe) private var continuation: CheckedContinuation<AppleSignInResult, Error>?
     private var currentNonce: String?
     private var cachedWindow: UIWindow?
 
-    func signIn() async throws -> (idToken: String, nonce: String) {
+    func signIn() async throws -> AppleSignInResult {
         guard continuation == nil else {
             throw AppleSignInError.inProgress
         }
@@ -93,7 +99,10 @@ extension AppleSignInCoordinator: ASAuthorizationControllerDelegate {
                 return
             }
 
-            continuation?.resume(returning: (idToken: idToken, nonce: nonce))
+            let givenName = credential.fullName?.givenName
+            continuation?.resume(returning: AppleSignInResult(
+                idToken: idToken, nonce: nonce, givenName: givenName
+            ))
             cleanup()
         }
     }

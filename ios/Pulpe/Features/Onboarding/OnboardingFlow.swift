@@ -133,6 +133,8 @@ struct OnboardingStepView<Content: View>: View {
     let state: OnboardingState
     let canProceed: Bool
     let onNext: () -> Void
+    var titleOverride: String?
+    var subtitleOverride: String?
     @ViewBuilder let content: () -> Content
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -142,8 +144,12 @@ struct OnboardingStepView<Content: View>: View {
         VStack(spacing: 0) {
             ScrollView {
                 VStack(spacing: DesignTokens.Spacing.xxxl) {
-                    OnboardingStepHeader(step: step)
-                        .padding(.top, DesignTokens.Spacing.stepHeaderTop)
+                    OnboardingStepHeader(
+                        step: step,
+                        titleOverride: titleOverride,
+                        subtitleOverride: subtitleOverride
+                    )
+                    .padding(.top, DesignTokens.Spacing.stepHeaderTop)
 
                     content()
                         .padding(.horizontal, DesignTokens.Spacing.xxl)
