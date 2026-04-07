@@ -155,61 +155,58 @@ struct OnboardingStepView<Content: View>: View {
 
     var body: some View {
         ScrollViewReader { proxy in
-            ZStack {
-                ScrollView {
-                    VStack(spacing: DesignTokens.Spacing.xxxl) {
-                        // Back button (top-left, Revolut-style)
-                        if step != .welcome {
-                            backButton
-                        }
-
-                        OnboardingStepHeader(step: step)
-
-                        content()
-                            .padding(.horizontal, DesignTokens.Spacing.xxl)
-                            .blurSlide(showContent)
-
-                        // Error banner
-                        if let error = state.error {
-                            ErrorBanner(message: DomainErrorLocalizer.localize(error)) {
-                                state.error = nil
-                            }
-                            .padding(.horizontal, DesignTokens.Spacing.xxl)
-                            .transition(.move(edge: .bottom).combined(with: .opacity))
-                        }
-
-                        // Full-width CTA at bottom of scroll content
-                        fullWidthCTA
-                            .padding(.horizontal, DesignTokens.Spacing.xxl)
-                            .id(bottomAnchor)
+            ScrollView {
+                VStack(spacing: DesignTokens.Spacing.xxxl) {
+                    // Back button (top-left, Revolut-style)
+                    if step != .welcome {
+                        backButton
                     }
-                    .padding(.top, DesignTokens.Spacing.stepHeaderTop)
-                    .padding(.bottom, DesignTokens.Spacing.xxxl)
-                }
-                .scrollBounceBehavior(.basedOnSize)
-                .scrollDismissesKeyboard(.interactively)
-                .onScrollGeometryChange(for: ScrollMetrics.self) { geometry in
-                    ScrollMetrics(
-                        remaining: geometry.contentSize.height
-                            - geometry.contentOffset.y - geometry.containerSize.height,
-                        overflows: geometry.contentSize.height > geometry.containerSize.height + 40
-                    )
-                } action: { _, metrics in
-                    let newAtBottom = metrics.remaining < 80
-                    let newOverflows = metrics.overflows
-                    guard newAtBottom != isAtBottom || newOverflows != contentOverflows else { return }
-                    withAnimation(DesignTokens.Animation.defaultSpring) {
-                        isAtBottom = newAtBottom
-                        contentOverflows = newOverflows
-                    }
-                }
 
-                // Floating overlay: only when content actually overflows AND not at bottom
+                    OnboardingStepHeader(step: step)
+
+                    content()
+                        .padding(.horizontal, DesignTokens.Spacing.xxl)
+                        .blurSlide(showContent)
+
+                    // Error banner
+                    if let error = state.error {
+                        ErrorBanner(message: DomainErrorLocalizer.localize(error)) {
+                            state.error = nil
+                        }
+                        .padding(.horizontal, DesignTokens.Spacing.xxl)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                    }
+
+                    // Full-width CTA at bottom of scroll content
+                    fullWidthCTA
+                        .padding(.horizontal, DesignTokens.Spacing.xxl)
+                        .id(bottomAnchor)
+                }
+                .padding(.top, DesignTokens.Spacing.stepHeaderTop)
+                .padding(.bottom, DesignTokens.Spacing.xxxl)
+            }
+            .scrollBounceBehavior(.basedOnSize)
+            .scrollDismissesKeyboard(.interactively)
+            .onScrollGeometryChange(for: ScrollMetrics.self) { geometry in
+                ScrollMetrics(
+                    remaining: geometry.contentSize.height
+                        - geometry.contentOffset.y - geometry.containerSize.height,
+                    overflows: geometry.contentSize.height > geometry.containerSize.height + 40
+                )
+            } action: { _, metrics in
+                let newAtBottom = metrics.remaining < 80
+                let newOverflows = metrics.overflows
+                guard newAtBottom != isAtBottom || newOverflows != contentOverflows else { return }
+                withAnimation(DesignTokens.Animation.defaultSpring) {
+                    isAtBottom = newAtBottom
+                    contentOverflows = newOverflows
+                }
+            }
+            .overlay(alignment: .bottom) {
+                // Floating gradient + ↓ button: only when content overflows AND not at bottom
                 if contentOverflows && !isAtBottom {
                     VStack(spacing: 0) {
-                        Spacer()
-
-                        // Gradient fade hinting more content below
+                        // Gradient fade — passes touches through to scroll
                         LinearGradient(
                             colors: [.clear, Color.onboardingFormBase],
                             startPoint: .top,
@@ -218,7 +215,7 @@ struct OnboardingStepView<Content: View>: View {
                         .frame(height: 80)
                         .allowsHitTesting(false)
 
-                        // Floating ↓ button
+                        // Floating ↓ button pinned bottom-right
                         HStack {
                             Spacer()
                             floatingButton(proxy: proxy)
