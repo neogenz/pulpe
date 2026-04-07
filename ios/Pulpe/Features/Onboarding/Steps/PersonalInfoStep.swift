@@ -6,14 +6,14 @@ struct PersonalInfoStep: View {
     @FocusState private var isIncomeFocused: Bool
 
     private var shouldShowNameField: Bool {
-        !(state.isSocialSignup && state.isFirstNameValid)
+        !state.isSocialSignup
     }
 
     var body: some View {
         OnboardingStepView(
             step: .personalInfo,
             state: state,
-            canProceed: state.isFirstNameValid && state.isIncomeValid,
+            canProceed: state.canProceed(from: .personalInfo),
             onNext: { state.nextStep() },
             titleOverride: shouldShowNameField ? nil : "Ton revenu",
             subtitleOverride: shouldShowNameField ? nil : "Indique ton revenu mensuel",

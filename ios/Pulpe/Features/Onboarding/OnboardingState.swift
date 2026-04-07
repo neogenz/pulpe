@@ -104,7 +104,7 @@ final class OnboardingState {
         case .welcome:
             return true
         case .personalInfo:
-            return isFirstNameValid && isIncomeValid
+            return isSocialSignup ? isIncomeValid : (isFirstNameValid && isIncomeValid)
         case .expenses:
             return true
         case .budgetPreview:
