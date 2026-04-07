@@ -154,8 +154,8 @@ struct OnboardingStepView<Content: View>: View {
     }
 
     var body: some View {
-        ZStack {
-            ScrollViewReader { proxy in
+        ScrollViewReader { proxy in
+            ZStack {
                 ScrollView {
                     VStack(spacing: DesignTokens.Spacing.xxxl) {
                         // Back button (top-left, Revolut-style)
@@ -273,7 +273,7 @@ struct OnboardingStepView<Content: View>: View {
             }
         } label: {
             Image(systemName: isKeyboardVisible ? "keyboard.chevron.compact.down" : "arrow.down")
-                .font(.system(size: 18, weight: .semibold))
+                .font(PulpeTypography.labelLarge)
                 .foregroundStyle(Color.textOnPrimary)
                 .frame(width: DesignTokens.FrameHeight.button, height: DesignTokens.FrameHeight.button)
                 .background(Color.onboardingGradient)

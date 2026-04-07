@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// Read-only display row for a custom transaction during onboarding.
-/// Shows name, amount, and action buttons (edit pencil + delete ×).
+/// Shows name, amount colored by kind, and action buttons (edit pencil + delete ×).
 struct OnboardingTransactionRow: View {
     let transaction: OnboardingTransaction
     let onEdit: () -> Void
@@ -16,20 +16,21 @@ struct OnboardingTransactionRow: View {
                 Text(transaction.amount.asCHF)
                     .font(PulpeTypography.caption)
                     .monospacedDigit()
-                    .foregroundStyle(Color.onSurfaceVariant)
+                    .foregroundStyle(transaction.type.color)
             }
 
             Spacer()
 
             Button(action: onEdit) {
-                Image(systemName: "pencil")
-                    .font(.system(size: 14, weight: .medium))
+                Image(systemName: "pencil.circle.fill")
+                    .font(PulpeTypography.body)
                     .foregroundStyle(Color.pulpePrimary)
             }
             .iconButtonStyle()
 
             Button(action: onRemove) {
                 Image(systemName: "xmark.circle.fill")
+                    .font(PulpeTypography.body)
                     .foregroundStyle(Color.onSurfaceVariant)
             }
             .iconButtonStyle()
