@@ -367,7 +367,7 @@ struct AppStateLogoutBiometricTests {
         // Arrange: persist some onboarding data
         let onboardingState = OnboardingState()
         onboardingState.firstName = "TestUser"
-        onboardingState.currentStep = .expenses
+        onboardingState.currentStep = .charges
         onboardingState.saveToStorage()
 
         // Verify data was persisted

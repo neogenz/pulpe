@@ -1,20 +1,51 @@
 import SwiftUI
 
-/// Sheet form for creating a custom expense or saving during onboarding.
+/// Sheet form for creating or editing a custom transaction during onboarding.
 /// No API call — returns data via callback.
 struct AddCustomExpenseSheet: View {
-    let onAdd: (OnboardingTransaction) -> Void
+    let onSave: (OnboardingTransaction) -> Void
+    let availableKinds: [TransactionKind]
+    let isEditing: Bool
 
     @Environment(\.dismiss) private var dismiss
-    @State private var name = ""
+    @State private var name: String
     @State private var amount: Decimal?
-    @State private var amountText = ""
-    @State private var kind: TransactionKind = .expense
+    @State private var amountText: String
+    @State private var kind: TransactionKind
     @State private var submitSuccessTrigger = false
     @FocusState private var isAmountFocused: Bool
     @FocusState private var isDescriptionFocused: Bool
 
-    private static let availableKinds: [TransactionKind] = [.expense, .saving, .income]
+    /// Create mode
+    init(
+        defaultKind: TransactionKind = .expense,
+        availableKinds: [TransactionKind] = [.expense, .saving, .income],
+        onAdd: @escaping (OnboardingTransaction) -> Void
+    ) {
+        self.onSave = onAdd
+        self.availableKinds = availableKinds
+        self.isEditing = false
+        _name = State(initialValue: "")
+        _amount = State(initialValue: nil)
+        _amountText = State(initialValue: "")
+        _kind = State(initialValue: defaultKind)
+    }
+
+    /// Edit mode — pre-fills fields from existing transaction
+    init(
+        editing transaction: OnboardingTransaction,
+        availableKinds: [TransactionKind] = [.expense, .saving, .income],
+        onSave: @escaping (OnboardingTransaction) -> Void
+    ) {
+        self.onSave = onSave
+        self.availableKinds = availableKinds
+        self.isEditing = true
+        _name = State(initialValue: transaction.name)
+        _amount = State(initialValue: transaction.amount)
+        let formatted = Formatters.amountInput.string(from: transaction.amount as NSDecimalNumber) ?? ""
+        _amountText = State(initialValue: formatted)
+        _kind = State(initialValue: transaction.type)
+    }
 
     private var canSubmit: Bool {
         !name.trimmingCharacters(in: .whitespaces).isEmpty && (amount ?? 0) > 0
@@ -22,7 +53,7 @@ struct AddCustomExpenseSheet: View {
 
     var body: some View {
         SheetFormContainer(
-            title: "Nouvelle prévision",
+            title: isEditing ? "Modifier" : "Nouvelle prévision",
             isLoading: false,
             autoFocus: $isAmountFocused,
             descriptionFocus: $isDescriptionFocused
@@ -38,31 +69,33 @@ struct AddCustomExpenseSheet: View {
                 hint: "Ex : Spotify, Salle de sport...",
                 text: $name,
                 label: "Description",
-                accessibilityLabel: "Description de la dépense",
+                accessibilityLabel: "Description de la prévision",
                 focusBinding: $isDescriptionFocused
             )
 
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                Text("Type")
-                    .font(PulpeTypography.labelMedium)
-                    .foregroundStyle(Color.onSurfaceVariant)
+            if availableKinds.count > 1 {
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                    Text("Type")
+                        .font(PulpeTypography.labelMedium)
+                        .foregroundStyle(Color.onSurfaceVariant)
 
-                Picker("Type", selection: $kind) {
-                    ForEach(Self.availableKinds, id: \.self) { k in
-                        Text(k.label).tag(k)
+                    Picker("Type", selection: $kind) {
+                        ForEach(availableKinds, id: \.self) { k in
+                            Text(k.label).tag(k)
+                        }
                     }
+                    .pickerStyle(.segmented)
                 }
-                .pickerStyle(.segmented)
             }
 
-            addButton
+            saveButton
         }
         .sensoryFeedback(.success, trigger: submitSuccessTrigger)
     }
 
-    // MARK: - Add Button
+    // MARK: - Save Button
 
-    private var addButton: some View {
+    private var saveButton: some View {
         Button {
             let tx = OnboardingTransaction(
                 amount: amount ?? 0,
@@ -70,10 +103,10 @@ struct AddCustomExpenseSheet: View {
                 name: name.trimmingCharacters(in: .whitespaces)
             )
             submitSuccessTrigger.toggle()
-            onAdd(tx)
+            onSave(tx)
             dismiss()
         } label: {
-            Text("Ajouter")
+            Text(isEditing ? "Enregistrer" : "Ajouter")
         }
         .disabled(!canSubmit)
         .primaryButtonStyle(isEnabled: canSubmit)

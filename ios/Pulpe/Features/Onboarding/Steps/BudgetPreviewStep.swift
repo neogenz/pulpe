@@ -109,6 +109,23 @@ struct BudgetPreviewStep: View {
                     color: .secondary
                 )
 
+                // Hardcoded charges detail
+                if let housing = state.housingCosts, housing > 0 {
+                    namedDetailRow("Loyer", amount: housing)
+                }
+                if let health = state.healthInsurance, health > 0 {
+                    namedDetailRow("Assurance maladie", amount: health)
+                }
+                if let phone = state.phonePlan, phone > 0 {
+                    namedDetailRow("Forfait téléphone", amount: phone)
+                }
+                if let transport = state.transportCosts, transport > 0 {
+                    namedDetailRow("Transport", amount: transport)
+                }
+                if let leasing = state.leasingCredit, leasing > 0 {
+                    namedDetailRow("Leasing / crédit", amount: leasing)
+                }
+
                 ForEach(customExpenses) { tx in
                     detailRow(tx)
                 }
@@ -198,6 +215,20 @@ struct BudgetPreviewStep: View {
     }
 
     // MARK: - Helpers
+
+    private func namedDetailRow(_ name: String, amount: Decimal) -> some View {
+        HStack(spacing: DesignTokens.Spacing.sm) {
+            Text(name)
+                .font(PulpeTypography.caption)
+                .foregroundStyle(Color.textTertiary)
+            Spacer()
+            Text("-\(amount.asCHF)")
+                .font(PulpeTypography.caption)
+                .monospacedDigit()
+                .foregroundStyle(Color.textTertiary)
+        }
+        .padding(.leading, DesignTokens.Spacing.xl)
+    }
 
     private func detailRow(
         _ tx: OnboardingTransaction, prefix: String = "-", color: Color = .textTertiary

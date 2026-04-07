@@ -44,7 +44,7 @@ struct OptionalBadge: View {
 
 #Preview {
     VStack(spacing: 40) {
-        OnboardingStepHeader(step: .expenses)
+        OnboardingStepHeader(step: .charges)
         OnboardingStepHeader(step: .budgetPreview)
     }
     .padding()

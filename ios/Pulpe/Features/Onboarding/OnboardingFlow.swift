@@ -13,7 +13,7 @@ struct OnboardingFlow: View {
         let initial = OnboardingState()
         if let user = pendingSocialUser {
             initial.configureSocialUser(user)
-            initial.currentStep = .personalInfo
+            initial.currentStep = .firstName
         }
         _state = State(initialValue: initial)
         hasPendingSocialUser = pendingSocialUser != nil
@@ -45,20 +45,6 @@ struct OnboardingFlow: View {
                 }
             }
             .toolbar(.hidden, for: .navigationBar)
-            .toolbar {
-                ToolbarItemGroup(placement: .keyboard) {
-                    Spacer()
-                    Button {
-                        UIApplication.shared.sendAction(
-                            #selector(UIResponder.resignFirstResponder),
-                            to: nil, from: nil, for: nil
-                        )
-                    } label: {
-                        Image(systemName: "checkmark")
-                            .fontWeight(.semibold)
-                    }
-                }
-            }
             .onChange(of: scenePhase) { _, newPhase in
                 if newPhase == .background,
                    state.currentStep != .welcome,
@@ -92,10 +78,14 @@ struct OnboardingFlow: View {
         switch state.currentStep {
         case .welcome:
             WelcomeStep(state: state)
-        case .personalInfo:
-            PersonalInfoStep(state: state)
-        case .expenses:
-            ExpensesStep(state: state)
+        case .firstName:
+            FirstNameStep(state: state)
+        case .income:
+            IncomeStep(state: state)
+        case .charges:
+            ChargesStep(state: state)
+        case .savings:
+            SavingsStep(state: state)
         case .budgetPreview:
             BudgetPreviewStep(state: state)
         case .registration:
@@ -152,56 +142,93 @@ struct OnboardingStepView<Content: View>: View {
     @ViewBuilder let content: () -> Content
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Namespace private var bottomAnchor
     @State private var showContent = false
     @State private var showExitConfirmation = false
+    @State private var isAtBottom = false
+    @State private var contentOverflows = false
     @State private var isKeyboardVisible = false
 
+    private var isEnabled: Bool {
+        canProceed && !state.isLoading
+    }
+
     var body: some View {
-        VStack(spacing: 0) {
-            ScrollView {
-                VStack(spacing: DesignTokens.Spacing.xxxl) {
-                    OnboardingStepHeader(
-                        step: step,
-                        titleOverride: titleOverride,
-                        subtitleOverride: subtitleOverride
-                    )
-                    .padding(.top, DesignTokens.Spacing.stepHeaderTop)
-
-                    content()
-                        .padding(.horizontal, DesignTokens.Spacing.xxl)
-                        .blurSlide(showContent)
-                }
-                .padding(.bottom, DesignTokens.Spacing.xxxl)
-            }
-            .scrollBounceBehavior(.basedOnSize)
-            .scrollDismissesKeyboard(.interactively)
-
-            Spacer()
-
-            if !isKeyboardVisible {
-                if let error = state.error {
-                    ErrorBanner(message: DomainErrorLocalizer.localize(error)) {
-                        state.error = nil
-                    }
-                    .padding(.horizontal, DesignTokens.Spacing.xxl)
-                    .padding(.bottom, DesignTokens.Spacing.lg)
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
-                }
-
-                OnboardingNavigationButtons(
-                    step: step,
-                    canProceed: canProceed,
-                    isLoading: state.isLoading,
-                    onNext: onNext,
-                    onBack: {
-                        if state.wouldExitOnBack {
-                            showExitConfirmation = true
-                        } else {
-                            state.previousStep()
+        ZStack {
+            ScrollViewReader { proxy in
+                ScrollView {
+                    VStack(spacing: DesignTokens.Spacing.xxxl) {
+                        // Back button (top-left, Revolut-style)
+                        if step != .welcome {
+                            backButton
                         }
+
+                        OnboardingStepHeader(step: step)
+
+                        content()
+                            .padding(.horizontal, DesignTokens.Spacing.xxl)
+                            .blurSlide(showContent)
+
+                        // Error banner
+                        if let error = state.error {
+                            ErrorBanner(message: DomainErrorLocalizer.localize(error)) {
+                                state.error = nil
+                            }
+                            .padding(.horizontal, DesignTokens.Spacing.xxl)
+                            .transition(.move(edge: .bottom).combined(with: .opacity))
+                        }
+
+                        // Full-width CTA at bottom of scroll content
+                        fullWidthCTA
+                            .padding(.horizontal, DesignTokens.Spacing.xxl)
+                            .id(bottomAnchor)
                     }
-                )
-                .transition(.move(edge: .bottom).combined(with: .opacity))
+                    .padding(.top, DesignTokens.Spacing.stepHeaderTop)
+                    .padding(.bottom, DesignTokens.Spacing.xxxl)
+                }
+                .scrollBounceBehavior(.basedOnSize)
+                .scrollDismissesKeyboard(.interactively)
+                .onScrollGeometryChange(for: ScrollMetrics.self) { geometry in
+                    ScrollMetrics(
+                        remaining: geometry.contentSize.height
+                            - geometry.contentOffset.y - geometry.containerSize.height,
+                        overflows: geometry.contentSize.height > geometry.containerSize.height + 40
+                    )
+                } action: { _, metrics in
+                    let newAtBottom = metrics.remaining < 80
+                    let newOverflows = metrics.overflows
+                    guard newAtBottom != isAtBottom || newOverflows != contentOverflows else { return }
+                    withAnimation(DesignTokens.Animation.defaultSpring) {
+                        isAtBottom = newAtBottom
+                        contentOverflows = newOverflows
+                    }
+                }
+
+                // Floating overlay: only when content actually overflows AND not at bottom
+                if contentOverflows && !isAtBottom {
+                    VStack(spacing: 0) {
+                        Spacer()
+
+                        // Gradient fade hinting more content below
+                        LinearGradient(
+                            colors: [.clear, Color.onboardingFormBase],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                        .frame(height: 80)
+                        .allowsHitTesting(false)
+
+                        // Floating ↓ button
+                        HStack {
+                            Spacer()
+                            floatingButton(proxy: proxy)
+                        }
+                        .padding(.horizontal, DesignTokens.Spacing.xxl)
+                        .padding(.bottom, DesignTokens.Spacing.lg)
+                        .background(Color.onboardingFormBase)
+                    }
+                    .transition(.opacity.combined(with: .move(edge: .bottom)))
+                }
             }
         }
         .background(Color.clear)
@@ -213,14 +240,10 @@ struct OnboardingStepView<Content: View>: View {
             Text("Ta progression ne sera pas sauvegardée.")
         }
         .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in
-            withAnimation(.easeInOut(duration: DesignTokens.Animation.fast)) {
-                isKeyboardVisible = true
-            }
+            isKeyboardVisible = true
         }
-        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardDidHideNotification)) { _ in
-            withAnimation(.easeInOut(duration: DesignTokens.Animation.fast)) {
-                isKeyboardVisible = false
-            }
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
+            isKeyboardVisible = false
         }
         .task {
             guard !showContent else { return }
@@ -231,6 +254,101 @@ struct OnboardingStepView<Content: View>: View {
             }
         }
     }
+
+    // MARK: - Floating ↓ Button (Option C behavior)
+
+    /// Keyboard open → dismiss keyboard
+    /// Keyboard closed + not at bottom → scroll to CTA
+    private func floatingButton(proxy: ScrollViewProxy) -> some View {
+        Button {
+            if isKeyboardVisible {
+                UIApplication.shared.sendAction(
+                    #selector(UIResponder.resignFirstResponder),
+                    to: nil, from: nil, for: nil
+                )
+            } else {
+                withAnimation(DesignTokens.Animation.defaultSpring) {
+                    proxy.scrollTo(bottomAnchor, anchor: .bottom)
+                }
+            }
+        } label: {
+            Image(systemName: isKeyboardVisible ? "keyboard.chevron.compact.down" : "arrow.down")
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundStyle(Color.textOnPrimary)
+                .frame(width: DesignTokens.FrameHeight.button, height: DesignTokens.FrameHeight.button)
+                .background(Color.onboardingGradient)
+                .clipShape(Circle())
+                .contentTransition(.symbolEffect(.replace))
+        }
+        .shadow(DesignTokens.Shadow.elevated)
+        .contentShape(Circle())
+        .accessibilityLabel(isKeyboardVisible ? "Fermer le clavier" : "Voir la suite")
+    }
+
+    // MARK: - Full-Width CTA (at bottom of scroll)
+
+    private var fullWidthCTA: some View {
+        VStack(spacing: DesignTokens.Spacing.md) {
+            Button(action: onNext) {
+                if state.isLoading {
+                    ProgressView()
+                        .tint(.white)
+                        .accessibilityLabel("Chargement")
+                } else {
+                    HStack(spacing: DesignTokens.Spacing.sm) {
+                        Text(buttonTitle)
+                        if step != .registration {
+                            Image(systemName: "arrow.right")
+                                .font(PulpeTypography.labelLarge)
+                        }
+                    }
+                }
+            }
+            .primaryButtonStyle(isEnabled: isEnabled)
+            .disabled(!isEnabled)
+            .animation(.easeInOut(duration: DesignTokens.Animation.fast), value: isEnabled)
+        }
+    }
+
+    // MARK: - Back Button (top area)
+
+    private var backButton: some View {
+        HStack {
+            Button {
+                if state.wouldExitOnBack {
+                    showExitConfirmation = true
+                } else {
+                    state.previousStep()
+                }
+            } label: {
+                HStack(spacing: DesignTokens.Spacing.xs) {
+                    Image(systemName: "chevron.left")
+                        .font(PulpeTypography.labelLarge)
+                    Text("Retour")
+                        .font(PulpeTypography.buttonSecondary)
+                }
+                .foregroundStyle(Color.textSecondaryOnboarding)
+            }
+            .textLinkButtonStyle()
+            Spacer()
+        }
+        .padding(.horizontal, DesignTokens.Spacing.xxl)
+    }
+
+    private var buttonTitle: String {
+        switch step {
+        case .registration: "Créer mon compte"
+        case .welcome: "Commencer"
+        default: "Continuer"
+        }
+    }
+}
+
+// MARK: - Scroll Metrics
+
+private struct ScrollMetrics: Equatable {
+    let remaining: CGFloat
+    let overflows: Bool
 }
 
 #Preview {

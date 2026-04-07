@@ -108,11 +108,11 @@ struct OnboardingSocialSignupTests {
         let state = makeSUT()
         defer { OnboardingState.clearPersistedData() }
 
-        // Without social: budgetPreview is 50% (2/4 non-welcome steps)
+        // Without social: budgetPreview is index 5 of 7, welcome excluded → 4/6
         state.currentStep = .budgetPreview
         let nonSocialPercentage = state.progressPercentage
 
-        // With social: budgetPreview is 66.7% (2/3 non-welcome steps)
+        // With social: registration excluded → 4/5
         state.socialUser = UserInfo(id: "social-1", email: "social@pulpe.app", firstName: "Max")
         let socialPercentage = state.progressPercentage
 

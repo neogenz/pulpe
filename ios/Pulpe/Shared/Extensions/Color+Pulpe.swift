@@ -209,6 +209,9 @@ extension Color {
     /// Base color behind gradient shapes
     private static let authBase = Color(light: .white, dark: Color(hex: 0x111614))
 
+    /// Solid color matching the bottom of loginGradientBackground (for overlays/fades)
+    static let onboardingFormBase = Color(light: .white, dark: Color(hex: 0x141A16))
+
     /// Welcome sky gradient — covers top ~55%, fades out with a soft convex curve at the bottom
     @ViewBuilder
     static var welcomeGradientBackground: some View {

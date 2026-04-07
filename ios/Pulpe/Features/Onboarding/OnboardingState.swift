@@ -119,9 +119,13 @@ final class OnboardingState {
         switch step {
         case .welcome:
             return true
-        case .personalInfo:
-            return isFirstNameValid && isIncomeValid
-        case .expenses:
+        case .firstName:
+            return isFirstNameValid
+        case .income:
+            return isIncomeValid
+        case .charges:
+            return true
+        case .savings:
             return true
         case .budgetPreview:
             return true
@@ -222,15 +226,47 @@ final class OnboardingState {
         )
     }
 
+    // MARK: - Running Totals
+
+    var totalCharges: Decimal {
+        let housing: Decimal = housingCosts ?? 0
+        let health: Decimal = healthInsurance ?? 0
+        let phone: Decimal = phonePlan ?? 0
+        let transport: Decimal = transportCosts ?? 0
+        let leasing: Decimal = leasingCredit ?? 0
+        let hardcoded = housing + health + phone + transport + leasing
+        let customExpenses = customTransactions
+            .filter { $0.type == .expense }
+            .reduce(Decimal.zero) { $0 + $1.amount }
+        return hardcoded + customExpenses
+    }
+
+    var totalSavings: Decimal {
+        customTransactions
+            .filter { $0.type == .saving }
+            .reduce(Decimal.zero) { $0 + $1.amount }
+    }
+
+    var totalIncome: Decimal {
+        (monthlyIncome ?? 0) + totalCustomIncome
+    }
+
     // MARK: - Suggestions
 
-    static let suggestions: [OnboardingTransaction] = [
+    static let chargeSuggestions: [OnboardingTransaction] = [
         OnboardingTransaction(amount: 600, type: .expense, name: "Courses / alimentation"),
         OnboardingTransaction(amount: 150, type: .expense, name: "Restaurants & sorties"),
         OnboardingTransaction(amount: 100, type: .expense, name: "Loisirs & sport"),
+    ]
+
+    static let savingSuggestions: [OnboardingTransaction] = [
         OnboardingTransaction(amount: 500, type: .saving, name: "Épargne"),
         OnboardingTransaction(amount: 587, type: .saving, name: "3ème pilier"),
     ]
+
+    static var suggestions: [OnboardingTransaction] {
+        chargeSuggestions + savingSuggestions
+    }
 
     func isSuggestionSelected(_ suggestion: OnboardingTransaction) -> Bool {
         customTransactions.contains { $0.name == suggestion.name && $0.type == suggestion.type }
@@ -260,14 +296,22 @@ final class OnboardingState {
         guard customTransactions.indices.contains(index) else { return }
         customTransactions[index].amount = amount
     }
+
+    /// Replace a custom transaction by ID with updated data
+    func replaceCustomTransaction(id: UUID, with tx: OnboardingTransaction) {
+        guard let index = customTransactions.firstIndex(where: { $0.id == id }) else { return }
+        customTransactions[index] = tx
+    }
 }
 
 // MARK: - Step Enum
 
 enum OnboardingStep: String, CaseIterable, Identifiable {
     case welcome
-    case personalInfo
-    case expenses
+    case firstName
+    case income
+    case charges
+    case savings
     case budgetPreview
     case registration
 
@@ -276,8 +320,10 @@ enum OnboardingStep: String, CaseIterable, Identifiable {
     var analyticsName: String {
         switch self {
         case .welcome: "welcome"
-        case .personalInfo: "personal_info"
-        case .expenses: "expenses"
+        case .firstName: "first_name"
+        case .income: "income"
+        case .charges: "charges"
+        case .savings: "savings"
         case .budgetPreview: "budget_preview"
         case .registration: "registration"
         }
@@ -286,8 +332,10 @@ enum OnboardingStep: String, CaseIterable, Identifiable {
     var title: String {
         switch self {
         case .welcome: "Bienvenue"
-        case .personalInfo: "Qui es-tu ?"
-        case .expenses: "Tes charges fixes"
+        case .firstName: "Comment tu t'appelles ?"
+        case .income: "Tes revenus"
+        case .charges: "Tes charges fixes"
+        case .savings: "Ton épargne"
         case .budgetPreview: "Ton budget"
         case .registration: "Crée ton compte"
         }
@@ -296,8 +344,10 @@ enum OnboardingStep: String, CaseIterable, Identifiable {
     var subtitle: String {
         switch self {
         case .welcome: "Reprends le contrôle de tes finances"
-        case .personalInfo: "Juste ton prénom et tes revenus"
-        case .expenses: "Renseigne ce que tu connais — le reste peut attendre"
+        case .firstName: "Juste ton prénom"
+        case .income: "Ton salaire et tes autres revenus"
+        case .charges: "Renseigne ce que tu connais — le reste peut attendre"
+        case .savings: "Ce que tu mets de côté chaque mois"
         case .budgetPreview: "Voici ce que ça donne"
         case .registration: "Pour sauvegarder ton budget"
         }
@@ -321,7 +371,7 @@ enum OnboardingStep: String, CaseIterable, Identifiable {
 
     var isOptional: Bool {
         switch self {
-        case .expenses:
+        case .charges, .savings:
             return true
         default:
             return false
@@ -335,8 +385,10 @@ enum OnboardingStep: String, CaseIterable, Identifiable {
     var iconName: String {
         switch self {
         case .welcome: "sparkles"
-        case .personalInfo: "person.circle.fill"
-        case .expenses: "house.fill"
+        case .firstName: "person.circle.fill"
+        case .income: "arrow.down.circle.fill"
+        case .charges: "house.fill"
+        case .savings: "building.columns"
         case .budgetPreview: "chart.pie.fill"
         case .registration: "checkmark.seal.fill"
         }
@@ -345,8 +397,10 @@ enum OnboardingStep: String, CaseIterable, Identifiable {
     var iconColor: Color {
         switch self {
         case .welcome: .pulpePrimary
-        case .personalInfo: .pulpePrimary
-        case .expenses: .stepHousing
+        case .firstName: .pulpePrimary
+        case .income: .financialIncome
+        case .charges: .stepHousing
+        case .savings: .financialSavings
         case .budgetPreview: .pulpePrimary
         case .registration: .pulpePrimary
         }

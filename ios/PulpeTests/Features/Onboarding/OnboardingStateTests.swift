@@ -26,71 +26,75 @@ struct OnboardingStateTests {
     }
 
     @Test
-    func canProceed_personalInfo_falseWhenEmpty() {
+    func canProceed_firstName_falseWhenEmpty() {
         let state = makeSUT()
         defer { OnboardingState.clearPersistedData() }
 
         state.firstName = ""
-        #expect(!state.canProceed(from: .personalInfo))
+        #expect(!state.canProceed(from: .firstName))
     }
 
     @Test
-    func canProceed_personalInfo_falseWhenWhitespaceOnly() {
+    func canProceed_firstName_falseWhenWhitespaceOnly() {
         let state = makeSUT()
         defer { OnboardingState.clearPersistedData() }
 
         state.firstName = "   "
-        #expect(!state.canProceed(from: .personalInfo))
+        #expect(!state.canProceed(from: .firstName))
     }
 
     @Test
-    func canProceed_personalInfo_trueWhenValid() {
+    func canProceed_firstName_trueWhenValid() {
         let state = makeSUT()
         defer { OnboardingState.clearPersistedData() }
 
         state.firstName = "Max"
-        state.monthlyIncome = 3000
-        #expect(state.canProceed(from: .personalInfo))
+        #expect(state.canProceed(from: .firstName))
     }
 
     @Test
-    func canProceed_personalInfo_falseWhenIncomeNil() {
+    func canProceed_income_falseWhenNil() {
         let state = makeSUT()
         defer { OnboardingState.clearPersistedData() }
 
-        state.firstName = "Max"
         state.monthlyIncome = nil
-        #expect(!state.canProceed(from: .personalInfo))
+        #expect(!state.canProceed(from: .income))
     }
 
     @Test
-    func canProceed_personalInfo_falseWhenIncomeZero() {
+    func canProceed_income_falseWhenZero() {
         let state = makeSUT()
         defer { OnboardingState.clearPersistedData() }
 
-        state.firstName = "Max"
         state.monthlyIncome = 0
-        #expect(!state.canProceed(from: .personalInfo))
+        #expect(!state.canProceed(from: .income))
     }
 
     @Test
-    func canProceed_personalInfo_trueWhenIncomePositive() {
+    func canProceed_income_trueWhenPositive() {
         let state = makeSUT()
         defer { OnboardingState.clearPersistedData() }
 
-        state.firstName = "Max"
         state.monthlyIncome = 3000
-        #expect(state.canProceed(from: .personalInfo))
+        #expect(state.canProceed(from: .income))
     }
 
     // MARK: - canProceed: Optional Steps
 
     @Test
-    func canProceed_optionalSteps_alwaysTrue() {
+    func canProceed_charges_alwaysTrue() {
         let state = makeSUT()
         defer { OnboardingState.clearPersistedData() }
 
-        #expect(state.canProceed(from: .expenses))
+        #expect(state.canProceed(from: .charges))
+    }
+
+    @Test
+    func canProceed_savings_alwaysTrue() {
+        let state = makeSUT()
+        defer { OnboardingState.clearPersistedData() }
+
+        #expect(state.canProceed(from: .savings))
     }
 
     // MARK: - Navigation: Forward Blocked When Invalid
@@ -102,7 +106,7 @@ struct OnboardingStateTests {
 
         state.currentStep = .welcome
         state.nextStep()
-        #expect(state.currentStep == .personalInfo)
+        #expect(state.currentStep == .firstName)
     }
 
     @Test
@@ -110,7 +114,7 @@ struct OnboardingStateTests {
         let state = makeSUT()
         defer { OnboardingState.clearPersistedData() }
 
-        state.currentStep = .personalInfo
+        state.currentStep = .firstName
         state.previousStep()
         #expect(state.currentStep == .welcome)
     }
@@ -272,8 +276,9 @@ struct OnboardingStateTests {
         let state = makeSUT()
         defer { OnboardingState.clearPersistedData() }
         state.currentStep = .registration
-        // 5 steps, welcome excluded → registration is index 3 of 4 = 75%
-        #expect(state.progressPercentage == 75)
+        // 7 steps, welcome excluded → registration is index 5 of 6 ≈ 83.33%
+        #expect(state.progressPercentage > 80)
+        #expect(state.progressPercentage < 85)
     }
 
     @Test
@@ -295,12 +300,12 @@ struct OnboardingStateTests {
         let state = makeSUT()
         defer { OnboardingState.clearPersistedData() }
         state.firstName = "Marie"
-        state.currentStep = .expenses
+        state.currentStep = .charges
         state.saveToStorage()
 
         let restored = OnboardingState()
         #expect(restored.firstName == "Marie")
-        #expect(restored.currentStep == .expenses)
+        #expect(restored.currentStep == .charges)
     }
 
     @Test
@@ -308,7 +313,7 @@ struct OnboardingStateTests {
         let state = makeSUT()
         defer { OnboardingState.clearPersistedData() }
         state.firstName = "Marie"
-        state.currentStep = .expenses
+        state.currentStep = .charges
         state.saveToStorage()
         state.clearStorage()
 
@@ -541,5 +546,74 @@ struct OnboardingStateTests {
     @Test
     func suggestions_hasExpectedCount() {
         #expect(OnboardingState.suggestions.count == 5)
+        #expect(OnboardingState.chargeSuggestions.count == 3)
+        #expect(OnboardingState.savingSuggestions.count == 2)
+    }
+
+    // MARK: - Running Totals
+
+    @Test
+    func totalCharges_includesHardcodedAndCustomExpenses() {
+        let state = makeSUT()
+        defer { OnboardingState.clearPersistedData() }
+
+        state.housingCosts = 1500
+        state.healthInsurance = 400
+        let tx = OnboardingTransaction(
+            amount: 50, type: .expense, name: "Spotify",
+            description: nil
+        )
+        state.addCustomTransaction(tx)
+
+        #expect(state.totalCharges == 1950)
+    }
+
+    @Test
+    func totalCharges_excludesSavings() {
+        let state = makeSUT()
+        defer { OnboardingState.clearPersistedData() }
+
+        state.housingCosts = 1500
+        let saving = OnboardingTransaction(
+            amount: 500, type: .saving, name: "Épargne",
+            description: nil
+        )
+        state.addCustomTransaction(saving)
+
+        #expect(state.totalCharges == 1500)
+    }
+
+    @Test
+    func totalSavings_onlyIncludesSavingType() {
+        let state = makeSUT()
+        defer { OnboardingState.clearPersistedData() }
+
+        let saving = OnboardingTransaction(
+            amount: 500, type: .saving, name: "Épargne",
+            description: nil
+        )
+        let expense = OnboardingTransaction(
+            amount: 100, type: .expense, name: "Spotify",
+            description: nil
+        )
+        state.addCustomTransaction(saving)
+        state.addCustomTransaction(expense)
+
+        #expect(state.totalSavings == 500)
+    }
+
+    @Test
+    func totalIncome_includesMainAndCustomIncomes() {
+        let state = makeSUT()
+        defer { OnboardingState.clearPersistedData() }
+
+        state.monthlyIncome = 5000
+        let extraIncome = OnboardingTransaction(
+            amount: 500, type: .income, name: "Freelance",
+            description: nil
+        )
+        state.addCustomTransaction(extraIncome)
+
+        #expect(state.totalIncome == 5500)
     }
 }
