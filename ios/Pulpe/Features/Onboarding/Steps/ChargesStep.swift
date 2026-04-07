@@ -3,7 +3,6 @@ import SwiftUI
 struct ChargesStep: View {
     @Bindable var state: OnboardingState
     @State private var showAddCharge = false
-    @State private var showMoreCharges = false
     @State private var editingTransaction: OnboardingTransaction?
     @State private var suggestionToggleTrigger = false
 
@@ -23,41 +22,20 @@ struct ChargesStep: View {
                         CurrencyField(value: $state.housingCosts, hint: "1500", label: "Loyer mensuel")
                     }
 
-                    chargeSection("Assurance", icon: "heart.text.square.fill") {
+                    chargeSection("Assurance & Abonnements", icon: "heart.text.square.fill") {
                         CurrencyField(value: $state.healthInsurance, hint: "400", label: "Assurance maladie")
+                        CurrencyField(value: $state.phonePlan, hint: "50", label: "Forfait téléphone")
                     }
 
-                    if showMoreCharges {
-                        chargeSection("Mobilité & Crédit", icon: "car.fill") {
-                            CurrencyField(value: $state.phonePlan, hint: "50", label: "Forfait téléphone")
-                            CurrencyField(
-                                value: $state.transportCosts, hint: "100",
-                                label: "Transport (abonnement, essence...)"
-                            )
-                            CurrencyField(
-                                value: $state.leasingCredit, hint: "300",
-                                label: "Leasing ou mensualité de crédit"
-                            )
-                        }
-                        .transition(.opacity.combined(with: .move(edge: .top)))
-                    }
-
-                    if !showMoreCharges {
-                        Button {
-                            withAnimation(DesignTokens.Animation.defaultSpring) {
-                                showMoreCharges = true
-                            }
-                        } label: {
-                            HStack(spacing: DesignTokens.Spacing.sm) {
-                                Image(systemName: "chevron.down.circle.fill")
-                                Text("Voir plus de charges")
-                            }
-                            .font(PulpeTypography.labelLarge)
-                            .foregroundStyle(Color.pulpePrimary)
-                        }
-                        .frame(maxWidth: .infinity, minHeight: DesignTokens.TapTarget.minimum)
-                        .contentShape(Rectangle())
-                        .plainPressedButtonStyle()
+                    chargeSection("Mobilité & Crédit", icon: "car.fill") {
+                        CurrencyField(
+                            value: $state.transportCosts, hint: "100",
+                            label: "Transport (abonnement, essence...)"
+                        )
+                        CurrencyField(
+                            value: $state.leasingCredit, hint: "300",
+                            label: "Leasing ou mensualité de crédit"
+                        )
                     }
 
                     suggestionsSection
