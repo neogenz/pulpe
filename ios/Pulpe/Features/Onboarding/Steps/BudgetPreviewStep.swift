@@ -45,7 +45,7 @@ struct BudgetPreviewStep: View {
             .scaleEffect(showCheckmark ? 1 : 0.3)
             .opacity(showCheckmark ? 1 : 0)
 
-            Text(state.availableToSpend.asCHF)
+            Text(state.availableToSpend.asCompactCHF)
                 .font(PulpeTypography.amountHero)
                 .monospacedDigit()
                 .foregroundStyle(Color.pulpePrimary)
@@ -60,7 +60,7 @@ struct BudgetPreviewStep: View {
         .accessibilityLabel(
             amountsHidden
                 ? "Disponible à dépenser: montant masqué"
-                : "Disponible à dépenser: \(state.availableToSpend.asCHF)"
+                : "Disponible à dépenser: \(state.availableToSpend.asCompactCHF)"
         )
         .opacity(showHero ? 1 : 0)
         .offset(y: showHero ? 0 : 10)
@@ -89,8 +89,8 @@ struct BudgetPreviewStep: View {
             breakdownRow(
                 icon: "arrow.down.circle.fill",
                 label: "Revenus",
-                value: "+\(totalIncome.asCHF)",
-                color: .pulpePrimary
+                value: "+\(totalIncome.asCompactCHF)",
+                color: .financialIncome
             )
 
             ForEach(customIncomes) { tx in
@@ -105,8 +105,8 @@ struct BudgetPreviewStep: View {
                 breakdownRow(
                     icon: "arrow.up.circle.fill",
                     label: "Charges fixes",
-                    value: "-\(chargesTotal.asCHF)",
-                    color: .secondary
+                    value: "-\(chargesTotal.asCompactCHF)",
+                    color: .financialExpense
                 )
 
                 // Hardcoded charges detail
@@ -135,7 +135,7 @@ struct BudgetPreviewStep: View {
                 breakdownRow(
                     icon: "arrow.up.circle.fill",
                     label: "Épargne prévue",
-                    value: "-\(savingsTotal.asCHF)",
+                    value: "-\(savingsTotal.asCompactCHF)",
                     color: .financialSavings
                 )
 
@@ -154,7 +154,7 @@ struct BudgetPreviewStep: View {
                 Text("Disponible")
                     .font(PulpeTypography.labelLarge)
                 Spacer()
-                Text(state.availableToSpend.asCHF)
+                Text(state.availableToSpend.asCompactCHF)
                     .font(PulpeTypography.buttonPrimary)
                     .monospacedDigit()
                     .foregroundStyle(Color.pulpePrimary)
@@ -222,7 +222,7 @@ struct BudgetPreviewStep: View {
                 .font(PulpeTypography.caption)
                 .foregroundStyle(Color.textTertiary)
             Spacer()
-            Text("-\(amount.asCHF)")
+            Text("-\(amount.asCompactCHF)")
                 .font(PulpeTypography.caption)
                 .monospacedDigit()
                 .foregroundStyle(Color.textTertiary)
@@ -238,7 +238,7 @@ struct BudgetPreviewStep: View {
                 .font(PulpeTypography.caption)
                 .foregroundStyle(Color.textTertiary)
             Spacer()
-            Text("\(prefix)\(tx.amount.asCHF)")
+            Text("\(prefix)\(tx.amount.asCompactCHF)")
                 .font(PulpeTypography.caption)
                 .monospacedDigit()
                 .foregroundStyle(color)
