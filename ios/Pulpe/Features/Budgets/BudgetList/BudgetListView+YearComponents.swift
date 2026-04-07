@@ -163,7 +163,7 @@ struct YearPicker: View {
                 proxy.scrollTo(selectedYear, anchor: .center)
             }
             .onChange(of: selectedYear) { _, newYear in
-                withAnimation {
+                withAnimation(DesignTokens.Animation.smoothEaseInOut) {
                     proxy.scrollTo(newYear, anchor: .center)
                 }
             }
