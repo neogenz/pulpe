@@ -132,8 +132,7 @@ struct BudgetAmountBlock: View {
     var isPast: Bool = false
 
     private var amountLabel: String {
-        guard let remaining else { return "Potentiel" }
-        return remaining >= 0 ? "Potentiel" : "Ajustement"
+        (remaining ?? 0) >= 0 ? "Potentiel" : "Ajustement"
     }
 
     var body: some View {
