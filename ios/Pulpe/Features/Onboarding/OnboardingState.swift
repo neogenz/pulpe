@@ -139,6 +139,11 @@ final class OnboardingState {
         saveToStorage()
     }
 
+    var wouldExitOnBack: Bool {
+        guard let currentIndex = OnboardingStep.allCases.firstIndex(of: currentStep) else { return false }
+        return currentIndex == 1
+    }
+
     func previousStep() {
         guard let currentIndex = OnboardingStep.allCases.firstIndex(of: currentStep),
               currentIndex > 0 else {

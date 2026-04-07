@@ -139,6 +139,7 @@ struct OnboardingStepView<Content: View>: View {
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var showContent = false
+    @State private var showExitConfirmation = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -176,11 +177,23 @@ struct OnboardingStepView<Content: View>: View {
                 canProceed: canProceed,
                 isLoading: state.isLoading,
                 onNext: onNext,
-                onBack: { state.previousStep() }
+                onBack: {
+                    if state.wouldExitOnBack {
+                        showExitConfirmation = true
+                    } else {
+                        state.previousStep()
+                    }
+                }
             )
         }
         .background(Color.clear)
         .dismissKeyboardOnTap()
+        .alert("Quitter l'inscription ?", isPresented: $showExitConfirmation) {
+            Button("Continuer", role: .cancel) { }
+            Button("Quitter", role: .destructive) { state.previousStep() }
+        } message: {
+            Text("Ta progression ne sera pas sauvegardée.")
+        }
         .task {
             guard !showContent else { return }
             if reduceMotion {
