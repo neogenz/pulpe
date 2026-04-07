@@ -85,11 +85,7 @@ struct SocialLoginSection: View {
                 let result = try await appState.authenticateWithApple(idToken: idToken, nonce: nonce)
                 switch result {
                 case .newUser(var user):
-                    if user.firstName == nil || user.firstName?.isEmpty == true,
-                       let name = givenName, !name.isEmpty {
-                        user.firstName = name
-                        Task { try? await AuthService.shared.updateUserFirstName(name) }
-                    }
+                    patchFirstName(on: &user, from: givenName)
                     AnalyticsService.shared.capture(.loginCompleted, properties: ["method": "apple_onboarding"])
                     await onAuthenticated(user)
                 case .existingUserRedirected:
@@ -134,11 +130,7 @@ struct SocialLoginSection: View {
                 let result = try await appState.authenticateWithGoogle(idToken: idToken, accessToken: accessToken)
                 switch result {
                 case .newUser(var user):
-                    if user.firstName == nil || user.firstName?.isEmpty == true,
-                       let name = givenName, !name.isEmpty {
-                        user.firstName = name
-                        Task { try? await AuthService.shared.updateUserFirstName(name) }
-                    }
+                    patchFirstName(on: &user, from: givenName)
                     AnalyticsService.shared.capture(.loginCompleted, properties: ["method": "google_onboarding"])
                     await onAuthenticated(user)
                 case .existingUserRedirected:
@@ -158,6 +150,26 @@ struct SocialLoginSection: View {
             Logger.auth.error("Google sign-in failed: \(error.localizedDescription, privacy: .public)")
             AnalyticsService.shared.captureAuthError(.loginFailed, error: error, method: "google")
             errorMessage = socialErrorMessage(for: error)
+        }
+    }
+
+    /// Patches firstName on a new social user if the provider gave us a name
+    /// that Supabase didn't capture in metadata. Persists to user_metadata.
+    private func patchFirstName(
+        on user: inout UserInfo,
+        from givenName: String?
+    ) {
+        guard user.firstName == nil || user.firstName?.isEmpty == true,
+              let name = givenName, !name.isEmpty else { return }
+        user.firstName = name
+        Task {
+            do {
+                try await AuthService.shared.updateUserFirstName(name)
+            } catch {
+                Logger.auth.warning(
+                    "Failed to persist firstName: \(error.localizedDescription, privacy: .public)"
+                )
+            }
         }
     }
 

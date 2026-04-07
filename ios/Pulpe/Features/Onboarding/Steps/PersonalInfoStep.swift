@@ -2,7 +2,8 @@ import SwiftUI
 
 struct PersonalInfoStep: View {
     @Bindable var state: OnboardingState
-    @FocusState private var isFocused: Bool
+    @FocusState private var isNameFocused: Bool
+    @FocusState private var isIncomeFocused: Bool
 
     private var shouldShowNameField: Bool {
         !(state.isSocialSignup && state.isFirstNameValid)
@@ -28,12 +29,12 @@ struct PersonalInfoStep: View {
                                 prompt: "Ton prénom",
                                 text: $state.firstName,
                                 systemImage: "person",
-                                isFocused: isFocused,
+                                isFocused: isNameFocused,
                                 isFilled: state.isFirstNameValid
                             )
                             .textContentType(.givenName)
                             .textInputAutocapitalization(.words)
-                            .focused($isFocused)
+                            .focused($isNameFocused)
                             .accessibilityLabel("Prénom")
                             .accessibilityHint("Saisis ton prénom")
                         }
@@ -42,12 +43,15 @@ struct PersonalInfoStep: View {
                     CurrencyField(
                         value: $state.monthlyIncome,
                         hint: "5000",
-                        label: "Revenu mensuel net"
+                        label: "Revenu mensuel net",
+                        externalFocus: $isIncomeFocused
                     )
                 }
                 .task {
                     if shouldShowNameField {
-                        isFocused = true
+                        isNameFocused = true
+                    } else {
+                        isIncomeFocused = true
                     }
                 }
             }
