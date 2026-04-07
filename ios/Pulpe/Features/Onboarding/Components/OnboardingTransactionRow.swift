@@ -22,8 +22,8 @@ struct OnboardingTransactionRow: View {
             Spacer()
 
             Button(action: onEdit) {
-                Image(systemName: "pencil")
-                    .font(PulpeTypography.body)
+                Image(systemName: "square.and.pencil")
+                    .font(PulpeTypography.bodyLarge)
                     .foregroundStyle(Color.onSurfaceVariant)
             }
             .iconButtonStyle()
