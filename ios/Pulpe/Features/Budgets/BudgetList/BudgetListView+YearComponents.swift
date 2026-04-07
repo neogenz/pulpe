@@ -159,7 +159,7 @@ struct YearPicker: View {
                 .padding(.horizontal, DesignTokens.Spacing.xl)
             }
             .sensoryFeedback(.selection, trigger: selectedYear)
-            .onAppear {
+            .task {
                 proxy.scrollTo(selectedYear, anchor: .center)
             }
             .onChange(of: selectedYear) { _, newYear in
