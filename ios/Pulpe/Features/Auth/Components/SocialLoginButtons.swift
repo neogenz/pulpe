@@ -6,8 +6,8 @@ import SwiftUI
 // MARK: - Social Login Section
 
 struct SocialLoginDependencies: Sendable {
-    var appleSignIn: @Sendable () async throws -> (idToken: String, nonce: String)
-    var googleSignIn: @Sendable () async throws -> (idToken: String, accessToken: String)
+    var appleSignIn: @Sendable () async throws -> AppleSignInResult
+    var googleSignIn: @Sendable () async throws -> GoogleSignInResult
 }
 
 struct SocialLoginSection: View {
@@ -74,6 +74,7 @@ struct SocialLoginSection: View {
                 let result = try await dependencies.appleSignIn()
                 idToken = result.idToken
                 nonce = result.nonce
+                givenName = result.givenName
             } else {
                 let result = try await appleCoordinator.signIn()
                 idToken = result.idToken
@@ -119,6 +120,7 @@ struct SocialLoginSection: View {
                 let result = try await dependencies.googleSignIn()
                 idToken = result.idToken
                 accessToken = result.accessToken
+                givenName = result.givenName
             } else {
                 let result = try await googleCoordinator.signIn()
                 idToken = result.idToken
