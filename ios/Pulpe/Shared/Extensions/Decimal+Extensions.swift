@@ -13,11 +13,17 @@ extension Decimal {
 
     /// Format as signed amount based on transaction kind — "+5'000.00" for income, "-1'500.00" for expense/saving
     func asSignedAmount(for kind: TransactionKind) -> String {
-        let formatted = absoluteValue.asAmount
-        switch kind {
-        case .income: return "+\(formatted)"
-        case .expense, .saving: return "-\(formatted)"
-        }
+        signedFormatted(absoluteValue.asAmount, for: kind)
+    }
+
+    /// Format as signed CHF based on transaction kind — "+1'234.56 CHF" for income, "-1'234.56 CHF" for expense/saving
+    func asSignedCHF(for kind: TransactionKind) -> String {
+        signedFormatted(absoluteValue.asCHF, for: kind)
+    }
+
+    /// Format as signed compact CHF based on transaction kind — "+1'235 CHF" for income, "-1'235 CHF" for expense/saving
+    func asSignedCompactCHF(for kind: TransactionKind) -> String {
+        signedFormatted(absoluteValue.asCompactCHF, for: kind)
     }
 
     /// Format as compact CHF (always rounded to whole number) — "1'235 CHF" (suffix position)
@@ -27,10 +33,14 @@ extension Decimal {
         return "\(amountStr) CHF"
     }
 
+    /// Format as signed CHF — "+1'234.56 CHF" for positive, "-1'234.56 CHF" for negative, "0.00 CHF" for zero
+    var asSignedCHF: String {
+        "\(signPrefix)\(asCHF)"
+    }
+
     /// Format as signed compact CHF — "+1'235 CHF" for positive, "-1'235 CHF" for negative, "0 CHF" for zero
     var asSignedCompactCHF: String {
-        let sign = self > 0 ? "+" : ""
-        return "\(sign)\(asCompactCHF)"
+        "\(signPrefix)\(asCompactCHF)"
     }
 
     /// Check if the decimal is a whole number
@@ -58,6 +68,17 @@ extension Decimal {
 }
 
 private extension Decimal {
+    var signPrefix: String {
+        self > 0 ? "+" : ""
+    }
+
+    func signedFormatted(_ base: String, for kind: TransactionKind) -> String {
+        switch kind {
+        case .income: "+\(base)"
+        case .expense, .saving: "-\(base)"
+        }
+    }
+
     static let amountFormatter: NumberFormatter = {
         let formatter = NumberFormatter()
         formatter.numberStyle = .decimal

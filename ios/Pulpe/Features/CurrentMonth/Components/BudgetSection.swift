@@ -241,19 +241,12 @@ struct BudgetLineRow: View {
     }
 
     private var remainingAmountText: String {
-        // Income: show with + sign
-        guard line.kind != .income else {
-            return "+\(line.amount.asAmount)"
-        }
-        // Expenses & savings: show remaining with - sign when negative
+        // Income & savings: show planned amount with sign (+/-)
         guard line.kind == .expense else {
-            return line.amount.asAmount
+            return line.amount.asSignedAmount(for: line.kind)
         }
-        if consumption.available >= 0 {
-            return consumption.available.asAmount
-        } else {
-            return "-\(consumption.available.absoluteValue.asAmount)"
-        }
+        // Expenses: always show with - sign (money going out)
+        return consumption.available.asSignedAmount(for: line.kind)
     }
 
     private var linkedTransactions: [Transaction] {
