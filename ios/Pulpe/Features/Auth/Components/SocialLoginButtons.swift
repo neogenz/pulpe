@@ -161,7 +161,7 @@ struct SocialLoginSection: View {
         on user: inout UserInfo,
         from givenName: String?
     ) {
-        guard user.firstName == nil || user.firstName?.isEmpty == true,
+        guard user.firstName?.isEmpty != false,
               let name = givenName, !name.isEmpty else { return }
         user.firstName = name
         Task {

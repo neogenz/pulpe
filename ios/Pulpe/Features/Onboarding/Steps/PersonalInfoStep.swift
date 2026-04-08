@@ -15,8 +15,8 @@ struct PersonalInfoStep: View {
             state: state,
             canProceed: state.canProceed(from: .personalInfo),
             onNext: { state.nextStep() },
-            titleOverride: shouldShowNameField ? nil : "Ton revenu",
-            subtitleOverride: shouldShowNameField ? nil : "Indique ton revenu mensuel",
+            titleOverride: shouldShowNameField ? nil : OnboardingStep.personalInfo.socialTitle,
+            subtitleOverride: shouldShowNameField ? nil : OnboardingStep.personalInfo.socialSubtitle,
             content: {
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxl) {
                     if shouldShowNameField {

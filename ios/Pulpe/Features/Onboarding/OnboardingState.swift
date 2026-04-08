@@ -248,6 +248,22 @@ enum OnboardingStep: String, CaseIterable, Identifiable {
         }
     }
 
+    /// Alternative title when context changes (e.g. social signup skips name field)
+    var socialTitle: String? {
+        switch self {
+        case .personalInfo: "Ton revenu"
+        default: nil
+        }
+    }
+
+    /// Alternative subtitle for social signup context
+    var socialSubtitle: String? {
+        switch self {
+        case .personalInfo: "Indique ton revenu mensuel"
+        default: nil
+        }
+    }
+
     var isOptional: Bool {
         switch self {
         case .expenses:
