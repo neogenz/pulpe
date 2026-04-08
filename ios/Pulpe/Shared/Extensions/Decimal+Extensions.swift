@@ -44,7 +44,7 @@ extension Decimal {
 
     /// Format as signed compact amount only — "+1'235" for positive, "-1'235" for negative, "0" for zero
     var asSignedCompactAmount: String {
-        "\(signPrefix)\(absoluteValue.asCompactAmount)"
+        "\(signPrefix)\(asCompactAmount)"
     }
 
     /// Format as signed compact CHF — "+1'235 CHF" for positive, "-1'235 CHF" for negative, "0 CHF" for zero

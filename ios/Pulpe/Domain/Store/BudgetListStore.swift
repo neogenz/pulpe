@@ -23,6 +23,8 @@ final class BudgetListStore: StoreProtocol {
     private var loadTask: Task<Void, Never>?
     /// Generation counter to safely nil loadTask after completion
     private var loadGeneration = 0
+    /// Coalescing task to prevent concurrent widget syncs
+    private var widgetSyncTask: Task<Void, Never>?
 
     // MARK: - Services
 
@@ -81,8 +83,9 @@ final class BudgetListStore: StoreProtocol {
                 lastLoadTime = Date()
                 hasLoadedOnce = true
 
-                // Sync widget data in background (non-blocking)
-                Task.detached(name: "BudgetList.widgetSync", priority: .utility) { [widgetSyncService] in
+                // Sync widget data in background (non-blocking, deduplicated)
+                widgetSyncTask?.cancel()
+                widgetSyncTask = Task(name: "BudgetList.widgetSync", priority: .utility) { [widgetSyncService] in
                     await widgetSyncService.syncAll()
                 }
             } catch is CancellationError {
@@ -100,20 +103,6 @@ final class BudgetListStore: StoreProtocol {
     }
 
     // MARK: - Computed Properties
-
-    struct YearGroup {
-        let year: Int
-        let budgets: [BudgetSparse]
-    }
-
-    var groupedByYear: [YearGroup] {
-        Dictionary(grouping: budgets) { $0.year }
-            .compactMap { year, budgets -> YearGroup? in
-                guard let year else { return nil }
-                return YearGroup(year: year, budgets: budgets.sorted { ($0.month ?? 0) < ($1.month ?? 0) })
-            }
-            .sorted { $0.year < $1.year }
-    }
 
     var availableYears: [Int] {
         Array(Set(budgets.compactMap(\.year))).sorted()
@@ -148,6 +137,8 @@ final class BudgetListStore: StoreProtocol {
     func reset() {
         loadTask?.cancel()
         loadTask = nil
+        widgetSyncTask?.cancel()
+        widgetSyncTask = nil
         loadGeneration = 0
         budgets = []
         hasLoadedOnce = false
