@@ -25,6 +25,12 @@ final class OnboardingState {
     var readyForSocialCompletion: Bool = false
     var isSocialSignup: Bool { socialUser != nil }
 
+    /// Whether the name field should be displayed during onboarding.
+    /// Hidden only when a social provider already supplied a valid name.
+    var shouldShowNameField: Bool {
+        !isSocialSignup || !isFirstNameValid
+    }
+
     /// Configures state for a social signup user.
     /// Pre-fills firstName from provider metadata and clears persisted step
     /// so cold-start after app kill resets to welcome.
@@ -104,7 +110,7 @@ final class OnboardingState {
         case .welcome:
             return true
         case .personalInfo:
-            return isSocialSignup ? isIncomeValid : (isFirstNameValid && isIncomeValid)
+            return isFirstNameValid && isIncomeValid
         case .expenses:
             return true
         case .budgetPreview:
@@ -140,8 +146,7 @@ final class OnboardingState {
     }
 
     var wouldExitOnBack: Bool {
-        guard let currentIndex = OnboardingStep.allCases.firstIndex(of: currentStep) else { return false }
-        return currentIndex == 1
+        currentStep == .personalInfo
     }
 
     func previousStep() {

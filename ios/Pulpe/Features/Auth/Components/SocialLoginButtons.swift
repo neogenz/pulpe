@@ -161,10 +161,12 @@ struct SocialLoginSection: View {
         on user: inout UserInfo,
         from givenName: String?
     ) {
-        guard user.firstName?.isEmpty != false,
+        guard (user.firstName ?? "").isEmpty,
               let name = givenName, !name.isEmpty else { return }
         user.firstName = name
-        Task {
+        // Best-effort persistence — if this fails, the name field will re-appear on next login.
+        // Apple only sends fullName on the first sign-in, so loss is acceptable here.
+        Task(name: "SocialLogin.persistFirstName") {
             do {
                 try await AuthService.shared.updateUserFirstName(name)
             } catch {

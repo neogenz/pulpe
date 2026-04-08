@@ -5,21 +5,17 @@ struct PersonalInfoStep: View {
     @FocusState private var isNameFocused: Bool
     @FocusState private var isIncomeFocused: Bool
 
-    private var shouldShowNameField: Bool {
-        !state.isSocialSignup
-    }
-
     var body: some View {
         OnboardingStepView(
             step: .personalInfo,
             state: state,
             canProceed: state.canProceed(from: .personalInfo),
             onNext: { state.nextStep() },
-            titleOverride: shouldShowNameField ? nil : OnboardingStep.personalInfo.socialTitle,
-            subtitleOverride: shouldShowNameField ? nil : OnboardingStep.personalInfo.socialSubtitle,
+            titleOverride: state.shouldShowNameField ? nil : OnboardingStep.personalInfo.socialTitle,
+            subtitleOverride: state.shouldShowNameField ? nil : OnboardingStep.personalInfo.socialSubtitle,
             content: {
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxl) {
-                    if shouldShowNameField {
+                    if state.shouldShowNameField {
                         VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
                             Text("Prénom")
                                 .font(PulpeTypography.inputLabel)
@@ -48,7 +44,7 @@ struct PersonalInfoStep: View {
                     )
                 }
                 .task {
-                    if shouldShowNameField {
+                    if state.shouldShowNameField {
                         isNameFocused = true
                     } else {
                         isIncomeFocused = true

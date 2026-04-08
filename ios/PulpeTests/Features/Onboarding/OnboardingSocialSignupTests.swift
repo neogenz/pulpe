@@ -70,6 +70,31 @@ struct OnboardingSocialSignupTests {
     }
 
     @Test
+    func socialUser_withNilFirstName_cannotProceedWithoutName() {
+        let state = makeSUT()
+        defer { OnboardingState.clearPersistedData() }
+        state.configureSocialUser(UserInfo(id: "apple-2b", email: "apple@relay.appleid.com", firstName: nil))
+        state.monthlyIncome = 3000
+        #expect(!state.canProceed(from: .personalInfo))
+    }
+
+    @Test
+    func socialUser_withFirstName_shouldHideNameField() {
+        let state = makeSUT()
+        defer { OnboardingState.clearPersistedData() }
+        state.configureSocialUser(UserInfo(id: "apple-3b", email: "apple@relay.appleid.com", firstName: "Marie"))
+        #expect(!state.shouldShowNameField)
+    }
+
+    @Test
+    func socialUser_withNilFirstName_shouldShowNameField() {
+        let state = makeSUT()
+        defer { OnboardingState.clearPersistedData() }
+        state.configureSocialUser(UserInfo(id: "apple-4b", email: "apple@relay.appleid.com", firstName: nil))
+        #expect(state.shouldShowNameField)
+    }
+
+    @Test
     func socialUser_withEmptyFirstName_nameFieldShouldRemainVisible() {
         let state = makeSUT()
         defer { OnboardingState.clearPersistedData() }
