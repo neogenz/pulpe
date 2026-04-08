@@ -2,11 +2,17 @@ import Foundation
 import GoogleSignIn
 import UIKit
 
+struct GoogleSignInResult: Sendable {
+    let idToken: String
+    let accessToken: String
+    let givenName: String?
+}
+
 @MainActor
 final class GoogleSignInCoordinator {
     private var isInProgress = false
 
-    func signIn() async throws -> (idToken: String, accessToken: String) {
+    func signIn() async throws -> GoogleSignInResult {
         guard !isInProgress else {
             throw GoogleSignInError.inProgress
         }
@@ -40,7 +46,10 @@ final class GoogleSignInCoordinator {
         }
 
         let accessToken = result.user.accessToken.tokenString
-        return (idToken: idToken, accessToken: accessToken)
+        let givenName = result.user.profile?.givenName
+        return GoogleSignInResult(
+            idToken: idToken, accessToken: accessToken, givenName: givenName
+        )
     }
 }
 

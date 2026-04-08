@@ -6,8 +6,8 @@ import SwiftUI
 // MARK: - Social Login Section
 
 struct SocialLoginDependencies: Sendable {
-    var appleSignIn: @Sendable () async throws -> (idToken: String, nonce: String)
-    var googleSignIn: @Sendable () async throws -> (idToken: String, accessToken: String)
+    var appleSignIn: @Sendable () async throws -> AppleSignInResult
+    var googleSignIn: @Sendable () async throws -> GoogleSignInResult
 }
 
 struct SocialLoginSection: View {
@@ -66,18 +66,27 @@ struct SocialLoginSection: View {
     private func signInWithApple() async {
         errorMessage = nil
         do {
-            let result: (idToken: String, nonce: String)
+            let idToken: String
+            let nonce: String
+            var givenName: String?
+
             if let dependencies {
-                result = try await dependencies.appleSignIn()
+                let result = try await dependencies.appleSignIn()
+                idToken = result.idToken
+                nonce = result.nonce
+                givenName = result.givenName
             } else {
-                result = try await appleCoordinator.signIn()
+                let result = try await appleCoordinator.signIn()
+                idToken = result.idToken
+                nonce = result.nonce
+                givenName = result.givenName
             }
-            let (idToken, nonce) = result
 
             if let onAuthenticated {
                 let result = try await appState.authenticateWithApple(idToken: idToken, nonce: nonce)
                 switch result {
-                case .newUser(let user):
+                case .newUser(var user):
+                    patchFirstName(on: &user, from: givenName)
                     AnalyticsService.shared.capture(.loginCompleted, properties: ["method": "apple_onboarding"])
                     await onAuthenticated(user)
                 case .existingUserRedirected:
@@ -103,18 +112,27 @@ struct SocialLoginSection: View {
     private func signInWithGoogle() async {
         errorMessage = nil
         do {
-            let result: (idToken: String, accessToken: String)
+            let idToken: String
+            let accessToken: String
+            var givenName: String?
+
             if let dependencies {
-                result = try await dependencies.googleSignIn()
+                let result = try await dependencies.googleSignIn()
+                idToken = result.idToken
+                accessToken = result.accessToken
+                givenName = result.givenName
             } else {
-                result = try await googleCoordinator.signIn()
+                let result = try await googleCoordinator.signIn()
+                idToken = result.idToken
+                accessToken = result.accessToken
+                givenName = result.givenName
             }
-            let (idToken, accessToken) = result
 
             if let onAuthenticated {
                 let result = try await appState.authenticateWithGoogle(idToken: idToken, accessToken: accessToken)
                 switch result {
-                case .newUser(let user):
+                case .newUser(var user):
+                    patchFirstName(on: &user, from: givenName)
                     AnalyticsService.shared.capture(.loginCompleted, properties: ["method": "google_onboarding"])
                     await onAuthenticated(user)
                 case .existingUserRedirected:
@@ -134,6 +152,28 @@ struct SocialLoginSection: View {
             Logger.auth.error("Google sign-in failed: \(error.localizedDescription, privacy: .public)")
             AnalyticsService.shared.captureAuthError(.loginFailed, error: error, method: "google")
             errorMessage = socialErrorMessage(for: error)
+        }
+    }
+
+    /// Patches firstName on a new social user if the provider gave us a name
+    /// that Supabase didn't capture in metadata. Persists to user_metadata.
+    private func patchFirstName(
+        on user: inout UserInfo,
+        from givenName: String?
+    ) {
+        guard (user.firstName ?? "").isEmpty,
+              let name = givenName, !name.isEmpty else { return }
+        user.firstName = name
+        // Best-effort persistence — if this fails, the name field will re-appear on next login.
+        // Apple only sends fullName on the first sign-in, so loss is acceptable here.
+        Task(name: "SocialLogin.persistFirstName") {
+            do {
+                try await AuthService.shared.updateUserFirstName(name)
+            } catch {
+                Logger.auth.warning(
+                    "Failed to persist firstName: \(error.localizedDescription, privacy: .public)"
+                )
+            }
         }
     }
 

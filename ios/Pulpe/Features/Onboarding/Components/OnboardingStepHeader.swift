@@ -3,14 +3,16 @@ import SwiftUI
 /// Unified header for onboarding steps — bold editorial typography, no icon
 struct OnboardingStepHeader: View {
     let step: OnboardingStep
+    var titleOverride: String?
+    var subtitleOverride: String?
 
     var body: some View {
         VStack(spacing: DesignTokens.Spacing.lg) {
-            Text(step.title)
+            Text(titleOverride ?? step.title)
                 .font(PulpeTypography.onboardingTitle)
                 .foregroundStyle(Color.textPrimaryOnboarding)
 
-            Text(step.subtitle)
+            Text(subtitleOverride ?? step.subtitle)
                 .font(PulpeTypography.onboardingSubtitle)
                 .foregroundStyle(Color.textSecondaryOnboarding)
                 .multilineTextAlignment(.center)
