@@ -18,16 +18,16 @@ struct ChargesStep: View {
             onNext: { state.nextStep() },
             content: {
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.sectionGap) {
-                    chargeSection("Logement", icon: "house.fill") {
+                    OnboardingSectionHeader(title: "Logement", icon: "house.fill") {
                         CurrencyField(value: $state.housingCosts, hint: "1500", label: "Loyer mensuel")
                     }
 
-                    chargeSection("Assurance & Abonnements", icon: "heart.text.square.fill") {
+                    OnboardingSectionHeader(title: "Assurance & Abonnements", icon: "heart.text.square.fill") {
                         CurrencyField(value: $state.healthInsurance, hint: "400", label: "Assurance maladie")
                         CurrencyField(value: $state.phonePlan, hint: "50", label: "Forfait téléphone")
                     }
 
-                    chargeSection("Mobilité & Crédit", icon: "car.fill") {
+                    OnboardingSectionHeader(title: "Mobilité & Crédit", icon: "car.fill") {
                         CurrencyField(
                             value: $state.transportCosts, hint: "100",
                             label: "Transport (abonnement, essence...)"
@@ -71,31 +71,10 @@ struct ChargesStep: View {
         .trackScreen("Onboarding_Charges")
     }
 
-    // MARK: - Section Helper
-
-    private func chargeSection<Content: View>(
-        _ title: String,
-        icon: String,
-        @ViewBuilder content: () -> Content
-    ) -> some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-            HStack(spacing: DesignTokens.Spacing.sm) {
-                Image(systemName: icon)
-                    .font(PulpeTypography.labelLarge)
-                    .foregroundStyle(Color.onboardingSectionIcon)
-                Text(title)
-                    .font(PulpeTypography.labelLarge)
-                    .foregroundStyle(Color.textSecondaryOnboarding)
-            }
-
-            content()
-        }
-    }
-
     // MARK: - Suggestions
 
     private var suggestionsSection: some View {
-        chargeSection("Suggestions", icon: "lightbulb.fill") {
+        OnboardingSectionHeader(title: "Suggestions", icon: "lightbulb.fill") {
             LazyVGrid(
                 columns: [GridItem(.adaptive(minimum: 155), spacing: DesignTokens.Spacing.sm)],
                 spacing: DesignTokens.Spacing.sm
@@ -145,7 +124,7 @@ struct ChargesStep: View {
     // MARK: - Custom Charges
 
     private var customChargesSection: some View {
-        chargeSection("Mes prévisions", icon: "list.bullet") {
+        OnboardingSectionHeader(title: "Mes prévisions", icon: "list.bullet") {
             ForEach(customExpenses) { tx in
                 if tx.id != customExpenses.first?.id {
                     Divider().opacity(DesignTokens.Opacity.accent)

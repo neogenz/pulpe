@@ -119,7 +119,7 @@ export const budgetTemplateCreateFromOnboardingSchema = z.object({
   phonePlan: z.number().min(0).default(0).optional(),
   internetPlan: z.number().min(0).default(0).optional(),
   transportCosts: z.number().min(0).default(0).optional(),
-  customTransactions: z.array(onboardingTransactionSchema).default([]),
+  customTransactions: z.array(onboardingTransactionSchema).max(50).default([]),
 });
 export type BudgetTemplateCreateFromOnboarding = z.infer<
   typeof budgetTemplateCreateFromOnboardingSchema

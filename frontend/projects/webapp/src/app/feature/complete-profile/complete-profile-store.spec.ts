@@ -661,21 +661,21 @@ describe('CompleteProfileStore', () => {
         );
       });
 
-      it('should not include custom transactions that are not suggestions', () => {
+      it('should include manually added transactions matching a suggestion exactly', () => {
         store.addCustomTransaction({
-          name: 'Custom expense',
-          amount: 100,
+          name: 'Courses / alimentation',
+          amount: 600,
           type: 'expense',
           expenseType: 'fixed',
           isRecurring: true,
         });
 
-        expect(store.selectedSuggestionNames().has('Custom expense')).toBe(
-          false,
-        );
+        expect(
+          store.selectedSuggestionNames().has('Courses / alimentation'),
+        ).toBe(true);
       });
 
-      it('should include manually added transactions matching a suggestion', () => {
+      it('should not include transactions with matching name but different amount', () => {
         store.addCustomTransaction({
           name: 'Courses / alimentation',
           amount: 200,
@@ -686,7 +686,7 @@ describe('CompleteProfileStore', () => {
 
         expect(
           store.selectedSuggestionNames().has('Courses / alimentation'),
-        ).toBe(true);
+        ).toBe(false);
       });
     });
   });

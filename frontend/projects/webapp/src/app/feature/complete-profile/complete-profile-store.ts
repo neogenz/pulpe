@@ -112,7 +112,10 @@ export class CompleteProfileStore {
     const txs = this.customTransactions();
     return new Set(
       ONBOARDING_SUGGESTIONS.filter((s) =>
-        txs.some((t) => t.name === s.name && t.type === s.type),
+        txs.some(
+          (t) =>
+            t.name === s.name && t.type === s.type && t.amount === s.amount,
+        ),
       ).map((s) => s.name),
     );
   });
@@ -191,14 +194,14 @@ export class CompleteProfileStore {
 
   toggleSuggestion(suggestion: OnboardingTransaction): void {
     const current = this.#state().customTransactions;
-    const exists = current.some(
-      (t) => t.name === suggestion.name && t.type === suggestion.type,
-    );
+    const exactMatch = (t: OnboardingTransaction) =>
+      t.name === suggestion.name &&
+      t.type === suggestion.type &&
+      t.amount === suggestion.amount;
+    const exists = current.some(exactMatch);
     this.#patchState({
       customTransactions: exists
-        ? current.filter(
-            (t) => !(t.name === suggestion.name && t.type === suggestion.type),
-          )
+        ? current.filter((t) => !exactMatch(t))
         : [...current, suggestion],
     });
   }

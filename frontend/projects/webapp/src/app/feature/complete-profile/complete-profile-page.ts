@@ -32,7 +32,7 @@ import {
   CompleteProfileStore,
   ONBOARDING_SUGGESTIONS,
 } from './complete-profile-store';
-import { take } from 'rxjs';
+import { firstValueFrom } from 'rxjs';
 import { AddCustomExpenseDialog } from './add-custom-expense-dialog';
 import { PAY_DAY_MAX } from 'pulpe-shared';
 
@@ -352,33 +352,18 @@ import { PAY_DAY_MAX } from 'pulpe-shared';
                       data-testid="suggestion-chips"
                     >
                       @for (suggestion of suggestions; track suggestion.name) {
+                        @let isSelected =
+                          store.selectedSuggestionNames().has(suggestion.name);
                         <button
                           type="button"
                           class="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-label-large transition-colors border"
-                          [class.bg-primary-container]="
-                            store.selectedSuggestionNames().has(suggestion.name)
-                          "
-                          [class.text-on-primary-container]="
-                            store.selectedSuggestionNames().has(suggestion.name)
-                          "
-                          [class.border-primary]="
-                            store.selectedSuggestionNames().has(suggestion.name)
-                          "
-                          [class.bg-surface-container]="
-                            !store
-                              .selectedSuggestionNames()
-                              .has(suggestion.name)
-                          "
-                          [class.text-on-surface-variant]="
-                            !store
-                              .selectedSuggestionNames()
-                              .has(suggestion.name)
-                          "
-                          [class.border-transparent]="
-                            !store
-                              .selectedSuggestionNames()
-                              .has(suggestion.name)
-                          "
+                          [class.bg-primary-container]="isSelected"
+                          [class.text-on-primary-container]="isSelected"
+                          [class.border-primary]="isSelected"
+                          [class.bg-surface-container]="!isSelected"
+                          [class.text-on-surface-variant]="!isSelected"
+                          [class.border-transparent]="!isSelected"
+                          [attr.aria-pressed]="isSelected"
                           (click)="store.toggleSuggestion(suggestion)"
                           [attr.data-testid]="
                             'suggestion-chip-' + suggestion.name
@@ -421,24 +406,22 @@ import { PAY_DAY_MAX } from 'pulpe-shared';
                               >
                             </div>
                             <div class="flex items-center gap-2">
+                              <input
+                                type="number"
+                                inputmode="decimal"
+                                class="w-20 text-right text-body-medium text-on-surface bg-transparent border-b border-outline-variant/40 focus:border-primary outline-none py-0.5"
+                                [value]="tx.amount"
+                                (change)="onAmountChange($index, $event)"
+                                [attr.aria-label]="'Montant de ' + tx.name"
+                                data-testid="custom-expense-amount"
+                              />
                               <span
-                                class="ph-no-capture flex items-center gap-2"
+                                class="ph-no-capture text-body-small text-on-surface-variant"
+                                >CHF</span
                               >
-                                <input
-                                  type="number"
-                                  inputmode="decimal"
-                                  class="w-20 text-right text-body-medium text-on-surface bg-transparent border-b border-outline-variant/40 focus:border-primary outline-none py-0.5 pointer-events-auto"
-                                  [value]="tx.amount"
-                                  (change)="onAmountChange($index, $event)"
-                                  data-testid="custom-expense-amount"
-                                />
-                                <span
-                                  class="text-body-small text-on-surface-variant"
-                                  >CHF</span
-                                >
-                              </span>
                               <button
                                 matIconButton
+                                [attr.aria-label]="'Supprimer ' + tx.name"
                                 (click)="store.removeCustomTransaction($index)"
                                 data-testid="remove-custom-expense"
                               >
@@ -563,16 +546,15 @@ export default class CompleteProfilePage {
     }
   }
 
-  protected openAddCustomExpenseDialog(): void {
-    this.#dialog
-      .open(AddCustomExpenseDialog, { width: '400px' })
-      .afterClosed()
-      .pipe(take(1))
-      .subscribe((result) => {
-        if (result) {
-          this.store.addCustomTransaction(result);
-        }
-      });
+  protected async openAddCustomExpenseDialog(): Promise<void> {
+    const result = await firstValueFrom(
+      this.#dialog
+        .open(AddCustomExpenseDialog, { width: '400px' })
+        .afterClosed(),
+    );
+    if (result) {
+      this.store.addCustomTransaction(result);
+    }
   }
 
   protected async onSubmit(): Promise<void> {

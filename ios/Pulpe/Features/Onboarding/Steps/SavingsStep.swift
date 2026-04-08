@@ -51,31 +51,10 @@ struct SavingsStep: View {
         .trackScreen("Onboarding_Savings")
     }
 
-    // MARK: - Section Helper
-
-    private func savingSection<Content: View>(
-        _ title: String,
-        icon: String,
-        @ViewBuilder content: () -> Content
-    ) -> some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-            HStack(spacing: DesignTokens.Spacing.sm) {
-                Image(systemName: icon)
-                    .font(PulpeTypography.labelLarge)
-                    .foregroundStyle(Color.onboardingSectionIcon)
-                Text(title)
-                    .font(PulpeTypography.labelLarge)
-                    .foregroundStyle(Color.textSecondaryOnboarding)
-            }
-
-            content()
-        }
-    }
-
     // MARK: - Suggestions
 
     private var suggestionsSection: some View {
-        savingSection("Suggestions", icon: "lightbulb.fill") {
+        OnboardingSectionHeader(title: "Suggestions", icon: "lightbulb.fill") {
             LazyVGrid(
                 columns: [GridItem(.adaptive(minimum: 155), spacing: DesignTokens.Spacing.sm)],
                 spacing: DesignTokens.Spacing.sm
@@ -125,7 +104,7 @@ struct SavingsStep: View {
     // MARK: - Custom Savings
 
     private var customSavingsSection: some View {
-        savingSection("Mes épargnes", icon: "list.bullet") {
+        OnboardingSectionHeader(title: "Mes épargnes", icon: "list.bullet") {
             ForEach(customSavings) { tx in
                 if tx.id != customSavings.first?.id {
                     Divider().opacity(DesignTokens.Opacity.accent)

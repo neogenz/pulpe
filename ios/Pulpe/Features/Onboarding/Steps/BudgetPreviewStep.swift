@@ -211,7 +211,7 @@ struct BudgetPreviewStep: View {
     }
 
     private var chargesTotal: Decimal {
-        state.totalExpenses - savingsTotal
+        state.totalCharges
     }
 
     // MARK: - Helpers

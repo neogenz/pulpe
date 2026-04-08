@@ -27,6 +27,7 @@ struct OnboardingTransactionRow: View {
                     .foregroundStyle(Color.onSurfaceVariant)
             }
             .iconButtonStyle()
+            .accessibilityLabel("Modifier \(transaction.name)")
 
             Button(action: onRemove) {
                 Image(systemName: "xmark.circle.fill")
@@ -34,6 +35,7 @@ struct OnboardingTransactionRow: View {
                     .foregroundStyle(Color.onSurfaceVariant)
             }
             .iconButtonStyle()
+            .accessibilityLabel("Supprimer \(transaction.name)")
         }
         .padding(.vertical, DesignTokens.Spacing.xs)
     }

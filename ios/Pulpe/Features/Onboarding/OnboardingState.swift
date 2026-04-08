@@ -178,9 +178,20 @@ final class OnboardingState {
     // MARK: - Persistence
 
     func saveToStorage() {
+        let storedTx = customTransactions.map {
+            OnboardingStorageData.StoredTransaction(
+                amount: $0.amount,
+                type: $0.type.rawValue,
+                name: $0.name,
+                description: $0.description,
+                expenseType: $0.expenseType.rawValue,
+                isRecurring: $0.isRecurring
+            )
+        }
         let data = OnboardingStorageData(
             firstName: firstName,
-            currentStep: currentStep.rawValue
+            currentStep: currentStep.rawValue,
+            customTransactions: storedTx.isEmpty ? nil : storedTx
         )
 
         if let encoded = try? JSONEncoder().encode(data) {
@@ -198,6 +209,23 @@ final class OnboardingState {
 
         if let step = OnboardingStep(rawValue: decoded.currentStep) {
             currentStep = step
+        }
+
+        if let storedTx = decoded.customTransactions {
+            customTransactions = storedTx.compactMap { stored in
+                guard let type = TransactionKind(rawValue: stored.type),
+                      let expenseType = TransactionRecurrence(rawValue: stored.expenseType) else {
+                    return nil
+                }
+                return OnboardingTransaction(
+                    amount: stored.amount,
+                    type: type,
+                    name: stored.name,
+                    description: stored.description,
+                    expenseType: expenseType,
+                    isRecurring: stored.isRecurring
+                )
+            }
         }
     }
 
@@ -269,12 +297,14 @@ final class OnboardingState {
     }
 
     func isSuggestionSelected(_ suggestion: OnboardingTransaction) -> Bool {
-        customTransactions.contains { $0.name == suggestion.name && $0.type == suggestion.type }
+        customTransactions.contains {
+            $0.name == suggestion.name && $0.type == suggestion.type && $0.amount == suggestion.amount
+        }
     }
 
     func toggleSuggestion(_ suggestion: OnboardingTransaction) {
         if let index = customTransactions.firstIndex(where: {
-            $0.name == suggestion.name && $0.type == suggestion.type
+            $0.name == suggestion.name && $0.type == suggestion.type && $0.amount == suggestion.amount
         }) {
             customTransactions.remove(at: index)
         } else {
@@ -412,4 +442,14 @@ enum OnboardingStep: String, CaseIterable, Identifiable {
 private struct OnboardingStorageData: Codable {
     let firstName: String
     let currentStep: String
+    let customTransactions: [StoredTransaction]?
+
+    struct StoredTransaction: Codable {
+        let amount: Decimal
+        let type: String
+        let name: String
+        let description: String?
+        let expenseType: String
+        let isRecurring: Bool
+    }
 }
