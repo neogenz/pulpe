@@ -25,12 +25,6 @@ final class OnboardingState {
     var readyForSocialCompletion: Bool = false
     var isSocialSignup: Bool { socialUser != nil }
 
-    /// Whether the name field should be displayed during onboarding.
-    /// Hidden only when a social provider already supplied a valid name.
-    var shouldShowNameField: Bool {
-        !isSocialSignup || !isFirstNameValid
-    }
-
     /// Configures state for a social signup user.
     /// Pre-fills firstName from provider metadata and clears persisted step
     /// so cold-start after app kill resets to welcome.
@@ -145,10 +139,6 @@ final class OnboardingState {
         saveToStorage()
     }
 
-    var wouldExitOnBack: Bool {
-        currentStep == .personalInfo
-    }
-
     func previousStep() {
         guard let currentIndex = OnboardingStep.allCases.firstIndex(of: currentStep),
               currentIndex > 0 else {
@@ -250,22 +240,6 @@ enum OnboardingStep: String, CaseIterable, Identifiable {
         case .expenses: "Renseigne ce que tu connais — le reste peut attendre"
         case .budgetPreview: "Voici ce que ça donne"
         case .registration: "Pour sauvegarder ton budget"
-        }
-    }
-
-    /// Alternative title when context changes (e.g. social signup skips name field)
-    var socialTitle: String? {
-        switch self {
-        case .personalInfo: "Ton revenu"
-        default: nil
-        }
-    }
-
-    /// Alternative subtitle for social signup context
-    var socialSubtitle: String? {
-        switch self {
-        case .personalInfo: "Indique ton revenu mensuel"
-        default: nil
         }
     }
 

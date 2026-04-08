@@ -133,24 +133,17 @@ struct OnboardingStepView<Content: View>: View {
     let state: OnboardingState
     let canProceed: Bool
     let onNext: () -> Void
-    var titleOverride: String?
-    var subtitleOverride: String?
     @ViewBuilder let content: () -> Content
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var showContent = false
-    @State private var showExitConfirmation = false
 
     var body: some View {
         VStack(spacing: 0) {
             ScrollView {
                 VStack(spacing: DesignTokens.Spacing.xxxl) {
-                    OnboardingStepHeader(
-                        step: step,
-                        titleOverride: titleOverride,
-                        subtitleOverride: subtitleOverride
-                    )
-                    .padding(.top, DesignTokens.Spacing.stepHeaderTop)
+                    OnboardingStepHeader(step: step)
+                        .padding(.top, DesignTokens.Spacing.stepHeaderTop)
 
                     content()
                         .padding(.horizontal, DesignTokens.Spacing.xxl)
@@ -177,23 +170,11 @@ struct OnboardingStepView<Content: View>: View {
                 canProceed: canProceed,
                 isLoading: state.isLoading,
                 onNext: onNext,
-                onBack: {
-                    if state.wouldExitOnBack {
-                        showExitConfirmation = true
-                    } else {
-                        state.previousStep()
-                    }
-                }
+                onBack: { state.previousStep() }
             )
         }
         .background(Color.clear)
         .dismissKeyboardOnTap()
-        .alert("Quitter l'inscription ?", isPresented: $showExitConfirmation) {
-            Button("Continuer", role: .cancel) { }
-            Button("Quitter", role: .destructive) { state.previousStep() }
-        } message: {
-            Text("Ta progression ne sera pas sauvegardée.")
-        }
         .task {
             guard !showContent else { return }
             if reduceMotion {

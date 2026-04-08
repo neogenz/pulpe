@@ -51,59 +51,6 @@ struct OnboardingSocialSignupTests {
     }
 
     @Test
-    func socialUser_withFirstName_nameFieldShouldBeHidden() {
-        let state = makeSUT()
-        defer { OnboardingState.clearPersistedData() }
-        state.configureSocialUser(UserInfo(id: "apple-1", email: "apple@relay.appleid.com", firstName: "Marie"))
-        #expect(state.isSocialSignup)
-        #expect(state.isFirstNameValid)
-        #expect(state.firstName == "Marie")
-    }
-
-    @Test
-    func socialUser_withNilFirstName_nameFieldShouldRemainVisible() {
-        let state = makeSUT()
-        defer { OnboardingState.clearPersistedData() }
-        state.configureSocialUser(UserInfo(id: "apple-2", email: "apple@relay.appleid.com", firstName: nil))
-        #expect(state.isSocialSignup)
-        #expect(!state.isFirstNameValid)
-    }
-
-    @Test
-    func socialUser_withNilFirstName_cannotProceedWithoutName() {
-        let state = makeSUT()
-        defer { OnboardingState.clearPersistedData() }
-        state.configureSocialUser(UserInfo(id: "apple-2b", email: "apple@relay.appleid.com", firstName: nil))
-        state.monthlyIncome = 3000
-        #expect(!state.canProceed(from: .personalInfo))
-    }
-
-    @Test
-    func socialUser_withFirstName_shouldHideNameField() {
-        let state = makeSUT()
-        defer { OnboardingState.clearPersistedData() }
-        state.configureSocialUser(UserInfo(id: "apple-3b", email: "apple@relay.appleid.com", firstName: "Marie"))
-        #expect(!state.shouldShowNameField)
-    }
-
-    @Test
-    func socialUser_withNilFirstName_shouldShowNameField() {
-        let state = makeSUT()
-        defer { OnboardingState.clearPersistedData() }
-        state.configureSocialUser(UserInfo(id: "apple-4b", email: "apple@relay.appleid.com", firstName: nil))
-        #expect(state.shouldShowNameField)
-    }
-
-    @Test
-    func socialUser_withEmptyFirstName_nameFieldShouldRemainVisible() {
-        let state = makeSUT()
-        defer { OnboardingState.clearPersistedData() }
-        state.configureSocialUser(UserInfo(id: "apple-3", email: "apple@relay.appleid.com", firstName: ""))
-        #expect(state.isSocialSignup)
-        #expect(!state.isFirstNameValid)
-    }
-
-    @Test
     func progressPercentage_socialUser_budgetPreviewHigherThanNonSocial() {
         let state = makeSUT()
         defer { OnboardingState.clearPersistedData() }
