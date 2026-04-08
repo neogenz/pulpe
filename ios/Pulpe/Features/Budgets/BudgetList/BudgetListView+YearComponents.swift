@@ -160,6 +160,7 @@ struct YearPicker: View {
             }
             .sensoryFeedback(.selection, trigger: selectedYear)
             .task {
+                await Task.yield()
                 proxy.scrollTo(selectedYear, anchor: .center)
             }
             .onChange(of: selectedYear) { _, newYear in

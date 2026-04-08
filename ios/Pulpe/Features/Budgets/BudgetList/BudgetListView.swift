@@ -78,6 +78,7 @@ struct BudgetListView: View {
         }
         .refreshable {
             await store.forceRefresh()
+            templateBalance = nil
             await loadDefaultTemplateBalance()
         }
         .task {
@@ -139,7 +140,7 @@ struct BudgetListView: View {
         // Add one placeholder for the next missing month if selectedYear >= current year
         if selectedYear >= currentPeriod.year {
             let startMonth = (selectedYear == currentPeriod.year) ? currentPeriod.month : 1
-            let lastRemaining = slots.last?.budget?.remaining
+            let lastRemaining = slots.max(by: { $0.month < $1.month })?.budget?.remaining
             let projectedAmount = (templateBalance ?? 0) + (lastRemaining ?? 0)
             for month in startMonth...12 where !budgets.contains(where: { $0.month == month }) {
                 slots.append(MonthSlot(
@@ -175,13 +176,17 @@ struct BudgetListView: View {
     }
 
     private func loadDefaultTemplateBalance() async {
+        guard templateBalance == nil else { return }
         do {
             guard let template = try await TemplateService.shared.getDefaultTemplate() else { return }
             try Task.checkCancellation()
             let lines = try await TemplateService.shared.getTemplateLines(templateId: template.id)
+            try Task.checkCancellation()
             let income = lines.filter { $0.kind == .income }.reduce(Decimal.zero) { $0 + $1.amount }
             let outflow = lines.filter { $0.kind != .income }.reduce(Decimal.zero) { $0 + $1.amount }
             templateBalance = income - outflow
+        } catch is CancellationError {
+            return
         } catch {
             // Silently fail — placeholder will show without projected amount
         }
