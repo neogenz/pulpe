@@ -1,5 +1,30 @@
 [
   {
+    "version": "0.33.0",
+    "date": "2026-04-08",
+    "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.33.0",
+    "platforms": ["ios"],
+    "changes": {
+      "features": [
+        {
+          "title": "Confirmation de sortie de l'onboarding",
+          "description": "Une boîte de dialogue demande confirmation avant de quitter le parcours d'inscription"
+        }
+      ],
+      "fixes": [
+        {
+          "title": "Récupération automatique du nom via Apple/Google",
+          "description": "Le nom est désormais pré-rempli depuis les identifiants Apple ou Google, évitant une saisie manuelle inutile"
+        },
+        {
+          "title": "Champ nom masqué pour les inscriptions sociales",
+          "description": "Le champ nom est correctement masqué pour toutes les connexions sociales lorsque le nom a été capturé"
+        }
+      ],
+      "technical": []
+    }
+  },
+  {
     "version": "0.32.1",
     "date": "2026-04-03",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.32.1",
