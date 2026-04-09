@@ -147,7 +147,9 @@ struct OnboardingStepView<Content: View>: View {
     @State private var showExitConfirmation = false
     @State private var isAtBottom = false
     @State private var contentOverflows = false
-    @State private var isKeyboardVisible = false
+    @State private var keyboardHeight: CGFloat = 0
+
+    private var isKeyboardVisible: Bool { keyboardHeight > 0 }
 
     private var isEnabled: Bool {
         canProceed && !state.isLoading
@@ -183,7 +185,9 @@ struct OnboardingStepView<Content: View>: View {
                         .id(bottomAnchor)
                 }
                 .padding(.top, DesignTokens.Spacing.stepHeaderTop)
-                .padding(.bottom, DesignTokens.Spacing.xxxl)
+                .padding(.bottom, DesignTokens.Spacing.xxxl
+                    + (isKeyboardVisible ? 80 + DesignTokens.FrameHeight.button + DesignTokens.Spacing.lg : 0)
+                )
             }
             .scrollBounceBehavior(.basedOnSize)
             .scrollDismissesKeyboard(.interactively)
@@ -236,14 +240,18 @@ struct OnboardingStepView<Content: View>: View {
         } message: {
             Text("Ta progression ne sera pas sauvegardée.")
         }
-        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in
+        .onReceive(
+            NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)
+        ) { notification in
+            let frame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect
+            let height = frame?.height ?? 0
             withAnimation(DesignTokens.Animation.defaultSpring) {
-                isKeyboardVisible = true
+                keyboardHeight = height
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
             withAnimation(DesignTokens.Animation.defaultSpring) {
-                isKeyboardVisible = false
+                keyboardHeight = 0
             }
         }
         .task {
