@@ -5,7 +5,7 @@ import { Section, Badge, Button, FadeIn, Card, ShineBorder } from '@/components/
 import { angularUrl } from '@/lib/config'
 import { trackCTAClick } from '@/lib/posthog'
 
-const IOS_APP_URL = '#' // TODO: Remplacer par le lien App Store
+const IOS_APP_URL = 'https://apps.apple.com/ch/app/pulpe/id6758464920'
 
 export function Platforms() {
   return (
