@@ -75,7 +75,7 @@ struct OnboardingSocialSignupTests {
         defer { OnboardingState.clearPersistedData() }
         state.configureSocialUser(UserInfo(id: "apple-2b", email: "apple@relay.appleid.com", firstName: nil))
         state.monthlyIncome = 3000
-        #expect(!state.canProceed(from: .personalInfo))
+        #expect(!state.canProceed(from: .firstName))
     }
 
     @Test

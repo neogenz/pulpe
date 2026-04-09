@@ -160,7 +160,7 @@ final class OnboardingState {
     }
 
     var wouldExitOnBack: Bool {
-        currentStep == .personalInfo
+        currentStep == .firstName
     }
 
     func previousStep() {
@@ -380,22 +380,6 @@ enum OnboardingStep: String, CaseIterable, Identifiable {
         case .savings: "Ce que tu mets de côté chaque mois"
         case .budgetPreview: "Voici ce que ça donne"
         case .registration: "Pour sauvegarder ton budget"
-        }
-    }
-
-    /// Alternative title when context changes (e.g. social signup skips name field)
-    var socialTitle: String? {
-        switch self {
-        case .personalInfo: "Ton revenu"
-        default: nil
-        }
-    }
-
-    /// Alternative subtitle for social signup context
-    var socialSubtitle: String? {
-        switch self {
-        case .personalInfo: "Indique ton revenu mensuel"
-        default: nil
         }
     }
 
