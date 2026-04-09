@@ -32,6 +32,7 @@ import {
   CompleteProfileStore,
   ONBOARDING_SUGGESTIONS,
 } from './complete-profile-store';
+import type { OnboardingTransaction } from '@core/complete-profile';
 import { firstValueFrom } from 'rxjs';
 import { AddCustomExpenseDialog } from './add-custom-expense-dialog';
 import { PAY_DAY_MAX } from 'pulpe-shared';
@@ -381,7 +382,10 @@ import { PAY_DAY_MAX } from 'pulpe-shared';
                     <!-- Custom transactions list -->
                     @if (store.customTransactions().length > 0) {
                       <div class="space-y-2 mb-4">
-                        @for (tx of store.customTransactions(); track $index) {
+                        @for (
+                          tx of store.customTransactions();
+                          track tx.name + tx.type
+                        ) {
                           <div
                             class="flex items-center justify-between px-4 py-3 rounded-xl border border-outline-variant/30"
                           >
@@ -405,24 +409,24 @@ import { PAY_DAY_MAX } from 'pulpe-shared';
                                 }}</span
                               >
                             </div>
-                            <div class="flex items-center gap-2">
+                            <div class="flex items-center gap-2 ph-no-capture">
                               <input
                                 type="number"
                                 inputmode="decimal"
                                 class="w-20 text-right text-body-medium text-on-surface bg-transparent border-b border-outline-variant/40 focus:border-primary outline-none py-0.5"
                                 [value]="tx.amount"
-                                (change)="onAmountChange($index, $event)"
+                                (change)="onAmountChange(tx, $event)"
                                 [attr.aria-label]="'Montant de ' + tx.name"
                                 data-testid="custom-expense-amount"
                               />
                               <span
-                                class="ph-no-capture text-body-small text-on-surface-variant"
+                                class="text-body-small text-on-surface-variant"
                                 >CHF</span
                               >
                               <button
                                 matIconButton
                                 [attr.aria-label]="'Supprimer ' + tx.name"
-                                (click)="store.removeCustomTransaction($index)"
+                                (click)="removeTransaction(tx)"
                                 data-testid="remove-custom-expense"
                               >
                                 <mat-icon class="text-on-surface-variant"
@@ -536,13 +540,29 @@ export default class CompleteProfilePage {
     this.currentStep.set(step);
   }
 
-  protected onAmountChange(index: number, event: Event): void {
+  protected onAmountChange(tx: OnboardingTransaction, event: Event): void {
     const input = event.target as HTMLInputElement;
     const value = +input.value;
+    const index = this.store
+      .customTransactions()
+      .findIndex((t) => t.name === tx.name && t.type === tx.type);
+    if (index === -1) return;
     if (!isNaN(value) && value > 0) {
       this.store.updateCustomTransactionAmount(index, value);
     } else {
       input.value = String(this.store.customTransactions()[index].amount);
+    }
+  }
+
+  protected removeTransaction(tx: OnboardingTransaction): void {
+    const index = this.store
+      .customTransactions()
+      .findIndex(
+        (t) =>
+          t.name === tx.name && t.type === tx.type && t.amount === tx.amount,
+      );
+    if (index !== -1) {
+      this.store.removeCustomTransaction(index);
     }
   }
 

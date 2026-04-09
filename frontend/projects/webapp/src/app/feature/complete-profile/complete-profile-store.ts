@@ -171,6 +171,7 @@ export class CompleteProfileStore {
   }
 
   addCustomTransaction(tx: OnboardingTransaction): void {
+    if (this.#state().customTransactions.length >= 50) return;
     this.#patchState({
       customTransactions: [...this.#state().customTransactions, tx],
     });

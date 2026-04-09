@@ -92,15 +92,7 @@ final class OnboardingState {
     }
 
     var totalExpenses: Decimal {
-        let housing: Decimal = housingCosts ?? 0
-        let health: Decimal = healthInsurance ?? 0
-        let phone: Decimal = phonePlan ?? 0
-        let transport: Decimal = transportCosts ?? 0
-        let leasing: Decimal = leasingCredit ?? 0
-        let customOutflows = customTransactions
-            .filter { $0.type.isOutflow }
-            .reduce(Decimal.zero) { $0 + $1.amount }
-        return housing + health + phone + transport + leasing + customOutflows
+        totalCharges + totalSavings
     }
 
     var totalCustomIncome: Decimal {
@@ -256,17 +248,17 @@ final class OnboardingState {
 
     // MARK: - Running Totals
 
+    /// Fixed charges (housing, insurance, etc.) + custom expense-type transactions
     var totalCharges: Decimal {
         let housing: Decimal = housingCosts ?? 0
         let health: Decimal = healthInsurance ?? 0
         let phone: Decimal = phonePlan ?? 0
         let transport: Decimal = transportCosts ?? 0
         let leasing: Decimal = leasingCredit ?? 0
-        let hardcoded = housing + health + phone + transport + leasing
         let customExpenses = customTransactions
             .filter { $0.type == .expense }
             .reduce(Decimal.zero) { $0 + $1.amount }
-        return hardcoded + customExpenses
+        return housing + health + phone + transport + leasing + customExpenses
     }
 
     var totalSavings: Decimal {
@@ -315,6 +307,7 @@ final class OnboardingState {
     // MARK: - Custom Transactions
 
     func addCustomTransaction(_ tx: OnboardingTransaction) {
+        guard customTransactions.count < 50 else { return }
         customTransactions.append(tx)
     }
 
