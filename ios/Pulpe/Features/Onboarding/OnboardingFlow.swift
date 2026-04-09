@@ -204,16 +204,18 @@ struct OnboardingStepView<Content: View>: View {
             }
             .overlay(alignment: .bottom) {
                 // Floating gradient + ↓ button: only when content overflows AND not at bottom
-                if contentOverflows && !isAtBottom {
+                if (contentOverflows && !isAtBottom) || isKeyboardVisible {
                     VStack(spacing: 0) {
-                        // Gradient fade — passes touches through to scroll
-                        LinearGradient(
-                            colors: [.clear, Color.onboardingFormBase],
-                            startPoint: .top,
-                            endPoint: .bottom
-                        )
-                        .frame(height: 80)
-                        .allowsHitTesting(false)
+                        // Gradient fade — only when content actually overflows
+                        if contentOverflows {
+                            LinearGradient(
+                                colors: [.clear, Color.onboardingFormBase],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                            .frame(height: 80)
+                            .allowsHitTesting(false)
+                        }
 
                         // Floating ↓ button pinned bottom-right
                         HStack {
@@ -237,10 +239,14 @@ struct OnboardingStepView<Content: View>: View {
             Text("Ta progression ne sera pas sauvegardée.")
         }
         .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in
-            isKeyboardVisible = true
+            withAnimation(DesignTokens.Animation.defaultSpring) {
+                isKeyboardVisible = true
+            }
         }
         .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
-            isKeyboardVisible = false
+            withAnimation(DesignTokens.Animation.defaultSpring) {
+                isKeyboardVisible = false
+            }
         }
         .task {
             guard !showContent else { return }
