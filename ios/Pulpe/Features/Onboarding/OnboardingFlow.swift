@@ -206,16 +206,14 @@ struct OnboardingStepView<Content: View>: View {
                 // Floating gradient + ↓ button: only when content overflows AND not at bottom
                 if (contentOverflows && !isAtBottom) || isKeyboardVisible {
                     VStack(spacing: 0) {
-                        // Gradient fade — only when content actually overflows
-                        if contentOverflows {
-                            LinearGradient(
-                                colors: [.clear, Color.onboardingFormBase],
-                                startPoint: .top,
-                                endPoint: .bottom
-                            )
-                            .frame(height: 80)
-                            .allowsHitTesting(false)
-                        }
+                        // Gradient fade — passes touches through to scroll
+                        LinearGradient(
+                            colors: [.clear, Color.onboardingFormBase],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                        .frame(height: 80)
+                        .allowsHitTesting(false)
 
                         // Floating ↓ button pinned bottom-right
                         HStack {
