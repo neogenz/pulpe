@@ -5,7 +5,6 @@ import {
   Injectable,
   InjectionToken,
   signal,
-  untracked,
 } from '@angular/core';
 import {
   BudgetApi,
@@ -32,6 +31,7 @@ const RECENT_TRANSACTIONS_LIMIT = 5;
 const HISTORY_MONTHS_LIMIT = 6;
 const UPCOMING_MONTHS_LIMIT = 12;
 const PACE_TOLERANCE_PERCENT = 5;
+const CHECK_EXIT_DELAY_MS = 500;
 
 const DASHBOARD_INVALIDATION_KEYS: string[][] = [
   ['budget', 'list'],
@@ -198,8 +198,7 @@ export class DashboardStore {
     this.budgetLines().filter(
       (line) =>
         (line.recurrence === 'fixed' || line.recurrence === 'one_off') &&
-        line.checkedAt === null &&
-        !this.#pendingChecks().has(line.id),
+        (line.checkedAt === null || this.#pendingChecks().has(line.id)),
     ),
   );
 
@@ -307,15 +306,14 @@ export class DashboardStore {
       );
 
       if (confirmed.size > 0) {
-        // Reconciliation: when server data confirms a toggle, remove it from pending checks.
-        // Uses untracked() to prevent the write to #pendingChecks from re-triggering this effect.
-        untracked(() => {
+        // Delay cleanup to let the exit animation play in the UI.
+        setTimeout(() => {
           this.#pendingChecks.update((s) => {
             const next = new Set(s);
             confirmed.forEach((id) => next.delete(id));
             return next;
           });
-        });
+        }, CHECK_EXIT_DELAY_MS);
       }
     });
   }
