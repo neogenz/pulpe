@@ -125,6 +125,38 @@ export class CompleteProfileStore {
   );
   readonly error = computed(() => this.#state().error);
 
+  readonly totalFixedCharges = computed(() => {
+    const s = this.#state();
+    return [
+      s.housingCosts,
+      s.healthInsurance,
+      s.phonePlan,
+      s.internetPlan,
+      s.transportCosts,
+      s.leasingCredit,
+    ]
+      .filter((v): v is number => v !== null && v > 0)
+      .reduce((sum, v) => sum + v, 0);
+  });
+
+  readonly budgetSummary = computed(() => {
+    const txs = this.customTransactions();
+    const expenseTotal = txs
+      .filter((t) => t.type === 'expense')
+      .reduce((s, t) => s + t.amount, 0);
+    const savingTotal = txs
+      .filter((t) => t.type === 'saving')
+      .reduce((s, t) => s + t.amount, 0);
+    const incomeTotal = txs
+      .filter((t) => t.type === 'income')
+      .reduce((s, t) => s + t.amount, 0);
+
+    const income = (this.monthlyIncome() ?? 0) + incomeTotal;
+    const committed = this.totalFixedCharges() + expenseTotal + savingTotal;
+    const available = income - committed;
+    return { income, committed, available };
+  });
+
   readonly isStep1Valid = computed(() => {
     const state = this.#state();
     return (

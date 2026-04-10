@@ -694,6 +694,11 @@
     "suggestions": {
       "sectionTitle": "Ajouter en un clic"
     },
+    "summary": {
+      "income": "Revenu",
+      "committed": "Dépenses",
+      "available": "Disponible"
+    },
     "customize": {
       "sectionTitle": "Personnaliser ton budget"
     },
