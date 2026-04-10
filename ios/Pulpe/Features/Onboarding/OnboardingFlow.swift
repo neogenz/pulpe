@@ -25,24 +25,36 @@ struct OnboardingFlow: View {
                 // Subtle branded gradient for onboarding form steps
                 Color.loginGradientBackground
 
-                VStack(spacing: 0) {
-                    // Segmented progress indicator (except welcome)
-                    if state.currentStep.showProgressBar {
-                        OnboardingProgressIndicator(
-                            currentStep: state.currentStep,
-                            totalSteps: state.isSocialSignup
-                                ? OnboardingStep.allCases.count - 1
-                                : OnboardingStep.allCases.count
-                        )
-                        .transition(.opacity.combined(with: .move(edge: .top)))
+                // Step content — no TabView so swipe is impossible
+                stepContent
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .id(state.currentStep)
+                    .transition(stepTransition)
+                    .overlay(alignment: .top) {
+                        // Segmented progress indicator floats above scroll with fade
+                        if state.currentStep.showProgressBar {
+                            OnboardingProgressIndicator(
+                                currentStep: state.currentStep,
+                                totalSteps: state.isSocialSignup
+                                    ? OnboardingStep.allCases.count - 1
+                                    : OnboardingStep.allCases.count
+                            )
+                            .padding(.bottom, DesignTokens.Blur.topFadeHeight)
+                            .background(
+                                LinearGradient(
+                                    stops: [
+                                        .init(color: .onboardingFormBase, location: 0),
+                                        .init(color: .onboardingFormBase, location: 0.5),
+                                        .init(color: .onboardingFormBase.opacity(0), location: 1),
+                                    ],
+                                    startPoint: .top,
+                                    endPoint: .bottom
+                                )
+                            )
+                            .allowsHitTesting(false)
+                            .transition(.opacity.combined(with: .move(edge: .top)))
+                        }
                     }
-
-                    // Step content — no TabView so swipe is impossible
-                    stepContent
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .id(state.currentStep)
-                        .transition(stepTransition)
-                }
             }
             .toolbar(.hidden, for: .navigationBar)
             .onChange(of: scenePhase) { _, newPhase in
@@ -184,7 +196,9 @@ struct OnboardingStepView<Content: View>: View {
                         .padding(.horizontal, DesignTokens.Spacing.xxl)
                         .id(bottomAnchor)
                 }
-                .padding(.top, DesignTokens.Spacing.stepHeaderTop)
+                .padding(.top, DesignTokens.Spacing.stepHeaderTop
+                    + (step.showProgressBar ? DesignTokens.Spacing.xxl : 0)
+                )
                 .padding(.bottom, DesignTokens.Spacing.xxxl
                     + (isKeyboardVisible ? 80 + DesignTokens.FrameHeight.button + DesignTokens.Spacing.lg : 0)
                 )
@@ -210,14 +224,12 @@ struct OnboardingStepView<Content: View>: View {
                 // Floating gradient + ↓ button: only when content overflows AND not at bottom
                 if (contentOverflows && !isAtBottom) || isKeyboardVisible {
                     VStack(spacing: 0) {
-                        // Gradient fade — passes touches through to scroll
-                        LinearGradient(
-                            colors: [.clear, Color.onboardingFormBase],
-                            startPoint: .top,
-                            endPoint: .bottom
+                        // Progressive blur fade — passes touches through to scroll
+                        ProgressiveBlurEdge(
+                            edge: .bottom,
+                            height: DesignTokens.Blur.bottomFadeHeight,
+                            tintColor: .onboardingFormBase
                         )
-                        .frame(height: 80)
-                        .allowsHitTesting(false)
 
                         // Floating ↓ button pinned bottom-right
                         HStack {
