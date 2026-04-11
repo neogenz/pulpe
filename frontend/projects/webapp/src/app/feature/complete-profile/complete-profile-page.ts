@@ -6,6 +6,7 @@ import {
 } from '@angular/core';
 import { trigger, transition, style, animate } from '@angular/animations';
 import { Router } from '@angular/router';
+import { MatDialog } from '@angular/material/dialog';
 import { FormsModule } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -13,7 +14,6 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
-import { MatDialog } from '@angular/material/dialog';
 import { CurrencyInput } from '@ui/currency-input';
 import { ErrorAlert } from '@ui/error-alert';
 import { LoadingButton } from '@ui/loading-button';
@@ -26,8 +26,6 @@ import {
   ONBOARDING_SUGGESTIONS,
 } from './complete-profile-store';
 import type { OnboardingTransaction } from '@core/complete-profile';
-import { firstValueFrom } from 'rxjs';
-import { AddCustomExpenseDialog } from './add-custom-expense-dialog';
 import { PAY_DAY_MAX } from 'pulpe-shared';
 
 @Component({
@@ -60,7 +58,7 @@ import { PAY_DAY_MAX } from 'pulpe-shared';
     ]),
   ],
   template: `
-    <div class="max-w-md mx-auto px-6 py-14 sm:py-20">
+    <div class="max-w-2xl mx-auto px-6 sm:px-0">
       @if (store.isCheckingExistingBudget()) {
         <div class="flex flex-col items-center justify-center min-h-96 gap-6">
           <mat-progress-spinner mode="indeterminate" [diameter]="40" />
@@ -85,7 +83,10 @@ import { PAY_DAY_MAX } from 'pulpe-shared';
 
           <!-- Step 1 Content -->
           @if (currentStep() === 1) {
-            <div @fadeInTranslate class="flex flex-col items-center">
+            <div
+              @fadeInTranslate
+              class="flex flex-col items-center pb-14 sm:pb-20"
+            >
               <div class="mb-10 text-center max-w-sm">
                 <h1
                   class="text-display-small font-bold mb-3 tracking-tight text-on-surface"
@@ -107,7 +108,11 @@ import { PAY_DAY_MAX } from 'pulpe-shared';
               </div>
 
               <div class="w-full space-y-6">
-                <mat-form-field appearance="outline" class="w-full">
+                <mat-form-field
+                  appearance="outline"
+                  subscriptSizing="dynamic"
+                  class="w-full"
+                >
                   <mat-icon matPrefix class="mr-3 text-on-surface-variant"
                     >person</mat-icon
                   >
@@ -137,7 +142,11 @@ import { PAY_DAY_MAX } from 'pulpe-shared';
                   [autoFocus]="false"
                 />
 
-                <mat-form-field appearance="outline" class="w-full">
+                <mat-form-field
+                  appearance="outline"
+                  subscriptSizing="dynamic"
+                  class="w-full"
+                >
                   <mat-icon matPrefix class="mr-3 text-on-surface-variant"
                     >event_repeat</mat-icon
                   >
@@ -205,7 +214,7 @@ import { PAY_DAY_MAX } from 'pulpe-shared';
 
               <!-- Live Budget Summary -->
               <div
-                class="grid grid-cols-3 gap-2 px-4 py-4 rounded-2xl mb-8 transition-colors"
+                class="grid grid-cols-3 gap-2 px-4 py-4 rounded-2xl mb-4 transition-colors"
                 [class.bg-surface-container]="
                   store.budgetSummary().available >= 0
                 "
@@ -243,12 +252,20 @@ import { PAY_DAY_MAX } from 'pulpe-shared';
                 </div>
               </div>
 
+              @if (store.budgetSummary().available < 0) {
+                <p
+                  class="text-body-small text-on-surface-variant text-center mb-4"
+                >
+                  {{ 'completeProfile.summary.deficitHint' | transloco }}
+                </p>
+              }
+
               <div class="space-y-6">
                 <!-- Charges fixes -->
                 <div class="space-y-4">
                   <!-- Logement -->
                   <div>
-                    <div class="flex items-center gap-2 mb-2">
+                    <div class="flex items-center gap-2 mb-3">
                       <mat-icon class="!text-base text-on-surface-variant/60"
                         >home</mat-icon
                       >
@@ -260,7 +277,6 @@ import { PAY_DAY_MAX } from 'pulpe-shared';
                       [label]="'completeProfile.housing' | transloco"
                       [value]="store.housingCosts()"
                       (valueChange)="store.updateHousingCosts($event)"
-                      icon="home"
                       placeholder="0"
                       testId="housing-costs-input"
                       [autoFocus]="false"
@@ -269,7 +285,7 @@ import { PAY_DAY_MAX } from 'pulpe-shared';
 
                   <!-- Assurance & Abonnements -->
                   <div>
-                    <div class="flex items-center gap-2 mb-2">
+                    <div class="flex items-center gap-2 mb-3">
                       <mat-icon class="!text-base text-on-surface-variant/60"
                         >health_and_safety</mat-icon
                       >
@@ -285,7 +301,6 @@ import { PAY_DAY_MAX } from 'pulpe-shared';
                         [label]="'completeProfile.health' | transloco"
                         [value]="store.healthInsurance()"
                         (valueChange)="store.updateHealthInsurance($event)"
-                        icon="health_and_safety"
                         placeholder="0"
                         testId="health-insurance-input"
                         [autoFocus]="false"
@@ -294,7 +309,6 @@ import { PAY_DAY_MAX } from 'pulpe-shared';
                         [label]="'completeProfile.phone' | transloco"
                         [value]="store.phonePlan()"
                         (valueChange)="store.updatePhonePlan($event)"
-                        icon="smartphone"
                         placeholder="0"
                         testId="phone-plan-input"
                         [autoFocus]="false"
@@ -303,7 +317,6 @@ import { PAY_DAY_MAX } from 'pulpe-shared';
                         [label]="'completeProfile.internet' | transloco"
                         [value]="store.internetPlan()"
                         (valueChange)="store.updateInternetPlan($event)"
-                        icon="wifi"
                         placeholder="0"
                         testId="internet-plan-input"
                         [autoFocus]="false"
@@ -313,7 +326,7 @@ import { PAY_DAY_MAX } from 'pulpe-shared';
 
                   <!-- Mobilité & Crédit -->
                   <div>
-                    <div class="flex items-center gap-2 mb-2">
+                    <div class="flex items-center gap-2 mb-3">
                       <mat-icon class="!text-base text-on-surface-variant/60"
                         >directions_car</mat-icon
                       >
@@ -329,7 +342,6 @@ import { PAY_DAY_MAX } from 'pulpe-shared';
                         [label]="'completeProfile.transport' | transloco"
                         [value]="store.transportCosts()"
                         (valueChange)="store.updateTransportCosts($event)"
-                        icon="directions_car"
                         placeholder="0"
                         testId="transport-costs-input"
                         [autoFocus]="false"
@@ -338,7 +350,6 @@ import { PAY_DAY_MAX } from 'pulpe-shared';
                         [label]="'completeProfile.leasing' | transloco"
                         [value]="store.leasingCredit()"
                         (valueChange)="store.updateLeasingCredit($event)"
-                        icon="credit_card"
                         placeholder="0"
                         testId="leasing-credit-input"
                         [autoFocus]="false"
@@ -348,7 +359,7 @@ import { PAY_DAY_MAX } from 'pulpe-shared';
                 </div>
 
                 <!-- Personnaliser ton budget -->
-                <div>
+                <div class="pb-5">
                   <div class="flex items-center gap-2 mb-4">
                     <mat-icon class="!text-base text-on-surface-variant/60"
                       >tune</mat-icon
@@ -430,20 +441,18 @@ import { PAY_DAY_MAX } from 'pulpe-shared';
                               }}</span
                             >
                           </div>
-                          <div
-                            class="flex items-center gap-2 flex-shrink-0 ph-no-capture"
-                          >
+                          <div class="flex items-center gap-2 flex-shrink-0">
                             <input
                               type="number"
                               inputmode="decimal"
-                              class="w-24 text-right text-body-medium text-on-surface bg-transparent border-b border-outline-variant/40 focus:border-primary outline-none py-0.5"
+                              class="w-20 text-right text-body-medium text-on-surface bg-surface-container rounded-xl px-2 py-1.5 border border-outline-variant/30 focus:border-primary focus:outline-none transition-colors ph-no-capture pointer-events-auto"
                               [value]="tx.amount"
                               (change)="onAmountChange(tx, $event)"
                               [attr.aria-label]="'Montant de ' + tx.name"
                               data-testid="custom-expense-amount"
                             />
                             <span
-                              class="text-body-small text-on-surface-variant"
+                              class="text-body-small text-on-surface-variant ph-no-capture"
                               >CHF</span
                             >
                             <button
@@ -462,11 +471,11 @@ import { PAY_DAY_MAX } from 'pulpe-shared';
                     </div>
                   }
 
-                  <!-- Add custom -->
+                  <!-- Add custom (dialog) -->
                   <button
                     matButton="outlined"
-                    class="w-full h-12 rounded-xl"
-                    (click)="openAddCustomExpenseDialog()"
+                    class="w-full h-12 rounded-2xl"
+                    (click)="openAddCustomDialog()"
                     data-testid="add-custom-expense-button"
                   >
                     <span class="flex items-center justify-center gap-2">
@@ -479,9 +488,12 @@ import { PAY_DAY_MAX } from 'pulpe-shared';
                 </div>
               </div>
 
-              <pulpe-error-alert [message]="store.error()" class="mt-8" />
+              <pulpe-error-alert [message]="store.error()" class="mt-6 pb-28" />
 
-              <div class="mt-12 flex flex-col gap-3">
+              <!-- Sticky CTA bar -->
+              <div
+                class="sticky bottom-0 z-10 -mx-6 sm:pb-0 pt-5 pb-5 border-t border-outline-variant/15 bg-surface shadow-[0_4rem_0_0_var(--color-surface)]"
+              >
                 <pulpe-loading-button
                   [loading]="store.isLoading()"
                   [loadingText]="'completeProfile.loadingSubmit' | transloco"
@@ -495,25 +507,23 @@ import { PAY_DAY_MAX } from 'pulpe-shared';
                   </span>
                 </pulpe-loading-button>
 
-                <div class="flex gap-3">
+                <div class="flex items-center justify-between mt-3">
                   <button
                     matButton="text"
-                    class="flex-1 h-12 text-on-surface-variant rounded-2xl hover:bg-surface-container/50"
+                    class="h-10 text-on-surface-variant rounded-2xl"
                     (click)="goToStep(1)"
                     data-testid="back-button"
                   >
-                    <span class="flex items-center justify-center gap-1">
+                    <span class="flex items-center gap-1">
                       <mat-icon class="!text-lg">arrow_back</mat-icon>
                       {{ 'completeProfile.back' | transloco }}
                     </span>
                   </button>
-                </div>
 
-                <p
-                  class="text-center text-body-small text-on-surface-variant mt-2"
-                >
-                  {{ 'completeProfile.settingsNote' | transloco }}
-                </p>
+                  <span class="text-body-small text-on-surface-variant">
+                    {{ 'completeProfile.settingsNote' | transloco }}
+                  </span>
+                </div>
               </div>
             </div>
           }
@@ -592,15 +602,15 @@ export default class CompleteProfilePage {
     }
   }
 
-  protected async openAddCustomExpenseDialog(): Promise<void> {
-    const result = await firstValueFrom(
+  protected openAddCustomDialog(): void {
+    import('./add-custom-expense-dialog').then(({ AddCustomExpenseDialog }) => {
       this.#dialog
         .open(AddCustomExpenseDialog, { width: '400px' })
-        .afterClosed(),
-    );
-    if (result) {
-      this.store.addCustomTransaction(result);
-    }
+        .afterClosed()
+        .subscribe((tx: OnboardingTransaction | undefined) => {
+          if (tx) this.store.addCustomTransaction(tx);
+        });
+    });
   }
 
   protected async onSubmit(): Promise<void> {

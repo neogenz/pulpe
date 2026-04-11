@@ -697,7 +697,8 @@
     "summary": {
       "income": "Revenu",
       "committed": "Dépenses",
-      "available": "Disponible"
+      "available": "Disponible",
+      "deficitHint": "Pas d'inquiétude — tu pourras ajuster tout ça après."
     },
     "customize": {
       "sectionTitle": "Personnaliser ton budget"
