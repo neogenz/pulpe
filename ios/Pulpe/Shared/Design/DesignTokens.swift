@@ -148,6 +148,8 @@ enum DesignTokens {
         static let widgetAction: CGFloat = 44
         /// Social login button icons (Apple logo, Google logo)
         static let socialButton: CGFloat = 20
+        /// Brand logo on auth/onboarding screens
+        static let brand: CGFloat = 72
     }
 
     // MARK: - List Row

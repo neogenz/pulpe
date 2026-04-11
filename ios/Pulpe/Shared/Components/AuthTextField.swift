@@ -45,7 +45,7 @@ private struct AuthFieldContainer<Content: View>: View {
             if showCheckmark {
                 Image(systemName: "checkmark.circle.fill")
                     .font(.subheadline)
-                    .foregroundStyle(Color.pulpePrimary.opacity(0.6))
+                    .foregroundStyle(Color.pulpePrimary.opacity(0.7))
                     .transition(.scale.combined(with: .opacity))
                     .accessibilityHidden(true)
             }

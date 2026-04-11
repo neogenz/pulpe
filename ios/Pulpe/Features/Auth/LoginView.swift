@@ -1,3 +1,4 @@
+import Accessibility
 import SwiftUI
 
 struct LoginView: View {
@@ -87,7 +88,7 @@ struct LoginView: View {
 extension LoginView {
     private var headerSection: some View {
         VStack(spacing: DesignTokens.Spacing.lg) {
-            PulpeIcon(size: 72)
+            PulpeIcon(size: DesignTokens.IconSize.brand)
                 .scaleEffect(isAppeared ? 1 : 0.8)
                 .opacity(isAppeared ? 1 : 0)
                 .animation(reduceMotion ? nil : DesignTokens.Animation.entranceSpring, value: isAppeared)
@@ -190,7 +191,9 @@ extension LoginView {
             .focused($focusedField, equals: .password)
             .accessibilityIdentifier("password")
             .accessibilityLabel("Mot de passe")
-            .accessibilityHint("Saisis ton mot de passe")
+            .accessibilityHint(!viewModel.password.isEmpty && !viewModel.isPasswordValid
+                ? "8 caractères minimum"
+                : "Saisis ton mot de passe")
             .submitLabel(.go)
             .onSubmit {
                 guard viewModel.canSubmit else { return }
@@ -202,6 +205,7 @@ extension LoginView {
                     .font(PulpeTypography.inputHelper)
                     .foregroundStyle(Color.textTertiaryOnboarding)
                     .padding(.leading, DesignTokens.Spacing.lg)
+                    .accessibilityHidden(true)
             }
         }
     }
@@ -266,6 +270,7 @@ extension LoginView {
         }
         .font(PulpeTypography.labelMedium)
         .foregroundStyle(Color.textSecondaryOnboarding)
+        .frame(minHeight: DesignTokens.TapTarget.minimum)
     }
 
     private var createAccountSection: some View {
@@ -305,8 +310,10 @@ extension LoginView {
             isPresented?.wrappedValue = false
         } catch {
             AnalyticsService.shared.captureAuthError(.loginFailed, error: error, method: "email")
-            viewModel.errorMessage = AuthErrorLocalizer.localize(error)
+            let message = AuthErrorLocalizer.localize(error)
+            viewModel.errorMessage = message
             viewModel.isLoading = false
+            AccessibilityNotification.Announcement(message).post()
         }
     }
 }
