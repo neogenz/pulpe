@@ -1,21 +1,20 @@
 import SwiftUI
+import VariableBlur
 
-/// A gradient fade overlay for scroll edges.
-/// Fades content into the background color — clean on both light and dark themes.
+/// Progressive blur overlay for scroll edges.
+/// Uses VariableBlurView (same private API Apple uses in Music/Photos)
+/// for real gaussian blur that fades from max to zero — works on any background.
 struct ProgressiveBlurEdge: View {
     enum Edge { case top, bottom }
 
     let edge: Edge
     let height: CGFloat
-    let tintColor: Color
+    var maxBlurRadius: CGFloat = 8
 
     var body: some View {
-        LinearGradient(
-            colors: edge == .bottom
-                ? [tintColor.opacity(0), tintColor]
-                : [tintColor, tintColor.opacity(0)],
-            startPoint: .top,
-            endPoint: .bottom
+        VariableBlurView(
+            maxBlurRadius: maxBlurRadius,
+            direction: edge == .top ? .blurredTopClearBottom : .blurredBottomClearTop
         )
         .frame(height: height)
         .allowsHitTesting(false)
@@ -36,9 +35,9 @@ struct ProgressiveBlurEdge: View {
         }
 
         VStack {
-            ProgressiveBlurEdge(edge: .top, height: DesignTokens.Blur.topFadeHeight, tintColor: .white)
+            ProgressiveBlurEdge(edge: .top, height: DesignTokens.Blur.topFadeHeight)
             Spacer()
-            ProgressiveBlurEdge(edge: .bottom, height: DesignTokens.Blur.bottomFadeHeight, tintColor: .white)
+            ProgressiveBlurEdge(edge: .bottom, height: DesignTokens.Blur.bottomFadeHeight)
         }
     }
 }

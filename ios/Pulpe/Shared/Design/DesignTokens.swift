@@ -280,10 +280,10 @@ enum DesignTokens {
     // MARK: - Blur
 
     enum Blur {
+        /// Height of the gradient fade at the top of scrollable content
+        static let topFadeHeight: CGFloat = 60
         /// Height of the gradient fade at the bottom of scrollable content
         static let bottomFadeHeight: CGFloat = 80
-        /// Height of the gradient fade at the top (under progress indicator)
-        static let topFadeHeight: CGFloat = 48
     }
 
     // MARK: - Progress Bar

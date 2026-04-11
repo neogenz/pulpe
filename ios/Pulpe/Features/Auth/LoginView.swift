@@ -33,6 +33,13 @@ struct LoginView: View {
                 }
                 .scrollBounceBehavior(.basedOnSize)
                 .scrollDismissesKeyboard(.interactively)
+                .overlay(alignment: .top) {
+                    ProgressiveBlurEdge(
+                        edge: .top,
+                        height: DesignTokens.Blur.topFadeHeight
+                    )
+                    .ignoresSafeArea(edges: .top)
+                }
             }
             .toolbar {
                 if let isPresented {
