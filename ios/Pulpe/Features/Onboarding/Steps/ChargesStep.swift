@@ -5,6 +5,8 @@ struct ChargesStep: View {
     @State private var showAddCharge = false
     @State private var editingTransaction: OnboardingTransaction?
     @State private var suggestionToggleTrigger = false
+    @State private var isInsuranceExpanded = false
+    @State private var isMobilityExpanded = false
 
     private var customExpenses: [OnboardingTransaction] {
         state.customTransactions.filter { $0.type == .expense }
@@ -22,12 +24,20 @@ struct ChargesStep: View {
                         CurrencyField(value: $state.housingCosts, hint: "1500", label: "Loyer mensuel")
                     }
 
-                    OnboardingSectionHeader(title: "Assurance & Abonnements", icon: "heart.text.square.fill") {
+                    OnboardingSectionHeader(
+                        title: "Assurance & Abonnements",
+                        icon: "heart.text.square.fill",
+                        isExpanded: $isInsuranceExpanded
+                    ) {
                         CurrencyField(value: $state.healthInsurance, hint: "400", label: "Assurance maladie")
                         CurrencyField(value: $state.phonePlan, hint: "50", label: "Forfait téléphone")
                     }
 
-                    OnboardingSectionHeader(title: "Mobilité & Crédit", icon: "car.fill") {
+                    OnboardingSectionHeader(
+                        title: "Mobilité & Crédit",
+                        icon: "car.fill",
+                        isExpanded: $isMobilityExpanded
+                    ) {
                         CurrencyField(
                             value: $state.transportCosts, hint: "100",
                             label: "Transport (abonnement, essence...)"
@@ -69,6 +79,15 @@ struct ChargesStep: View {
             .standardSheetPresentation()
         }
         .trackScreen("Onboarding_Charges")
+        .task {
+            // Auto-expand sections that already have data (e.g., returning from BudgetPreview edit)
+            if state.healthInsurance != nil || state.phonePlan != nil {
+                isInsuranceExpanded = true
+            }
+            if state.transportCosts != nil || state.leasingCredit != nil {
+                isMobilityExpanded = true
+            }
+        }
     }
 
     // MARK: - Suggestions

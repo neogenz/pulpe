@@ -8,6 +8,7 @@ struct RegistrationStep: View {
     @State private var passwordConfirmation = ""
     @State private var showPassword = false
     @State private var showPasswordConfirmation = false
+    @State private var confirmFieldBlurred = false
     @FocusState private var focusedField: Field?
 
     private enum Field: Hashable {
@@ -18,6 +19,13 @@ struct RegistrationStep: View {
 
     private var isPasswordConfirmed: Bool {
         PasswordValidator.isConfirmed(password: password, confirmation: passwordConfirmation)
+    }
+
+    /// Only show confirmation error after the user has had a fair shot:
+    /// either they've left the field, or they've typed enough characters.
+    private var shouldShowConfirmError: Bool {
+        !passwordConfirmation.isEmpty && !isPasswordConfirmed &&
+            (confirmFieldBlurred || passwordConfirmation.count >= password.count)
     }
 
     private var canSubmit: Bool {
@@ -105,15 +113,21 @@ extension RegistrationStep {
                 isVisible: $showPasswordConfirmation,
                 systemImage: "lock",
                 isFocused: focusedField == .passwordConfirmation,
-                hasError: !passwordConfirmation.isEmpty && !isPasswordConfirmed
+                hasError: shouldShowConfirmError
             )
             .textContentType(.newPassword)
             .focused($focusedField, equals: .passwordConfirmation)
             .accessibilityIdentifier("registrationPasswordConfirmation")
             .accessibilityLabel("Confirmation du mot de passe")
             .accessibilityHint("Confirme ton mot de passe")
+            .onChange(of: focusedField) { _, newField in
+                if newField != .passwordConfirmation && !passwordConfirmation.isEmpty {
+                    confirmFieldBlurred = true
+                }
+            }
 
-            if !passwordConfirmation.isEmpty {
+            if !passwordConfirmation.isEmpty &&
+                (confirmFieldBlurred || passwordConfirmation.count >= password.count) {
                 PasswordMatchRow(matches: isPasswordConfirmed)
             }
         }

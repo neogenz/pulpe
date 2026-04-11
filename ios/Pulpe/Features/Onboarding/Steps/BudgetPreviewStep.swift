@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct BudgetPreviewStep: View {
-    let state: OnboardingState
+    @Bindable var state: OnboardingState
 
     @Environment(\.amountsHidden) private var amountsHidden
 
@@ -90,7 +90,8 @@ struct BudgetPreviewStep: View {
                 icon: "arrow.down.circle.fill",
                 label: "Revenus",
                 value: "+\(totalIncome.asCompactCHF)",
-                color: .financialIncome
+                color: .financialIncome,
+                onEdit: { state.jumpToStepForEdit(.income) }
             )
 
             ForEach(customIncomes) { tx in
@@ -106,7 +107,8 @@ struct BudgetPreviewStep: View {
                     icon: "arrow.up.circle.fill",
                     label: "Charges fixes",
                     value: "-\(chargesTotal.asCompactCHF)",
-                    color: .financialExpense
+                    color: .financialExpense,
+                    onEdit: { state.jumpToStepForEdit(.charges) }
                 )
 
                 // Hardcoded charges detail
@@ -136,7 +138,8 @@ struct BudgetPreviewStep: View {
                     icon: "arrow.up.circle.fill",
                     label: "Épargne prévue",
                     value: "-\(savingsTotal.asCompactCHF)",
-                    color: .financialSavings
+                    color: .financialSavings,
+                    onEdit: { state.jumpToStepForEdit(.savings) }
                 )
 
                 ForEach(customSavings) { tx in
@@ -248,7 +251,10 @@ struct BudgetPreviewStep: View {
         .padding(.leading, DesignTokens.Spacing.xl)
     }
 
-    private func breakdownRow(icon: String, label: String, value: String, color: Color) -> some View {
+    private func breakdownRow(
+        icon: String, label: String, value: String, color: Color,
+        onEdit: (() -> Void)? = nil
+    ) -> some View {
         HStack(spacing: DesignTokens.Spacing.sm) {
             Image(systemName: icon)
                 .font(PulpeTypography.body)
@@ -263,6 +269,16 @@ struct BudgetPreviewStep: View {
                 .font(PulpeTypography.onboardingSubtitle)
                 .monospacedDigit()
                 .foregroundStyle(color)
+
+            if let onEdit {
+                Button(action: onEdit) {
+                    Image(systemName: "square.and.pencil")
+                        .font(PulpeTypography.caption)
+                        .foregroundStyle(Color.textTertiaryOnboarding)
+                }
+                .iconButtonStyle()
+                .accessibilityLabel("Modifier \(label)")
+            }
         }
     }
 }

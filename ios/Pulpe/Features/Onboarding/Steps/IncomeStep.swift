@@ -17,11 +17,21 @@ struct IncomeStep: View {
             onNext: { state.nextStep() },
             content: {
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.sectionGap) {
-                    CurrencyField(
-                        value: $state.monthlyIncome,
-                        hint: "5000",
-                        label: "Revenu mensuel net"
-                    )
+                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+                        CurrencyField(
+                            value: $state.monthlyIncome,
+                            hint: "5000",
+                            label: "Revenu mensuel net"
+                        )
+
+                        HStack(spacing: DesignTokens.Spacing.xs) {
+                            Image(systemName: "lock.fill")
+                                .font(PulpeTypography.caption2)
+                            Text("Tes données sont chiffrées et privées")
+                                .font(PulpeTypography.caption)
+                        }
+                        .foregroundStyle(Color.textTertiaryOnboarding)
+                    }
 
                     if !customIncomes.isEmpty {
                         customIncomesSection

@@ -309,6 +309,87 @@ struct OnboardingStateTests {
     }
 
     @Test
+    func saveAndLoad_persistsDecimalFields() {
+        let state = makeSUT()
+        defer { OnboardingState.clearPersistedData() }
+        state.firstName = "Marie"
+        state.currentStep = .savings
+        state.monthlyIncome = 5000
+        state.housingCosts = 1500
+        state.healthInsurance = 400
+        state.phonePlan = 50
+        state.transportCosts = 100
+        state.leasingCredit = 300
+        state.saveToStorage()
+
+        let restored = OnboardingState()
+        #expect(restored.monthlyIncome == 5000)
+        #expect(restored.housingCosts == 1500)
+        #expect(restored.healthInsurance == 400)
+        #expect(restored.phonePlan == 50)
+        #expect(restored.transportCosts == 100)
+        #expect(restored.leasingCredit == 300)
+    }
+
+    @Test
+    func saveAndLoad_nilDecimalFieldsRemainNil() {
+        let state = makeSUT()
+        defer { OnboardingState.clearPersistedData() }
+        state.firstName = "Marie"
+        state.currentStep = .income
+        state.monthlyIncome = 5000
+        state.saveToStorage()
+
+        let restored = OnboardingState()
+        #expect(restored.monthlyIncome == 5000)
+        #expect(restored.housingCosts == nil)
+        #expect(restored.healthInsurance == nil)
+        #expect(restored.phonePlan == nil)
+        #expect(restored.transportCosts == nil)
+        #expect(restored.leasingCredit == nil)
+    }
+
+    // MARK: - Edit Round-Trip
+
+    @Test
+    func jumpToStepForEdit_setsReturnStepAndNavigates() {
+        let state = makeSUT()
+        defer { OnboardingState.clearPersistedData() }
+        state.currentStep = .budgetPreview
+        state.jumpToStepForEdit(.income)
+
+        #expect(state.currentStep == .income)
+        #expect(state.editReturnStep == .budgetPreview)
+    }
+
+    @Test
+    func nextStep_withEditReturn_returnsToPreview() {
+        let state = makeSUT()
+        defer { OnboardingState.clearPersistedData() }
+        state.currentStep = .income
+        state.editReturnStep = .budgetPreview
+        state.monthlyIncome = 5000
+
+        state.nextStep()
+
+        #expect(state.currentStep == .budgetPreview)
+        #expect(state.editReturnStep == nil)
+    }
+
+    @Test
+    func previousStep_withEditReturn_returnsToPreview() {
+        let state = makeSUT()
+        defer { OnboardingState.clearPersistedData() }
+        state.currentStep = .charges
+        state.editReturnStep = .budgetPreview
+
+        state.previousStep()
+
+        #expect(state.currentStep == .budgetPreview)
+        #expect(state.editReturnStep == nil)
+    }
+
+    @Test
     func clearStorage_removesPersistedData() {
         let state = makeSUT()
         defer { OnboardingState.clearPersistedData() }

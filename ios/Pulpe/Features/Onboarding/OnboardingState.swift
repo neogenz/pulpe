@@ -53,6 +53,10 @@ final class OnboardingState {
     var hasAbandoned: Bool = false
     var isSubmitting: Bool = false
 
+    /// When set, nextStep()/previousStep() return to this step instead of sequential navigation.
+    /// Used by BudgetPreview to round-trip edits back to the preview.
+    var editReturnStep: OnboardingStep?
+
     // MARK: - Persistence Keys
 
     private static let storageKey = "pulpe-onboarding-data"
@@ -127,6 +131,17 @@ final class OnboardingState {
     }
 
     func nextStep() {
+        // Edit round-trip: return to preview instead of advancing sequentially
+        if let returnStep = editReturnStep {
+            editReturnStep = nil
+            isMovingForward = true
+            withAnimation(PulpeAnimations.stepTransition) {
+                currentStep = returnStep
+            }
+            saveToStorage()
+            return
+        }
+
         guard let currentIndex = OnboardingStep.allCases.firstIndex(of: currentStep),
               currentIndex < OnboardingStep.allCases.count - 1 else {
             return
@@ -156,6 +171,17 @@ final class OnboardingState {
     }
 
     func previousStep() {
+        // Edit round-trip: cancel edit and return to preview
+        if let returnStep = editReturnStep {
+            editReturnStep = nil
+            isMovingForward = true
+            withAnimation(PulpeAnimations.stepTransition) {
+                currentStep = returnStep
+            }
+            saveToStorage()
+            return
+        }
+
         guard let currentIndex = OnboardingStep.allCases.firstIndex(of: currentStep),
               currentIndex > 0 else {
             return
@@ -165,6 +191,16 @@ final class OnboardingState {
             currentStep = OnboardingStep.allCases[currentIndex - 1]
         }
         saveToStorage()
+    }
+
+    /// Navigate to a specific step for editing, with a return bookmark.
+    /// Both nextStep() and previousStep() will return to `returnTo` instead of navigating sequentially.
+    func jumpToStepForEdit(_ step: OnboardingStep, returnTo: OnboardingStep = .budgetPreview) {
+        editReturnStep = returnTo
+        isMovingForward = false
+        withAnimation(PulpeAnimations.stepTransition) {
+            currentStep = step
+        }
     }
 
     // MARK: - Persistence
@@ -183,7 +219,13 @@ final class OnboardingState {
         let data = OnboardingStorageData(
             firstName: firstName,
             currentStep: currentStep.rawValue,
-            customTransactions: storedTx.isEmpty ? nil : storedTx
+            customTransactions: storedTx.isEmpty ? nil : storedTx,
+            monthlyIncome: monthlyIncome,
+            housingCosts: housingCosts,
+            healthInsurance: healthInsurance,
+            phonePlan: phonePlan,
+            transportCosts: transportCosts,
+            leasingCredit: leasingCredit
         )
 
         if let encoded = try? JSONEncoder().encode(data) {
@@ -202,6 +244,13 @@ final class OnboardingState {
         if let step = OnboardingStep(rawValue: decoded.currentStep) {
             currentStep = step
         }
+
+        monthlyIncome = decoded.monthlyIncome
+        housingCosts = decoded.housingCosts
+        healthInsurance = decoded.healthInsurance
+        phonePlan = decoded.phonePlan
+        transportCosts = decoded.transportCosts
+        leasingCredit = decoded.leasingCredit
 
         if let storedTx = decoded.customTransactions {
             customTransactions = storedTx.compactMap { stored in
@@ -421,6 +470,12 @@ private struct OnboardingStorageData: Codable {
     let firstName: String
     let currentStep: String
     let customTransactions: [StoredTransaction]?
+    let monthlyIncome: Decimal?
+    let housingCosts: Decimal?
+    let healthInsurance: Decimal?
+    let phonePlan: Decimal?
+    let transportCosts: Decimal?
+    let leasingCredit: Decimal?
 
     struct StoredTransaction: Codable {
         let amount: Decimal

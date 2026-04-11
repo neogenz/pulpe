@@ -61,7 +61,7 @@ struct OnboardingFlow: View {
                 Button("Continuer", role: .cancel) { }
                 Button("Quitter", role: .destructive) { state.previousStep() }
             } message: {
-                Text("Ta progression ne sera pas sauvegardée.")
+                Text("Tu pourras reprendre plus tard.")
             }
             .onChange(of: scenePhase) { _, newPhase in
                 if newPhase == .background,
@@ -102,7 +102,9 @@ struct OnboardingFlow: View {
 
             HStack {
                 Button {
-                    if state.wouldExitOnBack {
+                    if state.editReturnStep != nil {
+                        state.previousStep()
+                    } else if state.wouldExitOnBack {
                         showExitConfirmation = true
                     } else {
                         state.previousStep()
@@ -111,7 +113,7 @@ struct OnboardingFlow: View {
                     HStack(spacing: DesignTokens.Spacing.xs) {
                         Image(systemName: "chevron.left")
                             .font(PulpeTypography.labelLarge)
-                        Text("Retour")
+                        Text(state.editReturnStep != nil ? "Retour au résumé" : "Retour")
                             .font(PulpeTypography.buttonSecondary)
                     }
                     .foregroundStyle(Color.textSecondaryOnboarding)
