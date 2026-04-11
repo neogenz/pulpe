@@ -235,6 +235,7 @@ export class CompleteProfileStore {
       t.type === suggestion.type &&
       t.amount === suggestion.amount;
     const exists = current.some(exactMatch);
+    if (!exists && current.length >= MAX_CUSTOM_TRANSACTIONS) return;
     this.#patchState({
       customTransactions: exists
         ? current.filter((t) => !exactMatch(t))

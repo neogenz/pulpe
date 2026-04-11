@@ -26,7 +26,6 @@ import {
   CompleteProfileStore,
   ONBOARDING_SUGGESTIONS,
 } from './complete-profile-store';
-import type { OnboardingTransaction } from '@core/complete-profile';
 import { PAY_DAY_MAX } from 'pulpe-shared';
 
 @Component({
@@ -415,7 +414,11 @@ import { PAY_DAY_MAX } from 'pulpe-shared';
                   <!-- Custom transactions list -->
                   @if (store.customTransactions().length > 0) {
                     <div class="space-y-2 mb-4">
-                      @for (tx of store.customTransactions(); track $index) {
+                      @for (
+                        tx of store.customTransactions();
+                        track $index;
+                        let i = $index
+                      ) {
                         <div
                           class="flex items-center justify-between px-4 py-3 rounded-xl border border-outline-variant/30"
                         >
@@ -445,7 +448,7 @@ import { PAY_DAY_MAX } from 'pulpe-shared';
                               inputmode="decimal"
                               class="w-20 text-right text-body-medium text-on-surface bg-surface-container rounded-xl px-2 py-1.5 border border-outline-variant/30 focus:border-primary focus:outline-none transition-colors"
                               [value]="tx.amount"
-                              (change)="onAmountChange(tx, $event)"
+                              (change)="onAmountChange(i, $event)"
                               [attr.aria-label]="'Montant de ' + tx.name"
                               data-testid="custom-expense-amount"
                             />
@@ -456,7 +459,7 @@ import { PAY_DAY_MAX } from 'pulpe-shared';
                             <button
                               matIconButton
                               [attr.aria-label]="'Supprimer ' + tx.name"
-                              (click)="removeTransaction(tx)"
+                              (click)="removeTransaction(i)"
                               data-testid="remove-custom-expense"
                             >
                               <mat-icon class="text-on-surface-variant"
@@ -574,13 +577,9 @@ export default class CompleteProfilePage {
     this.currentStep.set(step);
   }
 
-  protected onAmountChange(tx: OnboardingTransaction, event: Event): void {
+  protected onAmountChange(index: number, event: Event): void {
     const input = event.target as HTMLInputElement;
     const value = +input.value;
-    const index = this.store
-      .customTransactions()
-      .findIndex((t) => t.name === tx.name && t.type === tx.type);
-    if (index === -1) return;
     if (!isNaN(value) && value > 0) {
       this.store.updateCustomTransactionAmount(index, value);
     } else {
@@ -588,16 +587,8 @@ export default class CompleteProfilePage {
     }
   }
 
-  protected removeTransaction(tx: OnboardingTransaction): void {
-    const index = this.store
-      .customTransactions()
-      .findIndex(
-        (t) =>
-          t.name === tx.name && t.type === tx.type && t.amount === tx.amount,
-      );
-    if (index !== -1) {
-      this.store.removeCustomTransaction(index);
-    }
+  protected removeTransaction(index: number): void {
+    this.store.removeCustomTransaction(index);
   }
 
   protected async openAddCustomDialog(): Promise<void> {

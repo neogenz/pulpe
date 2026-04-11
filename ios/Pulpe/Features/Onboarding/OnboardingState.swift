@@ -300,6 +300,7 @@ final class OnboardingState {
         }) {
             customTransactions.remove(at: index)
         } else {
+            guard customTransactions.count < 50 else { return }
             customTransactions.append(suggestion)
         }
     }

@@ -57,17 +57,11 @@ struct IncomeStep: View {
     // MARK: - Custom Incomes
 
     private var customIncomesSection: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-            HStack(spacing: DesignTokens.Spacing.sm) {
-                Image(systemName: "plus.circle.fill")
-                    .font(PulpeTypography.labelLarge)
-                    .foregroundStyle(Color.financialIncome)
-                Text("Revenus supplémentaires")
-                    .font(PulpeTypography.labelLarge)
-                    .foregroundStyle(Color.textSecondaryOnboarding)
-            }
-
+        OnboardingSectionHeader(title: "Revenus supplémentaires", icon: "plus.circle.fill") {
             ForEach(customIncomes) { tx in
+                if tx.id != customIncomes.first?.id {
+                    Divider().opacity(DesignTokens.Opacity.accent)
+                }
                 OnboardingTransactionRow(
                     transaction: tx,
                     onEdit: { editingTransaction = tx },

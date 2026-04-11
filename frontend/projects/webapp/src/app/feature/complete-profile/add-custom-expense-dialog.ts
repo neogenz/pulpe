@@ -33,6 +33,9 @@ import type { OnboardingTransaction } from '@core/complete-profile';
             formControlName="kind"
             [hideSingleSelectionIndicator]="true"
             class="w-full mb-4"
+            [attr.aria-label]="
+              'completeProfile.customExpense.dialogTitle' | transloco
+            "
             data-testid="custom-expense-kind"
           >
             <mat-button-toggle value="expense" class="flex-1">

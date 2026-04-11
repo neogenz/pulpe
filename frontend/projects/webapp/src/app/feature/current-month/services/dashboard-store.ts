@@ -293,7 +293,7 @@ export class DashboardStore {
   });
 
   constructor() {
-    effect(() => {
+    effect((onCleanup) => {
       const lines = this.budgetLines();
       const pending = this.#pendingChecks();
       if (pending.size === 0) return;
@@ -307,13 +307,14 @@ export class DashboardStore {
 
       if (confirmed.size > 0) {
         // Delay cleanup to let the exit animation play in the UI.
-        setTimeout(() => {
+        const timer = setTimeout(() => {
           this.#pendingChecks.update((s) => {
             const next = new Set(s);
             confirmed.forEach((id) => next.delete(id));
             return next;
           });
         }, CHECK_EXIT_DELAY_MS);
+        onCleanup(() => clearTimeout(timer));
       }
     });
   }

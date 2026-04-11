@@ -202,17 +202,9 @@ struct BudgetPreviewStep: View {
         state.customTransactions.filter { $0.type == .saving }
     }
 
-    private var totalIncome: Decimal {
-        (state.monthlyIncome ?? 0) + state.totalCustomIncome
-    }
-
-    private var savingsTotal: Decimal {
-        customSavings.reduce(Decimal.zero) { $0 + $1.amount }
-    }
-
-    private var chargesTotal: Decimal {
-        state.totalCharges
-    }
+    private var totalIncome: Decimal { state.totalIncome }
+    private var savingsTotal: Decimal { state.totalSavings }
+    private var chargesTotal: Decimal { state.totalCharges }
 
     // MARK: - Helpers
 
