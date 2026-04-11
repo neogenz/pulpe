@@ -195,7 +195,6 @@ struct BudgetDetailsView: View {
             }
             .listRowCustomStyled(insets: fullWidthInsets)
             .listSectionSeparator(.hidden)
-            .popoverTip(ProductTips.gestures)
 
             // Empty search state
             if !searchText.isEmpty && filteredIncome.isEmpty && filteredExpenses.isEmpty &&
@@ -220,6 +219,7 @@ struct BudgetDetailsView: View {
             // Budget line sections (tip appears in the first visible section)
             if !filteredIncome.isEmpty {
                 budgetSection(title: "Revenus", items: filteredIncome)
+                    .popoverTip(ProductTips.gestures)
             }
             if !filteredExpenses.isEmpty {
                 budgetSection(title: "Dépenses", items: filteredExpenses)
