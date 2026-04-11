@@ -26,7 +26,7 @@ struct OnboardingStepHeader: View {
                     if let onSkip {
                         Button("Passer cette étape") { onSkip() }
                             .font(PulpeTypography.buttonSecondary)
-                            .foregroundStyle(Color.textTertiaryOnboarding)
+                            .foregroundStyle(Color.pulpePrimary)
                             .textLinkButtonStyle()
                             .frame(minHeight: DesignTokens.TapTarget.minimum)
                             .contentShape(Rectangle())
@@ -43,7 +43,7 @@ struct OptionalBadge: View {
         HStack(spacing: DesignTokens.Spacing.xs) {
             Image(systemName: "arrow.right.circle")
                 .font(PulpeTypography.caption2)
-            Text("Optionnel — tu peux passer")
+            Text("Optionnel")
                 .font(PulpeTypography.caption)
                 .fontWeight(.medium)
         }

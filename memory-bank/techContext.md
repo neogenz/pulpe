@@ -83,8 +83,9 @@ Ajouter `nikstar/VariableBlur` v1.3.0 comme dépendance SPM. Wrapper dans `Progr
 
 ### Notes
 
-- Surveiller les release notes Xcode/iOS pour une éventuelle API publique de variable blur (WWDC 2026+)
-- Si Apple propose une API publique, migrer et supprimer la dépendance
+- **iOS 26 a introduit `scrollEdgeEffectStyle(.soft, for: .bottom)`** — API native qui fait exactement le même job (blur + dim aux bords du scroll, gestion safe area + clavier automatique). Considérer une migration avec `@available(iOS 26, *)` quand le deployment target le permet.
+- **Modifier ordering critique** : `.ignoresSafeArea(edges:)` doit être appliqué AVANT `.frame(height:)` pour que la vue s'étende dans la safe area. `ProgressiveBlurEdge` applique `.frame` en interne — pour les cas nécessitant `.ignoresSafeArea`, inliner `VariableBlurView` directement et respecter l'ordre.
+- **Overlays séparés** : quand le blur et un bouton flottant ont des besoins de safe area différents, utiliser deux `.overlay()` distincts — un ZStack partagé absorbe `.ignoresSafeArea` sans étendre les enfants.
 - Le `LinearGradient` reste utilisé pour le top onboarding où le fond est quasi-monochrome à ce niveau — pas besoin de vrai blur
 
 ---

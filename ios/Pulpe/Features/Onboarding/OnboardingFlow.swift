@@ -92,7 +92,7 @@ struct OnboardingFlow: View {
     // MARK: - Sticky Header
 
     private var stickyHeader: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
             OnboardingProgressIndicator(
                 currentStep: state.currentStep,
                 totalSteps: state.isSocialSignup
