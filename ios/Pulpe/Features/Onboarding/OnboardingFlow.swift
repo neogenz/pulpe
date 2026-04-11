@@ -6,6 +6,7 @@ struct OnboardingFlow: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.scenePhase) private var scenePhase
     @State private var state: OnboardingState
+    @State private var showExitConfirmation = false
 
     private let hasPendingSocialUser: Bool
 
@@ -25,38 +26,38 @@ struct OnboardingFlow: View {
                 // Subtle branded gradient for onboarding form steps
                 Color.loginGradientBackground
 
-                // Step content — no TabView so swipe is impossible
-                stepContent
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .id(state.currentStep)
-                    .transition(stepTransition)
-                    .overlay(alignment: .top) {
-                        // Segmented progress indicator floats above scroll with fade
-                        if state.currentStep.showProgressBar {
-                            OnboardingProgressIndicator(
-                                currentStep: state.currentStep,
-                                totalSteps: state.isSocialSignup
-                                    ? OnboardingStep.allCases.count - 1
-                                    : OnboardingStep.allCases.count
-                            )
-                            .padding(.bottom, DesignTokens.Blur.topFadeHeight)
-                            .background(
+                VStack(spacing: 0) {
+                    // Sticky navigation header (progress + back)
+                    if state.currentStep.showProgressBar {
+                        stickyHeader
+                            .transition(.opacity.combined(with: .move(edge: .top)))
+                    }
+
+                    // Step content — no TabView so swipe is impossible
+                    stepContent
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .id(state.currentStep)
+                        .transition(stepTransition)
+                        .overlay(alignment: .top) {
+                            if state.currentStep.showProgressBar {
                                 LinearGradient(
-                                    stops: [
-                                        .init(color: .onboardingFormBase, location: 0),
-                                        .init(color: .onboardingFormBase, location: 0.5),
-                                        .init(color: .onboardingFormBase.opacity(0), location: 1),
-                                    ],
+                                    colors: [.onboardingFormBase, .onboardingFormBase.opacity(0)],
                                     startPoint: .top,
                                     endPoint: .bottom
                                 )
-                            )
-                            .allowsHitTesting(false)
-                            .transition(.opacity.combined(with: .move(edge: .top)))
+                                .frame(height: DesignTokens.Blur.topFadeHeight)
+                                .allowsHitTesting(false)
+                            }
                         }
-                    }
+                }
             }
             .toolbar(.hidden, for: .navigationBar)
+            .alert("Quitter l'inscription ?", isPresented: $showExitConfirmation) {
+                Button("Continuer", role: .cancel) { }
+                Button("Quitter", role: .destructive) { state.previousStep() }
+            } message: {
+                Text("Ta progression ne sera pas sauvegardée.")
+            }
             .onChange(of: scenePhase) { _, newPhase in
                 if newPhase == .background,
                    state.currentStep != .welcome,
@@ -80,6 +81,40 @@ struct OnboardingFlow: View {
                     appState.pendingSocialUser = nil
                 }
             }
+        }
+    }
+
+    // MARK: - Sticky Header
+
+    private var stickyHeader: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+            OnboardingProgressIndicator(
+                currentStep: state.currentStep,
+                totalSteps: state.isSocialSignup
+                    ? OnboardingStep.allCases.count - 1
+                    : OnboardingStep.allCases.count
+            )
+
+            HStack {
+                Button {
+                    if state.wouldExitOnBack {
+                        showExitConfirmation = true
+                    } else {
+                        state.previousStep()
+                    }
+                } label: {
+                    HStack(spacing: DesignTokens.Spacing.xs) {
+                        Image(systemName: "chevron.left")
+                            .font(PulpeTypography.labelLarge)
+                        Text("Retour")
+                            .font(PulpeTypography.buttonSecondary)
+                    }
+                    .foregroundStyle(Color.textSecondaryOnboarding)
+                }
+                .textLinkButtonStyle()
+                Spacer()
+            }
+            .padding(.horizontal, DesignTokens.Spacing.xxl)
         }
     }
 
@@ -156,7 +191,6 @@ struct OnboardingStepView<Content: View>: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Namespace private var bottomAnchor
     @State private var showContent = false
-    @State private var showExitConfirmation = false
     @State private var isAtBottom = false
     @State private var contentOverflows = false
     @State private var keyboardHeight: CGFloat = 0
@@ -171,11 +205,6 @@ struct OnboardingStepView<Content: View>: View {
         ScrollViewReader { proxy in
             ScrollView {
                 VStack(spacing: DesignTokens.Spacing.xxxl) {
-                    // Back button (top-left, Revolut-style)
-                    if step != .welcome {
-                        backButton
-                    }
-
                     OnboardingStepHeader(step: step)
 
                     content()
@@ -196,9 +225,7 @@ struct OnboardingStepView<Content: View>: View {
                         .padding(.horizontal, DesignTokens.Spacing.xxl)
                         .id(bottomAnchor)
                 }
-                .padding(.top, DesignTokens.Spacing.stepHeaderTop
-                    + (step.showProgressBar ? DesignTokens.Spacing.xxl : 0)
-                )
+                .padding(.top, DesignTokens.Spacing.stepHeaderTop)
                 .padding(.bottom, DesignTokens.Spacing.xxxl
                     + (isKeyboardVisible ? 80 + DesignTokens.FrameHeight.button + DesignTokens.Spacing.lg : 0)
                 )
@@ -221,24 +248,18 @@ struct OnboardingStepView<Content: View>: View {
                 }
             }
             .overlay(alignment: .bottom) {
-                // Floating gradient + ↓ button: only when content overflows AND not at bottom
+                // Floating blur + ↓ button: only when content overflows AND not at bottom
                 if (contentOverflows && !isAtBottom) || isKeyboardVisible {
-                    VStack(spacing: 0) {
-                        // Progressive blur fade — passes touches through to scroll
+                    ZStack(alignment: .bottomTrailing) {
                         ProgressiveBlurEdge(
                             edge: .bottom,
-                            height: DesignTokens.Blur.bottomFadeHeight,
-                            tintColor: .onboardingFormBase
+                            height: DesignTokens.Blur.bottomFadeHeight
                         )
+                        .ignoresSafeArea(edges: .bottom)
 
-                        // Floating ↓ button pinned bottom-right
-                        HStack {
-                            Spacer()
-                            floatingButton(proxy: proxy)
-                        }
-                        .padding(.horizontal, DesignTokens.Spacing.xxl)
-                        .padding(.bottom, DesignTokens.Spacing.lg)
-                        .background(Color.onboardingFormBase)
+                        floatingButton(proxy: proxy)
+                            .padding(.trailing, DesignTokens.Spacing.xxl)
+                            .padding(.bottom, DesignTokens.Spacing.lg)
                     }
                     .transition(.opacity.combined(with: .move(edge: .bottom)))
                 }
@@ -246,12 +267,6 @@ struct OnboardingStepView<Content: View>: View {
         }
         .background(Color.clear)
         .dismissKeyboardOnTap()
-        .alert("Quitter l'inscription ?", isPresented: $showExitConfirmation) {
-            Button("Continuer", role: .cancel) { }
-            Button("Quitter", role: .destructive) { state.previousStep() }
-        } message: {
-            Text("Ta progression ne sera pas sauvegardée.")
-        }
         .onReceive(
             NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)
         ) { notification in
@@ -329,31 +344,6 @@ struct OnboardingStepView<Content: View>: View {
             .disabled(!isEnabled)
             .animation(.easeInOut(duration: DesignTokens.Animation.fast), value: isEnabled)
         }
-    }
-
-    // MARK: - Back Button (top area)
-
-    private var backButton: some View {
-        HStack {
-            Button {
-                if state.wouldExitOnBack {
-                    showExitConfirmation = true
-                } else {
-                    state.previousStep()
-                }
-            } label: {
-                HStack(spacing: DesignTokens.Spacing.xs) {
-                    Image(systemName: "chevron.left")
-                        .font(PulpeTypography.labelLarge)
-                    Text("Retour")
-                        .font(PulpeTypography.buttonSecondary)
-                }
-                .foregroundStyle(Color.textSecondaryOnboarding)
-            }
-            .textLinkButtonStyle()
-            Spacer()
-        }
-        .padding(.horizontal, DesignTokens.Spacing.xxl)
     }
 
     private var buttonTitle: String {
