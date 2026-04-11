@@ -331,6 +331,11 @@
       "sourceType": "github",
       "computedHash": "de11ad890ffe93db296e13f42afea7ce7f7c18f12871f417b2b9b08f548f27af"
     },
+    "workflow-clean-code-angular": {
+      "source": "neogenz/skills",
+      "sourceType": "github",
+      "computedHash": "6d1f0d1e3e582fa1ba0d89b54fb7d04422b9ce774356568cef075c1f7b7981f2"
+    },
     "ziflux-expert": {
       "source": "neogenz/ziflux",
       "sourceType": "github",
