@@ -34,24 +34,24 @@ struct BudgetPreviewStep: View {
             // Celebration checkmark — peak moment opener
             ZStack {
                 Circle()
-                    .fill(Color.pulpePrimary.opacity(DesignTokens.Opacity.badgeBackground))
+                    .fill(heroAccentColor.opacity(DesignTokens.Opacity.badgeBackground))
                     .frame(width: 56, height: 56)
 
                 Image(systemName: "checkmark.circle.fill")
                     .font(PulpeTypography.previewAmount)
-                    .foregroundStyle(Color.pulpePrimary)
+                    .foregroundStyle(heroAccentColor)
                     .symbolEffect(.bounce, value: showCheckmark)
             }
             .scaleEffect(showCheckmark ? 1 : 0.3)
             .opacity(showCheckmark ? 1 : 0)
 
-            Text(state.availableToSpend.asCompactCHF)
+            Text(heroAmountText)
                 .font(PulpeTypography.amountHero)
                 .monospacedDigit()
-                .foregroundStyle(Color.pulpePrimary)
+                .foregroundStyle(heroAccentColor)
                 .contentTransition(.numericText())
 
-            Text("disponible \u{00e0} d\u{00e9}penser")
+            Text(isDeficit ? "il te manque" : "disponible à dépenser")
                 .font(PulpeTypography.onboardingSubtitle)
                 .foregroundStyle(Color.textSecondaryOnboarding)
         }
@@ -59,8 +59,8 @@ struct BudgetPreviewStep: View {
         .accessibilityElement(children: .combine)
         .accessibilityLabel(
             amountsHidden
-                ? "Disponible à dépenser: montant masqué"
-                : "Disponible à dépenser: \(state.availableToSpend.asCompactCHF)"
+                ? "\(isDeficit ? "Il te manque" : "Disponible à dépenser"): montant masqué"
+                : "\(isDeficit ? "Il te manque" : "Disponible à dépenser"): \(heroAmountText)"
         )
         .opacity(showHero ? 1 : 0)
         .offset(y: showHero ? 0 : 10)
@@ -157,7 +157,7 @@ struct BudgetPreviewStep: View {
                 Text(state.availableToSpend.asCompactCHF)
                     .font(PulpeTypography.buttonPrimary)
                     .monospacedDigit()
-                    .foregroundStyle(Color.pulpePrimary)
+                    .foregroundStyle(heroAccentColor)
             }
         }
         .padding(DesignTokens.Spacing.lg)
@@ -176,11 +176,11 @@ struct BudgetPreviewStep: View {
 
     private var encouragingMessage: some View {
         VStack(spacing: DesignTokens.Spacing.xs) {
-            Text("On y voit plus clair, non ?")
+            Text(isDeficit ? "C'est un bon point de départ." : "On y voit plus clair !")
                 .font(PulpeTypography.onboardingSubtitle)
                 .foregroundStyle(Color.textTertiaryOnboarding)
 
-            Text("Tu pourras affiner tout \u{00e7}a plus tard.")
+            Text("Tu pourras \(isDeficit ? "ajuster" : "affiner") tout ça plus tard.")
                 .font(PulpeTypography.footnote)
                 .foregroundStyle(Color.textTertiaryOnboarding)
         }
@@ -205,6 +205,16 @@ struct BudgetPreviewStep: View {
     private var totalIncome: Decimal { state.totalIncome }
     private var savingsTotal: Decimal { state.totalSavings }
     private var chargesTotal: Decimal { state.totalCharges }
+
+    private var isDeficit: Bool { state.availableToSpend < 0 }
+
+    private var heroAccentColor: Color {
+        isDeficit ? .financialExpense : .pulpePrimary
+    }
+
+    private var heroAmountText: String {
+        (isDeficit ? state.availableToSpend.magnitude : state.availableToSpend).asCompactCHF
+    }
 
     // MARK: - Helpers
 
