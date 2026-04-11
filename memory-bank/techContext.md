@@ -32,6 +32,60 @@
 | DR-009 | Signal Store Pattern with SWR | 2026-02-13 |
 | DR-010 | Greenlight Preflight & FormTextField `hint:` Rename | 2026-03-16 |
 | DR-011 | iOS Swift 6 Migration & Build Optimization | 2026-03-31 |
+| DR-012 | VariableBlur for Progressive Blur Effects | 2026-04-10 |
+
+---
+
+## DR-012: VariableBlur for Progressive Blur Effects
+
+**Date**: 2026-04-10
+
+### Problem
+
+Les écrans d'onboarding et de login utilisent un fond en dégradé (`loginGradientBackground` : vert → dark). Un fade par `LinearGradient` vers une couleur fixe ne matche jamais le fond à toutes les positions. Un `.ultraThinMaterial` masqué par gradient crée une bande grisâtre visible sur fond sombre. Aucune API publique SwiftUI ne permet un blur à rayon variable (gaussien qui fade de max → 0).
+
+### Decision Drivers
+
+- Le fond est un gradient multi-couleurs — un fade monochrome crée toujours un mismatch visible
+- `.ultraThinMaterial` + gradient mask testé et rejeté — rendu laid sur fond sombre (bande frosted visible)
+- Apple utilise la même API privée (`CAFilter` gaussian variable sigma) dans Music, Photos, Safari
+- Le package [nikstar/VariableBlur](https://github.com/nikstar/VariableBlur) (500+ stars) expose cette API
+
+### Options Considered
+
+| Option | Description | Verdict |
+|--------|-------------|---------|
+| A: LinearGradient color fade | Gradient vers `onboardingFormBase` | Rejected — mismatch sur fond gradient |
+| B: `.ultraThinMaterial` + gradient mask | Material blur masqué | Rejected — bande frosted visible sur fond sombre |
+| C: VariableBlur (private API) | Vrai blur gaussien à rayon variable | Chosen — seule solution visuellement correcte |
+| D: Pas de blur | Clipping simple du contenu | Rejected — UX inférieure |
+
+### Decision
+
+Ajouter `nikstar/VariableBlur` v1.3.0 comme dépendance SPM. Wrapper dans `ProgressiveBlurEdge` (composant partagé dans `Shared/Components/`) utilisé sur :
+- **Login** : top overlay avec `.ignoresSafeArea(edges: .top)` pour couvrir le Dynamic Island
+- **Onboarding** : bottom overlay avec `.ignoresSafeArea(edges: .bottom)` sous le floating button
+- **Onboarding top** : conserve un `LinearGradient` simple (le fond à ce niveau est déjà proche de `onboardingFormBase`)
+
+### Rationale
+
+- `VariableBlurView` change le **rayon** du blur (max → 0), pas l'opacité d'un material fixe — transition visuellement invisible quel que soit le fond
+- API privée (`CAFilter`) mais identique à ce qu'Apple utilise dans ses propres apps — approuvé App Store à ce jour
+- Package léger (~200 lignes), pas de dépendances transitives, iOS 13+
+- Les alternatives publiques SwiftUI ont toutes été testées et rejetées pour des raisons visuelles concrètes
+
+### Consequences
+
+- **Positive** : Blur progressif natif sur n'importe quel fond (gradient, image, couleur)
+- **Risk** : API privée — Apple pourrait bloquer `CAFilter` en App Store review. Le package est utilisé en production par de nombreuses apps sans rejet connu, mais le risque existe.
+- **Fallback** : Si rejeté, revenir au `LinearGradient` color fade (déjà implémenté comme alternative sur le top onboarding)
+- **Impact** : `project.yml` (nouvelle dépendance), `ProgressiveBlurEdge.swift`, `OnboardingFlow.swift`, `LoginView.swift`
+
+### Notes
+
+- Surveiller les release notes Xcode/iOS pour une éventuelle API publique de variable blur (WWDC 2026+)
+- Si Apple propose une API publique, migrer et supprimer la dépendance
+- Le `LinearGradient` reste utilisé pour le top onboarding où le fond est quasi-monochrome à ce niveau — pas besoin de vrai blur
 
 ---
 

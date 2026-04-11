@@ -4,7 +4,7 @@
     "adapt": {
       "source": "pbakaus/impeccable",
       "sourceType": "github",
-      "computedHash": "5c03ee454d24c886cad3d1687a4f3da893edeaad05ee5aebb0eb19a515324a3e"
+      "computedHash": "65085998d643c3b64ff323ca74d76496b47484046b030730c00c03a0208bf410"
     },
     "angular-architecture": {
       "source": "neogenz/skills",
@@ -64,7 +64,7 @@
     "animate": {
       "source": "pbakaus/impeccable",
       "sourceType": "github",
-      "computedHash": "bbe89d7e1969bbda45966cf696e3148c8a7bf1886e1a6abc82bea8effe0858e2"
+      "computedHash": "354414a934957f9d54a71468abe81888304d35b47a4fe8e27fff08f60b457d53"
     },
     "apple-appstore-reviewer": {
       "source": "github/awesome-copilot",
@@ -184,37 +184,37 @@
     "audit": {
       "source": "pbakaus/impeccable",
       "sourceType": "github",
-      "computedHash": "bea0635c86cae57a087b9939106d4da0729a6297afdf894667bd32d215d46018"
+      "computedHash": "115a00d21d91d52123115af789948cb22bd604de0084837b5533f5e4af3c4055"
     },
     "bolder": {
       "source": "pbakaus/impeccable",
       "sourceType": "github",
-      "computedHash": "3cc95ca0ec7cfb3fe57af882e08eb3d422aa347b7bfbdb8fa462b1701128a2aa"
+      "computedHash": "1787478962577c9d5bde26e89e47c1654aa9c8f3c47c316a026731db0000a92e"
     },
     "clarify": {
       "source": "pbakaus/impeccable",
       "sourceType": "github",
-      "computedHash": "65043f13b0a72c1f6b63d8bd5941ff18a5726c21ce3c5190c9becaf67178349d"
+      "computedHash": "42877142fcc51dcc6be696349aa7df8887eb29510e2a5868beac913f5f84de31"
     },
     "colorize": {
       "source": "pbakaus/impeccable",
       "sourceType": "github",
-      "computedHash": "c67ed4d7728282b1a4e786e87b5ea932c5da7ccddd688e4f1bde07d089097ad3"
+      "computedHash": "4793ac377b2bc1a5831d9634ce882373350cc5d097fd631d192155266204ceb8"
     },
     "critique": {
       "source": "pbakaus/impeccable",
       "sourceType": "github",
-      "computedHash": "00e27a6e35ca5f63a8670871b966b42cf275166ea0d7cf1cecdc6e1fc71d8202"
+      "computedHash": "977f6fc3aa1002ec095f649e1b7c4fa52ee08a447f19229062810a9323c5c342"
     },
     "delight": {
       "source": "pbakaus/impeccable",
       "sourceType": "github",
-      "computedHash": "c41964fc9bb2251c92618941def84861b34001a88c19ef7eed7648120b65d54d"
+      "computedHash": "1f6f4adee0b964e8344c0baef46b4e303ab3ba20932907bcbb1444ba7b3273b2"
     },
     "distill": {
       "source": "pbakaus/impeccable",
       "sourceType": "github",
-      "computedHash": "2937d567b86a6e48c7338731c7dcc4edbe1ffb2058f9502d2b94e5ef81a8ce13"
+      "computedHash": "669a671f855be8773e4c2936e54d4243fbd1d273f87633158544efe3dbc4d825"
     },
     "extract": {
       "source": "pbakaus/impeccable",
@@ -229,7 +229,7 @@
     "impeccable": {
       "source": "pbakaus/impeccable",
       "sourceType": "github",
-      "computedHash": "094491c0ae1dedba1865a45d8e9ec75520fb161e2d2fe0029cba914200335ba1"
+      "computedHash": "a26b3dd377c4572b1c34c68f82ab9a1cb806f21c7157060327fe60e9b6d2e277"
     },
     "mastering-typescript": {
       "source": "spillwavesolutions/mastering-typescript-skill",
@@ -249,17 +249,17 @@
     "optimize": {
       "source": "pbakaus/impeccable",
       "sourceType": "github",
-      "computedHash": "f7adc2a2e540a590978b567d82985062bfada83385f5ad5d50b13a127cdc96d6"
+      "computedHash": "979ffc76a4345c081fdf89078b7107c216d70696e027b23e8e24972dd4e457b2"
     },
     "overdrive": {
       "source": "pbakaus/impeccable",
       "sourceType": "github",
-      "computedHash": "d7c2c6fe1582fdc7a8b05776714f1d2d75f7593a024761a75761095863ebc6c2"
+      "computedHash": "30e2909c14b9e860b580e63f9bbe10cc1dee8de0be9b03013218c3ef8d9ede78"
     },
     "polish": {
       "source": "pbakaus/impeccable",
       "sourceType": "github",
-      "computedHash": "a37bac6096e9aaf717ffaf6d4bfa475e6cb6fd7c172f53ed63a1e5a6241235a6"
+      "computedHash": "c294f2570dcc5b8865d17f0dc5ef339a700c868f1b20fa9994297f64ace2d4de"
     },
     "posthog-instrumentation": {
       "source": "posthog/posthog-for-claude",
@@ -269,17 +269,17 @@
     "quieter": {
       "source": "pbakaus/impeccable",
       "sourceType": "github",
-      "computedHash": "79087d2724b1c35b300a69a3cb1f71bae89f2231b10d53a367457e3c15399051"
+      "computedHash": "2c20b12bb4ece445d45fc63bda020aecf78b3cdf6d593beb59c273f658293130"
     },
     "shape": {
       "source": "pbakaus/impeccable",
       "sourceType": "github",
-      "computedHash": "867399b167a78da8635649c58b47fc49babaac26d5c423371f26531a8e481912"
+      "computedHash": "8edad33758f2461f51afdb51741bfcc4cc57d84ea42e2751a84be2c6a2d48f69"
     },
     "supabase-postgres-best-practices": {
       "source": "supabase/agent-skills",
       "sourceType": "github",
-      "computedHash": "9c87c315aed143ee3b34bec8117100f5035e0df09e6b23e1ecc772cff434c9ad"
+      "computedHash": "f4cd7570115d97af6bcb2946eb891a958c8d04a43b479871c9ccadbc670ad058"
     },
     "swift-concurrency-expert": {
       "source": "dimillian/skills",
@@ -319,7 +319,7 @@
     "typeset": {
       "source": "pbakaus/impeccable",
       "sourceType": "github",
-      "computedHash": "9f96013a3fcd2d4a8337293f9f6872bde2060520224a7994b87418eb4ef76001"
+      "computedHash": "1cd76e560d1ba25b0bd5f7adfa2957a9f653a3ad0b031d467221154fcd1e0423"
     },
     "update-swiftui-apis": {
       "source": "avdlee/swiftui-agent-skill",
