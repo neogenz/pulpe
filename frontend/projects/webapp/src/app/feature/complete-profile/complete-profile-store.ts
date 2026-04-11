@@ -50,6 +50,8 @@ export const ONBOARDING_SUGGESTIONS: readonly OnboardingTransaction[] = [
   },
 ];
 
+const MAX_CUSTOM_TRANSACTIONS = 50;
+
 interface CompleteProfileState {
   firstName: string;
   monthlyIncome: number | null;
@@ -203,7 +205,8 @@ export class CompleteProfileStore {
   }
 
   addCustomTransaction(tx: OnboardingTransaction): void {
-    if (this.#state().customTransactions.length >= 50) return;
+    if (this.#state().customTransactions.length >= MAX_CUSTOM_TRANSACTIONS)
+      return;
     this.#patchState({
       customTransactions: [...this.#state().customTransactions, tx],
     });
@@ -237,10 +240,6 @@ export class CompleteProfileStore {
         ? current.filter((t) => !exactMatch(t))
         : [...current, suggestion],
     });
-  }
-
-  clearError(): void {
-    this.#patchState({ error: null });
   }
 
   prefillFromOAuthMetadata(): void {

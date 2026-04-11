@@ -587,6 +587,21 @@ describe('CompleteProfileStore', () => {
       );
     });
 
+    it('should handle unexpected exception from createInitialBudget', async () => {
+      mockProfileSetupService.createInitialBudget.mockRejectedValue(
+        new Error('Network failure'),
+      );
+
+      store.updateFirstName('John');
+      store.updateMonthlyIncome(5000);
+
+      const result = await store.submitProfile();
+
+      expect(result).toBe(false);
+      expect(store.error()).toBeDefined();
+      expect(store.isLoading()).toBe(false);
+    });
+
     it('should track custom_transactions_count in PostHog event', async () => {
       mockProfileSetupService.createInitialBudget.mockResolvedValue({
         success: true,

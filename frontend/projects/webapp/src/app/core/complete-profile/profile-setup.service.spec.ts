@@ -266,5 +266,20 @@ describe('ProfileSetupService', () => {
       expect(result.success).toBe(false);
       expect(result.error).toBeDefined();
     });
+
+    it('should return template error when template creation fails', async () => {
+      mockApiClient.post$.mockReturnValue(
+        throwError(() => new Error('template creation failed')),
+      );
+
+      const result = await service.createInitialBudget({
+        firstName: 'Test',
+        monthlyIncome: 3000,
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBeDefined();
+      expect(mockBudgetApi.generateBudgets$).not.toHaveBeenCalled();
+    });
   });
 });

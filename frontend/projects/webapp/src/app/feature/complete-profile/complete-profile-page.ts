@@ -6,6 +6,7 @@ import {
 } from '@angular/core';
 import { trigger, transition, style, animate } from '@angular/animations';
 import { Router } from '@angular/router';
+import { firstValueFrom } from 'rxjs';
 import { MatDialog } from '@angular/material/dialog';
 import { FormsModule } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -414,10 +415,7 @@ import { PAY_DAY_MAX } from 'pulpe-shared';
                   <!-- Custom transactions list -->
                   @if (store.customTransactions().length > 0) {
                     <div class="space-y-2 mb-4">
-                      @for (
-                        tx of store.customTransactions();
-                        track tx.name + tx.type
-                      ) {
+                      @for (tx of store.customTransactions(); track $index) {
                         <div
                           class="flex items-center justify-between px-4 py-3 rounded-xl border border-outline-variant/30"
                         >
@@ -445,7 +443,7 @@ import { PAY_DAY_MAX } from 'pulpe-shared';
                             <input
                               type="number"
                               inputmode="decimal"
-                              class="w-20 text-right text-body-medium text-on-surface bg-surface-container rounded-xl px-2 py-1.5 border border-outline-variant/30 focus:border-primary focus:outline-none transition-colors ph-no-capture pointer-events-auto"
+                              class="w-20 text-right text-body-medium text-on-surface bg-surface-container rounded-xl px-2 py-1.5 border border-outline-variant/30 focus:border-primary focus:outline-none transition-colors"
                               [value]="tx.amount"
                               (change)="onAmountChange(tx, $event)"
                               [attr.aria-label]="'Montant de ' + tx.name"
@@ -602,15 +600,15 @@ export default class CompleteProfilePage {
     }
   }
 
-  protected openAddCustomDialog(): void {
-    import('./add-custom-expense-dialog').then(({ AddCustomExpenseDialog }) => {
+  protected async openAddCustomDialog(): Promise<void> {
+    const { AddCustomExpenseDialog } =
+      await import('./add-custom-expense-dialog');
+    const tx = await firstValueFrom(
       this.#dialog
         .open(AddCustomExpenseDialog, { width: '400px' })
-        .afterClosed()
-        .subscribe((tx: OnboardingTransaction | undefined) => {
-          if (tx) this.store.addCustomTransaction(tx);
-        });
-    });
+        .afterClosed(),
+    );
+    if (tx) this.store.addCustomTransaction(tx);
   }
 
   protected async onSubmit(): Promise<void> {
