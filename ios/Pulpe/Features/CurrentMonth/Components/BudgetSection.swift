@@ -127,6 +127,7 @@ struct BudgetSection: View {
                 Button {
                     onToggle(item)
                     ProductTips.gestures.invalidate(reason: .actionPerformed)
+                    ProductTips.checking.invalidate(reason: .actionPerformed)
                 } label: {
                     Label(
                         item.isChecked ? "Dépointer" : "Pointer",
