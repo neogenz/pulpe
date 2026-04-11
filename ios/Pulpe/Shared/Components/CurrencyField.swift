@@ -84,6 +84,7 @@ struct CurrencyField: View {
             .frame(height: DesignTokens.FrameHeight.button)
             .background { fieldBackground }
             .contentShape(.interaction, Rectangle())
+            // Full-field tap focuses the nested `TextField`; `Button` would add nested control semantics.
             .onTapGesture { (externalFocus ?? $internalFocus).wrappedValue = true }
             .ifLet(shadowStyle) { view, style in view.shadow(style) }
             .animation(.spring(response: 0.3, dampingFraction: 0.7), value: effectiveFocus)

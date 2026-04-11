@@ -62,6 +62,7 @@ struct HeroAmountField: View {
         .frame(maxWidth: .infinity)
         .padding(.vertical, DesignTokens.Spacing.lg)
         .contentShape(Rectangle())
+        // Same pattern as `FormTextField` / `CurrencyField`: tap anywhere to focus the amount field.
         .onTapGesture { isFocused.wrappedValue = true }
         .accessibilityAddTraits(.isButton)
         .accessibilityLabel("Montant")

@@ -7,6 +7,7 @@ struct LoginView: View {
     @State private var isAppeared = false
     @State private var forgotPasswordPresentation: ForgotPasswordPresentation?
     @FocusState private var focusedField: Field?
+    @State private var submitSuccessTrigger = false
 
     var isPresented: Binding<Bool>?
     var onBiometric: (() -> Void)?
@@ -20,25 +21,33 @@ struct LoginView: View {
             ZStack {
                 Color.loginGradientBackground
 
-                ScrollView {
-                    VStack(spacing: DesignTokens.Spacing.xxl) {
-                        headerSection
-                        Spacer().frame(height: DesignTokens.Spacing.lg)
-                        formSection
-                        createAccountSection
-                        termsFooter
+                ScrollViewReader { scrollProxy in
+                    ScrollView {
+                        VStack(spacing: DesignTokens.Spacing.xxl) {
+                            headerSection
+                            Spacer().frame(height: DesignTokens.Spacing.lg)
+                            formSection
+                            createAccountSection
+                            termsFooter
+                        }
+                        .padding(.horizontal, DesignTokens.Spacing.xxl)
+                        .padding(.bottom, DesignTokens.Spacing.xxxl)
                     }
-                    .padding(.horizontal, DesignTokens.Spacing.xxl)
-                    .padding(.bottom, DesignTokens.Spacing.xxxl)
-                }
-                .scrollBounceBehavior(.basedOnSize)
-                .scrollDismissesKeyboard(.interactively)
-                .overlay(alignment: .top) {
-                    ProgressiveBlurEdge(
-                        edge: .top,
-                        height: DesignTokens.Blur.topFadeHeight
-                    )
-                    .ignoresSafeArea(edges: .top)
+                    .scrollBounceBehavior(.basedOnSize)
+                    .scrollDismissesKeyboard(.interactively)
+                    .overlay(alignment: .top) {
+                        ProgressiveBlurEdge(
+                            edge: .top,
+                            height: DesignTokens.Blur.topFadeHeight
+                        )
+                        .ignoresSafeArea(edges: .top)
+                    }
+                    .onChange(of: viewModel.errorMessage) { _, newValue in
+                        guard newValue != nil else { return }
+                        withAnimation {
+                            scrollProxy.scrollTo("errorBanner", anchor: .top)
+                        }
+                    }
                 }
             }
             .toolbar {
@@ -53,6 +62,7 @@ struct LoginView: View {
                 }
             }
             .trackScreen("Login")
+            .sensoryFeedback(.success, trigger: submitSuccessTrigger)
             .dismissKeyboardOnTap()
             .sheet(item: $forgotPasswordPresentation) { _ in
                 ForgotPasswordSheet {
@@ -133,6 +143,7 @@ extension LoginView {
             .padding(DesignTokens.Spacing.lg)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(Color.errorBackground, in: .rect(cornerRadius: DesignTokens.CornerRadius.button))
+            .id("errorBanner")
         }
     }
 
@@ -157,6 +168,8 @@ extension LoginView {
             .accessibilityIdentifier("email")
             .accessibilityLabel("Adresse e-mail")
             .accessibilityHint("Saisis ton adresse e-mail")
+            .submitLabel(.next)
+            .onSubmit { focusedField = .password }
         }
     }
 
@@ -178,6 +191,18 @@ extension LoginView {
             .accessibilityIdentifier("password")
             .accessibilityLabel("Mot de passe")
             .accessibilityHint("Saisis ton mot de passe")
+            .submitLabel(.go)
+            .onSubmit {
+                guard viewModel.canSubmit else { return }
+                Task { await login() }
+            }
+
+            if !viewModel.password.isEmpty && !viewModel.isPasswordValid {
+                Text("8 caractères minimum")
+                    .font(PulpeTypography.inputHelper)
+                    .foregroundStyle(Color.textTertiaryOnboarding)
+                    .padding(.leading, DesignTokens.Spacing.lg)
+            }
         }
     }
 
@@ -226,6 +251,7 @@ extension LoginView {
                 }
             }
             .secondaryButtonStyle()
+            .padding(.top, DesignTokens.Spacing.sm)
             .accessibilityIdentifier("faceIDButton")
         }
     }
@@ -234,7 +260,7 @@ extension LoginView {
         HStack(spacing: DesignTokens.Spacing.xs) {
             Link("CGU", destination: AppURLs.terms)
                 .underline()
-            Text("&")
+            Text("et")
             Link("Politique de confidentialité", destination: AppURLs.privacy)
                 .underline()
         }
@@ -275,6 +301,7 @@ extension LoginView {
             try await appState.login(email: viewModel.email, password: viewModel.password)
             AnalyticsService.shared.capture(.loginCompleted, properties: ["method": "email"])
             appState.biometricError = nil
+            submitSuccessTrigger.toggle()
             isPresented?.wrappedValue = false
         } catch {
             AnalyticsService.shared.captureAuthError(.loginFailed, error: error, method: "email")

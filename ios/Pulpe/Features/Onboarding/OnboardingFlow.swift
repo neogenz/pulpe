@@ -1,4 +1,5 @@
 import SwiftUI
+import VariableBlur
 
 /// Main onboarding flow coordinator
 struct OnboardingFlow: View {
@@ -49,6 +50,10 @@ struct OnboardingFlow: View {
                                 .allowsHitTesting(false)
                             }
                         }
+                }
+                .background {
+                    Color.onboardingFormBase
+                        .ignoresSafeArea()
                 }
             }
             .toolbar(.hidden, for: .navigationBar)
@@ -205,7 +210,10 @@ struct OnboardingStepView<Content: View>: View {
         ScrollViewReader { proxy in
             ScrollView {
                 VStack(spacing: DesignTokens.Spacing.xxxl) {
-                    OnboardingStepHeader(step: step)
+                    OnboardingStepHeader(
+                        step: step,
+                        onSkip: step.isOptional ? onNext : nil
+                    )
 
                     content()
                         .padding(.horizontal, DesignTokens.Spacing.xxl)
@@ -247,21 +255,26 @@ struct OnboardingStepView<Content: View>: View {
                     contentOverflows = newOverflows
                 }
             }
+            // Bottom blur — ignoresSafeArea BEFORE frame so it extends past home indicator
             .overlay(alignment: .bottom) {
-                // Floating blur + ↓ button: only when content overflows AND not at bottom
                 if (contentOverflows && !isAtBottom) || isKeyboardVisible {
-                    ZStack(alignment: .bottomTrailing) {
-                        ProgressiveBlurEdge(
-                            edge: .bottom,
-                            height: DesignTokens.Blur.bottomFadeHeight
-                        )
-                        .ignoresSafeArea(edges: .bottom)
-
-                        floatingButton(proxy: proxy)
-                            .padding(.trailing, DesignTokens.Spacing.xxl)
-                            .padding(.bottom, DesignTokens.Spacing.lg)
-                    }
+                    VariableBlurView(
+                        maxBlurRadius: 8,
+                        direction: .blurredBottomClearTop
+                    )
+                    .allowsHitTesting(false)
+                    .ignoresSafeArea(edges: .bottom)
+                    .frame(height: DesignTokens.Blur.bottomFadeHeight)
                     .transition(.opacity.combined(with: .move(edge: .bottom)))
+                }
+            }
+            // Floating ↓ button — stays within safe area
+            .overlay(alignment: .bottomTrailing) {
+                if (contentOverflows && !isAtBottom) || isKeyboardVisible {
+                    floatingButton(proxy: proxy)
+                        .padding(.trailing, DesignTokens.Spacing.xxl)
+                        .padding(.bottom, DesignTokens.Spacing.lg)
+                        .transition(.opacity.combined(with: .move(edge: .bottom)))
                 }
             }
         }

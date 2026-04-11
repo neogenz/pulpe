@@ -52,6 +52,7 @@ struct FormTextField: View {
             .background(Color.inputBackgroundSoft)
             .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
             .contentShape(.interaction, Rectangle())
+            // See type documentation — `Button` would not focus the inner `TextField` with this layout.
             .onTapGesture { activeFocus.wrappedValue = true }
     }
 }

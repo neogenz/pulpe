@@ -5,6 +5,7 @@ struct OnboardingStepHeader: View {
     let step: OnboardingStep
     var titleOverride: String?
     var subtitleOverride: String?
+    var onSkip: (() -> Void)?
 
     var body: some View {
         VStack(spacing: DesignTokens.Spacing.lg) {
@@ -19,7 +20,18 @@ struct OnboardingStepHeader: View {
                 .padding(.horizontal, DesignTokens.Spacing.lg)
 
             if step.isOptional {
-                OptionalBadge()
+                VStack(spacing: DesignTokens.Spacing.sm) {
+                    OptionalBadge()
+
+                    if let onSkip {
+                        Button("Passer cette étape") { onSkip() }
+                            .font(PulpeTypography.buttonSecondary)
+                            .foregroundStyle(Color.textTertiaryOnboarding)
+                            .textLinkButtonStyle()
+                            .frame(minHeight: DesignTokens.TapTarget.minimum)
+                            .contentShape(Rectangle())
+                    }
+                }
             }
         }
     }
@@ -36,8 +48,8 @@ struct OptionalBadge: View {
                 .fontWeight(.medium)
         }
         .foregroundStyle(Color.textTertiaryOnboarding)
-        .padding(.horizontal, 14)
-        .padding(.vertical, 6)
+        .padding(.horizontal, DesignTokens.Spacing.lg)
+        .padding(.vertical, DesignTokens.Spacing.sm)
         .background(Color.textTertiaryOnboarding.opacity(0.15), in: Capsule())
     }
 }

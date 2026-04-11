@@ -64,6 +64,7 @@ private struct AuthFieldContainer<Content: View>: View {
             ? ShadowStyle(color: .black.opacity(0.01), radius: 2, y: 1)
             : DesignTokens.Shadow.input)
         .contentShape(.interaction, Rectangle())
+        // Expands tap target to the padded capsule; focus is managed by parent `FocusState`, not a `Button` action.
         .onTapGesture { requestFocus?() }
         .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isFocused)
         .animation(.spring(response: 0.3, dampingFraction: 0.7), value: showCheckmark)

@@ -35,7 +35,7 @@ struct WelcomeStep: View {
 
                     Text("Ton budget est prêt en 2 minutes")
                         .font(PulpeTypography.onboardingSubtitle)
-                        .foregroundStyle(Color.textSecondaryOnboarding)
+                        .foregroundStyle(Color.textPrimaryOnboarding)
                         .multilineTextAlignment(.center)
                 }
                 .padding(.horizontal, DesignTokens.Spacing.xxxl)
@@ -56,26 +56,34 @@ struct WelcomeStep: View {
 
                     SocialLoginDivider()
 
-                    // Email signup CTA
+                    // Email signup — secondary path
                     Button {
                         AnalyticsService.shared.capture(.signupStarted, properties: ["method": "email"])
                         state.nextStep()
                     } label: {
-                        HStack(spacing: DesignTokens.Spacing.sm) {
+                        HStack(spacing: DesignTokens.Spacing.xs) {
                             Text("C'est parti")
                             Image(systemName: "arrow.right")
                                 .font(PulpeTypography.labelLarge)
                         }
+                        .font(PulpeTypography.buttonSecondary)
+                        .foregroundStyle(Color.pulpePrimary)
                     }
-                    .primaryButtonStyle()
+                    .textLinkButtonStyle()
+                    .frame(minHeight: DesignTokens.TapTarget.minimum)
+                    .contentShape(Rectangle())
 
-                    // Secondary action
+                    // Existing user — tertiary path
                     Button {
                         showLogin = true
                     } label: {
                         Text("J'ai déjà un compte")
+                            .font(PulpeTypography.buttonSecondary)
+                            .foregroundStyle(Color.textSecondaryOnboarding)
                     }
-                    .secondaryButtonStyle()
+                    .textLinkButtonStyle()
+                    .frame(minHeight: DesignTokens.TapTarget.minimum)
+                    .contentShape(Rectangle())
                 }
                 .padding(.horizontal, DesignTokens.Spacing.xxl)
                 .padding(.bottom, DesignTokens.Spacing.xxxl)
