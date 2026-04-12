@@ -8,8 +8,6 @@ struct OnboardingStepView<Content: View>: View {
     let state: OnboardingState
     let canProceed: Bool
     let onNext: () -> Void
-    var titleOverride: String?
-    var subtitleOverride: String?
     @ViewBuilder let content: () -> Content
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion

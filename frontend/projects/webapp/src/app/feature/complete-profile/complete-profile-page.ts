@@ -448,16 +448,7 @@ import { PAY_DAY_MAX } from 'pulpe-shared';
                             <span
                               class="text-label-small"
                               [pulpeFinancialKind]="tx.type"
-                              >{{
-                                tx.type === 'income'
-                                  ? ('completeProfile.customExpense.kindIncome'
-                                    | transloco)
-                                  : tx.type === 'saving'
-                                    ? ('completeProfile.customExpense.kindSaving'
-                                      | transloco)
-                                    : ('completeProfile.customExpense.kindExpense'
-                                      | transloco)
-                              }}</span
+                              >{{ labelKeyForType(tx.type) | transloco }}</span
                             >
                           </div>
                           <div class="flex items-center gap-2 flex-shrink-0">
@@ -562,7 +553,22 @@ export default class CompleteProfilePage {
   protected readonly suggestions = ONBOARDING_SUGGESTIONS;
 
   protected formatAmount(value: number): string {
+    // Defensive: any non-finite value (NaN/Infinity) renders as "0" instead of "∞"
+    // or "NaN" in the live preview. Belt-and-braces with the Number.isFinite guard
+    // in onAmountChange.
+    if (!Number.isFinite(value)) return '0';
     return value.toLocaleString('de-CH', { maximumFractionDigits: 0 });
+  }
+
+  /// Maps a transaction kind to its transloco label key. Used by the custom-transaction
+  /// list rows. Replaces an inline nested ternary in the template.
+  protected labelKeyForType(type: 'income' | 'expense' | 'saving'): string {
+    const keys = {
+      income: 'completeProfile.customExpense.kindIncome',
+      expense: 'completeProfile.customExpense.kindExpense',
+      saving: 'completeProfile.customExpense.kindSaving',
+    } as const;
+    return keys[type];
   }
 
   /// Live aria-live announcement for the budget summary. Reacts to chip toggles
@@ -589,7 +595,6 @@ export default class CompleteProfilePage {
   );
 
   constructor() {
-    this.store.prefillFromOAuthMetadata();
     void this.#initPage();
   }
 
@@ -599,6 +604,10 @@ export default class CompleteProfilePage {
       this.#router.navigate(['/', ROUTES.DASHBOARD]);
       return;
     }
+    // Only prefill the form for users who are actually staying on this page.
+    // Previously this ran in the constructor, which mutated a now-orphan store
+    // for users redirected away by `hasExisting`.
+    this.store.prefillFromOAuthMetadata();
     this.#postHogService.captureEvent('onboarding_started');
   }
 
@@ -613,6 +622,10 @@ export default class CompleteProfilePage {
     this.currentStep.set(step);
   }
 
+  // Bound to (change), not (input), so the live budget preview only recomputes
+  // when the user commits an edit (blur/Enter). Avoids jitter and unnecessary
+  // sr-only re-announcements during typing. The live announcer (T2.6) updates
+  // immediately on chip toggle and on this commit, which is the right moment.
   protected onAmountChange(index: number, event: Event): void {
     const input = event.target as HTMLInputElement;
     const value = +input.value;
