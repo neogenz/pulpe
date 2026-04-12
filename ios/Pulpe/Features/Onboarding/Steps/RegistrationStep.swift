@@ -86,12 +86,8 @@ extension RegistrationStep {
     }
 
     private var consentText: some View {
-        Text(Self.consentMarkdown)
-            .font(PulpeTypography.caption2)
-            .foregroundStyle(Color.textTertiaryOnboarding)
-            .multilineTextAlignment(.center)
+        OnboardingConsentText(attributed: Self.consentMarkdown)
             .frame(maxWidth: .infinity, alignment: .center)
-            .tint(Color.pulpePrimary)
     }
 
     private static let consentMarkdown = AppURLs.legalDisclosure(
@@ -103,8 +99,6 @@ extension RegistrationStep {
     private func submitRegistration() async {
         state.isLoading = true
         state.error = nil
-        // Implicit consent — user has read the disclosure and tapped the submit button.
-        state.acceptTerms = true
 
         do {
             let authService = AuthService.shared

@@ -18,7 +18,6 @@ final class OnboardingState {
     // MARK: - Registration
 
     var email: String = ""
-    var acceptTerms: Bool = false
 
     // MARK: - Auth State
 

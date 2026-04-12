@@ -60,15 +60,6 @@ struct WelcomeStep: View {
                         state.nextStep()
                     })
 
-                    // Implicit consent disclosure for social signups
-                    // (email path has its own checkbox in RegistrationStep)
-                    Text(Self.consentMarkdown)
-                        .font(PulpeTypography.caption2)
-                        .foregroundStyle(Color.textTertiaryOnboarding)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, DesignTokens.Spacing.md)
-                        .tint(Color.pulpePrimary)
-
                     SocialLoginDivider()
 
                     // Email signup — secondary path
@@ -101,12 +92,8 @@ struct WelcomeStep: View {
                     .contentShape(Rectangle())
 
                     // Implicit consent — covers all auth methods (foundation of the stack)
-                    Text(Self.consentMarkdown)
-                        .font(PulpeTypography.caption2)
-                        .foregroundStyle(Color.textTertiaryOnboarding)
-                        .multilineTextAlignment(.center)
+                    OnboardingConsentText(attributed: Self.consentMarkdown)
                         .padding(.horizontal, DesignTokens.Spacing.md)
-                        .tint(Color.pulpePrimary)
                 }
                 .padding(.horizontal, DesignTokens.Spacing.xxl)
                 .padding(.bottom, DesignTokens.Spacing.xxxl)
