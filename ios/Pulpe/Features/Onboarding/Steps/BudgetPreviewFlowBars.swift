@@ -1,0 +1,97 @@
+import SwiftUI
+
+/// Two horizontal bars (Entrées vs Sorties) shown above the breakdown rows
+/// in `BudgetPreviewStep`. The Sorties bar is itself stacked: charges (orange)
+/// + savings (green). Both bars share the same scale, so length difference
+/// communicates deficit/comfort without warning chrome.
+struct BudgetPreviewFlowBars: View {
+    let income: Decimal
+    let charges: Decimal
+    let savings: Decimal
+
+    private var outflows: Decimal { charges + savings }
+    private var maxTotal: Decimal { max(income, outflows) }
+
+    var body: some View {
+        if maxTotal > 0 {
+            Grid(
+                alignment: .leading,
+                horizontalSpacing: DesignTokens.Spacing.md,
+                verticalSpacing: DesignTokens.Spacing.sm
+            ) {
+                GridRow {
+                    label("Entrées")
+                    track(segments: [(income, .financialIncome)])
+                        .frame(height: DesignTokens.ProgressBar.thickHeight)
+                    amount(income)
+                }
+                GridRow {
+                    label("Sorties")
+                    track(segments: [
+                        (charges, .financialExpense),
+                        (savings, .financialSavings)
+                    ])
+                    .frame(height: DesignTokens.ProgressBar.thickHeight)
+                    amount(outflows)
+                }
+            }
+            .animation(DesignTokens.Animation.smoothEaseInOut, value: income)
+            .animation(DesignTokens.Animation.smoothEaseInOut, value: charges)
+            .animation(DesignTokens.Animation.smoothEaseInOut, value: savings)
+        }
+    }
+
+    private func label(_ text: String) -> some View {
+        Text(text)
+            .font(PulpeTypography.labelMedium)
+            .foregroundStyle(Color.textSecondaryOnboarding)
+    }
+
+    private func amount(_ value: Decimal) -> some View {
+        Text(value.asCompactCHF)
+            .font(PulpeTypography.labelMedium)
+            .monospacedDigit()
+            .foregroundStyle(Color.textPrimary)
+            .gridColumnAlignment(.trailing)
+    }
+
+    private func track(segments: [(amount: Decimal, color: Color)]) -> some View {
+        GeometryReader { proxy in
+            ZStack(alignment: .leading) {
+                Capsule()
+                    .fill(Color.progressTrack)
+
+                HStack(spacing: 0) {
+                    ForEach(Array(segments.enumerated()), id: \.offset) { _, segment in
+                        if segment.amount > 0 {
+                            Rectangle()
+                                .fill(segment.color)
+                                .frame(width: ratio(segment.amount) * proxy.size.width)
+                        }
+                    }
+                }
+                .clipShape(Capsule())
+            }
+        }
+    }
+
+    private func ratio(_ amount: Decimal) -> CGFloat {
+        guard maxTotal > 0 else { return 0 }
+        return CGFloat(truncating: (amount / maxTotal) as NSDecimalNumber)
+    }
+}
+
+#Preview("Comfort") {
+    BudgetPreviewFlowBars(income: 2500, charges: 1350, savings: 587)
+        .padding()
+}
+
+#Preview("Deficit") {
+    BudgetPreviewFlowBars(income: 500, charges: 1500, savings: 437)
+        .padding()
+}
+
+#Preview("Savings only") {
+    BudgetPreviewFlowBars(income: 2000, charges: 0, savings: 800)
+        .padding()
+}

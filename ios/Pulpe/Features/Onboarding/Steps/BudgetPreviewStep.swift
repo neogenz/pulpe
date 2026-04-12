@@ -99,6 +99,16 @@ struct BudgetPreviewStep: View {
 
     private var breakdownCard: some View {
         VStack(spacing: DesignTokens.Spacing.md) {
+            BudgetPreviewFlowBars(
+                income: totalIncome,
+                charges: chargesTotal,
+                savings: savingsTotal
+            )
+
+            Divider()
+                .opacity(0.15)
+                .padding(.horizontal, DesignTokens.Spacing.xs)
+
             breakdownRow(
                 icon: "arrow.down.circle.fill",
                 label: "Revenus",
@@ -183,7 +193,7 @@ struct BudgetPreviewStep: View {
                 .shadow(DesignTokens.Shadow.card)
         )
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("Résumé du budget")
+        .accessibilityLabel(breakdownAccessibilityLabel)
         .scaleEffect(showCard ? 1 : 0.95)
         .opacity(showCard ? 1 : 0)
     }
@@ -223,6 +233,20 @@ struct BudgetPreviewStep: View {
     private var totalIncome: Decimal { state.totalIncome }
     private var savingsTotal: Decimal { state.totalSavings }
     private var chargesTotal: Decimal { state.totalCharges }
+    private var outflowsTotal: Decimal { state.totalExpenses }
+
+    private var breakdownAccessibilityLabel: String {
+        var label = "Résumé du budget. Entrées \(totalIncome.asCompactCHF)"
+            + ", sorties \(outflowsTotal.asCompactCHF)"
+        if chargesTotal > 0 {
+            label += " dont \(chargesTotal.asCompactCHF) de charges"
+        }
+        if savingsTotal > 0 {
+            let connector = chargesTotal > 0 ? " et" : " dont"
+            label += "\(connector) \(savingsTotal.asCompactCHF) d'épargne"
+        }
+        return label
+    }
 
     private var isDeficit: Bool { state.availableToSpend < 0 }
 
