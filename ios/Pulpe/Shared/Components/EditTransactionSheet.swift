@@ -57,7 +57,7 @@ struct EditTransactionSheet: View {
         ) {
             KindToggle(selection: $kind)
 
-            if userSettingsStore.showCurrencySelector {
+            if userSettingsStore.showCurrencySelectorEffective {
                 CurrencyAmountPicker(selectedCurrency: $inputCurrency, baseCurrency: userSettingsStore.currency)
             }
 
@@ -185,4 +185,5 @@ struct EditTransactionDependencies: Sendable {
     }
     .environment(ToastManager())
     .environment(UserSettingsStore())
+    .environment(FeatureFlagsStore())
 }

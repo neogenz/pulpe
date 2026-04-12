@@ -16,6 +16,7 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import type { Transaction } from 'pulpe-shared';
 import { AppCurrencyPipe, buildConversionTooltip } from '@core/currency';
+import { FeatureFlagsService } from '@core/feature-flags';
 import { UserSettingsStore } from '@core/user-settings';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { CurrencyConversionBadge } from '@ui/currency-conversion-badge';
@@ -87,18 +88,20 @@ import type {
             class="text-title-small font-semibold ph-no-capture flex items-center justify-center gap-1"
           >
             {{ data.budgetLine.amount | appCurrency: currency() : '1.0-0' }}
-            <pulpe-currency-conversion-badge
-              [originalAmount]="data.budgetLine.originalAmount"
-              [originalCurrency]="data.budgetLine.originalCurrency"
-              [exchangeRate]="data.budgetLine.exchangeRate"
-              [tooltipText]="
-                conversionTooltip(
-                  data.budgetLine.originalAmount,
-                  data.budgetLine.originalCurrency,
-                  data.budgetLine.exchangeRate
-                )
-              "
-            />
+            @if (isMultiCurrencyEnabled()) {
+              <pulpe-currency-conversion-badge
+                [originalAmount]="data.budgetLine.originalAmount"
+                [originalCurrency]="data.budgetLine.originalCurrency"
+                [exchangeRate]="data.budgetLine.exchangeRate"
+                [tooltipText]="
+                  conversionTooltip(
+                    data.budgetLine.originalAmount,
+                    data.budgetLine.originalCurrency,
+                    data.budgetLine.exchangeRate
+                  )
+                "
+              />
+            }
           </div>
         </div>
         <!-- Reste -->
@@ -163,18 +166,20 @@ import type {
                   class="text-body-medium font-semibold whitespace-nowrap ph-no-capture inline-flex items-center gap-1"
                 >
                   {{ tx.amount | appCurrency: currency() }}
-                  <pulpe-currency-conversion-badge
-                    [originalAmount]="tx.originalAmount"
-                    [originalCurrency]="tx.originalCurrency"
-                    [exchangeRate]="tx.exchangeRate"
-                    [tooltipText]="
-                      conversionTooltip(
-                        tx.originalAmount,
-                        tx.originalCurrency,
-                        tx.exchangeRate
-                      )
-                    "
-                  />
+                  @if (isMultiCurrencyEnabled()) {
+                    <pulpe-currency-conversion-badge
+                      [originalAmount]="tx.originalAmount"
+                      [originalCurrency]="tx.originalCurrency"
+                      [exchangeRate]="tx.exchangeRate"
+                      [tooltipText]="
+                        conversionTooltip(
+                          tx.originalAmount,
+                          tx.originalCurrency,
+                          tx.exchangeRate
+                        )
+                      "
+                    />
+                  }
                 </span>
                 <button
                   matIconButton
@@ -230,8 +235,11 @@ import type {
 })
 export class AllocatedTransactionsBottomSheet {
   readonly #userSettings = inject(UserSettingsStore);
+  readonly #featureFlags = inject(FeatureFlagsService);
   readonly #transloco = inject(TranslocoService);
   protected readonly currency = this.#userSettings.currency;
+  protected readonly isMultiCurrencyEnabled =
+    this.#featureFlags.isMultiCurrencyEnabled;
   readonly data = inject<AllocatedTransactionsDialogData>(
     MAT_BOTTOM_SHEET_DATA,
   );

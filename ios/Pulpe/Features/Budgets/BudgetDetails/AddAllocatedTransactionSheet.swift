@@ -57,7 +57,7 @@ struct AddAllocatedTransactionSheet: View {
             autoFocus: $isAmountFocused,
             descriptionFocus: $isDescriptionFocused
         ) {
-            if userSettingsStore.showCurrencySelector {
+            if userSettingsStore.showCurrencySelectorEffective {
                 CurrencyAmountPicker(selectedCurrency: $inputCurrency, baseCurrency: userSettingsStore.currency)
             }
             HeroAmountField(

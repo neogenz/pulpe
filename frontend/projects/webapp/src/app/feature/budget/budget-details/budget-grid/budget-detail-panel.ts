@@ -17,6 +17,7 @@ import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { type BudgetLine, type Transaction } from 'pulpe-shared';
 import { AppCurrencyPipe, buildConversionTooltip } from '@core/currency';
+import { FeatureFlagsService } from '@core/feature-flags';
 import { UserSettingsStore } from '@core/user-settings';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { CurrencyConversionBadge } from '@ui/currency-conversion-badge';
@@ -117,18 +118,20 @@ const DETAIL_SEGMENT_COUNT = 12;
               [pulpeFinancialKind]="envelope.data.kind"
             >
               {{ envelope.data.amount | appCurrency: currency() : '1.0-0' }}
-              <pulpe-currency-conversion-badge
-                [originalAmount]="envelope.data.originalAmount"
-                [originalCurrency]="envelope.data.originalCurrency"
-                [exchangeRate]="envelope.data.exchangeRate"
-                [tooltipText]="
-                  conversionTooltip(
-                    envelope.data.originalAmount,
-                    envelope.data.originalCurrency,
-                    envelope.data.exchangeRate
-                  )
-                "
-              />
+              @if (isMultiCurrencyEnabled()) {
+                <pulpe-currency-conversion-badge
+                  [originalAmount]="envelope.data.originalAmount"
+                  [originalCurrency]="envelope.data.originalCurrency"
+                  [exchangeRate]="envelope.data.exchangeRate"
+                  [tooltipText]="
+                    conversionTooltip(
+                      envelope.data.originalAmount,
+                      envelope.data.originalCurrency,
+                      envelope.data.exchangeRate
+                    )
+                  "
+                />
+              }
             </div>
           </div>
           <div class="text-center">
@@ -263,18 +266,20 @@ const DETAIL_SEGMENT_COUNT = 12;
                     [class.text-on-surface-variant]="tx.kind !== 'income'"
                   >
                     {{ tx.amount | appCurrency: currency() : '1.0-0' }}
-                    <pulpe-currency-conversion-badge
-                      [originalAmount]="tx.originalAmount"
-                      [originalCurrency]="tx.originalCurrency"
-                      [exchangeRate]="tx.exchangeRate"
-                      [tooltipText]="
-                        conversionTooltip(
-                          tx.originalAmount,
-                          tx.originalCurrency,
-                          tx.exchangeRate
-                        )
-                      "
-                    />
+                    @if (isMultiCurrencyEnabled()) {
+                      <pulpe-currency-conversion-badge
+                        [originalAmount]="tx.originalAmount"
+                        [originalCurrency]="tx.originalCurrency"
+                        [exchangeRate]="tx.exchangeRate"
+                        [tooltipText]="
+                          conversionTooltip(
+                            tx.originalAmount,
+                            tx.originalCurrency,
+                            tx.exchangeRate
+                          )
+                        "
+                      />
+                    }
                   </div>
                   <div class="flex items-center gap-1">
                     <mat-slide-toggle
@@ -335,8 +340,11 @@ export class BudgetDetailPanel {
   readonly #dialogRef = inject(MatDialogRef<BudgetDetailPanel>);
   readonly #store = inject(BudgetDetailsStore);
   readonly #userSettings = inject(UserSettingsStore);
+  readonly #featureFlags = inject(FeatureFlagsService);
   readonly #transloco = inject(TranslocoService);
   protected readonly currency = this.#userSettings.currency;
+  protected readonly isMultiCurrencyEnabled =
+    this.#featureFlags.isMultiCurrencyEnabled;
   protected readonly data = inject<BudgetDetailPanelData>(MAT_DIALOG_DATA);
 
   readonly detailSegmentCount = DETAIL_SEGMENT_COUNT;

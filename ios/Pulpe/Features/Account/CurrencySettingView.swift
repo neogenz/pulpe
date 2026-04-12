@@ -3,22 +3,25 @@ import SwiftUI
 struct CurrencySettingView: View {
     @Environment(AppState.self) private var appState
     @Environment(UserSettingsStore.self) private var userSettingsStore
+    @Environment(FeatureFlagsStore.self) private var featureFlagsStore
     @State private var viewModel = CurrencySettingViewModel()
 
     var body: some View {
-        Section {
-            currencyPicker
-            converterSection
-        } header: {
-            Text("DEVISE")
-                .font(PulpeTypography.labelLarge)
-        }
-        .listRowBackground(Color.surfaceContainerHigh)
-        .onChange(of: userSettingsStore.currency) { _, newValue in
-            viewModel.syncCurrency(newValue)
-        }
-        .onAppear {
-            viewModel.syncCurrency(userSettingsStore.currency)
+        if featureFlagsStore.isMultiCurrencyEnabled {
+            Section {
+                currencyPicker
+                converterSection
+            } header: {
+                Text("DEVISE")
+                    .font(PulpeTypography.labelLarge)
+            }
+            .listRowBackground(Color.surfaceContainerHigh)
+            .onChange(of: userSettingsStore.currency) { _, newValue in
+                viewModel.syncCurrency(newValue)
+            }
+            .onAppear {
+                viewModel.syncCurrency(userSettingsStore.currency)
+            }
         }
     }
 
@@ -160,4 +163,5 @@ final class CurrencySettingViewModel {
     .background(Color.surface)
     .environment(AppState())
     .environment(UserSettingsStore())
+    .environment(FeatureFlagsStore())
 }

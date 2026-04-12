@@ -3,6 +3,7 @@ import {
   CURRENCY_CONFIG,
   CurrencyConverterService,
 } from '@core/currency';
+import { FeatureFlagsService } from '@core/feature-flags';
 import { UserSettingsStore } from '@core/user-settings';
 import {
   ChangeDetectionStrategy,
@@ -389,6 +390,7 @@ export default class EditTransactionsDialog {
   readonly #store = inject(TemplateLineStore);
   readonly #transloco = inject(TranslocoService);
   readonly #userSettings = inject(UserSettingsStore);
+  readonly #featureFlags = inject(FeatureFlagsService);
   readonly #converter = inject(CurrencyConverterService);
   protected readonly data = inject<EditTransactionsDialogData>(MAT_DIALOG_DATA);
 
@@ -408,8 +410,11 @@ export default class EditTransactionsDialog {
   protected readonly currencySymbol = computed(
     () => CURRENCY_CONFIG[this.#userSettings.currency()].symbol,
   );
-  protected readonly showCurrencySelector =
-    this.#userSettings.showCurrencySelector;
+  protected readonly showCurrencySelector = computed(
+    () =>
+      this.#featureFlags.isMultiCurrencyEnabled() &&
+      this.#userSettings.showCurrencySelector(),
+  );
   protected readonly inputCurrency = signal<SupportedCurrency>(
     this.#userSettings.currency(),
   );

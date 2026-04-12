@@ -408,11 +408,17 @@ actor AuthService {
             return nil
         }()
 
+        var isEarlyAdopter = false
+        if case .bool(let flag) = appMetadata[AnalyticsService.earlyAdopterProperty] {
+            isEarlyAdopter = flag
+        }
+
         return UserInfo(
             id: user.id.uuidString,
             email: user.email ?? fallbackEmail,
             firstName: firstName,
-            provider: provider
+            provider: provider,
+            isEarlyAdopter: isEarlyAdopter
         )
     }
 }
@@ -471,12 +477,22 @@ struct UserInfo: Codable, Equatable, Sendable {
     let email: String
     var firstName: String?
     let provider: AuthProvider?
+    /// Mirrored from Supabase `auth.users.app_metadata.early_adopter`.
+    /// Drives targeted feature flag rollouts via PostHog person properties.
+    var isEarlyAdopter: Bool = false
 
-    init(id: String, email: String, firstName: String? = nil, provider: AuthProvider? = nil) {
+    init(
+        id: String,
+        email: String,
+        firstName: String? = nil,
+        provider: AuthProvider? = nil,
+        isEarlyAdopter: Bool = false
+    ) {
         self.id = id
         self.email = email
         self.firstName = firstName
         self.provider = provider
+        self.isEarlyAdopter = isEarlyAdopter
     }
 }
 

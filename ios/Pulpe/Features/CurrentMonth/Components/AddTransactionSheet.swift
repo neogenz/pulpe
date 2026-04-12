@@ -64,7 +64,7 @@ struct AddTransactionSheet: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
 
             KindToggle(selection: $kind)
-            if userSettingsStore.showCurrencySelector {
+            if userSettingsStore.showCurrencySelectorEffective {
                 CurrencyAmountPicker(selectedCurrency: $inputCurrency, baseCurrency: userSettingsStore.currency)
             }
             HeroAmountField(

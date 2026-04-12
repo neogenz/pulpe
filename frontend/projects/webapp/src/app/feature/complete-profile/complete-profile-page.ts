@@ -23,6 +23,7 @@ import { LoadingButton } from '@ui/loading-button';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { FinancialKindDirective } from '@ui/financial-kind';
 import { PostHogService } from '@core/analytics/posthog';
+import { FeatureFlagsService } from '@core/feature-flags';
 import { UserSettingsStore } from '@core/user-settings';
 import { ROUTES } from '@core/routing/routes-constants';
 import {
@@ -601,6 +602,7 @@ export default class CompleteProfilePage {
   readonly #postHogService = inject(PostHogService);
   readonly #transloco = inject(TranslocoService);
   readonly #userSettings = inject(UserSettingsStore);
+  readonly #featureFlags = inject(FeatureFlagsService);
 
   protected readonly suggestions = ONBOARDING_SUGGESTIONS;
 
@@ -632,8 +634,11 @@ export default class CompleteProfilePage {
         );
   });
 
-  protected readonly showCurrencySelector =
-    this.#userSettings.showCurrencySelector;
+  protected readonly showCurrencySelector = computed(
+    () =>
+      this.#featureFlags.isMultiCurrencyEnabled() &&
+      this.#userSettings.showCurrencySelector(),
+  );
   protected readonly selectedCurrency = signal<SupportedCurrency>(
     this.#userSettings.currency(),
   );

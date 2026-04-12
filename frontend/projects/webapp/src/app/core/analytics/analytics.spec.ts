@@ -33,6 +33,7 @@ describe('User consent and tracking behavior', () => {
     // Mock AuthStateService
     const mockAuthStateService = {
       authState: mockAuthState,
+      isEarlyAdopter: signal(false),
     };
 
     const mockDemoModeService = {
@@ -95,10 +96,9 @@ describe('User consent and tracking behavior', () => {
 
       // Then: User should be identified in analytics
       expect(mockPostHogService.identify).toHaveBeenCalledTimes(1);
-      expect(mockPostHogService.identify).toHaveBeenCalledWith(
-        userId,
-        undefined,
-      );
+      expect(mockPostHogService.identify).toHaveBeenCalledWith(userId, {
+        early_adopter: false,
+      });
     });
   });
 
@@ -147,7 +147,7 @@ describe('User consent and tracking behavior', () => {
       expect(mockPostHogService.identify).toHaveBeenCalledTimes(1);
       expect(mockPostHogService.identify).toHaveBeenCalledWith(
         returningUserId,
-        undefined,
+        { early_adopter: false },
       );
     });
   });
@@ -301,6 +301,7 @@ describe('captureEvent', () => {
         isLoading: false,
         isAuthenticated: false,
       }),
+      isEarlyAdopter: signal(false),
     };
 
     const mockDemoModeService = {
@@ -369,6 +370,7 @@ describe('Demo mode tracking', () => {
     // Mock AuthStateService
     const mockAuthStateService = {
       authState: mockAuthState,
+      isEarlyAdopter: signal(false),
     };
 
     TestBed.configureTestingModule({
@@ -408,7 +410,7 @@ describe('Demo mode tracking', () => {
       // THEN: User is identified with is_demo flag
       expect(mockPostHogService.identify).toHaveBeenCalledWith(
         'demo-user-123',
-        { is_demo: true },
+        { early_adopter: false, is_demo: true },
       );
     });
 
@@ -434,7 +436,7 @@ describe('Demo mode tracking', () => {
       // THEN: User is identified WITHOUT is_demo flag
       expect(mockPostHogService.identify).toHaveBeenCalledWith(
         'real-user-456',
-        undefined,
+        { early_adopter: false },
       );
     });
   });
@@ -457,6 +459,7 @@ describe('Demo mode tracking', () => {
 
       TestBed.tick();
       expect(mockPostHogService.identify).toHaveBeenCalledWith('demo-user', {
+        early_adopter: false,
         is_demo: true,
       });
 
@@ -515,10 +518,9 @@ describe('Demo mode tracking', () => {
       TestBed.tick();
 
       // THEN: Regular user is identified without demo flag
-      expect(mockPostHogService.identify).toHaveBeenCalledWith(
-        'real-user',
-        undefined,
-      );
+      expect(mockPostHogService.identify).toHaveBeenCalledWith('real-user', {
+        early_adopter: false,
+      });
     });
   });
 
@@ -548,6 +550,7 @@ describe('Demo mode tracking', () => {
 
       // THEN: User is re-identified with demo flag
       expect(mockPostHogService.identify).toHaveBeenCalledWith('user-123', {
+        early_adopter: false,
         is_demo: true,
       });
     });

@@ -132,6 +132,13 @@ export {
 // Export error codes
 export { API_ERROR_CODES, type ApiErrorCode } from './src/error-codes.js';
 
+// Export feature flag keys
+export {
+  FEATURE_FLAGS,
+  ANALYTICS_PROPERTIES,
+  type FeatureFlagKey,
+} from './src/feature-flags.js';
+
 // Export response schema factories
 export {
   createSuccessResponse,

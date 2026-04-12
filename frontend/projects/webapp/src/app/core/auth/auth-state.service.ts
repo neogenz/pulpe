@@ -1,5 +1,6 @@
 import { Injectable, signal, computed } from '@angular/core';
 import type { Session, User } from '@supabase/supabase-js';
+import { ANALYTICS_PROPERTIES } from 'pulpe-shared';
 
 export interface AuthState {
   readonly user: User | null;
@@ -34,7 +35,8 @@ export class AuthStateService {
   });
 
   readonly isEarlyAdopter = computed(
-    () => !!this.#userSignal()?.app_metadata?.['early_adopter'],
+    () =>
+      !!this.#userSignal()?.app_metadata?.[ANALYTICS_PROPERTIES.EARLY_ADOPTER],
   );
 
   readonly isOAuthOnly = computed(() => {

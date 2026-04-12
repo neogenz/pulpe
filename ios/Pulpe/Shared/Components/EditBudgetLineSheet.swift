@@ -50,7 +50,7 @@ struct EditBudgetLineSheet: View {
             descriptionFocus: $isDescriptionFocused
         ) {
             KindToggle(selection: $kind)
-            if userSettingsStore.showCurrencySelector {
+            if userSettingsStore.showCurrencySelectorEffective {
                 CurrencyAmountPicker(selectedCurrency: $inputCurrency, baseCurrency: userSettingsStore.currency)
             }
             HeroAmountField(
@@ -170,4 +170,5 @@ struct EditBudgetLineDependencies: Sendable {
     }
     .environment(ToastManager())
     .environment(UserSettingsStore())
+    .environment(FeatureFlagsStore())
 }

@@ -1,16 +1,20 @@
 import SwiftUI
 
 /// Badge showing currency conversion metadata as a popover.
-/// Renders nothing when conversion metadata is absent.
+/// Renders nothing when conversion metadata is absent OR when the
+/// multi-currency feature flag is disabled (kill switch honored).
 struct CurrencyConversionBadge: View {
     let originalAmount: Decimal?
     let originalCurrency: SupportedCurrency?
     let exchangeRate: Decimal?
 
+    @Environment(FeatureFlagsStore.self) private var featureFlagsStore
     @State private var isShowingPopover = false
 
     private var hasConversion: Bool {
-        originalAmount != nil && originalCurrency != nil
+        featureFlagsStore.isMultiCurrencyEnabled
+            && originalAmount != nil
+            && originalCurrency != nil
     }
 
     var body: some View {
@@ -62,6 +66,7 @@ struct CurrencyConversionBadge: View {
             exchangeRate: 0.9412
         )
     }
+    .environment(FeatureFlagsStore())
 }
 
 #Preview("No conversion") {
@@ -70,4 +75,5 @@ struct CurrencyConversionBadge: View {
         originalCurrency: nil,
         exchangeRate: nil
     )
+    .environment(FeatureFlagsStore())
 }

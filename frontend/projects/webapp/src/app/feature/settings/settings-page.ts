@@ -32,6 +32,7 @@ import { Logger } from '@core/logging/logger';
 import { UserSettingsStore } from '@core/user-settings';
 import { CURRENCY_CONFIG } from '@core/currency';
 import { CurrencyConverterService } from '@core/currency';
+import { FeatureFlagsService } from '@core/feature-flags';
 import { AuthSessionService } from '@core/auth/auth-session.service';
 import { AuthStateService } from '@core/auth';
 import { ClientKeyService, EncryptionApi } from '@core/encryption';
@@ -103,129 +104,131 @@ import { VerifyRecoveryKeyDialog } from './components/verify-recovery-key-dialog
           </div>
 
           <div class="space-y-4">
-            <!-- Currency Selector -->
-            <div class="flex flex-col gap-2">
-              <p class="text-label-medium text-on-surface-variant">
-                {{ 'settings.currencyLabel' | transloco }}
-              </p>
-              <mat-button-toggle-group
-                [attr.aria-label]="'settings.currencyLabel' | transloco"
-                [value]="selectedCurrency()"
-                (change)="onCurrencyChange($event.value)"
-                data-testid="currency-toggle"
-                class="w-full"
-                hideSingleSelectionIndicator
-              >
-                <mat-button-toggle value="CHF" class="flex-1">
-                  CHF
-                </mat-button-toggle>
-                <mat-button-toggle value="EUR" class="flex-1">
-                  EUR
-                </mat-button-toggle>
-              </mat-button-toggle-group>
-            </div>
-
-            <!-- Currency Selector Toggle -->
-            <div class="flex items-center justify-between gap-4 py-2">
-              <div class="space-y-0.5">
-                <p class="text-body-medium">
-                  {{ 'settings.currencySelectorLabel' | transloco }}
+            @if (isMultiCurrencyEnabled()) {
+              <!-- Currency Selector -->
+              <div class="flex flex-col gap-2">
+                <p class="text-label-medium text-on-surface-variant">
+                  {{ 'settings.currencyLabel' | transloco }}
                 </p>
-                <p class="text-body-small text-on-surface-variant">
-                  {{ 'settings.currencySelectorDescription' | transloco }}
-                </p>
+                <mat-button-toggle-group
+                  [attr.aria-label]="'settings.currencyLabel' | transloco"
+                  [value]="selectedCurrency()"
+                  (change)="onCurrencyChange($event.value)"
+                  data-testid="currency-toggle"
+                  class="w-full"
+                  hideSingleSelectionIndicator
+                >
+                  <mat-button-toggle value="CHF" class="flex-1">
+                    CHF
+                  </mat-button-toggle>
+                  <mat-button-toggle value="EUR" class="flex-1">
+                    EUR
+                  </mat-button-toggle>
+                </mat-button-toggle-group>
               </div>
-              <mat-slide-toggle
-                [checked]="selectedShowCurrencySelector()"
-                (change)="onShowCurrencySelectorChange($event.checked)"
-                data-testid="show-currency-selector-toggle"
-              />
-            </div>
 
-            <!-- Currency Converter Widget -->
-            @if (isConverterVisible()) {
-              <div
-                class="rounded-2xl bg-surface-container/50 p-5 border border-outline-variant space-y-4"
-                data-testid="currency-converter"
-              >
-                <div class="flex items-center gap-3">
-                  <mat-icon class="text-on-surface-variant"
-                    >currency_exchange</mat-icon
-                  >
-                  <span class="text-title-small font-medium">{{
-                    'settings.converterTitle' | transloco
-                  }}</span>
-                </div>
-
-                <div class="flex items-center gap-3">
-                  <mat-form-field
-                    appearance="outline"
-                    subscriptSizing="dynamic"
-                    class="flex-1"
-                  >
-                    <mat-label>{{ converterBase() }}</mat-label>
-                    <input
-                      matInput
-                      type="number"
-                      inputmode="decimal"
-                      [(ngModel)]="converterAmount"
-                      step="0.01"
-                      min="0"
-                      data-testid="converter-amount-input"
-                    />
-                    <span matTextSuffix>{{ converterBaseSymbol() }}</span>
-                  </mat-form-field>
-
-                  <button
-                    matButton
-                    type="button"
-                    (click)="swapConverterDirection()"
-                    [attr.aria-label]="
-                      'settings.swapConversionAriaLabel' | transloco
-                    "
-                    data-testid="converter-swap-button"
-                  >
-                    <mat-icon>swap_horiz</mat-icon>
-                  </button>
-
-                  <div
-                    class="flex-1 rounded-xl bg-surface-container-low p-3 text-center ph-no-capture"
-                  >
-                    @if (isLoadingRate()) {
-                      <mat-progress-spinner
-                        mode="indeterminate"
-                        [diameter]="20"
-                        class="mx-auto"
-                      />
-                    } @else if (convertedAmount() !== null) {
-                      <p
-                        class="text-title-medium font-bold text-on-surface"
-                        data-testid="converter-result"
-                      >
-                        {{ convertedAmount() | number: '1.2-2' }}
-                        {{ converterTargetSymbol() }}
-                      </p>
-                    }
-                  </div>
-                </div>
-
-                @if (conversionRate() !== null) {
-                  <p
-                    class="text-body-small text-on-surface-variant text-center"
-                    data-testid="converter-rate-info"
-                  >
-                    {{
-                      'settings.converterRateInfo'
-                        | transloco
-                          : {
-                              base: converterBase(),
-                              rate: (conversionRate() | number: '1.3-3'),
-                              target: converterTarget(),
-                            }
-                    }}
+              <!-- Currency Selector Toggle -->
+              <div class="flex items-center justify-between gap-4 py-2">
+                <div class="space-y-0.5">
+                  <p class="text-body-medium">
+                    {{ 'settings.currencySelectorLabel' | transloco }}
                   </p>
-                }
+                  <p class="text-body-small text-on-surface-variant">
+                    {{ 'settings.currencySelectorDescription' | transloco }}
+                  </p>
+                </div>
+                <mat-slide-toggle
+                  [checked]="selectedShowCurrencySelector()"
+                  (change)="onShowCurrencySelectorChange($event.checked)"
+                  data-testid="show-currency-selector-toggle"
+                />
               </div>
+
+              <!-- Currency Converter Widget -->
+              @if (isConverterVisible()) {
+                <div
+                  class="rounded-2xl bg-surface-container/50 p-5 border border-outline-variant space-y-4"
+                  data-testid="currency-converter"
+                >
+                  <div class="flex items-center gap-3">
+                    <mat-icon class="text-on-surface-variant"
+                      >currency_exchange</mat-icon
+                    >
+                    <span class="text-title-small font-medium">{{
+                      'settings.converterTitle' | transloco
+                    }}</span>
+                  </div>
+
+                  <div class="flex items-center gap-3">
+                    <mat-form-field
+                      appearance="outline"
+                      subscriptSizing="dynamic"
+                      class="flex-1"
+                    >
+                      <mat-label>{{ converterBase() }}</mat-label>
+                      <input
+                        matInput
+                        type="number"
+                        inputmode="decimal"
+                        [(ngModel)]="converterAmount"
+                        step="0.01"
+                        min="0"
+                        data-testid="converter-amount-input"
+                      />
+                      <span matTextSuffix>{{ converterBaseSymbol() }}</span>
+                    </mat-form-field>
+
+                    <button
+                      matButton
+                      type="button"
+                      (click)="swapConverterDirection()"
+                      [attr.aria-label]="
+                        'settings.swapConversionAriaLabel' | transloco
+                      "
+                      data-testid="converter-swap-button"
+                    >
+                      <mat-icon>swap_horiz</mat-icon>
+                    </button>
+
+                    <div
+                      class="flex-1 rounded-xl bg-surface-container-low p-3 text-center ph-no-capture"
+                    >
+                      @if (isLoadingRate()) {
+                        <mat-progress-spinner
+                          mode="indeterminate"
+                          [diameter]="20"
+                          class="mx-auto"
+                        />
+                      } @else if (convertedAmount() !== null) {
+                        <p
+                          class="text-title-medium font-bold text-on-surface"
+                          data-testid="converter-result"
+                        >
+                          {{ convertedAmount() | number: '1.2-2' }}
+                          {{ converterTargetSymbol() }}
+                        </p>
+                      }
+                    </div>
+                  </div>
+
+                  @if (conversionRate() !== null) {
+                    <p
+                      class="text-body-small text-on-surface-variant text-center"
+                      data-testid="converter-rate-info"
+                    >
+                      {{
+                        'settings.converterRateInfo'
+                          | transloco
+                            : {
+                                base: converterBase(),
+                                rate: (conversionRate() | number: '1.3-3'),
+                                target: converterTarget(),
+                              }
+                      }}
+                    </p>
+                  }
+                </div>
+              }
             }
 
             <mat-form-field
@@ -453,8 +456,11 @@ export default class SettingsPage {
   readonly #authState = inject(AuthStateService);
   readonly #transloco = inject(TranslocoService);
   readonly #currencyConverter = inject(CurrencyConverterService);
+  readonly #featureFlags = inject(FeatureFlagsService);
 
   readonly isDemoMode = this.#demoMode.isDemoMode;
+  protected readonly isMultiCurrencyEnabled =
+    this.#featureFlags.isMultiCurrencyEnabled;
   protected readonly isOAuthOnly = this.#authState.isOAuthOnly;
   protected readonly isSaving = signal(false);
   protected readonly isDeleting = signal(false);

@@ -7,6 +7,11 @@ import PostHog
 @MainActor
 final class AnalyticsService {
     static let shared = AnalyticsService()
+
+    /// PostHog person property keys — must mirror `ANALYTICS_PROPERTIES`
+    /// in `shared/src/feature-flags.ts`.
+    static let earlyAdopterProperty = "early_adopter"
+
     private(set) var isInitialized = false
 
     private init() {}
@@ -75,6 +80,23 @@ final class AnalyticsService {
     func reset() {
         guard isInitialized else { return }
         PostHogSDK.shared.reset()
+    }
+
+    // MARK: - Feature Flags
+
+    /// Returns true when the given feature flag is enabled for the current user.
+    /// Safe default: returns false before PostHog initializes.
+    func isFeatureEnabled(_ key: String) -> Bool {
+        guard isInitialized else { return false }
+        return PostHogSDK.shared.isFeatureEnabled(key)
+    }
+
+    /// Forces PostHog to re-fetch feature flags from the server.
+    /// Call after identify() so flags depending on person properties are
+    /// re-evaluated with the new user identity.
+    func reloadFeatureFlags() {
+        guard isInitialized else { return }
+        PostHogSDK.shared.reloadFeatureFlags()
     }
 
     // MARK: - Lifecycle
