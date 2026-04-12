@@ -78,10 +78,6 @@ extension OnboardingState {
     }
 
     func captureCustomTransactionAdded(_ tx: OnboardingTransaction) {
-        // `source` distinguishes manual additions (user typed it in the sheet)
-        // from suggestion chips that also land in `addCustomTransaction` later.
-        // Today only the manual path calls `addCustomTransaction`, but tagging
-        // the source keeps the dashboard honest if call sites change.
         AnalyticsService.shared.capture(
             .customTransactionAdded,
             properties: [
