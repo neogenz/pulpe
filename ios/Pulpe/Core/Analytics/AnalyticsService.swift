@@ -10,7 +10,7 @@ final class AnalyticsService {
 
     /// PostHog person property keys — must mirror `ANALYTICS_PROPERTIES`
     /// in `shared/src/feature-flags.ts`.
-    static let earlyAdopterProperty = "early_adopter"
+    nonisolated static let earlyAdopterProperty = "early_adopter"
 
     private(set) var isInitialized = false
 

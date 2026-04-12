@@ -1,10 +1,18 @@
 import Foundation
 
 extension Decimal {
-    /// Format as currency using the appropriate locale.
-    /// `.rawValue` is the single point where the enum crosses into Foundation.
+    /// Format as currency with code in suffix position — "1'234.56 CHF" / "1 234,56 EUR".
+    /// Uses the currency's locale for number formatting (separators, decimals),
+    /// then appends the currency code as a suffix to match the team's display convention.
     func asCurrency(_ currency: SupportedCurrency) -> String {
-        formatted(.currency(code: currency.rawValue).locale(Formatters.locale(for: currency)))
+        let locale = Formatters.locale(for: currency)
+        let amount = formatted(
+            .number
+                .locale(locale)
+                .precision(.fractionLength(2))
+                .grouping(.automatic)
+        )
+        return "\(amount) \(currency.rawValue)"
     }
 
     /// Format as CHF currency using Swiss locale
@@ -33,7 +41,7 @@ extension Decimal {
     /// Format as compact amount only (no currency code, rounded to whole number) — "1'235"
     var asCompactAmount: String {
         let rounded = self.rounded(0, .plain)
-        return Formatters.chfWholeNumber.string(from: rounded as NSDecimalNumber) ?? "0"
+        return Self.compactAmountFormatter.string(from: rounded as NSDecimalNumber) ?? "0"
     }
 
     /// Format as compact currency (always rounded to whole number) — "1'235 CHF" / "1'235 EUR" (suffix position)
@@ -103,6 +111,14 @@ private extension Decimal {
         formatter.locale = Locale(identifier: "de_CH")
         formatter.minimumFractionDigits = 2
         formatter.maximumFractionDigits = 2
+        return formatter
+    }()
+
+    static let compactAmountFormatter: NumberFormatter = {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        formatter.locale = Locale(identifier: "de_CH")
+        formatter.maximumFractionDigits = 0
         return formatter
     }()
 }

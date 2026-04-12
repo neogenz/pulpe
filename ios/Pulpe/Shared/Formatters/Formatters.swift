@@ -34,8 +34,6 @@ enum Formatters {
 
     static let chfCompact: NumberFormatter = currencyFormatter(for: .chf)
 
-    static let chfWholeNumber: NumberFormatter = currencyFormatter(for: .chf, wholeNumber: true)
-
     static let amountInput: NumberFormatter = {
         let formatter = NumberFormatter()
         formatter.numberStyle = .decimal
