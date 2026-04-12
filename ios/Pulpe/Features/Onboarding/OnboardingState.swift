@@ -20,27 +20,46 @@ final class OnboardingState {
     var email: String = ""
     var acceptTerms: Bool = false
 
-    // MARK: - Social Auth
+    // MARK: - Auth State
 
-    var socialUser: UserInfo?
-    var readyForSocialCompletion: Bool = false
-    var isSocialSignup: Bool { socialUser != nil }
+    /// The authenticated user — set from both social auth (WelcomeStep) and email registration.
+    var authenticatedUser: UserInfo?
+    var isAuthenticated: Bool { authenticatedUser != nil }
 
-    /// Whether the name field should be displayed during onboarding.
-    /// Hidden only when a social provider already supplied a valid name.
-    var shouldShowNameField: Bool {
-        !isSocialSignup || !isFirstNameValid
-    }
+    /// True only for social provider auth (Apple/Google) — drives the firstName/registration skips.
+    private(set) var isSocialAuth: Bool = false
+    var isSocialSignup: Bool { isSocialAuth }
+
+    /// True when the social provider supplied a valid first name at auth time.
+    /// Set once in `configureSocialUser` so the visible step count doesn't shift
+    /// while the user is interacting with the form.
+    private(set) var socialProvidedName: Bool = false
+
+    /// Triggers `finishOnboarding` from BudgetPreview (the finale) for all auth paths.
+    var readyToComplete: Bool = false
+
+    /// Set when email registration was persisted — used for cold-start session recovery.
+    private(set) var wasEmailRegistered: Bool = false
 
     /// Configures state for a social signup user.
     /// Pre-fills firstName from provider metadata and clears persisted step
     /// so cold-start after app kill resets to welcome.
     func configureSocialUser(_ user: UserInfo) {
-        socialUser = user
+        authenticatedUser = user
+        isSocialAuth = true
         if let name = user.firstName, !name.isEmpty {
             firstName = name
+            socialProvidedName = true
+        } else {
+            socialProvidedName = false
         }
         clearStorage()
+    }
+
+    func configureEmailUser(_ user: UserInfo) {
+        authenticatedUser = user
+        isSocialAuth = false
+        socialProvidedName = false
     }
 
     // MARK: - UI State
@@ -83,16 +102,44 @@ final class OnboardingState {
     }
 
     var canSubmitRegistration: Bool {
-        isFirstNameValid && isIncomeValid && isEmailValid && acceptTerms && !isLoading
+        isEmailValid && acceptTerms && !isLoading
+    }
+
+    /// firstName is hidden for social users with a provider name (Apple App Store rejects asking).
+    /// registration is hidden once authenticated (social bypass + email already done).
+    private func isStepVisible(_ step: OnboardingStep) -> Bool {
+        switch step {
+        case .welcome:
+            return true
+        case .firstName:
+            return !(isSocialAuth && socialProvidedName)
+        case .registration:
+            return !isAuthenticated
+        case .income, .charges, .savings, .budgetPreview:
+            return true
+        }
+    }
+
+    /// Steps shown in the progress bar (excludes welcome since it has no progress bar).
+    var progressBarSteps: [OnboardingStep] {
+        OnboardingStep.allCases.filter { $0 != .welcome && isStepVisible($0) }
+    }
+
+    private func nextVisibleStep(after index: Int) -> OnboardingStep? {
+        let allCases = OnboardingStep.allCases
+        guard index + 1 < allCases.count else { return nil }
+        return allCases[(index + 1)...].first { isStepVisible($0) }
+    }
+
+    private func previousVisibleStep(before index: Int) -> OnboardingStep? {
+        guard index > 0 else { return nil }
+        return OnboardingStep.allCases[..<index].reversed().first { isStepVisible($0) }
     }
 
     var progressPercentage: Double {
-        // Exclude welcome; also exclude registration for social users
-        let totalSteps = OnboardingStep.allCases.count - (isSocialSignup ? 2 : 1)
-        guard totalSteps > 0,
-              let stepIndex = OnboardingStep.allCases.firstIndex(of: currentStep) else { return 0 }
-        let currentIndex = max(0, stepIndex - 1)
-        return Double(currentIndex) / Double(totalSteps) * 100
+        let bar = progressBarSteps
+        guard let idx = bar.firstIndex(of: currentStep), bar.count > 1 else { return 0 }
+        return Double(idx) / Double(bar.count - 1) * 100
     }
 
     var totalExpenses: Decimal {
@@ -142,32 +189,32 @@ final class OnboardingState {
             return
         }
 
-        guard let currentIndex = OnboardingStep.allCases.firstIndex(of: currentStep),
-              currentIndex < OnboardingStep.allCases.count - 1 else {
+        guard let currentIndex = OnboardingStep.allCases.firstIndex(of: currentStep) else { return }
+
+        // BudgetPreview is the finale — trigger completion instead of advancing
+        guard let next = nextVisibleStep(after: currentIndex) else {
+            if currentStep == .budgetPreview {
+                readyToComplete = true
+            }
             return
         }
+
         // Track onboarding step completions (skip welcome — it has its own event)
         if currentStep != .welcome {
             AnalyticsService.shared.capture(.onboardingStepCompleted, properties: ["step": currentStep.analyticsName])
         }
 
-        let nextStep = OnboardingStep.allCases[currentIndex + 1]
-
-        // Social users skip registration — trigger completion from budgetPreview
-        if nextStep == .registration && isSocialSignup {
-            readyForSocialCompletion = true
-            return
-        }
-
         isMovingForward = true
         withAnimation(PulpeAnimations.stepTransition) {
-            currentStep = nextStep
+            currentStep = next
         }
         saveToStorage()
     }
 
+    /// True when the previous visible step is welcome — tapping back triggers exit confirmation.
     var wouldExitOnBack: Bool {
-        currentStep == .firstName
+        guard let currentIndex = OnboardingStep.allCases.firstIndex(of: currentStep) else { return false }
+        return previousVisibleStep(before: currentIndex) == .welcome
     }
 
     func previousStep() {
@@ -183,14 +230,22 @@ final class OnboardingState {
         }
 
         guard let currentIndex = OnboardingStep.allCases.firstIndex(of: currentStep),
-              currentIndex > 0 else {
+              let prev = previousVisibleStep(before: currentIndex) else {
             return
         }
+
         isMovingForward = false
         withAnimation(PulpeAnimations.stepTransition) {
-            currentStep = OnboardingStep.allCases[currentIndex - 1]
+            currentStep = prev
         }
         saveToStorage()
+    }
+
+    /// Advance to the first visible step after welcome, without animation.
+    /// Used during init when entering with a pre-authenticated social user.
+    func startAfterWelcome() {
+        guard let next = nextVisibleStep(after: 0) else { return }
+        currentStep = next
     }
 
     /// Navigate to a specific step for editing, with a return bookmark.
@@ -201,81 +256,6 @@ final class OnboardingState {
         withAnimation(PulpeAnimations.stepTransition) {
             currentStep = step
         }
-    }
-
-    // MARK: - Persistence
-
-    func saveToStorage() {
-        let storedTx = customTransactions.map {
-            OnboardingStorageData.StoredTransaction(
-                amount: $0.amount,
-                type: $0.type.rawValue,
-                name: $0.name,
-                description: $0.description,
-                expenseType: $0.expenseType.rawValue,
-                isRecurring: $0.isRecurring
-            )
-        }
-        let data = OnboardingStorageData(
-            firstName: firstName,
-            currentStep: currentStep.rawValue,
-            customTransactions: storedTx.isEmpty ? nil : storedTx,
-            monthlyIncome: monthlyIncome,
-            housingCosts: housingCosts,
-            healthInsurance: healthInsurance,
-            phonePlan: phonePlan,
-            transportCosts: transportCosts,
-            leasingCredit: leasingCredit
-        )
-
-        if let encoded = try? JSONEncoder().encode(data) {
-            UserDefaults.standard.set(encoded, forKey: Self.storageKey)
-        }
-    }
-
-    func loadFromStorage() {
-        guard let data = UserDefaults.standard.data(forKey: Self.storageKey),
-              let decoded = try? JSONDecoder().decode(OnboardingStorageData.self, from: data) else {
-            return
-        }
-
-        firstName = decoded.firstName
-
-        if let step = OnboardingStep(rawValue: decoded.currentStep) {
-            currentStep = step
-        }
-
-        monthlyIncome = decoded.monthlyIncome
-        housingCosts = decoded.housingCosts
-        healthInsurance = decoded.healthInsurance
-        phonePlan = decoded.phonePlan
-        transportCosts = decoded.transportCosts
-        leasingCredit = decoded.leasingCredit
-
-        if let storedTx = decoded.customTransactions {
-            customTransactions = storedTx.compactMap { stored in
-                guard let type = TransactionKind(rawValue: stored.type),
-                      let expenseType = TransactionRecurrence(rawValue: stored.expenseType) else {
-                    return nil
-                }
-                return OnboardingTransaction(
-                    amount: stored.amount,
-                    type: type,
-                    name: stored.name,
-                    description: stored.description,
-                    expenseType: expenseType,
-                    isRecurring: stored.isRecurring
-                )
-            }
-        }
-    }
-
-    func clearStorage() {
-        UserDefaults.standard.removeObject(forKey: Self.storageKey)
-    }
-
-    static func clearPersistedData() {
-        UserDefaults.standard.removeObject(forKey: storageKey)
     }
 
     // MARK: - Template Creation
@@ -333,9 +313,7 @@ final class OnboardingState {
         OnboardingTransaction(amount: 587, type: .saving, name: "3ème pilier"),
     ]
 
-    static var suggestions: [OnboardingTransaction] {
-        chargeSuggestions + savingSuggestions
-    }
+    static let suggestions: [OnboardingTransaction] = chargeSuggestions + savingSuggestions
 
     func isSuggestionSelected(_ suggestion: OnboardingTransaction) -> Bool {
         customTransactions.contains {
@@ -377,90 +355,82 @@ final class OnboardingState {
     }
 }
 
-// MARK: - Step Enum
+// MARK: - Persistence
 
-enum OnboardingStep: String, CaseIterable, Identifiable {
-    case welcome
-    case firstName
-    case income
-    case charges
-    case savings
-    case budgetPreview
-    case registration
+extension OnboardingState {
+    func saveToStorage() {
+        let storedTx = customTransactions.map {
+            OnboardingStorageData.StoredTransaction(
+                amount: $0.amount,
+                type: $0.type.rawValue,
+                name: $0.name,
+                description: $0.description,
+                expenseType: $0.expenseType.rawValue,
+                isRecurring: $0.isRecurring
+            )
+        }
+        let data = OnboardingStorageData(
+            firstName: firstName,
+            currentStep: currentStep.rawValue,
+            customTransactions: storedTx.isEmpty ? nil : storedTx,
+            monthlyIncome: monthlyIncome,
+            housingCosts: housingCosts,
+            healthInsurance: healthInsurance,
+            phonePlan: phonePlan,
+            transportCosts: transportCosts,
+            leasingCredit: leasingCredit,
+            isEmailRegistered: !isSocialAuth && isAuthenticated ? true : nil
+        )
 
-    var id: String { rawValue }
-
-    var analyticsName: String {
-        switch self {
-        case .welcome: "welcome"
-        case .firstName: "first_name"
-        case .income: "income"
-        case .charges: "charges"
-        case .savings: "savings"
-        case .budgetPreview: "budget_preview"
-        case .registration: "registration"
+        if let encoded = try? JSONEncoder().encode(data) {
+            UserDefaults.standard.set(encoded, forKey: Self.storageKey)
         }
     }
 
-    var title: String {
-        switch self {
-        case .welcome: "Bienvenue"
-        case .firstName: "Comment tu t'appelles ?"
-        case .income: "Tes revenus"
-        case .charges: "Tes charges fixes"
-        case .savings: "Ton épargne"
-        case .budgetPreview: "Ton budget"
-        case .registration: "Crée ton compte"
+    func loadFromStorage() {
+        guard let data = UserDefaults.standard.data(forKey: Self.storageKey),
+              let decoded = try? JSONDecoder().decode(OnboardingStorageData.self, from: data) else {
+            return
+        }
+
+        firstName = decoded.firstName
+
+        if let step = OnboardingStep(rawValue: decoded.currentStep) {
+            currentStep = step
+        }
+
+        monthlyIncome = decoded.monthlyIncome
+        housingCosts = decoded.housingCosts
+        healthInsurance = decoded.healthInsurance
+        phonePlan = decoded.phonePlan
+        transportCosts = decoded.transportCosts
+        leasingCredit = decoded.leasingCredit
+        wasEmailRegistered = decoded.isEmailRegistered ?? false
+
+        if let storedTx = decoded.customTransactions {
+            customTransactions = storedTx.compactMap { stored in
+                guard let type = TransactionKind(rawValue: stored.type),
+                      let expenseType = TransactionRecurrence(rawValue: stored.expenseType) else {
+                    return nil
+                }
+                return OnboardingTransaction(
+                    amount: stored.amount,
+                    type: type,
+                    name: stored.name,
+                    description: stored.description,
+                    expenseType: expenseType,
+                    isRecurring: stored.isRecurring
+                )
+            }
         }
     }
 
-    var subtitle: String {
-        switch self {
-        case .welcome: "Reprends le contrôle de tes finances"
-        case .firstName: "Juste ton prénom"
-        case .income: "Ton salaire et tes autres revenus"
-        case .charges: "Renseigne ce que tu connais — le reste peut attendre"
-        case .savings: "Ce que tu mets de côté chaque mois"
-        case .budgetPreview: "Voici ce que ça donne"
-        case .registration: "Pour sauvegarder ton budget"
-        }
+    func clearStorage() {
+        UserDefaults.standard.removeObject(forKey: Self.storageKey)
     }
 
-    var isOptional: Bool {
-        switch self {
-        case .charges, .savings:
-            return true
-        default:
-            return false
-        }
-    }
-
-    var showProgressBar: Bool {
-        self != .welcome
-    }
-
-    var iconName: String {
-        switch self {
-        case .welcome: "sparkles"
-        case .firstName: "person.circle.fill"
-        case .income: "arrow.down.circle.fill"
-        case .charges: "house.fill"
-        case .savings: "building.columns"
-        case .budgetPreview: "chart.pie.fill"
-        case .registration: "checkmark.seal.fill"
-        }
-    }
-
-    var iconColor: Color {
-        switch self {
-        case .welcome: .pulpePrimary
-        case .firstName: .pulpePrimary
-        case .income: .financialIncome
-        case .charges: .stepHousing
-        case .savings: .financialSavings
-        case .budgetPreview: .pulpePrimary
-        case .registration: .pulpePrimary
-        }
+    static func clearPersistedData() {
+        UserDefaults.standard.removeObject(forKey: storageKey)
     }
 }
 
@@ -476,6 +446,7 @@ private struct OnboardingStorageData: Codable {
     let phonePlan: Decimal?
     let transportCosts: Decimal?
     let leasingCredit: Decimal?
+    let isEmailRegistered: Bool?
 
     struct StoredTransaction: Codable {
         let amount: Decimal

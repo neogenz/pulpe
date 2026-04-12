@@ -15,7 +15,8 @@ struct OnboardingFlow: View {
         let initial = OnboardingState()
         if let user = pendingSocialUser {
             initial.configureSocialUser(user)
-            initial.currentStep = .firstName
+            // Skip welcome and any steps the social user doesn't need (firstName if pre-filled).
+            initial.startAfterWelcome()
         }
         _state = State(initialValue: initial)
         hasPendingSocialUser = pendingSocialUser != nil
@@ -76,14 +77,23 @@ struct OnboardingFlow: View {
                     )
                 }
             }
-            .onChange(of: state.readyForSocialCompletion) { _, ready in
-                guard ready, let socialUser = state.socialUser else { return }
-                Task { await finishOnboarding(user: socialUser) }
+            .onChange(of: state.readyToComplete) { _, ready in
+                guard ready, let user = state.authenticatedUser else { return }
+                Task { await finishOnboarding(user: user) }
             }
             .task {
                 // Clear consumed pendingSocialUser from AppState
                 if hasPendingSocialUser {
                     appState.pendingSocialUser = nil
+                }
+                // Cold-start recovery: if user registered via email but app was killed,
+                // recover user from Supabase session
+                if state.wasEmailRegistered && !state.isAuthenticated {
+                    if let user = try? await AuthService.shared.validateSession() {
+                        state.configureEmailUser(user)
+                    } else {
+                        state.currentStep = .welcome
+                    }
                 }
             }
         }
@@ -95,9 +105,7 @@ struct OnboardingFlow: View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
             OnboardingProgressIndicator(
                 currentStep: state.currentStep,
-                totalSteps: state.isSocialSignup
-                    ? OnboardingStep.allCases.count - 1
-                    : OnboardingStep.allCases.count
+                progressSteps: state.progressBarSteps
             )
 
             HStack {
@@ -132,6 +140,8 @@ struct OnboardingFlow: View {
         switch state.currentStep {
         case .welcome:
             WelcomeStep(state: state)
+        case .registration:
+            RegistrationStep(state: state)
         case .firstName:
             FirstNameStep(state: state)
         case .income:
@@ -142,17 +152,13 @@ struct OnboardingFlow: View {
             SavingsStep(state: state)
         case .budgetPreview:
             BudgetPreviewStep(state: state)
-        case .registration:
-            RegistrationStep(state: state) { user in
-                Task { await finishOnboarding(user: user) }
-            }
         }
     }
 
     // MARK: - Completion
 
     private func finishOnboarding(user: UserInfo) async {
-        state.readyForSocialCompletion = false
+        state.readyToComplete = false
         state.isSubmitting = true
         defer { state.isSubmitting = false }
         await appState.completeOnboarding(
@@ -166,7 +172,7 @@ struct OnboardingFlow: View {
             state.error = APIError.serverError(
                 message: "La création du budget a échoué. Réessaie."
             )
-            state.readyForSocialCompletion = false
+            state.readyToComplete = false
         } else {
             state.hasCompleted = true
         }
@@ -348,7 +354,7 @@ struct OnboardingStepView<Content: View>: View {
                 } else {
                     HStack(spacing: DesignTokens.Spacing.sm) {
                         Text(buttonTitle)
-                        if step != .registration {
+                        if step != .registration && step != .budgetPreview {
                             Image(systemName: "arrow.right")
                                 .font(PulpeTypography.labelLarge)
                         }
@@ -364,6 +370,7 @@ struct OnboardingStepView<Content: View>: View {
     private var buttonTitle: String {
         switch step {
         case .registration: "Créer mon compte"
+        case .budgetPreview: "Créer mon budget"
         case .welcome: "Commencer"
         default: "Continuer"
         }

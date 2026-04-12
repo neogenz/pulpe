@@ -6,6 +6,12 @@ struct WelcomeStep: View {
     @State private var isAppeared = false
     let state: OnboardingState
 
+    private static let consentMarkdown = AppURLs.legalDisclosure(
+        prefix: "En continuant, tu acceptes nos",
+        connector: "notre",
+        suffix: "."
+    )
+
     var body: some View {
         ZStack {
             // Full-screen gradient background
@@ -54,6 +60,15 @@ struct WelcomeStep: View {
                         state.nextStep()
                     })
 
+                    // Implicit consent disclosure for social signups
+                    // (email path has its own checkbox in RegistrationStep)
+                    Text(Self.consentMarkdown)
+                        .font(PulpeTypography.caption2)
+                        .foregroundStyle(Color.textTertiaryOnboarding)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, DesignTokens.Spacing.md)
+                        .tint(Color.pulpePrimary)
+
                     SocialLoginDivider()
 
                     // Email signup — secondary path
@@ -62,7 +77,7 @@ struct WelcomeStep: View {
                         state.nextStep()
                     } label: {
                         HStack(spacing: DesignTokens.Spacing.xs) {
-                            Text("C'est parti")
+                            Text("S'inscrire avec email")
                             Image(systemName: "arrow.right")
                                 .font(PulpeTypography.labelLarge)
                         }

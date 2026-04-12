@@ -25,29 +25,91 @@ struct OnboardingSocialSignupTests {
     func isSocialSignup_trueWhenSocialUserSet() {
         let state = makeSUT()
         defer { OnboardingState.clearPersistedData() }
-        state.socialUser = UserInfo(id: "social-1", email: "social@pulpe.app", firstName: "Max")
+        state.configureSocialUser(UserInfo(id: "social-1", email: "social@pulpe.app", firstName: "Max"))
         #expect(state.isSocialSignup)
     }
 
     @Test
-    func nextStep_socialUser_skipsRegistration_setsReadyForSocialCompletion() {
+    func nextStep_socialUser_budgetPreview_setsReadyToComplete() {
         let state = makeSUT()
         defer { OnboardingState.clearPersistedData() }
-        state.socialUser = UserInfo(id: "social-1", email: "social@pulpe.app", firstName: "Max")
+        state.configureSocialUser(UserInfo(id: "social-1", email: "social@pulpe.app", firstName: "Max"))
         state.currentStep = .budgetPreview
         state.nextStep()
-        #expect(state.readyForSocialCompletion)
+        #expect(state.readyToComplete)
         #expect(state.currentStep == .budgetPreview)
     }
 
     @Test
-    func nextStep_noSocialUser_advancesToRegistration() {
+    func nextStep_socialUserWithName_skipsFirstNameAndRegistration() {
         let state = makeSUT()
         defer { OnboardingState.clearPersistedData() }
-        state.currentStep = .budgetPreview
+        state.configureSocialUser(UserInfo(id: "social-1", email: "social@pulpe.app", firstName: "Max"))
+        // From welcome, social user with name should skip BOTH firstName AND registration → income
+        state.currentStep = .welcome
         state.nextStep()
-        #expect(state.currentStep == .registration)
-        #expect(!state.readyForSocialCompletion)
+        #expect(state.currentStep == .income)
+    }
+
+    @Test
+    func nextStep_socialUserWithoutName_showsFirstNameThenSkipsRegistration() {
+        let state = makeSUT()
+        defer { OnboardingState.clearPersistedData() }
+        state.configureSocialUser(UserInfo(id: "apple-relay", email: "x@relay.appleid.com", firstName: nil))
+        // From welcome, social user without name lands on firstName
+        state.currentStep = .welcome
+        state.nextStep()
+        #expect(state.currentStep == .firstName)
+        // After typing name, advancing skips registration → income
+        state.firstName = "Marie"
+        state.nextStep()
+        #expect(state.currentStep == .income)
+    }
+
+    @Test
+    func socialProvidedName_setOnlyWhenProviderGavesValidName() {
+        let state = makeSUT()
+        defer { OnboardingState.clearPersistedData() }
+
+        state.configureSocialUser(UserInfo(id: "1", email: "x@x.com", firstName: "Marie"))
+        #expect(state.socialProvidedName)
+
+        state.configureSocialUser(UserInfo(id: "2", email: "x@x.com", firstName: nil))
+        #expect(!state.socialProvidedName)
+
+        state.configureSocialUser(UserInfo(id: "3", email: "x@x.com", firstName: ""))
+        #expect(!state.socialProvidedName)
+    }
+
+    @Test
+    func progressBarSteps_socialUserWithName_excludesFirstNameAndRegistration() {
+        let state = makeSUT()
+        defer { OnboardingState.clearPersistedData() }
+        state.configureSocialUser(UserInfo(id: "1", email: "x@x.com", firstName: "Marie"))
+        #expect(state.progressBarSteps == [.income, .charges, .savings, .budgetPreview])
+    }
+
+    @Test
+    func progressBarSteps_socialUserWithoutName_includesFirstName() {
+        let state = makeSUT()
+        defer { OnboardingState.clearPersistedData() }
+        state.configureSocialUser(UserInfo(id: "1", email: "x@x.com", firstName: nil))
+        #expect(state.progressBarSteps == [.firstName, .income, .charges, .savings, .budgetPreview])
+    }
+
+    @Test
+    func progressBarSteps_emailUserUnauthenticated_includesAllExceptWelcome() {
+        let state = makeSUT()
+        defer { OnboardingState.clearPersistedData() }
+        #expect(state.progressBarSteps == [.firstName, .registration, .income, .charges, .savings, .budgetPreview])
+    }
+
+    @Test
+    func progressBarSteps_emailUserAuthenticated_excludesRegistration() {
+        let state = makeSUT()
+        defer { OnboardingState.clearPersistedData() }
+        state.configureEmailUser(UserInfo(id: "1", email: "x@x.com"))
+        #expect(state.progressBarSteps == [.firstName, .income, .charges, .savings, .budgetPreview])
     }
 
     @Test
@@ -79,22 +141,6 @@ struct OnboardingSocialSignupTests {
     }
 
     @Test
-    func socialUser_withFirstName_shouldHideNameField() {
-        let state = makeSUT()
-        defer { OnboardingState.clearPersistedData() }
-        state.configureSocialUser(UserInfo(id: "apple-3b", email: "apple@relay.appleid.com", firstName: "Marie"))
-        #expect(!state.shouldShowNameField)
-    }
-
-    @Test
-    func socialUser_withNilFirstName_shouldShowNameField() {
-        let state = makeSUT()
-        defer { OnboardingState.clearPersistedData() }
-        state.configureSocialUser(UserInfo(id: "apple-4b", email: "apple@relay.appleid.com", firstName: nil))
-        #expect(state.shouldShowNameField)
-    }
-
-    @Test
     func socialUser_withEmptyFirstName_nameFieldShouldRemainVisible() {
         let state = makeSUT()
         defer { OnboardingState.clearPersistedData() }
@@ -108,14 +154,16 @@ struct OnboardingSocialSignupTests {
         let state = makeSUT()
         defer { OnboardingState.clearPersistedData() }
 
-        // Without social: budgetPreview is index 5 of 7, welcome excluded → 4/6
+        // Without social: budgetPreview is last of 6 visible steps → 100%
         state.currentStep = .budgetPreview
         let nonSocialPercentage = state.progressPercentage
 
-        // With social: registration excluded → 4/5
-        state.socialUser = UserInfo(id: "social-1", email: "social@pulpe.app", firstName: "Max")
+        // With social: registration excluded → 5 visible steps → 100%
+        state.configureSocialUser(UserInfo(id: "social-1", email: "social@pulpe.app", firstName: "Max"))
         let socialPercentage = state.progressPercentage
 
-        #expect(socialPercentage > nonSocialPercentage)
+        // Both hit 100% at budgetPreview (last step for both paths)
+        #expect(socialPercentage == 100)
+        #expect(nonSocialPercentage == 100)
     }
 }

@@ -100,7 +100,7 @@ struct OnboardingStateTests {
     // MARK: - Navigation: Forward Blocked When Invalid
 
     @Test
-    func nextStep_advancesWhenValid() {
+    func nextStep_advancesFromWelcomeToFirstName() {
         let state = makeSUT()
         defer { OnboardingState.clearPersistedData() }
 
@@ -110,7 +110,7 @@ struct OnboardingStateTests {
     }
 
     @Test
-    func previousStep_goesBackFromSecondStep() {
+    func previousStep_goesBackFromFirstNameToWelcome() {
         let state = makeSUT()
         defer { OnboardingState.clearPersistedData() }
 
@@ -130,13 +130,34 @@ struct OnboardingStateTests {
     }
 
     @Test
-    func nextStep_doesNothingAtLastStep() {
+    func nextStep_setsReadyToCompleteAtBudgetPreview() {
         let state = makeSUT()
         defer { OnboardingState.clearPersistedData() }
-
-        state.currentStep = .registration
+        state.configureEmailUser(UserInfo(id: "1", email: "t@t.com"))
+        state.currentStep = .budgetPreview
         state.nextStep()
-        #expect(state.currentStep == .registration)
+        #expect(state.readyToComplete)
+        #expect(state.currentStep == .budgetPreview)
+    }
+
+    @Test
+    func nextStep_authenticatedUser_skipsRegistrationForward() {
+        let state = makeSUT()
+        defer { OnboardingState.clearPersistedData() }
+        state.configureEmailUser(UserInfo(id: "1", email: "t@t.com"))
+        state.currentStep = .firstName
+        state.nextStep()
+        #expect(state.currentStep == .income)
+    }
+
+    @Test
+    func previousStep_authenticatedUser_skipsRegistrationBack() {
+        let state = makeSUT()
+        defer { OnboardingState.clearPersistedData() }
+        state.configureEmailUser(UserInfo(id: "1", email: "t@t.com"))
+        state.currentStep = .income
+        state.previousStep()
+        #expect(state.currentStep == .firstName)
     }
 
     // MARK: - Email Validation
@@ -163,39 +184,15 @@ struct OnboardingStateTests {
     func canSubmitRegistration_allValid_returnsTrue() {
         let state = makeSUT()
         defer { OnboardingState.clearPersistedData() }
-        state.firstName = "Max"
-        state.monthlyIncome = 5000
         state.email = "max@example.com"
         state.acceptTerms = true
         #expect(state.canSubmitRegistration)
     }
 
     @Test
-    func canSubmitRegistration_missingFirstName_returnsFalse() {
-        let state = makeSUT()
-        defer { OnboardingState.clearPersistedData() }
-        state.monthlyIncome = 5000
-        state.email = "max@example.com"
-        state.acceptTerms = true
-        #expect(!state.canSubmitRegistration)
-    }
-
-    @Test
-    func canSubmitRegistration_missingIncome_returnsFalse() {
-        let state = makeSUT()
-        defer { OnboardingState.clearPersistedData() }
-        state.firstName = "Max"
-        state.email = "max@example.com"
-        state.acceptTerms = true
-        #expect(!state.canSubmitRegistration)
-    }
-
-    @Test
     func canSubmitRegistration_invalidEmail_returnsFalse() {
         let state = makeSUT()
         defer { OnboardingState.clearPersistedData() }
-        state.firstName = "Max"
-        state.monthlyIncome = 5000
         state.email = "not-valid"
         state.acceptTerms = true
         #expect(!state.canSubmitRegistration)
@@ -205,8 +202,6 @@ struct OnboardingStateTests {
     func canSubmitRegistration_termsNotAccepted_returnsFalse() {
         let state = makeSUT()
         defer { OnboardingState.clearPersistedData() }
-        state.firstName = "Max"
-        state.monthlyIncome = 5000
         state.email = "max@example.com"
         state.acceptTerms = false
         #expect(!state.canSubmitRegistration)
@@ -216,8 +211,6 @@ struct OnboardingStateTests {
     func canSubmitRegistration_isLoading_returnsFalse() {
         let state = makeSUT()
         defer { OnboardingState.clearPersistedData() }
-        state.firstName = "Max"
-        state.monthlyIncome = 5000
         state.email = "max@example.com"
         state.acceptTerms = true
         state.isLoading = true
@@ -272,13 +265,11 @@ struct OnboardingStateTests {
     }
 
     @Test
-    func progressPercentage_registrationIsMax() {
+    func progressPercentage_budgetPreviewIs100() {
         let state = makeSUT()
         defer { OnboardingState.clearPersistedData() }
-        state.currentStep = .registration
-        // 7 steps, welcome excluded → registration is index 5 of 6 ≈ 83.33%
-        #expect(state.progressPercentage > 80)
-        #expect(state.progressPercentage < 85)
+        state.currentStep = .budgetPreview
+        #expect(state.progressPercentage == 100)
     }
 
     @Test

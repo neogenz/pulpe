@@ -66,6 +66,11 @@
       "sourceType": "github",
       "computedHash": "354414a934957f9d54a71468abe81888304d35b47a4fe8e27fff08f60b457d53"
     },
+    "app-store-screenshots": {
+      "source": "ParthJadhav/app-store-screenshots",
+      "sourceType": "github",
+      "computedHash": "5a339bcfe7be93fdb687e0a33946065c5af0c985da04b9887d1dd0811197f6dd"
+    },
     "apple-appstore-reviewer": {
       "source": "github/awesome-copilot",
       "sourceType": "github",
@@ -230,6 +235,11 @@
       "source": "pbakaus/impeccable",
       "sourceType": "github",
       "computedHash": "a26b3dd377c4572b1c34c68f82ab9a1cb806f21c7157060327fe60e9b6d2e277"
+    },
+    "ios-marketing-capture": {
+      "source": "ParthJadhav/ios-marketing-capture",
+      "sourceType": "github",
+      "computedHash": "5d59383d4c9cf675e2c4b5fc6ed0130a2c0f23a7f3334d4cc68b7e79998ce7f3"
     },
     "mastering-typescript": {
       "source": "spillwavesolutions/mastering-typescript-skill",

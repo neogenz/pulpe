@@ -179,7 +179,7 @@ struct BudgetPreviewStep: View {
 
     private var encouragingMessage: some View {
         VStack(spacing: DesignTokens.Spacing.xs) {
-            Text(isDeficit ? "C'est un bon point de départ." : "On y voit plus clair !")
+            Text(isDeficit ? "C'est un bon point de départ." : "Ton budget est prêt !")
                 .font(PulpeTypography.onboardingSubtitle)
                 .foregroundStyle(Color.textTertiaryOnboarding)
 

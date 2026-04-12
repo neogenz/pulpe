@@ -2,7 +2,6 @@ import SwiftUI
 
 struct RegistrationStep: View {
     @Bindable var state: OnboardingState
-    let onComplete: (UserInfo) -> Void
 
     @State private var password = ""
     @State private var passwordConfirmation = ""
@@ -172,14 +171,10 @@ extension RegistrationStep {
         .buttonStyle(.plain)
     }
 
-    private static let termsMarkdown: AttributedString = {
-        let termsLink = AppURLs.terms.absoluteString
-        let privacyLink = AppURLs.privacy.absoluteString
-        let md = "J'accepte les [conditions d'utilisation](\(termsLink))"
-            + " et la [politique de confidentialité](\(privacyLink))"
-        let fallback = "J'accepte les conditions d'utilisation et la politique de confidentialité"
-        return (try? AttributedString(markdown: md)) ?? AttributedString(fallback)
-    }()
+    private static let termsMarkdown = AppURLs.legalDisclosure(
+        prefix: "J'accepte les",
+        connector: "la"
+    )
 
     private func submitRegistration() async {
         state.isLoading = true
@@ -191,7 +186,8 @@ extension RegistrationStep {
 
             AnalyticsService.shared.capture(.signupCompleted, properties: ["method": "email"])
             state.isLoading = false
-            onComplete(user)
+            state.configureEmailUser(user)
+            state.nextStep()
         } catch let apiError as APIError {
             AnalyticsService.shared.captureAuthError(.signupFailed, error: apiError, method: "email")
             state.error = apiError
@@ -206,7 +202,5 @@ extension RegistrationStep {
 }
 
 #Preview {
-    RegistrationStep(state: OnboardingState()) { user in
-        print("Completed with user: \(user)")
-    }
+    RegistrationStep(state: OnboardingState())
 }
