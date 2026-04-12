@@ -17,13 +17,13 @@ struct BudgetPreviewFlowBars: View {
             Grid(
                 alignment: .leading,
                 horizontalSpacing: DesignTokens.Spacing.md,
-                verticalSpacing: DesignTokens.Spacing.sm
+                verticalSpacing: DesignTokens.Spacing.md
             ) {
                 GridRow {
                     label("Entrées")
                     track(segments: [(income, .financialIncome)])
-                        .frame(height: DesignTokens.ProgressBar.thickHeight)
-                    amount(income)
+                        .frame(height: DesignTokens.ProgressBar.flowBarHeight)
+                    amount(income, prefix: "+")
                 }
                 GridRow {
                     label("Sorties")
@@ -31,10 +31,11 @@ struct BudgetPreviewFlowBars: View {
                         (charges, .financialExpense),
                         (savings, .financialSavings)
                     ])
-                    .frame(height: DesignTokens.ProgressBar.thickHeight)
-                    amount(outflows)
+                    .frame(height: DesignTokens.ProgressBar.flowBarHeight)
+                    amount(outflows, prefix: "-")
                 }
             }
+            .padding(.bottom, DesignTokens.Spacing.xs)
             .animation(DesignTokens.Animation.smoothEaseInOut, value: income)
             .animation(DesignTokens.Animation.smoothEaseInOut, value: charges)
             .animation(DesignTokens.Animation.smoothEaseInOut, value: savings)
@@ -43,13 +44,13 @@ struct BudgetPreviewFlowBars: View {
 
     private func label(_ text: String) -> some View {
         Text(text)
-            .font(PulpeTypography.labelMedium)
-            .foregroundStyle(Color.textSecondaryOnboarding)
+            .font(PulpeTypography.labelLargeBold)
+            .foregroundStyle(Color.textPrimary)
     }
 
-    private func amount(_ value: Decimal) -> some View {
-        Text(value.asCompactCHF)
-            .font(PulpeTypography.labelMedium)
+    private func amount(_ value: Decimal, prefix: String) -> some View {
+        Text("\(prefix)\(value.asCompactCHF)")
+            .font(PulpeTypography.onboardingSubtitle)
             .monospacedDigit()
             .foregroundStyle(Color.textPrimary)
             .gridColumnAlignment(.trailing)

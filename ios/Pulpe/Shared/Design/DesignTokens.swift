@@ -307,6 +307,8 @@ enum DesignTokens {
         static let circularLineWidth: CGFloat = 6
         /// Hero card progress bar height (larger for visibility on colored backgrounds)
         static let heroHeight: CGFloat = 10
+        /// Flow bar height — substantial enough to act as a card headline (Entrées/Sorties)
+        static let flowBarHeight: CGFloat = 14
     }
 }
 
