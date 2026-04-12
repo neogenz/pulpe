@@ -4,11 +4,15 @@ struct BudgetPreviewStep: View {
     @Bindable var state: OnboardingState
 
     @Environment(\.amountsHidden) private var amountsHidden
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     @State private var showCheckmark = false
     @State private var showHero = false
     @State private var showCard = false
     @State private var showMessage = false
+    /// Animated display value for the hero amount count-up.
+    /// Starts at 0 and interpolates to `state.availableToSpend` on appear.
+    @State private var displayAmount: Decimal = 0
 
     var body: some View {
         OnboardingStepView(
@@ -25,6 +29,7 @@ struct BudgetPreviewStep: View {
             }
         )
         .trackScreen("Onboarding_BudgetPreview")
+        .sensoryFeedback(.success, trigger: showCheckmark)
     }
 
     // MARK: - Hero Section
@@ -60,7 +65,7 @@ struct BudgetPreviewStep: View {
         .accessibilityLabel(
             amountsHidden
                 ? "\(isDeficit ? "À équilibrer" : "Disponible à dépenser"): montant masqué"
-                : "\(isDeficit ? "À équilibrer" : "Disponible à dépenser"): \(heroAmountText)"
+                : "\(isDeficit ? "À équilibrer" : "Disponible à dépenser"): \(finalHeroAmountText)"
         )
         .opacity(showHero ? 1 : 0)
         .offset(y: showHero ? 0 : 10)
@@ -72,6 +77,14 @@ struct BudgetPreviewStep: View {
             }
             await delayedAnimation(0.15, animation: DesignTokens.Animation.entranceSpring) {
                 showHero = true
+            }
+            // Count-up: amount rolls from 0 → final value, synchronized with the hero reveal
+            if reduceMotion {
+                displayAmount = state.availableToSpend
+            } else {
+                withAnimation(.smooth(duration: 0.7)) {
+                    displayAmount = state.availableToSpend
+                }
             }
             await delayedAnimation(0.25, animation: DesignTokens.Animation.defaultSpring) {
                 showCard = true
@@ -217,7 +230,14 @@ struct BudgetPreviewStep: View {
         isDeficit ? .financialExpense : .pulpePrimary
     }
 
+    /// Animated hero amount — interpolates from 0 on appear via `displayAmount`.
     private var heroAmountText: String {
+        (displayAmount < 0 ? displayAmount.magnitude : displayAmount).asCompactCHF
+    }
+
+    /// Final hero amount — always the true value, used for accessibility so VoiceOver
+    /// doesn't read every frame of the count-up animation.
+    private var finalHeroAmountText: String {
         (isDeficit ? state.availableToSpend.magnitude : state.availableToSpend).asCompactCHF
     }
 

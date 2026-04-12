@@ -104,9 +104,27 @@ final class OnboardingState {
         isEmailValid && !isLoading
     }
 
-    /// firstName is hidden for social users with a provider name (Apple App Store rejects asking).
-    /// registration is hidden once authenticated (social bypass + email already done).
-    private func isStepVisible(_ step: OnboardingStep) -> Bool {
+    /// Whether the step is shown in the progress bar (stable throughout the flow).
+    /// Email users always see registration in their count — it's just marked as completed
+    /// after they sign up, instead of vanishing and shifting the total.
+    /// Social users never see registration at all (they authenticated on WelcomeStep).
+    private func isStepInProgressBar(_ step: OnboardingStep) -> Bool {
+        switch step {
+        case .welcome:
+            return false
+        case .firstName:
+            return !(isSocialAuth && socialProvidedName)
+        case .registration:
+            return !isSocialAuth
+        case .income, .charges, .savings, .budgetPreview:
+            return true
+        }
+    }
+
+    /// Whether the step should be visited during navigation.
+    /// Stricter than `isStepInProgressBar`: authenticated users skip registration
+    /// even if it's still counted in the progress bar.
+    private func isStepNavigable(_ step: OnboardingStep) -> Bool {
         switch step {
         case .welcome:
             return true
@@ -121,18 +139,18 @@ final class OnboardingState {
 
     /// Steps shown in the progress bar (excludes welcome since it has no progress bar).
     var progressBarSteps: [OnboardingStep] {
-        OnboardingStep.allCases.filter { $0 != .welcome && isStepVisible($0) }
+        OnboardingStep.allCases.filter(isStepInProgressBar)
     }
 
     private func nextVisibleStep(after index: Int) -> OnboardingStep? {
         let allCases = OnboardingStep.allCases
         guard index + 1 < allCases.count else { return nil }
-        return allCases[(index + 1)...].first { isStepVisible($0) }
+        return allCases[(index + 1)...].first { isStepNavigable($0) }
     }
 
     private func previousVisibleStep(before index: Int) -> OnboardingStep? {
         guard index > 0 else { return nil }
-        return OnboardingStep.allCases[..<index].reversed().first { isStepVisible($0) }
+        return OnboardingStep.allCases[..<index].reversed().first { isStepNavigable($0) }
     }
 
     var progressPercentage: Double {

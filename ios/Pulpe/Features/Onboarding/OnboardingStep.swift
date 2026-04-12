@@ -39,11 +39,11 @@ enum OnboardingStep: String, CaseIterable, Identifiable {
         switch self {
         case .welcome: "Reprends le contrôle de tes finances"
         case .firstName: "Juste ton prénom"
-        case .income: "Ton salaire et tes autres revenus"
+        case .income: "Ce qui tombe sur ton compte chaque mois"
         case .charges: "Renseigne ce que tu connais — le reste peut attendre"
         case .savings: "Ce que tu mets de côté chaque mois"
         case .budgetPreview: "Voici ce que ça donne"
-        case .registration: "Sécurise ton accès"
+        case .registration: "Pour retrouver tout ça sur tous tes appareils"
         }
     }
 

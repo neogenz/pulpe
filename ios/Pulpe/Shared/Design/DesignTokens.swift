@@ -230,6 +230,14 @@ enum DesignTokens {
             .easeInOut(duration: pulseDuration).repeatForever(autoreverses: true)
         }
 
+        /// Slow breathing effect for brand heroes (glow/shadow opacity oscillation).
+        /// Deliberately slow so it feels like ambient life, not a notification.
+        static let heroBreathingDuration: Double = 3.5
+
+        static var heroBreathing: SwiftUI.Animation {
+            .easeInOut(duration: heroBreathingDuration).repeatForever(autoreverses: true)
+        }
+
         // MARK: - Skeleton
 
         /// Minimum skeleton display time to prevent jarring flash on fast loads

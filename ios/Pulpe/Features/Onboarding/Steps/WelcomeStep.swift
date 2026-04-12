@@ -4,6 +4,7 @@ struct WelcomeStep: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var showLogin = false
     @State private var isAppeared = false
+    @State private var isBreathing = false
     let state: OnboardingState
 
     private static let consentMarkdown = AppURLs.legalDisclosure(
@@ -21,13 +22,21 @@ struct WelcomeStep: View {
                 // Gradient breathing space
                 Spacer()
 
-                // Hero — PulpeIcon at the gradient/white transition
+                // Hero — PulpeIcon at the gradient/white transition.
+                // Subtle "breathing" brand glow gives the logo ambient life without competing with the headline.
                 PulpeIcon(size: 80)
                     .shadow(DesignTokens.Shadow.elevated)
-                    .shadow(color: Color.pulpePrimary.opacity(0.3), radius: 20, y: 8)
+                    .shadow(
+                        color: Color.pulpePrimary.opacity(
+                            isBreathing ? DesignTokens.Opacity.heavy : DesignTokens.Opacity.strong
+                        ),
+                        radius: isBreathing ? 28 : 18,
+                        y: 8
+                    )
                     .scaleEffect(isAppeared ? 1 : 0.6)
                     .opacity(isAppeared ? 1 : 0)
                     .animation(reduceMotion ? nil : DesignTokens.Animation.entranceSpring, value: isAppeared)
+                    .animation(reduceMotion ? nil : DesignTokens.Animation.heroBreathing, value: isBreathing)
 
                 Spacer()
                     .frame(height: DesignTokens.Spacing.xxl)
@@ -113,6 +122,9 @@ struct WelcomeStep: View {
                 withAnimation(DesignTokens.Animation.entranceSpring.delay(0.1)) {
                     isAppeared = true
                 }
+                // Start the breathing glow after the entrance lands.
+                try? await Task.sleep(for: .milliseconds(700))
+                isBreathing = true
             }
         }
     }

@@ -105,11 +105,13 @@ struct OnboardingSocialSignupTests {
     }
 
     @Test
-    func progressBarSteps_emailUserAuthenticated_excludesRegistration() {
+    func progressBarSteps_emailUserAuthenticated_stillIncludesRegistration() {
+        // Email users keep registration in their progress bar count even after signup,
+        // so the total doesn't shrink mid-flow. Navigation still skips it (see nextStep tests).
         let state = makeSUT()
         defer { OnboardingState.clearPersistedData() }
         state.configureEmailUser(UserInfo(id: "1", email: "x@x.com"))
-        #expect(state.progressBarSteps == [.firstName, .income, .charges, .savings, .budgetPreview])
+        #expect(state.progressBarSteps == [.firstName, .registration, .income, .charges, .savings, .budgetPreview])
     }
 
     @Test

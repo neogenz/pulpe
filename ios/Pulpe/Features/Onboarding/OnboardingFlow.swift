@@ -40,6 +40,7 @@ struct OnboardingFlow: View {
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                         .id(state.currentStep)
                         .transition(stepTransition)
+                        .sensoryFeedback(.impact(weight: .light), trigger: state.currentStep)
                         .overlay(alignment: .top) {
                             if state.currentStep.showProgressBar {
                                 LinearGradient(
@@ -207,6 +208,8 @@ struct OnboardingStepView<Content: View>: View {
     @State private var isAtBottom = false
     @State private var contentOverflows = false
     @State private var keyboardHeight: CGFloat = 0
+    /// Dedicated trigger for the CTA "unlocked" haptic — fires only on false→true flip.
+    @State private var canProceedTrigger = false
 
     private var isKeyboardVisible: Bool { keyboardHeight > 0 }
 
@@ -288,6 +291,10 @@ struct OnboardingStepView<Content: View>: View {
         }
         .background(Color.clear)
         .dismissKeyboardOnTap()
+        .onChange(of: canProceed) { oldValue, newValue in
+            // Celebration haptic only on the false→true flip (CTA just unlocked)
+            if !oldValue && newValue { canProceedTrigger.toggle() }
+        }
         .onReceive(
             NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)
         ) { notification in
@@ -363,7 +370,10 @@ struct OnboardingStepView<Content: View>: View {
             }
             .primaryButtonStyle(isEnabled: isEnabled)
             .disabled(!isEnabled)
+            .scaleEffect(canProceed ? 1 : 0.98)
+            .animation(reduceMotion ? .none : DesignTokens.Animation.bouncySpring, value: canProceed)
             .animation(.easeInOut(duration: DesignTokens.Animation.fast), value: isEnabled)
+            .sensoryFeedback(.success, trigger: canProceedTrigger)
         }
     }
 
