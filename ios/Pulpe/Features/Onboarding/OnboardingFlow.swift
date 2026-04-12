@@ -72,10 +72,14 @@ struct OnboardingFlow: View {
                 Button("Rester", role: .cancel) { }
                 if state.isAuthenticated {
                     Button("Recommencer", role: .destructive) {
+                        captureAbandoned(exitMethod: "restart_button")
                         Task { await appState.abandonInProgressSignup() }
                     }
                 } else {
-                    Button("Quitter", role: .destructive) { state.previousStep() }
+                    Button("Quitter", role: .destructive) {
+                        captureAbandoned(exitMethod: "quit_button")
+                        state.previousStep()
+                    }
                 }
             } message: {
                 Text(
@@ -90,11 +94,7 @@ struct OnboardingFlow: View {
                    !state.hasCompleted,
                    !state.isSubmitting,
                    !state.hasAbandoned {
-                    state.hasAbandoned = true
-                    AnalyticsService.shared.capture(
-                        .onboardingAbandoned,
-                        properties: ["last_step": state.currentStep.analyticsName]
-                    )
+                    captureAbandoned(exitMethod: "background")
                 }
             }
             .onChange(of: state.readyToComplete) { _, ready in
@@ -102,12 +102,17 @@ struct OnboardingFlow: View {
                 Task { await finishOnboarding(user: user) }
             }
             .task {
-                // Clear consumed pendingSocialUser / pendingEmailUser from AppState
+                // Clear consumed pendingSocialUser / pendingEmailUser from AppState.
+                // The social and email branches each emit onboarding_resumed with the
+                // provider-specific method so PostHog funnels can measure "killed and
+                // returned" cohorts vs. fresh starts.
                 if hasPendingSocialUser {
                     appState.pendingSocialUser = nil
+                    captureResumed(method: "social", source: "pending_user")
                 }
                 if hasPendingEmailUser {
                     appState.pendingEmailUser = nil
+                    captureResumed(method: "email", source: "pending_user")
                 }
                 // Cold-start recovery: if user registered via email but app was killed,
                 // recover user from Supabase session. Most cases are now routed via
@@ -116,6 +121,7 @@ struct OnboardingFlow: View {
                 if state.wasEmailRegistered && !state.isAuthenticated {
                     if let user = try? await AuthService.shared.validateSession() {
                         state.configureEmailUser(user)
+                        captureResumed(method: "email", source: "session_fallback")
                     } else {
                         state.currentStep = .welcome
                     }
@@ -178,6 +184,38 @@ struct OnboardingFlow: View {
         case .budgetPreview:
             BudgetPreviewStep(state: state)
         }
+    }
+
+    // MARK: - Analytics
+
+    /// Fire `onboarding_abandoned` with consistent properties for drop-off funnels.
+    /// Idempotent via `state.hasAbandoned` — multiple triggers (background then tap,
+    /// or double-tap on "Recommencer") only emit the event once.
+    private func captureAbandoned(exitMethod: String) {
+        guard !state.hasAbandoned else { return }
+        state.hasAbandoned = true
+        AnalyticsService.shared.capture(
+            .onboardingAbandoned,
+            properties: [
+                "last_step": state.currentStep.analyticsName,
+                "exit_method": exitMethod,
+                "was_authenticated": state.isAuthenticated,
+                "auth_method": state.authMethodProperty
+            ]
+        )
+    }
+
+    /// Fire `onboarding_resumed` for a user who re-enters the flow mid-way after
+    /// killing/backgrounding the app. Enables funnel analysis of the "returned" cohort.
+    private func captureResumed(method: String, source: String) {
+        AnalyticsService.shared.capture(
+            .onboardingResumed,
+            properties: [
+                "method": method,
+                "source": source,
+                "resumed_at_step": state.currentStep.analyticsName
+            ]
+        )
     }
 
     // MARK: - Completion

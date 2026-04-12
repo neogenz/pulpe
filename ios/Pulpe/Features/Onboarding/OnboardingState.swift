@@ -38,7 +38,8 @@ final class OnboardingState {
     var readyToComplete: Bool = false
 
     /// Set when email registration was persisted — used for cold-start session recovery.
-    private(set) var wasEmailRegistered: Bool = false
+    /// Not `private(set)` because `OnboardingState+Persistence.swift` restores it from disk.
+    var wasEmailRegistered: Bool = false
 
     /// Configures state for a social signup user.
     /// Pre-fills firstName from provider metadata and clears persisted step

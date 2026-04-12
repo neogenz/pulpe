@@ -83,13 +83,17 @@ struct SocialLoginSection: View {
             }
 
             if let onAuthenticated {
+                // Onboarding context: the tap is a signup intent. Fire signup_started now
+                // (matching the email funnel which fires on button tap in WelcomeStep).
+                AnalyticsService.shared.capture(.signupStarted, properties: ["method": "apple"])
                 let result = try await appState.authenticateWithApple(idToken: idToken, nonce: nonce)
                 switch result {
                 case .newUser(var user):
                     patchFirstName(on: &user, from: givenName)
-                    AnalyticsService.shared.capture(.loginCompleted, properties: ["method": "apple_onboarding"])
+                    AnalyticsService.shared.capture(.signupCompleted, properties: ["method": "apple"])
                     await onAuthenticated(user)
                 case .existingUserRedirected:
+                    // Already had a vault — this was a login disguised as signup.
                     AnalyticsService.shared.capture(
                         .loginCompleted,
                         properties: ["method": "apple", "source": "signup_redirect"]
@@ -129,13 +133,17 @@ struct SocialLoginSection: View {
             }
 
             if let onAuthenticated {
+                // Onboarding context: the tap is a signup intent. Fire signup_started now
+                // (matching the email funnel which fires on button tap in WelcomeStep).
+                AnalyticsService.shared.capture(.signupStarted, properties: ["method": "google"])
                 let result = try await appState.authenticateWithGoogle(idToken: idToken, accessToken: accessToken)
                 switch result {
                 case .newUser(var user):
                     patchFirstName(on: &user, from: givenName)
-                    AnalyticsService.shared.capture(.loginCompleted, properties: ["method": "google_onboarding"])
+                    AnalyticsService.shared.capture(.signupCompleted, properties: ["method": "google"])
                     await onAuthenticated(user)
                 case .existingUserRedirected:
+                    // Already had a vault — this was a login disguised as signup.
                     AnalyticsService.shared.capture(
                         .loginCompleted,
                         properties: ["method": "google", "source": "signup_redirect"]
