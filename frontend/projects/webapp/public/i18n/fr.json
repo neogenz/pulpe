@@ -698,8 +698,11 @@
       "income": "Revenu",
       "committed": "Dépenses",
       "available": "Disponible",
-      "deficitHint": "Pas d'inquiétude — tu pourras ajuster tout ça après."
+      "deficitHint": "Pas d'inquiétude — tu pourras ajuster tout ça après.",
+      "liveAvailableAnnouncement": "Disponible : {{ amount }} francs",
+      "liveDeficitAnnouncement": "Déficit de {{ amount }} francs à équilibrer"
     },
+    "stepperAriaLabel": "Étape {{ current }} sur {{ total }}",
     "customize": {
       "sectionTitle": "Personnaliser ton budget"
     },

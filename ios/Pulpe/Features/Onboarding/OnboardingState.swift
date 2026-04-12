@@ -360,6 +360,11 @@ final class OnboardingState {
 
     // MARK: - Suggestions
 
+    /// Hard cap on user-added custom transactions during onboarding.
+    /// Mirrors `MAX_CUSTOM_TRANSACTIONS` in the Angular store and the `.max(50)` Zod constraint
+    /// in `shared/schemas.ts` `budgetTemplateCreateFromOnboardingSchema.customTransactions`.
+    static let maxCustomTransactions = 50
+
     static let chargeSuggestions: [OnboardingTransaction] = [
         OnboardingTransaction(amount: 600, type: .expense, name: "Courses / alimentation"),
         OnboardingTransaction(amount: 150, type: .expense, name: "Restaurants & sorties"),
@@ -375,17 +380,17 @@ final class OnboardingState {
 
     func isSuggestionSelected(_ suggestion: OnboardingTransaction) -> Bool {
         customTransactions.contains {
-            $0.name == suggestion.name && $0.type == suggestion.type && $0.amount == suggestion.amount
+            $0.name == suggestion.name && $0.type == suggestion.type
         }
     }
 
     func toggleSuggestion(_ suggestion: OnboardingTransaction) {
         if let index = customTransactions.firstIndex(where: {
-            $0.name == suggestion.name && $0.type == suggestion.type && $0.amount == suggestion.amount
+            $0.name == suggestion.name && $0.type == suggestion.type
         }) {
             customTransactions.remove(at: index)
         } else {
-            guard customTransactions.count < 50 else { return }
+            guard customTransactions.count < Self.maxCustomTransactions else { return }
             customTransactions.append(suggestion)
         }
     }
@@ -393,7 +398,7 @@ final class OnboardingState {
     // MARK: - Custom Transactions
 
     func addCustomTransaction(_ tx: OnboardingTransaction) {
-        guard customTransactions.count < 50 else { return }
+        guard customTransactions.count < Self.maxCustomTransactions else { return }
         customTransactions.append(tx)
     }
 

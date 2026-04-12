@@ -690,7 +690,11 @@ describe('CompleteProfileStore', () => {
         ).toBe(true);
       });
 
-      it('should not include transactions with matching name but different amount', () => {
+      it('should include transactions with matching name+type even if amount differs', () => {
+        // Identity is now (name, type) — matches the suggestion regardless of edited amount.
+        // This is the post-fix contract: a manually-added transaction colliding on name+type
+        // is treated as toggling the chip on. Suggestion names are distinctive enough
+        // ("Courses / alimentation", etc.) that this collision is benign in practice.
         store.addCustomTransaction({
           name: 'Courses / alimentation',
           amount: 200,
@@ -701,7 +705,43 @@ describe('CompleteProfileStore', () => {
 
         expect(
           store.selectedSuggestionNames().has('Courses / alimentation'),
-        ).toBe(false);
+        ).toBe(true);
+      });
+    });
+
+    describe('toggle → edit amount → re-toggle (T1.1 regression)', () => {
+      it('should not duplicate the suggestion when amount is edited then re-toggled', () => {
+        // Reproduction sequence for the original bug:
+        //   1. Toggle chip ON (suggestion appended at its static amount)
+        //   2. User inline-edits the amount (mutates the stored entry)
+        //   3. Triple-match identity USED to fail → chip rendered as unselected
+        //   4. Re-tap appended a duplicate → "Disponible à dépenser" inflated
+        // After the fix, identity is (name, type) only, so the chip stays
+        // selected after edit and re-tap removes (not duplicates) the entry.
+        const suggestion = ONBOARDING_SUGGESTIONS[0]; // Courses / alimentation, 600
+
+        store.toggleSuggestion(suggestion);
+        expect(store.customTransactions()).toHaveLength(1);
+
+        store.updateCustomTransactionAmount(0, 800);
+        expect(store.customTransactions()[0].amount).toBe(800);
+
+        // Chip stays selected after the edit (name+type identity).
+        expect(store.selectedSuggestionNames().has(suggestion.name)).toBe(true);
+
+        // Re-toggle removes the entry — does NOT append a duplicate.
+        store.toggleSuggestion(suggestion);
+        expect(store.customTransactions()).toHaveLength(0);
+      });
+
+      it('should remove the edited entry on re-toggle, regardless of amount drift', () => {
+        const suggestion = ONBOARDING_SUGGESTIONS[3]; // Épargne, 500
+        store.toggleSuggestion(suggestion);
+        store.updateCustomTransactionAmount(0, 1234);
+
+        store.toggleSuggestion(suggestion);
+
+        expect(store.customTransactions()).toEqual([]);
       });
     });
   });

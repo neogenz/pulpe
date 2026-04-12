@@ -610,6 +610,75 @@ struct OnboardingStateTests {
         #expect(OnboardingState.savingSuggestions.count == 2)
     }
 
+    // MARK: - T1.1 Regression: toggle → edit amount → re-toggle does not duplicate
+
+    /// Reproduction sequence for the original duplicate-entry bug:
+    ///   1. Toggle chip ON (suggestion appended at its static amount)
+    ///   2. User opens the edit sheet on the row, mutates the amount via `replaceCustomTransaction`
+    ///   3. Triple-match identity USED to fail because the amount changed → chip rendered as unselected
+    ///   4. Re-tap appended a duplicate → `availableToSpend` inflated
+    /// After the fix, identity is `name + type` only, so the chip stays selected after edit
+    /// and re-tap removes (not duplicates) the entry. Iterates over every suggestion to
+    /// guarantee both expense and saving paths are covered.
+    @Test
+    func toggleSuggestion_afterAmountEdit_doesNotDuplicate_allSuggestions() {
+        for suggestion in OnboardingState.suggestions {
+            let state = makeSUT()
+            defer { OnboardingState.clearPersistedData() }
+
+            state.toggleSuggestion(suggestion)
+            #expect(state.customTransactions.count == 1)
+
+            // Simulate the edit sheet flow: replace by id with a new amount.
+            let original = state.customTransactions[0]
+            let edited = OnboardingTransaction(
+                id: original.id,
+                amount: original.amount + 200,
+                type: original.type,
+                name: original.name,
+                description: original.description,
+                expenseType: original.expenseType,
+                isRecurring: original.isRecurring
+            )
+            state.replaceCustomTransaction(id: original.id, with: edited)
+
+            #expect(state.customTransactions.count == 1)
+            #expect(state.customTransactions[0].amount == original.amount + 200)
+
+            // Chip stays selected — identity is (name, type) only.
+            #expect(state.isSuggestionSelected(suggestion))
+
+            // Re-toggle removes the entry — does NOT append a duplicate.
+            state.toggleSuggestion(suggestion)
+            #expect(state.customTransactions.isEmpty)
+        }
+    }
+
+    @Test
+    func toggleSuggestion_afterAmountEdit_neverInflatesAvailableToSpend() {
+        let state = makeSUT()
+        defer { OnboardingState.clearPersistedData() }
+        state.monthlyIncome = 5000
+
+        let suggestion = OnboardingState.suggestions[0] // Courses, 600 expense
+        state.toggleSuggestion(suggestion)
+
+        let original = state.customTransactions[0]
+        let edited = OnboardingTransaction(
+            id: original.id,
+            amount: 800,
+            type: original.type,
+            name: original.name
+        )
+        state.replaceCustomTransaction(id: original.id, with: edited)
+
+        // Re-toggle removes the entry rather than adding a duplicate at 600.
+        state.toggleSuggestion(suggestion)
+
+        #expect(state.customTransactions.isEmpty)
+        #expect(state.availableToSpend == 5000)
+    }
+
     // MARK: - Running Totals
 
     @Test

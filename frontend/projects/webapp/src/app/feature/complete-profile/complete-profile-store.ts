@@ -112,12 +112,10 @@ export class CompleteProfileStore {
   );
   readonly selectedSuggestionNames = computed(() => {
     const txs = this.customTransactions();
+    const txKeys = new Set(txs.map((t) => `${t.name}|${t.type}`));
     return new Set(
       ONBOARDING_SUGGESTIONS.filter((s) =>
-        txs.some(
-          (t) =>
-            t.name === s.name && t.type === s.type && t.amount === s.amount,
-        ),
+        txKeys.has(`${s.name}|${s.type}`),
       ).map((s) => s.name),
     );
   });
@@ -230,15 +228,13 @@ export class CompleteProfileStore {
 
   toggleSuggestion(suggestion: OnboardingTransaction): void {
     const current = this.#state().customTransactions;
-    const exactMatch = (t: OnboardingTransaction) =>
-      t.name === suggestion.name &&
-      t.type === suggestion.type &&
-      t.amount === suggestion.amount;
-    const exists = current.some(exactMatch);
+    const isSame = (t: OnboardingTransaction) =>
+      t.name === suggestion.name && t.type === suggestion.type;
+    const exists = current.some(isSame);
     if (!exists && current.length >= MAX_CUSTOM_TRANSACTIONS) return;
     this.#patchState({
       customTransactions: exists
-        ? current.filter((t) => !exactMatch(t))
+        ? current.filter((t) => !isSame(t))
         : [...current, suggestion],
     });
   }

@@ -1,6 +1,7 @@
 import {
   Component,
   ChangeDetectionStrategy,
+  computed,
   inject,
   signal,
 } from '@angular/core';
@@ -18,7 +19,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { CurrencyInput } from '@ui/currency-input';
 import { ErrorAlert } from '@ui/error-alert';
 import { LoadingButton } from '@ui/loading-button';
-import { TranslocoPipe } from '@jsverse/transloco';
+import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { FinancialKindDirective } from '@ui/financial-kind';
 import { PostHogService } from '@core/analytics/posthog';
 import { ROUTES } from '@core/routing/routes-constants';
@@ -69,9 +70,17 @@ import { PAY_DAY_MAX } from 'pulpe-shared';
       } @else {
         <div class="relative">
           <!-- Modern Stepper (Dots) -->
-          <div class="flex items-center justify-center gap-3 mb-10">
+          <div
+            class="flex items-center justify-center gap-3 mb-10"
+            role="group"
+            [attr.aria-label]="
+              'completeProfile.stepperAriaLabel'
+                | transloco: { current: currentStep(), total: 2 }
+            "
+          >
             @for (step of [1, 2]; track step) {
               <div
+                aria-hidden="true"
                 class="h-1.5 rounded-full transition-all duration-500 ease-emphasized"
                 [class.w-8]="currentStep() === step"
                 [class.w-2]="currentStep() !== step"
@@ -259,6 +268,15 @@ import { PAY_DAY_MAX } from 'pulpe-shared';
                   {{ 'completeProfile.summary.deficitHint' | transloco }}
                 </p>
               }
+
+              <!-- Screen-reader-only live announcement: only the changing "Disponible"
+                   value, so VoiceOver/NVDA polite-announce the delta when the user
+                   toggles a chip or edits an amount. The visible 3-column grid above
+                   stays free of aria-live to avoid re-announcing income/committed on
+                   every keystroke. -->
+              <span class="sr-only" role="status" aria-live="polite">
+                {{ liveBudgetAnnouncement() }}
+              </span>
 
               <div class="space-y-6">
                 <!-- Charges fixes -->
@@ -493,7 +511,7 @@ import { PAY_DAY_MAX } from 'pulpe-shared';
 
               <!-- Sticky CTA bar -->
               <div
-                class="sticky bottom-0 z-10 -mx-6 sm:pb-0 pt-5 pb-5 border-t border-outline-variant/15 bg-surface shadow-[0_4rem_0_0_var(--color-surface)]"
+                class="sticky bottom-0 z-10 -mx-6 sm:pb-0 pt-5 pb-[calc(20px+env(safe-area-inset-bottom))] border-t border-outline-variant/15 bg-surface shadow-[0_4rem_0_0_var(--color-surface)]"
               >
                 <pulpe-loading-button
                   [loading]="store.isLoading()"
@@ -539,12 +557,30 @@ export default class CompleteProfilePage {
   readonly #router = inject(Router);
   readonly #dialog = inject(MatDialog);
   readonly #postHogService = inject(PostHogService);
+  readonly #transloco = inject(TranslocoService);
 
   protected readonly suggestions = ONBOARDING_SUGGESTIONS;
 
   protected formatAmount(value: number): string {
     return value.toLocaleString('de-CH', { maximumFractionDigits: 0 });
   }
+
+  /// Live aria-live announcement for the budget summary. Reacts to chip toggles
+  /// and inline amount edits via the `budgetSummary` computed signal.
+  protected readonly liveBudgetAnnouncement = computed(() => {
+    const { available } = this.store.budgetSummary();
+    const amount = this.formatAmount(Math.abs(available));
+    return available < 0
+      ? this.#transloco.translate(
+          'completeProfile.summary.liveDeficitAnnouncement',
+          { amount },
+        )
+      : this.#transloco.translate(
+          'completeProfile.summary.liveAvailableAnnouncement',
+          { amount },
+        );
+  });
+
   protected readonly currentStep = signal<1 | 2>(1);
 
   protected readonly availableDays = Array.from(
@@ -580,7 +616,7 @@ export default class CompleteProfilePage {
   protected onAmountChange(index: number, event: Event): void {
     const input = event.target as HTMLInputElement;
     const value = +input.value;
-    if (!isNaN(value) && value > 0) {
+    if (Number.isFinite(value) && value > 0) {
       this.store.updateCustomTransactionAmount(index, value);
     } else {
       input.value = String(this.store.customTransactions()[index].amount);
