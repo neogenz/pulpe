@@ -249,10 +249,11 @@ final class OnboardingState {
     }
 
     /// Stable string describing the auth method for analytics properties.
-    /// `unknown` covers the pre-auth window (user is on firstName but hasn't signed up yet).
+    /// Matches `login_completed.method` convention: `email | apple | google`.
+    /// Defaults to `email` before authentication since the only non-email entry
+    /// point sets `authenticatedUser` synchronously via `configureSocialUser`.
     var authMethodProperty: String {
-        if !isAuthenticated { return "unknown" }
-        return isSocialAuth ? "social" : "email"
+        authenticatedUser?.provider?.rawValue ?? "email"
     }
 
     /// True when the previous visible step is welcome — tapping back triggers exit confirmation.
