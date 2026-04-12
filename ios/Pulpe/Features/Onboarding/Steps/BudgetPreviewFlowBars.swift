@@ -8,6 +8,10 @@ struct BudgetPreviewFlowBars: View {
     let income: Decimal
     let charges: Decimal
     let savings: Decimal
+    var isRevealed: Bool = true
+
+    @State private var displayProgress: CGFloat = 0
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var outflows: Decimal { charges + savings }
     private var maxTotal: Decimal { max(income, outflows) }
@@ -39,6 +43,23 @@ struct BudgetPreviewFlowBars: View {
             .animation(DesignTokens.Animation.smoothEaseInOut, value: income)
             .animation(DesignTokens.Animation.smoothEaseInOut, value: charges)
             .animation(DesignTokens.Animation.smoothEaseInOut, value: savings)
+            .onAppear {
+                if isRevealed { revealBars() }
+            }
+            .onChange(of: isRevealed) { _, newValue in
+                if newValue { revealBars() }
+            }
+        }
+    }
+
+    private func revealBars() {
+        guard displayProgress < 1 else { return }
+        if reduceMotion {
+            displayProgress = 1
+        } else {
+            withAnimation(.smooth(duration: 0.7)) {
+                displayProgress = 1
+            }
         }
     }
 
@@ -79,7 +100,8 @@ struct BudgetPreviewFlowBars: View {
 
     private func ratio(_ amount: Decimal) -> CGFloat {
         guard maxTotal > 0 else { return 0 }
-        return CGFloat(truncating: (amount / maxTotal) as NSDecimalNumber)
+        let base = CGFloat(truncating: (amount / maxTotal) as NSDecimalNumber)
+        return base * displayProgress
     }
 }
 

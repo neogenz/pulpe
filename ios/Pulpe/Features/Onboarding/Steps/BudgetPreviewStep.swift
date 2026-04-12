@@ -102,7 +102,8 @@ struct BudgetPreviewStep: View {
             BudgetPreviewFlowBars(
                 income: totalIncome,
                 charges: chargesTotal,
-                savings: savingsTotal
+                savings: savingsTotal,
+                isRevealed: showCard
             )
 
             Divider()
