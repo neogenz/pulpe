@@ -35,6 +35,7 @@
 | DR-012 | VariableBlur for Progressive Blur Effects | 2026-04-10 |
 | DR-013 | Onboarding Step Visibility & Apple App Store Compliance | 2026-04-12 |
 | DR-014 | Multi-Currency with Conversion Metadata | 2026-03-06 |
+| DR-015 | Feature Flags via PostHog with Early Adopter Targeting | 2026-04-12 |
 
 ---
 
@@ -96,6 +97,97 @@ Apple a rejeté l'app parce qu'on demandait le prénom à un user authentifié v
 - Le pattern visibility est extensible : KYC, documents légaux, étapes payment, A/B test variants — tous peuvent devenir conditionnels via le même mécanisme sans toucher la navigation
 - Le `OnboardingStep` enum a été extrait dans son propre fichier (`OnboardingStep.swift`) pour passer la limite SwiftLint `file_length` sur `OnboardingState.swift` après le refactor
 - Implémentation : commits `5e5b24b33` (unification refactor), `d70509497` (polish + lighter form), `a7c557e46` (clean code follow-up)
+
+---
+
+## DR-015: Feature Flags via PostHog with Early Adopter Targeting
+
+**Date**: 2026-04-12
+
+### Problem
+
+Le multi-currency (PUL-99 / DR-014) introduit une feature opt-in significative (CHF/EUR avec persistance des metadata de conversion). Shipper la feature directement à 100% des users porte des risques :
+
+1. **Pas de kill switch** : si un bug remonte en prod, il faut redéployer pour rollback
+2. **Pas de rollout progressif** : impossible de tester la feature en conditions réelles avec un sous-ensemble d'utilisateurs avant exposition globale
+3. **Pas de mécanisme de cohorte** : on n'a aucun moyen de cibler "early adopters" pour leur donner accès en avant-première
+
+Aucun feature flag n'existait dans le projet — premier flag introduit, doit servir de template réutilisable.
+
+### Decision Drivers
+
+- PostHog est déjà instrumenté sur webapp + iOS pour analytics — intégration native des feature flags possible sans outil supplémentaire
+- La metadata Supabase `app_metadata.early_adopter` existait déjà (lue dans `auth-state.service.ts`) mais n'était pas envoyée à PostHog
+- Le gating UX du multi-currency touche ~14 forms + settings + onboarding — la centralisation est critique pour éviter une dette technique massive
+- Doit être réutilisable pour les futures features gated (savings goals, notifications, etc.)
+
+### Options Considered
+
+| Option | Description | Verdict |
+|--------|-------------|---------|
+| A: PostHog feature flags | Outil déjà instrumenté, targeting via person properties, dashboard-only rollout | Chosen |
+| B: LaunchDarkly / Statsig | Outils dédiés, plus de fonctionnalités | Rejected — nouvel outil à intégrer, coût additionnel, pas de valeur incrémentale vs PostHog pour la taille du projet |
+| C: Toggle config statique (env var / shared constant) | Pas de SDK, simple booléen recompilé | Rejected — pas de rollout progressif, pas de targeting per-user, requiert un déploiement pour chaque changement |
+| D: Supabase RLS-based gating | Filtrer les colonnes currency au backend selon `app_metadata.early_adopter` | Rejected — couplage backend/UI flag, compliqué à rollback, performances dégradées |
+
+### Decision
+
+1. **PostHog feature flags** avec single source of truth dans `shared/src/feature-flags.ts` :
+   - `FEATURE_FLAGS.MULTI_CURRENCY = 'multi-currency-enabled'`
+   - `ANALYTICS_PROPERTIES.EARLY_ADOPTER = 'early_adopter'`
+   - iOS mirror manuel via `AnalyticsService.earlyAdopterProperty` (commentaire de sync explicite)
+
+2. **Targeting par person property** : `early_adopter` envoyé à PostHog via `identify()` à chaque login (lit `app_metadata.early_adopter` Supabase)
+
+3. **Pattern réactif par plateforme** :
+   - **Frontend** : `PostHogService.isFeatureEnabled()` + signal `flagsVersion` bumped via `posthog.onFeatureFlags(callback)`. `FeatureFlagsService.isMultiCurrencyEnabled` est un `computed()` qui lit `flagsVersion` pour la réactivité. Templates Angular avec `@if (isMultiCurrencyEnabled())`.
+   - **iOS** : `AnalyticsService.isFeatureEnabled()` + `FeatureFlagsStore` (`@Observable @MainActor`) avec persistance UserDefaults pour éviter le flicker au boot. Refresh sur identify (post-login) + `scenePhase = .active` (foreground).
+
+4. **Gating centralisé sur 2 entry points** (transparent pour ~14 forms) :
+   - Frontend : `injectCurrencyFormConfig()` retourne un `showCurrencySelector` computed gated par le flag
+   - iOS : `UserSettingsStore.showCurrencySelectorEffective` (flag && user toggle) — les 6 sheets renomment leur référence
+
+5. **Stratégie de rollout en 3 phases** (industry-standard pattern) :
+   - **Phase 1** : ciblé `early_adopter = true` (dashboard-only)
+   - **Phase 2** : `100% of all users` (dashboard-only, kill switch toujours actif)
+   - **Phase 3** : PR dédié `chore: remove multi-currency feature flag` après stabilisation (~6 semaines), find/replace + suppression du flag du code et archivage côté PostHog
+
+### Rationale
+
+- **Zéro déploiement pour le rollout** : phases 1 et 2 sont 100% dashboard-only — Product/Eng Lead peut ajuster sans toucher au code
+- **Pattern réutilisable** : la prochaine feature gated ajoute juste une constante dans `FEATURE_FLAGS` + un computed dans `FeatureFlagsService` / `FeatureFlagsStore`
+- **Backend non touché** : les endpoints currency restent ouverts, les schemas acceptent toujours les metadata. Si on rollback le flag après que des users aient créé des transactions EUR, les données restent lisibles (display dégradé sans badge mais montant intact)
+- **Hygiène de la dette technique** : la phase 3 est explicitement planifiée et tracée dans PUL-99. Les flags temporaires doivent mourir — différence entre un "feature flag temporaire" (bon) et un "permanent toggle" (dette)
+- **Pas de race condition au boot** : `posthog.onFeatureFlags()` est registered immédiatement après `posthog.init()` synchroniquement. Le default `false` quand les flags ne sont pas encore résolus est sûr (la feature est cachée, pas révélée)
+- **Person property vs cohorte** : la person property est plus dynamique (peut changer pour un user existant via SQL) qu'une cohorte statique, et elle est déjà dans Supabase
+
+### Consequences
+
+- **Positive** :
+  - Rollout progressif possible sans déploiement (phases 1 et 2 dashboard-only)
+  - Kill switch instant via dashboard PostHog
+  - Métriques `$feature_flag_called` automatiques pour suivre qui a la feature
+  - Pattern documenté pour les futurs flags
+  - 4 previews iOS qui rendent `CurrencyConversionBadge` ont reçu `.environment(FeatureFlagsStore())` pour éviter les crashs (env-based gating)
+- **Trade-off** :
+  - Le signal `flagsVersion` bump invalide TOUS les flag-dependent computeds simultanément. Acceptable à 1 flag, à monitorer si on dépasse 10+ flags actifs (envisager des signals par flag)
+  - iOS `FeatureFlagsStore.refresh()` se fait sur chaque `scenePhase = .active` — léger overhead réseau (un appel PostHog par foreground)
+  - Le code des phases 1/2 contient des `@if (isMultiCurrencyEnabled())` qui doivent disparaître en phase 3 pour éviter la dette
+- **Impact** : 32 fichiers dans le commit `e74efa1ad`. Nouveaux : `shared/src/feature-flags.ts`, `frontend/projects/webapp/src/app/core/feature-flags/`, `ios/Pulpe/Domain/Store/FeatureFlagsStore.swift`. Étendus : `PostHogService` (frontend), `AnalyticsService` (iOS), `analytics.ts` + `auth-state.service.ts` (frontend), `AppState+Auth.swift` + `AuthService.swift` (iOS), `UserSettingsStore` (iOS), `PulpeApp.swift`
+
+### Notes
+
+- **Test local du flag** :
+  - Webapp : `localStorage.setItem('phc_<projectKey>_feature_flags', '{"multi-currency-enabled": true}')` puis reload
+  - iOS : utiliser un compte avec `app_metadata.early_adopter = true` ou override temporaire dans `FeatureFlagsStore.refresh()`
+- **Tagger un user early adopter via Supabase** :
+  ```sql
+  UPDATE auth.users
+  SET raw_app_meta_data = jsonb_set(coalesce(raw_app_meta_data, '{}'), '{early_adopter}', 'true')
+  WHERE email = 'user@example.com';
+  ```
+  L'utilisateur doit se reconnecter pour que la nouvelle valeur soit envoyée à PostHog via `identify()`
+- **Référence opérationnelle complète** : ticket PUL-99 contient le runbook Phase 1/2/3 détaillé avec liste exhaustive des fichiers à supprimer en clean removal
 
 ---
 
@@ -706,56 +798,6 @@ Paramètres utilisateur étendus : `currency` (devise préférée, défaut CHF) 
 - Issue GitHub : [#248](https://github.com/neogenz/pulpe/issues/248)
 - Frontend : `CurrencyConverterService` (cache 5 min), `CurrencyConversionBadge` (badge avec tooltip)
 - iOS : `CurrencyConversionService`, `CurrencySettingView`
-
----
-
-## DR-011: Greenlight Preflight & FormTextField `hint:` Rename
-
-**Date**: 2026-03-16
-
-### Problem
-
-L'outil `greenlight preflight` (scanner App Store pre-submission) flaggait deux faux positifs sur le mot "placeholder" :
-1. Le paramètre `placeholder:` de `FormTextField` — détecté comme contenu placeholder user-facing
-2. La méthode `placeholder(in:)` du protocol `TimelineProvider` (WidgetKit) — une méthode Apple obligatoire
-
-### Decision Drivers
-
-- Greenlight v0.1.0 (Homebrew) n'a pas de mécanisme d'ignore/suppress (pas de config, pas de comment inline)
-- `placeholder(in:)` est requis par Apple sur `TimelineProvider`, `IntentTimelineProvider` ET `AppIntentTimelineProvider` (iOS 17+) — aucune alternative
-- Le scan doit retourner 0 findings pour le CI
-
-### Options Considered
-
-| Option | Description | Verdict |
-|--------|-------------|---------|
-| A: Renommer `FormTextField.placeholder:` → `hint:` | Supprime le faux positif #1 | Chosen |
-| B: Déplacer le fichier widget hors de `ios/` | Le scanner ne le trouve plus | Rejected — code smell |
-| C: Script wrapper avec filtre `jq` | Filtre les faux positifs connus | Rejected — masque les vrais problèmes |
-| D: Build greenlight from source (main) | Le `main` branch a des `ignorePatterns` pour WidgetKit | Chosen |
-
-### Decision
-
-1. **FormTextField** : renommer le paramètre `placeholder:` → `hint:` dans `FormTextField` et ses 7 call sites
-2. **WidgetKit** : installer greenlight depuis `main` (pas la release Homebrew 0.1.0) car le code source a déjà des `ignorePatterns` pour `func placeholder(` mais ce fix n'est pas encore dans la release Homebrew
-
-### Rationale
-
-- `hint:` est sémantiquement correct (c'est le hint text d'un TextField) et évite le grep bête du scanner
-- Le fix WidgetKit existe dans le source Go de greenlight (`internal/codescan/rules.go`) avec un `ignorePatterns` explicite pour `func\s+placeholder\s*\(`, mais le tag v0.1.0 ne l'inclut pas
-- Pas de solution propre côté code Swift — la méthode `placeholder(in:)` est un requirement protocolaire Apple non-modifiable
-
-### Consequences
-
-- **Positive** : 0 findings greenlight avec la version `dev` buildée depuis `main`
-- **Trade-off** : Dépendance à une version non-released de greenlight — surveiller la prochaine release Homebrew pour repasser sur `brew install`
-- **Impact** : `FormTextField.swift`, 7 call sites renommés, `CLAUDE.md` iOS mis à jour
-
-### Notes
-
-- Quand greenlight publie une nouvelle release Homebrew avec les `ignorePatterns`, repasser sur `brew install revylai/tap/greenlight` et supprimer le binary custom de `/opt/homebrew/bin/`
-- La version actuelle installée : `greenlight dev` (build from `main` 2026-03-16)
-- Commande d'installation : `git clone https://github.com/RevylAI/greenlight.git && go build -o greenlight ./cmd/greenlight`
 
 ---
 

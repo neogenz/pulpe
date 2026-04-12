@@ -260,7 +260,55 @@ app_opened → welcome_screen_viewed → signup_started
 
 **Financial data sanitization**: Properties split by `_`, each component checked against a word set (`amount`, `balance`, `income`, `savings`, `total`, `projection`, `rollover`, `expenses`, `available`). Catches compound keys like `total_amount`, `current_balance`.
 
-**User identification**: `identify(userId:)` called in `applyPostAuthDestination()` (covers both login and signup). Reset on logout.
+**User identification**: `identify(userId:, properties:)` called in `applyPostAuthDestination()` (covers both login and signup). The `early_adopter` person property (sourced from Supabase `auth.users.app_metadata.early_adopter`) is passed on every identify call to drive PostHog feature flag targeting. Reset on logout.
+
+### Feature Flags (PostHog — Cross-Platform)
+
+Single source of truth in `shared/src/feature-flags.ts` :
+
+```typescript
+export const FEATURE_FLAGS = {
+  MULTI_CURRENCY: 'multi-currency-enabled',
+} as const;
+
+export const ANALYTICS_PROPERTIES = {
+  EARLY_ADOPTER: 'early_adopter',
+} as const;
+```
+
+iOS mirrors `FEATURE_FLAGS.MULTI_CURRENCY` manually as `FeatureFlagsStore.multiCurrencyKey` and `ANALYTICS_PROPERTIES.EARLY_ADOPTER` as `AnalyticsService.earlyAdopterProperty` (with sync-comment back to the shared TS file).
+
+| Aspect | Frontend (Angular) | iOS (SwiftUI) |
+|--------|-------------------|---------------|
+| Service | `FeatureFlagsService` (`core/feature-flags/`) | `FeatureFlagsStore` (`Domain/Store/`) |
+| Pattern | Injectable + `computed()` signals | `@Observable @MainActor final class` |
+| Reactivity | `PostHogService.flagsVersion` signal bumped via `posthog.onFeatureFlags()` | `refresh()` reads `AnalyticsService.isFeatureEnabled()` and updates `@Observable` property |
+| Persistence | Built into posthog-js (localStorage) | UserDefaults (avoid boot-time flicker) |
+| Refresh triggers | Auto via posthog-js | `.task` at root + `.onChange(of: scenePhase = .active)` |
+
+**Pattern d'usage** :
+
+```typescript
+// Frontend — adding a new flag
+readonly isXxxEnabled = computed(() => {
+  this.#posthog.flagsVersion(); // reactive dep
+  return this.#posthog.isFeatureEnabled(FEATURE_FLAGS.XXX);
+});
+```
+
+```swift
+// iOS — adding a new flag in FeatureFlagsStore
+private(set) var isXxxEnabled: Bool
+// + read from AnalyticsService.isFeatureEnabled() in refresh()
+```
+
+**Targeting strategy** : person property `early_adopter` (provient de Supabase) → conditions PostHog dashboard. Permet un rollout dashboard-only sans déploiement (cf. DR-013).
+
+**Gating centralisé** : préférer un seul point d'entrée par feature pour éviter la dispersion.
+- Multi-currency frontend : `injectCurrencyFormConfig()` retourne un `showCurrencySelector` gated → 8 forms transparentes
+- Multi-currency iOS : `UserSettingsStore.showCurrencySelectorEffective` (flag && user toggle) → 6 sheets transparentes
+
+**Lifecycle des flags** : 3 phases (cf. DR-013) — rollout ciblé via dashboard → 100% via dashboard → PR `chore: remove <flag>` après stabilisation. **Les feature flags sont temporaires par défaut** — laisser un flag en place forever crée de la dette technique.
 
 ### Error Handling Pattern
 
