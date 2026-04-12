@@ -7,7 +7,7 @@ final class OnboardingState {
     // MARK: - Data
 
     var firstName: String = ""
-    var currency: String = "CHF"
+    var currency: SupportedCurrency = .chf
     var monthlyIncome: Decimal?
     var housingCosts: Decimal?
     var healthInsurance: Decimal?

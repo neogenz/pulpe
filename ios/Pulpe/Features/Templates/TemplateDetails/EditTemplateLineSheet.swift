@@ -22,7 +22,7 @@ struct EditTemplateLineSheet: View {
     @State private var usageData: TemplateUsageData?
     @State private var usageFetchFailed = false
     @State private var pendingUpdate: TemplateLineUpdate?
-    @State private var inputCurrency = "CHF"
+    @State private var inputCurrency: SupportedCurrency = .chf
 
     private let dependencies: EditTemplateLineDependencies
     private let conversionService = CurrencyConversionService.shared

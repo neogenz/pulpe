@@ -56,7 +56,7 @@ enum Endpoint {
 
     // MARK: - Currency
 
-    case currencyRate(base: String, target: String)
+    case currencyRate(base: SupportedCurrency, target: SupportedCurrency)
 
     // MARK: - Encryption
 
@@ -177,8 +177,8 @@ enum Endpoint {
         case let .currencyRate(base, target):
             var components = URLComponents(url: url, resolvingAgainstBaseURL: false)
             components?.queryItems = [
-                URLQueryItem(name: "base", value: base),
-                URLQueryItem(name: "target", value: target),
+                URLQueryItem(name: "base", value: base.rawValue),
+                URLQueryItem(name: "target", value: target.rawValue),
             ]
             url = components?.url ?? url
         default:

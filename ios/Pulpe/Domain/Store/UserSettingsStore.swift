@@ -5,7 +5,7 @@ final class UserSettingsStore: StoreProtocol {
     // MARK: - State
 
     private(set) var payDayOfMonth: Int?
-    private(set) var currency: String = "CHF"
+    private(set) var currency: SupportedCurrency = .chf
     private(set) var showCurrencySelector = false
     private(set) var isLoading = false
     private(set) var error: APIError?
@@ -60,7 +60,7 @@ final class UserSettingsStore: StoreProtocol {
                 try Task.checkCancellation()
 
                 payDayOfMonth = settings.payDayOfMonth
-                currency = settings.currency ?? "CHF"
+                currency = settings.currency ?? .chf
                 showCurrencySelector = settings.showCurrencySelector ?? false
                 lastLoadTime = Date()
             } catch is CancellationError {
@@ -82,7 +82,7 @@ final class UserSettingsStore: StoreProtocol {
         loadTask = nil
         loadGeneration = 0
         payDayOfMonth = nil
-        currency = "CHF"
+        currency = .chf
         showCurrencySelector = false
         lastLoadTime = nil
         error = nil
@@ -90,7 +90,7 @@ final class UserSettingsStore: StoreProtocol {
 
     // MARK: - Mutations
 
-    func updateCurrency(_ newCurrency: String) async {
+    func updateCurrency(_ newCurrency: SupportedCurrency) async {
         let previousValue = currency
         error = nil
 
@@ -99,7 +99,7 @@ final class UserSettingsStore: StoreProtocol {
 
         do {
             let updated = try await service.updateSettings(UpdateUserSettings(currency: newCurrency))
-            currency = updated.currency ?? "CHF"
+            currency = updated.currency ?? .chf
             lastLoadTime = Date()
         } catch let apiError as APIError {
             currency = previousValue

@@ -40,7 +40,7 @@ struct CurrencySettingView: View {
             }
         )) {
             ForEach(SupportedCurrency.allCases) { currency in
-                Text(currency.rawValue).tag(currency.rawValue)
+                Text(currency.rawValue).tag(currency)
             }
         }
         .pickerStyle(.segmented)
@@ -56,7 +56,7 @@ struct CurrencySettingView: View {
                     .keyboardType(.decimalPad)
                     .textFieldStyle(.roundedBorder)
 
-                Text(viewModel.sourceCurrency)
+                Text(viewModel.sourceCurrency.rawValue)
                     .foregroundStyle(.secondary)
 
                 Button {
@@ -77,7 +77,7 @@ struct CurrencySettingView: View {
                     .monospacedDigit()
                     .frame(minWidth: 80, alignment: .trailing)
 
-                Text(viewModel.targetCurrency)
+                Text(viewModel.targetCurrency.rawValue)
                     .foregroundStyle(.secondary)
             }
 
@@ -95,10 +95,10 @@ struct CurrencySettingView: View {
 
 @Observable @MainActor
 final class CurrencySettingViewModel {
-    var selectedCurrency = "CHF"
+    var selectedCurrency: SupportedCurrency = .chf
     var converterInput = ""
-    var sourceCurrency = "CHF"
-    var targetCurrency = "EUR"
+    var sourceCurrency: SupportedCurrency = .chf
+    var targetCurrency: SupportedCurrency = .eur
 
     private(set) var rate: CurrencyRate?
     private(set) var isLoadingRate = false
@@ -114,10 +114,10 @@ final class CurrencySettingViewModel {
 
     var rateInfo: String? {
         guard let rate else { return nil }
-        return "1 \(rate.base) = \(String(format: "%.4f", rate.rate)) \(rate.target) (\(rate.date))"
+        return "1 \(rate.base.rawValue) = \(String(format: "%.4f", rate.rate)) \(rate.target.rawValue) (\(rate.date))"
     }
 
-    func syncCurrency(_ currency: String) {
+    func syncCurrency(_ currency: SupportedCurrency) {
         selectedCurrency = currency
     }
 

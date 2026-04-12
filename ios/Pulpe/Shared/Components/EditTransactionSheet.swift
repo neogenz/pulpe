@@ -18,7 +18,7 @@ struct EditTransactionSheet: View {
     @FocusState private var isDescriptionFocused: Bool
     @State private var amountText: String
     @State private var submitSuccessTrigger = false
-    @State private var inputCurrency = "CHF"
+    @State private var inputCurrency: SupportedCurrency = .chf
 
     private let dependencies: EditTransactionDependencies
     private let conversionService = CurrencyConversionService.shared
@@ -63,7 +63,7 @@ struct EditTransactionSheet: View {
 
             HeroAmountField(
                 amount: $amount, amountText: $amountText,
-                isFocused: $isAmountFocused, accentColor: kind.color
+                isFocused: $isAmountFocused, currency: inputCurrency, accentColor: kind.color
             )
 
             CurrencyConversionBadge(

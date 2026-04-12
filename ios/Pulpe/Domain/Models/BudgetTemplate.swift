@@ -29,8 +29,8 @@ struct TemplateLine: Codable, Identifiable, Hashable, Sendable {
 
     // Currency conversion metadata
     var originalAmount: Decimal?
-    var originalCurrency: String?
-    var targetCurrency: String?
+    var originalCurrency: SupportedCurrency?
+    var targetCurrency: SupportedCurrency?
     var exchangeRate: Decimal?
 }
 
@@ -68,8 +68,8 @@ struct TemplateLineCreate: Encodable {
     let recurrence: TransactionRecurrence
     let description: String
     let originalAmount: Decimal?
-    let originalCurrency: String?
-    let targetCurrency: String?
+    let originalCurrency: SupportedCurrency?
+    let targetCurrency: SupportedCurrency?
     let exchangeRate: Decimal?
 
     init(
@@ -79,8 +79,8 @@ struct TemplateLineCreate: Encodable {
         recurrence: TransactionRecurrence,
         description: String = "",
         originalAmount: Decimal? = nil,
-        originalCurrency: String? = nil,
-        targetCurrency: String? = nil,
+        originalCurrency: SupportedCurrency? = nil,
+        targetCurrency: SupportedCurrency? = nil,
         exchangeRate: Decimal? = nil
     ) {
         self.name = name
@@ -102,8 +102,8 @@ struct TemplateLineUpdate: Encodable {
     var recurrence: TransactionRecurrence?
     var description: String?
     var originalAmount: Decimal?
-    var originalCurrency: String?
-    var targetCurrency: String?
+    var originalCurrency: SupportedCurrency?
+    var targetCurrency: SupportedCurrency?
     var exchangeRate: Decimal?
 }
 
@@ -136,8 +136,8 @@ struct TemplateLineUpdateWithId: Encodable {
     var recurrence: TransactionRecurrence?
     var description: String?
     var originalAmount: Decimal?
-    var originalCurrency: String?
-    var targetCurrency: String?
+    var originalCurrency: SupportedCurrency?
+    var targetCurrency: SupportedCurrency?
     var exchangeRate: Decimal?
 }
 

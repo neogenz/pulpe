@@ -17,8 +17,8 @@ struct BudgetLine: Codable, Identifiable, Hashable, Sendable {
 
     // Currency conversion metadata
     var originalAmount: Decimal?
-    var originalCurrency: String?
-    var targetCurrency: String?
+    var originalCurrency: SupportedCurrency?
+    var targetCurrency: SupportedCurrency?
     var exchangeRate: Decimal?
 
     // Virtual rollover fields (added client-side)
@@ -77,8 +77,8 @@ struct BudgetLineCreate: Encodable {
     let isManuallyAdjusted: Bool
     let checkedAt: Date?
     let originalAmount: Decimal?
-    let originalCurrency: String?
-    let targetCurrency: String?
+    let originalCurrency: SupportedCurrency?
+    let targetCurrency: SupportedCurrency?
     let exchangeRate: Decimal?
 
     init(
@@ -92,8 +92,8 @@ struct BudgetLineCreate: Encodable {
         isManuallyAdjusted: Bool = false,
         checkedAt: Date? = nil,
         originalAmount: Decimal? = nil,
-        originalCurrency: String? = nil,
-        targetCurrency: String? = nil,
+        originalCurrency: SupportedCurrency? = nil,
+        targetCurrency: SupportedCurrency? = nil,
         exchangeRate: Decimal? = nil
     ) {
         self.budgetId = budgetId
@@ -120,8 +120,8 @@ struct BudgetLineUpdate: Encodable {
     var isManuallyAdjusted: Bool?
     var checkedAt: Date?
     var originalAmount: Decimal?
-    var originalCurrency: String?
-    var targetCurrency: String?
+    var originalCurrency: SupportedCurrency?
+    var targetCurrency: SupportedCurrency?
     var exchangeRate: Decimal?
 }
 

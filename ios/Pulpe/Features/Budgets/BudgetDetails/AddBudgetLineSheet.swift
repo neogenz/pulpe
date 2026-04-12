@@ -18,7 +18,7 @@ struct AddBudgetLineSheet: View {
     @FocusState private var isDescriptionFocused: Bool
     @State private var amountText = ""
     @State private var submitSuccessTrigger = false
-    @State private var inputCurrency = "CHF"
+    @State private var inputCurrency: SupportedCurrency = .chf
 
     private let dependencies: AddBudgetLineDependencies
     private let conversionService = CurrencyConversionService.shared

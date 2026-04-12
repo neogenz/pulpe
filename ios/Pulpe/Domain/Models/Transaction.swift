@@ -16,8 +16,8 @@ struct Transaction: Codable, Identifiable, Hashable, Sendable {
 
     // Currency conversion metadata
     var originalAmount: Decimal?
-    var originalCurrency: String?
-    var targetCurrency: String?
+    var originalCurrency: SupportedCurrency?
+    var targetCurrency: SupportedCurrency?
     var exchangeRate: Decimal?
 
     // MARK: - Computed Properties
@@ -68,8 +68,8 @@ struct TransactionCreate: Encodable {
     let category: String?
     let checkedAt: Date?
     let originalAmount: Decimal?
-    let originalCurrency: String?
-    let targetCurrency: String?
+    let originalCurrency: SupportedCurrency?
+    let targetCurrency: SupportedCurrency?
     let exchangeRate: Decimal?
 
     init(
@@ -82,8 +82,8 @@ struct TransactionCreate: Encodable {
         category: String? = nil,
         checkedAt: Date? = nil,
         originalAmount: Decimal? = nil,
-        originalCurrency: String? = nil,
-        targetCurrency: String? = nil,
+        originalCurrency: SupportedCurrency? = nil,
+        targetCurrency: SupportedCurrency? = nil,
         exchangeRate: Decimal? = nil
     ) {
         self.budgetId = budgetId
@@ -108,7 +108,7 @@ struct TransactionUpdate: Encodable {
     var transactionDate: Date?
     var category: String?
     var originalAmount: Decimal?
-    var originalCurrency: String?
-    var targetCurrency: String?
+    var originalCurrency: SupportedCurrency?
+    var targetCurrency: SupportedCurrency?
     var exchangeRate: Decimal?
 }

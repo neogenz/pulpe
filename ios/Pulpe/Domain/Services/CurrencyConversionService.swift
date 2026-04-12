@@ -1,8 +1,8 @@
 import Foundation
 
 struct CurrencyRate: Codable, Sendable {
-    let base: String
-    let target: String
+    let base: SupportedCurrency
+    let target: SupportedCurrency
     let rate: Double
     let date: String
 }
@@ -19,8 +19,8 @@ actor CurrencyConversionService {
         self.apiClient = apiClient
     }
 
-    func getRate(base: String, target: String) async throws -> CurrencyRate {
-        let cacheKey = "\(base)-\(target)"
+    func getRate(base: SupportedCurrency, target: SupportedCurrency) async throws -> CurrencyRate {
+        let cacheKey = "\(base.rawValue)-\(target.rawValue)"
 
         if let cached = cachedRates[cacheKey],
            let cacheTime = cacheTimes[cacheKey],
@@ -38,8 +38,8 @@ actor CurrencyConversionService {
     /// If `inputCurrency == baseCurrency`, returns nil (no conversion needed).
     func convert(
         amount: Decimal,
-        from inputCurrency: String,
-        to baseCurrency: String
+        from inputCurrency: SupportedCurrency,
+        to baseCurrency: SupportedCurrency
     ) async throws -> CurrencyConversion? {
         guard inputCurrency != baseCurrency else { return nil }
 
@@ -59,7 +59,7 @@ actor CurrencyConversionService {
 struct CurrencyConversion: Sendable {
     let convertedAmount: Decimal
     let originalAmount: Decimal
-    let originalCurrency: String
-    let targetCurrency: String
+    let originalCurrency: SupportedCurrency
+    let targetCurrency: SupportedCurrency
     let exchangeRate: Decimal
 }

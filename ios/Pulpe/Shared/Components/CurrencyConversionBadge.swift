@@ -4,7 +4,7 @@ import SwiftUI
 /// Renders nothing when conversion metadata is absent.
 struct CurrencyConversionBadge: View {
     let originalAmount: Decimal?
-    let originalCurrency: String?
+    let originalCurrency: SupportedCurrency?
     let exchangeRate: Decimal?
 
     @State private var isShowingPopover = false
@@ -58,7 +58,7 @@ struct CurrencyConversionBadge: View {
         Text("CHF 941.20")
         CurrencyConversionBadge(
             originalAmount: 1000,
-            originalCurrency: "EUR",
+            originalCurrency: .eur,
             exchangeRate: 0.9412
         )
     }
