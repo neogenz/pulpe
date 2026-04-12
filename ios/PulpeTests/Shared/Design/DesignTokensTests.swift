@@ -142,7 +142,8 @@ struct DesignTokensTests {
         let heights: [CGFloat] = [
             DesignTokens.ProgressBar.height,
             DesignTokens.ProgressBar.thickHeight,
-            DesignTokens.ProgressBar.heroHeight
+            DesignTokens.ProgressBar.heroHeight,
+            DesignTokens.ProgressBar.flowBarHeight
         ]
 
         for i in 1..<heights.count {

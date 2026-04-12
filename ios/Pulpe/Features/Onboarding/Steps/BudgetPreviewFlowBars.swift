@@ -52,6 +52,7 @@ struct BudgetPreviewFlowBars: View {
         Text("\(prefix)\(value.asCompactCHF)")
             .font(PulpeTypography.onboardingSubtitle)
             .monospacedDigit()
+            .contentTransition(.numericText())
             .foregroundStyle(Color.textPrimary)
             .gridColumnAlignment(.trailing)
     }
