@@ -716,7 +716,9 @@
       "kindExpense": "Dépense",
       "kindSaving": "Épargne",
       "kindIncome": "Revenu",
-      "kindToggleAriaLabel": "Type de prévision"
+      "kindToggleAriaLabel": "Type de prévision",
+      "amountAriaLabel": "Montant de {{ name }}",
+      "removeAriaLabel": "Supprimer {{ name }}"
     }
   },
   "legal": {

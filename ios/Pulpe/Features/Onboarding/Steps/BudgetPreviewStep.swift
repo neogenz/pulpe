@@ -193,7 +193,11 @@ struct BudgetPreviewStep: View {
                 .fill(Color.onboardingCardBackground)
                 .shadow(DesignTokens.Shadow.card)
         )
-        .accessibilityElement(children: .combine)
+        // `.contain` (not `.combine`) groups children semantically while keeping each
+        // child individually focusable — the three "Modifier {Revenus, Charges, Épargne}"
+        // edit buttons rendered by `breakdownRow` need to stay reachable for VoiceOver
+        // users to round-trip back to the income/charges/savings steps.
+        .accessibilityElement(children: .contain)
         .accessibilityLabel(breakdownAccessibilityLabel)
         .scaleEffect(showCard ? 1 : 0.95)
         .opacity(showCard ? 1 : 0)

@@ -222,16 +222,16 @@ extension AppState {
         let user = try await signIn()
         clearPreLoginFlags()
 
-        // Detect existing users with configured vault — redirect to login flow
-        do {
-            let vaultStatus = try await encryptionAPI.getVaultStatus()
-            if vaultStatus.pinCodeConfigured {
-                authDebug(tag, "existing user detected — redirecting to login flow")
-                await completeLogin(user: user)
-                return .existingUserRedirected
-            }
-        } catch {
-            authDebug(tag, "vault status check failed — treating as new user: \(error)")
+        // Detect existing users with configured vault — redirect to login flow.
+        // Propagate any failure here: silently treating an unknown vault state as
+        // "new user" would let an existing PIN-configured user bypass PIN entry on a
+        // transient vault-status API failure (network drop, 5xx). Surface the error
+        // and let the caller decide whether to retry.
+        let vaultStatus = try await encryptionAPI.getVaultStatus()
+        if vaultStatus.pinCodeConfigured {
+            authDebug(tag, "existing user detected — redirecting to login flow")
+            await completeLogin(user: user)
+            return .existingUserRedirected
         }
 
         authDebug(tag, "complete — deferring routing to onboarding")
@@ -308,11 +308,21 @@ extension AppState {
         authDebug("AUTH_PIN_SETUP", "begin authState=\(authState)")
         guard authState == .needsPinSetup else { return }
 
-        let success = await onboardingBootstrapper.bootstrapIfNeeded()
-        if !success {
-            // Retry once on transient failure (pending data is retained)
-            _ = await onboardingBootstrapper.bootstrapIfNeeded()
+        var bootstrapped = await onboardingBootstrapper.bootstrapIfNeeded()
+        if !bootstrapped {
+            // Retry once on transient failure (pending data is retained).
+            bootstrapped = await onboardingBootstrapper.bootstrapIfNeeded()
         }
+
+        guard bootstrapped else {
+            // Both attempts failed — keep the user in `.needsPinSetup` so they can retry,
+            // surface a post-auth error banner, and DO NOT advance to `.authenticated`.
+            // Pending onboarding data is retained for the retry path.
+            authDebug("AUTH_PIN_SETUP", "bootstrap failed after retry, staying in needsPinSetup")
+            showPostAuthError = true
+            return
+        }
+
         authDebug("AUTH_PIN_SETUP", "bootstrap done, entering authenticated")
         await enterAuthenticated(context: .pinSetup)
     }

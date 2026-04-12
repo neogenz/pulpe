@@ -230,13 +230,23 @@ export class CompleteProfileStore {
     const current = this.#state().customTransactions;
     const isSame = (t: OnboardingTransaction) =>
       t.name === suggestion.name && t.type === suggestion.type;
-    const exists = current.some(isSame);
-    if (!exists && current.length >= MAX_CUSTOM_TRANSACTIONS) return;
-    this.#patchState({
-      customTransactions: exists
-        ? current.filter((t) => !isSame(t))
-        : [...current, suggestion],
-    });
+    const matchIndex = current.findIndex(isSame);
+
+    if (matchIndex === -1) {
+      if (current.length >= MAX_CUSTOM_TRANSACTIONS) return;
+      this.#patchState({
+        customTransactions: [...current, suggestion],
+      });
+      return;
+    }
+
+    // Remove only the first match (mirrors iOS `firstIndex(where:) + remove(at:)`).
+    // A previous `filter(!isSame)` removed every transaction sharing the same
+    // name+type, which silently dropped manually-added entries colliding with a
+    // suggestion when the chip was deselected.
+    const next = current.slice();
+    next.splice(matchIndex, 1);
+    this.#patchState({ customTransactions: next });
   }
 
   prefillFromOAuthMetadata(): void {

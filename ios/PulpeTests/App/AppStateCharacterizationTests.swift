@@ -70,8 +70,14 @@ struct AppStateCharacterizationTests {
 
         #expect(sut.authState == .authenticated)
     }
-    @Test("completePinSetup from needsPinSetup results in authenticated")
-    func completePinSetup_fromNeedsPinSetup_becomesAuthenticated() async {
+    @Test("completePinSetup stays in needsPinSetup when bootstrap fails")
+    func completePinSetup_whenBootstrapFails_staysInNeedsPinSetup() async {
+        // The default `OnboardingBootstrapper` makes a real `POST /budget-templates/from-onboarding`
+        // call which fails with 401 under test (no authenticated session). After both retry attempts
+        // fail, `completePinSetup` must NOT advance to `.authenticated` — the user must stay in
+        // `.needsPinSetup` so the PIN screen can offer a retry CTA. The previous behavior silently
+        // entered `.authenticated` regardless of bootstrap success, leaving users with no template
+        // or budget on the server.
         let sut = makeSUT(destination: .needsPinSetup)
         sut.pendingOnboardingData = BudgetTemplateCreateFromOnboarding()
 
@@ -80,7 +86,8 @@ struct AppStateCharacterizationTests {
 
         await sut.completePinSetup()
 
-        #expect(sut.authState == .authenticated)
+        #expect(sut.authState == .needsPinSetup)
+        #expect(sut.showPostAuthError == true)
     }
     @Test("resolvePostAuth with authenticated(false) results in authenticated directly")
     func resolvePostAuth_directAuthenticated_becomesAuthenticated() async {

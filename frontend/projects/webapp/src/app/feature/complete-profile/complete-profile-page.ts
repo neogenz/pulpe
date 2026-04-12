@@ -458,7 +458,10 @@ import { PAY_DAY_MAX } from 'pulpe-shared';
                               class="w-20 text-right text-body-medium text-on-surface bg-surface-container rounded-xl px-2 py-1.5 border border-outline-variant/30 focus:border-primary focus:outline-none transition-colors"
                               [value]="tx.amount"
                               (change)="onAmountChange(i, $event)"
-                              [attr.aria-label]="'Montant de ' + tx.name"
+                              [attr.aria-label]="
+                                'completeProfile.customExpense.amountAriaLabel'
+                                  | transloco: { name: tx.name }
+                              "
                               data-testid="custom-expense-amount"
                             />
                             <span
@@ -467,7 +470,10 @@ import { PAY_DAY_MAX } from 'pulpe-shared';
                             >
                             <button
                               matIconButton
-                              [attr.aria-label]="'Supprimer ' + tx.name"
+                              [attr.aria-label]="
+                                'completeProfile.customExpense.removeAriaLabel'
+                                  | transloco: { name: tx.name }
+                              "
                               (click)="removeTransaction(i)"
                               data-testid="remove-custom-expense"
                             >
