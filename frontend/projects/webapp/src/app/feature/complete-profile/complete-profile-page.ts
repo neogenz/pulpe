@@ -400,7 +400,7 @@ import { PAY_DAY_MAX } from 'pulpe-shared';
                         store.selectedSuggestionNames().has(suggestion.name);
                       <button
                         type="button"
-                        class="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-label-large transition-colors border"
+                        class="inline-flex items-center gap-1.5 px-4 min-h-11 rounded-full text-label-large transition-colors border"
                         [class.bg-primary-container]="isSelected"
                         [class.text-on-primary-container]="isSelected"
                         [class.border-primary]="isSelected"
@@ -528,7 +528,7 @@ import { PAY_DAY_MAX } from 'pulpe-shared';
 
                 <div class="flex items-center justify-between mt-3">
                   <button
-                    matButton="text"
+                    matButton
                     class="h-10 text-on-surface-variant rounded-2xl"
                     (click)="goToStep(1)"
                     data-testid="back-button"

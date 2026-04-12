@@ -6,6 +6,9 @@ struct AddCustomExpenseSheet: View {
     let onSave: (OnboardingTransaction) -> Void
     let availableKinds: [TransactionKind]
     let isEditing: Bool
+    /// When non-nil, the saved transaction reuses this id so analytics, deep-links,
+    /// and downstream lookups stay stable across an inline edit. nil in create mode.
+    private let editingId: UUID?
 
     @Environment(\.dismiss) private var dismiss
     @State private var name: String
@@ -20,11 +23,12 @@ struct AddCustomExpenseSheet: View {
     init(
         defaultKind: TransactionKind = .expense,
         availableKinds: [TransactionKind] = [.expense, .saving, .income],
-        onAdd: @escaping (OnboardingTransaction) -> Void
+        onSave: @escaping (OnboardingTransaction) -> Void
     ) {
-        self.onSave = onAdd
+        self.onSave = onSave
         self.availableKinds = availableKinds
         self.isEditing = false
+        self.editingId = nil
         _name = State(initialValue: "")
         _amount = State(initialValue: nil)
         _amountText = State(initialValue: "")
@@ -40,6 +44,7 @@ struct AddCustomExpenseSheet: View {
         self.onSave = onSave
         self.availableKinds = availableKinds
         self.isEditing = true
+        self.editingId = transaction.id
         _name = State(initialValue: transaction.name)
         _amount = State(initialValue: transaction.amount)
         let formatted = Formatters.amountInput.string(from: transaction.amount as NSDecimalNumber) ?? ""
@@ -97,7 +102,10 @@ struct AddCustomExpenseSheet: View {
 
     private var saveButton: some View {
         Button {
+            // Preserve the original id when editing so analytics, deep-links, and any
+            // downstream UUID-based lookups stay stable across an inline amount/name edit.
             let tx = OnboardingTransaction(
+                id: editingId ?? UUID(),
                 amount: amount ?? 0,
                 type: kind,
                 name: name.trimmingCharacters(in: .whitespaces)

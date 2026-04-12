@@ -65,25 +65,13 @@ struct SavingsStep: View {
     // MARK: - Custom Savings
 
     private var customSavingsSection: some View {
-        OnboardingSectionHeader(title: "Mes épargnes", icon: "list.bullet") {
-            ForEach(customSavings) { tx in
-                if tx.id != customSavings.first?.id {
-                    Divider().opacity(DesignTokens.Opacity.accent)
-                }
-                OnboardingTransactionRow(
-                    transaction: tx,
-                    onEdit: { editingTransaction = tx },
-                    onRemove: {
-                        guard let index = state.customTransactions.firstIndex(
-                            where: { $0.id == tx.id }
-                        ) else { return }
-                        withAnimation(DesignTokens.Animation.defaultSpring) {
-                            state.removeCustomTransaction(at: index)
-                        }
-                    }
-                )
-            }
-        }
+        OnboardingTransactionListSection(
+            title: "Mes épargnes",
+            icon: "list.bullet",
+            transactions: customSavings,
+            state: state,
+            onEdit: { editingTransaction = $0 }
+        )
     }
 
     // MARK: - Add Button

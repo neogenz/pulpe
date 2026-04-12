@@ -101,8 +101,8 @@ struct BudgetPreviewStep: View {
         VStack(spacing: DesignTokens.Spacing.md) {
             BudgetPreviewFlowBars(
                 income: totalIncome,
-                charges: chargesTotal,
-                savings: savingsTotal,
+                charges: totalCharges,
+                savings: totalSavings,
                 isRevealed: showCard
             )
 
@@ -126,11 +126,11 @@ struct BudgetPreviewStep: View {
                 .opacity(0.15)
                 .padding(.horizontal, DesignTokens.Spacing.xs)
 
-            if chargesTotal > 0 {
+            if totalCharges > 0 {
                 breakdownRow(
                     icon: "arrow.up.circle.fill",
                     label: "Charges fixes",
-                    value: "-\(chargesTotal.asCompactCHF)",
+                    value: "-\(totalCharges.asCompactCHF)",
                     color: .financialExpense,
                     onEdit: { state.jumpToStepForEdit(.charges) }
                 )
@@ -157,11 +157,11 @@ struct BudgetPreviewStep: View {
                 }
             }
 
-            if savingsTotal > 0 {
+            if totalSavings > 0 {
                 breakdownRow(
                     icon: "building.columns.fill",
                     label: "Épargne prévue",
-                    value: "-\(savingsTotal.asCompactCHF)",
+                    value: "-\(totalSavings.asCompactCHF)",
                     color: .financialSavings,
                     onEdit: { state.jumpToStepForEdit(.savings) }
                 )
@@ -171,7 +171,7 @@ struct BudgetPreviewStep: View {
                 }
             }
 
-            if chargesTotal > 0 || savingsTotal > 0 {
+            if totalCharges > 0 || totalSavings > 0 {
                 Divider()
                     .opacity(0.15)
                     .padding(.horizontal, DesignTokens.Spacing.xs)
@@ -232,19 +232,19 @@ struct BudgetPreviewStep: View {
     }
 
     private var totalIncome: Decimal { state.totalIncome }
-    private var savingsTotal: Decimal { state.totalSavings }
-    private var chargesTotal: Decimal { state.totalCharges }
-    private var outflowsTotal: Decimal { state.totalExpenses }
+    private var totalSavings: Decimal { state.totalSavings }
+    private var totalCharges: Decimal { state.totalCharges }
+    private var totalOutflows: Decimal { state.totalExpenses }
 
     private var breakdownAccessibilityLabel: String {
         var label = "Résumé du budget. Entrées \(totalIncome.asCompactCHF)"
-            + ", sorties \(outflowsTotal.asCompactCHF)"
-        if chargesTotal > 0 {
-            label += " dont \(chargesTotal.asCompactCHF) de charges"
+            + ", sorties \(totalOutflows.asCompactCHF)"
+        if totalCharges > 0 {
+            label += " dont \(totalCharges.asCompactCHF) de charges"
         }
-        if savingsTotal > 0 {
-            let connector = chargesTotal > 0 ? " et" : " dont"
-            label += "\(connector) \(savingsTotal.asCompactCHF) d'épargne"
+        if totalSavings > 0 {
+            let connector = totalCharges > 0 ? " et" : " dont"
+            label += "\(connector) \(totalSavings.asCompactCHF) d'épargne"
         }
         return label
     }

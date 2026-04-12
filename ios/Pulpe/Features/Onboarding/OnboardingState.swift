@@ -403,6 +403,7 @@ final class OnboardingState {
     }
 
     func removeCustomTransaction(at index: Int) {
+        guard customTransactions.indices.contains(index) else { return }
         customTransactions.remove(at: index)
     }
 

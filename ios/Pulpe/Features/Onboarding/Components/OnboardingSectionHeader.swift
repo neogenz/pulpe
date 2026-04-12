@@ -48,6 +48,9 @@ struct OnboardingSectionHeader<Content: View>: View {
                 .frame(minHeight: DesignTokens.TapTarget.minimum)
                 .contentShape(Rectangle())
                 .plainPressedButtonStyle()
+                .accessibilityLabel(title)
+                .accessibilityHint(isExpanded ? "Appuie pour réduire" : "Appuie pour développer")
+                .accessibilityAddTraits(.isButton)
             } else {
                 headerRow
             }

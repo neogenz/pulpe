@@ -715,7 +715,8 @@
       "addButton": "Ajouter une prévision",
       "kindExpense": "Dépense",
       "kindSaving": "Épargne",
-      "kindIncome": "Revenu"
+      "kindIncome": "Revenu",
+      "kindToggleAriaLabel": "Type de prévision"
     }
   },
   "legal": {

@@ -68,25 +68,13 @@ struct IncomeStep: View {
     // MARK: - Custom Incomes
 
     private var customIncomesSection: some View {
-        OnboardingSectionHeader(title: "Revenus supplémentaires", icon: "arrow.down.circle.fill") {
-            ForEach(customIncomes) { tx in
-                if tx.id != customIncomes.first?.id {
-                    Divider().opacity(DesignTokens.Opacity.accent)
-                }
-                OnboardingTransactionRow(
-                    transaction: tx,
-                    onEdit: { editingTransaction = tx },
-                    onRemove: {
-                        guard let index = state.customTransactions.firstIndex(
-                            where: { $0.id == tx.id }
-                        ) else { return }
-                        withAnimation(DesignTokens.Animation.defaultSpring) {
-                            state.removeCustomTransaction(at: index)
-                        }
-                    }
-                )
-            }
-        }
+        OnboardingTransactionListSection(
+            title: "Revenus supplémentaires",
+            icon: "arrow.down.circle.fill",
+            transactions: customIncomes,
+            state: state,
+            onEdit: { editingTransaction = $0 }
+        )
     }
 
     private var addIncomeButton: some View {

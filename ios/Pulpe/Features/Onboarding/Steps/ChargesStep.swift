@@ -104,25 +104,13 @@ struct ChargesStep: View {
     // MARK: - Custom Charges
 
     private var customChargesSection: some View {
-        OnboardingSectionHeader(title: "Mes prévisions", icon: "list.bullet") {
-            ForEach(customExpenses) { tx in
-                if tx.id != customExpenses.first?.id {
-                    Divider().opacity(DesignTokens.Opacity.accent)
-                }
-                OnboardingTransactionRow(
-                    transaction: tx,
-                    onEdit: { editingTransaction = tx },
-                    onRemove: {
-                        guard let index = state.customTransactions.firstIndex(
-                            where: { $0.id == tx.id }
-                        ) else { return }
-                        withAnimation(DesignTokens.Animation.defaultSpring) {
-                            state.removeCustomTransaction(at: index)
-                        }
-                    }
-                )
-            }
-        }
+        OnboardingTransactionListSection(
+            title: "Mes prévisions",
+            icon: "list.bullet",
+            transactions: customExpenses,
+            state: state,
+            onEdit: { editingTransaction = $0 }
+        )
     }
 
     // MARK: - Add Button

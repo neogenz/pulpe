@@ -34,7 +34,7 @@ import type { OnboardingTransaction } from '@core/complete-profile';
             [hideSingleSelectionIndicator]="true"
             class="w-full mb-4"
             [attr.aria-label]="
-              'completeProfile.customExpense.dialogTitle' | transloco
+              'completeProfile.customExpense.kindToggleAriaLabel' | transloco
             "
             data-testid="custom-expense-kind"
           >
