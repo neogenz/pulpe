@@ -5,6 +5,7 @@ struct WelcomeStep: View {
     @State private var showLogin = false
     @State private var isAppeared = false
     @State private var isBreathing = false
+    @State private var hasEmittedWelcomeViewed = false
     let state: OnboardingState
 
     private static let consentMarkdown = AppURLs.legalDisclosure(
@@ -73,7 +74,6 @@ struct WelcomeStep: View {
 
                     // Email signup — secondary path
                     Button {
-                        AnalyticsService.shared.capture(.signupStarted, properties: ["method": "email"])
                         state.nextStep()
                     } label: {
                         HStack(spacing: DesignTokens.Spacing.xs) {
@@ -111,7 +111,14 @@ struct WelcomeStep: View {
                 .animation(reduceMotion ? nil : DesignTokens.Animation.entranceSpring.delay(0.35), value: isAppeared)
             }
         }
-        .task { AnalyticsService.shared.capture(.welcomeScreenViewed) }
+        .trackScreen("Onboarding_Welcome")
+        .task {
+            // Idempotency guard: @State persists across re-appears (e.g. back nav from
+            // firstName), so this only fires once per WelcomeStep instance.
+            guard !hasEmittedWelcomeViewed else { return }
+            hasEmittedWelcomeViewed = true
+            AnalyticsService.shared.capture(.welcomeScreenViewed)
+        }
         .sheet(isPresented: $showLogin) {
             LoginView(isPresented: $showLogin)
         }

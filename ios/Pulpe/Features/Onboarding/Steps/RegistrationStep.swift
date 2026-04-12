@@ -6,6 +6,7 @@ struct RegistrationStep: View {
     @State private var password = ""
     @State private var showPassword = false
     @State private var signupTask: Task<Void, Never>?
+    @State private var hasEmittedSignupStarted = false
     @FocusState private var focusedField: Field?
 
     private enum Field: Hashable {
@@ -33,6 +34,13 @@ struct RegistrationStep: View {
             }
         )
         .trackScreen("Onboarding_Registration")
+        .task {
+            // Fire signup_started when the user actually reaches the registration form.
+            // Idempotent across back-nav from firstName within the same view instance.
+            guard !hasEmittedSignupStarted else { return }
+            hasEmittedSignupStarted = true
+            AnalyticsService.shared.capture(.signupStarted, properties: ["method": "email"])
+        }
         .onDisappear {
             // If the user abandons mid-signup (Recommencer / back), cancel the in-flight
             // task so `submitRegistration` can clean up orphan Supabase tokens before the
