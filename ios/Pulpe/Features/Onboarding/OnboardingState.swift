@@ -292,6 +292,19 @@ final class OnboardingState {
         currentStep = next
     }
 
+    /// Cold-start recovery for email users whose persisted step is `.registration`.
+    /// Happens when the app dies in the narrow window between Supabase creating
+    /// the account and `nextStep()` advancing past registration. Tapping
+    /// "Créer mon compte" again would call `signup()` on the same email and fail.
+    /// Must be called AFTER `configureEmailUser`, not inside it — the happy path
+    /// in `submitRegistration` already calls `configureEmailUser` then `nextStep()`.
+    func resumeEmailUserAfterRegistration() {
+        guard currentStep == .registration,
+              let index = OnboardingStep.allCases.firstIndex(of: .registration),
+              let next = nextVisibleStep(after: index) else { return }
+        currentStep = next
+    }
+
     /// Navigate to a specific step for editing, with a return bookmark.
     /// Both nextStep() and previousStep() will return to `returnTo` instead of navigating sequentially.
     func jumpToStepForEdit(_ step: OnboardingStep, returnTo: OnboardingStep = .budgetPreview) {

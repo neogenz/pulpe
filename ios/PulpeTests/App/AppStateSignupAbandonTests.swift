@@ -270,6 +270,37 @@ struct AppStateSignupAbandonTests {
         #expect(restored.isSocialAuth == false)
     }
 
+    @Test("cold-start resume advances past registration when persisted at .registration")
+    func configureEmailUser_advancesPastRegistration_whenPersistedAtRegistrationStep() {
+        OnboardingState.clearPersistedData()
+        defer { OnboardingState.clearPersistedData() }
+
+        // Seed storage mid-signup: the user was on .registration when the app died
+        // right after Supabase created the account server-side. `saveToStorage()`
+        // from the previous nextStep() call persisted `.registration`.
+        let seed = OnboardingState()
+        seed.firstName = "Max"
+        seed.currentStep = .registration
+        seed.saveToStorage()
+
+        // Cold start: OnboardingFlow.init builds a fresh OnboardingState() which
+        // loads the persisted draft — mirrors the real recovery path.
+        let restored = OnboardingState()
+        #expect(restored.currentStep == .registration, "persistence loads .registration")
+
+        restored.configureEmailUser(
+            UserInfo(id: "1", email: "max@test.com", firstName: "Max", provider: .email)
+        )
+        restored.resumeEmailUserAfterRegistration()
+
+        #expect(
+            restored.currentStep != .registration,
+            "cold-start resume must advance past registration to avoid dead-end signup loop"
+        )
+        #expect(restored.isAuthenticated == true)
+        #expect(restored.firstName == "Max", "persisted state preserved")
+    }
+
     @Test("configureSocialUser DOES clear persisted data (unchanged behavior)")
     func configureSocialUser_clearsPersistedState() {
         OnboardingState.clearPersistedData()

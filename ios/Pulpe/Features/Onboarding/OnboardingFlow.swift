@@ -23,6 +23,10 @@ struct OnboardingFlow: View {
             // Email recovery: persisted OnboardingState was already loaded by `init()`.
             // DO NOT call startAfterWelcome — currentStep from UserDefaults is what we want.
             initial.configureEmailUser(user)
+            // If the app died between Supabase signup success and the nextStep() that
+            // advances past `.registration`, the persisted step is stuck on registration
+            // and tapping "Créer mon compte" would re-signup the same email. Skip past it.
+            initial.resumeEmailUserAfterRegistration()
         case .none:
             break
         }
