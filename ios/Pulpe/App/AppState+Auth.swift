@@ -92,7 +92,13 @@ extension AppState {
 
         if shouldRedirectToOnboarding(for: destination) {
             recoveryFlowCoordinator.reset()
-            redirectToOnboardingForSocialUser()
+            // Email users mid-onboarding resume via `configureEmailUser` (keeps persisted data).
+            // Social users (or any non-email provider) go through the existing path.
+            if currentUser?.provider == .email {
+                redirectToOnboardingForEmailUser()
+            } else {
+                redirectToOnboardingForSocialUser()
+            }
             return
         }
 
@@ -198,6 +204,19 @@ extension AppState {
     private func redirectToOnboardingForSocialUser() {
         authDebug("AUTH_POST_AUTH_DEST", "needsPinSetup → redirecting to onboarding (no pending data)")
         pendingSocialUser = currentUser
+        pendingEmailUser = nil
+        hasReturningUser = false
+        returningUserFlagLoaded = true
+        authState = .unauthenticated
+    }
+
+    /// Mid-onboarding email user recovery. Unlike the social path, this preserves
+    /// the persisted `OnboardingState` (firstName, income, customTransactions, etc.)
+    /// so the user resumes exactly where they left off.
+    private func redirectToOnboardingForEmailUser() {
+        authDebug("AUTH_POST_AUTH_DEST", "needsPinSetup → redirecting to onboarding (email mid-flow)")
+        pendingEmailUser = currentUser
+        pendingSocialUser = nil
         hasReturningUser = false
         returningUserFlagLoaded = true
         authState = .unauthenticated

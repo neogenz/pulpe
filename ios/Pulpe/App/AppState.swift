@@ -81,6 +81,12 @@ final class AppState {
     /// `.needsPinSetup` but no onboarding data was collected yet.
     var pendingSocialUser: UserInfo?
 
+    /// Email user awaiting onboarding resume. Set when an email signup completed
+    /// mid-flow but `completeOnboarding` was never reached (cold-start recovery).
+    /// Parallel to `pendingSocialUser` but routes to `configureEmailUser` which
+    /// preserves the persisted onboarding data instead of wiping it.
+    var pendingEmailUser: UserInfo?
+
     var pendingOnboardingData: BudgetTemplateCreateFromOnboarding? {
         get { onboardingBootstrapper.pendingOnboardingData }
         set { onboardingBootstrapper.setPendingData(newValue) }

@@ -10,16 +10,22 @@ struct OnboardingFlow: View {
     @State private var showExitConfirmation = false
 
     private let hasPendingSocialUser: Bool
+    private let hasPendingEmailUser: Bool
 
-    init(pendingSocialUser: UserInfo? = nil) {
+    init(pendingSocialUser: UserInfo? = nil, pendingEmailUser: UserInfo? = nil) {
         let initial = OnboardingState()
         if let user = pendingSocialUser {
             initial.configureSocialUser(user)
             // Skip welcome and any steps the social user doesn't need (firstName if pre-filled).
             initial.startAfterWelcome()
+        } else if let user = pendingEmailUser {
+            // Email recovery: persisted OnboardingState was already loaded by `init()`.
+            // DO NOT call startAfterWelcome — currentStep from UserDefaults is what we want.
+            initial.configureEmailUser(user)
         }
         _state = State(initialValue: initial)
         hasPendingSocialUser = pendingSocialUser != nil
+        hasPendingEmailUser = pendingEmailUser != nil
     }
 
     var body: some View {
@@ -59,11 +65,24 @@ struct OnboardingFlow: View {
                 }
             }
             .toolbar(.hidden, for: .navigationBar)
-            .alert("Quitter l'inscription ?", isPresented: $showExitConfirmation) {
-                Button("Continuer", role: .cancel) { }
-                Button("Quitter", role: .destructive) { state.previousStep() }
+            .alert(
+                state.isAuthenticated ? "Recommencer l'inscription ?" : "Quitter l'inscription ?",
+                isPresented: $showExitConfirmation
+            ) {
+                Button("Rester", role: .cancel) { }
+                if state.isAuthenticated {
+                    Button("Recommencer", role: .destructive) {
+                        Task { await appState.abandonInProgressSignup() }
+                    }
+                } else {
+                    Button("Quitter", role: .destructive) { state.previousStep() }
+                }
             } message: {
-                Text("Tu pourras reprendre plus tard.")
+                Text(
+                    state.isAuthenticated
+                        ? "Ton compte en cours sera déconnecté. Tu pourras en recréer un nouveau."
+                        : "Tu pourras reprendre plus tard."
+                )
             }
             .onChange(of: scenePhase) { _, newPhase in
                 if newPhase == .background,
@@ -83,12 +102,17 @@ struct OnboardingFlow: View {
                 Task { await finishOnboarding(user: user) }
             }
             .task {
-                // Clear consumed pendingSocialUser from AppState
+                // Clear consumed pendingSocialUser / pendingEmailUser from AppState
                 if hasPendingSocialUser {
                     appState.pendingSocialUser = nil
                 }
+                if hasPendingEmailUser {
+                    appState.pendingEmailUser = nil
+                }
                 // Cold-start recovery: if user registered via email but app was killed,
-                // recover user from Supabase session
+                // recover user from Supabase session. Most cases are now routed via
+                // `pendingEmailUser` in `AppState.applyPostAuthDestination`, but this path
+                // remains as a fallback for sessions whose provider metadata is unknown.
                 if state.wasEmailRegistered && !state.isAuthenticated {
                     if let user = try? await AuthService.shared.validateSession() {
                         state.configureEmailUser(user)

@@ -397,10 +397,22 @@ actor AuthService {
             firstName = name
         }
 
+        // Extract the auth provider from Supabase's app_metadata.
+        // Authoritative source for distinguishing email signups from OAuth,
+        // which drives post-auth routing (see `AppState.applyPostAuthDestination`).
+        let appMetadata = user.appMetadata
+        let provider: AuthProvider? = {
+            if case .string(let value) = appMetadata["provider"] {
+                return AuthProvider.fromSupabase(value)
+            }
+            return nil
+        }()
+
         return UserInfo(
             id: user.id.uuidString,
             email: user.email ?? fallbackEmail,
-            firstName: firstName
+            firstName: firstName,
+            provider: provider
         )
     }
 }
@@ -434,10 +446,38 @@ struct BiometricSessionResult: Sendable {
     let clientKeyHex: String?
 }
 
+/// Auth provider that created the Supabase user.
+/// Used to disambiguate email signup from OAuth during post-auth routing.
+enum AuthProvider: String, Codable, Equatable, Sendable {
+    case email
+    case apple
+    case google
+
+    /// Maps a Supabase `app_metadata.provider` value to an `AuthProvider`.
+    /// Supabase uses lowercase strings like "email", "apple", "google", but some
+    /// deployments may return "apple.com" or "google.com" — accept both.
+    static func fromSupabase(_ rawValue: String) -> AuthProvider? {
+        switch rawValue.lowercased() {
+        case "email": return .email
+        case "apple", "apple.com": return .apple
+        case "google", "google.com": return .google
+        default: return nil
+        }
+    }
+}
+
 struct UserInfo: Codable, Equatable, Sendable {
     let id: String
     let email: String
     var firstName: String?
+    let provider: AuthProvider?
+
+    init(id: String, email: String, firstName: String? = nil, provider: AuthProvider? = nil) {
+        self.id = id
+        self.email = email
+        self.firstName = firstName
+        self.provider = provider
+    }
 }
 
 struct DeleteAccountResponse: Codable, Sendable {

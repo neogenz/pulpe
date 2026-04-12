@@ -5,6 +5,7 @@ struct RegistrationStep: View {
 
     @State private var password = ""
     @State private var showPassword = false
+    @State private var signupTask: Task<Void, Never>?
     @FocusState private var focusedField: Field?
 
     private enum Field: Hashable {
@@ -22,7 +23,7 @@ struct RegistrationStep: View {
             step: .registration,
             state: state,
             canProceed: canSubmit,
-            onNext: { Task { await submitRegistration() } },
+            onNext: { startSignupTask() },
             content: {
                 VStack(spacing: DesignTokens.Spacing.xxl) {
                     emailSection
@@ -32,6 +33,17 @@ struct RegistrationStep: View {
             }
         )
         .trackScreen("Onboarding_Registration")
+        .onDisappear {
+            // If the user abandons mid-signup (Recommencer / back), cancel the in-flight
+            // task so `submitRegistration` can clean up orphan Supabase tokens before the
+            // parent view unmounts.
+            signupTask?.cancel()
+        }
+    }
+
+    private func startSignupTask() {
+        signupTask?.cancel()
+        signupTask = Task { await submitRegistration() }
     }
 }
 
@@ -103,6 +115,15 @@ extension RegistrationStep {
         do {
             let authService = AuthService.shared
             let user = try await authService.signup(email: state.email, password: password)
+
+            // Race guard: if the user tapped "Recommencer" (abandonInProgressSignup)
+            // while this signup was in-flight, the task is cancelled but Supabase
+            // has already created a user + persisted tokens. Clean up the orphan
+            // session immediately so the next onboarding attempt starts fresh.
+            if Task.isCancelled {
+                try? await authService.logout()
+                return
+            }
 
             AnalyticsService.shared.capture(.signupCompleted, properties: ["method": "email"])
             state.isLoading = false

@@ -191,6 +191,30 @@ extension AppState {
         await logout(source: .system, preserveBiometricSession: false)
     }
 
+    /// Discards an in-progress signup and returns the user to a clean welcome state.
+    ///
+    /// Used when a user taps "Recommencer" on the exit confirmation alert mid-onboarding:
+    /// the Supabase account they just created is still alive in the keychain, and without
+    /// this cleanup the next onboarding attempt would silently resume their stuck session.
+    ///
+    /// Equivalent to `deleteAccount()` minus the backend deletion call — the Supabase user
+    /// stays on the backend (they may complete signup later via login flow) but this device
+    /// is returned to a fresh onboarding slate.
+    func abandonInProgressSignup() async {
+        authDebug("AUTH_ABANDON", "begin")
+        await keychainManager.clearLastUsedEmail()
+        enrollmentPolicy.clearUserExplicitlyDisabled()
+        hasReturningUser = false
+        returningUserFlagLoaded = true
+        OnboardingState.clearPersistedData()
+        onboardingBootstrapper.clearPendingData()
+        pendingSocialUser = nil
+        pendingEmailUser = nil
+        clearManualBiometricRetryRequiredFlag()
+        await logout(source: .system, preserveBiometricSession: false)
+        authDebug("AUTH_ABANDON", "complete")
+    }
+
     // MARK: - Session Reset
 
     enum SessionResetScope {

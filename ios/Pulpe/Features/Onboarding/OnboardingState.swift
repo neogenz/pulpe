@@ -77,7 +77,9 @@ final class OnboardingState {
 
     // MARK: - Persistence Keys
 
-    private static let storageKey = "pulpe-onboarding-data"
+    /// UserDefaults key for the persisted onboarding draft.
+    /// Internal (not private) so `OnboardingState+Persistence.swift` can reference it.
+    static let storageKey = "pulpe-onboarding-data"
 
     // MARK: - Init
 
@@ -208,9 +210,11 @@ final class OnboardingState {
 
         guard let currentIndex = OnboardingStep.allCases.firstIndex(of: currentStep) else { return }
 
-        // BudgetPreview is the finale — trigger completion instead of advancing
+        // BudgetPreview is the finale — fire its completion event then trigger readyToComplete.
+        // This was previously skipped due to the early return, leaving the final step untracked.
         guard let next = nextVisibleStep(after: currentIndex) else {
             if currentStep == .budgetPreview {
+                captureStepCompleted(currentStep)
                 readyToComplete = true
             }
             return
@@ -218,7 +222,7 @@ final class OnboardingState {
 
         // Track onboarding step completions (skip welcome — it has its own event)
         if currentStep != .welcome {
-            AnalyticsService.shared.capture(.onboardingStepCompleted, properties: ["step": currentStep.analyticsName])
+            captureStepCompleted(currentStep)
         }
 
         isMovingForward = true
@@ -226,6 +230,30 @@ final class OnboardingState {
             currentStep = next
         }
         saveToStorage()
+    }
+
+    /// Fire the `onboarding_step_completed` event for a given step.
+    /// Enriched with `step_index` (1-based), `step_total` (total visible for this path), and
+    /// `auth_method` so PostHog funnels are resilient to future step reordering.
+    private func captureStepCompleted(_ step: OnboardingStep) {
+        let bar = progressBarSteps
+        let index = (bar.firstIndex(of: step).map { $0 + 1 }) ?? 0
+        AnalyticsService.shared.capture(
+            .onboardingStepCompleted,
+            properties: [
+                "step": step.analyticsName,
+                "step_index": index,
+                "step_total": bar.count,
+                "auth_method": authMethodProperty
+            ]
+        )
+    }
+
+    /// Stable string describing the auth method for analytics properties.
+    /// `unknown` covers the pre-auth window (user is on firstName but hasn't signed up yet).
+    var authMethodProperty: String {
+        if !isAuthenticated { return "unknown" }
+        return isSocialAuth ? "social" : "email"
     }
 
     /// True when the previous visible step is welcome — tapping back triggers exit confirmation.
@@ -372,105 +400,4 @@ final class OnboardingState {
     }
 }
 
-// MARK: - Persistence
-
-extension OnboardingState {
-    func saveToStorage() {
-        let storedTx = customTransactions.map {
-            OnboardingStorageData.StoredTransaction(
-                amount: $0.amount,
-                type: $0.type.rawValue,
-                name: $0.name,
-                description: $0.description,
-                expenseType: $0.expenseType.rawValue,
-                isRecurring: $0.isRecurring
-            )
-        }
-        let data = OnboardingStorageData(
-            firstName: firstName,
-            currentStep: currentStep.rawValue,
-            customTransactions: storedTx.isEmpty ? nil : storedTx,
-            monthlyIncome: monthlyIncome,
-            housingCosts: housingCosts,
-            healthInsurance: healthInsurance,
-            phonePlan: phonePlan,
-            transportCosts: transportCosts,
-            leasingCredit: leasingCredit,
-            isEmailRegistered: !isSocialAuth && isAuthenticated ? true : nil
-        )
-
-        if let encoded = try? JSONEncoder().encode(data) {
-            UserDefaults.standard.set(encoded, forKey: Self.storageKey)
-        }
-    }
-
-    func loadFromStorage() {
-        guard let data = UserDefaults.standard.data(forKey: Self.storageKey),
-              let decoded = try? JSONDecoder().decode(OnboardingStorageData.self, from: data) else {
-            return
-        }
-
-        firstName = decoded.firstName
-
-        if let step = OnboardingStep(rawValue: decoded.currentStep) {
-            currentStep = step
-        }
-
-        monthlyIncome = decoded.monthlyIncome
-        housingCosts = decoded.housingCosts
-        healthInsurance = decoded.healthInsurance
-        phonePlan = decoded.phonePlan
-        transportCosts = decoded.transportCosts
-        leasingCredit = decoded.leasingCredit
-        wasEmailRegistered = decoded.isEmailRegistered ?? false
-
-        if let storedTx = decoded.customTransactions {
-            customTransactions = storedTx.compactMap { stored in
-                guard let type = TransactionKind(rawValue: stored.type),
-                      let expenseType = TransactionRecurrence(rawValue: stored.expenseType) else {
-                    return nil
-                }
-                return OnboardingTransaction(
-                    amount: stored.amount,
-                    type: type,
-                    name: stored.name,
-                    description: stored.description,
-                    expenseType: expenseType,
-                    isRecurring: stored.isRecurring
-                )
-            }
-        }
-    }
-
-    func clearStorage() {
-        UserDefaults.standard.removeObject(forKey: Self.storageKey)
-    }
-
-    static func clearPersistedData() {
-        UserDefaults.standard.removeObject(forKey: storageKey)
-    }
-}
-
-// MARK: - Storage Data
-
-private struct OnboardingStorageData: Codable {
-    let firstName: String
-    let currentStep: String
-    let customTransactions: [StoredTransaction]?
-    let monthlyIncome: Decimal?
-    let housingCosts: Decimal?
-    let healthInsurance: Decimal?
-    let phonePlan: Decimal?
-    let transportCosts: Decimal?
-    let leasingCredit: Decimal?
-    let isEmailRegistered: Bool?
-
-    struct StoredTransaction: Codable {
-        let amount: Decimal
-        let type: String
-        let name: String
-        let description: String?
-        let expenseType: String
-        let isRecurring: Bool
-    }
-}
+// Persistence is implemented in OnboardingState+Persistence.swift
