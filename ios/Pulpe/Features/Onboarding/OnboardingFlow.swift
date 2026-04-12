@@ -1,5 +1,4 @@
 import SwiftUI
-import VariableBlur
 
 /// Main onboarding flow coordinator
 struct OnboardingFlow: View {
@@ -9,6 +8,7 @@ struct OnboardingFlow: View {
     @State private var state: OnboardingState
     @State private var showExitConfirmation = false
     @State private var hasEmittedResumed = false
+    @State private var hasEmittedStarted = false
 
     private let pendingUser: PendingOnboardingUser?
 
@@ -107,13 +107,29 @@ struct OnboardingFlow: View {
                 guard ready, let user = state.authenticatedUser else { return }
                 Task { await finishOnboarding(user: user) }
             }
+            .onChange(of: state.currentStep) { oldStep, newStep in
+                // Fresh email path: user just tapped the welcome CTA and advanced
+                // to firstName. Social and email-recovery paths are handled in `.task`
+                // where the pending user is consumed.
+                guard pendingUser == nil, oldStep == .welcome, newStep != .welcome else {
+                    return
+                }
+                emitStartedIfNeeded()
+            }
             .task {
-                // Consume the pending user from AppState and emit onboarding_resumed.
-                // Idempotent via `hasEmittedResumed` — `.task` can re-fire if the view
-                // leaves and re-enters the hierarchy (scene phases, navigation).
+                // Consume the pending user from AppState. Social users are entering
+                // the flow for the first time post-OAuth → `onboarding_started`.
+                // Email pending users are cold-starting a signup in progress →
+                // `onboarding_resumed`. Idempotent via `hasEmittedStarted` /
+                // `hasEmittedResumed` — `.task` can re-fire on view re-entry.
                 if let pendingUser {
                     appState.pendingOnboardingUser = nil
-                    emitResumedIfNeeded(method: pendingUser.resumeMethod, source: .pendingUser)
+                    switch pendingUser {
+                    case .social:
+                        emitStartedIfNeeded()
+                    case .email:
+                        emitResumedIfNeeded(method: pendingUser.resumeMethod, source: .pendingUser)
+                    }
                 }
                 // Legacy fallback for sessions without provider metadata — will retire
                 // once all pre-provider-routing sessions expire.
@@ -122,6 +138,11 @@ struct OnboardingFlow: View {
                         state.configureEmailUser(user)
                         emitResumedIfNeeded(method: .email, source: .sessionFallback)
                     } else {
+                        // Session expired or unrecoverable — purge the persisted draft so the next
+                        // `OnboardingState.init()` doesn't ping-pong back to the mid-flow step via
+                        // `loadFromStorage()`. Without this we get an infinite welcome → mid-step loop.
+                        state.clearStorage()
+                        state.wasEmailRegistered = false
                         state.currentStep = .welcome
                     }
                 }
@@ -140,9 +161,7 @@ struct OnboardingFlow: View {
 
             HStack {
                 Button {
-                    if state.editReturnStep != nil {
-                        state.previousStep()
-                    } else if state.wouldExitOnBack {
+                    if state.wouldExitOnBack && state.editReturnStep == nil {
                         showExitConfirmation = true
                     } else {
                         state.previousStep()
@@ -215,6 +234,21 @@ struct OnboardingFlow: View {
         )
     }
 
+    /// Fire `onboarding_started` once per session when the user enters the
+    /// multi-step flow for the first time (email welcome→next, or fresh social
+    /// OAuth). `@State` idempotency survives view re-evaluations but resets on
+    /// re-instantiation via `.id(appState.onboardingSessionID)` after abandon.
+    private func emitStartedIfNeeded() {
+        guard !hasEmittedStarted else { return }
+        hasEmittedStarted = true
+        AnalyticsService.shared.capture(
+            .onboardingStarted,
+            properties: [
+                "method": state.authMethodProperty
+            ]
+        )
+    }
+
     /// Fire `onboarding_resumed` for a user who re-enters the flow mid-way.
     /// Idempotent via `hasEmittedResumed` — `.task` can fire multiple times if
     /// the view leaves and re-enters the hierarchy.
@@ -267,209 +301,6 @@ struct OnboardingFlow: View {
             removal: .move(edge: state.isMovingForward ? .leading : .trailing)
         )
     }
-}
-
-// MARK: - Base Step View
-
-struct OnboardingStepView<Content: View>: View {
-    let step: OnboardingStep
-    let state: OnboardingState
-    let canProceed: Bool
-    let onNext: () -> Void
-    var titleOverride: String?
-    var subtitleOverride: String?
-    @ViewBuilder let content: () -> Content
-
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @Namespace private var bottomAnchor
-    @State private var showContent = false
-    @State private var isAtBottom = false
-    @State private var contentOverflows = false
-    @State private var keyboardHeight: CGFloat = 0
-    /// Dedicated trigger for the CTA "unlocked" haptic — fires only on false→true flip.
-    @State private var canProceedTrigger = false
-
-    private var isKeyboardVisible: Bool { keyboardHeight > 0 }
-
-    private var isEnabled: Bool {
-        canProceed && !state.isLoading
-    }
-
-    var body: some View {
-        ScrollViewReader { proxy in
-            ScrollView {
-                VStack(spacing: DesignTokens.Spacing.xxxl) {
-                    OnboardingStepHeader(
-                        step: step,
-                        onSkip: step.isOptional ? onNext : nil
-                    )
-
-                    content()
-                        .padding(.horizontal, DesignTokens.Spacing.xxl)
-                        .blurSlide(showContent)
-
-                    // Error banner
-                    if let error = state.error {
-                        ErrorBanner(message: DomainErrorLocalizer.localize(error)) {
-                            state.error = nil
-                        }
-                        .padding(.horizontal, DesignTokens.Spacing.xxl)
-                        .transition(.move(edge: .bottom).combined(with: .opacity))
-                    }
-
-                    // Full-width CTA at bottom of scroll content
-                    fullWidthCTA
-                        .padding(.horizontal, DesignTokens.Spacing.xxl)
-                        .id(bottomAnchor)
-                }
-                .padding(.top, DesignTokens.Spacing.stepHeaderTop)
-                .padding(.bottom, DesignTokens.Spacing.xxxl
-                    + (isKeyboardVisible ? 80 + DesignTokens.FrameHeight.button + DesignTokens.Spacing.lg : 0)
-                )
-            }
-            .scrollBounceBehavior(.basedOnSize)
-            .scrollDismissesKeyboard(.interactively)
-            .onScrollGeometryChange(for: ScrollMetrics.self) { geometry in
-                ScrollMetrics(
-                    remaining: geometry.contentSize.height
-                        - geometry.contentOffset.y - geometry.containerSize.height,
-                    overflows: geometry.contentSize.height > geometry.containerSize.height + 40
-                )
-            } action: { _, metrics in
-                let newAtBottom = metrics.remaining < 80
-                let newOverflows = metrics.overflows
-                guard newAtBottom != isAtBottom || newOverflows != contentOverflows else { return }
-                withAnimation(DesignTokens.Animation.defaultSpring) {
-                    isAtBottom = newAtBottom
-                    contentOverflows = newOverflows
-                }
-            }
-            // Bottom blur — ignoresSafeArea BEFORE frame so it extends past home indicator
-            .overlay(alignment: .bottom) {
-                if (contentOverflows && !isAtBottom) || isKeyboardVisible {
-                    VariableBlurView(
-                        maxBlurRadius: 8,
-                        direction: .blurredBottomClearTop
-                    )
-                    .allowsHitTesting(false)
-                    .ignoresSafeArea(edges: .bottom)
-                    .frame(height: DesignTokens.Blur.bottomFadeHeight)
-                    .transition(.opacity.combined(with: .move(edge: .bottom)))
-                }
-            }
-            // Floating ↓ button — stays within safe area
-            .overlay(alignment: .bottomTrailing) {
-                if (contentOverflows && !isAtBottom) || isKeyboardVisible {
-                    floatingButton(proxy: proxy)
-                        .padding(.trailing, DesignTokens.Spacing.xxl)
-                        .padding(.bottom, DesignTokens.Spacing.lg)
-                        .transition(.opacity.combined(with: .move(edge: .bottom)))
-                }
-            }
-        }
-        .background(Color.clear)
-        .dismissKeyboardOnTap()
-        .onChange(of: canProceed) { oldValue, newValue in
-            // Celebration haptic only on the false→true flip (CTA just unlocked)
-            if !oldValue && newValue { canProceedTrigger.toggle() }
-        }
-        .onReceive(
-            NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)
-        ) { notification in
-            let frame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect
-            let height = frame?.height ?? 0
-            withAnimation(DesignTokens.Animation.defaultSpring) {
-                keyboardHeight = height
-            }
-        }
-        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
-            withAnimation(DesignTokens.Animation.defaultSpring) {
-                keyboardHeight = 0
-            }
-        }
-        .task {
-            guard !showContent else { return }
-            if reduceMotion {
-                showContent = true
-            } else {
-                await delayedAnimation(0.25) { showContent = true }
-            }
-        }
-    }
-
-    // MARK: - Floating ↓ Button (Option C behavior)
-
-    /// Keyboard open → dismiss keyboard
-    /// Keyboard closed + not at bottom → scroll to CTA
-    private func floatingButton(proxy: ScrollViewProxy) -> some View {
-        Button {
-            if isKeyboardVisible {
-                UIApplication.shared.sendAction(
-                    #selector(UIResponder.resignFirstResponder),
-                    to: nil, from: nil, for: nil
-                )
-            } else {
-                withAnimation(DesignTokens.Animation.defaultSpring) {
-                    proxy.scrollTo(bottomAnchor, anchor: .bottom)
-                }
-            }
-        } label: {
-            Image(systemName: isKeyboardVisible ? "keyboard.chevron.compact.down" : "arrow.down")
-                .font(PulpeTypography.labelLarge)
-                .foregroundStyle(Color.textOnPrimary)
-                .frame(width: DesignTokens.FrameHeight.button, height: DesignTokens.FrameHeight.button)
-                .background(Color.onboardingGradient)
-                .clipShape(Circle())
-                .contentTransition(.symbolEffect(.replace))
-        }
-        .shadow(DesignTokens.Shadow.elevated)
-        .contentShape(Circle())
-        .accessibilityLabel(isKeyboardVisible ? "Fermer le clavier" : "Voir la suite")
-    }
-
-    // MARK: - Full-Width CTA (at bottom of scroll)
-
-    private var fullWidthCTA: some View {
-        VStack(spacing: DesignTokens.Spacing.md) {
-            Button(action: onNext) {
-                if state.isLoading {
-                    ProgressView()
-                        .tint(.white)
-                        .accessibilityLabel("Chargement")
-                } else {
-                    HStack(spacing: DesignTokens.Spacing.sm) {
-                        Text(buttonTitle)
-                        if step != .registration && step != .budgetPreview {
-                            Image(systemName: "arrow.right")
-                                .font(PulpeTypography.labelLarge)
-                        }
-                    }
-                }
-            }
-            .primaryButtonStyle(isEnabled: isEnabled)
-            .disabled(!isEnabled)
-            .scaleEffect(canProceed ? 1 : 0.98)
-            .animation(reduceMotion ? .none : DesignTokens.Animation.bouncySpring, value: canProceed)
-            .animation(.easeInOut(duration: DesignTokens.Animation.fast), value: isEnabled)
-            .sensoryFeedback(.success, trigger: canProceedTrigger)
-        }
-    }
-
-    private var buttonTitle: String {
-        switch step {
-        case .registration: "Créer mon compte"
-        case .budgetPreview: "Créer mon budget"
-        case .welcome: "Commencer"
-        default: "Continuer"
-        }
-    }
-}
-
-// MARK: - Scroll Metrics
-
-private struct ScrollMetrics: Equatable {
-    let remaining: CGFloat
-    let overflows: Bool
 }
 
 #Preview {

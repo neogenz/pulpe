@@ -7,13 +7,20 @@ enum AnalyticsEvent: String, CaseIterable {
 
     // MARK: - Onboarding Funnel
     case welcomeScreenViewed = "welcome_screen_viewed"
+    /// Fires once per session when the user enters the multi-step onboarding
+    /// flow — either by tapping "S'inscrire avec email" on welcome, or via a
+    /// fresh social OAuth that routes them straight into the questionnaire.
+    /// Matches the web funnel's `onboarding_started`. Distinct from
+    /// `onboardingResumed`, which covers cold-start recovery of an in-progress
+    /// signup — `started` = first time, `resumed` = continuing.
+    case onboardingStarted = "onboarding_started"
     case signupStarted = "signup_started"
     case signupCompleted = "signup_completed"
     case onboardingStepCompleted = "onboarding_step_completed"
     case onboardingAbandoned = "onboarding_abandoned"
-    /// Fired when a user re-enters onboarding mid-flow after killing/backgrounding the app.
-    /// Source is either a pending user slot (cold-start recovery router) or the legacy
-    /// `wasEmailRegistered` session fallback.
+    /// Fires when an email user cold-starts an in-progress signup after
+    /// killing or backgrounding the app. Source disambiguates the pending-user
+    /// router from the legacy `wasEmailRegistered` session fallback.
     case onboardingResumed = "onboarding_resumed"
 
     // MARK: - Auth
