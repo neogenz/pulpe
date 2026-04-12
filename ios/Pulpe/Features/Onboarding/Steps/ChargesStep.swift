@@ -67,13 +67,13 @@ struct ChargesStep: View {
             }
         )
         .sheet(isPresented: $showAddCharge) {
-            AddCustomExpenseSheet(defaultKind: .expense, availableKinds: [.expense]) { tx in
+            AddCustomExpenseSheet(kind: .expense) { tx in
                 state.addCustomTransaction(tx)
             }
             .standardSheetPresentation()
         }
         .sheet(item: $editingTransaction) { tx in
-            AddCustomExpenseSheet(editing: tx, availableKinds: [.expense]) { updated in
+            AddCustomExpenseSheet(editing: tx) { updated in
                 state.replaceCustomTransaction(id: tx.id, with: updated)
             }
             .standardSheetPresentation()

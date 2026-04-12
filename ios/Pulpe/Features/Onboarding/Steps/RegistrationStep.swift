@@ -6,7 +6,6 @@ struct RegistrationStep: View {
     @State private var password = ""
     @State private var showPassword = false
     @State private var signupTask: Task<Void, Never>?
-    @State private var hasEmittedSignupStarted = false
     @FocusState private var focusedField: Field?
 
     private enum Field: Hashable {
@@ -36,9 +35,12 @@ struct RegistrationStep: View {
         .trackScreen("Onboarding_Registration")
         .task {
             // Fire signup_started when the user actually reaches the registration form.
-            // Idempotent across back-nav from firstName within the same view instance.
-            guard !hasEmittedSignupStarted else { return }
-            hasEmittedSignupStarted = true
+            // Idempotent across back-nav: the guard lives on `OnboardingState` which
+            // outlives step-view re-instantiation (OnboardingFlow keys each step by
+            // `.id(state.currentStep)`). A `@State` guard on this struct would reset
+            // every time the user taps firstName→Retour→Continuer.
+            guard !state.hasEmittedSignupStarted else { return }
+            state.hasEmittedSignupStarted = true
             AnalyticsService.shared.capture(.signupStarted, properties: ["method": "email"])
         }
         .onDisappear {

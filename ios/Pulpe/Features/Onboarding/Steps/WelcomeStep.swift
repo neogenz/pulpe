@@ -5,8 +5,7 @@ struct WelcomeStep: View {
     @State private var showLogin = false
     @State private var isAppeared = false
     @State private var isBreathing = false
-    @State private var hasEmittedWelcomeViewed = false
-    let state: OnboardingState
+    @Bindable var state: OnboardingState
 
     private static let consentMarkdown = AppURLs.legalDisclosure(
         prefix: "En continuant, tu acceptes nos",
@@ -113,10 +112,12 @@ struct WelcomeStep: View {
         }
         .trackScreen("Onboarding_Welcome")
         .task {
-            // Idempotency guard: @State persists across re-appears (e.g. back nav from
-            // firstName), so this only fires once per WelcomeStep instance.
-            guard !hasEmittedWelcomeViewed else { return }
-            hasEmittedWelcomeViewed = true
+            // Idempotency guard lives on `OnboardingState`, not on this view: the
+            // parent `OnboardingFlow` tears down and recreates `WelcomeStep` on any
+            // back-nav via `.id(state.currentStep)`. A local `@State` guard would
+            // reset between firstName → Retour → Welcome and re-fire the funnel event.
+            guard !state.hasEmittedWelcomeViewed else { return }
+            state.hasEmittedWelcomeViewed = true
             AnalyticsService.shared.capture(.welcomeScreenViewed)
         }
         .sheet(isPresented: $showLogin) {

@@ -85,7 +85,10 @@ reorder — it's step 3, not step 1).
 | `profile_step1_completed` | First profile step done | — |
 | `profile_step2_completed` | Second profile step done | — |
 | `profile_step2_skipped` | Second profile step skipped | — |
-| `first_budget_created` | User creates initial budget | `signup_method`, `has_pay_day`, `charges_count` |
+| `first_budget_created` | User creates initial budget | `signup_method`, `has_pay_day`, `charges_count`, `custom_transactions_count` |
+| `onboarding_suggestion_toggled` | User taps a suggestion chip (charges or savings step) | `step` (`charges` \| `savings` \| `income`), `suggestion_name`, `selected` (bool) |
+| `custom_transaction_added` | User adds a custom row via dialog or suggestion chip | `step`, `kind` (`expense` \| `saving` \| `income`), `source` (`manual` \| `suggestion`) |
+| `custom_transaction_removed` | User removes a custom row | `step`, `kind`, `source` |
 
 ### Tutorial Events
 
@@ -113,7 +116,10 @@ reorder — it's step 3, not step 1).
 | `session_restore_failed` | Session restore at startup fails | `method`, `error_kind`, `error_message` |
 | `pin_setup_completed` | PIN created successfully | — |
 | `pin_entered` | PIN entered on return visit | — |
-| `first_budget_created` | Initial budget created at the end of onboarding | `signup_method`, `has_pay_day`, `charges_count` |
+| `first_budget_created` | Initial budget created at the end of onboarding | `signup_method` (`email` \| `apple` \| `google`), `has_pay_day`, `charges_count`, `custom_transactions_count` |
+| `onboarding_suggestion_toggled` | User taps a suggestion chip (charges or savings step) | `step` (`charges` \| `savings` \| `income`), `suggestion_name`, `selected` (bool) |
+| `custom_transaction_added` | User adds a custom row via the "+ Ajouter" sheet or a suggestion chip | `step`, `kind` (`expense` \| `saving` \| `income`), `source` (`manual` \| `suggestion`) |
+| `custom_transaction_removed` | User removes a custom row via swipe, trash, or by toggling a suggestion off | `step`, `kind`, `source` |
 | `budget_created` | Budget created outside the onboarding flow | — |
 | `transaction_created` | Transaction added | `type` (`expense` \| `income` \| `saving`) |
 | `tab_switched` | User switches tab | `tab` (`currentMonth` \| `budgets` \| `templates`) |
@@ -123,8 +129,9 @@ reorder — it's step 3, not step 1).
 - `onboarding_started` fires once per `OnboardingFlow` instance (@State guard). Resets on view re-instantiation via `.id(appState.onboardingSessionID)` after abandon.
 - `onboarding_abandoned` fires at most once per `OnboardingState` (state.hasAbandoned flag).
 - `onboarding_resumed` fires once per instance and is mutually exclusive with `onboarding_started` for the same session.
-- `welcome_screen_viewed` fires once per `WelcomeStep` instance.
-- `signup_started` fires once per `RegistrationStep` instance (immune to back-nav within the same flow).
+- `welcome_screen_viewed` fires once per **session** via `state.hasEmittedWelcomeViewed` on `OnboardingState`. Critical: the guard lives on the state (not on the `WelcomeStep` view) because `OnboardingFlow` tears down and re-creates step views on every step change via `.id(state.currentStep)` — a local `@State` guard would double-fire on back-nav.
+- `signup_started` fires once per **session** via `state.hasEmittedSignupStarted` on `OnboardingState`. Same re-instantiation trap as `welcome_screen_viewed`.
+- `onboarding_step_completed` for `budget_preview` fires once per session via `state.hasEmittedBudgetPreviewCompleted`. Prevents rapid-double-tap and retry-after-error from double-firing the funnel event; the CTA also disables once `state.readyToComplete` or `state.isSubmitting` is true.
 
 ## Properties
 

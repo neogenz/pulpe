@@ -292,7 +292,8 @@ struct AppStateCharacterizationTests {
         // Set up pending onboarding data via completeOnboarding
         await sut.completeOnboarding(
             user: user,
-            onboardingData: BudgetTemplateCreateFromOnboarding()
+            onboardingData: BudgetTemplateCreateFromOnboarding(),
+            signupMethod: "email"
         )
         #expect(sut.pendingOnboardingData != nil)
         #expect(sut.hasReturningUser == true)

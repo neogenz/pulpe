@@ -49,21 +49,35 @@ import type { OnboardingTransaction } from '@core/complete-profile';
             </mat-button-toggle>
           </mat-button-toggle-group>
 
-          <mat-form-field appearance="outline" class="w-full">
+          <mat-form-field
+            appearance="outline"
+            subscriptSizing="dynamic"
+            class="w-full"
+          >
             <mat-label>{{
               'completeProfile.customExpense.nameLabel' | transloco
             }}</mat-label>
             <input
               matInput
               formControlName="name"
+              maxlength="100"
               [placeholder]="
                 'completeProfile.customExpense.namePlaceholder' | transloco
               "
               data-testid="custom-expense-name"
             />
+            @if (form.controls.name.hasError('maxlength')) {
+              <mat-error>
+                {{ 'completeProfile.customExpense.nameMaxLength' | transloco }}
+              </mat-error>
+            }
           </mat-form-field>
 
-          <mat-form-field appearance="outline" class="w-full ph-no-capture">
+          <mat-form-field
+            appearance="outline"
+            subscriptSizing="dynamic"
+            class="w-full ph-no-capture"
+          >
             <mat-label class="ph-no-capture">{{
               'completeProfile.customExpense.amountLabel' | transloco
             }}</mat-label>
@@ -107,7 +121,14 @@ export class AddCustomExpenseDialog {
 
   protected readonly form = this.#fb.group({
     kind: ['expense' as 'income' | 'expense' | 'saving'],
-    name: ['', [Validators.required, Validators.pattern(/\S/)]],
+    name: [
+      '',
+      [
+        Validators.required,
+        Validators.maxLength(100),
+        Validators.pattern(/\S/),
+      ],
+    ],
     amount: [
       null as number | null,
       [Validators.required, Validators.min(0.01)],

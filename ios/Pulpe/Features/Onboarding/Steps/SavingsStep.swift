@@ -37,13 +37,13 @@ struct SavingsStep: View {
             }
         )
         .sheet(isPresented: $showAddSaving) {
-            AddCustomExpenseSheet(defaultKind: .saving, availableKinds: [.saving]) { tx in
+            AddCustomExpenseSheet(kind: .saving) { tx in
                 state.addCustomTransaction(tx)
             }
             .standardSheetPresentation()
         }
         .sheet(item: $editingTransaction) { tx in
-            AddCustomExpenseSheet(editing: tx, availableKinds: [.saving]) { updated in
+            AddCustomExpenseSheet(editing: tx) { updated in
                 state.replaceCustomTransaction(id: tx.id, with: updated)
             }
             .standardSheetPresentation()

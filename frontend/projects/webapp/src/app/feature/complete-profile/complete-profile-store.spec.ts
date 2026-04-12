@@ -629,7 +629,10 @@ describe('CompleteProfileStore', () => {
       it('should add a suggestion when not present', () => {
         store.toggleSuggestion(suggestion);
 
-        expect(store.customTransactions()).toContainEqual(suggestion);
+        expect(store.customTransactions()).toHaveLength(1);
+        expect(store.customTransactions()[0]).toEqual(
+          expect.objectContaining(suggestion),
+        );
       });
 
       it('should remove a suggestion when already present', () => {
@@ -654,6 +657,38 @@ describe('CompleteProfileStore', () => {
 
         expect(store.customTransactions()).toEqual([manualTx]);
       });
+
+      it('should not clobber a manual transaction with the same name+type as a suggestion', () => {
+        // M1 regression: if a user types a custom row literally named
+        // "Courses / alimentation" (amount 800) and THEN taps the Courses chip,
+        // the old code matched the row as suggestion-selected and erased it
+        // on the next chip tap. With the __suggestionId tag, manual rows are
+        // untouched no matter how many times the chip is toggled.
+        const manualCollision = {
+          name: 'Courses / alimentation',
+          amount: 800,
+          type: 'expense' as const,
+          expenseType: 'fixed' as const,
+          isRecurring: true,
+        };
+
+        store.addCustomTransaction(manualCollision);
+        // The chip must NOT register as selected just because a manual row
+        // happens to share the same name + type.
+        expect(
+          store.selectedSuggestionNames().has('Courses / alimentation'),
+        ).toBe(false);
+
+        // Toggling the chip adds a second entry (the suggestion), leaving the
+        // manual row alone — both coexist.
+        store.toggleSuggestion(suggestion);
+        expect(store.customTransactions()).toHaveLength(2);
+        expect(store.customTransactions()[0]).toEqual(manualCollision);
+
+        // Toggling off removes only the suggestion entry, never the manual row.
+        store.toggleSuggestion(suggestion);
+        expect(store.customTransactions()).toEqual([manualCollision]);
+      });
     });
 
     describe('selectedSuggestionNames', () => {
@@ -676,7 +711,10 @@ describe('CompleteProfileStore', () => {
         );
       });
 
-      it('should include manually added transactions matching a suggestion exactly', () => {
+      it('should NOT include manually added transactions even when the name matches a suggestion', () => {
+        // Post-M1 contract: chip selection is tracked by the __suggestionId
+        // tag, not by name+type. A manually typed "Courses / alimentation"
+        // must never flip the chip into the selected state.
         store.addCustomTransaction({
           name: 'Courses / alimentation',
           amount: 600,
@@ -687,25 +725,7 @@ describe('CompleteProfileStore', () => {
 
         expect(
           store.selectedSuggestionNames().has('Courses / alimentation'),
-        ).toBe(true);
-      });
-
-      it('should include transactions with matching name+type even if amount differs', () => {
-        // Identity is now (name, type) — matches the suggestion regardless of edited amount.
-        // This is the post-fix contract: a manually-added transaction colliding on name+type
-        // is treated as toggling the chip on. Suggestion names are distinctive enough
-        // ("Courses / alimentation", etc.) that this collision is benign in practice.
-        store.addCustomTransaction({
-          name: 'Courses / alimentation',
-          amount: 200,
-          type: 'expense',
-          expenseType: 'fixed',
-          isRecurring: true,
-        });
-
-        expect(
-          store.selectedSuggestionNames().has('Courses / alimentation'),
-        ).toBe(true);
+        ).toBe(false);
       });
     });
 
@@ -714,10 +734,11 @@ describe('CompleteProfileStore', () => {
         // Reproduction sequence for the original bug:
         //   1. Toggle chip ON (suggestion appended at its static amount)
         //   2. User inline-edits the amount (mutates the stored entry)
-        //   3. Triple-match identity USED to fail → chip rendered as unselected
+        //   3. Identity USED to be (name, type, amount) → edit broke it → chip rendered as unselected
         //   4. Re-tap appended a duplicate → "Disponible à dépenser" inflated
-        // After the fix, identity is (name, type) only, so the chip stays
-        // selected after edit and re-tap removes (not duplicates) the entry.
+        // After the M1 fix, identity is carried by the __suggestionId tag,
+        // which survives amount edits. Chip stays selected after edit and
+        // re-tap removes (not duplicates) the entry.
         const suggestion = ONBOARDING_SUGGESTIONS[0]; // Courses / alimentation, 600
 
         store.toggleSuggestion(suggestion);
@@ -726,7 +747,7 @@ describe('CompleteProfileStore', () => {
         store.updateCustomTransactionAmount(0, 800);
         expect(store.customTransactions()[0].amount).toBe(800);
 
-        // Chip stays selected after the edit (name+type identity).
+        // Chip stays selected after the edit (__suggestionId survived the spread).
         expect(store.selectedSuggestionNames().has(suggestion.name)).toBe(true);
 
         // Re-toggle removes the entry — does NOT append a duplicate.

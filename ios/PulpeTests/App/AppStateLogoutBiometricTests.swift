@@ -251,7 +251,11 @@ struct AppStateLogoutBiometricTests {
         )
 
         // completeOnboarding calls clearExplicitLogoutFlag (same as login)
-        await sut.completeOnboarding(user: user, onboardingData: BudgetTemplateCreateFromOnboarding())
+        await sut.completeOnboarding(
+            user: user,
+            onboardingData: BudgetTemplateCreateFromOnboarding(),
+            signupMethod: "email"
+        )
 
         #expect(
             UserDefaults.standard.bool(forKey: Self.didExplicitLogoutKey) == false,

@@ -447,7 +447,7 @@ struct PostAuthResolutionRouterTests {
         let sut = AppState(postAuthResolver: resolver)
 
         // When: completing onboarding
-        await sut.completeOnboarding(user: user, onboardingData: onboardingData)
+        await sut.completeOnboarding(user: user, onboardingData: onboardingData, signupMethod: "email")
 
         // Then: routes to PIN entry (not PIN setup)
         #expect(sut.authState == .needsPinEntry)
@@ -462,7 +462,7 @@ struct PostAuthResolutionRouterTests {
         let sut = AppState(postAuthResolver: resolver)
 
         // When: completing onboarding
-        await sut.completeOnboarding(user: user, onboardingData: onboardingData)
+        await sut.completeOnboarding(user: user, onboardingData: onboardingData, signupMethod: "email")
 
         // Then: routes to PIN setup
         #expect(sut.authState == .needsPinSetup)
@@ -476,7 +476,7 @@ struct PostAuthResolutionRouterTests {
         let sut = AppState(postAuthResolver: resolver)
 
         // When: completing onboarding
-        await sut.completeOnboarding(user: user, onboardingData: onboardingData)
+        await sut.completeOnboarding(user: user, onboardingData: onboardingData, signupMethod: "email")
 
         // Then: shows error alert instead of routing to wrong screen
         #expect(sut.showPostAuthError == true)
@@ -490,7 +490,7 @@ struct PostAuthResolutionRouterTests {
         let sut = AppState(postAuthResolver: resolver)
 
         // When: completing onboarding
-        await sut.completeOnboarding(user: user, onboardingData: onboardingData)
+        await sut.completeOnboarding(user: user, onboardingData: onboardingData, signupMethod: "email")
 
         // Then: shows error alert (session expired right after signup = can't proceed)
         #expect(sut.showPostAuthError == true)
@@ -521,7 +521,7 @@ struct PostAuthResolutionRouterTests {
         let sut = AppState(postAuthResolver: sequentialResolver)
 
         // When: onboarding fails
-        await sut.completeOnboarding(user: user, onboardingData: onboardingData)
+        await sut.completeOnboarding(user: user, onboardingData: onboardingData, signupMethod: "email")
         #expect(sut.showPostAuthError == true)
 
         // When: user taps retry
@@ -541,7 +541,7 @@ struct PostAuthResolutionRouterTests {
         let sut = AppState(postAuthResolver: resolver)
 
         // When: completing onboarding
-        await sut.completeOnboarding(user: user, onboardingData: onboardingData)
+        await sut.completeOnboarding(user: user, onboardingData: onboardingData, signupMethod: "email")
 
         // Then: routes to PIN entry to verify existing PIN (not directly authenticated)
         #expect(sut.authState == .needsPinEntry)
@@ -555,7 +555,7 @@ struct PostAuthResolutionRouterTests {
 
         // When: starting onboarding completion
         let task = Task {
-            await sut.completeOnboarding(user: user, onboardingData: onboardingData)
+            await sut.completeOnboarding(user: user, onboardingData: onboardingData, signupMethod: "email")
         }
 
         try? await Task.sleep(for: .milliseconds(30))

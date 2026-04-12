@@ -261,14 +261,18 @@ extension AppState {
         returningUserFlagLoaded = true
     }
 
-    func completeOnboarding(user: UserInfo, onboardingData: BudgetTemplateCreateFromOnboarding) async {
+    func completeOnboarding(
+        user: UserInfo,
+        onboardingData: BudgetTemplateCreateFromOnboarding,
+        signupMethod: String
+    ) async {
         authDebug("AUTH_ONBOARDING", "complete email=\(user.email.prefix(3))***")
         clearPreLoginFlags()
         currentUser = user
         await keychainManager.saveLastUsedEmail(user.email)
         hasReturningUser = true
         returningUserFlagLoaded = true
-        onboardingBootstrapper.setPendingData(onboardingData)
+        onboardingBootstrapper.setPendingData(onboardingData, signupMethod: signupMethod)
         authState = .loading
 
         // Route based on actual vault status.

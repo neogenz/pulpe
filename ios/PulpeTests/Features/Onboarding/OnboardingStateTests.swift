@@ -610,6 +610,24 @@ struct OnboardingStateTests {
         #expect(OnboardingState.savingSuggestions.count == 2)
     }
 
+    /// Locks the `?? UUID()` fallback in `makeStaticSuggestion` as unreachable.
+    /// If someone fat-fingers a hardcoded literal the suggestions would silently
+    /// get random UUIDs — chip selection would still work within a session but
+    /// cold-start identity would break. This test catches the typo at CI time.
+    @Test
+    func suggestions_haveStableUniqueUUIDs() {
+        let ids = OnboardingState.suggestions.map(\.id)
+        #expect(Set(ids).count == ids.count, "Suggestion UUIDs must be unique")
+        // All expected UUIDs have the "F1A1E501-C0A5-4000-A000" prefix. If the
+        // `?? UUID()` fallback triggered we'd see a random UUID here.
+        for id in ids {
+            #expect(
+                id.uuidString.hasPrefix("F1A1E501-C0A5-4000-A000-"),
+                "Suggestion UUID fell back to random — a literal failed to parse"
+            )
+        }
+    }
+
     // MARK: - T1.1 Regression: toggle → edit amount → re-toggle does not duplicate
 
     /// Reproduction sequence for the original duplicate-entry bug:
@@ -677,6 +695,104 @@ struct OnboardingStateTests {
 
         #expect(state.customTransactions.isEmpty)
         #expect(state.availableToSpend == 5000)
+    }
+
+    // MARK: - M1 Regression: suggestion chip must not clobber manual rows
+
+    /// Reproduction sequence for the M1 name-collision bug:
+    ///   1. User manually adds a row named exactly "Courses / alimentation" (800 CHF)
+    ///   2. Under the old `name + type` identity, the Courses chip silently
+    ///      flipped to "selected" on the next render.
+    ///   3. Tapping the chip called `toggleSuggestion` which matched by
+    ///      `name + type` and removed the user's 800 CHF row.
+    /// After the M1 fix, identity is the stable suggestion UUID. Manual rows
+    /// use a fresh `UUID()` and are immune to the chip's toggle.
+    @Test
+    func toggleSuggestion_doesNotClobberManualRowWithSameName() {
+        let state = makeSUT()
+        defer { OnboardingState.clearPersistedData() }
+
+        // 1) User adds a manual charge that happens to share the chip's label.
+        let manualCollision = OnboardingTransaction(
+            amount: 800,
+            type: .expense,
+            name: "Courses / alimentation"
+        )
+        state.addCustomTransaction(manualCollision)
+
+        // 2) The chip must NOT register as selected — identity is by id, not name.
+        let coursesSuggestion = OnboardingState.chargeSuggestions[0]
+        #expect(!state.isSuggestionSelected(coursesSuggestion))
+
+        // 3) Toggling the chip adds the suggestion row alongside the manual one.
+        state.toggleSuggestion(coursesSuggestion)
+        #expect(state.customTransactions.count == 2)
+        #expect(state.isSuggestionSelected(coursesSuggestion))
+
+        // 4) Toggling the chip off only removes the suggestion row.
+        state.toggleSuggestion(coursesSuggestion)
+        #expect(state.customTransactions.count == 1)
+        #expect(state.customTransactions.first?.id == manualCollision.id)
+        #expect(state.customTransactions.first?.amount == 800)
+    }
+
+    // MARK: - H2 Regression: budget_preview completion is idempotent
+
+    @Test
+    func nextStep_budgetPreview_analyticsGuardIsIdempotent_completionReArms() {
+        let state = makeSUT()
+        defer { OnboardingState.clearPersistedData() }
+        state.configureEmailUser(UserInfo(id: "1", email: "t@t.com"))
+        state.currentStep = .budgetPreview
+
+        state.nextStep()
+        #expect(state.readyToComplete)
+        #expect(state.hasEmittedBudgetPreviewCompleted)
+
+        // Simulate the error-retry path: `OnboardingFlow.finishOnboarding` flips
+        // `readyToComplete` back to false on backend failure, then the user taps
+        // Continuer again.
+        state.readyToComplete = false
+        state.nextStep()
+
+        // The funnel event stays fired exactly once (idempotency flag sticks)…
+        #expect(state.hasEmittedBudgetPreviewCompleted)
+        // …but the completion trigger re-arms so the retry actually proceeds.
+        #expect(state.readyToComplete)
+    }
+
+    // MARK: - H3 Regression: custom-tx UUIDs survive cold-start
+
+    @Test
+    func saveAndLoad_preservesCustomTransactionIds() {
+        let state = makeSUT()
+        defer { OnboardingState.clearPersistedData() }
+
+        let tx1 = OnboardingTransaction(amount: 50, type: .expense, name: "Spotify")
+        let tx2 = OnboardingTransaction(amount: 30, type: .saving, name: "Vacances")
+        state.addCustomTransaction(tx1)
+        state.addCustomTransaction(tx2)
+        state.saveToStorage()
+
+        let restored = OnboardingState()
+        #expect(restored.customTransactions.count == 2)
+        #expect(restored.customTransactions[0].id == tx1.id)
+        #expect(restored.customTransactions[1].id == tx2.id)
+    }
+
+    @Test
+    func saveAndLoad_preservesSuggestionIdentityAcrossColdStart() {
+        let state = makeSUT()
+        defer { OnboardingState.clearPersistedData() }
+
+        let suggestion = OnboardingState.chargeSuggestions[0]
+        state.toggleSuggestion(suggestion)
+        state.saveToStorage()
+
+        let restored = OnboardingState()
+        // The chip must still render as selected after cold-start — the stable
+        // suggestion UUID is what makes `isSuggestionSelected` find the row.
+        #expect(restored.isSuggestionSelected(suggestion))
     }
 
     // MARK: - Running Totals

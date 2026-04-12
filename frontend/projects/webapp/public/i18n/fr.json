@@ -710,6 +710,7 @@
       "dialogTitle": "Ajouter une prévision",
       "nameLabel": "Nom de la prévision",
       "namePlaceholder": "Ex: Salle de sport, Streaming...",
+      "nameMaxLength": "100 caractères maximum",
       "amountLabel": "Montant",
       "sectionTitle": "Prévisions personnalisées",
       "addButton": "Ajouter une prévision",

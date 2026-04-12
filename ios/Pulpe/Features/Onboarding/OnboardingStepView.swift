@@ -22,7 +22,10 @@ struct OnboardingStepView<Content: View>: View {
     private var isKeyboardVisible: Bool { keyboardHeight > 0 }
 
     private var isEnabled: Bool {
-        canProceed && !state.isLoading
+        // `readyToComplete` / `isSubmitting` close the rapid-double-tap window on
+        // the BudgetPreview CTA: between "tap → nextStep() fires → onChange(readyToComplete)
+        // kicks off finishOnboarding", the button stays tappable unless we block it here.
+        canProceed && !state.isLoading && !state.readyToComplete && !state.isSubmitting
     }
 
     var body: some View {

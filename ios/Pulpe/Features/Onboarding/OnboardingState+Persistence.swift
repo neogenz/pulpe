@@ -7,6 +7,7 @@ extension OnboardingState {
     func saveToStorage() {
         let storedTx = customTransactions.map {
             OnboardingStorageData.StoredTransaction(
+                id: $0.id,
                 amount: $0.amount,
                 type: $0.type.rawValue,
                 name: $0.name,
@@ -62,7 +63,11 @@ extension OnboardingState {
                       let expenseType = TransactionRecurrence(rawValue: stored.expenseType) else {
                     return nil
                 }
+                // `id` is optional in `StoredTransaction` so legacy drafts saved before
+                // the persistence-id fix still decode — they just get a fresh UUID once
+                // and then stick with it on subsequent saves.
                 return OnboardingTransaction(
+                    id: stored.id ?? UUID(),
                     amount: stored.amount,
                     type: type,
                     name: stored.name,
@@ -105,6 +110,9 @@ private struct OnboardingStorageData: Codable {
     let isEmailRegistered: Bool?
 
     struct StoredTransaction: Codable {
+        // Optional for backwards compat with drafts saved by versions that didn't
+        // persist the id. `loadFromStorage` falls back to a fresh UUID in that case.
+        let id: UUID?
         let amount: Decimal
         let type: String
         let name: String

@@ -276,7 +276,8 @@ struct OnboardingFlow: View {
         defer { state.isSubmitting = false }
         await appState.completeOnboarding(
             user: user,
-            onboardingData: state.createTemplateData()
+            onboardingData: state.createTemplateData(),
+            signupMethod: state.authMethodProperty
         )
         if appState.showPostAuthError {
             // Capture error locally and clear global flag

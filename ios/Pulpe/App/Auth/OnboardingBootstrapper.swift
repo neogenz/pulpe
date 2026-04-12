@@ -6,6 +6,11 @@ import OSLog
 final class OnboardingBootstrapper {
     // MARK: - State
     private(set) var pendingOnboardingData: BudgetTemplateCreateFromOnboarding?
+    /// Auth method captured at the moment the user completes onboarding. Used to tag
+    /// `first_budget_created` so PostHog funnels can compare conversion across providers.
+    /// Falls back to `"email"` when the caller didn't supply one — matches the existing
+    /// `OnboardingState.authMethodProperty` convention.
+    private var pendingSignupMethod: String?
 
     // MARK: - Dependencies
 
@@ -25,12 +30,22 @@ final class OnboardingBootstrapper {
 
     // MARK: - Public API
 
+    /// Legacy overload — kept so existing call sites (and tests) that set
+    /// `pendingOnboardingData` through the `AppState` computed setter compile.
+    /// The new `completeOnboarding` flow uses `setPendingData(_:signupMethod:)`.
     func setPendingData(_ data: BudgetTemplateCreateFromOnboarding?) {
         pendingOnboardingData = data
+        if data == nil { pendingSignupMethod = nil }
+    }
+
+    func setPendingData(_ data: BudgetTemplateCreateFromOnboarding?, signupMethod: String?) {
+        pendingOnboardingData = data
+        pendingSignupMethod = data == nil ? nil : signupMethod
     }
 
     func clearPendingData() {
         pendingOnboardingData = nil
+        pendingSignupMethod = nil
     }
 
     /// Creates template + budget from pending onboarding data if present.
@@ -52,8 +67,13 @@ final class OnboardingBootstrapper {
             )
             _ = try await createBudget(budgetData)
 
+            let signupMethod = pendingSignupMethod ?? "email"
+            let customCount = onboardingData.customTransactions.count
             pendingOnboardingData = nil
+            pendingSignupMethod = nil
+
             AnalyticsService.shared.capture(.firstBudgetCreated, properties: [
+                "signup_method": signupMethod,
                 "has_pay_day": false,
                 "charges_count": [
                     onboardingData.housingCosts,
@@ -61,7 +81,8 @@ final class OnboardingBootstrapper {
                     onboardingData.phonePlan,
                     onboardingData.transportCosts,
                     onboardingData.leasingCredit
-                ].compactMap { $0 }.count
+                ].compactMap { $0 }.count,
+                "custom_transactions_count": customCount
             ])
             return true
         } catch {

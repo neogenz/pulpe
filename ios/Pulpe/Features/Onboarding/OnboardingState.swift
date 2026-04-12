@@ -40,6 +40,16 @@ final class OnboardingState {
     /// Not `private(set)` because `OnboardingState+Persistence.swift` restores it from disk.
     var wasEmailRegistered: Bool = false
 
+    // MARK: - Analytics Idempotency Guards
+    //
+    // These live on the state (not on individual step views) because step views are
+    // re-instantiated by `OnboardingFlow`'s `.id(state.currentStep)` on every step
+    // change. A `@State` guard on the view would reset on back-nav, double-firing
+    // the funnel event. The state outlives step navigation within a session.
+    var hasEmittedWelcomeViewed: Bool = false
+    var hasEmittedSignupStarted: Bool = false
+    var hasEmittedBudgetPreviewCompleted: Bool = false
+
     /// Configures state for a social signup user.
     /// Pre-fills firstName from provider metadata and clears persisted step
     /// so cold-start after app kill resets to welcome.
@@ -211,9 +221,16 @@ final class OnboardingState {
         guard let currentIndex = OnboardingStep.allCases.firstIndex(of: currentStep) else { return }
 
         // BudgetPreview is the finale — fire its completion event then trigger readyToComplete.
+        // The analytics guard is separate from the completion trigger: the funnel
+        // event fires exactly once per session, but `readyToComplete` can re-arm
+        // so the user can retry if `finishOnboarding` errored. Rapid double-taps
+        // are blocked upstream by the CTA disable (`!readyToComplete && !isSubmitting`).
         guard let next = nextVisibleStep(after: currentIndex) else {
             if currentStep == .budgetPreview {
-                captureStepCompleted(currentStep)
+                if !hasEmittedBudgetPreviewCompleted {
+                    hasEmittedBudgetPreviewCompleted = true
+                    captureStepCompleted(currentStep)
+                }
                 readyToComplete = true
             }
             return
@@ -358,53 +375,38 @@ final class OnboardingState {
         (monthlyIncome ?? 0) + totalCustomIncome
     }
 
-    // MARK: - Suggestions
+    // MARK: - Suggestions + Custom Transactions
 
     /// Hard cap on user-added custom transactions during onboarding.
     /// Mirrors `MAX_CUSTOM_TRANSACTIONS` in the Angular store and the `.max(50)` Zod constraint
     /// in `shared/schemas.ts` `budgetTemplateCreateFromOnboardingSchema.customTransactions`.
     static let maxCustomTransactions = 50
 
-    static let chargeSuggestions: [OnboardingTransaction] = [
-        OnboardingTransaction(amount: 600, type: .expense, name: "Courses / alimentation"),
-        OnboardingTransaction(amount: 150, type: .expense, name: "Restaurants & sorties"),
-        OnboardingTransaction(amount: 100, type: .expense, name: "Loisirs & sport"),
-    ]
-
-    static let savingSuggestions: [OnboardingTransaction] = [
-        OnboardingTransaction(amount: 500, type: .saving, name: "Épargne"),
-        OnboardingTransaction(amount: 587, type: .saving, name: "3ème pilier"),
-    ]
-
-    static let suggestions: [OnboardingTransaction] = chargeSuggestions + savingSuggestions
-
     func isSuggestionSelected(_ suggestion: OnboardingTransaction) -> Bool {
-        customTransactions.contains {
-            $0.name == suggestion.name && $0.type == suggestion.type
-        }
+        customTransactions.contains { $0.id == suggestion.id }
     }
 
     func toggleSuggestion(_ suggestion: OnboardingTransaction) {
-        if let index = customTransactions.firstIndex(where: {
-            $0.name == suggestion.name && $0.type == suggestion.type
-        }) {
+        if let index = customTransactions.firstIndex(where: { $0.id == suggestion.id }) {
             customTransactions.remove(at: index)
+            captureSuggestionToggled(suggestion, selected: false)
         } else {
             guard customTransactions.count < Self.maxCustomTransactions else { return }
             customTransactions.append(suggestion)
+            captureSuggestionToggled(suggestion, selected: true)
         }
     }
-
-    // MARK: - Custom Transactions
 
     func addCustomTransaction(_ tx: OnboardingTransaction) {
         guard customTransactions.count < Self.maxCustomTransactions else { return }
         customTransactions.append(tx)
+        captureCustomTransactionAdded(tx)
     }
 
     func removeCustomTransaction(at index: Int) {
         guard customTransactions.indices.contains(index) else { return }
-        customTransactions.remove(at: index)
+        let removed = customTransactions.remove(at: index)
+        captureCustomTransactionRemoved(removed)
     }
 
     func updateCustomTransactionAmount(at index: Int, amount: Decimal) {
@@ -419,4 +421,6 @@ final class OnboardingState {
     }
 }
 
-// Persistence is implemented in OnboardingState+Persistence.swift
+// Suggestions, analytics helpers, and persistence live in dedicated extension files
+// (`OnboardingState+Suggestions.swift`, `OnboardingState+Persistence.swift`) to keep
+// this file focused on navigation, validation, and store-shape.

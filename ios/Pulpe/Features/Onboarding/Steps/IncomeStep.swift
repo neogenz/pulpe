@@ -51,13 +51,13 @@ struct IncomeStep: View {
             }
         )
         .sheet(isPresented: $showAddIncome) {
-            AddCustomExpenseSheet(defaultKind: .income, availableKinds: [.income]) { tx in
+            AddCustomExpenseSheet(kind: .income) { tx in
                 state.addCustomTransaction(tx)
             }
             .standardSheetPresentation()
         }
         .sheet(item: $editingTransaction) { tx in
-            AddCustomExpenseSheet(editing: tx, availableKinds: [.income]) { updated in
+            AddCustomExpenseSheet(editing: tx) { updated in
                 state.replaceCustomTransaction(id: tx.id, with: updated)
             }
             .standardSheetPresentation()
