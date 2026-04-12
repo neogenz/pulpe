@@ -1,4 +1,5 @@
 import Foundation
+import OSLog
 
 // MARK: - Persistence
 
@@ -27,8 +28,11 @@ extension OnboardingState {
             isEmailRegistered: !isSocialAuth && isAuthenticated ? true : nil
         )
 
-        if let encoded = try? JSONEncoder().encode(data) {
+        do {
+            let encoded = try JSONEncoder().encode(data)
             UserDefaults.standard.set(encoded, forKey: Self.storageKey)
+        } catch {
+            Logger.app.error("Onboarding draft save failed: \(error.localizedDescription, privacy: .public)")
         }
     }
 
@@ -81,6 +85,13 @@ extension OnboardingState {
 
 // MARK: - Storage Data
 
+// Draft onboarding values live in `UserDefaults.standard` as plaintext JSON.
+// No `EncryptionService` wrap: the user has no PIN yet, so no DEK exists to derive a key from.
+// The data window is bounded — cleared on completion, abandon, and session reset.
+// Keys affected: `monthlyIncome`, `housingCosts`, `healthInsurance`, `phonePlan`,
+// `transportCosts`, `leasingCredit`, and per-transaction `amount`.
+// Threat model: physical device access + jailbreak can read self-reported draft estimates.
+// If this window needs hardening later, migrate the blob to Keychain (`kSecAttrAccessibleWhenUnlockedThisDeviceOnly`).
 private struct OnboardingStorageData: Codable {
     let firstName: String
     let currentStep: String
