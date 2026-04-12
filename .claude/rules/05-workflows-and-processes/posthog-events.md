@@ -145,8 +145,9 @@ captureEvent('budget_created', {
 ## Rules
 
 1. Always `snake_case`
-2. Format: `object_action` (noun + verb past tense — Pulpe convention; PostHog's own docs suggest present tense but we kept past tense for consistency across the existing catalog)
+2. Format: `object_action` in past tense (`signup_completed`, `budget_created`, `welcome_screen_viewed`). This follows the [Segment Tracking Plan spec](https://segment.com/docs/connections/spec/semantic/) used by Mixpanel, Amplitude, and PostHog's own SDK examples (`user_signed_up`). Events represent things that *already happened*, so past tense reads naturally. PostHog's best-practices page contradicts itself on tense — ignore it, trust the examples.
 3. Be specific: `budget_created` not `created`
-4. Use `_started`, `_completed`, `_cancelled`, `_abandoned`, `_resumed` for flows
+4. Flow markers: `_started`, `_completed`, `_cancelled`, `_abandoned`, `_resumed`, `_failed`
 5. Event names are static strings — never interpolated (`page_viewed_${name}` is forbidden; use a fixed name + a property)
 6. Keep the iOS and web funnels in sync whenever possible so cross-platform insights stay comparable
+7. Properties also use `snake_case`. Value spaces are documented in the catalog above (e.g. `method` is always `email | apple | google | biometric`)
