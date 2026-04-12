@@ -4,31 +4,17 @@ struct RegistrationStep: View {
     @Bindable var state: OnboardingState
 
     @State private var password = ""
-    @State private var passwordConfirmation = ""
     @State private var showPassword = false
-    @State private var showPasswordConfirmation = false
-    @State private var confirmFieldBlurred = false
     @FocusState private var focusedField: Field?
 
     private enum Field: Hashable {
-        case email, password, passwordConfirmation
+        case email, password
     }
 
     private var passwordValidator: PasswordValidator { PasswordValidator(password: password) }
 
-    private var isPasswordConfirmed: Bool {
-        PasswordValidator.isConfirmed(password: password, confirmation: passwordConfirmation)
-    }
-
-    /// Only show confirmation error after the user has had a fair shot:
-    /// either they've left the field, or they've typed enough characters.
-    private var shouldShowConfirmError: Bool {
-        !passwordConfirmation.isEmpty && !isPasswordConfirmed &&
-            (confirmFieldBlurred || passwordConfirmation.count >= password.count)
-    }
-
     private var canSubmit: Bool {
-        state.canSubmitRegistration && passwordValidator.isValid && isPasswordConfirmed
+        state.canSubmitRegistration && passwordValidator.isValid
     }
 
     var body: some View {
@@ -41,8 +27,7 @@ struct RegistrationStep: View {
                 VStack(spacing: DesignTokens.Spacing.xxl) {
                     emailSection
                     passwordSection
-                    confirmPasswordSection
-                    termsCheckbox
+                    consentText
                 }
             }
         )
@@ -100,85 +85,26 @@ extension RegistrationStep {
         }
     }
 
-    private var confirmPasswordSection: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-            Text("Confirmer le mot de passe")
-                .font(PulpeTypography.inputLabel)
-                .foregroundStyle(Color.textPrimaryOnboarding)
-
-            AuthSecureField(
-                prompt: "••••••••",
-                text: $passwordConfirmation,
-                isVisible: $showPasswordConfirmation,
-                systemImage: "lock",
-                isFocused: focusedField == .passwordConfirmation,
-                hasError: shouldShowConfirmError
-            )
-            .textContentType(.newPassword)
-            .focused($focusedField, equals: .passwordConfirmation)
-            .accessibilityIdentifier("registrationPasswordConfirmation")
-            .accessibilityLabel("Confirmation du mot de passe")
-            .accessibilityHint("Confirme ton mot de passe")
-            .onChange(of: focusedField) { _, newField in
-                if newField != .passwordConfirmation && !passwordConfirmation.isEmpty {
-                    confirmFieldBlurred = true
-                }
-            }
-
-            if !passwordConfirmation.isEmpty &&
-                (confirmFieldBlurred || passwordConfirmation.count >= password.count) {
-                PasswordMatchRow(matches: isPasswordConfirmed)
-            }
-        }
+    private var consentText: some View {
+        Text(Self.consentMarkdown)
+            .font(PulpeTypography.caption2)
+            .foregroundStyle(Color.textTertiaryOnboarding)
+            .multilineTextAlignment(.center)
+            .frame(maxWidth: .infinity, alignment: .center)
+            .tint(Color.pulpePrimary)
     }
 
-    private var termsCheckbox: some View {
-        Button {
-            state.acceptTerms.toggle()
-        } label: {
-            HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
-                ZStack {
-                    RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.sm, style: .continuous)
-                        .strokeBorder(
-                            state.acceptTerms ? Color.pulpePrimary :
-                                Color.textPrimaryOnboarding.opacity(0.4),
-                            lineWidth: DesignTokens.BorderWidth.thick
-                        )
-                        .frame(width: DesignTokens.Checkbox.size, height: DesignTokens.Checkbox.size)
-                        .background {
-                            if !state.acceptTerms {
-                                RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.sm, style: .continuous)
-                                    .fill(Color.authInputBackground)
-                            }
-                        }
-
-                    if state.acceptTerms {
-                        Image(systemName: "checkmark")
-                            .font(.caption.weight(.bold))
-                            .foregroundStyle(Color.pulpePrimary)
-                            .transition(.scale.combined(with: .opacity))
-                    }
-                }
-                .animation(.spring(response: 0.3, dampingFraction: 0.6), value: state.acceptTerms)
-
-                Text(Self.termsMarkdown)
-                    .font(PulpeTypography.footnote)
-                    .foregroundStyle(Color.textPrimaryOnboarding)
-                    .multilineTextAlignment(.leading)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            }
-        }
-        .buttonStyle(.plain)
-    }
-
-    private static let termsMarkdown = AppURLs.legalDisclosure(
-        prefix: "J'accepte les",
-        connector: "la"
+    private static let consentMarkdown = AppURLs.legalDisclosure(
+        prefix: "En créant ton compte, tu acceptes nos",
+        connector: "notre",
+        suffix: "."
     )
 
     private func submitRegistration() async {
         state.isLoading = true
         state.error = nil
+        // Implicit consent — user has read the disclosure and tapped the submit button.
+        state.acceptTerms = true
 
         do {
             let authService = AuthService.shared

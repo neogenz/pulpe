@@ -181,11 +181,10 @@ struct OnboardingStateTests {
     // MARK: - canSubmitRegistration
 
     @Test
-    func canSubmitRegistration_allValid_returnsTrue() {
+    func canSubmitRegistration_validEmail_returnsTrue() {
         let state = makeSUT()
         defer { OnboardingState.clearPersistedData() }
         state.email = "max@example.com"
-        state.acceptTerms = true
         #expect(state.canSubmitRegistration)
     }
 
@@ -194,16 +193,6 @@ struct OnboardingStateTests {
         let state = makeSUT()
         defer { OnboardingState.clearPersistedData() }
         state.email = "not-valid"
-        state.acceptTerms = true
-        #expect(!state.canSubmitRegistration)
-    }
-
-    @Test
-    func canSubmitRegistration_termsNotAccepted_returnsFalse() {
-        let state = makeSUT()
-        defer { OnboardingState.clearPersistedData() }
-        state.email = "max@example.com"
-        state.acceptTerms = false
         #expect(!state.canSubmitRegistration)
     }
 
@@ -212,7 +201,6 @@ struct OnboardingStateTests {
         let state = makeSUT()
         defer { OnboardingState.clearPersistedData() }
         state.email = "max@example.com"
-        state.acceptTerms = true
         state.isLoading = true
         #expect(!state.canSubmitRegistration)
     }

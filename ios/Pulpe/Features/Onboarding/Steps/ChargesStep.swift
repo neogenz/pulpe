@@ -26,7 +26,7 @@ struct ChargesStep: View {
 
                     OnboardingSectionHeader(
                         title: "Assurance & Abonnements",
-                        icon: "heart.text.square.fill",
+                        icon: "shield.fill",
                         isExpanded: $isInsuranceExpanded
                     ) {
                         CurrencyField(value: $state.healthInsurance, hint: "400", label: "Assurance maladie")

@@ -51,7 +51,7 @@ struct BudgetPreviewStep: View {
                 .foregroundStyle(heroAccentColor)
                 .contentTransition(.numericText())
 
-            Text(isDeficit ? "il te manque" : "disponible à dépenser")
+            Text(isDeficit ? "à équilibrer" : "disponible à dépenser")
                 .font(PulpeTypography.onboardingSubtitle)
                 .foregroundStyle(Color.textSecondaryOnboarding)
         }
@@ -59,8 +59,8 @@ struct BudgetPreviewStep: View {
         .accessibilityElement(children: .combine)
         .accessibilityLabel(
             amountsHidden
-                ? "\(isDeficit ? "Il te manque" : "Disponible à dépenser"): montant masqué"
-                : "\(isDeficit ? "Il te manque" : "Disponible à dépenser"): \(heroAmountText)"
+                ? "\(isDeficit ? "À équilibrer" : "Disponible à dépenser"): montant masqué"
+                : "\(isDeficit ? "À équilibrer" : "Disponible à dépenser"): \(heroAmountText)"
         )
         .opacity(showHero ? 1 : 0)
         .offset(y: showHero ? 0 : 10)
@@ -135,7 +135,7 @@ struct BudgetPreviewStep: View {
 
             if savingsTotal > 0 {
                 breakdownRow(
-                    icon: "arrow.up.circle.fill",
+                    icon: "building.columns.fill",
                     label: "Épargne prévue",
                     value: "-\(savingsTotal.asCompactCHF)",
                     color: .financialSavings,
@@ -179,11 +179,13 @@ struct BudgetPreviewStep: View {
 
     private var encouragingMessage: some View {
         VStack(spacing: DesignTokens.Spacing.xs) {
-            Text(isDeficit ? "C'est un bon point de départ." : "Ton budget est prêt !")
+            Text(isDeficit ? "Tu as une vision claire." : "Ton budget est prêt !")
                 .font(PulpeTypography.onboardingSubtitle)
                 .foregroundStyle(Color.textTertiaryOnboarding)
 
-            Text("Tu pourras \(isDeficit ? "ajuster" : "affiner") tout ça plus tard.")
+            Text(isDeficit
+                ? "On va affiner ensemble pour équilibrer tout ça."
+                : "Tu pourras affiner tout ça plus tard.")
                 .font(PulpeTypography.footnote)
                 .foregroundStyle(Color.textTertiaryOnboarding)
         }

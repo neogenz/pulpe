@@ -28,7 +28,7 @@ enum OnboardingStep: String, CaseIterable, Identifiable {
         case .welcome: "Bienvenue"
         case .firstName: "Comment tu t'appelles ?"
         case .income: "Tes revenus"
-        case .charges: "Tes charges fixes"
+        case .charges: "Tes dépenses"
         case .savings: "Ton épargne"
         case .budgetPreview: "Ton budget"
         case .registration: "Crée ton compte"
@@ -43,7 +43,7 @@ enum OnboardingStep: String, CaseIterable, Identifiable {
         case .charges: "Renseigne ce que tu connais — le reste peut attendre"
         case .savings: "Ce que tu mets de côté chaque mois"
         case .budgetPreview: "Voici ce que ça donne"
-        case .registration: "En quelques secondes"
+        case .registration: "Sécurise ton accès"
         }
     }
 

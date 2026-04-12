@@ -24,11 +24,12 @@ struct IncomeStep: View {
                             label: "Revenu mensuel net"
                         )
 
-                        HStack(spacing: DesignTokens.Spacing.xs) {
+                        HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.sm) {
                             Image(systemName: "lock.fill")
                                 .font(PulpeTypography.caption2)
-                            Text("Tes données sont chiffrées et privées")
+                            Text("Personne d'autre ne voit ces montants — pas même moi qui développe Pulpe.")
                                 .font(PulpeTypography.caption)
+                                .fixedSize(horizontal: false, vertical: true)
                         }
                         .foregroundStyle(Color.textTertiaryOnboarding)
                     }
@@ -67,7 +68,7 @@ struct IncomeStep: View {
     // MARK: - Custom Incomes
 
     private var customIncomesSection: some View {
-        OnboardingSectionHeader(title: "Revenus supplémentaires", icon: "plus.circle.fill") {
+        OnboardingSectionHeader(title: "Revenus supplémentaires", icon: "arrow.down.circle.fill") {
             ForEach(customIncomes) { tx in
                 if tx.id != customIncomes.first?.id {
                     Divider().opacity(DesignTokens.Opacity.accent)

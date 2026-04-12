@@ -102,7 +102,7 @@ final class OnboardingState {
     }
 
     var canSubmitRegistration: Bool {
-        isEmailValid && acceptTerms && !isLoading
+        isEmailValid && !isLoading
     }
 
     /// firstName is hidden for social users with a provider name (Apple App Store rejects asking).

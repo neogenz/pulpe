@@ -99,6 +99,14 @@ struct WelcomeStep: View {
                     .textLinkButtonStyle()
                     .frame(minHeight: DesignTokens.TapTarget.minimum)
                     .contentShape(Rectangle())
+
+                    // Implicit consent — covers all auth methods (foundation of the stack)
+                    Text(Self.consentMarkdown)
+                        .font(PulpeTypography.caption2)
+                        .foregroundStyle(Color.textTertiaryOnboarding)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, DesignTokens.Spacing.md)
+                        .tint(Color.pulpePrimary)
                 }
                 .padding(.horizontal, DesignTokens.Spacing.xxl)
                 .padding(.bottom, DesignTokens.Spacing.xxxl)
