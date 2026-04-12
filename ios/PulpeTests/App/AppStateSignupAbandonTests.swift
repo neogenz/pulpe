@@ -213,6 +213,32 @@ struct AppStateSignupAbandonTests {
         #expect(sut.pendingOnboardingUser == nil)
     }
 
+    /// `OnboardingFlow` keeps its `@State` across re-renders unless the view
+    /// itself is re-instantiated — SwiftUI unit tests can't observe view
+    /// lifecycle, so we assert the proxy: `onboardingSessionID` changes on
+    /// abandon. `PulpeApp` uses it as `.id(...)` to force a fresh init,
+    /// which reads the now-empty UserDefaults and lands back on `.welcome`.
+    @Test("abandonInProgressSignup regenerates onboardingSessionID to force OnboardingFlow re-init")
+    func abandonInProgressSignup_regeneratesSessionID() async {
+        let sut = AppState(
+            keychainManager: MockKeychainStore(),
+            postAuthResolver: MockPostAuthResolver(destination: .needsPinSetup),
+            biometricPreferenceStore: AppStateTestFactory.biometricDisabledStore(),
+            biometricOptOutStore: AppStateTestFactory.cleanOptOutStore
+        )
+        let originalSessionID = sut.onboardingSessionID
+        sut.pendingOnboardingUser = .email(UserInfo(
+            id: "stuck",
+            email: "stuck@test.com",
+            firstName: nil,
+            provider: .email
+        ))
+
+        await sut.abandonInProgressSignup()
+
+        #expect(sut.onboardingSessionID != originalSessionID)
+    }
+
     // MARK: - OnboardingState.configureEmailUser preserves persistence
 
     @Test("configureEmailUser does NOT clear persisted onboarding data")

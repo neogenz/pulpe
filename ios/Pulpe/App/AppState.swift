@@ -82,6 +82,11 @@ final class AppState {
     /// (social: fresh slate) or restored (email: resume at persisted step).
     var pendingOnboardingUser: PendingOnboardingUser?
 
+    /// Identity token for the current onboarding session. Regenerated on abandon
+    /// to force `OnboardingFlow` to re-instantiate from scratch — SwiftUI reuses
+    /// the view otherwise, keeping stale `@State` (e.g. `currentStep`) in memory.
+    var onboardingSessionID = UUID()
+
     var pendingOnboardingData: BudgetTemplateCreateFromOnboarding? {
         get { onboardingBootstrapper.pendingOnboardingData }
         set { onboardingBootstrapper.setPendingData(newValue) }

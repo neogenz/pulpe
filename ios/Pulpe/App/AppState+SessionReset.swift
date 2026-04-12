@@ -189,6 +189,9 @@ extension AppState {
         authDebug("AUTH_ABANDON", "begin")
         pendingOnboardingUser = nil
         await clearLocalSignupState()
+        // Force `OnboardingFlow` to re-instantiate so its `@State` resets to
+        // a fresh `OnboardingState` (reads the now-empty UserDefaults → welcome).
+        onboardingSessionID = UUID()
         authDebug("AUTH_ABANDON", "complete")
     }
 

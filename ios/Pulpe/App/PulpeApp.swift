@@ -240,6 +240,7 @@ struct RootView: View {
                 )
             } else {
                 OnboardingFlow(pendingUser: appState.pendingOnboardingUser)
+                    .id(appState.onboardingSessionID)
             }
 
         case .pinSetup:
