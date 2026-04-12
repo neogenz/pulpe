@@ -11,6 +11,10 @@ enum AnalyticsEvent: String, CaseIterable {
     case signupCompleted = "signup_completed"
     case onboardingStepCompleted = "onboarding_step_completed"
     case onboardingAbandoned = "onboarding_abandoned"
+    /// Fired when a user re-enters onboarding mid-flow after killing/backgrounding the app.
+    /// Source is either a pending user slot (cold-start recovery router) or the legacy
+    /// `wasEmailRegistered` session fallback.
+    case onboardingResumed = "onboarding_resumed"
 
     // MARK: - Auth
     case loginCompleted = "login_completed"
