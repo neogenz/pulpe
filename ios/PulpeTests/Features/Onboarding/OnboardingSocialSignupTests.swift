@@ -15,18 +15,18 @@ struct OnboardingSocialSignupTests {
     // MARK: - Social Signup
 
     @Test
-    func isSocialSignup_falseByDefault() {
+    func isSocialAuth_falseByDefault() {
         let state = makeSUT()
         defer { OnboardingState.clearPersistedData() }
-        #expect(!state.isSocialSignup)
+        #expect(!state.isSocialAuth)
     }
 
     @Test
-    func isSocialSignup_trueWhenSocialUserSet() {
+    func isSocialAuth_trueWhenSocialUserSet() {
         let state = makeSUT()
         defer { OnboardingState.clearPersistedData() }
         state.configureSocialUser(UserInfo(id: "social-1", email: "social@pulpe.app", firstName: "Max"))
-        #expect(state.isSocialSignup)
+        #expect(state.isSocialAuth)
     }
 
     @Test
@@ -119,7 +119,7 @@ struct OnboardingSocialSignupTests {
         let state = makeSUT()
         defer { OnboardingState.clearPersistedData() }
         state.configureSocialUser(UserInfo(id: "apple-1", email: "apple@relay.appleid.com", firstName: "Marie"))
-        #expect(state.isSocialSignup)
+        #expect(state.isSocialAuth)
         #expect(state.isFirstNameValid)
         #expect(state.firstName == "Marie")
     }
@@ -129,7 +129,7 @@ struct OnboardingSocialSignupTests {
         let state = makeSUT()
         defer { OnboardingState.clearPersistedData() }
         state.configureSocialUser(UserInfo(id: "apple-2", email: "apple@relay.appleid.com", firstName: nil))
-        #expect(state.isSocialSignup)
+        #expect(state.isSocialAuth)
         #expect(!state.isFirstNameValid)
     }
 
@@ -147,7 +147,7 @@ struct OnboardingSocialSignupTests {
         let state = makeSUT()
         defer { OnboardingState.clearPersistedData() }
         state.configureSocialUser(UserInfo(id: "apple-3", email: "apple@relay.appleid.com", firstName: ""))
-        #expect(state.isSocialSignup)
+        #expect(state.isSocialAuth)
         #expect(!state.isFirstNameValid)
     }
 

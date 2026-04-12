@@ -27,7 +27,6 @@ final class OnboardingState {
 
     /// True only for social provider auth (Apple/Google) — drives the firstName/registration skips.
     private(set) var isSocialAuth: Bool = false
-    var isSocialSignup: Bool { isSocialAuth }
 
     /// True when the social provider supplied a valid first name at auth time.
     /// Set once in `configureSocialUser` so the visible step count doesn't shift
@@ -212,7 +211,6 @@ final class OnboardingState {
         guard let currentIndex = OnboardingStep.allCases.firstIndex(of: currentStep) else { return }
 
         // BudgetPreview is the finale — fire its completion event then trigger readyToComplete.
-        // This was previously skipped due to the early return, leaving the final step untracked.
         guard let next = nextVisibleStep(after: currentIndex) else {
             if currentStep == .budgetPreview {
                 captureStepCompleted(currentStep)

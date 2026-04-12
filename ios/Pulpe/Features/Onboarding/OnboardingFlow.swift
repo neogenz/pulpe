@@ -8,24 +8,26 @@ struct OnboardingFlow: View {
     @Environment(\.scenePhase) private var scenePhase
     @State private var state: OnboardingState
     @State private var showExitConfirmation = false
+    @State private var hasEmittedResumed = false
 
-    private let hasPendingSocialUser: Bool
-    private let hasPendingEmailUser: Bool
+    private let pendingUser: PendingOnboardingUser?
 
-    init(pendingSocialUser: UserInfo? = nil, pendingEmailUser: UserInfo? = nil) {
+    init(pendingUser: PendingOnboardingUser? = nil) {
         let initial = OnboardingState()
-        if let user = pendingSocialUser {
+        switch pendingUser {
+        case .social(let user):
             initial.configureSocialUser(user)
             // Skip welcome and any steps the social user doesn't need (firstName if pre-filled).
             initial.startAfterWelcome()
-        } else if let user = pendingEmailUser {
+        case .email(let user):
             // Email recovery: persisted OnboardingState was already loaded by `init()`.
             // DO NOT call startAfterWelcome — currentStep from UserDefaults is what we want.
             initial.configureEmailUser(user)
+        case .none:
+            break
         }
         _state = State(initialValue: initial)
-        hasPendingSocialUser = pendingSocialUser != nil
-        hasPendingEmailUser = pendingEmailUser != nil
+        self.pendingUser = pendingUser
     }
 
     var body: some View {
@@ -72,12 +74,12 @@ struct OnboardingFlow: View {
                 Button("Rester", role: .cancel) { }
                 if state.isAuthenticated {
                     Button("Recommencer", role: .destructive) {
-                        captureAbandoned(exitMethod: "restart_button")
+                        captureAbandoned(exitMethod: .restartButton)
                         Task { await appState.abandonInProgressSignup() }
                     }
                 } else {
                     Button("Quitter", role: .destructive) {
-                        captureAbandoned(exitMethod: "quit_button")
+                        captureAbandoned(exitMethod: .quitButton)
                         state.previousStep()
                     }
                 }
@@ -94,7 +96,7 @@ struct OnboardingFlow: View {
                    !state.hasCompleted,
                    !state.isSubmitting,
                    !state.hasAbandoned {
-                    captureAbandoned(exitMethod: "background")
+                    captureAbandoned(exitMethod: .background)
                 }
             }
             .onChange(of: state.readyToComplete) { _, ready in
@@ -102,26 +104,19 @@ struct OnboardingFlow: View {
                 Task { await finishOnboarding(user: user) }
             }
             .task {
-                // Clear consumed pendingSocialUser / pendingEmailUser from AppState.
-                // The social and email branches each emit onboarding_resumed with the
-                // provider-specific method so PostHog funnels can measure "killed and
-                // returned" cohorts vs. fresh starts.
-                if hasPendingSocialUser {
-                    appState.pendingSocialUser = nil
-                    captureResumed(method: "social", source: "pending_user")
+                // Consume the pending user from AppState and emit onboarding_resumed.
+                // Idempotent via `hasEmittedResumed` — `.task` can re-fire if the view
+                // leaves and re-enters the hierarchy (scene phases, navigation).
+                if let pendingUser {
+                    appState.pendingOnboardingUser = nil
+                    emitResumedIfNeeded(method: pendingUser.resumeMethod, source: .pendingUser)
                 }
-                if hasPendingEmailUser {
-                    appState.pendingEmailUser = nil
-                    captureResumed(method: "email", source: "pending_user")
-                }
-                // Cold-start recovery: if user registered via email but app was killed,
-                // recover user from Supabase session. Most cases are now routed via
-                // `pendingEmailUser` in `AppState.applyPostAuthDestination`, but this path
-                // remains as a fallback for sessions whose provider metadata is unknown.
+                // Legacy fallback for sessions without provider metadata — will retire
+                // once all pre-provider-routing sessions expire.
                 if state.wasEmailRegistered && !state.isAuthenticated {
                     if let user = try? await AuthService.shared.validateSession() {
                         state.configureEmailUser(user)
-                        captureResumed(method: "email", source: "session_fallback")
+                        emitResumedIfNeeded(method: .email, source: .sessionFallback)
                     } else {
                         state.currentStep = .welcome
                     }
@@ -188,31 +183,48 @@ struct OnboardingFlow: View {
 
     // MARK: - Analytics
 
-    /// Fire `onboarding_abandoned` with consistent properties for drop-off funnels.
-    /// Idempotent via `state.hasAbandoned` — multiple triggers (background then tap,
-    /// or double-tap on "Recommencer") only emit the event once.
-    private func captureAbandoned(exitMethod: String) {
+    /// Typed exit trigger for `onboarding_abandoned` events.
+    private enum ExitMethod: String {
+        case background
+        case quitButton = "quit_button"
+        case restartButton = "restart_button"
+    }
+
+    /// Typed `onboarding_resumed` source for disambiguating the recovery path.
+    private enum ResumeSource: String {
+        case pendingUser = "pending_user"
+        case sessionFallback = "session_fallback"
+    }
+
+    /// Fire `onboarding_abandoned`. Idempotent via `state.hasAbandoned`.
+    private func captureAbandoned(exitMethod: ExitMethod) {
         guard !state.hasAbandoned else { return }
         state.hasAbandoned = true
         AnalyticsService.shared.capture(
             .onboardingAbandoned,
             properties: [
                 "last_step": state.currentStep.analyticsName,
-                "exit_method": exitMethod,
+                "exit_method": exitMethod.rawValue,
                 "was_authenticated": state.isAuthenticated,
                 "auth_method": state.authMethodProperty
             ]
         )
     }
 
-    /// Fire `onboarding_resumed` for a user who re-enters the flow mid-way after
-    /// killing/backgrounding the app. Enables funnel analysis of the "returned" cohort.
-    private func captureResumed(method: String, source: String) {
+    /// Fire `onboarding_resumed` for a user who re-enters the flow mid-way.
+    /// Idempotent via `hasEmittedResumed` — `.task` can fire multiple times if
+    /// the view leaves and re-enters the hierarchy.
+    private func emitResumedIfNeeded(
+        method: PendingOnboardingUser.ResumeMethod,
+        source: ResumeSource
+    ) {
+        guard !hasEmittedResumed else { return }
+        hasEmittedResumed = true
         AnalyticsService.shared.capture(
             .onboardingResumed,
             properties: [
-                "method": method,
-                "source": source,
+                "method": method.rawValue,
+                "source": source.rawValue,
                 "resumed_at_step": state.currentStep.analyticsName
             ]
         )
@@ -457,6 +469,6 @@ private struct ScrollMetrics: Equatable {
 }
 
 #Preview {
-    OnboardingFlow(pendingSocialUser: nil)
+    OnboardingFlow()
         .environment(AppState())
 }

@@ -119,12 +119,13 @@ struct WelcomeStep: View {
             if reduceMotion {
                 isAppeared = true
             } else {
+                // Start breathing glow when the entrance spring lands — tied to the
+                // actual animation lifecycle, not a magic delay.
                 withAnimation(DesignTokens.Animation.entranceSpring.delay(0.1)) {
                     isAppeared = true
+                } completion: {
+                    isBreathing = true
                 }
-                // Start the breathing glow after the entrance lands.
-                try? await Task.sleep(for: .milliseconds(700))
-                isBreathing = true
             }
         }
     }

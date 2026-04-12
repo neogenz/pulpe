@@ -239,10 +239,7 @@ struct RootView: View {
                     } : nil
                 )
             } else {
-                OnboardingFlow(
-                    pendingSocialUser: appState.pendingSocialUser,
-                    pendingEmailUser: appState.pendingEmailUser
-                )
+                OnboardingFlow(pendingUser: appState.pendingOnboardingUser)
             }
 
         case .pinSetup:

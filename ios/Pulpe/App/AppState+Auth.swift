@@ -90,15 +90,11 @@ extension AppState {
         }
         authState = .loading
 
-        if shouldRedirectToOnboarding(for: destination) {
+        if shouldRedirectToOnboarding(for: destination), let user = currentUser {
             recoveryFlowCoordinator.reset()
             // Email users mid-onboarding resume via `configureEmailUser` (keeps persisted data).
-            // Social users (or any non-email provider) go through the existing path.
-            if currentUser?.provider == .email {
-                redirectToOnboardingForEmailUser()
-            } else {
-                redirectToOnboardingForSocialUser()
-            }
+            // Social users (or any non-email provider) go through the social path (wipes storage).
+            redirectToOnboarding(user.provider == .email ? .email(user) : .social(user))
             return
         }
 
@@ -201,22 +197,12 @@ extension AppState {
             && !hasReturningUser
     }
 
-    private func redirectToOnboardingForSocialUser() {
-        authDebug("AUTH_POST_AUTH_DEST", "needsPinSetup → redirecting to onboarding (no pending data)")
-        pendingSocialUser = currentUser
-        pendingEmailUser = nil
-        hasReturningUser = false
-        returningUserFlagLoaded = true
-        authState = .unauthenticated
-    }
-
-    /// Mid-onboarding email user recovery. Unlike the social path, this preserves
-    /// the persisted `OnboardingState` (firstName, income, customTransactions, etc.)
-    /// so the user resumes exactly where they left off.
-    private func redirectToOnboardingForEmailUser() {
-        authDebug("AUTH_POST_AUTH_DEST", "needsPinSetup → redirecting to onboarding (email mid-flow)")
-        pendingEmailUser = currentUser
-        pendingSocialUser = nil
+    /// Routes a mid-onboarding user back through a fresh `OnboardingFlow`.
+    /// `.email` preserves the persisted draft; `.social` will have its storage wiped
+    /// by `configureSocialUser` in the new flow.
+    private func redirectToOnboarding(_ pending: PendingOnboardingUser) {
+        authDebug("AUTH_POST_AUTH_DEST", "needsPinSetup → redirecting to onboarding (\(pending))")
+        pendingOnboardingUser = pending
         hasReturningUser = false
         returningUserFlagLoaded = true
         authState = .unauthenticated
@@ -270,7 +256,7 @@ extension AppState {
         authDebug("AUTH_SIGNUP", "entering signup flow")
         OnboardingState.clearPersistedData()
         onboardingBootstrapper.clearPendingData()
-        pendingSocialUser = nil
+        pendingOnboardingUser = nil
         hasReturningUser = false
         returningUserFlagLoaded = true
     }

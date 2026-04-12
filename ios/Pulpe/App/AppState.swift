@@ -77,15 +77,10 @@ final class AppState {
 
     var hasReturningUser: Bool = false
 
-    /// Social user awaiting onboarding. Set when a social login results in
-    /// `.needsPinSetup` but no onboarding data was collected yet.
-    var pendingSocialUser: UserInfo?
-
-    /// Email user awaiting onboarding resume. Set when an email signup completed
-    /// mid-flow but `completeOnboarding` was never reached (cold-start recovery).
-    /// Parallel to `pendingSocialUser` but routes to `configureEmailUser` which
-    /// preserves the persisted onboarding data instead of wiping it.
-    var pendingEmailUser: UserInfo?
+    /// A user whose onboarding was interrupted and needs to resume via a fresh
+    /// `OnboardingFlow`. The case determines whether persisted storage is wiped
+    /// (social: fresh slate) or restored (email: resume at persisted step).
+    var pendingOnboardingUser: PendingOnboardingUser?
 
     var pendingOnboardingData: BudgetTemplateCreateFromOnboarding? {
         get { onboardingBootstrapper.pendingOnboardingData }
@@ -441,4 +436,34 @@ enum BudgetDestination: Hashable {
 
 enum TemplateDestination: Hashable {
     case details(templateId: String)
+}
+
+// MARK: - Pending Onboarding User
+
+/// A user mid-onboarding whose session needs to resume after a cold start
+/// or provider-aware redirect. The case determines recovery behavior:
+/// `.social` starts fresh (clearStorage); `.email` restores the persisted draft.
+enum PendingOnboardingUser: Equatable, Sendable {
+    case email(UserInfo)
+    case social(UserInfo)
+
+    /// Analytics label for the `onboarding_resumed` method property.
+    enum ResumeMethod: String {
+        case email
+        case social
+    }
+
+    var user: UserInfo {
+        switch self {
+        case .email(let user), .social(let user):
+            return user
+        }
+    }
+
+    var resumeMethod: ResumeMethod {
+        switch self {
+        case .email: return .email
+        case .social: return .social
+        }
+    }
 }

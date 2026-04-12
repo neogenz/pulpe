@@ -302,7 +302,7 @@ struct AppStateCharacterizationTests {
         await sut.resolvePostAuth(user: user)
 
         #expect(sut.authState == .unauthenticated)
-        #expect(sut.pendingSocialUser == user)
+        #expect(sut.pendingOnboardingUser == .social(user))
         #expect(sut.hasReturningUser == false)
     }
     @Test("resolvePostAuth needsPinSetup redirects even when hasReturningUser is true (PUL-102 regression guard)")
@@ -314,7 +314,7 @@ struct AppStateCharacterizationTests {
         await sut.resolvePostAuth(user: user)
 
         #expect(sut.authState == .unauthenticated)
-        #expect(sut.pendingSocialUser == user)
+        #expect(sut.pendingOnboardingUser == .social(user))
     }
 
     // MARK: - Section 4: Session Lifecycle Characterization
@@ -458,7 +458,7 @@ struct AppStateCharacterizationTests {
         await sut.resolvePostAuth(user: user)
 
         #expect(sut.authState == .unauthenticated)
-        #expect(sut.pendingSocialUser == user)
+        #expect(sut.pendingOnboardingUser == .social(user))
         #expect(sut.recoveryFlowState == .idle)
     }
     @Test("resolvePostAuth needsPinEntry with returning user proceeds normally (no regression)")
@@ -470,7 +470,7 @@ struct AppStateCharacterizationTests {
         await sut.resolvePostAuth(user: user)
 
         #expect(sut.authState == .needsPinEntry)
-        #expect(sut.pendingSocialUser == nil)
+        #expect(sut.pendingOnboardingUser == nil)
     }
     @Test("resolvePostAuth authenticated with recovery consent shows consent prompt")
     func resolvePostAuth_authenticatedWithRecoveryConsent_showsConsent() async {

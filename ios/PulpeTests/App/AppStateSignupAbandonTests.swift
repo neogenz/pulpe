@@ -6,7 +6,8 @@ import Testing
 ///
 /// Covers three bug fixes:
 /// 1. `AuthProvider.fromSupabase` parses Supabase app_metadata.provider values
-/// 2. `applyPostAuthDestination` routes email users via `pendingEmailUser`, social users via `pendingSocialUser`
+/// 2. `applyPostAuthDestination` routes email users via `.email` pendingOnboardingUser,
+///    social users via `.social` pendingOnboardingUser
 /// 3. `abandonInProgressSignup()` clears all onboarding + session state slots
 @MainActor
 @Suite(.serialized)
@@ -55,8 +56,8 @@ struct AppStateSignupAbandonTests {
 
     // MARK: - Provider-aware routing (the cold-start recovery fix)
 
-    @Test("Email user mid-onboarding routes to pendingEmailUser (not pendingSocialUser)")
-    func applyPostAuthDestination_emailUser_routesToPendingEmail() async {
+    @Test("Email user mid-onboarding routes via .email case")
+    func applyPostAuthDestination_emailUser_routesToEmailCase() async {
         let sut = AppState(
             keychainManager: MockKeychainStore(),
             postAuthResolver: MockPostAuthResolver(destination: .needsPinSetup),
@@ -76,14 +77,13 @@ struct AppStateSignupAbandonTests {
 
         await sut.resolvePostAuth(user: emailUser)
 
-        #expect(sut.pendingEmailUser?.id == "email-user-1")
-        #expect(sut.pendingSocialUser == nil)
+        #expect(sut.pendingOnboardingUser == .email(emailUser))
         #expect(sut.hasReturningUser == false)
         #expect(sut.authState == .unauthenticated)
     }
 
-    @Test("Social (apple) user mid-onboarding routes to pendingSocialUser")
-    func applyPostAuthDestination_appleUser_routesToPendingSocial() async {
+    @Test("Social (apple) user mid-onboarding routes via .social case")
+    func applyPostAuthDestination_appleUser_routesToSocialCase() async {
         let sut = AppState(
             keychainManager: MockKeychainStore(),
             postAuthResolver: MockPostAuthResolver(destination: .needsPinSetup),
@@ -102,14 +102,13 @@ struct AppStateSignupAbandonTests {
 
         await sut.resolvePostAuth(user: appleUser)
 
-        #expect(sut.pendingSocialUser?.id == "apple-user-1")
-        #expect(sut.pendingEmailUser == nil)
+        #expect(sut.pendingOnboardingUser == .social(appleUser))
         #expect(sut.hasReturningUser == false)
         #expect(sut.authState == .unauthenticated)
     }
 
-    @Test("Google user mid-onboarding routes to pendingSocialUser")
-    func applyPostAuthDestination_googleUser_routesToPendingSocial() async {
+    @Test("Google user mid-onboarding routes via .social case")
+    func applyPostAuthDestination_googleUser_routesToSocialCase() async {
         let sut = AppState(
             keychainManager: MockKeychainStore(),
             postAuthResolver: MockPostAuthResolver(destination: .needsPinSetup),
@@ -128,12 +127,11 @@ struct AppStateSignupAbandonTests {
 
         await sut.resolvePostAuth(user: googleUser)
 
-        #expect(sut.pendingSocialUser?.id == "google-user-1")
-        #expect(sut.pendingEmailUser == nil)
+        #expect(sut.pendingOnboardingUser == .social(googleUser))
     }
 
-    @Test("Legacy user with nil provider falls back to pendingSocialUser (safe default)")
-    func applyPostAuthDestination_legacyUser_routesToPendingSocial() async {
+    @Test("Legacy user with nil provider falls back to .social case (safe default)")
+    func applyPostAuthDestination_legacyUser_routesToSocialCase() async {
         let sut = AppState(
             keychainManager: MockKeychainStore(),
             postAuthResolver: MockPostAuthResolver(destination: .needsPinSetup),
@@ -151,13 +149,12 @@ struct AppStateSignupAbandonTests {
         // Falls back to social routing (the existing behavior). Email users
         // without provider metadata are a rare edge case — they still get a
         // working flow via the existing `wasEmailRegistered` recovery in OnboardingFlow.
-        #expect(sut.pendingSocialUser?.id == "legacy")
-        #expect(sut.pendingEmailUser == nil)
+        #expect(sut.pendingOnboardingUser == .social(legacyUser))
     }
 
     // MARK: - abandonInProgressSignup
 
-    @Test("abandonInProgressSignup clears email user pending state")
+    @Test("abandonInProgressSignup clears email pending user and persisted draft")
     func abandonInProgressSignup_clearsEmailUserState() async {
         let sut = AppState(
             keychainManager: MockKeychainStore(lastUsedEmail: "abandoned@test.com"),
@@ -165,15 +162,16 @@ struct AppStateSignupAbandonTests {
             biometricPreferenceStore: AppStateTestFactory.biometricDisabledStore(),
             biometricOptOutStore: AppStateTestFactory.cleanOptOutStore
         )
-        sut.hasReturningUser = true
-        sut.returningUserFlagLoaded = true
-        sut.pendingEmailUser = UserInfo(
+        let stuckUser = UserInfo(
             id: "stuck",
             email: "abandoned@test.com",
             firstName: nil,
             provider: .email
         )
-        sut.currentUser = sut.pendingEmailUser
+        sut.hasReturningUser = true
+        sut.returningUserFlagLoaded = true
+        sut.pendingOnboardingUser = .email(stuckUser)
+        sut.currentUser = stuckUser
 
         // Seed UserDefaults with a partial onboarding state
         OnboardingState.clearPersistedData()
@@ -185,8 +183,7 @@ struct AppStateSignupAbandonTests {
 
         await sut.abandonInProgressSignup()
 
-        #expect(sut.pendingEmailUser == nil)
-        #expect(sut.pendingSocialUser == nil)
+        #expect(sut.pendingOnboardingUser == nil)
         #expect(sut.hasReturningUser == false)
         #expect(sut.currentUser == nil)
 
@@ -196,7 +193,7 @@ struct AppStateSignupAbandonTests {
         #expect(restored.currentStep == .welcome)
     }
 
-    @Test("abandonInProgressSignup also clears pendingSocialUser (social abandon path)")
+    @Test("abandonInProgressSignup clears social pending user (social abandon path)")
     func abandonInProgressSignup_clearsSocialUserState() async {
         let sut = AppState(
             keychainManager: MockKeychainStore(),
@@ -204,17 +201,16 @@ struct AppStateSignupAbandonTests {
             biometricPreferenceStore: AppStateTestFactory.biometricDisabledStore(),
             biometricOptOutStore: AppStateTestFactory.cleanOptOutStore
         )
-        sut.pendingSocialUser = UserInfo(
+        sut.pendingOnboardingUser = .social(UserInfo(
             id: "social",
             email: "user@privaterelay.appleid.com",
             firstName: "Max",
             provider: .apple
-        )
+        ))
 
         await sut.abandonInProgressSignup()
 
-        #expect(sut.pendingSocialUser == nil)
-        #expect(sut.pendingEmailUser == nil)
+        #expect(sut.pendingOnboardingUser == nil)
     }
 
     // MARK: - OnboardingState.configureEmailUser preserves persistence
