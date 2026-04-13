@@ -1,6 +1,18 @@
 import Foundation
 import SwiftUI
 
+struct FixedChargeLine: Identifiable, Sendable {
+    let label: String
+    let amount: Decimal
+    var id: String { label }
+
+    init?(label: String, amount: Decimal?) {
+        guard let amount, amount > 0 else { return nil }
+        self.label = label
+        self.amount = amount
+    }
+}
+
 /// State for the onboarding flow
 @Observable @MainActor
 final class OnboardingState {
@@ -355,15 +367,23 @@ final class OnboardingState {
 
     /// Fixed charges (housing, insurance, etc.) + custom expense-type transactions
     var totalCharges: Decimal {
-        let housing: Decimal = housingCosts ?? 0
-        let health: Decimal = healthInsurance ?? 0
-        let phone: Decimal = phonePlan ?? 0
-        let transport: Decimal = transportCosts ?? 0
-        let leasing: Decimal = leasingCredit ?? 0
+        let fixedTotal = fixedChargeLines.reduce(Decimal.zero) { $0 + $1.amount }
         let customExpenses = customTransactions
             .filter { $0.type == .expense }
             .reduce(Decimal.zero) { $0 + $1.amount }
-        return housing + health + phone + transport + leasing + customExpenses
+        return fixedTotal + customExpenses
+    }
+
+    /// Single source of truth shared with `totalCharges` — keep both in sync when
+    /// adding or removing a fixed-charge field on the state.
+    var fixedChargeLines: [FixedChargeLine] {
+        [
+            FixedChargeLine(label: "Loyer", amount: housingCosts),
+            FixedChargeLine(label: "Assurance maladie", amount: healthInsurance),
+            FixedChargeLine(label: "Forfait téléphone", amount: phonePlan),
+            FixedChargeLine(label: "Transport", amount: transportCosts),
+            FixedChargeLine(label: "Leasing / crédit", amount: leasingCredit),
+        ].compactMap { $0 }
     }
 
     var totalSavings: Decimal {

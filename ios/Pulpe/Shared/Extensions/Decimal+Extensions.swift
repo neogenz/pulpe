@@ -38,6 +38,11 @@ extension Decimal {
         signedFormatted(absoluteValue.asCompactCHF, for: kind)
     }
 
+    /// Format as signed compact currency based on transaction kind — "+1'235 CHF" for income, "-1'235 EUR" for expense/saving
+    func asSignedCompactCurrency(_ currency: SupportedCurrency, for kind: TransactionKind) -> String {
+        signedFormatted(absoluteValue.asCompactCurrency(currency), for: kind)
+    }
+
     /// Format as compact amount only (no currency code, rounded to whole number) — "1'235"
     var asCompactAmount: String {
         let rounded = self.rounded(0, .plain)

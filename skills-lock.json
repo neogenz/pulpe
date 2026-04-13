@@ -241,6 +241,11 @@
       "sourceType": "github",
       "computedHash": "5d59383d4c9cf675e2c4b5fc6ed0130a2c0f23a7f3334d4cc68b7e79998ce7f3"
     },
+    "layout": {
+      "source": "pbakaus/impeccable",
+      "sourceType": "github",
+      "computedHash": "6b5fd49587616ca1e594e9c6b11bc1cef5eb0b2d137c307de54a8a650770f4ce"
+    },
     "mastering-typescript": {
       "source": "spillwavesolutions/mastering-typescript-skill",
       "sourceType": "github",
@@ -304,7 +309,7 @@
     "swiftui-expert-skill": {
       "source": "avdlee/swiftui-agent-skill",
       "sourceType": "github",
-      "computedHash": "6ee49ef533bac7e930efb2e2e5ae61399de9ffb52645df311740cbe6b4108134"
+      "computedHash": "928de140d60315991491c302d337d36155e1b0942b25fbc603dd0052dc535f17"
     },
     "swiftui-performance-audit": {
       "source": "dimillian/skills",
@@ -344,7 +349,7 @@
     "workflow-clean-code-angular": {
       "source": "neogenz/skills",
       "sourceType": "github",
-      "computedHash": "6d1f0d1e3e582fa1ba0d89b54fb7d04422b9ce774356568cef075c1f7b7981f2"
+      "computedHash": "2365016240520bf0d95fd5f6e0e94131fb6b6ab96fb28f6e10fbcfb1244bae9a"
     },
     "ziflux-expert": {
       "source": "neogenz/ziflux",

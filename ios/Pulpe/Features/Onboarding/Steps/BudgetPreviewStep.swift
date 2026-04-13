@@ -1,5 +1,11 @@
 import SwiftUI
 
+private struct PartitionedTransactions {
+    var income: [OnboardingTransaction] = []
+    var expense: [OnboardingTransaction] = []
+    var saving: [OnboardingTransaction] = []
+}
+
 struct BudgetPreviewStep: View {
     @Bindable var state: OnboardingState
 
@@ -40,7 +46,10 @@ struct BudgetPreviewStep: View {
             ZStack {
                 Circle()
                     .fill(heroAccentColor.opacity(DesignTokens.Opacity.badgeBackground))
-                    .frame(width: 56, height: 56)
+                    .frame(
+                        width: DesignTokens.IconSize.heroBadge,
+                        height: DesignTokens.IconSize.heroBadge
+                    )
 
                 Image(systemName: "checkmark.circle.fill")
                     .font(PulpeTypography.previewAmount)
@@ -98,84 +107,69 @@ struct BudgetPreviewStep: View {
     // MARK: - Breakdown Card
 
     private var breakdownCard: some View {
-        VStack(spacing: DesignTokens.Spacing.md) {
+        let custom = customByKind
+        let charges = state.totalCharges
+        let savings = state.totalSavings
+
+        return VStack(spacing: DesignTokens.Spacing.md) {
             BudgetPreviewFlowBars(
-                income: totalIncome,
-                charges: totalCharges,
-                savings: totalSavings,
+                income: state.totalIncome,
+                charges: charges,
+                savings: savings,
                 isRevealed: showCard,
                 currency: state.currency
             )
 
-            Divider()
-                .opacity(0.15)
-                .padding(.horizontal, DesignTokens.Spacing.xs)
+            softDivider
 
             breakdownRow(
                 icon: "arrow.down.circle.fill",
                 label: "Revenus",
-                value: "+\(totalIncome.asCompactCurrency(state.currency))",
-                color: .financialIncome,
+                amount: state.totalIncome,
+                kind: .income,
                 onEdit: { state.jumpToStepForEdit(.income) }
             )
 
-            ForEach(customIncomes) { tx in
-                detailRow(tx, prefix: "+", color: Color.financialIncome)
+            ForEach(custom.income) { tx in
+                detailRow(label: tx.name, amount: tx.amount, kind: .income, color: .financialIncome)
             }
 
-            Divider()
-                .opacity(0.15)
-                .padding(.horizontal, DesignTokens.Spacing.xs)
+            softDivider
 
-            if totalCharges > 0 {
+            if charges > 0 {
                 breakdownRow(
                     icon: "arrow.up.circle.fill",
                     label: "Charges fixes",
-                    value: "-\(totalCharges.asCompactCurrency(state.currency))",
-                    color: .financialExpense,
+                    amount: charges,
+                    kind: .expense,
                     onEdit: { state.jumpToStepForEdit(.charges) }
                 )
 
-                // Hardcoded charges detail
-                if let housing = state.housingCosts, housing > 0 {
-                    namedDetailRow("Loyer", amount: housing)
-                }
-                if let health = state.healthInsurance, health > 0 {
-                    namedDetailRow("Assurance maladie", amount: health)
-                }
-                if let phone = state.phonePlan, phone > 0 {
-                    namedDetailRow("Forfait téléphone", amount: phone)
-                }
-                if let transport = state.transportCosts, transport > 0 {
-                    namedDetailRow("Transport", amount: transport)
-                }
-                if let leasing = state.leasingCredit, leasing > 0 {
-                    namedDetailRow("Leasing / crédit", amount: leasing)
+                ForEach(state.fixedChargeLines) { line in
+                    detailRow(label: line.label, amount: line.amount, kind: .expense)
                 }
 
-                ForEach(customExpenses) { tx in
-                    detailRow(tx)
+                ForEach(custom.expense) { tx in
+                    detailRow(label: tx.name, amount: tx.amount, kind: .expense)
                 }
             }
 
-            if totalSavings > 0 {
+            if savings > 0 {
                 breakdownRow(
                     icon: "building.columns.fill",
                     label: "Épargne prévue",
-                    value: "-\(totalSavings.asCompactCurrency(state.currency))",
-                    color: .financialSavings,
+                    amount: savings,
+                    kind: .saving,
                     onEdit: { state.jumpToStepForEdit(.savings) }
                 )
 
-                ForEach(customSavings) { tx in
-                    detailRow(tx)
+                ForEach(custom.saving) { tx in
+                    detailRow(label: tx.name, amount: tx.amount, kind: .saving)
                 }
             }
 
-            if totalCharges > 0 || totalSavings > 0 {
-                Divider()
-                    .opacity(0.15)
-                    .padding(.horizontal, DesignTokens.Spacing.xs)
+            if charges > 0 || savings > 0 {
+                softDivider
             }
 
             HStack {
@@ -224,32 +218,32 @@ struct BudgetPreviewStep: View {
 
     // MARK: - Computed
 
-    private var customIncomes: [OnboardingTransaction] {
-        state.customTransactions.filter { $0.type == .income }
+    /// Single-pass partition avoids three separate `.filter` traversals during
+    /// the count-up animation re-renders.
+    private var customByKind: PartitionedTransactions {
+        var result = PartitionedTransactions()
+        for tx in state.customTransactions {
+            switch tx.type {
+            case .income: result.income.append(tx)
+            case .expense: result.expense.append(tx)
+            case .saving: result.saving.append(tx)
+            }
+        }
+        return result
     }
-
-    private var customExpenses: [OnboardingTransaction] {
-        state.customTransactions.filter { $0.type == .expense }
-    }
-
-    private var customSavings: [OnboardingTransaction] {
-        state.customTransactions.filter { $0.type == .saving }
-    }
-
-    private var totalIncome: Decimal { state.totalIncome }
-    private var totalSavings: Decimal { state.totalSavings }
-    private var totalCharges: Decimal { state.totalCharges }
-    private var totalOutflows: Decimal { state.totalExpenses }
 
     private var breakdownAccessibilityLabel: String {
-        var label = "Résumé du budget. Entrées \(totalIncome.asCompactCurrency(state.currency))"
-            + ", sorties \(totalOutflows.asCompactCurrency(state.currency))"
-        if totalCharges > 0 {
-            label += " dont \(totalCharges.asCompactCurrency(state.currency)) de charges"
+        let income = state.totalIncome.asCompactCurrency(state.currency)
+        let outflows = state.totalExpenses.asCompactCurrency(state.currency)
+        var label = "Résumé du budget. Entrées \(income), sorties \(outflows)"
+        let charges = state.totalCharges
+        let savings = state.totalSavings
+        if charges > 0 {
+            label += " dont \(charges.asCompactCurrency(state.currency)) de charges"
         }
-        if totalSavings > 0 {
-            let connector = totalCharges > 0 ? " et" : " dont"
-            label += "\(connector) \(totalSavings.asCompactCurrency(state.currency)) d'épargne"
+        if savings > 0 {
+            let connector = charges > 0 ? " et" : " dont"
+            label += "\(connector) \(savings.asCompactCurrency(state.currency)) d'épargne"
         }
         return label
     }
@@ -273,29 +267,24 @@ struct BudgetPreviewStep: View {
 
     // MARK: - Helpers
 
-    private func namedDetailRow(_ name: String, amount: Decimal) -> some View {
-        HStack(spacing: DesignTokens.Spacing.sm) {
-            Text(name)
-                .font(PulpeTypography.caption)
-                .foregroundStyle(Color.textTertiary)
-            Spacer()
-            Text("-\(amount.asCompactCurrency(state.currency))")
-                .font(PulpeTypography.caption)
-                .monospacedDigit()
-                .foregroundStyle(Color.textTertiary)
-        }
-        .padding(.leading, DesignTokens.Spacing.xl)
+    private var softDivider: some View {
+        Divider()
+            .opacity(DesignTokens.Opacity.accent)
+            .padding(.horizontal, DesignTokens.Spacing.xs)
     }
 
     private func detailRow(
-        _ tx: OnboardingTransaction, prefix: String = "-", color: Color = .textTertiary
+        label: String,
+        amount: Decimal,
+        kind: TransactionKind,
+        color: Color = .textTertiary
     ) -> some View {
         HStack(spacing: DesignTokens.Spacing.sm) {
-            Text(tx.name)
+            Text(label)
                 .font(PulpeTypography.caption)
                 .foregroundStyle(Color.textTertiary)
             Spacer()
-            Text("\(prefix)\(tx.amount.asCompactCurrency(state.currency))")
+            Text(amount.asSignedCompactCurrency(state.currency, for: kind))
                 .font(PulpeTypography.caption)
                 .monospacedDigit()
                 .foregroundStyle(color)
@@ -304,10 +293,14 @@ struct BudgetPreviewStep: View {
     }
 
     private func breakdownRow(
-        icon: String, label: String, value: String, color: Color,
+        icon: String,
+        label: String,
+        amount: Decimal,
+        kind: TransactionKind,
         onEdit: (() -> Void)? = nil
     ) -> some View {
-        HStack(spacing: DesignTokens.Spacing.sm) {
+        let color = Color.financialColor(for: kind)
+        return HStack(spacing: DesignTokens.Spacing.sm) {
             Image(systemName: icon)
                 .font(PulpeTypography.body)
                 .foregroundStyle(color)
@@ -317,7 +310,7 @@ struct BudgetPreviewStep: View {
 
             Spacer()
 
-            Text(value)
+            Text(amount.asSignedCompactCurrency(state.currency, for: kind))
                 .font(PulpeTypography.onboardingSubtitle)
                 .monospacedDigit()
                 .foregroundStyle(color)

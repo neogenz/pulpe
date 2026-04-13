@@ -150,6 +150,8 @@ enum DesignTokens {
         static let socialButton: CGFloat = 20
         /// Brand logo on auth/onboarding screens
         static let brand: CGFloat = 72
+        /// Hero checkmark badge on the onboarding budget preview
+        static let heroBadge: CGFloat = 56
     }
 
     // MARK: - List Row

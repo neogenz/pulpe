@@ -16,6 +16,15 @@ extension Color {
     /// Over-budget indicator - Warm amber, not aggressive red (#A86800 light, #E5A33A dark)
     static let financialOverBudget = Color(light: Color(hex: 0xA86800), dark: Color(hex: 0xE5A33A))
 
+    /// Map a `TransactionKind` to its semantic financial color.
+    static func financialColor(for kind: TransactionKind) -> Color {
+        switch kind {
+        case .income: financialIncome
+        case .expense: financialExpense
+        case .saving: financialSavings
+        }
+    }
+
     // MARK: - Hero Card Gradient Colors (4-stop, ~128° linear)
     // Designed in oklch for perceptual uniformity, converted to hex for SwiftUI.
     // Gradient direction: dark → bright for depth and punch.
