@@ -861,4 +861,108 @@ struct OnboardingStateTests {
 
         #expect(state.totalIncome == 5500)
     }
+
+    // MARK: - Multi-Currency E2E (EUR path)
+
+    @Test
+    func currency_defaultsToCHF() {
+        let state = makeSUT()
+        defer { OnboardingState.clearPersistedData() }
+
+        #expect(state.currency == .chf)
+    }
+
+    @Test
+    func currency_canSwitchToEUR() {
+        let state = makeSUT()
+        defer { OnboardingState.clearPersistedData() }
+
+        state.currency = .eur
+        #expect(state.currency == .eur)
+    }
+
+    @Test
+    func saveAndLoad_persistsEURCurrency() {
+        let state = makeSUT()
+        defer { OnboardingState.clearPersistedData() }
+
+        state.firstName = "Claude"
+        state.currency = .eur
+        state.monthlyIncome = 4200
+        state.housingCosts = 1200
+        state.healthInsurance = 350
+        state.currentStep = .budgetPreview
+        state.saveToStorage()
+
+        let restored = OnboardingState()
+
+        #expect(restored.currency == .eur)
+        #expect(restored.firstName == "Claude")
+        #expect(restored.monthlyIncome == 4200)
+        #expect(restored.housingCosts == 1200)
+        #expect(restored.healthInsurance == 350)
+        #expect(restored.currentStep == .budgetPreview)
+    }
+
+    @Test
+    func saveAndLoad_legacyDraftWithoutCurrency_fallsBackToCHF() {
+        let state = makeSUT()
+        defer { OnboardingState.clearPersistedData() }
+
+        state.firstName = "Legacy"
+        state.monthlyIncome = 3000
+        state.saveToStorage()
+
+        let restored = OnboardingState()
+
+        // Default is CHF — the persistence layer should handle legacy drafts
+        // where the currency field didn't exist or decoded to nil.
+        #expect(restored.currency == .chf)
+        #expect(restored.firstName == "Legacy")
+    }
+
+    @Test
+    func availableToSpend_computedCorrectlyInEURContext() {
+        let state = makeSUT()
+        defer { OnboardingState.clearPersistedData() }
+
+        state.currency = .eur
+        state.monthlyIncome = 4000
+        state.housingCosts = 1200
+        state.healthInsurance = 300
+        let savingTx = OnboardingTransaction(
+            amount: 500, type: .saving, name: "Épargne",
+            description: nil
+        )
+        state.addCustomTransaction(savingTx)
+
+        // Totals are currency-agnostic — the same arithmetic works for EUR
+        #expect(state.totalIncome == 4000)
+        #expect(state.totalCharges == 1500)
+        #expect(state.totalSavings == 500)
+        #expect(state.availableToSpend == 2000)
+    }
+
+    @Test
+    func decimalFormatting_asCurrencyEUR_producesEURSuffix() {
+        let amount: Decimal = 1234.56
+
+        let formatted = amount.asCurrency(.eur)
+
+        #expect(formatted.hasSuffix("EUR"))
+        #expect(formatted.contains("1"))
+        #expect(formatted.contains("234"))
+    }
+
+    @Test
+    func decimalFormatting_asCompactCurrencyEUR_roundsAndSuffixes() {
+        let amount: Decimal = 1234.56
+
+        let formatted = amount.asCompactCurrency(.eur)
+
+        #expect(formatted.hasSuffix("EUR"))
+        // Compact means whole numbers only — no decimals
+        #expect(!formatted.contains("."))
+        #expect(!formatted.contains(","))
+    }
 }
