@@ -61,7 +61,8 @@ struct IncomeStep: View {
                         OnboardingRunningTotal(
                             label: "Total revenus",
                             amount: state.totalIncome,
-                            color: .financialIncome
+                            color: .financialIncome,
+                            currency: state.currency
                         )
                     }
                 }

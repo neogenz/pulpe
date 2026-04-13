@@ -79,7 +79,8 @@ struct ChargesStep: View {
                         OnboardingRunningTotal(
                             label: "Total charges",
                             amount: state.totalCharges,
-                            color: .financialExpense
+                            color: .financialExpense,
+                            currency: state.currency
                         )
                     }
                 }

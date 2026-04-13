@@ -25,7 +25,7 @@ struct OnboardingSuggestionGrid: View {
                         HStack(spacing: DesignTokens.Spacing.xs) {
                             Text(suggestion.name)
                                 .lineLimit(1)
-                            Text(suggestion.amount.asCompactCHF)
+                            Text(suggestion.amount.asCompactCurrency(state.currency))
                                 .foregroundStyle(
                                     isSelected ? Color.onPrimaryContainer : Color.onSurfaceVariant
                                 )
@@ -48,7 +48,7 @@ struct OnboardingSuggestionGrid: View {
                     .frame(minHeight: DesignTokens.TapTarget.minimum)
                     .contentShape(Capsule())
                     .plainPressedButtonStyle()
-                    .accessibilityLabel("\(suggestion.name), \(suggestion.amount.asCompactCHF)")
+                    .accessibilityLabel("\(suggestion.name), \(suggestion.amount.asCompactCurrency(state.currency))")
                     .accessibilityAddTraits(isSelected ? .isSelected : [])
                 }
             }

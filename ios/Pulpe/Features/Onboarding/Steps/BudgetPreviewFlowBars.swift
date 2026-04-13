@@ -9,6 +9,7 @@ struct BudgetPreviewFlowBars: View {
     let charges: Decimal
     let savings: Decimal
     var isRevealed: Bool = true
+    var currency: SupportedCurrency = .chf
 
     @State private var displayProgress: CGFloat = 0
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -70,7 +71,7 @@ struct BudgetPreviewFlowBars: View {
     }
 
     private func amount(_ value: Decimal, prefix: String) -> some View {
-        Text("\(prefix)\(value.asCompactCHF)")
+        Text("\(prefix)\(value.asCompactCurrency(currency))")
             .font(PulpeTypography.onboardingSubtitle)
             .monospacedDigit()
             .contentTransition(.numericText())

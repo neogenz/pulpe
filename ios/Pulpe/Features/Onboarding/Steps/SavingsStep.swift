@@ -30,7 +30,8 @@ struct SavingsStep: View {
                         OnboardingRunningTotal(
                             label: "Total épargne",
                             amount: state.totalSavings,
-                            color: .financialSavings
+                            color: .financialSavings,
+                            currency: state.currency
                         )
                     }
                 }

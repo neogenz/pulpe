@@ -103,7 +103,8 @@ struct BudgetPreviewStep: View {
                 income: totalIncome,
                 charges: totalCharges,
                 savings: totalSavings,
-                isRevealed: showCard
+                isRevealed: showCard,
+                currency: state.currency
             )
 
             Divider()
