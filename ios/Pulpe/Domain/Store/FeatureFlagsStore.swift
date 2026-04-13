@@ -35,7 +35,11 @@ final class FeatureFlagsStore {
 
     /// Re-fetches feature flags from PostHog and updates the cached values.
     /// Persists the resolved values in `UserDefaults` for the next launch.
+    /// No-op when PostHog is not initialized — preserves the cached value
+    /// instead of clobbering it to `false` (which would mask manual overrides
+    /// on PulpeLocal where PostHog is disabled).
     func refresh() {
+        guard analytics.isInitialized else { return }
         analytics.reloadFeatureFlags()
         let resolved = analytics.isFeatureEnabled(Self.multiCurrencyKey)
         isMultiCurrencyEnabled = resolved
