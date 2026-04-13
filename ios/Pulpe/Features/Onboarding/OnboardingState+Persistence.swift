@@ -18,6 +18,7 @@ extension OnboardingState {
         }
         let data = OnboardingStorageData(
             firstName: firstName,
+            currency: currency,
             currentStep: currentStep.rawValue,
             customTransactions: storedTx.isEmpty ? nil : storedTx,
             monthlyIncome: monthlyIncome,
@@ -44,6 +45,7 @@ extension OnboardingState {
         }
 
         firstName = decoded.firstName
+        currency = decoded.currency ?? .chf
 
         if let step = OnboardingStep(rawValue: decoded.currentStep) {
             currentStep = step
@@ -99,6 +101,7 @@ extension OnboardingState {
 // If this window needs hardening later, migrate the blob to Keychain (`kSecAttrAccessibleWhenUnlockedThisDeviceOnly`).
 private struct OnboardingStorageData: Codable {
     let firstName: String
+    let currency: SupportedCurrency?
     let currentStep: String
     let customTransactions: [StoredTransaction]?
     let monthlyIncome: Decimal?

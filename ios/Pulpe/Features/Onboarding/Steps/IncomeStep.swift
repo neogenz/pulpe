@@ -2,6 +2,7 @@ import SwiftUI
 
 struct IncomeStep: View {
     @Bindable var state: OnboardingState
+    @Environment(FeatureFlagsStore.self) private var featureFlagsStore
     @State private var showAddIncome = false
     @State private var editingTransaction: OnboardingTransaction?
 
@@ -18,10 +19,26 @@ struct IncomeStep: View {
             content: {
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.sectionGap) {
                     VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+                        if featureFlagsStore.isMultiCurrencyEnabled {
+                            VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+                                Text("Devise")
+                                    .font(PulpeTypography.inputLabel)
+                                    .foregroundStyle(Color.textPrimaryOnboarding)
+
+                                Picker("Devise", selection: $state.currency) {
+                                    ForEach(SupportedCurrency.allCases) { currency in
+                                        Text(currency.rawValue).tag(currency)
+                                    }
+                                }
+                                .pickerStyle(.segmented)
+                            }
+                        }
+
                         CurrencyField(
                             value: $state.monthlyIncome,
                             hint: "5000",
-                            label: "Revenu mensuel net"
+                            label: "Revenu mensuel net",
+                            currency: state.currency
                         )
 
                         HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.sm) {
@@ -96,4 +113,5 @@ struct IncomeStep: View {
 
 #Preview {
     IncomeStep(state: OnboardingState())
+        .environment(FeatureFlagsStore())
 }

@@ -397,17 +397,12 @@ actor AuthService {
             firstName = name
         }
 
-        // Extract the auth provider from Supabase's app_metadata.
-        // Authoritative source for distinguishing email signups from OAuth,
-        // which drives post-auth routing (see `AppState.applyPostAuthDestination`).
+        // `provider` drives post-auth routing (see `AppState.applyPostAuthDestination`).
         let appMetadata = user.appMetadata
-        let provider: AuthProvider? = {
-            if case .string(let value) = appMetadata["provider"] {
-                return AuthProvider.fromSupabase(value)
-            }
-            return nil
-        }()
-
+        var provider: AuthProvider?
+        if case .string(let value) = appMetadata["provider"] {
+            provider = AuthProvider.fromSupabase(value)
+        }
         var isEarlyAdopter = false
         if case .bool(let flag) = appMetadata[AnalyticsService.earlyAdopterProperty] {
             isEarlyAdopter = flag
@@ -477,17 +472,11 @@ struct UserInfo: Codable, Equatable, Sendable {
     let email: String
     var firstName: String?
     let provider: AuthProvider?
-    /// Mirrored from Supabase `auth.users.app_metadata.early_adopter`.
-    /// Drives targeted feature flag rollouts via PostHog person properties.
+    /// Mirrored from Supabase `auth.users.app_metadata.early_adopter` — PostHog feature flag target.
     var isEarlyAdopter: Bool = false
 
-    init(
-        id: String,
-        email: String,
-        firstName: String? = nil,
-        provider: AuthProvider? = nil,
-        isEarlyAdopter: Bool = false
-    ) {
+    init(id: String, email: String, firstName: String? = nil,
+         provider: AuthProvider? = nil, isEarlyAdopter: Bool = false) {
         self.id = id
         self.email = email
         self.firstName = firstName

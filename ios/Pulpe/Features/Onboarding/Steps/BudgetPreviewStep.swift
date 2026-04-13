@@ -113,7 +113,7 @@ struct BudgetPreviewStep: View {
             breakdownRow(
                 icon: "arrow.down.circle.fill",
                 label: "Revenus",
-                value: "+\(totalIncome.asCompactCHF)",
+                value: "+\(totalIncome.asCompactCurrency(state.currency))",
                 color: .financialIncome,
                 onEdit: { state.jumpToStepForEdit(.income) }
             )
@@ -130,7 +130,7 @@ struct BudgetPreviewStep: View {
                 breakdownRow(
                     icon: "arrow.up.circle.fill",
                     label: "Charges fixes",
-                    value: "-\(totalCharges.asCompactCHF)",
+                    value: "-\(totalCharges.asCompactCurrency(state.currency))",
                     color: .financialExpense,
                     onEdit: { state.jumpToStepForEdit(.charges) }
                 )
@@ -161,7 +161,7 @@ struct BudgetPreviewStep: View {
                 breakdownRow(
                     icon: "building.columns.fill",
                     label: "Épargne prévue",
-                    value: "-\(totalSavings.asCompactCHF)",
+                    value: "-\(totalSavings.asCompactCurrency(state.currency))",
                     color: .financialSavings,
                     onEdit: { state.jumpToStepForEdit(.savings) }
                 )
@@ -181,7 +181,7 @@ struct BudgetPreviewStep: View {
                 Text("Disponible")
                     .font(PulpeTypography.labelLarge)
                 Spacer()
-                Text(state.availableToSpend.asCompactCHF)
+                Text(state.availableToSpend.asCompactCurrency(state.currency))
                     .font(PulpeTypography.buttonPrimary)
                     .monospacedDigit()
                     .foregroundStyle(heroAccentColor)
@@ -241,14 +241,14 @@ struct BudgetPreviewStep: View {
     private var totalOutflows: Decimal { state.totalExpenses }
 
     private var breakdownAccessibilityLabel: String {
-        var label = "Résumé du budget. Entrées \(totalIncome.asCompactCHF)"
-            + ", sorties \(totalOutflows.asCompactCHF)"
+        var label = "Résumé du budget. Entrées \(totalIncome.asCompactCurrency(state.currency))"
+            + ", sorties \(totalOutflows.asCompactCurrency(state.currency))"
         if totalCharges > 0 {
-            label += " dont \(totalCharges.asCompactCHF) de charges"
+            label += " dont \(totalCharges.asCompactCurrency(state.currency)) de charges"
         }
         if totalSavings > 0 {
             let connector = totalCharges > 0 ? " et" : " dont"
-            label += "\(connector) \(totalSavings.asCompactCHF) d'épargne"
+            label += "\(connector) \(totalSavings.asCompactCurrency(state.currency)) d'épargne"
         }
         return label
     }
@@ -261,13 +261,13 @@ struct BudgetPreviewStep: View {
 
     /// Animated hero amount — interpolates from 0 on appear via `displayAmount`.
     private var heroAmountText: String {
-        (displayAmount < 0 ? displayAmount.magnitude : displayAmount).asCompactCHF
+        (displayAmount < 0 ? displayAmount.magnitude : displayAmount).asCompactCurrency(state.currency)
     }
 
     /// Final hero amount — always the true value, used for accessibility so VoiceOver
     /// doesn't read every frame of the count-up animation.
     private var finalHeroAmountText: String {
-        (isDeficit ? state.availableToSpend.magnitude : state.availableToSpend).asCompactCHF
+        (isDeficit ? state.availableToSpend.magnitude : state.availableToSpend).asCompactCurrency(state.currency)
     }
 
     // MARK: - Helpers
@@ -278,7 +278,7 @@ struct BudgetPreviewStep: View {
                 .font(PulpeTypography.caption)
                 .foregroundStyle(Color.textTertiary)
             Spacer()
-            Text("-\(amount.asCompactCHF)")
+            Text("-\(amount.asCompactCurrency(state.currency))")
                 .font(PulpeTypography.caption)
                 .monospacedDigit()
                 .foregroundStyle(Color.textTertiary)
@@ -294,7 +294,7 @@ struct BudgetPreviewStep: View {
                 .font(PulpeTypography.caption)
                 .foregroundStyle(Color.textTertiary)
             Spacer()
-            Text("\(prefix)\(tx.amount.asCompactCHF)")
+            Text("\(prefix)\(tx.amount.asCompactCurrency(state.currency))")
                 .font(PulpeTypography.caption)
                 .monospacedDigit()
                 .foregroundStyle(color)

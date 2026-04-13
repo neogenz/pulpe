@@ -21,7 +21,12 @@ struct ChargesStep: View {
             content: {
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.sectionGap) {
                     OnboardingSectionHeader(title: "Logement", icon: "house.fill") {
-                        CurrencyField(value: $state.housingCosts, hint: "1500", label: "Loyer mensuel")
+                        CurrencyField(
+                            value: $state.housingCosts,
+                            hint: "1500",
+                            label: "Loyer mensuel",
+                            currency: state.currency
+                        )
                     }
 
                     OnboardingSectionHeader(
@@ -29,8 +34,18 @@ struct ChargesStep: View {
                         icon: "shield.fill",
                         isExpanded: $isInsuranceExpanded
                     ) {
-                        CurrencyField(value: $state.healthInsurance, hint: "400", label: "Assurance maladie")
-                        CurrencyField(value: $state.phonePlan, hint: "50", label: "Forfait téléphone")
+                        CurrencyField(
+                            value: $state.healthInsurance,
+                            hint: "400",
+                            label: "Assurance maladie",
+                            currency: state.currency
+                        )
+                        CurrencyField(
+                            value: $state.phonePlan,
+                            hint: "50",
+                            label: "Forfait téléphone",
+                            currency: state.currency
+                        )
                     }
 
                     OnboardingSectionHeader(
@@ -39,12 +54,16 @@ struct ChargesStep: View {
                         isExpanded: $isMobilityExpanded
                     ) {
                         CurrencyField(
-                            value: $state.transportCosts, hint: "100",
-                            label: "Transport (abonnement, essence...)"
+                            value: $state.transportCosts,
+                            hint: "100",
+                            label: "Transport (abonnement, essence...)",
+                            currency: state.currency
                         )
                         CurrencyField(
-                            value: $state.leasingCredit, hint: "300",
-                            label: "Leasing ou mensualité de crédit"
+                            value: $state.leasingCredit,
+                            hint: "300",
+                            label: "Leasing ou mensualité de crédit",
+                            currency: state.currency
                         )
                     }
 
