@@ -42,17 +42,18 @@ function getFullGitCommitHash() {
 }
 
 /**
- * Récupère la version depuis package.json
+ * Récupère la version produit unifiée depuis le package.json racine du monorepo.
+ * Single source of truth — alignée avec le tag git, la GitHub release et la landing.
  * @returns {string} Version de l'application
  */
 function getVersionFromPackageJson() {
   try {
-    const packageJsonPath = path.join(__dirname, "../package.json");
+    const packageJsonPath = path.join(__dirname, "../../package.json");
     const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf-8"));
     return packageJson.version || "0.0.0-unknown";
   } catch (error) {
     console.warn(
-      'Warning: Unable to read version from package.json, using "0.0.0-unknown"',
+      'Warning: Unable to read version from root package.json, using "0.0.0-unknown"',
     );
     return "0.0.0-unknown";
   }
