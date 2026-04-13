@@ -44,7 +44,7 @@ export function buildConversionTooltip(
 
   const config =
     CURRENCY_CONFIG[originalCurrency as keyof typeof CURRENCY_CONFIG];
-  const locale = config?.locale ?? 'de-CH';
+  const locale = config?.locale ?? 'fr-CH';
 
   const formattedAmount = getCurrencyFormatter(locale, originalCurrency).format(
     originalAmount,

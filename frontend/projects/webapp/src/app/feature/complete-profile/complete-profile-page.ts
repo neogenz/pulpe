@@ -17,6 +17,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
 import { MatButtonToggleModule } from '@angular/material/button-toggle';
+import { AppCurrencyPipe, CURRENCY_CONFIG } from '@core/currency';
 import { CurrencyInput } from '@ui/currency-input';
 import { ErrorAlert } from '@ui/error-alert';
 import { LoadingButton } from '@ui/loading-button';
@@ -45,6 +46,7 @@ import { PAY_DAY_MAX, type SupportedCurrency } from 'pulpe-shared';
     TranslocoPipe,
     FinancialKindDirective,
     MatButtonToggleModule,
+    AppCurrencyPipe,
     CurrencyInput,
     ErrorAlert,
     LoadingButton,
@@ -262,7 +264,10 @@ import { PAY_DAY_MAX, type SupportedCurrency } from 'pulpe-shared';
                     {{ 'completeProfile.summary.income' | transloco }}
                   </span>
                   <span class="text-body-medium text-on-surface ph-no-capture">
-                    {{ formatAmount(store.budgetSummary().income) }}.-
+                    {{
+                      store.budgetSummary().income
+                        | appCurrency: selectedCurrency() : '1.0-0'
+                    }}
                   </span>
                 </div>
                 <div class="flex flex-col items-center">
@@ -272,7 +277,10 @@ import { PAY_DAY_MAX, type SupportedCurrency } from 'pulpe-shared';
                   <span
                     class="text-body-medium text-on-surface-variant ph-no-capture"
                   >
-                    {{ formatAmount(store.budgetSummary().committed) }}.-
+                    {{
+                      store.budgetSummary().committed
+                        | appCurrency: selectedCurrency() : '1.0-0'
+                    }}
                   </span>
                 </div>
                 <div class="flex flex-col items-end">
@@ -284,7 +292,10 @@ import { PAY_DAY_MAX, type SupportedCurrency } from 'pulpe-shared';
                     [class.text-primary]="store.budgetSummary().available >= 0"
                     [class.text-error]="store.budgetSummary().available < 0"
                   >
-                    {{ formatAmount(store.budgetSummary().available) }}.-
+                    {{
+                      store.budgetSummary().available
+                        | appCurrency: selectedCurrency() : '1.0-0'
+                    }}
                   </span>
                 </div>
               </div>
@@ -468,9 +479,10 @@ import { PAY_DAY_MAX, type SupportedCurrency } from 'pulpe-shared';
                         ></span>
                         {{ suggestion.name }}
                         ·
-                        <span class="ph-no-capture"
-                          >{{ suggestion.amount }}.-</span
-                        >
+                        <span class="ph-no-capture">{{
+                          suggestion.amount
+                            | appCurrency: selectedCurrency() : '1.0-0'
+                        }}</span>
                       </button>
                     }
                   </div>
@@ -512,7 +524,7 @@ import { PAY_DAY_MAX, type SupportedCurrency } from 'pulpe-shared';
                             />
                             <span
                               class="text-body-small text-on-surface-variant ph-no-capture"
-                              >CHF</span
+                              >{{ selectedCurrency() }}</span
                             >
                             <button
                               matIconButton
@@ -608,7 +620,8 @@ export default class CompleteProfilePage {
 
   protected formatAmount(value: number): string {
     if (!Number.isFinite(value)) return '0';
-    return value.toLocaleString('de-CH', { maximumFractionDigits: 0 });
+    const locale = CURRENCY_CONFIG[this.selectedCurrency()].locale;
+    return value.toLocaleString(locale, { maximumFractionDigits: 0 });
   }
 
   protected labelKeyForType(type: 'income' | 'expense' | 'saving'): string {

@@ -89,7 +89,7 @@ export class CurrencyService {
       );
       return { base, target, rate: cached.rate, date: cached.date };
     }
-    this.#logIdentityFallbackWarning(base, target, error);
+    this.#logRateUnavailableAndReject(base, target, error);
     throw new BusinessException(
       ERROR_DEFINITIONS.CURRENCY_RATE_FETCH_FAILED,
       { base, target },
@@ -98,7 +98,7 @@ export class CurrencyService {
     );
   }
 
-  #logIdentityFallbackWarning(
+  #logRateUnavailableAndReject(
     base: SupportedCurrency,
     target: SupportedCurrency,
     error: unknown,

@@ -100,7 +100,7 @@ describe('SettingsPage', () => {
         { provide: ClientKeyService, useValue: { clear: vi.fn() } },
         {
           provide: CurrencyConverterService,
-          useValue: { fetchRate$: vi.fn(), convert: vi.fn() },
+          useValue: { fetchRate: vi.fn(), convert: vi.fn() },
         },
       ],
     })

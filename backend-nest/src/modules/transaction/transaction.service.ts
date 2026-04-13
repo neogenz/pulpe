@@ -4,6 +4,7 @@ import { Injectable, HttpException } from '@nestjs/common';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 import { BusinessException } from '@common/exceptions/business.exception';
 import { handleServiceError } from '@common/utils/error-handler';
+import { mapCurrencyMetadataToDb } from '@common/utils/currency-metadata.mapper';
 import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 import { CacheService } from '@modules/cache/cache.service';
 import {
@@ -179,7 +180,6 @@ export class TransactionService {
   }
 
   private prepareTransactionData(createTransactionDto: TransactionCreate) {
-    // Manual conversion without Zod validation (already validated in service)
     return {
       budget_id: createTransactionDto.budgetId,
       budget_line_id: createTransactionDto.budgetLineId ?? null,
@@ -190,9 +190,7 @@ export class TransactionService {
         createTransactionDto.transactionDate || new Date().toISOString(),
       category: createTransactionDto.category ?? null,
       checked_at: createTransactionDto.checkedAt ?? null,
-      original_currency: createTransactionDto.originalCurrency ?? null,
-      target_currency: createTransactionDto.targetCurrency ?? null,
-      exchange_rate: createTransactionDto.exchangeRate ?? null,
+      ...mapCurrencyMetadataToDb(createTransactionDto),
     };
   }
 
@@ -489,6 +487,8 @@ export class TransactionService {
   private prepareTransactionUpdateData(
     updateTransactionDto: TransactionUpdate,
   ): Record<string, unknown> {
+    // Can't reuse mapCurrencyMetadataToDb here: it emits all three currency
+    // keys with null defaults, which would clobber existing rows on PATCH.
     return {
       ...(updateTransactionDto.amount !== undefined && {
         amount: updateTransactionDto.amount,

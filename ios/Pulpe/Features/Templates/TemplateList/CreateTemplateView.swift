@@ -303,10 +303,17 @@ struct AddTemplateLineSheet: View {
                 amount: $amount,
                 amountText: $amountText,
                 isFocused: $isAmountFocused,
+                currency: userSettingsStore.currency,
                 accentColor: kind.color
             )
-            QuickAmountChips(amount: $amount, amountText: $amountText, isFocused: $isAmountFocused, color: kind.color)
-                .animation(.snappy(duration: DesignTokens.Animation.fast), value: kind)
+            QuickAmountChips(
+                amount: $amount,
+                amountText: $amountText,
+                isFocused: $isAmountFocused,
+                color: kind.color,
+                currency: userSettingsStore.currency
+            )
+            .animation(.snappy(duration: DesignTokens.Animation.fast), value: kind)
             descriptionField
             recurrenceSelector
             addButton

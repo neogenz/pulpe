@@ -13,6 +13,7 @@ struct AddCustomExpenseSheet: View {
     /// and downstream lookups stay stable across an inline edit. nil in create mode.
     private let editingId: UUID?
     private let kind: TransactionKind
+    private let currency: SupportedCurrency
 
     @Environment(\.dismiss) private var dismiss
     @State private var name: String
@@ -25,12 +26,14 @@ struct AddCustomExpenseSheet: View {
     /// Create mode
     init(
         kind: TransactionKind,
+        currency: SupportedCurrency,
         onSave: @escaping (OnboardingTransaction) -> Void
     ) {
         self.onSave = onSave
         self.isEditing = false
         self.editingId = nil
         self.kind = kind
+        self.currency = currency
         _name = State(initialValue: "")
         _amount = State(initialValue: nil)
         _amountText = State(initialValue: "")
@@ -39,12 +42,14 @@ struct AddCustomExpenseSheet: View {
     /// Edit mode — pre-fills fields from existing transaction
     init(
         editing transaction: OnboardingTransaction,
+        currency: SupportedCurrency,
         onSave: @escaping (OnboardingTransaction) -> Void
     ) {
         self.onSave = onSave
         self.isEditing = true
         self.editingId = transaction.id
         self.kind = transaction.type
+        self.currency = currency
         _name = State(initialValue: transaction.name)
         _amount = State(initialValue: transaction.amount)
         let formatted = Formatters.amountInput.string(from: transaction.amount as NSDecimalNumber) ?? ""
@@ -66,7 +71,8 @@ struct AddCustomExpenseSheet: View {
                 amount: $amount,
                 amountText: $amountText,
                 isFocused: $isAmountFocused,
-                hint: "Quel montant ?"
+                hint: "Quel montant ?",
+                currency: currency
             )
 
             FormTextField(
@@ -106,7 +112,7 @@ struct AddCustomExpenseSheet: View {
 }
 
 #Preview {
-    AddCustomExpenseSheet(kind: .expense) { tx in
+    AddCustomExpenseSheet(kind: .expense, currency: .chf) { tx in
         print("Added: \(tx.name) - \(tx.amount)")
     }
 }

@@ -1,50 +1,46 @@
 import { inject, Injectable } from '@angular/core';
-import type { SupportedCurrency } from 'pulpe-shared';
-import { firstValueFrom, map, of, tap, type Observable } from 'rxjs';
-import { z } from 'zod';
+import { DataCache } from 'ngx-ziflux';
+import { firstValueFrom } from 'rxjs';
+import {
+  type SupportedCurrency,
+  currencyRateResponseSchema,
+} from 'pulpe-shared';
 
 import { ApiClient } from '@core/api/api-client';
 
-const currencyRateResponseSchema = z.object({
-  success: z.literal(true),
-  data: z.object({
-    base: z.string(),
-    target: z.string(),
-    rate: z.number(),
-  }),
-});
-
-const CACHE_TTL_MS = 5 * 60 * 1000;
-
-interface CachedRate {
-  rate: number;
-  fetchedAt: number;
-}
+const FRESH_MS = 5 * 60 * 1000;
+const EXPIRE_MS = 60 * 60 * 1000;
 
 @Injectable({ providedIn: 'root' })
 export class CurrencyConverterService {
   readonly #api = inject(ApiClient);
-  readonly #cache = new Map<string, CachedRate>();
 
-  fetchRate$(
+  readonly cache = new DataCache({
+    name: 'currency-rates',
+    staleTime: FRESH_MS,
+    expireTime: EXPIRE_MS,
+  });
+
+  async fetchRate(
     base: SupportedCurrency,
     target: SupportedCurrency,
-  ): Observable<number> {
-    const key = `${base}-${target}`;
-    const cached = this.#cache.get(key);
-    if (cached && Date.now() - cached.fetchedAt < CACHE_TTL_MS) {
-      return of(cached.rate);
-    }
+  ): Promise<number> {
+    if (base === target) return 1;
 
-    return this.#api
-      .get$(
-        `/currency/rate?base=${base}&target=${target}`,
-        currencyRateResponseSchema,
-      )
-      .pipe(
-        map((res) => res.data.rate),
-        tap((rate) => this.#cache.set(key, { rate, fetchedAt: Date.now() })),
+    const key = ['currency', 'rate', base, target];
+    const cached = this.cache.get<number>(key);
+    if (cached?.fresh) return cached.data;
+
+    return this.cache.deduplicate(key, async () => {
+      const response = await firstValueFrom(
+        this.#api.get$(
+          `/currency/rate?base=${base}&target=${target}`,
+          currencyRateResponseSchema,
+        ),
       );
+      this.cache.set(key, response.data.rate);
+      return response.data.rate;
+    });
   }
 
   convert(amount: number, rate: number): number {
@@ -57,9 +53,7 @@ export class CurrencyConverterService {
     targetCurrency: SupportedCurrency,
   ): Promise<number> {
     if (inputCurrency === targetCurrency) return amount;
-    const rate = await firstValueFrom(
-      this.fetchRate$(inputCurrency, targetCurrency),
-    );
+    const rate = await this.fetchRate(inputCurrency, targetCurrency);
     return Number(this.convert(amount, rate).toFixed(2));
   }
 
@@ -71,9 +65,7 @@ export class CurrencyConverterService {
     if (inputCurrency === targetCurrency) {
       return { convertedAmount: amount, metadata: null };
     }
-    const rate = await firstValueFrom(
-      this.fetchRate$(inputCurrency, targetCurrency),
-    );
+    const rate = await this.fetchRate(inputCurrency, targetCurrency);
     return {
       convertedAmount: Number(this.convert(amount, rate).toFixed(2)),
       metadata: {

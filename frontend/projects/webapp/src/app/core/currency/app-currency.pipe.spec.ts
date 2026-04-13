@@ -19,7 +19,7 @@ describe('AppCurrencyPipe', () => {
   });
 
   describe('CHF formatting', () => {
-    it('should format with CHF symbol and de-CH locale', () => {
+    it('should format with CHF symbol and fr-CH locale', () => {
       const result = pipe.transform(1234.56, 'CHF');
       expect(result).toContain('CHF');
       expect(result).toContain('1');

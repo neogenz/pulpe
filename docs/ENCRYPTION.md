@@ -47,6 +47,14 @@ Chaque table stocke les montants chiffrés dans une colonne texte (type `text`).
 | `savings_goal` | `target_amount`, `original_target_amount` |
 | `monthly_budget` | `ending_balance` |
 
+### Colonnes plaintext liées mathématiquement aux montants chiffrés
+
+Les tables multi-devises (`budget_line`, `transaction`, `template_line`) stockent aussi `exchange_rate` en `NUMERIC(18,8)` **non chiffré**, à côté de `amount` et `original_amount` (tous deux chiffrés AES-256-GCM). L'invariant métier est `original_amount ≈ amount × exchange_rate` (aux arrondis près).
+
+Cela signifie que les deux colonnes de montants chiffrés sont mathématiquement liées via une colonne publique. Concrètement : une fuite du DEK d'un utilisateur donne accès aux deux montants ; mais aussi, si `amount` venait à fuiter via une voie latérale (mauvaise journalisation, requête `service_role` erronée, exfiltration de backup), `original_amount` devient dérivable gratuitement pour la même ligne. La défense en profondeur sur `amount` est donc aussi celle sur `original_amount` — garder le pipeline de chiffrement des montants étanche est la seule barrière.
+
+Le chiffrement étant par utilisateur (DEK dérivée), ce lien n'est exploitable qu'à l'intérieur des données d'un seul utilisateur.
+
 ## Mode démo
 
 Le mode démo utilise un `clientKey` déterministe (`DEMO_CLIENT_KEY_BUFFER`) pour emprunter le même chemin de code que les vrais utilisateurs. Ce n'est pas un secret — les données démo sont publiques.

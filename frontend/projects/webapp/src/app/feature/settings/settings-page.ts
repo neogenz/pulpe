@@ -602,9 +602,7 @@ export default class SettingsPage {
     }
     this.isLoadingRate.set(true);
     try {
-      const rate = await firstValueFrom(
-        this.#currencyConverter.fetchRate$(base, target),
-      );
+      const rate = await this.#currencyConverter.fetchRate(base, target);
       this.conversionRate.set(rate);
     } catch {
       this.conversionRate.set(null);
