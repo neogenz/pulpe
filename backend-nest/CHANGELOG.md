@@ -1,5 +1,11 @@
 # backend-nest
 
+## 0.33.2
+
+### Patch Changes
+
+- pulpe-shared@0.33.2
+
 ## 0.31.0
 
 ### Minor Changes

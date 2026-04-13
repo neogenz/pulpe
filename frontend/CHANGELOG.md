@@ -1,5 +1,12 @@
 # pulpe-frontend
 
+## 0.33.2
+
+### Patch Changes
+
+- Affichage de la version produit unifiée dans le dialogue « À propos » et alignement de la stratégie de versioning monorepo via Changesets fixed mode.
+  - pulpe-shared@0.33.2
+
 ## 0.32.1
 
 ### Patch Changes
