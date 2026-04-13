@@ -10,9 +10,11 @@ import {
 } from '@nestjs/swagger';
 import { AuthGuard } from '@common/guards/auth.guard';
 import { ErrorResponseDto } from '@common/dto/response.dto';
-import { supportedCurrencySchema, type SupportedCurrency } from 'pulpe-shared';
-import { BusinessException } from '@common/exceptions/business.exception';
-import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
+import type { CurrencyRateResponse } from 'pulpe-shared';
+import {
+  CurrencyRateQueryDto,
+  CurrencyRateResponseDto,
+} from './dto/currency-swagger.dto';
 import { CurrencyService } from './currency.service';
 
 @ApiTags('Currency')
@@ -40,22 +42,12 @@ export class CurrencyController {
   @ApiResponse({
     status: 200,
     description: 'Exchange rate retrieved successfully',
+    type: CurrencyRateResponseDto,
   })
-  async getRate(@Query('base') base: string, @Query('target') target: string) {
-    const parsedBase = supportedCurrencySchema.safeParse(base);
-    const parsedTarget = supportedCurrencySchema.safeParse(target);
-
-    if (!parsedBase.success || !parsedTarget.success) {
-      throw new BusinessException(ERROR_DEFINITIONS.VALIDATION_FAILED, {
-        reason: 'base and target must be supported currencies (CHF, EUR)',
-      });
-    }
-
-    const data = await this.currencyService.getRate(
-      parsedBase.data as SupportedCurrency,
-      parsedTarget.data as SupportedCurrency,
-    );
-
-    return { success: true as const, data };
+  async getRate(
+    @Query() query: CurrencyRateQueryDto,
+  ): Promise<CurrencyRateResponse> {
+    const data = await this.currencyService.getRate(query.base, query.target);
+    return { success: true, data };
   }
 }

@@ -56,6 +56,23 @@ export type SupportedCurrency = z.infer<typeof supportedCurrencySchema>;
 export const SUPPORTED_CURRENCIES: readonly SupportedCurrency[] =
   supportedCurrencySchema.options;
 
+export const currencyRateQuerySchema = z.object({
+  base: supportedCurrencySchema,
+  target: supportedCurrencySchema,
+});
+export type CurrencyRateQuery = z.infer<typeof currencyRateQuerySchema>;
+
+export const currencyRateResponseSchema = z.object({
+  success: z.literal(true),
+  data: z.object({
+    base: supportedCurrencySchema,
+    target: supportedCurrencySchema,
+    rate: z.number().positive(),
+    date: z.iso.date(),
+  }),
+});
+export type CurrencyRateResponse = z.infer<typeof currencyRateResponseSchema>;
+
 /**
  * BUDGET - Instance mensuelle d'un template
  *

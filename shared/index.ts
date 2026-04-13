@@ -92,6 +92,8 @@ export {
   // Currency schemas
   supportedCurrencySchema,
   SUPPORTED_CURRENCIES,
+  currencyRateQuerySchema,
+  currencyRateResponseSchema,
 
   // User schemas
   userProfileSchema,
@@ -249,6 +251,8 @@ export type {
 
   // Currency types
   SupportedCurrency,
+  CurrencyRateQuery,
+  CurrencyRateResponse,
 
   // User types
   UserProfile,

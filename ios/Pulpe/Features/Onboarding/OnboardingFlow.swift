@@ -3,6 +3,7 @@ import SwiftUI
 /// Main onboarding flow coordinator
 struct OnboardingFlow: View {
     @Environment(AppState.self) private var appState
+    @Environment(UserSettingsStore.self) private var userSettingsStore
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.scenePhase) private var scenePhase
     @State private var state: OnboardingState
@@ -274,6 +275,13 @@ struct OnboardingFlow: View {
         state.readyToComplete = false
         state.isSubmitting = true
         defer { state.isSubmitting = false }
+
+        // The onboarding template schema doesn't carry currency, so persist the user's
+        // pick to user_settings before bootstrap so all subsequent amounts use it.
+        if state.currency != userSettingsStore.currency {
+            await userSettingsStore.updateCurrency(state.currency)
+        }
+
         await appState.completeOnboarding(
             user: user,
             onboardingData: state.createTemplateData(),
@@ -307,4 +315,5 @@ struct OnboardingFlow: View {
 #Preview {
     OnboardingFlow()
         .environment(AppState())
+        .environment(UserSettingsStore())
 }
