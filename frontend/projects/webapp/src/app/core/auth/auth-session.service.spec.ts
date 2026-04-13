@@ -425,6 +425,14 @@ describe('AuthSessionService', () => {
     // Cleanup handled by afterEach
   });
 
+  it('should return null from getCurrentSession when called before initialization', async () => {
+    const session = await service.getCurrentSession();
+
+    expect(session).toBeNull();
+    expect(mockSupabaseClient.auth.getSession).not.toHaveBeenCalled();
+    expect(mockLogger.error).not.toHaveBeenCalled();
+  });
+
   it('should get current session', async () => {
     mockSupabaseClient.auth.getSession.mockResolvedValue({
       data: { session: mockSession },

@@ -18,8 +18,11 @@ import { AuthSessionService } from './auth-session.service';
 import { AuthStateService } from './auth-state.service';
 import { ApplicationConfiguration } from '../config/application-configuration';
 
-// Test simple de la fonction shouldInterceptRequest
+// Mirror of the shouldInterceptRequest helper from auth-interceptor.ts.
+// Kept in sync so the interceptor URL-matching logic is tested in isolation.
 function shouldInterceptRequest(url: string, backendApiUrl: string): boolean {
+  if (!backendApiUrl) return false;
+  if (url.includes('/config.json')) return false;
   return url.startsWith(backendApiUrl);
 }
 
@@ -69,6 +72,29 @@ describe('shouldInterceptRequest', () => {
       shouldInterceptRequest(
         'https://api.pulpe.ch/users',
         'http://api.pulpe.ch',
+      ),
+    ).toBe(false);
+  });
+
+  it('should return false for any URL when backendApiUrl is empty (pre-config bootstrap)', () => {
+    // Before ApplicationConfiguration loads config.json, backendApiUrl() returns ''.
+    // Without the guard, url.startsWith('') would match every request and trigger
+    // the auth interceptor before AuthSessionService is initialized.
+    expect(shouldInterceptRequest('https://api.pulpe.ch/users', '')).toBe(
+      false,
+    );
+    expect(shouldInterceptRequest('/i18n/fr.json', '')).toBe(false);
+    expect(shouldInterceptRequest('https://any-url.example', '')).toBe(false);
+  });
+
+  it('should exclude /config.json even when backendApiUrl is set', () => {
+    expect(shouldInterceptRequest('/config.json', 'https://api.pulpe.ch')).toBe(
+      false,
+    );
+    expect(
+      shouldInterceptRequest(
+        'https://api.pulpe.ch/config.json',
+        'https://api.pulpe.ch',
       ),
     ).toBe(false);
   });
