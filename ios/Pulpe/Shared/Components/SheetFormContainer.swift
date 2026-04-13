@@ -17,6 +17,8 @@ struct SheetFormContainer<Content: View>: View {
     var descriptionFocus: FocusState<Bool>.Binding?
     @ViewBuilder let content: Content
 
+    @State private var isKeyboardVisible = false
+
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -30,6 +32,9 @@ struct SheetFormContainer<Content: View>: View {
             .contentMargins(.bottom, DesignTokens.Spacing.xxl, for: .scrollContent)
             .scrollBounceBehavior(.basedOnSize)
             .scrollDismissesKeyboard(.interactively)
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                keyboardToolbar
+            }
             .background(Color.sheetBackground)
             .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
@@ -37,36 +42,19 @@ struct SheetFormContainer<Content: View>: View {
                 ToolbarItem(placement: .cancellationAction) {
                     SheetCloseButton()
                 }
-                if autoFocus != nil {
-                    ToolbarItemGroup(placement: .keyboard) {
-                        let amountFocused = autoFocus?.wrappedValue == true
-                        let descriptionFocused = descriptionFocus?.wrappedValue == true
-
-                        if amountFocused || descriptionFocused {
-                            if descriptionFocus != nil {
-                                if descriptionFocused {
-                                    Button(action: goToPreviousField) {
-                                        Image(systemName: "chevron.up")
-                                    }
-                                } else if amountFocused {
-                                    Button(action: goToNextField) {
-                                        Image(systemName: "chevron.down")
-                                    }
-                                }
-                            }
-
-                            Spacer()
-
-                            Button(action: dismissKeyboard) {
-                                Image(systemName: "checkmark")
-                                    .fontWeight(.semibold)
-                            }
-                        }
-                    }
-                }
             }
             .loadingOverlay(isLoading)
             .dismissKeyboardOnTap()
+            .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in
+                withAnimation(DesignTokens.Animation.defaultSpring) {
+                    isKeyboardVisible = true
+                }
+            }
+            .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
+                withAnimation(DesignTokens.Animation.defaultSpring) {
+                    isKeyboardVisible = false
+                }
+            }
             .task {
                 guard autoFocus != nil else { return }
                 try? await Task.sleep(for: .milliseconds(200))
@@ -75,6 +63,52 @@ struct SheetFormContainer<Content: View>: View {
             }
         }
         .standardSheetPresentation()
+    }
+
+    // MARK: - Keyboard Toolbar
+
+    @ViewBuilder
+    private var keyboardToolbar: some View {
+        if isKeyboardVisible, autoFocus != nil {
+            let amountFocused = autoFocus?.wrappedValue == true
+            let descriptionFocused = descriptionFocus?.wrappedValue == true
+
+            if amountFocused || descriptionFocused {
+                HStack {
+                    if descriptionFocus != nil {
+                        if descriptionFocused {
+                            Button(action: goToPreviousField) {
+                                Image(systemName: "chevron.up")
+                            }
+                            .frame(minWidth: 44, minHeight: 44)
+                            .contentShape(Rectangle())
+                        } else if amountFocused {
+                            Button(action: goToNextField) {
+                                Image(systemName: "chevron.down")
+                            }
+                            .frame(minWidth: 44, minHeight: 44)
+                            .contentShape(Rectangle())
+                        }
+                    }
+
+                    Spacer()
+
+                    Button(action: dismissKeyboard) {
+                        Image(systemName: "checkmark")
+                            .fontWeight(.semibold)
+                    }
+                    .frame(minWidth: 44, minHeight: 44)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(.primary)
+                .padding(.horizontal, DesignTokens.Spacing.sm)
+                .glassCapsuleBackground()
+                .padding(.horizontal, DesignTokens.Spacing.lg)
+                .padding(.bottom, DesignTokens.Spacing.sm)
+                .transition(.opacity.combined(with: .move(edge: .bottom)))
+            }
+        }
     }
 
     // MARK: - Field Navigation

@@ -148,6 +148,8 @@ enum DesignTokens {
         static let widgetAction: CGFloat = 44
         /// Social login button icons (Apple logo, Google logo)
         static let socialButton: CGFloat = 20
+        /// Brand logo on auth/onboarding screens
+        static let brand: CGFloat = 72
     }
 
     // MARK: - List Row
@@ -228,6 +230,14 @@ enum DesignTokens {
             .easeInOut(duration: pulseDuration).repeatForever(autoreverses: true)
         }
 
+        /// Slow breathing effect for brand heroes (glow/shadow opacity oscillation).
+        /// Deliberately slow so it feels like ambient life, not a notification.
+        static let heroBreathingDuration: Double = 3.5
+
+        static var heroBreathing: SwiftUI.Animation {
+            .easeInOut(duration: heroBreathingDuration).repeatForever(autoreverses: true)
+        }
+
         // MARK: - Skeleton
 
         /// Minimum skeleton display time to prevent jarring flash on fast loads
@@ -277,6 +287,15 @@ enum DesignTokens {
         static let currencyCode = "CHF"
     }
 
+    // MARK: - Blur
+
+    enum Blur {
+        /// Height of the gradient fade at the top of scrollable content
+        static let topFadeHeight: CGFloat = 60
+        /// Height of the gradient fade at the bottom of scrollable content
+        static let bottomFadeHeight: CGFloat = 80
+    }
+
     // MARK: - Progress Bar
 
     enum ProgressBar {
@@ -288,6 +307,8 @@ enum DesignTokens {
         static let circularLineWidth: CGFloat = 6
         /// Hero card progress bar height (larger for visibility on colored backgrounds)
         static let heroHeight: CGFloat = 10
+        /// Flow bar height — substantial enough to act as a card headline (Entrées/Sorties)
+        static let flowBarHeight: CGFloat = 14
     }
 }
 

@@ -233,9 +233,31 @@ struct AppStateFlowBridgeTests {
     }
 
     @Test func send_pinSetupCompleted_transitionsToAuthenticated() async {
-        let sut = AppState(
-            postAuthResolver: MockPostAuthResolver(destination: .needsPinSetup)
+        // Inject stub onboarding creators so `bootstrapIfNeeded` succeeds without a
+        // real backend. `completePinSetup` now stays in `.needsPinSetup` on bootstrap
+        // failure (see `AppStateCharacterizationTests`), so the happy path requires
+        // real or stubbed template/budget creation.
+        let stubTemplate = BudgetTemplate(
+            id: "tpl-flow-bridge",
+            name: "Flow Bridge",
+            description: nil,
+            userId: nil,
+            isDefault: true,
+            createdAt: TestDataFactory.fixedDate,
+            updatedAt: TestDataFactory.fixedDate
         )
+        let deps = AppStateDependencies(
+            authService: .shared,
+            clientKeyManager: .shared,
+            keychainManager: MockKeychainStore(),
+            encryptionAPI: .shared,
+            postAuthResolver: MockPostAuthResolver(destination: .needsPinSetup),
+            biometricService: .shared,
+            biometricPreferenceStore: AppStateTestFactory.biometricDisabledStore(),
+            createTemplate: { _ in stubTemplate },
+            createBudget: { _ in TestDataFactory.createBudget() }
+        )
+        let sut = AppState(dependencies: deps)
         sut.pendingOnboardingData = BudgetTemplateCreateFromOnboarding()
         await sut.resolvePostAuth(user: testUser)
         #expect(sut.authState == .needsPinSetup)

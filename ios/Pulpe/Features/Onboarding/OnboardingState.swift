@@ -13,33 +13,62 @@ final class OnboardingState {
     var phonePlan: Decimal?
     var transportCosts: Decimal?
     var leasingCredit: Decimal?
+    var customTransactions: [OnboardingTransaction] = []
 
     // MARK: - Registration
 
     var email: String = ""
-    var acceptTerms: Bool = false
 
-    // MARK: - Social Auth
+    // MARK: - Auth State
 
-    var socialUser: UserInfo?
-    var readyForSocialCompletion: Bool = false
-    var isSocialSignup: Bool { socialUser != nil }
+    /// The authenticated user — set from both social auth (WelcomeStep) and email registration.
+    var authenticatedUser: UserInfo?
+    var isAuthenticated: Bool { authenticatedUser != nil }
 
-    /// Whether the name field should be displayed during onboarding.
-    /// Hidden only when a social provider already supplied a valid name.
-    var shouldShowNameField: Bool {
-        !isSocialSignup || !isFirstNameValid
-    }
+    /// True only for social provider auth (Apple/Google) — drives the firstName/registration skips.
+    private(set) var isSocialAuth: Bool = false
+
+    /// True when the social provider supplied a valid first name at auth time.
+    /// Set once in `configureSocialUser` so the visible step count doesn't shift
+    /// while the user is interacting with the form.
+    private(set) var socialProvidedName: Bool = false
+
+    /// Triggers `finishOnboarding` from BudgetPreview (the finale) for all auth paths.
+    var readyToComplete: Bool = false
+
+    /// Set when email registration was persisted — used for cold-start session recovery.
+    /// Not `private(set)` because `OnboardingState+Persistence.swift` restores it from disk.
+    var wasEmailRegistered: Bool = false
+
+    // MARK: - Analytics Idempotency Guards
+    //
+    // These live on the state (not on individual step views) because step views are
+    // re-instantiated by `OnboardingFlow`'s `.id(state.currentStep)` on every step
+    // change. A `@State` guard on the view would reset on back-nav, double-firing
+    // the funnel event. The state outlives step navigation within a session.
+    var hasEmittedWelcomeViewed: Bool = false
+    var hasEmittedSignupStarted: Bool = false
+    var hasEmittedBudgetPreviewCompleted: Bool = false
 
     /// Configures state for a social signup user.
     /// Pre-fills firstName from provider metadata and clears persisted step
     /// so cold-start after app kill resets to welcome.
     func configureSocialUser(_ user: UserInfo) {
-        socialUser = user
+        authenticatedUser = user
+        isSocialAuth = true
         if let name = user.firstName, !name.isEmpty {
             firstName = name
+            socialProvidedName = true
+        } else {
+            socialProvidedName = false
         }
         clearStorage()
+    }
+
+    func configureEmailUser(_ user: UserInfo) {
+        authenticatedUser = user
+        isSocialAuth = false
+        socialProvidedName = false
     }
 
     // MARK: - UI State
@@ -52,9 +81,15 @@ final class OnboardingState {
     var hasAbandoned: Bool = false
     var isSubmitting: Bool = false
 
+    /// When set, nextStep()/previousStep() return to this step instead of sequential navigation.
+    /// Used by BudgetPreview to round-trip edits back to the preview.
+    var editReturnStep: OnboardingStep?
+
     // MARK: - Persistence Keys
 
-    private static let storageKey = "pulpe-onboarding-data"
+    /// UserDefaults key for the persisted onboarding draft.
+    /// Internal (not private) so `OnboardingState+Persistence.swift` can reference it.
+    static let storageKey = "pulpe-onboarding-data"
 
     // MARK: - Init
 
@@ -78,29 +113,76 @@ final class OnboardingState {
     }
 
     var canSubmitRegistration: Bool {
-        isFirstNameValid && isIncomeValid && isEmailValid && acceptTerms && !isLoading
+        isEmailValid && !isLoading
+    }
+
+    /// Whether the step is shown in the progress bar (stable throughout the flow).
+    /// Email users always see registration in their count — it's just marked as completed
+    /// after they sign up, instead of vanishing and shifting the total.
+    /// Social users never see registration at all (they authenticated on WelcomeStep).
+    private func isStepInProgressBar(_ step: OnboardingStep) -> Bool {
+        switch step {
+        case .welcome:
+            return false
+        case .firstName:
+            return !(isSocialAuth && socialProvidedName)
+        case .registration:
+            return !isSocialAuth
+        case .income, .charges, .savings, .budgetPreview:
+            return true
+        }
+    }
+
+    /// Whether the step should be visited during navigation.
+    /// Stricter than `isStepInProgressBar`: authenticated users skip registration
+    /// even if it's still counted in the progress bar.
+    private func isStepNavigable(_ step: OnboardingStep) -> Bool {
+        switch step {
+        case .welcome:
+            return true
+        case .firstName:
+            return !(isSocialAuth && socialProvidedName)
+        case .registration:
+            return !isAuthenticated
+        case .income, .charges, .savings, .budgetPreview:
+            return true
+        }
+    }
+
+    /// Steps shown in the progress bar (excludes welcome since it has no progress bar).
+    var progressBarSteps: [OnboardingStep] {
+        OnboardingStep.allCases.filter(isStepInProgressBar)
+    }
+
+    private func nextVisibleStep(after index: Int) -> OnboardingStep? {
+        let allCases = OnboardingStep.allCases
+        guard index + 1 < allCases.count else { return nil }
+        return allCases[(index + 1)...].first { isStepNavigable($0) }
+    }
+
+    private func previousVisibleStep(before index: Int) -> OnboardingStep? {
+        guard index > 0 else { return nil }
+        return OnboardingStep.allCases[..<index].reversed().first { isStepNavigable($0) }
     }
 
     var progressPercentage: Double {
-        // Exclude welcome; also exclude registration for social users
-        let totalSteps = OnboardingStep.allCases.count - (isSocialSignup ? 2 : 1)
-        guard totalSteps > 0,
-              let stepIndex = OnboardingStep.allCases.firstIndex(of: currentStep) else { return 0 }
-        let currentIndex = max(0, stepIndex - 1)
-        return Double(currentIndex) / Double(totalSteps) * 100
+        let bar = progressBarSteps
+        guard let idx = bar.firstIndex(of: currentStep), bar.count > 1 else { return 0 }
+        return Double(idx) / Double(bar.count - 1) * 100
     }
 
     var totalExpenses: Decimal {
-        let housing: Decimal = housingCosts ?? 0
-        let health: Decimal = healthInsurance ?? 0
-        let phone: Decimal = phonePlan ?? 0
-        let transport: Decimal = transportCosts ?? 0
-        let leasing: Decimal = leasingCredit ?? 0
-        return housing + health + phone + transport + leasing
+        totalCharges + totalSavings
+    }
+
+    var totalCustomIncome: Decimal {
+        customTransactions
+            .filter { $0.type == .income }
+            .reduce(Decimal.zero) { $0 + $1.amount }
     }
 
     var availableToSpend: Decimal {
-        (monthlyIncome ?? 0) - totalExpenses
+        (monthlyIncome ?? 0) + totalCustomIncome - totalExpenses
     }
 
     // MARK: - Navigation
@@ -109,9 +191,13 @@ final class OnboardingState {
         switch step {
         case .welcome:
             return true
-        case .personalInfo:
-            return isFirstNameValid && isIncomeValid
-        case .expenses:
+        case .firstName:
+            return isFirstNameValid
+        case .income:
+            return isIncomeValid
+        case .charges:
+            return true
+        case .savings:
             return true
         case .budgetPreview:
             return true
@@ -121,78 +207,130 @@ final class OnboardingState {
     }
 
     func nextStep() {
-        guard let currentIndex = OnboardingStep.allCases.firstIndex(of: currentStep),
-              currentIndex < OnboardingStep.allCases.count - 1 else {
+        // Edit round-trip: return to preview instead of advancing sequentially
+        if let returnStep = editReturnStep {
+            editReturnStep = nil
+            isMovingForward = true
+            withAnimation(PulpeAnimations.stepTransition) {
+                currentStep = returnStep
+            }
+            saveToStorage()
             return
         }
+
+        guard let currentIndex = OnboardingStep.allCases.firstIndex(of: currentStep) else { return }
+
+        // BudgetPreview is the finale — fire its completion event then trigger readyToComplete.
+        // The analytics guard is separate from the completion trigger: the funnel
+        // event fires exactly once per session, but `readyToComplete` can re-arm
+        // so the user can retry if `finishOnboarding` errored. Rapid double-taps
+        // are blocked upstream by the CTA disable (`!readyToComplete && !isSubmitting`).
+        guard let next = nextVisibleStep(after: currentIndex) else {
+            if currentStep == .budgetPreview {
+                if !hasEmittedBudgetPreviewCompleted {
+                    hasEmittedBudgetPreviewCompleted = true
+                    captureStepCompleted(currentStep)
+                }
+                readyToComplete = true
+            }
+            return
+        }
+
         // Track onboarding step completions (skip welcome — it has its own event)
         if currentStep != .welcome {
-            AnalyticsService.shared.capture(.onboardingStepCompleted, properties: ["step": currentStep.analyticsName])
-        }
-
-        let nextStep = OnboardingStep.allCases[currentIndex + 1]
-
-        // Social users skip registration — trigger completion from budgetPreview
-        if nextStep == .registration && isSocialSignup {
-            readyForSocialCompletion = true
-            return
+            captureStepCompleted(currentStep)
         }
 
         isMovingForward = true
         withAnimation(PulpeAnimations.stepTransition) {
-            currentStep = nextStep
+            currentStep = next
         }
         saveToStorage()
     }
 
+    /// Fire the `onboarding_step_completed` event for a given step.
+    /// Enriched with `step_index` (1-based), `step_total` (total visible for this path), and
+    /// `auth_method` so PostHog funnels are resilient to future step reordering.
+    private func captureStepCompleted(_ step: OnboardingStep) {
+        let bar = progressBarSteps
+        let index = (bar.firstIndex(of: step).map { $0 + 1 }) ?? 0
+        AnalyticsService.shared.capture(
+            .onboardingStepCompleted,
+            properties: [
+                "step": step.analyticsName,
+                "step_index": index,
+                "step_total": bar.count,
+                "auth_method": authMethodProperty
+            ]
+        )
+    }
+
+    /// Stable string describing the auth method for analytics properties.
+    /// Matches `login_completed.method` convention: `email | apple | google`.
+    /// Defaults to `email` before authentication since the only non-email entry
+    /// point sets `authenticatedUser` synchronously via `configureSocialUser`.
+    var authMethodProperty: String {
+        authenticatedUser?.provider?.rawValue ?? "email"
+    }
+
+    /// True when the previous visible step is welcome — tapping back triggers exit confirmation.
     var wouldExitOnBack: Bool {
-        currentStep == .personalInfo
+        guard let currentIndex = OnboardingStep.allCases.firstIndex(of: currentStep) else { return false }
+        return previousVisibleStep(before: currentIndex) == .welcome
     }
 
     func previousStep() {
-        guard let currentIndex = OnboardingStep.allCases.firstIndex(of: currentStep),
-              currentIndex > 0 else {
+        // Edit round-trip: cancel edit and return to preview
+        if let returnStep = editReturnStep {
+            editReturnStep = nil
+            isMovingForward = true
+            withAnimation(PulpeAnimations.stepTransition) {
+                currentStep = returnStep
+            }
+            saveToStorage()
             return
         }
+
+        guard let currentIndex = OnboardingStep.allCases.firstIndex(of: currentStep),
+              let prev = previousVisibleStep(before: currentIndex) else {
+            return
+        }
+
         isMovingForward = false
         withAnimation(PulpeAnimations.stepTransition) {
-            currentStep = OnboardingStep.allCases[currentIndex - 1]
+            currentStep = prev
         }
         saveToStorage()
     }
 
-    // MARK: - Persistence
-
-    func saveToStorage() {
-        let data = OnboardingStorageData(
-            firstName: firstName,
-            currentStep: currentStep.rawValue
-        )
-
-        if let encoded = try? JSONEncoder().encode(data) {
-            UserDefaults.standard.set(encoded, forKey: Self.storageKey)
-        }
+    /// Advance to the first visible step after welcome, without animation.
+    /// Used during init when entering with a pre-authenticated social user.
+    func startAfterWelcome() {
+        guard let next = nextVisibleStep(after: 0) else { return }
+        currentStep = next
     }
 
-    func loadFromStorage() {
-        guard let data = UserDefaults.standard.data(forKey: Self.storageKey),
-              let decoded = try? JSONDecoder().decode(OnboardingStorageData.self, from: data) else {
-            return
-        }
+    /// Cold-start recovery for email users whose persisted step is `.registration`.
+    /// Happens when the app dies in the narrow window between Supabase creating
+    /// the account and `nextStep()` advancing past registration. Tapping
+    /// "Créer mon compte" again would call `signup()` on the same email and fail.
+    /// Must be called AFTER `configureEmailUser`, not inside it — the happy path
+    /// in `submitRegistration` already calls `configureEmailUser` then `nextStep()`.
+    func resumeEmailUserAfterRegistration() {
+        guard currentStep == .registration,
+              let index = OnboardingStep.allCases.firstIndex(of: .registration),
+              let next = nextVisibleStep(after: index) else { return }
+        currentStep = next
+    }
 
-        firstName = decoded.firstName
-
-        if let step = OnboardingStep(rawValue: decoded.currentStep) {
+    /// Navigate to a specific step for editing, with a return bookmark.
+    /// Both nextStep() and previousStep() will return to `returnTo` instead of navigating sequentially.
+    func jumpToStepForEdit(_ step: OnboardingStep, returnTo: OnboardingStep = .budgetPreview) {
+        editReturnStep = returnTo
+        isMovingForward = false
+        withAnimation(PulpeAnimations.stepTransition) {
             currentStep = step
         }
-    }
-
-    func clearStorage() {
-        UserDefaults.standard.removeObject(forKey: Self.storageKey)
-    }
-
-    static func clearPersistedData() {
-        UserDefaults.standard.removeObject(forKey: storageKey)
     }
 
     // MARK: - Template Creation
@@ -207,105 +345,82 @@ final class OnboardingState {
             healthInsurance: healthInsurance,
             leasingCredit: leasingCredit,
             phonePlan: phonePlan,
-            transportCosts: transportCosts
+            transportCosts: transportCosts,
+            customTransactions: customTransactions
         )
     }
-}
 
-// MARK: - Step Enum
+    // MARK: - Running Totals
 
-enum OnboardingStep: String, CaseIterable, Identifiable {
-    case welcome
-    case personalInfo
-    case expenses
-    case budgetPreview
-    case registration
+    /// Fixed charges (housing, insurance, etc.) + custom expense-type transactions
+    var totalCharges: Decimal {
+        let housing: Decimal = housingCosts ?? 0
+        let health: Decimal = healthInsurance ?? 0
+        let phone: Decimal = phonePlan ?? 0
+        let transport: Decimal = transportCosts ?? 0
+        let leasing: Decimal = leasingCredit ?? 0
+        let customExpenses = customTransactions
+            .filter { $0.type == .expense }
+            .reduce(Decimal.zero) { $0 + $1.amount }
+        return housing + health + phone + transport + leasing + customExpenses
+    }
 
-    var id: String { rawValue }
+    var totalSavings: Decimal {
+        customTransactions
+            .filter { $0.type == .saving }
+            .reduce(Decimal.zero) { $0 + $1.amount }
+    }
 
-    var analyticsName: String {
-        switch self {
-        case .welcome: "welcome"
-        case .personalInfo: "personal_info"
-        case .expenses: "expenses"
-        case .budgetPreview: "budget_preview"
-        case .registration: "registration"
+    var totalIncome: Decimal {
+        (monthlyIncome ?? 0) + totalCustomIncome
+    }
+
+    // MARK: - Suggestions + Custom Transactions
+
+    /// Hard cap on user-added custom transactions during onboarding.
+    /// Mirrors `MAX_CUSTOM_TRANSACTIONS` in the Angular store and the `.max(50)` Zod constraint
+    /// in `shared/schemas.ts` `budgetTemplateCreateFromOnboardingSchema.customTransactions`.
+    static let maxCustomTransactions = 50
+
+    func isSuggestionSelected(_ suggestion: OnboardingTransaction) -> Bool {
+        customTransactions.contains { $0.id == suggestion.id }
+    }
+
+    func toggleSuggestion(_ suggestion: OnboardingTransaction) {
+        if let index = customTransactions.firstIndex(where: { $0.id == suggestion.id }) {
+            customTransactions.remove(at: index)
+            captureSuggestionToggled(suggestion, selected: false)
+        } else {
+            guard customTransactions.count < Self.maxCustomTransactions else { return }
+            customTransactions.append(suggestion)
+            captureSuggestionToggled(suggestion, selected: true)
         }
     }
 
-    var title: String {
-        switch self {
-        case .welcome: "Bienvenue"
-        case .personalInfo: "Qui es-tu ?"
-        case .expenses: "Tes charges fixes"
-        case .budgetPreview: "Ton budget"
-        case .registration: "Crée ton compte"
-        }
+    func addCustomTransaction(_ tx: OnboardingTransaction) {
+        guard customTransactions.count < Self.maxCustomTransactions else { return }
+        customTransactions.append(tx)
+        captureCustomTransactionAdded(tx)
     }
 
-    var subtitle: String {
-        switch self {
-        case .welcome: "Reprends le contrôle de tes finances"
-        case .personalInfo: "Juste ton prénom et tes revenus"
-        case .expenses: "Renseigne ce que tu connais — le reste peut attendre"
-        case .budgetPreview: "Voici ce que ça donne"
-        case .registration: "Pour sauvegarder ton budget"
-        }
+    func removeCustomTransaction(at index: Int) {
+        guard customTransactions.indices.contains(index) else { return }
+        let removed = customTransactions.remove(at: index)
+        captureCustomTransactionRemoved(removed)
     }
 
-    /// Alternative title when context changes (e.g. social signup skips name field)
-    var socialTitle: String? {
-        switch self {
-        case .personalInfo: "Ton revenu"
-        default: nil
-        }
+    func updateCustomTransactionAmount(at index: Int, amount: Decimal) {
+        guard customTransactions.indices.contains(index) else { return }
+        customTransactions[index].amount = amount
     }
 
-    /// Alternative subtitle for social signup context
-    var socialSubtitle: String? {
-        switch self {
-        case .personalInfo: "Indique ton revenu mensuel"
-        default: nil
-        }
-    }
-
-    var isOptional: Bool {
-        switch self {
-        case .expenses:
-            return true
-        default:
-            return false
-        }
-    }
-
-    var showProgressBar: Bool {
-        self != .welcome
-    }
-
-    var iconName: String {
-        switch self {
-        case .welcome: "sparkles"
-        case .personalInfo: "person.circle.fill"
-        case .expenses: "house.fill"
-        case .budgetPreview: "chart.pie.fill"
-        case .registration: "checkmark.seal.fill"
-        }
-    }
-
-    var iconColor: Color {
-        switch self {
-        case .welcome: .pulpePrimary
-        case .personalInfo: .pulpePrimary
-        case .expenses: .stepHousing
-        case .budgetPreview: .pulpePrimary
-        case .registration: .pulpePrimary
-        }
+    /// Replace a custom transaction by ID with updated data
+    func replaceCustomTransaction(id: UUID, with tx: OnboardingTransaction) {
+        guard let index = customTransactions.firstIndex(where: { $0.id == id }) else { return }
+        customTransactions[index] = tx
     }
 }
 
-// MARK: - Storage Data
-
-private struct OnboardingStorageData: Codable {
-    let firstName: String
-    let currentStep: String
-}
+// Suggestions, analytics helpers, and persistence live in dedicated extension files
+// (`OnboardingState+Suggestions.swift`, `OnboardingState+Persistence.swift`) to keep
+// this file focused on navigation, validation, and store-shape.

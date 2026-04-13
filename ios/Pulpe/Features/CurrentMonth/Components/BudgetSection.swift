@@ -89,10 +89,12 @@ struct BudgetSection: View {
                         }
                     }
                     .transition(.opacity.combined(with: .move(edge: .bottom)))
+                    // Drive transitions from visible row identities (not `items.count`) so expand/collapse
+                    // and reorder animate when the displayed set changes without requiring a count delta.
                     .animation(
                         .easeOut(duration: DesignTokens.Animation.normal)
                             .delay(Double(index) * 0.05),
-                        value: items.count
+                        value: displayedItems.map(\.id)
                     )
             }
 
@@ -125,6 +127,7 @@ struct BudgetSection: View {
                 Button {
                     onToggle(item)
                     ProductTips.gestures.invalidate(reason: .actionPerformed)
+                    ProductTips.checking.invalidate(reason: .actionPerformed)
                 } label: {
                     Label(
                         item.isChecked ? "Dépointer" : "Pointer",
@@ -316,6 +319,8 @@ struct BudgetLineRow: View {
             },
             perform: handleLongPress
         )
+        // Prefer `onTapGesture` over wrapping the row in `Button`: we need long-press + tap on the same
+        // hit target without nested button semantics (VoiceOver uses `accessibilityAction` below).
         .onTapGesture {
             guard let onAddTransaction, !line.isVirtualRollover else { return }
             ProductTips.gestures.invalidate(reason: .actionPerformed)

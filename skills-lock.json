@@ -1,6 +1,11 @@
 {
   "version": 1,
   "skills": {
+    "adapt": {
+      "source": "pbakaus/impeccable",
+      "sourceType": "github",
+      "computedHash": "65085998d643c3b64ff323ca74d76496b47484046b030730c00c03a0208bf410"
+    },
     "angular-architecture": {
       "source": "neogenz/skills",
       "sourceType": "github",
@@ -56,10 +61,25 @@
       "sourceType": "github",
       "computedHash": "2a67063279e8ac1b5cf3d9c4e9ed4652508564640c1fc59642857d4f6d20db11"
     },
+    "animate": {
+      "source": "pbakaus/impeccable",
+      "sourceType": "github",
+      "computedHash": "354414a934957f9d54a71468abe81888304d35b47a4fe8e27fff08f60b457d53"
+    },
+    "app-store-screenshots": {
+      "source": "ParthJadhav/app-store-screenshots",
+      "sourceType": "github",
+      "computedHash": "5a339bcfe7be93fdb687e0a33946065c5af0c985da04b9887d1dd0811197f6dd"
+    },
     "apple-appstore-reviewer": {
       "source": "github/awesome-copilot",
       "sourceType": "github",
       "computedHash": "848a1946f838e1b36f4af8b65caeea9e5bfa486d6059325520bb6124c05b0526"
+    },
+    "arrange": {
+      "source": "pbakaus/impeccable",
+      "sourceType": "github",
+      "computedHash": "ec95c0c0780e0fa3c1fa314b3a7157ddf31a4b7b107b5978fb7b8d77fb1f07b9"
     },
     "asc-app-create-ui": {
       "source": "rudrankriyam/app-store-connect-cli-skills",
@@ -166,20 +186,110 @@
       "sourceType": "github",
       "computedHash": "9be7cc484dc07defa01fc0f0e980f676ee0e943207b719e2ad112eb24f0a5e3e"
     },
+    "audit": {
+      "source": "pbakaus/impeccable",
+      "sourceType": "github",
+      "computedHash": "115a00d21d91d52123115af789948cb22bd604de0084837b5533f5e4af3c4055"
+    },
+    "bolder": {
+      "source": "pbakaus/impeccable",
+      "sourceType": "github",
+      "computedHash": "1787478962577c9d5bde26e89e47c1654aa9c8f3c47c316a026731db0000a92e"
+    },
+    "clarify": {
+      "source": "pbakaus/impeccable",
+      "sourceType": "github",
+      "computedHash": "42877142fcc51dcc6be696349aa7df8887eb29510e2a5868beac913f5f84de31"
+    },
+    "colorize": {
+      "source": "pbakaus/impeccable",
+      "sourceType": "github",
+      "computedHash": "4793ac377b2bc1a5831d9634ce882373350cc5d097fd631d192155266204ceb8"
+    },
+    "critique": {
+      "source": "pbakaus/impeccable",
+      "sourceType": "github",
+      "computedHash": "977f6fc3aa1002ec095f649e1b7c4fa52ee08a447f19229062810a9323c5c342"
+    },
+    "delight": {
+      "source": "pbakaus/impeccable",
+      "sourceType": "github",
+      "computedHash": "1f6f4adee0b964e8344c0baef46b4e303ab3ba20932907bcbb1444ba7b3273b2"
+    },
+    "distill": {
+      "source": "pbakaus/impeccable",
+      "sourceType": "github",
+      "computedHash": "669a671f855be8773e4c2936e54d4243fbd1d273f87633158544efe3dbc4d825"
+    },
+    "extract": {
+      "source": "pbakaus/impeccable",
+      "sourceType": "github",
+      "computedHash": "1bbe30b5be73a86971f6bccb37daae84aaafceaa6d23429d6a3a0442378ac4ec"
+    },
+    "harden": {
+      "source": "pbakaus/impeccable",
+      "sourceType": "github",
+      "computedHash": "f8ce420b3c78b90707704122264da76514c793ac0e12fb9540ace68d257c231c"
+    },
+    "impeccable": {
+      "source": "pbakaus/impeccable",
+      "sourceType": "github",
+      "computedHash": "a26b3dd377c4572b1c34c68f82ab9a1cb806f21c7157060327fe60e9b6d2e277"
+    },
+    "ios-marketing-capture": {
+      "source": "ParthJadhav/ios-marketing-capture",
+      "sourceType": "github",
+      "computedHash": "5d59383d4c9cf675e2c4b5fc6ed0130a2c0f23a7f3334d4cc68b7e79998ce7f3"
+    },
+    "mastering-typescript": {
+      "source": "spillwavesolutions/mastering-typescript-skill",
+      "sourceType": "github",
+      "computedHash": "1cba0ac27ae3ceb517b93bb6ccf053607b8ba939a1c1c9d4716eed7e4d9175b2"
+    },
+    "normalize": {
+      "source": "pbakaus/impeccable",
+      "sourceType": "github",
+      "computedHash": "1f5475e839d472a92298eaf6db26bab5ff6634fc3a7b76904e480242e809188e"
+    },
+    "onboard": {
+      "source": "pbakaus/impeccable",
+      "sourceType": "github",
+      "computedHash": "9928ecc1170356ac103b9b893ffbd8a0299b9584afb9a4deba0554efb5e99338"
+    },
+    "optimize": {
+      "source": "pbakaus/impeccable",
+      "sourceType": "github",
+      "computedHash": "979ffc76a4345c081fdf89078b7107c216d70696e027b23e8e24972dd4e457b2"
+    },
+    "overdrive": {
+      "source": "pbakaus/impeccable",
+      "sourceType": "github",
+      "computedHash": "30e2909c14b9e860b580e63f9bbe10cc1dee8de0be9b03013218c3ef8d9ede78"
+    },
+    "polish": {
+      "source": "pbakaus/impeccable",
+      "sourceType": "github",
+      "computedHash": "c294f2570dcc5b8865d17f0dc5ef339a700c868f1b20fa9994297f64ace2d4de"
+    },
     "posthog-instrumentation": {
       "source": "posthog/posthog-for-claude",
       "sourceType": "github",
       "computedHash": "a9a30a63accd756ef41009f987ac75812ab1e855b30ea5d6153e0fed16ebf22d"
     },
-    "spm-build-analysis": {
-      "source": "avdlee/xcode-build-optimization-agent-skill",
+    "quieter": {
+      "source": "pbakaus/impeccable",
       "sourceType": "github",
-      "computedHash": "9785f2113e45cd29aedc4c1e7e5763735157ff1e4c99a4ca4a65d4f625814c55"
+      "computedHash": "2c20b12bb4ece445d45fc63bda020aecf78b3cdf6d593beb59c273f658293130"
+    },
+    "shape": {
+      "source": "pbakaus/impeccable",
+      "sourceType": "github",
+      "computedHash": "8edad33758f2461f51afdb51741bfcc4cc57d84ea42e2751a84be2c6a2d48f69"
     },
     "supabase-postgres-best-practices": {
       "source": "supabase/agent-skills",
       "sourceType": "github",
-      "computedHash": "9c87c315aed143ee3b34bec8117100f5035e0df09e6b23e1ecc772cff434c9ad"
+      "computedHash": "f4cd7570115d97af6bcb2946eb891a958c8d04a43b479871c9ccadbc670ad058"
     },
     "swift-concurrency-expert": {
       "source": "dimillian/skills",
@@ -216,6 +326,11 @@
       "sourceType": "github",
       "computedHash": "988d80e52c67c3692d43cc963b6a048a239895e88b272b061de55370d0f8efc3"
     },
+    "typeset": {
+      "source": "pbakaus/impeccable",
+      "sourceType": "github",
+      "computedHash": "1cd76e560d1ba25b0bd5f7adfa2957a9f653a3ad0b031d467221154fcd1e0423"
+    },
     "update-swiftui-apis": {
       "source": "avdlee/swiftui-agent-skill",
       "sourceType": "github",
@@ -226,30 +341,10 @@
       "sourceType": "github",
       "computedHash": "de11ad890ffe93db296e13f42afea7ce7f7c18f12871f417b2b9b08f548f27af"
     },
-    "xcode-build-benchmark": {
-      "source": "avdlee/xcode-build-optimization-agent-skill",
+    "workflow-clean-code-angular": {
+      "source": "neogenz/skills",
       "sourceType": "github",
-      "computedHash": "e132c38adbb8a74e3e0474c0e34566b209fa3bf29532604af97d715b8c721ec8"
-    },
-    "xcode-build-fixer": {
-      "source": "avdlee/xcode-build-optimization-agent-skill",
-      "sourceType": "github",
-      "computedHash": "7d1c68154af030a24b7420c9f9c7805e6009e0012da34b9a16c0cfef3396b608"
-    },
-    "xcode-build-orchestrator": {
-      "source": "avdlee/xcode-build-optimization-agent-skill",
-      "sourceType": "github",
-      "computedHash": "d03e65e314a8fbe0ae0cf7469fa1a4280b5d335a7f163fdc7a7a91dbb0fd1b2b"
-    },
-    "xcode-compilation-analyzer": {
-      "source": "avdlee/xcode-build-optimization-agent-skill",
-      "sourceType": "github",
-      "computedHash": "9857f081cf044a06f93f382ea1a53c3fe9699ac0d0686abbabea67696c2eff6a"
-    },
-    "xcode-project-analyzer": {
-      "source": "avdlee/xcode-build-optimization-agent-skill",
-      "sourceType": "github",
-      "computedHash": "dfe1901df149b68d8869a48143508444605ed8ba20b448d1faec1d6218d58859"
+      "computedHash": "6d1f0d1e3e582fa1ba0d89b54fb7d04422b9ce774356568cef075c1f7b7981f2"
     },
     "ziflux-expert": {
       "source": "neogenz/ziflux",

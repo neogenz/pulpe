@@ -1,16 +1,10 @@
 import SwiftUI
 
 // MARK: - Amount Visibility Environment
-
-private struct AmountsHiddenKey: EnvironmentKey {
-    static let defaultValue = false
-}
+// Single custom EnvironmentValues entry in Pulpe; `@Entry` replaces manual EnvironmentKey (Xcode 16+).
 
 extension EnvironmentValues {
-    var amountsHidden: Bool {
-        get { self[AmountsHiddenKey.self] }
-        set { self[AmountsHiddenKey.self] = newValue }
-    }
+    @Entry var amountsHidden: Bool = false
 }
 
 // MARK: - Sensitive Amount Modifier

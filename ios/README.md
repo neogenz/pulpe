@@ -61,7 +61,19 @@ Pulpe/
 - **NavigationStack** type-safe
 - **async/await** pour le networking
 - **Keychain** pour le stockage sécurisé des tokens
-- Pas de dépendances externes
+- **Swift 6** avec concurrence stricte (`SWIFT_STRICT_CONCURRENCY: complete`)
+
+## Dépendances (Swift Package Manager)
+
+Déclarées dans [`project.yml`](project.yml) et résolues par XcodeGen :
+
+| Package | Rôle |
+|---------|------|
+| [supabase-swift](https://github.com/supabase/supabase-swift) | Client Supabase (auth / temps réel si utilisé) |
+| [lottie-spm](https://github.com/airbnb/lottie-spm) | Animations Lottie |
+| [posthog-ios](https://github.com/PostHog/posthog-ios) | Analytics |
+| [GoogleSignIn-iOS](https://github.com/google/GoogleSignIn-iOS) | Connexion Google |
+| [VariableBlur](https://github.com/nikstar/VariableBlur) | Flou variable (UI) |
 
 ## Features
 

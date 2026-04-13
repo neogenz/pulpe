@@ -387,7 +387,7 @@ describe('DashboardStore - Business Scenarios', () => {
       expect(mocks.budgetApi.toggleBudgetLineCheck$).toHaveBeenCalledTimes(1);
     });
 
-    it('should exclude pending items from uncheckedForecasts', async () => {
+    it('should keep pending items visible in uncheckedForecasts for exit animation', async () => {
       const budget = createMockBudget();
       const lines = [
         createMockBudgetLine({
@@ -415,12 +415,12 @@ describe('DashboardStore - Business Scenarios', () => {
         expect(store.uncheckedForecasts().length).toBe(2);
       });
 
-      // Check line-a — should disappear from uncheckedForecasts
+      // Check line-a — stays visible in uncheckedForecasts while pending (exit animation)
       store.checkBudgetLine('line-a');
 
       await vi.waitFor(() => {
-        expect(store.uncheckedForecasts().length).toBe(1);
-        expect(store.uncheckedForecasts()[0].id).toBe('line-b');
+        expect(store.uncheckedForecasts().length).toBe(2);
+        expect(store.pendingChecks().has('line-a')).toBe(true);
       });
     });
 
@@ -495,8 +495,8 @@ describe('DashboardStore - Business Scenarios', () => {
       expect(mocks.budgetApi.toggleBudgetLineCheck$).toHaveBeenCalledTimes(2);
       expect(store.budgetLines()[0].checkedAt).not.toBeNull();
       expect(store.budgetLines()[1].checkedAt).not.toBeNull();
-      // Items stay hidden via pendingChecks (cleaned up when resource reloads)
-      expect(store.uncheckedForecasts().length).toBe(0);
+      // Items stay visible during exit animation (removed after CHECK_EXIT_DELAY_MS)
+      expect(store.uncheckedForecasts().length).toBe(2);
     });
   });
 

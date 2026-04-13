@@ -315,6 +315,50 @@ Image(systemName: "heart.fill")
 UIImpactFeedbackGenerator(style: .medium).impactOccurred()
 ```
 
+## Safe Area Modifiers
+
+### Modifier Ordering: `.ignoresSafeArea` BEFORE `.frame`
+
+`.ignoresSafeArea(edges:)` must be applied **before** `.frame(height:)` for the view to extend into the safe area. If `.frame` locks the height first, `.ignoresSafeArea` has nothing to extend.
+
+```swift
+// Good — ignoresSafeArea before frame: view extends into safe area
+VariableBlurView(maxBlurRadius: 8, direction: .blurredBottomClearTop)
+    .allowsHitTesting(false)
+    .ignoresSafeArea(edges: .bottom)
+    .frame(height: 80)
+
+// Bad — frame locks height before ignoresSafeArea can extend it
+VariableBlurView(maxBlurRadius: 8, direction: .blurredBottomClearTop)
+    .frame(height: 80)
+    .ignoresSafeArea(edges: .bottom)  // too late — height already fixed
+```
+
+**When using a component that applies `.frame` internally** (like `ProgressiveBlurEdge`), you must inline the underlying view and reorder modifiers.
+
+### Separate Overlays for Different Safe Area Behavior
+
+When an overlay needs `.ignoresSafeArea` but a sibling view (e.g., floating button) must stay within safe area, use **two separate `.overlay()` modifiers** — never wrap them in a shared ZStack:
+
+```swift
+// Good — blur extends into safe area, button stays within
+.overlay(alignment: .bottom) {
+    BlurView().ignoresSafeArea(edges: .bottom)
+}
+.overlay(alignment: .bottomTrailing) {
+    FloatingButton().padding(.bottom, 16)
+}
+
+// Bad — ZStack absorbs ignoresSafeArea, neither child extends
+.overlay(alignment: .bottom) {
+    ZStack {
+        BlurView()
+        FloatingButton()
+    }
+    .ignoresSafeArea(edges: .bottom)  // doesn't extend child views
+}
+```
+
 ## Anti-Patterns
 
 | Don't | Do |

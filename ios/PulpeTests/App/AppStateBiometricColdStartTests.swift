@@ -406,7 +406,11 @@ struct AppStateBiometricColdStartTests {
         try? await Task.sleep(for: .milliseconds(100))
         #expect(sut.hasReturningUser == false)
 
-        await sut.completeOnboarding(user: user, onboardingData: BudgetTemplateCreateFromOnboarding())
+        await sut.completeOnboarding(
+            user: user,
+            onboardingData: BudgetTemplateCreateFromOnboarding(),
+            signupMethod: "email"
+        )
 
         #expect(sut.hasReturningUser == true, "completeOnboarding must set hasReturningUser")
         #expect(

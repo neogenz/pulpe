@@ -251,7 +251,11 @@ struct AppStateLogoutBiometricTests {
         )
 
         // completeOnboarding calls clearExplicitLogoutFlag (same as login)
-        await sut.completeOnboarding(user: user, onboardingData: BudgetTemplateCreateFromOnboarding())
+        await sut.completeOnboarding(
+            user: user,
+            onboardingData: BudgetTemplateCreateFromOnboarding(),
+            signupMethod: "email"
+        )
 
         #expect(
             UserDefaults.standard.bool(forKey: Self.didExplicitLogoutKey) == false,
@@ -367,7 +371,7 @@ struct AppStateLogoutBiometricTests {
         // Arrange: persist some onboarding data
         let onboardingState = OnboardingState()
         onboardingState.firstName = "TestUser"
-        onboardingState.currentStep = .expenses
+        onboardingState.currentStep = .charges
         onboardingState.saveToStorage()
 
         // Verify data was persisted

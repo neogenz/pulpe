@@ -68,6 +68,7 @@ const MAX_VISIBLE_FORECASTS = 5;
               @let isChecking = checkingIds().has(forecast.id);
               <div
                 class="relative overflow-hidden flex items-center gap-3 p-3 rounded-2xl hover:bg-on-surface/8 motion-safe:transition-colors"
+                [class.checking]="isChecking"
               >
                 <button
                   class="flex-shrink-0 flex items-center justify-center w-11 h-11 -m-2 rounded-full cursor-pointer"
@@ -82,6 +83,7 @@ const MAX_VISIBLE_FORECASTS = 5;
                 >
                   <mat-icon
                     [class.text-primary]="isChecking"
+                    [class.icon-filled]="isChecking"
                     aria-hidden="true"
                   >
                     {{ isChecking ? 'check_circle' : 'radio_button_unchecked' }}
@@ -129,6 +131,30 @@ const MAX_VISIBLE_FORECASTS = 5;
   styles: `
     :host {
       display: block;
+    }
+
+    @keyframes forecast-check-exit {
+      0%,
+      30% {
+        opacity: 1;
+        transform: translateX(0);
+      }
+      100% {
+        opacity: 0;
+        transform: translateX(1rem);
+      }
+    }
+
+    .checking {
+      animation: forecast-check-exit 500ms var(--pulpe-ease-emphasized) forwards;
+      pointer-events: none;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .checking {
+        animation: none;
+        opacity: 0.5;
+      }
     }
   `,
 })

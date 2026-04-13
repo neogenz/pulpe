@@ -179,6 +179,7 @@ struct BudgetDetailsView: View {
             }
             .listRowCustomStyled(insets: fullWidthInsets)
             .listSectionSeparator(.hidden)
+            .popoverTip(ProductTips.checking)
 
             // Hero balance card (with integrated rollover)
             Section {
@@ -217,15 +218,14 @@ struct BudgetDetailsView: View {
 
             // Budget line sections (tip appears in the first visible section)
             if !filteredIncome.isEmpty {
-                budgetSection(title: "Revenus", items: filteredIncome, tip: ProductTips.gestures)
+                budgetSection(title: "Revenus", items: filteredIncome)
+                    .popoverTip(ProductTips.gestures)
             }
             if !filteredExpenses.isEmpty {
-                budgetSection(title: "Dépenses", items: filteredExpenses,
-                              tip: filteredIncome.isEmpty ? ProductTips.gestures : nil)
+                budgetSection(title: "Dépenses", items: filteredExpenses)
             }
             if !filteredSavings.isEmpty {
-                budgetSection(title: "Épargne", items: filteredSavings,
-                              tip: filteredIncome.isEmpty && filteredExpenses.isEmpty ? ProductTips.gestures : nil)
+                budgetSection(title: "Épargne", items: filteredSavings)
             }
 
             // Free transactions

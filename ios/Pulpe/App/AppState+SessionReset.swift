@@ -180,7 +180,25 @@ extension AppState {
             toastManager.show("La suppression du compte a échoué", type: .error)
             return
         }
+        await clearLocalSignupState()
+    }
 
+    /// Discards an in-progress signup and returns the app to a clean welcome state
+    /// without deleting the backend account.
+    func abandonInProgressSignup() async {
+        authDebug("AUTH_ABANDON", "begin")
+        pendingOnboardingUser = nil
+        await clearLocalSignupState()
+        // Force `OnboardingFlow` to re-instantiate so its `@State` resets to
+        // a fresh `OnboardingState` (reads the now-empty UserDefaults → welcome).
+        onboardingSessionID = UUID()
+        authDebug("AUTH_ABANDON", "complete")
+    }
+
+    /// Shared cleanup for both account deletion and in-progress signup abandon.
+    /// Clears the returning-user footprint (keychain email, onboarding draft, flags)
+    /// and logs out without preserving biometric session.
+    private func clearLocalSignupState() async {
         await keychainManager.clearLastUsedEmail()
         enrollmentPolicy.clearUserExplicitlyDisabled()
         hasReturningUser = false

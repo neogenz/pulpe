@@ -77,9 +77,15 @@ final class AppState {
 
     var hasReturningUser: Bool = false
 
-    /// Social user awaiting onboarding. Set when a social login results in
-    /// `.needsPinSetup` but no onboarding data was collected yet.
-    var pendingSocialUser: UserInfo?
+    /// A user whose onboarding was interrupted and needs to resume via a fresh
+    /// `OnboardingFlow`. The case determines whether persisted storage is wiped
+    /// (social: fresh slate) or restored (email: resume at persisted step).
+    var pendingOnboardingUser: PendingOnboardingUser?
+
+    /// Identity token for the current onboarding session. Regenerated on abandon
+    /// to force `OnboardingFlow` to re-instantiate from scratch — SwiftUI reuses
+    /// the view otherwise, keeping stale `@State` (e.g. `currentStep`) in memory.
+    var onboardingSessionID = UUID()
 
     var pendingOnboardingData: BudgetTemplateCreateFromOnboarding? {
         get { onboardingBootstrapper.pendingOnboardingData }
@@ -435,4 +441,34 @@ enum BudgetDestination: Hashable {
 
 enum TemplateDestination: Hashable {
     case details(templateId: String)
+}
+
+// MARK: - Pending Onboarding User
+
+/// A user mid-onboarding whose session needs to resume after a cold start
+/// or provider-aware redirect. The case determines recovery behavior:
+/// `.social` starts fresh (clearStorage); `.email` restores the persisted draft.
+enum PendingOnboardingUser: Equatable, Sendable {
+    case email(UserInfo)
+    case social(UserInfo)
+
+    /// Analytics label for the `onboarding_resumed` method property.
+    enum ResumeMethod: String {
+        case email
+        case social
+    }
+
+    var user: UserInfo {
+        switch self {
+        case .email(let user), .social(let user):
+            return user
+        }
+    }
+
+    var resumeMethod: ResumeMethod {
+        switch self {
+        case .email: return .email
+        case .social: return .social
+        }
+    }
 }

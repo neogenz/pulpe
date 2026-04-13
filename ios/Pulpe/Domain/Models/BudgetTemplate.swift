@@ -209,11 +209,35 @@ struct BudgetTemplateCreateFromOnboarding: Encodable {
     }
 }
 
-struct OnboardingTransaction: Encodable {
-    let amount: Decimal
+struct OnboardingTransaction: Identifiable, Encodable, Sendable {
+    let id: UUID
+    var amount: Decimal
     let type: TransactionKind
     let name: String
     let description: String?
     let expenseType: TransactionRecurrence
     let isRecurring: Bool
+
+    init(
+        id: UUID = UUID(),
+        amount: Decimal,
+        type: TransactionKind,
+        name: String,
+        description: String? = nil,
+        expenseType: TransactionRecurrence = .fixed,
+        isRecurring: Bool = true
+    ) {
+        self.id = id
+        self.amount = amount
+        self.type = type
+        self.name = name
+        self.description = description
+        self.expenseType = expenseType
+        self.isRecurring = isRecurring
+    }
+
+    // Exclude `id` from JSON — the shared schema has no id field
+    private enum CodingKeys: String, CodingKey {
+        case amount, type, name, description, expenseType, isRecurring
+    }
 }

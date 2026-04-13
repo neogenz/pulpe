@@ -90,9 +90,11 @@ extension AppState {
         }
         authState = .loading
 
-        if shouldRedirectToOnboarding(for: destination) {
+        if shouldRedirectToOnboarding(for: destination), let user = currentUser {
             recoveryFlowCoordinator.reset()
-            redirectToOnboardingForSocialUser()
+            // Email users mid-onboarding resume via `configureEmailUser` (keeps persisted data).
+            // Social users (or any non-email provider) go through the social path (wipes storage).
+            redirectToOnboarding(user.provider == .email ? .email(user) : .social(user))
             return
         }
 
@@ -195,9 +197,12 @@ extension AppState {
             && !hasReturningUser
     }
 
-    private func redirectToOnboardingForSocialUser() {
-        authDebug("AUTH_POST_AUTH_DEST", "needsPinSetup → redirecting to onboarding (no pending data)")
-        pendingSocialUser = currentUser
+    /// Routes a mid-onboarding user back through a fresh `OnboardingFlow`.
+    /// `.email` preserves the persisted draft; `.social` will have its storage wiped
+    /// by `configureSocialUser` in the new flow.
+    private func redirectToOnboarding(_ pending: PendingOnboardingUser) {
+        authDebug("AUTH_POST_AUTH_DEST", "needsPinSetup → redirecting to onboarding (\(pending))")
+        pendingOnboardingUser = pending
         hasReturningUser = false
         returningUserFlagLoaded = true
         authState = .unauthenticated
@@ -217,16 +222,16 @@ extension AppState {
         let user = try await signIn()
         clearPreLoginFlags()
 
-        // Detect existing users with configured vault — redirect to login flow
-        do {
-            let vaultStatus = try await encryptionAPI.getVaultStatus()
-            if vaultStatus.pinCodeConfigured {
-                authDebug(tag, "existing user detected — redirecting to login flow")
-                await completeLogin(user: user)
-                return .existingUserRedirected
-            }
-        } catch {
-            authDebug(tag, "vault status check failed — treating as new user: \(error)")
+        // Detect existing users with configured vault — redirect to login flow.
+        // Propagate any failure here: silently treating an unknown vault state as
+        // "new user" would let an existing PIN-configured user bypass PIN entry on a
+        // transient vault-status API failure (network drop, 5xx). Surface the error
+        // and let the caller decide whether to retry.
+        let vaultStatus = try await encryptionAPI.getVaultStatus()
+        if vaultStatus.pinCodeConfigured {
+            authDebug(tag, "existing user detected — redirecting to login flow")
+            await completeLogin(user: user)
+            return .existingUserRedirected
         }
 
         authDebug(tag, "complete — deferring routing to onboarding")
@@ -251,19 +256,23 @@ extension AppState {
         authDebug("AUTH_SIGNUP", "entering signup flow")
         OnboardingState.clearPersistedData()
         onboardingBootstrapper.clearPendingData()
-        pendingSocialUser = nil
+        pendingOnboardingUser = nil
         hasReturningUser = false
         returningUserFlagLoaded = true
     }
 
-    func completeOnboarding(user: UserInfo, onboardingData: BudgetTemplateCreateFromOnboarding) async {
+    func completeOnboarding(
+        user: UserInfo,
+        onboardingData: BudgetTemplateCreateFromOnboarding,
+        signupMethod: String
+    ) async {
         authDebug("AUTH_ONBOARDING", "complete email=\(user.email.prefix(3))***")
         clearPreLoginFlags()
         currentUser = user
         await keychainManager.saveLastUsedEmail(user.email)
         hasReturningUser = true
         returningUserFlagLoaded = true
-        onboardingBootstrapper.setPendingData(onboardingData)
+        onboardingBootstrapper.setPendingData(onboardingData, signupMethod: signupMethod)
         authState = .loading
 
         // Route based on actual vault status.
@@ -303,11 +312,21 @@ extension AppState {
         authDebug("AUTH_PIN_SETUP", "begin authState=\(authState)")
         guard authState == .needsPinSetup else { return }
 
-        let success = await onboardingBootstrapper.bootstrapIfNeeded()
-        if !success {
-            // Retry once on transient failure (pending data is retained)
-            _ = await onboardingBootstrapper.bootstrapIfNeeded()
+        var bootstrapped = await onboardingBootstrapper.bootstrapIfNeeded()
+        if !bootstrapped {
+            // Retry once on transient failure (pending data is retained).
+            bootstrapped = await onboardingBootstrapper.bootstrapIfNeeded()
         }
+
+        guard bootstrapped else {
+            // Both attempts failed — keep the user in `.needsPinSetup` so they can retry,
+            // surface a post-auth error banner, and DO NOT advance to `.authenticated`.
+            // Pending onboarding data is retained for the retry path.
+            authDebug("AUTH_PIN_SETUP", "bootstrap failed after retry, staying in needsPinSetup")
+            showPostAuthError = true
+            return
+        }
+
         authDebug("AUTH_PIN_SETUP", "bootstrap done, entering authenticated")
         await enterAuthenticated(context: .pinSetup)
     }

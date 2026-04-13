@@ -32,6 +32,123 @@
 | DR-009 | Signal Store Pattern with SWR | 2026-02-13 |
 | DR-010 | Greenlight Preflight & FormTextField `hint:` Rename | 2026-03-16 |
 | DR-011 | iOS Swift 6 Migration & Build Optimization | 2026-03-31 |
+| DR-012 | VariableBlur for Progressive Blur Effects | 2026-04-10 |
+| DR-013 | Onboarding Step Visibility & Apple App Store Compliance | 2026-04-12 |
+
+---
+
+## DR-013: Onboarding Step Visibility & Apple App Store Compliance
+
+**Date**: 2026-04-12
+
+### Problem
+
+Apple a rejeté l'app parce qu'on demandait le prénom à un user authentifié via Apple Sign In alors que le provider le fournissait déjà. Au-delà du fix ponctuel, l'onboarding avait plusieurs paths divergents (social vs email) avec leur propre logique de skip — fragile, dur à maintenir, et le compteur de progression "X/Y" affichait des chiffres incohérents avec le nombre d'étapes réellement vues. Le path email se terminait sur RegistrationStep (form lourd) au lieu de BudgetPreview (peak-end), cassant l'arc émotionnel.
+
+### Decision Drivers
+
+- App Store : refus garanti si on collecte une donnée déjà fournie par le SDK social
+- Le compteur de progression doit refléter exactement ce que le user voit (pas "5/7" pour quelqu'un qui ne fait que 4 étapes)
+- Social et email convergent au même point fonctionnellement (création de budget = finale) — la divergence des paths code est artificielle
+- Future-proof : si on rajoute des étapes conditionnelles (KYC, documents légaux, A/B variants), le pattern doit scaler sans dupliquer la logique de skip
+- Peak-end rule : l'expérience doit se terminer sur la célébration du budget, pas sur un formulaire de credentials
+
+### Options Considered
+
+| Option | Description | Verdict |
+|--------|-------------|---------|
+| A | Skip ad-hoc inline (`if isSocial && hasName { skipFirstName }` dans `nextStep()`) | Rejected — duplique la logique entre forward/backward + counter + tests, fragile à chaque ajout |
+| B | Visibility-driven step filter (`isStepVisible(_:)` central + `nextVisibleStep`/`previousVisibleStep` helpers) | Chosen |
+| C | Deux flows séparés (`SocialOnboardingFlow` vs `EmailOnboardingFlow`) | Rejected — sur-engineering, casse le edit round-trip de BudgetPreview, duplique les étapes financières |
+
+### Decision
+
+1. **`isStepVisible(_:)`** central sur `OnboardingState` détermine la visibilité de chaque step en fonction de l'auth state : welcome toujours visible ; `firstName` masqué pour social-with-name ; `registration` masqué une fois authentifié ; le reste toujours visible
+2. **`nextVisibleStep(after:)` / `previousVisibleStep(before:)`** helpers privés consommés par `nextStep()` / `previousStep()` — un seul mécanisme de skip, pas de cas particuliers
+3. **`progressBarSteps: [OnboardingStep]`** computed feedé à `OnboardingProgressIndicator` → le compteur affiche exactement les étapes vraiment vues (4/4 social-with-name, 5/5 social-private-relay, 6/6 email)
+4. **Unified auth model** : `authenticatedUser` + `readyToComplete` remplacent `socialUser` + `readyForSocialCompletion`. Les deux paths convergent vers `finishOnboarding()` déclenché depuis BudgetPreview comme finale unique
+5. **`socialProvidedName` flag** stable (set une fois dans `configureSocialUser`) — la visibilité ne shift pas pendant que l'user tape son nom dans firstName
+6. **Implicit consent** : checkbox CGU supprimée en faveur d'un disclosure inline (`OnboardingConsentText` shared component) couvrant social ET email
+7. **Cold-start session recovery** via `wasEmailRegistered` flag persisté dans `OnboardingStorageData` + `AuthService.validateSession()` au mount
+
+### Rationale
+
+- L'option A fixerait le rejet Apple mais laisserait la duplication entre forward/backward + counter + tests — chaque future contrainte ajouterait une nouvelle paire de skips à maintenir
+- L'option B unifie tout : un seul prédicat de visibilité, helpers de navigation et counter en dérivent. Ajouter une contrainte future = un seul `case` dans `isStepVisible(_:)`
+- L'option C casse le `editReturnStep` round-trip (deux struct types ne partagent pas leur state observable) et duplique tout le code des étapes financières
+- Le `socialProvidedName` doit être un flag stable (pas calculé depuis `firstName.isEmpty`) parce que sinon la visibilité change quand l'user tape → le compteur shift mid-flow → confusion
+- Le path email n'a pas besoin d'un finale différent du path social : BudgetPreview est la célébration légitime des deux
+
+### Consequences
+
+- **Positive** : Rejection App Store résolue ; compteur honnête sur tous les paths ; un seul chemin de code pour ajouter des étapes conditionnelles à l'avenir
+- **Positive** : Les deux paths convergent vers BudgetPreview comme finale → peak-end rule respectée pour tous les users (la dernière chose qu'ils voient avant le PIN setup, c'est leur budget, pas un form)
+- **Positive** : `editReturnStep` round-trip fonctionne sur le path unifié sans branchement (l'user peut éditer Revenus/Charges/Épargne depuis BudgetPreview et revenir automatiquement)
+- **Trade-off** : Consent implicite inline (`OnboardingConsentText`) au lieu d'une checkbox explicite — couvre social ET email mais à surveiller si évolution réglementaire (GDPR, FADP suisse). Documentation marketing/légale doit refléter le pattern
+- **Trade-off** : Cold-start recovery email dépend de `AuthService.validateSession()` au `.task` du flow — une session expirée silencieusement reset le user à `.welcome` (acceptable, mais faut le savoir lors du debug)
+- **Impact** : `OnboardingState.swift` (visibility helpers + unified auth state), `OnboardingStep.swift` (enum extrait pour SwiftLint file-length), `OnboardingFlow.swift` (consume `progressBarSteps` + cold-start recovery), `OnboardingProgressIndicator.swift` (interface refactor : `progressSteps: [OnboardingStep]` au lieu de `totalSteps: Int`), tous les `Steps/*.swift` (alignment), `OnboardingConsentText.swift` (nouveau shared component)
+
+### Notes
+
+- **Règle pour future onboarding work** : si tu veux ajouter une étape conditionnelle, ajoute son cas dans `isStepVisible(_:)` — ne **JAMAIS** skip inline dans `nextStep()` / `previousStep()`. Le pattern visibility est conçu pour scaler.
+- **Règle Apple App Store** : ne **JAMAIS** demander une donnée que le provider social fournit déjà (firstName, email, photo). Tester systématiquement le path Apple Sign In avec un compte qui partage le nom complet avant submission.
+- Le pattern visibility est extensible : KYC, documents légaux, étapes payment, A/B test variants — tous peuvent devenir conditionnels via le même mécanisme sans toucher la navigation
+- Le `OnboardingStep` enum a été extrait dans son propre fichier (`OnboardingStep.swift`) pour passer la limite SwiftLint `file_length` sur `OnboardingState.swift` après le refactor
+- Implémentation : commits `5e5b24b33` (unification refactor), `d70509497` (polish + lighter form), `a7c557e46` (clean code follow-up)
+
+---
+
+## DR-012: VariableBlur for Progressive Blur Effects
+
+**Date**: 2026-04-10
+
+### Problem
+
+Les écrans d'onboarding et de login utilisent un fond en dégradé (`loginGradientBackground` : vert → dark). Un fade par `LinearGradient` vers une couleur fixe ne matche jamais le fond à toutes les positions. Un `.ultraThinMaterial` masqué par gradient crée une bande grisâtre visible sur fond sombre. Aucune API publique SwiftUI ne permet un blur à rayon variable (gaussien qui fade de max → 0).
+
+### Decision Drivers
+
+- Le fond est un gradient multi-couleurs — un fade monochrome crée toujours un mismatch visible
+- `.ultraThinMaterial` + gradient mask testé et rejeté — rendu laid sur fond sombre (bande frosted visible)
+- Apple utilise la même API privée (`CAFilter` gaussian variable sigma) dans Music, Photos, Safari
+- Le package [nikstar/VariableBlur](https://github.com/nikstar/VariableBlur) (500+ stars) expose cette API
+
+### Options Considered
+
+| Option | Description | Verdict |
+|--------|-------------|---------|
+| A: LinearGradient color fade | Gradient vers `onboardingFormBase` | Rejected — mismatch sur fond gradient |
+| B: `.ultraThinMaterial` + gradient mask | Material blur masqué | Rejected — bande frosted visible sur fond sombre |
+| C: VariableBlur (private API) | Vrai blur gaussien à rayon variable | Chosen — seule solution visuellement correcte |
+| D: Pas de blur | Clipping simple du contenu | Rejected — UX inférieure |
+
+### Decision
+
+Ajouter `nikstar/VariableBlur` v1.3.0 comme dépendance SPM. Wrapper dans `ProgressiveBlurEdge` (composant partagé dans `Shared/Components/`) utilisé sur :
+- **Login** : top overlay avec `.ignoresSafeArea(edges: .top)` pour couvrir le Dynamic Island
+- **Onboarding** : bottom overlay avec `.ignoresSafeArea(edges: .bottom)` sous le floating button
+- **Onboarding top** : conserve un `LinearGradient` simple (le fond à ce niveau est déjà proche de `onboardingFormBase`)
+
+### Rationale
+
+- `VariableBlurView` change le **rayon** du blur (max → 0), pas l'opacité d'un material fixe — transition visuellement invisible quel que soit le fond
+- API privée (`CAFilter`) mais identique à ce qu'Apple utilise dans ses propres apps — approuvé App Store à ce jour
+- Package léger (~200 lignes), pas de dépendances transitives, iOS 13+
+- Les alternatives publiques SwiftUI ont toutes été testées et rejetées pour des raisons visuelles concrètes
+
+### Consequences
+
+- **Positive** : Blur progressif natif sur n'importe quel fond (gradient, image, couleur)
+- **Risk** : API privée — Apple pourrait bloquer `CAFilter` en App Store review. Le package est utilisé en production par de nombreuses apps sans rejet connu, mais le risque existe.
+- **Fallback** : Si rejeté, revenir au `LinearGradient` color fade (déjà implémenté comme alternative sur le top onboarding)
+- **Impact** : `project.yml` (nouvelle dépendance), `ProgressiveBlurEdge.swift`, `OnboardingFlow.swift`, `LoginView.swift`
+
+### Notes
+
+- **iOS 26 a introduit `scrollEdgeEffectStyle(.soft, for: .bottom)`** — API native qui fait exactement le même job (blur + dim aux bords du scroll, gestion safe area + clavier automatique). Considérer une migration avec `@available(iOS 26, *)` quand le deployment target le permet.
+- **Modifier ordering critique** : `.ignoresSafeArea(edges:)` doit être appliqué AVANT `.frame(height:)` pour que la vue s'étende dans la safe area. `ProgressiveBlurEdge` applique `.frame` en interne — pour les cas nécessitant `.ignoresSafeArea`, inliner `VariableBlurView` directement et respecter l'ordre.
+- **Overlays séparés** : quand le blur et un bouton flottant ont des besoins de safe area différents, utiliser deux `.overlay()` distincts — un ZStack partagé absorbe `.ignoresSafeArea` sans étendre les enfants.
+- Le `LinearGradient` reste utilisé pour le top onboarding où le fond est quasi-monochrome à ce niveau — pas besoin de vrai blur
 
 ---
 

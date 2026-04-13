@@ -685,7 +685,42 @@
     "budgetCreateError": "Erreur lors de la création de ton budget initial.",
     "createBudgetError": "Erreur lors de la création du budget",
     "unexpectedError": "Quelque chose n'a pas fonctionné — réessaie",
-    "budgetGenerateError": "La génération de tes budgets a échoué — réessaie"
+    "budgetGenerateError": "La génération de tes budgets a échoué — réessaie",
+    "chargeGroups": {
+      "housing": "Logement",
+      "insuranceSubscriptions": "Assurance & Abonnements",
+      "mobilityCredit": "Mobilité & Crédit"
+    },
+    "suggestions": {
+      "sectionTitle": "Ajouter en un clic"
+    },
+    "summary": {
+      "income": "Revenu",
+      "committed": "Dépenses",
+      "available": "Disponible",
+      "deficitHint": "Pas d'inquiétude — tu pourras ajuster tout ça après.",
+      "liveAvailableAnnouncement": "Disponible : {{ amount }} francs",
+      "liveDeficitAnnouncement": "Déficit de {{ amount }} francs à équilibrer"
+    },
+    "stepperAriaLabel": "Étape {{ current }} sur {{ total }}",
+    "customize": {
+      "sectionTitle": "Personnaliser ton budget"
+    },
+    "customExpense": {
+      "dialogTitle": "Ajouter une prévision",
+      "nameLabel": "Nom de la prévision",
+      "namePlaceholder": "Ex: Salle de sport, Streaming...",
+      "nameMaxLength": "100 caractères maximum",
+      "amountLabel": "Montant",
+      "sectionTitle": "Prévisions personnalisées",
+      "addButton": "Ajouter une prévision",
+      "kindExpense": "Dépense",
+      "kindSaving": "Épargne",
+      "kindIncome": "Revenu",
+      "kindToggleAriaLabel": "Type de prévision",
+      "amountAriaLabel": "Montant de {{ name }}",
+      "removeAriaLabel": "Supprimer {{ name }}"
+    }
   },
   "legal": {
     "privacyPolicyTitle": "Politique de Confidentialité",

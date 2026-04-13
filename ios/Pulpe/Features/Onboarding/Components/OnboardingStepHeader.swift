@@ -5,6 +5,7 @@ struct OnboardingStepHeader: View {
     let step: OnboardingStep
     var titleOverride: String?
     var subtitleOverride: String?
+    var onSkip: (() -> Void)?
 
     var body: some View {
         VStack(spacing: DesignTokens.Spacing.lg) {
@@ -19,7 +20,18 @@ struct OnboardingStepHeader: View {
                 .padding(.horizontal, DesignTokens.Spacing.lg)
 
             if step.isOptional {
-                OptionalBadge()
+                VStack(spacing: DesignTokens.Spacing.sm) {
+                    OptionalBadge()
+
+                    if let onSkip {
+                        Button("Passer cette étape") { onSkip() }
+                            .font(PulpeTypography.buttonSecondary)
+                            .foregroundStyle(Color.pulpePrimary)
+                            .textLinkButtonStyle()
+                            .frame(minHeight: DesignTokens.TapTarget.minimum)
+                            .contentShape(Rectangle())
+                    }
+                }
             }
         }
     }
@@ -31,20 +43,20 @@ struct OptionalBadge: View {
         HStack(spacing: DesignTokens.Spacing.xs) {
             Image(systemName: "arrow.right.circle")
                 .font(PulpeTypography.caption2)
-            Text("Optionnel — tu peux passer")
+            Text("Optionnel")
                 .font(PulpeTypography.caption)
                 .fontWeight(.medium)
         }
         .foregroundStyle(Color.textTertiaryOnboarding)
-        .padding(.horizontal, 14)
-        .padding(.vertical, 6)
+        .padding(.horizontal, DesignTokens.Spacing.lg)
+        .padding(.vertical, DesignTokens.Spacing.sm)
         .background(Color.textTertiaryOnboarding.opacity(0.15), in: Capsule())
     }
 }
 
 #Preview {
     VStack(spacing: 40) {
-        OnboardingStepHeader(step: .expenses)
+        OnboardingStepHeader(step: .charges)
         OnboardingStepHeader(step: .budgetPreview)
     }
     .padding()

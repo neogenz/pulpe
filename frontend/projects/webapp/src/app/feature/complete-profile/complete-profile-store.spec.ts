@@ -1,7 +1,10 @@
 import { TestBed } from '@angular/core/testing';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { of, throwError } from 'rxjs';
-import { CompleteProfileStore } from './complete-profile-store';
+import {
+  CompleteProfileStore,
+  ONBOARDING_SUGGESTIONS,
+} from './complete-profile-store';
 import { ProfileSetupService } from '@core/complete-profile';
 import { BudgetApi } from '@core/budget';
 import { Logger } from '@core/logging/logger';
@@ -105,6 +108,10 @@ describe('CompleteProfileStore', () => {
 
     it('should have null payDayOfMonth', () => {
       expect(store.payDayOfMonth()).toBeNull();
+    });
+
+    it('should have empty customTransactions', () => {
+      expect(store.customTransactions()).toEqual([]);
     });
 
     it('should be invalid for step 1', () => {
@@ -341,6 +348,7 @@ describe('CompleteProfileStore', () => {
         transportCosts: undefined,
         leasingCredit: undefined,
         payDayOfMonth: undefined,
+        customTransactions: [],
       });
     });
 
@@ -454,6 +462,7 @@ describe('CompleteProfileStore', () => {
           signup_method: 'email',
           has_pay_day: false,
           charges_count: 0,
+          custom_transactions_count: 0,
         },
       );
     });
@@ -499,8 +508,262 @@ describe('CompleteProfileStore', () => {
           signup_method: 'email',
           has_pay_day: true,
           charges_count: 3,
+          custom_transactions_count: 0,
         },
       );
+    });
+  });
+
+  describe('customTransactions', () => {
+    const mockTransaction = {
+      name: 'Salle de sport',
+      amount: 50,
+      type: 'expense' as const,
+      expenseType: 'fixed' as const,
+      isRecurring: true,
+    };
+
+    describe('addCustomTransaction', () => {
+      it('should add a transaction to the list', () => {
+        store.addCustomTransaction(mockTransaction);
+
+        expect(store.customTransactions()).toEqual([mockTransaction]);
+      });
+
+      it('should append to existing transactions', () => {
+        const secondTransaction = {
+          ...mockTransaction,
+          name: 'Streaming',
+          amount: 15,
+        };
+
+        store.addCustomTransaction(mockTransaction);
+        store.addCustomTransaction(secondTransaction);
+
+        expect(store.customTransactions()).toHaveLength(2);
+        expect(store.customTransactions()[0].name).toBe('Salle de sport');
+        expect(store.customTransactions()[1].name).toBe('Streaming');
+      });
+    });
+
+    describe('removeCustomTransaction', () => {
+      it('should remove a transaction by index', () => {
+        store.addCustomTransaction(mockTransaction);
+        store.addCustomTransaction({
+          ...mockTransaction,
+          name: 'Streaming',
+        });
+
+        store.removeCustomTransaction(0);
+
+        expect(store.customTransactions()).toHaveLength(1);
+        expect(store.customTransactions()[0].name).toBe('Streaming');
+      });
+
+      it('should handle removing the last transaction', () => {
+        store.addCustomTransaction(mockTransaction);
+
+        store.removeCustomTransaction(0);
+
+        expect(store.customTransactions()).toEqual([]);
+      });
+    });
+
+    it('should include customTransactions in submitProfile', async () => {
+      mockProfileSetupService.createInitialBudget.mockResolvedValue({
+        success: true,
+      });
+
+      store.updateFirstName('John');
+      store.updateMonthlyIncome(5000);
+      store.addCustomTransaction(mockTransaction);
+
+      await store.submitProfile();
+
+      expect(mockProfileSetupService.createInitialBudget).toHaveBeenCalledWith(
+        expect.objectContaining({
+          customTransactions: [mockTransaction],
+        }),
+      );
+    });
+
+    it('should handle unexpected exception from createInitialBudget', async () => {
+      mockProfileSetupService.createInitialBudget.mockRejectedValue(
+        new Error('Network failure'),
+      );
+
+      store.updateFirstName('John');
+      store.updateMonthlyIncome(5000);
+
+      const result = await store.submitProfile();
+
+      expect(result).toBe(false);
+      expect(store.error()).toBeDefined();
+      expect(store.isLoading()).toBe(false);
+    });
+
+    it('should track custom_transactions_count in PostHog event', async () => {
+      mockProfileSetupService.createInitialBudget.mockResolvedValue({
+        success: true,
+      });
+
+      store.updateFirstName('John');
+      store.updateMonthlyIncome(5000);
+      store.addCustomTransaction(mockTransaction);
+
+      await store.submitProfile();
+
+      expect(mockPostHogService.captureEvent).toHaveBeenCalledWith(
+        'first_budget_created',
+        expect.objectContaining({
+          custom_transactions_count: 1,
+        }),
+      );
+    });
+  });
+
+  describe('suggestions', () => {
+    const suggestion = ONBOARDING_SUGGESTIONS[0];
+
+    describe('toggleSuggestion', () => {
+      it('should add a suggestion when not present', () => {
+        store.toggleSuggestion(suggestion);
+
+        expect(store.customTransactions()).toHaveLength(1);
+        expect(store.customTransactions()[0]).toEqual(
+          expect.objectContaining(suggestion),
+        );
+      });
+
+      it('should remove a suggestion when already present', () => {
+        store.toggleSuggestion(suggestion);
+        store.toggleSuggestion(suggestion);
+
+        expect(store.customTransactions()).toEqual([]);
+      });
+
+      it('should not affect other transactions when toggling off', () => {
+        const manualTx = {
+          name: 'Salle de sport',
+          amount: 50,
+          type: 'expense' as const,
+          expenseType: 'fixed' as const,
+          isRecurring: true,
+        };
+
+        store.addCustomTransaction(manualTx);
+        store.toggleSuggestion(suggestion);
+        store.toggleSuggestion(suggestion);
+
+        expect(store.customTransactions()).toEqual([manualTx]);
+      });
+
+      it('should not clobber a manual transaction with the same name+type as a suggestion', () => {
+        // M1 regression: if a user types a custom row literally named
+        // "Courses / alimentation" (amount 800) and THEN taps the Courses chip,
+        // the old code matched the row as suggestion-selected and erased it
+        // on the next chip tap. With the __suggestionId tag, manual rows are
+        // untouched no matter how many times the chip is toggled.
+        const manualCollision = {
+          name: 'Courses / alimentation',
+          amount: 800,
+          type: 'expense' as const,
+          expenseType: 'fixed' as const,
+          isRecurring: true,
+        };
+
+        store.addCustomTransaction(manualCollision);
+        // The chip must NOT register as selected just because a manual row
+        // happens to share the same name + type.
+        expect(
+          store.selectedSuggestionNames().has('Courses / alimentation'),
+        ).toBe(false);
+
+        // Toggling the chip adds a second entry (the suggestion), leaving the
+        // manual row alone — both coexist.
+        store.toggleSuggestion(suggestion);
+        expect(store.customTransactions()).toHaveLength(2);
+        expect(store.customTransactions()[0]).toEqual(manualCollision);
+
+        // Toggling off removes only the suggestion entry, never the manual row.
+        store.toggleSuggestion(suggestion);
+        expect(store.customTransactions()).toEqual([manualCollision]);
+      });
+    });
+
+    describe('selectedSuggestionNames', () => {
+      it('should return empty set initially', () => {
+        expect(store.selectedSuggestionNames().size).toBe(0);
+      });
+
+      it('should contain name after toggling on', () => {
+        store.toggleSuggestion(suggestion);
+
+        expect(store.selectedSuggestionNames().has(suggestion.name)).toBe(true);
+      });
+
+      it('should not contain name after toggling off', () => {
+        store.toggleSuggestion(suggestion);
+        store.toggleSuggestion(suggestion);
+
+        expect(store.selectedSuggestionNames().has(suggestion.name)).toBe(
+          false,
+        );
+      });
+
+      it('should NOT include manually added transactions even when the name matches a suggestion', () => {
+        // Post-M1 contract: chip selection is tracked by the __suggestionId
+        // tag, not by name+type. A manually typed "Courses / alimentation"
+        // must never flip the chip into the selected state.
+        store.addCustomTransaction({
+          name: 'Courses / alimentation',
+          amount: 600,
+          type: 'expense',
+          expenseType: 'fixed',
+          isRecurring: true,
+        });
+
+        expect(
+          store.selectedSuggestionNames().has('Courses / alimentation'),
+        ).toBe(false);
+      });
+    });
+
+    describe('toggle → edit amount → re-toggle (T1.1 regression)', () => {
+      it('should not duplicate the suggestion when amount is edited then re-toggled', () => {
+        // Reproduction sequence for the original bug:
+        //   1. Toggle chip ON (suggestion appended at its static amount)
+        //   2. User inline-edits the amount (mutates the stored entry)
+        //   3. Identity USED to be (name, type, amount) → edit broke it → chip rendered as unselected
+        //   4. Re-tap appended a duplicate → "Disponible à dépenser" inflated
+        // After the M1 fix, identity is carried by the __suggestionId tag,
+        // which survives amount edits. Chip stays selected after edit and
+        // re-tap removes (not duplicates) the entry.
+        const suggestion = ONBOARDING_SUGGESTIONS[0]; // Courses / alimentation, 600
+
+        store.toggleSuggestion(suggestion);
+        expect(store.customTransactions()).toHaveLength(1);
+
+        store.updateCustomTransactionAmount(0, 800);
+        expect(store.customTransactions()[0].amount).toBe(800);
+
+        // Chip stays selected after the edit (__suggestionId survived the spread).
+        expect(store.selectedSuggestionNames().has(suggestion.name)).toBe(true);
+
+        // Re-toggle removes the entry — does NOT append a duplicate.
+        store.toggleSuggestion(suggestion);
+        expect(store.customTransactions()).toHaveLength(0);
+      });
+
+      it('should remove the edited entry on re-toggle, regardless of amount drift', () => {
+        const suggestion = ONBOARDING_SUGGESTIONS[3]; // Épargne, 500
+        store.toggleSuggestion(suggestion);
+        store.updateCustomTransactionAmount(0, 1234);
+
+        store.toggleSuggestion(suggestion);
+
+        expect(store.customTransactions()).toEqual([]);
+      });
     });
   });
 });
