@@ -8,6 +8,15 @@ import {
 } from './http-expected-business-noise';
 
 describe('isExpectedBusinessHttpError', () => {
+  it('returns true for HTTP 0 (no response received)', () => {
+    const error = new HttpErrorResponse({
+      status: 0,
+      statusText: 'Unknown Error',
+      url: 'https://api.pulpe.app/api/v1/budgets',
+    });
+    expect(isExpectedBusinessHttpError(error)).toBe(true);
+  });
+
   it('returns true for HTTP 429', () => {
     const error = new HttpErrorResponse({
       status: 429,
@@ -52,6 +61,11 @@ describe('isExpectedBusinessHttpError', () => {
 describe('isExpectedBusinessApiError', () => {
   it('returns false for non-ApiError', () => {
     expect(isExpectedBusinessApiError(new Error('x'))).toBe(false);
+  });
+
+  it('returns false for status 0 ApiError (Zod parse / generic JS error)', () => {
+    const error = new ApiError('x', 'ZOD_PARSE_ERROR', 0, undefined);
+    expect(isExpectedBusinessApiError(error)).toBe(false);
   });
 
   it('returns true for 429 ApiError', () => {

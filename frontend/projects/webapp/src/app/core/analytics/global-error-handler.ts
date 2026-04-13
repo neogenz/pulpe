@@ -3,6 +3,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { PostHogService } from './posthog';
 import { Logger } from '../logging/logger';
 import { ApiError } from '../api/api-error';
+import { isChunkLoadError } from '../routing/navigation-error-handler';
 
 /**
  * Global error handler following Angular best practices.
@@ -26,6 +27,14 @@ export class GlobalErrorHandler implements ErrorHandler {
 
     // ApiError wrapping an HTTP response is already captured — skip only those
     if (error instanceof ApiError && error.status > 0) {
+      return;
+    }
+
+    // Stale-chunk errors are handled by withNavigationErrorHandler in the
+    // router config (see navigation-error-handler.ts). If one still bubbles
+    // here it means the reload was already attempted or the error happened
+    // outside a navigation — either way, we don't want to re-capture noise.
+    if (isChunkLoadError(error)) {
       return;
     }
 

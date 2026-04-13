@@ -30,6 +30,14 @@ function readErrorBodyCode(body: unknown): string | undefined {
 }
 
 export function isExpectedBusinessHttpError(error: HttpErrorResponse): boolean {
+  // Status 0 = no HTTP response received (offline, aborted request,
+  // backgrounded mobile tab, CORS preflight failure). Not actionable from
+  // our side — filter to keep error-tracking signal high.
+  // Only applies to HttpErrorResponse: ApiError(status: 0) means a Zod
+  // parse error or generic JS failure, which IS a real bug worth reporting.
+  if (error.status === 0) {
+    return true;
+  }
   return matchesExpectedBusinessNoise(
     error.status,
     readErrorBodyCode(error.error),
