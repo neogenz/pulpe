@@ -4,6 +4,10 @@ export interface WhatsNewRelease {
 }
 
 export const LATEST_RELEASE: WhatsNewRelease = {
-  version: '0.32.1',
-  features: ['Récupération automatique après mise à jour'],
+  version: '0.31.0',
+  features: [
+    'Génération automatique de 12 mois de budgets',
+    'Vérification de la clé de récupération',
+    'Cache intelligent avec rafraîchissement en arrière-plan',
+  ],
 };
