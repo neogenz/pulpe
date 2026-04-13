@@ -1,5 +1,30 @@
 [
   {
+    "version": "0.33.1",
+    "date": "2026-04-13",
+    "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.33.1",
+    "platforms": ["web"],
+    "changes": {
+      "features": [],
+      "fixes": [
+        {
+          "title": "Récupération automatique après mise à jour",
+          "description": "Si une page reste ouverte pendant qu'une nouvelle version est déployée, l'application se recharge maintenant toute seule au lieu de tomber en erreur"
+        },
+        {
+          "title": "Lien App Store de l'app iOS",
+          "description": "Le bouton de téléchargement sur la landing pointe désormais vers la vraie page App Store"
+        }
+      ],
+      "technical": [
+        {
+          "title": "Filtrage du bruit réseau dans le suivi d'erreurs",
+          "description": "Les erreurs réseau « status 0 » (requêtes annulées, hors-ligne) ne sont plus remontées à PostHog pour réduire le bruit sans masquer les vraies erreurs"
+        }
+      ]
+    }
+  },
+  {
     "version": "0.33.0",
     "date": "2026-04-08",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.33.0",

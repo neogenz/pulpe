@@ -1,5 +1,11 @@
 # pulpe-frontend
 
+## 0.32.1
+
+### Patch Changes
+
+- Récupération automatique après mise à jour : si une page reste ouverte pendant un déploiement, l'application se recharge toute seule pour récupérer la version à jour. Lien App Store de l'app iOS corrigé sur la landing. Filtrage des erreurs réseau « status 0 » dans le suivi PostHog.
+
 ## 0.32.0
 
 ### Minor Changes
