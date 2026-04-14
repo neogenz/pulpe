@@ -106,7 +106,11 @@ struct BudgetDetailsView: View {
                 },
                 onDismissAndDelete: { transaction in
                     linkedBudgetLineId = nil
-                    viewModel.softDeleteTransaction(transaction, toastManager: appState.toastManager)
+                    let deleted = transaction
+                    Task { @MainActor in
+                        try? await Task.sleep(for: .milliseconds(350))
+                        viewModel.softDeleteTransaction(deleted, toastManager: appState.toastManager)
+                    }
                 },
                 onDismissAndAddTransaction: { budgetLine in
                     linkedBudgetLineId = nil

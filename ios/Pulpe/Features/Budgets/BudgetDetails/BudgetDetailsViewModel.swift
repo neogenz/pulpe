@@ -40,7 +40,6 @@ final class BudgetDetailsViewModel {
     // Cached metrics to avoid recalculation on every access
     @ObservationIgnored private var cachedMetrics: BudgetFormulas.Metrics?
     @ObservationIgnored private var cachedRealizedMetrics: BudgetFormulas.RealizedMetrics?
-    private var pendingDeleteTasks: [String: Task<Void, Never>] = [:]
 
     private let budgetService = BudgetService.shared
     private let budgetLineService = BudgetLineService.shared
@@ -475,35 +474,27 @@ final class BudgetDetailsViewModel {
     /// Soft delete with undo support - removes from UI immediately but delays API call
     /// Returns an undo closure that restores the transaction if called before commit
     func softDeleteTransaction(_ transaction: Transaction, toastManager: ToastManager) {
-        // Cancel any pending delete for the same ID
-        pendingDeleteTasks[transaction.id]?.cancel()
-
         // Remove from UI immediately (optimistic)
         transactions.removeAll { $0.id == transaction.id }
         recomputeMetrics()
         syncCache()
         invalidateAdjacentCache()
 
-        // Show undo toast - actual deletion happens when toast dismisses
-        toastManager.showWithUndo("Transaction supprimée") { [weak self] in
-            guard let self else { return }
-            self.pendingDeleteTasks[transaction.id]?.cancel()
-            self.pendingDeleteTasks[transaction.id] = nil
-            guard !self.transactions.contains(where: { $0.id == transaction.id }) else { return }
-            self.transactions.append(transaction)
-            self.recomputeMetrics()
-            self.syncCache()
-        }
-
-        // Schedule actual deletion after toast timeout
-        pendingDeleteTasks[transaction.id] = Task {
-            defer { pendingDeleteTasks[transaction.id] = nil }
-            try? await Task.sleep(for: .seconds(3.5))
-            guard !Task.isCancelled else { return }
-            // If transaction is still removed (not restored via undo), commit deletion
-            guard !(self.transactions.contains { $0.id == transaction.id }) else { return }
-            await self.commitDeleteTransaction(transaction)
-        }
+        toastManager.showWithUndo(
+            "Transaction supprimée",
+            undo: { [weak self] in
+                guard let self else { return }
+                guard !self.transactions.contains(where: { $0.id == transaction.id }) else { return }
+                self.transactions.append(transaction)
+                self.recomputeMetrics()
+                self.syncCache()
+            },
+            onFinishedWithoutUndo: { [weak self] in
+                guard let self else { return }
+                guard !(self.transactions.contains { $0.id == transaction.id }) else { return }
+                await self.commitDeleteTransaction(transaction)
+            }
+        )
     }
 
     /// Actually delete the transaction from the server
@@ -555,35 +546,27 @@ final class BudgetDetailsViewModel {
     func softDeleteBudgetLine(_ line: BudgetLine, toastManager: ToastManager) {
         guard !(line.isRollover ?? false) else { return }
 
-        // Cancel any pending delete for the same ID
-        pendingDeleteTasks[line.id]?.cancel()
-
         // Remove from UI immediately (optimistic)
         budgetLines.removeAll { $0.id == line.id }
         recomputeMetrics()
         syncCache()
         invalidateAdjacentCache()
 
-        // Show undo toast
-        toastManager.showWithUndo("Prévision supprimée") { [weak self] in
-            guard let self else { return }
-            self.pendingDeleteTasks[line.id]?.cancel()
-            self.pendingDeleteTasks[line.id] = nil
-            guard !self.budgetLines.contains(where: { $0.id == line.id }) else { return }
-            self.budgetLines.append(line)
-            self.recomputeMetrics()
-            self.syncCache()
-        }
-
-        // Schedule actual deletion after toast timeout
-        pendingDeleteTasks[line.id] = Task {
-            defer { pendingDeleteTasks[line.id] = nil }
-            try? await Task.sleep(for: .seconds(3.5))
-            guard !Task.isCancelled else { return }
-            // If budget line is still removed (not restored via undo), commit deletion
-            guard !(self.budgetLines.contains { $0.id == line.id }) else { return }
-            await self.commitDeleteBudgetLine(line)
-        }
+        toastManager.showWithUndo(
+            "Prévision supprimée",
+            undo: { [weak self] in
+                guard let self else { return }
+                guard !self.budgetLines.contains(where: { $0.id == line.id }) else { return }
+                self.budgetLines.append(line)
+                self.recomputeMetrics()
+                self.syncCache()
+            },
+            onFinishedWithoutUndo: { [weak self] in
+                guard let self else { return }
+                guard !(self.budgetLines.contains { $0.id == line.id }) else { return }
+                await self.commitDeleteBudgetLine(line)
+            }
+        )
     }
 
     /// Actually delete the budget line from the server

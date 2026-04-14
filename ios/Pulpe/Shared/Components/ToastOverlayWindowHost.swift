@@ -2,26 +2,26 @@ import OSLog
 import SwiftUI
 import UIKit
 
-// MARK: - Public SwiftUI entry
+// MARK: - Public SwiftUI entry point
 
-/// Attaches a dedicated overlay `UIWindow` on the active `UIWindowScene` so toasts sit above
-/// SwiftUI `.sheet` presentations (which live above ancestor `overlay` in the main window).
+/// Zero-size anchor that lives in the main window.
+/// Creates a dedicated `UIWindow` above all presentations (sheets, alerts)
+/// and drives its content by explicitly pushing `ToastManager` state into
+/// the separate `UIHostingController` on every change.
 struct ToastOverlayWindowHost: View {
     @Bindable var toastManager: ToastManager
 
     var body: some View {
-        ToastOverlayWindowRepresentable(toastManager: toastManager)
+        ToastOverlayBridge(toastManager: toastManager)
             .frame(width: 0, height: 0)
-            .accessibilityHidden(true)
             .allowsHitTesting(false)
-            // Subscribe to toast changes so `UIViewControllerRepresentable.updateUIViewController` runs.
-            .onChange(of: toastManager.currentToast?.id) { _, _ in }
+            .accessibilityHidden(true)
     }
 }
 
-// MARK: - UIViewControllerRepresentable
+// MARK: - Bridge (UIViewControllerRepresentable)
 
-private struct ToastOverlayWindowRepresentable: UIViewControllerRepresentable {
+private struct ToastOverlayBridge: UIViewControllerRepresentable {
     @Bindable var toastManager: ToastManager
 
     func makeUIViewController(context: Context) -> UIViewController {
@@ -31,126 +31,131 @@ private struct ToastOverlayWindowRepresentable: UIViewControllerRepresentable {
         return vc
     }
 
-    func updateUIViewController(_ uiViewController: UIViewController, context: Context) {
-        context.coordinator.scheduleSync(anchor: uiViewController, toastManager: toastManager)
+    func updateUIViewController(_ anchor: UIViewController, context: Context) {
+        let controller = ToastOverlayWindowController.shared
+
+        if controller.needsWindow {
+            if let scene = anchor.view.window?.windowScene {
+                controller.attach(to: scene, toastManager: toastManager)
+            } else {
+                context.coordinator.waitForScene(anchor: anchor, toastManager: toastManager)
+            }
+        }
+
+        controller.push(toastManager.currentToast)
     }
 
-    static func dismantleUIViewController(_ uiViewController: UIViewController, coordinator: Coordinator) {
-        coordinator.cancelPendingSync()
-        ToastOverlayWindowController.shared.detachIfNeeded()
+    static func dismantleUIViewController(_: UIViewController, coordinator: Coordinator) {
+        coordinator.cancel()
+        ToastOverlayWindowController.shared.detach()
     }
 
-    func makeCoordinator() -> Coordinator {
-        Coordinator()
-    }
+    func makeCoordinator() -> Coordinator { Coordinator() }
 
     @MainActor
     final class Coordinator {
-        private var pending: Task<Void, Never>?
+        private var task: Task<Void, Never>?
 
-        func scheduleSync(anchor: UIViewController, toastManager: ToastManager) {
-            if let scene = anchor.view.window?.windowScene {
-                pending?.cancel()
-                pending = nil
-                ToastOverlayWindowController.shared.sync(scene: scene, toastManager: toastManager)
-                return
-            }
-
-            pending?.cancel()
-            let capturedAnchor = anchor
-            let manager = toastManager
-            pending = Task { @MainActor in
+        func waitForScene(anchor: UIViewController, toastManager: ToastManager) {
+            task?.cancel()
+            task = Task { @MainActor [weak anchor] in
                 for _ in 0 ..< 12 {
-                    guard !Task.isCancelled else { return }
-                    if let scene = capturedAnchor.view.window?.windowScene {
-                        ToastOverlayWindowController.shared.sync(scene: scene, toastManager: manager)
+                    guard !Task.isCancelled, let anchor else { return }
+                    if let scene = anchor.view.window?.windowScene {
+                        ToastOverlayWindowController.shared.attach(to: scene, toastManager: toastManager)
                         return
                     }
                     try? await Task.sleep(for: .milliseconds(50))
                 }
                 #if DEBUG
-                Logger.ui.warning(
-                    // swiftlint:disable:next line_length
-                    "ToastOverlayWindowHost: UIWindowScene introuvable après ~600ms; l'overlay toast risque de ne pas s'afficher."
-                )
+                Logger.ui.warning("ToastOverlayWindowHost: UIWindowScene introuvable après ~600 ms")
                 #endif
             }
         }
 
-        func cancelPendingSync() {
-            pending?.cancel()
-            pending = nil
-        }
+        func cancel() { task?.cancel(); task = nil }
     }
 }
 
-// MARK: - Overlay window
+// MARK: - Pass-through UIWindow
 
-/// Forwards touches that only hit the hosting container through to windows below (e.g. sheet content).
-private final class ToastOverlayWindow: UIWindow {
+/// Returns `super.hitTest` only when the tap lands inside `activeToastFrame`.
+/// For every other point the window returns `nil` so touches fall through.
+private final class PassthroughWindow: UIWindow {
     override var canBecomeKey: Bool { false }
+    var activeToastFrame: CGRect = .zero
 
     override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
-        guard !isHidden else { return nil }
-        guard let hit = super.hitTest(point, with: event),
-              let rootView = rootViewController?.view
-        else { return nil }
-        return hit === rootView ? nil : hit
+        guard activeToastFrame != .zero else { return nil }
+        let global = convert(point, to: nil)
+        guard activeToastFrame.contains(global) else { return nil }
+        return super.hitTest(point, with: event)
     }
 }
 
-// MARK: - Controller
+// MARK: - Window controller (singleton, @MainActor)
 
 @MainActor
 final class ToastOverlayWindowController {
     static let shared = ToastOverlayWindowController()
-
-    private var overlayWindow: ToastOverlayWindow?
-    private var hostingController: UIHostingController<ToastOverlayRootView>?
-
     private init() {}
 
-    func sync(scene: UIWindowScene, toastManager: ToastManager) {
-        if overlayWindow?.windowScene !== scene {
-            tearDown()
-            buildWindow(scene: scene, toastManager: toastManager)
-        }
-        overlayWindow?.isHidden = toastManager.currentToast == nil
+    private var window: PassthroughWindow?
+    private var hosting: UIHostingController<ToastContent>?
+
+    var needsWindow: Bool { window == nil }
+
+    func attach(to scene: UIWindowScene, toastManager: ToastManager) {
+        guard window?.windowScene !== scene else { return }
+        detach()
+
+        let overlay = PassthroughWindow(windowScene: scene)
+        overlay.backgroundColor = .clear
+        overlay.windowLevel = .init(rawValue: UIWindow.Level.statusBar.rawValue + 1)
+        overlay.isUserInteractionEnabled = true
+        overlay.isHidden = false
+
+        let content = ToastContent(
+            toast: nil,
+            dismiss: { toastManager.dismiss() },
+            undo: { toastManager.executeUndo() }
+        )
+        let hostingController = UIHostingController(rootView: content)
+        hostingController.view.backgroundColor = .clear
+
+        overlay.rootViewController = hostingController
+        window = overlay
+        hosting = hostingController
     }
 
-    func detachIfNeeded() {
-        tearDown()
+    /// Called on every SwiftUI update cycle — pushes the latest toast into the hosting controller.
+    func push(_ toast: ToastManager.Toast?) {
+        guard let hosting else { return }
+        var root = hosting.rootView
+        root.toast = toast
+        hosting.rootView = root
     }
 
-    private func buildWindow(scene: UIWindowScene, toastManager: ToastManager) {
-        let window = ToastOverlayWindow(windowScene: scene)
-        window.backgroundColor = .clear
-        window.windowLevel = .init(rawValue: UIWindow.Level.normal.rawValue + 1)
-        window.isUserInteractionEnabled = true
-
-        let rootView = ToastOverlayRootView(manager: toastManager)
-        let hosting = UIHostingController(rootView: rootView)
-        hosting.view.backgroundColor = .clear
-
-        window.rootViewController = hosting
-        window.isHidden = toastManager.currentToast == nil
-
-        overlayWindow = window
-        hostingController = hosting
+    func setFrame(_ frame: CGRect) {
+        window?.activeToastFrame = frame
     }
 
-    private func tearDown() {
-        overlayWindow?.isHidden = true
-        overlayWindow?.rootViewController = nil
-        overlayWindow = nil
-        hostingController = nil
+    func detach() {
+        window?.isHidden = true
+        window?.rootViewController = nil
+        window = nil
+        hosting = nil
     }
 }
 
-// MARK: - SwiftUI root (même layout que `View.toastOverlay`)
+// MARK: - Pure SwiftUI content rendered inside the overlay window
 
-private struct ToastOverlayRootView: View {
-    @Bindable var manager: ToastManager
+/// Stateless SwiftUI content whose only input is the current `Toast?`.
+/// The `dismiss` / `undo` closures are captured once at creation and never change.
+private struct ToastContent: View {
+    var toast: ToastManager.Toast?
+    let dismiss: () -> Void
+    let undo: () -> Void
 
     var body: some View {
         ZStack(alignment: .top) {
@@ -158,18 +163,32 @@ private struct ToastOverlayRootView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .allowsHitTesting(false)
 
-            if let toast = manager.currentToast {
+            if let toast {
                 ToastView(
                     toast: toast,
-                    onDismiss: { manager.dismiss() },
-                    onUndo: toast.hasUndo ? { manager.executeUndo() } : nil
+                    onDismiss: dismiss,
+                    onUndo: toast.hasUndo ? undo : nil
                 )
                 .safeAreaPadding(.top)
                 .padding(.top, DesignTokens.Spacing.sm)
+                .background(toastFrameReader)
                 .transition(.move(edge: .top).combined(with: .opacity))
             }
         }
-        .animation(DesignTokens.Animation.defaultSpring, value: manager.currentToast)
+        .animation(DesignTokens.Animation.defaultSpring, value: toast)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .onChange(of: toast == nil) { _, isNil in
+            if isNil { ToastOverlayWindowController.shared.setFrame(.zero) }
+        }
+    }
+
+    private var toastFrameReader: some View {
+        GeometryReader { geo in
+            Color.clear
+                .onAppear { ToastOverlayWindowController.shared.setFrame(geo.frame(in: .global)) }
+                .onChange(of: geo.frame(in: .global)) { _, frame in
+                    ToastOverlayWindowController.shared.setFrame(frame)
+                }
+        }
     }
 }

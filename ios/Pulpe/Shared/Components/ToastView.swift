@@ -104,7 +104,7 @@ struct ToastView: View {
     VStack {
         Spacer()
         ToastView(
-            toast: ToastManager.Toast(message: "Transaction ajoutée", type: .success, undoAction: nil),
+            toast: ToastManager.Toast(message: "Transaction ajoutée", type: .success),
             onDismiss: {}
         )
         Spacer()
