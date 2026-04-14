@@ -116,12 +116,6 @@ export const toDbTemplateLineUpdate = (
   if (dto.kind !== undefined) update.kind = dto.kind;
   if (dto.recurrence !== undefined) update.recurrence = dto.recurrence;
   if (dto.description !== undefined) update.description = dto.description;
-  if (
-    dto.originalCurrency !== undefined ||
-    dto.targetCurrency !== undefined ||
-    dto.exchangeRate !== undefined
-  ) {
-    Object.assign(update, mapCurrencyMetadataToDb(dto));
-  }
+  Object.assign(update, mapCurrencyMetadataToDb(dto));
   return update;
 };

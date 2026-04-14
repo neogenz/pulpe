@@ -487,8 +487,6 @@ export class TransactionService {
   private prepareTransactionUpdateData(
     updateTransactionDto: TransactionUpdate,
   ): Record<string, unknown> {
-    // Can't reuse mapCurrencyMetadataToDb here: it emits all three currency
-    // keys with null defaults, which would clobber existing rows on PATCH.
     return {
       ...(updateTransactionDto.amount !== undefined && {
         amount: updateTransactionDto.amount,
@@ -503,15 +501,7 @@ export class TransactionService {
       ...(updateTransactionDto.category !== undefined && {
         category: updateTransactionDto.category,
       }),
-      ...(updateTransactionDto.originalCurrency !== undefined && {
-        original_currency: updateTransactionDto.originalCurrency,
-      }),
-      ...(updateTransactionDto.targetCurrency !== undefined && {
-        target_currency: updateTransactionDto.targetCurrency,
-      }),
-      ...(updateTransactionDto.exchangeRate !== undefined && {
-        exchange_rate: updateTransactionDto.exchangeRate,
-      }),
+      ...mapCurrencyMetadataToDb(updateTransactionDto),
       updated_at: new Date().toISOString(),
     };
   }

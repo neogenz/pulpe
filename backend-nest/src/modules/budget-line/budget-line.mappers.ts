@@ -126,13 +126,7 @@ export function toUpdate(
   if (updateDto.isManuallyAdjusted !== undefined) {
     updateData.is_manually_adjusted = updateDto.isManuallyAdjusted;
   }
-  if (
-    updateDto.originalCurrency !== undefined ||
-    updateDto.targetCurrency !== undefined ||
-    updateDto.exchangeRate !== undefined
-  ) {
-    Object.assign(updateData, mapCurrencyMetadataToDb(updateDto));
-  }
+  Object.assign(updateData, mapCurrencyMetadataToDb(updateDto));
 
   return updateData;
 }
