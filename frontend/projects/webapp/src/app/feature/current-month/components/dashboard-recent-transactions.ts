@@ -57,7 +57,7 @@ const KIND_ICONS: Record<TransactionKind, string> = {
           </div>
         </div>
         <button matButton (click)="viewBudget.emit()">
-          {{ 'currentMonth.viewAll' | transloco }}
+          {{ 'common.viewAll' | transloco }}
         </button>
       </div>
 

@@ -26,7 +26,8 @@
     "conversionError": "Pas de taux dispo pour l'instant — ton montant sera enregistré tel quel.",
     "networkError": "Erreur réseau — vérifie ta connexion",
     "clear": "Effacer",
-    "currencySelector": "Devise"
+    "currencySelector": "Devise",
+    "viewAll": "Voir tout"
   },
   "navigation": {
     "dashboard": "Tableau de bord",
@@ -680,7 +681,6 @@
     "addTransactionDefaultName": "Dépense",
     "recentTransactionsTitle": "Dernières transactions",
     "recentTransactionsSubtitle": "Ce mois ({{ count }})",
-    "viewAll": "Voir tout",
     "noTransaction": "Aucune transaction",
     "noTransactionThisMonth": "Aucune transaction ce mois",
     "nextMonthTitle": "Mois prochain",

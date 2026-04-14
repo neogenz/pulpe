@@ -41,6 +41,11 @@
       "sourceType": "github",
       "computedHash": "ad8821177929ea09eb94e7fc386d842c76c7f39b6c4d7aa3176ba3596dbabecc"
     },
+    "angular-material": {
+      "source": "angular-sanctuary/angular-agent-skills",
+      "sourceType": "github",
+      "computedHash": "0331c926849c43df17ece2fc04daac21e7724ed4e6b41995c8d36a748fa16cde"
+    },
     "angular-routing": {
       "source": "analogjs/angular-skills",
       "sourceType": "github",
@@ -335,6 +340,11 @@
       "source": "pbakaus/impeccable",
       "sourceType": "github",
       "computedHash": "1cd76e560d1ba25b0bd5f7adfa2957a9f653a3ad0b031d467221154fcd1e0423"
+    },
+    "ui-ux-pro-max": {
+      "source": "nextlevelbuilder/ui-ux-pro-max-skill",
+      "sourceType": "github",
+      "computedHash": "0a413bf988d06481f69bb81df2070741c3ba12dd9f1be2706d57f259c905992d"
     },
     "update-swiftui-apis": {
       "source": "avdlee/swiftui-agent-skill",
