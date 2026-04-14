@@ -6,8 +6,6 @@ import {
   linkedSignal,
   signal,
 } from '@angular/core';
-import { toSignal } from '@angular/core/rxjs-interop';
-import { FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatCardModule } from '@angular/material/card';
@@ -23,19 +21,13 @@ import {
   MatSelectModule,
 } from '@angular/material/select';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { DecimalPipe } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { firstValueFrom, map, merge, startWith } from 'rxjs';
+import { firstValueFrom } from 'rxjs';
 import { TranslocoService, TranslocoPipe } from '@jsverse/transloco';
 import { isApiError } from '@core/api/api-error';
 import { Logger } from '@core/logging/logger';
 import { UserSettingsStore } from '@core/user-settings';
-import {
-  AppCurrencyPipe,
-  CURRENCY_CONFIG,
-  CurrencyConverterService,
-} from '@core/currency';
 import { FeatureFlagsService } from '@core/feature-flags';
 import { AuthSessionService } from '@core/auth/auth-session.service';
 import { AuthStateService } from '@core/auth';
@@ -46,6 +38,7 @@ import {
   RecoveryKeyDialog,
   type RecoveryKeyDialogData,
 } from '@ui/dialogs/recovery-key-dialog';
+import { CurrencyConverterWidget } from '@pattern/currency-converter-widget';
 import { PAY_DAY_MAX, type SupportedCurrency } from 'pulpe-shared';
 import { ChangePasswordDialog } from './components/change-password-dialog';
 import { ChangePinDialog } from './components/change-pin-dialog';
@@ -53,14 +46,10 @@ import { DeleteAccountDialog } from './components/delete-account-dialog';
 import { RegenerateRecoveryKeyDialog } from './components/regenerate-recovery-key-dialog';
 import { VerifyRecoveryKeyDialog } from './components/verify-recovery-key-dialog';
 
-const SETTINGS_CONVERTER_AMOUNT_MAX = 100_000_000;
-
 @Component({
   selector: 'pulpe-settings-page',
   imports: [
-    AppCurrencyPipe,
-    DecimalPipe,
-    ReactiveFormsModule,
+    CurrencyConverterWidget,
     MatButtonModule,
     MatButtonToggleModule,
     MatCardModule,
@@ -165,135 +154,11 @@ const SETTINGS_CONVERTER_AMOUNT_MAX = 100_000_000;
                 />
               </div>
 
-              <!-- Currency Converter Widget -->
               @if (isConverterVisible()) {
-                <div
-                  class="rounded-2xl bg-surface-container/50 p-5 border border-outline-variant space-y-4"
-                  data-testid="currency-converter"
-                >
-                  <div class="flex items-center gap-3">
-                    <mat-icon class="text-on-surface-variant"
-                      >currency_exchange</mat-icon
-                    >
-                    <span class="text-title-small font-medium">{{
-                      'settings.converterTitle' | transloco
-                    }}</span>
-                  </div>
-
-                  <div
-                    class="grid w-full grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-stretch gap-3"
-                  >
-                    <div class="min-w-0 w-full">
-                      <mat-form-field
-                        appearance="outline"
-                        subscriptSizing="dynamic"
-                        class="w-full"
-                      >
-                        <mat-label>{{
-                          'settings.converterAmountLabel' | transloco
-                        }}</mat-label>
-                        <input
-                          matInput
-                          type="number"
-                          inputmode="decimal"
-                          [formControl]="converterAmountControl"
-                          step="0.01"
-                          min="0"
-                          [attr.max]="converterAmountMax"
-                          class="tabular-nums"
-                          data-testid="converter-amount-input"
-                        />
-                        <span matTextSuffix>{{ converterBaseSymbol() }}</span>
-                        @if (converterAmountControl.hasError('max')) {
-                          <mat-error data-testid="converter-amount-max-error">
-                            {{
-                              'settings.converterAmountMaxError'
-                                | transloco: { max: converterAmountMax }
-                            }}
-                          </mat-error>
-                        } @else if (converterAmountControl.hasError('min')) {
-                          <mat-error data-testid="converter-amount-min-error">
-                            {{ 'settings.converterAmountMinError' | transloco }}
-                          </mat-error>
-                        } @else if (
-                          converterAmountControl.hasError('required')
-                        ) {
-                          <mat-error
-                            data-testid="converter-amount-required-error"
-                          >
-                            {{
-                              'settings.converterAmountRequiredError'
-                                | transloco
-                            }}
-                          </mat-error>
-                        }
-                      </mat-form-field>
-                    </div>
-
-                    <div class="flex items-center justify-center shrink-0">
-                      <button
-                        matIconButton
-                        type="button"
-                        (click)="swapConverterDirection()"
-                        [attr.aria-label]="
-                          'settings.swapConversionAriaLabel' | transloco
-                        "
-                        data-testid="converter-swap-button"
-                      >
-                        <mat-icon class="!m-0 !block">swap_horiz</mat-icon>
-                      </button>
-                    </div>
-
-                    <div class="flex min-w-0 w-full items-center">
-                      <div
-                        class="min-w-0 w-full overflow-x-auto rounded-xl bg-surface-container-low p-3 text-center ph-no-capture"
-                      >
-                        @if (isLoadingRate()) {
-                          <mat-progress-spinner
-                            mode="indeterminate"
-                            [diameter]="20"
-                            class="mx-auto"
-                          />
-                        } @else if (conversionRateFetchFailed()) {
-                          <p
-                            role="alert"
-                            class="text-body-small text-error px-1"
-                            data-testid="converter-rate-error"
-                          >
-                            {{ 'settings.converterRateFetchError' | transloco }}
-                          </p>
-                        } @else if (convertedAmount() !== null) {
-                          <p
-                            class="text-title-medium font-bold text-on-surface min-w-0 whitespace-nowrap tabular-nums"
-                            data-testid="converter-result"
-                          >
-                            {{
-                              convertedAmount()
-                                | appCurrency: converterTarget() : '1.2-2'
-                            }}
-                          </p>
-                        }
-                      </div>
-                    </div>
-                  </div>
-
-                  @if (conversionRate() !== null) {
-                    <p
-                      class="text-body-small text-on-surface-variant text-center"
-                      data-testid="converter-rate-info"
-                    >
-                      {{
-                        'settings.converterRateInfo'
-                          | transloco
-                            : {
-                                base: converterBase(),
-                                rate: (conversionRate() | number: '1.3-3'),
-                                target: converterTarget(),
-                              }
-                      }}
-                    </p>
-                  }
-                </div>
+                <pulpe-currency-converter-widget
+                  [savedCurrency]="initialCurrency()"
+                  [draftCurrency]="selectedCurrency()"
+                />
               }
             }
 
@@ -521,7 +386,6 @@ export default class SettingsPage {
   readonly #encryptionApi = inject(EncryptionApi);
   readonly #authState = inject(AuthStateService);
   readonly #transloco = inject(TranslocoService);
-  readonly #currencyConverter = inject(CurrencyConverterService);
   readonly #featureFlags = inject(FeatureFlagsService);
 
   readonly isDemoMode = this.#demoMode.isDemoMode;
@@ -564,79 +428,9 @@ export default class SettingsPage {
     );
   });
 
-  // Converter state
-  /** Plafond de saisie du montant dans le convertisseur (paramètres). */
-  protected readonly converterAmountMax = SETTINGS_CONVERTER_AMOUNT_MAX;
-
-  protected readonly converterAmountControl = new FormControl<number | null>(
-    100,
-    {
-      validators: [
-        Validators.required,
-        Validators.min(0),
-        Validators.max(SETTINGS_CONVERTER_AMOUNT_MAX),
-      ],
-    },
-  );
-
-  readonly #converterAmountState = toSignal(
-    merge(
-      this.converterAmountControl.valueChanges.pipe(
-        map(() => ({
-          value: this.converterAmountControl.value,
-          valid: this.converterAmountControl.valid,
-        })),
-      ),
-      this.converterAmountControl.statusChanges.pipe(
-        map(() => ({
-          value: this.converterAmountControl.value,
-          valid: this.converterAmountControl.valid,
-        })),
-      ),
-    ).pipe(
-      startWith({
-        value: this.converterAmountControl.value,
-        valid: this.converterAmountControl.valid,
-      }),
-    ),
-    {
-      initialValue: {
-        value: this.converterAmountControl.value,
-        valid: this.converterAmountControl.valid,
-      },
-    },
-  );
-
-  protected readonly isConverterReversed = signal(false);
-  protected readonly conversionRate = signal<number | null>(null);
-  protected readonly isLoadingRate = signal(false);
-  protected readonly conversionRateFetchFailed = signal(false);
-
   protected readonly isConverterVisible = computed(
     () => this.selectedCurrency() !== this.initialCurrency(),
   );
-
-  protected readonly converterBase = computed(() =>
-    this.isConverterReversed()
-      ? this.selectedCurrency()
-      : this.initialCurrency(),
-  );
-  protected readonly converterTarget = computed(() =>
-    this.isConverterReversed()
-      ? this.initialCurrency()
-      : this.selectedCurrency(),
-  );
-  protected readonly converterBaseSymbol = computed(
-    () => CURRENCY_CONFIG[this.converterBase()].symbol,
-  );
-  protected readonly convertedAmount = computed(() => {
-    const rate = this.conversionRate();
-    const { value: amount, valid } = this.#converterAmountState();
-    if (rate === null || !valid || amount === null || Number.isNaN(amount)) {
-      return null;
-    }
-    return this.#currencyConverter.convert(amount, rate);
-  });
 
   onPayDayChange(event: MatSelectChange): void {
     this.selectedPayDay.set(event.value);
@@ -648,12 +442,6 @@ export default class SettingsPage {
 
   onCurrencyChange(value: SupportedCurrency): void {
     this.selectedCurrency.set(value);
-    this.#fetchConversionRate();
-  }
-
-  swapConverterDirection(): void {
-    this.isConverterReversed.update((v) => !v);
-    this.#fetchConversionRate();
   }
 
   async saveSettings(): Promise<void> {
@@ -697,29 +485,6 @@ export default class SettingsPage {
     this.selectedPayDay.set(this.initialPayDay());
     this.selectedCurrency.set(this.initialCurrency());
     this.selectedShowCurrencySelector.set(this.initialShowCurrencySelector());
-    this.conversionRate.set(null);
-    this.conversionRateFetchFailed.set(false);
-  }
-
-  async #fetchConversionRate(): Promise<void> {
-    const base = this.converterBase();
-    const target = this.converterTarget();
-    if (base === target) {
-      this.conversionRate.set(null);
-      this.conversionRateFetchFailed.set(false);
-      return;
-    }
-    this.conversionRateFetchFailed.set(false);
-    this.isLoadingRate.set(true);
-    try {
-      const rate = await this.#currencyConverter.fetchRate(base, target);
-      this.conversionRate.set(rate);
-    } catch {
-      this.conversionRate.set(null);
-      this.conversionRateFetchFailed.set(true);
-    } finally {
-      this.isLoadingRate.set(false);
-    }
   }
 
   async onChangePassword(): Promise<void> {
