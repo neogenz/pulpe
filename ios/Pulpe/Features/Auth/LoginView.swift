@@ -64,6 +64,7 @@ struct LoginView: View {
             }
             .trackScreen("Login")
             .sensoryFeedback(.success, trigger: submitSuccessTrigger)
+            .keyboardFieldNavigation(focus: $focusedField, order: [.email, .password])
             .dismissKeyboardOnTap()
             .sheet(item: $forgotPasswordPresentation) { _ in
                 ForgotPasswordSheet {
@@ -158,14 +159,14 @@ extension LoginView {
                 prompt: "Adresse e-mail",
                 text: $viewModel.email,
                 systemImage: "envelope",
-                isFocused: focusedField == .email,
-                isFilled: viewModel.isEmailValid
+                isFilled: viewModel.isEmailValid,
+                focusBinding: $focusedField,
+                focusField: .email
             )
             .textContentType(.emailAddress)
             .keyboardType(.emailAddress)
             .textInputAutocapitalization(.never)
             .autocorrectionDisabled()
-            .focused($focusedField, equals: .email)
             .accessibilityIdentifier("email")
             .accessibilityLabel("Adresse e-mail")
             .accessibilityHint("Saisis ton adresse e-mail")
@@ -185,10 +186,10 @@ extension LoginView {
                 text: $viewModel.password,
                 isVisible: $viewModel.showPassword,
                 systemImage: "lock",
-                isFocused: focusedField == .password
+                focusBinding: $focusedField,
+                focusField: .password
             )
             .textContentType(.password)
-            .focused($focusedField, equals: .password)
             .accessibilityIdentifier("password")
             .accessibilityLabel("Mot de passe")
             .accessibilityHint(!viewModel.password.isEmpty && !viewModel.isPasswordValid

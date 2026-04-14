@@ -14,8 +14,7 @@ struct AddAllocatedTransactionSheet: View {
     @State private var isChecked = false
     @State private var isLoading = false
     @State private var error: Error?
-    @FocusState private var isAmountFocused: Bool
-    @FocusState private var isDescriptionFocused: Bool
+    @FocusState private var focusedField: AmountDescriptionField?
     @State private var amountText = ""
     @State private var submitSuccessTrigger = false
     @State private var inputCurrency: SupportedCurrency = .chf
@@ -54,8 +53,8 @@ struct AddAllocatedTransactionSheet: View {
         SheetFormContainer(
             title: budgetLine.name,
             isLoading: isLoading,
-            autoFocus: $isAmountFocused,
-            descriptionFocus: $isDescriptionFocused
+            focus: $focusedField,
+            focusOrder: [.amount, .description]
         ) {
             if userSettingsStore.showCurrencySelectorEffective {
                 CurrencyAmountPicker(selectedCurrency: $inputCurrency, baseCurrency: userSettingsStore.currency)
@@ -63,14 +62,16 @@ struct AddAllocatedTransactionSheet: View {
             HeroAmountField(
                 amount: $amount,
                 amountText: $amountText,
-                isFocused: $isAmountFocused,
+                focus: $focusedField,
+                field: .amount,
                 currency: inputCurrency,
                 accentColor: budgetLine.kind.color
             )
             QuickAmountChips(
                 amount: $amount,
                 amountText: $amountText,
-                isFocused: $isAmountFocused,
+                focus: $focusedField,
+                amountField: .amount,
                 color: budgetLine.kind.color,
                 currency: inputCurrency
             )
@@ -98,7 +99,8 @@ struct AddAllocatedTransactionSheet: View {
             text: $name,
             label: "Description",
             accessibilityLabel: "Description de la transaction",
-            focusBinding: $isDescriptionFocused
+            focusBinding: $focusedField,
+            field: .description
         )
     }
 
@@ -127,7 +129,7 @@ struct AddAllocatedTransactionSheet: View {
                     .transition(.opacity.combined(with: .move(edge: .top)))
             }
         }
-        .animation(.easeInOut(duration: DesignTokens.Animation.fast), value: validationHint)
+        .animation(DesignTokens.Animation.smoothEaseInOut, value: validationHint)
     }
 
     // MARK: - Logic

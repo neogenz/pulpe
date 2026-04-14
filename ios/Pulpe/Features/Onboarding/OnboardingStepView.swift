@@ -266,12 +266,14 @@ struct OnboardingCurrencySwapSheet: View {
             .foregroundStyle(Color.onSurfaceVariant)
             .fixedSize(horizontal: false, vertical: true)
 
-            CapsulePicker(selection: $draft, title: "Devise") { currency in
+            CapsulePicker(selection: $draft, title: "Devise") { currency, isSelected in
                 HStack(spacing: DesignTokens.Spacing.xs) {
                     Text(currency.flag)
                     VStack(alignment: .leading, spacing: 0) {
                         Text(currency.rawValue).font(PulpeTypography.labelLarge)
-                        Text(currency.nativeName).font(PulpeTypography.caption2).foregroundStyle(Color.onSurfaceVariant)
+                        Text(currency.nativeName)
+                            .font(PulpeTypography.caption2)
+                            .foregroundStyle(isSelected ? Color.textOnPrimaryMuted : Color.onSurfaceVariant)
                     }
                 }
             }

@@ -2,16 +2,19 @@ import SwiftUI
 
 /// Reusable capsule pill selector for CaseIterable enums.
 /// Selected state uses `pulpePrimary`; unselected uses `surfaceContainer`.
+/// `itemLabel` receives `(item, isSelected)` so secondary lines can use `textOnPrimaryMuted` when selected.
 struct CapsulePicker<T: CaseIterable & Hashable, ItemLabel: View>: View where T.AllCases: RandomAccessCollection {
     @Binding var selection: T
-    let title: String
-    @ViewBuilder let itemLabel: (T) -> ItemLabel
+    let title: String?
+    @ViewBuilder let itemLabel: (T, Bool) -> ItemLabel
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-            Text(title)
-                .font(PulpeTypography.labelMedium)
-                .foregroundStyle(Color.onSurfaceVariant)
+            if let title {
+                Text(title)
+                    .font(PulpeTypography.labelMedium)
+                    .foregroundStyle(Color.onSurfaceVariant)
+            }
 
             HStack(spacing: DesignTokens.Spacing.sm) {
                 ForEach(T.allCases, id: \.self) { item in
@@ -21,7 +24,7 @@ struct CapsulePicker<T: CaseIterable & Hashable, ItemLabel: View>: View where T.
                             selection = item
                         }
                     } label: {
-                        itemLabel(item)
+                        itemLabel(item, isSelected)
                             .font(PulpeTypography.buttonSecondary)
                             .padding(.horizontal, DesignTokens.Spacing.md)
                             .padding(.vertical, DesignTokens.Spacing.sm)

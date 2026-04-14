@@ -8,7 +8,7 @@ struct CurrencyAmountPicker: View {
     let baseCurrency: SupportedCurrency
 
     var body: some View {
-        CapsulePicker(selection: $selectedCurrency, title: "Devise") { currency in
+        CapsulePicker(selection: $selectedCurrency, title: "Devise") { currency, _ in
             HStack(spacing: DesignTokens.Spacing.xs) {
                 Text(currency.flag)
                 Text(currency.rawValue)

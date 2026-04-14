@@ -1,19 +1,24 @@
 import SwiftUI
 
 struct VerifyRecoveryKeySheet: View {
+    private enum FormField: Hashable {
+        case recoveryKey
+    }
+
     @Environment(\.dismiss) private var dismiss
     let onSuccess: () -> Void
     @State private var recoveryKey = ""
     @State private var isVerifying = false
     @State private var errorMessage: String?
     @State private var submitSuccessTrigger = false
-    @FocusState private var isKeyFieldFocused: Bool
+    @FocusState private var focusedField: FormField?
 
     var body: some View {
         SheetFormContainer(
             title: "Vérifier ma clé",
             isLoading: isVerifying,
-            autoFocus: $isKeyFieldFocused
+            focus: $focusedField,
+            focusOrder: [.recoveryKey]
         ) {
             Text(
                 "Saisis ta clé telle que tu l'as notée (tirets optionnels). " +
@@ -28,7 +33,8 @@ struct VerifyRecoveryKeySheet: View {
                 text: $recoveryKey,
                 label: "Clé de récupération",
                 accessibilityLabel: "Clé de récupération",
-                focusBinding: $isKeyFieldFocused
+                focusBinding: $focusedField,
+                field: .recoveryKey
             )
             .onChange(of: recoveryKey) { _, newValue in
                 let stripped = String(

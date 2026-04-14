@@ -1,8 +1,12 @@
 import SwiftUI
 
 struct FirstNameStep: View {
+    private enum FormField: Hashable {
+        case firstName
+    }
+
     @Bindable var state: OnboardingState
-    @FocusState private var isFocused: Bool
+    @FocusState private var focusedField: FormField?
 
     var body: some View {
         OnboardingStepView(
@@ -20,20 +24,21 @@ struct FirstNameStep: View {
                         prompt: "Ton prénom",
                         text: $state.firstName,
                         systemImage: "person",
-                        isFocused: isFocused,
-                        isFilled: state.isFirstNameValid
+                        isFilled: state.isFirstNameValid,
+                        focusBinding: $focusedField,
+                        focusField: .firstName
                     )
                     .textContentType(.givenName)
                     .textInputAutocapitalization(.words)
-                    .focused($isFocused)
                     .accessibilityLabel("Prénom")
                     .accessibilityHint("Saisis ton prénom")
                 }
                 .task {
-                    isFocused = true
+                    focusedField = .firstName
                 }
             }
         )
+        .keyboardFieldNavigation(focus: $focusedField, order: [.firstName])
         .trackScreen("Onboarding_FirstName")
     }
 }

@@ -14,8 +14,7 @@ struct EditTemplateLineSheet: View {
     @State private var recurrence: TransactionRecurrence
     @State private var isLoading = false
     @State private var error: Error?
-    @FocusState private var isAmountFocused: Bool
-    @FocusState private var isDescriptionFocused: Bool
+    @FocusState private var focusedField: AmountDescriptionField?
     @State private var amountText: String
     @State private var submitSuccessTrigger = false
     @State private var showPropagationAlert = false
@@ -52,16 +51,20 @@ struct EditTemplateLineSheet: View {
         SheetFormContainer(
             title: "Modifier la ligne",
             isLoading: isLoading,
-            autoFocus: $isAmountFocused,
-            descriptionFocus: $isDescriptionFocused
+            focus: $focusedField,
+            focusOrder: [.amount, .description]
         ) {
             KindToggle(selection: $kind)
             if userSettingsStore.showCurrencySelectorEffective {
                 CurrencyAmountPicker(selectedCurrency: $inputCurrency, baseCurrency: userSettingsStore.currency)
             }
             HeroAmountField(
-                amount: $amount, amountText: $amountText,
-                isFocused: $isAmountFocused, currency: inputCurrency, accentColor: kind.color
+                amount: $amount,
+                amountText: $amountText,
+                focus: $focusedField,
+                field: .amount,
+                currency: inputCurrency,
+                accentColor: kind.color
             )
             CurrencyConversionBadge(
                 originalAmount: templateLine.originalAmount,
@@ -119,7 +122,8 @@ struct EditTemplateLineSheet: View {
             text: $name,
             label: "Description",
             accessibilityLabel: "Nom de la ligne du modèle",
-            focusBinding: $isDescriptionFocused
+            focusBinding: $focusedField,
+            field: .description
         )
     }
 

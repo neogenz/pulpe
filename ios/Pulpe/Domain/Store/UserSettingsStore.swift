@@ -113,7 +113,9 @@ final class UserSettingsStore: StoreProtocol {
 
         do {
             let updated = try await service.updateSettings(UpdateUserSettings(currency: newCurrency))
-            currency = updated.currency ?? .chf
+            // Backend may return a partial settings payload without `currency`; keep the value we
+            // just persisted instead of falling back to `.chf` (would snap the UI back on EUR, etc.).
+            currency = updated.currency ?? newCurrency
             lastLoadTime = Date()
         } catch let apiError as APIError {
             currency = previousValue

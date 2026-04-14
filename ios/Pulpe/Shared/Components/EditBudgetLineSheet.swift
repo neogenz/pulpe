@@ -13,8 +13,7 @@ struct EditBudgetLineSheet: View {
     @State private var kind: TransactionKind
     @State private var isLoading = false
     @State private var error: Error?
-    @FocusState private var isAmountFocused: Bool
-    @FocusState private var isDescriptionFocused: Bool
+    @FocusState private var focusedField: AmountDescriptionField?
     @State private var amountText: String
     @State private var submitSuccessTrigger = false
     @State private var inputCurrency: SupportedCurrency = .chf
@@ -46,16 +45,20 @@ struct EditBudgetLineSheet: View {
         SheetFormContainer(
             title: kind.editBudgetLineTitle,
             isLoading: isLoading,
-            autoFocus: $isAmountFocused,
-            descriptionFocus: $isDescriptionFocused
+            focus: $focusedField,
+            focusOrder: [.amount, .description]
         ) {
             KindToggle(selection: $kind)
             if userSettingsStore.showCurrencySelectorEffective {
                 CurrencyAmountPicker(selectedCurrency: $inputCurrency, baseCurrency: userSettingsStore.currency)
             }
             HeroAmountField(
-                amount: $amount, amountText: $amountText,
-                isFocused: $isAmountFocused, currency: inputCurrency, accentColor: kind.color
+                amount: $amount,
+                amountText: $amountText,
+                focus: $focusedField,
+                field: .amount,
+                currency: inputCurrency,
+                accentColor: kind.color
             )
             CurrencyConversionBadge(
                 originalAmount: budgetLine.originalAmount,
@@ -84,7 +87,8 @@ struct EditBudgetLineSheet: View {
             text: $name,
             label: "Description",
             accessibilityLabel: "Description de la prévision",
-            focusBinding: $isDescriptionFocused
+            focusBinding: $focusedField,
+            field: .description
         )
     }
 

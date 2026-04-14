@@ -20,8 +20,7 @@ struct AddCustomExpenseSheet: View {
     @State private var amount: Decimal?
     @State private var amountText: String
     @State private var submitSuccessTrigger = false
-    @FocusState private var isAmountFocused: Bool
-    @FocusState private var isDescriptionFocused: Bool
+    @FocusState private var focusedField: AmountDescriptionField?
 
     /// Create mode
     init(
@@ -64,13 +63,14 @@ struct AddCustomExpenseSheet: View {
         SheetFormContainer(
             title: isEditing ? "Modifier" : "Nouvelle prévision",
             isLoading: false,
-            autoFocus: $isAmountFocused,
-            descriptionFocus: $isDescriptionFocused
+            focus: $focusedField,
+            focusOrder: [.amount, .description]
         ) {
             HeroAmountField(
                 amount: $amount,
                 amountText: $amountText,
-                isFocused: $isAmountFocused,
+                focus: $focusedField,
+                field: .amount,
                 hint: "Quel montant ?",
                 currency: currency
             )
@@ -80,7 +80,8 @@ struct AddCustomExpenseSheet: View {
                 text: $name,
                 label: "Description",
                 accessibilityLabel: "Description de la prévision",
-                focusBinding: $isDescriptionFocused
+                focusBinding: $focusedField,
+                field: .description
             )
 
             saveButton

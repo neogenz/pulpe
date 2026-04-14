@@ -15,8 +15,7 @@ struct AddTransactionSheet: View {
     @State private var isChecked = true
     @State private var isLoading = false
     @State private var error: Error?
-    @FocusState private var isAmountFocused: Bool
-    @FocusState private var isDescriptionFocused: Bool
+    @FocusState private var focusedField: AmountDescriptionField?
     @State private var amountText = ""
     @State private var submitSuccessTrigger = false
     @State private var inputCurrency: SupportedCurrency = .chf
@@ -55,8 +54,8 @@ struct AddTransactionSheet: View {
         SheetFormContainer(
             title: kind.newTransactionTitle,
             isLoading: isLoading,
-            autoFocus: $isAmountFocused,
-            descriptionFocus: $isDescriptionFocused
+            focus: $focusedField,
+            focusOrder: [.amount, .description]
         ) {
             Text("Pas liée à une prévision")
                 .font(PulpeTypography.caption)
@@ -70,14 +69,19 @@ struct AddTransactionSheet: View {
             HeroAmountField(
                 amount: $amount,
                 amountText: $amountText,
-                isFocused: $isAmountFocused,
+                focus: $focusedField,
+                field: .amount,
                 hint: "Quel montant ?",
                 currency: inputCurrency,
                 accentColor: kind.color
             )
             QuickAmountChips(
-                amount: $amount, amountText: $amountText, isFocused: $isAmountFocused,
-                color: kind.color, currency: inputCurrency
+                amount: $amount,
+                amountText: $amountText,
+                focus: $focusedField,
+                amountField: .amount,
+                color: kind.color,
+                currency: inputCurrency
             )
             .animation(.snappy(duration: DesignTokens.Animation.fast), value: kind)
             descriptionField
@@ -104,7 +108,8 @@ struct AddTransactionSheet: View {
             text: $name,
             label: "Description",
             accessibilityLabel: "Description de la transaction",
-            focusBinding: $isDescriptionFocused
+            focusBinding: $focusedField,
+            field: .description
         )
     }
 
@@ -131,7 +136,7 @@ struct AddTransactionSheet: View {
                     .transition(.opacity.combined(with: .move(edge: .top)))
             }
         }
-        .animation(.easeInOut(duration: DesignTokens.Animation.fast), value: validationHint)
+        .animation(DesignTokens.Animation.smoothEaseInOut, value: validationHint)
     }
 
     // MARK: - Logic

@@ -14,8 +14,7 @@ struct AddBudgetLineSheet: View {
     @State private var isChecked = false
     @State private var isLoading = false
     @State private var error: Error?
-    @FocusState private var isAmountFocused: Bool
-    @FocusState private var isDescriptionFocused: Bool
+    @FocusState private var focusedField: AmountDescriptionField?
     @State private var amountText = ""
     @State private var submitSuccessTrigger = false
     @State private var inputCurrency: SupportedCurrency = .chf
@@ -54,20 +53,28 @@ struct AddBudgetLineSheet: View {
         SheetFormContainer(
             title: kind.newBudgetLineTitle,
             isLoading: isLoading,
-            autoFocus: $isAmountFocused,
-            descriptionFocus: $isDescriptionFocused
+            focus: $focusedField,
+            focusOrder: [.amount, .description]
         ) {
             KindToggle(selection: $kind)
             if userSettingsStore.showCurrencySelectorEffective {
                 CurrencyAmountPicker(selectedCurrency: $inputCurrency, baseCurrency: userSettingsStore.currency)
             }
             HeroAmountField(
-                amount: $amount, amountText: $amountText,
-                isFocused: $isAmountFocused, currency: inputCurrency, accentColor: kind.color
+                amount: $amount,
+                amountText: $amountText,
+                focus: $focusedField,
+                field: .amount,
+                currency: inputCurrency,
+                accentColor: kind.color
             )
             QuickAmountChips(
-                amount: $amount, amountText: $amountText, isFocused: $isAmountFocused,
-                color: kind.color, currency: inputCurrency
+                amount: $amount,
+                amountText: $amountText,
+                focus: $focusedField,
+                amountField: .amount,
+                color: kind.color,
+                currency: inputCurrency
             )
             .animation(.snappy(duration: DesignTokens.Animation.fast), value: kind)
             descriptionField
@@ -93,7 +100,8 @@ struct AddBudgetLineSheet: View {
             text: $name,
             label: "Description",
             accessibilityLabel: "Description de la prévision",
-            focusBinding: $isDescriptionFocused
+            focusBinding: $focusedField,
+            field: .description
         )
     }
 

@@ -14,8 +14,7 @@ struct EditTransactionSheet: View {
     @State private var transactionDate: Date
     @State private var isLoading = false
     @State private var error: Error?
-    @FocusState private var isAmountFocused: Bool
-    @FocusState private var isDescriptionFocused: Bool
+    @FocusState private var focusedField: AmountDescriptionField?
     @State private var amountText: String
     @State private var submitSuccessTrigger = false
     @State private var inputCurrency: SupportedCurrency = .chf
@@ -52,8 +51,8 @@ struct EditTransactionSheet: View {
         SheetFormContainer(
             title: "Modifier la transaction",
             isLoading: isLoading,
-            autoFocus: $isAmountFocused,
-            descriptionFocus: $isDescriptionFocused
+            focus: $focusedField,
+            focusOrder: [.amount, .description]
         ) {
             KindToggle(selection: $kind)
 
@@ -62,8 +61,12 @@ struct EditTransactionSheet: View {
             }
 
             HeroAmountField(
-                amount: $amount, amountText: $amountText,
-                isFocused: $isAmountFocused, currency: inputCurrency, accentColor: kind.color
+                amount: $amount,
+                amountText: $amountText,
+                focus: $focusedField,
+                field: .amount,
+                currency: inputCurrency,
+                accentColor: kind.color
             )
 
             CurrencyConversionBadge(
@@ -95,7 +98,8 @@ struct EditTransactionSheet: View {
             text: $name,
             label: "Description",
             accessibilityLabel: "Description de la transaction",
-            focusBinding: $isDescriptionFocused
+            focusBinding: $focusedField,
+            field: .description
         )
     }
 
