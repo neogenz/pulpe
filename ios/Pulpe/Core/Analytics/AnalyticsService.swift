@@ -92,11 +92,14 @@ final class AnalyticsService {
     }
 
     /// Forces PostHog to re-fetch feature flags from the server.
-    /// Call after identify() so flags depending on person properties are
-    /// re-evaluated with the new user identity.
-    func reloadFeatureFlags() {
+    /// `onComplete` is called on the main actor once the network response has been
+    /// applied to the SDK's local cache — safe to read `isFeatureEnabled` inside it.
+    /// Call after identify() so person-property-based flags re-evaluate.
+    func reloadFeatureFlags(onComplete: (@MainActor @Sendable () -> Void)? = nil) {
         guard isInitialized else { return }
-        PostHogSDK.shared.reloadFeatureFlags()
+        PostHogSDK.shared.reloadFeatureFlags {
+            Task { @MainActor in onComplete?() }
+        }
     }
 
     // MARK: - Lifecycle

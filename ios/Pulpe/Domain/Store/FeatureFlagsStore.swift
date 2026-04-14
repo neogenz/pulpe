@@ -4,7 +4,7 @@ import Foundation
 ///
 /// - **Persistence**: the last known flag state is cached in `UserDefaults`
 ///   so the value is available synchronously at boot (before PostHog resolves
-///   its flags), avoiding a visible flicker when toggling gated UX.
+///   its flags), avoiding a visible flicker on slow networks.
 /// - **Refresh triggers**: `refresh()` should be called after
 ///   `AnalyticsService.identify()` (so person-property-based flags re-evaluate
 ///   with the new user identity) and on each foreground transition.
@@ -34,13 +34,23 @@ final class FeatureFlagsStore {
     }
 
     /// Re-fetches feature flags from PostHog and updates the cached values.
-    /// Persists the resolved values in `UserDefaults` for the next launch.
-    /// No-op when PostHog is not initialized — preserves the cached value
-    /// instead of clobbering it to `false` (which would mask manual overrides
-    /// on PulpeLocal where PostHog is disabled).
+    ///
+    /// Two-phase update:
+    /// 1. Applies the current SDK cache immediately — the user sees the correct
+    ///    state on first frame even on slow networks (backed by `UserDefaults`).
+    /// 2. Once the network response arrives, applies the fresh value and persists
+    ///    it so the next launch / background→foreground is also up to date.
+    ///
+    /// No-op when PostHog is not initialized.
     func refresh() {
         guard analytics.isInitialized else { return }
-        analytics.reloadFeatureFlags()
+        applyCurrentFlags()
+        analytics.reloadFeatureFlags {
+            self.applyCurrentFlags()
+        }
+    }
+
+    private func applyCurrentFlags() {
         let resolved = analytics.isFeatureEnabled(Self.multiCurrencyKey)
         isMultiCurrencyEnabled = resolved
         defaults.set(resolved, forKey: Self.storagePrefix + Self.multiCurrencyKey)
