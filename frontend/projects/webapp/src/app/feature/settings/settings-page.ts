@@ -173,11 +173,13 @@ import { VerifyRecoveryKeyDialog } from './components/verify-recovery-key-dialog
                     }}</span>
                   </div>
 
-                  <div class="flex items-center gap-3">
+                  <div
+                    class="grid w-full grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-end gap-3"
+                  >
                     <mat-form-field
                       appearance="outline"
                       subscriptSizing="dynamic"
-                      class="flex-1"
+                      class="min-w-0 w-full"
                     >
                       <mat-label>{{ converterBase() }}</mat-label>
                       <input
@@ -193,7 +195,7 @@ import { VerifyRecoveryKeyDialog } from './components/verify-recovery-key-dialog
                     </mat-form-field>
 
                     <button
-                      matButton
+                      matIconButton
                       type="button"
                       (click)="swapConverterDirection()"
                       [attr.aria-label]="
@@ -205,7 +207,7 @@ import { VerifyRecoveryKeyDialog } from './components/verify-recovery-key-dialog
                     </button>
 
                     <div
-                      class="flex-1 rounded-xl bg-surface-container-low p-3 text-center ph-no-capture"
+                      class="min-w-0 rounded-xl bg-surface-container-low p-3 text-center ph-no-capture"
                     >
                       @if (isLoadingRate()) {
                         <mat-progress-spinner
