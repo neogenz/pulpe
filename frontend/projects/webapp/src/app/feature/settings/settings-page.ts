@@ -6,7 +6,8 @@ import {
   linkedSignal,
   signal,
 } from '@angular/core';
-import { FormsModule } from '@angular/forms';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatCardModule } from '@angular/material/card';
@@ -25,13 +26,16 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { DecimalPipe } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { firstValueFrom } from 'rxjs';
+import { firstValueFrom, map, merge, startWith } from 'rxjs';
 import { TranslocoService, TranslocoPipe } from '@jsverse/transloco';
 import { isApiError } from '@core/api/api-error';
 import { Logger } from '@core/logging/logger';
 import { UserSettingsStore } from '@core/user-settings';
-import { CURRENCY_CONFIG } from '@core/currency';
-import { CurrencyConverterService } from '@core/currency';
+import {
+  AppCurrencyPipe,
+  CURRENCY_CONFIG,
+  CurrencyConverterService,
+} from '@core/currency';
 import { FeatureFlagsService } from '@core/feature-flags';
 import { AuthSessionService } from '@core/auth/auth-session.service';
 import { AuthStateService } from '@core/auth';
@@ -49,11 +53,14 @@ import { DeleteAccountDialog } from './components/delete-account-dialog';
 import { RegenerateRecoveryKeyDialog } from './components/regenerate-recovery-key-dialog';
 import { VerifyRecoveryKeyDialog } from './components/verify-recovery-key-dialog';
 
+const SETTINGS_CONVERTER_AMOUNT_MAX = 100_000_000;
+
 @Component({
   selector: 'pulpe-settings-page',
   imports: [
+    AppCurrencyPipe,
     DecimalPipe,
-    FormsModule,
+    ReactiveFormsModule,
     MatButtonModule,
     MatButtonToggleModule,
     MatCardModule,
@@ -174,7 +181,7 @@ import { VerifyRecoveryKeyDialog } from './components/verify-recovery-key-dialog
                   </div>
 
                   <div
-                    class="grid w-full grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3"
+                    class="grid w-full grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-stretch gap-3"
                   >
                     <div class="min-w-0 w-full">
                       <mat-form-field
@@ -182,51 +189,91 @@ import { VerifyRecoveryKeyDialog } from './components/verify-recovery-key-dialog
                         subscriptSizing="dynamic"
                         class="w-full"
                       >
-                        <mat-label>{{ converterBase() }}</mat-label>
+                        <mat-label>{{
+                          'settings.converterAmountLabel' | transloco
+                        }}</mat-label>
                         <input
                           matInput
                           type="number"
                           inputmode="decimal"
-                          [(ngModel)]="converterAmount"
+                          [formControl]="converterAmountControl"
                           step="0.01"
                           min="0"
+                          [attr.max]="converterAmountMax"
+                          class="tabular-nums"
                           data-testid="converter-amount-input"
                         />
                         <span matTextSuffix>{{ converterBaseSymbol() }}</span>
+                        @if (converterAmountControl.hasError('max')) {
+                          <mat-error data-testid="converter-amount-max-error">
+                            {{
+                              'settings.converterAmountMaxError'
+                                | transloco: { max: converterAmountMax }
+                            }}
+                          </mat-error>
+                        } @else if (converterAmountControl.hasError('min')) {
+                          <mat-error data-testid="converter-amount-min-error">
+                            {{ 'settings.converterAmountMinError' | transloco }}
+                          </mat-error>
+                        } @else if (
+                          converterAmountControl.hasError('required')
+                        ) {
+                          <mat-error
+                            data-testid="converter-amount-required-error"
+                          >
+                            {{
+                              'settings.converterAmountRequiredError'
+                                | transloco
+                            }}
+                          </mat-error>
+                        }
                       </mat-form-field>
                     </div>
 
-                    <button
-                      matIconButton
-                      type="button"
-                      class="justify-self-center shrink-0"
-                      (click)="swapConverterDirection()"
-                      [attr.aria-label]="
-                        'settings.swapConversionAriaLabel' | transloco
-                      "
-                      data-testid="converter-swap-button"
-                    >
-                      <mat-icon class="!m-0 !block">swap_horiz</mat-icon>
-                    </button>
+                    <div class="flex items-center justify-center shrink-0">
+                      <button
+                        matIconButton
+                        type="button"
+                        (click)="swapConverterDirection()"
+                        [attr.aria-label]="
+                          'settings.swapConversionAriaLabel' | transloco
+                        "
+                        data-testid="converter-swap-button"
+                      >
+                        <mat-icon class="!m-0 !block">swap_horiz</mat-icon>
+                      </button>
+                    </div>
 
-                    <div
-                      class="min-w-0 w-full overflow-x-auto rounded-xl bg-surface-container-low p-3 text-center ph-no-capture"
-                    >
-                      @if (isLoadingRate()) {
-                        <mat-progress-spinner
-                          mode="indeterminate"
-                          [diameter]="20"
-                          class="mx-auto"
-                        />
-                      } @else if (convertedAmount() !== null) {
-                        <p
-                          class="text-title-medium font-bold text-on-surface min-w-0 whitespace-nowrap"
-                          data-testid="converter-result"
-                        >
-                          {{ convertedAmount() | number: '1.2-2' }}
-                          {{ converterTargetSymbol() }}
-                        </p>
-                      }
+                    <div class="flex min-w-0 w-full items-center">
+                      <div
+                        class="min-w-0 w-full overflow-x-auto rounded-xl bg-surface-container-low p-3 text-center ph-no-capture"
+                      >
+                        @if (isLoadingRate()) {
+                          <mat-progress-spinner
+                            mode="indeterminate"
+                            [diameter]="20"
+                            class="mx-auto"
+                          />
+                        } @else if (conversionRateFetchFailed()) {
+                          <p
+                            role="alert"
+                            class="text-body-small text-error px-1"
+                            data-testid="converter-rate-error"
+                          >
+                            {{ 'settings.converterRateFetchError' | transloco }}
+                          </p>
+                        } @else if (convertedAmount() !== null) {
+                          <p
+                            class="text-title-medium font-bold text-on-surface min-w-0 whitespace-nowrap tabular-nums"
+                            data-testid="converter-result"
+                          >
+                            {{
+                              convertedAmount()
+                                | appCurrency: converterTarget() : '1.2-2'
+                            }}
+                          </p>
+                        }
+                      </div>
                     </div>
                   </div>
 
@@ -518,10 +565,52 @@ export default class SettingsPage {
   });
 
   // Converter state
-  protected readonly converterAmount = signal<number>(100);
+  /** Plafond de saisie du montant dans le convertisseur (paramètres). */
+  protected readonly converterAmountMax = SETTINGS_CONVERTER_AMOUNT_MAX;
+
+  protected readonly converterAmountControl = new FormControl<number | null>(
+    100,
+    {
+      validators: [
+        Validators.required,
+        Validators.min(0),
+        Validators.max(SETTINGS_CONVERTER_AMOUNT_MAX),
+      ],
+    },
+  );
+
+  readonly #converterAmountState = toSignal(
+    merge(
+      this.converterAmountControl.valueChanges.pipe(
+        map(() => ({
+          value: this.converterAmountControl.value,
+          valid: this.converterAmountControl.valid,
+        })),
+      ),
+      this.converterAmountControl.statusChanges.pipe(
+        map(() => ({
+          value: this.converterAmountControl.value,
+          valid: this.converterAmountControl.valid,
+        })),
+      ),
+    ).pipe(
+      startWith({
+        value: this.converterAmountControl.value,
+        valid: this.converterAmountControl.valid,
+      }),
+    ),
+    {
+      initialValue: {
+        value: this.converterAmountControl.value,
+        valid: this.converterAmountControl.valid,
+      },
+    },
+  );
+
   protected readonly isConverterReversed = signal(false);
   protected readonly conversionRate = signal<number | null>(null);
   protected readonly isLoadingRate = signal(false);
+  protected readonly conversionRateFetchFailed = signal(false);
 
   protected readonly isConverterVisible = computed(
     () => this.selectedCurrency() !== this.initialCurrency(),
@@ -540,13 +629,12 @@ export default class SettingsPage {
   protected readonly converterBaseSymbol = computed(
     () => CURRENCY_CONFIG[this.converterBase()].symbol,
   );
-  protected readonly converterTargetSymbol = computed(
-    () => CURRENCY_CONFIG[this.converterTarget()].symbol,
-  );
   protected readonly convertedAmount = computed(() => {
     const rate = this.conversionRate();
-    const amount = this.converterAmount();
-    if (rate === null || amount === null) return null;
+    const { value: amount, valid } = this.#converterAmountState();
+    if (rate === null || !valid || amount === null || Number.isNaN(amount)) {
+      return null;
+    }
     return this.#currencyConverter.convert(amount, rate);
   });
 
@@ -610,6 +698,7 @@ export default class SettingsPage {
     this.selectedCurrency.set(this.initialCurrency());
     this.selectedShowCurrencySelector.set(this.initialShowCurrencySelector());
     this.conversionRate.set(null);
+    this.conversionRateFetchFailed.set(false);
   }
 
   async #fetchConversionRate(): Promise<void> {
@@ -617,14 +706,17 @@ export default class SettingsPage {
     const target = this.converterTarget();
     if (base === target) {
       this.conversionRate.set(null);
+      this.conversionRateFetchFailed.set(false);
       return;
     }
+    this.conversionRateFetchFailed.set(false);
     this.isLoadingRate.set(true);
     try {
       const rate = await this.#currencyConverter.fetchRate(base, target);
       this.conversionRate.set(rate);
     } catch {
       this.conversionRate.set(null);
+      this.conversionRateFetchFailed.set(true);
     } finally {
       this.isLoadingRate.set(false);
     }
