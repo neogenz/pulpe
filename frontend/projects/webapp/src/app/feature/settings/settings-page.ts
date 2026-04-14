@@ -174,40 +174,43 @@ import { VerifyRecoveryKeyDialog } from './components/verify-recovery-key-dialog
                   </div>
 
                   <div
-                    class="grid w-full grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-end gap-3"
+                    class="grid w-full grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3"
                   >
-                    <mat-form-field
-                      appearance="outline"
-                      subscriptSizing="dynamic"
-                      class="min-w-0 w-full"
-                    >
-                      <mat-label>{{ converterBase() }}</mat-label>
-                      <input
-                        matInput
-                        type="number"
-                        inputmode="decimal"
-                        [(ngModel)]="converterAmount"
-                        step="0.01"
-                        min="0"
-                        data-testid="converter-amount-input"
-                      />
-                      <span matTextSuffix>{{ converterBaseSymbol() }}</span>
-                    </mat-form-field>
+                    <div class="min-w-0 w-full">
+                      <mat-form-field
+                        appearance="outline"
+                        subscriptSizing="dynamic"
+                        class="w-full"
+                      >
+                        <mat-label>{{ converterBase() }}</mat-label>
+                        <input
+                          matInput
+                          type="number"
+                          inputmode="decimal"
+                          [(ngModel)]="converterAmount"
+                          step="0.01"
+                          min="0"
+                          data-testid="converter-amount-input"
+                        />
+                        <span matTextSuffix>{{ converterBaseSymbol() }}</span>
+                      </mat-form-field>
+                    </div>
 
                     <button
                       matIconButton
                       type="button"
+                      class="justify-self-center shrink-0"
                       (click)="swapConverterDirection()"
                       [attr.aria-label]="
                         'settings.swapConversionAriaLabel' | transloco
                       "
                       data-testid="converter-swap-button"
                     >
-                      <mat-icon>swap_horiz</mat-icon>
+                      <mat-icon class="!m-0 !block">swap_horiz</mat-icon>
                     </button>
 
                     <div
-                      class="min-w-0 rounded-xl bg-surface-container-low p-3 text-center ph-no-capture"
+                      class="min-w-0 w-full overflow-x-auto rounded-xl bg-surface-container-low p-3 text-center ph-no-capture"
                     >
                       @if (isLoadingRate()) {
                         <mat-progress-spinner
@@ -217,7 +220,7 @@ import { VerifyRecoveryKeyDialog } from './components/verify-recovery-key-dialog
                         />
                       } @else if (convertedAmount() !== null) {
                         <p
-                          class="text-title-medium font-bold text-on-surface"
+                          class="text-title-medium font-bold text-on-surface min-w-0 whitespace-nowrap"
                           data-testid="converter-result"
                         >
                           {{ convertedAmount() | number: '1.2-2' }}
