@@ -5,6 +5,7 @@ import { provideAnimationsAsync } from '@angular/platform-browser/animations/asy
 import { describe, it, expect, beforeEach } from 'vitest';
 
 import { setTestInput } from '@app/testing/signal-test-utils';
+import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 
 import { CurrencyInput } from './currency-input';
 
@@ -15,7 +16,11 @@ describe('CurrencyInput', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [CurrencyInput, FormsModule],
-      providers: [provideZonelessChangeDetection(), provideAnimationsAsync()],
+      providers: [
+        provideZonelessChangeDetection(),
+        provideAnimationsAsync(),
+        ...provideTranslocoForTest(),
+      ],
     }).compileComponents();
 
     fixture = TestBed.createComponent(CurrencyInput);
@@ -126,6 +131,20 @@ describe('CurrencyInput', () => {
 
       const hint = fixture.nativeElement.querySelector('mat-hint');
       expect(hint?.textContent).toContain('EUR');
+    });
+  });
+
+  describe('Transloco hint', () => {
+    it('mat-hint uses currency.inputHint transloco key with currency interpolation', async () => {
+      setTestInput(component.label, 'Montant');
+      setTestInput(component.currency, 'CHF');
+      setTestInput(component.ariaDescribedBy, 'hint-id');
+      TestBed.flushEffects();
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      const hint = fixture.nativeElement.querySelector('mat-hint');
+      expect(hint?.textContent?.trim()).toBe('Entre le montant en CHF');
     });
   });
 });

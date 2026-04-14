@@ -53,13 +53,13 @@ export function buildConversionTooltip(
   if (exchangeRate != null) {
     const formattedRate = getRateFormatter(locale).format(exchangeRate);
 
-    return transloco.translate('currency.conversionTooltip', {
+    return transloco.translate('currency.convertedFromTooltip', {
       amount: formattedAmount,
       rate: formattedRate,
     });
   }
 
-  return transloco.translate('currency.conversionTooltipNoRate', {
+  return transloco.translate('currency.convertedFromTooltipNoRate', {
     amount: formattedAmount,
   });
 }

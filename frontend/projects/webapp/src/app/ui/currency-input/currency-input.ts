@@ -8,7 +8,11 @@ import {
   inject,
   model,
 } from '@angular/core';
-import { type SupportedCurrency, SUPPORTED_CURRENCIES } from 'pulpe-shared';
+import {
+  CURRENCY_METADATA,
+  type SupportedCurrency,
+  SUPPORTED_CURRENCIES,
+} from 'pulpe-shared';
 import { FormsModule } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -58,7 +62,10 @@ import { TranslocoPipe } from '@jsverse/transloco';
           [attr.aria-label]="'common.currencySelector' | transloco"
         >
           @for (c of currencies; track c) {
-            <mat-option [value]="c">{{ c }}</mat-option>
+            <mat-option [value]="c">
+              <span class="mr-1">{{ CURRENCY_METADATA[c].flag }}</span
+              >{{ c }}
+            </mat-option>
           }
         </mat-select>
       } @else {
@@ -67,9 +74,9 @@ import { TranslocoPipe } from '@jsverse/transloco';
         }}</span>
       }
       @if (ariaDescribedBy()) {
-        <mat-hint [id]="ariaDescribedBy()!" class="ph-no-capture"
-          >Entre le montant en {{ currency() }}</mat-hint
-        >
+        <mat-hint [id]="ariaDescribedBy()!" class="ph-no-capture">
+          {{ 'currency.inputHint' | transloco: { currency: currency() } }}
+        </mat-hint>
       }
     </mat-form-field>
   `,
@@ -89,6 +96,7 @@ export class CurrencyInput {
   readonly currencyChange = output<SupportedCurrency>();
   readonly autoFocus = input<boolean>(true);
   protected readonly currencies = SUPPORTED_CURRENCIES;
+  protected readonly CURRENCY_METADATA = CURRENCY_METADATA;
 
   constructor() {
     afterNextRender(() => {

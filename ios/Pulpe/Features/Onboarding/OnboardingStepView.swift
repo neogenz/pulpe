@@ -11,6 +11,7 @@ struct OnboardingStepView<Content: View>: View {
     @ViewBuilder let content: () -> Content
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(FeatureFlagsStore.self) private var featureFlags
     @Namespace private var bottomAnchor
     @State private var showContent = false
     @State private var isAtBottom = false
@@ -18,8 +19,13 @@ struct OnboardingStepView<Content: View>: View {
     @State private var keyboardHeight: CGFloat = 0
     /// Dedicated trigger for the CTA "unlocked" haptic — fires only on false→true flip.
     @State private var canProceedTrigger = false
+    @State private var showCurrencySwap = false
 
     private var isKeyboardVisible: Bool { keyboardHeight > 0 }
+
+    private var shouldShowCurrencyChip: Bool {
+        featureFlags.isMultiCurrencyEnabled && [.charges, .savings, .budgetPreview].contains(step)
+    }
 
     private var isEnabled: Bool {
         // `readyToComplete` / `isSubmitting` close the rapid-double-tap window on
@@ -32,6 +38,31 @@ struct OnboardingStepView<Content: View>: View {
         ScrollViewReader { proxy in
             ScrollView {
                 VStack(spacing: DesignTokens.Spacing.xxxl) {
+                    if shouldShowCurrencyChip {
+                        HStack {
+                            Spacer()
+                            Button {
+                                showCurrencySwap = true
+                            } label: {
+                                HStack(spacing: DesignTokens.Spacing.xxs) {
+                                    Text(state.currency.compactLabel)
+                                    Image(systemName: "chevron.down")
+                                        .font(PulpeTypography.caption2)
+                                }
+                                .padding(.horizontal, DesignTokens.Spacing.md)
+                                .padding(.vertical, DesignTokens.Spacing.xs)
+                                .background(Color.surfaceContainerHigh)
+                                .foregroundStyle(Color.onSurfaceVariant)
+                                .clipShape(Capsule())
+                            }
+                            .frame(minHeight: DesignTokens.TapTarget.minimum)
+                            .contentShape(Capsule())
+                            .plainPressedButtonStyle()
+                            .accessibilityLabel("Devise actuelle : \(state.currency.nativeName). Toucher pour changer.")
+                        }
+                        .padding(.horizontal, DesignTokens.Spacing.xxl)
+                    }
+
                     OnboardingStepHeader(
                         step: step,
                         onSkip: step.isOptional ? onNext : nil
@@ -101,6 +132,9 @@ struct OnboardingStepView<Content: View>: View {
             }
         }
         .background(Color.clear)
+        .sheet(isPresented: $showCurrencySwap) {
+            OnboardingCurrencySwapSheet(state: state)
+        }
         .dismissKeyboardOnTap()
         .onChange(of: canProceed) { oldValue, newValue in
             // Celebration haptic only on the false→true flip (CTA just unlocked)
@@ -203,4 +237,56 @@ struct OnboardingStepView<Content: View>: View {
 struct ScrollMetrics: Equatable {
     let remaining: CGFloat
     let overflows: Bool
+}
+
+// MARK: - Currency Swap Sheet
+
+struct OnboardingCurrencySwapSheet: View {
+    @Bindable var state: OnboardingState
+    @Environment(\.dismiss) private var dismiss
+    @State private var draft: SupportedCurrency
+
+    init(state: OnboardingState) {
+        self._state = Bindable(state)
+        self._draft = State(initialValue: state.currency)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
+            Text("Choisis ta devise")
+                .font(PulpeTypography.title3)
+
+            Text(
+                """
+                Toutes tes prévisions seront affichées dans la nouvelle devise. \
+                Tu peux changer plus tard depuis tes paramètres.
+                """
+            )
+            .font(PulpeTypography.body)
+            .foregroundStyle(Color.onSurfaceVariant)
+            .fixedSize(horizontal: false, vertical: true)
+
+            CapsulePicker(selection: $draft, title: "Devise") { currency in
+                HStack(spacing: DesignTokens.Spacing.xs) {
+                    Text(currency.flag)
+                    VStack(alignment: .leading, spacing: 0) {
+                        Text(currency.rawValue).font(PulpeTypography.labelLarge)
+                        Text(currency.nativeName).font(PulpeTypography.caption2).foregroundStyle(Color.onSurfaceVariant)
+                    }
+                }
+            }
+
+            Button {
+                state.currency = draft
+                dismiss()
+            } label: {
+                Text("Utiliser \(draft.nativeName)")
+            }
+            .primaryButtonStyle(isEnabled: true)
+
+            Spacer()
+        }
+        .padding(DesignTokens.Spacing.xxl)
+        .standardSheetPresentation(detents: [.height(360)])
+    }
 }

@@ -6,22 +6,31 @@ import {
 } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { TranslocoPipe } from '@jsverse/transloco';
+import { CURRENCY_METADATA } from 'pulpe-shared';
 
 @Component({
   selector: 'pulpe-currency-conversion-badge',
-  imports: [MatIconModule, MatTooltipModule],
+  imports: [MatIconModule, MatTooltipModule, TranslocoPipe],
   template: `
     @if (hasConversion()) {
-      <mat-icon
+      <span
+        class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-surface-container-high text-on-surface-variant text-label-small cursor-help align-middle"
         [matTooltip]="tooltipText()"
         matTooltipClass="whitespace-pre-line"
         matTooltipTouchGestures="on"
-        [attr.aria-label]="tooltipText()"
+        [attr.aria-label]="ariaLabel()"
         role="note"
         tabindex="0"
-        class="!text-base text-on-surface-variant inline-flex align-middle cursor-help"
-        >currency_exchange</mat-icon
       >
+        <mat-icon class="!text-sm !w-4 !h-4 leading-none"
+          >currency_exchange</mat-icon
+        >
+        <span class="ph-no-capture">{{
+          'currency.convertedFromInline'
+            | transloco: { amount: formattedOriginalAmount() }
+        }}</span>
+      </span>
     }
   `,
   styles: `
@@ -41,4 +50,24 @@ export class CurrencyConversionBadge {
   protected readonly hasConversion = computed(
     () => this.originalAmount() != null && this.originalCurrency() != null,
   );
+
+  protected readonly formattedOriginalAmount = computed(() => {
+    const amount = this.originalAmount();
+    const currency = this.originalCurrency();
+    if (amount == null || !currency) return '';
+    const config =
+      CURRENCY_METADATA[currency as keyof typeof CURRENCY_METADATA];
+    const locale = config?.locale ?? 'fr-CH';
+    return new Intl.NumberFormat(locale, {
+      style: 'currency',
+      currency,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(amount);
+  });
+
+  protected readonly ariaLabel = computed(() => {
+    const inline = this.formattedOriginalAmount();
+    return inline ? `Converti depuis ${inline}` : '';
+  });
 }

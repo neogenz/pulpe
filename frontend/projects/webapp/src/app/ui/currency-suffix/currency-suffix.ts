@@ -4,7 +4,11 @@ import {
   input,
   output,
 } from '@angular/core';
-import { type SupportedCurrency, SUPPORTED_CURRENCIES } from 'pulpe-shared';
+import {
+  CURRENCY_METADATA,
+  type SupportedCurrency,
+  SUPPORTED_CURRENCIES,
+} from 'pulpe-shared';
 import { MatSelectModule } from '@angular/material/select';
 import { TranslocoPipe } from '@jsverse/transloco';
 
@@ -21,7 +25,10 @@ import { TranslocoPipe } from '@jsverse/transloco';
         [attr.aria-label]="'common.currencySelector' | transloco"
       >
         @for (c of currencies; track c) {
-          <mat-option [value]="c">{{ c }}</mat-option>
+          <mat-option [value]="c">
+            <span class="mr-1">{{ CURRENCY_METADATA[c].flag }}</span
+            >{{ c }}
+          </mat-option>
         }
       </mat-select>
     } @else {
@@ -34,4 +41,5 @@ export class CurrencySuffix {
   readonly currency = input<SupportedCurrency>('CHF');
   readonly currencyChange = output<SupportedCurrency>();
   protected readonly currencies = SUPPORTED_CURRENCIES;
+  protected readonly CURRENCY_METADATA = CURRENCY_METADATA;
 }

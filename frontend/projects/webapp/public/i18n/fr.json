@@ -23,7 +23,7 @@
     "no": "Non",
     "somethingWentWrong": "Quelque chose n'a pas fonctionné — réessaie",
     "formErrors": "Quelques champs à vérifier avant de continuer",
-    "conversionError": "La conversion de devise a échoué — réessaie",
+    "conversionError": "Pas de taux dispo pour l'instant — ton montant sera enregistré tel quel.",
     "networkError": "Erreur réseau — vérifie ta connexion",
     "clear": "Effacer",
     "currencySelector": "Devise"
@@ -696,7 +696,13 @@
   },
   "currency": {
     "conversionTooltip": "Converti depuis {{ amount }}\nTaux : {{ rate }}",
-    "conversionTooltipNoRate": "Converti depuis {{ amount }}"
+    "conversionTooltipNoRate": "Converti depuis {{ amount }}",
+    "swissFranc": "Franc suisse",
+    "euro": "Euro",
+    "convertedFromInline": "converti depuis {{ amount }}",
+    "convertedFromTooltip": "Tu as entré {{ amount }} · taux {{ rate }} figé. On ne le recalcule plus, même si le taux bouge.",
+    "convertedFromTooltipNoRate": "Tu as entré {{ amount }}",
+    "inputHint": "Entre le montant en {{ currency }}"
   },
   "completeProfile": {
     "loading": "Préparation de ton espace de liberté...",

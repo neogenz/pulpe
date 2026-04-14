@@ -20,17 +20,17 @@ struct IncomeStep: View {
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.sectionGap) {
                     VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
                         if featureFlagsStore.isMultiCurrencyEnabled {
-                            VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-                                Text("Devise")
-                                    .font(PulpeTypography.inputLabel)
-                                    .foregroundStyle(Color.textPrimaryOnboarding)
-
-                                Picker("Devise", selection: $state.currency) {
-                                    ForEach(SupportedCurrency.allCases) { currency in
-                                        Text(currency.rawValue).tag(currency)
+                            CapsulePicker(selection: $state.currency, title: "Devise") { currency in
+                                HStack(spacing: DesignTokens.Spacing.xs) {
+                                    Text(currency.flag)
+                                    VStack(alignment: .leading, spacing: 0) {
+                                        Text(currency.rawValue)
+                                            .font(PulpeTypography.labelLarge)
+                                        Text(currency.nativeName)
+                                            .font(PulpeTypography.caption2)
+                                            .foregroundStyle(Color.textSecondaryOnboarding)
                                     }
                                 }
-                                .pickerStyle(.segmented)
                             }
                         }
 

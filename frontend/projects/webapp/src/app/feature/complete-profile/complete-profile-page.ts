@@ -160,10 +160,28 @@ import { PAY_DAY_MAX, type SupportedCurrency } from 'pulpe-shared';
                     hideSingleSelectionIndicator
                   >
                     <mat-button-toggle value="CHF" class="flex-1">
-                      CHF
+                      <span
+                        class="flex flex-col items-center leading-tight py-1"
+                      >
+                        <span class="text-base"
+                          ><span class="text-lg mr-1">🇨🇭</span>CHF</span
+                        >
+                        <span class="text-xs text-on-surface-variant">{{
+                          'currency.swissFranc' | transloco
+                        }}</span>
+                      </span>
                     </mat-button-toggle>
                     <mat-button-toggle value="EUR" class="flex-1">
-                      EUR
+                      <span
+                        class="flex flex-col items-center leading-tight py-1"
+                      >
+                        <span class="text-base"
+                          ><span class="text-lg mr-1">🇪🇺</span>EUR</span
+                        >
+                        <span class="text-xs text-on-surface-variant">{{
+                          'currency.euro' | transloco
+                        }}</span>
+                      </span>
                     </mat-button-toggle>
                   </mat-button-toggle-group>
                 </div>

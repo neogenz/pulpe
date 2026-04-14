@@ -1,27 +1,19 @@
 import SwiftUI
 
-/// Segmented control for selecting input currency in amount forms.
+/// Capsule pill selector for choosing input currency in amount forms.
 /// Shown only when `showCurrencySelector` is enabled in user settings.
 struct CurrencyAmountPicker: View {
     @Binding var selectedCurrency: SupportedCurrency
+    /// Kept for source compatibility with existing call sites. Currently unused.
     let baseCurrency: SupportedCurrency
 
-    private var currencies: [SupportedCurrency] {
-        let options = SupportedCurrency.allCases
-        // Ensure base currency is first
-        if let index = options.firstIndex(of: baseCurrency), index != 0 {
-            return [baseCurrency] + options.filter { $0 != baseCurrency }
-        }
-        return options
-    }
-
     var body: some View {
-        Picker("Devise", selection: $selectedCurrency) {
-            ForEach(currencies) { currency in
-                Text(currency.rawValue).tag(currency)
+        CapsulePicker(selection: $selectedCurrency, title: "Devise") { currency in
+            HStack(spacing: DesignTokens.Spacing.xs) {
+                Text(currency.flag)
+                Text(currency.rawValue)
             }
         }
-        .pickerStyle(.segmented)
         .accessibilityLabel("Sélection de la devise")
     }
 }

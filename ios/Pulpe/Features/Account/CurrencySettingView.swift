@@ -19,7 +19,7 @@ struct CurrencySettingView: View {
             .onChange(of: userSettingsStore.currency) { _, newValue in
                 viewModel.syncCurrency(newValue)
             }
-            .onAppear {
+            .task {
                 viewModel.syncCurrency(userSettingsStore.currency)
             }
         }
@@ -28,68 +28,88 @@ struct CurrencySettingView: View {
     // MARK: - Currency Picker
 
     private var currencyPicker: some View {
-        Picker("Devise", selection: Binding(
-            get: { viewModel.selectedCurrency },
-            set: { newValue in
-                viewModel.selectedCurrency = newValue
-                Task {
-                    await viewModel.save(using: userSettingsStore)
-                    if userSettingsStore.error == nil {
-                        appState.toastManager.show("Devise enregistrée", type: .success)
-                    } else {
-                        appState.toastManager.show("Erreur lors de la sauvegarde", type: .error)
+        CapsulePicker(
+            selection: Binding(
+                get: { viewModel.selectedCurrency },
+                set: { newValue in
+                    viewModel.selectedCurrency = newValue
+                    Task {
+                        await viewModel.save(using: userSettingsStore)
+                        if userSettingsStore.error == nil {
+                            appState.toastManager.show("Devise enregistrée", type: .success)
+                        } else {
+                            appState.toastManager.show("Erreur lors de la sauvegarde", type: .error)
+                        }
                     }
                 }
-            }
-        )) {
-            ForEach(SupportedCurrency.allCases) { currency in
-                Text(currency.rawValue).tag(currency)
+            ),
+            title: "Devise"
+        ) { currency in
+            HStack(spacing: DesignTokens.Spacing.xs) {
+                Text(currency.flag)
+                VStack(alignment: .leading, spacing: 0) {
+                    Text(currency.rawValue).font(PulpeTypography.labelLarge)
+                    Text(currency.nativeName).font(PulpeTypography.caption2).foregroundStyle(Color.onSurfaceVariant)
+                }
             }
         }
-        .pickerStyle(.segmented)
     }
 
     // MARK: - Converter
 
     @ViewBuilder
     private var converterSection: some View {
-        VStack(spacing: DesignTokens.Spacing.md) {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+            // Header
+            HStack(spacing: DesignTokens.Spacing.sm) {
+                Image(systemName: "arrow.left.arrow.right.circle")
+                    .foregroundStyle(Color.onSurfaceVariant)
+                Text("Convertisseur")
+                    .font(PulpeTypography.cardTitle)
+            }
+
+            // Input row
             HStack {
-                TextField("Montant", text: $viewModel.converterInput)
+                TextField("0", text: $viewModel.converterInput)
                     .keyboardType(.decimalPad)
                     .textFieldStyle(.roundedBorder)
-
-                Text(viewModel.sourceCurrency.rawValue)
-                    .foregroundStyle(.secondary)
-
-                Button {
-                    viewModel.swapCurrencies()
-                } label: {
-                    Image(systemName: "arrow.left.arrow.right")
-                        .font(.body.weight(.medium))
-                }
-                .buttonStyle(.bordered)
-                .buttonBorderShape(.circle)
-                .tint(.pulpePrimary)
-                .frame(minWidth: 44, minHeight: 44)
-                .contentShape(Rectangle())
-                .accessibilityLabel("Inverser les devises")
-
-                Text(viewModel.convertedAmount)
-                    .font(PulpeTypography.labelLarge)
-                    .monospacedDigit()
-                    .frame(minWidth: 80, alignment: .trailing)
-
-                Text(viewModel.targetCurrency.rawValue)
-                    .foregroundStyle(.secondary)
+                Text(viewModel.sourceCurrency.compactLabel)
+                    .font(PulpeTypography.labelMedium)
+                    .foregroundStyle(Color.onSurfaceVariant)
             }
+
+            // Swap button
+            Button { viewModel.swapCurrencies() } label: {
+                HStack { Spacer(); Image(systemName: "arrow.up.arrow.down"); Spacer() }
+                    .padding(.vertical, DesignTokens.Spacing.sm)
+            }
+            .frame(minHeight: DesignTokens.TapTarget.minimum)
+            .contentShape(Rectangle())
+            .accessibilityLabel("Inverser les devises")
+
+            // Result card
+            HStack {
+                Text(viewModel.convertedAmount)
+                    .font(PulpeTypography.title3.weight(.semibold))
+                    .monospacedDigit()
+                Spacer()
+                Text(viewModel.targetCurrency.compactLabel)
+                    .font(PulpeTypography.labelMedium)
+                    .foregroundStyle(Color.onSurfaceVariant)
+            }
+            .padding(DesignTokens.Spacing.md)
+            .background(Color.surfaceContainerLow)
+            .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.sm))
 
             if let rateInfo = viewModel.rateInfo {
                 Text(rateInfo)
                     .font(PulpeTypography.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.onSurfaceVariant)
             }
         }
+        .padding(DesignTokens.Spacing.lg)
+        .background(Color.surfaceContainerHigh)
+        .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md))
         .task { await viewModel.loadRate() }
     }
 }

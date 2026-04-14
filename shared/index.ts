@@ -162,6 +162,12 @@ export {
   type BudgetPeriodDates,
 } from './src/calculators/index.js';
 
+// Export currency display metadata
+export {
+  CURRENCY_METADATA,
+  type CurrencyMetadataEntry,
+} from './src/currency.js';
+
 // Export all types from types.ts
 export type {
   // Enum Types
