@@ -78,6 +78,9 @@ struct PulpeApp: App {
                     .environment(dashboardStore)
                     .environment(userSettingsStore)
                     .environment(featureFlagsStore)
+                    .overlay(alignment: .topLeading) {
+                        ToastOverlayWindowHost(toastManager: appState.toastManager)
+                    }
                     .task {
                         featureFlagsStore.refresh()
                     }
@@ -160,7 +163,6 @@ struct RootView: View {
             resetPasswordDeepLink: $resetPasswordDeepLink,
             recoveryKeySheetItemBinding: recoveryKeySheetItemBinding
         ))
-        .toastOverlay(appState.toastManager)
         .environment(appState.toastManager)
         .onReceive(NotificationCenter.default.publisher(for: .maintenanceModeDetected)) { _ in
             appState.send(.maintenanceChecked(isInMaintenance: true))
