@@ -97,8 +97,20 @@ final class AnalyticsService {
     /// Call after identify() so person-property-based flags re-evaluate.
     func reloadFeatureFlags(onComplete: (@MainActor @Sendable () -> Void)? = nil) {
         guard isInitialized else { return }
-        PostHogSDK.shared.reloadFeatureFlags {
-            Task { @MainActor in onComplete?() }
+        // The callback must be created in a nonisolated context: Swift 6 would otherwise
+        // infer @MainActor on the closure (we're inside a @MainActor class), causing
+        // a runtime crash when PostHog calls it from a background thread.
+        PostHogSDK.shared.reloadFeatureFlags(Self.makePostHogCallback(onComplete))
+    }
+
+    /// Produces a `@Sendable`, non-isolated closure for PostHog's completion callback.
+    /// `nonisolated` prevents Swift 6 from inheriting `@MainActor` from the call site.
+    nonisolated private static func makePostHogCallback(
+        _ completion: (@MainActor @Sendable () -> Void)?
+    ) -> @Sendable () -> Void {
+        {
+            guard let completion else { return }
+            Task { @MainActor in completion() }
         }
     }
 
