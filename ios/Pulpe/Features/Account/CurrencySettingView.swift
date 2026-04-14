@@ -92,18 +92,6 @@ struct CurrencySettingView: View {
                     .multilineTextAlignment(.trailing)
                     .tint(Color.pulpePrimary)
             }
-            .overlay {
-                RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.sm)
-                    .strokeBorder(
-                        Color.pulpePrimary.opacity(
-                            converterFocus.wrappedValue == .input
-                                ? DesignTokens.Opacity.strong
-                                : 0
-                        ),
-                        lineWidth: DesignTokens.BorderWidth.medium
-                    )
-            }
-            .animation(reduceMotion ? nil : DesignTokens.Animation.smoothEaseOut, value: converterFocus.wrappedValue)
             .animation(reduceMotion ? nil : DesignTokens.Animation.gentleSpring, value: viewModel.sourceCurrency)
 
             converterAmountCard(
