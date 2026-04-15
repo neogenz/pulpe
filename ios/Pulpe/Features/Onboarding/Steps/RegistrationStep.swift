@@ -32,7 +32,6 @@ struct RegistrationStep: View {
                 }
             }
         )
-        .keyboardFieldNavigation(focus: $focusedField, order: [.email, .password])
         .trackScreen("Onboarding_Registration")
         .task {
             // Fire signup_started when the user actually reaches the registration form.

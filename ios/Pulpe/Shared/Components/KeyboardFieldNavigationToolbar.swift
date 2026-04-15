@@ -47,6 +47,7 @@ extension View {
                         .accessibilityLabel("Fermer le clavier")
                     }
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
     }

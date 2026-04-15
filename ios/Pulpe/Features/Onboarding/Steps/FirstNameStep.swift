@@ -38,7 +38,6 @@ struct FirstNameStep: View {
                 }
             }
         )
-        .keyboardFieldNavigation(focus: $focusedField, order: [.firstName])
         .trackScreen("Onboarding_FirstName")
     }
 }
