@@ -1,6 +1,10 @@
 import SwiftUI
 import VariableBlur
 
+private enum OnboardingStepScrollAnchor: Hashable {
+    case cta
+}
+
 /// Base scaffold used by every concrete onboarding step (firstName, income, …).
 /// Owns the step header, error banner, full-width CTA and keyboard/scroll chrome.
 struct OnboardingStepView<Content: View>: View {
@@ -12,7 +16,6 @@ struct OnboardingStepView<Content: View>: View {
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(FeatureFlagsStore.self) private var featureFlags
-    @Namespace private var bottomAnchor
     @State private var showContent = false
     @State private var isAtBottom = false
     @State private var contentOverflows = false
@@ -23,17 +26,11 @@ struct OnboardingStepView<Content: View>: View {
 
     private var isKeyboardVisible: Bool { keyboardHeight > 0 }
 
-    /// Scroll vers le CTA et/ou raccourci pour fermer le clavier (comme les autres étapes).
-    private var showsFloatingAuxiliaryButton: Bool {
-        (contentOverflows && !isAtBottom) || isKeyboardVisible
-    }
+    /// Full-width primary CTA (Revolut-style) when the user reached the end of the scroll — keyboard up or down.
+    private var useExpandedCTAChrome: Bool { isAtBottom || !contentOverflows }
 
-    /// Inset when the keyboard is open. Must **not** use full `keyboardHeight` here: that value was padding the
-    /// scroll *content*, creating hundreds of points of empty space below the CTA (user could “scroll into void”).
-    /// A modest fixed inset leaves room for the floating FAB + field focus without inflating `contentSize`.
-    private var scrollContentExtraBottom: CGFloat {
-        guard isKeyboardVisible else { return 0 }
-        return 80 + DesignTokens.FrameHeight.button + DesignTokens.Spacing.lg
+    private var ctaOverlayBottomPadding: CGFloat {
+        return DesignTokens.Spacing.lg
     }
 
     private var shouldShowCurrencyChip: Bool {
@@ -94,13 +91,13 @@ struct OnboardingStepView<Content: View>: View {
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                     }
 
-                    // Full-width CTA at bottom of scroll content
-                    fullWidthCTA
-                        .padding(.horizontal, DesignTokens.Spacing.xxl)
-                        .id(bottomAnchor)
+                    // Scroll anchor only — primary CTA is pinned in overlay (morphs FAB ↔ full width).
+                    Color.clear
+                        .frame(height: DesignTokens.FrameHeight.button)
+                        .id(OnboardingStepScrollAnchor.cta)
                 }
                 .padding(.top, DesignTokens.Spacing.stepHeaderTop)
-                .padding(.bottom, DesignTokens.Spacing.xxxl + scrollContentExtraBottom)
+                .padding(.bottom, DesignTokens.Spacing.xxxl)
             }
             .scrollBounceBehavior(.basedOnSize)
             .scrollDismissesKeyboard(.interactively)
@@ -132,14 +129,9 @@ struct OnboardingStepView<Content: View>: View {
                     .transition(.opacity.combined(with: .move(edge: .bottom)))
                 }
             }
-            // Floating ↓ button — stays within safe area
-            .overlay(alignment: .bottomTrailing) {
-                if showsFloatingAuxiliaryButton {
-                    floatingButton(proxy: proxy)
-                        .padding(.trailing, DesignTokens.Spacing.xxl)
-                        .padding(.bottom, DesignTokens.Spacing.lg)
-                        .transition(.opacity.combined(with: .move(edge: .bottom)))
-                }
+            .overlay(alignment: .bottom) {
+                onboardingMorphingCTA(proxy: proxy)
+                    .padding(.bottom, ctaOverlayBottomPadding)
             }
         }
         .background(Color.clear)
@@ -175,59 +167,107 @@ struct OnboardingStepView<Content: View>: View {
         }
     }
 
-    // MARK: - Floating auxiliary (keyboard open → dismiss, sinon scroll vers CTA)
+    // MARK: - Morphing CTA (single control: frame animates circle ↔ full-width pill)
 
-    private func floatingButton(proxy: ScrollViewProxy) -> some View {
-        Button {
-            if isKeyboardVisible {
-                UIApplication.shared.sendAction(
-                    #selector(UIResponder.resignFirstResponder),
-                    to: nil, from: nil, for: nil
-                )
-            } else {
-                withAnimation(DesignTokens.Animation.defaultSpring) {
-                    proxy.scrollTo(bottomAnchor, anchor: .bottom)
-                }
+    private func onboardingMorphingCTA(proxy: ScrollViewProxy) -> some View {
+        let expanded = useExpandedCTAChrome
+        let buttonHeight = DesignTokens.FrameHeight.button
+        let fabShadow = DesignTokens.Shadow.elevated
+        return HStack(spacing: 0) {
+            Spacer(minLength: 0)
+            Button {
+                morphingCTAAction(proxy: proxy)
+            } label: {
+                morphingCTALabel(expanded: expanded)
+                    .font(PulpeTypography.buttonPrimary)
+                    .frame(height: buttonHeight)
+                    .frame(maxWidth: expanded ? .infinity : buttonHeight)
+                    .foregroundStyle(ctaForeground(expanded: expanded))
+                    .background(ctaBackground(expanded: expanded))
+                    .clipShape(Capsule())
+                    .overlay(ctaDisabledOutline(expanded: expanded))
+                    .scaleEffect(expanded && !canProceed ? 0.98 : 1)
+                    .animation(reduceMotion ? .none : DesignTokens.Animation.bouncySpring, value: canProceed)
+                    .animation(.easeInOut(duration: DesignTokens.Animation.fast), value: isEnabled)
+                    .shadow(
+                        color: expanded ? .clear : fabShadow.color,
+                        radius: expanded ? 0 : fabShadow.radius,
+                        y: expanded ? 0 : fabShadow.y
+                    )
             }
-        } label: {
-            Image(systemName: isKeyboardVisible ? "keyboard.chevron.compact.down" : "arrow.down")
-                .font(PulpeTypography.labelLarge)
-                .foregroundStyle(Color.textOnPrimary)
-                .frame(width: DesignTokens.FrameHeight.button, height: DesignTokens.FrameHeight.button)
-                .background(Color.onboardingGradient)
-                .clipShape(Circle())
-                .contentTransition(.symbolEffect(.replace))
+            .buttonStyle(.plain)
+            .disabled(expanded && !isEnabled)
+            .sensoryFeedback(.success, trigger: canProceedTrigger)
+            .accessibilityLabel(expanded ? buttonTitle : (isKeyboardVisible ? "Fermer le clavier" : "Voir la suite"))
+            .animation(reduceMotion ? .none : DesignTokens.Animation.defaultSpring, value: expanded)
         }
-        .shadow(DesignTokens.Shadow.elevated)
-        .contentShape(Circle())
-        .accessibilityLabel(isKeyboardVisible ? "Fermer le clavier" : "Voir la suite")
+        .padding(.horizontal, DesignTokens.Spacing.xxl)
     }
 
-    // MARK: - Full-Width CTA (at bottom of scroll)
-
-    private var fullWidthCTA: some View {
-        VStack(spacing: DesignTokens.Spacing.md) {
-            Button(action: onNext) {
-                if state.isLoading {
-                    ProgressView()
-                        .tint(.white)
-                        .accessibilityLabel("Chargement")
-                } else {
-                    HStack(spacing: DesignTokens.Spacing.sm) {
-                        Text(buttonTitle)
-                        if step != .registration && step != .budgetPreview {
-                            Image(systemName: "arrow.right")
-                                .font(PulpeTypography.labelLarge)
-                        }
+    @ViewBuilder
+    private func morphingCTALabel(expanded: Bool) -> some View {
+        if expanded {
+            if state.isLoading {
+                ProgressView()
+                    .tint(.white)
+                    .accessibilityLabel("Chargement")
+            } else {
+                HStack(spacing: DesignTokens.Spacing.sm) {
+                    Text(buttonTitle)
+                    if step != .registration && step != .budgetPreview {
+                        Image(systemName: "arrow.right")
+                            .font(PulpeTypography.labelLarge)
                     }
                 }
             }
-            .primaryButtonStyle(isEnabled: isEnabled)
-            .disabled(!isEnabled)
-            .scaleEffect(canProceed ? 1 : 0.98)
-            .animation(reduceMotion ? .none : DesignTokens.Animation.bouncySpring, value: canProceed)
-            .animation(.easeInOut(duration: DesignTokens.Animation.fast), value: isEnabled)
-            .sensoryFeedback(.success, trigger: canProceedTrigger)
+        } else {
+            Image(systemName: isKeyboardVisible ? "keyboard.chevron.compact.down" : "arrow.down")
+                .font(PulpeTypography.labelLarge)
+                .contentTransition(.symbolEffect(.replace))
+        }
+    }
+
+    private func morphingCTAAction(proxy: ScrollViewProxy) {
+        if useExpandedCTAChrome {
+            onNext()
+        } else if isKeyboardVisible {
+            UIApplication.shared.sendAction(
+                #selector(UIResponder.resignFirstResponder),
+                to: nil, from: nil, for: nil
+            )
+        } else {
+            withAnimation(DesignTokens.Animation.defaultSpring) {
+                proxy.scrollTo(OnboardingStepScrollAnchor.cta, anchor: .bottom)
+            }
+        }
+    }
+
+    private func ctaForeground(expanded: Bool) -> Color {
+        if expanded, isEnabled {
+            return Color.textOnPrimary
+        }
+        if expanded, !isEnabled {
+            return Color.onSurfaceVariant
+        }
+        return Color.textOnPrimary
+    }
+
+    @ViewBuilder
+    private func ctaBackground(expanded: Bool) -> some View {
+        if expanded, isEnabled {
+            Color.onboardingGradient
+        } else if expanded, !isEnabled {
+            Color.pulpePrimary.opacity(0.12)
+        } else {
+            Color.onboardingGradient
+        }
+    }
+
+    @ViewBuilder
+    private func ctaDisabledOutline(expanded: Bool) -> some View {
+        if expanded, !isEnabled {
+            Capsule()
+                .strokeBorder(Color.pulpePrimary.opacity(0.2), lineWidth: DesignTokens.BorderWidth.thin)
         }
     }
 
