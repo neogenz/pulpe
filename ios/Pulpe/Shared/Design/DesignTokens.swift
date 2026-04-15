@@ -245,6 +245,9 @@ enum DesignTokens {
         /// Minimum skeleton display time to prevent jarring flash on fast loads
         static let skeletonMinimumDuration: Duration = .milliseconds(400)
 
+        /// Délai avant un toast overlay après fermeture d’une sheet : laisse l’animation de dismissal se stabiliser (`ToastOverlayWindowHost`).
+        static let postSheetDismissBeforeToast: Duration = .milliseconds(350)
+
         /// Waits until at least the minimum skeleton duration has elapsed since `start`.
         /// Call after an async fetch that was preceded by showing a skeleton.
         /// - Important: Throws `CancellationError` if the task is cancelled during the wait.

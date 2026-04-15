@@ -3,8 +3,7 @@ import SwiftUI
 /// Global toast manager for displaying confirmation messages with optional undo action
 @Observable @MainActor
 final class ToastManager {
-    /// Durée unique pour l’auto-fermeture et la fenêtre « annuler » (alignée avec le commit différé côté ViewModel).
-    private static let autoDismissDuration: Duration = .seconds(3)
+    private let autoDismissDuration: Duration
 
     enum ToastType {
         case success
@@ -33,7 +32,7 @@ final class ToastManager {
         let message: String
         let type: ToastType
         let undoAction: (@MainActor () async -> Void)?
-        /// Appelé si le toast disparaît sans « Annuler » : timeout, bouton fermer, glisser pour fermer, ou remplacement par un nouveau toast.
+        /// Appelé si le toast disparaît sans « Annuler » : timeout, bouton fermer, glisser pour fermer, ou remplacement par un autre toast **avec** `onFinishedWithoutUndo`.
         let onFinishedWithoutUndo: (@MainActor () async -> Void)?
 
         var hasUndo: Bool { undoAction != nil }
@@ -58,13 +57,24 @@ final class ToastManager {
 
     private(set) var currentToast: Toast?
     private var dismissTask: Task<Void, Never>?
+    /// Toasts simples (`show`) attendent la fin du toast « Annuler » pour ne pas déclencher `onFinishedWithoutUndo` ni masquer l’undo.
+    private var pendingToasts: [Toast] = []
+
+    init(autoDismissDuration: Duration = .seconds(3)) {
+        self.autoDismissDuration = autoDismissDuration
+    }
 
     /// Show a simple toast message
     func show(_ message: String, type: ToastType = .success) {
-        showToast(Toast(message: message, type: type))
+        let toast = Toast(message: message, type: type)
+        if currentToast?.type == .undo {
+            pendingToasts.append(toast)
+            return
+        }
+        showToast(toast)
     }
 
-    /// Show a toast with an undo action; `onFinishedWithoutUndo` runs after auto-dismiss, fermeture (X), ou si un nouveau toast remplace celui-ci.
+    /// Show a toast with an undo action; `onFinishedWithoutUndo` runs after auto-dismiss, fermeture (X), glisser pour fermer, ou remplacement par un toast qui porte aussi `onFinishedWithoutUndo`.
     func showWithUndo(
         _ message: String,
         undo: @escaping @MainActor () async -> Void,
@@ -89,7 +99,10 @@ final class ToastManager {
             }
         }
 
-        // Replace toast without animation to avoid cross-fade between toasts
+        applyToastPresentation(toast)
+    }
+
+    private func applyToastPresentation(_ toast: Toast) {
         var transaction = SwiftUI.Transaction()
         transaction.disablesAnimations = true
         withTransaction(transaction) {
@@ -98,7 +111,7 @@ final class ToastManager {
 
         dismissTask = Task { @MainActor in
             do {
-                try await Task.sleep(for: Self.autoDismissDuration)
+                try await Task.sleep(for: autoDismissDuration)
                 guard !Task.isCancelled else { return }
                 dismiss()
             } catch {
@@ -115,6 +128,7 @@ final class ToastManager {
         currentToast = nil
         Task { @MainActor in
             await undoAction()
+            presentNextPendingToast()
         }
     }
 
@@ -126,7 +140,16 @@ final class ToastManager {
         if let finish {
             Task { @MainActor in
                 await finish()
+                presentNextPendingToast()
             }
+        } else {
+            presentNextPendingToast()
         }
+    }
+
+    private func presentNextPendingToast() {
+        guard currentToast == nil, let next = pendingToasts.first else { return }
+        pendingToasts.removeFirst()
+        applyToastPresentation(next)
     }
 }
