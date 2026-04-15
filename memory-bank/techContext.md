@@ -36,6 +36,7 @@
 | DR-013 | Onboarding Step Visibility & Apple App Store Compliance | 2026-04-12 |
 | DR-014 | Multi-Currency with Conversion Metadata | 2026-03-06 |
 | DR-015 | Feature Flags via PostHog with Early Adopter Targeting | 2026-04-12 |
+| DR-016 | API Date Semantics — UTC Instants vs Business Calendar (Europe/Zurich) | 2026-04-15 |
 
 ---
 
@@ -188,6 +189,61 @@ Aucun feature flag n'existait dans le projet — premier flag introduit, doit se
   ```
   L'utilisateur doit se reconnecter pour que la nouvelle valeur soit envoyée à PostHog via `identify()`
 - **Référence opérationnelle complète** : ticket PUL-99 contient le runbook Phase 1/2/3 détaillé avec liste exhaustive des fichiers à supprimer en clean removal
+
+---
+
+## DR-016: API Date Semantics — UTC Instants vs Business Calendar (Europe/Zurich)
+
+**Date**: 2026-04-15
+
+### Problem
+
+Le backend mélange deux notions sans les nommer : **instants** (horodatages) et **jours civils « métier »** (sans heure), notamment pour les taux de change (Frankfurter renvoie un `date` au format `YYYY-MM-DD`). Des patterns du type `toISOString().slice(0, 10)` ou des contournements `Intl` + locale exotique (`en-CA`, `sv-SE`) masquent l’intention et peuvent confondre **date UTC** et **jour calendaire dans un fuseau**.
+
+### Decision Drivers
+
+- **Standards 2025–2026** : pour un **instant**, exposer de préférence **ISO 8601 en UTC** (`…Z`). Pour une **date-only métier**, une chaîne **`YYYY-MM-DD`** est appropriée — ce n’est **pas** un instant ; imposer « UTC » via minuit UTC est trompeur.
+- **Produit Pulpe** : utilisateurs CH, cours ECB/Frankfurter décrits comme **jour de publication** ; le fallback « aujourd’hui » si l’API omet `date` doit être **cohérent métier** (fuseau CH), pas une astuce opaque.
+- **Stack** : `date-fns` v4 est déjà une dépendance backend ; la doc officielle recommande **`@date-fns/tz`** pour les calculs / formatage **IANA** (`format(…, { in: tz(zone) })`), plutôt que l’ancien paquet tiers `date-fns-tz` seul ou des hacks `Intl`.
+
+### Options Considered
+
+| Option | Description | Verdict |
+|--------|-------------|---------|
+| A | Toujours UTC : `toISOString()` / minuit UTC pour tout | Rejected pour **date-only métier** — fausse précision, bugs autour de minuit |
+| B | `Intl` + locale pour obtenir `YYYY-MM-DD` sans dépendance | Rejected comme **pattern par défaut** — intention peu lisible |
+| C | `date-fns` + `@date-fns/tz`, fuseau IANA explicite pour les jours métier | Chosen |
+| D | Ajouter `Luxon` en parallèle de `date-fns` | Rejected — doublon inutile tant que date-fns couvre le besoin |
+
+### Decision
+
+1. **Instants** (`createdAt`, `updatedAt`, deadlines avec heure, logs) : rester sur **UTC**, sérialisation **ISO 8601** avec `Z` ou offset explicite (convention API habituelle).
+
+2. **Jours civils métier** (ex. jour associé à un taux de change, fallback si `date` absente dans la réponse Frankfurter) :
+   - Format : **`YYYY-MM-DD`**
+   - Fuseau par défaut : **`Europe/Zurich`** (aligné utilisateurs CH / DR-014)
+   - Implémentation centralisée : `backend-nest/src/common/utils/business-calendar-date.ts` — `formatBusinessCalendarDate()` utilise `format` de `date-fns` avec `{ in: tz(timeZone) }` depuis `@date-fns/tz`.
+
+3. **Source de vérité** : quand l’API externe fournit une `date` (ex. Frankfurter), **l’utiliser telle quelle** ; le fuseau CH ne remplace que les **fallbacks** construits côté serveur.
+
+4. **Évolution** : si besoin multi-région, lire un `APP_BUSINESS_TIMEZONE` (ou équivalent) via `ConfigService` et le passer à `formatBusinessCalendarDate` au lieu de la seule constante.
+
+### Rationale
+
+- Distinction **instant vs date-only** = même distinction que les bonnes pratiques API courantes (éviter de sérialiser une date métier comme datetime UTC artificielle).
+- **`@date-fns/tz`** est la voie documentée avec **date-fns v4** ; dépendance petite et intention claire vs `Intl` + locale.
+- **Europe/Zurich** pour le fallback = cohérent avec le domaine Pulpe sans imposer ce fuseau à tous les champs datetime.
+
+### Consequences
+
+- **Positive** : intention explicite dans le code, tests unitaires sur l’utilitaire calendaire, alignement multidevise (DR-014).
+- **Trade-off** : une dépendance de plus (`@date-fns/tz`) — acceptable et officiellement couplée à date-fns v4.
+- **Impact** : `backend-nest/package.json`, `business-calendar-date.ts`, consommateurs (ex. `CurrencyService` pour champs `date` date-only / fallback).
+
+### Notes
+
+- Ne pas utiliser `formatBusinessCalendarDate` pour des **timestamps** ; pour ces cas, privilégier UTC + ISO complet.
+- Référence rapide communauté : blog date-fns v4 « first-class time zones » + paquet `@date-fns/tz`.
 
 ---
 

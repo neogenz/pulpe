@@ -133,6 +133,24 @@ export class EncryptionService {
     }
   }
 
+  decryptRowAmountFields<
+    T extends { amount: string | null; original_amount: string | null },
+  >(
+    row: T,
+    dek: Buffer,
+  ): Omit<T, 'amount' | 'original_amount'> & {
+    amount: number;
+    original_amount: number | null;
+  } {
+    return {
+      ...row,
+      amount: row.amount ? this.tryDecryptAmount(row.amount, dek, 0) : 0,
+      original_amount: row.original_amount
+        ? this.tryDecryptAmount(row.original_amount, dek, null)
+        : null,
+    };
+  }
+
   async prepareAmountData(
     amount: number,
     userId: string,

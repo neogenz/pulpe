@@ -1789,9 +1789,7 @@ export class BudgetTemplateService {
         preparedAmounts[index].amount,
       ),
       amount: preparedAmounts[index].amount,
-      ...(encryptedOriginalAmounts[index] !== undefined && {
-        original_amount: encryptedOriginalAmounts[index],
-      }),
+      original_amount: encryptedOriginalAmounts[index],
     }));
 
     const { data, error } = await supabase

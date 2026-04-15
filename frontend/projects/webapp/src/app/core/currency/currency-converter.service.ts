@@ -15,7 +15,7 @@ const EXPIRE_MS = 60 * 60 * 1000;
 export class CurrencyConverterService {
   readonly #api = inject(ApiClient);
 
-  readonly cache = new DataCache({
+  readonly #cache = new DataCache({
     name: 'currency-rates',
     staleTime: FRESH_MS,
     expireTime: EXPIRE_MS,
@@ -28,17 +28,17 @@ export class CurrencyConverterService {
     if (base === target) return 1;
 
     const key = ['currency', 'rate', base, target];
-    const cached = this.cache.get<number>(key);
+    const cached = this.#cache.get<number>(key);
     if (cached?.fresh) return cached.data;
 
-    return this.cache.deduplicate(key, async () => {
+    return this.#cache.deduplicate(key, async () => {
       const response = await firstValueFrom(
         this.#api.get$(
           `/currency/rate?base=${base}&target=${target}`,
           currencyRateResponseSchema,
         ),
       );
-      this.cache.set(key, response.data.rate);
+      this.#cache.set(key, response.data.rate);
       return response.data.rate;
     });
   }

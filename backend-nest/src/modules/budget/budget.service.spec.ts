@@ -197,13 +197,36 @@ describe('BudgetService', () => {
         },
         {
           provide: EncryptionService,
-          useValue: {
-            getUserDEK: () => Promise.resolve(Buffer.alloc(32)),
-            ensureUserDEK: () => Promise.resolve(Buffer.alloc(32)),
-            encryptAmount: () => 'encrypted-mock',
-            tryDecryptAmount: (_ct: string, _dek: Buffer, fallback: number) =>
-              fallback,
-          },
+          useValue: (() => {
+            const stub = {
+              getUserDEK: () => Promise.resolve(Buffer.alloc(32)),
+              ensureUserDEK: () => Promise.resolve(Buffer.alloc(32)),
+              encryptAmount: () => 'encrypted-mock',
+              tryDecryptAmount: (
+                _ct: string,
+                _dek: Buffer,
+                fallback: number | null,
+              ) => fallback,
+              decryptRowAmountFields(
+                row: {
+                  amount: string | null;
+                  original_amount: string | null;
+                } & Record<string, unknown>,
+                dek: Buffer,
+              ) {
+                return {
+                  ...row,
+                  amount: row.amount
+                    ? (stub.tryDecryptAmount(row.amount, dek, 0) as number)
+                    : 0,
+                  original_amount: row.original_amount
+                    ? stub.tryDecryptAmount(row.original_amount, dek, null)
+                    : null,
+                };
+              },
+            };
+            return stub;
+          })(),
         },
         {
           provide: CacheService,

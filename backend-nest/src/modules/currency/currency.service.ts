@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { BusinessException } from '@common/exceptions/business.exception';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 import { type InfoLogger, InjectInfoLogger } from '@common/logger';
+import { formatBusinessCalendarDate } from '@common/utils/business-calendar-date';
 import { supportedCurrencySchema, type SupportedCurrency } from 'pulpe-shared';
 
 interface CachedRate {
@@ -45,7 +46,7 @@ export class CurrencyService {
         base,
         target,
         rate: IDENTITY_EXCHANGE_RATE,
-        date: new Date().toISOString().slice(0, 10),
+        date: formatBusinessCalendarDate(),
       };
     }
 
@@ -57,7 +58,13 @@ export class CurrencyService {
     }
 
     const existing = this.#inFlight.get(cacheKey);
-    if (existing) return existing;
+    if (existing) {
+      try {
+        return await existing;
+      } catch (error) {
+        return this.#rateWhenFetchFails(base, target, cached, error);
+      }
+    }
 
     const promise = this.#fetchAndCache(base, target, cacheKey).finally(() => {
       this.#inFlight.delete(cacheKey);
@@ -89,7 +96,7 @@ export class CurrencyService {
       );
       return { base, target, rate: cached.rate, date: cached.date };
     }
-    this.#logRateUnavailableAndReject(base, target, error);
+    this.#logRateUnavailableNoCache(base, target, error);
     throw new BusinessException(
       ERROR_DEFINITIONS.CURRENCY_RATE_FETCH_FAILED,
       { base, target },
@@ -98,7 +105,7 @@ export class CurrencyService {
     );
   }
 
-  #logRateUnavailableAndReject(
+  #logRateUnavailableNoCache(
     base: SupportedCurrency,
     target: SupportedCurrency,
     error: unknown,
@@ -210,6 +217,6 @@ export class CurrencyService {
       );
     }
 
-    return { rate, date: data.date ?? new Date().toISOString().slice(0, 10) };
+    return { rate, date: data.date ?? formatBusinessCalendarDate() };
   }
 }

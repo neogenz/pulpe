@@ -449,11 +449,11 @@ export class BudgetService {
     );
 
     const decryptedBudgetLines = (budgetLines || []).map((line) =>
-      this.decryptAmountFields(line, dek),
+      this.encryptionService.decryptRowAmountFields(line, dek),
     );
 
     const decryptedTransactions = (transactions || []).map((tx) =>
-      this.decryptAmountFields(tx, dek),
+      this.encryptionService.decryptRowAmountFields(tx, dek),
     );
 
     return {
@@ -850,11 +850,11 @@ export class BudgetService {
     );
 
     const decryptedBudgetLines = (results.budgetLines || []).map((line) =>
-      this.decryptAmountFields(line, dek),
+      this.encryptionService.decryptRowAmountFields(line, dek),
     );
 
     const decryptedTransactions = (results.transactions || []).map((tx) =>
-      this.decryptAmountFields(tx, dek),
+      this.encryptionService.decryptRowAmountFields(tx, dek),
     );
 
     return {
@@ -1348,29 +1348,5 @@ export class BudgetService {
       dek,
       0,
     );
-  }
-
-  private decryptAmountFields<
-    T extends { amount: string | null; original_amount: string | null },
-  >(
-    row: T,
-    dek: Buffer,
-  ): Omit<T, 'amount' | 'original_amount'> & {
-    amount: number;
-    original_amount: number | null;
-  } {
-    return {
-      ...row,
-      amount: row.amount
-        ? this.encryptionService.tryDecryptAmount(row.amount, dek, 0)
-        : 0,
-      original_amount: row.original_amount
-        ? this.encryptionService.tryDecryptAmount(
-            row.original_amount,
-            dek,
-            null,
-          )
-        : null,
-    };
   }
 }

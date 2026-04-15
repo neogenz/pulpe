@@ -30,30 +30,6 @@ export class BudgetLineService {
     private readonly currencyService: CurrencyService,
   ) {}
 
-  #decryptRowWithDEK<
-    T extends { amount: string | null; original_amount: string | null },
-  >(
-    row: T,
-    dek: Buffer,
-  ): Omit<T, 'amount' | 'original_amount'> & {
-    amount: number;
-    original_amount: number | null;
-  } {
-    const decryptedAmount = row.amount
-      ? this.encryptionService.tryDecryptAmount(row.amount, dek, 0)
-      : 0;
-
-    const decryptedOriginalAmount = row.original_amount
-      ? this.encryptionService.tryDecryptAmount(row.original_amount, dek, null)
-      : null;
-
-    return {
-      ...row,
-      amount: decryptedAmount,
-      original_amount: decryptedOriginalAmount,
-    };
-  }
-
   async #decryptBudgetLine(
     budgetLine: Database['public']['Tables']['budget_line']['Row'],
     user: AuthenticatedUser,
@@ -62,7 +38,7 @@ export class BudgetLineService {
       user.id,
       user.clientKey,
     );
-    return this.#decryptRowWithDEK(budgetLine, dek);
+    return this.encryptionService.decryptRowAmountFields(budgetLine, dek);
   }
 
   async #decryptBudgetLines(
@@ -73,7 +49,9 @@ export class BudgetLineService {
       user.id,
       user.clientKey,
     );
-    return budgetLines.map((line) => this.#decryptRowWithDEK(line, dek));
+    return budgetLines.map((line) =>
+      this.encryptionService.decryptRowAmountFields(line, dek),
+    );
   }
 
   async #decryptTransactions(
@@ -84,7 +62,9 @@ export class BudgetLineService {
       user.id,
       user.clientKey,
     );
-    return transactions.map((t) => this.#decryptRowWithDEK(t, dek));
+    return transactions.map((t) =>
+      this.encryptionService.decryptRowAmountFields(t, dek),
+    );
   }
 
   async findAll(
@@ -402,15 +382,7 @@ export class BudgetLineService {
       ...(updateBudgetLineDto.isManuallyAdjusted !== undefined && {
         is_manually_adjusted: updateBudgetLineDto.isManuallyAdjusted,
       }),
-      ...(updateBudgetLineDto.originalCurrency !== undefined && {
-        original_currency: updateBudgetLineDto.originalCurrency,
-      }),
-      ...(updateBudgetLineDto.targetCurrency !== undefined && {
-        target_currency: updateBudgetLineDto.targetCurrency,
-      }),
-      ...(updateBudgetLineDto.exchangeRate !== undefined && {
-        exchange_rate: updateBudgetLineDto.exchangeRate,
-      }),
+      ...mapCurrencyMetadataToDb(updateBudgetLineDto),
       updated_at: new Date().toISOString(),
     };
   }
