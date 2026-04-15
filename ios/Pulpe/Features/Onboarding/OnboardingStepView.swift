@@ -23,6 +23,19 @@ struct OnboardingStepView<Content: View>: View {
 
     private var isKeyboardVisible: Bool { keyboardHeight > 0 }
 
+    /// Scroll vers le CTA et/ou raccourci pour fermer le clavier (comme les autres étapes).
+    private var showsFloatingAuxiliaryButton: Bool {
+        (contentOverflows && !isAtBottom) || isKeyboardVisible
+    }
+
+    /// Inset when the keyboard is open. Must **not** use full `keyboardHeight` here: that value was padding the
+    /// scroll *content*, creating hundreds of points of empty space below the CTA (user could “scroll into void”).
+    /// A modest fixed inset leaves room for the floating FAB + field focus without inflating `contentSize`.
+    private var scrollContentExtraBottom: CGFloat {
+        guard isKeyboardVisible else { return 0 }
+        return 80 + DesignTokens.FrameHeight.button + DesignTokens.Spacing.lg
+    }
+
     private var shouldShowCurrencyChip: Bool {
         featureFlags.isMultiCurrencyEnabled && [.charges, .savings, .budgetPreview].contains(step)
     }
@@ -87,9 +100,7 @@ struct OnboardingStepView<Content: View>: View {
                         .id(bottomAnchor)
                 }
                 .padding(.top, DesignTokens.Spacing.stepHeaderTop)
-                .padding(.bottom, DesignTokens.Spacing.xxxl
-                    + (isKeyboardVisible ? 80 + DesignTokens.FrameHeight.button + DesignTokens.Spacing.lg : 0)
-                )
+                .padding(.bottom, DesignTokens.Spacing.xxxl + scrollContentExtraBottom)
             }
             .scrollBounceBehavior(.basedOnSize)
             .scrollDismissesKeyboard(.interactively)
@@ -123,7 +134,7 @@ struct OnboardingStepView<Content: View>: View {
             }
             // Floating ↓ button — stays within safe area
             .overlay(alignment: .bottomTrailing) {
-                if (contentOverflows && !isAtBottom) || isKeyboardVisible {
+                if showsFloatingAuxiliaryButton {
                     floatingButton(proxy: proxy)
                         .padding(.trailing, DesignTokens.Spacing.xxl)
                         .padding(.bottom, DesignTokens.Spacing.lg)
@@ -164,10 +175,8 @@ struct OnboardingStepView<Content: View>: View {
         }
     }
 
-    // MARK: - Floating ↓ Button (Option C behavior)
+    // MARK: - Floating auxiliary (keyboard open → dismiss, sinon scroll vers CTA)
 
-    /// Keyboard open → dismiss keyboard
-    /// Keyboard closed + not at bottom → scroll to CTA
     private func floatingButton(proxy: ScrollViewProxy) -> some View {
         Button {
             if isKeyboardVisible {
