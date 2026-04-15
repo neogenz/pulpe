@@ -1,7 +1,8 @@
 import SwiftUI
 
 /// Reusable capsule pill selector for CaseIterable enums.
-/// Selected state uses `pulpePrimary`; unselected uses `surfaceContainer`.
+/// Selected state uses `pulpePrimary`; unselected uses `surfaceContainerLow` (warm lift vs the row)
+/// plus a hairline stroke — avoids pure white, which reads cold on warm `surfaceContainerHigh` cards.
 /// `itemLabel` receives `(item, isSelected)` so secondary lines can use `textOnPrimaryMuted` when selected.
 struct CapsulePicker<T: CaseIterable & Hashable, ItemLabel: View>: View where T.AllCases: RandomAccessCollection {
     @Binding var selection: T
@@ -29,9 +30,14 @@ struct CapsulePicker<T: CaseIterable & Hashable, ItemLabel: View>: View where T.
                             .padding(.horizontal, DesignTokens.Spacing.md)
                             .padding(.vertical, DesignTokens.Spacing.sm)
                             .frame(maxWidth: .infinity)
-                            .background(isSelected ? Color.pulpePrimary : Color.surfaceContainer)
+                            .background(isSelected ? Color.pulpePrimary : Color.surfaceContainerLow, in: Capsule())
+                            .overlay {
+                                if !isSelected {
+                                    Capsule()
+                                        .strokeBorder(Color.onSurfaceVariant.opacity(0.22), lineWidth: 1)
+                                }
+                            }
                             .foregroundStyle(isSelected ? Color.textOnPrimary : Color.textPrimary)
-                            .clipShape(Capsule())
                     }
                     .frame(minHeight: DesignTokens.TapTarget.minimum)
                     .contentShape(Capsule())

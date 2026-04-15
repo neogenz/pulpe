@@ -5,6 +5,14 @@ struct CurrencySettingView: View {
         case input
     }
 
+    private struct ConverterValueRowModel {
+        var title: String
+        var caption: String?
+        var currency: SupportedCurrency
+        var isOutput: Bool
+        var inputAccessibilityLabel: String?
+    }
+
     var converterFocus: FocusState<ConverterField?>.Binding
 
     @Environment(AppState.self) private var appState
@@ -13,12 +21,14 @@ struct CurrencySettingView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var viewModel = CurrencySettingViewModel()
     @State private var submitSuccessTrigger = false
+    @State private var isConverterExpanded = false
 
     var body: some View {
         if featureFlagsStore.isMultiCurrencyEnabled {
             Section {
                 currencyPicker
-                converterSection
+                currencyConverterContextCopy
+                converterDisclosure
             } header: {
                 Text("DEVISE")
                     .font(PulpeTypography.labelLarge)
@@ -27,6 +37,16 @@ struct CurrencySettingView: View {
             .sensoryFeedback(.success, trigger: submitSuccessTrigger)
             .onChange(of: userSettingsStore.currency) { _, newValue in
                 viewModel.syncCurrency(newValue)
+                if isConverterExpanded {
+                    viewModel.reloadRate()
+                }
+            }
+            .onChange(of: isConverterExpanded) { _, expanded in
+                if expanded {
+                    viewModel.reloadRate()
+                } else {
+                    converterFocus.wrappedValue = nil
+                }
             }
             .task {
                 viewModel.syncCurrency(userSettingsStore.currency)
@@ -44,6 +64,9 @@ struct CurrencySettingView: View {
                     guard newValue != viewModel.selectedCurrency else { return }
                     viewModel.selectedCurrency = newValue
                     viewModel.applyConverterBase(newValue)
+                    if isConverterExpanded {
+                        viewModel.reloadRate()
+                    }
                     Task {
                         await viewModel.save(using: userSettingsStore)
                         if userSettingsStore.error == nil {
@@ -71,77 +94,142 @@ struct CurrencySettingView: View {
 
     // MARK: - Converter
 
-    private var converterSection: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-            HStack(spacing: DesignTokens.Spacing.sm) {
-                converterHeaderIcon
+    private var currencyConverterContextCopy: some View {
+        Text(
+            "Les montants de ton budget sont dans la devise sélectionnée. "
+                + "Le convertisseur indique une équivalence au cours du jour (indicatif)."
+        )
+        .font(PulpeTypography.caption)
+        .foregroundStyle(Color.onSurfaceVariant)
+        .multilineTextAlignment(.leading)
+        .fixedSize(horizontal: false, vertical: true)
+        .padding(.top, DesignTokens.Spacing.sm)
+        .padding(.bottom, DesignTokens.Spacing.xs)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(
+            "Les montants de ton budget sont dans la devise sélectionnée. "
+                + "Le convertisseur indique une équivalence au cours du jour, indicatif."
+        )
+        .listRowSeparator(.hidden, edges: .bottom)
+    }
+
+    private var converterDisclosure: some View {
+        DisclosureGroup(isExpanded: $isConverterExpanded) {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+                Text(
+                    "« Depuis » reprend la devise du compte ; « Vers » affiche l’équivalent calculé."
+                )
+                .font(PulpeTypography.caption2)
+                .foregroundStyle(Color.textTertiary)
+                .fixedSize(horizontal: false, vertical: true)
+
+                converterInputRow
+                    .animation(
+                        reduceMotion ? nil : DesignTokens.Animation.gentleSpring,
+                        value: viewModel.sourceCurrency
+                    )
+
+                converterOutputRow
+                    .animation(
+                        reduceMotion ? nil : DesignTokens.Animation.gentleSpring,
+                        value: viewModel.targetCurrency
+                    )
+
+                rateFooter
+            }
+            .padding(.top, DesignTokens.Spacing.xs)
+        } label: {
+            Label {
                 Text("Convertisseur")
                     .font(PulpeTypography.cardTitle)
+                    .foregroundStyle(Color.textPrimary)
+            } icon: {
+                Image(systemName: "arrow.left.arrow.right.circle")
+                    .foregroundStyle(Color.onSurfaceVariant)
+                    .symbolEffect(.pulse, options: .repeating.speed(0.35), isActive: viewModel.isLoadingRate)
+                    .accessibilityHidden(true)
             }
-
-            converterAmountCard(
-                label: "Depuis",
-                currency: viewModel.sourceCurrency,
-                accessibilityLabel: "Depuis \(viewModel.sourceCurrency.nativeName)"
-            ) {
-                TextField("0", text: $viewModel.converterInput)
-                    .keyboardType(.decimalPad)
-                    .focused(converterFocus, equals: .input)
-                    .font(PulpeTypography.title3.weight(.semibold))
-                    .monospacedDigit()
-                    .multilineTextAlignment(.trailing)
-                    .tint(Color.pulpePrimary)
-            }
-            .animation(reduceMotion ? nil : DesignTokens.Animation.gentleSpring, value: viewModel.sourceCurrency)
-
-            converterAmountCard(
-                label: "Vers",
-                currency: viewModel.targetCurrency,
-                accessibilityLabel: "Vers \(viewModel.targetCurrency.nativeName)"
-            ) {
-                Text(viewModel.convertedAmount)
-                    .font(PulpeTypography.title3.weight(.semibold))
-                    .monospacedDigit()
-                    .contentTransition(.numericText())
-                    .frame(maxWidth: .infinity, alignment: .trailing)
-            }
-            .animation(reduceMotion ? nil : DesignTokens.Animation.gentleSpring, value: viewModel.targetCurrency)
-
-            rateFooter
         }
-        .padding(.top, DesignTokens.Spacing.xs)
+        .tint(Color.pulpePrimary)
+    }
+
+    private var converterInputRow: some View {
+        converterValueRow(
+            ConverterValueRowModel(
+                title: "Depuis",
+                caption: nil,
+                currency: viewModel.sourceCurrency,
+                isOutput: false,
+                inputAccessibilityLabel: "Depuis \(viewModel.sourceCurrency.nativeName)"
+            )
+        ) {
+            TextField("0", text: $viewModel.converterInput)
+                .keyboardType(.decimalPad)
+                .focused(converterFocus, equals: .input)
+                .font(PulpeTypography.title3.weight(.semibold))
+                .monospacedDigit()
+                .multilineTextAlignment(.trailing)
+                .tint(Color.pulpePrimary)
+        }
+    }
+
+    private var converterOutputRow: some View {
+        converterValueRow(
+            ConverterValueRowModel(
+                title: "Vers",
+                caption: String(localized: "Calcul automatique"),
+                currency: viewModel.targetCurrency,
+                isOutput: true,
+                inputAccessibilityLabel: nil
+            )
+        ) {
+            Text(viewModel.convertedAmount)
+                .font(PulpeTypography.title3.weight(.semibold))
+                .monospacedDigit()
+                .foregroundStyle(Color.textPrimary)
+                .contentTransition(.numericText())
+                .frame(maxWidth: .infinity, alignment: .trailing)
+        }
     }
 
     @ViewBuilder
-    private func converterAmountCard<Content: View>(
-        label: String,
-        currency: SupportedCurrency,
-        accessibilityLabel: String,
-        @ViewBuilder content: () -> Content
+    private func converterValueRow<Content: View>(
+        _ model: ConverterValueRowModel,
+        @ViewBuilder valueContent: () -> Content
     ) -> some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-            Text(label)
-                .font(PulpeTypography.caption)
-                .foregroundStyle(Color.onSurfaceVariant)
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
+                Text(model.title)
+                    .font(PulpeTypography.caption)
+                    .foregroundStyle(Color.onSurfaceVariant)
+                if let caption = model.caption {
+                    Text(caption)
+                        .font(PulpeTypography.caption2)
+                        .foregroundStyle(Color.textTertiary)
+                }
+            }
+
             HStack(spacing: DesignTokens.Spacing.md) {
-                content()
-                Text(currency.compactLabel)
+                valueContent()
+                Text(model.currency.compactLabel)
                     .font(PulpeTypography.labelMedium)
                     .foregroundStyle(Color.onSurfaceVariant)
             }
             .padding(DesignTokens.Spacing.md)
-            .background(Color.surfaceContainerLow)
-            .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.sm))
+            .background(Color.surfaceContainerLow, in: RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.sm))
+            .overlay {
+                RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.sm)
+                    .strokeBorder(Color.onSurfaceVariant.opacity(0.22), lineWidth: 1)
+            }
         }
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel(accessibilityLabel)
-    }
-
-    private var converterHeaderIcon: some View {
-        Image(systemName: "arrow.left.arrow.right.circle")
-            .foregroundStyle(Color.onSurfaceVariant)
-            .symbolEffect(.pulse, options: .repeating.speed(0.35), isActive: viewModel.isLoadingRate)
-            .accessibilityHidden(true)
+        .modifier(
+            ConverterRowAccessibilityModifier(
+                isOutput: model.isOutput,
+                inputCombinedLabel: model.inputAccessibilityLabel,
+                outputCurrencyName: model.currency.nativeName,
+                amountDescription: model.isOutput ? viewModel.convertedAmount : nil
+            )
+        )
     }
 
     @ViewBuilder
@@ -186,6 +274,30 @@ struct CurrencySettingView: View {
     }
 }
 
+// MARK: - Accessibility
+
+private struct ConverterRowAccessibilityModifier: ViewModifier {
+    let isOutput: Bool
+    let inputCombinedLabel: String?
+    let outputCurrencyName: String
+    let amountDescription: String?
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if isOutput {
+            content
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(String(localized: "Équivalent \(outputCurrencyName)"))
+                .accessibilityValue(amountDescription ?? "—")
+                .accessibilityHint(String(localized: "Montant calculé automatiquement, non modifiable."))
+        } else {
+            content
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel(inputCombinedLabel ?? "")
+        }
+    }
+}
+
 // MARK: - ViewModel
 
 @Observable @MainActor
@@ -217,6 +329,7 @@ final class CurrencySettingViewModel {
     }
 
     /// Aligne le convertisseur : devise du compte = ligne « Depuis », l’autre devise = « Vers ».
+    /// Ne déclenche pas de réseau : la vue appelle `reloadRate()` lorsque le panneau convertisseur est ouvert.
     func applyConverterBase(_ currency: SupportedCurrency) {
         let newTarget: SupportedCurrency = currency == .chf ? .eur : .chf
         // Idempotent: avoid a redundant `loadRate()` round-trip + UI flicker when the picker
@@ -224,7 +337,6 @@ final class CurrencySettingViewModel {
         guard sourceCurrency != currency || targetCurrency != newTarget else { return }
         sourceCurrency = currency
         targetCurrency = newTarget
-        reloadRate()
     }
 
     func syncCurrency(_ currency: SupportedCurrency) {
