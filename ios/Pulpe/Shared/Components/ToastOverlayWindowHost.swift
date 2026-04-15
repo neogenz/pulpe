@@ -170,7 +170,8 @@ private struct ToastContent: View {
                     onUndo: toast.hasUndo ? undo : nil
                 )
                 .safeAreaPadding(.top)
-                .padding(.top, DesignTokens.Spacing.sm)
+                // Marge sous encoche + respiration avant barre titre / gros en-têtes (évite le chevauchement visuel).
+                .padding(.top, DesignTokens.Spacing.lg)
                 .background(toastFrameReader)
                 .transition(.move(edge: .top).combined(with: .opacity))
             }

@@ -5,6 +5,59 @@ private enum OnboardingStepScrollAnchor: Hashable {
     case cta
 }
 
+/// Label content swaps instantly while the outer capsule animates width — avoids overlapping “mid-morph” layouts.
+private struct MorphingOnboardingCTALabel: View {
+    let expanded: Bool
+    let isKeyboardVisible: Bool
+    let title: String
+    let showTrailingChevron: Bool
+    let isLoading: Bool
+
+    private var fabSymbolName: String {
+        isKeyboardVisible ? "keyboard.chevron.compact.down" : "arrow.down"
+    }
+
+    var body: some View {
+        ZStack {
+            if expanded {
+                expandedInterior
+            } else {
+                Image(systemName: fabSymbolName)
+                    .font(PulpeTypography.labelLarge)
+                    .contentTransition(.symbolEffect(.replace))
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .contentTransition(.identity)
+        .animation(nil, value: expanded)
+        .animation(nil, value: isLoading)
+    }
+
+    @ViewBuilder
+    private var expandedInterior: some View {
+        if isLoading {
+            ProgressView()
+                .tint(.white)
+                .accessibilityLabel("Chargement")
+        } else {
+            HStack(spacing: DesignTokens.Spacing.sm) {
+                Spacer(minLength: 0)
+                HStack(spacing: DesignTokens.Spacing.sm) {
+                    Text(title)
+                    if showTrailingChevron {
+                        Image(systemName: "arrow.right")
+                            .font(PulpeTypography.labelLarge)
+                    }
+                }
+                .lineLimit(1)
+                .minimumScaleFactor(0.85)
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, DesignTokens.Spacing.lg)
+        }
+    }
+}
+
 /// Base scaffold used by every concrete onboarding step (firstName, income, …).
 /// Owns the step header, error banner, full-width CTA and keyboard/scroll chrome.
 struct OnboardingStepView<Content: View>: View {
@@ -178,53 +231,45 @@ struct OnboardingStepView<Content: View>: View {
             Button {
                 morphingCTAAction(proxy: proxy)
             } label: {
-                morphingCTALabel(expanded: expanded)
-                    .font(PulpeTypography.buttonPrimary)
-                    .frame(height: buttonHeight)
-                    .frame(maxWidth: expanded ? .infinity : buttonHeight)
-                    .foregroundStyle(ctaForeground(expanded: expanded))
-                    .background(ctaBackground(expanded: expanded))
-                    .clipShape(Capsule())
-                    .overlay(ctaDisabledOutline(expanded: expanded))
-                    .scaleEffect(expanded && !canProceed ? 0.98 : 1)
-                    .animation(reduceMotion ? .none : DesignTokens.Animation.bouncySpring, value: canProceed)
-                    .animation(.easeInOut(duration: DesignTokens.Animation.fast), value: isEnabled)
-                    .shadow(
-                        color: expanded ? .clear : fabShadow.color,
-                        radius: expanded ? 0 : fabShadow.radius,
-                        y: expanded ? 0 : fabShadow.y
-                    )
+                MorphingOnboardingCTALabel(
+                    expanded: expanded,
+                    isKeyboardVisible: isKeyboardVisible,
+                    title: buttonTitle,
+                    showTrailingChevron: step != .registration && step != .budgetPreview,
+                    isLoading: state.isLoading
+                )
+                .font(PulpeTypography.buttonPrimary)
+                .frame(height: buttonHeight)
+                .frame(maxWidth: expanded ? .infinity : buttonHeight)
+                .foregroundStyle(ctaForeground(expanded: expanded))
+                .background(ctaBackground(expanded: expanded))
+                .clipShape(Capsule())
+                .overlay(ctaDisabledOutline(expanded: expanded))
+                .scaleEffect(expanded && !canProceed ? 0.98 : 1)
+                .shadow(
+                    color: expanded ? .clear : fabShadow.color,
+                    radius: expanded ? 0 : fabShadow.radius,
+                    y: expanded ? 0 : fabShadow.y
+                )
+                .animation(reduceMotion ? .none : DesignTokens.Animation.bouncySpring, value: expanded && !canProceed)
             }
             .buttonStyle(.plain)
             .disabled(expanded && !isEnabled)
             .sensoryFeedback(.success, trigger: canProceedTrigger)
-            .accessibilityLabel(expanded ? buttonTitle : (isKeyboardVisible ? "Fermer le clavier" : "Voir la suite"))
-            .animation(reduceMotion ? .none : DesignTokens.Animation.defaultSpring, value: expanded)
+            .accessibilityLabel(ctaAccessibilityLabel(expanded: expanded))
+            .animation(reduceMotion ? .none : DesignTokens.Animation.onboardingCTAMorph, value: expanded)
         }
         .padding(.horizontal, DesignTokens.Spacing.xxl)
     }
 
-    @ViewBuilder
-    private func morphingCTALabel(expanded: Bool) -> some View {
-        if expanded {
-            if state.isLoading {
-                ProgressView()
-                    .tint(.white)
-                    .accessibilityLabel("Chargement")
-            } else {
-                HStack(spacing: DesignTokens.Spacing.sm) {
-                    Text(buttonTitle)
-                    if step != .registration && step != .budgetPreview {
-                        Image(systemName: "arrow.right")
-                            .font(PulpeTypography.labelLarge)
-                    }
-                }
-            }
-        } else {
-            Image(systemName: isKeyboardVisible ? "keyboard.chevron.compact.down" : "arrow.down")
-                .font(PulpeTypography.labelLarge)
-                .contentTransition(.symbolEffect(.replace))
+    private func ctaAccessibilityLabel(expanded: Bool) -> String {
+        if expanded, state.isLoading {
+            return "Chargement"
         }
+        if expanded {
+            return buttonTitle
+        }
+        return isKeyboardVisible ? "Fermer le clavier" : "Voir la suite"
     }
 
     private func morphingCTAAction(proxy: ScrollViewProxy) {
@@ -236,7 +281,7 @@ struct OnboardingStepView<Content: View>: View {
                 to: nil, from: nil, for: nil
             )
         } else {
-            withAnimation(DesignTokens.Animation.defaultSpring) {
+            withAnimation(DesignTokens.Animation.onboardingCTAMorph) {
                 proxy.scrollTo(OnboardingStepScrollAnchor.cta, anchor: .bottom)
             }
         }
@@ -252,11 +297,10 @@ struct OnboardingStepView<Content: View>: View {
         return Color.textOnPrimary
     }
 
+    /// Matches `PrimaryButtonStyle`: enabled → gradient; disabled → soft primary tint only (no gradient underlay).
     @ViewBuilder
     private func ctaBackground(expanded: Bool) -> some View {
-        if expanded, isEnabled {
-            Color.onboardingGradient
-        } else if expanded, !isEnabled {
+        if expanded, !isEnabled {
             Color.pulpePrimary.opacity(0.12)
         } else {
             Color.onboardingGradient

@@ -104,4 +104,30 @@ struct ToastManagerTests {
         #expect(secondFinished == false)
         #expect(manager.currentToast?.message == "two")
     }
+
+    @Test
+    func refreshUndoToast_doesNotCallPreviousOnFinished_onlyLatestOnAutoDismiss() async {
+        let manager = ToastManager(autoDismissDuration: .milliseconds(200))
+        var firstFinished = false
+        var secondFinished = false
+        manager.showWithUndo(
+            "one",
+            undo: {},
+            onFinishedWithoutUndo: { firstFinished = true }
+        )
+        manager.refreshUndoToast(
+            message: "two",
+            detail: nil,
+            undo: {},
+            onFinishedWithoutUndo: { secondFinished = true }
+        )
+        try? await Task.sleep(for: .milliseconds(50))
+        #expect(firstFinished == false)
+        #expect(secondFinished == false)
+        #expect(manager.currentToast?.message == "two")
+
+        try? await Task.sleep(for: .milliseconds(250))
+        #expect(firstFinished == false)
+        #expect(secondFinished == true)
+    }
 }

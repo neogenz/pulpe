@@ -30,6 +30,8 @@ final class ToastManager {
     struct Toast: Equatable {
         let id: UUID
         let message: String
+        /// Sous-titre optionnel (ex. nom + montant).
+        let detail: String?
         let type: ToastType
         let undoAction: (@MainActor () async -> Void)?
         /// Appelé si le toast disparaît sans « Annuler » : timeout, bouton fermer, glisser pour fermer, ou remplacement par un autre toast **avec** `onFinishedWithoutUndo`.
@@ -39,12 +41,14 @@ final class ToastManager {
 
         init(
             message: String,
+            detail: String? = nil,
             type: ToastType,
             undoAction: (@MainActor () async -> Void)? = nil,
             onFinishedWithoutUndo: (@MainActor () async -> Void)? = nil
         ) {
             self.id = UUID()
             self.message = message
+            self.detail = detail
             self.type = type
             self.undoAction = undoAction
             self.onFinishedWithoutUndo = onFinishedWithoutUndo
@@ -77,17 +81,52 @@ final class ToastManager {
     /// Show a toast with an undo action; `onFinishedWithoutUndo` runs after auto-dismiss, fermeture (X), glisser pour fermer, ou remplacement par un toast qui porte aussi `onFinishedWithoutUndo`.
     func showWithUndo(
         _ message: String,
+        detail: String? = nil,
         undo: @escaping @MainActor () async -> Void,
         onFinishedWithoutUndo: @escaping @MainActor () async -> Void
     ) {
         showToast(
             Toast(
                 message: message,
+                detail: detail,
                 type: .undo,
                 undoAction: undo,
                 onFinishedWithoutUndo: onFinishedWithoutUndo
             )
         )
+    }
+
+    /// Met à jour le toast « Annuler » courant sans appeler son `onFinishedWithoutUndo` (ex. pile de suppressions).
+    /// Réarme le délai d’auto-fermeture. Sans effet si aucun toast undo n’est affiché.
+    func refreshUndoToast(
+        message: String,
+        detail: String? = nil,
+        undo: @escaping @MainActor () async -> Void,
+        onFinishedWithoutUndo: @escaping @MainActor () async -> Void
+    ) {
+        guard currentToast?.type == .undo else { return }
+        dismissTask?.cancel()
+        let toast = Toast(
+            message: message,
+            detail: detail,
+            type: .undo,
+            undoAction: undo,
+            onFinishedWithoutUndo: onFinishedWithoutUndo
+        )
+        var transaction = SwiftUI.Transaction()
+        transaction.disablesAnimations = true
+        withTransaction(transaction) {
+            currentToast = toast
+        }
+        dismissTask = Task { @MainActor in
+            do {
+                try await Task.sleep(for: autoDismissDuration)
+                guard !Task.isCancelled else { return }
+                dismiss()
+            } catch {
+                // Task was cancelled, do nothing
+            }
+        }
     }
 
     private func showToast(_ toast: Toast) {

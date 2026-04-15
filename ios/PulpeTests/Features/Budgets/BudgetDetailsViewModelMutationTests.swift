@@ -1,3 +1,4 @@
+// swiftlint:disable file_length
 import Foundation
 @testable import Pulpe
 import Testing
@@ -392,9 +393,36 @@ struct BudgetDetailsViewModelMutationTests {
         viewModel.addTransaction(tx)
 
         let toastManager = ToastManager()
-        viewModel.softDeleteTransaction(tx, toastManager: toastManager)
+        viewModel.softDeleteTransaction(tx, toastManager: toastManager, presentationCurrency: .chf)
 
         #expect(viewModel.transactions.isEmpty)
+    }
+
+    @Test
+    func softDeleteTransaction_twoConsecutive_undoTwice_restoresInLIFOOrder() async {
+        let viewModel = BudgetDetailsViewModel(budgetId: "test-budget")
+        let tx1 = TestDataFactory.createTransaction(id: "tx-1", name: "First")
+        let tx2 = TestDataFactory.createTransaction(id: "tx-2", name: "Second")
+        viewModel.addTransaction(tx1)
+        viewModel.addTransaction(tx2)
+
+        let toastManager = ToastManager()
+        viewModel.softDeleteTransaction(tx1, toastManager: toastManager, presentationCurrency: .chf)
+        viewModel.softDeleteTransaction(tx2, toastManager: toastManager, presentationCurrency: .chf)
+
+        #expect(viewModel.transactions.isEmpty)
+        #expect(toastManager.currentToast?.message == "2 transactions supprimées")
+
+        toastManager.executeUndo()
+        try? await Task.sleep(for: .milliseconds(150))
+        #expect(viewModel.transactions.count == 1)
+        #expect(viewModel.transactions.first?.id == "tx-2")
+
+        toastManager.executeUndo()
+        try? await Task.sleep(for: .milliseconds(150))
+        #expect(viewModel.transactions.count == 2)
+        let ids = Set(viewModel.transactions.map(\.id))
+        #expect(ids == ["tx-1", "tx-2"])
     }
 
     @Test
@@ -404,9 +432,65 @@ struct BudgetDetailsViewModelMutationTests {
         viewModel.addBudgetLine(line)
 
         let toastManager = ToastManager()
-        viewModel.softDeleteBudgetLine(line, toastManager: toastManager)
+        viewModel.softDeleteBudgetLine(line, toastManager: toastManager, presentationCurrency: .chf)
 
         #expect(viewModel.budgetLines.isEmpty)
+    }
+
+    @Test
+    func softDeleteBudgetLine_twoConsecutive_undoTwice_restoresInLIFOOrder() async {
+        let viewModel = BudgetDetailsViewModel(budgetId: "test-budget")
+        let line1 = TestDataFactory.createBudgetLine(id: "line-1", name: "First")
+        let line2 = TestDataFactory.createBudgetLine(id: "line-2", name: "Second")
+        viewModel.addBudgetLine(line1)
+        viewModel.addBudgetLine(line2)
+
+        let toastManager = ToastManager()
+        viewModel.softDeleteBudgetLine(line1, toastManager: toastManager, presentationCurrency: .chf)
+        viewModel.softDeleteBudgetLine(line2, toastManager: toastManager, presentationCurrency: .chf)
+
+        #expect(viewModel.budgetLines.isEmpty)
+        #expect(toastManager.currentToast?.message == "2 prévisions supprimées")
+
+        toastManager.executeUndo()
+        try? await Task.sleep(for: .milliseconds(150))
+        #expect(viewModel.budgetLines.count == 1)
+        #expect(viewModel.budgetLines.first?.id == "line-2")
+
+        toastManager.executeUndo()
+        try? await Task.sleep(for: .milliseconds(150))
+        #expect(viewModel.budgetLines.count == 2)
+        let ids = Set(viewModel.budgetLines.map(\.id))
+        #expect(ids == ["line-1", "line-2"])
+    }
+
+    @Test
+    func softDelete_mixedTransactionThenBudgetLine_undoTwice_restoresInLIFOOrder() async {
+        let viewModel = BudgetDetailsViewModel(budgetId: "test-budget")
+        let tx = TestDataFactory.createTransaction(id: "tx-1", name: "Spend")
+        let line = TestDataFactory.createBudgetLine(id: "line-1", name: "Forecast")
+        viewModel.addTransaction(tx)
+        viewModel.addBudgetLine(line)
+
+        let toastManager = ToastManager()
+        viewModel.softDeleteTransaction(tx, toastManager: toastManager, presentationCurrency: .chf)
+        viewModel.softDeleteBudgetLine(line, toastManager: toastManager, presentationCurrency: .chf)
+
+        #expect(viewModel.transactions.isEmpty)
+        #expect(viewModel.budgetLines.isEmpty)
+        #expect(toastManager.currentToast?.message == "2 éléments supprimés")
+
+        toastManager.executeUndo()
+        try? await Task.sleep(for: .milliseconds(150))
+        #expect(viewModel.budgetLines.count == 1)
+        #expect(viewModel.budgetLines.first?.id == "line-1")
+        #expect(viewModel.transactions.isEmpty)
+
+        toastManager.executeUndo()
+        try? await Task.sleep(for: .milliseconds(150))
+        #expect(viewModel.budgetLines.count == 1)
+        #expect(viewModel.transactions.count == 1)
+        #expect(viewModel.transactions.first?.id == "tx-1")
     }
 
     @Test
@@ -420,7 +504,7 @@ struct BudgetDetailsViewModelMutationTests {
         viewModel.addBudgetLine(rolloverLine)
 
         let toastManager = ToastManager()
-        viewModel.softDeleteBudgetLine(rolloverLine, toastManager: toastManager)
+        viewModel.softDeleteBudgetLine(rolloverLine, toastManager: toastManager, presentationCurrency: .chf)
 
         #expect(viewModel.budgetLines.count == 1)
         #expect(viewModel.budgetLines.first?.id == "line-rollover")

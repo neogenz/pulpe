@@ -212,6 +212,11 @@ enum DesignTokens {
             .spring(response: 0.5, dampingFraction: 0.85)
         }
 
+        /// FAB ↔ full-width onboarding CTA — one continuous control (layout + content).
+        static var onboardingCTAMorph: SwiftUI.Animation {
+            .spring(response: 0.48, dampingFraction: 0.88)
+        }
+
         static var iconEntrance: SwiftUI.Animation {
             .spring(response: 0.5, dampingFraction: 0.7)
         }
