@@ -28,23 +28,23 @@ struct OnboardingStepHeader: View {
                 .frame(maxWidth: .infinity, alignment: frameAlignment)
 
             if step.isOptional {
-                VStack(alignment: stackAlignment, spacing: DesignTokens.Spacing.sm) {
-                    OptionalBadge(alignLeading: !isCentered)
+                HStack(alignment: .center, spacing: DesignTokens.Spacing.md) {
+                    OptionalBadge()
 
                     if let onSkip {
+                        Spacer(minLength: DesignTokens.Spacing.sm)
                         Button("Passer cette étape") { onSkip() }
                             .font(PulpeTypography.buttonSecondary)
                             .foregroundStyle(Color.pulpePrimary)
                             .textLinkButtonStyle()
-                            .frame(
-                                maxWidth: .infinity,
-                                minHeight: DesignTokens.TapTarget.minimum,
-                                alignment: frameAlignment
-                            )
-                            .multilineTextAlignment(textAlignment)
+                            .multilineTextAlignment(.trailing)
+                            .lineLimit(2)
+                            .minimumScaleFactor(0.85)
+                            .frame(minHeight: DesignTokens.TapTarget.minimum)
                             .contentShape(Rectangle())
                     }
                 }
+                .frame(maxWidth: .infinity, alignment: isCentered ? .center : .leading)
             }
         }
     }
@@ -56,12 +56,11 @@ struct OnboardingStepHeader: View {
 
 /// Badge indicating a step is optional
 struct OptionalBadge: View {
-    var alignLeading: Bool = false
-
     var body: some View {
         HStack(spacing: DesignTokens.Spacing.xs) {
             Image(systemName: "arrow.right.circle")
                 .font(PulpeTypography.caption2)
+                .accessibilityHidden(true)
             Text("Optionnel")
                 .font(PulpeTypography.caption)
                 .fontWeight(.medium)
@@ -70,7 +69,8 @@ struct OptionalBadge: View {
         .padding(.horizontal, DesignTokens.Spacing.lg)
         .padding(.vertical, DesignTokens.Spacing.sm)
         .background(Color.textTertiaryOnboarding.opacity(0.15), in: Capsule())
-        .frame(maxWidth: alignLeading ? .infinity : nil, alignment: alignLeading ? .leading : .center)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Optionnel")
     }
 }
 

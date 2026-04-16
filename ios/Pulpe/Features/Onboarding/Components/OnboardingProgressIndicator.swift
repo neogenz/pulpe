@@ -18,7 +18,7 @@ struct OnboardingProgressIndicator: View {
     private var totalCount: Int { progressSteps.count }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+        VStack(alignment: .center, spacing: DesignTokens.Spacing.xs) {
             HStack(spacing: DesignTokens.Spacing.xs) {
                 ForEach(0..<totalCount, id: \.self) { index in
                     Capsule()
@@ -33,7 +33,7 @@ struct OnboardingProgressIndicator: View {
                 .foregroundStyle(Color.textTertiaryOnboarding)
                 .monospacedDigit()
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(maxWidth: .infinity)
         .padding(.horizontal, DesignTokens.Spacing.xxl)
         .padding(.top, DesignTokens.Spacing.md)
         .animation(PulpeAnimations.defaultSpring, value: currentIndex)
@@ -44,11 +44,11 @@ struct OnboardingProgressIndicator: View {
 
     private func segmentFill(for index: Int) -> Color {
         if index < currentIndex {
-            Color.textTertiaryOnboarding.opacity(0.45)
+            Color.pulpePrimary.opacity(0.32)
         } else if index == currentIndex {
             Color.pulpePrimary
         } else {
-            Color.secondary.opacity(0.15)
+            Color.secondary.opacity(0.12)
         }
     }
 
