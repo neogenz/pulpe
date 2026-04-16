@@ -34,11 +34,12 @@ struct OnboardingStepHeader: View {
                     if let onSkip {
                         Spacer(minLength: DesignTokens.Spacing.sm)
                         Button("Passer cette étape") { onSkip() }
-                            .font(PulpeTypography.buttonSecondary)
-                            .foregroundStyle(Color.pulpePrimary)
+                            .font(PulpeTypography.labelMedium)
+                            .foregroundStyle(Color.textSecondaryOnboarding)
+                            .underline()
                             .textLinkButtonStyle()
                             .multilineTextAlignment(.trailing)
-                            .lineLimit(2)
+                            .lineLimit(1)
                             .minimumScaleFactor(0.85)
                             .frame(minHeight: DesignTokens.TapTarget.minimum)
                             .contentShape(Rectangle())
