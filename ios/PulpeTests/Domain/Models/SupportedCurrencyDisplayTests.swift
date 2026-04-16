@@ -35,4 +35,12 @@ struct SupportedCurrencyDisplayTests {
     @Test func fullLabel_eur_includesFlagCodeAndName() {
         #expect(SupportedCurrency.eur.fullLabel == "🇪🇺 EUR · Euro")
     }
+
+    @Test func symbol_chf_keepsThreeLetterCode() {
+        #expect(SupportedCurrency.chf.symbol == "CHF")
+    }
+
+    @Test func symbol_eur_usesEuroSign() {
+        #expect(SupportedCurrency.eur.symbol == "€")
+    }
 }

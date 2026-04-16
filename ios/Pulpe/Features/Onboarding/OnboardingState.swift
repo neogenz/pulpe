@@ -198,6 +198,20 @@ final class OnboardingState {
         (monthlyIncome ?? 0) + totalCustomIncome - totalExpenses
     }
 
+    /// 3-state health derived from the same formula used on the dashboard hero
+    /// (`BudgetFormulas.emotionState`). Keeps onboarding preview and post-onboarding
+    /// experiences visually and semantically aligned — identical thresholds, identical
+    /// colors, identical copy registers. The onboarding has no rollover, so we pass
+    /// `rollover: 0`.
+    var emotionState: BudgetFormulas.EmotionState {
+        BudgetFormulas.emotionState(
+            remaining: availableToSpend,
+            totalIncome: totalIncome,
+            totalExpenses: totalExpenses,
+            rollover: 0
+        )
+    }
+
     // MARK: - Navigation
 
     func canProceed(from step: OnboardingStep) -> Bool {

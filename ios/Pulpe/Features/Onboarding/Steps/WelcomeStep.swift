@@ -41,19 +41,19 @@ struct WelcomeStep: View {
                 Spacer()
                     .frame(height: DesignTokens.Spacing.xxl)
 
-                // Value proposition — sits on white zone
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
+                // Value proposition — sits on white zone, centered under the icon
+                VStack(spacing: DesignTokens.Spacing.lg) {
                     Text("Vois clair dans tes finances")
                         .font(PulpeTypography.brandTitle)
                         .foregroundStyle(Color.textPrimaryOnboarding)
-                        .multilineTextAlignment(.leading)
+                        .multilineTextAlignment(.center)
 
                     Text("Ton budget est prêt en 2 minutes")
                         .font(PulpeTypography.onboardingSubtitle)
                         .foregroundStyle(Color.textPrimaryOnboarding)
-                        .multilineTextAlignment(.leading)
+                        .multilineTextAlignment(.center)
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
+                .frame(maxWidth: .infinity)
                 .padding(.horizontal, DesignTokens.Spacing.xxxl)
                 .opacity(isAppeared ? 1 : 0)
                 .offset(y: isAppeared ? 0 : 20)

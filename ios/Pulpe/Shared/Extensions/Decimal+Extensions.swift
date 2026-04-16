@@ -1,9 +1,10 @@
 import Foundation
 
 extension Decimal {
-    /// Format as currency with code in suffix position — "1'234.56 CHF" / "1 234,56 EUR".
-    /// Uses the currency's locale for number formatting (separators, decimals),
-    /// then appends the currency code as a suffix to match the team's display convention.
+    /// Format as currency with the currency's display symbol in suffix position —
+    /// `1'234.56 CHF` / `1 234,56 €`. Uses the currency's locale for number
+    /// formatting (separators, decimals). Swiss convention keeps the `CHF` code;
+    /// EUR uses `€` for naturalness — see `SupportedCurrency.symbol`.
     func asCurrency(_ currency: SupportedCurrency) -> String {
         let locale = Formatters.locale(for: currency)
         let amount = formatted(
@@ -12,7 +13,7 @@ extension Decimal {
                 .precision(.fractionLength(2))
                 .grouping(.automatic)
         )
-        return "\(amount) \(currency.rawValue)"
+        return "\(amount) \(currency.symbol)"
     }
 
     /// Format as CHF currency using Swiss locale
@@ -38,7 +39,7 @@ extension Decimal {
         signedFormatted(absoluteValue.asCompactCHF, for: kind)
     }
 
-    /// Format as signed compact currency based on transaction kind — "+1'235 CHF" for income, "-1'235 EUR" for expense/saving
+    /// Format as signed compact currency based on transaction kind — "+1'235 CHF" for income, "-1'235 €" for expense/saving
     func asSignedCompactCurrency(_ currency: SupportedCurrency, for kind: TransactionKind) -> String {
         signedFormatted(absoluteValue.asCompactCurrency(currency), for: kind)
     }
@@ -49,9 +50,9 @@ extension Decimal {
         return Self.compactAmountFormatter.string(from: rounded as NSDecimalNumber) ?? "0"
     }
 
-    /// Format as compact currency (always rounded to whole number) — "1'235 CHF" / "1'235 EUR" (suffix position)
+    /// Format as compact currency (always rounded to whole number) — "1'235 CHF" / "1'235 €" (suffix position)
     func asCompactCurrency(_ currency: SupportedCurrency) -> String {
-        "\(asCompactAmount) \(currency.rawValue)"
+        "\(asCompactAmount) \(currency.symbol)"
     }
 
     /// Format as compact CHF (always rounded to whole number) — "1'235 CHF" (suffix position)

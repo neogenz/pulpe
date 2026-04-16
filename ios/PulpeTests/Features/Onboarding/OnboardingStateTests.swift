@@ -944,25 +944,82 @@ struct OnboardingStateTests {
     }
 
     @Test
-    func decimalFormatting_asCurrencyEUR_producesEURSuffix() {
+    func decimalFormatting_asCurrencyEUR_producesEuroSignSuffix() {
         let amount: Decimal = 1234.56
 
         let formatted = amount.asCurrency(.eur)
 
-        #expect(formatted.hasSuffix("EUR"))
+        #expect(formatted.hasSuffix("€"))
+        #expect(!formatted.contains("EUR"))
         #expect(formatted.contains("1"))
         #expect(formatted.contains("234"))
     }
 
     @Test
-    func decimalFormatting_asCompactCurrencyEUR_roundsAndSuffixes() {
+    func decimalFormatting_asCurrencyCHF_keepsCodeSuffix() {
+        let amount: Decimal = 1234.56
+
+        let formatted = amount.asCurrency(.chf)
+
+        #expect(formatted.hasSuffix("CHF"))
+    }
+
+    @Test
+    func decimalFormatting_asCompactCurrencyEUR_roundsAndUsesEuroSign() {
         let amount: Decimal = 1234.56
 
         let formatted = amount.asCompactCurrency(.eur)
 
-        #expect(formatted.hasSuffix("EUR"))
+        #expect(formatted.hasSuffix("€"))
+        #expect(!formatted.contains("EUR"))
         // Compact means whole numbers only — no decimals
         #expect(!formatted.contains("."))
         #expect(!formatted.contains(","))
+    }
+
+    // MARK: - Emotion State
+
+    @Test
+    func emotionState_withLargeMarginBelow80Percent_isComfortable() {
+        let state = OnboardingState()
+        state.monthlyIncome = 5000
+        state.housingCosts = 1000 // 20% ratio
+
+        #expect(state.emotionState == .comfortable)
+    }
+
+    @Test
+    func emotionState_atOrAbove80PercentRatio_isTight() {
+        let state = OnboardingState()
+        state.monthlyIncome = 1000
+        state.housingCosts = 800 // 80% ratio exactly
+
+        #expect(state.emotionState == .tight)
+    }
+
+    @Test
+    func emotionState_withRatioBetween80And100_isTight() {
+        let state = OnboardingState()
+        state.monthlyIncome = 2000
+        state.housingCosts = 1800 // 90% ratio
+
+        #expect(state.emotionState == .tight)
+    }
+
+    @Test
+    func emotionState_whenExpensesExceedIncome_isDeficit() {
+        let state = OnboardingState()
+        state.monthlyIncome = 2000
+        state.housingCosts = 2500 // 125% ratio, available = -500
+
+        #expect(state.emotionState == .deficit)
+    }
+
+    @Test
+    func emotionState_withoutExpenses_isComfortable() {
+        let state = OnboardingState()
+        state.monthlyIncome = 3000
+
+        #expect(state.emotionState == .comfortable)
     }
 }

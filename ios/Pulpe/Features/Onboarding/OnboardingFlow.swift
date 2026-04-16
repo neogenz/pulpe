@@ -56,6 +56,11 @@ struct OnboardingFlow: View {
                         .transition(stepTransition)
                         .sensoryFeedback(.impact(weight: .light), trigger: state.currentStep)
                         .overlay(alignment: .top) {
+                            // Top fade — hides scrolled content under the sticky
+                            // header. Neutral across all onboarding steps: state
+                            // is carried by the hero copy + accent color, not
+                            // by a full-screen colored wash that new users would
+                            // have no way to decode.
                             if state.currentStep.showProgressBar {
                                 LinearGradient(
                                     colors: [.onboardingFormBase, .onboardingFormBase.opacity(0)],

@@ -319,9 +319,21 @@ struct OnboardingStepView<Content: View>: View {
     private var buttonTitle: String {
         switch step {
         case .registration: "Créer mon compte"
-        case .budgetPreview: "Créer mon budget"
+        case .budgetPreview: budgetPreviewButtonTitle
         case .welcome: "Commencer"
         default: "Continuer"
+        }
+    }
+
+    /// The user has just spent 5+ steps configuring their budget — "Créer mon budget"
+    /// at the finale reads as if they haven't done the work. Branch by emotion state
+    /// so the CTA confirms what actually happened and sets the right tone for the
+    /// next screen (relief / validation / intent to adjust later).
+    private var budgetPreviewButtonTitle: String {
+        switch state.emotionState {
+        case .comfortable: "C'est parti"
+        case .tight: "Valider mon budget"
+        case .deficit: "Valider et affiner"
         }
     }
 }
