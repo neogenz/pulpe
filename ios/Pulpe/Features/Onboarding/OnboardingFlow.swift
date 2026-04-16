@@ -51,6 +51,7 @@ struct OnboardingFlow: View {
                     // Step content — no TabView so swipe is impossible
                     stepContent
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .layoutPriority(1)
                         .id(state.currentStep)
                         .transition(stepTransition)
                         .sensoryFeedback(.impact(weight: .light), trigger: state.currentStep)

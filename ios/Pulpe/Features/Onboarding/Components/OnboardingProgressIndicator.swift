@@ -11,6 +11,10 @@ struct OnboardingProgressIndicator: View {
         progressSteps.firstIndex(of: currentStep).map { $0 + 1 } ?? 0
     }
 
+    private var currentIndex: Int {
+        progressSteps.firstIndex(of: currentStep) ?? 0
+    }
+
     private var totalCount: Int { progressSteps.count }
 
     var body: some View {
@@ -18,9 +22,9 @@ struct OnboardingProgressIndicator: View {
             HStack(spacing: DesignTokens.Spacing.xs) {
                 ForEach(0..<totalCount, id: \.self) { index in
                     Capsule()
-                        .fill(index < currentPosition ? Color.pulpePrimary : Color.secondary.opacity(0.15))
+                        .fill(segmentFill(for: index))
                         .frame(maxWidth: .infinity)
-                        .frame(height: DesignTokens.Spacing.xs)
+                        .frame(height: segmentHeight(for: index))
                 }
             }
 
@@ -32,10 +36,24 @@ struct OnboardingProgressIndicator: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, DesignTokens.Spacing.xxl)
         .padding(.top, DesignTokens.Spacing.md)
-        .animation(PulpeAnimations.defaultSpring, value: currentPosition)
+        .animation(PulpeAnimations.defaultSpring, value: currentIndex)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Étape \(currentPosition) sur \(totalCount)")
+        .accessibilityLabel("Étape \(currentPosition) sur \(totalCount), étape actuelle : \(currentStep.title)")
         .accessibilityValue("\(currentPosition) sur \(totalCount)")
+    }
+
+    private func segmentFill(for index: Int) -> Color {
+        if index < currentIndex {
+            Color.textTertiaryOnboarding.opacity(0.45)
+        } else if index == currentIndex {
+            Color.pulpePrimary
+        } else {
+            Color.secondary.opacity(0.15)
+        }
+    }
+
+    private func segmentHeight(for index: Int) -> CGFloat {
+        index == currentIndex ? DesignTokens.Spacing.sm : DesignTokens.Spacing.xs
     }
 }
 

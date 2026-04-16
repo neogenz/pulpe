@@ -6,16 +6,12 @@ struct OnboardingStepHeader: View {
     var titleOverride: String?
     var subtitleOverride: String?
     var onSkip: (() -> Void)?
-    /// Budget recap is treated as a success beat — keep the header centered there only.
-    var useCenteredLayout: Bool = false
 
-    private var stackAlignment: HorizontalAlignment {
-        useCenteredLayout ? .center : .leading
-    }
+    private var isCentered: Bool { step.onboardingHeaderIsCentered }
 
-    private var textAlignment: TextAlignment {
-        useCenteredLayout ? .center : .leading
-    }
+    private var stackAlignment: HorizontalAlignment { isCentered ? .center : .leading }
+
+    private var textAlignment: TextAlignment { isCentered ? .center : .leading }
 
     var body: some View {
         VStack(alignment: stackAlignment, spacing: DesignTokens.Spacing.lg) {
@@ -23,35 +19,45 @@ struct OnboardingStepHeader: View {
                 .font(PulpeTypography.onboardingTitle)
                 .foregroundStyle(Color.textPrimaryOnboarding)
                 .multilineTextAlignment(textAlignment)
-                .frame(maxWidth: .infinity, alignment: useCenteredLayout ? .center : .leading)
+                .frame(maxWidth: .infinity, alignment: frameAlignment)
 
             Text(subtitleOverride ?? step.subtitle)
                 .font(PulpeTypography.onboardingSubtitle)
                 .foregroundStyle(Color.textSecondaryOnboarding)
                 .multilineTextAlignment(textAlignment)
-                .frame(maxWidth: .infinity, alignment: useCenteredLayout ? .center : .leading)
+                .frame(maxWidth: .infinity, alignment: frameAlignment)
 
             if step.isOptional {
                 VStack(alignment: stackAlignment, spacing: DesignTokens.Spacing.sm) {
-                    OptionalBadge()
+                    OptionalBadge(alignLeading: !isCentered)
 
                     if let onSkip {
                         Button("Passer cette étape") { onSkip() }
                             .font(PulpeTypography.buttonSecondary)
                             .foregroundStyle(Color.pulpePrimary)
                             .textLinkButtonStyle()
-                            .frame(minHeight: DesignTokens.TapTarget.minimum)
+                            .frame(
+                                maxWidth: .infinity,
+                                minHeight: DesignTokens.TapTarget.minimum,
+                                alignment: frameAlignment
+                            )
+                            .multilineTextAlignment(textAlignment)
                             .contentShape(Rectangle())
                     }
                 }
-                .frame(maxWidth: .infinity, alignment: useCenteredLayout ? .center : .leading)
             }
         }
+    }
+
+    private var frameAlignment: Alignment {
+        isCentered ? .center : .leading
     }
 }
 
 /// Badge indicating a step is optional
 struct OptionalBadge: View {
+    var alignLeading: Bool = false
+
     var body: some View {
         HStack(spacing: DesignTokens.Spacing.xs) {
             Image(systemName: "arrow.right.circle")
@@ -64,13 +70,14 @@ struct OptionalBadge: View {
         .padding(.horizontal, DesignTokens.Spacing.lg)
         .padding(.vertical, DesignTokens.Spacing.sm)
         .background(Color.textTertiaryOnboarding.opacity(0.15), in: Capsule())
+        .frame(maxWidth: alignLeading ? .infinity : nil, alignment: alignLeading ? .leading : .center)
     }
 }
 
 #Preview {
     VStack(spacing: 40) {
         OnboardingStepHeader(step: .charges, onSkip: {})
-        OnboardingStepHeader(step: .budgetPreview, useCenteredLayout: true)
+        OnboardingStepHeader(step: .budgetPreview)
     }
     .padding()
 }

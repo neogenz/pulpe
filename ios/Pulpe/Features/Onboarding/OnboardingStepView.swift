@@ -128,8 +128,7 @@ struct OnboardingStepView<Content: View>: View {
 
                     OnboardingStepHeader(
                         step: step,
-                        onSkip: step.isOptional ? onNext : nil,
-                        useCenteredLayout: step == .budgetPreview
+                        onSkip: step.isOptional ? onNext : nil
                     )
                     .padding(.horizontal, DesignTokens.Spacing.xxl)
 
