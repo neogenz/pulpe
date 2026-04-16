@@ -103,7 +103,6 @@ struct OnboardingStepView<Content: View>: View {
                 VStack(spacing: DesignTokens.Spacing.xxxl) {
                     if shouldShowCurrencyChip {
                         HStack {
-                            Spacer()
                             Button {
                                 showCurrencySwap = true
                             } label: {
@@ -122,14 +121,17 @@ struct OnboardingStepView<Content: View>: View {
                             .contentShape(Capsule())
                             .plainPressedButtonStyle()
                             .accessibilityLabel("Devise actuelle : \(state.currency.nativeName). Toucher pour changer.")
+                            Spacer(minLength: 0)
                         }
                         .padding(.horizontal, DesignTokens.Spacing.xxl)
                     }
 
                     OnboardingStepHeader(
                         step: step,
-                        onSkip: step.isOptional ? onNext : nil
+                        onSkip: step.isOptional ? onNext : nil,
+                        useCenteredLayout: step == .budgetPreview
                     )
+                    .padding(.horizontal, DesignTokens.Spacing.xxl)
 
                     content()
                         .padding(.horizontal, DesignTokens.Spacing.xxl)

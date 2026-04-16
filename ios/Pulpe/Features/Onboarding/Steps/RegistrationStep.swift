@@ -109,7 +109,7 @@ extension RegistrationStep {
 
     private var consentText: some View {
         OnboardingConsentText(attributed: Self.consentMarkdown)
-            .frame(maxWidth: .infinity, alignment: .center)
+            .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private static let consentMarkdown = AppURLs.legalDisclosure(

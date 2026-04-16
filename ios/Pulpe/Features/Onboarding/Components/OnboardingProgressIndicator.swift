@@ -14,11 +14,12 @@ struct OnboardingProgressIndicator: View {
     private var totalCount: Int { progressSteps.count }
 
     var body: some View {
-        VStack(spacing: DesignTokens.Spacing.xs) {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
             HStack(spacing: DesignTokens.Spacing.xs) {
                 ForEach(0..<totalCount, id: \.self) { index in
                     Capsule()
                         .fill(index < currentPosition ? Color.pulpePrimary : Color.secondary.opacity(0.15))
+                        .frame(maxWidth: .infinity)
                         .frame(height: DesignTokens.Spacing.xs)
                 }
             }
@@ -28,6 +29,7 @@ struct OnboardingProgressIndicator: View {
                 .foregroundStyle(Color.textTertiaryOnboarding)
                 .monospacedDigit()
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, DesignTokens.Spacing.xxl)
         .padding(.top, DesignTokens.Spacing.md)
         .animation(PulpeAnimations.defaultSpring, value: currentPosition)

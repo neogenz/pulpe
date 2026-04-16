@@ -6,21 +6,33 @@ struct OnboardingStepHeader: View {
     var titleOverride: String?
     var subtitleOverride: String?
     var onSkip: (() -> Void)?
+    /// Budget recap is treated as a success beat — keep the header centered there only.
+    var useCenteredLayout: Bool = false
+
+    private var stackAlignment: HorizontalAlignment {
+        useCenteredLayout ? .center : .leading
+    }
+
+    private var textAlignment: TextAlignment {
+        useCenteredLayout ? .center : .leading
+    }
 
     var body: some View {
-        VStack(spacing: DesignTokens.Spacing.lg) {
+        VStack(alignment: stackAlignment, spacing: DesignTokens.Spacing.lg) {
             Text(titleOverride ?? step.title)
                 .font(PulpeTypography.onboardingTitle)
                 .foregroundStyle(Color.textPrimaryOnboarding)
+                .multilineTextAlignment(textAlignment)
+                .frame(maxWidth: .infinity, alignment: useCenteredLayout ? .center : .leading)
 
             Text(subtitleOverride ?? step.subtitle)
                 .font(PulpeTypography.onboardingSubtitle)
                 .foregroundStyle(Color.textSecondaryOnboarding)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, DesignTokens.Spacing.lg)
+                .multilineTextAlignment(textAlignment)
+                .frame(maxWidth: .infinity, alignment: useCenteredLayout ? .center : .leading)
 
             if step.isOptional {
-                VStack(spacing: DesignTokens.Spacing.sm) {
+                VStack(alignment: stackAlignment, spacing: DesignTokens.Spacing.sm) {
                     OptionalBadge()
 
                     if let onSkip {
@@ -32,6 +44,7 @@ struct OnboardingStepHeader: View {
                             .contentShape(Rectangle())
                     }
                 }
+                .frame(maxWidth: .infinity, alignment: useCenteredLayout ? .center : .leading)
             }
         }
     }
@@ -56,8 +69,8 @@ struct OptionalBadge: View {
 
 #Preview {
     VStack(spacing: 40) {
-        OnboardingStepHeader(step: .charges)
-        OnboardingStepHeader(step: .budgetPreview)
+        OnboardingStepHeader(step: .charges, onSkip: {})
+        OnboardingStepHeader(step: .budgetPreview, useCenteredLayout: true)
     }
     .padding()
 }
