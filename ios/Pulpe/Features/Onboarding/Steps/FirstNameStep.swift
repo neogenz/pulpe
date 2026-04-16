@@ -16,9 +16,15 @@ struct FirstNameStep: View {
             onNext: { state.nextStep() },
             content: {
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-                    Text("Prénom")
-                        .font(PulpeTypography.inputLabel)
-                        .foregroundStyle(Color.textPrimaryOnboarding)
+                    // Required marker via Text concatenation: `*` keeps the
+                    // secondary tone (Practical UI: never colour the asterisk
+                    // red — red is reserved for errors).
+                    (
+                        Text("Prénom")
+                        + Text(" *").foregroundColor(Color.textSecondaryOnboarding)
+                    )
+                    .font(PulpeTypography.inputLabel)
+                    .foregroundStyle(Color.textPrimaryOnboarding)
 
                     AuthTextField(
                         prompt: "Ton prénom",
@@ -30,7 +36,7 @@ struct FirstNameStep: View {
                     )
                     .textContentType(.givenName)
                     .textInputAutocapitalization(.words)
-                    .accessibilityLabel("Prénom")
+                    .accessibilityLabel("Prénom, requis")
                     .accessibilityHint("Saisis ton prénom")
                 }
                 .task {

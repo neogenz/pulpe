@@ -5,6 +5,9 @@ struct IncomeStep: View {
     @Environment(FeatureFlagsStore.self) private var featureFlagsStore
     @State private var showAddIncome = false
     @State private var editingTransaction: OnboardingTransaction?
+    /// Drives the keyboard auto-focus on the main income field when the step
+    /// appears, so the user can start typing without an extra tap.
+    @FocusState private var isMonthlyIncomeFocused: Bool
 
     private var customIncomes: [OnboardingTransaction] {
         state.customTransactions.filter { $0.type == .income }
@@ -40,7 +43,9 @@ struct IncomeStep: View {
                             value: $state.monthlyIncome,
                             hint: "5000",
                             label: "Revenu mensuel net",
-                            currency: state.currency
+                            isRequired: true,
+                            currency: state.currency,
+                            externalFocus: $isMonthlyIncomeFocused
                         )
 
                         HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.sm) {
@@ -67,6 +72,14 @@ struct IncomeStep: View {
                             currency: state.currency
                         )
                     }
+                }
+                // Open the keyboard on the main income field as the step lands —
+                // saves a tap on the screen's only required input. The guard
+                // avoids stealing focus back if the user has already moved on
+                // to a custom-income sheet within the same task lifecycle.
+                .task {
+                    guard !isMonthlyIncomeFocused else { return }
+                    isMonthlyIncomeFocused = true
                 }
             }
         )
