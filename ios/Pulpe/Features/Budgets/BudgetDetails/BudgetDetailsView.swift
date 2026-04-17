@@ -123,12 +123,15 @@ struct BudgetDetailsView: View {
             )
         }
         .sheet(item: $selectedBudgetLineForEdit) { line in
-            EditBudgetLineSheet(budgetLine: line) { updatedLine in
+            EditBudgetLineSheet(budgetLine: line, userCurrency: userSettingsStore.currency) { updatedLine in
                 Task { await viewModel.updateBudgetLine(updatedLine) }
             }
         }
         .sheet(item: $selectedTransactionForEdit) { transaction in
-            EditTransactionSheet(transaction: transaction) { updatedTransaction in
+            EditTransactionSheet(
+                transaction: transaction,
+                userCurrency: userSettingsStore.currency
+            ) { updatedTransaction in
                 Task { await viewModel.updateTransaction(updatedTransaction) }
             }
         }

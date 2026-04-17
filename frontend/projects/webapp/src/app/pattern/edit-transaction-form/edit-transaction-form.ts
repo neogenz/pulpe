@@ -29,7 +29,10 @@ import { TranslocoService, TranslocoPipe } from '@jsverse/transloco';
 import { type Transaction, type TransactionCreate } from 'pulpe-shared';
 import { startOfMonth, endOfMonth } from 'date-fns';
 import type { CurrencyConverterService } from '@core/currency';
-import { CURRENCY_CONFIG, injectCurrencyFormConfig } from '@core/currency';
+import {
+  CURRENCY_CONFIG,
+  injectCurrencyFormConfigForEdit,
+} from '@core/currency';
 import { TransactionValidators } from '@core/transaction';
 import { TransactionLabelPipe } from '@ui/transaction-display';
 import { CurrencySuffix } from '@ui/currency-suffix';
@@ -134,6 +137,7 @@ export type EditTransactionFormData = Pick<
         <pulpe-currency-suffix
           matTextSuffix
           [showSelector]="showCurrencySelector()"
+          [disabled]="true"
           [currency]="inputCurrency()"
           (currencyChange)="inputCurrency.set($event)"
         />
@@ -287,7 +291,10 @@ export class EditTransactionForm implements OnInit {
   readonly #locale = inject(LOCALE_ID);
   readonly #logger = inject(Logger);
   readonly #transloco = inject(TranslocoService);
-  readonly #currencyConfig = injectCurrencyFormConfig();
+
+  readonly transaction = input.required<Transaction>();
+
+  readonly #currencyConfig = injectCurrencyFormConfigForEdit(this.transaction);
 
   protected readonly formAriaLabel = this.#transloco.translate(
     'transactionForm.formAriaLabel',
@@ -301,8 +308,6 @@ export class EditTransactionForm implements OnInit {
   protected readonly currencySymbol = computed(
     () => CURRENCY_CONFIG[this.currency()].symbol,
   );
-
-  readonly transaction = input.required<Transaction>();
   readonly hiddenFields = input<HideableField[]>([]);
   readonly minDateInput = input<Date>();
   readonly maxDateInput = input<Date>();
@@ -387,9 +392,17 @@ export class EditTransactionForm implements OnInit {
       // Use Date object directly for Material DatePicker
       const transactionDate = new Date(transaction.transactionDate);
 
+      // When the currency picker is visible (edit of a line stored in a
+      // non-user currency with the flag ON), pre-fill with the original
+      // amount so the displayed amount matches the displayed currency.
+      const amount =
+        this.showCurrencySelector() && transaction.originalAmount != null
+          ? transaction.originalAmount
+          : transaction.amount;
+
       this.transactionForm.patchValue({
         name: transaction.name,
-        amount: transaction.amount,
+        amount,
         kind: transaction.kind,
         transactionDate,
         category: transaction.category || '',
@@ -427,31 +440,39 @@ export class EditTransactionForm implements OnInit {
     if (!name || !rawAmount || !kind || !transactionDate) return;
 
     this.conversionError.set(false);
-    let convertedAmount: number;
+    let finalAmount: number;
     let metadata: Awaited<
       ReturnType<CurrencyConverterService['convertWithMetadata']>
-    >['metadata'];
-    try {
-      ({ convertedAmount, metadata } =
-        await this.#currencyConfig.converter.convertWithMetadata(
+    >['metadata'] = null;
+
+    if (this.showCurrencySelector()) {
+      try {
+        const result = await this.#currencyConfig.converter.convertWithMetadata(
           rawAmount,
           this.inputCurrency(),
           this.currency(),
-        ));
-    } catch {
-      this.conversionError.set(true);
-      return;
+        );
+        finalAmount = result.convertedAmount;
+        metadata = result.metadata;
+      } catch {
+        this.conversionError.set(true);
+        return;
+      }
+    } else {
+      // Mono-currency edit: keep amount as-is, do not emit currency metadata
+      // so the backend preserves any existing values.
+      finalAmount = rawAmount;
     }
 
     this.#isUpdating.set(true);
 
     const formData: EditTransactionFormData = {
       name,
-      amount: convertedAmount,
+      amount: finalAmount,
       kind,
       transactionDate: formatLocalDate(transactionDate),
       category: category || null,
-      ...metadata,
+      ...(metadata ?? {}),
     };
 
     this.updateTransaction.emit(formData);

@@ -204,6 +204,7 @@ interface EditTransactionsDialogResult {
                   <pulpe-currency-suffix
                     matTextSuffix
                     [showSelector]="showCurrencySelector()"
+                    [disabled]="true"
                     [currency]="inputCurrency()"
                     (currencyChange)="inputCurrency.set($event)"
                   />
@@ -410,13 +411,31 @@ export default class EditTransactionsDialog {
   protected readonly currencySymbol = computed(
     () => CURRENCY_CONFIG[this.#userSettings.currency()].symbol,
   );
+
+  /**
+   * In edit mode, the currency picker is only shown when at least one
+   * existing line carries an `originalCurrency` that differs from the user's
+   * current currency. Per-row disable/visibility is a follow-up — for now the
+   * whole table falls back to mono-currency when no alternate line is found,
+   * which keeps the existing metadata untouched on save.
+   */
+  readonly #alternateCurrency = computed<SupportedCurrency | null>(() => {
+    const userCurrency = this.#userSettings.currency();
+    const alternate = this.data.originalTemplateLines.find(
+      (line) =>
+        line.originalCurrency != null && line.originalCurrency !== userCurrency,
+    );
+    return alternate?.originalCurrency ?? null;
+  });
+
   protected readonly showCurrencySelector = computed(
     () =>
       this.#featureFlags.isMultiCurrencyEnabled() &&
-      this.#userSettings.showCurrencySelector(),
+      this.#alternateCurrency() !== null,
   );
+
   protected readonly inputCurrency = signal<SupportedCurrency>(
-    this.#userSettings.currency(),
+    this.#alternateCurrency() ?? this.#userSettings.currency(),
   );
 
   protected readonly isLoading = this.#store.isLoading;
@@ -491,23 +510,29 @@ export default class EditTransactionsDialog {
 
     const propagateToBudgets = propagationChoice === 'propagate';
 
-    try {
-      for (const line of this.transactions()) {
-        const { convertedAmount, metadata } =
-          await this.#converter.convertWithMetadata(
-            line.formData.amount,
-            this.inputCurrency(),
-            this.#userSettings.currency(),
-          );
-        this.#store.updateTransaction(line.id, { amount: convertedAmount });
-        this.#store.setCurrencyMetadata(line.id, metadata);
+    if (this.showCurrencySelector()) {
+      try {
+        for (const line of this.transactions()) {
+          const { convertedAmount, metadata } =
+            await this.#converter.convertWithMetadata(
+              line.formData.amount,
+              this.inputCurrency(),
+              this.#userSettings.currency(),
+            );
+          this.#store.updateTransaction(line.id, { amount: convertedAmount });
+          this.#store.setCurrencyMetadata(line.id, metadata);
+        }
+      } catch {
+        this.#conversionError.set(
+          this.#transloco.translate('common.conversionError'),
+        );
+        return;
       }
-    } catch {
-      this.#conversionError.set(
-        this.#transloco.translate('common.conversionError'),
-      );
-      return;
     }
+    // When the picker is hidden (mono-currency edit), leave amounts as
+    // entered and do NOT set currency metadata so the backend preserves any
+    // existing originalAmount / originalCurrency / targetCurrency /
+    // exchangeRate stored per line.
 
     const result = await this.#store.saveChanges(
       this.data.templateId,

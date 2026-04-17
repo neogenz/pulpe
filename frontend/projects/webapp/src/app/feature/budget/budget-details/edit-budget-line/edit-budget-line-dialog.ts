@@ -1,4 +1,9 @@
-import { Component, inject, ChangeDetectionStrategy } from '@angular/core';
+import {
+  Component,
+  inject,
+  ChangeDetectionStrategy,
+  signal,
+} from '@angular/core';
 import {
   MatDialogRef,
   MAT_DIALOG_DATA,
@@ -20,9 +25,8 @@ import { TranslocoPipe } from '@jsverse/transloco';
 import { CurrencySuffix } from '@ui/currency-suffix';
 import { TransactionIconPipe } from '@ui/transaction-display';
 import { TransactionLabelPipe } from '@ui/transaction-display';
-import { UserSettingsStore } from '@core/user-settings';
 import type { CurrencyConverterService } from '@core/currency';
-import { injectCurrencyFormConfig } from '@core/currency';
+import { injectCurrencyFormConfigForEdit } from '@core/currency';
 
 export interface EditBudgetLineDialogData {
   budgetLine: BudgetLine;
@@ -94,6 +98,7 @@ export interface EditBudgetLineDialogData {
             <pulpe-currency-suffix
               matTextSuffix
               [showSelector]="showCurrencySelector()"
+              [disabled]="true"
               [currency]="inputCurrency()"
               (currencyChange)="inputCurrency.set($event)"
             />
@@ -174,9 +179,9 @@ export class EditBudgetLineDialog {
   readonly #dialogRef = inject(MatDialogRef<EditBudgetLineDialog>);
   readonly #data = inject<EditBudgetLineDialogData>(MAT_DIALOG_DATA);
   readonly #fb = inject(FormBuilder);
-  readonly #userSettings = inject(UserSettingsStore);
-  readonly #currencyConfig = injectCurrencyFormConfig();
-  protected readonly currency = this.#userSettings.currency;
+  readonly #lineSource = signal(this.#data.budgetLine);
+  readonly #currencyConfig = injectCurrencyFormConfigForEdit(this.#lineSource);
+  protected readonly currency = this.#currencyConfig.currency;
   protected readonly showCurrencySelector =
     this.#currencyConfig.showCurrencySelector;
   protected readonly inputCurrency = this.#currencyConfig.inputCurrency;
@@ -188,7 +193,7 @@ export class EditBudgetLineDialog {
       [Validators.required, Validators.minLength(1)],
     ],
     amount: [
-      this.#data.budgetLine.amount,
+      this.#computeInitialAmount(),
       [Validators.required, Validators.min(0.01)],
     ],
     kind: [this.#data.budgetLine.kind as TransactionKind, Validators.required],
@@ -198,37 +203,56 @@ export class EditBudgetLineDialog {
     ],
   });
 
+  #computeInitialAmount(): number {
+    const line = this.#data.budgetLine;
+    if (
+      this.#currencyConfig.showCurrencySelector() &&
+      line.originalAmount != null
+    ) {
+      return line.originalAmount;
+    }
+    return line.amount;
+  }
+
   async handleSubmit(): Promise<void> {
     if (!this.form.valid) return;
     const value = this.form.value;
+    this.conversionError.set(false);
 
-    let convertedAmount: number;
+    let finalAmount: number;
     let metadata: Awaited<
       ReturnType<CurrencyConverterService['convertWithMetadata']>
-    >['metadata'];
-    this.conversionError.set(false);
-    try {
-      ({ convertedAmount, metadata } =
-        await this.#currencyConfig.converter.convertWithMetadata(
+    >['metadata'] = null;
+
+    if (this.showCurrencySelector()) {
+      try {
+        const result = await this.#currencyConfig.converter.convertWithMetadata(
           value.amount!,
           this.inputCurrency(),
           this.currency(),
-        ));
-    } catch {
-      this.conversionError.set(true);
-      return;
+        );
+        finalAmount = result.convertedAmount;
+        metadata = result.metadata;
+      } catch {
+        this.conversionError.set(true);
+        return;
+      }
+    } else {
+      // Mono-currency edit: keep the amount as entered and DO NOT send
+      // currency metadata so the backend preserves any existing values.
+      finalAmount = value.amount!;
     }
 
     const update: BudgetLineUpdate = {
       id: this.#data.budgetLine.id,
       name: value.name!.trim(),
-      amount: convertedAmount,
+      amount: finalAmount,
       kind: value.kind!,
       recurrence: value.recurrence!,
       templateLineId: this.#data.budgetLine.templateLineId,
       savingsGoalId: this.#data.budgetLine.savingsGoalId,
       isManuallyAdjusted: true,
-      ...metadata,
+      ...(metadata ?? {}),
     };
     this.#dialogRef.close(update);
   }

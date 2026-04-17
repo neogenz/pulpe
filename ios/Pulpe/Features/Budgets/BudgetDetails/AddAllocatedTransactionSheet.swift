@@ -57,7 +57,7 @@ struct AddAllocatedTransactionSheet: View {
             focusOrder: [.amount, .description]
         ) {
             if userSettingsStore.showCurrencySelectorEffective {
-                CurrencyAmountPicker(selectedCurrency: $inputCurrency, baseCurrency: userSettingsStore.currency)
+                CurrencyAmountPicker(selectedCurrency: $inputCurrency)
             }
             HeroAmountField(
                 amount: $amount,

@@ -1,7 +1,11 @@
 export { AppCurrencyPipe } from './app-currency.pipe';
 export { buildConversionTooltip } from './conversion-tooltip';
 export { CURRENCY_CONFIG, DEFAULT_DIGITS_INFO } from './currency-config';
-export { injectCurrencyFormConfig } from './currency-form-config';
+export {
+  injectCurrencyFormConfig,
+  injectCurrencyFormConfigForEdit,
+  type EditCurrencyLineSource,
+} from './currency-form-config';
 export {
   CurrencyConverterService,
   type CurrencyMetadata,

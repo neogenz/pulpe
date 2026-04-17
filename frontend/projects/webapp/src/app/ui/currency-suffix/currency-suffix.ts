@@ -20,6 +20,7 @@ import { TranslocoPipe } from '@jsverse/transloco';
     @if (showSelector()) {
       <mat-select
         [value]="currency()"
+        [disabled]="disabled()"
         (selectionChange)="currencyChange.emit($event.value)"
         class="!w-[70px] text-on-surface-variant font-medium"
         [attr.aria-label]="'common.currencySelector' | transloco"
@@ -38,6 +39,7 @@ import { TranslocoPipe } from '@jsverse/transloco';
 })
 export class CurrencySuffix {
   readonly showSelector = input(false);
+  readonly disabled = input(false);
   readonly currency = input<SupportedCurrency>('CHF');
   readonly currencyChange = output<SupportedCurrency>();
   protected readonly currencies = SUPPORTED_CURRENCIES;

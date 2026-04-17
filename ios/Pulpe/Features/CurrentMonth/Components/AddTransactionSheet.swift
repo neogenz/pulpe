@@ -64,7 +64,7 @@ struct AddTransactionSheet: View {
 
             KindToggle(selection: $kind)
             if userSettingsStore.showCurrencySelectorEffective {
-                CurrencyAmountPicker(selectedCurrency: $inputCurrency, baseCurrency: userSettingsStore.currency)
+                CurrencyAmountPicker(selectedCurrency: $inputCurrency)
             }
             HeroAmountField(
                 amount: $amount,

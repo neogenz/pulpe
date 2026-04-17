@@ -16,13 +16,15 @@ struct EditBudgetLineSheet: View {
     @FocusState private var focusedField: AmountDescriptionField?
     @State private var amountText: String
     @State private var submitSuccessTrigger = false
-    @State private var inputCurrency: SupportedCurrency = .chf
+    private let inputCurrency: SupportedCurrency
+    private let isAlternateCurrency: Bool
 
     private let dependencies: EditBudgetLineDependencies
     private let conversionService = CurrencyConversionService.shared
 
     init(
         budgetLine: BudgetLine,
+        userCurrency: SupportedCurrency,
         dependencies: EditBudgetLineDependencies = .live,
         onUpdate: @escaping (BudgetLine) -> Void
     ) {
@@ -30,10 +32,15 @@ struct EditBudgetLineSheet: View {
         self.dependencies = dependencies
         self.onUpdate = onUpdate
         _name = State(initialValue: budgetLine.name)
-        _amount = State(initialValue: budgetLine.amount)
         _kind = State(initialValue: budgetLine.kind)
-        let amountString = Formatters.amountInput.string(from: budgetLine.amount as NSDecimalNumber) ?? ""
+
+        let editableAmount = Self.initialAmount(for: budgetLine, userCurrency: userCurrency)
+        _amount = State(initialValue: editableAmount)
+        let amountString = Formatters.amountInput.string(from: editableAmount as NSDecimalNumber) ?? ""
         _amountText = State(initialValue: amountString)
+
+        self.inputCurrency = budgetLine.originalCurrency ?? userCurrency
+        self.isAlternateCurrency = Self.shouldShowAlternateCurrency(for: budgetLine, userCurrency: userCurrency)
     }
 
     private var canSubmit: Bool {
@@ -49,8 +56,11 @@ struct EditBudgetLineSheet: View {
             focusOrder: [.amount, .description]
         ) {
             KindToggle(selection: $kind)
-            if userSettingsStore.showCurrencySelectorEffective {
-                CurrencyAmountPicker(selectedCurrency: $inputCurrency, baseCurrency: userSettingsStore.currency)
+            if userSettingsStore.showCurrencySelectorEffective && isAlternateCurrency {
+                CurrencyAmountPicker(
+                    selectedCurrency: .constant(inputCurrency),
+                    isReadOnly: true
+                )
             }
             HeroAmountField(
                 amount: $amount,
@@ -76,7 +86,6 @@ struct EditBudgetLineSheet: View {
             saveButton
         }
         .sensoryFeedback(.success, trigger: submitSuccessTrigger)
-        .onAppear { inputCurrency = userSettingsStore.currency }
     }
 
     // MARK: - Description
@@ -114,22 +123,22 @@ struct EditBudgetLineSheet: View {
         error = nil
 
         do {
-            let conversion = try await conversionService.convert(
-                amount: amount,
-                from: inputCurrency,
-                to: userSettingsStore.currency
-            )
+            let conversion: CurrencyConversion? = if isAlternateCurrency {
+                try await conversionService.convert(
+                    amount: amount,
+                    from: inputCurrency,
+                    to: userSettingsStore.currency
+                )
+            } else {
+                nil
+            }
 
-            let data = BudgetLineUpdate(
+            let data = Self.buildUpdate(
                 id: budgetLine.id,
                 name: name.trimmingCharacters(in: .whitespaces),
-                amount: conversion?.convertedAmount ?? amount,
+                amount: amount,
                 kind: kind,
-                isManuallyAdjusted: true,
-                originalAmount: conversion?.originalAmount,
-                originalCurrency: conversion?.originalCurrency,
-                targetCurrency: conversion?.targetCurrency,
-                exchangeRate: conversion?.exchangeRate
+                conversion: conversion
             )
 
             let updatedLine = try await dependencies.updateBudgetLine(budgetLine.id, data)
@@ -140,6 +149,57 @@ struct EditBudgetLineSheet: View {
         } catch {
             self.error = error
         }
+    }
+
+    // MARK: - Pure Helpers (testable)
+
+    static func shouldShowAlternateCurrency(
+        for line: BudgetLine,
+        userCurrency: SupportedCurrency
+    ) -> Bool {
+        guard let lineCurrency = line.originalCurrency else { return false }
+        return lineCurrency != userCurrency
+    }
+
+    /// Amount to pre-fill in the input. Uses `originalAmount` only when the line is
+    /// in an alternate currency — otherwise the converted amount would confuse users.
+    static func initialAmount(for line: BudgetLine, userCurrency: SupportedCurrency) -> Decimal {
+        if shouldShowAlternateCurrency(for: line, userCurrency: userCurrency),
+           let originalAmount = line.originalAmount {
+            return originalAmount
+        }
+        return line.amount
+    }
+
+    /// Builds the update DTO. When the line is mono-currency (or flag-off fallback),
+    /// currency metadata is omitted so the backend preserves the existing values.
+    static func buildUpdate(
+        id: String,
+        name: String,
+        amount: Decimal,
+        kind: TransactionKind,
+        conversion: CurrencyConversion?
+    ) -> BudgetLineUpdate {
+        guard let conversion else {
+            return BudgetLineUpdate(
+                id: id,
+                name: name,
+                amount: amount,
+                kind: kind,
+                isManuallyAdjusted: true
+            )
+        }
+        return BudgetLineUpdate(
+            id: id,
+            name: name,
+            amount: conversion.convertedAmount,
+            kind: kind,
+            isManuallyAdjusted: true,
+            originalAmount: conversion.originalAmount,
+            originalCurrency: conversion.originalCurrency,
+            targetCurrency: conversion.targetCurrency,
+            exchangeRate: conversion.exchangeRate
+        )
     }
 }
 
@@ -168,7 +228,8 @@ struct EditBudgetLineDependencies: Sendable {
             checkedAt: nil,
             createdAt: Date(),
             updatedAt: Date()
-        )
+        ),
+        userCurrency: .chf
     ) { line in
         print("Updated: \(line)")
     }

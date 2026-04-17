@@ -21,13 +21,15 @@ struct EditTemplateLineSheet: View {
     @State private var usageData: TemplateUsageData?
     @State private var usageFetchFailed = false
     @State private var pendingUpdate: TemplateLineUpdate?
-    @State private var inputCurrency: SupportedCurrency = .chf
+    private let inputCurrency: SupportedCurrency
+    private let isAlternateCurrency: Bool
 
     private let dependencies: EditTemplateLineDependencies
     private let conversionService = CurrencyConversionService.shared
 
     init(
         templateLine: TemplateLine,
+        userCurrency: SupportedCurrency,
         dependencies: EditTemplateLineDependencies = .live,
         onUpdate: @escaping (TemplateLine) -> Void
     ) {
@@ -35,11 +37,16 @@ struct EditTemplateLineSheet: View {
         self.dependencies = dependencies
         self.onUpdate = onUpdate
         _name = State(initialValue: templateLine.name)
-        _amount = State(initialValue: templateLine.amount)
         _kind = State(initialValue: templateLine.kind)
         _recurrence = State(initialValue: templateLine.recurrence)
-        let amountString = Formatters.amountInput.string(from: templateLine.amount as NSDecimalNumber) ?? ""
+
+        let editableAmount = Self.initialAmount(for: templateLine, userCurrency: userCurrency)
+        _amount = State(initialValue: editableAmount)
+        let amountString = Formatters.amountInput.string(from: editableAmount as NSDecimalNumber) ?? ""
         _amountText = State(initialValue: amountString)
+
+        self.inputCurrency = templateLine.originalCurrency ?? userCurrency
+        self.isAlternateCurrency = Self.shouldShowAlternateCurrency(for: templateLine, userCurrency: userCurrency)
     }
 
     private var canSubmit: Bool {
@@ -55,8 +62,11 @@ struct EditTemplateLineSheet: View {
             focusOrder: [.amount, .description]
         ) {
             KindToggle(selection: $kind)
-            if userSettingsStore.showCurrencySelectorEffective {
-                CurrencyAmountPicker(selectedCurrency: $inputCurrency, baseCurrency: userSettingsStore.currency)
+            if userSettingsStore.showCurrencySelectorEffective && isAlternateCurrency {
+                CurrencyAmountPicker(
+                    selectedCurrency: .constant(inputCurrency),
+                    isReadOnly: true
+                )
             }
             HeroAmountField(
                 amount: $amount,
@@ -83,7 +93,6 @@ struct EditTemplateLineSheet: View {
             saveButton
         }
         .sensoryFeedback(.success, trigger: submitSuccessTrigger)
-        .onAppear { inputCurrency = userSettingsStore.currency }
         .task {
             do {
                 usageData = try await dependencies.checkTemplateUsage(templateLine.templateId)
@@ -164,21 +173,22 @@ struct EditTemplateLineSheet: View {
         error = nil
 
         do {
-            let conversion = try await conversionService.convert(
-                amount: amount,
-                from: inputCurrency,
-                to: userSettingsStore.currency
-            )
+            let conversion: CurrencyConversion? = if isAlternateCurrency {
+                try await conversionService.convert(
+                    amount: amount,
+                    from: inputCurrency,
+                    to: userSettingsStore.currency
+                )
+            } else {
+                nil
+            }
 
-            pendingUpdate = TemplateLineUpdate(
+            pendingUpdate = Self.buildUpdate(
                 name: name.trimmingCharacters(in: .whitespaces),
-                amount: conversion?.convertedAmount ?? amount,
+                amount: amount,
                 kind: kind,
                 recurrence: recurrence,
-                originalAmount: conversion?.originalAmount,
-                originalCurrency: conversion?.originalCurrency,
-                targetCurrency: conversion?.targetCurrency,
-                exchangeRate: conversion?.exchangeRate
+                conversion: conversion
             )
 
             let hasBudgets = usageFetchFailed || (usageData?.propagationBudgetCount ?? 0) > 0
@@ -250,6 +260,51 @@ struct EditTemplateLineSheet: View {
         pendingUpdate = nil
         dismiss()
     }
+
+    // MARK: - Pure Helpers (testable)
+
+    static func shouldShowAlternateCurrency(
+        for line: TemplateLine,
+        userCurrency: SupportedCurrency
+    ) -> Bool {
+        guard let lineCurrency = line.originalCurrency else { return false }
+        return lineCurrency != userCurrency
+    }
+
+    static func initialAmount(for line: TemplateLine, userCurrency: SupportedCurrency) -> Decimal {
+        if shouldShowAlternateCurrency(for: line, userCurrency: userCurrency),
+           let originalAmount = line.originalAmount {
+            return originalAmount
+        }
+        return line.amount
+    }
+
+    static func buildUpdate(
+        name: String,
+        amount: Decimal,
+        kind: TransactionKind,
+        recurrence: TransactionRecurrence,
+        conversion: CurrencyConversion?
+    ) -> TemplateLineUpdate {
+        guard let conversion else {
+            return TemplateLineUpdate(
+                name: name,
+                amount: amount,
+                kind: kind,
+                recurrence: recurrence
+            )
+        }
+        return TemplateLineUpdate(
+            name: name,
+            amount: conversion.convertedAmount,
+            kind: kind,
+            recurrence: recurrence,
+            originalAmount: conversion.originalAmount,
+            originalCurrency: conversion.originalCurrency,
+            targetCurrency: conversion.targetCurrency,
+            exchangeRate: conversion.exchangeRate
+        )
+    }
 }
 
 struct EditTemplateLineDependencies: Sendable {
@@ -284,7 +339,8 @@ struct EditTemplateLineDependencies: Sendable {
             description: "",
             createdAt: Date(),
             updatedAt: Date()
-        )
+        ),
+        userCurrency: .chf
     ) { line in
         print("Updated: \(line)")
     }
