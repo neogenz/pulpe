@@ -506,13 +506,10 @@ export const templateLineUpdateSchema = z.object({
 export type TemplateLineUpdate = z.infer<typeof templateLineUpdateSchema>;
 
 // Bulk template line update schemas
-export const templateLineUpdateWithIdSchema = z.object({
+// Derived from templateLineUpdateSchema to avoid schema drift —
+// new fields on the single-update schema flow through to bulk automatically.
+export const templateLineUpdateWithIdSchema = templateLineUpdateSchema.extend({
   id: z.uuid(),
-  name: z.string().min(1).max(100).trim().optional(),
-  amount: z.number().positive().optional(),
-  kind: transactionKindSchema.optional(),
-  recurrence: transactionRecurrenceSchema.optional(),
-  description: z.string().max(500).trim().optional(),
 });
 export type TemplateLineUpdateWithId = z.infer<
   typeof templateLineUpdateWithIdSchema

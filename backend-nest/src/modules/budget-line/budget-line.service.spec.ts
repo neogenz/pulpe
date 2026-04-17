@@ -663,6 +663,10 @@ describe('BudgetLineService', () => {
       amount: 3000,
       kind: 'income' as const,
       recurrence: 'fixed' as const,
+      original_amount: null,
+      original_currency: null,
+      target_currency: null,
+      exchange_rate: null,
     };
 
     const mockBudgetLineWithTemplate: BudgetLineRow = {
@@ -746,6 +750,135 @@ describe('BudgetLineService', () => {
           'ERR_BUDGET_LINE_VALIDATION_FAILED',
         );
       }
+    });
+
+    it('should propagate currency metadata from a multi-currency template line (PUL-99 CA4)', async () => {
+      const budgetLineId = '123e4567-e89b-12d3-a456-426614174000';
+      const multiCurrencyTemplateLine = {
+        ...mockTemplateLine,
+        original_amount: 'encrypted-original-100-eur',
+        original_currency: 'EUR',
+        target_currency: 'CHF',
+        exchange_rate: 0.95,
+      };
+
+      const previouslyConvertedBudgetLine: BudgetLineRow = {
+        ...mockBudgetLineWithTemplate,
+        original_amount: 'stale-encrypted-foo',
+        original_currency: 'USD',
+        target_currency: 'CHF',
+        exchange_rate: 0.8,
+      };
+
+      const updateSpy = jest.fn().mockReturnValue({
+        eq: jest.fn().mockReturnValue({
+          select: jest.fn().mockReturnValue({
+            single: jest.fn().mockResolvedValue({
+              data: {
+                ...previouslyConvertedBudgetLine,
+                amount: 'encrypted-string',
+                is_manually_adjusted: false,
+              },
+              error: null,
+            }),
+          }),
+        }),
+      });
+
+      let callCount = 0;
+      mockSupabase.from.mockImplementation((table: string) => {
+        callCount++;
+        if (table === 'budget_line' && callCount === 1) {
+          return createMockQueryBuilder({
+            data: previouslyConvertedBudgetLine,
+            error: null,
+          });
+        }
+        if (table === 'template_line') {
+          return createMockQueryBuilder({
+            data: multiCurrencyTemplateLine,
+            error: null,
+          });
+        }
+        return {
+          ...createMockQueryBuilder({ data: null, error: null }),
+          update: updateSpy,
+        };
+      });
+
+      await service.resetFromTemplate(
+        budgetLineId,
+        mockUser,
+        getMockSupabaseClient(),
+      );
+
+      expect(updateSpy).toHaveBeenCalledTimes(1);
+      const writtenPayload = updateSpy.mock.calls[0][0];
+      expect(writtenPayload.original_amount).toBe('encrypted-original-100-eur');
+      expect(writtenPayload.original_currency).toBe('EUR');
+      expect(writtenPayload.target_currency).toBe('CHF');
+      expect(writtenPayload.exchange_rate).toBe(0.95);
+    });
+
+    it('should scrub stale currency metadata when template line is mono-currency (PUL-99 CA4)', async () => {
+      const budgetLineId = '123e4567-e89b-12d3-a456-426614174000';
+
+      const previouslyConvertedBudgetLine: BudgetLineRow = {
+        ...mockBudgetLineWithTemplate,
+        original_amount: 'stale-encrypted-foo',
+        original_currency: 'EUR',
+        target_currency: 'CHF',
+        exchange_rate: 0.95,
+      };
+
+      const updateSpy = jest.fn().mockReturnValue({
+        eq: jest.fn().mockReturnValue({
+          select: jest.fn().mockReturnValue({
+            single: jest.fn().mockResolvedValue({
+              data: {
+                ...previouslyConvertedBudgetLine,
+                amount: 'encrypted-string',
+                is_manually_adjusted: false,
+              },
+              error: null,
+            }),
+          }),
+        }),
+      });
+
+      let callCount = 0;
+      mockSupabase.from.mockImplementation((table: string) => {
+        callCount++;
+        if (table === 'budget_line' && callCount === 1) {
+          return createMockQueryBuilder({
+            data: previouslyConvertedBudgetLine,
+            error: null,
+          });
+        }
+        if (table === 'template_line') {
+          return createMockQueryBuilder({
+            data: mockTemplateLine,
+            error: null,
+          });
+        }
+        return {
+          ...createMockQueryBuilder({ data: null, error: null }),
+          update: updateSpy,
+        };
+      });
+
+      await service.resetFromTemplate(
+        budgetLineId,
+        mockUser,
+        getMockSupabaseClient(),
+      );
+
+      expect(updateSpy).toHaveBeenCalledTimes(1);
+      const writtenPayload = updateSpy.mock.calls[0][0];
+      expect(writtenPayload.original_amount).toBeNull();
+      expect(writtenPayload.original_currency).toBeNull();
+      expect(writtenPayload.target_currency).toBeNull();
+      expect(writtenPayload.exchange_rate).toBeNull();
     });
 
     it('should throw BusinessException when template line is deleted', async () => {

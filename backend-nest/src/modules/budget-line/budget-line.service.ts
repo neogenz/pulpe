@@ -647,17 +647,27 @@ export class BudgetLineService {
     }
   }
 
-  private prepareResetUpdateData(templateLine: {
-    name: string;
-    amount: number;
-    kind: Database['public']['Enums']['transaction_kind'];
-    recurrence: Database['public']['Enums']['transaction_recurrence'];
-  }): Partial<Database['public']['Tables']['budget_line']['Update']> {
+  private prepareResetUpdateData(
+    templateLine: Pick<
+      Database['public']['Tables']['template_line']['Row'],
+      | 'name'
+      | 'kind'
+      | 'recurrence'
+      | 'original_amount'
+      | 'original_currency'
+      | 'target_currency'
+      | 'exchange_rate'
+    >,
+  ): Partial<Database['public']['Tables']['budget_line']['Update']> {
     return {
       name: templateLine.name,
       kind: templateLine.kind,
       recurrence: templateLine.recurrence,
       is_manually_adjusted: false,
+      original_amount: templateLine.original_amount,
+      original_currency: templateLine.original_currency,
+      target_currency: templateLine.target_currency,
+      exchange_rate: templateLine.exchange_rate,
       updated_at: new Date().toISOString(),
     };
   }
@@ -669,7 +679,9 @@ export class BudgetLineService {
   ) {
     const { data: templateLine, error } = await supabase
       .from('template_line')
-      .select('name, amount, kind, recurrence')
+      .select(
+        'name, amount, kind, recurrence, original_amount, original_currency, target_currency, exchange_rate',
+      )
       .eq('id', templateLineId)
       .single();
 

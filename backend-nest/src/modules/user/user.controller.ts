@@ -241,7 +241,9 @@ export class UserController {
         await serviceClient.auth.admin.updateUserById(user.id, {
           user_metadata: {
             ...currentUserData.user.user_metadata,
-            payDayOfMonth: updateData.payDayOfMonth ?? null,
+            ...(updateData.payDayOfMonth !== undefined && {
+              payDayOfMonth: updateData.payDayOfMonth,
+            }),
             ...(updateData.currency !== undefined && {
               currency: updateData.currency,
             }),

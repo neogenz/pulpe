@@ -1066,29 +1066,47 @@ export class BudgetTemplateService {
       { ids: string[]; data: Partial<TablesInsert<'template_line'>> }
     >();
 
-    for (const line of lines) {
-      const { id, ...updateData } = line;
-      let encryptedAmount: string | undefined;
+    const prepared = await Promise.all(
+      lines.map(async (line) => {
+        const { id, ...rawUpdateData } = line;
 
-      if (updateData.amount !== undefined) {
-        const prepared = await this.encryptionService.prepareAmountData(
-          updateData.amount,
-          user.id,
-          user.clientKey,
-        );
-        encryptedAmount = prepared.amount;
-      }
+        const updateData =
+          rawUpdateData.originalCurrency && rawUpdateData.targetCurrency
+            ? await this.currencyService.overrideExchangeRate(rawUpdateData)
+            : rawUpdateData;
 
-      const dbData: Partial<TablesInsert<'template_line'>> = {
-        ...budgetTemplateMappers.toDbTemplateLineUpdate(
-          updateData,
-          encryptedAmount,
-        ),
-        ...(encryptedAmount !== undefined && { amount: encryptedAmount }),
-      };
+        const [encryptedAmount, encryptedOriginalAmount] = await Promise.all([
+          updateData.amount !== undefined
+            ? this.encryptionService
+                .prepareAmountData(updateData.amount, user.id, user.clientKey)
+                .then((p) => p.amount)
+            : Promise.resolve(undefined),
+          updateData.originalAmount !== undefined
+            ? this.encryptionService.encryptOptionalAmount(
+                updateData.originalAmount,
+                user.id,
+                user.clientKey,
+              )
+            : Promise.resolve(undefined),
+        ]);
 
+        const dbData: Partial<TablesInsert<'template_line'>> = {
+          ...budgetTemplateMappers.toDbTemplateLineUpdate(
+            updateData,
+            encryptedAmount,
+          ),
+          ...(encryptedAmount !== undefined && { amount: encryptedAmount }),
+          ...(encryptedOriginalAmount !== undefined && {
+            original_amount: encryptedOriginalAmount,
+          }),
+        };
+
+        return { id, dbData };
+      }),
+    );
+
+    for (const { id, dbData } of prepared) {
       const key = JSON.stringify(dbData);
-
       if (!updateGroups.has(key)) {
         updateGroups.set(key, { ids: [], data: dbData });
       }
@@ -1424,19 +1442,30 @@ export class BudgetTemplateService {
     };
   }
 
-  private mapTemplateLinesForRpc(lines: Tables<'template_line'>[]): Array<{
-    id: string;
-    name: string;
-    amount: string | null;
-    kind: Tables<'template_line'>['kind'];
-    recurrence: Tables<'template_line'>['recurrence'];
-  }> {
+  private mapTemplateLinesForRpc(
+    lines: Tables<'template_line'>[],
+  ): Pick<
+    Tables<'template_line'>,
+    | 'id'
+    | 'name'
+    | 'amount'
+    | 'kind'
+    | 'recurrence'
+    | 'original_amount'
+    | 'original_currency'
+    | 'target_currency'
+    | 'exchange_rate'
+  >[] {
     return lines.map((line) => ({
       id: line.id,
       name: line.name,
       amount: line.amount,
       kind: line.kind,
       recurrence: line.recurrence,
+      original_amount: line.original_amount,
+      original_currency: line.original_currency,
+      target_currency: line.target_currency,
+      exchange_rate: line.exchange_rate,
     }));
   }
 
