@@ -248,6 +248,11 @@ export class PostHogService {
 
   /**
    * Reset state (e.g., on logout)
+   *
+   * posthog.reset() clears the distinct_id, device_id AND all registered
+   * super properties. Re-register the global properties right after so that
+   * subsequent anonymous events still carry platform/environment/app_version
+   * for consistent filtering and cohort matching.
    */
   reset(): void {
     if (!this.#canCapture()) return;
@@ -255,6 +260,7 @@ export class PostHogService {
     try {
       posthog.reset();
       this.#isTrackingEnabled = false;
+      this.#registerGlobalProperties();
       this.#logger.debug('PostHog state reset');
     } catch (error) {
       this.#logger.error('Failed to reset PostHog', error);

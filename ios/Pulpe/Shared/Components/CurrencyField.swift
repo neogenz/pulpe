@@ -106,7 +106,7 @@ struct CurrencyField: View {
     private func labelView(_ label: String) -> some View {
         let composed: Text = {
             if isRequired {
-                return Text(label) + Text(" *").foregroundColor(asteriskColor)
+                return Text(label) + Text(" *").foregroundStyle(asteriskColor)
             }
             return Text(label)
         }()

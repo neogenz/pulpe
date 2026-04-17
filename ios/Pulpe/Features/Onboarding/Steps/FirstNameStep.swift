@@ -21,7 +21,7 @@ struct FirstNameStep: View {
                     // red — red is reserved for errors).
                     (
                         Text("Prénom")
-                        + Text(" *").foregroundColor(Color.textSecondaryOnboarding)
+                        + Text(" *").foregroundStyle(Color.textSecondaryOnboarding)
                     )
                     .font(PulpeTypography.inputLabel)
                     .foregroundStyle(Color.textPrimaryOnboarding)

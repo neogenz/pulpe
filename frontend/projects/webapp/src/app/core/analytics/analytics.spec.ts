@@ -153,7 +153,7 @@ describe('User consent and tracking behavior', () => {
   });
 
   describe('when a user logs out', () => {
-    it('should stop tracking and clear their session data', () => {
+    it('should stop tracking but leave PostHog reset to AuthCleanupService', () => {
       // Given: User is logged in and being tracked
       TestBed.runInInjectionContext(() => {
         analyticsService.initializeAnalyticsTracking();
@@ -181,8 +181,11 @@ describe('User consent and tracking behavior', () => {
       // Flush effects to trigger the auth state change handler
       TestBed.tick();
 
-      // Then: Tracking should be disabled and identity cleared
-      expect(mockPostHogService.reset).toHaveBeenCalledTimes(1);
+      // Then: AnalyticsService must NOT call reset() on anonymous tick —
+      // reset() would wipe the cross-domain distinct_id bootstrapped from
+      // the landing and the registered super properties. reset() is owned
+      // by AuthCleanupService.performCleanup() on explicit signOut.
+      expect(mockPostHogService.reset).not.toHaveBeenCalled();
     });
 
     it('should not track any actions until next login', () => {
@@ -474,8 +477,10 @@ describe('Demo mode tracking', () => {
 
       TestBed.tick();
 
-      // THEN: Analytics session is reset
-      expect(mockPostHogService.reset).toHaveBeenCalled();
+      // THEN: AnalyticsService must NOT call reset() on anonymous tick.
+      // Resetting here would destroy the cross-domain distinct_id and the
+      // registered super properties. reset() lives in AuthCleanupService.
+      expect(mockPostHogService.reset).not.toHaveBeenCalled();
     });
 
     it('should identify regular user without demo flag after demo logout', () => {

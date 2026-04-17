@@ -80,9 +80,11 @@ export class AnalyticsService implements OnDestroy {
             isDemoMode,
           });
         } else if (!authState.isAuthenticated && !authState.isLoading) {
-          this.#postHogService.reset();
+          // Do NOT call posthog.reset() on every anonymous tick: it would
+          // destroy the distinct_id bootstrapped from the landing via ?ph_did=
+          // and wipe registered super properties (platform, environment, app_version).
+          // reset() belongs in the explicit signOut flow; see AuthStateService.
           this.#trackingEnabledForSession = false;
-          this.#logger.debug('Analytics session reset');
         }
       });
 
