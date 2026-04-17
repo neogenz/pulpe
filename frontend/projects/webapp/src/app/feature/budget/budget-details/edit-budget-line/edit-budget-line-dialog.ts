@@ -100,7 +100,6 @@ export interface EditBudgetLineDialogData {
               [showSelector]="showCurrencySelector()"
               [disabled]="true"
               [currency]="inputCurrency()"
-              (currencyChange)="inputCurrency.set($event)"
             />
             @if (
               form.get('amount')?.hasError('required') &&

@@ -139,7 +139,6 @@ export type EditTransactionFormData = Pick<
           [showSelector]="showCurrencySelector()"
           [disabled]="true"
           [currency]="inputCurrency()"
-          (currencyChange)="inputCurrency.set($event)"
         />
         <mat-hint id="amount-hint" class="ph-no-capture">
           {{ 'transactionForm.amountHint' | transloco }}

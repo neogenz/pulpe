@@ -1,10 +1,4 @@
-import {
-  computed,
-  inject,
-  linkedSignal,
-  signal,
-  type Signal,
-} from '@angular/core';
+import { computed, inject, signal, type Signal } from '@angular/core';
 import type { SupportedCurrency } from 'pulpe-shared';
 
 import { FeatureFlagsService } from '@core/feature-flags';
@@ -50,19 +44,17 @@ export interface EditCurrencyLineSource {
 /**
  * Edit-mode sibling of `injectCurrencyFormConfig()`.
  *
- * Rules:
- *  - `inputCurrency` is locked to `line.originalCurrency ?? userCurrency`.
- *  - The picker is ONLY shown when the feature flag is ON AND the line has an
- *    `originalCurrency` that differs from the user's current currency.
- *  - In every other case (mono-currency lines, same currency, flag OFF), the
- *    picker is hidden — in which case callers MUST skip `convertWithMetadata`
- *    and omit `originalAmount`/`originalCurrency`/`targetCurrency`/
- *    `exchangeRate` from the PATCH so the backend preserves existing metadata.
+ * PUL-99 v1 forbids changing the currency of an existing line. The picker is
+ * therefore always read-only when shown, and `inputCurrency` is exposed as a
+ * read-only `Signal`. Callers:
+ *  - Render the picker only when `showCurrencySelector()` is `true` (feature
+ *    flag ON + line has an `originalCurrency` that differs from the user's).
+ *  - Skip `convertWithMetadata` and omit currency metadata from the PATCH in
+ *    every other case so the backend preserves existing metadata.
  *
- * A Signal-typed source is accepted so this helper composes with both
- * `MAT_DIALOG_DATA` (plain value wrapped in `signal(...)`) and component
- * signal inputs (`input.required<Transaction>()`) — the latter cannot be read
- * synchronously at injection time.
+ * All derived signals are lazy — they only read `line()` when consumed by the
+ * template — so the helper safely composes with `input.required<T>()` signal
+ * inputs that aren't yet bound at field-initializer time.
  */
 export function injectCurrencyFormConfigForEdit(
   line: Signal<EditCurrencyLineSource>,
@@ -72,21 +64,8 @@ export function injectCurrencyFormConfigForEdit(
   const flags = inject(FeatureFlagsService);
 
   const currency = userSettings.currency;
-
-  // Safe read: required signal inputs throw NG0950 until bound. The helper
-  // may be called from field initializers (e.g. `input.required<Transaction>()`
-  // read in a `linkedSignal` source) before the input is set. Falling back to
-  // a null-shaped object keeps derived signals cold until the source is ready.
-  const safeLine = computed<EditCurrencyLineSource>(() => {
-    try {
-      return line();
-    } catch {
-      return {};
-    }
-  });
-
-  const originalCurrency = computed(() => safeLine().originalCurrency ?? null);
-  const originalAmount = computed(() => safeLine().originalAmount ?? null);
+  const originalCurrency = computed(() => line().originalCurrency ?? null);
+  const originalAmount = computed(() => line().originalAmount ?? null);
 
   const showCurrencySelector = computed(() => {
     if (!flags.isMultiCurrencyEnabled()) return false;
@@ -94,9 +73,7 @@ export function injectCurrencyFormConfigForEdit(
     return original !== null && original !== currency();
   });
 
-  // `linkedSignal` keeps `inputCurrency` in sync with the source line while
-  // still allowing manual writes.
-  const inputCurrency = linkedSignal<SupportedCurrency>(
+  const inputCurrency = computed<SupportedCurrency>(
     () => originalCurrency() ?? currency(),
   );
   const conversionError = signal(false);

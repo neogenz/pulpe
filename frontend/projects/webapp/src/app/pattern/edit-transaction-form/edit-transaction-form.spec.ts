@@ -152,6 +152,22 @@ describe('EditTransactionForm', () => {
   });
 
   describe('Date Constraints', () => {
+    beforeEach(() => {
+      setTestInput(component.transaction, {
+        id: 'tx-1',
+        budgetId: 'b-1',
+        budgetLineId: null,
+        name: 'Test',
+        amount: 10,
+        kind: 'expense',
+        transactionDate: new Date().toISOString(),
+        category: null,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        checkedAt: null,
+      });
+    });
+
     it('should default to current month bounds', () => {
       // Arrange
       const dateControl = component.transactionForm.get('transactionDate');
