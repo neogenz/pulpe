@@ -1,4 +1,5 @@
 import Foundation
+import OSLog
 
 struct CurrencyRate: Codable, Sendable {
     let base: SupportedCurrency
@@ -13,25 +14,41 @@ actor CurrencyConversionService {
     private let apiClient: APIClient
     private var cachedRates: [String: CurrencyRate] = [:]
     private var cacheTimes: [String: Date] = [:]
-    private static let cacheDuration: TimeInterval = 86400 // 24h
+    private let cacheDuration: TimeInterval
 
-    init(apiClient: APIClient = .shared) {
+    init(apiClient: APIClient = .shared, cacheDuration: TimeInterval = 86400) {
         self.apiClient = apiClient
+        self.cacheDuration = cacheDuration
     }
 
     func getRate(base: SupportedCurrency, target: SupportedCurrency) async throws -> CurrencyRate {
         let cacheKey = "\(base.rawValue)-\(target.rawValue)"
+        let cached = cachedRates[cacheKey]
 
-        if let cached = cachedRates[cacheKey],
+        if let cached,
            let cacheTime = cacheTimes[cacheKey],
-           Date().timeIntervalSince(cacheTime) < Self.cacheDuration {
+           Date().timeIntervalSince(cacheTime) < cacheDuration {
             return cached
         }
 
-        let rate: CurrencyRate = try await apiClient.request(.currencyRate(base: base, target: target))
-        cachedRates[cacheKey] = rate
-        cacheTimes[cacheKey] = Date()
-        return rate
+        do {
+            let rate: CurrencyRate = try await apiClient.request(.currencyRate(base: base, target: target))
+            cachedRates[cacheKey] = rate
+            cacheTimes[cacheKey] = Date()
+            return rate
+        } catch {
+            // PUL-99 fallback: API OK -> cache stale -> never block user input.
+            // When the fetch fails but we still have an (expired) cached rate,
+            // return it instead of propagating the error.
+            if let cached {
+                let pair = "\(base.rawValue)->\(target.rawValue)"
+                Logger.network.warning(
+                    "CurrencyConversionService: fetch failed, returning stale cached rate (\(pair))"
+                )
+                return cached
+            }
+            throw error
+        }
     }
 
     /// Converts an amount and returns the converted amount with metadata.
@@ -44,7 +61,11 @@ actor CurrencyConversionService {
         guard inputCurrency != baseCurrency else { return nil }
 
         let rate = try await getRate(base: inputCurrency, target: baseCurrency)
-        let convertedAmount = amount * Decimal(rate.rate)
+        // PUL-99: the converted amount is what gets encrypted and persisted.
+        // Round to 2 decimals to kill IEEE 754 noise and stay aligned with
+        // the webapp (`.toFixed(2)` in currency-converter.service.ts).
+        // The exchange rate itself is NOT rounded — RG-009 freezes it as-is.
+        let convertedAmount = (amount * Decimal(rate.rate)).rounded(2, .plain)
         return CurrencyConversion(
             convertedAmount: convertedAmount,
             originalAmount: amount,

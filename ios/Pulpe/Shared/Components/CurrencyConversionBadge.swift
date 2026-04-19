@@ -41,16 +41,19 @@ struct CurrencyConversionBadge: View {
             .buttonStyle(.plain)
             .frame(minWidth: 44, minHeight: 44)
             .contentShape(Rectangle())
-            .accessibilityLabel(originalAmount.map { amount in
-                originalCurrency.map { currency in
-                    "Détails de conversion, converti depuis \(amount.asCurrency(currency))"
-                } ?? "Détails de conversion"
-            } ?? "Détails de conversion")
+            .accessibilityLabel(accessibilityLabel)
             .popover(isPresented: $isShowingPopover) {
                 popoverContent
                     .presentationCompactAdaptation(.popover)
             }
         }
+    }
+
+    private var accessibilityLabel: String {
+        guard let amount = originalAmount, let currency = originalCurrency else {
+            return String(localized: "Détails de conversion")
+        }
+        return String(localized: "Détails de conversion, converti depuis \(amount.asCurrency(currency))")
     }
 
     private var popoverContent: some View {
