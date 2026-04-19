@@ -6,6 +6,7 @@ struct OnboardingTransactionRow: View {
     let transaction: OnboardingTransaction
     let onEdit: () -> Void
     let onRemove: () -> Void
+    var currency: SupportedCurrency = .chf
 
     var body: some View {
         HStack(spacing: DesignTokens.Spacing.md) {
@@ -13,7 +14,7 @@ struct OnboardingTransactionRow: View {
                 Text(transaction.name)
                     .font(PulpeTypography.bodyLarge)
                     .foregroundStyle(Color.textPrimary)
-                Text(transaction.amount.asCHF)
+                Text(transaction.amount.asCurrency(currency))
                     .font(PulpeTypography.caption)
                     .monospacedDigit()
                     .foregroundStyle(transaction.type.color)

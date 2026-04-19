@@ -1,12 +1,16 @@
 import SwiftUI
 
+private let heroAmountUnderlineWidth: CGFloat = 120
+
 /// Reusable hero amount input field used across all sheet forms.
 /// Uses a hidden TextField for keyboard input with an animated visible display.
-struct HeroAmountField: View {
+struct HeroAmountField<Field: Hashable>: View {
     @Binding var amount: Decimal?
     @Binding var amountText: String
-    var isFocused: FocusState<Bool>.Binding
+    var focus: FocusState<Field?>.Binding
+    var field: Field
     var hint: String?
+    var currency: SupportedCurrency = .chf
     var accentColor: Color = .pulpePrimary
 
     private var displayAmount: String {
@@ -16,16 +20,20 @@ struct HeroAmountField: View {
         return "0.00"
     }
 
+    private var isFieldFocused: Bool {
+        focus.wrappedValue == field
+    }
+
     var body: some View {
         VStack(spacing: DesignTokens.Spacing.sm) {
-            Text(DesignTokens.AmountInput.currencyCode)
+            Text(currency.rawValue)
                 .font(PulpeTypography.labelLarge)
                 .foregroundStyle(Color.onSurfaceVariant)
 
             ZStack {
                 TextField("", text: $amountText)
                     .keyboardType(.decimalPad)
-                    .focused(isFocused)
+                    .focused(focus, equals: field)
                     .opacity(0)
                     .frame(width: 0, height: 0)
                     .onChange(of: amountText) { _, newValue in
@@ -45,12 +53,12 @@ struct HeroAmountField: View {
 
             RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.hairline)
                 .fill(
-                    isFocused.wrappedValue
+                    isFieldFocused
                         ? accentColor
                         : Color.outline.opacity(0.4)
                 )
-                .frame(width: 120, height: 2)
-                .animation(.easeInOut(duration: DesignTokens.Animation.fast), value: isFocused.wrappedValue)
+                .frame(width: heroAmountUnderlineWidth, height: DesignTokens.BorderWidth.thick)
+                .animation(DesignTokens.Animation.smoothEaseInOut, value: isFieldFocused)
 
             if let hint, (amount ?? 0) <= 0 {
                 Text(hint)
@@ -63,22 +71,27 @@ struct HeroAmountField: View {
         .padding(.vertical, DesignTokens.Spacing.lg)
         .contentShape(Rectangle())
         // Same pattern as `FormTextField` / `CurrencyField`: tap anywhere to focus the amount field.
-        .onTapGesture { isFocused.wrappedValue = true }
+        .onTapGesture { focus.wrappedValue = field }
         .accessibilityAddTraits(.isButton)
         .accessibilityLabel("Montant")
-        .animation(.easeInOut(duration: DesignTokens.Animation.fast), value: amount)
+        .animation(DesignTokens.Animation.smoothEaseInOut, value: amount)
     }
+}
+
+private enum HeroAmountFieldPreviewField: Hashable {
+    case amount
 }
 
 #Preview {
     @Previewable @State var amount: Decimal?
     @Previewable @State var amountText = ""
-    @Previewable @FocusState var isFocused: Bool
+    @Previewable @FocusState var focusedField: HeroAmountFieldPreviewField?
 
     HeroAmountField(
         amount: $amount,
         amountText: $amountText,
-        isFocused: $isFocused,
+        focus: $focusedField,
+        field: .amount,
         hint: "Quel montant ?"
     )
 }

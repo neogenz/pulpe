@@ -3,6 +3,8 @@ import localeFrCHExtra from '@angular/common/locales/extra/fr-CH';
 import localeFrCH from '@angular/common/locales/fr-CH';
 import localeDeCHExtra from '@angular/common/locales/extra/de-CH';
 import localeDeCH from '@angular/common/locales/de-CH';
+import localeFRExtra from '@angular/common/locales/extra/fr';
+import localeFR from '@angular/common/locales/fr';
 import { LOCALE_ID } from '@angular/core';
 import {
   MAT_DATE_FNS_FORMATS,
@@ -14,6 +16,7 @@ import { frCH } from 'date-fns/locale';
 registerLocaleData(localeFrCH, 'fr-CH', localeFrCHExtra);
 // Used to format correctly the amount as currency (XX'XXX.xx)
 registerLocaleData(localeDeCH, 'de-CH', localeDeCHExtra);
+registerLocaleData(localeFR, 'fr-FR', localeFRExtra);
 // Format de date étendu pour prendre en charge le timepicker et month/year picker
 const CUSTOM_DATE_FORMATS = {
   ...MAT_DATE_FNS_FORMATS,

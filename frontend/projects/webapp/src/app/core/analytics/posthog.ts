@@ -30,6 +30,7 @@ export class PostHogService {
   readonly #storageService = inject(StorageService);
 
   readonly #isInitialized = signal<boolean>(false);
+  readonly #flagsVersion = signal<number>(0);
   #isTrackingEnabled = false;
 
   readonly isInitialized = this.#isInitialized.asReadonly();
@@ -37,6 +38,13 @@ export class PostHogService {
     const config = this.#applicationConfiguration.postHogConfig();
     return config?.enabled ?? false;
   });
+
+  /**
+   * Signal bumped every time PostHog resolves or refreshes feature flags.
+   * Used as a reactive dependency by `isFeatureEnabled()` consumers so that
+   * `computed()` re-evaluates when the flag payload changes.
+   */
+  readonly flagsVersion = this.#flagsVersion.asReadonly();
 
   /**
    * Initialize PostHog with minimal configuration.
@@ -95,9 +103,23 @@ export class PostHogService {
           this.#logger.info('PostHog initialized successfully');
         },
       });
+
+      posthog.onFeatureFlags(() => {
+        this.#flagsVersion.update((v) => v + 1);
+      });
     } catch (error) {
       this.#logger.error('Failed to initialize PostHog', error);
     }
+  }
+
+  /**
+   * Returns true when the given feature flag is enabled for the current user.
+   * Safe default: returns false before PostHog initializes or if the flag is
+   * missing. Pair with `flagsVersion` signal in computeds for reactive gating.
+   */
+  isFeatureEnabled(key: string): boolean {
+    if (!this.#isInitialized()) return false;
+    return posthog.isFeatureEnabled(key) === true;
   }
 
   /**
@@ -226,6 +248,11 @@ export class PostHogService {
 
   /**
    * Reset state (e.g., on logout)
+   *
+   * posthog.reset() clears the distinct_id, device_id AND all registered
+   * super properties. Re-register the global properties right after so that
+   * subsequent anonymous events still carry platform/environment/app_version
+   * for consistent filtering and cohort matching.
    */
   reset(): void {
     if (!this.#canCapture()) return;
@@ -233,6 +260,7 @@ export class PostHogService {
     try {
       posthog.reset();
       this.#isTrackingEnabled = false;
+      this.#registerGlobalProperties();
       this.#logger.debug('PostHog state reset');
     } catch (error) {
       this.#logger.error('Failed to reset PostHog', error);

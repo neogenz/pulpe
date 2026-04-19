@@ -3,6 +3,7 @@ import SwiftUI
 struct AccountView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(AppState.self) private var appState
+    @Environment(FeatureFlagsStore.self) private var featureFlagsStore
     @State private var showLogoutConfirmation = false
     @State private var isDebugVisible = false
     @State private var debugToggleTrigger = false
@@ -86,7 +87,7 @@ extension AccountView {
                 icon: "gearshape",
                 iconColor: Color.textSecondary,
                 title: "Préférences",
-                subtitle: "Jour de paie"
+                subtitle: featureFlagsStore.isMultiCurrencyEnabled ? "Jour de paie et devise" : "Jour de paie"
             ) {
                 PreferencesView()
             }
@@ -265,4 +266,5 @@ extension AccountView {
     AccountView()
         .environment(AppState())
         .environment(UserSettingsStore())
+        .environment(FeatureFlagsStore())
 }

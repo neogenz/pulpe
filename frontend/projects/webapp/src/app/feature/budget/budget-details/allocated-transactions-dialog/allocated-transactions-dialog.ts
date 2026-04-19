@@ -1,18 +1,22 @@
 import { Component, inject, ChangeDetectionStrategy } from '@angular/core';
-import { CurrencyPipe, DatePipe, DecimalPipe } from '@angular/common';
+import { DatePipe, DecimalPipe } from '@angular/common';
 import {
   MAT_DIALOG_DATA,
   MatDialogRef,
   MatDialogModule,
 } from '@angular/material/dialog';
-import { TranslocoPipe } from '@jsverse/transloco';
+import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { MatTableModule } from '@angular/material/table';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import type { BudgetLine, Transaction } from 'pulpe-shared';
+import { AppCurrencyPipe, buildConversionTooltip } from '@core/currency';
+import { CurrencyConversionBadge } from '@ui/currency-conversion-badge';
 import type { BudgetLineConsumption } from '@core/budget';
+import { FeatureFlagsService } from '@core/feature-flags';
+import { UserSettingsStore } from '@core/user-settings';
 
 export interface AllocatedTransactionsDialogData {
   budgetLine: BudgetLine;
@@ -34,7 +38,8 @@ export interface AllocatedTransactionsDialogResult {
     MatIconModule,
     MatTooltipModule,
     MatProgressBarModule,
-    CurrencyPipe,
+    AppCurrencyPipe,
+    CurrencyConversionBadge,
     DatePipe,
     DecimalPipe,
     TranslocoPipe,
@@ -55,10 +60,24 @@ export interface AllocatedTransactionsDialogResult {
             <div class="text-label-small text-on-surface-variant">
               {{ 'budget.tablePlanned' | transloco }}
             </div>
-            <div class="text-title-medium font-semibold ph-no-capture">
-              {{
-                data.budgetLine.amount | currency: 'CHF' : 'symbol' : '1.2-2'
-              }}
+            <div
+              class="text-title-medium font-semibold ph-no-capture flex items-center justify-center gap-1"
+            >
+              {{ data.budgetLine.amount | appCurrency: currency() }}
+              @if (isMultiCurrencyEnabled()) {
+                <pulpe-currency-conversion-badge
+                  [originalAmount]="data.budgetLine.originalAmount"
+                  [originalCurrency]="data.budgetLine.originalCurrency"
+                  [exchangeRate]="data.budgetLine.exchangeRate"
+                  [tooltipText]="
+                    conversionTooltip(
+                      data.budgetLine.originalAmount,
+                      data.budgetLine.originalCurrency,
+                      data.budgetLine.exchangeRate
+                    )
+                  "
+                />
+              }
             </div>
           </div>
           <div class="text-center">
@@ -66,9 +85,7 @@ export interface AllocatedTransactionsDialogResult {
               {{ 'budget.consumedLabel' | transloco }}
             </div>
             <div class="text-title-medium font-semibold ph-no-capture">
-              {{
-                data.consumption.consumed | currency: 'CHF' : 'symbol' : '1.2-2'
-              }}
+              {{ data.consumption.consumed | appCurrency: currency() }}
             </div>
           </div>
           <div class="text-center">
@@ -80,10 +97,7 @@ export interface AllocatedTransactionsDialogResult {
               [class.text-error]="data.consumption.remaining < 0"
               [class.text-financial-income]="data.consumption.remaining >= 0"
             >
-              {{
-                data.consumption.remaining
-                  | currency: 'CHF' : 'symbol' : '1.2-2'
-              }}
+              {{ data.consumption.remaining | appCurrency: currency() }}
             </div>
           </div>
         </div>
@@ -141,7 +155,23 @@ export interface AllocatedTransactionsDialogResult {
                 *matCellDef="let tx"
                 class="text-right text-body-medium font-medium ph-no-capture"
               >
-                {{ tx.amount | currency: 'CHF' : 'symbol' : '1.2-2' }}
+                <span class="inline-flex items-center gap-1">
+                  {{ tx.amount | appCurrency: currency() }}
+                  @if (isMultiCurrencyEnabled()) {
+                    <pulpe-currency-conversion-badge
+                      [originalAmount]="tx.originalAmount"
+                      [originalCurrency]="tx.originalCurrency"
+                      [exchangeRate]="tx.exchangeRate"
+                      [tooltipText]="
+                        conversionTooltip(
+                          tx.originalAmount,
+                          tx.originalCurrency,
+                          tx.exchangeRate
+                        )
+                      "
+                    />
+                  }
+                </span>
               </td>
             </ng-container>
 
@@ -152,6 +182,9 @@ export interface AllocatedTransactionsDialogResult {
                   matIconButton
                   (click)="editTransaction(tx)"
                   [matTooltip]="'common.edit' | transloco"
+                  [attr.aria-label]="
+                    'budget.editTransactionAriaLabel' | transloco
+                  "
                 >
                   <mat-icon>edit</mat-icon>
                 </button>
@@ -159,6 +192,9 @@ export interface AllocatedTransactionsDialogResult {
                   matIconButton
                   (click)="deleteTransaction(tx)"
                   [matTooltip]="'common.delete' | transloco"
+                  [attr.aria-label]="
+                    'budget.deleteTransactionAriaLabel' | transloco
+                  "
                   class="text-error"
                 >
                   <mat-icon>delete</mat-icon>
@@ -209,6 +245,12 @@ export interface AllocatedTransactionsDialogResult {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AllocatedTransactionsDialog {
+  readonly #userSettings = inject(UserSettingsStore);
+  readonly #featureFlags = inject(FeatureFlagsService);
+  readonly #transloco = inject(TranslocoService);
+  protected readonly currency = this.#userSettings.currency;
+  protected readonly isMultiCurrencyEnabled =
+    this.#featureFlags.isMultiCurrencyEnabled;
   readonly data = inject<AllocatedTransactionsDialogData>(MAT_DIALOG_DATA);
   readonly #dialogRef = inject(
     MatDialogRef<
@@ -240,5 +282,18 @@ export class AllocatedTransactionsDialog {
 
   deleteTransaction(transaction: Transaction): void {
     this.#dialogRef.close({ action: 'delete', transaction });
+  }
+
+  protected conversionTooltip(
+    originalAmount: number | null | undefined,
+    originalCurrency: string | null | undefined,
+    exchangeRate: number | null | undefined,
+  ): string {
+    return buildConversionTooltip(
+      this.#transloco,
+      originalAmount,
+      originalCurrency,
+      exchangeRate,
+    );
   }
 }

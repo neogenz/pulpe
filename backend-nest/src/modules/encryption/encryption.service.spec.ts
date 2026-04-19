@@ -316,6 +316,39 @@ describe('EncryptionService', () => {
     });
   });
 
+  describe('decryptRowAmountFields', () => {
+    beforeEach(() => {
+      service = new EncryptionService(
+        createMockLogger() as any,
+        mockConfigService as any,
+        mockRepository as any,
+      );
+    });
+
+    it('should decrypt amount and original_amount', () => {
+      const dek = randomBytes(32);
+      const encAmt = service.encryptAmount(100, dek);
+      const encOrig = service.encryptAmount(50, dek);
+      const row = {
+        id: 'x',
+        amount: encAmt,
+        original_amount: encOrig,
+      };
+      const out = service.decryptRowAmountFields(row, dek);
+      expect(out.amount).toBe(100);
+      expect(out.original_amount).toBe(50);
+      expect(out.id).toBe('x');
+    });
+
+    it('should use 0 and null when ciphertext columns are empty', () => {
+      const dek = randomBytes(32);
+      const row = { id: 'y', amount: null, original_amount: null };
+      const out = service.decryptRowAmountFields(row, dek);
+      expect(out.amount).toBe(0);
+      expect(out.original_amount).toBeNull();
+    });
+  });
+
   describe('ensureUserDEK', () => {
     it('should derive DEK and create salt when none exists', async () => {
       const generatedSalt = randomBytes(16).toString('hex');

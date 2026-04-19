@@ -37,6 +37,7 @@ import {
   templateLinesBulkUpdateSchema,
 } from 'pulpe-shared';
 import { type InfoLogger, InjectInfoLogger } from '@common/logger';
+import { CurrencyService } from '@modules/currency/currency.service';
 import * as budgetTemplateMappers from './budget-template.mappers';
 
 type TemplateBulkOperationsResult = {
@@ -55,16 +56,30 @@ export class BudgetTemplateService {
     private readonly budgetService: BudgetService,
     private readonly encryptionService: EncryptionService,
     private readonly cacheService: CacheService,
+    private readonly currencyService: CurrencyService,
   ) {}
 
   async #decryptTemplateLine(
     line: Tables<'template_line'>,
     dek: Buffer,
-  ): Promise<Omit<Tables<'template_line'>, 'amount'> & { amount: number }> {
-    if (!line.amount) return { ...line, amount: 0 };
+  ): Promise<
+    Omit<Tables<'template_line'>, 'amount' | 'original_amount'> & {
+      amount: number;
+      original_amount: number | null;
+    }
+  > {
+    const decryptedAmount = line.amount
+      ? this.encryptionService.tryDecryptAmount(line.amount, dek, 0)
+      : 0;
+
+    const decryptedOriginalAmount = line.original_amount
+      ? this.encryptionService.tryDecryptAmount(line.original_amount, dek, null)
+      : null;
+
     return {
       ...line,
-      amount: this.encryptionService.tryDecryptAmount(line.amount, dek, 0),
+      amount: decryptedAmount,
+      original_amount: decryptedOriginalAmount,
     };
   }
 
@@ -72,9 +87,14 @@ export class BudgetTemplateService {
     lines: Tables<'template_line'>[],
     userId: string,
     clientKey: Buffer,
-  ): Promise<(Omit<Tables<'template_line'>, 'amount'> & { amount: number })[]> {
+  ): Promise<
+    (Omit<Tables<'template_line'>, 'amount' | 'original_amount'> & {
+      amount: number;
+      original_amount: number | null;
+    })[]
+  > {
     if (!lines.length || !lines.some((l) => l.amount))
-      return lines.map((l) => ({ ...l, amount: 0 }));
+      return lines.map((l) => ({ ...l, amount: 0, original_amount: null }));
     const dek = await this.encryptionService.getUserDEK(userId, clientKey);
     return Promise.all(lines.map((l) => this.#decryptTemplateLine(l, dek)));
   }
@@ -82,8 +102,12 @@ export class BudgetTemplateService {
   async #decryptTemplateLineWithUser(
     line: Tables<'template_line'>,
     user: AuthenticatedUser,
-  ): Promise<Omit<Tables<'template_line'>, 'amount'> & { amount: number }> {
-    if (!line.amount) return { ...line, amount: 0 };
+  ): Promise<
+    Omit<Tables<'template_line'>, 'amount' | 'original_amount'> & {
+      amount: number;
+      original_amount: number | null;
+    }
+  > {
     const dek = await this.encryptionService.getUserDEK(
       user.id,
       user.clientKey,
@@ -671,15 +695,30 @@ export class BudgetTemplateService {
     supabase: AuthenticatedSupabaseClient,
   ): Promise<Tables<'template_line'>> {
     await this.validateTemplateAccess(templateId, user, supabase);
-    const validated =
-      templateLineCreateWithoutTemplateIdSchema.parse(createDto);
+    let validated = templateLineCreateWithoutTemplateIdSchema.parse(createDto);
 
-    const { amount } = await this.encryptionService.prepareAmountData(
-      validated.amount,
-      user.id,
-      user.clientKey,
+    validated = await this.currencyService.overrideExchangeRate(validated);
+
+    const [{ amount }, encryptedOriginalAmount] = await Promise.all([
+      this.encryptionService.prepareAmountData(
+        validated.amount,
+        user.id,
+        user.clientKey,
+      ),
+      this.encryptionService.encryptOptionalAmount(
+        validated.originalAmount,
+        user.id,
+        user.clientKey,
+      ),
+    ]);
+
+    return this.insertTemplateLine(
+      validated,
+      templateId,
+      supabase,
+      amount,
+      encryptedOriginalAmount ?? undefined,
     );
-    return this.insertTemplateLine(validated, templateId, supabase, amount);
   }
 
   private async insertTemplateLine(
@@ -687,17 +726,23 @@ export class BudgetTemplateService {
     templateId: string,
     supabase: AuthenticatedSupabaseClient,
     amount: string,
+    encryptedOriginalAmount?: string,
   ): Promise<Tables<'template_line'>> {
+    const insertData = {
+      ...budgetTemplateMappers.toDbTemplateLineInsert(
+        validated,
+        templateId,
+        amount,
+      ),
+      amount,
+      ...(encryptedOriginalAmount !== undefined && {
+        original_amount: encryptedOriginalAmount,
+      }),
+    };
+
     const { data, error } = await supabase
       .from('template_line')
-      .insert({
-        ...budgetTemplateMappers.toDbTemplateLineInsert(
-          validated,
-          templateId,
-          amount,
-        ),
-        amount,
-      })
+      .insert(insertData)
       .select()
       .single();
 
@@ -785,7 +830,9 @@ export class BudgetTemplateService {
 
     try {
       await this.validateTemplateLineAccess(templateLineId, user, supabase);
-      const validated = templateLineUpdateSchema.parse(updateDto);
+      let validated = templateLineUpdateSchema.parse(updateDto);
+
+      validated = await this.currencyService.overrideExchangeRate(validated);
 
       const data = await this.performTemplateLineUpdate(
         templateLineId,
@@ -858,12 +905,24 @@ export class BudgetTemplateService {
       encryptedAmount = prepared.amount;
     }
 
+    const encryptedOriginalAmount =
+      validated.originalAmount !== undefined
+        ? await this.encryptionService.encryptOptionalAmount(
+            validated.originalAmount,
+            user.id,
+            user.clientKey,
+          )
+        : undefined;
+
     const updateData: Partial<TablesInsert<'template_line'>> = {
       ...budgetTemplateMappers.toDbTemplateLineUpdate(
         validated,
         encryptedAmount,
       ),
       ...(encryptedAmount !== undefined && { amount: encryptedAmount }),
+      ...(encryptedOriginalAmount !== undefined && {
+        original_amount: encryptedOriginalAmount,
+      }),
     };
 
     const { data, error } = await supabase
@@ -1003,29 +1062,45 @@ export class BudgetTemplateService {
       { ids: string[]; data: Partial<TablesInsert<'template_line'>> }
     >();
 
-    for (const line of lines) {
-      const { id, ...updateData } = line;
-      let encryptedAmount: string | undefined;
+    const prepared = await Promise.all(
+      lines.map(async (line) => {
+        const { id, ...rawUpdateData } = line;
 
-      if (updateData.amount !== undefined) {
-        const prepared = await this.encryptionService.prepareAmountData(
-          updateData.amount,
-          user.id,
-          user.clientKey,
-        );
-        encryptedAmount = prepared.amount;
-      }
+        const updateData =
+          await this.currencyService.overrideExchangeRate(rawUpdateData);
 
-      const dbData: Partial<TablesInsert<'template_line'>> = {
-        ...budgetTemplateMappers.toDbTemplateLineUpdate(
-          updateData,
-          encryptedAmount,
-        ),
-        ...(encryptedAmount !== undefined && { amount: encryptedAmount }),
-      };
+        const [encryptedAmount, encryptedOriginalAmount] = await Promise.all([
+          updateData.amount !== undefined
+            ? this.encryptionService
+                .prepareAmountData(updateData.amount, user.id, user.clientKey)
+                .then((p) => p.amount)
+            : Promise.resolve(undefined),
+          updateData.originalAmount !== undefined
+            ? this.encryptionService.encryptOptionalAmount(
+                updateData.originalAmount,
+                user.id,
+                user.clientKey,
+              )
+            : Promise.resolve(undefined),
+        ]);
 
+        const dbData: Partial<TablesInsert<'template_line'>> = {
+          ...budgetTemplateMappers.toDbTemplateLineUpdate(
+            updateData,
+            encryptedAmount,
+          ),
+          ...(encryptedAmount !== undefined && { amount: encryptedAmount }),
+          ...(encryptedOriginalAmount !== undefined && {
+            original_amount: encryptedOriginalAmount,
+          }),
+        };
+
+        return { id, dbData };
+      }),
+    );
+
+    for (const { id, dbData } of prepared) {
       const key = JSON.stringify(dbData);
-
       if (!updateGroups.has(key)) {
         updateGroups.set(key, { ids: [], data: dbData });
       }
@@ -1361,19 +1436,30 @@ export class BudgetTemplateService {
     };
   }
 
-  private mapTemplateLinesForRpc(lines: Tables<'template_line'>[]): Array<{
-    id: string;
-    name: string;
-    amount: string | null;
-    kind: Tables<'template_line'>['kind'];
-    recurrence: Tables<'template_line'>['recurrence'];
-  }> {
+  private mapTemplateLinesForRpc(
+    lines: Tables<'template_line'>[],
+  ): Pick<
+    Tables<'template_line'>,
+    | 'id'
+    | 'name'
+    | 'amount'
+    | 'kind'
+    | 'recurrence'
+    | 'original_amount'
+    | 'original_currency'
+    | 'target_currency'
+    | 'exchange_rate'
+  >[] {
     return lines.map((line) => ({
       id: line.id,
       name: line.name,
       amount: line.amount,
       kind: line.kind,
       recurrence: line.recurrence,
+      original_amount: line.original_amount,
+      original_currency: line.original_currency,
+      target_currency: line.target_currency,
+      exchange_rate: line.exchange_rate,
     }));
   }
 
@@ -1694,20 +1780,35 @@ export class BudgetTemplateService {
       return results;
     }
 
-    const amounts = creates.map((line) => line.amount);
+    const overriddenCreates = await Promise.all(
+      creates.map((line) => this.currencyService.overrideExchangeRate(line)),
+    );
+
+    const amounts = overriddenCreates.map((line) => line.amount);
     const preparedAmounts = await this.encryptionService.prepareAmountsData(
       amounts,
       user.id,
       user.clientKey,
     );
 
-    const inserts = creates.map((line, index) => ({
+    const encryptedOriginalAmounts = await Promise.all(
+      overriddenCreates.map((line) =>
+        this.encryptionService.encryptOptionalAmount(
+          line.originalAmount,
+          user.id,
+          user.clientKey,
+        ),
+      ),
+    );
+
+    const inserts = overriddenCreates.map((line, index) => ({
       ...budgetTemplateMappers.toDbTemplateLineInsert(
         line,
         templateId,
         preparedAmounts[index].amount,
       ),
       amount: preparedAmounts[index].amount,
+      original_amount: encryptedOriginalAmounts[index],
     }));
 
     const { data, error } = await supabase

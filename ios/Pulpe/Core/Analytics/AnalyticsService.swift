@@ -7,6 +7,11 @@ import PostHog
 @MainActor
 final class AnalyticsService {
     static let shared = AnalyticsService()
+
+    /// PostHog person property keys — must mirror `ANALYTICS_PROPERTIES`
+    /// in `shared/src/feature-flags.ts`.
+    nonisolated static let earlyAdopterProperty = "early_adopter"
+
     private(set) var isInitialized = false
 
     private init() {}
@@ -75,6 +80,38 @@ final class AnalyticsService {
     func reset() {
         guard isInitialized else { return }
         PostHogSDK.shared.reset()
+    }
+
+    // MARK: - Feature Flags
+
+    /// Returns true when the given feature flag is enabled for the current user.
+    /// Safe default: returns false before PostHog initializes.
+    func isFeatureEnabled(_ key: String) -> Bool {
+        guard isInitialized else { return false }
+        return PostHogSDK.shared.isFeatureEnabled(key)
+    }
+
+    /// Forces PostHog to re-fetch feature flags from the server.
+    /// `onComplete` is called on the main actor once the network response has been
+    /// applied to the SDK's local cache — safe to read `isFeatureEnabled` inside it.
+    /// Call after identify() so person-property-based flags re-evaluate.
+    func reloadFeatureFlags(onComplete: (@MainActor @Sendable () -> Void)? = nil) {
+        guard isInitialized else { return }
+        // The callback must be created in a nonisolated context: Swift 6 would otherwise
+        // infer @MainActor on the closure (we're inside a @MainActor class), causing
+        // a runtime crash when PostHog calls it from a background thread.
+        PostHogSDK.shared.reloadFeatureFlags(Self.makePostHogCallback(onComplete))
+    }
+
+    /// Produces a `@Sendable`, non-isolated closure for PostHog's completion callback.
+    /// `nonisolated` prevents Swift 6 from inheriting `@MainActor` from the call site.
+    nonisolated private static func makePostHogCallback(
+        _ completion: (@MainActor @Sendable () -> Void)?
+    ) -> @Sendable () -> Void {
+        {
+            guard let completion else { return }
+            Task { @MainActor in completion() }
+        }
     }
 
     // MARK: - Lifecycle

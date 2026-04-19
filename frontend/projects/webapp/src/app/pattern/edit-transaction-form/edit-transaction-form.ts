@@ -28,8 +28,14 @@ import { MatNativeDateModule } from '@angular/material/core';
 import { TranslocoService, TranslocoPipe } from '@jsverse/transloco';
 import { type Transaction, type TransactionCreate } from 'pulpe-shared';
 import { startOfMonth, endOfMonth } from 'date-fns';
+import type { CurrencyConverterService } from '@core/currency';
+import {
+  CURRENCY_CONFIG,
+  injectCurrencyFormConfigForEdit,
+} from '@core/currency';
 import { TransactionValidators } from '@core/transaction';
 import { TransactionLabelPipe } from '@ui/transaction-display';
+import { CurrencySuffix } from '@ui/currency-suffix';
 import { Logger } from '@core/logging/logger';
 import { formatLocalDate } from '@core/date/format-local-date';
 
@@ -40,6 +46,10 @@ export type EditTransactionFormData = Pick<
   'name' | 'amount' | 'kind' | 'category'
 > & {
   transactionDate: string;
+  originalAmount?: number;
+  originalCurrency?: string;
+  targetCurrency?: string;
+  exchangeRate?: number;
 };
 
 @Component({
@@ -55,6 +65,7 @@ export type EditTransactionFormData = Pick<
     ReactiveFormsModule,
     TransactionLabelPipe,
     TranslocoPipe,
+    CurrencySuffix,
   ],
 
   template: `
@@ -123,7 +134,12 @@ export type EditTransactionFormData = Pick<
           max="999999.99"
           aria-describedby="amount-hint"
         />
-        <span matTextSuffix>CHF</span>
+        <pulpe-currency-suffix
+          matTextSuffix
+          [showSelector]="showCurrencySelector()"
+          [disabled]="true"
+          [currency]="inputCurrency()"
+        />
         <mat-hint id="amount-hint" class="ph-no-capture">
           {{ 'transactionForm.amountHint' | transloco }}
         </mat-hint>
@@ -256,6 +272,11 @@ export type EditTransactionFormData = Pick<
         </mat-form-field>
       }
     </form>
+    @if (conversionError()) {
+      <p class="text-error text-body-small px-1 pt-2">
+        {{ 'common.conversionError' | transloco }}
+      </p>
+    }
   `,
   styles: `
     :host {
@@ -270,11 +291,22 @@ export class EditTransactionForm implements OnInit {
   readonly #logger = inject(Logger);
   readonly #transloco = inject(TranslocoService);
 
+  readonly transaction = input.required<Transaction>();
+
+  readonly #currencyConfig = injectCurrencyFormConfigForEdit(this.transaction);
+
   protected readonly formAriaLabel = this.#transloco.translate(
     'transactionForm.formAriaLabel',
   );
 
-  readonly transaction = input.required<Transaction>();
+  protected readonly currency = this.#currencyConfig.currency;
+  protected readonly showCurrencySelector =
+    this.#currencyConfig.showCurrencySelector;
+  protected readonly inputCurrency = this.#currencyConfig.inputCurrency;
+  protected readonly conversionError = this.#currencyConfig.conversionError;
+  protected readonly currencySymbol = computed(
+    () => CURRENCY_CONFIG[this.currency()].symbol,
+  );
   readonly hiddenFields = input<HideableField[]>([]);
   readonly minDateInput = input<Date>();
   readonly maxDateInput = input<Date>();
@@ -359,9 +391,17 @@ export class EditTransactionForm implements OnInit {
       // Use Date object directly for Material DatePicker
       const transactionDate = new Date(transaction.transactionDate);
 
+      // When the currency picker is visible (edit of a line stored in a
+      // non-user currency with the flag ON), pre-fill with the original
+      // amount so the displayed amount matches the displayed currency.
+      const amount =
+        this.showCurrencySelector() && transaction.originalAmount != null
+          ? transaction.originalAmount
+          : transaction.amount;
+
       this.transactionForm.patchValue({
         name: transaction.name,
-        amount: transaction.amount,
+        amount,
         kind: transaction.kind,
         transactionDate,
         category: transaction.category || '',
@@ -375,32 +415,65 @@ export class EditTransactionForm implements OnInit {
     }
   }
 
-  onSubmit(): void {
+  async onSubmit(): Promise<void> {
     if (!this.transactionForm.valid || this.isUpdating()) {
       this.transactionForm.markAllAsTouched();
       return;
     }
 
-    const { name, amount, kind, transactionDate, category } =
-      this.transactionForm.getRawValue() as {
-        name: string;
-        amount: number | null;
-        kind: 'expense' | 'income' | 'saving';
-        transactionDate: Date | null;
-        category: string | null;
-      };
+    const {
+      name,
+      amount: rawAmount,
+      kind,
+      transactionDate,
+      category,
+    } = this.transactionForm.getRawValue() as {
+      name: string;
+      amount: number | null;
+      kind: 'expense' | 'income' | 'saving';
+      transactionDate: Date | null;
+      category: string | null;
+    };
 
     // Form is valid so all required fields are guaranteed non-null
-    if (!name || !amount || !kind || !transactionDate) return;
+    if (!name || !rawAmount || !kind || !transactionDate) return;
+
+    this.conversionError.set(false);
+    let finalAmount: number;
+    let metadata: Awaited<
+      ReturnType<CurrencyConverterService['convertWithMetadata']>
+    >['metadata'] = null;
+
+    if (this.showCurrencySelector()) {
+      try {
+        const result = await this.#currencyConfig.converter.convertWithMetadata(
+          rawAmount,
+          this.inputCurrency(),
+          this.currency(),
+        );
+        finalAmount = result.convertedAmount;
+        metadata = result.metadata;
+      } catch {
+        this.conversionError.set(true);
+        return;
+      }
+    } else {
+      // Mono-currency edit: keep amount as-is, do not emit currency metadata
+      // so the backend preserves any existing values.
+      finalAmount = rawAmount;
+    }
 
     this.#isUpdating.set(true);
 
-    this.updateTransaction.emit({
+    const formData: EditTransactionFormData = {
       name,
-      amount,
+      amount: finalAmount,
       kind,
       transactionDate: formatLocalDate(transactionDate),
       category: category || null,
-    });
+      ...(metadata ?? {}),
+    };
+
+    this.updateTransaction.emit(formData);
   }
 }

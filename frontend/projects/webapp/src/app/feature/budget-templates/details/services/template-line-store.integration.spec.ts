@@ -661,4 +661,63 @@ describe('TemplateLineStore - Integration Tests', () => {
       expect(updatedLine.originalLine!.amount).toBe(1300);
     });
   });
+
+  describe('Currency metadata forwarding', () => {
+    it('should include FX fields in the update payload when a line carries currencyMetadata', async () => {
+      // Arrange: tag an existing line with FX metadata + update its amount.
+      const lineToUpdate = store.lines()[0];
+      store.setCurrencyMetadata(lineToUpdate.id, {
+        originalAmount: 100,
+        originalCurrency: 'EUR',
+        targetCurrency: 'CHF',
+        exchangeRate: 1.1,
+      });
+      store.updateTransaction(lineToUpdate.id, { amount: 110 });
+
+      mockBudgetTemplatesApi.bulkOperationsTemplateLines$.mockReturnValue(
+        of({ data: { created: [], updated: [], deleted: [] } }),
+      );
+
+      // Act
+      await store.saveChanges(templateId, false);
+
+      // Assert: update[0] carries the full FX metadata (no silent drop).
+      const call =
+        mockBudgetTemplatesApi.bulkOperationsTemplateLines$.mock.calls[0];
+      const operations = call[1];
+      expect(operations.update).toHaveLength(1);
+      expect(operations.update[0]).toMatchObject({
+        id: lineToUpdate.id,
+        amount: 110,
+        originalAmount: 100,
+        originalCurrency: 'EUR',
+        targetCurrency: 'CHF',
+        exchangeRate: 1.1,
+      });
+    });
+
+    it('should omit FX fields when currencyMetadata is not set (backend PATCH preserves existing)', async () => {
+      // Arrange: touch the line without setting any currency metadata.
+      const lineToUpdate = store.lines()[0];
+      store.updateTransaction(lineToUpdate.id, { amount: 1500 });
+
+      mockBudgetTemplatesApi.bulkOperationsTemplateLines$.mockReturnValue(
+        of({ data: { created: [], updated: [], deleted: [] } }),
+      );
+
+      // Act
+      await store.saveChanges(templateId, false);
+
+      // Assert: no FX fields in the payload so the backend leaves any
+      // stored originalCurrency / originalAmount / exchangeRate untouched.
+      const call =
+        mockBudgetTemplatesApi.bulkOperationsTemplateLines$.mock.calls[0];
+      const operations = call[1];
+      expect(operations.update).toHaveLength(1);
+      expect(operations.update[0]).not.toHaveProperty('originalAmount');
+      expect(operations.update[0]).not.toHaveProperty('originalCurrency');
+      expect(operations.update[0]).not.toHaveProperty('targetCurrency');
+      expect(operations.update[0]).not.toHaveProperty('exchangeRate');
+    });
+  });
 });

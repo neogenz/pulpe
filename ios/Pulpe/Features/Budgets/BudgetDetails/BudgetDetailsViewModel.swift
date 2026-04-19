@@ -8,6 +8,12 @@ private enum BudgetDetailsUserDefaultsKey {
     static let showOnlyUnchecked = "pulpe-budget-show-only-unchecked"
 }
 
+/// Suppression différée depuis l’écran détail budget (transaction, prévision, etc.) — une pile LIFO partagée.
+private enum PendingBudgetDetailSoftDeletion {
+    case transaction(Transaction)
+    case budgetLine(BudgetLine)
+}
+
 // swiftlint:disable type_body_length
 @Observable @MainActor
 final class BudgetDetailsViewModel {
@@ -40,7 +46,8 @@ final class BudgetDetailsViewModel {
     // Cached metrics to avoid recalculation on every access
     @ObservationIgnored private var cachedMetrics: BudgetFormulas.Metrics?
     @ObservationIgnored private var cachedRealizedMetrics: BudgetFormulas.RealizedMetrics?
-    private var pendingDeleteTasks: [String: Task<Void, Never>] = [:]
+    /// Éléments retirés de l’UI en attente de commit API — pile unique (tous types confondus), undo LIFO.
+    @ObservationIgnored private var pendingSoftDeletions: [PendingBudgetDetailSoftDeletion] = []
 
     private let budgetService = BudgetService.shared
     private let budgetLineService = BudgetLineService.shared
@@ -472,37 +479,160 @@ final class BudgetDetailsViewModel {
         syncingTransactionIds.remove(transaction.id)
     }
 
-    /// Soft delete with undo support - removes from UI immediately but delays API call
-    /// Returns an undo closure that restores the transaction if called before commit
-    func softDeleteTransaction(_ transaction: Transaction, toastManager: ToastManager) {
-        // Cancel any pending delete for the same ID
-        pendingDeleteTasks[transaction.id]?.cancel()
-
-        // Remove from UI immediately (optimistic)
+    /// Soft delete with undo support - removes from UI immediately but delays API call.
+    /// Plusieurs suppressions (tout type depuis ce détail budget) partagent une pile : un toast, « Annuler » dépile la dernière.
+    func softDeleteTransaction(
+        _ transaction: Transaction,
+        toastManager: ToastManager,
+        presentationCurrency: SupportedCurrency
+    ) {
         transactions.removeAll { $0.id == transaction.id }
         recomputeMetrics()
         syncCache()
         invalidateAdjacentCache()
 
-        // Show undo toast - actual deletion happens when toast dismisses
-        toastManager.showWithUndo("Transaction supprimée") { [weak self] in
-            guard let self else { return }
-            self.pendingDeleteTasks[transaction.id]?.cancel()
-            self.pendingDeleteTasks[transaction.id] = nil
-            guard !self.transactions.contains(where: { $0.id == transaction.id }) else { return }
-            self.transactions.append(transaction)
-            self.recomputeMetrics()
-            self.syncCache()
-        }
+        pendingSoftDeletions.append(.transaction(transaction))
+        presentOrRefreshDeletionToast(toastManager: toastManager, presentationCurrency: presentationCurrency)
+    }
 
-        // Schedule actual deletion after toast timeout
-        pendingDeleteTasks[transaction.id] = Task {
-            defer { pendingDeleteTasks[transaction.id] = nil }
-            try? await Task.sleep(for: .seconds(3.5))
-            guard !Task.isCancelled else { return }
-            // If transaction is still removed (not restored via undo), commit deletion
-            guard !(self.transactions.contains { $0.id == transaction.id }) else { return }
-            await self.commitDeleteTransaction(transaction)
+    private func softDeletionUndoCommitHandlers(
+        toastManager: ToastManager,
+        presentationCurrency: SupportedCurrency
+    ) -> (
+        undo: @MainActor () async -> Void,
+        commit: @MainActor () async -> Void
+    ) {
+        let undo: @MainActor () async -> Void = { [weak self] in
+            await self?.restoreLastPendingDeletion(
+                toastManager: toastManager,
+                presentationCurrency: presentationCurrency
+            )
+        }
+        let commit: @MainActor () async -> Void = { [weak self] in
+            await self?.commitPendingSoftDeletions()
+        }
+        return (undo, commit)
+    }
+
+    private func budgetDetailDeletionToastCopy(presentationCurrency: SupportedCurrency) -> (String, String) {
+        let count = pendingSoftDeletions.count
+        guard let last = pendingSoftDeletions.last else { return ("", "") }
+
+        let (lastName, detailAmount) = deletionToastLastItemCopy(last: last, presentationCurrency: presentationCurrency)
+        let title = count == 1
+            ? deletionToastSingleTitle(for: last)
+            : deletionToastPluralTitle(count: count)
+        let detail = count == 1
+            ? "« \(lastName) » · \(detailAmount)"
+            : "Dernière : « \(lastName) » · \(detailAmount)"
+        return (title, detail)
+    }
+
+    private func deletionToastLastItemCopy(
+        last: PendingBudgetDetailSoftDeletion,
+        presentationCurrency: SupportedCurrency
+    ) -> (name: String, detailAmount: String) {
+        switch last {
+        case .transaction(let transaction):
+            (
+                transaction.name,
+                transaction.amount.asSignedCompactCurrency(presentationCurrency, for: transaction.kind)
+            )
+        case .budgetLine(let budgetLine):
+            (
+                budgetLine.name,
+                budgetLine.amount.asSignedCompactCurrency(presentationCurrency, for: budgetLine.kind)
+            )
+        }
+    }
+
+    private func deletionToastSingleTitle(for last: PendingBudgetDetailSoftDeletion) -> String {
+        switch last {
+        case .transaction:
+            "Transaction supprimée"
+        case .budgetLine:
+            "Prévision supprimée"
+        }
+    }
+
+    private func deletionToastPluralTitle(count: Int) -> String {
+        let allTransactions = pendingSoftDeletions.allSatisfy {
+            if case .transaction = $0 { return true }
+            return false
+        }
+        let allBudgetLines = pendingSoftDeletions.allSatisfy {
+            if case .budgetLine = $0 { return true }
+            return false
+        }
+        if allTransactions {
+            return "\(count) transactions supprimées"
+        }
+        if allBudgetLines {
+            return "\(count) prévisions supprimées"
+        }
+        return "\(count) éléments supprimés"
+    }
+
+    private func presentOrRefreshDeletionToast(
+        toastManager: ToastManager,
+        presentationCurrency: SupportedCurrency
+    ) {
+        let (message, detail) = budgetDetailDeletionToastCopy(presentationCurrency: presentationCurrency)
+        let (undo, commit) = softDeletionUndoCommitHandlers(
+            toastManager: toastManager,
+            presentationCurrency: presentationCurrency
+        )
+        if pendingSoftDeletions.count == 1 {
+            toastManager.showWithUndo(message, detail: detail, undo: undo, onFinishedWithoutUndo: commit)
+        } else {
+            toastManager.refreshUndoToast(
+                message: message,
+                detail: detail,
+                undo: undo,
+                onFinishedWithoutUndo: commit
+            )
+        }
+    }
+
+    private func restoreLastPendingDeletion(
+        toastManager: ToastManager,
+        presentationCurrency: SupportedCurrency
+    ) async {
+        guard let pending = pendingSoftDeletions.popLast() else { return }
+        switch pending {
+        case .transaction(let restored):
+            guard !transactions.contains(where: { $0.id == restored.id }) else { return }
+            transactions.append(restored)
+        case .budgetLine(let restored):
+            guard !budgetLines.contains(where: { $0.id == restored.id }) else { return }
+            budgetLines.append(restored)
+        }
+        recomputeMetrics()
+        syncCache()
+        invalidateAdjacentCache()
+
+        guard !pendingSoftDeletions.isEmpty else { return }
+
+        let (message, detail) = budgetDetailDeletionToastCopy(presentationCurrency: presentationCurrency)
+        let (undo, commit) = softDeletionUndoCommitHandlers(
+            toastManager: toastManager,
+            presentationCurrency: presentationCurrency
+        )
+        toastManager.showWithUndo(message, detail: detail, undo: undo, onFinishedWithoutUndo: commit)
+    }
+
+    private func commitPendingSoftDeletions() async {
+        let batch = pendingSoftDeletions
+        pendingSoftDeletions = []
+        for item in batch {
+            switch item {
+            case .transaction(let tx):
+                guard !transactions.contains(where: { $0.id == tx.id }) else { continue }
+                await commitDeleteTransaction(tx)
+            case .budgetLine(let line):
+                guard !budgetLines.contains(where: { $0.id == line.id }) else { continue }
+                await commitDeleteBudgetLine(line)
+            }
         }
     }
 
@@ -551,39 +681,22 @@ final class BudgetDetailsViewModel {
         invalidateAdjacentCache()
     }
 
-    /// Soft delete with undo support - removes from UI immediately but delays API call
-    func softDeleteBudgetLine(_ line: BudgetLine, toastManager: ToastManager) {
+    /// Soft delete with undo support - removes from UI immediately but delays API call.
+    /// Même pile que `softDeleteTransaction` : tout ce qu’on supprime depuis ce détail partage un undo.
+    func softDeleteBudgetLine(
+        _ line: BudgetLine,
+        toastManager: ToastManager,
+        presentationCurrency: SupportedCurrency
+    ) {
         guard !(line.isRollover ?? false) else { return }
 
-        // Cancel any pending delete for the same ID
-        pendingDeleteTasks[line.id]?.cancel()
-
-        // Remove from UI immediately (optimistic)
         budgetLines.removeAll { $0.id == line.id }
         recomputeMetrics()
         syncCache()
         invalidateAdjacentCache()
 
-        // Show undo toast
-        toastManager.showWithUndo("Prévision supprimée") { [weak self] in
-            guard let self else { return }
-            self.pendingDeleteTasks[line.id]?.cancel()
-            self.pendingDeleteTasks[line.id] = nil
-            guard !self.budgetLines.contains(where: { $0.id == line.id }) else { return }
-            self.budgetLines.append(line)
-            self.recomputeMetrics()
-            self.syncCache()
-        }
-
-        // Schedule actual deletion after toast timeout
-        pendingDeleteTasks[line.id] = Task {
-            defer { pendingDeleteTasks[line.id] = nil }
-            try? await Task.sleep(for: .seconds(3.5))
-            guard !Task.isCancelled else { return }
-            // If budget line is still removed (not restored via undo), commit deletion
-            guard !(self.budgetLines.contains { $0.id == line.id }) else { return }
-            await self.commitDeleteBudgetLine(line)
-        }
+        pendingSoftDeletions.append(.budgetLine(line))
+        presentOrRefreshDeletionToast(toastManager: toastManager, presentationCurrency: presentationCurrency)
     }
 
     /// Actually delete the budget line from the server

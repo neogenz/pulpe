@@ -69,46 +69,17 @@ test.describe('App Health Check', () => {
     await page.goto('/');
     await page.waitForLoadState('domcontentloaded');
 
-    // Should not have failed requests for critical assets (excluding dynamic chunks which can fail)
+    // Compare extensions strictly to avoid `.json` matching the `.js` substring.
+    // Strip query strings before extension parsing so cache-busted URLs still match.
     const criticalAssetFailures = failedRequests.filter((url) => {
-      // Allow chunk files to fail as they might be from previous builds
-      if (url.includes('chunk-') && url.includes('.js')) {
-        return false;
-      }
-      // Allow Angular Material and deps to fail as they might be dynamically loaded
-      if (url.includes('@angular_material') || url.includes('/deps/')) {
-        return false;
-      }
-      // Allow vite hot module replacement to fail
-      if (url.includes('@vite') || url.includes('/@fs/')) {
-        return false;
-      }
-      // Allow config files to fail as they might be dynamically loaded
-      if (url.includes('config.json')) {
-        return false;
-      }
-      // Allow animation files to fail as they are optional
-      if (url.includes('lottie') || url.includes('animation')) {
-        return false;
-      }
-      // Allow PostHog and analytics scripts to fail
-      if (url.includes('posthog') || url.includes('analytics')) {
-        return false;
-      }
-      // Allow source maps to fail
-      if (url.includes('.map')) {
-        return false;
-      }
-      // Allow fonts to fail
-      if (url.includes('.woff') || url.includes('.ttf') || url.includes('fonts')) {
-        return false;
-      }
-      // Only critical are main app files and favicon
-      return (
-        url.includes('.css') ||
-        url.includes('.ico') ||
-        (url.includes('.js') && !url.includes('chunk-') && !url.includes('/@'))
-      );
+      const path = url.split('?')[0];
+      const isCss = path.endsWith('.css');
+      const isIco = path.endsWith('.ico');
+      const isJs = path.endsWith('.js');
+      const isChunk = path.includes('chunk-');
+      const isViteServed = path.includes('/@vite') || path.includes('/@fs/');
+      const isMainBundle = isJs && !isChunk && !isViteServed;
+      return isCss || isIco || isMainBundle;
     });
 
     expect(criticalAssetFailures).toHaveLength(0);

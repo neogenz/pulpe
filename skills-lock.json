@@ -41,6 +41,11 @@
       "sourceType": "github",
       "computedHash": "ad8821177929ea09eb94e7fc386d842c76c7f39b6c4d7aa3176ba3596dbabecc"
     },
+    "angular-material": {
+      "source": "angular-sanctuary/angular-agent-skills",
+      "sourceType": "github",
+      "computedHash": "0331c926849c43df17ece2fc04daac21e7724ed4e6b41995c8d36a748fa16cde"
+    },
     "angular-routing": {
       "source": "analogjs/angular-skills",
       "sourceType": "github",
@@ -241,6 +246,11 @@
       "sourceType": "github",
       "computedHash": "5d59383d4c9cf675e2c4b5fc6ed0130a2c0f23a7f3334d4cc68b7e79998ce7f3"
     },
+    "layout": {
+      "source": "pbakaus/impeccable",
+      "sourceType": "github",
+      "computedHash": "6b5fd49587616ca1e594e9c6b11bc1cef5eb0b2d137c307de54a8a650770f4ce"
+    },
     "mastering-typescript": {
       "source": "spillwavesolutions/mastering-typescript-skill",
       "sourceType": "github",
@@ -304,7 +314,7 @@
     "swiftui-expert-skill": {
       "source": "avdlee/swiftui-agent-skill",
       "sourceType": "github",
-      "computedHash": "6ee49ef533bac7e930efb2e2e5ae61399de9ffb52645df311740cbe6b4108134"
+      "computedHash": "cc254d18562b0666f4c85561b92b21eb1878e346b659f8b6d80c02a166725cb4"
     },
     "swiftui-performance-audit": {
       "source": "dimillian/skills",
@@ -331,6 +341,11 @@
       "sourceType": "github",
       "computedHash": "1cd76e560d1ba25b0bd5f7adfa2957a9f653a3ad0b031d467221154fcd1e0423"
     },
+    "ui-ux-pro-max": {
+      "source": "nextlevelbuilder/ui-ux-pro-max-skill",
+      "sourceType": "github",
+      "computedHash": "0a413bf988d06481f69bb81df2070741c3ba12dd9f1be2706d57f259c905992d"
+    },
     "update-swiftui-apis": {
       "source": "avdlee/swiftui-agent-skill",
       "sourceType": "github",
@@ -344,7 +359,7 @@
     "workflow-clean-code-angular": {
       "source": "neogenz/skills",
       "sourceType": "github",
-      "computedHash": "6d1f0d1e3e582fa1ba0d89b54fb7d04422b9ce774356568cef075c1f7b7981f2"
+      "computedHash": "2365016240520bf0d95fd5f6e0e94131fb6b6ab96fb28f6e10fbcfb1244bae9a"
     },
     "ziflux-expert": {
       "source": "neogenz/ziflux",

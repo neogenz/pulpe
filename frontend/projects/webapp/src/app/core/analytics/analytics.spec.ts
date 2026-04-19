@@ -33,6 +33,7 @@ describe('User consent and tracking behavior', () => {
     // Mock AuthStateService
     const mockAuthStateService = {
       authState: mockAuthState,
+      isEarlyAdopter: signal(false),
     };
 
     const mockDemoModeService = {
@@ -95,10 +96,9 @@ describe('User consent and tracking behavior', () => {
 
       // Then: User should be identified in analytics
       expect(mockPostHogService.identify).toHaveBeenCalledTimes(1);
-      expect(mockPostHogService.identify).toHaveBeenCalledWith(
-        userId,
-        undefined,
-      );
+      expect(mockPostHogService.identify).toHaveBeenCalledWith(userId, {
+        early_adopter: false,
+      });
     });
   });
 
@@ -147,13 +147,13 @@ describe('User consent and tracking behavior', () => {
       expect(mockPostHogService.identify).toHaveBeenCalledTimes(1);
       expect(mockPostHogService.identify).toHaveBeenCalledWith(
         returningUserId,
-        undefined,
+        { early_adopter: false },
       );
     });
   });
 
   describe('when a user logs out', () => {
-    it('should stop tracking and clear their session data', () => {
+    it('should stop tracking but leave PostHog reset to AuthCleanupService', () => {
       // Given: User is logged in and being tracked
       TestBed.runInInjectionContext(() => {
         analyticsService.initializeAnalyticsTracking();
@@ -181,8 +181,11 @@ describe('User consent and tracking behavior', () => {
       // Flush effects to trigger the auth state change handler
       TestBed.tick();
 
-      // Then: Tracking should be disabled and identity cleared
-      expect(mockPostHogService.reset).toHaveBeenCalledTimes(1);
+      // Then: AnalyticsService must NOT call reset() on anonymous tick —
+      // reset() would wipe the cross-domain distinct_id bootstrapped from
+      // the landing and the registered super properties. reset() is owned
+      // by AuthCleanupService.performCleanup() on explicit signOut.
+      expect(mockPostHogService.reset).not.toHaveBeenCalled();
     });
 
     it('should not track any actions until next login', () => {
@@ -301,6 +304,7 @@ describe('captureEvent', () => {
         isLoading: false,
         isAuthenticated: false,
       }),
+      isEarlyAdopter: signal(false),
     };
 
     const mockDemoModeService = {
@@ -369,6 +373,7 @@ describe('Demo mode tracking', () => {
     // Mock AuthStateService
     const mockAuthStateService = {
       authState: mockAuthState,
+      isEarlyAdopter: signal(false),
     };
 
     TestBed.configureTestingModule({
@@ -408,7 +413,7 @@ describe('Demo mode tracking', () => {
       // THEN: User is identified with is_demo flag
       expect(mockPostHogService.identify).toHaveBeenCalledWith(
         'demo-user-123',
-        { is_demo: true },
+        { early_adopter: false, is_demo: true },
       );
     });
 
@@ -434,7 +439,7 @@ describe('Demo mode tracking', () => {
       // THEN: User is identified WITHOUT is_demo flag
       expect(mockPostHogService.identify).toHaveBeenCalledWith(
         'real-user-456',
-        undefined,
+        { early_adopter: false },
       );
     });
   });
@@ -457,6 +462,7 @@ describe('Demo mode tracking', () => {
 
       TestBed.tick();
       expect(mockPostHogService.identify).toHaveBeenCalledWith('demo-user', {
+        early_adopter: false,
         is_demo: true,
       });
 
@@ -471,8 +477,10 @@ describe('Demo mode tracking', () => {
 
       TestBed.tick();
 
-      // THEN: Analytics session is reset
-      expect(mockPostHogService.reset).toHaveBeenCalled();
+      // THEN: AnalyticsService must NOT call reset() on anonymous tick.
+      // Resetting here would destroy the cross-domain distinct_id and the
+      // registered super properties. reset() lives in AuthCleanupService.
+      expect(mockPostHogService.reset).not.toHaveBeenCalled();
     });
 
     it('should identify regular user without demo flag after demo logout', () => {
@@ -515,10 +523,9 @@ describe('Demo mode tracking', () => {
       TestBed.tick();
 
       // THEN: Regular user is identified without demo flag
-      expect(mockPostHogService.identify).toHaveBeenCalledWith(
-        'real-user',
-        undefined,
-      );
+      expect(mockPostHogService.identify).toHaveBeenCalledWith('real-user', {
+        early_adopter: false,
+      });
     });
   });
 
@@ -548,6 +555,7 @@ describe('Demo mode tracking', () => {
 
       // THEN: User is re-identified with demo flag
       expect(mockPostHogService.identify).toHaveBeenCalledWith('user-123', {
+        early_adopter: false,
         is_demo: true,
       });
     });

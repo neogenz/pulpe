@@ -5,6 +5,7 @@ struct OnboardingRunningTotal: View {
     let label: String
     let amount: Decimal
     let color: Color
+    var currency: SupportedCurrency = .chf
 
     var body: some View {
         HStack {
@@ -12,7 +13,7 @@ struct OnboardingRunningTotal: View {
                 .font(PulpeTypography.labelLarge)
                 .foregroundStyle(Color.textSecondaryOnboarding)
             Spacer()
-            Text(amount.asCHF)
+            Text(amount.asCurrency(currency))
                 .font(PulpeTypography.onboardingSubtitle)
                 .monospacedDigit()
                 .foregroundStyle(color)

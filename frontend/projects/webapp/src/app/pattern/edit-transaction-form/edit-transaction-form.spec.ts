@@ -96,7 +96,7 @@ describe('EditTransactionForm', () => {
   });
 
   describe('Form Submission', () => {
-    it('should set loading state when form is submitted', () => {
+    it('should set loading state when form is submitted', async () => {
       // Set up valid form data
       component.transactionForm.patchValue({
         name: 'Test',
@@ -109,7 +109,7 @@ describe('EditTransactionForm', () => {
       expect(component.isUpdating()).toBe(false);
 
       // Submit form
-      component.onSubmit();
+      await component.onSubmit();
 
       // Verify loading state is set
       expect(component.isUpdating()).toBe(true);
@@ -131,7 +131,7 @@ describe('EditTransactionForm', () => {
       expect(component.isUpdating()).toBe(initialLoadingState);
     });
 
-    it('should not submit when already updating', () => {
+    it('should not submit when already updating', async () => {
       // Set up valid form
       component.transactionForm.patchValue({
         name: 'Test',
@@ -142,16 +142,32 @@ describe('EditTransactionForm', () => {
       });
 
       // First submit sets isUpdating to true
-      component.onSubmit();
+      await component.onSubmit();
       expect(component.isUpdating()).toBe(true);
 
       // Second submit should be a no-op (guard against double submit)
-      component.onSubmit();
+      await component.onSubmit();
       expect(component.isUpdating()).toBe(true);
     });
   });
 
   describe('Date Constraints', () => {
+    beforeEach(() => {
+      setTestInput(component.transaction, {
+        id: 'tx-1',
+        budgetId: 'b-1',
+        budgetLineId: null,
+        name: 'Test',
+        amount: 10,
+        kind: 'expense',
+        transactionDate: new Date().toISOString(),
+        category: null,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        checkedAt: null,
+      });
+    });
+
     it('should default to current month bounds', () => {
       // Arrange
       const dateControl = component.transactionForm.get('transactionDate');
@@ -217,7 +233,7 @@ describe('EditTransactionForm', () => {
       expect(component['isFieldHidden']('category')).toBe(false);
     });
 
-    it('should still emit original values for hidden fields on submit', () => {
+    it('should still emit original values for hidden fields on submit', async () => {
       // hiddenFields only controls template visibility, not form data
       // Even with hidden fields, the form group still contains all values
       component.transactionForm.patchValue({
@@ -233,7 +249,7 @@ describe('EditTransactionForm', () => {
         emittedData = data;
       });
 
-      component.onSubmit();
+      await component.onSubmit();
 
       expect(emittedData).toBeDefined();
       expect(emittedData!.kind).toBe('expense');

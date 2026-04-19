@@ -34,6 +34,9 @@
 | DR-011 | iOS Swift 6 Migration & Build Optimization | 2026-03-31 |
 | DR-012 | VariableBlur for Progressive Blur Effects | 2026-04-10 |
 | DR-013 | Onboarding Step Visibility & Apple App Store Compliance | 2026-04-12 |
+| DR-014 | Multi-Currency with Conversion Metadata | 2026-03-06 |
+| DR-015 | Feature Flags via PostHog with Early Adopter Targeting | 2026-04-12 |
+| DR-016 | API Date Semantics — UTC Instants vs Business Calendar (Europe/Zurich) | 2026-04-15 |
 
 ---
 
@@ -95,6 +98,152 @@ Apple a rejeté l'app parce qu'on demandait le prénom à un user authentifié v
 - Le pattern visibility est extensible : KYC, documents légaux, étapes payment, A/B test variants — tous peuvent devenir conditionnels via le même mécanisme sans toucher la navigation
 - Le `OnboardingStep` enum a été extrait dans son propre fichier (`OnboardingStep.swift`) pour passer la limite SwiftLint `file_length` sur `OnboardingState.swift` après le refactor
 - Implémentation : commits `5e5b24b33` (unification refactor), `d70509497` (polish + lighter form), `a7c557e46` (clean code follow-up)
+
+---
+
+## DR-015: Feature Flags via PostHog with Early Adopter Targeting
+
+**Date**: 2026-04-12
+
+### Problem
+
+Le multi-currency (PUL-99 / DR-014) introduit une feature opt-in significative (CHF/EUR avec persistance des metadata de conversion). Shipper la feature directement à 100% des users porte des risques :
+
+1. **Pas de kill switch** : si un bug remonte en prod, il faut redéployer pour rollback
+2. **Pas de rollout progressif** : impossible de tester la feature en conditions réelles avec un sous-ensemble d'utilisateurs avant exposition globale
+3. **Pas de mécanisme de cohorte** : on n'a aucun moyen de cibler "early adopters" pour leur donner accès en avant-première
+
+Aucun feature flag n'existait dans le projet — premier flag introduit, doit servir de template réutilisable.
+
+### Decision Drivers
+
+- PostHog est déjà instrumenté sur webapp + iOS pour analytics — intégration native des feature flags possible sans outil supplémentaire
+- La metadata Supabase `app_metadata.early_adopter` existait déjà (lue dans `auth-state.service.ts`) mais n'était pas envoyée à PostHog
+- Le gating UX du multi-currency touche ~14 forms + settings + onboarding — la centralisation est critique pour éviter une dette technique massive
+- Doit être réutilisable pour les futures features gated (savings goals, notifications, etc.)
+
+### Options Considered
+
+| Option | Description | Verdict |
+|--------|-------------|---------|
+| A: PostHog feature flags | Outil déjà instrumenté, targeting via person properties, dashboard-only rollout | Chosen |
+| B: LaunchDarkly / Statsig | Outils dédiés, plus de fonctionnalités | Rejected — nouvel outil à intégrer, coût additionnel, pas de valeur incrémentale vs PostHog pour la taille du projet |
+| C: Toggle config statique (env var / shared constant) | Pas de SDK, simple booléen recompilé | Rejected — pas de rollout progressif, pas de targeting per-user, requiert un déploiement pour chaque changement |
+| D: Supabase RLS-based gating | Filtrer les colonnes currency au backend selon `app_metadata.early_adopter` | Rejected — couplage backend/UI flag, compliqué à rollback, performances dégradées |
+
+### Decision
+
+1. **PostHog feature flags** avec single source of truth dans `shared/src/feature-flags.ts` :
+   - `FEATURE_FLAGS.MULTI_CURRENCY = 'multi-currency-enabled'`
+   - `ANALYTICS_PROPERTIES.EARLY_ADOPTER = 'early_adopter'`
+   - iOS mirror manuel via `AnalyticsService.earlyAdopterProperty` (commentaire de sync explicite)
+
+2. **Targeting par person property** : `early_adopter` envoyé à PostHog via `identify()` à chaque login (lit `app_metadata.early_adopter` Supabase)
+
+3. **Pattern réactif par plateforme** :
+   - **Frontend** : `PostHogService.isFeatureEnabled()` + signal `flagsVersion` bumped via `posthog.onFeatureFlags(callback)`. `FeatureFlagsService.isMultiCurrencyEnabled` est un `computed()` qui lit `flagsVersion` pour la réactivité. Templates Angular avec `@if (isMultiCurrencyEnabled())`.
+   - **iOS** : `AnalyticsService.isFeatureEnabled()` + `FeatureFlagsStore` (`@Observable @MainActor`) avec persistance UserDefaults pour éviter le flicker au boot. Refresh sur identify (post-login) + `scenePhase = .active` (foreground).
+
+4. **Gating centralisé sur 2 entry points** (transparent pour ~14 forms) :
+   - Frontend : `injectCurrencyFormConfig()` retourne un `showCurrencySelector` computed gated par le flag
+   - iOS : `UserSettingsStore.showCurrencySelectorEffective` (flag && user toggle) — les 6 sheets renomment leur référence
+
+5. **Stratégie de rollout en 3 phases** (industry-standard pattern) :
+   - **Phase 1** : ciblé `early_adopter = true` (dashboard-only)
+   - **Phase 2** : `100% of all users` (dashboard-only, kill switch toujours actif)
+   - **Phase 3** : PR dédié `chore: remove multi-currency feature flag` après stabilisation (~6 semaines), find/replace + suppression du flag du code et archivage côté PostHog
+
+### Rationale
+
+- **Zéro déploiement pour le rollout** : phases 1 et 2 sont 100% dashboard-only — Product/Eng Lead peut ajuster sans toucher au code
+- **Pattern réutilisable** : la prochaine feature gated ajoute juste une constante dans `FEATURE_FLAGS` + un computed dans `FeatureFlagsService` / `FeatureFlagsStore`
+- **Backend non touché** : les endpoints currency restent ouverts, les schemas acceptent toujours les metadata. Si on rollback le flag après que des users aient créé des transactions EUR, les données restent lisibles (display dégradé sans badge mais montant intact)
+- **Hygiène de la dette technique** : la phase 3 est explicitement planifiée et tracée dans PUL-99. Les flags temporaires doivent mourir — différence entre un "feature flag temporaire" (bon) et un "permanent toggle" (dette)
+- **Pas de race condition au boot** : `posthog.onFeatureFlags()` est registered immédiatement après `posthog.init()` synchroniquement. Le default `false` quand les flags ne sont pas encore résolus est sûr (la feature est cachée, pas révélée)
+- **Person property vs cohorte** : la person property est plus dynamique (peut changer pour un user existant via SQL) qu'une cohorte statique, et elle est déjà dans Supabase
+
+### Consequences
+
+- **Positive** :
+  - Rollout progressif possible sans déploiement (phases 1 et 2 dashboard-only)
+  - Kill switch instant via dashboard PostHog
+  - Métriques `$feature_flag_called` automatiques pour suivre qui a la feature
+  - Pattern documenté pour les futurs flags
+  - 4 previews iOS qui rendent `CurrencyConversionBadge` ont reçu `.environment(FeatureFlagsStore())` pour éviter les crashs (env-based gating)
+- **Trade-off** :
+  - Le signal `flagsVersion` bump invalide TOUS les flag-dependent computeds simultanément. Acceptable à 1 flag, à monitorer si on dépasse 10+ flags actifs (envisager des signals par flag)
+  - iOS `FeatureFlagsStore.refresh()` se fait sur chaque `scenePhase = .active` — léger overhead réseau (un appel PostHog par foreground)
+  - Le code des phases 1/2 contient des `@if (isMultiCurrencyEnabled())` qui doivent disparaître en phase 3 pour éviter la dette
+- **Impact** : 32 fichiers dans le commit `e74efa1ad`. Nouveaux : `shared/src/feature-flags.ts`, `frontend/projects/webapp/src/app/core/feature-flags/`, `ios/Pulpe/Domain/Store/FeatureFlagsStore.swift`. Étendus : `PostHogService` (frontend), `AnalyticsService` (iOS), `analytics.ts` + `auth-state.service.ts` (frontend), `AppState+Auth.swift` + `AuthService.swift` (iOS), `UserSettingsStore` (iOS), `PulpeApp.swift`
+
+### Notes
+
+- **Test local du flag** :
+  - Webapp : `localStorage.setItem('phc_<projectKey>_feature_flags', '{"multi-currency-enabled": true}')` puis reload
+  - iOS : utiliser un compte avec `app_metadata.early_adopter = true` ou override temporaire dans `FeatureFlagsStore.refresh()`
+- **Tagger un user early adopter via Supabase** :
+  ```sql
+  UPDATE auth.users
+  SET raw_app_meta_data = jsonb_set(coalesce(raw_app_meta_data, '{}'), '{early_adopter}', 'true')
+  WHERE email = 'user@example.com';
+  ```
+  L'utilisateur doit se reconnecter pour que la nouvelle valeur soit envoyée à PostHog via `identify()`
+- **Référence opérationnelle complète** : ticket PUL-99 contient le runbook Phase 1/2/3 détaillé avec liste exhaustive des fichiers à supprimer en clean removal
+
+---
+
+## DR-016: API Date Semantics — UTC Instants vs Business Calendar (Europe/Zurich)
+
+**Date**: 2026-04-15
+
+### Problem
+
+Le backend mélange deux notions sans les nommer : **instants** (horodatages) et **jours civils « métier »** (sans heure), notamment pour les taux de change (Frankfurter renvoie un `date` au format `YYYY-MM-DD`). Des patterns du type `toISOString().slice(0, 10)` ou des contournements `Intl` + locale exotique (`en-CA`, `sv-SE`) masquent l’intention et peuvent confondre **date UTC** et **jour calendaire dans un fuseau**.
+
+### Decision Drivers
+
+- **Standards 2025–2026** : pour un **instant**, exposer de préférence **ISO 8601 en UTC** (`…Z`). Pour une **date-only métier**, une chaîne **`YYYY-MM-DD`** est appropriée — ce n’est **pas** un instant ; imposer « UTC » via minuit UTC est trompeur.
+- **Produit Pulpe** : utilisateurs CH, cours ECB/Frankfurter décrits comme **jour de publication** ; le fallback « aujourd’hui » si l’API omet `date` doit être **cohérent métier** (fuseau CH), pas une astuce opaque.
+- **Stack** : `date-fns` v4 est déjà une dépendance backend ; la doc officielle recommande **`@date-fns/tz`** pour les calculs / formatage **IANA** (`format(…, { in: tz(zone) })`), plutôt que l’ancien paquet tiers `date-fns-tz` seul ou des hacks `Intl`.
+
+### Options Considered
+
+| Option | Description | Verdict |
+|--------|-------------|---------|
+| A | Toujours UTC : `toISOString()` / minuit UTC pour tout | Rejected pour **date-only métier** — fausse précision, bugs autour de minuit |
+| B | `Intl` + locale pour obtenir `YYYY-MM-DD` sans dépendance | Rejected comme **pattern par défaut** — intention peu lisible |
+| C | `date-fns` + `@date-fns/tz`, fuseau IANA explicite pour les jours métier | Chosen |
+| D | Ajouter `Luxon` en parallèle de `date-fns` | Rejected — doublon inutile tant que date-fns couvre le besoin |
+
+### Decision
+
+1. **Instants** (`createdAt`, `updatedAt`, deadlines avec heure, logs) : rester sur **UTC**, sérialisation **ISO 8601** avec `Z` ou offset explicite (convention API habituelle).
+
+2. **Jours civils métier** (ex. jour associé à un taux de change, fallback si `date` absente dans la réponse Frankfurter) :
+   - Format : **`YYYY-MM-DD`**
+   - Fuseau par défaut : **`Europe/Zurich`** (aligné utilisateurs CH / DR-014)
+   - Implémentation centralisée : `backend-nest/src/common/utils/business-calendar-date.ts` — `formatBusinessCalendarDate()` utilise `format` de `date-fns` avec `{ in: tz(timeZone) }` depuis `@date-fns/tz`.
+
+3. **Source de vérité** : quand l’API externe fournit une `date` (ex. Frankfurter), **l’utiliser telle quelle** ; le fuseau CH ne remplace que les **fallbacks** construits côté serveur.
+
+4. **Évolution** : si besoin multi-région, lire un `APP_BUSINESS_TIMEZONE` (ou équivalent) via `ConfigService` et le passer à `formatBusinessCalendarDate` au lieu de la seule constante.
+
+### Rationale
+
+- Distinction **instant vs date-only** = même distinction que les bonnes pratiques API courantes (éviter de sérialiser une date métier comme datetime UTC artificielle).
+- **`@date-fns/tz`** est la voie documentée avec **date-fns v4** ; dépendance petite et intention claire vs `Intl` + locale.
+- **Europe/Zurich** pour le fallback = cohérent avec le domaine Pulpe sans imposer ce fuseau à tous les champs datetime.
+
+### Consequences
+
+- **Positive** : intention explicite dans le code, tests unitaires sur l’utilitaire calendaire, alignement multidevise (DR-014).
+- **Trade-off** : une dépendance de plus (`@date-fns/tz`) — acceptable et officiellement couplée à date-fns v4.
+- **Impact** : `backend-nest/package.json`, `business-calendar-date.ts`, consommateurs (ex. `CurrencyService` pour champs `date` date-only / fallback).
+
+### Notes
+
+- Ne pas utiliser `formatBusinessCalendarDate` pour des **timestamps** ; pour ces cas, privilégier UTC + ISO complet.
+- Référence rapide communauté : blog date-fns v4 « first-class time zones » + paquet `@date-fns/tz`.
 
 ---
 
@@ -252,7 +401,6 @@ L'outil `greenlight preflight` (scanner App Store pre-submission) flaggait deux 
 - Quand greenlight publie une nouvelle release Homebrew avec les `ignorePatterns`, repasser sur `brew install revylai/tap/greenlight` et supprimer le binary custom de `/opt/homebrew/bin/`
 - La version actuelle installée : `greenlight dev` (build from `main` 2026-03-16)
 - Commande d'installation : `git clone https://github.com/RevylAI/greenlight.git && go build -o greenlight ./cmd/greenlight`
-
 ---
 
 ## DR-009: Signal Store Pattern with SWR
@@ -628,7 +776,7 @@ Architecture split-key :
 - **DEK jamais stockée** : dérivée à chaque requête, jetée après traitement (cache 5 min en mémoire)
 - **Table `user_encryption_key`** : stocke `salt`, `kdf_iterations`, `key_check` (canary), `wrapped_dek` (recovery)
 - **Recovery key** : DEK wrappée avec une clé de récupération utilisateur (AES-256-GCM)
-- **Colonnes chiffrées** : `amount`, `target_amount`, `ending_balance` sont des colonnes `text` contenant des ciphertexts base64
+- **Colonnes chiffrées** : `amount`, `original_amount`, `target_amount`, `original_target_amount`, `ending_balance` sont des colonnes `text` contenant des ciphertexts base64
 
 ### Rationale
 
@@ -649,6 +797,63 @@ Architecture split-key :
 - Issue GitHub : [#274](https://github.com/neogenz/pulpe/issues/274)
 - Tables impactées : `budget_line`, `transaction`, `template_line`, `savings_goal`, `monthly_budget`
 - Le re-chiffrement row-by-row est acceptable pour le volume actuel ; à batcher si >1000 users
+
+---
+
+## DR-014: Multi-Currency with Conversion Metadata
+
+**Date**: 2026-03-06
+
+### Problem
+
+Pulpe était verrouillé sur CHF uniquement. Les utilisateurs suisses proches de la frontière (Genève, Bâle) effectuent régulièrement des dépenses en EUR.
+
+### Decision Drivers
+
+- Besoin réel des utilisateurs frontaliers (CHF ↔ EUR)
+- Les montants convertis doivent rester traçables (quel montant original, quel taux)
+- Le chiffrement existant (DR-006) doit couvrir les nouveaux montants
+
+### Options Considered
+
+| Option | Description | Verdict |
+|--------|-------------|---------|
+| A: Conversion à la volée (pas de stockage) | Convertir au taux du jour à chaque affichage | Rejected — perte de traçabilité |
+| B: Métadonnées de conversion persistées | Stocker le montant original, la devise, le taux au moment de la saisie | Chosen |
+
+### Decision
+
+Chaque entité financière (transaction, budget_line, template_line, savings_goal) stocke 4 colonnes optionnelles de métadonnées de conversion :
+- `original_amount` / `original_target_amount` — montant saisi dans la devise d'origine (chiffré AES-256-GCM)
+- `original_currency` — devise d'origine (ex: EUR)
+- `target_currency` — devise cible (ex: CHF)
+- `exchange_rate` — taux figé au moment de la saisie
+
+Le backend expose un `CurrencyModule` avec :
+- `CurrencyService` — fetch des taux via Frankfurter API (`frankfurter.dev`), cache 24h, auto-fill du taux si absent
+- `CurrencyController` — `GET /currency/rate?base=CHF&target=EUR`
+
+Devises supportées : CHF, EUR (validées par `supportedCurrencySchema` Zod).
+
+Paramètres utilisateur étendus : `currency` (devise préférée, défaut CHF) + `showCurrencySelector` (toggle) dans `user_metadata` Supabase.
+
+### Rationale
+
+- Les métadonnées sont historiques, pas live — le taux est figé définitivement à la saisie
+- Toutes les colonnes nullable pour backward compatibility (données existantes = pas de conversion)
+- Le RPC `rekey_user_encrypted_data` re-chiffre aussi `original_amount` / `original_target_amount` lors d'un changement de PIN
+
+### Consequences
+
+- **Positive** : Traçabilité complète des conversions, extensible à d'autres devises
+- **Trade-off** : Dépendance à Frankfurter API (fallback 503 si indisponible)
+- **Impact** : 4 migrations DB, nouveau module backend, services frontend + iOS, paramètres utilisateur étendus
+
+### Notes
+
+- Issue GitHub : [#248](https://github.com/neogenz/pulpe/issues/248)
+- Frontend : `CurrencyConverterService` (cache 5 min), `CurrencyConversionBadge` (badge avec tooltip)
+- iOS : `CurrencyConversionService`, `CurrencySettingView`
 
 ---
 

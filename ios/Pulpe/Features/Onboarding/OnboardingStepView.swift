@@ -1,6 +1,63 @@
 import SwiftUI
 import VariableBlur
 
+private enum OnboardingStepScrollAnchor: Hashable {
+    case cta
+}
+
+/// Label content swaps instantly while the outer capsule animates width — avoids overlapping “mid-morph” layouts.
+private struct MorphingOnboardingCTALabel: View {
+    let expanded: Bool
+    let isKeyboardVisible: Bool
+    let title: String
+    let showTrailingChevron: Bool
+    let isLoading: Bool
+
+    private var fabSymbolName: String {
+        isKeyboardVisible ? "keyboard.chevron.compact.down" : "arrow.down"
+    }
+
+    var body: some View {
+        ZStack {
+            if expanded {
+                expandedInterior
+            } else {
+                Image(systemName: fabSymbolName)
+                    .font(PulpeTypography.labelLarge)
+                    .contentTransition(.symbolEffect(.replace))
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .contentTransition(.identity)
+        .animation(nil, value: expanded)
+        .animation(nil, value: isLoading)
+    }
+
+    @ViewBuilder
+    private var expandedInterior: some View {
+        if isLoading {
+            ProgressView()
+                .tint(.white)
+                .accessibilityLabel("Chargement")
+        } else {
+            HStack(spacing: DesignTokens.Spacing.sm) {
+                Spacer(minLength: 0)
+                HStack(spacing: DesignTokens.Spacing.sm) {
+                    Text(title)
+                    if showTrailingChevron {
+                        Image(systemName: "arrow.right")
+                            .font(PulpeTypography.labelLarge)
+                    }
+                }
+                .lineLimit(1)
+                .minimumScaleFactor(0.85)
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, DesignTokens.Spacing.lg)
+        }
+    }
+}
+
 /// Base scaffold used by every concrete onboarding step (firstName, income, …).
 /// Owns the step header, error banner, full-width CTA and keyboard/scroll chrome.
 struct OnboardingStepView<Content: View>: View {
@@ -11,15 +68,27 @@ struct OnboardingStepView<Content: View>: View {
     @ViewBuilder let content: () -> Content
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @Namespace private var bottomAnchor
+    @Environment(FeatureFlagsStore.self) private var featureFlags
     @State private var showContent = false
     @State private var isAtBottom = false
     @State private var contentOverflows = false
     @State private var keyboardHeight: CGFloat = 0
     /// Dedicated trigger for the CTA "unlocked" haptic — fires only on false→true flip.
     @State private var canProceedTrigger = false
+    @State private var showCurrencySwap = false
 
     private var isKeyboardVisible: Bool { keyboardHeight > 0 }
+
+    /// Full-width primary CTA (Revolut-style) when the user reached the end of the scroll — keyboard up or down.
+    private var useExpandedCTAChrome: Bool { isAtBottom || !contentOverflows }
+
+    private var ctaOverlayBottomPadding: CGFloat {
+        return DesignTokens.Spacing.lg
+    }
+
+    private var shouldShowCurrencyChip: Bool {
+        featureFlags.isMultiCurrencyEnabled && [.charges, .savings, .budgetPreview].contains(step)
+    }
 
     private var isEnabled: Bool {
         // `readyToComplete` / `isSubmitting` close the rapid-double-tap window on
@@ -32,10 +101,36 @@ struct OnboardingStepView<Content: View>: View {
         ScrollViewReader { proxy in
             ScrollView {
                 VStack(spacing: DesignTokens.Spacing.xxxl) {
+                    if shouldShowCurrencyChip {
+                        HStack {
+                            Button {
+                                showCurrencySwap = true
+                            } label: {
+                                HStack(spacing: DesignTokens.Spacing.xxs) {
+                                    Text(state.currency.compactLabel)
+                                    Image(systemName: "chevron.down")
+                                        .font(PulpeTypography.caption2)
+                                }
+                                .padding(.horizontal, DesignTokens.Spacing.md)
+                                .padding(.vertical, DesignTokens.Spacing.xs)
+                                .background(Color.surfaceContainerHigh)
+                                .foregroundStyle(Color.onSurfaceVariant)
+                                .clipShape(Capsule())
+                            }
+                            .frame(minHeight: DesignTokens.TapTarget.minimum)
+                            .contentShape(Capsule())
+                            .plainPressedButtonStyle()
+                            .accessibilityLabel("Devise actuelle : \(state.currency.nativeName). Toucher pour changer.")
+                            Spacer(minLength: 0)
+                        }
+                        .padding(.horizontal, DesignTokens.Spacing.xxl)
+                    }
+
                     OnboardingStepHeader(
                         step: step,
                         onSkip: step.isOptional ? onNext : nil
                     )
+                    .padding(.horizontal, DesignTokens.Spacing.xxl)
 
                     content()
                         .padding(.horizontal, DesignTokens.Spacing.xxl)
@@ -50,15 +145,13 @@ struct OnboardingStepView<Content: View>: View {
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                     }
 
-                    // Full-width CTA at bottom of scroll content
-                    fullWidthCTA
-                        .padding(.horizontal, DesignTokens.Spacing.xxl)
-                        .id(bottomAnchor)
+                    // Scroll anchor only — primary CTA is pinned in overlay (morphs FAB ↔ full width).
+                    Color.clear
+                        .frame(height: DesignTokens.FrameHeight.button)
+                        .id(OnboardingStepScrollAnchor.cta)
                 }
                 .padding(.top, DesignTokens.Spacing.stepHeaderTop)
-                .padding(.bottom, DesignTokens.Spacing.xxxl
-                    + (isKeyboardVisible ? 80 + DesignTokens.FrameHeight.button + DesignTokens.Spacing.lg : 0)
-                )
+                .padding(.bottom, DesignTokens.Spacing.xxxl)
             }
             .scrollBounceBehavior(.basedOnSize)
             .scrollDismissesKeyboard(.interactively)
@@ -90,17 +183,15 @@ struct OnboardingStepView<Content: View>: View {
                     .transition(.opacity.combined(with: .move(edge: .bottom)))
                 }
             }
-            // Floating ↓ button — stays within safe area
-            .overlay(alignment: .bottomTrailing) {
-                if (contentOverflows && !isAtBottom) || isKeyboardVisible {
-                    floatingButton(proxy: proxy)
-                        .padding(.trailing, DesignTokens.Spacing.xxl)
-                        .padding(.bottom, DesignTokens.Spacing.lg)
-                        .transition(.opacity.combined(with: .move(edge: .bottom)))
-                }
+            .overlay(alignment: .bottom) {
+                onboardingMorphingCTA(proxy: proxy)
+                    .padding(.bottom, ctaOverlayBottomPadding)
             }
         }
         .background(Color.clear)
+        .sheet(isPresented: $showCurrencySwap) {
+            OnboardingCurrencySwapSheet(state: state)
+        }
         .dismissKeyboardOnTap()
         .onChange(of: canProceed) { oldValue, newValue in
             // Celebration haptic only on the false→true flip (CTA just unlocked)
@@ -130,70 +221,119 @@ struct OnboardingStepView<Content: View>: View {
         }
     }
 
-    // MARK: - Floating ↓ Button (Option C behavior)
+    // MARK: - Morphing CTA (single control: frame animates circle ↔ full-width pill)
 
-    /// Keyboard open → dismiss keyboard
-    /// Keyboard closed + not at bottom → scroll to CTA
-    private func floatingButton(proxy: ScrollViewProxy) -> some View {
-        Button {
-            if isKeyboardVisible {
-                UIApplication.shared.sendAction(
-                    #selector(UIResponder.resignFirstResponder),
-                    to: nil, from: nil, for: nil
+    private func onboardingMorphingCTA(proxy: ScrollViewProxy) -> some View {
+        let expanded = useExpandedCTAChrome
+        let buttonHeight = DesignTokens.FrameHeight.button
+        let fabShadow = DesignTokens.Shadow.elevated
+        return HStack(spacing: 0) {
+            Spacer(minLength: 0)
+            Button {
+                morphingCTAAction(proxy: proxy)
+            } label: {
+                MorphingOnboardingCTALabel(
+                    expanded: expanded,
+                    isKeyboardVisible: isKeyboardVisible,
+                    title: buttonTitle,
+                    showTrailingChevron: step != .registration && step != .budgetPreview,
+                    isLoading: state.isLoading
                 )
-            } else {
-                withAnimation(DesignTokens.Animation.defaultSpring) {
-                    proxy.scrollTo(bottomAnchor, anchor: .bottom)
-                }
+                .font(PulpeTypography.buttonPrimary)
+                .frame(height: buttonHeight)
+                .frame(maxWidth: expanded ? .infinity : buttonHeight)
+                .foregroundStyle(ctaForeground(expanded: expanded))
+                .background(ctaBackground(expanded: expanded))
+                .clipShape(Capsule())
+                .overlay(ctaDisabledOutline(expanded: expanded))
+                .scaleEffect(expanded && !canProceed ? 0.98 : 1)
+                .shadow(
+                    color: expanded ? .clear : fabShadow.color,
+                    radius: expanded ? 0 : fabShadow.radius,
+                    y: expanded ? 0 : fabShadow.y
+                )
+                .animation(reduceMotion ? .none : DesignTokens.Animation.bouncySpring, value: expanded && !canProceed)
             }
-        } label: {
-            Image(systemName: isKeyboardVisible ? "keyboard.chevron.compact.down" : "arrow.down")
-                .font(PulpeTypography.labelLarge)
-                .foregroundStyle(Color.textOnPrimary)
-                .frame(width: DesignTokens.FrameHeight.button, height: DesignTokens.FrameHeight.button)
-                .background(Color.onboardingGradient)
-                .clipShape(Circle())
-                .contentTransition(.symbolEffect(.replace))
+            .buttonStyle(.plain)
+            .disabled(expanded && !isEnabled)
+            .sensoryFeedback(.success, trigger: canProceedTrigger)
+            .accessibilityLabel(ctaAccessibilityLabel(expanded: expanded))
+            .animation(reduceMotion ? .none : DesignTokens.Animation.onboardingCTAMorph, value: expanded)
         }
-        .shadow(DesignTokens.Shadow.elevated)
-        .contentShape(Circle())
-        .accessibilityLabel(isKeyboardVisible ? "Fermer le clavier" : "Voir la suite")
+        .padding(.horizontal, DesignTokens.Spacing.xxl)
     }
 
-    // MARK: - Full-Width CTA (at bottom of scroll)
+    private func ctaAccessibilityLabel(expanded: Bool) -> String {
+        if expanded, state.isLoading {
+            return "Chargement"
+        }
+        if expanded {
+            return buttonTitle
+        }
+        return isKeyboardVisible ? "Fermer le clavier" : "Voir la suite"
+    }
 
-    private var fullWidthCTA: some View {
-        VStack(spacing: DesignTokens.Spacing.md) {
-            Button(action: onNext) {
-                if state.isLoading {
-                    ProgressView()
-                        .tint(.white)
-                        .accessibilityLabel("Chargement")
-                } else {
-                    HStack(spacing: DesignTokens.Spacing.sm) {
-                        Text(buttonTitle)
-                        if step != .registration && step != .budgetPreview {
-                            Image(systemName: "arrow.right")
-                                .font(PulpeTypography.labelLarge)
-                        }
-                    }
-                }
+    private func morphingCTAAction(proxy: ScrollViewProxy) {
+        if useExpandedCTAChrome {
+            onNext()
+        } else if isKeyboardVisible {
+            UIApplication.shared.sendAction(
+                #selector(UIResponder.resignFirstResponder),
+                to: nil, from: nil, for: nil
+            )
+        } else {
+            withAnimation(DesignTokens.Animation.onboardingCTAMorph) {
+                proxy.scrollTo(OnboardingStepScrollAnchor.cta, anchor: .bottom)
             }
-            .primaryButtonStyle(isEnabled: isEnabled)
-            .disabled(!isEnabled)
-            .scaleEffect(canProceed ? 1 : 0.98)
-            .animation(reduceMotion ? .none : DesignTokens.Animation.bouncySpring, value: canProceed)
-            .animation(.easeInOut(duration: DesignTokens.Animation.fast), value: isEnabled)
-            .sensoryFeedback(.success, trigger: canProceedTrigger)
+        }
+    }
+
+    private func ctaForeground(expanded: Bool) -> Color {
+        if expanded, isEnabled {
+            return Color.textOnPrimary
+        }
+        if expanded, !isEnabled {
+            return Color.onSurfaceVariant
+        }
+        return Color.textOnPrimary
+    }
+
+    /// Matches `PrimaryButtonStyle`: enabled → gradient; disabled → soft primary tint only (no gradient underlay).
+    @ViewBuilder
+    private func ctaBackground(expanded: Bool) -> some View {
+        if expanded, !isEnabled {
+            Color.pulpePrimary.opacity(0.12)
+        } else {
+            Color.onboardingGradient
+        }
+    }
+
+    @ViewBuilder
+    private func ctaDisabledOutline(expanded: Bool) -> some View {
+        if expanded, !isEnabled {
+            Capsule()
+                .strokeBorder(Color.pulpePrimary.opacity(0.2), lineWidth: DesignTokens.BorderWidth.thin)
         }
     }
 
     private var buttonTitle: String {
         switch step {
         case .registration: "Créer mon compte"
-        case .budgetPreview: "Créer mon budget"
+        case .budgetPreview: budgetPreviewButtonTitle
         case .welcome: "Commencer"
         default: "Continuer"
+        }
+    }
+
+    /// The user has just spent 5+ steps configuring their budget — "Créer mon budget"
+    /// at the finale reads as if they haven't done the work. Branch by emotion state
+    /// so the CTA confirms what actually happened and sets the right tone for the
+    /// next screen (relief / validation / intent to adjust later).
+    private var budgetPreviewButtonTitle: String {
+        switch state.emotionState {
+        case .comfortable: "C'est parti"
+        case .tight: "Valider mon budget"
+        case .deficit: "Valider et affiner"
         }
     }
 }
@@ -203,4 +343,58 @@ struct OnboardingStepView<Content: View>: View {
 struct ScrollMetrics: Equatable {
     let remaining: CGFloat
     let overflows: Bool
+}
+
+// MARK: - Currency Swap Sheet
+
+struct OnboardingCurrencySwapSheet: View {
+    @Bindable var state: OnboardingState
+    @Environment(\.dismiss) private var dismiss
+    @State private var draft: SupportedCurrency
+
+    init(state: OnboardingState) {
+        self._state = Bindable(state)
+        self._draft = State(initialValue: state.currency)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
+            Text("Choisis ta devise")
+                .font(PulpeTypography.title3)
+
+            Text(
+                """
+                Toutes tes prévisions seront affichées dans la nouvelle devise. \
+                Tu peux changer plus tard depuis tes paramètres.
+                """
+            )
+            .font(PulpeTypography.body)
+            .foregroundStyle(Color.onSurfaceVariant)
+            .fixedSize(horizontal: false, vertical: true)
+
+            CapsulePicker(selection: $draft, title: "Devise") { currency, isSelected in
+                HStack(spacing: DesignTokens.Spacing.xs) {
+                    Text(currency.flag)
+                    VStack(alignment: .leading, spacing: 0) {
+                        Text(currency.rawValue).font(PulpeTypography.labelLarge)
+                        Text(currency.nativeName)
+                            .font(PulpeTypography.caption2)
+                            .foregroundStyle(isSelected ? Color.textOnPrimaryMuted : Color.onSurfaceVariant)
+                    }
+                }
+            }
+
+            Button {
+                state.currency = draft
+                dismiss()
+            } label: {
+                Text("Utiliser \(draft.nativeName)")
+            }
+            .primaryButtonStyle(isEnabled: true)
+
+            Spacer()
+        }
+        .padding(DesignTokens.Spacing.xxl)
+        .standardSheetPresentation(detents: [.height(360)])
+    }
 }

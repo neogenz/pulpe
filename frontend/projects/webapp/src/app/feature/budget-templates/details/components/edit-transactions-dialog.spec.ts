@@ -14,6 +14,7 @@ import EditTransactionsDialog from './edit-transactions-dialog';
 import { TemplateLineStore } from '../services/template-line-store';
 import { TransactionFormService } from '../../services/transaction-form';
 import { BudgetTemplatesApi } from '@core/budget-template/budget-templates-api';
+import { CurrencyConverterService } from '@core/currency';
 import { TransactionLabelPipe } from '@ui/transaction-display';
 import type { TransactionFormData } from '../../services/transaction-form';
 import type { TemplateLine } from 'pulpe-shared';
@@ -391,5 +392,137 @@ describe('EditTransactionsDialog - Component Tests', () => {
       // Second transaction: +5000 (income) = 3800
       expect(totals[1]).toBe(3800);
     });
+  });
+});
+
+describe('EditTransactionsDialog - Multi-currency preservation', () => {
+  const templateId = 'template-mc';
+  const altLine: TemplateLine = {
+    id: 'line-alt',
+    templateId,
+    name: 'Abonnement EUR',
+    amount: 110,
+    originalAmount: 100,
+    originalCurrency: 'EUR',
+    targetCurrency: 'CHF',
+    exchangeRate: 1.1,
+    kind: 'expense',
+    recurrence: 'fixed',
+    description: '',
+    createdAt: '2024-01-01T00:00:00Z',
+    updatedAt: '2024-01-01T00:00:00Z',
+  } as TemplateLine;
+  const monoLine: TemplateLine = {
+    id: 'line-mono',
+    templateId,
+    name: 'Loyer',
+    amount: 50,
+    kind: 'expense',
+    recurrence: 'fixed',
+    description: '',
+    createdAt: '2024-01-01T00:00:00Z',
+    updatedAt: '2024-01-01T00:00:00Z',
+  } as TemplateLine;
+
+  const dialogData = {
+    transactions: [
+      { description: 'Abonnement EUR', amount: 110, type: 'expense' as const },
+      { description: 'Loyer', amount: 50, type: 'expense' as const },
+    ] as TransactionFormData[],
+    templateName: 'Multi-currency Template',
+    templateId,
+    originalTemplateLines: [altLine, monoLine],
+  };
+
+  let component: EditTransactionsDialog;
+  let dialogRef: { close: ReturnType<typeof vi.fn>; disableClose: boolean };
+  let budgetTemplatesApi: {
+    bulkOperationsTemplateLines$: ReturnType<typeof vi.fn>;
+  };
+  let converterSpy: { convertWithMetadata: ReturnType<typeof vi.fn> };
+  let matDialog: { open: ReturnType<typeof vi.fn> };
+
+  beforeEach(() => {
+    TestBed.resetTestingModule();
+
+    dialogRef = { close: vi.fn(), disableClose: false };
+    budgetTemplatesApi = { bulkOperationsTemplateLines$: vi.fn() };
+    // Spy to guarantee the conversion path never runs for this dialog.
+    converterSpy = { convertWithMetadata: vi.fn() };
+    matDialog = {
+      open: vi.fn().mockImplementation((cmp) => {
+        if (cmp === TemplatePropagationDialog) {
+          return { afterClosed: () => of<'template-only'>('template-only') };
+        }
+        return { afterClosed: () => of(true) };
+      }),
+    };
+
+    TestBed.configureTestingModule({
+      imports: [EditTransactionsDialog, MatDialogModule, NoopAnimationsModule],
+      providers: [
+        provideZonelessChangeDetection(),
+        ...provideTranslocoForTest(),
+        TransactionFormService,
+        TemplateLineStore,
+        TransactionLabelPipe,
+        { provide: MatDialogRef, useValue: dialogRef },
+        { provide: MAT_DIALOG_DATA, useValue: dialogData },
+        { provide: BudgetTemplatesApi, useValue: budgetTemplatesApi },
+        // Fail-loud regression guard: if someone re-adds a conversion path,
+        // this mock will be invoked and the assertion below will catch it.
+        { provide: CurrencyConverterService, useValue: converterSpy },
+      ],
+    });
+
+    TestBed.overrideProvider(MatDialog, { useValue: matDialog });
+
+    const fixture = TestBed.createComponent(EditTransactionsDialog);
+    component = fixture.componentInstance;
+  });
+
+  it('editing only a mono-currency line does not touch the alt-currency line and never calls the converter', async () => {
+    // Arrange: stub a response where only the mono line was updated.
+    budgetTemplatesApi.bulkOperationsTemplateLines$.mockReturnValue(
+      of({
+        data: {
+          created: [],
+          updated: [{ ...monoLine, name: 'Loyer renommé' }],
+          deleted: [],
+          propagation: {
+            mode: 'template-only',
+            affectedBudgetIds: [],
+            affectedBudgetsCount: 0,
+          },
+        },
+      }),
+    );
+
+    // Act: edit the mono line's description, then save.
+    component['updateDescription']('line-mono', {
+      target: { value: 'Loyer renommé' },
+    } as unknown as Event);
+    await component['save']();
+
+    // Assert: the bulk API was called once with only the mono line in update[].
+    expect(
+      budgetTemplatesApi.bulkOperationsTemplateLines$,
+    ).toHaveBeenCalledTimes(1);
+    const [, operations] =
+      budgetTemplatesApi.bulkOperationsTemplateLines$.mock.calls[0];
+    expect(operations.update).toHaveLength(1);
+    expect(operations.update[0].id).toBe('line-mono');
+    expect(operations.create).toEqual([]);
+    expect(operations.delete).toEqual([]);
+
+    // Assert: the mono line payload carries no FX fields (backend PATCH
+    // semantics preserve any existing metadata untouched).
+    expect(operations.update[0]).not.toHaveProperty('originalAmount');
+    expect(operations.update[0]).not.toHaveProperty('originalCurrency');
+    expect(operations.update[0]).not.toHaveProperty('targetCurrency');
+    expect(operations.update[0]).not.toHaveProperty('exchangeRate');
+
+    // Assert: the converter is never invoked from the bulk dialog.
+    expect(converterSpy.convertWithMetadata).not.toHaveBeenCalled();
   });
 });

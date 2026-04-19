@@ -2,6 +2,7 @@ import SwiftUI
 
 struct TemplateDetailsView: View {
     let templateId: String
+    @Environment(UserSettingsStore.self) private var userSettingsStore
     @State private var viewModel: TemplateDetailsViewModel
     @State private var selectedLineForEdit: TemplateLine?
 
@@ -32,7 +33,10 @@ struct TemplateDetailsView: View {
             await viewModel.loadIfNeeded()
         }
         .sheet(item: $selectedLineForEdit) { line in
-            EditTemplateLineSheet(templateLine: line) { updatedLine in
+            EditTemplateLineSheet(
+                templateLine: line,
+                userCurrency: userSettingsStore.currency
+            ) { updatedLine in
                 Task { await viewModel.updateTemplateLine(updatedLine) }
             }
         }

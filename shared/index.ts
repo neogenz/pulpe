@@ -89,6 +89,12 @@ export {
   budgetLineListResponseSchema,
   budgetLineDeleteResponseSchema,
 
+  // Currency schemas
+  supportedCurrencySchema,
+  SUPPORTED_CURRENCIES,
+  currencyRateQuerySchema,
+  currencyRateResponseSchema,
+
   // User schemas
   userProfileSchema,
   updateProfileSchema,
@@ -128,6 +134,13 @@ export {
 // Export error codes
 export { API_ERROR_CODES, type ApiErrorCode } from './src/error-codes.js';
 
+// Export feature flag keys
+export {
+  FEATURE_FLAGS,
+  ANALYTICS_PROPERTIES,
+  type FeatureFlagKey,
+} from './src/feature-flags.js';
+
 // Export response schema factories
 export {
   createSuccessResponse,
@@ -148,6 +161,12 @@ export {
   type BudgetPeriod,
   type BudgetPeriodDates,
 } from './src/calculators/index.js';
+
+// Export currency display metadata
+export {
+  CURRENCY_METADATA,
+  type CurrencyMetadataEntry,
+} from './src/currency.js';
 
 // Export all types from types.ts
 export type {
@@ -235,6 +254,11 @@ export type {
   BudgetLineResponse,
   BudgetLineListResponse,
   BudgetLineDeleteResponse,
+
+  // Currency types
+  SupportedCurrency,
+  CurrencyRateQuery,
+  CurrencyRateResponse,
 
   // User types
   UserProfile,

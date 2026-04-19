@@ -13,9 +13,10 @@ import { Logger } from '@core/logging/logger';
 import { UserSettingsStore } from '@core/user-settings';
 import { AuthSessionService } from '@core/auth/auth-session.service';
 import { AuthStateService } from '@core/auth';
-import { EncryptionApi } from '@core/encryption';
+import { ClientKeyService, EncryptionApi } from '@core/encryption';
 import { DemoModeService } from '@core/demo/demo-mode.service';
 import { provideTranslocoForTest } from '@app/testing/transloco-testing';
+import { CurrencyConverterService } from '@core/currency';
 
 import SettingsPage from './settings-page';
 
@@ -23,6 +24,8 @@ describe('SettingsPage', () => {
   let fixture: ComponentFixture<SettingsPage>;
   let mockUserSettingsStore: {
     payDayOfMonth: ReturnType<typeof signal<number | null>>;
+    currency: ReturnType<typeof signal<string>>;
+    showCurrencySelector: ReturnType<typeof signal<boolean>>;
     updateSettings: ReturnType<typeof vi.fn>;
     deleteAccount: ReturnType<typeof vi.fn>;
   };
@@ -47,6 +50,8 @@ describe('SettingsPage', () => {
 
     mockUserSettingsStore = {
       payDayOfMonth: signal<number | null>(null),
+      currency: signal('CHF'),
+      showCurrencySelector: signal(false),
       updateSettings: vi.fn().mockResolvedValue({}),
       deleteAccount: vi.fn().mockResolvedValue(undefined),
     };
@@ -92,6 +97,11 @@ describe('SettingsPage', () => {
           },
         },
         { provide: DemoModeService, useValue: { isDemoMode: signal(false) } },
+        { provide: ClientKeyService, useValue: { clear: vi.fn() } },
+        {
+          provide: CurrencyConverterService,
+          useValue: { fetchRate: vi.fn(), convert: vi.fn() },
+        },
       ],
     })
       .overrideComponent(SettingsPage, {

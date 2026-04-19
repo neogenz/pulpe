@@ -139,23 +139,6 @@ extension View {
         }
     }
 
-    /// Apply toast overlay with optional undo support
-    func toastOverlay(_ manager: ToastManager) -> some View {
-        overlay(alignment: .top) {
-            if let toast = manager.currentToast {
-                ToastView(
-                    toast: toast,
-                    onDismiss: { manager.dismiss() },
-                    onUndo: toast.hasUndo ? { manager.executeUndo() } : nil
-                )
-                .safeAreaPadding(.top)
-                .padding(.top, DesignTokens.Spacing.sm)
-                .transition(.move(edge: .top).combined(with: .opacity))
-            }
-        }
-        .animation(DesignTokens.Animation.defaultSpring, value: manager.currentToast)
-    }
-
     /// Standard content card styling: spacing + flat surface background.
     func pulpeCard() -> some View {
         self

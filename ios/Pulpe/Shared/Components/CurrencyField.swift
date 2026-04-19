@@ -19,6 +19,8 @@ struct CurrencyField: View {
     @Binding var value: Decimal?
     let hint: String
     let label: String?
+    let isRequired: Bool
+    let currency: SupportedCurrency
     let visualStyle: VisualStyle
 
     @Environment(\.colorScheme) private var colorScheme
@@ -36,12 +38,16 @@ struct CurrencyField: View {
         value: Binding<Decimal?>,
         hint: String = "0.00",
         label: String? = nil,
+        isRequired: Bool = false,
+        currency: SupportedCurrency = .chf,
         visualStyle: VisualStyle = .onboarding,
         externalFocus: FocusState<Bool>.Binding? = nil
     ) {
         self._value = value
         self.hint = hint
         self.label = label
+        self.isRequired = isRequired
+        self.currency = currency
         self.visualStyle = visualStyle
         self.externalFocus = externalFocus
 
@@ -56,17 +62,19 @@ struct CurrencyField: View {
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
             if let label {
-                Text(label)
-                    .font(PulpeTypography.inputLabel)
-                    .foregroundStyle(labelColor)
+                labelView(label)
             }
 
             HStack {
+                Text(currency.rawValue)
+                    .foregroundStyle(prefixColor)
+                    .font(PulpeTypography.bodyLarge)
+
                 TextField(hint, text: $textValue)
                     .keyboardType(.decimalPad)
                     .foregroundStyle(Color.authInputText)
                     .focused(externalFocus ?? $internalFocus)
-                    .accessibilityLabel(label ?? "Montant en CHF")
+                    .accessibilityLabel(accessibilityFieldLabel)
                     .onChange(of: textValue) { _, newValue in
                         updateValue(from: newValue)
                     }
@@ -75,10 +83,6 @@ struct CurrencyField: View {
                             updateText(from: newValue)
                         }
                     }
-
-                Text("CHF")
-                    .foregroundStyle(prefixColor)
-                    .font(PulpeTypography.bodyLarge)
             }
             .padding(.horizontal, DesignTokens.Spacing.lg)
             .frame(height: DesignTokens.FrameHeight.button)
@@ -92,6 +96,37 @@ struct CurrencyField: View {
         .task {
             // Mark as initialized after first render
             hasInitialized = true
+        }
+    }
+
+    /// Composed label that appends a required-marker (` *`) when applicable.
+    /// Per Practical UI: required marker is *not* coloured red (red is reserved
+    /// for errors). The asterisk uses the secondary text color to stay visible
+    /// without competing with the field name.
+    private func labelView(_ label: String) -> some View {
+        let composed: Text = {
+            if isRequired {
+                return Text(label) + Text(" *").foregroundStyle(asteriskColor)
+            }
+            return Text(label)
+        }()
+
+        return composed
+            .font(PulpeTypography.inputLabel)
+            .foregroundStyle(labelColor)
+    }
+
+    /// Tell VoiceOver users the field is required; sighted users get the `*`
+    /// in the visible label, but accessibility needs the explicit word.
+    private var accessibilityFieldLabel: String {
+        let base = label ?? "Montant en \(currency.rawValue)"
+        return isRequired ? "\(base), requis" : base
+    }
+
+    private var asteriskColor: Color {
+        switch visualStyle {
+        case .onboarding: Color.textSecondaryOnboarding
+        case .flat: Color.textSecondary
         }
     }
 
@@ -202,6 +237,7 @@ struct CurrencyField: View {
 struct CurrencyText: View {
     let amount: Decimal
     let showSign: Bool
+    let currency: SupportedCurrency
     let style: TextStyle
 
     enum TextStyle {
@@ -210,9 +246,10 @@ struct CurrencyText: View {
         case caption
     }
 
-    init(_ amount: Decimal, showSign: Bool = false, style: TextStyle = .body) {
+    init(_ amount: Decimal, showSign: Bool = false, currency: SupportedCurrency = .chf, style: TextStyle = .body) {
         self.amount = amount
         self.showSign = showSign
+        self.currency = currency
         self.style = style
     }
 
@@ -231,7 +268,8 @@ struct CurrencyText: View {
     }
 
     private var formattedAmount: String {
-        let style = Decimal.FormatStyle.Currency(code: "CHF")
+        let style = Decimal.FormatStyle.Currency(code: currency.rawValue)
+            .locale(Formatters.locale(for: currency))
             .sign(strategy: showSign ? .always() : .automatic)
         return amount.formatted(style)
     }

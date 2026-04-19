@@ -41,14 +41,14 @@ describe('AddTransactionBottomSheet', () => {
   });
 
   describe('submit', () => {
-    it('should dismiss with transaction data when form is valid', () => {
+    it('should dismiss with transaction data when form is valid', async () => {
       component['transactionForm'].patchValue({
         name: 'Courses Migros',
         amount: 45.5,
         kind: 'expense',
       });
 
-      component['onSubmit']();
+      await component['onSubmit']();
 
       expect(mockBottomSheetRef.dismiss).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -68,21 +68,21 @@ describe('AddTransactionBottomSheet', () => {
       expect(mockBottomSheetRef.dismiss).not.toHaveBeenCalled();
     });
 
-    it('should apply Math.abs on amount', () => {
+    it('should apply Math.abs on amount', async () => {
       component['transactionForm'].patchValue({
         name: 'Test',
         amount: 42.5,
         kind: 'expense',
       });
 
-      component['onSubmit']();
+      await component['onSubmit']();
 
       expect(mockBottomSheetRef.dismiss).toHaveBeenCalledWith(
         expect.objectContaining({ amount: 42.5 }),
       );
     });
 
-    it('should convert empty category to null', () => {
+    it('should convert empty category to null', async () => {
       component['transactionForm'].patchValue({
         name: 'Test',
         amount: 10,
@@ -90,7 +90,7 @@ describe('AddTransactionBottomSheet', () => {
         category: '',
       });
 
-      component['onSubmit']();
+      await component['onSubmit']();
 
       expect(mockBottomSheetRef.dismiss).toHaveBeenCalledWith(
         expect.objectContaining({ category: null }),
@@ -99,14 +99,14 @@ describe('AddTransactionBottomSheet', () => {
   });
 
   describe('checked toggle', () => {
-    it('should set checkedAt to ISO string when isChecked is true (default)', () => {
+    it('should set checkedAt to ISO string when isChecked is true (default)', async () => {
       component['transactionForm'].patchValue({
         name: 'Test',
         amount: 10,
         kind: 'expense',
       });
 
-      component['onSubmit']();
+      await component['onSubmit']();
 
       const callArg: TransactionFormData =
         mockBottomSheetRef.dismiss.mock.calls[0][0];
@@ -115,7 +115,7 @@ describe('AddTransactionBottomSheet', () => {
       expect(() => new Date(callArg.checkedAt!)).not.toThrow();
     });
 
-    it('should set checkedAt to null when isChecked is false', () => {
+    it('should set checkedAt to null when isChecked is false', async () => {
       component['transactionForm'].patchValue({
         name: 'Test',
         amount: 10,
@@ -123,7 +123,7 @@ describe('AddTransactionBottomSheet', () => {
         isChecked: false,
       });
 
-      component['onSubmit']();
+      await component['onSubmit']();
 
       expect(mockBottomSheetRef.dismiss).toHaveBeenCalledWith(
         expect.objectContaining({ checkedAt: null }),

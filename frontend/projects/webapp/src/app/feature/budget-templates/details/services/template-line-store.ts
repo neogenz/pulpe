@@ -11,6 +11,7 @@ import type {
   TemplateLineCreateWithoutTemplateId,
   TemplateLineUpdateWithId,
 } from 'pulpe-shared';
+import type { CurrencyMetadata } from '@core/currency';
 import type { EditableLine, SaveResult } from './template-line-state';
 
 @Injectable()
@@ -106,6 +107,14 @@ export class TemplateLineStore {
       ),
     );
     return true;
+  }
+
+  setCurrencyMetadata(id: string, metadata: CurrencyMetadata | null): void {
+    this.#lines.update((lines) =>
+      lines.map((line) =>
+        line.id === id ? { ...line, currencyMetadata: metadata } : line,
+      ),
+    );
   }
 
   removeTransaction(id: string): boolean {
@@ -236,6 +245,7 @@ export class TemplateLineStore {
       kind: line.formData.type,
       recurrence: 'fixed',
       description: '',
+      ...this.#extractCurrencyFields(line),
     };
   }
 
@@ -249,6 +259,19 @@ export class TemplateLineStore {
       kind: formData.type,
       recurrence: originalLine.recurrence,
       description: originalLine.description,
+      ...this.#extractCurrencyFields(line),
+    };
+  }
+
+  #extractCurrencyFields(
+    line: EditableLine,
+  ): Partial<TemplateLineCreateWithoutTemplateId> {
+    if (!line.currencyMetadata) return {};
+    return {
+      originalAmount: line.currencyMetadata.originalAmount,
+      originalCurrency: line.currencyMetadata.originalCurrency,
+      targetCurrency: line.currencyMetadata.targetCurrency,
+      exchangeRate: line.currencyMetadata.exchangeRate,
     };
   }
 

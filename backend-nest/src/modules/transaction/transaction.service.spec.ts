@@ -48,8 +48,10 @@ describe('TransactionService', () => {
       ),
       decryptAmount: mock(() => 100),
       tryDecryptAmount: mock(
-        (_ct: string, _dek: Buffer, _fallback: number) => 100,
-      ),
+        (_ct: string, _dek: Buffer, _fallback: number | null) =>
+          _fallback === null ? null : 100,
+      ) as any,
+      encryptOptionalAmount: mock(() => Promise.resolve(null)),
     };
     const mockCacheService = {
       getOrSet: mock(
@@ -62,11 +64,23 @@ describe('TransactionService', () => {
       ),
       invalidateForUser: mock(() => Promise.resolve()),
     };
+    const mockCurrencyService = {
+      overrideExchangeRate: mock(<T>(dto: T) => Promise.resolve(dto)),
+      getRate: mock(() =>
+        Promise.resolve({
+          base: 'CHF',
+          target: 'EUR',
+          rate: 0.94,
+          date: '2026-04-19',
+        }),
+      ),
+    };
     service = new TransactionService(
       mockLogger as InfoLogger,
       mockBudgetService as BudgetService,
       mockEncryptionService as EncryptionService,
       mockCacheService as any,
+      mockCurrencyService as any,
     );
   });
 

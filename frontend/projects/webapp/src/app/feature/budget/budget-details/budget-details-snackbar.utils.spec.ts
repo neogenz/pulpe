@@ -1,10 +1,9 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
+import type { TranslocoService } from '@jsverse/transloco';
 import type { BudgetLine, Transaction } from 'pulpe-shared';
 import {
   computeEnvelopeSnackbarMessage,
   computeTransactionSnackbarMessage,
-  type EnvelopeSnackbarMessages,
-  type TransactionSnackbarMessages,
 } from './budget-details-snackbar.utils';
 
 const NOW = new Date().toISOString();
@@ -44,17 +43,26 @@ function makeTransaction(overrides: Partial<Transaction> = {}): Transaction {
   };
 }
 
-const envelopeMessages: EnvelopeSnackbarMessages = {
-  overEnvelope: (consumed, envelope) =>
-    `Pointé · ${consumed} CHF — ${envelope} CHF prévus`,
-  withinEnvelope: (envelope) => `Pointé · ${envelope} CHF`,
-};
-
-const transactionMessages: TransactionSnackbarMessages = {
-  checked: (amount) => `Pointé · ${amount} CHF`,
-};
+function createMockTransloco(): TranslocoService {
+  return {
+    translate: vi.fn((key: string, params?: Record<string, unknown>) => {
+      switch (key) {
+        case 'budget.snackbar.envelopeOver':
+          return `Pointé · ${params?.['consumed']} ${params?.['currency']} — ${params?.['envelope']} ${params?.['currency']} prévus`;
+        case 'budget.snackbar.envelopeWithin':
+          return `Pointé · ${params?.['envelope']} ${params?.['currency']}`;
+        case 'budget.snackbar.transactionChecked':
+          return `Pointé · ${params?.['amount']} ${params?.['currency']}`;
+        default:
+          return key;
+      }
+    }),
+  } as unknown as TranslocoService;
+}
 
 describe('computeEnvelopeSnackbarMessage', () => {
+  const transloco = createMockTransloco();
+
   it('AC1 — returns null when checkedAt is null (unchecked)', () => {
     const budgetLine = makeBudgetLine({ checkedAt: null });
 
@@ -62,7 +70,8 @@ describe('computeEnvelopeSnackbarMessage', () => {
       budgetLine.id,
       [budgetLine],
       [],
-      envelopeMessages,
+      'CHF',
+      transloco,
     );
 
     expect(result).toBeNull();
@@ -75,7 +84,8 @@ describe('computeEnvelopeSnackbarMessage', () => {
       budgetLine.id,
       [budgetLine],
       [],
-      envelopeMessages,
+      'CHF',
+      transloco,
     );
 
     expect(result).toBe('Pointé · 408 CHF');
@@ -89,7 +99,8 @@ describe('computeEnvelopeSnackbarMessage', () => {
       budgetLine.id,
       [budgetLine],
       [tx],
-      envelopeMessages,
+      'CHF',
+      transloco,
     );
 
     expect(result).not.toBeNull();
@@ -106,7 +117,8 @@ describe('computeEnvelopeSnackbarMessage', () => {
       budgetLine.id,
       [budgetLine],
       transactions,
-      envelopeMessages,
+      'CHF',
+      transloco,
     );
 
     expect(result).toBe('Pointé · 1574 CHF — 408 CHF prévus');
@@ -120,7 +132,8 @@ describe('computeEnvelopeSnackbarMessage', () => {
       budgetLine.id,
       [budgetLine],
       [tx],
-      envelopeMessages,
+      'CHF',
+      transloco,
     );
 
     expect(result).toBe('Pointé · 408 CHF');
@@ -137,7 +150,8 @@ describe('computeEnvelopeSnackbarMessage', () => {
       budgetLine.id,
       [budgetLine],
       transactions,
-      envelopeMessages,
+      'CHF',
+      transloco,
     );
 
     expect(result).toBe('Pointé · 408 CHF');
@@ -150,7 +164,8 @@ describe('computeEnvelopeSnackbarMessage', () => {
       budgetLine.id,
       [budgetLine],
       [],
-      envelopeMessages,
+      'CHF',
+      transloco,
     );
 
     expect(result).toBe('Pointé · 408 CHF');
@@ -177,7 +192,8 @@ describe('computeEnvelopeSnackbarMessage', () => {
       budgetLine.id,
       [budgetLine],
       transactions,
-      envelopeMessages,
+      'CHF',
+      transloco,
     );
 
     expect(result).toBe('Pointé · 408 CHF');
@@ -185,13 +201,16 @@ describe('computeEnvelopeSnackbarMessage', () => {
 });
 
 describe('computeTransactionSnackbarMessage', () => {
+  const transloco = createMockTransloco();
+
   it('AC5 — returns null when checkedAt is null (unchecked)', () => {
     const tx = makeTransaction({ checkedAt: null });
 
     const result = computeTransactionSnackbarMessage(
       tx.id,
       [tx],
-      transactionMessages,
+      'CHF',
+      transloco,
     );
 
     expect(result).toBeNull();
@@ -203,7 +222,8 @@ describe('computeTransactionSnackbarMessage', () => {
     const result = computeTransactionSnackbarMessage(
       tx.id,
       [tx],
-      transactionMessages,
+      'CHF',
+      transloco,
     );
 
     expect(result).not.toBeNull();
@@ -215,7 +235,8 @@ describe('computeTransactionSnackbarMessage', () => {
     const result = computeTransactionSnackbarMessage(
       tx.id,
       [tx],
-      transactionMessages,
+      'CHF',
+      transloco,
     );
 
     expect(result).toBe('Pointé · 42 CHF');

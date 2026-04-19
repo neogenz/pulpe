@@ -6,6 +6,10 @@ import {
   budgetLineCreateSchema,
 } from 'pulpe-shared';
 import {
+  mapCurrencyMetadataToApi,
+  mapCurrencyMetadataToDb,
+} from '@common/utils/currency-metadata.mapper';
+import {
   type BudgetLineRow,
   type BudgetLineInsert,
 } from './entities/budget-line.entity';
@@ -14,9 +18,15 @@ import {
  * Transform database row (snake_case) to API entity (camelCase)
  * Expects decrypted budgetLineDb where amount is already a number
  */
-export function toApi(
-  budgetLineDb: Omit<BudgetLineRow, 'amount'> & { amount: number },
-): BudgetLine {
+export type DecryptedBudgetLineRow = Omit<
+  BudgetLineRow,
+  'amount' | 'original_amount'
+> & {
+  amount: number;
+  original_amount: number | null;
+};
+
+export function toApi(budgetLineDb: DecryptedBudgetLineRow): BudgetLine {
   return {
     id: budgetLineDb.id,
     budgetId: budgetLineDb.budget_id,
@@ -30,6 +40,7 @@ export function toApi(
     checkedAt: budgetLineDb.checked_at,
     createdAt: budgetLineDb.created_at,
     updatedAt: budgetLineDb.updated_at,
+    ...mapCurrencyMetadataToApi(budgetLineDb),
   };
 }
 
@@ -38,7 +49,7 @@ export function toApi(
  * Expects decrypted budgetLinesDb where amount is already a number
  */
 export function toApiList(
-  budgetLinesDb: (Omit<BudgetLineRow, 'amount'> & { amount: number })[],
+  budgetLinesDb: DecryptedBudgetLineRow[],
 ): BudgetLine[] {
   return budgetLinesDb.map((budgetLine) => toApi(budgetLine));
 }
@@ -81,6 +92,7 @@ export function toInsert(
     kind: createDto.kind, // Pas de conversion - les enums sont maintenant unifiés
     recurrence: createDto.recurrence,
     is_manually_adjusted: createDto.isManuallyAdjusted ?? false,
+    ...mapCurrencyMetadataToDb(createDto),
   };
 }
 
@@ -114,6 +126,7 @@ export function toUpdate(
   if (updateDto.isManuallyAdjusted !== undefined) {
     updateData.is_manually_adjusted = updateDto.isManuallyAdjusted;
   }
+  Object.assign(updateData, mapCurrencyMetadataToDb(updateDto));
 
   return updateData;
 }

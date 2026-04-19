@@ -1,6 +1,12 @@
-import { CurrencyPipe } from '@angular/common';
-import { ChangeDetectionStrategy, Component, input } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  inject,
+  input,
+} from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
+import { AppCurrencyPipe } from '@core/currency';
+import { UserSettingsStore } from '@core/user-settings';
 
 import type {
   BudgetLineTableItem,
@@ -9,7 +15,7 @@ import type {
 
 @Component({
   selector: 'pulpe-balance-cell',
-  imports: [CurrencyPipe, MatIconModule],
+  imports: [AppCurrencyPipe, MatIconModule],
   template: `
     <div class="inline-flex items-center gap-1">
       <mat-icon
@@ -31,8 +37,7 @@ import type {
         [class.text-financial-negative]="line().metadata.cumulativeBalance < 0"
       >
         {{
-          line().metadata.cumulativeBalance
-            | currency: 'CHF' : 'symbol' : '1.0-0'
+          line().metadata.cumulativeBalance | appCurrency: currency() : '1.0-0'
         }}
       </span>
     </div>
@@ -40,5 +45,7 @@ import type {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class BalanceCell {
+  readonly #userSettings = inject(UserSettingsStore);
+  protected readonly currency = this.#userSettings.currency;
   readonly line = input.required<BudgetLineTableItem | TransactionTableItem>();
 }

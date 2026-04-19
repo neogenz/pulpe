@@ -1,4 +1,5 @@
-import { CommonModule } from '@angular/common';
+import { AppCurrencyPipe, CURRENCY_CONFIG } from '@core/currency';
+import { UserSettingsStore } from '@core/user-settings';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -21,6 +22,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
 import { MatTableModule } from '@angular/material/table';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { CurrencySuffix } from '@ui/currency-suffix';
 import {
   type TemplateLine,
   type TemplateLinesPropagationSummary,
@@ -59,7 +61,7 @@ interface EditTransactionsDialogResult {
 @Component({
   selector: 'pulpe-edit-transactions-dialog',
   imports: [
-    CommonModule,
+    AppCurrencyPipe,
     MatDialogModule,
     MatButtonModule,
     MatIconModule,
@@ -71,6 +73,7 @@ interface EditTransactionsDialogResult {
     MatSelectModule,
     MatTooltipModule,
     TranslocoPipe,
+    CurrencySuffix,
   ],
   providers: [TemplateLineStore],
   template: `
@@ -191,7 +194,11 @@ interface EditTransactionsDialogResult {
                     [attr.id]="'amount-' + transaction.id"
                     data-testid="edit-line-amount"
                   />
-                  <span matTextSuffix>CHF</span>
+                  <pulpe-currency-suffix
+                    matTextSuffix
+                    [showSelector]="false"
+                    [currency]="currency()"
+                  />
                   @if (transaction.formData.amount < 0) {
                     <mat-error>{{
                       'template.amountPositive' | transloco
@@ -247,9 +254,7 @@ interface EditTransactionsDialogResult {
                   [class.text-financial-negative]="runningTotals()[i] < 0"
                   class="font-medium ph-no-capture"
                 >
-                  {{
-                    runningTotals()[i] | currency: 'CHF' : 'symbol' : '1.2-2'
-                  }}
+                  {{ runningTotals()[i] | appCurrency: currency() }}
                 </span>
               </td>
             </ng-container>
@@ -376,6 +381,7 @@ export default class EditTransactionsDialog {
   readonly #dialog = inject(MatDialog);
   readonly #store = inject(TemplateLineStore);
   readonly #transloco = inject(TranslocoService);
+  readonly #userSettings = inject(UserSettingsStore);
   protected readonly data = inject<EditTransactionsDialogData>(MAT_DIALOG_DATA);
 
   protected readonly saveLoadingLabel = this.#transloco.translate(
@@ -390,15 +396,23 @@ export default class EditTransactionsDialog {
   protected readonly deleteLineTooltip = this.#transloco.translate(
     'template.deleteLine',
   );
+  protected readonly currency = this.#userSettings.currency;
+  protected readonly currencySymbol = computed(
+    () => CURRENCY_CONFIG[this.#userSettings.currency()].symbol,
+  );
 
-  // Expose store signals directly
+  /**
+   * The bulk template edit dialog is mono-currency only. Existing alternate-
+   * currency lines still render their stored target-currency `amount` and are
+   * preserved intact by the backend PATCH semantics when fields other than
+   * `amount` change. Per-row multi-currency editing is tracked as a follow-up.
+   */
   protected readonly isLoading = this.#store.isLoading;
   protected readonly errorMessage = this.#store.error;
   protected readonly hasUnsavedChanges = this.#store.hasUnsavedChanges;
   protected readonly canRemoveTransaction = this.#store.canRemoveTransaction;
   protected readonly isValid = this.#store.isValid;
 
-  // Get active lines from store
   protected readonly transactions = this.#store.activeLines;
 
   protected readonly displayedColumns: readonly string[] = [
@@ -411,13 +425,11 @@ export default class EditTransactionsDialog {
   protected readonly transactionTypes = getTransactionTypes();
 
   constructor() {
-    // Initialize the store
     this.#store.initialize(
       this.data.originalTemplateLines,
       this.data.transactions,
     );
 
-    // Configure dialog to prevent closing during loading
     this.#dialogRef.disableClose = true;
   }
 
@@ -464,7 +476,10 @@ export default class EditTransactionsDialog {
 
     const propagateToBudgets = propagationChoice === 'propagate';
 
-    // Perform save - no sync needed as state is already up-to-date
+    // Bulk edit is mono-currency: amounts stay as entered (in the user's
+    // currency), and no currency metadata is touched — the backend PATCH
+    // preserves any existing originalAmount / originalCurrency /
+    // targetCurrency / exchangeRate stored per line.
     const result = await this.#store.saveChanges(
       this.data.templateId,
       propagateToBudgets,
@@ -534,12 +549,9 @@ export default class EditTransactionsDialog {
     _index: number,
     transaction: EditableLine,
   ): string => {
-    return transaction.id; // Use the stable UUID for tracking
+    return transaction.id;
   };
 
-  /**
-   * Show confirmation dialog for transaction removal
-   */
   async #showConfirmationDialog(): Promise<boolean> {
     const dialogRef = this.#dialog.open(ConfirmationDialog, {
       data: {

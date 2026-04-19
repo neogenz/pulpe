@@ -30,20 +30,21 @@ struct SavingsStep: View {
                         OnboardingRunningTotal(
                             label: "Total épargne",
                             amount: state.totalSavings,
-                            color: .financialSavings
+                            color: .financialSavings,
+                            currency: state.currency
                         )
                     }
                 }
             }
         )
         .sheet(isPresented: $showAddSaving) {
-            AddCustomExpenseSheet(kind: .saving) { tx in
+            AddCustomExpenseSheet(kind: .saving, currency: state.currency) { tx in
                 state.addCustomTransaction(tx)
             }
             .standardSheetPresentation()
         }
         .sheet(item: $editingTransaction) { tx in
-            AddCustomExpenseSheet(editing: tx) { updated in
+            AddCustomExpenseSheet(editing: tx, currency: state.currency) { updated in
                 state.replaceCustomTransaction(id: tx.id, with: updated)
             }
             .standardSheetPresentation()

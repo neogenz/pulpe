@@ -3,6 +3,7 @@ import SwiftUI
 /// Main onboarding flow coordinator
 struct OnboardingFlow: View {
     @Environment(AppState.self) private var appState
+    @Environment(UserSettingsStore.self) private var userSettingsStore
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.scenePhase) private var scenePhase
     @State private var state: OnboardingState
@@ -50,10 +51,16 @@ struct OnboardingFlow: View {
                     // Step content — no TabView so swipe is impossible
                     stepContent
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .layoutPriority(1)
                         .id(state.currentStep)
                         .transition(stepTransition)
                         .sensoryFeedback(.impact(weight: .light), trigger: state.currentStep)
                         .overlay(alignment: .top) {
+                            // Top fade — hides scrolled content under the sticky
+                            // header. Neutral across all onboarding steps: state
+                            // is carried by the hero copy + accent color, not
+                            // by a full-screen colored wash that new users would
+                            // have no way to decode.
                             if state.currentStep.showProgressBar {
                                 LinearGradient(
                                     colors: [.onboardingFormBase, .onboardingFormBase.opacity(0)],
@@ -274,6 +281,13 @@ struct OnboardingFlow: View {
         state.readyToComplete = false
         state.isSubmitting = true
         defer { state.isSubmitting = false }
+
+        // The onboarding template schema doesn't carry currency, so persist the user's
+        // pick to user_settings before bootstrap so all subsequent amounts use it.
+        if state.currency != userSettingsStore.currency {
+            await userSettingsStore.updateCurrency(state.currency)
+        }
+
         await appState.completeOnboarding(
             user: user,
             onboardingData: state.createTemplateData(),
@@ -307,4 +321,5 @@ struct OnboardingFlow: View {
 #Preview {
     OnboardingFlow()
         .environment(AppState())
+        .environment(UserSettingsStore())
 }

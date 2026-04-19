@@ -22,7 +22,8 @@ struct OnboardingTransactionListSection: View {
                 OnboardingTransactionRow(
                     transaction: tx,
                     onEdit: { onEdit(tx) },
-                    onRemove: { remove(tx) }
+                    onRemove: { remove(tx) },
+                    currency: state.currency
                 )
             }
         }

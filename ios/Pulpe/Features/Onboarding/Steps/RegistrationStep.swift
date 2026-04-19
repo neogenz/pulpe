@@ -70,8 +70,9 @@ extension RegistrationStep {
                 prompt: "ton@email.com",
                 text: $state.email,
                 systemImage: "envelope",
-                isFocused: focusedField == .email,
-                isFilled: state.isEmailValid
+                isFilled: state.isEmailValid,
+                focusBinding: $focusedField,
+                focusField: .email
             )
             .textContentType(.emailAddress)
             .keyboardType(.emailAddress)
@@ -80,7 +81,6 @@ extension RegistrationStep {
             .accessibilityIdentifier("registrationEmail")
             .accessibilityLabel("Adresse e-mail")
             .accessibilityHint("Saisis ton adresse e-mail")
-            .focused($focusedField, equals: .email)
         }
     }
 
@@ -95,10 +95,10 @@ extension RegistrationStep {
                 text: $password,
                 isVisible: $showPassword,
                 systemImage: "lock",
-                isFocused: focusedField == .password
+                focusBinding: $focusedField,
+                focusField: .password
             )
             .textContentType(.newPassword)
-            .focused($focusedField, equals: .password)
             .accessibilityIdentifier("registrationPassword")
             .accessibilityLabel("Mot de passe")
             .accessibilityHint("Crée ton mot de passe")
@@ -109,7 +109,7 @@ extension RegistrationStep {
 
     private var consentText: some View {
         OnboardingConsentText(attributed: Self.consentMarkdown)
-            .frame(maxWidth: .infinity, alignment: .center)
+            .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private static let consentMarkdown = AppURLs.legalDisclosure(

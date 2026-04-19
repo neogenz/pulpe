@@ -1,10 +1,8 @@
 import {
   ChangeDetectionStrategy,
   Component,
-  inject,
   computed,
   input,
-  LOCALE_ID,
   output,
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
@@ -13,8 +11,29 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslocoPipe } from '@jsverse/transloco';
-import type { BudgetLine } from 'pulpe-shared';
+import type { BudgetLine, SupportedCurrency } from 'pulpe-shared';
+import { CURRENCY_CONFIG } from '@core/currency';
 import type { BudgetLineTableItem } from '../data-core';
+
+const BALANCE_FORMATTERS = new Map<string, Intl.NumberFormat>();
+
+function getBalanceFormatter(
+  locale: string,
+  currency: string,
+): Intl.NumberFormat {
+  const key = `${locale}-${currency}`;
+  let formatter = BALANCE_FORMATTERS.get(key);
+  if (!formatter) {
+    formatter = new Intl.NumberFormat(locale, {
+      style: 'currency',
+      currency,
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    });
+    BALANCE_FORMATTERS.set(key, formatter);
+  }
+  return formatter;
+}
 
 /**
  * Contextual action menu for budget line cards.
@@ -102,14 +121,8 @@ import type { BudgetLineTableItem } from '../data-core';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class BudgetActionMenu {
-  readonly #balanceFormatter = new Intl.NumberFormat(inject(LOCALE_ID), {
-    style: 'currency',
-    currency: 'CHF',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  });
-
   readonly item = input.required<BudgetLineTableItem>();
+  readonly currency = input<SupportedCurrency>('CHF');
   readonly menuIcon = input<string>('more_vert');
   readonly buttonClass = input<string>('');
   readonly showBalance = input<boolean>(false);
@@ -119,7 +132,10 @@ export class BudgetActionMenu {
   readonly addTransaction = output<BudgetLine>();
   readonly resetFromTemplate = output<BudgetLineTableItem>();
 
-  protected readonly formattedBalance = computed(() =>
-    this.#balanceFormatter.format(this.item().metadata.cumulativeBalance),
-  );
+  protected readonly formattedBalance = computed(() => {
+    const balance = this.item().metadata.cumulativeBalance;
+    const currency = this.currency();
+    const config = CURRENCY_CONFIG[currency];
+    return getBalanceFormatter(config.locale, currency).format(balance);
+  });
 }

@@ -26,6 +26,12 @@ struct TemplateLine: Codable, Identifiable, Hashable, Sendable {
     let description: String
     let createdAt: Date
     let updatedAt: Date
+
+    // Currency conversion metadata
+    var originalAmount: Decimal?
+    var originalCurrency: SupportedCurrency?
+    var targetCurrency: SupportedCurrency?
+    var exchangeRate: Decimal?
 }
 
 // MARK: - Create/Update DTOs
@@ -61,19 +67,31 @@ struct TemplateLineCreate: Encodable {
     let kind: TransactionKind
     let recurrence: TransactionRecurrence
     let description: String
+    let originalAmount: Decimal?
+    let originalCurrency: SupportedCurrency?
+    let targetCurrency: SupportedCurrency?
+    let exchangeRate: Decimal?
 
     init(
         name: String,
         amount: Decimal,
         kind: TransactionKind,
         recurrence: TransactionRecurrence,
-        description: String = ""
+        description: String = "",
+        originalAmount: Decimal? = nil,
+        originalCurrency: SupportedCurrency? = nil,
+        targetCurrency: SupportedCurrency? = nil,
+        exchangeRate: Decimal? = nil
     ) {
         self.name = name
         self.amount = amount
         self.kind = kind
         self.recurrence = recurrence
         self.description = description
+        self.originalAmount = originalAmount
+        self.originalCurrency = originalCurrency
+        self.targetCurrency = targetCurrency
+        self.exchangeRate = exchangeRate
     }
 }
 
@@ -83,6 +101,10 @@ struct TemplateLineUpdate: Encodable {
     var kind: TransactionKind?
     var recurrence: TransactionRecurrence?
     var description: String?
+    var originalAmount: Decimal?
+    var originalCurrency: SupportedCurrency?
+    var targetCurrency: SupportedCurrency?
+    var exchangeRate: Decimal?
 }
 
 // MARK: - Bulk Operations
@@ -113,6 +135,10 @@ struct TemplateLineUpdateWithId: Encodable {
     var kind: TransactionKind?
     var recurrence: TransactionRecurrence?
     var description: String?
+    var originalAmount: Decimal?
+    var originalCurrency: SupportedCurrency?
+    var targetCurrency: SupportedCurrency?
+    var exchangeRate: Decimal?
 }
 
 // MARK: - Response Types

@@ -7,6 +7,7 @@ import {
   signal,
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
+import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatCardModule } from '@angular/material/card';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -14,6 +15,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import {
   type MatSelectChange,
   MatSelectModule,
@@ -26,6 +28,7 @@ import { TranslocoService, TranslocoPipe } from '@jsverse/transloco';
 import { isApiError } from '@core/api/api-error';
 import { Logger } from '@core/logging/logger';
 import { UserSettingsStore } from '@core/user-settings';
+import { FeatureFlagsService } from '@core/feature-flags';
 import { AuthSessionService } from '@core/auth/auth-session.service';
 import { AuthStateService } from '@core/auth';
 import { ClientKeyService, EncryptionApi } from '@core/encryption';
@@ -35,7 +38,8 @@ import {
   RecoveryKeyDialog,
   type RecoveryKeyDialogData,
 } from '@ui/dialogs/recovery-key-dialog';
-import { PAY_DAY_MAX } from 'pulpe-shared';
+import { CurrencyConverterWidget } from '@pattern/currency-converter-widget';
+import { PAY_DAY_MAX, type SupportedCurrency } from 'pulpe-shared';
 import { ChangePasswordDialog } from './components/change-password-dialog';
 import { ChangePinDialog } from './components/change-pin-dialog';
 import { DeleteAccountDialog } from './components/delete-account-dialog';
@@ -45,7 +49,9 @@ import { VerifyRecoveryKeyDialog } from './components/verify-recovery-key-dialog
 @Component({
   selector: 'pulpe-settings-page',
   imports: [
+    CurrencyConverterWidget,
     MatButtonModule,
+    MatButtonToggleModule,
     MatCardModule,
     MatDialogModule,
     MatFormFieldModule,
@@ -54,6 +60,7 @@ import { VerifyRecoveryKeyDialog } from './components/verify-recovery-key-dialog
     MatDividerModule,
     MatProgressSpinnerModule,
     MatSelectModule,
+    MatSlideToggleModule,
     MatSnackBarModule,
     TranslocoPipe,
   ],
@@ -93,6 +100,68 @@ import { VerifyRecoveryKeyDialog } from './components/verify-recovery-key-dialog
           </div>
 
           <div class="space-y-4">
+            @if (isMultiCurrencyEnabled()) {
+              <!-- Currency Selector -->
+              <div class="flex flex-col gap-2">
+                <p class="text-label-medium text-on-surface-variant">
+                  {{ 'settings.currencyLabel' | transloco }}
+                </p>
+                <mat-button-toggle-group
+                  [attr.aria-label]="'settings.currencyLabel' | transloco"
+                  [value]="selectedCurrency()"
+                  (change)="onCurrencyChange($event.value)"
+                  data-testid="currency-toggle"
+                  class="w-full"
+                  hideSingleSelectionIndicator
+                >
+                  <mat-button-toggle value="CHF" class="flex-1">
+                    <span class="flex flex-col items-center leading-tight py-1">
+                      <span class="text-base"
+                        ><span class="text-lg mr-1">🇨🇭</span>CHF</span
+                      >
+                      <span class="text-xs text-on-surface-variant">{{
+                        'currency.swissFranc' | transloco
+                      }}</span>
+                    </span>
+                  </mat-button-toggle>
+                  <mat-button-toggle value="EUR" class="flex-1">
+                    <span class="flex flex-col items-center leading-tight py-1">
+                      <span class="text-base"
+                        ><span class="text-lg mr-1">🇪🇺</span>EUR</span
+                      >
+                      <span class="text-xs text-on-surface-variant">{{
+                        'currency.euro' | transloco
+                      }}</span>
+                    </span>
+                  </mat-button-toggle>
+                </mat-button-toggle-group>
+              </div>
+
+              <!-- Currency Selector Toggle -->
+              <div class="flex items-center justify-between gap-4 py-2">
+                <div class="space-y-0.5">
+                  <p class="text-body-medium">
+                    {{ 'settings.currencySelectorLabel' | transloco }}
+                  </p>
+                  <p class="text-body-small text-on-surface-variant">
+                    {{ 'settings.currencySelectorDescription' | transloco }}
+                  </p>
+                </div>
+                <mat-slide-toggle
+                  [checked]="selectedShowCurrencySelector()"
+                  (change)="onShowCurrencySelectorChange($event.checked)"
+                  data-testid="show-currency-selector-toggle"
+                />
+              </div>
+
+              @if (isConverterVisible()) {
+                <pulpe-currency-converter-widget
+                  [savedCurrency]="initialCurrency()"
+                  [draftCurrency]="selectedCurrency()"
+                />
+              }
+            }
+
             <mat-form-field
               appearance="outline"
               subscriptSizing="dynamic"
@@ -317,28 +386,62 @@ export default class SettingsPage {
   readonly #encryptionApi = inject(EncryptionApi);
   readonly #authState = inject(AuthStateService);
   readonly #transloco = inject(TranslocoService);
+  readonly #featureFlags = inject(FeatureFlagsService);
 
   readonly isDemoMode = this.#demoMode.isDemoMode;
+  protected readonly isMultiCurrencyEnabled =
+    this.#featureFlags.isMultiCurrencyEnabled;
   protected readonly isOAuthOnly = this.#authState.isOAuthOnly;
   protected readonly isSaving = signal(false);
   protected readonly isDeleting = signal(false);
   protected readonly isGeneratingRecoveryKey = signal(false);
   readonly availableDays = Array.from({ length: PAY_DAY_MAX }, (_, i) => i + 1);
 
+  // Pay day settings
   readonly selectedPayDay = linkedSignal(
     () => this.#userSettingsStore.payDayOfMonth() ?? null,
   );
 
-  readonly initialValue = computed(() =>
+  // Currency settings
+  readonly selectedCurrency = linkedSignal(() =>
+    this.#userSettingsStore.currency(),
+  );
+
+  // Show currency selector toggle
+  readonly selectedShowCurrencySelector = linkedSignal(() =>
+    this.#userSettingsStore.showCurrencySelector(),
+  );
+
+  readonly initialPayDay = computed(() =>
     this.#userSettingsStore.payDayOfMonth(),
+  );
+  readonly initialCurrency = computed(() => this.#userSettingsStore.currency());
+  readonly initialShowCurrencySelector = computed(() =>
+    this.#userSettingsStore.showCurrencySelector(),
   );
 
   readonly hasChanges = computed(() => {
-    return this.initialValue() !== this.selectedPayDay();
+    return (
+      this.initialPayDay() !== this.selectedPayDay() ||
+      this.initialCurrency() !== this.selectedCurrency() ||
+      this.initialShowCurrencySelector() !== this.selectedShowCurrencySelector()
+    );
   });
+
+  protected readonly isConverterVisible = computed(
+    () => this.selectedCurrency() !== this.initialCurrency(),
+  );
 
   onPayDayChange(event: MatSelectChange): void {
     this.selectedPayDay.set(event.value);
+  }
+
+  onShowCurrencySelectorChange(value: boolean): void {
+    this.selectedShowCurrencySelector.set(value);
+  }
+
+  onCurrencyChange(value: SupportedCurrency): void {
+    this.selectedCurrency.set(value);
   }
 
   async saveSettings(): Promise<void> {
@@ -349,6 +452,8 @@ export default class SettingsPage {
 
       await this.#userSettingsStore.updateSettings({
         payDayOfMonth: this.selectedPayDay(),
+        currency: this.selectedCurrency(),
+        showCurrencySelector: this.selectedShowCurrencySelector(),
       });
 
       this.#snackBar.open(
@@ -377,7 +482,9 @@ export default class SettingsPage {
   }
 
   resetChanges(): void {
-    this.selectedPayDay.set(this.initialValue());
+    this.selectedPayDay.set(this.initialPayDay());
+    this.selectedCurrency.set(this.initialCurrency());
+    this.selectedShowCurrencySelector.set(this.initialShowCurrencySelector());
   }
 
   async onChangePassword(): Promise<void> {

@@ -41,7 +41,7 @@ struct WelcomeStep: View {
                 Spacer()
                     .frame(height: DesignTokens.Spacing.xxl)
 
-                // Value proposition — sits on white zone
+                // Value proposition — sits on white zone, centered under the icon
                 VStack(spacing: DesignTokens.Spacing.lg) {
                     Text("Vois clair dans tes finances")
                         .font(PulpeTypography.brandTitle)
@@ -53,6 +53,7 @@ struct WelcomeStep: View {
                         .foregroundStyle(Color.textPrimaryOnboarding)
                         .multilineTextAlignment(.center)
                 }
+                .frame(maxWidth: .infinity)
                 .padding(.horizontal, DesignTokens.Spacing.xxxl)
                 .opacity(isAppeared ? 1 : 0)
                 .offset(y: isAppeared ? 0 : 20)

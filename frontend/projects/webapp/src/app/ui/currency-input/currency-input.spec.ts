@@ -1,20 +1,30 @@
-import { TestBed } from '@angular/core/testing';
+import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { describe, it, expect, beforeEach } from 'vitest';
+
+import { setTestInput } from '@app/testing/signal-test-utils';
+import { provideTranslocoForTest } from '@app/testing/transloco-testing';
+
 import { CurrencyInput } from './currency-input';
 
 describe('CurrencyInput', () => {
+  let fixture: ComponentFixture<CurrencyInput>;
   let component: CurrencyInput;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [CurrencyInput, FormsModule],
-      providers: [provideZonelessChangeDetection(), provideAnimationsAsync()],
+      providers: [
+        provideZonelessChangeDetection(),
+        provideAnimationsAsync(),
+        ...provideTranslocoForTest(),
+      ],
     }).compileComponents();
 
-    component = TestBed.createComponent(CurrencyInput).componentInstance;
+    fixture = TestBed.createComponent(CurrencyInput);
+    component = fixture.componentInstance;
   });
 
   describe('Component Structure', () => {
@@ -77,6 +87,64 @@ describe('CurrencyInput', () => {
       component.value.set(100);
       component.value.set(null);
       expect(component.value()).toBeNull();
+    });
+  });
+
+  describe('Dynamic Currency', () => {
+    beforeEach(() => {
+      setTestInput(component.label, 'Montant');
+    });
+
+    it('should accept EUR currency via input', () => {
+      setTestInput(component.currency, 'EUR');
+      TestBed.flushEffects();
+      expect(component.currency()).toBe('EUR');
+    });
+
+    it('should render the currency suffix in the template', async () => {
+      setTestInput(component.currency, 'EUR');
+      TestBed.flushEffects();
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      const suffix = fixture.nativeElement.querySelector('[matTextSuffix]');
+      expect(suffix?.textContent?.trim()).toBe('EUR');
+    });
+
+    it('should update aria-label with the current currency', async () => {
+      setTestInput(component.label, 'Revenu');
+      setTestInput(component.currency, 'EUR');
+      TestBed.flushEffects();
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      const input = fixture.nativeElement.querySelector('input');
+      expect(input?.getAttribute('aria-label')).toBe('Revenu in EUR');
+    });
+
+    it('should update hint text with the current currency', async () => {
+      setTestInput(component.currency, 'EUR');
+      setTestInput(component.ariaDescribedBy, 'hint-id');
+      TestBed.flushEffects();
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      const hint = fixture.nativeElement.querySelector('mat-hint');
+      expect(hint?.textContent).toContain('EUR');
+    });
+  });
+
+  describe('Transloco hint', () => {
+    it('mat-hint uses currency.inputHint transloco key with currency interpolation', async () => {
+      setTestInput(component.label, 'Montant');
+      setTestInput(component.currency, 'CHF');
+      setTestInput(component.ariaDescribedBy, 'hint-id');
+      TestBed.flushEffects();
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      const hint = fixture.nativeElement.querySelector('mat-hint');
+      expect(hint?.textContent?.trim()).toBe('Entre le montant en CHF');
     });
   });
 });

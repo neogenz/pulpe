@@ -1,6 +1,10 @@
 import SwiftUI
 
 struct ConfirmPasswordSheet: View {
+    private enum FormField: Hashable {
+        case password
+    }
+
     @Environment(\.dismiss) private var dismiss
 
     @State private var password = ""
@@ -9,7 +13,7 @@ struct ConfirmPasswordSheet: View {
     @State private var errorMessage: String?
     @State private var verifyTask: Task<Void, Never>?
     @State private var submitSuccessTrigger = false
-    @FocusState private var isFocused: Bool
+    @FocusState private var focusedField: FormField?
 
     var onVerify: (String) async -> String?
 
@@ -28,10 +32,10 @@ struct ConfirmPasswordSheet: View {
                         text: $password,
                         isVisible: $showPassword,
                         systemImage: "lock",
-                        isFocused: isFocused,
-                        hasError: errorMessage != nil
+                        hasError: errorMessage != nil,
+                        focusBinding: $focusedField,
+                        focusField: .password
                     )
-                    .focused($isFocused)
                     .accessibilityIdentifier("confirmPasswordInput")
                     .accessibilityLabel("Mot de passe")
                     .accessibilityHint("Saisis ton mot de passe pour confirmer")
@@ -71,6 +75,7 @@ struct ConfirmPasswordSheet: View {
                 }
             }
             .background(Color.sheetBackground)
+            .keyboardFieldNavigation(focus: $focusedField, order: [.password])
             .dismissKeyboardOnTap()
             .interactiveDismissDisabled(isVerifying)
             .onDisappear { verifyTask?.cancel() }

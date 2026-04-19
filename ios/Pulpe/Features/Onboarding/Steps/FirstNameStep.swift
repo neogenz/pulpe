@@ -1,8 +1,12 @@
 import SwiftUI
 
 struct FirstNameStep: View {
+    private enum FormField: Hashable {
+        case firstName
+    }
+
     @Bindable var state: OnboardingState
-    @FocusState private var isFocused: Bool
+    @FocusState private var focusedField: FormField?
 
     var body: some View {
         OnboardingStepView(
@@ -12,25 +16,31 @@ struct FirstNameStep: View {
             onNext: { state.nextStep() },
             content: {
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-                    Text("Prénom")
-                        .font(PulpeTypography.inputLabel)
-                        .foregroundStyle(Color.textPrimaryOnboarding)
+                    // Required marker via Text concatenation: `*` keeps the
+                    // secondary tone (Practical UI: never colour the asterisk
+                    // red — red is reserved for errors).
+                    (
+                        Text("Prénom")
+                        + Text(" *").foregroundStyle(Color.textSecondaryOnboarding)
+                    )
+                    .font(PulpeTypography.inputLabel)
+                    .foregroundStyle(Color.textPrimaryOnboarding)
 
                     AuthTextField(
                         prompt: "Ton prénom",
                         text: $state.firstName,
                         systemImage: "person",
-                        isFocused: isFocused,
-                        isFilled: state.isFirstNameValid
+                        isFilled: state.isFirstNameValid,
+                        focusBinding: $focusedField,
+                        focusField: .firstName
                     )
                     .textContentType(.givenName)
                     .textInputAutocapitalization(.words)
-                    .focused($isFocused)
-                    .accessibilityLabel("Prénom")
+                    .accessibilityLabel("Prénom, requis")
                     .accessibilityHint("Saisis ton prénom")
                 }
                 .task {
-                    isFocused = true
+                    focusedField = .firstName
                 }
             }
         )

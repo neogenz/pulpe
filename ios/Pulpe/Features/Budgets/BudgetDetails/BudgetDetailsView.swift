@@ -106,7 +106,15 @@ struct BudgetDetailsView: View {
                 },
                 onDismissAndDelete: { transaction in
                     linkedBudgetLineId = nil
-                    viewModel.softDeleteTransaction(transaction, toastManager: appState.toastManager)
+                    let deleted = transaction
+                    Task { @MainActor in
+                        try? await Task.sleep(for: DesignTokens.Animation.postSheetDismissBeforeToast)
+                        viewModel.softDeleteTransaction(
+                            deleted,
+                            toastManager: appState.toastManager,
+                            presentationCurrency: userSettingsStore.currency
+                        )
+                    }
                 },
                 onDismissAndAddTransaction: { budgetLine in
                     linkedBudgetLineId = nil
@@ -115,12 +123,15 @@ struct BudgetDetailsView: View {
             )
         }
         .sheet(item: $selectedBudgetLineForEdit) { line in
-            EditBudgetLineSheet(budgetLine: line) { updatedLine in
+            EditBudgetLineSheet(budgetLine: line, userCurrency: userSettingsStore.currency) { updatedLine in
                 Task { await viewModel.updateBudgetLine(updatedLine) }
             }
         }
         .sheet(item: $selectedTransactionForEdit) { transaction in
-            EditTransactionSheet(transaction: transaction) { updatedTransaction in
+            EditTransactionSheet(
+                transaction: transaction,
+                userCurrency: userSettingsStore.currency
+            ) { updatedTransaction in
                 Task { await viewModel.updateTransaction(updatedTransaction) }
             }
         }
@@ -238,7 +249,11 @@ struct BudgetDetailsView: View {
                         Task { await viewModel.toggleTransaction(transaction) }
                     },
                     onDelete: { transaction in
-                        viewModel.softDeleteTransaction(transaction, toastManager: appState.toastManager)
+                        viewModel.softDeleteTransaction(
+                            transaction,
+                            toastManager: appState.toastManager,
+                            presentationCurrency: userSettingsStore.currency
+                        )
                     },
                     onEdit: { transaction in
                         selectedTransactionForEdit = transaction
@@ -282,7 +297,11 @@ struct BudgetDetailsView: View {
                 }
             },
             onDelete: { line in
-                viewModel.softDeleteBudgetLine(line, toastManager: appState.toastManager)
+                viewModel.softDeleteBudgetLine(
+                    line,
+                    toastManager: appState.toastManager,
+                    presentationCurrency: userSettingsStore.currency
+                )
             },
             onAddTransaction: { line in
                 selectedLineForTransaction = line

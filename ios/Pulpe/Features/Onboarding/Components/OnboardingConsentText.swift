@@ -9,7 +9,7 @@ struct OnboardingConsentText: View {
         Text(attributed)
             .font(PulpeTypography.caption2)
             .foregroundStyle(Color.textTertiaryOnboarding)
-            .multilineTextAlignment(.center)
+            .multilineTextAlignment(.leading)
             .tint(Color.pulpePrimary)
     }
 }

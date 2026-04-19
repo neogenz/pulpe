@@ -3,6 +3,7 @@ import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.ser
 import { Injectable } from '@nestjs/common';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 import { BusinessException } from '@common/exceptions/business.exception';
+import { mapCurrencyMetadataToDb } from '@common/utils/currency-metadata.mapper';
 import { handleServiceError } from '@common/utils/error-handler';
 import { CacheService } from '@modules/cache/cache.service';
 import {
@@ -18,6 +19,7 @@ import * as transactionMappers from '../transaction/transaction.mappers';
 import type { Database } from '../../types/database.types';
 import { BudgetService } from '../budget/budget.service';
 import { EncryptionService } from '@modules/encryption/encryption.service';
+import { CurrencyService } from '@modules/currency/currency.service';
 
 @Injectable()
 export class BudgetLineService {
@@ -25,89 +27,43 @@ export class BudgetLineService {
     private readonly budgetService: BudgetService,
     private readonly encryptionService: EncryptionService,
     private readonly cacheService: CacheService,
+    private readonly currencyService: CurrencyService,
   ) {}
 
   async #decryptBudgetLine(
     budgetLine: Database['public']['Tables']['budget_line']['Row'],
     user: AuthenticatedUser,
-  ): Promise<
-    Omit<Database['public']['Tables']['budget_line']['Row'], 'amount'> & {
-      amount: number;
-    }
-  > {
-    if (!budgetLine.amount) {
-      return { ...budgetLine, amount: 0 };
-    }
-
+  ) {
     const dek = await this.encryptionService.getUserDEK(
       user.id,
       user.clientKey,
     );
-    const decryptedAmount = this.encryptionService.tryDecryptAmount(
-      budgetLine.amount,
-      dek,
-      0,
-    );
-
-    return {
-      ...budgetLine,
-      amount: decryptedAmount,
-    };
+    return this.encryptionService.decryptRowAmountFields(budgetLine, dek);
   }
 
   async #decryptBudgetLines(
     budgetLines: Database['public']['Tables']['budget_line']['Row'][],
     user: AuthenticatedUser,
-  ): Promise<
-    (Omit<Database['public']['Tables']['budget_line']['Row'], 'amount'> & {
-      amount: number;
-    })[]
-  > {
-    return Promise.all(
-      budgetLines.map((line) => this.#decryptBudgetLine(line, user)),
-    );
-  }
-
-  async #decryptTransaction(
-    transaction: Database['public']['Tables']['transaction']['Row'],
-    user: AuthenticatedUser,
-  ): Promise<
-    Omit<Database['public']['Tables']['transaction']['Row'], 'amount'> & {
-      amount: number;
-    }
-  > {
-    if (!transaction.amount) {
-      return { ...transaction, amount: 0 };
-    }
-
+  ) {
     const dek = await this.encryptionService.getUserDEK(
       user.id,
       user.clientKey,
     );
-    const decryptedAmount = this.encryptionService.tryDecryptAmount(
-      transaction.amount,
-      dek,
-      0,
+    return budgetLines.map((line) =>
+      this.encryptionService.decryptRowAmountFields(line, dek),
     );
-
-    return {
-      ...transaction,
-      amount: decryptedAmount,
-    };
   }
 
   async #decryptTransactions(
     transactions: Database['public']['Tables']['transaction']['Row'][],
     user: AuthenticatedUser,
-  ): Promise<
-    (Omit<Database['public']['Tables']['transaction']['Row'], 'amount'> & {
-      amount: number;
-    })[]
-  > {
-    return Promise.all(
-      transactions.map((transaction) =>
-        this.#decryptTransaction(transaction, user),
-      ),
+  ) {
+    const dek = await this.encryptionService.getUserDEK(
+      user.id,
+      user.clientKey,
+    );
+    return transactions.map((t) =>
+      this.encryptionService.decryptRowAmountFields(t, dek),
     );
   }
 
@@ -203,6 +159,7 @@ export class BudgetLineService {
       checked_at: createBudgetLineDto.checkedAt ?? null,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
+      ...mapCurrencyMetadataToDb(createBudgetLineDto),
     };
   }
 
@@ -210,15 +167,25 @@ export class BudgetLineService {
     budgetLineData: ReturnType<typeof this.prepareBudgetLineData>,
     supabase: AuthenticatedSupabaseClient,
     user: AuthenticatedUser,
+    createDto: BudgetLineCreate,
   ): Promise<Database['public']['Tables']['budget_line']['Row']> {
-    const { amount } = await this.encryptionService.prepareAmountData(
-      budgetLineData.amount,
-      user.id,
-      user.clientKey,
-    );
+    const [{ amount }, encryptedOriginalAmount] = await Promise.all([
+      this.encryptionService.prepareAmountData(
+        budgetLineData.amount,
+        user.id,
+        user.clientKey,
+      ),
+      this.encryptionService.encryptOptionalAmount(
+        createDto.originalAmount,
+        user.id,
+        user.clientKey,
+      ),
+    ]);
+
     const dataWithEncryption = {
       ...budgetLineData,
       amount,
+      original_amount: encryptedOriginalAmount,
     };
 
     const { data: budgetLineDb, error } = await supabase
@@ -252,11 +219,15 @@ export class BudgetLineService {
     try {
       this.validateCreateBudgetLineDto(createBudgetLineDto);
 
+      createBudgetLineDto =
+        await this.currencyService.overrideExchangeRate(createBudgetLineDto);
+
       const budgetLineData = this.prepareBudgetLineData(createBudgetLineDto);
       const budgetLineDb = await this.insertBudgetLine(
         budgetLineData,
         supabase,
         user,
+        createBudgetLineDto,
       );
 
       const decryptedBudgetLine = await this.#decryptBudgetLine(
@@ -406,6 +377,7 @@ export class BudgetLineService {
       ...(updateBudgetLineDto.isManuallyAdjusted !== undefined && {
         is_manually_adjusted: updateBudgetLineDto.isManuallyAdjusted,
       }),
+      ...mapCurrencyMetadataToDb(updateBudgetLineDto),
       updated_at: new Date().toISOString(),
     };
   }
@@ -450,6 +422,9 @@ export class BudgetLineService {
     try {
       this.validateUpdateBudgetLineDto(updateBudgetLineDto);
 
+      updateBudgetLineDto =
+        await this.currencyService.overrideExchangeRate(updateBudgetLineDto);
+
       let updateData = this.prepareBudgetLineUpdateData(updateBudgetLineDto);
       if (updateBudgetLineDto.amount !== undefined) {
         const { amount } = await this.encryptionService.prepareAmountData(
@@ -461,6 +436,15 @@ export class BudgetLineService {
           ...updateData,
           amount,
         };
+      }
+
+      if (updateBudgetLineDto.originalAmount !== undefined) {
+        updateData.original_amount =
+          await this.encryptionService.encryptOptionalAmount(
+            updateBudgetLineDto.originalAmount,
+            user.id,
+            user.clientKey,
+          );
       }
 
       const budgetLineDb = await this.updateBudgetLineInDb(
@@ -653,17 +637,27 @@ export class BudgetLineService {
     }
   }
 
-  private prepareResetUpdateData(templateLine: {
-    name: string;
-    amount: number;
-    kind: Database['public']['Enums']['transaction_kind'];
-    recurrence: Database['public']['Enums']['transaction_recurrence'];
-  }): Partial<Database['public']['Tables']['budget_line']['Update']> {
+  private prepareResetUpdateData(
+    templateLine: Pick<
+      Database['public']['Tables']['template_line']['Row'],
+      | 'name'
+      | 'kind'
+      | 'recurrence'
+      | 'original_amount'
+      | 'original_currency'
+      | 'target_currency'
+      | 'exchange_rate'
+    >,
+  ): Partial<Database['public']['Tables']['budget_line']['Update']> {
     return {
       name: templateLine.name,
       kind: templateLine.kind,
       recurrence: templateLine.recurrence,
       is_manually_adjusted: false,
+      original_amount: templateLine.original_amount,
+      original_currency: templateLine.original_currency,
+      target_currency: templateLine.target_currency,
+      exchange_rate: templateLine.exchange_rate,
       updated_at: new Date().toISOString(),
     };
   }
@@ -675,7 +669,9 @@ export class BudgetLineService {
   ) {
     const { data: templateLine, error } = await supabase
       .from('template_line')
-      .select('name, amount, kind, recurrence')
+      .select(
+        'name, amount, kind, recurrence, original_amount, original_currency, target_currency, exchange_rate',
+      )
       .eq('id', templateLineId)
       .single();
 

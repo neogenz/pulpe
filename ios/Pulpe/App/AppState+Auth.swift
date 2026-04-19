@@ -86,7 +86,13 @@ extension AppState {
     func applyPostAuthDestination(_ destination: PostAuthDestination, user: UserInfo? = nil) async {
         if let user {
             currentUser = user
-            AnalyticsService.shared.identify(userId: user.id)
+            // `early_adopter` drives targeted feature flag rollouts via PostHog
+            // person properties — must be passed on identify().
+            AnalyticsService.shared.identify(
+                userId: user.id,
+                properties: [AnalyticsService.earlyAdopterProperty: user.isEarlyAdopter]
+            )
+            AnalyticsService.shared.reloadFeatureFlags()
         }
         authState = .loading
 

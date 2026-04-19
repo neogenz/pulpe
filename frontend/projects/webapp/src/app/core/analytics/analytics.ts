@@ -6,6 +6,7 @@ import {
   type EffectRef,
   type OnDestroy,
 } from '@angular/core';
+import { ANALYTICS_PROPERTIES } from 'pulpe-shared';
 import { AuthStateService } from '../auth/auth-state.service';
 import { PostHogService } from './posthog';
 import { Logger } from '../logging/logger';
@@ -62,9 +63,15 @@ export class AnalyticsService implements OnDestroy {
             this.#logger.debug('PostHog tracking enabled for session');
           }
 
-          // Identify user with demo mode flag if applicable
+          // Identify user with demo mode + early adopter flags.
+          // `early_adopter` drives the targeted rollout of gated features via
+          // PostHog feature flag conditions (person property match).
           const isDemoMode = this.#demoModeService.isDemoMode();
-          const identifyProperties = isDemoMode ? { is_demo: true } : undefined;
+          const identifyProperties: Properties = {
+            [ANALYTICS_PROPERTIES.EARLY_ADOPTER]:
+              this.#authState.isEarlyAdopter(),
+            ...(isDemoMode && { is_demo: true }),
+          };
 
           this.#postHogService.identify(authState.user.id, identifyProperties);
           this.#postHogService.capturePendingSignupCompleted();
@@ -73,9 +80,11 @@ export class AnalyticsService implements OnDestroy {
             isDemoMode,
           });
         } else if (!authState.isAuthenticated && !authState.isLoading) {
-          this.#postHogService.reset();
+          // Do NOT call posthog.reset() on every anonymous tick: it would
+          // destroy the distinct_id bootstrapped from the landing via ?ph_did=
+          // and wipe registered super properties (platform, environment, app_version).
+          // reset() belongs in the explicit signOut flow; see AuthStateService.
           this.#trackingEnabledForSession = false;
-          this.#logger.debug('Analytics session reset');
         }
       });
 

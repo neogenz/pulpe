@@ -11,11 +11,22 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { TranslocoPipe } from '@jsverse/transloco';
 import type { UpcomingMonthForecast } from '../services/dashboard-state';
+import type { SupportedCurrency } from 'pulpe-shared';
+import { CURRENCY_CONFIG } from '@core/currency';
 
-const ROLLOVER_FORMATTER = new Intl.NumberFormat('de-CH', {
-  minimumFractionDigits: 0,
-  maximumFractionDigits: 0,
-});
+const ROLLOVER_FORMATTERS = new Map<string, Intl.NumberFormat>();
+
+function getRolloverFormatter(locale: string): Intl.NumberFormat {
+  let formatter = ROLLOVER_FORMATTERS.get(locale);
+  if (!formatter) {
+    formatter = new Intl.NumberFormat(locale, {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    });
+    ROLLOVER_FORMATTERS.set(locale, formatter);
+  }
+  return formatter;
+}
 
 @Component({
   selector: 'pulpe-dashboard-next-month',
@@ -55,7 +66,7 @@ const ROLLOVER_FORMATTER = new Intl.NumberFormat('de-CH', {
                   : 'text-financial-negative'
               "
             >
-              {{ formattedRollover() }} CHF
+              {{ formattedRollover() }} {{ currency() }}
             </span>
           </p>
         } @else {
@@ -97,6 +108,7 @@ export class DashboardNextMonth {
 
   readonly forecast = input.required<UpcomingMonthForecast>();
   readonly estimatedRollover = input.required<number>();
+  readonly currency = input<SupportedCurrency>('CHF');
 
   readonly navigateToBudgets = output<void>();
 
@@ -107,7 +119,8 @@ export class DashboardNextMonth {
 
   protected readonly hasBudget = computed(() => this.forecast().hasBudget);
 
-  protected readonly formattedRollover = computed(() =>
-    ROLLOVER_FORMATTER.format(this.estimatedRollover()),
-  );
+  protected readonly formattedRollover = computed(() => {
+    const locale = CURRENCY_CONFIG[this.currency()].locale;
+    return getRolloverFormatter(locale).format(this.estimatedRollover());
+  });
 }
