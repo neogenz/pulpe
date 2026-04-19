@@ -1,16 +1,10 @@
-import {
-  AppCurrencyPipe,
-  CURRENCY_CONFIG,
-  CurrencyConverterService,
-} from '@core/currency';
-import { FeatureFlagsService } from '@core/feature-flags';
+import { AppCurrencyPipe, CURRENCY_CONFIG } from '@core/currency';
 import { UserSettingsStore } from '@core/user-settings';
 import {
   ChangeDetectionStrategy,
   Component,
   computed,
   inject,
-  signal,
 } from '@angular/core';
 import { TranslocoService, TranslocoPipe } from '@jsverse/transloco';
 import { MatButtonModule } from '@angular/material/button';
@@ -32,7 +26,6 @@ import { CurrencySuffix } from '@ui/currency-suffix';
 import {
   type TemplateLine,
   type TemplateLinesPropagationSummary,
-  type SupportedCurrency,
 } from 'pulpe-shared';
 import {
   ConfirmationDialog,
@@ -203,10 +196,8 @@ interface EditTransactionsDialogResult {
                   />
                   <pulpe-currency-suffix
                     matTextSuffix
-                    [showSelector]="showCurrencySelector()"
-                    [disabled]="true"
-                    [currency]="inputCurrency()"
-                    (currencyChange)="inputCurrency.set($event)"
+                    [showSelector]="false"
+                    [currency]="currency()"
                   />
                   @if (transaction.formData.amount < 0) {
                     <mat-error>{{
@@ -391,8 +382,6 @@ export default class EditTransactionsDialog {
   readonly #store = inject(TemplateLineStore);
   readonly #transloco = inject(TranslocoService);
   readonly #userSettings = inject(UserSettingsStore);
-  readonly #featureFlags = inject(FeatureFlagsService);
-  readonly #converter = inject(CurrencyConverterService);
   protected readonly data = inject<EditTransactionsDialogData>(MAT_DIALOG_DATA);
 
   protected readonly saveLoadingLabel = this.#transloco.translate(
@@ -413,36 +402,13 @@ export default class EditTransactionsDialog {
   );
 
   /**
-   * In edit mode, the currency picker is only shown when at least one
-   * existing line carries an `originalCurrency` that differs from the user's
-   * current currency. Per-row disable/visibility is a follow-up — for now the
-   * whole table falls back to mono-currency when no alternate line is found,
-   * which keeps the existing metadata untouched on save.
+   * The bulk template edit dialog is mono-currency only. Existing alternate-
+   * currency lines still render their stored target-currency `amount` and are
+   * preserved intact by the backend PATCH semantics when fields other than
+   * `amount` change. Per-row multi-currency editing is tracked as a follow-up.
    */
-  readonly #alternateCurrency = computed<SupportedCurrency | null>(() => {
-    const userCurrency = this.#userSettings.currency();
-    const alternate = this.data.originalTemplateLines.find(
-      (line) =>
-        line.originalCurrency != null && line.originalCurrency !== userCurrency,
-    );
-    return alternate?.originalCurrency ?? null;
-  });
-
-  protected readonly showCurrencySelector = computed(
-    () =>
-      this.#featureFlags.isMultiCurrencyEnabled() &&
-      this.#alternateCurrency() !== null,
-  );
-
-  protected readonly inputCurrency = signal<SupportedCurrency>(
-    this.#alternateCurrency() ?? this.#userSettings.currency(),
-  );
-
   protected readonly isLoading = this.#store.isLoading;
-  readonly #conversionError = signal<string | null>(null);
-  protected readonly errorMessage = computed(
-    () => this.#conversionError() ?? this.#store.error(),
-  );
+  protected readonly errorMessage = this.#store.error;
   protected readonly hasUnsavedChanges = this.#store.hasUnsavedChanges;
   protected readonly canRemoveTransaction = this.#store.canRemoveTransaction;
   protected readonly isValid = this.#store.isValid;
@@ -510,30 +476,10 @@ export default class EditTransactionsDialog {
 
     const propagateToBudgets = propagationChoice === 'propagate';
 
-    if (this.showCurrencySelector()) {
-      try {
-        for (const line of this.transactions()) {
-          const { convertedAmount, metadata } =
-            await this.#converter.convertWithMetadata(
-              line.formData.amount,
-              this.inputCurrency(),
-              this.#userSettings.currency(),
-            );
-          this.#store.updateTransaction(line.id, { amount: convertedAmount });
-          this.#store.setCurrencyMetadata(line.id, metadata);
-        }
-      } catch {
-        this.#conversionError.set(
-          this.#transloco.translate('common.conversionError'),
-        );
-        return;
-      }
-    }
-    // When the picker is hidden (mono-currency edit), leave amounts as
-    // entered and do NOT set currency metadata so the backend preserves any
-    // existing originalAmount / originalCurrency / targetCurrency /
-    // exchangeRate stored per line.
-
+    // Bulk edit is mono-currency: amounts stay as entered (in the user's
+    // currency), and no currency metadata is touched — the backend PATCH
+    // preserves any existing originalAmount / originalCurrency /
+    // targetCurrency / exchangeRate stored per line.
     const result = await this.#store.saveChanges(
       this.data.templateId,
       propagateToBudgets,

@@ -259,6 +259,7 @@ export class TemplateLineStore {
       kind: formData.type,
       recurrence: originalLine.recurrence,
       description: originalLine.description,
+      ...this.#extractCurrencyFields(line),
     };
   }
 
