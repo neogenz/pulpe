@@ -705,6 +705,7 @@
     "swissFranc": "Franc suisse",
     "euro": "Euro",
     "convertedFromInline": "converti depuis {{ amount }}",
+    "convertedFromAriaLabel": "Converti depuis {{ amount }}",
     "convertedFromTooltip": "Tu as entré {{ amount }} · taux {{ rate }} figé. On ne le recalcule plus, même si le taux bouge.",
     "convertedFromTooltipNoRate": "Tu as entré {{ amount }}",
     "inputHint": "Entre le montant en {{ currency }}"

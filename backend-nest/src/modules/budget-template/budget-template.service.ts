@@ -697,9 +697,7 @@ export class BudgetTemplateService {
     await this.validateTemplateAccess(templateId, user, supabase);
     let validated = templateLineCreateWithoutTemplateIdSchema.parse(createDto);
 
-    if (validated.originalCurrency && validated.targetCurrency) {
-      validated = await this.currencyService.overrideExchangeRate(validated);
-    }
+    validated = await this.currencyService.overrideExchangeRate(validated);
 
     const [{ amount }, encryptedOriginalAmount] = await Promise.all([
       this.encryptionService.prepareAmountData(
@@ -834,9 +832,7 @@ export class BudgetTemplateService {
       await this.validateTemplateLineAccess(templateLineId, user, supabase);
       let validated = templateLineUpdateSchema.parse(updateDto);
 
-      if (validated.originalCurrency && validated.targetCurrency) {
-        validated = await this.currencyService.overrideExchangeRate(validated);
-      }
+      validated = await this.currencyService.overrideExchangeRate(validated);
 
       const data = await this.performTemplateLineUpdate(
         templateLineId,
@@ -1071,9 +1067,7 @@ export class BudgetTemplateService {
         const { id, ...rawUpdateData } = line;
 
         const updateData =
-          rawUpdateData.originalCurrency && rawUpdateData.targetCurrency
-            ? await this.currencyService.overrideExchangeRate(rawUpdateData)
-            : rawUpdateData;
+          await this.currencyService.overrideExchangeRate(rawUpdateData);
 
         const [encryptedAmount, encryptedOriginalAmount] = await Promise.all([
           updateData.amount !== undefined
@@ -1787,11 +1781,7 @@ export class BudgetTemplateService {
     }
 
     const overriddenCreates = await Promise.all(
-      creates.map((line) =>
-        line.originalCurrency && line.targetCurrency
-          ? this.currencyService.overrideExchangeRate(line)
-          : line,
-      ),
+      creates.map((line) => this.currencyService.overrideExchangeRate(line)),
     );
 
     const amounts = overriddenCreates.map((line) => line.amount);

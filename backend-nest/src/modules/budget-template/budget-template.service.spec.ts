@@ -623,8 +623,22 @@ describe('BudgetTemplateService - Simplified Tests', () => {
       });
     });
 
-    it('should skip overrideExchangeRate and originalAmount encryption for mono-currency updates', async () => {
-      const overrideMock = mock((dto: any) => Promise.resolve(dto));
+    it('should strip FX metadata and skip originalAmount encryption for mono-currency updates', async () => {
+      // Mirrors production overrideExchangeRate — keep in sync with currency.service.ts
+      const overrideMock = mock((dto: any) => {
+        const sanitized: Record<string, unknown> = { ...dto };
+        delete sanitized.exchangeRate;
+        delete sanitized.originalAmount;
+        if (
+          sanitized.originalCurrency &&
+          sanitized.targetCurrency &&
+          sanitized.originalCurrency === sanitized.targetCurrency
+        ) {
+          delete sanitized.originalCurrency;
+          delete sanitized.targetCurrency;
+        }
+        return Promise.resolve(sanitized);
+      });
       const encryptOptionalMock = mock(() => Promise.resolve(null));
 
       const customCurrencyService = { overrideExchangeRate: overrideMock };
@@ -654,7 +668,7 @@ describe('BudgetTemplateService - Simplified Tests', () => {
         monoCurrencyService as any
       ).groupUpdatesByProperties(lines, mockUser);
 
-      expect(overrideMock).not.toHaveBeenCalled();
+      expect(overrideMock).toHaveBeenCalled();
       expect(encryptOptionalMock).not.toHaveBeenCalled();
 
       const groupEntries = Array.from(groups.values()) as Array<{

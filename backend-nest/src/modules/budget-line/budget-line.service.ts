@@ -219,13 +219,8 @@ export class BudgetLineService {
     try {
       this.validateCreateBudgetLineDto(createBudgetLineDto);
 
-      if (
-        createBudgetLineDto.originalCurrency &&
-        createBudgetLineDto.targetCurrency
-      ) {
-        createBudgetLineDto =
-          await this.currencyService.overrideExchangeRate(createBudgetLineDto);
-      }
+      createBudgetLineDto =
+        await this.currencyService.overrideExchangeRate(createBudgetLineDto);
 
       const budgetLineData = this.prepareBudgetLineData(createBudgetLineDto);
       const budgetLineDb = await this.insertBudgetLine(
@@ -427,13 +422,8 @@ export class BudgetLineService {
     try {
       this.validateUpdateBudgetLineDto(updateBudgetLineDto);
 
-      if (
-        updateBudgetLineDto.originalCurrency &&
-        updateBudgetLineDto.targetCurrency
-      ) {
-        updateBudgetLineDto =
-          await this.currencyService.overrideExchangeRate(updateBudgetLineDto);
-      }
+      updateBudgetLineDto =
+        await this.currencyService.overrideExchangeRate(updateBudgetLineDto);
 
       let updateData = this.prepareBudgetLineUpdateData(updateBudgetLineDto);
       if (updateBudgetLineDto.amount !== undefined) {

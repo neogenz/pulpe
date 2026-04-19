@@ -64,12 +64,23 @@ describe('TransactionService', () => {
       ),
       invalidateForUser: mock(() => Promise.resolve()),
     };
+    const mockCurrencyService = {
+      overrideExchangeRate: mock(<T>(dto: T) => Promise.resolve(dto)),
+      getRate: mock(() =>
+        Promise.resolve({
+          base: 'CHF',
+          target: 'EUR',
+          rate: 0.94,
+          date: '2026-04-19',
+        }),
+      ),
+    };
     service = new TransactionService(
       mockLogger as InfoLogger,
       mockBudgetService as BudgetService,
       mockEncryptionService as EncryptionService,
       mockCacheService as any,
-      {} as any,
+      mockCurrencyService as any,
     );
   });
 

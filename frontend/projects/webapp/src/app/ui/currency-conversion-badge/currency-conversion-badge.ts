@@ -9,6 +9,26 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslocoPipe } from '@jsverse/transloco';
 import { CURRENCY_METADATA } from 'pulpe-shared';
 
+const formatterCache = new Map<string, Intl.NumberFormat>();
+
+function getAmountFormatter(
+  locale: string,
+  currency: string,
+): Intl.NumberFormat {
+  const key = `${locale}_${currency}`;
+  let formatter = formatterCache.get(key);
+  if (!formatter) {
+    formatter = new Intl.NumberFormat(locale, {
+      style: 'currency',
+      currency,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+    formatterCache.set(key, formatter);
+  }
+  return formatter;
+}
+
 @Component({
   selector: 'pulpe-currency-conversion-badge',
   imports: [MatIconModule, MatTooltipModule, TranslocoPipe],
@@ -19,7 +39,10 @@ import { CURRENCY_METADATA } from 'pulpe-shared';
         [matTooltip]="tooltipText()"
         matTooltipClass="whitespace-pre-line"
         matTooltipTouchGestures="on"
-        [attr.aria-label]="ariaLabel()"
+        [attr.aria-label]="
+          'currency.convertedFromAriaLabel'
+            | transloco: { amount: formattedOriginalAmount() }
+        "
         role="note"
         tabindex="0"
       >
@@ -58,16 +81,6 @@ export class CurrencyConversionBadge {
     const config =
       CURRENCY_METADATA[currency as keyof typeof CURRENCY_METADATA];
     const locale = config?.locale ?? 'fr-CH';
-    return new Intl.NumberFormat(locale, {
-      style: 'currency',
-      currency,
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(amount);
-  });
-
-  protected readonly ariaLabel = computed(() => {
-    const inline = this.formattedOriginalAmount();
-    return inline ? `Converti depuis ${inline}` : '';
+    return getAmountFormatter(locale, currency).format(amount);
   });
 }

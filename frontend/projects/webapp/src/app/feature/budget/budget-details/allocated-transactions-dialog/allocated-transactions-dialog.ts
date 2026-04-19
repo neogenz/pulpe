@@ -182,6 +182,9 @@ export interface AllocatedTransactionsDialogResult {
                   matIconButton
                   (click)="editTransaction(tx)"
                   [matTooltip]="'common.edit' | transloco"
+                  [attr.aria-label]="
+                    'budget.editTransactionAriaLabel' | transloco
+                  "
                 >
                   <mat-icon>edit</mat-icon>
                 </button>
@@ -189,6 +192,9 @@ export interface AllocatedTransactionsDialogResult {
                   matIconButton
                   (click)="deleteTransaction(tx)"
                   [matTooltip]="'common.delete' | transloco"
+                  [attr.aria-label]="
+                    'budget.deleteTransactionAriaLabel' | transloco
+                  "
                   class="text-error"
                 >
                   <mat-icon>delete</mat-icon>

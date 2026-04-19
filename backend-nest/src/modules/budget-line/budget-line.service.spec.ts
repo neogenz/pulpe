@@ -129,15 +129,26 @@ describe('BudgetLineService', () => {
         rate: 0.93,
         date: '2026-03-10',
       }),
+      // Mirrors production overrideExchangeRate — keep in sync with currency.service.ts
       overrideExchangeRate: jest
         .fn()
         .mockImplementation(async (dto: BudgetLineUpdate) => {
-          if (
-            !dto.originalCurrency ||
-            !dto.targetCurrency ||
-            dto.originalCurrency === dto.targetCurrency
-          ) {
-            return dto;
+          const sameCurrency =
+            !!dto.originalCurrency &&
+            !!dto.targetCurrency &&
+            dto.originalCurrency === dto.targetCurrency;
+          const missingCurrencyPair =
+            !dto.originalCurrency || !dto.targetCurrency;
+
+          if (sameCurrency || missingCurrencyPair) {
+            const sanitized: Record<string, unknown> = { ...dto };
+            delete sanitized.exchangeRate;
+            delete sanitized.originalAmount;
+            if (sameCurrency) {
+              delete sanitized.originalCurrency;
+              delete sanitized.targetCurrency;
+            }
+            return sanitized;
           }
           const { rate } = (await currencyServiceMock.getRate(
             dto.originalCurrency,
@@ -526,7 +537,11 @@ describe('BudgetLineService', () => {
       expect(updatePayload).not.toHaveProperty('exchange_rate');
     });
 
-    it('should send only exchange_rate when PATCH touches only the rate (PUL-99 CA4)', async () => {
+    it('should strip orphan exchangeRate when no currency pair is provided (PUL-99 RG-009)', async () => {
+      // RG-009: "Le taux est figé définitivement au moment de la saisie —
+      // jamais recalculé rétroactivement". A PATCH sending only exchangeRate
+      // without currency context is treated as forged and stripped before
+      // reaching the mapper.
       const budgetLineId = '123e4567-e89b-12d3-a456-426614174000';
       const queryBuilder = createMockQueryBuilder({
         data: { ...mockBudgetLineDb, exchange_rate: 1.08 },
@@ -548,9 +563,7 @@ describe('BudgetLineService', () => {
         string,
         unknown
       >;
-      expect(updatePayload).toEqual(
-        expect.objectContaining({ exchange_rate: 1.08 }),
-      );
+      expect(updatePayload).not.toHaveProperty('exchange_rate');
       expect(updatePayload).not.toHaveProperty('original_currency');
       expect(updatePayload).not.toHaveProperty('target_currency');
     });

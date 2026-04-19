@@ -126,17 +126,32 @@ export class CurrencyService {
 
   async overrideExchangeRate<
     T extends {
+      originalAmount?: number | null;
       originalCurrency?: string;
       targetCurrency?: string;
       exchangeRate?: number | null;
     },
   >(dto: T): Promise<T> {
-    if (
-      !dto.originalCurrency ||
-      !dto.targetCurrency ||
-      dto.originalCurrency === dto.targetCurrency
-    ) {
-      return dto;
+    const sameCurrency =
+      !!dto.originalCurrency &&
+      !!dto.targetCurrency &&
+      dto.originalCurrency === dto.targetCurrency;
+    const missingCurrencyPair = !dto.originalCurrency || !dto.targetCurrency;
+
+    if (sameCurrency || missingCurrencyPair) {
+      // No valid conversion context → drop any client-supplied FX metadata
+      // (defence-in-depth against forged payloads). Keys absent from the
+      // original DTO stay absent, preserving PATCH semantics.
+      // Same-currency case also strips originalCurrency/targetCurrency per
+      // PUL-99 CA7 ("même devise → aucune métadonnée stockée").
+      const sanitized: Record<string, unknown> = { ...dto };
+      delete sanitized.exchangeRate;
+      delete sanitized.originalAmount;
+      if (sameCurrency) {
+        delete sanitized.originalCurrency;
+        delete sanitized.targetCurrency;
+      }
+      return sanitized as T;
     }
 
     const baseResult = supportedCurrencySchema.safeParse(dto.originalCurrency);

@@ -296,13 +296,8 @@ export class TransactionService {
     try {
       this.validateCreateTransactionDto(createTransactionDto);
 
-      if (
-        createTransactionDto.originalCurrency &&
-        createTransactionDto.targetCurrency
-      ) {
-        createTransactionDto =
-          await this.currencyService.overrideExchangeRate(createTransactionDto);
-      }
+      createTransactionDto =
+        await this.currencyService.overrideExchangeRate(createTransactionDto);
 
       // Validate budget line allocation if provided
       if (createTransactionDto.budgetLineId) {
@@ -546,13 +541,8 @@ export class TransactionService {
     try {
       this.validateUpdateTransactionDto(updateTransactionDto);
 
-      if (
-        updateTransactionDto.originalCurrency &&
-        updateTransactionDto.targetCurrency
-      ) {
-        updateTransactionDto =
-          await this.currencyService.overrideExchangeRate(updateTransactionDto);
-      }
+      updateTransactionDto =
+        await this.currencyService.overrideExchangeRate(updateTransactionDto);
 
       const updateData =
         this.prepareTransactionUpdateData(updateTransactionDto);

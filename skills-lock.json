@@ -314,7 +314,7 @@
     "swiftui-expert-skill": {
       "source": "avdlee/swiftui-agent-skill",
       "sourceType": "github",
-      "computedHash": "928de140d60315991491c302d337d36155e1b0942b25fbc603dd0052dc535f17"
+      "computedHash": "cc254d18562b0666f4c85561b92b21eb1878e346b659f8b6d80c02a166725cb4"
     },
     "swiftui-performance-audit": {
       "source": "dimillian/skills",
