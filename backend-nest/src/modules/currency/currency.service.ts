@@ -4,6 +4,23 @@ import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 import { formatBusinessCalendarDate } from '@common/utils/business-calendar-date';
 import { supportedCurrencySchema, type SupportedCurrency } from 'pulpe-shared';
+import { z } from 'zod';
+
+type FxCarrier = {
+  originalAmount?: number | null;
+  originalCurrency?: string;
+  targetCurrency?: string;
+  exchangeRate?: number | null;
+};
+
+const fxOverrideSchema = z
+  .object({
+    originalAmount: z.number().nullable().optional(),
+    originalCurrency: z.string().optional(),
+    targetCurrency: z.string().optional(),
+    exchangeRate: z.number().nullable().optional(),
+  })
+  .strict();
 
 interface CachedRate {
   rate: number;
@@ -124,19 +141,15 @@ export class CurrencyService {
     );
   }
 
-  async overrideExchangeRate<
-    T extends {
-      originalAmount?: number | null;
-      originalCurrency?: string;
-      targetCurrency?: string;
-      exchangeRate?: number | null;
-    },
-  >(dto: T): Promise<T> {
+  async overrideExchangeRate<T extends FxCarrier>(dto: T): Promise<T> {
+    const { fxFields, rest } = this.#splitAndValidateFx(dto);
+
     const sameCurrency =
-      !!dto.originalCurrency &&
-      !!dto.targetCurrency &&
-      dto.originalCurrency === dto.targetCurrency;
-    const missingCurrencyPair = !dto.originalCurrency || !dto.targetCurrency;
+      !!fxFields.originalCurrency &&
+      !!fxFields.targetCurrency &&
+      fxFields.originalCurrency === fxFields.targetCurrency;
+    const missingCurrencyPair =
+      !fxFields.originalCurrency || !fxFields.targetCurrency;
 
     if (sameCurrency || missingCurrencyPair) {
       // No valid conversion context → drop any client-supplied FX metadata
@@ -144,31 +157,73 @@ export class CurrencyService {
       // original DTO stay absent, preserving PATCH semantics.
       // Same-currency case also strips originalCurrency/targetCurrency per
       // PUL-99 CA7 ("même devise → aucune métadonnée stockée").
-      const sanitized: Record<string, unknown> = { ...dto };
-      delete sanitized.exchangeRate;
-      delete sanitized.originalAmount;
-      if (sameCurrency) {
-        delete sanitized.originalCurrency;
-        delete sanitized.targetCurrency;
+      const preservedFx: FxCarrier = {};
+      if (!sameCurrency) {
+        if ('originalCurrency' in fxFields) {
+          preservedFx.originalCurrency = fxFields.originalCurrency;
+        }
+        if ('targetCurrency' in fxFields) {
+          preservedFx.targetCurrency = fxFields.targetCurrency;
+        }
       }
-      return sanitized as T;
+      return { ...rest, ...preservedFx } as T;
     }
 
-    const baseResult = supportedCurrencySchema.safeParse(dto.originalCurrency);
-    const targetResult = supportedCurrencySchema.safeParse(dto.targetCurrency);
+    const baseResult = supportedCurrencySchema.safeParse(
+      fxFields.originalCurrency,
+    );
+    const targetResult = supportedCurrencySchema.safeParse(
+      fxFields.targetCurrency,
+    );
 
     if (!baseResult.success || !targetResult.success) {
       throw new BusinessException(
         ERROR_DEFINITIONS.VALIDATION_FAILED,
         {
-          reason: `Unsupported currency: ${!baseResult.success ? dto.originalCurrency : dto.targetCurrency}`,
+          reason: `Unsupported currency: ${!baseResult.success ? fxFields.originalCurrency : fxFields.targetCurrency}`,
         },
         { operation: 'overrideExchangeRate' },
       );
     }
 
     const { rate } = await this.getRate(baseResult.data, targetResult.data);
-    return { ...dto, exchangeRate: rate };
+    return {
+      ...rest,
+      originalAmount: fxFields.originalAmount,
+      originalCurrency: fxFields.originalCurrency,
+      targetCurrency: fxFields.targetCurrency,
+      exchangeRate: rate,
+    } as T;
+  }
+
+  #splitAndValidateFx<T extends FxCarrier>(
+    dto: T,
+  ): { fxFields: FxCarrier; rest: Omit<T, keyof FxCarrier> } {
+    const {
+      originalAmount,
+      originalCurrency,
+      targetCurrency,
+      exchangeRate,
+      ...rest
+    } = dto;
+
+    const fxSubset: Record<string, unknown> = {};
+    if (originalAmount !== undefined) fxSubset.originalAmount = originalAmount;
+    if (originalCurrency !== undefined)
+      fxSubset.originalCurrency = originalCurrency;
+    if (targetCurrency !== undefined) fxSubset.targetCurrency = targetCurrency;
+    if (exchangeRate !== undefined) fxSubset.exchangeRate = exchangeRate;
+
+    const parsed = fxOverrideSchema.safeParse(fxSubset);
+    if (!parsed.success) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.VALIDATION_FAILED,
+        { reason: `Invalid FX metadata: ${parsed.error.message}` },
+        { operation: 'overrideExchangeRate' },
+      );
+    }
+
+    return { fxFields: parsed.data, rest };
   }
 
   async #fetchAndCache(

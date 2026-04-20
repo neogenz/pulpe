@@ -263,5 +263,56 @@ describe('CurrencyService', () => {
       expect(result.originalAmount).toBe(100);
       expect(result.amount).toBe(94);
     });
+
+    it('should reject forged exchangeRate with wrong type (defence-in-depth)', async () => {
+      fetchSpy = mockFetchSuccess();
+
+      const forged = {
+        originalCurrency: 'CHF',
+        targetCurrency: 'EUR',
+        exchangeRate: '99999' as unknown as number,
+      };
+
+      await expect(service.overrideExchangeRate(forged)).rejects.toThrow();
+      expect(fetchSpy).not.toHaveBeenCalled();
+    });
+
+    it('should reject forged originalAmount with wrong type', async () => {
+      fetchSpy = mockFetchSuccess();
+
+      const forged = {
+        originalCurrency: 'CHF',
+        targetCurrency: 'EUR',
+        originalAmount: '100' as unknown as number,
+      };
+
+      await expect(service.overrideExchangeRate(forged)).rejects.toThrow();
+      expect(fetchSpy).not.toHaveBeenCalled();
+    });
+
+    it('should pass through non-FX extra keys untouched (attacker cannot smuggle FX bypass via extras)', async () => {
+      fetchSpy = mockFetchSuccess();
+
+      const dto = {
+        originalCurrency: 'CHF',
+        targetCurrency: 'EUR',
+        exchangeRate: null as number | null,
+        userId: 'attacker',
+        isDefault: true,
+      } as {
+        originalCurrency: string;
+        targetCurrency: string;
+        exchangeRate: number | null;
+      };
+
+      const result = (await service.overrideExchangeRate(dto)) as Record<
+        string,
+        unknown
+      >;
+
+      expect(result.exchangeRate).toBe(0.94);
+      expect(result.userId).toBe('attacker');
+      expect(result.isDefault).toBe(true);
+    });
   });
 });
