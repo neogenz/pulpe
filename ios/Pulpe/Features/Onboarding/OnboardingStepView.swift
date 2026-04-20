@@ -298,11 +298,13 @@ struct OnboardingStepView<Content: View>: View {
         return Color.textOnPrimary
     }
 
-    /// Matches `PrimaryButtonStyle`: enabled → gradient; disabled → soft primary tint only (no gradient underlay).
+    /// Disabled → soft primary tint heavy enough to read as a filled capsule on the warm neutral bg
+    /// (`PrimaryButtonStyle` sits on gradient/sheet surfaces where 0.12 reads fine; this screen's
+    /// `appBackground` is warm-white, so the tint needs more weight).
     @ViewBuilder
     private func ctaBackground(expanded: Bool) -> some View {
         if expanded, !isEnabled {
-            Color.pulpePrimary.opacity(0.12)
+            Color.pulpePrimary.opacity(DesignTokens.Opacity.strong)
         } else {
             Color.onboardingGradient
         }
