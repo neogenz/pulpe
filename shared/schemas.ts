@@ -213,7 +213,10 @@ export const savingsGoalSchema = z.object({
   originalTargetAmount: z.coerce.number().nonnegative().nullable().optional(),
   originalCurrency: supportedCurrencySchema.nullable().optional(),
   targetCurrency: supportedCurrencySchema.nullable().optional(),
-  exchangeRate: z.number().nullable().optional(),
+  // coerce: exchange_rate is NUMERIC(18,8) — PostgREST returns it as string.
+  // Backend emits string form so full NUMERIC precision survives the JSON wire
+  // (IEEE-754 would truncate beyond ~15 significant digits); clients coerce back.
+  exchangeRate: z.coerce.number().nullable().optional(),
 });
 export type SavingsGoal = z.infer<typeof savingsGoalSchema>;
 
@@ -226,7 +229,9 @@ export const savingsGoalCreateSchema = z.object({
   originalTargetAmount: z.number().positive().optional(),
   originalCurrency: supportedCurrencySchema.optional(),
   targetCurrency: supportedCurrencySchema.optional(),
-  exchangeRate: z.number().positive().optional(),
+  // coerce: accept both string and number on the input wire (dual-read during
+  // the iOS/frontend migration window); .positive() still applies post-coerce.
+  exchangeRate: z.coerce.number().positive().optional(),
 });
 export type SavingsGoalCreate = z.infer<typeof savingsGoalCreateSchema>;
 
@@ -266,7 +271,8 @@ export const budgetLineSchema = z.object({
   originalAmount: z.coerce.number().nonnegative().nullable().optional(),
   originalCurrency: supportedCurrencySchema.nullable().optional(),
   targetCurrency: supportedCurrencySchema.nullable().optional(),
-  exchangeRate: z.number().nullable().optional(),
+  // coerce: exchange_rate is NUMERIC(18,8) — backend emits string; clients dual-read.
+  exchangeRate: z.coerce.number().nullable().optional(),
 });
 export type BudgetLine = z.infer<typeof budgetLineSchema>;
 
@@ -283,7 +289,7 @@ export const budgetLineCreateSchema = z.object({
   originalAmount: z.number().positive().optional(),
   originalCurrency: supportedCurrencySchema.optional(),
   targetCurrency: supportedCurrencySchema.optional(),
-  exchangeRate: z.number().positive().optional(),
+  exchangeRate: z.coerce.number().positive().optional(),
 });
 export type BudgetLineCreate = z.infer<typeof budgetLineCreateSchema>;
 

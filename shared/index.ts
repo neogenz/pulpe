@@ -168,6 +168,9 @@ export {
   type CurrencyMetadataEntry,
 } from './src/currency.js';
 
+// Export shared currency formatter factory
+export { getCurrencyFormatter } from './src/currency-format.js';
+
 // Export all types from types.ts
 export type {
   // Enum Types
