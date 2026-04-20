@@ -15,6 +15,13 @@ import {
   EncryptionKeyRepository,
   type UserEncryptionKeyFullRow,
 } from './encryption-key.repository';
+import {
+  rekeyBudgetLinesRpcPayloadSchema,
+  rekeyMonthlyBudgetsRpcPayloadSchema,
+  rekeySavingsGoalsRpcPayloadSchema,
+  rekeyTemplateLinesRpcPayloadSchema,
+  rekeyTransactionsRpcPayloadSchema,
+} from './schemas/rpc-payload.schemas';
 
 const ALGORITHM = 'aes-256-gcm';
 const IV_LENGTH = 12;
@@ -655,12 +662,14 @@ export class EncryptionService {
 
     const keyCheck = this.generateKeyCheck(newDek);
 
+    const validated = this.#validateRekeyPayloads(payloads, userId);
+
     const { error } = await supabase.rpc('rekey_user_encrypted_data', {
-      p_budget_lines: payloads.budgetLines,
-      p_transactions: payloads.transactions,
-      p_template_lines: payloads.templateLines,
-      p_savings_goals: payloads.savingsGoals,
-      p_monthly_budgets: payloads.monthlyBudgets,
+      p_budget_lines: validated.budgetLines,
+      p_transactions: validated.transactions,
+      p_template_lines: validated.templateLines,
+      p_savings_goals: validated.savingsGoals,
+      p_monthly_budgets: validated.monthlyBudgets,
       p_key_check: keyCheck,
     });
 
@@ -689,6 +698,49 @@ export class EncryptionService {
     );
 
     return keyCheck;
+  }
+
+  #validateRekeyPayloads(
+    payloads: {
+      budgetLines: unknown;
+      transactions: unknown;
+      templateLines: unknown;
+      savingsGoals: unknown;
+      monthlyBudgets: unknown;
+    },
+    userId: string,
+  ) {
+    try {
+      return {
+        budgetLines: rekeyBudgetLinesRpcPayloadSchema.parse(
+          payloads.budgetLines,
+        ),
+        transactions: rekeyTransactionsRpcPayloadSchema.parse(
+          payloads.transactions,
+        ),
+        templateLines: rekeyTemplateLinesRpcPayloadSchema.parse(
+          payloads.templateLines,
+        ),
+        savingsGoals: rekeySavingsGoalsRpcPayloadSchema.parse(
+          payloads.savingsGoals,
+        ),
+        monthlyBudgets: rekeyMonthlyBudgetsRpcPayloadSchema.parse(
+          payloads.monthlyBudgets,
+        ),
+      };
+    } catch (validationError) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.ENCRYPTION_REKEY_FAILED,
+        undefined,
+        { userId, operation: 'rekey.payload_validation_failed' },
+        {
+          cause:
+            validationError instanceof Error
+              ? validationError
+              : new Error(String(validationError)),
+        },
+      );
+    }
   }
 
   #buildRekeyPayloads(

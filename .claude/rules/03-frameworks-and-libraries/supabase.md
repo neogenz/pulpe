@@ -147,3 +147,20 @@ AS $$ ... $$;
 ```
 
 Call from NestJS: `await supabase.rpc('function_name', { ...params })`
+
+## RPC JSONB Parameters — Zod Required
+
+Supabase generates the `Args` type of every RPC with `Json` (opaque, ≈ `any`) for JSONB parameters. The compiler can't catch a key typo — and `jsonb_to_recordset` silently maps unknown keys to NULL, which corrupts encrypted columns without raising.
+
+**Rule:** any RPC with a JSONB parameter that contains ciphertexts MUST have a strict Zod schema validating the shape before `supabase.rpc(...)`.
+
+- Schema location: `backend-nest/src/modules/<module>/schemas/rpc-payload.schemas.ts`
+- Each object schema MUST use `.strict()` to reject extra keys
+- Wrap `ZodError` in a `BusinessException` with `{ cause }` so it doesn't leak to the client as a generic 500
+- Add a companion `.spec.ts` covering: valid payload, null ciphertext if column is nullable, `.strict()` rejecting extras, UUID validation
+
+RPC with only scalar parameters (`uuid`, `text`, `int`, `boolean`) are covered by the generated TS types — no Zod needed.
+
+Current implementations:
+- `budget-template/schemas/rpc-payload.schemas.ts` — `create_template_with_lines`, `apply_template_line_operations`
+- `encryption/schemas/rpc-payload.schemas.ts` — `rekey_user_encrypted_data`

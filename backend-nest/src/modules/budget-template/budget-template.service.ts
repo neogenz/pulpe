@@ -39,6 +39,10 @@ import {
 import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 import { CurrencyService } from '@modules/currency/currency.service';
 import * as budgetTemplateMappers from './budget-template.mappers';
+import {
+  applyTemplateLineOperationsListSchema,
+  createTemplateLinesRpcPayloadSchema,
+} from './schemas/rpc-payload.schemas';
 
 type TemplateBulkOperationsResult = {
   deletedIds: string[];
@@ -288,6 +292,9 @@ export class BudgetTemplateService {
       description: line.description || '',
     }));
 
+    const validatedRpcLines =
+      createTemplateLinesRpcPayloadSchema.parse(rpcLines);
+
     const { data: templateRecord, error } = await supabase.rpc(
       'create_template_with_lines',
       {
@@ -295,7 +302,7 @@ export class BudgetTemplateService {
         p_name: validated.name,
         p_description: validated.description,
         p_is_default: validated.isDefault || false,
-        p_lines: rpcLines,
+        p_lines: validatedRpcLines,
       },
     );
 
@@ -1501,18 +1508,25 @@ export class BudgetTemplateService {
       (operations.updatedLines.length > 0 ||
         operations.createdLines.length > 0);
 
+    const updatedLinesPayload = hasBudgetMutations
+      ? applyTemplateLineOperationsListSchema.parse(
+          this.mapTemplateLinesForRpc(operations.updatedLines),
+        )
+      : [];
+    const createdLinesPayload = hasBudgetMutations
+      ? applyTemplateLineOperationsListSchema.parse(
+          this.mapTemplateLinesForRpc(operations.createdLines),
+        )
+      : [];
+
     const { data, error } = await supabase.rpc(
       'apply_template_line_operations',
       {
         template_id: templateId,
         budget_ids: budgetIds,
         delete_ids: operations.deletedIds,
-        updated_lines: hasBudgetMutations
-          ? this.mapTemplateLinesForRpc(operations.updatedLines)
-          : [],
-        created_lines: hasBudgetMutations
-          ? this.mapTemplateLinesForRpc(operations.createdLines)
-          : [],
+        updated_lines: updatedLinesPayload,
+        created_lines: createdLinesPayload,
       },
     );
 

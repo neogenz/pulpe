@@ -259,8 +259,13 @@ describe('BudgetTemplateService - Simplified Tests', () => {
 
     it('should propagate template changes to future budgets and recalculate balances', async () => {
       const templateLine = createMockTemplateLineEntity({
-        id: 'line-1',
+        id: '550e8400-e29b-41d4-a716-446655440010',
         template_id: templateId,
+        amount: 'encrypted-line-1',
+        original_amount: null,
+        original_currency: null,
+        target_currency: null,
+        exchange_rate: null,
       }) as Tables<'template_line'>;
 
       const operations = {
@@ -383,7 +388,7 @@ describe('BudgetTemplateService - Simplified Tests', () => {
         deletedIds: [] as string[],
         updatedLines: [
           {
-            id: 'line-1',
+            id: '550e8400-e29b-41d4-a716-446655440001',
             template_id: templateId,
             name: 'Groceries',
             amount: 'encrypted-chf',
@@ -400,7 +405,7 @@ describe('BudgetTemplateService - Simplified Tests', () => {
         ],
         createdLines: [
           {
-            id: 'line-2',
+            id: '550e8400-e29b-41d4-a716-446655440002',
             template_id: templateId,
             name: 'Transport',
             amount: 'encrypted-chf-2',
@@ -480,7 +485,7 @@ describe('BudgetTemplateService - Simplified Tests', () => {
         deletedIds: [] as string[],
         updatedLines: [
           {
-            id: 'line-1',
+            id: '550e8400-e29b-41d4-a716-446655440003',
             template_id: templateId,
             name: 'Salary',
             amount: null,
@@ -489,11 +494,15 @@ describe('BudgetTemplateService - Simplified Tests', () => {
             description: null,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
+            original_amount: null,
+            original_currency: null,
+            target_currency: null,
+            exchange_rate: null,
           } as Tables<'template_line'>,
         ],
         createdLines: [
           {
-            id: 'line-2',
+            id: '550e8400-e29b-41d4-a716-446655440004',
             template_id: templateId,
             name: 'Bonus',
             amount: null,
@@ -502,6 +511,10 @@ describe('BudgetTemplateService - Simplified Tests', () => {
             description: null,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
+            original_amount: null,
+            original_currency: null,
+            target_currency: null,
+            exchange_rate: null,
           } as Tables<'template_line'>,
         ],
       };
