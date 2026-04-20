@@ -7,35 +7,43 @@ import {
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslocoPipe } from '@jsverse/transloco';
-import { CURRENCY_METADATA } from 'pulpe-shared';
+import { getCurrencyFormatter } from 'pulpe-shared';
 
-const formatterCache = new Map<string, Intl.NumberFormat>();
+const FALLBACK_DATE_LOCALE = 'fr-CH';
 
-function getAmountFormatter(
-  locale: string,
-  currency: string,
-): Intl.NumberFormat {
-  const key = `${locale}_${currency}`;
-  let formatter = formatterCache.get(key);
-  if (!formatter) {
-    formatter = new Intl.NumberFormat(locale, {
-      style: 'currency',
-      currency,
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    });
-    formatterCache.set(key, formatter);
-  }
-  return formatter;
-}
+const fallbackDateFormatter = new Intl.DateTimeFormat(FALLBACK_DATE_LOCALE, {
+  day: '2-digit',
+  month: 'short',
+});
 
 @Component({
   selector: 'pulpe-currency-conversion-badge',
   imports: [MatIconModule, MatTooltipModule, TranslocoPipe],
   template: `
-    @if (hasConversion()) {
+    @if (isFallbackMode()) {
       <span
-        class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-surface-container-high text-on-surface-variant text-label-small cursor-help align-middle"
+        class="badge badge-fallback"
+        [matTooltip]="
+          fallbackTooltipText() || ('currency.fallbackTooltip' | transloco)
+        "
+        matTooltipClass="whitespace-pre-line"
+        matTooltipTouchGestures="on"
+        [attr.aria-label]="
+          'currency.rateFromDateAriaLabel'
+            | transloco: { date: formattedFallbackDate() }
+        "
+        role="note"
+        tabindex="0"
+        data-testid="currency-conversion-badge-fallback"
+      >
+        <mat-icon class="!text-sm !w-4 !h-4 leading-none">cloud_off</mat-icon>
+        <span>{{
+          'currency.rateFromDate' | transloco: { date: formattedFallbackDate() }
+        }}</span>
+      </span>
+    } @else if (hasHistoricalConversion()) {
+      <span
+        class="badge badge-historical"
         [matTooltip]="tooltipText()"
         matTooltipClass="whitespace-pre-line"
         matTooltipTouchGestures="on"
@@ -61,6 +69,28 @@ function getAmountFormatter(
       display: inline-flex;
       align-items: center;
     }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      padding: 0.125rem 0.5rem;
+      border-radius: 9999px;
+      font-size: var(--mat-sys-label-small-size);
+      line-height: var(--mat-sys-label-small-line-height);
+      cursor: help;
+      vertical-align: middle;
+    }
+
+    .badge-historical {
+      background: var(--mat-sys-surface-container-high);
+      color: var(--mat-sys-on-surface-variant);
+    }
+
+    .badge-fallback {
+      background: var(--pulpe-amber-container);
+      color: var(--pulpe-amber);
+    }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -70,17 +100,35 @@ export class CurrencyConversionBadge {
   readonly exchangeRate = input<number | null | undefined>(null);
   readonly tooltipText = input<string>('');
 
-  protected readonly hasConversion = computed(
+  /**
+   * Fallback mode — set when the live FX fetch failed and the UI is
+   * displaying the last cached rate. Pass the ISO date (YYYY-MM-DD) of
+   * the cached rate; the badge formats it as "dd MMM" in fr-CH.
+   */
+  readonly fallbackDate = input<string | null | undefined>(null);
+  readonly fallbackTooltipText = input<string>('');
+
+  protected readonly isFallbackMode = computed(() => {
+    const date = this.fallbackDate();
+    return date != null && date !== '';
+  });
+
+  protected readonly hasHistoricalConversion = computed(
     () => this.originalAmount() != null && this.originalCurrency() != null,
   );
+
+  protected readonly formattedFallbackDate = computed(() => {
+    const raw = this.fallbackDate();
+    if (!raw) return '';
+    const parsed = new Date(raw);
+    if (Number.isNaN(parsed.getTime())) return raw;
+    return fallbackDateFormatter.format(parsed);
+  });
 
   protected readonly formattedOriginalAmount = computed(() => {
     const amount = this.originalAmount();
     const currency = this.originalCurrency();
     if (amount == null || !currency) return '';
-    const config =
-      CURRENCY_METADATA[currency as keyof typeof CURRENCY_METADATA];
-    const locale = config?.locale ?? 'fr-CH';
-    return getAmountFormatter(locale, currency).format(amount);
+    return getCurrencyFormatter(currency).format(amount);
   });
 }

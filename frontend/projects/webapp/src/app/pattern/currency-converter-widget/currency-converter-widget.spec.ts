@@ -50,7 +50,7 @@ function createMockConverter(
   }> = {},
 ): MockConverter {
   return {
-    fetchRate: overrides.fetchRate ?? vi.fn().mockResolvedValue(1.05),
+    fetchRate: overrides.fetchRate ?? vi.fn().mockResolvedValue({ rate: 1.05 }),
     convert:
       overrides.convert ??
       vi.fn((amount: number, rate: number) => amount * rate),
@@ -122,7 +122,7 @@ describe('CurrencyConverterWidget', () => {
     });
 
     it('should show converted amount and call convert with the fetched rate', async () => {
-      mock.fetchRate.mockResolvedValue(1.1);
+      mock.fetchRate.mockResolvedValue({ rate: 1.1 });
       fixture = TestBed.createComponent(CurrencyConverterWidget);
       bindChfEur(fixture.componentInstance);
       TestBed.flushEffects();
@@ -139,7 +139,7 @@ describe('CurrencyConverterWidget', () => {
     });
 
     it('should show rate info when a cross-currency rate is available', async () => {
-      mock.fetchRate.mockResolvedValue(1.23456);
+      mock.fetchRate.mockResolvedValue({ rate: 1.23456 });
       fixture = TestBed.createComponent(CurrencyConverterWidget);
       bindChfEur(fixture.componentInstance);
       TestBed.flushEffects();
@@ -153,8 +153,8 @@ describe('CurrencyConverterWidget', () => {
     });
 
     it('should show a loading spinner while fetchRate is pending', async () => {
-      let resolveRate!: (n: number) => void;
-      const pending = new Promise<number>((res) => {
+      let resolveRate!: (value: { rate: number }) => void;
+      const pending = new Promise<{ rate: number }>((res) => {
         resolveRate = res;
       });
       mock.fetchRate.mockReturnValue(pending);
@@ -169,7 +169,7 @@ describe('CurrencyConverterWidget', () => {
       expect(fixture.nativeElement.querySelector(SEL.spinner)).not.toBeNull();
       expect(fixture.nativeElement.querySelector(SEL.result)).toBeNull();
 
-      resolveRate!(1.05);
+      resolveRate!({ rate: 1.05 });
       await flushUi(fixture);
 
       expect(fixture.nativeElement.querySelector(SEL.spinner)).toBeNull();
@@ -357,10 +357,10 @@ describe('CurrencyConverterWidget', () => {
           if (base === 'CHF' && target === 'EUR') {
             order.push(1);
             await delay(40);
-            return 2.0;
+            return { rate: 2.0 };
           }
           order.push(2);
-          return 9.0;
+          return { rate: 9.0 };
         },
       );
 

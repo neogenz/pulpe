@@ -6,8 +6,9 @@ export {
   injectCurrencyFormConfigForEdit,
   type EditCurrencyLineSource,
 } from './currency-form-config';
-export {
-  CurrencyConverterService,
-  type CurrencyMetadata,
-  type CurrencyConversionResult,
-} from './currency-converter.service';
+export { CurrencyConverterService } from './currency-converter.service';
+export type {
+  CurrencyMetadata,
+  CurrencyConversionResult,
+  FetchRateResult,
+} from './currency.types';

@@ -20,7 +20,9 @@ import {
   AppCurrencyPipe,
   CURRENCY_CONFIG,
   CurrencyConverterService,
+  type FetchRateResult,
 } from '@core/currency';
+import { CurrencyConversionBadge } from '@ui/currency-conversion-badge';
 import type { SupportedCurrency } from 'pulpe-shared';
 
 const CONVERTER_AMOUNT_MAX = 100_000_000;
@@ -43,6 +45,7 @@ interface ConverterAmountModel {
   },
   imports: [
     AppCurrencyPipe,
+    CurrencyConversionBadge,
     DecimalPipe,
     Field,
     MatButtonModule,
@@ -150,6 +153,12 @@ interface ConverterAmountModel {
         </div>
       </div>
 
+      @if (fallbackDate() !== null) {
+        <div class="flex justify-center">
+          <pulpe-currency-conversion-badge [fallbackDate]="fallbackDate()" />
+        </div>
+      }
+
       @if (rateForInfo() !== null) {
         <p
           class="text-body-small text-on-surface-variant text-center"
@@ -255,7 +264,10 @@ export class CurrencyConverterWidget {
       : { base: s, target: d };
   });
 
-  protected readonly conversionResource = resource({
+  protected readonly conversionResource = resource<
+    FetchRateResult | null | undefined,
+    { base: SupportedCurrency; target: SupportedCurrency } | null
+  >({
     params: () => this.#currencyPair(),
     loader: async ({ params }) => {
       if (params === null) return undefined;
@@ -267,26 +279,35 @@ export class CurrencyConverterWidget {
     },
   });
 
-  /** Taux affiché sous le widget ; évite de lire `value()` quand la resource est en erreur. */
-  protected readonly rateForInfo = computed(() => {
+  /** Résultat du fetch courant, ou `null` si indisponible (loading/error/no-pair). */
+  readonly #fetchResult = computed<FetchRateResult | null>(() => {
     const r = this.conversionResource;
     if (r.error() || r.isLoading()) return null;
     if (!r.hasValue()) return null;
     const v = r.value();
-    return v === undefined || v === null ? null : v;
+    return v == null ? null : v;
+  });
+
+  /** Taux affiché sous le widget ; évite de lire `value()` quand la resource est en erreur. */
+  protected readonly rateForInfo = computed(() => {
+    return this.#fetchResult()?.rate ?? null;
+  });
+
+  /** Date de référence à afficher dans le badge fallback (null quand le fetch live a réussi). */
+  protected readonly fallbackDate = computed(() => {
+    const result = this.#fetchResult();
+    if (!result?.fromFallback) return null;
+    return result.cachedDate ?? null;
   });
 
   protected readonly convertedAmount = computed(() => {
-    const r = this.conversionResource;
-    if (r.error() || r.isLoading()) return null;
-    if (!r.hasValue()) return null;
-    const rate = r.value();
-    if (rate == null) return null;
+    const result = this.#fetchResult();
+    if (result == null) return null;
     const field = this.converterForm.amount();
     if (field.invalid()) return null;
     const amount = field.value();
     if (amount === null || Number.isNaN(amount)) return null;
-    return this.#currencyConverter.convert(amount, rate);
+    return this.#currencyConverter.convert(amount, result.rate);
   });
 
   swapConverterDirection(): void {

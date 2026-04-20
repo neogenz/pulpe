@@ -1,26 +1,8 @@
 import type { TranslocoService } from '@jsverse/transloco';
+import { getCurrencyFormatter } from 'pulpe-shared';
 import { CURRENCY_CONFIG } from './currency-config';
 
-const currencyFormatters = new Map<string, Intl.NumberFormat>();
 const rateFormatters = new Map<string, Intl.NumberFormat>();
-
-function getCurrencyFormatter(
-  locale: string,
-  currency: string,
-): Intl.NumberFormat {
-  const key = `${locale}_${currency}`;
-  let fmt = currencyFormatters.get(key);
-  if (!fmt) {
-    fmt = new Intl.NumberFormat(locale, {
-      style: 'currency',
-      currency,
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    });
-    currencyFormatters.set(key, fmt);
-  }
-  return fmt;
-}
 
 function getRateFormatter(locale: string): Intl.NumberFormat {
   let fmt = rateFormatters.get(locale);
@@ -46,7 +28,7 @@ export function buildConversionTooltip(
     CURRENCY_CONFIG[originalCurrency as keyof typeof CURRENCY_CONFIG];
   const locale = config?.locale ?? 'fr-CH';
 
-  const formattedAmount = getCurrencyFormatter(locale, originalCurrency).format(
+  const formattedAmount = getCurrencyFormatter(originalCurrency, locale).format(
     originalAmount,
   );
 

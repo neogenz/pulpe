@@ -1,5 +1,5 @@
 import { Chart, registerables } from 'chart.js';
-import type { SupportedCurrency } from 'pulpe-shared';
+import { getCurrencyFormatter, type SupportedCurrency } from 'pulpe-shared';
 
 import { CURRENCY_CONFIG } from '@core/currency';
 
@@ -104,28 +104,10 @@ export function formatShortMonth(monthNumber: number, locale: string): string {
   return month.charAt(0).toUpperCase() + month.slice(1);
 }
 
-const CURRENCY_FORMATTERS = new Map<string, Intl.NumberFormat>();
-
-function getCurrencyFormatter(
-  locale: string,
-  currency: SupportedCurrency,
-): Intl.NumberFormat {
-  const key = `${locale}-${currency}`;
-  let formatter = CURRENCY_FORMATTERS.get(key);
-  if (!formatter) {
-    formatter = new Intl.NumberFormat(locale, {
-      style: 'currency',
-      currency,
-    });
-    CURRENCY_FORMATTERS.set(key, formatter);
-  }
-  return formatter;
-}
-
 export function formatCurrency(
   value: number,
   currency: SupportedCurrency,
 ): string {
   const config = CURRENCY_CONFIG[currency];
-  return getCurrencyFormatter(config.locale, currency).format(value);
+  return getCurrencyFormatter(currency, config.locale).format(value);
 }

@@ -138,6 +138,7 @@ Applies to **expense lines only**. Income and saving lines always display as `he
 | Devises supportées | CHF, EUR (extensible) |
 | Devise par défaut | CHF (configurable dans les paramètres utilisateur) |
 | Source des taux | Frankfurter API (`frankfurter.dev`), cache 24h côté backend |
+| Fallback panne Frankfurter | Sert le dernier taux disponible sans limite de staleness (web : badge "Taux du {date}" + tooltip) |
 | Métadonnées de conversion | Chaque transaction/prévision/template/objectif d'épargne stocke : `originalAmount`, `originalCurrency`, `targetCurrency`, `exchangeRate` |
 | Nature des métadonnées | Historique, pas live — le taux au moment de la saisie est figé définitivement |
 | Même devise | Si base === target, taux = 1 sans appel API |

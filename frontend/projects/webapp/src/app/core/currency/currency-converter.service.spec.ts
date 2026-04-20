@@ -31,7 +31,7 @@ describe('CurrencyConverterService', () => {
   });
 
   describe('fetchRate', () => {
-    it('should call the API with the correct URL and resolve with the rate', async () => {
+    it('should call the API with the correct URL and resolve with the rate and cachedDate', async () => {
       mockApi.get$.mockReturnValue(
         of({
           success: true,
@@ -44,23 +44,23 @@ describe('CurrencyConverterService', () => {
         }),
       );
 
-      const rate = await service.fetchRate('CHF', 'EUR');
+      const result = await service.fetchRate('CHF', 'EUR');
 
-      expect(rate).toBe(0.95);
+      expect(result).toEqual({ rate: 0.95, cachedDate: '2026-04-13' });
       expect(mockApi.get$).toHaveBeenCalledWith(
         '/currency/rate?base=CHF&target=EUR',
         expect.anything(),
       );
     });
 
-    it('should short-circuit to 1 when base equals target without hitting the API', async () => {
-      const rate = await service.fetchRate('CHF', 'CHF');
+    it('should short-circuit to rate 1 when base equals target without hitting the API', async () => {
+      const result = await service.fetchRate('CHF', 'CHF');
 
-      expect(rate).toBe(1);
+      expect(result).toEqual({ rate: 1 });
       expect(mockApi.get$).not.toHaveBeenCalled();
     });
 
-    it('should propagate API errors to the caller', async () => {
+    it('should propagate API errors when no cached entry is available', async () => {
       mockApi.get$.mockReturnValue(
         throwError(() => new Error('Network error')),
       );
@@ -86,8 +86,8 @@ describe('CurrencyConverterService', () => {
       const first = await service.fetchRate('CHF', 'EUR');
       const second = await service.fetchRate('CHF', 'EUR');
 
-      expect(first).toBe(0.95);
-      expect(second).toBe(0.95);
+      expect(first).toEqual({ rate: 0.95, cachedDate: '2026-04-13' });
+      expect(second).toEqual({ rate: 0.95, cachedDate: '2026-04-13' });
       expect(mockApi.get$).toHaveBeenCalledTimes(1);
     });
 
@@ -114,9 +114,58 @@ describe('CurrencyConverterService', () => {
       });
       response$.complete();
 
-      await expect(first).resolves.toBe(0.95);
-      await expect(second).resolves.toBe(0.95);
+      const firstResult = await first;
+      const secondResult = await second;
+      expect(firstResult).toEqual({ rate: 0.95, cachedDate: '2026-04-13' });
+      expect(secondResult).toEqual({ rate: 0.95, cachedDate: '2026-04-13' });
       expect(mockApi.get$).toHaveBeenCalledTimes(1);
+    });
+
+    describe('stale-cache fallback', () => {
+      it('should return the stale cached entry with fromFallback when the refresh fails', async () => {
+        mockApi.get$.mockReturnValueOnce(
+          of({
+            success: true,
+            data: {
+              base: 'CHF',
+              target: 'EUR',
+              rate: 0.95,
+              date: '2026-04-13',
+            },
+          }),
+        );
+
+        const fresh = await service.fetchRate('CHF', 'EUR');
+        expect(fresh).toEqual({ rate: 0.95, cachedDate: '2026-04-13' });
+
+        // Simulate time passing into the stale window so the next call refetches.
+        vi.useFakeTimers();
+        const now = Date.now();
+        vi.setSystemTime(now + 10 * 60 * 1000);
+
+        mockApi.get$.mockReturnValueOnce(
+          throwError(() => new Error('Network down')),
+        );
+
+        const stale = await service.fetchRate('CHF', 'EUR');
+
+        expect(stale).toEqual({
+          rate: 0.95,
+          fromFallback: true,
+          cachedDate: '2026-04-13',
+        });
+        vi.useRealTimers();
+      });
+
+      it('should propagate the error when the cache is empty and the refresh fails', async () => {
+        mockApi.get$.mockReturnValue(
+          throwError(() => new Error('Network down')),
+        );
+
+        await expect(service.fetchRate('CHF', 'EUR')).rejects.toThrow(
+          'Network down',
+        );
+      });
     });
   });
 
@@ -131,51 +180,6 @@ describe('CurrencyConverterService', () => {
 
     it('should handle a rate of 1', () => {
       expect(service.convert(250, 1)).toBe(250);
-    });
-  });
-
-  describe('convertIfNeeded', () => {
-    it('should return the original amount when currencies are the same', async () => {
-      const result = await service.convertIfNeeded(100, 'CHF', 'CHF');
-
-      expect(result).toBe(100);
-      expect(mockApi.get$).not.toHaveBeenCalled();
-    });
-
-    it('should convert and round to 2 decimals when currencies differ', async () => {
-      mockApi.get$.mockReturnValue(
-        of({
-          success: true,
-          data: {
-            base: 'EUR',
-            target: 'CHF',
-            rate: 1.0567,
-            date: '2026-04-13',
-          },
-        }),
-      );
-
-      const result = await service.convertIfNeeded(100, 'EUR', 'CHF');
-
-      expect(result).toBe(105.67);
-    });
-
-    it('should round correctly for long decimals', async () => {
-      mockApi.get$.mockReturnValue(
-        of({
-          success: true,
-          data: {
-            base: 'CHF',
-            target: 'EUR',
-            rate: 0.9333,
-            date: '2026-04-13',
-          },
-        }),
-      );
-
-      const result = await service.convertIfNeeded(33.33, 'CHF', 'EUR');
-
-      expect(result).toBe(31.11);
     });
   });
 

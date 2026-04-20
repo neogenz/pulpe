@@ -708,7 +708,10 @@
     "convertedFromAriaLabel": "Converti depuis {{ amount }}",
     "convertedFromTooltip": "Tu as entré {{ amount }} · taux {{ rate }} figé. On ne le recalcule plus, même si le taux bouge.",
     "convertedFromTooltipNoRate": "Tu as entré {{ amount }}",
-    "inputHint": "Entre le montant en {{ currency }}"
+    "inputHint": "Entre le montant en {{ currency }}",
+    "rateFromDate": "Taux du {{ date }}",
+    "rateFromDateAriaLabel": "Taux du {{ date }}, connexion indisponible",
+    "fallbackTooltip": "Connexion indisponible — on affiche le dernier taux récupéré"
   },
   "completeProfile": {
     "loading": "Préparation de ton espace de liberté...",
