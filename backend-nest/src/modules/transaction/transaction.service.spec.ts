@@ -370,6 +370,60 @@ describe('TransactionService', () => {
       );
     });
 
+    it('should encrypt originalAmount on PATCH when provided', async () => {
+      // Arrange
+      const mockUser = createMockAuthenticatedUser();
+      const updateData: TransactionUpdate = {
+        originalAmount: 150,
+      };
+      const mockUpdatedTransaction = createMockTransactionEntity({
+        original_amount: 'encrypted-original',
+      });
+      mockSupabaseClient.reset().setMockData(mockUpdatedTransaction);
+
+      // Act
+      await service.update(
+        MOCK_TRANSACTION_ID,
+        updateData,
+        mockUser,
+        mockSupabaseClient as any,
+      );
+
+      // Assert
+      expect(mockEncryptionService.encryptOptionalAmount).toHaveBeenCalledWith(
+        150,
+        mockUser.id,
+        mockUser.clientKey,
+      );
+    });
+
+    it('should encrypt originalAmount null on explicit null PATCH', async () => {
+      // Arrange
+      const mockUser = createMockAuthenticatedUser();
+      const updateData = {
+        originalAmount: null,
+      } as unknown as TransactionUpdate;
+      const mockUpdatedTransaction = createMockTransactionEntity({
+        original_amount: null,
+      });
+      mockSupabaseClient.reset().setMockData(mockUpdatedTransaction);
+
+      // Act
+      await service.update(
+        MOCK_TRANSACTION_ID,
+        updateData,
+        mockUser,
+        mockSupabaseClient as any,
+      );
+
+      // Assert
+      expect(mockEncryptionService.encryptOptionalAmount).toHaveBeenCalledWith(
+        null,
+        mockUser.id,
+        mockUser.clientKey,
+      );
+    });
+
     it('should handle unexpected errors during transaction update', async () => {
       // Arrange
       const mockUser = createMockAuthenticatedUser();

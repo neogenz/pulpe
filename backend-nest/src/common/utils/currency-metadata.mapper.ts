@@ -14,7 +14,7 @@ interface CurrencyMetadataApi {
   exchangeRate?: number;
 }
 
-function parseCurrency(
+export function parseCurrency(
   value: string | null | undefined,
 ): SupportedCurrency | undefined {
   if (!value) return undefined;

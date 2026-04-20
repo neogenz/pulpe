@@ -3,20 +3,27 @@ import { BusinessException } from '@common/exceptions/business.exception';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 import { formatBusinessCalendarDate } from '@common/utils/business-calendar-date';
-import { supportedCurrencySchema, type SupportedCurrency } from 'pulpe-shared';
+import { parseCurrency } from '@common/utils/currency-metadata.mapper';
+import { type SupportedCurrency } from 'pulpe-shared';
 import { z } from 'zod';
 
 type FxCarrier = {
   originalAmount?: number | null;
-  originalCurrency?: string;
+  originalCurrency?: string | null;
   targetCurrency?: string;
   exchangeRate?: number | null;
 };
 
+const FX_SOURCE_KEYS = [
+  'originalAmount',
+  'originalCurrency',
+  'exchangeRate',
+] as const satisfies readonly (keyof FxCarrier)[];
+
 const fxOverrideSchema = z
   .object({
     originalAmount: z.number().nullable().optional(),
-    originalCurrency: z.string().optional(),
+    originalCurrency: z.string().nullable().optional(),
     targetCurrency: z.string().optional(),
     exchangeRate: z.number().nullable().optional(),
   })
@@ -151,42 +158,19 @@ export class CurrencyService {
     const missingCurrencyPair =
       !fxFields.originalCurrency || !fxFields.targetCurrency;
 
-    if (sameCurrency || missingCurrencyPair) {
-      // No valid conversion context → drop any client-supplied FX metadata
-      // (defence-in-depth against forged payloads). Keys absent from the
-      // original DTO stay absent, preserving PATCH semantics.
-      // Same-currency case also strips originalCurrency/targetCurrency per
-      // PUL-99 CA7 ("même devise → aucune métadonnée stockée").
-      const preservedFx: FxCarrier = {};
-      if (!sameCurrency) {
-        if ('originalCurrency' in fxFields) {
-          preservedFx.originalCurrency = fxFields.originalCurrency;
-        }
-        if ('targetCurrency' in fxFields) {
-          preservedFx.targetCurrency = fxFields.targetCurrency;
-        }
-      }
-      return { ...rest, ...preservedFx } as T;
+    if (sameCurrency) {
+      return { ...rest, ...this.#buildSameCurrencyFx(fxFields) } as T;
     }
 
-    const baseResult = supportedCurrencySchema.safeParse(
+    if (missingCurrencyPair) {
+      return { ...rest, ...this.#buildMissingPairFx(fxFields) } as T;
+    }
+
+    const { base, target } = this.#parseCurrencyPair(
       fxFields.originalCurrency,
-    );
-    const targetResult = supportedCurrencySchema.safeParse(
       fxFields.targetCurrency,
     );
-
-    if (!baseResult.success || !targetResult.success) {
-      throw new BusinessException(
-        ERROR_DEFINITIONS.VALIDATION_FAILED,
-        {
-          reason: `Unsupported currency: ${!baseResult.success ? fxFields.originalCurrency : fxFields.targetCurrency}`,
-        },
-        { operation: 'overrideExchangeRate' },
-      );
-    }
-
-    const { rate } = await this.getRate(baseResult.data, targetResult.data);
+    const { rate } = await this.getRate(base, target);
     return {
       ...rest,
       originalAmount: fxFields.originalAmount,
@@ -194,6 +178,59 @@ export class CurrencyService {
       targetCurrency: fxFields.targetCurrency,
       exchangeRate: rate,
     } as T;
+  }
+
+  // Same-currency case: force-null the 3 source FX fields so any pre-existing
+  // orphan metadata in DB gets cleared. targetCurrency (budget display currency)
+  // is preserved as-is from the client input.
+  #buildSameCurrencyFx(fxFields: FxCarrier): FxCarrier {
+    const preservedFx: FxCarrier = {
+      originalAmount: null,
+      originalCurrency: null,
+      exchangeRate: null,
+    };
+    if ('targetCurrency' in fxFields) {
+      preservedFx.targetCurrency = fxFields.targetCurrency;
+    }
+    return preservedFx;
+  }
+
+  // Incomplete conversion context → drop forged FX values (defence-in-depth).
+  // If any FX source key was sent by the client (originalAmount, originalCurrency,
+  // exchangeRate), force-null all three so the row can never violate the
+  // fx_metadata_coherent CHECK constraint. Clients that did not touch FX at all
+  // leave the columns untouched, preserving PATCH semantics.
+  #buildMissingPairFx(fxFields: FxCarrier): FxCarrier {
+    const touchesSourceFx = FX_SOURCE_KEYS.some((k) => k in fxFields);
+
+    const preservedFx: FxCarrier = {};
+    if (touchesSourceFx) {
+      preservedFx.originalAmount = null;
+      preservedFx.originalCurrency = null;
+      preservedFx.exchangeRate = null;
+    }
+    if ('targetCurrency' in fxFields) {
+      preservedFx.targetCurrency = fxFields.targetCurrency;
+    }
+    return preservedFx;
+  }
+
+  #parseCurrencyPair(
+    original: string | null | undefined,
+    target: string | undefined,
+  ): { base: SupportedCurrency; target: SupportedCurrency } {
+    const base = parseCurrency(original);
+    const parsedTarget = parseCurrency(target);
+
+    if (!base || !parsedTarget) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.VALIDATION_FAILED,
+        { reason: `Unsupported currency: ${!base ? original : target}` },
+        { operation: 'overrideExchangeRate' },
+      );
+    }
+
+    return { base, target: parsedTarget };
   }
 
   #splitAndValidateFx<T extends FxCarrier>(

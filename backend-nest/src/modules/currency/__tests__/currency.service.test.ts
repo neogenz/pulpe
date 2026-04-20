@@ -147,7 +147,7 @@ describe('CurrencyService', () => {
 
   describe('overrideExchangeRate', () => {
     type FxDto = {
-      originalCurrency?: string;
+      originalCurrency?: string | null;
       targetCurrency?: string;
       exchangeRate?: number | null;
       originalAmount?: number | null;
@@ -155,7 +155,7 @@ describe('CurrencyService', () => {
       name?: string;
     };
 
-    it('should strip all FX metadata including currencies when currencies match (PUL-99 CA7)', async () => {
+    it('should force-null the 3 source FX fields and preserve targetCurrency when currencies match (S3-F1)', async () => {
       fetchSpy = mockFetchSuccess();
 
       const dto: FxDto = {
@@ -166,11 +166,16 @@ describe('CurrencyService', () => {
       };
       const result = await service.overrideExchangeRate(dto);
 
-      expect(result).toEqual({});
+      expect(result).toEqual({
+        originalAmount: null,
+        originalCurrency: null,
+        exchangeRate: null,
+        targetCurrency: 'CHF',
+      });
       expect(fetchSpy).not.toHaveBeenCalled();
     });
 
-    it('should strip forged FX fields when no currencies are provided at all', async () => {
+    it('should force-null the 3 source FX fields when any FX source key is sent without a full currency pair', async () => {
       fetchSpy = mockFetchSuccess();
 
       const dto: FxDto = {
@@ -180,11 +185,16 @@ describe('CurrencyService', () => {
       };
       const result = await service.overrideExchangeRate(dto);
 
-      expect(result).toEqual({ amount: 50 });
+      expect(result).toEqual({
+        amount: 50,
+        originalAmount: null,
+        originalCurrency: null,
+        exchangeRate: null,
+      });
       expect(fetchSpy).not.toHaveBeenCalled();
     });
 
-    it('should skip API call and strip forged FX fields when originalCurrency is missing', async () => {
+    it('should skip API call and force-null source FX fields when originalCurrency is missing', async () => {
       fetchSpy = mockFetchSuccess();
 
       const dto: FxDto = {
@@ -194,11 +204,16 @@ describe('CurrencyService', () => {
       };
       const result = await service.overrideExchangeRate(dto);
 
-      expect(result).toEqual({ targetCurrency: 'EUR' });
+      expect(result).toEqual({
+        targetCurrency: 'EUR',
+        originalAmount: null,
+        originalCurrency: null,
+        exchangeRate: null,
+      });
       expect(fetchSpy).not.toHaveBeenCalled();
     });
 
-    it('should skip API call and strip forged FX fields when targetCurrency is missing', async () => {
+    it('should skip API call and force-null source FX fields when targetCurrency is missing (C1 regression)', async () => {
       fetchSpy = mockFetchSuccess();
 
       const dto: FxDto = {
@@ -208,17 +223,26 @@ describe('CurrencyService', () => {
       };
       const result = await service.overrideExchangeRate(dto);
 
-      expect(result).toEqual({ originalCurrency: 'CHF' });
+      expect(result).toEqual({
+        originalAmount: null,
+        originalCurrency: null,
+        exchangeRate: null,
+      });
       expect(fetchSpy).not.toHaveBeenCalled();
     });
 
-    it('should strip currency fields when same currency but keep PATCH semantics for absent keys (PUL-99 CA7)', async () => {
+    it('should force-null source FX fields even when client omits amount+rate on same-currency PATCH (S3-F1)', async () => {
       fetchSpy = mockFetchSuccess();
 
       const dto: FxDto = { originalCurrency: 'CHF', targetCurrency: 'CHF' };
       const result = await service.overrideExchangeRate(dto);
 
-      expect(result).toEqual({});
+      expect(result).toEqual({
+        originalAmount: null,
+        originalCurrency: null,
+        exchangeRate: null,
+        targetCurrency: 'CHF',
+      });
       expect(fetchSpy).not.toHaveBeenCalled();
     });
 
