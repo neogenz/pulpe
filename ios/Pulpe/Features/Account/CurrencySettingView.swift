@@ -219,7 +219,7 @@ struct CurrencySettingView: View {
             .background(Color.surfaceContainerLow, in: RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.sm))
             .overlay {
                 RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.sm)
-                    .strokeBorder(Color.onSurfaceVariant.opacity(0.22), lineWidth: 1)
+                    .strokeBorder(Color.onSurfaceVariant.opacity(0.22), lineWidth: DesignTokens.BorderWidth.thin)
             }
         }
         .modifier(

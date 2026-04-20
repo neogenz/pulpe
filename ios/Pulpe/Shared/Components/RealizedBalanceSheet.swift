@@ -61,7 +61,7 @@ struct RealizedBalanceSheet: View {
                 .sensitiveAmount()
 
             // Status badge
-            HStack(spacing: 6) {
+            HStack(spacing: DesignTokens.Spacing.xs2) {
                 Image(systemName: isPositiveBalance ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
                     .font(PulpeTypography.caption)
                 Text(isPositiveBalance ? "Tout va bien" : "Solde négatif — on y remédie ?")
@@ -69,7 +69,7 @@ struct RealizedBalanceSheet: View {
             }
             .foregroundStyle(statusColor)
             .padding(.horizontal, DesignTokens.Spacing.md)
-            .padding(.vertical, 6)
+            .padding(.vertical, DesignTokens.Spacing.xs2)
             .background(statusColor.opacity(DesignTokens.Opacity.badgeBackground))
             .clipShape(Capsule())
         }
@@ -259,7 +259,7 @@ private struct BalanceTrendChart: View {
         Chart {
             RuleMark(y: .value("Zero", 0))
                 .foregroundStyle(.secondary.opacity(0.3))
-                .lineStyle(StrokeStyle(lineWidth: 1, dash: [4]))
+                .lineStyle(StrokeStyle(lineWidth: DesignTokens.BorderWidth.thin, dash: [4]))
 
             ForEach(forecasts) { point in
                 AreaMark(
@@ -274,7 +274,7 @@ private struct BalanceTrendChart: View {
                     y: .value("Solde", point.availableBalance)
                 )
                 .interpolationMethod(.monotone)
-                .lineStyle(StrokeStyle(lineWidth: 2, lineCap: .round))
+                .lineStyle(StrokeStyle(lineWidth: DesignTokens.BorderWidth.thick, lineCap: .round))
                 .foregroundStyle(Color.pulpePrimary)
                 .accessibilityLabel("Mois \(point.shortMonthName)")
                 .accessibilityValue(Formatters.chfCompact.string(from: point.availableBalance as NSNumber) ?? "")

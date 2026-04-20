@@ -17,7 +17,7 @@ struct KindBadge: View {
     }
 
     var body: some View {
-        HStack(spacing: 4) {
+        HStack(spacing: DesignTokens.Spacing.xs) {
             if style != .text {
                 Image(systemName: kind.icon)
                     .font(PulpeTypography.caption2)
@@ -29,8 +29,8 @@ struct KindBadge: View {
                     .fontWeight(.medium)
             }
         }
-        .padding(.horizontal, style == .compact ? 6 : 8)
-        .padding(.vertical, 4)
+        .padding(.horizontal, style == .compact ? DesignTokens.Spacing.xs2 : DesignTokens.Spacing.sm)
+        .padding(.vertical, DesignTokens.Spacing.xs)
         .foregroundStyle(kind.color)
         .background(kind.color.opacity(DesignTokens.Opacity.badgeBackground), in: Capsule())
     }
@@ -53,7 +53,7 @@ struct RecurrenceBadge: View {
     }
 
     var body: some View {
-        HStack(spacing: 4) {
+        HStack(spacing: DesignTokens.Spacing.xs) {
             if style != .text {
                 Image(systemName: recurrence.icon)
                     .font(PulpeTypography.caption2)
@@ -65,8 +65,8 @@ struct RecurrenceBadge: View {
                     .fontWeight(.medium)
             }
         }
-        .padding(.horizontal, style == .compact ? 6 : 8)
-        .padding(.vertical, 4)
+        .padding(.horizontal, style == .compact ? DesignTokens.Spacing.xs2 : DesignTokens.Spacing.sm)
+        .padding(.vertical, DesignTokens.Spacing.xs)
         .foregroundStyle(Color.textSecondary)
         .background(.secondary.opacity(DesignTokens.Opacity.badgeBackground), in: Capsule())
     }
@@ -78,7 +78,7 @@ struct BudgetLineBadges: View {
     let recurrence: TransactionRecurrence
 
     var body: some View {
-        HStack(spacing: 6) {
+        HStack(spacing: DesignTokens.Spacing.xs2) {
             KindBadge(kind, style: .compact)
             RecurrenceBadge(recurrence, style: .compact)
         }

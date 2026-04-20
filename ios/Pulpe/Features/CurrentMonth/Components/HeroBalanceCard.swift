@@ -174,7 +174,7 @@ struct HeroBalanceCard: View {
         .overlay {
             if colorScheme == .dark {
                 RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.xl)
-                    .stroke(.white.opacity(0.05), lineWidth: 1)
+                    .stroke(.white.opacity(0.05), lineWidth: DesignTokens.BorderWidth.thin)
             }
         }
         .animation(.spring(response: 0.7, dampingFraction: 0.8), value: metrics.emotionState)

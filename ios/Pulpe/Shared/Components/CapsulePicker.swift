@@ -34,7 +34,10 @@ struct CapsulePicker<T: CaseIterable & Hashable, ItemLabel: View>: View where T.
                             .overlay {
                                 if !isSelected {
                                     Capsule()
-                                        .strokeBorder(Color.onSurfaceVariant.opacity(0.22), lineWidth: 1)
+                                        .strokeBorder(
+                                            Color.onSurfaceVariant.opacity(0.22),
+                                            lineWidth: DesignTokens.BorderWidth.thin
+                                        )
                                 }
                             }
                             .foregroundStyle(isSelected ? Color.textOnPrimary : Color.textPrimary)

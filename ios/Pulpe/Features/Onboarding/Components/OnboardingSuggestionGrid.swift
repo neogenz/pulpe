@@ -18,7 +18,7 @@ struct OnboardingSuggestionGrid: View {
                 columns: [GridItem(.adaptive(minimum: 160), spacing: DesignTokens.Spacing.sm)],
                 spacing: DesignTokens.Spacing.sm
             ) {
-                ForEach(suggestions, id: \.name) { suggestion in
+                ForEach(suggestions, id: \.id) { suggestion in
                     SuggestionChip(
                         suggestion: suggestion,
                         isSelected: state.isSuggestionSelected(suggestion),
@@ -67,7 +67,7 @@ private struct SuggestionChip: View {
     var body: some View {
         Button(action: action) {
             HStack(alignment: .center, spacing: DesignTokens.Spacing.sm) {
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
                     Text(suggestion.name)
                         .font(PulpeTypography.labelLarge)
                         .lineLimit(2)

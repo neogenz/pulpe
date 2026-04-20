@@ -67,7 +67,10 @@ struct ToastView: View {
                             )
                             .overlay(
                                 Capsule()
-                                    .strokeBorder(toast.type.color.opacity(0.42), lineWidth: 1)
+                                    .strokeBorder(
+                                        toast.type.color.opacity(0.42),
+                                        lineWidth: DesignTokens.BorderWidth.thin
+                                    )
                             )
                     }
                     .buttonStyle(PlainPressedButtonStyle())

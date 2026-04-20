@@ -33,9 +33,17 @@ enum DesignTokens {
     // MARK: - Spacing
 
     enum Spacing {
+        /// No spacing — used for semantic "no gap" (e.g. `HStack(spacing: .none)`)
+        static let none: CGFloat = 0
         static let xxs: CGFloat = 2
+        /// Between `xxs` (2) and `xs` (4) — e.g. tiny icon/label gaps
+        static let xxs2: CGFloat = 3
         static let xs: CGFloat = 4
+        /// Between `xs` (4) and `sm` (8) — e.g. compact badge padding
+        static let xs2: CGFloat = 6
         static let sm: CGFloat = 8
+        /// Between `sm` (8) and `md` (12) — e.g. tab-bar segment gap
+        static let sm2: CGFloat = 10
         static let md: CGFloat = 12
         static let lg: CGFloat = 16
         static let xl: CGFloat = 20
