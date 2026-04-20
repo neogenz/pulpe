@@ -70,8 +70,8 @@ struct MainTabView: View {
     @available(iOS 26.0, *)
     @ViewBuilder
     private func customTabBarView(selectedTab: Binding<Tab>) -> some View {
-        GlassEffectContainer(spacing: DesignTokens.Spacing.sm2) {
-            HStack(spacing: DesignTokens.Spacing.sm2) {
+        GlassEffectContainer(spacing: DesignTokens.Spacing.compactGap) {
+            HStack(spacing: DesignTokens.Spacing.compactGap) {
                 GeometryReader { geometry in
                     let segmentInset = DesignTokens.Spacing.xs
                     CustomTabBar(
@@ -100,7 +100,7 @@ struct MainTabView: View {
         HStack(spacing: DesignTokens.Spacing.none) {
             ForEach(Tab.allCases) { tab in
                 let isSelected = selectedTab.wrappedValue == tab
-                VStack(spacing: DesignTokens.Spacing.xxs2) {
+                VStack(spacing: DesignTokens.Spacing.dividerGap) {
                     tabBarIcon(for: tab, isSelected: isSelected)
                     Text(tab.title).font(PulpeTypography.tabLabel)
                 }
@@ -137,7 +137,7 @@ struct MainTabView: View {
 
     @ViewBuilder
     private func customTabBarViewLegacy(selectedTab: Binding<Tab>) -> some View {
-        HStack(spacing: DesignTokens.Spacing.sm2) {
+        HStack(spacing: DesignTokens.Spacing.compactGap) {
             HStack(spacing: DesignTokens.Spacing.none) {
                 ForEach(Tab.allCases) { tab in
                     Button {
@@ -147,7 +147,7 @@ struct MainTabView: View {
                     } label: {
                         let isSelected = selectedTab.wrappedValue == tab
 
-                        VStack(spacing: DesignTokens.Spacing.xxs2) {
+                        VStack(spacing: DesignTokens.Spacing.dividerGap) {
                             tabBarIcon(for: tab, isSelected: isSelected)
                             Text(tab.title)
                                 .font(PulpeTypography.tabLabel)

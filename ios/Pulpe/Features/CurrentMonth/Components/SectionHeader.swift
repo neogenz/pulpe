@@ -20,7 +20,7 @@ struct SectionHeader: View {
                 .font(PulpeTypography.inputHelper)
                 .foregroundStyle(Color.textOnPrimary)
                 .padding(.horizontal, DesignTokens.Spacing.sm)
-                .padding(.vertical, DesignTokens.Spacing.xxs2)
+                .padding(.vertical, DesignTokens.Spacing.dividerGap)
                 .background(Color.countBadge)
                 .clipShape(Capsule())
 

@@ -81,7 +81,7 @@ struct CustomTabBar: UIViewRepresentable {
                     .overlay {
                         HStack(spacing: DesignTokens.Spacing.none) {
                             ForEach(Tab.allCases) { tab in
-                                VStack(spacing: DesignTokens.Spacing.xxs2) {
+                                VStack(spacing: DesignTokens.Spacing.dividerGap) {
                                     Image(systemName: tab.icon)
                                         .font(.title3)
                                     Text(tab.title)

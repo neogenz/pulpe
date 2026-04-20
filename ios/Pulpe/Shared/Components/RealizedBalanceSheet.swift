@@ -61,7 +61,7 @@ struct RealizedBalanceSheet: View {
                 .sensitiveAmount()
 
             // Status badge
-            HStack(spacing: DesignTokens.Spacing.xs2) {
+            HStack(spacing: DesignTokens.Spacing.tightGap) {
                 Image(systemName: isPositiveBalance ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
                     .font(PulpeTypography.caption)
                 Text(isPositiveBalance ? "Tout va bien" : "Solde négatif — on y remédie ?")
@@ -69,7 +69,7 @@ struct RealizedBalanceSheet: View {
             }
             .foregroundStyle(statusColor)
             .padding(.horizontal, DesignTokens.Spacing.md)
-            .padding(.vertical, DesignTokens.Spacing.xs2)
+            .padding(.vertical, DesignTokens.Spacing.tightGap)
             .background(statusColor.opacity(DesignTokens.Opacity.badgeBackground))
             .clipShape(Capsule())
         }
