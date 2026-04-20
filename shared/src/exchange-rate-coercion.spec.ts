@@ -7,17 +7,35 @@ import {
   templateLineCreateSchema,
   templateLineCreateWithoutTemplateIdSchema,
   templateLineUpdateSchema,
+  savingsGoalSchema,
+  savingsGoalCreateSchema,
+  budgetLineSchema,
+  budgetLineCreateSchema,
 } from '../schemas.js';
 
-// PUL-114: exchange_rate is NUMERIC(18,8) — Supabase PostgREST returns it as a
-// string, so every schema that reads/writes it must coerce. A regression to
-// z.number() would silently break multi-currency reads on clients that parse
-// API responses with these schemas. These tests are the CI canary.
+// PUL-114: exchange_rate is NUMERIC(18,8) — PostgREST returns it as a string,
+// so every schema that reads/writes it must coerce. Initial fix used
+// z.coerce.number(), but JS Number() semantics silently accept booleans
+// (true→1) and single-element arrays ([1.2]→1.2) as valid rates. Hardening
+// narrows input to `number | string` via a union before coerce, and rejects
+// empty/whitespace strings. These tests are the CI canary for both regressions.
 
 const TRANSACTION_ID = '550e8400-e29b-41d4-a716-446655440000';
 const BUDGET_ID = '550e8400-e29b-41d4-a716-446655440001';
 const TEMPLATE_ID = '550e8400-e29b-41d4-a716-446655440002';
+const USER_ID = '550e8400-e29b-41d4-a716-446655440003';
 const ISO_DATETIME = '2026-01-01T00:00:00+00:00';
+
+const NON_COERCIBLE_INPUTS = [
+  { label: 'boolean true', val: true },
+  { label: 'boolean false', val: false },
+  { label: 'array [1.2]', val: [1.2] },
+  { label: 'string array ["1.2"]', val: ['1.2'] },
+  { label: 'empty array', val: [] },
+  { label: 'empty object', val: {} },
+  { label: 'empty string ""', val: '' },
+  { label: 'whitespace string "   "', val: '   ' },
+] as const;
 
 const baseTransaction = {
   id: TRANSACTION_ID,
@@ -52,8 +70,6 @@ const baseTransactionCreate = {
   kind: 'expense',
 };
 
-const baseTransactionUpdate = {};
-
 const baseTemplateLineCreate = {
   templateId: TEMPLATE_ID,
   name: 'Loyer',
@@ -71,7 +87,47 @@ const baseTemplateLineCreateWithoutTemplateId = {
   description: 'Loyer',
 };
 
-const baseTemplateLineUpdate = {};
+const baseSavingsGoal = {
+  id: TRANSACTION_ID,
+  userId: USER_ID,
+  name: 'New car',
+  targetAmount: 5000,
+  targetDate: '2027-01-01',
+  priority: 'HIGH',
+  status: 'ACTIVE',
+  createdAt: ISO_DATETIME,
+  updatedAt: ISO_DATETIME,
+};
+
+const baseSavingsGoalCreate = {
+  name: 'New car',
+  targetAmount: 5000,
+  targetDate: '2027-01-01',
+  priority: 'HIGH',
+};
+
+const baseBudgetLine = {
+  id: TRANSACTION_ID,
+  budgetId: BUDGET_ID,
+  templateLineId: null,
+  savingsGoalId: null,
+  name: 'Loyer',
+  amount: 1200,
+  kind: 'expense',
+  recurrence: 'fixed',
+  isManuallyAdjusted: false,
+  checkedAt: null,
+  createdAt: ISO_DATETIME,
+  updatedAt: ISO_DATETIME,
+};
+
+const baseBudgetLineCreate = {
+  budgetId: BUDGET_ID,
+  name: 'Loyer',
+  amount: 1200,
+  kind: 'expense',
+  recurrence: 'fixed',
+};
 
 const readSchemas = [
   {
@@ -84,6 +140,16 @@ const readSchemas = [
     schema: templateLineSchema,
     base: baseTemplateLine,
   },
+  {
+    name: 'savingsGoalSchema',
+    schema: savingsGoalSchema,
+    base: baseSavingsGoal,
+  },
+  {
+    name: 'budgetLineSchema',
+    schema: budgetLineSchema,
+    base: baseBudgetLine,
+  },
 ] as const;
 
 const writeSchemas = [
@@ -95,7 +161,7 @@ const writeSchemas = [
   {
     name: 'transactionUpdateSchema',
     schema: transactionUpdateSchema,
-    base: baseTransactionUpdate,
+    base: {},
   },
   {
     name: 'templateLineCreateSchema',
@@ -110,7 +176,17 @@ const writeSchemas = [
   {
     name: 'templateLineUpdateSchema',
     schema: templateLineUpdateSchema,
-    base: baseTemplateLineUpdate,
+    base: {},
+  },
+  {
+    name: 'savingsGoalCreateSchema',
+    schema: savingsGoalCreateSchema,
+    base: baseSavingsGoalCreate,
+  },
+  {
+    name: 'budgetLineCreateSchema',
+    schema: budgetLineCreateSchema,
+    base: baseBudgetLineCreate,
   },
 ] as const;
 
@@ -149,6 +225,15 @@ describe('PUL-114 exchangeRate coercion regression', () => {
 
         expect(result.success).toBe(false);
       });
+
+      it.each(NON_COERCIBLE_INPUTS)(
+        'should reject $label (narrowing + finite-number guards)',
+        ({ val }) => {
+          const result = schema.safeParse({ ...base, exchangeRate: val });
+
+          expect(result.success).toBe(false);
+        },
+      );
     },
   );
 
@@ -198,6 +283,15 @@ describe('PUL-114 exchangeRate coercion regression', () => {
 
         expect(result.success).toBe(false);
       });
+
+      it.each(NON_COERCIBLE_INPUTS)(
+        'should reject $label (narrowing + finite-number guards)',
+        ({ val }) => {
+          const result = schema.safeParse({ ...base, exchangeRate: val });
+
+          expect(result.success).toBe(false);
+        },
+      );
     },
   );
 });
