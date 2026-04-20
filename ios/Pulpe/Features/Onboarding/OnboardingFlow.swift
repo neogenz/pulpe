@@ -10,6 +10,10 @@ struct OnboardingFlow: View {
     @State private var showExitConfirmation = false
     @State private var hasEmittedResumed = false
     @State private var hasEmittedStarted = false
+    /// One-shot guard for the welcome-back toast on silent session resume.
+    /// In-memory (not persisted) — "once per recovery" means once per entry into
+    /// the recovery flow, mirroring the analytics idempotency pattern above.
+    @State private var hasShownResumeToast = false
 
     private let pendingUser: PendingOnboardingUser?
 
@@ -143,6 +147,12 @@ struct OnboardingFlow: View {
                 if state.wasEmailRegistered && !state.isAuthenticated {
                     if let user = try? await AuthService.shared.validateSession() {
                         state.configureEmailUser(user)
+                        // Cold-start safety: if the app died between Supabase signup and the
+                        // `nextStep()` that advanced past `.registration`, the persisted step
+                        // is stuck on registration. Without this, tapping "Créer mon compte"
+                        // would re-signup the same email and fail. Matches the pending-user
+                        // path in `init(pendingUser:)`.
+                        state.resumeEmailUserAfterRegistration()
                         emitResumedIfNeeded(method: .email, source: .sessionFallback)
                     } else {
                         // Session expired or unrecoverable — purge the persisted draft so the next
@@ -273,6 +283,16 @@ struct OnboardingFlow: View {
                 "resumed_at_step": state.currentStep.analyticsName
             ]
         )
+        showResumeToastIfNeeded()
+    }
+
+    /// Discreet welcome-back toast after a silent session resume. One-shot per flow
+    /// entry (not persisted) — same contract as `hasEmittedResumed`. Uses the global
+    /// `ToastOverlayWindowHost` wired at `PulpeApp` level, so no local overlay needed.
+    private func showResumeToastIfNeeded() {
+        guard !hasShownResumeToast else { return }
+        hasShownResumeToast = true
+        appState.toastManager.show("On reprend là où tu t'es arrêté.")
     }
 
     // MARK: - Completion

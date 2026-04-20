@@ -119,6 +119,15 @@ extension RegistrationStep {
     )
 
     private func submitRegistration() async {
+        // Defense-in-depth: if we're already authenticated (cold-start resume landed
+        // us back on the registration step somehow), skip the signup call and just
+        // advance — Supabase would reject the duplicate email and drop a confusing
+        // error on a user who already has an account.
+        if state.isAuthenticated {
+            state.nextStep()
+            return
+        }
+
         state.isLoading = true
         state.error = nil
 
