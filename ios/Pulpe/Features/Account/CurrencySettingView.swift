@@ -96,8 +96,8 @@ struct CurrencySettingView: View {
 
     private var currencyConverterContextCopy: some View {
         Text(
-            "Les montants de ton budget sont dans la devise sélectionnée. "
-                + "Le convertisseur indique une équivalence au cours du jour (indicatif)."
+            "Ta devise principale. Quand tu ajoutes une dépense dans une autre devise, "
+                + "Pulpe convertit automatiquement au cours du jour."
         )
         .font(PulpeTypography.caption)
         .foregroundStyle(Color.onSurfaceVariant)
@@ -107,8 +107,8 @@ struct CurrencySettingView: View {
         .padding(.bottom, DesignTokens.Spacing.xs)
         .accessibilityElement(children: .combine)
         .accessibilityLabel(
-            "Les montants de ton budget sont dans la devise sélectionnée. "
-                + "Le convertisseur indique une équivalence au cours du jour, indicatif."
+            "Ta devise principale. Quand tu ajoutes une dépense dans une autre devise, "
+                + "Pulpe convertit automatiquement au cours du jour."
         )
         .listRowSeparator(.hidden, edges: .bottom)
     }
@@ -249,8 +249,8 @@ struct CurrencySettingView: View {
                         .font(PulpeTypography.listRowTitle)
                         .foregroundStyle(Color.textTertiary)
                     Text(
-                        "Le cours affiché n’est pas disponible pour l’instant. "
-                            + "Tes montants dans Pulpe restent bien dans ta devise."
+                        "Impossible de récupérer le cours du jour. "
+                            + "Tes montants déjà enregistrés restent intacts."
                     )
                         .font(PulpeTypography.caption)
                         .foregroundStyle(Color.onSurfaceVariant)

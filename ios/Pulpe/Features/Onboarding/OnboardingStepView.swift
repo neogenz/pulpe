@@ -366,8 +366,8 @@ struct OnboardingCurrencySwapSheet: View {
 
             Text(
                 """
-                Toutes tes prévisions seront affichées dans la nouvelle devise. \
-                Tu peux changer plus tard depuis tes paramètres.
+                Choisis ta devise principale. \
+                Tu peux la changer à tout moment dans tes paramètres.
                 """
             )
             .font(PulpeTypography.body)
