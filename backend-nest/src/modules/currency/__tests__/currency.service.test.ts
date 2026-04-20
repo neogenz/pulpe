@@ -246,6 +246,28 @@ describe('CurrencyService', () => {
       expect(fetchSpy).not.toHaveBeenCalled();
     });
 
+    it('should reject same-currency PATCH with unsupported currency instead of clearing FX metadata (PUL-115 defense-in-depth)', async () => {
+      // If an internal caller bypasses DTO validation and passes equal but
+      // unsupported currencies (e.g. "ZZZ"/"ZZZ"), the same-currency branch
+      // must throw rather than silently wipe persisted FX columns.
+      fetchSpy = mockFetchSuccess();
+
+      const dto = {
+        originalCurrency: 'ZZZ',
+        targetCurrency: 'ZZZ',
+        amount: 50,
+      } as unknown as {
+        originalCurrency: string;
+        targetCurrency: string;
+        amount: number;
+      };
+
+      await expect(service.overrideExchangeRate(dto)).rejects.toThrow(
+        /Unsupported currency: ZZZ/,
+      );
+      expect(fetchSpy).not.toHaveBeenCalled();
+    });
+
     it('should return DTO unchanged when no FX fields are present at all', async () => {
       fetchSpy = mockFetchSuccess();
 
