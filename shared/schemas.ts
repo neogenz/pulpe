@@ -338,7 +338,8 @@ export const transactionSchema = z.object({
   originalAmount: z.coerce.number().nonnegative().nullable().optional(),
   originalCurrency: supportedCurrencySchema.nullable().optional(),
   targetCurrency: supportedCurrencySchema.nullable().optional(),
-  exchangeRate: z.number().nullable().optional(),
+  // coerce: exchange_rate is NUMERIC(18,8) — backend emits string; clients dual-read.
+  exchangeRate: z.coerce.number().nullable().optional(),
 });
 export type Transaction = z.infer<typeof transactionSchema>;
 
@@ -354,7 +355,9 @@ export const transactionCreateSchema = z.object({
   originalAmount: z.number().positive().optional(),
   originalCurrency: supportedCurrencySchema.optional(),
   targetCurrency: supportedCurrencySchema.optional(),
-  exchangeRate: z.number().positive().optional(),
+  // coerce: accept both string and number on the input wire (dual-read during
+  // the iOS/frontend migration window); .positive() still applies post-coerce.
+  exchangeRate: z.coerce.number().positive().optional(),
 });
 export type TransactionCreate = z.infer<typeof transactionCreateSchema>;
 
@@ -367,7 +370,9 @@ export const transactionUpdateSchema = z.object({
   originalAmount: z.number().positive().optional(),
   originalCurrency: supportedCurrencySchema.optional(),
   targetCurrency: supportedCurrencySchema.optional(),
-  exchangeRate: z.number().positive().optional(),
+  // coerce: accept both string and number on the input wire (dual-read during
+  // the iOS/frontend migration window); .positive() still applies post-coerce.
+  exchangeRate: z.coerce.number().positive().optional(),
 });
 export type TransactionUpdate = z.infer<typeof transactionUpdateSchema>;
 
@@ -437,7 +442,8 @@ export const templateLineSchema = z.object({
   originalAmount: z.coerce.number().nonnegative().nullable().optional(),
   originalCurrency: supportedCurrencySchema.nullable().optional(),
   targetCurrency: supportedCurrencySchema.nullable().optional(),
-  exchangeRate: z.number().nullable().optional(),
+  // coerce: exchange_rate is NUMERIC(18,8) — backend emits string; clients dual-read.
+  exchangeRate: z.coerce.number().nullable().optional(),
 });
 export type TemplateLine = z.infer<typeof templateLineSchema>;
 
@@ -451,7 +457,9 @@ export const templateLineCreateSchema = z.object({
   originalAmount: z.number().positive().optional(),
   originalCurrency: supportedCurrencySchema.optional(),
   targetCurrency: supportedCurrencySchema.optional(),
-  exchangeRate: z.number().positive().optional(),
+  // coerce: accept both string and number on the input wire (dual-read during
+  // the iOS/frontend migration window); .positive() still applies post-coerce.
+  exchangeRate: z.coerce.number().positive().optional(),
 });
 
 // Template line create without templateId (for batch creation)
@@ -464,7 +472,9 @@ export const templateLineCreateWithoutTemplateIdSchema = z.object({
   originalAmount: z.number().positive().optional(),
   originalCurrency: supportedCurrencySchema.optional(),
   targetCurrency: supportedCurrencySchema.optional(),
-  exchangeRate: z.number().positive().optional(),
+  // coerce: accept both string and number on the input wire (dual-read during
+  // the iOS/frontend migration window); .positive() still applies post-coerce.
+  exchangeRate: z.coerce.number().positive().optional(),
 });
 export type TemplateLineCreateWithoutTemplateId = z.infer<
   typeof templateLineCreateWithoutTemplateIdSchema
@@ -507,7 +517,9 @@ export const templateLineUpdateSchema = z.object({
   originalAmount: z.number().positive().optional(),
   originalCurrency: supportedCurrencySchema.optional(),
   targetCurrency: supportedCurrencySchema.optional(),
-  exchangeRate: z.number().positive().optional(),
+  // coerce: accept both string and number on the input wire (dual-read during
+  // the iOS/frontend migration window); .positive() still applies post-coerce.
+  exchangeRate: z.coerce.number().positive().optional(),
 });
 export type TemplateLineUpdate = z.infer<typeof templateLineUpdateSchema>;
 
