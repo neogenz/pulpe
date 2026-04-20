@@ -8,12 +8,13 @@ struct OnboardingRunningTotal: View {
     var currency: SupportedCurrency = .chf
 
     var body: some View {
+        let formatted = amount.asCurrency(currency)
         HStack {
             Text(label)
                 .font(PulpeTypography.labelLarge)
                 .foregroundStyle(Color.textSecondaryOnboarding)
             Spacer()
-            Text(amount.asCurrency(currency))
+            Text(formatted)
                 .font(PulpeTypography.onboardingSubtitle)
                 .monospacedDigit()
                 .foregroundStyle(color)
@@ -26,6 +27,10 @@ struct OnboardingRunningTotal: View {
                 .shadow(DesignTokens.Shadow.card)
         )
         .animation(.snappy(duration: DesignTokens.Animation.fast), value: amount)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(label): \(formatted)")
+        .accessibilityValue(formatted)
+        .accessibilityAddTraits(.updatesFrequently)
     }
 }
 

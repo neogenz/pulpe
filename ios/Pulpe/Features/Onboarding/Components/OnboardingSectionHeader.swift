@@ -49,6 +49,7 @@ struct OnboardingSectionHeader<Content: View>: View {
                 .contentShape(Rectangle())
                 .plainPressedButtonStyle()
                 .accessibilityLabel(title)
+                .accessibilityValue(isExpanded ? "développé" : "réduit")
                 .accessibilityHint(isExpanded ? "Appuie pour réduire" : "Appuie pour développer")
                 .accessibilityAddTraits(.isButton)
             } else {

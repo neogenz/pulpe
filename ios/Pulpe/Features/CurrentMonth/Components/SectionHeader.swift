@@ -20,7 +20,7 @@ struct SectionHeader: View {
                 .font(PulpeTypography.inputHelper)
                 .foregroundStyle(Color.textOnPrimary)
                 .padding(.horizontal, DesignTokens.Spacing.sm)
-                .padding(.vertical, 3)
+                .padding(.vertical, DesignTokens.Spacing.xxs2)
                 .background(Color.countBadge)
                 .clipShape(Capsule())
 
@@ -35,6 +35,9 @@ struct SectionHeader: View {
                     .sensitiveAmount()
             }
         }
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(.isHeader)
+        .accessibilityValue(totalAmount?.asSignedCompactCHF ?? "")
     }
 }
 
