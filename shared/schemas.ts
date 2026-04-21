@@ -83,9 +83,10 @@ export type CurrencyRateResponse = z.infer<typeof currencyRateResponseSchema>;
  * The union narrowing (`number | string` only) prevents JS Number() semantics
  * from silently turning booleans (true → 1) or single-element arrays
  * ([1.2] → 1.2) into valid financial values — which z.coerce.number() would.
+ * Infinity and -Infinity are rejected on both branches.
  */
 const exchangeRateWire = z.union([
-  z.number(),
+  z.number().finite(),
   z.string().transform((value, ctx) => {
     if (value.trim() === '') {
       ctx.addIssue({

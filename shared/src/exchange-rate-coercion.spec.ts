@@ -35,6 +35,10 @@ const NON_COERCIBLE_INPUTS = [
   { label: 'empty object', val: {} },
   { label: 'empty string ""', val: '' },
   { label: 'whitespace string "   "', val: '   ' },
+  { label: 'Infinity (number)', val: Infinity },
+  { label: '-Infinity (number)', val: -Infinity },
+  { label: 'string "Infinity"', val: 'Infinity' },
+  { label: 'string "-Infinity"', val: '-Infinity' },
 ] as const;
 
 const baseTransaction = {
