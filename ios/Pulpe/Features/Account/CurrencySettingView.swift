@@ -26,8 +26,9 @@ struct CurrencySettingView: View {
     var body: some View {
         if featureFlagsStore.isMultiCurrencyEnabled {
             Section {
+                currencyScopeHelper
                 currencyPicker
-                currencyConverterContextCopy
+                currencySelectorToggle
                 converterDisclosure
             } header: {
                 Text("DEVISE")
@@ -52,6 +53,16 @@ struct CurrencySettingView: View {
                 viewModel.syncCurrency(userSettingsStore.currency)
             }
         }
+    }
+
+    // MARK: - Scope Helper
+
+    private var currencyScopeHelper: some View {
+        Text("On l'utilise pour afficher tous tes montants.")
+            .font(PulpeTypography.caption)
+            .foregroundStyle(Color.onSurfaceVariant)
+            .fixedSize(horizontal: false, vertical: true)
+            .listRowSeparator(.hidden, edges: .bottom)
     }
 
     // MARK: - Currency Picker
@@ -92,26 +103,42 @@ struct CurrencySettingView: View {
         }
     }
 
-    // MARK: - Converter
+    // MARK: - Currency Selector Toggle
 
-    private var currencyConverterContextCopy: some View {
-        Text(
-            "Ta devise principale. Quand tu ajoutes une dépense dans une autre devise, "
-                + "Pulpe convertit automatiquement au cours du jour."
+    private var currencySelectorToggle: some View {
+        Toggle(isOn: Binding(
+            get: { userSettingsStore.showCurrencySelector },
+            set: { newValue in
+                Task {
+                    await userSettingsStore.updateShowCurrencySelector(newValue)
+                    if userSettingsStore.error == nil {
+                        submitSuccessTrigger.toggle()
+                        appState.toastManager.show("Préférence enregistrée", type: .success)
+                    } else {
+                        appState.toastManager.show("Erreur lors de la sauvegarde", type: .error)
+                    }
+                }
+            }
+        )) {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
+                Text("Saisir dans une autre devise")
+                    .font(PulpeTypography.listRowTitle)
+                Text(
+                    "Un sélecteur de devise apparaît à côté du montant. "
+                        + "Pulpe convertit au cours du jour."
+                )
+                .font(PulpeTypography.caption)
+                .foregroundStyle(Color.onSurfaceVariant)
+                .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .tint(Color.pulpePrimary)
+        .accessibilityHint(
+            "Active pour pouvoir entrer une dépense en EUR ou CHF, peu importe ta devise principale."
         )
-        .font(PulpeTypography.caption)
-        .foregroundStyle(Color.onSurfaceVariant)
-        .multilineTextAlignment(.leading)
-        .fixedSize(horizontal: false, vertical: true)
-        .padding(.top, DesignTokens.Spacing.sm)
-        .padding(.bottom, DesignTokens.Spacing.xs)
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel(
-            "Ta devise principale. Quand tu ajoutes une dépense dans une autre devise, "
-                + "Pulpe convertit automatiquement au cours du jour."
-        )
-        .listRowSeparator(.hidden, edges: .bottom)
     }
+
+    // MARK: - Converter
 
     private var converterDisclosure: some View {
         DisclosureGroup(isExpanded: $isConverterExpanded) {

@@ -28,15 +28,15 @@ struct HeroBalanceCard: View {
     }
 
     private var formattedBalance: String {
-        abs(metrics.remaining).asCompactAmount
+        abs(metrics.remaining).asCompactAmount(for: userSettingsStore.currency)
     }
 
     private var formattedSpent: String {
-        metrics.totalExpenses.asCompactAmount
+        metrics.totalExpenses.asCompactAmount(for: userSettingsStore.currency)
     }
 
     private var formattedAvailable: String {
-        metrics.available.asCompactAmount
+        metrics.available.asCompactAmount(for: userSettingsStore.currency)
     }
 
     private var usagePercentageText: String {

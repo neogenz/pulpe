@@ -71,18 +71,22 @@ private struct RecentTransactionCardRow: View {
             Spacer()
 
             // Amount
-            Text(transaction.amount.asSignedAmount(for: transaction.kind))
-                .font(PulpeTypography.listRowSubtitle)
-                .foregroundStyle(transaction.kind.color)
-                .sensitiveAmount()
+            TransactionAmountView(transaction: transaction, displayCurrency: userSettingsStore.currency)
         }
         .padding(.vertical, DesignTokens.ListRow.verticalPadding)
         .accessibilityElement(children: .combine)
-        .accessibilityLabel(
-            "\(transaction.name), \(transaction.kind.label), "
+        .accessibilityLabel(accessibilityLabel)
+    }
+
+    private var accessibilityLabel: String {
+        let base = "\(transaction.name), \(transaction.kind.label), "
             + "\(transaction.transactionDate.relativeFormatted), "
-            + "\(amountsHidden ? "Montant masqué" : transaction.amount.asCurrency(userSettingsStore.currency))"
-        )
+        if amountsHidden {
+            return base + "Montant masqué"
+        }
+        return base
+            + transaction.amount.asCurrency(userSettingsStore.currency)
+            + TransactionAmountView.accessibilityAmountSuffix(for: transaction, in: userSettingsStore.currency)
     }
 }
 

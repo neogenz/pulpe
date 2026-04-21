@@ -143,7 +143,7 @@ private struct UncheckedItemRow: View {
                 let pct = Int(min(consumption.percentage, 999))
                 let color: Color = consumption.isOverBudget ? .financialOverBudget :
                     consumption.isNearLimit ? .warningPrimary : .secondary
-                Text("\(pct)% \u{00B7} \(consumption.available.asAmount) restant")
+                Text("\(pct)% \u{00B7} \(consumption.available.asAmount(for: userSettingsStore.currency)) restant")
                     .font(PulpeTypography.caption)
                     .foregroundStyle(color)
                     .sensitiveAmount()
@@ -166,14 +166,11 @@ private struct UncheckedItemRow: View {
     private var amountText: some View {
         switch item {
         case .transaction(let tx, _):
-            Text(tx.amount.asSignedAmount(for: tx.kind))
-                .font(PulpeTypography.listRowSubtitle)
-                .foregroundStyle(tx.kind.color)
-                .sensitiveAmount()
+            TransactionAmountView(transaction: tx, displayCurrency: userSettingsStore.currency)
 
         case .budgetLine(let line, let consumption):
             if line.kind == .expense, let consumption {
-                let text = consumption.available.asSignedAmount(for: line.kind)
+                let text = consumption.available.asSignedAmount(for: line.kind, in: userSettingsStore.currency)
                 let color: Color = consumption.isOverBudget ? .financialOverBudget :
                     consumption.isNearLimit ? .warningPrimary : .secondary
                 Text(text)
@@ -181,7 +178,7 @@ private struct UncheckedItemRow: View {
                     .foregroundStyle(color)
                     .sensitiveAmount()
             } else {
-                Text(line.amount.asSignedAmount(for: line.kind))
+                Text(line.amount.asSignedAmount(for: line.kind, in: userSettingsStore.currency))
                     .font(PulpeTypography.listRowSubtitle)
                     .foregroundStyle(line.kind.color)
                     .sensitiveAmount()

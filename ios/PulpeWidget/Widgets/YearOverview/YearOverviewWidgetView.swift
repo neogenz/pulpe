@@ -81,7 +81,7 @@ struct YearOverviewWidgetView: View {
                 .foregroundStyle(month.isCurrentMonth ? Color.textPrimary : Color.textSecondary)
 
             if let available = month.available {
-                Text(available.asAmount)
+                Text(available.asAmount(for: .chf))
                     .font(PulpeTypography.metricMini)
                     .fontWeight(month.isCurrentMonth ? .bold : .regular)
                     .foregroundStyle(amountColor(for: available))

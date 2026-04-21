@@ -25,13 +25,13 @@ final class UserSettingsStore: StoreProtocol {
 
     // MARK: - Services
 
-    private let service: UserSettingsService
+    private let service: any UserSettingsServicing
     private let featureFlags: FeatureFlagsStore?
 
     // MARK: - Initialization
 
     init(
-        service: UserSettingsService = .shared,
+        service: any UserSettingsServicing = UserSettingsService.shared,
         featureFlags: FeatureFlagsStore? = nil
     ) {
         self.service = service
@@ -122,6 +122,29 @@ final class UserSettingsStore: StoreProtocol {
             self.error = apiError
         } catch {
             currency = previousValue
+            self.error = .networkError(error)
+        }
+    }
+
+    func updateShowCurrencySelector(_ newValue: Bool) async {
+        let previousValue = showCurrencySelector
+        error = nil
+
+        // Optimistic update
+        showCurrencySelector = newValue
+
+        do {
+            let updated = try await service.updateSettings(
+                UpdateUserSettings(showCurrencySelector: newValue)
+            )
+            // Backend may omit the field on partial responses; keep the value we just persisted.
+            showCurrencySelector = updated.showCurrencySelector ?? newValue
+            lastLoadTime = Date()
+        } catch let apiError as APIError {
+            showCurrencySelector = previousValue
+            self.error = apiError
+        } catch {
+            showCurrencySelector = previousValue
             self.error = .networkError(error)
         }
     }

@@ -64,7 +64,7 @@ struct YearRecapCard: View {
 
     private var heroAmount: some View {
         HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.xs) {
-            Text(yearTotal.asSignedCompactAmount)
+            Text(yearTotal.asSignedCompactAmount(for: userSettingsStore.currency))
                 .font(PulpeTypography.heroIcon)
                 .monospacedDigit()
                 .tracking(DesignTokens.Tracking.hero)

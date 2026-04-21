@@ -19,14 +19,20 @@ extension Decimal {
     /// Format as CHF currency using Swiss locale
     var asCHF: String { asCurrency(.chf) }
 
-    /// Format as amount only (no currency code) using Swiss locale — "1'234.56"
-    var asAmount: String {
-        Self.amountFormatter.string(from: self as NSDecimalNumber) ?? "0.00"
+    /// Format as amount only (no currency symbol) using the currency's locale.
+    /// EUR → `1 234,56`, CHF → `1'234.56`.
+    func asAmount(for currency: SupportedCurrency) -> String {
+        formatted(
+            .number
+                .locale(Formatters.locale(for: currency))
+                .precision(.fractionLength(2))
+                .grouping(.automatic)
+        )
     }
 
-    /// Format as signed amount based on transaction kind — "+5'000.00" for income, "-1'500.00" for expense/saving
-    func asSignedAmount(for kind: TransactionKind) -> String {
-        signedFormatted(absoluteValue.asAmount, for: kind)
+    /// Format as signed amount (no currency symbol) using the currency's locale.
+    func asSignedAmount(for kind: TransactionKind, in currency: SupportedCurrency) -> String {
+        signedFormatted(absoluteValue.asAmount(for: currency), for: kind)
     }
 
     /// Format as signed CHF based on transaction kind — "+1'234.56 CHF" for income, "-1'234.56 CHF" for expense/saving
@@ -39,20 +45,27 @@ extension Decimal {
         signedFormatted(absoluteValue.asCompactCHF, for: kind)
     }
 
-    /// Format as signed compact currency based on transaction kind — "+1'235 CHF" for income, "-1'235 €" for expense/saving
+    /// Format as signed compact currency based on transaction kind — "+1'235 CHF" for income, "-1 235 €" for expense/saving
     func asSignedCompactCurrency(_ currency: SupportedCurrency, for kind: TransactionKind) -> String {
         signedFormatted(absoluteValue.asCompactCurrency(currency), for: kind)
     }
 
-    /// Format as compact amount only (no currency code, rounded to whole number) — "1'235"
-    var asCompactAmount: String {
+    /// Format as compact amount only (no currency code, rounded to whole number) using the currency's locale.
+    /// EUR → `1 235`, CHF → `1'235`.
+    func asCompactAmount(for currency: SupportedCurrency) -> String {
         let rounded = self.rounded(0, .plain)
-        return Self.compactAmountFormatter.string(from: rounded as NSDecimalNumber) ?? "0"
+        return rounded.formatted(
+            .number
+                .locale(Formatters.locale(for: currency))
+                .precision(.fractionLength(0))
+                .grouping(.automatic)
+        )
     }
 
-    /// Format as compact currency (always rounded to whole number) — "1'235 CHF" / "1'235 €" (suffix position)
+    /// Format as compact currency (rounded to whole number) using the currency's locale.
+    /// EUR → `1 235 €`, CHF → `1'235 CHF`.
     func asCompactCurrency(_ currency: SupportedCurrency) -> String {
-        "\(asCompactAmount) \(currency.symbol)"
+        "\(asCompactAmount(for: currency)) \(currency.symbol)"
     }
 
     /// Format as compact CHF (always rounded to whole number) — "1'235 CHF" (suffix position)
@@ -65,14 +78,14 @@ extension Decimal {
         "\(signPrefix)\(asCHF)"
     }
 
-    /// Format as signed currency — "+1'234.56 CHF" for positive, "-1'234.56 €" for negative, "0.00 CHF" for zero
+    /// Format as signed currency — "+1'234.56 CHF" for positive, "-1 234,56 €" for negative, locale-aware.
     func asSignedCurrency(_ currency: SupportedCurrency) -> String {
         "\(signPrefix)\(asCurrency(currency))"
     }
 
-    /// Format as signed compact amount only — "+1'235" for positive, "-1'235" for negative, "0" for zero
-    var asSignedCompactAmount: String {
-        "\(signPrefix)\(asCompactAmount)"
+    /// Format as signed compact amount only using the currency's locale.
+    func asSignedCompactAmount(for currency: SupportedCurrency) -> String {
+        "\(signPrefix)\(asCompactAmount(for: currency))"
     }
 
     /// Format as signed compact CHF — "+1'235 CHF" for positive, "-1'235 CHF" for negative, "0 CHF" for zero
@@ -80,7 +93,7 @@ extension Decimal {
         "\(signPrefix)\(asCompactCHF)"
     }
 
-    /// Format as signed compact currency — "+1'235 CHF" for positive, "-1'235 €" for negative, "0 CHF" for zero
+    /// Format as signed compact currency — "+1'235 CHF" for positive, "-1 235 €" for negative, locale-aware.
     func asSignedCompactCurrency(_ currency: SupportedCurrency) -> String {
         "\(signPrefix)\(asCompactCurrency(currency))"
     }
@@ -120,23 +133,6 @@ private extension Decimal {
         case .expense, .saving: "-\(base)"
         }
     }
-
-    static let amountFormatter: NumberFormatter = {
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .decimal
-        formatter.locale = Locale(identifier: "de_CH")
-        formatter.minimumFractionDigits = 2
-        formatter.maximumFractionDigits = 2
-        return formatter
-    }()
-
-    static let compactAmountFormatter: NumberFormatter = {
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .decimal
-        formatter.locale = Locale(identifier: "de_CH")
-        formatter.maximumFractionDigits = 0
-        return formatter
-    }()
 }
 
 // MARK: - Amount Parsing

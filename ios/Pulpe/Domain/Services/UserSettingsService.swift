@@ -1,7 +1,13 @@
 import Foundation
 
+/// Protocol for user settings API operations — enables store testing with mock doubles.
+protocol UserSettingsServicing: Sendable {
+    func getSettings() async throws -> UserSettings
+    func updateSettings(_ settings: UpdateUserSettings) async throws -> UserSettings
+}
+
 /// Service for user settings API operations
-actor UserSettingsService {
+actor UserSettingsService: UserSettingsServicing {
     static let shared = UserSettingsService()
 
     private let apiClient: APIClient

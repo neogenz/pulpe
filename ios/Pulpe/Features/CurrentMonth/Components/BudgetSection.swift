@@ -248,10 +248,10 @@ struct BudgetLineRow: View {
     private var remainingAmountText: String {
         // Income & savings: show planned amount with sign (+/-)
         guard line.kind == .expense else {
-            return line.amount.asSignedAmount(for: line.kind)
+            return line.amount.asSignedAmount(for: line.kind, in: userSettingsStore.currency)
         }
         // Expenses: always show with - sign (money going out)
-        return consumption.available.asSignedAmount(for: line.kind)
+        return consumption.available.asSignedAmount(for: line.kind, in: userSettingsStore.currency)
     }
 
     private var linkedTransactions: [Transaction] {

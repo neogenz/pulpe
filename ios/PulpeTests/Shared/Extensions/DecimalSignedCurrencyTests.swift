@@ -12,6 +12,7 @@ struct DecimalSignedCurrencyTests {
 
         #expect(formatted.hasPrefix("+"))
         #expect(formatted.hasSuffix("CHF"))
+        #expect(containsSwissGroupingSeparator(formatted))
     }
 
     @Test func signedCurrency_negativeCHF_prependsMinusAndKeepsCode() {
@@ -20,6 +21,7 @@ struct DecimalSignedCurrencyTests {
 
         #expect(formatted.hasPrefix("-"))
         #expect(formatted.hasSuffix("CHF"))
+        #expect(containsSwissGroupingSeparator(formatted))
     }
 
     @Test func signedCurrency_zeroCHF_noSignPrefix() {
@@ -40,6 +42,7 @@ struct DecimalSignedCurrencyTests {
         #expect(formatted.hasPrefix("+"))
         #expect(formatted.hasSuffix("€"))
         #expect(!formatted.contains("EUR"))
+        #expect(!containsSwissGroupingSeparator(formatted), "EUR amounts must not use Swiss apostrophe separators")
     }
 
     @Test func signedCurrency_negativeEUR_prependsMinusAndUsesEuroSign() {
@@ -49,6 +52,7 @@ struct DecimalSignedCurrencyTests {
         #expect(formatted.hasPrefix("-"))
         #expect(formatted.hasSuffix("€"))
         #expect(!formatted.contains("EUR"))
+        #expect(!containsSwissGroupingSeparator(formatted))
     }
 
     // MARK: - asSignedCompactCurrency (CHF)
@@ -61,6 +65,7 @@ struct DecimalSignedCurrencyTests {
         #expect(formatted.hasSuffix("CHF"))
         #expect(!formatted.contains("."))
         #expect(!formatted.contains(","))
+        #expect(containsSwissGroupingSeparator(formatted))
     }
 
     @Test func signedCompactCurrency_negativeCHF_prependsMinusAndRounds() {
@@ -93,6 +98,10 @@ struct DecimalSignedCurrencyTests {
         #expect(!formatted.contains("EUR"))
         #expect(!formatted.contains("."))
         #expect(!formatted.contains(","))
+        #expect(
+            !containsSwissGroupingSeparator(formatted),
+            "EUR compact amounts must not use Swiss apostrophe separators"
+        )
     }
 
     @Test func signedCompactCurrency_negativeEUR_prependsMinusAndUsesEuroSign() {
@@ -102,5 +111,67 @@ struct DecimalSignedCurrencyTests {
         #expect(formatted.hasPrefix("-"))
         #expect(formatted.hasSuffix("€"))
         #expect(!formatted.contains("EUR"))
+        #expect(!containsSwissGroupingSeparator(formatted))
+    }
+
+    // MARK: - asCompactCurrency
+
+    @Test func compactCurrency_CHF_usesSwissApostrophe() {
+        let formatted = Decimal(1234).asCompactCurrency(.chf)
+
+        #expect(formatted.hasSuffix("CHF"))
+        #expect(containsSwissGroupingSeparator(formatted))
+    }
+
+    @Test func compactCurrency_EUR_doesNotUseSwissApostrophe() {
+        let formatted = Decimal(1234).asCompactCurrency(.eur)
+
+        #expect(!containsSwissGroupingSeparator(formatted))
+        #expect(formatted.hasSuffix("€"))
+    }
+
+    // MARK: - asCompactAmount(for:) and asAmount(for:)
+
+    @Test func compactAmount_CHF_usesSwissApostrophe() {
+        let formatted = Decimal(1234).asCompactAmount(for: .chf)
+
+        #expect(containsSwissGroupingSeparator(formatted))
+    }
+
+    @Test func compactAmount_EUR_doesNotUseSwissApostrophe() {
+        let formatted = Decimal(1234).asCompactAmount(for: .eur)
+
+        #expect(!containsSwissGroupingSeparator(formatted))
+    }
+
+    @Test func amount_EUR_doesNotUseSwissApostrophe() {
+        let formatted = Decimal(1234.56).asAmount(for: .eur)
+
+        #expect(!containsSwissGroupingSeparator(formatted))
+    }
+
+    // MARK: - asSignedAmount(for:in:)
+
+    @Test func signedAmount_positiveEUR_doesNotUseSwissApostrophe() {
+        let formatted = Decimal(1234.56).asSignedAmount(for: .income, in: .eur)
+
+        #expect(formatted.hasPrefix("+"))
+        #expect(!containsSwissGroupingSeparator(formatted))
+    }
+
+    @Test func signedAmount_negativeCHF_usesSwissApostrophe() {
+        let formatted = Decimal(1234.56).asSignedAmount(for: .expense, in: .chf)
+
+        #expect(formatted.hasPrefix("-"))
+        #expect(containsSwissGroupingSeparator(formatted))
+    }
+
+    // MARK: - asSignedCompactAmount(for:)
+
+    @Test func signedCompactAmount_EUR_doesNotUseSwissApostrophe() {
+        let formatted = Decimal(1234).asSignedCompactAmount(for: .eur)
+
+        #expect(formatted.hasPrefix("+"))
+        #expect(!containsSwissGroupingSeparator(formatted))
     }
 }

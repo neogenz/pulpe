@@ -191,6 +191,8 @@ struct TemplateLineRow: View {
     let line: TemplateLine
     let onEdit: () -> Void
 
+    @Environment(UserSettingsStore.self) private var userSettingsStore
+
     var body: some View {
         Button(action: onEdit) {
             HStack(spacing: DesignTokens.Spacing.md) {
@@ -213,7 +215,7 @@ struct TemplateLineRow: View {
 
                 Spacer()
 
-                Text(line.amount.asSignedAmount(for: line.kind))
+                Text(line.amount.asSignedAmount(for: line.kind, in: userSettingsStore.currency))
                     .font(PulpeTypography.listRowSubtitle)
                     .foregroundStyle(line.kind.color)
                     .sensitiveAmount()

@@ -227,6 +227,8 @@ struct TemplateLineInputRow: View {
     let line: TemplateLineInput
     let onDelete: () -> Void
 
+    @Environment(UserSettingsStore.self) private var userSettingsStore
+
     var body: some View {
         HStack(spacing: DesignTokens.Spacing.md) {
             // Kind icon circle (matches TemplateLineRow / BudgetLineRow)
@@ -251,7 +253,7 @@ struct TemplateLineInputRow: View {
 
             Spacer(minLength: 8)
 
-            Text(line.amount.asSignedAmount(for: line.kind))
+            Text(line.amount.asSignedAmount(for: line.kind, in: userSettingsStore.currency))
                 .font(PulpeTypography.listRowSubtitle)
                 .foregroundStyle(line.kind.color)
                 .sensitiveAmount()
