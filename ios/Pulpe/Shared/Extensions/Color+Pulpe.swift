@@ -101,10 +101,11 @@ extension Color {
     /// Primary text — iOS system label (pure black light, pure white dark)
     static let textPrimary = Color(.label)
 
-    /// Text on primary-colored backgrounds (white in both modes)
-    static let textOnPrimary = Color(light: .white, dark: .white)
+    /// Text on primary-colored backgrounds — inverts lightness with `pulpePrimary` (M3 onPrimary pairing).
+    /// Light: white on dark forest green #006E25 = 5.1:1 (AA) · Dark: near-black on lime #7EDB83 = ~12.5:1 (AAA)
+    static let textOnPrimary = Color(light: .white, dark: Color(hex: 0x0A1F0D))
 
-    /// Secondary line on primary-filled controls (e.g. capsule subtitle). High-opacity white for contrast on `pulpePrimary`.
+    /// Secondary line on primary-filled controls (e.g. capsule subtitle). 88% opacity of `textOnPrimary`.
     static var textOnPrimaryMuted: Color { textOnPrimary.opacity(0.88) }
 
     /// Secondary text — WCAG AA on all warm surfaces (labels, subtitles, captions)
