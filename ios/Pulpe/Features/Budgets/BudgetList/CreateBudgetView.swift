@@ -254,6 +254,7 @@ struct TemplateSelectionCard: View {
     let onSelect: () -> Void
 
     @State private var isPressed = false
+    @Environment(UserSettingsStore.self) private var userSettingsStore
 
     var body: some View {
         Button(action: onSelect) {
@@ -336,7 +337,7 @@ struct TemplateSelectionCard: View {
                     .font(PulpeTypography.detailLabel)
                     .foregroundStyle(Color.financialIncome)
 
-                Text(totals.totalIncome.asSignedCompactCHF)
+                Text(totals.totalIncome.asSignedCompactCurrency(userSettingsStore.currency))
                     .font(PulpeTypography.inputHelper)
                     .foregroundStyle(Color.financialIncome)
                     .sensitiveAmount()
@@ -347,7 +348,7 @@ struct TemplateSelectionCard: View {
                     .font(PulpeTypography.detailLabel)
                     .foregroundStyle(Color.financialExpense)
 
-                Text(totals.totalExpenses.asSignedCompactCHF(for: .expense))
+                Text(totals.totalExpenses.asSignedCompactCurrency(userSettingsStore.currency, for: .expense))
                     .font(PulpeTypography.inputHelper)
                     .foregroundStyle(Color.financialExpense)
                     .sensitiveAmount()
@@ -359,7 +360,7 @@ struct TemplateSelectionCard: View {
                     .font(PulpeTypography.detailLabel)
                     .foregroundStyle(totals.balance >= 0 ? Color.financialSavings : Color.financialOverBudget)
 
-                Text(totals.balance.asSignedCompactCHF)
+                Text(totals.balance.asSignedCompactCurrency(userSettingsStore.currency))
                     .font(PulpeTypography.inputHelper)
                     .foregroundStyle(totals.balance >= 0 ? Color.financialSavings : Color.financialOverBudget)
                     .sensitiveAmount()

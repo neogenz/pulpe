@@ -43,6 +43,7 @@ struct RecentTransactionsCard: View {
 private struct RecentTransactionCardRow: View {
     let transaction: Transaction
     @Environment(\.amountsHidden) private var amountsHidden
+    @Environment(UserSettingsStore.self) private var userSettingsStore
 
     var body: some View {
         HStack(spacing: DesignTokens.Spacing.md) {
@@ -80,7 +81,7 @@ private struct RecentTransactionCardRow: View {
         .accessibilityLabel(
             "\(transaction.name), \(transaction.kind.label), "
             + "\(transaction.transactionDate.relativeFormatted), "
-            + "\(amountsHidden ? "Montant masqué" : transaction.amount.asCHF)"
+            + "\(amountsHidden ? "Montant masqué" : transaction.amount.asCurrency(userSettingsStore.currency))"
         )
     }
 }
@@ -136,4 +137,5 @@ private struct RecentTransactionCardRow: View {
     }
     .padding()
     .pulpeBackground()
+    .environment(UserSettingsStore())
 }

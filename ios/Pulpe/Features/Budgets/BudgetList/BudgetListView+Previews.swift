@@ -14,18 +14,21 @@ import SwiftUI
     CurrentMonthHeroCard(budget: BudgetSparse(id: "1", month: 2, year: 2026, remaining: 2350.50)) {}
         .padding()
         .pulpeBackground()
+        .environment(UserSettingsStore())
 }
 
 #Preview("Current Month Hero Card - Negative") {
     CurrentMonthHeroCard(budget: BudgetSparse(id: "2", month: 2, year: 2026, remaining: -450.25)) {}
         .padding()
         .pulpeBackground()
+        .environment(UserSettingsStore())
 }
 
 #Preview("Next Month Empty State") {
     NextMonthPlaceholder(month: 3, year: 2026) {}
         .padding()
         .pulpeBackground()
+        .environment(UserSettingsStore())
 }
 
 #Preview("Year Picker") {
@@ -43,6 +46,7 @@ import SwiftUI
         )
     ) {}
         .padding()
+        .environment(UserSettingsStore())
 }
 
 #Preview("Budget Month Card - Future") {
@@ -53,4 +57,5 @@ import SwiftUI
         )
     ) {}
         .padding()
+        .environment(UserSettingsStore())
 }

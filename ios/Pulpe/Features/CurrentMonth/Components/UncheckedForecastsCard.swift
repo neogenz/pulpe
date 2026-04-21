@@ -58,6 +58,7 @@ private struct UncheckedItemRow: View {
 
     @Environment(\.amountsHidden) private var amountsHidden
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(UserSettingsStore.self) private var userSettingsStore
     @State private var triggerFeedback = false
     @State private var isChecked = false
 
@@ -147,7 +148,8 @@ private struct UncheckedItemRow: View {
                     .foregroundStyle(color)
                     .sensitiveAmount()
             } else if line.kind == .expense {
-                Text("\(line.recurrence.label) \u{00B7} sur \(line.amount.asCompactCHF)")
+                let formatted = line.amount.asCompactCurrency(userSettingsStore.currency)
+                Text("\(line.recurrence.label) \u{00B7} sur \(formatted)")
                     .font(PulpeTypography.caption)
                     .foregroundStyle(Color.textSecondary)
             } else {
@@ -279,4 +281,5 @@ struct UncheckedForecastsEmptyState: View {
     }
     .padding()
     .pulpeBackground()
+    .environment(UserSettingsStore())
 }

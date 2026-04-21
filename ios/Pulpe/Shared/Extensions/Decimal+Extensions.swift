@@ -65,6 +65,11 @@ extension Decimal {
         "\(signPrefix)\(asCHF)"
     }
 
+    /// Format as signed currency — "+1'234.56 CHF" for positive, "-1'234.56 €" for negative, "0.00 CHF" for zero
+    func asSignedCurrency(_ currency: SupportedCurrency) -> String {
+        "\(signPrefix)\(asCurrency(currency))"
+    }
+
     /// Format as signed compact amount only — "+1'235" for positive, "-1'235" for negative, "0" for zero
     var asSignedCompactAmount: String {
         "\(signPrefix)\(asCompactAmount)"
@@ -73,6 +78,11 @@ extension Decimal {
     /// Format as signed compact CHF — "+1'235 CHF" for positive, "-1'235 CHF" for negative, "0 CHF" for zero
     var asSignedCompactCHF: String {
         "\(signPrefix)\(asCompactCHF)"
+    }
+
+    /// Format as signed compact currency — "+1'235 CHF" for positive, "-1'235 €" for negative, "0 CHF" for zero
+    func asSignedCompactCurrency(_ currency: SupportedCurrency) -> String {
+        "\(signPrefix)\(asCompactCurrency(currency))"
     }
 
     /// Check if the decimal is a whole number

@@ -8,6 +8,7 @@ struct YearRecapCard: View {
     var isPastYear: Bool = false
 
     @Environment(\.amountsHidden) private var amountsHidden
+    @Environment(UserSettingsStore.self) private var userSettingsStore
 
     /// Sum of endingBalance per month (remaining - rollover) to avoid double-counting rollover across months
     private var yearTotal: Decimal {
@@ -56,7 +57,7 @@ struct YearRecapCard: View {
         .accessibilityElement(children: .combine)
         .accessibilityLabel(
             "\(isPastYear ? "Bilan" : "Potentiel") \(year), "
-            + (amountsHidden ? "montant masqué" : yearTotal.asSignedCompactCHF)
+            + (amountsHidden ? "montant masqué" : yearTotal.asSignedCompactCurrency(userSettingsStore.currency))
             + ", \(budgets.count) mois sur 12"
         )
     }
@@ -69,7 +70,7 @@ struct YearRecapCard: View {
                 .tracking(DesignTokens.Tracking.hero)
                 .foregroundStyle(emotionColor)
                 .sensitiveAmount()
-            Text("CHF")
+            Text(userSettingsStore.currency.symbol)
                 .font(PulpeTypography.tutorialTitle)
                 .foregroundStyle(emotionColor)
         }

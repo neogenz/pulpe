@@ -7,6 +7,7 @@ struct InsightsCard: View {
     var onTap: (() -> Void)?
 
     @Environment(\.amountsHidden) private var amountsHidden
+    @Environment(UserSettingsStore.self) private var userSettingsStore
 
     private let maxVisibleAlerts = 3
 
@@ -86,7 +87,7 @@ struct InsightsCard: View {
             Spacer()
 
             VStack(alignment: .trailing, spacing: 2) {
-                Text(spending.amount.asCHF)
+                Text(spending.amount.asCurrency(userSettingsStore.currency))
                     .font(PulpeTypography.labelLarge)
                     .foregroundStyle(.primary)
                     .sensitiveAmount()
@@ -168,7 +169,9 @@ struct InsightsCard: View {
         var parts: [String] = []
 
         if let topSpending {
-            let amountDescription = amountsHidden ? "Montant masqué" : topSpending.amount.asCHF
+            let amountDescription = amountsHidden
+                ? "Montant masqué"
+                : topSpending.amount.asCurrency(userSettingsStore.currency)
             if amountsHidden {
                 parts.append("Où part ton argent: \(topSpending.name), \(amountDescription)")
             } else {
@@ -248,6 +251,7 @@ struct InsightsCard: View {
     }
     .padding()
     .pulpeBackground()
+    .environment(UserSettingsStore())
 }
 
 struct BudgetAlert: Sendable {

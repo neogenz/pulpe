@@ -6,6 +6,7 @@ struct YearOverviewCard: View {
     let rollover: Decimal
 
     @Environment(\.amountsHidden) private var amountsHidden
+    @Environment(UserSettingsStore.self) private var userSettingsStore
 
     private var currentYear: Int {
         Calendar.current.component(.year, from: Date())
@@ -45,7 +46,7 @@ struct YearOverviewCard: View {
                     .foregroundStyle(Color.textSecondary)
             }
 
-            Text(value.asCHF)
+            Text(value.asCurrency(userSettingsStore.currency))
                 .font(PulpeTypography.tutorialTitle)
                 .foregroundStyle(color)
                 .lineLimit(1)
@@ -57,7 +58,9 @@ struct YearOverviewCard: View {
         .padding(.vertical, DesignTokens.Spacing.lg)
         .pulpeCardBackground()
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(title): \(amountsHidden ? "Montant masqué" : value.asCHF)")
+        .accessibilityLabel(
+            "\(title): \(amountsHidden ? "Montant masqué" : value.asCurrency(userSettingsStore.currency))"
+        )
     }
 }
 
@@ -82,4 +85,5 @@ struct YearOverviewCard: View {
     }
     .padding()
     .pulpeBackground()
+    .environment(UserSettingsStore())
 }
