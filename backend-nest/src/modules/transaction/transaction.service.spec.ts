@@ -444,14 +444,15 @@ describe('TransactionService', () => {
         exchangeRate: 1.08,
       } as unknown as TransactionUpdate;
 
-      // Mirror production: overrideExchangeRate emits explicit nulls for every
-      // FX field when currencies match (see currency.service.ts PUL-115 fix).
+      // Mirror production: overrideExchangeRate emits explicit nulls for the 3
+      // source FX fields and preserves targetCurrency as-is from the client
+      // input when currencies match (see currency.service.ts PUL-115 fix).
       mockCurrencyService.overrideExchangeRate.mockImplementationOnce(
         async <T extends Record<string, unknown>>(dto: T) => ({
           ...dto,
           originalAmount: null,
           originalCurrency: null,
-          targetCurrency: null,
+          targetCurrency: 'CHF',
           exchangeRate: null,
         }),
       );
@@ -466,7 +467,7 @@ describe('TransactionService', () => {
                 data: createMockTransactionEntity({
                   original_amount: null,
                   original_currency: null,
-                  target_currency: null,
+                  target_currency: 'CHF',
                   exchange_rate: null,
                 }),
                 error: null,
@@ -486,7 +487,8 @@ describe('TransactionService', () => {
         mockSupabaseClient as any,
       );
 
-      // Assert — writtenPayload must clear all 4 FX columns
+      // Assert — writtenPayload must null the 3 source FX columns while
+      // preserving target_currency from the client input.
       expect(mockCurrencyService.overrideExchangeRate).toHaveBeenCalledTimes(1);
       expect(updateSpy).toHaveBeenCalledTimes(1);
       const writtenPayload = updateSpy.mock.calls[0][0] as Record<
@@ -495,7 +497,7 @@ describe('TransactionService', () => {
       >;
       expect(writtenPayload.original_amount).toBeNull();
       expect(writtenPayload.original_currency).toBeNull();
-      expect(writtenPayload.target_currency).toBeNull();
+      expect(writtenPayload.target_currency).toBe('CHF');
       expect(writtenPayload.exchange_rate).toBeNull();
     });
 

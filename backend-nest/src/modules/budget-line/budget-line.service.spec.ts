@@ -640,7 +640,7 @@ describe('BudgetLineService', () => {
           ...mockBudgetLineDb,
           original_amount: null,
           original_currency: null,
-          target_currency: null,
+          target_currency: 'CHF',
           exchange_rate: null,
         },
         error: null,
@@ -649,13 +649,14 @@ describe('BudgetLineService', () => {
 
       // Override the in-file overrideExchangeRate mock (which predates PUL-115
       // and omits keys instead of emitting nulls) with the real production
-      // contract for same-currency inputs.
+      // contract for same-currency inputs: the 3 source FX fields are force-
+      // nulled while targetCurrency is preserved from the client input.
       currencyServiceMock.overrideExchangeRate.mockImplementationOnce(
         async (dto: BudgetLineUpdate) => ({
           ...dto,
           originalAmount: null,
           originalCurrency: null,
-          targetCurrency: null,
+          targetCurrency: 'CHF',
           exchangeRate: null,
         }),
       );
@@ -682,7 +683,7 @@ describe('BudgetLineService', () => {
       >;
       expect(updatePayload.original_amount).toBeNull();
       expect(updatePayload.original_currency).toBeNull();
-      expect(updatePayload.target_currency).toBeNull();
+      expect(updatePayload.target_currency).toBe('CHF');
       expect(updatePayload.exchange_rate).toBeNull();
     });
   });
