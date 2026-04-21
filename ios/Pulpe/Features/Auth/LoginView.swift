@@ -10,6 +10,9 @@ struct LoginView: View {
     @FocusState private var focusedField: Field?
     @State private var submitSuccessTrigger = false
 
+    private let biometryDisplayName = BiometricService.shared.biometryDisplayName
+    private let biometrySymbolName = BiometricService.shared.biometrySFSymbolName
+
     var isPresented: Binding<Bool>?
     var onBiometric: (() -> Void)?
 
@@ -123,7 +126,7 @@ extension LoginView {
                 appState.biometricError = nil
                 isPresented?.wrappedValue = false
             }
-            faceIDButton
+            biometricLoginButton
         }
         .opacity(isAppeared ? 1 : 0)
         .offset(y: isAppeared ? 0 : 20)
@@ -244,20 +247,20 @@ extension LoginView {
     }
 
     @ViewBuilder
-    private var faceIDButton: some View {
+    private var biometricLoginButton: some View {
         if let onBiometric {
             Button {
                 onBiometric()
             } label: {
                 HStack(spacing: DesignTokens.Spacing.sm) {
-                    Image(systemName: "faceid")
+                    Image(systemName: biometrySymbolName)
                         .font(PulpeTypography.body)
-                    Text("Face ID")
+                    Text(biometryDisplayName)
                 }
             }
             .secondaryButtonStyle()
             .padding(.top, DesignTokens.Spacing.sm)
-            .accessibilityIdentifier("faceIDButton")
+            .accessibilityIdentifier("biometricLoginButton")
         }
     }
 

@@ -285,7 +285,7 @@ actor AuthService {
             return nil
         }
 
-        // Single Face ID prompt via pre-authenticated LAContext
+        // Single biometric prompt via pre-authenticated LAContext
         // SAFETY: LAContext is not Sendable but nonisolated(unsafe) is correct here because:
         // 1. The context is created, evaluated, and consumed entirely within this function scope.
         // 2. It is never shared with another task or stored beyond this call.
@@ -294,7 +294,7 @@ actor AuthService {
         do {
             try await context.evaluatePolicy(
                 .deviceOwnerAuthenticationWithBiometrics,
-                localizedReason: "Se connecter avec Face ID"
+                localizedReason: "Se connecter avec \(BiometricService.shared.biometryDisplayName)"
             )
         } catch let error as LAError where error.code == .userCancel {
             throw KeychainError.userCanceled
