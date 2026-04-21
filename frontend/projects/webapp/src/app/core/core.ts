@@ -8,6 +8,7 @@ import {
   NoPreloading,
   TitleStrategy,
 } from '@angular/router';
+import { withChunkReloadRecovery } from './routing/navigation-error-handler';
 
 import {
   provideBrowserGlobalErrorListeners,
@@ -116,6 +117,7 @@ export function provideCore({ routes }: CoreOptions) {
         scrollPositionRestoration: 'enabled',
       }),
       withPreloading(NoPreloading),
+      withChunkReloadRecovery(),
     ),
 
     // Custom title strategy - APRÈS le router

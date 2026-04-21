@@ -1,5 +1,18 @@
 # pulpe-frontend
 
+## 0.33.2
+
+### Patch Changes
+
+- Affichage de la version produit unifiée dans le dialogue « À propos » et alignement de la stratégie de versioning monorepo via Changesets fixed mode.
+  - pulpe-shared@0.33.2
+
+## 0.32.1
+
+### Patch Changes
+
+- Récupération automatique après mise à jour : si une page reste ouverte pendant un déploiement, l'application se recharge toute seule pour récupérer la version à jour. Lien App Store de l'app iOS corrigé sur la landing. Filtrage des erreurs réseau « status 0 » dans le suivi PostHog.
+
 ## 0.32.0
 
 ### Minor Changes

@@ -53,6 +53,13 @@ export const authInterceptor: HttpInterceptorFn = (
 };
 
 function shouldInterceptRequest(url: string, backendApiUrl: string): boolean {
+  // Config not loaded yet → we don't know the backend URL. Don't touch
+  // any request until we do. Without this guard, `url.startsWith('')`
+  // would match every request during the pre-config bootstrap window.
+  if (!backendApiUrl) {
+    return false;
+  }
+
   // Exclure les requêtes de configuration pour éviter la dépendance circulaire
   if (url.includes('/config.json')) {
     return false;

@@ -152,11 +152,17 @@ export class AuthSessionService {
   }
 
   async getCurrentSession(): Promise<Session | null> {
+    // Called by the auth interceptor on every request, including during
+    // bootstrap before initializeAuthState() has created the client.
+    // "Not initialized yet" is a valid lifecycle state here, not an error —
+    // we simply have no session to return.
+    if (!this.#supabaseClient) return null;
+
     try {
       const {
         data: { session },
         error,
-      } = await this.getClient().auth.getSession();
+      } = await this.#supabaseClient.auth.getSession();
 
       if (error) {
         this.#logger.error(

@@ -33,4 +33,7 @@ export const STORAGE_KEYS = {
 
   // Page lifecycle recovery: reload cooldown timestamp (sessionStorage)
   PAGE_RELOAD_COOLDOWN: 'pulpe-page-reload-cooldown-at',
+
+  // Stale-chunk recovery: one-shot guard to prevent reload loops (sessionStorage)
+  CHUNK_RELOAD_GUARD: 'pulpe-chunk-reload-attempted',
 } as const satisfies Record<string, StorageKey>;
