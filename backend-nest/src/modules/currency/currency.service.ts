@@ -159,6 +159,16 @@ export class CurrencyService {
       !fxFields.originalCurrency || !fxFields.targetCurrency;
 
     if (sameCurrency) {
+      // Defence-in-depth: a bogus equal pair (e.g. "ZZZ"/"ZZZ") that bypasses
+      // DTO validation would wipe persisted FX columns via the destructive
+      // null-clear. Reject unsupported currencies first. PUL-115 + RG-009.
+      if (!parseCurrency(fxFields.originalCurrency)) {
+        throw new BusinessException(
+          ERROR_DEFINITIONS.VALIDATION_FAILED,
+          { reason: `Unsupported currency: ${fxFields.originalCurrency}` },
+          { operation: 'overrideExchangeRate' },
+        );
+      }
       return { ...rest, ...this.#buildSameCurrencyFx(fxFields) } as T;
     }
 

@@ -629,6 +629,63 @@ describe('BudgetLineService', () => {
       >;
       expect(updatePayload).toMatchObject({ original_currency: null });
     });
+
+    it('should clear stale FX metadata when PATCH sets same currency (PUL-115)', async () => {
+      // Guards the direct PATCH path (distinct from resetFromTemplate CA4):
+      // a previously EUR->CHF-converted line being edited with same-currency
+      // input must have all 4 FX columns explicitly nulled in the DB write.
+      const budgetLineId = '123e4567-e89b-12d3-a456-426614174000';
+      const queryBuilder = createMockQueryBuilder({
+        data: {
+          ...mockBudgetLineDb,
+          original_amount: null,
+          original_currency: null,
+          target_currency: 'CHF',
+          exchange_rate: null,
+        },
+        error: null,
+      });
+      mockSupabase.from.mockReturnValue(queryBuilder);
+
+      // Override the in-file overrideExchangeRate mock (which predates PUL-115
+      // and omits keys instead of emitting nulls) with the real production
+      // contract for same-currency inputs: the 3 source FX fields are force-
+      // nulled while targetCurrency is preserved from the client input.
+      currencyServiceMock.overrideExchangeRate.mockImplementationOnce(
+        async (dto: BudgetLineUpdate) => ({
+          ...dto,
+          originalAmount: null,
+          originalCurrency: null,
+          targetCurrency: 'CHF',
+          exchangeRate: null,
+        }),
+      );
+
+      await service.update(
+        budgetLineId,
+        {
+          id: budgetLineId,
+          name: 'Rent',
+          amount: 1200,
+          originalCurrency: 'CHF',
+          targetCurrency: 'CHF',
+          originalAmount: 50,
+          exchangeRate: 1.08,
+        } as unknown as BudgetLineUpdate,
+        mockUser,
+        getMockSupabaseClient(),
+      );
+
+      expect(currencyServiceMock.overrideExchangeRate).toHaveBeenCalledTimes(1);
+      const updatePayload = queryBuilder.update.mock.calls[0][0] as Record<
+        string,
+        unknown
+      >;
+      expect(updatePayload.original_amount).toBeNull();
+      expect(updatePayload.original_currency).toBeNull();
+      expect(updatePayload.target_currency).toBe('CHF');
+      expect(updatePayload.exchange_rate).toBeNull();
+    });
   });
 
   describe('remove', () => {
