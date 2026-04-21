@@ -483,6 +483,7 @@ export const templateLineCreateSchema = z.object({
   targetCurrency: supportedCurrencySchema.optional(),
   exchangeRate: exchangeRateWirePositive.optional(),
 });
+export type TemplateLineCreate = z.infer<typeof templateLineCreateSchema>;
 
 // Template line create without templateId (for batch creation)
 export const templateLineCreateWithoutTemplateIdSchema = z.object({

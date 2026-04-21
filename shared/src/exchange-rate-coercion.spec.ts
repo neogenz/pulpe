@@ -11,14 +11,20 @@ import {
   savingsGoalCreateSchema,
   budgetLineSchema,
   budgetLineCreateSchema,
+  type Transaction,
+  type TransactionCreate,
+  type TemplateLine,
+  type TemplateLineCreate,
+  type TemplateLineCreateWithoutTemplateId,
+  type SavingsGoal,
+  type SavingsGoalCreate,
+  type BudgetLine,
+  type BudgetLineCreate,
 } from '../schemas.js';
 
-// PUL-114: exchange_rate is NUMERIC(18,8) — PostgREST returns it as a string,
-// so every schema that reads/writes it must coerce. Initial fix used
-// z.coerce.number(), but JS Number() semantics silently accept booleans
-// (true→1) and single-element arrays ([1.2]→1.2) as valid rates. Hardening
-// narrows input to `number | string` via a union before coerce, and rejects
-// empty/whitespace strings. These tests are the CI canary for both regressions.
+// PUL-114 CI canary: exchange_rate is NUMERIC(18,8) (PostgREST returns string).
+// Hardened wire schema narrows to `number | string` + rejects non-finite values,
+// because z.coerce.number() silently accepts booleans (true→1) and arrays ([1.2]→1.2).
 
 const TRANSACTION_ID = '550e8400-e29b-41d4-a716-446655440000';
 const BUDGET_ID = '550e8400-e29b-41d4-a716-446655440001';
@@ -40,8 +46,7 @@ const NON_COERCIBLE_INPUTS = [
   { label: 'string "Infinity"', val: 'Infinity' },
   { label: 'string "-Infinity"', val: '-Infinity' },
 ] as const;
-
-const baseTransaction = {
+const baseTransaction: Transaction = {
   id: TRANSACTION_ID,
   budgetId: BUDGET_ID,
   budgetLineId: null,
@@ -54,8 +59,7 @@ const baseTransaction = {
   updatedAt: ISO_DATETIME,
   checkedAt: null,
 };
-
-const baseTemplateLine = {
+const baseTemplateLine: TemplateLine = {
   id: TRANSACTION_ID,
   templateId: TEMPLATE_ID,
   name: 'Loyer',
@@ -66,15 +70,13 @@ const baseTemplateLine = {
   createdAt: ISO_DATETIME,
   updatedAt: ISO_DATETIME,
 };
-
-const baseTransactionCreate = {
+const baseTransactionCreate: TransactionCreate = {
   budgetId: BUDGET_ID,
   name: 'Loyer',
   amount: 1200,
   kind: 'expense',
 };
-
-const baseTemplateLineCreate = {
+const baseTemplateLineCreate: TemplateLineCreate = {
   templateId: TEMPLATE_ID,
   name: 'Loyer',
   amount: 1200,
@@ -82,16 +84,15 @@ const baseTemplateLineCreate = {
   recurrence: 'fixed',
   description: 'Loyer',
 };
-
-const baseTemplateLineCreateWithoutTemplateId = {
-  name: 'Loyer',
-  amount: 1200,
-  kind: 'expense',
-  recurrence: 'fixed',
-  description: 'Loyer',
-};
-
-const baseSavingsGoal = {
+const baseTemplateLineCreateWithoutTemplateId: TemplateLineCreateWithoutTemplateId =
+  {
+    name: 'Loyer',
+    amount: 1200,
+    kind: 'expense',
+    recurrence: 'fixed',
+    description: 'Loyer',
+  };
+const baseSavingsGoal: SavingsGoal = {
   id: TRANSACTION_ID,
   userId: USER_ID,
   name: 'New car',
@@ -102,15 +103,14 @@ const baseSavingsGoal = {
   createdAt: ISO_DATETIME,
   updatedAt: ISO_DATETIME,
 };
-
-const baseSavingsGoalCreate = {
+const baseSavingsGoalCreate: SavingsGoalCreate = {
   name: 'New car',
   targetAmount: 5000,
   targetDate: '2027-01-01',
   priority: 'HIGH',
+  status: 'ACTIVE',
 };
-
-const baseBudgetLine = {
+const baseBudgetLine: BudgetLine = {
   id: TRANSACTION_ID,
   budgetId: BUDGET_ID,
   templateLineId: null,
@@ -124,15 +124,14 @@ const baseBudgetLine = {
   createdAt: ISO_DATETIME,
   updatedAt: ISO_DATETIME,
 };
-
-const baseBudgetLineCreate = {
+const baseBudgetLineCreate: BudgetLineCreate = {
   budgetId: BUDGET_ID,
   name: 'Loyer',
   amount: 1200,
   kind: 'expense',
   recurrence: 'fixed',
+  isManuallyAdjusted: false,
 };
-
 const readSchemas = [
   {
     name: 'transactionSchema',
@@ -155,7 +154,6 @@ const readSchemas = [
     base: baseBudgetLine,
   },
 ] as const;
-
 const writeSchemas = [
   {
     name: 'transactionCreateSchema',
@@ -193,7 +191,6 @@ const writeSchemas = [
     base: baseBudgetLineCreate,
   },
 ] as const;
-
 describe('PUL-114 exchangeRate coercion regression', () => {
   describe.each(readSchemas)(
     '$name (read: nullable + optional coerce)',
