@@ -149,7 +149,7 @@
     "asc-shots-pipeline": {
       "source": "rudrankriyam/app-store-connect-cli-skills",
       "sourceType": "github",
-      "computedHash": "49b1fbcef7f533112b55476c6ee312effb8bff8b9e93dffd7d4dcecf191c7c46"
+      "computedHash": "c1fcdf9efd0a6cf6bfce407b759506eb35bd11ce86b8fa3492535bc973ffb19f"
     },
     "asc-signing-setup": {
       "source": "rudrankriyam/app-store-connect-cli-skills",
@@ -299,7 +299,7 @@
     "supabase-postgres-best-practices": {
       "source": "supabase/agent-skills",
       "sourceType": "github",
-      "computedHash": "f4cd7570115d97af6bcb2946eb891a958c8d04a43b479871c9ccadbc670ad058"
+      "computedHash": "d606a1146be6d54fb9e73f718b5320b9acac5ff2ba2d7230a555df4b5a923b4a"
     },
     "swift-concurrency-expert": {
       "source": "dimillian/skills",
