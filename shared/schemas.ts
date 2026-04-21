@@ -74,6 +74,42 @@ export const currencyRateResponseSchema = z.object({
 export type CurrencyRateResponse = z.infer<typeof currencyRateResponseSchema>;
 
 /**
+ * DUAL-READ NUMERIC WIRE FORMAT — exchange_rate
+ *
+ * exchange_rate is NUMERIC(18,8) in Postgres; PostgREST emits it as a string
+ * so full precision survives JSON (IEEE-754 would truncate beyond ~15 digits).
+ * Clients write it as a number (frontend) or string (iOS during migration).
+ *
+ * The union narrowing (`number | string` only) prevents JS Number() semantics
+ * from silently turning booleans (true → 1) or single-element arrays
+ * ([1.2] → 1.2) into valid financial values — which z.coerce.number() would.
+ * Infinity and -Infinity are rejected on both branches.
+ */
+const exchangeRateWire = z.union([
+  z.number().finite(),
+  z.string().transform((value, ctx) => {
+    if (value.trim() === '') {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'Exchange rate must not be empty',
+      });
+      return z.NEVER;
+    }
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed)) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'Exchange rate must be a finite number',
+      });
+      return z.NEVER;
+    }
+    return parsed;
+  }),
+]);
+
+const exchangeRateWirePositive = exchangeRateWire.pipe(z.number().positive());
+
+/**
  * BUDGET - Instance mensuelle d'un template
  *
  * Selon SPECS.md section 2 "Concepts Métier":
@@ -213,10 +249,7 @@ export const savingsGoalSchema = z.object({
   originalTargetAmount: z.coerce.number().nonnegative().nullable().optional(),
   originalCurrency: supportedCurrencySchema.nullable().optional(),
   targetCurrency: supportedCurrencySchema.nullable().optional(),
-  // coerce: exchange_rate is NUMERIC(18,8) — PostgREST returns it as string.
-  // Backend emits string form so full NUMERIC precision survives the JSON wire
-  // (IEEE-754 would truncate beyond ~15 significant digits); clients coerce back.
-  exchangeRate: z.coerce.number().nullable().optional(),
+  exchangeRate: exchangeRateWire.nullable().optional(),
 });
 export type SavingsGoal = z.infer<typeof savingsGoalSchema>;
 
@@ -229,9 +262,7 @@ export const savingsGoalCreateSchema = z.object({
   originalTargetAmount: z.number().positive().optional(),
   originalCurrency: supportedCurrencySchema.optional(),
   targetCurrency: supportedCurrencySchema.optional(),
-  // coerce: accept both string and number on the input wire (dual-read during
-  // the iOS/frontend migration window); .positive() still applies post-coerce.
-  exchangeRate: z.coerce.number().positive().optional(),
+  exchangeRate: exchangeRateWirePositive.optional(),
 });
 export type SavingsGoalCreate = z.infer<typeof savingsGoalCreateSchema>;
 
@@ -271,8 +302,7 @@ export const budgetLineSchema = z.object({
   originalAmount: z.coerce.number().nonnegative().nullable().optional(),
   originalCurrency: supportedCurrencySchema.nullable().optional(),
   targetCurrency: supportedCurrencySchema.nullable().optional(),
-  // coerce: exchange_rate is NUMERIC(18,8) — backend emits string; clients dual-read.
-  exchangeRate: z.coerce.number().nullable().optional(),
+  exchangeRate: exchangeRateWire.nullable().optional(),
 });
 export type BudgetLine = z.infer<typeof budgetLineSchema>;
 
@@ -289,7 +319,7 @@ export const budgetLineCreateSchema = z.object({
   originalAmount: z.number().positive().optional(),
   originalCurrency: supportedCurrencySchema.optional(),
   targetCurrency: supportedCurrencySchema.optional(),
-  exchangeRate: z.coerce.number().positive().optional(),
+  exchangeRate: exchangeRateWirePositive.optional(),
 });
 export type BudgetLineCreate = z.infer<typeof budgetLineCreateSchema>;
 
@@ -338,7 +368,7 @@ export const transactionSchema = z.object({
   originalAmount: z.coerce.number().nonnegative().nullable().optional(),
   originalCurrency: supportedCurrencySchema.nullable().optional(),
   targetCurrency: supportedCurrencySchema.nullable().optional(),
-  exchangeRate: z.number().nullable().optional(),
+  exchangeRate: exchangeRateWire.nullable().optional(),
 });
 export type Transaction = z.infer<typeof transactionSchema>;
 
@@ -354,7 +384,7 @@ export const transactionCreateSchema = z.object({
   originalAmount: z.number().positive().optional(),
   originalCurrency: supportedCurrencySchema.optional(),
   targetCurrency: supportedCurrencySchema.optional(),
-  exchangeRate: z.number().positive().optional(),
+  exchangeRate: exchangeRateWirePositive.optional(),
 });
 export type TransactionCreate = z.infer<typeof transactionCreateSchema>;
 
@@ -367,7 +397,7 @@ export const transactionUpdateSchema = z.object({
   originalAmount: z.number().positive().optional(),
   originalCurrency: supportedCurrencySchema.optional(),
   targetCurrency: supportedCurrencySchema.optional(),
-  exchangeRate: z.number().positive().optional(),
+  exchangeRate: exchangeRateWirePositive.optional(),
 });
 export type TransactionUpdate = z.infer<typeof transactionUpdateSchema>;
 
@@ -437,7 +467,7 @@ export const templateLineSchema = z.object({
   originalAmount: z.coerce.number().nonnegative().nullable().optional(),
   originalCurrency: supportedCurrencySchema.nullable().optional(),
   targetCurrency: supportedCurrencySchema.nullable().optional(),
-  exchangeRate: z.number().nullable().optional(),
+  exchangeRate: exchangeRateWire.nullable().optional(),
 });
 export type TemplateLine = z.infer<typeof templateLineSchema>;
 
@@ -451,8 +481,9 @@ export const templateLineCreateSchema = z.object({
   originalAmount: z.number().positive().optional(),
   originalCurrency: supportedCurrencySchema.optional(),
   targetCurrency: supportedCurrencySchema.optional(),
-  exchangeRate: z.number().positive().optional(),
+  exchangeRate: exchangeRateWirePositive.optional(),
 });
+export type TemplateLineCreate = z.infer<typeof templateLineCreateSchema>;
 
 // Template line create without templateId (for batch creation)
 export const templateLineCreateWithoutTemplateIdSchema = z.object({
@@ -464,7 +495,7 @@ export const templateLineCreateWithoutTemplateIdSchema = z.object({
   originalAmount: z.number().positive().optional(),
   originalCurrency: supportedCurrencySchema.optional(),
   targetCurrency: supportedCurrencySchema.optional(),
-  exchangeRate: z.number().positive().optional(),
+  exchangeRate: exchangeRateWirePositive.optional(),
 });
 export type TemplateLineCreateWithoutTemplateId = z.infer<
   typeof templateLineCreateWithoutTemplateIdSchema
@@ -507,7 +538,7 @@ export const templateLineUpdateSchema = z.object({
   originalAmount: z.number().positive().optional(),
   originalCurrency: supportedCurrencySchema.optional(),
   targetCurrency: supportedCurrencySchema.optional(),
-  exchangeRate: z.number().positive().optional(),
+  exchangeRate: exchangeRateWirePositive.optional(),
 });
 export type TemplateLineUpdate = z.infer<typeof templateLineUpdateSchema>;
 
