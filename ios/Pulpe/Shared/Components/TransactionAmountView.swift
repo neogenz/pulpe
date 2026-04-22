@@ -51,11 +51,25 @@ struct TransactionAmountView: View {
         return ", saisi en \(secondary)"
     }
 
+    /// Returns `true` when the primary amount should render in the muted
+    /// "checked" style (hierarchical secondary) instead of the kind's accent
+    /// color. Exposed as a pure helper so the visual policy can be unit-tested
+    /// without instantiating the view.
+    static func isMutedStyle(for transaction: Transaction) -> Bool {
+        transaction.isChecked
+    }
+
+    private var primaryStyle: AnyShapeStyle {
+        transaction.isChecked
+            ? AnyShapeStyle(.secondary)
+            : AnyShapeStyle(transaction.kind.color)
+    }
+
     var body: some View {
         VStack(alignment: .trailing, spacing: DesignTokens.Spacing.xxs) {
             Text(transaction.amount.asSignedAmount(for: transaction.kind, in: displayCurrency))
                 .font(PulpeTypography.listRowSubtitle)
-                .foregroundStyle(transaction.kind.color)
+                .foregroundStyle(primaryStyle)
 
             if let secondary = Self.secondaryText(for: transaction, in: displayCurrency) {
                 Text(secondary)
@@ -108,6 +122,24 @@ struct TransactionAmountView: View {
                 originalCurrency: .eur,
                 targetCurrency: .chf,
                 exchangeRate: 0.9412
+            ),
+            displayCurrency: .chf
+        )
+
+        // Checked — primary amount uses muted hierarchical secondary style.
+        TransactionAmountView(
+            transaction: Transaction(
+                id: "3",
+                budgetId: "b1",
+                budgetLineId: nil,
+                name: "Loyer",
+                amount: 1200,
+                kind: .expense,
+                transactionDate: Date(),
+                category: nil,
+                checkedAt: Date(),
+                createdAt: Date(),
+                updatedAt: Date()
             ),
             displayCurrency: .chf
         )

@@ -9,6 +9,8 @@ struct TransactionAmountViewTests {
     // MARK: - Helpers
 
     private static func makeTransaction(
+        kind: TransactionKind = .expense,
+        checkedAt: Date? = nil,
         originalAmount: Decimal? = nil,
         originalCurrency: SupportedCurrency? = nil,
         targetCurrency: SupportedCurrency? = nil,
@@ -20,10 +22,10 @@ struct TransactionAmountViewTests {
             budgetLineId: nil,
             name: "Test",
             amount: 100,
-            kind: .expense,
+            kind: kind,
             transactionDate: Date(),
             category: nil,
-            checkedAt: nil,
+            checkedAt: checkedAt,
             createdAt: Date(),
             updatedAt: Date(),
             originalAmount: originalAmount,
@@ -107,5 +109,30 @@ struct TransactionAmountViewTests {
 
         #expect(formatted.hasSuffix("CHF"))
         #expect(containsSwissGroupingSeparator(formatted))
+    }
+
+    // MARK: - Primary style (checked = muted)
+
+    @Test func primary_unchecked_isNotMuted() {
+        let transaction = Self.makeTransaction(checkedAt: nil)
+
+        #expect(TransactionAmountView.isMutedStyle(for: transaction) == false)
+    }
+
+    @Test func primary_checked_isMuted() {
+        let transaction = Self.makeTransaction(checkedAt: Date())
+
+        #expect(TransactionAmountView.isMutedStyle(for: transaction) == true)
+    }
+
+    @Test("checked transactions render muted across all kinds", arguments: [
+        TransactionKind.expense,
+        TransactionKind.income,
+        TransactionKind.saving,
+    ])
+    func primary_checkedAcrossKinds_isMuted(kind: TransactionKind) {
+        let transaction = Self.makeTransaction(kind: kind, checkedAt: Date())
+
+        #expect(TransactionAmountView.isMutedStyle(for: transaction) == true)
     }
 }
