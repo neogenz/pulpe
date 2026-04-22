@@ -6,6 +6,7 @@ import {
   withRouterConfig,
   withPreloading,
   NoPreloading,
+  withViewTransitions,
   TitleStrategy,
 } from '@angular/router';
 import { withChunkReloadRecovery } from './routing/navigation-error-handler';
@@ -117,6 +118,7 @@ export function provideCore({ routes }: CoreOptions) {
         scrollPositionRestoration: 'enabled',
       }),
       withPreloading(NoPreloading),
+      withViewTransitions({ skipInitialTransition: true }),
       withChunkReloadRecovery(),
     ),
 

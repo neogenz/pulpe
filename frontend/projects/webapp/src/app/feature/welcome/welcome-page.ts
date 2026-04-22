@@ -19,7 +19,6 @@ import { ROUTES } from '@core/routing';
 import { TurnstileService } from '@core/turnstile';
 import { ErrorAlert } from '@ui/error-alert';
 import { LoadingButton } from '@ui/loading-button';
-import { LottieComponent, type AnimationOptions } from 'ngx-lottie';
 import { NgxTurnstileModule, type NgxTurnstileComponent } from 'ngx-turnstile';
 
 @Component({
@@ -27,7 +26,6 @@ import { NgxTurnstileModule, type NgxTurnstileComponent } from 'ngx-turnstile';
   imports: [
     MatButtonModule,
     MatIconModule,
-    LottieComponent,
     RouterLink,
     NgxTurnstileModule,
     TranslocoPipe,
@@ -37,23 +35,29 @@ import { NgxTurnstileModule, type NgxTurnstileComponent } from 'ngx-turnstile';
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div
-      class="pulpe-entry-card w-full max-w-lg items-center"
+    <section
+      class="pulpe-welcome-stagger w-full max-w-md mx-auto flex flex-col items-center text-center px-2 md:px-0"
       data-testid="welcome-page"
     >
-      <!-- Branding -->
-      <img src="/logo.svg" alt="Pulpe" class="h-14 md:h-16 mb-6" />
+      <!-- Brand mark -->
+      <img
+        src="/logo.svg"
+        alt="Pulpe"
+        class="h-14 md:h-16 mx-auto mb-5 select-none"
+        draggable="false"
+      />
 
-      <!-- Eyebrow -->
-      <p
-        class="text-xs font-semibold tracking-widest uppercase text-primary mb-3"
-      >
+      <!-- Eyebrow pill -->
+      <span class="pulpe-eyebrow-pill mx-auto">
+        <span class="pulpe-eyebrow-dot" aria-hidden="true">
+          <span class="pulpe-eyebrow-dot-core"></span>
+        </span>
         {{ 'welcome.eyebrow' | transloco }}
-      </p>
+      </span>
 
-      <!-- Title -->
+      <!-- Headline -->
       <h1
-        class="text-headline-large md:text-display-small font-bold text-on-surface leading-tight text-center mb-2"
+        class="font-bold tracking-[-0.02em] leading-[1.02] text-[2rem] md:text-[2.5rem] mt-4 text-on-surface [text-wrap:balance]"
         data-testid="welcome-title"
       >
         {{ 'welcome.title' | transloco }}
@@ -61,48 +65,14 @@ import { NgxTurnstileModule, type NgxTurnstileComponent } from 'ngx-turnstile';
 
       <!-- Subtitle -->
       <p
-        class="text-body-large text-on-surface-variant text-center leading-relaxed mb-4"
+        class="text-body-large text-on-surface-variant mt-3 leading-snug [text-wrap:balance]"
         data-testid="welcome-subtitle"
       >
         {{ 'welcome.subtitle' | transloco }}
       </p>
 
-      <!-- Lottie animation -->
-      @defer (on idle) {
-        <div class="flex justify-center mb-6">
-          <ng-lottie
-            [options]="lottieOptions"
-            class="hidden md:block w-60 h-44 md:w-120 md:h-80 -mt-10 md:-mt-20 bg-transparent"
-          />
-        </div>
-      } @placeholder {
-        <div class="flex justify-center mb-6">
-          <div
-            class="w-56 h-40 md:w-72 md:h-48 flex items-center justify-center"
-          >
-            <div
-              class="w-16 h-16 bg-primary/10 rounded-full animate-pulse"
-            ></div>
-          </div>
-        </div>
-      } @loading {
-        <div class="flex justify-center mb-6">
-          <div
-            class="w-56 h-40 md:w-72 md:h-48 flex items-center justify-center"
-          >
-            <div
-              class="w-16 h-16 bg-primary/20 rounded-full animate-pulse"
-            ></div>
-          </div>
-        </div>
-      } @error {
-        <div class="flex justify-center mb-6">
-          <div class="w-56 h-40 md:w-72 md:h-48"></div>
-        </div>
-      }
-
       <!-- CTAs -->
-      <div class="flex flex-col gap-3 w-full">
+      <div class="mt-7 flex flex-col gap-3 w-full">
         <pulpe-google-oauth-button
           class="w-full"
           buttonType="outlined"
@@ -111,25 +81,24 @@ import { NgxTurnstileModule, type NgxTurnstileComponent } from 'ngx-turnstile';
           (loadingChange)="onGoogleLoadingChange($event)"
         />
 
-        <!-- Separator -->
-        <div class="flex items-center gap-4 my-1">
-          <div class="flex-1 h-px bg-outline-variant/30"></div>
+        <div class="flex items-center gap-4 my-0.5" aria-hidden="true">
+          <div class="flex-1 h-px bg-outline-variant/40"></div>
           <span
-            class="text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-widest"
+            class="text-[10px] font-semibold text-on-surface-variant/70 uppercase tracking-[0.2em]"
             >{{ 'common.or' | transloco }}</span
           >
-          <div class="flex-1 h-px bg-outline-variant/30"></div>
+          <div class="flex-1 h-px bg-outline-variant/40"></div>
         </div>
 
         <button
           matButton="filled"
-          class="w-full h-12"
+          class="pulpe-primary-cta w-full !h-13 !text-base"
           data-testid="email-signup-button"
           [disabled]="isLoading()"
           [routerLink]="['/', ROUTES.SIGNUP]"
           (click)="onEmailSignupClick()"
         >
-          <div class="flex items-center justify-center gap-2">
+          <div class="flex items-center justify-center gap-2 relative z-[1]">
             <mat-icon>email</mat-icon>
             <span>{{ 'welcome.emailSignup' | transloco }}</span>
           </div>
@@ -168,39 +137,41 @@ import { NgxTurnstileModule, type NgxTurnstileComponent } from 'ngx-turnstile';
         <pulpe-error-alert [message]="errorMessage()" class="w-full" />
       </div>
 
-      <!-- Legal -->
       <p
-        class="text-xs text-on-surface-variant text-center mt-5"
-        data-testid="app-version"
+        class="text-sm text-on-surface-variant mt-6 flex items-center justify-center gap-1.5"
+        data-testid="welcome-signin"
+      >
+        {{ 'welcome.alreadyAccount' | transloco }}
+        <a
+          [routerLink]="['/', ROUTES.LOGIN]"
+          class="pulpe-inline-signin"
+          data-testid="welcome-signin-link"
+        >
+          {{ 'welcome.signin' | transloco }}
+          <mat-icon>arrow_forward</mat-icon>
+        </a>
+      </p>
+
+      <p
+        class="text-xs text-on-surface-variant/80 mt-5 leading-relaxed"
+        data-testid="welcome-legal"
       >
         {{ 'welcome.legalPrefix' | transloco }}
         <a
           [routerLink]="['/', ROUTES.LEGAL, ROUTES.LEGAL_TERMS]"
           target="_blank"
-          class="text-primary underline"
+          class="text-primary underline underline-offset-2"
           >{{ 'welcome.termsShort' | transloco }}</a
         >
         {{ 'welcome.legalAnd' | transloco }}
         <a
           [routerLink]="['/', ROUTES.LEGAL, ROUTES.LEGAL_PRIVACY]"
           target="_blank"
-          class="text-primary underline"
+          class="text-primary underline underline-offset-2"
           >{{ 'welcome.privacyPolicy' | transloco }}</a
         >
       </p>
-
-      <!-- Login link -->
-      <p class="text-sm text-on-surface-variant mt-4">
-        {{ 'welcome.alreadyAccount' | transloco }}
-        <button
-          matButton
-          [routerLink]="['/', ROUTES.LOGIN]"
-          class="text-primary font-semibold"
-        >
-          {{ 'welcome.signin' | transloco }}
-        </button>
-      </p>
-    </div>
+    </section>
   `,
 })
 export default class WelcomePage {
@@ -229,19 +200,6 @@ export default class WelcomePage {
 
   protected readonly turnstileWidget =
     viewChild<NgxTurnstileComponent>('turnstileWidget');
-
-  protected readonly lottieOptions: AnimationOptions = {
-    path: '/lottie/welcome-animation.json',
-    loop: true,
-    autoplay: true,
-    renderer: 'svg',
-    rendererSettings: {
-      preserveAspectRatio: 'xMidYMid meet',
-      progressiveLoad: true,
-      hideOnTransparent: true,
-    },
-    assetsPath: '/lottie/',
-  };
 
   onGoogleLoadingChange(isLoading: boolean): void {
     this.isGoogleLoading.set(isLoading);
