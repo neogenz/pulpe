@@ -38,8 +38,11 @@ export function Features() {
   return (
     <Section id="features">
       <FadeIn variant="blur">
-        <h2 className="text-2xl md:text-4xl font-bold text-center mb-12">
-          Comment Pulpe reste simple
+        <h2 className="text-3xl md:text-5xl font-bold text-center mb-14 tracking-[-0.02em] balance">
+          Comment Pulpe{' '}
+          <span className="italic font-normal text-primary">
+            reste simple.
+          </span>
         </h2>
       </FadeIn>
 
@@ -52,10 +55,10 @@ export function Features() {
                   <feature.badge.Icon className="w-4 h-4" />
                   {feature.badge.label}
                 </Badge>
-                <h3 className="text-xl md:text-2xl font-semibold mb-3">
+                <h3 className="text-xl md:text-2xl lg:text-[1.75rem] font-semibold mb-3 tracking-[-0.01em] leading-[1.2] balance">
                   {feature.title}
                 </h3>
-                <p className="text-text-secondary text-lg leading-relaxed">
+                <p className="text-text-secondary text-lg leading-relaxed pretty">
                   {feature.description}
                 </p>
               </div>
