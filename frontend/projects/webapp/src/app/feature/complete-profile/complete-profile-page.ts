@@ -219,7 +219,7 @@ import {
                               >
                             </span>
                             <mat-icon
-                              class="ml-auto !text-lg transition-opacity duration-300"
+                              class="ml-auto flex-shrink-0 !text-lg !w-5 !h-5 transition-opacity duration-300"
                               [class.opacity-100]="isSelected"
                               [class.opacity-0]="!isSelected"
                               aria-hidden="true"
@@ -1107,7 +1107,10 @@ export default class CompleteProfilePage {
       await import('./add-custom-expense-dialog');
     const tx = await firstValueFrom(
       this.#dialog
-        .open(AddCustomExpenseDialog, { width: '400px' })
+        .open(AddCustomExpenseDialog, {
+          width: '400px',
+          data: { currency: this.selectedCurrency() },
+        })
         .afterClosed(),
     );
     if (tx) this.store.addCustomTransaction(tx);

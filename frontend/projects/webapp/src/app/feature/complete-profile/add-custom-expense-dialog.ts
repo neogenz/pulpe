@@ -1,5 +1,9 @@
 import { Component, inject, ChangeDetectionStrategy } from '@angular/core';
-import { MatDialogRef, MatDialogModule } from '@angular/material/dialog';
+import {
+  MatDialogRef,
+  MatDialogModule,
+  MAT_DIALOG_DATA,
+} from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
@@ -8,6 +12,11 @@ import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { TranslocoPipe } from '@jsverse/transloco';
 import type { OnboardingTransaction } from '@core/complete-profile';
+import type { SupportedCurrency } from 'pulpe-shared';
+
+export interface AddCustomExpenseDialogData {
+  readonly currency: SupportedCurrency;
+}
 
 @Component({
   selector: 'pulpe-add-custom-expense-dialog',
@@ -90,7 +99,7 @@ import type { OnboardingTransaction } from '@core/complete-profile';
             inputmode="decimal"
             data-testid="custom-expense-amount"
           />
-          <span matTextSuffix>CHF</span>
+          <span matTextSuffix>{{ currency }}</span>
         </mat-form-field>
       </form>
     </mat-dialog-content>
@@ -116,6 +125,8 @@ import type { OnboardingTransaction } from '@core/complete-profile';
 export class AddCustomExpenseDialog {
   readonly #dialogRef = inject(MatDialogRef<AddCustomExpenseDialog>);
   readonly #fb = inject(FormBuilder);
+  protected readonly currency =
+    inject<AddCustomExpenseDialogData>(MAT_DIALOG_DATA).currency;
 
   protected readonly form = this.#fb.group({
     kind: ['expense' as 'income' | 'expense' | 'saving'],
