@@ -147,44 +147,46 @@ import { PAY_DAY_MAX, type SupportedCurrency } from 'pulpe-shared';
                   />
                 </mat-form-field>
 
-                <div class="flex flex-col gap-2">
-                  <p class="text-label-medium text-on-surface-variant">
-                    {{ 'settings.currencyLabel' | transloco }}
-                  </p>
-                  <mat-button-toggle-group
-                    aria-label="Devise"
-                    [value]="selectedCurrency()"
-                    (change)="onCurrencyChange($event.value)"
-                    data-testid="currency-toggle"
-                    class="w-full"
-                    hideSingleSelectionIndicator
-                  >
-                    <mat-button-toggle value="CHF" class="flex-1">
-                      <span
-                        class="flex flex-col items-center leading-tight py-1"
-                      >
-                        <span class="text-base"
-                          ><span class="text-lg mr-1">🇨🇭</span>CHF</span
+                @if (isMultiCurrencyEnabled()) {
+                  <div class="flex flex-col gap-2">
+                    <p class="text-label-medium text-on-surface-variant">
+                      {{ 'settings.currencyLabel' | transloco }}
+                    </p>
+                    <mat-button-toggle-group
+                      aria-label="Devise"
+                      [value]="selectedCurrency()"
+                      (change)="onCurrencyChange($event.value)"
+                      data-testid="currency-toggle"
+                      class="w-full"
+                      hideSingleSelectionIndicator
+                    >
+                      <mat-button-toggle value="CHF" class="flex-1">
+                        <span
+                          class="flex flex-col items-center leading-tight py-1"
                         >
-                        <span class="text-xs text-on-surface-variant">{{
-                          'currency.swissFranc' | transloco
-                        }}</span>
-                      </span>
-                    </mat-button-toggle>
-                    <mat-button-toggle value="EUR" class="flex-1">
-                      <span
-                        class="flex flex-col items-center leading-tight py-1"
-                      >
-                        <span class="text-base"
-                          ><span class="text-lg mr-1">🇪🇺</span>EUR</span
+                          <span class="text-base"
+                            ><span class="text-lg mr-1">🇨🇭</span>CHF</span
+                          >
+                          <span class="text-xs text-on-surface-variant">{{
+                            'currency.swissFranc' | transloco
+                          }}</span>
+                        </span>
+                      </mat-button-toggle>
+                      <mat-button-toggle value="EUR" class="flex-1">
+                        <span
+                          class="flex flex-col items-center leading-tight py-1"
                         >
-                        <span class="text-xs text-on-surface-variant">{{
-                          'currency.euro' | transloco
-                        }}</span>
-                      </span>
-                    </mat-button-toggle>
-                  </mat-button-toggle-group>
-                </div>
+                          <span class="text-base"
+                            ><span class="text-lg mr-1">🇪🇺</span>EUR</span
+                          >
+                          <span class="text-xs text-on-surface-variant">{{
+                            'currency.euro' | transloco
+                          }}</span>
+                        </span>
+                      </mat-button-toggle>
+                    </mat-button-toggle-group>
+                  </div>
+                }
 
                 <pulpe-currency-input
                   [label]="'completeProfile.monthlyIncome' | transloco"
@@ -665,6 +667,8 @@ export default class CompleteProfilePage {
         );
   });
 
+  protected readonly isMultiCurrencyEnabled =
+    this.#featureFlags.isMultiCurrencyEnabled;
   protected readonly showCurrencySelector = computed(
     () =>
       this.#featureFlags.isMultiCurrencyEnabled() &&

@@ -27,74 +27,72 @@ import type { OnboardingTransaction } from '@core/complete-profile';
     </h2>
 
     <mat-dialog-content>
-      <div class="flex flex-col gap-4 pt-4">
-        <form [formGroup]="form">
-          <mat-button-toggle-group
-            formControlName="kind"
-            [hideSingleSelectionIndicator]="true"
-            class="w-full mb-4"
-            [attr.aria-label]="
-              'completeProfile.customExpense.kindToggleAriaLabel' | transloco
+      <form [formGroup]="form" class="flex flex-col gap-4 density-1">
+        <mat-button-toggle-group
+          formControlName="kind"
+          [hideSingleSelectionIndicator]="true"
+          class="w-full"
+          [attr.aria-label]="
+            'completeProfile.customExpense.kindToggleAriaLabel' | transloco
+          "
+          data-testid="custom-expense-kind"
+        >
+          <mat-button-toggle value="expense" class="flex-1">
+            {{ 'completeProfile.customExpense.kindExpense' | transloco }}
+          </mat-button-toggle>
+          <mat-button-toggle value="saving" class="flex-1">
+            {{ 'completeProfile.customExpense.kindSaving' | transloco }}
+          </mat-button-toggle>
+          <mat-button-toggle value="income" class="flex-1">
+            {{ 'completeProfile.customExpense.kindIncome' | transloco }}
+          </mat-button-toggle>
+        </mat-button-toggle-group>
+
+        <mat-form-field
+          appearance="outline"
+          subscriptSizing="dynamic"
+          class="w-full"
+        >
+          <mat-label>{{
+            'completeProfile.customExpense.nameLabel' | transloco
+          }}</mat-label>
+          <input
+            matInput
+            formControlName="name"
+            maxlength="100"
+            [placeholder]="
+              'completeProfile.customExpense.namePlaceholder' | transloco
             "
-            data-testid="custom-expense-kind"
-          >
-            <mat-button-toggle value="expense" class="flex-1">
-              {{ 'completeProfile.customExpense.kindExpense' | transloco }}
-            </mat-button-toggle>
-            <mat-button-toggle value="saving" class="flex-1">
-              {{ 'completeProfile.customExpense.kindSaving' | transloco }}
-            </mat-button-toggle>
-            <mat-button-toggle value="income" class="flex-1">
-              {{ 'completeProfile.customExpense.kindIncome' | transloco }}
-            </mat-button-toggle>
-          </mat-button-toggle-group>
+            data-testid="custom-expense-name"
+          />
+          @if (form.controls.name.hasError('maxlength')) {
+            <mat-error>
+              {{ 'completeProfile.customExpense.nameMaxLength' | transloco }}
+            </mat-error>
+          }
+        </mat-form-field>
 
-          <mat-form-field
-            appearance="outline"
-            subscriptSizing="dynamic"
-            class="w-full"
-          >
-            <mat-label>{{
-              'completeProfile.customExpense.nameLabel' | transloco
-            }}</mat-label>
-            <input
-              matInput
-              formControlName="name"
-              maxlength="100"
-              [placeholder]="
-                'completeProfile.customExpense.namePlaceholder' | transloco
-              "
-              data-testid="custom-expense-name"
-            />
-            @if (form.controls.name.hasError('maxlength')) {
-              <mat-error>
-                {{ 'completeProfile.customExpense.nameMaxLength' | transloco }}
-              </mat-error>
-            }
-          </mat-form-field>
-
-          <mat-form-field
-            appearance="outline"
-            subscriptSizing="dynamic"
-            class="w-full ph-no-capture"
-          >
-            <mat-label class="ph-no-capture">{{
-              'completeProfile.customExpense.amountLabel' | transloco
-            }}</mat-label>
-            <input
-              matInput
-              type="number"
-              formControlName="amount"
-              placeholder="0.00"
-              step="0.01"
-              min="0"
-              inputmode="decimal"
-              data-testid="custom-expense-amount"
-            />
-            <span matTextSuffix>CHF</span>
-          </mat-form-field>
-        </form>
-      </div>
+        <mat-form-field
+          appearance="outline"
+          subscriptSizing="dynamic"
+          class="w-full ph-no-capture"
+        >
+          <mat-label class="ph-no-capture">{{
+            'completeProfile.customExpense.amountLabel' | transloco
+          }}</mat-label>
+          <input
+            matInput
+            type="number"
+            formControlName="amount"
+            placeholder="0.00"
+            step="0.01"
+            min="0"
+            inputmode="decimal"
+            data-testid="custom-expense-amount"
+          />
+          <span matTextSuffix>CHF</span>
+        </mat-form-field>
+      </form>
     </mat-dialog-content>
 
     <mat-dialog-actions align="end">
