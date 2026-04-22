@@ -736,7 +736,7 @@
     "monthlyIncome": "Revenus mensuels",
     "next": "Suivant",
     "privateData": "Tes données restent privées et sécurisées",
-    "step2Title": "Presque terminé 🎯",
+    "step2Title": "Presque terminé",
     "step2Subtitle": "Quelques infos pour affiner — ou passe directement.",
     "payDay": "Quand reçois-tu ton salaire ?",
     "payDayFirstOfMonth": "1er du mois (calendaire)",
@@ -778,6 +778,26 @@
       "liveDeficitAnnouncement": "Déficit de {{ amount }} francs à équilibrer"
     },
     "stepperAriaLabel": "Étape {{ current }} sur {{ total }}",
+    "stepYou": "Toi",
+    "stepYourExpenses": "Tes charges",
+    "stepIndicator": "Étape {{ current }} / {{ total }}",
+    "step1Intro": "Trois infos pour démarrer. On s'occupe du reste.",
+    "currencyLabel": "Ta devise",
+    "currencyHint": "Modifiable plus tard depuis les paramètres",
+    "preview": {
+      "title": "Budget · {{ month }}",
+      "ariaLabel": "Aperçu",
+      "summaryAriaLabel": "Résumé du budget",
+      "empty": "Remplis tes revenus pour voir ton budget prendre forme",
+      "incomeLabel": "Revenus prévus",
+      "payDayFirst": "Paie le 1er du mois",
+      "payDayOn": "Paie le {{ day }}",
+      "nextStepHint": "Prochaine étape : tes charges fixes",
+      "readyBadge": "Budget prêt à personnaliser"
+    },
+    "ctaMissingName": "Dis-nous ton prénom",
+    "ctaMissingIncome": "Ajoute tes revenus mensuels",
+    "ctaReady": "Continuer",
     "customize": {
       "sectionTitle": "Personnaliser ton budget"
     },
