@@ -218,8 +218,7 @@ struct LinkedTransactionsSheet: View {
         }
         .primaryButtonStyle()
         .padding(.horizontal)
-        .padding(.vertical, DesignTokens.Spacing.md)
-        .pulpeFloatingGlass(cornerRadius: 0)
+        .padding(.top, DesignTokens.Spacing.md)
         .background {
             Color.sheetBackground
                 .ignoresSafeArea(edges: .bottom)
