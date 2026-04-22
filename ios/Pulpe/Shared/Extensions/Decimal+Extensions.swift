@@ -35,6 +35,12 @@ extension Decimal {
         signedFormatted(absoluteValue.asAmount(for: currency), for: kind)
     }
 
+    /// Format as signed currency based on transaction kind — "+1'234.56 CHF" for income,
+    /// "-1 234,56 €" for expense/saving, locale-aware.
+    func asSignedCurrency(_ currency: SupportedCurrency, for kind: TransactionKind) -> String {
+        signedFormatted(absoluteValue.asCurrency(currency), for: kind)
+    }
+
     /// Format as signed CHF based on transaction kind — "+1'234.56 CHF" for income, "-1'234.56 CHF" for expense/saving
     func asSignedCHF(for kind: TransactionKind) -> String {
         signedFormatted(absoluteValue.asCHF, for: kind)
