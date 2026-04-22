@@ -15,8 +15,16 @@ actor WidgetDataSyncService {
         self.budgetService = budgetService
     }
 
-    /// Centralized widget sync - fetches all data and syncs widgets
-    func syncAll(payDayOfMonth: Int? = nil) async {
+    /// Centralized widget sync. Callers that already hold a fresh `currency` (e.g. right after
+    /// `updateCurrency`) can pass it to skip a redundant GET /users/settings.
+    func syncAll(payDayOfMonth: Int? = nil, currency: SupportedCurrency? = nil) async {
+        let resolvedCurrency: SupportedCurrency
+        if let currency {
+            resolvedCurrency = currency
+        } else {
+            (_, resolvedCurrency) = await UserSettingsService.shared.getSettingsWithDefaults(context: "syncAll")
+        }
+
         do {
             let exportData = try await budgetService.exportAllBudgets()
 
@@ -31,14 +39,16 @@ actor WidgetDataSyncService {
             await sync(
                 budgetsWithDetails: exportData.budgets,
                 currentBudgetDetails: currentDetails,
-                payDayOfMonth: payDayOfMonth
+                payDayOfMonth: payDayOfMonth,
+                currency: resolvedCurrency
             )
         } catch {
             Logger.sync.error("syncAll failed - \(error)")
             await sync(
                 budgetsWithDetails: [],
                 currentBudgetDetails: nil,
-                payDayOfMonth: payDayOfMonth
+                payDayOfMonth: payDayOfMonth,
+                currency: resolvedCurrency
             )
         }
     }
@@ -46,7 +56,8 @@ actor WidgetDataSyncService {
     func sync(
         budgetsWithDetails: [BudgetWithDetails],
         currentBudgetDetails: BudgetDetails?,
-        payDayOfMonth: Int? = nil
+        payDayOfMonth: Int?,
+        currency: SupportedCurrency
     ) async {
         let calendar = Calendar.current
         let currentPeriod = BudgetPeriodCalculator.periodForDate(Date(), payDayOfMonth: payDayOfMonth)
@@ -86,7 +97,8 @@ actor WidgetDataSyncService {
         let cache = WidgetDataCache(
             currentMonth: currentMonthData,
             yearBudgets: yearBudgets,
-            lastUpdated: Date()
+            lastUpdated: Date(),
+            currency: currency
         )
 
         let didSave = coordinator.save(cache)

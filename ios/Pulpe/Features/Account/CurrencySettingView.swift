@@ -26,7 +26,6 @@ struct CurrencySettingView: View {
     var body: some View {
         if featureFlagsStore.isMultiCurrencyEnabled {
             Section {
-                currencyScopeHelper
                 currencyPicker
                 currencySelectorToggle
                 converterDisclosure
@@ -55,52 +54,55 @@ struct CurrencySettingView: View {
         }
     }
 
-    // MARK: - Scope Helper
-
-    private var currencyScopeHelper: some View {
-        Text("On l'utilise pour afficher tous tes montants.")
-            .font(PulpeTypography.caption)
-            .foregroundStyle(Color.onSurfaceVariant)
-            .fixedSize(horizontal: false, vertical: true)
-            .listRowSeparator(.hidden, edges: .bottom)
-    }
-
     // MARK: - Currency Picker
 
     private var currencyPicker: some View {
-        CapsulePicker(
-            selection: Binding(
-                get: { viewModel.selectedCurrency },
-                set: { newValue in
-                    guard newValue != viewModel.selectedCurrency else { return }
-                    viewModel.selectedCurrency = newValue
-                    viewModel.applyConverterBase(newValue)
-                    if isConverterExpanded {
-                        viewModel.reloadRate()
-                    }
-                    Task {
-                        await viewModel.save(using: userSettingsStore)
-                        if userSettingsStore.error == nil {
-                            submitSuccessTrigger.toggle()
-                            appState.toastManager.show("Devise enregistrée", type: .success)
-                        } else {
-                            appState.toastManager.show("Erreur lors de la sauvegarde", type: .error)
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+            Text("On l'utilise pour afficher tous tes montants.")
+                .font(PulpeTypography.caption)
+                .foregroundStyle(Color.onSurfaceVariant)
+                .fixedSize(horizontal: false, vertical: true)
+
+            CapsulePicker(
+                selection: Binding(
+                    get: { viewModel.selectedCurrency },
+                    set: { newValue in
+                        guard newValue != viewModel.selectedCurrency else { return }
+                        viewModel.selectedCurrency = newValue
+                        viewModel.applyConverterBase(newValue)
+                        if isConverterExpanded {
+                            viewModel.reloadRate()
+                        }
+                        Task {
+                            await viewModel.save(using: userSettingsStore)
+                            if userSettingsStore.error == nil {
+                                submitSuccessTrigger.toggle()
+                                appState.toastManager.show("Devise enregistrée", type: .success)
+                                // Reload widget timelines so they stop rendering the previous currency.
+                                await WidgetDataSyncService.shared.syncAll(
+                                    payDayOfMonth: userSettingsStore.payDayOfMonth,
+                                    currency: userSettingsStore.currency
+                                )
+                            } else {
+                                appState.toastManager.show("Erreur lors de la sauvegarde", type: .error)
+                            }
                         }
                     }
-                }
-            ),
-            title: nil
-        ) { currency, isSelected in
-            HStack(spacing: DesignTokens.Spacing.xs) {
-                Text(currency.flag)
-                VStack(alignment: .leading, spacing: 0) {
-                    Text(currency.rawValue).font(PulpeTypography.labelLarge)
-                    Text(currency.nativeName)
-                        .font(PulpeTypography.caption2)
-                        .foregroundStyle(isSelected ? Color.textOnPrimaryMuted : Color.onSurfaceVariant)
+                ),
+                title: nil
+            ) { currency, isSelected in
+                HStack(spacing: DesignTokens.Spacing.xs) {
+                    Text(currency.flag)
+                    VStack(alignment: .leading, spacing: 0) {
+                        Text(currency.rawValue).font(PulpeTypography.labelLarge)
+                        Text(currency.nativeName)
+                            .font(PulpeTypography.caption2)
+                            .foregroundStyle(isSelected ? Color.textOnPrimaryMuted : Color.onSurfaceVariant)
+                    }
                 }
             }
         }
+        .alignmentGuide(.listRowSeparatorLeading) { _ in 0 }
     }
 
     // MARK: - Currency Selector Toggle
