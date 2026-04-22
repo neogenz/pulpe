@@ -78,6 +78,13 @@ import {
     .currency-tile:active {
       transform: scale(0.98);
     }
+    /* mat-icon needs font-size/width/height/line-height synchronized to keep the glyph centered. */
+    .currency-tile-check {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+      line-height: 18px;
+    }
     .onboarding-preview-desktop {
       transition:
         border-color var(--pulpe-motion-slow) var(--pulpe-ease-emphasized),
@@ -219,7 +226,7 @@ import {
                               >
                             </span>
                             <mat-icon
-                              class="ml-auto flex-shrink-0 !text-lg !w-5 !h-5 transition-opacity duration-300"
+                              class="currency-tile-check ml-auto flex-shrink-0 transition-opacity duration-300"
                               [class.opacity-100]="isSelected"
                               [class.opacity-0]="!isSelected"
                               aria-hidden="true"
