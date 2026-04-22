@@ -739,7 +739,7 @@
     "step2Title": "Presque terminé",
     "step2Subtitle": "Quelques infos pour affiner — ou passe directement.",
     "payDay": "Quand reçois-tu ton salaire ?",
-    "payDayFirstOfMonth": "1er du mois (calendaire)",
+    "payDayPlaceholder": "Choisis ton jour",
     "payDayOption": "Le {{ day }}",
     "charges": "Charges mensuelles",
     "chargesOptional": "Facultatif — tu pourras ajuster plus tard",

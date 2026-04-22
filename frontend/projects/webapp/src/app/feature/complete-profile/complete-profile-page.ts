@@ -283,6 +283,7 @@ import {
                   <mat-form-field
                     appearance="outline"
                     subscriptSizing="dynamic"
+                    floatLabel="always"
                     class="w-full"
                   >
                     <mat-icon matPrefix class="mr-3 text-on-surface-variant"
@@ -294,11 +295,11 @@ import {
                     <mat-select
                       [ngModel]="store.payDayOfMonth()"
                       (ngModelChange)="store.updatePayDayOfMonth($event)"
+                      [placeholder]="
+                        'completeProfile.payDayPlaceholder' | transloco
+                      "
                       data-testid="pay-day-select"
                     >
-                      <mat-option [value]="null">{{
-                        'completeProfile.payDayFirstOfMonth' | transloco
-                      }}</mat-option>
                       @for (day of availableDays; track day) {
                         <mat-option [value]="day">{{
                           'completeProfile.payDayOption'
