@@ -31,6 +31,7 @@ import {
   CompleteProfileStore,
   ONBOARDING_SUGGESTIONS,
 } from './complete-profile-store';
+import { OnboardingPreviewDesktop } from './components/onboarding-preview-desktop';
 import {
   CURRENCY_METADATA,
   PAY_DAY_MAX,
@@ -54,6 +55,7 @@ import {
     CurrencyInput,
     ErrorAlert,
     LoadingButton,
+    OnboardingPreviewDesktop,
   ],
   providers: [CompleteProfileStore],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -84,24 +86,6 @@ import {
       width: 18px;
       height: 18px;
       line-height: 18px;
-    }
-    .onboarding-preview-desktop {
-      transition:
-        border-color var(--pulpe-motion-slow) var(--pulpe-ease-emphasized),
-        background-color var(--pulpe-motion-slow) var(--pulpe-ease-emphasized);
-    }
-    .onboarding-preview-desktop.is-ready {
-      border-color: color-mix(
-        in oklch,
-        var(--mat-sys-primary) 35%,
-        var(--mat-sys-outline-variant)
-      );
-    }
-    .onboarding-preview-desktop .preview-glow {
-      opacity: 0;
-    }
-    .onboarding-preview-desktop.is-ready .preview-glow {
-      opacity: 1;
     }
   `,
   template: `
@@ -338,12 +322,14 @@ import {
                         }
                       </span>
                     </div>
-                    <span
-                      class="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-surface text-label-small text-on-surface-variant"
-                    >
-                      <mat-icon class="!text-base">event</mat-icon>
-                      {{ payDayLabel() }}
-                    </span>
+                    @if (payDayLabel(); as label) {
+                      <span
+                        class="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-surface text-label-small text-on-surface-variant"
+                      >
+                        <mat-icon class="!text-base">event</mat-icon>
+                        {{ label }}
+                      </span>
+                    }
                   </div>
                 </div>
 
@@ -375,102 +361,16 @@ import {
               </div>
 
               <!-- Right column: sticky live preview (desktop only) -->
-              <aside
+              <pulpe-onboarding-preview-desktop
                 class="hidden lg:block lg:sticky lg:top-8"
-                [attr.aria-label]="
-                  'completeProfile.preview.ariaLabel' | transloco
-                "
-              >
-                <div
-                  class="onboarding-preview-desktop relative overflow-hidden p-8 rounded-3xl bg-surface-container border border-outline-variant/40 transition-all duration-500 ease-emphasized"
-                  [class.is-empty]="!store.monthlyIncome()"
-                  [class.is-ready]="store.isStep1Valid()"
-                >
-                  <div
-                    class="flex items-center justify-between mb-6"
-                    aria-hidden="true"
-                  >
-                    <span
-                      class="text-label-small uppercase tracking-[0.12em] text-on-surface-variant/80"
-                    >
-                      {{
-                        'completeProfile.preview.title'
-                          | transloco: { month: currentMonthLabel }
-                      }}
-                    </span>
-                    <span class="text-2xl leading-none" aria-hidden="true">{{
-                      currencyMetadata[selectedCurrency()].flag
-                    }}</span>
-                  </div>
-
-                  <div class="flex flex-col gap-2 mb-8">
-                    <span class="text-label-medium text-on-surface-variant">{{
-                      'completeProfile.preview.incomeLabel' | transloco
-                    }}</span>
-                    <div class="flex items-baseline gap-2">
-                      <span
-                        class="text-display-small font-bold text-on-surface ph-no-capture tracking-tight tabular-nums transition-opacity duration-500"
-                        [class.opacity-40]="!store.monthlyIncome()"
-                      >
-                        @if (store.monthlyIncome()) {
-                          {{
-                            store.monthlyIncome()
-                              | appCurrency: selectedCurrency() : '1.0-0'
-                          }}
-                        } @else {
-                          —
-                        }
-                      </span>
-                    </div>
-
-                    <!-- Income "bar" (visual progress) -->
-                    <div class="relative h-1.5 w-full mt-3">
-                      <div
-                        class="absolute inset-0 rounded-full bg-outline-variant/40"
-                      ></div>
-                      <div
-                        class="absolute inset-y-0 left-0 rounded-full bg-primary transition-[width] duration-700 ease-emphasized"
-                        [style.width.%]="incomeProgressPercent()"
-                      ></div>
-                    </div>
-                  </div>
-
-                  <div class="flex flex-col gap-3">
-                    <div
-                      class="flex items-center gap-2 text-body-small text-on-surface-variant"
-                    >
-                      <mat-icon class="!text-base">event</mat-icon>
-                      <span>{{ payDayLabel() }}</span>
-                    </div>
-                    @if (store.isStep1Valid()) {
-                      <div
-                        class="flex items-center gap-2 text-body-small text-primary"
-                      >
-                        <mat-icon class="!text-base">check_circle</mat-icon>
-                        <span>{{
-                          'completeProfile.preview.readyBadge' | transloco
-                        }}</span>
-                      </div>
-                    }
-                  </div>
-
-                  <div
-                    class="mt-6 pt-6 border-t border-outline-variant/40 text-body-small text-on-surface-variant"
-                  >
-                    @if (store.monthlyIncome()) {
-                      {{ 'completeProfile.preview.nextStepHint' | transloco }}
-                    } @else {
-                      {{ 'completeProfile.preview.empty' | transloco }}
-                    }
-                  </div>
-
-                  <!-- Ambient tint -->
-                  <div
-                    class="preview-glow pointer-events-none absolute -right-8 -top-8 h-40 w-40 rounded-full bg-primary/20 blur-3xl transition-opacity duration-700"
-                    aria-hidden="true"
-                  ></div>
-                </div>
-              </aside>
+                [firstName]="store.firstName()"
+                [monthlyIncome]="store.monthlyIncome()"
+                [payDayOfMonth]="store.payDayOfMonth()"
+                [currencyCode]="selectedCurrency()"
+                [currencyFlag]="currencyMetadata[selectedCurrency()].flag"
+                [monthLabel]="currentMonthLabel"
+                [isReady]="store.isStep1Valid()"
+              />
             </div>
           }
 
@@ -1029,7 +929,7 @@ export default class CompleteProfilePage {
   protected readonly payDayLabel = computed(() => {
     const day = this.store.payDayOfMonth();
     return day === null
-      ? this.#transloco.translate('completeProfile.preview.payDayFirst')
+      ? null
       : this.#transloco.translate('completeProfile.preview.payDayOn', { day });
   });
 
@@ -1042,12 +942,6 @@ export default class CompleteProfilePage {
       return 'completeProfile.ctaMissingIncome';
     }
     return 'completeProfile.ctaReady';
-  });
-
-  protected readonly incomeProgressPercent = computed(() => {
-    const income = this.store.monthlyIncome();
-    if (income === null || income <= 0) return 0;
-    return Math.min(Math.round((income / 10000) * 100), 100);
   });
 
   protected readonly committedPercent = computed(() => {

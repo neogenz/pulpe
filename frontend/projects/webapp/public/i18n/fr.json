@@ -786,13 +786,13 @@
     "currencyHint": "Modifiable plus tard depuis les paramètres",
     "preview": {
       "title": "Budget · {{ month }}",
+      "greeting": "Salut {{ name }} 👋",
       "ariaLabel": "Aperçu",
       "summaryAriaLabel": "Résumé du budget",
-      "empty": "Remplis tes revenus pour voir ton budget prendre forme",
+      "empty": "Commence par ton salaire ↓",
       "incomeLabel": "Revenus prévus",
-      "payDayFirst": "Paie le 1er du mois",
       "payDayOn": "Paie le {{ day }}",
-      "nextStepHint": "Prochaine étape : tes charges fixes",
+      "nextStepHint": "Joli. Ton budget prend forme.",
       "readyBadge": "Budget prêt à personnaliser"
     },
     "ctaMissingName": "Dis-nous ton prénom",
