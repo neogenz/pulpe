@@ -10,20 +10,31 @@ actor WidgetDataSyncService {
 
     private let coordinator = WidgetDataCoordinator()
     private let budgetService: BudgetService
+    private let userSettingsService: any UserSettingsServicing
 
-    private init(budgetService: BudgetService = .shared) {
+    init(
+        budgetService: BudgetService = .shared,
+        userSettingsService: any UserSettingsServicing = UserSettingsService.shared
+    ) {
         self.budgetService = budgetService
+        self.userSettingsService = userSettingsService
+    }
+
+    /// Returns the display currency for a widget sync — either the caller-supplied value
+    /// or the latest user setting (defaulting to `.chf` if the settings fetch blips).
+    /// Extracted so the resolution policy can be exercised without touching the network.
+    func resolveCurrency(_ explicitCurrency: SupportedCurrency?) async -> SupportedCurrency {
+        if let explicitCurrency {
+            return explicitCurrency
+        }
+        let (_, resolved) = await userSettingsService.getSettingsWithDefaults(context: "syncAll")
+        return resolved
     }
 
     /// Centralized widget sync. Callers that already hold a fresh `currency` (e.g. right after
     /// `updateCurrency`) can pass it to skip a redundant GET /users/settings.
     func syncAll(payDayOfMonth: Int? = nil, currency: SupportedCurrency? = nil) async {
-        let resolvedCurrency: SupportedCurrency
-        if let currency {
-            resolvedCurrency = currency
-        } else {
-            (_, resolvedCurrency) = await UserSettingsService.shared.getSettingsWithDefaults(context: "syncAll")
-        }
+        let resolvedCurrency = await resolveCurrency(currency)
 
         do {
             let exportData = try await budgetService.exportAllBudgets()
