@@ -146,14 +146,13 @@ body {
   border-radius: var(--pulpe-surface-radius-card);
   padding: clamp(1.75rem, 2.5vw, 2.75rem);
   background: var(--mat-sys-surface-container-lowest, var(--mat-sys-surface));
-  // Tinted shadow (primary green, low opacity) — anchors the card on the
-  // ambient glow background without relying on a hard border.
+  // Softer tinted shadow — the card reads as "emerging from the ambient glow",
+  // not "landing on top of it". Closes the perceptual gap when users navigate
+  // from the cardless welcome page to the framed auth forms.
   box-shadow:
-    0 1px 2px color-mix(in srgb, var(--mat-sys-primary) 8%, transparent),
-    0 12px 32px -12px
-      color-mix(in srgb, var(--mat-sys-primary) 18%, transparent),
-    0 32px 56px -24px
-      color-mix(in srgb, var(--mat-sys-primary) 12%, transparent);
+    0 1px 2px color-mix(in srgb, var(--mat-sys-primary) 5%, transparent),
+    0 8px 20px -10px color-mix(in srgb, var(--mat-sys-primary) 11%, transparent),
+    0 20px 40px -20px color-mix(in srgb, var(--mat-sys-primary) 7%, transparent);
   display: flex;
   flex-direction: column;
 }
@@ -223,9 +222,11 @@ body {
 }
 
 // Primary CTA — tinted elevation + magnetic lift.
-// NO ::before shimmer: Material forces overflow: visible on its button host,
-// which would let a translated pseudo leak outside the button bounds.
-.pulpe-primary-cta {
+// Applied both to native <button class="pulpe-primary-cta"> and to the inner
+// filled button of <pulpe-loading-button class="pulpe-demo-primary">, so we
+// keep one tuned source of truth.
+.pulpe-primary-cta,
+.pulpe-demo-primary button[matButton="filled"] {
   position: relative;
   transition:
     transform 220ms var(--pulpe-ease-standard),
@@ -237,7 +238,8 @@ body {
       color-mix(in srgb, var(--mat-sys-primary) 30%, transparent);
 }
 
-.pulpe-primary-cta:hover:not([disabled]) {
+.pulpe-primary-cta:hover:not([disabled]),
+.pulpe-demo-primary button[matButton="filled"]:hover:not([disabled]) {
   transform: translateY(-1px);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.24),
@@ -246,9 +248,18 @@ body {
       color-mix(in srgb, var(--mat-sys-primary) 42%, transparent);
 }
 
-.pulpe-primary-cta:active:not([disabled]) {
+.pulpe-primary-cta:active:not([disabled]),
+.pulpe-demo-primary button[matButton="filled"]:active:not([disabled]) {
   transform: translateY(0);
   transition-duration: 120ms;
+}
+
+// Demo button prominence — slightly taller than the h-12 default so it
+// visually leads the CTA stack as the primary action. !important because
+// LoadingButton applies Tailwind's h-12 utility on the same inner <button>
+// and we need to reliably outrank it regardless of layer ordering.
+.pulpe-demo-primary button[matButton="filled"] {
+  height: 3.25rem !important;
 }
 
 .pulpe-inline-signin {
@@ -336,7 +347,8 @@ body {
 
   .pulpe-inline-signin,
   .pulpe-inline-signin mat-icon,
-  .pulpe-primary-cta {
+  .pulpe-primary-cta,
+  .pulpe-demo-primary button[matButton="filled"] {
     transition: none !important;
   }
 

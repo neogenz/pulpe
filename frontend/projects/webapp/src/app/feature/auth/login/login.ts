@@ -1,12 +1,14 @@
 import {
-  Component,
+  afterNextRender,
   ChangeDetectionStrategy,
-  signal,
-  inject,
+  Component,
   computed,
+  inject,
   LOCALE_ID,
+  signal,
+  viewChild,
+  type ElementRef,
 } from '@angular/core';
-import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -66,6 +68,20 @@ import { LoadingButton } from '@ui/loading-button';
         </p>
       </div>
 
+      <pulpe-google-oauth-button
+        testId="google-login-button"
+        (authError)="errorMessage.set($event)"
+        (loadingChange)="isGoogleLoading.set($event)"
+      />
+
+      <div class="flex items-center gap-4 my-6">
+        <mat-divider class="flex-1" />
+        <span class="text-body-medium text-on-surface-variant">{{
+          'common.or' | transloco
+        }}</span>
+        <mat-divider class="flex-1" />
+      </div>
+
       <form
         [formGroup]="loginForm"
         (ngSubmit)="signIn()"
@@ -75,13 +91,14 @@ import { LoadingButton } from '@ui/loading-button';
         <mat-form-field appearance="outline" class="w-full">
           <mat-label>{{ 'form.emailLabel' | transloco }}</mat-label>
           <input
+            #emailInput
             matInput
             type="email"
             formControlName="email"
             data-testid="email-input"
             (input)="clearMessages()"
             [placeholder]="'form.emailPlaceholder' | transloco"
-            [disabled]="isSubmitting()"
+            [disabled]="isBusy()"
           />
           <mat-icon matPrefix>email</mat-icon>
           @if (
@@ -106,7 +123,7 @@ import { LoadingButton } from '@ui/loading-button';
             data-testid="password-input"
             (input)="clearMessages()"
             [placeholder]="'form.passwordPlaceholder' | transloco"
-            [disabled]="isSubmitting()"
+            [disabled]="isBusy()"
           />
           <mat-icon matPrefix>lock</mat-icon>
           <button
@@ -149,7 +166,7 @@ import { LoadingButton } from '@ui/loading-button';
 
         <pulpe-loading-button
           [loading]="isSubmitting()"
-          [disabled]="!canSubmit()"
+          [disabled]="isBusy()"
           [loadingText]="'auth.login.submitting' | transloco"
           icon="login"
           testId="login-submit-button"
@@ -157,20 +174,6 @@ import { LoadingButton } from '@ui/loading-button';
           <span class="ml-2">{{ 'auth.login.submit' | transloco }}</span>
         </pulpe-loading-button>
       </form>
-
-      <div class="flex items-center gap-4 my-6">
-        <mat-divider class="flex-1" />
-        <span class="text-body-medium text-on-surface-variant">{{
-          'common.or' | transloco
-        }}</span>
-        <mat-divider class="flex-1" />
-      </div>
-
-      <pulpe-google-oauth-button
-        testId="google-login-button"
-        (authError)="errorMessage.set($event)"
-        (loadingChange)="isSubmitting.set($event)"
-      />
 
       <div class="text-center mt-6">
         <p class="text-body-medium text-on-surface-variant">
@@ -200,7 +203,17 @@ export default class Login {
   protected readonly ROUTES = ROUTES;
   protected readonly isPasswordHidden = signal(true);
   protected readonly isSubmitting = signal(false);
+  protected readonly isGoogleLoading = signal(false);
   protected readonly errorMessage = signal('');
+  // Disables inputs + submit when EITHER email submit or Google OAuth is in
+  // flight — prevents double-submit without freezing the form just because
+  // Google redirect is briefly loading.
+  protected readonly isBusy = computed(
+    () => this.isSubmitting() || this.isGoogleLoading(),
+  );
+
+  private readonly emailInput =
+    viewChild<ElementRef<HTMLInputElement>>('emailInput');
 
   constructor() {
     const reason = this.#route.snapshot.queryParamMap.get(
@@ -216,6 +229,10 @@ export default class Login {
         }),
       );
     }
+
+    afterNextRender(() => {
+      this.emailInput()?.nativeElement.focus();
+    });
   }
 
   protected readonly loginForm = this.#formBuilder.nonNullable.group({
@@ -224,14 +241,6 @@ export default class Login {
       '',
       [Validators.required, Validators.minLength(PASSWORD_MIN_LENGTH)],
     ],
-  });
-
-  readonly #formStatus = toSignal(this.loginForm.statusChanges, {
-    initialValue: this.loginForm.status,
-  });
-
-  protected readonly canSubmit = computed(() => {
-    return this.#formStatus() === 'VALID' && !this.isSubmitting();
   });
 
   protected togglePasswordVisibility(): void {

@@ -11,6 +11,8 @@ import { MatIconModule } from '@angular/material/icon';
       <div
         class="bg-error-container text-on-error-container p-3 rounded-lg flex items-center gap-2 my-4"
         role="alert"
+        aria-live="assertive"
+        aria-atomic="true"
       >
         <mat-icon class="flex-shrink-0">error_outline</mat-icon>
         <span>{{ message() }}</span>

@@ -73,36 +73,20 @@ import { NgxTurnstileModule, type NgxTurnstileComponent } from 'ngx-turnstile';
 
       <!-- CTAs -->
       <div class="mt-7 flex flex-col gap-3 w-full">
-        <pulpe-google-oauth-button
-          class="w-full"
-          buttonType="outlined"
-          testId="google-oauth-button"
-          (authError)="errorMessage.set($event)"
-          (loadingChange)="onGoogleLoadingChange($event)"
-        />
-
-        <div class="flex items-center gap-4 my-0.5" aria-hidden="true">
-          <div class="flex-1 h-px bg-outline-variant/40"></div>
-          <span
-            class="text-[10px] font-semibold text-on-surface-variant/70 uppercase tracking-[0.2em]"
-            >{{ 'common.or' | transloco }}</span
-          >
-          <div class="flex-1 h-px bg-outline-variant/40"></div>
-        </div>
-
-        <button
-          matButton="filled"
-          class="pulpe-primary-cta w-full !h-13 !text-base"
-          data-testid="email-signup-button"
+        <pulpe-loading-button
+          [loading]="isDemoLoading()"
           [disabled]="isLoading()"
-          [routerLink]="['/', ROUTES.SIGNUP]"
-          (click)="onEmailSignupClick()"
+          variant="filled"
+          type="button"
+          [loadingText]="'welcome.demoLoading' | transloco"
+          icon="play_arrow"
+          testId="demo-mode-button"
+          data-testid="demo-link"
+          class="w-full pulpe-demo-primary"
+          (click)="startDemoMode()"
         >
-          <div class="flex items-center justify-center gap-2 relative z-[1]">
-            <mat-icon>email</mat-icon>
-            <span>{{ 'welcome.emailSignup' | transloco }}</span>
-          </div>
-        </button>
+          {{ 'welcome.tryWithoutAccount' | transloco }}
+        </pulpe-loading-button>
 
         @if (
           turnstileService.shouldRender() &&
@@ -119,20 +103,36 @@ import { NgxTurnstileModule, type NgxTurnstileComponent } from 'ngx-turnstile';
           />
         }
 
-        <pulpe-loading-button
-          [loading]="isDemoLoading()"
-          [disabled]="isLoading()"
-          variant=""
-          type="button"
-          [loadingText]="'welcome.demoLoading' | transloco"
-          icon="play_arrow"
-          testId="demo-mode-button"
-          data-testid="demo-link"
+        <div class="flex items-center gap-4 my-0.5" aria-hidden="true">
+          <div class="flex-1 h-px bg-outline-variant/40"></div>
+          <span
+            class="text-[10px] font-semibold text-on-surface-variant/70 uppercase tracking-[0.2em]"
+            >{{ 'common.or' | transloco }}</span
+          >
+          <div class="flex-1 h-px bg-outline-variant/40"></div>
+        </div>
+
+        <pulpe-google-oauth-button
           class="w-full"
-          (click)="startDemoMode()"
+          buttonType="outlined"
+          testId="google-oauth-button"
+          (authError)="errorMessage.set($event)"
+          (loadingChange)="onGoogleLoadingChange($event)"
+        />
+
+        <button
+          matButton="outlined"
+          class="w-full !h-12"
+          data-testid="email-signup-button"
+          [disabled]="isLoading()"
+          [routerLink]="['/', ROUTES.SIGNUP]"
+          (click)="onEmailSignupClick()"
         >
-          {{ 'welcome.tryWithoutAccount' | transloco }}
-        </pulpe-loading-button>
+          <div class="flex items-center justify-center gap-2">
+            <mat-icon>email</mat-icon>
+            <span>{{ 'welcome.emailSignup' | transloco }}</span>
+          </div>
+        </button>
 
         <pulpe-error-alert [message]="errorMessage()" class="w-full" />
       </div>

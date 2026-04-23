@@ -74,7 +74,7 @@
     },
     "forgotPassword": {
       "title": "Mot de passe oublié",
-      "subtitle": "Entre ton email pour recevoir un lien de réinitialisation",
+      "subtitle": "Ça arrive. Entre ton email, on te renvoie un lien tout de suite.",
       "submit": "Envoyer le lien",
       "submitting": "Envoi en cours...",
       "backToLogin": "Retour à la connexion",
@@ -151,7 +151,7 @@
   "welcome": {
     "eyebrow": "Budget annuel en 3 minutes",
     "title": "Vois clair dans tes finances",
-    "subtitle": "Planifie ton année, sache toujours ce que tu peux dépenser.",
+    "subtitle": "Enfin un budget qui te laisse respirer.",
     "emailSignup": "S'inscrire par e-mail",
     "tryWithoutAccount": "Essayer sans compte",
     "demoLoading": "Préparation...",

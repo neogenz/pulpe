@@ -106,7 +106,7 @@ describe('WelcomePage', () => {
 
       expect(subtitle).toBeTruthy();
       expect(subtitle?.textContent).toContain(
-        'Planifie ton année, sache toujours ce que tu peux dépenser',
+        'Enfin un budget qui te laisse respirer',
       );
     });
 
