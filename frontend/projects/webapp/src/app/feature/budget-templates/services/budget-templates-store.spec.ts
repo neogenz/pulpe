@@ -2,8 +2,12 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { of, throwError } from 'rxjs';
 import { provideZonelessChangeDetection, signal } from '@angular/core';
+import { MatDialog } from '@angular/material/dialog';
+import { MatSnackBar } from '@angular/material/snack-bar';
+import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 import { BudgetTemplatesStore } from './budget-templates-store';
 import { BudgetTemplatesApi } from '@core/budget-template/budget-templates-api';
+import { Logger } from '@core/logging/logger';
 import type { BudgetTemplate, BudgetTemplateCreate } from 'pulpe-shared';
 
 const mockCache = {
@@ -59,8 +63,20 @@ describe('BudgetTemplatesStore', () => {
     TestBed.configureTestingModule({
       providers: [
         provideZonelessChangeDetection(),
+        ...provideTranslocoForTest(),
         BudgetTemplatesStore,
         { provide: BudgetTemplatesApi, useValue: mockApi },
+        { provide: MatDialog, useValue: { open: vi.fn() } },
+        { provide: MatSnackBar, useValue: { open: vi.fn() } },
+        {
+          provide: Logger,
+          useValue: {
+            debug: vi.fn(),
+            info: vi.fn(),
+            warn: vi.fn(),
+            error: vi.fn(),
+          },
+        },
       ],
     });
 

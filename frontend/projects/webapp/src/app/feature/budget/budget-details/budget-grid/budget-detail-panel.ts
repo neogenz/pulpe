@@ -22,13 +22,13 @@ import { UserSettingsStore } from '@core/user-settings';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { CurrencyConversionBadge } from '@ui/currency-conversion-badge';
 import { FinancialKindDirective } from '@ui/financial-kind';
+import { FinancialKindIndicator } from '@ui/financial-kind-indicator';
 import { TransactionLabelPipe } from '@ui/transaction-display';
 import {
   createBudgetLineConsumptionDisplay,
   type BudgetLineTableItem,
 } from '../data-core';
 import { SegmentedBudgetProgress } from '../components/segmented-budget-progress';
-import { BudgetKindIndicator } from '../components/budget-kind-indicator';
 import { BudgetDetailsStore } from '../store/budget-details-store';
 
 export interface BudgetDetailPanelData {
@@ -75,7 +75,7 @@ const DETAIL_SEGMENT_COUNT = 12;
     FinancialKindDirective,
     TransactionLabelPipe,
     SegmentedBudgetProgress,
-    BudgetKindIndicator,
+    FinancialKindIndicator,
   ],
   template: `
     @let envelope = envelopeItem();
@@ -84,7 +84,7 @@ const DETAIL_SEGMENT_COUNT = 12;
       <div class="p-5 border-b border-outline-variant">
         <div class="flex items-start justify-between">
           <div class="flex items-center gap-3 min-w-0 flex-1">
-            <pulpe-budget-kind-indicator [kind]="envelope.data.kind" />
+            <pulpe-financial-kind-indicator [kind]="envelope.data.kind" />
             <div class="min-w-0">
               <h2 class="text-title-large font-semibold truncate ph-no-capture">
                 {{ envelope.data.name }}

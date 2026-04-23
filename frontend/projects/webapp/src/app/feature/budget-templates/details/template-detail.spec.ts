@@ -9,23 +9,31 @@ import {
   Component,
   ChangeDetectionStrategy,
   input,
+  output,
   type WritableSignal,
 } from '@angular/core';
 import { provideRouter, ActivatedRoute, Router } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
-import { MatSnackBar } from '@angular/material/snack-bar';
+import { By } from '@angular/platform-browser';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { of } from 'rxjs';
+import type {
+  SupportedCurrency,
+  TemplateLine,
+  TransactionKind,
+} from 'pulpe-shared';
 import { type BudgetTemplateDetailViewModel } from './services/template-details-store';
 import { BudgetTemplatesStore } from '../services/budget-templates-store';
 import { TemplateDetailsStore } from './services/template-details-store';
+import { TemplateLineStore } from './services/template-line-store';
 import { PulpeTitleStrategy } from '@core/routing/title-strategy';
-import { Logger } from '@core/logging/logger';
 import { BudgetApi } from '@core/budget/budget-api';
 import { TransactionLabelPipe } from '@ui/transaction-display';
 import { UserSettingsStore } from '@core/user-settings';
 import { BaseLoading } from '@ui/loading';
-import { TransactionsTable, EditTransactionsDialog } from './components';
+import { ConfirmationDialog } from '@ui/dialogs/confirmation-dialog';
+import { TemplateLinesGrid } from './components/template-lines-grid';
+import { EditTemplateLineDialog } from './components/edit-template-line-dialog';
 import {
   createMockBudgetTemplate,
   createMockTemplateLine,
@@ -35,12 +43,16 @@ import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 registerLocaleData(localeDeCH, 'de-CH');
 
 @Component({
-  selector: 'pulpe-transactions-table',
+  selector: 'pulpe-template-lines-grid',
   template: '',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-class StubTransactionsTable {
-  readonly entries = input.required<unknown[]>();
+class StubTemplateLinesGrid {
+  readonly lines = input.required<readonly TemplateLine[]>();
+  readonly currency = input<SupportedCurrency>('CHF');
+  readonly edit = output<TemplateLine>();
+  readonly delete = output<string>();
+  readonly add = output<void>();
 }
 
 @Component({
@@ -62,7 +74,7 @@ const mockTemplate = createMockBudgetTemplate({
   name: 'Mon Modèle',
 });
 
-const mockLines = [
+const mockLines: TemplateLine[] = [
   createMockTemplateLine({
     id: 'line-1',
     name: 'Salaire',
@@ -91,46 +103,25 @@ const mockTemplateDetails: BudgetTemplateDetailViewModel = {
   transactions: mockLines,
 };
 
-// --- Shared mutable mock store ---
+// --- Shared mutable mock TemplateDetailsStore ---
 
 const storeTemplateDetails: WritableSignal<BudgetTemplateDetailViewModel | null> =
   signal(mockTemplateDetails);
 const storeIsLoading = signal(false);
 const storeError: WritableSignal<unknown> = signal(null);
 
-const KIND_ORDER: Record<string, number> = {
-  income: 1,
-  saving: 2,
-  expense: 3,
-};
-
-const storeTransactions = computed(
+const storeTemplateLines = computed(
   () => storeTemplateDetails()?.transactions ?? [],
 );
 
-const storeEntries = computed(() => {
-  const transactions = storeTransactions();
-  const sorted = [...transactions].sort((a, b) => {
-    const kindDiff =
-      (KIND_ORDER[a.kind] ?? Infinity) - (KIND_ORDER[b.kind] ?? Infinity);
-    if (kindDiff !== 0) return kindDiff;
-    return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
-  });
-  return sorted.map((t) => {
-    const spent = t.kind === 'expense' ? t.amount : 0;
-    const earned = t.kind === 'income' ? t.amount : 0;
-    const saved = t.kind === 'saving' ? t.amount : 0;
-    return { description: t.name, spent, earned, saved, total: earned - spent };
-  });
-});
-
 const storeTotals = computed(() =>
-  storeEntries().reduce(
-    (acc, e) => ({
-      income: acc.income + e.earned,
-      expense: acc.expense + e.spent,
-      savings: acc.savings + e.saved,
-    }),
+  storeTemplateLines().reduce(
+    (acc, line: TemplateLine) => {
+      if (line.kind === 'income') acc.income += line.amount;
+      else if (line.kind === 'expense') acc.expense += line.amount;
+      else if (line.kind === 'saving') acc.savings += line.amount;
+      return acc;
+    },
     { income: 0, expense: 0, savings: 0 },
   ),
 );
@@ -146,27 +137,41 @@ const mockStore = {
   error: storeError,
   hasValue: computed(() => !!storeTemplateDetails()),
   template: computed(() => storeTemplateDetails()?.template ?? null),
-  transactions: storeTransactions,
-  templateLines: storeTransactions,
-  entries: storeEntries,
+  templateLines: storeTemplateLines,
   totals: storeTotals,
   netBalance: storeNetBalance,
   initializeTemplateId: vi.fn(),
   reloadTemplateDetails: vi.fn(),
   checkUsage: vi.fn(),
+  rawDetails: computed(() => storeTemplateDetails()),
+  setDetails: vi.fn(),
+};
+
+const mockTemplateLineStore = {
+  createLine: vi
+    .fn<(templateId: string, input: unknown) => Promise<void>>()
+    .mockResolvedValue(undefined),
+  updateLine: vi
+    .fn<(templateId: string, lineId: string, input: unknown) => Promise<void>>()
+    .mockResolvedValue(undefined),
+  deleteLine: vi
+    .fn<(templateId: string, lineId: string) => Promise<void>>()
+    .mockResolvedValue(undefined),
+  isLoading: signal(false),
 };
 
 const mockDialog = { open: vi.fn() };
-const mockSnackBar = { open: vi.fn() };
-const mockDeleteTemplateError = signal<unknown>(null);
 const mockBudgetTemplatesStore = {
-  deleteTemplate: vi
-    .fn<(id: string) => Promise<void>>()
-    .mockResolvedValue(undefined),
-  deleteTemplateError: mockDeleteTemplateError,
+  confirmAndDeleteTemplate: vi
+    .fn<
+      (
+        templateId: string,
+        templateName: string,
+      ) => Promise<'deleted' | 'cancelled' | 'cancelled-due-to-usage' | 'error'>
+    >()
+    .mockResolvedValue('cancelled'),
 };
 const mockTitleStrategy = { setTitle: vi.fn() };
-const mockLogger = { error: vi.fn() };
 const mockBudgetApi = { cache: { invalidate: vi.fn() } };
 const mockRoute = {
   snapshot: {
@@ -191,11 +196,10 @@ describe('TemplateDetail', () => {
         TransactionLabelPipe,
         { provide: ActivatedRoute, useValue: mockRoute },
         { provide: TemplateDetailsStore, useValue: mockStore },
+        { provide: TemplateLineStore, useValue: mockTemplateLineStore },
         { provide: MatDialog, useValue: mockDialog },
-        { provide: MatSnackBar, useValue: mockSnackBar },
         { provide: BudgetTemplatesStore, useValue: mockBudgetTemplatesStore },
         { provide: PulpeTitleStrategy, useValue: mockTitleStrategy },
-        { provide: Logger, useValue: mockLogger },
         { provide: BudgetApi, useValue: mockBudgetApi },
         {
           provide: UserSettingsStore,
@@ -204,14 +208,14 @@ describe('TemplateDetail', () => {
       ],
     })
       .overrideComponent(TemplateDetail, {
-        remove: { imports: [TransactionsTable, BaseLoading] },
+        remove: { imports: [TemplateLinesGrid, BaseLoading] },
       })
       .overrideComponent(TemplateDetail, {
         add: {
-          imports: [StubTransactionsTable, StubBaseLoading],
+          imports: [StubTemplateLinesGrid, StubBaseLoading],
           providers: [
             { provide: TemplateDetailsStore, useValue: mockStore },
-            { provide: MatSnackBar, useValue: mockSnackBar },
+            { provide: TemplateLineStore, useValue: mockTemplateLineStore },
           ],
         },
       });
@@ -223,20 +227,20 @@ describe('TemplateDetail', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    // Reset mutable signals to defaults
     storeTemplateDetails.set(mockTemplateDetails);
     storeIsLoading.set(false);
     storeError.set(null);
-    mockDeleteTemplateError.set(null);
-    mockBudgetTemplatesStore.deleteTemplate.mockResolvedValue(undefined);
-    // Default route returns template-123
+    mockBudgetTemplatesStore.confirmAndDeleteTemplate.mockResolvedValue(
+      'cancelled',
+    );
+    mockTemplateLineStore.createLine.mockResolvedValue(undefined);
+    mockTemplateLineStore.updateLine.mockResolvedValue(undefined);
+    mockTemplateLineStore.deleteLine.mockResolvedValue(undefined);
     mockRoute.snapshot.paramMap.get.mockImplementation((key: string) =>
       key === 'templateId' ? 'template-123' : null,
     );
     mockDialog.open.mockReturnValue({ afterClosed: () => of(null) });
   });
-
-  // ─── Initialization ───
 
   describe('Initialization', () => {
     it('should call initializeTemplateId with route param on ngOnInit', async () => {
@@ -261,46 +265,10 @@ describe('TemplateDetail', () => {
     });
   });
 
-  // ─── Computed State ───
-
-  describe('Computed State', () => {
-    it('should sort entries by kind then createdAt', async () => {
+  describe('Store computed state', () => {
+    it('should compute totals from template lines grouped by kind', async () => {
       await createFixture();
-      const descriptions = mockStore.entries().map((e) => e.description);
 
-      // income first, then saving, then expense
-      expect(descriptions).toEqual(['Salaire', 'Épargne', 'Loyer']);
-    });
-
-    it('should map template lines to FinancialEntry with correct amounts', async () => {
-      await createFixture();
-      const entries = mockStore.entries();
-
-      expect(entries[0]).toEqual({
-        description: 'Salaire',
-        spent: 0,
-        earned: 5000,
-        saved: 0,
-        total: 5000,
-      });
-      expect(entries[1]).toEqual({
-        description: 'Épargne',
-        spent: 0,
-        earned: 0,
-        saved: 800,
-        total: 0,
-      });
-      expect(entries[2]).toEqual({
-        description: 'Loyer',
-        spent: 1200,
-        earned: 0,
-        saved: 0,
-        total: -1200,
-      });
-    });
-
-    it('should calculate totals from entries', async () => {
-      await createFixture();
       expect(mockStore.totals()).toEqual({
         income: 5000,
         expense: 1200,
@@ -308,26 +276,24 @@ describe('TemplateDetail', () => {
       });
     });
 
-    it('should calculate net balance as income minus expense minus savings', async () => {
+    it('should compute net balance as income minus expense minus savings', async () => {
       await createFixture();
-      // 5000 - 1200 - 800 = 3000
+
       expect(mockStore.netBalance()).toBe(3000);
     });
 
-    it('should return empty entries when transactions are empty', async () => {
+    it('should return zero totals when template lines are empty', async () => {
       storeTemplateDetails.set({ template: mockTemplate, transactions: [] });
       await createFixture();
 
-      expect(mockStore.entries()).toEqual([]);
       expect(mockStore.totals()).toEqual({
         income: 0,
         expense: 0,
         savings: 0,
       });
+      expect(mockStore.netBalance()).toBe(0);
     });
   });
-
-  // ─── Rendering ───
 
   describe('Rendering', () => {
     it('should display template name in page title', async () => {
@@ -359,20 +325,120 @@ describe('TemplateDetail', () => {
       expect(el.querySelector('[role="alert"]')).toBeTruthy();
     });
 
-    it('should render edit and delete buttons when data is loaded', async () => {
+    it('should render delete button when data is loaded', async () => {
       const fixture = await createFixture();
       const el = fixture.nativeElement as HTMLElement;
 
       expect(
-        el.querySelector('[data-testid="template-detail-edit-button"]'),
-      ).toBeTruthy();
-      expect(
         el.querySelector('[data-testid="delete-template-detail-button"]'),
       ).toBeTruthy();
     });
+
+    it('should render the template-lines-grid', async () => {
+      const fixture = await createFixture();
+      const gridDebugEl = fixture.debugElement.query(
+        By.directive(StubTemplateLinesGrid),
+      );
+
+      expect(gridDebugEl).toBeTruthy();
+    });
+
+    it('should render the FAB button to add a new line', async () => {
+      const fixture = await createFixture();
+      const el = fixture.nativeElement as HTMLElement;
+
+      const fab = el.querySelector('[data-testid="add-template-line-fab"]');
+      expect(fab).toBeTruthy();
+    });
   });
 
-  // ─── Navigation ───
+  describe('Hero hybride', () => {
+    it('should apply primary-container background when net balance is positive', async () => {
+      storeTemplateDetails.set({
+        template: mockTemplate,
+        transactions: mockLines,
+      });
+      const fixture = await createFixture();
+      const el = fixture.nativeElement as HTMLElement;
+
+      const hero = el.querySelector(
+        '[data-testid="template-hero-subtitle"]',
+      )?.parentElement;
+      expect(hero?.classList.contains('bg-primary-container')).toBe(true);
+      expect(hero?.classList.contains('bg-error-container')).toBe(false);
+    });
+
+    it('should render comfortable subtitle when net balance is positive', async () => {
+      storeTemplateDetails.set({
+        template: mockTemplate,
+        transactions: mockLines,
+      });
+      const fixture = await createFixture();
+      const el = fixture.nativeElement as HTMLElement;
+
+      const subtitle = el.querySelector(
+        '[data-testid="template-hero-subtitle"]',
+      );
+      expect(subtitle?.textContent).toContain('marge');
+    });
+
+    it('should apply error-container background when net balance is negative', async () => {
+      const deficitLines: TemplateLine[] = [
+        createMockTemplateLine({
+          id: 'd1',
+          name: 'Revenu',
+          amount: 100,
+          kind: 'income',
+        }),
+        createMockTemplateLine({
+          id: 'd2',
+          name: 'Grosse dépense',
+          amount: 500,
+          kind: 'expense',
+        }),
+      ];
+      storeTemplateDetails.set({
+        template: mockTemplate,
+        transactions: deficitLines,
+      });
+      const fixture = await createFixture();
+      const el = fixture.nativeElement as HTMLElement;
+
+      const hero = el.querySelector(
+        '[data-testid="template-hero-subtitle"]',
+      )?.parentElement;
+      expect(hero?.classList.contains('bg-error-container')).toBe(true);
+      expect(hero?.classList.contains('bg-primary-container')).toBe(false);
+    });
+
+    it('should render deficit subtitle when net balance is negative', async () => {
+      const deficitLines: TemplateLine[] = [
+        createMockTemplateLine({
+          id: 'd1',
+          name: 'Revenu',
+          amount: 100,
+          kind: 'income',
+        }),
+        createMockTemplateLine({
+          id: 'd2',
+          name: 'Grosse dépense',
+          amount: 500,
+          kind: 'expense',
+        }),
+      ];
+      storeTemplateDetails.set({
+        template: mockTemplate,
+        transactions: deficitLines,
+      });
+      const fixture = await createFixture();
+      const el = fixture.nativeElement as HTMLElement;
+
+      const subtitle = el.querySelector(
+        '[data-testid="template-hero-subtitle"]',
+      );
+      expect(subtitle?.textContent).toContain('serré');
+    });
+  });
 
   describe('Navigation', () => {
     it('should navigate to budget templates list on navigateBack', async () => {
@@ -386,217 +452,210 @@ describe('TemplateDetail', () => {
     });
   });
 
-  // ─── Edit Template (SCENARIOS 4.4) ───
+  describe('handleAddLine', () => {
+    it('should do nothing when templateId is null', async () => {
+      mockRoute.snapshot.paramMap.get.mockReturnValue(null);
+      const fixture = await createFixture();
 
-  describe('Edit Template', () => {
-    it('should not open dialog when template is null', async () => {
+      await fixture.componentInstance.handleAddLine();
+
+      expect(mockDialog.open).not.toHaveBeenCalled();
+      expect(mockTemplateLineStore.createLine).not.toHaveBeenCalled();
+    });
+
+    it('should do nothing when template is null', async () => {
       storeTemplateDetails.set(null);
       const fixture = await createFixture();
 
-      fixture.componentInstance.editTemplate();
+      await fixture.componentInstance.handleAddLine();
 
       expect(mockDialog.open).not.toHaveBeenCalled();
+      expect(mockTemplateLineStore.createLine).not.toHaveBeenCalled();
     });
 
-    it('should open EditTransactionsDialog with correct data', async () => {
+    it('should open EditTemplateLineDialog without a line (create mode)', async () => {
       const fixture = await createFixture();
 
-      fixture.componentInstance.editTemplate();
+      await fixture.componentInstance.handleAddLine();
 
       expect(mockDialog.open).toHaveBeenCalledOnce();
       const [dialogComponent, config] = mockDialog.open.mock.calls[0];
-      expect(dialogComponent).toBe(EditTransactionsDialog);
+      expect(dialogComponent).toBe(EditTemplateLineDialog);
+      expect(config.data.line).toBeUndefined();
       expect(config.data.templateName).toBe('Mon Modèle');
-      expect(config.data.templateId).toBe('template-123');
-      expect(config.data.transactions).toHaveLength(3);
-      expect(config.data.originalTemplateLines).toEqual(mockLines);
-      expect(config.width).toBe('90vw');
     });
 
-    it('should reload store on propagation mode propagate', async () => {
-      mockDialog.open.mockReturnValue({
-        afterClosed: () =>
-          of({
-            saved: true,
-            propagation: {
-              mode: 'propagate',
-              affectedBudgetIds: ['b1'],
-              affectedBudgetsCount: 1,
-            },
-          }),
-      });
+    it('should call createLine when dialog returns a result', async () => {
+      const dialogResult = {
+        name: 'New line',
+        amount: 100,
+        kind: 'expense' as TransactionKind,
+      };
+      mockDialog.open.mockReturnValue({ afterClosed: () => of(dialogResult) });
 
       const fixture = await createFixture();
-      fixture.componentInstance.editTemplate();
+      await fixture.componentInstance.handleAddLine();
 
-      expect(mockStore.reloadTemplateDetails).toHaveBeenCalledOnce();
-    });
-
-    it('should reload store on template-only mode', async () => {
-      mockDialog.open.mockReturnValue({
-        afterClosed: () =>
-          of({
-            saved: true,
-            propagation: {
-              mode: 'template-only',
-              affectedBudgetIds: [],
-              affectedBudgetsCount: 0,
-            },
-          }),
-      });
-
-      const fixture = await createFixture();
-      fixture.componentInstance.editTemplate();
-
-      expect(mockStore.reloadTemplateDetails).toHaveBeenCalledOnce();
-    });
-
-    it('should show no-modification message when propagation is null', async () => {
-      mockDialog.open.mockReturnValue({
-        afterClosed: () => of({ saved: true, propagation: null }),
-      });
-
-      const fixture = await createFixture();
-      fixture.componentInstance.editTemplate();
-
-      expect(mockSnackBar.open).toHaveBeenCalledWith(
-        'Aucune modification à enregistrer',
-        undefined,
-        { duration: 4000 },
-      );
-      expect(mockStore.reloadTemplateDetails).not.toHaveBeenCalled();
-    });
-
-    it('should log error when dialog returns error result', async () => {
-      mockDialog.open.mockReturnValue({
-        afterClosed: () => of({ saved: false, error: 'Something failed' }),
-      });
-
-      const fixture = await createFixture();
-      fixture.componentInstance.editTemplate();
-
-      expect(mockLogger.error).toHaveBeenCalledWith(
-        'Erreur lors de la sauvegarde:',
-        'Something failed',
+      expect(mockTemplateLineStore.createLine).toHaveBeenCalledWith(
+        'template-123',
+        dialogResult,
       );
     });
 
-    it('should do nothing when dialog is cancelled', async () => {
-      const fixture = await createFixture();
-      fixture.componentInstance.editTemplate();
+    it('should not call createLine when dialog is cancelled', async () => {
+      mockDialog.open.mockReturnValue({ afterClosed: () => of(null) });
 
-      expect(mockSnackBar.open).not.toHaveBeenCalled();
-      expect(mockStore.reloadTemplateDetails).not.toHaveBeenCalled();
-      expect(mockLogger.error).not.toHaveBeenCalled();
+      const fixture = await createFixture();
+      await fixture.componentInstance.handleAddLine();
+
+      expect(mockTemplateLineStore.createLine).not.toHaveBeenCalled();
     });
   });
 
-  // ─── Success Messages ───
+  describe('handleEditLine', () => {
+    it('should do nothing when templateId is null', async () => {
+      mockRoute.snapshot.paramMap.get.mockReturnValue(null);
+      const fixture = await createFixture();
 
-  describe('Success Messages', () => {
-    it('should show plural message when multiple budgets affected', async () => {
-      mockDialog.open.mockReturnValue({
-        afterClosed: () =>
-          of({
-            saved: true,
-            propagation: {
-              mode: 'propagate',
-              affectedBudgetIds: ['b1', 'b2'],
-              affectedBudgetsCount: 2,
-            },
-          }),
-      });
+      await fixture.componentInstance.handleEditLine(mockLines[0]);
+
+      expect(mockDialog.open).not.toHaveBeenCalled();
+      expect(mockTemplateLineStore.updateLine).not.toHaveBeenCalled();
+    });
+
+    it('should do nothing when template is null', async () => {
+      storeTemplateDetails.set(null);
+      const fixture = await createFixture();
+
+      await fixture.componentInstance.handleEditLine(mockLines[0]);
+
+      expect(mockDialog.open).not.toHaveBeenCalled();
+      expect(mockTemplateLineStore.updateLine).not.toHaveBeenCalled();
+    });
+
+    it('should open EditTemplateLineDialog with the existing line (edit mode)', async () => {
+      const fixture = await createFixture();
+
+      await fixture.componentInstance.handleEditLine(mockLines[0]);
+
+      expect(mockDialog.open).toHaveBeenCalledOnce();
+      const [dialogComponent, config] = mockDialog.open.mock.calls[0];
+      expect(dialogComponent).toBe(EditTemplateLineDialog);
+      expect(config.data.line).toEqual(mockLines[0]);
+      expect(config.data.templateName).toBe('Mon Modèle');
+    });
+
+    it('should call updateLine with the line id when dialog returns a result', async () => {
+      const dialogResult = {
+        name: 'Updated',
+        amount: 999,
+        kind: 'income' as TransactionKind,
+      };
+      mockDialog.open.mockReturnValue({ afterClosed: () => of(dialogResult) });
 
       const fixture = await createFixture();
-      fixture.componentInstance.editTemplate();
+      await fixture.componentInstance.handleEditLine(mockLines[0]);
 
-      expect(mockSnackBar.open).toHaveBeenCalledWith(
-        'Modèle et budgets futurs mis à jour (2 budgets ajustés)',
-        undefined,
-        { duration: 4000 },
+      expect(mockTemplateLineStore.updateLine).toHaveBeenCalledWith(
+        'template-123',
+        'line-1',
+        dialogResult,
       );
     });
 
-    it('should show template-only message when propagate mode but zero affected budgets', async () => {
-      mockDialog.open.mockReturnValue({
-        afterClosed: () =>
-          of({
-            saved: true,
-            propagation: {
-              mode: 'propagate',
-              affectedBudgetIds: [],
-              affectedBudgetsCount: 0,
-            },
-          }),
-      });
+    it('should not call updateLine when dialog is cancelled', async () => {
+      mockDialog.open.mockReturnValue({ afterClosed: () => of(null) });
 
       const fixture = await createFixture();
-      fixture.componentInstance.editTemplate();
+      await fixture.componentInstance.handleEditLine(mockLines[0]);
 
-      expect(mockSnackBar.open).toHaveBeenCalledWith(
-        'Modèle mis à jour (budgets non modifiés).',
-        undefined,
-        { duration: 4000 },
-      );
+      expect(mockTemplateLineStore.updateLine).not.toHaveBeenCalled();
     });
   });
 
-  // ─── Delete Template (SCENARIOS 4.5) ───
+  describe('handleDeleteLine', () => {
+    it('should do nothing when templateId is null', async () => {
+      mockRoute.snapshot.paramMap.get.mockReturnValue(null);
+      const fixture = await createFixture();
 
-  describe('Delete Template', () => {
-    it('should not proceed when template is null', async () => {
+      await fixture.componentInstance.handleDeleteLine('line-1');
+
+      expect(mockDialog.open).not.toHaveBeenCalled();
+      expect(mockTemplateLineStore.deleteLine).not.toHaveBeenCalled();
+    });
+
+    it('should do nothing when the line is not found', async () => {
+      const fixture = await createFixture();
+
+      await fixture.componentInstance.handleDeleteLine('unknown-id');
+
+      expect(mockDialog.open).not.toHaveBeenCalled();
+      expect(mockTemplateLineStore.deleteLine).not.toHaveBeenCalled();
+    });
+
+    it('should open ConfirmationDialog with warn color', async () => {
+      const fixture = await createFixture();
+
+      await fixture.componentInstance.handleDeleteLine('line-1');
+
+      expect(mockDialog.open).toHaveBeenCalledOnce();
+      const [dialogComponent, config] = mockDialog.open.mock.calls[0];
+      expect(dialogComponent).toBe(ConfirmationDialog);
+      expect(config.data.title).toBe('Supprimer cette prévision ?');
+      expect(config.data.message).toBe(
+        'Cette prévision sera retirée du modèle — continuer ?',
+      );
+      expect(config.data.confirmColor).toBe('warn');
+    });
+
+    it('should call deleteLine when confirmation is accepted', async () => {
+      mockDialog.open.mockReturnValue({ afterClosed: () => of(true) });
+
+      const fixture = await createFixture();
+      await fixture.componentInstance.handleDeleteLine('line-1');
+
+      expect(mockTemplateLineStore.deleteLine).toHaveBeenCalledWith(
+        'template-123',
+        'line-1',
+      );
+    });
+
+    it('should not call deleteLine when confirmation is cancelled', async () => {
+      mockDialog.open.mockReturnValue({ afterClosed: () => of(false) });
+
+      const fixture = await createFixture();
+      await fixture.componentInstance.handleDeleteLine('line-1');
+
+      expect(mockTemplateLineStore.deleteLine).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('deleteTemplate', () => {
+    it('should not call the store when template is null', async () => {
       storeTemplateDetails.set(null);
       const fixture = await createFixture();
 
       await fixture.componentInstance.deleteTemplate();
 
-      expect(mockStore.checkUsage).not.toHaveBeenCalled();
+      expect(
+        mockBudgetTemplatesStore.confirmAndDeleteTemplate,
+      ).not.toHaveBeenCalled();
     });
 
-    it('should open usage dialog when template is in use', async () => {
-      const usageData = {
-        isUsed: true,
-        budgets: [{ id: 'b1', month: 3, year: 2024 }],
-      };
-      mockStore.checkUsage.mockResolvedValue(usageData);
-
-      const mockDialogInstance = { setUsageData: vi.fn() };
-      mockDialog.open.mockReturnValue({
-        componentInstance: mockDialogInstance,
-        afterClosed: () => of(null),
-      });
-
+    it('should delegate to the store with templateId and name', async () => {
       const fixture = await createFixture();
+
       await fixture.componentInstance.deleteTemplate();
 
-      expect(mockStore.checkUsage).toHaveBeenCalledWith('template-123');
-      expect(mockDialogInstance.setUsageData).toHaveBeenCalledWith(
-        usageData.budgets,
+      expect(
+        mockBudgetTemplatesStore.confirmAndDeleteTemplate,
+      ).toHaveBeenCalledWith('template-123', 'Mon Modèle');
+    });
+
+    it('should navigate back when store returns "deleted"', async () => {
+      mockBudgetTemplatesStore.confirmAndDeleteTemplate.mockResolvedValue(
+        'deleted',
       );
-    });
-
-    it('should open confirmation dialog when template is not in use', async () => {
-      mockStore.checkUsage.mockResolvedValue({
-        isUsed: false,
-        budgets: [],
-      });
-      mockDialog.open.mockReturnValue({ afterClosed: () => of(false) });
-
-      const fixture = await createFixture();
-      await fixture.componentInstance.deleteTemplate();
-
-      expect(mockStore.checkUsage).toHaveBeenCalledWith('template-123');
-      expect(mockDialog.open).toHaveBeenCalled();
-    });
-
-    it('should delete and navigate back when confirmed', async () => {
-      mockStore.checkUsage.mockResolvedValue({
-        isUsed: false,
-        budgets: [],
-      });
-      mockBudgetTemplatesStore.deleteTemplate.mockResolvedValue(undefined);
-      mockDeleteTemplateError.set(null);
-      mockDialog.open.mockReturnValue({ afterClosed: () => of(true) });
 
       const fixture = await createFixture();
       const router = TestBed.inject(Router);
@@ -604,49 +663,49 @@ describe('TemplateDetail', () => {
 
       await fixture.componentInstance.deleteTemplate();
 
-      expect(mockBudgetTemplatesStore.deleteTemplate).toHaveBeenCalledWith(
-        'template-123',
-      );
-      expect(mockSnackBar.open).toHaveBeenCalledWith(
-        'Modèle supprimé',
-        undefined,
-        { duration: 3000 },
-      );
       expect(router.navigate).toHaveBeenCalledWith(['/', 'budget-templates']);
     });
 
-    it('should show error snackbar when deletion fails', async () => {
-      mockStore.checkUsage.mockResolvedValue({
-        isUsed: false,
-        budgets: [],
-      });
-      const deleteError = new Error('Network error');
-      mockBudgetTemplatesStore.deleteTemplate.mockImplementation(async () => {
-        mockDeleteTemplateError.set(deleteError);
-      });
-      mockDialog.open.mockReturnValue({ afterClosed: () => of(true) });
+    it('should not navigate when store returns "cancelled"', async () => {
+      mockBudgetTemplatesStore.confirmAndDeleteTemplate.mockResolvedValue(
+        'cancelled',
+      );
 
       const fixture = await createFixture();
+      const router = TestBed.inject(Router);
+      const navigateSpy = vi.spyOn(router, 'navigate').mockResolvedValue(true);
+
       await fixture.componentInstance.deleteTemplate();
 
-      expect(mockSnackBar.open).toHaveBeenCalledWith(
-        'Une erreur est survenue lors de la suppression',
-        'Fermer',
-        { duration: 5000 },
-      );
+      expect(navigateSpy).not.toHaveBeenCalled();
     });
 
-    it('should show error snackbar when usage check fails', async () => {
-      mockStore.checkUsage.mockRejectedValue(new Error('API error'));
+    it('should not navigate when store returns "cancelled-due-to-usage"', async () => {
+      mockBudgetTemplatesStore.confirmAndDeleteTemplate.mockResolvedValue(
+        'cancelled-due-to-usage',
+      );
 
       const fixture = await createFixture();
+      const router = TestBed.inject(Router);
+      const navigateSpy = vi.spyOn(router, 'navigate').mockResolvedValue(true);
+
       await fixture.componentInstance.deleteTemplate();
 
-      expect(mockSnackBar.open).toHaveBeenCalledWith(
-        'Une erreur est survenue lors de la vérification',
-        'Fermer',
-        { duration: 5000 },
+      expect(navigateSpy).not.toHaveBeenCalled();
+    });
+
+    it('should not navigate when store returns "error"', async () => {
+      mockBudgetTemplatesStore.confirmAndDeleteTemplate.mockResolvedValue(
+        'error',
       );
+
+      const fixture = await createFixture();
+      const router = TestBed.inject(Router);
+      const navigateSpy = vi.spyOn(router, 'navigate').mockResolvedValue(true);
+
+      await fixture.componentInstance.deleteTemplate();
+
+      expect(navigateSpy).not.toHaveBeenCalled();
     });
   });
 });

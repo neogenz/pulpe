@@ -4,9 +4,11 @@ import {
   inject,
   input,
 } from '@angular/core';
-import { type BudgetTemplate } from 'pulpe-shared';
 import { TranslocoService } from '@jsverse/transloco';
+import { type BudgetTemplate } from 'pulpe-shared';
 import { StateCard } from '@ui/state-card/state-card';
+import { UserSettingsStore } from '@core/user-settings';
+import { BudgetTemplatesStore } from '../services/budget-templates-store';
 import { TemplateCard } from './template-card';
 
 @Component({
@@ -28,6 +30,8 @@ import { TemplateCard } from './template-card';
         @for (template of templates(); track template.id) {
           <pulpe-template-card
             [template]="template"
+            [summary]="templateSummaries()[template.id]"
+            [currency]="currency()"
             data-testid="template-card"
           />
         }
@@ -43,8 +47,13 @@ import { TemplateCard } from './template-card';
 })
 export class TemplateList {
   readonly #transloco = inject(TranslocoService);
+  readonly #store = inject(BudgetTemplatesStore);
+  readonly #userSettings = inject(UserSettingsStore);
 
   readonly templates = input.required<BudgetTemplate[]>();
+
+  protected readonly templateSummaries = this.#store.templateSummaries;
+  protected readonly currency = this.#userSettings.currency;
 
   protected readonly emptyTitle = this.#transloco.translate(
     'template.emptyTitle',

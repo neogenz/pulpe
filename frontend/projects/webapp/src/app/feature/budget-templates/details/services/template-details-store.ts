@@ -3,24 +3,16 @@ import { firstValueFrom } from 'rxjs';
 import { cachedResource } from 'ngx-ziflux';
 import { BudgetTemplatesApi } from '@core/budget-template/budget-templates-api';
 import {
-  type TemplateLine,
   type BudgetTemplateResponse,
   type TemplateLineListResponse,
   type TemplateUsageResponse,
   BudgetFormulas,
 } from 'pulpe-shared';
-import type { FinancialEntry } from '../components';
 
 export interface BudgetTemplateDetailViewModel {
   template: BudgetTemplateResponse['data'];
   transactions: TemplateLineListResponse['data'];
 }
-
-const KIND_ORDER: Record<string, number> = {
-  income: 1,
-  saving: 2,
-  expense: 3,
-} as const;
 
 @Injectable()
 export class TemplateDetailsStore {
@@ -63,29 +55,6 @@ export class TemplateDetailsStore {
   readonly templateLines = computed(
     () => this.templateDetails()?.transactions ?? [],
   );
-  readonly entries = computed<FinancialEntry[]>(() => {
-    const transactions = this.templateLines();
-
-    const sortedTransactions = transactions.toSorted((a, b) => {
-      const kindDiff =
-        (KIND_ORDER[a.kind] ?? Infinity) - (KIND_ORDER[b.kind] ?? Infinity);
-      if (kindDiff !== 0) return kindDiff;
-      return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
-    });
-
-    return sortedTransactions.map((transaction: TemplateLine) => {
-      const spent = transaction.kind === 'expense' ? transaction.amount : 0;
-      const earned = transaction.kind === 'income' ? transaction.amount : 0;
-      const saved = transaction.kind === 'saving' ? transaction.amount : 0;
-      return {
-        description: transaction.name,
-        spent,
-        earned,
-        saved,
-        total: earned - spent,
-      };
-    });
-  });
 
   readonly totals = computed(() => {
     const lines = this.templateLines();
@@ -107,6 +76,14 @@ export class TemplateDetailsStore {
 
   reloadTemplateDetails(): void {
     this.#templateDetailsResource.reload();
+  }
+
+  rawDetails(): BudgetTemplateDetailViewModel | undefined {
+    return this.#templateDetailsResource.value();
+  }
+
+  setDetails(details: BudgetTemplateDetailViewModel): void {
+    this.#templateDetailsResource.set(details);
   }
 
   async checkUsage(templateId: string): Promise<TemplateUsageResponse['data']> {

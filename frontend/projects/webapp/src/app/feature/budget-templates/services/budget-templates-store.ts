@@ -1,18 +1,35 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
+import { MatDialog } from '@angular/material/dialog';
+import { MatSnackBar } from '@angular/material/snack-bar';
+import { TranslocoService } from '@jsverse/transloco';
 import {
   type BudgetTemplate,
   type BudgetTemplateCreate,
   type BudgetTemplateCreateResponse,
+  type TemplateUsageResponse,
 } from 'pulpe-shared';
-import { map } from 'rxjs';
+import { firstValueFrom, map } from 'rxjs';
 import { cachedResource, cachedMutation } from 'ngx-ziflux';
 import { BudgetTemplatesApi } from '@core/budget-template/budget-templates-api';
+import { Logger } from '@core/logging/logger';
+import { ConfirmationDialog } from '@ui/dialogs/confirmation-dialog';
+import { type TemplateSummary } from '../components/template-card';
+import { TemplateUsageDialogComponent } from '../components/dialogs/template-usage-dialog';
+
+export type DeleteTemplateOutcome =
+  | 'deleted'
+  | 'cancelled'
+  | 'cancelled-due-to-usage'
+  | 'error';
 
 @Injectable()
 export class BudgetTemplatesStore {
   readonly #budgetTemplatesApi = inject(BudgetTemplatesApi);
+  readonly #dialog = inject(MatDialog);
+  readonly #snackBar = inject(MatSnackBar);
+  readonly #transloco = inject(TranslocoService);
+  readonly #logger = inject(Logger);
 
-  // Business constants
   readonly MAX_TEMPLATES = 5;
 
   readonly budgetTemplates = cachedResource({
@@ -48,6 +65,10 @@ export class BudgetTemplatesStore {
     () => this.#templates().find((t) => t.isDefault) ?? null,
   );
 
+  readonly templateSummaries = computed<Record<string, TemplateSummary>>(
+    () => ({}),
+  );
+
   readonly #deleteTemplateMutation = cachedMutation<
     string,
     void,
@@ -76,10 +97,6 @@ export class BudgetTemplatesStore {
     this.#deleteTemplateMutation.error(),
   );
 
-  // Note: We intentionally DON'T use optimistic update here.
-  // The creation is fast (< 1s) and the user sees a spinner.
-  // Optimistic update caused UI flicker issues because computed signals
-  // would react to state changes during navigation.
   readonly #createTemplateMutation = cachedMutation<
     BudgetTemplateCreate,
     BudgetTemplateCreateResponse,
@@ -115,6 +132,82 @@ export class BudgetTemplatesStore {
 
   async deleteTemplate(id: string): Promise<void> {
     await this.#deleteTemplateMutation.mutate(id);
+  }
+
+  async checkUsage(templateId: string): Promise<TemplateUsageResponse['data']> {
+    const response = await firstValueFrom(
+      this.#budgetTemplatesApi.checkUsage$(templateId),
+    );
+    return response.data;
+  }
+
+  async confirmAndDeleteTemplate(
+    templateId: string,
+    templateName: string,
+  ): Promise<DeleteTemplateOutcome> {
+    try {
+      const usageData = await this.checkUsage(templateId);
+
+      if (usageData.isUsed) {
+        const dialogRef = this.#dialog.open(TemplateUsageDialogComponent, {
+          data: { templateId, templateName },
+          width: '90vw',
+          maxWidth: '600px',
+          disableClose: false,
+        });
+        dialogRef.componentInstance.setUsageData(usageData.budgets);
+        await firstValueFrom(dialogRef.afterClosed());
+        return 'cancelled-due-to-usage';
+      }
+
+      const confirmRef = this.#dialog.open(ConfirmationDialog, {
+        data: {
+          title: this.#transloco.translate('template.deleteTitle'),
+          message: this.#transloco.translate('template.deleteConfirm', {
+            name: templateName,
+          }),
+          confirmText: this.#transloco.translate('common.delete'),
+          cancelText: this.#transloco.translate('common.cancel'),
+          confirmColor: 'warn' as const,
+        },
+        width: '400px',
+      });
+
+      const confirmed = await firstValueFrom(confirmRef.afterClosed());
+      if (!confirmed) {
+        return 'cancelled';
+      }
+
+      await this.deleteTemplate(templateId);
+
+      if (this.deleteTemplateError()) {
+        this.#logger.error(
+          'Error deleting template:',
+          this.deleteTemplateError(),
+        );
+        this.#snackBar.open(
+          this.#transloco.translate('template.deleteCheckError'),
+          this.#transloco.translate('common.close'),
+          { duration: 5000 },
+        );
+        return 'error';
+      }
+
+      this.#snackBar.open(
+        this.#transloco.translate('template.deleted'),
+        undefined,
+        { duration: 3000 },
+      );
+      return 'deleted';
+    } catch (error) {
+      this.#logger.error('Error checking template usage:', error);
+      this.#snackBar.open(
+        this.#transloco.translate('template.verificationCheckError'),
+        this.#transloco.translate('common.close'),
+        { duration: 5000 },
+      );
+      return 'error';
+    }
   }
 
   async addTemplate(

@@ -1,12 +1,11 @@
 import { type Routes } from '@angular/router';
 import { PAGE_TITLES } from '@core/routing';
 import { BudgetTemplatesStore } from './services/budget-templates-store';
-import { TransactionFormService } from './services/transaction-form';
 
 export const budgetTemplatesRoutes: Routes = [
   {
     path: '',
-    providers: [BudgetTemplatesStore, TransactionFormService],
+    providers: [BudgetTemplatesStore],
     children: [
       {
         path: '',

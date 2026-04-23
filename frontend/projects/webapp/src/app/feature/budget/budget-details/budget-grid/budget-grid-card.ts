@@ -13,10 +13,10 @@ import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { type BudgetLine, type SupportedCurrency } from 'pulpe-shared';
 import { AppCurrencyPipe } from '@core/currency';
 import { FinancialKindDirective } from '@ui/financial-kind';
+import { FinancialKindIndicator } from '@ui/financial-kind-indicator';
 import { RecurrenceLabelPipe } from '@ui/transaction-display';
 import { formatMatchAnnotation, type BudgetLineTableItem } from '../data-core';
 import { SegmentedBudgetProgress } from '../components/segmented-budget-progress';
-import { BudgetKindIndicator } from '../components/budget-kind-indicator';
 import { BudgetActionMenu } from '../components/budget-action-menu';
 
 /**
@@ -46,7 +46,7 @@ import { BudgetActionMenu } from '../components/budget-action-menu';
     FinancialKindDirective,
     RecurrenceLabelPipe,
     SegmentedBudgetProgress,
-    BudgetKindIndicator,
+    FinancialKindIndicator,
     BudgetActionMenu,
   ],
   template: `
@@ -71,7 +71,7 @@ import { BudgetActionMenu } from '../components/budget-action-menu';
       <!-- Header: Name + Menu -->
       <div class="flex items-start justify-between mb-4">
         <div class="flex items-center gap-2.5 min-w-0 flex-1">
-          <pulpe-budget-kind-indicator [kind]="item().data.kind" />
+          <pulpe-financial-kind-indicator [kind]="item().data.kind" />
           <span
             class="text-title-medium font-medium truncate ph-no-capture"
             [class.line-through]="item().data.checkedAt"
