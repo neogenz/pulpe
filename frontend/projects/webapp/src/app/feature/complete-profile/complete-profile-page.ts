@@ -171,13 +171,7 @@ import {
                       >
                         {{ 'completeProfile.currencyLabel' | transloco }}
                       </legend>
-                      <div
-                        class="grid grid-cols-2 gap-3"
-                        role="radiogroup"
-                        [attr.aria-label]="
-                          'completeProfile.currencyLabel' | transloco
-                        "
-                      >
+                      <div class="grid grid-cols-2 gap-3" role="radiogroup">
                         @for (currency of currencies; track currency) {
                           @let meta = currencyMetadata[currency];
                           @let isSelected = selectedCurrency() === currency;
