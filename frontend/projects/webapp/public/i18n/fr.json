@@ -27,7 +27,13 @@
     "networkError": "Erreur réseau — vérifie ta connexion",
     "clear": "Effacer",
     "currencySelector": "Devise",
-    "viewAll": "Voir tout"
+    "viewAll": "Voir tout",
+    "financialPills": {
+      "ariaLabel": "Résumé financier",
+      "income": "Revenus",
+      "expenses": "Dépenses",
+      "savings": "Épargne"
+    }
   },
   "navigation": {
     "dashboard": "Tableau de bord",
@@ -372,7 +378,6 @@
     "creationInProgress": "Création en cours",
     "estimatedBalanceInfo": "Information sur le solde estimé",
     "filterLabel": "Filtrer les éléments",
-    "financialSummaryAriaLabel": "Résumé financier",
     "exportDone": "Export terminé — fichier téléchargé",
     "exportExcelDone": "Export Excel terminé — fichier téléchargé",
     "exportError": "L'export a échoué — réessaie",
@@ -552,9 +557,6 @@
     "deficit": "Déficit du modèle",
     "forecastsHeading": "Prévisions du modèle",
     "forecastsTableLabel": "Prévisions du modèle",
-    "incomeLabel": "Revenus",
-    "expensesLabel": "Dépenses",
-    "savingsLabel": "Épargne",
     "rateLimitTitle": "Trop de requêtes pour le moment",
     "rateLimitMessage": "Le serveur est temporairement surchargé — réessaie dans un instant",
     "loadFailTitle": "Impossible de charger tes modèles",

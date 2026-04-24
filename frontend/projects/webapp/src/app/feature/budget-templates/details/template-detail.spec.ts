@@ -32,6 +32,7 @@ import { TransactionLabelPipe } from '@ui/transaction-display';
 import { UserSettingsStore } from '@core/user-settings';
 import { BaseLoading } from '@ui/loading';
 import { ConfirmationDialog } from '@ui/dialogs/confirmation-dialog';
+import { FinancialPills } from '@ui/financial-pills/financial-pills';
 import { TemplateLinesGrid } from './components/template-lines-grid';
 import { EditTemplateLineDialog } from './components/edit-template-line-dialog';
 import {
@@ -65,6 +66,21 @@ class StubBaseLoading {
   readonly size = input<string>('medium');
   readonly fullHeight = input(false);
   readonly testId = input<string>('loading-container');
+}
+
+@Component({
+  selector: 'pulpe-financial-pills',
+  template: '',
+  changeDetection: ChangeDetectionStrategy.OnPush,
+})
+class StubFinancialPills {
+  readonly totals = input.required<{
+    income: number;
+    expenses: number;
+    savings: number;
+  }>();
+  readonly currency = input<string>('CHF');
+  readonly locale = input<string>('de-CH');
 }
 
 // --- Shared mock data ---
@@ -208,11 +224,11 @@ describe('TemplateDetail', () => {
       ],
     })
       .overrideComponent(TemplateDetail, {
-        remove: { imports: [TemplateLinesGrid, BaseLoading] },
+        remove: { imports: [TemplateLinesGrid, BaseLoading, FinancialPills] },
       })
       .overrideComponent(TemplateDetail, {
         add: {
-          imports: [StubTemplateLinesGrid, StubBaseLoading],
+          imports: [StubTemplateLinesGrid, StubBaseLoading, StubFinancialPills],
           providers: [
             { provide: TemplateDetailsStore, useValue: mockStore },
             { provide: TemplateLineStore, useValue: mockTemplateLineStore },

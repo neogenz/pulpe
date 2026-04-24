@@ -19,6 +19,7 @@ import { type TemplateLine } from 'pulpe-shared';
 import { UserSettingsStore } from '@core/user-settings';
 import { CURRENCY_CONFIG } from '@core/currency';
 import { ConfirmationDialog } from '@ui/dialogs/confirmation-dialog';
+import { FinancialPills } from '@ui/financial-pills/financial-pills';
 import { BaseLoading } from '@ui/loading';
 import { firstValueFrom } from 'rxjs';
 import { TemplateLinesGrid } from './components/template-lines-grid';
@@ -40,6 +41,7 @@ import { TemplateLineStore } from './services/template-line-store';
     TranslocoPipe,
     TemplateLinesGrid,
     BaseLoading,
+    FinancialPills,
   ],
   providers: [TemplateDetailsStore, TemplateLineStore],
   template: `
@@ -176,36 +178,15 @@ import { TemplateLineStore } from './services/template-line-store';
               </p>
             </div>
 
-            <div
-              class="flex gap-3 overflow-x-auto snap-x snap-mandatory pb-2 -mx-4 px-4 md:mx-0 md:px-0 md:justify-center scrollbar-hide"
-            >
-              @for (pill of financialPills(); track pill.testId) {
-                <div
-                  [attr.data-testid]="pill.testId"
-                  class="snap-start flex-shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-full"
-                  [style.background-color]="pill.bgStyle"
-                >
-                  <mat-icon [class]="'mat-icon-sm ' + pill.colorClass">{{
-                    pill.icon
-                  }}</mat-icon>
-                  <div class="flex flex-col">
-                    <span
-                      class="text-label-small leading-tight text-on-financial-light"
-                      >{{ pill.label }}</span
-                    >
-                    <span
-                      [class]="
-                        'text-label-large font-semibold ph-no-capture ' +
-                        pill.colorClass
-                      "
-                    >
-                      {{ pill.amount | number: '1.0-0' : locale() }}
-                      {{ currency() }}
-                    </span>
-                  </div>
-                </div>
-              }
-            </div>
+            <pulpe-financial-pills
+              [totals]="{
+                income: templateDetailsStore.totals().income,
+                expenses: templateDetailsStore.totals().expense,
+                savings: templateDetailsStore.totals().savings,
+              }"
+              [currency]="currency()"
+              [locale]="locale()"
+            />
           </section>
 
           <section
@@ -243,14 +224,6 @@ import { TemplateLineStore } from './services/template-line-store';
       display: block;
       position: relative;
       padding-bottom: 100px;
-    }
-
-    .scrollbar-hide {
-      -ms-overflow-style: none;
-      scrollbar-width: none;
-    }
-    .scrollbar-hide::-webkit-scrollbar {
-      display: none;
     }
 
     .fab-button {
@@ -396,40 +369,6 @@ export default class TemplateDetail implements OnInit {
     }),
     currency: this.currency(),
   }));
-
-  readonly #incomeLabel = this.#transloco.translate('template.incomeLabel');
-  readonly #expensesLabel = this.#transloco.translate('template.expensesLabel');
-  readonly #savingsLabel = this.#transloco.translate('template.savingsLabel');
-
-  readonly financialPills = computed(() => {
-    const t = this.templateDetailsStore.totals();
-    return [
-      {
-        testId: 'income-pill',
-        bgStyle: 'var(--pulpe-financial-income-light)',
-        colorClass: 'text-financial-income',
-        icon: 'trending_up',
-        label: this.#incomeLabel,
-        amount: t.income,
-      },
-      {
-        testId: 'expense-pill',
-        bgStyle: 'var(--pulpe-financial-expense-light)',
-        colorClass: 'text-financial-expense',
-        icon: 'trending_down',
-        label: this.#expensesLabel,
-        amount: t.expense,
-      },
-      {
-        testId: 'savings-pill',
-        bgStyle: 'var(--pulpe-financial-savings-light)',
-        colorClass: 'text-financial-savings',
-        icon: 'savings',
-        label: this.#savingsLabel,
-        amount: t.savings,
-      },
-    ];
-  });
 
   constructor() {
     effect(() => {
