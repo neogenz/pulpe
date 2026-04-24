@@ -195,9 +195,9 @@ actor AuthService {
 
     // MARK: - Logout
 
-    func logout() async {
+    func logout(scope: SignOutScope = .local) async {
         do {
-            try await supabase.auth.signOut(scope: .local)
+            try await supabase.auth.signOut(scope: scope)
         } catch {
             Logger.auth.error("logout: signOut failed - \(error)")
         }
