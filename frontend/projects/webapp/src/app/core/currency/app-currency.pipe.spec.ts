@@ -30,6 +30,12 @@ describe('AppCurrencyPipe', () => {
       const result = pipe.transform(100, 'CHF');
       expect(result).toContain('100.00');
     });
+
+    it('should always use dot decimal for CHF (Swiss banking standard)', () => {
+      const result = pipe.transform(1234.56, 'CHF');
+      expect(result).toContain('234.56');
+      expect(result).not.toContain(',');
+    });
   });
 
   describe('EUR formatting', () => {

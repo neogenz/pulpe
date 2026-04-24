@@ -164,7 +164,7 @@ export default class BudgetDetailsPage {
   readonly #destroyRef = inject(DestroyRef);
   protected readonly currency = this.#userSettingsStore.currency;
   protected readonly currencyLocale = computed(
-    () => CURRENCY_CONFIG[this.currency()].locale,
+    () => CURRENCY_CONFIG[this.currency()].numberLocale,
   );
   readonly #breakpointObserver = inject(BreakpointObserver);
 

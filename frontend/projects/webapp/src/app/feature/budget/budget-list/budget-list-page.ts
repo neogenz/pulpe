@@ -176,7 +176,7 @@ export default class BudgetListPage {
 
   protected readonly currency = this.#userSettingsStore.currency;
   protected readonly currencyLocale = computed(
-    () => CURRENCY_CONFIG[this.currency()].locale,
+    () => CURRENCY_CONFIG[this.currency()].numberLocale,
   );
   protected readonly isExporting = signal(false);
   protected readonly isExportingExcel = signal(false);
