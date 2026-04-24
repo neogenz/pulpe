@@ -1,11 +1,13 @@
 import {
+  afterNextRender,
   ChangeDetectionStrategy,
   Component,
   computed,
   inject,
   signal,
+  viewChild,
+  type ElementRef,
 } from '@angular/core';
-import { toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
@@ -64,6 +66,20 @@ import { createFieldsMatchValidator } from '@core/validators';
         </p>
       </div>
 
+      <pulpe-google-oauth-button
+        testId="google-signup-button"
+        (authError)="errorMessage.set($event)"
+        (loadingChange)="isGoogleLoading.set($event)"
+      />
+
+      <div class="flex items-center gap-4 my-6">
+        <mat-divider class="flex-1" />
+        <span class="text-body-medium text-on-surface-variant">{{
+          'common.or' | transloco
+        }}</span>
+        <mat-divider class="flex-1" />
+      </div>
+
       <form
         [formGroup]="signupForm"
         (ngSubmit)="signUp()"
@@ -73,13 +89,14 @@ import { createFieldsMatchValidator } from '@core/validators';
         <mat-form-field appearance="outline" class="w-full">
           <mat-label>{{ 'form.emailLabel' | transloco }}</mat-label>
           <input
+            #emailInput
             matInput
             type="email"
             formControlName="email"
             data-testid="email-input"
             (input)="clearMessages()"
             [placeholder]="'form.emailPlaceholder' | transloco"
-            [disabled]="isSubmitting()"
+            [disabled]="isBusy()"
           />
           <mat-icon matPrefix>email</mat-icon>
           @if (
@@ -104,7 +121,7 @@ import { createFieldsMatchValidator } from '@core/validators';
             data-testid="password-input"
             (input)="clearMessages()"
             [placeholder]="'form.passwordPlaceholder' | transloco"
-            [disabled]="isSubmitting()"
+            [disabled]="isBusy()"
           />
           <mat-icon matPrefix>lock</mat-icon>
           <button
@@ -143,9 +160,9 @@ import { createFieldsMatchValidator } from '@core/validators';
             data-testid="confirm-password-input"
             (input)="clearMessages()"
             [placeholder]="'form.confirmPasswordPlaceholder' | transloco"
-            [disabled]="isSubmitting()"
+            [disabled]="isBusy()"
           />
-          <mat-icon matPrefix>lock</mat-icon>
+          <mat-icon matPrefix>lock_reset</mat-icon>
           <button
             type="button"
             matIconButton
@@ -177,7 +194,7 @@ import { createFieldsMatchValidator } from '@core/validators';
         <div class="pt-2">
           <mat-checkbox
             formControlName="acceptTerms"
-            [disabled]="isSubmitting()"
+            [disabled]="isBusy()"
             data-testid="accept-terms-checkbox"
           >
             <span class="text-body-medium">
@@ -215,7 +232,7 @@ import { createFieldsMatchValidator } from '@core/validators';
 
         <pulpe-loading-button
           [loading]="isSubmitting()"
-          [disabled]="!canSubmit()"
+          [disabled]="isBusy()"
           [loadingText]="'auth.signup.submitting' | transloco"
           icon="person_add"
           testId="signup-submit-button"
@@ -224,20 +241,6 @@ import { createFieldsMatchValidator } from '@core/validators';
           <span class="ml-2">{{ 'auth.signup.submit' | transloco }}</span>
         </pulpe-loading-button>
       </form>
-
-      <div class="flex items-center gap-4 my-6">
-        <mat-divider class="flex-1" />
-        <span class="text-body-medium text-on-surface-variant">{{
-          'common.or' | transloco
-        }}</span>
-        <mat-divider class="flex-1" />
-      </div>
-
-      <pulpe-google-oauth-button
-        testId="google-signup-button"
-        (authError)="errorMessage.set($event)"
-        (loadingChange)="isSubmitting.set($event)"
-      />
 
       <div class="text-center mt-6">
         <p class="text-body-medium text-on-surface-variant">
@@ -268,7 +271,23 @@ export default class Signup {
   protected readonly isPasswordHidden = signal(true);
   protected readonly isConfirmPasswordHidden = signal(true);
   protected readonly isSubmitting = signal(false);
+  protected readonly isGoogleLoading = signal(false);
   protected readonly errorMessage = signal('');
+  // Disables inputs + submit when EITHER email submit or Google OAuth is in
+  // flight — prevents double-submit without freezing the form just because
+  // Google redirect is briefly loading.
+  protected readonly isBusy = computed(
+    () => this.isSubmitting() || this.isGoogleLoading(),
+  );
+
+  private readonly emailInput =
+    viewChild<ElementRef<HTMLInputElement>>('emailInput');
+
+  constructor() {
+    afterNextRender(() => {
+      this.emailInput()?.nativeElement.focus();
+    });
+  }
 
   protected readonly signupForm = this.#formBuilder.nonNullable.group(
     {
@@ -288,14 +307,6 @@ export default class Signup {
       ),
     },
   );
-
-  readonly #formStatus = toSignal(this.signupForm.statusChanges, {
-    initialValue: this.signupForm.status,
-  });
-
-  protected readonly canSubmit = computed(() => {
-    return this.#formStatus() === 'VALID' && !this.isSubmitting();
-  });
 
   protected togglePasswordVisibility(): void {
     this.isPasswordHidden.set(!this.isPasswordHidden());
