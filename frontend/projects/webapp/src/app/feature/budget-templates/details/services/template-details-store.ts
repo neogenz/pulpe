@@ -5,7 +5,6 @@ import { BudgetTemplatesApi } from '@core/budget-template/budget-templates-api';
 import {
   type BudgetTemplateResponse,
   type TemplateLineListResponse,
-  type TemplateUsageResponse,
   BudgetFormulas,
 } from 'pulpe-shared';
 
@@ -84,28 +83,5 @@ export class TemplateDetailsStore {
 
   setDetails(details: BudgetTemplateDetailViewModel): void {
     this.#templateDetailsResource.set(details);
-  }
-
-  async checkUsage(templateId: string): Promise<TemplateUsageResponse['data']> {
-    const cacheKey: string[] = ['templates', 'usage', templateId];
-    const cached =
-      this.#budgetTemplatesApi.cache.get<TemplateUsageResponse['data']>(
-        cacheKey,
-      );
-    if (cached?.fresh) return cached.data;
-
-    const freshPromise = this.#budgetTemplatesApi.cache.deduplicate(
-      cacheKey,
-      async () => {
-        const response = await firstValueFrom(
-          this.#budgetTemplatesApi.checkUsage$(templateId),
-        );
-        this.#budgetTemplatesApi.cache.set(cacheKey, response.data);
-        return response.data;
-      },
-    );
-
-    if (cached) return cached.data;
-    return freshPromise;
   }
 }

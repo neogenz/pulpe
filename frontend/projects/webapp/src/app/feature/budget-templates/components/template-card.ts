@@ -1,4 +1,3 @@
-import { DecimalPipe } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -9,27 +8,14 @@ import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 import { RouterLink } from '@angular/router';
 import { TranslocoPipe } from '@jsverse/transloco';
-import { type BudgetTemplate, type SupportedCurrency } from 'pulpe-shared';
-
-export interface TemplateSummary {
-  income: number;
-  expense: number;
-  savings: number;
-  netBalance: number;
-}
+import { type BudgetTemplate } from 'pulpe-shared';
 
 const LEADING_EMOJI_REGEX =
   /^\s*(\p{Extended_Pictographic}(‍\p{Extended_Pictographic})*️?)\s*/u;
 
 @Component({
   selector: 'pulpe-template-card',
-  imports: [
-    RouterLink,
-    MatCardModule,
-    MatIconModule,
-    TranslocoPipe,
-    DecimalPipe,
-  ],
+  imports: [RouterLink, MatCardModule, MatIconModule, TranslocoPipe],
   template: `
     <mat-card
       appearance="outlined"
@@ -74,72 +60,7 @@ const LEADING_EMOJI_REGEX =
             {{ template().description }}
           </p>
         }
-        @if (summary(); as totals) {
-          <div
-            class="flex flex-wrap gap-2 mt-3"
-            role="list"
-            [attr.aria-label]="'template.financialSummary' | transloco"
-          >
-            <div
-              role="listitem"
-              class="flex items-center gap-1.5 px-2 py-1 rounded-full bg-financial-income-light"
-            >
-              <mat-icon class="text-financial-income mat-icon-sm"
-                >trending_up</mat-icon
-              >
-              <span
-                class="text-label-small font-semibold text-financial-income ph-no-capture"
-              >
-                {{ totals.income | number: '1.0-0' : 'de-CH' }}
-                {{ currency() }}
-              </span>
-            </div>
-            <div
-              role="listitem"
-              class="flex items-center gap-1.5 px-2 py-1 rounded-full bg-financial-expense-light"
-            >
-              <mat-icon class="text-financial-expense mat-icon-sm"
-                >trending_down</mat-icon
-              >
-              <span
-                class="text-label-small font-semibold text-financial-expense ph-no-capture"
-              >
-                {{ totals.expense | number: '1.0-0' : 'de-CH' }}
-                {{ currency() }}
-              </span>
-            </div>
-            <div
-              role="listitem"
-              class="flex items-center gap-1.5 px-2 py-1 rounded-full bg-financial-savings-light"
-            >
-              <mat-icon class="text-financial-savings mat-icon-sm"
-                >savings</mat-icon
-              >
-              <span
-                class="text-label-small font-semibold text-financial-savings ph-no-capture"
-              >
-                {{ totals.savings | number: '1.0-0' : 'de-CH' }}
-                {{ currency() }}
-              </span>
-            </div>
-          </div>
-        }
       </mat-card-content>
-      @if (summary(); as totals) {
-        <mat-card-footer class="template-card__footer">
-          <span class="text-label-medium text-on-surface-variant">{{
-            'template.summaryNet' | transloco
-          }}</span>
-          <span
-            class="text-label-large font-semibold ph-no-capture"
-            [class.text-financial-savings]="totals.netBalance >= 0"
-            [class.text-financial-expense]="totals.netBalance < 0"
-          >
-            {{ totals.netBalance | number: '1.0-0' : 'de-CH' }}
-            {{ currency() }}
-          </span>
-        </mat-card-footer>
-      }
       <mat-icon aria-hidden="true" class="template-card__chevron mat-icon-sm"
         >chevron_right</mat-icon
       >
@@ -201,8 +122,6 @@ const LEADING_EMOJI_REGEX =
 })
 export class TemplateCard {
   readonly template = input.required<BudgetTemplate>();
-  readonly summary = input<TemplateSummary | undefined>(undefined);
-  readonly currency = input<SupportedCurrency>('CHF');
 
   protected readonly emoji = computed(() => {
     const match = LEADING_EMOJI_REGEX.exec(this.template().name);

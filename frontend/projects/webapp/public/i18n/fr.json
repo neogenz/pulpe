@@ -636,7 +636,6 @@
     "lineAmountLabel": "Montant",
     "lineKindLabel": "Type",
     "linesCount": "{{count}} prévision(s)",
-    "summaryNet": "Solde net",
     "createSuccess": "Prévision ajoutée",
     "updateSuccess": "Prévision modifiée",
     "deleteSuccess": "Prévision supprimée"
