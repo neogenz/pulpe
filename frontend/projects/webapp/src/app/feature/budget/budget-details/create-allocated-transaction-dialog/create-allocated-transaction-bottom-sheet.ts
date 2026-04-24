@@ -15,7 +15,12 @@ import { TranslocoPipe } from '@jsverse/transloco';
 import type { TransactionCreate } from 'pulpe-shared';
 import { formatLocalDate } from '@core/date/format-local-date';
 import type { CurrencyConverterService } from '@core/currency';
-import { injectCurrencyFormConfig } from '@core/currency';
+import {
+  injectCurrencyFormConfig,
+  injectLiveConversionPreview,
+} from '@core/currency';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { ConversionPreviewLine } from '@ui/conversion-preview-line';
 import type { CreateAllocatedTransactionDialogData } from './create-allocated-transaction-dialog';
 import {
   computeBudgetPeriodDateConstraints,
@@ -35,6 +40,7 @@ import { UserSettingsStore } from '@core/user-settings';
     ReactiveFormsModule,
     TranslocoPipe,
     CurrencySuffix,
+    ConversionPreviewLine,
   ],
   template: `
     <div class="flex flex-col gap-4 pb-6">
@@ -90,40 +96,53 @@ import { UserSettingsStore } from '@core/user-settings';
           }
         </mat-form-field>
 
-        <mat-form-field
-          appearance="outline"
-          subscriptSizing="dynamic"
-          class="ph-no-capture"
-        >
-          <mat-label>{{ 'transactionForm.amountLabel' | transloco }}</mat-label>
-          <input
-            matInput
-            type="number"
-            inputmode="decimal"
-            formControlName="amount"
-            step="0.01"
-            min="0.01"
+        <div class="flex flex-col">
+          <mat-form-field
+            appearance="outline"
+            subscriptSizing="dynamic"
+            class="ph-no-capture"
+          >
+            <mat-label>{{
+              'transactionForm.amountLabel' | transloco
+            }}</mat-label>
+            <input
+              matInput
+              type="number"
+              inputmode="decimal"
+              formControlName="amount"
+              step="0.01"
+              min="0.01"
+            />
+            <pulpe-currency-suffix
+              matTextSuffix
+              [showSelector]="showCurrencySelector()"
+              [currency]="inputCurrency()"
+              (currencyChange)="inputCurrency.set($event)"
+            />
+            @if (
+              form.get('amount')?.hasError('required') &&
+              form.get('amount')?.touched
+            ) {
+              <mat-error>{{
+                'transactionForm.amountRequired' | transloco
+              }}</mat-error>
+            }
+            @if (
+              form.get('amount')?.hasError('min') && form.get('amount')?.touched
+            ) {
+              <mat-error>{{ 'budget.amountMinError' | transloco }}</mat-error>
+            }
+          </mat-form-field>
+
+          <pulpe-conversion-preview-line
+            [amount]="preview().convertedAmount ?? null"
+            [inputCurrency]="inputCurrency()"
+            [displayCurrency]="currency()"
+            [rate]="preview().rate ?? null"
+            [cachedDate]="preview().cachedDate ?? null"
+            [status]="preview().status"
           />
-          <pulpe-currency-suffix
-            matTextSuffix
-            [showSelector]="showCurrencySelector()"
-            [currency]="inputCurrency()"
-            (currencyChange)="inputCurrency.set($event)"
-          />
-          @if (
-            form.get('amount')?.hasError('required') &&
-            form.get('amount')?.touched
-          ) {
-            <mat-error>{{
-              'transactionForm.amountRequired' | transloco
-            }}</mat-error>
-          }
-          @if (
-            form.get('amount')?.hasError('min') && form.get('amount')?.touched
-          ) {
-            <mat-error>{{ 'budget.amountMinError' | transloco }}</mat-error>
-          }
-        </mat-form-field>
+        </div>
 
         <mat-form-field appearance="outline" subscriptSizing="dynamic">
           <mat-label>{{ 'budget.dateLabel' | transloco }}</mat-label>
@@ -238,6 +257,15 @@ export class CreateAllocatedTransactionBottomSheet {
     ],
     isChecked: [false],
   });
+
+  readonly #amountValue = toSignal(this.form.controls.amount.valueChanges, {
+    initialValue: this.form.controls.amount.value,
+  });
+  protected readonly preview = injectLiveConversionPreview(
+    this.#amountValue,
+    this.inputCurrency,
+    this.currency,
+  );
 
   close(): void {
     this.#bottomSheetRef.dismiss();

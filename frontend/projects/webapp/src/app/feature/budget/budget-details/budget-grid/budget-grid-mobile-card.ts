@@ -119,17 +119,17 @@ import { BudgetActionMenu } from '../components/budget-action-menu';
           >
             {{ remaining | appCurrency: currency() : '1.0-0' }}
           </div>
-          <span class="text-label-small text-on-surface-variant">{{
-            'budgetLine.available' | transloco
-          }}</span>
-          <pulpe-original-amount-line
-            [originalAmount]="item().data.originalAmount"
-            [originalCurrency]="item().data.originalCurrency"
-            [displayCurrency]="currency()"
-            [tooltipText]="
-              isMultiCurrencyEnabled() ? (item().data | conversionTooltip) : ''
-            "
-          />
+          <span class="text-label-small text-on-surface-variant">
+            {{
+              'budgetLine.availableOf'
+                | transloco
+                  : {
+                      amount:
+                        (item().data.amount
+                        | appCurrency: currency() : '1.0-0'),
+                    }
+            }}
+          </span>
         </ng-container>
 
         <ng-container ngProjectAs="[meta]">

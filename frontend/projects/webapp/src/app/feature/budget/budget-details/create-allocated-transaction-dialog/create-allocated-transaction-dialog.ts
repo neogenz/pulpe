@@ -59,7 +59,11 @@ export interface CreateAllocatedTransactionDialogData {
 
     <mat-dialog-content>
       <form [formGroup]="form" class="flex flex-col gap-4 pt-4">
-        <mat-form-field appearance="outline" class="w-full">
+        <mat-form-field
+          appearance="outline"
+          subscriptSizing="dynamic"
+          class="w-full"
+        >
           <mat-label>{{ 'budget.tableDescription' | transloco }}</mat-label>
           <input
             matInput
@@ -83,46 +87,54 @@ export interface CreateAllocatedTransactionDialogData {
           }
         </mat-form-field>
 
-        <mat-form-field appearance="outline" class="w-full ph-no-capture">
-          <mat-label>{{ 'transactionForm.amountLabel' | transloco }}</mat-label>
-          <input
-            matInput
-            type="number"
-            formControlName="amount"
-            step="0.01"
-            min="0.01"
-            inputmode="decimal"
-            data-testid="transaction-amount"
-          />
-          <pulpe-currency-suffix
-            matTextSuffix
-            [showSelector]="showCurrencySelector()"
-            [currency]="inputCurrency()"
-            (currencyChange)="inputCurrency.set($event)"
-          />
-          @if (
-            form.get('amount')?.hasError('required') &&
-            form.get('amount')?.touched
-          ) {
-            <mat-error>{{
-              'transactionForm.amountRequired' | transloco
-            }}</mat-error>
-          }
-          @if (
-            form.get('amount')?.hasError('min') && form.get('amount')?.touched
-          ) {
-            <mat-error>{{ 'budget.amountMinError' | transloco }}</mat-error>
-          }
-        </mat-form-field>
+        <div class="flex flex-col">
+          <mat-form-field
+            appearance="outline"
+            subscriptSizing="dynamic"
+            class="w-full ph-no-capture"
+          >
+            <mat-label>{{
+              'transactionForm.amountLabel' | transloco
+            }}</mat-label>
+            <input
+              matInput
+              type="number"
+              formControlName="amount"
+              step="0.01"
+              min="0.01"
+              inputmode="decimal"
+              data-testid="transaction-amount"
+            />
+            <pulpe-currency-suffix
+              matTextSuffix
+              [showSelector]="showCurrencySelector()"
+              [currency]="inputCurrency()"
+              (currencyChange)="inputCurrency.set($event)"
+            />
+            @if (
+              form.get('amount')?.hasError('required') &&
+              form.get('amount')?.touched
+            ) {
+              <mat-error>{{
+                'transactionForm.amountRequired' | transloco
+              }}</mat-error>
+            }
+            @if (
+              form.get('amount')?.hasError('min') && form.get('amount')?.touched
+            ) {
+              <mat-error>{{ 'budget.amountMinError' | transloco }}</mat-error>
+            }
+          </mat-form-field>
 
-        <pulpe-conversion-preview-line
-          [amount]="preview().convertedAmount ?? null"
-          [inputCurrency]="inputCurrency()"
-          [displayCurrency]="currency()"
-          [rate]="preview().rate ?? null"
-          [cachedDate]="preview().cachedDate ?? null"
-          [status]="preview().status"
-        />
+          <pulpe-conversion-preview-line
+            [amount]="preview().convertedAmount ?? null"
+            [inputCurrency]="inputCurrency()"
+            [displayCurrency]="currency()"
+            [rate]="preview().rate ?? null"
+            [cachedDate]="preview().cachedDate ?? null"
+            [status]="preview().status"
+          />
+        </div>
 
         <mat-form-field appearance="outline" class="w-full">
           <mat-label>{{ 'budget.dateLabel' | transloco }}</mat-label>

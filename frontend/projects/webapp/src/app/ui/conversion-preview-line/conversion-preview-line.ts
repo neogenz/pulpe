@@ -45,7 +45,7 @@ const RATE_FORMATTER = new Intl.NumberFormat(FALLBACK_DATE_LOCALE, {
   template: `
     @if (isVisible()) {
       <div
-        class="flex flex-wrap items-center gap-x-2 gap-y-0 text-label-small text-on-surface-variant ph-no-capture"
+        class="flex flex-wrap items-center gap-x-2 gap-y-0 px-4 pt-1 text-label-small text-on-surface-variant ph-no-capture"
         [attr.aria-label]="ariaLabel()"
         role="status"
         aria-live="polite"

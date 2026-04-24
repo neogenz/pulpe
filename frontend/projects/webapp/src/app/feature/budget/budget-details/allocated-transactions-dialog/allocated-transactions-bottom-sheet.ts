@@ -20,6 +20,7 @@ import { FeatureFlagsService } from '@core/feature-flags';
 import { UserSettingsStore } from '@core/user-settings';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { CurrencyConversionBadge } from '@ui/currency-conversion-badge';
+import { OriginalAmountLine } from '@ui/original-amount-line';
 import type {
   AllocatedTransactionsDialogData,
   AllocatedTransactionsDialogResult,
@@ -34,6 +35,7 @@ import type {
     MatSlideToggleModule,
     AppCurrencyPipe,
     CurrencyConversionBadge,
+    OriginalAmountLine,
     TranslocoPipe,
     DatePipe,
     DecimalPipe,
@@ -80,29 +82,27 @@ import type {
           </div>
         </div>
         <!-- Prévu -->
-        <div class="text-center p-2 bg-surface-container rounded-lg">
+        <div class="text-center p-2 bg-surface-container rounded-lg min-w-0">
           <div class="text-label-small text-on-surface-variant">
             {{ 'budget.tablePlanned' | transloco }}
           </div>
-          <div
-            class="text-title-small font-semibold ph-no-capture flex items-center justify-center gap-1"
-          >
+          <div class="text-title-small font-semibold ph-no-capture">
             {{ data.budgetLine.amount | appCurrency: currency() : '1.0-0' }}
-            @if (isMultiCurrencyEnabled()) {
-              <pulpe-currency-conversion-badge
-                [originalAmount]="data.budgetLine.originalAmount"
-                [originalCurrency]="data.budgetLine.originalCurrency"
-                [exchangeRate]="data.budgetLine.exchangeRate"
-                [tooltipText]="
-                  conversionTooltip(
-                    data.budgetLine.originalAmount,
-                    data.budgetLine.originalCurrency,
-                    data.budgetLine.exchangeRate
-                  )
-                "
-              />
-            }
           </div>
+          @if (isMultiCurrencyEnabled()) {
+            <pulpe-original-amount-line
+              [originalAmount]="data.budgetLine.originalAmount"
+              [originalCurrency]="data.budgetLine.originalCurrency"
+              [displayCurrency]="currency()"
+              [tooltipText]="
+                conversionTooltip(
+                  data.budgetLine.originalAmount,
+                  data.budgetLine.originalCurrency,
+                  data.budgetLine.exchangeRate
+                )
+              "
+            />
+          }
         </div>
         <!-- Reste -->
         <div class="text-center p-2 bg-surface-container rounded-lg">

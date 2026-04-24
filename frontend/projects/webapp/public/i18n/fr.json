@@ -491,6 +491,7 @@
     "noForecast": "Aucune prévision",
     "amountMustBePositive": "Le montant doit être positif",
     "available": "disponible",
+    "availableOf": "disponible sur {{ amount }}",
     "planned": "prévu",
     "spent": "dépensé",
     "exceeded": "dépassé",

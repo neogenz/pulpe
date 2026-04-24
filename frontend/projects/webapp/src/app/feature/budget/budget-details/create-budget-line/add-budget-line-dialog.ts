@@ -56,9 +56,13 @@ export interface BudgetLineDialogData {
     </h2>
 
     <mat-dialog-content>
-      <div class="flex flex-col gap-4 pt-4">
-        <form [formGroup]="form">
-          <mat-form-field appearance="outline" class="w-full">
+      <div class="pt-4">
+        <form [formGroup]="form" class="flex flex-col gap-4">
+          <mat-form-field
+            appearance="outline"
+            subscriptSizing="dynamic"
+            class="w-full"
+          >
             <mat-label>{{ 'budget.forecastNameLabel' | transloco }}</mat-label>
             <input
               matInput
@@ -68,38 +72,48 @@ export interface BudgetLineDialogData {
             />
           </mat-form-field>
 
-          <mat-form-field appearance="outline" class="w-full ph-no-capture">
-            <mat-label class="ph-no-capture">{{
-              'transactionForm.amountLabel' | transloco
-            }}</mat-label>
-            <input
-              matInput
-              type="number"
-              formControlName="amount"
-              placeholder="0.00"
-              step="0.01"
-              min="0"
-              inputmode="decimal"
-              data-testid="new-line-amount"
-            />
-            <pulpe-currency-suffix
-              matTextSuffix
-              [showSelector]="showCurrencySelector()"
-              [currency]="inputCurrency()"
-              (currencyChange)="inputCurrency.set($event)"
-            />
-          </mat-form-field>
+          <div class="flex flex-col">
+            <mat-form-field
+              appearance="outline"
+              subscriptSizing="dynamic"
+              class="w-full ph-no-capture"
+            >
+              <mat-label class="ph-no-capture">{{
+                'transactionForm.amountLabel' | transloco
+              }}</mat-label>
+              <input
+                matInput
+                type="number"
+                formControlName="amount"
+                placeholder="0.00"
+                step="0.01"
+                min="0"
+                inputmode="decimal"
+                data-testid="new-line-amount"
+              />
+              <pulpe-currency-suffix
+                matTextSuffix
+                [showSelector]="showCurrencySelector()"
+                [currency]="inputCurrency()"
+                (currencyChange)="inputCurrency.set($event)"
+              />
+            </mat-form-field>
 
-          <pulpe-conversion-preview-line
-            [amount]="preview().convertedAmount ?? null"
-            [inputCurrency]="inputCurrency()"
-            [displayCurrency]="currency()"
-            [rate]="preview().rate ?? null"
-            [cachedDate]="preview().cachedDate ?? null"
-            [status]="preview().status"
-          />
+            <pulpe-conversion-preview-line
+              [amount]="preview().convertedAmount ?? null"
+              [inputCurrency]="inputCurrency()"
+              [displayCurrency]="currency()"
+              [rate]="preview().rate ?? null"
+              [cachedDate]="preview().cachedDate ?? null"
+              [status]="preview().status"
+            />
+          </div>
 
-          <mat-form-field appearance="outline" class="w-full">
+          <mat-form-field
+            appearance="outline"
+            subscriptSizing="dynamic"
+            class="w-full"
+          >
             <mat-label>{{ 'budget.forecastTypeLabel' | transloco }}</mat-label>
             <mat-select formControlName="kind" data-testid="new-line-kind">
               <mat-option value="income">

@@ -121,67 +121,69 @@ export type EditTransactionFormData = Pick<
       </mat-form-field>
 
       <!-- Amount Field -->
-      <mat-form-field class="w-full ph-no-capture" subscriptSizing="dynamic">
-        <mat-label class="ph-no-capture">{{
-          'transactionForm.amountLabel' | transloco
-        }}</mat-label>
-        <mat-icon matIconPrefix class="text-on-surface-variant"
-          >payments</mat-icon
-        >
-        <input
-          matInput
-          type="number"
-          inputmode="decimal"
-          formControlName="amount"
-          placeholder="0.00"
-          step="0.01"
-          min="0.01"
-          max="999999.99"
-          aria-describedby="amount-hint"
-        />
-        <pulpe-currency-suffix
-          matTextSuffix
-          [showSelector]="showCurrencySelector()"
-          [disabled]="true"
-          [currency]="inputCurrency()"
-        />
-        <mat-hint id="amount-hint" class="ph-no-capture">
-          {{ 'transactionForm.amountHint' | transloco }}
-        </mat-hint>
-        @if (
-          transactionForm.get('amount')?.hasError('required') &&
-          transactionForm.get('amount')?.touched
-        ) {
-          <mat-error role="alert" aria-live="assertive">
-            {{ 'transactionForm.amountRequired' | transloco }}
-          </mat-error>
-        }
-        @if (
-          transactionForm.get('amount')?.hasError('min') &&
-          transactionForm.get('amount')?.touched
-        ) {
-          <mat-error role="alert" aria-live="assertive">
-            {{ 'transactionForm.amountMin' | transloco }}
-          </mat-error>
-        }
-        @if (
-          transactionForm.get('amount')?.hasError('max') &&
-          transactionForm.get('amount')?.touched
-        ) {
-          <mat-error role="alert" aria-live="assertive">
-            {{ 'transactionForm.amountMax' | transloco }}
-          </mat-error>
-        }
-      </mat-form-field>
+      <div class="flex flex-col">
+        <mat-form-field class="w-full ph-no-capture" subscriptSizing="dynamic">
+          <mat-label class="ph-no-capture">{{
+            'transactionForm.amountLabel' | transloco
+          }}</mat-label>
+          <mat-icon matIconPrefix class="text-on-surface-variant"
+            >payments</mat-icon
+          >
+          <input
+            matInput
+            type="number"
+            inputmode="decimal"
+            formControlName="amount"
+            placeholder="0.00"
+            step="0.01"
+            min="0.01"
+            max="999999.99"
+            aria-describedby="amount-hint"
+          />
+          <pulpe-currency-suffix
+            matTextSuffix
+            [showSelector]="showCurrencySelector()"
+            [disabled]="true"
+            [currency]="inputCurrency()"
+          />
+          <mat-hint id="amount-hint" class="ph-no-capture">
+            {{ 'transactionForm.amountHint' | transloco }}
+          </mat-hint>
+          @if (
+            transactionForm.get('amount')?.hasError('required') &&
+            transactionForm.get('amount')?.touched
+          ) {
+            <mat-error role="alert" aria-live="assertive">
+              {{ 'transactionForm.amountRequired' | transloco }}
+            </mat-error>
+          }
+          @if (
+            transactionForm.get('amount')?.hasError('min') &&
+            transactionForm.get('amount')?.touched
+          ) {
+            <mat-error role="alert" aria-live="assertive">
+              {{ 'transactionForm.amountMin' | transloco }}
+            </mat-error>
+          }
+          @if (
+            transactionForm.get('amount')?.hasError('max') &&
+            transactionForm.get('amount')?.touched
+          ) {
+            <mat-error role="alert" aria-live="assertive">
+              {{ 'transactionForm.amountMax' | transloco }}
+            </mat-error>
+          }
+        </mat-form-field>
 
-      <pulpe-conversion-preview-line
-        [amount]="preview().convertedAmount ?? null"
-        [inputCurrency]="inputCurrency()"
-        [displayCurrency]="currency()"
-        [rate]="preview().rate ?? null"
-        [cachedDate]="preview().cachedDate ?? null"
-        [status]="preview().status"
-      />
+        <pulpe-conversion-preview-line
+          [amount]="preview().convertedAmount ?? null"
+          [inputCurrency]="inputCurrency()"
+          [displayCurrency]="currency()"
+          [rate]="preview().rate ?? null"
+          [cachedDate]="preview().cachedDate ?? null"
+          [status]="preview().status"
+        />
+      </div>
 
       <!-- Type Field -->
       @if (!isFieldHidden('kind')) {

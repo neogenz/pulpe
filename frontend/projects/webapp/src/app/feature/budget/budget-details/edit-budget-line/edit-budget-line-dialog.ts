@@ -59,9 +59,13 @@ export interface EditBudgetLineDialogData {
     </h2>
 
     <mat-dialog-content>
-      <div class="flex flex-col gap-4 pt-4">
-        <form [formGroup]="form">
-          <mat-form-field appearance="outline" class="w-full">
+      <div class="pt-4">
+        <form [formGroup]="form" class="flex flex-col gap-4">
+          <mat-form-field
+            appearance="outline"
+            subscriptSizing="dynamic"
+            class="w-full"
+          >
             <mat-label>{{ 'budget.forecastNameLabel' | transloco }}</mat-label>
             <input
               matInput
@@ -87,51 +91,62 @@ export interface EditBudgetLineDialogData {
             }
           </mat-form-field>
 
-          <mat-form-field appearance="outline" class="w-full ph-no-capture">
-            <mat-label class="ph-no-capture">{{
-              'transactionForm.amountLabel' | transloco
-            }}</mat-label>
-            <input
-              matInput
-              type="number"
-              formControlName="amount"
-              placeholder="0"
-              step="1"
-              min="0"
-              inputmode="decimal"
-              data-testid="edit-line-amount"
-            />
-            <pulpe-currency-suffix
-              matTextSuffix
-              [showSelector]="showCurrencySelector()"
-              [disabled]="true"
-              [currency]="inputCurrency()"
-            />
-            @if (
-              form.get('amount')?.hasError('required') &&
-              form.get('amount')?.touched
-            ) {
-              <mat-error>{{
-                'budget.forecastAmountRequired' | transloco
-              }}</mat-error>
-            }
-            @if (
-              form.get('amount')?.hasError('min') && form.get('amount')?.touched
-            ) {
-              <mat-error>{{ 'budget.amountMinError' | transloco }}</mat-error>
-            }
-          </mat-form-field>
+          <div class="flex flex-col">
+            <mat-form-field
+              appearance="outline"
+              subscriptSizing="dynamic"
+              class="w-full ph-no-capture"
+            >
+              <mat-label class="ph-no-capture">{{
+                'transactionForm.amountLabel' | transloco
+              }}</mat-label>
+              <input
+                matInput
+                type="number"
+                formControlName="amount"
+                placeholder="0"
+                step="1"
+                min="0"
+                inputmode="decimal"
+                data-testid="edit-line-amount"
+              />
+              <pulpe-currency-suffix
+                matTextSuffix
+                [showSelector]="showCurrencySelector()"
+                [disabled]="true"
+                [currency]="inputCurrency()"
+              />
+              @if (
+                form.get('amount')?.hasError('required') &&
+                form.get('amount')?.touched
+              ) {
+                <mat-error>{{
+                  'budget.forecastAmountRequired' | transloco
+                }}</mat-error>
+              }
+              @if (
+                form.get('amount')?.hasError('min') &&
+                form.get('amount')?.touched
+              ) {
+                <mat-error>{{ 'budget.amountMinError' | transloco }}</mat-error>
+              }
+            </mat-form-field>
 
-          <pulpe-conversion-preview-line
-            [amount]="preview().convertedAmount ?? null"
-            [inputCurrency]="inputCurrency()"
-            [displayCurrency]="currency()"
-            [rate]="preview().rate ?? null"
-            [cachedDate]="preview().cachedDate ?? null"
-            [status]="preview().status"
-          />
+            <pulpe-conversion-preview-line
+              [amount]="preview().convertedAmount ?? null"
+              [inputCurrency]="inputCurrency()"
+              [displayCurrency]="currency()"
+              [rate]="preview().rate ?? null"
+              [cachedDate]="preview().cachedDate ?? null"
+              [status]="preview().status"
+            />
+          </div>
 
-          <mat-form-field appearance="outline" class="w-full">
+          <mat-form-field
+            appearance="outline"
+            subscriptSizing="dynamic"
+            class="w-full"
+          >
             <mat-label>{{ 'budget.forecastTypeLabel' | transloco }}</mat-label>
             <mat-select formControlName="kind" data-testid="edit-line-kind">
               <mat-option value="income">

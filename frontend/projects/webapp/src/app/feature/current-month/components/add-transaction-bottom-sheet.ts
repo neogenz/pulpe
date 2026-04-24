@@ -104,60 +104,62 @@ interface TransactionFormControls {
         data-testid="transaction-form"
       >
         <!-- Amount Field -->
-        <mat-form-field
-          appearance="outline"
-          subscriptSizing="dynamic"
-          class="ph-no-capture"
-        >
-          <mat-label>{{
-            'currentMonth.addTransactionAmount' | transloco
-          }}</mat-label>
-          <input
-            class="!text-xl !font-bold !text-center"
-            matInput
-            #amountInput
-            type="number"
-            inputmode="decimal"
-            placeholder="0.00"
-            formControlName="amount"
-            data-testid="transaction-amount-input"
-            step="0.01"
-            min="0.01"
-            max="999999.99"
-            required
-          />
-          <pulpe-currency-suffix
-            matTextSuffix
-            [showSelector]="showCurrencySelector()"
-            [currency]="inputCurrency()"
-            (currencyChange)="inputCurrency.set($event)"
-          />
-          @if (
-            transactionForm.get('amount')?.hasError('required') &&
-            transactionForm.get('amount')?.touched
-          ) {
-            <mat-error role="alert" aria-live="assertive">{{
-              'currentMonth.addTransactionAmountRequired' | transloco
-            }}</mat-error>
-          }
-          @if (
-            transactionForm.get('amount')?.hasError('min') &&
-            transactionForm.get('amount')?.touched
-          ) {
-            <mat-error role="alert" aria-live="assertive">{{
-              'currentMonth.addTransactionAmountMin' | transloco
-            }}</mat-error>
-          }
-        </mat-form-field>
+        <div class="flex flex-col">
+          <mat-form-field
+            appearance="outline"
+            subscriptSizing="dynamic"
+            class="ph-no-capture"
+          >
+            <mat-label>{{
+              'currentMonth.addTransactionAmount' | transloco
+            }}</mat-label>
+            <input
+              class="!text-xl !font-bold !text-center"
+              matInput
+              #amountInput
+              type="number"
+              inputmode="decimal"
+              placeholder="0.00"
+              formControlName="amount"
+              data-testid="transaction-amount-input"
+              step="0.01"
+              min="0.01"
+              max="999999.99"
+              required
+            />
+            <pulpe-currency-suffix
+              matTextSuffix
+              [showSelector]="showCurrencySelector()"
+              [currency]="inputCurrency()"
+              (currencyChange)="inputCurrency.set($event)"
+            />
+            @if (
+              transactionForm.get('amount')?.hasError('required') &&
+              transactionForm.get('amount')?.touched
+            ) {
+              <mat-error role="alert" aria-live="assertive">{{
+                'currentMonth.addTransactionAmountRequired' | transloco
+              }}</mat-error>
+            }
+            @if (
+              transactionForm.get('amount')?.hasError('min') &&
+              transactionForm.get('amount')?.touched
+            ) {
+              <mat-error role="alert" aria-live="assertive">{{
+                'currentMonth.addTransactionAmountMin' | transloco
+              }}</mat-error>
+            }
+          </mat-form-field>
 
-        <pulpe-conversion-preview-line
-          [amount]="preview().convertedAmount ?? null"
-          [inputCurrency]="inputCurrency()"
-          [displayCurrency]="currency()"
-          [rate]="preview().rate ?? null"
-          [cachedDate]="preview().cachedDate ?? null"
-          [status]="preview().status"
-        />
+          <pulpe-conversion-preview-line
+            [amount]="preview().convertedAmount ?? null"
+            [inputCurrency]="inputCurrency()"
+            [displayCurrency]="currency()"
+            [rate]="preview().rate ?? null"
+            [cachedDate]="preview().cachedDate ?? null"
+            [status]="preview().status"
+          />
+        </div>
 
         <!-- Predefined Amounts -->
         <div class="flex flex-col gap-3">
