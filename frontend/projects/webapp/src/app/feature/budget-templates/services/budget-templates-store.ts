@@ -13,7 +13,6 @@ import { cachedResource, cachedMutation } from 'ngx-ziflux';
 import { BudgetTemplatesApi } from '@core/budget-template/budget-templates-api';
 import { Logger } from '@core/logging/logger';
 import { ConfirmationDialog } from '@ui/dialogs/confirmation-dialog';
-import { type TemplateSummary } from '../components/template-card';
 import { TemplateUsageDialogComponent } from '../components/dialogs/template-usage-dialog';
 
 export type DeleteTemplateOutcome =
@@ -63,10 +62,6 @@ export class BudgetTemplatesStore {
   );
   readonly defaultBudgetTemplate = computed(
     () => this.#templates().find((t) => t.isDefault) ?? null,
-  );
-
-  readonly templateSummaries = computed<Record<string, TemplateSummary>>(
-    () => ({}),
   );
 
   readonly #deleteTemplateMutation = cachedMutation<

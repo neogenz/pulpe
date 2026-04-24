@@ -80,7 +80,11 @@ export interface EditTemplateLineDialogResult {
     <mat-dialog-content>
       <div class="flex flex-col gap-4 pt-4">
         <form [formGroup]="form">
-          <mat-form-field appearance="outline" class="w-full">
+          <mat-form-field
+            appearance="outline"
+            subscriptSizing="dynamic"
+            class="w-full"
+          >
             <mat-label>{{ 'budget.forecastNameLabel' | transloco }}</mat-label>
             <input
               matInput
@@ -106,7 +110,11 @@ export interface EditTemplateLineDialogResult {
             }
           </mat-form-field>
 
-          <mat-form-field appearance="outline" class="w-full ph-no-capture">
+          <mat-form-field
+            appearance="outline"
+            subscriptSizing="dynamic"
+            class="w-full ph-no-capture"
+          >
             <mat-label class="ph-no-capture">{{
               'transactionForm.amountLabel' | transloco
             }}</mat-label>
@@ -141,7 +149,11 @@ export interface EditTemplateLineDialogResult {
             }
           </mat-form-field>
 
-          <mat-form-field appearance="outline" class="w-full">
+          <mat-form-field
+            appearance="outline"
+            subscriptSizing="dynamic"
+            class="w-full"
+          >
             <mat-label>{{ 'budget.forecastTypeLabel' | transloco }}</mat-label>
             <mat-select
               formControlName="kind"

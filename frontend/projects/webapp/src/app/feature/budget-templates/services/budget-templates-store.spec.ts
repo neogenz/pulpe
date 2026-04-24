@@ -57,6 +57,7 @@ describe('BudgetTemplatesStore', () => {
       create$: vi.fn(),
       update$: vi.fn(),
       delete$: vi.fn(),
+      checkUsage$: vi.fn(),
       cache: mockCache as unknown as BudgetTemplatesApi['cache'],
     };
 
@@ -449,6 +450,104 @@ describe('BudgetTemplatesStore', () => {
       await new Promise((resolve) => setTimeout(resolve, 50));
 
       expect(mockApi.delete$).toHaveBeenCalledWith('template-2');
+    });
+  });
+
+  describe('confirmAndDeleteTemplate', () => {
+    let mockDialog: { open: ReturnType<typeof vi.fn> };
+    let mockSnackBar: { open: ReturnType<typeof vi.fn> };
+
+    beforeEach(async () => {
+      mockDialog = TestBed.inject(MatDialog) as unknown as typeof mockDialog;
+      mockSnackBar = TestBed.inject(
+        MatSnackBar,
+      ) as unknown as typeof mockSnackBar;
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    });
+
+    it('should return "cancelled-due-to-usage" when template is used', async () => {
+      const usageBudgets = [
+        { id: 'budget-1', month: 4, year: 2026, description: 'April' },
+      ];
+      mockApi.checkUsage$ = vi.fn().mockReturnValue(
+        of({
+          success: true,
+          data: { isUsed: true, budgets: usageBudgets },
+        }),
+      );
+      const setUsageData = vi.fn();
+      mockDialog.open.mockReturnValue({
+        componentInstance: { setUsageData },
+        afterClosed: () => of(undefined),
+      });
+
+      const outcome = await store.confirmAndDeleteTemplate(
+        'template-1',
+        'Template 1',
+      );
+
+      expect(outcome).toBe('cancelled-due-to-usage');
+      expect(setUsageData).toHaveBeenCalledWith(usageBudgets);
+      expect(mockApi.delete$).not.toHaveBeenCalled();
+    });
+
+    it('should return "cancelled" when user cancels confirmation', async () => {
+      mockApi.checkUsage$ = vi.fn().mockReturnValue(
+        of({
+          success: true,
+          data: { isUsed: false, budgets: [] },
+        }),
+      );
+      mockDialog.open.mockReturnValue({
+        afterClosed: () => of(false),
+      });
+
+      const outcome = await store.confirmAndDeleteTemplate(
+        'template-1',
+        'Template 1',
+      );
+
+      expect(outcome).toBe('cancelled');
+      expect(mockApi.delete$).not.toHaveBeenCalled();
+    });
+
+    it('should return "deleted" and show success snackbar on success', async () => {
+      mockApi.checkUsage$ = vi.fn().mockReturnValue(
+        of({
+          success: true,
+          data: { isUsed: false, budgets: [] },
+        }),
+      );
+      mockApi.delete$ = vi
+        .fn()
+        .mockReturnValue(of({ success: true, data: null }));
+      mockDialog.open.mockReturnValue({
+        afterClosed: () => of(true),
+      });
+
+      const outcome = await store.confirmAndDeleteTemplate(
+        'template-1',
+        'Template 1',
+      );
+
+      expect(outcome).toBe('deleted');
+      expect(mockApi.delete$).toHaveBeenCalledWith('template-1');
+      expect(mockSnackBar.open).toHaveBeenCalled();
+    });
+
+    it('should return "error" and show error snackbar when checkUsage throws', async () => {
+      mockApi.checkUsage$ = vi
+        .fn()
+        .mockReturnValue(throwError(() => new Error('Network error')));
+
+      const outcome = await store.confirmAndDeleteTemplate(
+        'template-1',
+        'Template 1',
+      );
+
+      expect(outcome).toBe('error');
+      expect(mockSnackBar.open).toHaveBeenCalled();
+      expect(mockApi.delete$).not.toHaveBeenCalled();
     });
   });
 
