@@ -1,4 +1,5 @@
 import OSLog
+import Supabase
 import SwiftUI
 
 @Observable @MainActor
@@ -163,6 +164,7 @@ final class AppState {
     let postAuthResolver: any PostAuthResolving
     let validateRegularSession: @Sendable () async throws -> UserInfo?
     let deleteAccountRequest: @Sendable () async throws -> DeleteAccountResponse
+    let performSignOut: @Sendable (SignOutScope) async -> Void
     @ObservationIgnored let flagsStore: any AppAuthFlagsStoring
     @ObservationIgnored let widgetSyncing: any WidgetSyncing
     @ObservationIgnored let maintenanceChecking: @Sendable () async throws -> Bool
@@ -192,6 +194,7 @@ final class AppState {
         self.validateRegularSession =
             deps.validateRegularSession ?? Self.defaultValidateRegularSession(deps.authService)
         self.deleteAccountRequest = Self.makeDeleteAccountRequest(deps)
+        self.performSignOut = Self.makePerformSignOut(deps)
         self.flagsStore = deps.flagsStore
         self.widgetSyncing = deps.widgetSyncing
         self.maintenanceChecking = deps.maintenanceChecking
@@ -311,6 +314,7 @@ final class AppState {
         validateRegularSession: (@Sendable () async throws -> UserInfo?)? = nil,
         validateBiometricSession: (@Sendable () async throws -> BiometricSessionResult?)? = nil,
         deleteAccountRequest: (@Sendable () async throws -> DeleteAccountResponse)? = nil,
+        performSignOut: (@Sendable (SignOutScope) async -> Void)? = nil,
         maintenanceChecking: @escaping @Sendable () async throws -> Bool = {
             try await MaintenanceService.shared.checkStatus()
         },
@@ -334,6 +338,7 @@ final class AppState {
             validateRegularSession: validateRegularSession,
             validateBiometricSession: validateBiometricSession,
             deleteAccountRequest: deleteAccountRequest,
+            performSignOut: performSignOut,
             maintenanceChecking: maintenanceChecking,
             nowProvider: nowProvider
         ))
@@ -374,6 +379,15 @@ final class AppState {
         deps.deleteAccountRequest
             ?? { [authService = deps.authService] in
                 try await authService.deleteAccount()
+            }
+    }
+
+    private static func makePerformSignOut(
+        _ deps: AppStateDependencies
+    ) -> @Sendable (SignOutScope) async -> Void {
+        deps.performSignOut
+            ?? { [authService = deps.authService] scope in
+                await authService.logout(scope: scope)
             }
     }
 

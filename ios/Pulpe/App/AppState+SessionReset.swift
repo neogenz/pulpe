@@ -1,4 +1,5 @@
 import OSLog
+import Supabase
 import SwiftUI
 
 // MARK: - Session Lifecycle, Logout & Reset
@@ -90,7 +91,8 @@ extension AppState {
 
     func logout(
         source: LogoutSource = .userInitiated,
-        preserveBiometricSession: Bool? = nil
+        preserveBiometricSession: Bool? = nil,
+        scope: SignOutScope = .local
     ) async {
         guard !isLoggingOut else { return }
         isLoggingOut = true
@@ -131,12 +133,12 @@ extension AppState {
                 // Both save attempts failed — biometric tokens are unusable.
                 // Do a full logout instead of silently losing Face ID.
                 Logger.auth.error("logout: biometric token preservation failed, doing full logout")
-                await authService.logout()
+                await performSignOut(scope)
                 await biometric.handleSessionExpired()
                 biometric.isEnabled = false
             }
         } else {
-            await authService.logout()
+            await performSignOut(scope)
             await biometric.handleSessionExpired()
             biometric.isEnabled = false
         }
@@ -206,7 +208,9 @@ extension AppState {
         OnboardingState.clearPersistedData()
         onboardingBootstrapper.clearPendingData()
         clearManualBiometricRetryRequiredFlag()
-        await logout(source: .system, preserveBiometricSession: false)
+        // Account deletion / signup abandon → revoke JWT server-side so a
+        // snapped access_token cannot be replayed within its ~1h expiry window.
+        await logout(source: .system, preserveBiometricSession: false, scope: .global)
     }
 
     // MARK: - Session Reset

@@ -1,4 +1,5 @@
 import Foundation
+import Supabase
 
 /// Groups all external dependencies for AppState construction.
 /// Provides `.default` for production use.
@@ -31,6 +32,10 @@ struct AppStateDependencies {
     var validateRegularSession: (@Sendable () async throws -> UserInfo?)?
     var validateBiometricSession: (@Sendable () async throws -> BiometricSessionResult?)?
     var deleteAccountRequest: (@Sendable () async throws -> DeleteAccountResponse)?
+
+    /// Override for the sign-out side-effect. Defaults to `authService.logout(scope:)`.
+    /// Primarily a test seam — production should leave this `nil`.
+    var performSignOut: (@Sendable (SignOutScope) async -> Void)?
 
     // MARK: - Auth Flags & Widget
 
@@ -69,6 +74,7 @@ struct AppStateDependencies {
         validateRegularSession: (@Sendable () async throws -> UserInfo?)? = nil,
         validateBiometricSession: (@Sendable () async throws -> BiometricSessionResult?)? = nil,
         deleteAccountRequest: (@Sendable () async throws -> DeleteAccountResponse)? = nil,
+        performSignOut: (@Sendable (SignOutScope) async -> Void)? = nil,
         flagsStore: any AppAuthFlagsStoring = AppAuthFlagsStore(),
         widgetSyncing: any WidgetSyncing = WidgetSyncAdapter(),
         maintenanceChecking: @escaping @Sendable () async throws -> Bool = {
@@ -101,6 +107,7 @@ struct AppStateDependencies {
         self.validateRegularSession = validateRegularSession
         self.validateBiometricSession = validateBiometricSession
         self.deleteAccountRequest = deleteAccountRequest
+        self.performSignOut = performSignOut
         self.flagsStore = flagsStore
         self.widgetSyncing = widgetSyncing
         self.maintenanceChecking = maintenanceChecking
