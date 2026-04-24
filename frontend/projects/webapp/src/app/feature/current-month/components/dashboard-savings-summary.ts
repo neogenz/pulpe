@@ -126,7 +126,7 @@ export class DashboardSavingsSummary {
   readonly currency = input<SupportedCurrency>('CHF');
 
   protected readonly locale = computed(
-    () => CURRENCY_CONFIG[this.currency()].locale,
+    () => CURRENCY_CONFIG[this.currency()].numberLocale,
   );
 
   protected readonly progressPercentage = computed(() => {

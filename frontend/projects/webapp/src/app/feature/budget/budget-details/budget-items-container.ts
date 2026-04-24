@@ -239,7 +239,7 @@ export class BudgetItemsContainer {
   readonly currency = input<SupportedCurrency>('CHF');
 
   protected readonly locale = computed(
-    () => CURRENCY_CONFIG[this.currency()].locale,
+    () => CURRENCY_CONFIG[this.currency()].numberLocale,
   );
 
   readonly isAllChecked = computed(

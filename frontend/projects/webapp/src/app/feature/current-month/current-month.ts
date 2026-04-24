@@ -294,7 +294,7 @@ export default class Dashboard {
   protected readonly store = inject(DashboardStore);
   protected readonly currency = inject(UserSettingsStore).currency;
   protected readonly currencyLocale = computed(
-    () => CURRENCY_CONFIG[this.currency()].locale,
+    () => CURRENCY_CONFIG[this.currency()].numberLocale,
   );
   readonly #productTourService = inject(ProductTourService);
   readonly #destroyRef = inject(DestroyRef);

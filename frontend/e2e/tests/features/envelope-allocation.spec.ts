@@ -121,9 +121,9 @@ test.describe('Envelope Allocation - Remaining Budget Calculation', () => {
     await currentMonthPage.expectPageLoaded();
 
     // Verify expenses = 500 (envelope amount, not 100)
-    await currentMonthPage.expectExpensesAmount('500,00');
+    await currentMonthPage.expectExpensesAmount('500.00');
     // Verify remaining = 5000 - 500 = 4500
-    await currentMonthPage.expectRemainingAmount('4 500,00');
+    await currentMonthPage.expectRemainingAmount('4 500.00');
   });
 
   test('allocated transaction exceeding envelope should only count overage', async ({
@@ -173,9 +173,9 @@ test.describe('Envelope Allocation - Remaining Budget Calculation', () => {
     await currentMonthPage.expectPageLoaded();
 
     // Verify expenses = 150 (consumed amount, not 100)
-    await currentMonthPage.expectExpensesAmount('150,00');
+    await currentMonthPage.expectExpensesAmount('150.00');
     // Verify remaining = 5000 - 150 = 4850
-    await currentMonthPage.expectRemainingAmount('4 850,00');
+    await currentMonthPage.expectRemainingAmount('4 850.00');
   });
 
   test('mixed free and allocated transactions should be calculated correctly', async ({
@@ -233,9 +233,9 @@ test.describe('Envelope Allocation - Remaining Budget Calculation', () => {
     await currentMonthPage.expectPageLoaded();
 
     // Verify expenses = 500 + 50 = 550
-    await currentMonthPage.expectExpensesAmount('550,00');
+    await currentMonthPage.expectExpensesAmount('550.00');
     // Verify remaining = 5000 - 550 = 4450
-    await currentMonthPage.expectRemainingAmount('4 450,00');
+    await currentMonthPage.expectRemainingAmount('4 450.00');
   });
 
   test('real user scenario: 88 CHF overage (envelope 100, allocated 188)', async ({
@@ -286,9 +286,9 @@ test.describe('Envelope Allocation - Remaining Budget Calculation', () => {
     await currentMonthPage.expectPageLoaded();
 
     // Verify expenses = 188 (consumed amount since > envelope)
-    await currentMonthPage.expectExpensesAmount('188,00');
+    await currentMonthPage.expectExpensesAmount('188.00');
     // Verify remaining = 1000 - 188 = 812
-    await currentMonthPage.expectRemainingAmount('812,00');
+    await currentMonthPage.expectRemainingAmount('812.00');
   });
 
   test('multiple envelopes with different states should calculate correctly', async ({
@@ -352,8 +352,8 @@ test.describe('Envelope Allocation - Remaining Budget Calculation', () => {
     await currentMonthPage.expectPageLoaded();
 
     // Verify expenses = 500 + 350 = 850
-    await currentMonthPage.expectExpensesAmount('850,00');
+    await currentMonthPage.expectExpensesAmount('850.00');
     // Verify remaining = 5000 - 850 = 4150
-    await currentMonthPage.expectRemainingAmount('4 150,00');
+    await currentMonthPage.expectRemainingAmount('4 150.00');
   });
 });

@@ -638,7 +638,7 @@ export default class CompleteProfilePage {
 
   protected formatAmount(value: number): string {
     if (!Number.isFinite(value)) return '0';
-    const locale = CURRENCY_CONFIG[this.selectedCurrency()].locale;
+    const locale = CURRENCY_CONFIG[this.selectedCurrency()].numberLocale;
     return value.toLocaleString(locale, { maximumFractionDigits: 0 });
   }
 

@@ -172,7 +172,7 @@ export class DashboardUncheckedForecasts {
   );
 
   protected readonly locale = computed(
-    () => CURRENCY_CONFIG[this.currency()].locale,
+    () => CURRENCY_CONFIG[this.currency()].numberLocale,
   );
 
   protected readonly displayedForecasts = computed(() =>
