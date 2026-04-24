@@ -1,4 +1,5 @@
 import { Injectable, computed, inject } from '@angular/core';
+import { FEATURE_FLAGS } from 'pulpe-shared';
 import { PostHogService } from '../analytics/posthog';
 
 /**
@@ -19,6 +20,6 @@ export class FeatureFlagsService {
   readonly isMultiCurrencyEnabled = computed(() => {
     // Reactive dependency: re-evaluate whenever PostHog reloads flags.
     this.#posthog.flagsVersion();
-    return true;
+    return this.#posthog.isFeatureEnabled(FEATURE_FLAGS.MULTI_CURRENCY);
   });
 }

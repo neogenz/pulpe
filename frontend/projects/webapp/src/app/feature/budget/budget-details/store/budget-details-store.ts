@@ -521,11 +521,7 @@ export class BudgetDetailsStore {
   >({
     cache: this.#budgetApi.cache,
     invalidateKeys: () => BUDGET_DETAIL_INVALIDATION_KEYS,
-    mutationFn: ({ data }) =>
-      this.#budgetApi.createTransaction$({
-        ...data,
-        checkedAt: data.checkedAt ?? null,
-      }),
+    mutationFn: ({ data }) => this.#budgetApi.createTransaction$(data),
     onMutate: ({ data, tempId }) => {
       const previous = this.budgetDetails();
       const tempTransaction: Transaction = {

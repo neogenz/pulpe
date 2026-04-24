@@ -14,9 +14,9 @@ import { MatIconModule } from '@angular/material/icon';
 import { MAT_FORM_FIELD_DEFAULT_OPTIONS } from '@angular/material/form-field';
 import {
   EditTransactionForm,
-  type EditTransactionFormData,
   type HideableField,
 } from './edit-transaction-form';
+import { type TransactionUpdateFormValue } from './edit-transaction-form.schema';
 import { type Transaction } from 'pulpe-shared';
 
 export interface EditTransactionDialogData {
@@ -106,7 +106,7 @@ export class EditTransactionDialog {
   }
 
   protected onUpdateTransaction(
-    transactionData: EditTransactionFormData,
+    transactionData: TransactionUpdateFormValue,
   ): void {
     this.#dialogRef.close(transactionData);
   }

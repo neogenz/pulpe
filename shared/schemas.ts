@@ -306,7 +306,7 @@ export const budgetLineSchema = z.object({
 });
 export type BudgetLine = z.infer<typeof budgetLineSchema>;
 
-export const budgetLineCreateSchema = z.object({
+export const budgetLineCreateSchema = z.strictObject({
   budgetId: z.uuid(),
   templateLineId: z.uuid().nullable().optional(),
   savingsGoalId: z.uuid().nullable().optional(),
@@ -372,7 +372,7 @@ export const transactionSchema = z.object({
 });
 export type Transaction = z.infer<typeof transactionSchema>;
 
-export const transactionCreateSchema = z.object({
+export const transactionCreateSchema = z.strictObject({
   budgetId: z.uuid(),
   budgetLineId: z.uuid().nullable().optional(),
   name: z.string().min(1).max(100).trim(),
@@ -388,7 +388,7 @@ export const transactionCreateSchema = z.object({
 });
 export type TransactionCreate = z.infer<typeof transactionCreateSchema>;
 
-export const transactionUpdateSchema = z.object({
+export const transactionUpdateSchema = z.strictObject({
   name: z.string().min(1).max(100).trim().optional(),
   amount: z.number().positive().optional(),
   kind: transactionKindSchema.optional(),

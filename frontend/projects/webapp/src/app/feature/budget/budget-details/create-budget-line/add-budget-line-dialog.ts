@@ -11,11 +11,8 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
-import {
-  type BudgetLineCreate,
-  type TransactionKind,
-  type TransactionRecurrence,
-} from 'pulpe-shared';
+import { type TransactionKind, type TransactionRecurrence } from 'pulpe-shared';
+import { budgetLineCreateFromFormSchema } from './add-budget-line-dialog.schema';
 import { TranslocoPipe } from '@jsverse/transloco';
 import { CurrencySuffix } from '@ui/currency-suffix';
 import { TransactionIconPipe } from '@ui/transaction-display';
@@ -227,16 +224,15 @@ export class AddBudgetLineDialog {
       return;
     }
 
-    const budgetLine: BudgetLineCreate = {
+    const budgetLine = budgetLineCreateFromFormSchema.parse({
       budgetId: this.#data.budgetId,
       name: value.name!.trim(),
       amount: convertedAmount,
       kind: value.kind!,
       recurrence: value.recurrence!,
-      isManuallyAdjusted: true,
-      checkedAt: value.isChecked ? new Date().toISOString() : null,
-      ...metadata,
-    };
+      isChecked: value.isChecked ?? false,
+      conversion: metadata ?? null,
+    });
     this.#dialogRef.close(budgetLine);
   }
 

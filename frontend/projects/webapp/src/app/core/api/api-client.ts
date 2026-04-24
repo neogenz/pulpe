@@ -24,23 +24,41 @@ export class ApiClient {
     );
   }
 
-  post$<T>(path: string, body: unknown, schema: ZodType<T>): Observable<T> {
-    return this.#http.post<unknown>(`${this.#baseUrl}${path}`, body).pipe(
-      map((res) => schema.parse(res)),
+  post$<TRes, TReq = unknown>(
+    path: string,
+    body: TReq,
+    responseSchema: ZodType<TRes>,
+    requestSchema?: ZodType<TReq>,
+  ): Observable<TRes> {
+    const payload = requestSchema ? requestSchema.parse(body) : body;
+    return this.#http.post<unknown>(`${this.#baseUrl}${path}`, payload).pipe(
+      map((res) => responseSchema.parse(res)),
       catchError((error) => this.#handleError(error)),
     );
   }
 
-  patch$<T>(path: string, body: unknown, schema: ZodType<T>): Observable<T> {
-    return this.#http.patch<unknown>(`${this.#baseUrl}${path}`, body).pipe(
-      map((res) => schema.parse(res)),
+  patch$<TRes, TReq = unknown>(
+    path: string,
+    body: TReq,
+    responseSchema: ZodType<TRes>,
+    requestSchema?: ZodType<TReq>,
+  ): Observable<TRes> {
+    const payload = requestSchema ? requestSchema.parse(body) : body;
+    return this.#http.patch<unknown>(`${this.#baseUrl}${path}`, payload).pipe(
+      map((res) => responseSchema.parse(res)),
       catchError((error) => this.#handleError(error)),
     );
   }
 
-  put$<T>(path: string, body: unknown, schema: ZodType<T>): Observable<T> {
-    return this.#http.put<unknown>(`${this.#baseUrl}${path}`, body).pipe(
-      map((res) => schema.parse(res)),
+  put$<TRes, TReq = unknown>(
+    path: string,
+    body: TReq,
+    responseSchema: ZodType<TRes>,
+    requestSchema?: ZodType<TReq>,
+  ): Observable<TRes> {
+    const payload = requestSchema ? requestSchema.parse(body) : body;
+    return this.#http.put<unknown>(`${this.#baseUrl}${path}`, payload).pipe(
+      map((res) => responseSchema.parse(res)),
       catchError((error) => this.#handleError(error)),
     );
   }

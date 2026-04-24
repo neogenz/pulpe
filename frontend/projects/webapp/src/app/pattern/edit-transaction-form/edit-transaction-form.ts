@@ -26,11 +26,8 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
 import { TranslocoService, TranslocoPipe } from '@jsverse/transloco';
-import {
-  type SupportedCurrency,
-  type Transaction,
-  type TransactionCreate,
-} from 'pulpe-shared';
+import { type Transaction } from 'pulpe-shared';
+import { type TransactionUpdateFormValue } from './edit-transaction-form.schema';
 import { startOfMonth, endOfMonth } from 'date-fns';
 import type { Observable } from 'rxjs';
 import type { CurrencyConverterService } from '@core/currency';
@@ -48,17 +45,6 @@ import { Logger } from '@core/logging/logger';
 import { formatLocalDate } from '@core/date/format-local-date';
 
 export type HideableField = 'kind' | 'category';
-
-export type EditTransactionFormData = Pick<
-  TransactionCreate,
-  'name' | 'amount' | 'kind' | 'category'
-> & {
-  transactionDate: string;
-  originalAmount?: number;
-  originalCurrency?: SupportedCurrency;
-  targetCurrency?: SupportedCurrency;
-  exchangeRate?: number;
-};
 
 @Component({
   selector: 'pulpe-edit-transaction-form',
@@ -330,7 +316,7 @@ export class EditTransactionForm implements OnInit {
   readonly hiddenFields = input<HideableField[]>([]);
   readonly minDateInput = input<Date>();
   readonly maxDateInput = input<Date>();
-  readonly updateTransaction = output<EditTransactionFormData>();
+  readonly updateTransaction = output<TransactionUpdateFormValue>();
   readonly cancelEdit = output<void>();
   readonly #isUpdating = signal(false);
   readonly isUpdating = this.#isUpdating.asReadonly();
@@ -499,13 +485,13 @@ export class EditTransactionForm implements OnInit {
 
     this.#isUpdating.set(true);
 
-    const formData: EditTransactionFormData = {
+    const formData: TransactionUpdateFormValue = {
       name,
       amount: finalAmount,
       kind,
       transactionDate: formatLocalDate(transactionDate),
       category: category || null,
-      ...(metadata ?? {}),
+      conversion: metadata ?? null,
     };
 
     this.updateTransaction.emit(formData);

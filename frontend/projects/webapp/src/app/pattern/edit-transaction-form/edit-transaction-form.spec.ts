@@ -3,10 +3,8 @@ import { provideZonelessChangeDetection } from '@angular/core';
 import { ReactiveFormsModule } from '@angular/forms';
 import { provideNativeDateAdapter } from '@angular/material/core';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
-import {
-  EditTransactionForm,
-  type EditTransactionFormData,
-} from './edit-transaction-form';
+import { EditTransactionForm } from './edit-transaction-form';
+import { type TransactionUpdateFormValue } from './edit-transaction-form.schema';
 import { setTestInput } from '@app/testing/signal-test-utils';
 import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 import { describe, it, expect, beforeEach } from 'vitest';
@@ -274,7 +272,7 @@ describe('EditTransactionForm', () => {
         category: 'Notes',
       });
 
-      let emittedData: EditTransactionFormData | undefined;
+      let emittedData: TransactionUpdateFormValue | undefined;
       component.updateTransaction.subscribe((data) => {
         emittedData = data;
       });

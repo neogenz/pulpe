@@ -780,12 +780,14 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
         .mockReturnValue(of({ data: serverTransaction }));
 
       // User creates transaction linked to checked parent
+      // (dialog-level schema would produce checkedAt: null; pass-through here)
       await service.createAllocatedTransaction({
         budgetId: mockBudgetId,
         budgetLineId: 'line-checked',
         name: 'New Allocated Transaction',
         amount: 200,
         kind: 'expense',
+        checkedAt: null,
       });
 
       // Transaction should be created unchecked

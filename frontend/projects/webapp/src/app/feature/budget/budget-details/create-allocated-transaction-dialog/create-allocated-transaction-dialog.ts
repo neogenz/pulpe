@@ -14,6 +14,7 @@ import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { TranslocoPipe } from '@jsverse/transloco';
 import { CurrencySuffix } from '@ui/currency-suffix';
 import { type BudgetLine, type TransactionCreate } from 'pulpe-shared';
+import { transactionCreateFromFormSchema } from '@pattern/edit-transaction-form';
 import { formatLocalDate } from '@core/date/format-local-date';
 import type { CurrencyConverterService } from '@core/currency';
 import {
@@ -277,7 +278,7 @@ export class CreateAllocatedTransactionDialog {
       return;
     }
 
-    const transaction: TransactionCreate = {
+    const transaction = transactionCreateFromFormSchema.parse({
       budgetId: this.data.budgetLine.budgetId,
       budgetLineId: this.data.budgetLine.id,
       name: formValue.name!.trim(),
@@ -285,9 +286,9 @@ export class CreateAllocatedTransactionDialog {
       kind: this.data.budgetLine.kind,
       transactionDate: formatLocalDate(formValue.transactionDate!),
       category: null,
-      checkedAt: formValue.isChecked ? new Date().toISOString() : null,
-      ...metadata,
-    };
+      isChecked: formValue.isChecked ?? false,
+      conversion: metadata ?? null,
+    });
 
     this.#dialogRef.close(transaction);
   }
