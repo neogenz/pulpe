@@ -138,34 +138,58 @@ import type {
           <div class="flex flex-col gap-2">
             @for (tx of transactions(); track tx.id) {
               <div
-                class="flex items-center gap-3 py-3 px-1 bg-surface-container-low rounded-lg"
+                class="flex flex-col gap-1 py-2 px-2 bg-surface-container-low rounded-lg"
               >
-                <mat-slide-toggle
-                  [checked]="!!tx.checkedAt"
-                  (change)="onToggleCheck(tx.id)"
-                  (click)="$event.stopPropagation()"
-                  [attr.data-testid]="'toggle-tx-check-' + tx.id"
-                  [attr.aria-label]="
-                    'budget.toggleCheckAriaLabel' | transloco: { name: tx.name }
-                  "
-                />
-                <div class="flex flex-col gap-0.5 min-w-0 flex-1">
+                <div class="flex items-center gap-2">
+                  <mat-slide-toggle
+                    [checked]="!!tx.checkedAt"
+                    (change)="onToggleCheck(tx.id)"
+                    (click)="$event.stopPropagation()"
+                    [attr.data-testid]="'toggle-tx-check-' + tx.id"
+                    [attr.aria-label]="
+                      'budget.toggleCheckAriaLabel'
+                        | transloco: { name: tx.name }
+                    "
+                  />
                   <span
-                    class="text-body-medium font-medium truncate ph-no-capture"
+                    class="flex-1 min-w-0 text-body-medium font-medium truncate ph-no-capture"
                     [class.line-through]="tx.checkedAt"
                     [class.text-on-surface-variant]="tx.checkedAt"
                     data-testid="deleted-amount"
                   >
                     {{ tx.name }}
                   </span>
-                  <span class="text-label-small text-on-surface-variant">
+                  <span
+                    class="text-body-medium font-semibold whitespace-nowrap ph-no-capture"
+                  >
+                    {{ tx.amount | appCurrency: currency() }}
+                  </span>
+                  <button
+                    matIconButton
+                    (click)="editTransaction(tx)"
+                    [attr.aria-label]="
+                      'budget.editTransactionAriaLabel' | transloco
+                    "
+                  >
+                    <mat-icon>edit</mat-icon>
+                  </button>
+                  <button
+                    matIconButton
+                    (click)="deleteTransaction(tx)"
+                    [attr.aria-label]="
+                      'budget.deleteTransactionAriaLabel' | transloco
+                    "
+                    class="text-error"
+                  >
+                    <mat-icon class="text-error">delete</mat-icon>
+                  </button>
+                </div>
+                <div class="flex items-center justify-between gap-2">
+                  <span
+                    class="text-label-small text-on-surface-variant whitespace-nowrap"
+                  >
                     {{ tx.transactionDate | date: 'dd.MM.yyyy' }}
                   </span>
-                </div>
-                <span
-                  class="text-body-medium font-semibold whitespace-nowrap ph-no-capture inline-flex items-center gap-1"
-                >
-                  {{ tx.amount | appCurrency: currency() }}
                   @if (isMultiCurrencyEnabled()) {
                     <pulpe-currency-conversion-badge
                       [originalAmount]="tx.originalAmount"
@@ -180,26 +204,7 @@ import type {
                       "
                     />
                   }
-                </span>
-                <button
-                  matIconButton
-                  (click)="editTransaction(tx)"
-                  [attr.aria-label]="
-                    'budget.editTransactionAriaLabel' | transloco
-                  "
-                >
-                  <mat-icon>edit</mat-icon>
-                </button>
-                <button
-                  matIconButton
-                  (click)="deleteTransaction(tx)"
-                  [attr.aria-label]="
-                    'budget.deleteTransactionAriaLabel' | transloco
-                  "
-                  class="text-error"
-                >
-                  <mat-icon class="text-error">delete</mat-icon>
-                </button>
+                </div>
               </div>
             }
           </div>
