@@ -10,7 +10,7 @@ pnpm run test:watch                 # Watch mode
 pnpm run lint                       # BEFORE commit
 ```
 
-**Angular CLI MCP**: Use when available for creating Angular artifacts.
+**Angular CLI MCP**: Use when available for Angular artifacts.
 
 ## Stack
 

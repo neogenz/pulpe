@@ -2,8 +2,8 @@
 
 ## XcodeGen
 
-**`project.yml` is the single source of truth.** `.xcodeproj` is generated and gitignored.
-**NEVER edit settings in Xcode UI** — changes are lost on next `xcodegen generate`.
+**`project.yml` single source of truth.** `.xcodeproj` generated, gitignored.
+**NEVER edit settings in Xcode UI** — changes lost on next `xcodegen generate`.
 
 ## Commands
 
@@ -27,7 +27,7 @@ xcodebuild test -scheme PulpeUITests -destination 'platform=iOS Simulator,name=i
 
 ## Shared Components — Check Before Building
 
-**BEFORE creating or editing any sheet/form/view, you MUST check `Shared/Components/` and `Shared/Extensions/`.** Never hand-roll UI that a shared component already provides. If a pattern repeats in 2+ places, enrich the shared component — never copy-paste.
+**BEFORE creating/editing any sheet/form/view, MUST check `Shared/Components/` and `Shared/Extensions/`.** Never hand-roll UI shared component provide. Pattern repeat 2+ places → enrich shared component, never copy-paste.
 
 | Need | Use this | NOT this |
 |------|----------|----------|
@@ -44,11 +44,11 @@ xcodebuild test -scheme PulpeUITests -destination 'platform=iOS Simulator,name=i
 | Background | `.pulpeBackground()` / `.pulpeCardBackground()` | Manual `.background(Color.surface)` |
 
 **Form sheet checklist:**
-- [ ] Uses `SheetFormContainer`
-- [ ] Description field uses `FormTextField(label:accessibilityLabel:)` — never manual VStack wrapper
-- [ ] Submit button uses `.primaryButtonStyle(isEnabled:)`
+- [ ] Use `SheetFormContainer`
+- [ ] Description field use `FormTextField(label:accessibilityLabel:)` — never manual VStack wrapper
+- [ ] Submit button use `.primaryButtonStyle(isEnabled:)`
 - [ ] Success path: `submitSuccessTrigger.toggle()` + `toastManager.show(...)` + `dismiss()`
-- [ ] `.sensoryFeedback(.success, trigger: submitSuccessTrigger)` on the form
+- [ ] `.sensoryFeedback(.success, trigger: submitSuccessTrigger)` on form
 
 ## iOS-Specific Vocabulary
 
@@ -57,4 +57,4 @@ xcodebuild test -scheme PulpeUITests -destination 'platform=iOS Simulator,name=i
 | `BudgetLine` | Catégorie / Ligne budgétaire |
 | `Transaction` (allocated) | Transaction liée à une catégorie |
 
-*(General vocabulary — expense/income/saving — is in root CLAUDE.md)*
+*(General vocab — expense/income/saving — in root CLAUDE.md)*

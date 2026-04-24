@@ -10,14 +10,14 @@ pnpm run test:watch         # Watch mode
 
 ## Purpose
 
-Shared types and validation between frontend and backend:
+Shared types + validation between frontend/backend:
 - `schemas.ts` - Zod schemas (single source of truth)
-- `src/calculators/` - Budget calculation formulas
-- `src/types.ts` - TypeScript type definitions
+- `src/calculators/` - Budget calc formulas
+- `src/types.ts` - TS type defs
 
 ## Zod 4 Rules
 
-**CRITICAL:** This project uses Zod 4. Follow these rules strictly.
+**CRITICAL:** Project use Zod 4. Follow strict.
 
 ### Top-Level Validators (Zod 4 syntax)
 
@@ -68,13 +68,13 @@ export const budgetResponseSchema = z.object({
 
 ## Adding Schemas
 
-1. Define Zod schema with JSDoc explaining business rules
+1. Define Zod schema with JSDoc for business rules
 2. Export inferred type: `export type X = z.infer<typeof xSchema>`
-3. Run `pnpm build` to regenerate types
+3. Run `pnpm build` to regen types
 
 ## Critical Rules
 
 - **ALWAYS** build shared before frontend/backend changes
 - **ALWAYS** use Zod 4 top-level validators (`z.uuid()`, not `z.string().uuid()`)
-- **ALWAYS** add JSDoc comments for business rules
-- **NEVER** import from frontend or backend (shared is dependency-free)
+- **ALWAYS** add JSDoc for business rules
+- **NEVER** import from frontend/backend (shared = dependency-free)
