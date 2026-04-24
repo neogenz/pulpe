@@ -375,10 +375,9 @@ export default class Dashboard {
       return;
     }
     await this.store.addTransaction({
+      ...transaction,
       budgetId,
       amount: transaction.amount ?? 0,
-      name: transaction.name,
-      kind: transaction.kind,
       transactionDate: formatLocalDate(new Date()),
       category: transaction.category ?? null,
       checkedAt: transaction.checkedAt ?? null,

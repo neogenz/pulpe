@@ -20,7 +20,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
-import type { TransactionCreate } from 'pulpe-shared';
+import type { SupportedCurrency, TransactionCreate } from 'pulpe-shared';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { TransactionValidators } from '@core/transaction';
 import { TransactionLabelPipe } from '@ui/transaction-display';
@@ -39,8 +39,8 @@ export type TransactionFormData = Pick<
   'name' | 'amount' | 'kind' | 'category' | 'checkedAt'
 > & {
   originalAmount?: number;
-  originalCurrency?: string;
-  targetCurrency?: string;
+  originalCurrency?: SupportedCurrency;
+  targetCurrency?: SupportedCurrency;
   exchangeRate?: number;
 };
 

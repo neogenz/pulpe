@@ -4,6 +4,7 @@ import { provideZonelessChangeDetection } from '@angular/core';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { MatBottomSheetRef } from '@angular/material/bottom-sheet';
 import { provideTranslocoForTest } from '@app/testing/transloco-testing';
+import { CurrencyConverterService } from '@core/currency';
 import {
   AddTransactionBottomSheet,
   type TransactionFormData,
@@ -17,12 +18,23 @@ describe('AddTransactionBottomSheet', () => {
     afterOpened: ReturnType<typeof vi.fn>;
   };
   let afterOpened$: Subject<void>;
+  let converterSpy: { convertWithMetadata: ReturnType<typeof vi.fn> };
 
   beforeEach(async () => {
     afterOpened$ = new Subject<void>();
     mockBottomSheetRef = {
       dismiss: vi.fn(),
       afterOpened: vi.fn().mockReturnValue(afterOpened$),
+    };
+    // Default: same-currency path returns metadata: null.
+    // Tests that need conversion override the mock in-test.
+    converterSpy = {
+      convertWithMetadata: vi
+        .fn()
+        .mockImplementation(async (amount: number) => ({
+          convertedAmount: amount,
+          metadata: null,
+        })),
     };
 
     await TestBed.configureTestingModule({
@@ -32,6 +44,7 @@ describe('AddTransactionBottomSheet', () => {
         provideAnimationsAsync(),
         ...provideTranslocoForTest(),
         { provide: MatBottomSheetRef, useValue: mockBottomSheetRef },
+        { provide: CurrencyConverterService, useValue: converterSpy },
       ],
     }).compileComponents();
 
@@ -128,6 +141,76 @@ describe('AddTransactionBottomSheet', () => {
       expect(mockBottomSheetRef.dismiss).toHaveBeenCalledWith(
         expect.objectContaining({ checkedAt: null }),
       );
+    });
+  });
+
+  describe('currency conversion metadata', () => {
+    it('should dismiss with originalAmount, originalCurrency, targetCurrency, exchangeRate when input currency differs from display currency', async () => {
+      converterSpy.convertWithMetadata.mockResolvedValueOnce({
+        convertedAmount: 108.97,
+        metadata: {
+          originalAmount: 100,
+          originalCurrency: 'CHF',
+          targetCurrency: 'EUR',
+          exchangeRate: 1.0897,
+        },
+      });
+      component['inputCurrency'].set('CHF');
+      component['transactionForm'].patchValue({
+        name: 'Test',
+        amount: 100,
+        kind: 'expense',
+      });
+
+      await component['onSubmit']();
+
+      expect(mockBottomSheetRef.dismiss).toHaveBeenCalledWith(
+        expect.objectContaining({
+          amount: 108.97,
+          originalAmount: 100,
+          originalCurrency: 'CHF',
+          targetCurrency: 'EUR',
+          exchangeRate: 1.0897,
+        }),
+      );
+    });
+
+    it('should dismiss without conversion metadata fields when input currency matches display currency', async () => {
+      converterSpy.convertWithMetadata.mockResolvedValueOnce({
+        convertedAmount: 50,
+        metadata: null,
+      });
+      component['transactionForm'].patchValue({
+        name: 'Test',
+        amount: 50,
+        kind: 'expense',
+      });
+
+      await component['onSubmit']();
+
+      const callArg: TransactionFormData =
+        mockBottomSheetRef.dismiss.mock.calls[0][0];
+      expect(callArg.originalAmount).toBeUndefined();
+      expect(callArg.originalCurrency).toBeUndefined();
+      expect(callArg.targetCurrency).toBeUndefined();
+      expect(callArg.exchangeRate).toBeUndefined();
+    });
+
+    it('should not dismiss when the conversion call throws', async () => {
+      converterSpy.convertWithMetadata.mockRejectedValueOnce(
+        new Error('rate unavailable'),
+      );
+      component['inputCurrency'].set('CHF');
+      component['transactionForm'].patchValue({
+        name: 'Test',
+        amount: 100,
+        kind: 'expense',
+      });
+
+      await component['onSubmit']();
+
+      expect(mockBottomSheetRef.dismiss).not.toHaveBeenCalled();
+      expect(component['conversionError']()).toBe(true);
     });
   });
 
