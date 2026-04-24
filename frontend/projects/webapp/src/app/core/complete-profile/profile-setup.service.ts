@@ -4,6 +4,7 @@ import { TranslocoService } from '@jsverse/transloco';
 import {
   type BudgetGenerate,
   type BudgetTemplateCreateFromOnboarding,
+  budgetTemplateCreateFromOnboardingSchema,
   budgetTemplateCreateResponseSchema,
   getBudgetPeriodForDate,
 } from 'pulpe-shared';
@@ -117,6 +118,7 @@ export class ProfileSetupService {
       '/budget-templates/from-onboarding',
       onboardingData,
       budgetTemplateCreateResponseSchema,
+      budgetTemplateCreateFromOnboardingSchema,
     );
   }
 }

@@ -117,6 +117,7 @@ describe('DemoInitializerService', () => {
         '/demo/session',
         { turnstileToken: TEST_TURNSTILE_TOKEN },
         expect.any(Object),
+        expect.any(Object),
       );
     });
   });

@@ -7,7 +7,9 @@ import {
   type EncryptionChangePinResponse,
   encryptionSaltResponseSchema,
   encryptionSetupRecoveryResponseSchema,
+  encryptionRecoverRequestSchema,
   encryptionRecoverResponseSchema,
+  encryptionChangePinRequestSchema,
   encryptionChangePinResponseSchema,
 } from 'pulpe-shared';
 import { ApiClient } from '@core/api/api-client';
@@ -62,6 +64,7 @@ export class EncryptionApi {
       '/encryption/recover',
       { recoveryKey, newClientKey: newClientKeyHex },
       encryptionRecoverResponseSchema,
+      encryptionRecoverRequestSchema,
     );
   }
 
@@ -73,6 +76,7 @@ export class EncryptionApi {
       '/encryption/change-pin',
       { oldClientKey, newClientKey },
       encryptionChangePinResponseSchema,
+      encryptionChangePinRequestSchema,
     );
   }
 }

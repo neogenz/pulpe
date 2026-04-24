@@ -7,6 +7,7 @@ import { ApiClient } from '@core/api/api-client';
 import {
   encryptionSaltResponseSchema,
   encryptionSetupRecoveryResponseSchema,
+  encryptionRecoverRequestSchema,
   encryptionRecoverResponseSchema,
 } from 'pulpe-shared';
 
@@ -110,6 +111,7 @@ describe('EncryptionApi', () => {
         '/encryption/recover',
         { recoveryKey: 'ABCD-EFGH-IJKL-MNOP', newClientKey: 'new-key-hex' },
         encryptionRecoverResponseSchema,
+        encryptionRecoverRequestSchema,
       );
       expect(result.success).toBe(true);
     });
