@@ -1,6 +1,6 @@
 # Pulpe - Product Context
 
-> Business rules, workflows, and domain glossary.
+> Business rules, workflows, domain glossary.
 
 ---
 
@@ -10,9 +10,9 @@
 
 | Type | Description |
 |------|-------------|
-| **Income** | Money entering the budget |
-| **Expense** | Money going out (living costs, purchases) |
-| **Saving** | Planned savings treated as expenses to ensure realization |
+| **Income** | Money enter budget |
+| **Expense** | Money go out (living costs, purchases) |
+| **Saving** | Planned savings treated as expenses ensure realization |
 
 ### Domain Model
 
@@ -21,7 +21,7 @@
 | **Template** | Reusable month structure (income, expenses, savings) |
 | **Budget** | Monthly instance from template, modifiable independently |
 | **Budget Line** | Planned item (income/expense/saving) |
-| **Transaction** | Actual operation to adjust budget vs. reality |
+| **Transaction** | Actual operation adjust budget vs reality |
 
 ---
 
@@ -38,12 +38,12 @@ Ending Balance = Remaining (stored, becomes next month's rollover)
 
 ### Envelope Logic (SSOT: `shared/BudgetFormulas`)
 
-All calculations use a single set of formulas with envelope logic and kind filtering. There is only one version of each formula — no "with/without envelope" variants.
+All calcs use single formula set w/ envelope logic + kind filtering. One version each formula — no "with/without envelope" variants.
 
-- **Allocated transactions** (`budget_line_id` set) are covered by their envelope (budget line). Effective amount = `max(line.amount, consumed)`. This prevents double-counting when transactions are allocated to a line.
-- **Kind filter**: When computing `consumed` for a line, only transactions matching the line's kind category count (income transactions for income lines, expense/saving transactions for expense/saving lines). This prevents a misallocated transaction from inflating the wrong total.
-- **Free transactions** (`budget_line_id` null) impact the budget directly, added on top of envelope totals.
-- **totalSavings**: Uses envelope logic (`max(line.amount, consumed)`) for saving lines, plus free saving transactions. This provides a complete savings picture including ad-hoc savings.
+- **Allocated transactions** (`budget_line_id` set) covered by envelope (budget line). Effective amount = `max(line.amount, consumed)`. Prevents double-counting when transactions allocated to line.
+- **Kind filter**: Computing `consumed` for line, only transactions matching line's kind category count (income tx for income lines, expense/saving tx for expense/saving lines). Prevents misallocated tx inflating wrong total.
+- **Free transactions** (`budget_line_id` null) impact budget directly, added on top of envelope totals.
+- **totalSavings**: Uses envelope logic (`max(line.amount, consumed)`) for saving lines, plus free saving tx. Complete savings picture incl ad-hoc savings.
 
 ### Rollover Chain
 
@@ -71,11 +71,11 @@ Mar: income=5100, expenses=5200, rollover=900  → ending=800
 
 - Template changes offer: "Template only" or "Apply to future months"
 - Manually adjusted budget lines (`is_manually_adjusted = true`) never modified
-- Never applies to past months
+- Never applies past months
 
 ### RG-002: Budget Line Consumption States
 
-Applies to **expense lines only**. Income and saving lines always display as `healthy` regardless of consumption (saving is an objective to reach, not a limit to respect).
+Applies **expense lines only**. Income and saving lines always display `healthy` regardless consumption (saving = objective reach, not limit respect).
 
 | Threshold | State | Color |
 |-----------|-------|-------|
@@ -99,10 +99,10 @@ Applies to **expense lines only**. Income and saving lines always display as `he
 ### RG-005: Transactions
 
 - Manual entry only
-- Added to budget lines (don't replace them)
-- Modification allowed for allocated transactions (name, amount)
-- Reallocation to another envelope is not allowed
-- Free transaction editing follows the same pattern
+- Added to budget lines (don't replace)
+- Modification allowed for allocated tx (name, amount)
+- Reallocation to another envelope not allowed
+- Free tx editing follows same pattern
 - Impact remaining immediately
 
 ### RG-006: App Lock & Biometric Unlock (iOS)
@@ -116,20 +116,20 @@ Applies to **expense lines only**. Income and saving lines always display as `he
 | Biometric auto-trigger | Face ID/Touch ID prompts automatically on PIN screen |
 | Fallback | PIN entry via numpad (Face ID button visible while < 4 digits entered) |
 
-**Flow:** Background >= 30s OR app killed → `needsPinEntry` → PinEntryView auto-triggers Face ID → if success, instant unlock; if fail/cancel, user types PIN.
+**Flow:** Background >= 30s OR app killed → `needsPinEntry` → PinEntryView auto-triggers Face ID → success = instant unlock; fail/cancel = user types PIN.
 
-**Design decision:** `clearCache()` (in-memory only) is used, not `clearAll()` (which would wipe biometric keychain). This preserves the biometric key across grace period locks, enabling Face ID as a fast re-entry path.
+**Design decision:** `clearCache()` (in-memory only) used, not `clearAll()` (would wipe biometric keychain). Preserves biometric key across grace period locks, enables Face ID as fast re-entry path.
 
 ### RG-007: Recovery Key
 
 - Recovery key shown **once** after PIN setup, PIN recovery, or manual regeneration from settings
 - Format: 32 bytes, base32 grouped (`XXXX-XXXX-...`)
-- **Never stored server-side** (only `wrappedDEK` is stored)
+- **Never stored server-side** (only `wrappedDEK` stored)
 - Clipboard copy available; no email/cloud backup
-- Can be regenerated anytime from Account settings (requires password verification)
-- If both PIN and recovery key are lost: encrypted financial data is **permanently inaccessible** (zero-knowledge model)
-- Account itself can be recovered via email password reset, but encrypted amounts become undecipherable
-- iOS: "J'ai noté ma clé" button dismisses without paste-back confirmation (spec says `Confirmation obligatoire` but iOS does not enforce it — known deviation)
+- Regenerable anytime from Account settings (requires password verification)
+- Both PIN + recovery key lost: encrypted financial data **permanently inaccessible** (zero-knowledge model)
+- Account recoverable via email password reset, but encrypted amounts become undecipherable
+- iOS: "J'ai noté ma clé" button dismisses without paste-back confirmation (spec says `Confirmation obligatoire` but iOS does not enforce — known deviation)
 
 ### RG-009: Multi-Currency & Conversion
 
@@ -149,10 +149,10 @@ Applies to **expense lines only**. Income and saving lines always display as `he
 ### RG-008: Widget Data Privacy
 
 - Widget caches `available` (remaining budget) as plaintext `Decimal` in App Group UserDefaults
-- **Not encrypted at rest** — WidgetKit runs in a separate process without access to keychain/Face ID
+- **Not encrypted at rest** — WidgetKit runs separate process w/o keychain/Face ID access
 - App lock (30s grace period) does **not** extend to widget preview
-- Widget data is cleared on logout and password reset
-- **Accepted risk:** widget shows financial amounts even when app is locked
+- Widget data cleared on logout and password reset
+- **Accepted risk:** widget shows financial amounts even when app locked
 
 ---
 
@@ -182,7 +182,7 @@ Applies to **expense lines only**. Income and saving lines always display as `he
 ### WF-004: Dashboard (planned — #271)
 
 1. Open app → see hero number "Disponible à dépenser"
-2. Temporal progress bar: % of month elapsed vs % budget consumed
+2. Temporal progress bar: % month elapsed vs % budget consumed
 3. See unchecked budget lines (quick-check from dashboard)
 4. Bar chart: income vs expenses over last 6 months
 5. FAB (+) for quick transaction entry
@@ -193,7 +193,7 @@ Applies to **expense lines only**. Income and saving lines always display as `he
 2. Cloudflare Turnstile validation
 3. Create ephemeral user (backend)
 4. Generate realistic data
-5. 24h session with auto-cleanup
+5. 24h session w/ auto-cleanup
 
 **Protection**: Rate limiting (10/hour/IP) + Turnstile + single-use tokens
 
