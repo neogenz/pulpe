@@ -2,12 +2,9 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { of, throwError } from 'rxjs';
 import { provideZonelessChangeDetection, signal } from '@angular/core';
-import { MatDialog } from '@angular/material/dialog';
-import { MatSnackBar } from '@angular/material/snack-bar';
 import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 import { BudgetTemplatesStore } from './budget-templates-store';
 import { BudgetTemplatesApi } from '@core/budget-template/budget-templates-api';
-import { Logger } from '@core/logging/logger';
 import type { BudgetTemplate, BudgetTemplateCreate } from 'pulpe-shared';
 
 const mockCache = {
@@ -49,6 +46,9 @@ describe('BudgetTemplatesStore', () => {
     mockCache.get.mockReturnValue(null);
     mockCache.set.mockClear();
     mockCache.invalidate.mockClear();
+    mockCache.deduplicate.mockImplementation(
+      (_key: string[], fn: () => Promise<unknown>) => fn(),
+    );
 
     mockApi = {
       getAll$: vi
@@ -67,17 +67,6 @@ describe('BudgetTemplatesStore', () => {
         ...provideTranslocoForTest(),
         BudgetTemplatesStore,
         { provide: BudgetTemplatesApi, useValue: mockApi },
-        { provide: MatDialog, useValue: { open: vi.fn() } },
-        { provide: MatSnackBar, useValue: { open: vi.fn() } },
-        {
-          provide: Logger,
-          useValue: {
-            debug: vi.fn(),
-            info: vi.fn(),
-            warn: vi.fn(),
-            error: vi.fn(),
-          },
-        },
       ],
     });
 
@@ -453,101 +442,70 @@ describe('BudgetTemplatesStore', () => {
     });
   });
 
-  describe('confirmAndDeleteTemplate', () => {
-    let mockDialog: { open: ReturnType<typeof vi.fn> };
-    let mockSnackBar: { open: ReturnType<typeof vi.fn> };
-
-    beforeEach(async () => {
-      mockDialog = TestBed.inject(MatDialog) as unknown as typeof mockDialog;
-      mockSnackBar = TestBed.inject(
-        MatSnackBar,
-      ) as unknown as typeof mockSnackBar;
-      await new Promise((resolve) => setTimeout(resolve, 100));
-    });
-
-    it('should return "cancelled-due-to-usage" when template is used', async () => {
-      const usageBudgets = [
-        { id: 'budget-1', month: 4, year: 2026, description: 'April' },
-      ];
-      mockApi.checkUsage$ = vi.fn().mockReturnValue(
-        of({
-          success: true,
-          data: { isUsed: true, budgets: usageBudgets },
-        }),
-      );
-      const setUsageData = vi.fn();
-      mockDialog.open.mockReturnValue({
-        componentInstance: { setUsageData },
-        afterClosed: () => of(undefined),
-      });
-
-      const outcome = await store.confirmAndDeleteTemplate(
-        'template-1',
-        'Template 1',
-      );
-
-      expect(outcome).toBe('cancelled-due-to-usage');
-      expect(setUsageData).toHaveBeenCalledWith(usageBudgets);
-      expect(mockApi.delete$).not.toHaveBeenCalled();
-    });
-
-    it('should return "cancelled" when user cancels confirmation', async () => {
-      mockApi.checkUsage$ = vi.fn().mockReturnValue(
-        of({
-          success: true,
-          data: { isUsed: false, budgets: [] },
-        }),
-      );
-      mockDialog.open.mockReturnValue({
-        afterClosed: () => of(false),
-      });
-
-      const outcome = await store.confirmAndDeleteTemplate(
-        'template-1',
-        'Template 1',
-      );
-
-      expect(outcome).toBe('cancelled');
-      expect(mockApi.delete$).not.toHaveBeenCalled();
-    });
-
-    it('should return "deleted" and show success snackbar on success', async () => {
-      mockApi.checkUsage$ = vi.fn().mockReturnValue(
-        of({
-          success: true,
-          data: { isUsed: false, budgets: [] },
-        }),
-      );
-      mockApi.delete$ = vi
-        .fn()
-        .mockReturnValue(of({ success: true, data: null }));
-      mockDialog.open.mockReturnValue({
-        afterClosed: () => of(true),
-      });
-
-      const outcome = await store.confirmAndDeleteTemplate(
-        'template-1',
-        'Template 1',
-      );
-
-      expect(outcome).toBe('deleted');
-      expect(mockApi.delete$).toHaveBeenCalledWith('template-1');
-      expect(mockSnackBar.open).toHaveBeenCalled();
-    });
-
-    it('should return "error" and show error snackbar when checkUsage throws', async () => {
+  describe('checkUsage', () => {
+    it('should call the API and cache the response on first call', async () => {
+      const usageData = {
+        isUsed: true,
+        budgetCount: 1,
+        budgets: [
+          { id: 'budget-1', month: 4, year: 2026, description: 'April' },
+        ],
+      };
       mockApi.checkUsage$ = vi
         .fn()
-        .mockReturnValue(throwError(() => new Error('Network error')));
+        .mockReturnValue(of({ success: true, data: usageData }));
 
-      const outcome = await store.confirmAndDeleteTemplate(
-        'template-1',
-        'Template 1',
+      const result = await store.checkUsage('template-1');
+
+      expect(result).toEqual(usageData);
+      expect(mockApi.checkUsage$).toHaveBeenCalledTimes(1);
+      expect(mockCache.set).toHaveBeenCalledWith(
+        ['templates', 'usage', 'template-1'],
+        usageData,
+      );
+    });
+
+    it('should return fresh cached data without calling the API', async () => {
+      const usageData = {
+        isUsed: false,
+        budgetCount: 0,
+        budgets: [],
+      };
+      mockCache.get.mockReturnValue({ data: usageData, fresh: true });
+      mockApi.checkUsage$ = vi.fn();
+
+      const result = await store.checkUsage('template-1');
+
+      expect(result).toEqual(usageData);
+      expect(mockApi.checkUsage$).not.toHaveBeenCalled();
+    });
+
+    it('should return stale data immediately and refetch in background (SWR)', async () => {
+      const staleData = { isUsed: false, budgetCount: 0, budgets: [] };
+      const freshData = {
+        isUsed: true,
+        budgetCount: 1,
+        budgets: [
+          { id: 'budget-1', month: 4, year: 2026, description: 'April' },
+        ],
+      };
+      mockCache.get.mockReturnValue({ data: staleData, fresh: false });
+      let resolveFetch: (value: unknown) => void = () => undefined;
+      const pending = new Promise((resolve) => {
+        resolveFetch = resolve;
+      });
+      mockApi.checkUsage$ = vi.fn().mockReturnValue({ subscribe: vi.fn() });
+      mockCache.deduplicate.mockImplementation(
+        (_key: string[], fn: () => Promise<unknown>) => {
+          fn().catch(() => undefined);
+          return pending;
+        },
       );
 
-      expect(outcome).toBe('error');
-      expect(mockSnackBar.open).toHaveBeenCalled();
-      expect(mockApi.delete$).not.toHaveBeenCalled();
+      const result = await store.checkUsage('template-1');
+
+      expect(result).toEqual(staleData);
+      resolveFetch(freshData);
     });
   });
 

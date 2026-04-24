@@ -1,9 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { provideZonelessChangeDetection, signal } from '@angular/core';
-import { MatDialog } from '@angular/material/dialog';
-import { MatSnackBar } from '@angular/material/snack-bar';
-import { TranslocoService } from '@jsverse/transloco';
 import { of, throwError } from 'rxjs';
 import type {
   TemplateLine,
@@ -96,10 +93,7 @@ describe('TemplateLineStore', () => {
     rawDetails: ReturnType<typeof vi.fn>;
     setDetails: ReturnType<typeof vi.fn>;
     reloadTemplateDetails: ReturnType<typeof vi.fn>;
-    checkUsage: ReturnType<typeof vi.fn>;
   };
-  let dialogMock: { open: ReturnType<typeof vi.fn> };
-  let snackBarMock: { open: ReturnType<typeof vi.fn> };
 
   const input: TemplateLineFormInput = {
     name: 'Groceries',
@@ -143,11 +137,7 @@ describe('TemplateLineStore', () => {
         linesSignal.set(details.transactions);
       }),
       reloadTemplateDetails: vi.fn(),
-      checkUsage: vi.fn().mockResolvedValue({ isUsed: false, budgets: [] }),
     };
-
-    dialogMock = { open: vi.fn() };
-    snackBarMock = { open: vi.fn() };
 
     TestBed.configureTestingModule({
       providers: [
@@ -160,8 +150,6 @@ describe('TemplateLineStore', () => {
         },
         { provide: BudgetApi, useValue: budgetApiMock },
         { provide: TemplateDetailsStore, useValue: detailsStoreMock },
-        { provide: MatDialog, useValue: dialogMock },
-        { provide: MatSnackBar, useValue: snackBarMock },
         {
           provide: Logger,
           useValue: {
@@ -178,7 +166,7 @@ describe('TemplateLineStore', () => {
   });
 
   describe('createLine', () => {
-    it('should optimistically insert a line, replace the temp ID on success, and show a success snackbar', async () => {
+    it('should optimistically insert a line and replace the temp ID on success', async () => {
       const created = createLine({
         id: 'line-new',
         name: input.name,
@@ -191,7 +179,7 @@ describe('TemplateLineStore', () => {
 
       const initialCount = linesSignal().length;
 
-      await store.createLine(TEMPLATE_ID, input);
+      const response = await store.createLine(TEMPLATE_ID, input, false);
 
       const lines = linesSignal();
       expect(lines).toHaveLength(initialCount + 1);
@@ -199,22 +187,11 @@ describe('TemplateLineStore', () => {
         input.name,
       );
       expect(lines.every((line) => !line.id.startsWith('temp-'))).toBe(true);
-
-      const transloco = TestBed.inject(TranslocoService);
-      expect(snackBarMock.open).toHaveBeenCalledWith(
-        transloco.translate('template.createSuccess'),
-        undefined,
-        { duration: 4000 },
-      );
+      expect(response?.data.created[0]?.id).toBe('line-new');
       expect(budgetApiMock.cache.invalidate).not.toHaveBeenCalled();
     });
 
-    it('should open the propagation dialog when the template is used and call the API with propagateToBudgets=true when user confirms', async () => {
-      detailsStoreMock.checkUsage.mockResolvedValue({
-        isUsed: true,
-        budgets: [{ id: 'budget-1', month: 4, year: 2026, description: 'Apr' }],
-      });
-      dialogMock.open.mockReturnValue({ afterClosed: () => of('propagate') });
+    it('should forward propagateToBudgets=true and invalidate budget cache on propagation', async () => {
       templatesApiMock.bulkOperationsTemplateLines$.mockReturnValue(
         of(
           createBulkResponse({
@@ -228,29 +205,12 @@ describe('TemplateLineStore', () => {
         ),
       );
 
-      await store.createLine(TEMPLATE_ID, input);
+      await store.createLine(TEMPLATE_ID, input, true);
 
-      expect(dialogMock.open).toHaveBeenCalledOnce();
       const [, payload] =
         templatesApiMock.bulkOperationsTemplateLines$.mock.calls[0];
       expect(payload.propagateToBudgets).toBe(true);
       expect(budgetApiMock.cache.invalidate).toHaveBeenCalledWith(['budget']);
-    });
-
-    it('should abort without mutating when the user cancels the propagation dialog', async () => {
-      detailsStoreMock.checkUsage.mockResolvedValue({
-        isUsed: true,
-        budgets: [],
-      });
-      dialogMock.open.mockReturnValue({ afterClosed: () => of(null) });
-
-      await store.createLine(TEMPLATE_ID, input);
-
-      expect(
-        templatesApiMock.bulkOperationsTemplateLines$,
-      ).not.toHaveBeenCalled();
-      expect(snackBarMock.open).not.toHaveBeenCalled();
-      expect(linesSignal()).toHaveLength(1);
     });
 
     it('should reload template details when the mutation fails', async () => {
@@ -258,31 +218,10 @@ describe('TemplateLineStore', () => {
         throwError(() => new Error('boom')),
       );
 
-      await store.createLine(TEMPLATE_ID, input);
+      const response = await store.createLine(TEMPLATE_ID, input, false);
 
+      expect(response).toBeUndefined();
       expect(detailsStoreMock.reloadTemplateDetails).toHaveBeenCalled();
-      const transloco = TestBed.inject(TranslocoService);
-      expect(snackBarMock.open).toHaveBeenCalledWith(
-        transloco.translate('template.saveError'),
-        transloco.translate('common.close'),
-        { duration: 5000 },
-      );
-    });
-
-    it('should show the verification error snackbar when the usage check fails', async () => {
-      detailsStoreMock.checkUsage.mockRejectedValue(new Error('network'));
-
-      await store.createLine(TEMPLATE_ID, input);
-
-      const transloco = TestBed.inject(TranslocoService);
-      expect(snackBarMock.open).toHaveBeenCalledWith(
-        transloco.translate('template.verificationCheckError'),
-        transloco.translate('common.close'),
-        { duration: 5000 },
-      );
-      expect(
-        templatesApiMock.bulkOperationsTemplateLines$,
-      ).not.toHaveBeenCalled();
     });
   });
 
@@ -306,11 +245,16 @@ describe('TemplateLineStore', () => {
         of(createBulkResponse({ updated: [updated] })),
       );
 
-      await store.updateLine(TEMPLATE_ID, 'line-b', {
-        name: 'B-updated',
-        amount: 250,
-        kind: 'income',
-      });
+      await store.updateLine(
+        TEMPLATE_ID,
+        'line-b',
+        {
+          name: 'B-updated',
+          amount: 250,
+          kind: 'income',
+        },
+        false,
+      );
 
       const lines = linesSignal();
       expect(lines.find((line) => line.id === 'line-a')?.name).toBe('A');
@@ -322,11 +266,16 @@ describe('TemplateLineStore', () => {
         throwError(() => new Error('nope')),
       );
 
-      await store.updateLine(TEMPLATE_ID, 'line-1', {
-        name: 'X',
-        amount: 1,
-        kind: 'expense',
-      });
+      await store.updateLine(
+        TEMPLATE_ID,
+        'line-1',
+        {
+          name: 'X',
+          amount: 1,
+          kind: 'expense',
+        },
+        false,
+      );
 
       expect(detailsStoreMock.reloadTemplateDetails).toHaveBeenCalled();
     });
@@ -347,7 +296,7 @@ describe('TemplateLineStore', () => {
         of(createBulkResponse({ deleted: ['line-b'] })),
       );
 
-      await store.deleteLine(TEMPLATE_ID, 'line-b');
+      await store.deleteLine(TEMPLATE_ID, 'line-b', false);
 
       expect(linesSignal().map((line) => line.id)).toEqual(['line-a']);
     });
@@ -357,95 +306,9 @@ describe('TemplateLineStore', () => {
         throwError(() => new Error('nope')),
       );
 
-      await store.deleteLine(TEMPLATE_ID, 'line-1');
+      await store.deleteLine(TEMPLATE_ID, 'line-1', false);
 
       expect(detailsStoreMock.reloadTemplateDetails).toHaveBeenCalled();
-    });
-  });
-
-  describe('success message pluralisation', () => {
-    beforeEach(() => {
-      detailsStoreMock.checkUsage.mockResolvedValue({
-        isUsed: true,
-        budgets: [],
-      });
-      dialogMock.open.mockReturnValue({ afterClosed: () => of('propagate') });
-    });
-
-    it('should use the singular key when exactly one budget is affected', async () => {
-      templatesApiMock.bulkOperationsTemplateLines$.mockReturnValue(
-        of(
-          createBulkResponse({
-            created: [createLine({ id: 'line-new' })],
-            propagation: createPropagation({
-              mode: 'propagate',
-              affectedBudgetsCount: 1,
-              affectedBudgetIds: ['budget-1'],
-            }),
-          }),
-        ),
-      );
-
-      await store.createLine(TEMPLATE_ID, input);
-
-      const transloco = TestBed.inject(TranslocoService);
-      const expected = transloco.translate(
-        'template.updatedWithBudgetsSingular',
-        { count: 1 },
-      );
-      expect(snackBarMock.open).toHaveBeenCalledWith(expected, undefined, {
-        duration: 4000,
-      });
-    });
-
-    it('should use the plural key when multiple budgets are affected', async () => {
-      templatesApiMock.bulkOperationsTemplateLines$.mockReturnValue(
-        of(
-          createBulkResponse({
-            created: [createLine({ id: 'line-new' })],
-            propagation: createPropagation({
-              mode: 'propagate',
-              affectedBudgetsCount: 3,
-              affectedBudgetIds: ['b-1', 'b-2', 'b-3'],
-            }),
-          }),
-        ),
-      );
-
-      await store.createLine(TEMPLATE_ID, input);
-
-      const transloco = TestBed.inject(TranslocoService);
-      const expected = transloco.translate(
-        'template.updatedWithBudgetsPlural',
-        { count: 3 },
-      );
-      expect(snackBarMock.open).toHaveBeenCalledWith(expected, undefined, {
-        duration: 4000,
-      });
-    });
-
-    it('should fall back to the base success key when propagation mode is template-only', async () => {
-      templatesApiMock.bulkOperationsTemplateLines$.mockReturnValue(
-        of(
-          createBulkResponse({
-            created: [createLine({ id: 'line-new' })],
-            propagation: createPropagation({
-              mode: 'template-only',
-              affectedBudgetsCount: 0,
-            }),
-          }),
-        ),
-      );
-
-      await store.createLine(TEMPLATE_ID, input);
-
-      const transloco = TestBed.inject(TranslocoService);
-      expect(snackBarMock.open).toHaveBeenCalledWith(
-        transloco.translate('template.createSuccess'),
-        undefined,
-        { duration: 4000 },
-      );
-      expect(budgetApiMock.cache.invalidate).not.toHaveBeenCalled();
     });
   });
 });

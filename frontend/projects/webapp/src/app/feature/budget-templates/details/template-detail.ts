@@ -13,9 +13,13 @@ import { MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { ActivatedRoute, Router } from '@angular/router';
 import { TranslocoService, TranslocoPipe } from '@jsverse/transloco';
+import { Logger } from '@core/logging/logger';
 import { ROUTES } from '@core/routing';
 import { PulpeTitleStrategy } from '@core/routing/title-strategy';
-import { type TemplateLine } from 'pulpe-shared';
+import {
+  type TemplateLine,
+  type TemplateLinesBulkOperationsResponse,
+} from 'pulpe-shared';
 import { UserSettingsStore } from '@core/user-settings';
 import { CURRENCY_CONFIG } from '@core/currency';
 import { ConfirmationDialog } from '@ui/dialogs/confirmation-dialog';
@@ -29,6 +33,7 @@ import {
   type EditTemplateLineDialogResult,
 } from './components/edit-template-line-dialog';
 import { BudgetTemplatesStore } from '../services/budget-templates-store';
+import { BudgetTemplatesDialogService } from '../budget-templates-dialog.service';
 import { TemplateDetailsStore } from './services/template-details-store';
 import { TemplateLineStore } from './services/template-line-store';
 
@@ -43,7 +48,11 @@ import { TemplateLineStore } from './services/template-line-store';
     BaseLoading,
     FinancialPills,
   ],
-  providers: [TemplateDetailsStore, TemplateLineStore],
+  providers: [
+    TemplateDetailsStore,
+    TemplateLineStore,
+    BudgetTemplatesDialogService,
+  ],
   template: `
     <div class="flex flex-col gap-8 min-w-0" data-testid="template-detail-page">
       @if (templateDetailsStore.isLoading()) {
@@ -308,6 +317,7 @@ export default class TemplateDetail implements OnInit {
   protected readonly templateDetailsStore = inject(TemplateDetailsStore);
   readonly #templateLineStore = inject(TemplateLineStore);
   readonly #budgetTemplatesStore = inject(BudgetTemplatesStore);
+  readonly #dialogService = inject(BudgetTemplatesDialogService);
   protected readonly currency = inject(UserSettingsStore).currency;
   protected readonly locale = computed(
     () => CURRENCY_CONFIG[this.currency()].locale,
@@ -318,6 +328,7 @@ export default class TemplateDetail implements OnInit {
   readonly #dialog = inject(MatDialog);
   readonly #injector = inject(Injector);
   readonly #transloco = inject(TranslocoService);
+  readonly #logger = inject(Logger);
 
   protected readonly loadingMessage =
     this.#transloco.translate('template.loading');
@@ -391,7 +402,16 @@ export default class TemplateDetail implements OnInit {
 
     const result = await this.#openLineDialog({ templateName: template.name });
     if (!result) return;
-    await this.#templateLineStore.createLine(templateId, result);
+
+    const propagate = await this.#resolvePropagation(templateId);
+    if (propagate === null) return;
+
+    const response = await this.#templateLineStore.createLine(
+      templateId,
+      result,
+      propagate,
+    );
+    this.#notifyAfterMutation(response, 'template.createSuccess');
   }
 
   async handleEditLine(line: TemplateLine): Promise<void> {
@@ -404,7 +424,17 @@ export default class TemplateDetail implements OnInit {
       templateName: template.name,
     });
     if (!result) return;
-    await this.#templateLineStore.updateLine(templateId, line.id, result);
+
+    const propagate = await this.#resolvePropagation(templateId);
+    if (propagate === null) return;
+
+    const response = await this.#templateLineStore.updateLine(
+      templateId,
+      line.id,
+      result,
+      propagate,
+    );
+    this.#notifyAfterMutation(response, 'template.updateSuccess');
   }
 
   async #openLineDialog(
@@ -448,7 +478,15 @@ export default class TemplateDetail implements OnInit {
     const confirmed = await firstValueFrom(dialogRef.afterClosed());
     if (!confirmed) return;
 
-    await this.#templateLineStore.deleteLine(templateId, lineId);
+    const propagate = await this.#resolvePropagation(templateId);
+    if (propagate === null) return;
+
+    const response = await this.#templateLineStore.deleteLine(
+      templateId,
+      lineId,
+      propagate,
+    );
+    this.#notifyAfterMutation(response, 'template.deleteSuccess');
   }
 
   async deleteTemplate(): Promise<void> {
@@ -456,12 +494,74 @@ export default class TemplateDetail implements OnInit {
     const templateId = this.#templateId;
     if (!template || !templateId) return;
 
-    const outcome = await this.#budgetTemplatesStore.confirmAndDeleteTemplate(
-      templateId,
+    let usage;
+    try {
+      usage = await this.#budgetTemplatesStore.checkUsage(templateId);
+    } catch (error) {
+      this.#logger.error('Failed to check template usage', error);
+      this.#dialogService.notifyVerificationError();
+      return;
+    }
+
+    if (usage.isUsed) {
+      await this.#dialogService.openUsageDialog(
+        templateId,
+        template.name,
+        usage.budgets,
+      );
+      return;
+    }
+
+    const confirmed = await this.#dialogService.openDeleteConfirmation(
       template.name,
     );
-    if (outcome === 'deleted') {
-      this.navigateBack();
+    if (!confirmed) return;
+
+    await this.#budgetTemplatesStore.deleteTemplate(templateId);
+    const deleteError = this.#budgetTemplatesStore.deleteTemplateError();
+    if (deleteError) {
+      this.#logger.error('Failed to delete template', deleteError);
+      this.#dialogService.notifyTemplateDeleteError();
+      return;
     }
+
+    this.#dialogService.notifyTemplateDeleted();
+    this.navigateBack();
+  }
+
+  async #resolvePropagation(templateId: string): Promise<boolean | null> {
+    const template = this.templateDetailsStore.template();
+    if (!template) return false;
+
+    let usage;
+    try {
+      usage = await this.#budgetTemplatesStore.checkUsage(templateId);
+    } catch (error) {
+      this.#logger.error('Failed to check template usage', error);
+      this.#dialogService.notifyVerificationError();
+      return null;
+    }
+
+    if (!usage.isUsed) return false;
+
+    const choice = await this.#dialogService.openPropagationDialog(
+      template.name,
+    );
+    if (choice === null) return null;
+    return choice === 'propagate';
+  }
+
+  #notifyAfterMutation(
+    response: TemplateLinesBulkOperationsResponse | undefined,
+    successKey: string,
+  ): void {
+    if (!response) {
+      this.#dialogService.notifyMutationError();
+      return;
+    }
+    this.#dialogService.notifyMutationSuccess(
+      successKey,
+      response.data.propagation,
+    );
   }
 }

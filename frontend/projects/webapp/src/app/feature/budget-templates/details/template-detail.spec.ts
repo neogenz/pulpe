@@ -24,8 +24,10 @@ import type {
 } from 'pulpe-shared';
 import { type BudgetTemplateDetailViewModel } from './services/template-details-store';
 import { BudgetTemplatesStore } from '../services/budget-templates-store';
+import { BudgetTemplatesDialogService } from '../budget-templates-dialog.service';
 import { TemplateDetailsStore } from './services/template-details-store';
 import { TemplateLineStore } from './services/template-line-store';
+import { Logger } from '@core/logging/logger';
 import { PulpeTitleStrategy } from '@core/routing/title-strategy';
 import { BudgetApi } from '@core/budget/budget-api';
 import { TransactionLabelPipe } from '@ui/transaction-display';
@@ -165,29 +167,77 @@ const mockStore = {
 
 const mockTemplateLineStore = {
   createLine: vi
-    .fn<(templateId: string, input: unknown) => Promise<void>>()
-    .mockResolvedValue(undefined),
+    .fn<
+      (
+        templateId: string,
+        input: unknown,
+        propagate: boolean,
+      ) => Promise<unknown>
+    >()
+    .mockResolvedValue({ data: { propagation: null } }),
   updateLine: vi
-    .fn<(templateId: string, lineId: string, input: unknown) => Promise<void>>()
-    .mockResolvedValue(undefined),
+    .fn<
+      (
+        templateId: string,
+        lineId: string,
+        input: unknown,
+        propagate: boolean,
+      ) => Promise<unknown>
+    >()
+    .mockResolvedValue({ data: { propagation: null } }),
   deleteLine: vi
-    .fn<(templateId: string, lineId: string) => Promise<void>>()
-    .mockResolvedValue(undefined),
+    .fn<
+      (
+        templateId: string,
+        lineId: string,
+        propagate: boolean,
+      ) => Promise<unknown>
+    >()
+    .mockResolvedValue({ data: { propagation: null } }),
   isLoading: signal(false),
 };
 
 const mockDialog = { open: vi.fn() };
 const mockBudgetTemplatesStore = {
-  confirmAndDeleteTemplate: vi
+  checkUsage: vi
     .fn<
-      (
-        templateId: string,
-        templateName: string,
-      ) => Promise<'deleted' | 'cancelled' | 'cancelled-due-to-usage' | 'error'>
+      (templateId: string) => Promise<{
+        isUsed: boolean;
+        budgetCount: number;
+        budgets: {
+          id: string;
+          month: number;
+          year: number;
+          description: string;
+        }[];
+      }>
     >()
-    .mockResolvedValue('cancelled'),
+    .mockResolvedValue({ isUsed: false, budgetCount: 0, budgets: [] }),
+  deleteTemplate: vi
+    .fn<(templateId: string) => Promise<void>>()
+    .mockResolvedValue(undefined),
+  deleteTemplateError: vi.fn().mockReturnValue(null),
+};
+const mockDialogService = {
+  openDeleteConfirmation: vi.fn<(name: string) => Promise<boolean>>(),
+  openUsageDialog:
+    vi.fn<(id: string, name: string, b: unknown) => Promise<void>>(),
+  openPropagationDialog: vi
+    .fn<(name: string) => Promise<'propagate' | 'template-only' | null>>()
+    .mockResolvedValue('template-only'),
+  notifyTemplateDeleted: vi.fn(),
+  notifyTemplateDeleteError: vi.fn(),
+  notifyVerificationError: vi.fn(),
+  notifyMutationError: vi.fn(),
+  notifyMutationSuccess: vi.fn(),
 };
 const mockTitleStrategy = { setTitle: vi.fn() };
+const mockLogger = {
+  debug: vi.fn(),
+  info: vi.fn(),
+  warn: vi.fn(),
+  error: vi.fn(),
+};
 const mockBudgetApi = { cache: { invalidate: vi.fn() } };
 const mockRoute = {
   snapshot: {
@@ -215,7 +265,12 @@ describe('TemplateDetail', () => {
         { provide: TemplateLineStore, useValue: mockTemplateLineStore },
         { provide: MatDialog, useValue: mockDialog },
         { provide: BudgetTemplatesStore, useValue: mockBudgetTemplatesStore },
+        {
+          provide: BudgetTemplatesDialogService,
+          useValue: mockDialogService,
+        },
         { provide: PulpeTitleStrategy, useValue: mockTitleStrategy },
+        { provide: Logger, useValue: mockLogger },
         { provide: BudgetApi, useValue: mockBudgetApi },
         {
           provide: UserSettingsStore,
@@ -232,6 +287,10 @@ describe('TemplateDetail', () => {
           providers: [
             { provide: TemplateDetailsStore, useValue: mockStore },
             { provide: TemplateLineStore, useValue: mockTemplateLineStore },
+            {
+              provide: BudgetTemplatesDialogService,
+              useValue: mockDialogService,
+            },
           ],
         },
       });
@@ -246,12 +305,25 @@ describe('TemplateDetail', () => {
     storeTemplateDetails.set(mockTemplateDetails);
     storeIsLoading.set(false);
     storeError.set(null);
-    mockBudgetTemplatesStore.confirmAndDeleteTemplate.mockResolvedValue(
-      'cancelled',
-    );
-    mockTemplateLineStore.createLine.mockResolvedValue(undefined);
-    mockTemplateLineStore.updateLine.mockResolvedValue(undefined);
-    mockTemplateLineStore.deleteLine.mockResolvedValue(undefined);
+    mockBudgetTemplatesStore.checkUsage.mockResolvedValue({
+      isUsed: false,
+      budgetCount: 0,
+      budgets: [],
+    });
+    mockBudgetTemplatesStore.deleteTemplate.mockResolvedValue(undefined);
+    mockBudgetTemplatesStore.deleteTemplateError.mockReturnValue(null);
+    mockDialogService.openDeleteConfirmation.mockResolvedValue(false);
+    mockDialogService.openUsageDialog.mockResolvedValue(undefined);
+    mockDialogService.openPropagationDialog.mockResolvedValue('template-only');
+    mockTemplateLineStore.createLine.mockResolvedValue({
+      data: { propagation: null },
+    });
+    mockTemplateLineStore.updateLine.mockResolvedValue({
+      data: { propagation: null },
+    });
+    mockTemplateLineStore.deleteLine.mockResolvedValue({
+      data: { propagation: null },
+    });
     mockRoute.snapshot.paramMap.get.mockImplementation((key: string) =>
       key === 'templateId' ? 'template-123' : null,
     );
@@ -515,6 +587,7 @@ describe('TemplateDetail', () => {
       expect(mockTemplateLineStore.createLine).toHaveBeenCalledWith(
         'template-123',
         dialogResult,
+        false,
       );
     });
 
@@ -576,6 +649,7 @@ describe('TemplateDetail', () => {
         'template-123',
         'line-1',
         dialogResult,
+        false,
       );
     });
 
@@ -633,6 +707,7 @@ describe('TemplateDetail', () => {
       expect(mockTemplateLineStore.deleteLine).toHaveBeenCalledWith(
         'template-123',
         'line-1',
+        false,
       );
     });
 
@@ -647,45 +722,25 @@ describe('TemplateDetail', () => {
   });
 
   describe('deleteTemplate', () => {
-    it('should not call the store when template is null', async () => {
+    it('should do nothing when template is null', async () => {
       storeTemplateDetails.set(null);
       const fixture = await createFixture();
 
       await fixture.componentInstance.deleteTemplate();
 
-      expect(
-        mockBudgetTemplatesStore.confirmAndDeleteTemplate,
-      ).not.toHaveBeenCalled();
+      expect(mockBudgetTemplatesStore.checkUsage).not.toHaveBeenCalled();
+      expect(mockBudgetTemplatesStore.deleteTemplate).not.toHaveBeenCalled();
     });
 
-    it('should delegate to the store with templateId and name', async () => {
-      const fixture = await createFixture();
-
-      await fixture.componentInstance.deleteTemplate();
-
-      expect(
-        mockBudgetTemplatesStore.confirmAndDeleteTemplate,
-      ).toHaveBeenCalledWith('template-123', 'Mon Modèle');
-    });
-
-    it('should navigate back when store returns "deleted"', async () => {
-      mockBudgetTemplatesStore.confirmAndDeleteTemplate.mockResolvedValue(
-        'deleted',
-      );
-
-      const fixture = await createFixture();
-      const router = TestBed.inject(Router);
-      vi.spyOn(router, 'navigate').mockResolvedValue(true);
-
-      await fixture.componentInstance.deleteTemplate();
-
-      expect(router.navigate).toHaveBeenCalledWith(['/', 'budget-templates']);
-    });
-
-    it('should not navigate when store returns "cancelled"', async () => {
-      mockBudgetTemplatesStore.confirmAndDeleteTemplate.mockResolvedValue(
-        'cancelled',
-      );
+    it('should open the usage dialog and abort when the template is used', async () => {
+      const budgets = [
+        { id: 'b-1', month: 4, year: 2026, description: 'April' },
+      ];
+      mockBudgetTemplatesStore.checkUsage.mockResolvedValue({
+        isUsed: true,
+        budgetCount: 1,
+        budgets,
+      });
 
       const fixture = await createFixture();
       const router = TestBed.inject(Router);
@@ -693,13 +748,17 @@ describe('TemplateDetail', () => {
 
       await fixture.componentInstance.deleteTemplate();
 
+      expect(mockDialogService.openUsageDialog).toHaveBeenCalledWith(
+        'template-123',
+        'Mon Modèle',
+        budgets,
+      );
+      expect(mockBudgetTemplatesStore.deleteTemplate).not.toHaveBeenCalled();
       expect(navigateSpy).not.toHaveBeenCalled();
     });
 
-    it('should not navigate when store returns "cancelled-due-to-usage"', async () => {
-      mockBudgetTemplatesStore.confirmAndDeleteTemplate.mockResolvedValue(
-        'cancelled-due-to-usage',
-      );
+    it('should delete the template, show success snackbar and navigate back when confirmed', async () => {
+      mockDialogService.openDeleteConfirmation.mockResolvedValue(true);
 
       const fixture = await createFixture();
       const router = TestBed.inject(Router);
@@ -707,13 +766,30 @@ describe('TemplateDetail', () => {
 
       await fixture.componentInstance.deleteTemplate();
 
+      expect(mockBudgetTemplatesStore.deleteTemplate).toHaveBeenCalledWith(
+        'template-123',
+      );
+      expect(mockDialogService.notifyTemplateDeleted).toHaveBeenCalledOnce();
+      expect(navigateSpy).toHaveBeenCalledWith(['/', 'budget-templates']);
+    });
+
+    it('should not delete nor navigate when the user cancels the confirmation dialog', async () => {
+      mockDialogService.openDeleteConfirmation.mockResolvedValue(false);
+
+      const fixture = await createFixture();
+      const router = TestBed.inject(Router);
+      const navigateSpy = vi.spyOn(router, 'navigate').mockResolvedValue(true);
+
+      await fixture.componentInstance.deleteTemplate();
+
+      expect(mockBudgetTemplatesStore.deleteTemplate).not.toHaveBeenCalled();
       expect(navigateSpy).not.toHaveBeenCalled();
     });
 
-    it('should not navigate when store returns "error"', async () => {
-      mockBudgetTemplatesStore.confirmAndDeleteTemplate.mockResolvedValue(
-        'error',
-      );
+    it('should show the error snackbar and log when the delete mutation fails', async () => {
+      mockDialogService.openDeleteConfirmation.mockResolvedValue(true);
+      const deleteError = new Error('boom');
+      mockBudgetTemplatesStore.deleteTemplateError.mockReturnValue(deleteError);
 
       const fixture = await createFixture();
       const router = TestBed.inject(Router);
@@ -721,6 +797,33 @@ describe('TemplateDetail', () => {
 
       await fixture.componentInstance.deleteTemplate();
 
+      expect(
+        mockDialogService.notifyTemplateDeleteError,
+      ).toHaveBeenCalledOnce();
+      expect(mockDialogService.notifyVerificationError).not.toHaveBeenCalled();
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        'Failed to delete template',
+        deleteError,
+      );
+      expect(navigateSpy).not.toHaveBeenCalled();
+    });
+
+    it('should show the verification error snackbar and log when checkUsage throws', async () => {
+      const usageError = new Error('network');
+      mockBudgetTemplatesStore.checkUsage.mockRejectedValue(usageError);
+
+      const fixture = await createFixture();
+      const router = TestBed.inject(Router);
+      const navigateSpy = vi.spyOn(router, 'navigate').mockResolvedValue(true);
+
+      await fixture.componentInstance.deleteTemplate();
+
+      expect(mockDialogService.notifyVerificationError).toHaveBeenCalledOnce();
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        'Failed to check template usage',
+        usageError,
+      );
+      expect(mockBudgetTemplatesStore.deleteTemplate).not.toHaveBeenCalled();
       expect(navigateSpy).not.toHaveBeenCalled();
     });
   });

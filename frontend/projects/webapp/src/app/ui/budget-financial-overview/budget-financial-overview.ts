@@ -5,6 +5,7 @@ import {
   computed,
   input,
 } from '@angular/core';
+import type { SupportedCurrency } from 'pulpe-shared';
 import { FinancialPills } from '../financial-pills/financial-pills';
 
 export interface FinancialTotals {
@@ -115,7 +116,7 @@ export interface FinancialTotals {
 })
 export class BudgetFinancialOverview {
   readonly totals = input.required<FinancialTotals>();
-  readonly currency = input<string>('CHF');
+  readonly currency = input<SupportedCurrency>('CHF');
   readonly locale = input<string>('de-CH');
   readonly warningThreshold = input(90);
 

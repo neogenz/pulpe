@@ -1,9 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { MatDialog } from '@angular/material/dialog';
-import { MatSnackBar } from '@angular/material/snack-bar';
-import { TranslocoService } from '@jsverse/transloco';
 import { cachedMutation } from 'ngx-ziflux';
-import { firstValueFrom } from 'rxjs';
 import { BudgetApi } from '@core/budget/budget-api';
 import { BudgetTemplatesApi } from '@core/budget-template/budget-templates-api';
 import { Logger } from '@core/logging/logger';
@@ -17,10 +13,6 @@ import {
   type SupportedCurrency,
 } from 'pulpe-shared';
 import { v4 as uuidv4 } from 'uuid';
-import {
-  TemplatePropagationDialog,
-  type TemplatePropagationChoice,
-} from '../components/template-propagation-dialog';
 import { TemplateDetailsStore } from './template-details-store';
 
 const TEMP_ID_PREFIX = 'temp-';
@@ -46,9 +38,6 @@ export class TemplateLineStore {
   readonly #budgetApi = inject(BudgetApi);
   readonly #budgetTemplatesApi = inject(BudgetTemplatesApi);
   readonly #templateDetailsStore = inject(TemplateDetailsStore);
-  readonly #dialog = inject(MatDialog);
-  readonly #snackBar = inject(MatSnackBar);
-  readonly #transloco = inject(TranslocoService);
   readonly #logger = inject(Logger);
 
   readonly #createMutation = cachedMutation<
@@ -176,29 +165,22 @@ export class TemplateLineStore {
   async createLine(
     templateId: string,
     input: TemplateLineFormInput,
-  ): Promise<void> {
-    const propagate = await this.#resolvePropagation(templateId);
-    if (propagate === null) return;
-
-    const payload = this.#toCreatePayload(input);
-    const response = await this.#createMutation.mutate({
+    propagate: boolean,
+  ): Promise<BulkMutationResult | undefined> {
+    return this.#createMutation.mutate({
       templateId,
       tempId: generateTempId(),
-      payload,
+      payload: this.#toCreatePayload(input),
       propagateToBudgets: propagate,
     });
-
-    this.#notifyAfterMutation(response, 'template.createSuccess');
   }
 
   async updateLine(
     templateId: string,
     lineId: string,
     input: TemplateLineFormInput,
-  ): Promise<void> {
-    const propagate = await this.#resolvePropagation(templateId);
-    if (propagate === null) return;
-
+    propagate: boolean,
+  ): Promise<BulkMutationResult | undefined> {
     const payload: TemplateLineUpdateWithId = {
       id: lineId,
       name: input.name,
@@ -207,98 +189,23 @@ export class TemplateLineStore {
       ...this.#extractCurrencyFields(input),
     };
 
-    const response = await this.#updateMutation.mutate({
+    return this.#updateMutation.mutate({
       templateId,
       payload,
       propagateToBudgets: propagate,
     });
-
-    this.#notifyAfterMutation(response, 'template.updateSuccess');
   }
 
-  async deleteLine(templateId: string, lineId: string): Promise<void> {
-    const propagate = await this.#resolvePropagation(templateId);
-    if (propagate === null) return;
-
-    const response = await this.#deleteMutation.mutate({
+  async deleteLine(
+    templateId: string,
+    lineId: string,
+    propagate: boolean,
+  ): Promise<BulkMutationResult | undefined> {
+    return this.#deleteMutation.mutate({
       templateId,
       lineId,
       propagateToBudgets: propagate,
     });
-
-    this.#notifyAfterMutation(response, 'template.deleteSuccess');
-  }
-
-  async #resolvePropagation(templateId: string): Promise<boolean | null> {
-    const template = this.#templateDetailsStore.template();
-    if (!template) return false;
-
-    try {
-      const usage = await this.#templateDetailsStore.checkUsage(templateId);
-      if (!usage.isUsed) return false;
-
-      const choice = await firstValueFrom(
-        this.#dialog
-          .open<
-            TemplatePropagationDialog,
-            { templateName: string },
-            TemplatePropagationChoice | null
-          >(TemplatePropagationDialog, {
-            data: { templateName: template.name },
-            width: '520px',
-            maxWidth: '95vw',
-          })
-          .afterClosed(),
-      );
-
-      if (choice == null) return null;
-      return choice === 'propagate';
-    } catch (error) {
-      this.#logger.error('Failed to check template usage', error);
-      this.#snackBar.open(
-        this.#transloco.translate('template.verificationCheckError'),
-        this.#transloco.translate('common.close'),
-        { duration: 5000 },
-      );
-      return null;
-    }
-  }
-
-  #notifyAfterMutation(
-    response: BulkMutationResult | undefined,
-    successKey: string,
-  ): void {
-    if (!response) {
-      this.#snackBar.open(
-        this.#transloco.translate('template.saveError'),
-        this.#transloco.translate('common.close'),
-        { duration: 5000 },
-      );
-      return;
-    }
-
-    const propagation = response.data.propagation;
-    const message = this.#buildSuccessMessage(successKey, propagation);
-    this.#snackBar.open(message, undefined, { duration: 4000 });
-  }
-
-  #buildSuccessMessage(
-    baseKey: string,
-    propagation: TemplateLinesPropagationSummary | null,
-  ): string {
-    if (!propagation || propagation.mode !== 'propagate') {
-      return this.#transloco.translate(baseKey);
-    }
-    if (propagation.affectedBudgetsCount > 0) {
-      const key =
-        propagation.affectedBudgetsCount === 1
-          ? 'template.updatedWithBudgetsSingular'
-          : 'template.updatedWithBudgetsPlural';
-      return this.#transloco.translate(key, {
-        count: propagation.affectedBudgetsCount,
-      });
-    }
-    return this.#transloco.translate(baseKey);
   }
 
   #invalidateBudgetsIfPropagated(

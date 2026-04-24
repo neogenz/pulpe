@@ -2,6 +2,7 @@ import { DecimalPipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
 import { TranslocoPipe } from '@jsverse/transloco';
+import type { SupportedCurrency } from 'pulpe-shared';
 
 export interface FinancialPillsTotals {
   income: number;
@@ -111,7 +112,7 @@ interface PillConfig {
 })
 export class FinancialPills {
   readonly totals = input.required<FinancialPillsTotals>();
-  readonly currency = input<string>('CHF');
+  readonly currency = input<SupportedCurrency>('CHF');
   readonly locale = input<string>('de-CH');
 
   protected readonly pills: readonly PillConfig[] = [
