@@ -1,10 +1,10 @@
 import { z } from 'zod/v4';
 import {
-  supportedCurrencySchema,
   transactionKindSchema,
   transactionRecurrenceSchema,
   type BudgetLineCreate,
 } from 'pulpe-shared';
+import { conversionFormSchema } from '@core/currency';
 
 /**
  * Source of truth for the outgoing BudgetLineCreate DTO:
@@ -14,13 +14,6 @@ import {
  * DTO type        = z.output<typeof budgetLineCreateFromFormSchema>.
  */
 
-const conversionSchema = z.object({
-  originalAmount: z.number().positive(),
-  originalCurrency: supportedCurrencySchema,
-  targetCurrency: supportedCurrencySchema,
-  exchangeRate: z.number().positive(),
-});
-
 export const budgetLineCreateFromFormSchema = z
   .object({
     name: z.string().min(1).max(100).trim(),
@@ -28,7 +21,7 @@ export const budgetLineCreateFromFormSchema = z
     kind: transactionKindSchema,
     recurrence: transactionRecurrenceSchema,
     isChecked: z.boolean(),
-    conversion: conversionSchema.nullable(),
+    conversion: conversionFormSchema.nullable(),
     budgetId: z.uuid(),
   })
   .transform(

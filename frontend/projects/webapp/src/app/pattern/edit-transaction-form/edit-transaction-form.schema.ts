@@ -1,10 +1,10 @@
 import { z } from 'zod/v4';
 import {
-  supportedCurrencySchema,
   transactionKindSchema,
   type TransactionCreate,
   type TransactionUpdate,
 } from 'pulpe-shared';
+import { conversionFormSchema } from '@core/currency';
 
 /**
  * Source of truth for the outgoing TransactionCreate / TransactionUpdate DTOs:
@@ -16,20 +16,13 @@ import {
  * Add any new create/update field here AND in shared/schemas.ts.
  */
 
-const conversionSchema = z.object({
-  originalAmount: z.number().positive(),
-  originalCurrency: supportedCurrencySchema,
-  targetCurrency: supportedCurrencySchema,
-  exchangeRate: z.number().positive(),
-});
-
 const baseFormFields = {
   name: z.string().min(1).max(100).trim(),
   amount: z.number().positive(),
   kind: transactionKindSchema,
   transactionDate: z.iso.datetime({ offset: true }),
   category: z.string().max(100).trim().nullable(),
-  conversion: conversionSchema.nullable(),
+  conversion: conversionFormSchema.nullable(),
 };
 
 export const transactionCreateFromFormSchema = z
