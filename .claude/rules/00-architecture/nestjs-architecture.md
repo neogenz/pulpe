@@ -86,7 +86,7 @@ export class BudgetService {
 
 ## Module Pattern
 
-**MANDATORY:** Every class that uses `@InjectInfoLogger` MUST have a corresponding `createInfoLoggerProvider` in its module's `providers` array. Forgetting this causes a NestJS DI error at runtime.
+**MANDATORY:** Every class using `@InjectInfoLogger` MUST have matching `createInfoLoggerProvider` in module's `providers`. Forget = NestJS DI error at runtime.
 
 ```typescript
 import { createInfoLoggerProvider } from '@common/logger';
@@ -104,7 +104,7 @@ import { createInfoLoggerProvider } from '@common/logger';
 export class BudgetModule {}
 ```
 
-**Checklist when creating or modifying a module:**
+**Checklist when create/modify module:**
 - [ ] Each `Service` using `@InjectInfoLogger` → `createInfoLoggerProvider(Service.name)` in providers
 - [ ] Each `Controller` using `@InjectInfoLogger` → `createInfoLoggerProvider(Controller.name)` in providers
 
@@ -136,8 +136,8 @@ common/
 ## Rules
 
 - Controllers: thin — route traffic, validate input, return response
-- Services: inject repositories and mappers, never access Supabase directly
-- Repositories: only data access — no business rules
+- Services: inject repositories + mappers, never touch Supabase direct
+- Repositories: data access only — no business rules
 - Mappers: pure transformation — no side effects
 - All endpoints protected by `AuthGuard` by default
-- `@SupabaseClient()` provides an authenticated client with RLS applied
+- `@SupabaseClient()` give authenticated client with RLS applied

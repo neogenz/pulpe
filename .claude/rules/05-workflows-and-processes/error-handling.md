@@ -17,7 +17,7 @@ Can the app continue?
 
 | Situation | Type | Why |
 |-----------|------|-----|
-| Missing config at boot | `FatalError` | App cannot start |
+| Missing config at boot | `FatalError` | App no start |
 | API returns 500 | `OperationalError` | Technical, retry possible |
 | User without permission | `BusinessError` | Business rule, user message |
 | Zod fails on API response | `OperationalError` | Technical parse |
@@ -67,7 +67,7 @@ throw new BusinessError(
 
 ### Cause Chaining
 
-Always preserve the original error via `cause`:
+Preserve original error via `cause`:
 
 ```typescript
 // Good
@@ -87,7 +87,7 @@ composeErrorMessageWithAllCauses(error); // "Msg - Caused by: Root"
 
 ## HTTP Interceptor
 
-`errorHttpInterceptor` transforms `HttpErrorResponse` automatically:
+`errorHttpInterceptor` transform `HttpErrorResponse` auto:
 
 | Status | Error Type | Code |
 |--------|------------|------|
@@ -118,7 +118,7 @@ this.#http.get('/api/users').subscribe({
 
 ## Handled vs Unhandled (Crash-Free Sessions)
 
-Sentry distinguishes errors via `mechanism.handled`:
+Sentry split errors via `mechanism.handled`:
 
 | Path | `handled` | KPI Impact |
 |------|-----------|------------|
@@ -163,14 +163,14 @@ this.#log.addBreadcrumb('action', 'category', data);
 | Pattern | Reason |
 |---------|--------|
 | `ResizeObserver loop` | Browser noise |
-| `ChunkLoadError` | User refresh handles it |
+| `ChunkLoadError` | User refresh handle it |
 | `Failed to fetch`, `NetworkError` | Client connectivity |
 | `401 Unauthorized` | Normal auth flow |
 | `chrome://`, `moz-extension://` | Browser extensions |
 
 ### Fingerprinting (error grouping)
 
-URLs are sanitized for grouping:
+URLs sanitized for grouping:
 
 - `/users/123` → `/users/[id]`
 - `/orders/550e8400-...` → `/orders/[uuid]`
@@ -184,7 +184,7 @@ Headers excluded: `authorization`, `cookie`, `x-api-key`, `x-auth-token`, `x-csr
 
 ## Extending ErrorCodes
 
-Add domain-specific codes to `error-codes.ts`:
+Add domain codes to `error-codes.ts`:
 
 ```typescript
 export const ErrorCodes = {
@@ -209,4 +209,4 @@ export type OrderErrorCode = (typeof ErrorCodes.Order)[keyof typeof ErrorCodes.O
 
 ## Reference
 
-See your project's error-handling module documentation for implementation details.
+See project error-handling module docs for implementation details.

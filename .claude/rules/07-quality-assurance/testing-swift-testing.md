@@ -15,13 +15,13 @@ import Foundation
 import Testing
 ```
 
-**NEVER** use `import XCTest` — the entire test suite uses Swift Testing.
+**NEVER** use `import XCTest` — whole test suite use Swift Testing.
 
 ## Organization
 
 ### File Placement
 
-Tests mirror the source structure:
+Tests mirror source structure:
 
 ```
 PulpeTests/
@@ -56,10 +56,10 @@ struct CurrentMonthStoreTests {
 }
 ```
 
-Key differences from XCTest:
+Diffs vs XCTest:
 - `struct` (not `final class ... XCTestCase`)
-- `@Suite` and `@Test` decorators
-- `#expect()` and `#require()` (not `XCTAssert*`)
+- `@Suite` + `@Test` decorators
+- `#expect()` + `#require()` (not `XCTAssert*`)
 - No `setUp()` / `tearDown()` — inline setup per test
 - `@MainActor` on suites testing `@Observable` stores
 
@@ -67,11 +67,11 @@ Key differences from XCTest:
 
 ### Language
 
-Write all test code and descriptions in **English**.
+Write all test code + descriptions in **English**.
 
 ### Arrange-Act-Assert
 
-Separate each test into three phases (comments optional for short tests):
+Split test in three phases (comments optional for short tests):
 
 ```swift
 @Test func toggleTransaction_updatesState() async {
@@ -89,7 +89,7 @@ Separate each test into three phases (comments optional for short tests):
 
 ### Naming Convention
 
-Use `descriptiveName_condition_expectedBehavior` format (no `test` prefix — `@Test` handles discovery):
+Use `descriptiveName_condition_expectedBehavior` format (no `test` prefix — `@Test` handle discovery):
 
 ```swift
 // Good
@@ -105,7 +105,7 @@ Use `descriptiveName_condition_expectedBehavior` format (no `test` prefix — `@
 
 ### Parameterized Tests
 
-Use `arguments:` for testing multiple inputs:
+Use `arguments:` for many inputs:
 
 ```swift
 @Test("Valid emails are recognized", arguments: [
@@ -133,7 +133,7 @@ func isEmailValid_validEmails(email: String) {
 
 ## Test Data Factory
 
-Use a shared factory for mock data:
+Use shared factory for mock data:
 
 ```swift
 enum TestDataFactory {
@@ -155,7 +155,7 @@ enum TestDataFactory {
 }
 ```
 
-- Use default parameters for flexibility
+- Default params for flexibility
 - Mirror real model structure
 - Keep in `Helpers/TestDataFactory.swift`
 
@@ -178,7 +178,7 @@ actor MockBudgetService: BudgetServiceProtocol {
 
 - Protocol-based mocking (define protocols for services)
 - Track call counts for verification
-- Stub return values and errors
+- Stub return values + errors
 
 ## Async Testing
 
@@ -195,9 +195,9 @@ actor MockBudgetService: BudgetServiceProtocol {
 }
 ```
 
-- Use `async` test methods directly
+- Use `async` test methods direct
 - Use `waitForCondition()` helper from `AsyncTestHelpers.swift` for polling
-- Test loading states, success, and error paths
+- Test loading states, success, error paths
 
 ## Formula Testing (Pure Functions)
 
@@ -219,7 +219,7 @@ struct BudgetFormulasTests {
 }
 ```
 
-- Pure function tests: no setup needed
+- Pure function tests: no setup
 - Test edge cases: zero, negative, overflow
 - Test boundary conditions
 
@@ -227,7 +227,7 @@ struct BudgetFormulasTests {
 
 ### Captured Variables in Closures
 
-Swift 6 forbids mutating captured `var` in `@Sendable` closures. In tests where closures run sequentially on `@MainActor`, use `nonisolated(unsafe)`:
+Swift 6 forbid mutating captured `var` in `@Sendable` closures. In tests where closures run sequential on `@MainActor`, use `nonisolated(unsafe)`:
 
 ```swift
 @Test func submit_callsService() async {
@@ -243,7 +243,7 @@ Swift 6 forbids mutating captured `var` in `@Sendable` closures. In tests where 
 
 ### Concurrent Task Testing
 
-`TaskGroup.addTask` requires `sending` closures — incompatible with `@MainActor` state. Use `Task.init` (inherits caller isolation):
+`TaskGroup.addTask` need `sending` closures — incompatible with `@MainActor` state. Use `Task.init` (inherit caller isolation):
 
 ```swift
 // Good — Task.init inherits @MainActor from the test struct
@@ -265,11 +265,11 @@ await withTaskGroup(of: Void.self) { group in
 | `XCTAssert*` | `#expect()` / `#require()` |
 | `setUp()` / `tearDown()` | Inline setup per test |
 | `func testName()` | `@Test func name()` |
-| Test implementation details | Test behavior and outcomes |
-| Share mutable state between tests | Create fresh instances per test |
+| Test implementation details | Test behavior + outcomes |
+| Share mutable state between tests | Fresh instance per test |
 | Force unwrap in tests | Use `try #require()` |
 | Inline magic values | Use `TestDataFactory` |
-| Test private methods directly | Test via public API |
+| Test private methods direct | Test via public API |
 | `XCTestExpectation` for async | Use `async` test methods |
 | `var x = 0` captured in closure | `nonisolated(unsafe) var x = 0` |
 | `TaskGroup.addTask { @MainActor in }` | `Task { await ... }` (inherits isolation) |

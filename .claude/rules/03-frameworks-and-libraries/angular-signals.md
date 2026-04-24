@@ -25,9 +25,9 @@ readonly doubled = computed(() => this.count() * 2);
 readonly label = computed(() => `Count: ${this.count()}`);
 ```
 
-- Lazy evaluation, memoized
-- Auto-tracks dependencies
-- Read-only (cannot `set()`)
+- Lazy eval, memoized
+- Auto-tracks deps
+- Read-only (no `set()`)
 
 ### linkedSignal() - Dependent Writable State
 
@@ -91,7 +91,7 @@ increment() {
 ```
 
 - Creates implicit `valueChange` output
-- Parent must bind to signal instance, not value
+- Parent bind signal instance, not value
 
 ---
 
@@ -176,7 +176,7 @@ readonly user = rxResource({
 
 | Use Case | API | Reason |
 |----------|-----|--------|
-| Simple GET requests | `httpResource()` | Minimal boilerplate, auto JSON parsing |
+| Simple GET requests | `httpResource()` | Min boilerplate, auto JSON parse |
 | GET with Zod validation | `httpResource()` + `parse` | Type-safe responses |
 | Complex HTTP (interceptors, retries) | `rxResource()` | Full RxJS power |
 | Non-HTTP async (localStorage, IndexedDB) | `resource()` | Generic async loader |
@@ -214,7 +214,7 @@ constructor() {
 - Logging/analytics
 - Sync to localStorage/sessionStorage
 - Custom DOM behavior
-- Third-party library integration
+- Third-party lib integration
 
 **NEVER use for:**
 

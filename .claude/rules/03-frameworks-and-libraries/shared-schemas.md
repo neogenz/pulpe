@@ -10,11 +10,11 @@ paths:
 
 ## Purpose
 
-`shared/` is the single source of truth for API contracts between frontend and backend. All validation schemas and their inferred TypeScript types live here.
+`shared/` = single source of truth for API contracts between frontend and backend. All validation schemas + inferred TypeScript types live here.
 
 ## Stack
 
-- **Zod 4** (`^4.1.13`) — uses top-level validators
+- **Zod 4** (`^4.1.13`) — top-level validators
 - **ESM** with `moduleResolution: "NodeNext"`
 - Published as `pulpe-shared` workspace package
 
@@ -57,11 +57,11 @@ export const budgetResponseSchema = z.object({
 
 ## Numeric Types from Supabase
 
-Supabase returns `numeric` columns as strings. Pick the coercion based on the column's role:
+Supabase return `numeric` columns as strings. Pick coercion by column role:
 
 ### Standard amounts — `z.coerce.number()`
 
-For amount columns where malformed input already fails elsewhere (encryption, domain checks):
+Amount columns where malformed input fail elsewhere (encryption, domain checks):
 
 ```typescript
 // Supabase numeric(12,2) comes as string "1234.56"
@@ -72,18 +72,18 @@ ending_balance: z.coerce.number()
 
 ### High-precision FX / sensitive numeric wire — narrow union (NEVER `z.coerce.number()`)
 
-For `exchange_rate` and other columns where the wire value must be exactly `string | number` (PUL-114). `z.coerce.number()` applies JS `Number(...)` semantics, so `true` coerces to `1` and `["1.2"]` coerces to `1.2` — both would pass `.positive()` and persist as valid financial values.
+For `exchange_rate` + columns where wire value must be exactly `string | number` (PUL-114). `z.coerce.number()` apply JS `Number(...)` semantics — `true` coerce to `1`, `["1.2"]` coerce to `1.2`. Both pass `.positive()` + persist as valid financial values.
 
-Use the canonical helpers in `shared/schemas.ts`:
+Use canonical helpers in `shared/schemas.ts`:
 
 ```typescript
 exchangeRate: exchangeRateWire.nullable().optional()       // read path
 exchangeRate: exchangeRateWirePositive.optional()          // create path
 ```
 
-These are defined as `z.union([z.number(), z.string().transform(...)])` — boolean and array inputs are rejected at the schema boundary. Tests: `shared/src/exchange-rate-coercion.spec.ts`.
+Defined as `z.union([z.number(), z.string().transform(...)])` — boolean + array inputs rejected at schema boundary. Tests: `shared/src/exchange-rate-coercion.spec.ts`.
 
-**Rule of thumb:** if the column stores a multiplier / rate / ratio (FX, yield, coefficient), use the narrow wire pattern. If it stores an amount (already validated downstream), `z.coerce.number()` is fine.
+**Rule of thumb:** column stores multiplier/rate/ratio (FX, yield, coefficient) → narrow wire pattern. Column stores amount (validated downstream) → `z.coerce.number()` fine.
 
 ## ESM Import Rule
 
@@ -123,7 +123,7 @@ this.apiClient.get<Budget>('/budgets/123', budgetSchema);
 pnpm build:shared    # MUST run before frontend or backend
 ```
 
-Turborepo handles this automatically with `pnpm dev` or `pnpm build`.
+Turborepo handle auto with `pnpm dev` or `pnpm build`.
 
 ## Rules
 

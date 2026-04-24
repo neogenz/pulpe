@@ -18,7 +18,7 @@ final class MyStore {
 ```
 
 - Use `@Observable` for all stores and view models
-- Always combine with `@MainActor` for UI state
+- Always combine `@MainActor` for UI state
 - `private(set)` for all published properties
 - **NEVER** use `ObservableObject` + `@Published` (legacy pattern)
 
@@ -148,7 +148,7 @@ struct BudgetListView: View {
 
 ### Sheet Presentation (iOS 26 Liquid Glass)
 
-All sheets **must** have an explicit presentation background to prevent iOS 26 Liquid Glass transparency bleeding:
+All sheets **must** have explicit presentation background. Prevents iOS 26 Liquid Glass transparency bleed:
 
 ```swift
 // Good — use the shared modifier (includes detents, drag indicator, corner radius, background)
@@ -261,7 +261,7 @@ NavigationLink { destination } label: { content }
 
 ### Liquid Glass Sheets
 
-Partial detent is **required** for glass appearance:
+Partial detent **required** for glass appearance:
 ```swift
 .presentationDetents([.medium, .large])  // Required
 ```
@@ -291,7 +291,7 @@ Task { try? await Task.sleep(for: .seconds(0.5)); onToggle() }
 ```
 
 **NEVER** use `DispatchQueue.main.asyncAfter` or `Task.sleep` for post-animation callbacks.
-Use `withAnimation(_:body:completion:)` — it fires when animation completes and handles reduced motion automatically.
+Use `withAnimation(_:body:completion:)` — fires when animation completes, handles reduced motion automatically.
 
 ### SF Symbol Transitions
 
@@ -319,7 +319,7 @@ UIImpactFeedbackGenerator(style: .medium).impactOccurred()
 
 ### Modifier Ordering: `.ignoresSafeArea` BEFORE `.frame`
 
-`.ignoresSafeArea(edges:)` must be applied **before** `.frame(height:)` for the view to extend into the safe area. If `.frame` locks the height first, `.ignoresSafeArea` has nothing to extend.
+`.ignoresSafeArea(edges:)` must apply **before** `.frame(height:)` for view to extend into safe area. If `.frame` locks height first, `.ignoresSafeArea` has nothing to extend.
 
 ```swift
 // Good — ignoresSafeArea before frame: view extends into safe area
@@ -334,11 +334,11 @@ VariableBlurView(maxBlurRadius: 8, direction: .blurredBottomClearTop)
     .ignoresSafeArea(edges: .bottom)  // too late — height already fixed
 ```
 
-**When using a component that applies `.frame` internally** (like `ProgressiveBlurEdge`), you must inline the underlying view and reorder modifiers.
+**Component applies `.frame` internally** (like `ProgressiveBlurEdge`): inline underlying view, reorder modifiers.
 
 ### Separate Overlays for Different Safe Area Behavior
 
-When an overlay needs `.ignoresSafeArea` but a sibling view (e.g., floating button) must stay within safe area, use **two separate `.overlay()` modifiers** — never wrap them in a shared ZStack:
+Overlay needs `.ignoresSafeArea` but sibling view (e.g., floating button) must stay within safe area: use **two separate `.overlay()` modifiers** — never wrap in shared ZStack:
 
 ```swift
 // Good — blur extends into safe area, button stays within

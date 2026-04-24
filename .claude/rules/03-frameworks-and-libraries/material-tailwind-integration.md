@@ -9,7 +9,7 @@ paths:
 
 # Material 21 + Tailwind 4 Integration
 
-This project uses a **3-layer token system** where Tailwind bridges to Material system tokens, and Pulpe semantic tokens sit on top.
+Project use **3-layer token system**. Tailwind bridge to Material system tokens. Pulpe semantic tokens sit on top.
 
 ## Token Hierarchy
 
@@ -45,7 +45,7 @@ This project uses a **3-layer token system** where Tailwind bridges to Material 
 
 File: `styles/vendors/_tailwind.css`
 
-Tailwind v4 `@theme inline` maps Tailwind tokens to Material system variables:
+Tailwind v4 `@theme inline` map Tailwind tokens to Material system variables:
 
 ```css
 @theme inline {
@@ -75,7 +75,7 @@ Tailwind v4 `@theme inline` maps Tailwind tokens to Material system variables:
 }
 ```
 
-This means `class="bg-primary"` resolves to `--mat-sys-primary` at runtime.
+Mean `class="bg-primary"` resolve to `--mat-sys-primary` at runtime.
 
 ## Tailwind Custom Utilities
 
@@ -165,22 +165,22 @@ html {
 
 ### Token Lookup Procedure
 
-When you need to override a Material component's styles, **look up the available tokens** from the local install instead of guessing:
+Override Material component styles → **look up tokens** from local install, no guess:
 
-**Step 1 — Find the token source file:**
+**Step 1 — Find token source file:**
 ```
 frontend/node_modules/@angular/material/<component>/_m3-<component>.scss
 ```
 
 Component folder names: `autocomplete`, `badge`, `bottom-sheet`, `button`, `button-toggle`, `card`, `checkbox`, `chips`, `datepicker`, `dialog`, `divider`, `expansion`, `form-field`, `grid-list`, `icon`, `input`, `list`, `menu`, `paginator`, `progress-bar`, `progress-spinner`, `radio`, `select`, `sidenav`, `slide-toggle`, `slider`, `snack-bar`, `sort`, `stepper`, `table`, `tabs`, `timepicker`, `toolbar`, `tooltip`, `tree`.
 
-**Step 2 — Read the `get-tokens()` function.** It returns a Sass map with 4 sections:
+**Step 2 — Read `get-tokens()` function.** Return Sass map, 4 sections:
 - `base:` — shape, sizing, layout (non-themed)
 - `color:` — all color tokens (state layers, text, containers)
 - `typography:` — font family, size, weight, tracking, line-height
 - `density:` — height/sizing at different density scales
 
-**Step 3 — Strip the component prefix** to get the override key name. Tokens are prefixed with the component namespace (listed in `_define-overrides()` in `_<component>-theme.scss`):
+**Step 3 — Strip component prefix** to get override key name. Tokens prefixed with component namespace (listed in `_define-overrides()` in `_<component>-theme.scss`):
 
 | Token in `_m3-<component>.scss` | Override key | Namespace |
 |--------------------------------|--------------|-----------|
@@ -188,24 +188,24 @@ Component folder names: `autocomplete`, `badge`, `bottom-sheet`, `button`, `butt
 | `dialog-container-color` | `container-color` | `dialog` |
 | `dialog-subhead-font` | `subhead-font` | `dialog` |
 
-**Step 4 — Use in the overrides mixin:**
+**Step 4 — Use in overrides mixin:**
 ```scss
 @include mat.<component>-overrides((
   <key-without-prefix>: <value>,
 ));
 ```
 
-**Example — looking up chip tokens:**
+**Example — look up chip tokens:**
 1. Read `frontend/node_modules/@angular/material/chips/_m3-chip.scss`
 2. Find `chip-label-text-color: map.get($system, on-surface-variant)` in `color:`
 3. Strip `chip-` → `label-text-color`
 4. Override: `@include mat.chips-overrides((label-text-color: var(--mat-sys-primary)));`
 
-> **Note:** The namespace (step 3) is usually the singular component name (`chip`, `dialog`, `tab`), confirmed by `_define-overrides()` in the `_<component>-theme.scss` file next to it.
+> **Note:** Namespace (step 3) usually singular component name (`chip`, `dialog`, `tab`), confirm via `_define-overrides()` in `_<component>-theme.scss` next to it.
 
 ## Density System
 
-Use CSS classes `.density-N` (N = 1 to 5) to apply Material density:
+Use CSS classes `.density-N` (N = 1 to 5) apply Material density:
 
 ```html
 <!-- Compact form field -->
@@ -232,7 +232,7 @@ Three mechanisms work together:
 @custom-variant dark (&:where(.dark-theme, .dark-theme *));
 ```
 
-This means `class="dark:bg-surface-container"` activates when `.dark-theme` is on an ancestor.
+Mean `class="dark:bg-surface-container"` activate when `.dark-theme` on ancestor.
 
 ## Font Loading
 
@@ -259,11 +259,11 @@ Loaded in `styles.scss` via `@include meta.load-css("@fontsource/...")`.
 }
 ```
 
-These live in `_tailwind.css` and are critical — do not remove.
+Live in `_tailwind.css`, critical — do not remove.
 
 ## ngm-dev/cli
 
-Several style files come from `https://ui.angular-material.dev/api/registry/` via `@ngm-dev/cli`. Do not manually rewrite files marked with "Installed from" comments — use `@ngm-dev/cli update` instead.
+Several style files come from `https://ui.angular-material.dev/api/registry/` via `@ngm-dev/cli`. Do not manual rewrite files marked "Installed from" — use `@ngm-dev/cli update` instead.
 
 ## Anti-Patterns
 

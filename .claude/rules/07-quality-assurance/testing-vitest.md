@@ -11,7 +11,7 @@ Path pattern: `**/*.spec.ts`
 
 ## Framework
 
-This project uses **Vitest** with Angular TestBed integration.
+Project use **Vitest** + Angular TestBed.
 
 ```typescript
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -22,7 +22,7 @@ import { TestBed, ComponentFixture } from '@angular/core/testing';
 
 ### File Placement
 
-Place test files next to the code they test:
+Test files next to code tested:
 
 ```
 feature/
@@ -34,7 +34,7 @@ feature/
 
 ### Describe Blocks
 
-Structure tests with nested `describe` blocks:
+Nest `describe` blocks:
 
 ```typescript
 describe('UserService', () => {
@@ -55,11 +55,11 @@ describe('UserService', () => {
 
 ### Language
 
-Write all test code and descriptions in **English**.
+All test code + descriptions in **English**.
 
 ### Arrange-Act-Assert (AAA)
 
-Separate each test into three distinct phases with blank lines:
+Split test into three phases, blank lines between:
 
 ```typescript
 it('should increment the count', () => {
@@ -76,7 +76,7 @@ it('should increment the count', () => {
 
 ### Descriptive Names
 
-Use `should + expected behavior` format:
+Format `should + expected behavior`:
 
 ```typescript
 // Good
@@ -90,7 +90,7 @@ it('test user', () => {});
 
 ### Use Existing Types
 
-Leverage project types for test data:
+Use project types for test data:
 
 ```typescript
 // Good - uses existing User type
@@ -181,7 +181,7 @@ beforeEach(() => {
 
 ### Factory Functions
 
-Create reusable test data factories:
+Reusable test data factories:
 
 ```typescript
 const createMockUser = (overrides: Partial<User> = {}): User => ({
@@ -224,7 +224,7 @@ const runInterceptor = (request: HttpRequest<unknown>): Promise<Error> => {
 
 ## User Interaction Tests
 
-Prefer testing through user interactions:
+Test via user interactions:
 
 ```typescript
 // Good - simulates user action
