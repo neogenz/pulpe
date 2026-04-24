@@ -7,25 +7,51 @@ test.describe('Template propagation choices', () => {
   const templateDetailUrl = `/budget-templates/details/${TEST_CONFIG.TEMPLATES.DEFAULT.id}`;
   const bulkOperationsEndpoint =
     '**/api/v1/budget-templates/*/lines/bulk-operations';
+  const usageEndpoint = '**/api/v1/budget-templates/*/usage';
+
+  async function mockTemplateUsageAsActive(page: Page) {
+    await page.route(usageEndpoint, (route) => {
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          data: {
+            isUsed: true,
+            budgetCount: 1,
+            budgets: [
+              {
+                id: TEST_UUIDS.BUDGET_2,
+                month: 1,
+                year: 2025,
+                description: 'Budget futur',
+              },
+            ],
+          },
+        }),
+      });
+    });
+  }
 
   async function openEditDialog(page: Page) {
     await page.goto(templateDetailUrl);
     await page.waitForLoadState('domcontentloaded');
     await expect(page.getByTestId('template-detail-page')).toBeVisible();
 
-    // Click the edit button directly (desktop view)
-    await page.getByTestId('template-detail-edit-button').click();
+    // Open the line card menu and click edit for the income line
+    await page.getByTestId(`template-line-menu-${TEST_UUIDS.LINE_1}`).click();
+    await page.getByTestId(`edit-template-line-${TEST_UUIDS.LINE_1}`).click();
 
-    // Ensure dialog is visible
+    // Ensure the edit dialog is visible
     await expect(
       page.getByRole('heading', {
-        name: /Modifier les prévisions/i,
+        name: /Modifier la prévision/i,
       }),
     ).toBeVisible();
   }
 
   async function makeLineAdjustment(page: Page) {
-    const amountInput = page.getByTestId('edit-line-amount').first();
+    const amountInput = page.getByTestId('edit-template-line-amount');
     await expect(amountInput).toBeVisible();
     await amountInput.fill('5100');
   }
@@ -35,6 +61,7 @@ test.describe('Template propagation choices', () => {
   }) => {
     const capturedBodies: unknown[] = [];
 
+    await mockTemplateUsageAsActive(authenticatedPage);
     await authenticatedPage.route(bulkOperationsEndpoint, async (route) => {
       const body = route.request().postDataJSON();
       capturedBodies.push(body);
@@ -73,9 +100,7 @@ test.describe('Template propagation choices', () => {
     await openEditDialog(authenticatedPage);
     await makeLineAdjustment(authenticatedPage);
 
-    await authenticatedPage
-      .getByRole('button', { name: 'Enregistrer', exact: true })
-      .click();
+    await authenticatedPage.getByTestId('save-edit-template-line').click();
 
     // Default selection is "Mettre à jour uniquement le modèle"; confirm dialog
     await expect(
@@ -93,7 +118,7 @@ test.describe('Template propagation choices', () => {
     expect(requestBody.propagateToBudgets).toBe(false);
 
     await expect(
-      authenticatedPage.getByText('Modèle mis à jour (budgets non modifiés).'),
+      authenticatedPage.getByText('Prévision modifiée'),
     ).toBeVisible();
   });
 
@@ -102,6 +127,7 @@ test.describe('Template propagation choices', () => {
   }) => {
     const capturedBodies: unknown[] = [];
 
+    await mockTemplateUsageAsActive(authenticatedPage);
     await authenticatedPage.route(bulkOperationsEndpoint, async (route) => {
       const body = route.request().postDataJSON();
       capturedBodies.push(body);
@@ -140,9 +166,7 @@ test.describe('Template propagation choices', () => {
     await openEditDialog(authenticatedPage);
     await makeLineAdjustment(authenticatedPage);
 
-    await authenticatedPage
-      .getByRole('button', { name: 'Enregistrer', exact: true })
-      .click();
+    await authenticatedPage.getByTestId('save-edit-template-line').click();
 
     const propagationDialog = authenticatedPage.getByRole('dialog', {
       name: 'Comment appliquer ces modifications ?',

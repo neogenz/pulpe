@@ -152,6 +152,7 @@ import { TemplateLineStore } from './services/template-line-store';
                 class="text-display-medium sm:text-display-large font-bold tracking-tight ph-no-capture"
                 [class.text-on-primary-container]="isPositiveBalance()"
                 [class.text-on-error-container]="!isPositiveBalance()"
+                data-testid="template-hero-amount"
               >
                 {{ absNetBalance() | number: '1.0-0' : locale() }}
                 <span class="text-headline-small font-normal">{{
