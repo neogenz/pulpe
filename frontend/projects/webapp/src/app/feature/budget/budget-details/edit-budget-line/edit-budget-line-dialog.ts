@@ -32,6 +32,7 @@ import {
 } from '@core/currency';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ConversionPreviewLine } from '@ui/conversion-preview-line';
+import { budgetLineUpdateFromFormSchema } from './edit-budget-line-dialog.schema';
 
 export interface EditBudgetLineDialogData {
   budgetLine: BudgetLine;
@@ -276,21 +277,21 @@ export class EditBudgetLineDialog {
         return;
       }
     } else {
-      // Mono-currency edit: keep the amount as entered and DO NOT send
-      // currency metadata so the backend preserves any existing values.
       finalAmount = value.amount!;
     }
 
-    const update: BudgetLineUpdate = {
-      id: this.#data.budgetLine.id,
-      name: value.name!.trim(),
+    const formPart = budgetLineUpdateFromFormSchema.parse({
+      name: value.name!,
       amount: finalAmount,
       kind: value.kind!,
       recurrence: value.recurrence!,
+      conversion: metadata,
+    });
+    const update: BudgetLineUpdate = {
+      id: this.#data.budgetLine.id,
       templateLineId: this.#data.budgetLine.templateLineId,
       savingsGoalId: this.#data.budgetLine.savingsGoalId,
-      isManuallyAdjusted: true,
-      ...(metadata ?? {}),
+      ...formPart,
     };
     this.#dialogRef.close(update);
   }
