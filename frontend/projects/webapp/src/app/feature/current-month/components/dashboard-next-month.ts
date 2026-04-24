@@ -120,7 +120,7 @@ export class DashboardNextMonth {
   protected readonly hasBudget = computed(() => this.forecast().hasBudget);
 
   protected readonly formattedRollover = computed(() => {
-    const locale = CURRENCY_CONFIG[this.currency()].locale;
+    const locale = CURRENCY_CONFIG[this.currency()].numberLocale;
     return getRolloverFormatter(locale).format(this.estimatedRollover());
   });
 }

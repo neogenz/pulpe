@@ -262,7 +262,7 @@ export default class TemplateDetail implements OnInit {
   readonly #budgetTemplatesStore = inject(BudgetTemplatesStore);
   protected readonly currency = inject(UserSettingsStore).currency;
   protected readonly locale = computed(
-    () => CURRENCY_CONFIG[this.currency()].locale,
+    () => CURRENCY_CONFIG[this.currency()].numberLocale,
   );
   readonly #router = inject(Router);
   readonly #route = inject(ActivatedRoute);
