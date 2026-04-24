@@ -71,7 +71,7 @@ actor AuthService {
     // MARK: - OAuth
 
     func signInWithApple(idToken: String, nonce: String) async throws -> UserInfo {
-        try await signInWithIdToken(.init(provider: .apple, idToken: idToken, nonce: nonce), idToken: idToken)
+        try await signInWithIdToken(.init(provider: .apple, idToken: idToken, nonce: nonce))
     }
 
     func signInWithGoogle(idToken: String, accessToken: String) async throws -> UserInfo {
@@ -80,10 +80,10 @@ actor AuthService {
             idToken: idToken,
             accessToken: accessToken
         )
-        return try await signInWithIdToken(credentials, idToken: idToken)
+        return try await signInWithIdToken(credentials)
     }
 
-    private func signInWithIdToken(_ credentials: OpenIDConnectCredentials, idToken: String) async throws -> UserInfo {
+    private func signInWithIdToken(_ credentials: OpenIDConnectCredentials) async throws -> UserInfo {
         let session = try await supabase.auth.signInWithIdToken(credentials: credentials)
 
         try await keychain.saveTokens(
@@ -91,8 +91,7 @@ actor AuthService {
             refreshToken: session.refreshToken
         )
 
-        let fallbackEmail = Self.extractEmailFromToken(idToken) ?? ""
-        return Self.userInfo(from: session.user, fallbackEmail: fallbackEmail)
+        return Self.userInfo(from: session.user, fallbackEmail: "")
     }
 
     // MARK: - Password Reset & Recovery
@@ -356,35 +355,9 @@ actor AuthService {
         await keychain.hasBiometricTokens()
     }
 
-    // MARK: - JWT Helpers
-
-    /// Decode the JWT payload (base64url middle segment) and extract the "email" claim.
-    /// No signature verification — Supabase validates the token server-side.
-    static func extractEmailFromToken(_ idToken: String) -> String? {
-        let segments = idToken.split(separator: ".")
-        guard segments.count == 3 else { return nil }
-
-        var base64 = String(segments[1])
-            .replacingOccurrences(of: "-", with: "+")
-            .replacingOccurrences(of: "_", with: "/")
-
-        // Pad to multiple of 4
-        while base64.count % 4 != 0 {
-            base64.append("=")
-        }
-
-        guard let data = Data(base64Encoded: base64),
-              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let email = json["email"] as? String else {
-            return nil
-        }
-
-        return email
-    }
-
     // MARK: - User Info Extraction
 
-    private static func userInfo(from user: User, fallbackEmail: String) -> UserInfo {
+    static func userInfo(from user: User, fallbackEmail: String) -> UserInfo {
         let metadata = user.userMetadata
 
         // Priority: firstName (email signup) > given_name (Google) > name (Apple, first sign-in only)
