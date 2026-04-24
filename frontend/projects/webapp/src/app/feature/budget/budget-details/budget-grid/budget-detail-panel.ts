@@ -27,7 +27,7 @@ import { TransactionLabelPipe } from '@ui/transaction-display';
 import {
   createBudgetLineConsumptionDisplay,
   type BudgetLineTableItem,
-} from '../data-core';
+} from '../view-models';
 import { SegmentedBudgetProgress } from '../components/segmented-budget-progress';
 import { BudgetDetailsStore } from '../store/budget-details-store';
 

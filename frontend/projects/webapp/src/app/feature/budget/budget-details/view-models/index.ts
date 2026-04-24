@@ -7,7 +7,7 @@ export type {
   TransactionTableItem,
   GroupHeaderTableItem,
   TableRowItem,
-} from './budget-item-models';
+} from './table-items.view-model';
 
 // Constants and helpers
 export {

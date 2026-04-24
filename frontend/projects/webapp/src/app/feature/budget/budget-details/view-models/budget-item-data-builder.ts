@@ -13,7 +13,7 @@ import type {
   GroupHeaderTableItem,
   TableRowItem,
   TransactionTableItem,
-} from './budget-item-models';
+} from './table-items.view-model';
 import {
   KIND_ICONS,
   GROUP_LABELS,

@@ -31,7 +31,7 @@ import type {
   GroupHeaderTableItem,
   TableRowItem,
   TransactionTableItem,
-} from '../data-core';
+} from '../view-models';
 
 /**
  * Table component for displaying budget lines in a mat-table.

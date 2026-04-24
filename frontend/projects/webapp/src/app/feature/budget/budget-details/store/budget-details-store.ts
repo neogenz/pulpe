@@ -30,12 +30,12 @@ import {
 
 import { firstValueFrom, map } from 'rxjs';
 import { v4 as uuidv4 } from 'uuid';
-import { type BudgetDetailsViewModel } from '../models/budget-details-view-model';
+import { type BudgetDetailsViewModel } from '../view-models/budget-details.view-model';
 import {
   calculateBudgetLineToggle,
   calculateTransactionToggle,
 } from './budget-details-check.utils';
-import { normalizeText } from '../data-core/budget-item-constants';
+import { normalizeText } from '../view-models/budget-item-constants';
 import { createInitialBudgetDetailsState } from './budget-details-state';
 
 const TEMP_ID_PREFIX = 'temp-';

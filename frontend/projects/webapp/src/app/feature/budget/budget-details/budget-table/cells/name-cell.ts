@@ -15,7 +15,7 @@ import {
   formatMatchAnnotation,
   type BudgetLineTableItem,
   type TransactionTableItem,
-} from '../../data-core';
+} from '../../view-models';
 
 @Component({
   selector: 'pulpe-name-cell',

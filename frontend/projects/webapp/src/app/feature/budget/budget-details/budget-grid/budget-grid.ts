@@ -21,8 +21,8 @@ import { FinancialKindIndicator } from '@ui/financial-kind-indicator';
 import { OriginalAmountLine } from '@ui/original-amount-line';
 import { TransactionLabelPipe } from '@ui/transaction-display';
 import type { BudgetLine, Transaction, SupportedCurrency } from 'pulpe-shared';
-import type { TransactionViewModel } from '../models/transaction-view-model';
-import type { BudgetLineTableItem } from '../data-core';
+import type { TransactionViewModel } from '../view-models/transaction.view-model';
+import type { BudgetLineTableItem } from '../view-models';
 import { TransactionActionMenu } from '../components/transaction-action-menu';
 import {
   BudgetDetailPanel,

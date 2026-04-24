@@ -54,7 +54,7 @@ interface PillConfig {
                   pill.colorClass
                 "
               >
-                {{ totals()[pill.key] | number: '1.0-0' : locale() }}
+                {{ totals()[pill.key] | number: '1.2-2' : locale() }}
                 {{ currency() }}
               </span>
             </div>

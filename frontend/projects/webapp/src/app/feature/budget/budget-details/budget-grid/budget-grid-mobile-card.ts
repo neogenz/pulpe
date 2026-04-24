@@ -17,7 +17,10 @@ import { AppCurrencyPipe, ConversionTooltipPipe } from '@core/currency';
 import { FinancialKindDirective } from '@ui/financial-kind';
 import { FinancialLineCard } from '@pattern/financial-line-card';
 import { OriginalAmountLine } from '@ui/original-amount-line';
-import { formatMatchAnnotation, type BudgetLineTableItem } from '../data-core';
+import {
+  formatMatchAnnotation,
+  type BudgetLineTableItem,
+} from '../view-models';
 import { SegmentedBudgetProgress } from '../components/segmented-budget-progress';
 import { BudgetActionMenu } from '../components/budget-action-menu';
 

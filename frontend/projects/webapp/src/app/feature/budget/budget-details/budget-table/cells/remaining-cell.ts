@@ -9,7 +9,7 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { AppCurrencyPipe } from '@core/currency';
 import { UserSettingsStore } from '@core/user-settings';
 
-import type { BudgetLineTableItem } from '../../data-core';
+import type { BudgetLineTableItem } from '../../view-models';
 
 @Component({
   selector: 'pulpe-remaining-cell',
