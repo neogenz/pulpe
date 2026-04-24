@@ -26,6 +26,7 @@ import { GoogleOAuthButton } from '@app/pattern/google-oauth';
 import { ErrorAlert } from '@ui/error-alert';
 import { LoadingButton } from '@ui/loading-button';
 import { createFieldsMatchValidator } from '@core/validators';
+import { signupFormSchema } from './signup-form.schema';
 
 @Component({
   selector: 'pulpe-signup',
@@ -330,7 +331,9 @@ export default class Signup {
     this.isSubmitting.set(true);
     this.clearMessages();
 
-    const { email, password } = this.signupForm.getRawValue();
+    const { email, password } = signupFormSchema.parse(
+      this.signupForm.getRawValue(),
+    );
 
     try {
       const result = await this.#authCredentials.signUpWithEmail(

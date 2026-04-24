@@ -38,6 +38,7 @@ import {
 } from '@ui/dialogs/recovery-key-dialog';
 import { LogoutDialog } from '@ui/dialogs/logout-dialog';
 import { PostHogService } from '@core/analytics';
+import { setupVaultCodeFormSchema } from './setup-vault-code-form.schema';
 
 @Component({
   selector: 'pulpe-setup-vault-code',
@@ -259,7 +260,9 @@ export default class SetupVaultCode {
     this.form.disable();
     this.clearError();
 
-    const { vaultCode, rememberDevice } = this.form.getRawValue();
+    const { vaultCode, rememberDevice } = setupVaultCodeFormSchema.parse(
+      this.form.getRawValue(),
+    );
 
     try {
       // 1. Get salt and derive client key from vault code

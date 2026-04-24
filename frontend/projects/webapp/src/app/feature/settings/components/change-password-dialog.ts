@@ -24,6 +24,7 @@ import { AuthSessionService, PASSWORD_MIN_LENGTH } from '@core/auth';
 import { Logger } from '@core/logging/logger';
 import { MatDivider } from '@angular/material/divider';
 import { ErrorAlert } from '@ui/error-alert';
+import { changePasswordFormSchema } from './change-password-dialog.schema';
 
 @Component({
   selector: 'pulpe-change-password-dialog',
@@ -237,7 +238,9 @@ export class ChangePasswordDialog {
   protected async onSubmit(): Promise<void> {
     if (this.isSubmitting() || !this.isFormValid()) return;
 
-    const { currentPassword, newPassword } = this.passwordForm.getRawValue();
+    const { currentPassword, newPassword } = changePasswordFormSchema.parse(
+      this.passwordForm.getRawValue(),
+    );
 
     this.isSubmitting.set(true);
     this.errorMessage.set('');

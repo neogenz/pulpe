@@ -31,8 +31,12 @@ import { isApiError } from '@core/api/api-error';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { UserSettingsStore } from '@core/user-settings';
 import { CURRENCY_CONFIG } from '@core/currency';
+import {
+  BUDGET_DESCRIPTION_MAX_LENGTH,
+  budgetCreationFormSchema,
+} from './budget-creation-dialog.schema';
 
-const DESCRIPTION_MAX_LENGTH = 100;
+const DESCRIPTION_MAX_LENGTH = BUDGET_DESCRIPTION_MAX_LENGTH;
 
 // Format personnalisé pour le month/year picker
 const MONTH_YEAR_FORMATS = {
@@ -331,13 +335,7 @@ export class CreateBudgetDialogComponent {
     }
 
     const formData = this.budgetForm.getRawValue();
-
-    const budgetData = {
-      month: formData.monthYear.getMonth() + 1, // getMonth() returns 0-11, we need 1-12
-      year: formData.monthYear.getFullYear(),
-      description: formData.description,
-      templateId: formData.templateId,
-    };
+    const budgetData = budgetCreationFormSchema.parse(formData);
 
     const result = await this.templateStore.createBudget(budgetData);
 

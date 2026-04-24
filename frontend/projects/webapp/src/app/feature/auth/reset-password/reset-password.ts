@@ -26,6 +26,7 @@ import { Logger } from '@core/logging/logger';
 import { ErrorAlert } from '@ui/error-alert';
 import { LoadingButton } from '@ui/loading-button';
 import { createFieldsMatchValidator } from '@core/validators';
+import { resetPasswordFormSchema } from './reset-password-form.schema';
 
 @Component({
   selector: 'pulpe-reset-password',
@@ -286,7 +287,9 @@ export default class ResetPassword {
     this.isSubmitting.set(true);
     this.clearError();
 
-    const { newPassword } = this.form.getRawValue();
+    const { newPassword } = resetPasswordFormSchema.parse(
+      this.form.getRawValue(),
+    );
 
     try {
       const passwordResult =

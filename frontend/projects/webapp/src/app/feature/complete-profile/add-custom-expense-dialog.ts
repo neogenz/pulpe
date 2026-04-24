@@ -38,7 +38,7 @@ export interface AddCustomExpenseDialogData {
     <mat-dialog-content>
       <form [formGroup]="form" class="flex flex-col gap-4 density-1">
         <mat-button-toggle-group
-          formControlName="kind"
+          formControlName="type"
           [hideSingleSelectionIndicator]="true"
           class="w-full"
           [attr.aria-label]="
@@ -129,7 +129,7 @@ export class AddCustomExpenseDialog {
     inject<AddCustomExpenseDialogData>(MAT_DIALOG_DATA).currency;
 
   protected readonly form = this.#fb.group({
-    kind: ['expense' as 'income' | 'expense' | 'saving'],
+    type: ['expense' as 'income' | 'expense' | 'saving'],
     name: [
       '',
       [
@@ -150,7 +150,7 @@ export class AddCustomExpenseDialog {
       const transaction: OnboardingTransaction = {
         name: value.name!.trim(),
         amount: value.amount!,
-        type: value.kind!,
+        type: value.type!,
         expenseType: 'fixed',
         isRecurring: true,
       };

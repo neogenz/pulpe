@@ -45,7 +45,7 @@ const createValidBudgetForm = (
 ) => ({
   monthYear: new Date(2024, 5, 1), // June 2024
   description: 'Test budget',
-  templateId: 'template-1',
+  templateId: '00000000-0000-4000-8000-000000000111',
   ...overrides,
 });
 
@@ -55,7 +55,7 @@ const createValidBudgetForm = (
 const createTestTemplate = (
   overrides: Partial<BudgetTemplate> = {},
 ): BudgetTemplate => ({
-  id: 'template-1',
+  id: '00000000-0000-4000-8000-000000000111',
   name: 'Test Template',
   description: 'A test template',
   isDefault: false,
@@ -159,7 +159,7 @@ describe('CreateBudgetDialogComponent', () => {
           year: 2024,
           description: 'Test',
           userId: 'user-123',
-          templateId: 'template-1',
+          templateId: '00000000-0000-4000-8000-000000000111',
           createdAt: '2024-06-01T00:00:00Z',
           updatedAt: '2024-06-01T00:00:00Z',
         },
@@ -333,7 +333,7 @@ describe('CreateBudgetDialogComponent', () => {
         month: 6,
         year: 2024,
         description: 'Test budget',
-        templateId: 'template-1',
+        templateId: '00000000-0000-4000-8000-000000000111',
       });
 
       // Dialog should close on success
@@ -341,7 +341,7 @@ describe('CreateBudgetDialogComponent', () => {
         success: true,
         data: expect.objectContaining({
           description: 'Test budget',
-          templateId: 'template-1',
+          templateId: '00000000-0000-4000-8000-000000000111',
         }),
       });
     });
@@ -361,7 +361,7 @@ describe('CreateBudgetDialogComponent', () => {
 
       // Update with new template totals
       const newTotals = {
-        'template-1': {
+        '00000000-0000-4000-8000-000000000111': {
           income: 3000,
           expenses: 2000,
           savings: 0,
@@ -384,7 +384,9 @@ describe('CreateBudgetDialogComponent', () => {
       }));
 
       const updatedTotals = totalsSignal();
-      expect(updatedTotals['template-1']).toEqual(newTotals['template-1']);
+      expect(updatedTotals['00000000-0000-4000-8000-000000000111']).toEqual(
+        newTotals['00000000-0000-4000-8000-000000000111'],
+      );
       expect(updatedTotals['template-2']).toEqual({
         income: 4000,
         expenses: 2500,
@@ -494,7 +496,7 @@ describe('CreateBudgetDialogComponent', () => {
         month: 6, // June (0-indexed + 1)
         year: 2024,
         description: 'Test budget with error',
-        templateId: 'template-1',
+        templateId: '00000000-0000-4000-8000-000000000111',
       });
 
       // Should show error notification
