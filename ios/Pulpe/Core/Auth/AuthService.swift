@@ -357,7 +357,7 @@ actor AuthService {
 
     // MARK: - User Info Extraction
 
-    private static func userInfo(from user: User, fallbackEmail: String) -> UserInfo {
+    static func userInfo(from user: User, fallbackEmail: String) -> UserInfo {
         let metadata = user.userMetadata
 
         // Priority: firstName (email signup) > given_name (Google) > name (Apple, first sign-in only)
