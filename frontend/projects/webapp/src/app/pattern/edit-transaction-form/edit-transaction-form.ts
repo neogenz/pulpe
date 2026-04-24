@@ -28,11 +28,15 @@ import { MatNativeDateModule } from '@angular/material/core';
 import { TranslocoService, TranslocoPipe } from '@jsverse/transloco';
 import { type Transaction, type TransactionCreate } from 'pulpe-shared';
 import { startOfMonth, endOfMonth } from 'date-fns';
+import type { Observable } from 'rxjs';
 import type { CurrencyConverterService } from '@core/currency';
 import {
   CURRENCY_CONFIG,
   injectCurrencyFormConfigForEdit,
+  injectLiveConversionPreview,
 } from '@core/currency';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { ConversionPreviewLine } from '@ui/conversion-preview-line';
 import { TransactionValidators } from '@core/transaction';
 import { TransactionLabelPipe } from '@ui/transaction-display';
 import { CurrencySuffix } from '@ui/currency-suffix';
@@ -66,6 +70,7 @@ export type EditTransactionFormData = Pick<
     TransactionLabelPipe,
     TranslocoPipe,
     CurrencySuffix,
+    ConversionPreviewLine,
   ],
 
   template: `
@@ -168,6 +173,15 @@ export type EditTransactionFormData = Pick<
           </mat-error>
         }
       </mat-form-field>
+
+      <pulpe-conversion-preview-line
+        [amount]="preview().convertedAmount ?? null"
+        [inputCurrency]="inputCurrency()"
+        [displayCurrency]="currency()"
+        [rate]="preview().rate ?? null"
+        [cachedDate]="preview().cachedDate ?? null"
+        [status]="preview().status"
+      />
 
       <!-- Type Field -->
       @if (!isFieldHidden('kind')) {
@@ -358,6 +372,20 @@ export class EditTransactionForm implements OnInit {
     ],
     category: ['', TransactionValidators.category],
   });
+
+  readonly #amountValue = toSignal(
+    this.transactionForm.controls.amount.valueChanges as Observable<
+      number | null
+    >,
+    {
+      initialValue: this.transactionForm.controls.amount.value as number | null,
+    },
+  );
+  protected readonly preview = injectLiveConversionPreview(
+    this.#amountValue,
+    this.inputCurrency,
+    this.currency,
+  );
 
   constructor() {
     // Re-validate the date control when the budget period boundaries change,

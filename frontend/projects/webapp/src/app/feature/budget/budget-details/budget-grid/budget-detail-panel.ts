@@ -16,11 +16,11 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { type BudgetLine, type Transaction } from 'pulpe-shared';
-import { AppCurrencyPipe, buildConversionTooltip } from '@core/currency';
+import { AppCurrencyPipe, ConversionTooltipPipe } from '@core/currency';
 import { FeatureFlagsService } from '@core/feature-flags';
 import { UserSettingsStore } from '@core/user-settings';
-import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
-import { CurrencyConversionBadge } from '@ui/currency-conversion-badge';
+import { TranslocoPipe } from '@jsverse/transloco';
+import { OriginalAmountLine } from '@ui/original-amount-line';
 import { FinancialKindDirective } from '@ui/financial-kind';
 import { FinancialKindIndicator } from '@ui/financial-kind-indicator';
 import { TransactionLabelPipe } from '@ui/transaction-display';
@@ -69,9 +69,10 @@ const DETAIL_SEGMENT_COUNT = 12;
     MatSlideToggleModule,
     MatTooltipModule,
     AppCurrencyPipe,
+    ConversionTooltipPipe,
     TranslocoPipe,
     DatePipe,
-    CurrencyConversionBadge,
+    OriginalAmountLine,
     FinancialKindDirective,
     TransactionLabelPipe,
     SegmentedBudgetProgress,
@@ -114,25 +115,21 @@ const DETAIL_SEGMENT_COUNT = 12;
               {{ 'budget.tablePlanned' | transloco }}
             </div>
             <div
-              class="ph-no-capture text-title-medium font-bold flex items-center justify-center gap-1"
+              class="ph-no-capture text-title-medium font-bold"
               [pulpeFinancialKind]="envelope.data.kind"
             >
               {{ envelope.data.amount | appCurrency: currency() : '1.0-0' }}
-              @if (isMultiCurrencyEnabled()) {
-                <pulpe-currency-conversion-badge
-                  [originalAmount]="envelope.data.originalAmount"
-                  [originalCurrency]="envelope.data.originalCurrency"
-                  [exchangeRate]="envelope.data.exchangeRate"
-                  [tooltipText]="
-                    conversionTooltip(
-                      envelope.data.originalAmount,
-                      envelope.data.originalCurrency,
-                      envelope.data.exchangeRate
-                    )
-                  "
-                />
-              }
             </div>
+            <pulpe-original-amount-line
+              [originalAmount]="envelope.data.originalAmount"
+              [originalCurrency]="envelope.data.originalCurrency"
+              [displayCurrency]="currency()"
+              [tooltipText]="
+                isMultiCurrencyEnabled()
+                  ? (envelope.data | conversionTooltip)
+                  : ''
+              "
+            />
           </div>
           <div class="text-center">
             <div class="text-label-medium text-on-surface-variant">
@@ -260,26 +257,22 @@ const DETAIL_SEGMENT_COUNT = 12;
                       {{ tx.transactionDate | date: 'dd.MM.yyyy' }}
                     </div>
                   </div>
-                  <div
-                    class="ph-no-capture text-title-medium font-bold shrink-0 flex items-center gap-1"
-                    [class.text-financial-income]="tx.kind === 'income'"
-                    [class.text-on-surface-variant]="tx.kind !== 'income'"
-                  >
-                    {{ tx.amount | appCurrency: currency() : '1.0-0' }}
-                    @if (isMultiCurrencyEnabled()) {
-                      <pulpe-currency-conversion-badge
-                        [originalAmount]="tx.originalAmount"
-                        [originalCurrency]="tx.originalCurrency"
-                        [exchangeRate]="tx.exchangeRate"
-                        [tooltipText]="
-                          conversionTooltip(
-                            tx.originalAmount,
-                            tx.originalCurrency,
-                            tx.exchangeRate
-                          )
-                        "
-                      />
-                    }
+                  <div class="shrink-0 text-right">
+                    <div
+                      class="ph-no-capture text-title-medium font-bold"
+                      [class.text-financial-income]="tx.kind === 'income'"
+                      [class.text-on-surface-variant]="tx.kind !== 'income'"
+                    >
+                      {{ tx.amount | appCurrency: currency() : '1.0-0' }}
+                    </div>
+                    <pulpe-original-amount-line
+                      [originalAmount]="tx.originalAmount"
+                      [originalCurrency]="tx.originalCurrency"
+                      [displayCurrency]="currency()"
+                      [tooltipText]="
+                        isMultiCurrencyEnabled() ? (tx | conversionTooltip) : ''
+                      "
+                    />
                   </div>
                   <div class="flex items-center gap-1">
                     <mat-slide-toggle
@@ -341,7 +334,6 @@ export class BudgetDetailPanel {
   readonly #store = inject(BudgetDetailsStore);
   readonly #userSettings = inject(UserSettingsStore);
   readonly #featureFlags = inject(FeatureFlagsService);
-  readonly #transloco = inject(TranslocoService);
   protected readonly currency = this.#userSettings.currency;
   protected readonly isMultiCurrencyEnabled =
     this.#featureFlags.isMultiCurrencyEnabled;
@@ -384,19 +376,6 @@ export class BudgetDetailPanel {
       (tx) => tx.budgetLineId === this.data.item.data.id,
     );
   });
-
-  protected conversionTooltip(
-    originalAmount: number | null | undefined,
-    originalCurrency: string | null | undefined,
-    exchangeRate: number | null | undefined,
-  ): string {
-    return buildConversionTooltip(
-      this.#transloco,
-      originalAmount,
-      originalCurrency,
-      exchangeRate,
-    );
-  }
 
   protected close(): void {
     this.#dialogRef.close();

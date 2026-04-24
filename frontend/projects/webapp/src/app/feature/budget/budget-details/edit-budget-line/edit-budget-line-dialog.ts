@@ -26,7 +26,12 @@ import { CurrencySuffix } from '@ui/currency-suffix';
 import { TransactionIconPipe } from '@ui/transaction-display';
 import { TransactionLabelPipe } from '@ui/transaction-display';
 import type { CurrencyConverterService } from '@core/currency';
-import { injectCurrencyFormConfigForEdit } from '@core/currency';
+import {
+  injectCurrencyFormConfigForEdit,
+  injectLiveConversionPreview,
+} from '@core/currency';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { ConversionPreviewLine } from '@ui/conversion-preview-line';
 
 export interface EditBudgetLineDialogData {
   budgetLine: BudgetLine;
@@ -46,6 +51,7 @@ export interface EditBudgetLineDialogData {
     TransactionIconPipe,
     TransactionLabelPipe,
     CurrencySuffix,
+    ConversionPreviewLine,
   ],
   template: `
     <h2 mat-dialog-title class="text-headline-small">
@@ -115,6 +121,15 @@ export interface EditBudgetLineDialogData {
               <mat-error>{{ 'budget.amountMinError' | transloco }}</mat-error>
             }
           </mat-form-field>
+
+          <pulpe-conversion-preview-line
+            [amount]="preview().convertedAmount ?? null"
+            [inputCurrency]="inputCurrency()"
+            [displayCurrency]="currency()"
+            [rate]="preview().rate ?? null"
+            [cachedDate]="preview().cachedDate ?? null"
+            [status]="preview().status"
+          />
 
           <mat-form-field appearance="outline" class="w-full">
             <mat-label>{{ 'budget.forecastTypeLabel' | transloco }}</mat-label>
@@ -201,6 +216,15 @@ export class EditBudgetLineDialog {
       Validators.required,
     ],
   });
+
+  readonly #amountValue = toSignal(this.form.controls.amount.valueChanges, {
+    initialValue: this.form.controls.amount.value,
+  });
+  protected readonly preview = injectLiveConversionPreview(
+    this.#amountValue,
+    this.inputCurrency,
+    this.currency,
+  );
 
   #computeInitialAmount(): number {
     const line = this.#data.budgetLine;

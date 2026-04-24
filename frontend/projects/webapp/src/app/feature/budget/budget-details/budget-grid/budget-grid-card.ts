@@ -11,9 +11,10 @@ import { MatChipsModule } from '@angular/material/chips';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { type BudgetLine, type SupportedCurrency } from 'pulpe-shared';
-import { AppCurrencyPipe } from '@core/currency';
+import { AppCurrencyPipe, ConversionTooltipPipe } from '@core/currency';
 import { FinancialKindDirective } from '@ui/financial-kind';
 import { FinancialKindIndicator } from '@ui/financial-kind-indicator';
+import { OriginalAmountLine } from '@ui/original-amount-line';
 import { RecurrenceLabelPipe } from '@ui/transaction-display';
 import { formatMatchAnnotation, type BudgetLineTableItem } from '../data-core';
 import { SegmentedBudgetProgress } from '../components/segmented-budget-progress';
@@ -44,6 +45,8 @@ import { BudgetActionMenu } from '../components/budget-action-menu';
     TranslocoPipe,
     AppCurrencyPipe,
     FinancialKindDirective,
+    OriginalAmountLine,
+    ConversionTooltipPipe,
     RecurrenceLabelPipe,
     SegmentedBudgetProgress,
     FinancialKindIndicator,
@@ -137,6 +140,14 @@ import { BudgetActionMenu } from '../components/budget-action-menu';
             'budgetLine.planned' | transloco
           }}</span>
         }
+        <pulpe-original-amount-line
+          [originalAmount]="item().data.originalAmount"
+          [originalCurrency]="item().data.originalCurrency"
+          [displayCurrency]="currency()"
+          [tooltipText]="
+            isMultiCurrencyEnabled() ? (item().data | conversionTooltip) : ''
+          "
+        />
       </div>
 
       <!-- Segmented Progress -->
@@ -213,6 +224,7 @@ export class BudgetGridCard {
   readonly item = input.required<BudgetLineTableItem>();
   readonly currency = input<SupportedCurrency>('CHF');
   readonly isSelected = input<boolean>(false);
+  readonly isMultiCurrencyEnabled = input<boolean>(false);
 
   readonly matchAnnotation = computed(() =>
     formatMatchAnnotation(this.item().metadata.matchingTransactionNames),

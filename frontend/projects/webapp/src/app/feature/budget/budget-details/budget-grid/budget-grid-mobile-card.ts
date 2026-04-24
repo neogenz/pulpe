@@ -13,9 +13,10 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { RouterLink } from '@angular/router';
 import { type BudgetLine, type SupportedCurrency } from 'pulpe-shared';
-import { AppCurrencyPipe } from '@core/currency';
+import { AppCurrencyPipe, ConversionTooltipPipe } from '@core/currency';
 import { FinancialKindDirective } from '@ui/financial-kind';
 import { FinancialLineCard } from '@pattern/financial-line-card';
+import { OriginalAmountLine } from '@ui/original-amount-line';
 import { formatMatchAnnotation, type BudgetLineTableItem } from '../data-core';
 import { SegmentedBudgetProgress } from '../components/segmented-budget-progress';
 import { BudgetActionMenu } from '../components/budget-action-menu';
@@ -33,6 +34,8 @@ import { BudgetActionMenu } from '../components/budget-action-menu';
     AppCurrencyPipe,
     FinancialKindDirective,
     FinancialLineCard,
+    OriginalAmountLine,
+    ConversionTooltipPipe,
     SegmentedBudgetProgress,
     BudgetActionMenu,
   ],
@@ -119,6 +122,14 @@ import { BudgetActionMenu } from '../components/budget-action-menu';
           <span class="text-label-small text-on-surface-variant">{{
             'budgetLine.available' | transloco
           }}</span>
+          <pulpe-original-amount-line
+            [originalAmount]="item().data.originalAmount"
+            [originalCurrency]="item().data.originalCurrency"
+            [displayCurrency]="currency()"
+            [tooltipText]="
+              isMultiCurrencyEnabled() ? (item().data | conversionTooltip) : ''
+            "
+          />
         </ng-container>
 
         <ng-container ngProjectAs="[meta]">
@@ -146,6 +157,14 @@ import { BudgetActionMenu } from '../components/budget-action-menu';
           <span class="text-label-small text-on-surface-variant">{{
             'budgetLine.planned' | transloco
           }}</span>
+          <pulpe-original-amount-line
+            [originalAmount]="item().data.originalAmount"
+            [originalCurrency]="item().data.originalCurrency"
+            [displayCurrency]="currency()"
+            [tooltipText]="
+              isMultiCurrencyEnabled() ? (item().data | conversionTooltip) : ''
+            "
+          />
         </ng-container>
       }
 
@@ -264,6 +283,7 @@ export class BudgetGridMobileCard {
   readonly item = input.required<BudgetLineTableItem>();
   readonly currency = input<SupportedCurrency>('CHF');
   readonly isSelected = input<boolean>(false);
+  readonly isMultiCurrencyEnabled = input<boolean>(false);
 
   readonly matchAnnotation = computed(() =>
     formatMatchAnnotation(this.item().metadata.matchingTransactionNames),

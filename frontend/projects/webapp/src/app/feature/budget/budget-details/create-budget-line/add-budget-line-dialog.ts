@@ -22,7 +22,12 @@ import { TransactionIconPipe } from '@ui/transaction-display';
 import { TransactionLabelPipe } from '@ui/transaction-display';
 import { UserSettingsStore } from '@core/user-settings';
 import type { CurrencyConverterService } from '@core/currency';
-import { injectCurrencyFormConfig } from '@core/currency';
+import {
+  injectCurrencyFormConfig,
+  injectLiveConversionPreview,
+} from '@core/currency';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { ConversionPreviewLine } from '@ui/conversion-preview-line';
 
 export interface BudgetLineDialogData {
   budgetId: string;
@@ -43,6 +48,7 @@ export interface BudgetLineDialogData {
     TransactionIconPipe,
     TransactionLabelPipe,
     CurrencySuffix,
+    ConversionPreviewLine,
   ],
   template: `
     <h2 mat-dialog-title class="text-headline-small">
@@ -83,6 +89,15 @@ export interface BudgetLineDialogData {
               (currencyChange)="inputCurrency.set($event)"
             />
           </mat-form-field>
+
+          <pulpe-conversion-preview-line
+            [amount]="preview().convertedAmount ?? null"
+            [inputCurrency]="inputCurrency()"
+            [displayCurrency]="currency()"
+            [rate]="preview().rate ?? null"
+            [cachedDate]="preview().cachedDate ?? null"
+            [status]="preview().status"
+          />
 
           <mat-form-field appearance="outline" class="w-full">
             <mat-label>{{ 'budget.forecastTypeLabel' | transloco }}</mat-label>
@@ -166,6 +181,15 @@ export class AddBudgetLineDialog {
     recurrence: ['one_off' as TransactionRecurrence],
     isChecked: [false],
   });
+
+  readonly #amountValue = toSignal(this.form.controls.amount.valueChanges, {
+    initialValue: this.form.controls.amount.value,
+  });
+  protected readonly preview = injectLiveConversionPreview(
+    this.#amountValue,
+    this.inputCurrency,
+    this.currency,
+  );
 
   protected async submit(): Promise<void> {
     if (!this.form.valid) return;

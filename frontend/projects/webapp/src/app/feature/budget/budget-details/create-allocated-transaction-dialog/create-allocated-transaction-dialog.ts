@@ -16,7 +16,12 @@ import { CurrencySuffix } from '@ui/currency-suffix';
 import { type BudgetLine, type TransactionCreate } from 'pulpe-shared';
 import { formatLocalDate } from '@core/date/format-local-date';
 import type { CurrencyConverterService } from '@core/currency';
-import { injectCurrencyFormConfig } from '@core/currency';
+import {
+  injectCurrencyFormConfig,
+  injectLiveConversionPreview,
+} from '@core/currency';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { ConversionPreviewLine } from '@ui/conversion-preview-line';
 import {
   computeBudgetPeriodDateConstraints,
   createDateRangeValidator,
@@ -43,6 +48,7 @@ export interface CreateAllocatedTransactionDialogData {
     ReactiveFormsModule,
     TranslocoPipe,
     CurrencySuffix,
+    ConversionPreviewLine,
   ],
   template: `
     <h2 mat-dialog-title class="text-headline-small">
@@ -108,6 +114,15 @@ export interface CreateAllocatedTransactionDialogData {
             <mat-error>{{ 'budget.amountMinError' | transloco }}</mat-error>
           }
         </mat-form-field>
+
+        <pulpe-conversion-preview-line
+          [amount]="preview().convertedAmount ?? null"
+          [inputCurrency]="inputCurrency()"
+          [displayCurrency]="currency()"
+          [rate]="preview().rate ?? null"
+          [cachedDate]="preview().cachedDate ?? null"
+          [status]="preview().status"
+        />
 
         <mat-form-field appearance="outline" class="w-full">
           <mat-label>{{ 'budget.dateLabel' | transloco }}</mat-label>
@@ -214,6 +229,15 @@ export class CreateAllocatedTransactionDialog {
     ],
     isChecked: [false],
   });
+
+  readonly #amountValue = toSignal(this.form.controls.amount.valueChanges, {
+    initialValue: this.form.controls.amount.value,
+  });
+  protected readonly preview = injectLiveConversionPreview(
+    this.#amountValue,
+    this.inputCurrency,
+    this.currency,
+  );
 
   cancel(): void {
     this.#dialogRef.close();

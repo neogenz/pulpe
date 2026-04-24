@@ -26,8 +26,13 @@ import { TransactionValidators } from '@core/transaction';
 import { TransactionLabelPipe } from '@ui/transaction-display';
 import { UserSettingsStore } from '@core/user-settings';
 import type { CurrencyConverterService } from '@core/currency';
-import { injectCurrencyFormConfig } from '@core/currency';
+import {
+  injectCurrencyFormConfig,
+  injectLiveConversionPreview,
+} from '@core/currency';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { CurrencySuffix } from '@ui/currency-suffix';
+import { ConversionPreviewLine } from '@ui/conversion-preview-line';
 
 export type TransactionFormData = Pick<
   TransactionCreate,
@@ -62,6 +67,7 @@ interface TransactionFormControls {
     TranslocoPipe,
     TransactionLabelPipe,
     CurrencySuffix,
+    ConversionPreviewLine,
   ],
   template: `
     <div class="flex flex-col gap-4">
@@ -143,6 +149,15 @@ interface TransactionFormControls {
             }}</mat-error>
           }
         </mat-form-field>
+
+        <pulpe-conversion-preview-line
+          [amount]="preview().convertedAmount ?? null"
+          [inputCurrency]="inputCurrency()"
+          [displayCurrency]="currency()"
+          [rate]="preview().rate ?? null"
+          [cachedDate]="preview().cachedDate ?? null"
+          [status]="preview().status"
+        />
 
         <!-- Predefined Amounts -->
         <div class="flex flex-col gap-3">
@@ -336,6 +351,16 @@ export class AddTransactionBottomSheet {
       ]),
       isChecked: new FormControl<boolean>(true, { nonNullable: true }),
     });
+
+  readonly #amountValue = toSignal(
+    this.transactionForm.controls.amount.valueChanges,
+    { initialValue: this.transactionForm.controls.amount.value },
+  );
+  protected readonly preview = injectLiveConversionPreview(
+    this.#amountValue,
+    this.inputCurrency,
+    this.currency,
+  );
 
   constructor() {
     this.#bottomSheetRef.afterOpened().subscribe(() => {

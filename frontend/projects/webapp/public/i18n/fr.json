@@ -724,7 +724,12 @@
     "inputHint": "Entre le montant en {{ currency }}",
     "rateFromDate": "Taux du {{ date }}",
     "rateFromDateAriaLabel": "Taux du {{ date }}, connexion indisponible",
-    "fallbackTooltip": "Connexion indisponible — on affiche le dernier taux récupéré"
+    "fallbackTooltip": "Connexion indisponible — on affiche le dernier taux récupéré",
+    "originalAmountLabel": "Montant d'origine {{ amount }}",
+    "livePreviewApprox": "≈ {{ amount }} · taux {{ rate }}",
+    "livePreviewLoading": "Calcul du taux…",
+    "livePreviewError": "Taux indisponible",
+    "livePreviewAriaLabel": "Aperçu converti : {{ amount }}"
   },
   "completeProfile": {
     "loading": "Préparation de ton espace de liberté...",
