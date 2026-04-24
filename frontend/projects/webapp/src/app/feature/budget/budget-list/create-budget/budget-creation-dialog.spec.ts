@@ -25,8 +25,8 @@ import { BudgetTemplatesApi } from '@core/budget-template/budget-templates-api';
 import { type BudgetTemplate } from 'pulpe-shared';
 import { CreateBudgetDialogComponent } from './budget-creation-dialog';
 import { TemplateStore, type TemplateTotals } from './services/template-store';
-import { type TemplateViewModel } from './ui/template-view-model';
-import { TemplatesList } from './ui/templates-list';
+import { type TemplateViewModel } from './template-view-model';
+import { TemplatesList } from './templates-list';
 
 // Type-safe mock interface that includes internal methods
 interface MatDialogMock extends Partial<MatDialog> {
