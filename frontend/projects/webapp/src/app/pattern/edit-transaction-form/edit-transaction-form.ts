@@ -26,7 +26,11 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
 import { TranslocoService, TranslocoPipe } from '@jsverse/transloco';
-import { type Transaction, type TransactionCreate } from 'pulpe-shared';
+import {
+  type SupportedCurrency,
+  type Transaction,
+  type TransactionCreate,
+} from 'pulpe-shared';
 import { startOfMonth, endOfMonth } from 'date-fns';
 import type { Observable } from 'rxjs';
 import type { CurrencyConverterService } from '@core/currency';
@@ -51,8 +55,8 @@ export type EditTransactionFormData = Pick<
 > & {
   transactionDate: string;
   originalAmount?: number;
-  originalCurrency?: string;
-  targetCurrency?: string;
+  originalCurrency?: SupportedCurrency;
+  targetCurrency?: SupportedCurrency;
   exchangeRate?: number;
 };
 

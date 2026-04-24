@@ -168,10 +168,8 @@ export class BudgetDetailsDialogService {
     if (!result) return undefined;
 
     return {
+      ...result,
       id: transaction.id,
-      name: result.name,
-      amount: result.amount,
-      transactionDate: result.transactionDate,
     };
   }
 

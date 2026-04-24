@@ -529,12 +529,9 @@ export class BudgetDetailsStore {
     onMutate: ({ data, tempId }) => {
       const previous = this.budgetDetails();
       const tempTransaction: Transaction = {
+        ...data,
         id: tempId,
-        budgetId: data.budgetId,
         budgetLineId: data.budgetLineId ?? null,
-        name: data.name,
-        amount: data.amount,
-        kind: data.kind,
         transactionDate: data.transactionDate ?? formatLocalDate(new Date()),
         category: data.category ?? null,
         createdAt: new Date().toISOString(),
