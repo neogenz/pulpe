@@ -124,7 +124,7 @@ import { BudgetActionMenu } from '../components/budget-action-menu';
               item().consumption!.consumptionState === 'over-budget'
             "
           >
-            {{ remaining | appCurrency: currency() : '1.0-0' }}
+            {{ remaining | appCurrency: currency() : '1.2-2' }}
           </div>
           <span class="text-label-medium text-on-surface-variant">{{
             'budgetLine.available' | transloco
@@ -134,7 +134,7 @@ import { BudgetActionMenu } from '../components/budget-action-menu';
             class="ph-no-capture text-headline-large font-bold"
             [pulpeFinancialKind]="item().data.kind"
           >
-            {{ item().data.amount | appCurrency: currency() : '1.0-0' }}
+            {{ item().data.amount | appCurrency: currency() : '1.2-2' }}
           </div>
           <span class="text-label-medium text-on-surface-variant">{{
             'budgetLine.planned' | transloco
@@ -162,7 +162,7 @@ import { BudgetActionMenu } from '../components/budget-action-menu';
           <div class="flex justify-between items-center mt-2">
             <span class="ph-no-capture text-body-small text-on-surface-variant">
               {{
-                item().consumption!.consumed | appCurrency: currency() : '1.0-0'
+                item().consumption!.consumed | appCurrency: currency() : '1.2-2'
               }}
               {{ 'budgetLine.spent' | transloco }}
             </span>

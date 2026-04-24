@@ -241,7 +241,7 @@ export function groupByKind<T extends { data: { kind: string } }>(
                 [pulpeFinancialKind]="item.data.kind"
                 [attr.data-testid]="'transaction-amount-' + item.data.id"
               >
-                {{ item.data.amount | appCurrency: currency() : '1.0-0' }}
+                {{ item.data.amount | appCurrency: currency() : '1.2-2' }}
               </div>
               <pulpe-original-amount-line
                 [originalAmount]="item.data.originalAmount"
@@ -317,7 +317,7 @@ export function groupByKind<T extends { data: { kind: string } }>(
             [pulpeFinancialKind]="item.data.kind"
             [attr.data-testid]="'transaction-amount-' + item.data.id"
           >
-            {{ item.data.amount | appCurrency: currency() : '1.0-0' }}
+            {{ item.data.amount | appCurrency: currency() : '1.2-2' }}
           </div>
           <pulpe-original-amount-line
             [originalAmount]="item.data.originalAmount"

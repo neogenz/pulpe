@@ -12,7 +12,11 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslocoPipe } from '@jsverse/transloco';
 
-import type { BudgetPeriodDates } from 'pulpe-shared';
+import {
+  CURRENCY_METADATA,
+  type BudgetPeriodDates,
+  type SupportedCurrency,
+} from 'pulpe-shared';
 
 @Component({
   selector: 'pulpe-dashboard-hero',
@@ -94,7 +98,7 @@ import type { BudgetPeriodDates } from 'pulpe-shared';
             {{ remaining() | number: '1.2-2' : locale() }}
           </span>
           <span class="text-title-large font-semibold opacity-70">{{
-            currency()
+            currencySymbol()
           }}</span>
         </div>
         <p class="text-body-small opacity-60 mt-1">
@@ -102,12 +106,14 @@ import type { BudgetPeriodDates } from 'pulpe-shared';
           <span class="ph-no-capture">{{
             totalIncome() | number: '1.2-2' : locale()
           }}</span>
+          {{ currencySymbol() }}
           @let rollover = rolloverAmount();
           @if (rollover !== 0) {
             <span class="opacity-80 ph-no-capture">
               {{ 'dashboard.rollover' | transloco }}
               {{ rollover > 0 ? '+' : ''
               }}{{ rollover | number: '1.2-2' : locale() }}
+              {{ currencySymbol() }}
             </span>
           }
         </p>
@@ -123,14 +129,14 @@ import type { BudgetPeriodDates } from 'pulpe-shared';
             <span data-testid="hero-expenses-amount" class="ph-no-capture">{{
               absExpenses() | number: '1.2-2' : locale()
             }}</span>
-            {{ currency() }}
+            {{ currencySymbol() }}
           </span>
           <span class="opacity-70">
             {{ 'dashboard.on' | transloco }}
             <span class="ph-no-capture">{{
               available() | number: '1.2-2' : locale()
             }}</span>
-            {{ currency() }}
+            {{ currencySymbol() }}
           </span>
         </div>
         <div
@@ -224,8 +230,11 @@ export class DashboardHero {
   readonly paceStatus = input<'on-track' | 'tight'>('on-track');
   readonly warningThreshold = input(90);
 
-  readonly currency = input<string>('CHF');
+  readonly currency = input<SupportedCurrency>('CHF');
   readonly locale = input<string>('de-CH');
+  protected readonly currencySymbol = computed(
+    () => CURRENCY_METADATA[this.currency()].symbol,
+  );
   readonly remaining = input.required<number>();
   readonly budgetConsumedPercentage = input.required<number>();
 

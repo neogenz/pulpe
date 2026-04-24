@@ -118,7 +118,7 @@ const DETAIL_SEGMENT_COUNT = 12;
               class="ph-no-capture text-title-medium font-bold"
               [pulpeFinancialKind]="envelope.data.kind"
             >
-              {{ envelope.data.amount | appCurrency: currency() : '1.0-0' }}
+              {{ envelope.data.amount | appCurrency: currency() : '1.2-2' }}
             </div>
             <pulpe-original-amount-line
               [originalAmount]="envelope.data.originalAmount"
@@ -138,7 +138,7 @@ const DETAIL_SEGMENT_COUNT = 12;
             <div class="ph-no-capture text-title-medium font-semibold">
               {{
                 envelope.consumption?.consumed ?? 0
-                  | appCurrency: currency() : '1.0-0'
+                  | appCurrency: currency() : '1.2-2'
               }}
             </div>
           </div>
@@ -160,7 +160,7 @@ const DETAIL_SEGMENT_COUNT = 12;
                 envelope.consumption?.consumptionState === 'over-budget'
               "
             >
-              {{ remaining | appCurrency: currency() : '1.0-0' }}
+              {{ remaining | appCurrency: currency() : '1.2-2' }}
             </div>
           </div>
         </div>
@@ -184,7 +184,7 @@ const DETAIL_SEGMENT_COUNT = 12;
                       : {
                           amount:
                             (consumption.consumed - envelope.data.amount
-                            | appCurrency: currency() : '1.0-0'),
+                            | appCurrency: currency() : '1.2-2'),
                         }
                 }}
               </span>
@@ -263,7 +263,7 @@ const DETAIL_SEGMENT_COUNT = 12;
                       [class.text-financial-income]="tx.kind === 'income'"
                       [class.text-on-surface-variant]="tx.kind !== 'income'"
                     >
-                      {{ tx.amount | appCurrency: currency() : '1.0-0' }}
+                      {{ tx.amount | appCurrency: currency() : '1.2-2' }}
                     </div>
                     <pulpe-original-amount-line
                       [originalAmount]="tx.originalAmount"

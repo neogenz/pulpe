@@ -84,7 +84,7 @@ import type {
               [class.italic]="line.metadata.isRollover"
               [pulpeFinancialKind]="line.data.kind"
             >
-              {{ line.data.amount | appCurrency: currency() : '1.0-0' }}
+              {{ line.data.amount | appCurrency: currency() : '1.2-2' }}
             </span>
           </td>
         </ng-container>
@@ -114,7 +114,7 @@ import type {
               >
                 <mat-icon class="text-base! mr-1">receipt_long</mat-icon>
                 <span class="ph-no-capture">{{
-                  line.consumption.consumed | appCurrency: currency() : '1.0-0'
+                  line.consumption.consumed | appCurrency: currency() : '1.2-2'
                 }}</span>
               </button>
             }

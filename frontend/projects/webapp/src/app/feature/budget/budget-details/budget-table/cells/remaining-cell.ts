@@ -29,7 +29,7 @@ import type { BudgetLineTableItem } from '../../data-core';
               line().consumption!.consumptionState === 'over-budget'
             "
           >
-            {{ remaining | appCurrency: currency() : '1.0-0' }}
+            {{ remaining | appCurrency: currency() : '1.2-2' }}
             @if (line().consumption!.consumptionState === 'over-budget') {
               <span class="text-label-small font-normal ml-1">{{
                 'budgetLine.exceeded' | transloco

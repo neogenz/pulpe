@@ -78,7 +78,7 @@ import type {
             [class.text-financial-expense]="data.budgetLine.kind === 'expense'"
             [class.text-financial-savings]="data.budgetLine.kind === 'saving'"
           >
-            {{ consumption().consumed | appCurrency: currency() : '1.0-0' }}
+            {{ consumption().consumed | appCurrency: currency() : '1.2-2' }}
           </div>
         </div>
         <!-- Prévu -->
@@ -87,7 +87,7 @@ import type {
             {{ 'budget.tablePlanned' | transloco }}
           </div>
           <div class="text-title-small font-semibold ph-no-capture">
-            {{ data.budgetLine.amount | appCurrency: currency() : '1.0-0' }}
+            {{ data.budgetLine.amount | appCurrency: currency() : '1.2-2' }}
           </div>
           @if (isMultiCurrencyEnabled()) {
             <pulpe-original-amount-line
@@ -114,7 +114,7 @@ import type {
             [class.text-error]="consumption().remaining < 0"
             [class.text-financial-income]="consumption().remaining >= 0"
           >
-            {{ consumption().remaining | appCurrency: currency() : '1.0-0' }}
+            {{ consumption().remaining | appCurrency: currency() : '1.2-2' }}
           </div>
         </div>
       </div>

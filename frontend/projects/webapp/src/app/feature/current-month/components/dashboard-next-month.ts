@@ -12,25 +12,11 @@ import { MatButtonModule } from '@angular/material/button';
 import { TranslocoPipe } from '@jsverse/transloco';
 import type { UpcomingMonthForecast } from '../services/dashboard-state';
 import type { SupportedCurrency } from 'pulpe-shared';
-import { CURRENCY_CONFIG } from '@core/currency';
-
-const ROLLOVER_FORMATTERS = new Map<string, Intl.NumberFormat>();
-
-function getRolloverFormatter(locale: string): Intl.NumberFormat {
-  let formatter = ROLLOVER_FORMATTERS.get(locale);
-  if (!formatter) {
-    formatter = new Intl.NumberFormat(locale, {
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    });
-    ROLLOVER_FORMATTERS.set(locale, formatter);
-  }
-  return formatter;
-}
+import { AppCurrencyPipe } from '@core/currency';
 
 @Component({
   selector: 'pulpe-dashboard-next-month',
-  imports: [MatIconModule, MatButtonModule, TranslocoPipe],
+  imports: [MatIconModule, MatButtonModule, TranslocoPipe, AppCurrencyPipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="flex flex-col w-full h-full">
@@ -66,7 +52,7 @@ function getRolloverFormatter(locale: string): Intl.NumberFormat {
                   : 'text-financial-negative'
               "
             >
-              {{ formattedRollover() }} {{ currency() }}
+              {{ estimatedRollover() | appCurrency: currency() : '1.2-2' }}
             </span>
           </p>
         } @else {
@@ -118,9 +104,4 @@ export class DashboardNextMonth {
   });
 
   protected readonly hasBudget = computed(() => this.forecast().hasBudget);
-
-  protected readonly formattedRollover = computed(() => {
-    const locale = CURRENCY_CONFIG[this.currency()].numberLocale;
-    return getRolloverFormatter(locale).format(this.estimatedRollover());
-  });
 }

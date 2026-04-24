@@ -5,7 +5,7 @@ import {
   input,
   output,
 } from '@angular/core';
-import { DecimalPipe } from '@angular/common';
+
 import { MatRipple } from '@angular/material/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -13,7 +13,7 @@ import { TranslocoPipe } from '@jsverse/transloco';
 import { FinancialKindDirective } from '@ui/financial-kind';
 import type { BudgetLineConsumption } from '@core/budget/budget-line-consumption';
 import type { BudgetLine, SupportedCurrency } from 'pulpe-shared';
-import { CURRENCY_CONFIG } from '@core/currency';
+import { AppCurrencyPipe } from '@core/currency';
 
 const MAX_VISIBLE_FORECASTS = 5;
 
@@ -23,7 +23,7 @@ const MAX_VISIBLE_FORECASTS = 5;
     MatButtonModule,
     MatRipple,
     MatIconModule,
-    DecimalPipe,
+    AppCurrencyPipe,
     FinancialKindDirective,
     TranslocoPipe,
   ],
@@ -99,8 +99,7 @@ const MAX_VISIBLE_FORECASTS = 5;
                   class="text-label-large whitespace-nowrap font-semibold tabular-nums ph-no-capture"
                   [pulpeFinancialKind]="forecast.kind"
                 >
-                  {{ displayAmount | number: '1.2-2' : locale() }}
-                  {{ currency() }}
+                  {{ displayAmount | appCurrency: currency() : '1.2-2' }}
                 </span>
               </div>
             }
@@ -169,10 +168,6 @@ export class DashboardUncheckedForecasts {
 
   protected readonly hasMore = computed(
     () => this.forecasts().length > MAX_VISIBLE_FORECASTS,
-  );
-
-  protected readonly locale = computed(
-    () => CURRENCY_CONFIG[this.currency()].numberLocale,
   );
 
   protected readonly displayedForecasts = computed(() =>

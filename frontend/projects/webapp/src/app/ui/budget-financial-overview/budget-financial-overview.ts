@@ -5,7 +5,7 @@ import {
   computed,
   input,
 } from '@angular/core';
-import type { SupportedCurrency } from 'pulpe-shared';
+import { CURRENCY_METADATA, type SupportedCurrency } from 'pulpe-shared';
 import { FinancialPills } from '../financial-pills/financial-pills';
 
 export interface FinancialTotals {
@@ -61,8 +61,10 @@ export interface FinancialTotals {
           [class.text-warning]="budgetState() === 'warning'"
           [class.text-on-error-container]="budgetState() === 'deficit'"
         >
-          {{ remainingAbsolute() | number: '1.0-0' : locale() }}
-          <span class="text-headline-small font-normal">{{ currency() }}</span>
+          {{ remainingAbsolute() | number: '1.2-2' : locale() }}
+          <span class="text-headline-small font-normal">{{
+            currencySymbol()
+          }}</span>
         </div>
         <p
           class="text-body-medium mt-3"
@@ -119,6 +121,10 @@ export class BudgetFinancialOverview {
   readonly currency = input<SupportedCurrency>('CHF');
   readonly locale = input<string>('de-CH');
   readonly warningThreshold = input(90);
+
+  protected readonly currencySymbol = computed(
+    () => CURRENCY_METADATA[this.currency()].symbol,
+  );
 
   readonly isPositive = computed(() => this.totals().remaining >= 0);
 
