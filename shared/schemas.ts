@@ -147,7 +147,7 @@ export const budgetSchema = z.object({
 });
 export type Budget = z.infer<typeof budgetSchema>;
 
-export const budgetCreateSchema = z.object({
+export const budgetCreateSchema = z.strictObject({
   month: z.number().int().min(MONTH_MIN).max(MONTH_MAX),
   year: z.number().int().min(MIN_YEAR).max(MAX_YEAR),
   description: z.string().max(500).trim().optional().default(''),
@@ -183,7 +183,7 @@ export type BudgetTemplateCreateFromOnboarding = z.infer<
   typeof budgetTemplateCreateFromOnboardingSchema
 >;
 
-export const budgetUpdateSchema = z.object({
+export const budgetUpdateSchema = z.strictObject({
   description: z.string().optional(),
   month: z.number().optional(),
   year: z.number().optional(),
@@ -253,7 +253,7 @@ export const savingsGoalSchema = z.object({
 });
 export type SavingsGoal = z.infer<typeof savingsGoalSchema>;
 
-export const savingsGoalCreateSchema = z.object({
+export const savingsGoalCreateSchema = z.strictObject({
   name: z.string().min(1).max(100).trim(),
   targetAmount: z.number().positive(),
   targetDate: z.string(), // Date in ISO format
@@ -471,7 +471,7 @@ export const templateLineSchema = z.object({
 });
 export type TemplateLine = z.infer<typeof templateLineSchema>;
 
-export const templateLineCreateSchema = z.object({
+export const templateLineCreateSchema = z.strictObject({
   templateId: z.uuid(),
   name: z.string().min(1).max(100).trim(),
   amount: z.number().positive(),
@@ -486,7 +486,7 @@ export const templateLineCreateSchema = z.object({
 export type TemplateLineCreate = z.infer<typeof templateLineCreateSchema>;
 
 // Template line create without templateId (for batch creation)
-export const templateLineCreateWithoutTemplateIdSchema = z.object({
+export const templateLineCreateWithoutTemplateIdSchema = z.strictObject({
   name: z.string().min(1).max(100).trim(),
   amount: z.number().positive(),
   kind: transactionKindSchema,
@@ -502,7 +502,7 @@ export type TemplateLineCreateWithoutTemplateId = z.infer<
 >;
 
 // Budget template schemas (after template line schemas)
-export const budgetTemplateCreateSchema = z.object({
+export const budgetTemplateCreateSchema = z.strictObject({
   name: z.string().min(1).max(100).trim(),
   description: z.string().min(1).max(500).trim().optional(),
   isDefault: z.boolean().default(false),
@@ -521,7 +521,7 @@ export type BudgetTemplateCreateTransactional = z.infer<
   typeof budgetTemplateCreateTransactionalSchema
 >;
 
-export const budgetTemplateUpdateSchema = z.object({
+export const budgetTemplateUpdateSchema = z.strictObject({
   name: z.string().min(1).max(100).trim().optional(),
   description: z.string().max(500).trim().optional(),
   isDefault: z.boolean().optional(),
@@ -529,7 +529,7 @@ export const budgetTemplateUpdateSchema = z.object({
 export type BudgetTemplateUpdate = z.infer<typeof budgetTemplateUpdateSchema>;
 
 // Template line update schema
-export const templateLineUpdateSchema = z.object({
+export const templateLineUpdateSchema = z.strictObject({
   name: z.string().min(1).max(100).trim().optional(),
   amount: z.number().positive().optional(),
   kind: transactionKindSchema.optional(),
@@ -552,7 +552,7 @@ export type TemplateLineUpdateWithId = z.infer<
   typeof templateLineUpdateWithIdSchema
 >;
 
-export const templateLinesBulkUpdateSchema = z.object({
+export const templateLinesBulkUpdateSchema = z.strictObject({
   lines: z.array(templateLineUpdateWithIdSchema).min(1),
 });
 export type TemplateLinesBulkUpdate = z.infer<
@@ -608,15 +608,6 @@ export const templateLinesBulkOperationsResponseSchema = z.object({
 export type TemplateLinesBulkOperationsResponse = z.infer<
   typeof templateLinesBulkOperationsResponseSchema
 >;
-
-// Template transaction update schema for backward compatibility
-export const templateTransactionUpdateSchema = z.object({
-  name: z.string().min(1).max(100).trim().optional(),
-  amount: z.number().positive().optional(),
-  type: transactionKindSchema.optional(),
-  expenseType: transactionRecurrenceSchema.optional(),
-  description: z.string().max(500).trim().optional(),
-});
 
 // Response schemas with proper typing
 export const errorResponseSchema = z.object({
@@ -1018,7 +1009,7 @@ export const authErrorResponseSchema = z.object({
 export type AuthErrorResponse = z.infer<typeof authErrorResponseSchema>;
 
 // Demo mode schemas
-export const demoSessionCreateSchema = z.object({
+export const demoSessionCreateSchema = z.strictObject({
   turnstileToken: z.string(),
 });
 export type DemoSessionCreate = z.infer<typeof demoSessionCreateSchema>;
