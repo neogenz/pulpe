@@ -11,7 +11,7 @@ import { UserSettingsStore } from '@core/user-settings';
 import type {
   BudgetLineTableItem,
   TransactionTableItem,
-} from '../../view-models';
+} from '../../view-models/table-items.view-model';
 
 @Component({
   selector: 'pulpe-balance-cell',

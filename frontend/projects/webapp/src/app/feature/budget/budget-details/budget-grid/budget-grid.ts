@@ -22,7 +22,7 @@ import { OriginalAmountLine } from '@ui/original-amount-line';
 import { TransactionLabelPipe } from '@ui/transaction-display';
 import type { BudgetLine, Transaction, SupportedCurrency } from 'pulpe-shared';
 import type { TransactionViewModel } from '../view-models/transaction.view-model';
-import type { BudgetLineTableItem } from '../view-models';
+import type { BudgetLineTableItem } from '../view-models/table-items.view-model';
 import { TransactionActionMenu } from '../components/transaction-action-menu';
 import {
   BudgetDetailPanel,

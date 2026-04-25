@@ -13,7 +13,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslocoPipe } from '@jsverse/transloco';
 import type { BudgetLine, SupportedCurrency } from 'pulpe-shared';
 import { CURRENCY_CONFIG } from '@core/currency';
-import type { BudgetLineTableItem } from '../view-models';
+import type { BudgetLineTableItem } from '../view-models/table-items.view-model';
 
 const BALANCE_FORMATTERS = new Map<string, Intl.NumberFormat>();
 

@@ -2,6 +2,7 @@ import { describe, expect, test } from 'vitest';
 import {
   budgetLineUpdateSchema,
   templateLineUpdateWithIdSchema,
+  templateLinesBulkUpdateSchema,
   savingsGoalUpdateSchema,
 } from '../schemas.js';
 
@@ -61,5 +62,13 @@ describe('derived write schemas preserve strict inheritance', () => {
     });
 
     expect(result.success).toBe(true);
+  });
+
+  test('templateLinesBulkUpdateSchema rejects unknown field at element level', () => {
+    const result = templateLinesBulkUpdateSchema.safeParse({
+      lines: [{ id: UUID, name: 'x', unknownField: 'z' }],
+    });
+
+    expect(result.success).toBe(false);
   });
 });

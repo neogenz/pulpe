@@ -166,7 +166,7 @@ export const onboardingTransactionSchema = z.object({
 });
 
 // Schema for creating template from onboarding data
-export const budgetTemplateCreateFromOnboardingSchema = z.object({
+export const budgetTemplateCreateFromOnboardingSchema = z.strictObject({
   name: z.string().min(1).max(100).trim().default('Mois Standard'),
   description: z.string().max(500).trim().optional(),
   isDefault: z.boolean().default(true),
@@ -194,7 +194,7 @@ const MAX_GENERATE_COUNT = 36;
 const DEFAULT_GENERATE_COUNT = 12;
 
 /** Schema for bulk-generating consecutive monthly budgets from a template */
-export const budgetGenerateSchema = z.object({
+export const budgetGenerateSchema = z.strictObject({
   templateId: z.uuid(),
   startMonth: z.number().int().min(MONTH_MIN).max(MONTH_MAX),
   startYear: z.number().int().min(MIN_YEAR).max(MAX_YEAR),
@@ -562,7 +562,7 @@ export type TemplateLinesBulkUpdate = z.infer<
 // Extended bulk update schema supporting create, update, and delete operations
 // Security: Limited to prevent DoS attacks and memory exhaustion
 export const templateLinesBulkOperationsSchema = z
-  .object({
+  .strictObject({
     create: z
       .array(templateLineCreateWithoutTemplateIdSchema)
       .max(100)
@@ -898,7 +898,7 @@ export type UpdateProfile = z.infer<typeof updateProfileSchema>;
 /**
  * Schema pour mettre à jour les préférences utilisateur
  */
-export const updateUserSettingsSchema = z.object({
+export const updateUserSettingsSchema = z.strictObject({
   payDayOfMonth: z
     .number()
     .int()
@@ -1060,7 +1060,7 @@ export type EncryptionValidateKeyRequest = z.infer<
 >;
 
 /** POST /recover — recovery key + new hex-encoded client key */
-export const encryptionRecoverRequestSchema = z.object({
+export const encryptionRecoverRequestSchema = z.strictObject({
   recoveryKey: z.string(),
   newClientKey: hexKey64,
 });
@@ -1077,7 +1077,7 @@ export type EncryptionVerifyRecoveryKeyRequest = z.infer<
 >;
 
 /** POST /change-pin — old + new hex-encoded client keys */
-export const encryptionChangePinRequestSchema = z.object({
+export const encryptionChangePinRequestSchema = z.strictObject({
   oldClientKey: hexKey64,
   newClientKey: hexKey64,
 });

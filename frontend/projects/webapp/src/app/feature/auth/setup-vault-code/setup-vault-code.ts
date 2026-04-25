@@ -256,13 +256,20 @@ export default class SetupVaultCode {
       return;
     }
 
+    const parsed = setupVaultCodeFormSchema.safeParse(this.form.getRawValue());
+    if (!parsed.success) {
+      this.form.markAllAsTouched();
+      this.errorMessage.set(
+        this.#transloco.translate('common.somethingWentWrong'),
+      );
+      return;
+    }
+
     this.isSubmitting.set(true);
     this.form.disable();
     this.clearError();
 
-    const { vaultCode, rememberDevice } = setupVaultCodeFormSchema.parse(
-      this.form.getRawValue(),
-    );
+    const { vaultCode, rememberDevice } = parsed.data;
 
     try {
       // 1. Get salt and derive client key from vault code

@@ -2,6 +2,7 @@ import { z } from 'zod/v4';
 import {
   transactionKindSchema,
   transactionRecurrenceSchema,
+  type BudgetLineUpdate,
 } from 'pulpe-shared';
 import { conversionFormSchema } from '@core/currency';
 
@@ -24,14 +25,16 @@ export const budgetLineUpdateFromFormSchema = z
     recurrence: transactionRecurrenceSchema,
     conversion: conversionFormSchema.nullable(),
   })
-  .transform((input) => ({
-    name: input.name,
-    amount: input.amount,
-    kind: input.kind,
-    recurrence: input.recurrence,
-    isManuallyAdjusted: true,
-    ...(input.conversion ?? {}),
-  }));
+  .transform(
+    (input): Partial<BudgetLineUpdate> => ({
+      name: input.name,
+      amount: input.amount,
+      kind: input.kind,
+      recurrence: input.recurrence,
+      isManuallyAdjusted: true,
+      ...(input.conversion ?? {}),
+    }),
+  );
 
 export type BudgetLineUpdateFormValue = z.input<
   typeof budgetLineUpdateFromFormSchema

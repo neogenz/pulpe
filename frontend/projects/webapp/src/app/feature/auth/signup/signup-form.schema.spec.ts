@@ -44,6 +44,15 @@ describe('signupFormSchema', () => {
       expect(result.success).toBe(false);
     });
 
+    it('should reject an email that Angular accepts but Zod rejects (single-char TLD)', () => {
+      const result = signupFormSchema.safeParse({
+        ...validFormValue,
+        email: 'foo@bar.c',
+      });
+
+      expect(result.success).toBe(false);
+    });
+
     it('should reject a password shorter than the minimum length', () => {
       const result = signupFormSchema.safeParse({
         email: 'user@example.com',

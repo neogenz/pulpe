@@ -328,12 +328,17 @@ export default class Signup {
       return;
     }
 
+    const parsed = signupFormSchema.safeParse(this.signupForm.getRawValue());
+    if (!parsed.success) {
+      this.signupForm.markAllAsTouched();
+      this.errorMessage.set(this.#transloco.translate('form.emailInvalid'));
+      return;
+    }
+
     this.isSubmitting.set(true);
     this.clearMessages();
 
-    const { email, password } = signupFormSchema.parse(
-      this.signupForm.getRawValue(),
-    );
+    const { email, password } = parsed.data;
 
     try {
       const result = await this.#authCredentials.signUpWithEmail(

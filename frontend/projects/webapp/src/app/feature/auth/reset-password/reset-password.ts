@@ -284,12 +284,19 @@ export default class ResetPassword {
       return;
     }
 
+    const parsed = resetPasswordFormSchema.safeParse(this.form.getRawValue());
+    if (!parsed.success) {
+      this.form.markAllAsTouched();
+      this.errorMessage.set(
+        this.#transloco.translate('common.somethingWentWrong'),
+      );
+      return;
+    }
+
     this.isSubmitting.set(true);
     this.clearError();
 
-    const { newPassword } = resetPasswordFormSchema.parse(
-      this.form.getRawValue(),
-    );
+    const { newPassword } = parsed.data;
 
     try {
       const passwordResult =
