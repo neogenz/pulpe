@@ -636,9 +636,9 @@
     "lineAmountLabel": "Montant",
     "lineKindLabel": "Type",
     "linesCount": "{{count}} prévision(s)",
-    "createSuccess": "Prévision ajoutée",
-    "updateSuccess": "Prévision modifiée",
-    "deleteSuccess": "Prévision supprimée"
+    "lineCreateSuccess": "Prévision ajoutée",
+    "lineUpdateSuccess": "Prévision modifiée",
+    "lineDeleteSuccess": "Prévision supprimée"
   },
   "currentMonth": {
     "pageTitle": "Tableau de bord",

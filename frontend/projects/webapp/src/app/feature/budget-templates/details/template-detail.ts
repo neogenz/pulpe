@@ -411,7 +411,7 @@ export default class TemplateDetail implements OnInit {
       result,
       propagate,
     );
-    this.#notifyAfterMutation(response, 'template.createSuccess');
+    this.#notifyAfterMutation(response, 'template.lineCreateSuccess');
   }
 
   async handleEditLine(line: TemplateLine): Promise<void> {
@@ -434,7 +434,7 @@ export default class TemplateDetail implements OnInit {
       result,
       propagate,
     );
-    this.#notifyAfterMutation(response, 'template.updateSuccess');
+    this.#notifyAfterMutation(response, 'template.lineUpdateSuccess');
   }
 
   async #openLineDialog(
@@ -486,7 +486,7 @@ export default class TemplateDetail implements OnInit {
       lineId,
       propagate,
     );
-    this.#notifyAfterMutation(response, 'template.deleteSuccess');
+    this.#notifyAfterMutation(response, 'template.lineDeleteSuccess');
   }
 
   async deleteTemplate(): Promise<void> {
