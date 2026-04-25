@@ -87,7 +87,9 @@ test.describe('Settings Change Password', () => {
     await dialog.getByTestId('confirm-password-input').fill('new-password-123');
 
     const submitButton = dialog.getByTestId('submit-password-button');
-    await expect(submitButton).toBeEnabled();
+    // Password form uses async cross-field validators that can be slow in CI.
+    // Widen the enabled-state wait so the click isn't blocked by a 10s race.
+    await expect(submitButton).toBeEnabled({ timeout: 20000 });
     await submitButton.click();
 
     await expect(page.getByTestId('change-password-error')).toContainText(

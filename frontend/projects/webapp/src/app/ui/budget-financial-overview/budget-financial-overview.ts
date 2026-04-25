@@ -5,8 +5,8 @@ import {
   computed,
   input,
 } from '@angular/core';
-import { MatIconModule } from '@angular/material/icon';
-import { TranslocoPipe } from '@jsverse/transloco';
+import type { SupportedCurrency } from 'pulpe-shared';
+import { FinancialPills } from '../financial-pills/financial-pills';
 
 export interface FinancialTotals {
   income: number;
@@ -15,18 +15,11 @@ export interface FinancialTotals {
   remaining: number;
 }
 
-/**
- * BudgetFinancialOverview - "Financial Pulse" design
- *
- * Hero metric (Disponible) prominently displayed with supporting metrics as pills.
- * Follows M3 Expressive principle: important elements appear larger.
- */
 @Component({
   selector: 'pulpe-budget-financial-overview',
-  imports: [MatIconModule, DecimalPipe, TranslocoPipe],
+  imports: [DecimalPipe, FinancialPills],
   template: `
     <div class="space-y-6">
-      <!-- Hero Section: What matters most -->
       <div
         class="text-center py-8 px-6 rounded-3xl"
         [class.bg-primary-container]="budgetState() === 'comfortable'"
@@ -95,80 +88,15 @@ export interface FinancialTotals {
         </p>
       </div>
 
-      <!-- Supporting Metrics: Pill-style, horizontal scroll on mobile -->
-      <div class="pills-scroll-fade -mx-4 md:mx-0">
-        <div
-          role="list"
-          [attr.aria-label]="'budget.financialSummaryAriaLabel' | transloco"
-          class="flex gap-3 overflow-x-auto px-4 md:px-0 md:justify-center scrollbar-hide"
-        >
-          <!-- Income Pill -->
-          <div
-            role="listitem"
-            class="flex-shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-full bg-(--pulpe-financial-income-light)"
-          >
-            <mat-icon class="text-financial-income mat-icon-sm"
-              >trending_up</mat-icon
-            >
-            <div class="flex flex-col">
-              <span
-                class="text-label-small leading-tight text-on-financial-light"
-                >Revenus</span
-              >
-              <span
-                class="text-label-large font-semibold text-financial-income ph-no-capture"
-              >
-                {{ totals().income | number: '1.0-0' : locale() }}
-                {{ currency() }}
-              </span>
-            </div>
-          </div>
-
-          <!-- Expenses Pill -->
-          <div
-            role="listitem"
-            class="flex-shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-full bg-(--pulpe-financial-expense-light)"
-          >
-            <mat-icon class="text-financial-expense mat-icon-sm"
-              >trending_down</mat-icon
-            >
-            <div class="flex flex-col">
-              <span
-                class="text-label-small leading-tight text-on-financial-light"
-                >Dépenses</span
-              >
-              <span
-                class="text-label-large font-semibold text-financial-expense ph-no-capture"
-              >
-                {{ totals().expenses | number: '1.0-0' : locale() }}
-                {{ currency() }}
-              </span>
-            </div>
-          </div>
-
-          <!-- Savings Pill -->
-          <div
-            role="listitem"
-            class="flex-shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-full bg-(--pulpe-financial-savings-light)"
-          >
-            <mat-icon class="text-financial-savings mat-icon-sm"
-              >savings</mat-icon
-            >
-            <div class="flex flex-col">
-              <span
-                class="text-label-small leading-tight text-on-financial-light"
-                >Épargne</span
-              >
-              <span
-                class="text-label-large font-semibold text-financial-savings ph-no-capture"
-              >
-                {{ totals().savings | number: '1.0-0' : locale() }}
-                {{ currency() }}
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
+      <pulpe-financial-pills
+        [totals]="{
+          income: totals().income,
+          expenses: totals().expenses,
+          savings: totals().savings,
+        }"
+        [currency]="currency()"
+        [locale]="locale()"
+      />
     </div>
   `,
   styles: `
@@ -183,52 +111,12 @@ export interface FinancialTotals {
     .text-warning {
       color: var(--pulpe-amber);
     }
-
-    .pills-scroll-fade {
-      position: relative;
-
-      &::before,
-      &::after {
-        content: '';
-        position: absolute;
-        top: 0;
-        bottom: 0;
-        width: 24px;
-        pointer-events: none;
-        z-index: 1;
-      }
-
-      &::before {
-        left: 0;
-        background: linear-gradient(
-          to right,
-          var(--mat-sys-surface),
-          transparent
-        );
-      }
-
-      &::after {
-        right: 0;
-        background: linear-gradient(
-          to left,
-          var(--mat-sys-surface),
-          transparent
-        );
-      }
-
-      @media (min-width: 768px) {
-        &::before,
-        &::after {
-          display: none;
-        }
-      }
-    }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class BudgetFinancialOverview {
   readonly totals = input.required<FinancialTotals>();
-  readonly currency = input<string>('CHF');
+  readonly currency = input<SupportedCurrency>('CHF');
   readonly locale = input<string>('de-CH');
   readonly warningThreshold = input(90);
 

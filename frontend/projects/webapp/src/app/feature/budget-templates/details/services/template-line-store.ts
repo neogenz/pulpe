@@ -1,316 +1,282 @@
-import { Injectable, computed, inject, signal } from '@angular/core';
-import { TranslocoService } from '@jsverse/transloco';
+import { Injectable, inject } from '@angular/core';
 import { cachedMutation } from 'ngx-ziflux';
 import { BudgetApi } from '@core/budget/budget-api';
 import { BudgetTemplatesApi } from '@core/budget-template/budget-templates-api';
-import type { TransactionFormData } from '../../services/transaction-form';
-import type {
-  TemplateLine,
-  TemplateLinesBulkOperations,
-  TemplateLinesBulkOperationsResponse,
-  TemplateLineCreateWithoutTemplateId,
-  TemplateLineUpdateWithId,
+import { Logger } from '@core/logging/logger';
+import {
+  type TemplateLine,
+  type TemplateLineCreateWithoutTemplateId,
+  type TemplateLineUpdateWithId,
+  type TemplateLinesBulkOperationsResponse,
+  type TemplateLinesPropagationSummary,
+  type TransactionKind,
+  type SupportedCurrency,
 } from 'pulpe-shared';
-import type { CurrencyMetadata } from '@core/currency';
-import type { EditableLine, SaveResult } from './template-line-state';
+import { v4 as uuidv4 } from 'uuid';
+import { TemplateDetailsStore } from './template-details-store';
+
+const TEMP_ID_PREFIX = 'temp-';
+
+function generateTempId(): string {
+  return `${TEMP_ID_PREFIX}${uuidv4()}`;
+}
+
+export interface TemplateLineFormInput {
+  name: string;
+  amount: number;
+  kind: TransactionKind;
+  originalAmount?: number;
+  originalCurrency?: SupportedCurrency;
+  targetCurrency?: SupportedCurrency;
+  exchangeRate?: number;
+}
+
+type BulkMutationResult = TemplateLinesBulkOperationsResponse;
 
 @Injectable()
 export class TemplateLineStore {
   readonly #budgetApi = inject(BudgetApi);
   readonly #budgetTemplatesApi = inject(BudgetTemplatesApi);
-  readonly #transloco = inject(TranslocoService);
+  readonly #templateDetailsStore = inject(TemplateDetailsStore);
+  readonly #logger = inject(Logger);
 
-  readonly #lines = signal<EditableLine[]>([]);
-  readonly lines = this.#lines.asReadonly();
-  readonly #error = signal<string | null>(null);
-
-  readonly activeLines = computed(() =>
-    this.lines().filter((line) => !this.#deletedIds().has(line.id)),
-  );
-
-  readonly hasUnsavedChanges = computed(() => {
-    const currentLines = this.lines();
-    const hasDeletedLines = this.#deletedIds().size > 0;
-    const hasModifiedLines = currentLines.some(
-      (line) => line.isModified || !line.originalLine,
-    );
-    return hasDeletedLines || hasModifiedLines;
-  });
-
-  readonly canRemoveTransaction = computed(() => this.activeLines().length > 1);
-  readonly isValid = computed(() =>
-    this.activeLines().every((line) => this.#isLineValid(line)),
-  );
-
-  readonly #deletedIds = signal<Set<string>>(new Set());
-
-  readonly #bulkSaveMutation = cachedMutation<
-    { templateId: string; operations: TemplateLinesBulkOperations },
-    TemplateLinesBulkOperationsResponse,
+  readonly #createMutation = cachedMutation<
+    {
+      templateId: string;
+      tempId: string;
+      payload: TemplateLineCreateWithoutTemplateId;
+      propagateToBudgets: boolean;
+    },
+    BulkMutationResult,
     void
   >({
     cache: this.#budgetTemplatesApi.cache,
-    mutationFn: ({ templateId, operations }) =>
-      this.#budgetTemplatesApi.bulkOperationsTemplateLines$(
-        templateId,
-        operations,
-      ),
     invalidateKeys: () => [['templates']],
+    mutationFn: ({ templateId, payload, propagateToBudgets }) =>
+      this.#budgetTemplatesApi.bulkOperationsTemplateLines$(templateId, {
+        create: [payload],
+        update: [],
+        delete: [],
+        propagateToBudgets,
+      }),
+    onMutate: ({ tempId, payload }) => {
+      const optimisticLine = this.#buildOptimisticLine(tempId, payload);
+      this.#patchLines([
+        ...this.#templateDetailsStore.templateLines(),
+        optimisticLine,
+      ]);
+    },
+    onSuccess: (response, { tempId }) => {
+      const created = response.data.created[0];
+      if (!created) return;
+      const lines = this.#templateDetailsStore
+        .templateLines()
+        .map((line) => (line.id === tempId ? created : line));
+      this.#patchLines(lines);
+      this.#invalidateBudgetsIfPropagated(response.data.propagation);
+    },
+    onError: (err) => {
+      this.#logger.error('Error creating template line:', err);
+      this.#templateDetailsStore.reloadTemplateDetails();
+    },
   });
 
-  readonly isLoading = this.#bulkSaveMutation.isPending;
-  readonly hasValue = computed(() => this.lines().length > 0 && !this.#error());
-  readonly error = this.#error.asReadonly();
-
-  getLineById(id: string): EditableLine | undefined {
-    const line = this.lines().find((line) => line.id === id);
-    return line && !this.#deletedIds().has(id) ? line : undefined;
-  }
-
-  initialize(
-    templateLines: TemplateLine[],
-    formData: TransactionFormData[],
-  ): void {
-    const editableLines = formData.map((data, index) => {
-      const originalLine = templateLines[index];
-      return this.#createEditableLine(data, originalLine);
-    });
-
-    this.#lines.set(editableLines);
-    this.#deletedIds.set(new Set());
-    this.#error.set(null);
-  }
-
-  addTransaction(data: TransactionFormData): string {
-    const newLine = this.#createEditableLine(data);
-    this.#lines.update((lines) => [...lines, newLine]);
-    return newLine.id;
-  }
-
-  updateTransaction(
-    id: string,
-    updates: Partial<TransactionFormData>,
-  ): boolean {
-    if (!this.getLineById(id)) {
-      return false;
-    }
-
-    this.#lines.update((lines) =>
-      lines.map((line) =>
-        line.id === id
+  readonly #updateMutation = cachedMutation<
+    {
+      templateId: string;
+      payload: TemplateLineUpdateWithId;
+      propagateToBudgets: boolean;
+    },
+    BulkMutationResult,
+    void
+  >({
+    cache: this.#budgetTemplatesApi.cache,
+    invalidateKeys: () => [['templates']],
+    mutationFn: ({ templateId, payload, propagateToBudgets }) =>
+      this.#budgetTemplatesApi.bulkOperationsTemplateLines$(templateId, {
+        create: [],
+        update: [payload],
+        delete: [],
+        propagateToBudgets,
+      }),
+    onMutate: ({ payload }) => {
+      const patched = this.#templateDetailsStore.templateLines().map((line) =>
+        line.id === payload.id
           ? {
               ...line,
-              formData: { ...line.formData, ...updates },
-              isModified: true,
+              ...payload,
+              updatedAt: new Date().toISOString(),
             }
           : line,
-      ),
-    );
-    return true;
-  }
+      );
+      this.#patchLines(patched);
+    },
+    onSuccess: (response, { payload }) => {
+      const updated = response.data.updated.find(
+        (line) => line.id === payload.id,
+      );
+      if (!updated) return;
+      const lines = this.#templateDetailsStore
+        .templateLines()
+        .map((line) => (line.id === updated.id ? updated : line));
+      this.#patchLines(lines);
+      this.#invalidateBudgetsIfPropagated(response.data.propagation);
+    },
+    onError: (err) => {
+      this.#logger.error('Error updating template line:', err);
+      this.#templateDetailsStore.reloadTemplateDetails();
+    },
+  });
 
-  setCurrencyMetadata(id: string, metadata: CurrencyMetadata | null): void {
-    this.#lines.update((lines) =>
-      lines.map((line) =>
-        line.id === id ? { ...line, currencyMetadata: metadata } : line,
-      ),
-    );
-  }
+  readonly #deleteMutation = cachedMutation<
+    {
+      templateId: string;
+      lineId: string;
+      propagateToBudgets: boolean;
+    },
+    BulkMutationResult,
+    void
+  >({
+    cache: this.#budgetTemplatesApi.cache,
+    invalidateKeys: () => [['templates']],
+    mutationFn: ({ templateId, lineId, propagateToBudgets }) =>
+      this.#budgetTemplatesApi.bulkOperationsTemplateLines$(templateId, {
+        create: [],
+        update: [],
+        delete: [lineId],
+        propagateToBudgets,
+      }),
+    onMutate: ({ lineId }) => {
+      this.#patchLines(
+        this.#templateDetailsStore
+          .templateLines()
+          .filter((line) => line.id !== lineId),
+      );
+    },
+    onSuccess: (response) => {
+      this.#invalidateBudgetsIfPropagated(response.data.propagation);
+    },
+    onError: (err) => {
+      this.#logger.error('Error deleting template line:', err);
+      this.#templateDetailsStore.reloadTemplateDetails();
+    },
+  });
 
-  removeTransaction(id: string): boolean {
-    if (!this.canRemoveTransaction()) {
-      return false;
-    }
-
-    const line = this.lines().find((line) => line.id === id);
-    if (!line || this.#deletedIds().has(id)) {
-      return false;
-    }
-
-    if (!line.originalLine) {
-      this.#lines.update((lines) => lines.filter((l) => l.id !== id));
-    } else {
-      this.#deletedIds.update((deleted) => new Set([...deleted, id]));
-    }
-
-    return true;
-  }
-
-  async saveChanges(
+  async createLine(
     templateId: string,
-    propagateToBudgets: boolean,
-  ): Promise<SaveResult> {
-    if (!this.hasUnsavedChanges()) {
-      return {
-        success: true,
-        updatedLines: [],
-        deletedIds: [],
-        propagation: null,
-      };
-    }
-
-    this.#error.set(null);
-
-    const operations = this.#generateBulkOperations(propagateToBudgets);
-    const response = await this.#bulkSaveMutation.mutate({
+    input: TemplateLineFormInput,
+    propagate: boolean,
+  ): Promise<BulkMutationResult | undefined> {
+    return this.#createMutation.mutate({
       templateId,
-      operations,
+      tempId: generateTempId(),
+      payload: this.#toCreatePayload(input),
+      propagateToBudgets: propagate,
     });
+  }
 
-    if (!response) {
-      const mutationError = this.#bulkSaveMutation.error();
-      const errorMessage =
-        mutationError instanceof Error
-          ? mutationError.message
-          : this.#transloco.translate('template.saveError');
-      this.#error.set(errorMessage);
-      return { success: false, error: errorMessage };
-    }
+  async updateLine(
+    templateId: string,
+    lineId: string,
+    input: TemplateLineFormInput,
+    propagate: boolean,
+  ): Promise<BulkMutationResult | undefined> {
+    const payload: TemplateLineUpdateWithId = {
+      id: lineId,
+      name: input.name,
+      amount: input.amount,
+      kind: input.kind,
+      ...this.#extractCurrencyFields(input),
+    };
 
-    if (response.data.propagation?.mode === 'propagate') {
+    return this.#updateMutation.mutate({
+      templateId,
+      payload,
+      propagateToBudgets: propagate,
+    });
+  }
+
+  async deleteLine(
+    templateId: string,
+    lineId: string,
+    propagate: boolean,
+  ): Promise<BulkMutationResult | undefined> {
+    return this.#deleteMutation.mutate({
+      templateId,
+      lineId,
+      propagateToBudgets: propagate,
+    });
+  }
+
+  #invalidateBudgetsIfPropagated(
+    propagation: TemplateLinesPropagationSummary | null,
+  ): void {
+    if (propagation?.mode === 'propagate') {
       this.#budgetApi.cache.invalidate(['budget']);
     }
+  }
 
-    this.#updateStateAfterSave(response.data);
+  #patchLines(lines: TemplateLine[]): void {
+    const current = this.#templateDetailsStore.rawDetails();
+    if (!current) return;
+    this.#templateDetailsStore.setDetails({
+      ...current,
+      transactions: lines,
+    });
+  }
 
-    const updatedLines = [...response.data.created, ...response.data.updated];
+  #buildOptimisticLine(
+    tempId: string,
+    payload: TemplateLineCreateWithoutTemplateId,
+  ): TemplateLine {
+    const now = new Date().toISOString();
+    const template = this.#templateDetailsStore.template();
     return {
-      success: true,
-      updatedLines,
-      deletedIds: response.data.deleted,
-      propagation: response.data.propagation,
+      id: tempId,
+      templateId: template?.id ?? '',
+      name: payload.name,
+      amount: payload.amount,
+      kind: payload.kind,
+      recurrence: payload.recurrence,
+      description: payload.description,
+      createdAt: now,
+      updatedAt: now,
+      originalAmount: payload.originalAmount ?? null,
+      originalCurrency: payload.originalCurrency ?? null,
+      targetCurrency: payload.targetCurrency ?? null,
+      exchangeRate: payload.exchangeRate ?? null,
     };
   }
 
-  #createEditableLine(
-    data: TransactionFormData,
-    originalLine?: TemplateLine,
-  ): EditableLine {
+  #toCreatePayload(
+    input: TemplateLineFormInput,
+  ): TemplateLineCreateWithoutTemplateId {
     return {
-      id: originalLine?.id ?? crypto.randomUUID(),
-      formData: { ...data },
-      isModified: !originalLine,
-      originalLine,
-    };
-  }
-
-  #isLineValid(line: EditableLine): boolean {
-    return (
-      line.formData.description.trim().length > 0 && line.formData.amount >= 0
-    );
-  }
-
-  #generateBulkOperations(
-    propagateToBudgets: boolean,
-  ): TemplateLinesBulkOperations {
-    const currentLines = this.lines();
-    const deletedSet = this.#deletedIds();
-
-    return {
-      create: currentLines
-        .filter((line) => !line.originalLine && !deletedSet.has(line.id))
-        .map((line) => this.#mapToCreateData(line)),
-
-      update: currentLines
-        .filter(
-          (line) =>
-            line.originalLine &&
-            !deletedSet.has(line.id) &&
-            (line.isModified || this.#isLineModified(line)),
-        )
-        .map((line) => this.#mapToUpdateData(line)),
-
-      delete: Array.from(deletedSet)
-        .map((id) => currentLines.find((l) => l.id === id)?.originalLine?.id)
-        .filter((id): id is string => id != null),
-      propagateToBudgets,
-    };
-  }
-
-  #isLineModified(line: EditableLine): boolean {
-    const { originalLine, formData } = line;
-    if (!originalLine) return false;
-
-    return (
-      originalLine.name !== formData.description ||
-      originalLine.amount !== formData.amount ||
-      originalLine.kind !== formData.type
-    );
-  }
-
-  #mapToCreateData(line: EditableLine): TemplateLineCreateWithoutTemplateId {
-    return {
-      name: line.formData.description,
-      amount: line.formData.amount,
-      kind: line.formData.type,
+      name: input.name,
+      amount: input.amount,
+      kind: input.kind,
       recurrence: 'fixed',
       description: '',
-      ...this.#extractCurrencyFields(line),
-    };
-  }
-
-  #mapToUpdateData(line: EditableLine): TemplateLineUpdateWithId {
-    const { originalLine, formData } = line;
-    if (!originalLine) throw new Error('Cannot update line without original');
-    return {
-      id: originalLine.id,
-      name: formData.description,
-      amount: formData.amount,
-      kind: formData.type,
-      recurrence: originalLine.recurrence,
-      description: originalLine.description,
-      ...this.#extractCurrencyFields(line),
+      ...this.#extractCurrencyFields(input),
     };
   }
 
   #extractCurrencyFields(
-    line: EditableLine,
+    input: TemplateLineFormInput,
   ): Partial<TemplateLineCreateWithoutTemplateId> {
-    if (!line.currencyMetadata) return {};
+    if (
+      input.originalAmount == null ||
+      input.originalCurrency == null ||
+      input.targetCurrency == null ||
+      input.exchangeRate == null
+    ) {
+      return {};
+    }
     return {
-      originalAmount: line.currencyMetadata.originalAmount,
-      originalCurrency: line.currencyMetadata.originalCurrency,
-      targetCurrency: line.currencyMetadata.targetCurrency,
-      exchangeRate: line.currencyMetadata.exchangeRate,
-    };
-  }
-
-  #updateStateAfterSave(saveResponse: {
-    created: TemplateLine[];
-    updated: TemplateLine[];
-    deleted: string[];
-  }): void {
-    const updatedById = new Map(
-      saveResponse.updated.map((line) => [line.id, line]),
-    );
-    const createdQueue = [...saveResponse.created];
-
-    const reconciledLines = this.lines()
-      .filter((line) => !this.#deletedIds().has(line.id))
-      .map((line) => {
-        if (!line.originalLine) {
-          const created = createdQueue.shift();
-          return created ? this.#toCleanLine(created) : line;
-        }
-
-        const updated = updatedById.get(line.originalLine.id);
-        return updated ? this.#toCleanLine(updated) : line;
-      });
-
-    this.#lines.set(reconciledLines);
-    this.#deletedIds.set(new Set());
-  }
-
-  #toCleanLine(serverLine: TemplateLine): EditableLine {
-    return {
-      id: serverLine.id,
-      formData: {
-        description: serverLine.name,
-        amount: serverLine.amount,
-        type: serverLine.kind,
-      },
-      isModified: false,
-      originalLine: serverLine,
+      originalAmount: input.originalAmount,
+      originalCurrency: input.originalCurrency,
+      targetCurrency: input.targetCurrency,
+      exchangeRate: input.exchangeRate,
     };
   }
 }

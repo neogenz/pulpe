@@ -39,25 +39,21 @@ test.describe('Template Details View', () => {
     await expect(financialSection.getByText('Dépenses')).toBeVisible();
     await expect(financialSection.getByText('Épargne')).toBeVisible();
 
-    // Verify transactions table is displayed
-    const transactionsTable = authenticatedPage.locator(
-      'pulpe-transactions-table',
+    // Verify template lines grid is displayed
+    const templateLinesGrid = authenticatedPage.locator(
+      'pulpe-template-lines-grid',
     );
-    await expect(transactionsTable).toBeVisible();
+    await expect(templateLinesGrid).toBeVisible();
 
-    // Verify transactions heading
+    // Verify forecasts heading
     await expect(
       authenticatedPage.getByRole('heading', { name: 'Prévisions du modèle' }),
     ).toBeVisible();
 
-    // Verify action buttons are accessible (desktop buttons)
-    const editButton = authenticatedPage.getByTestId(
-      'template-detail-edit-button',
-    );
+    // Verify delete action is accessible (desktop button)
     const deleteButton = authenticatedPage.getByTestId(
       'delete-template-detail-button',
     );
-    await expect(editButton).toBeVisible();
     await expect(deleteButton).toBeVisible();
 
     // Verify back button exists (without clicking it to avoid navigation issues)
@@ -158,6 +154,8 @@ test.describe('Template Details View', () => {
     await expect(savingsPill).toContainText(/500/);
 
     // Net balance hero card (5000 - 2600 - 500 = 1900)
-    await expect(financialSection.getByText(/1.900/)).toBeVisible();
+    const heroAmount = financialSection.getByTestId('template-hero-amount');
+    await expect(heroAmount).toBeVisible();
+    await expect(heroAmount).toContainText(/1.900/);
   });
 });

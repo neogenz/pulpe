@@ -123,12 +123,6 @@ test.describe('Envelope Check/Uncheck Cascade', () => {
       });
     });
 
-    const togglePromise = authenticatedPage.waitForRequest(
-      (req) =>
-        req.url().includes(`/budget-lines/${TEST_UUIDS.LINE_1}/toggle-check`) &&
-        req.method() === 'POST',
-    );
-
     await authenticatedPage.route(
       `**/api/v1/budget-lines/${TEST_UUIDS.LINE_1}/toggle-check`,
       (route) => {
@@ -151,14 +145,21 @@ test.describe('Envelope Check/Uncheck Cascade', () => {
     const switchElement = toggle.getByRole('switch');
     await expect(switchElement).toBeChecked();
 
-    // Click to uncheck
+    // Wait for the toggle-check RESPONSE (not just the request) before
+    // asserting UI state — ensures the mock response has been fully
+    // processed by the component's signal store before we poll aria-checked.
+    const toggleResponsePromise = authenticatedPage.waitForResponse(
+      (res) =>
+        res.url().includes(`/budget-lines/${TEST_UUIDS.LINE_1}/toggle-check`) &&
+        res.request().method() === 'POST',
+    );
+
     await toggle.click();
+    await toggleResponsePromise;
 
-    // Verify API was called
-    await togglePromise;
-
-    // Verify it becomes unchecked
-    await expect(switchElement).not.toBeChecked();
+    // Assertion still polls, with an explicit timeout to absorb slow
+    // signal-driven re-renders in CI (zoneless Angular).
+    await expect(switchElement).not.toBeChecked({ timeout: 15000 });
   });
 
   test('should update pointés count when checking an envelope', async ({

@@ -4,8 +4,8 @@ import {
   inject,
   input,
 } from '@angular/core';
-import { type BudgetTemplate } from 'pulpe-shared';
 import { TranslocoService } from '@jsverse/transloco';
+import { type BudgetTemplate } from 'pulpe-shared';
 import { StateCard } from '@ui/state-card/state-card';
 import { TemplateCard } from './template-card';
 

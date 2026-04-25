@@ -1,3 +1,4 @@
+import { CurrencyPipe } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -10,11 +11,10 @@ import { MatChipsModule } from '@angular/material/chips';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatIconModule } from '@angular/material/icon';
 import { MatListModule } from '@angular/material/list';
-import { CurrencyPipe } from '@angular/common';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatRadioModule } from '@angular/material/radio';
-import { type TemplateViewModel } from './template-view-model';
 import { TranslocoPipe } from '@jsverse/transloco';
+import { type TemplateViewModel } from './template-view-model';
 
 @Component({
   selector: 'pulpe-template-list-item',
@@ -37,7 +37,7 @@ import { TranslocoPipe } from '@jsverse/transloco';
       [class.selected]="isSelected()"
       (click)="selectTemplate.emit(templateViewModel().template.id)"
     >
-      <mat-card-content class="py-3 md:py-4">
+      <mat-card-content class="p-4">
         <!-- Header with title and chip -->
         <div class="flex items-start justify-between mb-3">
           <div class="flex items-center gap-3">

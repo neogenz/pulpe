@@ -7,6 +7,8 @@ export * from './dashboard-hero/dashboard-hero';
 export * from './dialogs/confirmation-dialog';
 export * from './error-alert';
 export * from './error-card';
+export * from './financial-kind-indicator';
+export * from './financial-pills/financial-pills';
 export * from './financial-summary/financial-summary';
 export * from './loading-button';
 export * from './search-bar';

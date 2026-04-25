@@ -25,7 +25,7 @@ export class BudgetTemplatesPage {
   }
 
   async navigateToTemplateDetails(templateName: string) {
-    await this.page.getByTestId(`template-${templateName}`).getByTestId('view-details-button').click();
+    await this.page.getByTestId(`template-${templateName}`).click();
   }
 
   async expectTemplateVisible(templateName: string) {

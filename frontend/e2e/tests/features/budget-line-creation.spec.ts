@@ -255,8 +255,6 @@ test.describe('Budget Line Creation', () => {
     authenticatedPage,
     budgetDetailsPage,
   }) => {
-    let postPayload: unknown = null;
-
     const newLine = createBudgetLineMock(TEST_UUIDS.LINE_3, budgetId, {
       name: 'Transport',
       amount: 200,
@@ -275,7 +273,6 @@ test.describe('Budget Line Creation', () => {
 
     await authenticatedPage.route('**/api/v1/budget-lines', (route) => {
       if (route.request().method() === 'POST') {
-        postPayload = route.request().postDataJSON();
         void route.fulfill({
           status: 201,
           contentType: 'application/json',
@@ -292,14 +289,34 @@ test.describe('Budget Line Creation', () => {
     const dialog = authenticatedPage.locator('mat-dialog-container');
     await expect(dialog).toBeVisible();
 
-    await authenticatedPage.locator('[data-testid="new-line-name"]').fill('Transport');
-    await authenticatedPage.locator('[data-testid="new-line-amount"]').fill('200');
+    await authenticatedPage
+      .locator('[data-testid="new-line-name"]')
+      .fill('Transport');
+    await authenticatedPage
+      .locator('[data-testid="new-line-amount"]')
+      .fill('200');
 
-    await authenticatedPage.getByTestId('add-new-line').click();
+    // Wait for form validation to mark the submit button enabled before
+    // clicking — prevents the fill→click race where the form hasn't
+    // committed values yet. See Playwright auto-wait docs.
+    const submitButton = authenticatedPage.getByTestId('add-new-line');
+    await expect(submitButton).toBeEnabled();
+
+    // Start listening BEFORE the action that triggers the request
+    // (canonical Playwright pattern for deterministic request capture).
+    const postRequestPromise = authenticatedPage.waitForRequest(
+      (req) =>
+        req.url().includes('/api/v1/budget-lines') && req.method() === 'POST',
+    );
+
+    await submitButton.click();
+
+    const postRequest = await postRequestPromise;
+    const postPayload = postRequest.postDataJSON();
+
     await expect(dialog).not.toBeVisible();
 
     // Verify POST payload
-    expect(postPayload).toBeDefined();
     expect(postPayload).toHaveProperty('name', 'Transport');
     expect(postPayload).toHaveProperty('amount', 200);
     expect(postPayload).toHaveProperty('kind', 'expense');

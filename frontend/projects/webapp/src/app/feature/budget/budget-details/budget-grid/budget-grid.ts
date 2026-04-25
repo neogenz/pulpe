@@ -16,11 +16,11 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { AppCurrencyPipe } from '@core/currency';
 import { FinancialKindDirective } from '@ui/financial-kind';
+import { FinancialKindIndicator } from '@ui/financial-kind-indicator';
 import { TransactionLabelPipe } from '@ui/transaction-display';
 import type { BudgetLine, Transaction, SupportedCurrency } from 'pulpe-shared';
 import type { TransactionViewModel } from '../models/transaction-view-model';
 import type { BudgetLineTableItem } from '../data-core';
-import { BudgetKindIndicator } from '../components/budget-kind-indicator';
 import { TransactionActionMenu } from '../components/transaction-action-menu';
 import {
   BudgetDetailPanel,
@@ -78,7 +78,7 @@ export function groupByKind<T extends { data: { kind: string } }>(
     BudgetGridCard,
     BudgetGridMobileCard,
     BudgetGridSection,
-    BudgetKindIndicator,
+    FinancialKindIndicator,
     FinancialKindDirective,
     TransactionActionMenu,
     TransactionLabelPipe,
@@ -213,7 +213,7 @@ export function groupByKind<T extends { data: { kind: string } }>(
           <!-- Row 1: Kind dot + name + menu -->
           <div class="flex items-start justify-between gap-2 mb-3">
             <div class="flex items-center gap-2 min-w-0 flex-1">
-              <pulpe-budget-kind-indicator [kind]="item.data.kind" />
+              <pulpe-financial-kind-indicator [kind]="item.data.kind" />
               <span class="text-title-small font-medium truncate ph-no-capture">
                 {{ item.data.name }}
               </span>
@@ -280,7 +280,7 @@ export function groupByKind<T extends { data: { kind: string } }>(
         <!-- Header: Kind dot + name + menu -->
         <div class="flex items-start justify-between gap-2 mb-4 flex-1">
           <div class="flex items-center gap-2 min-w-0 flex-1">
-            <pulpe-budget-kind-indicator [kind]="item.data.kind" />
+            <pulpe-financial-kind-indicator [kind]="item.data.kind" />
             <span class="text-title-small font-medium truncate ph-no-capture">{{
               item.data.name
             }}</span>
