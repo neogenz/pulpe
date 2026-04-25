@@ -3,12 +3,13 @@ import Foundation
 import Supabase
 import Testing
 
-/// PUL-129: account deletion must revoke the Supabase JWT server-side.
+/// PUL-129 / PUL-130: account deletion + password reset must revoke the Supabase JWT server-side.
 ///
 /// `AuthService.logout()` historically hardcoded `signOut(scope: .local)`, which
 /// only wipes client tokens and leaves the access token valid on the server for
 /// up to 1 hour. Tests below verify that:
 /// - `deleteAccount()` and `abandonInProgressSignup()` propagate `.global`
+/// - `completePasswordResetFlow()` and `cancelPasswordResetFlow()` propagate `.global`
 /// - Regular user-initiated logout keeps the `.local` default
 @MainActor
 @Suite(.serialized)
@@ -78,5 +79,49 @@ struct AppStateLogoutScopeTests {
             receivedScope.value == .global,
             "Signup abandon must revoke server-side session — backend may have provisioned one"
         )
+    }
+
+    @Test("completePasswordResetFlow() triggers performSignOut with .global scope")
+    func completePasswordResetFlow_triggersGlobalSignOutScope() async {
+        let receivedScope = AtomicProperty<SignOutScope?>(nil)
+        let user = UserInfo(id: "user-pwd-reset", email: "pwdreset@pulpe.app", firstName: "Reset")
+        let sut = AppState(
+            postAuthResolver: MockPostAuthResolver(destination: .authenticated(needsRecoveryKeyConsent: false)),
+            biometricPreferenceStore: AppStateTestFactory.biometricDisabledStore(),
+            performSignOut: { scope in receivedScope.set(scope) }
+        )
+
+        await sut.resolvePostAuth(user: user)
+        #expect(sut.authState == .authenticated, "Setup: should be authenticated")
+
+        await sut.completePasswordResetFlow()
+
+        #expect(
+            receivedScope.value == .global,
+            "Password reset must sign out with .global so Supabase revokes the JWT server-side"
+        )
+        #expect(sut.authState == .unauthenticated)
+    }
+
+    @Test("cancelPasswordResetFlow() triggers performSignOut with .global scope")
+    func cancelPasswordResetFlow_triggersGlobalSignOutScope() async {
+        let receivedScope = AtomicProperty<SignOutScope?>(nil)
+        let user = UserInfo(id: "user-pwd-cancel", email: "pwdcancel@pulpe.app", firstName: "Cancel")
+        let sut = AppState(
+            postAuthResolver: MockPostAuthResolver(destination: .authenticated(needsRecoveryKeyConsent: false)),
+            biometricPreferenceStore: AppStateTestFactory.biometricDisabledStore(),
+            performSignOut: { scope in receivedScope.set(scope) }
+        )
+
+        await sut.resolvePostAuth(user: user)
+        #expect(sut.authState == .authenticated, "Setup: should be authenticated")
+
+        await sut.cancelPasswordResetFlow()
+
+        #expect(
+            receivedScope.value == .global,
+            "Cancel password reset must sign out with .global — recovery JWT is write-capable"
+        )
+        #expect(sut.authState == .unauthenticated)
     }
 }

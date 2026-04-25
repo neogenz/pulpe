@@ -154,7 +154,9 @@ extension AppState {
     /// and returning the app to the regular login screen.
     func completePasswordResetFlow() async {
         authDebug("AUTH_PASSWORD_RESET", "complete")
-        await authService.logout()
+        // Password reset → revoke JWT server-side so a snapped access_token
+        // cannot be replayed within its ~1h expiry window.
+        await performSignOut(.global)
         await authService.clearBiometricTokens()
         await clientKeyManager.clearAll()
         biometric.isEnabled = false
@@ -166,7 +168,9 @@ extension AppState {
     /// and returning the app to the regular login screen without success feedback.
     func cancelPasswordResetFlow() async {
         authDebug("AUTH_PASSWORD_RESET", "cancel")
-        await authService.logout()
+        // Cancel mid-recovery → revoke JWT server-side. Recovery session is
+        // write-capable (can change password) so a snapped token must not survive.
+        await performSignOut(.global)
         await authService.clearBiometricTokens()
         await clientKeyManager.clearAll()
         biometric.isEnabled = false
