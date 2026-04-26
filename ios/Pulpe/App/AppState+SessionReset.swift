@@ -116,14 +116,16 @@ extension AppState {
         let shouldPreserveBiometric = preserveBiometricSession ?? (source == .userInitiated)
         authDebug("AUTH_LOGOUT", "preserveBiometric=\(shouldPreserveBiometric)")
         if shouldPreserveBiometric && biometric.isEnabled {
-            // Refresh biometric tokens with the latest session before clearing
+            // Snapshot the live session into the biometric slot for cold-start re-entry.
+            // PUL-132: removed `saveBiometricTokensFromKeychain` fallback — SDK storage
+            // (PulpeAuthStorage) IS the source of truth, so a missing SDK session means
+            // there's nothing valid to snapshot.
             var biometricTokensSaved = false
             do {
                 try await authService.saveBiometricTokens()
                 biometricTokensSaved = true
             } catch {
-                Logger.auth.warning("logout: SDK session unavailable, falling back to keychain - \(error)")
-                biometricTokensSaved = await authService.saveBiometricTokensFromKeychain()
+                Logger.auth.warning("logout: biometric snapshot failed - \(error)")
             }
 
             if biometricTokensSaved {

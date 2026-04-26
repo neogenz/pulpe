@@ -386,8 +386,12 @@ struct AppStateCharacterizationTests {
 
         #expect(sut.authState == .needsPinEntry)
     }
-    @Test("checkAuthState with biometric enabled resolves via biometric session")
+    @Test("checkAuthState with biometric enabled + explicit logout resolves via biometric session")
     func checkAuthState_biometricEnabled_resolvesViaBiometric() async {
+        // PUL-132: biometric-keychain validation runs only on explicit-logout cold-start.
+        UserDefaults.standard.set(true, forKey: "pulpe-did-explicit-logout")
+        defer { UserDefaults.standard.removeObject(forKey: "pulpe-did-explicit-logout") }
+
         let sut = makeSUT(
             destination: .needsPinEntry(needsRecoveryKeyConsent: false),
             biometricEnabled: true,

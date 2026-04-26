@@ -90,8 +90,11 @@ actor StartupCoordinator {
         // can take an arbitrary amount of time (phone on desk, etc.).
         // Skip the startup timeout — individual network operations within the
         // biometric flow have their own URLSession timeouts.
+        // PUL-132: biometric-keychain read only happens on explicit-logout cold start
+        // (re-entry path). Normal cold-start with biometric enabled relies on the
+        // SDK-restored session from PulpeAuthStorage.
         let biometricWillRun = context.biometricEnabled
-            && !context.didExplicitLogout
+            && context.didExplicitLogout
             && !context.manualBiometricRetryRequired
 
         let result: StartupResult
@@ -220,8 +223,11 @@ actor StartupCoordinator {
     }
 
     private func performBiometricValidationIfNeeded(runId: UUID, context: StartupContext) async -> StartupResult? {
-        guard context.biometricEnabled, !context.didExplicitLogout else { return nil }
-        Logger.auth.debug("[STARTUP] Attempting biometric session validation")
+        // PUL-132: biometric-keychain read is the re-entry path after an explicit logout.
+        // For normal cold-start with biometric enabled (didExplicitLogout == false),
+        // SDK-restored session from PulpeAuthStorage is used via performRegularValidation.
+        guard context.biometricEnabled, context.didExplicitLogout else { return nil }
+        Logger.auth.debug("[STARTUP] Attempting biometric session validation (explicit-logout re-entry)")
 
         do {
             guard let biometricResult = try await validateBiometricSession() else {

@@ -90,9 +90,10 @@ struct AppStateStartupTimeoutIsolationTests {
             }
         )
 
+        // PUL-132: biometric path requires didExplicitLogout=true.
         let context = StartupCoordinator.StartupContext(
             biometricEnabled: true,
-            didExplicitLogout: false,
+            didExplicitLogout: true,
             manualBiometricRetryRequired: false
         )
 
