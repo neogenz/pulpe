@@ -53,7 +53,10 @@ public struct PulpeAuthStorage: AuthLocalStorage {
             kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlockedThisDeviceOnly
         ]
         let addStatus = SecItemAdd(addQuery as CFDictionary, nil)
-        guard addStatus == errSecSuccess else {
+        // errSecDuplicateItem: a concurrent writer (e.g. SDK auto-refresh timer)
+        // re-inserted the item between our SecItemDelete and SecItemAdd. Treat
+        // as success — the slot now holds a more recent value than ours would.
+        guard addStatus == errSecSuccess || addStatus == errSecDuplicateItem else {
             throw PulpeAuthStorageError.storeFailed(addStatus)
         }
     }
