@@ -41,7 +41,8 @@ public struct PulpeAuthStorage: AuthLocalStorage {
                 "PulpeAuthStorage update failed (\(updateStatus)), delete=\(deleteStatus) for key: \(key)"
             )
             guard deleteStatus == errSecSuccess || deleteStatus == errSecItemNotFound else {
-                throw PulpeAuthStorageError.storeFailed(deleteStatus)
+                // Preserve original failure cause (update) — delete was best-effort cleanup.
+                throw PulpeAuthStorageError.storeFailed(updateStatus)
             }
         }
 
