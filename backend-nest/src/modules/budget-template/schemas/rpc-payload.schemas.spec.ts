@@ -10,52 +10,84 @@ const VALID_CIPHERTEXT =
   'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==';
 
 describe('createTemplateLineRpcPayloadSchema', () => {
-  it('should accept a valid payload', () => {
+  const monoBase = {
+    name: 'Rent',
+    amount: VALID_CIPHERTEXT,
+    kind: 'expense' as const,
+    recurrence: 'fixed' as const,
+    description: 'Monthly',
+    original_amount: null,
+    original_currency: null,
+    target_currency: null,
+    exchange_rate: null,
+  };
+
+  it('should accept a valid mono-currency payload', () => {
+    const result = createTemplateLineRpcPayloadSchema.parse(monoBase);
+
+    expect(result).toEqual(monoBase);
+  });
+
+  it('should accept a valid multi-currency payload (PUL-133)', () => {
     const payload = {
-      name: 'Rent',
-      amount: VALID_CIPHERTEXT,
-      kind: 'expense' as const,
-      recurrence: 'fixed' as const,
-      description: 'Monthly',
+      ...monoBase,
+      original_amount: VALID_CIPHERTEXT,
+      original_currency: 'EUR' as const,
+      target_currency: 'CHF' as const,
+      exchange_rate: 0.94,
     };
 
     const result = createTemplateLineRpcPayloadSchema.parse(payload);
 
-    expect(result).toEqual(payload);
+    expect(result.exchange_rate).toBe(0.94);
+    expect(result.original_currency).toBe('EUR');
   });
 
   it('should reject extra keys (forged bypass attempt)', () => {
-    const forged = {
-      name: 'Rent',
-      amount: VALID_CIPHERTEXT,
-      kind: 'expense' as const,
-      recurrence: 'fixed' as const,
-      description: 'Monthly',
-      user_id: 'attacker',
-    };
+    const forged = { ...monoBase, user_id: 'attacker' };
 
     expect(() => createTemplateLineRpcPayloadSchema.parse(forged)).toThrow();
   });
 
   it('should reject invalid kind', () => {
-    const bad = {
-      name: 'Rent',
-      amount: VALID_CIPHERTEXT,
-      kind: 'transfer',
-      recurrence: 'fixed' as const,
-      description: '',
-    };
+    const bad = { ...monoBase, kind: 'transfer' };
 
     expect(() => createTemplateLineRpcPayloadSchema.parse(bad)).toThrow();
   });
 
   it('should reject plaintext numeric amount (must be encrypted ciphertext)', () => {
+    const bad = { ...monoBase, amount: 1500 };
+
+    expect(() => createTemplateLineRpcPayloadSchema.parse(bad)).toThrow();
+  });
+
+  it('should reject unsupported currency (PUL-133)', () => {
     const bad = {
-      name: 'Rent',
-      amount: 1500,
-      kind: 'expense' as const,
-      recurrence: 'fixed' as const,
-      description: '',
+      ...monoBase,
+      original_currency: 'USD',
+      target_currency: 'CHF',
+    };
+
+    expect(() => createTemplateLineRpcPayloadSchema.parse(bad)).toThrow();
+  });
+
+  it('should reject negative exchange rate (PUL-133)', () => {
+    const bad = {
+      ...monoBase,
+      original_currency: 'EUR' as const,
+      target_currency: 'CHF' as const,
+      exchange_rate: -1,
+    };
+
+    expect(() => createTemplateLineRpcPayloadSchema.parse(bad)).toThrow();
+  });
+
+  it('should reject non-finite exchange rate (PUL-133)', () => {
+    const bad = {
+      ...monoBase,
+      original_currency: 'EUR' as const,
+      target_currency: 'CHF' as const,
+      exchange_rate: Number.POSITIVE_INFINITY,
     };
 
     expect(() => createTemplateLineRpcPayloadSchema.parse(bad)).toThrow();
@@ -71,6 +103,10 @@ describe('createTemplateLinesRpcPayloadSchema', () => {
         kind: 'expense' as const,
         recurrence: 'fixed' as const,
         description: '',
+        original_amount: null,
+        original_currency: null,
+        target_currency: null,
+        exchange_rate: null,
       },
     ];
 

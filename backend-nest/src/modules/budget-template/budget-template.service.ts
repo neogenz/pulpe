@@ -276,20 +276,41 @@ export class BudgetTemplateService {
         .eq('is_default', true);
     }
 
-    const amounts = validated.lines.map((line) => line.amount);
-    const preparedAmounts = await this.encryptionService.prepareAmountsData(
-      amounts,
-      user.id,
-      user.clientKey,
+    const overriddenLines = await Promise.all(
+      validated.lines.map((line) =>
+        this.currencyService.overrideExchangeRate(line),
+      ),
     );
 
-    const rpcLines = validated.lines.map((line, index) => ({
+    const amounts = overriddenLines.map((line) => line.amount);
+    const [preparedAmounts, encryptedOriginalAmounts] = await Promise.all([
+      this.encryptionService.prepareAmountsData(
+        amounts,
+        user.id,
+        user.clientKey,
+      ),
+      Promise.all(
+        overriddenLines.map((line) =>
+          this.encryptionService.encryptOptionalAmount(
+            line.originalAmount,
+            user.id,
+            user.clientKey,
+          ),
+        ),
+      ),
+    ]);
+
+    const rpcLines = overriddenLines.map((line, index) => ({
       name: line.name,
       amount: preparedAmounts[index].amount,
       kind: line.kind as Database['public']['Enums']['transaction_kind'],
       recurrence:
         line.recurrence as Database['public']['Enums']['transaction_recurrence'],
       description: line.description || '',
+      original_amount: encryptedOriginalAmounts[index],
+      original_currency: line.originalCurrency ?? null,
+      target_currency: line.targetCurrency ?? null,
+      exchange_rate: line.exchangeRate ?? null,
     }));
 
     const validatedRpcLines =
