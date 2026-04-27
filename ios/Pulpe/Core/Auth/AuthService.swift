@@ -10,43 +10,65 @@ actor AuthService {
 
     private var supabase: SupabaseClient
     private let keychain: KeychainManager
+    private let storage: PulpeAuthStorage
+    private var authStateListenerTask: Task<Void, Never>?
 
     private init(keychain: KeychainManager = .shared) {
         self.keychain = keychain
-        self.supabase = SupabaseClient(
+        self.storage = PulpeAuthStorage()
+        self.supabase = Self.makeSupabaseClient(storage: self.storage)
+        Task(name: "AuthService.startListener") { [weak self] in
+            await self?.startAuthStateListener()
+        }
+    }
+
+    private func resetClient() {
+        authStateListenerTask?.cancel()
+        authStateListenerTask = nil
+        supabase = Self.makeSupabaseClient(storage: storage)
+        // NOTE: gap between client assignment and listener subscription —
+        // `.initialSession` / `.tokenRefreshed` events emitted during this window
+        // are missed. Acceptable while the listener is logging-only; revisit if
+        // the listener takes corrective action.
+        Task(name: "AuthService.restartListener") { [weak self] in
+            await self?.startAuthStateListener()
+        }
+    }
+
+    private static func makeSupabaseClient(storage: PulpeAuthStorage) -> SupabaseClient {
+        SupabaseClient(
             supabaseURL: AppConfiguration.supabaseURL,
             supabaseKey: AppConfiguration.supabaseAnonKey,
             options: SupabaseClientOptions(
                 auth: .init(
+                    storage: storage,
                     emitLocalSessionAsInitialSession: true
                 )
             )
         )
     }
 
-    private func resetClient() {
-        supabase = SupabaseClient(
-            supabaseURL: AppConfiguration.supabaseURL,
-            supabaseKey: AppConfiguration.supabaseAnonKey,
-            options: SupabaseClientOptions(
-                auth: .init(
-                    emitLocalSessionAsInitialSession: true
-                )
-            )
-        )
+    private func startAuthStateListener() {
+        authStateListenerTask?.cancel()
+        let stream = supabase.auth.authStateChanges
+        authStateListenerTask = Task(name: "AuthService.authStateListener") {
+            for await (event, _) in stream {
+                switch event {
+                case .tokenRefreshed:
+                    Logger.auth.debug("[AUTH] tokenRefreshed — SDK persisted via PulpeAuthStorage")
+                case .signedOut:
+                    Logger.auth.debug("[AUTH] signedOut — SDK cleared storage")
+                default:
+                    break
+                }
+            }
+        }
     }
 
     // MARK: - Login
 
     func login(email: String, password: String) async throws -> UserInfo {
         let session = try await supabase.auth.signIn(email: email, password: password)
-
-        // Save tokens to keychain for API calls
-        try await keychain.saveTokens(
-            accessToken: session.accessToken,
-            refreshToken: session.refreshToken
-        )
-
         return Self.userInfo(from: session.user, fallbackEmail: email)
     }
 
@@ -58,12 +80,6 @@ actor AuthService {
         guard let session = response.session else {
             throw AuthServiceError.signupFailed("No session returned. Email confirmation may be required.")
         }
-
-        // Save tokens to keychain for API calls
-        try await keychain.saveTokens(
-            accessToken: session.accessToken,
-            refreshToken: session.refreshToken
-        )
 
         return Self.userInfo(from: session.user, fallbackEmail: email)
     }
@@ -85,12 +101,6 @@ actor AuthService {
 
     private func signInWithIdToken(_ credentials: OpenIDConnectCredentials) async throws -> UserInfo {
         let session = try await supabase.auth.signInWithIdToken(credentials: credentials)
-
-        try await keychain.saveTokens(
-            accessToken: session.accessToken,
-            refreshToken: session.refreshToken
-        )
-
         return Self.userInfo(from: session.user, fallbackEmail: "")
     }
 
@@ -108,12 +118,6 @@ actor AuthService {
     /// Returns context required by the reset-password flow.
     func beginPasswordRecovery(from url: URL) async throws -> PasswordRecoveryContext {
         let session = try await supabase.auth.session(from: url)
-
-        try await keychain.saveTokens(
-            accessToken: session.accessToken,
-            refreshToken: session.refreshToken
-        )
-
         let user = session.user
         let metadata = user.userMetadata
 
@@ -139,12 +143,7 @@ actor AuthService {
 
     /// Re-authenticate with current credentials to verify password knowledge.
     func verifyPassword(email: String, password: String) async throws {
-        let session = try await supabase.auth.signIn(email: email, password: password)
-
-        try await keychain.saveTokens(
-            accessToken: session.accessToken,
-            refreshToken: session.refreshToken
-        )
+        _ = try await supabase.auth.signIn(email: email, password: password)
     }
 
     /// Persist a first name to Supabase user_metadata.
@@ -158,36 +157,16 @@ actor AuthService {
     /// Update the current user's password in Supabase auth.
     func updatePassword(_ newPassword: String) async throws {
         _ = try await supabase.auth.update(user: UserAttributes(password: newPassword))
-
-        let session = try await supabase.auth.session
-        try await keychain.saveTokens(
-            accessToken: session.accessToken,
-            refreshToken: session.refreshToken
-        )
+        // SDK persists refreshed session via PulpeAuthStorage automatically.
     }
 
     // MARK: - Session Validation
 
     func validateSession() async throws -> UserInfo? {
-        // Check if we have tokens
-        guard await keychain.hasTokens() else {
-            return nil
-        }
-
         do {
-            // Try to get current session from Supabase
             let session = try await supabase.auth.session
-
-            // Refresh tokens in keychain
-            try await keychain.saveTokens(
-                accessToken: session.accessToken,
-                refreshToken: session.refreshToken
-            )
-
             return Self.userInfo(from: session.user, fallbackEmail: "")
         } catch {
-            // Session invalid, clear tokens
-            await keychain.clearTokens()
             return nil
         }
     }
@@ -201,13 +180,22 @@ actor AuthService {
             Logger.auth.error("logout: signOut failed - \(error)")
         }
 
+        // SDK clears its own storage on signOut; clear legacy slot defensively.
         await keychain.clearTokens()
     }
 
     /// Logout without revoking the server-side refresh token.
-    /// Replaces the SupabaseClient to stop its auto-refresh timer,
-    /// then clears the regular keychain. Biometric tokens stay intact.
+    /// Order matters: clear the SDK-owned storage slot BEFORE replacing the
+    /// SupabaseClient. The new client's `emitInitialSession` reads from
+    /// PulpeAuthStorage on subscribe and may trigger a silent refresh that
+    /// writes the slot back — see AuthClient.swift `emitInitialSession`.
+    /// Biometric tokens stay intact as cold-storage for re-entry.
     func logoutKeepingBiometricSession() async {
+        do {
+            try storage.remove(key: PulpeAuthStorage.sessionStorageKey)
+        } catch {
+            Logger.auth.warning("logoutKeepingBiometricSession: storage.remove failed - \(error)")
+        }
         resetClient()
         await keychain.clearTokens()
     }
@@ -221,23 +209,13 @@ actor AuthService {
     // MARK: - Token Access (for API Client)
 
     func getAccessToken() async -> String? {
-        // Try to get fresh token from Supabase
-        if let session = try? await supabase.auth.session {
-            // Update keychain with latest token
-            do {
-                try await keychain.saveTokens(
-                    accessToken: session.accessToken,
-                    refreshToken: session.refreshToken
-                )
-            } catch {
-                Logger.auth.error("getAccessToken: failed to persist tokens - \(error)")
-            }
+        do {
+            let session = try await supabase.auth.session
             return session.accessToken
+        } catch {
+            Logger.auth.warning("getAccessToken: SDK session unavailable - \(error.localizedDescription)")
+            return nil
         }
-
-        // Supabase session unavailable — fall back to stored token
-        Logger.auth.warning("getAccessToken: Supabase session unavailable, falling back to keychain")
-        return await keychain.getAccessToken()
     }
 
     // MARK: - Biometric Session
@@ -254,27 +232,6 @@ actor AuthService {
         }
     }
 
-    /// Fallback: refresh and save tokens to biometric keychain.
-    /// Validates tokens before saving to prevent storing stale/expired tokens.
-    func saveBiometricTokensFromKeychain() async -> Bool {
-        guard let refreshToken = await keychain.getRefreshToken() else {
-            return false
-        }
-
-        // Validate token is still valid before saving
-        do {
-            let session = try await supabase.auth.refreshSession(refreshToken: refreshToken)
-            return await keychain.saveBiometricTokens(
-                accessToken: session.accessToken,
-                refreshToken: session.refreshToken
-            )
-        } catch {
-            Logger.auth.error("saveBiometricTokensFromKeychain: token refresh failed - \(error)")
-            return false
-        }
-    }
-
-    // swiftlint:disable:next function_body_length
     func validateBiometricSession() async throws -> BiometricSessionResult? {
         let hasBiometricTokens = await keychain.hasBiometricTokens()
         #if DEBUG
@@ -330,18 +287,10 @@ actor AuthService {
             throw AuthServiceError.biometricSessionExpired
         }
 
-        try await keychain.saveTokens(
-            accessToken: session.accessToken,
-            refreshToken: session.refreshToken
-        )
-
-        let biometricSaved = await keychain.saveBiometricTokens(
-            accessToken: session.accessToken,
-            refreshToken: session.refreshToken
-        )
-        if !biometricSaved {
-            Logger.auth.warning("validateBiometricSession: failed to persist biometric tokens")
-        }
+        // SDK persisted the new session via PulpeAuthStorage. The biometric slot
+        // is single-use cold-storage — clear it so the next logout-keep-biometric
+        // re-snapshots a fresh refresh token (PUL-132: prevents drift / reuse-detection).
+        await keychain.clearBiometricTokens()
 
         let user = Self.userInfo(from: session.user, fallbackEmail: "")
         return BiometricSessionResult(user: user, clientKeyHex: clientKeyHex)
