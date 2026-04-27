@@ -10,10 +10,11 @@ import {
 import { DecimalPipe } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { TranslocoPipe } from '@jsverse/transloco';
+import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 
 import {
   CURRENCY_METADATA,
+  getCurrencyFormatter,
   type BudgetPeriodDates,
   type SupportedCurrency,
 } from 'pulpe-shared';
@@ -28,17 +29,10 @@ import {
       [class.budget-warning]="isWarning()"
       (click)="heroClick.emit()"
       (keydown.enter)="heroClick.emit()"
+      (keydown.space)="$event.preventDefault(); heroClick.emit()"
       tabindex="0"
       role="button"
-      [attr.aria-label]="
-        ('dashboard.available' | transloco) +
-        ' ' +
-        remaining() +
-        ' ' +
-        currency() +
-        ' — ' +
-        periodLabel()
-      "
+      [attr.aria-label]="remainingAriaLabel()"
     >
       <div
         class="absolute -right-10 -bottom-10 w-56 h-56 bg-white/15 rounded-full blur-3xl pointer-events-none"
@@ -221,6 +215,7 @@ export class DashboardHero {
   readonly #monthFormatter = new Intl.DateTimeFormat(inject(LOCALE_ID), {
     month: 'long',
   });
+  readonly #transloco = inject(TranslocoService);
   readonly expenses = input.required<number>();
   readonly available = input.required<number>();
   readonly periodDates = input.required<BudgetPeriodDates>();
@@ -264,5 +259,12 @@ export class DashboardHero {
     const end = dates.endDate.getTime();
     const middleDate = new Date(start + (end - start) / 2);
     return this.#monthFormatter.format(middleDate);
+  });
+
+  protected readonly remainingAriaLabel = computed(() => {
+    const formatted = getCurrencyFormatter(this.currency()).format(
+      this.remaining(),
+    );
+    return `${this.#transloco.translate('dashboard.available')} ${formatted} — ${this.periodLabel()}`;
   });
 }

@@ -5,8 +5,12 @@ import {
   type EncryptionSetupRecoveryResponse,
   type EncryptionRecoverResponse,
   type EncryptionChangePinResponse,
+  type EncryptionValidateKeyRequest,
+  type EncryptionVerifyRecoveryKeyRequest,
   encryptionSaltResponseSchema,
   encryptionSetupRecoveryResponseSchema,
+  encryptionValidateKeyRequestSchema,
+  encryptionVerifyRecoveryKeyRequestSchema,
   encryptionRecoverRequestSchema,
   encryptionRecoverResponseSchema,
   encryptionChangePinRequestSchema,
@@ -29,15 +33,19 @@ export class EncryptionApi {
    * For new users (no key_check yet), generates and stores one as a side effect.
    */
   validateKey$(clientKeyHex: string): Observable<void> {
-    return this.#api.postVoid$('/encryption/validate-key', {
-      clientKey: clientKeyHex,
-    });
+    return this.#api.postVoid$<EncryptionValidateKeyRequest>(
+      '/encryption/validate-key',
+      { clientKey: clientKeyHex },
+      encryptionValidateKeyRequestSchema,
+    );
   }
 
   verifyRecoveryKey$(recoveryKey: string): Observable<void> {
-    return this.#api.postVoid$('/encryption/verify-recovery-key', {
-      recoveryKey,
-    });
+    return this.#api.postVoid$<EncryptionVerifyRecoveryKeyRequest>(
+      '/encryption/verify-recovery-key',
+      { recoveryKey },
+      encryptionVerifyRecoveryKeyRequestSchema,
+    );
   }
 
   setupRecoveryKey$(): Observable<EncryptionSetupRecoveryResponse> {

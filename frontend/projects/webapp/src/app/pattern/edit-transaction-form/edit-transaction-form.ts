@@ -88,7 +88,7 @@ export type HideableField = 'kind' | 'category';
           transactionForm.get('name')?.hasError('required') &&
           transactionForm.get('name')?.touched
         ) {
-          <mat-error role="alert" aria-live="assertive">
+          <mat-error>
             {{ 'transactionForm.nameRequired' | transloco }}
           </mat-error>
         }
@@ -96,7 +96,7 @@ export type HideableField = 'kind' | 'category';
           transactionForm.get('name')?.hasError('minlength') &&
           transactionForm.get('name')?.touched
         ) {
-          <mat-error role="alert" aria-live="assertive">
+          <mat-error>
             {{ 'transactionForm.nameMinLength' | transloco }}
           </mat-error>
         }
@@ -104,7 +104,7 @@ export type HideableField = 'kind' | 'category';
           transactionForm.get('name')?.hasError('maxlength') &&
           transactionForm.get('name')?.touched
         ) {
-          <mat-error role="alert" aria-live="assertive">
+          <mat-error>
             {{ 'transactionForm.nameMaxLength' | transloco }}
           </mat-error>
         }
@@ -143,7 +143,7 @@ export type HideableField = 'kind' | 'category';
             transactionForm.get('amount')?.hasError('required') &&
             transactionForm.get('amount')?.touched
           ) {
-            <mat-error role="alert" aria-live="assertive">
+            <mat-error>
               {{ 'transactionForm.amountRequired' | transloco }}
             </mat-error>
           }
@@ -151,7 +151,7 @@ export type HideableField = 'kind' | 'category';
             transactionForm.get('amount')?.hasError('min') &&
             transactionForm.get('amount')?.touched
           ) {
-            <mat-error role="alert" aria-live="assertive">
+            <mat-error>
               {{ 'transactionForm.amountMin' | transloco }}
             </mat-error>
           }
@@ -159,7 +159,7 @@ export type HideableField = 'kind' | 'category';
             transactionForm.get('amount')?.hasError('max') &&
             transactionForm.get('amount')?.touched
           ) {
-            <mat-error role="alert" aria-live="assertive">
+            <mat-error>
               {{ 'transactionForm.amountMax' | transloco }}
             </mat-error>
           }
@@ -227,7 +227,7 @@ export type HideableField = 'kind' | 'category';
           transactionForm.get('transactionDate')?.hasError('required') &&
           transactionForm.get('transactionDate')?.touched
         ) {
-          <mat-error role="alert" aria-live="assertive">
+          <mat-error>
             {{ 'transactionForm.dateRequired' | transloco }}
           </mat-error>
         }
@@ -235,7 +235,7 @@ export type HideableField = 'kind' | 'category';
           transactionForm.get('transactionDate')?.hasError('dateOutOfRange') &&
           transactionForm.get('transactionDate')?.touched
         ) {
-          <mat-error role="alert" aria-live="assertive">
+          <mat-error>
             {{
               'transactionForm.dateOutOfRange'
                 | transloco
@@ -271,7 +271,7 @@ export type HideableField = 'kind' | 'category';
             transactionForm.get('category')?.hasError('maxlength') &&
             transactionForm.get('category')?.touched
           ) {
-            <mat-error role="alert" aria-live="assertive">
+            <mat-error>
               {{ 'transactionForm.notesMaxLength' | transloco }}
             </mat-error>
           }
@@ -447,13 +447,7 @@ export class EditTransactionForm implements OnInit {
       kind,
       transactionDate,
       category,
-    } = this.transactionForm.getRawValue() as {
-      name: string;
-      amount: number | null;
-      kind: 'expense' | 'income' | 'saving';
-      transactionDate: Date | null;
-      category: string | null;
-    };
+    } = this.transactionForm.getRawValue();
 
     // Form is valid so all required fields are guaranteed non-null
     if (!name || !rawAmount || !kind || !transactionDate) return;

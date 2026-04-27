@@ -479,7 +479,17 @@
       "envelopeWithin": "Pointé · {{ envelope }} {{ currency }}",
       "transactionChecked": "Pointé · {{ amount }} {{ currency }}"
     },
-    "forecastCheckedToggle": "Déjà pointé"
+    "forecastCheckedToggle": "Déjà pointé",
+    "overview": {
+      "remainingThisMonth": "Ce qu'il te reste ce mois",
+      "perForecast": "selon tes prévisions",
+      "deficitThisMonth": "Déficit ce mois",
+      "uncoveredOverrun": "dépassement non couvert",
+      "niceMargin": "Belle marge ce mois",
+      "youManageWell": "Tu gères bien",
+      "justBalanced": "Pile à l'équilibre",
+      "tightMonth": "Ce mois sera serré — mais tu le sais"
+    }
   },
   "budgetLine": {
     "checkLabel": "Pointer {{ name }}",
@@ -639,7 +649,14 @@
     "linesCount": "{{count}} prévision(s)",
     "lineCreateSuccess": "Prévision ajoutée",
     "lineUpdateSuccess": "Prévision modifiée",
-    "lineDeleteSuccess": "Prévision supprimée"
+    "lineDeleteSuccess": "Prévision supprimée",
+    "selectAriaLabel": "Sélectionner {{ name }}",
+    "defaultTag": "Par défaut",
+    "calculating": "Calcul en cours...",
+    "analyzingData": "Analyse de vos données financières",
+    "monthlyIncomes": "Revenus mensuels",
+    "plannedExpenses": "Dépenses prévues",
+    "availableLabel": "Disponible"
   },
   "currentMonth": {
     "pageTitle": "Tableau de bord",
@@ -662,6 +679,7 @@
     "historyExpensesLabel": "Dépenses",
     "historySavingsLabel": "Épargne",
     "historyAvgIncomeLabel": "Revenu moyen",
+    "chartLoading": "Chargement du graphique...",
     "savingsSectionTitle": "Épargne du mois",
     "savingsAllDone": "Tout est en place",
     "savingsNone": "Aucune prévision",

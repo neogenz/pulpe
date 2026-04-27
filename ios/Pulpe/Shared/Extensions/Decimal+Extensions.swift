@@ -6,28 +6,17 @@ extension Decimal {
     /// formatting (separators, decimals). Swiss convention keeps the `CHF` code;
     /// EUR uses `€` for naturalness — see `SupportedCurrency.symbol`.
     func asCurrency(_ currency: SupportedCurrency) -> String {
-        let locale = Formatters.locale(for: currency)
-        let amount = formatted(
-            .number
-                .locale(locale)
-                .precision(.fractionLength(2))
-                .grouping(.automatic)
-        )
-        return "\(amount) \(currency.symbol)"
+        "\(asAmount(for: currency)) \(currency.symbol)"
     }
 
     /// Format as CHF currency using Swiss locale
     var asCHF: String { asCurrency(.chf) }
 
     /// Format as amount only (no currency symbol) using the currency's locale.
-    /// EUR → `1 234,56`, CHF → `1'234.56`.
+    /// EUR → `1 234,56`, CHF → `1'234.56` (U+2019 typographic apostrophe — see PUL-125).
     func asAmount(for currency: SupportedCurrency) -> String {
-        formatted(
-            .number
-                .locale(Formatters.locale(for: currency))
-                .precision(.fractionLength(2))
-                .grouping(.automatic)
-        )
+        let formatter = Formatters.amountFormatter(for: currency)
+        return formatter.string(from: self as NSDecimalNumber) ?? "0.00"
     }
 
     /// Format as signed amount (no currency symbol) using the currency's locale.
@@ -57,15 +46,10 @@ extension Decimal {
     }
 
     /// Format as compact amount only (no currency code, rounded to whole number) using the currency's locale.
-    /// EUR → `1 235`, CHF → `1'235`.
+    /// EUR → `1 235`, CHF → `1'235` (U+2019 typographic apostrophe — see PUL-125).
     func asCompactAmount(for currency: SupportedCurrency) -> String {
-        let rounded = self.rounded(0, .plain)
-        return rounded.formatted(
-            .number
-                .locale(Formatters.locale(for: currency))
-                .precision(.fractionLength(0))
-                .grouping(.automatic)
-        )
+        let formatter = Formatters.amountFormatter(for: currency, wholeNumber: true)
+        return formatter.string(from: self as NSDecimalNumber) ?? "0"
     }
 
     /// Format as compact currency (rounded to whole number) using the currency's locale.

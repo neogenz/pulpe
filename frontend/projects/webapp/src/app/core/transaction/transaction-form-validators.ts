@@ -13,4 +13,4 @@ export const TransactionValidators = {
   ],
   kind: Validators.required,
   category: [Validators.maxLength(50)],
-} as const;
+};

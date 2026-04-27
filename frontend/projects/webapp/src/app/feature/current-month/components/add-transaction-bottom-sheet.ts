@@ -137,7 +137,7 @@ interface TransactionFormControls {
               transactionForm.get('amount')?.hasError('required') &&
               transactionForm.get('amount')?.touched
             ) {
-              <mat-error role="alert" aria-live="assertive">{{
+              <mat-error>{{
                 'currentMonth.addTransactionAmountRequired' | transloco
               }}</mat-error>
             }
@@ -145,7 +145,7 @@ interface TransactionFormControls {
               transactionForm.get('amount')?.hasError('min') &&
               transactionForm.get('amount')?.touched
             ) {
-              <mat-error role="alert" aria-live="assertive">{{
+              <mat-error>{{
                 'currentMonth.addTransactionAmountMin' | transloco
               }}</mat-error>
             }
@@ -195,7 +195,7 @@ interface TransactionFormControls {
             transactionForm.get('name')?.hasError('required') &&
             transactionForm.get('name')?.touched
           ) {
-            <mat-error role="alert" aria-live="assertive">{{
+            <mat-error>{{
               'currentMonth.addTransactionDescriptionRequired' | transloco
             }}</mat-error>
           }
@@ -203,7 +203,7 @@ interface TransactionFormControls {
             transactionForm.get('name')?.hasError('minlength') &&
             transactionForm.get('name')?.touched
           ) {
-            <mat-error role="alert" aria-live="assertive">{{
+            <mat-error>{{
               'currentMonth.addTransactionDescriptionMin' | transloco
             }}</mat-error>
           }
@@ -258,7 +258,7 @@ interface TransactionFormControls {
             transactionForm.get('category')?.hasError('maxlength') &&
             transactionForm.get('category')?.touched
           ) {
-            <mat-error role="alert" aria-live="assertive">{{
+            <mat-error>{{
               'currentMonth.addTransactionNotesMaxLength' | transloco
             }}</mat-error>
           }

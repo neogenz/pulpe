@@ -296,7 +296,6 @@ describe('CreateBudgetDialogComponent', () => {
       component.budgetForm.patchValue({
         monthYear: undefined,
         description: '',
-        templateId: '',
       });
 
       await component.onCreateBudget();
@@ -534,7 +533,6 @@ describe('CreateBudgetDialogComponent', () => {
       component.budgetForm.patchValue({
         monthYear: undefined,
         description: '',
-        templateId: '',
       });
 
       // Mark as touched to trigger validation

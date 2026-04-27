@@ -162,7 +162,7 @@ import type {
                   <span
                     class="text-body-medium font-semibold whitespace-nowrap ph-no-capture"
                   >
-                    {{ tx.amount | appCurrency: currency() }}
+                    {{ tx.amount | appCurrency: currency() : '1.2-2' }}
                   </span>
                   <button
                     matIconButton

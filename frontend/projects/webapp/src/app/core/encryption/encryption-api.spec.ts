@@ -9,6 +9,7 @@ import {
   encryptionSetupRecoveryResponseSchema,
   encryptionRecoverRequestSchema,
   encryptionRecoverResponseSchema,
+  encryptionValidateKeyRequestSchema,
 } from 'pulpe-shared';
 
 describe('EncryptionApi', () => {
@@ -54,14 +55,15 @@ describe('EncryptionApi', () => {
   });
 
   describe('validateKey$()', () => {
-    it('should call api.postVoid$ with correct path and body', async () => {
+    it('should call api.postVoid$ with correct path, body and request schema', async () => {
       mockApi.postVoid$.mockReturnValue(of(undefined));
 
-      await firstValueFrom(service.validateKey$('client-key-hex'));
+      await firstValueFrom(service.validateKey$('a'.repeat(64)));
 
       expect(mockApi.postVoid$).toHaveBeenCalledWith(
         '/encryption/validate-key',
-        { clientKey: 'client-key-hex' },
+        { clientKey: 'a'.repeat(64) },
+        encryptionValidateKeyRequestSchema,
       );
     });
   });

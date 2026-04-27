@@ -86,12 +86,18 @@ export class ApiClient {
   }
 
   /**
-   * POST for endpoints returning void (toggle, actions without response body)
+   * POST for endpoints returning void (toggle, actions without response body).
+   * Pass `requestSchema` to validate the body before sending.
    */
-  postVoid$(path: string, body: unknown = {}): Observable<void> {
-    return this.#http
-      .post<void>(`${this.#baseUrl}${path}`, body)
-      .pipe(catchError((error) => this.#handleError(error)));
+  postVoid$<TReq = unknown>(
+    path: string,
+    body: TReq = {} as TReq,
+    requestSchema?: ZodType<TReq>,
+  ): Observable<void> {
+    return defer(() => {
+      const payload = requestSchema ? requestSchema.parse(body) : body;
+      return this.#http.post<void>(`${this.#baseUrl}${path}`, payload);
+    }).pipe(catchError((error) => this.#handleError(error)));
   }
 
   #handleError(error: unknown): Observable<never> {

@@ -6,7 +6,11 @@ import {
 } from '@angular/core';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { TranslocoPipe } from '@jsverse/transloco';
-import { getCurrencyFormatter, type SupportedCurrency } from 'pulpe-shared';
+import {
+  CURRENCY_METADATA,
+  getCurrencyFormatter,
+  type SupportedCurrency,
+} from 'pulpe-shared';
 
 /**
  * Live status of the preview — duplicated from `@core/currency`'s
@@ -21,16 +25,35 @@ export type ConversionPreviewStatus =
   | 'fallback'
   | 'error';
 
-const FALLBACK_DATE_LOCALE = 'fr-CH';
-const FALLBACK_DATE_FORMATTER = new Intl.DateTimeFormat(FALLBACK_DATE_LOCALE, {
-  day: '2-digit',
-  month: 'short',
-});
+const RATE_MIN_FRACTION_DIGITS = 2;
+const RATE_MAX_FRACTION_DIGITS = 4;
 
-const RATE_FORMATTER = new Intl.NumberFormat(FALLBACK_DATE_LOCALE, {
-  minimumFractionDigits: 2,
-  maximumFractionDigits: 4,
-});
+const dateFormatterCache = new Map<string, Intl.DateTimeFormat>();
+const rateFormatterCache = new Map<string, Intl.NumberFormat>();
+
+function getDateFormatter(locale: string): Intl.DateTimeFormat {
+  let formatter = dateFormatterCache.get(locale);
+  if (!formatter) {
+    formatter = new Intl.DateTimeFormat(locale, {
+      day: '2-digit',
+      month: 'short',
+    });
+    dateFormatterCache.set(locale, formatter);
+  }
+  return formatter;
+}
+
+function getRateFormatter(locale: string): Intl.NumberFormat {
+  let formatter = rateFormatterCache.get(locale);
+  if (!formatter) {
+    formatter = new Intl.NumberFormat(locale, {
+      minimumFractionDigits: RATE_MIN_FRACTION_DIGITS,
+      maximumFractionDigits: RATE_MAX_FRACTION_DIGITS,
+    });
+    rateFormatterCache.set(locale, formatter);
+  }
+  return formatter;
+}
 
 /**
  * Inline caption rendered under an amount input to show what the value
@@ -43,50 +66,47 @@ const RATE_FORMATTER = new Intl.NumberFormat(FALLBACK_DATE_LOCALE, {
   selector: 'pulpe-conversion-preview-line',
   imports: [MatProgressSpinnerModule, TranslocoPipe],
   template: `
-    <div
-      role="status"
-      aria-live="polite"
-      [attr.aria-label]="ariaLabel()"
-      data-testid="conversion-preview-line"
-    >
-      @if (isVisible()) {
-        <div
-          class="flex flex-wrap items-center gap-x-2 gap-y-0 px-4 pt-1 text-label-small text-on-surface-variant ph-no-capture"
-        >
-          @switch (status()) {
-            @case ('loading') {
-              <mat-progress-spinner mode="indeterminate" [diameter]="12" />
-              <span>{{ 'currency.livePreviewLoading' | transloco }}</span>
-            }
-            @case ('error') {
-              <span data-testid="conversion-preview-error">{{
-                'currency.livePreviewError' | transloco
-              }}</span>
-            }
-            @default {
-              <span data-testid="conversion-preview-amount">
-                {{
-                  'currency.livePreviewApprox'
-                    | transloco
-                      : {
-                          amount: formattedAmount(),
-                          rate: formattedRate(),
-                        }
-                }}
+    @if (isVisible()) {
+      <div
+        role="status"
+        aria-live="polite"
+        [attr.aria-label]="ariaLabel()"
+        data-testid="conversion-preview-line"
+        class="flex flex-wrap items-center gap-x-2 gap-y-0 px-4 pt-1 text-label-small text-on-surface-variant ph-no-capture"
+      >
+        @switch (status()) {
+          @case ('loading') {
+            <mat-progress-spinner mode="indeterminate" [diameter]="12" />
+            <span>{{ 'currency.livePreviewLoading' | transloco }}</span>
+          }
+          @case ('error') {
+            <span data-testid="conversion-preview-error">{{
+              'currency.livePreviewError' | transloco
+            }}</span>
+          }
+          @default {
+            <span data-testid="conversion-preview-amount">
+              {{
+                'currency.livePreviewApprox'
+                  | transloco
+                    : {
+                        amount: formattedAmount(),
+                        rate: formattedRate(),
+                      }
+              }}
+            </span>
+            @if (status() === 'fallback' && formattedDate(); as date) {
+              <span
+                class="rounded-full bg-pulpe-amber-container px-2 py-0.5 text-pulpe-amber text-label-small"
+                data-testid="conversion-preview-fallback-date"
+              >
+                {{ 'currency.rateFromDate' | transloco: { date } }}
               </span>
-              @if (status() === 'fallback' && formattedDate(); as date) {
-                <span
-                  class="rounded-full bg-pulpe-amber-container px-2 py-0.5 text-pulpe-amber text-label-small"
-                  data-testid="conversion-preview-fallback-date"
-                >
-                  {{ 'currency.rateFromDate' | transloco: { date } }}
-                </span>
-              }
             }
           }
-        </div>
-      }
-    </div>
+        }
+      </div>
+    }
   `,
   styles: `
     :host {
@@ -114,7 +134,9 @@ export class ConversionPreviewLine {
 
   protected readonly formattedRate = computed(() => {
     const rate = this.rate();
-    return rate == null ? '' : RATE_FORMATTER.format(rate);
+    if (rate == null) return '';
+    const locale = CURRENCY_METADATA[this.displayCurrency()].locale;
+    return getRateFormatter(locale).format(rate);
   });
 
   protected readonly formattedDate = computed(() => {
@@ -122,7 +144,8 @@ export class ConversionPreviewLine {
     if (!raw) return '';
     const parsed = new Date(raw);
     if (Number.isNaN(parsed.getTime())) return raw;
-    return FALLBACK_DATE_FORMATTER.format(parsed);
+    const locale = CURRENCY_METADATA[this.displayCurrency()].locale;
+    return getDateFormatter(locale).format(parsed);
   });
 
   protected readonly ariaLabel = computed(() => this.formattedAmount());

@@ -1,4 +1,3 @@
-import { CurrencyPipe } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -14,12 +13,14 @@ import { MatListModule } from '@angular/material/list';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatRadioModule } from '@angular/material/radio';
 import { TranslocoPipe } from '@jsverse/transloco';
+import type { SupportedCurrency } from 'pulpe-shared';
+import { AppCurrencyPipe } from '@core/currency';
 import { type TemplateViewModel } from './template-view-model';
 
 @Component({
   selector: 'pulpe-template-list-item',
   imports: [
-    CurrencyPipe,
+    AppCurrencyPipe,
     MatCardModule,
     MatRadioModule,
     MatIconModule,
@@ -48,7 +49,8 @@ import { type TemplateViewModel } from './template-view-model';
               [checked]="isSelected()"
               class="flex-shrink-0"
               [attr.aria-label]="
-                'Sélectionner ' + templateViewModel().template.name
+                'template.selectAriaLabel'
+                  | transloco: { name: templateViewModel().template.name }
               "
               [attr.data-testid]="dataTestId"
             ></mat-radio-button>
@@ -59,7 +61,7 @@ import { type TemplateViewModel } from './template-view-model';
                 </h3>
                 @if (templateViewModel().template.isDefault) {
                   <mat-chip appearance="outlined">
-                    <span>Par défaut</span>
+                    <span>{{ 'template.defaultTag' | transloco }}</span>
                   </mat-chip>
                 }
               </div>
@@ -93,10 +95,10 @@ import { type TemplateViewModel } from './template-view-model';
                   class="text-body-medium text-on-surface font-medium"
                   aria-live="polite"
                 >
-                  Calcul en cours...
+                  {{ 'template.calculating' | transloco }}
                 </div>
                 <div class="text-body-small text-on-surface-variant mt-1">
-                  Analyse de vos données financières
+                  {{ 'template.analyzingData' | transloco }}
                 </div>
               </div>
             </div>
@@ -108,16 +110,15 @@ import { type TemplateViewModel } from './template-view-model';
               <mat-icon matListItemIcon class="icon-filled !mr-4"
                 >arrow_upward</mat-icon
               >
-              <span matListItemTitle class="text-body-medium"
-                >Revenus mensuels</span
-              >
+              <span matListItemTitle class="text-body-medium">{{
+                'template.monthlyIncomes' | transloco
+              }}</span>
               <span
                 matListItemMeta
                 class="ph-no-capture text-body-medium! font-medium!"
               >
                 {{
-                  templateViewModel().income
-                    | currency: currency() : 'symbol' : '1.2-2' : locale()
+                  templateViewModel().income | appCurrency: currency() : '1.2-2'
                 }}
               </span>
             </mat-list-item>
@@ -129,16 +130,16 @@ import { type TemplateViewModel } from './template-view-model';
               <mat-icon matListItemIcon class="icon-filled !mr-4"
                 >arrow_downward</mat-icon
               >
-              <span matListItemTitle class="text-body-medium"
-                >Dépenses prévues</span
-              >
+              <span matListItemTitle class="text-body-medium">{{
+                'template.plannedExpenses' | transloco
+              }}</span>
               <span
                 matListItemMeta
                 class="ph-no-capture text-body-medium! font-medium!"
               >
                 {{
                   templateViewModel().expenses
-                    | currency: currency() : 'symbol' : '1.2-2' : locale()
+                    | appCurrency: currency() : '1.2-2'
                 }}
               </span>
             </mat-list-item>
@@ -150,14 +151,16 @@ import { type TemplateViewModel } from './template-view-model';
               <mat-icon matListItemIcon class="icon-filled !mr-4"
                 >wallet</mat-icon
               >
-              <span matListItemTitle class="text-body-medium">Disponible</span>
+              <span matListItemTitle class="text-body-medium">{{
+                'template.availableLabel' | transloco
+              }}</span>
               <span
                 matListItemMeta
                 class="ph-no-capture text-body-medium! font-medium!"
               >
                 {{
                   templateViewModel().netBalance
-                    | currency: currency() : 'symbol' : '1.2-2' : locale()
+                    | appCurrency: currency() : '1.2-2'
                 }}
               </span>
             </mat-list-item>
@@ -173,7 +176,7 @@ import { type TemplateViewModel } from './template-view-model';
             "
           >
             <mat-icon class="shrink-0">info_outline</mat-icon>
-            Détails
+            {{ 'template.details' | transloco }}
           </button>
         </div>
       </mat-card-content>
@@ -201,8 +204,7 @@ import { type TemplateViewModel } from './template-view-model';
 export class TemplateListItem {
   readonly templateViewModel = input.required<TemplateViewModel>();
   readonly isSelected = input<boolean>(false);
-  readonly currency = input<string>('CHF');
-  readonly locale = input<string>('de-CH');
+  readonly currency = input<SupportedCurrency>('CHF');
 
   readonly selectTemplate = output<string>();
   readonly showDetails = output<TemplateViewModel>();
