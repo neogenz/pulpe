@@ -153,7 +153,7 @@ describe('DashboardRecentTransactions', () => {
     const amountEl = fixture.debugElement.query(
       By.css('.text-label-large.font-semibold'),
     );
-    expect(amountEl.nativeElement.textContent).toContain('1\u202F235');
+    expect(amountEl.nativeElement.textContent).toContain('1\u202F234.56');
     expect(amountEl.nativeElement.textContent).toContain('CHF');
   });
 

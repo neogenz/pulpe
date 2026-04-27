@@ -6,8 +6,10 @@ export class BudgetDetailsPage {
   async goto(budgetId = 'test-budget-123'): Promise<void> {
     // Navigate and wait for the API response to ensure data is loaded
     await Promise.all([
-      this.page.waitForResponse(resp =>
-        resp.url().includes('/api/v1/budgets/') && resp.url().includes('/details')
+      this.page.waitForResponse(
+        (resp) =>
+          resp.url().includes('/api/v1/budgets/') &&
+          resp.url().includes('/details'),
       ),
       this.page.goto(`/budget/${budgetId}`, { waitUntil: 'domcontentloaded' }),
     ]);
@@ -43,7 +45,9 @@ export class BudgetDetailsPage {
     await menuButton.click();
 
     // Then click the delete menu item
-    const deleteMenuItem = this.page.locator('button[mat-menu-item]').filter({ hasText: 'Supprimer' });
+    const deleteMenuItem = this.page
+      .locator('button[mat-menu-item]')
+      .filter({ hasText: 'Supprimer' });
     await deleteMenuItem.click();
   }
 
@@ -56,7 +60,9 @@ export class BudgetDetailsPage {
     await menuButton.click();
 
     // Then click the edit menu item
-    const editMenuItem = this.page.locator('button[mat-menu-item]').filter({ hasText: 'Modifier' });
+    const editMenuItem = this.page
+      .locator('button[mat-menu-item]')
+      .filter({ hasText: 'Modifier' });
     await editMenuItem.click();
   }
 

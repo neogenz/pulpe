@@ -4,7 +4,7 @@ import {
   computed,
   input,
 } from '@angular/core';
-import type { BudgetConsumptionState } from '../data-core/budget-item-constants';
+import type { BudgetConsumptionState } from '../view-models/budget-item-constants';
 
 const DEFAULT_SEGMENT_COUNT = 10;
 

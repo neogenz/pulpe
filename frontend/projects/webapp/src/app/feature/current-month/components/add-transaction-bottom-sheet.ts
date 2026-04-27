@@ -20,22 +20,27 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
-import type { TransactionCreate } from 'pulpe-shared';
+import type { SupportedCurrency, TransactionCreate } from 'pulpe-shared';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { TransactionValidators } from '@core/transaction';
 import { TransactionLabelPipe } from '@ui/transaction-display';
 import { UserSettingsStore } from '@core/user-settings';
 import type { CurrencyConverterService } from '@core/currency';
-import { injectCurrencyFormConfig } from '@core/currency';
+import {
+  injectCurrencyFormConfig,
+  injectLiveConversionPreview,
+} from '@core/currency';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { CurrencySuffix } from '@ui/currency-suffix';
+import { ConversionPreviewLine } from '@ui/conversion-preview-line';
 
 export type TransactionFormData = Pick<
   TransactionCreate,
   'name' | 'amount' | 'kind' | 'category' | 'checkedAt'
 > & {
   originalAmount?: number;
-  originalCurrency?: string;
-  targetCurrency?: string;
+  originalCurrency?: SupportedCurrency;
+  targetCurrency?: SupportedCurrency;
   exchangeRate?: number;
 };
 
@@ -62,6 +67,7 @@ interface TransactionFormControls {
     TranslocoPipe,
     TransactionLabelPipe,
     CurrencySuffix,
+    ConversionPreviewLine,
   ],
   template: `
     <div class="flex flex-col gap-4">
@@ -98,51 +104,62 @@ interface TransactionFormControls {
         data-testid="transaction-form"
       >
         <!-- Amount Field -->
-        <mat-form-field
-          appearance="outline"
-          subscriptSizing="dynamic"
-          class="ph-no-capture"
-        >
-          <mat-label>{{
-            'currentMonth.addTransactionAmount' | transloco
-          }}</mat-label>
-          <input
-            class="!text-xl !font-bold !text-center"
-            matInput
-            #amountInput
-            type="number"
-            inputmode="decimal"
-            placeholder="0.00"
-            formControlName="amount"
-            data-testid="transaction-amount-input"
-            step="0.01"
-            min="0.01"
-            max="999999.99"
-            required
+        <div class="flex flex-col">
+          <mat-form-field
+            appearance="outline"
+            subscriptSizing="dynamic"
+            class="ph-no-capture"
+          >
+            <mat-label>{{
+              'currentMonth.addTransactionAmount' | transloco
+            }}</mat-label>
+            <input
+              class="!text-xl !font-bold !text-center"
+              matInput
+              #amountInput
+              type="number"
+              inputmode="decimal"
+              placeholder="0.00"
+              formControlName="amount"
+              data-testid="transaction-amount-input"
+              step="0.01"
+              min="0.01"
+              max="999999.99"
+              required
+            />
+            <pulpe-currency-suffix
+              matTextSuffix
+              [showSelector]="showCurrencySelector()"
+              [currency]="inputCurrency()"
+              (currencyChange)="inputCurrency.set($event)"
+            />
+            @if (
+              transactionForm.get('amount')?.hasError('required') &&
+              transactionForm.get('amount')?.touched
+            ) {
+              <mat-error>{{
+                'currentMonth.addTransactionAmountRequired' | transloco
+              }}</mat-error>
+            }
+            @if (
+              transactionForm.get('amount')?.hasError('min') &&
+              transactionForm.get('amount')?.touched
+            ) {
+              <mat-error>{{
+                'currentMonth.addTransactionAmountMin' | transloco
+              }}</mat-error>
+            }
+          </mat-form-field>
+
+          <pulpe-conversion-preview-line
+            [amount]="preview().convertedAmount ?? null"
+            [inputCurrency]="inputCurrency()"
+            [displayCurrency]="currency()"
+            [rate]="preview().rate ?? null"
+            [cachedDate]="preview().cachedDate ?? null"
+            [status]="preview().status"
           />
-          <pulpe-currency-suffix
-            matTextSuffix
-            [showSelector]="showCurrencySelector()"
-            [currency]="inputCurrency()"
-            (currencyChange)="inputCurrency.set($event)"
-          />
-          @if (
-            transactionForm.get('amount')?.hasError('required') &&
-            transactionForm.get('amount')?.touched
-          ) {
-            <mat-error role="alert" aria-live="assertive">{{
-              'currentMonth.addTransactionAmountRequired' | transloco
-            }}</mat-error>
-          }
-          @if (
-            transactionForm.get('amount')?.hasError('min') &&
-            transactionForm.get('amount')?.touched
-          ) {
-            <mat-error role="alert" aria-live="assertive">{{
-              'currentMonth.addTransactionAmountMin' | transloco
-            }}</mat-error>
-          }
-        </mat-form-field>
+        </div>
 
         <!-- Predefined Amounts -->
         <div class="flex flex-col gap-3">
@@ -178,7 +195,7 @@ interface TransactionFormControls {
             transactionForm.get('name')?.hasError('required') &&
             transactionForm.get('name')?.touched
           ) {
-            <mat-error role="alert" aria-live="assertive">{{
+            <mat-error>{{
               'currentMonth.addTransactionDescriptionRequired' | transloco
             }}</mat-error>
           }
@@ -186,7 +203,7 @@ interface TransactionFormControls {
             transactionForm.get('name')?.hasError('minlength') &&
             transactionForm.get('name')?.touched
           ) {
-            <mat-error role="alert" aria-live="assertive">{{
+            <mat-error>{{
               'currentMonth.addTransactionDescriptionMin' | transloco
             }}</mat-error>
           }
@@ -241,7 +258,7 @@ interface TransactionFormControls {
             transactionForm.get('category')?.hasError('maxlength') &&
             transactionForm.get('category')?.touched
           ) {
-            <mat-error role="alert" aria-live="assertive">{{
+            <mat-error>{{
               'currentMonth.addTransactionNotesMaxLength' | transloco
             }}</mat-error>
           }
@@ -336,6 +353,16 @@ export class AddTransactionBottomSheet {
       ]),
       isChecked: new FormControl<boolean>(true, { nonNullable: true }),
     });
+
+  readonly #amountValue = toSignal(
+    this.transactionForm.controls.amount.valueChanges,
+    { initialValue: this.transactionForm.controls.amount.value },
+  );
+  protected readonly preview = injectLiveConversionPreview(
+    this.#amountValue,
+    this.inputCurrency,
+    this.currency,
+  );
 
   constructor() {
     this.#bottomSheetRef.afterOpened().subscribe(() => {

@@ -23,17 +23,28 @@ struct IncomeStep: View {
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.sectionGap) {
                     VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
                         if featureFlagsStore.isMultiCurrencyEnabled {
-                            CapsulePicker(selection: $state.currency, title: "Devise") { currency, isSelected in
-                                HStack(spacing: DesignTokens.Spacing.xs) {
-                                    Text(currency.flag)
-                                    VStack(alignment: .leading, spacing: 0) {
-                                        Text(currency.rawValue)
-                                            .font(PulpeTypography.labelLarge)
-                                        Text(currency.nativeName)
-                                            .font(PulpeTypography.caption2)
-                                            .foregroundStyle(
-                                                isSelected ? Color.textOnPrimaryMuted : Color.textSecondaryOnboarding
-                                            )
+                            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                                Text("Tu comptes en francs ou en euros ?")
+                                    .font(PulpeTypography.labelMedium)
+                                    .foregroundStyle(Color.onSurfaceVariant)
+                                Text("Tu pourras changer plus tard si besoin.")
+                                    .font(PulpeTypography.caption)
+                                    .foregroundStyle(Color.textTertiaryOnboarding)
+                                    .fixedSize(horizontal: false, vertical: true)
+                                CapsulePicker(selection: $state.currency, title: nil) { currency, isSelected in
+                                    HStack(spacing: DesignTokens.Spacing.xs) {
+                                        Text(currency.flag)
+                                        VStack(alignment: .leading, spacing: 0) {
+                                            Text(currency.rawValue)
+                                                .font(PulpeTypography.labelLarge)
+                                            Text(currency.nativeName)
+                                                .font(PulpeTypography.caption2)
+                                                .foregroundStyle(
+                                                    isSelected
+                                                        ? Color.textOnPrimaryMuted
+                                                        : Color.textSecondaryOnboarding
+                                                )
+                                        }
                                     }
                                 }
                             }

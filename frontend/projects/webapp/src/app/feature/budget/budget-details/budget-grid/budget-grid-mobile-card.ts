@@ -13,10 +13,12 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { RouterLink } from '@angular/router';
 import { type BudgetLine, type SupportedCurrency } from 'pulpe-shared';
-import { AppCurrencyPipe } from '@core/currency';
+import { AppCurrencyPipe, ConversionTooltipPipe } from '@core/currency';
 import { FinancialKindDirective } from '@ui/financial-kind';
 import { FinancialLineCard } from '@pattern/financial-line-card';
-import { formatMatchAnnotation, type BudgetLineTableItem } from '../data-core';
+import { OriginalAmountLine } from '@ui/original-amount-line';
+import { formatMatchAnnotation } from '../view-models/budget-item-constants';
+import type { BudgetLineTableItem } from '../view-models/table-items.view-model';
 import { SegmentedBudgetProgress } from '../components/segmented-budget-progress';
 import { BudgetActionMenu } from '../components/budget-action-menu';
 
@@ -33,6 +35,8 @@ import { BudgetActionMenu } from '../components/budget-action-menu';
     AppCurrencyPipe,
     FinancialKindDirective,
     FinancialLineCard,
+    OriginalAmountLine,
+    ConversionTooltipPipe,
     SegmentedBudgetProgress,
     BudgetActionMenu,
   ],
@@ -114,11 +118,19 @@ import { BudgetActionMenu } from '../components/budget-action-menu';
               item().consumption!.consumptionState === 'over-budget'
             "
           >
-            {{ remaining | appCurrency: currency() : '1.0-0' }}
+            {{ remaining | appCurrency: currency() : '1.2-2' }}
           </div>
-          <span class="text-label-small text-on-surface-variant">{{
-            'budgetLine.available' | transloco
-          }}</span>
+          <span class="text-label-small text-on-surface-variant">
+            {{
+              'budgetLine.availableOf'
+                | transloco
+                  : {
+                      amount:
+                        (item().data.amount
+                        | appCurrency: currency() : '1.2-2'),
+                    }
+            }}
+          </span>
         </ng-container>
 
         <ng-container ngProjectAs="[meta]">
@@ -127,7 +139,7 @@ import { BudgetActionMenu } from '../components/budget-action-menu';
               class="ph-no-capture text-title-medium font-semibold text-on-surface"
             >
               {{
-                item().consumption!.consumed | appCurrency: currency() : '1.0-0'
+                item().consumption!.consumed | appCurrency: currency() : '1.2-2'
               }}
             </div>
             <span class="text-label-small text-on-surface-variant">{{
@@ -141,11 +153,19 @@ import { BudgetActionMenu } from '../components/budget-action-menu';
             class="ph-no-capture text-headline-medium font-bold"
             [pulpeFinancialKind]="item().data.kind"
           >
-            {{ item().data.amount | appCurrency: currency() : '1.0-0' }}
+            {{ item().data.amount | appCurrency: currency() : '1.2-2' }}
           </div>
           <span class="text-label-small text-on-surface-variant">{{
             'budgetLine.planned' | transloco
           }}</span>
+          <pulpe-original-amount-line
+            [originalAmount]="item().data.originalAmount"
+            [originalCurrency]="item().data.originalCurrency"
+            [displayCurrency]="currency()"
+            [tooltipText]="
+              isMultiCurrencyEnabled() ? (item().data | conversionTooltip) : ''
+            "
+          />
         </ng-container>
       }
 
@@ -182,7 +202,7 @@ import { BudgetActionMenu } from '../components/budget-action-menu';
                         : {
                             amount:
                               (item().consumption!.consumed - item().data.amount
-                              | appCurrency: currency() : '1.0-0'),
+                              | appCurrency: currency() : '1.2-2'),
                           }
                   }}
                 </span>
@@ -221,7 +241,7 @@ import { BudgetActionMenu } from '../components/budget-action-menu';
             >
               <mat-icon class="text-base! mr-1">receipt_long</mat-icon>
               <span class="ph-no-capture">{{
-                item().consumption!.consumed | appCurrency: currency() : '1.0-0'
+                item().consumption!.consumed | appCurrency: currency() : '1.2-2'
               }}</span>
             </button>
           }
@@ -264,6 +284,7 @@ export class BudgetGridMobileCard {
   readonly item = input.required<BudgetLineTableItem>();
   readonly currency = input<SupportedCurrency>('CHF');
   readonly isSelected = input<boolean>(false);
+  readonly isMultiCurrencyEnabled = input<boolean>(false);
 
   readonly matchAnnotation = computed(() =>
     formatMatchAnnotation(this.item().metadata.matchingTransactionNames),

@@ -29,20 +29,20 @@ struct DecimalSignedCompactTests {
         #expect(value.asCompactCHF == "1\u{2019}309 CHF")
     }
 
-    // MARK: - asSignedCompactAmount
+    // MARK: - asSignedCompactAmount(for:)
 
     @Test func signedCompactAmount_negative_prependsMinus() {
         let value: Decimal = -500
-        #expect(value.asSignedCompactAmount == "-500")
+        #expect(value.asSignedCompactAmount(for: .chf) == "-500")
     }
 
     @Test func signedCompactAmount_positive_prependsPlus() {
         let value: Decimal = 500
-        #expect(value.asSignedCompactAmount == "+500")
+        #expect(value.asSignedCompactAmount(for: .chf) == "+500")
     }
 
     @Test func signedCompactAmount_zero_noSign() {
         let value: Decimal = 0
-        #expect(value.asSignedCompactAmount == "0")
+        #expect(value.asSignedCompactAmount(for: .chf) == "0")
     }
 }

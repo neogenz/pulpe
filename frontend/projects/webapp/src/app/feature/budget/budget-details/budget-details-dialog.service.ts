@@ -36,7 +36,8 @@ import { EditBudgetLineDialog } from './edit-budget-line/edit-budget-line-dialog
 import {
   EditTransactionDialog,
   type EditTransactionDialogData,
-  type EditTransactionFormData,
+  type TransactionUpdateFormValue,
+  transactionUpdateFromFormSchema,
 } from '@pattern/edit-transaction-form';
 
 export interface ConfirmDeleteOptions {
@@ -162,17 +163,13 @@ export class BudgetDetailsDialogService {
       maxWidth: '90vw',
     });
 
-    const result = await firstValueFrom<EditTransactionFormData | undefined>(
+    const result = await firstValueFrom<TransactionUpdateFormValue | undefined>(
       dialogRef.afterClosed(),
     );
     if (!result) return undefined;
 
-    return {
-      id: transaction.id,
-      name: result.name,
-      amount: result.amount,
-      transactionDate: result.transactionDate,
-    };
+    const dto = transactionUpdateFromFormSchema.parse(result);
+    return { ...dto, id: transaction.id };
   }
 
   async confirmDelete(options: ConfirmDeleteOptions): Promise<boolean> {

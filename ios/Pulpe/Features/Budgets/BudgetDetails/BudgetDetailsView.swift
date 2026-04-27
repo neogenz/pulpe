@@ -154,7 +154,8 @@ struct BudgetDetailsView: View {
                     let succeeded = await viewModel.confirmToggle(for: line, checkAll: false)
                     if succeeded {
                         viewModel.showCheckToastIfNeeded(
-                            for: line, toastManager: appState.toastManager, amountsHidden: amountsHidden
+                            for: line, toastManager: appState.toastManager,
+                            presentationCurrency: userSettingsStore.currency, amountsHidden: amountsHidden
                         )
                     }
                 }
@@ -164,7 +165,8 @@ struct BudgetDetailsView: View {
                     let succeeded = await viewModel.confirmToggle(for: line, checkAll: true)
                     if succeeded {
                         viewModel.showCheckToastIfNeeded(
-                            for: line, toastManager: appState.toastManager, amountsHidden: amountsHidden
+                            for: line, toastManager: appState.toastManager,
+                            presentationCurrency: userSettingsStore.currency, amountsHidden: amountsHidden
                         )
                     }
                 }
@@ -291,7 +293,8 @@ struct BudgetDetailsView: View {
                     let succeeded = await viewModel.toggleBudgetLine(line)
                     if succeeded {
                         viewModel.showCheckToastIfNeeded(
-                            for: line, toastManager: appState.toastManager, amountsHidden: amountsHidden
+                            for: line, toastManager: appState.toastManager,
+                            presentationCurrency: userSettingsStore.currency, amountsHidden: amountsHidden
                         )
                     }
                 }

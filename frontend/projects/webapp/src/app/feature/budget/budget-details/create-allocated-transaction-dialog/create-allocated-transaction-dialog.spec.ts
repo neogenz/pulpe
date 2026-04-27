@@ -14,8 +14,8 @@ const createDialogData = (
   overrides: Partial<CreateAllocatedTransactionDialogData['budgetLine']> = {},
 ): CreateAllocatedTransactionDialogData => ({
   budgetLine: {
-    id: 'bl-123',
-    budgetId: 'budget-456',
+    id: '00000000-0000-4000-8000-0000000000b1',
+    budgetId: '00000000-0000-4000-8000-000000000456',
     name: 'Assurance maladie',
     amount: 385,
     kind: 'expense',
@@ -73,8 +73,8 @@ describe('CreateAllocatedTransactionDialog', () => {
 
       expect(mockDialogRef.close).toHaveBeenCalledWith(
         expect.objectContaining({
-          budgetId: 'budget-456',
-          budgetLineId: 'bl-123',
+          budgetId: '00000000-0000-4000-8000-000000000456',
+          budgetLineId: '00000000-0000-4000-8000-0000000000b1',
           name: 'Consultation médecin',
           amount: 45.5,
           kind: 'expense',

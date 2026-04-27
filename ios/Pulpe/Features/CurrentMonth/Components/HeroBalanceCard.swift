@@ -9,27 +9,23 @@ struct HeroBalanceCard: View {
     var rolloverAmount: Decimal?
     var onRolloverTap: (() -> Void)?
 
-    // MARK: - Static Formatters (avoid recreation on every render)
-
-    private static let compactFormatter: NumberFormatter = {
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .decimal
-        formatter.minimumFractionDigits = 0
-        formatter.maximumFractionDigits = 0
-        formatter.locale = Locale(identifier: "fr_CH")
-        return formatter
-    }()
-
     // MARK: - Environment
 
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.amountsHidden) private var amountsHidden
+    @Environment(UserSettingsStore.self) private var userSettingsStore
     @State private var tapTrigger = false
 
     // MARK: - Computed Properties
 
     private var contextLabel: String {
-        metrics.isDeficit ? "Déficit CHF" : "Disponible CHF"
+        let symbol = userSettingsStore.currency.symbol
+        return metrics.isDeficit ? "Déficit \(symbol)" : "Disponible \(symbol)"
+    }
+
+    /// VoiceOver-only label — no embedded currency symbol so it isn't doubled with the formatted amount.
+    private var contextLabelForVoiceOver: String {
+        metrics.isDeficit ? "Déficit" : "Disponible"
     }
 
     private var fillPercentage: Double {
@@ -37,15 +33,15 @@ struct HeroBalanceCard: View {
     }
 
     private var formattedBalance: String {
-        Self.compactFormatter.string(from: abs(metrics.remaining) as NSDecimalNumber) ?? "0"
+        abs(metrics.remaining).asCompactAmount(for: userSettingsStore.currency)
     }
 
     private var formattedSpent: String {
-        Self.compactFormatter.string(from: metrics.totalExpenses as NSDecimalNumber) ?? "0"
+        metrics.totalExpenses.asCompactAmount(for: userSettingsStore.currency)
     }
 
     private var formattedAvailable: String {
-        Self.compactFormatter.string(from: metrics.available as NSDecimalNumber) ?? "0"
+        metrics.available.asCompactAmount(for: userSettingsStore.currency)
     }
 
     private var usagePercentageText: String {
@@ -82,15 +78,16 @@ struct HeroBalanceCard: View {
 
     private var accessibilityDescription: String {
         if amountsHidden {
-            return "\(contextLabel) — montant masqué"
+            return "\(contextLabelForVoiceOver) — montant masqué"
         }
+        let currency = userSettingsStore.currency
         var desc = """
-        \(contextLabel) \(formattedBalance) CHF. \
-        Dépensé \(formattedSpent) sur \(formattedAvailable)
+        \(contextLabelForVoiceOver) \(abs(metrics.remaining).asCurrency(currency)). \
+        Dépensé \(metrics.totalExpenses.asCurrency(currency)) sur \(metrics.available.asCurrency(currency))
         """
         if let rolloverAmount {
             let label = rolloverAmount >= 0 ? "Excédent reporté" : "Déficit reporté"
-            desc += ". \(label) de \(abs(rolloverAmount).asCHF)"
+            desc += ". \(label) de \(abs(rolloverAmount).asCurrency(currency))"
         }
         return desc
     }
@@ -202,7 +199,7 @@ struct HeroBalanceCard: View {
             Text("Report")
                 .font(PulpeTypography.labelMedium)
 
-            Text(abs(amount).asCompactCHF)
+            Text(abs(amount).asCompactCurrency(userSettingsStore.currency))
                 .font(PulpeTypography.labelLargeBold)
                 .monospacedDigit()
                 .sensitiveAmount()
@@ -422,4 +419,5 @@ private extension View {
         .padding()
     }
     .pulpeBackground()
+    .environment(UserSettingsStore())
 }

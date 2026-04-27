@@ -41,7 +41,7 @@ const FLOATING_CARDS: FloatingCardConfig[] = [
         <Wallet className="w-5 h-5" />
         <div>
           <div className="text-xs">Disponible ce mois</div>
-          <div className="text-xl font-bold">847 CHF</div>
+          <div className="text-xl font-bold tabular-nums">847 CHF</div>
         </div>
       </div>
     ),
@@ -59,7 +59,7 @@ const FLOATING_CARDS: FloatingCardConfig[] = [
         </div>
         <div>
           <div className="text-xs text-text-secondary">Impôts de juillet</div>
-          <div className="text-lg font-bold text-text">Budgétés</div>
+          <div className="text-lg font-bold text-text tabular-nums">Budgétés</div>
         </div>
       </div>
     ),
@@ -86,7 +86,7 @@ const FLOATING_CARDS: FloatingCardConfig[] = [
 
 export function Hero() {
   return (
-    <section className="relative min-h-screen flex items-center pt-32 pb-16 md:pt-32 md:pb-24 bg-gradient-to-b from-background via-background to-surface-alt overflow-hidden">
+    <section className="hero-mesh relative min-h-[100dvh] flex items-center pt-32 pb-16 md:pt-32 md:pb-24 bg-gradient-to-b from-background via-background to-surface-alt overflow-hidden">
       <GrainOverlay opacity={0.03} />
 
       <div className="relative z-10 w-full max-w-6xl mx-auto px-4 md:px-6 lg:px-8">
@@ -108,18 +108,18 @@ export function Hero() {
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
           {/* Left: text content */}
           <div className="text-center lg:text-left">
-            <p className="text-xs font-medium text-primary mb-3 tracking-wide uppercase">
+            <p className="text-xs font-medium text-primary mb-4 tracking-[0.14em] uppercase">
               Ton budget annuel en 3 minutes
             </p>
-            <h1 className="leading-tight mb-3">
-              <span className="block text-xl md:text-2xl lg:text-3xl font-normal text-text-secondary mb-1">
+            <h1 className="leading-[1.05] mb-4 balance">
+              <span className="italic block text-2xl md:text-3xl lg:text-4xl font-normal text-text-secondary mb-1 tracking-normal">
                 &laquo;&nbsp;Je peux me le permettre&nbsp;?&nbsp;&raquo;
               </span>
-              <span className="block text-4xl md:text-5xl lg:text-6xl font-bold text-primary">
+              <span className="block text-5xl md:text-6xl lg:text-[4.25rem] font-bold text-primary tracking-[-0.02em]">
                 Tu sais d&apos;avance.
               </span>
             </h1>
-            <div className="text-xl md:text-2xl lg:text-3xl font-normal text-text-secondary mb-8">
+            <div className="text-xl md:text-2xl lg:text-3xl font-normal text-text-secondary mb-8 tabular-nums">
               <span className="md:hidden">847 CHF disponibles ce mois.</span>
               <span className="hidden md:block min-h-[2.5rem] lg:min-h-[3rem]">
                 <TypeWriter strings={TYPEWRITER_STRINGS} />

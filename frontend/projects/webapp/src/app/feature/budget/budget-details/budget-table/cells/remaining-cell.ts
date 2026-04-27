@@ -9,7 +9,7 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { AppCurrencyPipe } from '@core/currency';
 import { UserSettingsStore } from '@core/user-settings';
 
-import type { BudgetLineTableItem } from '../../data-core';
+import type { BudgetLineTableItem } from '../../view-models/table-items.view-model';
 
 @Component({
   selector: 'pulpe-remaining-cell',
@@ -29,7 +29,7 @@ import type { BudgetLineTableItem } from '../../data-core';
               line().consumption!.consumptionState === 'over-budget'
             "
           >
-            {{ remaining | appCurrency: currency() : '1.0-0' }}
+            {{ remaining | appCurrency: currency() : '1.2-2' }}
             @if (line().consumption!.consumptionState === 'over-budget') {
               <span class="text-label-small font-normal ml-1">{{
                 'budgetLine.exceeded' | transloco

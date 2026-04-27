@@ -11,12 +11,15 @@ import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 import { CreateAllocatedTransactionBottomSheet } from './create-allocated-transaction-bottom-sheet';
 import type { CreateAllocatedTransactionDialogData } from './create-allocated-transaction-dialog';
 
+const TEST_BUDGET_LINE_ID = '11111111-1111-4111-8111-111111111111';
+const TEST_BUDGET_ID = '22222222-2222-4222-8222-222222222222';
+
 const createDialogData = (
   overrides: Partial<CreateAllocatedTransactionDialogData['budgetLine']> = {},
 ): CreateAllocatedTransactionDialogData => ({
   budgetLine: {
-    id: 'bl-123',
-    budgetId: 'budget-456',
+    id: TEST_BUDGET_LINE_ID,
+    budgetId: TEST_BUDGET_ID,
     name: 'Assurance maladie',
     amount: 385,
     kind: 'expense',
@@ -74,8 +77,8 @@ describe('CreateAllocatedTransactionBottomSheet', () => {
 
       expect(mockBottomSheetRef.dismiss).toHaveBeenCalledWith(
         expect.objectContaining({
-          budgetId: 'budget-456',
-          budgetLineId: 'bl-123',
+          budgetId: TEST_BUDGET_ID,
+          budgetLineId: TEST_BUDGET_LINE_ID,
           name: 'Consultation médecin',
           amount: 45.5,
           kind: 'expense',

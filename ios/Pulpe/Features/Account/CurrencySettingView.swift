@@ -1,4 +1,7 @@
 import SwiftUI
+#if canImport(UIKit)
+import UIKit
+#endif
 
 struct CurrencySettingView: View {
     enum ConverterField: Hashable {
@@ -22,12 +25,14 @@ struct CurrencySettingView: View {
     @State private var viewModel = CurrencySettingViewModel()
     @State private var submitSuccessTrigger = false
     @State private var isConverterExpanded = false
+    @State private var saveCurrencyTask: Task<Void, Never>?
+    @State private var saveSelectorToggleTask: Task<Void, Never>?
 
     var body: some View {
         if featureFlagsStore.isMultiCurrencyEnabled {
             Section {
                 currencyPicker
-                currencyConverterContextCopy
+                currencySelectorToggle
                 converterDisclosure
             } header: {
                 Text("DEVISE")
@@ -57,61 +62,115 @@ struct CurrencySettingView: View {
     // MARK: - Currency Picker
 
     private var currencyPicker: some View {
-        CapsulePicker(
-            selection: Binding(
-                get: { viewModel.selectedCurrency },
-                set: { newValue in
-                    guard newValue != viewModel.selectedCurrency else { return }
-                    viewModel.selectedCurrency = newValue
-                    viewModel.applyConverterBase(newValue)
-                    if isConverterExpanded {
-                        viewModel.reloadRate()
-                    }
-                    Task {
-                        await viewModel.save(using: userSettingsStore)
-                        if userSettingsStore.error == nil {
-                            submitSuccessTrigger.toggle()
-                            appState.toastManager.show("Devise enregistrée", type: .success)
-                        } else {
-                            appState.toastManager.show("Erreur lors de la sauvegarde", type: .error)
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+            Text("On l'utilise pour afficher tous tes montants.")
+                .font(PulpeTypography.caption)
+                .foregroundStyle(Color.onSurfaceVariant)
+                .fixedSize(horizontal: false, vertical: true)
+
+            CapsulePicker(
+                selection: Binding(
+                    get: { viewModel.selectedCurrency },
+                    set: { newValue in
+                        guard newValue != viewModel.selectedCurrency else { return }
+                        viewModel.selectedCurrency = newValue
+                        viewModel.applyConverterBase(newValue)
+                        if isConverterExpanded {
+                            viewModel.reloadRate()
+                        }
+                        saveCurrencyTask?.cancel()
+                        saveCurrencyTask = Task(name: "CurrencySetting.saveCurrency") {
+                            await persistCurrencyChange()
                         }
                     }
-                }
-            ),
-            title: nil
-        ) { currency, isSelected in
-            HStack(spacing: DesignTokens.Spacing.xs) {
-                Text(currency.flag)
-                VStack(alignment: .leading, spacing: 0) {
-                    Text(currency.rawValue).font(PulpeTypography.labelLarge)
-                    Text(currency.nativeName)
-                        .font(PulpeTypography.caption2)
-                        .foregroundStyle(isSelected ? Color.textOnPrimaryMuted : Color.onSurfaceVariant)
+                ),
+                title: nil
+            ) { currency, isSelected in
+                HStack(spacing: DesignTokens.Spacing.xs) {
+                    Text(currency.flag)
+                    VStack(alignment: .leading, spacing: 0) {
+                        Text(currency.rawValue).font(PulpeTypography.labelLarge)
+                        Text(currency.nativeName)
+                            .font(PulpeTypography.caption2)
+                            .foregroundStyle(isSelected ? Color.textOnPrimaryMuted : Color.onSurfaceVariant)
+                    }
                 }
             }
         }
+        .alignmentGuide(.listRowSeparatorLeading) { _ in 0 }
+    }
+
+    // MARK: - Currency Selector Toggle
+
+    private var currencySelectorToggle: some View {
+        Toggle(isOn: Binding(
+            get: { userSettingsStore.showCurrencySelector },
+            set: { newValue in
+                saveSelectorToggleTask?.cancel()
+                saveSelectorToggleTask = Task(name: "CurrencySetting.saveSelectorToggle") {
+                    await persistSelectorToggle(newValue)
+                }
+            }
+        )) {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
+                Text("Saisir dans une autre devise")
+                    .font(PulpeTypography.listRowTitle)
+                Text(
+                    "Un sélecteur de devise apparaît à côté du montant. "
+                        + "Pulpe convertit au cours du jour."
+                )
+                .font(PulpeTypography.caption)
+                .foregroundStyle(Color.onSurfaceVariant)
+                .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .tint(Color.pulpePrimary)
+        .accessibilityLabel("Saisir dans une autre devise")
+        .accessibilityHint(
+            "Active pour pouvoir entrer une dépense en EUR ou CHF, peu importe ta devise principale."
+        )
+    }
+
+    // MARK: - Persistence
+
+    private func persistCurrencyChange() async {
+        await viewModel.save(using: userSettingsStore)
+        guard !Task.isCancelled else { return }
+        if userSettingsStore.error == nil {
+            submitSuccessTrigger.toggle()
+            appState.toastManager.show("Devise enregistrée", type: .success)
+            announceForVoiceOver("Devise enregistrée")
+            // Reload widget timelines so they stop rendering the previous currency.
+            await WidgetDataSyncService.shared.syncAll(
+                payDayOfMonth: userSettingsStore.payDayOfMonth,
+                currency: userSettingsStore.currency
+            )
+        } else {
+            appState.toastManager.show("Erreur lors de la sauvegarde", type: .error)
+            announceForVoiceOver("Erreur lors de la sauvegarde")
+        }
+    }
+
+    private func persistSelectorToggle(_ newValue: Bool) async {
+        await userSettingsStore.updateShowCurrencySelector(newValue)
+        guard !Task.isCancelled else { return }
+        if userSettingsStore.error == nil {
+            submitSuccessTrigger.toggle()
+            appState.toastManager.show("Préférence enregistrée", type: .success)
+            announceForVoiceOver("Préférence enregistrée")
+        } else {
+            appState.toastManager.show("Erreur lors de la sauvegarde", type: .error)
+            announceForVoiceOver("Erreur lors de la sauvegarde")
+        }
+    }
+
+    private func announceForVoiceOver(_ message: String) {
+        #if canImport(UIKit)
+        UIAccessibility.post(notification: .announcement, argument: message)
+        #endif
     }
 
     // MARK: - Converter
-
-    private var currencyConverterContextCopy: some View {
-        Text(
-            "Ta devise principale. Quand tu ajoutes une dépense dans une autre devise, "
-                + "Pulpe convertit automatiquement au cours du jour."
-        )
-        .font(PulpeTypography.caption)
-        .foregroundStyle(Color.onSurfaceVariant)
-        .multilineTextAlignment(.leading)
-        .fixedSize(horizontal: false, vertical: true)
-        .padding(.top, DesignTokens.Spacing.sm)
-        .padding(.bottom, DesignTokens.Spacing.xs)
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel(
-            "Ta devise principale. Quand tu ajoutes une dépense dans une autre devise, "
-                + "Pulpe convertit automatiquement au cours du jour."
-        )
-        .listRowSeparator(.hidden, edges: .bottom)
-    }
 
     private var converterDisclosure: some View {
         DisclosureGroup(isExpanded: $isConverterExpanded) {

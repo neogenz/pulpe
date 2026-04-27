@@ -14,6 +14,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatRadioModule } from '@angular/material/radio';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { startWith, debounceTime, map } from 'rxjs';
+import type { SupportedCurrency } from 'pulpe-shared';
 import { TemplateListItem } from './template-list-item';
 import { type TemplateViewModel } from './template-view-model';
 import { TranslocoPipe } from '@jsverse/transloco';
@@ -102,7 +103,6 @@ import { TranslocoPipe } from '@jsverse/transloco';
                 selectedTemplateId() === templateViewModel.template.id
               "
               [currency]="currency()"
-              [locale]="locale()"
               (selectTemplate)="onTemplateSelect($event)"
               (showDetails)="onShowDetails(templateViewModel)"
               [attr.data-testid]="
@@ -133,8 +133,7 @@ export class TemplatesList {
   readonly selectedTemplateId = input<string | null>(null);
   readonly isLoading = input<boolean>(false);
   readonly hasError = input<boolean>(false);
-  readonly currency = input<string>('CHF');
-  readonly locale = input<string>('de-CH');
+  readonly currency = input<SupportedCurrency>('CHF');
 
   // Outputs
   readonly templateSelected = output<string>();

@@ -1,8 +1,13 @@
 import { DecimalPipe } from '@angular/common';
-import { ChangeDetectionStrategy, Component, input } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  input,
+} from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
 import { TranslocoPipe } from '@jsverse/transloco';
-import type { SupportedCurrency } from 'pulpe-shared';
+import { CURRENCY_METADATA, type SupportedCurrency } from 'pulpe-shared';
 
 export interface FinancialPillsTotals {
   income: number;
@@ -54,8 +59,8 @@ interface PillConfig {
                   pill.colorClass
                 "
               >
-                {{ totals()[pill.key] | number: '1.0-0' : locale() }}
-                {{ currency() }}
+                {{ totals()[pill.key] | number: '1.2-2' : locale() }}
+                <span class="text-label-small">{{ currencySymbol() }}</span>
               </span>
             </div>
           </div>
@@ -114,6 +119,10 @@ export class FinancialPills {
   readonly totals = input.required<FinancialPillsTotals>();
   readonly currency = input<SupportedCurrency>('CHF');
   readonly locale = input<string>('de-CH');
+
+  protected readonly currencySymbol = computed(
+    () => CURRENCY_METADATA[this.currency()].symbol,
+  );
 
   protected readonly pills: readonly PillConfig[] = [
     {

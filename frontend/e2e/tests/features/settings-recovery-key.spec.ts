@@ -36,9 +36,7 @@ test.describe('Settings Recovery Key', () => {
     await page.getByTestId('generate-recovery-key-button').click();
 
     await expect(page.getByTestId('verify-vault-code-input')).toBeVisible();
-    await page
-      .getByTestId('verify-vault-code-input')
-      .fill('123456');
+    await page.getByTestId('verify-vault-code-input').fill('123456');
 
     await page.getByTestId('submit-regenerate-button').click();
 
@@ -64,17 +62,20 @@ test.describe('Settings Recovery Key', () => {
 
     await injectClientKey(page);
 
-    await page.route('**/api/v1/encryption/validate-key', async (route: Route) => {
-      const body = route.request().postDataJSON();
-      if (body?.clientKey === 'aa'.repeat(32)) {
-        return route.fulfill({ status: 204, body: '' });
-      }
-      return route.fulfill({
-        status: 400,
-        contentType: 'application/json',
-        body: JSON.stringify({ message: 'Key check failed' }),
-      });
-    });
+    await page.route(
+      '**/api/v1/encryption/validate-key',
+      async (route: Route) => {
+        const body = route.request().postDataJSON();
+        if (body?.clientKey === 'aa'.repeat(32)) {
+          return route.fulfill({ status: 204, body: '' });
+        }
+        return route.fulfill({
+          status: 400,
+          contentType: 'application/json',
+          body: JSON.stringify({ message: 'Key check failed' }),
+        });
+      },
+    );
 
     await page.goto('/settings', { waitUntil: 'domcontentloaded' });
     await expect(page.getByTestId('settings-page')).toBeVisible();

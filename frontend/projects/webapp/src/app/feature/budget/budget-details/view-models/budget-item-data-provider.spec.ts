@@ -12,7 +12,7 @@ import type {
   BudgetLineTableItem,
   TableRowItem,
   TransactionTableItem,
-} from './budget-item-models';
+} from './table-items.view-model';
 
 /**
  * Helper to filter out group headers and get only data items

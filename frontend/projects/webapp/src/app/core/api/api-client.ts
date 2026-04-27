@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
-import { type Observable, throwError } from 'rxjs';
+import { defer, type Observable, throwError } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
 import { type ZodType } from 'zod';
 import { ApplicationConfiguration } from '../config/application-configuration';
@@ -24,23 +24,47 @@ export class ApiClient {
     );
   }
 
-  post$<T>(path: string, body: unknown, schema: ZodType<T>): Observable<T> {
-    return this.#http.post<unknown>(`${this.#baseUrl}${path}`, body).pipe(
-      map((res) => schema.parse(res)),
+  post$<TRes, TReq = unknown>(
+    path: string,
+    body: TReq,
+    responseSchema: ZodType<TRes>,
+    requestSchema?: ZodType<TReq>,
+  ): Observable<TRes> {
+    return defer(() => {
+      const payload = requestSchema ? requestSchema.parse(body) : body;
+      return this.#http.post<unknown>(`${this.#baseUrl}${path}`, payload);
+    }).pipe(
+      map((res) => responseSchema.parse(res)),
       catchError((error) => this.#handleError(error)),
     );
   }
 
-  patch$<T>(path: string, body: unknown, schema: ZodType<T>): Observable<T> {
-    return this.#http.patch<unknown>(`${this.#baseUrl}${path}`, body).pipe(
-      map((res) => schema.parse(res)),
+  patch$<TRes, TReq = unknown>(
+    path: string,
+    body: TReq,
+    responseSchema: ZodType<TRes>,
+    requestSchema?: ZodType<TReq>,
+  ): Observable<TRes> {
+    return defer(() => {
+      const payload = requestSchema ? requestSchema.parse(body) : body;
+      return this.#http.patch<unknown>(`${this.#baseUrl}${path}`, payload);
+    }).pipe(
+      map((res) => responseSchema.parse(res)),
       catchError((error) => this.#handleError(error)),
     );
   }
 
-  put$<T>(path: string, body: unknown, schema: ZodType<T>): Observable<T> {
-    return this.#http.put<unknown>(`${this.#baseUrl}${path}`, body).pipe(
-      map((res) => schema.parse(res)),
+  put$<TRes, TReq = unknown>(
+    path: string,
+    body: TReq,
+    responseSchema: ZodType<TRes>,
+    requestSchema?: ZodType<TReq>,
+  ): Observable<TRes> {
+    return defer(() => {
+      const payload = requestSchema ? requestSchema.parse(body) : body;
+      return this.#http.put<unknown>(`${this.#baseUrl}${path}`, payload);
+    }).pipe(
+      map((res) => responseSchema.parse(res)),
       catchError((error) => this.#handleError(error)),
     );
   }
@@ -62,12 +86,18 @@ export class ApiClient {
   }
 
   /**
-   * POST for endpoints returning void (toggle, actions without response body)
+   * POST for endpoints returning void (toggle, actions without response body).
+   * Pass `requestSchema` to validate the body before sending.
    */
-  postVoid$(path: string, body: unknown = {}): Observable<void> {
-    return this.#http
-      .post<void>(`${this.#baseUrl}${path}`, body)
-      .pipe(catchError((error) => this.#handleError(error)));
+  postVoid$<TReq = unknown>(
+    path: string,
+    body: TReq = {} as TReq,
+    requestSchema?: ZodType<TReq>,
+  ): Observable<void> {
+    return defer(() => {
+      const payload = requestSchema ? requestSchema.parse(body) : body;
+      return this.#http.post<void>(`${this.#baseUrl}${path}`, payload);
+    }).pipe(catchError((error) => this.#handleError(error)));
   }
 
   #handleError(error: unknown): Observable<never> {

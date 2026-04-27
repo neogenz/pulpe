@@ -11,7 +11,7 @@ import { UserSettingsStore } from '@core/user-settings';
 import type {
   BudgetLineTableItem,
   TransactionTableItem,
-} from '../../data-core';
+} from '../../view-models/table-items.view-model';
 
 @Component({
   selector: 'pulpe-balance-cell',
@@ -37,7 +37,7 @@ import type {
         [class.text-financial-negative]="line().metadata.cumulativeBalance < 0"
       >
         {{
-          line().metadata.cumulativeBalance | appCurrency: currency() : '1.0-0'
+          line().metadata.cumulativeBalance | appCurrency: currency() : '1.2-2'
         }}
       </span>
     </div>

@@ -107,7 +107,7 @@ struct TemplateDetailsView: View {
                 Text("Revenus")
                     .font(PulpeTypography.subheadline)
                 Spacer()
-                Text(viewModel.totals.totalIncome.asSignedCHF)
+                Text(viewModel.totals.totalIncome.asSignedCurrency(userSettingsStore.currency, for: .income))
                     .font(PulpeTypography.listRowSubtitle)
                     .foregroundStyle(Color.financialIncome)
                     .sensitiveAmount()
@@ -126,7 +126,7 @@ struct TemplateDetailsView: View {
                 Text("Dépenses")
                     .font(PulpeTypography.subheadline)
                 Spacer()
-                Text(viewModel.totals.totalExpenses.asSignedCHF(for: .expense))
+                Text(viewModel.totals.totalExpenses.asSignedCurrency(userSettingsStore.currency, for: .expense))
                     .font(PulpeTypography.listRowSubtitle)
                     .foregroundStyle(Color.financialExpense)
                     .sensitiveAmount()
@@ -151,7 +151,7 @@ struct TemplateDetailsView: View {
                     .font(PulpeTypography.subheadline)
                     .fontWeight(.semibold)
                 Spacer()
-                Text(viewModel.totals.balance.asSignedCHF)
+                Text(viewModel.totals.balance.asArithmeticSignedCurrency(userSettingsStore.currency))
                     .font(PulpeTypography.listRowSubtitle)
                     .fontWeight(.semibold)
                     .foregroundStyle(
@@ -177,7 +177,7 @@ struct TemplateDetailsView: View {
                 Text(title)
                 Spacer()
                 let total = lines.reduce(Decimal.zero) { $0 + $1.amount }
-                Text(total.asSignedCHF(for: kind))
+                Text(total.asSignedCurrency(userSettingsStore.currency, for: kind))
                     .font(PulpeTypography.caption)
                     .sensitiveAmount()
             }
@@ -190,6 +190,8 @@ struct TemplateDetailsView: View {
 struct TemplateLineRow: View {
     let line: TemplateLine
     let onEdit: () -> Void
+
+    @Environment(UserSettingsStore.self) private var userSettingsStore
 
     var body: some View {
         Button(action: onEdit) {
@@ -213,7 +215,7 @@ struct TemplateLineRow: View {
 
                 Spacer()
 
-                Text(line.amount.asSignedAmount(for: line.kind))
+                Text(line.amount.asSignedAmount(for: line.kind, in: userSettingsStore.currency))
                     .font(PulpeTypography.listRowSubtitle)
                     .foregroundStyle(line.kind.color)
                     .sensitiveAmount()
@@ -376,4 +378,5 @@ private struct TemplateDetailsSkeletonView: View {
     NavigationStack {
         TemplateDetailsView(templateId: "test")
     }
+    .environment(UserSettingsStore())
 }

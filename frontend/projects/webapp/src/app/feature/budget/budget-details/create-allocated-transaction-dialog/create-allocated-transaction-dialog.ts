@@ -14,9 +14,15 @@ import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { TranslocoPipe } from '@jsverse/transloco';
 import { CurrencySuffix } from '@ui/currency-suffix';
 import { type BudgetLine, type TransactionCreate } from 'pulpe-shared';
+import { transactionCreateFromFormSchema } from '@pattern/edit-transaction-form';
 import { formatLocalDate } from '@core/date/format-local-date';
 import type { CurrencyConverterService } from '@core/currency';
-import { injectCurrencyFormConfig } from '@core/currency';
+import {
+  injectCurrencyFormConfig,
+  injectLiveConversionPreview,
+} from '@core/currency';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { ConversionPreviewLine } from '@ui/conversion-preview-line';
 import {
   computeBudgetPeriodDateConstraints,
   createDateRangeValidator,
@@ -43,6 +49,7 @@ export interface CreateAllocatedTransactionDialogData {
     ReactiveFormsModule,
     TranslocoPipe,
     CurrencySuffix,
+    ConversionPreviewLine,
   ],
   template: `
     <h2 mat-dialog-title class="text-headline-small">
@@ -53,7 +60,11 @@ export interface CreateAllocatedTransactionDialogData {
 
     <mat-dialog-content>
       <form [formGroup]="form" class="flex flex-col gap-4 pt-4">
-        <mat-form-field appearance="outline" class="w-full">
+        <mat-form-field
+          appearance="outline"
+          subscriptSizing="dynamic"
+          class="w-full"
+        >
           <mat-label>{{ 'budget.tableDescription' | transloco }}</mat-label>
           <input
             matInput
@@ -77,37 +88,54 @@ export interface CreateAllocatedTransactionDialogData {
           }
         </mat-form-field>
 
-        <mat-form-field appearance="outline" class="w-full ph-no-capture">
-          <mat-label>{{ 'transactionForm.amountLabel' | transloco }}</mat-label>
-          <input
-            matInput
-            type="number"
-            formControlName="amount"
-            step="0.01"
-            min="0.01"
-            inputmode="decimal"
-            data-testid="transaction-amount"
+        <div class="flex flex-col">
+          <mat-form-field
+            appearance="outline"
+            subscriptSizing="dynamic"
+            class="w-full ph-no-capture"
+          >
+            <mat-label>{{
+              'transactionForm.amountLabel' | transloco
+            }}</mat-label>
+            <input
+              matInput
+              type="number"
+              formControlName="amount"
+              step="0.01"
+              min="0.01"
+              inputmode="decimal"
+              data-testid="transaction-amount"
+            />
+            <pulpe-currency-suffix
+              matTextSuffix
+              [showSelector]="showCurrencySelector()"
+              [currency]="inputCurrency()"
+              (currencyChange)="inputCurrency.set($event)"
+            />
+            @if (
+              form.get('amount')?.hasError('required') &&
+              form.get('amount')?.touched
+            ) {
+              <mat-error>{{
+                'transactionForm.amountRequired' | transloco
+              }}</mat-error>
+            }
+            @if (
+              form.get('amount')?.hasError('min') && form.get('amount')?.touched
+            ) {
+              <mat-error>{{ 'budget.amountMinError' | transloco }}</mat-error>
+            }
+          </mat-form-field>
+
+          <pulpe-conversion-preview-line
+            [amount]="preview().convertedAmount ?? null"
+            [inputCurrency]="inputCurrency()"
+            [displayCurrency]="currency()"
+            [rate]="preview().rate ?? null"
+            [cachedDate]="preview().cachedDate ?? null"
+            [status]="preview().status"
           />
-          <pulpe-currency-suffix
-            matTextSuffix
-            [showSelector]="showCurrencySelector()"
-            [currency]="inputCurrency()"
-            (currencyChange)="inputCurrency.set($event)"
-          />
-          @if (
-            form.get('amount')?.hasError('required') &&
-            form.get('amount')?.touched
-          ) {
-            <mat-error>{{
-              'transactionForm.amountRequired' | transloco
-            }}</mat-error>
-          }
-          @if (
-            form.get('amount')?.hasError('min') && form.get('amount')?.touched
-          ) {
-            <mat-error>{{ 'budget.amountMinError' | transloco }}</mat-error>
-          }
-        </mat-form-field>
+        </div>
 
         <mat-form-field appearance="outline" class="w-full">
           <mat-label>{{ 'budget.dateLabel' | transloco }}</mat-label>
@@ -215,6 +243,15 @@ export class CreateAllocatedTransactionDialog {
     isChecked: [false],
   });
 
+  readonly #amountValue = toSignal(this.form.controls.amount.valueChanges, {
+    initialValue: this.form.controls.amount.value,
+  });
+  protected readonly preview = injectLiveConversionPreview(
+    this.#amountValue,
+    this.inputCurrency,
+    this.currency,
+  );
+
   cancel(): void {
     this.#dialogRef.close();
   }
@@ -241,7 +278,7 @@ export class CreateAllocatedTransactionDialog {
       return;
     }
 
-    const transaction: TransactionCreate = {
+    const transaction = transactionCreateFromFormSchema.parse({
       budgetId: this.data.budgetLine.budgetId,
       budgetLineId: this.data.budgetLine.id,
       name: formValue.name!.trim(),
@@ -249,9 +286,9 @@ export class CreateAllocatedTransactionDialog {
       kind: this.data.budgetLine.kind,
       transactionDate: formatLocalDate(formValue.transactionDate!),
       category: null,
-      checkedAt: formValue.isChecked ? new Date().toISOString() : null,
-      ...metadata,
-    };
+      isChecked: formValue.isChecked ?? false,
+      conversion: metadata ?? null,
+    });
 
     this.#dialogRef.close(transaction);
   }

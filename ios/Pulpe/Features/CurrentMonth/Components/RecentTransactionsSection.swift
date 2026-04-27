@@ -34,6 +34,7 @@ struct RecentTransactionsSection: View {
 /// Read-only transaction row for dashboard
 private struct RecentTransactionRow: View {
     let transaction: Transaction
+    @Environment(UserSettingsStore.self) private var userSettingsStore
 
     var body: some View {
         HStack(spacing: DesignTokens.Spacing.md) {
@@ -62,10 +63,7 @@ private struct RecentTransactionRow: View {
             Spacer()
 
             // Amount
-            Text(transaction.amount.asSignedAmount(for: transaction.kind))
-                .font(PulpeTypography.listRowSubtitle)
-                .foregroundStyle(transaction.kind.color)
-                .sensitiveAmount()
+            TransactionAmountView(transaction: transaction, displayCurrency: userSettingsStore.currency)
         }
         .padding(.vertical, DesignTokens.ListRow.verticalPadding)
     }
@@ -119,4 +117,5 @@ private struct RecentTransactionRow: View {
         )
     }
     .listStyle(.insetGrouped)
+    .environment(UserSettingsStore())
 }

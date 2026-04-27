@@ -9,6 +9,7 @@ struct CurrentMonthHeroCard: View {
 
     @State private var tapTrigger = false
     @Environment(\.amountsHidden) private var amountsHidden
+    @Environment(UserSettingsStore.self) private var userSettingsStore
 
     private var monthName: String {
         Formatters.monthName(for: budget.month ?? 0)
@@ -61,7 +62,9 @@ struct CurrentMonthHeroCard: View {
         .sensoryFeedback(.impact(weight: .medium), trigger: tapTrigger)
         .accessibilityLabel(
             "\(monthName), mois actuel, "
-            + (amountsHidden ? "montant masqué" : "disponible \(budget.remaining?.asCompactCHF ?? "non défini")")
+            + (amountsHidden
+                ? "montant masqué"
+                : "disponible \(budget.remaining?.asCompactCurrency(userSettingsStore.currency) ?? "non défini")")
         )
         .accessibilityHint("Appuie pour voir les détails")
         .accessibilityAddTraits(.isButton)
@@ -78,6 +81,7 @@ struct BudgetMonthCard: View {
 
     @State private var tapTrigger = false
     @Environment(\.amountsHidden) private var amountsHidden
+    @Environment(UserSettingsStore.self) private var userSettingsStore
 
     private var monthName: String {
         Formatters.monthName(for: budget.month ?? 0)
@@ -117,7 +121,9 @@ struct BudgetMonthCard: View {
         .sensoryFeedback(.selection, trigger: tapTrigger)
         .accessibilityLabel(
             "\(monthName), "
-            + (amountsHidden ? "montant masqué" : "disponible \(budget.remaining?.asCompactCHF ?? "non défini")")
+            + (amountsHidden
+                ? "montant masqué"
+                : "disponible \(budget.remaining?.asCompactCurrency(userSettingsStore.currency) ?? "non défini")")
         )
         .accessibilityHint("Appuie pour voir les détails")
         .accessibilityAddTraits(.isButton)
@@ -131,6 +137,8 @@ struct BudgetAmountBlock: View {
     let emotionColor: Color
     var isPast: Bool = false
 
+    @Environment(UserSettingsStore.self) private var userSettingsStore
+
     private var amountLabel: String {
         (remaining ?? 0) >= 0 ? "Potentiel" : "Ajustement"
     }
@@ -138,7 +146,7 @@ struct BudgetAmountBlock: View {
     var body: some View {
         VStack(alignment: .trailing, spacing: DesignTokens.Spacing.xxs) {
             if let remaining {
-                Text(remaining.asSignedCompactCHF)
+                Text(remaining.asArithmeticSignedCompactCurrency(userSettingsStore.currency))
                     .font(PulpeTypography.amountXL)
                     .monospacedDigit()
                     .foregroundStyle(isPast ? .secondary : emotionColor)
@@ -162,6 +170,7 @@ struct NextMonthPlaceholder: View {
     let onTap: () -> Void
 
     @State private var tapTrigger = false
+    @Environment(UserSettingsStore.self) private var userSettingsStore
 
     private var monthName: String {
         Formatters.monthName(for: month)
@@ -227,7 +236,7 @@ struct NextMonthPlaceholder: View {
             Spacer()
             if let adjustment, adjustment != 0 {
                 VStack(alignment: .trailing, spacing: DesignTokens.Spacing.xxs) {
-                    Text(adjustment.asSignedCompactCHF)
+                    Text(adjustment.asArithmeticSignedCompactCurrency(userSettingsStore.currency))
                         .font(PulpeTypography.amountXL)
                         .monospacedDigit()
                         .foregroundStyle(adjustmentColor)

@@ -26,13 +26,18 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
 import { TranslocoService, TranslocoPipe } from '@jsverse/transloco';
-import { type Transaction, type TransactionCreate } from 'pulpe-shared';
+import { type Transaction } from 'pulpe-shared';
+import { type TransactionUpdateFormValue } from './edit-transaction-form.schema';
 import { startOfMonth, endOfMonth } from 'date-fns';
+import type { Observable } from 'rxjs';
 import type { CurrencyConverterService } from '@core/currency';
 import {
   CURRENCY_CONFIG,
   injectCurrencyFormConfigForEdit,
+  injectLiveConversionPreview,
 } from '@core/currency';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { ConversionPreviewLine } from '@ui/conversion-preview-line';
 import { TransactionValidators } from '@core/transaction';
 import { TransactionLabelPipe } from '@ui/transaction-display';
 import { CurrencySuffix } from '@ui/currency-suffix';
@@ -40,17 +45,6 @@ import { Logger } from '@core/logging/logger';
 import { formatLocalDate } from '@core/date/format-local-date';
 
 export type HideableField = 'kind' | 'category';
-
-export type EditTransactionFormData = Pick<
-  TransactionCreate,
-  'name' | 'amount' | 'kind' | 'category'
-> & {
-  transactionDate: string;
-  originalAmount?: number;
-  originalCurrency?: string;
-  targetCurrency?: string;
-  exchangeRate?: number;
-};
 
 @Component({
   selector: 'pulpe-edit-transaction-form',
@@ -66,6 +60,7 @@ export type EditTransactionFormData = Pick<
     TransactionLabelPipe,
     TranslocoPipe,
     CurrencySuffix,
+    ConversionPreviewLine,
   ],
 
   template: `
@@ -93,7 +88,7 @@ export type EditTransactionFormData = Pick<
           transactionForm.get('name')?.hasError('required') &&
           transactionForm.get('name')?.touched
         ) {
-          <mat-error role="alert" aria-live="assertive">
+          <mat-error>
             {{ 'transactionForm.nameRequired' | transloco }}
           </mat-error>
         }
@@ -101,7 +96,7 @@ export type EditTransactionFormData = Pick<
           transactionForm.get('name')?.hasError('minlength') &&
           transactionForm.get('name')?.touched
         ) {
-          <mat-error role="alert" aria-live="assertive">
+          <mat-error>
             {{ 'transactionForm.nameMinLength' | transloco }}
           </mat-error>
         }
@@ -109,65 +104,76 @@ export type EditTransactionFormData = Pick<
           transactionForm.get('name')?.hasError('maxlength') &&
           transactionForm.get('name')?.touched
         ) {
-          <mat-error role="alert" aria-live="assertive">
+          <mat-error>
             {{ 'transactionForm.nameMaxLength' | transloco }}
           </mat-error>
         }
       </mat-form-field>
 
       <!-- Amount Field -->
-      <mat-form-field class="w-full ph-no-capture" subscriptSizing="dynamic">
-        <mat-label class="ph-no-capture">{{
-          'transactionForm.amountLabel' | transloco
-        }}</mat-label>
-        <mat-icon matIconPrefix class="text-on-surface-variant"
-          >payments</mat-icon
-        >
-        <input
-          matInput
-          type="number"
-          inputmode="decimal"
-          formControlName="amount"
-          placeholder="0.00"
-          step="0.01"
-          min="0.01"
-          max="999999.99"
-          aria-describedby="amount-hint"
+      <div class="flex flex-col">
+        <mat-form-field class="w-full ph-no-capture" subscriptSizing="dynamic">
+          <mat-label class="ph-no-capture">{{
+            'transactionForm.amountLabel' | transloco
+          }}</mat-label>
+          <mat-icon matIconPrefix class="text-on-surface-variant"
+            >payments</mat-icon
+          >
+          <input
+            matInput
+            type="number"
+            inputmode="decimal"
+            formControlName="amount"
+            placeholder="0.00"
+            step="0.01"
+            min="0.01"
+            max="999999.99"
+            aria-describedby="amount-hint"
+          />
+          <pulpe-currency-suffix
+            matTextSuffix
+            [showSelector]="showCurrencySelector()"
+            [disabled]="true"
+            [currency]="inputCurrency()"
+          />
+          <mat-hint id="amount-hint" class="ph-no-capture">
+            {{ 'transactionForm.amountHint' | transloco }}
+          </mat-hint>
+          @if (
+            transactionForm.get('amount')?.hasError('required') &&
+            transactionForm.get('amount')?.touched
+          ) {
+            <mat-error>
+              {{ 'transactionForm.amountRequired' | transloco }}
+            </mat-error>
+          }
+          @if (
+            transactionForm.get('amount')?.hasError('min') &&
+            transactionForm.get('amount')?.touched
+          ) {
+            <mat-error>
+              {{ 'transactionForm.amountMin' | transloco }}
+            </mat-error>
+          }
+          @if (
+            transactionForm.get('amount')?.hasError('max') &&
+            transactionForm.get('amount')?.touched
+          ) {
+            <mat-error>
+              {{ 'transactionForm.amountMax' | transloco }}
+            </mat-error>
+          }
+        </mat-form-field>
+
+        <pulpe-conversion-preview-line
+          [amount]="preview().convertedAmount ?? null"
+          [inputCurrency]="inputCurrency()"
+          [displayCurrency]="currency()"
+          [rate]="preview().rate ?? null"
+          [cachedDate]="preview().cachedDate ?? null"
+          [status]="preview().status"
         />
-        <pulpe-currency-suffix
-          matTextSuffix
-          [showSelector]="showCurrencySelector()"
-          [disabled]="true"
-          [currency]="inputCurrency()"
-        />
-        <mat-hint id="amount-hint" class="ph-no-capture">
-          {{ 'transactionForm.amountHint' | transloco }}
-        </mat-hint>
-        @if (
-          transactionForm.get('amount')?.hasError('required') &&
-          transactionForm.get('amount')?.touched
-        ) {
-          <mat-error role="alert" aria-live="assertive">
-            {{ 'transactionForm.amountRequired' | transloco }}
-          </mat-error>
-        }
-        @if (
-          transactionForm.get('amount')?.hasError('min') &&
-          transactionForm.get('amount')?.touched
-        ) {
-          <mat-error role="alert" aria-live="assertive">
-            {{ 'transactionForm.amountMin' | transloco }}
-          </mat-error>
-        }
-        @if (
-          transactionForm.get('amount')?.hasError('max') &&
-          transactionForm.get('amount')?.touched
-        ) {
-          <mat-error role="alert" aria-live="assertive">
-            {{ 'transactionForm.amountMax' | transloco }}
-          </mat-error>
-        }
-      </mat-form-field>
+      </div>
 
       <!-- Type Field -->
       @if (!isFieldHidden('kind')) {
@@ -221,7 +227,7 @@ export type EditTransactionFormData = Pick<
           transactionForm.get('transactionDate')?.hasError('required') &&
           transactionForm.get('transactionDate')?.touched
         ) {
-          <mat-error role="alert" aria-live="assertive">
+          <mat-error>
             {{ 'transactionForm.dateRequired' | transloco }}
           </mat-error>
         }
@@ -229,7 +235,7 @@ export type EditTransactionFormData = Pick<
           transactionForm.get('transactionDate')?.hasError('dateOutOfRange') &&
           transactionForm.get('transactionDate')?.touched
         ) {
-          <mat-error role="alert" aria-live="assertive">
+          <mat-error>
             {{
               'transactionForm.dateOutOfRange'
                 | transloco
@@ -265,7 +271,7 @@ export type EditTransactionFormData = Pick<
             transactionForm.get('category')?.hasError('maxlength') &&
             transactionForm.get('category')?.touched
           ) {
-            <mat-error role="alert" aria-live="assertive">
+            <mat-error>
               {{ 'transactionForm.notesMaxLength' | transloco }}
             </mat-error>
           }
@@ -310,7 +316,7 @@ export class EditTransactionForm implements OnInit {
   readonly hiddenFields = input<HideableField[]>([]);
   readonly minDateInput = input<Date>();
   readonly maxDateInput = input<Date>();
-  readonly updateTransaction = output<EditTransactionFormData>();
+  readonly updateTransaction = output<TransactionUpdateFormValue>();
   readonly cancelEdit = output<void>();
   readonly #isUpdating = signal(false);
   readonly isUpdating = this.#isUpdating.asReadonly();
@@ -358,6 +364,20 @@ export class EditTransactionForm implements OnInit {
     ],
     category: ['', TransactionValidators.category],
   });
+
+  readonly #amountValue = toSignal(
+    this.transactionForm.controls.amount.valueChanges as Observable<
+      number | null
+    >,
+    {
+      initialValue: this.transactionForm.controls.amount.value as number | null,
+    },
+  );
+  protected readonly preview = injectLiveConversionPreview(
+    this.#amountValue,
+    this.inputCurrency,
+    this.currency,
+  );
 
   constructor() {
     // Re-validate the date control when the budget period boundaries change,
@@ -427,13 +447,7 @@ export class EditTransactionForm implements OnInit {
       kind,
       transactionDate,
       category,
-    } = this.transactionForm.getRawValue() as {
-      name: string;
-      amount: number | null;
-      kind: 'expense' | 'income' | 'saving';
-      transactionDate: Date | null;
-      category: string | null;
-    };
+    } = this.transactionForm.getRawValue();
 
     // Form is valid so all required fields are guaranteed non-null
     if (!name || !rawAmount || !kind || !transactionDate) return;
@@ -465,13 +479,13 @@ export class EditTransactionForm implements OnInit {
 
     this.#isUpdating.set(true);
 
-    const formData: EditTransactionFormData = {
+    const formData: TransactionUpdateFormValue = {
       name,
       amount: finalAmount,
       kind,
       transactionDate: formatLocalDate(transactionDate),
       category: category || null,
-      ...(metadata ?? {}),
+      conversion: metadata ?? null,
     };
 
     this.updateTransaction.emit(formData);

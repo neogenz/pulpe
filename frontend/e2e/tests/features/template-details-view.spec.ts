@@ -101,8 +101,15 @@ test.describe('Template Details View', () => {
     );
 
     await page.addInitScript(() => {
-      const entry = { version: 1, data: 'aa'.repeat(32), updatedAt: new Date().toISOString() };
-      sessionStorage.setItem('pulpe-vault-client-key-session', JSON.stringify(entry));
+      const entry = {
+        version: 1,
+        data: 'aa'.repeat(32),
+        updatedAt: new Date().toISOString(),
+      };
+      sessionStorage.setItem(
+        'pulpe-vault-client-key-session',
+        JSON.stringify(entry),
+      );
     });
 
     // Navigate to the error template and wait for error state

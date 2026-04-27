@@ -105,17 +105,17 @@ struct DecimalCurrencyFormattingTests {
         #expect(formatted.hasSuffix("CHF"), "Expected CHF after amount, got: \(formatted)")
     }
 
-    // MARK: - asAmount (no currency code)
+    // MARK: - asAmount(for:) — no currency code
 
     @Test func asAmount_doesNotContainCHF() {
-        let formatted = Decimal(1234.56).asAmount
+        let formatted = Decimal(1234.56).asAmount(for: .chf)
         #expect(!formatted.contains("CHF"), "asAmount should not include currency, got: \(formatted)")
     }
 
     // MARK: - asSignedAmount (no currency code)
 
     @Test func asSignedAmount_doesNotContainCHF() {
-        let formatted = Decimal(500).asSignedAmount(for: .expense)
+        let formatted = Decimal(500).asSignedAmount(for: .expense, in: .chf)
         #expect(!formatted.contains("CHF"), "asSignedAmount should not include currency, got: \(formatted)")
     }
 }

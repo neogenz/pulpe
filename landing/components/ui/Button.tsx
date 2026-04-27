@@ -18,7 +18,7 @@ type ButtonAsAnchor = ButtonBaseProps & Omit<AnchorHTMLAttributes<HTMLAnchorElem
 type ButtonProps = ButtonAsButton | ButtonAsAnchor
 
 const BASE_STYLES =
-  'inline-flex items-center justify-center font-semibold transition-all duration-200 ease-out rounded-[var(--radius-button)] cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 disabled:pointer-events-none'
+  'inline-flex items-center justify-center font-semibold transition-all duration-200 rounded-[var(--radius-button)] cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 disabled:pointer-events-none [transition-timing-function:var(--ease-spring)]'
 
 const SIZE_STYLES = {
   sm: 'min-h-[44px] px-4 text-sm',

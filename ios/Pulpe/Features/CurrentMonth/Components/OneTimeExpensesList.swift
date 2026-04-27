@@ -141,6 +141,8 @@ struct TransactionRow: View {
     let isSyncing: Bool
     let onEdit: (() -> Void)?
 
+    @Environment(UserSettingsStore.self) private var userSettingsStore
+
     init(transaction: Transaction, isSyncing: Bool, onEdit: (() -> Void)? = nil) {
         self.transaction = transaction
         self.isSyncing = isSyncing
@@ -183,10 +185,7 @@ struct TransactionRow: View {
             SyncIndicator(isSyncing: isSyncing)
 
             // Amount
-            Text(transaction.amount.asSignedAmount(for: transaction.kind))
-                .font(PulpeTypography.callout.weight(.semibold))
-                .foregroundStyle(transaction.isChecked ? .secondary : transaction.kind.color)
-                .sensitiveAmount()
+            TransactionAmountView(transaction: transaction, displayCurrency: userSettingsStore.currency)
         }
         .padding(.vertical, DesignTokens.ListRow.verticalPadding)
         .contentShape(Rectangle())
@@ -273,4 +272,5 @@ struct TransactionRow: View {
     .listSectionSpacing(DesignTokens.Spacing.lg)
     .scrollContentBackground(.hidden)
     .pulpeBackground()
+    .environment(UserSettingsStore())
 }

@@ -5,7 +5,8 @@ import {
   computed,
   input,
 } from '@angular/core';
-import type { SupportedCurrency } from 'pulpe-shared';
+import { TranslocoPipe } from '@jsverse/transloco';
+import { CURRENCY_METADATA, type SupportedCurrency } from 'pulpe-shared';
 import { FinancialPills } from '../financial-pills/financial-pills';
 
 export interface FinancialTotals {
@@ -17,7 +18,7 @@ export interface FinancialTotals {
 
 @Component({
   selector: 'pulpe-budget-financial-overview',
-  imports: [DecimalPipe, FinancialPills],
+  imports: [DecimalPipe, FinancialPills, TranslocoPipe],
   template: `
     <div class="space-y-6">
       <div
@@ -34,23 +35,23 @@ export interface FinancialTotals {
         >
           @switch (budgetState()) {
             @case ('comfortable') {
-              Ce qu'il te reste ce mois
+              {{ 'budget.overview.remainingThisMonth' | transloco }}
               <span
                 class="text-body-small text-on-primary-container/70 block mt-0.5"
-                >selon tes prévisions</span
+                >{{ 'budget.overview.perForecast' | transloco }}</span
               >
             }
             @case ('warning') {
-              Ce qu'il te reste ce mois
-              <span class="text-body-small text-warning/70 block mt-0.5"
-                >selon tes prévisions</span
-              >
+              {{ 'budget.overview.remainingThisMonth' | transloco }}
+              <span class="text-body-small text-warning/70 block mt-0.5">{{
+                'budget.overview.perForecast' | transloco
+              }}</span>
             }
             @case ('deficit') {
-              Déficit ce mois
+              {{ 'budget.overview.deficitThisMonth' | transloco }}
               <span
                 class="text-body-small text-on-error-container/70 block mt-0.5"
-                >selon tes prévisions</span
+                >{{ 'budget.overview.perForecast' | transloco }}</span
               >
             }
           }
@@ -61,8 +62,10 @@ export interface FinancialTotals {
           [class.text-warning]="budgetState() === 'warning'"
           [class.text-on-error-container]="budgetState() === 'deficit'"
         >
-          {{ remainingAbsolute() | number: '1.0-0' : locale() }}
-          <span class="text-headline-small font-normal">{{ currency() }}</span>
+          {{ remainingAbsolute() | number: '1.2-2' : locale() }}
+          <span class="text-headline-small font-normal">{{
+            currencySymbol()
+          }}</span>
         </div>
         <p
           class="text-body-medium mt-3"
@@ -72,17 +75,17 @@ export interface FinancialTotals {
         >
           @switch (budgetState()) {
             @case ('comfortable') {
-              Belle marge ce mois
+              {{ 'budget.overview.niceMargin' | transloco }}
             }
             @case ('warning') {
               @if (totals().remaining > 0) {
-                Tu gères bien
+                {{ 'budget.overview.youManageWell' | transloco }}
               } @else {
-                Pile à l'équilibre
+                {{ 'budget.overview.justBalanced' | transloco }}
               }
             }
             @case ('deficit') {
-              Ce mois sera serré — mais tu le sais
+              {{ 'budget.overview.tightMonth' | transloco }}
             }
           }
         </p>
@@ -119,6 +122,10 @@ export class BudgetFinancialOverview {
   readonly currency = input<SupportedCurrency>('CHF');
   readonly locale = input<string>('de-CH');
   readonly warningThreshold = input(90);
+
+  protected readonly currencySymbol = computed(
+    () => CURRENCY_METADATA[this.currency()].symbol,
+  );
 
   readonly isPositive = computed(() => this.totals().remaining >= 0);
 

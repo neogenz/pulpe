@@ -5,15 +5,14 @@ import {
   inject,
   input,
 } from '@angular/core';
-import { DecimalPipe } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
 import { TranslocoService, TranslocoPipe } from '@jsverse/transloco';
 import type { SupportedCurrency } from 'pulpe-shared';
-import { CURRENCY_CONFIG } from '@core/currency';
+import { AppCurrencyPipe } from '@core/currency';
 
 @Component({
   selector: 'pulpe-dashboard-savings-summary',
-  imports: [DecimalPipe, MatIconModule, TranslocoPipe],
+  imports: [AppCurrencyPipe, MatIconModule, TranslocoPipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="flex flex-col w-full h-full">
@@ -81,12 +80,11 @@ import { CURRENCY_CONFIG } from '@core/currency';
             <p class="text-body-medium text-on-surface">
               {{ 'currentMonth.savingsAmountText' | transloco }}
               <span class="font-bold text-financial-savings ph-no-capture">
-                {{ totalRealized() | number: '1.2-2' : locale() }}
-                {{ currency() }}
+                {{ totalRealized() | appCurrency: currency() : '1.2-2' }}
               </span>
               {{ 'dashboard.on' | transloco }}
               <span class="ph-no-capture">{{
-                totalPlanned() | number: '1.2-2' : locale()
+                totalPlanned() | appCurrency: currency() : '1.2-2'
               }}</span>
               {{ 'currentMonth.savingsPlanned' | transloco }}
             </p>
@@ -124,10 +122,6 @@ export class DashboardSavingsSummary {
   readonly checkedCount = input.required<number>();
   readonly totalCount = input.required<number>();
   readonly currency = input<SupportedCurrency>('CHF');
-
-  protected readonly locale = computed(
-    () => CURRENCY_CONFIG[this.currency()].numberLocale,
-  );
 
   protected readonly progressPercentage = computed(() => {
     const planned = this.totalPlanned();

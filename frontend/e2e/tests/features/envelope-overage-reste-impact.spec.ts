@@ -62,16 +62,18 @@ test.describe('Envelope Overage Reste Impact', () => {
       `envelope-card-${TEST_UUIDS.LINE_2}`,
     );
     await expect(envelopeCard).toBeVisible();
-    await expect(envelopeCard).toContainText('80 CHF');
-    await expect(envelopeCard).toContainText('120 CHF');
+    await expect(envelopeCard).toContainText('80.00 CHF');
+    await expect(envelopeCard).toContainText('120.00 CHF');
 
     // Progress bar: 80/200 = 40%
     await expect(envelopeCard).toContainText('40%');
 
     // Reste = 5000 - 200 = 4800 (envelope covers the 80 transaction)
-    const heroSection = authenticatedPage.locator('pulpe-budget-financial-overview');
-    await expect(heroSection).toContainText("4\u2019800");
-    await expect(heroSection).toContainText('Ce qu\'il te reste ce mois');
+    const heroSection = authenticatedPage.locator(
+      'pulpe-budget-financial-overview',
+    );
+    await expect(heroSection).toContainText('4\u2019800');
+    await expect(heroSection).toContainText("Ce qu'il te reste ce mois");
   });
 
   test('transactions exactly at envelope amount — Reste unchanged', async ({
@@ -125,14 +127,16 @@ test.describe('Envelope Overage Reste Impact', () => {
       `envelope-card-${TEST_UUIDS.LINE_2}`,
     );
     await expect(envelopeCard).toBeVisible();
-    await expect(envelopeCard).toContainText('200 CHF');
+    await expect(envelopeCard).toContainText('200.00 CHF');
 
     // Progress bar: 200/200 = 100%
     await expect(envelopeCard).toContainText('100%');
 
     // Reste = 5000 - 200 = 4800
-    const heroSection = authenticatedPage.locator('pulpe-budget-financial-overview');
-    await expect(heroSection).toContainText("4\u2019800");
+    const heroSection = authenticatedPage.locator(
+      'pulpe-budget-financial-overview',
+    );
+    await expect(heroSection).toContainText('4\u2019800');
   });
 
   test('transactions exceeding envelope — Reste decreases by excess', async ({
@@ -186,15 +190,17 @@ test.describe('Envelope Overage Reste Impact', () => {
       `envelope-card-${TEST_UUIDS.LINE_2}`,
     );
     await expect(envelopeCard).toBeVisible();
-    await expect(envelopeCard).toContainText('250 CHF');
+    await expect(envelopeCard).toContainText('250.00 CHF');
 
     // Overage indicator
     await expect(envelopeCard).toContainText(/d[ée]pass[ée]/);
 
     // Reste = 5000 - 250 = 4750 (excess 50 reduces Reste)
-    const heroSection = authenticatedPage.locator('pulpe-budget-financial-overview');
-    await expect(heroSection).toContainText("4\u2019750");
-    await expect(heroSection).toContainText('Ce qu\'il te reste ce mois');
+    const heroSection = authenticatedPage.locator(
+      'pulpe-budget-financial-overview',
+    );
+    await expect(heroSection).toContainText('4\u2019750');
+    await expect(heroSection).toContainText("Ce qu'il te reste ce mois");
   });
 
   test('progress bar shows overage percentage when transactions exceed envelope', async ({

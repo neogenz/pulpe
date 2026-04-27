@@ -3,6 +3,7 @@ import { Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import {
   type DemoSessionCreate,
+  demoSessionCreateSchema,
   demoSessionResponseSchema,
 } from 'pulpe-shared';
 import { ApiClient } from '@core/api/api-client';
@@ -69,7 +70,12 @@ export class DemoInitializerService {
       // Call backend to create demo user and session with Turnstile token
       const payload: DemoSessionCreate = { turnstileToken };
       const response = await firstValueFrom(
-        this.#api.post$('/demo/session', payload, demoSessionResponseSchema),
+        this.#api.post$(
+          '/demo/session',
+          payload,
+          demoSessionResponseSchema,
+          demoSessionCreateSchema,
+        ),
       );
 
       const session = response.data.session;

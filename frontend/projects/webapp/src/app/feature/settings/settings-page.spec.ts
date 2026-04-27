@@ -17,6 +17,7 @@ import { ClientKeyService, EncryptionApi } from '@core/encryption';
 import { DemoModeService } from '@core/demo/demo-mode.service';
 import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 import { CurrencyConverterService } from '@core/currency';
+import { FeatureFlagsService } from '@core/feature-flags';
 
 import SettingsPage from './settings-page';
 
@@ -36,6 +37,9 @@ describe('SettingsPage', () => {
   };
   let mockAuthSession: { signOut: ReturnType<typeof vi.fn> };
   let mockAuthState: { isOAuthOnly: ReturnType<typeof signal<boolean>> };
+  let mockFeatureFlags: {
+    isMultiCurrencyEnabled: ReturnType<typeof signal<boolean>>;
+  };
   let mockDialog: { open: ReturnType<typeof vi.fn> };
   let mockDialogRef: { afterClosed: () => Observable<boolean> };
 
@@ -73,6 +77,10 @@ describe('SettingsPage', () => {
       isOAuthOnly: signal(false),
     };
 
+    mockFeatureFlags = {
+      isMultiCurrencyEnabled: signal(true),
+    };
+
     await TestBed.configureTestingModule({
       imports: [SettingsPage],
       providers: [
@@ -89,6 +97,7 @@ describe('SettingsPage', () => {
         },
         { provide: AuthSessionService, useValue: mockAuthSession },
         { provide: AuthStateService, useValue: mockAuthState },
+        { provide: FeatureFlagsService, useValue: mockFeatureFlags },
         {
           provide: EncryptionApi,
           useValue: {
@@ -184,6 +193,32 @@ describe('SettingsPage', () => {
         '[data-testid="change-password-button"]',
       );
       expect(btn).not.toBeNull();
+    });
+  });
+
+  describe('currency section visibility', () => {
+    it('should hide currency-toggle when isMultiCurrencyEnabled is false', async () => {
+      mockFeatureFlags.isMultiCurrencyEnabled.set(false);
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      const toggle = fixture.nativeElement.querySelector(
+        '[data-testid="currency-toggle"]',
+      );
+
+      expect(toggle).toBeNull();
+    });
+
+    it('should show currency-toggle when isMultiCurrencyEnabled is true', async () => {
+      mockFeatureFlags.isMultiCurrencyEnabled.set(true);
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      const toggle = fixture.nativeElement.querySelector(
+        '[data-testid="currency-toggle"]',
+      );
+
+      expect(toggle).not.toBeNull();
     });
   });
 

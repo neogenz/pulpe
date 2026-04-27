@@ -14,13 +14,15 @@ import { MatCardModule } from '@angular/material/card';
 import { MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
-import { AppCurrencyPipe } from '@core/currency';
+import { AppCurrencyPipe, ConversionTooltipPipe } from '@core/currency';
+import { FeatureFlagsService } from '@core/feature-flags';
 import { FinancialKindDirective } from '@ui/financial-kind';
 import { FinancialKindIndicator } from '@ui/financial-kind-indicator';
+import { OriginalAmountLine } from '@ui/original-amount-line';
 import { TransactionLabelPipe } from '@ui/transaction-display';
 import type { BudgetLine, Transaction, SupportedCurrency } from 'pulpe-shared';
-import type { TransactionViewModel } from '../models/transaction-view-model';
-import type { BudgetLineTableItem } from '../data-core';
+import type { TransactionViewModel } from '../view-models/transaction.view-model';
+import type { BudgetLineTableItem } from '../view-models/table-items.view-model';
 import { TransactionActionMenu } from '../components/transaction-action-menu';
 import {
   BudgetDetailPanel,
@@ -80,6 +82,8 @@ export function groupByKind<T extends { data: { kind: string } }>(
     BudgetGridSection,
     FinancialKindIndicator,
     FinancialKindDirective,
+    OriginalAmountLine,
+    ConversionTooltipPipe,
     TransactionActionMenu,
     TransactionLabelPipe,
   ],
@@ -91,6 +95,7 @@ export function groupByKind<T extends { data: { kind: string } }>(
           <pulpe-budget-grid-mobile-card
             [item]="item"
             [currency]="currency()"
+            [isMultiCurrencyEnabled]="isMultiCurrencyEnabled()"
             (edit)="edit.emit($event)"
             (delete)="delete.emit($event)"
             (addTransaction)="addTransaction.emit($event)"
@@ -140,6 +145,7 @@ export function groupByKind<T extends { data: { kind: string } }>(
                   <pulpe-budget-grid-card
                     [item]="item"
                     [currency]="currency()"
+                    [isMultiCurrencyEnabled]="isMultiCurrencyEnabled()"
                     (cardClick)="openDetailPanel($event)"
                     (edit)="edit.emit($event)"
                     (delete)="delete.emit($event)"
@@ -229,12 +235,24 @@ export function groupByKind<T extends { data: { kind: string } }>(
 
           <!-- Row 2: Amount + date chip -->
           <div class="flex items-center justify-between mb-3">
-            <div
-              class="ph-no-capture text-headline-small font-bold"
-              [pulpeFinancialKind]="item.data.kind"
-              [attr.data-testid]="'transaction-amount-' + item.data.id"
-            >
-              {{ item.data.amount | appCurrency: currency() : '1.0-0' }}
+            <div class="flex flex-col">
+              <div
+                class="ph-no-capture text-headline-small font-bold"
+                [pulpeFinancialKind]="item.data.kind"
+                [attr.data-testid]="'transaction-amount-' + item.data.id"
+              >
+                {{ item.data.amount | appCurrency: currency() : '1.2-2' }}
+              </div>
+              <pulpe-original-amount-line
+                [originalAmount]="item.data.originalAmount"
+                [originalCurrency]="item.data.originalCurrency"
+                [displayCurrency]="currency()"
+                [tooltipText]="
+                  isMultiCurrencyEnabled()
+                    ? (item.data | conversionTooltip)
+                    : ''
+                "
+              />
             </div>
             @if (item.data.transactionDate) {
               <span
@@ -293,12 +311,22 @@ export function groupByKind<T extends { data: { kind: string } }>(
           />
         </div>
 
-        <div
-          class="ph-no-capture text-headline-small font-bold mb-2"
-          [pulpeFinancialKind]="item.data.kind"
-          [attr.data-testid]="'transaction-amount-' + item.data.id"
-        >
-          {{ item.data.amount | appCurrency: currency() : '1.0-0' }}
+        <div class="mb-2">
+          <div
+            class="ph-no-capture text-headline-small font-bold"
+            [pulpeFinancialKind]="item.data.kind"
+            [attr.data-testid]="'transaction-amount-' + item.data.id"
+          >
+            {{ item.data.amount | appCurrency: currency() : '1.2-2' }}
+          </div>
+          <pulpe-original-amount-line
+            [originalAmount]="item.data.originalAmount"
+            [originalCurrency]="item.data.originalCurrency"
+            [displayCurrency]="currency()"
+            [tooltipText]="
+              isMultiCurrencyEnabled() ? (item.data | conversionTooltip) : ''
+            "
+          />
         </div>
 
         <!-- Footer: Kind label + date + toggle -->
@@ -342,6 +370,7 @@ export function groupByKind<T extends { data: { kind: string } }>(
 export class BudgetGrid {
   readonly #dialog = inject(MatDialog);
   readonly #viewContainerRef = inject(ViewContainerRef);
+  readonly #featureFlags = inject(FeatureFlagsService);
 
   // Inputs
   readonly currency = input<SupportedCurrency>('CHF');
@@ -366,6 +395,9 @@ export class BudgetGrid {
   readonly resetFromTemplate = output<BudgetLineTableItem>();
   readonly toggleCheck = output<string>();
   readonly toggleTransactionCheck = output<string>();
+
+  protected readonly isMultiCurrencyEnabled =
+    this.#featureFlags.isMultiCurrencyEnabled;
 
   protected readonly freeTransactionItems = computed(() =>
     filterFreeTransactionItems(this.transactionItems()),

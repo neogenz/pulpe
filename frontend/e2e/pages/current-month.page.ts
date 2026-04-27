@@ -46,7 +46,9 @@ export class CurrentMonthPage {
     const element = this.page.getByTestId('hero-remaining-amount');
     const normalizedExpected = this.normalizeSwissNumber(expectedAmount);
     await expect
-      .poll(async () => this.normalizeSwissNumber((await element.textContent()) ?? ''))
+      .poll(async () =>
+        this.normalizeSwissNumber((await element.textContent()) ?? ''),
+      )
       .toContain(normalizedExpected);
   }
 
@@ -54,7 +56,9 @@ export class CurrentMonthPage {
     const element = this.page.getByTestId('hero-expenses-amount');
     const normalizedExpected = this.normalizeSwissNumber(expectedAmount);
     await expect
-      .poll(async () => this.normalizeSwissNumber((await element.textContent()) ?? ''))
+      .poll(async () =>
+        this.normalizeSwissNumber((await element.textContent()) ?? ''),
+      )
       .toContain(normalizedExpected);
   }
 

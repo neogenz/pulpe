@@ -1,9 +1,11 @@
 import {
   Injectable,
   computed,
+  effect,
   inject,
   linkedSignal,
   signal,
+  untracked,
 } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { map } from 'rxjs/operators';
@@ -81,6 +83,15 @@ export class TemplateStore {
       return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
     });
   });
+
+  constructor() {
+    effect(() => {
+      const templates = this.templates();
+      if (!templates.length) return;
+      const ids = templates.map((t) => t.id);
+      untracked(() => this.loadTemplateTotals(ids));
+    });
+  }
 
   async loadTemplateLines(templateId: string): Promise<TemplateLine[]> {
     const cached = this.#budgetTemplatesApi.cache.get<TemplateLine[]>([

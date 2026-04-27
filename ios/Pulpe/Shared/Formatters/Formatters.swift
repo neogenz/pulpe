@@ -5,6 +5,12 @@ import Foundation
 enum Formatters {
     // MARK: - Currency
 
+    /// Canonical Swiss thousands separator (U+2019, RIGHT SINGLE QUOTATION MARK).
+    /// Apple's `fr_CH` locale defaults to U+0027 (straight apostrophe), but the canonical
+    /// Swiss typography — and what `Intl.NumberFormat('fr-CH', ...)` returns on the web —
+    /// is U+2019. Aligned with frontend (PUL-125) so both clients render `1'235 CHF`.
+    static let swissGroupingSeparator = "\u{2019}"
+
     /// Maps a currency to its display locale.
     /// Exhaustive switch — compiler enforces handling of every supported currency.
     static func locale(for currency: SupportedCurrency) -> Locale {
@@ -28,7 +34,41 @@ enum Formatters {
         formatter.currencyCode = currency.rawValue
         formatter.locale = locale(for: currency)
         formatter.maximumFractionDigits = wholeNumber ? 0 : 2
+        if currency == .chf {
+            formatter.groupingSeparator = swissGroupingSeparator
+        }
         formatterCache.setObject(formatter, forKey: key)
+        return formatter
+    }
+
+    /// Thread-safe cache for plain decimal formatters used by `Decimal.asAmount` /
+    /// `Decimal.asCompactAmount`. Locale drives the decimal separator; for CHF we
+    /// override the grouping separator to the canonical U+2019 apostrophe.
+    nonisolated(unsafe) private static let amountFormatterCache = NSCache<NSString, NumberFormatter>()
+
+    /// Returns a cached decimal NumberFormatter for displaying amounts without a currency symbol.
+    /// `wholeNumber: true` rounds to integer (used by `asCompactAmount`).
+    static func amountFormatter(for currency: SupportedCurrency, wholeNumber: Bool = false) -> NumberFormatter {
+        let key = "\(currency.rawValue)_\(wholeNumber)" as NSString
+        if let cached = amountFormatterCache.object(forKey: key) {
+            return cached
+        }
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        formatter.locale = locale(for: currency)
+        formatter.usesGroupingSeparator = true
+        if wholeNumber {
+            formatter.minimumFractionDigits = 0
+            formatter.maximumFractionDigits = 0
+            formatter.roundingMode = .halfUp
+        } else {
+            formatter.minimumFractionDigits = 2
+            formatter.maximumFractionDigits = 2
+        }
+        if currency == .chf {
+            formatter.groupingSeparator = swissGroupingSeparator
+        }
+        amountFormatterCache.setObject(formatter, forKey: key)
         return formatter
     }
 
@@ -39,7 +79,7 @@ enum Formatters {
         formatter.numberStyle = .decimal
         formatter.minimumFractionDigits = 0
         formatter.maximumFractionDigits = 2
-        formatter.groupingSeparator = "'"
+        formatter.groupingSeparator = swissGroupingSeparator
         return formatter
     }()
 

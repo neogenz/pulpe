@@ -4,9 +4,21 @@ import { PreloadLCPImage } from '@/components/ui'
 import { PostHogProvider } from '../components/PostHogProvider'
 import './globals.css'
 
+/* Italic is only used at weight 400 (editorial accents). Declaring it on every
+   weight ships 4 unused italic .woff2 files (~150KB). Split into two configs
+   sharing the same CSS variable. */
 const poppins = Poppins({
   subsets: ['latin'],
   weight: ['400', '500', '600', '700'],
+  style: 'normal',
+  display: 'optional',
+  variable: '--font-poppins',
+})
+
+const poppinsItalic = Poppins({
+  subsets: ['latin'],
+  weight: ['400'],
+  style: 'italic',
   display: 'optional',
   variable: '--font-poppins',
 })
@@ -90,7 +102,7 @@ const jsonLd = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="fr" className={poppins.variable}>
+    <html lang="fr" className={`${poppins.variable} ${poppinsItalic.variable}`}>
       <head>
         <script
           type="application/ld+json"

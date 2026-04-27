@@ -376,7 +376,12 @@ final class BudgetDetailsViewModel {
         }
     }
 
-    func showCheckToastIfNeeded(for line: BudgetLine, toastManager: ToastManager, amountsHidden: Bool = false) {
+    func showCheckToastIfNeeded(
+        for line: BudgetLine,
+        toastManager: ToastManager,
+        presentationCurrency: SupportedCurrency,
+        amountsHidden: Bool = false
+    ) {
         guard !line.isChecked, line.kind.isOutflow else { return }
 
         let consumed = transactions
@@ -393,9 +398,12 @@ final class BudgetDetailsViewModel {
         if amountsHidden {
             toastManager.show("Pointé")
         } else if isPessimistic {
-            toastManager.show("Pointé · \(consumed.asCHF) — \(effective.asCHF) prévus")
+            toastManager.show(
+                "Pointé · \(consumed.asCurrency(presentationCurrency)) — "
+                    + "\(effective.asCurrency(presentationCurrency)) prévus"
+            )
         } else {
-            toastManager.show("Pointé · \(effective.asCHF)")
+            toastManager.show("Pointé · \(effective.asCurrency(presentationCurrency))")
         }
     }
 

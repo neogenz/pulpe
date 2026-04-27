@@ -33,6 +33,13 @@ export class PostHogService {
   readonly #flagsVersion = signal<number>(0);
   #isTrackingEnabled = false;
 
+  constructor() {
+    const e2eFlags = this.#readE2eFlagOverride();
+    if (e2eFlags) {
+      queueMicrotask(() => this.#flagsVersion.update((v) => v + 1));
+    }
+  }
+
   readonly isInitialized = this.#isInitialized.asReadonly();
   readonly isEnabled = computed(() => {
     const config = this.#applicationConfiguration.postHogConfig();
@@ -118,8 +125,24 @@ export class PostHogService {
    * missing. Pair with `flagsVersion` signal in computeds for reactive gating.
    */
   isFeatureEnabled(key: string): boolean {
+    const e2eOverride = this.#readE2eFlagOverride();
+    if (e2eOverride && key in e2eOverride) return e2eOverride[key] === true;
     if (!this.#isInitialized()) return false;
     return posthog.isFeatureEnabled(key) === true;
+  }
+
+  /**
+   * Read the E2E feature-flag override only in non-production environments.
+   * Production and preview builds ignore the global to prevent any
+   * client-side script (DevTools, browser extension) from flipping flags.
+   */
+  #readE2eFlagOverride(): Record<string, boolean> | undefined {
+    const env = this.#applicationConfiguration.environment();
+    if (env !== 'test' && env !== 'local' && env !== 'development') {
+      return undefined;
+    }
+    return (globalThis as { __E2E_POSTHOG_FLAGS__?: Record<string, boolean> })
+      .__E2E_POSTHOG_FLAGS__;
   }
 
   /**

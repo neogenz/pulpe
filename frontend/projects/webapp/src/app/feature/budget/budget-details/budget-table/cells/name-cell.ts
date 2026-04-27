@@ -11,11 +11,11 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { RouterLink } from '@angular/router';
 import { FinancialKindDirective } from '@ui/financial-kind';
 import { TransactionLabelPipe } from '@ui/transaction-display';
-import {
-  formatMatchAnnotation,
-  type BudgetLineTableItem,
-  type TransactionTableItem,
-} from '../../data-core';
+import { formatMatchAnnotation } from '../../view-models/budget-item-constants';
+import type {
+  BudgetLineTableItem,
+  TransactionTableItem,
+} from '../../view-models/table-items.view-model';
 
 @Component({
   selector: 'pulpe-name-cell',

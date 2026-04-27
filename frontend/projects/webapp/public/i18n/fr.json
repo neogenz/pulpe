@@ -479,7 +479,17 @@
       "envelopeWithin": "Pointé · {{ envelope }} {{ currency }}",
       "transactionChecked": "Pointé · {{ amount }} {{ currency }}"
     },
-    "forecastCheckedToggle": "Déjà pointé"
+    "forecastCheckedToggle": "Déjà pointé",
+    "overview": {
+      "remainingThisMonth": "Ce qu'il te reste ce mois",
+      "perForecast": "selon tes prévisions",
+      "deficitThisMonth": "Déficit ce mois",
+      "uncoveredOverrun": "dépassement non couvert",
+      "niceMargin": "Belle marge ce mois",
+      "youManageWell": "Tu gères bien",
+      "justBalanced": "Pile à l'équilibre",
+      "tightMonth": "Ce mois sera serré — mais tu le sais"
+    }
   },
   "budgetLine": {
     "checkLabel": "Pointer {{ name }}",
@@ -491,6 +501,7 @@
     "noForecast": "Aucune prévision",
     "amountMustBePositive": "Le montant doit être positif",
     "available": "disponible",
+    "availableOf": "disponible sur {{ amount }}",
     "planned": "prévu",
     "spent": "dépensé",
     "exceeded": "dépassé",
@@ -638,7 +649,14 @@
     "linesCount": "{{count}} prévision(s)",
     "lineCreateSuccess": "Prévision ajoutée",
     "lineUpdateSuccess": "Prévision modifiée",
-    "lineDeleteSuccess": "Prévision supprimée"
+    "lineDeleteSuccess": "Prévision supprimée",
+    "selectAriaLabel": "Sélectionner {{ name }}",
+    "defaultTag": "Par défaut",
+    "calculating": "Calcul en cours...",
+    "analyzingData": "Analyse de vos données financières",
+    "monthlyIncomes": "Revenus mensuels",
+    "plannedExpenses": "Dépenses prévues",
+    "availableLabel": "Disponible"
   },
   "currentMonth": {
     "pageTitle": "Tableau de bord",
@@ -661,6 +679,7 @@
     "historyExpensesLabel": "Dépenses",
     "historySavingsLabel": "Épargne",
     "historyAvgIncomeLabel": "Revenu moyen",
+    "chartLoading": "Chargement du graphique...",
     "savingsSectionTitle": "Épargne du mois",
     "savingsAllDone": "Tout est en place",
     "savingsNone": "Aucune prévision",
@@ -724,7 +743,12 @@
     "inputHint": "Entre le montant en {{ currency }}",
     "rateFromDate": "Taux du {{ date }}",
     "rateFromDateAriaLabel": "Taux du {{ date }}, connexion indisponible",
-    "fallbackTooltip": "Connexion indisponible — on affiche le dernier taux récupéré"
+    "fallbackTooltip": "Connexion indisponible — on affiche le dernier taux récupéré",
+    "originalAmountLabel": "Montant d'origine {{ amount }}",
+    "livePreviewApprox": "≈ {{ amount }} · taux {{ rate }}",
+    "livePreviewLoading": "Calcul du taux…",
+    "livePreviewError": "Taux indisponible",
+    "livePreviewAriaLabel": "Aperçu converti : {{ amount }}"
   },
   "completeProfile": {
     "loading": "Préparation de ton espace de liberté...",
@@ -736,10 +760,10 @@
     "monthlyIncome": "Revenus mensuels",
     "next": "Suivant",
     "privateData": "Tes données restent privées et sécurisées",
-    "step2Title": "Presque terminé 🎯",
+    "step2Title": "Presque terminé",
     "step2Subtitle": "Quelques infos pour affiner — ou passe directement.",
     "payDay": "Quand reçois-tu ton salaire ?",
-    "payDayFirstOfMonth": "1er du mois (calendaire)",
+    "payDayPlaceholder": "Choisis ton jour",
     "payDayOption": "Le {{ day }}",
     "charges": "Charges mensuelles",
     "chargesOptional": "Facultatif — tu pourras ajuster plus tard",
@@ -778,6 +802,26 @@
       "liveDeficitAnnouncement": "Déficit de {{ amount }} francs à équilibrer"
     },
     "stepperAriaLabel": "Étape {{ current }} sur {{ total }}",
+    "stepYou": "Toi",
+    "stepYourExpenses": "Tes charges",
+    "stepIndicator": "Étape {{ current }} / {{ total }}",
+    "step1Intro": "Trois infos pour démarrer. On s'occupe du reste.",
+    "currencyLabel": "Ta devise",
+    "currencyHint": "Modifiable plus tard depuis les paramètres",
+    "preview": {
+      "title": "Budget · {{ month }}",
+      "greeting": "Salut {{ name }} 👋",
+      "ariaLabel": "Aperçu",
+      "summaryAriaLabel": "Résumé du budget",
+      "empty": "Commence par ton salaire ↓",
+      "incomeLabel": "Revenus prévus",
+      "payDayOn": "Paie le {{ day }}",
+      "nextStepHint": "Joli. Ton budget prend forme.",
+      "readyBadge": "Budget prêt à personnaliser"
+    },
+    "ctaMissingName": "Dis-nous ton prénom",
+    "ctaMissingIncome": "Ajoute tes revenus mensuels",
+    "ctaReady": "Continuer",
     "customize": {
       "sectionTitle": "Personnaliser ton budget"
     },
@@ -787,6 +831,8 @@
       "namePlaceholder": "Ex: Salle de sport, Streaming...",
       "nameMaxLength": "100 caractères maximum",
       "amountLabel": "Montant",
+      "amountRequired": "Saisis un montant",
+      "amountMin": "Le montant doit être supérieur à 0",
       "sectionTitle": "Prévisions personnalisées",
       "addButton": "Ajouter une prévision",
       "kindExpense": "Dépense",

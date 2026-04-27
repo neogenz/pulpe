@@ -80,12 +80,13 @@ describe('FinancialPills', () => {
       expect(incomePill.textContent).toContain('CHF');
       expect(expensePill.textContent).toContain('CHF');
       expect(savingsPill.textContent).toContain('CHF');
+      expect(incomePill.textContent).not.toContain('EUR');
       expect(incomePill.textContent).toMatch(/5[’'\s]?000/);
       expect(expensePill.textContent).toMatch(/1[’'\s]?500/);
       expect(savingsPill.textContent).toContain('300');
     });
 
-    it('should render the custom currency when provided', () => {
+    it('should render the custom currency symbol when provided', () => {
       setTestInput(component.totals, totals);
       setTestInput(component.currency, 'EUR');
       fixture.detectChanges();
@@ -93,7 +94,7 @@ describe('FinancialPills', () => {
       const incomePill: HTMLElement = fixture.nativeElement.querySelector(
         '[data-testid="income-pill"]',
       );
-      expect(incomePill.textContent).toContain('EUR');
+      expect(incomePill.textContent).toContain('€');
       expect(incomePill.textContent).not.toContain('CHF');
     });
 

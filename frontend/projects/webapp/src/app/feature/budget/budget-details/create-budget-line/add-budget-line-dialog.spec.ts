@@ -25,7 +25,9 @@ describe('AddBudgetLineDialog', () => {
         ...provideTranslocoForTest(),
         {
           provide: MAT_DIALOG_DATA,
-          useValue: { budgetId: 'budget-123' } satisfies BudgetLineDialogData,
+          useValue: {
+            budgetId: '00000000-0000-4000-8000-000000000123',
+          } satisfies BudgetLineDialogData,
         },
         { provide: MatDialogRef, useValue: mockDialogRef },
       ],
@@ -47,7 +49,7 @@ describe('AddBudgetLineDialog', () => {
 
       expect(mockDialogRef.close).toHaveBeenCalledWith(
         expect.objectContaining({
-          budgetId: 'budget-123',
+          budgetId: '00000000-0000-4000-8000-000000000123',
           name: 'Loyer',
           amount: 1200,
           kind: 'expense',

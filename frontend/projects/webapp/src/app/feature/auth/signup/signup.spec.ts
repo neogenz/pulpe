@@ -263,6 +263,23 @@ describe('Signup', () => {
     });
   });
 
+  describe('signUp - Angular-valid / Zod-invalid email', () => {
+    it('should not lock form when Angular accepts but Zod rejects email (single-char TLD)', async () => {
+      component['signupForm'].patchValue({
+        email: 'foo@bar.c',
+        password: 'password123',
+        confirmPassword: 'password123',
+        acceptTerms: true,
+      });
+
+      await component['signUp']();
+
+      expect(mockAuthCredentials.signUpWithEmail).not.toHaveBeenCalled();
+      expect(component['isSubmitting']()).toBe(false);
+      expect(component['errorMessage']()).not.toBe('');
+    });
+  });
+
   describe('signUp - Valid Form', () => {
     beforeEach(() => {
       fillValidForm();

@@ -366,7 +366,7 @@ struct OnboardingCurrencySwapSheet: View {
 
             Text(
                 """
-                Choisis ta devise principale. \
+                On l'utilisera pour afficher tous tes montants. \
                 Tu peux la changer à tout moment dans tes paramètres.
                 """
             )
@@ -374,7 +374,7 @@ struct OnboardingCurrencySwapSheet: View {
             .foregroundStyle(Color.onSurfaceVariant)
             .fixedSize(horizontal: false, vertical: true)
 
-            CapsulePicker(selection: $draft, title: "Devise") { currency, isSelected in
+            CapsulePicker(selection: $draft, title: nil) { currency, isSelected in
                 HStack(spacing: DesignTokens.Spacing.xs) {
                     Text(currency.flag)
                     VStack(alignment: .leading, spacing: 0) {

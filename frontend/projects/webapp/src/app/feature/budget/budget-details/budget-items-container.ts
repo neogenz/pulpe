@@ -31,14 +31,14 @@ import { CURRENCY_CONFIG } from '@core/currency';
 import { map } from 'rxjs/operators';
 import { BudgetGrid } from './budget-grid';
 import { BudgetTable } from './budget-table/budget-table';
-import { type BudgetLineViewModel } from './models/budget-line-view-model';
-import { type TransactionViewModel } from './models/transaction-view-model';
-import {
-  type BudgetLineTableItem,
-  type BudgetViewMode,
-  BudgetItemDataProvider,
-  type TransactionTableItem,
-} from './data-core';
+import { type BudgetLineViewModel } from './view-models/budget-line.view-model';
+import { type TransactionViewModel } from './view-models/transaction.view-model';
+import type {
+  BudgetLineTableItem,
+  TransactionTableItem,
+} from './view-models/table-items.view-model';
+import type { BudgetViewMode } from './view-models/budget-view-mode';
+import { BudgetItemDataProvider } from './view-models/budget-item-data-provider';
 import { BudgetViewToggle } from './components';
 import { BudgetTableCheckedFilter } from './budget-table/budget-table-checked-filter';
 import { BudgetDetailsDialogService } from './budget-details-dialog.service';

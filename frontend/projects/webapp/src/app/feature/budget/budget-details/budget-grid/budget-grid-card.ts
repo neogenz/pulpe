@@ -11,11 +11,13 @@ import { MatChipsModule } from '@angular/material/chips';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { type BudgetLine, type SupportedCurrency } from 'pulpe-shared';
-import { AppCurrencyPipe } from '@core/currency';
+import { AppCurrencyPipe, ConversionTooltipPipe } from '@core/currency';
 import { FinancialKindDirective } from '@ui/financial-kind';
 import { FinancialKindIndicator } from '@ui/financial-kind-indicator';
+import { OriginalAmountLine } from '@ui/original-amount-line';
 import { RecurrenceLabelPipe } from '@ui/transaction-display';
-import { formatMatchAnnotation, type BudgetLineTableItem } from '../data-core';
+import { formatMatchAnnotation } from '../view-models/budget-item-constants';
+import type { BudgetLineTableItem } from '../view-models/table-items.view-model';
 import { SegmentedBudgetProgress } from '../components/segmented-budget-progress';
 import { BudgetActionMenu } from '../components/budget-action-menu';
 
@@ -44,6 +46,8 @@ import { BudgetActionMenu } from '../components/budget-action-menu';
     TranslocoPipe,
     AppCurrencyPipe,
     FinancialKindDirective,
+    OriginalAmountLine,
+    ConversionTooltipPipe,
     RecurrenceLabelPipe,
     SegmentedBudgetProgress,
     FinancialKindIndicator,
@@ -121,7 +125,7 @@ import { BudgetActionMenu } from '../components/budget-action-menu';
               item().consumption!.consumptionState === 'over-budget'
             "
           >
-            {{ remaining | appCurrency: currency() : '1.0-0' }}
+            {{ remaining | appCurrency: currency() : '1.2-2' }}
           </div>
           <span class="text-label-medium text-on-surface-variant">{{
             'budgetLine.available' | transloco
@@ -131,12 +135,20 @@ import { BudgetActionMenu } from '../components/budget-action-menu';
             class="ph-no-capture text-headline-large font-bold"
             [pulpeFinancialKind]="item().data.kind"
           >
-            {{ item().data.amount | appCurrency: currency() : '1.0-0' }}
+            {{ item().data.amount | appCurrency: currency() : '1.2-2' }}
           </div>
           <span class="text-label-medium text-on-surface-variant">{{
             'budgetLine.planned' | transloco
           }}</span>
         }
+        <pulpe-original-amount-line
+          [originalAmount]="item().data.originalAmount"
+          [originalCurrency]="item().data.originalCurrency"
+          [displayCurrency]="currency()"
+          [tooltipText]="
+            isMultiCurrencyEnabled() ? (item().data | conversionTooltip) : ''
+          "
+        />
       </div>
 
       <!-- Segmented Progress -->
@@ -151,7 +163,7 @@ import { BudgetActionMenu } from '../components/budget-action-menu';
           <div class="flex justify-between items-center mt-2">
             <span class="ph-no-capture text-body-small text-on-surface-variant">
               {{
-                item().consumption!.consumed | appCurrency: currency() : '1.0-0'
+                item().consumption!.consumed | appCurrency: currency() : '1.2-2'
               }}
               {{ 'budgetLine.spent' | transloco }}
             </span>
@@ -213,6 +225,7 @@ export class BudgetGridCard {
   readonly item = input.required<BudgetLineTableItem>();
   readonly currency = input<SupportedCurrency>('CHF');
   readonly isSelected = input<boolean>(false);
+  readonly isMultiCurrencyEnabled = input<boolean>(false);
 
   readonly matchAnnotation = computed(() =>
     formatMatchAnnotation(this.item().metadata.matchingTransactionNames),

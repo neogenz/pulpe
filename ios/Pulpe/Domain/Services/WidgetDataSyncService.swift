@@ -10,35 +10,54 @@ actor WidgetDataSyncService {
 
     private let coordinator = WidgetDataCoordinator()
     private let budgetService: BudgetService
+    private let userSettingsService: any UserSettingsServicing
 
-    private init(budgetService: BudgetService = .shared) {
+    init(
+        budgetService: BudgetService = .shared,
+        userSettingsService: any UserSettingsServicing = UserSettingsService.shared
+    ) {
         self.budgetService = budgetService
+        self.userSettingsService = userSettingsService
     }
 
-    /// Centralized widget sync - fetches all data and syncs widgets
-    func syncAll(payDayOfMonth: Int? = nil) async {
+    /// Returns the display currency for a widget sync — either the caller-supplied value
+    /// or the latest user setting (defaulting to `.chf` if the settings fetch blips).
+    /// Extracted so the resolution policy can be exercised without touching the network.
+    func resolveCurrency(_ explicitCurrency: SupportedCurrency?) async -> SupportedCurrency {
+        if let explicitCurrency {
+            return explicitCurrency
+        }
+        let (_, resolved) = await userSettingsService.getSettingsWithDefaults(context: "syncAll")
+        return resolved
+    }
+
+    /// Centralized widget sync. Callers that already hold a fresh `currency` (e.g. right after
+    /// `updateCurrency`) can pass it to skip a redundant GET /users/settings.
+    func syncAll(payDayOfMonth: Int? = nil, currency: SupportedCurrency? = nil) async {
+        let resolvedCurrency = await resolveCurrency(currency)
+
+        // Fetch current month details first; preserve them on year-export failure
+        // so a transient `exportAllBudgets` error doesn't blank the current-month widget.
+        var currentDetails: BudgetDetails?
+        if let currentBudget = try? await budgetService.getCurrentMonthBudget(payDayOfMonth: payDayOfMonth) {
+            currentDetails = try? await budgetService.getBudgetWithDetails(id: currentBudget.id)
+        }
+
         do {
             let exportData = try await budgetService.exportAllBudgets()
-
-            // Also get current budget details if it exists
-            let currentDetails: BudgetDetails?
-            if let currentBudget = try? await budgetService.getCurrentMonthBudget(payDayOfMonth: payDayOfMonth) {
-                currentDetails = try await budgetService.getBudgetWithDetails(id: currentBudget.id)
-            } else {
-                currentDetails = nil
-            }
-
             await sync(
                 budgetsWithDetails: exportData.budgets,
                 currentBudgetDetails: currentDetails,
-                payDayOfMonth: payDayOfMonth
+                payDayOfMonth: payDayOfMonth,
+                currency: resolvedCurrency
             )
         } catch {
             Logger.sync.error("syncAll failed - \(error)")
             await sync(
                 budgetsWithDetails: [],
-                currentBudgetDetails: nil,
-                payDayOfMonth: payDayOfMonth
+                currentBudgetDetails: currentDetails,
+                payDayOfMonth: payDayOfMonth,
+                currency: resolvedCurrency
             )
         }
     }
@@ -46,7 +65,8 @@ actor WidgetDataSyncService {
     func sync(
         budgetsWithDetails: [BudgetWithDetails],
         currentBudgetDetails: BudgetDetails?,
-        payDayOfMonth: Int? = nil
+        payDayOfMonth: Int?,
+        currency: SupportedCurrency
     ) async {
         let calendar = Calendar.current
         let currentPeriod = BudgetPeriodCalculator.periodForDate(Date(), payDayOfMonth: payDayOfMonth)
@@ -86,7 +106,8 @@ actor WidgetDataSyncService {
         let cache = WidgetDataCache(
             currentMonth: currentMonthData,
             yearBudgets: yearBudgets,
-            lastUpdated: Date()
+            lastUpdated: Date(),
+            currency: currency
         )
 
         let didSave = coordinator.save(cache)

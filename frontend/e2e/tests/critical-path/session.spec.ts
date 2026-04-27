@@ -10,7 +10,7 @@ test.describe('Authenticated Session Management', () => {
 
     // Should successfully reach the current month page
     await expect(page.getByTestId('dashboard-page')).toBeVisible();
-    
+
     // Should not be on login page
     expect(page.url()).not.toMatch(/\/login/);
   });
@@ -23,7 +23,7 @@ test.describe('Authenticated Session Management', () => {
     await expect(page.getByTestId('dashboard-page')).toBeVisible();
     expect(page.url()).toMatch(/\/dashboard/);
 
-    // Test budget templates access  
+    // Test budget templates access
     await page.goto('/budget-templates');
     await expect(page.getByTestId('budget-templates-page')).toBeVisible();
     expect(page.url()).toMatch(/\/budget-templates/);

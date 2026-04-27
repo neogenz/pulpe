@@ -10,6 +10,7 @@ struct CreateTemplateView: View {
 
     @Environment(\.dismiss) private var dismiss
     @Environment(ToastManager.self) private var toastManager
+    @Environment(UserSettingsStore.self) private var userSettingsStore
     @State private var name = ""
     @State private var description = ""
     @State private var isDefault = false
@@ -155,7 +156,7 @@ struct CreateTemplateView: View {
             Text(label)
                 .font(PulpeTypography.metricMini)
                 .foregroundStyle(Color.onSurfaceVariant)
-            Text(amount.asSignedCompactCHF)
+            Text(amount.asArithmeticSignedCompactCurrency(userSettingsStore.currency))
                 .font(PulpeTypography.metricLabelBold)
                 .foregroundStyle(color)
                 .sensitiveAmount()
@@ -227,6 +228,8 @@ struct TemplateLineInputRow: View {
     let line: TemplateLineInput
     let onDelete: () -> Void
 
+    @Environment(UserSettingsStore.self) private var userSettingsStore
+
     var body: some View {
         HStack(spacing: DesignTokens.Spacing.md) {
             // Kind icon circle (matches TemplateLineRow / BudgetLineRow)
@@ -251,7 +254,7 @@ struct TemplateLineInputRow: View {
 
             Spacer(minLength: 8)
 
-            Text(line.amount.asSignedAmount(for: line.kind))
+            Text(line.amount.asSignedAmount(for: line.kind, in: userSettingsStore.currency))
                 .font(PulpeTypography.listRowSubtitle)
                 .foregroundStyle(line.kind.color)
                 .sensitiveAmount()
@@ -401,6 +404,7 @@ struct AddTemplateLineSheet: View {
         print("Created: \(template)")
     }
     .environment(ToastManager())
+    .environment(UserSettingsStore())
 }
 
 struct LineTotals: Sendable {

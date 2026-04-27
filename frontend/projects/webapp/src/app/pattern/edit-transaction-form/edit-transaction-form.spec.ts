@@ -3,10 +3,8 @@ import { provideZonelessChangeDetection } from '@angular/core';
 import { ReactiveFormsModule } from '@angular/forms';
 import { provideNativeDateAdapter } from '@angular/material/core';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
-import {
-  EditTransactionForm,
-  type EditTransactionFormData,
-} from './edit-transaction-form';
+import { EditTransactionForm } from './edit-transaction-form';
+import { type TransactionUpdateFormValue } from './edit-transaction-form.schema';
 import { setTestInput } from '@app/testing/signal-test-utils';
 import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 import { describe, it, expect, beforeEach } from 'vitest';
@@ -96,6 +94,22 @@ describe('EditTransactionForm', () => {
   });
 
   describe('Form Submission', () => {
+    beforeEach(() => {
+      setTestInput(component.transaction, {
+        id: 'tx-1',
+        budgetId: 'b-1',
+        budgetLineId: null,
+        name: 'Test',
+        amount: 10,
+        kind: 'expense',
+        transactionDate: new Date().toISOString(),
+        category: null,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        checkedAt: null,
+      });
+    });
+
     it('should set loading state when form is submitted', async () => {
       // Set up valid form data
       component.transactionForm.patchValue({
@@ -234,6 +248,20 @@ describe('EditTransactionForm', () => {
     });
 
     it('should still emit original values for hidden fields on submit', async () => {
+      setTestInput(component.transaction, {
+        id: 'tx-1',
+        budgetId: 'b-1',
+        budgetLineId: null,
+        name: 'Test',
+        amount: 10,
+        kind: 'expense',
+        transactionDate: new Date().toISOString(),
+        category: null,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        checkedAt: null,
+      });
+
       // hiddenFields only controls template visibility, not form data
       // Even with hidden fields, the form group still contains all values
       component.transactionForm.patchValue({
@@ -244,7 +272,7 @@ describe('EditTransactionForm', () => {
         category: 'Notes',
       });
 
-      let emittedData: EditTransactionFormData | undefined;
+      let emittedData: TransactionUpdateFormValue | undefined;
       component.updateTransaction.subscribe((data) => {
         emittedData = data;
       });

@@ -16,7 +16,7 @@ import type { BudgetLine } from 'pulpe-shared';
 import type {
   BudgetLineTableItem,
   TransactionTableItem,
-} from '../../data-core';
+} from '../../view-models/table-items.view-model';
 
 @Component({
   selector: 'pulpe-actions-cell',

@@ -60,11 +60,11 @@ import { CURRENCY_CONFIG } from '@core/currency';
     TranslocoPipe,
     DashboardHero,
     DashboardUncheckedForecasts,
-    DashboardHistoryChart,
-    DashboardFutureProjectionChart,
     DashboardRecentTransactions,
     DashboardSavingsSummary,
     DashboardNextMonth,
+    DashboardHistoryChart,
+    DashboardFutureProjectionChart,
   ],
   template: `
     <div class="flex flex-col gap-4 min-w-0" data-testid="dashboard-page">
@@ -145,10 +145,26 @@ import { CURRENCY_CONFIG } from '@core/currency';
           </div>
 
           <!-- Future Projection Chart -->
-          <pulpe-dashboard-future-projection-chart
-            [forecasts]="store.upcomingBudgetsData()"
-            data-testid="dashboard-block-projection"
-          />
+          @defer (on viewport; prefetch on idle) {
+            <pulpe-dashboard-future-projection-chart
+              [forecasts]="store.upcomingBudgetsData()"
+              data-testid="dashboard-block-projection"
+            />
+          } @placeholder {
+            <div
+              class="bg-surface-container-low rounded-3xl min-h-[300px]"
+            ></div>
+          } @loading (after 100ms; minimum 300ms) {
+            <div
+              class="bg-surface-container-low rounded-3xl min-h-[300px] flex items-center justify-center"
+            >
+              <pulpe-base-loading
+                [message]="'currentMonth.chartLoading' | transloco"
+                size="medium"
+                testId="projection-chart-loading"
+              />
+            </div>
+          }
 
           <!-- Paired metrics: Savings Summary + Next Month -->
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -173,10 +189,26 @@ import { CURRENCY_CONFIG } from '@core/currency';
           </div>
 
           <!-- History Chart -->
-          <pulpe-dashboard-history-chart
-            [history]="store.historyData()"
-            data-testid="dashboard-block-history"
-          />
+          @defer (on viewport; prefetch on idle) {
+            <pulpe-dashboard-history-chart
+              [history]="store.historyData()"
+              data-testid="dashboard-block-history"
+            />
+          } @placeholder {
+            <div
+              class="bg-surface-container-low rounded-3xl min-h-[300px]"
+            ></div>
+          } @loading (after 100ms; minimum 300ms) {
+            <div
+              class="bg-surface-container-low rounded-3xl min-h-[300px] flex items-center justify-center"
+            >
+              <pulpe-base-loading
+                [message]="'currentMonth.chartLoading' | transloco"
+                size="medium"
+                testId="history-chart-loading"
+              />
+            </div>
+          }
         </div>
 
         <!-- FAB: only visible when budget data is loaded -->
@@ -375,10 +407,9 @@ export default class Dashboard {
       return;
     }
     await this.store.addTransaction({
+      ...transaction,
       budgetId,
       amount: transaction.amount ?? 0,
-      name: transaction.name,
-      kind: transaction.kind,
       transactionDate: formatLocalDate(new Date()),
       category: transaction.category ?? null,
       checkedAt: transaction.checkedAt ?? null,

@@ -26,7 +26,13 @@ import { CurrencySuffix } from '@ui/currency-suffix';
 import { TransactionIconPipe } from '@ui/transaction-display';
 import { TransactionLabelPipe } from '@ui/transaction-display';
 import type { CurrencyConverterService } from '@core/currency';
-import { injectCurrencyFormConfigForEdit } from '@core/currency';
+import {
+  injectCurrencyFormConfigForEdit,
+  injectLiveConversionPreview,
+} from '@core/currency';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { ConversionPreviewLine } from '@ui/conversion-preview-line';
+import { budgetLineUpdateFromFormSchema } from './edit-budget-line-dialog.schema';
 
 export interface EditBudgetLineDialogData {
   budgetLine: BudgetLine;
@@ -46,6 +52,7 @@ export interface EditBudgetLineDialogData {
     TransactionIconPipe,
     TransactionLabelPipe,
     CurrencySuffix,
+    ConversionPreviewLine,
   ],
   template: `
     <h2 mat-dialog-title class="text-headline-small">
@@ -53,9 +60,13 @@ export interface EditBudgetLineDialogData {
     </h2>
 
     <mat-dialog-content>
-      <div class="flex flex-col gap-4 pt-4">
-        <form [formGroup]="form">
-          <mat-form-field appearance="outline" class="w-full">
+      <div class="pt-4">
+        <form [formGroup]="form" class="flex flex-col gap-4">
+          <mat-form-field
+            appearance="outline"
+            subscriptSizing="dynamic"
+            class="w-full"
+          >
             <mat-label>{{ 'budget.forecastNameLabel' | transloco }}</mat-label>
             <input
               matInput
@@ -81,42 +92,62 @@ export interface EditBudgetLineDialogData {
             }
           </mat-form-field>
 
-          <mat-form-field appearance="outline" class="w-full ph-no-capture">
-            <mat-label class="ph-no-capture">{{
-              'transactionForm.amountLabel' | transloco
-            }}</mat-label>
-            <input
-              matInput
-              type="number"
-              formControlName="amount"
-              placeholder="0"
-              step="1"
-              min="0"
-              inputmode="decimal"
-              data-testid="edit-line-amount"
-            />
-            <pulpe-currency-suffix
-              matTextSuffix
-              [showSelector]="showCurrencySelector()"
-              [disabled]="true"
-              [currency]="inputCurrency()"
-            />
-            @if (
-              form.get('amount')?.hasError('required') &&
-              form.get('amount')?.touched
-            ) {
-              <mat-error>{{
-                'budget.forecastAmountRequired' | transloco
-              }}</mat-error>
-            }
-            @if (
-              form.get('amount')?.hasError('min') && form.get('amount')?.touched
-            ) {
-              <mat-error>{{ 'budget.amountMinError' | transloco }}</mat-error>
-            }
-          </mat-form-field>
+          <div class="flex flex-col">
+            <mat-form-field
+              appearance="outline"
+              subscriptSizing="dynamic"
+              class="w-full ph-no-capture"
+            >
+              <mat-label class="ph-no-capture">{{
+                'transactionForm.amountLabel' | transloco
+              }}</mat-label>
+              <input
+                matInput
+                type="number"
+                formControlName="amount"
+                placeholder="0"
+                step="1"
+                min="0"
+                inputmode="decimal"
+                data-testid="edit-line-amount"
+              />
+              <pulpe-currency-suffix
+                matTextSuffix
+                [showSelector]="showCurrencySelector()"
+                [disabled]="true"
+                [currency]="inputCurrency()"
+              />
+              @if (
+                form.get('amount')?.hasError('required') &&
+                form.get('amount')?.touched
+              ) {
+                <mat-error>{{
+                  'budget.forecastAmountRequired' | transloco
+                }}</mat-error>
+              }
+              @if (
+                form.get('amount')?.hasError('min') &&
+                form.get('amount')?.touched
+              ) {
+                <mat-error>{{ 'budget.amountMinError' | transloco }}</mat-error>
+              }
+            </mat-form-field>
 
-          <mat-form-field appearance="outline" class="w-full">
+            <pulpe-conversion-preview-line
+              [amount]="preview().convertedAmount ?? null"
+              [inputCurrency]="inputCurrency()"
+              [displayCurrency]="currency()"
+              [rate]="preview().rate ?? null"
+              [cachedDate]="preview().cachedDate ?? null"
+              [status]="preview().status"
+            />
+          </div>
+
+          <mat-form-field
+            appearance="outline"
+            subscriptSizing="dynamic"
+            class="w-full"
+          >
             <mat-label>{{ 'budget.forecastTypeLabel' | transloco }}</mat-label>
             <mat-select formControlName="kind" data-testid="edit-line-kind">
               <mat-option value="income">
@@ -152,7 +183,7 @@ export interface EditBudgetLineDialogData {
     </mat-dialog-content>
 
     @if (conversionError()) {
-      <p class="text-error text-body-small px-6 pb-2">
+      <p role="alert" class="text-error text-body-small px-6 pb-2">
         {{ 'common.conversionError' | transloco }}
       </p>
     }
@@ -202,6 +233,15 @@ export class EditBudgetLineDialog {
     ],
   });
 
+  readonly #amountValue = toSignal(this.form.controls.amount.valueChanges, {
+    initialValue: this.form.controls.amount.value,
+  });
+  protected readonly preview = injectLiveConversionPreview(
+    this.#amountValue,
+    this.inputCurrency,
+    this.currency,
+  );
+
   #computeInitialAmount(): number {
     const line = this.#data.budgetLine;
     if (
@@ -237,21 +277,21 @@ export class EditBudgetLineDialog {
         return;
       }
     } else {
-      // Mono-currency edit: keep the amount as entered and DO NOT send
-      // currency metadata so the backend preserves any existing values.
       finalAmount = value.amount!;
     }
 
-    const update: BudgetLineUpdate = {
-      id: this.#data.budgetLine.id,
-      name: value.name!.trim(),
+    const formPart = budgetLineUpdateFromFormSchema.parse({
+      name: value.name!,
       amount: finalAmount,
       kind: value.kind!,
       recurrence: value.recurrence!,
+      conversion: metadata,
+    });
+    const update: BudgetLineUpdate = {
+      id: this.#data.budgetLine.id,
       templateLineId: this.#data.budgetLine.templateLineId,
       savingsGoalId: this.#data.budgetLine.savingsGoalId,
-      isManuallyAdjusted: true,
-      ...(metadata ?? {}),
+      ...formPart,
     };
     this.#dialogRef.close(update);
   }

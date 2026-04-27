@@ -5,9 +5,15 @@ import {
   type EncryptionSetupRecoveryResponse,
   type EncryptionRecoverResponse,
   type EncryptionChangePinResponse,
+  type EncryptionValidateKeyRequest,
+  type EncryptionVerifyRecoveryKeyRequest,
   encryptionSaltResponseSchema,
   encryptionSetupRecoveryResponseSchema,
+  encryptionValidateKeyRequestSchema,
+  encryptionVerifyRecoveryKeyRequestSchema,
+  encryptionRecoverRequestSchema,
   encryptionRecoverResponseSchema,
+  encryptionChangePinRequestSchema,
   encryptionChangePinResponseSchema,
 } from 'pulpe-shared';
 import { ApiClient } from '@core/api/api-client';
@@ -27,15 +33,19 @@ export class EncryptionApi {
    * For new users (no key_check yet), generates and stores one as a side effect.
    */
   validateKey$(clientKeyHex: string): Observable<void> {
-    return this.#api.postVoid$('/encryption/validate-key', {
-      clientKey: clientKeyHex,
-    });
+    return this.#api.postVoid$<EncryptionValidateKeyRequest>(
+      '/encryption/validate-key',
+      { clientKey: clientKeyHex },
+      encryptionValidateKeyRequestSchema,
+    );
   }
 
   verifyRecoveryKey$(recoveryKey: string): Observable<void> {
-    return this.#api.postVoid$('/encryption/verify-recovery-key', {
-      recoveryKey,
-    });
+    return this.#api.postVoid$<EncryptionVerifyRecoveryKeyRequest>(
+      '/encryption/verify-recovery-key',
+      { recoveryKey },
+      encryptionVerifyRecoveryKeyRequestSchema,
+    );
   }
 
   setupRecoveryKey$(): Observable<EncryptionSetupRecoveryResponse> {
@@ -62,6 +72,7 @@ export class EncryptionApi {
       '/encryption/recover',
       { recoveryKey, newClientKey: newClientKeyHex },
       encryptionRecoverResponseSchema,
+      encryptionRecoverRequestSchema,
     );
   }
 
@@ -73,6 +84,7 @@ export class EncryptionApi {
       '/encryption/change-pin',
       { oldClientKey, newClientKey },
       encryptionChangePinResponseSchema,
+      encryptionChangePinRequestSchema,
     );
   }
 }

@@ -1,7 +1,6 @@
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
-import { CurrencyPipe } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
 import { MatRadioModule } from '@angular/material/radio';
 import { MatIconModule } from '@angular/material/icon';
@@ -9,6 +8,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 import { TemplateListItem } from './template-list-item';
 // NOTE: BudgetTemplate type removed as it's no longer used in tests
 
@@ -22,7 +22,6 @@ describe('TemplateListItem', () => {
     await TestBed.configureTestingModule({
       imports: [
         NoopAnimationsModule,
-        CurrencyPipe,
         MatCardModule,
         MatRadioModule,
         MatIconModule,
@@ -32,7 +31,10 @@ describe('TemplateListItem', () => {
         MatProgressSpinnerModule,
         TemplateListItem,
       ],
-      providers: [provideZonelessChangeDetection()],
+      providers: [
+        provideZonelessChangeDetection(),
+        ...provideTranslocoForTest(),
+      ],
     }).compileComponents();
 
     // Test standalone component

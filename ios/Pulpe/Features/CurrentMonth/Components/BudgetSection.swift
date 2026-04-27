@@ -219,6 +219,8 @@ struct BudgetLineRow: View {
     @State private var triggerSuccessFeedback = false
     @State private var triggerWarningFeedback = false
 
+    @Environment(UserSettingsStore.self) private var userSettingsStore
+
     private var hasConsumption: Bool {
         consumption.allocated > 0
     }
@@ -246,10 +248,10 @@ struct BudgetLineRow: View {
     private var remainingAmountText: String {
         // Income & savings: show planned amount with sign (+/-)
         guard line.kind == .expense else {
-            return line.amount.asSignedAmount(for: line.kind)
+            return line.amount.asSignedAmount(for: line.kind, in: userSettingsStore.currency)
         }
         // Expenses: always show with - sign (money going out)
-        return consumption.available.asSignedAmount(for: line.kind)
+        return consumption.available.asSignedAmount(for: line.kind, in: userSettingsStore.currency)
     }
 
     private var linkedTransactions: [Transaction] {
@@ -278,14 +280,15 @@ struct BudgetLineRow: View {
 
                 // Consumption info or recurrence label
                 if hasConsumption {
-                    Text("\(consumptionPercentage)% · \(consumption.allocated.asCompactCHF) dépensé")
+                    let spent = consumption.allocated.asCompactCurrency(userSettingsStore.currency)
+                    Text("\(consumptionPercentage)% · \(spent) dépensé")
                         .font(PulpeTypography.caption)
                         .foregroundStyle(Color.textSecondary)
                         .lineLimit(1)
                         .sensitiveAmount()
                     progressBar
                 } else if line.kind == .expense {
-                    Text("\(line.recurrence.label) · sur \(line.amount.asCompactCHF)")
+                    Text("\(line.recurrence.label) · sur \(line.amount.asCompactCurrency(userSettingsStore.currency))")
                         .font(PulpeTypography.caption)
                         .foregroundStyle(Color.textSecondary)
                 } else {
@@ -337,7 +340,7 @@ struct BudgetLineRow: View {
                 .accessibilityAction { onAdd() }
                 .accessibilityHint(
                     hasConsumption
-                        ? "Montant restant: \(consumption.available.asCHF). " +
+                        ? "Montant restant: \(consumption.available.asCurrency(userSettingsStore.currency)). " +
                           "Touche pour ajouter une transaction, maintiens pour voir les transactions"
                         : "Touche pour ajouter une transaction, maintiens pour voir les transactions"
                 )
@@ -476,4 +479,5 @@ struct BudgetLineRow: View {
     .listSectionSpacing(DesignTokens.Spacing.lg)
     .scrollContentBackground(.hidden)
     .pulpeBackground()
+    .environment(UserSettingsStore())
 }

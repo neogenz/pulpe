@@ -22,15 +22,15 @@ paths:
 
 ```typescript
 // ALWAYS: Zod 4 top-level validators
-z.uuid()
-z.email()
-z.url()
-z.iso.datetime({ offset: true })
-z.iso.date()
+z.uuid();
+z.email();
+z.url();
+z.iso.datetime({ offset: true });
+z.iso.date();
 
 // NEVER: deprecated method chaining
-z.string().uuid()    // Zod 3 — DO NOT USE
-z.string().email()   // Zod 3 — DO NOT USE
+z.string().uuid(); // Zod 3 — DO NOT USE
+z.string().email(); // Zod 3 — DO NOT USE
 ```
 
 ## Schema Naming
@@ -65,9 +65,9 @@ Amount columns where malformed input fail elsewhere (encryption, domain checks):
 
 ```typescript
 // Supabase numeric(12,2) comes as string "1234.56"
-amount: z.coerce.number()
-target_amount: z.coerce.number()
-ending_balance: z.coerce.number()
+amount: z.coerce.number();
+target_amount: z.coerce.number();
+ending_balance: z.coerce.number();
 ```
 
 ### High-precision FX / sensitive numeric wire — narrow union (NEVER `z.coerce.number()`)
@@ -77,8 +77,8 @@ For `exchange_rate` + columns where wire value must be exactly `string | number`
 Use canonical helpers in `shared/schemas.ts`:
 
 ```typescript
-exchangeRate: exchangeRateWire.nullable().optional()       // read path
-exchangeRate: exchangeRateWirePositive.optional()          // create path
+exchangeRate: exchangeRateWire.nullable().optional(); // read path
+exchangeRate: exchangeRateWirePositive.optional(); // create path
 ```
 
 Defined as `z.union([z.number(), z.string().transform(...)])` — boolean + array inputs rejected at schema boundary. Tests: `shared/src/exchange-rate-coercion.spec.ts`.
@@ -89,10 +89,10 @@ Defined as `z.union([z.number(), z.string().transform(...)])` — boolean + arra
 
 ```typescript
 // CORRECT — .js extension required for ESM
-import { BudgetFormulas } from './budget-formulas.js';
+import { BudgetFormulas } from "./budget-formulas.js";
 
 // WRONG — causes ERR_MODULE_NOT_FOUND in production
-import { BudgetFormulas } from './budget-formulas';
+import { BudgetFormulas } from "./budget-formulas";
 ```
 
 ## Backend Usage (createZodDto)
@@ -111,10 +111,10 @@ async create(@Body() dto: BudgetCreateDto) { ... }
 ## Frontend Usage (ApiClient)
 
 ```typescript
-import { budgetSchema, type Budget } from 'pulpe-shared';
+import { budgetSchema, type Budget } from "pulpe-shared";
 
 // ApiClient validates responses with Zod schema
-this.apiClient.get<Budget>('/budgets/123', budgetSchema);
+this.apiClient.get<Budget>("/budgets/123", budgetSchema);
 ```
 
 ## Build Order
@@ -136,3 +136,7 @@ Turborepo handle auto with `pnpm dev` or `pnpm build`.
 - **Always** add JSDoc comments for business rules on schemas
 - **Never** import from frontend or backend (shared is dependency-free)
 - **Never** create duplicate type definitions — schema IS the type
+
+## Frontend form usage
+
+See `frontend-form-schemas.md` for form→DTO pattern, strict rule, and ApiClient requestSchema.

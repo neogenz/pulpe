@@ -2,7 +2,6 @@ import {
   ChangeDetectionStrategy,
   Component,
   inject,
-  effect,
   computed,
 } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
@@ -22,17 +21,20 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { MAT_DATE_FORMATS } from '@angular/material/core';
 import { MAT_DATE_FNS_FORMATS } from '@angular/material-date-fns-adapter';
 import { startOfMonth, setMonth, setYear } from 'date-fns';
-import { TemplatesList } from './ui/templates-list';
-import { type TemplateViewModel } from './ui/template-view-model';
+import { TemplatesList } from './templates-list';
+import { type TemplateViewModel } from './template-view-model';
 import { TemplateDetailsDialog } from './template-details-dialog';
 import { TemplateStore } from './services/template-store';
 import { ApiErrorLocalizer } from '@core/api/api-error-localizer';
 import { isApiError } from '@core/api/api-error';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { UserSettingsStore } from '@core/user-settings';
-import { CURRENCY_CONFIG } from '@core/currency';
+import {
+  BUDGET_DESCRIPTION_MAX_LENGTH,
+  budgetCreationFormSchema,
+} from './budget-creation-dialog.schema';
 
-const DESCRIPTION_MAX_LENGTH = 100;
+const DESCRIPTION_MAX_LENGTH = BUDGET_DESCRIPTION_MAX_LENGTH;
 
 // Format personnalisé pour le month/year picker
 const MONTH_YEAR_FORMATS = {
@@ -143,7 +145,6 @@ const MONTH_YEAR_FORMATS = {
             [isLoading]="templateStore.isLoading()"
             [hasError]="!!templateStore.error()"
             [currency]="currency()"
-            [locale]="locale()"
             (templateSelected)="onTemplateSelect($event)"
             (templateDetailsRequested)="showTemplateDetails($event)"
             (retryRequested)="templateStore.reloadTemplates()"
@@ -202,9 +203,6 @@ export class CreateBudgetDialogComponent {
   readonly #userSettingsStore = inject(UserSettingsStore);
   protected readonly templateStore = inject(TemplateStore);
   protected readonly currency = this.#userSettingsStore.currency;
-  protected readonly locale = computed(
-    () => CURRENCY_CONFIG[this.#userSettingsStore.currency()].locale,
-  );
   readonly #data = inject(MAT_DIALOG_DATA, { optional: true }) as {
     month?: number;
     year?: number;
@@ -240,7 +238,6 @@ export class CreateBudgetDialogComponent {
   budgetForm = this.#formBuilder.nonNullable.group({
     monthYear: [this.#getInitialDate(), Validators.required],
     description: ['', [Validators.maxLength(DESCRIPTION_MAX_LENGTH)]],
-    templateId: ['', Validators.required],
   });
 
   readonly #descriptionFormValue = toSignal(
@@ -261,27 +258,6 @@ export class CreateBudgetDialogComponent {
 
     // Sinon utilise la date actuelle
     return startOfMonth(new Date());
-  }
-
-  constructor() {
-    // Sync selected template with form
-    effect(() => {
-      const selectedId = this.templateStore.selectedTemplateId();
-      if (selectedId) {
-        this.budgetForm.patchValue({ templateId: selectedId });
-      } else {
-        this.budgetForm.patchValue({ templateId: '' });
-      }
-    });
-
-    // Load template totals when templates change
-    effect(() => {
-      const templates = this.templateStore.templates();
-      if (!templates.length) return;
-
-      const templateIds = templates.map((t) => t.id);
-      this.templateStore.loadTemplateTotals(templateIds);
-    });
   }
 
   onMonthSelected(
@@ -326,18 +302,16 @@ export class CreateBudgetDialogComponent {
   }
 
   async onCreateBudget(): Promise<void> {
-    if (!this.budgetForm.valid || !this.templateStore.selectedTemplate()) {
+    const selectedId = this.templateStore.selectedTemplateId();
+    if (!this.budgetForm.valid || !selectedId) {
       return;
     }
 
-    const formData = this.budgetForm.getRawValue();
-
-    const budgetData = {
-      month: formData.monthYear.getMonth() + 1, // getMonth() returns 0-11, we need 1-12
-      year: formData.monthYear.getFullYear(),
-      description: formData.description,
-      templateId: formData.templateId,
+    const formData = {
+      ...this.budgetForm.getRawValue(),
+      templateId: selectedId,
     };
+    const budgetData = budgetCreationFormSchema.parse(formData);
 
     const result = await this.templateStore.createBudget(budgetData);
 

@@ -7,6 +7,7 @@ export default [
     data: {
       breadcrumb: 'pageTitle.completeProfile',
       icon: 'person_add',
+      focusMode: true,
     },
   },
 ] satisfies Routes;

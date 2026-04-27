@@ -977,6 +977,34 @@ struct OnboardingStateTests {
         #expect(!formatted.contains(","))
     }
 
+    @Test("asCurrency uses the currency's display symbol as suffix", arguments: [
+        (SupportedCurrency.chf, "CHF"),
+        (SupportedCurrency.eur, "€"),
+    ])
+    func decimalFormatting_asCurrency_suffixMatchesCurrencySymbol(
+        currency: SupportedCurrency,
+        expectedSuffix: String
+    ) {
+        let formatted = Decimal(1234.56).asCurrency(currency)
+        #expect(formatted.hasSuffix(expectedSuffix),
+                "Expected suffix \(expectedSuffix) for \(currency), got: \(formatted)")
+    }
+
+    @Test("asCompactCurrency uses the currency's display symbol as suffix", arguments: [
+        (SupportedCurrency.chf, "CHF"),
+        (SupportedCurrency.eur, "€"),
+    ])
+    func decimalFormatting_asCompactCurrency_suffixMatchesCurrencySymbol(
+        currency: SupportedCurrency,
+        expectedSuffix: String
+    ) {
+        let formatted = Decimal(1234.56).asCompactCurrency(currency)
+        #expect(formatted.hasSuffix(expectedSuffix),
+                "Expected suffix \(expectedSuffix) for \(currency), got: \(formatted)")
+        #expect(!formatted.contains("."), "Compact should not contain decimals, got: \(formatted)")
+        #expect(!formatted.contains(","), "Compact should not contain decimals, got: \(formatted)")
+    }
+
     // MARK: - Emotion State
 
     @Test

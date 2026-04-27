@@ -141,6 +141,7 @@ describe('ProfileSetupService', () => {
         '/budget-templates/from-onboarding',
         expect.objectContaining({ customTransactions }),
         expect.anything(),
+        expect.anything(),
       );
     });
 
@@ -154,6 +155,7 @@ describe('ProfileSetupService', () => {
       expect(mockApiClient.post$).toHaveBeenCalledWith(
         '/budget-templates/from-onboarding',
         expect.objectContaining({ customTransactions: [] }),
+        expect.anything(),
         expect.anything(),
       );
     });

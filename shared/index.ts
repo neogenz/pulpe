@@ -37,7 +37,6 @@ export {
   templateLineCreateSchema,
   templateLineCreateWithoutTemplateIdSchema,
   templateLineUpdateSchema,
-  templateTransactionUpdateSchema,
 
   // Response schemas
   errorResponseSchema,
