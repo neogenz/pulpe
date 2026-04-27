@@ -57,7 +57,9 @@ struct YearRecapCard: View {
         .accessibilityElement(children: .combine)
         .accessibilityLabel(
             "\(isPastYear ? "Bilan" : "Potentiel") \(year), "
-            + (amountsHidden ? "montant masqué" : yearTotal.asSignedCompactCurrency(userSettingsStore.currency))
+            + (amountsHidden
+                ? "montant masqué"
+                : yearTotal.asArithmeticSignedCompactCurrency(userSettingsStore.currency))
             + ", \(budgets.count) mois sur 12"
         )
     }

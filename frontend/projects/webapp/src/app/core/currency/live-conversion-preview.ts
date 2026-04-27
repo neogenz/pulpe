@@ -60,7 +60,11 @@ export function injectLiveConversionPreview(
     if (rateResource.error()) return { status: 'error' };
 
     const result = rateResource.value();
-    if (!result) return { status: 'loading' };
+    // resource() retains the prior pair's value() during reload — treat any
+    // status outside `resolved` as loading to avoid surfacing stale rates.
+    if (!result || rateResource.status() !== 'resolved') {
+      return { status: 'loading' };
+    }
 
     const convertedAmount = Number(
       converter.convert(value, result.rate).toFixed(2),

@@ -146,7 +146,7 @@ struct BudgetAmountBlock: View {
     var body: some View {
         VStack(alignment: .trailing, spacing: DesignTokens.Spacing.xxs) {
             if let remaining {
-                Text(remaining.asSignedCompactCurrency(userSettingsStore.currency))
+                Text(remaining.asArithmeticSignedCompactCurrency(userSettingsStore.currency))
                     .font(PulpeTypography.amountXL)
                     .monospacedDigit()
                     .foregroundStyle(isPast ? .secondary : emotionColor)
@@ -236,7 +236,7 @@ struct NextMonthPlaceholder: View {
             Spacer()
             if let adjustment, adjustment != 0 {
                 VStack(alignment: .trailing, spacing: DesignTokens.Spacing.xxs) {
-                    Text(adjustment.asSignedCompactCurrency(userSettingsStore.currency))
+                    Text(adjustment.asArithmeticSignedCompactCurrency(userSettingsStore.currency))
                         .font(PulpeTypography.amountXL)
                         .monospacedDigit()
                         .foregroundStyle(adjustmentColor)

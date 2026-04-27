@@ -337,7 +337,7 @@ struct TemplateSelectionCard: View {
                     .font(PulpeTypography.detailLabel)
                     .foregroundStyle(Color.financialIncome)
 
-                Text(totals.totalIncome.asSignedCompactCurrency(userSettingsStore.currency))
+                Text(totals.totalIncome.asArithmeticSignedCompactCurrency(userSettingsStore.currency))
                     .font(PulpeTypography.inputHelper)
                     .foregroundStyle(Color.financialIncome)
                     .sensitiveAmount()
@@ -360,7 +360,7 @@ struct TemplateSelectionCard: View {
                     .font(PulpeTypography.detailLabel)
                     .foregroundStyle(totals.balance >= 0 ? Color.financialSavings : Color.financialOverBudget)
 
-                Text(totals.balance.asSignedCompactCurrency(userSettingsStore.currency))
+                Text(totals.balance.asArithmeticSignedCompactCurrency(userSettingsStore.currency))
                     .font(PulpeTypography.inputHelper)
                     .foregroundStyle(totals.balance >= 0 ? Color.financialSavings : Color.financialOverBudget)
                     .sensitiveAmount()

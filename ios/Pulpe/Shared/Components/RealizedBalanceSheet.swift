@@ -53,7 +53,7 @@ struct RealizedBalanceSheet: View {
                 .font(PulpeTypography.subheadline)
                 .foregroundStyle(Color.textSecondary)
 
-            Text(realizedMetrics.realizedBalance.asSignedCurrency(userSettingsStore.currency))
+            Text(realizedMetrics.realizedBalance.asArithmeticSignedCurrency(userSettingsStore.currency))
                 .font(PulpeTypography.amountHero)
                 .monospacedDigit()
                 .foregroundStyle(isPositiveBalance ? .primary : Color.financialOverBudget)

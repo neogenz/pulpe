@@ -30,7 +30,7 @@ struct SectionHeader: View {
 
             // Total amount (optional)
             if let total = totalAmount {
-                Text(total.asSignedCompactCurrency(userSettingsStore.currency))
+                Text(total.asArithmeticSignedCompactCurrency(userSettingsStore.currency))
                     .font(PulpeTypography.labelLarge)
                     .monospacedDigit()
                     .foregroundStyle(totalColor)
@@ -39,7 +39,7 @@ struct SectionHeader: View {
         }
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(.isHeader)
-        .accessibilityValue(totalAmount?.asSignedCompactCurrency(userSettingsStore.currency) ?? "")
+        .accessibilityValue(totalAmount?.asArithmeticSignedCompactCurrency(userSettingsStore.currency) ?? "")
     }
 }
 

@@ -23,6 +23,11 @@ struct HeroBalanceCard: View {
         return metrics.isDeficit ? "Déficit \(symbol)" : "Disponible \(symbol)"
     }
 
+    /// VoiceOver-only label — no embedded currency symbol so it isn't doubled with the formatted amount.
+    private var contextLabelForVoiceOver: String {
+        metrics.isDeficit ? "Déficit" : "Disponible"
+    }
+
     private var fillPercentage: Double {
         min(max(metrics.usagePercentage / 100, 0), 1)
     }
@@ -73,15 +78,16 @@ struct HeroBalanceCard: View {
 
     private var accessibilityDescription: String {
         if amountsHidden {
-            return "\(contextLabel) — montant masqué"
+            return "\(contextLabelForVoiceOver) — montant masqué"
         }
+        let currency = userSettingsStore.currency
         var desc = """
-        \(contextLabel) \(abs(metrics.remaining).asCompactCurrency(userSettingsStore.currency)). \
-        Dépensé \(formattedSpent) sur \(formattedAvailable)
+        \(contextLabelForVoiceOver) \(abs(metrics.remaining).asCurrency(currency)). \
+        Dépensé \(metrics.totalExpenses.asCurrency(currency)) sur \(metrics.available.asCurrency(currency))
         """
         if let rolloverAmount {
             let label = rolloverAmount >= 0 ? "Excédent reporté" : "Déficit reporté"
-            desc += ". \(label) de \(abs(rolloverAmount).asCurrency(userSettingsStore.currency))"
+            desc += ". \(label) de \(abs(rolloverAmount).asCurrency(currency))"
         }
         return desc
     }

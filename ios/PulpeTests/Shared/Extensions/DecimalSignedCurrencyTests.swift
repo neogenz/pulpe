@@ -2,42 +2,42 @@ import Foundation
 @testable import Pulpe
 import Testing
 
-@Suite("Decimal asSignedCurrency / asSignedCompactCurrency")
+@Suite("Decimal asArithmeticSignedCurrency / asArithmeticSignedCompactCurrency")
 struct DecimalSignedCurrencyTests {
-    // MARK: - asSignedCurrency (CHF)
+    // MARK: - asArithmeticSignedCurrency (CHF)
 
-    @Test func signedCurrency_positiveCHF_prependsPlusAndKeepsCode() {
+    @Test func arithmeticSignedCurrency_positiveCHF_prependsPlusAndKeepsCode() {
         let value: Decimal = 1234.56
-        let formatted = value.asSignedCurrency(.chf)
+        let formatted = value.asArithmeticSignedCurrency(.chf)
 
         #expect(formatted.hasPrefix("+"))
         #expect(formatted.hasSuffix("CHF"))
         #expect(containsSwissGroupingSeparator(formatted))
     }
 
-    @Test func signedCurrency_negativeCHF_prependsMinusAndKeepsCode() {
+    @Test func arithmeticSignedCurrency_negativeCHF_prependsMinusAndKeepsCode() {
         let value: Decimal = -1234.56
-        let formatted = value.asSignedCurrency(.chf)
+        let formatted = value.asArithmeticSignedCurrency(.chf)
 
         #expect(formatted.hasPrefix("-"))
         #expect(formatted.hasSuffix("CHF"))
         #expect(containsSwissGroupingSeparator(formatted))
     }
 
-    @Test func signedCurrency_zeroCHF_noSignPrefix() {
+    @Test func arithmeticSignedCurrency_zeroCHF_noSignPrefix() {
         let value: Decimal = 0
-        let formatted = value.asSignedCurrency(.chf)
+        let formatted = value.asArithmeticSignedCurrency(.chf)
 
         #expect(!formatted.hasPrefix("+"))
         #expect(!formatted.hasPrefix("-"))
         #expect(formatted.hasSuffix("CHF"))
     }
 
-    // MARK: - asSignedCurrency (EUR)
+    // MARK: - asArithmeticSignedCurrency (EUR)
 
-    @Test func signedCurrency_positiveEUR_prependsPlusAndUsesEuroSign() {
+    @Test func arithmeticSignedCurrency_positiveEUR_prependsPlusAndUsesEuroSign() {
         let value: Decimal = 1234.56
-        let formatted = value.asSignedCurrency(.eur)
+        let formatted = value.asArithmeticSignedCurrency(.eur)
 
         #expect(formatted.hasPrefix("+"))
         #expect(formatted.hasSuffix("€"))
@@ -45,9 +45,9 @@ struct DecimalSignedCurrencyTests {
         #expect(!containsSwissGroupingSeparator(formatted), "EUR amounts must not use Swiss apostrophe separators")
     }
 
-    @Test func signedCurrency_negativeEUR_prependsMinusAndUsesEuroSign() {
+    @Test func arithmeticSignedCurrency_negativeEUR_prependsMinusAndUsesEuroSign() {
         let value: Decimal = -1234.56
-        let formatted = value.asSignedCurrency(.eur)
+        let formatted = value.asArithmeticSignedCurrency(.eur)
 
         #expect(formatted.hasPrefix("-"))
         #expect(formatted.hasSuffix("€"))
@@ -105,11 +105,11 @@ struct DecimalSignedCurrencyTests {
         #expect(formatted.hasSuffix("€"))
     }
 
-    // MARK: - asSignedCompactCurrency (CHF)
+    // MARK: - asArithmeticSignedCompactCurrency (CHF)
 
-    @Test func signedCompactCurrency_positiveCHF_prependsPlusAndRounds() {
+    @Test func arithmeticSignedCompactCurrency_positiveCHF_prependsPlusAndRounds() {
         let value: Decimal = 1234.56
-        let formatted = value.asSignedCompactCurrency(.chf)
+        let formatted = value.asArithmeticSignedCompactCurrency(.chf)
 
         #expect(formatted.hasPrefix("+"))
         #expect(formatted.hasSuffix("CHF"))
@@ -118,9 +118,9 @@ struct DecimalSignedCurrencyTests {
         #expect(containsSwissGroupingSeparator(formatted))
     }
 
-    @Test func signedCompactCurrency_negativeCHF_prependsMinusAndRounds() {
+    @Test func arithmeticSignedCompactCurrency_negativeCHF_prependsMinusAndRounds() {
         let value: Decimal = -500.8
-        let formatted = value.asSignedCompactCurrency(.chf)
+        let formatted = value.asArithmeticSignedCompactCurrency(.chf)
 
         #expect(formatted.hasPrefix("-"))
         #expect(formatted.hasSuffix("CHF"))
@@ -128,20 +128,20 @@ struct DecimalSignedCurrencyTests {
         #expect(!formatted.contains(","))
     }
 
-    @Test func signedCompactCurrency_zeroCHF_noSignPrefix() {
+    @Test func arithmeticSignedCompactCurrency_zeroCHF_noSignPrefix() {
         let value: Decimal = 0
-        let formatted = value.asSignedCompactCurrency(.chf)
+        let formatted = value.asArithmeticSignedCompactCurrency(.chf)
 
         #expect(!formatted.hasPrefix("+"))
         #expect(!formatted.hasPrefix("-"))
         #expect(formatted.hasSuffix("CHF"))
     }
 
-    // MARK: - asSignedCompactCurrency (EUR)
+    // MARK: - asArithmeticSignedCompactCurrency (EUR)
 
-    @Test func signedCompactCurrency_positiveEUR_prependsPlusAndUsesEuroSign() {
+    @Test func arithmeticSignedCompactCurrency_positiveEUR_prependsPlusAndUsesEuroSign() {
         let value: Decimal = 1234.56
-        let formatted = value.asSignedCompactCurrency(.eur)
+        let formatted = value.asArithmeticSignedCompactCurrency(.eur)
 
         #expect(formatted.hasPrefix("+"))
         #expect(formatted.hasSuffix("€"))
@@ -154,9 +154,9 @@ struct DecimalSignedCurrencyTests {
         )
     }
 
-    @Test func signedCompactCurrency_negativeEUR_prependsMinusAndUsesEuroSign() {
+    @Test func arithmeticSignedCompactCurrency_negativeEUR_prependsMinusAndUsesEuroSign() {
         let value: Decimal = -500.8
-        let formatted = value.asSignedCompactCurrency(.eur)
+        let formatted = value.asArithmeticSignedCompactCurrency(.eur)
 
         #expect(formatted.hasPrefix("-"))
         #expect(formatted.hasSuffix("€"))

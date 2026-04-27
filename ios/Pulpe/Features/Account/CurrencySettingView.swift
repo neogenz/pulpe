@@ -1,4 +1,7 @@
 import SwiftUI
+#if canImport(UIKit)
+import UIKit
+#endif
 
 struct CurrencySettingView: View {
     enum ConverterField: Hashable {
@@ -22,6 +25,8 @@ struct CurrencySettingView: View {
     @State private var viewModel = CurrencySettingViewModel()
     @State private var submitSuccessTrigger = false
     @State private var isConverterExpanded = false
+    @State private var saveCurrencyTask: Task<Void, Never>?
+    @State private var saveSelectorToggleTask: Task<Void, Never>?
 
     var body: some View {
         if featureFlagsStore.isMultiCurrencyEnabled {
@@ -73,19 +78,9 @@ struct CurrencySettingView: View {
                         if isConverterExpanded {
                             viewModel.reloadRate()
                         }
-                        Task {
-                            await viewModel.save(using: userSettingsStore)
-                            if userSettingsStore.error == nil {
-                                submitSuccessTrigger.toggle()
-                                appState.toastManager.show("Devise enregistrée", type: .success)
-                                // Reload widget timelines so they stop rendering the previous currency.
-                                await WidgetDataSyncService.shared.syncAll(
-                                    payDayOfMonth: userSettingsStore.payDayOfMonth,
-                                    currency: userSettingsStore.currency
-                                )
-                            } else {
-                                appState.toastManager.show("Erreur lors de la sauvegarde", type: .error)
-                            }
+                        saveCurrencyTask?.cancel()
+                        saveCurrencyTask = Task(name: "CurrencySetting.saveCurrency") {
+                            await persistCurrencyChange()
                         }
                     }
                 ),
@@ -111,14 +106,9 @@ struct CurrencySettingView: View {
         Toggle(isOn: Binding(
             get: { userSettingsStore.showCurrencySelector },
             set: { newValue in
-                Task {
-                    await userSettingsStore.updateShowCurrencySelector(newValue)
-                    if userSettingsStore.error == nil {
-                        submitSuccessTrigger.toggle()
-                        appState.toastManager.show("Préférence enregistrée", type: .success)
-                    } else {
-                        appState.toastManager.show("Erreur lors de la sauvegarde", type: .error)
-                    }
+                saveSelectorToggleTask?.cancel()
+                saveSelectorToggleTask = Task(name: "CurrencySetting.saveSelectorToggle") {
+                    await persistSelectorToggle(newValue)
                 }
             }
         )) {
@@ -135,9 +125,49 @@ struct CurrencySettingView: View {
             }
         }
         .tint(Color.pulpePrimary)
+        .accessibilityLabel("Saisir dans une autre devise")
         .accessibilityHint(
             "Active pour pouvoir entrer une dépense en EUR ou CHF, peu importe ta devise principale."
         )
+    }
+
+    // MARK: - Persistence
+
+    private func persistCurrencyChange() async {
+        await viewModel.save(using: userSettingsStore)
+        guard !Task.isCancelled else { return }
+        if userSettingsStore.error == nil {
+            submitSuccessTrigger.toggle()
+            appState.toastManager.show("Devise enregistrée", type: .success)
+            announceForVoiceOver("Devise enregistrée")
+            // Reload widget timelines so they stop rendering the previous currency.
+            await WidgetDataSyncService.shared.syncAll(
+                payDayOfMonth: userSettingsStore.payDayOfMonth,
+                currency: userSettingsStore.currency
+            )
+        } else {
+            appState.toastManager.show("Erreur lors de la sauvegarde", type: .error)
+            announceForVoiceOver("Erreur lors de la sauvegarde")
+        }
+    }
+
+    private func persistSelectorToggle(_ newValue: Bool) async {
+        await userSettingsStore.updateShowCurrencySelector(newValue)
+        guard !Task.isCancelled else { return }
+        if userSettingsStore.error == nil {
+            submitSuccessTrigger.toggle()
+            appState.toastManager.show("Préférence enregistrée", type: .success)
+            announceForVoiceOver("Préférence enregistrée")
+        } else {
+            appState.toastManager.show("Erreur lors de la sauvegarde", type: .error)
+            announceForVoiceOver("Erreur lors de la sauvegarde")
+        }
+    }
+
+    private func announceForVoiceOver(_ message: String) {
+        #if canImport(UIKit)
+        UIAccessibility.post(notification: .announcement, argument: message)
+        #endif
     }
 
     // MARK: - Converter

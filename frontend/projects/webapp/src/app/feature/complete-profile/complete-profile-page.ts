@@ -121,6 +121,9 @@ import {
                 [class.text-on-primary]="currentStep() === step.number"
                 [class.bg-surface-container]="currentStep() !== step.number"
                 [class.text-on-surface-variant]="currentStep() !== step.number"
+                [attr.aria-current]="
+                  currentStep() === step.number ? 'step' : null
+                "
               >
                 <span
                   class="text-label-small font-semibold tabular-nums opacity-80"

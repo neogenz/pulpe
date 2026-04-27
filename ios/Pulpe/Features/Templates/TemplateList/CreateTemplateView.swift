@@ -156,7 +156,7 @@ struct CreateTemplateView: View {
             Text(label)
                 .font(PulpeTypography.metricMini)
                 .foregroundStyle(Color.onSurfaceVariant)
-            Text(amount.asSignedCompactCurrency(userSettingsStore.currency))
+            Text(amount.asArithmeticSignedCompactCurrency(userSettingsStore.currency))
                 .font(PulpeTypography.metricLabelBold)
                 .foregroundStyle(color)
                 .sensitiveAmount()

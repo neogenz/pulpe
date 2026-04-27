@@ -43,47 +43,50 @@ const RATE_FORMATTER = new Intl.NumberFormat(FALLBACK_DATE_LOCALE, {
   selector: 'pulpe-conversion-preview-line',
   imports: [MatProgressSpinnerModule, TranslocoPipe],
   template: `
-    @if (isVisible()) {
-      <div
-        class="flex flex-wrap items-center gap-x-2 gap-y-0 px-4 pt-1 text-label-small text-on-surface-variant ph-no-capture"
-        [attr.aria-label]="ariaLabel()"
-        role="status"
-        aria-live="polite"
-        data-testid="conversion-preview-line"
-      >
-        @switch (status()) {
-          @case ('loading') {
-            <mat-progress-spinner mode="indeterminate" [diameter]="12" />
-            <span>{{ 'currency.livePreviewLoading' | transloco }}</span>
-          }
-          @case ('error') {
-            <span data-testid="conversion-preview-error">{{
-              'currency.livePreviewError' | transloco
-            }}</span>
-          }
-          @default {
-            <span data-testid="conversion-preview-amount">
-              {{
-                'currency.livePreviewApprox'
-                  | transloco
-                    : {
-                        amount: formattedAmount(),
-                        rate: formattedRate(),
-                      }
-              }}
-            </span>
-            @if (status() === 'fallback' && formattedDate(); as date) {
-              <span
-                class="rounded-full bg-pulpe-amber-container px-2 py-0.5 text-pulpe-amber text-label-small"
-                data-testid="conversion-preview-fallback-date"
-              >
-                {{ 'currency.rateFromDate' | transloco: { date } }}
+    <div
+      role="status"
+      aria-live="polite"
+      [attr.aria-label]="ariaLabel()"
+      data-testid="conversion-preview-line"
+    >
+      @if (isVisible()) {
+        <div
+          class="flex flex-wrap items-center gap-x-2 gap-y-0 px-4 pt-1 text-label-small text-on-surface-variant ph-no-capture"
+        >
+          @switch (status()) {
+            @case ('loading') {
+              <mat-progress-spinner mode="indeterminate" [diameter]="12" />
+              <span>{{ 'currency.livePreviewLoading' | transloco }}</span>
+            }
+            @case ('error') {
+              <span data-testid="conversion-preview-error">{{
+                'currency.livePreviewError' | transloco
+              }}</span>
+            }
+            @default {
+              <span data-testid="conversion-preview-amount">
+                {{
+                  'currency.livePreviewApprox'
+                    | transloco
+                      : {
+                          amount: formattedAmount(),
+                          rate: formattedRate(),
+                        }
+                }}
               </span>
+              @if (status() === 'fallback' && formattedDate(); as date) {
+                <span
+                  class="rounded-full bg-pulpe-amber-container px-2 py-0.5 text-pulpe-amber text-label-small"
+                  data-testid="conversion-preview-fallback-date"
+                >
+                  {{ 'currency.rateFromDate' | transloco: { date } }}
+                </span>
+              }
             }
           }
-        }
-      </div>
-    }
+        </div>
+      }
+    </div>
   `,
   styles: `
     :host {

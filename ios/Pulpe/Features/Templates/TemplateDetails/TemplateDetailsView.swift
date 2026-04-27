@@ -151,7 +151,7 @@ struct TemplateDetailsView: View {
                     .font(PulpeTypography.subheadline)
                     .fontWeight(.semibold)
                 Spacer()
-                Text(viewModel.totals.balance.asSignedCurrency(userSettingsStore.currency))
+                Text(viewModel.totals.balance.asArithmeticSignedCurrency(userSettingsStore.currency))
                     .font(PulpeTypography.listRowSubtitle)
                     .fontWeight(.semibold)
                     .foregroundStyle(

@@ -36,17 +36,15 @@ actor WidgetDataSyncService {
     func syncAll(payDayOfMonth: Int? = nil, currency: SupportedCurrency? = nil) async {
         let resolvedCurrency = await resolveCurrency(currency)
 
+        // Fetch current month details first; preserve them on year-export failure
+        // so a transient `exportAllBudgets` error doesn't blank the current-month widget.
+        var currentDetails: BudgetDetails?
+        if let currentBudget = try? await budgetService.getCurrentMonthBudget(payDayOfMonth: payDayOfMonth) {
+            currentDetails = try? await budgetService.getBudgetWithDetails(id: currentBudget.id)
+        }
+
         do {
             let exportData = try await budgetService.exportAllBudgets()
-
-            // Also get current budget details if it exists
-            let currentDetails: BudgetDetails?
-            if let currentBudget = try? await budgetService.getCurrentMonthBudget(payDayOfMonth: payDayOfMonth) {
-                currentDetails = try await budgetService.getBudgetWithDetails(id: currentBudget.id)
-            } else {
-                currentDetails = nil
-            }
-
             await sync(
                 budgetsWithDetails: exportData.budgets,
                 currentBudgetDetails: currentDetails,
@@ -57,7 +55,7 @@ actor WidgetDataSyncService {
             Logger.sync.error("syncAll failed - \(error)")
             await sync(
                 budgetsWithDetails: [],
-                currentBudgetDetails: nil,
+                currentBudgetDetails: currentDetails,
                 payDayOfMonth: payDayOfMonth,
                 currency: resolvedCurrency
             )

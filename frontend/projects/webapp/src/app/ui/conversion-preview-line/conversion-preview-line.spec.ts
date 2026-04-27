@@ -51,8 +51,14 @@ describe('ConversionPreviewLine', () => {
   };
 
   describe('rendering gate', () => {
-    it('renders nothing when status is hidden', () => {
-      expect(render({ status: 'hidden' })).toBeNull();
+    it('keeps an empty live-region wrapper when status is hidden', () => {
+      const root = render({ status: 'hidden' });
+
+      expect(root).not.toBeNull();
+      // Wrapper persists for screen-reader announcement reliability,
+      // but no inner content is rendered while hidden.
+      expect(root?.children.length).toBe(0);
+      expect(root?.textContent?.trim()).toBe('');
     });
   });
 
@@ -82,7 +88,7 @@ describe('ConversionPreviewLine', () => {
         status: 'ready',
       });
 
-      expect(root?.classList.contains('ph-no-capture')).toBe(true);
+      expect(root?.querySelector('.ph-no-capture')).not.toBeNull();
     });
 
     it('exposes role=status with polite live region', () => {

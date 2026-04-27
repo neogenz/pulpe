@@ -79,13 +79,16 @@ extension Decimal {
         asCompactCurrency(.chf)
     }
 
-    /// Format as signed CHF — "+1'234.56 CHF" for positive, "-1'234.56 CHF" for negative, "0.00 CHF" for zero
+    /// Format as signed CHF — "+1'234.56 CHF" for positive, "-1'234.56 CHF" for negative, "0.00 CHF" for zero.
+    /// Sign reflects the value's sign — for transaction-kind signing use `asSignedCHF(for:)`.
     var asSignedCHF: String {
         "\(signPrefix)\(asCHF)"
     }
 
-    /// Format as signed currency — "+1'234.56 CHF" for positive, "-1 234,56 €" for negative, locale-aware.
-    func asSignedCurrency(_ currency: SupportedCurrency) -> String {
+    /// Format as arithmetic-signed currency — sign reflects the value's sign.
+    /// Use for balances and totals where the sign is the math result.
+    /// For transaction-kind signing (income vs expense/saving), prefer `asSignedCurrency(_:for:)`.
+    func asArithmeticSignedCurrency(_ currency: SupportedCurrency) -> String {
         "\(signPrefix)\(asCurrency(currency))"
     }
 
@@ -99,8 +102,9 @@ extension Decimal {
         "\(signPrefix)\(asCompactCHF)"
     }
 
-    /// Format as signed compact currency — "+1'235 CHF" for positive, "-1 235 €" for negative, locale-aware.
-    func asSignedCompactCurrency(_ currency: SupportedCurrency) -> String {
+    /// Format as arithmetic-signed compact currency — sign reflects the value's sign.
+    /// For transaction-kind signing, prefer `asSignedCompactCurrency(_:for:)`.
+    func asArithmeticSignedCompactCurrency(_ currency: SupportedCurrency) -> String {
         "\(signPrefix)\(asCompactCurrency(currency))"
     }
 
