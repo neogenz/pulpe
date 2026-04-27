@@ -23,6 +23,8 @@ import { TranslocoPipe } from '@jsverse/transloco';
         [disabled]="disabled()"
         (selectionChange)="currencyChange.emit($event.value)"
         class="!w-[70px] text-on-surface-variant font-medium"
+        panelClass="pulpe-currency-suffix-panel"
+        data-testid="currency-suffix-select"
         [attr.aria-label]="'common.currencySelector' | transloco"
       >
         @for (c of currencies; track c) {

@@ -99,17 +99,22 @@ async function openAddBudgetLineDialog(
 }
 
 function currencyPicker(page: Page) {
-  // mat-select inherits its accessible name from the surrounding mat-label
-  // ("Montant"), so we disambiguate by selected text (flag + code).
-  return page
-    .getByRole('dialog')
-    .getByRole('combobox')
-    .filter({ hasText: /CHF|EUR/ });
+  return page.getByTestId('currency-suffix-select');
 }
 
 async function selectCurrency(page: Page, code: 'CHF' | 'EUR') {
+  // mat-select runs a CSS exit animation on close (~200ms). Clicking the
+  // trigger again before the panel detaches lets the exit class stick to
+  // the still-attached panel, and options become invisible. Wait for the
+  // panel lifecycle before/after each option click so the helper stays
+  // safe when called twice in a row (CHF → EUR). The custom `panelClass`
+  // on `<pulpe-currency-suffix>` exposes a stable, project-owned hook
+  // for the overlay panel.
   await currencyPicker(page).click();
-  await page.getByRole('option', { name: new RegExp(code) }).click();
+  const panel = page.locator('.pulpe-currency-suffix-panel');
+  await panel.waitFor({ state: 'visible' });
+  await panel.getByRole('option', { name: new RegExp(code) }).click();
+  await panel.waitFor({ state: 'detached' });
 }
 
 test.describe('Live Conversion Preview — add budget line dialog', () => {
