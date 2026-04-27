@@ -72,7 +72,7 @@ test.describe('Envelope Overage Reste Impact', () => {
     const heroSection = authenticatedPage.locator(
       'pulpe-budget-financial-overview',
     );
-    await expect(heroSection).toContainText('4\u202F800');
+    await expect(heroSection).toContainText('4\u2019800');
     await expect(heroSection).toContainText("Ce qu'il te reste ce mois");
   });
 
@@ -136,7 +136,7 @@ test.describe('Envelope Overage Reste Impact', () => {
     const heroSection = authenticatedPage.locator(
       'pulpe-budget-financial-overview',
     );
-    await expect(heroSection).toContainText('4\u202F800');
+    await expect(heroSection).toContainText('4\u2019800');
   });
 
   test('transactions exceeding envelope — Reste decreases by excess', async ({
@@ -199,7 +199,7 @@ test.describe('Envelope Overage Reste Impact', () => {
     const heroSection = authenticatedPage.locator(
       'pulpe-budget-financial-overview',
     );
-    await expect(heroSection).toContainText('4\u202F750');
+    await expect(heroSection).toContainText('4\u2019750');
     await expect(heroSection).toContainText("Ce qu'il te reste ce mois");
   });
 
