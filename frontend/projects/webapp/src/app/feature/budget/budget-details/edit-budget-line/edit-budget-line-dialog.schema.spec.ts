@@ -53,6 +53,7 @@ describe('budgetLineUpdateFromFormSchema', () => {
       expect(result.originalCurrency).toBe('EUR');
       expect(result.targetCurrency).toBe('CHF');
       expect(result.exchangeRate).toBe(1.2);
+      expect('conversion' in result).toBe(false);
     });
 
     it('should trim a name with surrounding whitespace', () => {

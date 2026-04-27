@@ -16,10 +16,12 @@ test.describe('Monthly Budget Management', () => {
   }) => {
     await currentMonthPage.goto();
     await currentMonthPage.expectPageLoaded();
-    
+
     // Check if expense form exists
-    const form = authenticatedPage.locator('form, [data-testid="expense-form"]');
-    if (await form.count() > 0) {
+    const form = authenticatedPage.locator(
+      'form, [data-testid="expense-form"]',
+    );
+    if ((await form.count()) > 0) {
       await expect(form.first()).toBeVisible();
     }
   });
@@ -30,7 +32,7 @@ test.describe('Monthly Budget Management', () => {
   }) => {
     await currentMonthPage.goto();
     await currentMonthPage.expectPageLoaded();
-    
+
     // Try to add transaction
     try {
       await currentMonthPage.addTransaction('75.50', 'Restaurant');
@@ -43,12 +45,12 @@ test.describe('Monthly Budget Management', () => {
     authenticatedPage,
   }) => {
     // Mock error response - hasBudgetGuard allows navigation on server errors
-    await authenticatedPage.route('**/api/v1/budgets**', route =>
+    await authenticatedPage.route('**/api/v1/budgets**', (route) =>
       route.fulfill({
         status: 500,
         contentType: 'text/plain',
-        body: 'Server Error'
-      })
+        body: 'Server Error',
+      }),
     );
 
     await authenticatedPage.goto('/dashboard');
@@ -61,12 +63,12 @@ test.describe('Monthly Budget Management', () => {
     authenticatedPage,
   }) => {
     // Mock empty response - hasBudgetGuard will redirect to complete-profile
-    await authenticatedPage.route('**/api/v1/budgets**', route =>
+    await authenticatedPage.route('**/api/v1/budgets**', (route) =>
       route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify({ success: true, data: [] })
-      })
+        body: JSON.stringify({ success: true, data: [] }),
+      }),
     );
 
     await authenticatedPage.goto('/dashboard');
@@ -80,7 +82,7 @@ test.describe('Monthly Budget Management', () => {
   }) => {
     await currentMonthPage.goto();
     await currentMonthPage.expectPageLoaded();
-    
+
     await authenticatedPage.reload();
     await currentMonthPage.expectPageLoaded();
   });

@@ -33,6 +33,15 @@ export class PostHogService {
   readonly #flagsVersion = signal<number>(0);
   #isTrackingEnabled = false;
 
+  constructor() {
+    const e2eFlags = (
+      globalThis as { __E2E_POSTHOG_FLAGS__?: Record<string, boolean> }
+    ).__E2E_POSTHOG_FLAGS__;
+    if (e2eFlags) {
+      queueMicrotask(() => this.#flagsVersion.update((v) => v + 1));
+    }
+  }
+
   readonly isInitialized = this.#isInitialized.asReadonly();
   readonly isEnabled = computed(() => {
     const config = this.#applicationConfiguration.postHogConfig();
@@ -118,6 +127,10 @@ export class PostHogService {
    * missing. Pair with `flagsVersion` signal in computeds for reactive gating.
    */
   isFeatureEnabled(key: string): boolean {
+    const e2eOverride = (
+      globalThis as { __E2E_POSTHOG_FLAGS__?: Record<string, boolean> }
+    ).__E2E_POSTHOG_FLAGS__;
+    if (e2eOverride && key in e2eOverride) return e2eOverride[key] === true;
     if (!this.#isInitialized()) return false;
     return posthog.isFeatureEnabled(key) === true;
   }

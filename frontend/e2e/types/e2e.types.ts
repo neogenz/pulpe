@@ -1,6 +1,9 @@
 import type { Request, Route } from '@playwright/test';
 
-export { type E2EWindow, type DemoSession } from '../../projects/webapp/src/app/core/auth';
+export {
+  type E2EWindow,
+  type DemoSession,
+} from '../../projects/webapp/src/app/core/auth';
 
 /**
  * Minimal user shape for E2E mocks
@@ -42,6 +45,7 @@ export interface E2ETestWindow extends Window {
     access_token: string;
     refresh_token: string;
   };
+  __E2E_POSTHOG_FLAGS__?: Record<string, boolean>;
 }
 
 /**

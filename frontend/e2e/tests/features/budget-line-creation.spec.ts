@@ -77,20 +77,22 @@ test.describe('Budget Line Creation', () => {
     await budgetDetailsPage.goto(budgetId);
 
     // Click "Ajouter une prévision"
-    await authenticatedPage
-      .getByTestId('add-budget-line')
-      .click();
+    await authenticatedPage.getByTestId('add-budget-line').click();
 
     // Wait for the dialog to appear
     const dialog = authenticatedPage.locator('mat-dialog-container');
     await expect(dialog).toBeVisible();
 
     // Fill form: name
-    const nameInput = authenticatedPage.locator('[data-testid="new-line-name"]');
+    const nameInput = authenticatedPage.locator(
+      '[data-testid="new-line-name"]',
+    );
     await nameInput.fill('Courses');
 
     // Fill form: amount
-    const amountInput = authenticatedPage.locator('[data-testid="new-line-amount"]');
+    const amountInput = authenticatedPage.locator(
+      '[data-testid="new-line-amount"]',
+    );
     await amountInput.fill('500');
 
     // Kind defaults to "expense" — no change needed
@@ -103,7 +105,9 @@ test.describe('Budget Line Creation', () => {
 
     // The new line should appear — verify envelope card is visible
     await expect(
-      authenticatedPage.locator(`[data-testid="envelope-card-${TEST_UUIDS.LINE_3}"]`),
+      authenticatedPage.locator(
+        `[data-testid="envelope-card-${TEST_UUIDS.LINE_3}"]`,
+      ),
     ).toBeVisible();
 
     // Verify it appears in the Depenses section
@@ -163,14 +167,20 @@ test.describe('Budget Line Creation', () => {
     await expect(dialog).toBeVisible();
 
     // Fill form
-    await authenticatedPage.locator('[data-testid="new-line-name"]').fill('Freelance');
-    await authenticatedPage.locator('[data-testid="new-line-amount"]').fill('1000');
+    await authenticatedPage
+      .locator('[data-testid="new-line-name"]')
+      .fill('Freelance');
+    await authenticatedPage
+      .locator('[data-testid="new-line-amount"]')
+      .fill('1000');
 
     // Change kind to income via mat-select
     await authenticatedPage.locator('[data-testid="new-line-kind"]').click();
     await authenticatedPage.locator('mat-option[value="income"]').click();
     // Wait for mat-select panel to close and form to re-validate (CI timing)
-    await expect(authenticatedPage.locator('.mat-mdc-select-panel')).not.toBeAttached();
+    await expect(
+      authenticatedPage.locator('.mat-mdc-select-panel'),
+    ).not.toBeAttached();
 
     // Submit
     await authenticatedPage.getByTestId('add-new-line').click();
@@ -232,14 +242,20 @@ test.describe('Budget Line Creation', () => {
     const dialog = authenticatedPage.locator('mat-dialog-container');
     await expect(dialog).toBeVisible();
 
-    await authenticatedPage.locator('[data-testid="new-line-name"]').fill('Vacances');
-    await authenticatedPage.locator('[data-testid="new-line-amount"]').fill('300');
+    await authenticatedPage
+      .locator('[data-testid="new-line-name"]')
+      .fill('Vacances');
+    await authenticatedPage
+      .locator('[data-testid="new-line-amount"]')
+      .fill('300');
 
     // Change kind to saving
     await authenticatedPage.locator('[data-testid="new-line-kind"]').click();
     await authenticatedPage.locator('mat-option[value="saving"]').click();
     // Wait for mat-select panel to close and form to re-validate (CI timing)
-    await expect(authenticatedPage.locator('.mat-mdc-select-panel')).not.toBeAttached();
+    await expect(
+      authenticatedPage.locator('.mat-mdc-select-panel'),
+    ).not.toBeAttached();
 
     await authenticatedPage.getByTestId('add-new-line').click();
     await expect(dialog).not.toBeVisible();
@@ -348,11 +364,15 @@ test.describe('Budget Line Creation', () => {
     await expect(submitButton).toBeDisabled();
 
     // Fill only name — still disabled (amount missing)
-    await authenticatedPage.locator('[data-testid="new-line-name"]').fill('Test');
+    await authenticatedPage
+      .locator('[data-testid="new-line-name"]')
+      .fill('Test');
     await expect(submitButton).toBeDisabled();
 
     // Fill amount — now enabled
-    await authenticatedPage.locator('[data-testid="new-line-amount"]').fill('100');
+    await authenticatedPage
+      .locator('[data-testid="new-line-amount"]')
+      .fill('100');
     await expect(submitButton).toBeEnabled();
 
     // Clear name — disabled again
@@ -406,16 +426,22 @@ test.describe('Budget Line Creation', () => {
 
     // Before creation: income=5000, expenses=1500, remaining=3500
     // Verify initial expenses in financial overview
-    const financialOverview = authenticatedPage.locator('pulpe-budget-financial-overview');
-    await expect(financialOverview).toContainText("1\u2019500");
+    const financialOverview = authenticatedPage.locator(
+      'pulpe-budget-financial-overview',
+    );
+    await expect(financialOverview).toContainText('1\u202F500');
 
     // Click add and fill form
     await authenticatedPage.getByTestId('add-budget-line').click();
     const dialog = authenticatedPage.locator('mat-dialog-container');
     await expect(dialog).toBeVisible();
 
-    await authenticatedPage.locator('[data-testid="new-line-name"]').fill('Courses');
-    await authenticatedPage.locator('[data-testid="new-line-amount"]').fill('500');
+    await authenticatedPage
+      .locator('[data-testid="new-line-name"]')
+      .fill('Courses');
+    await authenticatedPage
+      .locator('[data-testid="new-line-amount"]')
+      .fill('500');
     // Blur triggers Angular form control finalization (CI timing)
     await authenticatedPage.locator('[data-testid="new-line-amount"]').blur();
     const submitButton = authenticatedPage.getByTestId('add-new-line');
@@ -425,11 +451,11 @@ test.describe('Budget Line Creation', () => {
 
     // After creation: income=5000, expenses=1500+500=2000, remaining=3000
     // Expenses total should now show 2000
-    await expect(financialOverview).toContainText("2\u2019000");
+    await expect(financialOverview).toContainText('2\u202F000');
 
     // Remaining should show 3000
     await expect(
       financialOverview.locator('.text-display-medium, .text-display-large'),
-    ).toContainText("3\u2019000");
+    ).toContainText('3\u202F000');
   });
 });

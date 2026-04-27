@@ -29,6 +29,8 @@ export class BudgetTemplatesPage {
   }
 
   async expectTemplateVisible(templateName: string) {
-    await expect(this.page.getByTestId(`template-${templateName}`)).toBeVisible();
+    await expect(
+      this.page.getByTestId(`template-${templateName}`),
+    ).toBeVisible();
   }
 }

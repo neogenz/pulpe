@@ -9,7 +9,9 @@ export class MainLayoutPage {
 
   async expectLayoutLoaded() {
     // Wait for the main layout header to be visible
-    await expect(this.page.locator('mat-toolbar').or(this.page.locator('header'))).toBeVisible();
+    await expect(
+      this.page.locator('mat-toolbar').or(this.page.locator('header')),
+    ).toBeVisible();
   }
 
   async openUserMenu() {

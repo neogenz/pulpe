@@ -121,9 +121,7 @@ function setupRoutes(authenticatedPage: import('@playwright/test').Page) {
       const budgetId = Object.keys(detailsByBudgetId).find((id) =>
         url.includes(id),
       );
-      const response = budgetId
-        ? detailsByBudgetId[budgetId]
-        : februaryDetails;
+      const response = budgetId ? detailsByBudgetId[budgetId] : februaryDetails;
       return route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -140,8 +138,15 @@ test.describe('Rollover Propagation - Impact on next month', () => {
   }) => {
     // Rollover line starts as "checked"; disable the unchecked-only filter to see it
     await authenticatedPage.addInitScript(() => {
-      const entry = { version: 1, data: false, updatedAt: new Date().toISOString() };
-      localStorage.setItem('pulpe-budget-show-only-unchecked', JSON.stringify(entry));
+      const entry = {
+        version: 1,
+        data: false,
+        updatedAt: new Date().toISOString(),
+      };
+      localStorage.setItem(
+        'pulpe-budget-show-only-unchecked',
+        JSON.stringify(entry),
+      );
     });
     await setupRoutes(authenticatedPage);
     await budgetDetailsPage.goto(BUDGET_IDS.MARCH);
@@ -165,8 +170,15 @@ test.describe('Rollover Propagation - Impact on next month', () => {
   }) => {
     // Rollover line starts as "checked"; disable the unchecked-only filter to see it
     await authenticatedPage.addInitScript(() => {
-      const entry = { version: 1, data: false, updatedAt: new Date().toISOString() };
-      localStorage.setItem('pulpe-budget-show-only-unchecked', JSON.stringify(entry));
+      const entry = {
+        version: 1,
+        data: false,
+        updatedAt: new Date().toISOString(),
+      };
+      localStorage.setItem(
+        'pulpe-budget-show-only-unchecked',
+        JSON.stringify(entry),
+      );
     });
     await setupRoutes(authenticatedPage);
 
@@ -189,9 +201,7 @@ test.describe('Rollover Propagation - Impact on next month', () => {
     ).toBeVisible();
 
     // Navigate to March
-    await authenticatedPage
-      .getByTestId('next-month-button-desktop')
-      .click();
+    await authenticatedPage.getByTestId('next-month-button-desktop').click();
     await expect(heading).toContainText('mars 2026');
 
     // March SHOULD have a rollover line
@@ -239,6 +249,6 @@ test.describe('Rollover Propagation - Impact on next month', () => {
 
     // Remaining = income (5000 + 3800) - expenses (1200) = 7600
     // The hero section shows the remaining amount
-    await expect(financialOverview).toContainText("7\u2019600");
+    await expect(financialOverview).toContainText('7\u202F600');
   });
 });

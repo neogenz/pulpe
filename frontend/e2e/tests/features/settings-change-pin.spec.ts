@@ -43,7 +43,9 @@ const submitNewPin = async (page: Page, pin: string): Promise<void> => {
 test.describe('Settings Change PIN', () => {
   test.describe.configure({ mode: 'parallel' });
 
-  test('completes full PIN change flow with recovery key confirmation', async ({ page }) => {
+  test('completes full PIN change flow with recovery key confirmation', async ({
+    page,
+  }) => {
     await navigateToSettings(page);
 
     await page.getByTestId('change-pin-button').click();
@@ -59,14 +61,20 @@ test.describe('Settings Change PIN', () => {
     // Recovery key dialog appears
     const recoveryDialog = page.getByTestId('recovery-key-dialog');
     await expect(recoveryDialog).toBeVisible();
-    await expect(page.getByTestId('recovery-key-display')).toContainText('AAAA-BBBB-CCCC-DDDD-EEEE-FFFF-GGHH-IIJJ');
+    await expect(page.getByTestId('recovery-key-display')).toContainText(
+      'AAAA-BBBB-CCCC-DDDD-EEEE-FFFF-GGHH-IIJJ',
+    );
 
     // Type the recovery key to confirm
-    await page.getByTestId('recovery-key-confirm-input').fill('AAAA-BBBB-CCCC-DDDD-EEEE-FFFF-GGHH-IIJJ');
+    await page
+      .getByTestId('recovery-key-confirm-input')
+      .fill('AAAA-BBBB-CCCC-DDDD-EEEE-FFFF-GGHH-IIJJ');
     await page.getByTestId('recovery-key-confirm-button').click();
 
     // Snackbar confirms success
-    await expect(page.locator('simple-snack-bar')).toContainText('Code PIN modifié');
+    await expect(page.locator('simple-snack-bar')).toContainText(
+      'Code PIN modifié',
+    );
   });
 
   test('shows error when old PIN is incorrect', async ({ page }) => {

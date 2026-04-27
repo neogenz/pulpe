@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import {
   budgetLineCreateFromFormSchema,
   type BudgetLineCreateFormValue,
@@ -51,14 +51,18 @@ describe('budgetLineCreateFromFormSchema', () => {
       expect(result.exchangeRate).toBe(0.95);
     });
 
-    it('should set checkedAt to ISO string when isChecked is true', () => {
+    it('should set checkedAt to ISO 8601 UTC string when isChecked is true', () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-04-26T10:30:00.000Z'));
+
       const result = budgetLineCreateFromFormSchema.parse({
         ...createFormValue,
         isChecked: true,
       });
 
-      expect(typeof result.checkedAt).toBe('string');
-      expect(() => new Date(result.checkedAt!)).not.toThrow();
+      expect(result.checkedAt).toBe('2026-04-26T10:30:00.000Z');
+
+      vi.useRealTimers();
     });
 
     it('should set checkedAt to null when isChecked is false', () => {

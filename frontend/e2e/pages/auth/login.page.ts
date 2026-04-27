@@ -32,6 +32,8 @@ export class LoginPage {
   }
 
   async expectErrorMessage(text: string | RegExp) {
-    await expect(this.page.getByTestId('login-error-message')).toContainText(text);
+    await expect(this.page.getByTestId('login-error-message')).toContainText(
+      text,
+    );
   }
 }

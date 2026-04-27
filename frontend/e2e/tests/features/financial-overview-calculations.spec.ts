@@ -51,7 +51,14 @@ test.describe('Financial Overview Calculations', () => {
     recurrence: 'fixed',
   });
 
-  const allLines = [salaireLine, freelanceLine, loyerLine, coursesLine, transportLine, epargneLine];
+  const allLines = [
+    salaireLine,
+    freelanceLine,
+    loyerLine,
+    coursesLine,
+    transportLine,
+    epargneLine,
+  ];
 
   // Revenus = 3500 + 800 = 4300
   // With rollover 500: Disponible (income) = 4300 + 500 = 4800
@@ -85,12 +92,14 @@ test.describe('Financial Overview Calculations', () => {
 
     await budgetDetailsPage.goto(budgetId);
 
-    const financialOverview = authenticatedPage.locator('pulpe-budget-financial-overview');
+    const financialOverview = authenticatedPage.locator(
+      'pulpe-budget-financial-overview',
+    );
     await expect(financialOverview).toBeVisible();
 
     // Revenus pill should show 4800 (3500 + 800 + 500 rollover)
-    // Note: de-CH locale uses RIGHT SINGLE QUOTATION MARK (U+2019) as thousands separator
-    await expect(financialOverview).toContainText("4\u2019800 CHF");
+    // Note: fr-CH locale uses NARROW NO-BREAK SPACE (U+202F) as thousands separator
+    await expect(financialOverview).toContainText('4\u202F800,00 CHF');
   });
 
   test('Reste equals Disponible minus Depenses minus Epargne', async ({
@@ -107,19 +116,21 @@ test.describe('Financial Overview Calculations', () => {
 
     await budgetDetailsPage.goto(budgetId);
 
-    const financialOverview = authenticatedPage.locator('pulpe-budget-financial-overview');
+    const financialOverview = authenticatedPage.locator(
+      'pulpe-budget-financial-overview',
+    );
     await expect(financialOverview).toBeVisible();
 
     // Dépenses pill: 1675
-    await expect(financialOverview).toContainText("1\u2019675 CHF");
+    await expect(financialOverview).toContainText('1\u202F675,00 CHF');
 
     // Épargne pill: 500
-    await expect(financialOverview).toContainText('500 CHF');
+    await expect(financialOverview).toContainText('500,00 CHF');
 
     // Reste = 4800 - 1675 - 500 = 2625
     await expect(
       financialOverview.locator('.text-display-medium, .text-display-large'),
-    ).toContainText("2\u2019625");
+    ).toContainText('2\u202F625');
   });
 
   test('budget with rollover shows increased Disponible compared to without', async ({
@@ -142,14 +153,16 @@ test.describe('Financial Overview Calculations', () => {
 
     await budgetDetailsPage.goto(budgetId);
 
-    const financialOverview = authenticatedPage.locator('pulpe-budget-financial-overview');
+    const financialOverview = authenticatedPage.locator(
+      'pulpe-budget-financial-overview',
+    );
     await expect(financialOverview).toBeVisible();
 
     // Without rollover: Revenus = 4300, Reste = 4300 - 1675 - 500 = 2125
-    await expect(financialOverview).toContainText("4\u2019300 CHF");
+    await expect(financialOverview).toContainText('4\u202F300,00 CHF');
     await expect(
       financialOverview.locator('.text-display-medium, .text-display-large'),
-    ).toContainText("2\u2019125");
+    ).toContainText('2\u202F125');
   });
 
   test('adding an expense decreases Reste by exactly the expense amount', async ({
@@ -203,26 +216,32 @@ test.describe('Financial Overview Calculations', () => {
 
     await budgetDetailsPage.goto(budgetId);
 
-    const financialOverview = authenticatedPage.locator('pulpe-budget-financial-overview');
+    const financialOverview = authenticatedPage.locator(
+      'pulpe-budget-financial-overview',
+    );
 
     // Before: Reste = 2625
     await expect(
       financialOverview.locator('.text-display-medium, .text-display-large'),
-    ).toContainText("2\u2019625");
+    ).toContainText('2\u202F625');
 
     // Add expense
     await authenticatedPage.getByTestId('add-budget-line').click();
     const dialog = authenticatedPage.locator('mat-dialog-container');
     await expect(dialog).toBeVisible();
 
-    await authenticatedPage.locator('[data-testid="new-line-name"]').fill('Abonnement');
-    await authenticatedPage.locator('[data-testid="new-line-amount"]').fill('200');
+    await authenticatedPage
+      .locator('[data-testid="new-line-name"]')
+      .fill('Abonnement');
+    await authenticatedPage
+      .locator('[data-testid="new-line-amount"]')
+      .fill('200');
     await authenticatedPage.getByTestId('add-new-line').click();
     await expect(dialog).not.toBeVisible();
 
     // After: Reste = 2625 - 200 = 2425
     await expect(
       financialOverview.locator('.text-display-medium, .text-display-large'),
-    ).toContainText("2\u2019425");
+    ).toContainText('2\u202F425');
   });
 });

@@ -156,7 +156,7 @@ import { setupVaultCodeFormSchema } from './setup-vault-code-form.schema';
             <mat-error>
               @if (form.get('confirmCode')?.hasError('required')) {
                 {{ 'auth.vaultCode.confirmPinRequired' | transloco }}
-              } @else if (form.get('confirmCode')?.hasError('fieldsMismatch')) {
+              } @else if (form.get('confirmCode')?.hasError('pinsMismatch')) {
                 {{ 'auth.vaultCode.pinsMismatch' | transloco }}
               }
             </mat-error>
@@ -233,7 +233,7 @@ export default class SetupVaultCode {
       validators: createFieldsMatchValidator(
         'vaultCode',
         'confirmCode',
-        'fieldsMismatch',
+        'pinsMismatch',
       ),
     },
   );

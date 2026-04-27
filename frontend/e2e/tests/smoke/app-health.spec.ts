@@ -71,7 +71,12 @@ test.describe('App Health Check', () => {
 
     // Compare extensions strictly to avoid `.json` matching the `.js` substring.
     // Strip query strings before extension parsing so cache-busted URLs still match.
+    // Only count same-origin failures: 3rd-party scripts (PostHog, analytics) are
+    // out of our control and may fail on offline/blocked networks without breaking the app.
+    const appOrigin = new URL(page.url()).origin;
     const criticalAssetFailures = failedRequests.filter((url) => {
+      const isSameOrigin = url.startsWith(appOrigin);
+      if (!isSameOrigin) return false;
       const path = url.split('?')[0];
       const isCss = path.endsWith('.css');
       const isIco = path.endsWith('.ico');
@@ -99,7 +104,9 @@ test.describe('App Health Check', () => {
     await expect(page).toHaveURL(/\/welcome/);
 
     // Should not show 404 or error pages - check for error headings, not UI elements like icons
-    const errorHeading = page.locator('h1, h2, h3').filter({ hasText: /404|not found/i });
+    const errorHeading = page
+      .locator('h1, h2, h3')
+      .filter({ hasText: /404|not found/i });
     await expect(errorHeading).not.toBeVisible();
   });
 

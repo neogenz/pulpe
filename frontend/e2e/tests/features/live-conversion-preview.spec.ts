@@ -1,9 +1,8 @@
 import type { Page } from '@playwright/test';
 import { test, expect } from '../../fixtures/test-fixtures';
-import {
-  createBudgetDetailsMock,
-  TEST_UUIDS,
-} from '../../helpers/api-mocks';
+import { createBudgetDetailsMock, TEST_UUIDS } from '../../helpers/api-mocks';
+import { enableFeatureFlags } from '../../utils/feature-flags';
+import { FEATURE_FLAGS } from 'pulpe-shared';
 
 /**
  * Live Conversion Preview — amount-entry dialogs
@@ -90,7 +89,8 @@ async function openAddBudgetLineDialog(
 ) {
   await Promise.all([
     page.waitForResponse(
-      (r) => r.url().includes('/users/settings') && r.request().method() === 'GET',
+      (r) =>
+        r.url().includes('/users/settings') && r.request().method() === 'GET',
     ),
     budgetDetailsPage.goto(BUDGET_ID),
   ]);
@@ -113,11 +113,13 @@ async function selectCurrency(page: Page, code: 'CHF' | 'EUR') {
 }
 
 test.describe('Live Conversion Preview — add budget line dialog', () => {
-
   test('shows the converted amount and rate when a secondary currency is picked (AC1)', async ({
     authenticatedPage,
     budgetDetailsPage,
   }) => {
+    await enableFeatureFlags(authenticatedPage, {
+      [FEATURE_FLAGS.MULTI_CURRENCY]: true,
+    });
     await mockUserCurrency(authenticatedPage, 'EUR', true);
     await mockEmptyBudget(authenticatedPage);
     await mockRate(authenticatedPage, {
@@ -145,6 +147,9 @@ test.describe('Live Conversion Preview — add budget line dialog', () => {
     authenticatedPage,
     budgetDetailsPage,
   }) => {
+    await enableFeatureFlags(authenticatedPage, {
+      [FEATURE_FLAGS.MULTI_CURRENCY]: true,
+    });
     await mockUserCurrency(authenticatedPage, 'EUR', true);
     await mockEmptyBudget(authenticatedPage);
     await mockRate(authenticatedPage, {
@@ -167,6 +172,9 @@ test.describe('Live Conversion Preview — add budget line dialog', () => {
     authenticatedPage,
     budgetDetailsPage,
   }) => {
+    await enableFeatureFlags(authenticatedPage, {
+      [FEATURE_FLAGS.MULTI_CURRENCY]: true,
+    });
     await mockUserCurrency(authenticatedPage, 'EUR', true);
     await mockEmptyBudget(authenticatedPage);
     await mockRate(authenticatedPage, {
@@ -189,6 +197,9 @@ test.describe('Live Conversion Preview — add budget line dialog', () => {
     authenticatedPage,
     budgetDetailsPage,
   }) => {
+    await enableFeatureFlags(authenticatedPage, {
+      [FEATURE_FLAGS.MULTI_CURRENCY]: true,
+    });
     await mockUserCurrency(authenticatedPage, 'EUR', false);
     await mockEmptyBudget(authenticatedPage);
 
@@ -204,6 +215,9 @@ test.describe('Live Conversion Preview — add budget line dialog', () => {
     authenticatedPage,
     budgetDetailsPage,
   }) => {
+    await enableFeatureFlags(authenticatedPage, {
+      [FEATURE_FLAGS.MULTI_CURRENCY]: true,
+    });
     await mockUserCurrency(authenticatedPage, 'EUR', true);
     await mockEmptyBudget(authenticatedPage);
     await mockRate(authenticatedPage, { kind: 'error', status: 500 });

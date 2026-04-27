@@ -6,12 +6,7 @@ import {
   signal,
 } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
-import {
-  FormControl,
-  FormGroup,
-  ReactiveFormsModule,
-  Validators,
-} from '@angular/forms';
+import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -24,6 +19,7 @@ import { AuthSessionService, PASSWORD_MIN_LENGTH } from '@core/auth';
 import { Logger } from '@core/logging/logger';
 import { MatDivider } from '@angular/material/divider';
 import { ErrorAlert } from '@ui/error-alert';
+import { createFieldsMatchValidator } from '@core/validators';
 import { changePasswordFormSchema } from './change-password-dialog.schema';
 
 @Component({
@@ -64,6 +60,7 @@ import { changePasswordFormSchema } from './change-password-dialog.schema';
             [type]="isCurrentPasswordHidden() ? 'password' : 'text'"
             formControlName="currentPassword"
             data-testid="current-password-input"
+            (input)="clearError()"
           />
           <mat-icon matPrefix>lock</mat-icon>
           <button
@@ -99,6 +96,7 @@ import { changePasswordFormSchema } from './change-password-dialog.schema';
               [type]="isNewPasswordHidden() ? 'password' : 'text'"
               formControlName="newPassword"
               data-testid="new-password-input"
+              (input)="clearError()"
             />
             <mat-icon matPrefix>lock</mat-icon>
             <button
@@ -142,6 +140,7 @@ import { changePasswordFormSchema } from './change-password-dialog.schema';
               [type]="isConfirmPasswordHidden() ? 'password' : 'text'"
               formControlName="confirmPassword"
               data-testid="confirm-password-input"
+              (input)="clearError()"
             />
             <mat-icon matPrefix>lock</mat-icon>
             <button
@@ -160,6 +159,10 @@ import { changePasswordFormSchema } from './change-password-dialog.schema';
               <mat-error>{{
                 'settings.confirmPasswordRequired' | transloco
               }}</mat-error>
+            } @else if (
+              passwordForm.get('confirmPassword')?.hasError('passwordsMismatch')
+            ) {
+              <mat-error>{{ 'form.passwordsMismatch' | transloco }}</mat-error>
             }
           </mat-form-field>
         </div>
@@ -195,6 +198,7 @@ export class ChangePasswordDialog {
   readonly #dialogRef = inject(MatDialogRef<ChangePasswordDialog>);
   readonly #authSession = inject(AuthSessionService);
   readonly #transloco = inject(TranslocoService);
+  readonly #formBuilder = inject(FormBuilder);
 
   protected readonly showPasswordLabel = this.#transloco.translate(
     'settings.showPassword',
@@ -206,41 +210,44 @@ export class ChangePasswordDialog {
   protected readonly isNewPasswordHidden = signal(true);
   protected readonly isConfirmPasswordHidden = signal(true);
 
-  protected readonly passwordForm = new FormGroup({
-    currentPassword: new FormControl('', {
-      nonNullable: true,
-      validators: [Validators.required],
-    }),
-    newPassword: new FormControl('', {
-      nonNullable: true,
-      validators: [
-        Validators.required,
-        Validators.minLength(PASSWORD_MIN_LENGTH),
+  protected readonly passwordForm = this.#formBuilder.nonNullable.group(
+    {
+      currentPassword: ['', [Validators.required]],
+      newPassword: [
+        '',
+        [Validators.required, Validators.minLength(PASSWORD_MIN_LENGTH)],
       ],
-    }),
-    confirmPassword: new FormControl('', {
-      nonNullable: true,
-      validators: [Validators.required],
-    }),
+      confirmPassword: ['', [Validators.required]],
+    },
+    {
+      validators: createFieldsMatchValidator(
+        'newPassword',
+        'confirmPassword',
+        'passwordsMismatch',
+      ),
+    },
+  );
+
+  readonly #formStatus = toSignal(this.passwordForm.statusChanges, {
+    initialValue: this.passwordForm.status,
   });
 
-  readonly #formChanges = toSignal(this.passwordForm.valueChanges, {
-    initialValue: this.passwordForm.value,
-  });
+  protected readonly isFormValid = computed(
+    () => this.#formStatus() === 'VALID' && !this.isSubmitting(),
+  );
 
-  protected readonly isFormValid = computed(() => {
-    this.#formChanges();
-    if (!this.passwordForm.valid) return false;
-    const { newPassword, confirmPassword } = this.passwordForm.getRawValue();
-    return newPassword === confirmPassword;
-  });
+  protected clearError(): void {
+    this.errorMessage.set('');
+  }
 
   protected async onSubmit(): Promise<void> {
-    if (this.isSubmitting() || !this.isFormValid()) return;
+    if (!this.isFormValid()) return;
 
-    const { currentPassword, newPassword } = changePasswordFormSchema.parse(
+    const parsed = changePasswordFormSchema.safeParse(
       this.passwordForm.getRawValue(),
     );
+    if (!parsed.success) return;
+    const { currentPassword, newPassword } = parsed.data;
 
     this.isSubmitting.set(true);
     this.errorMessage.set('');

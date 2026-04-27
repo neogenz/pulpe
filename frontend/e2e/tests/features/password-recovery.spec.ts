@@ -27,7 +27,6 @@ const mockSupabaseResetEmail = async (page: Page) => {
   });
 };
 
-
 test.describe('Password Recovery', () => {
   test.describe.configure({ mode: 'parallel' });
 
@@ -125,11 +124,14 @@ test.describe('Password Recovery', () => {
     // Inject client key so encryptionSetupGuard allows navigation to dashboard
     await page.addInitScript(() => {
       const validKeyHex = 'aa'.repeat(32);
-      sessionStorage.setItem('pulpe-vault-client-key-session', JSON.stringify({
-        version: 1,
-        data: validKeyHex,
-        updatedAt: new Date().toISOString(),
-      }));
+      sessionStorage.setItem(
+        'pulpe-vault-client-key-session',
+        JSON.stringify({
+          version: 1,
+          data: validKeyHex,
+          updatedAt: new Date().toISOString(),
+        }),
+      );
     });
 
     await mockSupabaseUpdateUser(page);

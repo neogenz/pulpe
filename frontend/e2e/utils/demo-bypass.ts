@@ -10,12 +10,15 @@ import type { E2ETestWindow } from '../types/e2e.types';
  * This bypass works in conjunction with the __E2E_DEMO_BYPASS__ flag that's
  * checked in demo-initializer.service.ts
  */
-export async function setupDemoBypass(page: Page, options: {
-  userId?: string;
-  userEmail?: string;
-  accessToken?: string;
-  refreshToken?: string;
-} = {}): Promise<void> {
+export async function setupDemoBypass(
+  page: Page,
+  options: {
+    userId?: string;
+    userEmail?: string;
+    accessToken?: string;
+    refreshToken?: string;
+  } = {},
+): Promise<void> {
   const {
     userId = 'e2e-demo-user-' + Date.now(),
     userEmail = 'demo@e2e.test',
@@ -33,6 +36,6 @@ export async function setupDemoBypass(page: Page, options: {
         refresh_token: refreshToken,
       };
     },
-    { userId, userEmail, accessToken, refreshToken }
+    { userId, userEmail, accessToken, refreshToken },
   );
 }

@@ -8,89 +8,132 @@ import { LATEST_RELEASE } from '../../projects/webapp/src/app/layout/whats-new/w
  * Tour IDs that match the ProductTourService.
  * We define them here to avoid importing Angular code into Playwright.
  */
-const TOUR_IDS = ['intro', 'dashboard', 'budget-list', 'budget-details', 'templates-list'] as const;
+const TOUR_IDS = [
+  'intro',
+  'dashboard',
+  'budget-list',
+  'budget-details',
+  'templates-list',
+] as const;
 
 /**
  * Shared utility for E2E auth bypass setup
  * Consolidates the auth bypass logic used in both setup and fixtures
  */
-export async function setupAuthBypass(page: Page, options: {
-  includeApiMocks?: boolean;
-  setLocalStorage?: boolean;
-  provider?: 'email' | 'google' | 'apple';
-  vaultCodeConfigured?: boolean;
-} = {}) {
-  const { includeApiMocks = true, setLocalStorage = false, provider, vaultCodeConfigured } = options;
+export async function setupAuthBypass(
+  page: Page,
+  options: {
+    includeApiMocks?: boolean;
+    setLocalStorage?: boolean;
+    provider?: 'email' | 'google' | 'apple';
+    vaultCodeConfigured?: boolean;
+    featureFlags?: Record<string, boolean>;
+  } = {},
+) {
+  const {
+    includeApiMocks = true,
+    setLocalStorage = false,
+    provider,
+    vaultCodeConfigured,
+    featureFlags,
+  } = options;
 
   // Inject E2E auth bypass
-  await page.addInitScript((config) => {
-    const e2eWindow = window as unknown as E2ETestWindow;
-    e2eWindow.__E2E_AUTH_BYPASS__ = true;
+  await page.addInitScript(
+    (config) => {
+      const e2eWindow = window as unknown as E2ETestWindow;
+      e2eWindow.__E2E_AUTH_BYPASS__ = true;
 
-    const userMetadata: Record<string, unknown> = {};
-    const appMetadata: Record<string, unknown> = {};
+      const userMetadata: Record<string, unknown> = {};
+      const appMetadata: Record<string, unknown> = {};
 
-    if (config.provider) {
-      appMetadata['provider'] = config.provider;
-      appMetadata['providers'] = [config.provider];
-    }
-    if (config.vaultCodeConfigured !== undefined) {
-      userMetadata['vaultCodeConfigured'] = config.vaultCodeConfigured;
-    }
+      if (config.provider) {
+        appMetadata['provider'] = config.provider;
+        appMetadata['providers'] = [config.provider];
+      }
+      if (config.vaultCodeConfigured !== undefined) {
+        userMetadata['vaultCodeConfigured'] = config.vaultCodeConfigured;
+      }
 
-    const mockUser = {
-      id: config.USER.ID,
-      email: config.USER.EMAIL,
-      ...(Object.keys(appMetadata).length > 0 && { app_metadata: appMetadata }),
-      ...(Object.keys(userMetadata).length > 0 && { user_metadata: userMetadata }),
-      identities: [{
-        id: 'e2e-identity',
-        user_id: config.USER.ID,
-        identity_id: 'e2e-identity',
-        provider: config.provider ?? 'email',
-        identity_data: {},
-        last_sign_in_at: new Date().toISOString(),
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      }],
-    };
-
-    e2eWindow.__E2E_MOCK_AUTH_STATE__ = {
-      user: mockUser,
-      session: {
-        access_token: config.TOKENS.ACCESS,
-        user: mockUser,
-      },
-      isLoading: false,
-      isAuthenticated: true
-    };
-
-    // Only set localStorage if explicitly requested (for fixtures)
-    if (config.setLocalStorage) {
-      localStorage.setItem('auth_token', config.TOKENS.ACCESS);
-    }
-
-    // Disable product tours in E2E tests by marking them as already seen
-    // Key format matches ProductTourService: pulpe-tour-{tourId} (device-scoped)
-    // Uses versioned storage format matching StorageService
-    // Value 'true' matches ProductTourService.hasSeenIntro() check
-    for (const tourId of config.tourIds) {
-      const entry = {
-        version: 1,
-        data: 'true',
-        updatedAt: new Date().toISOString(),
+      const mockUser = {
+        id: config.USER.ID,
+        email: config.USER.EMAIL,
+        ...(Object.keys(appMetadata).length > 0 && {
+          app_metadata: appMetadata,
+        }),
+        ...(Object.keys(userMetadata).length > 0 && {
+          user_metadata: userMetadata,
+        }),
+        identities: [
+          {
+            id: 'e2e-identity',
+            user_id: config.USER.ID,
+            identity_id: 'e2e-identity',
+            provider: config.provider ?? 'email',
+            identity_data: {},
+            last_sign_in_at: new Date().toISOString(),
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          },
+        ],
       };
-      localStorage.setItem(`pulpe-tour-${tourId}`, JSON.stringify(entry));
-    }
 
-    // Dismiss "What's New" toast to prevent it from blocking E2E interactions
-    // Uses versioned storage format matching StorageService
-    localStorage.setItem('pulpe-whats-new-dismissed', JSON.stringify({
-      version: 1,
-      data: config.appVersion,
-      updatedAt: new Date().toISOString(),
-    }));
-  }, { ...TEST_CONFIG, setLocalStorage, tourIds: TOUR_IDS, provider, vaultCodeConfigured, appVersion: LATEST_RELEASE.version });
+      e2eWindow.__E2E_MOCK_AUTH_STATE__ = {
+        user: mockUser,
+        session: {
+          access_token: config.TOKENS.ACCESS,
+          user: mockUser,
+        },
+        isLoading: false,
+        isAuthenticated: true,
+      };
+
+      // Only set localStorage if explicitly requested (for fixtures)
+      if (config.setLocalStorage) {
+        localStorage.setItem('auth_token', config.TOKENS.ACCESS);
+      }
+
+      // Disable product tours in E2E tests by marking them as already seen
+      // Key format matches ProductTourService: pulpe-tour-{tourId} (device-scoped)
+      // Uses versioned storage format matching StorageService
+      // Value 'true' matches ProductTourService.hasSeenIntro() check
+      for (const tourId of config.tourIds) {
+        const entry = {
+          version: 1,
+          data: 'true',
+          updatedAt: new Date().toISOString(),
+        };
+        localStorage.setItem(`pulpe-tour-${tourId}`, JSON.stringify(entry));
+      }
+
+      // Dismiss "What's New" toast to prevent it from blocking E2E interactions
+      // Uses versioned storage format matching StorageService
+      localStorage.setItem(
+        'pulpe-whats-new-dismissed',
+        JSON.stringify({
+          version: 1,
+          data: config.appVersion,
+          updatedAt: new Date().toISOString(),
+        }),
+      );
+    },
+    {
+      ...TEST_CONFIG,
+      setLocalStorage,
+      tourIds: TOUR_IDS,
+      provider,
+      vaultCodeConfigured,
+      appVersion: LATEST_RELEASE.version,
+    },
+  );
+
+  if (featureFlags) {
+    await page.addInitScript((flags) => {
+      (
+        window as unknown as { __E2E_POSTHOG_FLAGS__: Record<string, boolean> }
+      ).__E2E_POSTHOG_FLAGS__ = flags;
+    }, featureFlags);
+  }
 
   // Setup API mocks if requested
   if (includeApiMocks) {
@@ -107,7 +150,7 @@ export async function setupMaintenanceMock(page: Page) {
     return route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify({ maintenanceMode: false, message: null })
+      body: JSON.stringify({ maintenanceMode: false, message: null }),
     });
   });
 }
@@ -126,7 +169,7 @@ export async function setupApiMocks(page: Page) {
       return route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify({ maintenanceMode: false, message: null })
+        body: JSON.stringify({ maintenanceMode: false, message: null }),
       });
     }
 
@@ -135,7 +178,7 @@ export async function setupApiMocks(page: Page) {
       return route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify(MOCK_API_RESPONSES.auth)
+        body: JSON.stringify(MOCK_API_RESPONSES.auth),
       });
     }
 
@@ -204,7 +247,10 @@ export async function setupApiMocks(page: Page) {
         }),
       });
     }
-    if (url.includes('encryption/setup-recovery') || url.includes('encryption/regenerate-recovery')) {
+    if (
+      url.includes('encryption/setup-recovery') ||
+      url.includes('encryption/regenerate-recovery')
+    ) {
       return route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -249,7 +295,7 @@ export async function setupApiMocks(page: Page) {
         return route.fulfill({
           status: 200,
           contentType: 'application/json',
-          body: JSON.stringify(MOCK_API_RESPONSES.templateLines)
+          body: JSON.stringify(MOCK_API_RESPONSES.templateLines),
         });
       }
 
@@ -258,7 +304,7 @@ export async function setupApiMocks(page: Page) {
         return route.fulfill({
           status: 200,
           contentType: 'application/json',
-          body: JSON.stringify(MOCK_API_RESPONSES.templateDetail)
+          body: JSON.stringify(MOCK_API_RESPONSES.templateDetail),
         });
       }
 
@@ -266,7 +312,7 @@ export async function setupApiMocks(page: Page) {
       return route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify(MOCK_API_RESPONSES.templates)
+        body: JSON.stringify(MOCK_API_RESPONSES.templates),
       });
     }
 
@@ -275,7 +321,7 @@ export async function setupApiMocks(page: Page) {
       return route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify(MOCK_API_RESPONSES.success)
+        body: JSON.stringify(MOCK_API_RESPONSES.success),
       });
     }
 

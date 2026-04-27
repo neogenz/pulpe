@@ -54,6 +54,20 @@ describe('budgetCreationFormSchema', () => {
 
       expect(result.description).toBe('Vacances');
     });
+
+    it('should preserve empty description as empty string in the DTO', () => {
+      const result = budgetCreationFormSchema.parse({
+        ...validFormValue,
+        description: '',
+      });
+
+      expect(result).toEqual({
+        month: 6,
+        year: 2026,
+        description: '',
+        templateId: TEMPLATE_ID,
+      });
+    });
   });
 
   describe('validation', () => {
@@ -82,15 +96,6 @@ describe('budgetCreationFormSchema', () => {
       });
 
       expect(result.success).toBe(false);
-    });
-
-    it('should accept an empty description', () => {
-      const result = budgetCreationFormSchema.parse({
-        ...validFormValue,
-        description: '',
-      });
-
-      expect(result.description).toBe('');
     });
   });
 });

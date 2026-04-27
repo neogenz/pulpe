@@ -13,6 +13,7 @@ import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { TranslocoPipe } from '@jsverse/transloco';
 import type { OnboardingTransaction } from '@core/complete-profile';
 import type { SupportedCurrency } from 'pulpe-shared';
+import { CurrencySuffix } from '@ui/currency-suffix';
 
 export interface AddCustomExpenseDialogData {
   readonly currency: SupportedCurrency;
@@ -29,6 +30,7 @@ export interface AddCustomExpenseDialogData {
     MatButtonToggleModule,
     ReactiveFormsModule,
     TranslocoPipe,
+    CurrencySuffix,
   ],
   template: `
     <h2 mat-dialog-title class="text-headline-small">
@@ -99,7 +101,21 @@ export interface AddCustomExpenseDialogData {
             inputmode="decimal"
             data-testid="custom-expense-amount"
           />
-          <span matTextSuffix>{{ currency }}</span>
+          <pulpe-currency-suffix matTextSuffix [currency]="currency" />
+          @if (
+            form.controls.amount.hasError('required') &&
+            form.controls.amount.touched
+          ) {
+            <mat-error>{{
+              'completeProfile.customExpense.amountRequired' | transloco
+            }}</mat-error>
+          } @else if (
+            form.controls.amount.hasError('min') && form.controls.amount.touched
+          ) {
+            <mat-error>{{
+              'completeProfile.customExpense.amountMin' | transloco
+            }}</mat-error>
+          }
         </mat-form-field>
       </form>
     </mat-dialog-content>

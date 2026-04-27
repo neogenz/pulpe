@@ -813,6 +813,8 @@
       "namePlaceholder": "Ex: Salle de sport, Streaming...",
       "nameMaxLength": "100 caractères maximum",
       "amountLabel": "Montant",
+      "amountRequired": "Saisis un montant",
+      "amountMin": "Le montant doit être supérieur à 0",
       "sectionTitle": "Prévisions personnalisées",
       "addButton": "Ajouter une prévision",
       "kindExpense": "Dépense",

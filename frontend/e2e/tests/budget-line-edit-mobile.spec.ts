@@ -23,19 +23,19 @@ test.describe('Budget Line Edit - Mobile', () => {
     });
 
     // Check if there are any budget lines
-    const hasBudgetLines = await page
-      .locator('[data-testid^="edit-"]')
-      .count();
+    const hasBudgetLines = await page.locator('[data-testid^="edit-"]').count();
 
     if (hasBudgetLines === 0) {
       // Add a budget line first if none exists
-      await page.click('[data-testid="add-first-line"], [data-testid="add-budget-line"]');
-      
+      await page.click(
+        '[data-testid="add-first-line"], [data-testid="add-budget-line"]',
+      );
+
       // Fill in the dialog to create a budget line
       await page.fill('[data-testid="new-line-name"]', 'Test Budget Line');
       await page.fill('[data-testid="new-line-amount"]', '100');
       await page.click('[data-testid="add-new-line"]');
-      
+
       // Wait for the new line to appear
       await page.waitForSelector('[data-testid^="edit-"]', {
         state: 'visible',
@@ -55,13 +55,23 @@ test.describe('Budget Line Edit - Mobile', () => {
     await expect(dialogTitle).toHaveText('Modifier la prévision');
 
     // Check that all form fields are present
-    await expect(dialog.locator('[data-testid="edit-line-name"]')).toBeVisible();
-    await expect(dialog.locator('[data-testid="edit-line-amount"]')).toBeVisible();
-    await expect(dialog.locator('[data-testid="edit-line-kind"]')).toBeVisible();
+    await expect(
+      dialog.locator('[data-testid="edit-line-name"]'),
+    ).toBeVisible();
+    await expect(
+      dialog.locator('[data-testid="edit-line-amount"]'),
+    ).toBeVisible();
+    await expect(
+      dialog.locator('[data-testid="edit-line-kind"]'),
+    ).toBeVisible();
 
     // Check that cancel and save buttons are present
-    await expect(dialog.locator('[data-testid="cancel-edit-line"]')).toBeVisible();
-    await expect(dialog.locator('[data-testid="save-edit-line"]')).toBeVisible();
+    await expect(
+      dialog.locator('[data-testid="cancel-edit-line"]'),
+    ).toBeVisible();
+    await expect(
+      dialog.locator('[data-testid="save-edit-line"]'),
+    ).toBeVisible();
   });
 
   test('should update budget line when submitting the edit dialog', async ({
@@ -73,13 +83,13 @@ test.describe('Budget Line Edit - Mobile', () => {
     });
 
     // Ensure we have at least one budget line
-    const hasBudgetLines = await page
-      .locator('[data-testid^="edit-"]')
-      .count();
+    const hasBudgetLines = await page.locator('[data-testid^="edit-"]').count();
 
     if (hasBudgetLines === 0) {
       // Add a budget line first if none exists
-      await page.click('[data-testid="add-first-line"], [data-testid="add-budget-line"]');
+      await page.click(
+        '[data-testid="add-first-line"], [data-testid="add-budget-line"]',
+      );
       await page.fill('[data-testid="new-line-name"]', 'Initial Name');
       await page.fill('[data-testid="new-line-amount"]', '100');
       await page.click('[data-testid="add-new-line"]');
@@ -124,13 +134,13 @@ test.describe('Budget Line Edit - Mobile', () => {
     });
 
     // Ensure we have at least one budget line
-    const hasBudgetLines = await page
-      .locator('[data-testid^="edit-"]')
-      .count();
+    const hasBudgetLines = await page.locator('[data-testid^="edit-"]').count();
 
     if (hasBudgetLines === 0) {
       // Add a budget line first if none exists
-      await page.click('[data-testid="add-first-line"], [data-testid="add-budget-line"]');
+      await page.click(
+        '[data-testid="add-first-line"], [data-testid="add-budget-line"]',
+      );
       await page.fill('[data-testid="new-line-name"]', 'Original Name');
       await page.fill('[data-testid="new-line-amount"]', '100');
       await page.click('[data-testid="add-new-line"]');
@@ -186,13 +196,13 @@ test.describe('Budget Line Edit - Desktop', () => {
     });
 
     // Ensure we have at least one budget line
-    const hasBudgetLines = await page
-      .locator('[data-testid^="edit-"]')
-      .count();
+    const hasBudgetLines = await page.locator('[data-testid^="edit-"]').count();
 
     if (hasBudgetLines === 0) {
       // Add a budget line first if none exists
-      await page.click('[data-testid="add-first-line"], [data-testid="add-budget-line"]');
+      await page.click(
+        '[data-testid="add-first-line"], [data-testid="add-budget-line"]',
+      );
       await page.fill('[data-testid="new-line-name"]', 'Test Budget Line');
       await page.fill('[data-testid="new-line-amount"]', '100');
       await page.click('[data-testid="add-new-line"]');
@@ -214,12 +224,20 @@ test.describe('Budget Line Edit - Desktop', () => {
     await expect(dialogTitle).toHaveText('Modifier la prévision');
 
     // Check that all form fields are present
-    await expect(dialog.locator('[data-testid="edit-line-name"]')).toBeVisible();
-    await expect(dialog.locator('[data-testid="edit-line-amount"]')).toBeVisible();
+    await expect(
+      dialog.locator('[data-testid="edit-line-name"]'),
+    ).toBeVisible();
+    await expect(
+      dialog.locator('[data-testid="edit-line-amount"]'),
+    ).toBeVisible();
 
     // Check that cancel and save buttons are present
-    await expect(dialog.locator('[data-testid="cancel-edit-line"]')).toBeVisible();
-    await expect(dialog.locator('[data-testid="save-edit-line"]')).toBeVisible();
+    await expect(
+      dialog.locator('[data-testid="cancel-edit-line"]'),
+    ).toBeVisible();
+    await expect(
+      dialog.locator('[data-testid="save-edit-line"]'),
+    ).toBeVisible();
 
     // Close the dialog
     await dialog.locator('[data-testid="cancel-edit-line"]').click();
