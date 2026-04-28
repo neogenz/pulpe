@@ -78,7 +78,7 @@ import type {
             [class.text-financial-expense]="data.budgetLine.kind === 'expense'"
             [class.text-financial-savings]="data.budgetLine.kind === 'saving'"
           >
-            {{ consumption().consumed | appCurrency: currency() : '1.2-2' }}
+            {{ consumption().consumed | appCurrency: currency() : '1.0-0' }}
           </div>
         </div>
         <!-- Prévu -->
@@ -114,7 +114,7 @@ import type {
             [class.text-error]="consumption().remaining < 0"
             [class.text-financial-income]="consumption().remaining >= 0"
           >
-            {{ consumption().remaining | appCurrency: currency() : '1.2-2' }}
+            {{ consumption().remaining | appCurrency: currency() : '1.0-0' }}
           </div>
         </div>
       </div>

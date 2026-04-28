@@ -544,12 +544,12 @@ final class BudgetDetailsViewModel {
         case .transaction(let transaction):
             (
                 transaction.name,
-                transaction.amount.asSignedCompactCurrency(presentationCurrency, for: transaction.kind)
+                transaction.amount.asSignedCurrency(presentationCurrency, for: transaction.kind)
             )
         case .budgetLine(let budgetLine):
             (
                 budgetLine.name,
-                budgetLine.amount.asSignedCompactCurrency(presentationCurrency, for: budgetLine.kind)
+                budgetLine.amount.asSignedCurrency(presentationCurrency, for: budgetLine.kind)
             )
         }
     }

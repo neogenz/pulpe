@@ -48,7 +48,7 @@ struct YearOverviewWidgetView: View {
                     .foregroundStyle(Color.textSecondary)
 
                 if let available = month.available {
-                    Text(available.asCurrency(entry.currency))
+                    Text(available.asCompactCurrency(entry.currency))
                         .font(PulpeTypography.amountLarge)
                         .monospacedDigit()
                         .foregroundStyle(available >= 0 ? Color.pulpePrimary : Color.financialOverBudget)
@@ -81,7 +81,7 @@ struct YearOverviewWidgetView: View {
                 .foregroundStyle(month.isCurrentMonth ? Color.textPrimary : Color.textSecondary)
 
             if let available = month.available {
-                Text(available.asAmount(for: entry.currency))
+                Text(available.asCompactAmount(for: entry.currency))
                     .font(PulpeTypography.metricMini)
                     .fontWeight(month.isCurrentMonth ? .bold : .regular)
                     .foregroundStyle(amountColor(for: available))

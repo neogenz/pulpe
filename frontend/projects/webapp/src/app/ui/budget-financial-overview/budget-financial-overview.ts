@@ -62,7 +62,7 @@ export interface FinancialTotals {
           [class.text-warning]="budgetState() === 'warning'"
           [class.text-on-error-container]="budgetState() === 'deficit'"
         >
-          {{ remainingAbsolute() | number: '1.2-2' : locale() }}
+          {{ remainingAbsolute() | number: '1.0-0' : locale() }}
           <span class="text-headline-small font-normal">{{
             currencySymbol()
           }}</span>

@@ -29,7 +29,7 @@ struct QuickAmountChips<Field: Hashable>: View {
                         amountText = "\(quickAmount)"
                     }
                 } label: {
-                    Text("\(quickAmount) \(currency.rawValue)")
+                    Text("\(quickAmount) \(currency.symbol)")
                         .font(PulpeTypography.labelLarge)
                         .fixedSize()
                         .padding(.horizontal, DesignTokens.Spacing.md)

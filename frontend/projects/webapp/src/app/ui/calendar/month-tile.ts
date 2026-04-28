@@ -8,6 +8,7 @@ import {
 import { MatRipple } from '@angular/material/core';
 import { MatIconModule } from '@angular/material/icon';
 import { isBefore } from 'date-fns';
+import { CURRENCY_METADATA, type SupportedCurrency } from 'pulpe-shared';
 import { type CalendarMonth } from './calendar-types';
 
 const AMOUNT_FORMATTERS = new Map<string, Intl.NumberFormat>();
@@ -104,7 +105,7 @@ interface MonthTileViewModel {
             <span
               class="text-body-medium md:text-body-large text-on-surface-variant"
             >
-              {{ currency() }}
+              {{ currencySymbol() }}
             </span>
           </div>
           @if (vm().period) {
@@ -155,10 +156,14 @@ interface MonthTileViewModel {
 })
 export class MonthTile {
   readonly month = input.required<CalendarMonth>();
-  readonly currency = input<string>('CHF');
+  readonly currency = input<SupportedCurrency>('CHF');
   readonly locale = input<string>('de-CH');
   readonly isCurrentMonth = input<boolean>(false);
   readonly tileClick = output<CalendarMonth>();
+
+  protected readonly currencySymbol = computed(
+    () => CURRENCY_METADATA[this.currency()].symbol,
+  );
 
   readonly vm = computed<MonthTileViewModel>(() => {
     const month = this.month();

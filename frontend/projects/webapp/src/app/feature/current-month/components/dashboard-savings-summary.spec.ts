@@ -68,13 +68,13 @@ describe('DashboardSavingsSummary', () => {
       );
     });
 
-    it('should render CHF amounts with dot decimal separator (PUL-125)', () => {
+    it('should render CHF aggregation amounts as integers (entiers, no decimals)', () => {
       setTestInput(component.totalRealized, 200.5);
       fixture.detectChanges();
       const text = fixture.nativeElement.textContent;
-      expect(text).toContain('200.50');
-      expect(text).toContain('500.00');
-      expect(text).not.toMatch(/\d,\d{2}/);
+      expect(text).toContain('201');
+      expect(text).toContain('500');
+      expect(text).not.toMatch(/\d[.,]\d{2}/);
     });
   });
 

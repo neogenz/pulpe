@@ -404,7 +404,7 @@
     "allCheckedFilterEmpty": "Tout est pointé",
     "allCheckedFilterDescription": "Toutes tes prévisions ont déjà été pointées.",
     "checkedSummary": "{{ checked }}/{{ total }} pointés",
-    "accountBalance": "Ton compte ≈ {{ amount }} CHF",
+    "accountBalance": "Ton compte ≈ {{ amount }}",
     "transactions": "Transactions",
     "freeTransactions": "Hors prévisions",
     "viewGrid": "Vue Grille",

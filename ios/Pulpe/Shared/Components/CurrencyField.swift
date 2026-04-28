@@ -66,7 +66,7 @@ struct CurrencyField: View {
             }
 
             HStack {
-                Text(currency.rawValue)
+                Text(currency.symbol)
                     .foregroundStyle(prefixColor)
                     .font(PulpeTypography.bodyLarge)
 
@@ -233,48 +233,6 @@ struct CurrencyField: View {
     }
 }
 
-/// Compact currency display for read-only values
-struct CurrencyText: View {
-    let amount: Decimal
-    let showSign: Bool
-    let currency: SupportedCurrency
-    let style: TextStyle
-
-    enum TextStyle {
-        case title
-        case body
-        case caption
-    }
-
-    init(_ amount: Decimal, showSign: Bool = false, currency: SupportedCurrency = .chf, style: TextStyle = .body) {
-        self.amount = amount
-        self.showSign = showSign
-        self.currency = currency
-        self.style = style
-    }
-
-    var body: some View {
-        Text(formattedAmount)
-            .font(font)
-            .sensitiveAmount()
-    }
-
-    private var font: Font {
-        switch style {
-        case .title: .title2.weight(.semibold)
-        case .body: .body
-        case .caption: .caption
-        }
-    }
-
-    private var formattedAmount: String {
-        let style = Decimal.FormatStyle.Currency(code: currency.rawValue)
-            .locale(Formatters.locale(for: currency))
-            .sign(strategy: showSign ? .always() : .automatic)
-        return amount.formatted(style)
-    }
-}
-
 #Preview {
     VStack(spacing: 20) {
         CurrencyField(
@@ -287,12 +245,6 @@ struct CurrencyText: View {
             hint: "0.00",
             label: "Montant optionnel"
         )
-
-        VStack {
-            CurrencyText(5000, style: .title)
-            CurrencyText(-1234.56, showSign: true)
-            CurrencyText(42.50, style: .caption)
-        }
     }
     .padding()
 }

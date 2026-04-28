@@ -37,7 +37,7 @@ import type {
         [class.text-financial-negative]="line().metadata.cumulativeBalance < 0"
       >
         {{
-          line().metadata.cumulativeBalance | appCurrency: currency() : '1.2-2'
+          line().metadata.cumulativeBalance | appCurrency: currency() : '1.0-0'
         }}
       </span>
     </div>

@@ -34,7 +34,7 @@ struct CurrentMonthWidgetView: View {
                 .font(PulpeTypography.metricMini)
                 .foregroundStyle(Color.textSecondary)
 
-            Text(entry.available.asCurrency(entry.currency))
+            Text(entry.available.asCompactCurrency(entry.currency))
                 .font(PulpeTypography.amountXL)
                 .monospacedDigit()
                 .minimumScaleFactor(0.6)
@@ -69,7 +69,7 @@ struct CurrentMonthWidgetView: View {
                     .font(PulpeTypography.detailLabel)
                     .foregroundStyle(Color.textSecondary)
 
-                Text(entry.available.asCurrency(entry.currency))
+                Text(entry.available.asCompactCurrency(entry.currency))
                     .font(PulpeTypography.amountLarge)
                     .monospacedDigit()
                     .minimumScaleFactor(0.7)

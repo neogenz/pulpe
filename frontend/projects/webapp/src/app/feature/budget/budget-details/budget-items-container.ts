@@ -1,4 +1,3 @@
-import { DecimalPipe } from '@angular/common';
 import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
 import { TranslocoPipe } from '@jsverse/transloco';
 import {
@@ -27,7 +26,7 @@ import {
   type Transaction,
   type SupportedCurrency,
 } from 'pulpe-shared';
-import { CURRENCY_CONFIG } from '@core/currency';
+import { AppCurrencyPipe, CURRENCY_CONFIG } from '@core/currency';
 import { map } from 'rxjs/operators';
 import { BudgetGrid } from './budget-grid';
 import { BudgetTable } from './budget-table/budget-table';
@@ -50,7 +49,7 @@ import { BudgetDetailsDialogService } from './budget-details-dialog.service';
 @Component({
   selector: 'pulpe-budget-items',
   imports: [
-    DecimalPipe,
+    AppCurrencyPipe,
     MatButtonModule,
     MatIconModule,
     MatTooltipModule,
@@ -120,7 +119,9 @@ import { BudgetDetailsDialogService } from './budget-details-dialog.service';
               'budget.accountBalance'
                 | transloco
                   : {
-                      amount: (estimatedBalance() | number: '1.0-0' : locale()),
+                      amount:
+                        (estimatedBalance()
+                        | appCurrency: currency() : '1.0-0'),
                     }
             }}
           </span>

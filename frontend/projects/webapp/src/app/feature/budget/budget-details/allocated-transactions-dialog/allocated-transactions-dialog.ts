@@ -85,7 +85,9 @@ export interface AllocatedTransactionsDialogResult {
               {{ 'budget.consumedLabel' | transloco }}
             </div>
             <div class="text-title-medium font-semibold ph-no-capture">
-              {{ data.consumption.consumed | appCurrency: currency() }}
+              {{
+                data.consumption.consumed | appCurrency: currency() : '1.0-0'
+              }}
             </div>
           </div>
           <div class="text-center">
@@ -97,7 +99,9 @@ export interface AllocatedTransactionsDialogResult {
               [class.text-error]="data.consumption.remaining < 0"
               [class.text-financial-income]="data.consumption.remaining >= 0"
             >
-              {{ data.consumption.remaining | appCurrency: currency() }}
+              {{
+                data.consumption.remaining | appCurrency: currency() : '1.0-0'
+              }}
             </div>
           </div>
         </div>

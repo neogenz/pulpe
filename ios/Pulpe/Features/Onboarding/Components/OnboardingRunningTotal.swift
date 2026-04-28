@@ -8,7 +8,7 @@ struct OnboardingRunningTotal: View {
     var currency: SupportedCurrency = .chf
 
     var body: some View {
-        let formatted = amount.asCurrency(currency)
+        let formatted = amount.asCompactCurrency(currency)
         HStack {
             Text(label)
                 .font(PulpeTypography.labelLarge)
