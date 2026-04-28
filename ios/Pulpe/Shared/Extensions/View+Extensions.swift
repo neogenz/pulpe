@@ -220,6 +220,40 @@ extension View {
             .presentationCornerRadius(DesignTokens.CornerRadius.xl)
             .presentationBackground(Color.sheetBackground)
     }
+
+    /// Sheet auto-sized to its intrinsic content height. Use for short, single-purpose
+    /// sheets (pickers, confirmations) where a fixed pixel detent leaves dead space.
+    func intrinsicSheetPresentation() -> some View {
+        modifier(IntrinsicSheetPresentationModifier())
+    }
+}
+
+private struct IntrinsicSheetContentHeightKey: PreferenceKey {
+    static let defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = max(value, nextValue())
+    }
+}
+
+private struct IntrinsicSheetPresentationModifier: ViewModifier {
+    @State private var contentHeight: CGFloat = 0
+
+    func body(content: Content) -> some View {
+        content
+            .background(
+                GeometryReader { proxy in
+                    Color.clear.preference(
+                        key: IntrinsicSheetContentHeightKey.self,
+                        value: proxy.size.height
+                    )
+                }
+            )
+            .onPreferenceChange(IntrinsicSheetContentHeightKey.self) { contentHeight = $0 }
+            .presentationDetents(contentHeight > 0 ? [.height(contentHeight)] : [.medium])
+            .presentationDragIndicator(.visible)
+            .presentationCornerRadius(DesignTokens.CornerRadius.xl)
+            .presentationBackground(Color.sheetBackground)
+    }
 }
 
 // MARK: - List Row Styling

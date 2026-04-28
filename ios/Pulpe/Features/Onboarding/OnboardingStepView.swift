@@ -405,6 +405,6 @@ struct OnboardingCurrencySwapSheet: View {
             .primaryButtonStyle(isEnabled: true)
         }
         .padding(DesignTokens.Spacing.xxl)
-        .standardSheetPresentation(detents: [.height(DesignTokens.SheetHeight.compactPicker)])
+        .intrinsicSheetPresentation()
     }
 }
