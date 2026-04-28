@@ -5,6 +5,7 @@ import {
   output,
   computed,
 } from '@angular/core';
+import { type SupportedCurrency } from 'pulpe-shared';
 import { MonthTile } from './month-tile';
 import { type CalendarMonth, type CalendarYear } from './calendar-types';
 
@@ -58,7 +59,7 @@ export class YearCalendar {
   readonly calendarYear = input.required<CalendarYear>();
 
   // Optional inputs
-  readonly currency = input<string>('CHF');
+  readonly currency = input<SupportedCurrency>('CHF');
   readonly locale = input<string>('de-CH');
   readonly currentDate = input<{ month: number; year: number }>();
 
