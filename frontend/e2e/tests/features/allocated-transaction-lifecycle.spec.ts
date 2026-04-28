@@ -63,7 +63,7 @@ test.describe('Allocated Transaction Lifecycle', () => {
     );
     await expect(envelopeCard).toBeVisible();
     await expect(envelopeCard).toContainText('Courses');
-    await expect(envelopeCard).toContainText('400.00 CHF');
+    await expect(envelopeCard).toContainText('400 CHF');
 
     // Click the card to open the detail panel
     await envelopeCard.click();
@@ -135,7 +135,7 @@ test.describe('Allocated Transaction Lifecycle', () => {
       `envelope-card-${TEST_UUIDS.LINE_2}`,
     );
     await expect(envelopeCard).toBeVisible();
-    await expect(envelopeCard).toContainText('330.00 CHF');
+    await expect(envelopeCard).toContainText('330 CHF');
 
     // Progress bar should be visible (segmented-budget-progress renders segments)
     const progressBar = envelopeCard.locator('pulpe-segmented-budget-progress');
@@ -336,8 +336,8 @@ test.describe('Allocated Transaction Lifecycle', () => {
     await currentMonthPage.expectPageLoaded();
 
     // Verify expenses = 500 (envelope) + 100 (free) = 600
-    await currentMonthPage.expectExpensesAmount('600.00');
+    await currentMonthPage.expectExpensesAmount('600');
     // Verify remaining = 5000 - 600 = 4400
-    await currentMonthPage.expectRemainingAmount('4 400.00');
+    await currentMonthPage.expectRemainingAmount('4 400');
   });
 });

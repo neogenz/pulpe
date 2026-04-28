@@ -99,7 +99,7 @@ test.describe('Financial Overview Calculations', () => {
 
     // Revenus pill should show 4800 (3500 + 800 + 500 rollover)
     // Note: fr-CH locale uses NARROW NO-BREAK SPACE (U+202F) as thousands separator
-    await expect(financialOverview).toContainText('4\u2019800.00 CHF');
+    await expect(financialOverview).toContainText('4\u2019800 CHF');
   });
 
   test('Reste equals Disponible minus Depenses minus Epargne', async ({
@@ -122,10 +122,10 @@ test.describe('Financial Overview Calculations', () => {
     await expect(financialOverview).toBeVisible();
 
     // Dépenses pill: 1675
-    await expect(financialOverview).toContainText('1\u2019675.00 CHF');
+    await expect(financialOverview).toContainText('1\u2019675 CHF');
 
     // Épargne pill: 500
-    await expect(financialOverview).toContainText('500.00 CHF');
+    await expect(financialOverview).toContainText('500 CHF');
 
     // Reste = 4800 - 1675 - 500 = 2625
     await expect(
@@ -159,7 +159,7 @@ test.describe('Financial Overview Calculations', () => {
     await expect(financialOverview).toBeVisible();
 
     // Without rollover: Revenus = 4300, Reste = 4300 - 1675 - 500 = 2125
-    await expect(financialOverview).toContainText('4\u2019300.00 CHF');
+    await expect(financialOverview).toContainText('4\u2019300 CHF');
     await expect(
       financialOverview.locator('.text-display-medium, .text-display-large'),
     ).toContainText('2\u2019125');

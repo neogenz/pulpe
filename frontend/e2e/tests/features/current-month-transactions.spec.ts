@@ -232,16 +232,16 @@ test.describe('Current Month Transactions', () => {
     await currentMonthPage.goto();
 
     // Initial state: expenses = 500 (envelope) + 100 (free) = 600
-    await currentMonthPage.expectExpensesAmount('600.00');
+    await currentMonthPage.expectExpensesAmount('600');
     // Initial remaining = 5000 - 600 = 4400
-    await currentMonthPage.expectRemainingAmount('4 400.00');
+    await currentMonthPage.expectRemainingAmount('4 400');
 
     // Add a new free transaction of 200
     await currentMonthPage.addTransaction('200', 'New expense');
 
     // After adding: expenses = 500 (envelope) + 100 + 200 (free) = 800
-    await currentMonthPage.expectExpensesAmount('800.00');
+    await currentMonthPage.expectExpensesAmount('800');
     // Remaining = 5000 - 800 = 4200
-    await currentMonthPage.expectRemainingAmount('4 200.00');
+    await currentMonthPage.expectRemainingAmount('4 200');
   });
 });
