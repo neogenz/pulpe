@@ -403,10 +403,8 @@ struct OnboardingCurrencySwapSheet: View {
                 Text("Utiliser \(draft.nativeName)")
             }
             .primaryButtonStyle(isEnabled: true)
-
-            Spacer()
         }
         .padding(DesignTokens.Spacing.xxl)
-        .standardSheetPresentation(detents: [.height(360)])
+        .standardSheetPresentation(detents: [.height(DesignTokens.SheetHeight.compactPicker)])
     }
 }

@@ -285,6 +285,13 @@ enum DesignTokens {
         static let separator: CGFloat = 1
     }
 
+    // MARK: - Sheet Heights
+
+    enum SheetHeight {
+        /// Compact sheet for a single picker + primary CTA (e.g. currency choice)
+        static let compactPicker: CGFloat = 320
+    }
+
     // MARK: - Numpad
 
     enum Numpad {
