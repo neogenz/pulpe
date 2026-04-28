@@ -131,7 +131,7 @@ interface TransactionFormControls {
               matTextSuffix
               [showSelector]="showCurrencySelector()"
               [currency]="inputCurrency()"
-              (currencyChange)="inputCurrency.set($event)"
+              (currencyChange)="setInputCurrency($event)"
             />
             @if (
               transactionForm.get('amount')?.hasError('required') &&
@@ -325,6 +325,9 @@ export class AddTransactionBottomSheet {
   protected readonly showCurrencySelector =
     this.#currencyConfig.showCurrencySelector;
   protected readonly inputCurrency = this.#currencyConfig.inputCurrency;
+  protected readonly setInputCurrency = (next: SupportedCurrency): void => {
+    this.#currencyConfig.setInputCurrency?.(next);
+  };
   protected readonly conversionError = this.#currencyConfig.conversionError;
 
   // View child for focus management

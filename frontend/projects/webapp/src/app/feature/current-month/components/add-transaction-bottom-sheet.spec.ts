@@ -155,7 +155,7 @@ describe('AddTransactionBottomSheet', () => {
           exchangeRate: 1.0897,
         },
       });
-      component['inputCurrency'].set('CHF');
+      component['setInputCurrency']('CHF');
       component['transactionForm'].patchValue({
         name: 'Test',
         amount: 100,
@@ -200,7 +200,7 @@ describe('AddTransactionBottomSheet', () => {
       converterSpy.convertWithMetadata.mockRejectedValueOnce(
         new Error('rate unavailable'),
       );
-      component['inputCurrency'].set('CHF');
+      component['setInputCurrency']('CHF');
       component['transactionForm'].patchValue({
         name: 'Test',
         amount: 100,

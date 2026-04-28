@@ -101,13 +101,21 @@ extension AppState {
     func applyPostAuthDestination(_ destination: PostAuthDestination, user: UserInfo? = nil) async {
         if let user {
             currentUser = user
-            // `early_adopter` drives targeted feature flag rollouts via PostHog
-            // person properties — must be passed on identify().
-            AnalyticsService.shared.identify(
-                userId: user.id,
-                properties: [AnalyticsService.earlyAdopterProperty: user.isEarlyAdopter]
-            )
-            AnalyticsService.shared.reloadFeatureFlags()
+            // Skip identify on `.unauthenticatedSessionExpired`: the server already
+            // invalidated this session, so associating analytics + person-property
+            // feature flags with this user would leak identity into a state PostHog
+            // would otherwise treat as anonymous-and-rejected.
+            if case .unauthenticatedSessionExpired = destination {
+                // intentionally no-op
+            } else {
+                // `early_adopter` drives targeted feature flag rollouts via PostHog
+                // person properties — must be passed on identify().
+                AnalyticsService.shared.identify(
+                    userId: user.id,
+                    properties: [AnalyticsService.earlyAdopterProperty: user.isEarlyAdopter]
+                )
+                AnalyticsService.shared.reloadFeatureFlags()
+            }
         }
         authState = .loading
 

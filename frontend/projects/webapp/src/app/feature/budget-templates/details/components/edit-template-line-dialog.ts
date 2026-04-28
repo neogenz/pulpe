@@ -4,7 +4,6 @@ import {
   computed,
   inject,
   signal,
-  type WritableSignal,
 } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import {
@@ -295,11 +294,7 @@ export class EditTemplateLineDialog {
   }
 
   protected handleInputCurrencyChange(currency: SupportedCurrency): void {
-    if (this.isEditMode()) return;
-    const sig = this.#currencyConfig.inputCurrency;
-    if ('set' in sig) {
-      (sig as WritableSignal<SupportedCurrency>).set(currency);
-    }
+    this.#currencyConfig.setInputCurrency?.(currency);
   }
 
   async handleSubmit(): Promise<void> {

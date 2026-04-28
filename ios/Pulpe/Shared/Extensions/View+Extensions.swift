@@ -249,7 +249,10 @@ private struct IntrinsicSheetPresentationModifier: ViewModifier {
                 }
             )
             .onPreferenceChange(IntrinsicSheetContentHeightKey.self) { contentHeight = $0 }
-            .presentationDetents(contentHeight > 0 ? [.height(contentHeight)] : [.medium])
+            // Fall back to a 1pt detent (effectively hidden) instead of `.medium`
+            // so the first frame doesn't flash to half-screen before the geometry
+            // preference resolves the intrinsic height.
+            .presentationDetents(contentHeight > 0 ? [.height(contentHeight)] : [.height(1)])
             .presentationDragIndicator(.visible)
             .presentationCornerRadius(DesignTokens.CornerRadius.xl)
             .presentationBackground(Color.sheetBackground)

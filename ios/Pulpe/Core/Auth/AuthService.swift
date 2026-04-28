@@ -218,6 +218,24 @@ actor AuthService {
         }
     }
 
+    /// Returns the current access token, distinguishing transient network failures
+    /// from genuine auth invalidation. Throws on `URLError` so the caller can avoid
+    /// forcing a logout on a temporary network drop. Returns nil only when the SDK
+    /// confirms there is no usable session.
+    func resolveAccessTokenStrict() async throws -> String? {
+        do {
+            let session = try await supabase.auth.session
+            return session.accessToken
+        } catch let error as URLError {
+            throw error
+        } catch {
+            Logger.auth.warning(
+                "resolveAccessTokenStrict: auth session unavailable - \(error.localizedDescription, privacy: .public)"
+            )
+            return nil
+        }
+    }
+
     // MARK: - Biometric Session
 
     func saveBiometricTokens() async throws {
