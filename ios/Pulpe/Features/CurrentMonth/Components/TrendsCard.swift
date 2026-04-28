@@ -15,7 +15,7 @@ struct TrendsCard: View {
             HStack(alignment: .center, spacing: DesignTokens.Spacing.xl) {
                 // Current month amount
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                    Text(currentMonthTotal.asCurrency(userSettingsStore.currency))
+                    Text(currentMonthTotal.asCompactCurrency(userSettingsStore.currency))
                         .font(PulpeTypography.title2)
                         .foregroundStyle(.primary)
                         .sensitiveAmount()

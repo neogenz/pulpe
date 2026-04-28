@@ -218,6 +218,24 @@ actor AuthService {
         }
     }
 
+    /// Returns the current access token, distinguishing transient network failures
+    /// from genuine auth invalidation. Throws on `URLError` so the caller can avoid
+    /// forcing a logout on a temporary network drop. Returns nil only when the SDK
+    /// confirms there is no usable session.
+    func resolveAccessTokenStrict() async throws -> String? {
+        do {
+            let session = try await supabase.auth.session
+            return session.accessToken
+        } catch let error as URLError {
+            throw error
+        } catch {
+            Logger.auth.warning(
+                "resolveAccessTokenStrict: auth session unavailable - \(error.localizedDescription, privacy: .public)"
+            )
+            return nil
+        }
+    }
+
     // MARK: - Biometric Session
 
     func saveBiometricTokens() async throws {
@@ -342,11 +360,14 @@ actor AuthService {
 
 // MARK: - Auth Errors
 
-enum AuthServiceError: LocalizedError {
+enum AuthServiceError: LocalizedError, Equatable {
     case signupFailed(String)
     case loginFailed(String)
     case biometricSaveFailed
     case biometricSessionExpired
+    /// Post-auth resolution determined the user is no longer authenticated
+    /// (vault-status returned 401 even after a refresh attempt).
+    case sessionExpired
 
     var errorDescription: String? {
         switch self {
@@ -358,6 +379,8 @@ enum AuthServiceError: LocalizedError {
             return "Les identifiants biométriques n'ont pas pu être enregistrés"
         case .biometricSessionExpired:
             return "La session biométrique a expiré — reconnecte-toi"
+        case .sessionExpired:
+            return "Ta session a expiré — reconnecte-toi"
         }
     }
 }

@@ -52,7 +52,7 @@ import { RecurrenceLabelPipe } from '@ui/transaction-display';
                 class="ph-no-capture text-headline-medium font-bold"
                 [pulpeFinancialKind]="kind()"
               >
-                {{ amount() | appCurrency: currency() : '1.0-0' }}
+                {{ amount() | appCurrency: currency() : '1.2-2' }}
               </div>
             </ng-content>
           </div>

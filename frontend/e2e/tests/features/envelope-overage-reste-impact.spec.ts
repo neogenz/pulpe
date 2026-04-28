@@ -62,8 +62,8 @@ test.describe('Envelope Overage Reste Impact', () => {
       `envelope-card-${TEST_UUIDS.LINE_2}`,
     );
     await expect(envelopeCard).toBeVisible();
-    await expect(envelopeCard).toContainText('80.00 CHF');
-    await expect(envelopeCard).toContainText('120.00 CHF');
+    await expect(envelopeCard).toContainText('80 CHF');
+    await expect(envelopeCard).toContainText('120 CHF');
 
     // Progress bar: 80/200 = 40%
     await expect(envelopeCard).toContainText('40%');
@@ -127,7 +127,7 @@ test.describe('Envelope Overage Reste Impact', () => {
       `envelope-card-${TEST_UUIDS.LINE_2}`,
     );
     await expect(envelopeCard).toBeVisible();
-    await expect(envelopeCard).toContainText('200.00 CHF');
+    await expect(envelopeCard).toContainText('200 CHF');
 
     // Progress bar: 200/200 = 100%
     await expect(envelopeCard).toContainText('100%');
@@ -190,7 +190,7 @@ test.describe('Envelope Overage Reste Impact', () => {
       `envelope-card-${TEST_UUIDS.LINE_2}`,
     );
     await expect(envelopeCard).toBeVisible();
-    await expect(envelopeCard).toContainText('250.00 CHF');
+    await expect(envelopeCard).toContainText('250 CHF');
 
     // Overage indicator
     await expect(envelopeCard).toContainText(/d[ée]pass[ée]/);

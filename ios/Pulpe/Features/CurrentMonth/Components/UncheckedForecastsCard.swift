@@ -148,7 +148,7 @@ private struct UncheckedItemRow: View {
                     .foregroundStyle(color)
                     .sensitiveAmount()
             } else if line.kind == .expense {
-                let formatted = line.amount.asCompactCurrency(userSettingsStore.currency)
+                let formatted = line.amount.asCurrency(userSettingsStore.currency)
                 Text("\(line.recurrence.label) \u{00B7} sur \(formatted)")
                     .font(PulpeTypography.caption)
                     .foregroundStyle(Color.textSecondary)

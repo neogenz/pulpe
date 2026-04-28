@@ -98,7 +98,7 @@ describe('EditTemplateLineDialog', () => {
 
     it('should initialize form with default values', () => {
       expect(component.form.get('name')?.value).toBe('');
-      expect(component.form.get('amount')?.value).toBe(0);
+      expect(component.form.get('amount')?.value).toBeNull();
       expect(component.form.get('kind')?.value).toBe('expense');
     });
 

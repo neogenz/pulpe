@@ -446,7 +446,7 @@ export default class TemplateDetail implements OnInit {
       EditTemplateLineDialogResult
     >(EditTemplateLineDialog, {
       data,
-      width: '500px',
+      width: '600px',
       maxWidth: '95vw',
       injector: this.#injector,
       autoFocus: true,

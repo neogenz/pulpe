@@ -11,7 +11,11 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
-import { type TransactionKind, type TransactionRecurrence } from 'pulpe-shared';
+import {
+  type SupportedCurrency,
+  type TransactionKind,
+  type TransactionRecurrence,
+} from 'pulpe-shared';
 import { budgetLineCreateFromFormSchema } from './add-budget-line-dialog.schema';
 import { TranslocoPipe } from '@jsverse/transloco';
 import { CurrencySuffix } from '@ui/currency-suffix';
@@ -92,7 +96,7 @@ export interface BudgetLineDialogData {
                 matTextSuffix
                 [showSelector]="showCurrencySelector()"
                 [currency]="inputCurrency()"
-                (currencyChange)="inputCurrency.set($event)"
+                (currencyChange)="setInputCurrency($event)"
               />
             </mat-form-field>
 
@@ -180,6 +184,9 @@ export class AddBudgetLineDialog {
   protected readonly showCurrencySelector =
     this.#currencyConfig.showCurrencySelector;
   protected readonly inputCurrency = this.#currencyConfig.inputCurrency;
+  protected readonly setInputCurrency = (next: SupportedCurrency): void => {
+    this.#currencyConfig.setInputCurrency?.(next);
+  };
   protected readonly conversionError = this.#currencyConfig.conversionError;
 
   protected readonly form = this.#fb.group({

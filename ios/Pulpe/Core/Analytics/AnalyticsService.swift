@@ -13,16 +13,14 @@ final class AnalyticsService {
     nonisolated static let earlyAdopterProperty = "early_adopter"
 
     private(set) var isInitialized = false
+    private(set) var isEventCapturingEnabled = false
 
     private init() {}
 
     // MARK: - Setup
 
     func initialize() {
-        guard AppConfiguration.isPostHogEnabled,
-              let apiKey = AppConfiguration.postHogApiKey else {
-            return
-        }
+        guard let apiKey = AppConfiguration.postHogApiKey else { return }
 
         let config = PostHogConfig(apiKey: apiKey, host: AppConfiguration.postHogHost)
         config.captureScreenViews = false
@@ -36,12 +34,13 @@ final class AnalyticsService {
         ])
 
         isInitialized = true
+        isEventCapturingEnabled = AppConfiguration.isPostHogEnabled
     }
 
     // MARK: - Event Capture
 
     func capture(_ event: AnalyticsEvent, properties: [String: Any] = [:]) {
-        guard isInitialized else { return }
+        guard isEventCapturingEnabled else { return }
         let sanitized = Self.sanitizeProperties(properties)
         PostHogSDK.shared.capture(event.rawValue, properties: sanitized)
     }
@@ -58,7 +57,7 @@ final class AnalyticsService {
     // MARK: - Screen Tracking
 
     func screen(_ name: String, properties: [String: Any] = [:]) {
-        guard isInitialized else { return }
+        guard isEventCapturingEnabled else { return }
         let sanitized = Self.sanitizeProperties(properties)
         PostHogSDK.shared.screen(name, properties: sanitized)
     }
@@ -66,7 +65,7 @@ final class AnalyticsService {
     // MARK: - User Identity
 
     func identify(userId: String, properties: [String: Any] = [:]) {
-        guard isInitialized else { return }
+        guard isEventCapturingEnabled else { return }
         let sanitized = Self.sanitizeProperties(properties)
         PostHogSDK.shared.identify(
             userId,
@@ -117,7 +116,7 @@ final class AnalyticsService {
     // MARK: - Lifecycle
 
     func flush() {
-        guard isInitialized else { return }
+        guard isEventCapturingEnabled else { return }
         PostHogSDK.shared.flush()
     }
 

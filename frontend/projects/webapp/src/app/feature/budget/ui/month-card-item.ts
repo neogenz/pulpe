@@ -1,14 +1,16 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  computed,
   input,
   output,
 } from '@angular/core';
-import { CurrencyPipe } from '@angular/common';
+import { DecimalPipe } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { TranslocoPipe } from '@jsverse/transloco';
+import { CURRENCY_METADATA, type SupportedCurrency } from 'pulpe-shared';
 
 @Component({
   selector: 'pulpe-month-card-item',
@@ -16,7 +18,7 @@ import { TranslocoPipe } from '@jsverse/transloco';
     MatCardModule,
     MatIconModule,
     MatButtonModule,
-    CurrencyPipe,
+    DecimalPipe,
     TranslocoPipe,
   ],
   template: `
@@ -42,17 +44,17 @@ import { TranslocoPipe } from '@jsverse/transloco';
         }
       </mat-card-header>
       <mat-card-content>
-        <div class="flex justify-center gap-2 items-center">
+        <div class="flex justify-center gap-2 items-baseline">
           <p
             class="ph-no-capture text-headline-small financial-amount overflow-hidden text-ellipsis"
             [attr.data-type]="totalAmount() >= 0 ? 'positive' : 'negative'"
             data-testid="month-card-amount"
           >
-            {{
-              totalAmount()
-                | currency: currency() : 'symbol' : '1.2-2' : locale()
-            }}
+            {{ totalAmount() | number: '1.0-0' : locale() }}
           </p>
+          <span class="text-body-medium text-on-surface-variant">{{
+            currencySymbol()
+          }}</span>
         </div>
       </mat-card-content>
       <mat-card-actions align="end">
@@ -98,7 +100,11 @@ export class MonthCardItem {
   }>();
   readonly totalAmount = input.required<number>();
   readonly id = input.required<string>();
-  readonly currency = input<string>('CHF');
+  readonly currency = input<SupportedCurrency>('CHF');
   readonly locale = input<string>('de-CH');
   readonly detailsClick = output<string>();
+
+  protected readonly currencySymbol = computed(
+    () => CURRENCY_METADATA[this.currency()].symbol,
+  );
 }

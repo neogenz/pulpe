@@ -18,21 +18,21 @@ extension AppState {
         // remount it on error — causing a jarring close/reopen animation.
 
         let user = try await authService.login(email: email, password: password)
-        await completeLogin(user: user)
+        try await completeLogin(user: user)
         authDebug("AUTH_LOGIN", "complete")
     }
 
     func loginWithApple(idToken: String, nonce: String) async throws {
         authDebug("AUTH_LOGIN_APPLE", "begin")
         let user = try await authService.signInWithApple(idToken: idToken, nonce: nonce)
-        await completeLogin(user: user)
+        try await completeLogin(user: user)
         authDebug("AUTH_LOGIN_APPLE", "complete")
     }
 
     func loginWithGoogle(idToken: String, accessToken: String) async throws {
         authDebug("AUTH_LOGIN_GOOGLE", "begin")
         let user = try await authService.signInWithGoogle(idToken: idToken, accessToken: accessToken)
-        await completeLogin(user: user)
+        try await completeLogin(user: user)
         authDebug("AUTH_LOGIN_GOOGLE", "complete")
     }
 
@@ -61,11 +61,11 @@ extension AppState {
         }
     }
 
-    private func completeLogin(user: UserInfo) async {
+    private func completeLogin(user: UserInfo) async throws {
         await prepareSession(user: user)
         hasReturningUser = true
         returningUserFlagLoaded = true
-        await resolvePostAuth(user: user)
+        try await resolvePostAuthOrThrow(user: user)
     }
 
     func loginWithBiometric() async {
@@ -77,22 +77,45 @@ extension AppState {
     }
 
     /// After Supabase session is valid, route deterministically to setup/entry/app.
+    /// Non-throwing — used by cold-start / bootstrap / flow-state paths that want
+    /// best-effort routing even when post-auth determines the user is unauthenticated.
     func resolvePostAuth(user: UserInfo) async {
         let destination = await postAuthResolver.resolve()
         authDebug("AUTH_RESOLVE_POST_AUTH", "destination=\(destination)")
         await applyPostAuthDestination(destination, user: user)
     }
 
+    /// Throwing variant for active login flows. Throws `AuthServiceError.sessionExpired`
+    /// when post-auth resolution boots the user back to the login screen — so the
+    /// caller (LoginView, SocialLoginButtons) can reset its loading state and surface
+    /// an error message instead of silently completing while the UI stays mounted.
+    func resolvePostAuthOrThrow(user: UserInfo) async throws {
+        let destination = await postAuthResolver.resolve()
+        authDebug("AUTH_RESOLVE_POST_AUTH", "destination=\(destination)")
+        await applyPostAuthDestination(destination, user: user)
+        if case .unauthenticatedSessionExpired = destination {
+            throw AuthServiceError.sessionExpired
+        }
+    }
+
     func applyPostAuthDestination(_ destination: PostAuthDestination, user: UserInfo? = nil) async {
         if let user {
             currentUser = user
-            // `early_adopter` drives targeted feature flag rollouts via PostHog
-            // person properties — must be passed on identify().
-            AnalyticsService.shared.identify(
-                userId: user.id,
-                properties: [AnalyticsService.earlyAdopterProperty: user.isEarlyAdopter]
-            )
-            AnalyticsService.shared.reloadFeatureFlags()
+            // Skip identify on `.unauthenticatedSessionExpired`: the server already
+            // invalidated this session, so associating analytics + person-property
+            // feature flags with this user would leak identity into a state PostHog
+            // would otherwise treat as anonymous-and-rejected.
+            if case .unauthenticatedSessionExpired = destination {
+                // intentionally no-op
+            } else {
+                // `early_adopter` drives targeted feature flag rollouts via PostHog
+                // person properties — must be passed on identify().
+                AnalyticsService.shared.identify(
+                    userId: user.id,
+                    properties: [AnalyticsService.earlyAdopterProperty: user.isEarlyAdopter]
+                )
+                AnalyticsService.shared.reloadFeatureFlags()
+            }
         }
         authState = .loading
 
@@ -236,7 +259,7 @@ extension AppState {
         let vaultStatus = try await encryptionAPI.getVaultStatus()
         if vaultStatus.pinCodeConfigured {
             authDebug(tag, "existing user detected — redirecting to login flow")
-            await completeLogin(user: user)
+            try await completeLogin(user: user)
             return .existingUserRedirected
         }
 

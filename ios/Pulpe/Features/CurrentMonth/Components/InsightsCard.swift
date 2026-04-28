@@ -87,7 +87,7 @@ struct InsightsCard: View {
             Spacer()
 
             VStack(alignment: .trailing, spacing: 2) {
-                Text(spending.amount.asCurrency(userSettingsStore.currency))
+                Text(spending.amount.asCompactCurrency(userSettingsStore.currency))
                     .font(PulpeTypography.labelLarge)
                     .foregroundStyle(.primary)
                     .sensitiveAmount()

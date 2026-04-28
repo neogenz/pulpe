@@ -46,7 +46,7 @@ struct YearOverviewCard: View {
                     .foregroundStyle(Color.textSecondary)
             }
 
-            Text(value.asCurrency(userSettingsStore.currency))
+            Text(value.asCompactCurrency(userSettingsStore.currency))
                 .font(PulpeTypography.tutorialTitle)
                 .foregroundStyle(color)
                 .lineLimit(1)

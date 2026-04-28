@@ -26,7 +26,7 @@ struct HeroAmountField<Field: Hashable>: View {
 
     var body: some View {
         VStack(spacing: DesignTokens.Spacing.sm) {
-            Text(currency.rawValue)
+            Text(currency.symbol)
                 .font(PulpeTypography.labelLarge)
                 .foregroundStyle(Color.onSurfaceVariant)
 

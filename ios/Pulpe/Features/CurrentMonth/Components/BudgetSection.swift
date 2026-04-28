@@ -280,7 +280,7 @@ struct BudgetLineRow: View {
 
                 // Consumption info or recurrence label
                 if hasConsumption {
-                    let spent = consumption.allocated.asCompactCurrency(userSettingsStore.currency)
+                    let spent = consumption.allocated.asCurrency(userSettingsStore.currency)
                     Text("\(consumptionPercentage)% · \(spent) dépensé")
                         .font(PulpeTypography.caption)
                         .foregroundStyle(Color.textSecondary)
@@ -288,7 +288,7 @@ struct BudgetLineRow: View {
                         .sensitiveAmount()
                     progressBar
                 } else if line.kind == .expense {
-                    Text("\(line.recurrence.label) · sur \(line.amount.asCompactCurrency(userSettingsStore.currency))")
+                    Text("\(line.recurrence.label) · sur \(line.amount.asCurrency(userSettingsStore.currency))")
                         .font(PulpeTypography.caption)
                         .foregroundStyle(Color.textSecondary)
                 } else {

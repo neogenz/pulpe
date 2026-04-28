@@ -5,6 +5,7 @@ import {
   inject,
   signal,
 } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import {
   MatDialogRef,
   MAT_DIALOG_DATA,
@@ -23,13 +24,18 @@ import {
 } from 'pulpe-shared';
 import { TranslocoPipe } from '@jsverse/transloco';
 import { CurrencySuffix } from '@ui/currency-suffix';
+import { ConversionPreviewLine } from '@ui/conversion-preview-line';
 import { FinancialKindDirective } from '@ui/financial-kind';
 import {
   TransactionIconPipe,
   TransactionLabelPipe,
 } from '@ui/transaction-display';
 import type { CurrencyConverterService } from '@core/currency';
-import { injectCurrencyFormConfigForEdit } from '@core/currency';
+import {
+  injectCurrencyFormConfig,
+  injectCurrencyFormConfigForEdit,
+  injectLiveConversionPreview,
+} from '@core/currency';
 
 const TRANSACTION_KINDS: readonly TransactionKind[] = [
   'income',
@@ -66,6 +72,7 @@ export interface EditTemplateLineDialogResult {
     TransactionIconPipe,
     TransactionLabelPipe,
     CurrencySuffix,
+    ConversionPreviewLine,
     FinancialKindDirective,
   ],
   template: `
@@ -78,8 +85,8 @@ export interface EditTemplateLineDialogResult {
     </h2>
 
     <mat-dialog-content>
-      <div class="flex flex-col gap-4 pt-4">
-        <form [formGroup]="form">
+      <div class="pt-4">
+        <form [formGroup]="form" class="flex flex-col gap-4">
           <mat-form-field
             appearance="outline"
             subscriptSizing="dynamic"
@@ -110,44 +117,57 @@ export interface EditTemplateLineDialogResult {
             }
           </mat-form-field>
 
-          <mat-form-field
-            appearance="outline"
-            subscriptSizing="dynamic"
-            class="w-full ph-no-capture"
-          >
-            <mat-label class="ph-no-capture">{{
-              'transactionForm.amountLabel' | transloco
-            }}</mat-label>
-            <input
-              matInput
-              type="number"
-              formControlName="amount"
-              placeholder="0"
-              step="1"
-              min="0"
-              inputmode="decimal"
-              data-testid="edit-template-line-amount"
+          <div class="flex flex-col">
+            <mat-form-field
+              appearance="outline"
+              subscriptSizing="dynamic"
+              class="w-full ph-no-capture"
+            >
+              <mat-label class="ph-no-capture">{{
+                'transactionForm.amountLabel' | transloco
+              }}</mat-label>
+              <input
+                matInput
+                type="number"
+                formControlName="amount"
+                placeholder="0.00"
+                step="0.01"
+                min="0"
+                inputmode="decimal"
+                data-testid="edit-template-line-amount"
+              />
+              <pulpe-currency-suffix
+                matTextSuffix
+                [showSelector]="showCurrencySelector()"
+                [disabled]="isEditMode()"
+                [currency]="inputCurrency()"
+                (currencyChange)="handleInputCurrencyChange($event)"
+              />
+              @if (
+                form.get('amount')?.hasError('required') &&
+                form.get('amount')?.touched
+              ) {
+                <mat-error>{{
+                  'budget.forecastAmountRequired' | transloco
+                }}</mat-error>
+              }
+              @if (
+                form.get('amount')?.hasError('min') &&
+                form.get('amount')?.touched
+              ) {
+                <mat-error>{{ 'budget.amountMinError' | transloco }}</mat-error>
+              }
+            </mat-form-field>
+
+            <pulpe-conversion-preview-line
+              [amount]="preview().convertedAmount ?? null"
+              [inputCurrency]="inputCurrency()"
+              [displayCurrency]="currency()"
+              [rate]="preview().rate ?? null"
+              [cachedDate]="preview().cachedDate ?? null"
+              [status]="preview().status"
             />
-            <pulpe-currency-suffix
-              matTextSuffix
-              [showSelector]="showCurrencySelector()"
-              [disabled]="true"
-              [currency]="inputCurrency()"
-            />
-            @if (
-              form.get('amount')?.hasError('required') &&
-              form.get('amount')?.touched
-            ) {
-              <mat-error>{{
-                'budget.forecastAmountRequired' | transloco
-              }}</mat-error>
-            }
-            @if (
-              form.get('amount')?.hasError('min') && form.get('amount')?.touched
-            ) {
-              <mat-error>{{ 'budget.amountMinError' | transloco }}</mat-error>
-            }
-          </mat-form-field>
+          </div>
 
           <mat-form-field
             appearance="outline"
@@ -196,12 +216,13 @@ export interface EditTemplateLineDialogResult {
       </button>
       <button
         matButton="filled"
+        color="primary"
         (click)="handleSubmit()"
         [disabled]="!form.valid"
         data-testid="save-edit-template-line"
       >
-        <mat-icon>save</mat-icon>
-        {{ 'common.save' | transloco }}
+        <mat-icon>{{ submitIcon() }}</mat-icon>
+        {{ submitLabelKey() | transloco }}
       </button>
     </mat-dialog-actions>
   `,
@@ -217,7 +238,10 @@ export class EditTemplateLineDialog {
     originalAmount: this.#data.line?.originalAmount ?? null,
     originalCurrency: this.#data.line?.originalCurrency ?? null,
   });
-  readonly #currencyConfig = injectCurrencyFormConfigForEdit(this.#lineSource);
+  readonly #currencyConfig =
+    this.#data.line != null
+      ? injectCurrencyFormConfigForEdit(this.#lineSource)
+      : injectCurrencyFormConfig();
 
   protected readonly kinds = TRANSACTION_KINDS;
   protected readonly isEditMode = computed(() => this.#data.line != null);
@@ -226,6 +250,12 @@ export class EditTemplateLineDialog {
     this.#currencyConfig.showCurrencySelector;
   protected readonly inputCurrency = this.#currencyConfig.inputCurrency;
   protected readonly conversionError = this.#currencyConfig.conversionError;
+  protected readonly submitIcon = computed(() =>
+    this.isEditMode() ? 'save' : 'add',
+  );
+  protected readonly submitLabelKey = computed(() =>
+    this.isEditMode() ? 'common.save' : 'common.add',
+  );
 
   readonly form = this.#fb.group({
     name: [
@@ -233,7 +263,7 @@ export class EditTemplateLineDialog {
       [Validators.required, Validators.minLength(2)],
     ],
     amount: [
-      this.#computeInitialAmount(),
+      this.#computeInitialAmount() as number | null,
       [Validators.required, Validators.min(0.01)],
     ],
     kind: [
@@ -242,9 +272,18 @@ export class EditTemplateLineDialog {
     ],
   });
 
-  #computeInitialAmount(): number {
+  readonly #amountValue = toSignal(this.form.controls.amount.valueChanges, {
+    initialValue: this.form.controls.amount.value,
+  });
+  protected readonly preview = injectLiveConversionPreview(
+    this.#amountValue,
+    this.inputCurrency,
+    this.currency,
+  );
+
+  #computeInitialAmount(): number | null {
     const line = this.#data.line;
-    if (!line) return 0;
+    if (!line) return null;
     if (
       this.#currencyConfig.showCurrencySelector() &&
       line.originalAmount != null
@@ -252,6 +291,10 @@ export class EditTemplateLineDialog {
       return line.originalAmount;
     }
     return line.amount;
+  }
+
+  protected handleInputCurrencyChange(currency: SupportedCurrency): void {
+    this.#currencyConfig.setInputCurrency?.(currency);
   }
 
   async handleSubmit(): Promise<void> {

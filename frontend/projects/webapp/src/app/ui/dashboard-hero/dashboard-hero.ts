@@ -89,7 +89,7 @@ import {
             class="font-extrabold text-display-large tracking-tighter leading-none ph-no-capture"
             data-testid="hero-remaining-amount"
           >
-            {{ remaining() | number: '1.2-2' : locale() }}
+            {{ remaining() | number: '1.0-0' : locale() }}
           </span>
           <span class="text-title-large font-semibold opacity-70">{{
             currencySymbol()
@@ -98,7 +98,7 @@ import {
         <p class="text-body-small opacity-60 mt-1">
           {{ 'dashboard.income' | transloco }}
           <span class="ph-no-capture">{{
-            totalIncome() | number: '1.2-2' : locale()
+            totalIncome() | number: '1.0-0' : locale()
           }}</span>
           {{ currencySymbol() }}
           @let rollover = rolloverAmount();
@@ -106,7 +106,7 @@ import {
             <span class="opacity-80 ph-no-capture">
               {{ 'dashboard.rollover' | transloco }}
               {{ rollover > 0 ? '+' : ''
-              }}{{ rollover | number: '1.2-2' : locale() }}
+              }}{{ rollover | number: '1.0-0' : locale() }}
               {{ currencySymbol() }}
             </span>
           }
@@ -121,14 +121,14 @@ import {
           <span>
             {{ 'dashboard.spent' | transloco }}
             <span data-testid="hero-expenses-amount" class="ph-no-capture">{{
-              absExpenses() | number: '1.2-2' : locale()
+              absExpenses() | number: '1.0-0' : locale()
             }}</span>
             {{ currencySymbol() }}
           </span>
           <span class="opacity-70">
             {{ 'dashboard.on' | transloco }}
             <span class="ph-no-capture">{{
-              available() | number: '1.2-2' : locale()
+              available() | number: '1.0-0' : locale()
             }}</span>
             {{ currencySymbol() }}
           </span>

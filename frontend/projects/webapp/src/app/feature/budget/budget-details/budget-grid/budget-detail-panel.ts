@@ -136,7 +136,7 @@ const DETAIL_SEGMENT_COUNT = 12;
             <div class="ph-no-capture text-title-medium font-semibold">
               {{
                 envelope.consumption?.consumed ?? 0
-                  | appCurrency: currency() : '1.2-2'
+                  | appCurrency: currency() : '1.0-0'
               }}
             </div>
           </div>
@@ -158,7 +158,7 @@ const DETAIL_SEGMENT_COUNT = 12;
                 envelope.consumption?.consumptionState === 'over-budget'
               "
             >
-              {{ remaining | appCurrency: currency() : '1.2-2' }}
+              {{ remaining | appCurrency: currency() : '1.0-0' }}
             </div>
           </div>
         </div>
@@ -182,7 +182,7 @@ const DETAIL_SEGMENT_COUNT = 12;
                       : {
                           amount:
                             (consumption.consumed - envelope.data.amount
-                            | appCurrency: currency() : '1.2-2'),
+                            | appCurrency: currency() : '1.0-0'),
                         }
                 }}
               </span>

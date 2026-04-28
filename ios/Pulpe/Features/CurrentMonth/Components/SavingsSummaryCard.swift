@@ -33,7 +33,7 @@ struct SavingsSummaryCard: View {
                 Text("Objectif atteint ce mois")
                     .font(PulpeTypography.listRowTitle)
 
-                Text("\(summary.totalRealized.asCurrency(userSettingsStore.currency)) épargnés")
+                Text("\(summary.totalRealized.asCompactCurrency(userSettingsStore.currency)) épargnés")
                     .font(PulpeTypography.caption)
                     .foregroundStyle(Color.textSecondary)
                     .sensitiveAmount()

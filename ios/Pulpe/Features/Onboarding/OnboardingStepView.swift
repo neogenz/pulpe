@@ -227,9 +227,17 @@ struct OnboardingStepView<Content: View>: View {
         let expanded = useExpandedCTAChrome
         let buttonHeight = DesignTokens.FrameHeight.button
         let fabShadow = DesignTokens.Shadow.elevated
+        let isDisabled = expanded && !isEnabled
         return HStack(spacing: 0) {
             Spacer(minLength: 0)
             Button {
+                // Apple docs: `.plain` ButtonStyle "may apply a visual effect to indicate the
+                // pressed, focused, or enabled state of the button." Combined with `.disabled()`
+                // this dims the button via `\.isEnabled`, composing transparency over our opaque
+                // fill and letting backdrop content bleed through. We gate the action manually
+                // and block hit-testing instead, so visuals stay solid while behavior matches
+                // a disabled button.
+                guard !isDisabled else { return }
                 morphingCTAAction(proxy: proxy)
             } label: {
                 MorphingOnboardingCTALabel(
@@ -255,9 +263,10 @@ struct OnboardingStepView<Content: View>: View {
                 .animation(reduceMotion ? .none : DesignTokens.Animation.bouncySpring, value: expanded && !canProceed)
             }
             .buttonStyle(.plain)
-            .disabled(expanded && !isEnabled)
+            .allowsHitTesting(!isDisabled)
             .sensoryFeedback(.success, trigger: canProceedTrigger)
             .accessibilityLabel(ctaAccessibilityLabel(expanded: expanded))
+            .accessibilityValue(isDisabled ? "désactivé" : "")
             .animation(reduceMotion ? .none : DesignTokens.Animation.onboardingCTAMorph, value: expanded)
         }
         .padding(.horizontal, DesignTokens.Spacing.xxl)
@@ -298,24 +307,25 @@ struct OnboardingStepView<Content: View>: View {
         return Color.textOnPrimary
     }
 
-    /// Disabled → soft primary tint heavy enough to read as a filled capsule on the warm neutral bg
-    /// (`PrimaryButtonStyle` sits on gradient/sheet surfaces where 0.12 reads fine; this screen's
-    /// `appBackground` is warm-white, so the tint needs more weight).
+    /// Both fills always rendered; opacity crossfades during morph so SwiftUI tweens
+    /// a single ZStack instead of swapping view identities (which was producing the
+    /// ugly two-tone split FAB↔pill during the bouncy spring transition).
     @ViewBuilder
     private func ctaBackground(expanded: Bool) -> some View {
-        if expanded, !isEnabled {
-            Color.pulpePrimary.opacity(DesignTokens.Opacity.strong)
-        } else {
+        let showDisabled = expanded && !isEnabled
+        ZStack {
             Color.onboardingGradient
+            Color.primaryContainerDisabled
+                .opacity(showDisabled ? 1 : 0)
         }
     }
 
     @ViewBuilder
     private func ctaDisabledOutline(expanded: Bool) -> some View {
-        if expanded, !isEnabled {
-            Capsule()
-                .strokeBorder(Color.pulpePrimary.opacity(0.2), lineWidth: DesignTokens.BorderWidth.thin)
-        }
+        let showDisabled = expanded && !isEnabled
+        Capsule()
+            .strokeBorder(Color.outlineVariant, lineWidth: DesignTokens.BorderWidth.thin)
+            .opacity(showDisabled ? 1 : 0)
     }
 
     private var buttonTitle: String {
@@ -393,10 +403,8 @@ struct OnboardingCurrencySwapSheet: View {
                 Text("Utiliser \(draft.nativeName)")
             }
             .primaryButtonStyle(isEnabled: true)
-
-            Spacer()
         }
         .padding(DesignTokens.Spacing.xxl)
-        .standardSheetPresentation(detents: [.height(360)])
+        .intrinsicSheetPresentation()
     }
 }

@@ -1,9 +1,29 @@
-import { computed, inject, signal, type Signal } from '@angular/core';
+import {
+  computed,
+  inject,
+  signal,
+  type Signal,
+  type WritableSignal,
+} from '@angular/core';
 import type { SupportedCurrency } from 'pulpe-shared';
 
 import { FeatureFlagsService } from '@core/feature-flags';
 import { UserSettingsStore } from '@core/user-settings';
 import { CurrencyConverterService } from './currency-converter.service';
+
+interface CurrencyFormConfigBase {
+  readonly currency: Signal<SupportedCurrency>;
+  readonly showCurrencySelector: Signal<boolean>;
+  readonly inputCurrency: Signal<SupportedCurrency>;
+  readonly setInputCurrency: ((next: SupportedCurrency) => void) | undefined;
+  readonly conversionError: WritableSignal<boolean>;
+  readonly converter: CurrencyConverterService;
+}
+
+export type CurrencyFormConfig = CurrencyFormConfigBase & {
+  readonly originalCurrency?: Signal<SupportedCurrency | null>;
+  readonly originalAmount?: Signal<number | null>;
+};
 
 /**
  * Shared configuration hook for all forms that need currency handling.
@@ -15,7 +35,7 @@ import { CurrencyConverterService } from './currency-converter.service';
  * When the feature flag is OFF, the currency picker is never rendered
  * regardless of the user's preference — the feature is effectively hidden.
  */
-export function injectCurrencyFormConfig() {
+export function injectCurrencyFormConfig(): CurrencyFormConfig {
   const userSettings = inject(UserSettingsStore);
   const converter = inject(CurrencyConverterService);
   const flags = inject(FeatureFlagsService);
@@ -31,6 +51,7 @@ export function injectCurrencyFormConfig() {
     currency,
     showCurrencySelector,
     inputCurrency,
+    setInputCurrency: (next: SupportedCurrency) => inputCurrency.set(next),
     conversionError,
     converter,
   };
@@ -58,7 +79,7 @@ export interface EditCurrencyLineSource {
  */
 export function injectCurrencyFormConfigForEdit(
   line: Signal<EditCurrencyLineSource>,
-) {
+): CurrencyFormConfig {
   const userSettings = inject(UserSettingsStore);
   const converter = inject(CurrencyConverterService);
   const flags = inject(FeatureFlagsService);
@@ -82,6 +103,7 @@ export function injectCurrencyFormConfigForEdit(
     currency,
     showCurrencySelector,
     inputCurrency,
+    setInputCurrency: undefined,
     conversionError,
     converter,
     originalCurrency,

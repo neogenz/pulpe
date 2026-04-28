@@ -324,7 +324,7 @@ struct AppStateFlowBridgeTests {
         // Session expires during PIN setup
         sut.send(.sessionExpired)
 
-        await waitForCondition(timeout: .milliseconds(500), "session expiry must complete") {
+        await waitForCondition("session expiry must complete") {
             sut.authState == .unauthenticated
         }
     }

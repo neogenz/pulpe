@@ -107,7 +107,7 @@ struct TemplateDetailsView: View {
                 Text("Revenus")
                     .font(PulpeTypography.subheadline)
                 Spacer()
-                Text(viewModel.totals.totalIncome.asSignedCurrency(userSettingsStore.currency, for: .income))
+                Text(viewModel.totals.totalIncome.asSignedCompactCurrency(userSettingsStore.currency, for: .income))
                     .font(PulpeTypography.listRowSubtitle)
                     .foregroundStyle(Color.financialIncome)
                     .sensitiveAmount()
@@ -126,7 +126,7 @@ struct TemplateDetailsView: View {
                 Text("Dépenses")
                     .font(PulpeTypography.subheadline)
                 Spacer()
-                Text(viewModel.totals.totalExpenses.asSignedCurrency(userSettingsStore.currency, for: .expense))
+                Text(viewModel.totals.totalExpenses.asSignedCompactCurrency(userSettingsStore.currency, for: .expense))
                     .font(PulpeTypography.listRowSubtitle)
                     .foregroundStyle(Color.financialExpense)
                     .sensitiveAmount()
@@ -151,7 +151,7 @@ struct TemplateDetailsView: View {
                     .font(PulpeTypography.subheadline)
                     .fontWeight(.semibold)
                 Spacer()
-                Text(viewModel.totals.balance.asArithmeticSignedCurrency(userSettingsStore.currency))
+                Text(viewModel.totals.balance.asArithmeticSignedCompactCurrency(userSettingsStore.currency))
                     .font(PulpeTypography.listRowSubtitle)
                     .fontWeight(.semibold)
                     .foregroundStyle(
@@ -177,7 +177,7 @@ struct TemplateDetailsView: View {
                 Text(title)
                 Spacer()
                 let total = lines.reduce(Decimal.zero) { $0 + $1.amount }
-                Text(total.asSignedCurrency(userSettingsStore.currency, for: kind))
+                Text(total.asSignedCompactCurrency(userSettingsStore.currency, for: kind))
                     .font(PulpeTypography.caption)
                     .sensitiveAmount()
             }

@@ -80,11 +80,11 @@ import { AppCurrencyPipe } from '@core/currency';
             <p class="text-body-medium text-on-surface">
               {{ 'currentMonth.savingsAmountText' | transloco }}
               <span class="font-bold text-financial-savings ph-no-capture">
-                {{ totalRealized() | appCurrency: currency() : '1.2-2' }}
+                {{ totalRealized() | appCurrency: currency() : '1.0-0' }}
               </span>
               {{ 'dashboard.on' | transloco }}
               <span class="ph-no-capture">{{
-                totalPlanned() | appCurrency: currency() : '1.2-2'
+                totalPlanned() | appCurrency: currency() : '1.0-0'
               }}</span>
               {{ 'currentMonth.savingsPlanned' | transloco }}
             </p>

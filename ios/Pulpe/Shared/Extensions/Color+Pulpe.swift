@@ -69,6 +69,15 @@ extension Color {
     static let primaryContainer = Color(light: Color(hex: 0x99F89D), dark: Color(hex: 0x00531A))
     static let onPrimaryContainer = Color(light: Color(hex: 0x00531A), dark: Color(hex: 0x99F89D))
 
+    /// Opaque disabled fill for primary buttons. Replaces opacity-based tints which
+    /// bleed underlying content through (e.g. legal disclaimer behind onboarding CTA).
+    /// Pairs with `onSurfaceVariant` text:
+    /// - Light `#524D48` on `#D6E8DC` ≈ 5.6:1 (AA normal, AAA large)
+    /// - Dark  `#B8B0A8` on `#2D3D31` ≈ 5.5:1 (AA normal, AAA large)
+    /// Dark fill is lifted from background `onboardingFormBase` `#141A16` (~2.6:1 surface contrast)
+    /// so the disabled capsule remains visually distinct without an outline.
+    static let primaryContainerDisabled = Color(light: Color(hex: 0xD6E8DC), dark: Color(hex: 0x2D3D31))
+
     // MARK: - Secondary
 
     static let secondaryColor = Color(light: Color(hex: 0x406741), dark: Color(hex: 0xA6D2A3))
