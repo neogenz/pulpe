@@ -3,7 +3,6 @@ import LocalAuthentication
 import OSLog
 import Security
 
-// swiftlint:disable type_body_length
 /// Thread-safe Keychain manager for secure token storage
 actor KeychainManager {
     static let shared = KeychainManager()
@@ -50,43 +49,17 @@ actor KeychainManager {
         guard available else { throw KeychainError.notAvailable }
     }
 
-    // MARK: - Token Management
-
-    func saveTokens(accessToken: String, refreshToken: String) throws {
-        try ensureAvailable()
-
-        let accessStatus = saveReturningStatus(key: accessTokenKey, value: accessToken)
-        guard accessStatus == errSecSuccess else {
-            throw KeychainError.unknown(accessStatus)
-        }
-
-        let refreshStatus = saveReturningStatus(key: refreshTokenKey, value: refreshToken)
-        guard refreshStatus == errSecSuccess else {
-            // WARNING: Non-atomic operation. If we reach here, the access token was already saved
-            // but refresh token save failed. We delete the access token to maintain consistency,
-            // but the old refresh token may have already been deleted by saveReturningStatus.
-            // Result: both tokens are lost. User must re-login to recover.
-            Logger.auth.error("Refresh token save failed (\(refreshStatus)). Access token deleted. User must re-login.")
-            delete(key: accessTokenKey)
-            throw KeychainError.unknown(refreshStatus)
-        }
-    }
-
-    func getAccessToken() -> String? {
-        get(key: accessTokenKey)
-    }
-
-    func getRefreshToken() -> String? {
-        get(key: refreshTokenKey)
-    }
+    // MARK: - Legacy Token Slot Cleanup
+    //
+    // PUL-132 moved live session storage to `PulpeAuthStorage` (Supabase SDK
+    // `AuthLocalStorage`). Nothing writes the `access_token` / `refresh_token`
+    // keychain slots in production anymore. `clearTokens()` is kept as a
+    // defensive cleanup for installations migrating from the pre-PUL-132 dual-slot
+    // layout (called from `AuthService.logout` and `logoutKeepingBiometricSession`).
 
     func clearTokens() {
         delete(key: accessTokenKey)
         delete(key: refreshTokenKey)
-    }
-
-    func hasTokens() -> Bool {
-        getAccessToken() != nil
     }
 
     // MARK: - Biometric Token Management

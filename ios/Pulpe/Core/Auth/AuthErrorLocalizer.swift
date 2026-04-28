@@ -62,22 +62,9 @@ enum AuthErrorLocalizer {
     ]
 
     static func classify(_ error: Error) -> AuthErrorKind {
-        // Check APIError first
-        if let apiError = error as? APIError {
-            switch apiError {
-            case .invalidCredentials:
-                return .invalidCredentials
-            case .rateLimited:
-                return .rateLimited
-            case .networkError:
-                return .network
-            case .userAlreadyExists:
-                return .userAlreadyRegistered
-            case .weakPassword:
-                return .weakPassword
-            default:
-                break
-            }
+        // Typed-error fast paths first (AuthServiceError, APIError).
+        if let kind = classifyTypedError(error) {
+            return kind
         }
 
         // Try to extract Supabase error code from error description
@@ -95,6 +82,30 @@ enum AuthErrorLocalizer {
 
         // Fallback to keyword-based classification
         return classifyByKeywords(description) ?? .unknown
+    }
+
+    /// Fast path for typed errors thrown by the auth layer.
+    /// Extracted to keep `classify(_:)` under the cyclomatic complexity budget.
+    private static func classifyTypedError(_ error: Error) -> AuthErrorKind? {
+        if let authError = error as? AuthServiceError {
+            switch authError {
+            case .sessionExpired, .biometricSessionExpired:
+                return .sessionExpired
+            case .signupFailed, .loginFailed, .biometricSaveFailed:
+                return nil
+            }
+        }
+        if let apiError = error as? APIError {
+            switch apiError {
+            case .invalidCredentials: return .invalidCredentials
+            case .rateLimited: return .rateLimited
+            case .networkError: return .network
+            case .userAlreadyExists: return .userAlreadyRegistered
+            case .weakPassword: return .weakPassword
+            default: return nil
+            }
+        }
+        return nil
     }
 
     private static let keywordPatterns: [(String, AuthErrorKind)] = [

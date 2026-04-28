@@ -17,8 +17,10 @@ actor APIClient {
         self.baseURL = AppConfiguration.apiBaseURL
         self.decoder = Self.makeDecoder()
         self.encoder = Self.makeEncoder()
+        // SDK-owned session is the single source of truth (PUL-132).
+        // Reading from a separate keychain slot would race / drift with PulpeAuthStorage.
         self.authTokenProvider = {
-            await KeychainManager.shared.getAccessToken()
+            await AuthService.shared.getAccessToken()
         }
         self.clientKeyProvider = {
             await ClientKeyManager.shared.resolveClientKey()
