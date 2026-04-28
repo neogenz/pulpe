@@ -12,7 +12,7 @@ import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { CurrencySuffix } from '@ui/currency-suffix';
 import { TranslocoPipe } from '@jsverse/transloco';
-import type { TransactionCreate } from 'pulpe-shared';
+import type { SupportedCurrency, TransactionCreate } from 'pulpe-shared';
 import { transactionCreateFromFormSchema } from '@pattern/edit-transaction-form';
 import { formatLocalDate } from '@core/date/format-local-date';
 import type { CurrencyConverterService } from '@core/currency';
@@ -118,7 +118,7 @@ import { UserSettingsStore } from '@core/user-settings';
               matTextSuffix
               [showSelector]="showCurrencySelector()"
               [currency]="inputCurrency()"
-              (currencyChange)="inputCurrency.set($event)"
+              (currencyChange)="setInputCurrency($event)"
             />
             @if (
               form.get('amount')?.hasError('required') &&
@@ -226,6 +226,9 @@ export class CreateAllocatedTransactionBottomSheet {
   protected readonly showCurrencySelector =
     this.#currencyConfig.showCurrencySelector;
   protected readonly inputCurrency = this.#currencyConfig.inputCurrency;
+  protected readonly setInputCurrency = (next: SupportedCurrency): void => {
+    this.#currencyConfig.setInputCurrency?.(next);
+  };
   protected readonly conversionError = this.#currencyConfig.conversionError;
   readonly data = inject<CreateAllocatedTransactionDialogData>(
     MAT_BOTTOM_SHEET_DATA,

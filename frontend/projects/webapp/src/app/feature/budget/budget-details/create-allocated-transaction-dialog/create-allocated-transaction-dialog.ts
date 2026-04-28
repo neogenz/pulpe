@@ -13,7 +13,11 @@ import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { TranslocoPipe } from '@jsverse/transloco';
 import { CurrencySuffix } from '@ui/currency-suffix';
-import { type BudgetLine, type TransactionCreate } from 'pulpe-shared';
+import {
+  type BudgetLine,
+  type SupportedCurrency,
+  type TransactionCreate,
+} from 'pulpe-shared';
 import { transactionCreateFromFormSchema } from '@pattern/edit-transaction-form';
 import { formatLocalDate } from '@core/date/format-local-date';
 import type { CurrencyConverterService } from '@core/currency';
@@ -110,7 +114,7 @@ export interface CreateAllocatedTransactionDialogData {
               matTextSuffix
               [showSelector]="showCurrencySelector()"
               [currency]="inputCurrency()"
-              (currencyChange)="inputCurrency.set($event)"
+              (currencyChange)="setInputCurrency($event)"
             />
             @if (
               form.get('amount')?.hasError('required') &&
@@ -212,6 +216,9 @@ export class CreateAllocatedTransactionDialog {
   protected readonly showCurrencySelector =
     this.#currencyConfig.showCurrencySelector;
   protected readonly inputCurrency = this.#currencyConfig.inputCurrency;
+  protected readonly setInputCurrency = (next: SupportedCurrency): void => {
+    this.#currencyConfig.setInputCurrency?.(next);
+  };
   protected readonly conversionError = this.#currencyConfig.conversionError;
   readonly data = inject<CreateAllocatedTransactionDialogData>(MAT_DIALOG_DATA);
   readonly #dialogRef = inject(
