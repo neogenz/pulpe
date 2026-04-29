@@ -14,7 +14,9 @@ export class CurrentMonthPage {
 
     // Wait for the component's auto-focus setTimeout(200ms) to settle
     // before filling, to prevent focus steal during typing
-    const amountInput = this.page.getByTestId('transaction-amount-input');
+    const amountInput = this.page.locator(
+      '[data-testid="transaction-form"] [data-testid="amount-input-value"]',
+    );
     await expect(amountInput).toBeFocused();
 
     await amountInput.fill(amount);

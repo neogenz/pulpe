@@ -4,6 +4,7 @@ import {
   computed,
   inject,
   signal,
+  viewChild,
 } from '@angular/core';
 import {
   Field,
@@ -252,6 +253,14 @@ export class AddTransactionBottomSheet {
   readonly #transloco = inject(TranslocoService);
   readonly #userSettings = inject(UserSettingsStore);
   readonly #converter = inject(CurrencyConverterService);
+
+  protected readonly amountInput = viewChild(AmountInput);
+
+  constructor() {
+    this.#bottomSheetRef.afterOpened().subscribe(() => {
+      this.amountInput()?.focus();
+    });
+  }
 
   protected readonly currency = this.#userSettings.currency;
   protected readonly predefinedAmounts = signal([10, 15, 20, 30]);

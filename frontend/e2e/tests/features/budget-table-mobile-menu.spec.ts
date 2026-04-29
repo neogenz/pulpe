@@ -320,7 +320,7 @@ test.describe('Budget Table Mobile Menu', () => {
 
       // Verify dialog form fields are visible
       const editNameInput = page.locator('[data-testid="edit-line-name"]');
-      const editAmountInput = page.locator('[data-testid="edit-line-amount"]');
+      const editAmountInput = page.locator('[data-testid="edit-budget-line-dialog"] [data-testid="amount-input-value"]');
 
       await expect(editNameInput).toBeVisible();
       await expect(editAmountInput).toBeVisible();

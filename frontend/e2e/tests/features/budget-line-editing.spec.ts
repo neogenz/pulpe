@@ -114,7 +114,7 @@ test.describe('Budget Line Editing', () => {
       '[data-testid="edit-line-name"]',
     );
     const amountInput = authenticatedPage.locator(
-      '[data-testid="edit-line-amount"]',
+      '[data-testid="edit-budget-line-dialog"] [data-testid="amount-input-value"]',
     );
 
     // Verify dialog inputs are visible

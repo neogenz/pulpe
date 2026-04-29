@@ -62,6 +62,7 @@ interface EditBudgetLineModel {
     Field,
     AmountInput,
   ],
+  host: { 'data-testid': 'edit-budget-line-dialog' },
   template: `
     <h2 mat-dialog-title class="text-headline-small">
       {{ 'budget.editForecast' | transloco }}

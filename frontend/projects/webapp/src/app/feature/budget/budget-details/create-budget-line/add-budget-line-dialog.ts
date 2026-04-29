@@ -63,6 +63,7 @@ interface AddBudgetLineModel {
     Field,
     AmountInput,
   ],
+  host: { 'data-testid': 'add-budget-line-dialog' },
   template: `
     <h2 mat-dialog-title class="text-headline-small">
       {{ 'budget.newForecast' | transloco }}

@@ -3,6 +3,7 @@ import { TestBed } from '@angular/core/testing';
 import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { MatBottomSheetRef } from '@angular/material/bottom-sheet';
+import { EMPTY } from 'rxjs';
 import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 import { CurrencyConverterService } from '@core/currency';
 import { FeatureFlagsService } from '@core/feature-flags';
@@ -25,6 +26,7 @@ interface ConverterMock {
 }
 interface BottomSheetRefMock {
   dismiss: ReturnType<typeof vi.fn>;
+  afterOpened: ReturnType<typeof vi.fn>;
 }
 
 function configureBottomSheet({
@@ -36,7 +38,10 @@ function configureBottomSheet({
   flagEnabled?: boolean;
   showCurrencyPref?: boolean;
 } = {}) {
-  const bottomSheetRef: BottomSheetRefMock = { dismiss: vi.fn() };
+  const bottomSheetRef: BottomSheetRefMock = {
+    dismiss: vi.fn(),
+    afterOpened: vi.fn().mockReturnValue(EMPTY),
+  };
   const flags: FlagsMock = {
     isMultiCurrencyEnabled: signal(flagEnabled),
   };

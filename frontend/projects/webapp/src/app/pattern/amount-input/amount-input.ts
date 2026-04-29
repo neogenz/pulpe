@@ -2,8 +2,10 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  type ElementRef,
   inject,
   input,
+  viewChild,
 } from '@angular/core';
 import { Field, type FieldTree } from '@angular/forms/signals';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -60,6 +62,7 @@ export type AmountInputMode = 'create' | 'edit';
             'transactionForm.amountLabel' | transloco
           }}</mat-label>
           <input
+            #amountInput
             matInput
             type="number"
             inputmode="decimal"
@@ -97,6 +100,13 @@ export class AmountInput {
   readonly control = input<FieldTree<AmountFormSlice> | undefined>(undefined);
   readonly mode = input<AmountInputMode>('create');
   readonly originalCurrency = input<SupportedCurrency | null>(null);
+
+  readonly #amountInputRef =
+    viewChild<ElementRef<HTMLInputElement>>('amountInput');
+
+  focus(): void {
+    this.#amountInputRef()?.nativeElement?.focus();
+  }
 
   readonly #settings = inject(UserSettingsStore);
   readonly #flags = inject(FeatureFlagsService);
