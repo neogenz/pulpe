@@ -33,6 +33,7 @@ import {
 import { toSignal } from '@angular/core/rxjs-interop';
 import { CurrencySuffix } from '@ui/currency-suffix';
 import { ConversionPreviewLine } from '@ui/conversion-preview-line';
+import { BlurOnVisibilityResumeDirective } from '@ui/blur-on-visibility-resume/blur-on-visibility-resume.directive';
 
 export type TransactionFormData = Pick<
   TransactionCreate,
@@ -68,9 +69,10 @@ interface TransactionFormControls {
     TransactionLabelPipe,
     CurrencySuffix,
     ConversionPreviewLine,
+    BlurOnVisibilityResumeDirective,
   ],
   template: `
-    <div class="flex flex-col gap-4">
+    <div class="flex flex-col gap-4" pulpeBlurOnVisibilityResume>
       <!-- Drag indicator -->
       <div
         class="w-9 h-1 bg-outline-variant rounded-sm mx-auto mt-3 mb-2"
