@@ -1,5 +1,11 @@
 import { DOCUMENT } from '@angular/common';
-import { DestroyRef, inject, Injectable, InjectionToken } from '@angular/core';
+import {
+  DestroyRef,
+  effect,
+  inject,
+  Injectable,
+  InjectionToken,
+} from '@angular/core';
 import { Router } from '@angular/router';
 import { AuthSessionService } from '@core/auth/auth-session.service';
 import { AuthStateService } from '@core/auth/auth-state.service';
@@ -22,6 +28,8 @@ export const PAGE_RELOAD = new InjectionToken<() => void>('PAGE_RELOAD', {
   },
 });
 
+const RESUME_LOADING_TIMEOUT_MS = 12_000;
+
 const PROTECTED_ROUTE_PREFIXES = [
   `/${ROUTES.DASHBOARD}`,
   `/${ROUTES.BUDGET}`,
@@ -39,7 +47,7 @@ type ResumeTriggerReason =
   | 'visibility_long_background';
 
 @Injectable({ providedIn: 'root' })
-export class PageLifecycleRecoveryService {
+export class SessionResumeRecoveryService {
   readonly #document = inject(DOCUMENT);
   readonly #destroyRef = inject(DestroyRef);
   readonly #router = inject(Router);
@@ -55,6 +63,8 @@ export class PageLifecycleRecoveryService {
   #initialized = false;
   #lastHiddenAt: number | null = null;
   #recoveryInFlight = false;
+  #pendingReason: ResumeTriggerReason | null = null;
+  #loadingTimeoutId: ReturnType<typeof setTimeout> | null = null;
 
   readonly #onVisibilityChange = (): void => {
     if (this.#document.visibilityState === 'hidden') {
@@ -64,11 +74,6 @@ export class PageLifecycleRecoveryService {
 
     if (this.#document.visibilityState !== 'visible') {
       return;
-    }
-
-    const activeElement = this.#document.activeElement as HTMLElement | null;
-    if (activeElement?.closest('.mat-bottom-sheet-container')) {
-      activeElement.blur();
     }
 
     if (!this.#isOnProtectedRoute()) {
@@ -134,7 +139,22 @@ export class PageLifecycleRecoveryService {
       );
       win.removeEventListener('pagehide', this.#onPageHide);
       win.removeEventListener('pageshow', this.#onPageShow);
+      this.#clearLoadingTimeout();
     });
+
+    // Drains queued reason once auth finishes loading.
+    effect(() => {
+      const isLoading = this.#authState.isLoading();
+      if (isLoading || this.#pendingReason === null) return;
+      const reason = this.#pendingReason;
+      this.#pendingReason = null;
+      this.#clearLoadingTimeout();
+      this.#triggerResumeRecovery(reason);
+    });
+  }
+
+  forceReloadOnSplashTimeout(): void {
+    this.#triggerRecoveryReload('visibility_long_background');
   }
 
   #isOnProtectedRoute(): boolean {
@@ -151,29 +171,43 @@ export class PageLifecycleRecoveryService {
   }
 
   #triggerResumeRecovery(reason: ResumeTriggerReason): void {
-    if (this.#recoveryInFlight) {
+    if (this.#authState.isLoading()) {
+      // Why: pageshow can fire before auth init resolves on iOS Safari resume.
+      // Queue the reason so the effect drains it once isLoading flips to false.
+      this.#pendingReason = reason;
+      this.#armLoadingTimeout(reason);
       return;
     }
 
+    if (this.#recoveryInFlight) return;
     this.#recoveryInFlight = true;
     void this.#runResumeRecovery(reason).finally(() => {
       this.#recoveryInFlight = false;
     });
   }
 
+  #armLoadingTimeout(reason: ResumeTriggerReason): void {
+    if (this.#loadingTimeoutId !== null) return;
+    this.#loadingTimeoutId = setTimeout(() => {
+      this.#loadingTimeoutId = null;
+      if (!this.#authState.isLoading()) return;
+      this.#pendingReason = null;
+      this.#logger.warn(
+        '[SessionResumeRecovery] Auth still loading after resume timeout, reloading',
+        { reason, route: this.#router.url },
+      );
+      this.#triggerRecoveryReload(reason);
+    }, RESUME_LOADING_TIMEOUT_MS);
+  }
+
+  #clearLoadingTimeout(): void {
+    if (this.#loadingTimeoutId === null) return;
+    clearTimeout(this.#loadingTimeoutId);
+    this.#loadingTimeoutId = null;
+  }
+
   async #runResumeRecovery(reason: ResumeTriggerReason): Promise<void> {
     if (!this.#isOnProtectedRoute()) {
-      return;
-    }
-
-    if (this.#authState.isLoading()) {
-      this.#logger.debug(
-        '[PageLifecycleRecovery] Skipping recovery while auth is loading',
-        {
-          reason,
-          route: this.#router.url,
-        },
-      );
       return;
     }
 
@@ -185,7 +219,7 @@ export class PageLifecycleRecoveryService {
       const sessionRefreshed = await this.#authSession.refreshSession();
       if (!sessionRefreshed) {
         this.#logger.warn(
-          '[PageLifecycleRecovery] Session refresh failed after resume, reloading app',
+          '[SessionResumeRecovery] Session refresh failed after resume, reloading app',
           { reason, route: this.#router.url },
         );
         this.#triggerRecoveryReload(reason);
@@ -196,12 +230,12 @@ export class PageLifecycleRecoveryService {
       this.#budgetTemplatesApi.cache.invalidate(['templates']);
       this.#userSettingsStore.reload();
       this.#logger.info(
-        '[PageLifecycleRecovery] Soft recovery completed after resume',
+        '[SessionResumeRecovery] Soft recovery completed after resume',
         { reason, route: this.#router.url },
       );
     } catch (error) {
       this.#logger.warn(
-        '[PageLifecycleRecovery] Soft recovery failed after resume, reloading app',
+        '[SessionResumeRecovery] Soft recovery failed after resume, reloading app',
         { reason, route: this.#router.url, error },
       );
       this.#triggerRecoveryReload(reason);
@@ -214,7 +248,7 @@ export class PageLifecycleRecoveryService {
     }
 
     this.#markReload();
-    this.#logger.warn('[PageLifecycleRecovery] Reloading app after resume', {
+    this.#logger.warn('[SessionResumeRecovery] Reloading app after resume', {
       reason,
       route: this.#router.url,
     });

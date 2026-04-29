@@ -1,12 +1,12 @@
 import { TestBed } from '@angular/core/testing';
-import { provideZonelessChangeDetection } from '@angular/core';
+import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   PAGE_RELOAD,
   PAGE_RESUME_THRESHOLD_MS,
-  PageLifecycleRecoveryService,
-} from './page-lifecycle-recovery.service';
+  SessionResumeRecoveryService,
+} from './session-resume-recovery.service';
 import { Logger } from '@core/logging/logger';
 import { AuthSessionService } from '@core/auth/auth-session.service';
 import { AuthStateService } from '@core/auth/auth-state.service';
@@ -30,13 +30,17 @@ function dispatchPageShow(persisted: boolean): void {
   window.dispatchEvent(event);
 }
 
-describe('PageLifecycleRecoveryService', () => {
+describe('SessionResumeRecoveryService', () => {
   const reloadSpy = vi.fn();
   const mockRouter = { url: '/dashboard' };
+
+  const isLoadingSignal = signal(false);
+  const isAuthenticatedFn = vi.fn<() => boolean>().mockReturnValue(true);
   const mockAuthState = {
-    isLoading: vi.fn<() => boolean>().mockReturnValue(false),
-    isAuthenticated: vi.fn<() => boolean>().mockReturnValue(true),
+    isLoading: isLoadingSignal.asReadonly(),
+    isAuthenticated: isAuthenticatedFn,
   };
+
   const mockAuthSession = {
     refreshSession: vi.fn<() => Promise<boolean>>().mockResolvedValue(true),
   };
@@ -56,16 +60,16 @@ describe('PageLifecycleRecoveryService', () => {
     error: vi.fn(),
   };
 
-  let service: PageLifecycleRecoveryService;
+  let service: SessionResumeRecoveryService;
 
   beforeEach(() => {
     TestBed.resetTestingModule();
     vi.restoreAllMocks();
+    vi.useRealTimers();
     reloadSpy.mockReset();
-    mockAuthState.isLoading.mockReset();
-    mockAuthState.isAuthenticated.mockReset();
-    mockAuthState.isLoading.mockReturnValue(false);
-    mockAuthState.isAuthenticated.mockReturnValue(true);
+    isLoadingSignal.set(false);
+    isAuthenticatedFn.mockReset();
+    isAuthenticatedFn.mockReturnValue(true);
     mockAuthSession.refreshSession.mockReset();
     mockAuthSession.refreshSession.mockResolvedValue(true);
     mockBudgetApi.cache.invalidate.mockReset();
@@ -85,7 +89,7 @@ describe('PageLifecycleRecoveryService', () => {
     TestBed.configureTestingModule({
       providers: [
         provideZonelessChangeDetection(),
-        PageLifecycleRecoveryService,
+        SessionResumeRecoveryService,
         { provide: PAGE_RELOAD, useValue: reloadSpy },
         { provide: Router, useValue: mockRouter },
         { provide: AuthStateService, useValue: mockAuthState },
@@ -97,8 +101,8 @@ describe('PageLifecycleRecoveryService', () => {
       ],
     });
 
-    service = TestBed.inject(PageLifecycleRecoveryService);
-    service.initialize();
+    service = TestBed.inject(SessionResumeRecoveryService);
+    TestBed.runInInjectionContext(() => service.initialize());
   });
 
   it('should perform soft recovery on pageshow persisted for protected routes', async () => {
@@ -188,13 +192,20 @@ describe('PageLifecycleRecoveryService', () => {
     expect(reloadSpy).toHaveBeenCalledOnce();
   });
 
-  it('should skip recovery while auth is loading', async () => {
-    mockAuthState.isLoading.mockReturnValue(true);
+  it('should queue resume and process once auth finishes loading', async () => {
+    isLoadingSignal.set(true);
 
     dispatchPageShow(true);
     await Promise.resolve();
 
     expect(mockAuthSession.refreshSession).not.toHaveBeenCalled();
+    expect(reloadSpy).not.toHaveBeenCalled();
+
+    isLoadingSignal.set(false);
+
+    await vi.waitFor(() => {
+      expect(mockAuthSession.refreshSession).toHaveBeenCalledOnce();
+    });
     expect(reloadSpy).not.toHaveBeenCalled();
   });
 
@@ -205,43 +216,6 @@ describe('PageLifecycleRecoveryService', () => {
 
     expect(mockAuthSession.refreshSession).not.toHaveBeenCalled();
     expect(reloadSpy).not.toHaveBeenCalled();
-  });
-
-  it('should blur active element inside bottom sheet on visibility change to visible', () => {
-    const container = document.createElement('div');
-    container.classList.add('mat-bottom-sheet-container');
-    const input = document.createElement('input');
-    container.appendChild(input);
-    document.body.appendChild(container);
-
-    input.focus();
-    expect(document.activeElement).toBe(input);
-
-    setVisibilityState('hidden');
-    document.dispatchEvent(new Event('visibilitychange'));
-    setVisibilityState('visible');
-    document.dispatchEvent(new Event('visibilitychange'));
-
-    expect(document.activeElement).not.toBe(input);
-
-    container.remove();
-  });
-
-  it('should NOT blur active element outside bottom sheet on visibility change', () => {
-    const input = document.createElement('input');
-    document.body.appendChild(input);
-
-    input.focus();
-    expect(document.activeElement).toBe(input);
-
-    setVisibilityState('hidden');
-    document.dispatchEvent(new Event('visibilitychange'));
-    setVisibilityState('visible');
-    document.dispatchEvent(new Event('visibilitychange'));
-
-    expect(document.activeElement).toBe(input);
-
-    input.remove();
   });
 
   it('should fall back to location.pathname when router.url is "/" before navigation settles', async () => {
@@ -258,5 +232,47 @@ describe('PageLifecycleRecoveryService', () => {
     expect(mockBudgetApi.cache.invalidate).toHaveBeenCalledOnce();
     expect(mockUserSettingsStore.reload).toHaveBeenCalledOnce();
     expect(reloadSpy).not.toHaveBeenCalled();
+  });
+
+  it('should force reload when auth never finishes loading after resume (timeout)', async () => {
+    vi.useFakeTimers();
+    isLoadingSignal.set(true);
+
+    dispatchPageShow(true);
+    await Promise.resolve();
+
+    expect(reloadSpy).not.toHaveBeenCalled();
+
+    await vi.advanceTimersByTimeAsync(13_000);
+
+    expect(reloadSpy).toHaveBeenCalledOnce();
+    expect(mockAuthSession.refreshSession).not.toHaveBeenCalled();
+  });
+
+  it('should not queue duplicate reasons across rapid pageshow events', async () => {
+    isLoadingSignal.set(true);
+
+    dispatchPageShow(true);
+    dispatchPageShow(true);
+    await Promise.resolve();
+
+    expect(mockAuthSession.refreshSession).not.toHaveBeenCalled();
+
+    isLoadingSignal.set(false);
+
+    await vi.waitFor(() => {
+      expect(mockAuthSession.refreshSession).toHaveBeenCalledOnce();
+    });
+  });
+
+  it('forceReloadOnSplashTimeout honors cooldown', () => {
+    const nowSpy = vi.spyOn(Date, 'now').mockReturnValue(5_000);
+
+    service.forceReloadOnSplashTimeout();
+    expect(reloadSpy).toHaveBeenCalledOnce();
+
+    nowSpy.mockReturnValue(5_500);
+    service.forceReloadOnSplashTimeout();
+    expect(reloadSpy).toHaveBeenCalledOnce();
   });
 });

@@ -22,6 +22,7 @@ import {
 } from '@core/currency';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ConversionPreviewLine } from '@ui/conversion-preview-line';
+import { BlurOnVisibilityResumeDirective } from '@ui/blur-on-visibility-resume/blur-on-visibility-resume.directive';
 import type { CreateAllocatedTransactionDialogData } from './create-allocated-transaction-dialog';
 import {
   computeBudgetPeriodDateConstraints,
@@ -42,9 +43,10 @@ import { UserSettingsStore } from '@core/user-settings';
     TranslocoPipe,
     CurrencySuffix,
     ConversionPreviewLine,
+    BlurOnVisibilityResumeDirective,
   ],
   template: `
-    <div class="flex flex-col gap-4 pb-6">
+    <div class="flex flex-col gap-4 pb-6" pulpeBlurOnVisibilityResume>
       <!-- Drag indicator -->
       <div
         class="w-9 h-1 bg-outline-variant rounded-sm mx-auto mt-3 mb-2"

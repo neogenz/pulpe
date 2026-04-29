@@ -4,7 +4,7 @@ import {
   type NavigationErrorHandlerFeature,
   withNavigationErrorHandler,
 } from '@angular/router';
-import { PAGE_RELOAD } from '../lifecycle/page-lifecycle-recovery.service';
+import { PAGE_RELOAD } from '../lifecycle/session-resume-recovery.service';
 import { Logger } from '../logging/logger';
 import { STORAGE_KEYS } from '../storage/storage-keys';
 import { StorageService } from '../storage/storage.service';
