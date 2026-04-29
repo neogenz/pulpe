@@ -50,7 +50,7 @@ export const ONBOARDING_SUGGESTIONS: readonly OnboardingTransaction[] = [
   },
 ];
 
-const MAX_CUSTOM_TRANSACTIONS = 50;
+export const MAX_CUSTOM_TRANSACTIONS = 50;
 
 /**
  * Client-only tag identifying a customTransactions entry sourced from a
@@ -141,6 +141,9 @@ export class CompleteProfileStore {
         .filter((id): id is string => id !== undefined),
     );
   });
+  readonly customTransactionsLimitReached = computed(
+    () => this.#state().customTransactions.length >= MAX_CUSTOM_TRANSACTIONS,
+  );
   readonly isLoading = computed(() => this.#state().isLoading);
   readonly isCheckingExistingBudget = computed(
     () => this.#state().isCheckingExistingBudget,
