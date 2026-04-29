@@ -9,65 +9,58 @@ export interface AuthState {
   readonly isAuthenticated: boolean;
 }
 
+export type AuthSnapshot =
+  | { readonly phase: 'booting' }
+  | { readonly phase: 'authenticated'; readonly session: Session }
+  | { readonly phase: 'unauthenticated' };
+
 @Injectable({
   providedIn: 'root',
 })
 export class AuthStateService {
-  readonly #sessionSignal = signal<Session | null>(null);
-  readonly #isLoadingSignal = signal<boolean>(true);
+  readonly #snapshot = signal<AuthSnapshot>({ phase: 'booting' });
 
-  readonly #userSignal = computed(() => {
-    const session = this.#sessionSignal();
-    if (!session) return null;
-    return session.user;
+  readonly session = computed<Session | null>(() => {
+    const snapshot = this.#snapshot();
+    return snapshot.phase === 'authenticated' ? snapshot.session : null;
   });
 
-  readonly session = this.#sessionSignal.asReadonly();
-  readonly isLoading = this.#isLoadingSignal.asReadonly();
-  readonly user = this.#userSignal;
+  readonly user = computed<User | null>(() => this.session()?.user ?? null);
 
-  readonly isAuthenticated = computed(() => {
-    return (
-      !!this.#userSignal() &&
-      !!this.#sessionSignal() &&
-      !this.#isLoadingSignal()
-    );
-  });
+  readonly isLoading = computed(() => this.#snapshot().phase === 'booting');
+
+  readonly isAuthenticated = computed(
+    () => this.#snapshot().phase === 'authenticated',
+  );
 
   readonly isEarlyAdopter = computed(
-    () =>
-      !!this.#userSignal()?.app_metadata?.[ANALYTICS_PROPERTIES.EARLY_ADOPTER],
+    () => !!this.user()?.app_metadata?.[ANALYTICS_PROPERTIES.EARLY_ADOPTER],
   );
 
   readonly isOAuthOnly = computed(() => {
-    const user = this.#userSignal();
+    const user = this.user();
     if (!user) return false;
 
-    const providers: string[] | undefined = user.app_metadata?.['providers'];
-    if (providers?.length) {
-      return providers.every((provider) => provider !== 'email');
-    }
+    const rawProviders = user.app_metadata?.['providers'];
+    const providers =
+      Array.isArray(rawProviders) &&
+      rawProviders.every((p): p is string => typeof p === 'string')
+        ? rawProviders
+        : (user.identities ?? [])
+            .map((identity) => identity.provider)
+            .filter((p): p is string => typeof p === 'string');
 
-    const identities = user.identities;
-    if (identities?.length) {
-      return identities.every((identity) => identity.provider !== 'email');
-    }
-
-    return false;
+    return providers.length > 0 && providers.every((p) => p !== 'email');
   });
 
   readonly authState = computed<AuthState>(() => ({
-    user: this.#userSignal(),
-    session: this.#sessionSignal(),
-    isLoading: this.#isLoadingSignal(),
+    user: this.user(),
+    session: this.session(),
+    isLoading: this.isLoading(),
     isAuthenticated: this.isAuthenticated(),
   }));
 
-  setSession(session: Session | null): void {
-    this.#sessionSignal.set(session);
-  }
-
-  setLoading(loading: boolean): void {
-    this.#isLoadingSignal.set(loading);
+  applyState(snapshot: AuthSnapshot): void {
+    this.#snapshot.set(snapshot);
   }
 }

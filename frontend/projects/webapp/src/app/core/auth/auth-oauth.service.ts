@@ -51,7 +51,7 @@ export class AuthOAuthService {
   async signInWithOAuth(
     provider: OAuthProvider,
   ): Promise<{ success: boolean; error?: string }> {
-    if (this.#isE2EBypass()) {
+    if (isE2EMode()) {
       this.#logger.info(`🎭 Mode test E2E: Simulation du signin ${provider}`);
       return { success: true };
     }
@@ -65,6 +65,7 @@ export class AuthOAuthService {
       });
 
       if (error) {
+        this.#logger.error('OAuth init returned error', error);
         return {
           success: false,
           error: this.#errorLocalizer.localizeError(error.message),
@@ -72,7 +73,8 @@ export class AuthOAuthService {
       }
 
       return { success: true };
-    } catch {
+    } catch (error) {
+      this.#logger.error('OAuth threw', error);
       return {
         success: false,
         error: this.#transloco.translate(
@@ -80,9 +82,5 @@ export class AuthOAuthService {
         ),
       };
     }
-  }
-
-  #isE2EBypass(): boolean {
-    return isE2EMode();
   }
 }

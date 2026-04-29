@@ -37,8 +37,7 @@ describe('AuthCredentialsService', () => {
     };
 
     mockState = {
-      setSession: vi.fn(),
-      setLoading: vi.fn(),
+      applyState: vi.fn(),
     };
 
     mockErrorLocalizer = {

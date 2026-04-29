@@ -1,4 +1,4 @@
-import { Injectable, inject, DestroyRef } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 
 import { BudgetApi } from '@core/budget';
 import { BudgetTemplatesApi } from '@core/budget-template/budget-templates-api';
@@ -10,8 +10,6 @@ import { PostHogService } from '../analytics/posthog';
 import { StorageService } from '../storage';
 import { UserSettingsStore } from '../user-settings/user-settings-store';
 import { Logger } from '../logging/logger';
-
-const CLEANUP_RESET_DELAY_MS = 100;
 
 @Injectable({
   providedIn: 'root',
@@ -26,19 +24,8 @@ export class AuthCleanupService {
   readonly #storageService = inject(StorageService);
   readonly #userSettingsStore = inject(UserSettingsStore);
   readonly #logger = inject(Logger);
-  readonly #destroyRef = inject(DestroyRef);
 
   #cleanupInProgress = false;
-  #resetTimeoutId: ReturnType<typeof setTimeout> | null = null;
-
-  constructor() {
-    this.#destroyRef.onDestroy(() => {
-      if (this.#resetTimeoutId !== null) {
-        clearTimeout(this.#resetTimeoutId);
-        this.#resetTimeoutId = null;
-      }
-    });
-  }
 
   performCleanup(): void {
     if (this.#cleanupInProgress) {
@@ -75,14 +62,7 @@ export class AuthCleanupService {
         'storage',
       );
     } finally {
-      if (this.#resetTimeoutId !== null) {
-        clearTimeout(this.#resetTimeoutId);
-      }
-
-      this.#resetTimeoutId = setTimeout(() => {
-        this.#cleanupInProgress = false;
-        this.#resetTimeoutId = null;
-      }, CLEANUP_RESET_DELAY_MS);
+      this.#cleanupInProgress = false;
     }
   }
 

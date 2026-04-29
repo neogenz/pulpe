@@ -152,7 +152,11 @@
       "oauthConnection": "La connexion a échoué — réessaie",
       "unexpectedLogin": "Quelque chose n'a pas fonctionné — réessaie",
       "unexpectedSignup": "La création du compte n'a pas abouti — on retente ?",
-      "unexpectedSession": "Quelque chose n'a pas fonctionné — réessaie"
+      "unexpectedSession": "Quelque chose n'a pas fonctionné — réessaie",
+      "sessionExpired": "Ta session a expiré — reconnecte-toi",
+      "refreshFailed": "Reconnexion impossible — réessaie",
+      "accountBlocked": "Ton compte est en cours de suppression.",
+      "clientKeyMissing": "Ta clé de coffre est manquante — saisis-la pour continuer"
     }
   },
   "welcome": {

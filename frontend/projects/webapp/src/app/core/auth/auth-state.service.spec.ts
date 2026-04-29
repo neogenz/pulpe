@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { TestBed } from '@angular/core/testing';
+import { provideZonelessChangeDetection } from '@angular/core';
 import type { Session } from '@supabase/supabase-js';
 import { AuthStateService } from './auth-state.service';
 
@@ -30,71 +31,57 @@ describe('AuthStateService', () => {
     },
   };
 
+  const applyAuthenticated = (session: Session = mockSession): void =>
+    service.applyState({ phase: 'authenticated', session });
+  const applyUnauthenticated = (): void =>
+    service.applyState({ phase: 'unauthenticated' });
+
   beforeEach(() => {
-    TestBed.configureTestingModule({});
+    TestBed.configureTestingModule({
+      providers: [provideZonelessChangeDetection()],
+    });
     service = TestBed.inject(AuthStateService);
   });
 
-  it('should initialize with null session and loading true', () => {
+  it('should initialize in booting phase with null session', () => {
     expect(service.session()).toBeNull();
     expect(service.isLoading()).toBe(true);
     expect(service.user()).toBeNull();
+    expect(service.isAuthenticated()).toBe(false);
   });
 
-  it('should update session when setSession is called', () => {
-    service.setSession(mockSession);
+  it('should expose session and user when authenticated', () => {
+    applyAuthenticated();
 
     expect(service.session()).toEqual(mockSession);
     expect(service.user()).toEqual(mockSession.user);
+    expect(service.isAuthenticated()).toBe(true);
+    expect(service.isLoading()).toBe(false);
   });
 
-  it('should clear user when session is set to null', () => {
-    service.setSession(mockSession);
-    expect(service.user()).toEqual(mockSession.user);
-
-    service.setSession(null);
+  it('should clear session and user when transitioning to unauthenticated', () => {
+    applyAuthenticated();
+    applyUnauthenticated();
 
     expect(service.session()).toBeNull();
     expect(service.user()).toBeNull();
-  });
-
-  it('should update loading state when setLoading is called', () => {
-    service.setLoading(false);
-
+    expect(service.isAuthenticated()).toBe(false);
     expect(service.isLoading()).toBe(false);
-
-    service.setLoading(true);
-
-    expect(service.isLoading()).toBe(true);
   });
 
-  it('should compute isAuthenticated as false when no session', () => {
-    service.setLoading(false);
-
+  it('should compute isAuthenticated false in booting phase', () => {
     expect(service.isAuthenticated()).toBe(false);
   });
 
-  it('should compute isAuthenticated as false when loading', () => {
-    service.setSession(mockSession);
-    service.setLoading(true);
-
+  it('should compute isAuthenticated false in unauthenticated phase', () => {
+    applyUnauthenticated();
     expect(service.isAuthenticated()).toBe(false);
   });
 
-  it('should compute isAuthenticated as true when session exists and not loading', () => {
-    service.setSession(mockSession);
-    service.setLoading(false);
+  it('should aggregate all signals in authState computed', () => {
+    applyAuthenticated();
 
-    expect(service.isAuthenticated()).toBe(true);
-  });
-
-  it('should aggregate all signals in authState', () => {
-    service.setSession(mockSession);
-    service.setLoading(false);
-
-    const state = service.authState();
-
-    expect(state).toEqual({
+    expect(service.authState()).toEqual({
       user: mockSession.user,
       session: mockSession,
       isLoading: false,
@@ -102,12 +89,11 @@ describe('AuthStateService', () => {
     });
   });
 
-  it('should update authState when session changes', () => {
-    service.setSession(mockSession);
-    service.setLoading(false);
+  it('should update authState reactively when session changes', () => {
+    applyAuthenticated();
     expect(service.authState().isAuthenticated).toBe(true);
 
-    service.setSession(null);
+    applyUnauthenticated();
 
     expect(service.authState()).toEqual({
       user: null,
@@ -131,7 +117,7 @@ describe('AuthStateService', () => {
     });
 
     it('should return false when app_metadata has no providers', () => {
-      service.setSession({
+      applyAuthenticated({
         ...mockSession,
         user: { ...mockSession.user, app_metadata: {} },
       });
@@ -139,36 +125,60 @@ describe('AuthStateService', () => {
     });
 
     it('should return false when providers array is empty', () => {
-      service.setSession(createSessionWithProviders([]));
+      applyAuthenticated(createSessionWithProviders([]));
       expect(service.isOAuthOnly()).toBe(false);
     });
 
     it('should return false when user has only email provider', () => {
-      service.setSession(createSessionWithProviders(['email']));
+      applyAuthenticated(createSessionWithProviders(['email']));
       expect(service.isOAuthOnly()).toBe(false);
     });
 
     it('should return true when user has only Google provider', () => {
-      service.setSession(createSessionWithProviders(['google']));
+      applyAuthenticated(createSessionWithProviders(['google']));
       expect(service.isOAuthOnly()).toBe(true);
     });
 
     it('should return true when user has only Apple provider', () => {
-      service.setSession(createSessionWithProviders(['apple']));
+      applyAuthenticated(createSessionWithProviders(['apple']));
       expect(service.isOAuthOnly()).toBe(true);
     });
 
     it('should return false when user has both email and Google providers', () => {
-      service.setSession(createSessionWithProviders(['email', 'google']));
+      applyAuthenticated(createSessionWithProviders(['email', 'google']));
       expect(service.isOAuthOnly()).toBe(false);
     });
 
     it('should update reactively when session changes', () => {
-      service.setSession(createSessionWithProviders(['google']));
+      applyAuthenticated(createSessionWithProviders(['google']));
       expect(service.isOAuthOnly()).toBe(true);
 
-      service.setSession(null);
+      applyUnauthenticated();
       expect(service.isOAuthOnly()).toBe(false);
+    });
+
+    it('should fall back to identities[].provider when providers array is malformed', () => {
+      const malformedProvidersSession: Session = {
+        ...mockSession,
+        user: {
+          ...mockSession.user,
+          app_metadata: { providers: 'google' as unknown as string[] },
+          identities: [
+            {
+              identity_id: 'identity-google',
+              id: 'id-google',
+              user_id: 'user-123',
+              provider: 'google',
+              identity_data: {},
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+              last_sign_in_at: new Date().toISOString(),
+            },
+          ],
+        },
+      };
+      applyAuthenticated(malformedProvidersSession);
+      expect(service.isOAuthOnly()).toBe(true);
     });
 
     describe('identities fallback (when app_metadata.providers is missing)', () => {
@@ -193,65 +203,52 @@ describe('AuthStateService', () => {
       });
 
       it('should return true when providers is missing but identities has only Google', () => {
-        service.setSession(createSessionWithIdentities(['google']));
+        applyAuthenticated(createSessionWithIdentities(['google']));
         expect(service.isOAuthOnly()).toBe(true);
       });
 
       it('should return false when providers is missing but identities has email', () => {
-        service.setSession(createSessionWithIdentities(['email']));
+        applyAuthenticated(createSessionWithIdentities(['email']));
         expect(service.isOAuthOnly()).toBe(false);
       });
 
       it('should return false when providers is missing and identities is empty', () => {
-        service.setSession(createSessionWithIdentities([]));
+        applyAuthenticated(createSessionWithIdentities([]));
         expect(service.isOAuthOnly()).toBe(false);
       });
 
       it('should return false when providers is missing but identities has both email and google', () => {
-        service.setSession(createSessionWithIdentities(['email', 'google']));
+        applyAuthenticated(createSessionWithIdentities(['email', 'google']));
         expect(service.isOAuthOnly()).toBe(false);
       });
     });
   });
 
   describe('state transition consistency', () => {
-    it('should update all signals atomically when transitioning from authenticated to unauthenticated', () => {
-      service.setSession(mockSession);
-      service.setLoading(false);
+    it('should never expose session+isAuthenticated=false (no lying state)', () => {
+      applyAuthenticated();
 
-      expect(service.user()).not.toBeNull();
       expect(service.session()).not.toBeNull();
       expect(service.isAuthenticated()).toBe(true);
-      expect(service.authState().isAuthenticated).toBe(true);
+      expect(service.isLoading()).toBe(false);
 
-      service.setSession(null);
+      applyUnauthenticated();
 
-      expect(service.user()).toBeNull();
       expect(service.session()).toBeNull();
       expect(service.isAuthenticated()).toBe(false);
-      expect(service.authState()).toEqual({
-        user: null,
-        session: null,
-        isLoading: false,
-        isAuthenticated: false,
-      });
+      expect(service.isLoading()).toBe(false);
     });
 
-    it('should update isAuthenticated atomically when loading state changes', () => {
-      service.setSession(mockSession);
-      service.setLoading(false);
-      expect(service.isAuthenticated()).toBe(true);
+    it('should atomically update authState aggregator on transitions', () => {
+      applyAuthenticated();
+      expect(service.authState().isAuthenticated).toBe(true);
 
-      service.setLoading(true);
-
-      expect(service.isAuthenticated()).toBe(false);
-      expect(service.session()).not.toBeNull();
-      expect(service.user()).not.toBeNull();
-
+      applyUnauthenticated();
       const state = service.authState();
       expect(state.isAuthenticated).toBe(false);
-      expect(state.isLoading).toBe(true);
-      expect(state.session).not.toBeNull();
+      expect(state.isLoading).toBe(false);
+      expect(state.session).toBeNull();
+      expect(state.user).toBeNull();
     });
   });
 });
