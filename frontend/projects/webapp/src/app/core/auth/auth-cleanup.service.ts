@@ -25,45 +25,24 @@ export class AuthCleanupService {
   readonly #userSettingsStore = inject(UserSettingsStore);
   readonly #logger = inject(Logger);
 
-  #cleanupInProgress = false;
-
   performCleanup(): void {
-    if (this.#cleanupInProgress) {
-      this.#logger.debug(
-        'Cleanup already in progress, skipping duplicate call',
-      );
-      return;
-    }
-
-    this.#cleanupInProgress = true;
-
-    try {
-      this.#safeCleanup(
-        () => this.#clientKeyService.clearPreservingDeviceTrust(),
-        'client key',
-      );
-      this.#safeCleanup(
-        () => this.#demoModeService.deactivateDemoMode(),
-        'demo mode',
-      );
-      this.#safeCleanup(
-        () => this.#budgetApi.clearCache(),
-        'budget data cache',
-      );
-      this.#safeCleanup(
-        () => this.#budgetTemplatesApi.clearCache(),
-        'templates data cache',
-      );
-      this.#safeCleanup(() => this.#preloadService.reset(), 'preload state');
-      this.#safeCleanup(() => this.#userSettingsStore.reset(), 'user settings');
-      this.#safeCleanup(() => this.#postHogService.reset(), 'PostHog');
-      this.#safeCleanup(
-        () => this.#storageService.clearAllUserData(),
-        'storage',
-      );
-    } finally {
-      this.#cleanupInProgress = false;
-    }
+    this.#safeCleanup(
+      () => this.#clientKeyService.clearPreservingDeviceTrust(),
+      'client key',
+    );
+    this.#safeCleanup(
+      () => this.#demoModeService.deactivateDemoMode(),
+      'demo mode',
+    );
+    this.#safeCleanup(() => this.#budgetApi.clearCache(), 'budget data cache');
+    this.#safeCleanup(
+      () => this.#budgetTemplatesApi.clearCache(),
+      'templates data cache',
+    );
+    this.#safeCleanup(() => this.#preloadService.reset(), 'preload state');
+    this.#safeCleanup(() => this.#userSettingsStore.reset(), 'user settings');
+    this.#safeCleanup(() => this.#postHogService.reset(), 'PostHog');
+    this.#safeCleanup(() => this.#storageService.clearAllUserData(), 'storage');
   }
 
   #safeCleanup(operation: () => void, name: string): void {

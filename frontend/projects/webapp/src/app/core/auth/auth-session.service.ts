@@ -50,91 +50,7 @@ export class AuthSessionService {
       this.#logger.debug('Auth already initialized, skipping');
       return Promise.resolve();
     }
-    return (this.#initPromise ??= this.#doInitializeAuthState());
-  }
-
-  async #doInitializeAuthState(): Promise<void> {
-    const url = this.#applicationConfig.supabaseUrl();
-    const key = this.#applicationConfig.supabaseAnonKey();
-
-    if (!url || !key) {
-      throw new Error('Configuration Supabase manquante après initialisation');
-    }
-
-    this.#supabaseClient = createClient(url, key);
-
-    if (isE2EMode()) {
-      const mockState = this.#getE2EMockState();
-      if (mockState) {
-        this.#logger.debug(
-          '🎭 Mode test E2E détecté, utilisation des mocks auth',
-        );
-        this.#state.applyState(this.#snapshotFromMock(mockState));
-        return;
-      }
-    }
-
-    try {
-      const {
-        data: { session },
-        error,
-      } = await this.#supabaseClient.auth.getSession();
-
-      if (error) {
-        this.#logger.error(
-          'Erreur lors de la récupération de la session:',
-          error,
-        );
-        this.#applySession(null);
-        return;
-      }
-
-      this.#applySession(session);
-
-      const { data } = this.#supabaseClient.auth.onAuthStateChange(
-        (event, session) => {
-          this.#handleAuthEvent(event, session);
-        },
-      );
-
-      this.#authSubscription = () => data.subscription.unsubscribe();
-      this.#destroyRef.onDestroy(() => this.#authSubscription?.());
-    } catch (error) {
-      this.#logger.error(
-        "Erreur lors de l'initialisation de l'authentification:",
-        error,
-      );
-      this.#applySession(null);
-    }
-  }
-
-  refreshSession(): Promise<boolean> {
-    return (this.#refreshPromise ??= this.#doRefreshSession().finally(() => {
-      this.#refreshPromise = null;
-    }));
-  }
-
-  async #doRefreshSession(): Promise<boolean> {
-    try {
-      const { data, error } = await this.getClient().auth.refreshSession();
-
-      if (error) {
-        this.#logger.error(
-          'Erreur lors du rafraîchissement de la session:',
-          error,
-        );
-        return false;
-      }
-
-      this.#applySession(data.session ?? null);
-      return !!data.session;
-    } catch (error) {
-      this.#logger.error(
-        'Erreur inattendue lors du rafraîchissement de la session:',
-        error,
-      );
-      return false;
-    }
+    return (this.#initPromise ??= this.#initializeSupabaseSessionTracking());
   }
 
   async setSession(session: {
@@ -172,7 +88,7 @@ export class AuthSessionService {
         };
       }
 
-      this.#applySession(data.session);
+      this.#updateAuthStateFromSession(data.session);
       return { success: true };
     } catch (error) {
       this.#logger.error('Error setting session:', error);
@@ -265,18 +181,12 @@ export class AuthSessionService {
 
       const { error } = await this.#supabaseClient.auth.signOut();
       if (error) {
-        this.#logger.error(
-          'Erreur lors de la déconnexion globale, fallback local',
-          error,
-        );
-        await this.#localSignOut();
+        this.#logger.error('Erreur lors de la déconnexion globale:', error);
       }
     } catch (error) {
       this.#logger.error('Erreur inattendue lors de la déconnexion:', error);
-      await this.#localSignOut();
     } finally {
-      this.#state.applyState({ phase: 'unauthenticated' });
-      this.#cleanup.performCleanup();
+      this.#clearLocalAuthStateAndUserData();
     }
   }
 
@@ -309,12 +219,88 @@ export class AuthSessionService {
     }
   }
 
-  async #localSignOut(): Promise<void> {
-    if (!this.#supabaseClient) return;
+  refreshSession(): Promise<boolean> {
+    return (this.#refreshPromise ??=
+      this.#refreshSessionAndUpdateState().finally(() => {
+        this.#refreshPromise = null;
+      }));
+  }
+
+  async #initializeSupabaseSessionTracking(): Promise<void> {
+    const url = this.#applicationConfig.supabaseUrl();
+    const key = this.#applicationConfig.supabaseAnonKey();
+
+    if (!url || !key) {
+      throw new Error('Configuration Supabase manquante après initialisation');
+    }
+
+    this.#supabaseClient = createClient(url, key);
+
+    if (isE2EMode()) {
+      const mockState = this.#getE2EMockState();
+      if (mockState) {
+        this.#logger.debug(
+          '🎭 Mode test E2E détecté, utilisation des mocks auth',
+        );
+        this.#state.applyState(this.#snapshotFromMock(mockState));
+        return;
+      }
+    }
+
     try {
-      await this.#supabaseClient.auth.signOut({ scope: 'local' });
+      const {
+        data: { session },
+        error,
+      } = await this.#supabaseClient.auth.getSession();
+
+      if (error) {
+        this.#logger.error(
+          'Erreur lors de la récupération de la session:',
+          error,
+        );
+        this.#updateAuthStateFromSession(null);
+        return;
+      }
+
+      this.#updateAuthStateFromSession(session);
+
+      const { data } = this.#supabaseClient.auth.onAuthStateChange(
+        (event, session) => {
+          this.#handleAuthEvent(event, session);
+        },
+      );
+
+      this.#authSubscription = () => data.subscription.unsubscribe();
+      this.#destroyRef.onDestroy(() => this.#authSubscription?.());
     } catch (error) {
-      this.#logger.error('Local signOut failed', error);
+      this.#logger.error(
+        "Erreur lors de l'initialisation de l'authentification:",
+        error,
+      );
+      this.#updateAuthStateFromSession(null);
+    }
+  }
+
+  async #refreshSessionAndUpdateState(): Promise<boolean> {
+    try {
+      const { data, error } = await this.getClient().auth.refreshSession();
+
+      if (error) {
+        this.#logger.error(
+          'Erreur lors du rafraîchissement de la session:',
+          error,
+        );
+        return false;
+      }
+
+      this.#updateAuthStateFromSession(data.session ?? null);
+      return !!data.session;
+    } catch (error) {
+      this.#logger.error(
+        'Erreur inattendue lors du rafraîchissement de la session:',
+        error,
+      );
+      return false;
     }
   }
 
@@ -349,16 +335,20 @@ export class AuthSessionService {
       case 'TOKEN_REFRESHED':
       case 'PASSWORD_RECOVERY':
       case 'USER_UPDATED':
-        this.#applySession(session);
+        this.#updateAuthStateFromSession(session);
         break;
       case 'SIGNED_OUT':
-        this.#applySession(null);
-        this.#cleanup.performCleanup();
+        this.#clearLocalAuthStateAndUserData();
         break;
     }
   }
 
-  #applySession(session: Session | null): void {
+  #clearLocalAuthStateAndUserData(): void {
+    this.#updateAuthStateFromSession(null);
+    this.#cleanup.performCleanup();
+  }
+
+  #updateAuthStateFromSession(session: Session | null): void {
     this.#state.applyState(
       session
         ? { phase: 'authenticated', session }

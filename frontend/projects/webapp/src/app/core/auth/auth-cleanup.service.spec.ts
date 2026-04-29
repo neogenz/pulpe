@@ -93,21 +93,6 @@ describe('AuthCleanupService', () => {
     expect(mockStorage.clearAllUserData).toHaveBeenCalled();
   });
 
-  it('should reset cleanupInProgress synchronously to allow subsequent calls', () => {
-    userSignal.set({
-      id: 'user-debounce',
-      aud: 'authenticated',
-      role: 'authenticated',
-    } as User);
-
-    service.performCleanup();
-    expect(mockDemoMode.deactivateDemoMode).toHaveBeenCalledTimes(1);
-
-    service.performCleanup();
-    expect(mockDemoMode.deactivateDemoMode).toHaveBeenCalledTimes(2);
-    expect(mockBudgetTemplatesApi.clearCache).toHaveBeenCalledTimes(2);
-  });
-
   describe('Error isolation', () => {
     beforeEach(() => {
       userSignal.set({
