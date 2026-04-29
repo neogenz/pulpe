@@ -29,6 +29,7 @@ import { UserSettingsStore } from '@core/user-settings';
 import { ROUTES } from '@core/routing/routes-constants';
 import {
   CompleteProfileStore,
+  MAX_CUSTOM_TRANSACTIONS,
   ONBOARDING_SUGGESTIONS,
 } from './complete-profile-store';
 import { OnboardingPreviewDesktop } from './components/onboarding-preview-desktop';
@@ -606,9 +607,11 @@ import {
                       @for (suggestion of suggestions; track suggestion.name) {
                         @let isSelected =
                           store.selectedSuggestionNames().has(suggestion.name);
+                        @let isChipDisabled =
+                          !isSelected && store.customTransactionsLimitReached();
                         <button
                           type="button"
-                          class="inline-flex items-center gap-1.5 px-4 min-h-11 rounded-full text-label-large transition-colors border"
+                          class="inline-flex items-center gap-1.5 px-4 min-h-11 rounded-full text-label-large transition-colors border disabled:opacity-50 disabled:cursor-not-allowed"
                           [class.bg-primary-container]="isSelected"
                           [class.text-on-primary-container]="isSelected"
                           [class.border-primary]="isSelected"
@@ -616,6 +619,7 @@ import {
                           [class.text-on-surface-variant]="!isSelected"
                           [class.border-transparent]="!isSelected"
                           [attr.aria-pressed]="isSelected"
+                          [disabled]="isChipDisabled"
                           (click)="store.toggleSuggestion(suggestion)"
                           [attr.data-testid]="
                             'suggestion-chip-' + suggestion.name
@@ -702,6 +706,7 @@ import {
                     <button
                       matButton="outlined"
                       class="w-full h-12 rounded-2xl"
+                      [disabled]="store.customTransactionsLimitReached()"
                       (click)="openAddCustomDialog()"
                       data-testid="add-custom-expense-button"
                     >
@@ -712,6 +717,18 @@ import {
                         }}
                       </span>
                     </button>
+                    @if (store.customTransactionsLimitReached()) {
+                      <p
+                        class="mt-2 text-body-small text-on-surface-variant"
+                        role="status"
+                        data-testid="custom-expense-limit-message"
+                      >
+                        {{
+                          'completeProfile.customExpense.limitReached'
+                            | transloco: { max: maxCustomTransactions }
+                        }}
+                      </p>
+                    }
                   </section>
                 </div>
 
@@ -866,6 +883,7 @@ export default class CompleteProfilePage {
 
   readonly #locale = inject(LOCALE_ID);
   protected readonly suggestions = ONBOARDING_SUGGESTIONS;
+  protected readonly maxCustomTransactions = MAX_CUSTOM_TRANSACTIONS;
   protected readonly currencies = SUPPORTED_CURRENCIES;
   protected readonly currencyMetadata = CURRENCY_METADATA;
   protected readonly stepperSteps = [

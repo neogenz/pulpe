@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { of, throwError } from 'rxjs';
 import {
   CompleteProfileStore,
+  MAX_CUSTOM_TRANSACTIONS,
   ONBOARDING_SUGGESTIONS,
 } from './complete-profile-store';
 import { ProfileSetupService } from '@core/complete-profile';
@@ -543,6 +544,35 @@ describe('CompleteProfileStore', () => {
         expect(store.customTransactions()).toHaveLength(2);
         expect(store.customTransactions()[0].name).toBe('Salle de sport');
         expect(store.customTransactions()[1].name).toBe('Streaming');
+      });
+    });
+
+    describe('customTransactionsLimitReached', () => {
+      it('should return false when below the limit', () => {
+        for (let i = 0; i < MAX_CUSTOM_TRANSACTIONS - 1; i++) {
+          store.addCustomTransaction({ ...mockTransaction, name: `tx-${i}` });
+        }
+
+        expect(store.customTransactionsLimitReached()).toBe(false);
+      });
+
+      it('should return true at exactly MAX_CUSTOM_TRANSACTIONS', () => {
+        for (let i = 0; i < MAX_CUSTOM_TRANSACTIONS; i++) {
+          store.addCustomTransaction({ ...mockTransaction, name: `tx-${i}` });
+        }
+
+        expect(store.customTransactionsLimitReached()).toBe(true);
+      });
+
+      it('should not allow exceeding the limit via addCustomTransaction', () => {
+        for (let i = 0; i < MAX_CUSTOM_TRANSACTIONS + 5; i++) {
+          store.addCustomTransaction({ ...mockTransaction, name: `tx-${i}` });
+        }
+
+        expect(store.customTransactions()).toHaveLength(
+          MAX_CUSTOM_TRANSACTIONS,
+        );
+        expect(store.customTransactionsLimitReached()).toBe(true);
       });
     });
 

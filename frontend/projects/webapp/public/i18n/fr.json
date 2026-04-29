@@ -835,6 +835,7 @@
       "amountMin": "Le montant doit être supérieur à 0",
       "sectionTitle": "Prévisions personnalisées",
       "addButton": "Ajouter une prévision",
+      "limitReached": "Limite atteinte ({{ max }} prévisions max). Supprime-en une pour en ajouter une autre.",
       "kindExpense": "Dépense",
       "kindSaving": "Épargne",
       "kindIncome": "Revenu",
