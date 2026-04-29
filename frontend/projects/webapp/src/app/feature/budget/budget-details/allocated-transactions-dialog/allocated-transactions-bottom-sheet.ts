@@ -15,10 +15,10 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import type { Transaction } from 'pulpe-shared';
-import { AppCurrencyPipe, buildConversionLabel } from '@core/currency';
+import { AppCurrencyPipe, FormatConversionPipe } from '@core/currency';
 import { FeatureFlagsService } from '@core/feature-flags';
 import { UserSettingsStore } from '@core/user-settings';
-import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
+import { TranslocoPipe } from '@jsverse/transloco';
 import { CurrencyConversionBadge } from '@ui/currency-conversion-badge';
 import { OriginalAmountLine } from '@ui/original-amount-line';
 import type {
@@ -34,6 +34,7 @@ import type {
     MatProgressBarModule,
     MatSlideToggleModule,
     AppCurrencyPipe,
+    FormatConversionPipe,
     CurrencyConversionBadge,
     OriginalAmountLine,
     TranslocoPipe,
@@ -94,13 +95,7 @@ import type {
               [originalAmount]="data.budgetLine.originalAmount"
               [originalCurrency]="data.budgetLine.originalCurrency"
               [displayCurrency]="currency()"
-              [tooltipText]="
-                conversionLabel(
-                  data.budgetLine.originalAmount,
-                  data.budgetLine.originalCurrency,
-                  data.budgetLine.exchangeRate
-                )
-              "
+              [tooltipText]="data.budgetLine | formatConversion"
             />
           }
         </div>
@@ -195,13 +190,7 @@ import type {
                       [originalAmount]="tx.originalAmount"
                       [originalCurrency]="tx.originalCurrency"
                       [exchangeRate]="tx.exchangeRate"
-                      [tooltipText]="
-                        conversionLabel(
-                          tx.originalAmount,
-                          tx.originalCurrency,
-                          tx.exchangeRate
-                        )
-                      "
+                      [tooltipText]="tx | formatConversion"
                     />
                   }
                 </div>
@@ -241,7 +230,6 @@ import type {
 export class AllocatedTransactionsBottomSheet {
   readonly #userSettings = inject(UserSettingsStore);
   readonly #featureFlags = inject(FeatureFlagsService);
-  readonly #transloco = inject(TranslocoService);
   protected readonly currency = this.#userSettings.currency;
   protected readonly isMultiCurrencyEnabled =
     this.#featureFlags.isMultiCurrencyEnabled;
@@ -292,19 +280,6 @@ export class AllocatedTransactionsBottomSheet {
 
   deleteTransaction(transaction: Transaction): void {
     this.#bottomSheetRef.dismiss({ action: 'delete', transaction });
-  }
-
-  protected conversionLabel(
-    originalAmount: number | null | undefined,
-    originalCurrency: string | null | undefined,
-    exchangeRate: number | null | undefined,
-  ): string {
-    return buildConversionLabel(
-      this.#transloco,
-      originalAmount,
-      originalCurrency,
-      exchangeRate,
-    );
   }
 
   protected onToggleCheck(id: string): void {

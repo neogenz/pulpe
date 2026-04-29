@@ -16,7 +16,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { type BudgetLine, type Transaction } from 'pulpe-shared';
-import { AppCurrencyPipe, ConversionLabelPipe } from '@core/currency';
+import { AppCurrencyPipe, FormatConversionPipe } from '@core/currency';
 import { FeatureFlagsService } from '@core/feature-flags';
 import { UserSettingsStore } from '@core/user-settings';
 import { TranslocoPipe } from '@jsverse/transloco';
@@ -67,7 +67,7 @@ const DETAIL_SEGMENT_COUNT = 12;
     MatSlideToggleModule,
     MatTooltipModule,
     AppCurrencyPipe,
-    ConversionLabelPipe,
+    FormatConversionPipe,
     TranslocoPipe,
     DatePipe,
     OriginalAmountLine,
@@ -124,7 +124,7 @@ const DETAIL_SEGMENT_COUNT = 12;
               [displayCurrency]="currency()"
               [tooltipText]="
                 isMultiCurrencyEnabled()
-                  ? (envelope.data | conversionLabel)
+                  ? (envelope.data | formatConversion)
                   : ''
               "
             />
@@ -268,7 +268,7 @@ const DETAIL_SEGMENT_COUNT = 12;
                       [originalCurrency]="tx.originalCurrency"
                       [displayCurrency]="currency()"
                       [tooltipText]="
-                        isMultiCurrencyEnabled() ? (tx | conversionLabel) : ''
+                        isMultiCurrencyEnabled() ? (tx | formatConversion) : ''
                       "
                     />
                   </div>

@@ -13,7 +13,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { RouterLink } from '@angular/router';
 import { type BudgetLine, type SupportedCurrency } from 'pulpe-shared';
-import { AppCurrencyPipe, ConversionLabelPipe } from '@core/currency';
+import { AppCurrencyPipe, FormatConversionPipe } from '@core/currency';
 import { FinancialKindDirective } from '@ui/financial-kind';
 import { FinancialLineCard } from '@pattern/financial-line-card';
 import { OriginalAmountLine } from '@ui/original-amount-line';
@@ -36,7 +36,7 @@ import { BudgetActionMenu } from '../components/budget-action-menu';
     FinancialKindDirective,
     FinancialLineCard,
     OriginalAmountLine,
-    ConversionLabelPipe,
+    FormatConversionPipe,
     SegmentedBudgetProgress,
     BudgetActionMenu,
   ],
@@ -163,7 +163,7 @@ import { BudgetActionMenu } from '../components/budget-action-menu';
             [originalCurrency]="item().data.originalCurrency"
             [displayCurrency]="currency()"
             [tooltipText]="
-              isMultiCurrencyEnabled() ? (item().data | conversionLabel) : ''
+              isMultiCurrencyEnabled() ? (item().data | formatConversion) : ''
             "
           />
         </ng-container>

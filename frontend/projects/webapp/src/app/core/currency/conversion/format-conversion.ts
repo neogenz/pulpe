@@ -16,7 +16,7 @@ function getRateFormatter(locale: string): Intl.NumberFormat {
   return fmt;
 }
 
-export function buildConversionLabel(
+export function formatConversion(
   transloco: TranslocoService,
   originalAmount: number | null | undefined,
   originalCurrency: string | null | undefined,

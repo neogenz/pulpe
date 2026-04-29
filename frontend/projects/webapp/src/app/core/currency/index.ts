@@ -1,8 +1,7 @@
 export { AppCurrencyPipe } from './app-currency.pipe';
 export { CURRENCY_CONFIG, DEFAULT_DIGITS_INFO } from './currency-config';
 
-export { buildConversionLabel } from './conversion/conversion-label';
-export { ConversionLabelPipe } from './conversion/conversion-label.pipe';
+export { FormatConversionPipe } from './conversion/format-conversion.pipe';
 export { CurrencyConverterService } from './conversion/currency-converter.service';
 export {
   injectLiveConversionPreview,

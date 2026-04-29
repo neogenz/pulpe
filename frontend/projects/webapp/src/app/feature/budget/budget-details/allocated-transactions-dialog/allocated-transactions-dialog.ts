@@ -5,14 +5,14 @@ import {
   MatDialogRef,
   MatDialogModule,
 } from '@angular/material/dialog';
-import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
+import { TranslocoPipe } from '@jsverse/transloco';
 import { MatTableModule } from '@angular/material/table';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import type { BudgetLine, Transaction } from 'pulpe-shared';
-import { AppCurrencyPipe, buildConversionLabel } from '@core/currency';
+import { AppCurrencyPipe, FormatConversionPipe } from '@core/currency';
 import { CurrencyConversionBadge } from '@ui/currency-conversion-badge';
 import type { BudgetLineConsumption } from '@core/budget';
 import { FeatureFlagsService } from '@core/feature-flags';
@@ -39,6 +39,7 @@ export interface AllocatedTransactionsDialogResult {
     MatTooltipModule,
     MatProgressBarModule,
     AppCurrencyPipe,
+    FormatConversionPipe,
     CurrencyConversionBadge,
     DatePipe,
     DecimalPipe,
@@ -69,13 +70,7 @@ export interface AllocatedTransactionsDialogResult {
                   [originalAmount]="data.budgetLine.originalAmount"
                   [originalCurrency]="data.budgetLine.originalCurrency"
                   [exchangeRate]="data.budgetLine.exchangeRate"
-                  [tooltipText]="
-                    conversionLabel(
-                      data.budgetLine.originalAmount,
-                      data.budgetLine.originalCurrency,
-                      data.budgetLine.exchangeRate
-                    )
-                  "
+                  [tooltipText]="data.budgetLine | formatConversion"
                 />
               }
             </div>
@@ -166,13 +161,7 @@ export interface AllocatedTransactionsDialogResult {
                       [originalAmount]="tx.originalAmount"
                       [originalCurrency]="tx.originalCurrency"
                       [exchangeRate]="tx.exchangeRate"
-                      [tooltipText]="
-                        conversionLabel(
-                          tx.originalAmount,
-                          tx.originalCurrency,
-                          tx.exchangeRate
-                        )
-                      "
+                      [tooltipText]="tx | formatConversion"
                     />
                   }
                 </span>
@@ -251,7 +240,6 @@ export interface AllocatedTransactionsDialogResult {
 export class AllocatedTransactionsDialog {
   readonly #userSettings = inject(UserSettingsStore);
   readonly #featureFlags = inject(FeatureFlagsService);
-  readonly #transloco = inject(TranslocoService);
   protected readonly currency = this.#userSettings.currency;
   protected readonly isMultiCurrencyEnabled =
     this.#featureFlags.isMultiCurrencyEnabled;
@@ -286,18 +274,5 @@ export class AllocatedTransactionsDialog {
 
   deleteTransaction(transaction: Transaction): void {
     this.#dialogRef.close({ action: 'delete', transaction });
-  }
-
-  protected conversionLabel(
-    originalAmount: number | null | undefined,
-    originalCurrency: string | null | undefined,
-    exchangeRate: number | null | undefined,
-  ): string {
-    return buildConversionLabel(
-      this.#transloco,
-      originalAmount,
-      originalCurrency,
-      exchangeRate,
-    );
   }
 }

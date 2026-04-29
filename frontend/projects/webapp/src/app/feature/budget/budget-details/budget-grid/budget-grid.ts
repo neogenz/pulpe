@@ -14,7 +14,7 @@ import { MatCardModule } from '@angular/material/card';
 import { MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
-import { AppCurrencyPipe, ConversionLabelPipe } from '@core/currency';
+import { AppCurrencyPipe, FormatConversionPipe } from '@core/currency';
 import { FeatureFlagsService } from '@core/feature-flags';
 import { FinancialKindDirective } from '@ui/financial-kind';
 import { FinancialKindIndicator } from '@ui/financial-kind-indicator';
@@ -83,7 +83,7 @@ export function groupByKind<T extends { data: { kind: string } }>(
     FinancialKindIndicator,
     FinancialKindDirective,
     OriginalAmountLine,
-    ConversionLabelPipe,
+    FormatConversionPipe,
     TransactionActionMenu,
     TransactionLabelPipe,
   ],
@@ -248,7 +248,7 @@ export function groupByKind<T extends { data: { kind: string } }>(
                 [originalCurrency]="item.data.originalCurrency"
                 [displayCurrency]="currency()"
                 [tooltipText]="
-                  isMultiCurrencyEnabled() ? (item.data | conversionLabel) : ''
+                  isMultiCurrencyEnabled() ? (item.data | formatConversion) : ''
                 "
               />
             </div>
@@ -322,7 +322,7 @@ export function groupByKind<T extends { data: { kind: string } }>(
             [originalCurrency]="item.data.originalCurrency"
             [displayCurrency]="currency()"
             [tooltipText]="
-              isMultiCurrencyEnabled() ? (item.data | conversionLabel) : ''
+              isMultiCurrencyEnabled() ? (item.data | formatConversion) : ''
             "
           />
         </div>
