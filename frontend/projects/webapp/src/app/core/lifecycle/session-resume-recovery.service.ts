@@ -5,6 +5,8 @@ import {
   inject,
   Injectable,
   InjectionToken,
+  Injector,
+  runInInjectionContext,
 } from '@angular/core';
 import { Router } from '@angular/router';
 import { AuthSessionService } from '@core/auth/auth-session.service';
@@ -44,7 +46,8 @@ const PROTECTED_ROUTE_PREFIXES = [
 type ResumeTriggerReason =
   | 'pageshow_persisted'
   | 'pageshow_discarded'
-  | 'visibility_long_background';
+  | 'visibility_long_background'
+  | 'splash_timeout';
 
 @Injectable({ providedIn: 'root' })
 export class SessionResumeRecoveryService {
@@ -59,6 +62,7 @@ export class SessionResumeRecoveryService {
   readonly #logger = inject(Logger);
   readonly #reload = inject(PAGE_RELOAD);
   readonly #storage = inject(StorageService);
+  readonly #injector = inject(Injector);
 
   #initialized = false;
   #lastHiddenAt: number | null = null;
@@ -143,18 +147,27 @@ export class SessionResumeRecoveryService {
     });
 
     // Drains queued reason once auth finishes loading.
-    effect(() => {
-      const isLoading = this.#authState.isLoading();
-      if (isLoading || this.#pendingReason === null) return;
-      const reason = this.#pendingReason;
-      this.#pendingReason = null;
-      this.#clearLoadingTimeout();
-      this.#triggerResumeRecovery(reason);
+    // Why: runInInjectionContext makes this safe even if `initialize()` is ever
+    // called outside of an injection context (defensive — currently called from
+    // `provideAppInitializer`, which IS in injection context).
+    runInInjectionContext(this.#injector, () => {
+      effect(() => {
+        const isLoading = this.#authState.isLoading();
+        if (isLoading || this.#pendingReason === null) return;
+        const reason = this.#pendingReason;
+        this.#pendingReason = null;
+        this.#clearLoadingTimeout();
+        this.#triggerResumeRecovery(reason);
+      });
     });
   }
 
-  forceReloadOnSplashTimeout(): void {
-    this.#triggerRecoveryReload('visibility_long_background');
+  // Returns true if reload was triggered, false if cooldown blocked it.
+  // Splash-removal callers rely on the return value to decide whether to
+  // surface the splash-removal fallback (so the user isn't stuck on a frozen
+  // splash when cooldown blocks a redundant reload).
+  forceReloadOnSplashTimeout(): boolean {
+    return this.#triggerRecoveryReload('splash_timeout');
   }
 
   #isOnProtectedRoute(): boolean {
@@ -242,9 +255,9 @@ export class SessionResumeRecoveryService {
     }
   }
 
-  #triggerRecoveryReload(reason: ResumeTriggerReason): void {
+  #triggerRecoveryReload(reason: ResumeTriggerReason): boolean {
     if (!this.#shouldReload()) {
-      return;
+      return false;
     }
 
     this.#markReload();
@@ -253,6 +266,7 @@ export class SessionResumeRecoveryService {
       route: this.#router.url,
     });
     this.#reload();
+    return true;
   }
 
   #shouldReload(): boolean {

@@ -45,7 +45,15 @@ export function splashRemovalInitializer(): void {
           logger.warn(
             '[SplashRemoval] Timeout fired while auth still loading, forcing reload',
           );
-          recovery.forceReloadOnSplashTimeout();
+          const reloadTriggered = recovery.forceReloadOnSplashTimeout();
+          // Why: cooldown can block the reload. Without this fallback the
+          // splash would stay forever (neither reload nor removal happens).
+          if (!reloadTriggered) {
+            logger.warn(
+              '[SplashRemoval] Reload blocked by cooldown, removing splash',
+            );
+            removeSplash();
+          }
           return;
         }
         removeSplash();

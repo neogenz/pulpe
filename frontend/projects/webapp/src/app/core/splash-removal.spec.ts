@@ -23,13 +23,14 @@ describe('provideSplashRemoval', () => {
   let routerEvents$: Subject<unknown>;
   let splashElement: HTMLDivElement;
   const isLoadingSignal = signal(false);
-  const forceReloadSpy = vi.fn();
+  const forceReloadSpy = vi.fn<() => boolean>();
   const warnSpy = vi.fn();
 
   beforeEach(() => {
     routerEvents$ = new Subject();
     isLoadingSignal.set(false);
     forceReloadSpy.mockReset();
+    forceReloadSpy.mockReturnValue(true);
     warnSpy.mockReset();
 
     splashElement = document.createElement('div');
@@ -163,6 +164,32 @@ describe('provideSplashRemoval', () => {
       '[SplashRemoval] Timeout fired while auth still loading, forcing reload',
     );
     expect(document.getElementById('pulpe-splash')).not.toBeNull();
+  });
+
+  it('should remove splash when reload is blocked by cooldown', async () => {
+    vi.useFakeTimers();
+    isLoadingSignal.set(true);
+    forceReloadSpy.mockReturnValue(false);
+
+    const rafSpy = vi
+      .spyOn(window, 'requestAnimationFrame')
+      .mockImplementation((cb) => {
+        cb(0);
+        return 0;
+      });
+
+    await setup();
+
+    await vi.advanceTimersByTimeAsync(15_001);
+
+    vi.useRealTimers();
+    rafSpy.mockRestore();
+
+    expect(forceReloadSpy).toHaveBeenCalledOnce();
+    expect(warnSpy).toHaveBeenCalledWith(
+      '[SplashRemoval] Reload blocked by cooldown, removing splash',
+    );
+    expect(document.getElementById('pulpe-splash')).toBeNull();
   });
 
   it('should remove splash when timeout fires but auth resolved', async () => {

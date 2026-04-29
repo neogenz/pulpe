@@ -265,14 +265,14 @@ describe('SessionResumeRecoveryService', () => {
     });
   });
 
-  it('forceReloadOnSplashTimeout honors cooldown', () => {
+  it('forceReloadOnSplashTimeout honors cooldown and reports outcome', () => {
     const nowSpy = vi.spyOn(Date, 'now').mockReturnValue(5_000);
 
-    service.forceReloadOnSplashTimeout();
+    expect(service.forceReloadOnSplashTimeout()).toBe(true);
     expect(reloadSpy).toHaveBeenCalledOnce();
 
     nowSpy.mockReturnValue(5_500);
-    service.forceReloadOnSplashTimeout();
+    expect(service.forceReloadOnSplashTimeout()).toBe(false);
     expect(reloadSpy).toHaveBeenCalledOnce();
   });
 });
