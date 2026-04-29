@@ -275,4 +275,62 @@ describe('SessionResumeRecoveryService', () => {
     expect(service.forceReloadOnSplashTimeout()).toBe(false);
     expect(reloadSpy).toHaveBeenCalledOnce();
   });
+
+  it('should track lastHiddenAt via pagehide and recover on visibility resume after long delay', async () => {
+    const nowSpy = vi.spyOn(Date, 'now').mockReturnValue(10_000);
+
+    window.dispatchEvent(new Event('pagehide'));
+
+    nowSpy.mockReturnValue(10_000 + PAGE_RESUME_THRESHOLD_MS + 1);
+    setVisibilityState('visible');
+    document.dispatchEvent(new Event('visibilitychange'));
+
+    await vi.waitFor(() => {
+      expect(mockAuthSession.refreshSession).toHaveBeenCalledOnce();
+    });
+    expect(reloadSpy).not.toHaveBeenCalled();
+  });
+
+  it('should not recover when not authenticated', async () => {
+    isAuthenticatedFn.mockReturnValue(false);
+
+    dispatchPageShow(true);
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(mockAuthSession.refreshSession).not.toHaveBeenCalled();
+    expect(reloadSpy).not.toHaveBeenCalled();
+  });
+
+  it('should remove event listeners on destroy', async () => {
+    TestBed.resetTestingModule();
+
+    dispatchPageShow(true);
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(mockAuthSession.refreshSession).not.toHaveBeenCalled();
+    expect(reloadSpy).not.toHaveBeenCalled();
+  });
+
+  it('should ignore concurrent triggers while recovery in flight', async () => {
+    let resolveRefresh!: (value: boolean) => void;
+    mockAuthSession.refreshSession.mockReset();
+    mockAuthSession.refreshSession.mockReturnValue(
+      new Promise<boolean>((resolve) => {
+        resolveRefresh = resolve;
+      }),
+    );
+
+    dispatchPageShow(true);
+    dispatchPageShow(true);
+
+    await Promise.resolve();
+    expect(mockAuthSession.refreshSession).toHaveBeenCalledOnce();
+
+    resolveRefresh(true);
+    await vi.waitFor(() => {
+      expect(mockBudgetApi.cache.invalidate).toHaveBeenCalledOnce();
+    });
+  });
 });

@@ -83,4 +83,31 @@ describe('BlurOnVisibilityResumeDirective', () => {
 
     expect(document.activeElement).toBe(insideInput);
   });
+
+  it('should not throw when no element is focused on visibility change', () => {
+    const fixture = TestBed.createComponent(HostComponent);
+    fixture.detectChanges();
+
+    (document.activeElement as HTMLElement | null)?.blur();
+
+    setVisibilityState('visible');
+    expect(() => dispatchVisibilityChange()).not.toThrow();
+  });
+
+  it('should remove the visibilitychange listener on destroy', () => {
+    const fixture = TestBed.createComponent(HostComponent);
+    fixture.detectChanges();
+
+    const insideInput = fixture.nativeElement.querySelector(
+      '[data-testid="inside"]',
+    ) as HTMLInputElement;
+    insideInput.focus();
+
+    fixture.destroy();
+
+    setVisibilityState('visible');
+    dispatchVisibilityChange();
+
+    expect(document.activeElement).toBe(insideInput);
+  });
 });
