@@ -12,7 +12,7 @@ import { ApiError } from '@core/api/api-error';
 import { Logger } from '@core/logging/logger';
 import { UserSettingsStore } from '@core/user-settings';
 import { AuthSessionService } from '@core/auth/auth-session.service';
-import { AuthStateService } from '@core/auth';
+import { AuthStore } from '@core/auth';
 import { ClientKeyService, EncryptionApi } from '@core/encryption';
 import { DemoModeService } from '@core/demo/demo-mode.service';
 import { provideTranslocoForTest } from '@app/testing/transloco-testing';
@@ -36,7 +36,7 @@ describe('SettingsPage', () => {
     warn: ReturnType<typeof vi.fn>;
   };
   let mockAuthSession: { signOut: ReturnType<typeof vi.fn> };
-  let mockAuthState: { isOAuthOnly: ReturnType<typeof signal<boolean>> };
+  let mockAuthStore: { isOAuthOnly: ReturnType<typeof signal<boolean>> };
   let mockFeatureFlags: {
     isMultiCurrencyEnabled: ReturnType<typeof signal<boolean>>;
   };
@@ -73,7 +73,7 @@ describe('SettingsPage', () => {
       signOut: vi.fn().mockResolvedValue(undefined),
     };
 
-    mockAuthState = {
+    mockAuthStore = {
       isOAuthOnly: signal(false),
     };
 
@@ -96,7 +96,7 @@ describe('SettingsPage', () => {
           useValue: { navigate: vi.fn().mockResolvedValue(true) },
         },
         { provide: AuthSessionService, useValue: mockAuthSession },
-        { provide: AuthStateService, useValue: mockAuthState },
+        { provide: AuthStore, useValue: mockAuthStore },
         { provide: FeatureFlagsService, useValue: mockFeatureFlags },
         {
           provide: EncryptionApi,
@@ -176,7 +176,7 @@ describe('SettingsPage', () => {
 
   describe('change-password-button visibility', () => {
     it('should hide change-password-button when user is OAuth', async () => {
-      mockAuthState.isOAuthOnly.set(true);
+      mockAuthStore.isOAuthOnly.set(true);
       fixture.detectChanges();
       await fixture.whenStable();
       const btn = fixture.nativeElement.querySelector(
@@ -186,7 +186,7 @@ describe('SettingsPage', () => {
     });
 
     it('should show change-password-button when user is not OAuth', async () => {
-      mockAuthState.isOAuthOnly.set(false);
+      mockAuthStore.isOAuthOnly.set(false);
       fixture.detectChanges();
       await fixture.whenStable();
       const btn = fixture.nativeElement.querySelector(

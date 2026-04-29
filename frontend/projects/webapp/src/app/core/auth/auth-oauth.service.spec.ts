@@ -5,7 +5,7 @@ import { TranslocoService } from '@jsverse/transloco';
 import type { Session } from '@supabase/supabase-js';
 import { AuthOAuthService } from './auth-oauth.service';
 import { AuthSessionService } from './auth-session.service';
-import { AuthStateService } from './auth-state.service';
+import { AuthStore } from './auth-store';
 import { ApplicationConfiguration } from '../config/application-configuration';
 import { AuthErrorLocalizer } from './auth-error-localizer';
 import { Logger } from '../logging/logger';
@@ -22,7 +22,7 @@ describe('AuthOAuthService', () => {
   let service: AuthOAuthService;
   let transloco: TranslocoService;
   let mockSession: Partial<AuthSessionService>;
-  let mockState: Partial<AuthStateService>;
+  let mockState: Partial<AuthStore>;
   let mockConfig: Partial<ApplicationConfiguration>;
   let mockErrorLocalizer: Partial<AuthErrorLocalizer>;
   let mockLogger: Partial<Logger>;
@@ -49,6 +49,9 @@ describe('AuthOAuthService', () => {
 
     mockLogger = {
       info: vi.fn(),
+      warn: vi.fn(),
+      error: vi.fn(),
+      debug: vi.fn(),
     };
 
     TestBed.configureTestingModule({
@@ -56,7 +59,7 @@ describe('AuthOAuthService', () => {
         ...provideTranslocoForTest(),
         AuthOAuthService,
         { provide: AuthSessionService, useValue: mockSession },
-        { provide: AuthStateService, useValue: mockState },
+        { provide: AuthStore, useValue: mockState },
         { provide: ApplicationConfiguration, useValue: mockConfig },
         { provide: AuthErrorLocalizer, useValue: mockErrorLocalizer },
         { provide: Logger, useValue: mockLogger },

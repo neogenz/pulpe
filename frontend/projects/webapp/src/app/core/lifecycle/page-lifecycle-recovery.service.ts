@@ -2,7 +2,7 @@ import { DOCUMENT } from '@angular/common';
 import { DestroyRef, inject, Injectable, InjectionToken } from '@angular/core';
 import { Router } from '@angular/router';
 import { AuthSessionService } from '@core/auth/auth-session.service';
-import { AuthStateService } from '@core/auth/auth-state.service';
+import { AuthStore } from '@core/auth/auth-store';
 import { BudgetApi } from '@core/budget/budget-api';
 import { BudgetTemplatesApi } from '@core/budget-template/budget-templates-api';
 import { Logger } from '@core/logging/logger';
@@ -43,7 +43,7 @@ export class PageLifecycleRecoveryService {
   readonly #document = inject(DOCUMENT);
   readonly #destroyRef = inject(DestroyRef);
   readonly #router = inject(Router);
-  readonly #authState = inject(AuthStateService);
+  readonly #authStore = inject(AuthStore);
   readonly #authSession = inject(AuthSessionService);
   readonly #budgetApi = inject(BudgetApi);
   readonly #budgetTemplatesApi = inject(BudgetTemplatesApi);
@@ -166,7 +166,7 @@ export class PageLifecycleRecoveryService {
       return;
     }
 
-    if (this.#authState.isLoading()) {
+    if (this.#authStore.isLoading()) {
       this.#logger.debug(
         '[PageLifecycleRecovery] Skipping recovery while auth is loading',
         {
@@ -177,7 +177,7 @@ export class PageLifecycleRecoveryService {
       return;
     }
 
-    if (!this.#authState.isAuthenticated()) {
+    if (!this.#authStore.isAuthenticated()) {
       return;
     }
 

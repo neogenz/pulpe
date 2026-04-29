@@ -30,7 +30,7 @@ import { Logger } from '@core/logging/logger';
 import { UserSettingsStore } from '@core/user-settings';
 import { FeatureFlagsService } from '@core/feature-flags';
 import { AuthSessionService } from '@core/auth/auth-session.service';
-import { AuthStateService } from '@core/auth';
+import { AuthStore } from '@core/auth';
 import { ClientKeyService, EncryptionApi } from '@core/encryption';
 import { DemoModeService } from '@core/demo/demo-mode.service';
 import { ROUTES } from '@core/routing/routes-constants';
@@ -384,14 +384,14 @@ export default class SettingsPage {
   readonly #clientKeyService = inject(ClientKeyService);
   readonly #demoMode = inject(DemoModeService);
   readonly #encryptionApi = inject(EncryptionApi);
-  readonly #authState = inject(AuthStateService);
+  readonly #authStore = inject(AuthStore);
   readonly #transloco = inject(TranslocoService);
   readonly #featureFlags = inject(FeatureFlagsService);
 
   readonly isDemoMode = this.#demoMode.isDemoMode;
   protected readonly isMultiCurrencyEnabled =
     this.#featureFlags.isMultiCurrencyEnabled;
-  protected readonly isOAuthOnly = this.#authState.isOAuthOnly;
+  protected readonly isOAuthOnly = this.#authStore.isOAuthOnly;
   protected readonly isSaving = signal(false);
   protected readonly isDeleting = signal(false);
   protected readonly isGeneratingRecoveryKey = signal(false);

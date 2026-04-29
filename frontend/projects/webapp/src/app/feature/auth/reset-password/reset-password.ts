@@ -16,11 +16,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 
-import {
-  AuthSessionService,
-  AuthStateService,
-  PASSWORD_MIN_LENGTH,
-} from '@core/auth';
+import { AuthSessionService, AuthStore, PASSWORD_MIN_LENGTH } from '@core/auth';
 import { ROUTES } from '@core/routing/routes-constants';
 import { Logger } from '@core/logging/logger';
 import { ErrorAlert } from '@ui/error-alert';
@@ -219,7 +215,7 @@ import { resetPasswordFormSchema } from './reset-password-form.schema';
 })
 export default class ResetPassword {
   readonly #authSession = inject(AuthSessionService);
-  readonly #authState = inject(AuthStateService);
+  readonly #authStore = inject(AuthStore);
   readonly #formBuilder = inject(FormBuilder);
   readonly #router = inject(Router);
   readonly #logger = inject(Logger);
@@ -232,12 +228,12 @@ export default class ResetPassword {
   protected readonly isConfirmPasswordHidden = signal(true);
 
   protected readonly isCheckingSession = computed(() =>
-    this.#authState.isLoading(),
+    this.#authStore.isLoading(),
   );
   protected readonly isSessionValid = computed(
-    () => !this.#authState.isLoading() && this.#authState.isAuthenticated(),
+    () => !this.#authStore.isLoading() && this.#authStore.isAuthenticated(),
   );
-  protected readonly isOAuthOnly = this.#authState.isOAuthOnly;
+  protected readonly isOAuthOnly = this.#authStore.isOAuthOnly;
 
   protected readonly form = this.#formBuilder.nonNullable.group(
     {
@@ -266,7 +262,7 @@ export default class ResetPassword {
 
   constructor() {
     effect(() => {
-      if (!this.#authState.isLoading() && !this.#authState.isAuthenticated()) {
+      if (!this.#authStore.isLoading() && !this.#authStore.isAuthenticated()) {
         this.#logger.warn(
           'Reset password: no valid session after token exchange',
         );

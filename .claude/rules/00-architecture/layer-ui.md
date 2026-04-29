@@ -9,7 +9,7 @@ paths: "frontend/**/ui/**/*"
 
 ## ⚠️ CRITICAL Rules
 
-- **NEVER inject app/business services** from `core/` (no `inject(UserService)`, `inject(AuthStateService)`, etc.)
+- **NEVER inject app/business services** from `core/` (no `inject(UserService)`, `inject(AuthStore)`, etc.)
 - **Angular/Material framework services ARE allowed**: `inject(MatDialogRef)`, `inject(ElementRef)`, `inject(DestroyRef)`, `inject(Renderer2)`, etc.
 - **Inputs/outputs ONLY** for data flow — business data from parent via inputs
 - **Self-contained** - No deps on app-specific code
@@ -47,7 +47,7 @@ ui/ ──❌──> styles/    (Self-styled, inline or component styles)
 ## What Does NOT Belong in UI
 
 ❌ **Components with app/business services**:
-- Needs `inject(UserService)`, `inject(AuthStateService)`, etc. → Move to `pattern/` or `feature/`
+- Needs `inject(UserService)`, `inject(AuthStore)`, etc. → Move to `pattern/` or `feature/`
 - Needs HTTP → Move to `pattern/` or `feature/`
 - Needs global state → Move to `pattern/` or `feature/`
 - Note: Angular/Material framework services (`MatDialogRef`, `ElementRef`, `DestroyRef`, etc.) fine

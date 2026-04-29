@@ -2,7 +2,7 @@ import { inject, Injectable, computed } from '@angular/core';
 import { cachedResource } from 'ngx-ziflux';
 import { type UserSettings, type UpdateUserSettings } from 'pulpe-shared';
 import { firstValueFrom, map } from 'rxjs';
-import { AuthStateService } from '../auth/auth-state.service';
+import { AuthStore } from '../auth/auth-store';
 import { ClientKeyService } from '../encryption/client-key.service';
 import { DemoModeService } from '../demo/demo-mode.service';
 import { UserSettingsApi } from './user-settings-api';
@@ -12,7 +12,7 @@ import { UserSettingsApi } from './user-settings-api';
 })
 export class UserSettingsStore {
   readonly #api = inject(UserSettingsApi);
-  readonly #authState = inject(AuthStateService);
+  readonly #authStore = inject(AuthStore);
   readonly #clientKey = inject(ClientKeyService);
   readonly #demoMode = inject(DemoModeService);
   readonly #settingsResource = cachedResource<
@@ -23,7 +23,7 @@ export class UserSettingsStore {
     cacheKey: ['settings', 'user'],
     params: () => {
       const isReady =
-        this.#authState.isAuthenticated() &&
+        this.#authStore.isAuthenticated() &&
         (this.#clientKey.hasClientKey() || this.#demoMode.isDemoMode());
       return isReady ? { isReady } : undefined;
     },
