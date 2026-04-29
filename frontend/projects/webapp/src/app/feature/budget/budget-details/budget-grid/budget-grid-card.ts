@@ -11,7 +11,7 @@ import { MatChipsModule } from '@angular/material/chips';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { type BudgetLine, type SupportedCurrency } from 'pulpe-shared';
-import { AppCurrencyPipe, ConversionTooltipPipe } from '@core/currency';
+import { AppCurrencyPipe, ConversionLabelPipe } from '@core/currency';
 import { FinancialKindDirective } from '@ui/financial-kind';
 import { FinancialKindIndicator } from '@ui/financial-kind-indicator';
 import { OriginalAmountLine } from '@ui/original-amount-line';
@@ -47,7 +47,7 @@ import { BudgetActionMenu } from '../components/budget-action-menu';
     AppCurrencyPipe,
     FinancialKindDirective,
     OriginalAmountLine,
-    ConversionTooltipPipe,
+    ConversionLabelPipe,
     RecurrenceLabelPipe,
     SegmentedBudgetProgress,
     FinancialKindIndicator,
@@ -146,7 +146,7 @@ import { BudgetActionMenu } from '../components/budget-action-menu';
           [originalCurrency]="item().data.originalCurrency"
           [displayCurrency]="currency()"
           [tooltipText]="
-            isMultiCurrencyEnabled() ? (item().data | conversionTooltip) : ''
+            isMultiCurrencyEnabled() ? (item().data | conversionLabel) : ''
           "
         />
       </div>

@@ -12,7 +12,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import type { BudgetLine, Transaction } from 'pulpe-shared';
-import { AppCurrencyPipe, buildConversionTooltip } from '@core/currency';
+import { AppCurrencyPipe, buildConversionLabel } from '@core/currency';
 import { CurrencyConversionBadge } from '@ui/currency-conversion-badge';
 import type { BudgetLineConsumption } from '@core/budget';
 import { FeatureFlagsService } from '@core/feature-flags';
@@ -70,7 +70,7 @@ export interface AllocatedTransactionsDialogResult {
                   [originalCurrency]="data.budgetLine.originalCurrency"
                   [exchangeRate]="data.budgetLine.exchangeRate"
                   [tooltipText]="
-                    conversionTooltip(
+                    conversionLabel(
                       data.budgetLine.originalAmount,
                       data.budgetLine.originalCurrency,
                       data.budgetLine.exchangeRate
@@ -167,7 +167,7 @@ export interface AllocatedTransactionsDialogResult {
                       [originalCurrency]="tx.originalCurrency"
                       [exchangeRate]="tx.exchangeRate"
                       [tooltipText]="
-                        conversionTooltip(
+                        conversionLabel(
                           tx.originalAmount,
                           tx.originalCurrency,
                           tx.exchangeRate
@@ -288,12 +288,12 @@ export class AllocatedTransactionsDialog {
     this.#dialogRef.close({ action: 'delete', transaction });
   }
 
-  protected conversionTooltip(
+  protected conversionLabel(
     originalAmount: number | null | undefined,
     originalCurrency: string | null | undefined,
     exchangeRate: number | null | undefined,
   ): string {
-    return buildConversionTooltip(
+    return buildConversionLabel(
       this.#transloco,
       originalAmount,
       originalCurrency,

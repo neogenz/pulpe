@@ -15,7 +15,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import type { Transaction } from 'pulpe-shared';
-import { AppCurrencyPipe, buildConversionTooltip } from '@core/currency';
+import { AppCurrencyPipe, buildConversionLabel } from '@core/currency';
 import { FeatureFlagsService } from '@core/feature-flags';
 import { UserSettingsStore } from '@core/user-settings';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
@@ -95,7 +95,7 @@ import type {
               [originalCurrency]="data.budgetLine.originalCurrency"
               [displayCurrency]="currency()"
               [tooltipText]="
-                conversionTooltip(
+                conversionLabel(
                   data.budgetLine.originalAmount,
                   data.budgetLine.originalCurrency,
                   data.budgetLine.exchangeRate
@@ -196,7 +196,7 @@ import type {
                       [originalCurrency]="tx.originalCurrency"
                       [exchangeRate]="tx.exchangeRate"
                       [tooltipText]="
-                        conversionTooltip(
+                        conversionLabel(
                           tx.originalAmount,
                           tx.originalCurrency,
                           tx.exchangeRate
@@ -294,12 +294,12 @@ export class AllocatedTransactionsBottomSheet {
     this.#bottomSheetRef.dismiss({ action: 'delete', transaction });
   }
 
-  protected conversionTooltip(
+  protected conversionLabel(
     originalAmount: number | null | undefined,
     originalCurrency: string | null | undefined,
     exchangeRate: number | null | undefined,
   ): string {
-    return buildConversionTooltip(
+    return buildConversionLabel(
       this.#transloco,
       originalAmount,
       originalCurrency,

@@ -1,22 +1,24 @@
 export { AppCurrencyPipe } from './app-currency.pipe';
-export { buildConversionTooltip } from './conversion-tooltip';
-export { ConversionTooltipPipe } from './conversion-tooltip.pipe';
-export {
-  conversionFormSchema,
-  type ConversionFormValue,
-} from './form/conversion-form.schema';
 export { CURRENCY_CONFIG, DEFAULT_DIGITS_INFO } from './currency-config';
-export { CurrencyConverterService } from './currency-converter.service';
+
+export { buildConversionLabel } from './conversion/conversion-label';
+export { ConversionLabelPipe } from './conversion/conversion-label.pipe';
+export { CurrencyConverterService } from './conversion/currency-converter.service';
 export {
   injectLiveConversionPreview,
   type LivePreviewState,
   type LivePreviewStatus,
-} from './form/live-conversion-preview';
+} from './conversion/live-conversion-preview';
 export type {
   CurrencyMetadata,
   CurrencyConversionResult,
   FetchRateResult,
-} from './currency.types';
+} from './conversion/currency.types';
+
+export {
+  conversionFormSchema,
+  type ConversionFormValue,
+} from './form/conversion-form.schema';
 export {
   type AmountFormSlice,
   type CreateAmountSliceArgs,

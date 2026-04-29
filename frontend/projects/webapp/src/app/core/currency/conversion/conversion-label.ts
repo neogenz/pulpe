@@ -1,6 +1,6 @@
 import type { TranslocoService } from '@jsverse/transloco';
 import { getCurrencyFormatter } from 'pulpe-shared';
-import { CURRENCY_CONFIG } from './currency-config';
+import { CURRENCY_CONFIG } from '../currency-config';
 
 const rateFormatters = new Map<string, Intl.NumberFormat>();
 
@@ -16,7 +16,7 @@ function getRateFormatter(locale: string): Intl.NumberFormat {
   return fmt;
 }
 
-export function buildConversionTooltip(
+export function buildConversionLabel(
   transloco: TranslocoService,
   originalAmount: number | null | undefined,
   originalCurrency: string | null | undefined,
