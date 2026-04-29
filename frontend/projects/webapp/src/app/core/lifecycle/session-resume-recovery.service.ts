@@ -77,7 +77,7 @@ export class SessionResumeRecoveryService {
       const reason = this.#pendingReason;
       this.#pendingReason = null;
       this.#clearLoadingTimeout();
-      this.#triggerResumeRecovery(reason);
+      untracked(() => this.#triggerResumeRecovery(reason));
     });
   }
 
