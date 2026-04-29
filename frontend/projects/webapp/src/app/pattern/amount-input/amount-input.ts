@@ -101,11 +101,11 @@ export class AmountInput {
   readonly mode = input<AmountInputMode>('create');
   readonly originalCurrency = input<SupportedCurrency | null>(null);
 
-  readonly #amountInputRef =
+  private readonly amountInputRef =
     viewChild<ElementRef<HTMLInputElement>>('amountInput');
 
   focus(): void {
-    this.#amountInputRef()?.nativeElement?.focus();
+    this.amountInputRef()?.nativeElement?.focus();
   }
 
   readonly #settings = inject(UserSettingsStore);
