@@ -4,172 +4,119 @@ import {
   type HttpRequest,
   type HttpEvent,
   type HttpErrorResponse,
+  type HttpHandlerFn,
 } from '@angular/common/http';
 import { Router } from '@angular/router';
-import {
-  type Observable,
-  throwError,
-  from,
-  switchMap,
-  catchError,
-  BehaviorSubject,
-  filter,
-  take,
-} from 'rxjs';
+import { TranslocoService } from '@jsverse/transloco';
+import { type Observable, throwError, from, switchMap, catchError } from 'rxjs';
 import { AuthSessionService } from './auth-session.service';
-import { AuthStateService } from './auth-state.service';
+import { AuthStore } from './auth-store';
 import { ApplicationConfiguration } from '../config/application-configuration';
 import { ROUTES } from '../routing/routes-constants';
+import { AUTH_ERROR_KEYS } from './auth-constants';
 
-let isRefreshing = false;
-const refreshResult$ = new BehaviorSubject<boolean | null>(null);
-
-export function resetRefreshState(): void {
-  isRefreshing = false;
-  refreshResult$.next(null);
+interface InterceptorContext {
+  readonly req: HttpRequest<unknown>;
+  readonly next: HttpHandlerFn;
+  readonly session: AuthSessionService;
+  readonly authStore: AuthStore;
+  readonly router: Router;
+  readonly transloco: TranslocoService;
 }
 
-export const authInterceptor: HttpInterceptorFn = (
-  req: HttpRequest<unknown>,
-  next,
-): Observable<HttpEvent<unknown>> => {
-  const authSession = inject(AuthSessionService);
-  const authState = inject(AuthStateService);
+export const authInterceptor: HttpInterceptorFn = (req, next) => {
+  const session = inject(AuthSessionService);
+  const authStore = inject(AuthStore);
   const applicationConfig = inject(ApplicationConfiguration);
   const router = inject(Router);
+  const transloco = inject(TranslocoService);
 
-  // Vérifier si la requête va vers notre backend
   if (!shouldInterceptRequest(req.url, applicationConfig.backendApiUrl())) {
     return next(req);
   }
 
-  // Obtenir le token actuel et l'ajouter à la requête
-  return from(addAuthToken(req, authSession)).pipe(
-    switchMap((authReq) => next(authReq)),
-    catchError((error) =>
-      handleAuthError(error, req, next, authSession, authState, router),
-    ),
+  const ctx: InterceptorContext = {
+    req,
+    next,
+    session,
+    authStore,
+    router,
+    transloco,
+  };
+
+  return next(addAuthToken(req, authStore)).pipe(
+    catchError((error: HttpErrorResponse) => handleAuthError(error, ctx)),
   );
 };
 
 function shouldInterceptRequest(url: string, backendApiUrl: string): boolean {
-  // Config not loaded yet → we don't know the backend URL. Don't touch
-  // any request until we do. Without this guard, `url.startsWith('')`
-  // would match every request during the pre-config bootstrap window.
-  if (!backendApiUrl) {
-    return false;
-  }
-
-  // Exclure les requêtes de configuration pour éviter la dépendance circulaire
-  if (url.includes('/config.json')) {
-    return false;
-  }
-
+  if (!backendApiUrl) return false;
+  if (url.includes('/config.json')) return false;
   return url.startsWith(backendApiUrl);
 }
 
-async function addAuthToken(
+function addAuthToken(
   req: HttpRequest<unknown>,
-  authSession: AuthSessionService,
-): Promise<HttpRequest<unknown>> {
-  const session = await authSession.getCurrentSession();
-
-  if (session?.access_token) {
-    return req.clone({
-      headers: req.headers.set(
-        'Authorization',
-        `Bearer ${session.access_token}`,
-      ),
-    });
-  }
-
-  return req;
+  authStore: AuthStore,
+): HttpRequest<unknown> {
+  const accessToken = authStore.session()?.access_token;
+  if (!accessToken) return req;
+  return req.clone({
+    headers: req.headers.set('Authorization', `Bearer ${accessToken}`),
+  });
 }
 
 function handleAuthError(
   error: HttpErrorResponse,
-  originalReq: HttpRequest<unknown>,
-  next: (req: HttpRequest<unknown>) => Observable<HttpEvent<unknown>>,
-  authSession: AuthSessionService,
-  authState: AuthStateService,
-  router: Router,
+  ctx: InterceptorContext,
 ): Observable<HttpEvent<unknown>> {
-  // Only attempt refresh if it's a 401 and user is authenticated
-  if (error.status === 401 && authState.isAuthenticated()) {
-    if (isRefreshing) {
-      // A refresh is already in progress - wait for its result
-      return refreshResult$.pipe(
-        filter((result): result is boolean => result !== null),
-        take(1),
-        switchMap((success) => {
-          if (!success) {
-            return throwError(
-              () => new Error('Session expirée, veuillez vous reconnecter'),
-            );
-          }
-          return from(addAuthToken(originalReq, authSession)).pipe(
-            switchMap((authReq) => next(authReq)),
-          );
-        }),
-      );
-    }
-
-    // First 401 triggers the refresh
-    isRefreshing = true;
-    refreshResult$.next(null);
-
-    return from(authSession.refreshSession()).pipe(
-      switchMap((refreshSuccess) => {
-        isRefreshing = false;
-        refreshResult$.next(refreshSuccess);
-
-        if (!refreshSuccess) {
-          authSession.signOut();
-          router.navigate(['/', ROUTES.LOGIN]);
-          return throwError(
-            () => new Error('Session expirée, veuillez vous reconnecter'),
-          );
-        }
-
-        // Refresh succeeded, retry the original request with new token
-        return from(addAuthToken(originalReq, authSession)).pipe(
-          switchMap((authReq) => next(authReq)),
-        );
-      }),
-      catchError((refreshError) => {
-        isRefreshing = false;
-        refreshResult$.next(false);
-        authSession.signOut();
-        router.navigate(['/', ROUTES.LOGIN]);
-        return throwError(() => refreshError);
-      }),
+  if (error.status === 401 && ctx.authStore.isAuthenticated()) {
+    return from(ctx.session.refreshSession()).pipe(
+      switchMap((refreshed) =>
+        refreshed
+          ? ctx.next(addAuthToken(ctx.req, ctx.authStore))
+          : signOutAndRedirect(ctx, AUTH_ERROR_KEYS.SESSION_EXPIRED),
+      ),
+      catchError(() => signOutAndRedirect(ctx, AUTH_ERROR_KEYS.REFRESH_FAILED)),
     );
   }
 
-  // Handle missing client encryption key — redirect to vault code entry,
-  // NOT signOut. The Supabase session is still valid; only the client key
-  // was lost (e.g. sessionStorage cleared after background inactivity).
   if (
     error.status === 403 &&
     error.error?.code === 'ERR_AUTH_CLIENT_KEY_MISSING'
   ) {
-    router.navigate(['/', ROUTES.ENTER_VAULT_CODE]);
-    return throwError(() => new Error('Client encryption key missing'));
+    if (
+      ctx.router.url.includes(ROUTES.ENTER_VAULT_CODE) ||
+      !ctx.authStore.isAuthenticated()
+    ) {
+      return throwError(() => error);
+    }
+    ctx.router.navigate(['/', ROUTES.ENTER_VAULT_CODE]);
+    return throwError(
+      () =>
+        new Error(ctx.transloco.translate(AUTH_ERROR_KEYS.CLIENT_KEY_MISSING)),
+    );
   }
 
-  // Handle account blocked (scheduled for deletion)
   if (
     error.status === 403 &&
     (error.error?.code === 'ERR_USER_ACCOUNT_BLOCKED' ||
       error.error?.error === 'ERR_USER_ACCOUNT_BLOCKED')
   ) {
-    authSession.signOut();
-    router.navigate(['/', ROUTES.LOGIN]);
-    return throwError(
-      () => new Error('Ton compte est en cours de suppression.'),
-    );
+    return signOutAndRedirect(ctx, AUTH_ERROR_KEYS.ACCOUNT_BLOCKED);
   }
 
-  // Not a 401/403 or user not authenticated, just pass the error through
   return throwError(() => error);
+}
+
+function signOutAndRedirect(
+  ctx: InterceptorContext,
+  errorKey: string,
+): Observable<never> {
+  return from(ctx.session.signOut()).pipe(
+    switchMap(() => from(ctx.router.navigate(['/', ROUTES.LOGIN]))),
+    switchMap(() =>
+      throwError(() => new Error(ctx.transloco.translate(errorKey))),
+    ),
+  );
 }

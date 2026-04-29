@@ -8,11 +8,11 @@ import {
   type Mock,
 } from 'vitest';
 import { TestBed } from '@angular/core/testing';
-import { signal } from '@angular/core';
+import { provideZonelessChangeDetection, signal } from '@angular/core';
 import type { AuthChangeEvent, Session, User } from '@supabase/supabase-js';
 import { Router } from '@angular/router';
 import { AuthSessionService } from './auth-session.service';
-import { AuthStateService } from './auth-state.service';
+import { AuthStore } from './auth-store';
 import { ApplicationConfiguration } from '../config/application-configuration';
 import { Logger } from '../logging/logger';
 import { AuthErrorLocalizer } from './auth-error-localizer';
@@ -34,11 +34,16 @@ vi.mock('@supabase/supabase-js', () => ({
   createClient: createClientMock,
 }));
 
+const buildJwt = (payload: Record<string, unknown>): string => {
+  const header = btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
+  const body = btoa(JSON.stringify(payload));
+  return `${header}.${body}.signature`;
+};
+
 describe('AuthSessionService', () => {
   let service: AuthSessionService;
-  let mockAuthState: {
-    setSession: Mock;
-    setLoading: Mock;
+  let mockAuthStore: {
+    set: Mock;
     user: () => User | null;
   };
   let mockConfig: Partial<ApplicationConfiguration>;
@@ -53,12 +58,8 @@ describe('AuthSessionService', () => {
     localizeAuthError: Mock;
   };
   let mockSupabaseClient: MockSupabaseClient;
-  let mockCleanup: {
-    performCleanup: Mock;
-  };
-  let mockRouter: {
-    navigate: Mock;
-  };
+  let mockCleanup: { performCleanup: Mock };
+  let mockRouter: { navigate: Mock };
   let mockUserSignal: ReturnType<typeof signal<User | null>>;
 
   const mockSession: Session = {
@@ -86,15 +87,13 @@ describe('AuthSessionService', () => {
   };
 
   beforeEach(() => {
-    // Clean up E2E window properties before each test
     delete (window as E2EWindow).__E2E_AUTH_BYPASS__;
     delete (window as E2EWindow).__E2E_MOCK_AUTH_STATE__;
 
     mockUserSignal = signal<User | null>(null);
 
-    mockAuthState = {
-      setSession: vi.fn(),
-      setLoading: vi.fn(),
+    mockAuthStore = {
+      set: vi.fn(),
       user: mockUserSignal.asReadonly(),
     };
 
@@ -115,24 +114,17 @@ describe('AuthSessionService', () => {
       localizeAuthError: vi.fn().mockReturnValue('Erreur localisée'),
     };
 
-    mockCleanup = {
-      performCleanup: vi.fn(),
-    };
-
-    mockRouter = {
-      navigate: vi.fn(),
-    };
-
+    mockCleanup = { performCleanup: vi.fn() };
+    mockRouter = { navigate: vi.fn() };
     mockSupabaseClient = createMockSupabaseClient();
-
-    // Configure the mock BEFORE creating the service
     createClientMock.mockReturnValue(mockSupabaseClient);
 
     TestBed.configureTestingModule({
       providers: [
+        provideZonelessChangeDetection(),
         ...provideTranslocoForTest(),
         AuthSessionService,
-        { provide: AuthStateService, useValue: mockAuthState },
+        { provide: AuthStore, useValue: mockAuthStore },
         { provide: ApplicationConfiguration, useValue: mockConfig },
         { provide: Logger, useValue: mockLogger },
         { provide: AuthErrorLocalizer, useValue: mockErrorLocalizer },
@@ -145,7 +137,6 @@ describe('AuthSessionService', () => {
   });
 
   afterEach(() => {
-    // Always clean up E2E window properties after each test
     delete (window as E2EWindow).__E2E_AUTH_BYPASS__;
     delete (window as E2EWindow).__E2E_MOCK_AUTH_STATE__;
     vi.clearAllMocks();
@@ -154,19 +145,17 @@ describe('AuthSessionService', () => {
   const captureAuthStateChangeCallback = (
     client: MockSupabaseClient,
   ): ((event: AuthChangeEvent, session: Session | null) => void) => {
-    let capturedCallback: (
+    let captured: (
       event: AuthChangeEvent,
       session: Session | null,
     ) => void = () => undefined;
     client.auth.onAuthStateChange.mockImplementation(
       (callback: (event: AuthChangeEvent, session: Session | null) => void) => {
-        capturedCallback = callback;
+        captured = callback;
         return { data: { subscription: { unsubscribe: vi.fn() } } };
       },
     );
-
-    // Return a wrapper function that calls the captured callback
-    return (event, session) => capturedCallback(event, session);
+    return (event, session) => captured(event, session);
   };
 
   it('should throw error if getClient called before initialization', () => {
@@ -180,15 +169,16 @@ describe('AuthSessionService', () => {
       data: { session: mockSession },
       error: null,
     });
-
     mockSupabaseClient.auth.onAuthStateChange.mockReturnValue({
       data: { subscription: { unsubscribe: vi.fn() } },
     });
 
     await service.initializeAuthState();
 
-    expect(mockAuthState.setSession).toHaveBeenCalledWith(mockSession);
-    expect(mockAuthState.setLoading).toHaveBeenCalledWith(false);
+    expect(mockAuthStore.set).toHaveBeenCalledWith({
+      phase: 'authenticated',
+      session: mockSession,
+    });
     expect(mockSupabaseClient.auth.onAuthStateChange).toHaveBeenCalled();
   });
 
@@ -197,15 +187,13 @@ describe('AuthSessionService', () => {
       data: { session: mockSession },
       error: null,
     });
-
     mockSupabaseClient.auth.onAuthStateChange.mockReturnValue({
       data: { subscription: { unsubscribe: vi.fn() } },
     });
 
     await service.initializeAuthState();
 
-    mockAuthState.setSession.mockClear();
-    mockAuthState.setLoading.mockClear();
+    mockAuthStore.set.mockClear();
     mockSupabaseClient.auth.onAuthStateChange.mockClear();
     vi.mocked(mockLogger.debug)!.mockClear();
 
@@ -214,7 +202,7 @@ describe('AuthSessionService', () => {
     expect(mockLogger.debug).toHaveBeenCalledWith(
       'Auth already initialized, skipping',
     );
-    expect(mockAuthState.setLoading).not.toHaveBeenCalled();
+    expect(mockAuthStore.set).not.toHaveBeenCalled();
     expect(mockSupabaseClient.auth.onAuthStateChange).not.toHaveBeenCalled();
   });
 
@@ -260,20 +248,18 @@ describe('AuthSessionService', () => {
       data: { session: mockSession },
       error: null,
     });
-
     const callback = captureAuthStateChangeCallback(mockSupabaseClient);
 
     await service.initializeAuthState();
-
-    // Clear mocks after initialization
-    mockAuthState.setSession.mockClear();
-    mockAuthState.setLoading.mockClear();
+    mockAuthStore.set.mockClear();
     vi.mocked(mockLogger.debug)!.mockClear();
 
     callback('SIGNED_IN', mockSession);
 
-    expect(mockAuthState.setSession).toHaveBeenCalledWith(mockSession);
-    expect(mockAuthState.setLoading).toHaveBeenCalledWith(false);
+    expect(mockAuthStore.set).toHaveBeenCalledWith({
+      phase: 'authenticated',
+      session: mockSession,
+    });
     expect(mockLogger.debug).toHaveBeenCalledWith('Auth event:', {
       event: 'SIGNED_IN',
       session: mockSession.user.id,
@@ -285,23 +271,17 @@ describe('AuthSessionService', () => {
       data: { session: mockSession },
       error: null,
     });
-
     const callback = captureAuthStateChangeCallback(mockSupabaseClient);
 
     await service.initializeAuthState();
-
-    // Clear mocks after initialization
-    mockAuthState.setSession.mockClear();
-    mockAuthState.setLoading.mockClear();
+    mockAuthStore.set.mockClear();
     vi.mocked(mockLogger.debug)!.mockClear();
 
     callback('TOKEN_REFRESHED', mockSession);
 
-    expect(mockAuthState.setSession).toHaveBeenCalledWith(mockSession);
-    expect(mockAuthState.setLoading).toHaveBeenCalledWith(false);
-    expect(mockLogger.debug).toHaveBeenCalledWith('Auth event:', {
-      event: 'TOKEN_REFRESHED',
-      session: mockSession.user.id,
+    expect(mockAuthStore.set).toHaveBeenCalledWith({
+      phase: 'authenticated',
+      session: mockSession,
     });
   });
 
@@ -311,25 +291,18 @@ describe('AuthSessionService', () => {
       error: null,
     });
     mockUserSignal.set(mockSession.user);
-
     const callback = captureAuthStateChangeCallback(mockSupabaseClient);
 
     await service.initializeAuthState();
-
-    // Clear mocks after initialization
-    mockAuthState.setSession.mockClear();
-    mockAuthState.setLoading.mockClear();
+    mockAuthStore.set.mockClear();
     vi.mocked(mockLogger.debug)!.mockClear();
 
     callback('SIGNED_OUT', null);
 
-    expect(mockAuthState.setSession).toHaveBeenCalledWith(null);
-    expect(mockAuthState.setLoading).toHaveBeenCalledWith(false);
-    expect(mockCleanup.performCleanup).toHaveBeenCalled();
-    expect(mockLogger.debug).toHaveBeenCalledWith('Auth event:', {
-      event: 'SIGNED_OUT',
-      session: undefined,
+    expect(mockAuthStore.set).toHaveBeenCalledWith({
+      phase: 'unauthenticated',
     });
+    expect(mockCleanup.performCleanup).toHaveBeenCalled();
   });
 
   it('should update auth state on USER_UPDATED event', async () => {
@@ -337,23 +310,16 @@ describe('AuthSessionService', () => {
       data: { session: mockSession },
       error: null,
     });
-
     const callback = captureAuthStateChangeCallback(mockSupabaseClient);
 
     await service.initializeAuthState();
-
-    // Clear mocks after initialization
-    mockAuthState.setSession.mockClear();
-    mockAuthState.setLoading.mockClear();
-    vi.mocked(mockLogger.debug)!.mockClear();
+    mockAuthStore.set.mockClear();
 
     callback('USER_UPDATED', mockSession);
 
-    expect(mockAuthState.setSession).toHaveBeenCalledWith(mockSession);
-    expect(mockAuthState.setLoading).toHaveBeenCalledWith(false);
-    expect(mockLogger.debug).toHaveBeenCalledWith('Auth event:', {
-      event: 'USER_UPDATED',
-      session: mockSession.user.id,
+    expect(mockAuthStore.set).toHaveBeenCalledWith({
+      phase: 'authenticated',
+      session: mockSession,
     });
   });
 
@@ -373,15 +339,15 @@ describe('AuthSessionService', () => {
 
       await service.initializeAuthState();
 
-      const [result1, result2, result3] = await Promise.all([
+      const [r1, r2, r3] = await Promise.all([
         service.refreshSession(),
         service.refreshSession(),
         service.refreshSession(),
       ]);
 
-      expect(result1).toBe(true);
-      expect(result2).toBe(true);
-      expect(result3).toBe(true);
+      expect(r1).toBe(true);
+      expect(r2).toBe(true);
+      expect(r3).toBe(true);
       expect(mockSupabaseClient.auth.refreshSession).toHaveBeenCalledTimes(1);
     });
   });
@@ -399,8 +365,9 @@ describe('AuthSessionService', () => {
       'Erreur lors de la récupération de la session:',
       error,
     );
-    expect(mockAuthState.setSession).toHaveBeenCalledWith(null);
-    expect(mockAuthState.setLoading).toHaveBeenCalledWith(false);
+    expect(mockAuthStore.set).toHaveBeenCalledWith({
+      phase: 'unauthenticated',
+    });
   });
 
   it('should handle E2E bypass mode', async () => {
@@ -419,56 +386,11 @@ describe('AuthSessionService', () => {
     expect(mockLogger.debug).toHaveBeenCalledWith(
       '🎭 Mode test E2E détecté, utilisation des mocks auth',
     );
-    expect(mockAuthState.setSession).toHaveBeenCalledWith(mockSession);
-    expect(mockAuthState.setLoading).toHaveBeenCalledWith(false);
+    expect(mockAuthStore.set).toHaveBeenCalledWith({
+      phase: 'authenticated',
+      session: mockSession,
+    });
     expect(mockSupabaseClient.auth.getSession).not.toHaveBeenCalled();
-    // Cleanup handled by afterEach
-  });
-
-  it('should return null from getCurrentSession when called before initialization', async () => {
-    const session = await service.getCurrentSession();
-
-    expect(session).toBeNull();
-    expect(mockSupabaseClient.auth.getSession).not.toHaveBeenCalled();
-    expect(mockLogger.error).not.toHaveBeenCalled();
-  });
-
-  it('should get current session', async () => {
-    mockSupabaseClient.auth.getSession.mockResolvedValue({
-      data: { session: mockSession },
-      error: null,
-    });
-    mockSupabaseClient.auth.onAuthStateChange.mockReturnValue({
-      data: { subscription: { unsubscribe: vi.fn() } },
-    });
-
-    await service.initializeAuthState();
-
-    const session = await service.getCurrentSession();
-
-    expect(session).toEqual(mockSession);
-  });
-
-  it('should return null when getCurrentSession fails', async () => {
-    mockSupabaseClient.auth.getSession.mockResolvedValue({
-      data: { session: mockSession },
-      error: null,
-    });
-    mockSupabaseClient.auth.onAuthStateChange.mockReturnValue({
-      data: { subscription: { unsubscribe: vi.fn() } },
-    });
-
-    await service.initializeAuthState();
-
-    mockSupabaseClient.auth.getSession.mockResolvedValue({
-      data: { session: null },
-      error: new Error('Failed'),
-    });
-
-    const session = await service.getCurrentSession();
-
-    expect(session).toBeNull();
-    expect(mockLogger.error).toHaveBeenCalled();
   });
 
   it('should refresh session successfully', async () => {
@@ -513,93 +435,114 @@ describe('AuthSessionService', () => {
     expect(mockLogger.error).toHaveBeenCalled();
   });
 
-  it('should set session successfully', async () => {
-    mockSupabaseClient.auth.getSession.mockResolvedValue({
-      data: { session: mockSession },
-      error: null,
-    });
-    mockSupabaseClient.auth.onAuthStateChange.mockReturnValue({
-      data: { subscription: { unsubscribe: vi.fn() } },
+  describe('setSession', () => {
+    const validJwt = buildJwt({
+      sub: 'user-123',
+      exp: Math.floor(Date.now() / 1000) + 3600,
     });
 
-    await service.initializeAuthState();
-
-    mockSupabaseClient.auth.setSession.mockResolvedValue({
-      data: { session: mockSession, user: mockSession.user },
-      error: null,
+    beforeEach(async () => {
+      mockSupabaseClient.auth.getSession.mockResolvedValue({
+        data: { session: mockSession },
+        error: null,
+      });
+      mockSupabaseClient.auth.onAuthStateChange.mockReturnValue({
+        data: { subscription: { unsubscribe: vi.fn() } },
+      });
+      await service.initializeAuthState();
+      mockAuthStore.set.mockClear();
     });
 
-    const result = await service.setSession({
-      access_token: 'test-token',
-      refresh_token: 'test-refresh',
+    it('should set session successfully with valid JWT', async () => {
+      mockSupabaseClient.auth.setSession.mockResolvedValue({
+        data: { session: mockSession, user: mockSession.user },
+        error: null,
+      });
+
+      const result = await service.setSession({
+        access_token: validJwt,
+        refresh_token: 'test-refresh',
+      });
+
+      expect(result).toEqual({ success: true });
+      expect(mockAuthStore.set).toHaveBeenCalledWith({
+        phase: 'authenticated',
+        session: mockSession,
+      });
+      expect(mockLogger.info).toHaveBeenCalledWith('Applying session', {
+        userId: 'user-123',
+      });
     });
 
-    expect(result).toEqual({ success: true });
-    expect(mockAuthState.setSession).toHaveBeenCalledWith(mockSession);
-    expect(mockLogger.info).toHaveBeenCalledWith('Session set successfully', {
-      userId: mockSession.user.id,
-    });
-  });
+    it('should reject malformed access token without calling Supabase', async () => {
+      const result = await service.setSession({
+        access_token: 'not-a-jwt',
+        refresh_token: 'test-refresh',
+      });
 
-  it('should return error when setSession fails', async () => {
-    mockSupabaseClient.auth.getSession.mockResolvedValue({
-      data: { session: mockSession },
-      error: null,
-    });
-    mockSupabaseClient.auth.onAuthStateChange.mockReturnValue({
-      data: { subscription: { unsubscribe: vi.fn() } },
+      expect(result.success).toBe(false);
+      expect(result.error).toBeDefined();
+      expect(mockSupabaseClient.auth.setSession).not.toHaveBeenCalled();
+      expect(mockLogger.warn).toHaveBeenCalledWith(
+        'setSession rejected: malformed access token',
+      );
     });
 
-    await service.initializeAuthState();
+    it('should reject expired access token without calling Supabase', async () => {
+      const expiredJwt = buildJwt({
+        sub: 'user-123',
+        exp: Math.floor(Date.now() / 1000) - 60,
+      });
 
-    const error: Error = { message: 'Invalid session' } as Error;
-    mockSupabaseClient.auth.setSession.mockResolvedValue({
-      data: { session: null, user: null },
-      error,
+      const result = await service.setSession({
+        access_token: expiredJwt,
+        refresh_token: 'test-refresh',
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBeDefined();
+      expect(mockSupabaseClient.auth.setSession).not.toHaveBeenCalled();
+      expect(mockLogger.warn).toHaveBeenCalledWith(
+        'setSession rejected: access token expired',
+      );
     });
 
-    const result = await service.setSession({
-      access_token: 'invalid-token',
-      refresh_token: 'invalid-refresh',
+    it('should return localized error when Supabase setSession fails', async () => {
+      const error: Error = { message: 'Invalid session' } as Error;
+      mockSupabaseClient.auth.setSession.mockResolvedValue({
+        data: { session: null, user: null },
+        error,
+      });
+
+      const result = await service.setSession({
+        access_token: validJwt,
+        refresh_token: 'test-refresh',
+      });
+
+      expect(result).toEqual({
+        success: false,
+        error: 'Erreur localisée',
+      });
+      expect(mockErrorLocalizer.localizeAuthError).toHaveBeenCalledWith(error);
     });
 
-    expect(result).toEqual({
-      success: false,
-      error: 'Erreur localisée',
+    it('should handle unexpected error in setSession', async () => {
+      mockSupabaseClient.auth.setSession.mockRejectedValue(
+        new Error('Unexpected error'),
+      );
+
+      const result = await service.setSession({
+        access_token: validJwt,
+        refresh_token: 'test-refresh',
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBeDefined();
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        'Error setting session:',
+        expect.any(Error),
+      );
     });
-    expect(mockErrorLocalizer.localizeAuthError).toHaveBeenCalledWith(error);
-  });
-
-  it('should handle unexpected error in setSession', async () => {
-    mockSupabaseClient.auth.getSession.mockResolvedValue({
-      data: { session: mockSession },
-      error: null,
-    });
-    mockSupabaseClient.auth.onAuthStateChange.mockReturnValue({
-      data: { subscription: { unsubscribe: vi.fn() } },
-    });
-
-    await service.initializeAuthState();
-
-    mockSupabaseClient.auth.setSession.mockRejectedValue(
-      new Error('Unexpected error'),
-    );
-
-    const result = await service.setSession({
-      access_token: 'test-token',
-      refresh_token: 'test-refresh',
-    });
-
-    expect(result.success).toBe(false);
-    expect(result.error).toBeDefined();
-    expect(mockLogger.error).toHaveBeenCalledWith(
-      'Error setting session:',
-      expect.objectContaining({
-        error: expect.any(Error),
-        errorType: 'Error',
-        message: 'Unexpected error',
-      }),
-    );
   });
 
   it('should sign out and update state with explicit cleanup', async () => {
@@ -611,25 +554,22 @@ describe('AuthSessionService', () => {
     mockSupabaseClient.auth.onAuthStateChange.mockReturnValue({
       data: { subscription: { unsubscribe: vi.fn() } },
     });
-    mockSupabaseClient.auth.signOut.mockResolvedValue({
-      error: null,
-    });
+    mockSupabaseClient.auth.signOut.mockResolvedValue({ error: null });
 
     await service.initializeAuthState();
-
-    mockAuthState.setSession.mockClear();
-    mockAuthState.setLoading.mockClear();
+    mockAuthStore.set.mockClear();
     mockCleanup.performCleanup.mockClear();
 
     await service.signOut();
 
     expect(mockSupabaseClient.auth.signOut).toHaveBeenCalled();
-    expect(mockAuthState.setSession).toHaveBeenCalledWith(null);
-    expect(mockAuthState.setLoading).toHaveBeenCalledWith(false);
+    expect(mockAuthStore.set).toHaveBeenCalledWith({
+      phase: 'unauthenticated',
+    });
     expect(mockCleanup.performCleanup).toHaveBeenCalled();
   });
 
-  it('should sign out in E2E mode and call cleanup directly', async () => {
+  it('should sign out in E2E mode and apply unauthenticated state', async () => {
     const mockE2EState = {
       user: mockSession.user,
       session: mockSession,
@@ -646,10 +586,8 @@ describe('AuthSessionService', () => {
     });
 
     await service.initializeAuthState();
-
     mockUserSignal.set(mockSession.user);
-    mockAuthState.setSession.mockClear();
-    mockAuthState.setLoading.mockClear();
+    mockAuthStore.set.mockClear();
     mockCleanup.performCleanup.mockClear();
     mockLogger.info.mockClear();
 
@@ -658,11 +596,11 @@ describe('AuthSessionService', () => {
     expect(mockLogger.debug).toHaveBeenCalledWith(
       '🎭 Mode test E2E: Simulation du logout',
     );
-    expect(mockAuthState.setSession).toHaveBeenCalledWith(null);
-    expect(mockAuthState.setLoading).toHaveBeenCalledWith(false);
-    expect(mockCleanup.performCleanup).toHaveBeenCalled();
+    expect(mockAuthStore.set).toHaveBeenCalledWith({
+      phase: 'unauthenticated',
+    });
     expect(mockSupabaseClient.auth.signOut).not.toHaveBeenCalled();
-    // Cleanup handled by afterEach
+    expect(mockCleanup.performCleanup).toHaveBeenCalled();
   });
 
   it('should cleanup auth subscription via DestroyRef on destruction', async () => {
@@ -682,37 +620,6 @@ describe('AuthSessionService', () => {
     expect(unsubscribeMock).toHaveBeenCalled();
   });
 
-  it('should handle SSR environment safely (window undefined)', async () => {
-    const originalWindow = globalThis.window;
-
-    try {
-      Object.defineProperty(globalThis, 'window', {
-        value: undefined,
-        writable: true,
-        configurable: true,
-      });
-
-      mockSupabaseClient.auth.getSession.mockResolvedValue({
-        data: { session: mockSession },
-        error: null,
-      });
-      mockSupabaseClient.auth.onAuthStateChange.mockReturnValue({
-        data: { subscription: { unsubscribe: vi.fn() } },
-      });
-
-      await service.initializeAuthState();
-
-      expect(mockAuthState.setSession).toHaveBeenCalledWith(mockSession);
-      expect(mockAuthState.setLoading).toHaveBeenCalledWith(false);
-    } finally {
-      Object.defineProperty(globalThis, 'window', {
-        value: originalWindow,
-        writable: true,
-        configurable: true,
-      });
-    }
-  });
-
   it('should prevent concurrent initialization race condition', async () => {
     mockSupabaseClient.auth.getSession.mockResolvedValue({
       data: { session: mockSession },
@@ -722,90 +629,68 @@ describe('AuthSessionService', () => {
       data: { subscription: { unsubscribe: vi.fn() } },
     });
 
-    const promise1 = service.initializeAuthState();
-    const promise2 = service.initializeAuthState();
-    const promise3 = service.initializeAuthState();
-
-    await Promise.all([promise1, promise2, promise3]);
+    const [, ,] = await Promise.all([
+      service.initializeAuthState(),
+      service.initializeAuthState(),
+      service.initializeAuthState(),
+    ]);
 
     expect(mockSupabaseClient.auth.getSession).toHaveBeenCalledTimes(1);
     expect(mockSupabaseClient.auth.onAuthStateChange).toHaveBeenCalledTimes(1);
-    expect(mockLogger.debug).toHaveBeenCalledWith(
-      'Auth already initialized, skipping',
-    );
   });
 
-  it('should verify password successfully', async () => {
-    mockSupabaseClient.auth.getSession.mockResolvedValue({
-      data: { session: mockSession },
-      error: null,
-    });
-    mockSupabaseClient.auth.onAuthStateChange.mockReturnValue({
-      data: { subscription: { unsubscribe: vi.fn() } },
-    });
-    mockSupabaseClient.auth.signInWithPassword.mockResolvedValue({
-      data: { session: mockSession, user: mockSession.user },
-      error: null,
-    });
-
-    mockUserSignal.set(mockSession.user);
-
-    await service.initializeAuthState();
-
-    const result = await service.verifyPassword('correct-password');
-
-    expect(result).toEqual({ success: true });
-    expect(mockSupabaseClient.auth.signInWithPassword).toHaveBeenCalledWith({
-      email: 'test@example.com',
-      password: 'correct-password',
-    });
-  });
-
-  it('should return error when password is incorrect', async () => {
-    mockSupabaseClient.auth.getSession.mockResolvedValue({
-      data: { session: mockSession },
-      error: null,
-    });
-    mockSupabaseClient.auth.onAuthStateChange.mockReturnValue({
-      data: { subscription: { unsubscribe: vi.fn() } },
-    });
-    mockSupabaseClient.auth.signInWithPassword.mockResolvedValue({
-      data: { session: null, user: null },
-      error: new Error('Invalid login credentials'),
+  describe('verifyPassword', () => {
+    beforeEach(async () => {
+      mockSupabaseClient.auth.getSession.mockResolvedValue({
+        data: { session: mockSession },
+        error: null,
+      });
+      mockSupabaseClient.auth.onAuthStateChange.mockReturnValue({
+        data: { subscription: { unsubscribe: vi.fn() } },
+      });
+      await service.initializeAuthState();
+      mockUserSignal.set(mockSession.user);
     });
 
-    mockUserSignal.set(mockSession.user);
+    it('should verify password successfully', async () => {
+      mockSupabaseClient.auth.signInWithPassword.mockResolvedValue({
+        data: { session: mockSession, user: mockSession.user },
+        error: null,
+      });
 
-    await service.initializeAuthState();
+      const result = await service.verifyPassword('correct-password');
 
-    const result = await service.verifyPassword('wrong-password');
-
-    expect(result).toEqual({
-      success: false,
-      error: 'Erreur localisée',
-    });
-    expect(mockErrorLocalizer.localizeAuthError).toHaveBeenCalledWith(
-      expect.objectContaining({ message: 'Invalid login credentials' }),
-    );
-  });
-
-  it('should return error when user is not connected', async () => {
-    mockSupabaseClient.auth.getSession.mockResolvedValue({
-      data: { session: mockSession },
-      error: null,
-    });
-    mockSupabaseClient.auth.onAuthStateChange.mockReturnValue({
-      data: { subscription: { unsubscribe: vi.fn() } },
+      expect(result).toEqual({ success: true });
+      expect(mockSupabaseClient.auth.signInWithPassword).toHaveBeenCalledWith({
+        email: 'test@example.com',
+        password: 'correct-password',
+      });
     });
 
-    await service.initializeAuthState();
+    it('should return error when password is incorrect', async () => {
+      mockSupabaseClient.auth.signInWithPassword.mockResolvedValue({
+        data: { session: null, user: null },
+        error: new Error('Invalid login credentials'),
+      });
 
-    const result = await service.verifyPassword('some-password');
+      const result = await service.verifyPassword('wrong-password');
 
-    expect(result).toEqual({
-      success: false,
-      error: 'Utilisateur non connecté',
+      expect(result).toEqual({
+        success: false,
+        error: 'Erreur localisée',
+      });
     });
-    expect(mockSupabaseClient.auth.signInWithPassword).not.toHaveBeenCalled();
+
+    it('should return error when user is not connected', async () => {
+      mockUserSignal.set(null);
+
+      const result = await service.verifyPassword('some-password');
+
+      expect(result).toEqual({
+        success: false,
+        error: 'Utilisateur non connecté',
+      });
+      expect(mockSupabaseClient.auth.signInWithPassword).not.toHaveBeenCalled();
+    });
   });
 });

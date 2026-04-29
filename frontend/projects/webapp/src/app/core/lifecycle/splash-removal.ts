@@ -6,7 +6,7 @@ import {
   Router,
 } from '@angular/router';
 import { filter, map, race, take, timer } from 'rxjs';
-import { AuthStateService } from '../auth/auth-state.service';
+import { AuthStore } from '../auth/auth-store';
 import { ResumeRefreshService } from './resume-refresh.service';
 import { Logger } from '../logging/logger';
 
@@ -20,7 +20,7 @@ function removeSplash(): void {
 
 export function splashRemovalInitializer(): void {
   const router = inject(Router);
-  const authState = inject(AuthStateService);
+  const authStore = inject(AuthStore);
   const recovery = inject(ResumeRefreshService);
   const logger = inject(Logger);
 
@@ -41,7 +41,7 @@ export function splashRemovalInitializer(): void {
     .pipe(take(1))
     .subscribe({
       next: (result) => {
-        if (result === 'timeout' && authState.isLoading()) {
+        if (result === 'timeout' && authStore.isLoading()) {
           logger.warn(
             '[SplashRemoval] Timeout fired while auth still loading, forcing reload',
           );

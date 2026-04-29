@@ -8,7 +8,7 @@
  * tab, low-memory discard) state may be stale: the Supabase JWT may be
  * expired, SWR caches (budget, templates) may be out of sync with the
  * backend, user settings may have been changed on another device. On iOS
- * Safari specifically, `pageshow` fires before `AuthStateService` finishes
+ * Safari specifically, `pageshow` fires before `AuthStore` finishes
  * initializing — without explicit reconciliation the app stays frozen on the
  * splash screen.
  *
@@ -36,7 +36,7 @@ import {
 } from '@angular/core';
 import { Router } from '@angular/router';
 import { AuthSessionService } from '@core/auth/auth-session.service';
-import { AuthStateService } from '@core/auth/auth-state.service';
+import { AuthStore } from '@core/auth/auth-store';
 import { BudgetApi } from '@core/budget/budget-api';
 import { BudgetTemplatesApi } from '@core/budget-template/budget-templates-api';
 import { Logger } from '@core/logging/logger';
@@ -101,7 +101,7 @@ type ResumeTriggerReason =
    *  {@link PAGE_RESUME_THRESHOLD_MS}. Cross-browser fallback for resume on
    *  engines that do not fire `pageshow` for non-bfcache restores. */
   | 'visibility_long_background'
-  /** Splash watchdog elapsed while {@link AuthStateService.isLoading} is still
+  /** Splash watchdog elapsed while {@link AuthStore.isLoading} is still
    *  true. Last-resort signal that auth init never resolved — escalates to
    *  hard reload. Raised by `core/lifecycle/splash-removal.ts`. */
   | 'splash_timeout';
@@ -117,7 +117,7 @@ export class ResumeRefreshService {
   readonly #document = inject(DOCUMENT);
   readonly #destroyRef = inject(DestroyRef);
   readonly #router = inject(Router);
-  readonly #authState = inject(AuthStateService);
+  readonly #authStore = inject(AuthStore);
   readonly #authSession = inject(AuthSessionService);
   readonly #budgetApi = inject(BudgetApi);
   readonly #budgetTemplatesApi = inject(BudgetTemplatesApi);
@@ -139,7 +139,7 @@ export class ResumeRefreshService {
     // Effect lives in constructor (always injection context) so it does not
     // depend on where initialize() is called from.
     effect(() => {
-      const isLoading = this.#authState.isLoading();
+      const isLoading = this.#authStore.isLoading();
       this.#drainPendingReasonOnAuthReady(isLoading);
     });
   }
@@ -148,7 +148,7 @@ export class ResumeRefreshService {
    * Drains a queued trigger reason once auth finishes loading.
    *
    * **Why a queue.** On iOS Safari, `pageshow` can fire before
-   * {@link AuthStateService.isLoading} flips to `false`. Triggering refresh
+   * {@link AuthStore.isLoading} flips to `false`. Triggering refresh
    * synchronously in that window would no-op (auth gate at #triggerRefresh),
    * so we record the reason and let this drain run when auth is ready.
    */
@@ -273,7 +273,7 @@ export class ResumeRefreshService {
    * same caches.
    */
   #triggerRefresh(reason: ResumeTriggerReason): void {
-    if (this.#authState.isLoading()) {
+    if (this.#authStore.isLoading()) {
       this.#pendingReason = reason;
       this.#armLoadingTimeout(reason);
       return;
@@ -290,7 +290,7 @@ export class ResumeRefreshService {
     if (this.#loadingTimeoutId !== null) return;
     this.#loadingTimeoutId = setTimeout(() => {
       this.#loadingTimeoutId = null;
-      if (!this.#authState.isLoading()) return;
+      if (!this.#authStore.isLoading()) return;
       this.#pendingReason = null;
       this.#logger.warn(
         '[ResumeRefresh] Auth still loading after resume timeout, reloading',
@@ -349,7 +349,7 @@ export class ResumeRefreshService {
    * guarded by `authGuard` at navigation time, but resume is not a navigation.
    */
   #hasLiveSession(): boolean {
-    return this.#authState.isAuthenticated();
+    return this.#authStore.isAuthenticated();
   }
 
   #triggerHardReload(reason: ResumeTriggerReason): boolean {

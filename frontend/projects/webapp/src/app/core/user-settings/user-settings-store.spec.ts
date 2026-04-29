@@ -4,7 +4,7 @@ import { of, throwError } from 'rxjs';
 import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { UserSettingsStore } from './user-settings-store';
 import { UserSettingsApi } from './user-settings-api';
-import { AuthStateService } from '../auth/auth-state.service';
+import { AuthStore } from '../auth/auth-store';
 import { ClientKeyService } from '../encryption/client-key.service';
 import { DemoModeService } from '../demo/demo-mode.service';
 import type { UserSettings } from 'pulpe-shared';
@@ -51,7 +51,7 @@ describe('UserSettingsStore', () => {
         UserSettingsStore,
         { provide: UserSettingsApi, useValue: mockApi },
         {
-          provide: AuthStateService,
+          provide: AuthStore,
           useValue: { isAuthenticated: signal(true) },
         },
         {
@@ -204,7 +204,7 @@ describe('UserSettingsStore — loading conditions', () => {
           useValue: { getSettings$: getSettingsSpy, cache: mockCache },
         },
         {
-          provide: AuthStateService,
+          provide: AuthStore,
           useValue: { isAuthenticated: signal(false) },
         },
         {
@@ -237,7 +237,7 @@ describe('UserSettingsStore — loading conditions', () => {
           useValue: { getSettings$: getSettingsSpy, cache: mockCache },
         },
         {
-          provide: AuthStateService,
+          provide: AuthStore,
           useValue: { isAuthenticated: signal(true) },
         },
         {
@@ -279,7 +279,7 @@ describe('UserSettingsStore — loading conditions', () => {
           },
         },
         {
-          provide: AuthStateService,
+          provide: AuthStore,
           useValue: { isAuthenticated: signal(true) },
         },
         {

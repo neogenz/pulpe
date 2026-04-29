@@ -7,7 +7,7 @@ import {
   type OnDestroy,
 } from '@angular/core';
 import { ANALYTICS_PROPERTIES } from 'pulpe-shared';
-import { AuthStateService } from '../auth/auth-state.service';
+import { AuthStore } from '../auth/auth-store';
 import { PostHogService } from './posthog';
 import { Logger } from '../logging/logger';
 import { DemoModeService } from '../demo/demo-mode.service';
@@ -21,7 +21,7 @@ import type { Properties } from 'posthog-js';
   providedIn: 'root',
 })
 export class AnalyticsService implements OnDestroy {
-  readonly #authState = inject(AuthStateService);
+  readonly #authStore = inject(AuthStore);
   readonly #postHogService = inject(PostHogService);
   readonly #logger = inject(Logger);
   readonly #demoModeService = inject(DemoModeService);
@@ -54,7 +54,7 @@ export class AnalyticsService implements OnDestroy {
     try {
       this.#authEffect = effect(() => {
         const active = this.isActive();
-        const authState = this.#authState.authState();
+        const authState = this.#authStore.authState();
 
         if (active && authState.isAuthenticated && authState.user) {
           if (!this.#trackingEnabledForSession) {
@@ -69,7 +69,7 @@ export class AnalyticsService implements OnDestroy {
           const isDemoMode = this.#demoModeService.isDemoMode();
           const identifyProperties: Properties = {
             [ANALYTICS_PROPERTIES.EARLY_ADOPTER]:
-              this.#authState.isEarlyAdopter(),
+              this.#authStore.isEarlyAdopter(),
             ...(isDemoMode && { is_demo: true }),
           };
 
@@ -83,7 +83,7 @@ export class AnalyticsService implements OnDestroy {
           // Do NOT call posthog.reset() on every anonymous tick: it would
           // destroy the distinct_id bootstrapped from the landing via ?ph_did=
           // and wipe registered super properties (platform, environment, app_version).
-          // reset() belongs in the explicit signOut flow; see AuthStateService.
+          // reset() belongs in the explicit signOut flow; see AuthStore.
           this.#trackingEnabledForSession = false;
         }
       });

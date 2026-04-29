@@ -9,7 +9,7 @@ import {
 import { PAGE_RELOAD } from '@core/page-reload';
 import { Logger } from '@core/logging/logger';
 import { AuthSessionService } from '@core/auth/auth-session.service';
-import { AuthStateService } from '@core/auth/auth-state.service';
+import { AuthStore } from '@core/auth/auth-store';
 import { BudgetApi } from '@core/budget/budget-api';
 import { BudgetTemplatesApi } from '@core/budget-template/budget-templates-api';
 import { UserSettingsStore } from '@core/user-settings';
@@ -36,7 +36,7 @@ describe('ResumeRefreshService', () => {
 
   const isLoadingSignal = signal(false);
   const isAuthenticatedFn = vi.fn<() => boolean>().mockReturnValue(true);
-  const mockAuthState = {
+  const mockAuthStore = {
     isLoading: isLoadingSignal.asReadonly(),
     isAuthenticated: isAuthenticatedFn,
   };
@@ -92,7 +92,7 @@ describe('ResumeRefreshService', () => {
         ResumeRefreshService,
         { provide: PAGE_RELOAD, useValue: reloadSpy },
         { provide: Router, useValue: mockRouter },
-        { provide: AuthStateService, useValue: mockAuthState },
+        { provide: AuthStore, useValue: mockAuthStore },
         { provide: AuthSessionService, useValue: mockAuthSession },
         { provide: BudgetApi, useValue: mockBudgetApi },
         { provide: BudgetTemplatesApi, useValue: mockBudgetTemplatesApi },

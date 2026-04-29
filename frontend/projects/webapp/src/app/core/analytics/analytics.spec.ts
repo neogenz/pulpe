@@ -4,7 +4,7 @@ import { provideZonelessChangeDetection, signal } from '@angular/core';
 import type { WritableSignal } from '@angular/core';
 import { AnalyticsService } from './analytics';
 import { PostHogService } from './posthog';
-import { AuthStateService } from '../auth/auth-state.service';
+import { AuthStore } from '../auth/auth-store';
 import { Logger } from '../logging/logger';
 import { DemoModeService } from '../demo/demo-mode.service';
 import {
@@ -30,8 +30,8 @@ describe('User consent and tracking behavior', () => {
     mockPostHogService = createMockPostHogService();
     const mockLogger = createMockLogger();
 
-    // Mock AuthStateService
-    const mockAuthStateService = {
+    // Mock AuthStore
+    const mockAuthStore = {
       authState: mockAuthState,
       isEarlyAdopter: signal(false),
     };
@@ -45,7 +45,7 @@ describe('User consent and tracking behavior', () => {
         provideZonelessChangeDetection(),
         AnalyticsService,
         { provide: PostHogService, useValue: mockPostHogService },
-        { provide: AuthStateService, useValue: mockAuthStateService },
+        { provide: AuthStore, useValue: mockAuthStore },
         { provide: Logger, useValue: mockLogger },
         { provide: DemoModeService, useValue: mockDemoModeService },
       ],
@@ -297,7 +297,7 @@ describe('captureEvent', () => {
   beforeEach(() => {
     mockPostHogService = createMockPostHogService();
 
-    const mockAuthStateService = {
+    const mockAuthStore = {
       authState: signal({
         user: null,
         session: null,
@@ -316,7 +316,7 @@ describe('captureEvent', () => {
         provideZonelessChangeDetection(),
         AnalyticsService,
         { provide: PostHogService, useValue: mockPostHogService },
-        { provide: AuthStateService, useValue: mockAuthStateService },
+        { provide: AuthStore, useValue: mockAuthStore },
         { provide: Logger, useValue: createMockLogger() },
         { provide: DemoModeService, useValue: mockDemoModeService },
       ],
@@ -370,8 +370,8 @@ describe('Demo mode tracking', () => {
       isDemoMode: signal(false),
     };
 
-    // Mock AuthStateService
-    const mockAuthStateService = {
+    // Mock AuthStore
+    const mockAuthStore = {
       authState: mockAuthState,
       isEarlyAdopter: signal(false),
     };
@@ -381,7 +381,7 @@ describe('Demo mode tracking', () => {
         provideZonelessChangeDetection(),
         AnalyticsService,
         { provide: PostHogService, useValue: mockPostHogService },
-        { provide: AuthStateService, useValue: mockAuthStateService },
+        { provide: AuthStore, useValue: mockAuthStore },
         { provide: Logger, useValue: mockLogger },
         { provide: DemoModeService, useValue: mockDemoModeService },
       ],

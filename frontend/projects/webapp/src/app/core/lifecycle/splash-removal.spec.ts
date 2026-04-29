@@ -15,7 +15,7 @@ import {
 } from '@angular/router';
 import { Subject } from 'rxjs';
 import { provideSplashRemoval } from './splash-removal';
-import { AuthStateService } from '../auth/auth-state.service';
+import { AuthStore } from '../auth/auth-store';
 import { ResumeRefreshService } from './resume-refresh.service';
 import { Logger } from '../logging/logger';
 
@@ -52,7 +52,7 @@ describe('provideSplashRemoval', () => {
           useValue: { events: routerEvents$.asObservable() },
         },
         {
-          provide: AuthStateService,
+          provide: AuthStore,
           useValue: { isLoading: isLoadingSignal.asReadonly() },
         },
         {

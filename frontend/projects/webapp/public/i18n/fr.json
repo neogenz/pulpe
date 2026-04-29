@@ -152,7 +152,11 @@
       "oauthConnection": "La connexion a échoué — réessaie",
       "unexpectedLogin": "Quelque chose n'a pas fonctionné — réessaie",
       "unexpectedSignup": "La création du compte n'a pas abouti — on retente ?",
-      "unexpectedSession": "Quelque chose n'a pas fonctionné — réessaie"
+      "unexpectedSession": "Quelque chose n'a pas fonctionné — réessaie",
+      "sessionExpired": "Ta session a expiré — reconnecte-toi",
+      "refreshFailed": "Reconnexion impossible — réessaie",
+      "accountBlocked": "Ton compte est en cours de suppression.",
+      "clientKeyMissing": "Ta clé de coffre est manquante — saisis-la pour continuer"
     }
   },
   "welcome": {
@@ -835,6 +839,7 @@
       "amountMin": "Le montant doit être supérieur à 0",
       "sectionTitle": "Prévisions personnalisées",
       "addButton": "Ajouter une prévision",
+      "limitReached": "Limite atteinte ({{ max }} prévisions max). Supprime-en une pour en ajouter une autre.",
       "kindExpense": "Dépense",
       "kindSaving": "Épargne",
       "kindIncome": "Revenu",
@@ -984,6 +989,7 @@
     "profileNotFound": "Profil introuvable",
     "profileUpdateFailed": "La mise à jour du profil a échoué — réessaie",
     "validationFailed": "Les données envoyées ne sont pas valides",
+    "clientValidationFailed": "Les données saisies ne sont pas valides — vérifie tes champs",
     "unauthorized": "Tu dois te connecter pour continuer",
     "forbidden": "Tu n'as pas accès à cette ressource",
     "rateLimited": "Trop de tentatives — patiente une minute avant de réessayer",

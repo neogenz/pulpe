@@ -1,4 +1,4 @@
-export * from './auth-state.service';
+export * from './auth-store';
 export * from './auth-session.service';
 export * from './auth-credentials.service';
 export * from './auth-oauth.service';
