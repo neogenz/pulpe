@@ -600,6 +600,7 @@ describe('AuthSessionService', () => {
       phase: 'unauthenticated',
     });
     expect(mockSupabaseClient.auth.signOut).not.toHaveBeenCalled();
+    expect(mockCleanup.performCleanup).toHaveBeenCalled();
   });
 
   it('should cleanup auth subscription via DestroyRef on destruction', async () => {

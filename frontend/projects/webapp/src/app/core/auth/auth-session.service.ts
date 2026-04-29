@@ -253,18 +253,16 @@ export class AuthSessionService {
   }
 
   async signOut(): Promise<void> {
-    if (isE2EMode()) {
-      this.#logger.debug('🎭 Mode test E2E: Simulation du logout');
-      this.#state.applyState({ phase: 'unauthenticated' });
-      return;
-    }
-
-    if (!this.#supabaseClient) {
-      this.#state.applyState({ phase: 'unauthenticated' });
-      return;
-    }
-
     try {
+      if (isE2EMode()) {
+        this.#logger.debug('🎭 Mode test E2E: Simulation du logout');
+        return;
+      }
+
+      if (!this.#supabaseClient) {
+        return;
+      }
+
       const { error } = await this.#supabaseClient.auth.signOut();
       if (error) {
         this.#logger.error(
