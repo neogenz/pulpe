@@ -1,7 +1,13 @@
 import { Injectable, inject } from '@angular/core';
 import { TranslocoService } from '@jsverse/transloco';
 import { API_ERROR_CODES, type ApiErrorCode } from 'pulpe-shared';
-import type { ApiError } from './api-error';
+import {
+  CLIENT_ERROR_CODES,
+  type ApiError,
+  type ClientErrorCode,
+} from './api-error';
+
+type LocalizableCode = ApiErrorCode | ClientErrorCode;
 
 const CODE_KEY_MAP = {
   [API_ERROR_CODES.BUDGET_NOT_FOUND]: 'apiError.budgetNotFound',
@@ -34,7 +40,8 @@ const CODE_KEY_MAP = {
   [API_ERROR_CODES.RECOVERY_KEY_INVALID]: 'apiError.recoveryKeyInvalid',
   [API_ERROR_CODES.RECOVERY_KEY_NOT_CONFIGURED]:
     'apiError.recoveryKeyNotConfigured',
-} as const satisfies Partial<Record<ApiErrorCode, string>>;
+  [CLIENT_ERROR_CODES.ZOD_PARSE_ERROR]: 'apiError.clientValidationFailed',
+} as const satisfies Partial<Record<LocalizableCode, string>>;
 
 @Injectable({ providedIn: 'root' })
 export class ApiErrorLocalizer {

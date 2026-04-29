@@ -984,6 +984,7 @@
     "profileNotFound": "Profil introuvable",
     "profileUpdateFailed": "La mise à jour du profil a échoué — réessaie",
     "validationFailed": "Les données envoyées ne sont pas valides",
+    "clientValidationFailed": "Les données saisies ne sont pas valides — vérifie tes champs",
     "unauthorized": "Tu dois te connecter pour continuer",
     "forbidden": "Tu n'as pas accès à cette ressource",
     "rateLimited": "Trop de tentatives — patiente une minute avant de réessayer",
