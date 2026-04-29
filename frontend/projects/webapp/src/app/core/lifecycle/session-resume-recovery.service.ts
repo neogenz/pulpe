@@ -5,6 +5,7 @@ import {
   inject,
   Injectable,
   InjectionToken,
+  untracked,
 } from '@angular/core';
 import { Router } from '@angular/router';
 import { AuthSessionService } from '@core/auth/auth-session.service';
