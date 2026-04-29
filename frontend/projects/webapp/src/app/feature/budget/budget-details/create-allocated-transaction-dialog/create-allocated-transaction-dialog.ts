@@ -1,10 +1,23 @@
-import { Component, inject, ChangeDetectionStrategy } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
 import {
   MAT_DIALOG_DATA,
   MatDialogRef,
   MatDialogModule,
 } from '@angular/material/dialog';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import {
+  Field,
+  customError,
+  form,
+  maxLength,
+  required,
+  validate,
+} from '@angular/forms/signals';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
@@ -12,32 +25,31 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { TranslocoPipe } from '@jsverse/transloco';
-import { CurrencySuffix } from '@ui/currency-suffix';
-import {
-  type BudgetLine,
-  type SupportedCurrency,
-  type TransactionCreate,
-} from 'pulpe-shared';
-import { transactionCreateFromFormSchema } from '@pattern/edit-transaction-form';
+import { type BudgetLine, type TransactionCreate } from 'pulpe-shared';
+import { transactionCreateFromFormSchema } from '../edit-transaction-form';
 import { formatLocalDate } from '@core/date/format-local-date';
-import type { CurrencyConverterService } from '@core/currency';
 import {
-  injectCurrencyFormConfig,
-  injectLiveConversionPreview,
+  applyAmountValidators,
+  type AmountFormSlice,
+  createAmountSlice,
+  CurrencyConverterService,
 } from '@core/currency';
-import { toSignal } from '@angular/core/rxjs-interop';
-import { ConversionPreviewLine } from '@ui/conversion-preview-line';
-import {
-  computeBudgetPeriodDateConstraints,
-  createDateRangeValidator,
-} from './budget-period-date-constraints';
 import { UserSettingsStore } from '@core/user-settings';
+import { AmountInput } from '@app/pattern/amount-input/amount-input';
+import { computeBudgetPeriodDateConstraints } from './budget-period-date-constraints';
 
 export interface CreateAllocatedTransactionDialogData {
   budgetLine: BudgetLine;
   budgetMonth: number;
   budgetYear: number;
   payDayOfMonth: number | null;
+}
+
+interface CreateAllocatedTransactionModel {
+  name: string;
+  money: AmountFormSlice;
+  transactionDate: Date;
+  isChecked: boolean;
 }
 
 @Component({
@@ -50,10 +62,9 @@ export interface CreateAllocatedTransactionDialogData {
     MatIconModule,
     MatDatepickerModule,
     MatSlideToggleModule,
-    ReactiveFormsModule,
     TranslocoPipe,
-    CurrencySuffix,
-    ConversionPreviewLine,
+    Field,
+    AmountInput,
   ],
   template: `
     <h2 mat-dialog-title class="text-headline-small">
@@ -63,7 +74,7 @@ export interface CreateAllocatedTransactionDialogData {
     </h2>
 
     <mat-dialog-content>
-      <form [formGroup]="form" class="flex flex-col gap-4 pt-4">
+      <div class="flex flex-col gap-4 pt-4">
         <mat-form-field
           appearance="outline"
           subscriptSizing="dynamic"
@@ -72,74 +83,23 @@ export interface CreateAllocatedTransactionDialogData {
           <mat-label>{{ 'budget.tableDescription' | transloco }}</mat-label>
           <input
             matInput
-            formControlName="name"
+            [field]="transactionForm.name"
             [placeholder]="'transactionForm.namePlaceholder' | transloco"
             data-testid="transaction-name"
           />
-          @if (
-            form.get('name')?.hasError('required') && form.get('name')?.touched
-          ) {
+          @if (nameRequiredError()) {
             <mat-error>{{
               'budget.descriptionRequired' | transloco
             }}</mat-error>
           }
-          @if (
-            form.get('name')?.hasError('maxlength') && form.get('name')?.touched
-          ) {
+          @if (nameMaxLengthError()) {
             <mat-error>{{
               'budget.descriptionMaxLength' | transloco
             }}</mat-error>
           }
         </mat-form-field>
 
-        <div class="flex flex-col">
-          <mat-form-field
-            appearance="outline"
-            subscriptSizing="dynamic"
-            class="w-full ph-no-capture"
-          >
-            <mat-label>{{
-              'transactionForm.amountLabel' | transloco
-            }}</mat-label>
-            <input
-              matInput
-              type="number"
-              formControlName="amount"
-              step="0.01"
-              min="0.01"
-              inputmode="decimal"
-              data-testid="transaction-amount"
-            />
-            <pulpe-currency-suffix
-              matTextSuffix
-              [showSelector]="showCurrencySelector()"
-              [currency]="inputCurrency()"
-              (currencyChange)="setInputCurrency($event)"
-            />
-            @if (
-              form.get('amount')?.hasError('required') &&
-              form.get('amount')?.touched
-            ) {
-              <mat-error>{{
-                'transactionForm.amountRequired' | transloco
-              }}</mat-error>
-            }
-            @if (
-              form.get('amount')?.hasError('min') && form.get('amount')?.touched
-            ) {
-              <mat-error>{{ 'budget.amountMinError' | transloco }}</mat-error>
-            }
-          </mat-form-field>
-
-          <pulpe-conversion-preview-line
-            [amount]="preview().convertedAmount ?? null"
-            [inputCurrency]="inputCurrency()"
-            [displayCurrency]="currency()"
-            [rate]="preview().rate ?? null"
-            [cachedDate]="preview().cachedDate ?? null"
-            [status]="preview().status"
-          />
-        </div>
+        <pulpe-amount-input [control]="transactionForm.money" />
 
         <mat-form-field appearance="outline" class="w-full">
           <mat-label>{{ 'budget.dateLabel' | transloco }}</mat-label>
@@ -148,7 +108,7 @@ export interface CreateAllocatedTransactionDialogData {
             [matDatepicker]="picker"
             [min]="minDate"
             [max]="maxDate"
-            formControlName="transactionDate"
+            [field]="transactionForm.transactionDate"
             data-testid="transaction-date"
             readonly
           />
@@ -157,18 +117,12 @@ export interface CreateAllocatedTransactionDialogData {
           <mat-hint>{{
             'transactionForm.dateHintBudget' | transloco
           }}</mat-hint>
-          @if (
-            form.get('transactionDate')?.hasError('required') &&
-            form.get('transactionDate')?.touched
-          ) {
+          @if (dateRequiredError()) {
             <mat-error>{{
               'transactionForm.dateRequired' | transloco
             }}</mat-error>
           }
-          @if (
-            form.get('transactionDate')?.hasError('dateOutOfRange') &&
-            form.get('transactionDate')?.touched
-          ) {
+          @if (dateOutOfRangeError()) {
             <mat-error>{{
               'budget.dateOutOfBudgetPeriod' | transloco
             }}</mat-error>
@@ -180,11 +134,11 @@ export interface CreateAllocatedTransactionDialogData {
             'transactionForm.checkedToggle' | transloco
           }}</span>
           <mat-slide-toggle
-            formControlName="isChecked"
+            [field]="transactionForm.isChecked"
             [attr.aria-label]="'transactionForm.checkedToggle' | transloco"
           />
         </div>
-      </form>
+      </div>
     </mat-dialog-content>
 
     @if (conversionError()) {
@@ -199,7 +153,7 @@ export interface CreateAllocatedTransactionDialogData {
       <button
         matButton="filled"
         (click)="submit()"
-        [disabled]="form.invalid"
+        [disabled]="!canSubmit()"
         data-testid="save-transaction"
       >
         <mat-icon>add</mat-icon>
@@ -210,21 +164,12 @@ export interface CreateAllocatedTransactionDialogData {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CreateAllocatedTransactionDialog {
-  readonly #userSettings = inject(UserSettingsStore);
-  readonly #currencyConfig = injectCurrencyFormConfig();
-  protected readonly currency = this.#userSettings.currency;
-  protected readonly showCurrencySelector =
-    this.#currencyConfig.showCurrencySelector;
-  protected readonly inputCurrency = this.#currencyConfig.inputCurrency;
-  protected readonly setInputCurrency = (next: SupportedCurrency): void => {
-    this.#currencyConfig.setInputCurrency?.(next);
-  };
-  protected readonly conversionError = this.#currencyConfig.conversionError;
-  readonly data = inject<CreateAllocatedTransactionDialogData>(MAT_DIALOG_DATA);
+  readonly #settings = inject(UserSettingsStore);
+  readonly #converter = inject(CurrencyConverterService);
   readonly #dialogRef = inject(
     MatDialogRef<CreateAllocatedTransactionDialog, TransactionCreate>,
   );
-  readonly #fb = inject(FormBuilder);
+  readonly data = inject<CreateAllocatedTransactionDialogData>(MAT_DIALOG_DATA);
 
   readonly #dateConstraints = computeBudgetPeriodDateConstraints(
     this.data.budgetMonth,
@@ -234,29 +179,66 @@ export class CreateAllocatedTransactionDialog {
   readonly minDate = this.#dateConstraints.minDate;
   readonly maxDate = this.#dateConstraints.maxDate;
 
-  readonly form = this.#fb.group({
-    name: ['', [Validators.required, Validators.maxLength(100)]],
-    amount: [
-      null as number | null,
-      [Validators.required, Validators.min(0.01)],
-    ],
-    transactionDate: [
-      this.#dateConstraints.defaultDate,
-      [
-        Validators.required,
-        createDateRangeValidator(this.minDate, this.maxDate),
-      ],
-    ],
-    isChecked: [false],
+  protected readonly conversionError = signal(false);
+  protected readonly isSubmitting = signal(false);
+
+  protected readonly model = signal<CreateAllocatedTransactionModel>({
+    name: '',
+    money: createAmountSlice({ initialCurrency: this.#settings.currency() }),
+    transactionDate: this.#dateConstraints.defaultDate,
+    isChecked: false,
   });
 
-  readonly #amountValue = toSignal(this.form.controls.amount.valueChanges, {
-    initialValue: this.form.controls.amount.value,
+  protected readonly transactionForm = form(this.model, (path) => {
+    required(path.name);
+    maxLength(path.name, 100);
+    applyAmountValidators(path.money);
+    required(path.transactionDate);
+    validate(path.transactionDate, ({ value }) => {
+      if (!value || !(value instanceof Date) || isNaN(value.getTime()))
+        return null;
+      const time = value.getTime();
+      if (time < this.minDate.getTime() || time > this.maxDate.getTime())
+        return customError({ kind: 'dateOutOfRange' });
+      return null;
+    });
   });
-  protected readonly preview = injectLiveConversionPreview(
-    this.#amountValue,
-    this.inputCurrency,
-    this.currency,
+
+  protected readonly canSubmit = computed(
+    () => this.transactionForm().valid() && !this.isSubmitting(),
+  );
+
+  protected readonly nameRequiredError = computed(
+    () =>
+      this.transactionForm.name().touched() &&
+      this.transactionForm
+        .name()
+        .errors()
+        .some((e) => e.kind === 'required'),
+  );
+  protected readonly nameMaxLengthError = computed(
+    () =>
+      this.transactionForm.name().touched() &&
+      this.transactionForm
+        .name()
+        .errors()
+        .some((e) => e.kind === 'maxLength'),
+  );
+  protected readonly dateRequiredError = computed(
+    () =>
+      this.transactionForm.transactionDate().touched() &&
+      this.transactionForm
+        .transactionDate()
+        .errors()
+        .some((e) => e.kind === 'required'),
+  );
+  protected readonly dateOutOfRangeError = computed(
+    () =>
+      this.transactionForm.transactionDate().touched() &&
+      this.transactionForm
+        .transactionDate()
+        .errors()
+        .some((e) => e.kind === 'dateOutOfRange'),
   );
 
   cancel(): void {
@@ -264,39 +246,36 @@ export class CreateAllocatedTransactionDialog {
   }
 
   async submit(): Promise<void> {
-    if (this.form.invalid) return;
-
-    const formValue = this.form.getRawValue();
+    if (!this.canSubmit()) return;
 
     this.conversionError.set(false);
-    let convertedAmount: number;
-    let metadata: Awaited<
-      ReturnType<CurrencyConverterService['convertWithMetadata']>
-    >['metadata'];
+    this.isSubmitting.set(true);
     try {
-      ({ convertedAmount, metadata } =
-        await this.#currencyConfig.converter.convertWithMetadata(
-          formValue.amount!,
-          this.inputCurrency(),
-          this.currency(),
-        ));
+      const m = this.model();
+      const { convertedAmount, metadata } =
+        await this.#converter.convertWithMetadata(
+          m.money.amount!,
+          m.money.inputCurrency,
+          this.#settings.currency(),
+        );
+
+      const transaction = transactionCreateFromFormSchema.parse({
+        budgetId: this.data.budgetLine.budgetId,
+        budgetLineId: this.data.budgetLine.id,
+        name: m.name.trim(),
+        amount: convertedAmount,
+        kind: this.data.budgetLine.kind,
+        transactionDate: formatLocalDate(m.transactionDate),
+        category: null,
+        isChecked: m.isChecked,
+        conversion: metadata ?? null,
+      });
+
+      this.#dialogRef.close(transaction);
     } catch {
       this.conversionError.set(true);
-      return;
+    } finally {
+      this.isSubmitting.set(false);
     }
-
-    const transaction = transactionCreateFromFormSchema.parse({
-      budgetId: this.data.budgetLine.budgetId,
-      budgetLineId: this.data.budgetLine.id,
-      name: formValue.name!.trim(),
-      amount: convertedAmount,
-      kind: this.data.budgetLine.kind,
-      transactionDate: formatLocalDate(formValue.transactionDate!),
-      category: null,
-      isChecked: formValue.isChecked ?? false,
-      conversion: metadata ?? null,
-    });
-
-    this.#dialogRef.close(transaction);
   }
 }

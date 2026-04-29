@@ -894,7 +894,9 @@
     "passwordsMismatch": "Les mots de passe ne correspondent pas",
     "newPasswordLabel": "Nouveau mot de passe",
     "newPasswordPlaceholder": "Nouveau mot de passe",
-    "newPasswordRequired": "Ton nouveau mot de passe est nécessaire"
+    "newPasswordRequired": "Ton nouveau mot de passe est nécessaire",
+    "amountRequired": "Indique un montant",
+    "amountTooLow": "Le montant doit être supérieur à 0"
   },
   "errors": {
     "generic": "Quelque chose n'a pas fonctionné — réessaie",

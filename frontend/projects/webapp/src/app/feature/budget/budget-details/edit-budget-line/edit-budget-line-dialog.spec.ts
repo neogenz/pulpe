@@ -92,7 +92,7 @@ describe('EditBudgetLineDialog — currency edit rules', () => {
 
     expect(component['showCurrencySelector']()).toBe(true);
     expect(component['inputCurrency']()).toBe('EUR');
-    expect(component.form.get('amount')?.value).toBe(100);
+    expect(component['model']().money.amount).toBe(100);
   });
 
   it('hides picker and uses line.amount when originalCurrency equals user currency', () => {
@@ -110,7 +110,7 @@ describe('EditBudgetLineDialog — currency edit rules', () => {
     });
 
     expect(component['showCurrencySelector']()).toBe(false);
-    expect(component.form.get('amount')?.value).toBe(500);
+    expect(component['model']().money.amount).toBe(500);
   });
 
   it('hides picker on mono-currency lines (no originalCurrency)', () => {
@@ -122,7 +122,7 @@ describe('EditBudgetLineDialog — currency edit rules', () => {
     });
 
     expect(component['showCurrencySelector']()).toBe(false);
-    expect(component.form.get('amount')?.value).toBe(200);
+    expect(component['model']().money.amount).toBe(200);
   });
 
   it('hides picker when feature flag is OFF, even if originalCurrency differs', () => {
@@ -140,10 +140,10 @@ describe('EditBudgetLineDialog — currency edit rules', () => {
     });
 
     expect(component['showCurrencySelector']()).toBe(false);
-    expect(component.form.get('amount')?.value).toBe(120);
+    expect(component['model']().money.amount).toBe(120);
   });
 
-  it('on submit (mono-currency edit), PATCH does not include currency metadata and converter is not called', async () => {
+  it('on submit (mono-currency edit), PATCH does not include currency metadata (converter short-circuits same currency)', async () => {
     const line = createMockBudgetLine({ amount: 200 });
 
     const { component, dialogRef, converter } = configureDialog(line, {
@@ -151,11 +151,24 @@ describe('EditBudgetLineDialog — currency edit rules', () => {
       flagEnabled: true,
     });
 
-    component.form.patchValue({ name: 'Updated', amount: 250 });
+    converter.convertWithMetadata.mockResolvedValue({
+      convertedAmount: 250,
+      metadata: null,
+    });
+
+    component['model'].update((m) => ({
+      ...m,
+      money: { ...m.money, amount: 250 },
+      name: 'Updated',
+    }));
 
     await component.handleSubmit();
 
-    expect(converter.convertWithMetadata).not.toHaveBeenCalled();
+    expect(converter.convertWithMetadata).toHaveBeenCalledWith(
+      250,
+      'CHF',
+      'CHF',
+    );
     expect(dialogRef.close).toHaveBeenCalledTimes(1);
     const patch = dialogRef.close.mock.calls[0][0];
     expect(patch.amount).toBe(250);
@@ -189,7 +202,10 @@ describe('EditBudgetLineDialog — currency edit rules', () => {
       },
     });
 
-    component.form.patchValue({ amount: 150 });
+    component['model'].update((m) => ({
+      ...m,
+      money: { ...m.money, amount: 150 },
+    }));
 
     await component.handleSubmit();
 
@@ -205,5 +221,32 @@ describe('EditBudgetLineDialog — currency edit rules', () => {
     expect(patch.originalCurrency).toBe('EUR');
     expect(patch.targetCurrency).toBe('CHF');
     expect(patch.exchangeRate).toBe(1.2);
+  });
+
+  it('blocks submit and sets conversionError when convertWithMetadata throws on alternate-currency edit', async () => {
+    const line = createMockBudgetLine({
+      amount: 120,
+      originalAmount: 100,
+      originalCurrency: 'EUR',
+      targetCurrency: 'CHF',
+      exchangeRate: 1.2,
+    });
+
+    const { component, dialogRef, converter } = configureDialog(line, {
+      userCurrency: 'CHF',
+      flagEnabled: true,
+    });
+
+    converter.convertWithMetadata.mockRejectedValue(new Error('rate down'));
+
+    component['model'].update((m) => ({
+      ...m,
+      money: { ...m.money, amount: 150 },
+    }));
+
+    await component.handleSubmit();
+
+    expect(dialogRef.close).not.toHaveBeenCalled();
+    expect(component['conversionError']()).toBe(true);
   });
 });

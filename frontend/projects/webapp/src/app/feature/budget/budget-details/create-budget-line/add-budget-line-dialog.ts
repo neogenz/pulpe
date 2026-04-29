@@ -1,8 +1,15 @@
-import { Component, inject, ChangeDetectionStrategy } from '@angular/core';
 import {
-  MatDialogRef,
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
+import { Field, form, minLength, required } from '@angular/forms/signals';
+import {
   MAT_DIALOG_DATA,
   MatDialogModule,
+  MatDialogRef,
 } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -10,28 +17,34 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
-import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
-import {
-  type SupportedCurrency,
-  type TransactionKind,
-  type TransactionRecurrence,
-} from 'pulpe-shared';
-import { budgetLineCreateFromFormSchema } from './add-budget-line-dialog.schema';
 import { TranslocoPipe } from '@jsverse/transloco';
-import { CurrencySuffix } from '@ui/currency-suffix';
-import { TransactionIconPipe } from '@ui/transaction-display';
-import { TransactionLabelPipe } from '@ui/transaction-display';
-import { UserSettingsStore } from '@core/user-settings';
-import type { CurrencyConverterService } from '@core/currency';
+import { type TransactionKind, type TransactionRecurrence } from 'pulpe-shared';
+
 import {
-  injectCurrencyFormConfig,
-  injectLiveConversionPreview,
+  applyAmountValidators,
+  type AmountFormSlice,
+  createAmountSlice,
+  CurrencyConverterService,
 } from '@core/currency';
-import { toSignal } from '@angular/core/rxjs-interop';
-import { ConversionPreviewLine } from '@ui/conversion-preview-line';
+import { UserSettingsStore } from '@core/user-settings';
+import { AmountInput } from '@app/pattern/amount-input/amount-input';
+import {
+  TransactionIconPipe,
+  TransactionLabelPipe,
+} from '@ui/transaction-display';
+
+import { budgetLineCreateFromFormSchema } from './add-budget-line-dialog.schema';
 
 export interface BudgetLineDialogData {
   budgetId: string;
+}
+
+interface AddBudgetLineModel {
+  name: string;
+  kind: TransactionKind;
+  recurrence: TransactionRecurrence;
+  isChecked: boolean;
+  money: AmountFormSlice;
 }
 
 @Component({
@@ -44,12 +57,11 @@ export interface BudgetLineDialogData {
     MatButtonModule,
     MatIconModule,
     MatSlideToggleModule,
-    ReactiveFormsModule,
     TranslocoPipe,
     TransactionIconPipe,
     TransactionLabelPipe,
-    CurrencySuffix,
-    ConversionPreviewLine,
+    Field,
+    AmountInput,
   ],
   template: `
     <h2 mat-dialog-title class="text-headline-small">
@@ -58,7 +70,7 @@ export interface BudgetLineDialogData {
 
     <mat-dialog-content>
       <div class="pt-4">
-        <form [formGroup]="form" class="flex flex-col gap-4">
+        <div class="flex flex-col gap-4">
           <mat-form-field
             appearance="outline"
             subscriptSizing="dynamic"
@@ -67,48 +79,13 @@ export interface BudgetLineDialogData {
             <mat-label>{{ 'budget.forecastNameLabel' | transloco }}</mat-label>
             <input
               matInput
-              formControlName="name"
+              [field]="addForm.name"
               [placeholder]="'budget.forecastNamePlaceholder' | transloco"
               data-testid="new-line-name"
             />
           </mat-form-field>
 
-          <div class="flex flex-col">
-            <mat-form-field
-              appearance="outline"
-              subscriptSizing="dynamic"
-              class="w-full ph-no-capture"
-            >
-              <mat-label class="ph-no-capture">{{
-                'transactionForm.amountLabel' | transloco
-              }}</mat-label>
-              <input
-                matInput
-                type="number"
-                formControlName="amount"
-                placeholder="0.00"
-                step="0.01"
-                min="0"
-                inputmode="decimal"
-                data-testid="new-line-amount"
-              />
-              <pulpe-currency-suffix
-                matTextSuffix
-                [showSelector]="showCurrencySelector()"
-                [currency]="inputCurrency()"
-                (currencyChange)="setInputCurrency($event)"
-              />
-            </mat-form-field>
-
-            <pulpe-conversion-preview-line
-              [amount]="preview().convertedAmount ?? null"
-              [inputCurrency]="inputCurrency()"
-              [displayCurrency]="currency()"
-              [rate]="preview().rate ?? null"
-              [cachedDate]="preview().cachedDate ?? null"
-              [status]="preview().status"
-            />
-          </div>
+          <pulpe-amount-input [control]="addForm.money" />
 
           <mat-form-field
             appearance="outline"
@@ -116,7 +93,7 @@ export interface BudgetLineDialogData {
             class="w-full"
           >
             <mat-label>{{ 'budget.forecastTypeLabel' | transloco }}</mat-label>
-            <mat-select formControlName="kind" data-testid="new-line-kind">
+            <mat-select [field]="addForm.kind" data-testid="new-line-kind">
               <mat-option value="income">
                 <mat-icon class="text-financial-income">{{
                   'income' | transactionIcon
@@ -143,11 +120,11 @@ export interface BudgetLineDialogData {
               'budget.forecastCheckedToggle' | transloco
             }}</span>
             <mat-slide-toggle
-              formControlName="isChecked"
+              [field]="addForm.isChecked"
               [attr.aria-label]="'budget.forecastCheckedToggle' | transloco"
             />
           </div>
-        </form>
+        </div>
       </div>
     </mat-dialog-content>
 
@@ -164,7 +141,7 @@ export interface BudgetLineDialogData {
         matButton="filled"
         color="primary"
         (click)="submit()"
-        [disabled]="!form.valid"
+        [disabled]="!canSubmit()"
         data-testid="add-new-line"
       >
         <mat-icon>add</mat-icon>
@@ -177,70 +154,59 @@ export interface BudgetLineDialogData {
 export class AddBudgetLineDialog {
   readonly #dialogRef = inject(MatDialogRef<AddBudgetLineDialog>);
   readonly #data = inject<BudgetLineDialogData>(MAT_DIALOG_DATA);
-  readonly #fb = inject(FormBuilder);
-  readonly #userSettings = inject(UserSettingsStore);
-  readonly #currencyConfig = injectCurrencyFormConfig();
-  protected readonly currency = this.#userSettings.currency;
-  protected readonly showCurrencySelector =
-    this.#currencyConfig.showCurrencySelector;
-  protected readonly inputCurrency = this.#currencyConfig.inputCurrency;
-  protected readonly setInputCurrency = (next: SupportedCurrency): void => {
-    this.#currencyConfig.setInputCurrency?.(next);
-  };
-  protected readonly conversionError = this.#currencyConfig.conversionError;
+  readonly #settings = inject(UserSettingsStore);
+  readonly #converter = inject(CurrencyConverterService);
 
-  protected readonly form = this.#fb.group({
-    name: ['', [Validators.required, Validators.minLength(1)]],
-    amount: [
-      null as number | null,
-      [Validators.required, Validators.min(0.01)],
-    ],
-    kind: ['expense' as TransactionKind, Validators.required],
-    recurrence: ['one_off' as TransactionRecurrence],
-    isChecked: [false],
+  protected readonly model = signal<AddBudgetLineModel>({
+    name: '',
+    kind: 'expense',
+    recurrence: 'one_off',
+    isChecked: false,
+    money: createAmountSlice({ initialCurrency: this.#settings.currency() }),
   });
 
-  readonly #amountValue = toSignal(this.form.controls.amount.valueChanges, {
-    initialValue: this.form.controls.amount.value,
+  protected readonly addForm = form(this.model, (path) => {
+    required(path.name, { message: 'budget.forecastNameRequired' });
+    minLength(path.name, 1);
+    applyAmountValidators(path.money);
+    required(path.kind, { message: 'budget.forecastTypeRequired' });
   });
-  protected readonly preview = injectLiveConversionPreview(
-    this.#amountValue,
-    this.inputCurrency,
-    this.currency,
+
+  protected readonly conversionError = signal(false);
+  protected readonly isSubmitting = signal(false);
+  protected readonly canSubmit = computed(
+    () => this.addForm().valid() && !this.isSubmitting(),
   );
 
   protected async submit(): Promise<void> {
-    if (!this.form.valid) return;
+    if (!this.canSubmit()) return;
 
-    const value = this.form.getRawValue();
-
-    let convertedAmount: number;
-    let metadata: Awaited<
-      ReturnType<CurrencyConverterService['convertWithMetadata']>
-    >['metadata'];
     this.conversionError.set(false);
+    this.isSubmitting.set(true);
     try {
-      ({ convertedAmount, metadata } =
-        await this.#currencyConfig.converter.convertWithMetadata(
-          value.amount!,
-          this.inputCurrency(),
-          this.currency(),
-        ));
+      const m = this.model();
+      const { convertedAmount, metadata } =
+        await this.#converter.convertWithMetadata(
+          m.money.amount!,
+          m.money.inputCurrency,
+          this.#settings.currency(),
+        );
+
+      const dto = budgetLineCreateFromFormSchema.parse({
+        budgetId: this.#data.budgetId,
+        name: m.name.trim(),
+        amount: convertedAmount,
+        kind: m.kind,
+        recurrence: m.recurrence,
+        isChecked: m.isChecked,
+        conversion: metadata,
+      });
+      this.#dialogRef.close(dto);
     } catch {
       this.conversionError.set(true);
-      return;
+    } finally {
+      this.isSubmitting.set(false);
     }
-
-    const budgetLine = budgetLineCreateFromFormSchema.parse({
-      budgetId: this.#data.budgetId,
-      name: value.name!.trim(),
-      amount: convertedAmount,
-      kind: value.kind!,
-      recurrence: value.recurrence!,
-      isChecked: value.isChecked ?? false,
-      conversion: metadata ?? null,
-    });
-    this.#dialogRef.close(budgetLine);
   }
 
   protected cancel(): void {

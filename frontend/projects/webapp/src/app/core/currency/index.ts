@@ -6,11 +6,6 @@ export {
   type ConversionFormValue,
 } from './conversion-form.schema';
 export { CURRENCY_CONFIG, DEFAULT_DIGITS_INFO } from './currency-config';
-export {
-  injectCurrencyFormConfig,
-  injectCurrencyFormConfigForEdit,
-  type EditCurrencyLineSource,
-} from './currency-form-config';
 export { CurrencyConverterService } from './currency-converter.service';
 export {
   injectLiveConversionPreview,
@@ -22,3 +17,9 @@ export type {
   CurrencyConversionResult,
   FetchRateResult,
 } from './currency.types';
+export {
+  type AmountFormSlice,
+  type CreateAmountSliceArgs,
+  createAmountSlice,
+} from './amount-form.types';
+export { applyAmountValidators } from './amount-form-validators';

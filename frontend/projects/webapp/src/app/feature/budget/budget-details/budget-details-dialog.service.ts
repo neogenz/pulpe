@@ -38,7 +38,7 @@ import {
   type EditTransactionDialogData,
   type TransactionUpdateFormValue,
   transactionUpdateFromFormSchema,
-} from '@pattern/edit-transaction-form';
+} from './edit-transaction-form';
 
 export interface ConfirmDeleteOptions {
   title: string;

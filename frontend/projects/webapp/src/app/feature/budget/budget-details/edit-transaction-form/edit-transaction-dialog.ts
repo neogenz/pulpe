@@ -75,7 +75,7 @@ export interface EditTransactionDialogData {
       <button
         matButton="filled"
         type="button"
-        [disabled]="editForm.transactionForm.invalid || editForm.isUpdating()"
+        [disabled]="!editForm.canSubmit()"
         (click)="submitForm()"
         aria-label="Enregistrer les modifications"
       >
@@ -100,7 +100,7 @@ export class EditTransactionDialog {
 
   protected submitForm(): void {
     const form = this.editForm();
-    if (form.transactionForm.valid && !form.isUpdating()) {
+    if (form.canSubmit()) {
       form.onSubmit();
     }
   }

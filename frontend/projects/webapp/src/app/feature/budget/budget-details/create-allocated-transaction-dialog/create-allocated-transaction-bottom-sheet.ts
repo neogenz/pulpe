@@ -1,34 +1,50 @@
-import { Component, inject, ChangeDetectionStrategy } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
 import {
   MAT_BOTTOM_SHEET_DATA,
   MatBottomSheetRef,
 } from '@angular/material/bottom-sheet';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import {
+  Field,
+  customError,
+  form,
+  maxLength,
+  required,
+  validate,
+} from '@angular/forms/signals';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
-import { CurrencySuffix } from '@ui/currency-suffix';
 import { TranslocoPipe } from '@jsverse/transloco';
-import type { SupportedCurrency, TransactionCreate } from 'pulpe-shared';
-import { transactionCreateFromFormSchema } from '@pattern/edit-transaction-form';
+import { type TransactionCreate } from 'pulpe-shared';
+import { transactionCreateFromFormSchema } from '../edit-transaction-form';
 import { formatLocalDate } from '@core/date/format-local-date';
-import type { CurrencyConverterService } from '@core/currency';
 import {
-  injectCurrencyFormConfig,
-  injectLiveConversionPreview,
+  applyAmountValidators,
+  type AmountFormSlice,
+  createAmountSlice,
+  CurrencyConverterService,
 } from '@core/currency';
-import { toSignal } from '@angular/core/rxjs-interop';
-import { ConversionPreviewLine } from '@ui/conversion-preview-line';
+import { UserSettingsStore } from '@core/user-settings';
+import { AmountInput } from '@app/pattern/amount-input/amount-input';
 import { BlurOnVisibilityResumeDirective } from '@ui/blur-on-visibility-resume/blur-on-visibility-resume.directive';
 import type { CreateAllocatedTransactionDialogData } from './create-allocated-transaction-dialog';
-import {
-  computeBudgetPeriodDateConstraints,
-  createDateRangeValidator,
-} from './budget-period-date-constraints';
-import { UserSettingsStore } from '@core/user-settings';
+import { computeBudgetPeriodDateConstraints } from './budget-period-date-constraints';
+
+interface CreateAllocatedTransactionModel {
+  name: string;
+  money: AmountFormSlice;
+  transactionDate: Date;
+  isChecked: boolean;
+}
 
 @Component({
   selector: 'pulpe-create-allocated-transaction-bottom-sheet',
@@ -39,10 +55,9 @@ import { UserSettingsStore } from '@core/user-settings';
     MatIconModule,
     MatDatepickerModule,
     MatSlideToggleModule,
-    ReactiveFormsModule,
     TranslocoPipe,
-    CurrencySuffix,
-    ConversionPreviewLine,
+    Field,
+    AmountInput,
     BlurOnVisibilityResumeDirective,
   ],
   template: `
@@ -70,82 +85,27 @@ import { UserSettingsStore } from '@core/user-settings';
       </div>
 
       <!-- Form -->
-      <form
-        [formGroup]="form"
-        (ngSubmit)="submit()"
-        class="flex flex-col gap-4"
-        novalidate
-      >
+      <form (ngSubmit)="submit()" class="flex flex-col gap-4" novalidate>
         <mat-form-field appearance="outline" subscriptSizing="dynamic">
           <mat-label>{{ 'budget.tableDescription' | transloco }}</mat-label>
           <input
             matInput
-            formControlName="name"
+            [field]="transactionForm.name"
             [placeholder]="'transactionForm.namePlaceholder' | transloco"
           />
-          @if (
-            form.get('name')?.hasError('required') && form.get('name')?.touched
-          ) {
+          @if (nameRequiredError()) {
             <mat-error>{{
               'budget.descriptionRequired' | transloco
             }}</mat-error>
           }
-          @if (
-            form.get('name')?.hasError('maxlength') && form.get('name')?.touched
-          ) {
+          @if (nameMaxLengthError()) {
             <mat-error>{{
               'budget.descriptionMaxLength' | transloco
             }}</mat-error>
           }
         </mat-form-field>
 
-        <div class="flex flex-col">
-          <mat-form-field
-            appearance="outline"
-            subscriptSizing="dynamic"
-            class="ph-no-capture"
-          >
-            <mat-label>{{
-              'transactionForm.amountLabel' | transloco
-            }}</mat-label>
-            <input
-              matInput
-              type="number"
-              inputmode="decimal"
-              formControlName="amount"
-              step="0.01"
-              min="0.01"
-            />
-            <pulpe-currency-suffix
-              matTextSuffix
-              [showSelector]="showCurrencySelector()"
-              [currency]="inputCurrency()"
-              (currencyChange)="setInputCurrency($event)"
-            />
-            @if (
-              form.get('amount')?.hasError('required') &&
-              form.get('amount')?.touched
-            ) {
-              <mat-error>{{
-                'transactionForm.amountRequired' | transloco
-              }}</mat-error>
-            }
-            @if (
-              form.get('amount')?.hasError('min') && form.get('amount')?.touched
-            ) {
-              <mat-error>{{ 'budget.amountMinError' | transloco }}</mat-error>
-            }
-          </mat-form-field>
-
-          <pulpe-conversion-preview-line
-            [amount]="preview().convertedAmount ?? null"
-            [inputCurrency]="inputCurrency()"
-            [displayCurrency]="currency()"
-            [rate]="preview().rate ?? null"
-            [cachedDate]="preview().cachedDate ?? null"
-            [status]="preview().status"
-          />
-        </div>
+        <pulpe-amount-input [control]="transactionForm.money" />
 
         <mat-form-field appearance="outline" subscriptSizing="dynamic">
           <mat-label>{{ 'budget.dateLabel' | transloco }}</mat-label>
@@ -154,7 +114,7 @@ import { UserSettingsStore } from '@core/user-settings';
             [matDatepicker]="picker"
             [min]="minDate"
             [max]="maxDate"
-            formControlName="transactionDate"
+            [field]="transactionForm.transactionDate"
             readonly
           />
           <mat-datepicker-toggle matIconSuffix [for]="picker" />
@@ -162,18 +122,12 @@ import { UserSettingsStore } from '@core/user-settings';
           <mat-hint>{{
             'transactionForm.dateHintBudget' | transloco
           }}</mat-hint>
-          @if (
-            form.get('transactionDate')?.hasError('required') &&
-            form.get('transactionDate')?.touched
-          ) {
+          @if (dateRequiredError()) {
             <mat-error>{{
               'transactionForm.dateRequired' | transloco
             }}</mat-error>
           }
-          @if (
-            form.get('transactionDate')?.hasError('dateOutOfRange') &&
-            form.get('transactionDate')?.touched
-          ) {
+          @if (dateOutOfRangeError()) {
             <mat-error>{{
               'budget.dateOutOfBudgetPeriod' | transloco
             }}</mat-error>
@@ -185,7 +139,7 @@ import { UserSettingsStore } from '@core/user-settings';
             'transactionForm.checkedToggle' | transloco
           }}</span>
           <mat-slide-toggle
-            formControlName="isChecked"
+            [field]="transactionForm.isChecked"
             [attr.aria-label]="'transactionForm.checkedToggle' | transloco"
           />
         </div>
@@ -205,7 +159,7 @@ import { UserSettingsStore } from '@core/user-settings';
         <button
           matButton="filled"
           (click)="submit()"
-          [disabled]="form.invalid"
+          [disabled]="!canSubmit()"
           class="flex-2"
         >
           <mat-icon>add</mat-icon>
@@ -222,23 +176,14 @@ import { UserSettingsStore } from '@core/user-settings';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CreateAllocatedTransactionBottomSheet {
-  readonly #userSettings = inject(UserSettingsStore);
-  readonly #currencyConfig = injectCurrencyFormConfig();
-  protected readonly currency = this.#userSettings.currency;
-  protected readonly showCurrencySelector =
-    this.#currencyConfig.showCurrencySelector;
-  protected readonly inputCurrency = this.#currencyConfig.inputCurrency;
-  protected readonly setInputCurrency = (next: SupportedCurrency): void => {
-    this.#currencyConfig.setInputCurrency?.(next);
-  };
-  protected readonly conversionError = this.#currencyConfig.conversionError;
-  readonly data = inject<CreateAllocatedTransactionDialogData>(
-    MAT_BOTTOM_SHEET_DATA,
-  );
+  readonly #settings = inject(UserSettingsStore);
+  readonly #converter = inject(CurrencyConverterService);
   readonly #bottomSheetRef = inject(
     MatBottomSheetRef<CreateAllocatedTransactionBottomSheet, TransactionCreate>,
   );
-  readonly #fb = inject(FormBuilder);
+  readonly data = inject<CreateAllocatedTransactionDialogData>(
+    MAT_BOTTOM_SHEET_DATA,
+  );
 
   readonly #dateConstraints = computeBudgetPeriodDateConstraints(
     this.data.budgetMonth,
@@ -248,29 +193,66 @@ export class CreateAllocatedTransactionBottomSheet {
   readonly minDate = this.#dateConstraints.minDate;
   readonly maxDate = this.#dateConstraints.maxDate;
 
-  readonly form = this.#fb.group({
-    name: ['', [Validators.required, Validators.maxLength(100)]],
-    amount: [
-      null as number | null,
-      [Validators.required, Validators.min(0.01)],
-    ],
-    transactionDate: [
-      this.#dateConstraints.defaultDate,
-      [
-        Validators.required,
-        createDateRangeValidator(this.minDate, this.maxDate),
-      ],
-    ],
-    isChecked: [false],
+  protected readonly conversionError = signal(false);
+  protected readonly isSubmitting = signal(false);
+
+  protected readonly model = signal<CreateAllocatedTransactionModel>({
+    name: '',
+    money: createAmountSlice({ initialCurrency: this.#settings.currency() }),
+    transactionDate: this.#dateConstraints.defaultDate,
+    isChecked: false,
   });
 
-  readonly #amountValue = toSignal(this.form.controls.amount.valueChanges, {
-    initialValue: this.form.controls.amount.value,
+  protected readonly transactionForm = form(this.model, (path) => {
+    required(path.name);
+    maxLength(path.name, 100);
+    applyAmountValidators(path.money);
+    required(path.transactionDate);
+    validate(path.transactionDate, ({ value }) => {
+      if (!value || !(value instanceof Date) || isNaN(value.getTime()))
+        return null;
+      const time = value.getTime();
+      if (time < this.minDate.getTime() || time > this.maxDate.getTime())
+        return customError({ kind: 'dateOutOfRange' });
+      return null;
+    });
   });
-  protected readonly preview = injectLiveConversionPreview(
-    this.#amountValue,
-    this.inputCurrency,
-    this.currency,
+
+  protected readonly canSubmit = computed(
+    () => this.transactionForm().valid() && !this.isSubmitting(),
+  );
+
+  protected readonly nameRequiredError = computed(
+    () =>
+      this.transactionForm.name().touched() &&
+      this.transactionForm
+        .name()
+        .errors()
+        .some((e) => e.kind === 'required'),
+  );
+  protected readonly nameMaxLengthError = computed(
+    () =>
+      this.transactionForm.name().touched() &&
+      this.transactionForm
+        .name()
+        .errors()
+        .some((e) => e.kind === 'maxLength'),
+  );
+  protected readonly dateRequiredError = computed(
+    () =>
+      this.transactionForm.transactionDate().touched() &&
+      this.transactionForm
+        .transactionDate()
+        .errors()
+        .some((e) => e.kind === 'required'),
+  );
+  protected readonly dateOutOfRangeError = computed(
+    () =>
+      this.transactionForm.transactionDate().touched() &&
+      this.transactionForm
+        .transactionDate()
+        .errors()
+        .some((e) => e.kind === 'dateOutOfRange'),
   );
 
   close(): void {
@@ -278,39 +260,36 @@ export class CreateAllocatedTransactionBottomSheet {
   }
 
   async submit(): Promise<void> {
-    if (this.form.invalid) return;
-
-    const formValue = this.form.getRawValue();
+    if (!this.canSubmit()) return;
 
     this.conversionError.set(false);
-    let convertedAmount: number;
-    let metadata: Awaited<
-      ReturnType<CurrencyConverterService['convertWithMetadata']>
-    >['metadata'];
+    this.isSubmitting.set(true);
     try {
-      ({ convertedAmount, metadata } =
-        await this.#currencyConfig.converter.convertWithMetadata(
-          formValue.amount!,
-          this.inputCurrency(),
-          this.currency(),
-        ));
+      const m = this.model();
+      const { convertedAmount, metadata } =
+        await this.#converter.convertWithMetadata(
+          m.money.amount!,
+          m.money.inputCurrency,
+          this.#settings.currency(),
+        );
+
+      const transaction = transactionCreateFromFormSchema.parse({
+        budgetId: this.data.budgetLine.budgetId,
+        budgetLineId: this.data.budgetLine.id,
+        name: m.name.trim(),
+        amount: convertedAmount,
+        kind: this.data.budgetLine.kind,
+        transactionDate: formatLocalDate(m.transactionDate),
+        category: null,
+        isChecked: m.isChecked,
+        conversion: metadata ?? null,
+      });
+
+      this.#bottomSheetRef.dismiss(transaction);
     } catch {
       this.conversionError.set(true);
-      return;
+    } finally {
+      this.isSubmitting.set(false);
     }
-
-    const transaction = transactionCreateFromFormSchema.parse({
-      budgetId: this.data.budgetLine.budgetId,
-      budgetLineId: this.data.budgetLine.id,
-      name: formValue.name!.trim(),
-      amount: convertedAmount,
-      kind: this.data.budgetLine.kind,
-      transactionDate: formatLocalDate(formValue.transactionDate!),
-      category: null,
-      isChecked: formValue.isChecked ?? false,
-      conversion: metadata ?? null,
-    });
-
-    this.#bottomSheetRef.dismiss(transaction);
   }
 }
