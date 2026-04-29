@@ -54,8 +54,7 @@ export function injectLiveConversionPreview(
     if (base === target) return { status: 'hidden' };
 
     const value = amount();
-    if (value == null || !Number.isFinite(value) || value <= 0)
-      return { status: 'hidden' };
+    if (value == null || value <= 0) return { status: 'hidden' };
 
     if (rateResource.isLoading()) return { status: 'loading' };
     if (rateResource.error()) return { status: 'error' };

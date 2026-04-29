@@ -7,7 +7,7 @@ import {
   input,
   viewChild,
 } from '@angular/core';
-import { Field, type FieldTree } from '@angular/forms/signals';
+import { type FieldTree } from '@angular/forms/signals';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { TranslocoPipe } from '@jsverse/transloco';
@@ -42,7 +42,6 @@ export type AmountInputMode = 'create' | 'edit';
   selector: 'pulpe-amount-input',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    Field,
     MatFormFieldModule,
     MatInputModule,
     CurrencySuffix,
@@ -68,7 +67,9 @@ export type AmountInputMode = 'create' | 'edit';
             inputmode="decimal"
             placeholder="0.00"
             step="0.01"
-            [field]="$any(bound.amount)"
+            [value]="amountValue() ?? ''"
+            (input)="onAmountInput($event)"
+            (blur)="onAmountBlur()"
             data-testid="amount-input-value"
           />
           <pulpe-currency-suffix
@@ -115,10 +116,20 @@ export class AmountInput {
 
   protected readonly amountValue = computed<number | null>(() => {
     const tree = this.control();
-    if (!tree) return null;
-    const value = tree.amount().value();
-    return Number.isFinite(value) ? value : null;
+    return tree ? tree.amount().value() : null;
   });
+
+  protected onAmountInput(event: Event): void {
+    const tree = this.control();
+    if (!tree) return;
+    const target = event.target as HTMLInputElement;
+    const next = target.valueAsNumber;
+    tree.amount().value.set(Number.isNaN(next) ? null : next);
+  }
+
+  protected onAmountBlur(): void {
+    this.control()?.amount().markAsTouched();
+  }
 
   protected readonly currentInputCurrency = computed<SupportedCurrency>(() => {
     const tree = this.control();

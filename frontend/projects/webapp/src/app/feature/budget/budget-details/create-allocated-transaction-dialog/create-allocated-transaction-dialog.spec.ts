@@ -103,7 +103,7 @@ describe('CreateAllocatedTransactionDialog', () => {
       component['model'].update((m) => ({
         ...m,
         name: '',
-        money: { ...m.money, amount: Number.NaN },
+        money: { ...m.money, amount: null },
       }));
 
       await component['submit']();
@@ -251,7 +251,7 @@ describe('CreateAllocatedTransactionDialog', () => {
     it('should require amount', () => {
       component['model'].update((m) => ({
         ...m,
-        money: { ...m.money, amount: Number.NaN },
+        money: { ...m.money, amount: null },
       }));
 
       expect(
