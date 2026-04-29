@@ -181,7 +181,6 @@ interface AddTransactionModel {
             [placeholder]="
               'currentMonth.addTransactionNotesPlaceholder' | transloco
             "
-            maxlength="50"
             aria-describedby="category-hint"
           />
           <mat-hint id="category-hint" align="end"

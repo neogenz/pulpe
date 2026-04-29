@@ -82,10 +82,9 @@ interface EditTransactionModel {
           [field]="transactionForm.name"
           [placeholder]="'transactionForm.namePlaceholder' | transloco"
           aria-describedby="name-hint"
-          maxlength="100"
         />
         <mat-hint id="name-hint" align="end"
-          >{{ model().name?.length || 0 }}/100</mat-hint
+          >{{ model().name.length || 0 }}/100</mat-hint
         >
         @if (nameErrors().required) {
           <mat-error>
@@ -186,11 +185,10 @@ interface EditTransactionModel {
             matInput
             [field]="transactionForm.category"
             [placeholder]="'transactionForm.notesPlaceholder' | transloco"
-            maxlength="50"
             aria-describedby="category-hint"
           />
           <mat-hint id="category-hint" align="end">
-            {{ model().category?.length || 0 }}/50
+            {{ model().category.length || 0 }}/50
             {{ 'transactionForm.notesOptional' | transloco }}
           </mat-hint>
           @if (categoryErrors().maxLength) {

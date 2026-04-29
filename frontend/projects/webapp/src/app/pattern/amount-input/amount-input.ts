@@ -65,7 +65,6 @@ export type AmountInputMode = 'create' | 'edit';
             inputmode="decimal"
             placeholder="0.00"
             step="0.01"
-            min="0"
             [field]="$any(bound.amount)"
             data-testid="amount-input-value"
           />
