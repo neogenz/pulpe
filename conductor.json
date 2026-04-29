@@ -1,6 +1,6 @@
 {
     "scripts": {
-        "setup": "PULPE_MAIN_WORKSPACE=\"$CONDUCTOR_ROOT_PATH\" ./sync-env.sh\npnpm install",
+        "setup": "PULPE_MAIN_WORKSPACE=\"$CONDUCTOR_ROOT_PATH\" ./sync-env.sh\npnpm install\n./scripts/install-skills.sh",
         "run": "pnpm dev",
         "archive": "rm -rf node_modules"
     }
