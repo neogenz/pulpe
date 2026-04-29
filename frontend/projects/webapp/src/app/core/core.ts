@@ -37,10 +37,10 @@ import { buildInfo } from '@env/build-info';
 import { environment } from '@env/environment';
 import { Logger } from './logging/logger';
 import { StorageMigrationRunnerService } from './storage/storage-migration-runner.service';
-import { provideSplashRemoval } from './splash-removal';
+import { provideSplashRemoval } from './lifecycle/splash-removal';
 import { ClientKeyService } from './encryption/client-key.service';
 import { PreloadService } from './preload/preload.service';
-import { SessionResumeRecoveryService } from './lifecycle/session-resume-recovery.service';
+import { ResumeRefreshService } from './lifecycle/resume-refresh.service';
 import { ThemeService } from './theme/theme.service';
 import { provideAppTransloco } from './i18n/transloco-config';
 import { provideZiflux, withDevtools } from 'ngx-ziflux';
@@ -146,7 +146,7 @@ export function provideCore({ routes }: CoreOptions) {
       const analyticsService = inject(AnalyticsService);
       const storageMigrationRunner = inject(StorageMigrationRunnerService);
       const clientKeyService = inject(ClientKeyService);
-      const sessionResumeRecovery = inject(SessionResumeRecoveryService);
+      const resumeRefresh = inject(ResumeRefreshService);
       const injector = inject(Injector);
       const logger = inject(Logger);
 
@@ -154,7 +154,7 @@ export function provideCore({ routes }: CoreOptions) {
       // Must be called before any await to stay in injection context
       inject(PreloadService);
       inject(ThemeService);
-      sessionResumeRecovery.initialize();
+      resumeRefresh.initialize();
 
       // 0. Run storage migrations first (before any data is read)
       storageMigrationRunner.runMigrations();

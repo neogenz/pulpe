@@ -3,10 +3,10 @@ import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
-  PAGE_RELOAD,
   PAGE_RESUME_THRESHOLD_MS,
-  SessionResumeRecoveryService,
-} from './session-resume-recovery.service';
+  ResumeRefreshService,
+} from './resume-refresh.service';
+import { PAGE_RELOAD } from '@core/page-reload';
 import { Logger } from '@core/logging/logger';
 import { AuthSessionService } from '@core/auth/auth-session.service';
 import { AuthStateService } from '@core/auth/auth-state.service';
@@ -30,7 +30,7 @@ function dispatchPageShow(persisted: boolean): void {
   window.dispatchEvent(event);
 }
 
-describe('SessionResumeRecoveryService', () => {
+describe('ResumeRefreshService', () => {
   const reloadSpy = vi.fn();
   const mockRouter = { url: '/dashboard' };
 
@@ -60,7 +60,7 @@ describe('SessionResumeRecoveryService', () => {
     error: vi.fn(),
   };
 
-  let service: SessionResumeRecoveryService;
+  let service: ResumeRefreshService;
 
   beforeEach(() => {
     TestBed.resetTestingModule();
@@ -89,7 +89,7 @@ describe('SessionResumeRecoveryService', () => {
     TestBed.configureTestingModule({
       providers: [
         provideZonelessChangeDetection(),
-        SessionResumeRecoveryService,
+        ResumeRefreshService,
         { provide: PAGE_RELOAD, useValue: reloadSpy },
         { provide: Router, useValue: mockRouter },
         { provide: AuthStateService, useValue: mockAuthState },
@@ -101,11 +101,11 @@ describe('SessionResumeRecoveryService', () => {
       ],
     });
 
-    service = TestBed.inject(SessionResumeRecoveryService);
+    service = TestBed.inject(ResumeRefreshService);
     TestBed.runInInjectionContext(() => service.initialize());
   });
 
-  it('should perform soft recovery on pageshow persisted for protected routes', async () => {
+  it('should perform soft refresh on pageshow persisted for protected routes', async () => {
     dispatchPageShow(true);
     await vi.waitFor(() => {
       expect(mockAuthSession.refreshSession).toHaveBeenCalledOnce();
@@ -115,7 +115,7 @@ describe('SessionResumeRecoveryService', () => {
     expect(reloadSpy).not.toHaveBeenCalled();
   });
 
-  it('should perform soft recovery when document was discarded on pageshow', async () => {
+  it('should perform soft refresh when document was discarded on pageshow', async () => {
     Object.defineProperty(document, 'wasDiscarded', {
       configurable: true,
       value: true,
@@ -130,7 +130,7 @@ describe('SessionResumeRecoveryService', () => {
     expect(reloadSpy).not.toHaveBeenCalled();
   });
 
-  it('should not trigger recovery for short background/foreground switch', () => {
+  it('should not trigger refresh for short background/foreground switch', () => {
     const nowSpy = vi.spyOn(Date, 'now').mockReturnValue(1_000);
 
     setVisibilityState('hidden');
@@ -144,7 +144,7 @@ describe('SessionResumeRecoveryService', () => {
     expect(reloadSpy).not.toHaveBeenCalled();
   });
 
-  it('should perform soft recovery when tab resumes after long background period', async () => {
+  it('should perform soft refresh when tab resumes after long background period', async () => {
     const nowSpy = vi.spyOn(Date, 'now').mockReturnValue(1_000);
 
     setVisibilityState('hidden');
@@ -162,7 +162,7 @@ describe('SessionResumeRecoveryService', () => {
     expect(reloadSpy).not.toHaveBeenCalled();
   });
 
-  it('should fallback to hard reload when soft recovery fails', async () => {
+  it('should fallback to hard reload when soft refresh fails', async () => {
     mockAuthSession.refreshSession.mockResolvedValue(false);
 
     dispatchPageShow(true);
@@ -209,7 +209,7 @@ describe('SessionResumeRecoveryService', () => {
     expect(reloadSpy).not.toHaveBeenCalled();
   });
 
-  it('should not recover on non-protected routes', async () => {
+  it('should not refresh on non-protected routes', async () => {
     mockRouter.url = '/welcome';
     dispatchPageShow(true);
     await Promise.resolve();
@@ -276,7 +276,7 @@ describe('SessionResumeRecoveryService', () => {
     expect(reloadSpy).toHaveBeenCalledOnce();
   });
 
-  it('should track lastHiddenAt via pagehide and recover on visibility resume after long delay', async () => {
+  it('should track lastHiddenAt via pagehide and refresh on visibility resume after long delay', async () => {
     const nowSpy = vi.spyOn(Date, 'now').mockReturnValue(10_000);
 
     window.dispatchEvent(new Event('pagehide'));
@@ -291,7 +291,7 @@ describe('SessionResumeRecoveryService', () => {
     expect(reloadSpy).not.toHaveBeenCalled();
   });
 
-  it('should not recover when not authenticated', async () => {
+  it('should not refresh when not authenticated', async () => {
     isAuthenticatedFn.mockReturnValue(false);
 
     dispatchPageShow(true);
@@ -313,7 +313,7 @@ describe('SessionResumeRecoveryService', () => {
     expect(reloadSpy).not.toHaveBeenCalled();
   });
 
-  it('should ignore concurrent triggers while recovery in flight', async () => {
+  it('should ignore concurrent triggers while refresh in flight', async () => {
     let resolveRefresh!: (value: boolean) => void;
     mockAuthSession.refreshSession.mockReset();
     mockAuthSession.refreshSession.mockReturnValue(

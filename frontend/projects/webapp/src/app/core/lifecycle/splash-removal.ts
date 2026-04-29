@@ -6,9 +6,9 @@ import {
   Router,
 } from '@angular/router';
 import { filter, map, race, take, timer } from 'rxjs';
-import { AuthStateService } from './auth/auth-state.service';
-import { SessionResumeRecoveryService } from './lifecycle/session-resume-recovery.service';
-import { Logger } from './logging/logger';
+import { AuthStateService } from '../auth/auth-state.service';
+import { ResumeRefreshService } from './resume-refresh.service';
+import { Logger } from '../logging/logger';
 
 const SPLASH_TIMEOUT_MS = 15_000;
 
@@ -21,7 +21,7 @@ function removeSplash(): void {
 export function splashRemovalInitializer(): void {
   const router = inject(Router);
   const authState = inject(AuthStateService);
-  const recovery = inject(SessionResumeRecoveryService);
+  const recovery = inject(ResumeRefreshService);
   const logger = inject(Logger);
 
   const routerReady$ = router.events.pipe(

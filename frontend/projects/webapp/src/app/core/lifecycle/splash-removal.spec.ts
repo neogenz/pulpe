@@ -15,9 +15,9 @@ import {
 } from '@angular/router';
 import { Subject } from 'rxjs';
 import { provideSplashRemoval } from './splash-removal';
-import { AuthStateService } from './auth/auth-state.service';
-import { SessionResumeRecoveryService } from './lifecycle/session-resume-recovery.service';
-import { Logger } from './logging/logger';
+import { AuthStateService } from '../auth/auth-state.service';
+import { ResumeRefreshService } from './resume-refresh.service';
+import { Logger } from '../logging/logger';
 
 describe('provideSplashRemoval', () => {
   let routerEvents$: Subject<unknown>;
@@ -56,7 +56,7 @@ describe('provideSplashRemoval', () => {
           useValue: { isLoading: isLoadingSignal.asReadonly() },
         },
         {
-          provide: SessionResumeRecoveryService,
+          provide: ResumeRefreshService,
           useValue: { forceReloadOnSplashTimeout: forceReloadSpy },
         },
         {

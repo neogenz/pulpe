@@ -7,7 +7,7 @@ import {
   handleNavigationError,
   isChunkLoadError,
 } from './navigation-error-handler';
-import { PAGE_RELOAD } from '../lifecycle/session-resume-recovery.service';
+import { PAGE_RELOAD } from '../page-reload';
 import { Logger } from '../logging/logger';
 import { STORAGE_KEYS } from '../storage/storage-keys';
 import { StorageService } from '../storage/storage.service';
