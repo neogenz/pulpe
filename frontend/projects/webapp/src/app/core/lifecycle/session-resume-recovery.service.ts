@@ -67,6 +67,20 @@ export class SessionResumeRecoveryService {
   #pendingReason: ResumeTriggerReason | null = null;
   #loadingTimeoutId: ReturnType<typeof setTimeout> | null = null;
 
+  constructor() {
+    // Drains queued reason once auth finishes loading.
+    // Effect lives in constructor (always injection context) so it does not
+    // depend on where initialize() is called from.
+    effect(() => {
+      const isLoading = this.#authState.isLoading();
+      if (isLoading || this.#pendingReason === null) return;
+      const reason = this.#pendingReason;
+      this.#pendingReason = null;
+      this.#clearLoadingTimeout();
+      this.#triggerResumeRecovery(reason);
+    });
+  }
+
   readonly #onVisibilityChange = (): void => {
     if (this.#document.visibilityState === 'hidden') {
       this.#lastHiddenAt = Date.now();
@@ -141,16 +155,6 @@ export class SessionResumeRecoveryService {
       win.removeEventListener('pagehide', this.#onPageHide);
       win.removeEventListener('pageshow', this.#onPageShow);
       this.#clearLoadingTimeout();
-    });
-
-    // Drains queued reason once auth finishes loading.
-    effect(() => {
-      const isLoading = this.#authState.isLoading();
-      if (isLoading || this.#pendingReason === null) return;
-      const reason = this.#pendingReason;
-      this.#pendingReason = null;
-      this.#clearLoadingTimeout();
-      this.#triggerResumeRecovery(reason);
     });
   }
 
