@@ -4,14 +4,14 @@ export { ConversionTooltipPipe } from './conversion-tooltip.pipe';
 export {
   conversionFormSchema,
   type ConversionFormValue,
-} from './conversion-form.schema';
+} from './form/conversion-form.schema';
 export { CURRENCY_CONFIG, DEFAULT_DIGITS_INFO } from './currency-config';
 export { CurrencyConverterService } from './currency-converter.service';
 export {
   injectLiveConversionPreview,
   type LivePreviewState,
   type LivePreviewStatus,
-} from './live-conversion-preview';
+} from './form/live-conversion-preview';
 export type {
   CurrencyMetadata,
   CurrencyConversionResult,
@@ -21,5 +21,5 @@ export {
   type AmountFormSlice,
   type CreateAmountSliceArgs,
   createAmountSlice,
-} from './amount-form.types';
-export { applyAmountValidators } from './amount-form-validators';
+} from './form/amount-form.types';
+export { applyAmountValidators } from './form/amount-form-validators';

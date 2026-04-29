@@ -7,8 +7,8 @@ import { TestBed } from '@angular/core/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { SupportedCurrency } from 'pulpe-shared';
 
-import { CurrencyConverterService } from './currency-converter.service';
-import type { FetchRateResult } from './currency.types';
+import { CurrencyConverterService } from '../currency-converter.service';
+import type { FetchRateResult } from '../currency.types';
 import {
   injectLiveConversionPreview,
   type LivePreviewState,

@@ -1,7 +1,7 @@
 import { computed, inject, resource, type Signal } from '@angular/core';
 import type { SupportedCurrency } from 'pulpe-shared';
 
-import { CurrencyConverterService } from './currency-converter.service';
+import { CurrencyConverterService } from '../currency-converter.service';
 
 export type LivePreviewStatus =
   | 'hidden'
