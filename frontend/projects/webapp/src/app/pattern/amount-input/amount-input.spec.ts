@@ -109,7 +109,7 @@ describe('AmountInput', () => {
       flagEnabled: false,
     });
 
-    expect(testForm.amount().value()).toBeNull();
+    expect(testForm.amount().value()).toBeNaN();
     expect(testForm.amount().invalid()).toBe(true);
 
     model.update((m) => ({ ...m, amount: 0 }));

@@ -112,7 +112,7 @@ describe('AddBudgetLineDialog', () => {
       component['model'].update((m) => ({
         ...m,
         name: '',
-        money: { ...m.money, amount: null },
+        money: { ...m.money, amount: Number.NaN },
       }));
 
       await component['submit']();
@@ -199,7 +199,7 @@ describe('AddBudgetLineDialog', () => {
       const { component } = configureDialog({ userCurrency: 'EUR' });
 
       expect(component['model']().money.inputCurrency).toBe('EUR');
-      expect(component['model']().money.amount).toBeNull();
+      expect(component['model']().money.amount).toBeNaN();
     });
 
     it('should call convertWithMetadata with (amount, inputCurrency, userCurrency) and include metadata in payload when currencies differ', async () => {

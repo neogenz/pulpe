@@ -115,7 +115,9 @@ export class AmountInput {
 
   protected readonly amountValue = computed<number | null>(() => {
     const tree = this.control();
-    return tree ? tree.amount().value() : null;
+    if (!tree) return null;
+    const value = tree.amount().value();
+    return Number.isFinite(value) ? value : null;
   });
 
   protected readonly currentInputCurrency = computed<SupportedCurrency>(() => {

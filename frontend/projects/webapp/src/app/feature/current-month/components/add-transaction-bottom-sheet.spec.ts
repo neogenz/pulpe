@@ -104,7 +104,7 @@ describe('AddTransactionBottomSheet', () => {
       component['model'].update((m) => ({
         ...m,
         name: '',
-        money: { ...m.money, amount: null },
+        money: { ...m.money, amount: Number.NaN },
       }));
 
       await component['onSubmit']();
@@ -224,7 +224,7 @@ describe('AddTransactionBottomSheet', () => {
       const { component } = configureBottomSheet();
       component['model'].update((m) => ({
         ...m,
-        money: { ...m.money, amount: null },
+        money: { ...m.money, amount: Number.NaN },
       }));
 
       expect(
@@ -281,7 +281,7 @@ describe('AddTransactionBottomSheet', () => {
       const { component } = configureBottomSheet({ userCurrency: 'EUR' });
 
       expect(component['model']().money.inputCurrency).toBe('EUR');
-      expect(component['model']().money.amount).toBeNull();
+      expect(component['model']().money.amount).toBeNaN();
     });
 
     it('should call convertWithMetadata with (amount, inputCurrency, userCurrency) and include metadata in payload when currencies differ', async () => {

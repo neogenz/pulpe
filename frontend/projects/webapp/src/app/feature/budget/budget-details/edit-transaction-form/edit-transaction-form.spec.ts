@@ -77,7 +77,7 @@ describe('EditTransactionForm', () => {
 
       component['model'].update((m) => ({
         ...m,
-        money: { ...m.money, amount: null },
+        money: { ...m.money, amount: Number.NaN },
       }));
       expect(
         component['transactionForm'].money
@@ -169,7 +169,7 @@ describe('EditTransactionForm', () => {
       component['model'].update((m) => ({
         ...m,
         name: '',
-        money: { ...m.money, amount: null },
+        money: { ...m.money, amount: Number.NaN },
       }));
 
       const initialLoadingState = component.isUpdating();

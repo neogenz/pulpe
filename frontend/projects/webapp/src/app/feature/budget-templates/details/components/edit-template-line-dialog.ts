@@ -66,6 +66,7 @@ interface EditTemplateLineModel {
 
 @Component({
   selector: 'pulpe-edit-template-line-dialog',
+  host: { 'data-testid': 'edit-template-line-dialog' },
   imports: [
     MatDialogModule,
     MatFormFieldModule,
