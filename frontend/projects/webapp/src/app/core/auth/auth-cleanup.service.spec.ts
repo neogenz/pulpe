@@ -3,7 +3,7 @@ import { TestBed } from '@angular/core/testing';
 import { provideZonelessChangeDetection, signal } from '@angular/core';
 import type { User } from '@supabase/supabase-js';
 import { AuthCleanupService } from './auth-cleanup.service';
-import { AuthStateService } from './auth-state.service';
+import { AuthStore } from './auth-store';
 import { BudgetApi } from '@core/budget';
 import { BudgetTemplatesApi } from '@core/budget-template/budget-templates-api';
 import { ClientKeyService } from '@core/encryption';
@@ -17,7 +17,7 @@ import { type E2EWindow } from './e2e-window';
 
 describe('AuthCleanupService', () => {
   let service: AuthCleanupService;
-  let mockState: Partial<AuthStateService>;
+  let mockState: Partial<AuthStore>;
   let mockBudgetApi: { clearCache: ReturnType<typeof vi.fn> };
   let mockBudgetTemplatesApi: { clearCache: ReturnType<typeof vi.fn> };
   let mockClientKey: Partial<ClientKeyService>;
@@ -33,7 +33,7 @@ describe('AuthCleanupService', () => {
     userSignal = signal<User | null>(null);
     mockState = {
       user: userSignal.asReadonly(),
-      applyState: vi.fn(),
+      set: vi.fn(),
     };
 
     mockBudgetApi = { clearCache: vi.fn() };
@@ -53,7 +53,7 @@ describe('AuthCleanupService', () => {
       providers: [
         provideZonelessChangeDetection(),
         AuthCleanupService,
-        { provide: AuthStateService, useValue: mockState },
+        { provide: AuthStore, useValue: mockState },
         { provide: BudgetApi, useValue: mockBudgetApi },
         { provide: BudgetTemplatesApi, useValue: mockBudgetTemplatesApi },
         { provide: ClientKeyService, useValue: mockClientKey },

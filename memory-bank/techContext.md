@@ -118,7 +118,7 @@ No feature flag existed in project — first flag introduced, must serve as reus
 ### Decision Drivers
 
 - PostHog already instrumented webapp + iOS for analytics — native feature flags integration, no extra tool
-- Supabase metadata `app_metadata.early_adopter` already existed (read in `auth-state.service.ts`) but not sent to PostHog
+- Supabase metadata `app_metadata.early_adopter` already existed (read in `auth-store.ts`) but not sent to PostHog
 - Multi-currency UX gating touches ~14 forms + settings + onboarding — centralization critical to avoid massive tech debt
 - Must reuse for future gated features (savings goals, notifications, etc.)
 
@@ -174,7 +174,7 @@ No feature flag existed in project — first flag introduced, must serve as reus
   - `flagsVersion` signal bump invalidates ALL flag-dependent computeds simultaneously. Acceptable at 1 flag, monitor if >10+ active flags (consider per-flag signals)
   - iOS `FeatureFlagsStore.refresh()` runs each `scenePhase = .active` — light network overhead (one PostHog call per foreground)
   - Phase 1/2 code contains `@if (isMultiCurrencyEnabled())` that must disappear phase 3 to avoid debt
-- **Impact**: 32 files in commit `e74efa1ad`. New: `shared/src/feature-flags.ts`, `frontend/projects/webapp/src/app/core/feature-flags/`, `ios/Pulpe/Domain/Store/FeatureFlagsStore.swift`. Extended: `PostHogService` (frontend), `AnalyticsService` (iOS), `analytics.ts` + `auth-state.service.ts` (frontend), `AppState+Auth.swift` + `AuthService.swift` (iOS), `UserSettingsStore` (iOS), `PulpeApp.swift`
+- **Impact**: 32 files in commit `e74efa1ad`. New: `shared/src/feature-flags.ts`, `frontend/projects/webapp/src/app/core/feature-flags/`, `ios/Pulpe/Domain/Store/FeatureFlagsStore.swift`. Extended: `PostHogService` (frontend), `AnalyticsService` (iOS), `analytics.ts` + `auth-store.ts` (frontend), `AppState+Auth.swift` + `AuthService.swift` (iOS), `UserSettingsStore` (iOS), `PulpeApp.swift`
 
 ### Notes
 

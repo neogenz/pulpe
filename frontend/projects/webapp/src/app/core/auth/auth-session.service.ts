@@ -8,7 +8,7 @@ import {
 } from '@supabase/supabase-js';
 import { ApplicationConfiguration } from '../config/application-configuration';
 import { Logger } from '../logging/logger';
-import { AuthStateService, type AuthSnapshot } from './auth-state.service';
+import { AuthStore, type AuthSessionState } from './auth-store';
 import { AuthErrorLocalizer } from './auth-error-localizer';
 import { AUTH_ERROR_KEYS, SCHEDULED_DELETION_PARAMS } from './auth-constants';
 import { AuthCleanupService } from './auth-cleanup.service';
@@ -24,7 +24,7 @@ interface DecodedJwt {
   providedIn: 'root',
 })
 export class AuthSessionService {
-  readonly #state = inject(AuthStateService);
+  readonly #authStore = inject(AuthStore);
   readonly #router = inject(Router);
   readonly #applicationConfig = inject(ApplicationConfiguration);
   readonly #errorLocalizer = inject(AuthErrorLocalizer);
@@ -105,7 +105,7 @@ export class AuthSessionService {
     password: string,
   ): Promise<{ success: boolean; error?: string }> {
     try {
-      const email = this.#state.user()?.email;
+      const email = this.#authStore.user()?.email;
       if (!email) {
         return { success: false, error: 'Utilisateur non connecté' };
       }
@@ -242,7 +242,7 @@ export class AuthSessionService {
         this.#logger.debug(
           '🎭 Mode test E2E détecté, utilisation des mocks auth',
         );
-        this.#state.applyState(this.#snapshotFromMock(mockState));
+        this.#authStore.set(this.#sessionStateFromMock(mockState));
         return;
       }
     }
@@ -349,17 +349,17 @@ export class AuthSessionService {
   }
 
   #updateAuthStateFromSession(session: Session | null): void {
-    this.#state.applyState(
+    this.#authStore.set(
       session
         ? { phase: 'authenticated', session }
         : { phase: 'unauthenticated' },
     );
   }
 
-  #snapshotFromMock(mock: {
+  #sessionStateFromMock(mock: {
     session: Session | null;
     isLoading: boolean;
-  }): AuthSnapshot {
+  }): AuthSessionState {
     if (mock.session) return { phase: 'authenticated', session: mock.session };
     if (mock.isLoading) return { phase: 'booting' };
     return { phase: 'unauthenticated' };

@@ -34,7 +34,7 @@ import {
 } from '@angular/router';
 import { AmountsVisibilityService } from '@core/amounts-visibility/amounts-visibility.service';
 import { AuthSessionService } from '@core/auth/auth-session.service';
-import { AuthStateService } from '@core/auth/auth-state.service';
+import { AuthStore } from '@core/auth/auth-store';
 import { ApplicationConfiguration } from '@core/config/application-configuration';
 import { DemoInitializerService } from '@core/demo/demo-initializer.service';
 import { DemoModeService } from '@core/demo/demo-mode.service';
@@ -689,7 +689,7 @@ export default class MainLayout {
   readonly #amountsVisibility = inject(AmountsVisibilityService);
   readonly #breakpointObserver = inject(BreakpointObserver);
   readonly #router = inject(Router);
-  readonly #authState = inject(AuthStateService);
+  readonly #authStore = inject(AuthStore);
   readonly #authSession = inject(AuthSessionService);
   readonly #applicationConfig = inject(ApplicationConfiguration);
   readonly #demoModeService = inject(DemoModeService);
@@ -710,10 +710,10 @@ export default class MainLayout {
     if (this.#demoModeService.isDemoMode()) {
       return 'demo@gmail.com';
     }
-    return this.#authState.user()?.email;
+    return this.#authStore.user()?.email;
   });
 
-  protected readonly isEarlyAdopter = this.#authState.isEarlyAdopter;
+  protected readonly isEarlyAdopter = this.#authStore.isEarlyAdopter;
 
   // Route to settings page
   protected readonly settingsRoute = `/${ROUTES.SETTINGS}`;

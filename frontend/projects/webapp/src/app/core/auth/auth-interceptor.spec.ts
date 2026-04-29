@@ -15,7 +15,7 @@ import { firstValueFrom } from 'rxjs';
 
 import { authInterceptor } from './auth-interceptor';
 import { AuthSessionService } from './auth-session.service';
-import { AuthStateService } from './auth-state.service';
+import { AuthStore } from './auth-store';
 import { ApplicationConfiguration } from '../config/application-configuration';
 import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 
@@ -84,7 +84,7 @@ describe('authInterceptor', () => {
     refreshSession: ReturnType<typeof vi.fn>;
     signOut: ReturnType<typeof vi.fn>;
   };
-  let mockAuthState: {
+  let mockAuthStore: {
     isAuthenticated: ReturnType<typeof vi.fn>;
     session: ReturnType<typeof signal>;
   };
@@ -103,7 +103,7 @@ describe('authInterceptor', () => {
       signOut: vi.fn().mockResolvedValue(undefined),
     };
 
-    mockAuthState = {
+    mockAuthStore = {
       isAuthenticated: vi.fn().mockReturnValue(true),
       session: signal({ access_token: 'valid-token' }),
     };
@@ -124,7 +124,7 @@ describe('authInterceptor', () => {
         provideHttpClient(withInterceptors([authInterceptor])),
         provideHttpClientTesting(),
         { provide: AuthSessionService, useValue: mockAuthSession },
-        { provide: AuthStateService, useValue: mockAuthState },
+        { provide: AuthStore, useValue: mockAuthStore },
         { provide: ApplicationConfiguration, useValue: mockApplicationConfig },
         { provide: Router, useValue: mockRouter },
       ],
@@ -248,7 +248,7 @@ describe('authInterceptor', () => {
     });
 
     it('should NOT redirect when not authenticated (loop guard)', async () => {
-      mockAuthState.isAuthenticated.mockReturnValue(false);
+      mockAuthStore.isAuthenticated.mockReturnValue(false);
 
       const result = firstValueFrom(http.get(`${BACKEND_URL}/api/data`)).catch(
         (err) => err,
@@ -381,7 +381,7 @@ describe('authInterceptor', () => {
     });
 
     it('should not intercept 401 when user is not authenticated', async () => {
-      mockAuthState.isAuthenticated.mockReturnValue(false);
+      mockAuthStore.isAuthenticated.mockReturnValue(false);
 
       const result = firstValueFrom(http.get(`${BACKEND_URL}/api/data`)).catch(
         (err) => err,

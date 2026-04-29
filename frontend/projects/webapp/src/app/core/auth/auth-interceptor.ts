@@ -10,7 +10,7 @@ import { Router } from '@angular/router';
 import { TranslocoService } from '@jsverse/transloco';
 import { type Observable, throwError, from, switchMap, catchError } from 'rxjs';
 import { AuthSessionService } from './auth-session.service';
-import { AuthStateService } from './auth-state.service';
+import { AuthStore } from './auth-store';
 import { ApplicationConfiguration } from '../config/application-configuration';
 import { ROUTES } from '../routing/routes-constants';
 import { AUTH_ERROR_KEYS } from './auth-constants';
@@ -19,14 +19,14 @@ interface InterceptorContext {
   readonly req: HttpRequest<unknown>;
   readonly next: HttpHandlerFn;
   readonly session: AuthSessionService;
-  readonly state: AuthStateService;
+  readonly authStore: AuthStore;
   readonly router: Router;
   readonly transloco: TranslocoService;
 }
 
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const session = inject(AuthSessionService);
-  const state = inject(AuthStateService);
+  const authStore = inject(AuthStore);
   const applicationConfig = inject(ApplicationConfiguration);
   const router = inject(Router);
   const transloco = inject(TranslocoService);
@@ -39,12 +39,12 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
     req,
     next,
     session,
-    state,
+    authStore,
     router,
     transloco,
   };
 
-  return next(addAuthToken(req, state)).pipe(
+  return next(addAuthToken(req, authStore)).pipe(
     catchError((error: HttpErrorResponse) => handleAuthError(error, ctx)),
   );
 };
@@ -57,9 +57,9 @@ function shouldInterceptRequest(url: string, backendApiUrl: string): boolean {
 
 function addAuthToken(
   req: HttpRequest<unknown>,
-  state: AuthStateService,
+  authStore: AuthStore,
 ): HttpRequest<unknown> {
-  const accessToken = state.session()?.access_token;
+  const accessToken = authStore.session()?.access_token;
   if (!accessToken) return req;
   return req.clone({
     headers: req.headers.set('Authorization', `Bearer ${accessToken}`),
@@ -70,11 +70,11 @@ function handleAuthError(
   error: HttpErrorResponse,
   ctx: InterceptorContext,
 ): Observable<HttpEvent<unknown>> {
-  if (error.status === 401 && ctx.state.isAuthenticated()) {
+  if (error.status === 401 && ctx.authStore.isAuthenticated()) {
     return from(ctx.session.refreshSession()).pipe(
       switchMap((refreshed) =>
         refreshed
-          ? ctx.next(addAuthToken(ctx.req, ctx.state))
+          ? ctx.next(addAuthToken(ctx.req, ctx.authStore))
           : signOutAndRedirect(ctx, AUTH_ERROR_KEYS.SESSION_EXPIRED),
       ),
       catchError(() => signOutAndRedirect(ctx, AUTH_ERROR_KEYS.REFRESH_FAILED)),
@@ -87,7 +87,7 @@ function handleAuthError(
   ) {
     if (
       ctx.router.url.includes(ROUTES.ENTER_VAULT_CODE) ||
-      !ctx.state.isAuthenticated()
+      !ctx.authStore.isAuthenticated()
     ) {
       return throwError(() => error);
     }

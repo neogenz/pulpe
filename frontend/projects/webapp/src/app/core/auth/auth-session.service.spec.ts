@@ -12,7 +12,7 @@ import { provideZonelessChangeDetection, signal } from '@angular/core';
 import type { AuthChangeEvent, Session, User } from '@supabase/supabase-js';
 import { Router } from '@angular/router';
 import { AuthSessionService } from './auth-session.service';
-import { AuthStateService } from './auth-state.service';
+import { AuthStore } from './auth-store';
 import { ApplicationConfiguration } from '../config/application-configuration';
 import { Logger } from '../logging/logger';
 import { AuthErrorLocalizer } from './auth-error-localizer';
@@ -42,8 +42,8 @@ const buildJwt = (payload: Record<string, unknown>): string => {
 
 describe('AuthSessionService', () => {
   let service: AuthSessionService;
-  let mockAuthState: {
-    applyState: Mock;
+  let mockAuthStore: {
+    set: Mock;
     user: () => User | null;
   };
   let mockConfig: Partial<ApplicationConfiguration>;
@@ -92,8 +92,8 @@ describe('AuthSessionService', () => {
 
     mockUserSignal = signal<User | null>(null);
 
-    mockAuthState = {
-      applyState: vi.fn(),
+    mockAuthStore = {
+      set: vi.fn(),
       user: mockUserSignal.asReadonly(),
     };
 
@@ -124,7 +124,7 @@ describe('AuthSessionService', () => {
         provideZonelessChangeDetection(),
         ...provideTranslocoForTest(),
         AuthSessionService,
-        { provide: AuthStateService, useValue: mockAuthState },
+        { provide: AuthStore, useValue: mockAuthStore },
         { provide: ApplicationConfiguration, useValue: mockConfig },
         { provide: Logger, useValue: mockLogger },
         { provide: AuthErrorLocalizer, useValue: mockErrorLocalizer },
@@ -175,7 +175,7 @@ describe('AuthSessionService', () => {
 
     await service.initializeAuthState();
 
-    expect(mockAuthState.applyState).toHaveBeenCalledWith({
+    expect(mockAuthStore.set).toHaveBeenCalledWith({
       phase: 'authenticated',
       session: mockSession,
     });
@@ -193,7 +193,7 @@ describe('AuthSessionService', () => {
 
     await service.initializeAuthState();
 
-    mockAuthState.applyState.mockClear();
+    mockAuthStore.set.mockClear();
     mockSupabaseClient.auth.onAuthStateChange.mockClear();
     vi.mocked(mockLogger.debug)!.mockClear();
 
@@ -202,7 +202,7 @@ describe('AuthSessionService', () => {
     expect(mockLogger.debug).toHaveBeenCalledWith(
       'Auth already initialized, skipping',
     );
-    expect(mockAuthState.applyState).not.toHaveBeenCalled();
+    expect(mockAuthStore.set).not.toHaveBeenCalled();
     expect(mockSupabaseClient.auth.onAuthStateChange).not.toHaveBeenCalled();
   });
 
@@ -251,12 +251,12 @@ describe('AuthSessionService', () => {
     const callback = captureAuthStateChangeCallback(mockSupabaseClient);
 
     await service.initializeAuthState();
-    mockAuthState.applyState.mockClear();
+    mockAuthStore.set.mockClear();
     vi.mocked(mockLogger.debug)!.mockClear();
 
     callback('SIGNED_IN', mockSession);
 
-    expect(mockAuthState.applyState).toHaveBeenCalledWith({
+    expect(mockAuthStore.set).toHaveBeenCalledWith({
       phase: 'authenticated',
       session: mockSession,
     });
@@ -274,12 +274,12 @@ describe('AuthSessionService', () => {
     const callback = captureAuthStateChangeCallback(mockSupabaseClient);
 
     await service.initializeAuthState();
-    mockAuthState.applyState.mockClear();
+    mockAuthStore.set.mockClear();
     vi.mocked(mockLogger.debug)!.mockClear();
 
     callback('TOKEN_REFRESHED', mockSession);
 
-    expect(mockAuthState.applyState).toHaveBeenCalledWith({
+    expect(mockAuthStore.set).toHaveBeenCalledWith({
       phase: 'authenticated',
       session: mockSession,
     });
@@ -294,12 +294,12 @@ describe('AuthSessionService', () => {
     const callback = captureAuthStateChangeCallback(mockSupabaseClient);
 
     await service.initializeAuthState();
-    mockAuthState.applyState.mockClear();
+    mockAuthStore.set.mockClear();
     vi.mocked(mockLogger.debug)!.mockClear();
 
     callback('SIGNED_OUT', null);
 
-    expect(mockAuthState.applyState).toHaveBeenCalledWith({
+    expect(mockAuthStore.set).toHaveBeenCalledWith({
       phase: 'unauthenticated',
     });
     expect(mockCleanup.performCleanup).toHaveBeenCalled();
@@ -313,11 +313,11 @@ describe('AuthSessionService', () => {
     const callback = captureAuthStateChangeCallback(mockSupabaseClient);
 
     await service.initializeAuthState();
-    mockAuthState.applyState.mockClear();
+    mockAuthStore.set.mockClear();
 
     callback('USER_UPDATED', mockSession);
 
-    expect(mockAuthState.applyState).toHaveBeenCalledWith({
+    expect(mockAuthStore.set).toHaveBeenCalledWith({
       phase: 'authenticated',
       session: mockSession,
     });
@@ -365,7 +365,7 @@ describe('AuthSessionService', () => {
       'Erreur lors de la récupération de la session:',
       error,
     );
-    expect(mockAuthState.applyState).toHaveBeenCalledWith({
+    expect(mockAuthStore.set).toHaveBeenCalledWith({
       phase: 'unauthenticated',
     });
   });
@@ -386,7 +386,7 @@ describe('AuthSessionService', () => {
     expect(mockLogger.debug).toHaveBeenCalledWith(
       '🎭 Mode test E2E détecté, utilisation des mocks auth',
     );
-    expect(mockAuthState.applyState).toHaveBeenCalledWith({
+    expect(mockAuthStore.set).toHaveBeenCalledWith({
       phase: 'authenticated',
       session: mockSession,
     });
@@ -450,7 +450,7 @@ describe('AuthSessionService', () => {
         data: { subscription: { unsubscribe: vi.fn() } },
       });
       await service.initializeAuthState();
-      mockAuthState.applyState.mockClear();
+      mockAuthStore.set.mockClear();
     });
 
     it('should set session successfully with valid JWT', async () => {
@@ -465,7 +465,7 @@ describe('AuthSessionService', () => {
       });
 
       expect(result).toEqual({ success: true });
-      expect(mockAuthState.applyState).toHaveBeenCalledWith({
+      expect(mockAuthStore.set).toHaveBeenCalledWith({
         phase: 'authenticated',
         session: mockSession,
       });
@@ -557,13 +557,13 @@ describe('AuthSessionService', () => {
     mockSupabaseClient.auth.signOut.mockResolvedValue({ error: null });
 
     await service.initializeAuthState();
-    mockAuthState.applyState.mockClear();
+    mockAuthStore.set.mockClear();
     mockCleanup.performCleanup.mockClear();
 
     await service.signOut();
 
     expect(mockSupabaseClient.auth.signOut).toHaveBeenCalled();
-    expect(mockAuthState.applyState).toHaveBeenCalledWith({
+    expect(mockAuthStore.set).toHaveBeenCalledWith({
       phase: 'unauthenticated',
     });
     expect(mockCleanup.performCleanup).toHaveBeenCalled();
@@ -587,7 +587,7 @@ describe('AuthSessionService', () => {
 
     await service.initializeAuthState();
     mockUserSignal.set(mockSession.user);
-    mockAuthState.applyState.mockClear();
+    mockAuthStore.set.mockClear();
     mockCleanup.performCleanup.mockClear();
     mockLogger.info.mockClear();
 
@@ -596,7 +596,7 @@ describe('AuthSessionService', () => {
     expect(mockLogger.debug).toHaveBeenCalledWith(
       '🎭 Mode test E2E: Simulation du logout',
     );
-    expect(mockAuthState.applyState).toHaveBeenCalledWith({
+    expect(mockAuthStore.set).toHaveBeenCalledWith({
       phase: 'unauthenticated',
     });
     expect(mockSupabaseClient.auth.signOut).not.toHaveBeenCalled();

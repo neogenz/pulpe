@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { TranslocoService } from '@jsverse/transloco';
 import { AuthSessionService } from './auth-session.service';
-import { AuthStateService } from './auth-state.service';
+import { AuthStore } from './auth-store';
 import { AuthErrorLocalizer } from './auth-error-localizer';
 import { Logger } from '../logging/logger';
 import { AUTH_ERROR_KEYS } from './auth-constants';
@@ -20,13 +20,13 @@ export interface OAuthUserMetadata {
 })
 export class AuthOAuthService {
   readonly #session = inject(AuthSessionService);
-  readonly #state = inject(AuthStateService);
+  readonly #authStore = inject(AuthStore);
   readonly #errorLocalizer = inject(AuthErrorLocalizer);
   readonly #logger = inject(Logger);
   readonly #transloco = inject(TranslocoService);
 
   getOAuthUserMetadata(): OAuthUserMetadata | null {
-    const session = this.#state.session();
+    const session = this.#authStore.session();
     if (!session?.user?.user_metadata) {
       return null;
     }

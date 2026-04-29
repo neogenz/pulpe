@@ -9,7 +9,7 @@ import {
 } from './page-lifecycle-recovery.service';
 import { Logger } from '@core/logging/logger';
 import { AuthSessionService } from '@core/auth/auth-session.service';
-import { AuthStateService } from '@core/auth/auth-state.service';
+import { AuthStore } from '@core/auth/auth-store';
 import { BudgetApi } from '@core/budget/budget-api';
 import { BudgetTemplatesApi } from '@core/budget-template/budget-templates-api';
 import { UserSettingsStore } from '@core/user-settings';
@@ -33,7 +33,7 @@ function dispatchPageShow(persisted: boolean): void {
 describe('PageLifecycleRecoveryService', () => {
   const reloadSpy = vi.fn();
   const mockRouter = { url: '/dashboard' };
-  const mockAuthState = {
+  const mockAuthStore = {
     isLoading: vi.fn<() => boolean>().mockReturnValue(false),
     isAuthenticated: vi.fn<() => boolean>().mockReturnValue(true),
   };
@@ -62,10 +62,10 @@ describe('PageLifecycleRecoveryService', () => {
     TestBed.resetTestingModule();
     vi.restoreAllMocks();
     reloadSpy.mockReset();
-    mockAuthState.isLoading.mockReset();
-    mockAuthState.isAuthenticated.mockReset();
-    mockAuthState.isLoading.mockReturnValue(false);
-    mockAuthState.isAuthenticated.mockReturnValue(true);
+    mockAuthStore.isLoading.mockReset();
+    mockAuthStore.isAuthenticated.mockReset();
+    mockAuthStore.isLoading.mockReturnValue(false);
+    mockAuthStore.isAuthenticated.mockReturnValue(true);
     mockAuthSession.refreshSession.mockReset();
     mockAuthSession.refreshSession.mockResolvedValue(true);
     mockBudgetApi.cache.invalidate.mockReset();
@@ -88,7 +88,7 @@ describe('PageLifecycleRecoveryService', () => {
         PageLifecycleRecoveryService,
         { provide: PAGE_RELOAD, useValue: reloadSpy },
         { provide: Router, useValue: mockRouter },
-        { provide: AuthStateService, useValue: mockAuthState },
+        { provide: AuthStore, useValue: mockAuthStore },
         { provide: AuthSessionService, useValue: mockAuthSession },
         { provide: BudgetApi, useValue: mockBudgetApi },
         { provide: BudgetTemplatesApi, useValue: mockBudgetTemplatesApi },
@@ -189,7 +189,7 @@ describe('PageLifecycleRecoveryService', () => {
   });
 
   it('should skip recovery while auth is loading', async () => {
-    mockAuthState.isLoading.mockReturnValue(true);
+    mockAuthStore.isLoading.mockReturnValue(true);
 
     dispatchPageShow(true);
     await Promise.resolve();

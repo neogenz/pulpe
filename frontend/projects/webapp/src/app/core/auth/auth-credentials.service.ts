@@ -4,7 +4,7 @@ import { TranslocoService } from '@jsverse/transloco';
 import { ClientKeyService } from '@core/encryption';
 
 import { AuthSessionService } from './auth-session.service';
-import { AuthStateService } from './auth-state.service';
+import { AuthStore } from './auth-store';
 import { AuthErrorLocalizer } from './auth-error-localizer';
 import { Logger } from '../logging/logger';
 import { AUTH_ERROR_KEYS, formatDeletionDate } from './auth-constants';
@@ -23,7 +23,7 @@ interface CredentialFlowOptions {
 })
 export class AuthCredentialsService {
   readonly #session = inject(AuthSessionService);
-  readonly #state = inject(AuthStateService);
+  readonly #authStore = inject(AuthStore);
   readonly #errorLocalizer = inject(AuthErrorLocalizer);
   readonly #logger = inject(Logger);
   readonly #clientKeyService = inject(ClientKeyService);
@@ -92,7 +92,7 @@ export class AuthCredentialsService {
       }
 
       if (data.session) {
-        this.#state.applyState({
+        this.#authStore.set({
           phase: 'authenticated',
           session: data.session,
         });

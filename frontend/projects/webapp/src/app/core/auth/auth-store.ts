@@ -2,6 +2,7 @@ import { Injectable, signal, computed } from '@angular/core';
 import type { Session, User } from '@supabase/supabase-js';
 import { ANALYTICS_PROPERTIES } from 'pulpe-shared';
 
+/** Derived view for templates: user, session, loading / authenticated flags. */
 export interface AuthState {
   readonly user: User | null;
   readonly session: Session | null;
@@ -9,7 +10,11 @@ export interface AuthState {
   readonly isAuthenticated: boolean;
 }
 
-export type AuthSnapshot =
+/**
+ * Source of truth for where the auth session stands, with optional Supabase {@link Session} payload.
+ * Distinct from {@link AuthState}, the flattened UI-facing aggregate (`authState`).
+ */
+export type AuthSessionState =
   | { readonly phase: 'booting' }
   | { readonly phase: 'authenticated'; readonly session: Session }
   | { readonly phase: 'unauthenticated' };
@@ -17,20 +22,20 @@ export type AuthSnapshot =
 @Injectable({
   providedIn: 'root',
 })
-export class AuthStateService {
-  readonly #snapshot = signal<AuthSnapshot>({ phase: 'booting' });
+export class AuthStore {
+  readonly #sessionState = signal<AuthSessionState>({ phase: 'booting' });
 
   readonly session = computed<Session | null>(() => {
-    const snapshot = this.#snapshot();
-    return snapshot.phase === 'authenticated' ? snapshot.session : null;
+    const sessionState = this.#sessionState();
+    return sessionState.phase === 'authenticated' ? sessionState.session : null;
   });
 
   readonly user = computed<User | null>(() => this.session()?.user ?? null);
 
-  readonly isLoading = computed(() => this.#snapshot().phase === 'booting');
+  readonly isLoading = computed(() => this.#sessionState().phase === 'booting');
 
   readonly isAuthenticated = computed(
-    () => this.#snapshot().phase === 'authenticated',
+    () => this.#sessionState().phase === 'authenticated',
   );
 
   readonly isEarlyAdopter = computed(
@@ -60,7 +65,8 @@ export class AuthStateService {
     isAuthenticated: this.isAuthenticated(),
   }));
 
-  applyState(snapshot: AuthSnapshot): void {
-    this.#snapshot.set(snapshot);
+  /** Atomically replaces session state (same idea as `cachedResource.set()` / single signal write). */
+  set(next: AuthSessionState): void {
+    this.#sessionState.set(next);
   }
 }

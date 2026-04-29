@@ -5,7 +5,7 @@ import { MatDialogRef } from '@angular/material/dialog';
 import { of, throwError } from 'rxjs';
 import { DeleteAccountDialog } from './delete-account-dialog';
 import { Logger } from '@core/logging/logger';
-import { AuthSessionService, AuthStateService } from '@core/auth';
+import { AuthSessionService, AuthStore } from '@core/auth';
 import { EncryptionApi } from '@core/encryption';
 import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 
@@ -25,14 +25,14 @@ describe('DeleteAccountDialog', () => {
   let component: DeleteAccountDialog;
   let mockDialogRef: { close: Mock };
   let mockAuthSession: { verifyPassword: Mock };
-  let mockAuthState: { isOAuthOnly: ReturnType<typeof signal<boolean>> };
+  let mockAuthStore: { isOAuthOnly: ReturnType<typeof signal<boolean>> };
   let mockEncryptionApi: { getSalt$: Mock; validateKey$: Mock };
   let mockLogger: { debug: Mock; info: Mock; warn: Mock; error: Mock };
 
   function setup(isOAuth: boolean) {
     mockDialogRef = { close: vi.fn() };
     mockAuthSession = { verifyPassword: vi.fn() };
-    mockAuthState = { isOAuthOnly: signal(isOAuth) };
+    mockAuthStore = { isOAuthOnly: signal(isOAuth) };
     mockEncryptionApi = {
       getSalt$: vi.fn(),
       validateKey$: vi.fn(),
@@ -50,7 +50,7 @@ describe('DeleteAccountDialog', () => {
         DeleteAccountDialog,
         { provide: MatDialogRef, useValue: mockDialogRef },
         { provide: AuthSessionService, useValue: mockAuthSession },
-        { provide: AuthStateService, useValue: mockAuthState },
+        { provide: AuthStore, useValue: mockAuthStore },
         { provide: EncryptionApi, useValue: mockEncryptionApi },
         { provide: Logger, useValue: mockLogger },
       ],

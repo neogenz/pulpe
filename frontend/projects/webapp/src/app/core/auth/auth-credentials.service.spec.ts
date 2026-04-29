@@ -6,7 +6,7 @@ import type { Session, User } from '@supabase/supabase-js';
 import { ClientKeyService } from '@core/encryption';
 import { AuthCredentialsService } from './auth-credentials.service';
 import { AuthSessionService } from './auth-session.service';
-import { AuthStateService } from './auth-state.service';
+import { AuthStore } from './auth-store';
 import { AuthErrorLocalizer } from './auth-error-localizer';
 import { Logger } from '../logging/logger';
 import { AUTH_ERROR_KEYS } from './auth-constants';
@@ -22,7 +22,7 @@ describe('AuthCredentialsService', () => {
   let service: AuthCredentialsService;
   let transloco: TranslocoService;
   let mockSession: Partial<AuthSessionService>;
-  let mockState: Partial<AuthStateService>;
+  let mockState: Partial<AuthStore>;
   let mockErrorLocalizer: Partial<AuthErrorLocalizer>;
   let mockLogger: Partial<Logger>;
   let mockClientKeyService: Partial<ClientKeyService>;
@@ -37,7 +37,7 @@ describe('AuthCredentialsService', () => {
     };
 
     mockState = {
-      applyState: vi.fn(),
+      set: vi.fn(),
     };
 
     mockErrorLocalizer = {
@@ -61,7 +61,7 @@ describe('AuthCredentialsService', () => {
         { provide: LOCALE_ID, useValue: 'fr-CH' },
         AuthCredentialsService,
         { provide: AuthSessionService, useValue: mockSession },
-        { provide: AuthStateService, useValue: mockState },
+        { provide: AuthStore, useValue: mockState },
         { provide: AuthErrorLocalizer, useValue: mockErrorLocalizer },
         { provide: Logger, useValue: mockLogger },
         { provide: ClientKeyService, useValue: mockClientKeyService },
