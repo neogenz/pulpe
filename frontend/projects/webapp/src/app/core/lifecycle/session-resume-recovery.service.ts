@@ -5,8 +5,6 @@ import {
   inject,
   Injectable,
   InjectionToken,
-  Injector,
-  runInInjectionContext,
 } from '@angular/core';
 import { Router } from '@angular/router';
 import { AuthSessionService } from '@core/auth/auth-session.service';
@@ -62,7 +60,6 @@ export class SessionResumeRecoveryService {
   readonly #logger = inject(Logger);
   readonly #reload = inject(PAGE_RELOAD);
   readonly #storage = inject(StorageService);
-  readonly #injector = inject(Injector);
 
   #initialized = false;
   #lastHiddenAt: number | null = null;
@@ -147,18 +144,13 @@ export class SessionResumeRecoveryService {
     });
 
     // Drains queued reason once auth finishes loading.
-    // Why: runInInjectionContext makes this safe even if `initialize()` is ever
-    // called outside of an injection context (defensive — currently called from
-    // `provideAppInitializer`, which IS in injection context).
-    runInInjectionContext(this.#injector, () => {
-      effect(() => {
-        const isLoading = this.#authState.isLoading();
-        if (isLoading || this.#pendingReason === null) return;
-        const reason = this.#pendingReason;
-        this.#pendingReason = null;
-        this.#clearLoadingTimeout();
-        this.#triggerResumeRecovery(reason);
-      });
+    effect(() => {
+      const isLoading = this.#authState.isLoading();
+      if (isLoading || this.#pendingReason === null) return;
+      const reason = this.#pendingReason;
+      this.#pendingReason = null;
+      this.#clearLoadingTimeout();
+      this.#triggerResumeRecovery(reason);
     });
   }
 
