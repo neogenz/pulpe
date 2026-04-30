@@ -5,7 +5,7 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { Field, form, minLength, required } from '@angular/forms/signals';
+import { Field, form, required } from '@angular/forms/signals';
 import {
   MAT_DIALOG_DATA,
   MatDialogModule,
@@ -88,11 +88,6 @@ interface AddBudgetLineModel {
             @if (nameErrors().required) {
               <mat-error>{{
                 'budget.forecastNameRequired' | transloco
-              }}</mat-error>
-            }
-            @if (nameErrors().minLength) {
-              <mat-error>{{
-                'budget.forecastNameMinLength' | transloco
               }}</mat-error>
             }
           </mat-form-field>
@@ -184,7 +179,6 @@ export class AddBudgetLineDialog {
 
   protected readonly addForm = form(this.model, (path) => {
     required(path.name, { message: 'budget.forecastNameRequired' });
-    minLength(path.name, 1);
     applyAmountValidators(path.money);
     required(path.kind, { message: 'budget.forecastTypeRequired' });
   });
@@ -192,7 +186,6 @@ export class AddBudgetLineDialog {
   protected readonly nameErrors = touchedFieldErrors(
     () => this.addForm.name,
     'required',
-    'minLength',
   );
   protected readonly kindErrors = touchedFieldErrors(
     () => this.addForm.kind,

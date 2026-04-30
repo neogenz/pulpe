@@ -15,7 +15,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { Field, form, required, minLength } from '@angular/forms/signals';
+import { Field, form, required } from '@angular/forms/signals';
 import {
   type BudgetLine,
   type BudgetLineUpdate,
@@ -87,11 +87,6 @@ interface EditBudgetLineModel {
             @if (nameErrors().required) {
               <mat-error>{{
                 'budget.forecastNameRequired' | transloco
-              }}</mat-error>
-            }
-            @if (nameErrors().minLength) {
-              <mat-error>{{
-                'budget.forecastNameMinLength' | transloco
               }}</mat-error>
             }
           </mat-form-field>
@@ -189,7 +184,6 @@ export class EditBudgetLineDialog {
 
   protected readonly editForm = form(this.model, (path) => {
     required(path.name, { message: 'budget.forecastNameRequired' });
-    minLength(path.name, 1);
     applyAmountValidators(path.money);
     required(path.kind, { message: 'budget.forecastTypeRequired' });
     required(path.recurrence);
@@ -204,7 +198,6 @@ export class EditBudgetLineDialog {
   protected readonly nameErrors = touchedFieldErrors(
     () => this.editForm.name,
     'required',
-    'minLength',
   );
   protected readonly kindErrors = touchedFieldErrors(
     () => this.editForm.kind,

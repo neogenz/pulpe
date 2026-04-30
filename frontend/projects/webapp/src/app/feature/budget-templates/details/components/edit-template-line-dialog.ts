@@ -5,7 +5,7 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { Field, form, minLength, required } from '@angular/forms/signals';
+import { Field, form, required } from '@angular/forms/signals';
 import {
   MatDialogRef,
   MAT_DIALOG_DATA,
@@ -111,11 +111,6 @@ interface EditTemplateLineModel {
                 'budget.forecastNameRequired' | transloco
               }}</mat-error>
             }
-            @if (nameErrors().minLength) {
-              <mat-error>{{
-                'budget.forecastNameMinLength' | transloco
-              }}</mat-error>
-            }
           </mat-form-field>
 
           <pulpe-amount-input
@@ -219,7 +214,6 @@ export class EditTemplateLineDialog {
 
   protected readonly addForm = form(this.model, (path) => {
     required(path.name);
-    minLength(path.name, 1);
     applyAmountValidators(path.money);
     required(path.kind);
   });
@@ -227,7 +221,6 @@ export class EditTemplateLineDialog {
   protected readonly nameErrors = touchedFieldErrors(
     () => this.addForm.name,
     'required',
-    'minLength',
   );
   protected readonly kindErrors = touchedFieldErrors(
     () => this.addForm.kind,

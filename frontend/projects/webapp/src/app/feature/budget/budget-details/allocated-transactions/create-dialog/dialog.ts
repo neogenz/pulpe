@@ -35,6 +35,7 @@ import {
   CurrencyConverterService,
 } from '@core/currency';
 import { UserSettingsStore } from '@core/user-settings';
+import { touchedFieldErrors } from '@core/validators';
 import { AmountInput } from '@app/pattern/amount-input/amount-input';
 import { computeBudgetPeriodDateConstraints } from './budget-period-date-constraints';
 
@@ -87,12 +88,12 @@ interface CreateAllocatedTransactionModel {
             [placeholder]="'transactionForm.namePlaceholder' | transloco"
             data-testid="transaction-name"
           />
-          @if (nameRequiredError()) {
+          @if (nameErrors().required) {
             <mat-error>{{
               'budget.descriptionRequired' | transloco
             }}</mat-error>
           }
-          @if (nameMaxLengthError()) {
+          @if (nameErrors().maxLength) {
             <mat-error>{{
               'budget.descriptionMaxLength' | transloco
             }}</mat-error>
@@ -117,12 +118,12 @@ interface CreateAllocatedTransactionModel {
           <mat-hint>{{
             'transactionForm.dateHintBudget' | transloco
           }}</mat-hint>
-          @if (dateRequiredError()) {
+          @if (dateErrors().required) {
             <mat-error>{{
               'transactionForm.dateRequired' | transloco
             }}</mat-error>
           }
-          @if (dateOutOfRangeError()) {
+          @if (dateErrors().dateOutOfRange) {
             <mat-error>{{
               'budget.dateOutOfBudgetPeriod' | transloco
             }}</mat-error>
@@ -208,37 +209,15 @@ export class CreateAllocatedTransactionDialog {
     () => this.transactionForm().valid() && !this.isSubmitting(),
   );
 
-  protected readonly nameRequiredError = computed(
-    () =>
-      this.transactionForm.name().touched() &&
-      this.transactionForm
-        .name()
-        .errors()
-        .some((e) => e.kind === 'required'),
+  protected readonly nameErrors = touchedFieldErrors(
+    () => this.transactionForm.name,
+    'required',
+    'maxLength',
   );
-  protected readonly nameMaxLengthError = computed(
-    () =>
-      this.transactionForm.name().touched() &&
-      this.transactionForm
-        .name()
-        .errors()
-        .some((e) => e.kind === 'maxLength'),
-  );
-  protected readonly dateRequiredError = computed(
-    () =>
-      this.transactionForm.transactionDate().touched() &&
-      this.transactionForm
-        .transactionDate()
-        .errors()
-        .some((e) => e.kind === 'required'),
-  );
-  protected readonly dateOutOfRangeError = computed(
-    () =>
-      this.transactionForm.transactionDate().touched() &&
-      this.transactionForm
-        .transactionDate()
-        .errors()
-        .some((e) => e.kind === 'dateOutOfRange'),
+  protected readonly dateErrors = touchedFieldErrors(
+    () => this.transactionForm.transactionDate,
+    'required',
+    'dateOutOfRange',
   );
 
   cancel(): void {

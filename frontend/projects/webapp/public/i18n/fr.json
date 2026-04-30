@@ -436,7 +436,6 @@
     "forecastNameLabel": "Nom",
     "forecastNamePlaceholder": "Ex: Salaire, Loyer, Épargne...",
     "forecastNameRequired": "Le nom est requis",
-    "forecastNameMinLength": "Le nom doit contenir au moins 1 caractère",
     "forecastTypeLabel": "Type",
     "forecastAmountRequired": "Le montant est requis",
     "forecastTypeRequired": "Le type est requis",
