@@ -9,9 +9,9 @@ import {
 import { describe, it, expect, vi } from 'vitest';
 import type { BudgetLine, Transaction } from 'pulpe-shared';
 import type { BudgetLineConsumption } from '@core/budget';
-import type { AllocatedTransactionsDialogData } from './allocated-transactions-dialog';
+import type { AllocatedTransactionsDialogData } from './dialog';
 import { provideTranslocoForTest } from '@app/testing/transloco-testing';
-import { AllocatedTransactionsBottomSheet } from './allocated-transactions-bottom-sheet';
+import { AllocatedTransactionsBottomSheet } from './bottom-sheet';
 
 function buildTransaction(overrides: Partial<Transaction> = {}): Transaction {
   return {

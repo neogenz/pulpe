@@ -3,23 +3,27 @@ import { TestBed } from '@angular/core/testing';
 import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { provideNativeDateAdapter } from '@angular/material/core';
-import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
+import {
+  MAT_BOTTOM_SHEET_DATA,
+  MatBottomSheetRef,
+} from '@angular/material/bottom-sheet';
 import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 import { CurrencyConverterService } from '@core/currency';
 import { FeatureFlagsService } from '@core/feature-flags';
 import { UserSettingsStore } from '@core/user-settings';
 import type { SupportedCurrency } from 'pulpe-shared';
-import {
-  CreateAllocatedTransactionDialog,
-  type CreateAllocatedTransactionDialogData,
-} from './create-allocated-transaction-dialog';
+import { CreateAllocatedTransactionBottomSheet } from './bottom-sheet';
+import type { CreateAllocatedTransactionDialogData } from './dialog';
+
+const TEST_BUDGET_LINE_ID = '11111111-1111-4111-8111-111111111111';
+const TEST_BUDGET_ID = '22222222-2222-4222-8222-222222222222';
 
 const createDialogData = (
   overrides: Partial<CreateAllocatedTransactionDialogData['budgetLine']> = {},
 ): CreateAllocatedTransactionDialogData => ({
   budgetLine: {
-    id: '00000000-0000-4000-8000-0000000000b1',
-    budgetId: '00000000-0000-4000-8000-000000000456',
+    id: TEST_BUDGET_LINE_ID,
+    budgetId: TEST_BUDGET_ID,
     name: 'Assurance maladie',
     amount: 385,
     kind: 'expense',
@@ -34,24 +38,24 @@ const createDialogData = (
   payDayOfMonth: null,
 });
 
-describe('CreateAllocatedTransactionDialog', () => {
-  let component: CreateAllocatedTransactionDialog;
-  let mockDialogRef: { close: ReturnType<typeof vi.fn> };
+describe('CreateAllocatedTransactionBottomSheet', () => {
+  let component: CreateAllocatedTransactionBottomSheet;
+  let mockBottomSheetRef: { dismiss: ReturnType<typeof vi.fn> };
   let dialogData: CreateAllocatedTransactionDialogData;
 
   beforeEach(async () => {
-    mockDialogRef = { close: vi.fn() };
+    mockBottomSheetRef = { dismiss: vi.fn() };
     dialogData = createDialogData();
 
     await TestBed.configureTestingModule({
-      imports: [CreateAllocatedTransactionDialog],
+      imports: [CreateAllocatedTransactionBottomSheet],
       providers: [
         provideZonelessChangeDetection(),
         provideAnimationsAsync(),
         provideNativeDateAdapter(),
         ...provideTranslocoForTest(),
-        { provide: MAT_DIALOG_DATA, useValue: dialogData },
-        { provide: MatDialogRef, useValue: mockDialogRef },
+        { provide: MAT_BOTTOM_SHEET_DATA, useValue: dialogData },
+        { provide: MatBottomSheetRef, useValue: mockBottomSheetRef },
         {
           provide: CurrencyConverterService,
           useValue: {
@@ -67,12 +71,12 @@ describe('CreateAllocatedTransactionDialog', () => {
     }).compileComponents();
 
     component = TestBed.createComponent(
-      CreateAllocatedTransactionDialog,
+      CreateAllocatedTransactionBottomSheet,
     ).componentInstance;
   });
 
   describe('submit', () => {
-    it('should close with transaction data when form is valid', async () => {
+    it('should dismiss with transaction data when form is valid', async () => {
       const midMonth = new Date(
         new Date().getFullYear(),
         new Date().getMonth(),
@@ -87,10 +91,10 @@ describe('CreateAllocatedTransactionDialog', () => {
 
       await component['submit']();
 
-      expect(mockDialogRef.close).toHaveBeenCalledWith(
+      expect(mockBottomSheetRef.dismiss).toHaveBeenCalledWith(
         expect.objectContaining({
-          budgetId: '00000000-0000-4000-8000-000000000456',
-          budgetLineId: '00000000-0000-4000-8000-0000000000b1',
+          budgetId: TEST_BUDGET_ID,
+          budgetLineId: TEST_BUDGET_LINE_ID,
           name: 'Consultation médecin',
           amount: 45.5,
           kind: 'expense',
@@ -99,7 +103,7 @@ describe('CreateAllocatedTransactionDialog', () => {
       );
     });
 
-    it('should not close when form is invalid', async () => {
+    it('should not dismiss when form is invalid', async () => {
       component['model'].update((m) => ({
         ...m,
         name: '',
@@ -108,7 +112,7 @@ describe('CreateAllocatedTransactionDialog', () => {
 
       await component['submit']();
 
-      expect(mockDialogRef.close).not.toHaveBeenCalled();
+      expect(mockBottomSheetRef.dismiss).not.toHaveBeenCalled();
     });
 
     it('should trim whitespace from name', async () => {
@@ -126,7 +130,7 @@ describe('CreateAllocatedTransactionDialog', () => {
 
       await component['submit']();
 
-      expect(mockDialogRef.close).toHaveBeenCalledWith(
+      expect(mockBottomSheetRef.dismiss).toHaveBeenCalledWith(
         expect.objectContaining({ name: 'Courses' }),
       );
     });
@@ -146,7 +150,7 @@ describe('CreateAllocatedTransactionDialog', () => {
 
       await component['submit']();
 
-      expect(mockDialogRef.close).toHaveBeenCalledWith(
+      expect(mockBottomSheetRef.dismiss).toHaveBeenCalledWith(
         expect.objectContaining({ amount: 42.5 }),
       );
     });
@@ -168,7 +172,7 @@ describe('CreateAllocatedTransactionDialog', () => {
 
       await component['submit']();
 
-      expect(mockDialogRef.close).toHaveBeenCalledWith(
+      expect(mockBottomSheetRef.dismiss).toHaveBeenCalledWith(
         expect.objectContaining({ checkedAt: null }),
       );
     });
@@ -189,7 +193,7 @@ describe('CreateAllocatedTransactionDialog', () => {
 
       await component['submit']();
 
-      const callArg = mockDialogRef.close.mock.calls[0][0];
+      const callArg = mockBottomSheetRef.dismiss.mock.calls[0][0];
       expect(callArg.checkedAt).toBeDefined();
       expect(typeof callArg.checkedAt).toBe('string');
       expect(() => new Date(callArg.checkedAt!)).not.toThrow();
@@ -211,17 +215,17 @@ describe('CreateAllocatedTransactionDialog', () => {
 
       await component['submit']();
 
-      expect(mockDialogRef.close).toHaveBeenCalledWith(
+      expect(mockBottomSheetRef.dismiss).toHaveBeenCalledWith(
         expect.objectContaining({ checkedAt: null }),
       );
     });
   });
 
-  describe('cancel', () => {
-    it('should close without data', () => {
-      component['cancel']();
+  describe('close', () => {
+    it('should dismiss without data', () => {
+      component['close']();
 
-      expect(mockDialogRef.close).toHaveBeenCalledWith();
+      expect(mockBottomSheetRef.dismiss).toHaveBeenCalledWith();
     });
   });
 
@@ -304,6 +308,88 @@ describe('CreateAllocatedTransactionDialog', () => {
       ).toBe(true);
     });
   });
+
+  describe('date constraints', () => {
+    it('should set minDate and maxDate for current month budget', () => {
+      expect(component['minDate']).toBeDefined();
+      expect(component['maxDate']).toBeDefined();
+      expect(component['minDate']!.getTime()).toBeLessThanOrEqual(
+        component['maxDate']!.getTime(),
+      );
+    });
+
+    it('should set minDate and maxDate for past month budget', async () => {
+      const pastData: CreateAllocatedTransactionDialogData = {
+        ...createDialogData(),
+        budgetMonth: 1,
+        budgetYear: 2020,
+      };
+
+      const pastRef = { dismiss: vi.fn() };
+
+      await TestBed.resetTestingModule()
+        .configureTestingModule({
+          imports: [CreateAllocatedTransactionBottomSheet],
+          providers: [
+            provideZonelessChangeDetection(),
+            provideAnimationsAsync(),
+            provideNativeDateAdapter(),
+            ...provideTranslocoForTest(),
+            { provide: MAT_BOTTOM_SHEET_DATA, useValue: pastData },
+            { provide: MatBottomSheetRef, useValue: pastRef },
+          ],
+        })
+        .compileComponents();
+
+      const pastComponent = TestBed.createComponent(
+        CreateAllocatedTransactionBottomSheet,
+      ).componentInstance;
+
+      expect(pastComponent['minDate']).toBeDefined();
+      expect(pastComponent['maxDate']).toBeDefined();
+      expect(pastComponent['minDate']!.getMonth()).toBe(0);
+      expect(pastComponent['minDate']!.getFullYear()).toBe(2020);
+    });
+
+    it('should respect custom payDayOfMonth', async () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date(2025, 5, 27));
+
+      const customPayDayData: CreateAllocatedTransactionDialogData = {
+        ...createDialogData(),
+        budgetMonth: 7,
+        budgetYear: 2025,
+        payDayOfMonth: 25,
+      };
+
+      const customRef = { dismiss: vi.fn() };
+
+      await TestBed.resetTestingModule()
+        .configureTestingModule({
+          imports: [CreateAllocatedTransactionBottomSheet],
+          providers: [
+            provideZonelessChangeDetection(),
+            provideAnimationsAsync(),
+            provideNativeDateAdapter(),
+            ...provideTranslocoForTest(),
+            { provide: MAT_BOTTOM_SHEET_DATA, useValue: customPayDayData },
+            { provide: MatBottomSheetRef, useValue: customRef },
+          ],
+        })
+        .compileComponents();
+
+      const customComponent = TestBed.createComponent(
+        CreateAllocatedTransactionBottomSheet,
+      ).componentInstance;
+
+      expect(customComponent['minDate']).toBeDefined();
+      expect(customComponent['maxDate']).toBeDefined();
+      expect(customComponent['minDate']!.getDate()).toBe(25);
+      expect(customComponent['maxDate']!.getDate()).toBe(24);
+
+      vi.useRealTimers();
+    });
+  });
 });
 
 interface FlagsMock {
@@ -316,11 +402,11 @@ interface SettingsMock {
 interface ConverterMock {
   convertWithMetadata: ReturnType<typeof vi.fn>;
 }
-interface DialogRefMock {
-  close: ReturnType<typeof vi.fn>;
+interface BottomSheetRefMock {
+  dismiss: ReturnType<typeof vi.fn>;
 }
 
-function configureDialogWithCurrency({
+function configureBottomSheetWithCurrency({
   userCurrency,
   flagEnabled,
   showCurrencyPref = true,
@@ -329,7 +415,7 @@ function configureDialogWithCurrency({
   flagEnabled: boolean;
   showCurrencyPref?: boolean;
 }) {
-  const dialogRef: DialogRefMock = { close: vi.fn() };
+  const bottomSheetRef: BottomSheetRefMock = { dismiss: vi.fn() };
   const flags: FlagsMock = {
     isMultiCurrencyEnabled: signal(flagEnabled),
   };
@@ -345,30 +431,32 @@ function configureDialogWithCurrency({
   };
 
   TestBed.configureTestingModule({
-    imports: [CreateAllocatedTransactionDialog],
+    imports: [CreateAllocatedTransactionBottomSheet],
     providers: [
       provideZonelessChangeDetection(),
       provideAnimationsAsync(),
       provideNativeDateAdapter(),
       ...provideTranslocoForTest(),
-      { provide: MAT_DIALOG_DATA, useValue: createDialogData() },
-      { provide: MatDialogRef, useValue: dialogRef },
+      { provide: MAT_BOTTOM_SHEET_DATA, useValue: createDialogData() },
+      { provide: MatBottomSheetRef, useValue: bottomSheetRef },
       { provide: FeatureFlagsService, useValue: flags },
       { provide: UserSettingsStore, useValue: settings },
       { provide: CurrencyConverterService, useValue: converter },
     ],
   });
 
-  const fixture = TestBed.createComponent(CreateAllocatedTransactionDialog);
+  const fixture = TestBed.createComponent(
+    CreateAllocatedTransactionBottomSheet,
+  );
   const component = fixture.componentInstance;
-  return { fixture, component, dialogRef, converter, settings, flags };
+  return { fixture, component, bottomSheetRef, converter, settings, flags };
 }
 
-describe('CreateAllocatedTransactionDialog — currency create rules', () => {
+describe('CreateAllocatedTransactionBottomSheet — currency create rules', () => {
   beforeEach(() => TestBed.resetTestingModule());
 
   it('should initialize money slice with user currency', () => {
-    const { component } = configureDialogWithCurrency({
+    const { component } = configureBottomSheetWithCurrency({
       userCurrency: 'EUR',
       flagEnabled: true,
     });
@@ -377,10 +465,11 @@ describe('CreateAllocatedTransactionDialog — currency create rules', () => {
   });
 
   it('should call convertWithMetadata and include metadata in payload when currencies differ', async () => {
-    const { component, dialogRef, converter } = configureDialogWithCurrency({
-      userCurrency: 'CHF',
-      flagEnabled: true,
-    });
+    const { component, bottomSheetRef, converter } =
+      configureBottomSheetWithCurrency({
+        userCurrency: 'CHF',
+        flagEnabled: true,
+      });
 
     converter.convertWithMetadata.mockResolvedValue({
       convertedAmount: 108.97,
@@ -411,8 +500,8 @@ describe('CreateAllocatedTransactionDialog — currency create rules', () => {
       'EUR',
       'CHF',
     );
-    expect(dialogRef.close).toHaveBeenCalledTimes(1);
-    const dto = dialogRef.close.mock.calls[0][0];
+    expect(bottomSheetRef.dismiss).toHaveBeenCalledTimes(1);
+    const dto = bottomSheetRef.dismiss.mock.calls[0][0];
     expect(dto.amount).toBe(108.97);
     expect(dto.originalAmount).toBe(100);
     expect(dto.originalCurrency).toBe('EUR');
@@ -421,10 +510,11 @@ describe('CreateAllocatedTransactionDialog — currency create rules', () => {
   });
 
   it('should block submit and set conversionError when convertWithMetadata throws', async () => {
-    const { component, dialogRef, converter } = configureDialogWithCurrency({
-      userCurrency: 'CHF',
-      flagEnabled: true,
-    });
+    const { component, bottomSheetRef, converter } =
+      configureBottomSheetWithCurrency({
+        userCurrency: 'CHF',
+        flagEnabled: true,
+      });
 
     converter.convertWithMetadata.mockRejectedValue(new Error('rate down'));
     const midMonth = new Date(
@@ -441,15 +531,16 @@ describe('CreateAllocatedTransactionDialog — currency create rules', () => {
 
     await component['submit']();
 
-    expect(dialogRef.close).not.toHaveBeenCalled();
+    expect(bottomSheetRef.dismiss).not.toHaveBeenCalled();
     expect(component['conversionError']()).toBe(true);
   });
 
   it('should omit metadata fields from payload when inputCurrency equals userCurrency', async () => {
-    const { component, dialogRef, converter } = configureDialogWithCurrency({
-      userCurrency: 'CHF',
-      flagEnabled: true,
-    });
+    const { component, bottomSheetRef, converter } =
+      configureBottomSheetWithCurrency({
+        userCurrency: 'CHF',
+        flagEnabled: true,
+      });
 
     converter.convertWithMetadata.mockResolvedValue({
       convertedAmount: 50,
@@ -475,8 +566,8 @@ describe('CreateAllocatedTransactionDialog — currency create rules', () => {
       'CHF',
       'CHF',
     );
-    expect(dialogRef.close).toHaveBeenCalledTimes(1);
-    const dto = dialogRef.close.mock.calls[0][0];
+    expect(bottomSheetRef.dismiss).toHaveBeenCalledTimes(1);
+    const dto = bottomSheetRef.dismiss.mock.calls[0][0];
     expect(dto.amount).toBe(50);
     expect(dto).not.toHaveProperty('originalAmount');
     expect(dto).not.toHaveProperty('originalCurrency');

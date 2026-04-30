@@ -24,7 +24,7 @@ import { OriginalAmountLine } from '@ui/original-amount-line';
 import type {
   AllocatedTransactionsDialogData,
   AllocatedTransactionsDialogResult,
-} from './allocated-transactions-dialog';
+} from './dialog';
 
 @Component({
   selector: 'pulpe-allocated-transactions-bottom-sheet',

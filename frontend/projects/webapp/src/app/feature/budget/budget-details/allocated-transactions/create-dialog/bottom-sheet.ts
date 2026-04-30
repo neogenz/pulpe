@@ -6,10 +6,9 @@ import {
   signal,
 } from '@angular/core';
 import {
-  MAT_DIALOG_DATA,
-  MatDialogRef,
-  MatDialogModule,
-} from '@angular/material/dialog';
+  MAT_BOTTOM_SHEET_DATA,
+  MatBottomSheetRef,
+} from '@angular/material/bottom-sheet';
 import {
   Field,
   customError,
@@ -25,8 +24,8 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { TranslocoPipe } from '@jsverse/transloco';
-import { type BudgetLine, type TransactionCreate } from 'pulpe-shared';
-import { transactionCreateFromFormSchema } from '../edit-transaction-form';
+import { type TransactionCreate } from 'pulpe-shared';
+import { transactionCreateFromFormSchema } from '../../edit-transaction-form';
 import { formatLocalDate } from '@core/date/format-local-date';
 import {
   applyAmountValidators,
@@ -36,14 +35,9 @@ import {
 } from '@core/currency';
 import { UserSettingsStore } from '@core/user-settings';
 import { AmountInput } from '@app/pattern/amount-input/amount-input';
+import { BlurOnVisibilityResumeDirective } from '@ui/blur-on-visibility-resume/blur-on-visibility-resume.directive';
+import type { CreateAllocatedTransactionDialogData } from './dialog';
 import { computeBudgetPeriodDateConstraints } from './budget-period-date-constraints';
-
-export interface CreateAllocatedTransactionDialogData {
-  budgetLine: BudgetLine;
-  budgetMonth: number;
-  budgetYear: number;
-  payDayOfMonth: number | null;
-}
 
 interface CreateAllocatedTransactionModel {
   name: string;
@@ -53,9 +47,8 @@ interface CreateAllocatedTransactionModel {
 }
 
 @Component({
-  selector: 'pulpe-create-allocated-transaction-dialog',
+  selector: 'pulpe-create-allocated-transaction-bottom-sheet',
   imports: [
-    MatDialogModule,
     MatFormFieldModule,
     MatInputModule,
     MatButtonModule,
@@ -65,27 +58,40 @@ interface CreateAllocatedTransactionModel {
     TranslocoPipe,
     Field,
     AmountInput,
+    BlurOnVisibilityResumeDirective,
   ],
   template: `
-    <h2 mat-dialog-title class="text-headline-small">
-      {{
-        'budget.newTransactionTitle' | transloco: { name: data.budgetLine.name }
-      }}
-    </h2>
+    <div class="flex flex-col gap-4 pb-6" pulpeBlurOnVisibilityResume>
+      <!-- Drag indicator -->
+      <div
+        class="w-9 h-1 bg-outline-variant rounded-sm mx-auto mt-3 mb-2"
+      ></div>
 
-    <mat-dialog-content>
-      <div class="flex flex-col gap-4 pt-4">
-        <mat-form-field
-          appearance="outline"
-          subscriptSizing="dynamic"
-          class="w-full"
+      <!-- Header -->
+      <div class="flex justify-between items-center">
+        <h2 class="text-title-large text-on-surface m-0">
+          {{
+            'budget.newTransactionTitle'
+              | transloco: { name: data.budgetLine.name }
+          }}
+        </h2>
+        <button
+          matIconButton
+          (click)="close()"
+          [attr.aria-label]="'common.close' | transloco"
         >
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+
+      <!-- Form -->
+      <form (ngSubmit)="submit()" class="flex flex-col gap-4" novalidate>
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
           <mat-label>{{ 'budget.tableDescription' | transloco }}</mat-label>
           <input
             matInput
             [field]="transactionForm.name"
             [placeholder]="'transactionForm.namePlaceholder' | transloco"
-            data-testid="transaction-name"
           />
           @if (nameRequiredError()) {
             <mat-error>{{
@@ -101,7 +107,7 @@ interface CreateAllocatedTransactionModel {
 
         <pulpe-amount-input [control]="transactionForm.money" />
 
-        <mat-form-field appearance="outline" class="w-full">
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
           <mat-label>{{ 'budget.dateLabel' | transloco }}</mat-label>
           <input
             matInput
@@ -109,7 +115,6 @@ interface CreateAllocatedTransactionModel {
             [min]="minDate"
             [max]="maxDate"
             [field]="transactionForm.transactionDate"
-            data-testid="transaction-date"
             readonly
           />
           <mat-datepicker-toggle matIconSuffix [for]="picker" />
@@ -138,38 +143,47 @@ interface CreateAllocatedTransactionModel {
             [attr.aria-label]="'transactionForm.checkedToggle' | transloco"
           />
         </div>
-      </div>
-    </mat-dialog-content>
+      </form>
 
-    @if (conversionError()) {
-      <p class="text-error text-body-small px-6 pb-2">
-        {{ 'common.conversionError' | transloco }}
-      </p>
+      @if (conversionError()) {
+        <p class="text-error text-body-small pb-2">
+          {{ 'common.conversionError' | transloco }}
+        </p>
+      }
+
+      <!-- Action buttons -->
+      <div class="flex gap-3 pt-2">
+        <button matButton (click)="close()" class="flex-1">
+          {{ 'common.cancel' | transloco }}
+        </button>
+        <button
+          matButton="filled"
+          (click)="submit()"
+          [disabled]="!canSubmit()"
+          class="flex-2"
+        >
+          <mat-icon>add</mat-icon>
+          {{ 'budget.transactionCreateButton' | transloco }}
+        </button>
+      </div>
+    </div>
+  `,
+  styles: `
+    :host {
+      display: block;
     }
-    <mat-dialog-actions align="end">
-      <button matButton (click)="cancel()" data-testid="cancel-transaction">
-        {{ 'common.cancel' | transloco }}
-      </button>
-      <button
-        matButton="filled"
-        (click)="submit()"
-        [disabled]="!canSubmit()"
-        data-testid="save-transaction"
-      >
-        <mat-icon>add</mat-icon>
-        {{ 'budget.transactionCreateButton' | transloco }}
-      </button>
-    </mat-dialog-actions>
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class CreateAllocatedTransactionDialog {
+export class CreateAllocatedTransactionBottomSheet {
   readonly #settings = inject(UserSettingsStore);
   readonly #converter = inject(CurrencyConverterService);
-  readonly #dialogRef = inject(
-    MatDialogRef<CreateAllocatedTransactionDialog, TransactionCreate>,
+  readonly #bottomSheetRef = inject(
+    MatBottomSheetRef<CreateAllocatedTransactionBottomSheet, TransactionCreate>,
   );
-  readonly data = inject<CreateAllocatedTransactionDialogData>(MAT_DIALOG_DATA);
+  readonly data = inject<CreateAllocatedTransactionDialogData>(
+    MAT_BOTTOM_SHEET_DATA,
+  );
 
   readonly #dateConstraints = computeBudgetPeriodDateConstraints(
     this.data.budgetMonth,
@@ -241,8 +255,8 @@ export class CreateAllocatedTransactionDialog {
         .some((e) => e.kind === 'dateOutOfRange'),
   );
 
-  cancel(): void {
-    this.#dialogRef.close();
+  close(): void {
+    this.#bottomSheetRef.dismiss();
   }
 
   async submit(): Promise<void> {
@@ -271,7 +285,7 @@ export class CreateAllocatedTransactionDialog {
         conversion: metadata ?? null,
       });
 
-      this.#dialogRef.close(transaction);
+      this.#bottomSheetRef.dismiss(transaction);
     } catch {
       this.conversionError.set(true);
     } finally {
