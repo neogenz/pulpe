@@ -26,7 +26,7 @@ import { frCH } from 'date-fns/locale';
 import { BaseLoading } from '@ui/loading';
 import { BudgetFinancialOverview } from '@ui/budget-financial-overview/budget-financial-overview';
 import { BudgetDetailsStore } from './store/budget-details-store';
-import { BudgetItemsContainer } from './budget-items-container';
+import { BudgetItemsContainer } from './components/budget-items-container';
 import { BudgetDetailsDialogService } from './budget-details-dialog.service';
 import { formatBudgetPeriod } from 'pulpe-shared';
 import { UserSettingsStore } from '@core/user-settings';
@@ -142,7 +142,7 @@ import { CURRENCY_CONFIG } from '@core/currency';
         <!-- Financial Overview -->
         <pulpe-budget-financial-overview
           [totals]="financialTotals()"
-          [currency]="currency()"
+          [currency]="userSettingsStore.currency()"
           [locale]="currencyLocale()"
           data-tour="financial-overview"
         />
@@ -310,17 +310,16 @@ import { CURRENCY_CONFIG } from '@core/currency';
 export default class BudgetDetailsPage {
   protected readonly isDevMode = isDevMode();
   protected readonly store = inject(BudgetDetailsStore);
+  protected readonly userSettingsStore = inject(UserSettingsStore);
   readonly #router = inject(Router);
   readonly #breadcrumbState = inject(BreadcrumbState);
   readonly #productTourService = inject(ProductTourService);
-  readonly #userSettingsStore = inject(UserSettingsStore);
   readonly #loadingIndicator = inject(LoadingIndicator);
   readonly #destroyRef = inject(DestroyRef);
   readonly #dialogService = inject(BudgetDetailsDialogService);
 
-  protected readonly currency = this.#userSettingsStore.currency;
   protected readonly currencyLocale = computed(
-    () => CURRENCY_CONFIG[this.currency()].numberLocale,
+    () => CURRENCY_CONFIG[this.userSettingsStore.currency()].numberLocale,
   );
   protected readonly financialTotals = this.store.financialTotals;
 
@@ -335,7 +334,7 @@ export default class BudgetDetailsPage {
 
   readonly periodDisplay = computed(() => {
     const budget = this.store.budgetDetails();
-    const payDayOfMonth = this.#userSettingsStore.payDayOfMonth();
+    const payDayOfMonth = this.userSettingsStore.payDayOfMonth();
     if (!budget || !payDayOfMonth || payDayOfMonth === 1) return null;
     return formatBudgetPeriod(budget.month, budget.year, payDayOfMonth);
   });

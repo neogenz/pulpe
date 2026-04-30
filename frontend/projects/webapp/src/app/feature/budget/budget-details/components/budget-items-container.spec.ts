@@ -11,8 +11,8 @@ import { Logger } from '@core/logging/logger';
 import { UserSettingsStore } from '@core/user-settings';
 import type { BudgetLine, Transaction } from 'pulpe-shared';
 import { BudgetItemsContainer } from './budget-items-container';
-import { BudgetDetailsDialogService } from './budget-details-dialog.service';
-import { BudgetDetailsStore } from './store/budget-details-store';
+import { BudgetDetailsDialogService } from '../budget-details-dialog.service';
+import { BudgetDetailsStore } from '../store/budget-details-store';
 
 registerLocaleData(localeDE);
 

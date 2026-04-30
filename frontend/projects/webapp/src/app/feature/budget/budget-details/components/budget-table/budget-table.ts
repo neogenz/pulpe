@@ -30,8 +30,8 @@ import type {
   GroupHeaderTableItem,
   TableRowItem,
   TransactionTableItem,
-} from '../view-models/table-items.view-model';
-import { BudgetDetailsDialogService } from '../budget-details-dialog.service';
+} from '../../view-models/table-items.view-model';
+import { BudgetDetailsDialogService } from '../../budget-details-dialog.service';
 
 /**
  * Table component for displaying budget lines in a mat-table.

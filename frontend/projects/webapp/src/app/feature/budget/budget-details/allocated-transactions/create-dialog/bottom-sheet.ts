@@ -25,7 +25,7 @@ import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { TranslocoPipe } from '@jsverse/transloco';
 import { type TransactionCreate } from 'pulpe-shared';
-import { transactionCreateFromFormSchema } from '../../edit-transaction-form';
+import { transactionCreateFromFormSchema } from '../../components/edit-transaction-form';
 import { formatLocalDate } from '@core/date/format-local-date';
 import {
   applyAmountValidators,

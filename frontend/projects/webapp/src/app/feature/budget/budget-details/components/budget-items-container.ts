@@ -34,18 +34,18 @@ import { BudgetTable } from './budget-table/budget-table';
 import type {
   BudgetLineTableItem,
   TransactionTableItem,
-} from './view-models/table-items.view-model';
-import type { BudgetViewMode } from './view-models/budget-view-mode';
-import { BudgetItemDataProvider } from './view-models/budget-item-data-provider';
-import { BudgetViewToggle } from './components';
+} from '../view-models/table-items.view-model';
+import type { BudgetViewMode } from '../view-models/budget-view-mode';
+import { BudgetItemDataProvider } from '../view-models/budget-item-data-provider';
+import { BudgetViewToggle } from './budget-view-toggle';
 import { BudgetTableCheckedFilter } from './budget-table/budget-table-checked-filter';
-import { BudgetDetailsDialogService } from './budget-details-dialog.service';
-import { BudgetDetailsStore } from './store/budget-details-store';
-import { determineCheckBehavior } from './store/budget-details-check.utils';
+import { BudgetDetailsDialogService } from '../budget-details-dialog.service';
+import { BudgetDetailsStore } from '../store/budget-details-store';
+import { determineCheckBehavior } from '../store/budget-details-check.utils';
 import {
   computeEnvelopeSnackbarMessage,
   computeTransactionSnackbarMessage,
-} from './budget-details-snackbar.utils';
+} from '../utils/budget-details-snackbar.utils';
 
 /**
  * Unified container component for displaying budget items.

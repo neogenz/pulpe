@@ -24,10 +24,10 @@ import { OriginalAmountLine } from '@ui/original-amount-line';
 import { FinancialKindDirective } from '@ui/financial-kind';
 import { FinancialKindIndicator } from '@ui/financial-kind-indicator';
 import { TransactionLabelPipe } from '@ui/transaction-display';
-import { createBudgetLineConsumptionDisplay } from '../view-models/budget-item-data-builder';
-import type { BudgetLineTableItem } from '../view-models/table-items.view-model';
-import { SegmentedBudgetProgress } from '../components/segmented-budget-progress';
-import { BudgetDetailsStore } from '../store/budget-details-store';
+import { createBudgetLineConsumptionDisplay } from '../../view-models/budget-item-data-builder';
+import type { BudgetLineTableItem } from '../../view-models/table-items.view-model';
+import { SegmentedBudgetProgress } from '../segmented-budget-progress';
+import { BudgetDetailsStore } from '../../store/budget-details-store';
 
 export interface BudgetDetailPanelData {
   item: BudgetLineTableItem;

@@ -16,10 +16,10 @@ import { FinancialKindDirective } from '@ui/financial-kind';
 import { FinancialKindIndicator } from '@ui/financial-kind-indicator';
 import { OriginalAmountLine } from '@ui/original-amount-line';
 import { RecurrenceLabelPipe } from '@ui/transaction-display';
-import { formatMatchAnnotation } from '../view-models/budget-item-constants';
-import type { BudgetLineTableItem } from '../view-models/table-items.view-model';
-import { SegmentedBudgetProgress } from '../components/segmented-budget-progress';
-import { BudgetActionMenu } from '../components/budget-action-menu';
+import { formatMatchAnnotation } from '../../view-models/budget-item-constants';
+import type { BudgetLineTableItem } from '../../view-models/table-items.view-model';
+import { SegmentedBudgetProgress } from '../segmented-budget-progress';
+import { BudgetActionMenu } from '../budget-action-menu';
 
 /**
  * Desktop envelope card component following M3 Expressive design

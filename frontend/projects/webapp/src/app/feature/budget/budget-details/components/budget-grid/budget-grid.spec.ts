@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { filterFreeTransactionItems, groupByKind } from './budget-grid';
-import { createMockTransaction } from '../../../../testing/mock-factories';
+import { createMockTransaction } from '../../../../../testing/mock-factories';
 import type { Transaction } from 'pulpe-shared';
 
 /**
