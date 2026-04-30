@@ -298,40 +298,15 @@ body {
 }
 
 @supports (view-transition-name: none) {
+  // Scope the View Transition to the page content only — sidebar, breadcrumb,
+  // and header stay static. The browser default crossfade animates pulpe-page.
+  main[data-testid="page-content"] {
+    view-transition-name: pulpe-page;
+  }
+
   ::view-transition-old(root),
   ::view-transition-new(root) {
-    animation-duration: 320ms;
-    animation-timing-function: var(--pulpe-ease-emphasized);
-  }
-
-  ::view-transition-old(root) {
-    animation-name: pulpe-vt-out;
-  }
-
-  ::view-transition-new(root) {
-    animation-name: pulpe-vt-in;
-  }
-
-  @keyframes pulpe-vt-out {
-    from {
-      opacity: 1;
-      transform: translateY(0);
-    }
-    to {
-      opacity: 0;
-      transform: translateY(-6px);
-    }
-  }
-
-  @keyframes pulpe-vt-in {
-    from {
-      opacity: 0;
-      transform: translateY(8px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
+    animation: none;
   }
 }
 
@@ -350,11 +325,6 @@ body {
   .pulpe-primary-cta,
   .pulpe-demo-primary button[matButton="filled"] {
     transition: none !important;
-  }
-
-  ::view-transition-old(root),
-  ::view-transition-new(root) {
-    animation-duration: 0.01ms !important;
   }
 }
 
