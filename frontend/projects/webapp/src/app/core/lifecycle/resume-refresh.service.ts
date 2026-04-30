@@ -1,16 +1,24 @@
 /**
- * Refreshes app state after the page is resumed — bfcache restore, tab
- * discard, long background, or splash watchdog timeout — but only on routes
- * that hold authenticated, server-derived data and only when the user is
- * authenticated.
+ * Refreshes app state after the page is resumed via bfcache restore, tab
+ * discard, or splash watchdog timeout — but only on routes that hold
+ * authenticated, server-derived data and only when the user is authenticated.
  *
  * **Why this exists.** After a long suspension (locked phone, backgrounded
- * tab, low-memory discard) state may be stale: the Supabase JWT may be
- * expired, SWR caches (budget, templates) may be out of sync with the
- * backend, user settings may have been changed on another device. On iOS
- * Safari specifically, `pageshow` fires before `AuthStore` finishes
- * initializing — without explicit reconciliation the app stays frozen on the
- * splash screen.
+ * tab, low-memory discard) state may be stale: SWR caches (budget, templates)
+ * may be out of sync with the backend, user settings may have been changed on
+ * another device. On iOS Safari specifically, `pageshow.persisted=true` fires
+ * before {@link AuthStore.isLoading} flips to `false` because WebKit may
+ * silently abort the in-flight `getSession` fetch on bfcache enter — without
+ * explicit reconciliation the app stays frozen on the splash screen.
+ *
+ * **Scope vs Supabase auth-js.** The Supabase JS SDK (auth-js >= 2.71)
+ * registers its own `visibilitychange` listener that refreshes the session
+ * on resume — the soft session refresh on every tab-foreground transition
+ * is therefore handled by the SDK, not by this service. This service only
+ * owns the surfaces the SDK does NOT cover:
+ * `pageshow.persisted` (bfcache) + `document.wasDiscarded` (low-memory
+ * discard), plus Pulpe-specific cache invalidation (`budget`, `templates`)
+ * and `userSettings` reload.
  *
  * **What gets refreshed.** Soft path: refresh the Supabase session,
  * invalidate the budget + budget-templates SWR caches, reload user settings
@@ -46,7 +54,6 @@ import { STORAGE_KEYS } from '@core/storage/storage-keys';
 import { StorageService } from '@core/storage/storage.service';
 import { UserSettingsStore } from '@core/user-settings';
 
-export const PAGE_RESUME_THRESHOLD_MS = 15 * 60 * 1000;
 export const PAGE_RELOAD_COOLDOWN_MS = 60 * 1000;
 
 const RESUME_LOADING_TIMEOUT_MS = 12_000;
@@ -64,8 +71,10 @@ const RESUME_LOADING_TIMEOUT_MS = 12_000;
  * this list against the current route on:
  * - `pageshow` with `event.persisted === true` (bfcache restore, Safari/Firefox)
  * - `pageshow` with `document.wasDiscarded === true` (low-memory tab discard)
- * - `visibilitychange` after ≥ {@link PAGE_RESUME_THRESHOLD_MS} hidden
  * - splash watchdog timeout while auth is still loading
+ *
+ * Tab-foreground/long-background transitions are handled by the Supabase
+ * SDK's own `visibilitychange` listener — no duplicate listener here.
  *
  * **Adding a new authenticated zone.** Append the route prefix here and to
  * `ROUTES`. No other change required — the service walks the list.
@@ -97,10 +106,6 @@ type ResumeTriggerReason =
    *  tab under memory pressure and just rebuilt it. Treat like a cold start
    *  on the same URL. */
   | 'pageshow_discarded'
-  /** `visibilitychange` to `visible` after the tab was hidden for at least
-   *  {@link PAGE_RESUME_THRESHOLD_MS}. Cross-browser fallback for resume on
-   *  engines that do not fire `pageshow` for non-bfcache restores. */
-  | 'visibility_long_background'
   /** Splash watchdog elapsed while {@link AuthStore.isLoading} is still
    *  true. Last-resort signal that auth init never resolved — escalates to
    *  hard reload. Raised by `core/lifecycle/splash-removal.ts`. */
@@ -130,14 +135,13 @@ export class ResumeRefreshService {
   );
 
   #initialized = false;
-  #lastHiddenAt: number | null = null;
   #refreshInFlight = false;
-  #pendingReason: ResumeTriggerReason | null = null;
-  #loadingTimeoutId: ReturnType<typeof setTimeout> | null = null;
+  #pending: {
+    reason: ResumeTriggerReason;
+    timeoutId: ReturnType<typeof setTimeout>;
+  } | null = null;
 
   constructor() {
-    // Effect lives in constructor (always injection context) so it does not
-    // depend on where initialize() is called from.
     effect(() => {
       const isLoading = this.#authStore.isLoading();
       this.#drainPendingReasonOnAuthReady(isLoading);
@@ -153,43 +157,12 @@ export class ResumeRefreshService {
    * so we record the reason and let this drain run when auth is ready.
    */
   #drainPendingReasonOnAuthReady(isLoading: boolean): void {
-    if (isLoading || this.#pendingReason === null) return;
-    const reason = this.#pendingReason;
-    this.#pendingReason = null;
-    this.#clearLoadingTimeout();
+    if (isLoading || this.#pending === null) return;
+    const { reason, timeoutId } = this.#pending;
+    this.#pending = null;
+    clearTimeout(timeoutId);
     untracked(() => this.#triggerRefresh(reason));
   }
-
-  readonly #onVisibilityChange = (): void => {
-    if (this.#document.visibilityState === 'hidden') {
-      this.#lastHiddenAt = Date.now();
-      return;
-    }
-
-    if (this.#document.visibilityState !== 'visible') {
-      return;
-    }
-
-    if (!this.#shouldRefreshOnResume()) {
-      this.#lastHiddenAt = null;
-      return;
-    }
-
-    if (this.#lastHiddenAt === null) {
-      return;
-    }
-
-    const hiddenDuration = Date.now() - this.#lastHiddenAt;
-    this.#lastHiddenAt = null;
-
-    if (hiddenDuration >= PAGE_RESUME_THRESHOLD_MS) {
-      this.#triggerRefresh('visibility_long_background');
-    }
-  };
-
-  readonly #onPageHide = (): void => {
-    this.#lastHiddenAt = Date.now();
-  };
 
   readonly #onPageShow = (event: PageTransitionEvent): void => {
     if (!this.#shouldRefreshOnResume()) {
@@ -201,13 +174,11 @@ export class ResumeRefreshService {
       true;
 
     if (event.persisted) {
-      this.#lastHiddenAt = null;
       this.#triggerRefresh('pageshow_persisted');
       return;
     }
 
     if (wasDiscarded) {
-      this.#lastHiddenAt = null;
       this.#triggerRefresh('pageshow_discarded');
     }
   };
@@ -220,21 +191,14 @@ export class ResumeRefreshService {
     const win = this.#document.defaultView;
     if (!win) return;
 
-    this.#document.addEventListener(
-      'visibilitychange',
-      this.#onVisibilityChange,
-    );
-    win.addEventListener('pagehide', this.#onPageHide);
     win.addEventListener('pageshow', this.#onPageShow);
 
     this.#destroyRef.onDestroy(() => {
-      this.#document.removeEventListener(
-        'visibilitychange',
-        this.#onVisibilityChange,
-      );
-      win.removeEventListener('pagehide', this.#onPageHide);
       win.removeEventListener('pageshow', this.#onPageShow);
-      this.#clearLoadingTimeout();
+      if (this.#pending !== null) {
+        clearTimeout(this.#pending.timeoutId);
+        this.#pending = null;
+      }
     });
   }
 
@@ -274,8 +238,7 @@ export class ResumeRefreshService {
    */
   #triggerRefresh(reason: ResumeTriggerReason): void {
     if (this.#authStore.isLoading()) {
-      this.#pendingReason = reason;
-      this.#armLoadingTimeout(reason);
+      this.#armPending(reason);
       return;
     }
 
@@ -286,24 +249,18 @@ export class ResumeRefreshService {
     });
   }
 
-  #armLoadingTimeout(reason: ResumeTriggerReason): void {
-    if (this.#loadingTimeoutId !== null) return;
-    this.#loadingTimeoutId = setTimeout(() => {
-      this.#loadingTimeoutId = null;
+  #armPending(reason: ResumeTriggerReason): void {
+    if (this.#pending !== null) return;
+    const timeoutId = setTimeout(() => {
+      this.#pending = null;
       if (!this.#authStore.isLoading()) return;
-      this.#pendingReason = null;
       this.#logger.warn(
         '[ResumeRefresh] Auth still loading after resume timeout, reloading',
         { reason, route: this.#router.url },
       );
       this.#triggerHardReload(reason);
     }, RESUME_LOADING_TIMEOUT_MS);
-  }
-
-  #clearLoadingTimeout(): void {
-    if (this.#loadingTimeoutId === null) return;
-    clearTimeout(this.#loadingTimeoutId);
-    this.#loadingTimeoutId = null;
+    this.#pending = { reason, timeoutId };
   }
 
   async #runSoftRefresh(reason: ResumeTriggerReason): Promise<void> {

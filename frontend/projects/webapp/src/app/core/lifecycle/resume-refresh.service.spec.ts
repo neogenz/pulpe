@@ -2,10 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import {
-  PAGE_RESUME_THRESHOLD_MS,
-  ResumeRefreshService,
-} from './resume-refresh.service';
+import { ResumeRefreshService } from './resume-refresh.service';
 import { PAGE_RELOAD } from '@core/page-reload';
 import { Logger } from '@core/logging/logger';
 import { AuthSessionService } from '@core/auth/auth-session.service';
@@ -13,13 +10,6 @@ import { AuthStore } from '@core/auth/auth-store';
 import { BudgetApi } from '@core/budget/budget-api';
 import { BudgetTemplatesApi } from '@core/budget-template/budget-templates-api';
 import { UserSettingsStore } from '@core/user-settings';
-
-function setVisibilityState(state: DocumentVisibilityState): void {
-  Object.defineProperty(document, 'visibilityState', {
-    configurable: true,
-    value: state,
-  });
-}
 
 function dispatchPageShow(persisted: boolean): void {
   const event = new Event('pageshow');
@@ -80,7 +70,6 @@ describe('ResumeRefreshService', () => {
     mockLogger.debug.mockReset();
     mockRouter.url = '/dashboard';
     sessionStorage.clear();
-    setVisibilityState('visible');
     Object.defineProperty(document, 'wasDiscarded', {
       configurable: true,
       value: false,
@@ -122,38 +111,6 @@ describe('ResumeRefreshService', () => {
     });
 
     dispatchPageShow(false);
-    await vi.waitFor(() => {
-      expect(mockAuthSession.refreshSession).toHaveBeenCalledOnce();
-    });
-    expect(mockBudgetApi.cache.invalidate).toHaveBeenCalledOnce();
-    expect(mockUserSettingsStore.reload).toHaveBeenCalledOnce();
-    expect(reloadSpy).not.toHaveBeenCalled();
-  });
-
-  it('should not trigger refresh for short background/foreground switch', () => {
-    const nowSpy = vi.spyOn(Date, 'now').mockReturnValue(1_000);
-
-    setVisibilityState('hidden');
-    document.dispatchEvent(new Event('visibilitychange'));
-
-    nowSpy.mockReturnValue(1_000 + PAGE_RESUME_THRESHOLD_MS - 1);
-    setVisibilityState('visible');
-    document.dispatchEvent(new Event('visibilitychange'));
-
-    expect(mockAuthSession.refreshSession).not.toHaveBeenCalled();
-    expect(reloadSpy).not.toHaveBeenCalled();
-  });
-
-  it('should perform soft refresh when tab resumes after long background period', async () => {
-    const nowSpy = vi.spyOn(Date, 'now').mockReturnValue(1_000);
-
-    setVisibilityState('hidden');
-    document.dispatchEvent(new Event('visibilitychange'));
-
-    nowSpy.mockReturnValue(1_000 + PAGE_RESUME_THRESHOLD_MS + 1);
-    setVisibilityState('visible');
-    document.dispatchEvent(new Event('visibilitychange'));
-
     await vi.waitFor(() => {
       expect(mockAuthSession.refreshSession).toHaveBeenCalledOnce();
     });
@@ -274,21 +231,6 @@ describe('ResumeRefreshService', () => {
     nowSpy.mockReturnValue(5_500);
     expect(service.forceReloadOnSplashTimeout()).toBe(false);
     expect(reloadSpy).toHaveBeenCalledOnce();
-  });
-
-  it('should track lastHiddenAt via pagehide and refresh on visibility resume after long delay', async () => {
-    const nowSpy = vi.spyOn(Date, 'now').mockReturnValue(10_000);
-
-    window.dispatchEvent(new Event('pagehide'));
-
-    nowSpy.mockReturnValue(10_000 + PAGE_RESUME_THRESHOLD_MS + 1);
-    setVisibilityState('visible');
-    document.dispatchEvent(new Event('visibilitychange'));
-
-    await vi.waitFor(() => {
-      expect(mockAuthSession.refreshSession).toHaveBeenCalledOnce();
-    });
-    expect(reloadSpy).not.toHaveBeenCalled();
   });
 
   it('should not refresh when not authenticated', async () => {
