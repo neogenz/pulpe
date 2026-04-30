@@ -99,32 +99,7 @@
   />
 
   <!-- Budget Items -->
-  <pulpe-budget-items
-    [budgetLines]="store.filteredBudgetLines()"
-    [transactions]="store.filteredTransactions()"
-    [checkedCount]="store.checkedItemsCount()"
-    [totalCount]="store.totalItemsCount()"
-    [estimatedBalance]="store.realizedBalance()"
-    [totalBudgetLinesCount]="store.totalBudgetLinesCount()"
-    [currency]="currency()"
-    [isShowingOnlyUnchecked]="store.isShowingOnlyUnchecked()"
-    (isShowingOnlyUncheckedChange)="store.setIsShowingOnlyUnchecked($event)"
-    [searchText]="store.searchText()"
-    (searchTextChange)="store.setSearchText($event)"
-    (update)="handleUpdateBudgetLine($event)"
-    (delete)="handleDeleteItem($event)"
-    (deleteTransaction)="handleDeleteItem($event)"
-    (add)="openAddBudgetLineDialog()"
-    (viewAllocatedTransactions)="openAllocatedTransactionsDialog($event)"
-    (createAllocatedTransaction)="
-        openCreateAllocatedTransactionDialog($event)
-      "
-    (resetFromTemplate)="handleResetFromTemplate($event)"
-    (toggleCheck)="handleToggleCheck($event)"
-    (toggleTransactionCheck)="handleToggleTransactionCheck($event)"
-    (editTransaction)="handleEditAllocatedTransaction($event)"
-    data-tour="budget-table"
-  />
+  <pulpe-budget-items data-tour="budget-table" />
 
   <button
     matFab
