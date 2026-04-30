@@ -149,21 +149,13 @@ describe('ResumeRefreshService', () => {
     expect(reloadSpy).toHaveBeenCalledOnce();
   });
 
-  it('should queue resume and process once auth finishes loading', async () => {
+  it('should reload immediately on pageshow when auth is still loading (hung-fetch failsafe)', () => {
     isLoadingSignal.set(true);
 
     dispatchPageShow(true);
-    await Promise.resolve();
 
+    expect(reloadSpy).toHaveBeenCalledOnce();
     expect(mockAuthSession.refreshSession).not.toHaveBeenCalled();
-    expect(reloadSpy).not.toHaveBeenCalled();
-
-    isLoadingSignal.set(false);
-
-    await vi.waitFor(() => {
-      expect(mockAuthSession.refreshSession).toHaveBeenCalledOnce();
-    });
-    expect(reloadSpy).not.toHaveBeenCalled();
   });
 
   it('should not refresh on non-protected routes', async () => {
@@ -173,6 +165,16 @@ describe('ResumeRefreshService', () => {
 
     expect(mockAuthSession.refreshSession).not.toHaveBeenCalled();
     expect(reloadSpy).not.toHaveBeenCalled();
+  });
+
+  it('should not reload on non-protected routes even when auth is loading', () => {
+    mockRouter.url = '/welcome';
+    isLoadingSignal.set(true);
+
+    dispatchPageShow(true);
+
+    expect(reloadSpy).not.toHaveBeenCalled();
+    expect(mockAuthSession.refreshSession).not.toHaveBeenCalled();
   });
 
   it('should fall back to location.pathname when router.url is "/" before navigation settles', async () => {
@@ -189,37 +191,6 @@ describe('ResumeRefreshService', () => {
     expect(mockBudgetApi.cache.invalidate).toHaveBeenCalledOnce();
     expect(mockUserSettingsStore.reload).toHaveBeenCalledOnce();
     expect(reloadSpy).not.toHaveBeenCalled();
-  });
-
-  it('should force reload when auth never finishes loading after resume (timeout)', async () => {
-    vi.useFakeTimers();
-    isLoadingSignal.set(true);
-
-    dispatchPageShow(true);
-    await Promise.resolve();
-
-    expect(reloadSpy).not.toHaveBeenCalled();
-
-    await vi.advanceTimersByTimeAsync(13_000);
-
-    expect(reloadSpy).toHaveBeenCalledOnce();
-    expect(mockAuthSession.refreshSession).not.toHaveBeenCalled();
-  });
-
-  it('should not queue duplicate reasons across rapid pageshow events', async () => {
-    isLoadingSignal.set(true);
-
-    dispatchPageShow(true);
-    dispatchPageShow(true);
-    await Promise.resolve();
-
-    expect(mockAuthSession.refreshSession).not.toHaveBeenCalled();
-
-    isLoadingSignal.set(false);
-
-    await vi.waitFor(() => {
-      expect(mockAuthSession.refreshSession).toHaveBeenCalledOnce();
-    });
   });
 
   it('forceReloadOnSplashTimeout honors cooldown and reports outcome', () => {

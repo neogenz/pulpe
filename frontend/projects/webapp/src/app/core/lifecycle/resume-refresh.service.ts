@@ -6,16 +6,22 @@
  * **Why this exists.** After a long suspension (locked phone, backgrounded
  * tab, low-memory discard) state may be stale: SWR caches (budget, templates)
  * may be out of sync with the backend, user settings may have been changed on
- * another device. On iOS Safari specifically, `pageshow.persisted=true` fires
- * before {@link AuthStore.isLoading} flips to `false` because WebKit may
- * silently abort the in-flight `getSession` fetch on bfcache enter — without
- * explicit reconciliation the app stays frozen on the splash screen.
+ * another device. On iOS Safari specifically, an app-switch restore fires
+ * `pageshow.persisted=true` but does NOT fire `visibilitychange`, so the
+ * Supabase SDK's own visibilitychange listener cannot recover the session
+ * here — this service owns the bfcache surface.
+ *
+ * **The hung-fetch failsafe.** WebKit silently aborts in-flight `fetch()`
+ * calls when a tab enters bfcache (webkit.org/b/282506). If the user
+ * backgrounds the app DURING the initial `getSession()` round-trip, the
+ * Promise never resolves and never rejects — `AuthStore.isLoading()` stays
+ * `true` forever. On resume we detect this and reload immediately rather
+ * than waiting on a Promise that will never settle.
  *
  * **Scope vs Supabase auth-js.** The Supabase JS SDK (auth-js >= 2.71)
  * registers its own `visibilitychange` listener that refreshes the session
- * on resume — the soft session refresh on every tab-foreground transition
- * is therefore handled by the SDK, not by this service. This service only
- * owns the surfaces the SDK does NOT cover:
+ * on tab-foreground transitions — those are handled by the SDK, not by this
+ * service. This service only owns the surfaces the SDK does NOT cover:
  * `pageshow.persisted` (bfcache) + `document.wasDiscarded` (low-memory
  * discard), plus Pulpe-specific cache invalidation (`budget`, `templates`)
  * and `userSettings` reload.
@@ -24,24 +30,17 @@
  * invalidate the budget + budget-templates SWR caches, reload user settings
  * (no full page reload, no component remount).
  *
- * **Hard reload (last resort).** Triggered when session refresh fails, soft
- * refresh throws, auth stays `isLoading` for too long after resume (see
- * `RESUME_LOADING_TIMEOUT_MS` in source), or the splash watchdog fires while
- * auth is still loading — subject to {@link PAGE_RELOAD_COOLDOWN_MS} to avoid
- * reload loops.
+ * **Hard reload (last resort).** Triggered when (a) `isLoading=true` at
+ * resume (hung-fetch detection), (b) session refresh fails, (c) soft refresh
+ * throws, or (d) the splash watchdog fires while auth is still loading —
+ * all subject to {@link PAGE_RELOAD_COOLDOWN_MS} to avoid reload loops.
  *
  * Call {@link ResumeRefreshService.initialize} once at app bootstrap (see
  * `provideCore` initializer). Tests may inject {@link PAGE_RELOAD} to stub
  * reloads.
  */
 import { DOCUMENT } from '@angular/common';
-import {
-  DestroyRef,
-  effect,
-  inject,
-  Injectable,
-  untracked,
-} from '@angular/core';
+import { DestroyRef, inject, Injectable } from '@angular/core';
 import { Router } from '@angular/router';
 import { AuthSessionService } from '@core/auth/auth-session.service';
 import { AuthStore } from '@core/auth/auth-store';
@@ -55,8 +54,6 @@ import { StorageService } from '@core/storage/storage.service';
 import { UserSettingsStore } from '@core/user-settings';
 
 export const PAGE_RELOAD_COOLDOWN_MS = 60 * 1000;
-
-const RESUME_LOADING_TIMEOUT_MS = 12_000;
 
 /**
  * Routes whose state may go stale after the app is suspended, restored from
@@ -106,6 +103,10 @@ type ResumeTriggerReason =
    *  tab under memory pressure and just rebuilt it. Treat like a cold start
    *  on the same URL. */
   | 'pageshow_discarded'
+  /** `pageshow` fired with {@link AuthStore.isLoading} still `true`. WebKit
+   *  silently aborted the in-flight `getSession()` on bfcache enter; the
+   *  Promise will never settle. Force a reload to break the hang. */
+  | 'pageshow_hung_fetch'
   /** Splash watchdog elapsed while {@link AuthStore.isLoading} is still
    *  true. Last-resort signal that auth init never resolved — escalates to
    *  hard reload. Raised by `core/lifecycle/splash-removal.ts`. */
@@ -136,33 +137,6 @@ export class ResumeRefreshService {
 
   #initialized = false;
   #refreshInFlight = false;
-  #pending: {
-    reason: ResumeTriggerReason;
-    timeoutId: ReturnType<typeof setTimeout>;
-  } | null = null;
-
-  constructor() {
-    effect(() => {
-      const isLoading = this.#authStore.isLoading();
-      this.#drainPendingReasonOnAuthReady(isLoading);
-    });
-  }
-
-  /**
-   * Drains a queued trigger reason once auth finishes loading.
-   *
-   * **Why a queue.** On iOS Safari, `pageshow` can fire before
-   * {@link AuthStore.isLoading} flips to `false`. Triggering refresh
-   * synchronously in that window would no-op (auth gate at #triggerRefresh),
-   * so we record the reason and let this drain run when auth is ready.
-   */
-  #drainPendingReasonOnAuthReady(isLoading: boolean): void {
-    if (isLoading || this.#pending === null) return;
-    const { reason, timeoutId } = this.#pending;
-    this.#pending = null;
-    clearTimeout(timeoutId);
-    untracked(() => this.#triggerRefresh(reason));
-  }
 
   readonly #onPageShow = (event: PageTransitionEvent): void => {
     if (!this.#shouldRefreshOnResume()) {
@@ -173,14 +147,18 @@ export class ResumeRefreshService {
       (this.#document as Document & { wasDiscarded?: boolean }).wasDiscarded ===
       true;
 
-    if (event.persisted) {
-      this.#triggerRefresh('pageshow_persisted');
+    if (!event.persisted && !wasDiscarded) {
       return;
     }
 
-    if (wasDiscarded) {
-      this.#triggerRefresh('pageshow_discarded');
+    if (this.#authStore.isLoading()) {
+      this.#triggerHardReload('pageshow_hung_fetch');
+      return;
     }
+
+    this.#triggerRefresh(
+      event.persisted ? 'pageshow_persisted' : 'pageshow_discarded',
+    );
   };
 
   /** Registers page lifecycle listeners; safe to call once (no-op if already done). */
@@ -195,10 +173,6 @@ export class ResumeRefreshService {
 
     this.#destroyRef.onDestroy(() => {
       win.removeEventListener('pageshow', this.#onPageShow);
-      if (this.#pending !== null) {
-        clearTimeout(this.#pending.timeoutId);
-        this.#pending = null;
-      }
     });
   }
 
@@ -224,24 +198,11 @@ export class ResumeRefreshService {
   }
 
   /**
-   * Two-phase entry point for every refresh request.
-   *
-   * **Phase 1 — queue-on-loading.** If auth is still initializing, store the
-   * reason in a single slot and arm a watchdog timer. The constructor effect
-   * will drain the slot once `isLoading` flips to `false`. Multiple rapid
-   * triggers collapse to one — the slot is overwritten, not queued.
-   *
-   * **Phase 2 — serialize-in-flight.** If a previous async refresh is still
-   * awaiting `refreshSession`, drop the new trigger. The in-flight run already
-   * captures the latest server state; a parallel run would just race for the
-   * same caches.
+   * Drops parallel triggers while a previous async refresh is still awaiting
+   * `refreshSession`. The in-flight run already captures the latest server
+   * state; a parallel run would just race for the same caches.
    */
   #triggerRefresh(reason: ResumeTriggerReason): void {
-    if (this.#authStore.isLoading()) {
-      this.#armPending(reason);
-      return;
-    }
-
     if (this.#refreshInFlight) return;
     this.#refreshInFlight = true;
     void this.#runSoftRefresh(reason).finally(() => {
@@ -249,25 +210,7 @@ export class ResumeRefreshService {
     });
   }
 
-  #armPending(reason: ResumeTriggerReason): void {
-    if (this.#pending !== null) return;
-    const timeoutId = setTimeout(() => {
-      this.#pending = null;
-      if (!this.#authStore.isLoading()) return;
-      this.#logger.warn(
-        '[ResumeRefresh] Auth still loading after resume timeout, reloading',
-        { reason, route: this.#router.url },
-      );
-      this.#triggerHardReload(reason);
-    }, RESUME_LOADING_TIMEOUT_MS);
-    this.#pending = { reason, timeoutId };
-  }
-
   async #runSoftRefresh(reason: ResumeTriggerReason): Promise<void> {
-    if (!this.#shouldRefreshOnResume()) {
-      return;
-    }
-
     if (!this.#hasLiveSession()) {
       return;
     }
@@ -301,9 +244,9 @@ export class ResumeRefreshService {
 
   /**
    * A backgrounded session can be revoked server-side (token rotated, password
-   * changed on another device) between the trigger firing and the drain
-   * running. Re-check before doing any soft work — protected routes are
-   * guarded by `authGuard` at navigation time, but resume is not a navigation.
+   * changed on another device). Re-check before doing any soft work —
+   * protected routes are guarded by `authGuard` at navigation time, but resume
+   * is not a navigation.
    */
   #hasLiveSession(): boolean {
     return this.#authStore.isAuthenticated();
