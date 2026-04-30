@@ -91,7 +91,6 @@ describe('EditBudgetLineDialog — currency edit rules', () => {
     });
 
     expect(component['showCurrencySelector']()).toBe(true);
-    expect(component['inputCurrency']()).toBe('EUR');
     expect(component['model']().money.amount).toBe(100);
   });
 

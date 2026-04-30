@@ -178,10 +178,6 @@ export class EditBudgetLineDialog {
       this.#originalCurrency !== this.#settings.currency(),
   );
 
-  protected readonly inputCurrency = computed(
-    () => this.#originalCurrency ?? this.#settings.currency(),
-  );
-
   protected readonly model = signal<EditBudgetLineModel>({
     name: this.#data.budgetLine.name,
     money: createAmountSlice({
