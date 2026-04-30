@@ -23,7 +23,7 @@ import { ROUTES, TitleDisplay } from '@core/routing';
 import { type CalendarMonth, YearCalendar } from '@ui/calendar';
 import { BaseLoading } from '@ui/loading';
 import { firstValueFrom, map, shareReplay } from 'rxjs';
-import { MonthsError } from '../ui/budget-error';
+import { MonthsError } from './ui/budget-error';
 import { BudgetListStore } from './budget-list-store';
 import { CreateBudgetDialogComponent } from './create-budget/budget-creation-dialog';
 import SearchTransactionsDialogComponent from './search-transactions-dialog/search-transactions-dialog';
