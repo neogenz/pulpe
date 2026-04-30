@@ -47,7 +47,7 @@ import { type TemplateViewModel } from './template-view-model';
             <mat-radio-button
               [value]="templateViewModel().template.id"
               [checked]="isSelected()"
-              class="flex-shrink-0"
+              class="shrink-0"
               [attr.aria-label]="
                 'template.selectAriaLabel'
                   | transloco: { name: templateViewModel().template.name }
@@ -87,7 +87,7 @@ import { type TemplateViewModel } from './template-view-model';
                 mode="indeterminate"
                 [attr.aria-label]="'template.calculatingAriaLabel' | transloco"
                 role="progressbar"
-                class="pulpe-loading-indicator pulpe-loading-medium flex-shrink-0"
+                class="pulpe-loading-indicator pulpe-loading-medium shrink-0"
                 [diameter]="24"
               ></mat-progress-spinner>
               <div class="text-center md:text-left">

@@ -56,7 +56,7 @@ interface BudgetUsage {
         >
           <mat-progress-spinner
             [diameter]="40"
-            class="flex-shrink-0"
+            class="shrink-0"
             mode="indeterminate"
             [attr.aria-label]="verifyingLabel"
           ></mat-progress-spinner>

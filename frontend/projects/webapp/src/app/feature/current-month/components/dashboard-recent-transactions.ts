@@ -36,7 +36,7 @@ const KIND_ICONS: Record<TransactionKind, string> = {
       <div class="mb-4 px-1 flex items-center justify-between">
         <div class="flex items-center gap-3">
           <div
-            class="w-10 h-10 rounded-full bg-tertiary/10 text-tertiary flex items-center justify-center flex-shrink-0"
+            class="w-10 h-10 rounded-full bg-tertiary/10 text-tertiary flex items-center justify-center shrink-0"
           >
             <mat-icon aria-hidden="true">receipt_long</mat-icon>
           </div>
@@ -69,7 +69,7 @@ const KIND_ICONS: Record<TransactionKind, string> = {
                 class="flex items-center gap-3 p-3 rounded-2xl hover:bg-on-surface/8 motion-safe:transition-colors"
               >
                 <div
-                  class="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
+                  class="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
                   [class]="kindClasses(tx.kind)"
                 >
                   <mat-icon class="text-[20px]" aria-hidden="true">

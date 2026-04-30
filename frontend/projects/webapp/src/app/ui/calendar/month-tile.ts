@@ -74,7 +74,7 @@ interface MonthTileViewModel {
       <div class="flex items-center gap-2">
         @if (vm().hasContent) {
           <span
-            class="w-2.5 h-2.5 rounded-full flex-shrink-0"
+            class="w-2.5 h-2.5 rounded-full shrink-0"
             [class.bg-financial-savings]="vm().statusColor === 'positive'"
             [class.bg-error]="vm().statusColor === 'negative'"
             [class.bg-outline-variant]="vm().statusColor === 'neutral'"

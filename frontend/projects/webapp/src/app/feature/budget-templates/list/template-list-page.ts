@@ -62,7 +62,7 @@ import {
             </p>
           }
         </div>
-        <div class="flex gap-2 items-center flex-shrink-0 ml-auto">
+        <div class="flex gap-2 items-center shrink-0 ml-auto">
           <button
             matIconButton
             (click)="store.refreshData()"

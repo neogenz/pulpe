@@ -29,7 +29,7 @@
         (click)="navigateToPrevious()"
         [attr.aria-label]="'layout.previousMonth' | transloco"
         data-testid="previous-month-button"
-        class="flex-shrink-0 lg:hidden!"
+        class="shrink-0 lg:hidden!"
       >
         <mat-icon>chevron_left</mat-icon>
       </button>
@@ -40,7 +40,7 @@
         (click)="navigateToPrevious()"
         [attr.aria-label]="'layout.previousMonth' | transloco"
         data-testid="previous-month-button-desktop"
-        class="hidden! lg:flex! flex-shrink-0"
+        class="hidden! lg:flex! shrink-0"
       >
         <mat-icon>chevron_left</mat-icon>
         <span>{{ 'layout.previousMonth' | transloco }}</span>
@@ -71,7 +71,7 @@
         (click)="navigateToNext()"
         [attr.aria-label]="'layout.nextMonth' | transloco"
         data-testid="next-month-button"
-        class="flex-shrink-0 lg:hidden!"
+        class="shrink-0 lg:hidden!"
       >
         <mat-icon>chevron_right</mat-icon>
       </button>
@@ -82,7 +82,7 @@
         (click)="navigateToNext()"
         [attr.aria-label]="'layout.nextMonth' | transloco"
         data-testid="next-month-button-desktop"
-        class="hidden! lg:flex! flex-shrink-0"
+        class="hidden! lg:flex! shrink-0"
       >
         <span>{{ 'layout.nextMonth' | transloco }}</span>
         <mat-icon iconPositionEnd>chevron_right</mat-icon>

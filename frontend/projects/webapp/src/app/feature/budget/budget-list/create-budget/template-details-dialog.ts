@@ -79,7 +79,7 @@ export interface TemplateDetailsDialogData {
                   }
                 </div>
                 <div
-                  class="ph-no-capture text-body-medium font-medium flex-shrink-0"
+                  class="ph-no-capture text-body-medium font-medium shrink-0"
                   [class.text-financial-savings]="line.kind === 'saving'"
                   [class.text-financial-negative]="line.kind === 'expense'"
                   [class.text-financial-income]="line.kind === 'income'"

@@ -83,7 +83,7 @@ const COUNTER_DURATION_MS = 600;
 
       <div class="flex items-start gap-3 mb-6">
         <div
-          class="flex-shrink-0 h-9 w-9 rounded-full bg-surface-container-high flex items-center justify-center"
+          class="shrink-0 h-9 w-9 rounded-full bg-surface-container-high flex items-center justify-center"
           aria-hidden="true"
         >
           <mat-icon class="preview-icon text-on-surface-variant">
@@ -118,7 +118,7 @@ const COUNTER_DURATION_MS = 600;
       @if (payDayOfMonth() !== null) {
         <div class="flex items-center gap-3 mb-6" [@blockEnter]>
           <div
-            class="flex-shrink-0 h-9 w-9 rounded-full bg-surface-container-high flex items-center justify-center"
+            class="shrink-0 h-9 w-9 rounded-full bg-surface-container-high flex items-center justify-center"
             aria-hidden="true"
           >
             <mat-icon class="preview-icon text-on-surface-variant">

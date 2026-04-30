@@ -23,7 +23,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
             [diameter]="20"
             [attr.aria-label]="loadingText()"
             role="progressbar"
-            class="pulpe-loading-indicator pulpe-loading-small mr-2 flex-shrink-0"
+            class="pulpe-loading-indicator pulpe-loading-small mr-2 shrink-0"
           />
           <span aria-live="polite">{{ loadingText() }}</span>
         </div>

@@ -182,7 +182,7 @@ const MONTH_YEAR_FORMATS = {
             [diameter]="24"
             [attr.aria-label]="'budget.creationInProgress' | transloco"
             role="progressbar"
-            class="pulpe-loading-indicator pulpe-loading-small mr-2 flex-shrink-0"
+            class="pulpe-loading-indicator pulpe-loading-small mr-2 shrink-0"
           ></mat-progress-spinner>
           <span aria-live="polite">{{ 'budget.creating' | transloco }}</span>
         } @else {

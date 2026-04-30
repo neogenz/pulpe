@@ -41,7 +41,7 @@ interface PillConfig {
             role="listitem"
             [attr.data-testid]="pill.testId"
             [class]="
-              'snap-start flex-shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-full ' +
+              'snap-start shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-full ' +
               pill.bgClass
             "
           >

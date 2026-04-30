@@ -90,12 +90,12 @@ import { TemplateLineStore } from './services/template-line-store';
       } @else {
         @let templateData = templateDetailsStore.templateDetails();
         @if (templateData) {
-          <header class="flex flex-shrink-0 gap-4 items-center">
+          <header class="flex shrink-0 gap-4 items-center">
             <button
               matIconButton
               (click)="navigateBack()"
               [attr.aria-label]="backLabel"
-              class="flex-shrink-0"
+              class="shrink-0"
             >
               <mat-icon>arrow_back</mat-icon>
             </button>
@@ -108,7 +108,7 @@ import { TemplateLineStore } from './services/template-line-store';
                 {{ templateData.template.name }}
               </h1>
             </div>
-            <div class="flex items-center gap-1 flex-shrink-0 md:hidden">
+            <div class="flex items-center gap-1 shrink-0 md:hidden">
               <button
                 matIconButton
                 class="warn-theme"
@@ -119,7 +119,7 @@ import { TemplateLineStore } from './services/template-line-store';
                 <mat-icon>delete</mat-icon>
               </button>
             </div>
-            <div class="hidden md:flex items-center gap-2 flex-shrink-0">
+            <div class="hidden md:flex items-center gap-2 shrink-0">
               <button
                 matButton="filled"
                 class="warn-theme"
@@ -134,7 +134,7 @@ import { TemplateLineStore } from './services/template-line-store';
           </header>
 
           <section
-            class="flex-shrink-0 space-y-6"
+            class="shrink-0 space-y-6"
             aria-labelledby="financial-summary-heading"
           >
             <h2 id="financial-summary-heading" class="sr-only">
