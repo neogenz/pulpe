@@ -35,6 +35,7 @@ import {
 } from '@core/currency';
 import { UserSettingsStore } from '@core/user-settings';
 import { FeatureFlagsService } from '@core/feature-flags';
+import { touchedFieldErrors } from '@core/validators';
 import { AmountInput } from '@app/pattern/amount-input/amount-input';
 
 const TRANSACTION_KINDS: readonly TransactionKind[] = [
@@ -105,6 +106,16 @@ interface EditTemplateLineModel {
               [placeholder]="'budget.forecastNamePlaceholder' | transloco"
               data-testid="edit-template-line-name"
             />
+            @if (nameErrors().required) {
+              <mat-error>{{
+                'budget.forecastNameRequired' | transloco
+              }}</mat-error>
+            }
+            @if (nameErrors().minLength) {
+              <mat-error>{{
+                'budget.forecastNameMinLength' | transloco
+              }}</mat-error>
+            }
           </mat-form-field>
 
           <pulpe-amount-input
@@ -132,6 +143,11 @@ interface EditTemplateLineModel {
                 </mat-option>
               }
             </mat-select>
+            @if (kindErrors().required) {
+              <mat-error>{{
+                'budget.forecastTypeRequired' | transloco
+              }}</mat-error>
+            }
           </mat-form-field>
         </div>
       </div>
@@ -203,10 +219,20 @@ export class EditTemplateLineDialog {
 
   protected readonly addForm = form(this.model, (path) => {
     required(path.name);
-    minLength(path.name, 2);
+    minLength(path.name, 1);
     applyAmountValidators(path.money);
     required(path.kind);
   });
+
+  protected readonly nameErrors = touchedFieldErrors(
+    () => this.addForm.name,
+    'required',
+    'minLength',
+  );
+  protected readonly kindErrors = touchedFieldErrors(
+    () => this.addForm.kind,
+    'required',
+  );
 
   protected readonly conversionError = signal(false);
   protected readonly isSubmitting = signal(false);

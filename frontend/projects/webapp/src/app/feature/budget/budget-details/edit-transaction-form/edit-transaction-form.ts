@@ -37,6 +37,7 @@ import {
   CurrencyConverterService,
 } from '@core/currency';
 import { UserSettingsStore } from '@core/user-settings';
+import { touchedFieldErrors } from '@core/validators';
 import { AmountInput } from '@app/pattern/amount-input/amount-input';
 import { TransactionLabelPipe } from '@ui/transaction-display';
 import { formatLocalDate } from '@core/date/format-local-date';
@@ -296,17 +297,12 @@ export class EditTransactionForm {
     });
   });
 
-  protected readonly nameErrors = computed(() => {
-    const state = this.transactionForm.name();
-    if (!state.touched())
-      return { required: false, minLength: false, maxLength: false };
-    const errors = state.errors();
-    return {
-      required: errors.some((e) => e.kind === 'required'),
-      minLength: errors.some((e) => e.kind === 'minLength'),
-      maxLength: errors.some((e) => e.kind === 'maxLength'),
-    };
-  });
+  protected readonly nameErrors = touchedFieldErrors(
+    () => this.transactionForm.name,
+    'required',
+    'minLength',
+    'maxLength',
+  );
 
   protected readonly dateErrors = computed(() => {
     const state = this.transactionForm.transactionDate();
@@ -325,11 +321,10 @@ export class EditTransactionForm {
     };
   });
 
-  protected readonly categoryErrors = computed(() => {
-    const state = this.transactionForm.category();
-    if (!state.touched()) return { maxLength: false };
-    return { maxLength: state.errors().some((e) => e.kind === 'maxLength') };
-  });
+  protected readonly categoryErrors = touchedFieldErrors(
+    () => this.transactionForm.category,
+    'maxLength',
+  );
 
   protected isFieldHidden(field: HideableField): boolean {
     return this.hiddenFields().includes(field);

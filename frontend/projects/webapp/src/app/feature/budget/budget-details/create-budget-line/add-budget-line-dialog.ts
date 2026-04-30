@@ -27,6 +27,7 @@ import {
   CurrencyConverterService,
 } from '@core/currency';
 import { UserSettingsStore } from '@core/user-settings';
+import { touchedFieldErrors } from '@core/validators';
 import { AmountInput } from '@app/pattern/amount-input/amount-input';
 import {
   TransactionIconPipe,
@@ -84,6 +85,16 @@ interface AddBudgetLineModel {
               [placeholder]="'budget.forecastNamePlaceholder' | transloco"
               data-testid="new-line-name"
             />
+            @if (nameErrors().required) {
+              <mat-error>{{
+                'budget.forecastNameRequired' | transloco
+              }}</mat-error>
+            }
+            @if (nameErrors().minLength) {
+              <mat-error>{{
+                'budget.forecastNameMinLength' | transloco
+              }}</mat-error>
+            }
           </mat-form-field>
 
           <pulpe-amount-input [control]="addForm.money" />
@@ -114,6 +125,11 @@ interface AddBudgetLineModel {
                 <span>{{ 'saving' | transactionLabel }}</span>
               </mat-option>
             </mat-select>
+            @if (kindErrors().required) {
+              <mat-error>{{
+                'budget.forecastTypeRequired' | transloco
+              }}</mat-error>
+            }
           </mat-form-field>
 
           <div class="flex items-center justify-between py-2 px-1">
@@ -172,6 +188,16 @@ export class AddBudgetLineDialog {
     applyAmountValidators(path.money);
     required(path.kind, { message: 'budget.forecastTypeRequired' });
   });
+
+  protected readonly nameErrors = touchedFieldErrors(
+    () => this.addForm.name,
+    'required',
+    'minLength',
+  );
+  protected readonly kindErrors = touchedFieldErrors(
+    () => this.addForm.kind,
+    'required',
+  );
 
   protected readonly conversionError = signal(false);
   protected readonly isSubmitting = signal(false);

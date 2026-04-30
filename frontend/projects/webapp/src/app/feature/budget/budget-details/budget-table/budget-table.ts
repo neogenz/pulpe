@@ -25,13 +25,13 @@ import { type BudgetLine, type BudgetLineUpdate } from 'pulpe-shared';
 import { AppCurrencyPipe } from '@core/currency';
 import { UserSettingsStore } from '@core/user-settings';
 import { ActionsCell, BalanceCell, NameCell, RemainingCell } from './cells';
-import { EditBudgetLineDialog } from '../edit-budget-line/edit-budget-line-dialog';
 import type {
   BudgetLineTableItem,
   GroupHeaderTableItem,
   TableRowItem,
   TransactionTableItem,
 } from '../view-models/table-items.view-model';
+import { BudgetDetailsDialogService } from '../budget-details-dialog.service';
 
 /**
  * Table component for displaying budget lines in a mat-table.
@@ -288,6 +288,7 @@ export class BudgetTable {
   readonly #logger = inject(Logger);
   readonly #transloco = inject(TranslocoService);
   readonly #userSettings = inject(UserSettingsStore);
+  readonly #budgetDetailsDialogService = inject(BudgetDetailsDialogService);
   protected readonly currency = this.#userSettings.currency;
 
   // Inputs
@@ -332,13 +333,10 @@ export class BudgetTable {
 
   async #openEditDialog(item: BudgetLineTableItem): Promise<void> {
     try {
-      const dialogRef = this.#dialog.open(EditBudgetLineDialog, {
-        data: { budgetLine: item.data },
-        width: '400px',
-        maxWidth: '90vw',
-      });
-
-      const result = await firstValueFrom(dialogRef.afterClosed());
+      const result =
+        await this.#budgetDetailsDialogService.openEditBudgetLineDialog(
+          item.data,
+        );
       if (result) this.update.emit(result);
     } catch (error) {
       this.#logger.error('Failed to open edit dialog', {

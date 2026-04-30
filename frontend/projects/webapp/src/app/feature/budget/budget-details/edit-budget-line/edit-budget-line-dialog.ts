@@ -33,6 +33,7 @@ import {
 } from '@core/currency';
 import { UserSettingsStore } from '@core/user-settings';
 import { FeatureFlagsService } from '@core/feature-flags';
+import { touchedFieldErrors } from '@core/validators/touched-field-errors';
 import { AmountInput } from '@app/pattern/amount-input/amount-input';
 import { budgetLineUpdateFromFormSchema } from './edit-budget-line-dialog.schema';
 
@@ -98,7 +99,7 @@ interface EditBudgetLineModel {
           <pulpe-amount-input
             [control]="editForm.money"
             mode="edit"
-            [originalCurrency]="originalCurrencySignal()"
+            [originalCurrency]="originalCurrency"
           />
 
           <mat-form-field
@@ -127,7 +128,7 @@ interface EditBudgetLineModel {
                 <span>{{ 'saving' | transactionLabel }}</span>
               </mat-option>
             </mat-select>
-            @if (kindHasRequiredError()) {
+            @if (kindErrors().required) {
               <mat-error>{{
                 'budget.forecastTypeRequired' | transloco
               }}</mat-error>
@@ -167,22 +168,19 @@ export class EditBudgetLineDialog {
   readonly #flags = inject(FeatureFlagsService);
   readonly #converter = inject(CurrencyConverterService);
 
-  readonly #originalCurrency = this.#data.budgetLine.originalCurrency ?? null;
-
-  protected readonly originalCurrencySignal = signal(this.#originalCurrency);
+  protected readonly originalCurrency =
+    this.#data.budgetLine.originalCurrency ?? this.#settings.currency();
 
   protected readonly showCurrencySelector = computed(
     () =>
       this.#flags.isMultiCurrencyEnabled() &&
-      this.#originalCurrency !== null &&
-      this.#originalCurrency !== this.#settings.currency(),
+      this.originalCurrency !== this.#settings.currency(),
   );
 
   protected readonly model = signal<EditBudgetLineModel>({
     name: this.#data.budgetLine.name,
     money: createAmountSlice({
-      initialCurrency:
-        this.#data.budgetLine.originalCurrency ?? this.#settings.currency(),
+      initialCurrency: this.originalCurrency,
       initialAmount: this.#computeInitialAmount(),
     }),
     kind: this.#data.budgetLine.kind,
@@ -203,24 +201,15 @@ export class EditBudgetLineDialog {
     () => this.editForm().valid() && !this.isSubmitting(),
   );
 
-  protected readonly kindHasRequiredError = computed(
-    () =>
-      this.editForm.kind().touched() &&
-      this.editForm
-        .kind()
-        .errors()
-        .some((e) => e.kind === 'required'),
+  protected readonly nameErrors = touchedFieldErrors(
+    () => this.editForm.name,
+    'required',
+    'minLength',
   );
-
-  protected readonly nameErrors = computed(() => {
-    const state = this.editForm.name();
-    if (!state.touched()) return { required: false, minLength: false };
-    const errors = state.errors();
-    return {
-      required: errors.some((e) => e.kind === 'required'),
-      minLength: errors.some((e) => e.kind === 'minLength'),
-    };
-  });
+  protected readonly kindErrors = touchedFieldErrors(
+    () => this.editForm.kind,
+    'required',
+  );
 
   #computeInitialAmount(): number {
     const line = this.#data.budgetLine;
