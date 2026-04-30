@@ -160,6 +160,29 @@ describe('UserSettingsStore', () => {
       store.reset();
       expect(mockCache.clear).toHaveBeenCalled();
     });
+
+    it('should reset settings() to null so previous user data does not leak', async () => {
+      const previousUserSettings: UserSettings = {
+        payDayOfMonth: 25,
+        currency: 'EUR',
+        showCurrencySelector: false,
+      };
+      mockApi.getSettings$ = vi
+        .fn()
+        .mockReturnValue(of({ data: previousUserSettings, success: true }));
+      store.reload();
+
+      await vi.waitFor(() => {
+        expect(store.currency()).toBe('EUR');
+        expect(store.payDayOfMonth()).toBe(25);
+      });
+
+      store.reset();
+
+      expect(store.settings()).toBeNull();
+      expect(store.currency()).toBe('CHF');
+      expect(store.payDayOfMonth()).toBeNull();
+    });
   });
 
   describe('reload', () => {
