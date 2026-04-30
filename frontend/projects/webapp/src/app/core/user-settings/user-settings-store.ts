@@ -63,5 +63,6 @@ export class UserSettingsStore {
 
   reset(): void {
     this.#api.cache.clear();
+    this.#settingsResource.set(null);
   }
 }
