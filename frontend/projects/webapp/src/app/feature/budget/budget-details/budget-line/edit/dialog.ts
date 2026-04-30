@@ -220,7 +220,7 @@ export class EditBudgetLineDialog {
   }
 
   async handleSubmit(): Promise<void> {
-    if (!this.editForm().valid()) return;
+    if (!this.canSubmit()) return;
 
     this.conversionError.set(false);
     this.isSubmitting.set(true);

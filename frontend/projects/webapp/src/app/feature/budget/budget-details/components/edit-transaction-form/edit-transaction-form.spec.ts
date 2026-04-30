@@ -116,7 +116,7 @@ describe('EditTransactionForm', () => {
           .some((e) => e.kind === 'required'),
       ).toBe(true);
 
-      component['model'].update((m) => ({ ...m, transactionDate: null }));
+      component['model'].update((m) => ({ ...m, transactionDate: null! }));
       expect(
         component['transactionForm']
           .transactionDate()
@@ -405,7 +405,6 @@ describe('EditTransactionForm — currency edit rules', () => {
     fixture.detectChanges();
 
     expect(component['showCurrencySelector']()).toBe(true);
-    expect(component['inputCurrency']()).toBe('EUR');
   });
 
   it('hides picker when flag is OFF (even with alternate originalCurrency)', () => {
@@ -458,23 +457,6 @@ describe('EditTransactionForm — currency edit rules', () => {
     fixture.detectChanges();
 
     expect(component['showCurrencySelector']()).toBe(false);
-  });
-
-  it('initializes inputCurrency to originalCurrency when present, falls back to user currency otherwise', () => {
-    const ctx1 = configureForm({ userCurrency: 'CHF', flagEnabled: true });
-    setTestInput(
-      ctx1.component.transaction,
-      makeTransaction({ originalCurrency: 'EUR' }),
-    );
-    ctx1.fixture.detectChanges();
-    expect(ctx1.component['inputCurrency']()).toBe('EUR');
-
-    TestBed.resetTestingModule();
-
-    const ctx2 = configureForm({ userCurrency: 'CHF', flagEnabled: true });
-    setTestInput(ctx2.component.transaction, makeTransaction());
-    ctx2.fixture.detectChanges();
-    expect(ctx2.component['inputCurrency']()).toBe('CHF');
   });
 
   it('pre-fills form with originalAmount when picker is visible (alternate currency)', () => {

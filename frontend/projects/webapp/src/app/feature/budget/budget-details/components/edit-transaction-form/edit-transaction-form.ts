@@ -48,7 +48,7 @@ interface EditTransactionModel {
   name: string;
   money: AmountFormSlice;
   kind: TransactionKind;
-  transactionDate: Date | null;
+  transactionDate: Date;
   category: string;
 }
 
@@ -143,7 +143,7 @@ interface EditTransactionModel {
           [matDatepicker]="picker"
           [min]="minDate()"
           [max]="maxDate()"
-          [field]="$any(transactionForm.transactionDate)"
+          [field]="transactionForm.transactionDate"
           [placeholder]="'transactionForm.datePlaceholder' | transloco"
           aria-describedby="date-hint"
           readonly
@@ -252,10 +252,6 @@ export class EditTransactionForm {
       this.originalCurrency() !== this.#settings.currency(),
   );
 
-  protected readonly inputCurrency = computed(
-    () => this.originalCurrency() ?? this.#settings.currency(),
-  );
-
   protected readonly model = linkedSignal({
     source: this.transaction,
     computation: (tx): EditTransactionModel => ({
@@ -283,7 +279,8 @@ export class EditTransactionForm {
     maxLength(path.category, 50);
     validate(path.transactionDate, ({ value }) => {
       const date = value();
-      if (!date) return null;
+      if (!date || !(date instanceof Date) || isNaN(date.getTime()))
+        return null;
       const min = this.minDate();
       const max = this.maxDate();
       if (date < min || date > max) {
@@ -335,8 +332,6 @@ export class EditTransactionForm {
 
     const m = this.model();
     const { transactionDate, category } = m;
-
-    if (!transactionDate) return;
 
     this.conversionError.set(false);
     this.#isUpdating.set(true);
