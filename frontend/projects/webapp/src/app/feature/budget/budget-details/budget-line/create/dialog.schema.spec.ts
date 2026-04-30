@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   budgetLineCreateFromFormSchema,
   type BudgetLineCreateFormValue,
-} from './add-budget-line-dialog.schema';
+} from './dialog.schema';
 
 const BUDGET_ID = '00000000-0000-4000-8000-000000000001';
 

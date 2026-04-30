@@ -15,7 +15,7 @@ import type { BudgetLineConsumption } from '@core/budget';
 import {
   AddBudgetLineDialog,
   type BudgetLineDialogData,
-} from './create-budget-line/add-budget-line-dialog';
+} from './budget-line/create/dialog';
 import {
   AllocatedTransactionsDialog,
   type AllocatedTransactionsDialogData,
@@ -32,7 +32,7 @@ import {
   ConfirmationDialog,
   type ConfirmationDialogData,
 } from '@ui/dialogs/confirmation-dialog';
-import { EditBudgetLineDialog } from './edit-budget-line/edit-budget-line-dialog';
+import { EditBudgetLineDialog } from './budget-line/edit/dialog';
 import {
   EditTransactionDialog,
   type EditTransactionDialogData,

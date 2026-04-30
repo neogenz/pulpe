@@ -14,10 +14,7 @@ import { CurrencyConverterService } from '@core/currency';
 import { FeatureFlagsService } from '@core/feature-flags';
 import { UserSettingsStore } from '@core/user-settings';
 import type { BudgetLine, SupportedCurrency } from 'pulpe-shared';
-import {
-  EditBudgetLineDialog,
-  type EditBudgetLineDialogData,
-} from './edit-budget-line-dialog';
+import { EditBudgetLineDialog, type EditBudgetLineDialogData } from './dialog';
 
 interface FlagsMock {
   isMultiCurrencyEnabled: ReturnType<typeof signal>;

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   budgetLineUpdateFromFormSchema,
   type BudgetLineUpdateFormValue,
-} from './edit-budget-line-dialog.schema';
+} from './dialog.schema';
 
 const updateFormValue: BudgetLineUpdateFormValue = {
   name: 'Loyer',

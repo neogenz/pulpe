@@ -1,30 +1,25 @@
 import {
-  Component,
-  inject,
   ChangeDetectionStrategy,
+  Component,
   computed,
+  inject,
   signal,
 } from '@angular/core';
+import { Field, form, minLength, required } from '@angular/forms/signals';
 import {
-  MatDialogRef,
   MAT_DIALOG_DATA,
   MatDialogModule,
+  MatDialogRef,
 } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { Field, form, required, minLength } from '@angular/forms/signals';
-import {
-  type BudgetLine,
-  type BudgetLineUpdate,
-  type TransactionKind,
-  type TransactionRecurrence,
-} from 'pulpe-shared';
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { TranslocoPipe } from '@jsverse/transloco';
-import { TransactionIconPipe } from '@ui/transaction-display';
-import { TransactionLabelPipe } from '@ui/transaction-display';
+import { type TransactionKind, type TransactionRecurrence } from 'pulpe-shared';
+
 import {
   applyAmountValidators,
   type AmountFormSlice,
@@ -32,24 +27,29 @@ import {
   CurrencyConverterService,
 } from '@core/currency';
 import { UserSettingsStore } from '@core/user-settings';
-import { FeatureFlagsService } from '@core/feature-flags';
-import { touchedFieldErrors } from '@core/validators/touched-field-errors';
+import { touchedFieldErrors } from '@core/validators';
 import { AmountInput } from '@app/pattern/amount-input/amount-input';
-import { budgetLineUpdateFromFormSchema } from './edit-budget-line-dialog.schema';
+import {
+  TransactionIconPipe,
+  TransactionLabelPipe,
+} from '@ui/transaction-display';
 
-export interface EditBudgetLineDialogData {
-  budgetLine: BudgetLine;
+import { budgetLineCreateFromFormSchema } from './dialog.schema';
+
+export interface BudgetLineDialogData {
+  budgetId: string;
 }
 
-interface EditBudgetLineModel {
+interface AddBudgetLineModel {
   name: string;
-  money: AmountFormSlice;
   kind: TransactionKind;
   recurrence: TransactionRecurrence;
+  isChecked: boolean;
+  money: AmountFormSlice;
 }
 
 @Component({
-  selector: 'pulpe-edit-budget-line-dialog',
+  selector: 'pulpe-budget-line-dialog',
   imports: [
     MatDialogModule,
     MatFormFieldModule,
@@ -57,16 +57,17 @@ interface EditBudgetLineModel {
     MatSelectModule,
     MatButtonModule,
     MatIconModule,
+    MatSlideToggleModule,
     TranslocoPipe,
     TransactionIconPipe,
     TransactionLabelPipe,
     Field,
     AmountInput,
   ],
-  host: { 'data-testid': 'edit-budget-line-dialog' },
+  host: { 'data-testid': 'add-budget-line-dialog' },
   template: `
     <h2 mat-dialog-title class="text-headline-small">
-      {{ 'budget.editForecast' | transloco }}
+      {{ 'budget.newForecast' | transloco }}
     </h2>
 
     <mat-dialog-content>
@@ -80,9 +81,9 @@ interface EditBudgetLineModel {
             <mat-label>{{ 'budget.forecastNameLabel' | transloco }}</mat-label>
             <input
               matInput
-              [field]="editForm.name"
+              [field]="addForm.name"
               [placeholder]="'budget.forecastNamePlaceholder' | transloco"
-              data-testid="edit-line-name"
+              data-testid="new-line-name"
             />
             @if (nameErrors().required) {
               <mat-error>{{
@@ -96,11 +97,7 @@ interface EditBudgetLineModel {
             }
           </mat-form-field>
 
-          <pulpe-amount-input
-            [control]="editForm.money"
-            mode="edit"
-            [originalCurrency]="originalCurrency"
-          />
+          <pulpe-amount-input [control]="addForm.money" />
 
           <mat-form-field
             appearance="outline"
@@ -108,7 +105,7 @@ interface EditBudgetLineModel {
             class="w-full"
           >
             <mat-label>{{ 'budget.forecastTypeLabel' | transloco }}</mat-label>
-            <mat-select [field]="editForm.kind" data-testid="edit-line-kind">
+            <mat-select [field]="addForm.kind" data-testid="new-line-kind">
               <mat-option value="income">
                 <mat-icon class="text-financial-income">{{
                   'income' | transactionIcon
@@ -134,97 +131,85 @@ interface EditBudgetLineModel {
               }}</mat-error>
             }
           </mat-form-field>
+
+          <div class="flex items-center justify-between py-2 px-1">
+            <span class="text-body-medium text-on-surface">{{
+              'budget.forecastCheckedToggle' | transloco
+            }}</span>
+            <mat-slide-toggle
+              [field]="addForm.isChecked"
+              [attr.aria-label]="'budget.forecastCheckedToggle' | transloco"
+            />
+          </div>
         </div>
       </div>
     </mat-dialog-content>
 
     @if (conversionError()) {
-      <p role="alert" class="text-error text-body-small px-6 pb-2">
+      <p class="text-error text-body-small px-6 pb-2">
         {{ 'common.conversionError' | transloco }}
       </p>
     }
     <mat-dialog-actions align="end">
-      <button matButton (click)="handleCancel()" data-testid="cancel-edit-line">
+      <button matButton (click)="cancel()" data-testid="cancel-new-line">
         {{ 'common.cancel' | transloco }}
       </button>
       <button
         matButton="filled"
         color="primary"
-        (click)="handleSubmit()"
+        (click)="submit()"
         [disabled]="!canSubmit()"
-        data-testid="save-edit-line"
+        data-testid="add-new-line"
       >
-        <mat-icon>save</mat-icon>
-        {{ 'common.save' | transloco }}
+        <mat-icon>add</mat-icon>
+        {{ 'common.add' | transloco }}
       </button>
     </mat-dialog-actions>
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class EditBudgetLineDialog {
-  readonly #dialogRef = inject(MatDialogRef<EditBudgetLineDialog>);
-  readonly #data = inject<EditBudgetLineDialogData>(MAT_DIALOG_DATA);
+export class AddBudgetLineDialog {
+  readonly #dialogRef = inject(MatDialogRef<AddBudgetLineDialog>);
+  readonly #data = inject<BudgetLineDialogData>(MAT_DIALOG_DATA);
   readonly #settings = inject(UserSettingsStore);
-  readonly #flags = inject(FeatureFlagsService);
   readonly #converter = inject(CurrencyConverterService);
 
-  protected readonly originalCurrency =
-    this.#data.budgetLine.originalCurrency ?? this.#settings.currency();
-
-  protected readonly showCurrencySelector = computed(
-    () =>
-      this.#flags.isMultiCurrencyEnabled() &&
-      this.originalCurrency !== this.#settings.currency(),
-  );
-
-  protected readonly model = signal<EditBudgetLineModel>({
-    name: this.#data.budgetLine.name,
-    money: createAmountSlice({
-      initialCurrency: this.originalCurrency,
-      initialAmount: this.#computeInitialAmount(),
-    }),
-    kind: this.#data.budgetLine.kind,
-    recurrence: this.#data.budgetLine.recurrence,
+  protected readonly model = signal<AddBudgetLineModel>({
+    name: '',
+    kind: 'expense',
+    recurrence: 'one_off',
+    isChecked: false,
+    money: createAmountSlice({ initialCurrency: this.#settings.currency() }),
   });
 
-  protected readonly editForm = form(this.model, (path) => {
+  protected readonly addForm = form(this.model, (path) => {
     required(path.name, { message: 'budget.forecastNameRequired' });
     minLength(path.name, 1);
     applyAmountValidators(path.money);
     required(path.kind, { message: 'budget.forecastTypeRequired' });
-    required(path.recurrence);
   });
 
-  protected readonly conversionError = signal(false);
-  protected readonly isSubmitting = signal(false);
-  protected readonly canSubmit = computed(
-    () => this.editForm().valid() && !this.isSubmitting(),
-  );
-
   protected readonly nameErrors = touchedFieldErrors(
-    () => this.editForm.name,
+    () => this.addForm.name,
     'required',
     'minLength',
   );
   protected readonly kindErrors = touchedFieldErrors(
-    () => this.editForm.kind,
+    () => this.addForm.kind,
     'required',
   );
 
-  #computeInitialAmount(): number {
-    const line = this.#data.budgetLine;
-    if (this.showCurrencySelector() && line.originalAmount != null) {
-      return line.originalAmount;
-    }
-    return line.amount;
-  }
+  protected readonly conversionError = signal(false);
+  protected readonly isSubmitting = signal(false);
+  protected readonly canSubmit = computed(
+    () => this.addForm().valid() && !this.isSubmitting(),
+  );
 
-  async handleSubmit(): Promise<void> {
-    if (!this.editForm().valid()) return;
+  protected async submit(): Promise<void> {
+    if (!this.canSubmit()) return;
 
     this.conversionError.set(false);
     this.isSubmitting.set(true);
-
     try {
       const m = this.model();
       const { convertedAmount, metadata } =
@@ -234,20 +219,16 @@ export class EditBudgetLineDialog {
           this.#settings.currency(),
         );
 
-      const formPart = budgetLineUpdateFromFormSchema.parse({
-        name: m.name,
+      const dto = budgetLineCreateFromFormSchema.parse({
+        budgetId: this.#data.budgetId,
+        name: m.name.trim(),
         amount: convertedAmount,
         kind: m.kind,
         recurrence: m.recurrence,
+        isChecked: m.isChecked,
         conversion: metadata,
       });
-      const update: BudgetLineUpdate = {
-        id: this.#data.budgetLine.id,
-        templateLineId: this.#data.budgetLine.templateLineId,
-        savingsGoalId: this.#data.budgetLine.savingsGoalId,
-        ...formPart,
-      };
-      this.#dialogRef.close(update);
+      this.#dialogRef.close(dto);
     } catch {
       this.conversionError.set(true);
     } finally {
@@ -255,7 +236,7 @@ export class EditBudgetLineDialog {
     }
   }
 
-  handleCancel(): void {
+  protected cancel(): void {
     this.#dialogRef.close();
   }
 }

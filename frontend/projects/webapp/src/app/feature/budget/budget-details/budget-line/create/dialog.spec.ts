@@ -8,10 +8,7 @@ import { CurrencyConverterService } from '@core/currency';
 import { FeatureFlagsService } from '@core/feature-flags';
 import { UserSettingsStore } from '@core/user-settings';
 import type { SupportedCurrency } from 'pulpe-shared';
-import {
-  AddBudgetLineDialog,
-  type BudgetLineDialogData,
-} from './add-budget-line-dialog';
+import { AddBudgetLineDialog, type BudgetLineDialogData } from './dialog';
 
 interface FlagsMock {
   isMultiCurrencyEnabled: ReturnType<typeof signal>;
