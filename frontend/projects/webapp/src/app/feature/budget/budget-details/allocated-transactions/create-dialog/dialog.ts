@@ -36,6 +36,7 @@ import {
 } from '@core/currency';
 import { UserSettingsStore } from '@core/user-settings';
 import { touchedFieldErrors } from '@core/validators';
+import { Logger } from '@core/logging/logger';
 import { AmountInput } from '@app/pattern/amount-input/amount-input';
 import { computeBudgetPeriodDateConstraints } from './budget-period-date-constraints';
 
@@ -167,6 +168,7 @@ interface CreateAllocatedTransactionModel {
 export class CreateAllocatedTransactionDialog {
   readonly #settings = inject(UserSettingsStore);
   readonly #converter = inject(CurrencyConverterService);
+  readonly #logger = inject(Logger);
   readonly #dialogRef = inject(
     MatDialogRef<CreateAllocatedTransactionDialog, TransactionCreate>,
   );
@@ -196,9 +198,10 @@ export class CreateAllocatedTransactionDialog {
     applyAmountValidators(path.money);
     required(path.transactionDate);
     validate(path.transactionDate, ({ value }) => {
-      if (!value || !(value instanceof Date) || isNaN(value.getTime()))
+      const date = value();
+      if (!date || !(date instanceof Date) || isNaN(date.getTime()))
         return null;
-      const time = value.getTime();
+      const time = date.getTime();
       if (time < this.minDate.getTime() || time > this.maxDate.getTime())
         return customError({ kind: 'dateOutOfRange' });
       return null;
@@ -251,7 +254,8 @@ export class CreateAllocatedTransactionDialog {
       });
 
       this.#dialogRef.close(transaction);
-    } catch {
+    } catch (error: unknown) {
+      this.#logger.error('Currency conversion or schema parse failed', error);
       this.conversionError.set(true);
     } finally {
       this.isSubmitting.set(false);

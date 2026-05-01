@@ -1,4 +1,9 @@
-import { Component, inject, ChangeDetectionStrategy } from '@angular/core';
+import {
+  Component,
+  inject,
+  computed,
+  ChangeDetectionStrategy,
+} from '@angular/core';
 import { DatePipe, DecimalPipe } from '@angular/common';
 import {
   MAT_DIALOG_DATA,
@@ -105,13 +110,13 @@ export interface AllocatedTransactionsDialogResult {
         <div class="px-2">
           <mat-progress-bar
             mode="determinate"
-            [value]="consumptionPercentage"
-            [class.warn-bar]="consumptionPercentage > 100"
+            [value]="consumptionPercentage()"
+            [class.warn-bar]="consumptionPercentage() > 100"
           />
           <div
             class="text-label-small text-on-surface-variant text-center mt-1"
           >
-            {{ consumptionPercentage | number: '1.0-0'
+            {{ consumptionPercentage() | number: '1.0-0'
             }}{{ 'budgetLine.consumed' | transloco }}
           </div>
         </div>
@@ -253,12 +258,13 @@ export class AllocatedTransactionsDialog {
 
   readonly displayedColumns = ['date', 'name', 'amount', 'actions'];
 
-  readonly consumptionPercentage =
+  protected readonly consumptionPercentage = computed(() =>
     this.data.budgetLine.amount > 0
       ? Math.round(
           (this.data.consumption.consumed / this.data.budgetLine.amount) * 100,
         )
-      : 0;
+      : 0,
+  );
 
   close(): void {
     this.#dialogRef.close();

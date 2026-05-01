@@ -1044,6 +1044,10 @@
     "notesOptional": "(optionnel)",
     "notesMaxLength": "La catégorie ne peut pas dépasser 50 caractères",
     "formAriaLabel": "Formulaire de modification de transaction",
-    "checkedToggle": "Déjà pointé"
+    "checkedToggle": "Déjà pointé",
+    "editTitle": "Modifier la transaction",
+    "editFormAriaLabel": "Formulaire de modification de transaction",
+    "cancelAriaLabel": "Annuler la modification",
+    "saveAriaLabel": "Enregistrer les modifications"
   }
 }

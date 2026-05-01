@@ -504,7 +504,7 @@ describe('CreateBudgetDialogComponent', () => {
         expect.any(String),
         expect.objectContaining({
           duration: 8000,
-          panelClass: ['bg-[color-error]', 'text-[color-on-error]'],
+          panelClass: ['!bg-error', '!text-on-error'],
         }),
       );
     });

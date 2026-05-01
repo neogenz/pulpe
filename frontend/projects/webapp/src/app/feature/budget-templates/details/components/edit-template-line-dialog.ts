@@ -35,6 +35,7 @@ import {
 } from '@core/currency';
 import { UserSettingsStore } from '@core/user-settings';
 import { FeatureFlagsService } from '@core/feature-flags';
+import { Logger } from '@core/logging/logger';
 import { touchedFieldErrors } from '@core/validators';
 import { AmountInput } from '@app/pattern/amount-input/amount-input';
 
@@ -183,6 +184,7 @@ export class EditTemplateLineDialog {
   readonly #settings = inject(UserSettingsStore);
   readonly #converter = inject(CurrencyConverterService);
   readonly #flags = inject(FeatureFlagsService);
+  readonly #logger = inject(Logger);
 
   protected readonly kinds = TRANSACTION_KINDS;
   protected readonly isEditMode = computed(() => this.#data.line != null);
@@ -191,19 +193,6 @@ export class EditTemplateLineDialog {
   );
   protected readonly originalCurrency = computed(
     () => this.#data.line?.originalCurrency ?? null,
-  );
-
-  protected readonly showCurrencySelector = computed(() => {
-    if (!this.#flags.isMultiCurrencyEnabled()) return false;
-    if (this.#data.line != null) {
-      const orig = this.#data.line.originalCurrency ?? null;
-      return orig !== null && orig !== this.#settings.currency();
-    }
-    return this.#settings.showCurrencySelector();
-  });
-
-  protected readonly inputCurrency = computed<SupportedCurrency>(
-    () => this.model().money.inputCurrency,
   );
 
   protected readonly model = signal<EditTemplateLineModel>({
@@ -265,13 +254,6 @@ export class EditTemplateLineDialog {
     return createAmountSlice({ initialCurrency: userCurrency });
   }
 
-  protected handleInputCurrencyChange(currency: SupportedCurrency): void {
-    this.model.update((m) => ({
-      ...m,
-      money: { ...m.money, inputCurrency: currency },
-    }));
-  }
-
   async handleSubmit(): Promise<void> {
     if (!this.canSubmit()) return;
 
@@ -293,7 +275,8 @@ export class EditTemplateLineDialog {
         ...(metadata ?? {}),
       };
       this.#dialogRef.close(result);
-    } catch {
+    } catch (error: unknown) {
+      this.#logger.error('Currency conversion or schema parse failed', error);
       this.conversionError.set(true);
     } finally {
       this.isSubmitting.set(false);

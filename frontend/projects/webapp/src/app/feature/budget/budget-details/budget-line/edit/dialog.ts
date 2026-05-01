@@ -33,7 +33,8 @@ import {
 } from '@core/currency';
 import { UserSettingsStore } from '@core/user-settings';
 import { FeatureFlagsService } from '@core/feature-flags';
-import { touchedFieldErrors } from '@core/validators/touched-field-errors';
+import { Logger } from '@core/logging/logger';
+import { touchedFieldErrors } from '@core/validators';
 import { AmountInput } from '@app/pattern/amount-input/amount-input';
 import { budgetLineUpdateFromFormSchema } from './dialog.schema';
 
@@ -162,6 +163,7 @@ export class EditBudgetLineDialog {
   readonly #settings = inject(UserSettingsStore);
   readonly #flags = inject(FeatureFlagsService);
   readonly #converter = inject(CurrencyConverterService);
+  readonly #logger = inject(Logger);
 
   protected readonly originalCurrency =
     this.#data.budgetLine.originalCurrency ?? this.#settings.currency();
@@ -241,7 +243,8 @@ export class EditBudgetLineDialog {
         ...formPart,
       };
       this.#dialogRef.close(update);
-    } catch {
+    } catch (error: unknown) {
+      this.#logger.error('Currency conversion or schema parse failed', error);
       this.conversionError.set(true);
     } finally {
       this.isSubmitting.set(false);

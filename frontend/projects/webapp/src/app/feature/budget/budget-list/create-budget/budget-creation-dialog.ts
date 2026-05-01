@@ -323,7 +323,7 @@ export class CreateBudgetDialogComponent {
         this.#transloco.translate('common.close'),
         {
           duration: 5000,
-          panelClass: ['bg-[color-primary]', 'text-[color-on-primary]'],
+          panelClass: ['!bg-primary', '!text-on-primary'],
         },
       );
     } else {
@@ -337,7 +337,7 @@ export class CreateBudgetDialogComponent {
         this.#transloco.translate('common.close'),
         {
           duration: 8000,
-          panelClass: ['bg-[color-error]', 'text-[color-on-error]'],
+          panelClass: ['!bg-error', '!text-on-error'],
         },
       );
     }

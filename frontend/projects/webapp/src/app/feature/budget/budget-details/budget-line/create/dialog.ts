@@ -26,6 +26,7 @@ import {
   createAmountSlice,
   CurrencyConverterService,
 } from '@core/currency';
+import { Logger } from '@core/logging/logger';
 import { UserSettingsStore } from '@core/user-settings';
 import { touchedFieldErrors } from '@core/validators';
 import { AmountInput } from '@app/pattern/amount-input/amount-input';
@@ -168,6 +169,7 @@ export class AddBudgetLineDialog {
   readonly #data = inject<BudgetLineDialogData>(MAT_DIALOG_DATA);
   readonly #settings = inject(UserSettingsStore);
   readonly #converter = inject(CurrencyConverterService);
+  readonly #logger = inject(Logger);
 
   protected readonly model = signal<AddBudgetLineModel>({
     name: '',
@@ -222,7 +224,8 @@ export class AddBudgetLineDialog {
         conversion: metadata,
       });
       this.#dialogRef.close(dto);
-    } catch {
+    } catch (error: unknown) {
+      this.#logger.error('Currency conversion or schema parse failed', error);
       this.conversionError.set(true);
     } finally {
       this.isSubmitting.set(false);

@@ -41,6 +41,7 @@ import { touchedFieldErrors } from '@core/validators';
 import { AmountInput } from '@app/pattern/amount-input/amount-input';
 import { TransactionLabelPipe } from '@ui/transaction-display';
 import { formatLocalDate } from '@core/date/format-local-date';
+import { Logger } from '@core/logging/logger';
 
 export type HideableField = 'kind' | 'category';
 
@@ -50,6 +51,12 @@ interface EditTransactionModel {
   kind: TransactionKind;
   transactionDate: Date;
   category: string;
+}
+
+interface DateOutOfRangeError {
+  kind: 'dateOutOfRange';
+  min: string;
+  max: string;
 }
 
 @Component({
@@ -170,8 +177,8 @@ interface EditTransactionModel {
               'transactionForm.dateOutOfRange'
                 | transloco
                   : {
-                      min: range['min'],
-                      max: range['max'],
+                      min: range.min,
+                      max: range.max,
                     }
             }}
           </mat-error>
@@ -218,6 +225,7 @@ export class EditTransactionForm {
   readonly #flags = inject(FeatureFlagsService);
   readonly #settings = inject(UserSettingsStore);
   readonly #converter = inject(CurrencyConverterService);
+  readonly #logger = inject(Logger);
 
   readonly transaction = input.required<Transaction>();
 
@@ -306,15 +314,15 @@ export class EditTransactionForm {
     if (!state.touched())
       return {
         required: false,
-        outOfRange: null as Record<string, string> | null,
+        outOfRange: null as DateOutOfRangeError | null,
       };
     const errors = state.errors();
-    const rangeErr = errors.find((e) => e.kind === 'dateOutOfRange');
+    const rangeErr = errors.find((e) => e.kind === 'dateOutOfRange') as
+      | DateOutOfRangeError
+      | undefined;
     return {
       required: errors.some((e) => e.kind === 'required'),
-      outOfRange: rangeErr
-        ? (rangeErr as unknown as Record<string, string>)
-        : null,
+      outOfRange: rangeErr ?? null,
     };
   });
 
@@ -354,8 +362,10 @@ export class EditTransactionForm {
       };
 
       this.updateTransaction.emit(formData);
-    } catch {
+    } catch (error: unknown) {
+      this.#logger.error('Currency conversion failed', error);
       this.conversionError.set(true);
+    } finally {
       this.#isUpdating.set(false);
     }
   }

@@ -26,11 +26,13 @@ import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { TransactionLabelPipe } from '@ui/transaction-display';
 import { UserSettingsStore } from '@core/user-settings';
 import {
+  AppCurrencyPipe,
   applyAmountValidators,
   type AmountFormSlice,
   createAmountSlice,
   CurrencyConverterService,
 } from '@core/currency';
+import { Logger } from '@core/logging/logger';
 import { AmountInput } from '@app/pattern/amount-input/amount-input';
 import { BlurOnVisibilityResumeDirective } from '@ui/blur-on-visibility-resume/blur-on-visibility-resume.directive';
 
@@ -64,6 +66,7 @@ interface AddTransactionModel {
     MatSlideToggleModule,
     TranslocoPipe,
     TransactionLabelPipe,
+    AppCurrencyPipe,
     Field,
     AmountInput,
     BlurOnVisibilityResumeDirective,
@@ -115,9 +118,9 @@ interface AddTransactionModel {
                 matButton="tonal"
                 type="button"
                 (click)="selectPredefinedAmount(amount)"
-                class="!min-w-[80px] !h-[40px]"
+                class="min-w-20 h-10"
               >
-                {{ amount }} {{ currency() }}
+                {{ amount | appCurrency: currency() : '1.0-0' }}
               </button>
             }
           </div>
@@ -253,6 +256,7 @@ export class AddTransactionBottomSheet {
   readonly #transloco = inject(TranslocoService);
   readonly #userSettings = inject(UserSettingsStore);
   readonly #converter = inject(CurrencyConverterService);
+  readonly #logger = inject(Logger);
 
   protected readonly amountInput = viewChild(AmountInput);
 
@@ -349,7 +353,8 @@ export class AddTransactionBottomSheet {
       };
 
       this.#bottomSheetRef.dismiss(transaction);
-    } catch {
+    } catch (error: unknown) {
+      this.#logger.error('Currency conversion or schema parse failed', error);
       this.conversionError.set(true);
     } finally {
       this.isSubmitting.set(false);

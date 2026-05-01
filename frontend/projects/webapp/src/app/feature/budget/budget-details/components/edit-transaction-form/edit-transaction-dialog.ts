@@ -12,6 +12,7 @@ import {
 } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MAT_FORM_FIELD_DEFAULT_OPTIONS } from '@angular/material/form-field';
+import { TranslocoPipe } from '@jsverse/transloco';
 import {
   EditTransactionForm,
   type HideableField,
@@ -40,11 +41,12 @@ export interface EditTransactionDialogData {
     MatButtonModule,
     MatDialogModule,
     MatIconModule,
+    TranslocoPipe,
     EditTransactionForm,
   ],
   template: `
     <h2 mat-dialog-title class="text-headline-small">
-      Modifier la transaction
+      {{ 'transactionForm.editTitle' | transloco }}
     </h2>
 
     <mat-dialog-content>
@@ -58,7 +60,7 @@ export interface EditTransactionDialogData {
         (updateTransaction)="onUpdateTransaction($event)"
         (cancelEdit)="closeDialog()"
         role="main"
-        aria-label="Formulaire de modification de transaction"
+        [attr.aria-label]="'transactionForm.editFormAriaLabel' | transloco"
       />
     </mat-dialog-content>
 
@@ -68,21 +70,21 @@ export interface EditTransactionDialogData {
         type="button"
         (click)="closeDialog()"
         [disabled]="editForm.isUpdating()"
-        aria-label="Annuler la modification"
+        [attr.aria-label]="'transactionForm.cancelAriaLabel' | transloco"
       >
-        Annuler
+        {{ 'common.cancel' | transloco }}
       </button>
       <button
         matButton="filled"
         type="button"
         [disabled]="!editForm.canSubmit()"
         (click)="submitForm()"
-        aria-label="Enregistrer les modifications"
+        [attr.aria-label]="'transactionForm.saveAriaLabel' | transloco"
       >
         <mat-icon aria-hidden="true">
           {{ editForm.isUpdating() ? 'hourglass_empty' : 'save' }}
         </mat-icon>
-        Enregistrer
+        {{ 'common.save' | transloco }}
       </button>
     </mat-dialog-actions>
   `,

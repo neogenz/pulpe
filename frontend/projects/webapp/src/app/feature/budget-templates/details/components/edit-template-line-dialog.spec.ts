@@ -45,7 +45,6 @@ function setup(options: SetupOptions = {}): {
 
   const mockUserSettings = {
     currency: signal('CHF' as const),
-    showCurrencySelector: signal(false),
     settings: signal(null),
   };
 
@@ -208,7 +207,6 @@ interface CurrencySetupOptions {
   line?: TemplateLine;
   userCurrency: 'CHF' | 'EUR';
   flagEnabled: boolean;
-  showCurrencyPref?: boolean;
 }
 
 function setupWithCurrency(options: CurrencySetupOptions): {
@@ -219,7 +217,6 @@ function setupWithCurrency(options: CurrencySetupOptions): {
   flags: { isMultiCurrencyEnabled: ReturnType<typeof signal> };
   settings: {
     currency: ReturnType<typeof signal<'CHF' | 'EUR'>>;
-    showCurrencySelector: ReturnType<typeof signal<boolean>>;
   };
 } {
   const dialogRef = { close: vi.fn() };
@@ -231,7 +228,6 @@ function setupWithCurrency(options: CurrencySetupOptions): {
   const flags = { isMultiCurrencyEnabled: signal(options.flagEnabled) };
   const settings = {
     currency: signal<'CHF' | 'EUR'>(options.userCurrency),
-    showCurrencySelector: signal(options.showCurrencyPref ?? true),
   };
 
   const data: EditTemplateLineDialogData = {
@@ -266,54 +262,13 @@ function setupWithCurrency(options: CurrencySetupOptions): {
 describe('EditTemplateLineDialog — Create mode currency rules', () => {
   beforeEach(() => TestBed.resetTestingModule());
 
-  it('B1: should show picker when flag ON and showCurrencySelector pref ON', () => {
-    const { component } = setupWithCurrency({
-      userCurrency: 'CHF',
-      flagEnabled: true,
-      showCurrencyPref: true,
-    });
-
-    expect(component['showCurrencySelector']()).toBe(true);
-  });
-
-  it('B2: should hide picker when flag OFF', () => {
-    const { component } = setupWithCurrency({
-      userCurrency: 'CHF',
-      flagEnabled: false,
-      showCurrencyPref: true,
-    });
-
-    expect(component['showCurrencySelector']()).toBe(false);
-  });
-
-  it('B3: should hide picker when flag ON but showCurrencySelector pref OFF', () => {
-    const { component } = setupWithCurrency({
-      userCurrency: 'CHF',
-      flagEnabled: true,
-      showCurrencyPref: false,
-    });
-
-    expect(component['showCurrencySelector']()).toBe(false);
-  });
-
   it('B4: should initialize inputCurrency to user currency', () => {
     const { component } = setupWithCurrency({
       userCurrency: 'EUR',
       flagEnabled: true,
     });
 
-    expect(component['inputCurrency']()).toBe('EUR');
-  });
-
-  it('B5: should update inputCurrency when handleInputCurrencyChange is called', () => {
-    const { component } = setupWithCurrency({
-      userCurrency: 'CHF',
-      flagEnabled: true,
-    });
-
-    component['handleInputCurrencyChange']('EUR');
-
-    expect(component['inputCurrency']()).toBe('EUR');
+    expect(component['model']().money.inputCurrency).toBe('EUR');
   });
 
   it('B6: should call convertWithMetadata and include metadata in result when currencies differ', async () => {
@@ -332,7 +287,6 @@ describe('EditTemplateLineDialog — Create mode currency rules', () => {
       },
     });
 
-    component['handleInputCurrencyChange']('EUR');
     component['model'].update((m) => ({
       ...m,
       name: 'Charges',
@@ -361,7 +315,6 @@ describe('EditTemplateLineDialog — Create mode currency rules', () => {
     });
 
     converter.convertWithMetadata.mockRejectedValue(new Error('rate down'));
-    component['handleInputCurrencyChange']('EUR');
     component['model'].update((m) => ({
       ...m,
       name: 'Charges',
@@ -409,7 +362,7 @@ describe('EditTemplateLineDialog — Create mode currency rules', () => {
     });
 
     expect(component['isEditMode']()).toBe(false);
-    expect(component['inputCurrency']()).toBe('CHF');
+    expect(component['model']().money.inputCurrency).toBe('CHF');
   });
 });
 
@@ -425,55 +378,13 @@ describe('EditTemplateLineDialog — Edit mode currency rules', () => {
     exchangeRate: 1.2,
   } as TemplateLine;
 
-  it('B9: should show picker when flag ON and originalCurrency differs from user currency', () => {
-    const { component } = setupWithCurrency({
-      line: altLine,
-      userCurrency: 'CHF',
-      flagEnabled: true,
-    });
-
-    expect(component['showCurrencySelector']()).toBe(true);
-    expect(component['inputCurrency']()).toBe('EUR');
-  });
-
-  it('B10: should hide picker when flag OFF (even with alternate originalCurrency)', () => {
-    const { component } = setupWithCurrency({
-      line: altLine,
-      userCurrency: 'CHF',
-      flagEnabled: false,
-    });
-
-    expect(component['showCurrencySelector']()).toBe(false);
-  });
-
-  it('B11: should hide picker when originalCurrency is null/undefined (mono-currency line)', () => {
-    const { component } = setupWithCurrency({
-      line: baseLine,
-      userCurrency: 'CHF',
-      flagEnabled: true,
-    });
-
-    expect(component['showCurrencySelector']()).toBe(false);
-  });
-
-  it('B12: should hide picker when originalCurrency equals user currency', () => {
-    const sameLine = { ...altLine, originalCurrency: 'CHF' as const };
-    const { component } = setupWithCurrency({
-      line: sameLine,
-      userCurrency: 'CHF',
-      flagEnabled: true,
-    });
-
-    expect(component['showCurrencySelector']()).toBe(false);
-  });
-
   it('B13: should initialize inputCurrency to originalCurrency when present, else user currency', () => {
     const { component: c1 } = setupWithCurrency({
       line: altLine,
       userCurrency: 'CHF',
       flagEnabled: true,
     });
-    expect(c1['inputCurrency']()).toBe('EUR');
+    expect(c1['model']().money.inputCurrency).toBe('EUR');
 
     TestBed.resetTestingModule();
 
@@ -482,7 +393,7 @@ describe('EditTemplateLineDialog — Edit mode currency rules', () => {
       userCurrency: 'CHF',
       flagEnabled: true,
     });
-    expect(c2['inputCurrency']()).toBe('CHF');
+    expect(c2['model']().money.inputCurrency).toBe('CHF');
   });
 
   it('B14: should include metadata in result when picker is visible (alternate-currency edit)', async () => {
@@ -571,16 +482,6 @@ describe('EditTemplateLineDialog — Edit mode currency rules', () => {
 
     expect(dialogRef.close).not.toHaveBeenCalled();
     expect(component['conversionError']()).toBe(true);
-  });
-
-  it('B17: should pre-fill form with originalAmount when picker is visible', () => {
-    const { component } = setupWithCurrency({
-      line: altLine,
-      userCurrency: 'CHF',
-      flagEnabled: true,
-    });
-
-    expect(component['model']().money.amount).toBe(1500);
   });
 
   it('B19: with data.line provided, should resolve to edit-mode behavior (isEditMode true)', () => {

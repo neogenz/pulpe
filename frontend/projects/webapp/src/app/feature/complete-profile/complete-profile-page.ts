@@ -680,8 +680,9 @@ import {
                                 data-testid="custom-expense-amount"
                               />
                               <span
-                                class="text-body-small text-on-surface-variant ph-no-capture"
-                                >{{ selectedCurrency() }}</span
+                                class="text-body-small text-on-surface-variant"
+                                aria-hidden="true"
+                                >{{ currencySymbol() }}</span
                               >
                               <button
                                 matIconButton
@@ -967,6 +968,10 @@ export default class CompleteProfilePage {
 
   protected readonly hasAvailableSurplus = computed(
     () => this.store.budgetSummary().available >= 0,
+  );
+
+  protected readonly currencySymbol = computed(
+    () => CURRENCY_METADATA[this.selectedCurrency()].symbol,
   );
 
   constructor() {

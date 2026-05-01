@@ -7,7 +7,6 @@ import {
   Injector,
   type OnInit,
 } from '@angular/core';
-import { DecimalPipe } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
@@ -21,7 +20,7 @@ import {
   type TemplateLinesBulkOperationsResponse,
 } from 'pulpe-shared';
 import { UserSettingsStore } from '@core/user-settings';
-import { CURRENCY_CONFIG } from '@core/currency';
+import { AppCurrencyPipe, CURRENCY_CONFIG } from '@core/currency';
 import { ConfirmationDialog } from '@ui/dialogs/confirmation-dialog';
 import { FinancialPills } from '@ui/financial-pills/financial-pills';
 import { BaseLoading } from '@ui/loading';
@@ -40,7 +39,7 @@ import { TemplateLineStore } from './services/template-line-store';
 @Component({
   selector: 'pulpe-template-detail',
   imports: [
-    DecimalPipe,
+    AppCurrencyPipe,
     MatButtonModule,
     MatIconModule,
     TranslocoPipe,
@@ -69,11 +68,7 @@ import { TemplateLineStore } from './services/template-line-store';
           aria-live="assertive"
         >
           <div class="text-center">
-            <mat-icon
-              class="mb-4"
-              style="font-size: 2.25rem; width: 2.25rem; height: 2.25rem;"
-              aria-hidden="true"
-            >
+            <mat-icon class="mb-4 !text-4xl !w-9 !h-9" aria-hidden="true">
               error_outline
             </mat-icon>
             <p class="text-body-large">{{ loadingError }}</p>
@@ -163,10 +158,7 @@ import { TemplateLineStore } from './services/template-line-store';
                 [class.text-on-error-container]="!isPositiveBalance()"
                 data-testid="template-hero-amount"
               >
-                {{ absNetBalance() | number: '1.0-0' : locale() }}
-                <span class="text-headline-small font-normal">{{
-                  currency()
-                }}</span>
+                {{ absNetBalance() | appCurrency: currency() : '1.0-0' }}
               </div>
               <p
                 class="text-body-medium mt-3"

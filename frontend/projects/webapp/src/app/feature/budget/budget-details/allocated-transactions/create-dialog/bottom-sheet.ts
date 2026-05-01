@@ -35,6 +35,7 @@ import {
 } from '@core/currency';
 import { UserSettingsStore } from '@core/user-settings';
 import { touchedFieldErrors } from '@core/validators';
+import { Logger } from '@core/logging/logger';
 import { AmountInput } from '@app/pattern/amount-input/amount-input';
 import { BlurOnVisibilityResumeDirective } from '@ui/blur-on-visibility-resume/blur-on-visibility-resume.directive';
 import type { CreateAllocatedTransactionDialogData } from './dialog';
@@ -179,6 +180,7 @@ interface CreateAllocatedTransactionModel {
 export class CreateAllocatedTransactionBottomSheet {
   readonly #settings = inject(UserSettingsStore);
   readonly #converter = inject(CurrencyConverterService);
+  readonly #logger = inject(Logger);
   readonly #bottomSheetRef = inject(
     MatBottomSheetRef<CreateAllocatedTransactionBottomSheet, TransactionCreate>,
   );
@@ -210,9 +212,10 @@ export class CreateAllocatedTransactionBottomSheet {
     applyAmountValidators(path.money);
     required(path.transactionDate);
     validate(path.transactionDate, ({ value }) => {
-      if (!value || !(value instanceof Date) || isNaN(value.getTime()))
+      const date = value();
+      if (!date || !(date instanceof Date) || isNaN(date.getTime()))
         return null;
-      const time = value.getTime();
+      const time = date.getTime();
       if (time < this.minDate.getTime() || time > this.maxDate.getTime())
         return customError({ kind: 'dateOutOfRange' });
       return null;
@@ -265,7 +268,8 @@ export class CreateAllocatedTransactionBottomSheet {
       });
 
       this.#bottomSheetRef.dismiss(transaction);
-    } catch {
+    } catch (error: unknown) {
+      this.#logger.error('Currency conversion or schema parse failed', error);
       this.conversionError.set(true);
     } finally {
       this.isSubmitting.set(false);

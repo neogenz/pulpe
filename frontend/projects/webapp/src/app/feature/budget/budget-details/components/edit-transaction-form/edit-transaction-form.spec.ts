@@ -148,7 +148,20 @@ describe('EditTransactionForm', () => {
       fixture.detectChanges();
     });
 
-    it('should set loading state when form is submitted', async () => {
+    it('should set loading state during submit and reset after', async () => {
+      const converter = TestBed.inject(CurrencyConverterService) as unknown as {
+        convertWithMetadata: ReturnType<typeof vi.fn>;
+      };
+      let resolveConvert: (value: {
+        convertedAmount: number;
+        metadata: null;
+      }) => void;
+      converter.convertWithMetadata.mockReturnValueOnce(
+        new Promise((resolve) => {
+          resolveConvert = resolve;
+        }),
+      );
+
       component['model'].update((m) => ({
         ...m,
         name: 'Test',
@@ -160,9 +173,14 @@ describe('EditTransactionForm', () => {
 
       expect(component.isUpdating()).toBe(false);
 
-      await component.onSubmit();
+      const submitPromise = component.onSubmit();
 
       expect(component.isUpdating()).toBe(true);
+
+      resolveConvert!({ convertedAmount: 100, metadata: null });
+      await submitPromise;
+
+      expect(component.isUpdating()).toBe(false);
     });
 
     it('should not submit when form is invalid', async () => {
@@ -179,6 +197,19 @@ describe('EditTransactionForm', () => {
     });
 
     it('should not submit when already updating', async () => {
+      const converter = TestBed.inject(CurrencyConverterService) as unknown as {
+        convertWithMetadata: ReturnType<typeof vi.fn>;
+      };
+      let resolveConvert: (value: {
+        convertedAmount: number;
+        metadata: null;
+      }) => void;
+      converter.convertWithMetadata.mockReturnValueOnce(
+        new Promise((resolve) => {
+          resolveConvert = resolve;
+        }),
+      );
+
       component['model'].update((m) => ({
         ...m,
         name: 'Test',
@@ -188,11 +219,15 @@ describe('EditTransactionForm', () => {
         category: 'Test',
       }));
 
-      await component.onSubmit();
+      const submitPromise = component.onSubmit();
       expect(component.isUpdating()).toBe(true);
 
       await component.onSubmit();
-      expect(component.isUpdating()).toBe(true);
+
+      expect(converter.convertWithMetadata).toHaveBeenCalledTimes(1);
+
+      resolveConvert!({ convertedAmount: 100, metadata: null });
+      await submitPromise;
     });
   });
 
