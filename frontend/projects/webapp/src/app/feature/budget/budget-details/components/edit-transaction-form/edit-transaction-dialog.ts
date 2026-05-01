@@ -17,8 +17,7 @@ import {
   EditTransactionForm,
   type HideableField,
 } from './edit-transaction-form';
-import { type TransactionUpdateFormValue } from './edit-transaction-form.schema';
-import { type Transaction } from 'pulpe-shared';
+import { type Transaction, type TransactionUpdate } from 'pulpe-shared';
 
 export interface EditTransactionDialogData {
   transaction: Transaction;
@@ -91,7 +90,9 @@ export interface EditTransactionDialogData {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class EditTransactionDialog {
-  readonly #dialogRef = inject(MatDialogRef<EditTransactionDialog>);
+  readonly #dialogRef = inject(
+    MatDialogRef<EditTransactionDialog, TransactionUpdate>,
+  );
   protected readonly data = inject<EditTransactionDialogData>(MAT_DIALOG_DATA);
   protected readonly editForm =
     viewChild.required<EditTransactionForm>('editForm');
@@ -107,9 +108,7 @@ export class EditTransactionDialog {
     }
   }
 
-  protected onUpdateTransaction(
-    transactionData: TransactionUpdateFormValue,
-  ): void {
+  protected onUpdateTransaction(transactionData: TransactionUpdate): void {
     this.#dialogRef.close(transactionData);
   }
 }

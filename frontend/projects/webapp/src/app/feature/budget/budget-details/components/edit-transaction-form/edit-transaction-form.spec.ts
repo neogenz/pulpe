@@ -3,7 +3,7 @@ import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { provideNativeDateAdapter } from '@angular/material/core';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { EditTransactionForm } from './edit-transaction-form';
-import { type TransactionUpdateFormValue } from './edit-transaction-form.schema';
+import { type TransactionUpdate } from 'pulpe-shared';
 import { setTestInput } from '@app/testing/signal-test-utils';
 import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 import { CurrencyConverterService } from '@core/currency';
@@ -326,6 +326,14 @@ describe('EditTransactionForm', () => {
     });
 
     it('should still emit original values for hidden fields on submit', async () => {
+      const converter = TestBed.inject(CurrencyConverterService) as unknown as {
+        convertWithMetadata: ReturnType<typeof vi.fn>;
+      };
+      converter.convertWithMetadata.mockResolvedValue({
+        convertedAmount: 100,
+        metadata: null,
+      });
+
       setTestInput(component.transaction, makeTransaction({ amount: 10 }));
       fixture.detectChanges();
 
@@ -338,7 +346,7 @@ describe('EditTransactionForm', () => {
         category: 'Notes',
       }));
 
-      let emittedData: TransactionUpdateFormValue | undefined;
+      let emittedData: TransactionUpdate | undefined;
       component.updateTransaction.subscribe((data) => {
         emittedData = data;
       });
@@ -548,7 +556,7 @@ describe('EditTransactionForm — currency edit rules', () => {
       money: { ...m.money, amount: 150 },
     }));
 
-    let emitted: TransactionUpdateFormValue | undefined;
+    let emitted: TransactionUpdate | undefined;
     component.updateTransaction.subscribe((d) => {
       emitted = d;
     });
@@ -562,12 +570,10 @@ describe('EditTransactionForm — currency edit rules', () => {
     );
     expect(emitted).toBeDefined();
     expect(emitted!.amount).toBe(180);
-    expect(emitted!.conversion).toEqual({
-      originalAmount: 150,
-      originalCurrency: 'EUR',
-      targetCurrency: 'CHF',
-      exchangeRate: 1.2,
-    });
+    expect(emitted!.originalAmount).toBe(150);
+    expect(emitted!.originalCurrency).toBe('EUR');
+    expect(emitted!.targetCurrency).toBe('CHF');
+    expect(emitted!.exchangeRate).toBe(1.2);
   });
 
   it('emits update with metadata=null when mono-currency edit submits (converter short-circuits)', async () => {
@@ -592,7 +598,7 @@ describe('EditTransactionForm — currency edit rules', () => {
       money: { ...m.money, amount: 250 },
     }));
 
-    let emitted: TransactionUpdateFormValue | undefined;
+    let emitted: TransactionUpdate | undefined;
     component.updateTransaction.subscribe((d) => {
       emitted = d;
     });
@@ -606,7 +612,10 @@ describe('EditTransactionForm — currency edit rules', () => {
     );
     expect(emitted).toBeDefined();
     expect(emitted!.amount).toBe(250);
-    expect(emitted!.conversion).toBeNull();
+    expect(emitted!.originalAmount).toBeUndefined();
+    expect(emitted!.originalCurrency).toBeUndefined();
+    expect(emitted!.targetCurrency).toBeUndefined();
+    expect(emitted!.exchangeRate).toBeUndefined();
   });
 
   it('blocks submit and sets conversionError when convertWithMetadata throws on alternate-currency edit', async () => {
@@ -633,7 +642,7 @@ describe('EditTransactionForm — currency edit rules', () => {
       money: { ...m.money, amount: 150 },
     }));
 
-    let emitted: TransactionUpdateFormValue | undefined;
+    let emitted: TransactionUpdate | undefined;
     component.updateTransaction.subscribe((d) => {
       emitted = d;
     });

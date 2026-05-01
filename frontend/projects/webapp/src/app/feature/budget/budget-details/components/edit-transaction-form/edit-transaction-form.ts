@@ -27,8 +27,15 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
 import { TranslocoPipe } from '@jsverse/transloco';
-import { type Transaction, type TransactionKind } from 'pulpe-shared';
-import { type TransactionUpdateFormValue } from './edit-transaction-form.schema';
+import {
+  type Transaction,
+  type TransactionKind,
+  type TransactionUpdate,
+} from 'pulpe-shared';
+import {
+  transactionUpdateFromFormSchema,
+  type TransactionUpdateFormValue,
+} from './edit-transaction-form.schema';
 import { startOfMonth, endOfMonth } from 'date-fns';
 import { FeatureFlagsService } from '@core/feature-flags';
 import {
@@ -234,7 +241,7 @@ export class EditTransactionForm {
   readonly hiddenFields = input<HideableField[]>([]);
   readonly minDateInput = input<Date>();
   readonly maxDateInput = input<Date>();
-  readonly updateTransaction = output<TransactionUpdateFormValue>();
+  readonly updateTransaction = output<TransactionUpdate>();
   readonly cancelEdit = output<void>();
 
   readonly #isUpdating = signal(false);
@@ -364,7 +371,14 @@ export class EditTransactionForm {
           return;
         }
         if (outcome.status === 'invalid') return;
-        this.updateTransaction.emit(outcome.value);
+        const dto = transactionUpdateFromFormSchema.parse(outcome.value);
+        this.updateTransaction.emit(dto);
+      } catch (error: unknown) {
+        this.#logger.error(
+          'Form submit failed after successful conversion',
+          error,
+        );
+        this.conversionError.set(true);
       } finally {
         this.#isUpdating.set(false);
       }
