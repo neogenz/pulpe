@@ -215,7 +215,7 @@
       "source": "pbakaus/impeccable",
       "sourceType": "github",
       "skillPath": ".agents/skills/impeccable/SKILL.md",
-      "computedHash": "30e5e2d1717a0a16ae0804575d8bbfacc2baab4abc3fa2467f5819b430a22193"
+      "computedHash": "de38608ceb9573c3142306babd9057a240791c4e4d6647f874a4650c996cb37e"
     },
     "ios-marketing-capture": {
       "source": "ParthJadhav/ios-marketing-capture",
@@ -263,7 +263,7 @@
       "source": "avdlee/swiftui-agent-skill",
       "sourceType": "github",
       "skillPath": "swiftui-expert-skill/SKILL.md",
-      "computedHash": "84aa533bdca25a02ce35738619121d203d55eb8ff2892535c150bd9ee85fda30"
+      "computedHash": "9db9a694b7354dea993bff22d038bc39e4d64b28a9c598b84793f2e1153db1cb"
     },
     "swiftui-performance-audit": {
       "source": "dimillian/skills",

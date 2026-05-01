@@ -1,6 +1,5 @@
 import {
   computed,
-  effect,
   inject,
   Injectable,
   InjectionToken,
@@ -11,7 +10,9 @@ import {
   calculateAllConsumptions,
   type BudgetLineConsumption,
 } from '@core/budget';
+import { Logger } from '@core/logging/logger';
 import { cachedMutation, cachedResource } from 'ngx-ziflux';
+import { firstValueFrom } from 'rxjs';
 import { UserSettingsStore } from '@core/user-settings';
 import {
   type BudgetLine,
@@ -31,18 +32,12 @@ const RECENT_TRANSACTIONS_LIMIT = 5;
 const HISTORY_MONTHS_LIMIT = 6;
 const UPCOMING_MONTHS_LIMIT = 12;
 const PACE_TOLERANCE_PERCENT = 5;
-const CHECK_EXIT_DELAY_MS = 500;
 
 const DASHBOARD_INVALIDATION_KEYS: string[][] = [
   ['budget', 'list'],
   ['budget', 'details'],
   ['budget', 'dashboard'],
   ['budget', 'history'],
-];
-
-const CHECK_INVALIDATION_KEYS: string[][] = [
-  ['budget', 'dashboard'],
-  ['budget', 'details'],
 ];
 
 export const DASHBOARD_NOW = new InjectionToken<Date>('DASHBOARD_NOW', {
@@ -54,6 +49,7 @@ export class DashboardStore {
   // ── 1. Dependencies ──
   readonly #budgetApi = inject(BudgetApi);
   readonly #userSettingsStore = inject(UserSettingsStore);
+  readonly #logger = inject(Logger);
 
   // ── 2. State ──
   readonly #pendingChecks = signal(new Set<string>());
@@ -203,7 +199,7 @@ export class DashboardStore {
     this.budgetLines().filter(
       (line) =>
         (line.recurrence === 'fixed' || line.recurrence === 'one_off') &&
-        (line.checkedAt === null || this.#pendingChecks().has(line.id)),
+        line.checkedAt === null,
     ),
   );
 
@@ -297,90 +293,58 @@ export class DashboardStore {
     },
   });
 
-  constructor() {
-    effect((onCleanup) => {
-      const lines = this.budgetLines();
-      const pending = this.#pendingChecks();
-      if (pending.size === 0) return;
-
-      const confirmed = new Set(
-        [...pending].filter((id) => {
-          const line = lines.find((l) => l.id === id);
-          return line?.checkedAt !== null;
-        }),
-      );
-
-      if (confirmed.size > 0) {
-        // Delay cleanup to let the exit animation play in the UI.
-        const timer = setTimeout(() => {
-          this.#pendingChecks.update((s) => {
-            const next = new Set(s);
-            confirmed.forEach((id) => next.delete(id));
-            return next;
-          });
-        }, CHECK_EXIT_DELAY_MS);
-        onCleanup(() => clearTimeout(timer));
-      }
-    });
-  }
-
   refreshData(): void {
     this.#clearError();
-    if (!this.#dashboardResource.isLoading()) {
-      this.#dashboardResource.reload();
-    }
-    if (!this.#historyResource.isLoading()) {
-      this.#historyResource.reload();
-    }
+    this.#dashboardResource.reload();
+    this.#historyResource.reload();
   }
 
   async addTransaction(transactionData: TransactionCreate): Promise<void> {
     await this.#addTransactionMutation.mutate(transactionData);
   }
 
-  readonly #checkBudgetLineMutation = cachedMutation<
-    string,
-    { data: BudgetLine },
-    void
-  >({
-    cache: this.#budgetApi.cache,
-    invalidateKeys: () => CHECK_INVALIDATION_KEYS,
-    mutationFn: (budgetLineId) =>
-      this.#budgetApi.toggleBudgetLineCheck$(budgetLineId),
-    onMutate: (budgetLineId) => {
-      this.#pendingChecks.update((s) => new Set([...s, budgetLineId]));
-      this.#patchBudgetLineCheckedAt(budgetLineId, new Date().toISOString());
-    },
-    onError: (_err, budgetLineId) => {
-      this.#pendingChecks.update((s) => {
-        const next = new Set(s);
-        next.delete(budgetLineId);
-        return next;
-      });
-      this.#patchBudgetLineCheckedAt(budgetLineId, null);
-    },
-  });
-
+  // Plain async mutation — `cachedMutation` uses latest-wins for
+  // onSuccess/onError callbacks, which would silently drop per-id
+  // pending cleanup when toggles overlap. Each toggle's lifecycle must
+  // complete independently.
   async checkBudgetLine(budgetLineId: string): Promise<boolean> {
     if (this.#pendingChecks().has(budgetLineId)) return true;
     const budgetLine = this.budgetLines().find((l) => l.id === budgetLineId);
     if (!budgetLine || budgetLine.checkedAt !== null) return true;
+
     this.#clearError();
-    const result = await this.#checkBudgetLineMutation.mutate(budgetLineId);
-    if (result === undefined) {
+    this.#pendingChecks.update((s) => new Set([...s, budgetLineId]));
+    this.#patchBudgetLineCheckedAt(budgetLineId, new Date().toISOString());
+
+    try {
+      await firstValueFrom(
+        this.#budgetApi.toggleBudgetLineCheck$(budgetLineId),
+      );
+      this.#budgetApi.cache.invalidate(['budget']);
+      return true;
+    } catch (error: unknown) {
+      this.#patchBudgetLineCheckedAt(budgetLineId, null);
       this.#setError('check-failed');
+      this.#logger.error('Toggle budget line check failed', {
+        budgetLineId,
+        error,
+      });
       return false;
+    } finally {
+      this.#pendingChecks.update((s) => {
+        if (!s.has(budgetLineId)) return s;
+        const next = new Set(s);
+        next.delete(budgetLineId);
+        return next;
+      });
     }
-    return true;
   }
 
   // ── 6. Private utils ──
   #updateDashboard(fn: (data: DashboardData) => DashboardData): void {
-    this.#dashboardResource.update((data) => {
-      // Early return when resource has no value — cast required by cachedResource.update() signature
-      if (!data) return data as unknown as DashboardData;
-      return fn(data);
-    });
+    const current = this.#dashboardResource.value();
+    if (!current) return;
+    this.#dashboardResource.update(() => fn(current));
   }
 
   #setError(message: string): void {

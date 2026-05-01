@@ -136,7 +136,6 @@ import { CURRENCY_CONFIG } from '@core/currency';
               class="order-1 lg:order-2"
               [forecasts]="store.uncheckedForecasts()"
               [consumptions]="store.consumptions()"
-              [checkingIds]="store.pendingChecks()"
               [currency]="currency()"
               (toggleCheck)="checkBudgetLine($event)"
               (viewBudget)="navigateToBudgetDetails()"
