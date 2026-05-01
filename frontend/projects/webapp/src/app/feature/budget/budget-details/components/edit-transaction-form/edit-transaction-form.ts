@@ -17,6 +17,7 @@ import {
   maxLength,
   validate,
   customError,
+  submit,
 } from '@angular/forms/signals';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -35,7 +36,7 @@ import {
   type AmountFormSlice,
   createAmountSlice,
   CurrencyConverterService,
-  isAmountSliceFilled,
+  submitWithConversion,
 } from '@core/currency';
 import { UserSettingsStore } from '@core/user-settings';
 import { touchedFieldErrors } from '@core/validators';
@@ -337,38 +338,36 @@ export class EditTransactionForm {
   }
 
   async onSubmit(): Promise<void> {
-    if (!this.transactionForm().valid() || this.isUpdating()) return;
-
-    const m = this.model();
-    const { transactionDate, category } = m;
-
-    this.conversionError.set(false);
-    this.#isUpdating.set(true);
-
-    try {
-      if (!isAmountSliceFilled(m.money)) return;
-      const { convertedAmount, metadata } =
-        await this.#converter.convertWithMetadata(
-          m.money.amount,
-          m.money.inputCurrency,
-          this.#settings.currency(),
-        );
-
-      const formData: TransactionUpdateFormValue = {
-        name: m.name,
-        amount: convertedAmount,
-        kind: m.kind,
-        transactionDate: formatLocalDate(transactionDate),
-        category: category || null,
-        conversion: metadata,
-      };
-
-      this.updateTransaction.emit(formData);
-    } catch (error: unknown) {
-      this.#logger.error('Currency conversion failed', error);
-      this.conversionError.set(true);
-    } finally {
-      this.#isUpdating.set(false);
-    }
+    if (this.isUpdating()) return;
+    await submit(this.transactionForm, async () => {
+      this.conversionError.set(false);
+      this.#isUpdating.set(true);
+      try {
+        const m = this.model();
+        const { transactionDate, category } = m;
+        const outcome = await submitWithConversion({
+          amountSlice: m.money,
+          targetCurrency: this.#settings.currency(),
+          converter: this.#converter,
+          logger: this.#logger,
+          build: (amount, metadata): TransactionUpdateFormValue => ({
+            name: m.name,
+            amount,
+            kind: m.kind,
+            transactionDate: formatLocalDate(transactionDate),
+            category: category || null,
+            conversion: metadata,
+          }),
+        });
+        if (outcome.status === 'failed') {
+          this.conversionError.set(true);
+          return;
+        }
+        if (outcome.status === 'invalid') return;
+        this.updateTransaction.emit(outcome.value);
+      } finally {
+        this.#isUpdating.set(false);
+      }
+    });
   }
 }

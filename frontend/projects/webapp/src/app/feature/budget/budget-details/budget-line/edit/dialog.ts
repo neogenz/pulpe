@@ -15,7 +15,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { Field, form, required } from '@angular/forms/signals';
+import { Field, form, required, submit } from '@angular/forms/signals';
 import {
   type BudgetLine,
   type BudgetLineUpdate,
@@ -30,7 +30,7 @@ import {
   type AmountFormSlice,
   createAmountSlice,
   CurrencyConverterService,
-  isAmountSliceFilled,
+  submitWithConversion,
 } from '@core/currency';
 import { UserSettingsStore } from '@core/user-settings';
 import { FeatureFlagsService } from '@core/feature-flags';
@@ -216,41 +216,42 @@ export class EditBudgetLineDialog {
   }
 
   async handleSubmit(): Promise<void> {
-    if (!this.canSubmit()) return;
-
-    this.conversionError.set(false);
-    this.isSubmitting.set(true);
-
-    try {
-      const m = this.model();
-      if (!isAmountSliceFilled(m.money)) return;
-      const { convertedAmount, metadata } =
-        await this.#converter.convertWithMetadata(
-          m.money.amount,
-          m.money.inputCurrency,
-          this.#settings.currency(),
-        );
-
-      const formPart = budgetLineUpdateFromFormSchema.parse({
-        name: m.name,
-        amount: convertedAmount,
-        kind: m.kind,
-        recurrence: m.recurrence,
-        conversion: metadata,
-      });
-      const update: BudgetLineUpdate = {
-        id: this.#data.budgetLine.id,
-        templateLineId: this.#data.budgetLine.templateLineId,
-        savingsGoalId: this.#data.budgetLine.savingsGoalId,
-        ...formPart,
-      };
-      this.#dialogRef.close(update);
-    } catch (error: unknown) {
-      this.#logger.error('Currency conversion or schema parse failed', error);
-      this.conversionError.set(true);
-    } finally {
-      this.isSubmitting.set(false);
-    }
+    await submit(this.editForm, async () => {
+      this.conversionError.set(false);
+      this.isSubmitting.set(true);
+      try {
+        const m = this.model();
+        const outcome = await submitWithConversion({
+          amountSlice: m.money,
+          targetCurrency: this.#settings.currency(),
+          converter: this.#converter,
+          logger: this.#logger,
+          build: (amount, metadata): BudgetLineUpdate => {
+            const formPart = budgetLineUpdateFromFormSchema.parse({
+              name: m.name,
+              amount,
+              kind: m.kind,
+              recurrence: m.recurrence,
+              conversion: metadata,
+            });
+            return {
+              id: this.#data.budgetLine.id,
+              templateLineId: this.#data.budgetLine.templateLineId,
+              savingsGoalId: this.#data.budgetLine.savingsGoalId,
+              ...formPart,
+            };
+          },
+        });
+        if (outcome.status === 'failed') {
+          this.conversionError.set(true);
+          return;
+        }
+        if (outcome.status === 'invalid') return;
+        this.#dialogRef.close(outcome.value);
+      } finally {
+        this.isSubmitting.set(false);
+      }
+    });
   }
 
   handleCancel(): void {

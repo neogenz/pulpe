@@ -15,6 +15,7 @@ import {
   form,
   maxLength,
   required,
+  submit,
   validate,
 } from '@angular/forms/signals';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -32,7 +33,7 @@ import {
   type AmountFormSlice,
   createAmountSlice,
   CurrencyConverterService,
-  isAmountSliceFilled,
+  submitWithConversion,
 } from '@core/currency';
 import { UserSettingsStore } from '@core/user-settings';
 import { touchedFieldErrors } from '@core/validators';
@@ -243,38 +244,38 @@ export class CreateAllocatedTransactionBottomSheet {
   }
 
   async submit(): Promise<void> {
-    if (!this.canSubmit()) return;
-
-    this.conversionError.set(false);
-    this.isSubmitting.set(true);
-    try {
-      const m = this.model();
-      if (!isAmountSliceFilled(m.money)) return;
-      const { convertedAmount, metadata } =
-        await this.#converter.convertWithMetadata(
-          m.money.amount,
-          m.money.inputCurrency,
-          this.#settings.currency(),
-        );
-
-      const transaction = transactionCreateFromFormSchema.parse({
-        budgetId: this.data.budgetLine.budgetId,
-        budgetLineId: this.data.budgetLine.id,
-        name: m.name.trim(),
-        amount: convertedAmount,
-        kind: this.data.budgetLine.kind,
-        transactionDate: formatLocalDate(m.transactionDate),
-        category: null,
-        isChecked: m.isChecked,
-        conversion: metadata ?? null,
-      });
-
-      this.#bottomSheetRef.dismiss(transaction);
-    } catch (error: unknown) {
-      this.#logger.error('Currency conversion or schema parse failed', error);
-      this.conversionError.set(true);
-    } finally {
-      this.isSubmitting.set(false);
-    }
+    await submit(this.transactionForm, async () => {
+      this.conversionError.set(false);
+      this.isSubmitting.set(true);
+      try {
+        const m = this.model();
+        const outcome = await submitWithConversion({
+          amountSlice: m.money,
+          targetCurrency: this.#settings.currency(),
+          converter: this.#converter,
+          logger: this.#logger,
+          build: (amount, metadata) =>
+            transactionCreateFromFormSchema.parse({
+              budgetId: this.data.budgetLine.budgetId,
+              budgetLineId: this.data.budgetLine.id,
+              name: m.name.trim(),
+              amount,
+              kind: this.data.budgetLine.kind,
+              transactionDate: formatLocalDate(m.transactionDate),
+              category: null,
+              isChecked: m.isChecked,
+              conversion: metadata ?? null,
+            }),
+        });
+        if (outcome.status === 'failed') {
+          this.conversionError.set(true);
+          return;
+        }
+        if (outcome.status === 'invalid') return;
+        this.#bottomSheetRef.dismiss(outcome.value);
+      } finally {
+        this.isSubmitting.set(false);
+      }
+    });
   }
 }

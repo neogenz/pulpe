@@ -5,7 +5,7 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { Field, form, required } from '@angular/forms/signals';
+import { Field, form, required, submit } from '@angular/forms/signals';
 import {
   MAT_DIALOG_DATA,
   MatDialogModule,
@@ -25,7 +25,7 @@ import {
   type AmountFormSlice,
   createAmountSlice,
   CurrencyConverterService,
-  isAmountSliceFilled,
+  submitWithConversion,
 } from '@core/currency';
 import { Logger } from '@core/logging/logger';
 import { UserSettingsStore } from '@core/user-settings';
@@ -202,36 +202,37 @@ export class AddBudgetLineDialog {
   );
 
   protected async submit(): Promise<void> {
-    if (!this.canSubmit()) return;
-
-    this.conversionError.set(false);
-    this.isSubmitting.set(true);
-    try {
-      const m = this.model();
-      if (!isAmountSliceFilled(m.money)) return;
-      const { convertedAmount, metadata } =
-        await this.#converter.convertWithMetadata(
-          m.money.amount,
-          m.money.inputCurrency,
-          this.#settings.currency(),
-        );
-
-      const dto = budgetLineCreateFromFormSchema.parse({
-        budgetId: this.#data.budgetId,
-        name: m.name.trim(),
-        amount: convertedAmount,
-        kind: m.kind,
-        recurrence: m.recurrence,
-        isChecked: m.isChecked,
-        conversion: metadata,
-      });
-      this.#dialogRef.close(dto);
-    } catch (error: unknown) {
-      this.#logger.error('Currency conversion or schema parse failed', error);
-      this.conversionError.set(true);
-    } finally {
-      this.isSubmitting.set(false);
-    }
+    await submit(this.addForm, async () => {
+      this.conversionError.set(false);
+      this.isSubmitting.set(true);
+      try {
+        const m = this.model();
+        const outcome = await submitWithConversion({
+          amountSlice: m.money,
+          targetCurrency: this.#settings.currency(),
+          converter: this.#converter,
+          logger: this.#logger,
+          build: (amount, metadata) =>
+            budgetLineCreateFromFormSchema.parse({
+              budgetId: this.#data.budgetId,
+              name: m.name.trim(),
+              amount,
+              kind: m.kind,
+              recurrence: m.recurrence,
+              isChecked: m.isChecked,
+              conversion: metadata,
+            }),
+        });
+        if (outcome.status === 'failed') {
+          this.conversionError.set(true);
+          return;
+        }
+        if (outcome.status === 'invalid') return;
+        this.#dialogRef.close(outcome.value);
+      } finally {
+        this.isSubmitting.set(false);
+      }
+    });
   }
 
   protected cancel(): void {

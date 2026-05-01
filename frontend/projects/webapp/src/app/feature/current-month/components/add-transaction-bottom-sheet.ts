@@ -12,6 +12,7 @@ import {
   maxLength,
   minLength,
   required,
+  submit,
 } from '@angular/forms/signals';
 import { MatBottomSheetRef } from '@angular/material/bottom-sheet';
 import { MatButtonModule } from '@angular/material/button';
@@ -31,7 +32,7 @@ import {
   type AmountFormSlice,
   createAmountSlice,
   CurrencyConverterService,
-  isAmountSliceFilled,
+  submitWithConversion,
 } from '@core/currency';
 import { Logger } from '@core/logging/logger';
 import { AmountInput } from '@app/pattern/amount-input/amount-input';
@@ -331,36 +332,35 @@ export class AddTransactionBottomSheet {
   }
 
   protected async onSubmit(): Promise<void> {
-    if (!this.canSubmit()) return;
-
-    this.conversionError.set(false);
-    this.isSubmitting.set(true);
-    try {
-      const m = this.model();
-      if (!isAmountSliceFilled(m.money)) return;
-      const { convertedAmount, metadata } =
-        await this.#converter.convertWithMetadata(
-          m.money.amount,
-          m.money.inputCurrency,
-          this.#userSettings.currency(),
-        );
-
-      const transaction: TransactionFormData = {
-        name: m.name,
-        amount: convertedAmount,
-        kind: m.kind,
-        category: m.category || null,
-        checkedAt: m.isChecked ? new Date().toISOString() : null,
-        ...metadata,
-      };
-
-      this.#bottomSheetRef.dismiss(transaction);
-    } catch (error: unknown) {
-      this.#logger.error('Currency conversion or schema parse failed', error);
-      this.conversionError.set(true);
-    } finally {
-      this.isSubmitting.set(false);
-    }
+    await submit(this.transactionForm, async () => {
+      this.conversionError.set(false);
+      this.isSubmitting.set(true);
+      try {
+        const m = this.model();
+        const outcome = await submitWithConversion({
+          amountSlice: m.money,
+          targetCurrency: this.#userSettings.currency(),
+          converter: this.#converter,
+          logger: this.#logger,
+          build: (amount, metadata): TransactionFormData => ({
+            name: m.name,
+            amount,
+            kind: m.kind,
+            category: m.category || null,
+            checkedAt: m.isChecked ? new Date().toISOString() : null,
+            ...metadata,
+          }),
+        });
+        if (outcome.status === 'failed') {
+          this.conversionError.set(true);
+          return;
+        }
+        if (outcome.status === 'invalid') return;
+        this.#bottomSheetRef.dismiss(outcome.value);
+      } finally {
+        this.isSubmitting.set(false);
+      }
+    });
   }
 
   protected close(): void {
