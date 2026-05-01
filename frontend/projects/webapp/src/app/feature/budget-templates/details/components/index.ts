@@ -1,3 +1,4 @@
+export { TemplateEmptyState } from './template-empty-state';
 export { TemplateLineCard } from './template-line-card';
 export { TemplateLinesGrid } from './template-lines-grid';
 export {

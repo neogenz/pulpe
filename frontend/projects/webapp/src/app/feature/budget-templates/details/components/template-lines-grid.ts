@@ -13,8 +13,8 @@ import type {
   TransactionKind,
 } from 'pulpe-shared';
 import { FinancialKindDirective } from '@ui/financial-kind';
-import { StateCard } from '@ui/state-card/state-card';
 import { TemplateLineCard } from './template-line-card';
+import { TemplateEmptyState } from './template-empty-state';
 
 interface TemplateLineGroup {
   kind: TransactionKind;
@@ -29,19 +29,12 @@ interface TemplateLineGroup {
     MatIconModule,
     TranslocoPipe,
     TemplateLineCard,
-    StateCard,
+    TemplateEmptyState,
     FinancialKindDirective,
   ],
   template: `
     @if (lines().length === 0) {
-      <pulpe-state-card
-        variant="empty"
-        [title]="'template.noLines' | transloco"
-        [message]="'template.noLinesCta' | transloco"
-        [actionLabel]="'template.addLine' | transloco"
-        testId="template-lines-empty"
-        (action)="add.emit()"
-      />
+      <pulpe-template-empty-state (addLine)="add.emit()" />
     } @else {
       <div class="flex flex-col gap-8">
         @for (group of groupedLines(); track group.kind) {

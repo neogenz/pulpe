@@ -642,8 +642,10 @@
     "newLineTitle": "Nouvelle prévision",
     "deleteLineTitle": "Supprimer cette prévision ?",
     "deleteLineConfirm": "Cette prévision sera retirée du modèle — continuer ?",
-    "noLines": "Pas encore de prévision — on en ajoute une ?",
-    "noLinesCta": "Ajouter une prévision",
+    "emptyState": {
+      "title": "Pas encore de prévision",
+      "subtitle": "Ajoute tes premières lignes pour calculer ton budget"
+    },
     "incomeGroupLabel": "Revenus",
     "savingsGroupLabel": "Épargne",
     "expensesGroupLabel": "Dépenses",
