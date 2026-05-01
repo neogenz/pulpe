@@ -35,6 +35,7 @@ import {
   type AmountFormSlice,
   createAmountSlice,
   CurrencyConverterService,
+  isAmountSliceFilled,
 } from '@core/currency';
 import { UserSettingsStore } from '@core/user-settings';
 import { touchedFieldErrors } from '@core/validators';
@@ -345,9 +346,10 @@ export class EditTransactionForm {
     this.#isUpdating.set(true);
 
     try {
+      if (!isAmountSliceFilled(m.money)) return;
       const { convertedAmount, metadata } =
         await this.#converter.convertWithMetadata(
-          m.money.amount!,
+          m.money.amount,
           m.money.inputCurrency,
           this.#settings.currency(),
         );

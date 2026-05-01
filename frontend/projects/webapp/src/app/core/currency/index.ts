@@ -22,5 +22,6 @@ export {
   type AmountFormSlice,
   type CreateAmountSliceArgs,
   createAmountSlice,
+  isAmountSliceFilled,
 } from './form/amount-form.types';
 export { applyAmountValidators } from './form/amount-form-validators';

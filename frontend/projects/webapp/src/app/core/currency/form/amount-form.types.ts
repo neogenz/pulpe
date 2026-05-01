@@ -22,3 +22,14 @@ export function createAmountSlice(
     inputCurrency: args.initialCurrency,
   };
 }
+
+/**
+ * Type predicate: narrows `AmountFormSlice` to its non-null variant once
+ * `applyAmountValidators` has marked the form valid. Use at submit boundaries
+ * to drop the non-null assertion (`!`) on `amount`.
+ */
+export function isAmountSliceFilled(
+  slice: AmountFormSlice,
+): slice is AmountFormSlice & { amount: number } {
+  return slice.amount !== null;
+}

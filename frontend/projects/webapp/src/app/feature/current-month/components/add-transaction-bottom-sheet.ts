@@ -31,6 +31,7 @@ import {
   type AmountFormSlice,
   createAmountSlice,
   CurrencyConverterService,
+  isAmountSliceFilled,
 } from '@core/currency';
 import { Logger } from '@core/logging/logger';
 import { AmountInput } from '@app/pattern/amount-input/amount-input';
@@ -336,9 +337,10 @@ export class AddTransactionBottomSheet {
     this.isSubmitting.set(true);
     try {
       const m = this.model();
+      if (!isAmountSliceFilled(m.money)) return;
       const { convertedAmount, metadata } =
         await this.#converter.convertWithMetadata(
-          m.money.amount!,
+          m.money.amount,
           m.money.inputCurrency,
           this.#userSettings.currency(),
         );

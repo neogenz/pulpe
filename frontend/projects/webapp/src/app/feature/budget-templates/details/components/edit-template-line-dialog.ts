@@ -32,6 +32,7 @@ import {
   createAmountSlice,
   type AmountFormSlice,
   CurrencyConverterService,
+  isAmountSliceFilled,
 } from '@core/currency';
 import { UserSettingsStore } from '@core/user-settings';
 import { FeatureFlagsService } from '@core/feature-flags';
@@ -261,9 +262,10 @@ export class EditTemplateLineDialog {
     this.isSubmitting.set(true);
     try {
       const m = this.model();
+      if (!isAmountSliceFilled(m.money)) return;
       const { convertedAmount, metadata } =
         await this.#converter.convertWithMetadata(
-          m.money.amount!,
+          m.money.amount,
           m.money.inputCurrency,
           this.#settings.currency(),
         );
