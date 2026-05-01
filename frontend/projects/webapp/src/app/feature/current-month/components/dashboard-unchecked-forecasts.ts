@@ -2,11 +2,9 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
-  effect,
   input,
+  linkedSignal,
   output,
-  signal,
-  untracked,
 } from '@angular/core';
 
 import { MatRipple } from '@angular/material/core';
@@ -178,32 +176,28 @@ export class DashboardUncheckedForecasts {
   readonly toggleCheck = output<string>();
   readonly viewBudget = output<void>();
 
-  readonly #animatingOut = signal(new Map<string, AnimatingForecast>());
-
-  // Effect (not computed): we need cleanup-on-source-change semantics —
-  // strip an entry only when the source `forecasts()` actually mutates
-  // and re-includes the id (rollback). A computed would re-derive on
-  // every read and strip ids while parent removal is still pending,
-  // breaking the click→exit-animation handoff.
-  constructor() {
-    effect(() => {
-      const visibleIds = new Set(this.forecasts().map((f) => f.id));
-      untracked(() => {
-        this.#animatingOut.update((current) => {
-          if (current.size === 0) return current;
-          const next = new Map(current);
-          let changed = false;
-          for (const id of [...next.keys()]) {
-            if (visibleIds.has(id)) {
-              next.delete(id);
-              changed = true;
-            }
-          }
-          return changed ? next : current;
-        });
-      });
-    });
-  }
+  // linkedSignal: writable derived state. Computation runs on `forecasts()`
+  // change and strips entries whose id has reappeared (rollback). Manual
+  // updates (toggle / animation end) persist between source changes.
+  readonly #animatingOut = linkedSignal<
+    BudgetLine[],
+    Map<string, AnimatingForecast>
+  >({
+    source: this.forecasts,
+    computation: (forecasts, prev) => {
+      const current = prev?.value ?? new Map<string, AnimatingForecast>();
+      if (current.size === 0) return current;
+      const visibleIds = new Set(forecasts.map((f) => f.id));
+      let stripped: Map<string, AnimatingForecast> | null = null;
+      for (const id of current.keys()) {
+        if (visibleIds.has(id)) {
+          stripped ??= new Map(current);
+          stripped.delete(id);
+        }
+      }
+      return stripped ?? current;
+    },
+  });
 
   protected readonly hasMore = computed(
     () => this.forecasts().length > MAX_VISIBLE_FORECASTS,

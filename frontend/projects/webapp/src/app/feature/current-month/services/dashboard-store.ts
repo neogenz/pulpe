@@ -40,6 +40,11 @@ const DASHBOARD_INVALIDATION_KEYS: string[][] = [
   ['budget', 'history'],
 ];
 
+const CHECK_INVALIDATION_KEYS: string[][] = [
+  ['budget', 'dashboard'],
+  ['budget', 'details'],
+];
+
 export const DASHBOARD_NOW = new InjectionToken<Date>('DASHBOARD_NOW', {
   factory: () => new Date(),
 });
@@ -320,7 +325,9 @@ export class DashboardStore {
       await firstValueFrom(
         this.#budgetApi.toggleBudgetLineCheck$(budgetLineId),
       );
-      this.#budgetApi.cache.invalidate(['budget']);
+      for (const key of CHECK_INVALIDATION_KEYS) {
+        this.#budgetApi.cache.invalidate(key);
+      }
       return true;
     } catch (error: unknown) {
       this.#patchBudgetLineCheckedAt(budgetLineId, null);
