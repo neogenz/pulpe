@@ -1,6 +1,7 @@
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { By } from '@angular/platform-browser';
+import { vi } from 'vitest';
 import { DashboardUncheckedForecasts } from './dashboard-unchecked-forecasts';
 import type { BudgetLine } from 'pulpe-shared';
 import type { BudgetLineConsumption } from '@core/budget/budget-line-consumption';
@@ -280,6 +281,35 @@ describe('DashboardUncheckedForecasts', () => {
     );
     expect(rows.length).toBeLessThanOrEqual(5);
     expect(rows.length).toBeGreaterThan(0);
+  });
+
+  it('should clear stuck ghosts via the safety timer when animationend never fires', async () => {
+    vi.useFakeTimers();
+    try {
+      setTestInput(component.forecasts, mockForecasts);
+      fixture.detectChanges();
+
+      const radioButton = fixture.debugElement.query(
+        By.css('button[aria-label]'),
+      );
+      radioButton.nativeElement.click();
+
+      setTestInput(component.forecasts, []);
+      fixture.detectChanges();
+
+      let rows = fixture.debugElement.queryAll(By.css('.checking'));
+      expect(rows.length).toBe(1);
+
+      // Advance past animation duration + buffer (500ms + 100ms) without
+      // dispatching `animationend` — simulates iOS Safari skipping the event.
+      await vi.advanceTimersByTimeAsync(650);
+      fixture.detectChanges();
+
+      rows = fixture.debugElement.queryAll(By.css('.checking'));
+      expect(rows.length).toBe(0);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('should preserve insertion order when multiple ghosts animate concurrently', () => {

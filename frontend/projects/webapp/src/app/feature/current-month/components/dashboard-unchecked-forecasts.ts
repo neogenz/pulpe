@@ -2,6 +2,8 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  DestroyRef,
+  inject,
   input,
   linkedSignal,
   output,
@@ -18,6 +20,8 @@ import { AppCurrencyPipe } from '@core/currency';
 
 const MAX_VISIBLE_FORECASTS = 5;
 const EXIT_ANIMATION_NAME = 'forecast-check-exit';
+const EXIT_ANIMATION_MS = 500;
+const EXIT_TIMEOUT_BUFFER_MS = 100;
 
 interface AnimatingForecast {
   forecast: BudgetLine;
@@ -176,6 +180,8 @@ export class DashboardUncheckedForecasts {
   readonly toggleCheck = output<string>();
   readonly viewBudget = output<void>();
 
+  readonly #destroyRef = inject(DestroyRef);
+
   // linkedSignal: writable derived state. Computation runs on `forecasts()`
   // change and strips entries whose id has reappeared (rollback). Manual
   // updates (toggle / animation end) persist between source changes.
@@ -198,6 +204,18 @@ export class DashboardUncheckedForecasts {
       return stripped ?? current;
     },
   });
+
+  // Per-id safety timer: ensures ghosts always clean up even when
+  // `animationend` doesn't fire (iOS Safari edge cases, ghost sliced out
+  // of MAX_VISIBLE_FORECASTS, element re-mounted mid-animation, etc.).
+  readonly #ghostTimers = new Map<string, ReturnType<typeof setTimeout>>();
+
+  constructor() {
+    this.#destroyRef.onDestroy(() => {
+      for (const timer of this.#ghostTimers.values()) clearTimeout(timer);
+      this.#ghostTimers.clear();
+    });
+  }
 
   protected readonly hasMore = computed(
     () => this.forecasts().length > MAX_VISIBLE_FORECASTS,
@@ -237,6 +255,7 @@ export class DashboardUncheckedForecasts {
       next.set(forecastId, { forecast, originalIndex });
       return next;
     });
+    this.#scheduleGhostCleanup(forecastId);
     this.toggleCheck.emit(forecastId);
   }
 
@@ -246,6 +265,27 @@ export class DashboardUncheckedForecasts {
   ): void {
     if (event.target !== event.currentTarget) return;
     if (event.animationName !== EXIT_ANIMATION_NAME) return;
+    this.#removeGhost(forecastId);
+  }
+
+  #scheduleGhostCleanup(forecastId: string): void {
+    this.#clearGhostTimer(forecastId);
+    const timer = setTimeout(
+      () => this.#removeGhost(forecastId),
+      EXIT_ANIMATION_MS + EXIT_TIMEOUT_BUFFER_MS,
+    );
+    this.#ghostTimers.set(forecastId, timer);
+  }
+
+  #clearGhostTimer(forecastId: string): void {
+    const timer = this.#ghostTimers.get(forecastId);
+    if (timer === undefined) return;
+    clearTimeout(timer);
+    this.#ghostTimers.delete(forecastId);
+  }
+
+  #removeGhost(forecastId: string): void {
+    this.#clearGhostTimer(forecastId);
     this.#animatingOut.update((current) => {
       if (!current.has(forecastId)) return current;
       const next = new Map(current);
