@@ -72,7 +72,7 @@ test.describe('Checking Summary (Solde estimé)', () => {
 
     await budgetDetailsPage.goto(budgetId);
 
-    const summary = authenticatedPage.getByTestId('checking-summary');
+    const summary = authenticatedPage.getByTestId('budget-items-checking-summary');
     await expect(summary).toBeVisible();
 
     // All items checked → "Tout pointé"
@@ -136,7 +136,7 @@ test.describe('Checking Summary (Solde estimé)', () => {
 
     await budgetDetailsPage.goto(budgetId);
 
-    const summary = authenticatedPage.getByTestId('checking-summary');
+    const summary = authenticatedPage.getByTestId('budget-items-checking-summary');
     await expect(summary).toBeVisible();
 
     // All items checked → "Tout pointé"
@@ -201,7 +201,7 @@ test.describe('Checking Summary (Solde estimé)', () => {
 
     await budgetDetailsPage.goto(budgetId);
 
-    const summary = authenticatedPage.getByTestId('checking-summary');
+    const summary = authenticatedPage.getByTestId('budget-items-checking-summary');
     await expect(summary).toBeVisible();
 
     // All items checked → "Tout pointé"
@@ -266,7 +266,7 @@ test.describe('Checking Summary (Solde estimé)', () => {
 
     await budgetDetailsPage.goto(budgetId);
 
-    const summary = authenticatedPage.getByTestId('checking-summary');
+    const summary = authenticatedPage.getByTestId('budget-items-checking-summary');
     await expect(summary).toBeVisible();
 
     // Envelope not checked → "X/Y pointés" (not "Tout pointé")

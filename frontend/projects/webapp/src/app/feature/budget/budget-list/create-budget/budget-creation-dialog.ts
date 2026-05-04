@@ -34,6 +34,11 @@ import {
   budgetCreationFormSchema,
 } from './budget-creation-dialog.schema';
 
+interface BudgetCreationDialogData {
+  month?: number;
+  year?: number;
+}
+
 const DESCRIPTION_MAX_LENGTH = BUDGET_DESCRIPTION_MAX_LENGTH;
 
 // Format personnalisé pour le month/year picker
@@ -182,7 +187,7 @@ const MONTH_YEAR_FORMATS = {
             [diameter]="24"
             [attr.aria-label]="'budget.creationInProgress' | transloco"
             role="progressbar"
-            class="pulpe-loading-indicator pulpe-loading-small mr-2 flex-shrink-0"
+            class="pulpe-loading-indicator pulpe-loading-small mr-2 shrink-0"
           ></mat-progress-spinner>
           <span aria-live="polite">{{ 'budget.creating' | transloco }}</span>
         } @else {
@@ -203,10 +208,9 @@ export class CreateBudgetDialogComponent {
   readonly #userSettingsStore = inject(UserSettingsStore);
   protected readonly templateStore = inject(TemplateStore);
   protected readonly currency = this.#userSettingsStore.currency;
-  readonly #data = inject(MAT_DIALOG_DATA, { optional: true }) as {
-    month?: number;
-    year?: number;
-  } | null;
+  readonly #data = inject<BudgetCreationDialogData | null>(MAT_DIALOG_DATA, {
+    optional: true,
+  });
 
   protected readonly maxDescriptionLength = DESCRIPTION_MAX_LENGTH;
 
@@ -323,7 +327,7 @@ export class CreateBudgetDialogComponent {
         this.#transloco.translate('common.close'),
         {
           duration: 5000,
-          panelClass: ['bg-[color-primary]', 'text-[color-on-primary]'],
+          panelClass: ['!bg-primary', '!text-on-primary'],
         },
       );
     } else {
@@ -337,7 +341,7 @@ export class CreateBudgetDialogComponent {
         this.#transloco.translate('common.close'),
         {
           duration: 8000,
-          panelClass: ['bg-[color-error]', 'text-[color-on-error]'],
+          panelClass: ['!bg-error', '!text-on-error'],
         },
       );
     }

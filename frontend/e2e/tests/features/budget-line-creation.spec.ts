@@ -77,7 +77,7 @@ test.describe('Budget Line Creation', () => {
     await budgetDetailsPage.goto(budgetId);
 
     // Click "Ajouter une prévision"
-    await authenticatedPage.getByTestId('add-budget-line').click();
+    await authenticatedPage.getByTestId('budget-items-add-line-button').click();
 
     // Wait for the dialog to appear
     const dialog = authenticatedPage.locator('mat-dialog-container');
@@ -91,7 +91,7 @@ test.describe('Budget Line Creation', () => {
 
     // Fill form: amount
     const amountInput = authenticatedPage.locator(
-      '[data-testid="new-line-amount"]',
+      '[data-testid="add-budget-line-dialog"] [data-testid="amount-input-value"]',
     );
     await amountInput.fill('500');
 
@@ -161,7 +161,7 @@ test.describe('Budget Line Creation', () => {
 
     await budgetDetailsPage.goto(budgetId);
 
-    await authenticatedPage.getByTestId('add-budget-line').click();
+    await authenticatedPage.getByTestId('budget-items-add-line-button').click();
 
     const dialog = authenticatedPage.locator('mat-dialog-container');
     await expect(dialog).toBeVisible();
@@ -171,7 +171,7 @@ test.describe('Budget Line Creation', () => {
       .locator('[data-testid="new-line-name"]')
       .fill('Freelance');
     await authenticatedPage
-      .locator('[data-testid="new-line-amount"]')
+      .locator('[data-testid="add-budget-line-dialog"] [data-testid="amount-input-value"]')
       .fill('1000');
 
     // Change kind to income via mat-select
@@ -237,7 +237,7 @@ test.describe('Budget Line Creation', () => {
 
     await budgetDetailsPage.goto(budgetId);
 
-    await authenticatedPage.getByTestId('add-budget-line').click();
+    await authenticatedPage.getByTestId('budget-items-add-line-button').click();
 
     const dialog = authenticatedPage.locator('mat-dialog-container');
     await expect(dialog).toBeVisible();
@@ -246,7 +246,7 @@ test.describe('Budget Line Creation', () => {
       .locator('[data-testid="new-line-name"]')
       .fill('Vacances');
     await authenticatedPage
-      .locator('[data-testid="new-line-amount"]')
+      .locator('[data-testid="add-budget-line-dialog"] [data-testid="amount-input-value"]')
       .fill('300');
 
     // Change kind to saving
@@ -301,7 +301,7 @@ test.describe('Budget Line Creation', () => {
 
     await budgetDetailsPage.goto(budgetId);
 
-    await authenticatedPage.getByTestId('add-budget-line').click();
+    await authenticatedPage.getByTestId('budget-items-add-line-button').click();
     const dialog = authenticatedPage.locator('mat-dialog-container');
     await expect(dialog).toBeVisible();
 
@@ -309,7 +309,7 @@ test.describe('Budget Line Creation', () => {
       .locator('[data-testid="new-line-name"]')
       .fill('Transport');
     await authenticatedPage
-      .locator('[data-testid="new-line-amount"]')
+      .locator('[data-testid="add-budget-line-dialog"] [data-testid="amount-input-value"]')
       .fill('200');
 
     // Wait for form validation to mark the submit button enabled before
@@ -354,7 +354,7 @@ test.describe('Budget Line Creation', () => {
 
     await budgetDetailsPage.goto(budgetId);
 
-    await authenticatedPage.getByTestId('add-budget-line').click();
+    await authenticatedPage.getByTestId('budget-items-add-line-button').click();
     const dialog = authenticatedPage.locator('mat-dialog-container');
     await expect(dialog).toBeVisible();
 
@@ -371,7 +371,7 @@ test.describe('Budget Line Creation', () => {
 
     // Fill amount — now enabled
     await authenticatedPage
-      .locator('[data-testid="new-line-amount"]')
+      .locator('[data-testid="add-budget-line-dialog"] [data-testid="amount-input-value"]')
       .fill('100');
     await expect(submitButton).toBeEnabled();
 
@@ -432,7 +432,7 @@ test.describe('Budget Line Creation', () => {
     await expect(financialOverview).toContainText('1\u2019500');
 
     // Click add and fill form
-    await authenticatedPage.getByTestId('add-budget-line').click();
+    await authenticatedPage.getByTestId('budget-items-add-line-button').click();
     const dialog = authenticatedPage.locator('mat-dialog-container');
     await expect(dialog).toBeVisible();
 
@@ -440,10 +440,10 @@ test.describe('Budget Line Creation', () => {
       .locator('[data-testid="new-line-name"]')
       .fill('Courses');
     await authenticatedPage
-      .locator('[data-testid="new-line-amount"]')
+      .locator('[data-testid="add-budget-line-dialog"] [data-testid="amount-input-value"]')
       .fill('500');
     // Blur triggers Angular form control finalization (CI timing)
-    await authenticatedPage.locator('[data-testid="new-line-amount"]').blur();
+    await authenticatedPage.locator('[data-testid="add-budget-line-dialog"] [data-testid="amount-input-value"]').blur();
     const submitButton = authenticatedPage.getByTestId('add-new-line');
     await expect(submitButton).toBeEnabled();
     await submitButton.click();

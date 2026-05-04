@@ -46,13 +46,13 @@ export interface TemplateDetailsDialogData {
           <div class="flex flex-col">
             <div>{{ 'template.totalIncome' | transloco }}</div>
             <div class="ph-no-capture text-financial-income text-label-large">
-              {{ totalIncome | appCurrency: currency() }}
+              {{ totalIncome | appCurrency: currency() : '1.0-0' }}
             </div>
           </div>
           <div class="flex flex-col">
             <div>{{ 'template.totalExpenses' | transloco }}</div>
             <div class="ph-no-capture text-financial-negative text-label-large">
-              {{ totalExpenses | appCurrency: currency() }}
+              {{ totalExpenses | appCurrency: currency() : '1.0-0' }}
             </div>
           </div>
         </div>
@@ -79,13 +79,13 @@ export interface TemplateDetailsDialogData {
                   }
                 </div>
                 <div
-                  class="ph-no-capture text-body-medium font-medium flex-shrink-0"
+                  class="ph-no-capture text-body-medium font-medium shrink-0"
                   [class.text-financial-savings]="line.kind === 'saving'"
                   [class.text-financial-negative]="line.kind === 'expense'"
                   [class.text-financial-income]="line.kind === 'income'"
                 >
                   {{ line.kind === 'income' ? '+' : '-' }}
-                  {{ line.amount | appCurrency: currency() }}
+                  {{ line.amount | appCurrency: currency() : '1.2-2' }}
                 </div>
               </div>
             </mat-list-item>
@@ -100,7 +100,7 @@ export interface TemplateDetailsDialogData {
         <div class="flex justify-between text-body-medium font-medium">
           <span>{{ 'template.netBalanceLabel' | transloco }}</span>
           <span class="ph-no-capture">
-            {{ netBalance | appCurrency: currency() }}
+            {{ netBalance | appCurrency: currency() : '1.0-0' }}
           </span>
         </div>
       } @else {

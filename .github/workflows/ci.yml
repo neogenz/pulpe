@@ -566,12 +566,29 @@ jobs:
 
           # Wait for test completion or timeout (13 min — leaves 2 min buffer for 15 min step timeout)
           ELAPSED=0
+          LAST_SIZE=0
+          IDLE=0
           while kill -0 $XCODE_PID 2>/dev/null && [ $ELAPSED -lt 780 ]; do
             if grep -q '\*\* TEST SUCCEEDED \*\*\|\*\* TEST FAILED \*\*' test-output.log 2>/dev/null; then
               echo "📋 Tests finished, cleaning up xcodebuild..."
               sleep 5
               break
             fi
+
+            # Workaround: detect xcodebuild post-test hang (Xcode 26+ #13143).
+            # If log stops growing for 60s after suites have passed, treat as hang.
+            CURRENT_SIZE=$(wc -c < test-output.log 2>/dev/null || echo 0)
+            if [ "$CURRENT_SIZE" = "$LAST_SIZE" ]; then
+              IDLE=$((IDLE + 10))
+              if [ "$IDLE" -ge 60 ] && grep -q '✔ Suite' test-output.log 2>/dev/null && ! grep -q '✘' test-output.log 2>/dev/null; then
+                echo "📋 No log activity for ${IDLE}s after passing suites — xcodebuild hung, proceeding"
+                break
+              fi
+            else
+              IDLE=0
+              LAST_SIZE=$CURRENT_SIZE
+            fi
+
             sleep 10
             ELAPSED=$((ELAPSED + 10))
           done

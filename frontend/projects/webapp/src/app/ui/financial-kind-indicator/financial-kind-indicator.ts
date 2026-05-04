@@ -19,7 +19,7 @@ const KIND_COLORS: Record<TransactionKind, string> = {
   imports: [MatTooltipModule, TransactionLabelPipe],
   template: `
     <div
-      class="rounded-full flex-shrink-0"
+      class="rounded-full shrink-0"
       [style.width.px]="size()"
       [style.height.px]="size()"
       [style.background-color]="backgroundColor()"

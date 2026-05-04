@@ -208,7 +208,7 @@ import {
                               >
                             </span>
                             <mat-icon
-                              class="currency-tile-check ml-auto flex-shrink-0 transition-opacity duration-300"
+                              class="currency-tile-check ml-auto shrink-0 transition-opacity duration-300"
                               [class.opacity-100]="isSelected"
                               [class.opacity-0]="!isSelected"
                               aria-hidden="true"
@@ -626,7 +626,7 @@ import {
                           "
                         >
                           <span
-                            class="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                            class="w-1.5 h-1.5 rounded-full shrink-0"
                             [class.bg-financial-expense]="
                               suggestion.type === 'expense'
                             "
@@ -666,7 +666,7 @@ import {
                                 }}</span
                               >
                             </div>
-                            <div class="flex items-center gap-2 flex-shrink-0">
+                            <div class="flex items-center gap-2 shrink-0">
                               <input
                                 type="number"
                                 inputmode="decimal"
@@ -680,8 +680,9 @@ import {
                                 data-testid="custom-expense-amount"
                               />
                               <span
-                                class="text-body-small text-on-surface-variant ph-no-capture"
-                                >{{ selectedCurrency() }}</span
+                                class="text-body-small text-on-surface-variant"
+                                aria-hidden="true"
+                                >{{ currencySymbol() }}</span
                               >
                               <button
                                 matIconButton
@@ -967,6 +968,10 @@ export default class CompleteProfilePage {
 
   protected readonly hasAvailableSurplus = computed(
     () => this.store.budgetSummary().available >= 0,
+  );
+
+  protected readonly currencySymbol = computed(
+    () => CURRENCY_METADATA[this.selectedCurrency()].symbol,
   );
 
   constructor() {

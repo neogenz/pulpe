@@ -105,6 +105,21 @@ readonly input = viewChild.required<ElementRef>('inputRef');
 readonly items = viewChildren<ItemComponent>(ItemComponent);
 ```
 
+> ⚠️ **NG1053 — NEVER use ES private (`#field`) for `viewChild`/`viewChildren`/`contentChild`/`contentChildren`/`input`/`output`/`model`.** Angular compiler forbids ES private on these signal-based queries. Allowed modifiers: `public`, `public readonly`, `protected`, `private`.
+>
+> ```typescript
+> // ❌ Build fails — NG1053
+> readonly #inputRef = viewChild<ElementRef>('inputRef');
+>
+> // ✅ Use TS private when the field is internal
+> private readonly inputRef = viewChild<ElementRef>('inputRef');
+>
+> // ✅ Use protected when accessed from template
+> protected readonly inputRef = viewChild<ElementRef>('inputRef');
+> ```
+>
+> This is the **single exception** to the project rule "use `#field` for private". The cascade is brutal: a single ES-private `viewChild` breaks the component's standalone compilation, and every consumer importing it then fails with `NG2012: Component imports must be standalone`.
+
 ### contentChild() / contentChildren()
 
 ```typescript

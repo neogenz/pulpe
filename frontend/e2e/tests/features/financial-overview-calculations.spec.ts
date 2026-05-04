@@ -226,7 +226,7 @@ test.describe('Financial Overview Calculations', () => {
     ).toContainText('2\u2019625');
 
     // Add expense
-    await authenticatedPage.getByTestId('add-budget-line').click();
+    await authenticatedPage.getByTestId('budget-items-add-line-button').click();
     const dialog = authenticatedPage.locator('mat-dialog-container');
     await expect(dialog).toBeVisible();
 
@@ -234,7 +234,7 @@ test.describe('Financial Overview Calculations', () => {
       .locator('[data-testid="new-line-name"]')
       .fill('Abonnement');
     await authenticatedPage
-      .locator('[data-testid="new-line-amount"]')
+      .locator('[data-testid="add-budget-line-dialog"] [data-testid="amount-input-value"]')
       .fill('200');
     await authenticatedPage.getByTestId('add-new-line').click();
     await expect(dialog).not.toBeVisible();

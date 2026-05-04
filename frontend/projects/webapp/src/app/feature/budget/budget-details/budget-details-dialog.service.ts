@@ -15,30 +15,28 @@ import type { BudgetLineConsumption } from '@core/budget';
 import {
   AddBudgetLineDialog,
   type BudgetLineDialogData,
-} from './create-budget-line/add-budget-line-dialog';
+} from './budget-line/create/dialog';
 import {
   AllocatedTransactionsDialog,
   type AllocatedTransactionsDialogData,
   type AllocatedTransactionsDialogResult,
-} from './allocated-transactions-dialog/allocated-transactions-dialog';
-import { AllocatedTransactionsBottomSheet } from './allocated-transactions-dialog/allocated-transactions-bottom-sheet';
+} from './allocated-transactions/details-dialog/dialog';
+import { AllocatedTransactionsBottomSheet } from './allocated-transactions/details-dialog/bottom-sheet';
 import {
   CreateAllocatedTransactionDialog,
   type CreateAllocatedTransactionDialogData,
-} from './create-allocated-transaction-dialog/create-allocated-transaction-dialog';
-import { computeBudgetPeriodDateConstraints } from './create-allocated-transaction-dialog/budget-period-date-constraints';
-import { CreateAllocatedTransactionBottomSheet } from './create-allocated-transaction-dialog/create-allocated-transaction-bottom-sheet';
+} from './allocated-transactions/create-dialog/dialog';
+import { computeBudgetPeriodDateConstraints } from './allocated-transactions/create-dialog/budget-period-date-constraints';
+import { CreateAllocatedTransactionBottomSheet } from './allocated-transactions/create-dialog/bottom-sheet';
 import {
   ConfirmationDialog,
   type ConfirmationDialogData,
 } from '@ui/dialogs/confirmation-dialog';
-import { EditBudgetLineDialog } from './edit-budget-line/edit-budget-line-dialog';
+import { EditBudgetLineDialog } from './budget-line/edit/dialog';
 import {
   EditTransactionDialog,
   type EditTransactionDialogData,
-  type TransactionUpdateFormValue,
-  transactionUpdateFromFormSchema,
-} from '@pattern/edit-transaction-form';
+} from './components/edit-transaction-form';
 
 export interface ConfirmDeleteOptions {
   title: string;
@@ -163,13 +161,10 @@ export class BudgetDetailsDialogService {
       maxWidth: '90vw',
     });
 
-    const result = await firstValueFrom<TransactionUpdateFormValue | undefined>(
+    const result = await firstValueFrom<TransactionUpdate | undefined>(
       dialogRef.afterClosed(),
     );
-    if (!result) return undefined;
-
-    const dto = transactionUpdateFromFormSchema.parse(result);
-    return { ...dto, id: transaction.id };
+    return result ? { ...result, id: transaction.id } : undefined;
   }
 
   async confirmDelete(options: ConfirmDeleteOptions): Promise<boolean> {

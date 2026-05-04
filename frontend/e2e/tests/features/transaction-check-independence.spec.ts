@@ -131,7 +131,7 @@ test.describe('Transaction Check Independence (Scenario 5.10)', () => {
     await budgetDetailsPage.goto(budgetId);
 
     // Verify summary is NOT visible when 0 items are checked (progressive disclosure)
-    const summary = authenticatedPage.getByTestId('checking-summary');
+    const summary = authenticatedPage.getByTestId('budget-items-checking-summary');
     await expect(summary).not.toBeVisible();
 
     // Open the envelope detail panel by clicking the envelope card

@@ -13,7 +13,7 @@ import { MatIconModule } from '@angular/material/icon';
       aria-atomic="true"
     >
       @if (message()) {
-        <mat-icon class="flex-shrink-0">error_outline</mat-icon>
+        <mat-icon class="shrink-0">error_outline</mat-icon>
         <span>{{ message() }}</span>
       }
     </div>

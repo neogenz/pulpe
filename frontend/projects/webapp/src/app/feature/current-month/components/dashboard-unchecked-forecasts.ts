@@ -44,7 +44,7 @@ interface AnimatingForecast {
       <div class="mb-4 px-1 flex items-center justify-between">
         <div class="flex items-center gap-3">
           <div
-            class="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center flex-shrink-0"
+            class="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0"
           >
             <mat-icon aria-hidden="true">checklist</mat-icon>
           </div>
@@ -85,7 +85,7 @@ interface AnimatingForecast {
                 data-testid="dashboard-forecasts-row"
               >
                 <button
-                  class="flex-shrink-0 flex items-center justify-center w-11 h-11 -m-2 rounded-full cursor-pointer"
+                  class="shrink-0 flex items-center justify-center w-11 h-11 -m-2 rounded-full cursor-pointer"
                   matRipple
                   [matRippleCentered]="true"
                   (click)="toggleForecast(forecast.id)"
@@ -115,7 +115,7 @@ interface AnimatingForecast {
                   [pulpeFinancialKind]="forecast.kind"
                   data-testid="dashboard-forecasts-amount"
                 >
-                  {{ displayAmount | appCurrency: currency() : '1.2-2' }}
+                  {{ displayAmount | appCurrency: currency() : '1.0-0' }}
                 </span>
               </div>
             }

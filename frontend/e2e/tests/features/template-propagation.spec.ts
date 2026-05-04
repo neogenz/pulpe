@@ -51,7 +51,9 @@ test.describe('Template propagation choices', () => {
   }
 
   async function makeLineAdjustment(page: Page) {
-    const amountInput = page.getByTestId('edit-template-line-amount');
+    const amountInput = page.locator(
+      '[data-testid="edit-template-line-dialog"] [data-testid="amount-input-value"]',
+    );
     await expect(amountInput).toBeVisible();
     await amountInput.fill('5100');
   }

@@ -7,7 +7,6 @@ import {
   Injector,
   type OnInit,
 } from '@angular/core';
-import { DecimalPipe } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
@@ -21,7 +20,7 @@ import {
   type TemplateLinesBulkOperationsResponse,
 } from 'pulpe-shared';
 import { UserSettingsStore } from '@core/user-settings';
-import { CURRENCY_CONFIG } from '@core/currency';
+import { AppCurrencyPipe, CURRENCY_CONFIG } from '@core/currency';
 import { ConfirmationDialog } from '@ui/dialogs/confirmation-dialog';
 import { FinancialPills } from '@ui/financial-pills/financial-pills';
 import { BaseLoading } from '@ui/loading';
@@ -30,8 +29,8 @@ import { TemplateLinesGrid } from './components/template-lines-grid';
 import {
   EditTemplateLineDialog,
   type EditTemplateLineDialogData,
-  type EditTemplateLineDialogResult,
 } from './components/edit-template-line-dialog';
+import type { TemplateLineFormInput } from './services/template-line-store';
 import { BudgetTemplatesStore } from '../services/budget-templates-store';
 import { BudgetTemplatesDialogService } from '../budget-templates-dialog.service';
 import { TemplateDetailsStore } from './services/template-details-store';
@@ -40,7 +39,7 @@ import { TemplateLineStore } from './services/template-line-store';
 @Component({
   selector: 'pulpe-template-detail',
   imports: [
-    DecimalPipe,
+    AppCurrencyPipe,
     MatButtonModule,
     MatIconModule,
     TranslocoPipe,
@@ -69,11 +68,7 @@ import { TemplateLineStore } from './services/template-line-store';
           aria-live="assertive"
         >
           <div class="text-center">
-            <mat-icon
-              class="mb-4"
-              style="font-size: 2.25rem; width: 2.25rem; height: 2.25rem;"
-              aria-hidden="true"
-            >
+            <mat-icon class="mb-4 !text-4xl !w-9 !h-9" aria-hidden="true">
               error_outline
             </mat-icon>
             <p class="text-body-large">{{ loadingError }}</p>
@@ -90,12 +85,12 @@ import { TemplateLineStore } from './services/template-line-store';
       } @else {
         @let templateData = templateDetailsStore.templateDetails();
         @if (templateData) {
-          <header class="flex flex-shrink-0 gap-4 items-center">
+          <header class="flex shrink-0 gap-4 items-center">
             <button
               matIconButton
               (click)="navigateBack()"
               [attr.aria-label]="backLabel"
-              class="flex-shrink-0"
+              class="shrink-0"
             >
               <mat-icon>arrow_back</mat-icon>
             </button>
@@ -108,7 +103,7 @@ import { TemplateLineStore } from './services/template-line-store';
                 {{ templateData.template.name }}
               </h1>
             </div>
-            <div class="flex items-center gap-1 flex-shrink-0 md:hidden">
+            <div class="flex items-center gap-1 shrink-0 md:hidden">
               <button
                 matIconButton
                 class="warn-theme"
@@ -119,7 +114,7 @@ import { TemplateLineStore } from './services/template-line-store';
                 <mat-icon>delete</mat-icon>
               </button>
             </div>
-            <div class="hidden md:flex items-center gap-2 flex-shrink-0">
+            <div class="hidden md:flex items-center gap-2 shrink-0">
               <button
                 matButton="filled"
                 class="warn-theme"
@@ -134,7 +129,7 @@ import { TemplateLineStore } from './services/template-line-store';
           </header>
 
           <section
-            class="flex-shrink-0 space-y-6"
+            class="shrink-0 space-y-6"
             aria-labelledby="financial-summary-heading"
           >
             <h2 id="financial-summary-heading" class="sr-only">
@@ -163,10 +158,7 @@ import { TemplateLineStore } from './services/template-line-store';
                 [class.text-on-error-container]="!isPositiveBalance()"
                 data-testid="template-hero-amount"
               >
-                {{ absNetBalance() | number: '1.0-0' : locale() }}
-                <span class="text-headline-small font-normal">{{
-                  currency()
-                }}</span>
+                {{ absNetBalance() | appCurrency: currency() : '1.0-0' }}
               </div>
               <p
                 class="text-body-medium mt-3"
@@ -439,11 +431,11 @@ export default class TemplateDetail implements OnInit {
 
   async #openLineDialog(
     data: EditTemplateLineDialogData,
-  ): Promise<EditTemplateLineDialogResult | undefined> {
+  ): Promise<TemplateLineFormInput | undefined> {
     const dialogRef = this.#dialog.open<
       EditTemplateLineDialog,
       EditTemplateLineDialogData,
-      EditTemplateLineDialogResult
+      TemplateLineFormInput
     >(EditTemplateLineDialog, {
       data,
       width: '600px',

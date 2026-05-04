@@ -4,3 +4,4 @@ export {
   recoveryKeyValidators,
   formatRecoveryKeyInput,
 } from './recovery-key.validator';
+export { touchedFieldErrors } from './touched-field-errors';

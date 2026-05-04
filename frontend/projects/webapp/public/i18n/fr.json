@@ -25,6 +25,7 @@
     "somethingWentWrong": "Quelque chose n'a pas fonctionné — réessaie",
     "formErrors": "Quelques champs à vérifier avant de continuer",
     "conversionError": "Pas de taux dispo pour l'instant — ton montant sera enregistré tel quel.",
+    "staleFxRate": "Taux de change du {{date}} utilisé (hors ligne)",
     "networkError": "Erreur réseau — vérifie ta connexion",
     "clear": "Effacer",
     "currencySelector": "Devise",
@@ -436,7 +437,7 @@
     "forecastNameLabel": "Nom",
     "forecastNamePlaceholder": "Ex: Salaire, Loyer, Épargne...",
     "forecastNameRequired": "Le nom est requis",
-    "forecastNameMinLength": "Le nom doit contenir au moins 1 caractère",
+    "forecastNameMinLength": "Le nom doit contenir au moins 2 caractères",
     "forecastTypeLabel": "Type",
     "forecastAmountRequired": "Le montant est requis",
     "forecastTypeRequired": "Le type est requis",
@@ -894,7 +895,9 @@
     "passwordsMismatch": "Les mots de passe ne correspondent pas",
     "newPasswordLabel": "Nouveau mot de passe",
     "newPasswordPlaceholder": "Nouveau mot de passe",
-    "newPasswordRequired": "Ton nouveau mot de passe est nécessaire"
+    "newPasswordRequired": "Ton nouveau mot de passe est nécessaire",
+    "amountRequired": "Indique un montant",
+    "amountTooLow": "Le montant doit être supérieur à 0"
   },
   "errors": {
     "generic": "Quelque chose n'a pas fonctionné — réessaie",
@@ -1043,6 +1046,17 @@
     "notesOptional": "(optionnel)",
     "notesMaxLength": "La catégorie ne peut pas dépasser 50 caractères",
     "formAriaLabel": "Formulaire de modification de transaction",
-    "checkedToggle": "Déjà pointé"
+    "checkedToggle": "Déjà pointé",
+    "editTitle": "Modifier la transaction",
+    "editFormAriaLabel": "Formulaire de modification de transaction",
+    "cancelAriaLabel": "Annuler la modification",
+    "saveAriaLabel": "Enregistrer les modifications"
+  },
+  "monthTile": {
+    "current": "Actuel",
+    "available": "Disponible",
+    "create": "Créer",
+    "availableSuffixAriaLabel": "disponible",
+    "createBudgetAriaLabel": "créer un budget"
   }
 }

@@ -28,12 +28,12 @@ test.describe('Budget Line Edit - Mobile', () => {
     if (hasBudgetLines === 0) {
       // Add a budget line first if none exists
       await page.click(
-        '[data-testid="add-first-line"], [data-testid="add-budget-line"]',
+        '[data-testid="add-first-line"], [data-testid="budget-items-add-line-button"]',
       );
 
       // Fill in the dialog to create a budget line
       await page.fill('[data-testid="new-line-name"]', 'Test Budget Line');
-      await page.fill('[data-testid="new-line-amount"]', '100');
+      await page.fill('[data-testid="add-budget-line-dialog"] [data-testid="amount-input-value"]', '100');
       await page.click('[data-testid="add-new-line"]');
 
       // Wait for the new line to appear
@@ -59,7 +59,7 @@ test.describe('Budget Line Edit - Mobile', () => {
       dialog.locator('[data-testid="edit-line-name"]'),
     ).toBeVisible();
     await expect(
-      dialog.locator('[data-testid="edit-line-amount"]'),
+      dialog.locator('[data-testid="edit-budget-line-dialog"] [data-testid="amount-input-value"]'),
     ).toBeVisible();
     await expect(
       dialog.locator('[data-testid="edit-line-kind"]'),
@@ -88,10 +88,10 @@ test.describe('Budget Line Edit - Mobile', () => {
     if (hasBudgetLines === 0) {
       // Add a budget line first if none exists
       await page.click(
-        '[data-testid="add-first-line"], [data-testid="add-budget-line"]',
+        '[data-testid="add-first-line"], [data-testid="budget-items-add-line-button"]',
       );
       await page.fill('[data-testid="new-line-name"]', 'Initial Name');
-      await page.fill('[data-testid="new-line-amount"]', '100');
+      await page.fill('[data-testid="add-budget-line-dialog"] [data-testid="amount-input-value"]', '100');
       await page.click('[data-testid="add-new-line"]');
       await page.waitForSelector('[data-testid^="edit-"]', {
         state: 'visible',
@@ -111,7 +111,7 @@ test.describe('Budget Line Edit - Mobile', () => {
     await nameField.clear();
     await nameField.fill('Updated Budget Line');
 
-    const amountField = dialog.locator('[data-testid="edit-line-amount"]');
+    const amountField = dialog.locator('[data-testid="edit-budget-line-dialog"] [data-testid="amount-input-value"]');
     await amountField.clear();
     await amountField.fill('250');
 
@@ -139,10 +139,10 @@ test.describe('Budget Line Edit - Mobile', () => {
     if (hasBudgetLines === 0) {
       // Add a budget line first if none exists
       await page.click(
-        '[data-testid="add-first-line"], [data-testid="add-budget-line"]',
+        '[data-testid="add-first-line"], [data-testid="budget-items-add-line-button"]',
       );
       await page.fill('[data-testid="new-line-name"]', 'Original Name');
-      await page.fill('[data-testid="new-line-amount"]', '100');
+      await page.fill('[data-testid="add-budget-line-dialog"] [data-testid="amount-input-value"]', '100');
       await page.click('[data-testid="add-new-line"]');
       await page.waitForSelector('[data-testid^="edit-"]', {
         state: 'visible',
@@ -201,10 +201,10 @@ test.describe('Budget Line Edit - Desktop', () => {
     if (hasBudgetLines === 0) {
       // Add a budget line first if none exists
       await page.click(
-        '[data-testid="add-first-line"], [data-testid="add-budget-line"]',
+        '[data-testid="add-first-line"], [data-testid="budget-items-add-line-button"]',
       );
       await page.fill('[data-testid="new-line-name"]', 'Test Budget Line');
-      await page.fill('[data-testid="new-line-amount"]', '100');
+      await page.fill('[data-testid="add-budget-line-dialog"] [data-testid="amount-input-value"]', '100');
       await page.click('[data-testid="add-new-line"]');
       await page.waitForSelector('[data-testid^="edit-"]', {
         state: 'visible',
@@ -228,7 +228,7 @@ test.describe('Budget Line Edit - Desktop', () => {
       dialog.locator('[data-testid="edit-line-name"]'),
     ).toBeVisible();
     await expect(
-      dialog.locator('[data-testid="edit-line-amount"]'),
+      dialog.locator('[data-testid="edit-budget-line-dialog"] [data-testid="amount-input-value"]'),
     ).toBeVisible();
 
     // Check that cancel and save buttons are present
