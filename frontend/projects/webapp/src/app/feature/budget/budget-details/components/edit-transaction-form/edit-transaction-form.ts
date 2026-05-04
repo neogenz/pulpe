@@ -44,6 +44,7 @@ import {
   type AmountFormSlice,
   createAmountSlice,
   CurrencyConverterService,
+  isCurrencyPickerVisible,
   submitWithConversion,
 } from '@core/currency';
 import { UserSettingsStore } from '@core/user-settings';
@@ -263,11 +264,12 @@ export class EditTransactionForm {
     () => this.transaction().originalCurrency ?? null,
   );
 
-  protected readonly showCurrencySelector = computed(
-    () =>
-      this.#flags.isMultiCurrencyEnabled() &&
-      this.originalCurrency() !== null &&
-      this.originalCurrency() !== this.#settings.currency(),
+  protected readonly showCurrencySelector = computed(() =>
+    isCurrencyPickerVisible({
+      isMultiCurrencyEnabled: this.#flags.isMultiCurrencyEnabled(),
+      originalCurrency: this.originalCurrency(),
+      userCurrency: this.#settings.currency(),
+    }),
   );
 
   protected readonly model = linkedSignal({

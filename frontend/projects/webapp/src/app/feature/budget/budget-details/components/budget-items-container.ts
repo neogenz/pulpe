@@ -103,7 +103,7 @@ import {
       @if (store.checkedItemsCount() > 0) {
         <p
           class="text-body-medium text-on-surface-variant flex items-center gap-1.5 -mt-1"
-          data-testid="checking-summary"
+          data-testid="budget-items-checking-summary"
         >
           @if (isAllChecked()) {
             <mat-icon aria-hidden="true" class="text-primary text-base!"
@@ -211,7 +211,7 @@ import {
           <button
             matButton
             (click)="openAddBudgetLineDialog()"
-            data-testid="add-budget-line"
+            data-testid="budget-items-add-line-button"
             data-tour="add-budget-line"
             class="gap-2 !h-11 !rounded-full !px-6"
           >

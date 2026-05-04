@@ -103,6 +103,20 @@ describe('AmountInput', () => {
     expect(input.getAttribute('type')).toBe('number');
   });
 
+  it('exposes control as a required signal input', () => {
+    const { component } = configure({
+      userCurrency: 'CHF',
+      flagEnabled: false,
+      initialAmount: 42,
+    });
+
+    // Reading the bound control returns the FieldTree without throwing.
+    // Before the fix, the input accepted `undefined`, so consumers could
+    // accidentally render the component without a form binding.
+    expect(() => component.control()).not.toThrow();
+    expect(component.control().amount().value()).toBe(42);
+  });
+
   it('exposes required + min(0.01) errors via field state', () => {
     const { fixture, model, testForm } = configure({
       userCurrency: 'CHF',

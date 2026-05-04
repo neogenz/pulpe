@@ -305,7 +305,7 @@ test.describe('Envelope Check/Uncheck Cascade', () => {
     await budgetDetailsPage.goto(budgetId);
 
     // Verify initial pointés count: 2/5 (Salaire + Supermarché checked)
-    const summary = authenticatedPage.getByTestId('checking-summary');
+    const summary = authenticatedPage.getByTestId('budget-items-checking-summary');
     await expect(summary).toBeVisible();
     await expect(summary).toContainText('2/5 pointés');
 

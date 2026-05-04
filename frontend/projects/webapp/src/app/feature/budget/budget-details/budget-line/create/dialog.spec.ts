@@ -90,7 +90,7 @@ describe('AddBudgetLineDialog', () => {
         money: { amount: 1200, inputCurrency: 'CHF' },
       }));
 
-      await component['submit']();
+      await component['handleSubmit']();
 
       expect(dialogRef.close).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -112,7 +112,7 @@ describe('AddBudgetLineDialog', () => {
         money: { ...m.money, amount: null },
       }));
 
-      await component['submit']();
+      await component['handleSubmit']();
 
       expect(dialogRef.close).not.toHaveBeenCalled();
     });
@@ -126,7 +126,7 @@ describe('AddBudgetLineDialog', () => {
         money: { amount: 1200, inputCurrency: 'CHF' },
       }));
 
-      await component['submit']();
+      await component['handleSubmit']();
 
       expect(dialogRef.close).not.toHaveBeenCalled();
       expect(component['conversionError']()).toBe(true);
@@ -140,7 +140,7 @@ describe('AddBudgetLineDialog', () => {
         money: { amount: 385, inputCurrency: 'CHF' },
       }));
 
-      await component['submit']();
+      await component['handleSubmit']();
 
       expect(dialogRef.close).toHaveBeenCalledWith(
         expect.objectContaining({ name: 'Assurance' }),
@@ -157,7 +157,7 @@ describe('AddBudgetLineDialog', () => {
         money: { amount: 10, inputCurrency: 'CHF' },
       }));
 
-      await component['submit']();
+      await component['handleSubmit']();
 
       expect(dialogRef.close).toHaveBeenCalledWith(
         expect.objectContaining({ checkedAt: null }),
@@ -173,7 +173,7 @@ describe('AddBudgetLineDialog', () => {
         isChecked: true,
       }));
 
-      await component['submit']();
+      await component['handleSubmit']();
 
       const callArg = dialogRef.close.mock.calls[0][0];
       expect(callArg.checkedAt).toBeDefined();
@@ -222,7 +222,7 @@ describe('AddBudgetLineDialog', () => {
         money: { amount: 150, inputCurrency: 'EUR' },
       }));
 
-      await component['submit']();
+      await component['handleSubmit']();
 
       expect(converter.convertWithMetadata).toHaveBeenCalledWith(
         150,
@@ -256,7 +256,7 @@ describe('AddBudgetLineDialog', () => {
         money: { amount: 1200, inputCurrency: 'CHF' },
       }));
 
-      await component['submit']();
+      await component['handleSubmit']();
 
       expect(converter.convertWithMetadata).toHaveBeenCalledWith(
         1200,
@@ -273,7 +273,7 @@ describe('AddBudgetLineDialog', () => {
     });
   });
 
-  describe('a11y — conversion error announcement (issue #11 regression)', () => {
+  describe('a11y conversion error announcement', () => {
     beforeEach(() => TestBed.resetTestingModule());
 
     it('should expose role="alert" on the conversion error block when conversionError is true', () => {

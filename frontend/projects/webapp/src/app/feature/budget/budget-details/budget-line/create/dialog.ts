@@ -154,7 +154,7 @@ interface AddBudgetLineModel {
       <button
         matButton="filled"
         color="primary"
-        (click)="submit()"
+        (click)="handleSubmit()"
         [disabled]="!canSubmit()"
         data-testid="add-new-line"
       >
@@ -201,7 +201,7 @@ export class AddBudgetLineDialog {
     () => this.addForm().valid() && !this.isSubmitting(),
   );
 
-  protected async submit(): Promise<void> {
+  protected async handleSubmit(): Promise<void> {
     await submit(this.addForm, async () => {
       this.conversionError.set(false);
       this.isSubmitting.set(true);

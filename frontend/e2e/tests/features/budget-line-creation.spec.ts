@@ -77,7 +77,7 @@ test.describe('Budget Line Creation', () => {
     await budgetDetailsPage.goto(budgetId);
 
     // Click "Ajouter une prévision"
-    await authenticatedPage.getByTestId('add-budget-line').click();
+    await authenticatedPage.getByTestId('budget-items-add-line-button').click();
 
     // Wait for the dialog to appear
     const dialog = authenticatedPage.locator('mat-dialog-container');
@@ -161,7 +161,7 @@ test.describe('Budget Line Creation', () => {
 
     await budgetDetailsPage.goto(budgetId);
 
-    await authenticatedPage.getByTestId('add-budget-line').click();
+    await authenticatedPage.getByTestId('budget-items-add-line-button').click();
 
     const dialog = authenticatedPage.locator('mat-dialog-container');
     await expect(dialog).toBeVisible();
@@ -237,7 +237,7 @@ test.describe('Budget Line Creation', () => {
 
     await budgetDetailsPage.goto(budgetId);
 
-    await authenticatedPage.getByTestId('add-budget-line').click();
+    await authenticatedPage.getByTestId('budget-items-add-line-button').click();
 
     const dialog = authenticatedPage.locator('mat-dialog-container');
     await expect(dialog).toBeVisible();
@@ -301,7 +301,7 @@ test.describe('Budget Line Creation', () => {
 
     await budgetDetailsPage.goto(budgetId);
 
-    await authenticatedPage.getByTestId('add-budget-line').click();
+    await authenticatedPage.getByTestId('budget-items-add-line-button').click();
     const dialog = authenticatedPage.locator('mat-dialog-container');
     await expect(dialog).toBeVisible();
 
@@ -354,7 +354,7 @@ test.describe('Budget Line Creation', () => {
 
     await budgetDetailsPage.goto(budgetId);
 
-    await authenticatedPage.getByTestId('add-budget-line').click();
+    await authenticatedPage.getByTestId('budget-items-add-line-button').click();
     const dialog = authenticatedPage.locator('mat-dialog-container');
     await expect(dialog).toBeVisible();
 
@@ -432,7 +432,7 @@ test.describe('Budget Line Creation', () => {
     await expect(financialOverview).toContainText('1\u2019500');
 
     // Click add and fill form
-    await authenticatedPage.getByTestId('add-budget-line').click();
+    await authenticatedPage.getByTestId('budget-items-add-line-button').click();
     const dialog = authenticatedPage.locator('mat-dialog-container');
     await expect(dialog).toBeVisible();
 

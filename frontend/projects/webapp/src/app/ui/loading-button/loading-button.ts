@@ -1,4 +1,9 @@
-import { ChangeDetectionStrategy, Component, input } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  input,
+} from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -44,16 +49,12 @@ export class LoadingButton {
   readonly variant = input<'filled' | 'outlined' | 'tonal' | ''>('filled');
   readonly color = input<'primary' | 'accent' | 'warn'>('primary');
   readonly type = input<'button' | 'submit'>('submit');
-  readonly loadingText = input('en cours...');
+  readonly loadingText = input.required<string>();
   readonly icon = input<string>();
   readonly testId = input<string>();
   readonly fullWidth = input(true);
 
-  protected buttonClass(): string {
-    const classes = ['h-12'];
-    if (this.fullWidth()) {
-      classes.push('w-full');
-    }
-    return classes.join(' ');
-  }
+  protected readonly buttonClass = computed(() =>
+    this.fullWidth() ? 'h-12 w-full' : 'h-12',
+  );
 }

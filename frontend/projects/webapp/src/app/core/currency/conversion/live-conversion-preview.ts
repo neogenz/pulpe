@@ -30,11 +30,16 @@ export interface LivePreviewState {
  * The resource is keyed on the currency pair, so typing a new amount only
  * triggers a `computed()` recomputation (`amount × rate`), never a new
  * network call.
+ *
+ * Currency signals accept `null` so callers can pass an "unbound" sentinel
+ * (e.g., a `computed()` that depends on a required signal input that is
+ * not yet bound). When either currency is `null`, the preview stays hidden
+ * and no rate fetch is triggered.
  */
 export function injectLiveConversionPreview(
   amount: Signal<number | null | undefined>,
-  inputCurrency: Signal<SupportedCurrency>,
-  displayCurrency: Signal<SupportedCurrency>,
+  inputCurrency: Signal<SupportedCurrency | null>,
+  displayCurrency: Signal<SupportedCurrency | null>,
 ): Signal<LivePreviewState> {
   const converter = inject(CurrencyConverterService);
 
@@ -42,6 +47,7 @@ export function injectLiveConversionPreview(
     params: () => {
       const base = inputCurrency();
       const target = displayCurrency();
+      if (base === null || target === null) return undefined;
       if (base === target) return undefined;
       return { base, target };
     },
@@ -51,6 +57,7 @@ export function injectLiveConversionPreview(
   return computed<LivePreviewState>(() => {
     const base = inputCurrency();
     const target = displayCurrency();
+    if (base === null || target === null) return { status: 'hidden' };
     if (base === target) return { status: 'hidden' };
 
     const value = amount();

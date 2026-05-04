@@ -20,7 +20,11 @@ import { Router } from '@angular/router';
 import { ExcelExportService } from '@core/budget/excel-export.service';
 import { downloadAsExcelFile, downloadAsJsonFile } from '@core/file-download';
 import { ROUTES, TitleDisplay } from '@core/routing';
-import { type CalendarMonth, YearCalendar } from '@ui/calendar';
+import {
+  type CalendarMonth,
+  type MonthTileLabels,
+  YearCalendar,
+} from '@ui/calendar';
 import { BaseLoading } from '@ui/loading';
 import { firstValueFrom, map, shareReplay } from 'rxjs';
 import { MonthsError } from './ui/budget-error';
@@ -140,6 +144,7 @@ import { UserSettingsStore } from '@core/user-settings';
             <mat-tab [label]="budgetsOfYear.year.toString()">
               <pulpe-year-calendar
                 [calendarYear]="budgetsOfYear"
+                [labels]="monthTileLabels"
                 [currency]="currency()"
                 [locale]="currencyLocale()"
                 [currentDate]="state.currentDate()"
@@ -178,6 +183,20 @@ export default class BudgetListPage {
   protected readonly currencyLocale = computed(
     () => CURRENCY_CONFIG[this.currency()].numberLocale,
   );
+
+  // FR-only app. Translated once at component init; rebuild this if/when a
+  // language switcher lands (use `transloco.langChanges$ \| toSignal()`).
+  protected readonly monthTileLabels: MonthTileLabels = {
+    current: this.#transloco.translate('monthTile.current'),
+    available: this.#transloco.translate('monthTile.available'),
+    create: this.#transloco.translate('monthTile.create'),
+    availableSuffixAriaLabel: this.#transloco.translate(
+      'monthTile.availableSuffixAriaLabel',
+    ),
+    createBudgetAriaLabel: this.#transloco.translate(
+      'monthTile.createBudgetAriaLabel',
+    ),
+  };
   protected readonly isExporting = signal(false);
   protected readonly isExportingExcel = signal(false);
 

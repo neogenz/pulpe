@@ -77,6 +77,27 @@ function configureBottomSheet({
 describe('AddTransactionBottomSheet', () => {
   beforeEach(() => TestBed.resetTestingModule());
 
+  describe('predefined amounts', () => {
+    it('renders all 4 predefined amount buttons', () => {
+      const { fixture } = configureBottomSheet();
+      fixture.detectChanges();
+
+      const buttons = fixture.nativeElement.querySelectorAll(
+        'button[matButton="tonal"]',
+      );
+      expect(buttons.length).toBe(4);
+    });
+
+    it('exposes predefinedAmounts as a static array (not a signal)', () => {
+      const { component } = configureBottomSheet();
+      // After the fix, predefinedAmounts is `readonly [10,15,20,30] as const`
+      // — a plain array, not a signal. Calling it as a function would throw.
+      const amounts = component['predefinedAmounts'];
+      expect(Array.isArray(amounts)).toBe(true);
+      expect(amounts).toEqual([10, 15, 20, 30]);
+    });
+  });
+
   describe('submit', () => {
     it('should dismiss with transaction data when form is valid', async () => {
       const { component, bottomSheetRef } = configureBottomSheet();

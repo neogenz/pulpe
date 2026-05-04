@@ -32,6 +32,7 @@ import {
   createAmountSlice,
   type AmountFormSlice,
   CurrencyConverterService,
+  isCurrencyPickerVisible,
   submitWithConversion,
 } from '@core/currency';
 import { UserSettingsStore } from '@core/user-settings';
@@ -235,10 +236,11 @@ export class EditTemplateLineDialog {
     const userCurrency = this.#settings.currency();
 
     if (line) {
-      const isPickerVisible =
-        this.#flags.isMultiCurrencyEnabled() &&
-        (line.originalCurrency ?? null) !== null &&
-        line.originalCurrency !== userCurrency;
+      const isPickerVisible = isCurrencyPickerVisible({
+        isMultiCurrencyEnabled: this.#flags.isMultiCurrencyEnabled(),
+        originalCurrency: line.originalCurrency ?? null,
+        userCurrency,
+      });
 
       if (isPickerVisible && line.originalAmount != null) {
         return createAmountSlice({

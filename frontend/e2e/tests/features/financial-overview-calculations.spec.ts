@@ -226,7 +226,7 @@ test.describe('Financial Overview Calculations', () => {
     ).toContainText('2\u2019625');
 
     // Add expense
-    await authenticatedPage.getByTestId('add-budget-line').click();
+    await authenticatedPage.getByTestId('budget-items-add-line-button').click();
     const dialog = authenticatedPage.locator('mat-dialog-container');
     await expect(dialog).toBeVisible();
 

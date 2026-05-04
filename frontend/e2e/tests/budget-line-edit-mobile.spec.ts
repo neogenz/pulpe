@@ -28,7 +28,7 @@ test.describe('Budget Line Edit - Mobile', () => {
     if (hasBudgetLines === 0) {
       // Add a budget line first if none exists
       await page.click(
-        '[data-testid="add-first-line"], [data-testid="add-budget-line"]',
+        '[data-testid="add-first-line"], [data-testid="budget-items-add-line-button"]',
       );
 
       // Fill in the dialog to create a budget line
@@ -88,7 +88,7 @@ test.describe('Budget Line Edit - Mobile', () => {
     if (hasBudgetLines === 0) {
       // Add a budget line first if none exists
       await page.click(
-        '[data-testid="add-first-line"], [data-testid="add-budget-line"]',
+        '[data-testid="add-first-line"], [data-testid="budget-items-add-line-button"]',
       );
       await page.fill('[data-testid="new-line-name"]', 'Initial Name');
       await page.fill('[data-testid="add-budget-line-dialog"] [data-testid="amount-input-value"]', '100');
@@ -139,7 +139,7 @@ test.describe('Budget Line Edit - Mobile', () => {
     if (hasBudgetLines === 0) {
       // Add a budget line first if none exists
       await page.click(
-        '[data-testid="add-first-line"], [data-testid="add-budget-line"]',
+        '[data-testid="add-first-line"], [data-testid="budget-items-add-line-button"]',
       );
       await page.fill('[data-testid="new-line-name"]', 'Original Name');
       await page.fill('[data-testid="add-budget-line-dialog"] [data-testid="amount-input-value"]', '100');
@@ -201,7 +201,7 @@ test.describe('Budget Line Edit - Desktop', () => {
     if (hasBudgetLines === 0) {
       // Add a budget line first if none exists
       await page.click(
-        '[data-testid="add-first-line"], [data-testid="add-budget-line"]',
+        '[data-testid="add-first-line"], [data-testid="budget-items-add-line-button"]',
       );
       await page.fill('[data-testid="new-line-name"]', 'Test Budget Line');
       await page.fill('[data-testid="add-budget-line-dialog"] [data-testid="amount-input-value"]', '100');

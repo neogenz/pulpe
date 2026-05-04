@@ -653,7 +653,7 @@ describe('EditTransactionForm — currency edit rules', () => {
     expect(component['conversionError']()).toBe(true);
   });
 
-  it('should NOT reset user-edited model fields when settings.currency() changes (linkedSignal regression — issue #1)', () => {
+  it('should NOT reset user-edited model fields when settings.currency() changes', () => {
     const { fixture, component, settings } = configureForm({
       userCurrency: 'CHF',
       flagEnabled: true,

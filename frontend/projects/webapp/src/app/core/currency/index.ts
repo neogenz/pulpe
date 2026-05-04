@@ -26,6 +26,10 @@ export {
 } from './form/amount-form.types';
 export { applyAmountValidators } from './form/amount-form-validators';
 export {
+  isCurrencyPickerVisible,
+  type PickerVisibilityArgs,
+} from './form/picker-visibility';
+export {
   submitWithConversion,
   type SubmitWithConversionArgs,
   type SubmitWithConversionOutcome,

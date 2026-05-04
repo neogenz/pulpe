@@ -1049,5 +1049,12 @@
     "editFormAriaLabel": "Formulaire de modification de transaction",
     "cancelAriaLabel": "Annuler la modification",
     "saveAriaLabel": "Enregistrer les modifications"
+  },
+  "monthTile": {
+    "current": "Actuel",
+    "available": "Disponible",
+    "create": "Créer",
+    "availableSuffixAriaLabel": "disponible",
+    "createBudgetAriaLabel": "créer un budget"
   }
 }

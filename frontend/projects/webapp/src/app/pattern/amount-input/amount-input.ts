@@ -17,6 +17,7 @@ import { FeatureFlagsService } from '@core/feature-flags';
 import { UserSettingsStore } from '@core/user-settings';
 import {
   injectLiveConversionPreview,
+  isCurrencyPickerVisible,
   type AmountFormSlice,
 } from '@core/currency';
 import { CurrencySuffix } from '@ui/currency-suffix';
@@ -30,13 +31,8 @@ export type AmountInputMode = 'create' | 'edit';
  * Owns: visibility rules (flag x user pref x edit-mode original currency),
  * picker enabled/disabled state, and live conversion preview rendering.
  *
- * Caller owns: form state (`field`), submit-time `conversionError`, and the
+ * Caller owns: form state (`control`), submit-time `conversionError`, and the
  * `convertWithMetadata` call at submit boundary.
- *
- * Note: `field` is intentionally not `input.required`. `injectLiveConversionPreview`
- * spins up a `resource()` whose params callback runs at field-init (before any
- * binding propagates) — required signal inputs would throw NG0950 there. This
- * mirrors the precedent in `pattern/currency-converter-widget`.
  */
 @Component({
   selector: 'pulpe-amount-input',
@@ -50,63 +46,60 @@ export type AmountInputMode = 'create' | 'edit';
   ],
   template: `
     <div class="flex flex-col">
-      @let bound = control();
-      @if (bound) {
-        <mat-form-field
-          appearance="outline"
-          subscriptSizing="dynamic"
-          class="w-full ph-no-capture"
-        >
-          <mat-label class="ph-no-capture">{{
-            'transactionForm.amountLabel' | transloco
-          }}</mat-label>
-          <input
-            #amountInput
-            matInput
-            type="number"
-            inputmode="decimal"
-            placeholder="0.00"
-            step="0.01"
-            [value]="amountValue() ?? ''"
-            (input)="onAmountInput($event)"
-            (blur)="onAmountBlur()"
-            data-testid="amount-input-value"
-          />
-          <pulpe-currency-suffix
-            matTextSuffix
-            [showSelector]="showSelector()"
-            [disabled]="pickerDisabled()"
-            [currency]="currentInputCurrency()"
-            (currencyChange)="setInputCurrency($event)"
-          />
-          @if (amountTouched() && amountErrorKey(); as key) {
-            <mat-error>{{ key | transloco }}</mat-error>
-          }
-        </mat-form-field>
-
-        <pulpe-conversion-preview-line
-          [amount]="preview().convertedAmount ?? null"
-          [inputCurrency]="currentInputCurrency()"
-          [displayCurrency]="displayCurrency()"
-          [rate]="preview().rate ?? null"
-          [cachedDate]="preview().cachedDate ?? null"
-          [status]="preview().status"
+      <mat-form-field
+        appearance="outline"
+        subscriptSizing="dynamic"
+        class="w-full ph-no-capture"
+      >
+        <mat-label class="ph-no-capture">{{
+          'transactionForm.amountLabel' | transloco
+        }}</mat-label>
+        <input
+          #amountInput
+          matInput
+          type="number"
+          inputmode="decimal"
+          placeholder="0.00"
+          step="0.01"
+          [value]="amountValue() ?? ''"
+          (input)="onAmountInput($event)"
+          (blur)="onAmountBlur()"
+          data-testid="amount-input-value"
         />
-      }
+        <pulpe-currency-suffix
+          matTextSuffix
+          [showSelector]="showSelector()"
+          [disabled]="pickerDisabled()"
+          [currency]="currentInputCurrency() ?? displayCurrency()"
+          (currencyChange)="setInputCurrency($event)"
+        />
+        @if (amountTouched() && amountErrorKey(); as key) {
+          <mat-error>{{ key | transloco }}</mat-error>
+        }
+      </mat-form-field>
+
+      <pulpe-conversion-preview-line
+        [amount]="preview().convertedAmount ?? null"
+        [inputCurrency]="currentInputCurrency()"
+        [displayCurrency]="displayCurrency()"
+        [rate]="preview().rate ?? null"
+        [cachedDate]="preview().cachedDate ?? null"
+        [status]="preview().status"
+      />
     </div>
   `,
   host: { class: 'block' },
 })
 export class AmountInput {
-  readonly control = input<FieldTree<AmountFormSlice> | undefined>(undefined);
+  readonly control = input.required<FieldTree<AmountFormSlice>>();
   readonly mode = input<AmountInputMode>('create');
   readonly originalCurrency = input<SupportedCurrency | null>(null);
 
-  private readonly amountInputRef =
+  readonly #amountInputRef =
     viewChild<ElementRef<HTMLInputElement>>('amountInput');
 
   focus(): void {
-    this.amountInputRef()?.nativeElement?.focus();
+    this.#amountInputRef()?.nativeElement?.focus();
   }
 
   readonly #settings = inject(UserSettingsStore);
@@ -114,35 +107,54 @@ export class AmountInput {
 
   protected readonly displayCurrency = this.#settings.currency;
 
-  protected readonly amountValue = computed<number | null>(() => {
-    const tree = this.control();
-    return tree ? tree.amount().value() : null;
+  /**
+   * Required-input deferred read. `injectLiveConversionPreview` (called in a
+   * class field below) reads the signals during view init — at that point a
+   * direct `this.control()` throws NG0950 because input bindings haven't
+   * propagated yet. Wrapping the read in a `computed` defers it to the next
+   * change-detection tick when the binding is set. After the first run the
+   * `try` is a no-op.
+   */
+  readonly #safeControl = computed(() => {
+    try {
+      return this.control();
+    } catch {
+      return null;
+    }
   });
 
+  protected readonly amountValue = computed<number | null>(
+    () => this.#safeControl()?.amount().value() ?? null,
+  );
+
   protected onAmountInput(event: Event): void {
-    const tree = this.control();
-    if (!tree) return;
     const target = event.target as HTMLInputElement;
     const next = target.valueAsNumber;
-    tree.amount().value.set(Number.isNaN(next) ? null : next);
+    this.control()
+      .amount()
+      .value.set(Number.isNaN(next) ? null : next);
   }
 
   protected onAmountBlur(): void {
-    this.control()?.amount().markAsTouched();
+    this.control().amount().markAsTouched();
   }
 
-  protected readonly currentInputCurrency = computed<SupportedCurrency>(() => {
-    const tree = this.control();
-    return tree ? tree.inputCurrency().value() : this.displayCurrency();
-  });
+  protected readonly currentInputCurrency = computed<SupportedCurrency | null>(
+    () => this.#safeControl()?.inputCurrency().value() ?? null,
+  );
 
   protected readonly showSelector = computed(() => {
-    if (!this.#flags.isMultiCurrencyEnabled()) return false;
     if (this.mode() === 'edit') {
-      const orig = this.originalCurrency();
-      return orig !== null && orig !== this.displayCurrency();
+      return isCurrencyPickerVisible({
+        isMultiCurrencyEnabled: this.#flags.isMultiCurrencyEnabled(),
+        originalCurrency: this.originalCurrency(),
+        userCurrency: this.displayCurrency(),
+      });
     }
-    return this.#settings.showCurrencySelector();
+    return (
+      this.#flags.isMultiCurrencyEnabled() &&
+      this.#settings.showCurrencySelector()
+    );
   });
 
   protected readonly pickerDisabled = computed(() => this.mode() === 'edit');
@@ -154,7 +166,7 @@ export class AmountInput {
   );
 
   protected readonly amountErrorKey = computed(() => {
-    const tree = this.control();
+    const tree = this.#safeControl();
     if (!tree) return null;
     const errors = tree.amount().errors();
     if (errors.length === 0) return null;
@@ -162,13 +174,11 @@ export class AmountInput {
     return typeof first.message === 'string' ? first.message : null;
   });
 
-  protected readonly amountTouched = computed(() => {
-    const tree = this.control();
-    return tree ? tree.amount().touched() : false;
-  });
+  protected readonly amountTouched = computed(
+    () => this.#safeControl()?.amount().touched() ?? false,
+  );
 
   protected setInputCurrency(next: SupportedCurrency): void {
-    const tree = this.control();
-    if (tree) tree.inputCurrency().value.set(next);
+    this.control().inputCurrency().value.set(next);
   }
 }

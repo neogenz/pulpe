@@ -115,7 +115,7 @@ interface AddTransactionModel {
             {{ 'currentMonth.addTransactionQuickAmounts' | transloco }}
           </div>
           <div class="flex flex-wrap gap-2">
-            @for (amount of predefinedAmounts(); track amount) {
+            @for (amount of predefinedAmounts; track amount) {
               <button
                 matButton="tonal"
                 type="button"
@@ -269,7 +269,7 @@ export class AddTransactionBottomSheet {
   }
 
   protected readonly currency = this.#userSettings.currency;
-  protected readonly predefinedAmounts = signal([10, 15, 20, 30]);
+  protected readonly predefinedAmounts = [10, 15, 20, 30] as const;
   protected readonly conversionError = signal(false);
   protected readonly isSubmitting = signal(false);
 
