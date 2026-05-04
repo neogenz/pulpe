@@ -102,8 +102,8 @@ interface CreateAllocatedTransactionModel {
         <input
           matInput
           [matDatepicker]="picker"
-          [min]="minDate"
-          [max]="maxDate"
+          [min]="minDate()"
+          [max]="maxDate()"
           [field]="transactionForm.transactionDate"
           data-testid="transaction-date"
           readonly
