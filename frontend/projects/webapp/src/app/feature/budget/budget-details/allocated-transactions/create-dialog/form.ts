@@ -163,14 +163,16 @@ export class CreateAllocatedTransactionForm {
 
   protected readonly conversionError = signal(false);
   readonly #isSubmitting = signal(false);
-  readonly isSubmitting = this.#isSubmitting.asReadonly();
 
+  // `data` is dialog/sheet-injected (MAT_DIALOG_DATA / MAT_BOTTOM_SHEET_DATA) and
+  // immutable per instance, so `previous?.value` always wins after the first build —
+  // user edits are preserved across any incidental re-runs.
   protected readonly model = linkedSignal<
     CreateAllocatedTransactionFormData,
     CreateAllocatedTransactionModel
   >({
     source: this.data,
-    computation: (data, previous) =>
+    computation: (_data, previous) =>
       untracked(
         () =>
           previous?.value ?? {
@@ -178,11 +180,7 @@ export class CreateAllocatedTransactionForm {
             money: createAmountSlice({
               initialCurrency: this.#settings.currency(),
             }),
-            transactionDate: computeBudgetPeriodDateConstraints(
-              data.budgetMonth,
-              data.budgetYear,
-              data.payDayOfMonth,
-            ).defaultDate,
+            transactionDate: this.#dateConstraints().defaultDate,
             isChecked: false,
           },
       ),
