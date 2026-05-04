@@ -353,10 +353,10 @@ struct RootView: View {
         }
     }
 
-    /// Pushes the current currency-related state to PostHog as person properties.
-    /// Safe to call multiple times — `identify()` with the same distinct id merges
-    /// `userProperties`. Skipped when unauthenticated to avoid associating these
-    /// properties with the anonymous person profile.
+    /// Pushes the current currency-related state to PostHog as person properties
+    /// via `$set`. Double-gated: requires both an authenticated app state AND a
+    /// fired `identify(userId:)` (enforced inside `AnalyticsService.setPersonProperties`)
+    /// so properties never land on the anonymous profile.
     private func refreshCurrencyPersonProperties() {
         guard appState.authState == .authenticated else { return }
         AnalyticsService.shared.setPersonProperties([

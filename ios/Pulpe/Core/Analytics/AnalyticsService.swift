@@ -17,6 +17,10 @@ final class AnalyticsService {
 
     private(set) var isInitialized = false
     private(set) var isEventCapturingEnabled = false
+    /// Tracks whether `identify(userId:)` has fired in this session. Person property
+    /// updates are gated on this flag to prevent writing to the anonymous profile
+    /// before the user has been identified.
+    private(set) var isIdentified = false
 
     private init() {}
 
@@ -77,24 +81,22 @@ final class AnalyticsService {
                 "first_app_version": AppConfiguration.appVersion
             ]
         )
+        isIdentified = true
     }
 
-    /// Updates person properties on the currently identified user (PostHog `$set`).
-    /// Re-uses `identify()` with the current distinct id so we don't generate a new
-    /// person — PostHog merges `userProperties` into the existing profile.
-    /// Caller must ensure `identify(...)` has already fired.
+    /// Updates person properties on the currently identified user via PostHog `$set`.
+    /// No-op when the user has not yet been identified — prevents leaking
+    /// preferences onto the anonymous person profile.
     func setPersonProperties(_ properties: [String: Any]) {
-        guard isEventCapturingEnabled else { return }
+        guard isEventCapturingEnabled, isIdentified else { return }
         let sanitized = Self.sanitizeProperties(properties)
-        PostHogSDK.shared.identify(
-            PostHogSDK.shared.getDistinctId(),
-            userProperties: sanitized
-        )
+        PostHogSDK.shared.setPersonProperties(userPropertiesToSet: sanitized)
     }
 
     func reset() {
         guard isInitialized else { return }
         PostHogSDK.shared.reset()
+        isIdentified = false
     }
 
     // MARK: - Feature Flags

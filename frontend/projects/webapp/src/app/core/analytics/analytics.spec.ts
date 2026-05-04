@@ -41,9 +41,6 @@ function createMockFeatureFlagsService(initial = false) {
 
 const DEFAULT_IDENTIFY_PROPERTIES = {
   early_adopter: false,
-  currency: 'CHF',
-  show_currency_selector: false,
-  multi_currency_enabled: false,
 } as const;
 
 describe('User consent and tracking behavior', () => {
@@ -302,8 +299,8 @@ describe('User consent and tracking behavior', () => {
     });
   });
 
-  describe('currency identify properties', () => {
-    it('should include user currency, selector toggle, and flag exposure on identify', () => {
+  describe('currency person properties', () => {
+    it('should push currency person properties via setPersonProperties once settings load', () => {
       // GIVEN: User has EUR + selector toggle on, multi-currency flag enabled
       mockUserSettingsStore.setSettings({
         payDayOfMonth: 25,
@@ -325,19 +322,20 @@ describe('User consent and tracking behavior', () => {
       });
       TestBed.tick();
 
-      // THEN: Identify carries the currency person properties
+      // THEN: Identify omits currency keys (only carries early_adopter)
       expect(mockPostHogService.identify).toHaveBeenCalledWith(
         'user-currency-1',
-        {
-          early_adopter: false,
-          currency: 'EUR',
-          show_currency_selector: true,
-          multi_currency_enabled: true,
-        },
+        DEFAULT_IDENTIFY_PROPERTIES,
       );
+      // AND: setPersonProperties carries the currency triplet via $set
+      expect(mockPostHogService.setPersonProperties).toHaveBeenCalledWith({
+        currency: 'EUR',
+        show_currency_selector: true,
+        multi_currency_enabled: true,
+      });
     });
 
-    it('should fall back to defaults when user settings are not yet loaded', () => {
+    it('should not push person properties while user settings are still null', () => {
       // GIVEN: Settings still null (resource not resolved)
       mockUserSettingsStore.setSettings(null);
       mockFeatureFlagsService.setEnabled(false);
@@ -354,11 +352,45 @@ describe('User consent and tracking behavior', () => {
       });
       TestBed.tick();
 
-      // THEN: Defaults to CHF + selector off + flag off
+      // THEN: Identify still fires (without currency keys), but setPersonProperties holds
+      // until real settings arrive — avoids polluting the cohort with stale CHF defaults.
       expect(mockPostHogService.identify).toHaveBeenCalledWith(
         'user-currency-2',
         DEFAULT_IDENTIFY_PROPERTIES,
       );
+      expect(mockPostHogService.setPersonProperties).not.toHaveBeenCalled();
+    });
+
+    it('should push person properties once settings transition from null to loaded', () => {
+      // GIVEN: Settings null at identify time
+      mockUserSettingsStore.setSettings(null);
+      TestBed.runInInjectionContext(() => {
+        analyticsService.initializeAnalyticsTracking();
+      });
+
+      mockAuthState.set({
+        user: { id: 'user-late-settings', email: 'user@example.com' },
+        session: { access_token: 'token', refresh_token: 'refresh' },
+        isLoading: false,
+        isAuthenticated: true,
+      });
+      TestBed.tick();
+      expect(mockPostHogService.setPersonProperties).not.toHaveBeenCalled();
+
+      // WHEN: Settings resource resolves
+      mockUserSettingsStore.setSettings({
+        payDayOfMonth: 1,
+        currency: 'EUR',
+        showCurrencySelector: false,
+      });
+      TestBed.tick();
+
+      // THEN: Person properties are pushed with the real values
+      expect(mockPostHogService.setPersonProperties).toHaveBeenCalledWith({
+        currency: 'EUR',
+        show_currency_selector: false,
+        multi_currency_enabled: false,
+      });
     });
   });
 
@@ -395,17 +427,25 @@ describe('User consent and tracking behavior', () => {
 describe('captureEvent', () => {
   let analyticsService: AnalyticsService;
   let mockPostHogService: ReturnType<typeof createMockPostHogService>;
+  let mockAuthState: WritableSignal<{
+    user: { id: string; email: string } | null;
+    session: { access_token: string; refresh_token: string } | null;
+    isLoading: boolean;
+    isAuthenticated: boolean;
+  }>;
 
   beforeEach(() => {
     mockPostHogService = createMockPostHogService();
 
+    mockAuthState = signal({
+      user: null,
+      session: null,
+      isLoading: false,
+      isAuthenticated: false,
+    });
+
     const mockAuthStore = {
-      authState: signal({
-        user: null,
-        session: null,
-        isLoading: false,
-        isAuthenticated: false,
-      }),
+      authState: mockAuthState,
       isEarlyAdopter: signal(false),
     };
 
@@ -455,8 +495,25 @@ describe('captureEvent', () => {
     expect(() => analyticsService.captureEvent('failing_event')).toThrow(error);
   });
 
-  it('delegates setPersonProperties to PostHogService', () => {
+  it('delegates setPersonProperties to PostHogService once identified', () => {
     const properties = { currency: 'EUR' };
+
+    // Pre-identify gate: should no-op until identify has fired.
+    analyticsService.setPersonProperties(properties);
+    expect(mockPostHogService.setPersonProperties).not.toHaveBeenCalled();
+
+    // Identify the user via the auth effect, then retry.
+    TestBed.runInInjectionContext(() => {
+      analyticsService.initializeAnalyticsTracking();
+    });
+    mockAuthState.set({
+      user: { id: 'identified-user', email: 'user@example.com' },
+      session: { access_token: 'token', refresh_token: 'refresh' },
+      isLoading: false,
+      isAuthenticated: true,
+    });
+    TestBed.tick();
+    mockPostHogService.setPersonProperties.mockClear();
 
     analyticsService.setPersonProperties(properties);
 

@@ -514,24 +514,32 @@ export default class SettingsPage {
   }): void {
     const { previousCurrency, newCurrency, previousSelector, newSelector } =
       args;
+    const currencyChanged = previousCurrency !== newCurrency;
+    const selectorChanged = previousSelector !== newSelector;
 
-    if (previousCurrency !== newCurrency) {
+    if (currencyChanged) {
       this.#analytics.captureEvent(ANALYTICS_EVENTS.CURRENCY_CHANGED, {
         from: previousCurrency,
         to: newCurrency,
       });
     }
 
-    if (previousSelector !== newSelector) {
+    if (selectorChanged) {
       this.#analytics.captureEvent(ANALYTICS_EVENTS.CURRENCY_SELECTOR_TOGGLED, {
         enabled: newSelector,
       });
     }
 
-    this.#analytics.setPersonProperties({
-      [ANALYTICS_PROPERTIES.CURRENCY]: newCurrency,
-      [ANALYTICS_PROPERTIES.SHOW_CURRENCY_SELECTOR]: newSelector,
-    });
+    // The auth-store-driven `personPropertiesEffect` already mirrors store
+    // state to PostHog reactively. Only fire an explicit `$set` when a tracked
+    // value actually changed in this save — avoids redundant network calls
+    // when only `payDayOfMonth` was edited.
+    if (currencyChanged || selectorChanged) {
+      this.#analytics.setPersonProperties({
+        [ANALYTICS_PROPERTIES.CURRENCY]: newCurrency,
+        [ANALYTICS_PROPERTIES.SHOW_CURRENCY_SELECTOR]: newSelector,
+      });
+    }
   }
 
   async onChangePassword(): Promise<void> {

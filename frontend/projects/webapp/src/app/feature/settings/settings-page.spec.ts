@@ -286,13 +286,10 @@ describe('SettingsPage', () => {
       expect(mockAnalytics.captureEvent).not.toHaveBeenCalled();
     });
 
-    it('should still refresh person properties even when nothing changed', async () => {
+    it('should not refresh person properties when nothing currency-related changed', async () => {
       await saveSettings();
 
-      expect(mockAnalytics.setPersonProperties).toHaveBeenCalledWith({
-        currency: 'CHF',
-        show_currency_selector: false,
-      });
+      expect(mockAnalytics.setPersonProperties).not.toHaveBeenCalled();
     });
 
     it('should capture currency_changed when currency changes', async () => {
