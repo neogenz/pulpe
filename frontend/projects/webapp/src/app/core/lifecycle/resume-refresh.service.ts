@@ -15,8 +15,11 @@
  * calls when a tab enters bfcache (webkit.org/b/282506). If the user
  * backgrounds the app DURING the initial `getSession()` round-trip, the
  * Promise never resolves and never rejects — `AuthStore.isLoading()` stays
- * `true` forever. On resume we detect this and reload immediately rather
- * than waiting on a Promise that will never settle.
+ * `true` forever. On `pageshow.persisted=true` we detect this and reload
+ * immediately rather than waiting on a Promise that will never settle.
+ * Bfcache-exclusive: discarded tabs (`pageshow.persisted=false` +
+ * `document.wasDiscarded=true`) are cold reloads where `isLoading=true` is
+ * the normal initial bootstrap state, not a hung Promise.
  *
  * **Scope vs Supabase auth-js.** The Supabase JS SDK (auth-js >= 2.71)
  * registers its own `visibilitychange` listener that refreshes the session
@@ -30,10 +33,11 @@
  * invalidate the budget + budget-templates SWR caches, reload user settings
  * (no full page reload, no component remount).
  *
- * **Hard reload (last resort).** Triggered when (a) `isLoading=true` at
- * resume (hung-fetch detection), (b) session refresh fails, (c) soft refresh
- * throws, or (d) the splash watchdog fires while auth is still loading —
- * all subject to {@link PAGE_RELOAD_COOLDOWN_MS} to avoid reload loops.
+ * **Hard reload (last resort).** Triggered when (a) `isLoading=true` on a
+ * bfcache restore (hung-fetch detection), (b) session refresh fails,
+ * (c) soft refresh throws, or (d) the splash watchdog fires while auth is
+ * still loading — all subject to {@link PAGE_RELOAD_COOLDOWN_MS} to avoid
+ * reload loops.
  *
  * Call {@link ResumeRefreshService.initialize} once at app bootstrap (see
  * `provideCore` initializer). Tests may inject {@link PAGE_RELOAD} to stub
@@ -103,9 +107,11 @@ type ResumeTriggerReason =
    *  tab under memory pressure and just rebuilt it. Treat like a cold start
    *  on the same URL. */
   | 'pageshow_discarded'
-  /** `pageshow` fired with {@link AuthStore.isLoading} still `true`. WebKit
-   *  silently aborted the in-flight `getSession()` on bfcache enter; the
-   *  Promise will never settle. Force a reload to break the hang. */
+  /** `pageshow.persisted === true` fired with {@link AuthStore.isLoading}
+   *  still `true`. WebKit silently aborted the in-flight `getSession()` on
+   *  bfcache enter; the Promise will never settle. Force a reload to break
+   *  the hang. Bfcache-exclusive — discarded tabs are cold reloads where
+   *  `isLoading=true` is the normal initial state. */
   | 'pageshow_hung_fetch'
   /** Splash watchdog elapsed while {@link AuthStore.isLoading} is still
    *  true. Last-resort signal that auth init never resolved — escalates to
@@ -143,22 +149,22 @@ export class ResumeRefreshService {
       return;
     }
 
+    if (event.persisted) {
+      if (this.#authStore.isLoading()) {
+        this.#triggerHardReload('pageshow_hung_fetch');
+        return;
+      }
+      this.#triggerRefresh('pageshow_persisted');
+      return;
+    }
+
     const wasDiscarded =
       (this.#document as Document & { wasDiscarded?: boolean }).wasDiscarded ===
       true;
 
-    if (!event.persisted && !wasDiscarded) {
-      return;
+    if (wasDiscarded) {
+      this.#triggerRefresh('pageshow_discarded');
     }
-
-    if (this.#authStore.isLoading()) {
-      this.#triggerHardReload('pageshow_hung_fetch');
-      return;
-    }
-
-    this.#triggerRefresh(
-      event.persisted ? 'pageshow_persisted' : 'pageshow_discarded',
-    );
   };
 
   /** Registers page lifecycle listeners; safe to call once (no-op if already done). */

@@ -158,6 +158,20 @@ describe('ResumeRefreshService', () => {
     expect(mockAuthSession.refreshSession).not.toHaveBeenCalled();
   });
 
+  it('should not hard-reload when tab was discarded with auth still bootstrapping (cold restart, not bfcache hung-fetch)', async () => {
+    Object.defineProperty(document, 'wasDiscarded', {
+      configurable: true,
+      value: true,
+    });
+    isLoadingSignal.set(true);
+
+    dispatchPageShow(false);
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(reloadSpy).not.toHaveBeenCalled();
+  });
+
   it('should not refresh on non-protected routes', async () => {
     mockRouter.url = '/welcome';
     dispatchPageShow(true);
