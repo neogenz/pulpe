@@ -5,7 +5,7 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { Field, form, required, submit } from '@angular/forms/signals';
+import { Field, form, required } from '@angular/forms/signals';
 import {
   MatDialogRef,
   MAT_DIALOG_DATA,
@@ -33,7 +33,7 @@ import {
   type AmountFormSlice,
   CurrencyConverterService,
   isCurrencyPickerVisible,
-  submitWithConversion,
+  runFormSubmit,
 } from '@core/currency';
 import { UserSettingsStore } from '@core/user-settings';
 import { FeatureFlagsService } from '@core/feature-flags';
@@ -258,12 +258,13 @@ export class EditTemplateLineDialog {
   }
 
   async handleSubmit(): Promise<void> {
-    await submit(this.addForm, async () => {
-      this.conversionError.set(false);
-      this.isSubmitting.set(true);
-      try {
+    await runFormSubmit({
+      form: this.addForm,
+      isSubmitting: this.isSubmitting,
+      conversionError: this.conversionError,
+      prepare: () => {
         const m = this.model();
-        const outcome = await submitWithConversion({
+        return {
           amountSlice: m.money,
           targetCurrency: this.#settings.currency(),
           converter: this.#converter,
@@ -274,19 +275,9 @@ export class EditTemplateLineDialog {
             kind: m.kind,
             ...(metadata ?? {}),
           }),
-        });
-        if (
-          outcome.status === 'failed-conversion' ||
-          outcome.status === 'failed-build'
-        ) {
-          this.conversionError.set(true);
-          return;
-        }
-        if (outcome.status === 'invalid') return;
-        this.#dialogRef.close(outcome.value);
-      } finally {
-        this.isSubmitting.set(false);
-      }
+        };
+      },
+      onSuccess: (value) => this.#dialogRef.close(value),
     });
   }
 

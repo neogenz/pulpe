@@ -18,7 +18,6 @@ import {
   maxLength,
   validate,
   customError,
-  submit,
 } from '@angular/forms/signals';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -33,10 +32,7 @@ import {
   type TransactionKind,
   type TransactionUpdate,
 } from 'pulpe-shared';
-import {
-  transactionUpdateFromFormSchema,
-  type TransactionUpdateFormValue,
-} from './edit-transaction-form.schema';
+import { transactionUpdateFromFormSchema } from './edit-transaction-form.schema';
 import { startOfMonth, endOfMonth } from 'date-fns';
 import { FeatureFlagsService } from '@core/feature-flags';
 import {
@@ -45,7 +41,7 @@ import {
   createAmountSlice,
   CurrencyConverterService,
   isCurrencyPickerVisible,
-  submitWithConversion,
+  runFormSubmit,
 } from '@core/currency';
 import { UserSettingsStore } from '@core/user-settings';
 import { touchedFieldErrors } from '@core/validators';
@@ -349,46 +345,30 @@ export class EditTransactionForm {
   }
 
   async onSubmit(): Promise<void> {
-    if (this.isUpdating()) return;
-    await submit(this.transactionForm, async () => {
-      this.conversionError.set(false);
-      this.#isUpdating.set(true);
-      try {
+    await runFormSubmit({
+      form: this.transactionForm,
+      isSubmitting: this.#isUpdating,
+      conversionError: this.conversionError,
+      prepare: () => {
         const m = this.model();
         const { transactionDate, category } = m;
-        const outcome = await submitWithConversion({
+        return {
           amountSlice: m.money,
           targetCurrency: this.#settings.currency(),
           converter: this.#converter,
           logger: this.#logger,
-          build: (amount, metadata): TransactionUpdateFormValue => ({
-            name: m.name,
-            amount,
-            kind: m.kind,
-            transactionDate: formatLocalDate(transactionDate),
-            category: category || null,
-            conversion: metadata,
-          }),
-        });
-        if (
-          outcome.status === 'failed-conversion' ||
-          outcome.status === 'failed-build'
-        ) {
-          this.conversionError.set(true);
-          return;
-        }
-        if (outcome.status === 'invalid') return;
-        const dto = transactionUpdateFromFormSchema.parse(outcome.value);
-        this.updateTransaction.emit(dto);
-      } catch (error: unknown) {
-        this.#logger.error(
-          'Form submit failed after successful conversion',
-          error,
-        );
-        this.conversionError.set(true);
-      } finally {
-        this.#isUpdating.set(false);
-      }
+          build: (amount, metadata): TransactionUpdate =>
+            transactionUpdateFromFormSchema.parse({
+              name: m.name,
+              amount,
+              kind: m.kind,
+              transactionDate: formatLocalDate(transactionDate),
+              category: category || null,
+              conversion: metadata,
+            }),
+        };
+      },
+      onSuccess: (dto) => this.updateTransaction.emit(dto),
     });
   }
 }

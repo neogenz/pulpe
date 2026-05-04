@@ -12,7 +12,6 @@ import {
   maxLength,
   minLength,
   required,
-  submit,
 } from '@angular/forms/signals';
 import { MatBottomSheetRef } from '@angular/material/bottom-sheet';
 import { MatButtonModule } from '@angular/material/button';
@@ -32,7 +31,7 @@ import {
   type AmountFormSlice,
   createAmountSlice,
   CurrencyConverterService,
-  submitWithConversion,
+  runFormSubmit,
 } from '@core/currency';
 import { Logger } from '@core/logging/logger';
 import { AmountInput } from '@app/pattern/amount-input/amount-input';
@@ -334,12 +333,13 @@ export class AddTransactionBottomSheet {
   }
 
   protected async onSubmit(): Promise<void> {
-    await submit(this.transactionForm, async () => {
-      this.conversionError.set(false);
-      this.isSubmitting.set(true);
-      try {
+    await runFormSubmit({
+      form: this.transactionForm,
+      isSubmitting: this.isSubmitting,
+      conversionError: this.conversionError,
+      prepare: () => {
         const m = this.model();
-        const outcome = await submitWithConversion({
+        return {
           amountSlice: m.money,
           targetCurrency: this.#userSettings.currency(),
           converter: this.#converter,
@@ -352,19 +352,9 @@ export class AddTransactionBottomSheet {
             checkedAt: m.isChecked ? new Date().toISOString() : null,
             ...metadata,
           }),
-        });
-        if (
-          outcome.status === 'failed-conversion' ||
-          outcome.status === 'failed-build'
-        ) {
-          this.conversionError.set(true);
-          return;
-        }
-        if (outcome.status === 'invalid') return;
-        this.#bottomSheetRef.dismiss(outcome.value);
-      } finally {
-        this.isSubmitting.set(false);
-      }
+        };
+      },
+      onSuccess: (value) => this.#bottomSheetRef.dismiss(value),
     });
   }
 

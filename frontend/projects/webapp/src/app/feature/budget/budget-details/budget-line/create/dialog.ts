@@ -5,7 +5,7 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { Field, form, required, submit } from '@angular/forms/signals';
+import { Field, form, required } from '@angular/forms/signals';
 import {
   MAT_DIALOG_DATA,
   MatDialogModule,
@@ -25,7 +25,7 @@ import {
   type AmountFormSlice,
   createAmountSlice,
   CurrencyConverterService,
-  submitWithConversion,
+  runFormSubmit,
 } from '@core/currency';
 import { Logger } from '@core/logging/logger';
 import { UserSettingsStore } from '@core/user-settings';
@@ -202,12 +202,13 @@ export class AddBudgetLineDialog {
   );
 
   protected async handleSubmit(): Promise<void> {
-    await submit(this.addForm, async () => {
-      this.conversionError.set(false);
-      this.isSubmitting.set(true);
-      try {
+    await runFormSubmit({
+      form: this.addForm,
+      isSubmitting: this.isSubmitting,
+      conversionError: this.conversionError,
+      prepare: () => {
         const m = this.model();
-        const outcome = await submitWithConversion({
+        return {
           amountSlice: m.money,
           targetCurrency: this.#settings.currency(),
           converter: this.#converter,
@@ -222,19 +223,9 @@ export class AddBudgetLineDialog {
               isChecked: m.isChecked,
               conversion: metadata,
             }),
-        });
-        if (
-          outcome.status === 'failed-conversion' ||
-          outcome.status === 'failed-build'
-        ) {
-          this.conversionError.set(true);
-          return;
-        }
-        if (outcome.status === 'invalid') return;
-        this.#dialogRef.close(outcome.value);
-      } finally {
-        this.isSubmitting.set(false);
-      }
+        };
+      },
+      onSuccess: (value) => this.#dialogRef.close(value),
     });
   }
 

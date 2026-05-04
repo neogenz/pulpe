@@ -99,7 +99,10 @@ export class CurrencyConverterService {
     if (inputCurrency === targetCurrency) {
       return { convertedAmount: amount, metadata: null };
     }
-    const { rate } = await this.fetchRate(inputCurrency, targetCurrency);
+    const { rate, cachedDate, fromFallback } = await this.fetchRate(
+      inputCurrency,
+      targetCurrency,
+    );
     return {
       convertedAmount: Number(this.convert(amount, rate).toFixed(2)),
       metadata: {
@@ -108,6 +111,8 @@ export class CurrencyConverterService {
         targetCurrency,
         exchangeRate: rate,
       },
+      cachedDate,
+      fromFallback,
     };
   }
 }

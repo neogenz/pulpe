@@ -9,13 +9,24 @@ import { type AmountFormSlice, isAmountSliceFilled } from './amount-form.types';
 /**
  * Outcome of a form submit that depends on currency conversion.
  *
- * - `ok`: conversion + build succeeded; `value` is the caller-built result
+ * - `ok`: conversion + build succeeded; `value` is the caller-built result.
+ *   `rateInfo` exposes freshness when the rate fetch fell back to a stale
+ *   cache entry, so callers can surface a warning before persisting.
  * - `invalid`: amount slice was empty (defensive — `submit()` should gate)
  * - `failed-conversion`: converter threw; error already logged
  * - `failed-build`: build callback threw (e.g., schema parse failure); error already logged
  */
+export interface ConversionRateInfo {
+  readonly cachedDate?: string;
+  readonly fromFallback?: boolean;
+}
+
 export type SubmitWithConversionOutcome<TResult> =
-  | { readonly status: 'ok'; readonly value: TResult }
+  | {
+      readonly status: 'ok';
+      readonly value: TResult;
+      readonly rateInfo?: ConversionRateInfo;
+    }
   | { readonly status: 'invalid' }
   | { readonly status: 'failed-conversion' }
   | { readonly status: 'failed-build' };
@@ -51,6 +62,7 @@ export async function submitWithConversion<TResult>(
   }
   let convertedAmount: number;
   let metadata: CurrencyMetadata | null;
+  let rateInfo: ConversionRateInfo | undefined;
   try {
     const result = await args.converter.convertWithMetadata(
       args.amountSlice.amount,
@@ -59,12 +71,29 @@ export async function submitWithConversion<TResult>(
     );
     convertedAmount = result.convertedAmount;
     metadata = result.metadata;
+    if (result.fromFallback || result.cachedDate) {
+      rateInfo = {
+        cachedDate: result.cachedDate,
+        fromFallback: result.fromFallback,
+      };
+    }
+    if (result.fromFallback) {
+      args.logger.warn('Currency conversion used stale fallback rate', {
+        cachedDate: result.cachedDate,
+        inputCurrency: args.amountSlice.inputCurrency,
+        targetCurrency: args.targetCurrency,
+      });
+    }
   } catch (error: unknown) {
     args.logger.error('Currency conversion failed', error);
     return { status: 'failed-conversion' };
   }
   try {
-    return { status: 'ok', value: args.build(convertedAmount, metadata) };
+    return {
+      status: 'ok',
+      value: args.build(convertedAmount, metadata),
+      rateInfo,
+    };
   } catch (error: unknown) {
     args.logger.error(
       'Form submit build failed after successful conversion',

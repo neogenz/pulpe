@@ -18,4 +18,8 @@ export interface CurrencyMetadata {
 export interface CurrencyConversionResult {
   convertedAmount: number;
   metadata: CurrencyMetadata | null;
+  /** ISO date (YYYY-MM-DD) of the FX rate used, when available. */
+  cachedDate?: string;
+  /** True when the live fetch failed and we used a stale cache entry. */
+  fromFallback?: boolean;
 }

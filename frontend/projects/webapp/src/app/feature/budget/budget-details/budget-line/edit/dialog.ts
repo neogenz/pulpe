@@ -15,7 +15,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { Field, form, required, submit } from '@angular/forms/signals';
+import { Field, form, required } from '@angular/forms/signals';
 import {
   type BudgetLine,
   type BudgetLineUpdate,
@@ -31,7 +31,7 @@ import {
   createAmountSlice,
   CurrencyConverterService,
   isCurrencyPickerVisible,
-  submitWithConversion,
+  runFormSubmit,
 } from '@core/currency';
 import { UserSettingsStore } from '@core/user-settings';
 import { FeatureFlagsService } from '@core/feature-flags';
@@ -219,12 +219,13 @@ export class EditBudgetLineDialog {
   }
 
   async handleSubmit(): Promise<void> {
-    await submit(this.editForm, async () => {
-      this.conversionError.set(false);
-      this.isSubmitting.set(true);
-      try {
+    await runFormSubmit({
+      form: this.editForm,
+      isSubmitting: this.isSubmitting,
+      conversionError: this.conversionError,
+      prepare: () => {
         const m = this.model();
-        const outcome = await submitWithConversion({
+        return {
           amountSlice: m.money,
           targetCurrency: this.#settings.currency(),
           converter: this.#converter,
@@ -244,19 +245,9 @@ export class EditBudgetLineDialog {
               ...formPart,
             };
           },
-        });
-        if (
-          outcome.status === 'failed-conversion' ||
-          outcome.status === 'failed-build'
-        ) {
-          this.conversionError.set(true);
-          return;
-        }
-        if (outcome.status === 'invalid') return;
-        this.#dialogRef.close(outcome.value);
-      } finally {
-        this.isSubmitting.set(false);
-      }
+        };
+      },
+      onSuccess: (value) => this.#dialogRef.close(value),
     });
   }
 

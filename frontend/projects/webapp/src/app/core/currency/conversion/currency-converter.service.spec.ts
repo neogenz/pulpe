@@ -217,6 +217,8 @@ describe('CurrencyConverterService', () => {
           targetCurrency: 'CHF',
           exchangeRate: 1.05,
         },
+        cachedDate: '2026-04-13',
+        fromFallback: undefined,
       });
     });
 

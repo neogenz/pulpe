@@ -113,13 +113,16 @@ export class AmountInput {
    * direct `this.control()` throws NG0950 because input bindings haven't
    * propagated yet. Wrapping the read in a `computed` defers it to the next
    * change-detection tick when the binding is set. After the first run the
-   * `try` is a no-op.
+   * `try` is a no-op. Narrowed catch so unexpected errors still surface.
    */
   readonly #safeControl = computed(() => {
     try {
       return this.control();
-    } catch {
-      return null;
+    } catch (error) {
+      if (error instanceof Error && error.message.includes('NG0950')) {
+        return null;
+      }
+      throw error;
     }
   });
 

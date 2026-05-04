@@ -15,7 +15,6 @@ import {
   form,
   maxLength,
   required,
-  submit,
   validate,
 } from '@angular/forms/signals';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -33,7 +32,7 @@ import {
   type AmountFormSlice,
   createAmountSlice,
   CurrencyConverterService,
-  submitWithConversion,
+  runFormSubmit,
 } from '@core/currency';
 import { UserSettingsStore } from '@core/user-settings';
 import { touchedFieldErrors } from '@core/validators';
@@ -244,12 +243,13 @@ export class CreateAllocatedTransactionBottomSheet {
   }
 
   async submit(): Promise<void> {
-    await submit(this.transactionForm, async () => {
-      this.conversionError.set(false);
-      this.isSubmitting.set(true);
-      try {
+    await runFormSubmit({
+      form: this.transactionForm,
+      isSubmitting: this.isSubmitting,
+      conversionError: this.conversionError,
+      prepare: () => {
         const m = this.model();
-        const outcome = await submitWithConversion({
+        return {
           amountSlice: m.money,
           targetCurrency: this.#settings.currency(),
           converter: this.#converter,
@@ -266,19 +266,9 @@ export class CreateAllocatedTransactionBottomSheet {
               isChecked: m.isChecked,
               conversion: metadata ?? null,
             }),
-        });
-        if (
-          outcome.status === 'failed-conversion' ||
-          outcome.status === 'failed-build'
-        ) {
-          this.conversionError.set(true);
-          return;
-        }
-        if (outcome.status === 'invalid') return;
-        this.#bottomSheetRef.dismiss(outcome.value);
-      } finally {
-        this.isSubmitting.set(false);
-      }
+        };
+      },
+      onSuccess: (value) => this.#bottomSheetRef.dismiss(value),
     });
   }
 }
