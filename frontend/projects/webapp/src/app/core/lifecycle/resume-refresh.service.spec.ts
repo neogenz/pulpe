@@ -1,7 +1,15 @@
 import { TestBed } from '@angular/core/testing';
 import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { Router } from '@angular/router';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest';
 import { ResumeRefreshService } from './resume-refresh.service';
 import { PAGE_RELOAD } from '@core/page-reload';
 import { Logger } from '@core/logging/logger';
@@ -25,10 +33,10 @@ describe('ResumeRefreshService', () => {
   const mockRouter = { url: '/dashboard' };
 
   const isLoadingSignal = signal(false);
-  const isAuthenticatedFn = vi.fn<() => boolean>().mockReturnValue(true);
+  const isAuthenticatedSignal = signal(true);
   const mockAuthStore = {
     isLoading: isLoadingSignal.asReadonly(),
-    isAuthenticated: isAuthenticatedFn,
+    isAuthenticated: isAuthenticatedSignal.asReadonly(),
   };
 
   const mockAuthSession = {
@@ -51,6 +59,11 @@ describe('ResumeRefreshService', () => {
   };
 
   let service: ResumeRefreshService;
+  let originalLocation: Location;
+
+  beforeAll(() => {
+    originalLocation = window.location;
+  });
 
   beforeEach(() => {
     TestBed.resetTestingModule();
@@ -58,8 +71,7 @@ describe('ResumeRefreshService', () => {
     vi.useRealTimers();
     reloadSpy.mockReset();
     isLoadingSignal.set(false);
-    isAuthenticatedFn.mockReset();
-    isAuthenticatedFn.mockReturnValue(true);
+    isAuthenticatedSignal.set(true);
     mockAuthSession.refreshSession.mockReset();
     mockAuthSession.refreshSession.mockResolvedValue(true);
     mockBudgetApi.cache.invalidate.mockReset();
@@ -92,6 +104,17 @@ describe('ResumeRefreshService', () => {
 
     service = TestBed.inject(ResumeRefreshService);
     TestBed.runInInjectionContext(() => service.initialize());
+  });
+
+  afterEach(() => {
+    Object.defineProperty(document, 'wasDiscarded', {
+      configurable: true,
+      value: false,
+    });
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: originalLocation,
+    });
   });
 
   it('should perform soft refresh on pageshow persisted for protected routes', async () => {
@@ -158,7 +181,7 @@ describe('ResumeRefreshService', () => {
     expect(mockAuthSession.refreshSession).not.toHaveBeenCalled();
   });
 
-  it('should not hard-reload when tab was discarded with auth still bootstrapping (cold restart, not bfcache hung-fetch)', async () => {
+  it('should not hard-reload on discarded tab with auth still loading', async () => {
     Object.defineProperty(document, 'wasDiscarded', {
       configurable: true,
       value: true,
@@ -219,7 +242,7 @@ describe('ResumeRefreshService', () => {
   });
 
   it('should not refresh when not authenticated', async () => {
-    isAuthenticatedFn.mockReturnValue(false);
+    isAuthenticatedSignal.set(false);
 
     dispatchPageShow(true);
     await Promise.resolve();
