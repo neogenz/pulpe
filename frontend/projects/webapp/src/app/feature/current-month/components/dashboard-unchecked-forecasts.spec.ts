@@ -1,6 +1,7 @@
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { By } from '@angular/platform-browser';
+import { vi } from 'vitest';
 import { DashboardUncheckedForecasts } from './dashboard-unchecked-forecasts';
 import type { BudgetLine } from 'pulpe-shared';
 import type { BudgetLineConsumption } from '@core/budget/budget-line-consumption';
@@ -61,7 +62,9 @@ describe('DashboardUncheckedForecasts', () => {
   it('should display the empty state message when there are no forecasts', () => {
     fixture.detectChanges();
 
-    const messageEl = fixture.debugElement.query(By.css('.p-8.text-center'));
+    const messageEl = fixture.debugElement.query(
+      By.css('[data-testid="dashboard-forecasts-empty-state"]'),
+    );
     expect(messageEl).toBeTruthy();
     expect(messageEl.nativeElement.textContent).toContain('Tout est à jour !');
   });
@@ -78,7 +81,7 @@ describe('DashboardUncheckedForecasts', () => {
 
     // Check list item
     const itemNames = fixture.debugElement.queryAll(
-      By.css('.text-body-medium.font-bold'),
+      By.css('[data-testid="dashboard-forecasts-name"]'),
     );
     expect(itemNames.length).toBeGreaterThan(0);
     expect(itemNames[0].nativeElement.textContent).toContain('Test Forecast');
@@ -108,7 +111,7 @@ describe('DashboardUncheckedForecasts', () => {
     component.toggleCheck.subscribe(() => (emitted = true));
 
     const nameSpan = fixture.debugElement.query(
-      By.css('.text-body-medium.font-bold'),
+      By.css('[data-testid="dashboard-forecasts-name"]'),
     );
     nameSpan.nativeElement.click();
 
@@ -128,17 +131,98 @@ describe('DashboardUncheckedForecasts', () => {
     );
   });
 
-  it('should show check_circle icon with primary color when item is in checkingIds', () => {
+  it('should show check_circle filled icon while a forecast row is exiting after a click', () => {
     setTestInput(component.forecasts, mockForecasts);
-    setTestInput(component.checkingIds, new Set(['1']));
     fixture.detectChanges();
 
     const radioButton = fixture.debugElement.query(
       By.css('button[aria-label]'),
     );
+    radioButton.nativeElement.click();
+    fixture.detectChanges();
+
     const icon = radioButton.query(By.css('mat-icon'));
     expect(icon.nativeElement.textContent.trim()).toBe('check_circle');
     expect(icon.nativeElement.classList.contains('text-primary')).toBe(true);
+    expect(icon.nativeElement.classList.contains('icon-filled')).toBe(true);
+  });
+
+  it('should keep the row visible as a ghost after click until the exit animation ends', () => {
+    setTestInput(component.forecasts, mockForecasts);
+    fixture.detectChanges();
+
+    // Click the radio — emit fires; in real flow the parent removes the
+    // forecast from the input. Simulate that here.
+    const radioButton = fixture.debugElement.query(
+      By.css('button[aria-label]'),
+    );
+    radioButton.nativeElement.click();
+
+    setTestInput(component.forecasts, []);
+    fixture.detectChanges();
+
+    let rows = fixture.debugElement.queryAll(By.css('.checking'));
+    expect(rows.length).toBe(1);
+
+    // Browser fires animationend after the keyframe completes. Simulate it.
+    const row = rows[0].nativeElement as HTMLElement;
+    row.dispatchEvent(
+      Object.assign(new Event('animationend'), {
+        animationName: 'forecast-check-exit',
+      }),
+    );
+    fixture.detectChanges();
+
+    rows = fixture.debugElement.queryAll(By.css('.checking'));
+    expect(rows.length).toBe(0);
+  });
+
+  it('should ignore animationend events from unrelated animations', () => {
+    setTestInput(component.forecasts, mockForecasts);
+    fixture.detectChanges();
+
+    const radioButton = fixture.debugElement.query(
+      By.css('button[aria-label]'),
+    );
+    radioButton.nativeElement.click();
+
+    setTestInput(component.forecasts, []);
+    fixture.detectChanges();
+
+    const row = fixture.debugElement.query(By.css('.checking'))
+      .nativeElement as HTMLElement;
+    row.dispatchEvent(
+      Object.assign(new Event('animationend'), {
+        animationName: 'some-other-animation',
+      }),
+    );
+    fixture.detectChanges();
+
+    expect(fixture.debugElement.queryAll(By.css('.checking')).length).toBe(1);
+  });
+
+  it('should reset the checking state if the forecast reappears (rollback)', () => {
+    setTestInput(component.forecasts, mockForecasts);
+    fixture.detectChanges();
+
+    const radioButton = fixture.debugElement.query(
+      By.css('button[aria-label]'),
+    );
+    radioButton.nativeElement.click();
+
+    // Simulate optimistic-removal then rollback (mutation error)
+    setTestInput(component.forecasts, []);
+    fixture.detectChanges();
+    setTestInput(component.forecasts, mockForecasts);
+    fixture.detectChanges();
+
+    const icon = fixture.debugElement
+      .query(By.css('button[aria-label]'))
+      .query(By.css('mat-icon'));
+    expect(icon.nativeElement.textContent.trim()).toBe(
+      'radio_button_unchecked',
+    );
+    expect(icon.nativeElement.classList.contains('text-primary')).toBe(false);
   });
 
   it('should display forecast amount when no consumptions provided', () => {
@@ -146,7 +230,7 @@ describe('DashboardUncheckedForecasts', () => {
     fixture.detectChanges();
 
     const amountEl = fixture.debugElement.query(
-      By.css('.text-label-large.tabular-nums'),
+      By.css('[data-testid="dashboard-forecasts-amount"]'),
     );
     expect(amountEl.nativeElement.textContent).toContain('100');
     expect(amountEl.nativeElement.textContent).toContain('CHF');
@@ -171,9 +255,87 @@ describe('DashboardUncheckedForecasts', () => {
     fixture.detectChanges();
 
     const amountEl = fixture.debugElement.query(
-      By.css('.text-label-large.tabular-nums'),
+      By.css('[data-testid="dashboard-forecasts-amount"]'),
     );
     expect(amountEl.nativeElement.textContent).toContain('70');
     expect(amountEl.nativeElement.textContent).toContain('CHF');
+  });
+
+  it('should clamp ghost insertion when the forecast list shrinks below the ghost originalIndex', () => {
+    const lines: BudgetLine[] = Array.from({ length: 5 }, (_, i) => ({
+      ...mockForecasts[0],
+      id: `line-${i}`,
+      name: `Line ${i}`,
+    }));
+    setTestInput(component.forecasts, lines);
+    fixture.detectChanges();
+
+    const buttons = fixture.debugElement.queryAll(By.css('button[aria-label]'));
+    buttons[4].nativeElement.click();
+
+    setTestInput(component.forecasts, [lines[0]]);
+    fixture.detectChanges();
+
+    const rows = fixture.debugElement.queryAll(
+      By.css('[data-testid="dashboard-forecasts-row"]'),
+    );
+    expect(rows.length).toBeLessThanOrEqual(5);
+    expect(rows.length).toBeGreaterThan(0);
+  });
+
+  it('should clear stuck ghosts via the safety timer when animationend never fires', async () => {
+    vi.useFakeTimers();
+    try {
+      setTestInput(component.forecasts, mockForecasts);
+      fixture.detectChanges();
+
+      const radioButton = fixture.debugElement.query(
+        By.css('button[aria-label]'),
+      );
+      radioButton.nativeElement.click();
+
+      setTestInput(component.forecasts, []);
+      fixture.detectChanges();
+
+      let rows = fixture.debugElement.queryAll(By.css('.checking'));
+      expect(rows.length).toBe(1);
+
+      // Advance past animation duration + buffer (500ms + 100ms) without
+      // dispatching `animationend` — simulates iOS Safari skipping the event.
+      await vi.advanceTimersByTimeAsync(650);
+      fixture.detectChanges();
+
+      rows = fixture.debugElement.queryAll(By.css('.checking'));
+      expect(rows.length).toBe(0);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('should preserve insertion order when multiple ghosts animate concurrently', () => {
+    const lines: BudgetLine[] = Array.from({ length: 3 }, (_, i) => ({
+      ...mockForecasts[0],
+      id: `line-${i}`,
+      name: `Line ${i}`,
+    }));
+    setTestInput(component.forecasts, lines);
+    fixture.detectChanges();
+
+    const buttons = fixture.debugElement.queryAll(By.css('button[aria-label]'));
+    buttons[0].nativeElement.click();
+    buttons[1].nativeElement.click();
+    buttons[2].nativeElement.click();
+
+    setTestInput(component.forecasts, []);
+    fixture.detectChanges();
+
+    const rows = fixture.debugElement.queryAll(
+      By.css('[data-testid="dashboard-forecasts-row"]'),
+    );
+    expect(rows.length).toBe(3);
+    const names = rows.map((r) => r.nativeElement.textContent ?? '');
+    expect(names[0]).toContain('Line 0');
+    expect(names[1]).toContain('Line 1');
+    expect(names[2]).toContain('Line 2');
   });
 });
