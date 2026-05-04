@@ -85,7 +85,7 @@ export type CurrencyRateResponse = z.infer<typeof currencyRateResponseSchema>;
  * ([1.2] → 1.2) into valid financial values — which z.coerce.number() would.
  * Infinity and -Infinity are rejected on both branches.
  */
-const exchangeRateWire = z.union([
+export const exchangeRateWire = z.union([
   z.number().finite(),
   z.string().transform((value, ctx) => {
     if (value.trim() === '') {
@@ -107,7 +107,9 @@ const exchangeRateWire = z.union([
   }),
 ]);
 
-const exchangeRateWirePositive = exchangeRateWire.pipe(z.number().positive());
+export const exchangeRateWirePositive = exchangeRateWire.pipe(
+  z.number().positive(),
+);
 
 /**
  * BUDGET - Instance mensuelle d'un template

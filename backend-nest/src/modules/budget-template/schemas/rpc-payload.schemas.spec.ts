@@ -92,6 +92,43 @@ describe('createTemplateLineRpcPayloadSchema', () => {
 
     expect(() => createTemplateLineRpcPayloadSchema.parse(bad)).toThrow();
   });
+
+  it('should accept PostgREST string exchange_rate "1.05000000" (PUL-182)', () => {
+    const payload = {
+      ...monoBase,
+      original_amount: VALID_CIPHERTEXT,
+      original_currency: 'EUR' as const,
+      target_currency: 'CHF' as const,
+      exchange_rate: '1.05000000',
+    };
+
+    const result = createTemplateLineRpcPayloadSchema.parse(payload);
+
+    expect(result.exchange_rate).toBe(1.05);
+    expect(typeof result.exchange_rate).toBe('number');
+  });
+
+  describe('non-numeric exchange_rate (PUL-114 hardening)', () => {
+    const cases: ReadonlyArray<{ label: string; value: unknown }> = [
+      { label: 'boolean true', value: true },
+      { label: 'array ["1.2"]', value: ['1.2'] },
+      { label: 'unparseable string', value: 'not-a-number' },
+      { label: 'empty string', value: '' },
+    ];
+
+    for (const { label, value } of cases) {
+      it(`should reject ${label}`, () => {
+        const bad = {
+          ...monoBase,
+          original_currency: 'EUR' as const,
+          target_currency: 'CHF' as const,
+          exchange_rate: value,
+        };
+
+        expect(() => createTemplateLineRpcPayloadSchema.parse(bad)).toThrow();
+      });
+    }
+  });
 });
 
 describe('createTemplateLinesRpcPayloadSchema', () => {
@@ -195,6 +232,45 @@ describe('applyTemplateLineOperationsItemSchema', () => {
     const result = applyTemplateLineOperationsItemSchema.parse(payload);
 
     expect(result.amount).toBeNull();
+  });
+
+  it('should accept PostgREST string exchange_rate "1.05000000" (PUL-182)', () => {
+    const payload = {
+      ...base,
+      original_amount: VALID_CIPHERTEXT,
+      original_currency: 'EUR' as const,
+      target_currency: 'CHF' as const,
+      exchange_rate: '1.05000000',
+    };
+
+    const result = applyTemplateLineOperationsItemSchema.parse(payload);
+
+    expect(result.exchange_rate).toBe(1.05);
+    expect(typeof result.exchange_rate).toBe('number');
+  });
+
+  describe('non-numeric exchange_rate (PUL-114 hardening)', () => {
+    const cases: ReadonlyArray<{ label: string; value: unknown }> = [
+      { label: 'boolean true', value: true },
+      { label: 'array ["1.2"]', value: ['1.2'] },
+      { label: 'unparseable string', value: 'not-a-number' },
+      { label: 'empty string', value: '' },
+    ];
+
+    for (const { label, value } of cases) {
+      it(`should reject ${label}`, () => {
+        const bad = {
+          ...base,
+          original_currency: 'EUR' as const,
+          target_currency: 'CHF' as const,
+          exchange_rate: value,
+        };
+
+        expect(() =>
+          applyTemplateLineOperationsItemSchema.parse(bad),
+        ).toThrow();
+      });
+    }
   });
 });
 

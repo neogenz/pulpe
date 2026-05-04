@@ -93,6 +93,8 @@ export {
   SUPPORTED_CURRENCIES,
   currencyRateQuerySchema,
   currencyRateResponseSchema,
+  exchangeRateWire,
+  exchangeRateWirePositive,
 
   // User schemas
   userProfileSchema,

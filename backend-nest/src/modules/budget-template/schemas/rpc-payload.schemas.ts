@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import {
+  exchangeRateWirePositive,
   supportedCurrencySchema,
   transactionKindSchema,
   transactionRecurrenceSchema,
@@ -24,7 +25,7 @@ export const createTemplateLineRpcPayloadSchema = z
     original_amount: z.string().min(1).nullable(),
     original_currency: supportedCurrencySchema.nullable(),
     target_currency: supportedCurrencySchema.nullable(),
-    exchange_rate: z.number().finite().positive().nullable(),
+    exchange_rate: exchangeRateWirePositive.nullable(),
   })
   .strict();
 
@@ -55,7 +56,7 @@ export const applyTemplateLineOperationsItemSchema = z
     original_amount: z.string().min(1).nullable(),
     original_currency: supportedCurrencySchema.nullable(),
     target_currency: supportedCurrencySchema.nullable(),
-    exchange_rate: z.number().finite().positive().nullable(),
+    exchange_rate: exchangeRateWirePositive.nullable(),
   })
   .strict();
 
