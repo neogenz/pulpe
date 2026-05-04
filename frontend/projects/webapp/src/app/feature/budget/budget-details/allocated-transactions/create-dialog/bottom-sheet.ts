@@ -33,6 +33,7 @@ import {
   createAmountSlice,
   CurrencyConverterService,
   runFormSubmit,
+  StaleRateNotifier,
 } from '@core/currency';
 import { UserSettingsStore } from '@core/user-settings';
 import { touchedFieldErrors } from '@core/validators';
@@ -182,6 +183,7 @@ export class CreateAllocatedTransactionBottomSheet {
   readonly #settings = inject(UserSettingsStore);
   readonly #converter = inject(CurrencyConverterService);
   readonly #logger = inject(Logger);
+  readonly #staleRateNotifier = inject(StaleRateNotifier);
   readonly #bottomSheetRef = inject(
     MatBottomSheetRef<CreateAllocatedTransactionBottomSheet, TransactionCreate>,
   );
@@ -268,7 +270,10 @@ export class CreateAllocatedTransactionBottomSheet {
             }),
         };
       },
-      onSuccess: (value) => this.#bottomSheetRef.dismiss(value),
+      onSuccess: (value, outcome) => {
+        this.#staleRateNotifier.notify(outcome);
+        this.#bottomSheetRef.dismiss(value);
+      },
     });
   }
 }

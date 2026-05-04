@@ -10,8 +10,8 @@ import type { TemplateLine } from 'pulpe-shared';
 import {
   EditTemplateLineDialog,
   type EditTemplateLineDialogData,
-  type EditTemplateLineDialogResult,
 } from './edit-template-line-dialog';
+import type { TemplateLineFormInput } from '../services/template-line-store';
 
 const baseLine: TemplateLine = {
   id: 'line-1',
@@ -172,7 +172,7 @@ describe('EditTemplateLineDialog', () => {
 
       expect(dialogRef.close).toHaveBeenCalledOnce();
       const closeArg = dialogRef.close.mock
-        .calls[0][0] as EditTemplateLineDialogResult;
+        .calls[0][0] as TemplateLineFormInput;
       expect(closeArg.name).toBe('Loyer Updated');
       expect(closeArg.amount).toBe(1600);
       expect(closeArg.kind).toBe('expense');

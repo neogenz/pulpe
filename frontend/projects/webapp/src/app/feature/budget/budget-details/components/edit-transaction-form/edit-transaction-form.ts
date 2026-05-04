@@ -38,10 +38,11 @@ import { FeatureFlagsService } from '@core/feature-flags';
 import {
   applyAmountValidators,
   type AmountFormSlice,
-  createAmountSlice,
+  createInitialAmountSlice,
   CurrencyConverterService,
   isCurrencyPickerVisible,
   runFormSubmit,
+  StaleRateNotifier,
 } from '@core/currency';
 import { UserSettingsStore } from '@core/user-settings';
 import { touchedFieldErrors } from '@core/validators';
@@ -233,6 +234,7 @@ export class EditTransactionForm {
   readonly #settings = inject(UserSettingsStore);
   readonly #converter = inject(CurrencyConverterService);
   readonly #logger = inject(Logger);
+  readonly #staleRateNotifier = inject(StaleRateNotifier);
 
   readonly transaction = input.required<Transaction>();
 
@@ -273,18 +275,22 @@ export class EditTransactionForm {
     computation: (tx): EditTransactionModel =>
       untracked(() => ({
         name: tx.name,
-        money: createAmountSlice({
-          initialCurrency: tx.originalCurrency ?? this.#settings.currency(),
-          initialAmount:
-            this.showCurrencySelector() && tx.originalAmount != null
-              ? tx.originalAmount
-              : tx.amount,
-        }),
+        money: this.#initialMoneySlice(tx),
         kind: tx.kind,
         transactionDate: new Date(tx.transactionDate),
         category: tx.category ?? '',
       })),
   });
+
+  #initialMoneySlice(tx: Transaction): AmountFormSlice {
+    return createInitialAmountSlice({
+      isPickerVisible: this.showCurrencySelector(),
+      originalAmount: tx.originalAmount,
+      originalCurrency: tx.originalCurrency,
+      fallbackAmount: tx.amount,
+      userCurrency: this.#settings.currency(),
+    });
+  }
 
   protected readonly transactionForm = form(this.model, (path) => {
     required(path.name);
@@ -368,7 +374,10 @@ export class EditTransactionForm {
             }),
         };
       },
-      onSuccess: (dto) => this.updateTransaction.emit(dto),
+      onSuccess: (dto, outcome) => {
+        this.#staleRateNotifier.notify(outcome);
+        this.updateTransaction.emit(dto);
+      },
     });
   }
 }

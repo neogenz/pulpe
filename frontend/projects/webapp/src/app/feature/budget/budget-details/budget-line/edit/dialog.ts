@@ -15,7 +15,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { Field, form, required } from '@angular/forms/signals';
+import { Field, form, minLength, required } from '@angular/forms/signals';
 import {
   type BudgetLine,
   type BudgetLineUpdate,
@@ -28,10 +28,11 @@ import { TransactionLabelPipe } from '@ui/transaction-display';
 import {
   applyAmountValidators,
   type AmountFormSlice,
-  createAmountSlice,
+  createInitialAmountSlice,
   CurrencyConverterService,
   isCurrencyPickerVisible,
   runFormSubmit,
+  StaleRateNotifier,
 } from '@core/currency';
 import { UserSettingsStore } from '@core/user-settings';
 import { FeatureFlagsService } from '@core/feature-flags';
@@ -90,6 +91,10 @@ interface EditBudgetLineModel {
             @if (nameErrors().required) {
               <mat-error>{{
                 'budget.forecastNameRequired' | transloco
+              }}</mat-error>
+            } @else if (nameErrors().minLength) {
+              <mat-error>{{
+                'budget.forecastNameMinLength' | transloco
               }}</mat-error>
             }
           </mat-form-field>
@@ -166,6 +171,7 @@ export class EditBudgetLineDialog {
   readonly #flags = inject(FeatureFlagsService);
   readonly #converter = inject(CurrencyConverterService);
   readonly #logger = inject(Logger);
+  readonly #staleRateNotifier = inject(StaleRateNotifier);
 
   protected readonly originalCurrency =
     this.#data.budgetLine.originalCurrency ?? null;
@@ -180,16 +186,14 @@ export class EditBudgetLineDialog {
 
   protected readonly model = signal<EditBudgetLineModel>({
     name: this.#data.budgetLine.name,
-    money: createAmountSlice({
-      initialCurrency: this.originalCurrency ?? this.#settings.currency(),
-      initialAmount: this.#computeInitialAmount(),
-    }),
+    money: this.#computeInitialSlice(),
     kind: this.#data.budgetLine.kind,
     recurrence: this.#data.budgetLine.recurrence,
   });
 
   protected readonly editForm = form(this.model, (path) => {
     required(path.name, { message: 'budget.forecastNameRequired' });
+    minLength(path.name, 2, { message: 'budget.forecastNameMinLength' });
     applyAmountValidators(path.money);
     required(path.kind, { message: 'budget.forecastTypeRequired' });
     required(path.recurrence);
@@ -204,18 +208,22 @@ export class EditBudgetLineDialog {
   protected readonly nameErrors = touchedFieldErrors(
     () => this.editForm.name,
     'required',
+    'minLength',
   );
   protected readonly kindErrors = touchedFieldErrors(
     () => this.editForm.kind,
     'required',
   );
 
-  #computeInitialAmount(): number {
+  #computeInitialSlice(): AmountFormSlice {
     const line = this.#data.budgetLine;
-    if (this.showCurrencySelector() && line.originalAmount != null) {
-      return line.originalAmount;
-    }
-    return line.amount;
+    return createInitialAmountSlice({
+      isPickerVisible: this.showCurrencySelector(),
+      originalAmount: line.originalAmount,
+      originalCurrency: line.originalCurrency,
+      fallbackAmount: line.amount,
+      userCurrency: this.#settings.currency(),
+    });
   }
 
   async handleSubmit(): Promise<void> {
@@ -247,7 +255,10 @@ export class EditBudgetLineDialog {
           },
         };
       },
-      onSuccess: (value) => this.#dialogRef.close(value),
+      onSuccess: (value, outcome) => {
+        this.#staleRateNotifier.notify(outcome);
+        this.#dialogRef.close(value);
+      },
     });
   }
 

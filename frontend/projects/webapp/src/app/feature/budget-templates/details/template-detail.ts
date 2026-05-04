@@ -29,8 +29,8 @@ import { TemplateLinesGrid } from './components/template-lines-grid';
 import {
   EditTemplateLineDialog,
   type EditTemplateLineDialogData,
-  type EditTemplateLineDialogResult,
 } from './components/edit-template-line-dialog';
+import type { TemplateLineFormInput } from './services/template-line-store';
 import { BudgetTemplatesStore } from '../services/budget-templates-store';
 import { BudgetTemplatesDialogService } from '../budget-templates-dialog.service';
 import { TemplateDetailsStore } from './services/template-details-store';
@@ -431,11 +431,11 @@ export default class TemplateDetail implements OnInit {
 
   async #openLineDialog(
     data: EditTemplateLineDialogData,
-  ): Promise<EditTemplateLineDialogResult | undefined> {
+  ): Promise<TemplateLineFormInput | undefined> {
     const dialogRef = this.#dialog.open<
       EditTemplateLineDialog,
       EditTemplateLineDialogData,
-      EditTemplateLineDialogResult
+      TemplateLineFormInput
     >(EditTemplateLineDialog, {
       data,
       width: '600px',

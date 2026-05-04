@@ -5,7 +5,7 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { Field, form, required } from '@angular/forms/signals';
+import { Field, form, minLength, required } from '@angular/forms/signals';
 import {
   MAT_DIALOG_DATA,
   MatDialogModule,
@@ -26,6 +26,7 @@ import {
   createAmountSlice,
   CurrencyConverterService,
   runFormSubmit,
+  StaleRateNotifier,
 } from '@core/currency';
 import { Logger } from '@core/logging/logger';
 import { UserSettingsStore } from '@core/user-settings';
@@ -90,6 +91,10 @@ interface AddBudgetLineModel {
             @if (nameErrors().required) {
               <mat-error>{{
                 'budget.forecastNameRequired' | transloco
+              }}</mat-error>
+            } @else if (nameErrors().minLength) {
+              <mat-error>{{
+                'budget.forecastNameMinLength' | transloco
               }}</mat-error>
             }
           </mat-form-field>
@@ -171,6 +176,7 @@ export class AddBudgetLineDialog {
   readonly #settings = inject(UserSettingsStore);
   readonly #converter = inject(CurrencyConverterService);
   readonly #logger = inject(Logger);
+  readonly #staleRateNotifier = inject(StaleRateNotifier);
 
   protected readonly model = signal<AddBudgetLineModel>({
     name: '',
@@ -182,6 +188,7 @@ export class AddBudgetLineDialog {
 
   protected readonly addForm = form(this.model, (path) => {
     required(path.name, { message: 'budget.forecastNameRequired' });
+    minLength(path.name, 2, { message: 'budget.forecastNameMinLength' });
     applyAmountValidators(path.money);
     required(path.kind, { message: 'budget.forecastTypeRequired' });
   });
@@ -189,6 +196,7 @@ export class AddBudgetLineDialog {
   protected readonly nameErrors = touchedFieldErrors(
     () => this.addForm.name,
     'required',
+    'minLength',
   );
   protected readonly kindErrors = touchedFieldErrors(
     () => this.addForm.kind,
@@ -225,7 +233,10 @@ export class AddBudgetLineDialog {
             }),
         };
       },
-      onSuccess: (value) => this.#dialogRef.close(value),
+      onSuccess: (value, outcome) => {
+        this.#staleRateNotifier.notify(outcome);
+        this.#dialogRef.close(value);
+      },
     });
   }
 

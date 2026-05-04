@@ -32,6 +32,7 @@ import {
   createAmountSlice,
   CurrencyConverterService,
   runFormSubmit,
+  StaleRateNotifier,
 } from '@core/currency';
 import { Logger } from '@core/logging/logger';
 import { AmountInput } from '@app/pattern/amount-input/amount-input';
@@ -258,6 +259,7 @@ export class AddTransactionBottomSheet {
   readonly #userSettings = inject(UserSettingsStore);
   readonly #converter = inject(CurrencyConverterService);
   readonly #logger = inject(Logger);
+  readonly #staleRateNotifier = inject(StaleRateNotifier);
 
   protected readonly amountInput = viewChild(AmountInput);
 
@@ -354,7 +356,10 @@ export class AddTransactionBottomSheet {
           }),
         };
       },
-      onSuccess: (value) => this.#bottomSheetRef.dismiss(value),
+      onSuccess: (value, outcome) => {
+        this.#staleRateNotifier.notify(outcome);
+        this.#bottomSheetRef.dismiss(value);
+      },
     });
   }
 

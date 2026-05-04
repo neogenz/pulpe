@@ -5,7 +5,7 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { Field, form, required } from '@angular/forms/signals';
+import { Field, form, minLength, required } from '@angular/forms/signals';
 import {
   MatDialogRef,
   MAT_DIALOG_DATA,
@@ -16,11 +16,9 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import {
-  type TemplateLine,
-  type TransactionKind,
-  type SupportedCurrency,
-} from 'pulpe-shared';
+import { type TemplateLine, type TransactionKind } from 'pulpe-shared';
+import { editTemplateLineFromFormSchema } from './edit-template-line-dialog.schema';
+import type { TemplateLineFormInput } from '../services/template-line-store';
 import { TranslocoPipe } from '@jsverse/transloco';
 import { FinancialKindDirective } from '@ui/financial-kind';
 import {
@@ -30,10 +28,12 @@ import {
 import {
   applyAmountValidators,
   createAmountSlice,
+  createInitialAmountSlice,
   type AmountFormSlice,
   CurrencyConverterService,
   isCurrencyPickerVisible,
   runFormSubmit,
+  StaleRateNotifier,
 } from '@core/currency';
 import { UserSettingsStore } from '@core/user-settings';
 import { FeatureFlagsService } from '@core/feature-flags';
@@ -50,16 +50,6 @@ const TRANSACTION_KINDS: readonly TransactionKind[] = [
 export interface EditTemplateLineDialogData {
   line?: TemplateLine;
   templateName: string;
-}
-
-export interface EditTemplateLineDialogResult {
-  name: string;
-  amount: number;
-  kind: TransactionKind;
-  originalAmount?: number;
-  originalCurrency?: SupportedCurrency;
-  targetCurrency?: SupportedCurrency;
-  exchangeRate?: number;
 }
 
 interface EditTemplateLineModel {
@@ -112,6 +102,10 @@ interface EditTemplateLineModel {
             @if (nameErrors().required) {
               <mat-error>{{
                 'budget.forecastNameRequired' | transloco
+              }}</mat-error>
+            } @else if (nameErrors().minLength) {
+              <mat-error>{{
+                'budget.forecastNameMinLength' | transloco
               }}</mat-error>
             }
           </mat-form-field>
@@ -180,13 +174,14 @@ interface EditTemplateLineModel {
 })
 export class EditTemplateLineDialog {
   readonly #dialogRef = inject(
-    MatDialogRef<EditTemplateLineDialog, EditTemplateLineDialogResult>,
+    MatDialogRef<EditTemplateLineDialog, TemplateLineFormInput>,
   );
   readonly #data = inject<EditTemplateLineDialogData>(MAT_DIALOG_DATA);
   readonly #settings = inject(UserSettingsStore);
   readonly #converter = inject(CurrencyConverterService);
   readonly #flags = inject(FeatureFlagsService);
   readonly #logger = inject(Logger);
+  readonly #staleRateNotifier = inject(StaleRateNotifier);
 
   protected readonly kinds = TRANSACTION_KINDS;
   protected readonly isEditMode = computed(() => this.#data.line != null);
@@ -204,14 +199,16 @@ export class EditTemplateLineDialog {
   });
 
   protected readonly addForm = form(this.model, (path) => {
-    required(path.name);
+    required(path.name, { message: 'budget.forecastNameRequired' });
+    minLength(path.name, 2, { message: 'budget.forecastNameMinLength' });
     applyAmountValidators(path.money);
-    required(path.kind);
+    required(path.kind, { message: 'budget.forecastTypeRequired' });
   });
 
   protected readonly nameErrors = touchedFieldErrors(
     () => this.addForm.name,
     'required',
+    'minLength',
   );
   protected readonly kindErrors = touchedFieldErrors(
     () => this.addForm.kind,
@@ -234,27 +231,19 @@ export class EditTemplateLineDialog {
   #computeInitialSlice(): AmountFormSlice {
     const line = this.#data.line;
     const userCurrency = this.#settings.currency();
+    if (!line) return createAmountSlice({ initialCurrency: userCurrency });
 
-    if (line) {
-      const isPickerVisible = isCurrencyPickerVisible({
+    return createInitialAmountSlice({
+      isPickerVisible: isCurrencyPickerVisible({
         isMultiCurrencyEnabled: this.#flags.isMultiCurrencyEnabled(),
         originalCurrency: line.originalCurrency ?? null,
         userCurrency,
-      });
-
-      if (isPickerVisible && line.originalAmount != null) {
-        return createAmountSlice({
-          initialCurrency: line.originalCurrency!,
-          initialAmount: line.originalAmount,
-        });
-      }
-      return createAmountSlice({
-        initialCurrency: userCurrency,
-        initialAmount: line.amount,
-      });
-    }
-
-    return createAmountSlice({ initialCurrency: userCurrency });
+      }),
+      originalAmount: line.originalAmount,
+      originalCurrency: line.originalCurrency,
+      fallbackAmount: line.amount,
+      userCurrency,
+    });
   }
 
   async handleSubmit(): Promise<void> {
@@ -269,15 +258,19 @@ export class EditTemplateLineDialog {
           targetCurrency: this.#settings.currency(),
           converter: this.#converter,
           logger: this.#logger,
-          build: (amount, metadata): EditTemplateLineDialogResult => ({
-            name: m.name.trim(),
-            amount,
-            kind: m.kind,
-            ...(metadata ?? {}),
-          }),
+          build: (amount, metadata): TemplateLineFormInput =>
+            editTemplateLineFromFormSchema.parse({
+              name: m.name,
+              amount,
+              kind: m.kind,
+              conversion: metadata,
+            }),
         };
       },
-      onSuccess: (value) => this.#dialogRef.close(value),
+      onSuccess: (value, outcome) => {
+        this.#staleRateNotifier.notify(outcome);
+        this.#dialogRef.close(value);
+      },
     });
   }
 
