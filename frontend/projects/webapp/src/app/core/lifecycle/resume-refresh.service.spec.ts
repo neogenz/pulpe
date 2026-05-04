@@ -1,11 +1,16 @@
 import { TestBed } from '@angular/core/testing';
 import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { Router } from '@angular/router';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
-  PAGE_RESUME_THRESHOLD_MS,
-  ResumeRefreshService,
-} from './resume-refresh.service';
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest';
+import { ResumeRefreshService } from './resume-refresh.service';
 import { PAGE_RELOAD } from '@core/page-reload';
 import { Logger } from '@core/logging/logger';
 import { AuthSessionService } from '@core/auth/auth-session.service';
@@ -13,13 +18,6 @@ import { AuthStore } from '@core/auth/auth-store';
 import { BudgetApi } from '@core/budget/budget-api';
 import { BudgetTemplatesApi } from '@core/budget-template/budget-templates-api';
 import { UserSettingsStore } from '@core/user-settings';
-
-function setVisibilityState(state: DocumentVisibilityState): void {
-  Object.defineProperty(document, 'visibilityState', {
-    configurable: true,
-    value: state,
-  });
-}
 
 function dispatchPageShow(persisted: boolean): void {
   const event = new Event('pageshow');
@@ -35,10 +33,10 @@ describe('ResumeRefreshService', () => {
   const mockRouter = { url: '/dashboard' };
 
   const isLoadingSignal = signal(false);
-  const isAuthenticatedFn = vi.fn<() => boolean>().mockReturnValue(true);
+  const isAuthenticatedSignal = signal(true);
   const mockAuthStore = {
     isLoading: isLoadingSignal.asReadonly(),
-    isAuthenticated: isAuthenticatedFn,
+    isAuthenticated: isAuthenticatedSignal.asReadonly(),
   };
 
   const mockAuthSession = {
@@ -61,6 +59,11 @@ describe('ResumeRefreshService', () => {
   };
 
   let service: ResumeRefreshService;
+  let originalLocation: Location;
+
+  beforeAll(() => {
+    originalLocation = window.location;
+  });
 
   beforeEach(() => {
     TestBed.resetTestingModule();
@@ -68,8 +71,7 @@ describe('ResumeRefreshService', () => {
     vi.useRealTimers();
     reloadSpy.mockReset();
     isLoadingSignal.set(false);
-    isAuthenticatedFn.mockReset();
-    isAuthenticatedFn.mockReturnValue(true);
+    isAuthenticatedSignal.set(true);
     mockAuthSession.refreshSession.mockReset();
     mockAuthSession.refreshSession.mockResolvedValue(true);
     mockBudgetApi.cache.invalidate.mockReset();
@@ -80,7 +82,6 @@ describe('ResumeRefreshService', () => {
     mockLogger.debug.mockReset();
     mockRouter.url = '/dashboard';
     sessionStorage.clear();
-    setVisibilityState('visible');
     Object.defineProperty(document, 'wasDiscarded', {
       configurable: true,
       value: false,
@@ -105,6 +106,17 @@ describe('ResumeRefreshService', () => {
     TestBed.runInInjectionContext(() => service.initialize());
   });
 
+  afterEach(() => {
+    Object.defineProperty(document, 'wasDiscarded', {
+      configurable: true,
+      value: false,
+    });
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: originalLocation,
+    });
+  });
+
   it('should perform soft refresh on pageshow persisted for protected routes', async () => {
     dispatchPageShow(true);
     await vi.waitFor(() => {
@@ -122,38 +134,6 @@ describe('ResumeRefreshService', () => {
     });
 
     dispatchPageShow(false);
-    await vi.waitFor(() => {
-      expect(mockAuthSession.refreshSession).toHaveBeenCalledOnce();
-    });
-    expect(mockBudgetApi.cache.invalidate).toHaveBeenCalledOnce();
-    expect(mockUserSettingsStore.reload).toHaveBeenCalledOnce();
-    expect(reloadSpy).not.toHaveBeenCalled();
-  });
-
-  it('should not trigger refresh for short background/foreground switch', () => {
-    const nowSpy = vi.spyOn(Date, 'now').mockReturnValue(1_000);
-
-    setVisibilityState('hidden');
-    document.dispatchEvent(new Event('visibilitychange'));
-
-    nowSpy.mockReturnValue(1_000 + PAGE_RESUME_THRESHOLD_MS - 1);
-    setVisibilityState('visible');
-    document.dispatchEvent(new Event('visibilitychange'));
-
-    expect(mockAuthSession.refreshSession).not.toHaveBeenCalled();
-    expect(reloadSpy).not.toHaveBeenCalled();
-  });
-
-  it('should perform soft refresh when tab resumes after long background period', async () => {
-    const nowSpy = vi.spyOn(Date, 'now').mockReturnValue(1_000);
-
-    setVisibilityState('hidden');
-    document.dispatchEvent(new Event('visibilitychange'));
-
-    nowSpy.mockReturnValue(1_000 + PAGE_RESUME_THRESHOLD_MS + 1);
-    setVisibilityState('visible');
-    document.dispatchEvent(new Event('visibilitychange'));
-
     await vi.waitFor(() => {
       expect(mockAuthSession.refreshSession).toHaveBeenCalledOnce();
     });
@@ -192,20 +172,26 @@ describe('ResumeRefreshService', () => {
     expect(reloadSpy).toHaveBeenCalledOnce();
   });
 
-  it('should queue resume and process once auth finishes loading', async () => {
+  it('should reload immediately on pageshow when auth is still loading (hung-fetch failsafe)', () => {
     isLoadingSignal.set(true);
 
     dispatchPageShow(true);
+
+    expect(reloadSpy).toHaveBeenCalledOnce();
+    expect(mockAuthSession.refreshSession).not.toHaveBeenCalled();
+  });
+
+  it('should not hard-reload on discarded tab with auth still loading', async () => {
+    Object.defineProperty(document, 'wasDiscarded', {
+      configurable: true,
+      value: true,
+    });
+    isLoadingSignal.set(true);
+
+    dispatchPageShow(false);
+    await Promise.resolve();
     await Promise.resolve();
 
-    expect(mockAuthSession.refreshSession).not.toHaveBeenCalled();
-    expect(reloadSpy).not.toHaveBeenCalled();
-
-    isLoadingSignal.set(false);
-
-    await vi.waitFor(() => {
-      expect(mockAuthSession.refreshSession).toHaveBeenCalledOnce();
-    });
     expect(reloadSpy).not.toHaveBeenCalled();
   });
 
@@ -216,6 +202,16 @@ describe('ResumeRefreshService', () => {
 
     expect(mockAuthSession.refreshSession).not.toHaveBeenCalled();
     expect(reloadSpy).not.toHaveBeenCalled();
+  });
+
+  it('should not reload on non-protected routes even when auth is loading', () => {
+    mockRouter.url = '/welcome';
+    isLoadingSignal.set(true);
+
+    dispatchPageShow(true);
+
+    expect(reloadSpy).not.toHaveBeenCalled();
+    expect(mockAuthSession.refreshSession).not.toHaveBeenCalled();
   });
 
   it('should fall back to location.pathname when router.url is "/" before navigation settles', async () => {
@@ -234,37 +230,6 @@ describe('ResumeRefreshService', () => {
     expect(reloadSpy).not.toHaveBeenCalled();
   });
 
-  it('should force reload when auth never finishes loading after resume (timeout)', async () => {
-    vi.useFakeTimers();
-    isLoadingSignal.set(true);
-
-    dispatchPageShow(true);
-    await Promise.resolve();
-
-    expect(reloadSpy).not.toHaveBeenCalled();
-
-    await vi.advanceTimersByTimeAsync(13_000);
-
-    expect(reloadSpy).toHaveBeenCalledOnce();
-    expect(mockAuthSession.refreshSession).not.toHaveBeenCalled();
-  });
-
-  it('should not queue duplicate reasons across rapid pageshow events', async () => {
-    isLoadingSignal.set(true);
-
-    dispatchPageShow(true);
-    dispatchPageShow(true);
-    await Promise.resolve();
-
-    expect(mockAuthSession.refreshSession).not.toHaveBeenCalled();
-
-    isLoadingSignal.set(false);
-
-    await vi.waitFor(() => {
-      expect(mockAuthSession.refreshSession).toHaveBeenCalledOnce();
-    });
-  });
-
   it('forceReloadOnSplashTimeout honors cooldown and reports outcome', () => {
     const nowSpy = vi.spyOn(Date, 'now').mockReturnValue(5_000);
 
@@ -276,23 +241,8 @@ describe('ResumeRefreshService', () => {
     expect(reloadSpy).toHaveBeenCalledOnce();
   });
 
-  it('should track lastHiddenAt via pagehide and refresh on visibility resume after long delay', async () => {
-    const nowSpy = vi.spyOn(Date, 'now').mockReturnValue(10_000);
-
-    window.dispatchEvent(new Event('pagehide'));
-
-    nowSpy.mockReturnValue(10_000 + PAGE_RESUME_THRESHOLD_MS + 1);
-    setVisibilityState('visible');
-    document.dispatchEvent(new Event('visibilitychange'));
-
-    await vi.waitFor(() => {
-      expect(mockAuthSession.refreshSession).toHaveBeenCalledOnce();
-    });
-    expect(reloadSpy).not.toHaveBeenCalled();
-  });
-
   it('should not refresh when not authenticated', async () => {
-    isAuthenticatedFn.mockReturnValue(false);
+    isAuthenticatedSignal.set(false);
 
     dispatchPageShow(true);
     await Promise.resolve();

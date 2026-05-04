@@ -95,13 +95,15 @@ struct StoreRaceConditionTests {
     func store_rapidLoadCancelCycles_stateNotCorrupted() async throws {
         let store = CurrentMonthStore()
 
+        var tasks: [Task<Void, Never>] = []
         for _ in 0..<20 {
             let task = Task { await store.forceRefresh() }
+            tasks.append(task)
             try await Task.sleep(for: .milliseconds(Int.random(in: 0...10)))
             task.cancel()
         }
 
-        try await Task.sleep(for: .milliseconds(50))
+        for task in tasks { await task.value }
 
         #expect(store.isLoading == false, "Store must not be stuck in loading after rapid load/cancel cycles")
     }
