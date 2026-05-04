@@ -272,7 +272,8 @@ describe('AddTransactionBottomSheet', () => {
 
       component['selectPredefinedAmount'](20);
 
-      expect(component['model']().money.amount).toBe(20);
+      expect(component['transactionForm'].money.amount().value()).toBe(20);
+      expect(component['transactionForm'].money.amount().touched()).toBe(true);
     });
   });
 

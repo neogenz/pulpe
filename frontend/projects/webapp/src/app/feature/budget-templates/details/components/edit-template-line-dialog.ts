@@ -151,7 +151,7 @@ interface EditTemplateLineModel {
     </mat-dialog-content>
 
     @if (conversionError()) {
-      <p class="text-error text-body-small px-6 pb-2">
+      <p role="alert" class="text-error text-body-small px-6 pb-2">
         {{ 'common.conversionError' | transloco }}
       </p>
     }
@@ -273,7 +273,10 @@ export class EditTemplateLineDialog {
             ...(metadata ?? {}),
           }),
         });
-        if (outcome.status === 'failed') {
+        if (
+          outcome.status === 'failed-conversion' ||
+          outcome.status === 'failed-build'
+        ) {
           this.conversionError.set(true);
           return;
         }

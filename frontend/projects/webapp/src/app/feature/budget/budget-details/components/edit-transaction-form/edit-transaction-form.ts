@@ -8,6 +8,7 @@ import {
   output,
   signal,
   linkedSignal,
+  untracked,
 } from '@angular/core';
 import {
   Field,
@@ -217,7 +218,7 @@ interface DateOutOfRangeError {
       }
     </form>
     @if (conversionError()) {
-      <p class="text-error text-body-small px-1 pt-2">
+      <p role="alert" class="text-error text-body-small px-1 pt-2">
         {{ 'common.conversionError' | transloco }}
       </p>
     }
@@ -271,19 +272,20 @@ export class EditTransactionForm {
 
   protected readonly model = linkedSignal({
     source: this.transaction,
-    computation: (tx): EditTransactionModel => ({
-      name: tx.name,
-      money: createAmountSlice({
-        initialCurrency: tx.originalCurrency ?? this.#settings.currency(),
-        initialAmount:
-          this.showCurrencySelector() && tx.originalAmount != null
-            ? tx.originalAmount
-            : tx.amount,
-      }),
-      kind: tx.kind,
-      transactionDate: new Date(tx.transactionDate),
-      category: tx.category ?? '',
-    }),
+    computation: (tx): EditTransactionModel =>
+      untracked(() => ({
+        name: tx.name,
+        money: createAmountSlice({
+          initialCurrency: tx.originalCurrency ?? this.#settings.currency(),
+          initialAmount:
+            this.showCurrencySelector() && tx.originalAmount != null
+              ? tx.originalAmount
+              : tx.amount,
+        }),
+        kind: tx.kind,
+        transactionDate: new Date(tx.transactionDate),
+        category: tx.category ?? '',
+      })),
   });
 
   protected readonly transactionForm = form(this.model, (path) => {
@@ -366,7 +368,10 @@ export class EditTransactionForm {
             conversion: metadata,
           }),
         });
-        if (outcome.status === 'failed') {
+        if (
+          outcome.status === 'failed-conversion' ||
+          outcome.status === 'failed-build'
+        ) {
           this.conversionError.set(true);
           return;
         }

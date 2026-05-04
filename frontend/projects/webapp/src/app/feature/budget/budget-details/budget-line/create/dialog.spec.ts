@@ -272,4 +272,29 @@ describe('AddBudgetLineDialog', () => {
       expect(dto).not.toHaveProperty('exchangeRate');
     });
   });
+
+  describe('a11y — conversion error announcement (issue #11 regression)', () => {
+    beforeEach(() => TestBed.resetTestingModule());
+
+    it('should expose role="alert" on the conversion error block when conversionError is true', () => {
+      const { fixture, component } = configureDialog();
+
+      component['conversionError'].set(true);
+      fixture.detectChanges();
+
+      const errorEl = fixture.nativeElement.querySelector('p[role="alert"]');
+      expect(errorEl).not.toBeNull();
+      expect(errorEl?.textContent?.trim().length).toBeGreaterThan(0);
+    });
+
+    it('should NOT render the alert element when conversionError is false', () => {
+      const { fixture, component } = configureDialog();
+
+      component['conversionError'].set(false);
+      fixture.detectChanges();
+
+      const errorEl = fixture.nativeElement.querySelector('p[role="alert"]');
+      expect(errorEl).toBeNull();
+    });
+  });
 });

@@ -167,18 +167,19 @@ export class EditBudgetLineDialog {
   readonly #logger = inject(Logger);
 
   protected readonly originalCurrency =
-    this.#data.budgetLine.originalCurrency ?? this.#settings.currency();
+    this.#data.budgetLine.originalCurrency ?? null;
 
   protected readonly showCurrencySelector = computed(
     () =>
       this.#flags.isMultiCurrencyEnabled() &&
+      this.originalCurrency !== null &&
       this.originalCurrency !== this.#settings.currency(),
   );
 
   protected readonly model = signal<EditBudgetLineModel>({
     name: this.#data.budgetLine.name,
     money: createAmountSlice({
-      initialCurrency: this.originalCurrency,
+      initialCurrency: this.originalCurrency ?? this.#settings.currency(),
       initialAmount: this.#computeInitialAmount(),
     }),
     kind: this.#data.budgetLine.kind,
@@ -242,7 +243,10 @@ export class EditBudgetLineDialog {
             };
           },
         });
-        if (outcome.status === 'failed') {
+        if (
+          outcome.status === 'failed-conversion' ||
+          outcome.status === 'failed-build'
+        ) {
           this.conversionError.set(true);
           return;
         }

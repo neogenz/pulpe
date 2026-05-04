@@ -222,7 +222,7 @@ interface AddTransactionModel {
       </form>
 
       @if (conversionError()) {
-        <p class="text-error text-body-small pb-2">
+        <p role="alert" class="text-error text-body-small pb-2">
           {{ 'common.conversionError' | transloco }}
         </p>
       }
@@ -328,7 +328,9 @@ export class AddTransactionBottomSheet {
   );
 
   protected selectPredefinedAmount(amount: number): void {
-    this.model.update((m) => ({ ...m, money: { ...m.money, amount } }));
+    const amountField = this.transactionForm.money.amount();
+    amountField.value.set(amount);
+    amountField.markAsTouched();
   }
 
   protected async onSubmit(): Promise<void> {
@@ -351,7 +353,10 @@ export class AddTransactionBottomSheet {
             ...metadata,
           }),
         });
-        if (outcome.status === 'failed') {
+        if (
+          outcome.status === 'failed-conversion' ||
+          outcome.status === 'failed-build'
+        ) {
           this.conversionError.set(true);
           return;
         }

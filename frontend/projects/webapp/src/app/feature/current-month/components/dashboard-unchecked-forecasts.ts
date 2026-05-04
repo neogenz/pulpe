@@ -115,7 +115,7 @@ interface AnimatingForecast {
                   [pulpeFinancialKind]="forecast.kind"
                   data-testid="dashboard-forecasts-amount"
                 >
-                  {{ displayAmount | appCurrency: currency() : '1.2-2' }}
+                  {{ displayAmount | appCurrency: currency() : '1.0-0' }}
                 </span>
               </div>
             }

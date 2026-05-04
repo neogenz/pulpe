@@ -652,4 +652,36 @@ describe('EditTransactionForm — currency edit rules', () => {
     expect(emitted).toBeUndefined();
     expect(component['conversionError']()).toBe(true);
   });
+
+  it('should NOT reset user-edited model fields when settings.currency() changes (linkedSignal regression — issue #1)', () => {
+    const { fixture, component, settings } = configureForm({
+      userCurrency: 'CHF',
+      flagEnabled: true,
+    });
+
+    setTestInput(
+      component.transaction,
+      makeTransaction({
+        name: 'Original Name',
+        amount: 100,
+        originalCurrency: 'EUR',
+        originalAmount: 90,
+      }),
+    );
+    fixture.detectChanges();
+
+    // Verify initial name
+    expect(component['model']().name).toBe('Original Name');
+
+    // User edits the model — simulates typing in the name field
+    component['model'].update((m) => ({ ...m, name: 'User Edit' }));
+    expect(component['model']().name).toBe('User Edit');
+
+    // Settings currency flips — pre-fix bug: linkedSignal computation re-runs and wipes 'User Edit'
+    settings.currency.set('EUR');
+    fixture.detectChanges();
+
+    // Post-fix expectation: user's edit survives the settings change
+    expect(component['model']().name).toBe('User Edit');
+  });
 });

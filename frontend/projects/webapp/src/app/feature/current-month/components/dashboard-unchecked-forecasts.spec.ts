@@ -225,7 +225,7 @@ describe('DashboardUncheckedForecasts', () => {
     expect(icon.nativeElement.classList.contains('text-primary')).toBe(false);
   });
 
-  it('should display forecast amount when no consumptions provided', () => {
+  it('should display forecast amount with aggregation digitsInfo (no decimals)', () => {
     setTestInput(component.forecasts, mockForecasts);
     fixture.detectChanges();
 
@@ -234,9 +234,10 @@ describe('DashboardUncheckedForecasts', () => {
     );
     expect(amountEl.nativeElement.textContent).toContain('100');
     expect(amountEl.nativeElement.textContent).toContain('CHF');
+    expect(amountEl.nativeElement.textContent).not.toMatch(/[.,]00\b/);
   });
 
-  it('should display remaining from consumptions map when provided', () => {
+  it('should display remaining from consumptions map with no decimals', () => {
     setTestInput(component.forecasts, mockForecasts);
 
     const consumptionsMap = new Map<string, BudgetLineConsumption>([
@@ -259,6 +260,7 @@ describe('DashboardUncheckedForecasts', () => {
     );
     expect(amountEl.nativeElement.textContent).toContain('70');
     expect(amountEl.nativeElement.textContent).toContain('CHF');
+    expect(amountEl.nativeElement.textContent).not.toMatch(/[.,]00\b/);
   });
 
   it('should clamp ghost insertion when the forecast list shrinks below the ghost originalIndex', () => {

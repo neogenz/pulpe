@@ -84,7 +84,7 @@ describe('submitWithConversion', () => {
     expect(logger.error).not.toHaveBeenCalled();
   });
 
-  it('returns failed and logs when converter throws', async () => {
+  it('should return failed-conversion and log when converter throws', async () => {
     const slice: AmountFormSlice = { amount: 100, inputCurrency: 'EUR' };
     const apiError = new Error('rate API down');
     const converter = makeConverter({
@@ -101,15 +101,15 @@ describe('submitWithConversion', () => {
       build,
     });
 
-    expect(outcome).toEqual({ status: 'failed' });
+    expect(outcome).toEqual({ status: 'failed-conversion' });
     expect(build).not.toHaveBeenCalled();
     expect(logger.error).toHaveBeenCalledWith(
-      'Currency conversion or schema parse failed',
+      'Currency conversion failed',
       apiError,
     );
   });
 
-  it('returns failed and logs when build throws (e.g., Zod parse)', async () => {
+  it('should return failed-build and log when build throws (e.g., Zod parse)', async () => {
     const slice: AmountFormSlice = { amount: 100, inputCurrency: 'CHF' };
     const converter = makeConverter({
       convertWithMetadata: vi.fn().mockResolvedValue({
@@ -130,9 +130,9 @@ describe('submitWithConversion', () => {
       },
     });
 
-    expect(outcome).toEqual({ status: 'failed' });
+    expect(outcome).toEqual({ status: 'failed-build' });
     expect(logger.error).toHaveBeenCalledWith(
-      'Currency conversion or schema parse failed',
+      'Form submit build failed after successful conversion',
       parseError,
     );
   });

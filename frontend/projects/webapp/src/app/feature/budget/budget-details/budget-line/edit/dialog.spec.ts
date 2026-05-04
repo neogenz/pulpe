@@ -245,4 +245,15 @@ describe('EditBudgetLineDialog — currency edit rules', () => {
     expect(dialogRef.close).not.toHaveBeenCalled();
     expect(component['conversionError']()).toBe(true);
   });
+
+  it('originalCurrency falls back to null when budget line has no originalCurrency', () => {
+    const line = createMockBudgetLine({ amount: 200 });
+
+    const { component } = configureDialog(line, {
+      userCurrency: 'CHF',
+      flagEnabled: true,
+    });
+
+    expect(component['originalCurrency']).toBe(null);
+  });
 });
