@@ -8,7 +8,7 @@ struct CurrencySettingView: View {
         case input
     }
 
-    private struct ConverterValueRowModel {
+    fileprivate struct ConverterValueRowModel {
         var title: String
         var caption: String?
         var currency: SupportedCurrency
@@ -73,6 +73,7 @@ struct CurrencySettingView: View {
                     get: { viewModel.selectedCurrency },
                     set: { newValue in
                         guard newValue != viewModel.selectedCurrency else { return }
+                        let previousCurrency = viewModel.selectedCurrency
                         viewModel.selectedCurrency = newValue
                         viewModel.applyConverterBase(newValue)
                         if isConverterExpanded {
@@ -80,7 +81,7 @@ struct CurrencySettingView: View {
                         }
                         saveCurrencyTask?.cancel()
                         saveCurrencyTask = Task(name: "CurrencySetting.saveCurrency") {
-                            await persistCurrencyChange()
+                            await persistCurrencyChange(from: previousCurrency, to: newValue)
                         }
                     }
                 ),
@@ -133,10 +134,17 @@ struct CurrencySettingView: View {
 
     // MARK: - Persistence
 
-    private func persistCurrencyChange() async {
+    private func persistCurrencyChange(from: SupportedCurrency, to: SupportedCurrency) async {
         await viewModel.save(using: userSettingsStore)
         guard !Task.isCancelled else { return }
         if userSettingsStore.error == nil {
+            AnalyticsService.shared.capture(.currencyChanged, properties: [
+                "from": from.rawValue,
+                "to": to.rawValue
+            ])
+            AnalyticsService.shared.setPersonProperties([
+                AnalyticsService.currencyProperty: to.rawValue
+            ])
             submitSuccessTrigger.toggle()
             appState.toastManager.show("Devise enregistrée", type: .success)
             announceForVoiceOver("Devise enregistrée")
@@ -155,6 +163,12 @@ struct CurrencySettingView: View {
         await userSettingsStore.updateShowCurrencySelector(newValue)
         guard !Task.isCancelled else { return }
         if userSettingsStore.error == nil {
+            AnalyticsService.shared.capture(.currencySelectorToggled, properties: [
+                "enabled": newValue
+            ])
+            AnalyticsService.shared.setPersonProperties([
+                AnalyticsService.showCurrencySelectorProperty: newValue
+            ])
             submitSuccessTrigger.toggle()
             appState.toastManager.show("Préférence enregistrée", type: .success)
             announceForVoiceOver("Préférence enregistrée")
@@ -169,10 +183,12 @@ struct CurrencySettingView: View {
         UIAccessibility.post(notification: .announcement, argument: message)
         #endif
     }
+}
 
-    // MARK: - Converter
+// MARK: - Converter
 
-    private var converterDisclosure: some View {
+extension CurrencySettingView {
+    var converterDisclosure: some View {
         DisclosureGroup(isExpanded: $isConverterExpanded) {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
                 Text(
@@ -212,7 +228,7 @@ struct CurrencySettingView: View {
         .tint(Color.pulpePrimary)
     }
 
-    private var converterInputRow: some View {
+    fileprivate var converterInputRow: some View {
         converterValueRow(
             ConverterValueRowModel(
                 title: "Depuis",
@@ -232,7 +248,7 @@ struct CurrencySettingView: View {
         }
     }
 
-    private var converterOutputRow: some View {
+    fileprivate var converterOutputRow: some View {
         converterValueRow(
             ConverterValueRowModel(
                 title: "Vers",
@@ -252,7 +268,7 @@ struct CurrencySettingView: View {
     }
 
     @ViewBuilder
-    private func converterValueRow<Content: View>(
+    fileprivate func converterValueRow<Content: View>(
         _ model: ConverterValueRowModel,
         @ViewBuilder valueContent: () -> Content
     ) -> some View {
@@ -292,7 +308,7 @@ struct CurrencySettingView: View {
     }
 
     @ViewBuilder
-    private var rateFooter: some View {
+    fileprivate var rateFooter: some View {
         if viewModel.isLoadingRate {
             HStack(alignment: .center, spacing: DesignTokens.Spacing.sm) {
                 ProgressView()

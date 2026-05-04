@@ -11,6 +11,9 @@ final class AnalyticsService {
     /// PostHog person property keys — must mirror `ANALYTICS_PROPERTIES`
     /// in `shared/src/feature-flags.ts`.
     nonisolated static let earlyAdopterProperty = "early_adopter"
+    nonisolated static let currencyProperty = "currency"
+    nonisolated static let showCurrencySelectorProperty = "show_currency_selector"
+    nonisolated static let multiCurrencyEnabledProperty = "multi_currency_enabled"
 
     private(set) var isInitialized = false
     private(set) var isEventCapturingEnabled = false
@@ -73,6 +76,19 @@ final class AnalyticsService {
             userPropertiesSetOnce: [
                 "first_app_version": AppConfiguration.appVersion
             ]
+        )
+    }
+
+    /// Updates person properties on the currently identified user (PostHog `$set`).
+    /// Re-uses `identify()` with the current distinct id so we don't generate a new
+    /// person — PostHog merges `userProperties` into the existing profile.
+    /// Caller must ensure `identify(...)` has already fired.
+    func setPersonProperties(_ properties: [String: Any]) {
+        guard isEventCapturingEnabled else { return }
+        let sanitized = Self.sanitizeProperties(properties)
+        PostHogSDK.shared.identify(
+            PostHogSDK.shared.getDistinctId(),
+            userProperties: sanitized
         )
     }
 

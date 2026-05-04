@@ -135,6 +135,7 @@ struct RootView: View {
     @Environment(UIPreferencesState.self) private var uiPreferences
     @Environment(CurrentMonthStore.self) private var currentMonthStore
     @Environment(UserSettingsStore.self) private var userSettingsStore
+    @Environment(FeatureFlagsStore.self) private var featureFlagsStore
     @Environment(\.scenePhase) private var scenePhase
     var runtimeCoordinator: AppRuntimeCoordinator
     @Binding var deepLinkDestination: DeepLinkDestination?
@@ -202,6 +203,9 @@ struct RootView: View {
         }
         .onChange(of: appState.authState) { _, _ in
             handlePendingDeepLink()
+        }
+        .onChange(of: featureFlagsStore.isMultiCurrencyEnabled) { _, _ in
+            refreshCurrencyPersonProperties()
         }
         .environment(\.amountsHidden, uiPreferences.amountsHidden)
     }
@@ -345,7 +349,21 @@ struct RootView: View {
             await currentMonthStore.loadBudgetSummary(
                 payDayOfMonth: userSettingsStore.payDayOfMonth
             )
+            refreshCurrencyPersonProperties()
         }
+    }
+
+    /// Pushes the current currency-related state to PostHog as person properties.
+    /// Safe to call multiple times — `identify()` with the same distinct id merges
+    /// `userProperties`. Skipped when unauthenticated to avoid associating these
+    /// properties with the anonymous person profile.
+    private func refreshCurrencyPersonProperties() {
+        guard appState.authState == .authenticated else { return }
+        AnalyticsService.shared.setPersonProperties([
+            AnalyticsService.currencyProperty: userSettingsStore.currency.rawValue,
+            AnalyticsService.showCurrencySelectorProperty: userSettingsStore.showCurrencySelector,
+            AnalyticsService.multiCurrencyEnabledProperty: featureFlagsStore.isMultiCurrencyEnabled
+        ])
     }
 
     private func handlePendingDeepLink() {

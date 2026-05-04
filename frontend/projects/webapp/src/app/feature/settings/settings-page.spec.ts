@@ -18,6 +18,7 @@ import { DemoModeService } from '@core/demo/demo-mode.service';
 import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 import { CurrencyConverterService } from '@core/currency';
 import { FeatureFlagsService } from '@core/feature-flags';
+import { AnalyticsService } from '@core/analytics';
 
 import SettingsPage from './settings-page';
 
@@ -39,6 +40,10 @@ describe('SettingsPage', () => {
   let mockAuthStore: { isOAuthOnly: ReturnType<typeof signal<boolean>> };
   let mockFeatureFlags: {
     isMultiCurrencyEnabled: ReturnType<typeof signal<boolean>>;
+  };
+  let mockAnalytics: {
+    captureEvent: ReturnType<typeof vi.fn>;
+    setPersonProperties: ReturnType<typeof vi.fn>;
   };
   let mockDialog: { open: ReturnType<typeof vi.fn> };
   let mockDialogRef: { afterClosed: () => Observable<boolean> };
@@ -81,6 +86,11 @@ describe('SettingsPage', () => {
       isMultiCurrencyEnabled: signal(true),
     };
 
+    mockAnalytics = {
+      captureEvent: vi.fn(),
+      setPersonProperties: vi.fn(),
+    };
+
     await TestBed.configureTestingModule({
       imports: [SettingsPage],
       providers: [
@@ -98,6 +108,7 @@ describe('SettingsPage', () => {
         { provide: AuthSessionService, useValue: mockAuthSession },
         { provide: AuthStore, useValue: mockAuthStore },
         { provide: FeatureFlagsService, useValue: mockFeatureFlags },
+        { provide: AnalyticsService, useValue: mockAnalytics },
         {
           provide: EncryptionApi,
           useValue: {
@@ -260,6 +271,87 @@ describe('SettingsPage', () => {
         'OK',
         expect.any(Object),
       );
+    });
+  });
+
+  describe('saveSettings currency analytics', () => {
+    async function saveSettings(): Promise<void> {
+      await fixture.componentInstance.saveSettings();
+      await fixture.whenStable();
+    }
+
+    it('should not capture any event when neither currency nor selector change', async () => {
+      await saveSettings();
+
+      expect(mockAnalytics.captureEvent).not.toHaveBeenCalled();
+    });
+
+    it('should still refresh person properties even when nothing changed', async () => {
+      await saveSettings();
+
+      expect(mockAnalytics.setPersonProperties).toHaveBeenCalledWith({
+        currency: 'CHF',
+        show_currency_selector: false,
+      });
+    });
+
+    it('should capture currency_changed when currency changes', async () => {
+      fixture.componentInstance.onCurrencyChange('EUR');
+
+      await saveSettings();
+
+      expect(mockAnalytics.captureEvent).toHaveBeenCalledWith(
+        'currency_changed',
+        { from: 'CHF', to: 'EUR' },
+      );
+      expect(mockAnalytics.setPersonProperties).toHaveBeenCalledWith({
+        currency: 'EUR',
+        show_currency_selector: false,
+      });
+    });
+
+    it('should capture currency_selector_toggled when toggle changes', async () => {
+      fixture.componentInstance.onShowCurrencySelectorChange(true);
+
+      await saveSettings();
+
+      expect(mockAnalytics.captureEvent).toHaveBeenCalledWith(
+        'currency_selector_toggled',
+        { enabled: true },
+      );
+      expect(mockAnalytics.setPersonProperties).toHaveBeenCalledWith({
+        currency: 'CHF',
+        show_currency_selector: true,
+      });
+    });
+
+    it('should capture both events when both currency and selector change', async () => {
+      fixture.componentInstance.onCurrencyChange('EUR');
+      fixture.componentInstance.onShowCurrencySelectorChange(true);
+
+      await saveSettings();
+
+      expect(mockAnalytics.captureEvent).toHaveBeenCalledWith(
+        'currency_changed',
+        { from: 'CHF', to: 'EUR' },
+      );
+      expect(mockAnalytics.captureEvent).toHaveBeenCalledWith(
+        'currency_selector_toggled',
+        { enabled: true },
+      );
+      expect(mockAnalytics.captureEvent).toHaveBeenCalledTimes(2);
+    });
+
+    it('should not capture analytics when updateSettings rejects', async () => {
+      mockUserSettingsStore.updateSettings.mockRejectedValueOnce(
+        new Error('boom'),
+      );
+      fixture.componentInstance.onCurrencyChange('EUR');
+
+      await saveSettings();
+
+      expect(mockAnalytics.captureEvent).not.toHaveBeenCalled();
+      expect(mockAnalytics.setPersonProperties).not.toHaveBeenCalled();
     });
   });
 });

@@ -11,6 +11,8 @@ import { AuthStore } from '../auth/auth-store';
 import { PostHogService } from './posthog';
 import { Logger } from '../logging/logger';
 import { DemoModeService } from '../demo/demo-mode.service';
+import { UserSettingsStore } from '../user-settings/user-settings-store';
+import { FeatureFlagsService } from '../feature-flags/feature-flags.service';
 import type { Properties } from 'posthog-js';
 
 /**
@@ -25,6 +27,8 @@ export class AnalyticsService implements OnDestroy {
   readonly #postHogService = inject(PostHogService);
   readonly #logger = inject(Logger);
   readonly #demoModeService = inject(DemoModeService);
+  readonly #userSettingsStore = inject(UserSettingsStore);
+  readonly #featureFlagsService = inject(FeatureFlagsService);
 
   // Track if we've already enabled tracking for the current session
   #trackingEnabledForSession = false;
@@ -67,9 +71,17 @@ export class AnalyticsService implements OnDestroy {
           // `early_adopter` drives the targeted rollout of gated features via
           // PostHog feature flag conditions (person property match).
           const isDemoMode = this.#demoModeService.isDemoMode();
+          const userSettings = this.#userSettingsStore.settings();
+          const isMultiCurrencyEnabled =
+            this.#featureFlagsService.isMultiCurrencyEnabled();
           const identifyProperties: Properties = {
             [ANALYTICS_PROPERTIES.EARLY_ADOPTER]:
               this.#authStore.isEarlyAdopter(),
+            [ANALYTICS_PROPERTIES.CURRENCY]: userSettings?.currency ?? 'CHF',
+            [ANALYTICS_PROPERTIES.SHOW_CURRENCY_SELECTOR]:
+              userSettings?.showCurrencySelector ?? false,
+            [ANALYTICS_PROPERTIES.MULTI_CURRENCY_ENABLED]:
+              isMultiCurrencyEnabled,
             ...(isDemoMode && { is_demo: true }),
           };
 
@@ -99,6 +111,15 @@ export class AnalyticsService implements OnDestroy {
    */
   captureEvent(event: string, properties?: Properties): void {
     this.#postHogService.captureEvent(event, properties);
+  }
+
+  /**
+   * Update person properties on the current PostHog profile.
+   * Use after a user action that mutates a tracked property
+   * (e.g., currency change in settings) so dashboards reflect the new state.
+   */
+  setPersonProperties(properties: Properties): void {
+    this.#postHogService.setPersonProperties(properties);
   }
 
   /**

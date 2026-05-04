@@ -39,7 +39,13 @@ import {
   type RecoveryKeyDialogData,
 } from '@ui/dialogs/recovery-key-dialog';
 import { CurrencyConverterWidget } from '@pattern/currency-converter-widget';
-import { PAY_DAY_MAX, type SupportedCurrency } from 'pulpe-shared';
+import {
+  ANALYTICS_EVENTS,
+  ANALYTICS_PROPERTIES,
+  PAY_DAY_MAX,
+  type SupportedCurrency,
+} from 'pulpe-shared';
+import { AnalyticsService } from '@core/analytics';
 import { ChangePasswordDialog } from './components/change-password-dialog';
 import { ChangePinDialog } from './components/change-pin-dialog';
 import { DeleteAccountDialog } from './components/delete-account-dialog';
@@ -387,6 +393,7 @@ export default class SettingsPage {
   readonly #authStore = inject(AuthStore);
   readonly #transloco = inject(TranslocoService);
   readonly #featureFlags = inject(FeatureFlagsService);
+  readonly #analytics = inject(AnalyticsService);
 
   readonly isDemoMode = this.#demoMode.isDemoMode;
   protected readonly isMultiCurrencyEnabled =
@@ -447,13 +454,25 @@ export default class SettingsPage {
   async saveSettings(): Promise<void> {
     if (this.isSaving()) return;
 
+    const previousCurrency = this.initialCurrency();
+    const newCurrency = this.selectedCurrency();
+    const previousSelector = this.initialShowCurrencySelector();
+    const newSelector = this.selectedShowCurrencySelector();
+
     try {
       this.isSaving.set(true);
 
       await this.#userSettingsStore.updateSettings({
         payDayOfMonth: this.selectedPayDay(),
-        currency: this.selectedCurrency(),
-        showCurrencySelector: this.selectedShowCurrencySelector(),
+        currency: newCurrency,
+        showCurrencySelector: newSelector,
+      });
+
+      this.#trackCurrencyAnalytics({
+        previousCurrency,
+        newCurrency,
+        previousSelector,
+        newSelector,
       });
 
       this.#snackBar.open(
@@ -485,6 +504,34 @@ export default class SettingsPage {
     this.selectedPayDay.set(this.initialPayDay());
     this.selectedCurrency.set(this.initialCurrency());
     this.selectedShowCurrencySelector.set(this.initialShowCurrencySelector());
+  }
+
+  #trackCurrencyAnalytics(args: {
+    previousCurrency: SupportedCurrency;
+    newCurrency: SupportedCurrency;
+    previousSelector: boolean;
+    newSelector: boolean;
+  }): void {
+    const { previousCurrency, newCurrency, previousSelector, newSelector } =
+      args;
+
+    if (previousCurrency !== newCurrency) {
+      this.#analytics.captureEvent(ANALYTICS_EVENTS.CURRENCY_CHANGED, {
+        from: previousCurrency,
+        to: newCurrency,
+      });
+    }
+
+    if (previousSelector !== newSelector) {
+      this.#analytics.captureEvent(ANALYTICS_EVENTS.CURRENCY_SELECTOR_TOGGLED, {
+        enabled: newSelector,
+      });
+    }
+
+    this.#analytics.setPersonProperties({
+      [ANALYTICS_PROPERTIES.CURRENCY]: newCurrency,
+      [ANALYTICS_PROPERTIES.SHOW_CURRENCY_SELECTOR]: newSelector,
+    });
   }
 
   async onChangePassword(): Promise<void> {
