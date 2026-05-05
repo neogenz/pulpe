@@ -418,14 +418,36 @@ export class EncryptionService {
 
     this.#invalidateUserDEKCache(userId);
 
+    const oldWrappedDEK = row.wrapped_dek;
+
     try {
       // Invalidate the wrapped DEK BEFORE re-encryption so a compromised recovery
       // key cannot unwrap a valid DEK during the re-encryption window.
-      // If the process fails after this point, recovery access is lost — the user
-      // will need to regenerate a recovery key from settings.
+      // If re-encryption fails, wrapped_dek is restored from oldWrappedDEK so
+      // recovery access is preserved. If the restore itself fails, recovery access
+      // is lost (warned in logs).
       await this.#repository.updateWrappedDEK(userId, null);
 
-      await this.reEncryptAllUserData(userId, oldDek, newDek, supabase);
+      try {
+        await this.reEncryptAllUserData(userId, oldDek, newDek, supabase);
+      } catch (rekeyError) {
+        try {
+          await this.#repository.updateWrappedDEK(userId, oldWrappedDEK);
+        } catch (restoreError) {
+          this.logger.warn(
+            {
+              userId,
+              operation: 'recover.restore_wrapped_dek_failed',
+              error:
+                restoreError instanceof Error
+                  ? restoreError.message
+                  : String(restoreError),
+            },
+            'Failed to restore wrapped_dek after rekey failure — stuck at null until recovery key regeneration',
+          );
+        }
+        throw rekeyError;
+      }
 
       // Re-wrap with the same recovery key — the frontend will immediately call
       // regenerateRecoveryKey$() to replace it with a fresh one.

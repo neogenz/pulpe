@@ -1951,6 +1951,195 @@ describe('EncryptionService', () => {
         // Expected: old recovery key is invalidated after regeneration
       }
     });
+
+    it('should restore wrapped_dek when re-encryption fails', async () => {
+      const existingSalt = randomBytes(16).toString('hex');
+      const wrappedDekUpdates: Array<string | null> = [];
+
+      const findSaltByUserId = mock(() =>
+        Promise.resolve({
+          salt: existingSalt,
+          kdf_iterations: 600000,
+          key_check: null,
+        }),
+      );
+      const updateWrappedDEK = mock((_userId: string, value: string | null) => {
+        wrappedDekUpdates.push(value);
+        return Promise.resolve();
+      });
+      const updateWrappedDEKIfNull = mock((_userId: string, value: string) => {
+        wrappedDekUpdates.push(value);
+        return Promise.resolve(true);
+      });
+
+      const clientKey = randomBytes(32);
+      const repo1 = createMockRepository({
+        findSaltByUserId,
+        updateWrappedDEK,
+        updateWrappedDEKIfNull,
+      });
+      const svc1 = new EncryptionService(
+        createMockLogger() as any,
+        mockConfigService as any,
+        repo1 as any,
+      );
+      const { formatted } = await svc1.createRecoveryKey(
+        TEST_USER_ID,
+        clientKey,
+      );
+      const storedWrappedDek = wrappedDekUpdates[wrappedDekUpdates.length - 1];
+      expect(storedWrappedDek).not.toBeNull();
+
+      const recoveryUpdates: Array<string | null> = [];
+      const findByUserId = mock(() =>
+        Promise.resolve({
+          salt: existingSalt,
+          kdf_iterations: 600000,
+          wrapped_dek: storedWrappedDek,
+          key_check: null,
+        }),
+      );
+      const updateWrappedDEK2 = mock(
+        (_userId: string, value: string | null) => {
+          recoveryUpdates.push(value);
+          return Promise.resolve();
+        },
+      );
+
+      const repo2 = createMockRepository({
+        findSaltByUserId,
+        findByUserId,
+        updateWrappedDEK: updateWrappedDEK2,
+      });
+      const svc2 = new EncryptionService(
+        createMockLogger() as any,
+        mockConfigService as any,
+        repo2 as any,
+      );
+
+      const reEncryptSpy = spyOn(
+        svc2,
+        'reEncryptAllUserData',
+      ).mockRejectedValue(new Error('RPC failed'));
+
+      const newClientKey = randomBytes(32);
+      try {
+        await svc2.recoverWithKey(
+          TEST_USER_ID,
+          formatted,
+          newClientKey,
+          {} as any,
+        );
+        expect.unreachable('Should have thrown');
+      } catch (error: any) {
+        expect(error.message).toBe('RPC failed');
+      }
+
+      reEncryptSpy.mockRestore();
+
+      // wrapped_dek nulled before re-encryption, then restored after failure
+      expect(updateWrappedDEK2).toHaveBeenCalledTimes(2);
+      expect(recoveryUpdates[0]).toBeNull();
+      expect(recoveryUpdates[1]).toBe(storedWrappedDek);
+    });
+
+    it('should warn when best-effort restore of wrapped_dek fails after re-encryption failure', async () => {
+      const existingSalt = randomBytes(16).toString('hex');
+      const wrappedDekUpdates: Array<string | null> = [];
+
+      const findSaltByUserId = mock(() =>
+        Promise.resolve({
+          salt: existingSalt,
+          kdf_iterations: 600000,
+          key_check: null,
+        }),
+      );
+      const updateWrappedDEK = mock((_userId: string, value: string | null) => {
+        wrappedDekUpdates.push(value);
+        return Promise.resolve();
+      });
+      const updateWrappedDEKIfNull = mock((_userId: string, value: string) => {
+        wrappedDekUpdates.push(value);
+        return Promise.resolve(true);
+      });
+
+      const clientKey = randomBytes(32);
+      const repo1 = createMockRepository({
+        findSaltByUserId,
+        updateWrappedDEK,
+        updateWrappedDEKIfNull,
+      });
+      const svc1 = new EncryptionService(
+        createMockLogger() as any,
+        mockConfigService as any,
+        repo1 as any,
+      );
+      const { formatted } = await svc1.createRecoveryKey(
+        TEST_USER_ID,
+        clientKey,
+      );
+      const storedWrappedDek = wrappedDekUpdates[wrappedDekUpdates.length - 1];
+
+      const findByUserId = mock(() =>
+        Promise.resolve({
+          salt: existingSalt,
+          kdf_iterations: 600000,
+          wrapped_dek: storedWrappedDek,
+          key_check: null,
+        }),
+      );
+      let callCount = 0;
+      const updateWrappedDEK2 = mock(() => {
+        callCount++;
+        if (callCount === 2) {
+          return Promise.reject(new Error('DB write failed'));
+        }
+        return Promise.resolve();
+      });
+
+      const mockLogger = createMockLogger();
+      const warnSpy = spyOn(mockLogger, 'warn');
+
+      const repo2 = createMockRepository({
+        findSaltByUserId,
+        findByUserId,
+        updateWrappedDEK: updateWrappedDEK2,
+      });
+      const svc2 = new EncryptionService(
+        mockLogger as any,
+        mockConfigService as any,
+        repo2 as any,
+      );
+
+      const reEncryptSpy = spyOn(
+        svc2,
+        'reEncryptAllUserData',
+      ).mockRejectedValue(new Error('RPC failed'));
+
+      const newClientKey = randomBytes(32);
+      try {
+        await svc2.recoverWithKey(
+          TEST_USER_ID,
+          formatted,
+          newClientKey,
+          {} as any,
+        );
+        expect.unreachable('Should have thrown');
+      } catch (error: any) {
+        expect(error.message).toBe('RPC failed');
+      }
+
+      reEncryptSpy.mockRestore();
+
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          userId: TEST_USER_ID,
+          operation: 'recover.restore_wrapped_dek_failed',
+          error: 'DB write failed',
+        }),
+        expect.stringContaining('Failed to restore wrapped_dek'),
+      );
+    });
   });
 
   describe('changePinRekey', () => {
