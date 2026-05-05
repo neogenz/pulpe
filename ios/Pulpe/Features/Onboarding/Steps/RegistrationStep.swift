@@ -2,26 +2,20 @@ import SwiftUI
 
 struct RegistrationStep: View {
     @Bindable var state: OnboardingState
-    let onComplete: (UserInfo) -> Void
 
     @State private var password = ""
-    @State private var passwordConfirmation = ""
     @State private var showPassword = false
-    @State private var showPasswordConfirmation = false
+    @State private var signupTask: Task<Void, Never>?
     @FocusState private var focusedField: Field?
 
     private enum Field: Hashable {
-        case email, password, passwordConfirmation
+        case email, password
     }
 
     private var passwordValidator: PasswordValidator { PasswordValidator(password: password) }
 
-    private var isPasswordConfirmed: Bool {
-        PasswordValidator.isConfirmed(password: password, confirmation: passwordConfirmation)
-    }
-
     private var canSubmit: Bool {
-        state.canSubmitRegistration && passwordValidator.isValid && isPasswordConfirmed
+        state.canSubmitRegistration && passwordValidator.isValid
     }
 
     var body: some View {
@@ -29,17 +23,37 @@ struct RegistrationStep: View {
             step: .registration,
             state: state,
             canProceed: canSubmit,
-            onNext: { Task { await submitRegistration() } },
+            onNext: { startSignupTask() },
             content: {
                 VStack(spacing: DesignTokens.Spacing.xxl) {
                     emailSection
                     passwordSection
-                    confirmPasswordSection
-                    termsCheckbox
+                    consentText
                 }
             }
         )
         .trackScreen("Onboarding_Registration")
+        .task {
+            // Fire signup_started when the user actually reaches the registration form.
+            // Idempotent across back-nav: the guard lives on `OnboardingState` which
+            // outlives step-view re-instantiation (OnboardingFlow keys each step by
+            // `.id(state.currentStep)`). A `@State` guard on this struct would reset
+            // every time the user taps firstName→Retour→Continuer.
+            guard !state.hasEmittedSignupStarted else { return }
+            state.hasEmittedSignupStarted = true
+            AnalyticsService.shared.capture(.signupStarted, properties: ["method": "email"])
+        }
+        .onDisappear {
+            // If the user abandons mid-signup (Recommencer / back), cancel the in-flight
+            // task so `submitRegistration` can clean up orphan Supabase tokens before the
+            // parent view unmounts.
+            signupTask?.cancel()
+        }
+    }
+
+    private func startSignupTask() {
+        signupTask?.cancel()
+        signupTask = Task { await submitRegistration() }
     }
 }
 
@@ -56,8 +70,9 @@ extension RegistrationStep {
                 prompt: "ton@email.com",
                 text: $state.email,
                 systemImage: "envelope",
-                isFocused: focusedField == .email,
-                isFilled: state.isEmailValid
+                isFilled: state.isEmailValid,
+                focusBinding: $focusedField,
+                focusField: .email
             )
             .textContentType(.emailAddress)
             .keyboardType(.emailAddress)
@@ -66,7 +81,6 @@ extension RegistrationStep {
             .accessibilityIdentifier("registrationEmail")
             .accessibilityLabel("Adresse e-mail")
             .accessibilityHint("Saisis ton adresse e-mail")
-            .focused($focusedField, equals: .email)
         }
     }
 
@@ -81,10 +95,10 @@ extension RegistrationStep {
                 text: $password,
                 isVisible: $showPassword,
                 systemImage: "lock",
-                isFocused: focusedField == .password
+                focusBinding: $focusedField,
+                focusField: .password
             )
             .textContentType(.newPassword)
-            .focused($focusedField, equals: .password)
             .accessibilityIdentifier("registrationPassword")
             .accessibilityLabel("Mot de passe")
             .accessibilityHint("Crée ton mot de passe")
@@ -93,81 +107,27 @@ extension RegistrationStep {
         }
     }
 
-    private var confirmPasswordSection: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-            Text("Confirmer le mot de passe")
-                .font(PulpeTypography.inputLabel)
-                .foregroundStyle(Color.textPrimaryOnboarding)
-
-            AuthSecureField(
-                prompt: "••••••••",
-                text: $passwordConfirmation,
-                isVisible: $showPasswordConfirmation,
-                systemImage: "lock",
-                isFocused: focusedField == .passwordConfirmation,
-                hasError: !passwordConfirmation.isEmpty && !isPasswordConfirmed
-            )
-            .textContentType(.newPassword)
-            .focused($focusedField, equals: .passwordConfirmation)
-            .accessibilityIdentifier("registrationPasswordConfirmation")
-            .accessibilityLabel("Confirmation du mot de passe")
-            .accessibilityHint("Confirme ton mot de passe")
-
-            if !passwordConfirmation.isEmpty {
-                PasswordMatchRow(matches: isPasswordConfirmed)
-            }
-        }
+    private var consentText: some View {
+        OnboardingConsentText(attributed: Self.consentMarkdown)
+            .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    private var termsCheckbox: some View {
-        Button {
-            state.acceptTerms.toggle()
-        } label: {
-            HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
-                ZStack {
-                    RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.sm, style: .continuous)
-                        .strokeBorder(
-                            state.acceptTerms ? Color.pulpePrimary :
-                                Color.textPrimaryOnboarding.opacity(0.4),
-                            lineWidth: DesignTokens.BorderWidth.thick
-                        )
-                        .frame(width: DesignTokens.Checkbox.size, height: DesignTokens.Checkbox.size)
-                        .background {
-                            if !state.acceptTerms {
-                                RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.sm, style: .continuous)
-                                    .fill(Color.authInputBackground)
-                            }
-                        }
-
-                    if state.acceptTerms {
-                        Image(systemName: "checkmark")
-                            .font(.caption.weight(.bold))
-                            .foregroundStyle(Color.pulpePrimary)
-                            .transition(.scale.combined(with: .opacity))
-                    }
-                }
-                .animation(.spring(response: 0.3, dampingFraction: 0.6), value: state.acceptTerms)
-
-                Text(Self.termsMarkdown)
-                    .font(PulpeTypography.footnote)
-                    .foregroundStyle(Color.textPrimaryOnboarding)
-                    .multilineTextAlignment(.leading)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            }
-        }
-        .buttonStyle(.plain)
-    }
-
-    private static let termsMarkdown: AttributedString = {
-        let termsLink = AppURLs.terms.absoluteString
-        let privacyLink = AppURLs.privacy.absoluteString
-        let md = "J'accepte les [conditions d'utilisation](\(termsLink))"
-            + " et la [politique de confidentialité](\(privacyLink))"
-        let fallback = "J'accepte les conditions d'utilisation et la politique de confidentialité"
-        return (try? AttributedString(markdown: md)) ?? AttributedString(fallback)
-    }()
+    private static let consentMarkdown = AppURLs.legalDisclosure(
+        prefix: "En créant ton compte, tu acceptes nos",
+        connector: "notre",
+        suffix: "."
+    )
 
     private func submitRegistration() async {
+        // Defense-in-depth: if we're already authenticated (cold-start resume landed
+        // us back on the registration step somehow), skip the signup call and just
+        // advance — Supabase would reject the duplicate email and drop a confusing
+        // error on a user who already has an account.
+        if state.isAuthenticated {
+            state.nextStep()
+            return
+        }
+
         state.isLoading = true
         state.error = nil
 
@@ -175,9 +135,19 @@ extension RegistrationStep {
             let authService = AuthService.shared
             let user = try await authService.signup(email: state.email, password: password)
 
+            // Race guard: if the user tapped "Recommencer" (abandonInProgressSignup)
+            // while this signup was in-flight, the task is cancelled but Supabase
+            // has already created a user + persisted tokens. Clean up the orphan
+            // session immediately so the next onboarding attempt starts fresh.
+            if Task.isCancelled {
+                try? await authService.logout()
+                return
+            }
+
             AnalyticsService.shared.capture(.signupCompleted, properties: ["method": "email"])
             state.isLoading = false
-            onComplete(user)
+            state.configureEmailUser(user)
+            state.nextStep()
         } catch let apiError as APIError {
             AnalyticsService.shared.captureAuthError(.signupFailed, error: apiError, method: "email")
             state.error = apiError
@@ -192,7 +162,5 @@ extension RegistrationStep {
 }
 
 #Preview {
-    RegistrationStep(state: OnboardingState()) { user in
-        print("Completed with user: \(user)")
-    }
+    RegistrationStep(state: OnboardingState())
 }

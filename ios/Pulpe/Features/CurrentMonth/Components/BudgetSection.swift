@@ -89,10 +89,12 @@ struct BudgetSection: View {
                         }
                     }
                     .transition(.opacity.combined(with: .move(edge: .bottom)))
+                    // Drive transitions from visible row identities (not `items.count`) so expand/collapse
+                    // and reorder animate when the displayed set changes without requiring a count delta.
                     .animation(
                         .easeOut(duration: DesignTokens.Animation.normal)
                             .delay(Double(index) * 0.05),
-                        value: items.count
+                        value: displayedItems.map(\.id)
                     )
             }
 
@@ -125,9 +127,10 @@ struct BudgetSection: View {
                 Button {
                     onToggle(item)
                     ProductTips.gestures.invalidate(reason: .actionPerformed)
+                    ProductTips.checking.invalidate(reason: .actionPerformed)
                 } label: {
                     Label(
-                        item.isChecked ? "Dépointer" : "Comptabiliser",
+                        item.isChecked ? "Dépointer" : "Pointer",
                         systemImage: item.isChecked ? "arrow.uturn.backward" : "checkmark.circle"
                     )
                 }
@@ -216,6 +219,8 @@ struct BudgetLineRow: View {
     @State private var triggerSuccessFeedback = false
     @State private var triggerWarningFeedback = false
 
+    @Environment(UserSettingsStore.self) private var userSettingsStore
+
     private var hasConsumption: Bool {
         consumption.allocated > 0
     }
@@ -241,16 +246,12 @@ struct BudgetLineRow: View {
     }
 
     private var remainingAmountText: String {
-        // Income & savings: always show unsigned budget amount
+        // Income & savings: show planned amount with sign (+/-)
         guard line.kind == .expense else {
-            return line.amount.asAmount
+            return line.amount.asSignedAmount(for: line.kind, in: userSettingsStore.currency)
         }
-        // Expenses: always show remaining (= budget when no transactions)
-        if consumption.available >= 0 {
-            return consumption.available.asAmount
-        } else {
-            return "-\(consumption.available.absoluteValue.asAmount)"
-        }
+        // Expenses: always show with - sign (money going out)
+        return consumption.available.asSignedAmount(for: line.kind, in: userSettingsStore.currency)
     }
 
     private var linkedTransactions: [Transaction] {
@@ -279,14 +280,15 @@ struct BudgetLineRow: View {
 
                 // Consumption info or recurrence label
                 if hasConsumption {
-                    Text("\(consumptionPercentage)% · \(consumption.allocated.asCompactCHF) dépensé")
+                    let spent = consumption.allocated.asCurrency(userSettingsStore.currency)
+                    Text("\(consumptionPercentage)% · \(spent) dépensé")
                         .font(PulpeTypography.caption)
                         .foregroundStyle(Color.textSecondary)
                         .lineLimit(1)
                         .sensitiveAmount()
                     progressBar
                 } else if line.kind == .expense {
-                    Text("\(line.recurrence.label) · sur \(line.amount.asCompactCHF)")
+                    Text("\(line.recurrence.label) · sur \(line.amount.asCurrency(userSettingsStore.currency))")
                         .font(PulpeTypography.caption)
                         .foregroundStyle(Color.textSecondary)
                 } else {
@@ -320,6 +322,8 @@ struct BudgetLineRow: View {
             },
             perform: handleLongPress
         )
+        // Prefer `onTapGesture` over wrapping the row in `Button`: we need long-press + tap on the same
+        // hit target without nested button semantics (VoiceOver uses `accessibilityAction` below).
         .onTapGesture {
             guard let onAddTransaction, !line.isVirtualRollover else { return }
             ProductTips.gestures.invalidate(reason: .actionPerformed)
@@ -336,7 +340,7 @@ struct BudgetLineRow: View {
                 .accessibilityAction { onAdd() }
                 .accessibilityHint(
                     hasConsumption
-                        ? "Montant restant: \(consumption.available.asCHF). " +
+                        ? "Montant restant: \(consumption.available.asCurrency(userSettingsStore.currency)). " +
                           "Touche pour ajouter une transaction, maintiens pour voir les transactions"
                         : "Touche pour ajouter une transaction, maintiens pour voir les transactions"
                 )
@@ -475,4 +479,5 @@ struct BudgetLineRow: View {
     .listSectionSpacing(DesignTokens.Spacing.lg)
     .scrollContentBackground(.hidden)
     .pulpeBackground()
+    .environment(UserSettingsStore())
 }

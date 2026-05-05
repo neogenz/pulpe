@@ -3,6 +3,7 @@ import { DataCache } from 'ngx-ziflux';
 import {
   type UserSettingsResponse,
   type UpdateUserSettings,
+  updateUserSettingsSchema,
   type DeleteAccountResponse,
   userSettingsResponseSchema,
   deleteAccountResponseSchema,
@@ -34,6 +35,7 @@ export class UserSettingsApi {
       '/users/settings',
       settings,
       userSettingsResponseSchema,
+      updateUserSettingsSchema,
     );
   }
 

@@ -242,6 +242,22 @@ struct ChangePinFlowTests {
         #expect(result.sut.step == .enterOldPin, "Should stay on enterOldPin — no auto-confirm")
         #expect(result.sut.digits.count == 4)
     }
+
+    // MARK: - Partial Rekey Failure
+
+    @Test("partial rekey failure persists new key and signals completion")
+    func rekeyPartialFailure_persistsNewKeyAndSignalsCompletion() async {
+        let result = makeFlowSUT(changePinError: .rekeyPartialFailure)
+
+        await advanceToNewPinStep(result.sut)
+        await enterNewPinAndConfirm(result.sut)
+
+        #expect(result.sut.completedWithoutRecovery == true)
+        #expect(result.sut.recoveryKey == nil)
+        #expect(await result.storage.lastStoredKey == ChangePinConstants.newKey)
+        #expect(await result.storage.storeCallCount == 2) // validate + change
+        #expect(result.sut.step == .processing) // not reset to enterNewPin
+    }
 }
 
 // MARK: - Helpers

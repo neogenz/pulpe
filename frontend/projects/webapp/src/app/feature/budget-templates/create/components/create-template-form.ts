@@ -167,7 +167,7 @@ const MAX_TEMPLATES = 5;
                 role="alert"
                 aria-live="assertive"
               >
-                <mat-icon class="text-on-error-container flex-shrink-0 mt-0.5"
+                <mat-icon class="text-on-error-container shrink-0 mt-0.5"
                   >error</mat-icon
                 >
                 <span class="text-body-medium leading-relaxed">
@@ -186,7 +186,7 @@ const MAX_TEMPLATES = 5;
                 role="status"
                 aria-live="polite"
               >
-                <mat-icon class="text-on-error-container flex-shrink-0 mt-0.5"
+                <mat-icon class="text-on-error-container shrink-0 mt-0.5"
                   >warning</mat-icon
                 >
                 <span class="text-body-medium leading-relaxed">

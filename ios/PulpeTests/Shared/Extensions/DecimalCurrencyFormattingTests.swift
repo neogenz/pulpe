@@ -61,13 +61,15 @@ struct DecimalCurrencyFormattingTests {
         #expect(formatted.hasSuffix("CHF"))
     }
 
-    @Test func asCompactCHF_fractionalKeepsDecimals() {
+    @Test func asCompactCHF_fractionalRoundsToWholeNumber() {
         guard let value = Decimal(string: "1234.56") else {
             Issue.record("Failed to create Decimal from valid string")
             return
         }
         let formatted = value.asCompactCHF
-        #expect(formatted.contains("56"), "Expected fractional digits, got: \(formatted)")
+        #expect(formatted.contains("1235") || formatted.contains("1\u{2019}235"),
+                "Expected rounded amount, got: \(formatted)")
+        #expect(!formatted.contains("."), "Should not contain decimals, got: \(formatted)")
         #expect(formatted.hasSuffix("CHF"))
     }
 
@@ -78,15 +80,15 @@ struct DecimalCurrencyFormattingTests {
         #expect(formatted.hasSuffix("CHF"), "Expected CHF after amount, got: \(formatted)")
     }
 
-    @Test func asCompactCHF_negativeFractional() {
+    @Test func asCompactCHF_negativeFractionalRounds() {
         guard let value = Decimal(string: "-1234.56") else {
             Issue.record("Failed to create Decimal from valid string")
             return
         }
         let formatted = value.asCompactCHF
         #expect(formatted.contains("-"), "Expected minus sign, got: \(formatted)")
-        #expect(formatted.contains("1234") || formatted.contains("1'234") || formatted.contains("1\u{2019}234"),
-                "Expected amount digits, got: \(formatted)")
+        #expect(formatted.contains("1235") || formatted.contains("1\u{2019}235"),
+                "Expected rounded amount, got: \(formatted)")
         #expect(formatted.hasSuffix("CHF"), "Expected CHF after amount, got: \(formatted)")
     }
 
@@ -103,17 +105,17 @@ struct DecimalCurrencyFormattingTests {
         #expect(formatted.hasSuffix("CHF"), "Expected CHF after amount, got: \(formatted)")
     }
 
-    // MARK: - asAmount (no currency code)
+    // MARK: - asAmount(for:) — no currency code
 
     @Test func asAmount_doesNotContainCHF() {
-        let formatted = Decimal(1234.56).asAmount
+        let formatted = Decimal(1234.56).asAmount(for: .chf)
         #expect(!formatted.contains("CHF"), "asAmount should not include currency, got: \(formatted)")
     }
 
     // MARK: - asSignedAmount (no currency code)
 
     @Test func asSignedAmount_doesNotContainCHF() {
-        let formatted = Decimal(500).asSignedAmount(for: .expense)
+        let formatted = Decimal(500).asSignedAmount(for: .expense, in: .chf)
         #expect(!formatted.contains("CHF"), "asSignedAmount should not include currency, got: \(formatted)")
     }
 }

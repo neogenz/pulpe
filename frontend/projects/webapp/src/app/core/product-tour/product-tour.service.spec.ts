@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { ProductTourService, type TourPageId } from './product-tour.service';
-import { AuthStateService } from '@core/auth';
+import { AuthStore } from '@core/auth';
 
 /**
  * Generate a tour storage key for testing.
@@ -32,7 +32,7 @@ describe('ProductTourService', () => {
     localStorage.clear();
     mockCurrentUser = { id: 'test-user-123' };
 
-    const mockAuthState = {
+    const mockAuthStore = {
       user: () => mockCurrentUser,
     };
 
@@ -40,7 +40,7 @@ describe('ProductTourService', () => {
       providers: [
         provideZonelessChangeDetection(),
         ProductTourService,
-        { provide: AuthStateService, useValue: mockAuthState },
+        { provide: AuthStore, useValue: mockAuthStore },
       ],
     });
 

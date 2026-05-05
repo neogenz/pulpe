@@ -25,6 +25,10 @@ describe('TransactionService', () => {
   let mockBudgetService: Partial<BudgetService>;
   let mockEncryptionService: Partial<EncryptionService>;
   let mockSupabaseClient: MockSupabaseClient;
+  let mockCurrencyService: {
+    overrideExchangeRate: ReturnType<typeof mock>;
+    getRate: ReturnType<typeof mock>;
+  };
 
   beforeEach(() => {
     const { mockClient } = createMockSupabaseClient();
@@ -48,8 +52,10 @@ describe('TransactionService', () => {
       ),
       decryptAmount: mock(() => 100),
       tryDecryptAmount: mock(
-        (_ct: string, _dek: Buffer, _fallback: number) => 100,
-      ),
+        (_ct: string, _dek: Buffer, _fallback: number | null) =>
+          _fallback === null ? null : 100,
+      ) as any,
+      encryptOptionalAmount: mock(() => Promise.resolve(null)),
     };
     const mockCacheService = {
       getOrSet: mock(
@@ -62,11 +68,23 @@ describe('TransactionService', () => {
       ),
       invalidateForUser: mock(() => Promise.resolve()),
     };
+    mockCurrencyService = {
+      overrideExchangeRate: mock(<T>(dto: T) => Promise.resolve(dto)),
+      getRate: mock(() =>
+        Promise.resolve({
+          base: 'CHF',
+          target: 'EUR',
+          rate: 0.94,
+          date: '2026-04-19',
+        }),
+      ),
+    };
     service = new TransactionService(
       mockLogger as InfoLogger,
       mockBudgetService as BudgetService,
       mockEncryptionService as EncryptionService,
       mockCacheService as any,
+      mockCurrencyService as any,
     );
   });
 
@@ -354,6 +372,133 @@ describe('TransactionService', () => {
           ),
         ERROR_DEFINITIONS.TRANSACTION_NOT_FOUND,
       );
+    });
+
+    it('should encrypt originalAmount on PATCH when provided', async () => {
+      // Arrange
+      const mockUser = createMockAuthenticatedUser();
+      const updateData: TransactionUpdate = {
+        originalAmount: 150,
+      };
+      const mockUpdatedTransaction = createMockTransactionEntity({
+        original_amount: 'encrypted-original',
+      });
+      mockSupabaseClient.reset().setMockData(mockUpdatedTransaction);
+
+      // Act
+      await service.update(
+        MOCK_TRANSACTION_ID,
+        updateData,
+        mockUser,
+        mockSupabaseClient as any,
+      );
+
+      // Assert
+      expect(mockEncryptionService.encryptOptionalAmount).toHaveBeenCalledWith(
+        150,
+        mockUser.id,
+        mockUser.clientKey,
+      );
+    });
+
+    it('should encrypt originalAmount null on explicit null PATCH', async () => {
+      // Arrange
+      const mockUser = createMockAuthenticatedUser();
+      const updateData = {
+        originalAmount: null,
+      } as unknown as TransactionUpdate;
+      const mockUpdatedTransaction = createMockTransactionEntity({
+        original_amount: null,
+      });
+      mockSupabaseClient.reset().setMockData(mockUpdatedTransaction);
+
+      // Act
+      await service.update(
+        MOCK_TRANSACTION_ID,
+        updateData,
+        mockUser,
+        mockSupabaseClient as any,
+      );
+
+      // Assert
+      expect(mockEncryptionService.encryptOptionalAmount).toHaveBeenCalledWith(
+        null,
+        mockUser.id,
+        mockUser.clientKey,
+      );
+    });
+
+    it('should clear stale FX metadata when PATCH sets same currency (PUL-115)', async () => {
+      // Arrange — simulate a transaction previously stored with EUR->CHF
+      // conversion now being patched with a same-currency DTO. The pipeline
+      // (overrideExchangeRate -> prepareTransactionUpdateData ->
+      // encryptOptionalAmount -> mapCurrencyMetadataToDb -> DB write) must
+      // propagate explicit nulls so the 4 FX columns are actually cleared.
+      const mockUser = createMockAuthenticatedUser();
+      const updateDto = {
+        name: 'Rent',
+        amount: 1200,
+        originalCurrency: 'CHF',
+        targetCurrency: 'CHF',
+        originalAmount: 50,
+        exchangeRate: 1.08,
+      } as unknown as TransactionUpdate;
+
+      // Mirror production: overrideExchangeRate emits explicit nulls for the 3
+      // source FX fields and preserves targetCurrency as-is from the client
+      // input when currencies match (see currency.service.ts PUL-115 fix).
+      mockCurrencyService.overrideExchangeRate.mockImplementationOnce(
+        async <T extends Record<string, unknown>>(dto: T) => ({
+          ...dto,
+          originalAmount: null,
+          originalCurrency: null,
+          targetCurrency: 'CHF',
+          exchangeRate: null,
+        }),
+      );
+
+      // Capture the payload actually written to Supabase. MockSupabaseClient
+      // can't inspect update args, so we stub `from` with a local chain.
+      const updateSpy = mock((_payload: Record<string, unknown>) => ({
+        eq: () => ({
+          select: () => ({
+            single: () =>
+              Promise.resolve({
+                data: createMockTransactionEntity({
+                  original_amount: null,
+                  original_currency: null,
+                  target_currency: 'CHF',
+                  exchange_rate: null,
+                }),
+                error: null,
+              }),
+          }),
+        }),
+      }));
+      mockSupabaseClient.from = mock(() => ({
+        update: updateSpy,
+      })) as MockSupabaseClient['from'];
+
+      // Act
+      await service.update(
+        MOCK_TRANSACTION_ID,
+        updateDto,
+        mockUser,
+        mockSupabaseClient as any,
+      );
+
+      // Assert — writtenPayload must null the 3 source FX columns while
+      // preserving target_currency from the client input.
+      expect(mockCurrencyService.overrideExchangeRate).toHaveBeenCalledTimes(1);
+      expect(updateSpy).toHaveBeenCalledTimes(1);
+      const writtenPayload = updateSpy.mock.calls[0][0] as Record<
+        string,
+        unknown
+      >;
+      expect(writtenPayload.original_amount).toBeNull();
+      expect(writtenPayload.original_currency).toBeNull();
+      expect(writtenPayload.target_currency).toBe('CHF');
+      expect(writtenPayload.exchange_rate).toBeNull();
     });
 
     it('should handle unexpected errors during transaction update', async () => {

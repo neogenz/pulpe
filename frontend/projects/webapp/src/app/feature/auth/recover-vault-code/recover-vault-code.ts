@@ -229,9 +229,7 @@ import {
               <mat-error>
                 @if (form.get('confirmCode')?.hasError('required')) {
                   {{ 'auth.recoverVaultCode.confirmPinRequired' | transloco }}
-                } @else if (
-                  form.get('confirmCode')?.hasError('fieldsMismatch')
-                ) {
+                } @else if (form.get('confirmCode')?.hasError('pinsMismatch')) {
                   {{ 'auth.recoverVaultCode.pinsMismatch' | transloco }}
                 }
               </mat-error>
@@ -296,7 +294,7 @@ export default class RecoverVaultCode {
       validators: createFieldsMatchValidator(
         'newVaultCode',
         'confirmCode',
-        'fieldsMismatch',
+        'pinsMismatch',
       ),
     },
   );

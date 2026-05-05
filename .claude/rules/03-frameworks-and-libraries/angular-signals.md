@@ -25,9 +25,9 @@ readonly doubled = computed(() => this.count() * 2);
 readonly label = computed(() => `Count: ${this.count()}`);
 ```
 
-- Lazy evaluation, memoized
-- Auto-tracks dependencies
-- Read-only (cannot `set()`)
+- Lazy eval, memoized
+- Auto-tracks deps
+- Read-only (no `set()`)
 
 ### linkedSignal() - Dependent Writable State
 
@@ -91,7 +91,7 @@ increment() {
 ```
 
 - Creates implicit `valueChange` output
-- Parent must bind to signal instance, not value
+- Parent bind signal instance, not value
 
 ---
 
@@ -104,6 +104,21 @@ readonly input = viewChild<ElementRef>('inputRef');
 readonly input = viewChild.required<ElementRef>('inputRef');
 readonly items = viewChildren<ItemComponent>(ItemComponent);
 ```
+
+> ⚠️ **NG1053 — NEVER use ES private (`#field`) for `viewChild`/`viewChildren`/`contentChild`/`contentChildren`/`input`/`output`/`model`.** Angular compiler forbids ES private on these signal-based queries. Allowed modifiers: `public`, `public readonly`, `protected`, `private`.
+>
+> ```typescript
+> // ❌ Build fails — NG1053
+> readonly #inputRef = viewChild<ElementRef>('inputRef');
+>
+> // ✅ Use TS private when the field is internal
+> private readonly inputRef = viewChild<ElementRef>('inputRef');
+>
+> // ✅ Use protected when accessed from template
+> protected readonly inputRef = viewChild<ElementRef>('inputRef');
+> ```
+>
+> This is the **single exception** to the project rule "use `#field` for private". The cascade is brutal: a single ES-private `viewChild` breaks the component's standalone compilation, and every consumer importing it then fails with `NG2012: Component imports must be standalone`.
 
 ### contentChild() / contentChildren()
 
@@ -176,7 +191,7 @@ readonly user = rxResource({
 
 | Use Case | API | Reason |
 |----------|-----|--------|
-| Simple GET requests | `httpResource()` | Minimal boilerplate, auto JSON parsing |
+| Simple GET requests | `httpResource()` | Min boilerplate, auto JSON parse |
 | GET with Zod validation | `httpResource()` + `parse` | Type-safe responses |
 | Complex HTTP (interceptors, retries) | `rxResource()` | Full RxJS power |
 | Non-HTTP async (localStorage, IndexedDB) | `resource()` | Generic async loader |
@@ -214,7 +229,7 @@ constructor() {
 - Logging/analytics
 - Sync to localStorage/sessionStorage
 - Custom DOM behavior
-- Third-party library integration
+- Third-party lib integration
 
 **NEVER use for:**
 

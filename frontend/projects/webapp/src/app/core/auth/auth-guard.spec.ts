@@ -10,7 +10,7 @@ import { firstValueFrom, type Observable } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ROUTES } from '@core/routing/routes-constants';
 import { authGuard } from './auth-guard';
-import { type AuthState, AuthStateService } from './auth-state.service';
+import { type AuthState, AuthStore } from './auth-store';
 
 describe('authGuard', () => {
   let stateSignal: ReturnType<typeof signal<AuthState>>;
@@ -33,14 +33,14 @@ describe('authGuard', () => {
       createUrlTree: vi.fn().mockReturnValue({} as UrlTree),
     };
 
-    const mockAuthState = {
+    const mockAuthStore = {
       authState: stateSignal.asReadonly(),
     };
 
     TestBed.configureTestingModule({
       providers: [
         provideZonelessChangeDetection(),
-        { provide: AuthStateService, useValue: mockAuthState },
+        { provide: AuthStore, useValue: mockAuthStore },
         { provide: Router, useValue: mockRouter },
       ],
     });

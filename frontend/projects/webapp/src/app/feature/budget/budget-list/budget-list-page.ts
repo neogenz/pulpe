@@ -20,10 +20,14 @@ import { Router } from '@angular/router';
 import { ExcelExportService } from '@core/budget/excel-export.service';
 import { downloadAsExcelFile, downloadAsJsonFile } from '@core/file-download';
 import { ROUTES, TitleDisplay } from '@core/routing';
-import { type CalendarMonth, YearCalendar } from '@ui/calendar';
+import {
+  type CalendarMonth,
+  type MonthTileLabels,
+  YearCalendar,
+} from '@ui/calendar';
 import { BaseLoading } from '@ui/loading';
 import { firstValueFrom, map, shareReplay } from 'rxjs';
-import { MonthsError } from '../ui/budget-error';
+import { MonthsError } from './ui/budget-error';
 import { BudgetListStore } from './budget-list-store';
 import { CreateBudgetDialogComponent } from './create-budget/budget-creation-dialog';
 import SearchTransactionsDialogComponent from './search-transactions-dialog/search-transactions-dialog';
@@ -38,6 +42,8 @@ import {
 } from '@core/product-tour/product-tour.service';
 import { LoadingIndicator } from '@core/loading/loading-indicator';
 import { TranslocoService, TranslocoPipe } from '@jsverse/transloco';
+import { CURRENCY_CONFIG } from '@core/currency';
+import { UserSettingsStore } from '@core/user-settings';
 
 @Component({
   selector: 'pulpe-budget-list',
@@ -138,6 +144,9 @@ import { TranslocoService, TranslocoPipe } from '@jsverse/transloco';
             <mat-tab [label]="budgetsOfYear.year.toString()">
               <pulpe-year-calendar
                 [calendarYear]="budgetsOfYear"
+                [labels]="monthTileLabels"
+                [currency]="currency()"
+                [locale]="currencyLocale()"
                 [currentDate]="state.currentDate()"
                 (monthClick)="navigateToDetails($event)"
                 (createMonth)="onCreateMonth($event)"
@@ -168,7 +177,26 @@ export default class BudgetListPage {
   readonly #destroyRef = inject(DestroyRef);
   readonly #excelExportService = inject(ExcelExportService);
   readonly #transloco = inject(TranslocoService);
+  readonly #userSettingsStore = inject(UserSettingsStore);
 
+  protected readonly currency = this.#userSettingsStore.currency;
+  protected readonly currencyLocale = computed(
+    () => CURRENCY_CONFIG[this.currency()].numberLocale,
+  );
+
+  // FR-only app. Translated once at component init; rebuild this if/when a
+  // language switcher lands (use `transloco.langChanges$ \| toSignal()`).
+  protected readonly monthTileLabels: MonthTileLabels = {
+    current: this.#transloco.translate('monthTile.current'),
+    available: this.#transloco.translate('monthTile.available'),
+    create: this.#transloco.translate('monthTile.create'),
+    availableSuffixAriaLabel: this.#transloco.translate(
+      'monthTile.availableSuffixAriaLabel',
+    ),
+    createBudgetAriaLabel: this.#transloco.translate(
+      'monthTile.createBudgetAriaLabel',
+    ),
+  };
   protected readonly isExporting = signal(false);
   protected readonly isExportingExcel = signal(false);
 

@@ -65,7 +65,7 @@ body {
   line-height: var(--mat-sys-typescale-body-medium-line-height);
 }
 
-// Pulpe design tokens + brand gradient
+// Pulpe design tokens + pre-auth ambient background
 :root {
   /* Layout */
   --pulpe-page-gutter-mobile: 16px;
@@ -79,6 +79,7 @@ body {
   --pulpe-surface-radius-card: 24px;
   --pulpe-surface-radius-panel: 16px;
   --pulpe-surface-border-subtle: 1px solid var(--mat-sys-outline-variant);
+  --pulpe-neutral-warm: #f7f6f3; /* DA §3.1 canonical warm neutral */
 
   /* Motion */
   --pulpe-motion-fast: 150ms;
@@ -87,28 +88,39 @@ body {
   --pulpe-ease-standard: cubic-bezier(0.2, 0, 0, 1);
   --pulpe-ease-emphasized: cubic-bezier(0.22, 1, 0.36, 1);
 
-  /* Gradient */
-  --pulpe-gradient-start: #009bff;
-  --pulpe-gradient-mid1: #00edab;
-  --pulpe-gradient-mid2: #30e868;
-  --pulpe-gradient-end: #8fff6b;
+  /* Pre-auth ambient glow strengths (overridden under .dark-theme) */
+  --pulpe-ambient-glow-a: 14%;
+  --pulpe-ambient-glow-b: 9%;
 }
 
 .dark-theme {
-  --pulpe-gradient-start: #003d7a;
-  --pulpe-gradient-mid1: #006b4e;
-  --pulpe-gradient-mid2: #0d7a30;
-  --pulpe-gradient-end: #2ba84a;
+  --pulpe-ambient-glow-a: 22%;
+  --pulpe-ambient-glow-b: 14%;
 }
 
+// DA §3.1: content surfaces are neutral warm; pre-auth can use glow/shadow
+// for brand expressivity (never a saturated colour bath).
 .pulpe-gradient {
-  background: linear-gradient(
-    135deg,
-    var(--pulpe-gradient-start) 0%,
-    var(--pulpe-gradient-mid1) 33%,
-    var(--pulpe-gradient-mid2) 66%,
-    var(--pulpe-gradient-end) 100%
-  );
+  background:
+    radial-gradient(
+      ellipse 85% 65% at 92% -5%,
+      color-mix(
+        in srgb,
+        var(--mat-sys-primary) var(--pulpe-ambient-glow-a),
+        transparent
+      ),
+      transparent 60%
+    ),
+    radial-gradient(
+      ellipse 70% 55% at 8% 105%,
+      color-mix(
+        in srgb,
+        var(--mat-sys-primary) var(--pulpe-ambient-glow-b),
+        transparent
+      ),
+      transparent 60%
+    ),
+    var(--mat-sys-surface);
 }
 
 .pulpe-entry-shell {
@@ -130,13 +142,190 @@ body {
 
 .pulpe-entry-card {
   width: 100%;
-  border: var(--pulpe-surface-border-subtle);
+  border: none;
   border-radius: var(--pulpe-surface-radius-card);
-  padding: clamp(1.5rem, 2vw, 2.5rem);
-  box-shadow: var(--mat-sys-level2);
-  background: var(--mat-sys-surface);
+  padding: clamp(1.75rem, 2.5vw, 2.75rem);
+  background: var(--mat-sys-surface-container-lowest, var(--mat-sys-surface));
+  // Softer tinted shadow — the card reads as "emerging from the ambient glow",
+  // not "landing on top of it". Closes the perceptual gap when users navigate
+  // from the cardless welcome page to the framed auth forms.
+  box-shadow:
+    0 1px 2px color-mix(in srgb, var(--mat-sys-primary) 5%, transparent),
+    0 8px 20px -10px color-mix(in srgb, var(--mat-sys-primary) 11%, transparent),
+    0 20px 40px -20px color-mix(in srgb, var(--mat-sys-primary) 7%, transparent);
   display: flex;
   flex-direction: column;
+}
+
+.pulpe-eyebrow-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.28rem 0.75rem;
+  border-radius: 9999px;
+  border: 1px solid color-mix(in srgb, var(--mat-sys-primary) 16%, transparent);
+  background: color-mix(in srgb, var(--mat-sys-primary) 5%, transparent);
+  color: var(--mat-sys-primary);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  line-height: 1;
+}
+
+.pulpe-eyebrow-dot {
+  position: relative;
+  display: inline-flex;
+  width: 0.4rem;
+  height: 0.4rem;
+}
+
+.pulpe-eyebrow-dot-core {
+  width: 100%;
+  height: 100%;
+  background: var(--mat-sys-primary);
+  border-radius: 9999px;
+  // Finite pulse: ~6 cycles (~16s), then settles. Avoids a perpetual
+  // compositor loop on an idle welcome page.
+  animation: pulpe-pulse 2.6s var(--pulpe-ease-emphasized) 6;
+}
+
+@keyframes pulpe-pulse {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes pulpe-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.pulpe-welcome-stagger > * {
+  animation: pulpe-fade-up 0.55s var(--pulpe-ease-emphasized) both;
+}
+
+@for $i from 1 through 7 {
+  .pulpe-welcome-stagger > *:nth-child(#{$i}) {
+    animation-delay: #{($i - 1) * 60}ms;
+  }
+}
+
+// Primary CTA — tinted elevation + magnetic lift.
+// Applied both to native <button class="pulpe-primary-cta"> and to the inner
+// filled button of <pulpe-loading-button class="pulpe-demo-primary">, so we
+// keep one tuned source of truth.
+.pulpe-primary-cta,
+.pulpe-demo-primary button[matButton="filled"] {
+  position: relative;
+  transition:
+    transform 220ms var(--pulpe-ease-standard),
+    box-shadow 220ms var(--pulpe-ease-standard);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    0 1px 2px rgba(0, 0, 0, 0.04),
+    0 10px 24px -10px
+      color-mix(in srgb, var(--mat-sys-primary) 30%, transparent);
+}
+
+.pulpe-primary-cta:hover:not([disabled]),
+.pulpe-demo-primary button[matButton="filled"]:hover:not([disabled]) {
+  transform: translateY(-1px);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.24),
+    0 2px 4px rgba(0, 0, 0, 0.06),
+    0 16px 32px -10px
+      color-mix(in srgb, var(--mat-sys-primary) 42%, transparent);
+}
+
+.pulpe-primary-cta:active:not([disabled]),
+.pulpe-demo-primary button[matButton="filled"]:active:not([disabled]) {
+  transform: translateY(0);
+  transition-duration: 120ms;
+}
+
+// Demo button prominence — slightly taller than the h-12 default so it
+// visually leads the CTA stack as the primary action. !important because
+// LoadingButton applies Tailwind's h-12 utility on the same inner <button>
+// and we need to reliably outrank it regardless of layer ordering.
+.pulpe-demo-primary button[matButton="filled"] {
+  height: 3.25rem !important;
+}
+
+.pulpe-inline-signin {
+  display: inline-flex;
+  align-items: center;
+  color: var(--mat-sys-primary);
+  font-weight: 600;
+  text-decoration: none;
+  padding-bottom: 1px;
+  background-image: linear-gradient(
+    to right,
+    var(--mat-sys-primary),
+    var(--mat-sys-primary)
+  );
+  background-size: 100% 1px;
+  background-position: 0 100%;
+  background-repeat: no-repeat;
+  transition: background-size 220ms var(--pulpe-ease-standard);
+}
+
+.pulpe-inline-signin mat-icon {
+  width: 14px;
+  height: 14px;
+  font-size: 14px;
+  line-height: 14px;
+  margin-left: 2px;
+  transition: transform 220ms var(--pulpe-ease-standard);
+}
+
+.pulpe-inline-signin:hover {
+  background-size: 100% 2px;
+}
+
+.pulpe-inline-signin:hover mat-icon {
+  transform: translateX(2px);
+}
+
+@supports (view-transition-name: none) {
+  // Scope the View Transition to the page content only — sidebar, breadcrumb,
+  // and header stay static. The browser default crossfade animates pulpe-page.
+  main[data-testid="page-content"] {
+    view-transition-name: pulpe-page;
+  }
+
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulpe-eyebrow-dot-core,
+  .pulpe-welcome-stagger > * {
+    animation: none !important;
+  }
+  .pulpe-welcome-stagger > * {
+    opacity: 1;
+    transform: none;
+  }
+
+  .pulpe-inline-signin,
+  .pulpe-inline-signin mat-icon,
+  .pulpe-primary-cta,
+  .pulpe-demo-primary button[matButton="filled"] {
+    transition: none !important;
+  }
 }
 
 .pulpe-page-header {

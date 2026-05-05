@@ -141,7 +141,10 @@ struct AnalyticsServiceTests {
         sut.flush()
     }
 
-    @Test func isInitialized_isFalseInTestEnvironment() {
-        #expect(sut.isInitialized == false)
+    @Test func eventCapturing_isDisabledInTestEnvironment() {
+        // Test xcconfig fallback sets POSTHOG_ENABLED=false → events gated off,
+        // even if SDK initialized with the test API key fallback. Flag reads
+        // remain available via `isInitialized`.
+        #expect(sut.isEventCapturingEnabled == false)
     }
 }

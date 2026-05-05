@@ -49,7 +49,8 @@ struct YearOverviewProvider: TimelineProvider {
             date: cache.lastUpdated,
             year: cache.yearBudgets.first?.year ?? Calendar.current.component(.year, from: Date()),
             months: months,
-            hasData: true
+            hasData: true,
+            currency: cache.currency
         )
     }
 }

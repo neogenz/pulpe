@@ -1,16 +1,20 @@
 import type { Chart, ChartConfiguration } from 'chart.js';
+import type { SupportedCurrency } from 'pulpe-shared';
 import type { UpcomingMonthForecast } from '../services/dashboard-state';
 import {
   type ChartThemeColors,
   colorWithAlpha,
   formatShortMonth,
-  formatCHF,
+  formatCurrency,
   CHART_FONT_FAMILY,
 } from '../utils/chart-utils';
+
+const AXIS_ABBREVIATION_THRESHOLD = 1000;
 
 export function buildProjectionChartOptions(
   theme: ChartThemeColors | null,
   amountsHidden = false,
+  currency: SupportedCurrency = 'CHF',
 ): ChartConfiguration['options'] {
   const tickColor = theme?.tickColor || undefined;
   const gridColor = theme?.gridColor || undefined;
@@ -58,7 +62,9 @@ export function buildProjectionChartOptions(
               label += ': ';
             }
             if (context.parsed.y !== null) {
-              label += amountsHidden ? '•••••' : formatCHF(context.parsed.y);
+              label += amountsHidden
+                ? '•••••'
+                : formatCurrency(context.parsed.y, currency);
             }
             return label;
           },
@@ -89,7 +95,11 @@ export function buildProjectionChartOptions(
           },
           color: tickColor,
           callback: function (value: string | number) {
-            return amountsHidden ? '•' : Number(value) / 1000 + 'k';
+            if (amountsHidden) return '•';
+            const num = Number(value);
+            if (num >= AXIS_ABBREVIATION_THRESHOLD)
+              return num / AXIS_ABBREVIATION_THRESHOLD + 'k';
+            return num;
           },
         },
       },

@@ -1,17 +1,15 @@
 import SwiftUI
 
-/// Leading inset for list dividers, aligned with row text past the status indicator.
-private let dividerLeadingInset: CGFloat = 16
-
 struct BudgetListView: View {
     @Environment(AppState.self) private var appState
     @Environment(BudgetListStore.self) private var store
     @Environment(UserSettingsStore.self) private var userSettingsStore
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var showCreateBudget = false
     @State private var createBudgetTarget: (month: Int, year: Int)?
     @State private var hasAppeared = false
-    @State private var expandedYears: Set<Int> = []
+    @State private var selectedYear: Int = Calendar.current.component(.year, from: Date())
+    @State private var showPastMonths = false
+    @State private var templateBalance: Decimal?
 
     var body: some View {
         Group {
@@ -44,7 +42,7 @@ struct BudgetListView: View {
                         .foregroundStyle(Color.textTertiary)
                         .multilineTextAlignment(.center)
                     Button("Créer un budget") {
-                        showCreateBudget = true
+                        createBudgetTarget = store.nextAvailableMonth
                     }
                     .primaryButtonStyle()
                 }
@@ -58,20 +56,10 @@ struct BudgetListView: View {
         .trackScreen("BudgetList")
         .animation(DesignTokens.Animation.smoothEaseOut, value: store.isLoading)
         .navigationTitle("Budgets")
+        .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 createButton
-            }
-        }
-        .sheet(isPresented: $showCreateBudget) {
-            if let nextMonth = store.nextAvailableMonth {
-                CreateBudgetView(
-                    month: nextMonth.month,
-                    year: nextMonth.year
-                ) { budget in
-                    store.addBudget(budget)
-                    appState.budgetPath.append(BudgetDestination.details(budgetId: budget.id))
-                }
             }
         }
         .sheet(isPresented: Binding(
@@ -90,13 +78,23 @@ struct BudgetListView: View {
         }
         .refreshable {
             await store.forceRefresh()
+            templateBalance = nil
+            await loadDefaultTemplateBalance()
         }
         .task {
-            await store.loadIfNeeded()
+            async let loadBudgets: Void = store.loadIfNeeded()
+            async let loadTemplate: Void = loadDefaultTemplateBalance()
+            _ = await (loadBudgets, loadTemplate)
+
             let currentPeriod = BudgetPeriodCalculator.periodForDate(
                 Date(), payDayOfMonth: userSettingsStore.payDayOfMonth
             )
-            expandedYears = [currentPeriod.year]
+            let available = store.availableYears
+            if available.contains(currentPeriod.year) {
+                selectedYear = currentPeriod.year
+            } else if let latest = available.last {
+                selectedYear = latest
+            }
             if reduceMotion {
                 hasAppeared = true
             } else {
@@ -105,11 +103,19 @@ struct BudgetListView: View {
                 }
             }
         }
+        .onChange(of: store.availableYears) { _, years in
+            if !years.contains(selectedYear), let latest = years.last {
+                selectedYear = latest
+            }
+        }
+        .onChange(of: selectedYear) {
+            showPastMonths = false
+        }
     }
 
     private var createButton: some View {
         Button {
-            showCreateBudget = true
+            createBudgetTarget = store.nextAvailableMonth
         } label: {
             Image(systemName: "plus")
         }
@@ -117,86 +123,245 @@ struct BudgetListView: View {
         .accessibilityLabel("Créer un nouveau budget")
     }
 
-    private var budgetList: some View {
-        ScrollViewReader { proxy in
-            ScrollView {
-                LazyVStack(spacing: DesignTokens.Spacing.xl) {
-                    ForEach(store.groupedByYear, id: \.year) { group in
-                        YearSection(
-                            year: group.year,
-                            budgets: group.budgets,
-                            payDayOfMonth: userSettingsStore.payDayOfMonth,
-                            isExpanded: expandedYears.contains(group.year),
-                            onToggle: {
-                                let toggle = {
-                                    if expandedYears.contains(group.year) {
-                                        expandedYears.remove(group.year)
-                                    } else {
-                                        expandedYears.insert(group.year)
-                                    }
-                                }
-                                if reduceMotion {
-                                    toggle()
-                                } else {
-                                    withAnimation(DesignTokens.Animation.defaultSpring) { toggle() }
-                                }
-                            },
-                            onSelect: { budget in
-                                appState.budgetPath.append(BudgetDestination.details(budgetId: budget.id))
-                            },
-                            onCreateBudget: { month, year in
-                                createBudgetTarget = (month, year)
-                            }
-                        )
-                        .opacity(hasAppeared ? 1 : 0)
-                        .animation(.easeOut(duration: DesignTokens.Animation.fast), value: hasAppeared)
-                    }
-                }
-                .padding(.horizontal, DesignTokens.Spacing.xl)
-                .padding(.top, DesignTokens.Spacing.sm)
-                .padding(.bottom, DesignTokens.Spacing.xxxl)
-            }
-            .scrollIndicators(.automatic)
-            .onChange(of: hasAppeared) { _, appeared in
-                if appeared {
-                    scrollToCurrentMonth(proxy: proxy)
-                }
+    // MARK: - Month Slots
+
+    private struct MonthSlot {
+        let month: Int
+        let budget: BudgetSparse?
+        var adjustment: Decimal?
+    }
+
+    private func monthSlots(from budgets: [BudgetSparse], currentPeriod: BudgetPeriod) -> [MonthSlot] {
+        var slots: [MonthSlot] = budgets.compactMap { budget in
+            guard let month = budget.month else { return nil }
+            return MonthSlot(month: month, budget: budget)
+        }
+
+        // Add one placeholder for the next missing month if selectedYear >= current year
+        if selectedYear >= currentPeriod.year {
+            let startMonth = (selectedYear == currentPeriod.year) ? currentPeriod.month : 1
+            let lastRemaining = slots.max(by: { $0.month < $1.month })?.budget?.remaining
+            let projectedAmount = (templateBalance ?? 0) + (lastRemaining ?? 0)
+            for month in startMonth...12 where !budgets.contains(where: { $0.month == month }) {
+                slots.append(MonthSlot(
+                    month: month,
+                    budget: nil,
+                    adjustment: projectedAmount != 0 ? projectedAmount : nil
+                ))
+                break
             }
         }
+
+        return slots.sorted { $0.month < $1.month }
+    }
+
+    private func yearStatusBadge(currentYear: Int) -> some View {
+        let label = selectedYear < currentYear ? "Terminé"
+            : selectedYear == currentYear ? "En cours"
+            : "À venir"
+        return Text(label)
+            .font(PulpeTypography.detailLabelBold)
+            .textCase(.uppercase)
+            .tracking(DesignTokens.Tracking.uppercaseWide)
+            .foregroundStyle(Color.textPrimary)
+            .padding(.horizontal, DesignTokens.Spacing.lg)
+            .padding(.vertical, DesignTokens.Spacing.xs)
+            .background(Color.surfaceContainerLowest, in: Capsule())
+    }
+
+    private func monthCard(for budget: BudgetSparse, isPast: Bool = false) -> some View {
+        BudgetMonthCard(budget: budget, periodLabel: periodLabel(for: budget), isPast: isPast) {
+            appState.budgetPath.append(BudgetDestination.details(budgetId: budget.id))
+        }
+    }
+
+    private func loadDefaultTemplateBalance() async {
+        guard templateBalance == nil else { return }
+        do {
+            guard let template = try await TemplateService.shared.getDefaultTemplate() else { return }
+            try Task.checkCancellation()
+            let lines = try await TemplateService.shared.getTemplateLines(templateId: template.id)
+            try Task.checkCancellation()
+            let income = lines.filter { $0.kind == .income }.reduce(Decimal.zero) { $0 + $1.amount }
+            let outflow = lines.filter { $0.kind != .income }.reduce(Decimal.zero) { $0 + $1.amount }
+            templateBalance = income - outflow
+        } catch is CancellationError {
+            return
+        } catch {
+            // Silently fail — placeholder will show without projected amount
+        }
+    }
+
+    private func periodLabel(for budget: BudgetSparse) -> String? {
+        guard let month = budget.month, let year = budget.year else { return nil }
+        return BudgetPeriodCalculator.formatPeriod(
+            month: month, year: year, payDayOfMonth: userSettingsStore.payDayOfMonth
+        )
+    }
+
+    // MARK: - Budget List
+
+    private var budgetList: some View {
+        let currentPeriod = BudgetPeriodCalculator.periodForDate(
+            Date(), payDayOfMonth: userSettingsStore.payDayOfMonth
+        )
+        let isPastYear = selectedYear < currentPeriod.year
+        let yearBudgets = store.budgets(forYear: selectedYear)
+        let allSlots = monthSlots(from: yearBudgets, currentPeriod: currentPeriod)
+        let isCurrentYear = selectedYear == currentPeriod.year
+        let pastSlots = isCurrentYear
+            ? allSlots.filter { $0.month < currentPeriod.month && $0.budget != nil }
+            : []
+        let visibleSlots = isCurrentYear
+            ? allSlots.filter { $0.month >= currentPeriod.month || $0.budget == nil }
+            : allSlots
+
+        return ScrollView {
+            VStack(spacing: DesignTokens.Spacing.xxxl) {
+                // Section 1: Year header + picker
+                VStack(spacing: 0) {
+                    HStack(alignment: .lastTextBaseline) {
+                        Text(String(selectedYear))
+                            .font(PulpeTypography.displayYear)
+                            .foregroundStyle(Color.textPrimary)
+                            .tracking(DesignTokens.Tracking.display)
+                            .contentTransition(.numericText())
+                        Spacer()
+                        yearStatusBadge(currentYear: currentPeriod.year)
+                    }
+                    .padding(.horizontal, DesignTokens.Spacing.xl)
+                    .animation(DesignTokens.Animation.defaultSpring, value: selectedYear)
+
+                    YearPicker(years: store.availableYears, selectedYear: $selectedYear)
+                }
+
+                // Section 2: Year recap
+                YearRecapCard(year: selectedYear, budgets: yearBudgets, isPastYear: isPastYear)
+                    .padding(.horizontal, DesignTokens.Spacing.xl)
+
+                // Section 3: Monthly progression
+                VStack(spacing: 0) {
+                    Text("Progression mensuelle")
+                        .font(PulpeTypography.stepTitle)
+                        .foregroundStyle(Color.textPrimary)
+                        .tracking(DesignTokens.Tracking.title)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, DesignTokens.Spacing.xl)
+                        .padding(.bottom, pastSlots.isEmpty ? DesignTokens.Spacing.md : 0)
+
+                    if !pastSlots.isEmpty {
+                        pastMonthsToggle(count: pastSlots.count)
+
+                        if showPastMonths {
+                            VStack(spacing: DesignTokens.Spacing.md) {
+                                ForEach(pastSlots, id: \.month) { slot in
+                                    if let budget = slot.budget {
+                                        monthCard(for: budget, isPast: true)
+                                            .transition(.opacity.combined(with: .move(edge: .top)))
+                                    }
+                                }
+                            }
+                            .padding(.horizontal, DesignTokens.Spacing.xl)
+                            .padding(.bottom, DesignTokens.Spacing.md)
+                        }
+                    }
+
+                    VStack(spacing: DesignTokens.Spacing.md) {
+                        ForEach(visibleSlots, id: \.month) { slot in
+                            if let budget = slot.budget {
+                                if budget.isCurrentPeriod(payDayOfMonth: userSettingsStore.payDayOfMonth) {
+                                    CurrentMonthHeroCard(
+                                        budget: budget,
+                                        periodLabel: periodLabel(for: budget)
+                                    ) {
+                                        appState.budgetPath.append(
+                                            BudgetDestination.details(budgetId: budget.id)
+                                        )
+                                    }
+                                } else {
+                                    monthCard(for: budget)
+                                }
+                            } else {
+                                NextMonthPlaceholder(
+                                    month: slot.month,
+                                    year: selectedYear,
+                                    adjustment: slot.adjustment
+                                ) {
+                                    createBudgetTarget = (slot.month, selectedYear)
+                                }
+                            }
+                        }
+                    }
+                    .padding(.horizontal, DesignTokens.Spacing.xl)
+                }
+            }
+            .padding(.bottom, DesignTokens.Spacing.xxxl)
+            .opacity(hasAppeared ? 1 : 0)
+            .animation(.easeOut(duration: DesignTokens.Animation.fast), value: hasAppeared)
+        }
+        .scrollIndicators(.automatic)
         .pulpeBackground()
     }
 
-    private func scrollToCurrentMonth(proxy: ScrollViewProxy) {
-        Task {
-            try? await Task.sleep(for: .milliseconds(400))
-            withAnimation(.easeOut(duration: DesignTokens.Animation.slow)) {
-                proxy.scrollTo("currentMonthHero", anchor: .center)
+    private func pastMonthsToggle(count: Int) -> some View {
+        Button {
+            withAnimation(DesignTokens.Animation.smoothEaseInOut) {
+                showPastMonths.toggle()
             }
+        } label: {
+            HStack(alignment: .center, spacing: DesignTokens.Spacing.xs) {
+                Image(systemName: "chevron.right")
+                    .font(PulpeTypography.detailLabel)
+                    .rotationEffect(.degrees(showPastMonths ? 90 : 0))
+                    .accessibilityHidden(true)
+                Text(
+                    showPastMonths
+                        ? "Masquer les mois passés"
+                        : "Voir les \(count) mois passés"
+                )
+                .font(PulpeTypography.labelMedium)
+                Spacer()
+            }
+            .foregroundStyle(Color.secondary)
+            .frame(minHeight: DesignTokens.TapTarget.minimum)
+            .contentShape(Rectangle())
         }
+        .buttonStyle(.plain)
+        .accessibilityValue(showPastMonths ? "ouvert" : "fermé")
+        .padding(.horizontal, DesignTokens.Spacing.xl)
     }
 }
+
+// MARK: - Skeleton
 
 private struct BudgetListSkeletonView: View {
     var body: some View {
         ScrollView {
-            VStack(spacing: DesignTokens.Spacing.xl) {
-                // Year section placeholder
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
-                    // Year header (chevron + year number)
-                    HStack(spacing: DesignTokens.Spacing.md) {
-                        SkeletonShape(width: 14, height: 14, cornerRadius: DesignTokens.CornerRadius.xs)
-                        SkeletonShape(width: 50, height: 20)
-                        Spacer()
-                    }
-                    .padding(.vertical, DesignTokens.Spacing.md)
+            VStack(spacing: DesignTokens.Spacing.xxl) {
+                // Year header placeholder
+                SkeletonShape(width: 120, height: 40)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, DesignTokens.Spacing.xl)
 
-                    skeletonMonthRowsCard
-                    SkeletonShape(height: 170, cornerRadius: DesignTokens.CornerRadius.xl)
-                    skeletonMonthRowsCard
+                // Year picker placeholder
+                HStack(spacing: DesignTokens.Spacing.sm) {
+                    ForEach(0..<3, id: \.self) { _ in
+                        SkeletonShape(width: 64, height: 32, cornerRadius: .infinity)
+                    }
                 }
+
+                VStack(spacing: DesignTokens.Spacing.md) {
+                    // Hero card placeholder
+                    SkeletonShape(height: 170, cornerRadius: DesignTokens.CornerRadius.xl)
+
+                    // Month card placeholders
+                    ForEach(0..<2, id: \.self) { _ in
+                        skeletonMonthCard
+                    }
+                }
+                .padding(.horizontal, DesignTokens.Spacing.xl)
             }
-            .padding(.horizontal, DesignTokens.Spacing.xl)
-            .padding(.top, DesignTokens.Spacing.sm)
+            .padding(.top, DesignTokens.Spacing.lg)
             .padding(.bottom, DesignTokens.Spacing.xxxl)
         }
         .shimmering()
@@ -204,208 +369,19 @@ private struct BudgetListSkeletonView: View {
         .accessibilityLabel("Chargement des budgets")
     }
 
-    private var skeletonMonthRowsCard: some View {
-        VStack(spacing: 0) {
-            ForEach(0..<2, id: \.self) { index in
-                HStack(spacing: DesignTokens.Spacing.md) {
-                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                        SkeletonShape(width: 100, height: 14)
-                        SkeletonShape(width: 140, height: 11)
-                    }
-                    Spacer()
-                    SkeletonShape(width: 70, height: 14)
-                }
-                .padding(.horizontal, DesignTokens.Spacing.lg)
-                .padding(.vertical, DesignTokens.Spacing.md)
-
-                if index < 1 {
-                    Divider().padding(.leading, dividerLeadingInset)
-                }
+    private var skeletonMonthCard: some View {
+        HStack(alignment: .top) {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                SkeletonShape(width: 90, height: 18)
+                SkeletonShape(width: 120, height: 11)
+            }
+            Spacer()
+            VStack(alignment: .trailing, spacing: DesignTokens.Spacing.xxs) {
+                SkeletonShape(width: 80, height: 14)
+                SkeletonShape(width: 60, height: 8)
             }
         }
-        .pulpeCardBackground(cornerRadius: DesignTokens.CornerRadius.lg)
-    }
-}
-
-struct YearSection: View {
-    let year: Int
-    let budgets: [BudgetSparse]
-    var payDayOfMonth: Int?
-    let isExpanded: Bool
-    let onToggle: () -> Void
-    let onSelect: (BudgetSparse) -> Void
-    let onCreateBudget: (Int, Int) -> Void
-
-    @State private var expandTrigger = false
-
-    private var layoutData: YearSectionLayoutData {
-        YearSectionLayoutData(year: year, budgets: budgets, payDayOfMonth: payDayOfMonth)
-    }
-
-    var body: some View {
-        let data = layoutData
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
-            yearHeaderView(data: data)
-
-            if isExpanded {
-                expandedContent(data: data)
-                    .transition(.opacity.combined(with: .scale(scale: 0.96, anchor: .top)))
-            }
-        }
-        .sensoryFeedback(.impact(flexibility: .soft), trigger: expandTrigger)
-        .onChange(of: isExpanded) { _, _ in
-            expandTrigger.toggle()
-        }
-    }
-
-    @ViewBuilder
-    private func expandedContent(data: YearSectionLayoutData) -> some View {
-        VStack(spacing: DesignTokens.Spacing.lg) {
-            if let current = data.currentMonthBudget {
-                if !data.monthsBefore.isEmpty {
-                    monthListCard(months: data.monthsBefore)
-                }
-                CurrentMonthHeroCard(
-                    budget: current,
-                    periodLabel: current.month.flatMap { month in
-                        current.year.flatMap { year in
-                            BudgetPeriodCalculator.formatPeriod(
-                                month: month, year: year, payDayOfMonth: payDayOfMonth
-                            )
-                        }
-                    }
-                ) {
-                    onSelect(current)
-                }
-                .id("currentMonthHero")
-                if !data.monthsAfter.isEmpty {
-                    monthListCard(months: data.monthsAfter)
-                }
-            } else if !data.allMonths.isEmpty {
-                monthListCard(months: data.allMonths)
-            }
-        }
-    }
-
-    private func yearHeaderView(data: YearSectionLayoutData) -> some View {
-        Button(action: onToggle) {
-            HStack(alignment: .center, spacing: DesignTokens.Spacing.md) {
-                Image(systemName: "chevron.right")
-                    .font(PulpeTypography.metricLabelBold)
-                    .foregroundStyle(data.isPastYear ? .tertiary : .secondary)
-                    .rotationEffect(.degrees(isExpanded ? 90 : 0))
-                Text(String(year))
-                    .font(PulpeTypography.stepTitle)
-                    .foregroundStyle(data.isPastYear ? .secondary : .primary)
-                if data.isCurrentYear {
-                    enCoursBadge
-                }
-
-                Spacer()
-            }
-            .padding(.vertical, DesignTokens.Spacing.md)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel(data.isCurrentYear ? "Année \(year), en cours" : "Année \(year)")
-        .accessibilityValue(isExpanded ? "développé" : "réduit")
-        .accessibilityHint(isExpanded ? "Appuie pour réduire" : "Appuie pour développer")
-        .accessibilityAddTraits(.isHeader)
-    }
-
-    private var enCoursBadge: some View {
-        Text("En cours")
-            .font(PulpeTypography.caption2)
-            .fontWeight(.semibold)
-            .foregroundStyle(Color.pulpePrimary)
-            .padding(.horizontal, DesignTokens.Spacing.sm)
-            .padding(.vertical, DesignTokens.Spacing.xs)
-            .background(Color.pulpePrimary.opacity(0.12), in: Capsule())
-    }
-
-    private func monthListCard(months: [MonthSlot]) -> some View {
-        VStack(spacing: 0) {
-            ForEach(months, id: \.month) { slot in
-                if let budget = slot.budget {
-                    BudgetMonthRow(
-                        budget: budget,
-                        periodLabel: budget.month.flatMap { month in
-                            budget.year.flatMap { year in
-                                BudgetPeriodCalculator.formatPeriod(
-                                    month: month, year: year, payDayOfMonth: payDayOfMonth
-                                )
-                            }
-                        },
-                        payDayOfMonth: payDayOfMonth
-                    ) {
-                        onSelect(budget)
-                    }
-                } else {
-                    NextMonthPlaceholder(month: slot.month, year: year) {
-                        onCreateBudget(slot.month, year)
-                    }
-                }
-
-                if slot.month != months.last?.month {
-                    Divider()
-                        .padding(.leading, dividerLeadingInset)
-                }
-            }
-        }
-        .pulpeCardBackground(cornerRadius: DesignTokens.CornerRadius.lg)
-    }
-}
-
-private struct MonthSlot {
-    let month: Int
-    let budget: BudgetSparse?
-}
-
-private struct YearSectionLayoutData {
-    let isCurrentYear: Bool
-    let isPastYear: Bool
-    let currentMonthBudget: BudgetSparse?
-    let monthsBefore: [MonthSlot]
-    let monthsAfter: [MonthSlot]
-    let allMonths: [MonthSlot]
-
-    init(year: Int, budgets: [BudgetSparse], payDayOfMonth: Int? = nil) {
-        let currentPeriod = BudgetPeriodCalculator.periodForDate(Date(), payDayOfMonth: payDayOfMonth)
-
-        self.isCurrentYear = year == currentPeriod.year
-        self.isPastYear = year < currentPeriod.year
-        var slots: [MonthSlot] = budgets.compactMap { budget in
-            guard let month = budget.month else { return nil }
-            return MonthSlot(month: month, budget: budget)
-        }
-        if year >= currentPeriod.year {
-            let startMonth = (year == currentPeriod.year) ? currentPeriod.month : 1
-            for month in startMonth ... 12 where !budgets.contains(where: { $0.month == month }) {
-                slots.append(MonthSlot(month: month, budget: nil))
-                break
-            }
-        }
-
-        let visibleMonths = slots.sorted { $0.month < $1.month }
-        self.currentMonthBudget = budgets.first { $0.isCurrentPeriod(payDayOfMonth: payDayOfMonth) }
-        var before: [MonthSlot] = []
-        var after: [MonthSlot] = []
-        var all: [MonthSlot] = []
-
-        for slot in visibleMonths {
-            let isCurrent = slot.budget?.isCurrentPeriod(payDayOfMonth: payDayOfMonth) == true
-            if !isCurrent {
-                all.append(slot)
-                if slot.month < currentPeriod.month {
-                    before.append(slot)
-                } else if slot.month > currentPeriod.month {
-                    after.append(slot)
-                }
-            }
-        }
-
-        self.monthsBefore = before
-        self.monthsAfter = after
-        self.allMonths = all
+        .padding(DesignTokens.Spacing.xxl)
+        .pulpeCardBackground(cornerRadius: DesignTokens.CornerRadius.xl)
     }
 }

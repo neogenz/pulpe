@@ -20,7 +20,7 @@ import { MatIconModule } from '@angular/material/icon';
       data-testid="default-warning-panel"
     >
       <mat-icon
-        class="text-on-secondary-container flex-shrink-0 mt-0.5"
+        class="text-on-secondary-container shrink-0 mt-0.5"
         aria-hidden="true"
       >
         info
@@ -36,7 +36,7 @@ import { MatIconModule } from '@angular/material/icon';
           matIconButton
           (click)="onDismiss()"
           aria-label="Fermer l'information"
-          class="flex-shrink-0"
+          class="shrink-0"
           data-testid="dismiss-warning-button"
         >
           <mat-icon>close</mat-icon>

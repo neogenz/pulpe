@@ -12,21 +12,38 @@
   --color-text-secondary: #5D5F5B;
   --color-accent: #0061A6;
 
-  --shadow-card: 0 4px 24px rgba(0, 0, 0, 0.06);
-  --shadow-card-hover: 0 8px 40px rgba(0, 0, 0, 0.12);
-  --shadow-organic: 0 2px 16px rgba(0, 110, 37, 0.06), 0 8px 40px rgba(0, 0, 0, 0.08);
-  --shadow-screenshot: 0 8px 32px rgba(0, 0, 0, 0.12);
-  --shadow-glass: 0 8px 32px rgba(0, 0, 0, 0.1);
+  /* Shadows tinted with brand green — gives depth coherent with palette
+     instead of generic black-at-low-opacity AI aesthetic. */
+  --shadow-card:
+    0 1px 2px rgba(0, 60, 20, 0.04),
+    0 4px 20px rgba(0, 60, 20, 0.06);
+  --shadow-card-hover:
+    0 2px 6px rgba(0, 60, 20, 0.06),
+    0 12px 40px rgba(0, 60, 20, 0.14);
+  --shadow-organic:
+    0 1px 2px rgba(0, 110, 37, 0.04),
+    0 4px 14px rgba(0, 110, 37, 0.08),
+    0 12px 32px rgba(0, 60, 20, 0.08);
+  --shadow-screenshot:
+    0 2px 6px rgba(0, 60, 20, 0.05),
+    0 14px 40px rgba(0, 60, 20, 0.14);
+  --shadow-glass: 0 8px 32px rgba(0, 60, 20, 0.1);
   --shadow-liquid-glass:
     0 0 0 1px rgba(255, 255, 255, 0.1),
-    0 2px 4px rgba(0, 0, 0, 0.02),
-    0 8px 16px rgba(0, 0, 0, 0.04),
-    0 16px 32px rgba(0, 0, 0, 0.06);
-  --shadow-floating: 0 8px 24px rgba(0, 0, 0, 0.12);
+    0 2px 4px rgba(0, 60, 20, 0.02),
+    0 8px 16px rgba(0, 60, 20, 0.05),
+    0 16px 32px rgba(0, 60, 20, 0.07);
+  --shadow-floating:
+    0 4px 12px rgba(0, 60, 20, 0.08),
+    0 12px 28px rgba(0, 60, 20, 0.14);
 
   --radius-button: 12px;
   --radius-card: 16px;
   --radius-large: 24px;
+
+  /* Spring-ish easing for interactive elements — more weight than ease-out */
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-smooth: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 html {
@@ -40,6 +57,29 @@ body {
   color: var(--color-text);
   margin: 0;
   min-height: 100vh;
+}
+
+/* Tabular figures for money / data so digits don't wobble between updates */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Let the browser rebalance headline line breaks; avoids orphan words */
+.balance {
+  text-wrap: balance;
+}
+
+.pretty {
+  text-wrap: pretty;
+}
+
+/* Very subtle mesh of radial green glows behind hero — adds depth
+   without touching layout. Pure CSS, zero cost. */
+.hero-mesh {
+  background-image:
+    radial-gradient(60% 50% at 18% 15%, rgba(43, 136, 59, 0.10), transparent 70%),
+    radial-gradient(50% 45% at 82% 30%, rgba(0, 97, 166, 0.06), transparent 75%),
+    radial-gradient(70% 60% at 50% 95%, rgba(226, 251, 220, 0.9), transparent 70%);
 }
 
 :focus-visible {

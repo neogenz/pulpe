@@ -5,6 +5,8 @@ final class UserSettingsStore: StoreProtocol {
     // MARK: - State
 
     private(set) var payDayOfMonth: Int?
+    private(set) var currency: SupportedCurrency = .chf
+    private(set) var showCurrencySelector = false
     private(set) var isLoading = false
     private(set) var error: APIError?
 
@@ -23,12 +25,26 @@ final class UserSettingsStore: StoreProtocol {
 
     // MARK: - Services
 
-    private let service: UserSettingsService
+    private let service: any UserSettingsServicing
+    private let featureFlags: FeatureFlagsStore?
 
     // MARK: - Initialization
 
-    init(service: UserSettingsService = .shared) {
+    init(
+        service: any UserSettingsServicing = UserSettingsService.shared,
+        featureFlags: FeatureFlagsStore? = nil
+    ) {
         self.service = service
+        self.featureFlags = featureFlags
+    }
+
+    // MARK: - Feature-gated computed
+
+    /// `showCurrencySelector` AND the multi-currency feature flag.
+    /// Views that render the currency picker must read this instead of the
+    /// raw `showCurrencySelector` field so the flag acts as a kill switch.
+    var showCurrencySelectorEffective: Bool {
+        (featureFlags?.isMultiCurrencyEnabled ?? false) && showCurrencySelector
     }
 
     // MARK: - Smart Loading (StoreProtocol)
@@ -58,6 +74,8 @@ final class UserSettingsStore: StoreProtocol {
                 try Task.checkCancellation()
 
                 payDayOfMonth = settings.payDayOfMonth
+                currency = settings.currency ?? .chf
+                showCurrencySelector = settings.showCurrencySelector ?? false
                 lastLoadTime = Date()
             } catch is CancellationError {
                 // Task was cancelled, don't update error state
@@ -78,14 +96,61 @@ final class UserSettingsStore: StoreProtocol {
         loadTask = nil
         loadGeneration = 0
         payDayOfMonth = nil
+        currency = .chf
+        showCurrencySelector = false
         lastLoadTime = nil
         error = nil
     }
 
     // MARK: - Mutations
 
+    func updateCurrency(_ newCurrency: SupportedCurrency) async {
+        let previousValue = currency
+        error = nil
+
+        // Optimistic update
+        currency = newCurrency
+
+        do {
+            let updated = try await service.updateSettings(UpdateUserSettings(currency: newCurrency))
+            // Backend may return a partial settings payload without `currency`; keep the value we
+            // just persisted instead of falling back to `.chf` (would snap the UI back on EUR, etc.).
+            currency = updated.currency ?? newCurrency
+            lastLoadTime = Date()
+        } catch let apiError as APIError {
+            currency = previousValue
+            self.error = apiError
+        } catch {
+            currency = previousValue
+            self.error = .networkError(error)
+        }
+    }
+
+    func updateShowCurrencySelector(_ newValue: Bool) async {
+        let previousValue = showCurrencySelector
+        error = nil
+
+        // Optimistic update
+        showCurrencySelector = newValue
+
+        do {
+            let updated = try await service.updateSettings(
+                UpdateUserSettings(showCurrencySelector: newValue)
+            )
+            // Backend may omit the field on partial responses; keep the value we just persisted.
+            showCurrencySelector = updated.showCurrencySelector ?? newValue
+            lastLoadTime = Date()
+        } catch let apiError as APIError {
+            showCurrencySelector = previousValue
+            self.error = apiError
+        } catch {
+            showCurrencySelector = previousValue
+            self.error = .networkError(error)
+        }
+    }
+
     func updatePayDay(_ day: Int?) async {
-        if let day, !(2...31).contains(day) { return }
+        if let day, !(1...31).contains(day) { return }
 
         let previousValue = payDayOfMonth
         error = nil

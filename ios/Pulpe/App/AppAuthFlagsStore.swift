@@ -15,6 +15,7 @@ protocol AppAuthFlagsStoring: Sendable {
 
 // MARK: - Production Implementation
 
+/// SAFETY: `UserDefaults` is thread-safe per Apple. This struct only reads/writes primitive flags; `@unchecked Sendable` implements `AppAuthFlagsStoring: Sendable` for DI without an actor wrapper.
 struct AppAuthFlagsStore: AppAuthFlagsStoring, @unchecked Sendable {
     private enum Key {
         static let hasLaunchedBefore = "pulpe-has-launched-before"

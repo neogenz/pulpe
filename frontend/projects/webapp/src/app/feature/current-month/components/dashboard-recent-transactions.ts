@@ -1,14 +1,18 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  inject,
   input,
   output,
 } from '@angular/core';
-import { CurrencyPipe, DatePipe } from '@angular/common';
+import { DatePipe } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import type { Transaction, TransactionKind } from 'pulpe-shared';
+import { AppCurrencyPipe } from '@core/currency';
+import { UserSettingsStore } from '@core/user-settings';
 import { FinancialKindDirective } from '@ui/financial-kind';
+import { TranslocoPipe } from '@jsverse/transloco';
 
 const KIND_ICONS: Record<TransactionKind, string> = {
   income: 'arrow_upward',
@@ -19,11 +23,12 @@ const KIND_ICONS: Record<TransactionKind, string> = {
 @Component({
   selector: 'pulpe-dashboard-recent-transactions',
   imports: [
-    CurrencyPipe,
+    AppCurrencyPipe,
     DatePipe,
     MatButtonModule,
     MatIconModule,
     FinancialKindDirective,
+    TranslocoPipe,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -31,7 +36,7 @@ const KIND_ICONS: Record<TransactionKind, string> = {
       <div class="mb-4 px-1 flex items-center justify-between">
         <div class="flex items-center gap-3">
           <div
-            class="w-10 h-10 rounded-full bg-tertiary/10 text-tertiary flex items-center justify-center flex-shrink-0"
+            class="w-10 h-10 rounded-full bg-tertiary/10 text-tertiary flex items-center justify-center shrink-0"
           >
             <mat-icon aria-hidden="true">receipt_long</mat-icon>
           </div>
@@ -39,16 +44,21 @@ const KIND_ICONS: Record<TransactionKind, string> = {
             <h2
               class="text-title-medium font-bold text-on-surface leading-tight"
             >
-              Dernières transactions
+              {{ 'currentMonth.recentTransactionsTitle' | transloco }}
             </h2>
             <p
               class="text-body-small text-on-surface-variant font-medium mt-0.5"
             >
-              Ce mois ({{ transactions().length }})
+              {{
+                'currentMonth.recentTransactionsSubtitle'
+                  | transloco: { count: transactions().length }
+              }}
             </p>
           </div>
         </div>
-        <button matButton (click)="viewBudget.emit()">Voir tout</button>
+        <button matButton (click)="viewBudget.emit()">
+          {{ 'common.viewAll' | transloco }}
+        </button>
       </div>
 
       <div class="bg-surface-container-low rounded-3xl py-3 px-3 flex-1">
@@ -59,7 +69,7 @@ const KIND_ICONS: Record<TransactionKind, string> = {
                 class="flex items-center gap-3 p-3 rounded-2xl hover:bg-on-surface/8 motion-safe:transition-colors"
               >
                 <div
-                  class="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
+                  class="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
                   [class]="kindClasses(tx.kind)"
                 >
                   <mat-icon class="text-[20px]" aria-hidden="true">
@@ -82,7 +92,7 @@ const KIND_ICONS: Record<TransactionKind, string> = {
                   class="text-label-large whitespace-nowrap ml-4 font-semibold tabular-nums ph-no-capture"
                   [pulpeFinancialKind]="tx.kind"
                 >
-                  {{ tx.amount | currency: 'CHF' : 'symbol' : '1.0-0' }}
+                  {{ tx.amount | appCurrency: currency() : '1.2-2' }}
                 </span>
               </div>
             }
@@ -99,10 +109,10 @@ const KIND_ICONS: Record<TransactionKind, string> = {
               >
             </div>
             <h3 class="text-title-medium font-medium text-on-surface-variant">
-              Aucune transaction
+              {{ 'currentMonth.noTransaction' | transloco }}
             </h3>
             <p class="text-body-medium text-on-surface-variant">
-              Aucune transaction ce mois
+              {{ 'currentMonth.noTransactionThisMonth' | transloco }}
             </p>
           </div>
         }
@@ -116,6 +126,8 @@ const KIND_ICONS: Record<TransactionKind, string> = {
   `,
 })
 export class DashboardRecentTransactions {
+  readonly #userSettings = inject(UserSettingsStore);
+  protected readonly currency = this.#userSettings.currency;
   readonly transactions = input.required<Transaction[]>();
   readonly viewBudget = output<void>();
 

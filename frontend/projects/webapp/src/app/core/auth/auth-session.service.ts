@@ -8,18 +8,23 @@ import {
 } from '@supabase/supabase-js';
 import { ApplicationConfiguration } from '../config/application-configuration';
 import { Logger } from '../logging/logger';
-import { AuthStateService, type AuthState } from './auth-state.service';
+import { AuthStore, type AuthSessionState } from './auth-store';
 import { AuthErrorLocalizer } from './auth-error-localizer';
 import { AUTH_ERROR_KEYS, SCHEDULED_DELETION_PARAMS } from './auth-constants';
 import { AuthCleanupService } from './auth-cleanup.service';
 import { isE2EMode, type E2EWindow } from './e2e-window';
 import { ROUTES } from '@core/routing/routes-constants';
 
+interface DecodedJwt {
+  readonly sub: string;
+  readonly exp: number;
+}
+
 @Injectable({
   providedIn: 'root',
 })
 export class AuthSessionService {
-  readonly #state = inject(AuthStateService);
+  readonly #authStore = inject(AuthStore);
   readonly #router = inject(Router);
   readonly #applicationConfig = inject(ApplicationConfiguration);
   readonly #errorLocalizer = inject(AuthErrorLocalizer);
@@ -30,6 +35,7 @@ export class AuthSessionService {
 
   #supabaseClient: SupabaseClient | null = null;
   #authSubscription: (() => void) | null = null;
+  #initPromise: Promise<void> | null = null;
   #refreshPromise: Promise<boolean> | null = null;
 
   getClient(): SupabaseClient {
@@ -39,206 +45,41 @@ export class AuthSessionService {
     return this.#supabaseClient;
   }
 
-  async initializeAuthState(): Promise<void> {
+  initializeAuthState(): Promise<void> {
     if (this.#supabaseClient) {
       this.#logger.debug('Auth already initialized, skipping');
-      return;
+      return Promise.resolve();
     }
-
-    this.#state.setLoading(true);
-    const url = this.#applicationConfig.supabaseUrl();
-    const key = this.#applicationConfig.supabaseAnonKey();
-
-    if (!url || !key) {
-      throw new Error('Configuration Supabase manquante après initialisation');
-    }
-
-    this.#supabaseClient = createClient(url, key);
-
-    if (this.#isE2EBypass()) {
-      const mockState = this.#getE2EMockState();
-      if (mockState) {
-        this.#logger.debug(
-          '🎭 Mode test E2E détecté, utilisation des mocks auth',
-        );
-        this.#state.setSession(mockState.session);
-        this.#state.setLoading(mockState.isLoading);
-        return;
-      }
-    }
-
-    try {
-      const {
-        data: { session },
-        error,
-      } = await this.#supabaseClient.auth.getSession();
-
-      if (error) {
-        this.#logger.error(
-          'Erreur lors de la récupération de la session:',
-          error,
-        );
-        this.#updateAuthState(null);
-        return;
-      }
-
-      this.#updateAuthState(session);
-
-      const { data } = this.#supabaseClient.auth.onAuthStateChange(
-        (event, session) => {
-          this.#logger.debug('Auth event:', {
-            event,
-            session: session?.user?.id,
-          });
-
-          if (
-            (event === 'SIGNED_IN' ||
-              event === 'TOKEN_REFRESHED' ||
-              event === 'USER_UPDATED') &&
-            session?.user?.user_metadata?.['scheduledDeletionAt']
-          ) {
-            const deletionDate =
-              session.user.user_metadata['scheduledDeletionAt'];
-            this.#logger.warn(
-              'User account scheduled for deletion detected, signing out',
-              { userId: session.user.id },
-            );
-            this.signOut().finally(() => {
-              this.#router.navigate(['/', ROUTES.LOGIN], {
-                queryParams: {
-                  [SCHEDULED_DELETION_PARAMS.REASON]:
-                    SCHEDULED_DELETION_PARAMS.REASON_VALUE,
-                  [SCHEDULED_DELETION_PARAMS.DATE]: String(deletionDate),
-                },
-              });
-            });
-            return;
-          }
-
-          switch (event) {
-            case 'SIGNED_IN':
-            case 'TOKEN_REFRESHED':
-            case 'PASSWORD_RECOVERY':
-              this.#updateAuthState(session);
-              break;
-            case 'SIGNED_OUT':
-              this.#updateAuthState(null);
-              this.#cleanup.performCleanup();
-              break;
-            case 'USER_UPDATED':
-              this.#updateAuthState(session);
-              break;
-          }
-        },
-      );
-
-      this.#authSubscription = () => data.subscription.unsubscribe();
-
-      this.#destroyRef.onDestroy(() => {
-        this.#authSubscription?.();
-      });
-    } catch (error) {
-      this.#logger.error(
-        "Erreur lors de l'initialisation de l'authentification:",
-        {
-          error,
-          errorType:
-            error instanceof Error ? error.constructor.name : typeof error,
-          message: error instanceof Error ? error.message : String(error),
-        },
-      );
-      this.#updateAuthState(null);
-    }
-  }
-
-  async getCurrentSession(): Promise<Session | null> {
-    // Called by the auth interceptor on every request, including during
-    // bootstrap before initializeAuthState() has created the client.
-    // "Not initialized yet" is a valid lifecycle state here, not an error —
-    // we simply have no session to return.
-    if (!this.#supabaseClient) return null;
-
-    try {
-      const {
-        data: { session },
-        error,
-      } = await this.#supabaseClient.auth.getSession();
-
-      if (error) {
-        this.#logger.error(
-          'Erreur lors de la récupération de la session:',
-          error,
-        );
-        return null;
-      }
-
-      return session;
-    } catch (error) {
-      this.#logger.error(
-        'Erreur inattendue lors de la récupération de la session:',
-        {
-          error,
-          errorType:
-            error instanceof Error ? error.constructor.name : typeof error,
-          message: error instanceof Error ? error.message : String(error),
-        },
-      );
-      return null;
-    }
-  }
-
-  async refreshSession(): Promise<boolean> {
-    // Deduplicate concurrent refresh attempts to prevent refresh-token
-    // rotation races between auto-refresh and interceptor retries.
-    if (this.#refreshPromise) {
-      return this.#refreshPromise;
-    }
-
-    this.#refreshPromise = this.#doRefreshSession();
-    try {
-      return await this.#refreshPromise;
-    } finally {
-      this.#refreshPromise = null;
-    }
-  }
-
-  async #doRefreshSession(): Promise<boolean> {
-    try {
-      const { data, error } = await this.getClient().auth.refreshSession();
-
-      if (error) {
-        this.#logger.error(
-          'Erreur lors du rafraîchissement de la session:',
-          error,
-        );
-        return false;
-      }
-
-      this.#state.setSession(data.session ?? null);
-      return !!data.session;
-    } catch (error) {
-      this.#logger.error(
-        'Erreur inattendue lors du rafraîchissement de la session:',
-        {
-          error,
-          errorType:
-            error instanceof Error ? error.constructor.name : typeof error,
-          message: error instanceof Error ? error.message : String(error),
-        },
-      );
-      return false;
-    }
+    return (this.#initPromise ??= this.#initializeSupabaseSessionTracking());
   }
 
   async setSession(session: {
     access_token: string;
     refresh_token: string;
   }): Promise<{ success: boolean; error?: string }> {
+    const decoded = this.#decodeJwt(session.access_token);
+    if (!decoded) {
+      this.#logger.warn('setSession rejected: malformed access token');
+      return {
+        success: false,
+        error: this.#transloco.translate(
+          AUTH_ERROR_KEYS.UNEXPECTED_SESSION_ERROR,
+        ),
+      };
+    }
+
+    if (decoded.exp * 1000 <= Date.now()) {
+      this.#logger.warn('setSession rejected: access token expired');
+      return {
+        success: false,
+        error: this.#transloco.translate(AUTH_ERROR_KEYS.SESSION_EXPIRED),
+      };
+    }
+
     try {
-      const { data, error } = await this.getClient().auth.setSession({
-        access_token: session.access_token,
-        refresh_token: session.refresh_token,
-      });
+      this.#logger.info('Applying session', { userId: decoded.sub });
+
+      const { data, error } = await this.getClient().auth.setSession(session);
 
       if (error) {
         return {
@@ -247,20 +88,10 @@ export class AuthSessionService {
         };
       }
 
-      this.#state.setSession(data.session);
-
-      this.#logger.info('Session set successfully', {
-        userId: data.session?.user?.id,
-      });
-
+      this.#updateAuthStateFromSession(data.session);
       return { success: true };
     } catch (error) {
-      this.#logger.error('Error setting session:', {
-        error,
-        errorType:
-          error instanceof Error ? error.constructor.name : typeof error,
-        message: error instanceof Error ? error.message : String(error),
-      });
+      this.#logger.error('Error setting session:', error);
       return {
         success: false,
         error: this.#transloco.translate(
@@ -274,7 +105,7 @@ export class AuthSessionService {
     password: string,
   ): Promise<{ success: boolean; error?: string }> {
     try {
-      const email = this.#state.user()?.email;
+      const email = this.#authStore.user()?.email;
       if (!email) {
         return { success: false, error: 'Utilisateur non connecté' };
       }
@@ -293,12 +124,7 @@ export class AuthSessionService {
 
       return { success: true };
     } catch (error) {
-      this.#logger.error('Error verifying password:', {
-        error,
-        errorType:
-          error instanceof Error ? error.constructor.name : typeof error,
-        message: error instanceof Error ? error.message : String(error),
-      });
+      this.#logger.error('Error verifying password:', error);
       return {
         success: false,
         error: this.#transloco.translate(
@@ -311,7 +137,7 @@ export class AuthSessionService {
   async updatePassword(
     newPassword: string,
   ): Promise<{ success: boolean; error?: string }> {
-    if (this.#isE2EBypass()) {
+    if (isE2EMode()) {
       this.#logger.info(
         '🎭 Mode test E2E: Simulation du changement de mot de passe',
       );
@@ -332,12 +158,7 @@ export class AuthSessionService {
 
       return { success: true };
     } catch (error) {
-      this.#logger.error('Error updating password:', {
-        error,
-        errorType:
-          error instanceof Error ? error.constructor.name : typeof error,
-        message: error instanceof Error ? error.message : String(error),
-      });
+      this.#logger.error('Error updating password:', error);
       return {
         success: false,
         error: this.#transloco.translate(
@@ -349,34 +170,23 @@ export class AuthSessionService {
 
   async signOut(): Promise<void> {
     try {
-      if (this.#isE2EBypass()) {
+      if (isE2EMode()) {
         this.#logger.debug('🎭 Mode test E2E: Simulation du logout');
         return;
       }
 
-      const { error } = await this.getClient().auth.signOut();
+      if (!this.#supabaseClient) {
+        return;
+      }
+
+      const { error } = await this.#supabaseClient.auth.signOut();
       if (error) {
-        this.#logger.error('Erreur lors de la déconnexion:', error);
-        // Global signOut failed (e.g. 403 with stale session) — force local cleanup
-        // to clear Supabase localStorage and break the redirect loop.
-        await this.getClient().auth.signOut({ scope: 'local' });
+        this.#logger.error('Erreur lors de la déconnexion globale:', error);
       }
     } catch (error) {
-      this.#logger.error('Erreur inattendue lors de la déconnexion:', {
-        error,
-        errorType:
-          error instanceof Error ? error.constructor.name : typeof error,
-        message: error instanceof Error ? error.message : String(error),
-      });
-      // Ensure Supabase localStorage is cleared even on unexpected errors.
-      try {
-        await this.getClient().auth.signOut({ scope: 'local' });
-      } catch {
-        // Last resort — nothing more we can do.
-      }
+      this.#logger.error('Erreur inattendue lors de la déconnexion:', error);
     } finally {
-      this.#updateAuthState(null);
-      this.#cleanup.performCleanup();
+      this.#clearLocalAuthStateAndUserData();
     }
   }
 
@@ -399,12 +209,7 @@ export class AuthSessionService {
 
       return { success: true };
     } catch (error) {
-      this.#logger.error('Error sending password reset email:', {
-        error,
-        errorType:
-          error instanceof Error ? error.constructor.name : typeof error,
-        message: error instanceof Error ? error.message : String(error),
-      });
+      this.#logger.error('Error sending password reset email:', error);
       return {
         success: false,
         error: this.#transloco.translate(
@@ -414,19 +219,170 @@ export class AuthSessionService {
     }
   }
 
-  #updateAuthState(session: Session | null): void {
-    this.#state.setSession(session);
-    this.#state.setLoading(false);
+  refreshSession(): Promise<boolean> {
+    return (this.#refreshPromise ??=
+      this.#refreshSessionAndUpdateState().finally(() => {
+        this.#refreshPromise = null;
+      }));
   }
 
-  #isE2EBypass(): boolean {
-    return isE2EMode();
-  }
+  async #initializeSupabaseSessionTracking(): Promise<void> {
+    const url = this.#applicationConfig.supabaseUrl();
+    const key = this.#applicationConfig.supabaseAnonKey();
 
-  #getE2EMockState(): AuthState | undefined {
-    if (typeof window === 'undefined') {
-      return undefined;
+    if (!url || !key) {
+      throw new Error('Configuration Supabase manquante après initialisation');
     }
+
+    this.#supabaseClient = createClient(url, key);
+
+    if (isE2EMode()) {
+      const mockState = this.#getE2EMockState();
+      if (mockState) {
+        this.#logger.debug(
+          '🎭 Mode test E2E détecté, utilisation des mocks auth',
+        );
+        this.#authStore.set(this.#sessionStateFromMock(mockState));
+        return;
+      }
+    }
+
+    try {
+      const {
+        data: { session },
+        error,
+      } = await this.#supabaseClient.auth.getSession();
+
+      if (error) {
+        this.#logger.error(
+          'Erreur lors de la récupération de la session:',
+          error,
+        );
+        this.#updateAuthStateFromSession(null);
+        return;
+      }
+
+      this.#updateAuthStateFromSession(session);
+
+      const { data } = this.#supabaseClient.auth.onAuthStateChange(
+        (event, session) => {
+          this.#handleAuthEvent(event, session);
+        },
+      );
+
+      this.#authSubscription = () => data.subscription.unsubscribe();
+      this.#destroyRef.onDestroy(() => this.#authSubscription?.());
+    } catch (error) {
+      this.#logger.error(
+        "Erreur lors de l'initialisation de l'authentification:",
+        error,
+      );
+      this.#updateAuthStateFromSession(null);
+    }
+  }
+
+  async #refreshSessionAndUpdateState(): Promise<boolean> {
+    try {
+      const { data, error } = await this.getClient().auth.refreshSession();
+
+      if (error) {
+        this.#logger.error(
+          'Erreur lors du rafraîchissement de la session:',
+          error,
+        );
+        return false;
+      }
+
+      this.#updateAuthStateFromSession(data.session ?? null);
+      return !!data.session;
+    } catch (error) {
+      this.#logger.error(
+        'Erreur inattendue lors du rafraîchissement de la session:',
+        error,
+      );
+      return false;
+    }
+  }
+
+  #handleAuthEvent(event: string, session: Session | null): void {
+    this.#logger.debug('Auth event:', { event, session: session?.user?.id });
+
+    if (
+      (event === 'SIGNED_IN' ||
+        event === 'TOKEN_REFRESHED' ||
+        event === 'USER_UPDATED') &&
+      session?.user?.user_metadata?.['scheduledDeletionAt']
+    ) {
+      const deletionDate = session.user.user_metadata['scheduledDeletionAt'];
+      this.#logger.warn(
+        'User account scheduled for deletion detected, signing out',
+        { userId: session.user.id },
+      );
+      this.signOut().finally(() => {
+        this.#router.navigate(['/', ROUTES.LOGIN], {
+          queryParams: {
+            [SCHEDULED_DELETION_PARAMS.REASON]:
+              SCHEDULED_DELETION_PARAMS.REASON_VALUE,
+            [SCHEDULED_DELETION_PARAMS.DATE]: String(deletionDate),
+          },
+        });
+      });
+      return;
+    }
+
+    switch (event) {
+      case 'SIGNED_IN':
+      case 'TOKEN_REFRESHED':
+      case 'PASSWORD_RECOVERY':
+      case 'USER_UPDATED':
+        this.#updateAuthStateFromSession(session);
+        break;
+      case 'SIGNED_OUT':
+        this.#clearLocalAuthStateAndUserData();
+        break;
+    }
+  }
+
+  #clearLocalAuthStateAndUserData(): void {
+    this.#updateAuthStateFromSession(null);
+    this.#cleanup.performCleanup();
+  }
+
+  #updateAuthStateFromSession(session: Session | null): void {
+    this.#authStore.set(
+      session
+        ? { phase: 'authenticated', session }
+        : { phase: 'unauthenticated' },
+    );
+  }
+
+  #sessionStateFromMock(mock: {
+    session: Session | null;
+    isLoading: boolean;
+  }): AuthSessionState {
+    if (mock.session) return { phase: 'authenticated', session: mock.session };
+    if (mock.isLoading) return { phase: 'booting' };
+    return { phase: 'unauthenticated' };
+  }
+
+  #getE2EMockState() {
+    if (typeof window === 'undefined') return undefined;
     return (window as E2EWindow).__E2E_MOCK_AUTH_STATE__;
+  }
+
+  #decodeJwt(token: string): DecodedJwt | null {
+    const parts = token.split('.');
+    if (parts.length !== 3) return null;
+    try {
+      const payload = JSON.parse(
+        atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')),
+      );
+      if (typeof payload.exp !== 'number' || typeof payload.sub !== 'string') {
+        return null;
+      }
+      return payload;
+    } catch {
+      return null;
+    }
   }
 }

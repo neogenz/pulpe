@@ -1,0 +1,429 @@
+import { DatePipe, NgTemplateOutlet } from '@angular/common';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+  input,
+  output,
+  ViewContainerRef,
+} from '@angular/core';
+import { TranslocoPipe } from '@jsverse/transloco';
+import { MatButtonModule } from '@angular/material/button';
+import { MatCardModule } from '@angular/material/card';
+import { MatDialog } from '@angular/material/dialog';
+import { MatIconModule } from '@angular/material/icon';
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
+import { AppCurrencyPipe, FormatConversionPipe } from '@core/currency';
+import { FeatureFlagsService } from '@core/feature-flags';
+import { FinancialKindDirective } from '@ui/financial-kind';
+import { FinancialKindIndicator } from '@ui/financial-kind-indicator';
+import { OriginalAmountLine } from '@ui/original-amount-line';
+import { TransactionLabelPipe } from '@ui/transaction-display';
+import type { BudgetLine, Transaction, SupportedCurrency } from 'pulpe-shared';
+import type { TransactionViewModel } from '../../view-models/transaction.view-model';
+import type { BudgetLineTableItem } from '../../view-models/table-items.view-model';
+import { TransactionActionMenu } from '../transaction-action-menu';
+import {
+  BudgetDetailPanel,
+  type BudgetDetailPanelData,
+} from './budget-detail-panel';
+import { BudgetGridCard } from './budget-grid-card';
+import { BudgetGridMobileCard } from './budget-grid-mobile-card';
+import { BudgetGridSection } from './budget-grid-section';
+
+/** Filters transactions not allocated to any budget line. */
+export function filterFreeTransactionItems<
+  T extends { data: { budgetLineId: string | null } },
+>(items: T[]): T[] {
+  return items.filter((item) => !item.data.budgetLineId);
+}
+
+/** Groups items by financial kind into labeled categories using i18n keys. */
+export function groupByKind<T extends { data: { kind: string } }>(
+  items: T[],
+): { titleKey: string; icon: string; items: T[] }[] {
+  return [
+    {
+      titleKey: 'budgetLine.incomeGroups',
+      icon: 'trending_up',
+      items: items.filter((i) => i.data.kind === 'income'),
+    },
+    {
+      titleKey: 'budgetLine.savingsGroups',
+      icon: 'savings',
+      items: items.filter((i) => i.data.kind === 'saving'),
+    },
+    {
+      titleKey: 'budgetLine.expensesGroups',
+      icon: 'shopping_cart',
+      items: items.filter((i) => i.data.kind === 'expense'),
+    },
+  ];
+}
+
+/**
+ * Grid view component displaying budget lines as cards.
+ * Handles both desktop grid layout and mobile card list.
+ */
+@Component({
+  selector: 'pulpe-budget-grid',
+  imports: [
+    AppCurrencyPipe,
+    DatePipe,
+    NgTemplateOutlet,
+    MatButtonModule,
+    MatCardModule,
+    MatIconModule,
+    MatSlideToggleModule,
+    TranslocoPipe,
+    BudgetGridCard,
+    BudgetGridMobileCard,
+    BudgetGridSection,
+    FinancialKindIndicator,
+    FinancialKindDirective,
+    OriginalAmountLine,
+    FormatConversionPipe,
+    TransactionActionMenu,
+    TransactionLabelPipe,
+  ],
+  template: `
+    @if (isMobile()) {
+      <!-- Mobile view -->
+      <div class="flex flex-col gap-3">
+        @for (item of budgetLineItems(); track item.data.id) {
+          <pulpe-budget-grid-mobile-card
+            [item]="item"
+            [currency]="currency()"
+            [isMultiCurrencyEnabled]="isMultiCurrencyEnabled()"
+            (edit)="edit.emit($event)"
+            (delete)="delete.emit($event)"
+            (addTransaction)="addTransaction.emit($event)"
+            (viewTransactions)="viewTransactions.emit($event)"
+            (resetFromTemplate)="resetFromTemplate.emit($event)"
+            (toggleCheck)="toggleCheck.emit($event)"
+          />
+        } @empty {
+          @if (transactionItems().length === 0) {
+            <ng-container *ngTemplateOutlet="emptyState" />
+          }
+        }
+
+        <!-- Transactions section -->
+        @if (transactionItems().length > 0) {
+          <div class="pt-4 border-outline-variant">
+            <h3 class="text-title-medium text-on-surface-variant mb-3">
+              {{ 'budget.transactions' | transloco }}
+            </h3>
+            @for (item of transactionItems(); track item.data.id) {
+              <ng-container
+                *ngTemplateOutlet="
+                  mobileTransactionCard;
+                  context: { $implicit: item }
+                "
+              />
+            }
+          </div>
+        }
+      </div>
+    } @else {
+      <!-- Desktop Card Grid View -->
+      @if (
+        budgetLineItems().length === 0 && freeTransactionItems().length === 0
+      ) {
+        <ng-container *ngTemplateOutlet="emptyState" />
+      } @else {
+        <div class="space-y-4">
+          @for (category of categories(); track category.titleKey) {
+            @if (category.items.length > 0) {
+              <pulpe-budget-grid-section
+                [title]="category.titleKey | transloco"
+                icon="{{ category.icon }}"
+                [itemCount]="category.items.length"
+              >
+                @for (item of category.items; track item.data.id) {
+                  <pulpe-budget-grid-card
+                    [item]="item"
+                    [currency]="currency()"
+                    [isMultiCurrencyEnabled]="isMultiCurrencyEnabled()"
+                    (cardClick)="openDetailPanel($event)"
+                    (edit)="edit.emit($event)"
+                    (delete)="delete.emit($event)"
+                    (addTransaction)="addTransaction.emit($event)"
+                    (resetFromTemplate)="resetFromTemplate.emit($event)"
+                    (toggleCheck)="toggleCheck.emit($event)"
+                  />
+                }
+              </pulpe-budget-grid-section>
+            }
+          }
+
+          @if (freeTransactionItems().length > 0) {
+            <pulpe-budget-grid-section
+              [title]="'budget.freeTransactions' | transloco"
+              icon="receipt_long"
+              [itemCount]="freeTransactionItems().length"
+              data-testid="free-transactions-section"
+            >
+              @for (item of freeTransactionItems(); track item.data.id) {
+                <ng-container
+                  *ngTemplateOutlet="
+                    desktopFreeTransactionCard;
+                    context: { $implicit: item }
+                  "
+                />
+              }
+            </pulpe-budget-grid-section>
+          }
+        </div>
+      }
+    }
+
+    <!-- Empty State Template -->
+    <ng-template #emptyState>
+      <div class="text-center py-12 px-4">
+        <div
+          class="w-16 h-16 mx-auto mb-4 rounded-full bg-primary-container/30 flex items-center justify-center"
+        >
+          <mat-icon class="text-primary shrink-0"
+            >account_balance_wallet</mat-icon
+          >
+        </div>
+        <p class="text-body-large text-on-surface mb-2">
+          {{ 'budget.noEnvelopesYet' | transloco }}
+        </p>
+        <p class="text-body-medium text-on-surface-variant mb-6">
+          {{ 'budget.createFirstEnvelope' | transloco }}
+        </p>
+        <button
+          matButton="filled"
+          (click)="add.emit()"
+          class="px-6"
+          data-testid="add-first-line"
+        >
+          <mat-icon>add</mat-icon>
+          {{ 'budget.createEnvelope' | transloco }}
+        </button>
+      </div>
+    </ng-template>
+
+    <!-- Mobile Transaction Card Template -->
+    <ng-template #mobileTransactionCard let-item>
+      <mat-card
+        appearance="outlined"
+        class="mb-3 min-h-[120px] border-dashed bg-surface"
+        [class.opacity-60]="item.metadata.isLoading"
+        [attr.data-testid]="'transaction-card-' + item.data.id"
+      >
+        <mat-card-content class="p-4">
+          <!-- Row 1: Kind dot + name + menu -->
+          <div class="flex items-start justify-between gap-2 mb-3">
+            <div class="flex items-center gap-2 min-w-0 flex-1">
+              <pulpe-financial-kind-indicator [kind]="item.data.kind" />
+              <span class="text-title-small font-medium truncate ph-no-capture">
+                {{ item.data.name }}
+              </span>
+            </div>
+            <pulpe-transaction-action-menu
+              [transaction]="item.data"
+              menuIcon="more_horiz"
+              buttonClass="!-mr-2 !-mt-1"
+              (edit)="editTransaction.emit($event)"
+              (delete)="deleteTransaction.emit($event)"
+            />
+          </div>
+
+          <!-- Row 2: Amount + date chip -->
+          <div class="flex items-center justify-between mb-3">
+            <div class="flex flex-col">
+              <div
+                class="ph-no-capture text-headline-small font-bold"
+                [pulpeFinancialKind]="item.data.kind"
+                [attr.data-testid]="'transaction-amount-' + item.data.id"
+              >
+                {{ item.data.amount | appCurrency: currency() : '1.2-2' }}
+              </div>
+              <pulpe-original-amount-line
+                [originalAmount]="item.data.originalAmount"
+                [originalCurrency]="item.data.originalCurrency"
+                [displayCurrency]="currency()"
+                [tooltipText]="
+                  isMultiCurrencyEnabled() ? (item.data | formatConversion) : ''
+                "
+              />
+            </div>
+            @if (item.data.transactionDate) {
+              <span
+                class="text-label-small text-on-surface-variant bg-surface-container px-2 py-0.5 rounded-full"
+              >
+                {{ item.data.transactionDate | date: 'dd.MM.yyyy' }}
+              </span>
+            }
+          </div>
+
+          <!-- Footer: Kind label + toggle -->
+          <div
+            class="flex items-center justify-between pt-2 border-t border-outline-variant/30"
+          >
+            <span class="text-label-small text-on-surface-variant">
+              {{ item.data.kind | transactionLabel }}
+            </span>
+            <mat-slide-toggle
+              [checked]="!!item.data.checkedAt"
+              (change)="toggleTransactionCheck.emit(item.data.id)"
+              (click)="$event.stopPropagation()"
+              [attr.data-testid]="'toggle-check-tx-' + item.data.id"
+              [attr.aria-label]="
+                item.data.checkedAt
+                  ? ('budgetLine.removeCheck' | transloco)
+                  : ('budgetLine.addCheck' | transloco)
+              "
+            />
+          </div>
+        </mat-card-content>
+      </mat-card>
+    </ng-template>
+
+    <!-- Desktop Free Transaction Card Template -->
+    <ng-template #desktopFreeTransactionCard let-item>
+      <div
+        class="rounded-corner-large border border-dashed border-outline-variant p-5
+               min-h-[120px] h-full flex flex-col bg-surface
+               transition-all duration-200"
+        [class.opacity-60]="item.metadata.isLoading"
+        [attr.data-testid]="'transaction-card-' + item.data.id"
+      >
+        <!-- Header: Kind dot + name + menu -->
+        <div class="flex items-start justify-between gap-2 mb-4 flex-1">
+          <div class="flex items-center gap-2 min-w-0 flex-1">
+            <pulpe-financial-kind-indicator [kind]="item.data.kind" />
+            <span class="text-title-small font-medium truncate ph-no-capture">{{
+              item.data.name
+            }}</span>
+          </div>
+          <pulpe-transaction-action-menu
+            [transaction]="item.data"
+            buttonClass="!-mr-2 !-mt-1"
+            (edit)="editTransaction.emit($event)"
+            (delete)="deleteTransaction.emit($event)"
+          />
+        </div>
+
+        <div class="mb-2">
+          <div
+            class="ph-no-capture text-headline-small font-bold"
+            [pulpeFinancialKind]="item.data.kind"
+            [attr.data-testid]="'transaction-amount-' + item.data.id"
+          >
+            {{ item.data.amount | appCurrency: currency() : '1.2-2' }}
+          </div>
+          <pulpe-original-amount-line
+            [originalAmount]="item.data.originalAmount"
+            [originalCurrency]="item.data.originalCurrency"
+            [displayCurrency]="currency()"
+            [tooltipText]="
+              isMultiCurrencyEnabled() ? (item.data | formatConversion) : ''
+            "
+          />
+        </div>
+
+        <!-- Footer: Kind label + date + toggle -->
+        <div
+          class="flex items-center justify-between pt-3 border-t border-outline-variant/30"
+        >
+          <div class="flex items-center gap-2">
+            <span class="text-label-small text-on-surface-variant">
+              {{ item.data.kind | transactionLabel }}
+            </span>
+            @if (item.data.transactionDate) {
+              <span
+                class="text-label-small text-on-surface-variant bg-surface-container px-2 py-0.5 rounded-full"
+              >
+                {{ item.data.transactionDate | date: 'dd.MM.yyyy' }}
+              </span>
+            }
+          </div>
+          <mat-slide-toggle
+            [checked]="!!item.data.checkedAt"
+            (change)="toggleTransactionCheck.emit(item.data.id)"
+            (click)="$event.stopPropagation()"
+            [attr.data-testid]="'toggle-check-tx-' + item.data.id"
+            [attr.aria-label]="
+              item.data.checkedAt
+                ? ('budgetLine.removeCheck' | transloco)
+                : ('budgetLine.addCheck' | transloco)
+            "
+          />
+        </div>
+      </div>
+    </ng-template>
+  `,
+  styles: `
+    :host {
+      display: block;
+    }
+  `,
+  changeDetection: ChangeDetectionStrategy.OnPush,
+})
+export class BudgetGrid {
+  readonly #dialog = inject(MatDialog);
+  readonly #viewContainerRef = inject(ViewContainerRef);
+  readonly #featureFlags = inject(FeatureFlagsService);
+
+  // Inputs
+  readonly currency = input<SupportedCurrency>('CHF');
+  readonly budgetLineItems = input.required<BudgetLineTableItem[]>();
+  readonly transactionItems = input.required<
+    {
+      data: Transaction;
+      metadata: { isLoading?: boolean; envelopeName?: string | null };
+    }[]
+  >();
+  readonly transactions = input.required<TransactionViewModel[]>();
+  readonly isMobile = input.required<boolean>();
+
+  // Outputs
+  readonly edit = output<BudgetLineTableItem>();
+  readonly delete = output<string>();
+  readonly deleteTransaction = output<string>();
+  readonly editTransaction = output<Transaction>();
+  readonly add = output<void>();
+  readonly addTransaction = output<BudgetLine>();
+  readonly viewTransactions = output<BudgetLineTableItem>();
+  readonly resetFromTemplate = output<BudgetLineTableItem>();
+  readonly toggleCheck = output<string>();
+  readonly toggleTransactionCheck = output<string>();
+
+  protected readonly isMultiCurrencyEnabled =
+    this.#featureFlags.isMultiCurrencyEnabled;
+
+  protected readonly freeTransactionItems = computed(() =>
+    filterFreeTransactionItems(this.transactionItems()),
+  );
+
+  protected readonly categories = computed(() =>
+    groupByKind(this.budgetLineItems()),
+  );
+
+  protected openDetailPanel(item: BudgetLineTableItem): void {
+    const dialogData: BudgetDetailPanelData = {
+      item,
+      onAddTransaction: (budgetLine) => this.addTransaction.emit(budgetLine),
+      onDeleteTransaction: (id) => this.deleteTransaction.emit(id),
+      onToggleTransactionCheck: (id) => this.toggleTransactionCheck.emit(id),
+      onEditTransaction: (tx) => this.editTransaction.emit(tx),
+    };
+
+    this.#dialog.open(BudgetDetailPanel, {
+      data: dialogData,
+      viewContainerRef: this.#viewContainerRef,
+      panelClass: 'side-sheet-panel',
+      position: { right: '0', top: '0' },
+      height: '100vh',
+      width: '480px',
+      maxWidth: '90vw',
+      autoFocus: false,
+      closeOnNavigation: true,
+    });
+  }
+}

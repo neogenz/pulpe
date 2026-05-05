@@ -39,7 +39,8 @@ struct CurrentMonthProvider: TimelineProvider {
             available: currentMonth.available ?? 0,
             monthName: currentMonth.monthName,
             budgetId: currentMonth.id,
-            hasData: true
+            hasData: true,
+            currency: cache.currency
         )
     }
 }

@@ -4,6 +4,7 @@ import { provideZonelessChangeDetection } from '@angular/core';
 import { of } from 'rxjs';
 import {
   userSettingsResponseSchema,
+  updateUserSettingsSchema,
   deleteAccountResponseSchema,
 } from 'pulpe-shared';
 import { UserSettingsApi } from './user-settings-api';
@@ -55,6 +56,7 @@ describe('UserSettingsApi', () => {
         '/users/settings',
         { payDayOfMonth: 25 },
         userSettingsResponseSchema,
+        updateUserSettingsSchema,
       );
     });
   });

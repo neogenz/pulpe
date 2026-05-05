@@ -7,18 +7,20 @@ struct AddAllocatedTransactionSheet: View {
 
     @Environment(\.dismiss) private var dismiss
     @Environment(ToastManager.self) private var toastManager
+    @Environment(UserSettingsStore.self) private var userSettingsStore
     @State private var name = ""
     @State private var amount: Decimal?
     @State private var transactionDate = Date()
     @State private var isChecked = false
     @State private var isLoading = false
     @State private var error: Error?
-    @FocusState private var isAmountFocused: Bool
-    @FocusState private var isDescriptionFocused: Bool
+    @FocusState private var focusedField: AmountDescriptionField?
     @State private var amountText = ""
     @State private var submitSuccessTrigger = false
+    @State private var inputCurrency: SupportedCurrency = .chf
 
     private let dependencies: AddAllocatedTransactionDependencies
+    private let conversionService = CurrencyConversionService.shared
 
     init(
         budgetLine: BudgetLine,
@@ -51,20 +53,27 @@ struct AddAllocatedTransactionSheet: View {
         SheetFormContainer(
             title: budgetLine.name,
             isLoading: isLoading,
-            autoFocus: $isAmountFocused,
-            descriptionFocus: $isDescriptionFocused
+            focus: $focusedField,
+            focusOrder: [.amount, .description]
         ) {
+            if userSettingsStore.showCurrencySelectorEffective {
+                CurrencyAmountPicker(selectedCurrency: $inputCurrency)
+            }
             HeroAmountField(
                 amount: $amount,
                 amountText: $amountText,
-                isFocused: $isAmountFocused,
+                focus: $focusedField,
+                field: .amount,
+                currency: inputCurrency,
                 accentColor: budgetLine.kind.color
             )
             QuickAmountChips(
                 amount: $amount,
                 amountText: $amountText,
-                isFocused: $isAmountFocused,
-                color: budgetLine.kind.color
+                focus: $focusedField,
+                amountField: .amount,
+                color: budgetLine.kind.color,
+                currency: inputCurrency
             )
             descriptionField
             dateSelector
@@ -79,6 +88,7 @@ struct AddAllocatedTransactionSheet: View {
             addButton
         }
         .sensoryFeedback(.success, trigger: submitSuccessTrigger)
+        .onAppear { inputCurrency = userSettingsStore.currency }
     }
 
     // MARK: - Description
@@ -89,7 +99,8 @@ struct AddAllocatedTransactionSheet: View {
             text: $name,
             label: "Description",
             accessibilityLabel: "Description de la transaction",
-            focusBinding: $isDescriptionFocused
+            focusBinding: $focusedField,
+            field: .description
         )
     }
 
@@ -118,7 +129,7 @@ struct AddAllocatedTransactionSheet: View {
                     .transition(.opacity.combined(with: .move(edge: .top)))
             }
         }
-        .animation(.easeInOut(duration: DesignTokens.Animation.fast), value: validationHint)
+        .animation(DesignTokens.Animation.smoothEaseInOut, value: validationHint)
     }
 
     // MARK: - Logic
@@ -130,17 +141,27 @@ struct AddAllocatedTransactionSheet: View {
         defer { isLoading = false }
         error = nil
 
-        let data = TransactionCreate(
-            budgetId: budgetLine.budgetId,
-            name: name.trimmingCharacters(in: .whitespaces),
-            amount: amount,
-            kind: budgetLine.kind,
-            budgetLineId: budgetLine.id,
-            transactionDate: transactionDate,
-            checkedAt: isChecked ? Date() : nil
-        )
-
         do {
+            let conversion = try await conversionService.convert(
+                amount: amount,
+                from: inputCurrency,
+                to: userSettingsStore.currency
+            )
+
+            let data = TransactionCreate(
+                budgetId: budgetLine.budgetId,
+                name: name.trimmingCharacters(in: .whitespaces),
+                amount: conversion?.convertedAmount ?? amount,
+                kind: budgetLine.kind,
+                budgetLineId: budgetLine.id,
+                transactionDate: transactionDate,
+                checkedAt: isChecked ? Date() : nil,
+                originalAmount: conversion?.originalAmount,
+                originalCurrency: conversion?.originalCurrency,
+                targetCurrency: conversion?.targetCurrency,
+                exchangeRate: conversion?.exchangeRate
+            )
+
             let transaction = try await dependencies.createTransaction(data)
             submitSuccessTrigger.toggle()
             onAdd(transaction)
@@ -182,4 +203,5 @@ struct AddAllocatedTransactionDependencies: Sendable {
         print("Added: \(transaction)")
     }
     .environment(ToastManager())
+    .environment(UserSettingsStore())
 }

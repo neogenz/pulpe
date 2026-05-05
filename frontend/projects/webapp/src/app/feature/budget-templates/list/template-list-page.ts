@@ -62,7 +62,7 @@ import {
             </p>
           }
         </div>
-        <div class="flex gap-2 items-center flex-shrink-0 ml-auto">
+        <div class="flex gap-2 items-center shrink-0 ml-auto">
           <button
             matIconButton
             (click)="store.refreshData()"
@@ -96,26 +96,22 @@ import {
         </div>
       </header>
 
-      @switch (true) {
-        @case (store.budgetTemplates.status() === 'loading') {
+      @switch (store.budgetTemplates.status()) {
+        @case ('loading') {
           <pulpe-base-loading
             [message]="'template.loadingList' | transloco"
             size="large"
             testId="templates-loading"
           />
         }
-        @case (store.budgetTemplates.status() === 'error') {
+        @case ('error') {
           <pulpe-templates-error
             [error]="store.budgetTemplates.error()"
             (reload)="store.refreshData()"
             data-testid="templates-error"
           />
         }
-        @case (
-          store.budgetTemplates.status() === 'resolved' ||
-          store.budgetTemplates.status() === 'local' ||
-          store.budgetTemplates.status() === 'reloading'
-        ) {
+        @default {
           <pulpe-template-list
             [templates]="store.budgetTemplates.value() ?? []"
             data-testid="templates-list"

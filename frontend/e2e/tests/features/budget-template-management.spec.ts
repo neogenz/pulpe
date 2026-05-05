@@ -60,7 +60,7 @@ test.describe('Budget Template Management', () => {
     await budgetTemplatesPage.clickCreateTemplate();
     await budgetTemplatesPage.fillTemplateName('New Template');
     await budgetTemplatesPage.submitForm();
-    
+
     // Verify creation success (no error)
     expect(authenticatedPage.url()).not.toContain('/error');
   });
@@ -120,7 +120,7 @@ test.describe('Budget Template Management', () => {
     await budgetTemplatesPage.navigateToTemplateDetails(
       TEST_CONFIG.TEMPLATES.DEFAULT.name,
     );
-    
+
     // Wait for navigation to complete
     await authenticatedPage.waitForURL('**/budget-templates/details/**');
     expect(authenticatedPage.url()).toContain('/budget-templates/details/');

@@ -10,13 +10,16 @@ import {
   budgetExportResponseSchema,
   type BudgetGenerate,
   type BudgetGenerateResponse,
+  budgetGenerateSchema,
   budgetGenerateResponseSchema,
   budgetListResponseSchema,
   budgetResponseSchema,
   budgetSparseListResponseSchema,
   type BudgetLine,
   type BudgetLineCreate,
+  budgetLineCreateSchema,
   type BudgetLineUpdate,
+  budgetLineUpdateSchema,
   type BudgetLineResponse,
   budgetLineResponseSchema,
   type BudgetLineDeleteResponse,
@@ -64,9 +67,8 @@ export class BudgetApi {
   createBudget$(
     templateData: BudgetCreate,
   ): Observable<CreateBudgetApiResponse> {
-    const validatedRequest = budgetCreateSchema.parse(templateData);
     return this.#api
-      .post$('/budgets', validatedRequest, budgetResponseSchema)
+      .post$('/budgets', templateData, budgetResponseSchema, budgetCreateSchema)
       .pipe(map((response) => ({ budget: response.data })));
   }
 
@@ -75,6 +77,7 @@ export class BudgetApi {
       '/budgets/generate',
       data,
       budgetGenerateResponseSchema,
+      budgetGenerateSchema,
     );
   }
 
@@ -196,7 +199,12 @@ export class BudgetApi {
   }
 
   createBudgetLine$(data: BudgetLineCreate): Observable<BudgetLineResponse> {
-    return this.#api.post$('/budget-lines', data, budgetLineResponseSchema);
+    return this.#api.post$(
+      '/budget-lines',
+      data,
+      budgetLineResponseSchema,
+      budgetLineCreateSchema,
+    );
   }
 
   updateBudgetLine$(
@@ -207,6 +215,7 @@ export class BudgetApi {
       `/budget-lines/${id}`,
       data,
       budgetLineResponseSchema,
+      budgetLineUpdateSchema,
     );
   }
 

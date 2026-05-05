@@ -25,8 +25,8 @@ import { BudgetTemplatesApi } from '@core/budget-template/budget-templates-api';
 import { type BudgetTemplate } from 'pulpe-shared';
 import { CreateBudgetDialogComponent } from './budget-creation-dialog';
 import { TemplateStore, type TemplateTotals } from './services/template-store';
-import { type TemplateViewModel } from './ui/template-view-model';
-import { TemplatesList } from './ui/templates-list';
+import { type TemplateViewModel } from './template-view-model';
+import { TemplatesList } from './templates-list';
 
 // Type-safe mock interface that includes internal methods
 interface MatDialogMock extends Partial<MatDialog> {
@@ -45,7 +45,7 @@ const createValidBudgetForm = (
 ) => ({
   monthYear: new Date(2024, 5, 1), // June 2024
   description: 'Test budget',
-  templateId: 'template-1',
+  templateId: '00000000-0000-4000-8000-000000000111',
   ...overrides,
 });
 
@@ -55,7 +55,7 @@ const createValidBudgetForm = (
 const createTestTemplate = (
   overrides: Partial<BudgetTemplate> = {},
 ): BudgetTemplate => ({
-  id: 'template-1',
+  id: '00000000-0000-4000-8000-000000000111',
   name: 'Test Template',
   description: 'A test template',
   isDefault: false,
@@ -159,7 +159,7 @@ describe('CreateBudgetDialogComponent', () => {
           year: 2024,
           description: 'Test',
           userId: 'user-123',
-          templateId: 'template-1',
+          templateId: '00000000-0000-4000-8000-000000000111',
           createdAt: '2024-06-01T00:00:00Z',
           updatedAt: '2024-06-01T00:00:00Z',
         },
@@ -239,6 +239,70 @@ describe('CreateBudgetDialogComponent', () => {
       expect(monthYearControl?.value).toBeInstanceOf(Date);
     });
 
+    it('should pre-fill the form when MAT_DIALOG_DATA contains month/year', async () => {
+      // Re-create the fixture with typed dialog data to confirm
+      // `inject<BudgetCreationDialogData | null>(MAT_DIALOG_DATA, { optional: true })`
+      // still flows through the constructor and reaches `#getInitialDate()`.
+      TestBed.resetTestingModule();
+      await TestBed.configureTestingModule({
+        imports: [
+          CreateBudgetDialogComponent,
+          MockTemplatesList,
+          NoopAnimationsModule,
+          ReactiveFormsModule,
+        ],
+        providers: [
+          provideZonelessChangeDetection(),
+          ...provideLocale(),
+          ...provideTranslocoForTest(),
+          FormBuilder,
+          { provide: MatDialogRef, useValue: mockDialogRef },
+          { provide: MatSnackBar, useValue: mockSnackBar },
+          { provide: MatDialog, useValue: mockDialog },
+          {
+            provide: BudgetTemplatesApi,
+            useValue: {
+              cache: { get: vi.fn(), set: vi.fn(), invalidate: vi.fn() },
+              getAll$: vi.fn().mockReturnValue(of({ data: [], success: true })),
+              getTemplateTransactions$: vi
+                .fn()
+                .mockReturnValue(of({ data: [], success: true })),
+            },
+          },
+          { provide: MAT_DIALOG_DATA, useValue: { month: 5, year: 2026 } },
+        ],
+        schemas: [NO_ERRORS_SCHEMA],
+      })
+        .overrideComponent(CreateBudgetDialogComponent, {
+          remove: { imports: [TemplatesList], providers: [TemplateStore] },
+          add: {
+            imports: [MockTemplatesList],
+            providers: [
+              { provide: TemplateStore, useValue: mockTemplateStore },
+            ],
+          },
+        })
+        .compileComponents();
+
+      const f = TestBed.createComponent(CreateBudgetDialogComponent);
+      const c = f.componentInstance;
+      f.detectChanges();
+
+      const initial = c.budgetForm.get('monthYear')?.value as Date;
+      // Month is 0-indexed in JS Date; data.month is 1-indexed.
+      expect(initial.getMonth()).toBe(4);
+      expect(initial.getFullYear()).toBe(2026);
+    });
+
+    it('should fall back to current date when MAT_DIALOG_DATA is null', () => {
+      // Existing beforeEach uses `useValue: {}` (no month/year) — the component
+      // must gracefully fall back to the current month.
+      const initial = component.budgetForm.get('monthYear')?.value as Date;
+      const today = new Date();
+      expect(initial.getMonth()).toBe(today.getMonth());
+      expect(initial.getFullYear()).toBe(today.getFullYear());
+    });
+
     it('should reactively track description length with computed signal', () => {
       // Initially should be 0 for empty description
       expect(component.descriptionLength()).toBe(0);
@@ -296,7 +360,6 @@ describe('CreateBudgetDialogComponent', () => {
       component.budgetForm.patchValue({
         monthYear: undefined,
         description: '',
-        templateId: '',
       });
 
       await component.onCreateBudget();
@@ -333,7 +396,7 @@ describe('CreateBudgetDialogComponent', () => {
         month: 6,
         year: 2024,
         description: 'Test budget',
-        templateId: 'template-1',
+        templateId: '00000000-0000-4000-8000-000000000111',
       });
 
       // Dialog should close on success
@@ -341,7 +404,7 @@ describe('CreateBudgetDialogComponent', () => {
         success: true,
         data: expect.objectContaining({
           description: 'Test budget',
-          templateId: 'template-1',
+          templateId: '00000000-0000-4000-8000-000000000111',
         }),
       });
     });
@@ -361,7 +424,7 @@ describe('CreateBudgetDialogComponent', () => {
 
       // Update with new template totals
       const newTotals = {
-        'template-1': {
+        '00000000-0000-4000-8000-000000000111': {
           income: 3000,
           expenses: 2000,
           savings: 0,
@@ -384,7 +447,9 @@ describe('CreateBudgetDialogComponent', () => {
       }));
 
       const updatedTotals = totalsSignal();
-      expect(updatedTotals['template-1']).toEqual(newTotals['template-1']);
+      expect(updatedTotals['00000000-0000-4000-8000-000000000111']).toEqual(
+        newTotals['00000000-0000-4000-8000-000000000111'],
+      );
       expect(updatedTotals['template-2']).toEqual({
         income: 4000,
         expenses: 2500,
@@ -494,7 +559,7 @@ describe('CreateBudgetDialogComponent', () => {
         month: 6, // June (0-indexed + 1)
         year: 2024,
         description: 'Test budget with error',
-        templateId: 'template-1',
+        templateId: '00000000-0000-4000-8000-000000000111',
       });
 
       // Should show error notification
@@ -503,7 +568,7 @@ describe('CreateBudgetDialogComponent', () => {
         expect.any(String),
         expect.objectContaining({
           duration: 8000,
-          panelClass: ['bg-[color-error]', 'text-[color-on-error]'],
+          panelClass: ['!bg-error', '!text-on-error'],
         }),
       );
     });
@@ -532,7 +597,6 @@ describe('CreateBudgetDialogComponent', () => {
       component.budgetForm.patchValue({
         monthYear: undefined,
         description: '',
-        templateId: '',
       });
 
       // Mark as touched to trigger validation

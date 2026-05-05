@@ -7,21 +7,25 @@ struct EditTransactionSheet: View {
 
     @Environment(\.dismiss) private var dismiss
     @Environment(ToastManager.self) private var toastManager
+    @Environment(UserSettingsStore.self) private var userSettingsStore
     @State private var name: String
     @State private var amount: Decimal?
     @State private var kind: TransactionKind
     @State private var transactionDate: Date
     @State private var isLoading = false
     @State private var error: Error?
-    @FocusState private var isAmountFocused: Bool
-    @FocusState private var isDescriptionFocused: Bool
+    @FocusState private var focusedField: AmountDescriptionField?
     @State private var amountText: String
     @State private var submitSuccessTrigger = false
+    private let inputCurrency: SupportedCurrency
+    private let isAlternateCurrency: Bool
 
     private let dependencies: EditTransactionDependencies
+    private let conversionService = CurrencyConversionService.shared
 
     init(
         transaction: Transaction,
+        userCurrency: SupportedCurrency,
         dependencies: EditTransactionDependencies = .live,
         onUpdate: @escaping (Transaction) -> Void
     ) {
@@ -29,11 +33,16 @@ struct EditTransactionSheet: View {
         self.transaction = transaction
         self.onUpdate = onUpdate
         _name = State(initialValue: transaction.name)
-        _amount = State(initialValue: transaction.amount)
         _kind = State(initialValue: transaction.kind)
         _transactionDate = State(initialValue: transaction.transactionDate)
-        let amountString = Formatters.amountInput.string(from: transaction.amount as NSDecimalNumber) ?? ""
+
+        let editableAmount = Self.initialAmount(for: transaction, userCurrency: userCurrency)
+        _amount = State(initialValue: editableAmount)
+        let amountString = Formatters.amountInput.string(from: editableAmount as NSDecimalNumber) ?? ""
         _amountText = State(initialValue: amountString)
+
+        self.inputCurrency = transaction.originalCurrency ?? userCurrency
+        self.isAlternateCurrency = Self.shouldShowAlternateCurrency(for: transaction, userCurrency: userCurrency)
     }
 
     static func isFormValid(name: String, amount: Decimal?, isLoading: Bool) -> Bool {
@@ -49,13 +58,31 @@ struct EditTransactionSheet: View {
         SheetFormContainer(
             title: "Modifier la transaction",
             isLoading: isLoading,
-            autoFocus: $isAmountFocused,
-            descriptionFocus: $isDescriptionFocused
+            focus: $focusedField,
+            focusOrder: [.amount, .description]
         ) {
             KindToggle(selection: $kind)
+
+            if userSettingsStore.showCurrencySelectorEffective && isAlternateCurrency {
+                CurrencyAmountPicker(
+                    selectedCurrency: .constant(inputCurrency),
+                    isReadOnly: true
+                )
+            }
+
             HeroAmountField(
-                amount: $amount, amountText: $amountText,
-                isFocused: $isAmountFocused, accentColor: kind.color
+                amount: $amount,
+                amountText: $amountText,
+                focus: $focusedField,
+                field: .amount,
+                currency: inputCurrency,
+                accentColor: kind.color
+            )
+
+            CurrencyConversionBadge(
+                originalAmount: transaction.originalAmount,
+                originalCurrency: transaction.originalCurrency,
+                exchangeRate: transaction.exchangeRate
             )
 
             descriptionField
@@ -80,7 +107,8 @@ struct EditTransactionSheet: View {
             text: $name,
             label: "Description",
             accessibilityLabel: "Description de la transaction",
-            focusBinding: $isDescriptionFocused
+            focusBinding: $focusedField,
+            field: .description
         )
     }
 
@@ -111,14 +139,25 @@ struct EditTransactionSheet: View {
         defer { isLoading = false }
         error = nil
 
-        let data = TransactionUpdate(
-            name: name.trimmingCharacters(in: .whitespaces),
-            amount: amount,
-            kind: kind,
-            transactionDate: transactionDate
-        )
-
         do {
+            let conversion: CurrencyConversion? = if isAlternateCurrency {
+                try await conversionService.convert(
+                    amount: amount,
+                    from: inputCurrency,
+                    to: userSettingsStore.currency
+                )
+            } else {
+                nil
+            }
+
+            let data = Self.buildUpdate(
+                name: name.trimmingCharacters(in: .whitespaces),
+                amount: amount,
+                kind: kind,
+                transactionDate: transactionDate,
+                conversion: conversion
+            )
+
             let updatedTransaction = try await dependencies.updateTransaction(transaction.id, data)
             submitSuccessTrigger.toggle()
             onUpdate(updatedTransaction)
@@ -127,6 +166,51 @@ struct EditTransactionSheet: View {
         } catch {
             self.error = error
         }
+    }
+
+    // MARK: - Pure Helpers (testable)
+
+    static func shouldShowAlternateCurrency(
+        for transaction: Transaction,
+        userCurrency: SupportedCurrency
+    ) -> Bool {
+        guard let txCurrency = transaction.originalCurrency else { return false }
+        return txCurrency != userCurrency
+    }
+
+    static func initialAmount(for transaction: Transaction, userCurrency: SupportedCurrency) -> Decimal {
+        if shouldShowAlternateCurrency(for: transaction, userCurrency: userCurrency),
+           let originalAmount = transaction.originalAmount {
+            return originalAmount
+        }
+        return transaction.amount
+    }
+
+    static func buildUpdate(
+        name: String,
+        amount: Decimal,
+        kind: TransactionKind,
+        transactionDate: Date,
+        conversion: CurrencyConversion?
+    ) -> TransactionUpdate {
+        guard let conversion else {
+            return TransactionUpdate(
+                name: name,
+                amount: amount,
+                kind: kind,
+                transactionDate: transactionDate
+            )
+        }
+        return TransactionUpdate(
+            name: name,
+            amount: conversion.convertedAmount,
+            kind: kind,
+            transactionDate: transactionDate,
+            originalAmount: conversion.originalAmount,
+            originalCurrency: conversion.originalCurrency,
+            targetCurrency: conversion.targetCurrency,
+            exchangeRate: conversion.exchangeRate
+        )
     }
 }
 
@@ -154,9 +238,12 @@ struct EditTransactionDependencies: Sendable {
             checkedAt: nil,
             createdAt: Date(),
             updatedAt: Date()
-        )
+        ),
+        userCurrency: .chf
     ) { transaction in
         print("Updated: \(transaction)")
     }
     .environment(ToastManager())
+    .environment(UserSettingsStore())
+    .environment(FeatureFlagsStore())
 }

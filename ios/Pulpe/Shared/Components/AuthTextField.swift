@@ -45,7 +45,7 @@ private struct AuthFieldContainer<Content: View>: View {
             if showCheckmark {
                 Image(systemName: "checkmark.circle.fill")
                     .font(.subheadline)
-                    .foregroundStyle(Color.pulpePrimary.opacity(0.6))
+                    .foregroundStyle(Color.pulpePrimary.opacity(0.7))
                     .transition(.scale.combined(with: .opacity))
                     .accessibilityHidden(true)
             }
@@ -64,6 +64,7 @@ private struct AuthFieldContainer<Content: View>: View {
             ? ShadowStyle(color: .black.opacity(0.01), radius: 2, y: 1)
             : DesignTokens.Shadow.input)
         .contentShape(.interaction, Rectangle())
+        // Expands tap target to the padded capsule; focus is managed by parent `FocusState`, not a `Button` action.
         .onTapGesture { requestFocus?() }
         .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isFocused)
         .animation(.spring(response: 0.3, dampingFraction: 0.7), value: showCheckmark)
@@ -74,28 +75,27 @@ private struct AuthFieldContainer<Content: View>: View {
 ///
 /// Provides the standard auth input appearance: rounded background, focus-reactive
 /// border, and lightweight shadow. Supports a "filled" state with trailing checkmark.
-struct AuthTextField: View {
+struct AuthTextField<Field: Hashable>: View {
     let prompt: String
     @Binding var text: String
     var systemImage: String?
-    var isFocused: Bool = false
     var hasError: Bool = false
     var isFilled: Bool = false
-
-    @FocusState private var isFieldFocused: Bool
+    var focusBinding: FocusState<Field?>.Binding
+    var focusField: Field
 
     var body: some View {
         AuthFieldContainer(
             systemImage: systemImage,
-            isFocused: isFocused,
+            isFocused: focusBinding.wrappedValue == focusField,
             hasError: hasError,
             isFilled: isFilled,
-            requestFocus: { isFieldFocused = true },
+            requestFocus: { focusBinding.wrappedValue = focusField },
             content: {
                 TextField(prompt, text: $text)
                     .font(PulpeTypography.body)
                     .foregroundStyle(Color.authInputText)
-                    .focused($isFieldFocused)
+                    .focused(focusBinding, equals: focusField)
             }
         )
     }
@@ -105,22 +105,22 @@ struct AuthTextField: View {
 ///
 /// Does not display a trailing checkmark — validation feedback is provided
 /// by `PasswordCriteriaRow` / `PasswordMatchRow` below the field.
-struct AuthSecureField: View {
+struct AuthSecureField<Field: Hashable>: View {
     let prompt: String
     @Binding var text: String
     @Binding var isVisible: Bool
     var systemImage: String?
-    var isFocused: Bool = false
     var hasError: Bool = false
-
-    @FocusState private var isFieldFocused: Bool
+    var focusBinding: FocusState<Field?>.Binding
+    var focusField: Field
 
     var body: some View {
         AuthFieldContainer(
             systemImage: systemImage,
-            isFocused: isFocused,
+            isFocused: focusBinding.wrappedValue == focusField,
             hasError: hasError,
-            requestFocus: { isFieldFocused = true },
+            isFilled: false,
+            requestFocus: { focusBinding.wrappedValue = focusField },
             content: {
                 Group {
                     if isVisible {
@@ -131,7 +131,7 @@ struct AuthSecureField: View {
                 }
                 .font(PulpeTypography.body)
                 .foregroundStyle(Color.authInputText)
-                .focused($isFieldFocused)
+                .focused(focusBinding, equals: focusField)
 
                 Button {
                     withAnimation(.spring(response: 0.2, dampingFraction: 0.6)) {

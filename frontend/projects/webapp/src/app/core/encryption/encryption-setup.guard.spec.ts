@@ -11,7 +11,7 @@ import { firstValueFrom, Observable, of, throwError } from 'rxjs';
 import { encryptionSetupGuard } from './encryption-setup.guard';
 import { ClientKeyService } from './client-key.service';
 import { EncryptionApi } from './encryption-api';
-import { AuthStateService } from '@core/auth/auth-state.service';
+import { AuthStore } from '@core/auth/auth-store';
 import { DemoModeService } from '@core/demo/demo-mode.service';
 import { ApiError } from '@core/api/api-error';
 import { ROUTES } from '@core/routing/routes-constants';
@@ -27,7 +27,7 @@ describe('encryptionSetupGuard', () => {
     markValidated: ReturnType<typeof vi.fn>;
     clear: ReturnType<typeof vi.fn>;
   };
-  let mockAuthState: {
+  let mockAuthStore: {
     authState: ReturnType<typeof vi.fn>;
   };
   let mockDemoModeService: {
@@ -64,7 +64,7 @@ describe('encryptionSetupGuard', () => {
       clear: vi.fn(),
     };
 
-    mockAuthState = {
+    mockAuthStore = {
       authState: vi.fn(),
     };
 
@@ -87,7 +87,7 @@ describe('encryptionSetupGuard', () => {
     TestBed.configureTestingModule({
       providers: [
         { provide: ClientKeyService, useValue: mockClientKeyService },
-        { provide: AuthStateService, useValue: mockAuthState },
+        { provide: AuthStore, useValue: mockAuthStore },
         { provide: DemoModeService, useValue: mockDemoModeService },
         { provide: EncryptionApi, useValue: mockEncryptionApi },
         { provide: Router, useValue: mockRouter },
@@ -113,7 +113,7 @@ describe('encryptionSetupGuard', () => {
     it('should allow navigation without any checks', async () => {
       mockDemoModeService.isDemoMode.mockReturnValue(true);
       mockClientKeyService.hasClientKey.mockReturnValue(false);
-      mockAuthState.authState.mockReturnValue(
+      mockAuthStore.authState.mockReturnValue(
         createAuthState({ user_metadata: {} }),
       );
 
@@ -128,7 +128,7 @@ describe('encryptionSetupGuard', () => {
     it('should allow when clientKey exists, vaultCodeConfigured, and no validation needed', async () => {
       mockClientKeyService.hasClientKey.mockReturnValue(true);
       mockClientKeyService.needsServerValidation.mockReturnValue(false);
-      mockAuthState.authState.mockReturnValue(
+      mockAuthStore.authState.mockReturnValue(
         createAuthState({ user_metadata: { vaultCodeConfigured: true } }),
       );
 
@@ -140,7 +140,7 @@ describe('encryptionSetupGuard', () => {
 
     it('should redirect to ENTER_VAULT_CODE for user with vaultCodeConfigured but no key', async () => {
       mockClientKeyService.hasClientKey.mockReturnValue(false);
-      mockAuthState.authState.mockReturnValue(
+      mockAuthStore.authState.mockReturnValue(
         createAuthState({ user_metadata: { vaultCodeConfigured: true } }),
       );
 
@@ -154,7 +154,7 @@ describe('encryptionSetupGuard', () => {
 
     it('should redirect to SETUP_VAULT_CODE for user without vaultCodeConfigured', async () => {
       mockClientKeyService.hasClientKey.mockReturnValue(false);
-      mockAuthState.authState.mockReturnValue(
+      mockAuthStore.authState.mockReturnValue(
         createAuthState({ user_metadata: {} }),
       );
 
@@ -168,7 +168,7 @@ describe('encryptionSetupGuard', () => {
 
     it('should redirect to SETUP_VAULT_CODE when user is null', async () => {
       mockClientKeyService.hasClientKey.mockReturnValue(false);
-      mockAuthState.authState.mockReturnValue(createAuthState(null));
+      mockAuthStore.authState.mockReturnValue(createAuthState(null));
 
       await resolveGuard();
 
@@ -180,7 +180,7 @@ describe('encryptionSetupGuard', () => {
 
     it('should clear stale key for user without vaultCodeConfigured', async () => {
       mockClientKeyService.hasClientKey.mockReturnValue(true);
-      mockAuthState.authState.mockReturnValue(
+      mockAuthStore.authState.mockReturnValue(
         createAuthState({ user_metadata: {} }),
       );
 
@@ -199,7 +199,7 @@ describe('encryptionSetupGuard', () => {
       mockClientKeyService.hasClientKey.mockReturnValue(true);
       mockClientKeyService.needsServerValidation.mockReturnValue(true);
       mockClientKeyService.clientKeyHex.mockReturnValue('abcdef1234567890');
-      mockAuthState.authState.mockReturnValue(
+      mockAuthStore.authState.mockReturnValue(
         createAuthState({ user_metadata: { vaultCodeConfigured: true } }),
       );
     });
@@ -292,7 +292,7 @@ describe('encryptionSetupGuard', () => {
   describe('async auth state (isLoading=true)', () => {
     beforeEach(() => {
       authStateSignal = signal(createAuthState(null, true));
-      Object.assign(mockAuthState, { authState: authStateSignal });
+      Object.assign(mockAuthStore, { authState: authStateSignal });
     });
 
     it('should wait and allow when auth resolves with key + vaultCodeConfigured', async () => {

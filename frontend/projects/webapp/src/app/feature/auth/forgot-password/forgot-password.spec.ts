@@ -64,11 +64,6 @@ describe('ForgotPassword', () => {
       expect(component['errorMessage']).toBeDefined();
       expect(component['isSuccess']).toBeDefined();
     });
-
-    it('should have computed canSubmit defined', () => {
-      expect(component['canSubmit']).toBeDefined();
-      expect(typeof component['canSubmit']).toBe('function');
-    });
   });
 
   describe('Default Values', () => {
@@ -99,23 +94,6 @@ describe('ForgotPassword', () => {
 
       emailControl?.setValue('valid@email.com');
       expect(emailControl?.hasError('email')).toBe(false);
-    });
-  });
-
-  describe('canSubmit computed', () => {
-    it('should return false when form is invalid', () => {
-      expect(component['canSubmit']()).toBe(false);
-    });
-
-    it('should return false when isSubmitting is true', () => {
-      fillValidForm();
-      component['isSubmitting'].set(true);
-      expect(component['canSubmit']()).toBe(false);
-    });
-
-    it('should return true when form is valid and not submitting', () => {
-      fillValidForm();
-      expect(component['canSubmit']()).toBe(true);
     });
   });
 

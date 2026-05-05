@@ -1,9 +1,13 @@
 import SwiftUI
 
 struct ForgotPasswordSheet: View {
+    private enum FormField: Hashable {
+        case email
+    }
+
     @Environment(\.dismiss) private var dismiss
     @State private var viewModel = ForgotPasswordViewModel()
-    @FocusState private var isEmailFocused: Bool
+    @FocusState private var focusedField: FormField?
 
     let onClose: () -> Void
 
@@ -29,9 +33,10 @@ struct ForgotPasswordSheet: View {
                     }
                 }
             }
+            .keyboardFieldNavigation(focus: $focusedField, order: [.email])
         }
         .standardSheetPresentation(detents: [.medium, .large])
-        .task { isEmailFocused = true }
+        .task { focusedField = .email }
         .accessibilityIdentifier("forgotPasswordPage")
     }
 
@@ -52,15 +57,15 @@ struct ForgotPasswordSheet: View {
                     prompt: "ton@email.com",
                     text: $viewModel.email,
                     systemImage: "envelope",
-                    isFocused: isEmailFocused,
                     hasError: viewModel.errorMessage != nil,
-                    isFilled: viewModel.isEmailValid
+                    isFilled: viewModel.isEmailValid,
+                    focusBinding: $focusedField,
+                    focusField: .email
                 )
                 .textContentType(.emailAddress)
                 .keyboardType(.emailAddress)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
-                .focused($isEmailFocused)
                 .accessibilityIdentifier("forgotPasswordEmail")
                 .accessibilityLabel("Adresse e-mail")
                 .accessibilityHint("Saisis ton adresse e-mail")

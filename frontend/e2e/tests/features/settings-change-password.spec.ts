@@ -19,7 +19,9 @@ const injectClientKey = async (page: Page): Promise<void> => {
 test.describe('Settings Change Password', () => {
   test.describe.configure({ mode: 'parallel' });
 
-  test('validates change password form before enabling submit', async ({ page }) => {
+  test('validates change password form before enabling submit', async ({
+    page,
+  }) => {
     await setupAuthBypass(page, {
       includeApiMocks: true,
       setLocalStorage: true,
@@ -32,7 +34,9 @@ test.describe('Settings Change Password', () => {
     await expect(page.getByTestId('settings-page')).toBeVisible();
 
     await page.getByTestId('change-password-button').click();
-    const dialog = page.getByRole('dialog', { name: 'Modifier le mot de passe' });
+    const dialog = page.getByRole('dialog', {
+      name: 'Modifier le mot de passe',
+    });
     await expect(dialog).toBeVisible();
 
     const submitButton = dialog.getByTestId('submit-password-button');
@@ -55,7 +59,9 @@ test.describe('Settings Change Password', () => {
     await expect(submitButton).toBeEnabled();
   });
 
-  test('shows error when current password verification fails', async ({ page }) => {
+  test('shows error when current password verification fails', async ({
+    page,
+  }) => {
     await setupAuthBypass(page, {
       includeApiMocks: true,
       setLocalStorage: true,
@@ -79,7 +85,9 @@ test.describe('Settings Change Password', () => {
     await expect(page.getByTestId('settings-page')).toBeVisible();
 
     await page.getByTestId('change-password-button').click();
-    const dialog = page.getByRole('dialog', { name: 'Modifier le mot de passe' });
+    const dialog = page.getByRole('dialog', {
+      name: 'Modifier le mot de passe',
+    });
     await expect(dialog).toBeVisible();
 
     await dialog.getByTestId('current-password-input').fill('wrong-password');
@@ -87,7 +95,9 @@ test.describe('Settings Change Password', () => {
     await dialog.getByTestId('confirm-password-input').fill('new-password-123');
 
     const submitButton = dialog.getByTestId('submit-password-button');
-    await expect(submitButton).toBeEnabled();
+    // Password form uses async cross-field validators that can be slow in CI.
+    // Widen the enabled-state wait so the click isn't blocked by a 10s race.
+    await expect(submitButton).toBeEnabled({ timeout: 20000 });
     await submitButton.click();
 
     await expect(page.getByTestId('change-password-error')).toContainText(
@@ -95,7 +105,9 @@ test.describe('Settings Change Password', () => {
     );
   });
 
-  test('completes password change without triggering recovery key regeneration', async ({ page }) => {
+  test('completes password change without triggering recovery key regeneration', async ({
+    page,
+  }) => {
     await setupAuthBypass(page, {
       includeApiMocks: true,
       setLocalStorage: true,
@@ -138,7 +150,9 @@ test.describe('Settings Change Password', () => {
     await expect(page.getByTestId('settings-page')).toBeVisible();
 
     await page.getByTestId('change-password-button').click();
-    const dialog = page.getByRole('dialog', { name: 'Modifier le mot de passe' });
+    const dialog = page.getByRole('dialog', {
+      name: 'Modifier le mot de passe',
+    });
     await expect(dialog).toBeVisible();
 
     await dialog.getByTestId('current-password-input').fill('current-password');
@@ -149,7 +163,9 @@ test.describe('Settings Change Password', () => {
     await expect(submitButton).toBeEnabled();
     await submitButton.click();
 
-    await expect(page.locator('simple-snack-bar')).toContainText('Mot de passe modifié');
+    await expect(page.locator('simple-snack-bar')).toContainText(
+      'Mot de passe modifié',
+    );
     await expect(page.getByTestId('recovery-key-dialog')).toHaveCount(0);
   });
 });

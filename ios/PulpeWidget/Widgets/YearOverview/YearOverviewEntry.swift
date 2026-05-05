@@ -19,6 +19,21 @@ struct YearOverviewEntry: TimelineEntry, Sendable {
     let year: Int
     let months: [MonthData]
     let hasData: Bool
+    let currency: SupportedCurrency
+
+    init(
+        date: Date,
+        year: Int,
+        months: [MonthData],
+        hasData: Bool,
+        currency: SupportedCurrency = .chf
+    ) {
+        self.date = date
+        self.year = year
+        self.months = months
+        self.hasData = hasData
+        self.currency = currency
+    }
 
     static var preview: YearOverviewEntry {
         let currentYear = Calendar.current.component(.year, from: Date())

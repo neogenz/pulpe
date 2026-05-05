@@ -40,6 +40,7 @@ struct ResetPasswordFlowView: View {
                     }
                 }
             }
+            .keyboardFieldNavigation(focus: $focusedField, order: [.newPassword, .confirmPassword])
         }
         .task {
             await viewModel.prepare(with: callbackURL)
@@ -141,10 +142,10 @@ struct ResetPasswordFlowView: View {
                 text: $viewModel.newPassword,
                 isVisible: $showNewPassword,
                 systemImage: "lock",
-                isFocused: focusedField == .newPassword
+                focusBinding: $focusedField,
+                focusField: .newPassword
             )
             .textContentType(.newPassword)
-            .focused($focusedField, equals: .newPassword)
             .accessibilityIdentifier("resetNewPassword")
             .accessibilityLabel("Nouveau mot de passe")
             .accessibilityHint("Saisis ton nouveau mot de passe")
@@ -164,11 +165,11 @@ struct ResetPasswordFlowView: View {
                 text: $viewModel.confirmPassword,
                 isVisible: $showConfirmPassword,
                 systemImage: "lock",
-                isFocused: focusedField == .confirmPassword,
-                hasError: !viewModel.confirmPassword.isEmpty && !viewModel.isPasswordConfirmed
+                hasError: !viewModel.confirmPassword.isEmpty && !viewModel.isPasswordConfirmed,
+                focusBinding: $focusedField,
+                focusField: .confirmPassword
             )
             .textContentType(.newPassword)
-            .focused($focusedField, equals: .confirmPassword)
             .accessibilityIdentifier("resetConfirmPassword")
             .accessibilityLabel("Confirmation du mot de passe")
             .accessibilityHint("Confirme ton nouveau mot de passe")

@@ -42,10 +42,10 @@
     "@types/node": "^24.0.4",
     "lefthook": "^1.9.2",
     "prettier": "^3.5.3",
+    "turbo": "^2.9.6",
     "typescript": "^5.9.3"
   },
   "dependencies": {
-    "driver.js": "^1.4.0",
-    "turbo": "^2.5.4"
+    "driver.js": "^1.4.0"
   }
 }

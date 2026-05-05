@@ -7,6 +7,23 @@ struct CurrentMonthEntry: TimelineEntry, Sendable {
     let monthName: String
     let budgetId: String?
     let hasData: Bool
+    let currency: SupportedCurrency
+
+    init(
+        date: Date,
+        available: Decimal,
+        monthName: String,
+        budgetId: String?,
+        hasData: Bool,
+        currency: SupportedCurrency = .chf
+    ) {
+        self.date = date
+        self.available = available
+        self.monthName = monthName
+        self.budgetId = budgetId
+        self.hasData = hasData
+        self.currency = currency
+    }
 
     static var preview: CurrentMonthEntry {
         CurrentMonthEntry(

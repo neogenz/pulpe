@@ -67,6 +67,15 @@ describe('DashboardSavingsSummary', () => {
         '1 sur 3 mises de côté',
       );
     });
+
+    it('should render CHF aggregation amounts as integers (entiers, no decimals)', () => {
+      setTestInput(component.totalRealized, 200.5);
+      fixture.detectChanges();
+      const text = fixture.nativeElement.textContent;
+      expect(text).toContain('201');
+      expect(text).toContain('500');
+      expect(text).not.toMatch(/\d[.,]\d{2}/);
+    });
   });
 
   describe('when no savings planned', () => {

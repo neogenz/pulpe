@@ -7,11 +7,11 @@ paths: "backend-nest/src/**/*.ts"
 
 ## Principle: Log or Throw, Never Both
 
-In a `catch` block, either handle and log, or throw — never both.
+In `catch` block: handle and log, or throw — never both.
 
 - Services **throw** `BusinessException` with context
-- `GlobalExceptionFilter` **logs** the error (it's the only place `logger.error()` is called)
-- InfoLogger type enforces this at compile-time: no `error` method available
+- `GlobalExceptionFilter` **logs** error (only place `logger.error()` called)
+- InfoLogger type enforce at compile-time: no `error` method
 
 ## BusinessException Pattern
 
@@ -29,15 +29,15 @@ throw new BusinessException(
 | # | Name | Purpose | Goes to client? |
 |---|------|---------|----------------|
 | 1 | `errorDef` | `ERROR_DEFINITIONS.*` with code, message factory, httpStatus | Yes (code + message) |
-| 2 | `details` | Data interpolated into the message | Yes |
-| 3 | `loggingContext` | Operation name, userId, entityId — for log enrichment | No (logs only) |
+| 2 | `details` | Data interpolated into message | Yes |
+| 3 | `loggingContext` | Operation name, userId, entityId — log enrichment | No (logs only) |
 | 4 | `options` | `{ cause: error }` — original error for cause chain | No (logs only) |
 
 ### Rules
 
-- **Always** pass `{ cause: error }` when wrapping a caught error
+- **Always** pass `{ cause: error }` when wrapping caught error
 - **Always** include `operation` and `userId` in `loggingContext`
-- **Never** put the original error in `loggingContext` — use `cause` parameter
+- **Never** put original error in `loggingContext` — use `cause` parameter
 - **Never** use `BadRequestException` or `NotFoundException` directly — use `BusinessException`
 
 ## ERROR_DEFINITIONS
@@ -92,7 +92,7 @@ export class MyService {
 
 ### Module Setup
 
-**MANDATORY:** Every class using `@InjectInfoLogger` — service or controller — needs a `createInfoLoggerProvider` entry. Missing one causes a NestJS DI error at runtime.
+**MANDATORY:** Every class using `@InjectInfoLogger` — service or controller — need `createInfoLoggerProvider` entry. Missing one = NestJS DI error at runtime.
 
 ```typescript
 import { createInfoLoggerProvider } from '@common/logger';
@@ -181,7 +181,7 @@ throw new BusinessException(def, details, { originalError: error });
 
 ## Log Message Rules
 
-- Messages in **English** (for indexing and search)
+- Messages in **English** (indexing + search)
 - Use `err:` field for Error objects (Pino auto-serializes stack trace)
 - Include `operation`, `userId`, `duration` in structured data
 - Never log sensitive data (amounts, emails, passwords)

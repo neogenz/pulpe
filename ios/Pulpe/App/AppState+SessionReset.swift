@@ -1,4 +1,5 @@
 import OSLog
+import Supabase
 import SwiftUI
 
 // MARK: - Session Lifecycle, Logout & Reset
@@ -90,7 +91,8 @@ extension AppState {
 
     func logout(
         source: LogoutSource = .userInitiated,
-        preserveBiometricSession: Bool? = nil
+        preserveBiometricSession: Bool? = nil,
+        scope: SignOutScope = .local
     ) async {
         guard !isLoggingOut else { return }
         isLoggingOut = true
@@ -114,14 +116,16 @@ extension AppState {
         let shouldPreserveBiometric = preserveBiometricSession ?? (source == .userInitiated)
         authDebug("AUTH_LOGOUT", "preserveBiometric=\(shouldPreserveBiometric)")
         if shouldPreserveBiometric && biometric.isEnabled {
-            // Refresh biometric tokens with the latest session before clearing
+            // Snapshot the live session into the biometric slot for cold-start re-entry.
+            // PUL-132: removed `saveBiometricTokensFromKeychain` fallback — SDK storage
+            // (PulpeAuthStorage) IS the source of truth, so a missing SDK session means
+            // there's nothing valid to snapshot.
             var biometricTokensSaved = false
             do {
                 try await authService.saveBiometricTokens()
                 biometricTokensSaved = true
             } catch {
-                Logger.auth.warning("logout: SDK session unavailable, falling back to keychain - \(error)")
-                biometricTokensSaved = await authService.saveBiometricTokensFromKeychain()
+                Logger.auth.warning("logout: biometric snapshot failed - \(error)")
             }
 
             if biometricTokensSaved {
@@ -131,12 +135,12 @@ extension AppState {
                 // Both save attempts failed — biometric tokens are unusable.
                 // Do a full logout instead of silently losing Face ID.
                 Logger.auth.error("logout: biometric token preservation failed, doing full logout")
-                await authService.logout()
+                await runSignOutOrSurfaceFailure(scope: scope)
                 await biometric.handleSessionExpired()
                 biometric.isEnabled = false
             }
         } else {
-            await authService.logout()
+            await runSignOutOrSurfaceFailure(scope: scope)
             await biometric.handleSessionExpired()
             biometric.isEnabled = false
         }
@@ -152,7 +156,9 @@ extension AppState {
     /// and returning the app to the regular login screen.
     func completePasswordResetFlow() async {
         authDebug("AUTH_PASSWORD_RESET", "complete")
-        await authService.logout()
+        // Password reset → revoke JWT server-side so a snapped access_token
+        // cannot be replayed within its ~1h expiry window.
+        await runSignOutOrSurfaceFailure(scope: .global)
         await authService.clearBiometricTokens()
         await clientKeyManager.clearAll()
         biometric.isEnabled = false
@@ -164,11 +170,35 @@ extension AppState {
     /// and returning the app to the regular login screen without success feedback.
     func cancelPasswordResetFlow() async {
         authDebug("AUTH_PASSWORD_RESET", "cancel")
-        await authService.logout()
+        // Cancel mid-recovery → revoke JWT server-side. Recovery session is
+        // write-capable (can change password) so a snapped token must not survive.
+        await runSignOutOrSurfaceFailure(scope: .global)
         await authService.clearBiometricTokens()
         await clientKeyManager.clearAll()
         biometric.isEnabled = false
         resetSession(.passwordReset)
+    }
+
+    /// Run the sign-out side-effect; on throw, log + show a warning toast but continue
+    /// the local cleanup. PUL-208: a `.global` revoke that fails leaves the access token
+    /// valid server-side for up to ~1h. Surfacing the failure lets the user change their
+    /// password again or pre-empt session theft. Local SDK storage is already cleared by
+    /// supabase-swift before the HTTP call, so state reset MUST proceed regardless.
+    ///
+    /// `ToastManager` has no dedicated `.warning` variant — `.error` is the closest fit
+    /// (inflammatory enough to draw attention; `.success` would mislead). The wording
+    /// frames it as "local OK, server unreachable" rather than a hard failure.
+    private func runSignOutOrSurfaceFailure(scope: SignOutScope) async {
+        do {
+            try await performSignOut(scope)
+        } catch {
+            Logger.auth.error("global revoke failed: \(error, privacy: .public)")
+            toastManager.show(
+                "Déconnexion locale OK, mais serveur injoignable. "
+                + "Si tu suspectes un vol de session, change ton mot de passe à nouveau dans 5 min.",
+                type: .error
+            )
+        }
     }
 
     // MARK: - Account Deletion
@@ -180,7 +210,25 @@ extension AppState {
             toastManager.show("La suppression du compte a échoué", type: .error)
             return
         }
+        await clearLocalSignupState()
+    }
 
+    /// Discards an in-progress signup and returns the app to a clean welcome state
+    /// without deleting the backend account.
+    func abandonInProgressSignup() async {
+        authDebug("AUTH_ABANDON", "begin")
+        pendingOnboardingUser = nil
+        await clearLocalSignupState()
+        // Force `OnboardingFlow` to re-instantiate so its `@State` resets to
+        // a fresh `OnboardingState` (reads the now-empty UserDefaults → welcome).
+        onboardingSessionID = UUID()
+        authDebug("AUTH_ABANDON", "complete")
+    }
+
+    /// Shared cleanup for both account deletion and in-progress signup abandon.
+    /// Clears the returning-user footprint (keychain email, onboarding draft, flags)
+    /// and logs out without preserving biometric session.
+    private func clearLocalSignupState() async {
         await keychainManager.clearLastUsedEmail()
         enrollmentPolicy.clearUserExplicitlyDisabled()
         hasReturningUser = false
@@ -188,7 +236,9 @@ extension AppState {
         OnboardingState.clearPersistedData()
         onboardingBootstrapper.clearPendingData()
         clearManualBiometricRetryRequiredFlag()
-        await logout(source: .system, preserveBiometricSession: false)
+        // Account deletion / signup abandon → revoke JWT server-side so a
+        // snapped access_token cannot be replayed within its ~1h expiry window.
+        await logout(source: .system, preserveBiometricSession: false, scope: .global)
     }
 
     // MARK: - Session Reset

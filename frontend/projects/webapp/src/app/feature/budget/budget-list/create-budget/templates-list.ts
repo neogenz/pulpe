@@ -1,0 +1,179 @@
+import {
+  ChangeDetectionStrategy,
+  Component,
+  input,
+  output,
+  computed,
+} from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { FormControl, ReactiveFormsModule } from '@angular/forms';
+import { MatButtonModule } from '@angular/material/button';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatIconModule } from '@angular/material/icon';
+import { MatRadioModule } from '@angular/material/radio';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { startWith, debounceTime, map } from 'rxjs';
+import type { SupportedCurrency } from 'pulpe-shared';
+import { TemplateListItem } from './template-list-item';
+import { type TemplateViewModel } from './template-view-model';
+import { TranslocoPipe } from '@jsverse/transloco';
+
+@Component({
+  selector: 'pulpe-templates-list',
+  imports: [
+    MatFormFieldModule,
+    MatInputModule,
+    MatIconModule,
+    MatButtonModule,
+    MatRadioModule,
+    MatProgressSpinnerModule,
+    ReactiveFormsModule,
+    TemplateListItem,
+    TranslocoPipe,
+  ],
+  template: `
+    <!-- Search Field -->
+    <mat-form-field appearance="outline" class="w-full mb-2 md:mb-4">
+      <mat-label>{{ 'template.searchLabel' | transloco }}</mat-label>
+      <input
+        matInput
+        [formControl]="searchControl"
+        placeholder="Nom ou description..."
+      />
+      <mat-icon matPrefix>search</mat-icon>
+      @if (searchControl.value) {
+        <button matIconButton matSuffix (click)="searchControl.setValue('')">
+          <mat-icon>clear</mat-icon>
+        </button>
+      }
+    </mat-form-field>
+
+    <!-- Templates List -->
+    <div class="template-list">
+      @if (isLoading()) {
+        <div class="flex justify-center items-center h-[200px]">
+          <mat-progress-spinner
+            mode="indeterminate"
+            [diameter]="24"
+            [attr.aria-label]="'template.loadingAriaLabel' | transloco"
+            role="progressbar"
+            class="pulpe-loading-indicator pulpe-loading-medium"
+          ></mat-progress-spinner>
+        </div>
+      } @else if (hasError()) {
+        <div
+          class="flex flex-col items-center justify-center h-[200px] text-error"
+        >
+          <mat-icon class="text-display-small mb-2">error_outline</mat-icon>
+          <p class="text-label-large">
+            {{ 'template.loadErrorShort' | transloco }}
+          </p>
+          <button matButton (click)="retryRequested.emit()">
+            {{ 'common.retry' | transloco }}
+          </button>
+        </div>
+      } @else if (filteredTemplates().length === 0) {
+        <div
+          class="flex flex-col items-center justify-center h-[200px] text-on-surface-variant"
+        >
+          <mat-icon class="text-display-small mb-2">inbox</mat-icon>
+          <p class="text-label-large">
+            @if (searchTerm()) {
+              {{ 'template.noResultsFor' | transloco: { term: searchTerm() } }}
+            } @else {
+              {{ 'template.emptyTitle' | transloco }}
+            }
+          </p>
+        </div>
+      } @else {
+        <mat-radio-group
+          [value]="selectedTemplateId()"
+          (change)="onTemplateSelect($event.value)"
+          class="flex flex-col gap-2 md:gap-3"
+          data-testid="template-selection-radio-group"
+        >
+          @for (
+            templateViewModel of filteredTemplates();
+            track templateViewModel.template.id
+          ) {
+            <pulpe-template-list-item
+              [templateViewModel]="templateViewModel"
+              [isSelected]="
+                selectedTemplateId() === templateViewModel.template.id
+              "
+              [currency]="currency()"
+              (selectTemplate)="onTemplateSelect($event)"
+              (showDetails)="onShowDetails(templateViewModel)"
+              [attr.data-testid]="
+                'template-card-' + templateViewModel.template.id
+              "
+            />
+          }
+        </mat-radio-group>
+      }
+    </div>
+  `,
+  styles: `
+    :host {
+      display: block;
+    }
+
+    .template-list {
+      min-height: 250px;
+      max-height: 350px;
+      overflow-y: auto;
+    }
+  `,
+  changeDetection: ChangeDetectionStrategy.OnPush,
+})
+export class TemplatesList {
+  // Inputs
+  readonly templates = input<TemplateViewModel[]>([]);
+  readonly selectedTemplateId = input<string | null>(null);
+  readonly isLoading = input<boolean>(false);
+  readonly hasError = input<boolean>(false);
+  readonly currency = input<SupportedCurrency>('CHF');
+
+  // Outputs
+  readonly templateSelected = output<string>();
+  readonly templateDetailsRequested = output<TemplateViewModel>();
+  readonly retryRequested = output<void>();
+
+  // Local search state
+  readonly searchControl = new FormControl('', { nonNullable: true });
+  readonly searchTerm = toSignal(
+    this.searchControl.valueChanges.pipe(
+      startWith(''),
+      debounceTime(300),
+      map((term) => term.toLowerCase().trim()),
+    ),
+    { initialValue: '' },
+  );
+
+  // Filtered templates based on search
+  readonly filteredTemplates = computed(() => {
+    const allTemplates = this.templates();
+    const search = this.searchTerm();
+
+    if (!search) {
+      return allTemplates;
+    }
+
+    return allTemplates.filter((templateViewModel) => {
+      const template = templateViewModel.template;
+      return (
+        template.name.toLowerCase().includes(search) ||
+        template.description?.toLowerCase().includes(search)
+      );
+    });
+  });
+
+  onTemplateSelect(templateId: string): void {
+    this.templateSelected.emit(templateId);
+  }
+
+  onShowDetails(templateViewModel: TemplateViewModel): void {
+    this.templateDetailsRequested.emit(templateViewModel);
+  }
+}

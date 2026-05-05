@@ -7,14 +7,18 @@
  */
 
 // Security check: Only allow in test environments
-if (typeof process !== 'undefined' && process.env['NODE_ENV'] === 'production') {
-  throw new Error('Test configuration cannot be loaded in production environment');
+if (
+  typeof process !== 'undefined' &&
+  process.env['NODE_ENV'] === 'production'
+) {
+  throw new Error(
+    'Test configuration cannot be loaded in production environment',
+  );
 }
 
 // Static UUIDs for test consistency (matches helpers/api-mocks.ts TEST_UUIDS)
 const TEST_USER_ID =
-  process.env['E2E_TEST_USER_ID'] ||
-  '00000000-0000-4000-a000-000000000201';
+  process.env['E2E_TEST_USER_ID'] || '00000000-0000-4000-a000-000000000201';
 const TEST_TEMPLATE_ID = '00000000-0000-4000-a000-000000000101';
 const TEST_BUDGET_ID = '00000000-0000-4000-a000-000000000001';
 
@@ -32,8 +36,7 @@ export const TEST_CONFIG = {
 
   // Auth tokens (static for test consistency)
   TOKENS: {
-    ACCESS:
-      process.env['E2E_ACCESS_TOKEN'] || 'mock-access-token-e2e-static',
+    ACCESS: process.env['E2E_ACCESS_TOKEN'] || 'mock-access-token-e2e-static',
     REFRESH:
       process.env['E2E_REFRESH_TOKEN'] || 'mock-refresh-token-e2e-static',
   },

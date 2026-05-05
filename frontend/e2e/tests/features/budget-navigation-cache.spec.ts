@@ -144,9 +144,7 @@ test.describe('Budget Navigation Cache - Rapid prev/next navigation', () => {
       const budgetId = Object.keys(detailsByBudgetId).find((id) =>
         url.includes(id),
       );
-      const response = budgetId
-        ? detailsByBudgetId[budgetId]
-        : februaryDetails;
+      const response = budgetId ? detailsByBudgetId[budgetId] : februaryDetails;
 
       return route.fulfill({
         status: 200,
@@ -163,9 +161,7 @@ test.describe('Budget Navigation Cache - Rapid prev/next navigation', () => {
     await expect(heading).toContainText('février 2026');
 
     // Click "Mois suivant" to go to March
-    await authenticatedPage
-      .getByTestId('next-month-button-desktop')
-      .click();
+    await authenticatedPage.getByTestId('next-month-button-desktop').click();
     await expect(heading).toContainText('mars 2026');
 
     // Click "Mois précédent" twice to go to January
@@ -180,9 +176,7 @@ test.describe('Budget Navigation Cache - Rapid prev/next navigation', () => {
     await expect(heading).toContainText('janvier 2026');
 
     // Return to February — should show correct data (from cache)
-    await authenticatedPage
-      .getByTestId('next-month-button-desktop')
-      .click();
+    await authenticatedPage.getByTestId('next-month-button-desktop').click();
     await expect(heading).toContainText('février 2026');
   });
 
@@ -207,9 +201,7 @@ test.describe('Budget Navigation Cache - Rapid prev/next navigation', () => {
       const budgetId = Object.keys(detailsByBudgetId).find((id) =>
         url.includes(id),
       );
-      const response = budgetId
-        ? detailsByBudgetId[budgetId]
-        : februaryDetails;
+      const response = budgetId ? detailsByBudgetId[budgetId] : februaryDetails;
 
       return route.fulfill({
         status: 200,
@@ -224,9 +216,7 @@ test.describe('Budget Navigation Cache - Rapid prev/next navigation', () => {
     await expect(heading).toContainText('février 2026');
 
     // Navigate to March and verify budget lines are from March
-    await authenticatedPage
-      .getByTestId('next-month-button-desktop')
-      .click();
+    await authenticatedPage.getByTestId('next-month-button-desktop').click();
     await expect(heading).toContainText('mars 2026');
     await expect(
       authenticatedPage.getByTestId(`envelope-card-${TEST_UUIDS.LINE_5}`),
@@ -277,9 +267,7 @@ test.describe('Budget Navigation Cache - Rapid prev/next navigation', () => {
       const budgetId = Object.keys(detailsByBudgetId).find((id) =>
         url.includes(id),
       );
-      const response = budgetId
-        ? detailsByBudgetId[budgetId]
-        : januaryDetails;
+      const response = budgetId ? detailsByBudgetId[budgetId] : januaryDetails;
 
       return route.fulfill({
         status: 200,
@@ -303,13 +291,9 @@ test.describe('Budget Navigation Cache - Rapid prev/next navigation', () => {
     ).toBeEnabled();
 
     // Navigate to March (last budget)
-    await authenticatedPage
-      .getByTestId('next-month-button-desktop')
-      .click();
+    await authenticatedPage.getByTestId('next-month-button-desktop').click();
     await expect(heading).toContainText('février 2026');
-    await authenticatedPage
-      .getByTestId('next-month-button-desktop')
-      .click();
+    await authenticatedPage.getByTestId('next-month-button-desktop').click();
     await expect(heading).toContainText('mars 2026');
 
     // Next button should be disabled at the last budget

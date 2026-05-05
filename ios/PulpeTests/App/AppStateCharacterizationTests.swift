@@ -70,8 +70,14 @@ struct AppStateCharacterizationTests {
 
         #expect(sut.authState == .authenticated)
     }
-    @Test("completePinSetup from needsPinSetup results in authenticated")
-    func completePinSetup_fromNeedsPinSetup_becomesAuthenticated() async {
+    @Test("completePinSetup stays in needsPinSetup when bootstrap fails")
+    func completePinSetup_whenBootstrapFails_staysInNeedsPinSetup() async {
+        // The default `OnboardingBootstrapper` makes a real `POST /budget-templates/from-onboarding`
+        // call which fails with 401 under test (no authenticated session). After both retry attempts
+        // fail, `completePinSetup` must NOT advance to `.authenticated` — the user must stay in
+        // `.needsPinSetup` so the PIN screen can offer a retry CTA. The previous behavior silently
+        // entered `.authenticated` regardless of bootstrap success, leaving users with no template
+        // or budget on the server.
         let sut = makeSUT(destination: .needsPinSetup)
         sut.pendingOnboardingData = BudgetTemplateCreateFromOnboarding()
 
@@ -80,7 +86,8 @@ struct AppStateCharacterizationTests {
 
         await sut.completePinSetup()
 
-        #expect(sut.authState == .authenticated)
+        #expect(sut.authState == .needsPinSetup)
+        #expect(sut.showPostAuthError == true)
     }
     @Test("resolvePostAuth with authenticated(false) results in authenticated directly")
     func resolvePostAuth_directAuthenticated_becomesAuthenticated() async {
@@ -285,7 +292,8 @@ struct AppStateCharacterizationTests {
         // Set up pending onboarding data via completeOnboarding
         await sut.completeOnboarding(
             user: user,
-            onboardingData: BudgetTemplateCreateFromOnboarding()
+            onboardingData: BudgetTemplateCreateFromOnboarding(),
+            signupMethod: "email"
         )
         #expect(sut.pendingOnboardingData != nil)
         #expect(sut.hasReturningUser == true)
@@ -302,7 +310,7 @@ struct AppStateCharacterizationTests {
         await sut.resolvePostAuth(user: user)
 
         #expect(sut.authState == .unauthenticated)
-        #expect(sut.pendingSocialUser == user)
+        #expect(sut.pendingOnboardingUser == .social(user))
         #expect(sut.hasReturningUser == false)
     }
     @Test("resolvePostAuth needsPinSetup redirects even when hasReturningUser is true (PUL-102 regression guard)")
@@ -314,7 +322,7 @@ struct AppStateCharacterizationTests {
         await sut.resolvePostAuth(user: user)
 
         #expect(sut.authState == .unauthenticated)
-        #expect(sut.pendingSocialUser == user)
+        #expect(sut.pendingOnboardingUser == .social(user))
     }
 
     // MARK: - Section 4: Session Lifecycle Characterization
@@ -378,8 +386,12 @@ struct AppStateCharacterizationTests {
 
         #expect(sut.authState == .needsPinEntry)
     }
-    @Test("checkAuthState with biometric enabled resolves via biometric session")
+    @Test("checkAuthState with biometric enabled + explicit logout resolves via biometric session")
     func checkAuthState_biometricEnabled_resolvesViaBiometric() async {
+        // PUL-132: biometric-keychain validation runs only on explicit-logout cold-start.
+        UserDefaults.standard.set(true, forKey: "pulpe-did-explicit-logout")
+        defer { UserDefaults.standard.removeObject(forKey: "pulpe-did-explicit-logout") }
+
         let sut = makeSUT(
             destination: .needsPinEntry(needsRecoveryKeyConsent: false),
             biometricEnabled: true,
@@ -458,7 +470,7 @@ struct AppStateCharacterizationTests {
         await sut.resolvePostAuth(user: user)
 
         #expect(sut.authState == .unauthenticated)
-        #expect(sut.pendingSocialUser == user)
+        #expect(sut.pendingOnboardingUser == .social(user))
         #expect(sut.recoveryFlowState == .idle)
     }
     @Test("resolvePostAuth needsPinEntry with returning user proceeds normally (no regression)")
@@ -470,7 +482,7 @@ struct AppStateCharacterizationTests {
         await sut.resolvePostAuth(user: user)
 
         #expect(sut.authState == .needsPinEntry)
-        #expect(sut.pendingSocialUser == nil)
+        #expect(sut.pendingOnboardingUser == nil)
     }
     @Test("resolvePostAuth authenticated with recovery consent shows consent prompt")
     func resolvePostAuth_authenticatedWithRecoveryConsent_showsConsent() async {

@@ -55,19 +55,14 @@ actor BackgroundTaskService {
     private func refreshWidgetData() async throws {
         guard await AuthService.shared.hasBiometricTokens() else { return }
 
-        let payDay: Int?
-        do {
-            payDay = try await userSettingsService.getSettings().payDayOfMonth
-        } catch {
-            Logger.sync.warning("BackgroundTaskService: settings fetch failed - \(error)")
-            payDay = nil
-        }
+        let (payDay, currency) = await userSettingsService.getSettingsWithDefaults(context: "BackgroundTaskService")
 
         guard let currentBudget = try await budgetService.getCurrentMonthBudget(payDayOfMonth: payDay) else {
             await WidgetDataSyncService.shared.sync(
                 budgetsWithDetails: [],
                 currentBudgetDetails: nil,
-                payDayOfMonth: payDay
+                payDayOfMonth: payDay,
+                currency: currency
             )
             return
         }
@@ -79,14 +74,16 @@ actor BackgroundTaskService {
             await WidgetDataSyncService.shared.sync(
                 budgetsWithDetails: exportData.budgets,
                 currentBudgetDetails: details,
-                payDayOfMonth: payDay
+                payDayOfMonth: payDay,
+                currency: currency
             )
         } catch {
             Logger.sync.error("BackgroundTaskService: exportAllBudgets failed - \(error)")
             await WidgetDataSyncService.shared.sync(
                 budgetsWithDetails: [],
                 currentBudgetDetails: details,
-                payDayOfMonth: payDay
+                payDayOfMonth: payDay,
+                currency: currency
             )
         }
     }

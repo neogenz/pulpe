@@ -14,7 +14,7 @@ final class BudgetLineLongPressTests: XCTestCase {
 
         let row = waitForBudgetRow(
             primaryIdentifier: "budgetLineRow-with-transactions",
-            fallbackLabel: "Enveloppe avec transactions"
+            fallbackLabel: "Prévision avec transactions"
         )
 
         row.press(forDuration: 1.0)
@@ -32,7 +32,7 @@ final class BudgetLineLongPressTests: XCTestCase {
 
         let row = waitForBudgetRow(
             primaryIdentifier: "budgetLineRow-empty",
-            fallbackLabel: "Enveloppe vide"
+            fallbackLabel: "Prévision simple"
         )
 
         row.press(forDuration: 1.0)

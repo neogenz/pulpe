@@ -1,7 +1,19 @@
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
-import { signal, computed } from '@angular/core';
+import {
+  provideZonelessChangeDetection,
+  signal,
+  computed,
+} from '@angular/core';
+import { TestBed } from '@angular/core/testing';
+import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
+import { MatBottomSheet } from '@angular/material/bottom-sheet';
+import { Router } from '@angular/router';
+import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 import { type BudgetLine, type Transaction, type Budget } from 'pulpe-shared';
 import { of } from 'rxjs';
+import Dashboard from './current-month';
+import { DashboardStore } from './services/dashboard-store';
+import { type TransactionFormData } from './components/add-transaction-bottom-sheet';
 
 // Test data factories
 const createBudgetLine = (overrides: Partial<BudgetLine> = {}): BudgetLine => ({
@@ -500,6 +512,148 @@ describe('CurrentMonth Component', () => {
       );
 
       consoleSpy.mockRestore();
+    });
+  });
+});
+
+describe('Dashboard (TestBed)', () => {
+  function createMockStore(budgetId: string) {
+    return {
+      dashboardData: signal({ budget: { id: budgetId } }),
+      addTransaction: vi.fn().mockResolvedValue(undefined),
+      status: signal<'idle' | 'loading' | 'reloading' | 'resolved' | 'error'>(
+        'resolved',
+      ),
+      isLoading: signal(false),
+      isInitialLoading: signal(false),
+      hasValue: signal(true),
+      error: signal(null),
+      currentBudgetPeriod: signal({ month: 4, year: 2026 }),
+      refreshData: vi.fn(),
+    };
+  }
+
+  async function setup(
+    budgetId: string,
+    afterDismissedValue: TransactionFormData | undefined,
+  ) {
+    const mockStore = createMockStore(budgetId);
+    const bottomSheetRef = {
+      afterDismissed: () => of(afterDismissedValue),
+    };
+    const mockBottomSheet = {
+      open: vi.fn().mockReturnValue(bottomSheetRef),
+    };
+    const mockRouter = { navigate: vi.fn() };
+
+    await TestBed.resetTestingModule()
+      .configureTestingModule({
+        imports: [Dashboard],
+        providers: [
+          provideZonelessChangeDetection(),
+          provideAnimationsAsync(),
+          ...provideTranslocoForTest(),
+          { provide: DashboardStore, useValue: mockStore },
+          { provide: Router, useValue: mockRouter },
+        ],
+      })
+      .compileComponents();
+
+    TestBed.overrideProvider(MatBottomSheet, { useValue: mockBottomSheet });
+    TestBed.overrideComponent(Dashboard, {
+      set: {
+        providers: [{ provide: MatBottomSheet, useValue: mockBottomSheet }],
+      },
+    });
+
+    const fixture = TestBed.createComponent(Dashboard);
+    return {
+      component: fixture.componentInstance,
+      mockStore,
+      mockBottomSheet,
+    };
+  }
+
+  async function flushMicrotasks(): Promise<void> {
+    for (let i = 0; i < 5; i++) {
+      await Promise.resolve();
+    }
+  }
+
+  describe('#addTransaction forwards currency conversion metadata', () => {
+    it('should include originalAmount, originalCurrency, targetCurrency, exchangeRate in store.addTransaction call when present on the sheet payload', async () => {
+      const { component, mockStore } = await setup('budget-123', {
+        name: 'Test pour claude',
+        amount: 108.97,
+        kind: 'expense',
+        category: null,
+        checkedAt: null,
+        originalAmount: 100,
+        originalCurrency: 'CHF',
+        targetCurrency: 'EUR',
+        exchangeRate: 1.0897,
+      });
+
+      component['openAddTransactionBottomSheet']();
+      await flushMicrotasks();
+
+      expect(mockStore.addTransaction).toHaveBeenCalledWith(
+        expect.objectContaining({
+          budgetId: 'budget-123',
+          amount: 108.97,
+          name: 'Test pour claude',
+          kind: 'expense',
+          originalAmount: 100,
+          originalCurrency: 'CHF',
+          targetCurrency: 'EUR',
+          exchangeRate: 1.0897,
+        }),
+      );
+    });
+
+    it('should forward transaction payload without conversion metadata when the sheet omits it', async () => {
+      const { component, mockStore } = await setup('budget-123', {
+        name: 'Courses',
+        amount: 50,
+        kind: 'expense',
+        category: null,
+        checkedAt: null,
+      });
+
+      component['openAddTransactionBottomSheet']();
+      await flushMicrotasks();
+
+      const callArg = mockStore.addTransaction.mock.calls[0][0];
+      expect(callArg.budgetId).toBe('budget-123');
+      expect(callArg.amount).toBe(50);
+      expect(callArg.originalAmount).toBeUndefined();
+      expect(callArg.originalCurrency).toBeUndefined();
+      expect(callArg.targetCurrency).toBeUndefined();
+      expect(callArg.exchangeRate).toBeUndefined();
+    });
+
+    it('should not call store.addTransaction when the sheet is dismissed without data', async () => {
+      const { component, mockStore } = await setup('budget-123', undefined);
+
+      component['openAddTransactionBottomSheet']();
+      await flushMicrotasks();
+
+      expect(mockStore.addTransaction).not.toHaveBeenCalled();
+    });
+
+    it('should skip store.addTransaction when no budget is loaded', async () => {
+      const { component, mockStore } = await setup('', {
+        name: 'Test',
+        amount: 10,
+        kind: 'expense',
+        category: null,
+        checkedAt: null,
+      });
+
+      component['openAddTransactionBottomSheet']();
+      await flushMicrotasks();
+
+      expect(mockStore.addTransaction).not.toHaveBeenCalled();
     });
   });
 });

@@ -94,8 +94,10 @@ struct AppStateBiometricKeyValidationTests {
             clientKeyHex: "valid-client-key-hex"
         )
 
+        // PUL-132: biometric-keychain validation runs only on explicit-logout cold-start.
         defer {
             UserDefaults.standard.removeObject(forKey: "pulpe-has-launched-before")
+            UserDefaults.standard.removeObject(forKey: "pulpe-did-explicit-logout")
         }
 
         let sut = AppState(
@@ -114,6 +116,7 @@ struct AppStateBiometricKeyValidationTests {
         )
 
         UserDefaults.standard.set(true, forKey: "pulpe-has-launched-before")
+        UserDefaults.standard.set(true, forKey: "pulpe-did-explicit-logout")
 
         await sut.checkAuthState()
 
@@ -134,8 +137,10 @@ struct AppStateBiometricKeyValidationTests {
             clientKeyHex: "stale-client-key-hex"
         )
 
+        // PUL-132: biometric-keychain validation runs only on explicit-logout cold-start.
         defer {
             UserDefaults.standard.removeObject(forKey: "pulpe-has-launched-before")
+            UserDefaults.standard.removeObject(forKey: "pulpe-did-explicit-logout")
         }
 
         let sut = AppState(
@@ -153,6 +158,7 @@ struct AppStateBiometricKeyValidationTests {
         )
 
         UserDefaults.standard.set(true, forKey: "pulpe-has-launched-before")
+        UserDefaults.standard.set(true, forKey: "pulpe-did-explicit-logout")
 
         await sut.checkAuthState()
 

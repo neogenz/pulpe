@@ -1,5 +1,9 @@
 import { test, expect } from '../../fixtures/test-fixtures';
-import { createBudgetDetailsMock, createBudgetLineMock, TEST_UUIDS } from '../../helpers/api-mocks';
+import {
+  createBudgetDetailsMock,
+  createBudgetLineMock,
+  TEST_UUIDS,
+} from '../../helpers/api-mocks';
 
 /**
  * Budget Table Menu Tests
@@ -18,14 +22,29 @@ test.describe('Budget Table Mobile Menu', () => {
     const mockResponse = createBudgetDetailsMock(budgetId, {
       budget: { month: 8, year: 2025 },
       budgetLines: [
-        createBudgetLineMock(TEST_UUIDS.LINE_1, budgetId, { name: 'Groceries', amount: 400, kind: 'expense', recurrence: 'fixed' }),
-        createBudgetLineMock(TEST_UUIDS.LINE_2, budgetId, { name: 'Salary', amount: 5000, kind: 'income', recurrence: 'fixed' }),
-        createBudgetLineMock(TEST_UUIDS.LINE_3, budgetId, { name: 'Transport', amount: 150, kind: 'expense', recurrence: 'fixed' }),
+        createBudgetLineMock(TEST_UUIDS.LINE_1, budgetId, {
+          name: 'Groceries',
+          amount: 400,
+          kind: 'expense',
+          recurrence: 'fixed',
+        }),
+        createBudgetLineMock(TEST_UUIDS.LINE_2, budgetId, {
+          name: 'Salary',
+          amount: 5000,
+          kind: 'income',
+          recurrence: 'fixed',
+        }),
+        createBudgetLineMock(TEST_UUIDS.LINE_3, budgetId, {
+          name: 'Transport',
+          amount: 150,
+          kind: 'expense',
+          recurrence: 'fixed',
+        }),
       ],
       transactions: [],
     });
 
-    await page.route('**/api/v1/budgets/*/details', route =>
+    await page.route('**/api/v1/budgets/*/details', (route) =>
       route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -41,19 +60,27 @@ test.describe('Budget Table Mobile Menu', () => {
       await setupBudgetDetailsMock(page);
       // Navigate and wait for the API response to ensure data is loaded
       await Promise.all([
-        page.waitForResponse(resp => resp.url().includes('/api/v1/budgets/') && resp.url().includes('/details')),
+        page.waitForResponse(
+          (resp) =>
+            resp.url().includes('/api/v1/budgets/') &&
+            resp.url().includes('/details'),
+        ),
         page.goto(`/budget/${budgetId}`),
       ]);
       await expect(page.locator('pulpe-budget-items')).toBeVisible();
     });
 
-    test('shows menu button for budget line actions', async ({ authenticatedPage: page }) => {
+    test('shows menu button for budget line actions', async ({
+      authenticatedPage: page,
+    }) => {
       // Mobile view uses card-menu-* prefix
       const menuButton = page.locator('[data-testid^="card-menu-"]').first();
       await expect(menuButton).toBeVisible();
     });
 
-    test('opens menu when clicking menu button', async ({ authenticatedPage: page }) => {
+    test('opens menu when clicking menu button', async ({
+      authenticatedPage: page,
+    }) => {
       const menuButton = page.locator('[data-testid^="card-menu-"]').first();
       await menuButton.click();
 
@@ -62,7 +89,9 @@ test.describe('Budget Table Mobile Menu', () => {
       await expect(menu).toBeVisible();
     });
 
-    test('closes menu when clicking outside', async ({ authenticatedPage: page }) => {
+    test('closes menu when clicking outside', async ({
+      authenticatedPage: page,
+    }) => {
       const menuButton = page.locator('[data-testid^="card-menu-"]').first();
       await menuButton.click();
 
@@ -77,25 +106,35 @@ test.describe('Budget Table Mobile Menu', () => {
       await expect(menu).not.toBeVisible();
     });
 
-    test('shows correct menu item text in French', async ({ authenticatedPage: page }) => {
+    test('shows correct menu item text in French', async ({
+      authenticatedPage: page,
+    }) => {
       const menuButton = page.locator('[data-testid^="card-menu-"]').first();
       await menuButton.click();
 
       // Check for "Modifier" menu item
-      const editMenuItem = page.locator('button[mat-menu-item]').filter({ hasText: 'Modifier' });
+      const editMenuItem = page
+        .locator('button[mat-menu-item]')
+        .filter({ hasText: 'Modifier' });
       await expect(editMenuItem).toBeVisible();
 
       // Check for "Supprimer" menu item
-      const deleteMenuItem = page.locator('button[mat-menu-item]').filter({ hasText: 'Supprimer' });
+      const deleteMenuItem = page
+        .locator('button[mat-menu-item]')
+        .filter({ hasText: 'Supprimer' });
       await expect(deleteMenuItem).toBeVisible();
     });
 
-    test('triggers edit action when clicking edit menu item', async ({ authenticatedPage: page }) => {
+    test('triggers edit action when clicking edit menu item', async ({
+      authenticatedPage: page,
+    }) => {
       const menuButton = page.locator('[data-testid^="card-menu-"]').first();
       await menuButton.click();
 
       // Click edit menu item
-      const editMenuItem = page.locator('button[mat-menu-item]').filter({ hasText: 'Modifier' });
+      const editMenuItem = page
+        .locator('button[mat-menu-item]')
+        .filter({ hasText: 'Modifier' });
       await editMenuItem.click();
 
       // Verify that edit dialog opens (mobile uses dialog)
@@ -103,16 +142,22 @@ test.describe('Budget Table Mobile Menu', () => {
       await expect(dialog).toBeVisible({ timeout: 5000 });
 
       // Close dialog
-      const cancelButton = page.locator('mat-dialog-container button').filter({ hasText: 'Annuler' });
+      const cancelButton = page
+        .locator('mat-dialog-container button')
+        .filter({ hasText: 'Annuler' });
       await cancelButton.click();
     });
 
-    test('triggers delete action when clicking delete menu item', async ({ authenticatedPage: page }) => {
+    test('triggers delete action when clicking delete menu item', async ({
+      authenticatedPage: page,
+    }) => {
       const menuButton = page.locator('[data-testid^="card-menu-"]').first();
       await menuButton.click();
 
       // Click delete menu item
-      const deleteMenuItem = page.locator('button[mat-menu-item]').filter({ hasText: 'Supprimer' });
+      const deleteMenuItem = page
+        .locator('button[mat-menu-item]')
+        .filter({ hasText: 'Supprimer' });
       await deleteMenuItem.click();
 
       // Verify that confirmation dialog appears
@@ -123,11 +168,15 @@ test.describe('Budget Table Mobile Menu', () => {
       await expect(confirmDialog).toContainText('Supprimer');
 
       // Cancel the deletion
-      const cancelButton = page.locator('mat-dialog-container button').filter({ hasText: 'Annuler' });
+      const cancelButton = page
+        .locator('mat-dialog-container button')
+        .filter({ hasText: 'Annuler' });
       await cancelButton.click();
     });
 
-    test('should not show menu button for rollover budget lines', async ({ authenticatedPage: page }) => {
+    test('should not show menu button for rollover budget lines', async ({
+      authenticatedPage: page,
+    }) => {
       // Use valid UUIDs for Zod validation
       const testBudgetId = '00000000-0000-4000-a000-000000000003';
       const lineId = '00000000-0000-4000-a000-000000001009';
@@ -135,7 +184,7 @@ test.describe('Budget Table Mobile Menu', () => {
       const previousBudgetId = '00000000-0000-4000-a000-000000000004';
 
       // Override route with rollover line in mock data
-      await page.route('**/api/v1/budgets/*/details', route =>
+      await page.route('**/api/v1/budgets/*/details', (route) =>
         route.fulfill({
           status: 200,
           body: JSON.stringify({
@@ -195,11 +244,15 @@ test.describe('Budget Table Mobile Menu', () => {
       await expect(page.locator('pulpe-budget-items')).toBeVisible();
 
       // Regular line should have menu button
-      const regularLineMenu = page.locator(`[data-testid="card-menu-${lineId}"]`);
+      const regularLineMenu = page.locator(
+        `[data-testid="card-menu-${lineId}"]`,
+      );
       await expect(regularLineMenu).toBeVisible();
 
       // Rollover line should NOT have menu button
-      const rolloverLineMenu = page.locator(`[data-testid="card-menu-${rolloverId}"]`);
+      const rolloverLineMenu = page.locator(
+        `[data-testid="card-menu-${rolloverId}"]`,
+      );
       await expect(rolloverLineMenu).not.toBeVisible();
     });
   });
@@ -211,7 +264,11 @@ test.describe('Budget Table Mobile Menu', () => {
       await setupBudgetDetailsMock(page);
       // Navigate and wait for the API response to ensure data is loaded
       await Promise.all([
-        page.waitForResponse(resp => resp.url().includes('/api/v1/budgets/') && resp.url().includes('/details')),
+        page.waitForResponse(
+          (resp) =>
+            resp.url().includes('/api/v1/budgets/') &&
+            resp.url().includes('/details'),
+        ),
         page.goto(`/budget/${budgetId}`),
       ]);
       await expect(page.locator('pulpe-budget-items')).toBeVisible();
@@ -220,13 +277,17 @@ test.describe('Budget Table Mobile Menu', () => {
       await expect(page.locator('table[mat-table]')).toBeVisible();
     });
 
-    test('shows menu button for row actions', async ({ authenticatedPage: page }) => {
+    test('shows menu button for row actions', async ({
+      authenticatedPage: page,
+    }) => {
       // Desktop view uses actions-menu-* prefix in the table
       const menuButton = page.locator('[data-testid^="actions-menu-"]').first();
       await expect(menuButton).toBeVisible();
     });
 
-    test('opens menu and shows edit option when clicking menu button', async ({ authenticatedPage: page }) => {
+    test('opens menu and shows edit option when clicking menu button', async ({
+      authenticatedPage: page,
+    }) => {
       const menuButton = page.locator('[data-testid^="actions-menu-"]').first();
       await menuButton.click();
 
@@ -235,16 +296,22 @@ test.describe('Budget Table Mobile Menu', () => {
       await expect(menu).toBeVisible();
 
       // Check edit option exists
-      const editMenuItem = page.locator('button[mat-menu-item]').filter({ hasText: 'Modifier' });
+      const editMenuItem = page
+        .locator('button[mat-menu-item]')
+        .filter({ hasText: 'Modifier' });
       await expect(editMenuItem).toBeVisible();
     });
 
-    test('triggers edit dialog when clicking edit menu item', async ({ authenticatedPage: page }) => {
+    test('triggers edit dialog when clicking edit menu item', async ({
+      authenticatedPage: page,
+    }) => {
       const menuButton = page.locator('[data-testid^="actions-menu-"]').first();
       await menuButton.click();
 
       // Click edit menu item
-      const editMenuItem = page.locator('button[mat-menu-item]').filter({ hasText: 'Modifier' });
+      const editMenuItem = page
+        .locator('button[mat-menu-item]')
+        .filter({ hasText: 'Modifier' });
       await editMenuItem.click();
 
       // On desktop, edit dialog should open
@@ -253,7 +320,7 @@ test.describe('Budget Table Mobile Menu', () => {
 
       // Verify dialog form fields are visible
       const editNameInput = page.locator('[data-testid="edit-line-name"]');
-      const editAmountInput = page.locator('[data-testid="edit-line-amount"]');
+      const editAmountInput = page.locator('[data-testid="edit-budget-line-dialog"] [data-testid="amount-input-value"]');
 
       await expect(editNameInput).toBeVisible();
       await expect(editAmountInput).toBeVisible();
@@ -266,12 +333,16 @@ test.describe('Budget Table Mobile Menu', () => {
       await expect(dialog).not.toBeVisible();
     });
 
-    test('triggers delete action when clicking delete menu item', async ({ authenticatedPage: page }) => {
+    test('triggers delete action when clicking delete menu item', async ({
+      authenticatedPage: page,
+    }) => {
       const menuButton = page.locator('[data-testid^="actions-menu-"]').first();
       await menuButton.click();
 
       // Click delete menu item
-      const deleteMenuItem = page.locator('button[mat-menu-item]').filter({ hasText: 'Supprimer' });
+      const deleteMenuItem = page
+        .locator('button[mat-menu-item]')
+        .filter({ hasText: 'Supprimer' });
       await deleteMenuItem.click();
 
       // Verify that confirmation dialog appears
@@ -279,7 +350,9 @@ test.describe('Budget Table Mobile Menu', () => {
       await expect(confirmDialog).toBeVisible({ timeout: 5000 });
 
       // Cancel the deletion
-      const cancelButton = page.locator('mat-dialog-container button').filter({ hasText: 'Annuler' });
+      const cancelButton = page
+        .locator('mat-dialog-container button')
+        .filter({ hasText: 'Annuler' });
       await cancelButton.click();
     });
   });
@@ -289,12 +362,18 @@ test.describe('Budget Table Mobile Menu', () => {
       await setupBudgetDetailsMock(page);
     });
 
-    test('uses different menu button prefixes for mobile vs desktop', async ({ authenticatedPage: page }) => {
+    test('uses different menu button prefixes for mobile vs desktop', async ({
+      authenticatedPage: page,
+    }) => {
       // Start with desktop viewport
       await page.setViewportSize({ width: 1280, height: 720 });
       // Navigate and wait for the API response to ensure data is loaded
       await Promise.all([
-        page.waitForResponse(resp => resp.url().includes('/api/v1/budgets/') && resp.url().includes('/details')),
+        page.waitForResponse(
+          (resp) =>
+            resp.url().includes('/api/v1/budgets/') &&
+            resp.url().includes('/details'),
+        ),
         page.goto(`/budget/${budgetId}`),
       ]);
       await expect(page.locator('pulpe-budget-items')).toBeVisible();
@@ -303,7 +382,9 @@ test.describe('Budget Table Mobile Menu', () => {
       await expect(page.locator('table[mat-table]')).toBeVisible();
 
       // Desktop uses actions-menu-* prefix (table view)
-      const desktopMenuButton = page.locator('[data-testid^="actions-menu-"]').first();
+      const desktopMenuButton = page
+        .locator('[data-testid^="actions-menu-"]')
+        .first();
       await expect(desktopMenuButton).toBeVisible();
 
       // Switch to mobile viewport
@@ -311,7 +392,9 @@ test.describe('Budget Table Mobile Menu', () => {
       await page.waitForTimeout(500);
 
       // Mobile uses card-menu-* prefix (card view)
-      const mobileMenuButton = page.locator('[data-testid^="card-menu-"]').first();
+      const mobileMenuButton = page
+        .locator('[data-testid^="card-menu-"]')
+        .first();
       await expect(mobileMenuButton).toBeVisible();
     });
   });
@@ -323,13 +406,19 @@ test.describe('Budget Table Mobile Menu', () => {
       await setupBudgetDetailsMock(page);
       // Navigate and wait for the API response to ensure data is loaded
       await Promise.all([
-        page.waitForResponse(resp => resp.url().includes('/api/v1/budgets/') && resp.url().includes('/details')),
+        page.waitForResponse(
+          (resp) =>
+            resp.url().includes('/api/v1/budgets/') &&
+            resp.url().includes('/details'),
+        ),
         page.goto(`/budget/${budgetId}`),
       ]);
       await expect(page.locator('pulpe-budget-items')).toBeVisible();
     });
 
-    test('can navigate menu with keyboard on mobile', async ({ authenticatedPage: page }) => {
+    test('can navigate menu with keyboard on mobile', async ({
+      authenticatedPage: page,
+    }) => {
       const menuButton = page.locator('[data-testid^="card-menu-"]').first();
 
       // Focus and activate menu with keyboard

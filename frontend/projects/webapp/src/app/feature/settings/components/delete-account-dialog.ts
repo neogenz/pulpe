@@ -21,7 +21,7 @@ import { firstValueFrom } from 'rxjs';
 import { TranslocoService, TranslocoPipe } from '@jsverse/transloco';
 import {
   AuthSessionService,
-  AuthStateService,
+  AuthStore,
   PASSWORD_MIN_LENGTH,
   VAULT_CODE_LENGTH,
   VAULT_CODE_VALIDATORS,
@@ -187,7 +187,7 @@ export class DeleteAccountDialog {
   readonly #logger = inject(Logger);
   readonly #dialogRef = inject(MatDialogRef<DeleteAccountDialog>);
   readonly #authSession = inject(AuthSessionService);
-  readonly #authState = inject(AuthStateService);
+  readonly #authStore = inject(AuthStore);
   readonly #encryptionApi = inject(EncryptionApi);
   readonly #transloco = inject(TranslocoService);
 
@@ -201,7 +201,7 @@ export class DeleteAccountDialog {
     'settings.passwordPlaceholder',
   );
 
-  protected readonly isOAuthOnly = this.#authState.isOAuthOnly;
+  protected readonly isOAuthOnly = this.#authStore.isOAuthOnly;
   protected readonly isSubmitting = signal(false);
   protected readonly errorMessage = signal('');
   protected readonly isPasswordHidden = signal(true);

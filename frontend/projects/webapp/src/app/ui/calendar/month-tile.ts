@@ -8,7 +8,22 @@ import {
 import { MatRipple } from '@angular/material/core';
 import { MatIconModule } from '@angular/material/icon';
 import { isBefore } from 'date-fns';
-import { type CalendarMonth } from './calendar-types';
+import { CURRENCY_METADATA, type SupportedCurrency } from 'pulpe-shared';
+import { type CalendarMonth, type MonthTileLabels } from './calendar-types';
+
+const AMOUNT_FORMATTERS = new Map<string, Intl.NumberFormat>();
+
+function getAmountFormatter(locale: string): Intl.NumberFormat {
+  let formatter = AMOUNT_FORMATTERS.get(locale);
+  if (!formatter) {
+    formatter = new Intl.NumberFormat(locale, {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    });
+    AMOUNT_FORMATTERS.set(locale, formatter);
+  }
+  return formatter;
+}
 
 type BackgroundStyle =
   | 'positive'
@@ -53,13 +68,13 @@ interface MonthTileViewModel {
         <span
           class="self-start text-label-small px-2 py-0.5 rounded-full bg-primary text-on-primary"
         >
-          Actuel
+          {{ labels().current }}
         </span>
       }
       <div class="flex items-center gap-2">
         @if (vm().hasContent) {
           <span
-            class="w-2.5 h-2.5 rounded-full flex-shrink-0"
+            class="w-2.5 h-2.5 rounded-full shrink-0"
             [class.bg-financial-savings]="vm().statusColor === 'positive'"
             [class.bg-error]="vm().statusColor === 'negative'"
             [class.bg-outline-variant]="vm().statusColor === 'neutral'"
@@ -76,7 +91,7 @@ interface MonthTileViewModel {
       @if (vm().hasContent) {
         <div class="text-center space-y-1">
           <p class="text-label-small text-on-surface-variant uppercase">
-            Disponible
+            {{ labels().available }}
           </p>
           <div class="flex items-baseline justify-center gap-1">
             <span
@@ -90,7 +105,7 @@ interface MonthTileViewModel {
             <span
               class="text-body-medium md:text-body-large text-on-surface-variant"
             >
-              CHF
+              {{ currencySymbol() }}
             </span>
           </div>
           @if (vm().period) {
@@ -104,7 +119,7 @@ interface MonthTileViewModel {
           class="flex flex-col items-center gap-2 text-outline transition-colors group-hover:text-primary"
         >
           <mat-icon class="text-3xl">add_circle_outline</mat-icon>
-          <span class="text-label-medium">Créer</span>
+          <span class="text-label-medium">{{ labels().create }}</span>
         </div>
       }
     </div>
@@ -141,10 +156,17 @@ interface MonthTileViewModel {
 })
 export class MonthTile {
   readonly month = input.required<CalendarMonth>();
+  readonly labels = input.required<MonthTileLabels>();
+  readonly currency = input<SupportedCurrency>('CHF');
+  readonly locale = input<string>('de-CH');
   readonly isCurrentMonth = input<boolean>(false);
   readonly tileClick = output<CalendarMonth>();
 
-  readonly vm = computed<MonthTileViewModel>(() => {
+  protected readonly currencySymbol = computed(
+    () => CURRENCY_METADATA[this.currency()].symbol,
+  );
+
+  protected readonly vm = computed<MonthTileViewModel>(() => {
     const month = this.month();
     const isCurrent = this.isCurrentMonth();
     const status = month.status ?? 'neutral';
@@ -158,14 +180,14 @@ export class MonthTile {
       formattedAmount,
       period: month.period,
       ariaLabel: month.hasContent
-        ? `${month.displayName}, ${formattedAmount} CHF disponible`
-        : `${month.displayName}, créer un budget`,
+        ? `${month.displayName}, ${formattedAmount} ${this.currency()} ${this.labels().availableSuffixAriaLabel}`
+        : `${month.displayName}, ${this.labels().createBudgetAriaLabel}`,
       backgroundStyle: month.hasContent ? status : 'empty',
       statusColor: status,
     };
   });
 
-  readonly hostClasses = computed(() => {
+  protected readonly hostClasses = computed(() => {
     const vm = this.vm();
     const classes: Record<string, boolean> = {
       group: true,
@@ -195,9 +217,6 @@ export class MonthTile {
 
   #formatAmount(value?: number): string {
     if (value === undefined) return '0';
-    return new Intl.NumberFormat('de-CH', {
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(Math.abs(value));
+    return getAmountFormatter(this.locale()).format(Math.abs(value));
   }
 }

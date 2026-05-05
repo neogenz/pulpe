@@ -81,6 +81,18 @@ describe('ApiErrorLocalizer', () => {
     );
   });
 
+  it('should localize client-side Zod parse errors', () => {
+    const error = new ApiError(
+      'Validation failed: Array must contain at most 50 element(s)',
+      'ZOD_PARSE_ERROR',
+      0,
+      null,
+    );
+    expect(service.localizeApiError(error)).toBe(
+      'Les données saisies ne sont pas valides — vérifie tes champs',
+    );
+  });
+
   it('should return generic message for unknown error codes', () => {
     const error = new ApiError('Unknown', 'ERR_UNKNOWN_CODE', 500, null);
     expect(service.localizeApiError(error)).toBe(

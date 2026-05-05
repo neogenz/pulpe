@@ -46,7 +46,10 @@ test.describe('Demo Mode', () => {
     });
 
     // Navigate to dashboard
-    await authenticatedPage.goto('/dashboard', { waitUntil: 'domcontentloaded', timeout: 15000 });
+    await authenticatedPage.goto('/dashboard', {
+      waitUntil: 'domcontentloaded',
+      timeout: 15000,
+    });
 
     // IMPORTANT: Verify we're actually on the protected route (not redirected)
     await expect(authenticatedPage).toHaveURL(/\/dashboard/, {
@@ -57,7 +60,9 @@ test.describe('Demo Mode', () => {
     await expect(authenticatedPage.getByTestId('dashboard-page')).toBeVisible();
   });
 
-  test('should work with authenticatedPage fixture', async ({ authenticatedPage }) => {
+  test('should work with authenticatedPage fixture', async ({
+    authenticatedPage,
+  }) => {
     // Setup demo bypass on authenticated page
     await setupDemoBypass(authenticatedPage, {
       userId: 'demo-auth-test',
@@ -65,7 +70,10 @@ test.describe('Demo Mode', () => {
     });
 
     // Navigate to dashboard
-    await authenticatedPage.goto('/dashboard', { waitUntil: 'domcontentloaded', timeout: 15000 });
+    await authenticatedPage.goto('/dashboard', {
+      waitUntil: 'domcontentloaded',
+      timeout: 15000,
+    });
 
     // Verify page loads successfully
     await expect(authenticatedPage.getByTestId('dashboard-page')).toBeVisible();
@@ -84,7 +92,9 @@ test.describe('Demo Mode', () => {
    * Verifies that demo users are not redirected to vault code screens
    * (setup-vault-code or enter-vault-code) even without vaultCodeConfigured.
    */
-  test('should bypass vault code setup screen (issue #308)', async ({ page }) => {
+  test('should bypass vault code setup screen (issue #308)', async ({
+    page,
+  }) => {
     // Setup auth bypass WITHOUT vaultCodeConfigured (simulates a new user)
     await setupAuthBypass(page, {
       includeApiMocks: true,
@@ -115,7 +125,10 @@ test.describe('Demo Mode', () => {
     }, 'demo-vault@test.local');
 
     // Navigate to dashboard
-    await page.goto('/dashboard', { waitUntil: 'domcontentloaded', timeout: 15000 });
+    await page.goto('/dashboard', {
+      waitUntil: 'domcontentloaded',
+      timeout: 15000,
+    });
 
     // Should NOT be redirected to vault code pages
     await expect(page).not.toHaveURL(/\/setup-vault-code/);
@@ -125,7 +138,9 @@ test.describe('Demo Mode', () => {
     await expect(page).toHaveURL(/\/dashboard/);
   });
 
-  test('should hide security section in settings for demo mode', async ({ page }) => {
+  test('should hide security section in settings for demo mode', async ({
+    page,
+  }) => {
     await setupAuthBypass(page, {
       includeApiMocks: true,
       setLocalStorage: true,
@@ -152,10 +167,15 @@ test.describe('Demo Mode', () => {
       localStorage.setItem('pulpe-demo-user-email', JSON.stringify(emailEntry));
     }, 'demo-settings@test.local');
 
-    await page.goto('/settings', { waitUntil: 'domcontentloaded', timeout: 15000 });
+    await page.goto('/settings', {
+      waitUntil: 'domcontentloaded',
+      timeout: 15000,
+    });
 
     await expect(page.getByTestId('settings-page')).toBeVisible();
     await expect(page.getByTestId('change-password-button')).toHaveCount(0);
-    await expect(page.getByTestId('generate-recovery-key-button')).toHaveCount(0);
+    await expect(page.getByTestId('generate-recovery-key-button')).toHaveCount(
+      0,
+    );
   });
 });

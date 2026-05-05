@@ -18,6 +18,10 @@ describe('BudgetLine Mappers', () => {
         checked_at: null,
         created_at: '2025-01-01T00:00:00Z',
         updated_at: '2025-01-02T00:00:00Z',
+        original_amount: null,
+        original_currency: null,
+        target_currency: null,
+        exchange_rate: null,
       };
 
       const result = toApi(dbRow);
@@ -52,6 +56,10 @@ describe('BudgetLine Mappers', () => {
         checked_at: null,
         created_at: '2025-01-01T00:00:00Z',
         updated_at: '2025-01-01T00:00:00Z',
+        original_amount: null,
+        original_currency: null,
+        target_currency: null,
+        exchange_rate: null,
       };
 
       const result = toApi(dbRow);
@@ -132,6 +140,63 @@ describe('BudgetLine Mappers', () => {
       const result = toUpdate(updateDto);
 
       expect(result).toEqual({});
+    });
+
+    it('should not write any currency columns when no currency fields are provided (mono-currency PATCH)', () => {
+      const updateDto: BudgetLineUpdate = {
+        id: 'test-id',
+        name: 'Spotify',
+      };
+
+      const result = toUpdate(updateDto);
+
+      expect(result).toEqual({ name: 'Spotify' });
+      expect(result).not.toHaveProperty('original_currency');
+      expect(result).not.toHaveProperty('target_currency');
+      expect(result).not.toHaveProperty('exchange_rate');
+    });
+
+    it('should only write exchange_rate when a partial currency PATCH touches only the rate (PUL-99 CA4 regression)', () => {
+      const updateDto: BudgetLineUpdate = {
+        id: 'test-id',
+        exchangeRate: 1.08,
+      };
+
+      const result = toUpdate(updateDto);
+
+      expect(result).toEqual({ exchange_rate: 1.08 });
+      expect(result).not.toHaveProperty('original_currency');
+      expect(result).not.toHaveProperty('target_currency');
+    });
+
+    it('should only write original_currency when only originalCurrency is set', () => {
+      const updateDto: BudgetLineUpdate = {
+        id: 'test-id',
+        originalCurrency: 'EUR',
+      };
+
+      const result = toUpdate(updateDto);
+
+      expect(result).toEqual({ original_currency: 'EUR' });
+      expect(result).not.toHaveProperty('target_currency');
+      expect(result).not.toHaveProperty('exchange_rate');
+    });
+
+    it('should write all three currency columns when the full currency metadata is provided', () => {
+      const updateDto: BudgetLineUpdate = {
+        id: 'test-id',
+        originalCurrency: 'EUR',
+        targetCurrency: 'CHF',
+        exchangeRate: 1.05,
+      };
+
+      const result = toUpdate(updateDto);
+
+      expect(result).toEqual({
+        original_currency: 'EUR',
+        target_currency: 'CHF',
+        exchange_rate: 1.05,
+      });
     });
   });
 });

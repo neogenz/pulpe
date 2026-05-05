@@ -3,8 +3,9 @@ import {
   type BudgetTemplate,
   type BudgetTemplateCreate,
   type BudgetTemplateCreateResponse,
+  type TemplateUsageResponse,
 } from 'pulpe-shared';
-import { map } from 'rxjs';
+import { firstValueFrom, map } from 'rxjs';
 import { cachedResource, cachedMutation } from 'ngx-ziflux';
 import { BudgetTemplatesApi } from '@core/budget-template/budget-templates-api';
 
@@ -12,7 +13,6 @@ import { BudgetTemplatesApi } from '@core/budget-template/budget-templates-api';
 export class BudgetTemplatesStore {
   readonly #budgetTemplatesApi = inject(BudgetTemplatesApi);
 
-  // Business constants
   readonly MAX_TEMPLATES = 5;
 
   readonly budgetTemplates = cachedResource({
@@ -76,10 +76,6 @@ export class BudgetTemplatesStore {
     this.#deleteTemplateMutation.error(),
   );
 
-  // Note: We intentionally DON'T use optimistic update here.
-  // The creation is fast (< 1s) and the user sees a spinner.
-  // Optimistic update caused UI flicker issues because computed signals
-  // would react to state changes during navigation.
   readonly #createTemplateMutation = cachedMutation<
     BudgetTemplateCreate,
     BudgetTemplateCreateResponse,
@@ -115,6 +111,29 @@ export class BudgetTemplatesStore {
 
   async deleteTemplate(id: string): Promise<void> {
     await this.#deleteTemplateMutation.mutate(id);
+  }
+
+  async checkUsage(templateId: string): Promise<TemplateUsageResponse['data']> {
+    const cacheKey: string[] = ['templates', 'usage', templateId];
+    const cached =
+      this.#budgetTemplatesApi.cache.get<TemplateUsageResponse['data']>(
+        cacheKey,
+      );
+    if (cached?.fresh) return cached.data;
+
+    const freshPromise = this.#budgetTemplatesApi.cache.deduplicate(
+      cacheKey,
+      async () => {
+        const response = await firstValueFrom(
+          this.#budgetTemplatesApi.checkUsage$(templateId),
+        );
+        this.#budgetTemplatesApi.cache.set(cacheKey, response.data);
+        return response.data;
+      },
+    );
+
+    if (cached) return cached.data;
+    return freshPromise;
   }
 
   async addTemplate(

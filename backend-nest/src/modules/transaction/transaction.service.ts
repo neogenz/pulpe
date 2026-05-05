@@ -4,6 +4,7 @@ import { Injectable, HttpException } from '@nestjs/common';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 import { BusinessException } from '@common/exceptions/business.exception';
 import { handleServiceError } from '@common/utils/error-handler';
+import { mapCurrencyMetadataToDb } from '@common/utils/currency-metadata.mapper';
 import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 import { CacheService } from '@modules/cache/cache.service';
 import {
@@ -21,6 +22,7 @@ import { TRANSACTION_CONSTANTS } from './entities';
 import type { Database, TablesInsert } from '../../types/database.types';
 import { BudgetService } from '../budget/budget.service';
 import { EncryptionService } from '@modules/encryption/encryption.service';
+import { CurrencyService } from '@modules/currency/currency.service';
 
 @Injectable()
 export class TransactionService {
@@ -30,6 +32,7 @@ export class TransactionService {
     private readonly budgetService: BudgetService,
     private readonly encryptionService: EncryptionService,
     private readonly cacheService: CacheService,
+    private readonly currencyService: CurrencyService,
   ) {}
 
   async findAll(
@@ -177,7 +180,6 @@ export class TransactionService {
   }
 
   private prepareTransactionData(createTransactionDto: TransactionCreate) {
-    // Manual conversion without Zod validation (already validated in service)
     return {
       budget_id: createTransactionDto.budgetId,
       budget_line_id: createTransactionDto.budgetLineId ?? null,
@@ -188,6 +190,7 @@ export class TransactionService {
         createTransactionDto.transactionDate || new Date().toISOString(),
       category: createTransactionDto.category ?? null,
       checked_at: createTransactionDto.checkedAt ?? null,
+      ...mapCurrencyMetadataToDb(createTransactionDto),
     };
   }
 
@@ -223,21 +226,29 @@ export class TransactionService {
   private decryptTransactionWithDEK(
     transaction: Database['public']['Tables']['transaction']['Row'],
     dek: Buffer,
-  ): Omit<Database['public']['Tables']['transaction']['Row'], 'amount'> & {
+  ): Omit<
+    Database['public']['Tables']['transaction']['Row'],
+    'amount' | 'original_amount'
+  > & {
     amount: number;
+    original_amount: number | null;
   } {
-    if (!transaction.amount) {
-      return { ...transaction, amount: 0 };
-    }
+    const decryptedAmount = transaction.amount
+      ? this.encryptionService.tryDecryptAmount(transaction.amount, dek, 0)
+      : 0;
 
-    const decryptedAmount = this.encryptionService.tryDecryptAmount(
-      transaction.amount,
-      dek,
-      0,
-    );
+    const decryptedOriginalAmount = transaction.original_amount
+      ? this.encryptionService.tryDecryptAmount(
+          transaction.original_amount,
+          dek,
+          null,
+        )
+      : null;
+
     return {
       ...transaction,
       amount: decryptedAmount,
+      original_amount: decryptedOriginalAmount,
     };
   }
 
@@ -246,8 +257,12 @@ export class TransactionService {
     userId: string,
     clientKey: Buffer,
   ): Promise<
-    Omit<Database['public']['Tables']['transaction']['Row'], 'amount'> & {
+    Omit<
+      Database['public']['Tables']['transaction']['Row'],
+      'amount' | 'original_amount'
+    > & {
       amount: number;
+      original_amount: number | null;
     }
   > {
     const dek = await this.encryptionService.getUserDEK(userId, clientKey);
@@ -259,8 +274,12 @@ export class TransactionService {
     userId: string,
     clientKey: Buffer,
   ): Promise<
-    (Omit<Database['public']['Tables']['transaction']['Row'], 'amount'> & {
+    (Omit<
+      Database['public']['Tables']['transaction']['Row'],
+      'amount' | 'original_amount'
+    > & {
       amount: number;
+      original_amount: number | null;
     })[]
   > {
     const dek = await this.encryptionService.getUserDEK(userId, clientKey);
@@ -277,6 +296,9 @@ export class TransactionService {
     try {
       this.validateCreateTransactionDto(createTransactionDto);
 
+      createTransactionDto =
+        await this.currencyService.overrideExchangeRate(createTransactionDto);
+
       // Validate budget line allocation if provided
       if (createTransactionDto.budgetLineId) {
         await this.validateBudgetLineAllocation(
@@ -289,14 +311,23 @@ export class TransactionService {
 
       const transactionData = this.prepareTransactionData(createTransactionDto);
 
-      const { amount } = await this.encryptionService.prepareAmountData(
-        createTransactionDto.amount,
-        user.id,
-        user.clientKey,
-      );
+      const [{ amount }, encryptedOriginalAmount] = await Promise.all([
+        this.encryptionService.prepareAmountData(
+          createTransactionDto.amount,
+          user.id,
+          user.clientKey,
+        ),
+        this.encryptionService.encryptOptionalAmount(
+          createTransactionDto.originalAmount,
+          user.id,
+          user.clientKey,
+        ),
+      ]);
+
       const dataWithEncryption = {
         ...transactionData,
         amount,
+        original_amount: encryptedOriginalAmount,
       };
 
       const transactionDb = await this.insertTransaction(
@@ -465,6 +496,7 @@ export class TransactionService {
       ...(updateTransactionDto.category !== undefined && {
         category: updateTransactionDto.category,
       }),
+      ...mapCurrencyMetadataToDb(updateTransactionDto),
       updated_at: new Date().toISOString(),
     };
   }
@@ -509,6 +541,9 @@ export class TransactionService {
     try {
       this.validateUpdateTransactionDto(updateTransactionDto);
 
+      updateTransactionDto =
+        await this.currencyService.overrideExchangeRate(updateTransactionDto);
+
       const updateData =
         this.prepareTransactionUpdateData(updateTransactionDto);
 
@@ -520,6 +555,15 @@ export class TransactionService {
           user.clientKey,
         );
         updateData.amount = amount;
+      }
+
+      if (updateTransactionDto.originalAmount !== undefined) {
+        updateData.original_amount =
+          await this.encryptionService.encryptOptionalAmount(
+            updateTransactionDto.originalAmount,
+            user.id,
+            user.clientKey,
+          );
       }
 
       const transactionDb = await this.updateTransactionInDb(

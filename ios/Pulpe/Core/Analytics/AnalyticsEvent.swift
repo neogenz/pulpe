@@ -7,10 +7,31 @@ enum AnalyticsEvent: String, CaseIterable {
 
     // MARK: - Onboarding Funnel
     case welcomeScreenViewed = "welcome_screen_viewed"
+    /// Fires once per session when the user enters the multi-step onboarding
+    /// flow — either by tapping "S'inscrire avec email" on welcome, or via a
+    /// fresh social OAuth that routes them straight into the questionnaire.
+    /// Matches the web funnel's `onboarding_started`. Distinct from
+    /// `onboardingResumed`, which covers cold-start recovery of an in-progress
+    /// signup — `started` = first time, `resumed` = continuing.
+    case onboardingStarted = "onboarding_started"
     case signupStarted = "signup_started"
     case signupCompleted = "signup_completed"
     case onboardingStepCompleted = "onboarding_step_completed"
     case onboardingAbandoned = "onboarding_abandoned"
+    /// Fires when an email user cold-starts an in-progress signup after
+    /// killing or backgrounding the app. Source disambiguates the pending-user
+    /// router from the legacy `wasEmailRegistered` session fallback.
+    case onboardingResumed = "onboarding_resumed"
+    /// Fires when the user taps a suggestion chip in the onboarding charges or
+    /// savings steps. Measures which presets matter to funnel the suggestion
+    /// catalog by product usage.
+    case onboardingSuggestionToggled = "onboarding_suggestion_toggled"
+    /// Fires when the user adds a custom row via the "+ Ajouter" sheet or by
+    /// toggling a suggestion on. `source` tells which path.
+    case customTransactionAdded = "custom_transaction_added"
+    /// Fires when the user removes a custom row via swipe, trash, or by
+    /// toggling a suggestion off.
+    case customTransactionRemoved = "custom_transaction_removed"
 
     // MARK: - Auth
     case loginCompleted = "login_completed"
@@ -31,4 +52,8 @@ enum AnalyticsEvent: String, CaseIterable {
 
     // MARK: - Navigation
     case tabSwitched = "tab_switched"
+
+    // MARK: - Currency
+    case currencyChanged = "currency_changed"
+    case currencySelectorToggled = "currency_selector_toggled"
 }

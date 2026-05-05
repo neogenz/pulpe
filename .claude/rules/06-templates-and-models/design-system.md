@@ -27,7 +27,7 @@ paths:
 
 ## SCSS Utility Classes
 
-Custom classes reference design token variables (no hardcoded values):
+Custom classes reference design token vars (no hardcoded values):
 
 ```scss
 @layer utilities {
@@ -51,11 +51,11 @@ base      (Tailwind styles)
 utilities (.text-*, .bg-* classes)    → High priority
 ```
 
-Utility classes win thanks to `@layer utilities`.
+Utilities win via `@layer utilities`.
 
 ## Styles in Components
 
-### Inline SCSS (preferred for small components)
+### Inline SCSS (prefer small components)
 
 ```typescript
 @Component({
@@ -126,7 +126,7 @@ Utility classes win thanks to `@layer utilities`.
 | `surface-radius-panel` | `--pulpe-surface-radius-panel` | `16px` |
 | `surface-border-subtle` | `--pulpe-surface-border-subtle` | `1px solid var(--mat-sys-outline-variant)` |
 
-The content zone background must be neutral warm — never green-tinted. The Material neutral palette should be generated with a desaturated seed (see DA.md §8.2).
+Content zone background = neutral warm, never green-tinted. Generate Material neutral palette with desaturated seed (see DA.md §8.2).
 
 ### Motion
 
@@ -141,8 +141,8 @@ The content zone background must be neutral warm — never green-tinted. The Mat
 ### Financial Semantics
 
 - Use semantic financial tokens only (`--pulpe-financial-*`).
-- Do not hardcode financial hex values in components.
-- Financial token values must map to Material system tokens for theme consistency.
+- No hardcoded financial hex in components.
+- Financial token values map to Material system tokens for theme consistency.
 
 **Category tokens (normal, planned) vs State tokens (consumption feedback):**
 
@@ -156,21 +156,21 @@ The content zone background must be neutral warm — never green-tinted. The Mat
 | Over-budget (state, >100%) | Amber | `--pulpe-financial-over-budget` | Budget envelope overrun |
 | Deficit (critical state) | Red / Error | `--pulpe-financial-critical` | Hero section in deficit |
 
-- Amber = both a **category** (expense) AND a **state** (near-limit, over-budget)
+- Amber = both **category** (expense) AND **state** (near-limit, over-budget)
 - Red = **critical state** only (deficit)
-- State colors apply only to expense lines with active consumption (income/saving always stay `healthy`)
-- Do NOT use `text-error` / `bg-error-container` for individual expense amounts or transaction rows
-- Red is reserved for hero deficit display only
+- State colors apply only to expense lines with active consumption (income/saving always `healthy`)
+- No `text-error` / `bg-error-container` for individual expense amounts or transaction rows
+- Red reserved for hero deficit display only
 
 ### Visual Zones
 
-The screen is divided into two distinct zones (see DA.md §3.1):
+Screen split in two zones (see DA.md §3.1):
 
 - **Emotion zone** (hero, header ~30-35% top): colored background matching financial state
-- **Content zone** (lists, cards, forms): neutral warm background — never green-tinted
-- Transition between zones: soft gradient (40-60px), not a hard cut
-- Green = accents and actions only. It does NOT color neutral surfaces.
-- **Screens without hero** (templates, settings, forms): no emotion zone. Neutral warm background fills the entire screen. Identity comes from accents and tone of voice.
+- **Content zone** (lists, cards, forms): neutral warm background, never green-tinted
+- Zone transition: soft gradient (40-60px), not hard cut
+- Green = accents and actions only. Does NOT color neutral surfaces.
+- **Screens without hero** (templates, settings, forms): no emotion zone. Neutral warm fills full screen. Identity from accents and tone of voice.
 
 ### Buttons
 
@@ -181,15 +181,15 @@ The screen is divided into two distinct zones (see DA.md §3.1):
 | Text | Text button (no background) | Inline navigation, tertiary actions |
 | Destructive | Text red or filled red | Delete, logout — always with confirmation |
 
-- Only one primary button per screen or dialog
-- Destructive buttons are never the first visual option
+- One primary button per screen or dialog
+- Destructive buttons never first visual option
 - Mobile: primary buttons min 48pt height (touch target)
 
 ## State Card Spec
 
 - Component: `pulpe-state-card`
 - Inputs: `variant: 'error' | 'empty' | 'loading'`, `title`, `message`, optional `actionLabel`.
-- Optional behavior: disabled action state via `actionDisabled`.
+- Optional: disabled action state via `actionDisabled`.
 - Structure:
   - icon/spinner
   - title (single clear statement)
@@ -207,4 +207,4 @@ The screen is divided into two distinct zones (see DA.md §3.1):
 
 ## Reference
 
-Refer to your project's design system documentation for the complete token list and customization options.
+See project design system docs for full token list and customization.

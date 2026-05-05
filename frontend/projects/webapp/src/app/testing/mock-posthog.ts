@@ -9,12 +9,14 @@ export function createMockPostHogService() {
   return {
     isInitialized: signal(true),
     isEnabled: signal(true),
+    flagsVersion: signal(0),
     enableTracking: vi.fn(),
     identify: vi.fn(),
     reset: vi.fn(),
     captureEvent: vi.fn(),
     capture: vi.fn(),
     captureException: vi.fn(),
+    setPersonProperties: vi.fn(),
     capturePendingSignupCompleted: vi.fn(),
     setPendingSignupMethod: vi.fn(),
     clearPendingSignupMethod: vi.fn(),
@@ -22,6 +24,7 @@ export function createMockPostHogService() {
     opt_out_capturing: vi.fn(),
     register: vi.fn(),
     initialize: vi.fn().mockResolvedValue(undefined),
+    isFeatureEnabled: vi.fn().mockReturnValue(false),
   };
 }
 

@@ -16,6 +16,15 @@ extension Color {
     /// Over-budget indicator - Warm amber, not aggressive red (#A86800 light, #E5A33A dark)
     static let financialOverBudget = Color(light: Color(hex: 0xA86800), dark: Color(hex: 0xE5A33A))
 
+    /// Map a `TransactionKind` to its semantic financial color.
+    static func financialColor(for kind: TransactionKind) -> Color {
+        switch kind {
+        case .income: financialIncome
+        case .expense: financialExpense
+        case .saving: financialSavings
+        }
+    }
+
     // MARK: - Hero Card Gradient Colors (4-stop, ~128° linear)
     // Designed in oklch for perceptual uniformity, converted to hex for SwiftUI.
     // Gradient direction: dark → bright for depth and punch.
@@ -60,6 +69,15 @@ extension Color {
     static let primaryContainer = Color(light: Color(hex: 0x99F89D), dark: Color(hex: 0x00531A))
     static let onPrimaryContainer = Color(light: Color(hex: 0x00531A), dark: Color(hex: 0x99F89D))
 
+    /// Opaque disabled fill for primary buttons. Replaces opacity-based tints which
+    /// bleed underlying content through (e.g. legal disclaimer behind onboarding CTA).
+    /// Pairs with `onSurfaceVariant` text:
+    /// - Light `#524D48` on `#D6E8DC` ≈ 5.6:1 (AA normal, AAA large)
+    /// - Dark  `#B8B0A8` on `#2D3D31` ≈ 5.5:1 (AA normal, AAA large)
+    /// Dark fill is lifted from background `onboardingFormBase` `#141A16` (~2.6:1 surface contrast)
+    /// so the disabled capsule remains visually distinct without an outline.
+    static let primaryContainerDisabled = Color(light: Color(hex: 0xD6E8DC), dark: Color(hex: 0x2D3D31))
+
     // MARK: - Secondary
 
     static let secondaryColor = Color(light: Color(hex: 0x406741), dark: Color(hex: 0xA6D2A3))
@@ -92,8 +110,12 @@ extension Color {
     /// Primary text — iOS system label (pure black light, pure white dark)
     static let textPrimary = Color(.label)
 
-    /// Text on primary-colored backgrounds (white in both modes)
-    static let textOnPrimary = Color(light: .white, dark: .white)
+    /// Text on primary-colored backgrounds — inverts lightness with `pulpePrimary` (M3 onPrimary pairing).
+    /// Light: white on dark forest green #006E25 = 5.1:1 (AA) · Dark: near-black on lime #7EDB83 = ~12.5:1 (AAA)
+    static let textOnPrimary = Color(light: .white, dark: Color(hex: 0x0A1F0D))
+
+    /// Secondary line on primary-filled controls (e.g. capsule subtitle). 88% opacity of `textOnPrimary`.
+    static var textOnPrimaryMuted: Color { textOnPrimary.opacity(0.88) }
 
     /// Secondary text — WCAG AA on all warm surfaces (labels, subtitles, captions)
     /// Light #524D48: 6.9:1 on #F0EDE9 (AAA) · Dark #B8B0A8: 7.6:1 on #242220 (AAA)
@@ -208,6 +230,9 @@ extension Color {
 
     /// Base color behind gradient shapes
     private static let authBase = Color(light: .white, dark: Color(hex: 0x111614))
+
+    /// Solid color matching the bottom of loginGradientBackground (for overlays/fades)
+    static let onboardingFormBase = Color(light: .white, dark: Color(hex: 0x141A16))
 
     /// Welcome sky gradient — covers top ~55%, fades out with a soft convex curve at the bottom
     @ViewBuilder

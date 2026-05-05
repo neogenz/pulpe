@@ -75,13 +75,13 @@ struct CustomTabBar: UIViewRepresentable {
     VStack {
         Spacer()
 
-        HStack(spacing: 0) {
+        HStack(spacing: DesignTokens.Spacing.none) {
             GeometryReader { geometry in
                 CustomTabBar(size: geometry.size, barTint: .gray.opacity(0.3), activeTab: $selectedTab)
                     .overlay {
-                        HStack(spacing: 0) {
+                        HStack(spacing: DesignTokens.Spacing.none) {
                             ForEach(Tab.allCases) { tab in
-                                VStack(spacing: 3) {
+                                VStack(spacing: DesignTokens.Spacing.dividerGap) {
                                     Image(systemName: tab.icon)
                                         .font(.title3)
                                     Text(tab.title)

@@ -27,6 +27,7 @@ enum APIError: LocalizedError {
     case clientKeyInvalid
     case recoveryKeyInvalid
     case recoveryKeyNotConfigured
+    case rekeyPartialFailure
 
     var errorDescription: String? {
         switch self {
@@ -76,6 +77,8 @@ enum APIError: LocalizedError {
             return "Clé de récupération invalide — vérifie que tu as bien copié la clé"
         case .recoveryKeyNotConfigured:
             return "Aucune clé de secours n'est enregistrée — génère-en une depuis « Clé de secours »."
+        case .rekeyPartialFailure:
+            return "Le changement de PIN a réussi mais la clé de secours n'a pas pu être mise à jour"
         }
     }
 
@@ -102,6 +105,7 @@ enum APIError: LocalizedError {
         "ERR_ENCRYPTION_KEY_CHECK_FAILED": .clientKeyInvalid,
         "ERR_RECOVERY_KEY_INVALID": .recoveryKeyInvalid,
         "ERR_RECOVERY_KEY_NOT_CONFIGURED": .recoveryKeyNotConfigured,
+        "ERR_ENCRYPTION_REKEY_PARTIAL_FAILURE": .rekeyPartialFailure,
     ]
 
     /// Create APIError from server error code

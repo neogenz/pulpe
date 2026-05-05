@@ -10,6 +10,7 @@ struct LinkedTransactionsSheet: View {
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.amountsHidden) private var amountsHidden
+    @Environment(UserSettingsStore.self) private var userSettingsStore
 
     private var consumption: BudgetFormulas.Consumption {
         BudgetFormulas.calculateConsumption(for: budgetLine, transactions: transactions)
@@ -95,7 +96,13 @@ struct LinkedTransactionsSheet: View {
 
     // MARK: - Metrics Cards
 
+    @ViewBuilder
     private var metricsSection: some View {
+        let currency = userSettingsStore.currency
+        let spentLabel = amountsHidden ? "Montant masqué" : consumption.allocated.asCurrency(currency)
+        let plannedLabel = amountsHidden ? "Montant masqué" : budgetLine.amount.asCurrency(currency)
+        let remainingLabel = amountsHidden ? "Montant masqué" : remaining.asCurrency(currency)
+
         HStack(spacing: DesignTokens.Spacing.md) {
             MetricCard(
                 icon: "arrow.up.circle.fill",
@@ -104,7 +111,7 @@ struct LinkedTransactionsSheet: View {
                 color: spentColor
             )
             .accessibilityElement(children: .combine)
-            .accessibilityLabel("Dépensé: \(amountsHidden ? "Montant masqué" : consumption.allocated.asCHF)")
+            .accessibilityLabel("Dépensé: \(spentLabel)")
 
             MetricCard(
                 icon: "target",
@@ -113,7 +120,7 @@ struct LinkedTransactionsSheet: View {
                 color: .secondary
             )
             .accessibilityElement(children: .combine)
-            .accessibilityLabel("Prévu: \(amountsHidden ? "Montant masqué" : budgetLine.amount.asCHF)")
+            .accessibilityLabel("Prévu: \(plannedLabel)")
 
             MetricCard(
                 icon: remaining >= 0 ? "checkmark.circle.fill" : "exclamationmark.circle.fill",
@@ -122,7 +129,7 @@ struct LinkedTransactionsSheet: View {
                 color: remainingColor
             )
             .accessibilityElement(children: .combine)
-            .accessibilityLabel("Reste: \(amountsHidden ? "Montant masqué" : remaining.asCHF)")
+            .accessibilityLabel("Reste: \(remainingLabel)")
         }
     }
 
@@ -194,7 +201,7 @@ struct LinkedTransactionsSheet: View {
             onToggle(transaction)
         } label: {
             Label(
-                transaction.isChecked ? "Dépointer" : "Comptabiliser",
+                transaction.isChecked ? "Dépointer" : "Pointer",
                 systemImage: transaction.isChecked ? "arrow.uturn.backward" : "checkmark.circle"
             )
         }
@@ -218,8 +225,7 @@ struct LinkedTransactionsSheet: View {
         }
         .primaryButtonStyle()
         .padding(.horizontal)
-        .padding(.vertical, DesignTokens.Spacing.md)
-        .pulpeFloatingGlass(cornerRadius: 0)
+        .padding(.top, DesignTokens.Spacing.md)
         .background {
             Color.sheetBackground
                 .ignoresSafeArea(edges: .bottom)
@@ -235,6 +241,8 @@ private struct MetricCard: View {
     let value: Decimal
     let color: Color
 
+    @Environment(UserSettingsStore.self) private var userSettingsStore
+
     var body: some View {
         VStack(spacing: DesignTokens.Spacing.sm) {
             Image(systemName: icon)
@@ -246,7 +254,7 @@ private struct MetricCard: View {
                     .font(PulpeTypography.caption)
                     .foregroundStyle(Color.textSecondary)
 
-                Text(value.asCompactCHF)
+                Text(value.asCompactCurrency(userSettingsStore.currency))
                     .font(PulpeTypography.progressValue)
                     .foregroundStyle(color == .secondary ? .primary : color)
                     .sensitiveAmount()
@@ -298,6 +306,7 @@ private struct MetricCard: View {
                 onDelete: { _ in },
                 onAddTransaction: {}
             )
+            .environment(UserSettingsStore())
         }
 }
 
@@ -352,6 +361,7 @@ private struct MetricCard: View {
                 onDelete: { _ in },
                 onAddTransaction: {}
             )
+            .environment(UserSettingsStore())
         }
 }
 
@@ -379,5 +389,6 @@ private struct MetricCard: View {
                 onDelete: { _ in },
                 onAddTransaction: {}
             )
+            .environment(UserSettingsStore())
         }
 }

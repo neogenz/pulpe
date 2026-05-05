@@ -30,12 +30,12 @@ import {
 
 import { firstValueFrom, map } from 'rxjs';
 import { v4 as uuidv4 } from 'uuid';
-import { type BudgetDetailsViewModel } from '../models/budget-details-view-model';
+import { type BudgetDetailsViewModel } from '../view-models/budget-details.view-model';
 import {
   calculateBudgetLineToggle,
   calculateTransactionToggle,
 } from './budget-details-check.utils';
-import { normalizeText } from '../data-core/budget-item-constants';
+import { normalizeText } from '../view-models/budget-item-constants';
 import { createInitialBudgetDetailsState } from './budget-details-state';
 
 const TEMP_ID_PREFIX = 'temp-';
@@ -521,20 +521,13 @@ export class BudgetDetailsStore {
   >({
     cache: this.#budgetApi.cache,
     invalidateKeys: () => BUDGET_DETAIL_INVALIDATION_KEYS,
-    mutationFn: ({ data }) =>
-      this.#budgetApi.createTransaction$({
-        ...data,
-        checkedAt: data.checkedAt ?? null,
-      }),
+    mutationFn: ({ data }) => this.#budgetApi.createTransaction$(data),
     onMutate: ({ data, tempId }) => {
       const previous = this.budgetDetails();
       const tempTransaction: Transaction = {
+        ...data,
         id: tempId,
-        budgetId: data.budgetId,
         budgetLineId: data.budgetLineId ?? null,
-        name: data.name,
-        amount: data.amount,
-        kind: data.kind,
         transactionDate: data.transactionDate ?? formatLocalDate(new Date()),
         category: data.category ?? null,
         createdAt: new Date().toISOString(),

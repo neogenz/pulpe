@@ -30,13 +30,28 @@ export class PostHogService {
   readonly #storageService = inject(StorageService);
 
   readonly #isInitialized = signal<boolean>(false);
+  readonly #flagsVersion = signal<number>(0);
   #isTrackingEnabled = false;
+
+  constructor() {
+    const e2eFlags = this.#readE2eFlagOverride();
+    if (e2eFlags) {
+      queueMicrotask(() => this.#flagsVersion.update((v) => v + 1));
+    }
+  }
 
   readonly isInitialized = this.#isInitialized.asReadonly();
   readonly isEnabled = computed(() => {
     const config = this.#applicationConfiguration.postHogConfig();
     return config?.enabled ?? false;
   });
+
+  /**
+   * Signal bumped every time PostHog resolves or refreshes feature flags.
+   * Used as a reactive dependency by `isFeatureEnabled()` consumers so that
+   * `computed()` re-evaluates when the flag payload changes.
+   */
+  readonly flagsVersion = this.#flagsVersion.asReadonly();
 
   /**
    * Initialize PostHog with minimal configuration.
@@ -95,9 +110,39 @@ export class PostHogService {
           this.#logger.info('PostHog initialized successfully');
         },
       });
+
+      posthog.onFeatureFlags(() => {
+        this.#flagsVersion.update((v) => v + 1);
+      });
     } catch (error) {
       this.#logger.error('Failed to initialize PostHog', error);
     }
+  }
+
+  /**
+   * Returns true when the given feature flag is enabled for the current user.
+   * Safe default: returns false before PostHog initializes or if the flag is
+   * missing. Pair with `flagsVersion` signal in computeds for reactive gating.
+   */
+  isFeatureEnabled(key: string): boolean {
+    const e2eOverride = this.#readE2eFlagOverride();
+    if (e2eOverride && key in e2eOverride) return e2eOverride[key] === true;
+    if (!this.#isInitialized()) return false;
+    return posthog.isFeatureEnabled(key) === true;
+  }
+
+  /**
+   * Read the E2E feature-flag override only in non-production environments.
+   * Production and preview builds ignore the global to prevent any
+   * client-side script (DevTools, browser extension) from flipping flags.
+   */
+  #readE2eFlagOverride(): Record<string, boolean> | undefined {
+    const env = this.#applicationConfiguration.environment();
+    if (env !== 'test' && env !== 'local' && env !== 'development') {
+      return undefined;
+    }
+    return (globalThis as { __E2E_POSTHOG_FLAGS__?: Record<string, boolean> })
+      .__E2E_POSTHOG_FLAGS__;
   }
 
   /**
@@ -226,6 +271,11 @@ export class PostHogService {
 
   /**
    * Reset state (e.g., on logout)
+   *
+   * posthog.reset() clears the distinct_id, device_id AND all registered
+   * super properties. Re-register the global properties right after so that
+   * subsequent anonymous events still carry platform/environment/app_version
+   * for consistent filtering and cohort matching.
    */
   reset(): void {
     if (!this.#canCapture()) return;
@@ -233,6 +283,7 @@ export class PostHogService {
     try {
       posthog.reset();
       this.#isTrackingEnabled = false;
+      this.#registerGlobalProperties();
       this.#logger.debug('PostHog state reset');
     } catch (error) {
       this.#logger.error('Failed to reset PostHog', error);

@@ -12,8 +12,15 @@ test.describe('Checking Summary (Solde estimé)', () => {
   // All tests need to show checked items (default filter hides them)
   test.beforeEach(async ({ authenticatedPage }) => {
     await authenticatedPage.addInitScript(() => {
-      const entry = { version: 1, data: false, updatedAt: new Date().toISOString() };
-      localStorage.setItem('pulpe-budget-show-only-unchecked', JSON.stringify(entry));
+      const entry = {
+        version: 1,
+        data: false,
+        updatedAt: new Date().toISOString(),
+      };
+      localStorage.setItem(
+        'pulpe-budget-show-only-unchecked',
+        JSON.stringify(entry),
+      );
     });
   });
 
@@ -65,13 +72,13 @@ test.describe('Checking Summary (Solde estimé)', () => {
 
     await budgetDetailsPage.goto(budgetId);
 
-    const summary = authenticatedPage.getByTestId('checking-summary');
+    const summary = authenticatedPage.getByTestId('budget-items-checking-summary');
     await expect(summary).toBeVisible();
 
     // All items checked → "Tout pointé"
     await expect(summary).toContainText('Tout pointé');
     // Realized balance = 5000 - max(2000, 1000) = 3000
-    await expect(summary).toContainText("3\u2019000 CHF");
+    await expect(summary).toContainText('3 000 CHF');
   });
 
   test('(7.6) envelope checked with overage uses transaction sum', async ({
@@ -129,13 +136,13 @@ test.describe('Checking Summary (Solde estimé)', () => {
 
     await budgetDetailsPage.goto(budgetId);
 
-    const summary = authenticatedPage.getByTestId('checking-summary');
+    const summary = authenticatedPage.getByTestId('budget-items-checking-summary');
     await expect(summary).toBeVisible();
 
     // All items checked → "Tout pointé"
     await expect(summary).toContainText('Tout pointé');
     // Realized balance = 5000 - max(2000, 3000) = 2000
-    await expect(summary).toContainText("2\u2019000 CHF");
+    await expect(summary).toContainText('2 000 CHF');
   });
 
   test('(7.7) no double counting when envelope and transactions are checked', async ({
@@ -194,13 +201,13 @@ test.describe('Checking Summary (Solde estimé)', () => {
 
     await budgetDetailsPage.goto(budgetId);
 
-    const summary = authenticatedPage.getByTestId('checking-summary');
+    const summary = authenticatedPage.getByTestId('budget-items-checking-summary');
     await expect(summary).toBeVisible();
 
     // All items checked → "Tout pointé"
     await expect(summary).toContainText('Tout pointé');
     // Realized balance = 5000 - max(500, 450) = 4500
-    await expect(summary).toContainText("4\u2019500 CHF");
+    await expect(summary).toContainText('4 500 CHF');
   });
 
   test('(7.8) envelope not checked — only checked transactions count', async ({
@@ -259,12 +266,12 @@ test.describe('Checking Summary (Solde estimé)', () => {
 
     await budgetDetailsPage.goto(budgetId);
 
-    const summary = authenticatedPage.getByTestId('checking-summary');
+    const summary = authenticatedPage.getByTestId('budget-items-checking-summary');
     await expect(summary).toBeVisible();
 
     // Envelope not checked → "X/Y pointés" (not "Tout pointé")
     await expect(summary).toContainText('pointés');
     // Realized balance = 5000 - 450 = 4550
-    await expect(summary).toContainText("4\u2019550 CHF");
+    await expect(summary).toContainText('4 550 CHF');
   });
 });

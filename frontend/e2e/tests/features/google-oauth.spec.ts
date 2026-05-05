@@ -2,7 +2,9 @@ import { test, expect } from '../../fixtures/test-fixtures';
 import { setupAuthBypass } from '../../utils/auth-bypass';
 import type { Route } from '@playwright/test';
 
-const mockSupabaseUpdateUser = async (page: import('@playwright/test').Page) => {
+const mockSupabaseUpdateUser = async (
+  page: import('@playwright/test').Page,
+) => {
   await page.route('**/auth/v1/user**', (route: Route) => {
     return route.fulfill({
       status: 200,
@@ -21,11 +23,21 @@ test.describe('Google OAuth', () => {
   test.describe.configure({ mode: 'parallel' });
 
   test('first login completes vault setup', async ({ page }) => {
+    // Set bypass flag only (no session) so the login page renders for an unauthenticated user.
+    // signInWithGoogle() returns immediately in E2E mode without triggering a real OAuth redirect.
+    await page.addInitScript(() => {
+      (
+        window as unknown as { __E2E_AUTH_BYPASS__: boolean }
+      ).__E2E_AUTH_BYPASS__ = true;
+    });
+
     await page.goto('/login', { waitUntil: 'domcontentloaded' });
     await expect(page.getByTestId('google-login-button')).toBeVisible();
 
     await page.getByTestId('google-login-button').click();
 
+    // Now register the authenticated Google user state for the next navigation.
+    // addInitScript fires on every page load, so /dashboard will get the full mock auth state.
     await setupAuthBypass(page, {
       includeApiMocks: true,
       setLocalStorage: true,
@@ -38,9 +50,7 @@ test.describe('Google OAuth', () => {
     await expect(page).toHaveURL(/\/setup-vault-code/);
 
     await page.getByTestId('vault-code-input').fill('1234');
-    await page
-      .getByTestId('confirm-vault-code-input')
-      .fill('1234');
+    await page.getByTestId('confirm-vault-code-input').fill('1234');
     await page.getByTestId('setup-vault-code-submit-button').click();
 
     await expect(page.getByTestId('recovery-key-dialog')).toBeVisible();

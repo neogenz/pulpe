@@ -38,6 +38,7 @@ struct UncheckedTransactionsSection: View {
 /// Read-only unchecked transaction row
 private struct UncheckedTransactionRow: View {
     let transaction: Transaction
+    @Environment(UserSettingsStore.self) private var userSettingsStore
 
     var body: some View {
         HStack(spacing: DesignTokens.Spacing.md) {
@@ -66,10 +67,7 @@ private struct UncheckedTransactionRow: View {
             Spacer()
 
             // Amount
-            Text(transaction.amount.asAmount)
-                .font(PulpeTypography.listRowSubtitle)
-                .foregroundStyle(transaction.kind.color)
-                .sensitiveAmount()
+            TransactionAmountView(transaction: transaction, displayCurrency: userSettingsStore.currency)
         }
         .padding(.vertical, DesignTokens.ListRow.verticalPadding)
     }
@@ -110,4 +108,5 @@ private struct UncheckedTransactionRow: View {
         )
     }
     .listStyle(.insetGrouped)
+    .environment(UserSettingsStore())
 }

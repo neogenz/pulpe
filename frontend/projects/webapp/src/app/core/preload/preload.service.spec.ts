@@ -3,7 +3,7 @@ import { TestBed } from '@angular/core/testing';
 import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { of, throwError } from 'rxjs';
 import { PreloadService } from './preload.service';
-import { AuthStateService } from '../auth/auth-state.service';
+import { AuthStore } from '../auth/auth-store';
 import { BudgetApi } from '../budget/budget-api';
 import { ClientKeyService } from '../encryption/client-key.service';
 import { DemoModeService } from '../demo/demo-mode.service';
@@ -42,7 +42,7 @@ function setup({
       provideZonelessChangeDetection(),
       PreloadService,
       {
-        provide: AuthStateService,
+        provide: AuthStore,
         useValue: { isAuthenticated: signal(authenticated) },
       },
       {

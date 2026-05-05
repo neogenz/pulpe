@@ -10,7 +10,7 @@ enum CheckedFilterOption: String, CaseIterable, Identifiable {
     var label: String {
         switch self {
         case .unchecked: "À pointer"
-        case .all: "Toutes"
+        case .all: "Tout voir"
         }
     }
 

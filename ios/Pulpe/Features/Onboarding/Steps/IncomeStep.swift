@@ -1,0 +1,144 @@
+import SwiftUI
+
+struct IncomeStep: View {
+    @Bindable var state: OnboardingState
+    @Environment(FeatureFlagsStore.self) private var featureFlagsStore
+    @State private var showAddIncome = false
+    @State private var editingTransaction: OnboardingTransaction?
+    /// Drives the keyboard auto-focus on the main income field when the step
+    /// appears, so the user can start typing without an extra tap.
+    @FocusState private var isMonthlyIncomeFocused: Bool
+
+    private var customIncomes: [OnboardingTransaction] {
+        state.customTransactions.filter { $0.type == .income }
+    }
+
+    var body: some View {
+        OnboardingStepView(
+            step: .income,
+            state: state,
+            canProceed: state.isIncomeValid,
+            onNext: { state.nextStep() },
+            content: {
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.sectionGap) {
+                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+                        if featureFlagsStore.isMultiCurrencyEnabled {
+                            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                                Text("Tu comptes en francs ou en euros ?")
+                                    .font(PulpeTypography.labelMedium)
+                                    .foregroundStyle(Color.onSurfaceVariant)
+                                Text("Tu pourras changer plus tard si besoin.")
+                                    .font(PulpeTypography.caption)
+                                    .foregroundStyle(Color.textTertiaryOnboarding)
+                                    .fixedSize(horizontal: false, vertical: true)
+                                CapsulePicker(selection: $state.currency, title: nil) { currency, isSelected in
+                                    HStack(spacing: DesignTokens.Spacing.xs) {
+                                        Text(currency.flag)
+                                        VStack(alignment: .leading, spacing: 0) {
+                                            Text(currency.rawValue)
+                                                .font(PulpeTypography.labelLarge)
+                                            Text(currency.nativeName)
+                                                .font(PulpeTypography.caption2)
+                                                .foregroundStyle(
+                                                    isSelected
+                                                        ? Color.textOnPrimaryMuted
+                                                        : Color.textSecondaryOnboarding
+                                                )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        CurrencyField(
+                            value: $state.monthlyIncome,
+                            hint: "5000",
+                            label: "Revenu mensuel net",
+                            isRequired: true,
+                            currency: state.currency,
+                            externalFocus: $isMonthlyIncomeFocused
+                        )
+
+                        HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.sm) {
+                            Image(systemName: "lock.fill")
+                                .font(PulpeTypography.caption2)
+                            Text("Personne d'autre ne voit ces montants — pas même moi qui développe Pulpe.")
+                                .font(PulpeTypography.caption)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        .foregroundStyle(Color.textTertiaryOnboarding)
+                    }
+
+                    if !customIncomes.isEmpty {
+                        customIncomesSection
+                    }
+
+                    addIncomeButton
+
+                    if state.totalIncome > 0 {
+                        OnboardingRunningTotal(
+                            label: "Total revenus",
+                            amount: state.totalIncome,
+                            color: .financialIncome,
+                            currency: state.currency
+                        )
+                    }
+                }
+                // Open the keyboard on the main income field as the step lands —
+                // saves a tap on the screen's only required input. The guard
+                // avoids stealing focus back if the user has already moved on
+                // to a custom-income sheet within the same task lifecycle.
+                .task {
+                    guard !isMonthlyIncomeFocused else { return }
+                    isMonthlyIncomeFocused = true
+                }
+            }
+        )
+        .sheet(isPresented: $showAddIncome) {
+            AddCustomExpenseSheet(kind: .income, currency: state.currency) { tx in
+                state.addCustomTransaction(tx)
+            }
+            .standardSheetPresentation()
+        }
+        .sheet(item: $editingTransaction) { tx in
+            AddCustomExpenseSheet(editing: tx, currency: state.currency) { updated in
+                state.replaceCustomTransaction(id: tx.id, with: updated)
+            }
+            .standardSheetPresentation()
+        }
+        .trackScreen("Onboarding_Income")
+    }
+
+    // MARK: - Custom Incomes
+
+    private var customIncomesSection: some View {
+        OnboardingTransactionListSection(
+            title: "Revenus supplémentaires",
+            icon: "arrow.down.circle.fill",
+            transactions: customIncomes,
+            state: state,
+            onEdit: { editingTransaction = $0 }
+        )
+    }
+
+    private var addIncomeButton: some View {
+        Button {
+            showAddIncome = true
+        } label: {
+            HStack(spacing: DesignTokens.Spacing.sm) {
+                Image(systemName: "plus.circle.fill")
+                Text("Ajouter un revenu")
+            }
+            .font(PulpeTypography.labelLarge)
+            .foregroundStyle(Color.pulpePrimary)
+        }
+        .frame(maxWidth: .infinity, minHeight: DesignTokens.TapTarget.minimum)
+        .contentShape(Rectangle())
+        .plainPressedButtonStyle()
+    }
+}
+
+#Preview {
+    IncomeStep(state: OnboardingState())
+        .environment(FeatureFlagsStore())
+}

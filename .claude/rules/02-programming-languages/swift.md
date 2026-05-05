@@ -51,9 +51,9 @@ func insertElement(element: Element, atIndex: Int)
 
 ## Strict Types
 
-- Never use `Any` or `AnyObject` unless interfacing with Objective-C
+- Never `Any`/`AnyObject` unless Objective-C interop
 - Prefer `unknown` patterns over force casts
-- Use `as?` (conditional cast), avoid `as!` (force cast)
+- Use `as?`, avoid `as!`
 
 ```swift
 // Good - safe cast
@@ -82,7 +82,7 @@ let budget = response as! Budget
 | `class` | Reference type | Only when `@Observable` required (stores) |
 | `enum` | Value type | Typed destinations, error cases, variants |
 
-**Default to `struct`**. Use `class` only for `@Observable` stores.
+**Default `struct`**. `class` only for `@Observable` stores.
 
 ## Access Control
 
@@ -224,7 +224,7 @@ protocol StoreProtocol: Observable {
 
 ### Language Mode
 
-The project uses **Swift 6** (`SWIFT_VERSION: "6"`). All concurrency violations are compile errors, not warnings.
+Project uses **Swift 6** (`SWIFT_VERSION: "6"`). Concurrency violations = compile errors, not warnings.
 
 ### Task Naming (Swift 6.2 — SE-0469)
 
@@ -242,7 +242,7 @@ Task { appState.send(.someEvent) }
 
 ### nonisolated(unsafe) — Test-Only Pattern
 
-In Swift 6, captured `var` in `@Sendable` closures is a compile error. In tests where closures execute sequentially on `@MainActor`, use `nonisolated(unsafe)`:
+Swift 6: captured `var` in `@Sendable` closures = compile error. Tests where closures run sequentially on `@MainActor`, use `nonisolated(unsafe)`:
 
 ```swift
 // Good — test pattern, safe because closure runs on @MainActor
@@ -252,11 +252,11 @@ await vm.submit()
 #expect(callCount == 1)
 ```
 
-**Never use `nonisolated(unsafe)` in production code** — use actors or `@MainActor` isolation instead.
+**Never `nonisolated(unsafe)` in production** — use actors or `@MainActor` isolation.
 
 ### TaskGroup + @MainActor (Swift 6 Limitation)
 
-`TaskGroup.addTask` requires `sending` closures — incompatible with `@MainActor` captured state in Swift 6. Use `Task.init` instead (inherits caller isolation):
+`TaskGroup.addTask` requires `sending` closures — incompatible with `@MainActor` captured state in Swift 6. Use `Task.init` (inherits caller isolation):
 
 ```swift
 // Bad — Swift 6 error: sending parameter risks data races

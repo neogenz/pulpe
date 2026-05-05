@@ -18,7 +18,7 @@ struct CheckedFilterPickerTests {
         let option = CheckedFilterOption.all
 
         // Assert
-        #expect(option.label == "Toutes")
+        #expect(option.label == "Tout voir")
     }
 
     @Test func uncheckedOptionHasCorrectIcon() {

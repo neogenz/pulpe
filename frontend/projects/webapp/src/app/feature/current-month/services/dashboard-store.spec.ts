@@ -1,10 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { provideZonelessChangeDetection, signal } from '@angular/core';
-import { of, throwError, NEVER } from 'rxjs';
+import { of, throwError, NEVER, Subject } from 'rxjs';
 import { DashboardStore, DASHBOARD_NOW } from './dashboard-store';
 import { BudgetApi } from '@core/budget';
 import { UserSettingsStore } from '@core/user-settings';
+import { Logger } from '@core/logging/logger';
 import type { Budget, BudgetLine, Transaction } from 'pulpe-shared';
 import { BudgetFormulas } from 'pulpe-shared';
 
@@ -66,6 +67,22 @@ function createMockTransaction(overrides: Partial<Transaction>): Transaction {
 
 // ── Mock setup ──
 function createMocks() {
+  const deduplicate = (() => {
+    const inflight = new Map<string, Promise<unknown>>();
+    return vi
+      .fn()
+      .mockImplementation((key: string[], fn: () => Promise<unknown>) => {
+        const k = Array.isArray(key) ? key.join('|') : String(key);
+        const existing = inflight.get(k);
+        if (existing) return existing;
+        const p = Promise.resolve()
+          .then(() => fn())
+          .finally(() => inflight.delete(k));
+        inflight.set(k, p);
+        return p;
+      });
+  })();
+
   return {
     budgetApi: {
       getDashboardData$: vi
@@ -82,14 +99,16 @@ function createMocks() {
         get: vi.fn().mockReturnValue(null),
         set: vi.fn(),
         invalidate: vi.fn(),
-        deduplicate: vi
-          .fn()
-          .mockImplementation((_key: unknown, fn: () => Promise<unknown>) =>
-            fn(),
-          ),
+        deduplicate,
         prefetch: vi.fn(),
         clearDirty: vi.fn(),
       },
+    },
+    logger: {
+      error: vi.fn(),
+      warn: vi.fn(),
+      info: vi.fn(),
+      debug: vi.fn(),
     },
     userSettingsStore: {
       payDayOfMonth: signal<number | null>(1),
@@ -106,6 +125,7 @@ function setup(mocks = createMocks()) {
       provideZonelessChangeDetection(),
       { provide: BudgetApi, useValue: mocks.budgetApi },
       { provide: UserSettingsStore, useValue: mocks.userSettingsStore },
+      { provide: Logger, useValue: mocks.logger },
       { provide: DASHBOARD_NOW, useValue: FIXED_DATE },
     ],
   });
@@ -273,7 +293,7 @@ describe('DashboardStore - Business Scenarios', () => {
       expect(store.transactions()[0].id).toBe('tx-new');
     });
 
-    it('should rollback on addTransaction error', async () => {
+    it('should not insert transaction and should set error signal when addTransaction fails', async () => {
       const budget = createMockBudget();
       const existingTx = createMockTransaction({ id: 'tx-existing' });
 
@@ -306,6 +326,7 @@ describe('DashboardStore - Business Scenarios', () => {
       // Should rollback to original data (via onError)
       expect(store.transactions().length).toBe(1);
       expect(store.transactions()[0].id).toBe('tx-existing');
+      expect(store.error()).toBe('transaction-add-failed');
     });
   });
 
@@ -387,7 +408,7 @@ describe('DashboardStore - Business Scenarios', () => {
       expect(mocks.budgetApi.toggleBudgetLineCheck$).toHaveBeenCalledTimes(1);
     });
 
-    it('should exclude pending items from uncheckedForecasts', async () => {
+    it('should drop checked line from uncheckedForecasts immediately and track it in pendingChecks', async () => {
       const budget = createMockBudget();
       const lines = [
         createMockBudgetLine({
@@ -406,7 +427,7 @@ describe('DashboardStore - Business Scenarios', () => {
       mocks.budgetApi.getDashboardData$.mockReturnValue(
         of({ budget, transactions: [], budgetLines: lines }),
       );
-      // Never resolves — keeps it pending
+      // Never resolves — keeps the mutation in flight
       mocks.budgetApi.toggleBudgetLineCheck$.mockReturnValue(NEVER);
       const { store } = setup(mocks);
 
@@ -415,12 +436,14 @@ describe('DashboardStore - Business Scenarios', () => {
         expect(store.uncheckedForecasts().length).toBe(2);
       });
 
-      // Check line-a — should disappear from uncheckedForecasts
+      // Check line-a — store applies optimistic checkedAt, line drops from
+      // uncheckedForecasts immediately. Component owns the exit animation.
       store.checkBudgetLine('line-a');
 
       await vi.waitFor(() => {
         expect(store.uncheckedForecasts().length).toBe(1);
         expect(store.uncheckedForecasts()[0].id).toBe('line-b');
+        expect(store.pendingChecks().has('line-a')).toBe(true);
       });
     });
 
@@ -449,7 +472,7 @@ describe('DashboardStore - Business Scenarios', () => {
       await store.checkBudgetLine('line-fail');
 
       // Should set error signal
-      expect(store.error()).toBeTruthy();
+      expect(store.error()).toBe('check-failed');
       // Should rollback checkedAt to null
       expect(store.budgetLines()[0].checkedAt).toBeNull();
       // Should be removed from pendingChecks → reappear in uncheckedForecasts
@@ -495,8 +518,83 @@ describe('DashboardStore - Business Scenarios', () => {
       expect(mocks.budgetApi.toggleBudgetLineCheck$).toHaveBeenCalledTimes(2);
       expect(store.budgetLines()[0].checkedAt).not.toBeNull();
       expect(store.budgetLines()[1].checkedAt).not.toBeNull();
-      // Items stay hidden via pendingChecks (cleaned up when resource reloads)
+      // Lines drop from uncheckedForecasts immediately (component owns exit animation)
       expect(store.uncheckedForecasts().length).toBe(0);
+      // Pending cleared atomically by mutation onSuccess
+      await vi.waitFor(() => {
+        expect(store.pendingChecks().size).toBe(0);
+      });
+    });
+
+    it('should not leak pending entries when SWR refetch fires during mutation (PUL-148)', async () => {
+      const budget = createMockBudget();
+      const lineA = createMockBudgetLine({
+        id: 'line-a',
+        recurrence: 'fixed',
+        checkedAt: null,
+      });
+
+      const mocks = createMocks();
+      mocks.budgetApi.getDashboardData$.mockReturnValue(
+        of({ budget, transactions: [], budgetLines: [lineA] }),
+      );
+
+      // Subject lets us resolve the mutation on demand to simulate slow API
+      const toggleSubject = new Subject<{ data: BudgetLine }>();
+      mocks.budgetApi.toggleBudgetLineCheck$.mockReturnValue(
+        toggleSubject.asObservable(),
+      );
+
+      const { store } = setup(mocks);
+      TestBed.tick();
+      await vi.waitFor(() => {
+        expect(store.budgetLines().length).toBe(1);
+      });
+
+      // 1. Click — onMutate adds pending + optimistic checkedAt
+      store.checkBudgetLine('line-a');
+      await vi.waitFor(() => {
+        expect(store.pendingChecks().has('line-a')).toBe(true);
+      });
+
+      // Verify optimistic state is set
+      expect(store.budgetLines()[0].checkedAt).not.toBeNull();
+      expect(store.uncheckedForecasts().some((l) => l.id === 'line-a')).toBe(
+        false,
+      );
+
+      // 2. SWR refetch returns line still unchecked (server hasn't saved yet)
+      mocks.budgetApi.getDashboardData$.mockReturnValue(
+        of({
+          budget,
+          transactions: [],
+          budgetLines: [{ ...lineA, checkedAt: null }],
+        }),
+      );
+      store.refreshData();
+      await vi.waitFor(() => {
+        expect(mocks.budgetApi.getDashboardData$).toHaveBeenCalledTimes(2);
+      });
+
+      // Verify pending survived the refetch
+      await vi.waitFor(() => {
+        expect(store.pendingChecks().has('line-a')).toBe(true);
+      });
+
+      // 3. Mutation resolves successfully (server saved the toggle)
+      toggleSubject.next({
+        data: { ...lineA, checkedAt: '2025-06-15T12:00:00Z' },
+      });
+      toggleSubject.complete();
+
+      // 4. Pending must be cleared — PRE-FIX leaks because effect re-run
+      //    cancelled the prior 500ms timer and confirmed was empty after refetch
+      await vi.waitFor(
+        () => {
+          expect(store.pendingChecks().size).toBe(0);
+        },
+        { timeout: 1500 },
+      );
     });
   });
 

@@ -5,7 +5,7 @@ enum AppConfiguration {
     enum Environment: String {
         case local
         case preview
-        case prod
+        case production
     }
 
     // MARK: - API Configuration
@@ -32,7 +32,7 @@ enum AppConfiguration {
 
     static var environment: Environment {
         guard let environment = Environment(rawValue: requiredValue(for: "APP_ENV")) else {
-            fatalError("APP_ENV is invalid. Expected one of: local, preview, prod")
+            fatalError("APP_ENV is invalid. Expected one of: local, preview, production")
         }
         return environment
     }
@@ -55,7 +55,7 @@ enum AppConfiguration {
     // MARK: - Feature Flags
 
     static var isDemoModeEnabled: Bool {
-        environment != .prod
+        environment != .production
     }
 
     // MARK: - PostHog Analytics

@@ -2,6 +2,13 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { errorResponseSchema } from 'pulpe-shared';
 import { ZodError } from 'zod';
 
+export const CLIENT_ERROR_CODES = {
+  ZOD_PARSE_ERROR: 'ZOD_PARSE_ERROR',
+} as const;
+
+export type ClientErrorCode =
+  (typeof CLIENT_ERROR_CODES)[keyof typeof CLIENT_ERROR_CODES];
+
 export class ApiError extends Error {
   constructor(
     message: string,
@@ -22,7 +29,7 @@ export function normalizeApiError(error: unknown): ApiError {
   if (error instanceof ZodError) {
     return new ApiError(
       `Validation failed: ${error.issues.map((i) => i.message).join(', ')}`,
-      'ZOD_PARSE_ERROR',
+      CLIENT_ERROR_CODES.ZOD_PARSE_ERROR,
       0,
       error.issues,
     );

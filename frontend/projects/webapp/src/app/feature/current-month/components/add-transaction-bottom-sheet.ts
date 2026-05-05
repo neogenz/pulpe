@@ -1,17 +1,18 @@
 import {
   ChangeDetectionStrategy,
   Component,
-  type ElementRef,
+  computed,
   inject,
   signal,
   viewChild,
 } from '@angular/core';
 import {
-  FormBuilder,
-  FormControl,
-  type FormGroup,
-  ReactiveFormsModule,
-} from '@angular/forms';
+  Field,
+  form,
+  maxLength,
+  minLength,
+  required,
+} from '@angular/forms/signals';
 import { MatBottomSheetRef } from '@angular/material/bottom-sheet';
 import { MatButtonModule } from '@angular/material/button';
 import { MatChipsModule } from '@angular/material/chips';
@@ -20,29 +21,44 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
-import type { TransactionCreate } from 'pulpe-shared';
+import type { SupportedCurrency, TransactionCreate } from 'pulpe-shared';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
-import { TransactionValidators } from '@core/transaction';
 import { TransactionLabelPipe } from '@ui/transaction-display';
+import { UserSettingsStore } from '@core/user-settings';
+import {
+  AppCurrencyPipe,
+  applyAmountValidators,
+  type AmountFormSlice,
+  createAmountSlice,
+  CurrencyConverterService,
+  runFormSubmit,
+  StaleRateNotifier,
+} from '@core/currency';
+import { Logger } from '@core/logging/logger';
+import { AmountInput } from '@app/pattern/amount-input/amount-input';
+import { BlurOnVisibilityResumeDirective } from '@ui/blur-on-visibility-resume/blur-on-visibility-resume.directive';
 
 export type TransactionFormData = Pick<
   TransactionCreate,
   'name' | 'amount' | 'kind' | 'category' | 'checkedAt'
->;
+> & {
+  originalAmount?: number;
+  originalCurrency?: SupportedCurrency;
+  targetCurrency?: SupportedCurrency;
+  exchangeRate?: number;
+};
 
-// Define the form structure type
-interface TransactionFormControls {
-  name: FormControl<string | null>;
-  amount: FormControl<number | null>;
-  kind: FormControl<'expense' | 'income' | 'saving' | null>;
-  category: FormControl<string | null>;
-  isChecked: FormControl<boolean>;
+interface AddTransactionModel {
+  name: string;
+  money: AmountFormSlice;
+  kind: 'expense' | 'income' | 'saving';
+  category: string;
+  isChecked: boolean;
 }
 
 @Component({
   selector: 'pulpe-add-transaction-bottom-sheet',
   imports: [
-    ReactiveFormsModule,
     MatButtonModule,
     MatIconModule,
     MatFormFieldModule,
@@ -52,9 +68,13 @@ interface TransactionFormControls {
     MatSlideToggleModule,
     TranslocoPipe,
     TransactionLabelPipe,
+    AppCurrencyPipe,
+    Field,
+    AmountInput,
+    BlurOnVisibilityResumeDirective,
   ],
   template: `
-    <div class="flex flex-col gap-4">
+    <div class="flex flex-col gap-4" pulpeBlurOnVisibilityResume>
       <!-- Drag indicator -->
       <div
         class="w-9 h-1 bg-outline-variant rounded-sm mx-auto mt-3 mb-2"
@@ -62,9 +82,14 @@ interface TransactionFormControls {
 
       <!-- Header -->
       <div class="flex justify-between items-center">
-        <h2 class="text-title-large text-on-surface m-0">
-          {{ 'currentMonth.addTransactionTitle' | transloco }}
-        </h2>
+        <div>
+          <h2 class="text-title-large text-on-surface m-0">
+            {{ 'currentMonth.addTransactionTitle' | transloco }}
+          </h2>
+          <p class="text-body-small text-on-surface-variant mt-0.5 mb-0">
+            {{ 'currentMonth.addTransactionSubtitle' | transloco }}
+          </p>
+        </div>
         <button
           matIconButton
           (click)="close()"
@@ -76,53 +101,13 @@ interface TransactionFormControls {
 
       <!-- Form -->
       <form
-        [formGroup]="transactionForm"
         (ngSubmit)="onSubmit()"
         class="flex flex-col gap-4"
         novalidate
         data-testid="transaction-form"
       >
         <!-- Amount Field -->
-        <mat-form-field
-          appearance="outline"
-          subscriptSizing="dynamic"
-          class="ph-no-capture"
-        >
-          <mat-label>{{
-            'currentMonth.addTransactionAmount' | transloco
-          }}</mat-label>
-          <input
-            class="!text-xl !font-bold !text-center"
-            matInput
-            #amountInput
-            type="number"
-            inputmode="decimal"
-            placeholder="0.00"
-            formControlName="amount"
-            data-testid="transaction-amount-input"
-            step="0.01"
-            min="0.01"
-            max="999999.99"
-            required
-          />
-          <span matTextSuffix>CHF</span>
-          @if (
-            transactionForm.get('amount')?.hasError('required') &&
-            transactionForm.get('amount')?.touched
-          ) {
-            <mat-error role="alert" aria-live="assertive">{{
-              'currentMonth.addTransactionAmountRequired' | transloco
-            }}</mat-error>
-          }
-          @if (
-            transactionForm.get('amount')?.hasError('min') &&
-            transactionForm.get('amount')?.touched
-          ) {
-            <mat-error role="alert" aria-live="assertive">{{
-              'currentMonth.addTransactionAmountMin' | transloco
-            }}</mat-error>
-          }
-        </mat-form-field>
+        <pulpe-amount-input [control]="transactionForm.money" />
 
         <!-- Predefined Amounts -->
         <div class="flex flex-col gap-3">
@@ -130,14 +115,14 @@ interface TransactionFormControls {
             {{ 'currentMonth.addTransactionQuickAmounts' | transloco }}
           </div>
           <div class="flex flex-wrap gap-2">
-            @for (amount of predefinedAmounts(); track amount) {
+            @for (amount of predefinedAmounts; track amount) {
               <button
                 matButton="tonal"
                 type="button"
                 (click)="selectPredefinedAmount(amount)"
-                class="!min-w-[80px] !h-[40px]"
+                class="min-w-20 h-10"
               >
-                {{ amount }} CHF
+                {{ amount | appCurrency: currency() : '1.0-0' }}
               </button>
             }
           </div>
@@ -150,23 +135,17 @@ interface TransactionFormControls {
           }}</mat-label>
           <input
             matInput
-            formControlName="name"
+            [field]="transactionForm.name"
             data-testid="transaction-description-input"
             placeholder="Ex: Courses chez Migros"
           />
-          @if (
-            transactionForm.get('name')?.hasError('required') &&
-            transactionForm.get('name')?.touched
-          ) {
-            <mat-error role="alert" aria-live="assertive">{{
+          @if (nameRequiredError()) {
+            <mat-error>{{
               'currentMonth.addTransactionDescriptionRequired' | transloco
             }}</mat-error>
           }
-          @if (
-            transactionForm.get('name')?.hasError('minlength') &&
-            transactionForm.get('name')?.touched
-          ) {
-            <mat-error role="alert" aria-live="assertive">{{
+          @if (nameMinLengthError()) {
+            <mat-error>{{
               'currentMonth.addTransactionDescriptionMin' | transloco
             }}</mat-error>
           }
@@ -178,7 +157,7 @@ interface TransactionFormControls {
             'currentMonth.addTransactionType' | transloco
           }}</mat-label>
           <mat-select
-            formControlName="kind"
+            [field]="transactionForm.kind"
             [attr.aria-label]="'currentMonth.addTransactionType' | transloco"
             data-testid="transaction-type-select"
           >
@@ -204,24 +183,20 @@ interface TransactionFormControls {
           }}</mat-label>
           <input
             matInput
-            formControlName="category"
+            [field]="transactionForm.category"
             [placeholder]="
               'currentMonth.addTransactionNotesPlaceholder' | transloco
             "
-            maxlength="50"
             aria-describedby="category-hint"
           />
           <mat-hint id="category-hint" align="end"
-            >{{ transactionForm.get('category')?.value?.length || 0 }}/50
+            >{{ model().category.length }}/50
             {{
               'currentMonth.addTransactionNotesOptional' | transloco
             }}</mat-hint
           >
-          @if (
-            transactionForm.get('category')?.hasError('maxlength') &&
-            transactionForm.get('category')?.touched
-          ) {
-            <mat-error role="alert" aria-live="assertive">{{
+          @if (categoryMaxLengthError()) {
+            <mat-error>{{
               'currentMonth.addTransactionNotesMaxLength' | transloco
             }}</mat-error>
           }
@@ -240,11 +215,17 @@ interface TransactionFormControls {
             'transactionForm.checkedToggle' | transloco
           }}</span>
           <mat-slide-toggle
-            formControlName="isChecked"
+            [field]="transactionForm.isChecked"
             [attr.aria-label]="'transactionForm.checkedToggle' | transloco"
           />
         </div>
       </form>
+
+      @if (conversionError()) {
+        <p role="alert" class="text-error text-body-small pb-2">
+          {{ 'common.conversionError' | transloco }}
+        </p>
+      }
 
       <!-- Action Buttons -->
       <div class="flex gap-3 pt-4 pb-6 px-6 border-t border-outline-variant">
@@ -259,7 +240,7 @@ interface TransactionFormControls {
         <button
           matButton="outlined"
           (click)="onSubmit()"
-          [disabled]="transactionForm.invalid"
+          [disabled]="!canSubmit()"
           data-testid="transaction-submit-button"
           class="flex-2"
         >
@@ -271,66 +252,115 @@ interface TransactionFormControls {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AddTransactionBottomSheet {
-  readonly #fb = inject(FormBuilder);
   readonly #bottomSheetRef = inject(
     MatBottomSheetRef<AddTransactionBottomSheet>,
   );
   readonly #transloco = inject(TranslocoService);
+  readonly #userSettings = inject(UserSettingsStore);
+  readonly #converter = inject(CurrencyConverterService);
+  readonly #logger = inject(Logger);
+  readonly #staleRateNotifier = inject(StaleRateNotifier);
 
-  // View child for focus management
-  protected readonly amountInput =
-    viewChild<ElementRef<HTMLInputElement>>('amountInput');
-
-  // Predefined amounts for quick selection
-  protected readonly predefinedAmounts = signal([10, 15, 20, 30]);
-
-  // Reactive form with shared validators for consistency
-  protected readonly transactionForm: FormGroup<TransactionFormControls> =
-    this.#fb.group({
-      name: new FormControl<string | null>(
-        this.#transloco.translate('currentMonth.addTransactionDefaultName'),
-        [...TransactionValidators.name],
-      ),
-      amount: new FormControl<number | null>(null, [
-        ...TransactionValidators.amount,
-      ]),
-      kind: new FormControl<'expense' | 'income' | 'saving' | null>(
-        'expense',
-        TransactionValidators.kind,
-      ),
-      category: new FormControl<string | null>('', [
-        ...TransactionValidators.category,
-      ]),
-      isChecked: new FormControl<boolean>(true, { nonNullable: true }),
-    });
+  protected readonly amountInput = viewChild(AmountInput);
 
   constructor() {
     this.#bottomSheetRef.afterOpened().subscribe(() => {
-      this.amountInput()?.nativeElement?.focus();
+      this.amountInput()?.focus();
     });
   }
 
+  protected readonly currency = this.#userSettings.currency;
+  protected readonly predefinedAmounts = [10, 15, 20, 30] as const;
+  protected readonly conversionError = signal(false);
+  protected readonly isSubmitting = signal(false);
+
+  protected readonly model = signal<AddTransactionModel>({
+    name: this.#transloco.translate('currentMonth.addTransactionDefaultName'),
+    money: createAmountSlice({
+      initialCurrency: this.#userSettings.currency(),
+    }),
+    kind: 'expense',
+    category: '',
+    isChecked: true,
+  });
+
+  protected readonly transactionForm = form(this.model, (path) => {
+    required(path.name, {
+      message: 'currentMonth.addTransactionDescriptionRequired',
+    });
+    minLength(path.name, 2, {
+      message: 'currentMonth.addTransactionDescriptionMin',
+    });
+    maxLength(path.name, 100);
+    applyAmountValidators(path.money);
+    required(path.kind);
+    maxLength(path.category, 50, {
+      message: 'currentMonth.addTransactionNotesMaxLength',
+    });
+  });
+
+  protected readonly canSubmit = computed(
+    () => this.transactionForm().valid() && !this.isSubmitting(),
+  );
+
+  protected readonly nameRequiredError = computed(
+    () =>
+      this.transactionForm.name().touched() &&
+      this.transactionForm
+        .name()
+        .errors()
+        .some((e) => e.kind === 'required'),
+  );
+  protected readonly nameMinLengthError = computed(
+    () =>
+      this.transactionForm.name().touched() &&
+      this.transactionForm
+        .name()
+        .errors()
+        .some((e) => e.kind === 'minLength'),
+  );
+  protected readonly categoryMaxLengthError = computed(
+    () =>
+      this.transactionForm.category().touched() &&
+      this.transactionForm
+        .category()
+        .errors()
+        .some((e) => e.kind === 'maxLength'),
+  );
+
   protected selectPredefinedAmount(amount: number): void {
-    this.transactionForm.patchValue({ amount });
+    const amountField = this.transactionForm.money.amount();
+    amountField.value.set(amount);
+    amountField.markAsTouched();
   }
 
-  protected onSubmit(): void {
-    if (!this.transactionForm.valid) {
-      this.transactionForm.markAllAsTouched();
-      return;
-    }
-
-    const formValue = this.transactionForm.value;
-
-    const transaction: TransactionFormData = {
-      name: formValue.name!,
-      amount: Math.abs(formValue.amount!),
-      kind: formValue.kind!,
-      category: formValue.category || null,
-      checkedAt: formValue.isChecked ? new Date().toISOString() : null,
-    };
-
-    this.#bottomSheetRef.dismiss(transaction);
+  protected async onSubmit(): Promise<void> {
+    await runFormSubmit({
+      form: this.transactionForm,
+      isSubmitting: this.isSubmitting,
+      conversionError: this.conversionError,
+      prepare: () => {
+        const m = this.model();
+        return {
+          amountSlice: m.money,
+          targetCurrency: this.#userSettings.currency(),
+          converter: this.#converter,
+          logger: this.#logger,
+          build: (amount, metadata): TransactionFormData => ({
+            name: m.name,
+            amount,
+            kind: m.kind,
+            category: m.category || null,
+            checkedAt: m.isChecked ? new Date().toISOString() : null,
+            ...metadata,
+          }),
+        };
+      },
+      onSuccess: (value, outcome) => {
+        this.#staleRateNotifier.notify(outcome);
+        this.#bottomSheetRef.dismiss(value);
+      },
+    });
   }
 
   protected close(): void {

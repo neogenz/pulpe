@@ -6,10 +6,13 @@ import {
   type EffectRef,
   type OnDestroy,
 } from '@angular/core';
-import { AuthStateService } from '../auth/auth-state.service';
+import { ANALYTICS_PROPERTIES } from 'pulpe-shared';
+import { AuthStore } from '../auth/auth-store';
 import { PostHogService } from './posthog';
 import { Logger } from '../logging/logger';
 import { DemoModeService } from '../demo/demo-mode.service';
+import { UserSettingsStore } from '../user-settings/user-settings-store';
+import { FeatureFlagsService } from '../feature-flags/feature-flags.service';
 import type { Properties } from 'posthog-js';
 
 /**
@@ -20,16 +23,24 @@ import type { Properties } from 'posthog-js';
   providedIn: 'root',
 })
 export class AnalyticsService implements OnDestroy {
-  readonly #authState = inject(AuthStateService);
+  readonly #authStore = inject(AuthStore);
   readonly #postHogService = inject(PostHogService);
   readonly #logger = inject(Logger);
   readonly #demoModeService = inject(DemoModeService);
+  readonly #userSettingsStore = inject(UserSettingsStore);
+  readonly #featureFlagsService = inject(FeatureFlagsService);
 
   // Track if we've already enabled tracking for the current session
   #trackingEnabledForSession = false;
 
+  // Tracks whether `identify(userId)` has fired this session. Person property
+  // updates are gated on this flag — mirrors the iOS `isIdentified` guard.
+  #isIdentified = false;
+
   // Track the auth synchronization effect to ensure idempotency
   #authEffect?: EffectRef;
+  // Re-emits person properties when settings or flag exposure change post-identify
+  #personPropertiesEffect?: EffectRef;
 
   /**
    * Check if analytics is active and ready
@@ -53,7 +64,7 @@ export class AnalyticsService implements OnDestroy {
     try {
       this.#authEffect = effect(() => {
         const active = this.isActive();
-        const authState = this.#authState.authState();
+        const authState = this.#authStore.authState();
 
         if (active && authState.isAuthenticated && authState.user) {
           if (!this.#trackingEnabledForSession) {
@@ -62,21 +73,53 @@ export class AnalyticsService implements OnDestroy {
             this.#logger.debug('PostHog tracking enabled for session');
           }
 
-          // Identify user with demo mode flag if applicable
+          // Identify carries demo + early adopter flags only. Settings + the
+          // multi-currency flag are pushed separately via `$set` from
+          // `#personPropertiesEffect` — they are heavier signal deps that
+          // would otherwise re-fire identify on every settings tick or PostHog
+          // `flagsVersion` bump (feedback loop with this same identify call).
           const isDemoMode = this.#demoModeService.isDemoMode();
-          const identifyProperties = isDemoMode ? { is_demo: true } : undefined;
+          const identifyProperties: Properties = {
+            [ANALYTICS_PROPERTIES.EARLY_ADOPTER]:
+              this.#authStore.isEarlyAdopter(),
+            ...(isDemoMode && { is_demo: true }),
+          };
 
           this.#postHogService.identify(authState.user.id, identifyProperties);
+          this.#isIdentified = true;
           this.#postHogService.capturePendingSignupCompleted();
           this.#logger.debug('User identified for analytics', {
             userId: authState.user.id,
             isDemoMode,
           });
         } else if (!authState.isAuthenticated && !authState.isLoading) {
-          this.#postHogService.reset();
+          // Do NOT call posthog.reset() on every anonymous tick: it would
+          // destroy the distinct_id bootstrapped from the landing via ?ph_did=
+          // and wipe registered super properties (platform, environment, app_version).
+          // reset() belongs in the explicit signOut flow; see AuthStore.
           this.#trackingEnabledForSession = false;
-          this.#logger.debug('Analytics session reset');
+          this.#isIdentified = false;
         }
+      });
+
+      this.#personPropertiesEffect = effect(() => {
+        const userSettings = this.#userSettingsStore.settings();
+        const isMultiCurrencyEnabled =
+          this.#featureFlagsService.isMultiCurrencyEnabled();
+
+        // Skip until identify has fired and settings have actually loaded.
+        // Without this guard a user with `currency = EUR` would briefly land
+        // on the CHF cohort before the settings resource resolves.
+        if (!this.#isIdentified || !userSettings) {
+          return;
+        }
+
+        this.#postHogService.setPersonProperties({
+          [ANALYTICS_PROPERTIES.CURRENCY]: userSettings.currency,
+          [ANALYTICS_PROPERTIES.SHOW_CURRENCY_SELECTOR]:
+            userSettings.showCurrencySelector,
+          [ANALYTICS_PROPERTIES.MULTI_CURRENCY_ENABLED]: isMultiCurrencyEnabled,
+        });
       });
 
       this.#logger.info('Analytics service initialized');
@@ -93,13 +136,28 @@ export class AnalyticsService implements OnDestroy {
   }
 
   /**
+   * Update person properties on the current PostHog profile via `$set`.
+   * No-op until `identify(userId)` has fired this session — prevents leaking
+   * preferences onto the anonymous person profile.
+   */
+  setPersonProperties(properties: Properties): void {
+    if (!this.#isIdentified) {
+      return;
+    }
+    this.#postHogService.setPersonProperties(properties);
+  }
+
+  /**
    * Stop analytics tracking and clean up resources.
    * Exposed for deterministic cleanup in tests and for lifecycle hooks.
    */
   destroy(): void {
     this.#authEffect?.destroy();
     this.#authEffect = undefined;
+    this.#personPropertiesEffect?.destroy();
+    this.#personPropertiesEffect = undefined;
     this.#trackingEnabledForSession = false;
+    this.#isIdentified = false;
   }
 
   ngOnDestroy(): void {

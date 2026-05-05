@@ -22,15 +22,23 @@ export function FinalCTA() {
       <Container>
         <div className="max-w-3xl mx-auto text-center relative z-10">
           <FadeIn variant="blur">
-            <blockquote className="text-lg md:text-xl italic text-white/90 mb-8">
-              &laquo;&nbsp;Je sais pas comment je faisais avant Pulpe, c&apos;est tellement plus simple. Je suis tellement moins stressée par mes sous.&nbsp;&raquo;
-              <footer className="mt-2 text-sm text-white/60 not-italic">— Julie</footer>
+            <blockquote className="italic text-xl md:text-2xl lg:text-3xl text-white/95 mb-10 leading-snug max-w-2xl mx-auto balance">
+              &laquo;&nbsp;Je sais pas comment je faisais avant Pulpe, c&apos;est
+              tellement plus simple. Je suis tellement moins stressée par mes
+              sous.&nbsp;&raquo;
+              <footer className="mt-3 text-sm text-white/60 not-italic font-sans tracking-[0.08em] uppercase">
+                — Julie
+              </footer>
             </blockquote>
-            <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-4 leading-tight">
-              3 minutes pour savoir ce qu&apos;il te reste.
+            <h2 className="text-3xl md:text-4xl lg:text-[3.25rem] font-bold text-white mb-5 leading-[1.05] tracking-[-0.02em] balance">
+              3 minutes pour savoir{' '}
+              <span className="italic font-normal text-white/90">
+                ce qu&apos;il te reste.
+              </span>
             </h2>
-            <p className="text-lg text-white/80 mb-10 max-w-xl mx-auto">
-              Gratuit, données privées, montants protégés. Essaie — si ça te plaît pas, tu retournes à Excel.
+            <p className="text-lg text-white/80 mb-10 max-w-xl mx-auto pretty">
+              Gratuit, données privées, montants protégés. Essaie — si ça te
+              plaît pas, tu retournes à Excel.
             </p>
             <Button href={angularUrl('/signup', 'final_cta_commencer')} variant="inverse" onClick={() => trackCTAClick('commencer_gratuitement', 'final_cta', '/signup')}>
               Commencer gratuitement

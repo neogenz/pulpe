@@ -13,11 +13,16 @@ enum RecoveryStep: Equatable {
 // MARK: - View
 
 struct PinRecoveryView: View {
+    private enum RecoveryKeyField: Hashable {
+        case recoveryKey
+    }
+
     let onComplete: () -> Void
     let onCancel: () -> Void
     let onSessionExpired: () -> Void
 
     @State private var viewModel = PinRecoveryViewModel()
+    @FocusState private var recoveryKeyFocus: RecoveryKeyField?
 
     var body: some View {
         content
@@ -69,35 +74,42 @@ struct PinRecoveryView: View {
     // MARK: - Recovery Key Step
 
     private var recoveryKeyStep: some View {
-        VStack(spacing: DesignTokens.Spacing.xxl) {
-            Image(systemName: "key.fill")
-                .font(PulpeTypography.heroIcon)
-                .foregroundStyle(Color.textSecondaryOnboarding)
-
-            VStack(spacing: DesignTokens.Spacing.sm) {
-                Text("Clé de récupération")
-                    .font(PulpeTypography.onboardingTitle)
-                    .foregroundStyle(Color.textPrimaryOnboarding)
-
-                Text("Entre la clé de récupération que tu as notée lors de la configuration de ton code PIN")
-                    .font(PulpeTypography.stepSubtitle)
+        NavigationStack {
+            VStack(spacing: DesignTokens.Spacing.xxl) {
+                Image(systemName: "key.fill")
+                    .font(PulpeTypography.heroIcon)
                     .foregroundStyle(Color.textSecondaryOnboarding)
-                    .multilineTextAlignment(.center)
+
+                VStack(spacing: DesignTokens.Spacing.sm) {
+                    Text("Clé de récupération")
+                        .font(PulpeTypography.onboardingTitle)
+                        .foregroundStyle(Color.textPrimaryOnboarding)
+
+                    Text("Entre la clé de récupération que tu as notée lors de la configuration de ton code PIN")
+                        .font(PulpeTypography.stepSubtitle)
+                        .foregroundStyle(Color.textSecondaryOnboarding)
+                        .multilineTextAlignment(.center)
+                }
+
+                recoveryKeyInput
+
+                if let error = viewModel.errorMessage {
+                    Text(error)
+                        .font(PulpeTypography.footnote)
+                        .foregroundStyle(Color.errorPrimary)
+                        .transition(.opacity)
+                }
+
+                continueButton
+                cancelButton
             }
-
-            recoveryKeyInput
-
-            if let error = viewModel.errorMessage {
-                Text(error)
-                    .font(PulpeTypography.footnote)
-                    .foregroundStyle(Color.errorPrimary)
-                    .transition(.opacity)
+            .animation(.easeInOut(duration: DesignTokens.Animation.fast), value: viewModel.errorMessage)
+            .toolbar(.hidden, for: .navigationBar)
+            .keyboardFieldNavigation(focus: $recoveryKeyFocus, order: [.recoveryKey])
+            .task {
+                recoveryKeyFocus = .recoveryKey
             }
-
-            continueButton
-            cancelButton
         }
-        .animation(.easeInOut(duration: DesignTokens.Animation.fast), value: viewModel.errorMessage)
     }
 
     private var recoveryKeyInput: some View {
@@ -122,6 +134,7 @@ struct PinRecoveryView: View {
                 .stroke(Color.pinInputBorder, lineWidth: DesignTokens.BorderWidth.thin)
         )
         .foregroundStyle(Color.textPrimaryOnboarding)
+        .focused($recoveryKeyFocus, equals: .recoveryKey)
     }
 
     private var continueButton: some View {

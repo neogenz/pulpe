@@ -7,13 +7,15 @@ struct TrendsCard: View {
     let variation: ExpenseVariation?
     let currentMonthTotal: Decimal
 
+    @Environment(UserSettingsStore.self) private var userSettingsStore
+
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
             // Content
             HStack(alignment: .center, spacing: DesignTokens.Spacing.xl) {
                 // Current month amount
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                    Text(currentMonthTotal.asCHF)
+                    Text(currentMonthTotal.asCompactCurrency(userSettingsStore.currency))
                         .font(PulpeTypography.title2)
                         .foregroundStyle(.primary)
                         .sensitiveAmount()
@@ -113,7 +115,9 @@ struct TrendsCard: View {
     // MARK: - Accessibility
 
     private var sparklineAccessibilityValue: String {
-        expenses.map { "\($0.shortMonthName): \($0.total.asCompactCHF)" }.joined(separator: ", ")
+        expenses.map {
+            "\($0.shortMonthName): \($0.total.asCompactCurrency(userSettingsStore.currency))"
+        }.joined(separator: ", ")
     }
 }
 
@@ -170,4 +174,5 @@ struct TrendsEmptyState: View {
     }
     .padding()
     .pulpeBackground()
+    .environment(UserSettingsStore())
 }

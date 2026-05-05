@@ -1,12 +1,14 @@
 import SwiftUI
 
 /// Reusable quick amount chip buttons used across sheet forms.
-/// Internalizes the `pendingQuickAmount` state and `onChange(of: isFocused)` logic.
-struct QuickAmountChips: View {
+/// Internalizes the `pendingQuickAmount` state and focus transition logic for applying chip values.
+struct QuickAmountChips<Field: Hashable>: View {
     @Binding var amount: Decimal?
     @Binding var amountText: String
-    var isFocused: FocusState<Bool>.Binding
+    var focus: FocusState<Field?>.Binding
+    var amountField: Field
     var color: Color = .pulpePrimary
+    var currency: SupportedCurrency = .chf
 
     @State private var pendingQuickAmount: Int?
     @State private var selectionTrigger = false
@@ -19,15 +21,15 @@ struct QuickAmountChips: View {
                 let isSelected = amount == Decimal(quickAmount)
                 Button {
                     selectionTrigger.toggle()
-                    if isFocused.wrappedValue {
+                    if focus.wrappedValue == amountField {
                         pendingQuickAmount = quickAmount
-                        isFocused.wrappedValue = false
+                        focus.wrappedValue = nil
                     } else {
                         amount = Decimal(quickAmount)
                         amountText = "\(quickAmount)"
                     }
                 } label: {
-                    Text("\(quickAmount) \(DesignTokens.AmountInput.currencyCode)")
+                    Text("\(quickAmount) \(currency.symbol)")
                         .font(PulpeTypography.labelLarge)
                         .fixedSize()
                         .padding(.horizontal, DesignTokens.Spacing.md)
@@ -48,13 +50,13 @@ struct QuickAmountChips: View {
                 .frame(minHeight: DesignTokens.TapTarget.minimum)
                 .contentShape(Capsule())
                 .plainPressedButtonStyle()
-                .accessibilityHint("Définir le montant à \(quickAmount) \(DesignTokens.AmountInput.currencyCode)")
+                .accessibilityHint("Définir le montant à \(quickAmount) \(currency.rawValue)")
             }
         }
         .sensoryFeedback(.selection, trigger: selectionTrigger)
         .animation(.snappy(duration: DesignTokens.Animation.fast), value: amount)
-        .onChange(of: isFocused.wrappedValue) { _, focused in
-            if !focused, let quickAmount = pendingQuickAmount {
+        .onChange(of: focus.wrappedValue) { oldValue, newValue in
+            if oldValue == amountField, newValue != amountField, let quickAmount = pendingQuickAmount {
                 amount = Decimal(quickAmount)
                 amountText = "\(quickAmount)"
                 pendingQuickAmount = nil
@@ -63,15 +65,20 @@ struct QuickAmountChips: View {
     }
 }
 
+private enum QuickAmountChipsPreviewField: Hashable {
+    case amount
+}
+
 #Preview {
     @Previewable @State var amount: Decimal?
     @Previewable @State var amountText = ""
-    @Previewable @FocusState var isFocused: Bool
+    @Previewable @FocusState var focusedField: QuickAmountChipsPreviewField?
 
     QuickAmountChips(
         amount: $amount,
         amountText: $amountText,
-        isFocused: $isFocused,
+        focus: $focusedField,
+        amountField: .amount,
         color: .pulpePrimary
     )
     .padding()

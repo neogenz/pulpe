@@ -170,9 +170,7 @@ test.describe('Local Search in Budget Details', () => {
     ).toBeHidden();
 
     // Click clear button
-    await authenticatedPage
-      .getByLabel('Effacer la recherche')
-      .click();
+    await authenticatedPage.getByLabel('Effacer la recherche').click();
 
     // All unchecked items should be visible again (default filter is "Non comptabilisees")
     await expect(
@@ -242,9 +240,7 @@ test.describe('Local Search in Budget Details', () => {
     ).toBeVisible();
 
     // Should show "Contient" annotation
-    await expect(
-      authenticatedPage.getByText('Contient'),
-    ).toBeVisible();
+    await expect(authenticatedPage.getByText('Contient')).toBeVisible();
   });
 });
 
@@ -397,8 +393,6 @@ test.describe('Global Search Across Budgets', () => {
     const searchInput = authenticatedPage.getByTestId('search-input');
     await searchInput.fill('zzzzz');
 
-    await expect(
-      authenticatedPage.getByText('Pas de résultat'),
-    ).toBeVisible();
+    await expect(authenticatedPage.getByText('Pas de résultat')).toBeVisible();
   });
 });

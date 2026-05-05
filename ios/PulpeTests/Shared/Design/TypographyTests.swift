@@ -5,10 +5,16 @@ import UIKit
 struct TypographyTests {
     // MARK: - Font Registration
 
-    /// All custom font PostScript names must resolve to a UIFont, proving the .ttf files
-    /// are bundled correctly and registered via UIAppFonts in Info.plist.
+    /// All custom font PostScript names must resolve to a UIFont, proving the variable font
+    /// is bundled correctly and registered via UIAppFonts in Info.plist.
     @Test(arguments: [
-        "Manrope-Bold"
+        "Manrope-ExtraLight",
+        "Manrope-Light",
+        "Manrope-Regular",
+        "Manrope-Medium",
+        "Manrope-SemiBold",
+        "Manrope-Bold",
+        "Manrope-ExtraBold",
     ])
     func customFont_isRegisteredAndLoadable(postScriptName: String) {
         let font = UIFont(name: postScriptName, size: 17)
@@ -62,6 +68,8 @@ struct TypographyTests {
         _ = PulpeTypography.numpadSubtext
         _ = PulpeTypography.heroIcon
         _ = PulpeTypography.welcomeEmoji
+        _ = PulpeTypography.displayYear
+        _ = PulpeTypography.amountCard
     }
 
     /// Prevents accidental deletion of semantic alias tokens.

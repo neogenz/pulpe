@@ -53,7 +53,7 @@ struct RealizedBalanceSheet: View {
                 .font(PulpeTypography.subheadline)
                 .foregroundStyle(Color.textSecondary)
 
-            Text(realizedMetrics.realizedBalance.asCHF)
+            Text(realizedMetrics.realizedBalance.asArithmeticSignedCompactCurrency(userSettingsStore.currency))
                 .font(PulpeTypography.amountHero)
                 .monospacedDigit()
                 .foregroundStyle(isPositiveBalance ? .primary : Color.financialOverBudget)
@@ -61,7 +61,7 @@ struct RealizedBalanceSheet: View {
                 .sensitiveAmount()
 
             // Status badge
-            HStack(spacing: 6) {
+            HStack(spacing: DesignTokens.Spacing.tightGap) {
                 Image(systemName: isPositiveBalance ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
                     .font(PulpeTypography.caption)
                 Text(isPositiveBalance ? "Tout va bien" : "Solde négatif — on y remédie ?")
@@ -69,7 +69,7 @@ struct RealizedBalanceSheet: View {
             }
             .foregroundStyle(statusColor)
             .padding(.horizontal, DesignTokens.Spacing.md)
-            .padding(.vertical, 6)
+            .padding(.vertical, DesignTokens.Spacing.tightGap)
             .background(statusColor.opacity(DesignTokens.Opacity.badgeBackground))
             .clipShape(Capsule())
         }
@@ -243,6 +243,8 @@ private struct CompletionBar: View {
 private struct BalanceTrendChart: View {
     let forecasts: [MonthlyForecast]
 
+    @Environment(UserSettingsStore.self) private var userSettingsStore
+
     private var yMin: Double { forecasts.map(\.availableBalance).min() ?? 0 }
     private var yMax: Double {
         let max = forecasts.map(\.availableBalance).max() ?? 1
@@ -259,7 +261,7 @@ private struct BalanceTrendChart: View {
         Chart {
             RuleMark(y: .value("Zero", 0))
                 .foregroundStyle(.secondary.opacity(0.3))
-                .lineStyle(StrokeStyle(lineWidth: 1, dash: [4]))
+                .lineStyle(StrokeStyle(lineWidth: DesignTokens.BorderWidth.thin, dash: [4]))
 
             ForEach(forecasts) { point in
                 AreaMark(
@@ -274,10 +276,10 @@ private struct BalanceTrendChart: View {
                     y: .value("Solde", point.availableBalance)
                 )
                 .interpolationMethod(.monotone)
-                .lineStyle(StrokeStyle(lineWidth: 2, lineCap: .round))
+                .lineStyle(StrokeStyle(lineWidth: DesignTokens.BorderWidth.thick, lineCap: .round))
                 .foregroundStyle(Color.pulpePrimary)
                 .accessibilityLabel("Mois \(point.shortMonthName)")
-                .accessibilityValue(Formatters.chfCompact.string(from: point.availableBalance as NSNumber) ?? "")
+                .accessibilityValue(Decimal(point.availableBalance).asCompactCurrency(userSettingsStore.currency))
             }
         }
         .chartXAxis(.hidden)
@@ -325,6 +327,8 @@ private struct CategoryRow: View {
     let realized: Decimal
     let planned: Decimal
 
+    @Environment(UserSettingsStore.self) private var userSettingsStore
+
     private var percentage: Double {
         guard planned > 0 else { return 0 }
         return min(Double(truncating: NSDecimalNumber(decimal: realized / planned)), 1.0)
@@ -355,7 +359,9 @@ private struct CategoryRow: View {
 
                     Spacer()
 
-                    Text("\(realized.asCompactCHF) / \(planned.asCompactCHF)")
+                    let realizedFormatted = realized.asCompactCurrency(userSettingsStore.currency)
+                    let plannedFormatted = planned.asCompactCurrency(userSettingsStore.currency)
+                    Text("\(realizedFormatted) / \(plannedFormatted)")
                         .font(PulpeTypography.caption)
                         .foregroundStyle(Color.textSecondary)
                         .sensitiveAmount()
@@ -430,6 +436,7 @@ private struct CategoryRow: View {
                 )
             )
             .environment(previewDashboardStore)
+            .environment(UserSettingsStore())
         }
 }
 
@@ -456,6 +463,7 @@ private struct CategoryRow: View {
                 )
             )
             .environment(previewDashboardStore)
+            .environment(UserSettingsStore())
         }
 }
 
@@ -482,5 +490,6 @@ private struct CategoryRow: View {
                 )
             )
             .environment(previewDashboardStore)
+            .environment(UserSettingsStore())
         }
 }

@@ -21,6 +21,7 @@ struct PulpeApp: App {
     @State private var budgetListStore: BudgetListStore
     @State private var dashboardStore: DashboardStore
     @State private var userSettingsStore: UserSettingsStore
+    @State private var featureFlagsStore: FeatureFlagsStore
     @State private var runtimeCoordinator: AppRuntimeCoordinator
     @State private var deepLinkDestination: DeepLinkDestination?
 
@@ -29,7 +30,8 @@ struct PulpeApp: App {
         let currentMonthStore = CurrentMonthStore()
         let budgetListStore = BudgetListStore()
         let dashboardStore = DashboardStore()
-        let userSettingsStore = UserSettingsStore()
+        let featureFlagsStore = FeatureFlagsStore()
+        let userSettingsStore = UserSettingsStore(featureFlags: featureFlagsStore)
 
         appState.sessionDataResetter = LiveSessionDataResetter(
             currentMonthStore: currentMonthStore,
@@ -38,11 +40,21 @@ struct PulpeApp: App {
             userSettingsStore: userSettingsStore
         )
 
+        // Wire currency persistence from `OnboardingBootstrapper` to `UserSettingsStore`.
+        // Runs after PIN setup completes so the API call carries `X-Client-Key`.
+        // Returns `true` only when the store's optimistic update was confirmed by the
+        // backend (no error after the await) — bootstrap toasts the user on `false`.
+        appState.onboardingBootstrapper.persistCurrency = { [userSettingsStore] currency in
+            await userSettingsStore.updateCurrency(currency)
+            return userSettingsStore.error == nil
+        }
+
         _appState = State(initialValue: appState)
         _currentMonthStore = State(initialValue: currentMonthStore)
         _budgetListStore = State(initialValue: budgetListStore)
         _dashboardStore = State(initialValue: dashboardStore)
         _userSettingsStore = State(initialValue: userSettingsStore)
+        _featureFlagsStore = State(initialValue: featureFlagsStore)
         _runtimeCoordinator = State(initialValue: AppRuntimeCoordinator(
             appState: appState,
             currentMonthStore: currentMonthStore,
@@ -56,6 +68,8 @@ struct PulpeApp: App {
         BackgroundTaskService.shared.registerTasks()
         AnalyticsService.shared.initialize()
     }
+
+    @Environment(\.scenePhase) private var scenePhase
 
     var body: some Scene {
         WindowGroup {
@@ -72,6 +86,18 @@ struct PulpeApp: App {
                     .environment(budgetListStore)
                     .environment(dashboardStore)
                     .environment(userSettingsStore)
+                    .environment(featureFlagsStore)
+                    .overlay(alignment: .topLeading) {
+                        ToastOverlayWindowHost(toastManager: appState.toastManager)
+                    }
+                    .task {
+                        featureFlagsStore.refresh()
+                    }
+                    .onChange(of: scenePhase) { _, newPhase in
+                        if newPhase == .active {
+                            featureFlagsStore.refresh()
+                        }
+                    }
                     .onOpenURL { url in
                         handleDeepLink(url)
                     }
@@ -146,47 +172,16 @@ struct RootView: View {
             resetPasswordDeepLink: $resetPasswordDeepLink,
             recoveryKeySheetItemBinding: recoveryKeySheetItemBinding
         ))
-        .toastOverlay(appState.toastManager)
-        .environment(appState.toastManager)
-        .onReceive(NotificationCenter.default.publisher(for: .maintenanceModeDetected)) { _ in
-            appState.send(.maintenanceChecked(isInMaintenance: true))
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .clientKeyCheckFailed)) { _ in
-            handleClientKeyCheckFailed()
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .sessionExpired)) { _ in
-            appState.send(.sessionExpired)
-        }
-        .task { await handleAppStart() }
-        .onChange(of: appState.isInMaintenance) { oldValue, newValue in
-            // Exiting maintenance mode: trigger auth check
-            if oldValue && !newValue {
-                Task { await appState.retryStartup() }
-            }
-        }
-        .onChange(of: scenePhase) { oldPhase, newPhase in
-            runtimeCoordinator.handleScenePhaseChange(from: oldPhase, to: newPhase)
-        }
-        .onChange(of: appState.currentRoute) { oldRoute, newRoute in
-            #if DEBUG
-            let old = String(describing: oldRoute)
-            let new = String(describing: newRoute)
-            Logger.auth.debug("[AUTH_ROUTE] \(old, privacy: .public) → \(new, privacy: .public)")
-            #endif
-        }
-        .onChange(of: appState.authState) { oldAuth, newAuth in
-            #if DEBUG
-            let old = String(describing: oldAuth)
-            let new = String(describing: newAuth)
-            Logger.auth.debug("[AUTH_STATE_UI] \(old, privacy: .public) → \(new, privacy: .public)")
-            #endif
-        }
-        .onChange(of: deepLinkDestination) { _, _ in
-            handlePendingDeepLink()
-        }
-        .onChange(of: appState.authState) { _, _ in
-            handlePendingDeepLink()
-        }
+        .modifier(RootViewLifecycle(
+            appState: appState,
+            runtimeCoordinator: runtimeCoordinator,
+            scenePhase: scenePhase,
+            deepLinkDestination: deepLinkDestination,
+            onAppStart: handleAppStart,
+            onClientKeyCheckFailed: handleClientKeyCheckFailed,
+            onPendingDeepLink: handlePendingDeepLink
+        ))
+        .syncCurrencyAnalytics()
         .environment(\.amountsHidden, uiPreferences.amountsHidden)
     }
 
@@ -239,7 +234,8 @@ struct RootView: View {
                     } : nil
                 )
             } else {
-                OnboardingFlow(pendingSocialUser: appState.pendingSocialUser)
+                OnboardingFlow(pendingUser: appState.pendingOnboardingUser)
+                    .id(appState.onboardingSessionID)
             }
 
         case .pinSetup:
@@ -358,100 +354,5 @@ struct RootView: View {
         case .deferred, .dropped, .noPending:
             break
         }
-    }
-}
-
-// MARK: - Root View Modifiers
-
-private struct RootViewAlerts: ViewModifier {
-    @Bindable var appState: AppState
-    var uiPreferences: UIPreferencesState
-    @Binding var showAmountsToggleAlert: Bool
-
-    func body(content: Content) -> some View {
-        content
-            .alert(
-                "Petit souci de connexion",
-                isPresented: $appState.showPostAuthError
-            ) {
-                Button("Réessayer") {
-                    Task { await appState.retryOnboardingPostAuth() }
-                }
-                Button("Se déconnecter", role: .destructive) {
-                    appState.send(.logoutRequested(source: .userInitiated))
-                }
-            } message: {
-                Text("La configuration de ton compte n'a pas abouti — vérifie ta connexion et réessaie.")
-            }
-            .alert(
-                "Générer une clé de récupération ?",
-                isPresented: $appState.isRecoveryConsentVisible
-            ) {
-                Button("Générer maintenant") {
-                    appState.send(.recoveryKeyConsentAccepted)
-                }
-                Button("Plus tard", role: .cancel) {
-                    appState.send(.recoveryKeyConsentDeclined)
-                }
-            } message: {
-                Text(
-                    "Ton coffre est configuré sans clé de récupération. " +
-                    "Génère-la maintenant pour éviter de perdre l'accès à tes données chiffrées."
-                )
-            }
-            .onShake {
-                guard appState.authState == .authenticated else { return }
-                showAmountsToggleAlert = true
-            }
-            .alert(
-                uiPreferences.amountsHidden ? "Afficher les montants ?" : "Masquer les montants ?",
-                isPresented: $showAmountsToggleAlert
-            ) {
-                Button(uiPreferences.amountsHidden ? "Afficher" : "Masquer") {
-                    uiPreferences.toggleAmountsVisibility()
-                }
-                Button("Annuler", role: .cancel) {}
-            }
-    }
-}
-
-private struct RootViewSheets: ViewModifier {
-    @Bindable var appState: AppState
-    @Binding var showAddExpenseSheet: Bool
-    @Binding var resetPasswordDeepLink: ResetPasswordDeepLink?
-    var recoveryKeySheetItemBinding: Binding<RecoveryKeySheetItem?>
-
-    func body(content: Content) -> some View {
-        content
-            .sheet(isPresented: $showAddExpenseSheet) {
-                DeepLinkAddExpenseSheet()
-                    .environment(appState.toastManager)
-            }
-            .sheet(item: $resetPasswordDeepLink) { deepLink in
-                ResetPasswordFlowView(
-                    callbackURL: deepLink.url,
-                    onComplete: {
-                        await appState.completePasswordResetFlow()
-                    },
-                    onCancel: {
-                        await appState.cancelPasswordResetFlow()
-                    }
-                )
-            }
-            .sheet(item: recoveryKeySheetItemBinding) { sheet in
-                RecoveryKeySheet(recoveryKey: sheet.recoveryKey) {
-                    appState.send(.recoveryKeyPresentationDismissed)
-                }
-            }
-    }
-}
-
-struct PrivacyShieldOverlay: View {
-    var body: some View {
-        Rectangle()
-            .fill(.ultraThinMaterial)
-            .ignoresSafeArea()
-            .allowsHitTesting(false)
-            .accessibilityHidden(true)
     }
 }

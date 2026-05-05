@@ -18,7 +18,7 @@ struct PrimaryButtonStyle: ButtonStyle {
                 if isEnabled {
                     Color.onboardingGradient
                 } else {
-                    Color.pulpePrimary.opacity(0.12)
+                    Color.primaryContainerDisabled
                 }
             }
             .foregroundStyle(isEnabled ? Color.textOnPrimary : Color.onSurfaceVariant)
@@ -27,10 +27,10 @@ struct PrimaryButtonStyle: ButtonStyle {
             .overlay {
                 if !isEnabled {
                     Capsule()
-                        .strokeBorder(Color.pulpePrimary.opacity(0.2), lineWidth: DesignTokens.BorderWidth.thin)
+                        .strokeBorder(Color.outlineVariant, lineWidth: DesignTokens.BorderWidth.thin)
                 }
             }
-            .opacity(configuration.isPressed ? DesignTokens.Opacity.pressed : 1.0)
+            .opacity(isEnabled && configuration.isPressed ? DesignTokens.Opacity.pressed : 1.0)
             .animation(.easeInOut(duration: DesignTokens.Animation.fast), value: configuration.isPressed)
     }
 }

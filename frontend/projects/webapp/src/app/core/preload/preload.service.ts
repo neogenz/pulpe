@@ -1,7 +1,7 @@
 import { effect, inject, Injectable, signal, untracked } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { type Budget } from 'pulpe-shared';
-import { AuthStateService } from '../auth/auth-state.service';
+import { AuthStore } from '../auth/auth-store';
 import { BudgetApi } from '../budget/budget-api';
 import { ClientKeyService } from '../encryption/client-key.service';
 import { DemoModeService } from '../demo/demo-mode.service';
@@ -20,7 +20,7 @@ import { Logger } from '../logging/logger';
  */
 @Injectable({ providedIn: 'root' })
 export class PreloadService {
-  readonly #authState = inject(AuthStateService);
+  readonly #authStore = inject(AuthStore);
   readonly #budgetApi = inject(BudgetApi);
   readonly #clientKeyService = inject(ClientKeyService);
   readonly #demoMode = inject(DemoModeService);
@@ -35,7 +35,7 @@ export class PreloadService {
   constructor() {
     effect(() => {
       const isReady =
-        this.#authState.isAuthenticated() &&
+        this.#authStore.isAuthenticated() &&
         (this.#clientKeyService.hasClientKey() || this.#demoMode.isDemoMode());
 
       if (isReady && !untracked(this.#hasPreloaded)) {

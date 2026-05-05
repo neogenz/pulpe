@@ -62,7 +62,7 @@ Shared/  ───────▶ (nothing - reusable utilities)
 
 ## Store Pattern (Global State)
 
-Global stores live in `Domain/Store/` and implement `StoreProtocol`:
+Global stores in `Domain/Store/`, implement `StoreProtocol`:
 
 ```swift
 @Observable @MainActor
@@ -81,14 +81,14 @@ final class CurrentMonthStore: StoreProtocol {
 
 **Key rules:**
 - Always `@Observable @MainActor final class`
-- `private(set)` for all published state
+- `private(set)` all published state
 - Implement `StoreProtocol` for cache management
-- Constructor injection with `.shared` defaults
-- Stores injected via `.environment()` in views
+- Constructor injection, `.shared` defaults
+- Inject via `.environment()` in views
 
 ## ViewModel Pattern (Feature-Level State)
 
-Feature-specific ViewModels are **co-located in the view file** they serve:
+Feature ViewModels **co-located in view file**:
 
 ```swift
 // BudgetDetailsView.swift
@@ -111,14 +111,14 @@ final class BudgetDetailsViewModel {
 ```
 
 **Key rules:**
-- Feature ViewModels live in the **same file** as their view
+- Feature ViewModels in **same file** as view
 - Same `@Observable @MainActor final class` pattern as stores
-- Owned by the view via `@State private var viewModel`
-- Use when feature needs local state beyond what a global store provides
+- Owned by view via `@State private var viewModel`
+- Use when feature needs local state beyond global store
 
 ## Service Pattern (Data Access)
 
-Services are **actors** for thread safety:
+Services = **actors** for thread safety:
 
 ```swift
 actor BudgetService {
@@ -132,14 +132,14 @@ actor BudgetService {
 
 **Key rules:**
 - Always `actor` (not class)
-- `static let shared` singleton pattern
+- `static let shared` singleton
 - All methods `async throws`
 - Services wrap APIClient calls
 - No UI logic in services
 
 ## Model Pattern
 
-Models are **Sendable structs**:
+Models = **Sendable structs**:
 
 ```swift
 struct Budget: Codable, Sendable, Identifiable {

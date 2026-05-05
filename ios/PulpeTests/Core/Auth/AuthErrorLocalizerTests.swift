@@ -62,6 +62,24 @@ struct AuthErrorLocalizerTests {
         #expect(message == "Connexion impossible — vérifie ta connexion internet")
     }
 
+    @Test func classifyAuthServiceErrorSessionExpiredReturnsSessionExpired() {
+        // Regression: AuthServiceError.sessionExpired thrown from resolvePostAuthOrThrow
+        // must classify as .sessionExpired so LoginView surfaces the right banner.
+        let kind = AuthErrorLocalizer.classify(AuthServiceError.sessionExpired)
+        #expect(kind == .sessionExpired)
+    }
+
+    @Test func localizeAuthServiceErrorSessionExpiredReturnsSessionExpiredMessage() {
+        let message = AuthErrorLocalizer.localize(AuthServiceError.sessionExpired)
+        #expect(message == "Ta session a expiré — reconnecte-toi")
+    }
+
+    @Test func classifyAuthServiceErrorBiometricSessionExpiredReturnsSessionExpired() {
+        // Existing AuthServiceError case — same classification path as the new sessionExpired.
+        let kind = AuthErrorLocalizer.classify(AuthServiceError.biometricSessionExpired)
+        #expect(kind == .sessionExpired)
+    }
+
     @Test func infoPlist_requiredRuntimeConfigKeysArePresent() throws {
         let info = try #require(loadAppInfoPlist())
 

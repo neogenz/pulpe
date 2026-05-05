@@ -61,7 +61,11 @@ test.describe('Transaction Check Independence (Scenario 5.10)', () => {
         ],
         transactions: allTransactions.map((tx) =>
           checkedTxIds.has(tx.id)
-            ? { ...tx, checkedAt: checkedTimestamp, updatedAt: checkedTimestamp }
+            ? {
+                ...tx,
+                checkedAt: checkedTimestamp,
+                updatedAt: checkedTimestamp,
+              }
             : tx,
         ),
       });
@@ -69,8 +73,15 @@ test.describe('Transaction Check Independence (Scenario 5.10)', () => {
 
     // Show all items (not just unchecked)
     await authenticatedPage.addInitScript(() => {
-      const entry = { version: 1, data: false, updatedAt: new Date().toISOString() };
-      localStorage.setItem('pulpe-budget-show-only-unchecked', JSON.stringify(entry));
+      const entry = {
+        version: 1,
+        data: false,
+        updatedAt: new Date().toISOString(),
+      };
+      localStorage.setItem(
+        'pulpe-budget-show-only-unchecked',
+        JSON.stringify(entry),
+      );
     });
 
     await authenticatedPage.route('**/api/v1/budgets/*/details', (route) => {
@@ -92,7 +103,11 @@ test.describe('Transaction Check Independence (Scenario 5.10)', () => {
             contentType: 'application/json',
             body: JSON.stringify({
               success: true,
-              data: { ...tx, checkedAt: checkedTimestamp, updatedAt: checkedTimestamp },
+              data: {
+                ...tx,
+                checkedAt: checkedTimestamp,
+                updatedAt: checkedTimestamp,
+              },
             }),
           });
         },
@@ -116,7 +131,7 @@ test.describe('Transaction Check Independence (Scenario 5.10)', () => {
     await budgetDetailsPage.goto(budgetId);
 
     // Verify summary is NOT visible when 0 items are checked (progressive disclosure)
-    const summary = authenticatedPage.getByTestId('checking-summary');
+    const summary = authenticatedPage.getByTestId('budget-items-checking-summary');
     await expect(summary).not.toBeVisible();
 
     // Open the envelope detail panel by clicking the envelope card
@@ -129,7 +144,9 @@ test.describe('Transaction Check Independence (Scenario 5.10)', () => {
     // Check transaction 1
     const toggleTx1Promise = authenticatedPage.waitForRequest(
       (req) =>
-        req.url().includes(`/transactions/${TEST_UUIDS.TRANSACTION_1}/toggle-check`) &&
+        req
+          .url()
+          .includes(`/transactions/${TEST_UUIDS.TRANSACTION_1}/toggle-check`) &&
         req.method() === 'POST',
     );
     const toggleTx1 = authenticatedPage.getByTestId(
@@ -146,7 +163,9 @@ test.describe('Transaction Check Independence (Scenario 5.10)', () => {
     // Check transaction 2
     const toggleTx2Promise = authenticatedPage.waitForRequest(
       (req) =>
-        req.url().includes(`/transactions/${TEST_UUIDS.TRANSACTION_2}/toggle-check`) &&
+        req
+          .url()
+          .includes(`/transactions/${TEST_UUIDS.TRANSACTION_2}/toggle-check`) &&
         req.method() === 'POST',
     );
     const toggleTx2 = authenticatedPage.getByTestId(
@@ -162,7 +181,9 @@ test.describe('Transaction Check Independence (Scenario 5.10)', () => {
     // Check transaction 3
     const toggleTx3Promise = authenticatedPage.waitForRequest(
       (req) =>
-        req.url().includes(`/transactions/${TEST_UUIDS.TRANSACTION_3}/toggle-check`) &&
+        req
+          .url()
+          .includes(`/transactions/${TEST_UUIDS.TRANSACTION_3}/toggle-check`) &&
         req.method() === 'POST',
     );
     const toggleTx3 = authenticatedPage.getByTestId(

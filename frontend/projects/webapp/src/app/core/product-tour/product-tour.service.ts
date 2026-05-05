@@ -7,7 +7,7 @@
 
 import { DOCUMENT } from '@angular/common';
 import { inject, Injectable } from '@angular/core';
-import { AuthStateService } from '@core/auth/auth-state.service';
+import { AuthStore } from '@core/auth/auth-store';
 import { StorageService, type StorageKey } from '@core/storage';
 import { driver, type Config, type Driver, type DriveStep } from 'driver.js';
 
@@ -62,7 +62,7 @@ const TOUR_IDS = {
 export class ProductTourService {
   readonly #document = inject(DOCUMENT);
   readonly #storageService = inject(StorageService);
-  readonly #authState = inject(AuthStateService);
+  readonly #authStore = inject(AuthStore);
 
   /** Active Driver.js instance to prevent concurrent tours */
   #activeDriver: Driver | null = null;
@@ -74,7 +74,7 @@ export class ProductTourService {
    * is stored device-scoped (persists across account changes on same device).
    */
   isAuthenticated(): boolean {
-    return !!this.#authState.user()?.id;
+    return !!this.#authStore.user()?.id;
   }
 
   /**

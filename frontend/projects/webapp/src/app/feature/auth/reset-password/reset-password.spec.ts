@@ -4,11 +4,7 @@ import { provideAnimationsAsync } from '@angular/platform-browser/animations/asy
 import { provideRouter, Router } from '@angular/router';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
-import {
-  AuthSessionService,
-  AuthStateService,
-  PASSWORD_MIN_LENGTH,
-} from '@core/auth';
+import { AuthSessionService, AuthStore, PASSWORD_MIN_LENGTH } from '@core/auth';
 import { Logger } from '@core/logging/logger';
 import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 
@@ -18,7 +14,7 @@ describe('ResetPassword', () => {
   let fixture: ComponentFixture<ResetPassword>;
   let component: ResetPassword;
   let mockAuthSessionService: { updatePassword: ReturnType<typeof vi.fn> };
-  let mockAuthStateService: {
+  let mockAuthStore: {
     isLoading: ReturnType<typeof vi.fn>;
     isAuthenticated: ReturnType<typeof vi.fn>;
     authState: ReturnType<typeof vi.fn>;
@@ -35,7 +31,7 @@ describe('ResetPassword', () => {
       updatePassword: vi.fn(),
     };
 
-    mockAuthStateService = {
+    mockAuthStore = {
       isLoading: vi.fn().mockReturnValue(false),
       isAuthenticated: vi.fn().mockReturnValue(true),
       authState: vi.fn().mockReturnValue({
@@ -60,7 +56,7 @@ describe('ResetPassword', () => {
         provideRouter([]),
         ...provideTranslocoForTest(),
         { provide: AuthSessionService, useValue: mockAuthSessionService },
-        { provide: AuthStateService, useValue: mockAuthStateService },
+        { provide: AuthStore, useValue: mockAuthStore },
         { provide: Logger, useValue: mockLogger },
       ],
     }).compileComponents();
@@ -186,7 +182,7 @@ describe('ResetPassword', () => {
     });
 
     it('should set isSessionValid to false when not authenticated', () => {
-      mockAuthStateService.isAuthenticated.mockReturnValue(false);
+      mockAuthStore.isAuthenticated.mockReturnValue(false);
 
       const newComponent =
         TestBed.createComponent(ResetPassword).componentInstance;
@@ -201,7 +197,7 @@ describe('ResetPassword', () => {
 
   describe('OAuth user blocked', () => {
     it('should show blocked message when user is OAuth-only', async () => {
-      mockAuthStateService.isOAuthOnly.mockReturnValue(true);
+      mockAuthStore.isOAuthOnly.mockReturnValue(true);
       const oauthFixture = TestBed.createComponent(ResetPassword);
       oauthFixture.detectChanges();
       await oauthFixture.whenStable();

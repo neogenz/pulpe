@@ -1,19 +1,16 @@
 import { describe, it, expect } from 'bun:test';
-import { templateLineSchema } from 'pulpe-shared';
+import { templateLineSchema, type TemplateLineUpdate } from 'pulpe-shared';
 import {
   toApiTemplateLine,
   toApiTemplateLineList,
+  toDbTemplateLineUpdate,
+  type DecryptedTemplateLineRow,
 } from './budget-template.mappers';
-import type { Tables } from '@/types/database.types';
-
-type DecryptedTemplateLine = Omit<Tables<'template_line'>, 'amount'> & {
-  amount: number;
-};
 
 describe('BudgetTemplate Mappers', () => {
   describe('toApiTemplateLine', () => {
     it('should map all fields from DB row to API entity', () => {
-      const dbRow: DecryptedTemplateLine = {
+      const dbRow: DecryptedTemplateLineRow = {
         id: 'line-123',
         template_id: 'template-123',
         name: 'Salaire',
@@ -23,6 +20,10 @@ describe('BudgetTemplate Mappers', () => {
         description: 'Salaire mensuel',
         created_at: '2026-01-01T00:00:00Z',
         updated_at: '2026-01-01T00:00:00Z',
+        original_amount: null,
+        original_currency: null,
+        target_currency: null,
+        exchange_rate: null,
       };
 
       const result = toApiTemplateLine(dbRow);
@@ -38,7 +39,7 @@ describe('BudgetTemplate Mappers', () => {
 
   describe('toApiTemplateLineList', () => {
     it('should map all rows', () => {
-      const dbRows: DecryptedTemplateLine[] = [
+      const dbRows: DecryptedTemplateLineRow[] = [
         {
           id: 'line-1',
           template_id: 'template-123',
@@ -49,6 +50,10 @@ describe('BudgetTemplate Mappers', () => {
           description: '',
           created_at: '2026-01-01T00:00:00Z',
           updated_at: '2026-01-01T00:00:00Z',
+          original_amount: null,
+          original_currency: null,
+          target_currency: null,
+          exchange_rate: null,
         },
         {
           id: 'line-2',
@@ -60,6 +65,10 @@ describe('BudgetTemplate Mappers', () => {
           description: '',
           created_at: '2026-01-01T00:00:00Z',
           updated_at: '2026-01-01T00:00:00Z',
+          original_amount: null,
+          original_currency: null,
+          target_currency: null,
+          exchange_rate: null,
         },
       ];
 
@@ -68,6 +77,71 @@ describe('BudgetTemplate Mappers', () => {
       expect(results).toHaveLength(2);
       expect(results[0].name).toBe('Salaire');
       expect(results[1].name).toBe('Loyer');
+    });
+  });
+
+  describe('toDbTemplateLineUpdate', () => {
+    it('should not write any currency columns when no currency fields are provided (mono-currency PATCH)', () => {
+      const dto: TemplateLineUpdate = { name: 'Netflix' };
+
+      const result = toDbTemplateLineUpdate(dto);
+
+      expect(result).toEqual({ name: 'Netflix' });
+      expect(result).not.toHaveProperty('original_currency');
+      expect(result).not.toHaveProperty('target_currency');
+      expect(result).not.toHaveProperty('exchange_rate');
+    });
+
+    it('should only write exchange_rate when a partial currency PATCH touches only the rate (PUL-99 CA4 regression)', () => {
+      const dto: TemplateLineUpdate = { exchangeRate: 1.08 };
+
+      const result = toDbTemplateLineUpdate(dto);
+
+      expect(result).toEqual({ exchange_rate: 1.08 });
+      expect(result).not.toHaveProperty('original_currency');
+      expect(result).not.toHaveProperty('target_currency');
+    });
+
+    it('should only write original_currency when only originalCurrency is set', () => {
+      const dto: TemplateLineUpdate = { originalCurrency: 'EUR' };
+
+      const result = toDbTemplateLineUpdate(dto);
+
+      expect(result).toEqual({ original_currency: 'EUR' });
+      expect(result).not.toHaveProperty('target_currency');
+      expect(result).not.toHaveProperty('exchange_rate');
+    });
+
+    it('should write all three currency columns when the full currency metadata is provided', () => {
+      const dto: TemplateLineUpdate = {
+        originalCurrency: 'EUR',
+        targetCurrency: 'CHF',
+        exchangeRate: 1.05,
+      };
+
+      const result = toDbTemplateLineUpdate(dto);
+
+      expect(result).toEqual({
+        original_currency: 'EUR',
+        target_currency: 'CHF',
+        exchange_rate: 1.05,
+      });
+    });
+
+    it('should combine non-currency fields with the currency metadata partial', () => {
+      const dto: TemplateLineUpdate = {
+        name: 'Netflix EU',
+        originalCurrency: 'EUR',
+      };
+
+      const result = toDbTemplateLineUpdate(dto);
+
+      expect(result).toEqual({
+        name: 'Netflix EU',
+        original_currency: 'EUR',
+      });
+      expect(result).not.toHaveProperty('target_currency');
+      expect(result).not.toHaveProperty('exchange_rate');
     });
   });
 

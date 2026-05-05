@@ -158,13 +158,13 @@ describe('SetupVaultCode', () => {
     it('should require matching vault codes', () => {
       component['form'].get('vaultCode')?.setValue('1234');
       component['form'].get('confirmCode')?.setValue('4321');
-      expect(component['form'].hasError('fieldsMismatch')).toBe(true);
+      expect(component['form'].hasError('pinsMismatch')).toBe(true);
     });
 
     it('should allow matching vault codes', () => {
       component['form'].get('vaultCode')?.setValue('1234');
       component['form'].get('confirmCode')?.setValue('1234');
-      expect(component['form'].hasError('fieldsMismatch')).toBe(false);
+      expect(component['form'].hasError('pinsMismatch')).toBe(false);
     });
   });
 

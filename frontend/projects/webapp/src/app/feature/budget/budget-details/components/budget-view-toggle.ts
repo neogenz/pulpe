@@ -5,7 +5,7 @@ import {
 } from '@angular/material/chips';
 import { MatIconModule } from '@angular/material/icon';
 import { TranslocoPipe } from '@jsverse/transloco';
-import type { BudgetViewMode } from '../data-core';
+import type { BudgetViewMode } from '../view-models/budget-view-mode';
 
 @Component({
   selector: 'pulpe-budget-view-toggle',

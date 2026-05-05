@@ -13,7 +13,9 @@ describe('LoadingButton', () => {
       providers: [provideZonelessChangeDetection(), provideAnimationsAsync()],
     }).compileComponents();
 
-    component = TestBed.createComponent(LoadingButton).componentInstance;
+    const fixture = TestBed.createComponent(LoadingButton);
+    fixture.componentRef.setInput('loadingText', 'loading...');
+    component = fixture.componentInstance;
   });
 
   describe('Component Structure', () => {
@@ -77,10 +79,6 @@ describe('LoadingButton', () => {
 
     it('should have type default to submit', () => {
       expect(component.type()).toBe('submit');
-    });
-
-    it('should have loadingText default to en cours...', () => {
-      expect(component.loadingText()).toBe('en cours...');
     });
 
     it('should have fullWidth default to true', () => {

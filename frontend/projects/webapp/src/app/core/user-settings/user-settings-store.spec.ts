@@ -4,7 +4,7 @@ import { of, throwError } from 'rxjs';
 import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { UserSettingsStore } from './user-settings-store';
 import { UserSettingsApi } from './user-settings-api';
-import { AuthStateService } from '../auth/auth-state.service';
+import { AuthStore } from '../auth/auth-store';
 import { ClientKeyService } from '../encryption/client-key.service';
 import { DemoModeService } from '../demo/demo-mode.service';
 import type { UserSettings } from 'pulpe-shared';
@@ -25,7 +25,11 @@ describe('UserSettingsStore', () => {
   let store: UserSettingsStore;
   let mockApi: Partial<UserSettingsApi>;
 
-  const mockSettings: UserSettings = { payDayOfMonth: 25 };
+  const mockSettings: UserSettings = {
+    payDayOfMonth: 25,
+    currency: 'CHF',
+    showCurrencySelector: false,
+  };
 
   beforeEach(() => {
     mockCache.get.mockReturnValue(null);
@@ -47,7 +51,7 @@ describe('UserSettingsStore', () => {
         UserSettingsStore,
         { provide: UserSettingsApi, useValue: mockApi },
         {
-          provide: AuthStateService,
+          provide: AuthStore,
           useValue: { isAuthenticated: signal(true) },
         },
         {
@@ -107,7 +111,11 @@ describe('UserSettingsStore', () => {
 
   describe('updateSettings', () => {
     it('should call API and return updated settings', async () => {
-      const updated: UserSettings = { payDayOfMonth: 15 };
+      const updated: UserSettings = {
+        payDayOfMonth: 15,
+        currency: 'CHF',
+        showCurrencySelector: false,
+      };
       mockApi.updateSettings$ = vi
         .fn()
         .mockReturnValue(of({ data: updated, success: true }));
@@ -121,7 +129,11 @@ describe('UserSettingsStore', () => {
     });
 
     it('should update local settings signal after API call', async () => {
-      const updated: UserSettings = { payDayOfMonth: 15 };
+      const updated: UserSettings = {
+        payDayOfMonth: 15,
+        currency: 'CHF',
+        showCurrencySelector: false,
+      };
       mockApi.updateSettings$ = vi
         .fn()
         .mockReturnValue(of({ data: updated, success: true }));
@@ -148,6 +160,29 @@ describe('UserSettingsStore', () => {
       store.reset();
       expect(mockCache.clear).toHaveBeenCalled();
     });
+
+    it('should reset settings() to null so previous user data does not leak', async () => {
+      const previousUserSettings: UserSettings = {
+        payDayOfMonth: 25,
+        currency: 'EUR',
+        showCurrencySelector: false,
+      };
+      mockApi.getSettings$ = vi
+        .fn()
+        .mockReturnValue(of({ data: previousUserSettings, success: true }));
+      store.reload();
+
+      await vi.waitFor(() => {
+        expect(store.currency()).toBe('EUR');
+        expect(store.payDayOfMonth()).toBe(25);
+      });
+
+      store.reset();
+
+      expect(store.settings()).toBeNull();
+      expect(store.currency()).toBe('CHF');
+      expect(store.payDayOfMonth()).toBeNull();
+    });
   });
 
   describe('reload', () => {
@@ -156,7 +191,11 @@ describe('UserSettingsStore', () => {
         expect(store.settings()).toEqual(mockSettings);
       });
 
-      const newSettings: UserSettings = { payDayOfMonth: 10 };
+      const newSettings: UserSettings = {
+        payDayOfMonth: 10,
+        currency: 'CHF',
+        showCurrencySelector: false,
+      };
       mockApi.getSettings$ = vi
         .fn()
         .mockReturnValue(of({ data: newSettings, success: true }));
@@ -188,7 +227,7 @@ describe('UserSettingsStore — loading conditions', () => {
           useValue: { getSettings$: getSettingsSpy, cache: mockCache },
         },
         {
-          provide: AuthStateService,
+          provide: AuthStore,
           useValue: { isAuthenticated: signal(false) },
         },
         {
@@ -221,7 +260,7 @@ describe('UserSettingsStore — loading conditions', () => {
           useValue: { getSettings$: getSettingsSpy, cache: mockCache },
         },
         {
-          provide: AuthStateService,
+          provide: AuthStore,
           useValue: { isAuthenticated: signal(true) },
         },
         {
@@ -243,7 +282,11 @@ describe('UserSettingsStore — loading conditions', () => {
   });
 
   it('should load in demo mode even without client key', async () => {
-    const demoSettings: UserSettings = { payDayOfMonth: 25 };
+    const demoSettings: UserSettings = {
+      payDayOfMonth: 25,
+      currency: 'CHF',
+      showCurrencySelector: false,
+    };
 
     TestBed.configureTestingModule({
       providers: [
@@ -259,7 +302,7 @@ describe('UserSettingsStore — loading conditions', () => {
           },
         },
         {
-          provide: AuthStateService,
+          provide: AuthStore,
           useValue: { isAuthenticated: signal(true) },
         },
         {

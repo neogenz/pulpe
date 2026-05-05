@@ -40,8 +40,11 @@ export function WhyFree() {
     <Section background="grain" id="why-free">
       <div className="max-w-3xl mx-auto">
         <FadeIn variant="blur">
-          <h2 className="text-2xl md:text-4xl font-bold text-center mb-12">
-            Pourquoi Pulpe est gratuit
+          <h2 className="text-3xl md:text-5xl font-bold text-center mb-12 tracking-[-0.02em] balance">
+            Pourquoi Pulpe{' '}
+            <span className="italic font-normal text-primary">
+              est gratuit.
+            </span>
           </h2>
         </FadeIn>
 

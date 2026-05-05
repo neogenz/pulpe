@@ -41,14 +41,46 @@ test.describe('Mobile scroll behavior', () => {
     const mockResponse = createBudgetDetailsMock(budgetId, {
       budget: { month: currentMonth, year: currentYear },
       budgetLines: [
-        createBudgetLineMock(TEST_UUIDS.LINE_1, budgetId, { name: 'Salaire', amount: 5000, kind: 'income' }),
-        createBudgetLineMock(TEST_UUIDS.LINE_2, budgetId, { name: 'Loyer', amount: 1200, kind: 'expense' }),
-        createBudgetLineMock(TEST_UUIDS.LINE_3, budgetId, { name: 'Électricité', amount: 100, kind: 'expense' }),
-        createBudgetLineMock(TEST_UUIDS.LINE_4, budgetId, { name: 'Internet', amount: 50, kind: 'expense' }),
-        createBudgetLineMock(TEST_UUIDS.LINE_5, budgetId, { name: 'Courses', amount: 400, kind: 'expense' }),
-        createBudgetLineMock(TEST_UUIDS.LINE_6, budgetId, { name: 'Transport', amount: 150, kind: 'expense' }),
-        createBudgetLineMock(TEST_UUIDS.LINE_7, budgetId, { name: 'Loisirs', amount: 200, kind: 'expense' }),
-        createBudgetLineMock(TEST_UUIDS.LINE_8, budgetId, { name: 'Épargne', amount: 300, kind: 'saving' }),
+        createBudgetLineMock(TEST_UUIDS.LINE_1, budgetId, {
+          name: 'Salaire',
+          amount: 5000,
+          kind: 'income',
+        }),
+        createBudgetLineMock(TEST_UUIDS.LINE_2, budgetId, {
+          name: 'Loyer',
+          amount: 1200,
+          kind: 'expense',
+        }),
+        createBudgetLineMock(TEST_UUIDS.LINE_3, budgetId, {
+          name: 'Électricité',
+          amount: 100,
+          kind: 'expense',
+        }),
+        createBudgetLineMock(TEST_UUIDS.LINE_4, budgetId, {
+          name: 'Internet',
+          amount: 50,
+          kind: 'expense',
+        }),
+        createBudgetLineMock(TEST_UUIDS.LINE_5, budgetId, {
+          name: 'Courses',
+          amount: 400,
+          kind: 'expense',
+        }),
+        createBudgetLineMock(TEST_UUIDS.LINE_6, budgetId, {
+          name: 'Transport',
+          amount: 150,
+          kind: 'expense',
+        }),
+        createBudgetLineMock(TEST_UUIDS.LINE_7, budgetId, {
+          name: 'Loisirs',
+          amount: 200,
+          kind: 'expense',
+        }),
+        createBudgetLineMock(TEST_UUIDS.LINE_8, budgetId, {
+          name: 'Épargne',
+          amount: 300,
+          kind: 'saving',
+        }),
       ],
     });
 
@@ -136,16 +168,22 @@ test.describe('Mobile scroll behavior', () => {
     }) => {
       await page.waitForLoadState('networkidle');
 
-      const { sidenavContentHeight, viewportHeight } = await page.evaluate(() => {
-        const sidenavContent = document.querySelector('[data-testid="main-content"]');
-        if (!sidenavContent) {
-          throw new Error('Element [data-testid="main-content"] not found in DOM.');
-        }
-        return {
-          sidenavContentHeight: sidenavContent.getBoundingClientRect().height,
-          viewportHeight: window.innerHeight,
-        };
-      });
+      const { sidenavContentHeight, viewportHeight } = await page.evaluate(
+        () => {
+          const sidenavContent = document.querySelector(
+            '[data-testid="main-content"]',
+          );
+          if (!sidenavContent) {
+            throw new Error(
+              'Element [data-testid="main-content"] not found in DOM.',
+            );
+          }
+          return {
+            sidenavContentHeight: sidenavContent.getBoundingClientRect().height,
+            viewportHeight: window.innerHeight,
+          };
+        },
+      );
 
       // mat-sidenav-content should fill at least the full viewport height
       expect(sidenavContentHeight).toBeGreaterThanOrEqual(viewportHeight);

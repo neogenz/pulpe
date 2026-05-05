@@ -1,10 +1,16 @@
 import SwiftUI
 
 struct CreateTemplateView: View {
+    private enum TemplateFormField: Hashable {
+        case name
+        case description
+    }
+
     let onCreate: (BudgetTemplate) -> Void
 
     @Environment(\.dismiss) private var dismiss
     @Environment(ToastManager.self) private var toastManager
+    @Environment(UserSettingsStore.self) private var userSettingsStore
     @State private var name = ""
     @State private var description = ""
     @State private var isDefault = false
@@ -12,8 +18,7 @@ struct CreateTemplateView: View {
     @State private var showAddLine = false
     @State private var isCreating = false
     @State private var error: Error?
-    @FocusState private var isNameFocused: Bool
-    @FocusState private var isDescriptionFocused: Bool
+    @FocusState private var focusedField: TemplateFormField?
     @State private var submitSuccessTrigger = false
 
     private let templateService = TemplateService.shared
@@ -26,8 +31,8 @@ struct CreateTemplateView: View {
         SheetFormContainer(
             title: "Nouveau modèle",
             isLoading: isCreating,
-            autoFocus: $isNameFocused,
-            descriptionFocus: $isDescriptionFocused
+            focus: $focusedField,
+            focusOrder: [.name, .description]
         ) {
             // Name
             FormTextField(
@@ -35,7 +40,8 @@ struct CreateTemplateView: View {
                 text: $name,
                 label: "Nom",
                 accessibilityLabel: "Nom du modèle",
-                focusBinding: $isNameFocused
+                focusBinding: $focusedField,
+                field: .name
             )
 
             // Description
@@ -44,7 +50,8 @@ struct CreateTemplateView: View {
                 text: $description,
                 label: "Description",
                 accessibilityLabel: "Description du modèle",
-                focusBinding: $isDescriptionFocused
+                focusBinding: $focusedField,
+                field: .description
             )
 
             // Default toggle
@@ -137,7 +144,7 @@ struct CreateTemplateView: View {
         let totals = calculateTotals()
         return HStack(spacing: DesignTokens.Spacing.lg) {
             totalItem(label: "Revenus", amount: totals.income, color: .financialIncome)
-            totalItem(label: "Dépenses", amount: totals.expenses, color: .financialExpense)
+            totalItem(label: "Dépenses", amount: -totals.expenses, color: .financialExpense)
             totalItem(label: "Solde", amount: totals.balance,
                       color: totals.balance >= 0 ? .financialSavings : .financialOverBudget)
         }
@@ -149,7 +156,7 @@ struct CreateTemplateView: View {
             Text(label)
                 .font(PulpeTypography.metricMini)
                 .foregroundStyle(Color.onSurfaceVariant)
-            Text(amount.asCompactCHF)
+            Text(amount.asArithmeticSignedCompactCurrency(userSettingsStore.currency))
                 .font(PulpeTypography.metricLabelBold)
                 .foregroundStyle(color)
                 .sensitiveAmount()
@@ -221,6 +228,8 @@ struct TemplateLineInputRow: View {
     let line: TemplateLineInput
     let onDelete: () -> Void
 
+    @Environment(UserSettingsStore.self) private var userSettingsStore
+
     var body: some View {
         HStack(spacing: DesignTokens.Spacing.md) {
             // Kind icon circle (matches TemplateLineRow / BudgetLineRow)
@@ -245,7 +254,7 @@ struct TemplateLineInputRow: View {
 
             Spacer(minLength: 8)
 
-            Text(line.amount.asAmount)
+            Text(line.amount.asSignedAmount(for: line.kind, in: userSettingsStore.currency))
                 .font(PulpeTypography.listRowSubtitle)
                 .foregroundStyle(line.kind.color)
                 .sensitiveAmount()
@@ -262,15 +271,20 @@ struct TemplateLineInputRow: View {
 // MARK: - Add Line Sheet — hero amount layout
 
 struct AddTemplateLineSheet: View {
+    private enum FormField: Hashable {
+        case amount
+        case name
+    }
+
     let onAdd: (TemplateLineInput) -> Void
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(UserSettingsStore.self) private var userSettingsStore
     @State private var name = ""
     @State private var amount: Decimal?
     @State private var kind: TransactionKind = .expense
     @State private var recurrence: TransactionRecurrence = .fixed
-    @FocusState private var isAmountFocused: Bool
-    @FocusState private var isDescriptionFocused: Bool
+    @FocusState private var focusedField: FormField?
     @State private var amountText = ""
     @State private var submitSuccessTrigger = false
 
@@ -294,18 +308,27 @@ struct AddTemplateLineSheet: View {
         SheetFormContainer(
             title: "Nouvelle ligne",
             isLoading: false,
-            autoFocus: $isAmountFocused,
-            descriptionFocus: $isDescriptionFocused
+            focus: $focusedField,
+            focusOrder: [.amount, .name]
         ) {
             KindToggle(selection: $kind)
             HeroAmountField(
                 amount: $amount,
                 amountText: $amountText,
-                isFocused: $isAmountFocused,
+                focus: $focusedField,
+                field: .amount,
+                currency: userSettingsStore.currency,
                 accentColor: kind.color
             )
-            QuickAmountChips(amount: $amount, amountText: $amountText, isFocused: $isAmountFocused, color: kind.color)
-                .animation(.snappy(duration: DesignTokens.Animation.fast), value: kind)
+            QuickAmountChips(
+                amount: $amount,
+                amountText: $amountText,
+                focus: $focusedField,
+                amountField: .amount,
+                color: kind.color,
+                currency: userSettingsStore.currency
+            )
+            .animation(.snappy(duration: DesignTokens.Animation.fast), value: kind)
             descriptionField
             recurrenceSelector
             addButton
@@ -321,7 +344,8 @@ struct AddTemplateLineSheet: View {
             text: $name,
             label: "Description",
             accessibilityLabel: "Nom de la ligne budgétaire",
-            focusBinding: $isDescriptionFocused
+            focusBinding: $focusedField,
+            field: .name
         )
     }
 
@@ -380,6 +404,7 @@ struct AddTemplateLineSheet: View {
         print("Created: \(template)")
     }
     .environment(ToastManager())
+    .environment(UserSettingsStore())
 }
 
 struct LineTotals: Sendable {

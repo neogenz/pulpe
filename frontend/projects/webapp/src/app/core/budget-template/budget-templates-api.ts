@@ -2,15 +2,21 @@ import { inject, Injectable } from '@angular/core';
 import { type Observable } from 'rxjs';
 import {
   type BudgetTemplateCreate,
+  budgetTemplateCreateSchema,
   type BudgetTemplateCreateFromOnboarding,
+  budgetTemplateCreateFromOnboardingSchema,
   type BudgetTemplateCreateResponse,
   type BudgetTemplateListResponse,
   type BudgetTemplateResponse,
   type BudgetTemplateDeleteResponse,
+  type BudgetTemplateUpdate,
+  budgetTemplateUpdateSchema,
   type TemplateLineListResponse,
   type TemplateLinesBulkUpdate,
+  templateLinesBulkUpdateSchema,
   type TemplateLinesBulkUpdateResponse,
   type TemplateLinesBulkOperations,
+  templateLinesBulkOperationsSchema,
   type TemplateLinesBulkOperationsResponse,
   type TemplateUsageResponse,
   budgetTemplateListResponseSchema,
@@ -61,6 +67,7 @@ export class BudgetTemplatesApi {
       '/budget-templates',
       template,
       budgetTemplateCreateResponseSchema,
+      budgetTemplateCreateSchema,
     );
   }
 
@@ -71,17 +78,19 @@ export class BudgetTemplatesApi {
       '/budget-templates/from-onboarding',
       onboardingData,
       budgetTemplateCreateResponseSchema,
+      budgetTemplateCreateFromOnboardingSchema,
     );
   }
 
   update$(
     id: string,
-    updates: Partial<BudgetTemplateCreate>,
+    updates: BudgetTemplateUpdate,
   ): Observable<BudgetTemplateResponse> {
     return this.#api.patch$(
       `/budget-templates/${id}`,
       updates,
       budgetTemplateResponseSchema,
+      budgetTemplateUpdateSchema,
     );
   }
 
@@ -102,6 +111,7 @@ export class BudgetTemplatesApi {
       `/budget-templates/${templateId}/lines`,
       bulkUpdate,
       templateLinesBulkUpdateResponseSchema,
+      templateLinesBulkUpdateSchema,
     );
   }
 
@@ -113,6 +123,7 @@ export class BudgetTemplatesApi {
       `/budget-templates/${templateId}/lines/bulk-operations`,
       bulkOperations,
       templateLinesBulkOperationsResponseSchema,
+      templateLinesBulkOperationsSchema,
     );
   }
 

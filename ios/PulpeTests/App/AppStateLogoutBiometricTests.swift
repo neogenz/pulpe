@@ -100,13 +100,13 @@ struct AppStateLogoutBiometricTests {
         #expect(sut.authState == .unauthenticated)
     }
 
-    // MARK: - Bug 3: checkAuthState Skips Biometric When didExplicitLogout
+    // MARK: - PUL-132: Biometric Gate Inverted (re-entry path on explicit logout only)
 
-    @Test("checkAuthState skips biometric auto-trigger when didExplicitLogout is true")
-    func checkAuthState_skipsBiometric_whenExplicitLogout() async {
+    @Test("checkAuthState ATTEMPTS biometric when didExplicitLogout is true (PUL-132)")
+    func checkAuthState_attemptsBiometric_whenExplicitLogout() async {
         let biometricAttempted = AtomicFlag()
 
-        // Set the explicit logout flag
+        // Set the explicit logout flag — biometric re-entry path
         UserDefaults.standard.set(true, forKey: Self.didExplicitLogoutKey)
         UserDefaults.standard.set(true, forKey: Self.hasLaunchedBeforeKey)
         defer {
@@ -128,14 +128,14 @@ struct AppStateLogoutBiometricTests {
         await sut.checkAuthState()
 
         #expect(
-            biometricAttempted.value == false,
-            "Biometric session validation must NOT be attempted when didExplicitLogout is true"
+            biometricAttempted.value == true,
+            "PUL-132: biometric-keychain re-entry path MUST run on explicit-logout cold-start"
         )
         #expect(sut.authState == .unauthenticated)
     }
 
-    @Test("checkAuthState attempts biometric when didExplicitLogout is false")
-    func checkAuthState_attemptsBiometric_whenNoExplicitLogout() async {
+    @Test("checkAuthState SKIPS biometric when didExplicitLogout is false (PUL-132)")
+    func checkAuthState_skipsBiometric_whenNoExplicitLogout() async {
         let biometricAttempted = AtomicFlag()
 
         // Ensure the explicit logout flag is NOT set
@@ -160,8 +160,8 @@ struct AppStateLogoutBiometricTests {
         await sut.checkAuthState()
 
         #expect(
-            biometricAttempted.value == true,
-            "Biometric session validation MUST be attempted when didExplicitLogout is false"
+            biometricAttempted.value == false,
+            "PUL-132: biometric slot must NOT be read on non-logout cold-start (drift prevention)"
         )
     }
 
@@ -251,7 +251,11 @@ struct AppStateLogoutBiometricTests {
         )
 
         // completeOnboarding calls clearExplicitLogoutFlag (same as login)
-        await sut.completeOnboarding(user: user, onboardingData: BudgetTemplateCreateFromOnboarding())
+        await sut.completeOnboarding(
+            user: user,
+            onboardingData: BudgetTemplateCreateFromOnboarding(),
+            signupMethod: "email"
+        )
 
         #expect(
             UserDefaults.standard.bool(forKey: Self.didExplicitLogoutKey) == false,
@@ -367,7 +371,7 @@ struct AppStateLogoutBiometricTests {
         // Arrange: persist some onboarding data
         let onboardingState = OnboardingState()
         onboardingState.firstName = "TestUser"
-        onboardingState.currentStep = .expenses
+        onboardingState.currentStep = .charges
         onboardingState.saveToStorage()
 
         // Verify data was persisted

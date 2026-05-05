@@ -8,9 +8,11 @@ import {
   type TransactionSearchResponse,
   type TransactionUpdate,
   type TransactionUpdateResponse,
+  transactionCreateSchema,
   transactionListResponseSchema,
   transactionResponseSchema,
   transactionSearchResponseSchema,
+  transactionUpdateSchema,
 } from 'pulpe-shared';
 import { type Observable } from 'rxjs';
 import { ApiClient } from '@core/api/api-client';
@@ -35,6 +37,7 @@ export class TransactionApi {
       '/transactions',
       transaction,
       transactionResponseSchema,
+      transactionCreateSchema,
     );
   }
 
@@ -50,6 +53,7 @@ export class TransactionApi {
       `/transactions/${id}`,
       transaction,
       transactionResponseSchema,
+      transactionUpdateSchema,
     );
   }
 

@@ -34,7 +34,7 @@ struct CurrentMonthWidgetView: View {
                 .font(PulpeTypography.metricMini)
                 .foregroundStyle(Color.textSecondary)
 
-            Text(entry.available.asCHF)
+            Text(entry.available.asCompactCurrency(entry.currency))
                 .font(PulpeTypography.amountXL)
                 .monospacedDigit()
                 .minimumScaleFactor(0.6)
@@ -59,7 +59,7 @@ struct CurrentMonthWidgetView: View {
         .padding(.vertical, DesignTokens.Spacing.sm)
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Budget \(entry.monthName)")
-        .accessibilityValue("\(entry.available.asCHF) disponible")
+        .accessibilityValue("\(entry.available.asCurrency(entry.currency)) disponible")
     }
 
     private var mediumWidgetView: some View {
@@ -69,7 +69,7 @@ struct CurrentMonthWidgetView: View {
                     .font(PulpeTypography.detailLabel)
                     .foregroundStyle(Color.textSecondary)
 
-                Text(entry.available.asCHF)
+                Text(entry.available.asCompactCurrency(entry.currency))
                     .font(PulpeTypography.amountLarge)
                     .monospacedDigit()
                     .minimumScaleFactor(0.7)
@@ -83,7 +83,7 @@ struct CurrentMonthWidgetView: View {
             }
             .accessibilityElement(children: .combine)
             .accessibilityLabel("Budget \(entry.monthName)")
-            .accessibilityValue("\(entry.available.asCHF) disponible à dépenser")
+            .accessibilityValue("\(entry.available.asCurrency(entry.currency)) disponible à dépenser")
 
             Spacer()
 

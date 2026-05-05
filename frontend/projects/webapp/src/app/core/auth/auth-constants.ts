@@ -21,6 +21,10 @@ export const AUTH_ERROR_KEYS = {
   UNEXPECTED_LOGIN_ERROR: 'auth.errors.unexpectedLogin',
   UNEXPECTED_SIGNUP_ERROR: 'auth.errors.unexpectedSignup',
   UNEXPECTED_SESSION_ERROR: 'auth.errors.unexpectedSession',
+  SESSION_EXPIRED: 'auth.errors.sessionExpired',
+  REFRESH_FAILED: 'auth.errors.refreshFailed',
+  ACCOUNT_BLOCKED: 'auth.errors.accountBlocked',
+  CLIENT_KEY_MISSING: 'auth.errors.clientKeyMissing',
 } as const;
 
 export function formatDeletionDate(

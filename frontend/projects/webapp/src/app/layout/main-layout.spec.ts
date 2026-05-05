@@ -24,7 +24,7 @@ import { Subject, EMPTY } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
 import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 import MainLayout from './main-layout';
-import { AuthStateService } from '../core/auth/auth-state.service';
+import { AuthStore } from '../core/auth/auth-store';
 import { AuthSessionService } from '../core/auth/auth-session.service';
 import { ApplicationConfiguration } from '../core/config/application-configuration';
 import { DemoModeService } from '../core/demo/demo-mode.service';
@@ -95,7 +95,7 @@ class MockPulpeBreadcrumbComponent {
   readonly items = input<unknown[]>([]);
 }
 
-interface MockAuthStateService {
+interface MockAuthStore {
   signOut: ReturnType<typeof vi.fn>;
   authState: ReturnType<typeof vi.fn>;
   user: Signal<unknown>;
@@ -109,7 +109,7 @@ interface MockAuthStateService {
 describe('MainLayout', () => {
   let component: MainLayout;
   let fixture: ComponentFixture<MainLayout>;
-  let mockAuthStateService: MockAuthStateService;
+  let mockAuthStore: MockAuthStore;
   let mockAuthSessionService: {
     signOut: ReturnType<typeof vi.fn>;
   };
@@ -151,7 +151,7 @@ describe('MainLayout', () => {
     breakpointSubject = new Subject<{ matches: boolean }>();
 
     // Create mocks
-    mockAuthStateService = {
+    mockAuthStore = {
       signOut: vi.fn().mockResolvedValue(undefined),
       authState: vi.fn().mockReturnValue({
         user: { email: 'test@example.com' },
@@ -213,7 +213,7 @@ describe('MainLayout', () => {
       providers: [
         provideZonelessChangeDetection(),
         ...provideTranslocoForTest(),
-        { provide: AuthStateService, useValue: mockAuthStateService },
+        { provide: AuthStore, useValue: mockAuthStore },
         { provide: AuthSessionService, useValue: mockAuthSessionService },
         { provide: Router, useValue: mockRouter },
         { provide: ActivatedRoute, useValue: {} },
@@ -536,7 +536,7 @@ describe('MainLayout', () => {
         const ariaLabel = logoutButton.getAttribute('aria-label');
         expect(ariaLabel).toBeTruthy();
         expect([
-          'Se déconnecter de votre compte',
+          'Se déconnecter',
           'Déconnexion en cours, veuillez patienter',
         ]).toContain(ariaLabel);
       }

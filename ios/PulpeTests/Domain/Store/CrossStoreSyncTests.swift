@@ -161,7 +161,7 @@ struct BudgetDetailsAdjacentCacheTests {
         cache.store(budgetId: "budget-next", budget: nextBudget, budgetLines: [], transactions: [])
 
         let toastManager = ToastManager()
-        vm.softDeleteTransaction(tx, toastManager: toastManager)
+        vm.softDeleteTransaction(tx, toastManager: toastManager, presentationCurrency: .chf)
 
         #expect(
             cache.get(budgetId: "budget-prev") == nil,

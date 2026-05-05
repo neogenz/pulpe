@@ -88,11 +88,6 @@ describe('Signup', () => {
       expect(component['signupForm'].get('confirmPassword')).toBeDefined();
       expect(component['signupForm'].get('acceptTerms')).toBeDefined();
     });
-
-    it('should have computed canSubmit defined', () => {
-      expect(component['canSubmit']).toBeDefined();
-      expect(typeof component['canSubmit']).toBe('function');
-    });
   });
 
   describe('Default Values', () => {
@@ -207,23 +202,6 @@ describe('Signup', () => {
     });
   });
 
-  describe('canSubmit computed', () => {
-    it('should return false when form is invalid', () => {
-      expect(component['canSubmit']()).toBe(false);
-    });
-
-    it('should return false when isSubmitting is true', () => {
-      fillValidForm();
-      component['isSubmitting'].set(true);
-      expect(component['canSubmit']()).toBe(false);
-    });
-
-    it('should return true when form is valid and not submitting', () => {
-      fillValidForm();
-      expect(component['canSubmit']()).toBe(true);
-    });
-  });
-
   describe('togglePasswordVisibility', () => {
     it('should toggle isPasswordHidden from true to false', () => {
       expect(component['isPasswordHidden']()).toBe(true);
@@ -282,6 +260,23 @@ describe('Signup', () => {
       expect(component['errorMessage']()).toBe(
         'Quelques champs à vérifier avant de continuer',
       );
+    });
+  });
+
+  describe('signUp - Angular-valid / Zod-invalid email', () => {
+    it('should not lock form when Angular accepts but Zod rejects email (single-char TLD)', async () => {
+      component['signupForm'].patchValue({
+        email: 'foo@bar.c',
+        password: 'password123',
+        confirmPassword: 'password123',
+        acceptTerms: true,
+      });
+
+      await component['signUp']();
+
+      expect(mockAuthCredentials.signUpWithEmail).not.toHaveBeenCalled();
+      expect(component['isSubmitting']()).toBe(false);
+      expect(component['errorMessage']()).not.toBe('');
     });
   });
 

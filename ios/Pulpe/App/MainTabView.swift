@@ -70,8 +70,8 @@ struct MainTabView: View {
     @available(iOS 26.0, *)
     @ViewBuilder
     private func customTabBarView(selectedTab: Binding<Tab>) -> some View {
-        GlassEffectContainer(spacing: 10) {
-            HStack(spacing: 10) {
+        GlassEffectContainer(spacing: DesignTokens.Spacing.compactGap) {
+            HStack(spacing: DesignTokens.Spacing.compactGap) {
                 GeometryReader { geometry in
                     let segmentInset = DesignTokens.Spacing.xs
                     CustomTabBar(
@@ -97,10 +97,10 @@ struct MainTabView: View {
     @available(iOS 26.0, *)
     @ViewBuilder
     private func tabBarItems(selectedTab: Binding<Tab>) -> some View {
-        HStack(spacing: 0) {
+        HStack(spacing: DesignTokens.Spacing.none) {
             ForEach(Tab.allCases) { tab in
                 let isSelected = selectedTab.wrappedValue == tab
-                VStack(spacing: 3) {
+                VStack(spacing: DesignTokens.Spacing.dividerGap) {
                     tabBarIcon(for: tab, isSelected: isSelected)
                     Text(tab.title).font(PulpeTypography.tabLabel)
                 }
@@ -137,8 +137,8 @@ struct MainTabView: View {
 
     @ViewBuilder
     private func customTabBarViewLegacy(selectedTab: Binding<Tab>) -> some View {
-        HStack(spacing: 10) {
-            HStack(spacing: 0) {
+        HStack(spacing: DesignTokens.Spacing.compactGap) {
+            HStack(spacing: DesignTokens.Spacing.none) {
                 ForEach(Tab.allCases) { tab in
                     Button {
                         withAnimation(.smooth) {
@@ -147,7 +147,7 @@ struct MainTabView: View {
                     } label: {
                         let isSelected = selectedTab.wrappedValue == tab
 
-                        VStack(spacing: 3) {
+                        VStack(spacing: DesignTokens.Spacing.dividerGap) {
                             tabBarIcon(for: tab, isSelected: isSelected)
                             Text(tab.title)
                                 .font(PulpeTypography.tabLabel)

@@ -7,6 +7,8 @@ struct SectionHeader: View {
     let totalAmount: Decimal?
     var totalColor: Color = .primary
 
+    @Environment(UserSettingsStore.self) private var userSettingsStore
+
     var body: some View {
         HStack(spacing: DesignTokens.Spacing.sm) {
             // Title
@@ -20,7 +22,7 @@ struct SectionHeader: View {
                 .font(PulpeTypography.inputHelper)
                 .foregroundStyle(Color.textOnPrimary)
                 .padding(.horizontal, DesignTokens.Spacing.sm)
-                .padding(.vertical, 3)
+                .padding(.vertical, DesignTokens.Spacing.dividerGap)
                 .background(Color.countBadge)
                 .clipShape(Capsule())
 
@@ -28,12 +30,16 @@ struct SectionHeader: View {
 
             // Total amount (optional)
             if let total = totalAmount {
-                Text(total.asCHF)
+                Text(total.asArithmeticSignedCompactCurrency(userSettingsStore.currency))
                     .font(PulpeTypography.labelLarge)
+                    .monospacedDigit()
                     .foregroundStyle(totalColor)
                     .sensitiveAmount()
             }
         }
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(.isHeader)
+        .accessibilityValue(totalAmount?.asArithmeticSignedCompactCurrency(userSettingsStore.currency) ?? "")
     }
 }
 
@@ -63,4 +69,5 @@ struct SectionHeader: View {
     }
     .padding(.vertical)
     .background(Color.surface)
+    .environment(UserSettingsStore())
 }
