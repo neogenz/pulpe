@@ -3,7 +3,6 @@ import SwiftUI
 /// Main onboarding flow coordinator
 struct OnboardingFlow: View {
     @Environment(AppState.self) private var appState
-    @Environment(UserSettingsStore.self) private var userSettingsStore
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.scenePhase) private var scenePhase
     @State private var state: OnboardingState
@@ -302,16 +301,15 @@ struct OnboardingFlow: View {
         state.isSubmitting = true
         defer { state.isSubmitting = false }
 
-        // The onboarding template schema doesn't carry currency, so persist the user's
-        // pick to user_settings before bootstrap so all subsequent amounts use it.
-        if state.currency != userSettingsStore.currency {
-            await userSettingsStore.updateCurrency(state.currency)
-        }
-
+        // Currency persistence is deferred to `OnboardingBootstrapper.bootstrapIfNeeded`,
+        // which runs post-PIN-setup. Calling `userSettingsStore.updateCurrency` here would
+        // 403 with `AUTH_CLIENT_KEY_MISSING` because the client key only exists after PIN
+        // setup, leaving the dashboard stuck on the default CHF.
         await appState.completeOnboarding(
             user: user,
             onboardingData: state.createTemplateData(),
-            signupMethod: state.authMethodProperty
+            signupMethod: state.authMethodProperty,
+            currency: state.currency
         )
         if appState.showPostAuthError {
             // Capture error locally and clear global flag
@@ -341,5 +339,4 @@ struct OnboardingFlow: View {
 #Preview {
     OnboardingFlow()
         .environment(AppState())
-        .environment(UserSettingsStore())
 }
