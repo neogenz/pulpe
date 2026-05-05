@@ -301,8 +301,10 @@ actor APIClient {
         } catch {
             throw APIError.networkError(error)
         }
-        // SDK confirms no usable session — clear tokens and force logout
-        await AuthService.shared.logout()
+        // SDK confirms no usable session — clear tokens and force logout.
+        // The session is already broken; a failing signOut here is a no-op for the
+        // user (we're about to post `.sessionExpired` regardless).
+        try? await AuthService.shared.logout()
         await MainActor.run {
             NotificationCenter.default.post(name: .sessionExpired, object: nil)
         }

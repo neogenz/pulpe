@@ -173,12 +173,15 @@ actor AuthService {
 
     // MARK: - Logout
 
-    func logout(scope: SignOutScope = .local) async {
-        do {
-            try await supabase.auth.signOut(scope: scope)
-        } catch {
-            Logger.auth.error("logout: signOut failed - \(error)")
-        }
+    /// Sign out of Supabase. Surfaces the underlying error so callers can decide how
+    /// to react — silent swallow used to hide a real risk window: when `.global` is
+    /// requested but the network call fails, the access token stays valid server-side
+    /// for up to ~1h. Note: supabase-swift's `Auth.signOut` clears its `PulpeAuthStorage`
+    /// slot **before** issuing the HTTP call, so local state is already empty even on
+    /// throw — there is nothing to roll back. The legacy `keychain.clearTokens()` runs
+    /// only on success; on throw the SDK has already done its local cleanup.
+    func logout(scope: SignOutScope = .local) async throws {
+        try await supabase.auth.signOut(scope: scope)
 
         // SDK clears its own storage on signOut; clear legacy slot defensively.
         await keychain.clearTokens()

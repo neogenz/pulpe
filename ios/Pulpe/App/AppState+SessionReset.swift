@@ -135,12 +135,12 @@ extension AppState {
                 // Both save attempts failed — biometric tokens are unusable.
                 // Do a full logout instead of silently losing Face ID.
                 Logger.auth.error("logout: biometric token preservation failed, doing full logout")
-                await performSignOut(scope)
+                await runSignOutOrSurfaceFailure(scope: scope)
                 await biometric.handleSessionExpired()
                 biometric.isEnabled = false
             }
         } else {
-            await performSignOut(scope)
+            await runSignOutOrSurfaceFailure(scope: scope)
             await biometric.handleSessionExpired()
             biometric.isEnabled = false
         }
@@ -158,7 +158,7 @@ extension AppState {
         authDebug("AUTH_PASSWORD_RESET", "complete")
         // Password reset → revoke JWT server-side so a snapped access_token
         // cannot be replayed within its ~1h expiry window.
-        await performSignOut(.global)
+        await runSignOutOrSurfaceFailure(scope: .global)
         await authService.clearBiometricTokens()
         await clientKeyManager.clearAll()
         biometric.isEnabled = false
@@ -172,11 +172,33 @@ extension AppState {
         authDebug("AUTH_PASSWORD_RESET", "cancel")
         // Cancel mid-recovery → revoke JWT server-side. Recovery session is
         // write-capable (can change password) so a snapped token must not survive.
-        await performSignOut(.global)
+        await runSignOutOrSurfaceFailure(scope: .global)
         await authService.clearBiometricTokens()
         await clientKeyManager.clearAll()
         biometric.isEnabled = false
         resetSession(.passwordReset)
+    }
+
+    /// Run the sign-out side-effect; on throw, log + show a warning toast but continue
+    /// the local cleanup. PUL-208: a `.global` revoke that fails leaves the access token
+    /// valid server-side for up to ~1h. Surfacing the failure lets the user change their
+    /// password again or pre-empt session theft. Local SDK storage is already cleared by
+    /// supabase-swift before the HTTP call, so state reset MUST proceed regardless.
+    ///
+    /// `ToastManager` has no dedicated `.warning` variant — `.error` is the closest fit
+    /// (inflammatory enough to draw attention; `.success` would mislead). The wording
+    /// frames it as "local OK, server unreachable" rather than a hard failure.
+    private func runSignOutOrSurfaceFailure(scope: SignOutScope) async {
+        do {
+            try await performSignOut(scope)
+        } catch {
+            Logger.auth.error("global revoke failed: \(error, privacy: .public)")
+            toastManager.show(
+                "Déconnexion locale OK, mais serveur injoignable. "
+                + "Si tu suspectes un vol de session, change ton mot de passe à nouveau dans 5 min.",
+                type: .error
+            )
+        }
     }
 
     // MARK: - Account Deletion

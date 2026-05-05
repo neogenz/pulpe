@@ -392,13 +392,16 @@ final class CurrencySettingViewModel {
               let inputValue = Decimal(string: trimmed.replacingOccurrences(of: ",", with: ".")) else {
             return "—"
         }
-        let converted = inputValue * Decimal(rate.rate)
+        let converted = inputValue * rate.rate
         return converted.asCurrency(targetCurrency)
     }
 
     var rateInfo: String? {
         guard let rate else { return nil }
-        return "1 \(rate.base.rawValue) = \(String(format: "%.4f", rate.rate)) \(rate.target.rawValue) (\(rate.date))"
+        // PUL-114: rate is Decimal end-to-end. Format via Decimal.formatted to
+        // preserve precision (no Double bridge through %.4f).
+        let rateText = rate.rate.formatted(.number.precision(.fractionLength(4)))
+        return "1 \(rate.base.rawValue) = \(rateText) \(rate.target.rawValue) (\(rate.date))"
     }
 
     /// Aligne le convertisseur : devise du compte = ligne « Depuis », l’autre devise = « Vers ».

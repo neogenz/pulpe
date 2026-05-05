@@ -14,8 +14,9 @@ struct CurrencyConversionServiceTests {
 
     @Test
     func convert_roundsConvertedAmountToTwoDecimals() async throws {
-        // Arrange: rate 0.93 triggers IEEE 754 noise unless we round explicitly.
-        // Raw multiply: Decimal(100) * Decimal(Double(0.93)) = 92.99999999999999...
+        // PUL-114 / PR #419 C2: rate is Decimal end-to-end. Foundation parses
+        // JSON number directly into Decimal — no Double bridge, no IEEE 754
+        // noise to round away. 100 * 0.93 = 93.00 exactly.
         InterceptingURLProtocol.requestHandler = Self.rateHandler(rate: 0.93)
         defer { InterceptingURLProtocol.requestHandler = nil }
 
@@ -27,11 +28,33 @@ struct CurrencyConversionServiceTests {
         // Assert
         let result = try #require(conversion)
         #expect(result.convertedAmount == Decimal(string: "93.00"))
-        // RG-009: exchange rate is frozen as-is, never rounded
-        #expect(result.exchangeRate == Decimal(0.93))
+        // RG-009: exchange rate is frozen as-is, never rounded.
+        // Strict Decimal equality (no Double bridge) — proves no IEEE-754 noise.
+        #expect(result.exchangeRate == Decimal(string: "0.93"))
         #expect(result.originalAmount == 100)
         #expect(result.originalCurrency == .eur)
         #expect(result.targetCurrency == .chf)
+    }
+
+    @Test
+    func convert_preservesExactDecimalPrecisionFromJSONNumber() async throws {
+        // PUL-114 / PR #419 C2: a rate that, if bridged through Double, becomes
+        // 0.93000000000000004 (binary fraction noise). With Decimal end-to-end
+        // and Foundation's lexer-based JSON number parsing, the value must
+        // round-trip exactly. If this test fires, the Decimal pipeline regressed
+        // to a Double bridge somewhere.
+        InterceptingURLProtocol.requestHandler = Self.rateHandler(rate: 0.93)
+        defer { InterceptingURLProtocol.requestHandler = nil }
+
+        let sut = makeSUT()
+
+        // Act
+        let rate = try await sut.getRate(base: .eur, target: .chf)
+
+        // Assert
+        let expected = try #require(Decimal(string: "0.93"))
+        #expect(rate.rate == expected)
+        #expect(rate.rate.description == "0.93")
     }
 
     // MARK: - Stale cache fallback

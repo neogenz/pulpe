@@ -4,7 +4,7 @@ import OSLog
 struct CurrencyRate: Codable, Sendable {
     let base: SupportedCurrency
     let target: SupportedCurrency
-    let rate: Double
+    let rate: Decimal
     let date: String
 }
 
@@ -61,17 +61,18 @@ actor CurrencyConversionService {
         guard inputCurrency != baseCurrency else { return nil }
 
         let rate = try await getRate(base: inputCurrency, target: baseCurrency)
-        // PUL-99: the converted amount is what gets encrypted and persisted.
-        // Round to 2 decimals to kill IEEE 754 noise and stay aligned with
-        // the webapp (`.toFixed(2)` in currency-converter.service.ts).
+        // PUL-99 / PUL-114 (PR #419 C2 fix): rate is now Decimal end-to-end —
+        // Foundation parses JSON number directly into Decimal via its lexer,
+        // no Double bridge, no IEEE-754 noise. The 2-decimal rounding stays
+        // aligned with the webapp (`.toFixed(2)` in currency-converter.service.ts).
         // The exchange rate itself is NOT rounded — RG-009 freezes it as-is.
-        let convertedAmount = (amount * Decimal(rate.rate)).rounded(2, .plain)
+        let convertedAmount = (amount * rate.rate).rounded(2, .plain)
         return CurrencyConversion(
             convertedAmount: convertedAmount,
             originalAmount: amount,
             originalCurrency: inputCurrency,
             targetCurrency: baseCurrency,
-            exchangeRate: Decimal(rate.rate)
+            exchangeRate: rate.rate
         )
     }
 }

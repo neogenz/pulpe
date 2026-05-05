@@ -35,7 +35,7 @@ struct AppStateDependencies {
 
     /// Override for the sign-out side-effect. Defaults to `authService.logout(scope:)`.
     /// Primarily a test seam — production should leave this `nil`.
-    var performSignOut: (@Sendable (SignOutScope) async -> Void)?
+    var performSignOut: (@Sendable (SignOutScope) async throws -> Void)?
 
     // MARK: - Auth Flags & Widget
 
@@ -74,7 +74,7 @@ struct AppStateDependencies {
         validateRegularSession: (@Sendable () async throws -> UserInfo?)? = nil,
         validateBiometricSession: (@Sendable () async throws -> BiometricSessionResult?)? = nil,
         deleteAccountRequest: (@Sendable () async throws -> DeleteAccountResponse)? = nil,
-        performSignOut: (@Sendable (SignOutScope) async -> Void)? = nil,
+        performSignOut: (@Sendable (SignOutScope) async throws -> Void)? = nil,
         flagsStore: any AppAuthFlagsStoring = AppAuthFlagsStore(),
         widgetSyncing: any WidgetSyncing = WidgetSyncAdapter(),
         maintenanceChecking: @escaping @Sendable () async throws -> Bool = {

@@ -164,7 +164,7 @@ final class AppState {
     let postAuthResolver: any PostAuthResolving
     let validateRegularSession: @Sendable () async throws -> UserInfo?
     let deleteAccountRequest: @Sendable () async throws -> DeleteAccountResponse
-    let performSignOut: @Sendable (SignOutScope) async -> Void
+    let performSignOut: @Sendable (SignOutScope) async throws -> Void
     @ObservationIgnored let flagsStore: any AppAuthFlagsStoring
     @ObservationIgnored let widgetSyncing: any WidgetSyncing
     @ObservationIgnored let maintenanceChecking: @Sendable () async throws -> Bool
@@ -314,7 +314,7 @@ final class AppState {
         validateRegularSession: (@Sendable () async throws -> UserInfo?)? = nil,
         validateBiometricSession: (@Sendable () async throws -> BiometricSessionResult?)? = nil,
         deleteAccountRequest: (@Sendable () async throws -> DeleteAccountResponse)? = nil,
-        performSignOut: (@Sendable (SignOutScope) async -> Void)? = nil,
+        performSignOut: (@Sendable (SignOutScope) async throws -> Void)? = nil,
         maintenanceChecking: @escaping @Sendable () async throws -> Bool = {
             try await MaintenanceService.shared.checkStatus()
         },
@@ -384,10 +384,10 @@ final class AppState {
 
     private static func makePerformSignOut(
         _ deps: AppStateDependencies
-    ) -> @Sendable (SignOutScope) async -> Void {
+    ) -> @Sendable (SignOutScope) async throws -> Void {
         deps.performSignOut
             ?? { [authService = deps.authService] scope in
-                await authService.logout(scope: scope)
+                try await authService.logout(scope: scope)
             }
     }
 

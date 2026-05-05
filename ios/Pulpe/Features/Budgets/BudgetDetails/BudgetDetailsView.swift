@@ -11,13 +11,12 @@ struct BudgetDetailsView: View {
     @Environment(UserSettingsStore.self) private var userSettingsStore
     @Environment(\.amountsHidden) private var amountsHidden
     @State private var viewModel: BudgetDetailsViewModel
-    @State private var selectedLineForTransaction: BudgetLine?
-    @State private var showAddBudgetLine = false
-    @State private var linkedBudgetLineId: IdentifiableString?
-    @State private var selectedBudgetLineForEdit: BudgetLine?
-    @State private var selectedTransactionForEdit: Transaction?
-    @State private var previousBudgetItem: PreviousBudgetItem?
-    @State private var showRealizedBalance = false
+    @State private var destination: BudgetDetailDestination?
+    /// Persists across sheet dismissal so the H9 soft-delete toast can be triggered
+    /// from `onDismiss` (after the sheet animation completes). Lives outside
+    /// `BudgetDetailDestination` because its lifetime spans the destination
+    /// transitioning to `nil`.
+    @State private var pendingTransactionDeletion: Transaction?
 
     @State private var searchText = ""
 
@@ -72,7 +71,7 @@ struct BudgetDetailsView: View {
             }
             ToolbarItem(placement: .primaryAction) {
                 Button {
-                    showAddBudgetLine = true
+                    destination = .addBudgetLine
                 } label: {
                     Image(systemName: "plus")
                 }
@@ -86,63 +85,11 @@ struct BudgetDetailsView: View {
                 await viewModel.reloadCurrentBudget()
             }
         }
-        .sheet(item: $selectedLineForTransaction) { line in
-            AddAllocatedTransactionSheet(budgetLine: line) { transaction in
-                viewModel.addTransaction(transaction)
-            }
-        }
-        .sheet(isPresented: $showAddBudgetLine) {
-            AddBudgetLineSheet(budgetId: viewModel.budgetId) { budgetLine in
-                viewModel.addBudgetLine(budgetLine)
-            }
-        }
-        .sheet(item: $linkedBudgetLineId) { idWrapper in
-            LinkedTransactionsSheetWrapper(
-                budgetLineId: idWrapper.value,
-                viewModel: viewModel,
-                onDismissAndEdit: { transaction in
-                    linkedBudgetLineId = nil
-                    selectedTransactionForEdit = transaction
-                },
-                onDismissAndDelete: { transaction in
-                    linkedBudgetLineId = nil
-                    let deleted = transaction
-                    Task { @MainActor in
-                        try? await Task.sleep(for: DesignTokens.Animation.postSheetDismissBeforeToast)
-                        viewModel.softDeleteTransaction(
-                            deleted,
-                            toastManager: appState.toastManager,
-                            presentationCurrency: userSettingsStore.currency
-                        )
-                    }
-                },
-                onDismissAndAddTransaction: { budgetLine in
-                    linkedBudgetLineId = nil
-                    selectedLineForTransaction = budgetLine
-                }
-            )
-        }
-        .sheet(item: $selectedBudgetLineForEdit) { line in
-            EditBudgetLineSheet(budgetLine: line, userCurrency: userSettingsStore.currency) { updatedLine in
-                Task { await viewModel.updateBudgetLine(updatedLine) }
-            }
-        }
-        .sheet(item: $selectedTransactionForEdit) { transaction in
-            EditTransactionSheet(
-                transaction: transaction,
-                userCurrency: userSettingsStore.currency
-            ) { updatedTransaction in
-                Task { await viewModel.updateTransaction(updatedTransaction) }
-            }
-        }
-        .sheet(item: $previousBudgetItem) { item in
-            PreviousBudgetSheet(budgetId: item.id)
-        }
-        .sheet(isPresented: $showRealizedBalance) {
-            RealizedBalanceSheet(
-                metrics: viewModel.metrics,
-                realizedMetrics: viewModel.realizedMetrics
-            )
+        .sheet(
+            item: $destination,
+            onDismiss: handleSheetDismiss
+        ) { dest in
+            sheetContent(for: dest)
         }
         .alert(
             "Pointer les transactions ?",
@@ -199,10 +146,10 @@ struct BudgetDetailsView: View {
                 HeroBalanceCard(
                     metrics: viewModel.metrics,
                     timeElapsedPercentage: timeElapsedPercentage,
-                    onTapChart: { showRealizedBalance = true },
+                    onTapChart: { destination = .realizedBalance },
                     rolloverAmount: viewModel.rolloverInfo?.amount,
                     onRolloverTap: viewModel.rolloverInfo?.previousBudgetId.map { id in
-                        { previousBudgetItem = PreviousBudgetItem(id: id) }
+                        { destination = .previousBudget(PreviousBudgetItem(id: id)) }
                     }
                 )
             }
@@ -258,7 +205,7 @@ struct BudgetDetailsView: View {
                         )
                     },
                     onEdit: { transaction in
-                        selectedTransactionForEdit = transaction
+                        destination = .editTransaction(transaction)
                     }
                 )
             }
@@ -278,6 +225,72 @@ struct BudgetDetailsView: View {
             prompt: "Rechercher..."
         )
         .searchPresentationToolbarBehavior(.avoidHidingContent)
+    }
+
+    // MARK: - Sheet Routing
+
+    /// H9 onDismiss soft-delete: fires the toast only when the user explicitly
+    /// triggered a deletion from `LinkedTransactionsSheetWrapper`. Other dismiss
+    /// paths leave `pendingTransactionDeletion` nil → no-op.
+    private func handleSheetDismiss() {
+        guard let transaction = pendingTransactionDeletion else { return }
+        pendingTransactionDeletion = nil
+        viewModel.softDeleteTransaction(
+            transaction,
+            toastManager: appState.toastManager,
+            presentationCurrency: userSettingsStore.currency
+        )
+    }
+
+    /// Routes each `BudgetDetailDestination` to its sheet view. Extracted from the
+    /// `.sheet(item:)` closure to keep the parent view's `body` type-checking fast
+    /// — a 7-case switch inside a SwiftUI ViewBuilder can blow up the compiler's
+    /// type inference time and cascade into unrelated files.
+    @ViewBuilder
+    private func sheetContent(for destination: BudgetDetailDestination) -> some View {
+        switch destination {
+        case .addAllocatedTransaction(let line):
+            AddAllocatedTransactionSheet(budgetLine: line) { transaction in
+                viewModel.addTransaction(transaction)
+            }
+        case .addBudgetLine:
+            AddBudgetLineSheet(budgetId: viewModel.budgetId) { budgetLine in
+                viewModel.addBudgetLine(budgetLine)
+            }
+        case .linkedTransactions(let idWrapper):
+            LinkedTransactionsSheetWrapper(
+                budgetLineId: idWrapper.value,
+                viewModel: viewModel,
+                onDismissAndEdit: { transaction in
+                    self.destination = .editTransaction(transaction)
+                },
+                onDismissAndDelete: { transaction in
+                    pendingTransactionDeletion = transaction
+                    self.destination = nil
+                },
+                onDismissAndAddTransaction: { budgetLine in
+                    self.destination = .addAllocatedTransaction(budgetLine)
+                }
+            )
+        case .editBudgetLine(let line):
+            EditBudgetLineSheet(budgetLine: line, userCurrency: userSettingsStore.currency) { updatedLine in
+                Task { await viewModel.updateBudgetLine(updatedLine) }
+            }
+        case .editTransaction(let transaction):
+            EditTransactionSheet(
+                transaction: transaction,
+                userCurrency: userSettingsStore.currency
+            ) { updatedTransaction in
+                Task { await viewModel.updateTransaction(updatedTransaction) }
+            }
+        case .previousBudget(let item):
+            PreviousBudgetSheet(budgetId: item.id)
+        case .realizedBalance:
+            RealizedBalanceSheet(
+                metrics: viewModel.metrics,
+                realizedMetrics: viewModel.realizedMetrics
+            )
+        }
     }
 
     // MARK: - Section Builders
@@ -307,10 +320,10 @@ struct BudgetDetailsView: View {
                 )
             },
             onAddTransaction: { line in
-                selectedLineForTransaction = line
+                destination = .addAllocatedTransaction(line)
             },
             onLongPress: { line, _ in
-                linkedBudgetLineId = IdentifiableString(value: line.id)
+                destination = .linkedTransactions(IdentifiableString(value: line.id))
             },
             onEdit: { line in
                 guard !line.isManuallyAdjusted else {
@@ -320,7 +333,7 @@ struct BudgetDetailsView: View {
                     )
                     return
                 }
-                selectedBudgetLineForEdit = line
+                destination = .editBudgetLine(line)
             },
             tip: tip
         )
@@ -331,6 +344,35 @@ struct BudgetDetailsView: View {
 private struct IdentifiableString: Identifiable {
     let value: String
     var id: String { value }
+}
+
+/// Single source of truth for sheet presentation.
+///
+/// Apple's guidance is to drive sheet presentation from a single `.sheet(item:)`
+/// modifier rather than stacking multiple `.sheet(...)` siblings. Stacked sheets
+/// have undefined ordering when more than one tries to present, and chained
+/// presentations (dismiss-then-present) only animate cleanly when the system
+/// owns the transition.
+private enum BudgetDetailDestination: Identifiable {
+    case addAllocatedTransaction(BudgetLine)
+    case addBudgetLine
+    case linkedTransactions(IdentifiableString)
+    case editBudgetLine(BudgetLine)
+    case editTransaction(Transaction)
+    case previousBudget(PreviousBudgetItem)
+    case realizedBalance
+
+    var id: String {
+        switch self {
+        case .addAllocatedTransaction(let line): "addAllocatedTransaction-\(line.id)"
+        case .addBudgetLine: "addBudgetLine"
+        case .linkedTransactions(let item): "linkedTransactions-\(item.id)"
+        case .editBudgetLine(let line): "editBudgetLine-\(line.id)"
+        case .editTransaction(let tx): "editTransaction-\(tx.id)"
+        case .previousBudget(let item): "previousBudget-\(item.id)"
+        case .realizedBalance: "realizedBalance"
+        }
+    }
 }
 
 /// Reactive wrapper that reads budgetLine + transactions from the ViewModel
