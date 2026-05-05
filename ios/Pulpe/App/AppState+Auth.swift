@@ -298,7 +298,8 @@ extension AppState {
     func completeOnboarding(
         user: UserInfo,
         onboardingData: BudgetTemplateCreateFromOnboarding,
-        signupMethod: String
+        signupMethod: String,
+        currency: SupportedCurrency? = nil
     ) async {
         authDebug("AUTH_ONBOARDING", "complete email=\(user.email.prefix(3))***")
         clearPreLoginFlags()
@@ -306,7 +307,11 @@ extension AppState {
         await keychainManager.saveLastUsedEmail(user.email)
         hasReturningUser = true
         returningUserFlagLoaded = true
-        onboardingBootstrapper.setPendingData(onboardingData, signupMethod: signupMethod)
+        onboardingBootstrapper.setPendingData(
+            onboardingData,
+            signupMethod: signupMethod,
+            currency: currency
+        )
         authState = .loading
 
         // Route based on actual vault status.

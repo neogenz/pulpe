@@ -36,13 +36,16 @@ struct OnboardingBootstrapperTests {
     private func makeSUT(
         createTemplate: (@MainActor (BudgetTemplateCreateFromOnboarding) async throws -> BudgetTemplate)? = nil,
         createBudget: (@MainActor (BudgetCreate) async throws -> Budget)? = nil,
-        toastManager: ToastManager = ToastManager()
+        toastManager: ToastManager = ToastManager(),
+        persistCurrency: (@MainActor (SupportedCurrency) async -> Bool)? = nil
     ) -> OnboardingBootstrapper {
-        OnboardingBootstrapper(
+        let sut = OnboardingBootstrapper(
             createTemplate: createTemplate ?? { _ in Self.mockTemplate },
             createBudget: createBudget ?? { _ in Self.mockBudget },
             toastManager: toastManager
         )
+        sut.persistCurrency = persistCurrency
+        return sut
     }
 
     // MARK: - bootstrapIfNeeded
@@ -230,5 +233,99 @@ struct OnboardingBootstrapperTests {
 
         sut.clearPendingData()
         #expect(sut.pendingOnboardingData == nil)
+    }
+
+    // MARK: - Currency Persistence (PUL-118)
+
+    @Test("bootstrapIfNeeded with pending currency calls persistCurrency")
+    func bootstrapIfNeeded_withPendingCurrency_callsPersistCurrency() async {
+        nonisolated(unsafe) var capturedCurrency: SupportedCurrency?
+
+        let sut = makeSUT(
+            persistCurrency: { currency in
+                capturedCurrency = currency
+                return true
+            }
+        )
+        sut.setPendingData(
+            BudgetTemplateCreateFromOnboarding(),
+            signupMethod: "email",
+            currency: .eur
+        )
+
+        await sut.bootstrapIfNeeded()
+
+        #expect(capturedCurrency == .eur)
+    }
+
+    @Test("bootstrapIfNeeded when persistCurrency fails still returns true")
+    func bootstrapIfNeeded_whenPersistCurrencyFails_stillReturnsTrue() async {
+        let sut = makeSUT(
+            persistCurrency: { _ in false }
+        )
+        sut.setPendingData(
+            BudgetTemplateCreateFromOnboarding(),
+            signupMethod: "email",
+            currency: .eur
+        )
+
+        let result = await sut.bootstrapIfNeeded()
+
+        #expect(result == true)
+        #expect(sut.pendingOnboardingData == nil, "Pending data must be cleared on success path")
+        #expect(sut.pendingCurrency == nil, "Pending currency must be cleared on success path")
+    }
+
+    @Test("bootstrapIfNeeded when persistCurrency fails shows toast")
+    func bootstrapIfNeeded_whenPersistCurrencyFails_showsToast() async {
+        let toast = ToastManager()
+        let sut = makeSUT(
+            toastManager: toast,
+            persistCurrency: { _ in false }
+        )
+        sut.setPendingData(
+            BudgetTemplateCreateFromOnboarding(),
+            signupMethod: "email",
+            currency: .eur
+        )
+
+        await sut.bootstrapIfNeeded()
+
+        #expect(toast.currentToast != nil, "User must see an error toast on currency failure")
+    }
+
+    @Test("bootstrapIfNeeded without pending currency does not call persistCurrency")
+    func bootstrapIfNeeded_withoutPendingCurrency_doesNotCallPersistCurrency() async {
+        nonisolated(unsafe) var persistCallCount = 0
+
+        let sut = makeSUT(
+            persistCurrency: { _ in
+                persistCallCount += 1
+                return true
+            }
+        )
+        // setPendingData WITHOUT currency — pendingCurrency stays nil
+        sut.setPendingData(BudgetTemplateCreateFromOnboarding(), signupMethod: "email")
+
+        await sut.bootstrapIfNeeded()
+
+        #expect(persistCallCount == 0)
+    }
+
+    @Test("setPendingData with currency stores pendingCurrency; clearPendingData clears it")
+    func setPendingData_withCurrency_storesAndClears() {
+        let sut = makeSUT()
+
+        #expect(sut.pendingCurrency == nil)
+
+        sut.setPendingData(
+            BudgetTemplateCreateFromOnboarding(),
+            signupMethod: "email",
+            currency: .eur
+        )
+        #expect(sut.pendingCurrency == .eur)
+
+        sut.clearPendingData()
+        #expect(sut.pendingCurrency == nil)
     }
 }
