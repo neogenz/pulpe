@@ -35,6 +35,10 @@ describe('BudgetTemplateService - Simplified Tests', () => {
     description: 'Test description',
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
+    original_amount: null,
+    original_currency: null,
+    target_currency: null,
+    exchange_rate: null,
   };
 
   beforeEach(() => {
@@ -64,8 +68,14 @@ describe('BudgetTemplateService - Simplified Tests', () => {
         Promise.resolve({ amount: 'encrypted-mock' }),
       prepareAmountsData: (amounts: number[]) =>
         Promise.resolve(amounts.map(() => ({ amount: 'encrypted-mock' }))),
+      encryptOptionalAmount: (amount: number | null | undefined) =>
+        Promise.resolve(amount == null ? null : 'encrypted-mock'),
       decryptAmount: () => 100,
       getUserDEK: () => Promise.resolve(Buffer.alloc(32)),
+    };
+
+    const mockCurrencyService = {
+      overrideExchangeRate: (dto: any) => Promise.resolve(dto),
     };
 
     service = new BudgetTemplateService(
@@ -73,6 +83,7 @@ describe('BudgetTemplateService - Simplified Tests', () => {
       mockBudgetService as any,
       mockEncryptionService as any,
       { invalidateForUser: () => Promise.resolve() } as any,
+      mockCurrencyService as any,
     );
   });
 
@@ -254,8 +265,13 @@ describe('BudgetTemplateService - Simplified Tests', () => {
 
     it('should propagate template changes to future budgets and recalculate balances', async () => {
       const templateLine = createMockTemplateLineEntity({
-        id: 'line-1',
+        id: '550e8400-e29b-41d4-a716-446655440010',
         template_id: templateId,
+        amount: 'encrypted-line-1',
+        original_amount: null,
+        original_currency: null,
+        target_currency: null,
+        exchange_rate: null,
       }) as Tables<'template_line'>;
 
       const operations = {
@@ -373,12 +389,109 @@ describe('BudgetTemplateService - Simplified Tests', () => {
       expect(rpcMock).not.toHaveBeenCalled();
     });
 
+    it('should include currency metadata columns in RPC payload (PUL-99 CA4)', async () => {
+      const operations = {
+        deletedIds: [] as string[],
+        updatedLines: [
+          {
+            id: '550e8400-e29b-41d4-a716-446655440001',
+            template_id: templateId,
+            name: 'Groceries',
+            amount: 'encrypted-chf',
+            kind: 'expense',
+            recurrence: 'fixed',
+            description: null,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            original_amount: 'encrypted-eur',
+            original_currency: 'EUR',
+            target_currency: 'CHF',
+            exchange_rate: 0.95,
+          } as Tables<'template_line'>,
+        ],
+        createdLines: [
+          {
+            id: '550e8400-e29b-41d4-a716-446655440002',
+            template_id: templateId,
+            name: 'Transport',
+            amount: 'encrypted-chf-2',
+            kind: 'expense',
+            recurrence: 'one_off',
+            description: null,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            original_amount: null,
+            original_currency: null,
+            target_currency: null,
+            exchange_rate: null,
+          } as Tables<'template_line'>,
+        ],
+      };
+
+      const rpcMock = mock(() =>
+        Promise.resolve({ data: ['budget-1'], error: null }),
+      );
+      const supabaseStub = {
+        from: (table: string) => {
+          if (table === 'monthly_budget') {
+            const resolved = {
+              data: [{ id: 'budget-1', month: 1, year: 2026 }],
+              error: null,
+            };
+            return {
+              select: () => ({
+                eq: () => ({
+                  eq: () => {
+                    const p = Promise.resolve(resolved);
+                    return {
+                      or: () => Promise.resolve(resolved),
+                      then: p.then.bind(p),
+                      catch: p.catch.bind(p),
+                    };
+                  },
+                }),
+              }),
+            };
+          }
+          throw new Error(`Unexpected table access: ${table}`);
+        },
+        rpc: rpcMock,
+      } as any;
+
+      await (service as any).propagateTemplateChangesToBudgets(
+        templateId,
+        operations,
+        mockUser.clientKey,
+        mockUser,
+        supabaseStub,
+      );
+
+      expect(rpcMock).toHaveBeenCalled();
+      const rpcCall = rpcMock.mock.calls[0];
+      if (!rpcCall) {
+        throw new Error('RPC call not recorded');
+      }
+      const [, rpcPayload] = rpcCall as unknown as [string, any];
+
+      const updated = rpcPayload.updated_lines[0];
+      expect(updated.original_amount).toBe('encrypted-eur');
+      expect(updated.original_currency).toBe('EUR');
+      expect(updated.target_currency).toBe('CHF');
+      expect(updated.exchange_rate).toBe(0.95);
+
+      const created = rpcPayload.created_lines[0];
+      expect(created.original_amount).toBeNull();
+      expect(created.original_currency).toBeNull();
+      expect(created.target_currency).toBeNull();
+      expect(created.exchange_rate).toBeNull();
+    });
+
     it('should serialize numeric amounts to strings before RPC call', async () => {
       const operations = {
         deletedIds: [] as string[],
         updatedLines: [
           {
-            id: 'line-1',
+            id: '550e8400-e29b-41d4-a716-446655440003',
             template_id: templateId,
             name: 'Salary',
             amount: null,
@@ -387,11 +500,15 @@ describe('BudgetTemplateService - Simplified Tests', () => {
             description: null,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
+            original_amount: null,
+            original_currency: null,
+            target_currency: null,
+            exchange_rate: null,
           } as Tables<'template_line'>,
         ],
         createdLines: [
           {
-            id: 'line-2',
+            id: '550e8400-e29b-41d4-a716-446655440004',
             template_id: templateId,
             name: 'Bonus',
             amount: null,
@@ -400,6 +517,10 @@ describe('BudgetTemplateService - Simplified Tests', () => {
             description: null,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
+            original_amount: null,
+            original_currency: null,
+            target_currency: null,
+            exchange_rate: null,
           } as Tables<'template_line'>,
         ],
       };
@@ -450,6 +571,371 @@ describe('BudgetTemplateService - Simplified Tests', () => {
       const [, rpcPayload] = rpcCall as unknown as [string, any];
       expect(rpcPayload.updated_lines[0].amount).toBeNull();
       expect(rpcPayload.created_lines[0].amount).toBeNull();
+    });
+  });
+
+  describe('Bulk Update — Currency Metadata (PUL-99 CA4)', () => {
+    it('should call overrideExchangeRate and encrypt originalAmount when both currencies are set', async () => {
+      const overrideMock = mock((dto: any) =>
+        Promise.resolve({ ...dto, exchangeRate: 0.95 }),
+      );
+      const encryptOptionalMock = mock((amount: number | null | undefined) =>
+        Promise.resolve(
+          amount === undefined || amount === null ? null : 'enc-orig',
+        ),
+      );
+
+      const customCurrencyService = { overrideExchangeRate: overrideMock };
+      const customEncryptionService = {
+        ensureUserDEK: () => Promise.resolve(Buffer.alloc(32)),
+        encryptAmount: () => 'encrypted-mock',
+        prepareAmountData: (_amount: number) =>
+          Promise.resolve({ amount: 'enc-amount' }),
+        prepareAmountsData: (amounts: number[]) =>
+          Promise.resolve(amounts.map(() => ({ amount: 'enc-amount' }))),
+        encryptOptionalAmount: encryptOptionalMock,
+        decryptAmount: () => 100,
+        getUserDEK: () => Promise.resolve(Buffer.alloc(32)),
+      };
+
+      const currencyAwareService = new BudgetTemplateService(
+        mockLogger as any,
+        mockBudgetService as any,
+        customEncryptionService as any,
+        { invalidateForUser: () => Promise.resolve() } as any,
+        customCurrencyService as any,
+      );
+
+      const lines = [
+        {
+          id: 'line-1',
+          amount: 95,
+          originalAmount: 100,
+          originalCurrency: 'EUR',
+          targetCurrency: 'CHF',
+          exchangeRate: 999, // client-supplied rate, MUST be overridden
+        },
+      ];
+
+      const groups = await (
+        currencyAwareService as any
+      ).groupUpdatesByProperties(lines, mockUser);
+
+      expect(overrideMock).toHaveBeenCalledTimes(1);
+      expect(encryptOptionalMock).toHaveBeenCalledWith(
+        100,
+        mockUser.id,
+        mockUser.clientKey,
+      );
+
+      const groupEntries = Array.from(groups.values()) as Array<{
+        ids: string[];
+        data: Record<string, unknown>;
+      }>;
+      expect(groupEntries).toHaveLength(1);
+      expect(groupEntries[0]?.data).toMatchObject({
+        amount: 'enc-amount',
+        original_amount: 'enc-orig',
+        original_currency: 'EUR',
+        target_currency: 'CHF',
+        exchange_rate: 0.95, // server-side rate, NOT the client's 999
+      });
+    });
+
+    it('should strip FX metadata and skip originalAmount encryption for mono-currency updates', async () => {
+      // Mirrors production overrideExchangeRate — keep in sync with currency.service.ts
+      const overrideMock = mock((dto: any) => {
+        const sanitized: Record<string, unknown> = { ...dto };
+        delete sanitized.exchangeRate;
+        delete sanitized.originalAmount;
+        if (
+          sanitized.originalCurrency &&
+          sanitized.targetCurrency &&
+          sanitized.originalCurrency === sanitized.targetCurrency
+        ) {
+          delete sanitized.originalCurrency;
+          delete sanitized.targetCurrency;
+        }
+        return Promise.resolve(sanitized);
+      });
+      const encryptOptionalMock = mock(() => Promise.resolve(null));
+
+      const customCurrencyService = { overrideExchangeRate: overrideMock };
+      const customEncryptionService = {
+        ensureUserDEK: () => Promise.resolve(Buffer.alloc(32)),
+        encryptAmount: () => 'encrypted-mock',
+        prepareAmountData: (_amount: number) =>
+          Promise.resolve({ amount: 'enc-amount' }),
+        prepareAmountsData: (amounts: number[]) =>
+          Promise.resolve(amounts.map(() => ({ amount: 'enc-amount' }))),
+        encryptOptionalAmount: encryptOptionalMock,
+        decryptAmount: () => 100,
+        getUserDEK: () => Promise.resolve(Buffer.alloc(32)),
+      };
+
+      const monoCurrencyService = new BudgetTemplateService(
+        mockLogger as any,
+        mockBudgetService as any,
+        customEncryptionService as any,
+        { invalidateForUser: () => Promise.resolve() } as any,
+        customCurrencyService as any,
+      );
+
+      const lines = [{ id: 'line-1', name: 'Rent', amount: 1200 }];
+
+      const groups = await (
+        monoCurrencyService as any
+      ).groupUpdatesByProperties(lines, mockUser);
+
+      expect(overrideMock).toHaveBeenCalled();
+      expect(encryptOptionalMock).not.toHaveBeenCalled();
+
+      const groupEntries = Array.from(groups.values()) as Array<{
+        ids: string[];
+        data: Record<string, unknown>;
+      }>;
+      expect(groupEntries[0]?.data).not.toHaveProperty('original_amount');
+      expect(groupEntries[0]?.data).not.toHaveProperty('original_currency');
+    });
+  });
+
+  describe('createTemplateWithLines — FX metadata persistence (PUL-133)', () => {
+    type RpcCall = [string, Record<string, unknown>];
+
+    const buildServiceWithMocks = (
+      overrideMock: ReturnType<typeof mock>,
+      encryptOptionalMock: ReturnType<typeof mock>,
+      rpcMock: ReturnType<typeof mock>,
+    ): { service: BudgetTemplateService; supabase: any } => {
+      const customCurrencyService = { overrideExchangeRate: overrideMock };
+      const customEncryptionService = {
+        ensureUserDEK: () => Promise.resolve(Buffer.alloc(32)),
+        encryptAmount: () => 'encrypted-mock',
+        prepareAmountData: (_amount: number) =>
+          Promise.resolve({ amount: 'enc-amount' }),
+        prepareAmountsData: (amounts: number[]) =>
+          Promise.resolve(amounts.map(() => ({ amount: 'enc-amount' }))),
+        encryptOptionalAmount: encryptOptionalMock,
+        decryptAmount: () => 100,
+        getUserDEK: () => Promise.resolve(Buffer.alloc(32)),
+      };
+
+      const fxService = new BudgetTemplateService(
+        mockLogger as any,
+        mockBudgetService as any,
+        customEncryptionService as any,
+        { invalidateForUser: () => Promise.resolve() } as any,
+        customCurrencyService as any,
+      );
+
+      const supabase = {
+        from: () => ({
+          update: () => ({
+            eq: () => ({ eq: () => Promise.resolve({ error: null }) }),
+          }),
+        }),
+        rpc: rpcMock,
+      };
+
+      return { service: fxService, supabase };
+    };
+
+    it('should persist FX metadata for multi-currency lines', async () => {
+      const overrideMock = mock((dto: any) =>
+        Promise.resolve({
+          ...dto,
+          originalAmount: 100,
+          originalCurrency: 'EUR',
+          targetCurrency: 'CHF',
+          exchangeRate: 0.95,
+        }),
+      );
+      const encryptOptionalMock = mock((amount: number | null | undefined) =>
+        Promise.resolve(amount == null ? null : 'enc-orig'),
+      );
+      const rpcMock = mock(() =>
+        Promise.resolve({ data: mockTemplate, error: null }),
+      );
+
+      const { service: fxService, supabase } = buildServiceWithMocks(
+        overrideMock,
+        encryptOptionalMock,
+        rpcMock,
+      );
+
+      await (fxService as any).createTemplateWithLines(
+        {
+          name: 'Multi-FX template',
+          description: '',
+          isDefault: false,
+          lines: [
+            {
+              name: 'Rent EUR',
+              amount: 95,
+              kind: 'expense',
+              recurrence: 'fixed',
+              description: '',
+              originalAmount: 100,
+              originalCurrency: 'EUR',
+              targetCurrency: 'CHF',
+              exchangeRate: 999,
+            },
+          ],
+        },
+        mockUser,
+        supabase,
+      );
+
+      expect(overrideMock).toHaveBeenCalledTimes(1);
+      expect(encryptOptionalMock).toHaveBeenCalledWith(
+        100,
+        mockUser.id,
+        mockUser.clientKey,
+      );
+
+      const rpcCall = rpcMock.mock.calls[0] as unknown as RpcCall;
+      const payload = rpcCall[1];
+      const lines = payload.p_lines as Record<string, unknown>[];
+
+      expect(lines).toHaveLength(1);
+      expect(lines[0]).toMatchObject({
+        name: 'Rent EUR',
+        amount: 'enc-amount',
+        kind: 'expense',
+        recurrence: 'fixed',
+        original_amount: 'enc-orig',
+        original_currency: 'EUR',
+        target_currency: 'CHF',
+        exchange_rate: 0.95,
+      });
+    });
+
+    it('should null FX columns for same-currency lines', async () => {
+      const overrideMock = mock((dto: any) => {
+        const sanitized: Record<string, unknown> = { ...dto };
+        delete sanitized.exchangeRate;
+        delete sanitized.originalAmount;
+        delete sanitized.originalCurrency;
+        return Promise.resolve(sanitized);
+      });
+      const encryptOptionalMock = mock(() => Promise.resolve(null));
+      const rpcMock = mock(() =>
+        Promise.resolve({ data: mockTemplate, error: null }),
+      );
+
+      const { service: fxService, supabase } = buildServiceWithMocks(
+        overrideMock,
+        encryptOptionalMock,
+        rpcMock,
+      );
+
+      await (fxService as any).createTemplateWithLines(
+        {
+          name: 'Mono template',
+          description: '',
+          isDefault: false,
+          lines: [
+            {
+              name: 'Salary',
+              amount: 5000,
+              kind: 'income',
+              recurrence: 'fixed',
+              description: '',
+            },
+          ],
+        },
+        mockUser,
+        supabase,
+      );
+
+      expect(overrideMock).toHaveBeenCalledTimes(1);
+
+      const rpcCall = rpcMock.mock.calls[0] as unknown as RpcCall;
+      const lines = (rpcCall[1].p_lines as Record<string, unknown>[]) ?? [];
+
+      expect(lines[0]).toMatchObject({
+        name: 'Salary',
+        amount: 'enc-amount',
+        original_amount: null,
+        original_currency: null,
+        target_currency: null,
+        exchange_rate: null,
+      });
+    });
+
+    it('should handle mixed batch independently per line', async () => {
+      const overrideMock = mock((dto: any) => {
+        if (dto.originalCurrency && dto.targetCurrency) {
+          return Promise.resolve({ ...dto, exchangeRate: 0.95 });
+        }
+        const sanitized: Record<string, unknown> = { ...dto };
+        delete sanitized.exchangeRate;
+        delete sanitized.originalAmount;
+        delete sanitized.originalCurrency;
+        return Promise.resolve(sanitized);
+      });
+      const encryptOptionalMock = mock((amount: number | null | undefined) =>
+        Promise.resolve(amount == null ? null : 'enc-orig'),
+      );
+      const rpcMock = mock(() =>
+        Promise.resolve({ data: mockTemplate, error: null }),
+      );
+
+      const { service: fxService, supabase } = buildServiceWithMocks(
+        overrideMock,
+        encryptOptionalMock,
+        rpcMock,
+      );
+
+      await (fxService as any).createTemplateWithLines(
+        {
+          name: 'Mixed template',
+          description: '',
+          isDefault: false,
+          lines: [
+            {
+              name: 'Rent EUR',
+              amount: 95,
+              kind: 'expense',
+              recurrence: 'fixed',
+              description: '',
+              originalAmount: 100,
+              originalCurrency: 'EUR',
+              targetCurrency: 'CHF',
+            },
+            {
+              name: 'Salary CHF',
+              amount: 5000,
+              kind: 'income',
+              recurrence: 'fixed',
+              description: '',
+            },
+          ],
+        },
+        mockUser,
+        supabase,
+      );
+
+      expect(overrideMock).toHaveBeenCalledTimes(2);
+
+      const rpcCall = rpcMock.mock.calls[0] as unknown as RpcCall;
+      const lines = rpcCall[1].p_lines as Record<string, unknown>[];
+
+      expect(lines).toHaveLength(2);
+      expect(lines[0]).toMatchObject({
+        name: 'Rent EUR',
+        original_amount: 'enc-orig',
+        original_currency: 'EUR',
+        target_currency: 'CHF',
+        exchange_rate: 0.95,
+      });
+      expect(lines[1]).toMatchObject({
+        name: 'Salary CHF',
+        original_amount: null,
+        original_currency: null,
+        target_currency: null,
+        exchange_rate: null,
+      });
     });
   });
 

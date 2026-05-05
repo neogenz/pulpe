@@ -1,5 +1,5 @@
 import { isDevMode } from '@angular/core';
-import type { AuthState } from './auth-state.service';
+import type { AuthState } from './auth-store';
 
 export interface DemoSession {
   user: {

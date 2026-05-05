@@ -56,7 +56,7 @@ export interface BreadcrumbItemViewModel {
           <!-- Data-driven mode -->
           @else if (showDataDrivenMode()) {
             @for (item of items(); track item.url; let isLast = $last) {
-              <li class="flex-shrink-0">
+              <li class="shrink-0">
                 @if (!isLast) {
                   <a
                     matButton
@@ -67,7 +67,7 @@ export interface BreadcrumbItemViewModel {
                     class="px-2 text-on-surface-variant hover:text-primary"
                   >
                     @if (item.icon) {
-                      <mat-icon class="!text-base mr-1 flex-shrink-0">{{
+                      <mat-icon class="!text-base mr-1 shrink-0">{{
                         item.icon
                       }}</mat-icon>
                     }
@@ -79,7 +79,7 @@ export interface BreadcrumbItemViewModel {
                     aria-current="page"
                   >
                     @if (item.icon) {
-                      <mat-icon class="!text-base flex-shrink-0">{{
+                      <mat-icon class="!text-base shrink-0">{{
                         item.icon
                       }}</mat-icon>
                     }
@@ -88,7 +88,7 @@ export interface BreadcrumbItemViewModel {
                 }
               </li>
               @if (!isLast) {
-                <li aria-hidden="true" class="flex-shrink-0">
+                <li aria-hidden="true" class="shrink-0">
                   <mat-icon class="!text-base text-outline align-middle">{{
                     defaultSeparatorIcon
                   }}</mat-icon>

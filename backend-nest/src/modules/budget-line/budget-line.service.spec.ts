@@ -4,6 +4,7 @@ import { BudgetLineService } from './budget-line.service';
 import { BudgetService } from '../budget/budget.service';
 import { EncryptionService } from '@modules/encryption/encryption.service';
 import { CacheService } from '@modules/cache/cache.service';
+import { CurrencyService } from '@modules/currency/currency.service';
 import { BusinessException } from '@common/exceptions/business.exception';
 import type { BudgetLineCreate, BudgetLineUpdate } from 'pulpe-shared';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
@@ -12,6 +13,10 @@ import type { BudgetLineRow } from './entities/budget-line.entity';
 
 describe('BudgetLineService', () => {
   let service: BudgetLineService;
+  let currencyServiceMock!: {
+    getRate: ReturnType<typeof jest.fn>;
+    overrideExchangeRate: ReturnType<typeof jest.fn>;
+  };
   type MockSupabaseResponse<T> = {
     data: T | null;
     error: Error | null;
@@ -81,6 +86,10 @@ describe('BudgetLineService', () => {
     checked_at: null,
     created_at: '2024-01-01T00:00:00.000Z',
     updated_at: '2024-01-01T00:00:00.000Z',
+    original_amount: null,
+    original_currency: null,
+    target_currency: null,
+    exchange_rate: null,
   };
 
   const mockBudgetLineApi = {
@@ -113,6 +122,42 @@ describe('BudgetLineService', () => {
       clientKey: Buffer.from('ab'.repeat(32), 'hex'),
     };
 
+    currencyServiceMock = {
+      getRate: jest.fn().mockResolvedValue({
+        base: 'EUR',
+        target: 'CHF',
+        rate: 0.93,
+        date: '2026-03-10',
+      }),
+      // Mirrors production overrideExchangeRate — keep in sync with currency.service.ts
+      overrideExchangeRate: jest
+        .fn()
+        .mockImplementation(async (dto: BudgetLineUpdate) => {
+          const sameCurrency =
+            !!dto.originalCurrency &&
+            !!dto.targetCurrency &&
+            dto.originalCurrency === dto.targetCurrency;
+          const missingCurrencyPair =
+            !dto.originalCurrency || !dto.targetCurrency;
+
+          if (sameCurrency || missingCurrencyPair) {
+            const sanitized: Record<string, unknown> = { ...dto };
+            delete sanitized.exchangeRate;
+            delete sanitized.originalAmount;
+            if (sameCurrency) {
+              delete sanitized.originalCurrency;
+              delete sanitized.targetCurrency;
+            }
+            return sanitized;
+          }
+          const { rate } = (await currencyServiceMock.getRate(
+            dto.originalCurrency,
+            dto.targetCurrency,
+          )) as { rate: number };
+          return { ...dto, exchangeRate: rate };
+        }),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         BudgetLineService,
@@ -137,7 +182,25 @@ describe('BudgetLineService', () => {
               .fn()
               .mockImplementation((_ct: string, _dek: Buffer) => 100),
             tryDecryptAmount: jest.fn().mockReturnValue(2500),
+            decryptRowAmountFields: jest.fn().mockImplementation(
+              (
+                row: {
+                  amount: string | null;
+                  original_amount: string | null;
+                },
+                _dek: Buffer,
+              ) => ({
+                ...row,
+                amount: row.amount ? 2500 : 0,
+                original_amount: row.original_amount ? 2500 : null,
+              }),
+            ),
+            encryptOptionalAmount: jest.fn().mockResolvedValue(null),
           },
+        },
+        {
+          provide: CurrencyService,
+          useValue: currencyServiceMock,
         },
         {
           provide: CacheService,
@@ -445,6 +508,184 @@ describe('BudgetLineService', () => {
         ),
       ).rejects.toThrow(BusinessException);
     });
+
+    it('should omit currency columns when update only touches name (mono-currency PATCH)', async () => {
+      const budgetLineId = '123e4567-e89b-12d3-a456-426614174000';
+      const queryBuilder = createMockQueryBuilder({
+        data: { ...mockBudgetLineDb, name: 'Spotify' },
+        error: null,
+      });
+      mockSupabase.from.mockReturnValue(queryBuilder);
+
+      await service.update(
+        budgetLineId,
+        {
+          id: budgetLineId,
+          name: 'Spotify',
+        },
+        mockUser,
+        getMockSupabaseClient(),
+      );
+
+      const updatePayload = queryBuilder.update.mock.calls[0][0] as Record<
+        string,
+        unknown
+      >;
+      expect(updatePayload).toHaveProperty('name', 'Spotify');
+      expect(updatePayload).not.toHaveProperty('original_currency');
+      expect(updatePayload).not.toHaveProperty('target_currency');
+      expect(updatePayload).not.toHaveProperty('exchange_rate');
+    });
+
+    it('should strip orphan exchangeRate when no currency pair is provided (PUL-99 RG-009)', async () => {
+      // RG-009: "Le taux est figé définitivement au moment de la saisie —
+      // jamais recalculé rétroactivement". A PATCH sending only exchangeRate
+      // without currency context is treated as forged and stripped before
+      // reaching the mapper.
+      const budgetLineId = '123e4567-e89b-12d3-a456-426614174000';
+      const queryBuilder = createMockQueryBuilder({
+        data: { ...mockBudgetLineDb, exchange_rate: 1.08 },
+        error: null,
+      });
+      mockSupabase.from.mockReturnValue(queryBuilder);
+
+      await service.update(
+        budgetLineId,
+        {
+          id: budgetLineId,
+          exchangeRate: 1.08,
+        },
+        mockUser,
+        getMockSupabaseClient(),
+      );
+
+      const updatePayload = queryBuilder.update.mock.calls[0][0] as Record<
+        string,
+        unknown
+      >;
+      expect(updatePayload).not.toHaveProperty('exchange_rate');
+      expect(updatePayload).not.toHaveProperty('original_currency');
+      expect(updatePayload).not.toHaveProperty('target_currency');
+    });
+
+    it('should map full currency metadata and call overrideExchangeRate when both currencies are set', async () => {
+      const budgetLineId = '123e4567-e89b-12d3-a456-426614174000';
+      const queryBuilder = createMockQueryBuilder({
+        data: {
+          ...mockBudgetLineDb,
+          original_currency: 'EUR',
+          target_currency: 'CHF',
+          exchange_rate: 0.93,
+        },
+        error: null,
+      });
+      mockSupabase.from.mockReturnValue(queryBuilder);
+
+      await service.update(
+        budgetLineId,
+        {
+          id: budgetLineId,
+          originalCurrency: 'EUR',
+          targetCurrency: 'CHF',
+          exchangeRate: 1.05,
+        },
+        mockUser,
+        getMockSupabaseClient(),
+      );
+
+      expect(currencyServiceMock.overrideExchangeRate).toHaveBeenCalled();
+      const updatePayload = queryBuilder.update.mock.calls[0][0] as Record<
+        string,
+        unknown
+      >;
+      expect(updatePayload).toMatchObject({
+        original_currency: 'EUR',
+        target_currency: 'CHF',
+        exchange_rate: 0.93,
+      });
+    });
+
+    it('should persist explicit null originalCurrency via mapper', async () => {
+      const budgetLineId = '123e4567-e89b-12d3-a456-426614174000';
+      const queryBuilder = createMockQueryBuilder({
+        data: { ...mockBudgetLineDb, original_currency: null },
+        error: null,
+      });
+      mockSupabase.from.mockReturnValue(queryBuilder);
+
+      await service.update(
+        budgetLineId,
+        {
+          id: budgetLineId,
+          originalCurrency: null,
+        } as unknown as BudgetLineUpdate,
+        mockUser,
+        getMockSupabaseClient(),
+      );
+
+      const updatePayload = queryBuilder.update.mock.calls[0][0] as Record<
+        string,
+        unknown
+      >;
+      expect(updatePayload).toMatchObject({ original_currency: null });
+    });
+
+    it('should clear stale FX metadata when PATCH sets same currency (PUL-115)', async () => {
+      // Guards the direct PATCH path (distinct from resetFromTemplate CA4):
+      // a previously EUR->CHF-converted line being edited with same-currency
+      // input must have all 4 FX columns explicitly nulled in the DB write.
+      const budgetLineId = '123e4567-e89b-12d3-a456-426614174000';
+      const queryBuilder = createMockQueryBuilder({
+        data: {
+          ...mockBudgetLineDb,
+          original_amount: null,
+          original_currency: null,
+          target_currency: 'CHF',
+          exchange_rate: null,
+        },
+        error: null,
+      });
+      mockSupabase.from.mockReturnValue(queryBuilder);
+
+      // Override the in-file overrideExchangeRate mock (which predates PUL-115
+      // and omits keys instead of emitting nulls) with the real production
+      // contract for same-currency inputs: the 3 source FX fields are force-
+      // nulled while targetCurrency is preserved from the client input.
+      currencyServiceMock.overrideExchangeRate.mockImplementationOnce(
+        async (dto: BudgetLineUpdate) => ({
+          ...dto,
+          originalAmount: null,
+          originalCurrency: null,
+          targetCurrency: 'CHF',
+          exchangeRate: null,
+        }),
+      );
+
+      await service.update(
+        budgetLineId,
+        {
+          id: budgetLineId,
+          name: 'Rent',
+          amount: 1200,
+          originalCurrency: 'CHF',
+          targetCurrency: 'CHF',
+          originalAmount: 50,
+          exchangeRate: 1.08,
+        } as unknown as BudgetLineUpdate,
+        mockUser,
+        getMockSupabaseClient(),
+      );
+
+      expect(currencyServiceMock.overrideExchangeRate).toHaveBeenCalledTimes(1);
+      const updatePayload = queryBuilder.update.mock.calls[0][0] as Record<
+        string,
+        unknown
+      >;
+      expect(updatePayload.original_amount).toBeNull();
+      expect(updatePayload.original_currency).toBeNull();
+      expect(updatePayload.target_currency).toBe('CHF');
+      expect(updatePayload.exchange_rate).toBeNull();
+    });
   });
 
   describe('remove', () => {
@@ -492,6 +733,10 @@ describe('BudgetLineService', () => {
       amount: 3000,
       kind: 'income' as const,
       recurrence: 'fixed' as const,
+      original_amount: null,
+      original_currency: null,
+      target_currency: null,
+      exchange_rate: null,
     };
 
     const mockBudgetLineWithTemplate: BudgetLineRow = {
@@ -575,6 +820,135 @@ describe('BudgetLineService', () => {
           'ERR_BUDGET_LINE_VALIDATION_FAILED',
         );
       }
+    });
+
+    it('should propagate currency metadata from a multi-currency template line (PUL-99 CA4)', async () => {
+      const budgetLineId = '123e4567-e89b-12d3-a456-426614174000';
+      const multiCurrencyTemplateLine = {
+        ...mockTemplateLine,
+        original_amount: 'encrypted-original-100-eur',
+        original_currency: 'EUR',
+        target_currency: 'CHF',
+        exchange_rate: 0.95,
+      };
+
+      const previouslyConvertedBudgetLine: BudgetLineRow = {
+        ...mockBudgetLineWithTemplate,
+        original_amount: 'stale-encrypted-foo',
+        original_currency: 'USD',
+        target_currency: 'CHF',
+        exchange_rate: 0.8,
+      };
+
+      const updateSpy = jest.fn().mockReturnValue({
+        eq: jest.fn().mockReturnValue({
+          select: jest.fn().mockReturnValue({
+            single: jest.fn().mockResolvedValue({
+              data: {
+                ...previouslyConvertedBudgetLine,
+                amount: 'encrypted-string',
+                is_manually_adjusted: false,
+              },
+              error: null,
+            }),
+          }),
+        }),
+      });
+
+      let callCount = 0;
+      mockSupabase.from.mockImplementation((table: string) => {
+        callCount++;
+        if (table === 'budget_line' && callCount === 1) {
+          return createMockQueryBuilder({
+            data: previouslyConvertedBudgetLine,
+            error: null,
+          });
+        }
+        if (table === 'template_line') {
+          return createMockQueryBuilder({
+            data: multiCurrencyTemplateLine,
+            error: null,
+          });
+        }
+        return {
+          ...createMockQueryBuilder({ data: null, error: null }),
+          update: updateSpy,
+        };
+      });
+
+      await service.resetFromTemplate(
+        budgetLineId,
+        mockUser,
+        getMockSupabaseClient(),
+      );
+
+      expect(updateSpy).toHaveBeenCalledTimes(1);
+      const writtenPayload = updateSpy.mock.calls[0][0];
+      expect(writtenPayload.original_amount).toBe('encrypted-original-100-eur');
+      expect(writtenPayload.original_currency).toBe('EUR');
+      expect(writtenPayload.target_currency).toBe('CHF');
+      expect(writtenPayload.exchange_rate).toBe(0.95);
+    });
+
+    it('should scrub stale currency metadata when template line is mono-currency (PUL-99 CA4)', async () => {
+      const budgetLineId = '123e4567-e89b-12d3-a456-426614174000';
+
+      const previouslyConvertedBudgetLine: BudgetLineRow = {
+        ...mockBudgetLineWithTemplate,
+        original_amount: 'stale-encrypted-foo',
+        original_currency: 'EUR',
+        target_currency: 'CHF',
+        exchange_rate: 0.95,
+      };
+
+      const updateSpy = jest.fn().mockReturnValue({
+        eq: jest.fn().mockReturnValue({
+          select: jest.fn().mockReturnValue({
+            single: jest.fn().mockResolvedValue({
+              data: {
+                ...previouslyConvertedBudgetLine,
+                amount: 'encrypted-string',
+                is_manually_adjusted: false,
+              },
+              error: null,
+            }),
+          }),
+        }),
+      });
+
+      let callCount = 0;
+      mockSupabase.from.mockImplementation((table: string) => {
+        callCount++;
+        if (table === 'budget_line' && callCount === 1) {
+          return createMockQueryBuilder({
+            data: previouslyConvertedBudgetLine,
+            error: null,
+          });
+        }
+        if (table === 'template_line') {
+          return createMockQueryBuilder({
+            data: mockTemplateLine,
+            error: null,
+          });
+        }
+        return {
+          ...createMockQueryBuilder({ data: null, error: null }),
+          update: updateSpy,
+        };
+      });
+
+      await service.resetFromTemplate(
+        budgetLineId,
+        mockUser,
+        getMockSupabaseClient(),
+      );
+
+      expect(updateSpy).toHaveBeenCalledTimes(1);
+      const writtenPayload = updateSpy.mock.calls[0][0];
+      expect(writtenPayload.original_amount).toBeNull();
+      expect(writtenPayload.original_currency).toBeNull();
+      expect(writtenPayload.target_currency).toBeNull();
+      expect(writtenPayload.exchange_rate).toBeNull();
     });
 
     it('should throw BusinessException when template line is deleted', async () => {

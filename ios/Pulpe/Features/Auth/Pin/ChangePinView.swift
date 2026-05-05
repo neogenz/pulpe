@@ -32,6 +32,9 @@ struct ChangePinView: View {
                     onSuccess()
                 }
             }
+            .onChange(of: viewModel.completedWithoutRecovery) { _, completed in
+                if completed { onSuccess() }
+            }
     }
 
     // MARK: - Content
@@ -142,6 +145,7 @@ final class ChangePinViewModel {
     private(set) var hapticSuccess = false
     private(set) var hapticError = false
     private(set) var recoveryKey: String?
+    private(set) var completedWithoutRecovery = false
 
     let pinLength = PinConstants.length
 
@@ -262,6 +266,8 @@ final class ChangePinViewModel {
         step = .processing
         defer { isProcessing = false }
 
+        var newClientKeyHex: String?
+
         do {
             let result = try await PinValidation.derive(
                 pin: pinString,
@@ -276,20 +282,24 @@ final class ChangePinViewModel {
                 return
             }
 
+            newClientKeyHex = result.clientKeyHex
+
             let response = try await encryptionAPI.changePin(
                 oldClientKeyHex: oldClientKeyHex,
                 newClientKeyHex: result.clientKeyHex
             )
 
-            await clientKeyManager.store(result.clientKeyHex, enableBiometric: biometricEnabled)
-            self.oldClientKeyHex = nil
-            self.cachedSalt = nil
-            hapticSuccess.toggle()
-            AnalyticsService.shared.capture(.pinChanged)
+            await completeChangePin(clientKeyHex: result.clientKeyHex)
             recoveryKey = response.recoveryKey
         } catch let error as APIError {
-            step = .enterNewPin
-            handleAPIError(error)
+            if case .rekeyPartialFailure = error, let newKey = newClientKeyHex {
+                Self.logger.warning("Rekey partial failure: persisting new key")
+                await completeChangePin(clientKeyHex: newKey)
+                completedWithoutRecovery = true
+            } else {
+                step = .enterNewPin
+                handleAPIError(error)
+            }
         } catch let error as CryptoServiceError {
             step = .enterNewPin
             handleCryptoError(error)
@@ -299,6 +309,16 @@ final class ChangePinViewModel {
             step = .enterNewPin
             showError("Erreur inattendue, réessaie")
         }
+    }
+
+    // MARK: - Completion
+
+    private func completeChangePin(clientKeyHex: String) async {
+        await clientKeyManager.store(clientKeyHex, enableBiometric: biometricEnabled)
+        oldClientKeyHex = nil
+        cachedSalt = nil
+        hapticSuccess.toggle()
+        AnalyticsService.shared.capture(.pinChanged)
     }
 
     // MARK: - Error Handling

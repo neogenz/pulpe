@@ -14,7 +14,9 @@ export class CurrentMonthPage {
 
     // Wait for the component's auto-focus setTimeout(200ms) to settle
     // before filling, to prevent focus steal during typing
-    const amountInput = this.page.getByTestId('transaction-amount-input');
+    const amountInput = this.page.locator(
+      '[data-testid="transaction-form"] [data-testid="amount-input-value"]',
+    );
     await expect(amountInput).toBeFocused();
 
     await amountInput.fill(amount);
@@ -46,7 +48,9 @@ export class CurrentMonthPage {
     const element = this.page.getByTestId('hero-remaining-amount');
     const normalizedExpected = this.normalizeSwissNumber(expectedAmount);
     await expect
-      .poll(async () => this.normalizeSwissNumber((await element.textContent()) ?? ''))
+      .poll(async () =>
+        this.normalizeSwissNumber((await element.textContent()) ?? ''),
+      )
       .toContain(normalizedExpected);
   }
 
@@ -54,13 +58,15 @@ export class CurrentMonthPage {
     const element = this.page.getByTestId('hero-expenses-amount');
     const normalizedExpected = this.normalizeSwissNumber(expectedAmount);
     await expect
-      .poll(async () => this.normalizeSwissNumber((await element.textContent()) ?? ''))
+      .poll(async () =>
+        this.normalizeSwissNumber((await element.textContent()) ?? ''),
+      )
       .toContain(normalizedExpected);
   }
 
   private normalizeSwissNumber(text: string): string {
     return text
-      .replace(/[\u2019\u0027\u2018]/g, "'")
+      .replace(/[\u2019\u0027\u2018\u202F\u00A0]/g, ' ')
       .replace(/\s+/g, ' ')
       .trim();
   }

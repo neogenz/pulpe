@@ -38,6 +38,7 @@ import {
 } from '@ui/dialogs/recovery-key-dialog';
 import { LogoutDialog } from '@ui/dialogs/logout-dialog';
 import { PostHogService } from '@core/analytics';
+import { setupVaultCodeFormSchema } from './setup-vault-code-form.schema';
 
 @Component({
   selector: 'pulpe-setup-vault-code',
@@ -155,7 +156,7 @@ import { PostHogService } from '@core/analytics';
             <mat-error>
               @if (form.get('confirmCode')?.hasError('required')) {
                 {{ 'auth.vaultCode.confirmPinRequired' | transloco }}
-              } @else if (form.get('confirmCode')?.hasError('fieldsMismatch')) {
+              } @else if (form.get('confirmCode')?.hasError('pinsMismatch')) {
                 {{ 'auth.vaultCode.pinsMismatch' | transloco }}
               }
             </mat-error>
@@ -232,7 +233,7 @@ export default class SetupVaultCode {
       validators: createFieldsMatchValidator(
         'vaultCode',
         'confirmCode',
-        'fieldsMismatch',
+        'pinsMismatch',
       ),
     },
   );
@@ -255,11 +256,20 @@ export default class SetupVaultCode {
       return;
     }
 
+    const parsed = setupVaultCodeFormSchema.safeParse(this.form.getRawValue());
+    if (!parsed.success) {
+      this.form.markAllAsTouched();
+      this.errorMessage.set(
+        this.#transloco.translate('common.somethingWentWrong'),
+      );
+      return;
+    }
+
     this.isSubmitting.set(true);
     this.form.disable();
     this.clearError();
 
-    const { vaultCode, rememberDevice } = this.form.getRawValue();
+    const { vaultCode, rememberDevice } = parsed.data;
 
     try {
       // 1. Get salt and derive client key from vault code

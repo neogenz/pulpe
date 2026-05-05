@@ -5,6 +5,7 @@ struct SavingsSummaryCard: View {
     let summary: CurrentMonthStore.SavingsSummary
 
     @Environment(\.amountsHidden) private var amountsHidden
+    @Environment(UserSettingsStore.self) private var userSettingsStore
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
@@ -32,7 +33,7 @@ struct SavingsSummaryCard: View {
                 Text("Objectif atteint ce mois")
                     .font(PulpeTypography.listRowTitle)
 
-                Text("\(summary.totalRealized.asCHF) épargnés")
+                Text("\(summary.totalRealized.asCompactCurrency(userSettingsStore.currency)) épargnés")
                     .font(PulpeTypography.caption)
                     .foregroundStyle(Color.textSecondary)
                     .sensitiveAmount()
@@ -48,14 +49,14 @@ struct SavingsSummaryCard: View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
             // Amount row
             HStack {
-                Text(summary.totalRealized.asCompactCHF)
+                Text(summary.totalRealized.asCompactCurrency(userSettingsStore.currency))
                     .font(PulpeTypography.listRowTitle)
                     .foregroundStyle(Color.financialSavings)
                     .sensitiveAmount()
 
                 Spacer()
 
-                Text("sur \(summary.totalPlanned.asCompactCHF)")
+                Text("sur \(summary.totalPlanned.asCompactCurrency(userSettingsStore.currency))")
                     .font(PulpeTypography.caption)
                     .foregroundStyle(Color.textSecondary)
                     .sensitiveAmount()
@@ -87,8 +88,9 @@ struct SavingsSummaryCard: View {
         }
         return amountsHidden
             ? "Épargne, montant masqué"
-            : "Épargne, \(summary.totalRealized.asCHF) réalisé sur \(summary.totalPlanned.asCHF) prévu, "
-            + "\(summary.checkedCount) sur \(summary.totalCount) pointées"
+            : "Épargne, \(summary.totalRealized.asCurrency(userSettingsStore.currency)) réalisé " +
+                "sur \(summary.totalPlanned.asCurrency(userSettingsStore.currency)) prévu, " +
+                "\(summary.checkedCount) sur \(summary.totalCount) pointées"
     }
 }
 
@@ -128,4 +130,5 @@ struct SavingsSummaryCard: View {
     }
     .padding()
     .pulpeBackground()
+    .environment(UserSettingsStore())
 }

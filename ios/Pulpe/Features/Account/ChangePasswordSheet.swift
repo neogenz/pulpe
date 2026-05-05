@@ -74,6 +74,7 @@ struct ChangePasswordSheet: View {
                 }
             }
             .background(Color.sheetBackground)
+            .keyboardFieldNavigation(focus: $focusedField, order: [.currentPassword, .newPassword, .confirmPassword])
             .dismissKeyboardOnTap()
         }
         .standardSheetPresentation()
@@ -91,10 +92,10 @@ struct ChangePasswordSheet: View {
                 text: $viewModel.currentPassword,
                 isVisible: $showCurrentPassword,
                 systemImage: "lock",
-                isFocused: focusedField == .currentPassword
+                focusBinding: $focusedField,
+                focusField: .currentPassword
             )
             .textContentType(.password)
-            .focused($focusedField, equals: .currentPassword)
             .accessibilityIdentifier("changeCurrentPasswordInput")
         }
     }
@@ -110,10 +111,10 @@ struct ChangePasswordSheet: View {
                 text: $viewModel.newPassword,
                 isVisible: $showNewPassword,
                 systemImage: "lock",
-                isFocused: focusedField == .newPassword
+                focusBinding: $focusedField,
+                focusField: .newPassword
             )
             .textContentType(.newPassword)
-            .focused($focusedField, equals: .newPassword)
             .accessibilityIdentifier("changeNewPasswordInput")
 
             passwordRequirementsHint
@@ -136,11 +137,11 @@ struct ChangePasswordSheet: View {
                 text: $viewModel.confirmPassword,
                 isVisible: $showConfirmPassword,
                 systemImage: "lock",
-                isFocused: focusedField == .confirmPassword,
-                hasError: !viewModel.confirmPassword.isEmpty && !viewModel.isPasswordConfirmed
+                hasError: !viewModel.confirmPassword.isEmpty && !viewModel.isPasswordConfirmed,
+                focusBinding: $focusedField,
+                focusField: .confirmPassword
             )
             .textContentType(.newPassword)
-            .focused($focusedField, equals: .confirmPassword)
             .accessibilityIdentifier("changeConfirmPasswordInput")
 
             if !viewModel.confirmPassword.isEmpty {

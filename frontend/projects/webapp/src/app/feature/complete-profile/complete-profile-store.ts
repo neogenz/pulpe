@@ -1,5 +1,9 @@
 import { Injectable, inject, signal, computed } from '@angular/core';
-import { ProfileSetupService, type ProfileData } from '@core/complete-profile';
+import {
+  ProfileSetupService,
+  type ProfileData,
+  type OnboardingTransaction,
+} from '@core/complete-profile';
 import { BudgetApi } from '@core/budget';
 import { Logger } from '@core/logging/logger';
 import { PostHogService } from '@core/analytics/posthog';
@@ -7,6 +11,67 @@ import { UserSettingsStore } from '@core/user-settings';
 import { AuthOAuthService } from '@core/auth/auth-oauth.service';
 import { firstValueFrom } from 'rxjs';
 import { TranslocoService } from '@jsverse/transloco';
+
+export const ONBOARDING_SUGGESTIONS: readonly OnboardingTransaction[] = [
+  {
+    name: 'Courses / alimentation',
+    amount: 600,
+    type: 'expense',
+    expenseType: 'fixed',
+    isRecurring: true,
+  },
+  {
+    name: 'Restaurants & sorties',
+    amount: 150,
+    type: 'expense',
+    expenseType: 'fixed',
+    isRecurring: true,
+  },
+  {
+    name: 'Loisirs & sport',
+    amount: 100,
+    type: 'expense',
+    expenseType: 'fixed',
+    isRecurring: true,
+  },
+  {
+    name: 'Épargne',
+    amount: 500,
+    type: 'saving',
+    expenseType: 'fixed',
+    isRecurring: true,
+  },
+  {
+    name: '3ème pilier',
+    amount: 587,
+    type: 'saving',
+    expenseType: 'fixed',
+    isRecurring: true,
+  },
+];
+
+export const MAX_CUSTOM_TRANSACTIONS = 50;
+
+/**
+ * Client-only tag identifying a customTransactions entry sourced from a
+ * suggestion chip (as opposed to a user-typed entry). Stripped from the
+ * payload sent to the API so the wire contract stays clean.
+ *
+ * Keeping a single list + provenance tag (rather than two parallel states)
+ * means "which chip is selected" and "which custom rows exist" can never
+ * drift out of sync, which is what caused the original name-collision bug.
+ */
+interface InternalCustomTransaction extends OnboardingTransaction {
+  readonly __suggestionId?: string;
+}
+
+function stripSuggestionTag(
+  tx: InternalCustomTransaction,
+): OnboardingTransaction {
+  const clean: Record<string, unknown> = { ...tx };
+  delete clean['__suggestionId'];
+  return clean as OnboardingTransaction;
+}
 
 interface CompleteProfileState {
   firstName: string;
@@ -18,6 +83,7 @@ interface CompleteProfileState {
   transportCosts: number | null;
   leasingCredit: number | null;
   payDayOfMonth: number | null;
+  customTransactions: InternalCustomTransaction[];
   isLoading: boolean;
   isCheckingExistingBudget: boolean;
   error: string | null;
@@ -34,6 +100,7 @@ function createInitialState(): CompleteProfileState {
     transportCosts: null,
     leasingCredit: null,
     payDayOfMonth: null,
+    customTransactions: [],
     isLoading: false,
     isCheckingExistingBudget: false,
     error: null,
@@ -61,11 +128,59 @@ export class CompleteProfileStore {
   readonly transportCosts = computed(() => this.#state().transportCosts);
   readonly leasingCredit = computed(() => this.#state().leasingCredit);
   readonly payDayOfMonth = computed(() => this.#state().payDayOfMonth);
+  readonly customTransactions = computed<readonly OnboardingTransaction[]>(
+    () => this.#state().customTransactions,
+  );
+  readonly selectedSuggestionNames = computed(() => {
+    // Only entries tagged with `__suggestionId` count as "chip selected".
+    // A manually-added row with the same `name + type` as a suggestion is
+    // intentionally NOT matched here — that's the whole point of the tag.
+    return new Set(
+      this.#state()
+        .customTransactions.map((t) => t.__suggestionId)
+        .filter((id): id is string => id !== undefined),
+    );
+  });
+  readonly customTransactionsLimitReached = computed(
+    () => this.#state().customTransactions.length >= MAX_CUSTOM_TRANSACTIONS,
+  );
   readonly isLoading = computed(() => this.#state().isLoading);
   readonly isCheckingExistingBudget = computed(
     () => this.#state().isCheckingExistingBudget,
   );
   readonly error = computed(() => this.#state().error);
+
+  readonly totalFixedCharges = computed(() => {
+    const s = this.#state();
+    return [
+      s.housingCosts,
+      s.healthInsurance,
+      s.phonePlan,
+      s.internetPlan,
+      s.transportCosts,
+      s.leasingCredit,
+    ]
+      .filter((v): v is number => v !== null && v > 0)
+      .reduce((sum, v) => sum + v, 0);
+  });
+
+  readonly budgetSummary = computed(() => {
+    const txs = this.customTransactions();
+    const expenseTotal = txs
+      .filter((t) => t.type === 'expense')
+      .reduce((s, t) => s + t.amount, 0);
+    const savingTotal = txs
+      .filter((t) => t.type === 'saving')
+      .reduce((s, t) => s + t.amount, 0);
+    const incomeTotal = txs
+      .filter((t) => t.type === 'income')
+      .reduce((s, t) => s + t.amount, 0);
+
+    const income = (this.monthlyIncome() ?? 0) + incomeTotal;
+    const committed = this.totalFixedCharges() + expenseTotal + savingTotal;
+    const available = income - committed;
+    return { income, committed, available };
+  });
 
   readonly isStep1Valid = computed(() => {
     const state = this.#state();
@@ -112,8 +227,93 @@ export class CompleteProfileStore {
     this.#patchState({ payDayOfMonth: value });
   }
 
-  clearError(): void {
-    this.#patchState({ error: null });
+  addCustomTransaction(tx: OnboardingTransaction): void {
+    if (this.#state().customTransactions.length >= MAX_CUSTOM_TRANSACTIONS)
+      return;
+    this.#patchState({
+      customTransactions: [...this.#state().customTransactions, { ...tx }],
+    });
+    this.#trackCustomTransactionEvent('custom_transaction_added', tx, 'manual');
+  }
+
+  removeCustomTransaction(index: number): void {
+    const current = this.#state().customTransactions;
+    const removed = current[index];
+    if (!removed) return;
+    this.#patchState({
+      customTransactions: current.filter((_, i) => i !== index),
+    });
+    this.#trackCustomTransactionEvent(
+      'custom_transaction_removed',
+      removed,
+      removed.__suggestionId ? 'suggestion' : 'manual',
+    );
+  }
+
+  updateCustomTransactionAmount(index: number, amount: number): void {
+    this.#patchState({
+      customTransactions: this.#state().customTransactions.map((tx, i) =>
+        i === index ? { ...tx, amount } : tx,
+      ),
+    });
+  }
+
+  toggleSuggestion(suggestion: OnboardingTransaction): void {
+    // Each suggestion is keyed by its canonical `name` — ONBOARDING_SUGGESTIONS
+    // is a hardcoded constant with unique names, so the name is a stable id.
+    const suggestionId = suggestion.name;
+    const current = this.#state().customTransactions;
+    const matchIndex = current.findIndex(
+      (t) => t.__suggestionId === suggestionId,
+    );
+
+    if (matchIndex === -1) {
+      if (current.length >= MAX_CUSTOM_TRANSACTIONS) return;
+      const tagged: InternalCustomTransaction = {
+        ...suggestion,
+        __suggestionId: suggestionId,
+      };
+      this.#patchState({ customTransactions: [...current, tagged] });
+      this.#trackSuggestionToggled(suggestion, true);
+      return;
+    }
+
+    // Only remove the suggestion-tagged entry — manually-added rows sharing
+    // the same name+type are left alone. Fixes the data-loss edge case where
+    // tapping a chip previously deleted a colliding user-typed row.
+    const next = current.slice();
+    next.splice(matchIndex, 1);
+    this.#patchState({ customTransactions: next });
+    this.#trackSuggestionToggled(suggestion, false);
+  }
+
+  #trackSuggestionToggled(
+    suggestion: OnboardingTransaction,
+    selected: boolean,
+  ): void {
+    this.#postHogService.captureEvent('onboarding_suggestion_toggled', {
+      step: this.#analyticsStepFor(suggestion.type),
+      suggestion_name: suggestion.name,
+      selected,
+    });
+  }
+
+  #trackCustomTransactionEvent(
+    event: 'custom_transaction_added' | 'custom_transaction_removed',
+    tx: OnboardingTransaction,
+    source: 'manual' | 'suggestion',
+  ): void {
+    this.#postHogService.captureEvent(event, {
+      step: this.#analyticsStepFor(tx.type),
+      kind: tx.type,
+      source,
+    });
+  }
+
+  #analyticsStepFor(kind: 'income' | 'expense' | 'saving'): string {
+    if (kind === 'expense') return 'charges';
+    if (kind === 'saving') return 'savings';
+    return 'income';
   }
 
   prefillFromOAuthMetadata(): void {
@@ -184,6 +384,10 @@ export class CompleteProfileStore {
       transportCosts: state.transportCosts ?? undefined,
       leasingCredit: state.leasingCredit ?? undefined,
       payDayOfMonth: state.payDayOfMonth ?? undefined,
+      // Strip the client-only `__suggestionId` tag before crossing the API
+      // boundary — the Zod schema doesn't know about it and the backend
+      // shouldn't either.
+      customTransactions: state.customTransactions.map(stripSuggestionTag),
     };
 
     try {
@@ -223,6 +427,7 @@ export class CompleteProfileStore {
         signup_method: this.#determineSignupMethod(),
         has_pay_day: state.payDayOfMonth !== null,
         charges_count: this.#countOptionalCharges(state),
+        custom_transactions_count: state.customTransactions.length,
       });
 
       this.#logger.info('Profile setup completed successfully');

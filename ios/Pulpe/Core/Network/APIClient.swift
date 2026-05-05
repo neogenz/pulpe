@@ -17,8 +17,10 @@ actor APIClient {
         self.baseURL = AppConfiguration.apiBaseURL
         self.decoder = Self.makeDecoder()
         self.encoder = Self.makeEncoder()
+        // SDK-owned session is the single source of truth (PUL-132).
+        // Reading from a separate keychain slot would race / drift with PulpeAuthStorage.
         self.authTokenProvider = {
-            await KeychainManager.shared.getAccessToken()
+            await AuthService.shared.getAccessToken()
         }
         self.clientKeyProvider = {
             await ClientKeyManager.shared.resolveClientKey()
@@ -288,12 +290,18 @@ actor APIClient {
     }
 
     private func refreshTokenAndRetry() async throws -> Bool {
-        // Token refresh is handled by Supabase SDK via AuthService
-        // Try to get a fresh token from AuthService
-        if let token = await AuthService.shared.getAccessToken(), !token.isEmpty {
-            return true
+        // Token refresh is handled by Supabase SDK via AuthService.
+        // Use the strict variant so a transient network failure surfaces as a
+        // network error instead of forcing a logout on a flaky connection.
+        do {
+            if let token = try await AuthService.shared.resolveAccessTokenStrict(),
+               !token.isEmpty {
+                return true
+            }
+        } catch {
+            throw APIError.networkError(error)
         }
-        // Refresh failed — clear tokens and force logout
+        // SDK confirms no usable session — clear tokens and force logout
         await AuthService.shared.logout()
         await MainActor.run {
             NotificationCenter.default.post(name: .sessionExpired, object: nil)

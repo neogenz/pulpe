@@ -7,6 +7,10 @@ import {
   type TemplateLineUpdate,
 } from 'pulpe-shared';
 import { Tables, TablesInsert } from '@/types/database.types';
+import {
+  mapCurrencyMetadataToApi,
+  mapCurrencyMetadataToDb,
+} from '@common/utils/currency-metadata.mapper';
 
 // Simple mapping functions - no need for a class
 
@@ -23,8 +27,16 @@ export const toApiTemplate = (db: Tables<'template'>): BudgetTemplate => ({
   updatedAt: db.updated_at,
 });
 
+export type DecryptedTemplateLineRow = Omit<
+  Tables<'template_line'>,
+  'amount' | 'original_amount'
+> & {
+  amount: number;
+  original_amount: number | null;
+};
+
 export const toApiTemplateLine = (
-  db: Omit<Tables<'template_line'>, 'amount'> & { amount: number },
+  db: DecryptedTemplateLineRow,
 ): TemplateLine => ({
   id: db.id,
   description: db.description ?? '',
@@ -35,6 +47,7 @@ export const toApiTemplateLine = (
   name: db.name,
   recurrence: db.recurrence,
   templateId: db.template_id,
+  ...mapCurrencyMetadataToApi(db),
 });
 
 /**
@@ -51,7 +64,7 @@ export const toApiTemplateList = (
  * Expects decrypted linesDb where amount is already a number
  */
 export const toApiTemplateLineList = (
-  linesDb: (Omit<Tables<'template_line'>, 'amount'> & { amount: number })[],
+  linesDb: DecryptedTemplateLineRow[],
 ): TemplateLine[] => {
   return linesDb.map(toApiTemplateLine);
 };
@@ -88,6 +101,7 @@ export const toDbTemplateLineInsert = (
   kind: dto.kind,
   recurrence: dto.recurrence,
   description: dto.description,
+  ...mapCurrencyMetadataToDb(dto),
 });
 
 export const toDbTemplateLineUpdate = (
@@ -102,5 +116,6 @@ export const toDbTemplateLineUpdate = (
   if (dto.kind !== undefined) update.kind = dto.kind;
   if (dto.recurrence !== undefined) update.recurrence = dto.recurrence;
   if (dto.description !== undefined) update.description = dto.description;
+  Object.assign(update, mapCurrencyMetadataToDb(dto));
   return update;
 };

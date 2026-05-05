@@ -10,6 +10,7 @@ import {
 } from '@angular/core';
 import { DOCUMENT } from '@angular/common';
 import { AmountsVisibilityService } from '@core/amounts-visibility/amounts-visibility.service';
+import { UserSettingsStore } from '@core/user-settings';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslocoService, TranslocoPipe } from '@jsverse/transloco';
@@ -35,7 +36,7 @@ import {
     <div class="flex flex-col h-full w-full">
       <div class="flex items-center gap-3 mb-6">
         <div
-          class="w-10 h-10 rounded-full bg-tertiary/10 text-tertiary flex items-center justify-center flex-shrink-0"
+          class="w-10 h-10 rounded-full bg-tertiary/10 text-tertiary flex items-center justify-center shrink-0"
         >
           <mat-icon aria-hidden="true">trending_up</mat-icon>
         </div>
@@ -114,6 +115,7 @@ export class DashboardFutureProjectionChart {
   readonly #amountsVisibility = inject(AmountsVisibilityService);
   readonly #locale = inject(LOCALE_ID);
   readonly #transloco = inject(TranslocoService);
+  readonly #userSettings = inject(UserSettingsStore);
   readonly forecasts = input.required<UpcomingMonthForecast[]>();
 
   readonly #projectionBalanceLabel = this.#transloco.translate(
@@ -162,6 +164,7 @@ export class DashboardFutureProjectionChart {
     buildProjectionChartOptions(
       this.#theme(),
       this.#amountsVisibility.amountsHidden(),
+      this.#userSettings.currency(),
     ),
   );
 

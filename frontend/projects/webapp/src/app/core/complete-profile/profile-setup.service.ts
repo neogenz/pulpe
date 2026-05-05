@@ -4,6 +4,7 @@ import { TranslocoService } from '@jsverse/transloco';
 import {
   type BudgetGenerate,
   type BudgetTemplateCreateFromOnboarding,
+  budgetTemplateCreateFromOnboardingSchema,
   budgetTemplateCreateResponseSchema,
   getBudgetPeriodForDate,
 } from 'pulpe-shared';
@@ -15,6 +16,8 @@ import {
   type ProfileData,
   type ProfileSetupResult,
 } from './profile-setup.types';
+
+const INITIAL_BUDGET_MONTHS = 12;
 
 @Injectable({
   providedIn: 'root',
@@ -40,88 +43,72 @@ export class ProfileSetupService {
       };
     }
 
-    try {
-      // 1. Create template
-      const templateRequest: BudgetTemplateCreateFromOnboarding = {
-        name: 'Mois Standard',
-        description: `Template personnel de ${profileData.firstName}`,
-        isDefault: true,
-        monthlyIncome: profileData.monthlyIncome,
-        housingCosts: profileData.housingCosts ?? 0,
-        healthInsurance: profileData.healthInsurance ?? 0,
-        leasingCredit: profileData.leasingCredit ?? 0,
-        phonePlan: profileData.phonePlan ?? 0,
-        internetPlan: profileData.internetPlan ?? 0,
-        transportCosts: profileData.transportCosts ?? 0,
-        customTransactions: [],
-      };
+    const templateRequest: BudgetTemplateCreateFromOnboarding = {
+      name: 'Mois Standard',
+      description: `Template personnel de ${profileData.firstName}`,
+      isDefault: true,
+      monthlyIncome: profileData.monthlyIncome,
+      housingCosts: profileData.housingCosts ?? 0,
+      healthInsurance: profileData.healthInsurance ?? 0,
+      leasingCredit: profileData.leasingCredit ?? 0,
+      phonePlan: profileData.phonePlan ?? 0,
+      internetPlan: profileData.internetPlan ?? 0,
+      transportCosts: profileData.transportCosts ?? 0,
+      customTransactions: profileData.customTransactions ?? [],
+    };
 
+    let templateId: string;
+    try {
       const templateResponse = await firstValueFrom(
         this.#createTemplateFromOnboarding$(templateRequest),
       );
-
-      // 2. Generate 12 months of budgets
-      const currentDate = new Date();
-      const { month, year } = getBudgetPeriodForDate(
-        currentDate,
-        profileData.payDayOfMonth,
-      );
-      const generateRequest: BudgetGenerate = {
-        templateId: templateResponse.data.template.id,
-        startMonth: month,
-        startYear: year,
-        count: 12,
-      };
-
-      await firstValueFrom(this.#budgetApi.generateBudgets$(generateRequest));
-      this.#budgetApi.cache.invalidate(['budget']);
-      await this.#budgetApi.cache
-        .prefetch(['budget', 'list'], () =>
-          firstValueFrom(this.#budgetApi.getAllBudgets$()),
-        )
-        .catch((error: unknown) => {
-          this.#logger.warn(
-            '[ProfileSetupService] Failed to prefetch budget list after onboarding',
-            error,
-          );
-        });
-
-      // 3. Enable PostHog tracking (user has accepted terms)
-      this.#postHogService.enableTracking();
-      this.#logger.info('PostHog tracking enabled after profile setup');
-
-      return { success: true };
+      templateId = templateResponse.data.template.id;
     } catch (error: unknown) {
-      this.#logger.error(
-        'Erreur lors de la création du budget initial:',
-        error,
-      );
-
-      const errorMessage = this.#getErrorMessage(error);
-
-      if (errorMessage.includes('template')) {
-        return {
-          success: false,
-          error: this.#transloco.translate(
-            'completeProfile.templateCreateError',
-          ),
-        };
-      }
-
-      if (errorMessage.includes('budget')) {
-        return {
-          success: false,
-          error: this.#transloco.translate(
-            'completeProfile.budgetGenerateError',
-          ),
-        };
-      }
-
+      this.#logger.error('Template creation failed:', error);
       return {
         success: false,
-        error: this.#transloco.translate('completeProfile.unexpectedError'),
+        error: this.#transloco.translate('completeProfile.templateCreateError'),
       };
     }
+
+    const currentDate = new Date();
+    const { month, year } = getBudgetPeriodForDate(
+      currentDate,
+      profileData.payDayOfMonth,
+    );
+    const generateRequest: BudgetGenerate = {
+      templateId,
+      startMonth: month,
+      startYear: year,
+      count: INITIAL_BUDGET_MONTHS,
+    };
+
+    try {
+      await firstValueFrom(this.#budgetApi.generateBudgets$(generateRequest));
+    } catch (error: unknown) {
+      this.#logger.error('Budget generation failed:', error);
+      return {
+        success: false,
+        error: this.#transloco.translate('completeProfile.budgetGenerateError'),
+      };
+    }
+
+    this.#budgetApi.cache.invalidate(['budget']);
+    await this.#budgetApi.cache
+      .prefetch(['budget', 'list'], () =>
+        firstValueFrom(this.#budgetApi.getAllBudgets$()),
+      )
+      .catch((error: unknown) => {
+        this.#logger.warn(
+          '[ProfileSetupService] Failed to prefetch budget list after onboarding',
+          error,
+        );
+      });
+
+    this.#postHogService.enableTracking();
+    this.#logger.info('PostHog tracking enabled after profile setup');
+
+    return { success: true };
   }
 
   #createTemplateFromOnboarding$(
@@ -131,19 +118,7 @@ export class ProfileSetupService {
       '/budget-templates/from-onboarding',
       onboardingData,
       budgetTemplateCreateResponseSchema,
+      budgetTemplateCreateFromOnboardingSchema,
     );
-  }
-
-  #getErrorMessage(error: unknown): string {
-    if (error instanceof Error) {
-      return error.message;
-    }
-    if (typeof error === 'string') {
-      return error;
-    }
-    if (error && typeof error === 'object' && 'message' in error) {
-      return String(error.message);
-    }
-    return String(error ?? '');
   }
 }

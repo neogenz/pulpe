@@ -56,7 +56,7 @@ pnpm dev:backend              # Backend + shared
 
 ## Rules Files
 
-Rules in `.claude/rules/` use frontmatter for path-based activation:
+Rules `.claude/rules/` use frontmatter for path activation:
 
 ```yaml
 ---
@@ -67,10 +67,10 @@ paths: "**/*.ts"
 
 ## Critical Rules
 
-- **NEVER** destructive Supabase commands (`db reset`, `db push --force`)
-- **ALWAYS** run `pnpm quality` before committing
-- **AFTER** DB schema changes: `bun run generate-types:local` in backend
-- **ALWAYS** encrypt financial amounts (`amount`, `target_amount`, `ending_balance`) via `EncryptionService` before writing to the database. These columns are `text` containing AES-256-GCM ciphertexts. (see `docs/ENCRYPTION.md`)
+- **NEVER** destructive Supabase cmds (`db reset`, `db push --force`)
+- **ALWAYS** run `pnpm quality` before commit
+- **AFTER** DB schema change: `bun run generate-types:local` in backend
+- **ALWAYS** encrypt financial amounts (`amount`, `target_amount`, `ending_balance`) via `EncryptionService` before DB write. Columns `text` holding AES-256-GCM ciphertexts. (see `docs/ENCRYPTION.md`)
 
 ## Vocabulary
 
@@ -81,7 +81,7 @@ paths: "**/*.ts"
 
 ## Further Reading
 
-**IMPORTANT:** Before starting any task, read the relevant docs below.
+**IMPORTANT:** Before any task, read relevant docs below.
 
 | Purpose                  | Path                                       |
 | ------------------------ | ------------------------------------------ |
@@ -95,29 +95,29 @@ paths: "**/*.ts"
 
 ## Bug Reporting
 
-When I report a bug, don't start by trying to fix it. Instead, start by writing a test that reproduces the bug. Then, have subagents try to fix the bug and prove it with a passing test.
+Bug reported → don't fix first. Write test reproducing bug. Then subagents fix, prove with passing test.
 
 ## Workflow modification
 
 **CRITICAL RULE•- ALWAYS • FOLLOW• THIS**
 
-**BEFORE editing any files, you MUST Read at least 3 files** that will help you• to understand how to make a coherent and consistency.
+**BEFORE editing any files, you MUST Read at least 3 files** to understand coherence + consistency.
 
-This is **NON-NEGOTIABLE**. Do not skip this step under any circumstances.
+**NON-NEGOTIABLE**. Never skip.
 
 Reading existing files ensures:
 
 - Code consistency with project patterns
-- Proper understanding of conventions
+- Proper convention understanding
 - Following established architecture
 - Avoiding breaking changes
 
-**Types of files you MUST read:**
+**File types you MUST read:**
 
-**Similar files**: Read files that do similar functionality to understand patterns and conventions
-**Imported dependencies**: Read the definition/implementation of any imports you're not 100% sure how to use correctly - understand their API, types, and usage patterns
-**Steps to follow:**
+**Similar files**: Files with similar functionality → patterns + conventions
+**Imported dependencies**: Definition/implementation of imports you not 100% sure how to use — understand API, types, usage
+**Steps:**
 
-1. Read at least 3 relevant existing files (similar functionality + imported dependencies)
-2. Understand the patterns, conventions, and API usage
-3. Only then proceed with creating/editing files
+1. Read 3+ relevant existing files (similar functionality + imported deps)
+2. Understand patterns, conventions, API usage
+3. Only then create/edit files

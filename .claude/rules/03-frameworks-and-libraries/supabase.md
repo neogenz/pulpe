@@ -14,7 +14,7 @@ paths: "backend-nest/**/*.ts"
 
 ## Authenticated Client
 
-Every request gets its own Supabase client with the user's JWT — RLS enforces data isolation automatically.
+Each request get own Supabase client with user JWT — RLS enforce data isolation auto.
 
 ```typescript
 @Injectable()
@@ -29,9 +29,9 @@ export class SupabaseService {
 }
 ```
 
-- `@SupabaseClient()` decorator injects the authenticated client in controllers
-- `AuthGuard` extracts JWT from `Authorization: Bearer` header
-- Service role client (`getServiceRoleClient()`) bypasses RLS — use with caution
+- `@SupabaseClient()` decorator inject authenticated client in controllers
+- `AuthGuard` extract JWT from `Authorization: Bearer` header
+- Service role client (`getServiceRoleClient()`) bypass RLS — use with caution
 
 ## Type Safety
 
@@ -51,7 +51,7 @@ type BudgetInsert = Database['public']['Tables']['monthly_budget']['Insert'];
 bun run generate-types:local   # Regenerate types from local Supabase
 ```
 
-**Always regenerate types after ANY migration.** Stale types cause silent bugs.
+**Always regenerate types after ANY migration.** Stale types = silent bugs.
 
 ## RLS Policies
 
@@ -92,18 +92,18 @@ CREATE POLICY "users_select_template_line" ON "public"."template_line"
 
 ### Performance Rules
 
-- **Always** wrap `auth.uid()` in a subselect: `(SELECT auth.uid())` — caches per statement (94%+ perf gain)
+- **Always** wrap `auth.uid()` in subselect: `(SELECT auth.uid())` — cache per statement (94%+ perf gain)
 - **Always** index policy columns: `CREATE INDEX ON table(user_id);`
-- **Always** add explicit `.eq('user_id', userId)` in queries even though RLS enforces it — helps optimizer
+- **Always** add explicit `.eq('user_id', userId)` in queries even if RLS enforce — help optimizer
 - **Always** specify `TO authenticated` in policy definitions
 
 ### Anti-Patterns
 
-- NEVER use `supabase db reset` or `supabase db push --force` on production or linked projet
+- NEVER use `supabase db reset` or `supabase db push --force` on production or linked project
 - NEVER modify existing migrations — always create new ones
 - NEVER expose service role key in frontend or client code
 - NEVER create tables without enabling RLS and adding policies immediately
-- NEVER use views without `security_invoker = true` (they bypass RLS)
+- NEVER use views without `security_invoker = true` (bypass RLS)
 
 ## Migrations
 
@@ -114,7 +114,7 @@ supabase db reset                          # LOCAL ONLY — applies all migratio
 
 ### Migration Checklist
 
-0. Must be done from backend-nest/ directory
+0. Must run from backend-nest/ directory
 1. Create table with constraints
 2. Enable RLS: `ALTER TABLE ... ENABLE ROW LEVEL SECURITY;`
 3. Create policies for SELECT, INSERT, UPDATE, DELETE
@@ -136,7 +136,7 @@ supabase db reset                          # LOCAL ONLY — applies all migratio
 
 ## SECURITY DEFINER Functions
 
-For atomic operations that cross RLS boundaries:
+For atomic ops crossing RLS boundaries:
 
 ```sql
 CREATE OR REPLACE FUNCTION create_budget_with_transactions(...)
@@ -147,3 +147,20 @@ AS $$ ... $$;
 ```
 
 Call from NestJS: `await supabase.rpc('function_name', { ...params })`
+
+## RPC JSONB Parameters — Zod Required
+
+Supabase generate `Args` type of every RPC with `Json` (opaque, ≈ `any`) for JSONB params. Compiler can't catch key typo — and `jsonb_to_recordset` silently map unknown keys to NULL, corrupts encrypted columns without raising.
+
+**Rule:** any RPC with JSONB param containing ciphertexts MUST have strict Zod schema validating shape before `supabase.rpc(...)`.
+
+- Schema location: `backend-nest/src/modules/<module>/schemas/rpc-payload.schemas.ts`
+- Each object schema MUST use `.strict()` to reject extra keys
+- Wrap `ZodError` in `BusinessException` with `{ cause }` so no leak to client as generic 500
+- Add companion `.spec.ts` covering: valid payload, null ciphertext if column nullable, `.strict()` reject extras, UUID validation
+
+RPC with only scalar params (`uuid`, `text`, `int`, `boolean`) covered by generated TS types — no Zod needed.
+
+Current implementations:
+- `budget-template/schemas/rpc-payload.schemas.ts` — `create_template_with_lines`, `apply_template_line_operations`
+- `encryption/schemas/rpc-payload.schemas.ts` — `rekey_user_encrypted_data`

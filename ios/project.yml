@@ -26,6 +26,9 @@ packages:
   google-sign-in-ios:
     url: https://github.com/google/GoogleSignIn-iOS
     from: "8.0.0"
+  variable-blur:
+    url: https://github.com/nikstar/VariableBlur
+    from: "1.3.0"
 
 settings:
   base:
@@ -73,6 +76,8 @@ targets:
         product: PostHog
       - package: google-sign-in-ios
         product: GoogleSignIn
+      - package: variable-blur
+        product: VariableBlur
       - target: PulpeWidget
         embed: true
     entitlements:
@@ -121,7 +126,7 @@ targets:
               - com.googleusercontent.apps.894420283180-534drgml29aruk8ceqr1gecc5mn66gmg
             CFBundleURLName: google-sign-in
         UIAppFonts:
-          - Manrope-Bold.ttf
+          - Manrope-VariableFont_wght.ttf
         UIBackgroundModes:
           - fetch
         BGTaskSchedulerPermittedIdentifiers:

@@ -2,7 +2,6 @@ import {
   ChangeDetectionStrategy,
   Component,
   inject,
-  effect,
   computed,
 } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
@@ -22,15 +21,25 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { MAT_DATE_FORMATS } from '@angular/material/core';
 import { MAT_DATE_FNS_FORMATS } from '@angular/material-date-fns-adapter';
 import { startOfMonth, setMonth, setYear } from 'date-fns';
-import { TemplatesList } from './ui/templates-list';
-import { type TemplateViewModel } from './ui/template-view-model';
+import { TemplatesList } from './templates-list';
+import { type TemplateViewModel } from './template-view-model';
 import { TemplateDetailsDialog } from './template-details-dialog';
 import { TemplateStore } from './services/template-store';
 import { ApiErrorLocalizer } from '@core/api/api-error-localizer';
 import { isApiError } from '@core/api/api-error';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
+import { UserSettingsStore } from '@core/user-settings';
+import {
+  BUDGET_DESCRIPTION_MAX_LENGTH,
+  budgetCreationFormSchema,
+} from './budget-creation-dialog.schema';
 
-const DESCRIPTION_MAX_LENGTH = 100;
+interface BudgetCreationDialogData {
+  month?: number;
+  year?: number;
+}
+
+const DESCRIPTION_MAX_LENGTH = BUDGET_DESCRIPTION_MAX_LENGTH;
 
 // Format personnalisé pour le month/year picker
 const MONTH_YEAR_FORMATS = {
@@ -140,6 +149,7 @@ const MONTH_YEAR_FORMATS = {
             [selectedTemplateId]="templateStore.selectedTemplateId()"
             [isLoading]="templateStore.isLoading()"
             [hasError]="!!templateStore.error()"
+            [currency]="currency()"
             (templateSelected)="onTemplateSelect($event)"
             (templateDetailsRequested)="showTemplateDetails($event)"
             (retryRequested)="templateStore.reloadTemplates()"
@@ -177,7 +187,7 @@ const MONTH_YEAR_FORMATS = {
             [diameter]="24"
             [attr.aria-label]="'budget.creationInProgress' | transloco"
             role="progressbar"
-            class="pulpe-loading-indicator pulpe-loading-small mr-2 flex-shrink-0"
+            class="pulpe-loading-indicator pulpe-loading-small mr-2 shrink-0"
           ></mat-progress-spinner>
           <span aria-live="polite">{{ 'budget.creating' | transloco }}</span>
         } @else {
@@ -195,11 +205,12 @@ export class CreateBudgetDialogComponent {
   readonly #snackBar = inject(MatSnackBar);
   readonly #apiErrorLocalizer = inject(ApiErrorLocalizer);
   readonly #transloco = inject(TranslocoService);
+  readonly #userSettingsStore = inject(UserSettingsStore);
   protected readonly templateStore = inject(TemplateStore);
-  readonly #data = inject(MAT_DIALOG_DATA, { optional: true }) as {
-    month?: number;
-    year?: number;
-  } | null;
+  protected readonly currency = this.#userSettingsStore.currency;
+  readonly #data = inject<BudgetCreationDialogData | null>(MAT_DIALOG_DATA, {
+    optional: true,
+  });
 
   protected readonly maxDescriptionLength = DESCRIPTION_MAX_LENGTH;
 
@@ -231,7 +242,6 @@ export class CreateBudgetDialogComponent {
   budgetForm = this.#formBuilder.nonNullable.group({
     monthYear: [this.#getInitialDate(), Validators.required],
     description: ['', [Validators.maxLength(DESCRIPTION_MAX_LENGTH)]],
-    templateId: ['', Validators.required],
   });
 
   readonly #descriptionFormValue = toSignal(
@@ -252,27 +262,6 @@ export class CreateBudgetDialogComponent {
 
     // Sinon utilise la date actuelle
     return startOfMonth(new Date());
-  }
-
-  constructor() {
-    // Sync selected template with form
-    effect(() => {
-      const selectedId = this.templateStore.selectedTemplateId();
-      if (selectedId) {
-        this.budgetForm.patchValue({ templateId: selectedId });
-      } else {
-        this.budgetForm.patchValue({ templateId: '' });
-      }
-    });
-
-    // Load template totals when templates change
-    effect(() => {
-      const templates = this.templateStore.templates();
-      if (!templates.length) return;
-
-      const templateIds = templates.map((t) => t.id);
-      this.templateStore.loadTemplateTotals(templateIds);
-    });
   }
 
   onMonthSelected(
@@ -317,18 +306,16 @@ export class CreateBudgetDialogComponent {
   }
 
   async onCreateBudget(): Promise<void> {
-    if (!this.budgetForm.valid || !this.templateStore.selectedTemplate()) {
+    const selectedId = this.templateStore.selectedTemplateId();
+    if (!this.budgetForm.valid || !selectedId) {
       return;
     }
 
-    const formData = this.budgetForm.getRawValue();
-
-    const budgetData = {
-      month: formData.monthYear.getMonth() + 1, // getMonth() returns 0-11, we need 1-12
-      year: formData.monthYear.getFullYear(),
-      description: formData.description,
-      templateId: formData.templateId,
+    const formData = {
+      ...this.budgetForm.getRawValue(),
+      templateId: selectedId,
     };
+    const budgetData = budgetCreationFormSchema.parse(formData);
 
     const result = await this.templateStore.createBudget(budgetData);
 
@@ -340,7 +327,7 @@ export class CreateBudgetDialogComponent {
         this.#transloco.translate('common.close'),
         {
           duration: 5000,
-          panelClass: ['bg-[color-primary]', 'text-[color-on-primary]'],
+          panelClass: ['!bg-primary', '!text-on-primary'],
         },
       );
     } else {
@@ -354,7 +341,7 @@ export class CreateBudgetDialogComponent {
         this.#transloco.translate('common.close'),
         {
           duration: 8000,
-          panelClass: ['bg-[color-error]', 'text-[color-on-error]'],
+          panelClass: ['!bg-error', '!text-on-error'],
         },
       );
     }

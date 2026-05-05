@@ -230,18 +230,18 @@ final class BiometricManager {
         _ authService: AuthService
     ) -> @Sendable () async -> Bool {
         {
+            // PUL-132: SDK storage (PulpeAuthStorage) is the source of truth for the
+            // live session. saveBiometricTokens reads `supabase.auth.session` directly.
+            // No keychain fallback — if the SDK session is unavailable, there's
+            // nothing valid to snapshot into the biometric slot.
             do {
                 try await authService.saveBiometricTokens()
                 return true
             } catch {
-                Logger.auth.warning(
-                    "transitionToAuthenticated: saveBiometricTokens failed, trying fallback - \(error)"
+                Logger.auth.error(
+                    "transitionToAuthenticated: saveBiometricTokens failed - \(error)"
                 )
-                let saved = await authService.saveBiometricTokensFromKeychain()
-                if !saved {
-                    Logger.auth.error("transitionToAuthenticated: biometric token persistence failed")
-                }
-                return saved
+                return false
             }
         }
     }

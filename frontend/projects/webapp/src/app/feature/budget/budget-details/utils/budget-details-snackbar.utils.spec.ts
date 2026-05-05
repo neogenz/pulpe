@@ -1,0 +1,244 @@
+import { describe, it, expect, vi } from 'vitest';
+import type { TranslocoService } from '@jsverse/transloco';
+import type { BudgetLine, Transaction } from 'pulpe-shared';
+import {
+  computeEnvelopeSnackbarMessage,
+  computeTransactionSnackbarMessage,
+} from './budget-details-snackbar.utils';
+
+const NOW = new Date().toISOString();
+
+function makeBudgetLine(overrides: Partial<BudgetLine> = {}): BudgetLine {
+  return {
+    id: 'bl-1',
+    budgetId: 'budget-1',
+    templateLineId: null,
+    savingsGoalId: null,
+    name: 'Courses',
+    amount: 408,
+    kind: 'expense',
+    recurrence: 'fixed',
+    isManuallyAdjusted: false,
+    checkedAt: NOW,
+    createdAt: NOW,
+    updatedAt: NOW,
+    ...overrides,
+  };
+}
+
+function makeTransaction(overrides: Partial<Transaction> = {}): Transaction {
+  return {
+    id: 'tx-1',
+    budgetId: 'budget-1',
+    budgetLineId: 'bl-1',
+    name: 'Migros',
+    amount: 200,
+    kind: 'expense',
+    transactionDate: NOW,
+    category: null,
+    createdAt: NOW,
+    updatedAt: NOW,
+    checkedAt: NOW,
+    ...overrides,
+  };
+}
+
+function createMockTransloco(): TranslocoService {
+  return {
+    translate: vi.fn((key: string, params?: Record<string, unknown>) => {
+      switch (key) {
+        case 'budget.snackbar.envelopeOver':
+          return `Pointé · ${params?.['consumed']} ${params?.['currency']} — ${params?.['envelope']} ${params?.['currency']} prévus`;
+        case 'budget.snackbar.envelopeWithin':
+          return `Pointé · ${params?.['envelope']} ${params?.['currency']}`;
+        case 'budget.snackbar.transactionChecked':
+          return `Pointé · ${params?.['amount']} ${params?.['currency']}`;
+        default:
+          return key;
+      }
+    }),
+  } as unknown as TranslocoService;
+}
+
+describe('computeEnvelopeSnackbarMessage', () => {
+  const transloco = createMockTransloco();
+
+  it('AC1 — returns null when checkedAt is null (unchecked)', () => {
+    const budgetLine = makeBudgetLine({ checkedAt: null });
+
+    const result = computeEnvelopeSnackbarMessage(
+      budgetLine.id,
+      [budgetLine],
+      [],
+      'CHF',
+      transloco,
+    );
+
+    expect(result).toBeNull();
+  });
+
+  it('AC2 — returns a message when checked, without transactions', () => {
+    const budgetLine = makeBudgetLine({ amount: 408 });
+
+    const result = computeEnvelopeSnackbarMessage(
+      budgetLine.id,
+      [budgetLine],
+      [],
+      'CHF',
+      transloco,
+    );
+
+    expect(result).toBe('Pointé · 408 CHF');
+  });
+
+  it('AC2 — returns a message when checked, with transactions', () => {
+    const budgetLine = makeBudgetLine({ amount: 408 });
+    const tx = makeTransaction({ amount: 200, checkedAt: NOW });
+
+    const result = computeEnvelopeSnackbarMessage(
+      budgetLine.id,
+      [budgetLine],
+      [tx],
+      'CHF',
+      transloco,
+    );
+
+    expect(result).not.toBeNull();
+  });
+
+  it('AC3 — displays consumed when consumed > envelope (1574 > 408)', () => {
+    const budgetLine = makeBudgetLine({ amount: 408 });
+    const transactions = [
+      makeTransaction({ id: 'tx-1', amount: 800, checkedAt: NOW }),
+      makeTransaction({ id: 'tx-2', amount: 774, checkedAt: NOW }),
+    ];
+
+    const result = computeEnvelopeSnackbarMessage(
+      budgetLine.id,
+      [budgetLine],
+      transactions,
+      'CHF',
+      transloco,
+    );
+
+    expect(result).toBe('Pointé · 1574 CHF — 408 CHF prévus');
+  });
+
+  it('AC3 — displays envelope amount when consumed < envelope (123 < 408)', () => {
+    const budgetLine = makeBudgetLine({ amount: 408 });
+    const tx = makeTransaction({ amount: 123, checkedAt: NOW });
+
+    const result = computeEnvelopeSnackbarMessage(
+      budgetLine.id,
+      [budgetLine],
+      [tx],
+      'CHF',
+      transloco,
+    );
+
+    expect(result).toBe('Pointé · 408 CHF');
+  });
+
+  it('AC3 — displays envelope amount when consumed = envelope (408 = 408)', () => {
+    const budgetLine = makeBudgetLine({ amount: 408 });
+    const transactions = [
+      makeTransaction({ id: 'tx-1', amount: 200, checkedAt: NOW }),
+      makeTransaction({ id: 'tx-2', amount: 208, checkedAt: NOW }),
+    ];
+
+    const result = computeEnvelopeSnackbarMessage(
+      budgetLine.id,
+      [budgetLine],
+      transactions,
+      'CHF',
+      transloco,
+    );
+
+    expect(result).toBe('Pointé · 408 CHF');
+  });
+
+  it('AC3 — displays envelope when consumed = 0', () => {
+    const budgetLine = makeBudgetLine({ amount: 408 });
+
+    const result = computeEnvelopeSnackbarMessage(
+      budgetLine.id,
+      [budgetLine],
+      [],
+      'CHF',
+      transloco,
+    );
+
+    expect(result).toBe('Pointé · 408 CHF');
+  });
+
+  it('AC4 — ignores income transactions in consumed calculation', () => {
+    const budgetLine = makeBudgetLine({ amount: 408 });
+    const transactions = [
+      makeTransaction({
+        id: 'tx-1',
+        amount: 200,
+        kind: 'expense',
+        checkedAt: NOW,
+      }),
+      makeTransaction({
+        id: 'tx-2',
+        amount: 5000,
+        kind: 'income',
+        checkedAt: NOW,
+      }),
+    ];
+
+    const result = computeEnvelopeSnackbarMessage(
+      budgetLine.id,
+      [budgetLine],
+      transactions,
+      'CHF',
+      transloco,
+    );
+
+    expect(result).toBe('Pointé · 408 CHF');
+  });
+});
+
+describe('computeTransactionSnackbarMessage', () => {
+  const transloco = createMockTransloco();
+
+  it('AC5 — returns null when checkedAt is null (unchecked)', () => {
+    const tx = makeTransaction({ checkedAt: null });
+
+    const result = computeTransactionSnackbarMessage(
+      tx.id,
+      [tx],
+      'CHF',
+      transloco,
+    );
+
+    expect(result).toBeNull();
+  });
+
+  it('AC5 — returns a message when checked', () => {
+    const tx = makeTransaction({ amount: 150, checkedAt: NOW });
+
+    const result = computeTransactionSnackbarMessage(
+      tx.id,
+      [tx],
+      'CHF',
+      transloco,
+    );
+
+    expect(result).not.toBeNull();
+  });
+
+  it('AC6 — displays the rounded absolute amount of the transaction', () => {
+    const tx = makeTransaction({ amount: 42, checkedAt: NOW });
+
+    const result = computeTransactionSnackbarMessage(
+      tx.id,
+      [tx],
+      'CHF',
+      transloco,
+    );
+
+    expect(result).toBe('Pointé · 42 CHF');
+  });
+});

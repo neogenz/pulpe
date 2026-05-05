@@ -7,6 +7,7 @@ struct AddTransactionSheet: View {
 
     @Environment(\.dismiss) private var dismiss
     @Environment(ToastManager.self) private var toastManager
+    @Environment(UserSettingsStore.self) private var userSettingsStore
     @State private var name = ""
     @State private var amount: Decimal?
     @State private var kind: TransactionKind = .expense
@@ -14,12 +15,13 @@ struct AddTransactionSheet: View {
     @State private var isChecked = true
     @State private var isLoading = false
     @State private var error: Error?
-    @FocusState private var isAmountFocused: Bool
-    @FocusState private var isDescriptionFocused: Bool
+    @FocusState private var focusedField: AmountDescriptionField?
     @State private var amountText = ""
     @State private var submitSuccessTrigger = false
+    @State private var inputCurrency: SupportedCurrency = .chf
 
     private let dependencies: AddTransactionDependencies
+    private let conversionService = CurrencyConversionService.shared
 
     init(
         budgetId: String,
@@ -52,19 +54,36 @@ struct AddTransactionSheet: View {
         SheetFormContainer(
             title: kind.newTransactionTitle,
             isLoading: isLoading,
-            autoFocus: $isAmountFocused,
-            descriptionFocus: $isDescriptionFocused
+            focus: $focusedField,
+            focusOrder: [.amount, .description]
         ) {
+            Text("Pas liée à une prévision")
+                .font(PulpeTypography.caption)
+                .foregroundStyle(Color.textSecondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+
             KindToggle(selection: $kind)
+            if userSettingsStore.showCurrencySelectorEffective {
+                CurrencyAmountPicker(selectedCurrency: $inputCurrency)
+            }
             HeroAmountField(
                 amount: $amount,
                 amountText: $amountText,
-                isFocused: $isAmountFocused,
+                focus: $focusedField,
+                field: .amount,
                 hint: "Quel montant ?",
+                currency: inputCurrency,
                 accentColor: kind.color
             )
-            QuickAmountChips(amount: $amount, amountText: $amountText, isFocused: $isAmountFocused, color: kind.color)
-                .animation(.snappy(duration: DesignTokens.Animation.fast), value: kind)
+            QuickAmountChips(
+                amount: $amount,
+                amountText: $amountText,
+                focus: $focusedField,
+                amountField: .amount,
+                color: kind.color,
+                currency: inputCurrency
+            )
+            .animation(.snappy(duration: DesignTokens.Animation.fast), value: kind)
             descriptionField
             dateSelector
             CheckedToggle(isOn: $isChecked, tintColor: kind.color)
@@ -78,6 +97,7 @@ struct AddTransactionSheet: View {
             addButton
         }
         .sensoryFeedback(.success, trigger: submitSuccessTrigger)
+        .onAppear { inputCurrency = userSettingsStore.currency }
     }
 
     // MARK: - Description
@@ -88,7 +108,8 @@ struct AddTransactionSheet: View {
             text: $name,
             label: "Description",
             accessibilityLabel: "Description de la transaction",
-            focusBinding: $isDescriptionFocused
+            focusBinding: $focusedField,
+            field: .description
         )
     }
 
@@ -115,7 +136,7 @@ struct AddTransactionSheet: View {
                     .transition(.opacity.combined(with: .move(edge: .top)))
             }
         }
-        .animation(.easeInOut(duration: DesignTokens.Animation.fast), value: validationHint)
+        .animation(DesignTokens.Animation.smoothEaseInOut, value: validationHint)
     }
 
     // MARK: - Logic
@@ -127,16 +148,26 @@ struct AddTransactionSheet: View {
         defer { isLoading = false }
         error = nil
 
-        let data = TransactionCreate(
-            budgetId: budgetId,
-            name: name.trimmingCharacters(in: .whitespaces),
-            amount: amount,
-            kind: kind,
-            transactionDate: transactionDate,
-            checkedAt: isChecked ? Date() : nil
-        )
-
         do {
+            let conversion = try await conversionService.convert(
+                amount: amount,
+                from: inputCurrency,
+                to: userSettingsStore.currency
+            )
+
+            let data = TransactionCreate(
+                budgetId: budgetId,
+                name: name.trimmingCharacters(in: .whitespaces),
+                amount: conversion?.convertedAmount ?? amount,
+                kind: kind,
+                transactionDate: transactionDate,
+                checkedAt: isChecked ? Date() : nil,
+                originalAmount: conversion?.originalAmount,
+                originalCurrency: conversion?.originalCurrency,
+                targetCurrency: conversion?.targetCurrency,
+                exchangeRate: conversion?.exchangeRate
+            )
+
             let transaction = try await dependencies.createTransaction(data)
             AnalyticsService.shared.capture(.transactionCreated, properties: ["type": kind.rawValue])
             submitSuccessTrigger.toggle()

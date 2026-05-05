@@ -58,6 +58,7 @@ private struct UncheckedItemRow: View {
 
     @Environment(\.amountsHidden) private var amountsHidden
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(UserSettingsStore.self) private var userSettingsStore
     @State private var triggerFeedback = false
     @State private var isChecked = false
 
@@ -142,12 +143,13 @@ private struct UncheckedItemRow: View {
                 let pct = Int(min(consumption.percentage, 999))
                 let color: Color = consumption.isOverBudget ? .financialOverBudget :
                     consumption.isNearLimit ? .warningPrimary : .secondary
-                Text("\(pct)% \u{00B7} \(consumption.available.asAmount) restant")
+                Text("\(pct)% \u{00B7} \(consumption.available.asAmount(for: userSettingsStore.currency)) restant")
                     .font(PulpeTypography.caption)
                     .foregroundStyle(color)
                     .sensitiveAmount()
             } else if line.kind == .expense {
-                Text("\(line.recurrence.label) \u{00B7} sur \(line.amount.asCompactCHF)")
+                let formatted = line.amount.asCurrency(userSettingsStore.currency)
+                Text("\(line.recurrence.label) \u{00B7} sur \(formatted)")
                     .font(PulpeTypography.caption)
                     .foregroundStyle(Color.textSecondary)
             } else {
@@ -164,16 +166,11 @@ private struct UncheckedItemRow: View {
     private var amountText: some View {
         switch item {
         case .transaction(let tx, _):
-            Text(tx.amount.asAmount)
-                .font(PulpeTypography.listRowSubtitle)
-                .foregroundStyle(tx.kind.color)
-                .sensitiveAmount()
+            TransactionAmountView(transaction: tx, displayCurrency: userSettingsStore.currency)
 
         case .budgetLine(let line, let consumption):
             if line.kind == .expense, let consumption {
-                let text = consumption.available >= 0
-                    ? consumption.available.asAmount
-                    : "-\(consumption.available.absoluteValue.asAmount)"
+                let text = consumption.available.asSignedAmount(for: line.kind, in: userSettingsStore.currency)
                 let color: Color = consumption.isOverBudget ? .financialOverBudget :
                     consumption.isNearLimit ? .warningPrimary : .secondary
                 Text(text)
@@ -181,7 +178,7 @@ private struct UncheckedItemRow: View {
                     .foregroundStyle(color)
                     .sensitiveAmount()
             } else {
-                Text(line.amount.asAmount)
+                Text(line.amount.asSignedAmount(for: line.kind, in: userSettingsStore.currency))
                     .font(PulpeTypography.listRowSubtitle)
                     .foregroundStyle(line.kind.color)
                     .sensitiveAmount()
@@ -281,4 +278,5 @@ struct UncheckedForecastsEmptyState: View {
     }
     .padding()
     .pulpeBackground()
+    .environment(UserSettingsStore())
 }

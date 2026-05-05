@@ -27,7 +27,7 @@ Component → Store → Feature API → ApiClient
 
 ## ApiClient Usage
 
-All HTTP calls go through `ApiClient`. Never inject `HttpClient` directly.
+All HTTP calls via `ApiClient`. Never inject `HttpClient` direct.
 
 ```typescript
 @Injectable({ providedIn: 'root' })
@@ -48,7 +48,7 @@ export class FeatureApi {
 }
 ```
 
-Zod validation is enforced by design — no schema, no call.
+Zod validation enforced by design — no schema, no call.
 
 ## Store Anatomy (6 sections)
 
@@ -90,7 +90,7 @@ export class FeatureStore {
 ## Store Variants
 
 ### Variant A: Signals-Only Store
-For local UI state or synchronized state without async data loading.
+Local UI state or synced state, no async data loading.
 
 | Element | Usage |
 |---------|-------|
@@ -98,10 +98,10 @@ For local UI state or synchronized state without async data loading.
 | `computed()` | Derived selectors |
 | Methods | Synchronous set/update |
 
-Example: `CompleteProfileStore` — manages form steps and validation state.
+Example: `CompleteProfileStore` — manages form steps + validation state.
 
 ### Variant B: Resource-Backed Store
-For data fetched from API with async loading, mutations, and cache management.
+API-fetched data, async loading, mutations, cache mgmt.
 
 | Element | Usage |
 |---------|-------|
@@ -110,11 +110,11 @@ For data fetched from API with async loading, mutations, and cache management.
 | `computed()` | Derived selectors, loading states |
 | `async` methods | Mutations with optimistic updates |
 
-Example: `BudgetDetailsStore` — loads budget details, manages optimistic CRUD.
+Example: `BudgetDetailsStore` — loads budget details, optimistic CRUD.
 
 ## Data Loading
 
-Use `resource()` for fetch-on-signal-change, `rxResource()` when Observable chains are needed.
+`resource()` for fetch-on-signal-change. `rxResource()` when Observable chains needed.
 
 ```typescript
 // resource() — simple async loader
@@ -170,7 +170,7 @@ async createItem(data: ItemCreate): Promise<void> {
 
 ## Temp ID Rule (DR-005)
 
-When creating an item with a temporary ID, **always replace the temp ID with the real server ID BEFORE** triggering cascade actions (invalidation, dependent API calls).
+Creating item with temp ID: **always replace temp ID with real server ID BEFORE** cascade actions (invalidation, dependent API calls).
 
 ### Correct order:
 ```typescript
@@ -206,7 +206,7 @@ await this.#api.toggleCheck$(tempId); // 404 — server doesn't know "temp-xxx"
 
 ## Cache Invalidation
 
-Use a version signal to trigger cross-store reloads:
+Version signal triggers cross-store reloads:
 
 ```typescript
 // Shared invalidation service
@@ -238,7 +238,7 @@ readonly isInitialLoading = computed(
 
 ## DataCache (Shared SWR Cache)
 
-Cache lives in the **Feature API layer** (singleton), not in stores (route-scoped).
+Cache lives in **Feature API layer** (singleton), not stores (route-scoped).
 
 ```typescript
 // core/cache/data-cache.ts
@@ -261,7 +261,7 @@ const cache = new DataCache({ freshTime: 30_000, gcTime: 600_000 });
 ['budget', 'dashboard', month, year]         // dashboard data
 ```
 
-Prefix-based invalidation: `cache.invalidate(['budget'])` marks ALL budget entries stale.
+Prefix invalidation: `cache.invalidate(['budget'])` marks ALL budget entries stale.
 
 ### Cache-First Resource Loader Pattern
 
@@ -318,7 +318,7 @@ readonly isInitialLoading = computed(
 | `@Injectable()` | Feature stores (route-scoped) | `BudgetDetailsStore` |
 | `providedIn: 'root'` | Shared services, APIs, caches | `BudgetApi`, `HasBudgetCache` |
 
-Feature stores are registered in route providers:
+Feature stores registered in route providers:
 
 ```typescript
 export default [
@@ -332,7 +332,7 @@ export default [
 
 ## Error Handling
 
-All errors from `ApiClient` are `ApiError` instances:
+All `ApiClient` errors are `ApiError` instances:
 
 ```typescript
 import { isApiError } from '@core/api/api-error';

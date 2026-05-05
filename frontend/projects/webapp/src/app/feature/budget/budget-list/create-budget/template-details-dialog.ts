@@ -1,17 +1,14 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 
-import { CurrencyPipe } from '@angular/common';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatListModule } from '@angular/material/list';
 import { MatDividerModule } from '@angular/material/divider';
 import { TranslocoPipe } from '@jsverse/transloco';
-import {
-  type BudgetTemplate,
-  type TemplateLine,
-  BudgetFormulas,
-} from 'pulpe-shared';
+import { type BudgetTemplate, type TemplateLine } from 'pulpe-shared';
+import { AppCurrencyPipe } from '@core/currency';
+import { UserSettingsStore } from '@core/user-settings';
 
 export interface TemplateDetailsDialogData {
   template: BudgetTemplate;
@@ -22,13 +19,13 @@ export interface TemplateDetailsDialogData {
   selector: 'pulpe-template-details-dialog',
 
   imports: [
-    CurrencyPipe,
+    TranslocoPipe,
+    AppCurrencyPipe,
     MatDialogModule,
     MatButtonModule,
     MatIconModule,
     MatListModule,
     MatDividerModule,
-    TranslocoPipe,
   ],
   template: `
     <h2 mat-dialog-title class="text-headline-small">
@@ -49,15 +46,13 @@ export interface TemplateDetailsDialogData {
           <div class="flex flex-col">
             <div>{{ 'template.totalIncome' | transloco }}</div>
             <div class="ph-no-capture text-financial-income text-label-large">
-              {{ totalIncome | currency: 'CHF' : 'symbol' : '1.2-2' : 'de-CH' }}
+              {{ totalIncome | appCurrency: currency() : '1.0-0' }}
             </div>
           </div>
           <div class="flex flex-col">
             <div>{{ 'template.totalExpenses' | transloco }}</div>
             <div class="ph-no-capture text-financial-negative text-label-large">
-              {{
-                totalExpenses | currency: 'CHF' : 'symbol' : '1.2-2' : 'de-CH'
-              }}
+              {{ totalExpenses | appCurrency: currency() : '1.0-0' }}
             </div>
           </div>
         </div>
@@ -84,15 +79,13 @@ export interface TemplateDetailsDialogData {
                   }
                 </div>
                 <div
-                  class="ph-no-capture text-body-medium font-medium flex-shrink-0"
+                  class="ph-no-capture text-body-medium font-medium shrink-0"
                   [class.text-financial-savings]="line.kind === 'saving'"
                   [class.text-financial-negative]="line.kind === 'expense'"
                   [class.text-financial-income]="line.kind === 'income'"
                 >
                   {{ line.kind === 'income' ? '+' : '-' }}
-                  {{
-                    line.amount | currency: 'CHF' : 'symbol' : '1.2-2' : 'de-CH'
-                  }}
+                  {{ line.amount | appCurrency: currency() : '1.2-2' }}
                 </div>
               </div>
             </mat-list-item>
@@ -105,9 +98,9 @@ export interface TemplateDetailsDialogData {
         <!-- Net Balance -->
         <mat-divider class="mb-2!"></mat-divider>
         <div class="flex justify-between text-body-medium font-medium">
-          <span>{{ 'template.netBalanceSummary' | transloco }}</span>
+          <span>{{ 'template.netBalanceLabel' | transloco }}</span>
           <span class="ph-no-capture">
-            {{ netBalance | currency: 'CHF' : 'symbol' : '1.2-2' : 'de-CH' }}
+            {{ netBalance | appCurrency: currency() : '1.0-0' }}
           </span>
         </div>
       } @else {
@@ -145,16 +138,17 @@ export interface TemplateDetailsDialogData {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class TemplateDetailsDialog {
+  readonly #userSettings = inject(UserSettingsStore);
+  protected readonly currency = this.#userSettings.currency;
   readonly data = inject<TemplateDetailsDialogData>(MAT_DIALOG_DATA);
 
   readonly templateLines = this.data.templateLines;
-  readonly totalIncome = BudgetFormulas.calculateTotalIncome(
-    this.templateLines,
-    [],
-  );
-  readonly totalExpenses = BudgetFormulas.calculateTotalExpenses(
-    this.templateLines,
-    [],
-  );
+  readonly totalIncome = this.templateLines
+    .filter((line) => line.kind === 'income')
+    .reduce((sum, line) => sum + line.amount, 0);
+
+  readonly totalExpenses = this.templateLines
+    .filter((line) => line.kind === 'expense' || line.kind === 'saving')
+    .reduce((sum, line) => sum + line.amount, 0);
   readonly netBalance = this.totalIncome - this.totalExpenses;
 }

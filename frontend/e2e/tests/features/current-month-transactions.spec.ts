@@ -22,7 +22,11 @@ test.describe('Current Month Transactions', () => {
   const now = new Date();
   const currentMonth = now.getMonth() + 1; // 1-based
   const currentYear = now.getFullYear();
-  const currentMonthDate = new Date(currentYear, now.getMonth(), 15).toISOString();
+  const currentMonthDate = new Date(
+    currentYear,
+    now.getMonth(),
+    15,
+  ).toISOString();
 
   const salaireLine = createBudgetLineMock(TEST_UUIDS.LINE_1, budgetId, {
     name: 'Salaire',
@@ -42,13 +46,17 @@ test.describe('Current Month Transactions', () => {
   }) => {
     let hasCreated = false;
 
-    const newTransaction = createTransactionMock(TEST_UUIDS.TRANSACTION_1, budgetId, {
-      name: 'Cafe',
-      amount: 15,
-      kind: 'expense',
-      budgetLineId: null,
-      transactionDate: currentMonthDate,
-    });
+    const newTransaction = createTransactionMock(
+      TEST_UUIDS.TRANSACTION_1,
+      budgetId,
+      {
+        name: 'Cafe',
+        amount: 15,
+        kind: 'expense',
+        budgetLineId: null,
+        transactionDate: currentMonthDate,
+      },
+    );
 
     // Mock budget details — initial state with no transactions
     await authenticatedPage.route('**/api/v1/budgets/*/details', (route) => {
@@ -90,7 +98,13 @@ test.describe('Current Month Transactions', () => {
         contentType: 'application/json',
         body: JSON.stringify({
           success: true,
-          data: { id: budgetId, month: currentMonth, year: currentYear, userId: TEST_UUIDS.USER_1, rollover: 0 },
+          data: {
+            id: budgetId,
+            month: currentMonth,
+            year: currentYear,
+            userId: TEST_UUIDS.USER_1,
+            rollover: 0,
+          },
         }),
       });
     });
@@ -105,12 +119,18 @@ test.describe('Current Month Transactions', () => {
     await expect(form).toBeVisible();
 
     // Wait for auto-focus setTimeout(200ms) to settle before filling (CI timing)
-    const amountInput = authenticatedPage.getByTestId('transaction-amount-input');
+    const amountInput = authenticatedPage.locator(
+      '[data-testid="transaction-form"] [data-testid="amount-input-value"]',
+    );
     await expect(amountInput).toBeFocused();
 
     await amountInput.fill('15');
-    await authenticatedPage.getByTestId('transaction-description-input').clear();
-    await authenticatedPage.getByTestId('transaction-description-input').fill('Cafe');
+    await authenticatedPage
+      .getByTestId('transaction-description-input')
+      .clear();
+    await authenticatedPage
+      .getByTestId('transaction-description-input')
+      .fill('Cafe');
 
     // Submit
     await authenticatedPage.getByTestId('transaction-submit-button').click();
@@ -119,7 +139,9 @@ test.describe('Current Month Transactions', () => {
     await expect(form).toBeHidden();
 
     // Transaction should appear in the recent transactions block
-    const recentTransactions = authenticatedPage.getByTestId('dashboard-block-recent-transactions');
+    const recentTransactions = authenticatedPage.getByTestId(
+      'dashboard-block-recent-transactions',
+    );
     await expect(recentTransactions).toContainText('Cafe');
   });
 
@@ -130,21 +152,29 @@ test.describe('Current Month Transactions', () => {
     // Setup: Income 5000, expense envelope 500, existing free transaction 100
     // Initial expenses = max(500, 0) + 100 = 600
     // Initial remaining = 5000 - 600 = 4400
-    const existingTransaction = createTransactionMock(TEST_UUIDS.TRANSACTION_1, budgetId, {
-      name: 'Existing expense',
-      amount: 100,
-      kind: 'expense',
-      budgetLineId: null,
-      transactionDate: currentMonthDate,
-    });
+    const existingTransaction = createTransactionMock(
+      TEST_UUIDS.TRANSACTION_1,
+      budgetId,
+      {
+        name: 'Existing expense',
+        amount: 100,
+        kind: 'expense',
+        budgetLineId: null,
+        transactionDate: currentMonthDate,
+      },
+    );
 
-    const newTransaction = createTransactionMock(TEST_UUIDS.TRANSACTION_2, budgetId, {
-      name: 'New expense',
-      amount: 200,
-      kind: 'expense',
-      budgetLineId: null,
-      transactionDate: currentMonthDate,
-    });
+    const newTransaction = createTransactionMock(
+      TEST_UUIDS.TRANSACTION_2,
+      budgetId,
+      {
+        name: 'New expense',
+        amount: 200,
+        kind: 'expense',
+        budgetLineId: null,
+        transactionDate: currentMonthDate,
+      },
+    );
 
     let hasCreated = false;
 
@@ -188,7 +218,13 @@ test.describe('Current Month Transactions', () => {
         contentType: 'application/json',
         body: JSON.stringify({
           success: true,
-          data: { id: budgetId, month: currentMonth, year: currentYear, userId: TEST_UUIDS.USER_1, rollover: 0 },
+          data: {
+            id: budgetId,
+            month: currentMonth,
+            year: currentYear,
+            userId: TEST_UUIDS.USER_1,
+            rollover: 0,
+          },
         }),
       });
     });
@@ -196,16 +232,16 @@ test.describe('Current Month Transactions', () => {
     await currentMonthPage.goto();
 
     // Initial state: expenses = 500 (envelope) + 100 (free) = 600
-    await currentMonthPage.expectExpensesAmount('600.00');
+    await currentMonthPage.expectExpensesAmount('600');
     // Initial remaining = 5000 - 600 = 4400
-    await currentMonthPage.expectRemainingAmount("4'400.00");
+    await currentMonthPage.expectRemainingAmount('4 400');
 
     // Add a new free transaction of 200
     await currentMonthPage.addTransaction('200', 'New expense');
 
     // After adding: expenses = 500 (envelope) + 100 + 200 (free) = 800
-    await currentMonthPage.expectExpensesAmount('800.00');
+    await currentMonthPage.expectExpensesAmount('800');
     // Remaining = 5000 - 800 = 4200
-    await currentMonthPage.expectRemainingAmount("4'200.00");
+    await currentMonthPage.expectRemainingAmount('4 200');
   });
 });

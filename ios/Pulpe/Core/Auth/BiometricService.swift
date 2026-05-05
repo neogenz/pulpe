@@ -30,6 +30,21 @@ final class BiometricService: Sendable {
         }
     }
 
+    var biometrySFSymbolName: String {
+        switch biometryType {
+        case .faceID:
+            return "faceid"
+        case .touchID:
+            return "touchid"
+        case .opticID:
+            return "opticid"
+        case .none:
+            return "lock.shield"
+        @unknown default:
+            return "lock.shield"
+        }
+    }
+
     // MARK: - Methods
 
     func canUseBiometrics() -> Bool {

@@ -1,6 +1,6 @@
 # Pulpe - System Patterns & Architecture
 
-> Architecture patterns, coding standards, and design principles.
+> Architecture patterns, coding standards, design principles.
 
 ---
 
@@ -22,7 +22,7 @@ pulpe-workspace/
 
 ### 7-Layer Pattern
 
-Located in `frontend/projects/webapp/src/app/`:
+In `frontend/projects/webapp/src/app/`:
 
 | Layer | Purpose | Loading |
 |-------|---------|---------|
@@ -42,51 +42,52 @@ Component → Store → Feature API → ApiClient → HttpClient
          signals   Observables   Zod validation
 ```
 
-- **ApiClient** (`core/api/`) — centralized HTTP with mandatory Zod schema validation
-- **Feature APIs** — domain endpoints returning `Observable<T>` (e.g., `BudgetApi`, `TemplateApi`)
-- **Stores** — signal-based state with `resource()` for loading, SWR (stale-while-revalidate) for refetch UX
+- **ApiClient** (`core/api/`) — central HTTP, mandatory Zod schema validation
+- **Feature APIs** — domain endpoints return `Observable<T>` (e.g., `BudgetApi`, `TemplateApi`)
+- **Stores** — signal state, `resource()` for loading, SWR (stale-while-revalidate) refetch UX
 - **Components** — read signals, call store mutations
 
-Rule: **NEVER inject HttpClient directly** — all HTTP goes through ApiClient.
+Rule: **NEVER inject HttpClient directly** — all HTTP via ApiClient.
 
 ### Core Layer Domains
 
-The `core/` layer contains domain-specific services:
+`core/` layer has domain services:
 
-- `api/` - Centralized ApiClient with Zod validation
-- `auth/` - Authentication, guards, session
+- `api/` - Central ApiClient + Zod validation
+- `auth/` - Auth, guards, session
 - `analytics/` - PostHog tracking
-- `budget/` - Budget calculations
-- `budget-template/` - Template-related API
-- `cache/` - Data caching (`DataCache`)
-- `config/` - App configuration
-- `date/` - Date utilities
+- `budget/` - Budget calc
+- `budget-template/` - Template API
+- `cache/` - Data cache (`DataCache`)
+- `config/` - App config
+- `currency/` - Currency conversion (rate fetch, 5min cache), conversion badge component
+- `date/` - Date utils
 - `demo/` - Demo mode services
-- `encryption/` - Client-key management, vault code
+- `encryption/` - Client-key mgmt, vault code
 - `lifecycle/` - App lifecycle hooks
-- `loading/` - Loading state management
-- `logging/` - Logging service
-- `maintenance/` - Maintenance mode detection
-- `preload/` - Critical data preloading on auth (allSettled)
-- `product-tour/` - Guided product tour service
-- `routing/` - Route guards, navigation
+- `loading/` - Loading state
+- `logging/` - Logging
+- `maintenance/` - Maintenance mode detect
+- `preload/` - Critical data preload on auth (allSettled)
+- `product-tour/` - Guided tour
+- `routing/` - Route guards, nav
 - `storage/` - LocalStorage, persistence
-- `theme/` - Theme management
+- `theme/` - Theme mgmt
 - `transaction/` - Transaction API
-- `turnstile/` - Cloudflare Turnstile captcha integration
-- `user-settings/` - User preferences
+- `turnstile/` - Cloudflare Turnstile captcha
+- `user-settings/` - User prefs
 - `validators/` - Custom form validators
 
 ### Feature Domains
 
-Current features in `feature/`:
+Features in `feature/`:
 
-- `auth/` - Login, signup flows
+- `auth/` - Login, signup
 - `budget/` - Budget overview
-- `budget-templates/` - Template management
+- `budget-templates/` - Template mgmt
 - `complete-profile/` - Onboarding
 - `current-month/` - Main budget view
-- `design-system/` - Design system showcase/dev reference
+- `design-system/` - Design system showcase/dev ref
 - `legal/` - Privacy, terms
 - `maintenance/` - Maintenance page
 - `settings/` - User settings
@@ -111,13 +112,13 @@ Features isolated (no sibling imports)
 ### Key Patterns
 
 - **Standalone Components**: No NgModules
-- **OnPush + Signals**: For performance
+- **OnPush + Signals**: Performance
 - **Features as Black Boxes**: Isolated, lazy-loaded
 - **Store Pattern**: 6-section anatomy (Dependencies, State, Resource, Selectors, Mutations, Private utils) — see `.claude/rules/angular-store-pattern.md`
 
 ### Demo Mode Pattern
 
-- `DemoModeService`: Signal-based state (localStorage sync)
+- `DemoModeService`: Signal state (localStorage sync)
 - `DemoInitializerService`: API call + Supabase auth setup
 - UI: Welcome screen + login page demo buttons
 
@@ -141,7 +142,7 @@ backend-nest/src/
 
 ### Common Layer
 
-Located in `src/common/`:
+In `src/common/`:
 
 | Directory | Purpose |
 |-----------|---------|
@@ -179,24 +180,25 @@ Each domain in `src/modules/[domain]/`:
 ### Current Modules
 
 - `account-deletion/` - Account deletion flow
-- `auth/` - Authentication endpoints
-- `budget/` - Budget CRUD + calculations
-- `budget-line/` - Budget line management
+- `auth/` - Auth endpoints
+- `budget/` - Budget CRUD + calc
+- `budget-line/` - Budget line mgmt
 - `budget-template/` - Template CRUD
-- `cache/` - Caching service
+- `cache/` - Cache service
+- `currency/` - Currency rate fetch (Frankfurter API, 24h cache) + conversion metadata mapping
 - `demo/` - Demo mode API
 - `debug/` - Debug endpoints (dev only)
-- `encryption/` - Server-side encryption key management
+- `encryption/` - Server-side encryption key mgmt
 - `supabase/` - Supabase client
-- `transaction/` - Transaction management
-- `user/` - User management
+- `transaction/` - Transaction mgmt
+- `user/` - User mgmt
 
 ### Authentication & Security
 
 - JWT via Supabase Auth
-- `AuthGuard` with `@User()` and `@SupabaseClient()` decorators
+- `AuthGuard` + `@User()` + `@SupabaseClient()` decorators
 - RLS policies enforce data isolation at DB level
-- Zero Trust: All endpoints protected by default
+- Zero Trust: all endpoints protected by default
 
 ### iOS Auth State Machine
 
@@ -235,7 +237,7 @@ Each domain in `src/modules/[domain]/`:
 
 ### Analytics (PostHog — Cross-Platform)
 
-Both frontend (Angular) and iOS (SwiftUI) share a PostHog project (EU region).
+Frontend (Angular) + iOS (SwiftUI) share PostHog project (EU region).
 
 | Aspect | Frontend (Angular) | iOS (SwiftUI) |
 |--------|-------------------|---------------|
@@ -247,7 +249,7 @@ Both frontend (Angular) and iOS (SwiftUI) share a PostHog project (EU region).
 | Config | `environment.ts` | `AppConfiguration` + xcconfig files |
 | Disabled in | — | Local env (`POSTHOG_ENABLED = false`) |
 
-**Event naming**: `snake_case`, `object_action` pattern — shared across platforms.
+**Event naming**: `snake_case`, `object_action` pattern — shared cross-platform.
 
 **Onboarding funnel (iOS)**:
 ```
@@ -256,15 +258,63 @@ app_opened → welcome_screen_viewed → signup_started
 → pin_setup_completed → budget_created → transaction_created
 ```
 
-**Financial data sanitization**: Properties split by `_`, each component checked against a word set (`amount`, `balance`, `income`, `savings`, `total`, `projection`, `rollover`, `expenses`, `available`). Catches compound keys like `total_amount`, `current_balance`.
+**Financial data sanitization**: properties split by `_`, each component checked vs word set (`amount`, `balance`, `income`, `savings`, `total`, `projection`, `rollover`, `expenses`, `available`). Catches compound keys like `total_amount`, `current_balance`.
 
-**User identification**: `identify(userId:)` called in `applyPostAuthDestination()` (covers both login and signup). Reset on logout.
+**User identification**: `identify(userId:, properties:)` called in `applyPostAuthDestination()` (covers login + signup). `early_adopter` person property (from Supabase `auth.users.app_metadata.early_adopter`) passed every identify call to drive PostHog feature flag targeting. Reset on logout.
+
+### Feature Flags (PostHog — Cross-Platform)
+
+Single source of truth in `shared/src/feature-flags.ts` :
+
+```typescript
+export const FEATURE_FLAGS = {
+  MULTI_CURRENCY: 'multi-currency-enabled',
+} as const;
+
+export const ANALYTICS_PROPERTIES = {
+  EARLY_ADOPTER: 'early_adopter',
+} as const;
+```
+
+iOS mirrors `FEATURE_FLAGS.MULTI_CURRENCY` manually as `FeatureFlagsStore.multiCurrencyKey` + `ANALYTICS_PROPERTIES.EARLY_ADOPTER` as `AnalyticsService.earlyAdopterProperty` (sync-comment back to shared TS file).
+
+| Aspect | Frontend (Angular) | iOS (SwiftUI) |
+|--------|-------------------|---------------|
+| Service | `FeatureFlagsService` (`core/feature-flags/`) | `FeatureFlagsStore` (`Domain/Store/`) |
+| Pattern | Injectable + `computed()` signals | `@Observable @MainActor final class` |
+| Reactivity | `PostHogService.flagsVersion` signal bumped via `posthog.onFeatureFlags()` | `refresh()` reads `AnalyticsService.isFeatureEnabled()` + updates `@Observable` property |
+| Persistence | Built into posthog-js (localStorage) | UserDefaults (avoid boot-time flicker) |
+| Refresh triggers | Auto via posthog-js | `.task` at root + `.onChange(of: scenePhase = .active)` |
+
+**Usage pattern** :
+
+```typescript
+// Frontend — adding a new flag
+readonly isXxxEnabled = computed(() => {
+  this.#posthog.flagsVersion(); // reactive dep
+  return this.#posthog.isFeatureEnabled(FEATURE_FLAGS.XXX);
+});
+```
+
+```swift
+// iOS — adding a new flag in FeatureFlagsStore
+private(set) var isXxxEnabled: Bool
+// + read from AnalyticsService.isFeatureEnabled() in refresh()
+```
+
+**Targeting strategy** : person property `early_adopter` (from Supabase) → PostHog dashboard conditions. Enables dashboard-only rollout, no deploy (cf. DR-013).
+
+**Central gating** : prefer one entry point per feature, avoid dispersion.
+- Multi-currency frontend : `injectCurrencyFormConfig()` returns gated `showCurrencySelector` → 8 forms transparent
+- Multi-currency iOS : `UserSettingsStore.showCurrencySelectorEffective` (flag && user toggle) → 6 sheets transparent
+
+**Flag lifecycle** : 3 phases (cf. DR-013) — targeted rollout via dashboard → 100% via dashboard → PR `chore: remove <flag>` after stabilization. **Feature flags temporary by default** — flag forever = tech debt.
 
 ### Error Handling Pattern
 
 - `BusinessException` for domain errors
-- Cause chain preservation
-- "Log or throw, but not both" principle
+- Cause chain preserved
+- "Log or throw, not both" principle
 
 ---
 
@@ -296,18 +346,18 @@ Ending Balance = Remaining (becomes next month's rollover)
 
 ### Envelope Pattern (BudgetFormulas)
 
-`calculateAllMetrics` is the single entry point for budget metric calculations. It delegates to:
+`calculateAllMetrics` = single entry point for budget metric calc. Delegates to:
 
-- `calculateTotalIncome` — income with envelope logic + kind filter
-- `calculateTotalExpenses` — expenses/savings with envelope logic + kind filter
-- `calculateTotalSavings` — savings with envelope logic + free saving transactions
+- `calculateTotalIncome` — income + envelope logic + kind filter
+- `calculateTotalExpenses` — expenses/savings + envelope logic + kind filter
+- `calculateTotalSavings` — savings + envelope logic + free saving transactions
 
-All use the same rule: for each budget line, `effective = max(line.amount, consumed)` where consumed only counts transactions matching the line's kind category (income vs outflow). Free transactions (no `budgetLineId`) are added separately. This ensures:
-1. Allocated transactions are never double-counted
-2. A misallocated transaction (e.g., income tx on an expense line) doesn't inflate the wrong total
-3. `totalSavings` includes both envelope-covered savings and free saving transactions
+All use same rule: per budget line, `effective = max(line.amount, consumed)` where consumed only counts transactions matching line's kind category (income vs outflow). Free transactions (no `budgetLineId`) added separately. Ensures:
+1. Allocated transactions never double-counted
+2. Misallocated transaction (e.g., income tx on expense line) won't inflate wrong total
+3. `totalSavings` includes envelope-covered savings + free saving transactions
 
-Backend, frontend, and iOS all delegate to this shared logic (iOS has a Swift port with identical semantics).
+Backend, frontend, iOS all delegate to shared logic (iOS has Swift port, identical semantics).
 
 ---
 
@@ -331,7 +381,7 @@ shared/
 
 ### What to Include
 
-- API types and DTOs
+- API types + DTOs
 - Form validation schemas
 - Business enums
 - Shared calculators
@@ -344,7 +394,7 @@ shared/
 
 ### ESM Requirements
 
-Exports use `.js` extension for Node.js ESM compatibility:
+Exports use `.js` extension for Node.js ESM compat:
 
 ```typescript
 // Required for ESM resolution
@@ -374,8 +424,8 @@ export class CreateBudgetDto extends createZodDto(budgetCreateSchema) {}
 
 ### Test File Conventions
 
-- Frontend: `*.spec.ts` in same directory
-- Backend: `*.spec.ts` in same directory or `__tests__/`
+- Frontend: `*.spec.ts` same dir
+- Backend: `*.spec.ts` same dir or `__tests__/`
 - E2E: `frontend/e2e/tests/**/*.spec.ts`
 
 ### E2E Structure
@@ -396,7 +446,7 @@ frontend/e2e/
 
 ### Frontend Test Utilities
 
-Located in `frontend/projects/webapp/src/app/testing/`:
+In `frontend/projects/webapp/src/app/testing/`:
 
 - `mock-factories.ts` - Entity factories
 - `signal-test-utils.ts` - Signal testing helpers
@@ -426,9 +476,9 @@ Located in `frontend/projects/webapp/src/app/testing/`:
 
 ### Frontend
 
-- OnPush change detection (90% reduction in cycles)
-- Signal-based state (no zone.js overhead)
-- Lazy loading for all features
+- OnPush change detection (90% cycle reduction)
+- Signal state (no zone.js overhead)
+- Lazy loading all features
 
 ### Backend
 

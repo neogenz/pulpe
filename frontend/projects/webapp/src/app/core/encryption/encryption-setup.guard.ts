@@ -6,14 +6,14 @@ import { catchError, filter, map, switchMap, take } from 'rxjs/operators';
 
 import { ClientKeyService } from './client-key.service';
 import { EncryptionApi } from './encryption-api';
-import { AuthStateService } from '@core/auth/auth-state.service';
+import { AuthStore } from '@core/auth/auth-store';
 import { DemoModeService } from '@core/demo/demo-mode.service';
 import { isApiError } from '@core/api/api-error';
 import { ROUTES } from '@core/routing/routes-constants';
 
 export const encryptionSetupGuard: CanActivateFn = () => {
   const clientKeyService = inject(ClientKeyService);
-  const authState = inject(AuthStateService);
+  const authStore = inject(AuthStore);
   const demoModeService = inject(DemoModeService);
   const encryptionApi = inject(EncryptionApi);
   const router = inject(Router);
@@ -77,12 +77,12 @@ export const encryptionSetupGuard: CanActivateFn = () => {
     );
   };
 
-  const currentState = authState.authState();
+  const currentState = authStore.authState();
   if (!currentState.isLoading) {
     return ensureKeyValid(evaluate(currentState.user));
   }
 
-  return toObservable(authState.authState).pipe(
+  return toObservable(authStore.authState).pipe(
     filter((state) => !state.isLoading),
     take(1),
     switchMap((state) => ensureKeyValid(evaluate(state.user))),

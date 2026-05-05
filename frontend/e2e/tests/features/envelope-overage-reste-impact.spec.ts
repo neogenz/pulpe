@@ -69,9 +69,11 @@ test.describe('Envelope Overage Reste Impact', () => {
     await expect(envelopeCard).toContainText('40%');
 
     // Reste = 5000 - 200 = 4800 (envelope covers the 80 transaction)
-    const heroSection = authenticatedPage.locator('pulpe-budget-financial-overview');
-    await expect(heroSection).toContainText("4\u2019800");
-    await expect(heroSection).toContainText('Ce qu\'il te reste ce mois');
+    const heroSection = authenticatedPage.locator(
+      'pulpe-budget-financial-overview',
+    );
+    await expect(heroSection).toContainText('4\u2019800');
+    await expect(heroSection).toContainText("Ce qu'il te reste ce mois");
   });
 
   test('transactions exactly at envelope amount — Reste unchanged', async ({
@@ -131,8 +133,10 @@ test.describe('Envelope Overage Reste Impact', () => {
     await expect(envelopeCard).toContainText('100%');
 
     // Reste = 5000 - 200 = 4800
-    const heroSection = authenticatedPage.locator('pulpe-budget-financial-overview');
-    await expect(heroSection).toContainText("4\u2019800");
+    const heroSection = authenticatedPage.locator(
+      'pulpe-budget-financial-overview',
+    );
+    await expect(heroSection).toContainText('4\u2019800');
   });
 
   test('transactions exceeding envelope — Reste decreases by excess', async ({
@@ -192,9 +196,11 @@ test.describe('Envelope Overage Reste Impact', () => {
     await expect(envelopeCard).toContainText(/d[ée]pass[ée]/);
 
     // Reste = 5000 - 250 = 4750 (excess 50 reduces Reste)
-    const heroSection = authenticatedPage.locator('pulpe-budget-financial-overview');
-    await expect(heroSection).toContainText("4\u2019750");
-    await expect(heroSection).toContainText('Ce qu\'il te reste ce mois');
+    const heroSection = authenticatedPage.locator(
+      'pulpe-budget-financial-overview',
+    );
+    await expect(heroSection).toContainText('4\u2019750');
+    await expect(heroSection).toContainText("Ce qu'il te reste ce mois");
   });
 
   test('progress bar shows overage percentage when transactions exceed envelope', async ({

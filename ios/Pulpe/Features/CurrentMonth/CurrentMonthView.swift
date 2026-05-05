@@ -1,10 +1,12 @@
 import SwiftUI
+import TipKit
 import WidgetKit
 
 private enum SheetDestination: Identifiable {
     case addTransaction
     case realizedBalance
     case account
+    case createBudget
 
     var id: Self { self }
 }
@@ -12,6 +14,7 @@ private enum SheetDestination: Identifiable {
 struct CurrentMonthView: View {
     @Environment(AppState.self) private var appState
     @Environment(CurrentMonthStore.self) private var store
+    @Environment(BudgetListStore.self) private var budgetListStore
     @Environment(UserSettingsStore.self) private var userSettingsStore
     @State private var activeSheet: SheetDestination?
     @State private var navigateToBudget = false
@@ -25,6 +28,10 @@ struct CurrentMonthView: View {
         case .empty: 2
         case .loaded: 3
         }
+    }
+
+    private var canCreateBudget: Bool {
+        budgetListStore.nextAvailableMonth != nil
     }
 
     private var timeElapsedPercentage: Double {
@@ -61,6 +68,11 @@ struct CurrentMonthView: View {
                         .font(PulpeTypography.bodyLarge)
                         .foregroundStyle(Color.textTertiary)
                         .multilineTextAlignment(.center)
+                    Button("Créer un budget") {
+                        activeSheet = .createBudget
+                    }
+                    .disabled(!canCreateBudget)
+                    .primaryButtonStyle(isEnabled: canCreateBudget)
                 }
                 .padding(DesignTokens.Spacing.xxxl)
                 .transition(.opacity)
@@ -98,6 +110,19 @@ struct CurrentMonthView: View {
                 )
             case .account:
                 AccountView()
+            case .createBudget:
+                if let nextMonth = budgetListStore.nextAvailableMonth {
+                    CreateBudgetView(
+                        month: nextMonth.month,
+                        year: nextMonth.year
+                    ) { budget in
+                        budgetListStore.addBudget(budget)
+                        store.invalidateCache()
+                        Task {
+                            await store.loadDetailsIfNeeded()
+                        }
+                    }
+                }
             }
         }
         .task {
@@ -251,11 +276,16 @@ struct CurrentMonthView: View {
                         .background(Color.pulpePrimary.opacity(0.12), in: Capsule())
                 }
 
+                Text("À réconcilier avec ton relevé")
+                    .font(PulpeTypography.caption)
+                    .foregroundStyle(Color.textSecondary)
+
                 UncheckedForecastsCard(
                     items: store.uncheckedItems,
                     syncingBudgetLineIds: store.syncingBudgetLineIds,
                     syncingTransactionIds: store.syncingTransactionIds,
                     onToggle: { item in
+                        ProductTips.checking.invalidate(reason: .actionPerformed)
                         Task {
                             switch item {
                             case .transaction(let tx, _):
@@ -267,6 +297,7 @@ struct CurrentMonthView: View {
                     },
                     onViewAll: { navigateToBudget = true }
                 )
+                .popoverTip(ProductTips.checking)
             }
         } else if !store.budgetLines.isEmpty || !store.transactions.isEmpty {
             UncheckedForecastsEmptyState()

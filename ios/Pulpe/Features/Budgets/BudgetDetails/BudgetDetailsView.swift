@@ -106,7 +106,15 @@ struct BudgetDetailsView: View {
                 },
                 onDismissAndDelete: { transaction in
                     linkedBudgetLineId = nil
-                    viewModel.softDeleteTransaction(transaction, toastManager: appState.toastManager)
+                    let deleted = transaction
+                    Task { @MainActor in
+                        try? await Task.sleep(for: DesignTokens.Animation.postSheetDismissBeforeToast)
+                        viewModel.softDeleteTransaction(
+                            deleted,
+                            toastManager: appState.toastManager,
+                            presentationCurrency: userSettingsStore.currency
+                        )
+                    }
                 },
                 onDismissAndAddTransaction: { budgetLine in
                     linkedBudgetLineId = nil
@@ -115,12 +123,15 @@ struct BudgetDetailsView: View {
             )
         }
         .sheet(item: $selectedBudgetLineForEdit) { line in
-            EditBudgetLineSheet(budgetLine: line) { updatedLine in
+            EditBudgetLineSheet(budgetLine: line, userCurrency: userSettingsStore.currency) { updatedLine in
                 Task { await viewModel.updateBudgetLine(updatedLine) }
             }
         }
         .sheet(item: $selectedTransactionForEdit) { transaction in
-            EditTransactionSheet(transaction: transaction) { updatedTransaction in
+            EditTransactionSheet(
+                transaction: transaction,
+                userCurrency: userSettingsStore.currency
+            ) { updatedTransaction in
                 Task { await viewModel.updateTransaction(updatedTransaction) }
             }
         }
@@ -138,12 +149,13 @@ struct BudgetDetailsView: View {
             isPresented: $viewModel.showCheckAllTransactionsAlert,
             presenting: viewModel.budgetLineToCheckAll
         ) { line in
-            Button("Non, juste l'enveloppe", role: .cancel) {
+            Button("Non, juste la prévision", role: .cancel) {
                 Task {
                     let succeeded = await viewModel.confirmToggle(for: line, checkAll: false)
                     if succeeded {
-                        viewModel.showEnvelopeToastIfNeeded(
-                            for: line, toastManager: appState.toastManager, amountsHidden: amountsHidden
+                        viewModel.showCheckToastIfNeeded(
+                            for: line, toastManager: appState.toastManager,
+                            presentationCurrency: userSettingsStore.currency, amountsHidden: amountsHidden
                         )
                     }
                 }
@@ -152,14 +164,15 @@ struct BudgetDetailsView: View {
                 Task {
                     let succeeded = await viewModel.confirmToggle(for: line, checkAll: true)
                     if succeeded {
-                        viewModel.showEnvelopeToastIfNeeded(
-                            for: line, toastManager: appState.toastManager, amountsHidden: amountsHidden
+                        viewModel.showCheckToastIfNeeded(
+                            for: line, toastManager: appState.toastManager,
+                            presentationCurrency: userSettingsStore.currency, amountsHidden: amountsHidden
                         )
                     }
                 }
             }
         } message: { _ in
-            Text("Des transactions non pointées sont liées à cette enveloppe.")
+            Text("Des transactions non pointées sont liées à cette prévision.")
         }
     }
 
@@ -179,6 +192,7 @@ struct BudgetDetailsView: View {
             }
             .listRowCustomStyled(insets: fullWidthInsets)
             .listSectionSeparator(.hidden)
+            .popoverTip(ProductTips.checking)
 
             // Hero balance card (with integrated rollover)
             Section {
@@ -210,22 +224,21 @@ struct BudgetDetailsView: View {
                 ContentUnavailableView {
                     Label("Tout est pointé", systemImage: "checkmark.circle.fill")
                 } description: {
-                    Text("Bien joué ! Passe sur « Toutes » pour revoir tes prévisions.")
+                    Text("Bien joué ! Passe sur « Tout voir » pour revoir tes prévisions.")
                 }
                 .listRowCustomStyled()
             }
 
             // Budget line sections (tip appears in the first visible section)
             if !filteredIncome.isEmpty {
-                budgetSection(title: "Revenus", items: filteredIncome, tip: ProductTips.gestures)
+                budgetSection(title: "Revenus", items: filteredIncome)
+                    .popoverTip(ProductTips.gestures)
             }
             if !filteredExpenses.isEmpty {
-                budgetSection(title: "Dépenses", items: filteredExpenses,
-                              tip: filteredIncome.isEmpty ? ProductTips.gestures : nil)
+                budgetSection(title: "Dépenses", items: filteredExpenses)
             }
             if !filteredSavings.isEmpty {
-                budgetSection(title: "Épargne", items: filteredSavings,
-                              tip: filteredIncome.isEmpty && filteredExpenses.isEmpty ? ProductTips.gestures : nil)
+                budgetSection(title: "Épargne", items: filteredSavings)
             }
 
             // Free transactions
@@ -238,7 +251,11 @@ struct BudgetDetailsView: View {
                         Task { await viewModel.toggleTransaction(transaction) }
                     },
                     onDelete: { transaction in
-                        viewModel.softDeleteTransaction(transaction, toastManager: appState.toastManager)
+                        viewModel.softDeleteTransaction(
+                            transaction,
+                            toastManager: appState.toastManager,
+                            presentationCurrency: userSettingsStore.currency
+                        )
                     },
                     onEdit: { transaction in
                         selectedTransactionForEdit = transaction
@@ -246,6 +263,7 @@ struct BudgetDetailsView: View {
                 )
             }
         }
+        .popoverTip(ProductTips.pessimisticCheck)
         .listStyle(.insetGrouped)
         .listRowSpacing(0)
         .listSectionSpacing(DesignTokens.Spacing.xxl)
@@ -274,14 +292,19 @@ struct BudgetDetailsView: View {
                 Task {
                     let succeeded = await viewModel.toggleBudgetLine(line)
                     if succeeded {
-                        viewModel.showEnvelopeToastIfNeeded(
-                            for: line, toastManager: appState.toastManager, amountsHidden: amountsHidden
+                        viewModel.showCheckToastIfNeeded(
+                            for: line, toastManager: appState.toastManager,
+                            presentationCurrency: userSettingsStore.currency, amountsHidden: amountsHidden
                         )
                     }
                 }
             },
             onDelete: { line in
-                viewModel.softDeleteBudgetLine(line, toastManager: appState.toastManager)
+                viewModel.softDeleteBudgetLine(
+                    line,
+                    toastManager: appState.toastManager,
+                    presentationCurrency: userSettingsStore.currency
+                )
             },
             onAddTransaction: { line in
                 selectedLineForTransaction = line

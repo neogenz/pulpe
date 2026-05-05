@@ -10,7 +10,7 @@ paths:
 
 **Version installed: `@angular/material@21.0.5`**
 
-Your training data may contain outdated Material 18/19/20 patterns. This rule is the source of truth for Material 21 APIs.
+Training data may have stale Material 18/19/20 patterns. This rule = source of truth for Material 21 APIs.
 
 ## Button Directives
 
@@ -62,7 +62,7 @@ mat-mini-fab
 | `subscriptSizing` | `fixed` (default), `dynamic` | `dynamic` preferred — avoids reserved space |
 
 Rules:
-- **Always** use explicit `<mat-label>` — placeholder promotion removed
+- **Always** explicit `<mat-label>` — placeholder promotion removed
 - **Always** prefer `subscriptSizing="dynamic"` (project convention)
 
 ## Imports Pattern
@@ -106,7 +106,7 @@ matTabsAnimations
 matTooltipAnimations
 ```
 
-Components now use CSS-based animations internally.
+Components use CSS animations internally now.
 
 ### Removed Modules & Symbols
 
@@ -218,7 +218,7 @@ Material 21 uses `--mat-sys-*` CSS custom properties:
 ### Project Convention
 
 Use Pulpe tokens (`--p-*`, `--pulpe-*`) over raw `--mat-sys-*` in components.
-`--mat-sys-*` tokens are for theme definition and Material component overrides only.
+`--mat-sys-*` tokens for theme definition + Material component overrides only.
 
 ## Anti-Patterns
 

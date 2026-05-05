@@ -23,6 +23,17 @@ env:
   PNPM_VERSION: "10.12.1"
   BUN_VERSION: "1.2.17"
 
+  # CI-only npm/pnpm tweaks — mitigate NPM 429s, keep local .npmrc clean
+  NPM_CONFIG_FETCH_RETRIES: "3"
+  NPM_CONFIG_FETCH_RETRY_MINTIMEOUT: "120000"
+  NPM_CONFIG_FETCH_RETRY_MAXTIMEOUT: "600000"
+  NPM_CONFIG_FETCH_RETRY_FACTOR: "10"
+  NPM_CONFIG_FETCH_TIMEOUT: "120000"
+  NPM_CONFIG_NETWORK_CONCURRENCY: "3"
+  NPM_CONFIG_MAXSOCKETS: "5"
+  NPM_CONFIG_PREFER_OFFLINE: "true"
+  NPM_CONFIG_PROGRESS: "false"
+
 jobs:
   # 📦 INSTALL & CACHE
   install:
@@ -38,17 +49,11 @@ jobs:
         with:
           version: ${{ env.PNPM_VERSION }}
 
-      - name: 🔧 Configure npm retry settings
-        run: |
-          npm config set fetch-retry-maxtimeout 600000
-          npm config set fetch-retry-mintimeout 120000
-          npm config set fetch-retries 3
-
       - name: 📦 Setup Node.js
         uses: actions/setup-node@v5
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: "pnpm" # Cache pnpm store en backup
+          cache: "pnpm" # Cache pnpm store (via pnpm store path)
           cache-dependency-path: "**/pnpm-lock.yaml"
 
       - name: 📦 Setup Bun
@@ -79,7 +84,7 @@ jobs:
         run: |
           echo "🚀 Starting Supabase local instance..."
           # Exclure les services non nécessaires pour gain de performance
-          supabase start --exclude studio,inbucket,imgproxy,edge-runtime
+          supabase start --exclude studio,mailpit,imgproxy,edge-runtime
 
           echo "⏳ Health check robuste..."
           timeout=180
@@ -143,12 +148,6 @@ jobs:
         with:
           version: ${{ env.PNPM_VERSION }}
 
-      - name: 🔧 Configure npm retry settings
-        run: |
-          npm config set fetch-retry-maxtimeout 600000
-          npm config set fetch-retry-mintimeout 120000
-          npm config set fetch-retries 3
-
       - name: 📦 Setup Node.js
         uses: actions/setup-node@v5
         with:
@@ -175,7 +174,7 @@ jobs:
       - name: 🐳 Restore Supabase
         working-directory: backend-nest
         run: |
-          supabase start --exclude studio,inbucket,imgproxy,edge-runtime
+          supabase start --exclude studio,mailpit,imgproxy,edge-runtime
 
           # Health check rapide pour restore
           timeout=60
@@ -223,12 +222,6 @@ jobs:
         with:
           version: ${{ env.PNPM_VERSION }}
 
-      - name: 🔧 Configure npm retry settings
-        run: |
-          npm config set fetch-retry-maxtimeout 600000
-          npm config set fetch-retry-mintimeout 120000
-          npm config set fetch-retries 3
-
       - name: 📦 Setup Node.js
         uses: actions/setup-node@v5
         with:
@@ -261,7 +254,7 @@ jobs:
         id: start-supabase-tests
         working-directory: backend-nest
         run: |
-          supabase start --exclude studio,inbucket,imgproxy,edge-runtime
+          supabase start --exclude studio,mailpit,imgproxy,edge-runtime
 
           # Health check pour tests
           timeout=60
@@ -332,12 +325,6 @@ jobs:
         with:
           version: ${{ env.PNPM_VERSION }}
 
-      - name: 🔧 Configure npm retry settings
-        run: |
-          npm config set fetch-retry-maxtimeout 600000
-          npm config set fetch-retry-mintimeout 120000
-          npm config set fetch-retries 3
-
       - name: 📦 Setup Node.js
         uses: actions/setup-node@v5
         with:
@@ -395,12 +382,6 @@ jobs:
         with:
           version: ${{ env.PNPM_VERSION }}
 
-      - name: 🔧 Configure npm retry settings
-        run: |
-          npm config set fetch-retry-maxtimeout 600000
-          npm config set fetch-retry-mintimeout 120000
-          npm config set fetch-retries 3
-
       - name: 📦 Setup Node.js
         uses: actions/setup-node@v5
         with:
@@ -412,12 +393,6 @@ jobs:
         uses: oven-sh/setup-bun@v2
         with:
           bun-version: ${{ env.BUN_VERSION }}
-
-      - name: 🔧 Configure npm retry settings
-        run: |
-          npm config set fetch-retry-maxtimeout 600000
-          npm config set fetch-retry-mintimeout 120000
-          npm config set fetch-retries 3
 
       - name: 📥 Install dependencies
         run: pnpm install --frozen-lockfile
@@ -439,12 +414,6 @@ jobs:
         uses: pnpm/action-setup@v4
         with:
           version: ${{ env.PNPM_VERSION }}
-
-      - name: 🔧 Configure npm retry settings
-        run: |
-          npm config set fetch-retry-maxtimeout 600000
-          npm config set fetch-retry-mintimeout 120000
-          npm config set fetch-retries 3
 
       - name: 📦 Setup Node.js
         uses: actions/setup-node@v5
@@ -478,7 +447,7 @@ jobs:
         id: start-supabase-performance
         working-directory: backend-nest
         run: |
-          supabase start --exclude studio,inbucket,imgproxy,edge-runtime
+          supabase start --exclude studio,mailpit,imgproxy,edge-runtime
 
           # Health check pour tests
           timeout=60
@@ -597,12 +566,29 @@ jobs:
 
           # Wait for test completion or timeout (13 min — leaves 2 min buffer for 15 min step timeout)
           ELAPSED=0
+          LAST_SIZE=0
+          IDLE=0
           while kill -0 $XCODE_PID 2>/dev/null && [ $ELAPSED -lt 780 ]; do
             if grep -q '\*\* TEST SUCCEEDED \*\*\|\*\* TEST FAILED \*\*' test-output.log 2>/dev/null; then
               echo "📋 Tests finished, cleaning up xcodebuild..."
               sleep 5
               break
             fi
+
+            # Workaround: detect xcodebuild post-test hang (Xcode 26+ #13143).
+            # If log stops growing for 60s after suites have passed, treat as hang.
+            CURRENT_SIZE=$(wc -c < test-output.log 2>/dev/null || echo 0)
+            if [ "$CURRENT_SIZE" = "$LAST_SIZE" ]; then
+              IDLE=$((IDLE + 10))
+              if [ "$IDLE" -ge 60 ] && grep -q '✔ Suite' test-output.log 2>/dev/null && ! grep -q '✘' test-output.log 2>/dev/null; then
+                echo "📋 No log activity for ${IDLE}s after passing suites — xcodebuild hung, proceeding"
+                break
+              fi
+            else
+              IDLE=0
+              LAST_SIZE=$CURRENT_SIZE
+            fi
+
             sleep 10
             ELAPSED=$((ELAPSED + 10))
           done

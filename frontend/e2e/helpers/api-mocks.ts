@@ -40,7 +40,7 @@ export function createBudgetDetailsMock(
     budget?: Partial<Budget>;
     budgetLines?: BudgetLine[];
     transactions?: Transaction[];
-  }
+  },
 ): BudgetDetailsResponse {
   const defaultBudget: Budget = {
     id: budgetId,
@@ -67,7 +67,7 @@ export function createBudgetDetailsMock(
 export function createBudgetLineMock(
   id: string,
   budgetId: string,
-  overrides?: Partial<BudgetLine>
+  overrides?: Partial<BudgetLine>,
 ): BudgetLine {
   return {
     id,
@@ -87,7 +87,7 @@ export function createBudgetLineMock(
 }
 
 export function createBudgetLineResponseMock(
-  budgetLine: BudgetLine
+  budgetLine: BudgetLine,
 ): BudgetLineResponse {
   return {
     success: true,
@@ -97,21 +97,26 @@ export function createBudgetLineResponseMock(
 
 export function createMultipleBudgetLinesMock(
   budgetId: string,
-  lines: { id: string; name: string; amount: number; kind?: BudgetLine['kind'] }[]
+  lines: {
+    id: string;
+    name: string;
+    amount: number;
+    kind?: BudgetLine['kind'];
+  }[],
 ): BudgetLine[] {
   return lines.map((line) =>
     createBudgetLineMock(line.id, budgetId, {
       name: line.name,
       amount: line.amount,
       kind: line.kind || 'expense',
-    })
+    }),
   );
 }
 
 export function createTransactionMock(
   id: string,
   budgetId: string,
-  overrides?: Partial<Transaction>
+  overrides?: Partial<Transaction>,
 ): Transaction {
   return {
     id,
@@ -137,7 +142,7 @@ export function createMultipleTransactionsMock(
     amount: number;
     kind?: Transaction['kind'];
     budgetLineId?: string | null;
-  }[]
+  }[],
 ): Transaction[] {
   return transactions.map((tx) =>
     createTransactionMock(tx.id, budgetId, {
@@ -145,6 +150,6 @@ export function createMultipleTransactionsMock(
       amount: tx.amount,
       kind: tx.kind || 'expense',
       budgetLineId: tx.budgetLineId ?? null,
-    })
+    }),
   );
 }

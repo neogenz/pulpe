@@ -51,6 +51,66 @@ export const savingsGoalStatusSchema = z.enum([
 ]);
 export type SavingsGoalStatus = z.infer<typeof savingsGoalStatusSchema>;
 
+export const supportedCurrencySchema = z.enum(['CHF', 'EUR']);
+export type SupportedCurrency = z.infer<typeof supportedCurrencySchema>;
+export const SUPPORTED_CURRENCIES: readonly SupportedCurrency[] =
+  supportedCurrencySchema.options;
+
+export const currencyRateQuerySchema = z.object({
+  base: supportedCurrencySchema,
+  target: supportedCurrencySchema,
+});
+export type CurrencyRateQuery = z.infer<typeof currencyRateQuerySchema>;
+
+export const currencyRateResponseSchema = z.object({
+  success: z.literal(true),
+  data: z.object({
+    base: supportedCurrencySchema,
+    target: supportedCurrencySchema,
+    rate: z.number().positive(),
+    date: z.iso.date(),
+  }),
+});
+export type CurrencyRateResponse = z.infer<typeof currencyRateResponseSchema>;
+
+/**
+ * DUAL-READ NUMERIC WIRE FORMAT — exchange_rate
+ *
+ * exchange_rate is NUMERIC(18,8) in Postgres; PostgREST emits it as a string
+ * so full precision survives JSON (IEEE-754 would truncate beyond ~15 digits).
+ * Clients write it as a number (frontend) or string (iOS during migration).
+ *
+ * The union narrowing (`number | string` only) prevents JS Number() semantics
+ * from silently turning booleans (true → 1) or single-element arrays
+ * ([1.2] → 1.2) into valid financial values — which z.coerce.number() would.
+ * Infinity and -Infinity are rejected on both branches.
+ */
+export const exchangeRateWire = z.union([
+  z.number().finite(),
+  z.string().transform((value, ctx) => {
+    if (value.trim() === '') {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'Exchange rate must not be empty',
+      });
+      return z.NEVER;
+    }
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed)) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'Exchange rate must be a finite number',
+      });
+      return z.NEVER;
+    }
+    return parsed;
+  }),
+]);
+
+export const exchangeRateWirePositive = exchangeRateWire.pipe(
+  z.number().positive(),
+);
+
 /**
  * BUDGET - Instance mensuelle d'un template
  *
@@ -89,7 +149,7 @@ export const budgetSchema = z.object({
 });
 export type Budget = z.infer<typeof budgetSchema>;
 
-export const budgetCreateSchema = z.object({
+export const budgetCreateSchema = z.strictObject({
   month: z.number().int().min(MONTH_MIN).max(MONTH_MAX),
   year: z.number().int().min(MIN_YEAR).max(MAX_YEAR),
   description: z.string().max(500).trim().optional().default(''),
@@ -108,7 +168,7 @@ export const onboardingTransactionSchema = z.object({
 });
 
 // Schema for creating template from onboarding data
-export const budgetTemplateCreateFromOnboardingSchema = z.object({
+export const budgetTemplateCreateFromOnboardingSchema = z.strictObject({
   name: z.string().min(1).max(100).trim().default('Mois Standard'),
   description: z.string().max(500).trim().optional(),
   isDefault: z.boolean().default(true),
@@ -119,13 +179,13 @@ export const budgetTemplateCreateFromOnboardingSchema = z.object({
   phonePlan: z.number().min(0).default(0).optional(),
   internetPlan: z.number().min(0).default(0).optional(),
   transportCosts: z.number().min(0).default(0).optional(),
-  customTransactions: z.array(onboardingTransactionSchema).default([]),
+  customTransactions: z.array(onboardingTransactionSchema).max(50).default([]),
 });
 export type BudgetTemplateCreateFromOnboarding = z.infer<
   typeof budgetTemplateCreateFromOnboardingSchema
 >;
 
-export const budgetUpdateSchema = z.object({
+export const budgetUpdateSchema = z.strictObject({
   description: z.string().optional(),
   month: z.number().optional(),
   year: z.number().optional(),
@@ -136,7 +196,7 @@ const MAX_GENERATE_COUNT = 36;
 const DEFAULT_GENERATE_COUNT = 12;
 
 /** Schema for bulk-generating consecutive monthly budgets from a template */
-export const budgetGenerateSchema = z.object({
+export const budgetGenerateSchema = z.strictObject({
   templateId: z.uuid(),
   startMonth: z.number().int().min(MONTH_MIN).max(MONTH_MAX),
   startYear: z.number().int().min(MIN_YEAR).max(MAX_YEAR),
@@ -188,15 +248,23 @@ export const savingsGoalSchema = z.object({
   status: savingsGoalStatusSchema,
   createdAt: z.iso.datetime({ offset: true }),
   updatedAt: z.iso.datetime({ offset: true }),
+  originalTargetAmount: z.coerce.number().nonnegative().nullable().optional(),
+  originalCurrency: supportedCurrencySchema.nullable().optional(),
+  targetCurrency: supportedCurrencySchema.nullable().optional(),
+  exchangeRate: exchangeRateWire.nullable().optional(),
 });
 export type SavingsGoal = z.infer<typeof savingsGoalSchema>;
 
-export const savingsGoalCreateSchema = z.object({
+export const savingsGoalCreateSchema = z.strictObject({
   name: z.string().min(1).max(100).trim(),
   targetAmount: z.number().positive(),
   targetDate: z.string(), // Date in ISO format
   priority: priorityLevelSchema,
   status: savingsGoalStatusSchema.default('ACTIVE'),
+  originalTargetAmount: z.number().positive().optional(),
+  originalCurrency: supportedCurrencySchema.optional(),
+  targetCurrency: supportedCurrencySchema.optional(),
+  exchangeRate: exchangeRateWirePositive.optional(),
 });
 export type SavingsGoalCreate = z.infer<typeof savingsGoalCreateSchema>;
 
@@ -233,10 +301,14 @@ export const budgetLineSchema = z.object({
   // Rollover fields - added when budget line represents a rollover from previous month
   isRollover: z.boolean().optional(),
   rolloverSourceBudgetId: z.uuid().optional(),
+  originalAmount: z.coerce.number().nonnegative().nullable().optional(),
+  originalCurrency: supportedCurrencySchema.nullable().optional(),
+  targetCurrency: supportedCurrencySchema.nullable().optional(),
+  exchangeRate: exchangeRateWire.nullable().optional(),
 });
 export type BudgetLine = z.infer<typeof budgetLineSchema>;
 
-export const budgetLineCreateSchema = z.object({
+export const budgetLineCreateSchema = z.strictObject({
   budgetId: z.uuid(),
   templateLineId: z.uuid().nullable().optional(),
   savingsGoalId: z.uuid().nullable().optional(),
@@ -246,6 +318,10 @@ export const budgetLineCreateSchema = z.object({
   recurrence: transactionRecurrenceSchema,
   isManuallyAdjusted: z.boolean().default(false),
   checkedAt: z.iso.datetime({ offset: true }).nullable().optional(),
+  originalAmount: z.number().positive().optional(),
+  originalCurrency: supportedCurrencySchema.optional(),
+  targetCurrency: supportedCurrencySchema.optional(),
+  exchangeRate: exchangeRateWirePositive.optional(),
 });
 export type BudgetLineCreate = z.infer<typeof budgetLineCreateSchema>;
 
@@ -291,10 +367,14 @@ export const transactionSchema = z.object({
   createdAt: z.iso.datetime({ offset: true }),
   updatedAt: z.iso.datetime({ offset: true }),
   checkedAt: z.iso.datetime({ offset: true }).nullable(),
+  originalAmount: z.coerce.number().nonnegative().nullable().optional(),
+  originalCurrency: supportedCurrencySchema.nullable().optional(),
+  targetCurrency: supportedCurrencySchema.nullable().optional(),
+  exchangeRate: exchangeRateWire.nullable().optional(),
 });
 export type Transaction = z.infer<typeof transactionSchema>;
 
-export const transactionCreateSchema = z.object({
+export const transactionCreateSchema = z.strictObject({
   budgetId: z.uuid(),
   budgetLineId: z.uuid().nullable().optional(),
   name: z.string().min(1).max(100).trim(),
@@ -303,15 +383,23 @@ export const transactionCreateSchema = z.object({
   transactionDate: z.iso.datetime({ offset: true }).optional(),
   category: z.string().max(100).trim().nullable().optional(),
   checkedAt: z.iso.datetime({ offset: true }).nullable().optional(),
+  originalAmount: z.number().positive().optional(),
+  originalCurrency: supportedCurrencySchema.optional(),
+  targetCurrency: supportedCurrencySchema.optional(),
+  exchangeRate: exchangeRateWirePositive.optional(),
 });
 export type TransactionCreate = z.infer<typeof transactionCreateSchema>;
 
-export const transactionUpdateSchema = z.object({
+export const transactionUpdateSchema = z.strictObject({
   name: z.string().min(1).max(100).trim().optional(),
   amount: z.number().positive().optional(),
   kind: transactionKindSchema.optional(),
   transactionDate: z.iso.datetime({ offset: true }).optional(),
   category: z.string().max(100).trim().nullable().optional(),
+  originalAmount: z.number().positive().optional(),
+  originalCurrency: supportedCurrencySchema.optional(),
+  targetCurrency: supportedCurrencySchema.optional(),
+  exchangeRate: exchangeRateWirePositive.optional(),
 });
 export type TransactionUpdate = z.infer<typeof transactionUpdateSchema>;
 
@@ -378,32 +466,45 @@ export const templateLineSchema = z.object({
   description: z.string().max(500).trim(),
   createdAt: z.iso.datetime({ offset: true }),
   updatedAt: z.iso.datetime({ offset: true }),
+  originalAmount: z.coerce.number().nonnegative().nullable().optional(),
+  originalCurrency: supportedCurrencySchema.nullable().optional(),
+  targetCurrency: supportedCurrencySchema.nullable().optional(),
+  exchangeRate: exchangeRateWire.nullable().optional(),
 });
 export type TemplateLine = z.infer<typeof templateLineSchema>;
 
-export const templateLineCreateSchema = z.object({
+export const templateLineCreateSchema = z.strictObject({
   templateId: z.uuid(),
   name: z.string().min(1).max(100).trim(),
   amount: z.number().positive(),
   kind: transactionKindSchema,
   recurrence: transactionRecurrenceSchema,
   description: z.string().max(500).trim(),
+  originalAmount: z.number().positive().optional(),
+  originalCurrency: supportedCurrencySchema.optional(),
+  targetCurrency: supportedCurrencySchema.optional(),
+  exchangeRate: exchangeRateWirePositive.optional(),
 });
+export type TemplateLineCreate = z.infer<typeof templateLineCreateSchema>;
 
 // Template line create without templateId (for batch creation)
-export const templateLineCreateWithoutTemplateIdSchema = z.object({
+export const templateLineCreateWithoutTemplateIdSchema = z.strictObject({
   name: z.string().min(1).max(100).trim(),
   amount: z.number().positive(),
   kind: transactionKindSchema,
   recurrence: transactionRecurrenceSchema,
   description: z.string().max(500).trim(),
+  originalAmount: z.number().positive().optional(),
+  originalCurrency: supportedCurrencySchema.optional(),
+  targetCurrency: supportedCurrencySchema.optional(),
+  exchangeRate: exchangeRateWirePositive.optional(),
 });
 export type TemplateLineCreateWithoutTemplateId = z.infer<
   typeof templateLineCreateWithoutTemplateIdSchema
 >;
 
 // Budget template schemas (after template line schemas)
-export const budgetTemplateCreateSchema = z.object({
+export const budgetTemplateCreateSchema = z.strictObject({
   name: z.string().min(1).max(100).trim(),
   description: z.string().min(1).max(500).trim().optional(),
   isDefault: z.boolean().default(false),
@@ -422,7 +523,7 @@ export type BudgetTemplateCreateTransactional = z.infer<
   typeof budgetTemplateCreateTransactionalSchema
 >;
 
-export const budgetTemplateUpdateSchema = z.object({
+export const budgetTemplateUpdateSchema = z.strictObject({
   name: z.string().min(1).max(100).trim().optional(),
   description: z.string().max(500).trim().optional(),
   isDefault: z.boolean().optional(),
@@ -430,29 +531,30 @@ export const budgetTemplateUpdateSchema = z.object({
 export type BudgetTemplateUpdate = z.infer<typeof budgetTemplateUpdateSchema>;
 
 // Template line update schema
-export const templateLineUpdateSchema = z.object({
+export const templateLineUpdateSchema = z.strictObject({
   name: z.string().min(1).max(100).trim().optional(),
   amount: z.number().positive().optional(),
   kind: transactionKindSchema.optional(),
   recurrence: transactionRecurrenceSchema.optional(),
   description: z.string().max(500).trim().optional(),
+  originalAmount: z.number().positive().optional(),
+  originalCurrency: supportedCurrencySchema.optional(),
+  targetCurrency: supportedCurrencySchema.optional(),
+  exchangeRate: exchangeRateWirePositive.optional(),
 });
 export type TemplateLineUpdate = z.infer<typeof templateLineUpdateSchema>;
 
 // Bulk template line update schemas
-export const templateLineUpdateWithIdSchema = z.object({
+// Derived from templateLineUpdateSchema to avoid schema drift —
+// new fields on the single-update schema flow through to bulk automatically.
+export const templateLineUpdateWithIdSchema = templateLineUpdateSchema.extend({
   id: z.uuid(),
-  name: z.string().min(1).max(100).trim().optional(),
-  amount: z.number().positive().optional(),
-  kind: transactionKindSchema.optional(),
-  recurrence: transactionRecurrenceSchema.optional(),
-  description: z.string().max(500).trim().optional(),
 });
 export type TemplateLineUpdateWithId = z.infer<
   typeof templateLineUpdateWithIdSchema
 >;
 
-export const templateLinesBulkUpdateSchema = z.object({
+export const templateLinesBulkUpdateSchema = z.strictObject({
   lines: z.array(templateLineUpdateWithIdSchema).min(1),
 });
 export type TemplateLinesBulkUpdate = z.infer<
@@ -462,7 +564,7 @@ export type TemplateLinesBulkUpdate = z.infer<
 // Extended bulk update schema supporting create, update, and delete operations
 // Security: Limited to prevent DoS attacks and memory exhaustion
 export const templateLinesBulkOperationsSchema = z
-  .object({
+  .strictObject({
     create: z
       .array(templateLineCreateWithoutTemplateIdSchema)
       .max(100)
@@ -508,15 +610,6 @@ export const templateLinesBulkOperationsResponseSchema = z.object({
 export type TemplateLinesBulkOperationsResponse = z.infer<
   typeof templateLinesBulkOperationsResponseSchema
 >;
-
-// Template transaction update schema for backward compatibility
-export const templateTransactionUpdateSchema = z.object({
-  name: z.string().min(1).max(100).trim().optional(),
-  amount: z.number().positive().optional(),
-  type: transactionKindSchema.optional(),
-  expenseType: transactionRecurrenceSchema.optional(),
-  description: z.string().max(500).trim().optional(),
-});
 
 // Response schemas with proper typing
 export const errorResponseSchema = z.object({
@@ -807,7 +900,7 @@ export type UpdateProfile = z.infer<typeof updateProfileSchema>;
 /**
  * Schema pour mettre à jour les préférences utilisateur
  */
-export const updateUserSettingsSchema = z.object({
+export const updateUserSettingsSchema = z.strictObject({
   payDayOfMonth: z
     .number()
     .int()
@@ -815,11 +908,15 @@ export const updateUserSettingsSchema = z.object({
     .max(PAY_DAY_MAX)
     .nullable()
     .optional(),
+  currency: supportedCurrencySchema.optional(),
+  showCurrencySelector: z.boolean().optional(),
 });
 export type UpdateUserSettings = z.infer<typeof updateUserSettingsSchema>;
 
 export const userSettingsSchema = z.object({
   payDayOfMonth: payDayOfMonthSchema,
+  currency: supportedCurrencySchema.default('CHF'),
+  showCurrencySelector: z.boolean().default(false),
 });
 export type UserSettings = z.infer<typeof userSettingsSchema>;
 
@@ -914,7 +1011,7 @@ export const authErrorResponseSchema = z.object({
 export type AuthErrorResponse = z.infer<typeof authErrorResponseSchema>;
 
 // Demo mode schemas
-export const demoSessionCreateSchema = z.object({
+export const demoSessionCreateSchema = z.strictObject({
   turnstileToken: z.string(),
 });
 export type DemoSessionCreate = z.infer<typeof demoSessionCreateSchema>;
@@ -965,7 +1062,7 @@ export type EncryptionValidateKeyRequest = z.infer<
 >;
 
 /** POST /recover — recovery key + new hex-encoded client key */
-export const encryptionRecoverRequestSchema = z.object({
+export const encryptionRecoverRequestSchema = z.strictObject({
   recoveryKey: z.string(),
   newClientKey: hexKey64,
 });
@@ -982,7 +1079,7 @@ export type EncryptionVerifyRecoveryKeyRequest = z.infer<
 >;
 
 /** POST /change-pin — old + new hex-encoded client keys */
-export const encryptionChangePinRequestSchema = z.object({
+export const encryptionChangePinRequestSchema = z.strictObject({
   oldClientKey: hexKey64,
   newClientKey: hexKey64,
 });

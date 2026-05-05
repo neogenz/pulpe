@@ -7,15 +7,16 @@ import { MatIconModule } from '@angular/material/icon';
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { '[class.hidden]': '!message()' },
   template: `
-    @if (message()) {
-      <div
-        class="bg-error-container text-on-error-container p-3 rounded-lg flex items-center gap-2 my-4"
-        role="alert"
-      >
-        <mat-icon class="flex-shrink-0">error_outline</mat-icon>
+    <div
+      class="bg-error-container text-on-error-container p-3 rounded-lg flex items-center gap-2 my-4"
+      role="alert"
+      aria-atomic="true"
+    >
+      @if (message()) {
+        <mat-icon class="shrink-0">error_outline</mat-icon>
         <span>{{ message() }}</span>
-      </div>
-    }
+      }
+    </div>
   `,
 })
 export class ErrorAlert {

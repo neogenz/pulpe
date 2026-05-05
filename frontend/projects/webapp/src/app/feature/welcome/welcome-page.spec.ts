@@ -2,23 +2,13 @@ import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { RouterModule } from '@angular/router';
-import { NO_ERRORS_SCHEMA, signal, Component, input } from '@angular/core';
+import { NO_ERRORS_SCHEMA, signal } from '@angular/core';
 import WelcomePage from './welcome-page';
 import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 import { DemoInitializerService } from '@core/demo/demo-initializer.service';
 import { Logger } from '@core/logging/logger';
 import { TurnstileService } from '@core/turnstile';
 import { PostHogService } from '@core/analytics/posthog';
-import { LottieComponent, type AnimationOptions } from 'ngx-lottie';
-
-@Component({
-  // eslint-disable-next-line @angular-eslint/component-selector
-  selector: 'ng-lottie',
-  template: '<div class="mock-lottie"></div>',
-})
-class MockLottieComponent {
-  readonly options = input<AnimationOptions>();
-}
 
 describe('WelcomePage', () => {
   let fixture: ComponentFixture<WelcomePage>;
@@ -89,12 +79,7 @@ describe('WelcomePage', () => {
         { provide: PostHogService, useValue: mockPostHogService },
       ],
       schemas: [NO_ERRORS_SCHEMA],
-    })
-      .overrideComponent(WelcomePage, {
-        remove: { imports: [LottieComponent] },
-        add: { imports: [MockLottieComponent] },
-      })
-      .compileComponents();
+    }).compileComponents();
 
     fixture = TestBed.createComponent(WelcomePage);
     component = fixture.componentInstance;
@@ -121,7 +106,7 @@ describe('WelcomePage', () => {
 
       expect(subtitle).toBeTruthy();
       expect(subtitle?.textContent).toContain(
-        'Planifie ton année, sache toujours ce que tu peux dépenser',
+        'Enfin un budget qui te laisse respirer',
       );
     });
 
@@ -231,15 +216,15 @@ describe('WelcomePage', () => {
     });
   });
 
-  describe('CGU text', () => {
-    it('should display CGU text under Google OAuth button', () => {
-      const cguText = fixture.nativeElement.querySelector(
-        '[data-testid="app-version"]',
+  describe('legal text', () => {
+    it('should display CGU and privacy policy under the CTAs', () => {
+      const legalText = fixture.nativeElement.querySelector(
+        '[data-testid="welcome-legal"]',
       );
 
-      expect(cguText).toBeTruthy();
-      expect(cguText.textContent).toContain('CGU');
-      expect(cguText.textContent).toContain('Politique de Confidentialité');
+      expect(legalText).toBeTruthy();
+      expect(legalText.textContent).toContain('CGU');
+      expect(legalText.textContent).toContain('Politique de Confidentialité');
     });
   });
 

@@ -1,20 +1,35 @@
 import {
   Component,
   input,
+  output,
   ChangeDetectionStrategy,
   afterNextRender,
   ElementRef,
   inject,
   model,
 } from '@angular/core';
+import {
+  CURRENCY_METADATA,
+  type SupportedCurrency,
+  SUPPORTED_CURRENCIES,
+} from 'pulpe-shared';
 import { FormsModule } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatIconModule } from '@angular/material/icon';
+import { MatSelectModule } from '@angular/material/select';
+import { TranslocoPipe } from '@jsverse/transloco';
 
 @Component({
   selector: 'pulpe-currency-input',
-  imports: [FormsModule, MatFormFieldModule, MatInputModule, MatIconModule],
+  imports: [
+    FormsModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatIconModule,
+    MatSelectModule,
+    TranslocoPipe,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <mat-form-field class="w-full" appearance="outline">
@@ -38,13 +53,30 @@ import { MatIconModule } from '@angular/material/icon';
         step="0.01"
         [attr.data-testid]="testId()"
       />
-      <span matTextSuffix class="text-on-surface-variant font-medium">{{
-        currency()
-      }}</span>
-      @if (ariaDescribedBy()) {
-        <mat-hint [id]="ariaDescribedBy()!" class="ph-no-capture"
-          >Entre le montant en {{ currency() }}</mat-hint
+      @if (showCurrencySelector()) {
+        <mat-select
+          matTextSuffix
+          [value]="currency()"
+          (selectionChange)="currencyChange.emit($event.value)"
+          class="!w-[70px] text-on-surface-variant font-medium"
+          [attr.aria-label]="'common.currencySelector' | transloco"
         >
+          @for (c of currencies; track c) {
+            <mat-option [value]="c">
+              <span class="mr-1">{{ CURRENCY_METADATA[c].flag }}</span
+              >{{ c }}
+            </mat-option>
+          }
+        </mat-select>
+      } @else {
+        <span matTextSuffix class="text-on-surface-variant font-medium">{{
+          currency()
+        }}</span>
+      }
+      @if (ariaDescribedBy()) {
+        <mat-hint [id]="ariaDescribedBy()!" class="ph-no-capture">
+          {{ 'currency.inputHint' | transloco: { currency: currency() } }}
+        </mat-hint>
       }
     </mat-form-field>
   `,
@@ -60,7 +92,11 @@ export class CurrencyInput {
   readonly required = input<boolean>(false);
   readonly testId = input<string>('currency-input');
   readonly currency = input<string>('CHF');
+  readonly showCurrencySelector = input<boolean>(false);
+  readonly currencyChange = output<SupportedCurrency>();
   readonly autoFocus = input<boolean>(true);
+  protected readonly currencies = SUPPORTED_CURRENCIES;
+  protected readonly CURRENCY_METADATA = CURRENCY_METADATA;
 
   constructor() {
     afterNextRender(() => {

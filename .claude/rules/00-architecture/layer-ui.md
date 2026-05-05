@@ -9,12 +9,12 @@ paths: "frontend/**/ui/**/*"
 
 ## ⚠️ CRITICAL Rules
 
-- **NEVER inject app/business services** from `core/` (no `inject(UserService)`, `inject(AuthStateService)`, etc.)
+- **NEVER inject app/business services** from `core/` (no `inject(UserService)`, `inject(AuthStore)`, etc.)
 - **Angular/Material framework services ARE allowed**: `inject(MatDialogRef)`, `inject(ElementRef)`, `inject(DestroyRef)`, `inject(Renderer2)`, etc.
-- **Inputs/outputs ONLY** for data flow — All business data comes from parent via inputs
-- **Self-contained** - No dependencies on app-specific code
+- **Inputs/outputs ONLY** for data flow — business data from parent via inputs
+- **Self-contained** - No deps on app-specific code
 - **Pure presentation** - No business logic, no domain knowledge
-- **Optimized by bundler** - Eager/lazy determined automatically by usage
+- **Optimized by bundler** - Eager/lazy auto by usage
 
 ## Dependency Rules
 
@@ -27,7 +27,7 @@ ui/ ──❌──> layout/    (FORBIDDEN - self-contained)
 ui/ ──❌──> styles/    (Self-styled, inline or component styles)
 ```
 
-**UI depends on NOTHING external** - Completely isolated and reusable. Internal composition between UI components is allowed.
+**UI deps on NOTHING external** - Fully isolated, reusable. Internal composition between UI components OK.
 
 ## What Belongs in UI
 
@@ -39,18 +39,18 @@ ui/ ──❌──> styles/    (Self-styled, inline or component styles)
 - Icons, dividers
 
 ✅ **Characteristics**:
-- Generic and reusable across ANY feature
-- No domain-specific knowledge (no "Driver", "Absence", etc.)
-- Data-agnostic (works with any data shape via inputs)
-- Stateless (parent manages state via signals)
+- Generic, reusable across ANY feature
+- No domain knowledge (no "Driver", "Absence", etc.)
+- Data-agnostic (any shape via inputs)
+- Stateless (parent owns state via signals)
 
 ## What Does NOT Belong in UI
 
 ❌ **Components with app/business services**:
-- If it needs `inject(UserService)`, `inject(AuthStateService)`, etc. → Move to `pattern/` or `feature/`
-- If it needs HTTP calls → Move to `pattern/` or `feature/`
-- If it needs global state → Move to `pattern/` or `feature/`
-- Note: Angular/Material framework services (`MatDialogRef`, `ElementRef`, `DestroyRef`, etc.) are fine
+- Needs `inject(UserService)`, `inject(AuthStore)`, etc. → Move to `pattern/` or `feature/`
+- Needs HTTP → Move to `pattern/` or `feature/`
+- Needs global state → Move to `pattern/` or `feature/`
+- Note: Angular/Material framework services (`MatDialogRef`, `ElementRef`, `DestroyRef`, etc.) fine
 
 ❌ **Domain-specific components**:
 - `UserCard` → Move to `pattern/` (domain concept)
@@ -58,7 +58,7 @@ ui/ ──❌──> styles/    (Self-styled, inline or component styles)
 - `InvoiceForm` → Move to `pattern/` (business workflow)
 
 ❌ **Complex business logic**:
-- If component has business rules → Move to `pattern/` or `feature/`
+- Component has business rules → Move to `pattern/` or `feature/`
 
 ## UI vs Pattern
 
@@ -154,4 +154,4 @@ export class MyFeature {
 
 ## Key Takeaway
 
-UI components are **pure presentation layers** - they receive data through inputs, emit events through outputs, and contain no business logic or external dependencies. They are maximally reusable across any project.
+UI components = **pure presentation layers**. Receive data via inputs, emit events via outputs, no business logic or external deps. Max reusable across any project.

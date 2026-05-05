@@ -7,21 +7,13 @@ import SwiftUI
 ///
 /// When a `label` is provided, renders the standard description field
 /// pattern used across all form sheets (label + bordered text field).
-///
-/// Optionally accepts an external `focusBinding` to let the parent
-/// control focus (e.g. for prev/next keyboard navigation).
-struct FormTextField: View {
+struct FormTextField<Field: Hashable>: View {
     let hint: String
     @Binding var text: String
     var label: String?
     var accessibilityLabel: String?
-    var focusBinding: FocusState<Bool>.Binding?
-
-    @FocusState private var internalFocus: Bool
-
-    private var activeFocus: FocusState<Bool>.Binding {
-        focusBinding ?? $internalFocus
-    }
+    var focusBinding: FocusState<Field?>.Binding
+    var field: Field
 
     var body: some View {
         if let label {
@@ -45,13 +37,14 @@ struct FormTextField: View {
     private var textField: some View {
         TextField(hint, text: $text)
             .font(PulpeTypography.bodyLarge)
-            .focused(activeFocus)
             .submitLabel(.done)
-            .onSubmit { activeFocus.wrappedValue = false }
             .padding(DesignTokens.Spacing.lg)
             .background(Color.inputBackgroundSoft)
             .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
             .contentShape(.interaction, Rectangle())
-            .onTapGesture { activeFocus.wrappedValue = true }
+            // See type documentation — `Button` would not focus the inner `TextField` with this layout.
+            .onTapGesture { focusBinding.wrappedValue = field }
+            .focused(focusBinding, equals: field)
+            .onSubmit { focusBinding.wrappedValue = nil }
     }
 }

@@ -1,0 +1,99 @@
+import SwiftUI
+
+struct SavingsStep: View {
+    @Bindable var state: OnboardingState
+    @State private var showAddSaving = false
+    @State private var editingTransaction: OnboardingTransaction?
+    @State private var suggestionToggleTrigger = false
+
+    private var customSavings: [OnboardingTransaction] {
+        state.customTransactions.filter { $0.type == .saving }
+    }
+
+    var body: some View {
+        OnboardingStepView(
+            step: .savings,
+            state: state,
+            canProceed: true,
+            onNext: { state.nextStep() },
+            content: {
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.sectionGap) {
+                    suggestionsSection
+
+                    if !customSavings.isEmpty {
+                        customSavingsSection
+                    }
+
+                    addSavingButton
+
+                    if state.totalSavings > 0 {
+                        OnboardingRunningTotal(
+                            label: "Total épargne",
+                            amount: state.totalSavings,
+                            color: .financialSavings,
+                            currency: state.currency
+                        )
+                    }
+                }
+            }
+        )
+        .sheet(isPresented: $showAddSaving) {
+            AddCustomExpenseSheet(kind: .saving, currency: state.currency) { tx in
+                state.addCustomTransaction(tx)
+            }
+            .standardSheetPresentation()
+        }
+        .sheet(item: $editingTransaction) { tx in
+            AddCustomExpenseSheet(editing: tx, currency: state.currency) { updated in
+                state.replaceCustomTransaction(id: tx.id, with: updated)
+            }
+            .standardSheetPresentation()
+        }
+        .trackScreen("Onboarding_Savings")
+    }
+
+    // MARK: - Suggestions
+
+    private var suggestionsSection: some View {
+        OnboardingSuggestionGrid(
+            suggestions: OnboardingState.savingSuggestions,
+            state: state,
+            accentColor: .financialSavings,
+            toggleTrigger: $suggestionToggleTrigger
+        )
+    }
+
+    // MARK: - Custom Savings
+
+    private var customSavingsSection: some View {
+        OnboardingTransactionListSection(
+            title: "Mes épargnes",
+            icon: "list.bullet",
+            transactions: customSavings,
+            state: state,
+            onEdit: { editingTransaction = $0 }
+        )
+    }
+
+    // MARK: - Add Button
+
+    private var addSavingButton: some View {
+        Button {
+            showAddSaving = true
+        } label: {
+            HStack(spacing: DesignTokens.Spacing.sm) {
+                Image(systemName: "plus.circle.fill")
+                Text("Ajouter une épargne")
+            }
+            .font(PulpeTypography.labelLarge)
+            .foregroundStyle(Color.financialSavings)
+        }
+        .frame(maxWidth: .infinity, minHeight: DesignTokens.TapTarget.minimum)
+        .contentShape(Rectangle())
+        .plainPressedButtonStyle()
+    }
+}
+
+#Preview {
+    SavingsStep(state: OnboardingState())
+}

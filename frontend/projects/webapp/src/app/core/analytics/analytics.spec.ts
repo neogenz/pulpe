@@ -2,20 +2,53 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { provideZonelessChangeDetection, signal } from '@angular/core';
 import type { WritableSignal } from '@angular/core';
+import type { UserSettings } from 'pulpe-shared';
 import { AnalyticsService } from './analytics';
 import { PostHogService } from './posthog';
-import { AuthStateService } from '../auth/auth-state.service';
+import { AuthStore } from '../auth/auth-store';
 import { Logger } from '../logging/logger';
 import { DemoModeService } from '../demo/demo-mode.service';
+import { UserSettingsStore } from '../user-settings/user-settings-store';
+import { FeatureFlagsService } from '../feature-flags/feature-flags.service';
 import {
   createMockPostHogService,
   createMockLogger,
 } from '../../testing/mock-posthog';
 
+const DEFAULT_SETTINGS: UserSettings = {
+  payDayOfMonth: null,
+  currency: 'CHF',
+  showCurrencySelector: false,
+};
+
+function createMockUserSettingsStore(
+  initial: UserSettings | null = DEFAULT_SETTINGS,
+) {
+  const settingsSignal = signal<UserSettings | null>(initial);
+  return {
+    settings: settingsSignal,
+    setSettings: (value: UserSettings | null) => settingsSignal.set(value),
+  };
+}
+
+function createMockFeatureFlagsService(initial = false) {
+  const isMultiCurrencyEnabled = signal(initial);
+  return {
+    isMultiCurrencyEnabled,
+    setEnabled: (value: boolean) => isMultiCurrencyEnabled.set(value),
+  };
+}
+
+const DEFAULT_IDENTIFY_PROPERTIES = {
+  early_adopter: false,
+} as const;
+
 describe('User consent and tracking behavior', () => {
   let analyticsService: AnalyticsService;
   let mockAuthState: ReturnType<typeof signal>;
   let mockPostHogService: ReturnType<typeof createMockPostHogService>;
+  let mockUserSettingsStore: ReturnType<typeof createMockUserSettingsStore>;
+  let mockFeatureFlagsService: ReturnType<typeof createMockFeatureFlagsService>;
 
   beforeEach(() => {
     // Create mock auth state signal
@@ -30,23 +63,29 @@ describe('User consent and tracking behavior', () => {
     mockPostHogService = createMockPostHogService();
     const mockLogger = createMockLogger();
 
-    // Mock AuthStateService
-    const mockAuthStateService = {
+    // Mock AuthStore
+    const mockAuthStore = {
       authState: mockAuthState,
+      isEarlyAdopter: signal(false),
     };
 
     const mockDemoModeService = {
       isDemoMode: signal(false),
     };
 
+    mockUserSettingsStore = createMockUserSettingsStore();
+    mockFeatureFlagsService = createMockFeatureFlagsService();
+
     TestBed.configureTestingModule({
       providers: [
         provideZonelessChangeDetection(),
         AnalyticsService,
         { provide: PostHogService, useValue: mockPostHogService },
-        { provide: AuthStateService, useValue: mockAuthStateService },
+        { provide: AuthStore, useValue: mockAuthStore },
         { provide: Logger, useValue: mockLogger },
         { provide: DemoModeService, useValue: mockDemoModeService },
+        { provide: UserSettingsStore, useValue: mockUserSettingsStore },
+        { provide: FeatureFlagsService, useValue: mockFeatureFlagsService },
       ],
     });
 
@@ -97,7 +136,7 @@ describe('User consent and tracking behavior', () => {
       expect(mockPostHogService.identify).toHaveBeenCalledTimes(1);
       expect(mockPostHogService.identify).toHaveBeenCalledWith(
         userId,
-        undefined,
+        DEFAULT_IDENTIFY_PROPERTIES,
       );
     });
   });
@@ -147,13 +186,13 @@ describe('User consent and tracking behavior', () => {
       expect(mockPostHogService.identify).toHaveBeenCalledTimes(1);
       expect(mockPostHogService.identify).toHaveBeenCalledWith(
         returningUserId,
-        undefined,
+        DEFAULT_IDENTIFY_PROPERTIES,
       );
     });
   });
 
   describe('when a user logs out', () => {
-    it('should stop tracking and clear their session data', () => {
+    it('should stop tracking but leave PostHog reset to AuthCleanupService', () => {
       // Given: User is logged in and being tracked
       TestBed.runInInjectionContext(() => {
         analyticsService.initializeAnalyticsTracking();
@@ -181,8 +220,11 @@ describe('User consent and tracking behavior', () => {
       // Flush effects to trigger the auth state change handler
       TestBed.tick();
 
-      // Then: Tracking should be disabled and identity cleared
-      expect(mockPostHogService.reset).toHaveBeenCalledTimes(1);
+      // Then: AnalyticsService must NOT call reset() on anonymous tick —
+      // reset() would wipe the cross-domain distinct_id bootstrapped from
+      // the landing and the registered super properties. reset() is owned
+      // by AuthCleanupService.performCleanup() on explicit signOut.
+      expect(mockPostHogService.reset).not.toHaveBeenCalled();
     });
 
     it('should not track any actions until next login', () => {
@@ -257,6 +299,101 @@ describe('User consent and tracking behavior', () => {
     });
   });
 
+  describe('currency person properties', () => {
+    it('should push currency person properties via setPersonProperties once settings load', () => {
+      // GIVEN: User has EUR + selector toggle on, multi-currency flag enabled
+      mockUserSettingsStore.setSettings({
+        payDayOfMonth: 25,
+        currency: 'EUR',
+        showCurrencySelector: true,
+      });
+      mockFeatureFlagsService.setEnabled(true);
+
+      TestBed.runInInjectionContext(() => {
+        analyticsService.initializeAnalyticsTracking();
+      });
+
+      // WHEN: User authenticates
+      mockAuthState.set({
+        user: { id: 'user-currency-1', email: 'user@example.com' },
+        session: { access_token: 'token', refresh_token: 'refresh' },
+        isLoading: false,
+        isAuthenticated: true,
+      });
+      TestBed.tick();
+
+      // THEN: Identify omits currency keys (only carries early_adopter)
+      expect(mockPostHogService.identify).toHaveBeenCalledWith(
+        'user-currency-1',
+        DEFAULT_IDENTIFY_PROPERTIES,
+      );
+      // AND: setPersonProperties carries the currency triplet via $set
+      expect(mockPostHogService.setPersonProperties).toHaveBeenCalledWith({
+        currency: 'EUR',
+        show_currency_selector: true,
+        multi_currency_enabled: true,
+      });
+    });
+
+    it('should not push person properties while user settings are still null', () => {
+      // GIVEN: Settings still null (resource not resolved)
+      mockUserSettingsStore.setSettings(null);
+      mockFeatureFlagsService.setEnabled(false);
+
+      TestBed.runInInjectionContext(() => {
+        analyticsService.initializeAnalyticsTracking();
+      });
+
+      mockAuthState.set({
+        user: { id: 'user-currency-2', email: 'user@example.com' },
+        session: { access_token: 'token', refresh_token: 'refresh' },
+        isLoading: false,
+        isAuthenticated: true,
+      });
+      TestBed.tick();
+
+      // THEN: Identify still fires (without currency keys), but setPersonProperties holds
+      // until real settings arrive — avoids polluting the cohort with stale CHF defaults.
+      expect(mockPostHogService.identify).toHaveBeenCalledWith(
+        'user-currency-2',
+        DEFAULT_IDENTIFY_PROPERTIES,
+      );
+      expect(mockPostHogService.setPersonProperties).not.toHaveBeenCalled();
+    });
+
+    it('should push person properties once settings transition from null to loaded', () => {
+      // GIVEN: Settings null at identify time
+      mockUserSettingsStore.setSettings(null);
+      TestBed.runInInjectionContext(() => {
+        analyticsService.initializeAnalyticsTracking();
+      });
+
+      mockAuthState.set({
+        user: { id: 'user-late-settings', email: 'user@example.com' },
+        session: { access_token: 'token', refresh_token: 'refresh' },
+        isLoading: false,
+        isAuthenticated: true,
+      });
+      TestBed.tick();
+      expect(mockPostHogService.setPersonProperties).not.toHaveBeenCalled();
+
+      // WHEN: Settings resource resolves
+      mockUserSettingsStore.setSettings({
+        payDayOfMonth: 1,
+        currency: 'EUR',
+        showCurrencySelector: false,
+      });
+      TestBed.tick();
+
+      // THEN: Person properties are pushed with the real values
+      expect(mockPostHogService.setPersonProperties).toHaveBeenCalledWith({
+        currency: 'EUR',
+        show_currency_selector: false,
+        multi_currency_enabled: false,
+      });
+    });
+  });
+
   describe('cleanup lifecycle', () => {
     it('should allow reinitialization after destroy', () => {
       // Given: analytics initialized and then destroyed
@@ -290,17 +427,26 @@ describe('User consent and tracking behavior', () => {
 describe('captureEvent', () => {
   let analyticsService: AnalyticsService;
   let mockPostHogService: ReturnType<typeof createMockPostHogService>;
+  let mockAuthState: WritableSignal<{
+    user: { id: string; email: string } | null;
+    session: { access_token: string; refresh_token: string } | null;
+    isLoading: boolean;
+    isAuthenticated: boolean;
+  }>;
 
   beforeEach(() => {
     mockPostHogService = createMockPostHogService();
 
-    const mockAuthStateService = {
-      authState: signal({
-        user: null,
-        session: null,
-        isLoading: false,
-        isAuthenticated: false,
-      }),
+    mockAuthState = signal({
+      user: null,
+      session: null,
+      isLoading: false,
+      isAuthenticated: false,
+    });
+
+    const mockAuthStore = {
+      authState: mockAuthState,
+      isEarlyAdopter: signal(false),
     };
 
     const mockDemoModeService = {
@@ -312,9 +458,17 @@ describe('captureEvent', () => {
         provideZonelessChangeDetection(),
         AnalyticsService,
         { provide: PostHogService, useValue: mockPostHogService },
-        { provide: AuthStateService, useValue: mockAuthStateService },
+        { provide: AuthStore, useValue: mockAuthStore },
         { provide: Logger, useValue: createMockLogger() },
         { provide: DemoModeService, useValue: mockDemoModeService },
+        {
+          provide: UserSettingsStore,
+          useValue: createMockUserSettingsStore(),
+        },
+        {
+          provide: FeatureFlagsService,
+          useValue: createMockFeatureFlagsService(),
+        },
       ],
     });
 
@@ -339,6 +493,33 @@ describe('captureEvent', () => {
     });
 
     expect(() => analyticsService.captureEvent('failing_event')).toThrow(error);
+  });
+
+  it('delegates setPersonProperties to PostHogService once identified', () => {
+    const properties = { currency: 'EUR' };
+
+    // Pre-identify gate: should no-op until identify has fired.
+    analyticsService.setPersonProperties(properties);
+    expect(mockPostHogService.setPersonProperties).not.toHaveBeenCalled();
+
+    // Identify the user via the auth effect, then retry.
+    TestBed.runInInjectionContext(() => {
+      analyticsService.initializeAnalyticsTracking();
+    });
+    mockAuthState.set({
+      user: { id: 'identified-user', email: 'user@example.com' },
+      session: { access_token: 'token', refresh_token: 'refresh' },
+      isLoading: false,
+      isAuthenticated: true,
+    });
+    TestBed.tick();
+    mockPostHogService.setPersonProperties.mockClear();
+
+    analyticsService.setPersonProperties(properties);
+
+    expect(mockPostHogService.setPersonProperties).toHaveBeenCalledWith(
+      properties,
+    );
   });
 });
 
@@ -366,9 +547,10 @@ describe('Demo mode tracking', () => {
       isDemoMode: signal(false),
     };
 
-    // Mock AuthStateService
-    const mockAuthStateService = {
+    // Mock AuthStore
+    const mockAuthStore = {
       authState: mockAuthState,
+      isEarlyAdopter: signal(false),
     };
 
     TestBed.configureTestingModule({
@@ -376,9 +558,17 @@ describe('Demo mode tracking', () => {
         provideZonelessChangeDetection(),
         AnalyticsService,
         { provide: PostHogService, useValue: mockPostHogService },
-        { provide: AuthStateService, useValue: mockAuthStateService },
+        { provide: AuthStore, useValue: mockAuthStore },
         { provide: Logger, useValue: mockLogger },
         { provide: DemoModeService, useValue: mockDemoModeService },
+        {
+          provide: UserSettingsStore,
+          useValue: createMockUserSettingsStore(),
+        },
+        {
+          provide: FeatureFlagsService,
+          useValue: createMockFeatureFlagsService(),
+        },
       ],
     });
 
@@ -408,7 +598,7 @@ describe('Demo mode tracking', () => {
       // THEN: User is identified with is_demo flag
       expect(mockPostHogService.identify).toHaveBeenCalledWith(
         'demo-user-123',
-        { is_demo: true },
+        { ...DEFAULT_IDENTIFY_PROPERTIES, is_demo: true },
       );
     });
 
@@ -434,7 +624,7 @@ describe('Demo mode tracking', () => {
       // THEN: User is identified WITHOUT is_demo flag
       expect(mockPostHogService.identify).toHaveBeenCalledWith(
         'real-user-456',
-        undefined,
+        DEFAULT_IDENTIFY_PROPERTIES,
       );
     });
   });
@@ -457,6 +647,7 @@ describe('Demo mode tracking', () => {
 
       TestBed.tick();
       expect(mockPostHogService.identify).toHaveBeenCalledWith('demo-user', {
+        ...DEFAULT_IDENTIFY_PROPERTIES,
         is_demo: true,
       });
 
@@ -471,8 +662,10 @@ describe('Demo mode tracking', () => {
 
       TestBed.tick();
 
-      // THEN: Analytics session is reset
-      expect(mockPostHogService.reset).toHaveBeenCalled();
+      // THEN: AnalyticsService must NOT call reset() on anonymous tick.
+      // Resetting here would destroy the cross-domain distinct_id and the
+      // registered super properties. reset() lives in AuthCleanupService.
+      expect(mockPostHogService.reset).not.toHaveBeenCalled();
     });
 
     it('should identify regular user without demo flag after demo logout', () => {
@@ -517,7 +710,7 @@ describe('Demo mode tracking', () => {
       // THEN: Regular user is identified without demo flag
       expect(mockPostHogService.identify).toHaveBeenCalledWith(
         'real-user',
-        undefined,
+        DEFAULT_IDENTIFY_PROPERTIES,
       );
     });
   });
@@ -548,6 +741,7 @@ describe('Demo mode tracking', () => {
 
       // THEN: User is re-identified with demo flag
       expect(mockPostHogService.identify).toHaveBeenCalledWith('user-123', {
+        ...DEFAULT_IDENTIFY_PROPERTIES,
         is_demo: true,
       });
     });

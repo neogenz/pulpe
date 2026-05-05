@@ -10,7 +10,7 @@ pnpm run test:watch                 # Watch mode
 pnpm run lint                       # BEFORE commit
 ```
 
-**Angular CLI MCP**: Use when available for creating Angular artifacts.
+**Angular CLI MCP**: Use when available for Angular artifacts.
 
 ## Stack
 
@@ -40,5 +40,5 @@ See `.claude/rules/testing/vitest.md`
 - **NEVER** `::ng-deep`
 - **NEVER** import between sibling features
 - **ALWAYS** OnPush + signals
-- **ALWAYS** `#fieldName` for private
+- **ALWAYS** `#fieldName` for private — **EXCEPT** `viewChild`/`viewChildren`/`contentChild`/`contentChildren`/`input`/`output`/`model` (NG1053: use `private`/`protected` instead, never `#`)
 - **BEFORE** creating: check `ui/` or `pattern/` first

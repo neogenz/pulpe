@@ -74,7 +74,7 @@ test.describe('Allocated Transaction Lifecycle', () => {
     );
     await expect(detailTransaction).toBeVisible();
     await expect(detailTransaction).toContainText('Supermarche');
-    await expect(detailTransaction).toContainText('100 CHF');
+    await expect(detailTransaction).toContainText('100.00 CHF');
   });
 
   test('envelope with multiple transactions shows consumed total and progress', async ({
@@ -336,8 +336,8 @@ test.describe('Allocated Transaction Lifecycle', () => {
     await currentMonthPage.expectPageLoaded();
 
     // Verify expenses = 500 (envelope) + 100 (free) = 600
-    await currentMonthPage.expectExpensesAmount('600.00');
+    await currentMonthPage.expectExpensesAmount('600');
     // Verify remaining = 5000 - 600 = 4400
-    await currentMonthPage.expectRemainingAmount("4'400.00");
+    await currentMonthPage.expectRemainingAmount('4 400');
   });
 });

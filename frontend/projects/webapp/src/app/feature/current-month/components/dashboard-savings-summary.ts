@@ -5,19 +5,20 @@ import {
   inject,
   input,
 } from '@angular/core';
-import { DecimalPipe } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
 import { TranslocoService, TranslocoPipe } from '@jsverse/transloco';
+import type { SupportedCurrency } from 'pulpe-shared';
+import { AppCurrencyPipe } from '@core/currency';
 
 @Component({
   selector: 'pulpe-dashboard-savings-summary',
-  imports: [DecimalPipe, MatIconModule, TranslocoPipe],
+  imports: [AppCurrencyPipe, MatIconModule, TranslocoPipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="flex flex-col w-full h-full">
       <div class="mb-4 px-1 flex items-center gap-3">
         <div
-          class="w-10 h-10 rounded-full bg-financial-savings/10 text-financial-savings flex items-center justify-center flex-shrink-0"
+          class="w-10 h-10 rounded-full bg-financial-savings/10 text-financial-savings flex items-center justify-center shrink-0"
         >
           <mat-icon aria-hidden="true">savings</mat-icon>
         </div>
@@ -79,12 +80,11 @@ import { TranslocoService, TranslocoPipe } from '@jsverse/transloco';
             <p class="text-body-medium text-on-surface">
               {{ 'currentMonth.savingsAmountText' | transloco }}
               <span class="font-bold text-financial-savings ph-no-capture">
-                {{ totalRealized() | number: '1.2-2' : 'de-CH' }}
-                CHF
+                {{ totalRealized() | appCurrency: currency() : '1.0-0' }}
               </span>
               {{ 'dashboard.on' | transloco }}
               <span class="ph-no-capture">{{
-                totalPlanned() | number: '1.2-2' : 'de-CH'
+                totalPlanned() | appCurrency: currency() : '1.0-0'
               }}</span>
               {{ 'currentMonth.savingsPlanned' | transloco }}
             </p>
@@ -121,6 +121,7 @@ export class DashboardSavingsSummary {
   readonly totalRealized = input.required<number>();
   readonly checkedCount = input.required<number>();
   readonly totalCount = input.required<number>();
+  readonly currency = input<SupportedCurrency>('CHF');
 
   protected readonly progressPercentage = computed(() => {
     const planned = this.totalPlanned();

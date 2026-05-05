@@ -1,11 +1,12 @@
 import {
-  Component,
+  afterNextRender,
   ChangeDetectionStrategy,
-  signal,
+  Component,
   inject,
-  computed,
+  signal,
+  viewChild,
+  type ElementRef,
 } from '@angular/core';
-import { toSignal } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -71,6 +72,7 @@ import { LoadingButton } from '@ui/loading-button';
           <mat-form-field appearance="outline" class="w-full">
             <mat-label>{{ 'form.emailLabel' | transloco }}</mat-label>
             <input
+              #emailInput
               matInput
               type="email"
               formControlName="email"
@@ -95,7 +97,7 @@ import { LoadingButton } from '@ui/loading-button';
 
           <pulpe-loading-button
             [loading]="isSubmitting()"
-            [disabled]="!canSubmit()"
+            [disabled]="isSubmitting()"
             [loadingText]="'auth.forgotPassword.submitting' | transloco"
             icon="send"
             testId="forgot-password-submit-button"
@@ -142,16 +144,17 @@ export default class ForgotPassword {
   protected readonly errorMessage = signal('');
   protected readonly isSuccess = signal(false);
 
+  private readonly emailInput =
+    viewChild<ElementRef<HTMLInputElement>>('emailInput');
+
+  constructor() {
+    afterNextRender(() => {
+      this.emailInput()?.nativeElement.focus();
+    });
+  }
+
   protected readonly form = this.#formBuilder.nonNullable.group({
     email: ['', [Validators.required, Validators.email]],
-  });
-
-  readonly #formStatus = toSignal(this.form.statusChanges, {
-    initialValue: this.form.status,
-  });
-
-  protected readonly canSubmit = computed(() => {
-    return this.#formStatus() === 'VALID' && !this.isSubmitting();
   });
 
   protected clearError(): void {

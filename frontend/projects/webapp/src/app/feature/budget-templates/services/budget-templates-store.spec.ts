@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { of, throwError } from 'rxjs';
 import { provideZonelessChangeDetection, signal } from '@angular/core';
+import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 import { BudgetTemplatesStore } from './budget-templates-store';
 import { BudgetTemplatesApi } from '@core/budget-template/budget-templates-api';
 import type { BudgetTemplate, BudgetTemplateCreate } from 'pulpe-shared';
@@ -45,6 +46,9 @@ describe('BudgetTemplatesStore', () => {
     mockCache.get.mockReturnValue(null);
     mockCache.set.mockClear();
     mockCache.invalidate.mockClear();
+    mockCache.deduplicate.mockImplementation(
+      (_key: string[], fn: () => Promise<unknown>) => fn(),
+    );
 
     mockApi = {
       getAll$: vi
@@ -53,12 +57,14 @@ describe('BudgetTemplatesStore', () => {
       create$: vi.fn(),
       update$: vi.fn(),
       delete$: vi.fn(),
+      checkUsage$: vi.fn(),
       cache: mockCache as unknown as BudgetTemplatesApi['cache'],
     };
 
     TestBed.configureTestingModule({
       providers: [
         provideZonelessChangeDetection(),
+        ...provideTranslocoForTest(),
         BudgetTemplatesStore,
         { provide: BudgetTemplatesApi, useValue: mockApi },
       ],
@@ -433,6 +439,73 @@ describe('BudgetTemplatesStore', () => {
       await new Promise((resolve) => setTimeout(resolve, 50));
 
       expect(mockApi.delete$).toHaveBeenCalledWith('template-2');
+    });
+  });
+
+  describe('checkUsage', () => {
+    it('should call the API and cache the response on first call', async () => {
+      const usageData = {
+        isUsed: true,
+        budgetCount: 1,
+        budgets: [
+          { id: 'budget-1', month: 4, year: 2026, description: 'April' },
+        ],
+      };
+      mockApi.checkUsage$ = vi
+        .fn()
+        .mockReturnValue(of({ success: true, data: usageData }));
+
+      const result = await store.checkUsage('template-1');
+
+      expect(result).toEqual(usageData);
+      expect(mockApi.checkUsage$).toHaveBeenCalledTimes(1);
+      expect(mockCache.set).toHaveBeenCalledWith(
+        ['templates', 'usage', 'template-1'],
+        usageData,
+      );
+    });
+
+    it('should return fresh cached data without calling the API', async () => {
+      const usageData = {
+        isUsed: false,
+        budgetCount: 0,
+        budgets: [],
+      };
+      mockCache.get.mockReturnValue({ data: usageData, fresh: true });
+      mockApi.checkUsage$ = vi.fn();
+
+      const result = await store.checkUsage('template-1');
+
+      expect(result).toEqual(usageData);
+      expect(mockApi.checkUsage$).not.toHaveBeenCalled();
+    });
+
+    it('should return stale data immediately and refetch in background (SWR)', async () => {
+      const staleData = { isUsed: false, budgetCount: 0, budgets: [] };
+      const freshData = {
+        isUsed: true,
+        budgetCount: 1,
+        budgets: [
+          { id: 'budget-1', month: 4, year: 2026, description: 'April' },
+        ],
+      };
+      mockCache.get.mockReturnValue({ data: staleData, fresh: false });
+      let resolveFetch: (value: unknown) => void = () => undefined;
+      const pending = new Promise((resolve) => {
+        resolveFetch = resolve;
+      });
+      mockApi.checkUsage$ = vi.fn().mockReturnValue({ subscribe: vi.fn() });
+      mockCache.deduplicate.mockImplementation(
+        (_key: string[], fn: () => Promise<unknown>) => {
+          fn().catch(() => undefined);
+          return pending;
+        },
+      );
+
+      const result = await store.checkUsage('template-1');
+
+      expect(result).toEqual(staleData);
+      resolveFetch(freshData);
     });
   });
 

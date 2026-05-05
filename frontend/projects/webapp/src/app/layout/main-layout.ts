@@ -34,7 +34,7 @@ import {
 } from '@angular/router';
 import { AmountsVisibilityService } from '@core/amounts-visibility/amounts-visibility.service';
 import { AuthSessionService } from '@core/auth/auth-session.service';
-import { AuthStateService } from '@core/auth/auth-state.service';
+import { AuthStore } from '@core/auth/auth-store';
 import { ApplicationConfiguration } from '@core/config/application-configuration';
 import { DemoInitializerService } from '@core/demo/demo-initializer.service';
 import { DemoModeService } from '@core/demo/demo-mode.service';
@@ -95,11 +95,11 @@ interface NavigationItem {
       <mat-sidenav
         #drawer
         class="bg-surface-container!"
-        [class.w-auto!]="!isHandset()"
-        [mode]="isHandset() ? 'over' : 'side'"
-        [opened]="!isHandset()"
-        [fixedInViewport]="isHandset()"
-        [fixedTopGap]="isHandset() ? 0 : 64"
+        [class.w-auto!]="showPersistentSidenav()"
+        [mode]="showPersistentSidenav() ? 'side' : 'over'"
+        [opened]="showPersistentSidenav()"
+        [fixedInViewport]="!showPersistentSidenav()"
+        [fixedTopGap]="showPersistentSidenav() ? 64 : 0"
       >
         <!-- Sidenav Header -->
         @if (isHandset()) {
@@ -254,7 +254,7 @@ interface NavigationItem {
             class="shrink-0"
             [class.scrolled]="showToolbarShadow()"
           >
-            @if (isHandset()) {
+            @if (isHandset() && !isFocusMode()) {
               <button
                 matIconButton
                 (click)="drawer.toggle()"
@@ -276,7 +276,7 @@ interface NavigationItem {
 
             <!-- Toolbar Actions -->
             <div class="flex items-center gap-2">
-              @if (isEarlyAdopter()) {
+              @if (isEarlyAdopter() && !isFocusMode()) {
                 <span
                   class="early-adopter-badge cursor-pointer"
                   role="button"
@@ -291,23 +291,62 @@ interface NavigationItem {
                   <span class="early-adopter-shimmer" aria-hidden="true"></span>
                 </span>
               }
-              <button
-                matButton
-                [matMenuTriggerFor]="userMenu"
-                [attr.aria-label]="
-                  isLoggingOut()
-                    ? ('layout.loggingOut' | transloco)
-                    : ('layout.userMenu' | transloco)
-                "
-                [disabled]="isLoggingOut()"
-                data-testid="user-menu-trigger"
-                class="inline-flex items-center"
-              >
-                <mat-icon>person</mat-icon>
-                <span class="ph-no-capture amounts-visible max-w-64 truncate">{{
-                  userEmail()
-                }}</span>
-              </button>
+              @if (isFocusMode()) {
+                <!-- Onboarding: email readonly + direct logout (no menu) -->
+                <span
+                  class="inline-flex items-center gap-2 text-on-surface"
+                  data-testid="user-email-readonly"
+                >
+                  <mat-icon aria-hidden="true">person</mat-icon>
+                  <span
+                    class="ph-no-capture amounts-visible max-w-64 truncate text-label-large"
+                    >{{ userEmail() }}</span
+                  >
+                </span>
+                <button
+                  matIconButton
+                  (click)="onLogout()"
+                  [disabled]="isLoggingOut()"
+                  [matTooltip]="
+                    isLoggingOut()
+                      ? ('layout.loggingOutWait' | transloco)
+                      : ('layout.logoutAction' | transloco)
+                  "
+                  [attr.aria-label]="
+                    isLoggingOut()
+                      ? ('layout.loggingOutWait' | transloco)
+                      : ('layout.logoutAction' | transloco)
+                  "
+                  data-testid="logout-button-focus"
+                >
+                  <mat-icon>
+                    @if (isLoggingOut()) {
+                      hourglass_top
+                    } @else {
+                      logout
+                    }
+                  </mat-icon>
+                </button>
+              } @else {
+                <button
+                  matButton
+                  [matMenuTriggerFor]="userMenu"
+                  [attr.aria-label]="
+                    isLoggingOut()
+                      ? ('layout.loggingOut' | transloco)
+                      : ('layout.userMenu' | transloco)
+                  "
+                  [disabled]="isLoggingOut()"
+                  data-testid="user-menu-trigger"
+                  class="inline-flex items-center"
+                >
+                  <mat-icon>person</mat-icon>
+                  <span
+                    class="ph-no-capture amounts-visible max-w-64 truncate"
+                    >{{ userEmail() }}</span
+                  >
+                </button>
+              }
             </div>
 
             <mat-menu #userMenu="matMenu" xPosition="before">
@@ -650,7 +689,7 @@ export default class MainLayout {
   readonly #amountsVisibility = inject(AmountsVisibilityService);
   readonly #breakpointObserver = inject(BreakpointObserver);
   readonly #router = inject(Router);
-  readonly #authState = inject(AuthStateService);
+  readonly #authStore = inject(AuthStore);
   readonly #authSession = inject(AuthSessionService);
   readonly #applicationConfig = inject(ApplicationConfiguration);
   readonly #demoModeService = inject(DemoModeService);
@@ -671,10 +710,10 @@ export default class MainLayout {
     if (this.#demoModeService.isDemoMode()) {
       return 'demo@gmail.com';
     }
-    return this.#authState.user()?.email;
+    return this.#authStore.user()?.email;
   });
 
-  protected readonly isEarlyAdopter = this.#authState.isEarlyAdopter;
+  protected readonly isEarlyAdopter = this.#authStore.isEarlyAdopter;
 
   // Route to settings page
   protected readonly settingsRoute = `/${ROUTES.SETTINGS}`;
@@ -732,6 +771,28 @@ export default class MainLayout {
     const url = this.#currentRoute();
     return this.navigationItems.find((item) => url.includes(item.route));
   });
+
+  // Driven by route data `focusMode: true` on leaf routes that should hide
+  // global chrome (sidenav, breadcrumbs, full user menu) during onboarding
+  // and similar self-contained flows.
+  protected readonly isFocusMode = toSignal(
+    this.#router.events.pipe(
+      filter((event): event is NavigationEnd => event instanceof NavigationEnd),
+      map(() => this.#readFocusModeFromSnapshot()),
+    ),
+    { initialValue: this.#readFocusModeFromSnapshot() },
+  );
+
+  protected readonly showPersistentSidenav = computed(
+    () => !this.isHandset() && !this.isFocusMode(),
+  );
+
+  #readFocusModeFromSnapshot(): boolean {
+    let route = this.#router.routerState?.snapshot?.root;
+    if (!route) return false;
+    while (route.firstChild) route = route.firstChild;
+    return route.data['focusMode'] === true;
+  }
 
   // Dynamic page title key
   protected readonly currentPageTitle = computed(() => {

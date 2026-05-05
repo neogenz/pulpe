@@ -21,6 +21,7 @@ struct PulpeApp: App {
     @State private var budgetListStore: BudgetListStore
     @State private var dashboardStore: DashboardStore
     @State private var userSettingsStore: UserSettingsStore
+    @State private var featureFlagsStore: FeatureFlagsStore
     @State private var runtimeCoordinator: AppRuntimeCoordinator
     @State private var deepLinkDestination: DeepLinkDestination?
 
@@ -29,7 +30,8 @@ struct PulpeApp: App {
         let currentMonthStore = CurrentMonthStore()
         let budgetListStore = BudgetListStore()
         let dashboardStore = DashboardStore()
-        let userSettingsStore = UserSettingsStore()
+        let featureFlagsStore = FeatureFlagsStore()
+        let userSettingsStore = UserSettingsStore(featureFlags: featureFlagsStore)
 
         appState.sessionDataResetter = LiveSessionDataResetter(
             currentMonthStore: currentMonthStore,
@@ -43,6 +45,7 @@ struct PulpeApp: App {
         _budgetListStore = State(initialValue: budgetListStore)
         _dashboardStore = State(initialValue: dashboardStore)
         _userSettingsStore = State(initialValue: userSettingsStore)
+        _featureFlagsStore = State(initialValue: featureFlagsStore)
         _runtimeCoordinator = State(initialValue: AppRuntimeCoordinator(
             appState: appState,
             currentMonthStore: currentMonthStore,
@@ -56,6 +59,8 @@ struct PulpeApp: App {
         BackgroundTaskService.shared.registerTasks()
         AnalyticsService.shared.initialize()
     }
+
+    @Environment(\.scenePhase) private var scenePhase
 
     var body: some Scene {
         WindowGroup {
@@ -72,6 +77,18 @@ struct PulpeApp: App {
                     .environment(budgetListStore)
                     .environment(dashboardStore)
                     .environment(userSettingsStore)
+                    .environment(featureFlagsStore)
+                    .overlay(alignment: .topLeading) {
+                        ToastOverlayWindowHost(toastManager: appState.toastManager)
+                    }
+                    .task {
+                        featureFlagsStore.refresh()
+                    }
+                    .onChange(of: scenePhase) { _, newPhase in
+                        if newPhase == .active {
+                            featureFlagsStore.refresh()
+                        }
+                    }
                     .onOpenURL { url in
                         handleDeepLink(url)
                     }
@@ -146,7 +163,6 @@ struct RootView: View {
             resetPasswordDeepLink: $resetPasswordDeepLink,
             recoveryKeySheetItemBinding: recoveryKeySheetItemBinding
         ))
-        .toastOverlay(appState.toastManager)
         .environment(appState.toastManager)
         .onReceive(NotificationCenter.default.publisher(for: .maintenanceModeDetected)) { _ in
             appState.send(.maintenanceChecked(isInMaintenance: true))
@@ -187,6 +203,7 @@ struct RootView: View {
         .onChange(of: appState.authState) { _, _ in
             handlePendingDeepLink()
         }
+        .syncCurrencyAnalytics()
         .environment(\.amountsHidden, uiPreferences.amountsHidden)
     }
 
@@ -239,7 +256,8 @@ struct RootView: View {
                     } : nil
                 )
             } else {
-                OnboardingFlow(pendingSocialUser: appState.pendingSocialUser)
+                OnboardingFlow(pendingUser: appState.pendingOnboardingUser)
+                    .id(appState.onboardingSessionID)
             }
 
         case .pinSetup:

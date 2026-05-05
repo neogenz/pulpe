@@ -48,7 +48,7 @@ struct YearOverviewWidgetView: View {
                     .foregroundStyle(Color.textSecondary)
 
                 if let available = month.available {
-                    Text(available.asCHF)
+                    Text(available.asCompactCurrency(entry.currency))
                         .font(PulpeTypography.amountLarge)
                         .monospacedDigit()
                         .foregroundStyle(available >= 0 ? Color.pulpePrimary : Color.financialOverBudget)
@@ -57,7 +57,7 @@ struct YearOverviewWidgetView: View {
             }
             .accessibilityElement(children: .combine)
             .accessibilityLabel("Disponible \(month.shortName)")
-            .accessibilityValue(month.available.map { "\($0.asCHF)" } ?? "Pas de données")
+            .accessibilityValue(month.available.map { "\($0.asCurrency(entry.currency))" } ?? "Pas de données")
 
             Spacer()
 
@@ -81,7 +81,7 @@ struct YearOverviewWidgetView: View {
                 .foregroundStyle(month.isCurrentMonth ? Color.textPrimary : Color.textSecondary)
 
             if let available = month.available {
-                Text(available.asAmount)
+                Text(available.asCompactAmount(for: entry.currency))
                     .font(PulpeTypography.metricMini)
                     .fontWeight(month.isCurrentMonth ? .bold : .regular)
                     .foregroundStyle(amountColor(for: available))
@@ -105,7 +105,7 @@ struct YearOverviewWidgetView: View {
         )
         .accessibilityElement(children: .combine)
         .accessibilityLabel(month.shortName)
-        .accessibilityValue(month.available.map { "\($0.asCompactCHF)" } ?? "Pas de données")
+        .accessibilityValue(month.available.map { $0.asCompactCurrency(entry.currency) } ?? "Pas de données")
         .accessibilityAddTraits(month.isCurrentMonth ? .isSelected : [])
     }
 

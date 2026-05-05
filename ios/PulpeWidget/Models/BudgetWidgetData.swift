@@ -39,6 +39,30 @@ struct WidgetDataCache: Codable, Sendable {
     let currentMonth: BudgetWidgetData?
     let yearBudgets: [BudgetWidgetData]
     let lastUpdated: Date
+    /// User's active currency. Defaults to `.chf` when an older cache (pre-multi-currency)
+    /// is decoded — prevents a force-upgrade flash for existing users.
+    let currency: SupportedCurrency
+
+    init(
+        currentMonth: BudgetWidgetData?,
+        yearBudgets: [BudgetWidgetData],
+        lastUpdated: Date,
+        currency: SupportedCurrency = .chf
+    ) {
+        self.currentMonth = currentMonth
+        self.yearBudgets = yearBudgets
+        self.lastUpdated = lastUpdated
+        self.currency = currency
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.currentMonth = try container.decodeIfPresent(BudgetWidgetData.self, forKey: .currentMonth)
+        self.yearBudgets = try container.decode([BudgetWidgetData].self, forKey: .yearBudgets)
+        self.lastUpdated = try container.decode(Date.self, forKey: .lastUpdated)
+        // Older caches (v1) pre-date multi-currency; default to CHF instead of failing decode.
+        self.currency = try container.decodeIfPresent(SupportedCurrency.self, forKey: .currency) ?? .chf
+    }
 
     static var empty: WidgetDataCache {
         WidgetDataCache(currentMonth: nil, yearBudgets: [], lastUpdated: Date())

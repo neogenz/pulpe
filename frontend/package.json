@@ -54,7 +54,7 @@
     "@fontsource/dm-sans": "^5.2.8",
     "@fontsource/manrope": "^5.2.8",
     "@jsverse/transloco": "^8.2.1",
-    "@supabase/supabase-js": "^2.49.10",
+    "@supabase/supabase-js": "^2.56.0",
     "@tailwindcss/postcss": "^4.1.17",
     "chart.js": "^4.5.1",
     "date-fns": "^4.1.0",

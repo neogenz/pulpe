@@ -43,6 +43,23 @@ export interface CalendarYear {
   };
 }
 
+/**
+ * i18n labels for `MonthTile` and `YearCalendar`.
+ * UI layer cannot inject TranslocoService — labels are passed in by the consumer.
+ */
+export interface MonthTileLabels {
+  /** Pill text shown on the current month (e.g., "Actuel"). */
+  current: string;
+  /** Header above the amount on a month with content (e.g., "Disponible"). */
+  available: string;
+  /** Label below the plus icon on an empty month (e.g., "Créer"). */
+  create: string;
+  /** Suffix appended to the aria-label of months with content (e.g., "disponible"). */
+  availableSuffixAriaLabel: string;
+  /** Aria-label for empty months (e.g., "créer un budget"). */
+  createBudgetAriaLabel: string;
+}
+
 export function createEmptyCalendarMonth(
   month: number,
   year: number,

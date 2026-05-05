@@ -42,15 +42,15 @@ DB Row (snake_case) → Mapper → API Response (camelCase)
 
 ## Testing
 
-- Mock Supabase client with `createMockSupabaseClient()`
-- Test services and guards independently
+- Mock Supabase client `createMockSupabaseClient()`
+- Test services, guards independent
 - Swagger docs: `http://localhost:3000/docs`
 
 ## Critical Rules
 
-- **NEVER** use `any` types
-- **ALWAYS** use Zod for external data validation
-- **ALWAYS** use mappers for DTO ↔ Entity transformation
-- **NEVER** expose database types in API responses
+- **NEVER** `any` types
+- **ALWAYS** Zod for external data validation
+- **ALWAYS** mappers for DTO ↔ Entity transformation
+- **NEVER** expose DB types in API responses
 - **NEVER** log sensitive data
-- **AFTER** schema changes: Regenerate types
+- **AFTER** schema changes: regenerate types

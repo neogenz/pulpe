@@ -100,11 +100,18 @@ test.describe('Envelope Check/Uncheck Cascade', () => {
     // By default isShowingOnlyUnchecked is true, so we need to disable it
     // to see checked items. StorageService uses versioned format.
     await authenticatedPage.addInitScript(() => {
-      const entry = { version: 1, data: false, updatedAt: new Date().toISOString() };
-      localStorage.setItem('pulpe-budget-show-only-unchecked', JSON.stringify(entry));
+      const entry = {
+        version: 1,
+        data: false,
+        updatedAt: new Date().toISOString(),
+      };
+      localStorage.setItem(
+        'pulpe-budget-show-only-unchecked',
+        JSON.stringify(entry),
+      );
     });
 
-    const mockResponse = createBudgetDetailsMock(budgetId, {
+    const initialMockResponse = createBudgetDetailsMock(budgetId, {
       budgetLines: [
         createBudgetLineMock(TEST_UUIDS.LINE_2, budgetId, {
           name: 'Salaire',
@@ -115,23 +122,32 @@ test.describe('Envelope Check/Uncheck Cascade', () => {
       ],
     });
 
+    const updatedMockResponse = createBudgetDetailsMock(budgetId, {
+      budgetLines: [
+        createBudgetLineMock(TEST_UUIDS.LINE_2, budgetId, {
+          name: 'Salaire',
+          amount: 5000,
+          kind: 'income',
+        }),
+        uncheckedLine,
+      ],
+    });
+
+    let toggled = false;
     await authenticatedPage.route('**/api/v1/budgets/*/details', (route) => {
       void route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify(mockResponse),
+        body: JSON.stringify(
+          toggled ? updatedMockResponse : initialMockResponse,
+        ),
       });
     });
-
-    const togglePromise = authenticatedPage.waitForRequest(
-      (req) =>
-        req.url().includes(`/budget-lines/${TEST_UUIDS.LINE_1}/toggle-check`) &&
-        req.method() === 'POST',
-    );
 
     await authenticatedPage.route(
       `**/api/v1/budget-lines/${TEST_UUIDS.LINE_1}/toggle-check`,
       (route) => {
+        toggled = true;
         void route.fulfill({
           status: 201,
           contentType: 'application/json',
@@ -151,11 +167,17 @@ test.describe('Envelope Check/Uncheck Cascade', () => {
     const switchElement = toggle.getByRole('switch');
     await expect(switchElement).toBeChecked();
 
-    // Click to uncheck
-    await toggle.click();
-
-    // Verify API was called
-    await togglePromise;
+    // Click to uncheck and wait for the full API round-trip
+    await Promise.all([
+      authenticatedPage.waitForResponse(
+        (resp) =>
+          resp
+            .url()
+            .includes(`/budget-lines/${TEST_UUIDS.LINE_1}/toggle-check`) &&
+          resp.request().method() === 'POST',
+      ),
+      toggle.click(),
+    ]);
 
     // Verify it becomes unchecked
     await expect(switchElement).not.toBeChecked();
@@ -205,20 +227,6 @@ test.describe('Envelope Check/Uncheck Cascade', () => {
       ],
     });
 
-    // Show all items (not just unchecked). StorageService uses versioned format.
-    await authenticatedPage.addInitScript(() => {
-      const entry = { version: 1, data: false, updatedAt: new Date().toISOString() };
-      localStorage.setItem('pulpe-budget-show-only-unchecked', JSON.stringify(entry));
-    });
-
-    await authenticatedPage.route('**/api/v1/budgets/*/details', (route) => {
-      void route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify(mockResponse),
-      });
-    });
-
     const checkedLine2 = createBudgetLineMock(TEST_UUIDS.LINE_2, budgetId, {
       name: 'Courses',
       amount: 500,
@@ -226,9 +234,66 @@ test.describe('Envelope Check/Uncheck Cascade', () => {
       checkedAt: '2025-01-15T12:00:00Z',
     });
 
+    const updatedMockResponse = createBudgetDetailsMock(budgetId, {
+      budgetLines: [
+        createBudgetLineMock(TEST_UUIDS.LINE_1, budgetId, {
+          name: 'Salaire',
+          amount: 5000,
+          kind: 'income',
+          checkedAt: '2025-01-10T12:00:00Z',
+        }),
+        checkedLine2,
+        createBudgetLineMock(TEST_UUIDS.LINE_3, budgetId, {
+          name: 'Loisirs',
+          amount: 200,
+          kind: 'expense',
+          checkedAt: null,
+        }),
+      ],
+      transactions: [
+        createTransactionMock(TEST_UUIDS.TRANSACTION_1, budgetId, {
+          name: 'Supermarché',
+          amount: 100,
+          kind: 'expense',
+          budgetLineId: TEST_UUIDS.LINE_2,
+          checkedAt: '2025-01-12T12:00:00Z',
+        }),
+        createTransactionMock(TEST_UUIDS.TRANSACTION_2, budgetId, {
+          name: 'Café',
+          amount: 20,
+          kind: 'expense',
+          budgetLineId: null,
+          checkedAt: null,
+        }),
+      ],
+    });
+
+    // Show all items (not just unchecked). StorageService uses versioned format.
+    await authenticatedPage.addInitScript(() => {
+      const entry = {
+        version: 1,
+        data: false,
+        updatedAt: new Date().toISOString(),
+      };
+      localStorage.setItem(
+        'pulpe-budget-show-only-unchecked',
+        JSON.stringify(entry),
+      );
+    });
+
+    let toggled = false;
+    await authenticatedPage.route('**/api/v1/budgets/*/details', (route) => {
+      void route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(toggled ? updatedMockResponse : mockResponse),
+      });
+    });
+
     await authenticatedPage.route(
       `**/api/v1/budget-lines/${TEST_UUIDS.LINE_2}/toggle-check`,
       (route) => {
+        toggled = true;
         void route.fulfill({
           status: 201,
           contentType: 'application/json',
@@ -240,15 +305,24 @@ test.describe('Envelope Check/Uncheck Cascade', () => {
     await budgetDetailsPage.goto(budgetId);
 
     // Verify initial pointés count: 2/5 (Salaire + Supermarché checked)
-    const summary = authenticatedPage.getByTestId('checking-summary');
+    const summary = authenticatedPage.getByTestId('budget-items-checking-summary');
     await expect(summary).toBeVisible();
     await expect(summary).toContainText('2/5 pointés');
 
-    // Check the "Courses" envelope
+    // Check the "Courses" envelope and wait for the full API round-trip
     const toggle = authenticatedPage.getByTestId(
       `toggle-check-${TEST_UUIDS.LINE_2}`,
     );
-    await toggle.click();
+    await Promise.all([
+      authenticatedPage.waitForResponse(
+        (resp) =>
+          resp
+            .url()
+            .includes(`/budget-lines/${TEST_UUIDS.LINE_2}/toggle-check`) &&
+          resp.request().method() === 'POST',
+      ),
+      toggle.click(),
+    ]);
 
     // Verify updated count: 3/5
     await expect(summary).toContainText('3/5 pointés');
@@ -321,9 +395,8 @@ test.describe('Envelope Check/Uncheck Cascade', () => {
       (req) =>
         req
           .url()
-          .includes(
-            `/budget-lines/${TEST_UUIDS.LINE_2}/check-transactions`,
-          ) && req.method() === 'POST',
+          .includes(`/budget-lines/${TEST_UUIDS.LINE_2}/check-transactions`) &&
+        req.method() === 'POST',
     );
 
     const checkedTx1 = createTransactionMock(
@@ -377,9 +450,7 @@ test.describe('Envelope Check/Uncheck Cascade', () => {
     ).toBeVisible();
 
     // Confirm cascade
-    await authenticatedPage
-      .getByTestId('confirmation-confirm-button')
-      .click();
+    await authenticatedPage.getByTestId('confirmation-confirm-button').click();
 
     // Verify cascade API was called
     await cascadePromise;
@@ -472,10 +543,8 @@ test.describe('Envelope Check/Uncheck Cascade', () => {
       authenticatedPage.getByText('Pointer les transactions ?'),
     ).toBeVisible();
 
-    // Decline cascade - click "Non, juste l'enveloppe"
-    await authenticatedPage
-      .getByTestId('confirmation-cancel-button')
-      .click();
+    // Decline cascade - click "Non, juste la prévision"
+    await authenticatedPage.getByTestId('confirmation-cancel-button').click();
 
     // Envelope toggle-check should still be called
     await togglePromise;

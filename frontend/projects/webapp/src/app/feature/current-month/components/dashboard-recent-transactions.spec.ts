@@ -9,6 +9,7 @@ import { registerLocaleData } from '@angular/common';
 import localeDE from '@angular/common/locales/de-CH';
 import localeFR from '@angular/common/locales/fr';
 import { FinancialKindDirective } from '@ui/financial-kind';
+import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 
 registerLocaleData(localeDE);
 registerLocaleData(localeFR);
@@ -39,6 +40,7 @@ describe('DashboardRecentTransactions', () => {
       imports: [DashboardRecentTransactions],
       providers: [
         provideZonelessChangeDetection(),
+        ...provideTranslocoForTest(),
         { provide: LOCALE_ID, useValue: 'de-CH' },
       ],
     })
@@ -107,8 +109,8 @@ describe('DashboardRecentTransactions', () => {
       By.css('.text-label-large.font-semibold'),
     );
     expect(amountElements.length).toBe(5);
-    expect(amountElements[0].nativeElement.textContent).toContain('1\u2019200');
-    expect(amountElements[2].nativeElement.textContent).toContain('5\u2019000');
+    expect(amountElements[0].nativeElement.textContent).toContain('1\u202F200');
+    expect(amountElements[2].nativeElement.textContent).toContain('5\u202F000');
   });
 
   it('should display correct icons for each transaction kind', () => {
@@ -151,7 +153,7 @@ describe('DashboardRecentTransactions', () => {
     const amountEl = fixture.debugElement.query(
       By.css('.text-label-large.font-semibold'),
     );
-    expect(amountEl.nativeElement.textContent).toContain('1\u2019235');
+    expect(amountEl.nativeElement.textContent).toContain('1\u202F234.56');
     expect(amountEl.nativeElement.textContent).toContain('CHF');
   });
 

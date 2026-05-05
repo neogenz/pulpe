@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { TestBed } from '@angular/core/testing';
-import { signal } from '@angular/core';
+import { provideZonelessChangeDetection, signal } from '@angular/core';
 import type { User } from '@supabase/supabase-js';
 import { AuthCleanupService } from './auth-cleanup.service';
-import { AuthStateService } from './auth-state.service';
+import { AuthStore } from './auth-store';
 import { BudgetApi } from '@core/budget';
 import { BudgetTemplatesApi } from '@core/budget-template/budget-templates-api';
 import { ClientKeyService } from '@core/encryption';
@@ -17,7 +17,7 @@ import { type E2EWindow } from './e2e-window';
 
 describe('AuthCleanupService', () => {
   let service: AuthCleanupService;
-  let mockState: Partial<AuthStateService>;
+  let mockState: Partial<AuthStore>;
   let mockBudgetApi: { clearCache: ReturnType<typeof vi.fn> };
   let mockBudgetTemplatesApi: { clearCache: ReturnType<typeof vi.fn> };
   let mockClientKey: Partial<ClientKeyService>;
@@ -33,53 +33,27 @@ describe('AuthCleanupService', () => {
     userSignal = signal<User | null>(null);
     mockState = {
       user: userSignal.asReadonly(),
-      setSession: vi.fn(),
-      setLoading: vi.fn(),
+      set: vi.fn(),
     };
 
-    mockBudgetApi = {
-      clearCache: vi.fn(),
-    };
-
-    mockBudgetTemplatesApi = {
-      clearCache: vi.fn(),
-    };
-
+    mockBudgetApi = { clearCache: vi.fn() };
+    mockBudgetTemplatesApi = { clearCache: vi.fn() };
     mockClientKey = {
       clear: vi.fn(),
       clearPreservingDeviceTrust: vi.fn(),
     };
-
-    mockDemoMode = {
-      deactivateDemoMode: vi.fn(),
-    };
-
-    mockPreload = {
-      reset: vi.fn(),
-    };
-
-    mockPostHog = {
-      reset: vi.fn(),
-    };
-
-    mockStorage = {
-      clearAllUserData: vi.fn(),
-    };
-
-    mockUserSettings = {
-      reset: vi.fn(),
-    };
-
-    mockLogger = {
-      info: vi.fn(),
-      error: vi.fn(),
-      debug: vi.fn(),
-    };
+    mockDemoMode = { deactivateDemoMode: vi.fn() };
+    mockPreload = { reset: vi.fn() };
+    mockPostHog = { reset: vi.fn() };
+    mockStorage = { clearAllUserData: vi.fn() };
+    mockUserSettings = { reset: vi.fn() };
+    mockLogger = { info: vi.fn(), error: vi.fn(), debug: vi.fn() };
 
     TestBed.configureTestingModule({
       providers: [
+        provideZonelessChangeDetection(),
         AuthCleanupService,
-        { provide: AuthStateService, useValue: mockState },
+        { provide: AuthStore, useValue: mockState },
         { provide: BudgetApi, useValue: mockBudgetApi },
         { provide: BudgetTemplatesApi, useValue: mockBudgetTemplatesApi },
         { provide: ClientKeyService, useValue: mockClientKey },
@@ -111,60 +85,12 @@ describe('AuthCleanupService', () => {
 
     expect(mockClientKey.clearPreservingDeviceTrust).toHaveBeenCalled();
     expect(mockDemoMode.deactivateDemoMode).toHaveBeenCalled();
-
     expect(mockBudgetApi.clearCache).toHaveBeenCalled();
     expect(mockBudgetTemplatesApi.clearCache).toHaveBeenCalled();
     expect(mockPreload.reset).toHaveBeenCalled();
     expect(mockUserSettings.reset).toHaveBeenCalled();
     expect(mockPostHog.reset).toHaveBeenCalled();
     expect(mockStorage.clearAllUserData).toHaveBeenCalled();
-  });
-
-  it('should prevent double cleanup when called rapidly', () => {
-    vi.useFakeTimers();
-
-    userSignal.set({
-      id: 'user-789',
-      aud: 'authenticated',
-      role: 'authenticated',
-    } as User);
-
-    service.performCleanup();
-    service.performCleanup();
-
-    expect(mockDemoMode.deactivateDemoMode).toHaveBeenCalledTimes(1);
-
-    expect(mockBudgetTemplatesApi.clearCache).toHaveBeenCalledTimes(1);
-    expect(mockPreload.reset).toHaveBeenCalledTimes(1);
-    expect(mockUserSettings.reset).toHaveBeenCalledTimes(1);
-    expect(mockPostHog.reset).toHaveBeenCalledTimes(1);
-    expect(mockStorage.clearAllUserData).toHaveBeenCalledTimes(1);
-    expect(mockLogger.debug).toHaveBeenCalledWith(
-      'Cleanup already in progress, skipping duplicate call',
-    );
-
-    vi.runAllTimers();
-    vi.useRealTimers();
-  });
-
-  it('should clear timeout on service destruction', () => {
-    vi.useFakeTimers();
-    const clearTimeoutSpy = vi.spyOn(globalThis, 'clearTimeout');
-
-    userSignal.set({
-      id: 'user-123',
-      aud: 'authenticated',
-      role: 'authenticated',
-    } as User);
-
-    service.performCleanup();
-
-    TestBed.resetTestingModule();
-
-    expect(clearTimeoutSpy).toHaveBeenCalled();
-
-    clearTimeoutSpy.mockRestore();
-    vi.useRealTimers();
   });
 
   describe('Error isolation', () => {
@@ -186,14 +112,13 @@ describe('AuthCleanupService', () => {
       service.performCleanup();
 
       expect(mockDemoMode.deactivateDemoMode).toHaveBeenCalled();
-
       expect(mockPreload.reset).toHaveBeenCalled();
       expect(mockUserSettings.reset).toHaveBeenCalled();
       expect(mockPostHog.reset).toHaveBeenCalled();
       expect(mockStorage.clearAllUserData).toHaveBeenCalled();
     });
 
-    it('should continue cleanup when budgetApi.cache.clear() throws', () => {
+    it('should continue cleanup when budgetApi.clearCache() throws', () => {
       mockBudgetApi.clearCache.mockImplementation(() => {
         throw new Error('Cache clear failed');
       });
@@ -202,7 +127,6 @@ describe('AuthCleanupService', () => {
 
       expect(mockClientKey.clearPreservingDeviceTrust).toHaveBeenCalled();
       expect(mockDemoMode.deactivateDemoMode).toHaveBeenCalled();
-
       expect(mockPreload.reset).toHaveBeenCalled();
       expect(mockUserSettings.reset).toHaveBeenCalled();
       expect(mockPostHog.reset).toHaveBeenCalled();
@@ -220,36 +144,9 @@ describe('AuthCleanupService', () => {
 
       expect(mockClientKey.clearPreservingDeviceTrust).toHaveBeenCalled();
       expect(mockDemoMode.deactivateDemoMode).toHaveBeenCalled();
-
       expect(mockPreload.reset).toHaveBeenCalled();
       expect(mockUserSettings.reset).toHaveBeenCalled();
       expect(mockPostHog.reset).toHaveBeenCalled();
-    });
-  });
-
-  describe('Debounce reset', () => {
-    it('should allow second cleanup after debounce timer expires', () => {
-      vi.useFakeTimers();
-
-      userSignal.set({
-        id: 'user-debounce',
-        aud: 'authenticated',
-        role: 'authenticated',
-      } as User);
-
-      service.performCleanup();
-      expect(mockDemoMode.deactivateDemoMode).toHaveBeenCalledTimes(1);
-      expect(mockPreload.reset).toHaveBeenCalledTimes(1);
-
-      vi.advanceTimersByTime(100);
-
-      service.performCleanup();
-      expect(mockDemoMode.deactivateDemoMode).toHaveBeenCalledTimes(2);
-      expect(mockPreload.reset).toHaveBeenCalledTimes(2);
-      expect(mockUserSettings.reset).toHaveBeenCalledTimes(2);
-      expect(mockBudgetTemplatesApi.clearCache).toHaveBeenCalledTimes(2);
-
-      vi.useRealTimers();
     });
   });
 });

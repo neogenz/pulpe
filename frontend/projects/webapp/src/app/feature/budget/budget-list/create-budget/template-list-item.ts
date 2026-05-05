@@ -1,0 +1,211 @@
+import {
+  ChangeDetectionStrategy,
+  Component,
+  input,
+  output,
+} from '@angular/core';
+import { MatButtonModule } from '@angular/material/button';
+import { MatCardModule } from '@angular/material/card';
+import { MatChipsModule } from '@angular/material/chips';
+import { MatDividerModule } from '@angular/material/divider';
+import { MatIconModule } from '@angular/material/icon';
+import { MatListModule } from '@angular/material/list';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatRadioModule } from '@angular/material/radio';
+import { TranslocoPipe } from '@jsverse/transloco';
+import type { SupportedCurrency } from 'pulpe-shared';
+import { AppCurrencyPipe } from '@core/currency';
+import { type TemplateViewModel } from './template-view-model';
+
+@Component({
+  selector: 'pulpe-template-list-item',
+  imports: [
+    AppCurrencyPipe,
+    MatCardModule,
+    MatRadioModule,
+    MatIconModule,
+    MatButtonModule,
+    MatChipsModule,
+    MatProgressSpinnerModule,
+    MatListModule,
+    MatDividerModule,
+    TranslocoPipe,
+  ],
+  template: `
+    <mat-card
+      appearance="outlined"
+      class="cursor-pointer transition-all hover:shadow-md template-card"
+      [class.selected]="isSelected()"
+      (click)="selectTemplate.emit(templateViewModel().template.id)"
+    >
+      <mat-card-content class="p-4">
+        <!-- Header with title and chip -->
+        <div class="flex items-start justify-between mb-3">
+          <div class="flex items-center gap-3">
+            @let dataTestId =
+              'template-radio-' + templateViewModel().template.id;
+            <mat-radio-button
+              [value]="templateViewModel().template.id"
+              [checked]="isSelected()"
+              class="shrink-0"
+              [attr.aria-label]="
+                'template.selectAriaLabel'
+                  | transloco: { name: templateViewModel().template.name }
+              "
+              [attr.data-testid]="dataTestId"
+            ></mat-radio-button>
+            <div>
+              <div class="flex items-center gap-2">
+                <h3 class="text-title-medium text-on-surface">
+                  {{ templateViewModel().template.name }}
+                </h3>
+                @if (templateViewModel().template.isDefault) {
+                  <mat-chip appearance="outlined">
+                    <span>{{ 'template.defaultTag' | transloco }}</span>
+                  </mat-chip>
+                }
+              </div>
+              @if (templateViewModel().template.description) {
+                <p class="text-body-small text-on-surface-variant mt-1">
+                  {{ templateViewModel().template.description }}
+                </p>
+              }
+            </div>
+          </div>
+        </div>
+
+        <!-- Financial details -->
+        @if (templateViewModel().loading) {
+          <!-- Enhanced Material Design 3 Loading State -->
+          <div
+            class="bg-surface-container-low rounded-corner-medium p-6 mx-2 mb-4"
+          >
+            <div
+              class="flex flex-col items-center justify-center space-y-4 md:flex-row md:space-y-0 md:space-x-4 md:justify-start"
+            >
+              <mat-progress-spinner
+                mode="indeterminate"
+                [attr.aria-label]="'template.calculatingAriaLabel' | transloco"
+                role="progressbar"
+                class="pulpe-loading-indicator pulpe-loading-medium shrink-0"
+                [diameter]="24"
+              ></mat-progress-spinner>
+              <div class="text-center md:text-left">
+                <div
+                  class="text-body-medium text-on-surface font-medium"
+                  aria-live="polite"
+                >
+                  {{ 'template.calculating' | transloco }}
+                </div>
+                <div class="text-body-small text-on-surface-variant mt-1">
+                  {{ 'template.analyzingData' | transloco }}
+                </div>
+              </div>
+            </div>
+          </div>
+        } @else {
+          <mat-list class="pt-0">
+            <!-- Income -->
+            <mat-list-item class="h-auto min-h-0 py-2 !px-0">
+              <mat-icon matListItemIcon class="icon-filled !mr-4"
+                >arrow_upward</mat-icon
+              >
+              <span matListItemTitle class="text-body-medium">{{
+                'template.monthlyIncomes' | transloco
+              }}</span>
+              <span
+                matListItemMeta
+                class="ph-no-capture text-body-medium! font-medium!"
+              >
+                {{
+                  templateViewModel().income | appCurrency: currency() : '1.2-2'
+                }}
+              </span>
+            </mat-list-item>
+
+            <mat-divider></mat-divider>
+
+            <!-- Expenses -->
+            <mat-list-item class="h-auto min-h-0 py-2 !px-0">
+              <mat-icon matListItemIcon class="icon-filled !mr-4"
+                >arrow_downward</mat-icon
+              >
+              <span matListItemTitle class="text-body-medium">{{
+                'template.plannedExpenses' | transloco
+              }}</span>
+              <span
+                matListItemMeta
+                class="ph-no-capture text-body-medium! font-medium!"
+              >
+                {{
+                  templateViewModel().expenses
+                    | appCurrency: currency() : '1.2-2'
+                }}
+              </span>
+            </mat-list-item>
+
+            <mat-divider></mat-divider>
+
+            <!-- Living allowance -->
+            <mat-list-item class="h-auto min-h-0 py-2 !px-0">
+              <mat-icon matListItemIcon class="icon-filled !mr-4"
+                >wallet</mat-icon
+              >
+              <span matListItemTitle class="text-body-medium">{{
+                'template.availableLabel' | transloco
+              }}</span>
+              <span
+                matListItemMeta
+                class="ph-no-capture text-body-medium! font-medium!"
+              >
+                {{
+                  templateViewModel().netBalance
+                    | appCurrency: currency() : '1.2-2'
+                }}
+              </span>
+            </mat-list-item>
+          </mat-list>
+        }
+
+        <!-- Actions -->
+        <div class="flex items-center justify-end">
+          <button
+            matButton
+            (click)="
+              showDetails.emit(templateViewModel()); $event.stopPropagation()
+            "
+          >
+            <mat-icon class="shrink-0">info_outline</mat-icon>
+            {{ 'template.details' | transloco }}
+          </button>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  `,
+  styles: `
+    @use '@angular/material' as mat;
+
+    :host {
+      display: block;
+    }
+
+    /* Custom card overrides for selected state */
+    .template-card.selected {
+      @include mat.card-overrides(
+        (
+          outlined-outline-color: var(--mat-sys-primary),
+          outlined-outline-width: 2px,
+        )
+      );
+    }
+  `,
+  changeDetection: ChangeDetectionStrategy.OnPush,
+})
+export class TemplateListItem {
+  readonly templateViewModel = input.required<TemplateViewModel>();
+  readonly isSelected = input<boolean>(false);
+  readonly currency = input<SupportedCurrency>('CHF');
+
+  readonly selectTemplate = output<string>();
+  readonly showDetails = output<TemplateViewModel>();
+}

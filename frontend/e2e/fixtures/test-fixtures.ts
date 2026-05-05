@@ -75,11 +75,14 @@ export const test = base.extend<AppFixtures>({
         data: validKeyHex,
         updatedAt: new Date().toISOString(),
       };
-      sessionStorage.setItem('pulpe-vault-client-key-session', JSON.stringify(entry));
+      sessionStorage.setItem(
+        'pulpe-vault-client-key-session',
+        JSON.stringify(entry),
+      );
     });
 
     await use(page);
-  }
+  },
 });
 
 export { expect } from '@playwright/test';

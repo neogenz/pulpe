@@ -1,7 +1,9 @@
 import { test, expect } from '../../fixtures/test-fixtures';
 import { setupAuthBypass } from '../../utils/auth-bypass';
 
-const injectClientKey = async (page: import('@playwright/test').Page): Promise<void> => {
+const injectClientKey = async (
+  page: import('@playwright/test').Page,
+): Promise<void> => {
   await page.addInitScript(() => {
     const entry = {
       version: 1,
@@ -32,10 +34,14 @@ test.describe('Settings OAuth User', () => {
     await expect(page.getByTestId('settings-page')).toBeVisible();
 
     await expect(page.getByTestId('change-password-button')).toHaveCount(0);
-    await expect(page.getByTestId('generate-recovery-key-button')).toBeVisible();
+    await expect(
+      page.getByTestId('generate-recovery-key-button'),
+    ).toBeVisible();
   });
 
-  test('shows PIN form in delete account dialog for OAuth-only user', async ({ page }) => {
+  test('shows PIN form in delete account dialog for OAuth-only user', async ({
+    page,
+  }) => {
     await setupAuthBypass(page, {
       includeApiMocks: true,
       setLocalStorage: true,
@@ -52,7 +58,11 @@ test.describe('Settings OAuth User', () => {
     const dialog = page.getByRole('dialog', { name: 'Supprimer ton compte' });
     await expect(dialog).toBeVisible();
 
-    await expect(dialog.getByTestId('delete-confirm-vault-code-input')).toBeVisible();
-    await expect(dialog.getByTestId('delete-confirm-password-input')).toHaveCount(0);
+    await expect(
+      dialog.getByTestId('delete-confirm-vault-code-input'),
+    ).toBeVisible();
+    await expect(
+      dialog.getByTestId('delete-confirm-password-input'),
+    ).toHaveCount(0);
   });
 });

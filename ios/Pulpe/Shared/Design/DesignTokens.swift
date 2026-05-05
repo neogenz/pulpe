@@ -33,8 +33,17 @@ enum DesignTokens {
     // MARK: - Spacing
 
     enum Spacing {
+        /// No spacing — used for semantic "no gap" (e.g. `HStack(spacing: .none)`)
+        static let none: CGFloat = 0
+        static let xxs: CGFloat = 2
+        /// Tight vertical gap (3pt) — icon/label stacks in badges, tab items
+        static let dividerGap: CGFloat = 3
         static let xs: CGFloat = 4
+        /// Compact badge padding / inter-badge gap (6pt) — KindBadge, status capsules
+        static let tightGap: CGFloat = 6
         static let sm: CGFloat = 8
+        /// Compact horizontal gap (10pt) — tab bar segment gap
+        static let compactGap: CGFloat = 10
         static let md: CGFloat = 12
         static let lg: CGFloat = 16
         static let xl: CGFloat = 20
@@ -44,6 +53,23 @@ enum DesignTokens {
         static let sectionGap: CGFloat = 40
         /// Top padding for step headers (onboarding)
         static let stepHeaderTop: CGFloat = 48
+    }
+
+    // MARK: - Tracking (Letter Spacing)
+
+    enum Tracking {
+        /// Large display numbers (year headers)
+        static let display: CGFloat = -3
+        /// Hero amounts (year recap big number)
+        static let hero: CGFloat = -1.2
+        /// Section titles
+        static let title: CGFloat = -0.6
+        /// Uppercase labels — narrow
+        static let uppercaseNarrow: CGFloat = 0.5
+        /// Uppercase labels — standard
+        static let uppercase: CGFloat = 0.7
+        /// Uppercase labels — wide
+        static let uppercaseWide: CGFloat = 1
     }
 
     // MARK: - Border Width
@@ -130,6 +156,10 @@ enum DesignTokens {
         static let widgetAction: CGFloat = 44
         /// Social login button icons (Apple logo, Google logo)
         static let socialButton: CGFloat = 20
+        /// Brand logo on auth/onboarding screens
+        static let brand: CGFloat = 72
+        /// Hero checkmark badge on the onboarding budget preview
+        static let heroBadge: CGFloat = 56
     }
 
     // MARK: - List Row
@@ -190,6 +220,11 @@ enum DesignTokens {
             .spring(response: 0.5, dampingFraction: 0.85)
         }
 
+        /// FAB ↔ full-width onboarding CTA — one continuous control (layout + content).
+        static var onboardingCTAMorph: SwiftUI.Animation {
+            .spring(response: 0.48, dampingFraction: 0.88)
+        }
+
         static var iconEntrance: SwiftUI.Animation {
             .spring(response: 0.5, dampingFraction: 0.7)
         }
@@ -210,10 +245,21 @@ enum DesignTokens {
             .easeInOut(duration: pulseDuration).repeatForever(autoreverses: true)
         }
 
+        /// Slow breathing effect for brand heroes (glow/shadow opacity oscillation).
+        /// Deliberately slow so it feels like ambient life, not a notification.
+        static let heroBreathingDuration: Double = 3.5
+
+        static var heroBreathing: SwiftUI.Animation {
+            .easeInOut(duration: heroBreathingDuration).repeatForever(autoreverses: true)
+        }
+
         // MARK: - Skeleton
 
         /// Minimum skeleton display time to prevent jarring flash on fast loads
         static let skeletonMinimumDuration: Duration = .milliseconds(400)
+
+        /// Délai avant un toast overlay après fermeture d’une sheet : laisse l’animation de dismissal se stabiliser (`ToastOverlayWindowHost`).
+        static let postSheetDismissBeforeToast: Duration = .milliseconds(350)
 
         /// Waits until at least the minimum skeleton duration has elapsed since `start`.
         /// Call after an async fetch that was preceded by showing a skeleton.
@@ -256,7 +302,15 @@ enum DesignTokens {
 
     enum AmountInput {
         static let quickAmounts = [10, 15, 20, 30]
-        static let currencyCode = "CHF"
+    }
+
+    // MARK: - Blur
+
+    enum Blur {
+        /// Height of the gradient fade at the top of scrollable content
+        static let topFadeHeight: CGFloat = 60
+        /// Height of the gradient fade at the bottom of scrollable content
+        static let bottomFadeHeight: CGFloat = 80
     }
 
     // MARK: - Progress Bar
@@ -270,6 +324,8 @@ enum DesignTokens {
         static let circularLineWidth: CGFloat = 6
         /// Hero card progress bar height (larger for visibility on colored backgrounds)
         static let heroHeight: CGFloat = 10
+        /// Flow bar height — substantial enough to act as a card headline (Entrées/Sorties)
+        static let flowBarHeight: CGFloat = 14
     }
 }
 

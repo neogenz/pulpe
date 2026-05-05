@@ -15,6 +15,13 @@ import {
   EncryptionKeyRepository,
   type UserEncryptionKeyFullRow,
 } from './encryption-key.repository';
+import {
+  rekeyBudgetLinesRpcPayloadSchema,
+  rekeyMonthlyBudgetsRpcPayloadSchema,
+  rekeySavingsGoalsRpcPayloadSchema,
+  rekeyTemplateLinesRpcPayloadSchema,
+  rekeyTransactionsRpcPayloadSchema,
+} from './schemas/rpc-payload.schemas';
 
 const ALGORITHM = 'aes-256-gcm';
 const IV_LENGTH = 12;
@@ -109,7 +116,13 @@ export class EncryptionService {
     ciphertext: string,
     dek: Buffer,
     fallbackAmount: number,
-  ): number {
+  ): number;
+  tryDecryptAmount(ciphertext: string, dek: Buffer, fallbackAmount: null): null;
+  tryDecryptAmount(
+    ciphertext: string,
+    dek: Buffer,
+    fallbackAmount: number | null,
+  ): number | null {
     try {
       return this.decryptAmount(ciphertext, dek);
     } catch (error) {
@@ -127,6 +140,24 @@ export class EncryptionService {
     }
   }
 
+  decryptRowAmountFields<
+    T extends { amount: string | null; original_amount: string | null },
+  >(
+    row: T,
+    dek: Buffer,
+  ): Omit<T, 'amount' | 'original_amount'> & {
+    amount: number;
+    original_amount: number | null;
+  } {
+    return {
+      ...row,
+      amount: row.amount ? this.tryDecryptAmount(row.amount, dek, 0) : 0,
+      original_amount: row.original_amount
+        ? this.tryDecryptAmount(row.original_amount, dek, null)
+        : null,
+    };
+  }
+
   async prepareAmountData(
     amount: number,
     userId: string,
@@ -135,6 +166,20 @@ export class EncryptionService {
     const dek = await this.ensureUserDEK(userId, clientKey);
     const encrypted = this.encryptAmount(amount, dek);
     return { amount: encrypted };
+  }
+
+  async encryptOptionalAmount(
+    amount: number | null | undefined,
+    userId: string,
+    clientKey: Buffer,
+  ): Promise<string | null> {
+    if (amount == null) return null;
+    const { amount: encrypted } = await this.prepareAmountData(
+      amount,
+      userId,
+      clientKey,
+    );
+    return encrypted;
   }
 
   async prepareAmountsData(
@@ -373,14 +418,36 @@ export class EncryptionService {
 
     this.#invalidateUserDEKCache(userId);
 
+    const oldWrappedDEK = row.wrapped_dek;
+
     try {
       // Invalidate the wrapped DEK BEFORE re-encryption so a compromised recovery
       // key cannot unwrap a valid DEK during the re-encryption window.
-      // If the process fails after this point, recovery access is lost — the user
-      // will need to regenerate a recovery key from settings.
+      // If re-encryption fails, wrapped_dek is restored from oldWrappedDEK so
+      // recovery access is preserved. If the restore itself fails, recovery access
+      // is lost (warned in logs).
       await this.#repository.updateWrappedDEK(userId, null);
 
-      await this.reEncryptAllUserData(userId, oldDek, newDek, supabase);
+      try {
+        await this.reEncryptAllUserData(userId, oldDek, newDek, supabase);
+      } catch (rekeyError) {
+        try {
+          await this.#repository.updateWrappedDEK(userId, oldWrappedDEK);
+        } catch (restoreError) {
+          this.logger.warn(
+            {
+              userId,
+              operation: 'recover.restore_wrapped_dek_failed',
+              error:
+                restoreError instanceof Error
+                  ? restoreError.message
+                  : String(restoreError),
+            },
+            'Failed to restore wrapped_dek after rekey failure — stuck at null until recovery key regeneration',
+          );
+        }
+        throw rekeyError;
+      }
 
       // Re-wrap with the same recovery key — the frontend will immediately call
       // regenerateRecoveryKey$() to replace it with a fresh one.
@@ -617,12 +684,14 @@ export class EncryptionService {
 
     const keyCheck = this.generateKeyCheck(newDek);
 
+    const validated = this.#validateRekeyPayloads(payloads, userId);
+
     const { error } = await supabase.rpc('rekey_user_encrypted_data', {
-      p_budget_lines: payloads.budgetLines,
-      p_transactions: payloads.transactions,
-      p_template_lines: payloads.templateLines,
-      p_savings_goals: payloads.savingsGoals,
-      p_monthly_budgets: payloads.monthlyBudgets,
+      p_budget_lines: validated.budgetLines,
+      p_transactions: validated.transactions,
+      p_template_lines: validated.templateLines,
+      p_savings_goals: validated.savingsGoals,
+      p_monthly_budgets: validated.monthlyBudgets,
       p_key_check: keyCheck,
     });
 
@@ -653,23 +722,70 @@ export class EncryptionService {
     return keyCheck;
   }
 
+  #validateRekeyPayloads(
+    payloads: {
+      budgetLines: unknown;
+      transactions: unknown;
+      templateLines: unknown;
+      savingsGoals: unknown;
+      monthlyBudgets: unknown;
+    },
+    userId: string,
+  ) {
+    try {
+      return {
+        budgetLines: rekeyBudgetLinesRpcPayloadSchema.parse(
+          payloads.budgetLines,
+        ),
+        transactions: rekeyTransactionsRpcPayloadSchema.parse(
+          payloads.transactions,
+        ),
+        templateLines: rekeyTemplateLinesRpcPayloadSchema.parse(
+          payloads.templateLines,
+        ),
+        savingsGoals: rekeySavingsGoalsRpcPayloadSchema.parse(
+          payloads.savingsGoals,
+        ),
+        monthlyBudgets: rekeyMonthlyBudgetsRpcPayloadSchema.parse(
+          payloads.monthlyBudgets,
+        ),
+      };
+    } catch (validationError) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.ENCRYPTION_REKEY_FAILED,
+        undefined,
+        { userId, operation: 'rekey.payload_validation_failed' },
+        {
+          cause:
+            validationError instanceof Error
+              ? validationError
+              : new Error(String(validationError)),
+        },
+      );
+    }
+  }
+
   #buildRekeyPayloads(
     rows: {
       budgetLines: Array<{
         id: string;
         amount: string | null;
+        original_amount: string | null;
       }>;
       transactions: Array<{
         id: string;
         amount: string | null;
+        original_amount: string | null;
       }>;
       templateLines: Array<{
         id: string;
         amount: string | null;
+        original_amount: string | null;
       }>;
       savingsGoals: Array<{
         id: string;
         target_amount: string | null;
+        original_target_amount: string | null;
       }>;
       monthlyBudgets: Array<{
         id: string;
@@ -688,18 +804,22 @@ export class EncryptionService {
       budgetLines: rows.budgetLines.map((r) => ({
         id: r.id,
         amount: rekey(r.amount),
+        original_amount: rekey(r.original_amount),
       })),
       transactions: rows.transactions.map((r) => ({
         id: r.id,
         amount: rekey(r.amount),
+        original_amount: rekey(r.original_amount),
       })),
       templateLines: rows.templateLines.map((r) => ({
         id: r.id,
         amount: rekey(r.amount),
+        original_amount: rekey(r.original_amount),
       })),
       savingsGoals: rows.savingsGoals.map((r) => ({
         id: r.id,
         target_amount: rekey(r.target_amount),
+        original_target_amount: rekey(r.original_target_amount),
       })),
       monthlyBudgets: rows.monthlyBudgets.map((r) => ({
         id: r.id,
@@ -738,7 +858,7 @@ export class EncryptionService {
 
     const { data, error } = await supabase
       .from('budget_line')
-      .select('id, amount')
+      .select('id, amount, original_amount')
       .in('budget_id', budgetIds);
 
     if (error) throw error;
@@ -753,7 +873,7 @@ export class EncryptionService {
 
     const { data, error } = await supabase
       .from('transaction')
-      .select('id, amount')
+      .select('id, amount, original_amount')
       .in('budget_id', budgetIds);
 
     if (error) throw error;
@@ -768,7 +888,7 @@ export class EncryptionService {
 
     const { data, error } = await supabase
       .from('template_line')
-      .select('id, amount')
+      .select('id, amount, original_amount')
       .in('template_id', templateIds);
 
     if (error) throw error;
@@ -781,7 +901,7 @@ export class EncryptionService {
   ) {
     const { data, error } = await supabase
       .from('savings_goal')
-      .select('id, target_amount')
+      .select('id, target_amount, original_target_amount')
       .eq('user_id', userId);
 
     if (error) throw error;

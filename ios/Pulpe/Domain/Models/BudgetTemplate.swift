@@ -26,6 +26,12 @@ struct TemplateLine: Codable, Identifiable, Hashable, Sendable {
     let description: String
     let createdAt: Date
     let updatedAt: Date
+
+    // Currency conversion metadata
+    var originalAmount: Decimal?
+    var originalCurrency: SupportedCurrency?
+    var targetCurrency: SupportedCurrency?
+    var exchangeRate: Decimal?
 }
 
 // MARK: - Create/Update DTOs
@@ -61,19 +67,31 @@ struct TemplateLineCreate: Encodable {
     let kind: TransactionKind
     let recurrence: TransactionRecurrence
     let description: String
+    let originalAmount: Decimal?
+    let originalCurrency: SupportedCurrency?
+    let targetCurrency: SupportedCurrency?
+    let exchangeRate: Decimal?
 
     init(
         name: String,
         amount: Decimal,
         kind: TransactionKind,
         recurrence: TransactionRecurrence,
-        description: String = ""
+        description: String = "",
+        originalAmount: Decimal? = nil,
+        originalCurrency: SupportedCurrency? = nil,
+        targetCurrency: SupportedCurrency? = nil,
+        exchangeRate: Decimal? = nil
     ) {
         self.name = name
         self.amount = amount
         self.kind = kind
         self.recurrence = recurrence
         self.description = description
+        self.originalAmount = originalAmount
+        self.originalCurrency = originalCurrency
+        self.targetCurrency = targetCurrency
+        self.exchangeRate = exchangeRate
     }
 }
 
@@ -83,6 +101,10 @@ struct TemplateLineUpdate: Encodable {
     var kind: TransactionKind?
     var recurrence: TransactionRecurrence?
     var description: String?
+    var originalAmount: Decimal?
+    var originalCurrency: SupportedCurrency?
+    var targetCurrency: SupportedCurrency?
+    var exchangeRate: Decimal?
 }
 
 // MARK: - Bulk Operations
@@ -113,6 +135,10 @@ struct TemplateLineUpdateWithId: Encodable {
     var kind: TransactionKind?
     var recurrence: TransactionRecurrence?
     var description: String?
+    var originalAmount: Decimal?
+    var originalCurrency: SupportedCurrency?
+    var targetCurrency: SupportedCurrency?
+    var exchangeRate: Decimal?
 }
 
 // MARK: - Response Types
@@ -209,11 +235,35 @@ struct BudgetTemplateCreateFromOnboarding: Encodable {
     }
 }
 
-struct OnboardingTransaction: Encodable {
-    let amount: Decimal
+struct OnboardingTransaction: Identifiable, Encodable, Sendable {
+    let id: UUID
+    var amount: Decimal
     let type: TransactionKind
     let name: String
     let description: String?
     let expenseType: TransactionRecurrence
     let isRecurring: Bool
+
+    init(
+        id: UUID = UUID(),
+        amount: Decimal,
+        type: TransactionKind,
+        name: String,
+        description: String? = nil,
+        expenseType: TransactionRecurrence = .fixed,
+        isRecurring: Bool = true
+    ) {
+        self.id = id
+        self.amount = amount
+        self.type = type
+        self.name = name
+        self.description = description
+        self.expenseType = expenseType
+        self.isRecurring = isRecurring
+    }
+
+    // Exclude `id` from JSON — the shared schema has no id field
+    private enum CodingKeys: String, CodingKey {
+        case amount, type, name, description, expenseType, isRecurring
+    }
 }

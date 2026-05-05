@@ -25,10 +25,12 @@ export class BudgetTemplatesPage {
   }
 
   async navigateToTemplateDetails(templateName: string) {
-    await this.page.getByTestId(`template-${templateName}`).getByTestId('view-details-button').click();
+    await this.page.getByTestId(`template-${templateName}`).click();
   }
 
   async expectTemplateVisible(templateName: string) {
-    await expect(this.page.getByTestId(`template-${templateName}`)).toBeVisible();
+    await expect(
+      this.page.getByTestId(`template-${templateName}`),
+    ).toBeVisible();
   }
 }

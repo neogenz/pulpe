@@ -6,6 +6,7 @@ struct ProjectionCard: View {
     let projection: BudgetFormulas.Projection
 
     @Environment(\.amountsHidden) private var amountsHidden
+    @Environment(UserSettingsStore.self) private var userSettingsStore
 
     private var icon: String {
         switch projection.trend {
@@ -24,7 +25,7 @@ struct ProjectionCard: View {
     }
 
     private var message: String {
-        let amount = projection.projectedEndOfMonthBalance.asCompactCHF
+        let amount = projection.projectedEndOfMonthBalance.asCompactCurrency(userSettingsStore.currency)
         if projection.projectedEndOfMonthBalance < 0 {
             return "À ce rythme, tu finiras le mois avec un déficit de \(amount)"
         }
@@ -32,7 +33,7 @@ struct ProjectionCard: View {
     }
 
     private var subMessage: String {
-        let dailyRate = projection.dailySpendingRate.asCompactCHF
+        let dailyRate = projection.dailySpendingRate.asCompactCurrency(userSettingsStore.currency)
         return "\(dailyRate)/jour en moyenne · \(projection.daysRemaining) jours restants"
     }
 
@@ -107,4 +108,5 @@ struct ProjectionCard: View {
     }
     .padding()
     .pulpeBackground()
+    .environment(UserSettingsStore())
 }

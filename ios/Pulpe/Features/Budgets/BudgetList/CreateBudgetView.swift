@@ -8,6 +8,7 @@ struct CreateBudgetView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var viewModel: CreateBudgetViewModel
     @State private var hasAppeared = false
+    @State private var showCreateTemplate = false
 
     init(month: Int, year: Int, onCreate: @escaping (Budget) -> Void) {
         self.month = month
@@ -67,6 +68,11 @@ struct CreateBudgetView: View {
             }
         }
         .standardSheetPresentation()
+        .sheet(isPresented: $showCreateTemplate) {
+            CreateTemplateView { _ in
+                Task(name: "CreateBudget.reloadTemplates") { await viewModel.loadTemplates() }
+            }
+        }
     }
 
     // MARK: - Create Button
@@ -187,13 +193,20 @@ struct CreateBudgetView: View {
                 .font(PulpeTypography.subheadline)
                 .foregroundStyle(Color.textSecondary)
 
-            Text("Crée d'abord un modèle dans l'onglet Modèles")
+            Text("Crée-en un pour préparer ton budget")
                 .font(PulpeTypography.detailLabel)
                 .foregroundStyle(Color.textTertiary)
                 .multilineTextAlignment(.center)
+
+            Button("Créer un modèle") {
+                showCreateTemplate = true
+            }
+            .primaryButtonStyle()
+            .padding(.top, DesignTokens.Spacing.sm)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, DesignTokens.Spacing.xxxl)
+        .padding(.horizontal, DesignTokens.Spacing.lg)
         .pulpeCardBackground(cornerRadius: DesignTokens.CornerRadius.md)
     }
 
@@ -241,6 +254,7 @@ struct TemplateSelectionCard: View {
     let onSelect: () -> Void
 
     @State private var isPressed = false
+    @Environment(UserSettingsStore.self) private var userSettingsStore
 
     var body: some View {
         Button(action: onSelect) {
@@ -323,7 +337,7 @@ struct TemplateSelectionCard: View {
                     .font(PulpeTypography.detailLabel)
                     .foregroundStyle(Color.financialIncome)
 
-                Text(totals.totalIncome.asCompactCHF)
+                Text(totals.totalIncome.asArithmeticSignedCompactCurrency(userSettingsStore.currency))
                     .font(PulpeTypography.inputHelper)
                     .foregroundStyle(Color.financialIncome)
                     .sensitiveAmount()
@@ -334,7 +348,7 @@ struct TemplateSelectionCard: View {
                     .font(PulpeTypography.detailLabel)
                     .foregroundStyle(Color.financialExpense)
 
-                Text(totals.totalExpenses.asCompactCHF)
+                Text(totals.totalExpenses.asSignedCompactCurrency(userSettingsStore.currency, for: .expense))
                     .font(PulpeTypography.inputHelper)
                     .foregroundStyle(Color.financialExpense)
                     .sensitiveAmount()
@@ -346,7 +360,7 @@ struct TemplateSelectionCard: View {
                     .font(PulpeTypography.detailLabel)
                     .foregroundStyle(totals.balance >= 0 ? Color.financialSavings : Color.financialOverBudget)
 
-                Text(totals.balance.asCompactCHF)
+                Text(totals.balance.asArithmeticSignedCompactCurrency(userSettingsStore.currency))
                     .font(PulpeTypography.inputHelper)
                     .foregroundStyle(totals.balance >= 0 ? Color.financialSavings : Color.financialOverBudget)
                     .sensitiveAmount()

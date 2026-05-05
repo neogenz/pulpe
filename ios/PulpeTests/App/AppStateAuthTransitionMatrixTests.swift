@@ -318,7 +318,7 @@ struct AppStateAuthTransitionMatrixTests {
         await sut.resolvePostAuth(user: user)
 
         #expect(sut.authState == .unauthenticated, "Should redirect to onboarding, not PIN entry")
-        #expect(sut.pendingSocialUser == user, "Should set pending social user for onboarding")
+        #expect(sut.pendingOnboardingUser == .social(user), "Should set pending social user for onboarding")
     }
 
     @Test("needsPinEntry with incomplete onboarding redirects to onboarding, not PIN")
@@ -331,7 +331,7 @@ struct AppStateAuthTransitionMatrixTests {
         await sut.resolvePostAuth(user: user)
 
         #expect(sut.authState == .unauthenticated, "Should redirect to onboarding, not PIN entry")
-        #expect(sut.pendingSocialUser == user, "Should set pending social user for onboarding")
+        #expect(sut.pendingOnboardingUser == .social(user), "Should set pending social user for onboarding")
     }
 
     @Test("vaultCheckFailed for returning user still shows PIN entry")

@@ -5,8 +5,13 @@ import {
   output,
   computed,
 } from '@angular/core';
+import { type SupportedCurrency } from 'pulpe-shared';
 import { MonthTile } from './month-tile';
-import { type CalendarMonth, type CalendarYear } from './calendar-types';
+import {
+  type CalendarMonth,
+  type CalendarYear,
+  type MonthTileLabels,
+} from './calendar-types';
 
 @Component({
   selector: 'pulpe-year-calendar',
@@ -38,6 +43,9 @@ import { type CalendarMonth, type CalendarYear } from './calendar-types';
         @for (month of displayMonths(); track month.id) {
           <pulpe-month-tile
             [month]="month"
+            [labels]="labels()"
+            [currency]="currency()"
+            [locale]="locale()"
             [isCurrentMonth]="isCurrentMonth(month)"
             (tileClick)="handleMonthClick($event)"
           />
@@ -56,7 +64,12 @@ export class YearCalendar {
   readonly calendarYear = input.required<CalendarYear>();
 
   // Optional inputs
+  readonly currency = input<SupportedCurrency>('CHF');
+  readonly locale = input<string>('de-CH');
   readonly currentDate = input<{ month: number; year: number }>();
+
+  // i18n labels delegated to consumer per ui/ layer rule (no TranslocoService here).
+  readonly labels = input.required<MonthTileLabels>();
 
   // Outputs
   readonly monthClick = output<CalendarMonth>();

@@ -10,9 +10,14 @@ import {
 import { DecimalPipe } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { TranslocoPipe } from '@jsverse/transloco';
+import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 
-import type { BudgetPeriodDates } from 'pulpe-shared';
+import {
+  CURRENCY_METADATA,
+  getCurrencyFormatter,
+  type BudgetPeriodDates,
+  type SupportedCurrency,
+} from 'pulpe-shared';
 
 @Component({
   selector: 'pulpe-dashboard-hero',
@@ -24,15 +29,10 @@ import type { BudgetPeriodDates } from 'pulpe-shared';
       [class.budget-warning]="isWarning()"
       (click)="heroClick.emit()"
       (keydown.enter)="heroClick.emit()"
+      (keydown.space)="$event.preventDefault(); heroClick.emit()"
       tabindex="0"
       role="button"
-      [attr.aria-label]="
-        ('dashboard.available' | transloco) +
-        ' ' +
-        remaining() +
-        ' CHF — ' +
-        periodLabel()
-      "
+      [attr.aria-label]="remainingAriaLabel()"
     >
       <div
         class="absolute -right-10 -bottom-10 w-56 h-56 bg-white/15 rounded-full blur-3xl pointer-events-none"
@@ -89,21 +89,25 @@ import type { BudgetPeriodDates } from 'pulpe-shared';
             class="font-extrabold text-display-large tracking-tighter leading-none ph-no-capture"
             data-testid="hero-remaining-amount"
           >
-            {{ remaining() | number: '1.2-2' : 'de-CH' }}
+            {{ remaining() | number: '1.0-0' : locale() }}
           </span>
-          <span class="text-title-large font-semibold opacity-70">CHF</span>
+          <span class="text-title-large font-semibold opacity-70">{{
+            currencySymbol()
+          }}</span>
         </div>
         <p class="text-body-small opacity-60 mt-1">
           {{ 'dashboard.income' | transloco }}
           <span class="ph-no-capture">{{
-            totalIncome() | number: '1.2-2' : 'de-CH'
+            totalIncome() | number: '1.0-0' : locale()
           }}</span>
+          {{ currencySymbol() }}
           @let rollover = rolloverAmount();
           @if (rollover !== 0) {
             <span class="opacity-80 ph-no-capture">
               {{ 'dashboard.rollover' | transloco }}
               {{ rollover > 0 ? '+' : ''
-              }}{{ rollover | number: '1.2-2' : 'de-CH' }}
+              }}{{ rollover | number: '1.0-0' : locale() }}
+              {{ currencySymbol() }}
             </span>
           }
         </p>
@@ -117,16 +121,16 @@ import type { BudgetPeriodDates } from 'pulpe-shared';
           <span>
             {{ 'dashboard.spent' | transloco }}
             <span data-testid="hero-expenses-amount" class="ph-no-capture">{{
-              absExpenses() | number: '1.2-2' : 'de-CH'
+              absExpenses() | number: '1.0-0' : locale()
             }}</span>
-            CHF
+            {{ currencySymbol() }}
           </span>
           <span class="opacity-70">
             {{ 'dashboard.on' | transloco }}
             <span class="ph-no-capture">{{
-              available() | number: '1.2-2' : 'de-CH'
+              available() | number: '1.0-0' : locale()
             }}</span>
-            CHF
+            {{ currencySymbol() }}
           </span>
         </div>
         <div
@@ -211,6 +215,7 @@ export class DashboardHero {
   readonly #monthFormatter = new Intl.DateTimeFormat(inject(LOCALE_ID), {
     month: 'long',
   });
+  readonly #transloco = inject(TranslocoService);
   readonly expenses = input.required<number>();
   readonly available = input.required<number>();
   readonly periodDates = input.required<BudgetPeriodDates>();
@@ -220,6 +225,11 @@ export class DashboardHero {
   readonly paceStatus = input<'on-track' | 'tight'>('on-track');
   readonly warningThreshold = input(90);
 
+  readonly currency = input<SupportedCurrency>('CHF');
+  readonly locale = input<string>('de-CH');
+  protected readonly currencySymbol = computed(
+    () => CURRENCY_METADATA[this.currency()].symbol,
+  );
   readonly remaining = input.required<number>();
   readonly budgetConsumedPercentage = input.required<number>();
 
@@ -249,5 +259,12 @@ export class DashboardHero {
     const end = dates.endDate.getTime();
     const middleDate = new Date(start + (end - start) / 2);
     return this.#monthFormatter.format(middleDate);
+  });
+
+  protected readonly remainingAriaLabel = computed(() => {
+    const formatted = getCurrencyFormatter(this.currency()).format(
+      this.remaining(),
+    );
+    return `${this.#transloco.translate('dashboard.available')} ${formatted} — ${this.periodLabel()}`;
   });
 }

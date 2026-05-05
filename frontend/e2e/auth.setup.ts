@@ -20,9 +20,12 @@ setup('authenticate', async ({ page }) => {
       data: validKeyHex,
       updatedAt: new Date().toISOString(),
     };
-    sessionStorage.setItem('pulpe-vault-client-key-session', JSON.stringify(entry));
+    sessionStorage.setItem(
+      'pulpe-vault-client-key-session',
+      JSON.stringify(entry),
+    );
   });
-  
+
   // Navigate and save mocked auth state for critical path tests
   await page.goto('/dashboard');
   await page.context().storageState({ path: authFile });
