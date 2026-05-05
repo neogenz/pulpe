@@ -115,6 +115,9 @@ describe('CurrencyService — FX transitions (S3-F1)', () => {
       amount: 100,
       name: 'Rent',
       targetCurrency: 'CHF',
+      originalAmount: null,
+      originalCurrency: null,
+      exchangeRate: null,
     });
 
     const patchDto: FxDto = {
@@ -134,11 +137,11 @@ describe('CurrencyService — FX transitions (S3-F1)', () => {
     });
   });
 
-  // Transition 3: Create same-currency directly (budget CHF, no FX override)
-  // Expected: no orphan — source FX fields stay absent (missingCurrencyPair
-  // branch leaves FX untouched because no FX source key is sent), target_currency
-  // is preserved from client.
-  it('should not introduce orphan FX fields on direct same-currency create', async () => {
+  // Transition 3: Create same-currency directly (budget CHF, no FX override).
+  // Service emits explicit nulls for the 3 source FX fields so the row lands in
+  // CHECK state 2 (target present, all source NULL) regardless of any pre-existing
+  // stale source columns. target_currency is preserved from client.
+  it('should emit explicit source FX nulls on direct same-currency create', async () => {
     const createDto: FxDto = {
       amount: 100,
       name: 'Rent',
@@ -149,6 +152,34 @@ describe('CurrencyService — FX transitions (S3-F1)', () => {
     expect(result).toEqual({
       amount: 100,
       name: 'Rent',
+      targetCurrency: 'CHF',
+      originalAmount: null,
+      originalCurrency: null,
+      exchangeRate: null,
+    });
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  // Transition 3-bis (PUL bug repro): row already in DB state 3 (full FX override
+  // EUR→CHF). Client PATCHes ONLY targetCurrency to match the existing original
+  // currency (e.g. user collapses cross-currency line into same-currency by
+  // changing the budget display currency). overrideExchangeRate receives only
+  // { targetCurrency } so #buildMissingPairFx is taken with touchesSourceFx=false
+  // and previously emitted ONLY targetCurrency. The repository UPDATE then left
+  // original_amount/original_currency/exchange_rate untouched in DB, producing
+  // a row where original_currency == target_currency, which violates the
+  // fx_metadata_coherent CHECK (state 3 requires original_currency <> target_currency).
+  // Service must force-null the 3 source FX fields so the row reaches state 2.
+  it('should clear source FX fields when patching targetCurrency only to match existing originalCurrency', async () => {
+    const patchDto: FxDto = {
+      targetCurrency: 'CHF',
+    };
+    const result = await service.overrideExchangeRate(patchDto);
+
+    expect(result).toEqual({
+      originalAmount: null,
+      originalCurrency: null,
+      exchangeRate: null,
       targetCurrency: 'CHF',
     });
     expect(fetchSpy).not.toHaveBeenCalled();

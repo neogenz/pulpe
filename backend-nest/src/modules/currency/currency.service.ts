@@ -206,15 +206,20 @@ export class CurrencyService {
   }
 
   // Incomplete conversion context → drop forged FX values (defence-in-depth).
-  // If any FX source key was sent by the client (originalAmount, originalCurrency,
-  // exchangeRate), force-null all three so the row can never violate the
-  // fx_metadata_coherent CHECK constraint. Clients that did not touch FX at all
-  // leave the columns untouched, preserving PATCH semantics.
+  // Force-null all three source FX fields whenever the client touches any FX key
+  // (source OR targetCurrency) so the row can never violate the
+  // fx_metadata_coherent CHECK constraint. This covers the targetCurrency-only
+  // PATCH case where a row already in DB state 3 (full FX override) would
+  // otherwise keep stale source columns and end up with original_currency ==
+  // target_currency. Clients that did not touch any FX key leave the columns
+  // untouched, preserving PATCH semantics for non-FX updates. Nulling
+  // already-null columns is a no-op for rows in state 1 or 2.
   #buildMissingPairFx(fxFields: FxCarrier): FxCarrier {
-    const touchesSourceFx = FX_SOURCE_KEYS.some((k) => k in fxFields);
+    const touchesAnyFx =
+      FX_SOURCE_KEYS.some((k) => k in fxFields) || 'targetCurrency' in fxFields;
 
     const preservedFx: FxCarrier = {};
-    if (touchesSourceFx) {
+    if (touchesAnyFx) {
       preservedFx.originalAmount = null;
       preservedFx.originalCurrency = null;
       preservedFx.exchangeRate = null;
