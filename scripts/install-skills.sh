@@ -50,7 +50,21 @@ fi
 echo "→ Installing skills from skills-lock.json..."
 pnpx skills experimental_install -y
 
-# 4. Worktree-only: recreate missing .claude/skills symlinks from main repo
+# 4. Symlink .agents/skills/* into .claude/skills/ so Claude Code can see them
+#    (Claude Code reads .claude/skills/, not .agents/skills/)
+mkdir -p "$WORKTREE/.claude/skills"
+synced=0
+for skill in "$WORKTREE"/.agents/skills/*; do
+  [[ -d "$skill" ]] || continue
+  name="$(basename "$skill")"
+  target="$WORKTREE/.claude/skills/$name"
+  [[ -e "$target" || -L "$target" ]] && continue
+  ln -s "../../.agents/skills/$name" "$target"
+  synced=$((synced + 1))
+done
+(( synced > 0 )) && echo "✓ Linked $synced skills into .claude/skills/"
+
+# 5. Worktree-only: recreate missing .claude/skills symlinks from main repo
 MAIN_REPO="$(git worktree list --porcelain | head -1 | sed 's/^worktree //')"
 if [[ "$(cd "$WORKTREE" && pwd -P)" == "$(cd "$MAIN_REPO" && pwd -P)" ]]; then
   exit 0
