@@ -76,13 +76,20 @@ extension AppState {
         )
     }
 
+    /// Resolves the post-auth destination, applies it, and returns it for caller inspection.
+    /// Both `resolvePostAuth` (non-throwing) and `resolvePostAuthOrThrow` delegate here.
+    private func resolveAndApplyPostAuth(user: UserInfo) async -> PostAuthDestination {
+        let destination = await postAuthResolver.resolve()
+        authDebug("AUTH_RESOLVE_POST_AUTH", "destination=\(destination)")
+        await applyPostAuthDestination(destination, user: user)
+        return destination
+    }
+
     /// After Supabase session is valid, route deterministically to setup/entry/app.
     /// Non-throwing — used by cold-start / bootstrap / flow-state paths that want
     /// best-effort routing even when post-auth determines the user is unauthenticated.
     func resolvePostAuth(user: UserInfo) async {
-        let destination = await postAuthResolver.resolve()
-        authDebug("AUTH_RESOLVE_POST_AUTH", "destination=\(destination)")
-        await applyPostAuthDestination(destination, user: user)
+        _ = await resolveAndApplyPostAuth(user: user)
     }
 
     /// Throwing variant for active login flows. Throws `AuthServiceError.sessionExpired`
@@ -90,9 +97,7 @@ extension AppState {
     /// caller (LoginView, SocialLoginButtons) can reset its loading state and surface
     /// an error message instead of silently completing while the UI stays mounted.
     func resolvePostAuthOrThrow(user: UserInfo) async throws {
-        let destination = await postAuthResolver.resolve()
-        authDebug("AUTH_RESOLVE_POST_AUTH", "destination=\(destination)")
-        await applyPostAuthDestination(destination, user: user)
+        let destination = await resolveAndApplyPostAuth(user: user)
         if case .unauthenticatedSessionExpired = destination {
             throw AuthServiceError.sessionExpired
         }
