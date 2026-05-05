@@ -135,7 +135,6 @@ struct RootView: View {
     @Environment(UIPreferencesState.self) private var uiPreferences
     @Environment(CurrentMonthStore.self) private var currentMonthStore
     @Environment(UserSettingsStore.self) private var userSettingsStore
-    @Environment(FeatureFlagsStore.self) private var featureFlagsStore
     @Environment(\.scenePhase) private var scenePhase
     var runtimeCoordinator: AppRuntimeCoordinator
     @Binding var deepLinkDestination: DeepLinkDestination?
@@ -204,17 +203,7 @@ struct RootView: View {
         .onChange(of: appState.authState) { _, _ in
             handlePendingDeepLink()
         }
-        .onChange(of: featureFlagsStore.isMultiCurrencyEnabled) { _, _ in
-            refreshCurrencyPersonProperties()
-        }
-        // Catches mutations outside the settings page — e.g. the onboarding
-        // income step persists `state.currency` on completion.
-        .onChange(of: userSettingsStore.currency) { _, _ in
-            refreshCurrencyPersonProperties()
-        }
-        .onChange(of: userSettingsStore.showCurrencySelector) { _, _ in
-            refreshCurrencyPersonProperties()
-        }
+        .syncCurrencyAnalytics()
         .environment(\.amountsHidden, uiPreferences.amountsHidden)
     }
 
@@ -357,21 +346,7 @@ struct RootView: View {
             await currentMonthStore.loadBudgetSummary(
                 payDayOfMonth: userSettingsStore.payDayOfMonth
             )
-            refreshCurrencyPersonProperties()
         }
-    }
-
-    /// Pushes the current currency-related state to PostHog as person properties
-    /// via `$set`. Double-gated: requires both an authenticated app state AND a
-    /// fired `identify(userId:)` (enforced inside `AnalyticsService.setPersonProperties`)
-    /// so properties never land on the anonymous profile.
-    private func refreshCurrencyPersonProperties() {
-        guard appState.authState == .authenticated else { return }
-        AnalyticsService.shared.setPersonProperties([
-            AnalyticsService.currencyProperty: userSettingsStore.currency.rawValue,
-            AnalyticsService.showCurrencySelectorProperty: userSettingsStore.showCurrencySelector,
-            AnalyticsService.multiCurrencyEnabledProperty: featureFlagsStore.isMultiCurrencyEnabled
-        ])
     }
 
     private func handlePendingDeepLink() {

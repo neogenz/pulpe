@@ -138,12 +138,11 @@ struct CurrencySettingView: View {
         await viewModel.save(using: userSettingsStore)
         guard !Task.isCancelled else { return }
         if userSettingsStore.error == nil {
+            // Action event only — the person property `$set` is handled by
+            // `CurrencyAnalyticsSyncModifier` observing the store directly.
             AnalyticsService.shared.capture(.currencyChanged, properties: [
                 "from": from.rawValue,
                 "to": to.rawValue
-            ])
-            AnalyticsService.shared.setPersonProperties([
-                AnalyticsService.currencyProperty: to.rawValue
             ])
             submitSuccessTrigger.toggle()
             appState.toastManager.show("Devise enregistrée", type: .success)
@@ -163,11 +162,10 @@ struct CurrencySettingView: View {
         await userSettingsStore.updateShowCurrencySelector(newValue)
         guard !Task.isCancelled else { return }
         if userSettingsStore.error == nil {
+            // See `persistCurrencyChange`: person property sync lives in
+            // `CurrencyAnalyticsSyncModifier`, this only fires the action event.
             AnalyticsService.shared.capture(.currencySelectorToggled, properties: [
                 "enabled": newValue
-            ])
-            AnalyticsService.shared.setPersonProperties([
-                AnalyticsService.showCurrencySelectorProperty: newValue
             ])
             submitSuccessTrigger.toggle()
             appState.toastManager.show("Préférence enregistrée", type: .success)
