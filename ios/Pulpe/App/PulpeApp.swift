@@ -40,6 +40,15 @@ struct PulpeApp: App {
             userSettingsStore: userSettingsStore
         )
 
+        // Wire currency persistence from `OnboardingBootstrapper` to `UserSettingsStore`.
+        // Runs after PIN setup completes so the API call carries `X-Client-Key`.
+        // Returns `true` only when the store's optimistic update was confirmed by the
+        // backend (no error after the await) — bootstrap toasts the user on `false`.
+        appState.onboardingBootstrapper.persistCurrency = { [userSettingsStore] currency in
+            await userSettingsStore.updateCurrency(currency)
+            return userSettingsStore.error == nil
+        }
+
         _appState = State(initialValue: appState)
         _currentMonthStore = State(initialValue: currentMonthStore)
         _budgetListStore = State(initialValue: budgetListStore)
