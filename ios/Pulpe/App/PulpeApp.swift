@@ -203,6 +203,7 @@ struct RootView: View {
         .onChange(of: appState.authState) { _, _ in
             handlePendingDeepLink()
         }
+        .syncCurrencyAnalytics()
         .environment(\.amountsHidden, uiPreferences.amountsHidden)
     }
 

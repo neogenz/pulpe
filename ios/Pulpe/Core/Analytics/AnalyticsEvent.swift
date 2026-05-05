@@ -52,4 +52,8 @@ enum AnalyticsEvent: String, CaseIterable {
 
     // MARK: - Navigation
     case tabSwitched = "tab_switched"
+
+    // MARK: - Currency
+    case currencyChanged = "currency_changed"
+    case currencySelectorToggled = "currency_selector_toggled"
 }

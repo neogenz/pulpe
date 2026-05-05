@@ -139,7 +139,9 @@ export { API_ERROR_CODES, type ApiErrorCode } from './src/error-codes.js';
 export {
   FEATURE_FLAGS,
   ANALYTICS_PROPERTIES,
+  ANALYTICS_EVENTS,
   type FeatureFlagKey,
+  type AnalyticsEventName,
 } from './src/feature-flags.js';
 
 // Export response schema factories

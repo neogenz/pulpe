@@ -95,6 +95,15 @@ app_opened → welcome_screen_viewed → onboarding_started
 | `tutorial_completed` | Tutorial finish | — |
 | `tutorial_cancelled` | User skip tutorial | — |
 
+### Settings / Account Events
+
+| Event | When | Properties | Web | iOS |
+|-------|------|------------|-----|-----|
+| `currency_changed` | User select different currency in settings + save (web) or pick (iOS) succeeds | `from` (`CHF` \| `EUR`), `to` (`CHF` \| `EUR`) | ✅ | ✅ |
+| `currency_selector_toggled` | User toggle "Saisir dans une autre devise" + save succeeds | `enabled` (bool) | ✅ | ✅ |
+
+Both events naturally gate on the `multi-currency-enabled` flag because the corresponding UI is only rendered when it's enabled. Event names + property keys are sourced from `pulpe-shared` (`ANALYTICS_EVENTS`) — never hardcode.
+
 ### iOS App Events
 
 | Event | When | Properties |

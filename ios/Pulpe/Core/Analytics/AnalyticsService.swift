@@ -11,9 +11,16 @@ final class AnalyticsService {
     /// PostHog person property keys — must mirror `ANALYTICS_PROPERTIES`
     /// in `shared/src/feature-flags.ts`.
     nonisolated static let earlyAdopterProperty = "early_adopter"
+    nonisolated static let currencyProperty = "currency"
+    nonisolated static let showCurrencySelectorProperty = "show_currency_selector"
+    nonisolated static let multiCurrencyEnabledProperty = "multi_currency_enabled"
 
     private(set) var isInitialized = false
     private(set) var isEventCapturingEnabled = false
+    /// Tracks whether `identify(userId:)` has fired in this session. Person property
+    /// updates are gated on this flag to prevent writing to the anonymous profile
+    /// before the user has been identified.
+    private(set) var isIdentified = false
 
     private init() {}
 
@@ -74,11 +81,22 @@ final class AnalyticsService {
                 "first_app_version": AppConfiguration.appVersion
             ]
         )
+        isIdentified = true
+    }
+
+    /// Updates person properties on the currently identified user via PostHog `$set`.
+    /// No-op when the user has not yet been identified — prevents leaking
+    /// preferences onto the anonymous person profile.
+    func setPersonProperties(_ properties: [String: Any]) {
+        guard isEventCapturingEnabled, isIdentified else { return }
+        let sanitized = Self.sanitizeProperties(properties)
+        PostHogSDK.shared.setPersonProperties(userPropertiesToSet: sanitized)
     }
 
     func reset() {
         guard isInitialized else { return }
         PostHogSDK.shared.reset()
+        isIdentified = false
     }
 
     // MARK: - Feature Flags
