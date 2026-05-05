@@ -129,3 +129,6 @@ supabase-migration-20260210/
 /resources/
 
 *.p8
+
+# asc CLI build artifacts (xcarchive, IPA, logs)
+.asc/
