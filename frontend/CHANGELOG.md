@@ -1,5 +1,15 @@
 # pulpe-frontend
 
+## 0.34.0
+
+### Minor Changes
+
+- Multi-devise EUR/CHF, refonte modèles de budget, convertisseur de devises et nombreuses améliorations.
+
+### Patch Changes
+
+- pulpe-shared@0.34.0
+
 ## 0.33.2
 
 ### Patch Changes

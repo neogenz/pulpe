@@ -1,9 +1,116 @@
 [
   {
+    "version": "0.34.0",
+    "date": "2026-05-05",
+    "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.34.0",
+    "platforms": [
+      "web",
+      "ios"
+    ],
+    "changes": {
+      "features": [
+        {
+          "title": "Multi-devise EUR/CHF",
+          "description": "Gestion complète des devises avec taux de change, formatage localisé et conversion automatique (activable via feature flag)"
+        },
+        {
+          "title": "Convertisseur de devises",
+          "description": "Nouveau widget dans les Réglages pour convertir entre devises avec taux à jour"
+        },
+        {
+          "title": "Refonte des modèles de budget",
+          "description": "Page modèles harmonisée avec la vue détail du budget pour une expérience cohérente"
+        },
+        {
+          "title": "Page d'accueil repensée",
+          "description": "Nouveau layout éditorial avec animations de transition entre vues"
+        },
+        {
+          "title": "Devise sur iOS",
+          "description": "Formatage natif selon la locale et bascule de devise utilisateur"
+        },
+        {
+          "title": "Clavier amélioré sur iOS",
+          "description": "Barre d'outils de navigation entre champs pendant l'onboarding"
+        },
+        {
+          "title": "Onboarding iOS plus accessible",
+          "description": "En-têtes de section et chips suggérées avec meilleurs contrastes et focus"
+        },
+        {
+          "title": "Suivi analytique devise",
+          "description": "Tracking de l'adoption du sélecteur de devise"
+        }
+      ],
+      "fixes": [
+        {
+          "title": "Tableau de bord",
+          "description": "Résolution d'un problème de course sur le pointage des prévisions"
+        },
+        {
+          "title": "Réinitialisation des réglages",
+          "description": "Nettoyage complet des données utilisateur au reset"
+        },
+        {
+          "title": "Reprise iOS Safari",
+          "description": "Récupération fiable après mise en veille longue"
+        },
+        {
+          "title": "Erreurs en français",
+          "description": "Messages de validation Zod traduits côté client"
+        },
+        {
+          "title": "Séparateur décimal CHF",
+          "description": "Cohérence du point décimal sur tous les écrans"
+        },
+        {
+          "title": "Limite onboarding",
+          "description": "Plafond de 50 transactions personnalisées dans l UI"
+        },
+        {
+          "title": "Déconnexion iOS",
+          "description": "Affichage des erreurs globales lors du sign out"
+        },
+        {
+          "title": "Devise onboarding iOS",
+          "description": "Persistance correcte de la devise après configuration du code PIN"
+        },
+        {
+          "title": "Biométrie iOS",
+          "description": "Bonne modalité affichée (Touch ID / Optic ID) selon l'appareil"
+        },
+        {
+          "title": "Sécurité backend",
+          "description": "Protection contre l'IDOR sur la création de modèles, préservation de la clé de récupération sur échec de rekey, métadonnées FX persistées correctement"
+        }
+      ],
+      "technical": [
+        {
+          "title": "Durcissement du noyau d'authentification",
+          "description": "Déduplication, validation JWT et atomicité renforcés"
+        },
+        {
+          "title": "Migration ziflux DataCache",
+          "description": "Mise en cache des taux de change via la nouvelle abstraction"
+        },
+        {
+          "title": "Révocation JWT serveur",
+          "description": "Sessions invalidées côté serveur lors de la suppression de compte et reset de mot de passe"
+        },
+        {
+          "title": "Formulaires devise",
+          "description": "Migration vers signal-forms"
+        }
+      ]
+    }
+  },
+  {
     "version": "0.33.1",
     "date": "2026-04-13",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.33.1",
-    "platforms": ["web"],
+    "platforms": [
+      "web"
+    ],
     "changes": {
       "features": [],
       "fixes": [
@@ -28,7 +135,9 @@
     "version": "0.33.0",
     "date": "2026-04-08",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.33.0",
-    "platforms": ["ios"],
+    "platforms": [
+      "ios"
+    ],
     "changes": {
       "features": [
         {
@@ -53,7 +162,10 @@
     "version": "0.32.1",
     "date": "2026-04-03",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.32.1",
-    "platforms": ["web", "ios"],
+    "platforms": [
+      "web",
+      "ios"
+    ],
     "changes": {
       "features": [],
       "fixes": [
@@ -77,7 +189,10 @@
     "version": "0.32.0",
     "date": "2026-04-02",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.32.0",
-    "platforms": ["web", "ios"],
+    "platforms": [
+      "web",
+      "ios"
+    ],
     "changes": {
       "features": [
         {
@@ -127,7 +242,9 @@
     "version": "0.31.2",
     "date": "2026-03-29",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.31.2",
-    "platforms": ["ios"],
+    "platforms": [
+      "ios"
+    ],
     "changes": {
       "features": [],
       "fixes": [
@@ -155,7 +272,9 @@
     "version": "0.31.1",
     "date": "2026-03-27",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.31.1",
-    "platforms": ["ios"],
+    "platforms": [
+      "ios"
+    ],
     "changes": {
       "features": [],
       "fixes": [
@@ -191,7 +310,10 @@
     "version": "0.31.0",
     "date": "2026-03-27",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.31.0",
-    "platforms": ["web", "ios"],
+    "platforms": [
+      "web",
+      "ios"
+    ],
     "changes": {
       "features": [
         {
@@ -265,7 +387,10 @@
     "version": "0.30.0",
     "date": "2026-03-13",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.30.0",
-    "platforms": ["web", "ios"],
+    "platforms": [
+      "web",
+      "ios"
+    ],
     "changes": {
       "features": [
         {
@@ -339,7 +464,10 @@
     "version": "0.29.0",
     "date": "2026-03-04",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.29.0",
-    "platforms": ["web", "ios"],
+    "platforms": [
+      "web",
+      "ios"
+    ],
     "changes": {
       "features": [
         {
@@ -393,7 +521,10 @@
     "version": "0.28.0",
     "date": "2026-02-28",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.28.0",
-    "platforms": ["web", "ios"],
+    "platforms": [
+      "web",
+      "ios"
+    ],
     "changes": {
       "features": [
         {
@@ -434,7 +565,10 @@
     "version": "0.27.0",
     "date": "2026-02-27",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.27.0",
-    "platforms": ["web", "ios"],
+    "platforms": [
+      "web",
+      "ios"
+    ],
     "changes": {
       "features": [
         {
@@ -487,7 +621,9 @@
     "version": "0.26.0",
     "date": "2026-02-27",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.26.0",
-    "platforms": ["web"],
+    "platforms": [
+      "web"
+    ],
     "changes": {
       "features": [
         {
@@ -525,7 +661,9 @@
     "version": "0.25.0",
     "date": "2026-02-25",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.25.0",
-    "platforms": ["web"],
+    "platforms": [
+      "web"
+    ],
     "changes": {
       "features": [
         {
@@ -545,7 +683,9 @@
     "version": "0.24.0",
     "date": "2026-02-25",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.24.0",
-    "platforms": ["web"],
+    "platforms": [
+      "web"
+    ],
     "changes": {
       "features": [
         {
@@ -570,7 +710,9 @@
     "version": "0.23.1",
     "date": "2026-02-25",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.23.1",
-    "platforms": ["web"],
+    "platforms": [
+      "web"
+    ],
     "changes": {
       "features": [],
       "fixes": [
@@ -590,7 +732,9 @@
     "version": "0.23.0",
     "date": "2026-02-20",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.23.0",
-    "platforms": ["web"],
+    "platforms": [
+      "web"
+    ],
     "changes": {
       "features": [
         {
@@ -623,7 +767,10 @@
     "version": "0.22.0",
     "date": "2026-02-15",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.22.0",
-    "platforms": ["web", "ios"],
+    "platforms": [
+      "web",
+      "ios"
+    ],
     "changes": {
       "features": [
         {
@@ -685,7 +832,9 @@
     "version": "0.21.0",
     "date": "2026-02-14",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.21.0",
-    "platforms": ["web"],
+    "platforms": [
+      "web"
+    ],
     "changes": {
       "features": [
         {
@@ -719,7 +868,10 @@
     "version": "0.20.0",
     "date": "2026-02-13",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.20.0",
-    "platforms": ["web", "ios"],
+    "platforms": [
+      "web",
+      "ios"
+    ],
     "changes": {
       "features": [
         {
@@ -743,7 +895,9 @@
     "version": "0.19.1",
     "date": "2026-02-11",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.19.1",
-    "platforms": ["web"],
+    "platforms": [
+      "web"
+    ],
     "changes": {
       "features": [],
       "fixes": [
@@ -759,7 +913,10 @@
     "version": "0.19.0",
     "date": "2026-02-10",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.19.0",
-    "platforms": ["web", "ios"],
+    "platforms": [
+      "web",
+      "ios"
+    ],
     "changes": {
       "features": [
         {
@@ -811,7 +968,10 @@
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.18.0",
     "headline": "Premiere release officielle",
     "description": "Pulpe est une application de gestion budgetaire personnelle pour le marche suisse. Cette premiere release regroupe l'ensemble des fonctionnalites developpees depuis la creation du projet.",
-    "platforms": ["web", "ios"],
+    "platforms": [
+      "web",
+      "ios"
+    ],
     "changes": {
       "features": [
         {
