@@ -207,6 +207,14 @@ struct RootView: View {
         .onChange(of: featureFlagsStore.isMultiCurrencyEnabled) { _, _ in
             refreshCurrencyPersonProperties()
         }
+        // Catches mutations outside the settings page — e.g. the onboarding
+        // income step persists `state.currency` on completion.
+        .onChange(of: userSettingsStore.currency) { _, _ in
+            refreshCurrencyPersonProperties()
+        }
+        .onChange(of: userSettingsStore.showCurrencySelector) { _, _ in
+            refreshCurrencyPersonProperties()
+        }
         .environment(\.amountsHidden, uiPreferences.amountsHidden)
     }
 
