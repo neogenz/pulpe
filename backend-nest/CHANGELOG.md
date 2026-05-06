@@ -1,5 +1,17 @@
 # backend-nest
 
+## 0.34.1
+
+### Patch Changes
+
+- Release v0.34.1
+  - Carte enveloppe mobile : restauration de "Disponible" et de la répartition Dépensé / % alignée sur le desktop (PUL-210)
+  - Robustesse du chiffrement : invalidation immédiate du cache des clés après une rotation pour éviter toute corruption silencieuse en cas de requête concurrente (PUL-200)
+  - Technique : retrait d'un endpoint legacy de mise à jour de modèles de budget pour supprimer un piège de dérive de devise (PUL-201)
+
+- Updated dependencies
+  - pulpe-shared@0.34.1
+
 ## 0.34.0
 
 ### Patch Changes

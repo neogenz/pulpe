@@ -1,5 +1,32 @@
 [
   {
+    "version": "0.34.1",
+    "date": "2026-05-06",
+    "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.34.1",
+    "platforms": [
+      "web"
+    ],
+    "changes": {
+      "features": [],
+      "fixes": [
+        {
+          "title": "Carte enveloppe mobile",
+          "description": "Affichage de \"Disponible\" restauré et répartition Dépensé / % alignée sur le desktop"
+        },
+        {
+          "title": "Robustesse du chiffrement",
+          "description": "Le cache des clés est invalidé immédiatement après une rotation pour éviter toute corruption silencieuse en cas de requête concurrente"
+        }
+      ],
+      "technical": [
+        {
+          "title": "Retrait d'un endpoint legacy de modèles de budget",
+          "description": "Suppression d'un piège de dérive de devise sur la mise à jour groupée des modèles"
+        }
+      ]
+    }
+  },
+  {
     "version": "0.34.0",
     "date": "2026-05-05",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.34.0",
