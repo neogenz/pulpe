@@ -7,8 +7,14 @@ using Microsoft.OpenApi;
 using Pulpe.Api.Api.Auth;
 using Pulpe.Api.Api.Filters;
 using Pulpe.Api.Api.Middleware;
+using Pulpe.Application.AccountDeletion;
 using Pulpe.Application.Budget;
+using Pulpe.Application.BudgetLine;
 using Pulpe.Application.Common;
+using Pulpe.Application.Demo;
+using Pulpe.Application.Encryption;
+using Pulpe.Application.Template;
+using Pulpe.Application.Transaction;
 using Pulpe.Application.User;
 using Pulpe.Domain.Budget;
 using Pulpe.Domain.Encryption;
@@ -17,21 +23,15 @@ using Pulpe.Domain.Transaction;
 using Pulpe.Api.HostedServices;
 using Pulpe.Infrastructure.Cache;
 using Pulpe.Infrastructure.Encryption;
-using Pulpe.Infrastructure.Services.AccountDeletion;
-using Pulpe.Infrastructure.Services.Budget;
-using Pulpe.Infrastructure.Services.BudgetLine;
-using Pulpe.Infrastructure.Services.Demo;
-using Pulpe.Infrastructure.Services.Encryption;
-using Pulpe.Infrastructure.Services.Template;
-using Pulpe.Infrastructure.Services.Transaction;
-using Pulpe.Infrastructure.Services.User;
 using Pulpe.Infrastructure.Supabase;
 using Pulpe.Infrastructure.Supabase.Repositories;
+using Pulpe.Application.Currency;
+using Pulpe.Infrastructure.Currency;
 using Pulpe.Infrastructure.Turnstile;
 using Serilog;
 
 using IBudgetRecalculationService = Pulpe.Application.Common.IBudgetRecalculationService;
-using IBudgetAppService = Pulpe.Infrastructure.Services.Budget.IBudgetService;
+using IBudgetAppService = Pulpe.Application.Budget.IBudgetService;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -81,8 +81,11 @@ if (string.IsNullOrEmpty(masterKey) || masterKey.Length != 64 || !masterKey.All(
 
 // 3. Infrastructure services
 builder.Services.AddHttpClient();
-builder.Services.AddSingleton<SupabaseClientFactory>();
+builder.Services.AddHttpClient("Frankfurter");
+builder.Services.AddHttpContextAccessor();
 builder.Services.AddSingleton<SupabaseAuthClient>();
+builder.Services.AddSingleton<ISupabaseAuthClient>(sp => sp.GetRequiredService<SupabaseAuthClient>());
+builder.Services.AddSingleton<ISupabaseClientFactory, SupabaseClientFactory>();
 builder.Services.AddSingleton<IEncryptionService, AesGcmEncryptionService>();
 builder.Services.AddSingleton<IEncryptionKeyRepository, EncryptionKeyRepository>();
 builder.Services.AddSingleton<ICacheService, InMemoryCacheService>();
@@ -126,6 +129,10 @@ builder.Services.AddScoped<DemoCleanupService>();
 
 // Account deletion
 builder.Services.AddScoped<AccountDeletionService>();
+
+// Currency service
+builder.Services.AddSingleton<IFrankfurterClient, FrankfurterClient>();
+builder.Services.AddSingleton<ICurrencyService, CurrencyService>();
 
 // 5. Authentication — Custom Supabase handler
 builder.Services.AddAuthentication("Supabase")

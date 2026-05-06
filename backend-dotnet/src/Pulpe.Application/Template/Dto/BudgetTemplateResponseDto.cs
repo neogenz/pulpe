@@ -1,4 +1,5 @@
 using Pulpe.Domain.Common;
+using Pulpe.Domain.Currency;
 
 namespace Pulpe.Application.Template.Dto;
 
@@ -21,7 +22,11 @@ public record TemplateLineResponseDto(
     TransactionRecurrence Recurrence,
     TransactionKind Kind,
     DateTimeOffset CreatedAt,
-    DateTimeOffset UpdatedAt
+    DateTimeOffset UpdatedAt,
+    decimal? OriginalAmount = null,
+    SupportedCurrency? OriginalCurrency = null,
+    SupportedCurrency? TargetCurrency = null,
+    decimal? ExchangeRate = null
 );
 
 public record BudgetTemplateWithLinesResponseDto(

@@ -1,5 +1,6 @@
 using FluentValidation;
 using Pulpe.Domain.Common;
+using Pulpe.Domain.Currency;
 
 namespace Pulpe.Application.BudgetLine.Dto;
 
@@ -7,8 +8,12 @@ public record BudgetLineUpdateDto(
     string? Name,
     decimal? Amount,
     TransactionKind? Kind,
-    TransactionRecurrence? Recurrence
-);
+    TransactionRecurrence? Recurrence,
+    decimal? OriginalAmount = null,
+    SupportedCurrency? OriginalCurrency = null,
+    SupportedCurrency? TargetCurrency = null,
+    decimal? ExchangeRate = null
+) : IFxCarrier;
 
 public sealed class BudgetLineUpdateDtoValidator : AbstractValidator<BudgetLineUpdateDto>
 {

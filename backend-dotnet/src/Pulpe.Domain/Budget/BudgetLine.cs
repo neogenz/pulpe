@@ -14,6 +14,10 @@ public sealed class BudgetLine
     public TransactionKind Kind { get; init; }
     public bool IsManuallyAdjusted { get; init; }
     public DateTimeOffset? CheckedAt { get; init; }
+    public string? OriginalAmount { get; init; } // Encrypted ciphertext
+    public string? OriginalCurrency { get; init; }
+    public string? TargetCurrency { get; init; }
+    public decimal? ExchangeRate { get; init; }
     public DateTimeOffset CreatedAt { get; init; }
     public DateTimeOffset UpdatedAt { get; init; }
 }

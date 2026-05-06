@@ -1,4 +1,5 @@
 using Pulpe.Domain.Common;
+using Pulpe.Domain.Currency;
 
 namespace Pulpe.Application.Budget.Dto;
 
@@ -71,7 +72,11 @@ public record BudgetLineResponseDto(
     bool IsManuallyAdjusted,
     DateTimeOffset? CheckedAt,
     DateTimeOffset CreatedAt,
-    DateTimeOffset UpdatedAt
+    DateTimeOffset UpdatedAt,
+    decimal? OriginalAmount = null,
+    SupportedCurrency? OriginalCurrency = null,
+    SupportedCurrency? TargetCurrency = null,
+    decimal? ExchangeRate = null
 );
 
 public record TransactionResponseDto(
@@ -85,5 +90,9 @@ public record TransactionResponseDto(
     TransactionKind Kind,
     DateTimeOffset? CheckedAt,
     DateTimeOffset CreatedAt,
-    DateTimeOffset UpdatedAt
+    DateTimeOffset UpdatedAt,
+    decimal? OriginalAmount = null,
+    SupportedCurrency? OriginalCurrency = null,
+    SupportedCurrency? TargetCurrency = null,
+    decimal? ExchangeRate = null
 );

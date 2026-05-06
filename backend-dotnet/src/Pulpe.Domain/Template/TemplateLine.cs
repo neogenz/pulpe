@@ -13,4 +13,8 @@ public sealed class TemplateLine
     public TransactionKind Kind { get; init; }
     public DateTimeOffset CreatedAt { get; init; }
     public DateTimeOffset UpdatedAt { get; init; }
+    public string? OriginalAmount { get; init; } // Encrypted
+    public string? OriginalCurrency { get; init; }
+    public string? TargetCurrency { get; init; }
+    public decimal? ExchangeRate { get; init; }
 }

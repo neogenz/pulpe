@@ -1,5 +1,6 @@
 using FluentValidation;
 using Pulpe.Domain.Common;
+using Pulpe.Domain.Currency;
 
 namespace Pulpe.Application.Transaction.Dto;
 
@@ -8,8 +9,12 @@ public record TransactionUpdateDto(
     decimal? Amount,
     TransactionKind? Kind,
     DateTimeOffset? TransactionDate = null,
-    string? Category = null
-);
+    string? Category = null,
+    decimal? OriginalAmount = null,
+    SupportedCurrency? OriginalCurrency = null,
+    SupportedCurrency? TargetCurrency = null,
+    decimal? ExchangeRate = null
+) : IFxCarrier;
 
 public sealed class TransactionUpdateDtoValidator : AbstractValidator<TransactionUpdateDto>
 {

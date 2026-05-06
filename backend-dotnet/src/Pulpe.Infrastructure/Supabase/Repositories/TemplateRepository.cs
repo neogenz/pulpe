@@ -1,182 +1,171 @@
+using Pulpe.Application.Common;
 using Pulpe.Domain.Common;
 using Pulpe.Domain.Template;
+using Supabase.Postgrest.Attributes;
+using Supabase.Postgrest.Models;
+using static Supabase.Postgrest.Constants;
 
 namespace Pulpe.Infrastructure.Supabase.Repositories;
 
 public sealed class TemplateRepository : ITemplateRepository
 {
-    private readonly SupabaseClientFactory _factory;
+    private readonly ISupabaseClientFactory _factory;
 
-    public TemplateRepository(SupabaseClientFactory factory)
+    public TemplateRepository(ISupabaseClientFactory factory)
     {
         _factory = factory;
     }
 
-    public async Task<BudgetTemplate?> FindById(Guid id, object supabaseClient)
+    public async Task<BudgetTemplate?> FindById(Guid id)
     {
-        var client = CastClient(supabaseClient);
-        var builder = client.From("template")
-            .Select("*")
-            .Eq("id", id.ToString())
+        var client = _factory.CreateUserClient();
+        var response = await client.Table<TemplateRow>()
+            .Filter("id", Operator.Equals, id.ToString())
             .Single();
 
-        var response = await client.Execute<TemplateRow>(builder);
-        return response.Data is null ? null : MapToTemplate(response.Data);
+        return response is null ? null : MapToTemplate(response);
     }
 
-    public async Task<List<BudgetTemplate>> FindAll(string userId, object supabaseClient)
+    public async Task<List<BudgetTemplate>> FindAll(string userId)
     {
-        var client = CastClient(supabaseClient);
-        var builder = client.From("template")
-            .Select("*")
-            .Eq("user_id", userId)
-            .Order("created_at", ascending: false);
+        var client = _factory.CreateUserClient();
+        var response = await client.Table<TemplateRow>()
+            .Filter("user_id", Operator.Equals, userId)
+            .Order("created_at", Ordering.Descending)
+            .Get();
 
-        var response = await client.Execute<List<TemplateRow>>(builder);
-        return response.Data?.Select(MapToTemplate).ToList() ?? [];
+        return response.Models.Select(MapToTemplate).ToList();
     }
 
-    public async Task<BudgetTemplate> Create(object createDto, object supabaseClient)
+    public async Task<BudgetTemplate> Create(object createDto)
     {
-        var client = CastClient(supabaseClient);
+        var client = _factory.CreateUserClient();
         var response = await client.Rpc<TemplateRow>("create_template_with_lines", createDto);
 
-        if (!response.IsSuccess || response.Data is null)
-        {
-            var code = response.Error?.Code;
-            if (code == "P0001")
-                throw new Domain.Common.BusinessException(ErrorCodes.TemplateCreateFailed, response.Error?.Message ?? "Failed to create template");
-            throw new Domain.Common.BusinessException(ErrorCodes.TemplateCreateFailed, response.Error?.Message ?? "Failed to create template");
-        }
+        if (response is null)
+            throw new Domain.Common.BusinessException(ErrorCodes.TemplateCreateFailed, "Failed to create template");
 
-        return MapToTemplate(response.Data);
+        return MapToTemplate(response);
     }
 
-    public async Task<BudgetTemplate> Update(Guid id, object updateDto, object supabaseClient)
+    public async Task<BudgetTemplate> Update(Guid id, object updateDto)
     {
-        var client = CastClient(supabaseClient);
-        var builder = client.From("template")
-            .Eq("id", id.ToString())
-            .Update(updateDto);
+        var client = _factory.CreateUserClient();
+        var dict = updateDto as Dictionary<string, object?> ?? ToDictionary(updateDto);
 
-        var response = await client.Execute<List<TemplateRow>>(builder);
-        var row = response.Data?.FirstOrDefault();
-        if (!response.IsSuccess || row is null)
-            throw new Domain.Common.BusinessException(ErrorCodes.TemplateUpdateFailed, response.Error?.Message ?? "Failed to update template");
+        var table = client.Table<TemplateRow>().Filter("id", Operator.Equals, id.ToString());
+        if (dict.TryGetValue("name", out var name)) table = table.Set(r => r.Name, name as string);
+        if (dict.TryGetValue("description", out var desc)) table = table.Set(r => r.Description, desc as string);
+        if (dict.TryGetValue("is_default", out var isDefault)) table = table.Set(r => r.IsDefault, Convert.ToBoolean(isDefault));
+
+        var response = await table.Update();
+        var row = response.Models.FirstOrDefault()
+            ?? throw new Domain.Common.BusinessException(ErrorCodes.TemplateUpdateFailed, "Failed to update template");
 
         return MapToTemplate(row);
     }
 
-    public async Task Delete(Guid id, object supabaseClient)
+    public async Task Delete(Guid id)
     {
-        var client = CastClient(supabaseClient);
-        var builder = client.From("template")
-            .Eq("id", id.ToString())
+        var client = _factory.CreateUserClient();
+        await client.Table<TemplateRow>()
+            .Filter("id", Operator.Equals, id.ToString())
             .Delete();
-
-        var response = await client.Execute<object>(builder);
-        if (!response.IsSuccess)
-            throw new Domain.Common.BusinessException(ErrorCodes.TemplateDeleteFailed, response.Error?.Message ?? "Failed to delete template");
     }
 
-    public async Task<int> CountByUserId(string userId, object supabaseClient)
+    public async Task<int> CountByUserId(string userId)
     {
-        var client = CastClient(supabaseClient);
-        var builder = client.From("template")
-            .Select("id")
-            .Eq("user_id", userId);
+        var client = _factory.CreateUserClient();
+        var response = await client.Table<TemplateRow>()
+            .Filter("user_id", Operator.Equals, userId)
+            .Get();
 
-        var response = await client.Execute<List<IdRow>>(builder);
-        return response.Data?.Count ?? 0;
+        return response.Models.Count;
     }
 
-    public async Task<List<TemplateLine>> FindTemplateLines(Guid templateId, object supabaseClient)
+    public async Task<List<TemplateLine>> FindTemplateLines(Guid templateId)
     {
-        var client = CastClient(supabaseClient);
-        var builder = client.From("template_line")
-            .Select("*")
-            .Eq("template_id", templateId.ToString())
-            .Order("created_at", ascending: true);
+        var client = _factory.CreateUserClient();
+        var response = await client.Table<TemplateLineRow>()
+            .Filter("template_id", Operator.Equals, templateId.ToString())
+            .Order("created_at", Ordering.Ascending)
+            .Get();
 
-        var response = await client.Execute<List<TemplateLineRow>>(builder);
-        return response.Data?.Select(MapToTemplateLine).ToList() ?? [];
+        return response.Models.Select(MapToTemplateLine).ToList();
     }
 
-    public async Task<TemplateLine> CreateTemplateLine(object createDto, object supabaseClient)
+    public async Task<TemplateLine> CreateTemplateLine(object createDto)
     {
-        var client = CastClient(supabaseClient);
-        var builder = client.From("template_line").Insert(createDto);
+        var client = _factory.CreateUserClient();
+        var json = Newtonsoft.Json.JsonConvert.SerializeObject(createDto);
+        var row = Newtonsoft.Json.JsonConvert.DeserializeObject<TemplateLineRow>(json)
+            ?? throw new Domain.Common.BusinessException(ErrorCodes.TemplateLineCreateFailed, "Failed to map template line");
 
-        var response = await client.Execute<List<TemplateLineRow>>(builder);
-        var row = response.Data?.FirstOrDefault();
-        if (!response.IsSuccess || row is null)
-            throw new Domain.Common.BusinessException(ErrorCodes.TemplateLineCreateFailed, response.Error?.Message ?? "Failed to create template line");
-
-        return MapToTemplateLine(row);
+        var response = await client.Table<TemplateLineRow>().Insert(row);
+        return MapToTemplateLine(response.Models.FirstOrDefault()
+            ?? throw new Domain.Common.BusinessException(ErrorCodes.TemplateLineCreateFailed, "Failed to create template line"));
     }
 
-    public async Task<TemplateLine?> FindTemplateLine(Guid lineId, object supabaseClient)
+    public async Task<TemplateLine?> FindTemplateLine(Guid lineId)
     {
-        var client = CastClient(supabaseClient);
-        var builder = client.From("template_line")
-            .Select("*")
-            .Eq("id", lineId.ToString())
+        var client = _factory.CreateUserClient();
+        var response = await client.Table<TemplateLineRow>()
+            .Filter("id", Operator.Equals, lineId.ToString())
             .Single();
 
-        var response = await client.Execute<TemplateLineRow>(builder);
-        return response.Data is null ? null : MapToTemplateLine(response.Data);
+        return response is null ? null : MapToTemplateLine(response);
     }
 
-    public async Task<TemplateLine> UpdateTemplateLine(Guid lineId, object updateDto, object supabaseClient)
+    public async Task<TemplateLine> UpdateTemplateLine(Guid lineId, object updateDto)
     {
-        var client = CastClient(supabaseClient);
-        var builder = client.From("template_line")
-            .Eq("id", lineId.ToString())
-            .Update(updateDto);
+        var client = _factory.CreateUserClient();
+        var dict = updateDto as Dictionary<string, object?> ?? ToDictionary(updateDto);
 
-        var response = await client.Execute<List<TemplateLineRow>>(builder);
-        var row = response.Data?.FirstOrDefault();
-        if (!response.IsSuccess || row is null)
-            throw new Domain.Common.BusinessException(ErrorCodes.TemplateLineUpdateFailed, response.Error?.Message ?? "Failed to update template line");
+        var table = client.Table<TemplateLineRow>().Filter("id", Operator.Equals, lineId.ToString());
+        if (dict.TryGetValue("name", out var name)) table = table.Set(r => r.Name, name as string);
+        if (dict.TryGetValue("amount", out var amount)) table = table.Set(r => r.Amount, amount as string);
+        if (dict.TryGetValue("description", out var desc)) table = table.Set(r => r.Description, desc as string);
+        if (dict.TryGetValue("recurrence", out var rec) && rec is string recStr)
+            table = table.Set(r => r.Recurrence, Enum.Parse<Pulpe.Domain.Common.TransactionRecurrence>(recStr, true));
+        if (dict.TryGetValue("kind", out var kind) && kind is string kindStr)
+            table = table.Set(r => r.Kind, Enum.Parse<Pulpe.Domain.Common.TransactionKind>(kindStr, true));
+        if (dict.TryGetValue("original_amount", out var origAmt)) table = table.Set(r => r.OriginalAmount, origAmt as string);
+        if (dict.TryGetValue("original_currency", out var origCur)) table = table.Set(r => r.OriginalCurrency, origCur as string);
+        if (dict.TryGetValue("target_currency", out var tgtCur)) table = table.Set(r => r.TargetCurrency, tgtCur as string);
+        if (dict.TryGetValue("exchange_rate", out var exRate)) table = table.Set(r => r.ExchangeRate, exRate is null ? null : (decimal?)Convert.ToDecimal(exRate));
+
+        var response = await table.Update();
+        var row = response.Models.FirstOrDefault()
+            ?? throw new Domain.Common.BusinessException(ErrorCodes.TemplateLineUpdateFailed, "Failed to update template line");
 
         return MapToTemplateLine(row);
     }
 
-    public async Task DeleteTemplateLine(Guid lineId, object supabaseClient)
+    public async Task DeleteTemplateLine(Guid lineId)
     {
-        var client = CastClient(supabaseClient);
-        var builder = client.From("template_line")
-            .Eq("id", lineId.ToString())
+        var client = _factory.CreateUserClient();
+        await client.Table<TemplateLineRow>()
+            .Filter("id", Operator.Equals, lineId.ToString())
             .Delete();
-
-        var response = await client.Execute<object>(builder);
-        if (!response.IsSuccess)
-            throw new Domain.Common.BusinessException(ErrorCodes.TemplateLineDeleteFailed, response.Error?.Message ?? "Failed to delete template line");
     }
 
-    public async Task ResetDefaultTemplates(string userId, Guid? excludeId, object supabaseClient)
+    public async Task ResetDefaultTemplates(string userId, Guid? excludeId)
     {
-        var client = CastClient(supabaseClient);
-        var builder = client.From("template")
-            .Eq("user_id", userId)
-            .Eq("is_default", "true");
+        var client = _factory.CreateUserClient();
+        var query = client.Table<TemplateRow>()
+            .Filter("user_id", Operator.Equals, userId)
+            .Filter("is_default", Operator.Equals, "true");
 
         if (excludeId.HasValue)
-            builder.Neq("id", excludeId.Value.ToString());
+            query = query.Filter("id", Operator.NotEqual, excludeId.Value.ToString());
 
-        builder.Update(new { is_default = false });
-
-        await client.Execute<object>(builder);
+        await query.Set(r => r.IsDefault, false).Update();
     }
-
-    private static SupabaseRestClient CastClient(object supabaseClient) =>
-        supabaseClient as SupabaseRestClient
-            ?? throw new ArgumentException("Expected SupabaseRestClient", nameof(supabaseClient));
 
     private static BudgetTemplate MapToTemplate(TemplateRow row) => new()
     {
-        Id = Guid.Parse(row.Id),
-        UserId = row.UserId is not null ? Guid.Parse(row.UserId) : null,
+        Id = row.Id,
+        UserId = row.UserId == Guid.Empty ? null : row.UserId,
         Name = row.Name ?? string.Empty,
         Description = row.Description,
         IsDefault = row.IsDefault,
@@ -186,43 +175,92 @@ public sealed class TemplateRepository : ITemplateRepository
 
     private static TemplateLine MapToTemplateLine(TemplateLineRow row) => new()
     {
-        Id = Guid.Parse(row.Id),
-        TemplateId = Guid.Parse(row.TemplateId),
+        Id = row.Id,
+        TemplateId = row.TemplateId,
         Name = row.Name ?? string.Empty,
         Amount = row.Amount ?? string.Empty,
         Description = row.Description,
         Recurrence = row.Recurrence,
         Kind = row.Kind,
         CreatedAt = row.CreatedAt,
-        UpdatedAt = row.UpdatedAt
+        UpdatedAt = row.UpdatedAt,
+        OriginalAmount = row.OriginalAmount,
+        OriginalCurrency = row.OriginalCurrency,
+        TargetCurrency = row.TargetCurrency,
+        ExchangeRate = row.ExchangeRate,
     };
 
-    private sealed class TemplateRow
+    private static Dictionary<string, object?> ToDictionary(object obj)
     {
-        public string Id { get; set; } = string.Empty;
-        public string? UserId { get; set; }
+        var json = Newtonsoft.Json.JsonConvert.SerializeObject(obj);
+        return Newtonsoft.Json.JsonConvert.DeserializeObject<Dictionary<string, object?>>(json) ?? [];
+    }
+
+    [Table("template")]
+    private sealed class TemplateRow : BaseModel
+    {
+        [PrimaryKey("id", false)]
+        public Guid Id { get; set; }
+
+        [Column("user_id")]
+        public Guid? UserId { get; set; }
+
+        [Column("name")]
         public string? Name { get; set; }
+
+        [Column("description")]
         public string? Description { get; set; }
+
+        [Column("is_default")]
         public bool IsDefault { get; set; }
+
+        [Column("created_at")]
         public DateTimeOffset CreatedAt { get; set; }
+
+        [Column("updated_at")]
         public DateTimeOffset UpdatedAt { get; set; }
     }
 
-    private sealed class TemplateLineRow
+    [Table("template_line")]
+    private sealed class TemplateLineRow : BaseModel
     {
-        public string Id { get; set; } = string.Empty;
-        public string TemplateId { get; set; } = string.Empty;
+        [PrimaryKey("id", false)]
+        public Guid Id { get; set; }
+
+        [Column("template_id")]
+        public Guid TemplateId { get; set; }
+
+        [Column("name")]
         public string? Name { get; set; }
-        public string? Amount { get; set; }
-        public string? Description { get; set; }
-        public TransactionRecurrence Recurrence { get; set; }
-        public TransactionKind Kind { get; set; }
-        public DateTimeOffset CreatedAt { get; set; }
-        public DateTimeOffset UpdatedAt { get; set; }
-    }
 
-    private sealed class IdRow
-    {
-        public string Id { get; set; } = string.Empty;
+        [Column("amount")]
+        public string? Amount { get; set; }
+
+        [Column("description")]
+        public string? Description { get; set; }
+
+        [Column("recurrence")]
+        public TransactionRecurrence Recurrence { get; set; }
+
+        [Column("kind")]
+        public TransactionKind Kind { get; set; }
+
+        [Column("original_amount")]
+        public string? OriginalAmount { get; set; }
+
+        [Column("original_currency")]
+        public string? OriginalCurrency { get; set; }
+
+        [Column("target_currency")]
+        public string? TargetCurrency { get; set; }
+
+        [Column("exchange_rate")]
+        public decimal? ExchangeRate { get; set; }
+
+        [Column("created_at")]
+        public DateTimeOffset CreatedAt { get; set; }
+
+        [Column("updated_at")]
+        public DateTimeOffset UpdatedAt { get; set; }
     }
 }

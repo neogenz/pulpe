@@ -1,8 +1,10 @@
 using Microsoft.Extensions.Logging;
 using Pulpe.Application.Common;
+using Pulpe.Application.Currency;
 using Pulpe.Application.Template.Dto;
 using Pulpe.Domain.Budget;
 using Pulpe.Domain.Common;
+using Pulpe.Domain.Currency;
 using Pulpe.Domain.Encryption;
 using Pulpe.Domain.Template;
 using Pulpe.Domain.User;
@@ -17,6 +19,7 @@ public sealed class BudgetTemplateService : ITemplateService
     private readonly ICacheService _cacheService;
     private readonly IBudgetRecalculationService _budgetService;
     private readonly ISupabaseClientFactory _clientFactory;
+    private readonly ICurrencyService _currencyService;
     private readonly ILogger<BudgetTemplateService> _logger;
 
     public BudgetTemplateService(
@@ -26,6 +29,7 @@ public sealed class BudgetTemplateService : ITemplateService
         ICacheService cacheService,
         IBudgetRecalculationService budgetService,
         ISupabaseClientFactory clientFactory,
+        ICurrencyService currencyService,
         ILogger<BudgetTemplateService> logger)
     {
         _templateRepository = templateRepository;
@@ -34,6 +38,7 @@ public sealed class BudgetTemplateService : ITemplateService
         _cacheService = cacheService;
         _budgetService = budgetService;
         _clientFactory = clientFactory;
+        _currencyService = currencyService;
         _logger = logger;
     }
 
@@ -189,16 +194,24 @@ public sealed class BudgetTemplateService : ITemplateService
 
         ValidateTemplateOwnership(template, user.Id);
 
+        var fx = await _currencyService.ComputeOverride(lineDto);
         var encryptedAmount = await _encryptionService.PrepareAmountData(lineDto.Amount, user.Id, user.ClientKey);
+        var encryptedOriginalAmount = fx.OriginalAmount.HasValue
+            ? await _encryptionService.PrepareAmountData(fx.OriginalAmount.Value, user.Id, user.ClientKey)
+            : (string?)null;
 
-        var createData = new
+        var createData = new Dictionary<string, object?>
         {
-            template_id = templateId.ToString(),
-            name = lineDto.Name,
-            amount = encryptedAmount,
-            kind = lineDto.Kind,
-            recurrence = lineDto.Recurrence,
-            description = lineDto.Description ?? string.Empty,
+            ["template_id"] = templateId.ToString(),
+            ["name"] = lineDto.Name,
+            ["amount"] = encryptedAmount,
+            ["kind"] = lineDto.Kind,
+            ["recurrence"] = lineDto.Recurrence,
+            ["description"] = lineDto.Description ?? string.Empty,
+            ["original_amount"] = encryptedOriginalAmount,
+            ["original_currency"] = fx.OriginalCurrency?.ToIsoCode(),
+            ["target_currency"] = fx.TargetCurrency?.ToIsoCode(),
+            ["exchange_rate"] = fx.ExchangeRate,
         };
 
         var created = await _templateRepository.CreateTemplateLine(createData);
@@ -231,11 +244,16 @@ public sealed class BudgetTemplateService : ITemplateService
         if (template is null || template.UserId != Guid.Parse(user.Id))
             throw BusinessException.Forbidden(ErrorCodes.TemplateAccessDenied, "Access to template line denied");
 
+        var fx = await _currencyService.ComputeOverride(lineDto);
         string? encryptedAmount = null;
         if (lineDto.Amount.HasValue)
             encryptedAmount = await _encryptionService.PrepareAmountData(lineDto.Amount.Value, user.Id, user.ClientKey);
 
-        var updateData = BuildLineUpdatePayload(lineDto, encryptedAmount);
+        string? encryptedOriginalAmount = null;
+        if (fx.OriginalAmountChanged && fx.OriginalAmount.HasValue)
+            encryptedOriginalAmount = await _encryptionService.PrepareAmountData(fx.OriginalAmount.Value, user.Id, user.ClientKey);
+
+        var updateData = BuildLineUpdatePayload(lineDto, encryptedAmount, fx, encryptedOriginalAmount);
         var updated = await _templateRepository.UpdateTemplateLine(lineId, updateData);
 
         var dek = await _encryptionService.GetUserDek(user.Id, user.ClientKey);
@@ -326,15 +344,19 @@ public sealed class BudgetTemplateService : ITemplateService
         {
             foreach (var lineUpdate in bulkDto.Update)
             {
+                var lineFx = await _currencyService.ComputeOverride(lineUpdate);
                 string? encryptedAmount = null;
                 if (lineUpdate.Amount.HasValue)
                     encryptedAmount = await _encryptionService.PrepareAmountData(lineUpdate.Amount.Value, user.Id, user.ClientKey);
+                string? encryptedOriginalAmount = null;
+                if (lineFx.OriginalAmountChanged && lineFx.OriginalAmount.HasValue)
+                    encryptedOriginalAmount = await _encryptionService.PrepareAmountData(lineFx.OriginalAmount.Value, user.Id, user.ClientKey);
 
                 var updateLineDto = new TemplateLineUpdateDto(
                     lineUpdate.Name, lineUpdate.Amount, lineUpdate.Kind,
                     lineUpdate.Recurrence, lineUpdate.Description);
 
-                var updateData = BuildLineUpdatePayload(updateLineDto, encryptedAmount);
+                var updateData = BuildLineUpdatePayload(updateLineDto, encryptedAmount, lineFx, encryptedOriginalAmount);
                 var updated = await _templateRepository.UpdateTemplateLine(lineUpdate.Id, updateData);
                 updatedLines.Add(updated);
             }
@@ -344,15 +366,23 @@ public sealed class BudgetTemplateService : ITemplateService
         {
             foreach (var lineCreate in bulkDto.Create)
             {
+                var lineFx = await _currencyService.ComputeOverride(lineCreate);
                 var encryptedAmount = await _encryptionService.PrepareAmountData(lineCreate.Amount, user.Id, user.ClientKey);
-                var createData = new
+                var encryptedOriginalAmount = lineFx.OriginalAmount.HasValue
+                    ? await _encryptionService.PrepareAmountData(lineFx.OriginalAmount.Value, user.Id, user.ClientKey)
+                    : (string?)null;
+                var createData = new Dictionary<string, object?>
                 {
-                    template_id = templateId.ToString(),
-                    name = lineCreate.Name,
-                    amount = encryptedAmount,
-                    kind = lineCreate.Kind,
-                    recurrence = lineCreate.Recurrence,
-                    description = lineCreate.Description ?? string.Empty,
+                    ["template_id"] = templateId.ToString(),
+                    ["name"] = lineCreate.Name,
+                    ["amount"] = encryptedAmount,
+                    ["kind"] = lineCreate.Kind,
+                    ["recurrence"] = lineCreate.Recurrence,
+                    ["description"] = lineCreate.Description ?? string.Empty,
+                    ["original_amount"] = encryptedOriginalAmount,
+                    ["original_currency"] = lineFx.OriginalCurrency?.ToIsoCode(),
+                    ["target_currency"] = lineFx.TargetCurrency?.ToIsoCode(),
+                    ["exchange_rate"] = lineFx.ExchangeRate,
                 };
                 var created = await _templateRepository.CreateTemplateLine(createData);
                 createdLines.Add(created);
@@ -462,12 +492,16 @@ public sealed class BudgetTemplateService : ITemplateService
 
         foreach (var line in lines)
         {
+            var lineFx = await _currencyService.ComputeOverride(line);
             string? encryptedAmount = null;
             if (line.Amount.HasValue)
                 encryptedAmount = await _encryptionService.PrepareAmountData(line.Amount.Value, user.Id, user.ClientKey);
+            string? encryptedOriginalAmount = null;
+            if (lineFx.OriginalAmountChanged && lineFx.OriginalAmount.HasValue)
+                encryptedOriginalAmount = await _encryptionService.PrepareAmountData(lineFx.OriginalAmount.Value, user.Id, user.ClientKey);
 
             var updateDto = new TemplateLineUpdateDto(line.Name, line.Amount, line.Kind, line.Recurrence, line.Description);
-            var updateData = BuildLineUpdatePayload(updateDto, encryptedAmount);
+            var updateData = BuildLineUpdatePayload(updateDto, encryptedAmount, lineFx, encryptedOriginalAmount);
 
             var key = System.Text.Json.JsonSerializer.Serialize(updateData);
             if (!groups.ContainsKey(key))
@@ -537,7 +571,11 @@ public sealed class BudgetTemplateService : ITemplateService
         return dict;
     }
 
-    private static object BuildLineUpdatePayload(TemplateLineUpdateDto dto, string? encryptedAmount)
+    private static object BuildLineUpdatePayload(
+        TemplateLineUpdateDto dto,
+        string? encryptedAmount,
+        FxOverrideResult? fx = null,
+        string? encryptedOriginalAmount = null)
     {
         var dict = new Dictionary<string, object?>();
         if (dto.Name is not null) dict["name"] = dto.Name;
@@ -545,6 +583,13 @@ public sealed class BudgetTemplateService : ITemplateService
         if (dto.Kind.HasValue) dict["kind"] = dto.Kind.Value;
         if (dto.Recurrence.HasValue) dict["recurrence"] = dto.Recurrence.Value;
         if (dto.Description is not null) dict["description"] = dto.Description;
+        if (fx is not null)
+        {
+            if (fx.OriginalAmountChanged) dict["original_amount"] = encryptedOriginalAmount;
+            if (fx.OriginalCurrencyChanged) dict["original_currency"] = fx.OriginalCurrency?.ToIsoCode();
+            if (fx.TargetCurrencyChanged) dict["target_currency"] = fx.TargetCurrency?.ToIsoCode();
+            if (fx.ExchangeRateChanged) dict["exchange_rate"] = fx.ExchangeRate;
+        }
         dict["updated_at"] = DateTimeOffset.UtcNow.ToString("O");
         return dict;
     }
@@ -559,7 +604,13 @@ public sealed class BudgetTemplateService : ITemplateService
             Recurrence: line.Recurrence,
             Kind: line.Kind,
             CreatedAt: line.CreatedAt,
-            UpdatedAt: line.UpdatedAt
+            UpdatedAt: line.UpdatedAt,
+            OriginalAmount: line.OriginalAmount is not null
+                ? _encryptionService.TryDecryptAmount(line.OriginalAmount, dek)
+                : null,
+            OriginalCurrency: CurrencyExtensions.FromIsoCode(line.OriginalCurrency),
+            TargetCurrency: CurrencyExtensions.FromIsoCode(line.TargetCurrency),
+            ExchangeRate: line.ExchangeRate
         );
 
     private static BudgetTemplateResponseDto MapToTemplateResponse(BudgetTemplate t) =>

@@ -1,5 +1,6 @@
 using FluentValidation;
 using Pulpe.Domain.Common;
+using Pulpe.Domain.Currency;
 
 namespace Pulpe.Application.Template.Dto;
 
@@ -8,16 +9,24 @@ public record TemplateLineCreateDto(
     decimal Amount,
     TransactionKind Kind,
     TransactionRecurrence Recurrence,
-    string? Description = null
-);
+    string? Description = null,
+    decimal? OriginalAmount = null,
+    SupportedCurrency? OriginalCurrency = null,
+    SupportedCurrency? TargetCurrency = null,
+    decimal? ExchangeRate = null
+) : IFxCarrier;
 
 public record TemplateLineUpdateDto(
     string? Name,
     decimal? Amount,
     TransactionKind? Kind,
     TransactionRecurrence? Recurrence,
-    string? Description = null
-);
+    string? Description = null,
+    decimal? OriginalAmount = null,
+    SupportedCurrency? OriginalCurrency = null,
+    SupportedCurrency? TargetCurrency = null,
+    decimal? ExchangeRate = null
+) : IFxCarrier;
 
 public record TemplateLineUpdateWithIdDto(
     Guid Id,
@@ -25,8 +34,12 @@ public record TemplateLineUpdateWithIdDto(
     decimal? Amount,
     TransactionKind? Kind,
     TransactionRecurrence? Recurrence,
-    string? Description = null
-);
+    string? Description = null,
+    decimal? OriginalAmount = null,
+    SupportedCurrency? OriginalCurrency = null,
+    SupportedCurrency? TargetCurrency = null,
+    decimal? ExchangeRate = null
+) : IFxCarrier;
 
 public record TemplateLinesBulkUpdateDto(List<TemplateLineUpdateWithIdDto> Lines);
 

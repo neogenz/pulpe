@@ -13,8 +13,8 @@ public record TransactionCreateDto(
     string? Category = null,
     DateTimeOffset? CheckedAt = null,
     decimal? OriginalAmount = null,
-    Currency? OriginalCurrency = null,
-    Currency? TargetCurrency = null,
+    SupportedCurrency? OriginalCurrency = null,
+    SupportedCurrency? TargetCurrency = null,
     decimal? ExchangeRate = null,
     Guid? Id = null
 ) : IFxCarrier;

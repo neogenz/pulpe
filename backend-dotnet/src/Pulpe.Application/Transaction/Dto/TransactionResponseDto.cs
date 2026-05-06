@@ -1,4 +1,5 @@
 using Pulpe.Domain.Common;
+using Pulpe.Domain.Currency;
 
 namespace Pulpe.Application.Transaction.Dto;
 
@@ -13,7 +14,11 @@ public record TransactionResponseDto(
     TransactionKind Kind,
     DateTimeOffset? CheckedAt,
     DateTimeOffset CreatedAt,
-    DateTimeOffset UpdatedAt
+    DateTimeOffset UpdatedAt,
+    decimal? OriginalAmount = null,
+    SupportedCurrency? OriginalCurrency = null,
+    SupportedCurrency? TargetCurrency = null,
+    decimal? ExchangeRate = null
 );
 
 public record TransactionSearchResultDto(

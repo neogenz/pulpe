@@ -1,174 +1,171 @@
+using Pulpe.Application.Common;
 using Pulpe.Domain.Budget;
 using Pulpe.Domain.Common;
 using Pulpe.Domain.Transaction;
+using Supabase.Postgrest.Attributes;
+using Supabase.Postgrest.Models;
+using static Supabase.Postgrest.Constants;
 
 namespace Pulpe.Infrastructure.Supabase.Repositories;
 
 public sealed class TransactionRepository : ITransactionRepository
 {
-    private readonly SupabaseClientFactory _factory;
+    private readonly ISupabaseClientFactory _factory;
 
-    public TransactionRepository(SupabaseClientFactory factory)
+    public TransactionRepository(ISupabaseClientFactory factory)
     {
         _factory = factory;
     }
 
-    public async Task<Transaction?> FindById(Guid id, object supabaseClient)
+    public async Task<Transaction?> FindById(Guid id)
     {
-        var client = CastClient(supabaseClient);
-        var builder = client.From("transaction")
-            .Select("*")
-            .Eq("id", id.ToString())
+        var client = _factory.CreateUserClient();
+        var response = await client.Table<TransactionRow>()
+            .Filter("id", Operator.Equals, id.ToString())
             .Single();
 
-        var response = await client.Execute<TransactionRow>(builder);
-        return response.Data is null ? null : MapToTransaction(response.Data);
+        return response is null ? null : MapToTransaction(response);
     }
 
-    public async Task<List<Transaction>> FindByBudgetId(Guid budgetId, object supabaseClient)
+    public async Task<List<Transaction>> FindByBudgetId(Guid budgetId)
     {
-        var client = CastClient(supabaseClient);
-        var builder = client.From("transaction")
-            .Select("*")
-            .Eq("budget_id", budgetId.ToString())
-            .Order("transaction_date", ascending: false);
+        var client = _factory.CreateUserClient();
+        var response = await client.Table<TransactionRow>()
+            .Filter("budget_id", Operator.Equals, budgetId.ToString())
+            .Order("transaction_date", Ordering.Descending)
+            .Get();
 
-        var response = await client.Execute<List<TransactionRow>>(builder);
-        return response.Data?.Select(MapToTransaction).ToList() ?? [];
+        return response.Models.Select(MapToTransaction).ToList();
     }
 
-    public async Task<List<Transaction>> FindByBudgetLineId(Guid budgetLineId, object supabaseClient)
+    public async Task<List<Transaction>> FindByBudgetLineId(Guid budgetLineId)
     {
-        var client = CastClient(supabaseClient);
-        var builder = client.From("transaction")
-            .Select("*")
-            .Eq("budget_line_id", budgetLineId.ToString())
-            .Order("transaction_date", ascending: false);
+        var client = _factory.CreateUserClient();
+        var response = await client.Table<TransactionRow>()
+            .Filter("budget_line_id", Operator.Equals, budgetLineId.ToString())
+            .Order("transaction_date", Ordering.Descending)
+            .Get();
 
-        var response = await client.Execute<List<TransactionRow>>(builder);
-        return response.Data?.Select(MapToTransaction).ToList() ?? [];
+        return response.Models.Select(MapToTransaction).ToList();
     }
 
-    public async Task<Transaction> Create(object createDto, object supabaseClient)
+    public async Task<Transaction> Create(object createDto)
     {
-        var client = CastClient(supabaseClient);
-        var builder = client.From("transaction").Insert(createDto);
+        var client = _factory.CreateUserClient();
+        var json = Newtonsoft.Json.JsonConvert.SerializeObject(createDto);
+        var row = Newtonsoft.Json.JsonConvert.DeserializeObject<TransactionRow>(json)
+            ?? throw new Domain.Common.BusinessException(ErrorCodes.TransactionCreateFailed, "Failed to map transaction");
 
-        var response = await client.Execute<List<TransactionRow>>(builder);
-        var row = response.Data?.FirstOrDefault();
-        if (!response.IsSuccess || row is null)
-            throw new Domain.Common.BusinessException(ErrorCodes.TransactionCreateFailed, response.Error?.Message ?? "Failed to create transaction");
+        var response = await client.Table<TransactionRow>().Insert(row);
+        return MapToTransaction(response.Models.FirstOrDefault()
+            ?? throw new Domain.Common.BusinessException(ErrorCodes.TransactionCreateFailed, "Failed to create transaction"));
+    }
+
+    public async Task<Transaction> Update(Guid id, object updateDto)
+    {
+        var client = _factory.CreateUserClient();
+        var dict = updateDto as Dictionary<string, object?> ?? ToDictionary(updateDto);
+
+        var table = client.Table<TransactionRow>().Filter("id", Operator.Equals, id.ToString());
+        if (dict.TryGetValue("name", out var name)) table = table.Set(r => r.Name, name as string);
+        if (dict.TryGetValue("amount", out var amount)) table = table.Set(r => r.Amount, amount as string);
+        if (dict.TryGetValue("kind", out var kind) && kind is string kindStr)
+            table = table.Set(r => r.Kind, Enum.Parse<Pulpe.Domain.Common.TransactionKind>(kindStr, true));
+        if (dict.TryGetValue("transaction_date", out var txDate) && txDate is string txDateStr)
+            table = table.Set(r => r.TransactionDate, DateTimeOffset.Parse(txDateStr));
+        if (dict.TryGetValue("category", out var category)) table = table.Set(r => r.Category, category as string);
+        if (dict.TryGetValue("checked_at", out var checkedAt))
+            table = table.Set(r => r.CheckedAt, checkedAt is string s ? DateTimeOffset.Parse(s) : (DateTimeOffset?)null);
+        if (dict.ContainsKey("original_amount"))
+            table = table.Set(r => r.OriginalAmount, dict["original_amount"] as string);
+        if (dict.ContainsKey("original_currency"))
+            table = table.Set(r => r.OriginalCurrency, dict["original_currency"] as string);
+        if (dict.ContainsKey("target_currency"))
+            table = table.Set(r => r.TargetCurrency, dict["target_currency"] as string);
+        if (dict.ContainsKey("exchange_rate"))
+            table = table.Set(r => r.ExchangeRate, dict["exchange_rate"] as decimal?);
+
+        var response = await table.Update();
+        var row = response.Models.FirstOrDefault()
+            ?? throw new Domain.Common.BusinessException(ErrorCodes.TransactionUpdateFailed, "Failed to update transaction");
 
         return MapToTransaction(row);
     }
 
-    public async Task<Transaction> Update(Guid id, object updateDto, object supabaseClient)
+    public async Task Delete(Guid id)
     {
-        var client = CastClient(supabaseClient);
-        var builder = client.From("transaction")
-            .Eq("id", id.ToString())
-            .Update(updateDto);
-
-        var response = await client.Execute<List<TransactionRow>>(builder);
-        var row = response.Data?.FirstOrDefault();
-        if (!response.IsSuccess || row is null)
-            throw new Domain.Common.BusinessException(ErrorCodes.TransactionUpdateFailed, response.Error?.Message ?? "Failed to update transaction");
-
-        return MapToTransaction(row);
-    }
-
-    public async Task Delete(Guid id, object supabaseClient)
-    {
-        var client = CastClient(supabaseClient);
-        var builder = client.From("transaction")
-            .Eq("id", id.ToString())
+        var client = _factory.CreateUserClient();
+        await client.Table<TransactionRow>()
+            .Filter("id", Operator.Equals, id.ToString())
             .Delete();
-
-        var response = await client.Execute<object>(builder);
-        if (!response.IsSuccess)
-            throw new Domain.Common.BusinessException(ErrorCodes.TransactionDeleteFailed, response.Error?.Message ?? "Failed to delete transaction");
     }
 
-    public async Task<Transaction> ToggleCheck(Guid id, object supabaseClient)
+    public async Task<Transaction> ToggleCheck(Guid id)
     {
-        var client = CastClient(supabaseClient);
-        var response = await client.Rpc<TransactionRow>("toggle_budget_line_check", new { transaction_id = id.ToString() });
+        var client = _factory.CreateUserClient();
+        var response = await client.Rpc<TransactionRow>("toggle_budget_line_check",
+            new Dictionary<string, object> { ["transaction_id"] = id.ToString() });
 
-        if (!response.IsSuccess || response.Data is null)
-        {
-            // Fallback: direct toggle
-            var current = await FindById(id, supabaseClient);
-            if (current is null)
-                throw new Domain.Common.BusinessException(ErrorCodes.TransactionNotFound, "Transaction not found", 404);
+        if (response is not null)
+            return MapToTransaction(response);
 
-            var newCheckedAt = current.CheckedAt.HasValue ? (DateTimeOffset?)null : DateTimeOffset.UtcNow;
-            var updateBuilder = client.From("transaction")
-                .Eq("id", id.ToString())
-                .Update(new { checked_at = newCheckedAt });
+        // Fallback: direct toggle
+        var current = await FindById(id)
+            ?? throw new Domain.Common.BusinessException(ErrorCodes.TransactionNotFound, "Transaction not found", 404);
 
-            var updateResponse = await client.Execute<List<TransactionRow>>(updateBuilder);
-            var updatedRow = updateResponse.Data?.FirstOrDefault();
-            if (!updateResponse.IsSuccess || updatedRow is null)
-                throw new Domain.Common.BusinessException(ErrorCodes.TransactionUpdateFailed, "Failed to toggle transaction check");
-
-            return MapToTransaction(updatedRow);
-        }
-
-        return MapToTransaction(response.Data);
+        var newCheckedAt = current.CheckedAt.HasValue ? (DateTimeOffset?)null : DateTimeOffset.UtcNow;
+        var updated = await Update(id, new Dictionary<string, object?> { ["checked_at"] = newCheckedAt });
+        return updated;
     }
 
     public async Task<(List<Transaction> Transactions, List<BudgetLine> BudgetLines)> Search(
-        string query, string userId, object supabaseClient, int[]? years = null)
+        string query, string userId, int[]? years = null)
     {
-        var client = CastClient(supabaseClient);
+        var client = _factory.CreateUserClient();
         var pattern = $"%{query}%";
 
-        // Run parallel searches on transaction and budget_line tables
-        var transactionTask = client.Execute<List<TransactionRow>>(
-            client.From("transaction")
-                .Select("*")
-                .Eq("user_id", userId)
-                .ILike("name", pattern));
+        var transactionTask = client.Table<TransactionRow>()
+            .Filter("user_id", Operator.Equals, userId)
+            .Filter("name", Operator.ILike, pattern)
+            .Get();
 
-        var budgetLineTask = client.Execute<List<BudgetLineSearchRow>>(
-            client.From("budget_line")
-                .Select("*, monthly_budget!inner(user_id)")
-                .Eq("monthly_budget.user_id", userId)
-                .ILike("name", pattern));
+        var budgetLineTask = client.Table<BudgetLineSearchRow>()
+            .Filter("name", Operator.ILike, pattern)
+            .Get();
 
         await Task.WhenAll(transactionTask, budgetLineTask);
 
-        var transactions = (await transactionTask).Data?.Select(MapToTransaction).ToList() ?? [];
-        var budgetLines = (await budgetLineTask).Data?.Select(MapToBudgetLine).ToList() ?? [];
+        var transactions = transactionTask.Result.Models.Select(MapToTransaction).ToList();
+        var budgetLines = budgetLineTask.Result.Models.Select(MapToBudgetLine).ToList();
 
         return (transactions, budgetLines);
     }
 
-    private static SupabaseRestClient CastClient(object supabaseClient) =>
-        supabaseClient as SupabaseRestClient
-            ?? throw new ArgumentException("Expected SupabaseRestClient", nameof(supabaseClient));
-
     private static Transaction MapToTransaction(TransactionRow row) => new()
     {
-        Id = Guid.Parse(row.Id),
-        BudgetId = Guid.Parse(row.BudgetId),
-        BudgetLineId = row.BudgetLineId is not null ? Guid.Parse(row.BudgetLineId) : null,
+        Id = row.Id,
+        BudgetId = row.BudgetId,
+        BudgetLineId = row.BudgetLineId == Guid.Empty ? null : row.BudgetLineId,
         Name = row.Name ?? string.Empty,
         Amount = row.Amount ?? string.Empty,
         TransactionDate = row.TransactionDate,
         Category = row.Category,
         Kind = row.Kind,
         CheckedAt = row.CheckedAt,
+        OriginalAmount = row.OriginalAmount,
+        OriginalCurrency = row.OriginalCurrency,
+        TargetCurrency = row.TargetCurrency,
+        ExchangeRate = row.ExchangeRate,
         CreatedAt = row.CreatedAt,
         UpdatedAt = row.UpdatedAt
     };
 
     private static BudgetLine MapToBudgetLine(BudgetLineSearchRow row) => new()
     {
-        Id = Guid.Parse(row.Id),
-        BudgetId = Guid.Parse(row.BudgetId),
-        TemplateLineId = row.TemplateLineId is not null ? Guid.Parse(row.TemplateLineId) : null,
-        SavingsGoalId = row.SavingsGoalId is not null ? Guid.Parse(row.SavingsGoalId) : null,
+        Id = row.Id,
+        BudgetId = row.BudgetId,
+        TemplateLineId = row.TemplateLineId == Guid.Empty ? null : row.TemplateLineId,
+        SavingsGoalId = row.SavingsGoalId == Guid.Empty ? null : row.SavingsGoalId,
         Name = row.Name ?? string.Empty,
         Amount = row.Amount ?? string.Empty,
         Recurrence = row.Recurrence,
@@ -179,34 +176,98 @@ public sealed class TransactionRepository : ITransactionRepository
         UpdatedAt = row.UpdatedAt
     };
 
-    private sealed class TransactionRow
+    private static Dictionary<string, object?> ToDictionary(object obj)
     {
-        public string Id { get; set; } = string.Empty;
-        public string BudgetId { get; set; } = string.Empty;
-        public string? BudgetLineId { get; set; }
+        var json = Newtonsoft.Json.JsonConvert.SerializeObject(obj);
+        return Newtonsoft.Json.JsonConvert.DeserializeObject<Dictionary<string, object?>>(json) ?? [];
+    }
+
+    [Table("transaction")]
+    private sealed class TransactionRow : BaseModel
+    {
+        [PrimaryKey("id", false)]
+        public Guid Id { get; set; }
+
+        [Column("budget_id")]
+        public Guid BudgetId { get; set; }
+
+        [Column("budget_line_id")]
+        public Guid? BudgetLineId { get; set; }
+
+        [Column("name")]
         public string? Name { get; set; }
+
+        [Column("amount")]
         public string? Amount { get; set; }
+
+        [Column("transaction_date")]
         public DateTimeOffset TransactionDate { get; set; }
+
+        [Column("category")]
         public string? Category { get; set; }
+
+        [Column("kind")]
         public TransactionKind Kind { get; set; }
+
+        [Column("checked_at")]
         public DateTimeOffset? CheckedAt { get; set; }
+
+        [Column("original_amount")]
+        public string? OriginalAmount { get; set; }
+
+        [Column("original_currency")]
+        public string? OriginalCurrency { get; set; }
+
+        [Column("target_currency")]
+        public string? TargetCurrency { get; set; }
+
+        [Column("exchange_rate")]
+        public decimal? ExchangeRate { get; set; }
+
+        [Column("created_at")]
         public DateTimeOffset CreatedAt { get; set; }
+
+        [Column("updated_at")]
         public DateTimeOffset UpdatedAt { get; set; }
     }
 
-    private sealed class BudgetLineSearchRow
+    [Table("budget_line")]
+    private sealed class BudgetLineSearchRow : BaseModel
     {
-        public string Id { get; set; } = string.Empty;
-        public string BudgetId { get; set; } = string.Empty;
-        public string? TemplateLineId { get; set; }
-        public string? SavingsGoalId { get; set; }
+        [PrimaryKey("id", false)]
+        public Guid Id { get; set; }
+
+        [Column("budget_id")]
+        public Guid BudgetId { get; set; }
+
+        [Column("template_line_id")]
+        public Guid? TemplateLineId { get; set; }
+
+        [Column("savings_goal_id")]
+        public Guid? SavingsGoalId { get; set; }
+
+        [Column("name")]
         public string? Name { get; set; }
+
+        [Column("amount")]
         public string? Amount { get; set; }
+
+        [Column("recurrence")]
         public TransactionRecurrence Recurrence { get; set; }
+
+        [Column("kind")]
         public TransactionKind Kind { get; set; }
+
+        [Column("is_manually_adjusted")]
         public bool IsManuallyAdjusted { get; set; }
+
+        [Column("checked_at")]
         public DateTimeOffset? CheckedAt { get; set; }
+
+        [Column("created_at")]
         public DateTimeOffset CreatedAt { get; set; }
+
+        [Column("updated_at")]
         public DateTimeOffset UpdatedAt { get; set; }
     }
 }
