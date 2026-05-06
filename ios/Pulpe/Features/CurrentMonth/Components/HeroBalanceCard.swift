@@ -264,39 +264,71 @@ struct HeroBalanceCard: View {
         tintedPill(
             prefix: "+",
             amount: metrics.totalIncome,
+            label: "revenus",
             tint: .financialIncome
         )
     }
 
     private var savingsPill: some View {
-        tintedPill(
-            prefix: "🐷",
-            amount: metrics.totalSavings,
-            tint: .financialSavings
-        )
+        HStack(spacing: DesignTokens.Spacing.xs) {
+            // No foregroundStyle — emoji glyph keeps Apple native color render.
+            Text("🐷")
+                .font(PulpeTypography.metricLabelBold)
+
+            Text(metrics.totalSavings.asCompactAmount(for: userSettingsStore.currency))
+                .font(PulpeTypography.metricLabelBold)
+                .foregroundStyle(Color.financialSavings)
+                .monospacedDigit()
+                .sensitiveAmount()
+
+            Text("épargne")
+                .font(PulpeTypography.metricLabelBold)
+                .foregroundStyle(Color.financialSavings)
+        }
+        .padding(.horizontal, DesignTokens.Spacing.md)
+        .padding(.vertical, DesignTokens.Spacing.tightGap)
+        .background {
+            Capsule()
+                .fill(Color.financialSavings.opacity(DesignTokens.Opacity.accent))
+        }
+        .contentShape(Capsule())
     }
 
     private var expensesPill: some View {
         tintedPill(
             prefix: "−",
             amount: metrics.totalExpenses,
+            label: "dépenses",
             tint: .financialExpense
         )
     }
 
     /// Pale-tinted pill with colored ink text — pale category-tint background,
     /// dark category text. Matches DM2.1.b.c5 maquette (incomeSoft/incomeInk pattern).
-    private func tintedPill(prefix: String, amount: Decimal, tint: Color) -> some View {
+    /// `foregroundStyle(tint)` is applied per-Text (not on the outer HStack) so an
+    /// emoji glyph passed as `prefix` would still render in its native color — see
+    /// `savingsPill` for the pig variant that opts out of the tint on its emoji.
+    private func tintedPill(
+        prefix: String,
+        amount: Decimal,
+        label: String,
+        tint: Color
+    ) -> some View {
         HStack(spacing: DesignTokens.Spacing.xs) {
             Text(prefix)
                 .font(PulpeTypography.metricLabelBold)
+                .foregroundStyle(tint)
 
-            Text(amount.asCompactCurrency(userSettingsStore.currency))
+            Text(amount.asCompactAmount(for: userSettingsStore.currency))
                 .font(PulpeTypography.metricLabelBold)
+                .foregroundStyle(tint)
                 .monospacedDigit()
                 .sensitiveAmount()
+
+            Text(label)
+                .font(PulpeTypography.metricLabelBold)
+                .foregroundStyle(tint)
         }
-        .foregroundStyle(tint)
         .padding(.horizontal, DesignTokens.Spacing.md)
         .padding(.vertical, DesignTokens.Spacing.tightGap)
         .background {
