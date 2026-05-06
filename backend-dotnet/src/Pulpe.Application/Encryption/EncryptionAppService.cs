@@ -1,9 +1,8 @@
 using Pulpe.Application.Encryption.Dto;
 using Pulpe.Domain.Common;
 using Pulpe.Domain.Encryption;
-using Pulpe.Infrastructure.Supabase;
 
-namespace Pulpe.Infrastructure.Services.Encryption;
+namespace Pulpe.Application.Encryption;
 
 public sealed class EncryptionAppService : IEncryptionAppService
 {
@@ -39,6 +38,11 @@ public sealed class EncryptionAppService : IEncryptionAppService
             throw new BusinessException(ErrorCodes.EncryptionInvalidKey, "Invalid client key", 401);
     }
 
+    public async Task VerifyRecoveryKeyAsync(string userId, string recoveryKey)
+    {
+        await _encryptionService.VerifyRecoveryKey(userId, recoveryKey);
+    }
+
     public async Task<object> SetupRecoveryAsync(string userId, byte[] clientKey)
     {
         var formatted = await _encryptionService.CreateRecoveryKey(userId, clientKey);
@@ -51,18 +55,18 @@ public sealed class EncryptionAppService : IEncryptionAppService
         return new EncryptionSetupRecoveryResponseDto(formatted);
     }
 
-    public async Task<object> RecoverAsync(string userId, string recoveryKey, string newClientKeyHex, SupabaseRestClient supabase)
+    public async Task<object> RecoverAsync(string userId, string recoveryKey, string newClientKeyHex)
     {
         var newClientKey = ParseHex(newClientKeyHex);
-        await _encryptionService.RecoverWithKey(userId, recoveryKey, newClientKey, supabase);
+        await _encryptionService.RecoverWithKey(userId, recoveryKey, newClientKey);
         return new EncryptionRecoverResponseDto(Success: true);
     }
 
-    public async Task<object> ChangePinAsync(string userId, string oldClientKeyHex, string newClientKeyHex, SupabaseRestClient supabase)
+    public async Task<object> ChangePinAsync(string userId, string oldClientKeyHex, string newClientKeyHex)
     {
         var oldKey = ParseHex(oldClientKeyHex);
         var newKey = ParseHex(newClientKeyHex);
-        var result = await _encryptionService.ChangePinRekey(userId, oldKey, newKey, supabase);
+        var result = await _encryptionService.ChangePinRekey(userId, oldKey, newKey);
         return new EncryptionChangePinResponseDto(result.KeyCheck, result.RecoveryKey);
     }
 

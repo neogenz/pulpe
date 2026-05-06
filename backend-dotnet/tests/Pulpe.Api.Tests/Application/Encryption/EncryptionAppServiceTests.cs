@@ -1,6 +1,8 @@
+using System.Security.Cryptography;
 using FluentAssertions;
 using NSubstitute;
-using Pulpe.Infrastructure.Services.Encryption;
+using NSubstitute.ExceptionExtensions;
+using Pulpe.Application.Encryption;
 using Pulpe.Application.Encryption.Dto;
 using Pulpe.Domain.Common;
 using Pulpe.Domain.Encryption;
@@ -103,6 +105,44 @@ public class EncryptionAppServiceTests
         var hex = new string('a', 65);
         var act = () => _sut.ValidateKeyAsync("user-1", hex);
         await act.Should().ThrowAsync<BusinessException>().Where(ex => ex.StatusCode == 400);
+    }
+
+    // --- VerifyRecoveryKeyAsync ---
+
+    [Fact]
+    public async Task VerifyRecoveryKeyAsync_ValidKey_DoesNotThrow()
+    {
+        _encryptionService.VerifyRecoveryKey("user-1", "ABCD-EFGH").Returns(Task.CompletedTask);
+
+        await _sut.Invoking(s => s.VerifyRecoveryKeyAsync("user-1", "ABCD-EFGH"))
+            .Should().NotThrowAsync();
+    }
+
+    [Fact]
+    public async Task VerifyRecoveryKeyAsync_InvalidKey_PropagatesBusinessException()
+    {
+        var innerEx = new CryptographicException("bad tag");
+        var bex = new BusinessException(ErrorCodes.EncryptionRecoveryFailed, "Invalid recovery key", 400, innerException: innerEx);
+        _encryptionService.VerifyRecoveryKey("user-1", "WRONG-KEY").ThrowsAsync(bex);
+
+        var act = async () => await _sut.VerifyRecoveryKeyAsync("user-1", "WRONG-KEY");
+
+        var ex = await act.Should().ThrowAsync<BusinessException>();
+        ex.Which.Code.Should().Be(ErrorCodes.EncryptionRecoveryFailed);
+        ex.Which.InnerException.Should().Be(innerEx);
+    }
+
+    [Fact]
+    public async Task VerifyRecoveryKeyAsync_NoWrappedDek_PropagatesBusinessException()
+    {
+        var bex = new BusinessException(ErrorCodes.EncryptionRecoveryFailed, "No recovery key configured", 400);
+        _encryptionService.VerifyRecoveryKey("user-1", "ABCD").ThrowsAsync(bex);
+
+        var act = async () => await _sut.VerifyRecoveryKeyAsync("user-1", "ABCD");
+
+        var ex = await act.Should().ThrowAsync<BusinessException>();
+        ex.Which.Code.Should().Be(ErrorCodes.EncryptionRecoveryFailed);
+        ex.Which.StatusCode.Should().Be(400);
     }
 
     // --- SetupRecoveryAsync ---

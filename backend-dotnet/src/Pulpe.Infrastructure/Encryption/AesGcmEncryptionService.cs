@@ -346,6 +346,47 @@ public sealed class AesGcmEncryptionService : IEncryptionService
 
     // --- Recovery ---
 
+    public async Task VerifyRecoveryKey(string userId, string recoveryKeyFormatted)
+    {
+        using var scope = _logger.BeginScope(new Dictionary<string, object> { ["userId"] = userId, ["operation"] = "verifyRecoveryKey" });
+
+        var keyRecord = await _keyRepository.GetByUserId(userId);
+        if (keyRecord?.WrappedDek is null)
+            throw new BusinessException(
+                ErrorCodes.EncryptionRecoveryFailed, "No recovery key configured", 400,
+                loggingContext: new Dictionary<string, object> { ["operation"] = "verify_recovery_key.not_configured" });
+
+        byte[] recoveryKeyBytes;
+        try
+        {
+            recoveryKeyBytes = ParseRecoveryKey(recoveryKeyFormatted);
+        }
+        catch (Exception ex)
+        {
+            throw new BusinessException(
+                ErrorCodes.EncryptionRecoveryFailed, "Invalid recovery key format", 400,
+                loggingContext: new Dictionary<string, object> { ["operation"] = "verify_recovery_key.decode_failed" },
+                innerException: ex);
+        }
+
+        try
+        {
+            var dek = UnwrapDek(keyRecord.WrappedDek, recoveryKeyBytes);
+            CryptographicOperations.ZeroMemory(dek);
+        }
+        catch (Exception ex)
+        {
+            throw new BusinessException(
+                ErrorCodes.EncryptionRecoveryFailed, "Invalid recovery key", 400,
+                loggingContext: new Dictionary<string, object> { ["operation"] = "verify_recovery_key.unwrap_failed" },
+                innerException: ex);
+        }
+        finally
+        {
+            CryptographicOperations.ZeroMemory(recoveryKeyBytes);
+        }
+    }
+
     public async Task RecoverWithKey(string userId, string recoveryKey, byte[] newClientKey)
     {
         var keyRecord = await _keyRepository.GetByUserId(userId);

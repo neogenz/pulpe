@@ -18,9 +18,10 @@ public interface IEncryptionService
     Task<bool> VerifyAndEnsureKeyCheck(string userId, byte[] clientKey);
     Task<string> CreateRecoveryKey(string userId, byte[] clientKey);
     Task<string> RegenerateRecoveryKey(string userId, byte[] clientKey);
-    Task RecoverWithKey(string userId, string recoveryKey, byte[] newClientKey, object supabaseClient);
-    Task<ChangePinResult> ChangePinRekey(string userId, byte[] oldClientKey, byte[] newClientKey, object supabaseClient);
-    Task<string> ReEncryptAllUserData(string userId, byte[] oldDek, byte[] newDek, object supabaseClient);
+    Task RecoverWithKey(string userId, string recoveryKey, byte[] newClientKey);
+    Task<ChangePinResult> ChangePinRekey(string userId, byte[] oldClientKey, byte[] newClientKey);
+    Task<string> ReEncryptAllUserData(string userId, byte[] oldDek, byte[] newDek);
+    Task VerifyRecoveryKey(string userId, string recoveryKey);
 }
 
 public record VaultStatus(bool PinCodeConfigured, bool RecoveryKeyConfigured, bool VaultCodeConfigured);

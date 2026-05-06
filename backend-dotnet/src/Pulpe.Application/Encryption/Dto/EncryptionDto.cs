@@ -4,6 +4,8 @@ namespace Pulpe.Application.Encryption.Dto;
 
 public record EncryptionValidateKeyRequestDto(string ClientKey);
 
+public record EncryptionVerifyRecoveryKeyRequestDto(string RecoveryKey);
+
 public record EncryptionRecoverRequestDto(string RecoveryKey, string NewClientKey);
 
 public record EncryptionChangePinRequestDto(string OldClientKey, string NewClientKey);

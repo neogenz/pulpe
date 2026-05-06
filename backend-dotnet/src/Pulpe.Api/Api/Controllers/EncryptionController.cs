@@ -2,9 +2,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Pulpe.Api.Api.Auth;
-using Pulpe.Infrastructure.Services.Encryption;
+using Pulpe.Application.Encryption;
 using Pulpe.Application.Encryption.Dto;
-using Pulpe.Infrastructure.Supabase;
 
 namespace Pulpe.Api.Api.Controllers;
 
@@ -48,6 +47,16 @@ public class EncryptionController : ControllerBase
         return NoContent();
     }
 
+    [HttpPost("verify-recovery-key")]
+    [SkipClientKey]
+    [EnableRateLimiting("encryption-validate")]
+    public async Task<IActionResult> VerifyRecoveryKey([FromBody] EncryptionVerifyRecoveryKeyRequestDto body)
+    {
+        var user = HttpContext.GetUser();
+        await _encryptionService.VerifyRecoveryKeyAsync(user.Id, body.RecoveryKey);
+        return NoContent();
+    }
+
     [HttpPost("setup-recovery")]
     [EnableRateLimiting("encryption-sensitive")]
     public async Task<IActionResult> SetupRecovery()
@@ -72,8 +81,7 @@ public class EncryptionController : ControllerBase
     public async Task<IActionResult> Recover([FromBody] EncryptionRecoverRequestDto body)
     {
         var user = HttpContext.GetUser();
-        var supabase = (SupabaseRestClient)HttpContext.GetSupabaseClient();
-        var result = await _encryptionService.RecoverAsync(user.Id, body.RecoveryKey, body.NewClientKey, supabase);
+        var result = await _encryptionService.RecoverAsync(user.Id, body.RecoveryKey, body.NewClientKey);
         return Ok(result);
     }
 
@@ -83,8 +91,7 @@ public class EncryptionController : ControllerBase
     public async Task<IActionResult> ChangePin([FromBody] EncryptionChangePinRequestDto body)
     {
         var user = HttpContext.GetUser();
-        var supabase = (SupabaseRestClient)HttpContext.GetSupabaseClient();
-        var result = await _encryptionService.ChangePinAsync(user.Id, body.OldClientKey, body.NewClientKey, supabase);
+        var result = await _encryptionService.ChangePinAsync(user.Id, body.OldClientKey, body.NewClientKey);
         return Ok(result);
     }
 }
