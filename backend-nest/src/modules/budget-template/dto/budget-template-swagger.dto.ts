@@ -12,8 +12,6 @@ import {
   templateLineResponseSchema,
   templateLineListResponseSchema,
   templateLineDeleteResponseSchema,
-  templateLinesBulkUpdateSchema,
-  templateLinesBulkUpdateResponseSchema,
   templateLinesBulkOperationsSchema,
   templateLinesBulkOperationsResponseSchema,
   templateUsageResponseSchema,
@@ -59,14 +57,6 @@ export class TemplateLineListResponseDto extends createZodDto(
 ) {}
 export class TemplateLineDeleteResponseDto extends createZodDto(
   templateLineDeleteResponseSchema,
-) {}
-
-// Template Line Bulk Update DTOs
-export class TemplateLinesBulkUpdateDto extends createZodDto(
-  templateLinesBulkUpdateSchema,
-) {}
-export class TemplateLinesBulkUpdateResponseDto extends createZodDto(
-  templateLinesBulkUpdateResponseSchema,
 ) {}
 
 // Template Line Bulk Operations DTOs (Create/Update/Delete)

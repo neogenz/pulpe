@@ -67,8 +67,6 @@ export {
   templateLineListResponseSchema,
   templateLineDeleteResponseSchema,
   templateLineUpdateWithIdSchema,
-  templateLinesBulkUpdateSchema,
-  templateLinesBulkUpdateResponseSchema,
   templateLinesBulkOperationsSchema,
   templateLinesBulkOperationsResponseSchema,
 
@@ -238,8 +236,6 @@ export type {
   TemplateLineListResponse,
   TemplateLineDeleteResponse,
   TemplateLineUpdateWithId,
-  TemplateLinesBulkUpdate,
-  TemplateLinesBulkUpdateResponse,
   TemplateLinesBulkOperations,
   TemplateLinesBulkOperationsResponse,
   TemplateLinesPropagationSummary,

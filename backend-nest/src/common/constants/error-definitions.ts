@@ -293,11 +293,6 @@ export const ERROR_DEFINITIONS = {
         : 'Template is in use and cannot be deleted',
     httpStatus: HttpStatus.BAD_REQUEST,
   },
-  TEMPLATE_LINES_BULK_UPDATE_FAILED: {
-    code: API_ERROR_CODES.TEMPLATE_LINES_BULK_UPDATE_FAILED,
-    message: () => 'Failed to bulk update template lines',
-    httpStatus: HttpStatus.INTERNAL_SERVER_ERROR,
-  },
   TEMPLATE_LINES_BULK_OPERATIONS_FAILED: {
     code: API_ERROR_CODES.TEMPLATE_LINES_BULK_OPERATIONS_FAILED,
     message: () => 'Failed to perform bulk operations on template lines',

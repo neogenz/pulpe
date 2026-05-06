@@ -16,7 +16,6 @@ import {
   type BudgetTemplateListResponse,
   type BudgetTemplateResponse,
   type BudgetTemplateUpdate,
-  type TemplateLine,
   type TemplateLineCreateWithoutTemplateId,
   type TemplateLineDeleteResponse,
   type TemplateLineListResponse,
@@ -25,8 +24,6 @@ import {
   type TemplateLineUpdateWithId,
   type TemplateLinesBulkOperations,
   type TemplateLinesBulkOperationsResponse,
-  type TemplateLinesBulkUpdate,
-  type TemplateLinesBulkUpdateResponse,
   type TemplateLinesPropagationSummary,
   budgetTemplateCreateFromOnboardingSchema,
   budgetTemplateCreateSchema,
@@ -34,7 +31,6 @@ import {
   templateLineCreateWithoutTemplateIdSchema,
   templateLineUpdateSchema,
   templateLinesBulkOperationsSchema,
-  templateLinesBulkUpdateSchema,
 } from 'pulpe-shared';
 import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 import { CurrencyService } from '@modules/currency/currency.service';
@@ -969,114 +965,6 @@ export class BudgetTemplateService {
       );
     }
     return data;
-  }
-
-  async bulkUpdateTemplateLines(
-    templateId: string,
-    bulkUpdateDto: TemplateLinesBulkUpdate,
-    user: AuthenticatedUser,
-    supabase: AuthenticatedSupabaseClient,
-  ): Promise<TemplateLinesBulkUpdateResponse> {
-    const startTime = Date.now();
-
-    try {
-      const data = await this.executeBulkUpdate(
-        templateId,
-        bulkUpdateDto,
-        user,
-        supabase,
-      );
-
-      this.logger.info(
-        {
-          operation: 'bulkUpdateTemplateLines',
-          userId: user.id,
-          entityId: templateId,
-          duration: Date.now() - startTime,
-          updateCount: data.length,
-        },
-        'Template lines bulk updated successfully',
-      );
-
-      return { success: true, data };
-    } catch (error) {
-      handleServiceError(
-        error,
-        ERROR_DEFINITIONS.TEMPLATE_LINES_BULK_UPDATE_FAILED,
-        { templateId },
-      );
-    }
-  }
-
-  private async executeBulkUpdate(
-    templateId: string,
-    bulkUpdateDto: TemplateLinesBulkUpdate,
-    user: AuthenticatedUser,
-    supabase: AuthenticatedSupabaseClient,
-  ): Promise<TemplateLine[]> {
-    await this.validateTemplateAccess(templateId, user, supabase);
-    const validated = templateLinesBulkUpdateSchema.parse(bulkUpdateDto);
-
-    await this.validateBulkUpdateLines(validated, templateId, supabase);
-
-    const allUpdatedLines = await this.performBulkUpdate(
-      validated,
-      supabase,
-      user,
-    );
-
-    const decryptedLines = await this.#decryptTemplateLines(
-      allUpdatedLines,
-      user.id,
-      user.clientKey,
-    );
-    return budgetTemplateMappers.toApiTemplateLineList(decryptedLines);
-  }
-
-  private async validateBulkUpdateLines(
-    validated: TemplateLinesBulkUpdate,
-    templateId: string,
-    supabase: AuthenticatedSupabaseClient,
-  ): Promise<void> {
-    const lineIds = validated.lines.map((l) => l.id);
-    const { data: existingLines } = await supabase
-      .from('template_line')
-      .select('id, template_id')
-      .in('id', lineIds);
-
-    if (!existingLines || existingLines.length !== lineIds.length) {
-      throw new BusinessException(ERROR_DEFINITIONS.TEMPLATE_LINE_NOT_FOUND);
-    }
-
-    if (existingLines.some((l) => l.template_id !== templateId)) {
-      throw new BusinessException(
-        ERROR_DEFINITIONS.TEMPLATE_LINE_TEMPLATE_MISMATCH,
-        {
-          templateId,
-        },
-      );
-    }
-  }
-
-  private async performBulkUpdate(
-    validated: TemplateLinesBulkUpdate,
-    supabase: AuthenticatedSupabaseClient,
-    user: AuthenticatedUser,
-  ): Promise<Tables<'template_line'>[]> {
-    const updateGroups = await this.groupUpdatesByProperties(
-      validated.lines,
-      user,
-    );
-
-    const updatePromises = Array.from(updateGroups.values()).map(
-      ({ ids, data }) =>
-        supabase.from('template_line').update(data).in('id', ids).select(),
-    );
-
-    const results = await Promise.all(updatePromises);
-    return results.flatMap(
-      (r) => (r as { data?: Tables<'template_line'>[] }).data || [],
-    );
   }
 
   private async groupUpdatesByProperties(

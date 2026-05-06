@@ -554,13 +554,6 @@ export type TemplateLineUpdateWithId = z.infer<
   typeof templateLineUpdateWithIdSchema
 >;
 
-export const templateLinesBulkUpdateSchema = z.strictObject({
-  lines: z.array(templateLineUpdateWithIdSchema).min(1),
-});
-export type TemplateLinesBulkUpdate = z.infer<
-  typeof templateLinesBulkUpdateSchema
->;
-
 // Extended bulk update schema supporting create, update, and delete operations
 // Security: Limited to prevent DoS attacks and memory exhaustion
 export const templateLinesBulkOperationsSchema = z
@@ -838,15 +831,6 @@ export const templateLineListResponseSchema =
   createListResponse(templateLineSchema);
 export type TemplateLineListResponse = z.infer<
   typeof templateLineListResponseSchema
->;
-
-export const templateLinesBulkUpdateResponseSchema = z.object({
-  success: z.literal(true),
-  data: z.array(templateLineSchema),
-  message: z.string().optional(),
-});
-export type TemplateLinesBulkUpdateResponse = z.infer<
-  typeof templateLinesBulkUpdateResponseSchema
 >;
 
 export const templateLineDeleteResponseSchema = deleteResponseSchema;
