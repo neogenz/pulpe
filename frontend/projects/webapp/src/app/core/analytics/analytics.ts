@@ -73,7 +73,8 @@ export class AnalyticsService implements OnDestroy {
             this.#logger.debug('PostHog tracking enabled for session');
           }
 
-          // Identify carries demo + early adopter flags only. Settings + the
+          // Identify carries the user identity (email, name, supabase_user_id)
+          // plus stable session flags (early adopter, demo). Settings + the
           // multi-currency flag are pushed separately via `$set` from
           // `#personPropertiesEffect` — they are heavier signal deps that
           // would otherwise re-fire identify on every settings tick or PostHog

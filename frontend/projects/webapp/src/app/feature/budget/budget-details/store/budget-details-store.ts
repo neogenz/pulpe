@@ -639,7 +639,15 @@ export class BudgetDetailsStore {
   });
 
   async resetBudgetLineFromTemplate(id: string): Promise<void> {
-    await this.#resetBudgetLineMutation.mutate(id);
+    const realId = await this.#resolveServerId(id);
+    if (realId === null) return;
+    if (this.#mutatingIds.has(realId)) return;
+    this.#mutatingIds.add(realId);
+    try {
+      await this.#resetBudgetLineMutation.mutate(realId);
+    } finally {
+      this.#mutatingIds.delete(realId);
+    }
   }
 
   readonly #toggleCheckMutation = cachedMutation<
@@ -818,21 +826,21 @@ export class BudgetDetailsStore {
   });
 
   async checkAllAllocatedTransactions(budgetLineId: string): Promise<void> {
-    if (this.#mutatingIds.has(budgetLineId)) return;
+    const realId = await this.#resolveServerId(budgetLineId);
+    if (realId === null) return;
+    if (this.#mutatingIds.has(realId)) return;
     const details = this.budgetDetails();
     if (!details) return;
     const hasUnchecked = details.transactions.some(
       (tx) =>
-        tx.budgetLineId === budgetLineId &&
-        tx.checkedAt === null &&
-        !isTempId(tx.id),
+        tx.budgetLineId === realId && tx.checkedAt === null && !isTempId(tx.id),
     );
     if (!hasUnchecked) return;
-    this.#mutatingIds.add(budgetLineId);
+    this.#mutatingIds.add(realId);
     try {
-      await this.#checkAllAllocatedMutation.mutate(budgetLineId);
+      await this.#checkAllAllocatedMutation.mutate(realId);
     } finally {
-      this.#mutatingIds.delete(budgetLineId);
+      this.#mutatingIds.delete(realId);
     }
   }
 
