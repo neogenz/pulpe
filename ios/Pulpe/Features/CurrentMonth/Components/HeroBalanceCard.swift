@@ -120,9 +120,9 @@ struct HeroBalanceCard: View {
 
             // Chunk 2 — Hero amount (black on neutral)
             Text(formattedBalance)
-                .font(PulpeTypography.heroIcon)
-                .tracking(DesignTokens.Tracking.hero)
-                .minimumScaleFactor(0.6)
+                .font(PulpeTypography.displayYear)
+                .tracking(DesignTokens.Tracking.display)
+                .minimumScaleFactor(0.5)
                 .lineLimit(1)
                 .monospacedDigit()
                 .foregroundStyle(Color.textPrimary)
