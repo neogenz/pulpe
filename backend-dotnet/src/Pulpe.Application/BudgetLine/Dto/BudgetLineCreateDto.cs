@@ -1,4 +1,5 @@
 using Pulpe.Domain.Common;
+using Pulpe.Domain.Currency;
 
 namespace Pulpe.Application.BudgetLine.Dto;
 
@@ -11,5 +12,10 @@ public record BudgetLineCreateDto(
     bool IsManuallyAdjusted = false,
     Guid? TemplateLineId = null,
     Guid? SavingsGoalId = null,
-    DateTimeOffset? CheckedAt = null
-);
+    DateTimeOffset? CheckedAt = null,
+    decimal? OriginalAmount = null,
+    Currency? OriginalCurrency = null,
+    Currency? TargetCurrency = null,
+    decimal? ExchangeRate = null,
+    Guid? Id = null
+) : IFxCarrier;

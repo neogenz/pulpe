@@ -1,14 +1,16 @@
 using Microsoft.Extensions.Logging;
+using Pulpe.Application.Budget.Dto;
 using Pulpe.Application.Common;
+using Pulpe.Application.Currency;
 using Pulpe.Application.Transaction.Dto;
 using Pulpe.Domain.Budget;
 using Pulpe.Domain.Common;
+using Pulpe.Domain.Currency;
 using Pulpe.Domain.Encryption;
 using Pulpe.Domain.Transaction;
 using Pulpe.Domain.User;
-using Pulpe.Infrastructure.Supabase;
 
-namespace Pulpe.Infrastructure.Services.Transaction;
+namespace Pulpe.Application.Transaction;
 
 public sealed class TransactionService : ITransactionService
 {
@@ -17,6 +19,7 @@ public sealed class TransactionService : ITransactionService
     private readonly IEncryptionService _encryptionService;
     private readonly ICacheService _cacheService;
     private readonly IBudgetRecalculationService _budgetService;
+    private readonly ICurrencyService _currencyService;
     private readonly ILogger<TransactionService> _logger;
 
     public TransactionService(
@@ -25,6 +28,7 @@ public sealed class TransactionService : ITransactionService
         IEncryptionService encryptionService,
         ICacheService cacheService,
         IBudgetRecalculationService budgetService,
+        ICurrencyService currencyService,
         ILogger<TransactionService> logger)
     {
         _transactionRepository = transactionRepository;
@@ -32,114 +36,27 @@ public sealed class TransactionService : ITransactionService
         _encryptionService = encryptionService;
         _cacheService = cacheService;
         _budgetService = budgetService;
+        _currencyService = currencyService;
         _logger = logger;
     }
 
-    public async Task<List<TransactionResponseDto>> FindAll(AuthenticatedUser user, object supabase)
+    public async Task<object> FindByBudgetAsync(Guid budgetId, AuthenticatedUser user)
     {
-        var (transactions, _) = await _transactionRepository.Search(string.Empty, user.Id, supabase);
+        var transactions = await _transactionRepository.FindByBudgetId(budgetId);
         var dek = await _encryptionService.GetUserDek(user.Id, user.ClientKey);
         return transactions.Select(t => MapToResponse(t, dek)).ToList();
     }
 
-    public async Task<TransactionResponseDto> FindOne(Guid id, AuthenticatedUser user, object supabase)
+    public async Task<object> FindByBudgetLineAsync(Guid budgetLineId, AuthenticatedUser user)
     {
-        var transaction = await _transactionRepository.FindById(id, supabase)
-            ?? throw BusinessException.NotFound(ErrorCodes.TransactionNotFound, $"Transaction '{id}' not found");
-
-        var dek = await _encryptionService.GetUserDek(user.Id, user.ClientKey);
-        return MapToResponse(transaction, dek);
-    }
-
-    public async Task<TransactionResponseDto> Create(TransactionCreateDto dto, AuthenticatedUser user, object supabase)
-    {
-        if (dto.BudgetLineId.HasValue)
-            await ValidateBudgetLineAllocation(dto.BudgetLineId.Value, dto.BudgetId, dto.Kind, supabase);
-
-        var encryptedAmount = await _encryptionService.PrepareAmountData(dto.Amount, user.Id, user.ClientKey);
-
-        var createData = new
-        {
-            budget_id = dto.BudgetId.ToString(),
-            budget_line_id = dto.BudgetLineId?.ToString(),
-            name = dto.Name,
-            amount = encryptedAmount,
-            kind = dto.Kind,
-            transaction_date = (dto.TransactionDate ?? DateTimeOffset.UtcNow).ToString("O"),
-            category = dto.Category,
-            checked_at = dto.CheckedAt?.ToString("O"),
-        };
-
-        var created = await _transactionRepository.Create(createData, supabase);
-
-        await _budgetService.RecalculateBalances(created.BudgetId, supabase, user.ClientKey);
-        await _cacheService.InvalidateForUser(user.Id);
-
-        var dek = await _encryptionService.GetUserDek(user.Id, user.ClientKey);
-        return MapToResponse(created, dek);
-    }
-
-    public async Task<TransactionResponseDto> Update(Guid id, TransactionUpdateDto dto, AuthenticatedUser user, object supabase)
-    {
-        string? encryptedAmount = null;
-        if (dto.Amount.HasValue)
-            encryptedAmount = await _encryptionService.PrepareAmountData(dto.Amount.Value, user.Id, user.ClientKey);
-
-        var updateData = BuildUpdatePayload(dto, encryptedAmount);
-
-        var updated = await _transactionRepository.Update(id, updateData, supabase);
-
-        await _budgetService.RecalculateBalances(updated.BudgetId, supabase, user.ClientKey);
-        await _cacheService.InvalidateForUser(user.Id);
-
-        var dek = await _encryptionService.GetUserDek(user.Id, user.ClientKey);
-        return MapToResponse(updated, dek);
-    }
-
-    public async Task Remove(Guid id, AuthenticatedUser user, object supabase)
-    {
-        var transaction = await _transactionRepository.FindById(id, supabase);
-        var budgetId = transaction?.BudgetId;
-
-        await _transactionRepository.Delete(id, supabase);
-
-        if (budgetId.HasValue)
-            await _budgetService.RecalculateBalances(budgetId.Value, supabase, user.ClientKey);
-
-        await _cacheService.InvalidateForUser(user.Id);
-
-        _logger.LogInformation("Transaction {TransactionId} deleted by user {UserId}", id, user.Id);
-    }
-
-    public async Task<List<TransactionResponseDto>> FindByBudgetId(Guid budgetId, AuthenticatedUser user, object supabase)
-    {
-        var transactions = await _transactionRepository.FindByBudgetId(budgetId, supabase);
+        var transactions = await _transactionRepository.FindByBudgetLineId(budgetLineId);
         var dek = await _encryptionService.GetUserDek(user.Id, user.ClientKey);
         return transactions.Select(t => MapToResponse(t, dek)).ToList();
     }
 
-    public async Task<List<TransactionResponseDto>> FindByBudgetLineId(Guid budgetLineId, AuthenticatedUser user, object supabase)
+    public async Task<object> SearchAsync(string q, int[]? years, AuthenticatedUser user)
     {
-        var transactions = await _transactionRepository.FindByBudgetLineId(budgetLineId, supabase);
-        var dek = await _encryptionService.GetUserDek(user.Id, user.ClientKey);
-        return transactions.Select(t => MapToResponse(t, dek)).ToList();
-    }
-
-    public async Task<TransactionResponseDto> ToggleCheck(Guid id, AuthenticatedUser user, object supabase)
-    {
-        var updated = await _transactionRepository.ToggleCheck(id, supabase);
-        await _cacheService.InvalidateForUser(user.Id);
-
-        _logger.LogInformation("Transaction {TransactionId} check toggled by user {UserId}", id, user.Id);
-
-        var dek = await _encryptionService.GetUserDek(user.Id, user.ClientKey);
-        return MapToResponse(updated, dek);
-    }
-
-    public async Task<List<TransactionSearchResultDto>> Search(
-        string query, AuthenticatedUser user, object supabase, int[]? years = null)
-    {
-        var (transactions, budgetLines) = await _transactionRepository.Search(query, user.Id, supabase, years);
+        var (transactions, budgetLines) = await _transactionRepository.Search(q, user.Id, years);
 
         var dek = await _encryptionService.GetUserDek(user.Id, user.ClientKey);
 
@@ -189,11 +106,109 @@ public sealed class TransactionService : ITransactionService
             .ToList();
     }
 
-    private async Task ValidateBudgetLineAllocation(
-        Guid budgetLineId, Guid budgetId, TransactionKind kind, object supabase)
+    public async Task<object> CreateAsync(object dto, AuthenticatedUser user)
     {
-        // We validate via the budget repository's FindLinesByBudgetId
-        var lines = await _budgetRepository.FindLinesByBudgetId(budgetId, supabase);
+        var createDto = dto as TransactionCreateDto ?? throw new ArgumentException("Expected TransactionCreateDto");
+
+        if (createDto.BudgetLineId.HasValue)
+            await ValidateBudgetLineAllocation(createDto.BudgetLineId.Value, createDto.BudgetId, createDto.Kind);
+
+        var fx = await _currencyService.ComputeOverride(createDto);
+        var encryptedAmount = await _encryptionService.PrepareAmountData(createDto.Amount, user.Id, user.ClientKey);
+        var encryptedOriginalAmount = fx.OriginalAmount.HasValue
+            ? await _encryptionService.PrepareAmountData(fx.OriginalAmount.Value, user.Id, user.ClientKey)
+            : (string?)null;
+
+        var createData = new Dictionary<string, object?>
+        {
+            ["id"] = (createDto.Id ?? Guid.NewGuid()).ToString(),
+            ["budget_id"] = createDto.BudgetId.ToString(),
+            ["budget_line_id"] = createDto.BudgetLineId?.ToString(),
+            ["name"] = createDto.Name,
+            ["amount"] = encryptedAmount,
+            ["kind"] = createDto.Kind,
+            ["transaction_date"] = (createDto.TransactionDate ?? DateTimeOffset.UtcNow).ToString("O"),
+            ["category"] = createDto.Category,
+            ["checked_at"] = createDto.CheckedAt?.ToString("O"),
+            ["original_amount"] = encryptedOriginalAmount,
+            ["original_currency"] = fx.OriginalCurrency?.ToIsoCode(),
+            ["target_currency"] = fx.TargetCurrency?.ToIsoCode(),
+            ["exchange_rate"] = fx.ExchangeRate,
+        };
+
+        var created = await _transactionRepository.Create(createData);
+
+        await _budgetService.RecalculateBalances(created.BudgetId, user.ClientKey);
+        await _cacheService.InvalidateForUser(user.Id);
+
+        var dek = await _encryptionService.GetUserDek(user.Id, user.ClientKey);
+        return MapToResponse(created, dek);
+    }
+
+    public async Task<object> FindOneAsync(Guid id, AuthenticatedUser user)
+    {
+        var transaction = await _transactionRepository.FindById(id)
+            ?? throw BusinessException.NotFound(ErrorCodes.TransactionNotFound, $"Transaction '{id}' not found");
+
+        var dek = await _encryptionService.GetUserDek(user.Id, user.ClientKey);
+        return MapToResponse(transaction, dek);
+    }
+
+    public async Task<object> UpdateAsync(Guid id, object dto, AuthenticatedUser user)
+    {
+        var updateDto = dto as TransactionUpdateDto ?? throw new ArgumentException("Expected TransactionUpdateDto");
+
+        var fx = await _currencyService.ComputeOverride(updateDto);
+
+        string? encryptedAmount = null;
+        if (updateDto.Amount.HasValue)
+            encryptedAmount = await _encryptionService.PrepareAmountData(updateDto.Amount.Value, user.Id, user.ClientKey);
+
+        string? encryptedOriginalAmount = null;
+        if (fx.OriginalAmountChanged && fx.OriginalAmount.HasValue)
+            encryptedOriginalAmount = await _encryptionService.PrepareAmountData(fx.OriginalAmount.Value, user.Id, user.ClientKey);
+
+        var updateData = BuildUpdatePayload(updateDto, encryptedAmount, fx, encryptedOriginalAmount);
+
+        var updated = await _transactionRepository.Update(id, updateData);
+
+        await _budgetService.RecalculateBalances(updated.BudgetId, user.ClientKey);
+        await _cacheService.InvalidateForUser(user.Id);
+
+        var dek = await _encryptionService.GetUserDek(user.Id, user.ClientKey);
+        return MapToResponse(updated, dek);
+    }
+
+    public async Task<object> RemoveAsync(Guid id, AuthenticatedUser user)
+    {
+        var transaction = await _transactionRepository.FindById(id);
+        var budgetId = transaction?.BudgetId;
+
+        await _transactionRepository.Delete(id);
+
+        if (budgetId.HasValue)
+            await _budgetService.RecalculateBalances(budgetId.Value, user.ClientKey);
+
+        await _cacheService.InvalidateForUser(user.Id);
+
+        _logger.LogInformation("Transaction {TransactionId} deleted by user {UserId}", id, user.Id);
+        return new { success = true };
+    }
+
+    public async Task<object> ToggleCheckAsync(Guid id, AuthenticatedUser user)
+    {
+        var updated = await _transactionRepository.ToggleCheck(id);
+        await _cacheService.InvalidateForUser(user.Id);
+
+        _logger.LogInformation("Transaction {TransactionId} check toggled by user {UserId}", id, user.Id);
+
+        var dek = await _encryptionService.GetUserDek(user.Id, user.ClientKey);
+        return MapToResponse(updated, dek);
+    }
+
+    private async Task ValidateBudgetLineAllocation(Guid budgetLineId, Guid budgetId, TransactionKind kind)
+    {
+        var lines = await _budgetRepository.FindLinesByBudgetId(budgetId);
         var budgetLine = lines.FirstOrDefault(l => l.Id == budgetLineId);
 
         if (budgetLine is null)
@@ -207,7 +222,11 @@ public sealed class TransactionService : ITransactionService
                 $"Transaction kind must match budget line kind (expected: {budgetLine.Kind}, got: {kind})");
     }
 
-    private static object BuildUpdatePayload(TransactionUpdateDto dto, string? encryptedAmount)
+    private static object BuildUpdatePayload(
+        TransactionUpdateDto dto,
+        string? encryptedAmount,
+        FxOverrideResult fx,
+        string? encryptedOriginalAmount)
     {
         var dict = new Dictionary<string, object?>();
 
@@ -216,6 +235,12 @@ public sealed class TransactionService : ITransactionService
         if (dto.Kind.HasValue) dict["kind"] = dto.Kind.Value.ToString().ToLowerInvariant();
         if (dto.TransactionDate.HasValue) dict["transaction_date"] = dto.TransactionDate.Value.ToString("O");
         if (dto.Category is not null) dict["category"] = dto.Category;
+
+        if (fx.OriginalAmountChanged) dict["original_amount"] = encryptedOriginalAmount;
+        if (fx.OriginalCurrencyChanged) dict["original_currency"] = fx.OriginalCurrency?.ToIsoCode();
+        if (fx.TargetCurrencyChanged) dict["target_currency"] = fx.TargetCurrency?.ToIsoCode();
+        if (fx.ExchangeRateChanged) dict["exchange_rate"] = fx.ExchangeRate;
+
         dict["updated_at"] = DateTimeOffset.UtcNow.ToString("O");
 
         return dict;
@@ -233,7 +258,13 @@ public sealed class TransactionService : ITransactionService
             Kind: t.Kind,
             CheckedAt: t.CheckedAt,
             CreatedAt: t.CreatedAt,
-            UpdatedAt: t.UpdatedAt
+            UpdatedAt: t.UpdatedAt,
+            OriginalAmount: t.OriginalAmount is not null
+                ? _encryptionService.TryDecryptAmount(t.OriginalAmount, dek)
+                : null,
+            OriginalCurrency: CurrencyExtensions.FromIsoCode(t.OriginalCurrency),
+            TargetCurrency: CurrencyExtensions.FromIsoCode(t.TargetCurrency),
+            ExchangeRate: t.ExchangeRate
         );
 
     private static string GetMonthLabel(int month) => month switch
@@ -252,38 +283,4 @@ public sealed class TransactionService : ITransactionService
         12 => "Décembre",
         _ => string.Empty
     };
-
-    // ITransactionService bridge methods
-    public async Task<object> FindByBudgetAsync(Guid budgetId, AuthenticatedUser user, SupabaseRestClient supabase)
-        => await FindByBudgetId(budgetId, user, supabase);
-
-    public async Task<object> FindByBudgetLineAsync(Guid budgetLineId, AuthenticatedUser user, SupabaseRestClient supabase)
-        => await FindByBudgetLineId(budgetLineId, user, supabase);
-
-    public async Task<object> SearchAsync(string q, int[]? years, AuthenticatedUser user, SupabaseRestClient supabase)
-        => await Search(q, user, supabase, years);
-
-    public async Task<object> CreateAsync(object dto, AuthenticatedUser user, SupabaseRestClient supabase)
-    {
-        var createDto = dto as TransactionCreateDto ?? throw new ArgumentException("Expected TransactionCreateDto");
-        return await Create(createDto, user, supabase);
-    }
-
-    public async Task<object> FindOneAsync(Guid id, AuthenticatedUser user, SupabaseRestClient supabase)
-        => await FindOne(id, user, supabase);
-
-    public async Task<object> UpdateAsync(Guid id, object dto, AuthenticatedUser user, SupabaseRestClient supabase)
-    {
-        var updateDto = dto as TransactionUpdateDto ?? throw new ArgumentException("Expected TransactionUpdateDto");
-        return await Update(id, updateDto, user, supabase);
-    }
-
-    public async Task<object> RemoveAsync(Guid id, AuthenticatedUser user, SupabaseRestClient supabase)
-    {
-        await Remove(id, user, supabase);
-        return new { success = true };
-    }
-
-    public async Task<object> ToggleCheckAsync(Guid id, AuthenticatedUser user, SupabaseRestClient supabase)
-        => await ToggleCheck(id, user, supabase);
 }
