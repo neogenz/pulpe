@@ -34,6 +34,11 @@ jobs:
           fetch-depth: 0
           ref: ${{ steps.pr-info.outputs.head_sha || github.event.pull_request.head.sha || github.ref }}
 
+      - name: Prepare Claude Code install path
+        run: |
+          mkdir -p "$HOME/.local/bin"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
       - name: Claude On-Demand
         uses: anthropics/claude-code-action@v1
         with:

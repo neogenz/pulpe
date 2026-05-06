@@ -242,6 +242,11 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
 
+      - name: Prepare Claude Code install path
+        run: |
+          mkdir -p "$HOME/.local/bin"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
       - name: Claude Code Review
         uses: anthropics/claude-code-action@v1
         with:
