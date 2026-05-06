@@ -5,6 +5,7 @@ private struct PreviousBudgetItem: Identifiable {
     let id: String
 }
 
+// swiftlint:disable:next type_body_length
 struct BudgetDetailsView: View {
     let budgetId: String
     @Environment(AppState.self) private var appState
@@ -237,7 +238,8 @@ struct BudgetDetailsView: View {
             .popoverTip(ProductTips.pessimisticCheck)
             .listStyle(.insetGrouped)
             .listRowSpacing(DesignTokens.Spacing.md)
-            .listSectionSpacing(DesignTokens.Spacing.xxl)
+            .listSectionSpacing(DesignTokens.Spacing.lg)
+            .contentMargins(.top, 0, for: .scrollContent)
             .scrollContentBackground(.hidden)
             .refreshable {
                 await viewModel.loadDetails(force: true)
