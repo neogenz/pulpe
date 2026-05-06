@@ -42,6 +42,14 @@ struct BudgetDetailsView: View {
         )
     }
 
+    private var typeFilterBinding: Binding<BudgetLineKindFilter> {
+        let vm = viewModel
+        return Binding(
+            get: { vm.typeFilter },
+            set: { vm.setTypeFilter($0) }
+        )
+    }
+
     var body: some View {
         Group {
             if viewModel.isLoading && viewModel.budget == nil {
@@ -124,18 +132,25 @@ struct BudgetDetailsView: View {
     }
 
     private var content: some View {
-        // Apply both checked filter and search filter
-        let filteredIncome = viewModel.filteredLines(viewModel.filteredIncomeLines, searchText: searchText)
-        let filteredExpenses = viewModel.filteredLines(viewModel.filteredExpenseLines, searchText: searchText)
-        let filteredSavings = viewModel.filteredLines(viewModel.filteredSavingLines, searchText: searchText)
+        // Apply both checked filter (from VM) and search filter (from view) on top
+        // of the VM's already-type-filtered sections. Empty sections are dropped so
+        // headers never render without rows.
+        let searchFilteredSections = viewModel.displayedSections
+            .map { (kind: $0.kind, items: viewModel.filteredLines($0.items, searchText: searchText)) }
+            .filter { !$0.items.isEmpty }
         let filteredFree = viewModel.combinedFilteredFreeTransactions(searchText: searchText)
+        let firstSectionKind = searchFilteredSections.first?.kind
 
         let fullWidthInsets = EdgeInsets()
 
         return List {
-            // Filter picker
+            // Unified type + checked filter
             Section {
-                CheckedFilterPicker(selection: checkedFilterBinding)
+                BudgetTypeFilter(
+                    kind: typeFilterBinding,
+                    checked: checkedFilterBinding,
+                    counts: viewModel.kindCounts
+                )
             }
             .listRowCustomStyled(insets: fullWidthInsets)
             .listSectionSeparator(.hidden)
@@ -158,16 +173,14 @@ struct BudgetDetailsView: View {
             .listSectionSeparator(.hidden)
 
             // Empty search state
-            if !searchText.isEmpty && filteredIncome.isEmpty && filteredExpenses.isEmpty &&
-                filteredSavings.isEmpty && filteredFree.isEmpty {
+            if !searchText.isEmpty && searchFilteredSections.isEmpty && filteredFree.isEmpty {
                 ContentUnavailableView("Aucune prévision trouvée", systemImage: "magnifyingglass")
                     .listRowCustomStyled()
             }
 
             // All checked empty state (À pointer filter active, nothing left to check)
             if searchText.isEmpty && viewModel.isShowingOnlyUnchecked &&
-                filteredIncome.isEmpty && filteredExpenses.isEmpty &&
-                filteredSavings.isEmpty && filteredFree.isEmpty &&
+                searchFilteredSections.isEmpty && filteredFree.isEmpty &&
                 (!viewModel.budgetLines.isEmpty || !viewModel.transactions.isEmpty) {
                 ContentUnavailableView {
                     Label("Tout est pointé", systemImage: "checkmark.circle.fill")
@@ -177,16 +190,28 @@ struct BudgetDetailsView: View {
                 .listRowCustomStyled()
             }
 
-            // Budget line sections (tip appears in the first visible section)
-            if !filteredIncome.isEmpty {
-                budgetSection(title: "Revenus", items: filteredIncome)
-                    .popoverTip(ProductTips.gestures)
-            }
-            if !filteredExpenses.isEmpty {
-                budgetSection(title: "Dépenses", items: filteredExpenses)
-            }
-            if !filteredSavings.isEmpty {
-                budgetSection(title: "Épargne", items: filteredSavings)
+            // Mixed budget line sections (tip on first visible section)
+            ForEach(searchFilteredSections, id: \.kind) { section in
+                BudgetMixedSection(
+                    kind: section.kind,
+                    items: section.items,
+                    transactions: viewModel.transactions,
+                    syncingIds: viewModel.syncingBudgetLineIds,
+                    onTap: { line in destination = .lineDetail(line) },
+                    onTogglePointed: { line in
+                        Task {
+                            let succeeded = await viewModel.toggleBudgetLine(line)
+                            if succeeded {
+                                viewModel.showCheckToastIfNeeded(
+                                    for: line, toastManager: appState.toastManager,
+                                    presentationCurrency: userSettingsStore.currency,
+                                    amountsHidden: amountsHidden
+                                )
+                            }
+                        }
+                    },
+                    tip: section.kind == firstSectionKind ? ProductTips.gestures : nil
+                )
             }
 
             // Free transactions
@@ -231,8 +256,8 @@ struct BudgetDetailsView: View {
     // MARK: - Sheet Routing
 
     /// H9 onDismiss soft-delete: fires the toast only when the user explicitly
-    /// triggered a deletion from `LinkedTransactionsSheetWrapper`. Other dismiss
-    /// paths leave `pendingTransactionDeletion` nil → no-op.
+    /// triggered a transaction deletion from `BudgetLineDetailSheetWrapper`.
+    /// Other dismiss paths leave `pendingTransactionDeletion` nil → no-op.
     private func handleSheetDismiss() {
         guard let transaction = pendingTransactionDeletion else { return }
         pendingTransactionDeletion = nil
@@ -258,21 +283,8 @@ struct BudgetDetailsView: View {
             AddBudgetLineSheet(budgetId: viewModel.budgetId) { budgetLine in
                 viewModel.addBudgetLine(budgetLine)
             }
-        case .linkedTransactions(let idWrapper):
-            LinkedTransactionsSheetWrapper(
-                budgetLineId: idWrapper.value,
-                viewModel: viewModel,
-                onDismissAndEdit: { transaction in
-                    self.destination = .editTransaction(transaction)
-                },
-                onDismissAndDelete: { transaction in
-                    pendingTransactionDeletion = transaction
-                    self.destination = nil
-                },
-                onDismissAndAddTransaction: { budgetLine in
-                    self.destination = .addAllocatedTransaction(budgetLine)
-                }
-            )
+        case .lineDetail(let line):
+            lineDetailSheet(for: line)
         case .editBudgetLine(let line):
             EditBudgetLineSheet(budgetLine: line, userCurrency: userSettingsStore.currency) { updatedLine in
                 Task { await viewModel.updateBudgetLine(updatedLine) }
@@ -294,57 +306,36 @@ struct BudgetDetailsView: View {
         }
     }
 
-    // MARK: - Section Builders
-
-    private func budgetSection(title: String, items: [BudgetLine], tip: (any Tip)? = nil) -> some View {
-        BudgetSection(
-            title: title,
-            items: items,
-            transactions: viewModel.transactions,
-            syncingIds: viewModel.syncingBudgetLineIds,
-            onToggle: { line in
-                Task {
-                    let succeeded = await viewModel.toggleBudgetLine(line)
-                    if succeeded {
-                        viewModel.showCheckToastIfNeeded(
-                            for: line, toastManager: appState.toastManager,
-                            presentationCurrency: userSettingsStore.currency, amountsHidden: amountsHidden
-                        )
-                    }
-                }
+    /// Wires `BudgetLineDetailSheetWrapper` callbacks back into this view's
+    /// destination state. Extracted so `sheetContent(for:)` stays readable and
+    /// under SwiftLint's function body length limit.
+    private func lineDetailSheet(for line: BudgetLine) -> some View {
+        BudgetLineDetailSheetWrapper(
+            budgetLineId: line.id,
+            viewModel: viewModel,
+            onDismissAndEdit: { currentLine in
+                self.destination = .editBudgetLine(currentLine)
             },
-            onDelete: { line in
+            onDismissAndDelete: { currentLine in
+                self.destination = nil
                 viewModel.softDeleteBudgetLine(
-                    line,
+                    currentLine,
                     toastManager: appState.toastManager,
                     presentationCurrency: userSettingsStore.currency
                 )
             },
-            onAddTransaction: { line in
-                destination = .addAllocatedTransaction(line)
+            onDismissAndAddTransaction: { currentLine in
+                self.destination = .addAllocatedTransaction(currentLine)
             },
-            onLongPress: { line, _ in
-                destination = .linkedTransactions(IdentifiableString(value: line.id))
+            onDismissAndEditTransaction: { transaction in
+                self.destination = .editTransaction(transaction)
             },
-            onEdit: { line in
-                guard !line.isManuallyAdjusted else {
-                    appState.toastManager.show(
-                        "Cette ligne ajustée manuellement ne peut pas être modifiée",
-                        type: .error
-                    )
-                    return
-                }
-                destination = .editBudgetLine(line)
-            },
-            tip: tip
+            onDismissAndDeleteTransaction: { transaction in
+                pendingTransactionDeletion = transaction
+                self.destination = nil
+            }
         )
     }
-}
-
-/// Thin Identifiable wrapper for `.sheet(item:)` with a plain String ID
-private struct IdentifiableString: Identifiable {
-    let value: String
-    var id: String { value }
 }
 
 /// Single source of truth for sheet presentation.
@@ -357,7 +348,7 @@ private struct IdentifiableString: Identifiable {
 private enum BudgetDetailDestination: Identifiable {
     case addAllocatedTransaction(BudgetLine)
     case addBudgetLine
-    case linkedTransactions(IdentifiableString)
+    case lineDetail(BudgetLine)
     case editBudgetLine(BudgetLine)
     case editTransaction(Transaction)
     case previousBudget(PreviousBudgetItem)
@@ -367,7 +358,7 @@ private enum BudgetDetailDestination: Identifiable {
         switch self {
         case .addAllocatedTransaction(let line): "addAllocatedTransaction-\(line.id)"
         case .addBudgetLine: "addBudgetLine"
-        case .linkedTransactions(let item): "linkedTransactions-\(item.id)"
+        case .lineDetail(let line): "lineDetail-\(line.id)"
         case .editBudgetLine(let line): "editBudgetLine-\(line.id)"
         case .editTransaction(let tx): "editTransaction-\(tx.id)"
         case .previousBudget(let item): "previousBudget-\(item.id)"
@@ -376,14 +367,18 @@ private enum BudgetDetailDestination: Identifiable {
     }
 }
 
-/// Reactive wrapper that reads budgetLine + transactions from the ViewModel
-/// so SwiftUI re-renders when `toggleTransaction` mutates the @Observable store.
-private struct LinkedTransactionsSheetWrapper: View {
+/// Reactive wrapper that reads the latest budgetLine + linked transactions from
+/// the @Observable view model, so the sheet stays in sync when the user toggles
+/// a transaction or the underlying line gets mutated externally (FX rates,
+/// allocation update, etc.).
+private struct BudgetLineDetailSheetWrapper: View {
     let budgetLineId: String
     let viewModel: BudgetDetailsViewModel
-    let onDismissAndEdit: (Transaction) -> Void
-    let onDismissAndDelete: (Transaction) -> Void
+    let onDismissAndEdit: (BudgetLine) -> Void
+    let onDismissAndDelete: (BudgetLine) -> Void
     let onDismissAndAddTransaction: (BudgetLine) -> Void
+    let onDismissAndEditTransaction: (Transaction) -> Void
+    let onDismissAndDeleteTransaction: (Transaction) -> Void
 
     private var budgetLine: BudgetLine? {
         viewModel.budgetLines.first { $0.id == budgetLineId }
@@ -397,14 +392,16 @@ private struct LinkedTransactionsSheetWrapper: View {
 
     var body: some View {
         if let budgetLine {
-            LinkedTransactionsSheet(
+            BudgetLineDetailSheet(
                 budgetLine: budgetLine,
                 transactions: transactions,
-                onToggle: { transaction in
+                onEdit: { onDismissAndEdit(budgetLine) },
+                onDelete: { onDismissAndDelete(budgetLine) },
+                onEditTransaction: { transaction in onDismissAndEditTransaction(transaction) },
+                onDeleteTransaction: { transaction in onDismissAndDeleteTransaction(transaction) },
+                onToggleTransaction: { transaction in
                     Task { await viewModel.toggleTransaction(transaction) }
                 },
-                onEdit: { transaction in onDismissAndEdit(transaction) },
-                onDelete: { transaction in onDismissAndDelete(transaction) },
                 onAddTransaction: { onDismissAndAddTransaction(budgetLine) }
             )
         }
