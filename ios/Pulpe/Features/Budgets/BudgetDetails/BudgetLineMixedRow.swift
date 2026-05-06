@@ -109,7 +109,7 @@ struct BudgetLineMixedRow: View {
             .padding(.vertical, DesignTokens.Spacing.md)
             .padding(.leading, DesignTokens.Spacing.xs)
             .padding(.trailing, DesignTokens.Spacing.md)
-            .frame(maxWidth: .infinity, minHeight: DesignTokens.TapTarget.minimum, alignment: .leading)
+            .frame(maxWidth: .infinity, minHeight: DesignTokens.ListRow.minHeight, alignment: .leading)
             .contentShape(Rectangle())
             .opacity(isPointed ? DesignTokens.Opacity.pointedDim : 1)
             .animation(

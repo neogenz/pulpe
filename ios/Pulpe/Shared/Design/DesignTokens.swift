@@ -173,6 +173,13 @@ enum DesignTokens {
     enum ListRow {
         /// Vertical padding for all list/transaction/budget rows
         static let verticalPadding: CGFloat = 8
+        /// Minimum row height shared across the app's list rows.
+        ///
+        /// Matches the natural height of `TransactionRow` (free transactions
+        /// section): `IconSize.listRow` (40) + 2 × `verticalPadding` (8) = 56.
+        /// Pinning budget line rows to the same minimum keeps the rhythm
+        /// consistent regardless of subtitle presence.
+        static let minHeight: CGFloat = IconSize.listRow + verticalPadding * 2
     }
 
     // MARK: - Animation
