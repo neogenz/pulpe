@@ -148,6 +148,7 @@ export class BudgetLineService {
     }
 
     return {
+      ...(createBudgetLineDto.id ? { id: createBudgetLineDto.id } : {}),
       budget_id: createBudgetLineDto.budgetId,
       template_line_id: createBudgetLineDto.templateLineId || null,
       savings_goal_id: createBudgetLineDto.savingsGoalId || null,
@@ -195,20 +196,40 @@ export class BudgetLineService {
       .single();
 
     if (error) {
+      this.throwInsertError(error, user.id, budgetLineData.id);
+    }
+
+    return budgetLineDb;
+  }
+
+  // 23505 unique-violation on PK → 409 ALREADY_EXISTS for idempotent client-UUID retries.
+  private throwInsertError(
+    error: { code?: string },
+    userId: string,
+    budgetLineId: string | undefined,
+  ): never {
+    const loggingContext = {
+      operation: 'createBudgetLine',
+      userId,
+      entityType: 'budget_line',
+      supabaseError: error,
+    };
+
+    if (error.code === '23505') {
       throw new BusinessException(
-        ERROR_DEFINITIONS.BUDGET_LINE_CREATE_FAILED,
-        undefined,
-        {
-          operation: 'createBudgetLine',
-          userId: user.id,
-          entityType: 'budget_line',
-          supabaseError: error,
-        },
+        ERROR_DEFINITIONS.BUDGET_LINE_ALREADY_EXISTS,
+        { id: budgetLineId },
+        loggingContext,
         { cause: error },
       );
     }
 
-    return budgetLineDb;
+    throw new BusinessException(
+      ERROR_DEFINITIONS.BUDGET_LINE_CREATE_FAILED,
+      undefined,
+      loggingContext,
+      { cause: error },
+    );
   }
 
   async create(

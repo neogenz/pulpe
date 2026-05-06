@@ -15,6 +15,7 @@ import {
 import { v4 as uuidv4 } from 'uuid';
 import { TemplateDetailsStore } from './template-details-store';
 
+// Temp ID: server generates real id via RPC — do not migrate to client UUID without server-side support.
 const TEMP_ID_PREFIX = 'temp-';
 
 function generateTempId(): string {

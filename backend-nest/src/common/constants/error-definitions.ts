@@ -374,6 +374,14 @@ export const ERROR_DEFINITIONS = {
         : 'Transaction validation failed',
     httpStatus: HttpStatus.BAD_REQUEST,
   },
+  TRANSACTION_ALREADY_EXISTS: {
+    code: API_ERROR_CODES.TRANSACTION_ALREADY_EXISTS,
+    message: (details?: Record<string, unknown>) =>
+      details?.id
+        ? `Transaction with ID '${details.id}' already exists`
+        : 'Transaction already exists',
+    httpStatus: HttpStatus.CONFLICT,
+  },
 
   // Budget Line Errors
   BUDGET_LINE_NOT_FOUND: {
@@ -433,6 +441,14 @@ export const ERROR_DEFINITIONS = {
         ? `Budget line validation failed: ${details.reason}`
         : 'Budget line validation failed',
     httpStatus: HttpStatus.BAD_REQUEST,
+  },
+  BUDGET_LINE_ALREADY_EXISTS: {
+    code: API_ERROR_CODES.BUDGET_LINE_ALREADY_EXISTS,
+    message: (details?: Record<string, unknown>) =>
+      details?.id
+        ? `Budget line with ID '${details.id}' already exists`
+        : 'Budget line already exists',
+    httpStatus: HttpStatus.CONFLICT,
   },
 
   // User Errors
