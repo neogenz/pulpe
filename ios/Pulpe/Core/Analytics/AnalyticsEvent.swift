@@ -56,4 +56,7 @@ enum AnalyticsEvent: String, CaseIterable {
     // MARK: - Currency
     case currencyChanged = "currency_changed"
     case currencySelectorToggled = "currency_selector_toggled"
+    /// Fires when onboarding currency persistence exhausts all retry attempts.
+    /// Properties: `currency` (target ISO code), `attempts` (total tried).
+    case currencyPersistFailed = "currency_persist_failed"
 }

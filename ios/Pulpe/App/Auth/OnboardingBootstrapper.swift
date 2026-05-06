@@ -22,22 +22,22 @@ final class OnboardingBootstrapper {
     private let createTemplate: (BudgetTemplateCreateFromOnboarding) async throws -> BudgetTemplate
     private let createBudget: (BudgetCreate) async throws -> Budget
     private let toastManager: ToastManager
-    /// Persists the pending currency to `user_settings`. Wired post-init from `PulpeApp`
-    /// (mirrors `appState.sessionDataResetter`) — direct injection at construction would
-    /// circularize with `AppState` building `UserSettingsStore`. Returns `true` when the
-    /// API call succeeded; bootstrap surfaces a toast on `false` but still returns `true`
-    /// because the budget was created and we don't want `completePinSetup` to retry the
-    /// whole bootstrap on a non-fatal currency persistence error.
+    /// Persists the pending currency to `user_settings`. Wired post-init from `PulpeApp`.
+    /// See `bootstrapIfNeeded` for retry + failure-tolerance semantics.
     var persistCurrency: ((SupportedCurrency) async -> Bool)?
+
+    private let retryDelays: [Duration]
 
     init(
         createTemplate: @escaping (BudgetTemplateCreateFromOnboarding) async throws -> BudgetTemplate,
         createBudget: @escaping (BudgetCreate) async throws -> Budget,
-        toastManager: ToastManager
+        toastManager: ToastManager,
+        retryDelays: [Duration] = [.milliseconds(300), .milliseconds(1500)]
     ) {
         self.createTemplate = createTemplate
         self.createBudget = createBudget
         self.toastManager = toastManager
+        self.retryDelays = retryDelays
     }
 
     // MARK: - Public API
@@ -100,16 +100,7 @@ final class OnboardingBootstrapper {
             // toast but does NOT fail the bootstrap: template + budget are already created,
             // and `completePinSetup` retries the whole bootstrap on `false` which would
             // duplicate them.
-            if let currency = pendingCurrency, let persistCurrency {
-                let ok = await persistCurrency(currency)
-                if !ok {
-                    Logger.auth.error("OnboardingBootstrapper: failed to persist currency")
-                    toastManager.show(
-                        "Devise non sauvegardée, réessaie depuis les paramètres",
-                        type: .error
-                    )
-                }
-            }
+            await persistPendingCurrencyWithRetry()
 
             let signupMethod = pendingSignupMethod ?? "email"
             let customCount = onboardingData.customTransactions.count
@@ -135,5 +126,36 @@ final class OnboardingBootstrapper {
             toastManager.show("Erreur lors de la création du budget", type: .error)
             return false
         }
+    }
+
+    private func persistPendingCurrencyWithRetry() async {
+        guard let currency = pendingCurrency else { return }
+        guard let persistCurrency else {
+            Logger.auth.fault("OnboardingBootstrapper: persistCurrency closure not wired")
+            assertionFailure("persistCurrency closure must be wired before bootstrap runs")
+            return
+        }
+
+        if await persistCurrency(currency) { return }
+
+        for delay in retryDelays {
+            if Task.isCancelled { return }
+            try? await Task.sleep(for: delay)
+            if Task.isCancelled { return }
+            if await persistCurrency(currency) { return }
+        }
+
+        let totalAttempts = retryDelays.count + 1
+        Logger.auth.error(
+            "OnboardingBootstrapper: failed to persist currency after \(totalAttempts) attempts"
+        )
+        AnalyticsService.shared.capture(.currencyPersistFailed, properties: [
+            "currency": currency.rawValue,
+            "attempts": totalAttempts
+        ])
+        toastManager.show(
+            "Devise non sauvegardée, réessaie depuis les paramètres",
+            type: .error
+        )
     }
 }
