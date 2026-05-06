@@ -63,7 +63,11 @@ struct BudgetMixedSection: View {
                     onTap: { onTap(item) },
                     onTogglePointed: { onTogglePointed(item) }
                 )
-                .listRowSeparator(.hidden)
+                .listRowCustomStyled(insets: EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
+                .transition(.asymmetric(
+                    insertion: .opacity.combined(with: .move(edge: .leading)),
+                    removal: .opacity.combined(with: .scale(scale: 0.95))
+                ))
             }
         } header: {
             HStack(spacing: DesignTokens.Spacing.xxs) {

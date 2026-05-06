@@ -118,6 +118,9 @@ struct BudgetLineMixedRow: View {
             )
         }
         .buttonStyle(.plain)
+        .background(Color.surfaceContainerLowest)
+        .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.xl))
+        .shadow(DesignTokens.Shadow.subtle)
         .sensoryFeedback(.success, trigger: triggerToggleFeedback)
         // `.contain` keeps the inner PointCircle as its own focus node so VoiceOver
         // can drive the pointed/unpointed toggle independently of the row's tap-to-open.
@@ -286,6 +289,10 @@ private struct PointCircle: View {
     let isSyncing: Bool
     let onToggle: () -> Void
 
+    /// Debounced sync state — only flips true if the toggle takes >300 ms,
+    /// so fast optimistic updates don't trigger a green-dot flash.
+    @State private var displayedSyncing = false
+
     var body: some View {
         Button(action: onToggle) {
             ZStack {
@@ -310,7 +317,7 @@ private struct PointCircle: View {
                         .transition(.scale.combined(with: .opacity))
                 }
 
-                if isSyncing {
+                if displayedSyncing {
                     SyncIndicator(isSyncing: true)
                         .offset(x: DesignTokens.Checkbox.size / 2 - 2, y: -DesignTokens.Checkbox.size / 2 + 2)
                 }
@@ -322,6 +329,15 @@ private struct PointCircle: View {
             .contentShape(Circle())
         }
         .buttonStyle(.plain)
+        .task(id: isSyncing) {
+            guard isSyncing else {
+                displayedSyncing = false
+                return
+            }
+            try? await Task.sleep(for: .milliseconds(300))
+            guard !Task.isCancelled else { return }
+            displayedSyncing = true
+        }
         .accessibilityLabel(isPointed ? "Pointé" : "À pointer")
         .accessibilityAddTraits(isPointed ? [.isButton, .isSelected] : .isButton)
     }
