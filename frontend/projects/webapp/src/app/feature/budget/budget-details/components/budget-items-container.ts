@@ -417,14 +417,15 @@ export class BudgetItemsContainer {
         },
       );
     if (editResult) {
-      await this.handleUpdateTransaction(editResult);
+      await this.handleUpdateTransaction(editResult.id, editResult.update);
     }
   }
 
   protected async handleUpdateTransaction(
-    data: TransactionUpdate & { id: string },
+    id: string,
+    update: TransactionUpdate,
   ): Promise<void> {
-    await this.store.updateTransaction(data.id, data);
+    await this.store.updateTransaction(id, update);
     this.#snackBar.open(
       this.#transloco.translate('budget.modificationSaved'),
       this.#transloco.translate('common.close'),

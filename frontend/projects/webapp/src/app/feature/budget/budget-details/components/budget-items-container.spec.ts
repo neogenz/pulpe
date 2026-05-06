@@ -1,15 +1,30 @@
 import { registerLocaleData } from '@angular/common';
 import localeDE from '@angular/common/locales/de-CH';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideHttpClient } from '@angular/common/http';
+import {
+  HttpTestingController,
+  provideHttpClientTesting,
+} from '@angular/common/http/testing';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { provideTranslocoForTest } from '@app/testing/transloco-testing';
+import { createMockTransaction } from '@app/testing/mock-factories';
+import { createMockLogger } from '@app/testing/mock-posthog';
 import { StorageService } from '@core/storage';
 import { Logger } from '@core/logging/logger';
 import { UserSettingsStore } from '@core/user-settings';
-import type { BudgetLine, Transaction } from 'pulpe-shared';
+import { ApplicationConfiguration } from '@core/config/application-configuration';
+import { BudgetApi } from '@core/budget/budget-api';
+import { firstValueFrom } from 'rxjs';
+import {
+  transactionUpdateSchema,
+  type BudgetLine,
+  type Transaction,
+  type TransactionUpdate,
+} from 'pulpe-shared';
 import { BudgetItemsContainer } from './budget-items-container';
 import { BudgetDetailsDialogService } from '../budget-details-dialog.service';
 import { BudgetDetailsStore } from '../store/budget-details-store';
@@ -236,5 +251,134 @@ describe('BudgetItemsContainer — orchestration', () => {
       'budget-1',
     );
     expect(mockStore.createBudgetLine).toHaveBeenCalledWith(newLine);
+  });
+});
+
+describe('BudgetItemsContainer — PATCH transaction body contract', () => {
+  const BUDGET_ID = '11111111-1111-4111-8111-111111111111';
+  const TRANSACTION_ID = '22222222-2222-4222-8222-222222222222';
+  const BUDGET_LINE_ID = '33333333-3333-4333-8333-333333333333';
+
+  let mockStore: MockStore;
+  let mockDialogService: MockDialogService;
+  let httpTesting: HttpTestingController;
+  let fixture: ComponentFixture<BudgetItemsContainer>;
+  let component: BudgetItemsContainer;
+
+  beforeEach(() => {
+    // Mock the store but route updateTransaction through the REAL
+    // BudgetApi -> TransactionApi -> ApiClient chain to assert on the actual
+    // PATCH body. Keeps the TestBed free of BudgetDetailsStore's transitive
+    // deps (PostHog, AmountsVisibility, UserSettings).
+    mockStore = createMockStore();
+    mockDialogService = createMockDialogService();
+
+    const envelopesStorageMock = {
+      getString: () => 'envelopes',
+      setString: () => undefined,
+      get: () => null,
+      set: () => undefined,
+      remove: () => undefined,
+    };
+
+    TestBed.configureTestingModule({
+      imports: [BudgetItemsContainer, NoopAnimationsModule],
+      providers: [
+        provideZonelessChangeDetection(),
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        ...provideTranslocoForTest(),
+        { provide: StorageService, useValue: envelopesStorageMock },
+        { provide: BudgetDetailsStore, useValue: mockStore },
+        { provide: BudgetDetailsDialogService, useValue: mockDialogService },
+        { provide: MatSnackBar, useValue: { open: vi.fn() } },
+        {
+          provide: UserSettingsStore,
+          useValue: {
+            currency: signal('CHF'),
+            payDayOfMonth: signal(1),
+          },
+        },
+        { provide: Logger, useValue: createMockLogger() },
+        {
+          provide: ApplicationConfiguration,
+          useValue: { backendApiUrl: () => 'http://localhost:3000/api/v1' },
+        },
+      ],
+    });
+
+    httpTesting = TestBed.inject(HttpTestingController);
+
+    const realBudgetApi = TestBed.inject(BudgetApi);
+    mockStore.updateTransaction.mockImplementation(
+      async (id: string, payload: TransactionUpdate): Promise<void> => {
+        await firstValueFrom(realBudgetApi.updateTransaction$(id, payload));
+      },
+    );
+
+    fixture = TestBed.createComponent(BudgetItemsContainer);
+    component = fixture.componentInstance;
+  });
+
+  afterEach(() => {
+    httpTesting.verify();
+  });
+
+  it('should send PATCH /transactions/:id without an id key in body and match transactionUpdateSchema', async () => {
+    mockStore.budgetDetails.set({
+      id: BUDGET_ID,
+      month: 5,
+      year: 2026,
+    });
+    const transaction = createMockTransaction({
+      id: TRANSACTION_ID,
+      budgetId: BUDGET_ID,
+      budgetLineId: BUDGET_LINE_ID,
+      name: 'Original',
+      amount: 5,
+      kind: 'expense',
+      transactionDate: '2026-05-01T00:00:00.000Z',
+    });
+    const update: TransactionUpdate = {
+      name: 'Updated name',
+      amount: 42,
+      kind: 'expense',
+      transactionDate: '2026-05-06T00:00:00.000Z',
+      category: null,
+    };
+    mockDialogService.openEditAllocatedTransactionDialog.mockResolvedValue({
+      id: transaction.id,
+      update,
+    });
+
+    const editPromise =
+      component['handleEditAllocatedTransaction'](transaction);
+
+    for (let i = 0; i < 5; i++) {
+      await Promise.resolve();
+    }
+
+    const req = httpTesting.expectOne(
+      (request) =>
+        request.method === 'PATCH' &&
+        request.url.endsWith(`/transactions/${TRANSACTION_ID}`),
+    );
+
+    expect(req.request.body).not.toHaveProperty('id');
+    expect(transactionUpdateSchema.safeParse(req.request.body).success).toBe(
+      true,
+    );
+    expect(req.request.body).toEqual(update);
+
+    req.flush({
+      success: true,
+      data: createMockTransaction({
+        ...transaction,
+        ...update,
+        updatedAt: '2026-05-06T00:00:00.000Z',
+      }),
+    });
+
+    await editPromise;
   });
 });
