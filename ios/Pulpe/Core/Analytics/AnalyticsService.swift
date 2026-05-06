@@ -9,11 +9,14 @@ final class AnalyticsService {
     static let shared = AnalyticsService()
 
     /// PostHog person property keys — must mirror `ANALYTICS_PROPERTIES`
-    /// in `shared/src/feature-flags.ts`.
+    /// in `shared/src/feature-flags.ts` exactly.
     nonisolated static let earlyAdopterProperty = "early_adopter"
     nonisolated static let currencyProperty = "currency"
     nonisolated static let showCurrencySelectorProperty = "show_currency_selector"
     nonisolated static let multiCurrencyEnabledProperty = "multi_currency_enabled"
+    nonisolated static let emailProperty = "email"
+    nonisolated static let nameProperty = "name"
+    nonisolated static let supabaseUserIdProperty = "supabase_user_id"
 
     private(set) var isInitialized = false
     private(set) var isEventCapturingEnabled = false

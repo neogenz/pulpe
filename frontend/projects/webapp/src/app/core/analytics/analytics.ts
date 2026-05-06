@@ -15,6 +15,14 @@ import { UserSettingsStore } from '../user-settings/user-settings-store';
 import { FeatureFlagsService } from '../feature-flags/feature-flags.service';
 import type { Properties } from 'posthog-js';
 
+// Trim + reject empty so re-identify can't overwrite a known-good
+// email/name with `undefined` (posthog-js serializes that as null).
+function pickNonEmptyString(value: unknown): string | undefined {
+  if (typeof value !== 'string') return undefined;
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : undefined;
+}
+
 /**
  * Simplified analytics service following KISS principle.
  * Leverages PostHog's auto-capture for most tracking needs.
@@ -73,15 +81,30 @@ export class AnalyticsService implements OnDestroy {
             this.#logger.debug('PostHog tracking enabled for session');
           }
 
-          // Identify carries demo + early adopter flags only. Settings + the
+          // Identify carries the user identity (email, name, supabase_user_id)
+          // plus stable session flags (early adopter, demo). Settings + the
           // multi-currency flag are pushed separately via `$set` from
           // `#personPropertiesEffect` — they are heavier signal deps that
           // would otherwise re-fire identify on every settings tick or PostHog
           // `flagsVersion` bump (feedback loop with this same identify call).
           const isDemoMode = this.#demoModeService.isDemoMode();
+          const userMetadata = authState.user.user_metadata as
+            | Record<string, unknown>
+            | undefined;
+
+          // Privacy policy commits to "prénom" only (legal/privacy-policy.ts).
+          // iOS pushes user.firstName — keep webapp aligned. Do NOT fall back
+          // to `full_name`/`name` from OAuth providers: Google returns the
+          // full given+family name there, which would breach the policy.
+          const firstName = pickNonEmptyString(userMetadata?.['firstName']);
+          const userEmail = pickNonEmptyString(authState.user.email);
+
           const identifyProperties: Properties = {
+            [ANALYTICS_PROPERTIES.SUPABASE_USER_ID]: authState.user.id,
             [ANALYTICS_PROPERTIES.EARLY_ADOPTER]:
               this.#authStore.isEarlyAdopter(),
+            ...(userEmail && { [ANALYTICS_PROPERTIES.EMAIL]: userEmail }),
+            ...(firstName && { [ANALYTICS_PROPERTIES.NAME]: firstName }),
             ...(isDemoMode && { is_demo: true }),
           };
 
