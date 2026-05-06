@@ -88,6 +88,22 @@ extension OnboardingState {
     static func clearPersistedData() {
         UserDefaults.standard.removeObject(forKey: storageKey)
     }
+
+    /// Reset every in-memory field populated by `loadFromStorage()` to its
+    /// pristine default. Called from `configureSocialUser` exclusively — the
+    /// email recovery path relies on persisted draft and must NOT reset.
+    func resetDraftFields() {
+        firstName = ""
+        currency = .chf
+        monthlyIncome = nil
+        housingCosts = nil
+        healthInsurance = nil
+        phonePlan = nil
+        transportCosts = nil
+        leasingCredit = nil
+        customTransactions = []
+        wasEmailRegistered = false
+    }
 }
 
 // MARK: - Storage Data

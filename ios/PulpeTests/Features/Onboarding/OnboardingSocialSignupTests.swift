@@ -151,6 +151,101 @@ struct OnboardingSocialSignupTests {
         #expect(!state.isFirstNameValid)
     }
 
+    // MARK: - PUL-196: Cross-account draft pollution
+
+    /// Repro from PUL-196: a previous email signup left a persisted draft on the
+    /// device. The next OnboardingFlow init for a social user runs
+    /// `OnboardingState() → loadFromStorage() → configureSocialUser()`. Without
+    /// the draft reset, financial fields from the email user bleed into the
+    /// social form. Asserts every persisted field is wiped after configure.
+    @Test
+    func configureSocialUser_wipesDraftLoadedFromStorage() {
+        OnboardingState.clearPersistedData()
+        defer { OnboardingState.clearPersistedData() }
+
+        // 1) Email user fills draft and abandons.
+        let prior = OnboardingState()
+        prior.firstName = "Alice"
+        prior.currency = .eur
+        prior.monthlyIncome = 5000
+        prior.housingCosts = 1500
+        prior.healthInsurance = 400
+        prior.phonePlan = 50
+        prior.transportCosts = 100
+        prior.leasingCredit = 300
+        prior.addCustomTransaction(
+            OnboardingTransaction(amount: 50, type: .expense, name: "Spotify")
+        )
+        prior.saveToStorage()
+
+        // 2) Fresh flow init for a social user — same device, different account.
+        let socialState = OnboardingState()
+        socialState.configureSocialUser(
+            UserInfo(id: "social-1", email: "social@pulpe.app", firstName: "Bob")
+        )
+
+        // 3) All draft fields must be reset; provider name overrides.
+        #expect(socialState.firstName == "Bob")
+        #expect(socialState.currency == .chf)
+        #expect(socialState.monthlyIncome == nil)
+        #expect(socialState.housingCosts == nil)
+        #expect(socialState.healthInsurance == nil)
+        #expect(socialState.phonePlan == nil)
+        #expect(socialState.transportCosts == nil)
+        #expect(socialState.leasingCredit == nil)
+        #expect(socialState.customTransactions.isEmpty)
+        #expect(!socialState.wasEmailRegistered)
+    }
+
+    /// Apple Private Relay path: provider returns no name. The draft's leftover
+    /// firstName must NOT survive — would otherwise pre-fill the social user's
+    /// firstName step with the previous email user's name.
+    @Test
+    func configureSocialUser_withoutProviderName_clearsLeftoverFirstName() {
+        OnboardingState.clearPersistedData()
+        defer { OnboardingState.clearPersistedData() }
+
+        let prior = OnboardingState()
+        prior.firstName = "Alice"
+        prior.monthlyIncome = 5000
+        prior.saveToStorage()
+
+        let socialState = OnboardingState()
+        socialState.configureSocialUser(
+            UserInfo(id: "apple-relay", email: "x@relay.appleid.com", firstName: nil)
+        )
+
+        #expect(socialState.firstName.isEmpty)
+        #expect(!socialState.socialProvidedName)
+        #expect(socialState.monthlyIncome == nil)
+    }
+
+    /// Non-regression: email recovery path MUST keep the persisted draft.
+    /// `configureEmailUser` is called when restoring a mid-flow signup — wiping
+    /// would force the user to re-enter every value.
+    @Test
+    func configureEmailUser_preservesDraftFromStorage() {
+        OnboardingState.clearPersistedData()
+        defer { OnboardingState.clearPersistedData() }
+
+        let prior = OnboardingState()
+        prior.firstName = "Alice"
+        prior.monthlyIncome = 5000
+        prior.housingCosts = 1500
+        prior.currency = .eur
+        prior.currentStep = .charges
+        prior.saveToStorage()
+
+        let recovered = OnboardingState()
+        recovered.configureEmailUser(UserInfo(id: "1", email: "alice@example.com"))
+
+        #expect(recovered.firstName == "Alice")
+        #expect(recovered.monthlyIncome == 5000)
+        #expect(recovered.housingCosts == 1500)
+        #expect(recovered.currency == .eur)
+        #expect(recovered.currentStep == .charges)
+    }
+
     @Test
     func progressPercentage_socialUser_budgetPreviewHigherThanNonSocial() {
         let state = makeSUT()

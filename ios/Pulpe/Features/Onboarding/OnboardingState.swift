@@ -67,6 +67,11 @@ final class OnboardingState {
     /// Pre-fills firstName from provider metadata and clears persisted step
     /// so cold-start after app kill resets to welcome.
     func configureSocialUser(_ user: UserInfo) {
+        // PUL-196: wipe draft loaded by `init()` so a social signup never inherits
+        // financial/personal data from a prior abandoned email signup on the same
+        // device. `clearStorage()` alone only wipes UserDefaults — not the in-memory
+        // fields already populated by `loadFromStorage()`.
+        resetDraftFields()
         authenticatedUser = user
         isSocialAuth = true
         if let name = user.firstName, !name.isEmpty {
