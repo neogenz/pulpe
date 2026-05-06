@@ -45,48 +45,63 @@ struct BudgetLineDetailSheet: View {
     // MARK: - Body
 
     var body: some View {
-        VStack(spacing: 0) {
-            sheetHeader
+        NavigationStack {
+            VStack(spacing: 0) {
+                titleWithKindDot
+                    .padding(.horizontal, DesignTokens.Spacing.lg)
+                    .padding(.top, DesignTokens.Spacing.lg)
+                    .padding(.bottom, DesignTokens.Spacing.md)
 
-            List {
-                Section {
-                    heroSection
-                        .listRowCustomStyled(insets: EdgeInsets())
-                }
-                .listSectionSeparator(.hidden)
-
-                if transactions.isEmpty {
+                List {
                     Section {
-                        emptyStateView
+                        heroSection
                             .listRowCustomStyled(insets: EdgeInsets())
                     }
                     .listSectionSeparator(.hidden)
-                } else {
-                    Section {
-                        ForEach(transactions) { transaction in
-                            BudgetLineDetailTransactionRow(
-                                transaction: transaction,
-                                displayCurrency: userSettingsStore.currency,
-                                onTap: { onEditTransaction(transaction) }
-                            )
-                            .listRowSeparator(.visible)
-                            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                                swipeActions(for: transaction)
-                            }
+
+                    if transactions.isEmpty {
+                        Section {
+                            emptyStateView
+                                .listRowCustomStyled(insets: EdgeInsets())
                         }
-                    } header: {
-                        transactionsHeader
-                            .textCase(nil)
+                        .listSectionSeparator(.hidden)
+                    } else {
+                        Section {
+                            ForEach(transactions) { transaction in
+                                BudgetLineDetailTransactionRow(
+                                    transaction: transaction,
+                                    displayCurrency: userSettingsStore.currency,
+                                    onTap: { onEditTransaction(transaction) }
+                                )
+                                .listRowSeparator(.visible)
+                                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                                    swipeActions(for: transaction)
+                                }
+                            }
+                        } header: {
+                            transactionsHeader
+                                .textCase(nil)
+                        }
                     }
                 }
+                .listStyle(.insetGrouped)
+                .listSectionSpacing(DesignTokens.Spacing.lg)
+                .scrollContentBackground(.hidden)
             }
-            .listStyle(.insetGrouped)
-            .listSectionSpacing(DesignTokens.Spacing.lg)
-            .scrollContentBackground(.hidden)
-        }
-        .background(Color.sheetBackground.ignoresSafeArea())
-        .safeAreaInset(edge: .bottom) {
-            addTransactionButton
+            .background(Color.sheetBackground.ignoresSafeArea())
+            .safeAreaInset(edge: .bottom) {
+                addTransactionButton
+            }
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(.hidden, for: .navigationBar)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    SheetCloseButton()
+                }
+                ToolbarItem(placement: .primaryAction) {
+                    headerMenu
+                }
+            }
         }
         .accessibilityIdentifier("budgetLineDetailSheetRoot")
         .standardSheetPresentation(detents: [.medium, .large])
@@ -97,22 +112,6 @@ struct BudgetLineDetailSheet: View {
             }
         }
         #endif
-    }
-
-    // MARK: - Sheet Header (DM2.1.c spec — left-aligned title with kind dot, menu + close)
-
-    private var sheetHeader: some View {
-        HStack(spacing: DesignTokens.Spacing.sm) {
-            titleWithKindDot
-
-            Spacer(minLength: DesignTokens.Spacing.sm)
-
-            headerMenu
-
-            SheetCloseButton()
-        }
-        .padding(.horizontal, DesignTokens.Spacing.lg)
-        .padding(.vertical, DesignTokens.Spacing.md)
     }
 
     #if DEBUG
@@ -231,12 +230,16 @@ struct BudgetLineDetailSheet: View {
                 .frame(width: DesignTokens.Spacing.sm, height: DesignTokens.Spacing.sm)
 
             Text(budgetLine.name)
-                .font(PulpeTypography.headline)
+                .font(PulpeTypography.title3)
                 .foregroundStyle(Color.textPrimary)
-                .lineLimit(1)
+                .lineLimit(2)
                 .truncationMode(.tail)
+
+            Spacer(minLength: DesignTokens.Spacing.sm)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(.isHeader)
         .accessibilityLabel(budgetLine.name)
     }
 
