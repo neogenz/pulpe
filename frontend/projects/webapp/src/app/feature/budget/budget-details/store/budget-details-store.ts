@@ -38,22 +38,6 @@ import {
 import { normalizeText } from '../view-models/budget-item-constants';
 import { createInitialBudgetDetailsState } from './budget-details-state';
 
-const TEMP_ID_PREFIX = 'temp-';
-
-function isTempId(id: string): boolean {
-  return id.startsWith(TEMP_ID_PREFIX);
-}
-
-function generateTempId(): string {
-  return `${TEMP_ID_PREFIX}${uuidv4()}`;
-}
-
-interface PendingCreate {
-  promise: Promise<string>;
-  resolve: (realId: string) => void;
-  reject: (err: unknown) => void;
-}
-
 const BUDGET_DETAIL_INVALIDATION_KEYS: string[][] = [
   ['budget', 'details'],
   ['budget', 'list'],
@@ -76,8 +60,6 @@ export class BudgetDetailsStore {
 
   // Mutex: prevents concurrent toggle mutations on the same item
   readonly #mutatingIds = new Set<string>();
-
-  readonly #pendingCreates = new Map<string, PendingCreate>();
 
   readonly #isShowingOnlyUnchecked = signal<boolean>(
     this.#storage.get<boolean>(STORAGE_KEYS.BUDGET_SHOW_ONLY_UNCHECKED) ?? true,
@@ -350,19 +332,17 @@ export class BudgetDetailsStore {
   // ── 5. Mutations (async/await) ──
 
   readonly #createBudgetLineMutation = cachedMutation<
-    { budgetLine: BudgetLineCreate; tempId: string },
+    BudgetLineCreate & { id: string },
     { data: BudgetLine },
     BudgetDetailsViewModel | null
   >({
     cache: this.#budgetApi.cache,
     invalidateKeys: () => BUDGET_DETAIL_INVALIDATION_KEYS,
-    mutationFn: ({ budgetLine }) =>
-      this.#budgetApi.createBudgetLine$(budgetLine),
-    onMutate: ({ budgetLine, tempId }) => {
+    mutationFn: (budgetLine) => this.#budgetApi.createBudgetLine$(budgetLine),
+    onMutate: (budgetLine) => {
       const previous = this.budgetDetails();
-      const tempBudgetLine: BudgetLine = {
+      const optimisticLine: BudgetLine = {
         ...budgetLine,
-        id: tempId,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         templateLineId: null,
@@ -371,15 +351,15 @@ export class BudgetDetailsStore {
       };
       this.#updateDetails((details) => ({
         ...details,
-        budgetLines: [...details.budgetLines, tempBudgetLine],
+        budgetLines: [...details.budgetLines, optimisticLine],
       }));
       return previous;
     },
-    onSuccess: (response, { tempId }) => {
+    onSuccess: (response, budgetLine) => {
       this.#updateDetails((details) => ({
         ...details,
         budgetLines: details.budgetLines.map((line) =>
-          line.id === tempId ? response.data : line,
+          line.id === budgetLine.id ? response.data : line,
         ),
       }));
       this.#onFinancialMutationSuccess();
@@ -390,26 +370,9 @@ export class BudgetDetailsStore {
     },
   });
 
-  async createBudgetLine(budgetLine: BudgetLineCreate): Promise<void> {
-    const tempId = generateTempId();
-    this.#registerPendingCreate(tempId);
-    try {
-      const result = await this.#createBudgetLineMutation.mutate({
-        budgetLine,
-        tempId,
-      });
-      if (result) {
-        this.#settlePendingCreate(tempId, { realId: result.data.id });
-      } else {
-        this.#settlePendingCreate(tempId, {
-          error:
-            this.#createBudgetLineMutation.error() ??
-            new Error('Budget line create did not complete'),
-        });
-      }
-    } catch (err) {
-      this.#settlePendingCreate(tempId, { error: err });
-    }
+  async createBudgetLine(input: BudgetLineCreate): Promise<void> {
+    const id = input.id ?? uuidv4();
+    await this.#createBudgetLineMutation.mutate({ ...input, id });
   }
 
   readonly #updateBudgetLineMutation = cachedMutation<
@@ -440,9 +403,7 @@ export class BudgetDetailsStore {
   });
 
   async updateBudgetLine(data: BudgetLineUpdate): Promise<void> {
-    const realId = await this.#resolveServerId(data.id);
-    if (realId === null) return;
-    await this.#updateBudgetLineMutation.mutate({ ...data, id: realId });
+    await this.#updateBudgetLineMutation.mutate(data);
   }
 
   readonly #updateTransactionMutation = cachedMutation<
@@ -475,9 +436,7 @@ export class BudgetDetailsStore {
   });
 
   async updateTransaction(id: string, data: TransactionUpdate): Promise<void> {
-    const realId = await this.#resolveServerId(id);
-    if (realId === null) return;
-    await this.#updateTransactionMutation.mutate({ id: realId, data });
+    await this.#updateTransactionMutation.mutate({ id, data });
   }
 
   readonly #deleteBudgetLineMutation = cachedMutation<
@@ -508,9 +467,7 @@ export class BudgetDetailsStore {
   });
 
   async deleteBudgetLine(id: string): Promise<void> {
-    const realId = await this.#resolveServerId(id);
-    if (realId === null) return;
-    await this.#deleteBudgetLineMutation.mutate(realId);
+    await this.#deleteBudgetLineMutation.mutate(id);
   }
 
   readonly #deleteTransactionMutation = cachedMutation<
@@ -540,24 +497,21 @@ export class BudgetDetailsStore {
   });
 
   async deleteTransaction(id: string): Promise<void> {
-    const realId = await this.#resolveServerId(id);
-    if (realId === null) return;
-    await this.#deleteTransactionMutation.mutate(realId);
+    await this.#deleteTransactionMutation.mutate(id);
   }
 
   readonly #createAllocatedTransactionMutation = cachedMutation<
-    { data: TransactionCreate; tempId: string },
+    TransactionCreate & { id: string },
     { data: Transaction },
     BudgetDetailsViewModel | null
   >({
     cache: this.#budgetApi.cache,
     invalidateKeys: () => BUDGET_DETAIL_INVALIDATION_KEYS,
-    mutationFn: ({ data }) => this.#budgetApi.createTransaction$(data),
-    onMutate: ({ data, tempId }) => {
+    mutationFn: (data) => this.#budgetApi.createTransaction$(data),
+    onMutate: (data) => {
       const previous = this.budgetDetails();
-      const tempTransaction: Transaction = {
+      const optimisticTransaction: Transaction = {
         ...data,
-        id: tempId,
         budgetLineId: data.budgetLineId ?? null,
         transactionDate: data.transactionDate ?? formatLocalDate(new Date()),
         category: data.category ?? null,
@@ -567,15 +521,15 @@ export class BudgetDetailsStore {
       };
       this.#updateDetails((details) => ({
         ...details,
-        transactions: [...details.transactions, tempTransaction],
+        transactions: [...details.transactions, optimisticTransaction],
       }));
       return previous;
     },
-    onSuccess: (response, { tempId }) => {
+    onSuccess: (response, data) => {
       this.#updateDetails((details) => ({
         ...details,
         transactions: details.transactions.map((tx) =>
-          tx.id === tempId ? response.data : tx,
+          tx.id === data.id ? response.data : tx,
         ),
       }));
       this.#onFinancialMutationSuccess();
@@ -591,33 +545,11 @@ export class BudgetDetailsStore {
   async createAllocatedTransaction(
     transactionData: TransactionCreate,
   ): Promise<void> {
-    let dataToPersist = transactionData;
-    if (transactionData.budgetLineId) {
-      const realLineId = await this.#resolveServerId(
-        transactionData.budgetLineId,
-      );
-      if (realLineId === null) return;
-      dataToPersist = { ...transactionData, budgetLineId: realLineId };
-    }
-    const tempId = generateTempId();
-    this.#registerPendingCreate(tempId);
-    try {
-      const result = await this.#createAllocatedTransactionMutation.mutate({
-        data: dataToPersist,
-        tempId,
-      });
-      if (result) {
-        this.#settlePendingCreate(tempId, { realId: result.data.id });
-      } else {
-        this.#settlePendingCreate(tempId, {
-          error:
-            this.#createAllocatedTransactionMutation.error() ??
-            new Error('Transaction create did not complete'),
-        });
-      }
-    } catch (err) {
-      this.#settlePendingCreate(tempId, { error: err });
-    }
+    const id = transactionData.id ?? uuidv4();
+    await this.#createAllocatedTransactionMutation.mutate({
+      ...transactionData,
+      id,
+    });
   }
 
   readonly #resetBudgetLineMutation = cachedMutation<
@@ -647,14 +579,12 @@ export class BudgetDetailsStore {
   });
 
   async resetBudgetLineFromTemplate(id: string): Promise<void> {
-    const realId = await this.#resolveServerId(id);
-    if (realId === null) return;
-    if (this.#mutatingIds.has(realId)) return;
-    this.#mutatingIds.add(realId);
+    if (this.#mutatingIds.has(id)) return;
+    this.#mutatingIds.add(id);
     try {
-      await this.#resetBudgetLineMutation.mutate(realId);
+      await this.#resetBudgetLineMutation.mutate(id);
     } finally {
-      this.#mutatingIds.delete(realId);
+      this.#mutatingIds.delete(id);
     }
   }
 
@@ -706,23 +636,20 @@ export class BudgetDetailsStore {
       return true;
     }
 
-    const realId = await this.#resolveServerId(id);
-    if (realId === null) return false;
-
-    if (this.#mutatingIds.has(realId)) return false;
+    if (this.#mutatingIds.has(id)) return false;
 
     const details = this.budgetDetails();
     if (!details) return false;
 
-    const lineExists = details.budgetLines.some((l) => l.id === realId);
+    const lineExists = details.budgetLines.some((l) => l.id === id);
     if (!lineExists) return false;
 
-    this.#mutatingIds.add(realId);
+    this.#mutatingIds.add(id);
     try {
-      const result = await this.#toggleCheckMutation.mutate(realId);
+      const result = await this.#toggleCheckMutation.mutate(id);
       return result !== undefined;
     } finally {
-      this.#mutatingIds.delete(realId);
+      this.#mutatingIds.delete(id);
     }
   }
 
@@ -767,14 +694,12 @@ export class BudgetDetailsStore {
   });
 
   async toggleTransactionCheck(id: string): Promise<void> {
-    const realId = await this.#resolveServerId(id);
-    if (realId === null) return;
-    if (this.#mutatingIds.has(realId)) return;
-    this.#mutatingIds.add(realId);
+    if (this.#mutatingIds.has(id)) return;
+    this.#mutatingIds.add(id);
     try {
-      await this.#toggleTransactionCheckMutation.mutate(realId);
+      await this.#toggleTransactionCheckMutation.mutate(id);
     } finally {
-      this.#mutatingIds.delete(realId);
+      this.#mutatingIds.delete(id);
     }
   }
 
@@ -795,10 +720,7 @@ export class BudgetDetailsStore {
       const uncheckedIds = new Set(
         details.transactions
           .filter(
-            (tx) =>
-              tx.budgetLineId === budgetLineId &&
-              tx.checkedAt === null &&
-              !isTempId(tx.id),
+            (tx) => tx.budgetLineId === budgetLineId && tx.checkedAt === null,
           )
           .map((tx) => tx.id),
       );
@@ -834,21 +756,18 @@ export class BudgetDetailsStore {
   });
 
   async checkAllAllocatedTransactions(budgetLineId: string): Promise<void> {
-    const realId = await this.#resolveServerId(budgetLineId);
-    if (realId === null) return;
-    if (this.#mutatingIds.has(realId)) return;
+    if (this.#mutatingIds.has(budgetLineId)) return;
     const details = this.budgetDetails();
     if (!details) return;
     const hasUnchecked = details.transactions.some(
-      (tx) =>
-        tx.budgetLineId === realId && tx.checkedAt === null && !isTempId(tx.id),
+      (tx) => tx.budgetLineId === budgetLineId && tx.checkedAt === null,
     );
     if (!hasUnchecked) return;
-    this.#mutatingIds.add(realId);
+    this.#mutatingIds.add(budgetLineId);
     try {
-      await this.#checkAllAllocatedMutation.mutate(realId);
+      await this.#checkAllAllocatedMutation.mutate(budgetLineId);
     } finally {
-      this.#mutatingIds.delete(realId);
+      this.#mutatingIds.delete(budgetLineId);
     }
   }
 
@@ -858,39 +777,6 @@ export class BudgetDetailsStore {
   }
 
   // ── 6. Private utility methods ──
-
-  #registerPendingCreate(tempId: string): void {
-    let resolve!: (realId: string) => void;
-    let reject!: (err: unknown) => void;
-    const promise = new Promise<string>((res, rej) => {
-      resolve = res;
-      reject = rej;
-    });
-    promise.catch(() => undefined);
-    this.#pendingCreates.set(tempId, { promise, resolve, reject });
-  }
-
-  #settlePendingCreate(
-    tempId: string,
-    result: { realId: string } | { error: unknown },
-  ): void {
-    const pending = this.#pendingCreates.get(tempId);
-    if (!pending) return;
-    if ('realId' in result) pending.resolve(result.realId);
-    else pending.reject(result.error);
-    this.#pendingCreates.delete(tempId);
-  }
-
-  async #resolveServerId(id: string): Promise<string | null> {
-    if (!isTempId(id)) return id;
-    const pending = this.#pendingCreates.get(id);
-    if (!pending) return null;
-    try {
-      return await pending.promise;
-    } catch {
-      return null;
-    }
-  }
 
   #updateDetails(
     fn: (details: BudgetDetailsViewModel) => BudgetDetailsViewModel,

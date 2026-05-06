@@ -206,6 +206,46 @@ describe('TransactionService', () => {
       );
     });
 
+    it('should forward client-provided id to insert payload', async () => {
+      // Arrange
+      const clientId = '6f9619ff-8b86-d011-b42d-00c04fc964ff';
+      const mockUser = createMockAuthenticatedUser();
+      const dtoWithId: TransactionCreate = {
+        id: clientId,
+        budgetId: MOCK_BUDGET_ID,
+        name: 'Idempotent Transaction',
+        amount: 100,
+        kind: 'expense',
+      };
+      const capturedInsert: { id?: string }[] = [];
+      const originalFrom = mockSupabaseClient.from.bind(mockSupabaseClient);
+      mockSupabaseClient.from = ((table: string) => {
+        const chain: any = originalFrom(table);
+        const realInsert = chain.insert;
+        chain.insert = (data: { id?: string }) => {
+          capturedInsert.push(data);
+          return realInsert.call(chain, data);
+        };
+        return chain;
+      }) as typeof mockSupabaseClient.from;
+
+      mockSupabaseClient.setMockData(
+        createMockTransactionEntity({
+          id: clientId,
+          budget_id: MOCK_BUDGET_ID,
+          name: dtoWithId.name,
+          amount: 'encrypted-string',
+          kind: 'expense',
+        }),
+      );
+
+      // Act
+      await service.create(dtoWithId, mockUser, mockSupabaseClient as any);
+
+      // Assert
+      expect(capturedInsert[0]?.id).toBe(clientId);
+    });
+
     it('should handle database creation error', async () => {
       // Arrange
       const mockUser = createMockAuthenticatedUser();

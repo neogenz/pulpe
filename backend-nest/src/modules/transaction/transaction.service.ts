@@ -181,6 +181,7 @@ export class TransactionService {
 
   private prepareTransactionData(createTransactionDto: TransactionCreate) {
     return {
+      ...(createTransactionDto.id ? { id: createTransactionDto.id } : {}),
       budget_id: createTransactionDto.budgetId,
       budget_line_id: createTransactionDto.budgetLineId ?? null,
       amount: createTransactionDto.amount,

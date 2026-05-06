@@ -143,7 +143,7 @@ describe('BudgetDetailsStore - Logique Métier', () => {
 
   describe('Mises à jour optimistes', () => {
     it('should show new budget line immediately before server confirmation', () => {
-      // Arrange - Simulate user adding a new budget line
+      // Arrange - Simulate user adding a new budget line with a client-generated UUID
       const existingLines = [
         {
           id: 'line-1',
@@ -154,9 +154,9 @@ describe('BudgetDetailsStore - Logique Métier', () => {
         { id: 'line-2', name: 'Loyer', amount: 1500, kind: 'expense' as const },
       ];
 
-      const tempId = `temp-${Date.now()}`;
+      const clientId = '6f9619ff-8b86-d011-b42d-00c04fc964ff';
       const newBudgetLine = {
-        id: tempId,
+        id: clientId,
         name: 'Courses',
         amount: 400,
         kind: 'expense' as const,
@@ -166,35 +166,36 @@ describe('BudgetDetailsStore - Logique Métier', () => {
       // Act - Add optimistically (what user sees immediately)
       const optimisticState = [...existingLines, newBudgetLine];
 
-      // Assert - User sees the change instantly
+      // Assert - User sees the change instantly under the client-generated UUID
       expect(optimisticState).toHaveLength(3);
       expect(optimisticState[2].name).toBe('Courses');
-      expect(optimisticState[2].id.startsWith('temp-')).toBe(true);
+      expect(optimisticState[2].id).toBe(clientId);
     });
 
-    it('should replace temporary ID with server ID after creation', () => {
-      // Arrange - Optimistic state with temp ID
-      const tempId = 'temp-123456789';
+    it('should keep id stable across server response (client UUID = server id)', () => {
+      // Arrange - Optimistic state with client-generated UUID
+      const clientId = '6f9619ff-8b86-d011-b42d-00c04fc964ff';
       const optimisticLines = [
         { id: 'line-1', name: 'Salaire', amount: 5000 },
-        { id: tempId, name: 'Courses', amount: 400 },
+        { id: clientId, name: 'Courses', amount: 400 },
       ];
 
+      // Server echoes the same id with enriched fields (server timestamps, encryption metadata)
       const serverResponse = {
-        id: 'line-server-456',
+        id: clientId,
         name: 'Courses',
         amount: 400,
       };
 
-      // Act - Replace temp with server response
+      // Act - Merge server response by stable id (no id swap, just field refresh)
       const finalState = optimisticLines.map((line) =>
-        line.id === tempId ? serverResponse : line,
+        line.id === serverResponse.id ? serverResponse : line,
       );
 
-      // Assert - Temp ID is replaced with real server ID
-      expect(finalState[1].id).toBe('line-server-456');
+      // Assert - Id is stable; no temp/real duality
+      expect(finalState[1].id).toBe(clientId);
       expect(finalState[1].name).toBe('Courses');
-      expect(finalState.find((l) => l.id === tempId)).toBeUndefined();
+      expect(finalState.filter((l) => l.id === clientId)).toHaveLength(1);
     });
 
     it('should restore original state when server rejects changes', () => {
@@ -204,16 +205,17 @@ describe('BudgetDetailsStore - Logique Métier', () => {
         { id: 'line-2', name: 'Loyer', amount: 1500 },
       ];
 
-      // User tries to add something that will fail (simulated optimistic state)
-      // This would be: [...originalLines, { id: 'temp-fail', name: 'Invalid', amount: -100 }]
+      const failedClientId = '6f9619ff-8b86-d011-b42d-00c04fc964fe';
 
-      // Act - Server rejects, rollback to original
+      // Act - Server rejects, rollback to original (failedClientId never lands)
       const rolledBackState = [...originalLines];
 
       // Assert - User sees original state restored
       expect(rolledBackState).toHaveLength(2);
       expect(rolledBackState).toEqual(originalLines);
-      expect(rolledBackState.find((l) => l.id === 'temp-fail')).toBeUndefined();
+      expect(
+        rolledBackState.find((l) => l.id === failedClientId),
+      ).toBeUndefined();
     });
 
     it('should update transaction optimistically with new values', () => {
@@ -456,9 +458,10 @@ describe('BudgetDetailsStore - Logique Métier', () => {
         ],
       };
 
-      // User tries to add invalid budget line
+      // User tries to add invalid budget line (client UUID generated locally)
+      const failedClientId = '6f9619ff-8b86-d011-b42d-00c04fc964fe';
       const failedOperation = {
-        id: 'temp-fail',
+        id: failedClientId,
         name: '', // Invalid: empty name
         amount: -100, // Invalid: negative amount
       };
@@ -477,27 +480,28 @@ describe('BudgetDetailsStore - Logique Métier', () => {
       const recoveredState = recoverFromError(originalBudget);
       expect(recoveredState.budgetLines).toEqual(originalBudget.budgetLines);
       expect(
-        recoveredState.budgetLines.find((l) => l.id === 'temp-fail'),
+        recoveredState.budgetLines.find((l) => l.id === failedClientId),
       ).toBeUndefined();
     });
   });
 
   describe('Performance et expérience utilisateur', () => {
-    it('should generate unique temporary IDs for optimistic updates', () => {
-      // Arrange - Simulate rapid user actions
-      const generateTempId = () =>
-        `temp-${Date.now()}-${Math.random().toString(36).substring(2, 13).padEnd(9, '0').slice(0, 9)}`;
+    it('should generate unique client UUIDs for optimistic updates', async () => {
+      // Arrange - Simulate rapid user actions; client generates UUIDs locally
+      const { v4: uuidv4 } = await import('uuid');
       const generatedIds = new Set<string>();
 
       // Act - Generate multiple IDs rapidly
       for (let i = 0; i < 100; i++) {
-        generatedIds.add(generateTempId());
+        generatedIds.add(uuidv4());
       }
 
-      // Assert - All IDs are unique (no collisions)
+      // Assert - All IDs are unique (UUIDv4 collision is astronomically unlikely)
       expect(generatedIds.size).toBe(100);
       generatedIds.forEach((id) => {
-        expect(id).toMatch(/^temp-\d+-[a-z0-9]{9}$/);
+        expect(id).toMatch(
+          /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
+        );
       });
     });
 

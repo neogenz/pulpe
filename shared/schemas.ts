@@ -309,6 +309,11 @@ export const budgetLineSchema = z.object({
 export type BudgetLine = z.infer<typeof budgetLineSchema>;
 
 export const budgetLineCreateSchema = z.strictObject({
+  /**
+   * Client-generated UUIDv4. Optional — server falls back to gen_random_uuid() if absent.
+   * Enables idempotent retries and removes temp-id/real-id duality on the client.
+   */
+  id: z.uuid().optional(),
   budgetId: z.uuid(),
   templateLineId: z.uuid().nullable().optional(),
   savingsGoalId: z.uuid().nullable().optional(),
@@ -375,6 +380,11 @@ export const transactionSchema = z.object({
 export type Transaction = z.infer<typeof transactionSchema>;
 
 export const transactionCreateSchema = z.strictObject({
+  /**
+   * Client-generated UUIDv4. Optional — server falls back to gen_random_uuid() if absent.
+   * Enables idempotent retries and removes temp-id/real-id duality on the client.
+   */
+  id: z.uuid().optional(),
   budgetId: z.uuid(),
   budgetLineId: z.uuid().nullable().optional(),
   name: z.string().min(1).max(100).trim(),

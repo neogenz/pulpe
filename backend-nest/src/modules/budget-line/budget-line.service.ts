@@ -148,6 +148,7 @@ export class BudgetLineService {
     }
 
     return {
+      ...(createBudgetLineDto.id ? { id: createBudgetLineDto.id } : {}),
       budget_id: createBudgetLineDto.budgetId,
       template_line_id: createBudgetLineDto.templateLineId || null,
       savings_goal_id: createBudgetLineDto.savingsGoalId || null,

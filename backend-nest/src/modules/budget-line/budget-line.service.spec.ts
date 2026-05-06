@@ -421,6 +421,35 @@ describe('BudgetLineService', () => {
         service.create(mockCreateDto, mockUser, getMockSupabaseClient()),
       ).rejects.toThrow(BusinessException);
     });
+
+    it('should forward client-provided id to insert payload', async () => {
+      const clientId = '6f9619ff-8b86-d011-b42d-00c04fc964ff';
+      const dtoWithId: BudgetLineCreate = { ...mockCreateDto, id: clientId };
+
+      const queryBuilder = createMockQueryBuilder({
+        data: mockBudgetLineDb,
+        error: null,
+      });
+      mockSupabase.from.mockReturnValue(queryBuilder);
+
+      await service.create(dtoWithId, mockUser, getMockSupabaseClient());
+
+      const insertCall = queryBuilder.insert.mock.calls[0][0];
+      expect(insertCall.id).toBe(clientId);
+    });
+
+    it('should omit id from insert payload when DTO has no id (server falls back to DEFAULT)', async () => {
+      const queryBuilder = createMockQueryBuilder({
+        data: mockBudgetLineDb,
+        error: null,
+      });
+      mockSupabase.from.mockReturnValue(queryBuilder);
+
+      await service.create(mockCreateDto, mockUser, getMockSupabaseClient());
+
+      const insertCall = queryBuilder.insert.mock.calls[0][0];
+      expect(insertCall.id).toBeUndefined();
+    });
   });
 
   describe('update', () => {
