@@ -263,7 +263,7 @@ struct HeroBalanceCard: View {
 
     private var incomePill: some View {
         tintedPill(
-            prefix: "+",
+            iconName: TransactionKind.income.icon,
             amount: metrics.totalIncome,
             label: "revenus",
             tint: .financialIncome
@@ -271,33 +271,17 @@ struct HeroBalanceCard: View {
     }
 
     private var savingsPill: some View {
-        HStack(spacing: DesignTokens.Spacing.xs) {
-            // No foregroundStyle — emoji glyph keeps Apple native color render.
-            Text("🐷")
-                .font(PulpeTypography.metricLabelBold)
-
-            Text(metrics.totalSavings.asCompactAmount(for: userSettingsStore.currency))
-                .font(PulpeTypography.metricLabelBold)
-                .foregroundStyle(Color.financialSavings)
-                .monospacedDigit()
-                .sensitiveAmount()
-
-            Text("épargne")
-                .font(PulpeTypography.metricLabelBold)
-                .foregroundStyle(Color.financialSavings)
-        }
-        .padding(.horizontal, DesignTokens.Spacing.md)
-        .padding(.vertical, DesignTokens.Spacing.tightGap)
-        .background {
-            Capsule()
-                .fill(Color.financialSavings.opacity(DesignTokens.Opacity.accent))
-        }
-        .contentShape(Capsule())
+        tintedPill(
+            iconName: TransactionKind.saving.icon,
+            amount: metrics.totalSavings,
+            label: "épargne",
+            tint: .financialSavings
+        )
     }
 
     private var expensesPill: some View {
         tintedPill(
-            prefix: "−",
+            iconName: TransactionKind.expense.icon,
             amount: metrics.totalExpenses,
             label: "dépenses",
             tint: .financialExpense
@@ -306,17 +290,17 @@ struct HeroBalanceCard: View {
 
     /// Pale-tinted pill with colored ink text — pale category-tint background,
     /// dark category text. Matches DM2.1.b.c5 maquette (incomeSoft/incomeInk pattern).
-    /// `foregroundStyle(tint)` is applied per-Text (not on the outer HStack) so an
-    /// emoji glyph passed as `prefix` would still render in its native color — see
-    /// `savingsPill` for the pig variant that opts out of the tint on its emoji.
+    /// Icon is an SF Symbol from `TransactionKind.icon` so all three pills stay
+    /// visually consistent with the kind icons used in `TransactionRow` and
+    /// `BudgetLineMixedRow`.
     private func tintedPill(
-        prefix: String,
+        iconName: String,
         amount: Decimal,
         label: String,
         tint: Color
     ) -> some View {
         HStack(spacing: DesignTokens.Spacing.xs) {
-            Text(prefix)
+            Image(systemName: iconName)
                 .font(PulpeTypography.metricLabelBold)
                 .foregroundStyle(tint)
 
