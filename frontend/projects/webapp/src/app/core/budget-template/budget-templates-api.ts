@@ -12,9 +12,6 @@ import {
   type BudgetTemplateUpdate,
   budgetTemplateUpdateSchema,
   type TemplateLineListResponse,
-  type TemplateLinesBulkUpdate,
-  templateLinesBulkUpdateSchema,
-  type TemplateLinesBulkUpdateResponse,
   type TemplateLinesBulkOperations,
   templateLinesBulkOperationsSchema,
   type TemplateLinesBulkOperationsResponse,
@@ -24,7 +21,6 @@ import {
   budgetTemplateCreateResponseSchema,
   budgetTemplateDeleteResponseSchema,
   templateLineListResponseSchema,
-  templateLinesBulkUpdateResponseSchema,
   templateLinesBulkOperationsResponseSchema,
   templateUsageResponseSchema,
 } from 'pulpe-shared';
@@ -100,18 +96,6 @@ export class BudgetTemplatesApi {
     return this.#api.get$(
       `/budget-templates/${templateId}/lines`,
       templateLineListResponseSchema,
-    );
-  }
-
-  updateTemplateLines$(
-    templateId: string,
-    bulkUpdate: TemplateLinesBulkUpdate,
-  ): Observable<TemplateLinesBulkUpdateResponse> {
-    return this.#api.patch$(
-      `/budget-templates/${templateId}/lines`,
-      bulkUpdate,
-      templateLinesBulkUpdateResponseSchema,
-      templateLinesBulkUpdateSchema,
     );
   }
 

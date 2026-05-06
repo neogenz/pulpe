@@ -166,7 +166,6 @@ Tous les endpoints sont préfixés par `/api/v1` :
 - `PATCH /api/v1/budget-templates/:id` - Modifier template
 - `DELETE /api/v1/budget-templates/:id` - Supprimer template
 - `GET /api/v1/budget-templates/:id/lines` - Lignes du template
-- `PATCH /api/v1/budget-templates/:id/lines` - Modifier lignes
 - `POST /api/v1/budget-templates/:id/lines` - Ajouter ligne
 - `POST /api/v1/budget-templates/:id/lines/bulk-operations` - Opérations en lot
 
