@@ -2,23 +2,25 @@ import Foundation
 @testable import Pulpe
 import Testing
 
+/// Clear both the legacy Bool key and the post-Wave-A String rawValue key so
+/// `.checked` state from one test cannot bleed into the next via UserDefaults.
+/// File-scoped so both suites in this file (`BudgetDetailsViewModelFilterTests`
+/// and `BudgetDetailsCombinedFilterTests`) can share it without `Self.` lookup.
+private func clearFilterPrefs() {
+    UserDefaults.standard.removeObject(forKey: "pulpe-budget-show-only-unchecked")
+    UserDefaults.standard.removeObject(forKey: "pulpe-budget-checked-filter")
+}
+
 @Suite(.serialized)
 @MainActor
 struct BudgetDetailsViewModelFilterTests {
-    /// Clear both the legacy Bool key and the post-Wave-A String rawValue key so
-    /// `.checked` state from one test cannot bleed into the next via UserDefaults.
-    fileprivate static func clearFilterPrefs() {
-        UserDefaults.standard.removeObject(forKey: "pulpe-budget-show-only-unchecked")
-        UserDefaults.standard.removeObject(forKey: "pulpe-budget-checked-filter")
-    }
-
     // MARK: - Default Filter Behavior
 
     @Test
     func defaultFilter_showsOnlyUncheckedItems() {
-        Self.clearFilterPrefs()
+        clearFilterPrefs()
         let viewModel = BudgetDetailsViewModel(budgetId: "test-budget")
-        defer { Self.clearFilterPrefs() }
+        defer { clearFilterPrefs() }
 
         #expect(viewModel.isShowingOnlyUnchecked)
         #expect(viewModel.checkedFilter == .unchecked)
@@ -28,9 +30,9 @@ struct BudgetDetailsViewModelFilterTests {
 
     @Test
     func filterPreference_persistsToUserDefaults() {
-        Self.clearFilterPrefs()
+        clearFilterPrefs()
         let viewModel = BudgetDetailsViewModel(budgetId: "test-budget")
-        defer { Self.clearFilterPrefs() }
+        defer { clearFilterPrefs() }
 
         viewModel.setCheckedFilter(.all)
 
@@ -40,7 +42,7 @@ struct BudgetDetailsViewModelFilterTests {
 
     @Test
     func filterPreference_restoredOnInit() {
-        defer { Self.clearFilterPrefs() }
+        defer { clearFilterPrefs() }
         UserDefaults.standard.set(false, forKey: "pulpe-budget-show-only-unchecked")
         let newViewModel = BudgetDetailsViewModel(budgetId: "test-budget")
 
@@ -52,9 +54,9 @@ struct BudgetDetailsViewModelFilterTests {
 
     @Test
     func toggleFilter_switchesBetweenModes() {
-        Self.clearFilterPrefs()
+        clearFilterPrefs()
         let viewModel = BudgetDetailsViewModel(budgetId: "test-budget")
-        defer { Self.clearFilterPrefs() }
+        defer { clearFilterPrefs() }
 
         #expect(viewModel.checkedFilter == .unchecked)
 
@@ -196,9 +198,9 @@ struct BudgetDetailsFilterLogicTests {
 struct BudgetDetailsCombinedFilterTests {
     @Test
     func combinedFilteredFreeTransactions_uncheckedFilter_hidesChecked() {
-        Self.clearFilterPrefs()
+        clearFilterPrefs()
         let viewModel = BudgetDetailsViewModel(budgetId: "test-budget")
-        defer { Self.clearFilterPrefs() }
+        defer { clearFilterPrefs() }
 
         let uncheckedTx = TestDataFactory.createTransaction(id: "tx-1", name: "Coop")
         let checkedTx = TestDataFactory.createTransaction(id: "tx-2", name: "Migros", isChecked: true)
@@ -216,9 +218,9 @@ struct BudgetDetailsCombinedFilterTests {
 
     @Test
     func combinedFilteredFreeTransactions_allFilter_showsAll() {
-        Self.clearFilterPrefs()
+        clearFilterPrefs()
         let viewModel = BudgetDetailsViewModel(budgetId: "test-budget")
-        defer { Self.clearFilterPrefs() }
+        defer { clearFilterPrefs() }
 
         let uncheckedTx = TestDataFactory.createTransaction(id: "tx-1", name: "Coop")
         let checkedTx = TestDataFactory.createTransaction(id: "tx-2", name: "Migros", isChecked: true)
@@ -234,9 +236,9 @@ struct BudgetDetailsCombinedFilterTests {
 
     @Test
     func combinedFilteredFreeTransactions_searchFilter_matchesName() {
-        Self.clearFilterPrefs()
+        clearFilterPrefs()
         let viewModel = BudgetDetailsViewModel(budgetId: "test-budget")
-        defer { Self.clearFilterPrefs() }
+        defer { clearFilterPrefs() }
 
         let tx1 = TestDataFactory.createTransaction(id: "tx-1", name: "Coop Pronto", amount: 45)
         let tx2 = TestDataFactory.createTransaction(id: "tx-2", name: "Migros Zürich", amount: 150)
@@ -253,9 +255,9 @@ struct BudgetDetailsCombinedFilterTests {
 
     @Test
     func combinedFilteredFreeTransactions_searchFilter_matchesAmount() {
-        Self.clearFilterPrefs()
+        clearFilterPrefs()
         let viewModel = BudgetDetailsViewModel(budgetId: "test-budget")
-        defer { Self.clearFilterPrefs() }
+        defer { clearFilterPrefs() }
 
         let tx1 = TestDataFactory.createTransaction(id: "tx-1", name: "Coop Pronto", amount: 45)
         let tx2 = TestDataFactory.createTransaction(id: "tx-2", name: "Migros Zürich", amount: 150)
@@ -272,9 +274,9 @@ struct BudgetDetailsCombinedFilterTests {
 
     @Test
     func combinedFilteredFreeTransactions_bothFilters_uncheckedAndSearch() {
-        Self.clearFilterPrefs()
+        clearFilterPrefs()
         let viewModel = BudgetDetailsViewModel(budgetId: "test-budget")
-        defer { Self.clearFilterPrefs() }
+        defer { clearFilterPrefs() }
 
         let tx1 = TestDataFactory.createTransaction(id: "tx-1", name: "Coop Pronto", amount: 45)
         let tx2 = TestDataFactory.createTransaction(id: "tx-2", name: "Coop Lausanne", amount: 60, isChecked: true)
