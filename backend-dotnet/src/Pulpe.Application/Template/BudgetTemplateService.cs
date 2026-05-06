@@ -6,9 +6,8 @@ using Pulpe.Domain.Common;
 using Pulpe.Domain.Encryption;
 using Pulpe.Domain.Template;
 using Pulpe.Domain.User;
-using Pulpe.Infrastructure.Supabase;
 
-namespace Pulpe.Infrastructure.Services.Template;
+namespace Pulpe.Application.Template;
 
 public sealed class BudgetTemplateService : ITemplateService
 {
@@ -17,6 +16,7 @@ public sealed class BudgetTemplateService : ITemplateService
     private readonly IEncryptionService _encryptionService;
     private readonly ICacheService _cacheService;
     private readonly IBudgetRecalculationService _budgetService;
+    private readonly ISupabaseClientFactory _clientFactory;
     private readonly ILogger<BudgetTemplateService> _logger;
 
     public BudgetTemplateService(
@@ -25,6 +25,7 @@ public sealed class BudgetTemplateService : ITemplateService
         IEncryptionService encryptionService,
         ICacheService cacheService,
         IBudgetRecalculationService budgetService,
+        ISupabaseClientFactory clientFactory,
         ILogger<BudgetTemplateService> logger)
     {
         _templateRepository = templateRepository;
@@ -32,52 +33,54 @@ public sealed class BudgetTemplateService : ITemplateService
         _encryptionService = encryptionService;
         _cacheService = cacheService;
         _budgetService = budgetService;
+        _clientFactory = clientFactory;
         _logger = logger;
     }
 
     // ============ TEMPLATE METHODS ============
 
-    public async Task<List<BudgetTemplateResponseDto>> FindAll(AuthenticatedUser user, object supabase)
+    public async Task<object> FindAllAsync(AuthenticatedUser user)
     {
-        var templates = await _templateRepository.FindAll(user.Id, supabase);
+        var templates = await _templateRepository.FindAll(user.Id);
         return templates.Select(MapToTemplateResponse).ToList();
     }
 
-    public async Task<BudgetTemplateResponseDto> FindOne(Guid id, AuthenticatedUser user, object supabase)
+    public async Task<object> FindOneAsync(Guid id, AuthenticatedUser user)
     {
-        var template = await _templateRepository.FindById(id, supabase)
+        var template = await _templateRepository.FindById(id)
             ?? throw BusinessException.NotFound(ErrorCodes.TemplateNotFound, $"Template '{id}' not found");
 
         ValidateTemplateOwnership(template, user.Id);
         return MapToTemplateResponse(template);
     }
 
-    public async Task<BudgetTemplateWithLinesResponseDto> Create(
-        BudgetTemplateCreateDto dto, AuthenticatedUser user, object supabase)
+    public async Task<object> CreateAsync(object dto, AuthenticatedUser user)
     {
-        var count = await _templateRepository.CountByUserId(user.Id, supabase);
+        var createDto = dto as BudgetTemplateCreateDto ?? throw new ArgumentException("Expected BudgetTemplateCreateDto");
+
+        var count = await _templateRepository.CountByUserId(user.Id);
         if (count >= Constants.MaxTemplatesPerUser)
             throw BusinessException.BadRequest(
                 ErrorCodes.TemplateLimitReached,
                 $"Maximum of {Constants.MaxTemplatesPerUser} templates per user reached");
 
-        if (dto.IsDefault)
-            await _templateRepository.ResetDefaultTemplates(user.Id, null, supabase);
+        if (createDto.IsDefault)
+            await _templateRepository.ResetDefaultTemplates(user.Id, null);
 
-        var lines = dto.Lines ?? [];
+        var lines = createDto.Lines ?? [];
         var encryptedLines = await EncryptTemplateLines(lines, user);
 
         var rpcPayload = new
         {
             p_user_id = user.Id,
-            p_name = dto.Name,
-            p_description = dto.Description,
-            p_is_default = dto.IsDefault,
+            p_name = createDto.Name,
+            p_description = createDto.Description,
+            p_is_default = createDto.IsDefault,
             p_lines = encryptedLines
         };
 
-        var template = await _templateRepository.Create(rpcPayload, supabase);
-        var templateLines = await _templateRepository.FindTemplateLines(template.Id, supabase);
+        var template = await _templateRepository.Create(rpcPayload);
+        var templateLines = await _templateRepository.FindTemplateLines(template.Id);
 
         var dek = await _encryptionService.GetUserDek(user.Id, user.ClientKey);
         var lineResponses = templateLines.Select(l => MapToLineResponse(l, dek)).ToList();
@@ -87,49 +90,31 @@ public sealed class BudgetTemplateService : ITemplateService
         return new BudgetTemplateWithLinesResponseDto(MapToTemplateResponse(template), lineResponses);
     }
 
-    public async Task<BudgetTemplateResponseDto> Update(
-        Guid id, BudgetTemplateUpdateDto dto, AuthenticatedUser user, object supabase)
+    public async Task<object> CreateFromOnboardingAsync(object dto, AuthenticatedUser user)
     {
-        var template = await _templateRepository.FindById(id, supabase)
-            ?? throw BusinessException.NotFound(ErrorCodes.TemplateNotFound, $"Template '{id}' not found");
+        var onboardingDto = dto as BudgetTemplateCreateFromOnboardingDto ?? throw new ArgumentException("Expected BudgetTemplateCreateFromOnboardingDto");
 
-        ValidateTemplateOwnership(template, user.Id);
+        await CheckOnboardingRateLimit(user.Id);
 
-        if (dto.IsDefault == true)
-            await _templateRepository.ResetDefaultTemplates(user.Id, id, supabase);
+        var lines = BuildOnboardingTemplateLines(onboardingDto);
+        var createDto = new BudgetTemplateCreateDto(
+            Name: onboardingDto.Name,
+            Description: onboardingDto.Description,
+            IsDefault: onboardingDto.IsDefault,
+            Lines: lines
+        );
 
-        var updateData = BuildTemplateUpdatePayload(dto);
-        var updated = await _templateRepository.Update(id, updateData, supabase);
-
-        _logger.LogInformation("Template {TemplateId} updated by user {UserId}", id, user.Id);
-        return MapToTemplateResponse(updated);
+        return await CreateAsync(createDto, user);
     }
 
-    public async Task Remove(Guid id, AuthenticatedUser user, object supabase)
+    public async Task<object> CheckUsageAsync(Guid id, AuthenticatedUser user)
     {
-        var template = await _templateRepository.FindById(id, supabase)
+        var template = await _templateRepository.FindById(id)
             ?? throw BusinessException.NotFound(ErrorCodes.TemplateNotFound, $"Template '{id}' not found");
 
         ValidateTemplateOwnership(template, user.Id);
 
-        var usage = await CheckTemplateUsageInternal(id, user.Id, supabase);
-        if (usage.IsUsed)
-            throw BusinessException.Conflict(
-                ErrorCodes.TemplateInUse,
-                $"Template '{id}' is used by {usage.BudgetCount} budget(s) and cannot be deleted");
-
-        await _templateRepository.Delete(id, supabase);
-        _logger.LogInformation("Template {TemplateId} deleted by user {UserId}", id, user.Id);
-    }
-
-    public async Task<TemplateUsageResponseDto> CheckTemplateUsage(Guid id, AuthenticatedUser user, object supabase)
-    {
-        var template = await _templateRepository.FindById(id, supabase)
-            ?? throw BusinessException.NotFound(ErrorCodes.TemplateNotFound, $"Template '{id}' not found");
-
-        ValidateTemplateOwnership(template, user.Id);
-
-        var budgets = await _budgetRepository.FindAll(user.Id, supabase);
+        var budgets = await _budgetRepository.FindAll(user.Id);
         var usedBy = budgets.Where(b => b.TemplateId == id).ToList();
 
         return new TemplateUsageResponseDto(
@@ -139,71 +124,91 @@ public sealed class BudgetTemplateService : ITemplateService
         );
     }
 
-    public async Task<BudgetTemplateWithLinesResponseDto> CreateFromOnboarding(
-        BudgetTemplateCreateFromOnboardingDto dto, AuthenticatedUser user, object supabase)
+    public async Task<object> UpdateAsync(Guid id, object dto, AuthenticatedUser user)
     {
-        await CheckOnboardingRateLimit(user.Id, supabase);
+        var updateDto = dto as BudgetTemplateUpdateDto ?? throw new ArgumentException("Expected BudgetTemplateUpdateDto");
 
-        var lines = BuildOnboardingTemplateLines(dto);
-        var createDto = new BudgetTemplateCreateDto(
-            Name: dto.Name,
-            Description: dto.Description,
-            IsDefault: dto.IsDefault,
-            Lines: lines
-        );
+        var template = await _templateRepository.FindById(id)
+            ?? throw BusinessException.NotFound(ErrorCodes.TemplateNotFound, $"Template '{id}' not found");
 
-        return await Create(createDto, user, supabase);
+        ValidateTemplateOwnership(template, user.Id);
+
+        if (updateDto.IsDefault == true)
+            await _templateRepository.ResetDefaultTemplates(user.Id, id);
+
+        var updateData = BuildTemplateUpdatePayload(updateDto);
+        var updated = await _templateRepository.Update(id, updateData);
+
+        _logger.LogInformation("Template {TemplateId} updated by user {UserId}", id, user.Id);
+        return MapToTemplateResponse(updated);
+    }
+
+    public async Task<object> RemoveAsync(Guid id, AuthenticatedUser user)
+    {
+        var template = await _templateRepository.FindById(id)
+            ?? throw BusinessException.NotFound(ErrorCodes.TemplateNotFound, $"Template '{id}' not found");
+
+        ValidateTemplateOwnership(template, user.Id);
+
+        var budgets = await _budgetRepository.FindAll(user.Id);
+        var count = budgets.Count(b => b.TemplateId == id);
+        if (count > 0)
+            throw BusinessException.Conflict(
+                ErrorCodes.TemplateInUse,
+                $"Template '{id}' is used by {count} budget(s) and cannot be deleted");
+
+        await _templateRepository.Delete(id);
+        _logger.LogInformation("Template {TemplateId} deleted by user {UserId}", id, user.Id);
+        return new { success = true };
     }
 
     // ============ TEMPLATE LINE METHODS ============
 
-    public async Task<List<TemplateLineResponseDto>> FindTemplateLines(
-        Guid templateId, AuthenticatedUser user, object supabase)
+    public async Task<object> FindTemplateLinesAsync(Guid templateId, AuthenticatedUser user)
     {
-        var template = await _templateRepository.FindById(templateId, supabase)
+        var template = await _templateRepository.FindById(templateId)
             ?? throw BusinessException.NotFound(ErrorCodes.TemplateNotFound, $"Template '{templateId}' not found");
 
         ValidateTemplateOwnership(template, user.Id);
 
-        var lines = await _templateRepository.FindTemplateLines(templateId, supabase);
+        var lines = await _templateRepository.FindTemplateLines(templateId);
         var dek = await _encryptionService.GetUserDek(user.Id, user.ClientKey);
         return lines.Select(l => MapToLineResponse(l, dek)).ToList();
     }
 
-    public async Task<TemplateLineResponseDto> CreateTemplateLine(
-        Guid templateId, TemplateLineCreateDto dto, AuthenticatedUser user, object supabase)
+    public async Task<object> CreateTemplateLineAsync(Guid templateId, object dto, AuthenticatedUser user)
     {
-        var template = await _templateRepository.FindById(templateId, supabase)
+        var lineDto = dto as TemplateLineCreateDto ?? throw new ArgumentException("Expected TemplateLineCreateDto");
+
+        var template = await _templateRepository.FindById(templateId)
             ?? throw BusinessException.NotFound(ErrorCodes.TemplateNotFound, $"Template '{templateId}' not found");
 
         ValidateTemplateOwnership(template, user.Id);
 
-        var encryptedAmount = await _encryptionService.PrepareAmountData(dto.Amount, user.Id, user.ClientKey);
+        var encryptedAmount = await _encryptionService.PrepareAmountData(lineDto.Amount, user.Id, user.ClientKey);
 
         var createData = new
         {
             template_id = templateId.ToString(),
-            name = dto.Name,
+            name = lineDto.Name,
             amount = encryptedAmount,
-            kind = dto.Kind,
-            recurrence = dto.Recurrence,
-            description = dto.Description ?? string.Empty,
+            kind = lineDto.Kind,
+            recurrence = lineDto.Recurrence,
+            description = lineDto.Description ?? string.Empty,
         };
 
-        var created = await _templateRepository.CreateTemplateLine(createData, supabase);
+        var created = await _templateRepository.CreateTemplateLine(createData);
 
         var dek = await _encryptionService.GetUserDek(user.Id, user.ClientKey);
         return MapToLineResponse(created, dek);
     }
 
-    public async Task<TemplateLineResponseDto> FindTemplateLine(
-        Guid lineId, AuthenticatedUser user, object supabase)
+    public async Task<object> FindTemplateLineAsync(Guid lineId, AuthenticatedUser user)
     {
-        var line = await _templateRepository.FindTemplateLine(lineId, supabase)
+        var line = await _templateRepository.FindTemplateLine(lineId)
             ?? throw BusinessException.NotFound(ErrorCodes.TemplateLineNotFound, $"Template line '{lineId}' not found");
 
-        // Validate access via template
-        var template = await _templateRepository.FindById(line.TemplateId, supabase);
+        var template = await _templateRepository.FindById(line.TemplateId);
         if (template is null || template.UserId != Guid.Parse(user.Id))
             throw BusinessException.Forbidden(ErrorCodes.TemplateAccessDenied, "Access to template line denied");
 
@@ -211,49 +216,52 @@ public sealed class BudgetTemplateService : ITemplateService
         return MapToLineResponse(line, dek);
     }
 
-    public async Task<TemplateLineResponseDto> UpdateTemplateLine(
-        Guid lineId, TemplateLineUpdateDto dto, AuthenticatedUser user, object supabase)
+    public async Task<object> UpdateTemplateLineAsync(Guid lineId, object dto, AuthenticatedUser user)
     {
-        var line = await _templateRepository.FindTemplateLine(lineId, supabase)
+        var lineDto = dto as TemplateLineUpdateDto ?? throw new ArgumentException("Expected TemplateLineUpdateDto");
+
+        var line = await _templateRepository.FindTemplateLine(lineId)
             ?? throw BusinessException.NotFound(ErrorCodes.TemplateLineNotFound, $"Template line '{lineId}' not found");
 
-        var template = await _templateRepository.FindById(line.TemplateId, supabase);
+        var template = await _templateRepository.FindById(line.TemplateId);
         if (template is null || template.UserId != Guid.Parse(user.Id))
             throw BusinessException.Forbidden(ErrorCodes.TemplateAccessDenied, "Access to template line denied");
 
         string? encryptedAmount = null;
-        if (dto.Amount.HasValue)
-            encryptedAmount = await _encryptionService.PrepareAmountData(dto.Amount.Value, user.Id, user.ClientKey);
+        if (lineDto.Amount.HasValue)
+            encryptedAmount = await _encryptionService.PrepareAmountData(lineDto.Amount.Value, user.Id, user.ClientKey);
 
-        var updateData = BuildLineUpdatePayload(dto, encryptedAmount);
-        var updated = await _templateRepository.UpdateTemplateLine(lineId, updateData, supabase);
+        var updateData = BuildLineUpdatePayload(lineDto, encryptedAmount);
+        var updated = await _templateRepository.UpdateTemplateLine(lineId, updateData);
 
         var dek = await _encryptionService.GetUserDek(user.Id, user.ClientKey);
         return MapToLineResponse(updated, dek);
     }
 
-    public async Task DeleteTemplateLine(Guid lineId, AuthenticatedUser user, object supabase)
+    public async Task<object> DeleteTemplateLineAsync(Guid lineId, AuthenticatedUser user)
     {
-        var line = await _templateRepository.FindTemplateLine(lineId, supabase)
+        var line = await _templateRepository.FindTemplateLine(lineId)
             ?? throw BusinessException.NotFound(ErrorCodes.TemplateLineNotFound, $"Template line '{lineId}' not found");
 
-        var template = await _templateRepository.FindById(line.TemplateId, supabase);
+        var template = await _templateRepository.FindById(line.TemplateId);
         if (template is null || template.UserId != Guid.Parse(user.Id))
             throw BusinessException.Forbidden(ErrorCodes.TemplateAccessDenied, "Access to template line denied");
 
-        await _templateRepository.DeleteTemplateLine(lineId, supabase);
+        await _templateRepository.DeleteTemplateLine(lineId);
+        return new { success = true };
     }
 
-    public async Task<List<TemplateLineResponseDto>> BulkUpdateTemplateLines(
-        Guid templateId, TemplateLinesBulkUpdateDto dto, AuthenticatedUser user, object supabase)
+    public async Task<object> BulkUpdateTemplateLinesAsync(Guid templateId, object dto, AuthenticatedUser user)
     {
-        var template = await _templateRepository.FindById(templateId, supabase)
+        var bulkDto = dto as TemplateLinesBulkUpdateDto ?? throw new ArgumentException("Expected TemplateLinesBulkUpdateDto");
+
+        var template = await _templateRepository.FindById(templateId)
             ?? throw BusinessException.NotFound(ErrorCodes.TemplateNotFound, $"Template '{templateId}' not found");
 
         ValidateTemplateOwnership(template, user.Id);
 
-        var lineIds = dto.Lines.Select(l => l.Id).ToList();
-        var existingLines = await _templateRepository.FindTemplateLines(templateId, supabase);
+        var lineIds = bulkDto.Lines.Select(l => l.Id).ToList();
+        var existingLines = await _templateRepository.FindTemplateLines(templateId);
         var existingIds = existingLines.Select(l => l.Id).ToHashSet();
 
         foreach (var lineId in lineIds)
@@ -267,13 +275,12 @@ public sealed class BudgetTemplateService : ITemplateService
         var dek = await _encryptionService.GetUserDek(user.Id, user.ClientKey);
         var results = new List<TemplateLine>();
 
-        // Group lines by identical update properties to minimize DB round trips
-        var updateGroups = await GroupLinesByUpdateProperties(dto.Lines, user);
+        var updateGroups = await GroupLinesByUpdateProperties(bulkDto.Lines, user);
         foreach (var (_, (ids, updateData)) in updateGroups)
         {
             foreach (var id in ids)
             {
-                var updated = await _templateRepository.UpdateTemplateLine(id, updateData, supabase);
+                var updated = await _templateRepository.UpdateTemplateLine(id, updateData);
                 results.Add(updated);
             }
         }
@@ -281,15 +288,16 @@ public sealed class BudgetTemplateService : ITemplateService
         return results.Select(l => MapToLineResponse(l, dek)).ToList();
     }
 
-    public async Task<BulkOperationsResultDto> BulkOperationsTemplateLines(
-        Guid templateId, TemplateLinesBulkOperationsDto dto, AuthenticatedUser user, object supabase)
+    public async Task<object> BulkOperationsTemplateLinesAsync(Guid templateId, object dto, AuthenticatedUser user)
     {
-        var template = await _templateRepository.FindById(templateId, supabase)
+        var bulkDto = dto as TemplateLinesBulkOperationsDto ?? throw new ArgumentException("Expected TemplateLinesBulkOperationsDto");
+
+        var template = await _templateRepository.FindById(templateId)
             ?? throw BusinessException.NotFound(ErrorCodes.TemplateNotFound, $"Template '{templateId}' not found");
 
         ValidateTemplateOwnership(template, user.Id);
 
-        var totalOps = (dto.Create?.Count ?? 0) + (dto.Update?.Count ?? 0) + (dto.Delete?.Count ?? 0);
+        var totalOps = (bulkDto.Create?.Count ?? 0) + (bulkDto.Update?.Count ?? 0) + (bulkDto.Delete?.Count ?? 0);
         if (totalOps > Constants.MaxBulkOperations)
             throw BusinessException.BadRequest(
                 ErrorCodes.TemplateBulkOperationsFailed,
@@ -297,23 +305,22 @@ public sealed class BudgetTemplateService : ITemplateService
 
         var dek = await _encryptionService.GetUserDek(user.Id, user.ClientKey);
 
-        // Execute in order: delete → update → create
         var deletedIds = new List<Guid>();
         var updatedLines = new List<TemplateLine>();
         var createdLines = new List<TemplateLine>();
 
-        if (dto.Delete?.Count > 0)
+        if (bulkDto.Delete?.Count > 0)
         {
-            foreach (var lineId in dto.Delete)
+            foreach (var lineId in bulkDto.Delete)
             {
-                await _templateRepository.DeleteTemplateLine(lineId, supabase);
+                await _templateRepository.DeleteTemplateLine(lineId);
                 deletedIds.Add(lineId);
             }
         }
 
-        if (dto.Update?.Count > 0)
+        if (bulkDto.Update?.Count > 0)
         {
-            foreach (var lineUpdate in dto.Update)
+            foreach (var lineUpdate in bulkDto.Update)
             {
                 string? encryptedAmount = null;
                 if (lineUpdate.Amount.HasValue)
@@ -324,14 +331,14 @@ public sealed class BudgetTemplateService : ITemplateService
                     lineUpdate.Recurrence, lineUpdate.Description);
 
                 var updateData = BuildLineUpdatePayload(updateLineDto, encryptedAmount);
-                var updated = await _templateRepository.UpdateTemplateLine(lineUpdate.Id, updateData, supabase);
+                var updated = await _templateRepository.UpdateTemplateLine(lineUpdate.Id, updateData);
                 updatedLines.Add(updated);
             }
         }
 
-        if (dto.Create?.Count > 0)
+        if (bulkDto.Create?.Count > 0)
         {
-            foreach (var lineCreate in dto.Create)
+            foreach (var lineCreate in bulkDto.Create)
             {
                 var encryptedAmount = await _encryptionService.PrepareAmountData(lineCreate.Amount, user.Id, user.ClientKey);
                 var createData = new
@@ -343,17 +350,17 @@ public sealed class BudgetTemplateService : ITemplateService
                     recurrence = lineCreate.Recurrence,
                     description = lineCreate.Description ?? string.Empty,
                 };
-                var created = await _templateRepository.CreateTemplateLine(createData, supabase);
+                var created = await _templateRepository.CreateTemplateLine(createData);
                 createdLines.Add(created);
             }
         }
 
         PropagationSummaryDto propagation;
 
-        if (dto.PropagateToBudgets)
+        if (bulkDto.PropagateToBudgets)
         {
             var affectedBudgetIds = await PropagateChangesToBudgets(
-                templateId, user, supabase, deletedIds, updatedLines, createdLines);
+                templateId, user, deletedIds, updatedLines, createdLines);
 
             propagation = new PropagationSummaryDto("propagate", affectedBudgetIds, affectedBudgetIds.Count);
 
@@ -385,16 +392,9 @@ public sealed class BudgetTemplateService : ITemplateService
             throw BusinessException.Forbidden(ErrorCodes.TemplateAccessDenied, "Access to template denied");
     }
 
-    private async Task<(bool IsUsed, int BudgetCount)> CheckTemplateUsageInternal(Guid templateId, string userId, object supabase)
+    private async Task CheckOnboardingRateLimit(string userId)
     {
-        var budgets = await _budgetRepository.FindAll(userId, supabase);
-        var count = budgets.Count(b => b.TemplateId == templateId);
-        return (count > 0, count);
-    }
-
-    private async Task CheckOnboardingRateLimit(string userId, object supabase)
-    {
-        var templates = await _templateRepository.FindAll(userId, supabase);
+        var templates = await _templateRepository.FindAll(userId);
         if (templates.Count == 0) return;
 
         var mostRecent = templates.Max(t => t.CreatedAt);
@@ -407,11 +407,11 @@ public sealed class BudgetTemplateService : ITemplateService
     }
 
     private async Task<List<Guid>> PropagateChangesToBudgets(
-        Guid templateId, AuthenticatedUser user, object supabase,
+        Guid templateId, AuthenticatedUser user,
         List<Guid> deletedIds, List<TemplateLine> updatedLines, List<TemplateLine> createdLines)
     {
         var now = DateTimeOffset.UtcNow;
-        var allBudgets = await _budgetRepository.FindAll(user.Id, supabase);
+        var allBudgets = await _budgetRepository.FindAll(user.Id);
         var futureBudgets = allBudgets
             .Where(b => b.TemplateId == templateId)
             .Where(b => b.Year > now.Year || (b.Year == now.Year && b.Month >= now.Month))
@@ -421,7 +421,7 @@ public sealed class BudgetTemplateService : ITemplateService
             return [];
 
         var budgetIds = futureBudgets.Select(b => b.Id).ToList();
-        var client = (SupabaseRestClient)supabase;
+        var client = _clientFactory.CreateUserClient();
 
         var rpcArgs = new
         {
@@ -432,7 +432,6 @@ public sealed class BudgetTemplateService : ITemplateService
             created_lines = createdLines.Select(MapLineForRpc).ToArray()
         };
 
-        // Local function — uses enum values directly so JsonStringEnumConverter serializes to "one_off" not "oneoff"
         static object MapLineForRpc(TemplateLine l) => new
         {
             id = l.Id.ToString(),
@@ -442,18 +441,11 @@ public sealed class BudgetTemplateService : ITemplateService
             recurrence = l.Recurrence,
         };
 
-        var rpcResponse = await client.Rpc<object>("apply_template_line_operations", rpcArgs);
-        if (!rpcResponse.IsSuccess)
-        {
-            _logger.LogWarning("Template propagation RPC failed for template {TemplateId}: {Error}",
-                templateId, rpcResponse.Error?.Message);
-            throw new BusinessException(ErrorCodes.TemplatePropagationFailed,
-                "Failed to propagate template changes to budgets");
-        }
+        await client.Rpc<object>("apply_template_line_operations", rpcArgs);
 
         foreach (var budgetId in budgetIds)
         {
-            await _budgetService.RecalculateBalances(budgetId, supabase, user.ClientKey);
+            await _budgetService.RecalculateBalances(budgetId, user.ClientKey);
         }
 
         return budgetIds;
@@ -576,74 +568,4 @@ public sealed class BudgetTemplateService : ITemplateService
             CreatedAt: t.CreatedAt,
             UpdatedAt: t.UpdatedAt
         );
-
-    // ITemplateService bridge methods
-    public async Task<object> FindAllAsync(AuthenticatedUser user, SupabaseRestClient supabase)
-        => await FindAll(user, supabase);
-
-    public async Task<object> CreateAsync(object dto, AuthenticatedUser user, SupabaseRestClient supabase)
-    {
-        var createDto = dto as BudgetTemplateCreateDto ?? throw new ArgumentException("Expected BudgetTemplateCreateDto");
-        return await Create(createDto, user, supabase);
-    }
-
-    public async Task<object> CreateFromOnboardingAsync(object dto, AuthenticatedUser user, SupabaseRestClient supabase)
-    {
-        var onboardingDto = dto as BudgetTemplateCreateFromOnboardingDto ?? throw new ArgumentException("Expected BudgetTemplateCreateFromOnboardingDto");
-        return await CreateFromOnboarding(onboardingDto, user, supabase);
-    }
-
-    public async Task<object> CheckUsageAsync(Guid id, AuthenticatedUser user, SupabaseRestClient supabase)
-        => await CheckTemplateUsage(id, user, supabase);
-
-    public async Task<object> FindOneAsync(Guid id, AuthenticatedUser user, SupabaseRestClient supabase)
-        => await FindOne(id, user, supabase);
-
-    public async Task<object> UpdateAsync(Guid id, object dto, AuthenticatedUser user, SupabaseRestClient supabase)
-    {
-        var updateDto = dto as BudgetTemplateUpdateDto ?? throw new ArgumentException("Expected BudgetTemplateUpdateDto");
-        return await Update(id, updateDto, user, supabase);
-    }
-
-    public async Task<object> FindTemplateLinesAsync(Guid templateId, AuthenticatedUser user, SupabaseRestClient supabase)
-        => await FindTemplateLines(templateId, user, supabase);
-
-    public async Task<object> BulkUpdateTemplateLinesAsync(Guid templateId, object dto, AuthenticatedUser user, SupabaseRestClient supabase)
-    {
-        var bulkDto = dto as TemplateLinesBulkUpdateDto ?? throw new ArgumentException("Expected TemplateLinesBulkUpdateDto");
-        return await BulkUpdateTemplateLines(templateId, bulkDto, user, supabase);
-    }
-
-    public async Task<object> BulkOperationsTemplateLinesAsync(Guid templateId, object dto, AuthenticatedUser user, SupabaseRestClient supabase)
-    {
-        var bulkDto = dto as TemplateLinesBulkOperationsDto ?? throw new ArgumentException("Expected TemplateLinesBulkOperationsDto");
-        return await BulkOperationsTemplateLines(templateId, bulkDto, user, supabase);
-    }
-
-    public async Task<object> CreateTemplateLineAsync(Guid templateId, object dto, AuthenticatedUser user, SupabaseRestClient supabase)
-    {
-        var lineDto = dto as TemplateLineCreateDto ?? throw new ArgumentException("Expected TemplateLineCreateDto");
-        return await CreateTemplateLine(templateId, lineDto, user, supabase);
-    }
-
-    public async Task<object> FindTemplateLineAsync(Guid lineId, AuthenticatedUser user, SupabaseRestClient supabase)
-        => await FindTemplateLine(lineId, user, supabase);
-
-    public async Task<object> UpdateTemplateLineAsync(Guid lineId, object dto, AuthenticatedUser user, SupabaseRestClient supabase)
-    {
-        var lineDto = dto as TemplateLineUpdateDto ?? throw new ArgumentException("Expected TemplateLineUpdateDto");
-        return await UpdateTemplateLine(lineId, lineDto, user, supabase);
-    }
-
-    public async Task<object> DeleteTemplateLineAsync(Guid lineId, AuthenticatedUser user, SupabaseRestClient supabase)
-    {
-        await DeleteTemplateLine(lineId, user, supabase);
-        return new { success = true };
-    }
-
-    public async Task<object> RemoveAsync(Guid id, AuthenticatedUser user, SupabaseRestClient supabase)
-    {
-        await Remove(id, user, supabase);
-        return new { success = true };
-    }
 }
