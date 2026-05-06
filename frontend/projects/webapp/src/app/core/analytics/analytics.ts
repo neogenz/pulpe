@@ -92,10 +92,11 @@ export class AnalyticsService implements OnDestroy {
             | Record<string, unknown>
             | undefined;
 
-          const fullName =
-            pickNonEmptyString(userMetadata?.['firstName']) ??
-            pickNonEmptyString(userMetadata?.['full_name']) ??
-            pickNonEmptyString(userMetadata?.['name']);
+          // Privacy policy commits to "prénom" only (legal/privacy-policy.ts).
+          // iOS pushes user.firstName — keep webapp aligned. Do NOT fall back
+          // to `full_name`/`name` from OAuth providers: Google returns the
+          // full given+family name there, which would breach the policy.
+          const firstName = pickNonEmptyString(userMetadata?.['firstName']);
           const userEmail = pickNonEmptyString(authState.user.email);
 
           const identifyProperties: Properties = {
@@ -103,7 +104,7 @@ export class AnalyticsService implements OnDestroy {
             [ANALYTICS_PROPERTIES.EARLY_ADOPTER]:
               this.#authStore.isEarlyAdopter(),
             ...(userEmail && { [ANALYTICS_PROPERTIES.EMAIL]: userEmail }),
-            ...(fullName && { [ANALYTICS_PROPERTIES.NAME]: fullName }),
+            ...(firstName && { [ANALYTICS_PROPERTIES.NAME]: firstName }),
             ...(isDemoMode && { is_demo: true }),
           };
 

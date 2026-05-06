@@ -591,11 +591,19 @@ export class BudgetDetailsStore {
   async createAllocatedTransaction(
     transactionData: TransactionCreate,
   ): Promise<void> {
+    let dataToPersist = transactionData;
+    if (transactionData.budgetLineId) {
+      const realLineId = await this.#resolveServerId(
+        transactionData.budgetLineId,
+      );
+      if (realLineId === null) return;
+      dataToPersist = { ...transactionData, budgetLineId: realLineId };
+    }
     const tempId = generateTempId();
     this.#registerPendingCreate(tempId);
     try {
       const result = await this.#createAllocatedTransactionMutation.mutate({
-        data: transactionData,
+        data: dataToPersist,
         tempId,
       });
       if (result) {
