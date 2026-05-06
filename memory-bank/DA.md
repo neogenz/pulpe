@@ -107,11 +107,13 @@ La transition entre les deux zones est un dégradé doux (40-60 points), pas une
 
 #### Surfaces et fonds
 
+> **Refonte mai 2026** : le hero card devient un bloc plat. Les anciens états émotionnels gradient (comfortable/tight/deficit) sont remplacés par un texte noir constant et une progress bar verte ; l'expressivité passe par les pills latérales et le ton du microcopy.
+
 | Élément | Light mode | Dark mode |
 |---------|-----------|-----------|
 | **Fond de contenu** | Neutre chaud `#F7F6F3` | Fond système sombre |
 | **Cartes** | Blanc `#FFFFFF` ou surface élevée | Surface sombre secondaire |
-| **Hero card** | Couleur pleine (vert / ambre / rouge) | Ton sombre de la couleur d'état |
+| **Hero block** | Plat sur fond neutre chaud — pas de surface, pas de bordure, pas de gradient | Texte primary noir, accents (progress + pills) en couleur sémantique |
 
 Le neutre chaud `#F7F6F3` est le token de fond le plus important. Il est défini ici une seule fois — les sections plateforme (§8) ne font que préciser son implémentation technique (variable CSS, Color SwiftUI, etc.).
 
@@ -426,7 +428,7 @@ Le fond de contenu reste **toujours** le neutre chaud défini en §3.1, quel que
 |---------|-------|------|
 | Fond de contenu | Neutre chaud §3.1 (`Color.pulpeNeutralWarm`) | `systemGroupedBackground` |
 | Cartes | Blanc (`Color.surfaceCard`) | `secondarySystemGroupedBackground` |
-| Hero card | Couleur pleine (vert/ambre/rouge) | Ton sombre de la couleur d'état |
+| Hero block | Plat sur fond neutre (`.pulpeBackground()`) — pas de surface, pas de bordure, pas de gradient | Texte primary noir, accents (progress + pills) en couleur sémantique |
 
 #### Liquid Glass (iOS 26+)
 

@@ -5,6 +5,7 @@ private struct PreviousBudgetItem: Identifiable {
     let id: String
 }
 
+// swiftlint:disable type_body_length
 struct BudgetDetailsView: View {
     let budgetId: String
     @Environment(AppState.self) private var appState
@@ -93,6 +94,9 @@ struct BudgetDetailsView: View {
                 await viewModel.reloadCurrentBudget()
             }
         }
+        #if DEBUG
+        .onAppear { applyPUL209VerifyPriming() }
+        #endif
         .sheet(
             item: $destination,
             onDismiss: handleSheetDismiss
@@ -305,6 +309,26 @@ struct BudgetDetailsView: View {
             )
         }
     }
+
+    #if DEBUG
+    /// Reads `PUL209VerifyState` priming vars and forces filter / sheet state for
+    /// the visual verification harness. No-op outside that flow because the gate
+    /// vars are nil/false in normal app launches.
+    private func applyPUL209VerifyPriming() {
+        if let raw = PUL209VerifyState.pendingTypeFilter,
+           let filter = BudgetLineKindFilter(rawValue: raw) {
+            viewModel.setTypeFilter(filter)
+        }
+        if let raw = PUL209VerifyState.pendingCheckedFilter,
+           let filter = CheckedFilterOption(rawValue: raw) {
+            viewModel.setCheckedFilter(filter)
+        }
+        if let lineId = PUL209VerifyState.pendingOpenLineId,
+           let line = viewModel.budgetLines.first(where: { $0.id == lineId }) {
+            destination = .lineDetail(line)
+        }
+    }
+    #endif
 
     /// Wires `BudgetLineDetailSheetWrapper` callbacks back into this view's
     /// destination state. Extracted so `sheetContent(for:)` stays readable and

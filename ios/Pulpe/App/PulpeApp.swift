@@ -74,7 +74,7 @@ struct PulpeApp: App {
     var body: some Scene {
         WindowGroup {
             if let uiTestScenario = UITestLaunchScenario.current {
-                BudgetLongPressUITestHarness(scenario: uiTestScenario)
+                uiTestHarness(for: uiTestScenario)
             } else {
                 RootView(
                     runtimeCoordinator: runtimeCoordinator,
@@ -102,6 +102,28 @@ struct PulpeApp: App {
                         handleDeepLink(url)
                     }
             }
+        }
+    }
+
+    /// Routes a UI test launch scenario to the matching DEBUG harness. The
+    /// long-press harness handles its two scenarios; everything else flows to
+    /// the PUL-209 visual verification harness (also DEBUG-only).
+    @ViewBuilder
+    private func uiTestHarness(for scenario: UITestLaunchScenario) -> some View {
+        switch scenario {
+        case .budgetLongPressWithTransactions, .budgetLongPressEmpty:
+            BudgetLongPressUITestHarness(scenario: scenario)
+        case .pul209VerifyMixed,
+             .pul209VerifyFilterExpense,
+             .pul209VerifyFilterChecked,
+             .pul209VerifySheetOpen,
+             .pul209VerifySheetPointed,
+             .pul209VerifySheetMenu:
+            #if DEBUG
+            PUL209VerifyHarness(scenario: scenario)
+            #else
+            BudgetLongPressUITestHarness(scenario: scenario)
+            #endif
         }
     }
 
