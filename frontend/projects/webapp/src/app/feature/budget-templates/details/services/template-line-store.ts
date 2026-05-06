@@ -15,6 +15,19 @@ import {
 import { v4 as uuidv4 } from 'uuid';
 import { TemplateDetailsStore } from './template-details-store';
 
+/**
+ * Optimistic-only placeholder id for new template lines.
+ *
+ * The template-line bulk endpoint never sees this value: the RPC
+ * (`apply_template_line_operations`) generates server-side ids and returns
+ * the canonical line in `response.data.created[0]`. The store then swaps the
+ * temp-prefixed entry for the server row by index/order.
+ *
+ * Budget lines and transactions migrated to client-generated UUIDs via the
+ * `id?` field on their create schemas (see `BudgetDetailsStore`). Template
+ * lines stay on this placeholder until the bulk endpoint accepts client ids
+ * — tracked separately, do not unify without server-side support.
+ */
 const TEMP_ID_PREFIX = 'temp-';
 
 function generateTempId(): string {

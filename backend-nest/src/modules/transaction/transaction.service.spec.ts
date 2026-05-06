@@ -217,19 +217,7 @@ describe('TransactionService', () => {
         amount: 100,
         kind: 'expense',
       };
-      const capturedInsert: { id?: string }[] = [];
-      const originalFrom = mockSupabaseClient.from.bind(mockSupabaseClient);
-      mockSupabaseClient.from = ((table: string) => {
-        const chain: any = originalFrom(table);
-        const realInsert = chain.insert;
-        chain.insert = (data: { id?: string }) => {
-          capturedInsert.push(data);
-          return realInsert.call(chain, data);
-        };
-        return chain;
-      }) as typeof mockSupabaseClient.from;
-
-      mockSupabaseClient.setMockData(
+      mockSupabaseClient.reset().setMockData(
         createMockTransactionEntity({
           id: clientId,
           budget_id: MOCK_BUDGET_ID,
@@ -242,8 +230,47 @@ describe('TransactionService', () => {
       // Act
       await service.create(dtoWithId, mockUser, mockSupabaseClient as any);
 
-      // Assert
-      expect(capturedInsert[0]?.id).toBe(clientId);
+      // Assert — MockSupabaseClient.lastInsertPayload captures the data passed
+      // to .insert() so we can verify the service forwarded the client-provided
+      // UUID without monkey-patching `from()`.
+      expect(mockSupabaseClient.lastInsertPayload).toMatchObject({
+        id: clientId,
+      });
+    });
+
+    it('should throw TRANSACTION_ALREADY_EXISTS (409) on duplicate id (Postgres 23505)', async () => {
+      // Idempotency contract (PR #428): retries with the same client UUID hit
+      // unique-violation 23505 on the PK. Service must map that to 409
+      // ALREADY_EXISTS instead of a generic 500 CREATE_FAILED so the client
+      // can treat the duplicate as a successful retry.
+      const clientId = '6f9619ff-8b86-d011-b42d-00c04fc964ff';
+      const mockUser = createMockAuthenticatedUser();
+      const dtoWithId: TransactionCreate = {
+        id: clientId,
+        budgetId: MOCK_BUDGET_ID,
+        name: 'Idempotent Transaction',
+        amount: 100,
+        kind: 'expense',
+      };
+      mockSupabaseClient.reset().setMockError({
+        code: '23505',
+        message:
+          'duplicate key value violates unique constraint "transaction_pkey"',
+      });
+
+      // Act & Assert — explicit shape check (status, code, details) since
+      // expectBusinessExceptionThrown re-throws a synthetic Error if no throw
+      // happens, which would leak past `await`. Inline try/catch is safer here.
+      try {
+        await service.create(dtoWithId, mockUser, mockSupabaseClient as any);
+        expect.unreachable('Should have thrown');
+      } catch (error) {
+        await expectBusinessExceptionThrown(
+          () => Promise.reject(error),
+          ERROR_DEFINITIONS.TRANSACTION_ALREADY_EXISTS,
+          { id: clientId },
+        );
+      }
     });
 
     it('should handle database creation error', async () => {

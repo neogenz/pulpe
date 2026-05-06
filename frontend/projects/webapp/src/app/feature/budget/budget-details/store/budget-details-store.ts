@@ -61,6 +61,11 @@ export class BudgetDetailsStore {
   // Mutex: prevents concurrent toggle mutations on the same item
   readonly #mutatingIds = new Set<string>();
 
+  // Tracks ids whose create POST is still in flight. Bulk operations
+  // (e.g. checkAllAllocatedTransactions) skip these so they don't
+  // target a row the server has not yet INSERTed.
+  readonly #inFlightCreateIds = new Set<string>();
+
   readonly #isShowingOnlyUnchecked = signal<boolean>(
     this.#storage.get<boolean>(STORAGE_KEYS.BUDGET_SHOW_ONLY_UNCHECKED) ?? true,
   );
@@ -372,7 +377,12 @@ export class BudgetDetailsStore {
 
   async createBudgetLine(input: BudgetLineCreate): Promise<void> {
     const id = input.id ?? uuidv4();
-    await this.#createBudgetLineMutation.mutate({ ...input, id });
+    this.#inFlightCreateIds.add(id);
+    try {
+      await this.#createBudgetLineMutation.mutate({ ...input, id });
+    } finally {
+      this.#inFlightCreateIds.delete(id);
+    }
   }
 
   readonly #updateBudgetLineMutation = cachedMutation<
@@ -546,10 +556,15 @@ export class BudgetDetailsStore {
     transactionData: TransactionCreate,
   ): Promise<void> {
     const id = transactionData.id ?? uuidv4();
-    await this.#createAllocatedTransactionMutation.mutate({
-      ...transactionData,
-      id,
-    });
+    this.#inFlightCreateIds.add(id);
+    try {
+      await this.#createAllocatedTransactionMutation.mutate({
+        ...transactionData,
+        id,
+      });
+    } finally {
+      this.#inFlightCreateIds.delete(id);
+    }
   }
 
   readonly #resetBudgetLineMutation = cachedMutation<
@@ -720,7 +735,10 @@ export class BudgetDetailsStore {
       const uncheckedIds = new Set(
         details.transactions
           .filter(
-            (tx) => tx.budgetLineId === budgetLineId && tx.checkedAt === null,
+            (tx) =>
+              tx.budgetLineId === budgetLineId &&
+              tx.checkedAt === null &&
+              !this.#inFlightCreateIds.has(tx.id),
           )
           .map((tx) => tx.id),
       );
@@ -760,7 +778,10 @@ export class BudgetDetailsStore {
     const details = this.budgetDetails();
     if (!details) return;
     const hasUnchecked = details.transactions.some(
-      (tx) => tx.budgetLineId === budgetLineId && tx.checkedAt === null,
+      (tx) =>
+        tx.budgetLineId === budgetLineId &&
+        tx.checkedAt === null &&
+        !this.#inFlightCreateIds.has(tx.id),
     );
     if (!hasUnchecked) return;
     this.#mutatingIds.add(budgetLineId);

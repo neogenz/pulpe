@@ -196,20 +196,46 @@ export class BudgetLineService {
       .single();
 
     if (error) {
+      this.throwInsertError(error, user.id, budgetLineData.id);
+    }
+
+    return budgetLineDb;
+  }
+
+  /**
+   * Maps a Supabase insert error to a BusinessException.
+   * - Postgres unique-violation (23505) on the PK becomes a 409
+   *   BUDGET_LINE_ALREADY_EXISTS so client-driven retries with the same UUID
+   *   are idempotent (PR #428 contract).
+   * - Anything else falls back to the generic 500 CREATE_FAILED.
+   */
+  private throwInsertError(
+    error: { code?: string },
+    userId: string,
+    budgetLineId: string | undefined,
+  ): never {
+    const loggingContext = {
+      operation: 'createBudgetLine',
+      userId,
+      entityType: 'budget_line',
+      supabaseError: error,
+    };
+
+    if (error.code === '23505') {
       throw new BusinessException(
-        ERROR_DEFINITIONS.BUDGET_LINE_CREATE_FAILED,
-        undefined,
-        {
-          operation: 'createBudgetLine',
-          userId: user.id,
-          entityType: 'budget_line',
-          supabaseError: error,
-        },
+        ERROR_DEFINITIONS.BUDGET_LINE_ALREADY_EXISTS,
+        { id: budgetLineId },
+        loggingContext,
         { cause: error },
       );
     }
 
-    return budgetLineDb;
+    throw new BusinessException(
+      ERROR_DEFINITIONS.BUDGET_LINE_CREATE_FAILED,
+      undefined,
+      loggingContext,
+      { cause: error },
+    );
   }
 
   async create(

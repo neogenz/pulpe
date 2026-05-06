@@ -450,6 +450,38 @@ describe('BudgetLineService', () => {
       const insertCall = queryBuilder.insert.mock.calls[0][0];
       expect(insertCall.id).toBeUndefined();
     });
+
+    it('should throw BUDGET_LINE_ALREADY_EXISTS (409) on duplicate id (Postgres 23505)', async () => {
+      // Idempotency contract (PR #428): when the client retries a create with
+      // the same UUID, Postgres rejects via unique-violation 23505 on the PK.
+      // Service must surface that as 409 ALREADY_EXISTS, not a generic 500
+      // CREATE_FAILED — otherwise retries are not idempotent from the client's
+      // perspective.
+      const clientId = '6f9619ff-8b86-d011-b42d-00c04fc964ff';
+      const dtoWithId: BudgetLineCreate = { ...mockCreateDto, id: clientId };
+
+      mockSupabase.from.mockReturnValue(
+        createMockQueryBuilder({
+          data: null,
+          error: {
+            code: '23505',
+            message:
+              'duplicate key value violates unique constraint "budget_line_pkey"',
+          } as unknown as Error,
+        }),
+      );
+
+      try {
+        await service.create(dtoWithId, mockUser, getMockSupabaseClient());
+        expect.unreachable('Should have thrown');
+      } catch (error) {
+        expect(error).toBeInstanceOf(BusinessException);
+        const businessError = error as BusinessException;
+        expect(businessError.code).toBe('ERR_BUDGET_LINE_ALREADY_EXISTS');
+        expect(businessError.getStatus()).toBe(409);
+        expect(businessError.details).toEqual({ id: clientId });
+      }
+    });
   });
 
   describe('update', () => {
