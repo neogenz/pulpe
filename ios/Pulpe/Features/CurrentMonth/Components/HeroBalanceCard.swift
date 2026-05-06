@@ -110,7 +110,7 @@ struct HeroBalanceCard: View {
     // MARK: - Card Content
 
     private var cardContent: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.none) {
             // Chunk 1 — Contextual eyebrow
             Text(contextLabel)
                 .font(PulpeTypography.labelLargeBold)
@@ -118,7 +118,7 @@ struct HeroBalanceCard: View {
                 .tracking(DesignTokens.Tracking.uppercase)
                 .foregroundStyle(Color.textSecondary)
 
-            // Chunk 2 — Hero amount (black on neutral)
+            // Chunk 2 — Hero amount (black on neutral) — tight 6pt gap to eyebrow
             Text(formattedBalance)
                 .font(PulpeTypography.displayYear)
                 .tracking(DesignTokens.Tracking.display)
@@ -128,12 +128,15 @@ struct HeroBalanceCard: View {
                 .foregroundStyle(Color.textPrimary)
                 .contentTransition(.numericText())
                 .sensitiveAmount()
+                .padding(.top, DesignTokens.Spacing.tightGap)
 
             // Chunk 3 — Inline progress + percent
             progressRow
+                .padding(.top, DesignTokens.Spacing.md)
 
             // Chunk 4 — Pills row (Reporté · Revenus · Épargne · Dépenses)
             pillsRow
+                .padding(.top, DesignTokens.Spacing.md)
         }
         .padding(.horizontal, DesignTokens.Spacing.lg)
         .padding(.vertical, DesignTokens.Spacing.lg)
