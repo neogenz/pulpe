@@ -449,16 +449,16 @@ export class EncryptionService {
         throw rekeyError;
       }
 
+      // Invalidate IMMEDIATELY after re-encryption succeeds — data is now
+      // rotated to newDek. Any concurrent request that repopulated the cache
+      // with the old-clientKey DEK during the rekey window must be evicted
+      // before any subsequent read, even if the wrap step below fails.
+      this.#invalidateUserDEKCache(userId);
+
       // Re-wrap with the same recovery key — the frontend will immediately call
       // regenerateRecoveryKey$() to replace it with a fresh one.
       const newWrappedDEK = this.wrapDEK(newDek, recoveryKey);
       await this.#repository.updateWrappedDEK(userId, newWrappedDEK);
-
-      // Re-invalidate after rekey succeeds: a concurrent request during the
-      // rekey window may have repopulated the cache with the old-clientKey DEK.
-      // Without this, subsequent reads would decrypt new ciphertext with the
-      // old DEK → silent corruption.
-      this.#invalidateUserDEKCache(userId);
     } finally {
       // Zero sensitive material (even on error)
       recoveryKey.fill(0);
@@ -607,6 +607,13 @@ export class EncryptionService {
         throw rekeyError;
       }
 
+      // Invalidate IMMEDIATELY after re-encryption succeeds — data is now
+      // rotated to newDek. Any concurrent request that repopulated the cache
+      // with the old-clientKey DEK during the rekey window must be evicted
+      // before any subsequent read, even if the recovery wrap step below fails
+      // (PARTIAL_FAILURE path).
+      this.#invalidateUserDEKCache(userId);
+
       // Always generate a new recovery key and wrap the new DEK — ensures every
       // user gets a recovery safety net after PIN change.
       const { raw, formatted } = this.generateRecoveryKey();
@@ -644,12 +651,6 @@ export class EncryptionService {
       } finally {
         raw.fill(0);
       }
-
-      // Re-invalidate after rekey succeeds: a concurrent request during the
-      // rekey window may have repopulated the cache with the old-clientKey DEK.
-      // Without this, subsequent reads would decrypt new ciphertext with the
-      // old DEK → silent corruption.
-      this.#invalidateUserDEKCache(userId);
 
       return {
         keyCheck,
