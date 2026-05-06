@@ -114,10 +114,16 @@ extension AppState {
         if case .unauthenticatedSessionExpired = destination { return }
 
         var properties: [String: Any] = [
-            AnalyticsService.emailProperty: user.email,
             AnalyticsService.supabaseUserIdProperty: user.id,
             AnalyticsService.earlyAdopterProperty: user.isEarlyAdopter
         ]
+        // Apple hides email via private relay → `signInWithIdToken` falls back to "".
+        // Sending "" overwrites a previously-identified valid email in PostHog.
+        // Mirrors webapp's `pickString(authState.user.email)` (rejects empty/whitespace).
+        let trimmedEmail = user.email.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !trimmedEmail.isEmpty {
+            properties[AnalyticsService.emailProperty] = trimmedEmail
+        }
         if let trimmed = user.firstName?.trimmingCharacters(in: .whitespacesAndNewlines),
            !trimmed.isEmpty {
             properties[AnalyticsService.nameProperty] = trimmed
