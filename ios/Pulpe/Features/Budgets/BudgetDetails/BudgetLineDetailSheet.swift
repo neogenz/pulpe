@@ -176,7 +176,7 @@ struct BudgetLineDetailSheet: View {
                         .minimumScaleFactor(0.6)
 
                     Text(currency.symbol)
-                        .font(PulpeTypography.title3)
+                        .font(PulpeTypography.labelLargeBold)
                         .foregroundStyle(Color.textTertiary)
                 }
                 .sensitiveAmount()
@@ -187,7 +187,7 @@ struct BudgetLineDetailSheet: View {
             progressRow
 
             Text("\(spentLabel) dépensés sur \(plannedLabel) prévu")
-                .font(PulpeTypography.subheadline)
+                .font(PulpeTypography.metricLabel)
                 .foregroundStyle(Color.textSecondary)
                 .monospacedDigit()
                 .sensitiveAmount()
@@ -261,13 +261,13 @@ struct BudgetLineDetailSheet: View {
     private var transactionsHeader: some View {
         HStack {
             Text("Transactions")
-                .font(PulpeTypography.headline)
+                .font(PulpeTypography.metricLabelBold)
                 .foregroundStyle(.primary)
 
             Spacer()
 
             Text(transactionCountLabel)
-                .font(PulpeTypography.caption)
+                .font(PulpeTypography.metricMini)
                 .foregroundStyle(Color.textTertiary)
         }
     }
@@ -366,13 +366,13 @@ private struct BudgetLineDetailTransactionRow: View {
             HStack(spacing: DesignTokens.Spacing.md) {
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
                     Text(transaction.name)
-                        .font(PulpeTypography.listRowTitle)
+                        .font(PulpeTypography.labelLargeBold)
                         .foregroundStyle(transaction.isChecked ? .secondary : .primary)
                         .strikethrough(transaction.isChecked, color: .secondary)
                         .lineLimit(1)
 
                     Text(transaction.transactionDate.relativeFormatted)
-                        .font(PulpeTypography.caption)
+                        .font(PulpeTypography.metricMini)
                         .foregroundStyle(Color.textTertiary)
                 }
 
@@ -391,18 +391,18 @@ private struct BudgetLineDetailTransactionRow: View {
         VStack(alignment: .trailing, spacing: DesignTokens.Spacing.xxs) {
             HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.xxs) {
                 Text(transaction.amount.asAmount(for: displayCurrency))
-                    .font(PulpeTypography.listRowTitle)
+                    .font(PulpeTypography.labelLargeBold)
                     .foregroundStyle(transaction.isChecked ? AnyShapeStyle(.secondary) : AnyShapeStyle(.primary))
                     .monospacedDigit()
 
                 Text(displayCurrency.symbol)
-                    .font(PulpeTypography.caption)
+                    .font(PulpeTypography.metricMini)
                     .foregroundStyle(Color.textTertiary)
             }
 
             if let secondary = TransactionAmountView.secondaryText(for: transaction, in: displayCurrency) {
                 Text(secondary)
-                    .font(PulpeTypography.caption)
+                    .font(PulpeTypography.metricMini)
                     .foregroundStyle(Color.textSecondary)
                     .monospacedDigit()
                     .accessibilityLabel("saisi en \(secondary)")
