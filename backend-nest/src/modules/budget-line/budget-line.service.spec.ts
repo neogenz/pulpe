@@ -452,11 +452,6 @@ describe('BudgetLineService', () => {
     });
 
     it('should throw BUDGET_LINE_ALREADY_EXISTS (409) on duplicate id (Postgres 23505)', async () => {
-      // Idempotency contract (PR #428): when the client retries a create with
-      // the same UUID, Postgres rejects via unique-violation 23505 on the PK.
-      // Service must surface that as 409 ALREADY_EXISTS, not a generic 500
-      // CREATE_FAILED — otherwise retries are not idempotent from the client's
-      // perspective.
       const clientId = '6f9619ff-8b86-d011-b42d-00c04fc964ff';
       const dtoWithId: BudgetLineCreate = { ...mockCreateDto, id: clientId };
 

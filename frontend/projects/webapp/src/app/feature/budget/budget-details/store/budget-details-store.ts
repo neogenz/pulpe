@@ -529,7 +529,12 @@ export class BudgetDetailsStore {
       this.#updateDetails((details) => ({
         ...details,
         transactions: details.transactions.map((tx) =>
-          tx.id === data.id ? response.data : tx,
+          tx.id === data.id
+            ? {
+                ...response.data,
+                checkedAt: tx.checkedAt ?? response.data.checkedAt,
+              }
+            : tx,
         ),
       }));
       this.#onFinancialMutationSuccess();

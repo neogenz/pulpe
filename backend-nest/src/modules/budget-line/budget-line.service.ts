@@ -202,13 +202,7 @@ export class BudgetLineService {
     return budgetLineDb;
   }
 
-  /**
-   * Maps a Supabase insert error to a BusinessException.
-   * - Postgres unique-violation (23505) on the PK becomes a 409
-   *   BUDGET_LINE_ALREADY_EXISTS so client-driven retries with the same UUID
-   *   are idempotent (PR #428 contract).
-   * - Anything else falls back to the generic 500 CREATE_FAILED.
-   */
+  // 23505 unique-violation on PK → 409 ALREADY_EXISTS for idempotent client-UUID retries.
   private throwInsertError(
     error: { code?: string },
     userId: string,

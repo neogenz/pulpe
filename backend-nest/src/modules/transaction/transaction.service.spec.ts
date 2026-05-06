@@ -239,10 +239,6 @@ describe('TransactionService', () => {
     });
 
     it('should throw TRANSACTION_ALREADY_EXISTS (409) on duplicate id (Postgres 23505)', async () => {
-      // Idempotency contract (PR #428): retries with the same client UUID hit
-      // unique-violation 23505 on the PK. Service must map that to 409
-      // ALREADY_EXISTS instead of a generic 500 CREATE_FAILED so the client
-      // can treat the duplicate as a successful retry.
       const clientId = '6f9619ff-8b86-d011-b42d-00c04fc964ff';
       const mockUser = createMockAuthenticatedUser();
       const dtoWithId: TransactionCreate = {
