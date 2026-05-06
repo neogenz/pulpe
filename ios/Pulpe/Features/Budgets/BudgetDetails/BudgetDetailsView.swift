@@ -148,6 +148,7 @@ struct BudgetDetailsView: View {
                     timeElapsedPercentage: timeElapsedPercentage,
                     onTapChart: { destination = .realizedBalance },
                     rolloverAmount: viewModel.rolloverInfo?.amount,
+                    previousBudgetMonth: viewModel.previousBudgetMonth,
                     onRolloverTap: viewModel.rolloverInfo?.previousBudgetId.map { id in
                         { destination = .previousBudget(PreviousBudgetItem(id: id)) }
                     }

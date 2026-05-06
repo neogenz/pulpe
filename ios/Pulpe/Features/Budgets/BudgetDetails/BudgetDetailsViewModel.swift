@@ -6,6 +6,7 @@ import TipKit
 
 private enum BudgetDetailsUserDefaultsKey {
     static let showOnlyUnchecked = "pulpe-budget-show-only-unchecked"
+    static let typeFilter = "pulpe-budget-line-type-filter"
 }
 
 /// Suppression différée depuis l’écran détail budget (transaction, prévision, etc.) — une pile LIFO partagée.
@@ -40,6 +41,7 @@ final class BudgetDetailsViewModel {
 
     // Filter state - persisted to UserDefaults
     private(set) var checkedFilter: CheckedFilterOption
+    private(set) var typeFilter: BudgetLineKindFilter = .all
 
     var isShowingOnlyUnchecked: Bool { checkedFilter == .unchecked }
 
@@ -62,6 +64,13 @@ final class BudgetDetailsViewModel {
         ) as? Bool ?? true
         self.checkedFilter = showOnlyUnchecked ? .unchecked : .all
 
+        // Load persisted type filter preference (default: .all)
+        if let raw = UserDefaults.standard.string(
+            forKey: BudgetDetailsUserDefaultsKey.typeFilter
+        ), let restored = BudgetLineKindFilter(rawValue: raw) {
+            self.typeFilter = restored
+        }
+
         // Pre-populate from cache to avoid skeleton on revisit
         if let cached = cache.get(budgetId: budgetId) {
             self.budget = cached.budget
@@ -80,6 +89,14 @@ final class BudgetDetailsViewModel {
         UserDefaults.standard.set(
             filter == .unchecked,
             forKey: BudgetDetailsUserDefaultsKey.showOnlyUnchecked
+        )
+    }
+
+    func setTypeFilter(_ filter: BudgetLineKindFilter) {
+        typeFilter = filter
+        UserDefaults.standard.set(
+            filter.rawValue,
+            forKey: BudgetDetailsUserDefaultsKey.typeFilter
         )
     }
 
@@ -164,8 +181,14 @@ final class BudgetDetailsViewModel {
 
     /// Filters budget lines based on the checked filter preference
     private func applyCheckedFilter(_ lines: [BudgetLine]) -> [BudgetLine] {
-        guard isShowingOnlyUnchecked else { return lines }
-        return lines.filter { $0.checkedAt == nil }
+        switch checkedFilter {
+        case .all:
+            return lines
+        case .unchecked:
+            return lines.filter { $0.checkedAt == nil }
+        case .checked:
+            return lines.filter { $0.checkedAt != nil }
+        }
     }
 
     var filteredIncomeLines: [BudgetLine] {
@@ -180,12 +203,63 @@ final class BudgetDetailsViewModel {
         applyCheckedFilter(savingLines)
     }
 
+    // MARK: - Type Filter (cumulative AND with checked filter)
+
+    /// Per-kind counts AFTER applying ONLY the checked filter (not the type filter).
+    /// Drives the type-filter pill counts so each pill reflects "what tapping this would show".
+    var kindCounts: BudgetLineKindCounts {
+        let checkedFiltered = applyCheckedFilter(budgetLines)
+        var income = 0
+        var expense = 0
+        var saving = 0
+        for line in checkedFiltered {
+            switch line.kind {
+            case .income: income += 1
+            case .expense: expense += 1
+            case .saving: saving += 1
+            }
+        }
+        return BudgetLineKindCounts(
+            all: checkedFiltered.count,
+            income: income,
+            saving: saving,
+            expense: expense
+        )
+    }
+
+    /// Sections to display after applying BOTH filters (checked + type), in canonical order.
+    /// Empty kinds are skipped so the view doesn't render empty section headers.
+    var displayedSections: [(kind: TransactionKind, items: [BudgetLine])] {
+        let order: [TransactionKind] = [.income, .saving, .expense]
+        let allowed: TransactionKind? = switch typeFilter {
+        case .all: nil
+        case .income: .income
+        case .saving: .saving
+        case .expense: .expense
+        }
+        return order.compactMap { kind in
+            if let allowed, allowed != kind { return nil }
+            let items: [BudgetLine] = switch kind {
+            case .income: filteredIncomeLines
+            case .expense: filteredExpenseLines
+            case .saving: filteredSavingLines
+            }
+            guard !items.isEmpty else { return nil }
+            return (kind: kind, items: items)
+        }
+    }
+
     /// Combines checked filter + search filter for free transactions in a single pass
     func combinedFilteredFreeTransactions(searchText: String) -> [Transaction] {
         var result = freeTransactions
 
-        if isShowingOnlyUnchecked {
+        switch checkedFilter {
+        case .all:
+            break
+        case .unchecked:
             result = result.filter { $0.checkedAt == nil }
+        case .checked:
+            result = result.filter { $0.checkedAt != nil }
         }
 
         guard !searchText.isEmpty else { return result }
@@ -211,6 +285,17 @@ final class BudgetDetailsViewModel {
             return nil
         }
         return (amount: rollover, previousBudgetId: budget.previousBudgetId)
+    }
+
+    /// Localized month name of the rollover source budget (e.g. "mars"). Nil if there is no rollover
+    /// source or the previous budget hasn't been loaded yet.
+    var previousBudgetMonth: String? {
+        guard let previousId = budget?.previousBudgetId,
+              let previous = allBudgets.first(where: { $0.id == previousId }),
+              let month = previous.month else {
+            return nil
+        }
+        return Formatters.monthName(for: month).lowercased()
     }
 
     /// Filters budget lines by name or by linked transaction names (accent and case insensitive)

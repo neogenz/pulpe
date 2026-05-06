@@ -55,15 +55,40 @@ struct CheckedFilterPickerTests {
         #expect(option.accessibilityLabel == "Afficher tous les éléments")
     }
 
+    @Test func checkedOptionHasCorrectLabel() {
+        // Arrange
+        let option = CheckedFilterOption.checked
+
+        // Assert
+        #expect(option.label == "Pointé")
+    }
+
+    @Test func checkedOptionHasCorrectIcon() {
+        // Arrange
+        let option = CheckedFilterOption.checked
+
+        // Assert
+        #expect(option.icon == "checkmark.square")
+    }
+
+    @Test func checkedOptionHasAccessibilityLabel() {
+        // Arrange
+        let option = CheckedFilterOption.checked
+
+        // Assert
+        #expect(option.accessibilityLabel == "Afficher uniquement les éléments pointés")
+    }
+
     // MARK: - CaseIterable
 
-    @Test func allCasesContainsBothOptions() {
+    @Test func allCasesContainsAllOptions() {
         // Arrange & Act
         let allCases = CheckedFilterOption.allCases
 
         // Assert
-        #expect(allCases.count == 2)
+        #expect(allCases.count == 3)
         #expect(allCases.contains(.unchecked))
+        #expect(allCases.contains(.checked))
         #expect(allCases.contains(.all))
     }
 
@@ -72,10 +97,12 @@ struct CheckedFilterPickerTests {
     @Test func idMatchesRawValue() {
         // Arrange
         let unchecked = CheckedFilterOption.unchecked
+        let checked = CheckedFilterOption.checked
         let all = CheckedFilterOption.all
 
         // Assert
         #expect(unchecked.id == "unchecked")
+        #expect(checked.id == "checked")
         #expect(all.id == "all")
     }
 
@@ -89,6 +116,14 @@ struct CheckedFilterPickerTests {
         #expect(option.rawValue == "unchecked")
     }
 
+    @Test func rawValueChecked() {
+        // Arrange
+        let option = CheckedFilterOption.checked
+
+        // Assert
+        #expect(option.rawValue == "checked")
+    }
+
     @Test func rawValueAll() {
         // Arrange
         let option = CheckedFilterOption.all
@@ -100,10 +135,12 @@ struct CheckedFilterPickerTests {
     @Test func initFromRawValueValid() {
         // Arrange & Act
         let unchecked = CheckedFilterOption(rawValue: "unchecked")
+        let checked = CheckedFilterOption(rawValue: "checked")
         let all = CheckedFilterOption(rawValue: "all")
 
         // Assert
         #expect(unchecked == .unchecked)
+        #expect(checked == .checked)
         #expect(all == .all)
     }
 
