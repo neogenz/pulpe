@@ -5,7 +5,6 @@ private struct PreviousBudgetItem: Identifiable {
     let id: String
 }
 
-// swiftlint:disable type_body_length
 struct BudgetDetailsView: View {
     let budgetId: String
     @Environment(AppState.self) private var appState
@@ -145,11 +144,22 @@ struct BudgetDetailsView: View {
         let filteredFree = viewModel.combinedFilteredFreeTransactions(searchText: searchText)
         let firstSectionKind = searchFilteredSections.first?.kind
 
-        // The page row itself stays full-width. The filter and hero pills own
-        // their horizontal scroll margins, while normal hero content stays padded.
-        let fullBleedRowInsets = EdgeInsets()
-
         return VStack(spacing: 0) {
+            // Hero + filter both live above the List so the dynamic content area
+            // starts flush against the filter rail. Hosting the hero inside a
+            // List Section adds insetGrouped top chrome that reads as a "lost
+            // zone" between the filter and the amount.
+            HeroBalanceCard(
+                metrics: viewModel.metrics,
+                timeElapsedPercentage: timeElapsedPercentage,
+                onTapChart: { destination = .realizedBalance },
+                rolloverAmount: viewModel.rolloverInfo?.amount,
+                previousBudgetMonth: viewModel.previousBudgetMonth,
+                onRolloverTap: viewModel.rolloverInfo?.previousBudgetId.map { id in
+                    { destination = .previousBudget(PreviousBudgetItem(id: id)) }
+                }
+            )
+
             // Unified type + checked filter. Kept outside `List` so the rail is
             // truly full-bleed instead of clipped by insetGrouped section chrome.
             BudgetTypeFilter(
@@ -160,22 +170,6 @@ struct BudgetDetailsView: View {
             .popoverTip(ProductTips.checking)
 
             List {
-                // Hero balance card (with integrated rollover)
-                Section {
-                    HeroBalanceCard(
-                        metrics: viewModel.metrics,
-                        timeElapsedPercentage: timeElapsedPercentage,
-                        onTapChart: { destination = .realizedBalance },
-                        rolloverAmount: viewModel.rolloverInfo?.amount,
-                        previousBudgetMonth: viewModel.previousBudgetMonth,
-                        onRolloverTap: viewModel.rolloverInfo?.previousBudgetId.map { id in
-                            { destination = .previousBudget(PreviousBudgetItem(id: id)) }
-                        }
-                    )
-                }
-                .listRowCustomStyled(insets: fullBleedRowInsets)
-                .listSectionSeparator(.hidden)
-
                 // Empty search state
                 if !searchText.isEmpty && searchFilteredSections.isEmpty && filteredFree.isEmpty {
                     ContentUnavailableView("Aucune prévision trouvée", systemImage: "magnifyingglass")
@@ -435,21 +429,18 @@ private struct BudgetLineDetailSheetWrapper: View {
 
 private struct BudgetDetailsSkeletonView: View {
     var body: some View {
-        // Mirror the loaded state's full-width filter + hero host rows to avoid
-        // a visual jump on transition.
+        // Mirror the loaded state's hero (above) + filter (above) + List layout
+        // so the loading→loaded transition has no visual jump.
         VStack(spacing: 0) {
+            SkeletonShape(height: 200, cornerRadius: DesignTokens.CornerRadius.xl)
+                .padding(.horizontal, DesignTokens.Spacing.lg)
+                .padding(.vertical, DesignTokens.Spacing.lg)
+
             SkeletonShape(height: DesignTokens.TapTarget.minimum, cornerRadius: DesignTokens.CornerRadius.sm)
                 .padding(.horizontal, DesignTokens.Spacing.lg)
                 .padding(.vertical, DesignTokens.Spacing.sm)
 
             List {
-                // Hero card placeholder
-                Section {
-                    SkeletonShape(height: 200, cornerRadius: DesignTokens.CornerRadius.xl)
-                }
-                .listRowCustomStyled(insets: EdgeInsets())
-                .listSectionSeparator(.hidden)
-
                 // Budget line sections (Revenus + Dépenses)
                 ForEach(0..<2, id: \.self) { _ in
                     Section {
