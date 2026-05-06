@@ -89,12 +89,13 @@ extension OnboardingState {
         UserDefaults.standard.removeObject(forKey: storageKey)
     }
 
-    /// Reset every in-memory field populated by `loadFromStorage()` to its
-    /// pristine default. Called from `configureSocialUser` exclusively — the
-    /// email recovery path relies on persisted draft and must NOT reset.
+    /// Reset every field that could carry over from a prior onboarding session.
+    /// Called from `configureSocialUser` exclusively — the email recovery path
+    /// relies on the persisted draft and must NOT reset.
     func resetDraftFields() {
         firstName = ""
         currency = .chf
+        currentStep = .welcome
         monthlyIncome = nil
         housingCosts = nil
         healthInsurance = nil
@@ -103,6 +104,11 @@ extension OnboardingState {
         leasingCredit = nil
         customTransactions = []
         wasEmailRegistered = false
+        // Below: not persisted, but leaks across same-instance auth-path pivots.
+        email = ""
+        hasEmittedWelcomeViewed = false
+        hasEmittedSignupStarted = false
+        hasEmittedBudgetPreviewCompleted = false
     }
 }
 
@@ -116,8 +122,11 @@ extension OnboardingState {
 // Threat model: physical device access + jailbreak can read self-reported draft estimates.
 // If this window needs hardening later, migrate the blob to Keychain (`kSecAttrAccessibleWhenUnlockedThisDeviceOnly`).
 //
-// Adding a field here requires updating 3 sites (no compiler enforcement):
-// `saveToStorage()`, `loadFromStorage()`, and `resetDraftFields()`.
+// Adding a persisted field here requires updating 4 sites (no compiler
+// enforcement): the `OnboardingStorageData` struct below, `saveToStorage()`,
+// `loadFromStorage()`, and `resetDraftFields()`. The PUL-196 regression test
+// (`configureSocialUser_wipesDraftLoadedFromStorage`) is the load-bearing
+// guard — assert every new persisted field there.
 private struct OnboardingStorageData: Codable {
     let firstName: String
     let currency: SupportedCurrency?

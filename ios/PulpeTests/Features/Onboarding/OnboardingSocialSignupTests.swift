@@ -163,7 +163,7 @@ struct OnboardingSocialSignupTests {
         OnboardingState.clearPersistedData()
         defer { OnboardingState.clearPersistedData() }
 
-        // 1) Email user fills draft and abandons.
+        // 1) Email user fills draft, advances mid-flow, and abandons.
         let prior = OnboardingState()
         prior.firstName = "Alice"
         prior.currency = .eur
@@ -176,6 +176,8 @@ struct OnboardingSocialSignupTests {
         prior.addCustomTransaction(
             OnboardingTransaction(amount: 50, type: .expense, name: "Spotify")
         )
+        // Non-welcome step exercises the in-memory `currentStep` pollution path.
+        prior.currentStep = .charges
         prior.saveToStorage()
 
         // 2) Fresh flow init for a social user — same device, different account.
@@ -187,6 +189,7 @@ struct OnboardingSocialSignupTests {
         // 3) All draft fields must be reset; provider name overrides.
         #expect(socialState.firstName == "Bob")
         #expect(socialState.currency == .chf)
+        #expect(socialState.currentStep == .welcome)
         #expect(socialState.monthlyIncome == nil)
         #expect(socialState.housingCosts == nil)
         #expect(socialState.healthInsurance == nil)
@@ -255,8 +258,10 @@ struct OnboardingSocialSignupTests {
         state.currentStep = .budgetPreview
         let nonSocialPercentage = state.progressPercentage
 
-        // With social: registration excluded → 5 visible steps → 100%
+        // With social: registration excluded → 5 visible steps → 100%.
+        // Re-set step after `configureSocialUser` (PUL-196 resets it to .welcome).
         state.configureSocialUser(UserInfo(id: "social-1", email: "social@pulpe.app", firstName: "Max"))
+        state.currentStep = .budgetPreview
         let socialPercentage = state.progressPercentage
 
         // Both hit 100% at budgetPreview (last step for both paths)
