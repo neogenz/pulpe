@@ -49,11 +49,13 @@ struct BudgetLineMixedRow: View {
     private var displayAmount: Decimal { hasReal ? realAmount : plannedAmount }
 
     /// Spec §07 — amount color cascade.
-    /// `overflowing > income/saving > pct≥50 (warning) > textSecondary`.
+    /// Income / saving keep their category color even when `real > planned`
+    /// (an over-received salary is good news, not a deficit). The overflow
+    /// red is reserved for expenses that have actually blown the envelope.
     private var amountColor: Color {
-        if isOverBudget { return .financialOverBudget }
         if isIncome { return .financialIncome }
         if isSaving { return .financialSavings }
+        if isOverBudget { return .financialOverBudget }
         if consumption.percentage >= 50 { return .warningPrimary }
         return .textSecondary
     }
@@ -62,19 +64,21 @@ struct BudgetLineMixedRow: View {
     /// income / saving / overflowing rows (with a slight tint reduction), falls
     /// back to neutral inks otherwise so the suffix never out-shouts the digits.
     private var currencyCodeColor: Color {
-        if isIncome || isSaving || isOverBudget {
+        if isIncome || isSaving || (isExpense && isOverBudget) {
             return amountColor
         }
         return hasReal ? .textTertiary : .textSecondary
     }
 
     /// Spec — opacity of the small "CHF" suffix. 0.8 only when it inherits the
-    /// amount color (income / saving / overflowing), full strength otherwise.
+    /// amount color (income / saving / over-budget expense), full strength otherwise.
     private var currencyCodeOpacity: Double {
-        (isIncome || isSaving || isOverBudget) ? DesignTokens.Opacity.pressed : 1
+        (isIncome || isSaving || (isExpense && isOverBudget)) ? DesignTokens.Opacity.pressed : 1
     }
 
-    /// PointCircle dot color — kind-based, with overflow override for expenses.
+    /// PointCircle dot color — kind-based. The overflow override only applies to
+    /// expenses; income / saving keep their category color even when the actual
+    /// amount overshoots the plan (a positive surprise, not a deficit).
     private var dotColor: Color {
         if isIncome { return .financialIncome }
         if isSaving { return .financialSavings }
@@ -123,9 +127,12 @@ struct BudgetLineMixedRow: View {
             )
         }
         .buttonStyle(.plain)
+        .frame(minHeight: DesignTokens.TapTarget.minimum)
         .contentShape(.rect(cornerRadius: DesignTokens.CornerRadius.card, style: .continuous))
         .sensoryFeedback(.success, trigger: triggerToggleFeedback)
-        .accessibilityElement(children: .combine)
+        // `.contain` keeps the inner PointCircle as its own focus node so VoiceOver
+        // can drive the pointed/unpointed toggle independently of the row's tap-to-open.
+        .accessibilityElement(children: .contain)
         .accessibilityLabel(accessibilityLabel)
         .accessibilityHint("Touche pour ouvrir le détail")
         .accessibilityIdentifier("budgetLineMixedRow-\(line.id)")

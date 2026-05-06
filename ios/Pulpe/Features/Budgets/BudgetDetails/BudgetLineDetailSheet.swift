@@ -84,11 +84,13 @@ struct BudgetLineDetailSheet: View {
             .safeAreaInset(edge: .bottom) {
                 addTransactionButton
             }
-            .navigationTitle(budgetLine.name)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     SheetCloseButton()
+                }
+                ToolbarItem(placement: .principal) {
+                    titleWithKindDot
                 }
                 ToolbarItem(placement: .primaryAction) {
                     headerMenu
@@ -164,6 +166,24 @@ struct BudgetLineDetailSheet: View {
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(Int(consumption.percentage.rounded()))% utilisé")
+    }
+
+    // MARK: - Title with kind dot (DM2.1.c spec — line title prefixed by a colored dot)
+
+    private var titleWithKindDot: some View {
+        HStack(spacing: DesignTokens.Spacing.sm) {
+            Circle()
+                .fill(Color.financialColor(for: budgetLine.kind))
+                .frame(width: DesignTokens.Spacing.sm, height: DesignTokens.Spacing.sm)
+
+            Text(budgetLine.name)
+                .font(PulpeTypography.headline)
+                .foregroundStyle(Color.textPrimary)
+                .lineLimit(1)
+                .truncationMode(.tail)
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(budgetLine.name)
     }
 
     // MARK: - Header Menu

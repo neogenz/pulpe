@@ -1,7 +1,8 @@
+// swiftlint:disable type_body_length
 import SwiftUI
 
-/// Hero balance card — contextual label, hero amount, progress + percent, and a 3-pill footer row
-/// (Reporté · Revenus · Épargne) per DM2.1.b.c5 spec.
+/// Hero balance card — contextual label, hero amount, progress + percent, and a 4-pill footer row
+/// (Reporté · Revenus · Épargne · Dépenses) per DM2.1.b.c5 spec.
 struct HeroBalanceCard: View {
     let metrics: BudgetFormulas.Metrics
     var timeElapsedPercentage: Double = 0
@@ -233,6 +234,8 @@ struct HeroBalanceCard: View {
                 incomePill
 
                 savingsPill
+
+                expensesPill
             }
             .padding(.horizontal, DesignTokens.Spacing.xxs)
         }
@@ -297,6 +300,14 @@ struct HeroBalanceCard: View {
             prefix: "🐷",
             amount: metrics.totalSavings,
             tint: .financialSavings
+        )
+    }
+
+    private var expensesPill: some View {
+        tintedPill(
+            prefix: "−",
+            amount: metrics.totalExpenses,
+            tint: .financialExpense
         )
     }
 
