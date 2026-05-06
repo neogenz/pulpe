@@ -242,7 +242,7 @@ struct BudgetDetailsView: View {
             }
             .popoverTip(ProductTips.pessimisticCheck)
             .listStyle(.insetGrouped)
-            .listRowSpacing(0)
+            .listRowSpacing(DesignTokens.Spacing.md)
             .listSectionSpacing(DesignTokens.Spacing.xxl)
             .scrollContentBackground(.hidden)
             .refreshable {
@@ -469,6 +469,7 @@ private struct BudgetDetailsSkeletonView: View {
                 }
             }
             .listStyle(.insetGrouped)
+            .listRowSpacing(DesignTokens.Spacing.md)
             .listSectionSpacing(DesignTokens.Spacing.lg)
             .scrollContentBackground(.hidden)
         }

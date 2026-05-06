@@ -154,7 +154,7 @@ private extension BudgetLine {
         )
     }
     .listStyle(.insetGrouped)
-    .listRowSpacing(0)
+    .listRowSpacing(DesignTokens.Spacing.md)
     .listSectionSpacing(DesignTokens.Spacing.xxl)
     .scrollContentBackground(.hidden)
     .pulpeBackground()
