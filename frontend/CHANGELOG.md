@@ -1,5 +1,12 @@
 # pulpe-frontend
 
+## 0.34.2
+
+### Patch Changes
+
+- v0.34.2 — Correctifs : édition de transaction pointée (PUL-212), politique de confidentialité post-DPA PostHog (PUL-211), retries idempotents sur création de prévisions/transactions.
+  - pulpe-shared@0.34.2
+
 ## 0.34.1
 
 ### Patch Changes
