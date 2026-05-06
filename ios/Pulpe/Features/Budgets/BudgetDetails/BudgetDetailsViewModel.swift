@@ -5,7 +5,10 @@ import TipKit
 // MARK: - UserDefaults Key
 
 private enum BudgetDetailsUserDefaultsKey {
+    /// Legacy Bool key — kept for migration only. Stored true → `.unchecked`, false → `.all`.
+    /// New persistence uses `checkedFilter` rawValue to support the third state `.checked`.
     static let showOnlyUnchecked = "pulpe-budget-show-only-unchecked"
+    static let checkedFilter = "pulpe-budget-checked-filter"
     static let typeFilter = "pulpe-budget-line-type-filter"
 }
 
@@ -58,11 +61,19 @@ final class BudgetDetailsViewModel {
 
     init(budgetId: String) {
         self.budgetId = budgetId
-        // Load persisted filter preference (default: show only unchecked)
-        let showOnlyUnchecked = UserDefaults.standard.object(
-            forKey: BudgetDetailsUserDefaultsKey.showOnlyUnchecked
-        ) as? Bool ?? true
-        self.checkedFilter = showOnlyUnchecked ? .unchecked : .all
+        // Load persisted checked filter preference. Prefer the new String key
+        // so all three states (.unchecked / .checked / .all) survive a relaunch.
+        // Fall back to the legacy Bool key for users upgrading from earlier builds.
+        if let raw = UserDefaults.standard.string(
+            forKey: BudgetDetailsUserDefaultsKey.checkedFilter
+        ), let restored = CheckedFilterOption(rawValue: raw) {
+            self.checkedFilter = restored
+        } else {
+            let showOnlyUnchecked = UserDefaults.standard.object(
+                forKey: BudgetDetailsUserDefaultsKey.showOnlyUnchecked
+            ) as? Bool ?? true
+            self.checkedFilter = showOnlyUnchecked ? .unchecked : .all
+        }
 
         // Load persisted type filter preference (default: .all)
         if let raw = UserDefaults.standard.string(
@@ -86,6 +97,12 @@ final class BudgetDetailsViewModel {
 
     func setCheckedFilter(_ filter: CheckedFilterOption) {
         checkedFilter = filter
+        UserDefaults.standard.set(
+            filter.rawValue,
+            forKey: BudgetDetailsUserDefaultsKey.checkedFilter
+        )
+        // Keep the legacy Bool key in sync so any older code path (e.g. widget
+        // sharing the App Group) still reads a meaningful value.
         UserDefaults.standard.set(
             filter == .unchecked,
             forKey: BudgetDetailsUserDefaultsKey.showOnlyUnchecked

@@ -18,6 +18,8 @@ enum DesignTokens {
         static let sm: CGFloat = 8
         /// Progress bars with visible rounding (10pt)
         static let progressBar: CGFloat = 10
+        /// Per-row inline card (18pt) — DM2.1.b.c5 budget line card
+        static let card: CGFloat = 18
         /// Medium elements: inputs, cards (24pt)
         static let md: CGFloat = 24
         /// Primary buttons (14pt)
@@ -133,10 +135,14 @@ enum DesignTokens {
         static let secondary: Double = 0.2
         /// Glow effects, shadows
         static let glow: Double = 0.25
+        /// Outline-pill stroke (slightly above secondary 0.2 for hairline pill borders)
+        static let outlinePill: Double = 0.22
         /// Strong accents, selected states
         static let strong: Double = 0.3
         /// Heavy overlays
         static let heavy: Double = 0.5
+        /// Dimmed row card — DM2.1.b.c5 pointed state on per-row card
+        static let pointedDim: Double = 0.62
         /// Pressed state for interactive elements
         static let pressed: Double = 0.8
         /// Dark overlays (tutorial, modal backdrops)
@@ -280,6 +286,8 @@ enum DesignTokens {
         static let progressBar: CGFloat = 8
         /// Thin separator lines
         static let separator: CGFloat = 1
+        /// Inline vertical divider inside a horizontally scrollable filter bar
+        static let dividerInline: CGFloat = 22
     }
 
     // MARK: - Numpad

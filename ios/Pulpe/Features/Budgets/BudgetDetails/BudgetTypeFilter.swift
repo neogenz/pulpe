@@ -75,7 +75,7 @@ struct BudgetTypeFilter: View {
 
                 Rectangle()
                     .fill(Color.outlineVariant.opacity(DesignTokens.Opacity.heavy))
-                    .frame(width: DesignTokens.FrameHeight.separator, height: 22)
+                    .frame(width: DesignTokens.FrameHeight.separator, height: DesignTokens.FrameHeight.dividerInline)
                     .padding(.horizontal, DesignTokens.Spacing.xs)
 
                 ForEach(CheckedFilterOption.allCases) { option in
@@ -111,7 +111,7 @@ struct BudgetTypeFilter: View {
                     .font(PulpeTypography.metricMini)
                     .monospacedDigit()
                     .padding(.horizontal, DesignTokens.Spacing.tightGap)
-                    .padding(.vertical, 1)
+                    .padding(.vertical, DesignTokens.Spacing.xxs)
                     .background(
                         Capsule().fill(
                             isSelected
@@ -132,7 +132,7 @@ struct BudgetTypeFilter: View {
                 if !isSelected {
                     Capsule()
                         .strokeBorder(
-                            Color.onSurfaceVariant.opacity(0.22),
+                            Color.onSurfaceVariant.opacity(DesignTokens.Opacity.outlinePill),
                             lineWidth: DesignTokens.BorderWidth.thin
                         )
                 }
