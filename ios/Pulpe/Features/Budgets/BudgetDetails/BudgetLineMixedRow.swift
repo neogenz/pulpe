@@ -109,6 +109,8 @@ struct BudgetLineMixedRow: View {
             .padding(.vertical, DesignTokens.Spacing.md)
             .padding(.leading, DesignTokens.Spacing.xs)
             .padding(.trailing, DesignTokens.Spacing.md)
+            .frame(maxWidth: .infinity, minHeight: DesignTokens.TapTarget.minimum, alignment: .leading)
+            .contentShape(Rectangle())
             .opacity(isPointed ? DesignTokens.Opacity.pointedDim : 1)
             .animation(
                 reduceMotion ? nil : DesignTokens.Animation.gentleSpring,
@@ -116,8 +118,6 @@ struct BudgetLineMixedRow: View {
             )
         }
         .buttonStyle(.plain)
-        .frame(minHeight: DesignTokens.TapTarget.minimum)
-        .contentShape(Rectangle())
         .sensoryFeedback(.success, trigger: triggerToggleFeedback)
         // `.contain` keeps the inner PointCircle as its own focus node so VoiceOver
         // can drive the pointed/unpointed toggle independently of the row's tap-to-open.
@@ -216,7 +216,7 @@ struct BudgetLineMixedRow: View {
     private var amountColumn: some View {
         VStack(alignment: .trailing, spacing: DesignTokens.Spacing.xxs) {
             HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.xxs) {
-                Text(displayAmount.asCompactAmount(for: userSettingsStore.currency))
+                Text(displayAmount.asAmount(for: userSettingsStore.currency))
                     .font(PulpeTypography.amountCard)
                     .foregroundStyle(amountColor)
                     .monospacedDigit()
@@ -232,7 +232,7 @@ struct BudgetLineMixedRow: View {
 
             // "/ X prévu" — only when there's spending below planned and the two differ.
             if hasReal, !isOverBudget, realAmount != plannedAmount {
-                Text("/ \(plannedAmount.asCompactAmount(for: userSettingsStore.currency)) prévu")
+                Text("/ \(plannedAmount.asAmount(for: userSettingsStore.currency)) prévu")
                     .font(PulpeTypography.metricMini)
                     .foregroundStyle(Color.textTertiary)
                     .monospacedDigit()
