@@ -79,6 +79,10 @@ public sealed class BudgetTemplateService : ITemplateService
             p_lines = encryptedLines
         };
 
+        // Defense-in-depth IDOR check: SQL function also validates auth.uid() == p_user_id, but we guard here too.
+        if (rpcPayload.p_user_id != user.Id)
+            throw BusinessException.Forbidden(ErrorCodes.TemplateAccessDenied, "Template creation denied: user mismatch");
+
         var template = await _templateRepository.Create(rpcPayload);
         var templateLines = await _templateRepository.FindTemplateLines(template.Id);
 
