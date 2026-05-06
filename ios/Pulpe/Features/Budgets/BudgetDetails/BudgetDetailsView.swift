@@ -11,6 +11,7 @@ struct BudgetDetailsView: View {
     @Environment(AppState.self) private var appState
     @Environment(UserSettingsStore.self) private var userSettingsStore
     @Environment(\.amountsHidden) private var amountsHidden
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var viewModel: BudgetDetailsViewModel
     @State private var destination: BudgetDetailDestination?
     /// Persists across sheet dismissal so the H9 soft-delete toast can be triggered
@@ -244,6 +245,11 @@ struct BudgetDetailsView: View {
             .refreshable {
                 await viewModel.loadDetails(force: true)
             }
+            .animation(
+                reduceMotion ? nil : DesignTokens.Animation.gentleSpring,
+                value: searchFilteredSections.flatMap { $0.items.map(\.isChecked) }
+                    + filteredFree.map(\.isChecked)
+            )
         }
         .pulpeBackground()
         .searchable(
