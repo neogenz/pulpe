@@ -115,6 +115,9 @@ extension OnboardingState {
 // `transportCosts`, `leasingCredit`, and per-transaction `amount`.
 // Threat model: physical device access + jailbreak can read self-reported draft estimates.
 // If this window needs hardening later, migrate the blob to Keychain (`kSecAttrAccessibleWhenUnlockedThisDeviceOnly`).
+//
+// Adding a field here requires updating 3 sites (no compiler enforcement):
+// `saveToStorage()`, `loadFromStorage()`, and `resetDraftFields()`.
 private struct OnboardingStorageData: Codable {
     let firstName: String
     let currency: SupportedCurrency?
