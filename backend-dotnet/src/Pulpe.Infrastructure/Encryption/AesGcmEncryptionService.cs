@@ -2,11 +2,15 @@ using System.Collections.Concurrent;
 using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Pulpe.Domain.Common;
 using Pulpe.Domain.Encryption;
-using Pulpe.Infrastructure.Supabase;
-using Pulpe.Infrastructure.Supabase.Repositories;
+using Pulpe.Application.Common;
+using Supabase.Postgrest.Attributes;
+using Supabase.Postgrest.Models;
+using static Supabase.Postgrest.Constants;
+using PgClient = global::Supabase.Postgrest.Client;
 
 namespace Pulpe.Infrastructure.Encryption;
 
@@ -14,6 +18,8 @@ public sealed class AesGcmEncryptionService : IEncryptionService
 {
     private readonly EncryptionOptions _options;
     private readonly IEncryptionKeyRepository _keyRepository;
+    private readonly ISupabaseClientFactory _clientFactory;
+    private readonly ILogger<AesGcmEncryptionService> _logger;
 
     private static readonly byte[] DemoClientKeyBuffer = new byte[32]; // fixed 32 zero bytes
 
@@ -31,10 +37,16 @@ public sealed class AesGcmEncryptionService : IEncryptionService
     // Base32 alphabet (RFC 4648)
     private const string Base32Alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
 
-    public AesGcmEncryptionService(IOptions<EncryptionOptions> options, IEncryptionKeyRepository keyRepository)
+    public AesGcmEncryptionService(
+        IOptions<EncryptionOptions> options,
+        IEncryptionKeyRepository keyRepository,
+        ISupabaseClientFactory clientFactory,
+        ILogger<AesGcmEncryptionService> logger)
     {
         _options = options.Value;
         _keyRepository = keyRepository;
+        _clientFactory = clientFactory;
+        _logger = logger;
     }
 
     // --- Core encrypt/decrypt ---
@@ -334,12 +346,13 @@ public sealed class AesGcmEncryptionService : IEncryptionService
 
     // --- Recovery ---
 
-    public async Task RecoverWithKey(string userId, string recoveryKey, byte[] newClientKey, object supabaseClient)
+    public async Task RecoverWithKey(string userId, string recoveryKey, byte[] newClientKey)
     {
         var keyRecord = await _keyRepository.GetByUserId(userId);
         if (keyRecord?.WrappedDek is null)
             throw new BusinessException(ErrorCodes.EncryptionRecoveryFailed, "No wrapped DEK found", 400);
 
+        var oldWrappedDek = keyRecord.WrappedDek;
         var recoveryKeyBytes = ParseRecoveryKey(recoveryKey);
         var oldDek = UnwrapDek(keyRecord.WrappedDek, recoveryKeyBytes);
 
@@ -348,14 +361,25 @@ public sealed class AesGcmEncryptionService : IEncryptionService
             var newDek = DeriveDek(userId, newClientKey, keyRecord.Salt);
             try
             {
-                var newKeyCheck = await ReEncryptAllUserData(userId, oldDek, newDek, supabaseClient);
+                string newKeyCheck;
+                try
+                {
+                    newKeyCheck = await ReEncryptAllUserData(userId, oldDek, newDek);
+                }
+                catch (Exception)
+                {
+                    try { await _keyRepository.UpdateWrappedDek(userId, oldWrappedDek); }
+                    catch (Exception restoreEx) { _logger.LogWarning(restoreEx, "Failed to restore wrapped DEK for user {UserId} after rekey failure", userId); }
+                    throw;
+                }
+
+                // Invalidate cache immediately after successful re-encryption, before writing new wrapped DEK.
+                InvalidateDekCache(userId);
 
                 // Re-wrap the old DEK structure (same recovery key wraps new DEK)
                 var newWrappedDek = WrapDek(newDek, recoveryKeyBytes);
                 await _keyRepository.UpdateWrappedDek(userId, newWrappedDek);
                 await _keyRepository.UpdateKeyCheck(userId, newKeyCheck);
-
-                InvalidateDekCache(userId);
             }
             finally
             {
@@ -368,12 +392,13 @@ public sealed class AesGcmEncryptionService : IEncryptionService
         }
     }
 
-    public async Task<ChangePinResult> ChangePinRekey(string userId, byte[] oldClientKey, byte[] newClientKey, object supabaseClient)
+    public async Task<ChangePinResult> ChangePinRekey(string userId, byte[] oldClientKey, byte[] newClientKey)
     {
         var keyRecord = await _keyRepository.GetByUserId(userId);
         if (keyRecord is null)
             throw new BusinessException(ErrorCodes.EncryptionKeyNotFound, "Encryption key not found", 404);
 
+        var oldWrappedDek = keyRecord.WrappedDek;
         var oldDek = DeriveDek(userId, oldClientKey, keyRecord.Salt);
         try
         {
@@ -388,7 +413,23 @@ public sealed class AesGcmEncryptionService : IEncryptionService
                 if (oldDek.SequenceEqual(newDek))
                     throw new BusinessException(ErrorCodes.EncryptionSameKey, "New PIN must be different from current PIN", 400);
 
-                var newKeyCheck = await ReEncryptAllUserData(userId, oldDek, newDek, supabaseClient);
+                string newKeyCheck;
+                try
+                {
+                    newKeyCheck = await ReEncryptAllUserData(userId, oldDek, newDek);
+                }
+                catch (Exception)
+                {
+                    if (oldWrappedDek is not null)
+                    {
+                        try { await _keyRepository.UpdateWrappedDek(userId, oldWrappedDek); }
+                        catch (Exception restoreEx) { _logger.LogWarning(restoreEx, "Failed to restore wrapped DEK for user {UserId} after rekey failure", userId); }
+                    }
+                    throw;
+                }
+
+                // Invalidate cache immediately after successful re-encryption, before writing new wrapped DEK.
+                InvalidateDekCache(userId);
 
                 // Generate new recovery key
                 var (recoveryRaw, recoveryFormatted) = GenerateRecoveryKey();
@@ -396,8 +437,6 @@ public sealed class AesGcmEncryptionService : IEncryptionService
 
                 await _keyRepository.UpdateWrappedDek(userId, wrappedDek);
                 await _keyRepository.UpdateKeyCheck(userId, newKeyCheck);
-
-                InvalidateDekCache(userId);
 
                 return new ChangePinResult(newKeyCheck, recoveryFormatted);
             }
@@ -412,56 +451,62 @@ public sealed class AesGcmEncryptionService : IEncryptionService
         }
     }
 
-    public async Task<string> ReEncryptAllUserData(string userId, byte[] oldDek, byte[] newDek, object supabaseClient)
+    public async Task<string> ReEncryptAllUserData(string userId, byte[] oldDek, byte[] newDek)
     {
-        var client = supabaseClient as SupabaseRestClient
-            ?? throw new ArgumentException("Expected SupabaseRestClient", nameof(supabaseClient));
+        // Use admin client for cross-user rekey operations
+        var client = _clientFactory.CreateAdminClient();
 
-        // Fetch all encrypted data in parallel
-        var budgetLinesTask = client.Execute<List<EncryptedAmountRow>>(
-            client.From("budget_line").Select("id,amount").Eq("user_id", userId));
+        var budgetLinesTask = client.Table<EncryptedAmountRow>()
+            .Filter("user_id", Operator.Equals, userId)
+            .Get();
 
-        var transactionsTask = client.Execute<List<EncryptedAmountRow>>(
-            client.From("transaction").Select("id,amount").Eq("user_id", userId));
+        var transactionsTask = client.Table<TransactionAmountRow>()
+            .Filter("user_id", Operator.Equals, userId)
+            .Get();
 
-        var templateLinesTask = client.Execute<List<EncryptedAmountRow>>(
-            client.From("template_line").Select("id,amount").Eq("user_id", userId));
+        var templateLinesTask = client.Table<TemplateLineAmountRow>()
+            .Filter("template_id", Operator.In, new List<string>())  // joined via user via RPC
+            .Get();
 
-        var savingsGoalsTask = client.Execute<List<EncryptedTargetRow>>(
-            client.From("savings_goal").Select("id,target_amount").Eq("user_id", userId));
+        var savingsGoalsTask = client.Table<SavingsGoalAmountRow>()
+            .Filter("user_id", Operator.Equals, userId)
+            .Get();
 
-        var monthlyBudgetsTask = client.Execute<List<EncryptedBalanceRow>>(
-            client.From("monthly_budget").Select("id,ending_balance").Eq("user_id", userId));
+        var monthlyBudgetsTask = client.Table<BudgetBalanceRow>()
+            .Filter("user_id", Operator.Equals, userId)
+            .Get();
 
-        await Task.WhenAll(budgetLinesTask, transactionsTask, templateLinesTask, savingsGoalsTask, monthlyBudgetsTask);
+        await Task.WhenAll(budgetLinesTask, transactionsTask, savingsGoalsTask, monthlyBudgetsTask);
 
-        var budgetLineUpdates = (budgetLinesTask.Result.Data ?? [])
+        var budgetLineUpdates = budgetLinesTask.Result.Models
             .Where(r => !string.IsNullOrEmpty(r.Amount))
-            .Select(r => new { id = r.Id, amount = ReEncrypt(r.Amount!, oldDek, newDek) })
+            .Select(r => new { id = r.Id.ToString(), amount = ReEncrypt(r.Amount!, oldDek, newDek) })
             .ToList();
 
-        var transactionUpdates = (transactionsTask.Result.Data ?? [])
+        var transactionUpdates = transactionsTask.Result.Models
             .Where(r => !string.IsNullOrEmpty(r.Amount))
-            .Select(r => new { id = r.Id, amount = ReEncrypt(r.Amount!, oldDek, newDek) })
+            .Select(r => new { id = r.Id.ToString(), amount = ReEncrypt(r.Amount!, oldDek, newDek) })
             .ToList();
 
-        var templateLineUpdates = (templateLinesTask.Result.Data ?? [])
+        // For template lines, we need to fetch via admin and filter by user's templates
+        var templateLines = await FetchUserTemplateLines(userId, client);
+        var templateLineUpdates = templateLines
             .Where(r => !string.IsNullOrEmpty(r.Amount))
-            .Select(r => new { id = r.Id, amount = ReEncrypt(r.Amount!, oldDek, newDek) })
+            .Select(r => new { id = r.Id.ToString(), amount = ReEncrypt(r.Amount!, oldDek, newDek) })
             .ToList();
 
-        var savingsGoalUpdates = (savingsGoalsTask.Result.Data ?? [])
+        var savingsGoalUpdates = savingsGoalsTask.Result.Models
             .Where(r => !string.IsNullOrEmpty(r.TargetAmount))
-            .Select(r => new { id = r.Id, target_amount = ReEncrypt(r.TargetAmount!, oldDek, newDek) })
+            .Select(r => new { id = r.Id.ToString(), target_amount = ReEncrypt(r.TargetAmount!, oldDek, newDek) })
             .ToList();
 
-        var monthlyBudgetUpdates = (monthlyBudgetsTask.Result.Data ?? [])
+        var monthlyBudgetUpdates = monthlyBudgetsTask.Result.Models
             .Where(r => !string.IsNullOrEmpty(r.EndingBalance))
-            .Select(r => new { id = r.Id, ending_balance = ReEncrypt(r.EndingBalance!, oldDek, newDek) })
+            .Select(r => new { id = r.Id.ToString(), ending_balance = ReEncrypt(r.EndingBalance!, oldDek, newDek) })
             .ToList();
 
         // Call atomic RPC to update all data at once
-        await client.Rpc<object>("rekey_user_encrypted_data", new
+        await client.Rpc("rekey_user_encrypted_data", new
         {
             p_user_id = userId,
             p_budget_lines = budgetLineUpdates,
@@ -472,6 +517,26 @@ public sealed class AesGcmEncryptionService : IEncryptionService
         });
 
         return GenerateKeyCheck(newDek);
+    }
+
+    private async Task<List<TemplateLineAmountRow>> FetchUserTemplateLines(
+        string userId, PgClient client)
+    {
+        // Get all template IDs for user first
+        var templates = await client.Table<UserTemplateRow>()
+            .Filter("user_id", Operator.Equals, userId)
+            .Get();
+
+        if (templates.Models.Count == 0)
+            return [];
+
+        var templateIds = templates.Models.Select(t => t.Id.ToString()).ToList();
+
+        var lines = await client.Table<TemplateLineAmountRow>()
+            .Filter("template_id", Operator.In, templateIds)
+            .Get();
+
+        return lines.Models;
     }
 
     // --- Private helpers ---
@@ -582,21 +647,66 @@ public sealed class AesGcmEncryptionService : IEncryptionService
         return [.. result];
     }
 
-    private sealed class EncryptedAmountRow
+    [Table("budget_line")]
+    private sealed class EncryptedAmountRow : BaseModel
     {
-        public string Id { get; set; } = string.Empty;
+        [PrimaryKey("id", false)]
+        public Guid Id { get; set; }
+
+        [Column("amount")]
         public string? Amount { get; set; }
     }
 
-    private sealed class EncryptedTargetRow
+    [Table("transaction")]
+    private sealed class TransactionAmountRow : BaseModel
     {
-        public string Id { get; set; } = string.Empty;
+        [PrimaryKey("id", false)]
+        public Guid Id { get; set; }
+
+        [Column("amount")]
+        public string? Amount { get; set; }
+    }
+
+    [Table("template_line")]
+    private sealed class TemplateLineAmountRow : BaseModel
+    {
+        [PrimaryKey("id", false)]
+        public Guid Id { get; set; }
+
+        [Column("template_id")]
+        public Guid TemplateId { get; set; }
+
+        [Column("amount")]
+        public string? Amount { get; set; }
+    }
+
+    [Table("template")]
+    private sealed class UserTemplateRow : BaseModel
+    {
+        [PrimaryKey("id", false)]
+        public Guid Id { get; set; }
+
+        [Column("user_id")]
+        public Guid UserId { get; set; }
+    }
+
+    [Table("savings_goal")]
+    private sealed class SavingsGoalAmountRow : BaseModel
+    {
+        [PrimaryKey("id", false)]
+        public Guid Id { get; set; }
+
+        [Column("target_amount")]
         public string? TargetAmount { get; set; }
     }
 
-    private sealed class EncryptedBalanceRow
+    [Table("monthly_budget")]
+    private sealed class BudgetBalanceRow : BaseModel
     {
-        public string Id { get; set; } = string.Empty;
+        [PrimaryKey("id", false)]
+        public Guid Id { get; set; }
+
+        [Column("ending_balance")]
         public string? EndingBalance { get; set; }
     }
 }
