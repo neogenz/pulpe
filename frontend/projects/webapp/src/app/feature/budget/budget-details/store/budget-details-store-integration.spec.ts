@@ -604,11 +604,19 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
         isManuallyAdjusted: false,
       };
 
-      // User creates budget line and server confirms
+      // User creates budget line and server confirms — server echoes the client-generated id
       const createPromise = service.createBudgetLine(savingsLine);
+      const budgetLinesAfterOptimistic =
+        service.budgetDetails()?.budgetLines ?? [];
+      const optimisticLine = budgetLinesAfterOptimistic.find(
+        (l) => l.name === 'Épargne urgence',
+      );
+      expect(optimisticLine).toBeDefined();
+      const clientId = optimisticLine!.id;
+
       createSubject.next({
         data: {
-          id: 'line-server-123',
+          id: clientId, // server echoes the client UUID it received
           ...savingsLine,
           templateLineId: null,
           savingsGoalId: null,
@@ -619,10 +627,11 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
       createSubject.complete();
       await createPromise;
 
-      // No temporary entries remain
+      // Id stays stable from optimistic to server-confirmed (no temp/real swap)
       const budgetLines = service.budgetDetails()?.budgetLines || [];
-      const hasTemp = budgetLines.some((l) => l.id.startsWith('temp-'));
-      expect(hasTemp).toBe(false);
+      const persistedLine = budgetLines.find((l) => l.id === clientId);
+      expect(persistedLine).toBeDefined();
+      expect(persistedLine?.createdAt).toBe('2024-01-15T10:00:00Z');
     });
 
     it('user can delete transactions from their budget', async () => {
@@ -700,24 +709,27 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
   });
 
   describe('User creates allocated transactions', () => {
-    it('replaces temp ID with server ID after creation (DR-005)', async () => {
+    it('keeps id stable from optimistic to server-confirmed (client UUID = server id)', async () => {
       service.setBudgetId(mockBudgetId);
       TestBed.tick();
       await waitForResourceStable();
 
-      const serverTransaction = createMockTransaction({
-        id: 'tx-server-dr005',
-        budgetId: mockBudgetId,
-        budgetLineId: 'line-2',
-        name: 'DR-005 Tx',
-        amount: 42,
-        kind: 'expense',
-        checkedAt: null,
+      // Capture the id sent in the create payload — server is expected to echo it back
+      let capturedClientId: string | undefined;
+      mockBudgetApi.createTransaction$ = vi.fn((payload) => {
+        capturedClientId = payload.id;
+        return of({
+          data: createMockTransaction({
+            id: payload.id,
+            budgetId: mockBudgetId,
+            budgetLineId: 'line-2',
+            name: 'DR-005 Tx',
+            amount: 42,
+            kind: 'expense',
+            checkedAt: null,
+          }),
+        });
       });
-
-      mockBudgetApi.createTransaction$ = vi
-        .fn()
-        .mockReturnValue(of({ data: serverTransaction }));
 
       await service.createAllocatedTransaction({
         budgetId: mockBudgetId,
@@ -727,10 +739,12 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
         kind: 'expense',
       });
 
+      expect(capturedClientId).toMatch(
+        /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
+      );
       const transactionIds =
         service.budgetDetails()?.transactions.map((tx) => tx.id) ?? [];
-      expect(transactionIds).toContain('tx-server-dr005');
-      expect(transactionIds.some((id) => id.startsWith('temp-'))).toBe(false);
+      expect(transactionIds).toContain(capturedClientId);
       expect(mockBudgetApi.createTransaction$).toHaveBeenCalledTimes(1);
     });
 
@@ -1094,7 +1108,7 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
       expect(tx?.checkedAt).toBe('2024-01-20T12:00:00Z');
     });
 
-    it('check-all toggles only unchecked real allocated transactions (ignores temp and unrelated)', async () => {
+    it('check-all toggles only unchecked real allocated transactions (ignores unrelated lines)', async () => {
       const parentLine = createMockBudgetLine({
         id: 'line-parent',
         budgetId: mockBudgetId,
@@ -1123,15 +1137,6 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
         kind: 'expense',
         checkedAt: '2024-01-19T09:00:00Z',
       });
-      const txTempUnchecked = createMockTransaction({
-        id: 'temp-optimistic-123',
-        budgetId: mockBudgetId,
-        budgetLineId: 'line-parent',
-        name: 'Temp unchecked',
-        amount: 80,
-        kind: 'expense',
-        checkedAt: null,
-      });
       const txOtherLineUnchecked = createMockTransaction({
         id: 'tx-other-line',
         budgetId: mockBudgetId,
@@ -1150,7 +1155,6 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
             transactions: [
               txRealUnchecked,
               txRealChecked,
-              txTempUnchecked,
               txOtherLineUnchecked,
             ],
           }),
@@ -1188,15 +1192,11 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
       const realUncheckedAfter = currentTransactions.find(
         (tx) => tx.id === 'tx-real-unchecked',
       );
-      const tempAfter = currentTransactions.find(
-        (tx) => tx.id === 'temp-optimistic-123',
-      );
       const otherLineAfter = currentTransactions.find(
         (tx) => tx.id === 'tx-other-line',
       );
 
       expect(realUncheckedAfter?.checkedAt).toBe('2024-01-20T11:00:00Z');
-      expect(tempAfter?.checkedAt).toBeNull();
       expect(otherLineAfter?.checkedAt).toBeNull();
     });
   });

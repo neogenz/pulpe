@@ -38,16 +38,6 @@ import {
 import { normalizeText } from '../view-models/budget-item-constants';
 import { createInitialBudgetDetailsState } from './budget-details-state';
 
-const TEMP_ID_PREFIX = 'temp-';
-
-function isTempId(id: string): boolean {
-  return id.startsWith(TEMP_ID_PREFIX);
-}
-
-function generateTempId(): string {
-  return `${TEMP_ID_PREFIX}${uuidv4()}`;
-}
-
 const BUDGET_DETAIL_INVALIDATION_KEYS: string[][] = [
   ['budget', 'details'],
   ['budget', 'list'],
@@ -342,19 +332,17 @@ export class BudgetDetailsStore {
   // ── 5. Mutations (async/await) ──
 
   readonly #createBudgetLineMutation = cachedMutation<
-    { budgetLine: BudgetLineCreate; tempId: string },
+    BudgetLineCreate & { id: string },
     { data: BudgetLine },
     BudgetDetailsViewModel | null
   >({
     cache: this.#budgetApi.cache,
     invalidateKeys: () => BUDGET_DETAIL_INVALIDATION_KEYS,
-    mutationFn: ({ budgetLine }) =>
-      this.#budgetApi.createBudgetLine$(budgetLine),
-    onMutate: ({ budgetLine, tempId }) => {
+    mutationFn: (budgetLine) => this.#budgetApi.createBudgetLine$(budgetLine),
+    onMutate: (budgetLine) => {
       const previous = this.budgetDetails();
-      const tempBudgetLine: BudgetLine = {
+      const optimisticLine: BudgetLine = {
         ...budgetLine,
-        id: tempId,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         templateLineId: null,
@@ -363,15 +351,15 @@ export class BudgetDetailsStore {
       };
       this.#updateDetails((details) => ({
         ...details,
-        budgetLines: [...details.budgetLines, tempBudgetLine],
+        budgetLines: [...details.budgetLines, optimisticLine],
       }));
       return previous;
     },
-    onSuccess: (response, { tempId }) => {
+    onSuccess: (response, budgetLine) => {
       this.#updateDetails((details) => ({
         ...details,
         budgetLines: details.budgetLines.map((line) =>
-          line.id === tempId ? response.data : line,
+          line.id === budgetLine.id ? response.data : line,
         ),
       }));
       this.#onFinancialMutationSuccess();
@@ -382,11 +370,9 @@ export class BudgetDetailsStore {
     },
   });
 
-  async createBudgetLine(budgetLine: BudgetLineCreate): Promise<void> {
-    await this.#createBudgetLineMutation.mutate({
-      budgetLine,
-      tempId: generateTempId(),
-    });
+  async createBudgetLine(input: BudgetLineCreate): Promise<void> {
+    const id = input.id ?? uuidv4();
+    await this.#createBudgetLineMutation.mutate({ ...input, id });
   }
 
   readonly #updateBudgetLineMutation = cachedMutation<
@@ -515,18 +501,17 @@ export class BudgetDetailsStore {
   }
 
   readonly #createAllocatedTransactionMutation = cachedMutation<
-    { data: TransactionCreate; tempId: string },
+    TransactionCreate & { id: string },
     { data: Transaction },
     BudgetDetailsViewModel | null
   >({
     cache: this.#budgetApi.cache,
     invalidateKeys: () => BUDGET_DETAIL_INVALIDATION_KEYS,
-    mutationFn: ({ data }) => this.#budgetApi.createTransaction$(data),
-    onMutate: ({ data, tempId }) => {
+    mutationFn: (data) => this.#budgetApi.createTransaction$(data),
+    onMutate: (data) => {
       const previous = this.budgetDetails();
-      const tempTransaction: Transaction = {
+      const optimisticTransaction: Transaction = {
         ...data,
-        id: tempId,
         budgetLineId: data.budgetLineId ?? null,
         transactionDate: data.transactionDate ?? formatLocalDate(new Date()),
         category: data.category ?? null,
@@ -536,15 +521,20 @@ export class BudgetDetailsStore {
       };
       this.#updateDetails((details) => ({
         ...details,
-        transactions: [...details.transactions, tempTransaction],
+        transactions: [...details.transactions, optimisticTransaction],
       }));
       return previous;
     },
-    onSuccess: (response, { tempId }) => {
+    onSuccess: (response, data) => {
       this.#updateDetails((details) => ({
         ...details,
         transactions: details.transactions.map((tx) =>
-          tx.id === tempId ? response.data : tx,
+          tx.id === data.id
+            ? {
+                ...response.data,
+                checkedAt: tx.checkedAt ?? response.data.checkedAt,
+              }
+            : tx,
         ),
       }));
       this.#onFinancialMutationSuccess();
@@ -560,9 +550,10 @@ export class BudgetDetailsStore {
   async createAllocatedTransaction(
     transactionData: TransactionCreate,
   ): Promise<void> {
+    const id = transactionData.id ?? uuidv4();
     await this.#createAllocatedTransactionMutation.mutate({
-      data: transactionData,
-      tempId: generateTempId(),
+      ...transactionData,
+      id,
     });
   }
 
@@ -593,7 +584,13 @@ export class BudgetDetailsStore {
   });
 
   async resetBudgetLineFromTemplate(id: string): Promise<void> {
-    await this.#resetBudgetLineMutation.mutate(id);
+    if (this.#mutatingIds.has(id)) return;
+    this.#mutatingIds.add(id);
+    try {
+      await this.#resetBudgetLineMutation.mutate(id);
+    } finally {
+      this.#mutatingIds.delete(id);
+    }
   }
 
   readonly #toggleCheckMutation = cachedMutation<
@@ -643,6 +640,7 @@ export class BudgetDetailsStore {
       );
       return true;
     }
+
     if (this.#mutatingIds.has(id)) return false;
 
     const details = this.budgetDetails();
@@ -727,10 +725,7 @@ export class BudgetDetailsStore {
       const uncheckedIds = new Set(
         details.transactions
           .filter(
-            (tx) =>
-              tx.budgetLineId === budgetLineId &&
-              tx.checkedAt === null &&
-              !isTempId(tx.id),
+            (tx) => tx.budgetLineId === budgetLineId && tx.checkedAt === null,
           )
           .map((tx) => tx.id),
       );
@@ -770,10 +765,7 @@ export class BudgetDetailsStore {
     const details = this.budgetDetails();
     if (!details) return;
     const hasUnchecked = details.transactions.some(
-      (tx) =>
-        tx.budgetLineId === budgetLineId &&
-        tx.checkedAt === null &&
-        !isTempId(tx.id),
+      (tx) => tx.budgetLineId === budgetLineId && tx.checkedAt === null,
     );
     if (!hasUnchecked) return;
     this.#mutatingIds.add(budgetLineId);

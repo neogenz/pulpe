@@ -143,7 +143,7 @@ export class BudgetDetailsDialogService {
       budgetYear: number;
       payDayOfMonth: number | null;
     },
-  ): Promise<(TransactionUpdate & { id: string }) | undefined> {
+  ): Promise<{ id: string; update: TransactionUpdate } | undefined> {
     const { minDate, maxDate } = computeBudgetPeriodDateConstraints(
       budgetPeriod.budgetMonth,
       budgetPeriod.budgetYear,
@@ -164,7 +164,7 @@ export class BudgetDetailsDialogService {
     const result = await firstValueFrom<TransactionUpdate | undefined>(
       dialogRef.afterClosed(),
     );
-    return result ? { ...result, id: transaction.id } : undefined;
+    return result ? { id: transaction.id, update: result } : undefined;
   }
 
   async confirmDelete(options: ConfirmDeleteOptions): Promise<boolean> {

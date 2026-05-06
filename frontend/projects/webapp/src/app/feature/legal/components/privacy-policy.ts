@@ -83,29 +83,47 @@ import { ROUTES } from '@core/routing';
             <li>Améliorer l'expérience utilisateur</li>
           </ul>
           <p class="text-body-large mt-4">
-            <strong>Enregistrement de sessions :</strong> PostHog peut
-            enregistrer des sessions d'utilisation (replay des interactions)
-            pour m'aider à comprendre et résoudre les problèmes techniques.
+            <strong>Données envoyées à PostHog :</strong>
           </p>
+          <ul class="list-disc pl-6 text-body-large">
+            <li>Identifiant utilisateur (UUID Supabase) et email</li>
+            <li>Prénom (si renseigné lors de l'inscription)</li>
+            <li>Préférences produit : devise, paramètres d'affichage</li>
+            <li>
+              Statut early-adopter (utilisateur ayant activé son compte avant
+              une date de référence)
+            </li>
+            <li>Pages visitées et interactions (clics, navigation)</li>
+            <li>Traces d'erreur techniques (sans contenu sensible)</li>
+          </ul>
           <p class="text-body-large mt-4">
-            <strong>Protection de vos données financières :</strong>
+            <strong>Données NON envoyées à PostHog :</strong>
           </p>
           <ul class="list-disc pl-6 text-body-large">
             <li>
-              Vos montants financiers sont automatiquement masqués dans toutes
-              les analyses et les enregistrements de sessions
+              Vos montants financiers — masqués automatiquement avant envoi,
+              jamais transmis
             </li>
-            <li>
-              Les données sont pseudonymisées (votre identité n'est pas
-              directement visible)
-            </li>
-            <li>
-              Vos données financières ne sont
-              <strong>jamais transmises à des tiers</strong>
-            </li>
-            <li>Aucune utilisation commerciale de vos données</li>
-            <li>Pas de publicité ciblée</li>
+            <li>Mots de passe, tokens d'authentification</li>
+            <li>Identifiants de transactions ou de catégories budgétaires</li>
           </ul>
+          <p class="text-body-large mt-4">
+            <strong>Enregistrement de sessions :</strong> PostHog peut
+            enregistrer des sessions d'utilisation (replay des interactions)
+            pour m'aider à comprendre et résoudre les problèmes techniques. Tous
+            les champs de saisie sont automatiquement masqués.
+          </p>
+          <p class="text-body-large mt-4">
+            <strong>Base légale :</strong> intérêt légitime (article 6.1.f du
+            RGPD) — analytics produit nécessaires à l'amélioration du service,
+            avec données minimisées et hébergement Europe.
+          </p>
+          <p class="text-body-large mt-4">
+            <strong>Accord de traitement (DPA) :</strong> un Data Processing
+            Agreement a été signé avec PostHog Inc., conforme à l'article 28 du
+            RGPD. PostHog agit en tant que sous-traitant (processor) pour les
+            données collectées via Pulpe.
+          </p>
         </section>
 
         <section class="mb-8">
@@ -165,6 +183,14 @@ import { ROUTES } from '@core/routing';
             ci-dessus. Le code source est open source sur GitHub mais vos
             données restent privées.
           </p>
+          <p class="text-body-large mt-4">
+            Les services tiers listés (Supabase, Railway, Vercel, PostHog,
+            Cloudflare, Google) agissent comme sous-traitants au sens de
+            l'article 28 du RGPD. Un Data Processing Agreement (DPA) dédié a été
+            signé avec PostHog Inc. Pour les autres sous-traitants, les
+            engagements de traitement sont fournis via leurs conditions de
+            service standard, conformément à l'article 28 du RGPD.
+          </p>
         </section>
 
         <section class="mb-8">
@@ -179,6 +205,14 @@ import { ROUTES } from '@core/routing';
               heures
             </li>
           </ul>
+          <p class="text-body-large mt-4">
+            <strong>Note sur PostHog :</strong> à ce jour, la suppression du
+            compte côté Pulpe n'entraîne pas automatiquement la suppression du
+            profil analytics chez PostHog. Pour exercer votre droit à
+            l'effacement sur les données analytics, contactez-moi par email — je
+            procéderai à la suppression manuelle via l'API PostHog (sous 7 jours
+            ouvrés).
+          </p>
         </section>
 
         <section class="mb-8">
@@ -192,8 +226,11 @@ import { ROUTES } from '@core/routing';
             <li>Droit de rectification de vos données</li>
             <li>Droit à l'effacement (suppression du compte)</li>
             <li>Droit à la portabilité (export JSON)</li>
-            <li>Droit d'opposition à certains traitements</li>
-            <li>Droit de retirer votre consentement à tout moment</li>
+            <li>
+              Droit d'opposition (article 21 RGPD) — vous pouvez vous opposer à
+              tout traitement fondé sur l'intérêt légitime, notamment
+              l'analytics
+            </li>
           </ul>
           <p class="text-body-large mt-4">
             Pour exercer ces droits, contactez-moi à :
@@ -222,10 +259,14 @@ import { ROUTES } from '@core/routing';
           </p>
           <ul class="list-disc pl-6 text-body-large">
             <li>
-              Activés lors de la création de votre compte (base légale : intérêt
-              légitime pour l'amélioration du service)
+              Activés automatiquement (base légale : intérêt légitime, article
+              6.1.f du RGPD). Vous pouvez exercer votre droit d'opposition à
+              tout moment via l'email de contact ci-dessous.
             </li>
-            <li>Données pseudonymisées (pas d'identification directe)</li>
+            <li>
+              Données identifiables (email, identifiant utilisateur, prénom) —
+              voir section 4 pour le détail des données envoyées à PostHog
+            </li>
             <li>
               Vous pouvez vous opposer à ces cookies en me contactant à
               <a href="mailto:maxime.desogus@gmail.com" class="text-primary"
@@ -300,5 +341,5 @@ import { ROUTES } from '@core/routing';
 export default class PrivacyPolicyComponent {
   protected readonly ROUTES = ROUTES;
 
-  protected readonly currentDate = '27 janvier 2026';
+  protected readonly currentDate = '6 mai 2026';
 }

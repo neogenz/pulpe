@@ -88,6 +88,10 @@ export const createMockTemplateLineEntity = (
 export class MockSupabaseClient {
   #mockData: unknown = null;
   #mockError: unknown = null;
+  // Captures the last payload passed to .insert() — useful for asserting
+  // service-prepared shapes (e.g. client-provided id forwarding) without
+  // monkey-patching `from()` inside individual tests.
+  lastInsertPayload: unknown = null;
 
   from(_table: string) {
     const result = { data: this.#mockData, error: this.#mockError };
@@ -123,7 +127,10 @@ export class MockSupabaseClient {
       range: () => chainMethods,
       single: () => Promise.resolve(result),
       maybeSingle: () => Promise.resolve(result),
-      insert: () => buildMutationChain(),
+      insert: (data: unknown) => {
+        this.lastInsertPayload = data;
+        return buildMutationChain();
+      },
       update: () => buildMutationChain(),
       delete: () => buildMutationChain(),
       then: (resolve: (value: typeof result) => any) =>
@@ -182,6 +189,7 @@ export class MockSupabaseClient {
   reset() {
     this.#mockData = null;
     this.#mockError = null;
+    this.lastInsertPayload = null;
     return this;
   }
 }

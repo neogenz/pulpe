@@ -39,9 +39,19 @@ function createMockFeatureFlagsService(initial = false) {
   };
 }
 
-const DEFAULT_IDENTIFY_PROPERTIES = {
-  early_adopter: false,
-} as const;
+function expectedIdentifyProperties(
+  userId: string,
+  email?: string,
+  name?: string,
+): Record<string, unknown> {
+  const props: Record<string, unknown> = {
+    supabase_user_id: userId,
+    early_adopter: false,
+  };
+  if (email !== undefined) props['email'] = email;
+  if (name !== undefined) props['name'] = name;
+  return props;
+}
 
 describe('User consent and tracking behavior', () => {
   let analyticsService: AnalyticsService;
@@ -136,7 +146,7 @@ describe('User consent and tracking behavior', () => {
       expect(mockPostHogService.identify).toHaveBeenCalledTimes(1);
       expect(mockPostHogService.identify).toHaveBeenCalledWith(
         userId,
-        DEFAULT_IDENTIFY_PROPERTIES,
+        expectedIdentifyProperties(userId, 'user@example.com'),
       );
     });
   });
@@ -186,7 +196,7 @@ describe('User consent and tracking behavior', () => {
       expect(mockPostHogService.identify).toHaveBeenCalledTimes(1);
       expect(mockPostHogService.identify).toHaveBeenCalledWith(
         returningUserId,
-        DEFAULT_IDENTIFY_PROPERTIES,
+        expectedIdentifyProperties(returningUserId, 'returning@example.com'),
       );
     });
   });
@@ -322,10 +332,10 @@ describe('User consent and tracking behavior', () => {
       });
       TestBed.tick();
 
-      // THEN: Identify omits currency keys (only carries early_adopter)
+      // THEN: Identify omits currency keys (only carries identity + early_adopter)
       expect(mockPostHogService.identify).toHaveBeenCalledWith(
         'user-currency-1',
-        DEFAULT_IDENTIFY_PROPERTIES,
+        expectedIdentifyProperties('user-currency-1', 'user@example.com'),
       );
       // AND: setPersonProperties carries the currency triplet via $set
       expect(mockPostHogService.setPersonProperties).toHaveBeenCalledWith({
@@ -356,7 +366,7 @@ describe('User consent and tracking behavior', () => {
       // until real settings arrive — avoids polluting the cohort with stale CHF defaults.
       expect(mockPostHogService.identify).toHaveBeenCalledWith(
         'user-currency-2',
-        DEFAULT_IDENTIFY_PROPERTIES,
+        expectedIdentifyProperties('user-currency-2', 'user@example.com'),
       );
       expect(mockPostHogService.setPersonProperties).not.toHaveBeenCalled();
     });
@@ -390,6 +400,102 @@ describe('User consent and tracking behavior', () => {
         currency: 'EUR',
         show_currency_selector: false,
         multi_currency_enabled: false,
+      });
+    });
+  });
+
+  describe('identify shape: email and name presence', () => {
+    it('should include name when user_metadata.firstName is non-empty', () => {
+      TestBed.runInInjectionContext(() => {
+        analyticsService.initializeAnalyticsTracking();
+      });
+
+      mockAuthState.set({
+        user: {
+          id: 'user-with-name',
+          email: 'alice@example.com',
+          user_metadata: { firstName: 'Alice' },
+        },
+        session: { access_token: 'token', refresh_token: 'refresh' },
+        isLoading: false,
+        isAuthenticated: true,
+      });
+
+      TestBed.tick();
+
+      expect(mockPostHogService.identify).toHaveBeenCalledWith(
+        'user-with-name',
+        expectedIdentifyProperties(
+          'user-with-name',
+          'alice@example.com',
+          'Alice',
+        ),
+      );
+    });
+
+    it('should omit name when firstName is empty string', () => {
+      TestBed.runInInjectionContext(() => {
+        analyticsService.initializeAnalyticsTracking();
+      });
+
+      mockAuthState.set({
+        user: {
+          id: 'user-empty-name',
+          email: 'bob@example.com',
+          user_metadata: { firstName: '   ' },
+        },
+        session: { access_token: 'token', refresh_token: 'refresh' },
+        isLoading: false,
+        isAuthenticated: true,
+      });
+
+      TestBed.tick();
+
+      const [, props] = mockPostHogService.identify.mock.calls[0];
+      expect(props).not.toHaveProperty('name');
+      expect(props).toMatchObject({
+        supabase_user_id: 'user-empty-name',
+        email: 'bob@example.com',
+      });
+    });
+
+    it('should omit name when user_metadata is absent entirely', () => {
+      TestBed.runInInjectionContext(() => {
+        analyticsService.initializeAnalyticsTracking();
+      });
+
+      mockAuthState.set({
+        user: { id: 'user-no-meta', email: 'carol@example.com' },
+        session: { access_token: 'token', refresh_token: 'refresh' },
+        isLoading: false,
+        isAuthenticated: true,
+      });
+
+      TestBed.tick();
+
+      const [, props] = mockPostHogService.identify.mock.calls[0];
+      expect(props).not.toHaveProperty('name');
+    });
+
+    it('should omit email when user.email is undefined', () => {
+      TestBed.runInInjectionContext(() => {
+        analyticsService.initializeAnalyticsTracking();
+      });
+
+      mockAuthState.set({
+        user: { id: 'user-no-email', email: undefined },
+        session: { access_token: 'token', refresh_token: 'refresh' },
+        isLoading: false,
+        isAuthenticated: true,
+      });
+
+      TestBed.tick();
+
+      const [, props] = mockPostHogService.identify.mock.calls[0];
+      expect(props).not.toHaveProperty('email');
+      expect(props).toMatchObject({
+        supabase_user_id: 'user-no-email',
+        early_adopter: false,
       });
     });
   });
@@ -598,7 +704,10 @@ describe('Demo mode tracking', () => {
       // THEN: User is identified with is_demo flag
       expect(mockPostHogService.identify).toHaveBeenCalledWith(
         'demo-user-123',
-        { ...DEFAULT_IDENTIFY_PROPERTIES, is_demo: true },
+        {
+          ...expectedIdentifyProperties('demo-user-123', 'demo@pulpe.app'),
+          is_demo: true,
+        },
       );
     });
 
@@ -624,7 +733,7 @@ describe('Demo mode tracking', () => {
       // THEN: User is identified WITHOUT is_demo flag
       expect(mockPostHogService.identify).toHaveBeenCalledWith(
         'real-user-456',
-        DEFAULT_IDENTIFY_PROPERTIES,
+        expectedIdentifyProperties('real-user-456', 'user@example.com'),
       );
     });
   });
@@ -647,7 +756,7 @@ describe('Demo mode tracking', () => {
 
       TestBed.tick();
       expect(mockPostHogService.identify).toHaveBeenCalledWith('demo-user', {
-        ...DEFAULT_IDENTIFY_PROPERTIES,
+        ...expectedIdentifyProperties('demo-user', 'demo@pulpe.app'),
         is_demo: true,
       });
 
@@ -710,7 +819,7 @@ describe('Demo mode tracking', () => {
       // THEN: Regular user is identified without demo flag
       expect(mockPostHogService.identify).toHaveBeenCalledWith(
         'real-user',
-        DEFAULT_IDENTIFY_PROPERTIES,
+        expectedIdentifyProperties('real-user', 'real@example.com'),
       );
     });
   });
@@ -741,7 +850,7 @@ describe('Demo mode tracking', () => {
 
       // THEN: User is re-identified with demo flag
       expect(mockPostHogService.identify).toHaveBeenCalledWith('user-123', {
-        ...DEFAULT_IDENTIFY_PROPERTIES,
+        ...expectedIdentifyProperties('user-123', 'user@example.com'),
         is_demo: true,
       });
     });

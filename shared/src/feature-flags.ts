@@ -17,10 +17,15 @@ export const FEATURE_FLAGS = {
 export type FeatureFlagKey = (typeof FEATURE_FLAGS)[keyof typeof FEATURE_FLAGS];
 
 /**
- * PostHog person property keys used for feature flag targeting and dashboards.
+ * PostHog person property keys pushed at `identify` time.
+ *
+ * Used for feature flag targeting, dashboard cohort filters, and surfacing
+ * persons by human-readable identifiers (email/name) in the PostHog UI
+ * instead of raw `person.id`.
  *
  * Must stay in sync with iOS `AnalyticsService` static property keys and the
- * property names referenced in PostHog dashboard flag conditions.
+ * property names referenced in PostHog dashboard flag conditions. Adding a
+ * key here does NOT auto-add it on iOS — keep `AnalyticsService.swift` in sync.
  */
 export const ANALYTICS_PROPERTIES = {
   /** Mirrors Supabase `auth.users.app_metadata.early_adopter`. */
@@ -31,6 +36,12 @@ export const ANALYTICS_PROPERTIES = {
   SHOW_CURRENCY_SELECTOR: 'show_currency_selector',
   /** Mirrors `multi-currency-enabled` flag exposure for dashboard cohort filters. */
   MULTI_CURRENCY_ENABLED: 'multi_currency_enabled',
+  /** User's email — pushed at identify so PostHog UI shows persons by email. */
+  EMAIL: 'email',
+  /** User's display name (firstName from Supabase user_metadata). */
+  NAME: 'name',
+  /** Supabase auth.users.id — kept as person property in addition to being the distinct_id, so it's filterable in PostHog dashboards. */
+  SUPABASE_USER_ID: 'supabase_user_id',
 } as const;
 
 /**

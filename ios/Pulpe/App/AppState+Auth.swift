@@ -103,24 +103,39 @@ extension AppState {
         }
     }
 
+    /// Skip identify on `.unauthenticatedSessionExpired`: the server already
+    /// invalidated this session, so associating analytics + person-property
+    /// feature flags with this user would leak identity into a state PostHog
+    /// would otherwise treat as anonymous-and-rejected.
+    /// Otherwise: identify with email/name/supabase_user_id so PostHog UI
+    /// surfaces persons by human-readable identity (cf. PostHog
+    /// identity-resolution doc). `early_adopter` drives feature flag targeting.
+    private func identifyUserForAnalytics(_ user: UserInfo, destination: PostAuthDestination) {
+        if case .unauthenticatedSessionExpired = destination { return }
+
+        var properties: [String: Any] = [
+            AnalyticsService.supabaseUserIdProperty: user.id,
+            AnalyticsService.earlyAdopterProperty: user.isEarlyAdopter
+        ]
+        // Apple hides email via private relay → `signInWithIdToken` falls back to "".
+        // Sending "" overwrites a previously-identified valid email in PostHog.
+        // Mirrors webapp's `pickString(authState.user.email)` (rejects empty/whitespace).
+        let trimmedEmail = user.email.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !trimmedEmail.isEmpty {
+            properties[AnalyticsService.emailProperty] = trimmedEmail
+        }
+        if let trimmed = user.firstName?.trimmingCharacters(in: .whitespacesAndNewlines),
+           !trimmed.isEmpty {
+            properties[AnalyticsService.nameProperty] = trimmed
+        }
+        AnalyticsService.shared.identify(userId: user.id, properties: properties)
+        AnalyticsService.shared.reloadFeatureFlags()
+    }
+
     func applyPostAuthDestination(_ destination: PostAuthDestination, user: UserInfo? = nil) async {
         if let user {
             currentUser = user
-            // Skip identify on `.unauthenticatedSessionExpired`: the server already
-            // invalidated this session, so associating analytics + person-property
-            // feature flags with this user would leak identity into a state PostHog
-            // would otherwise treat as anonymous-and-rejected.
-            if case .unauthenticatedSessionExpired = destination {
-                // intentionally no-op
-            } else {
-                // `early_adopter` drives targeted feature flag rollouts via PostHog
-                // person properties — must be passed on identify().
-                AnalyticsService.shared.identify(
-                    userId: user.id,
-                    properties: [AnalyticsService.earlyAdopterProperty: user.isEarlyAdopter]
-                )
-                AnalyticsService.shared.reloadFeatureFlags()
-            }
+            identifyUserForAnalytics(user, destination: destination)
         }
         authState = .loading
 

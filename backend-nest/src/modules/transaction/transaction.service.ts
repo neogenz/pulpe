@@ -181,6 +181,7 @@ export class TransactionService {
 
   private prepareTransactionData(createTransactionDto: TransactionCreate) {
     return {
+      ...(createTransactionDto.id ? { id: createTransactionDto.id } : {}),
       budget_id: createTransactionDto.budgetId,
       budget_line_id: createTransactionDto.budgetLineId ?? null,
       amount: createTransactionDto.amount,
@@ -207,6 +208,19 @@ export class TransactionService {
 
     if (error) {
       // Pattern "Log or Throw" - GlobalExceptionFilter handles logging
+      if (error.code === '23505') {
+        throw new BusinessException(
+          ERROR_DEFINITIONS.TRANSACTION_ALREADY_EXISTS,
+          { id: transactionData.id },
+          {
+            operation: 'insertTransaction',
+            userId,
+            entityType: 'transaction',
+            supabaseErrorCode: error.code,
+          },
+          { cause: error },
+        );
+      }
       throw new BusinessException(
         ERROR_DEFINITIONS.TRANSACTION_CREATE_FAILED,
         undefined,
