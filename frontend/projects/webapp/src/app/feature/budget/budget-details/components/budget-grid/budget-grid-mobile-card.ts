@@ -120,32 +120,9 @@ import { BudgetActionMenu } from '../budget-action-menu';
           >
             {{ remaining | appCurrency: currency() : '1.0-0' }}
           </div>
-          <span class="text-label-small text-on-surface-variant">
-            {{
-              'budgetLine.availableOf'
-                | transloco
-                  : {
-                      amount:
-                        (item().data.amount
-                        | appCurrency: currency() : '1.2-2'),
-                    }
-            }}
-          </span>
-        </ng-container>
-
-        <ng-container ngProjectAs="[meta]">
-          <div class="text-right">
-            <div
-              class="ph-no-capture text-title-medium font-semibold text-on-surface"
-            >
-              {{
-                item().consumption!.consumed | appCurrency: currency() : '1.0-0'
-              }}
-            </div>
-            <span class="text-label-small text-on-surface-variant">{{
-              'budgetLine.spent' | transloco
-            }}</span>
-          </div>
+          <span class="text-label-small text-on-surface-variant">{{
+            'budgetLine.available' | transloco
+          }}</span>
         </ng-container>
       } @else {
         <ng-container ngProjectAs="[amount]">
@@ -193,32 +170,33 @@ import { BudgetActionMenu } from '../budget-action-menu';
               [height]="6"
               [consumptionState]="item().consumption!.consumptionState"
             />
-            <div class="text-label-small text-center mt-1.5">
-              @if (item().consumption!.consumptionState === 'over-budget') {
-                <span class="ph-no-capture text-financial-over-budget">
-                  {{
-                    'budgetLine.exceededBy'
-                      | transloco
-                        : {
-                            amount:
-                              (item().consumption!.consumed - item().data.amount
-                              | appCurrency: currency() : '1.0-0'),
-                          }
-                  }}
-                </span>
-              } @else if (
-                item().consumption!.consumptionState === 'near-limit'
-              ) {
-                <span class="text-financial-warning">{{
-                  'budgetLine.usedPercent'
-                    | transloco: { percent: item().consumption!.percentage }
-                }}</span>
-              } @else {
-                <span class="text-on-surface-variant">{{
-                  'budgetLine.usedPercent'
-                    | transloco: { percent: item().consumption!.percentage }
-                }}</span>
-              }
+            <div class="flex justify-between items-center mt-2">
+              <span
+                class="ph-no-capture text-body-small text-on-surface-variant"
+              >
+                {{
+                  item().consumption!.consumed
+                    | appCurrency: currency() : '1.0-0'
+                }}
+                {{ 'budgetLine.spent' | transloco }}
+              </span>
+              <span class="text-body-small font-medium">
+                @if (item().consumption!.consumptionState === 'over-budget') {
+                  <span class="text-financial-over-budget">{{
+                    'budgetLine.exceeded' | transloco
+                  }}</span>
+                } @else if (
+                  item().consumption!.consumptionState === 'near-limit'
+                ) {
+                  <span class="text-financial-warning"
+                    >{{ item().consumption!.percentage }}%</span
+                  >
+                } @else {
+                  <span class="text-on-surface-variant"
+                    >{{ item().consumption!.percentage }}%</span
+                  >
+                }
+              </span>
             </div>
           </div>
         }
