@@ -5,7 +5,6 @@ using NSubstitute.ExceptionExtensions;
 using Pulpe.Application.Budget;
 using Pulpe.Application.Budget.Dto;
 using Pulpe.Application.Common;
-using Pulpe.Infrastructure.Services.Budget;
 using Pulpe.Domain.Budget;
 using Pulpe.Domain.Common;
 using Pulpe.Domain.Encryption;
@@ -29,7 +28,6 @@ public class BudgetServiceTests
     private readonly BudgetValidator _validator = new();
     private readonly BudgetService _sut;
 
-    private readonly object _supabase = new();
     private readonly AuthenticatedUser _user = TestMocks.MakeUser();
 
     public BudgetServiceTests()
@@ -57,9 +55,9 @@ public class BudgetServiceTests
     public async Task FindOne_ExistingBudget_ReturnsBudgetDto()
     {
         var budget = TestMocks.MakeBudget();
-        _repo.FindById(budget.Id, _supabase).Returns(budget);
+        _repo.FindById(budget.Id).Returns(budget);
 
-        var result = await _sut.FindOne(budget.Id, _user, _supabase);
+        var result = await _sut.FindOne(budget.Id, _user);
 
         result.Data.Should().NotBeNull();
         result.Data!.Id.Should().Be(budget.Id);
@@ -69,9 +67,9 @@ public class BudgetServiceTests
     [Fact]
     public async Task FindOne_NotFound_ThrowsNotFound()
     {
-        _repo.FindById(Arg.Any<Guid>(), _supabase).Returns((DomainBudget?)null);
+        _repo.FindById(Arg.Any<Guid>()).Returns((DomainBudget?)null);
 
-        await _sut.Invoking(s => s.FindOne(Guid.NewGuid(), _user, _supabase))
+        await _sut.Invoking(s => s.FindOne(Guid.NewGuid(), _user))
             .Should().ThrowAsync<BusinessException>().Where(ex => ex.StatusCode == 404);
     }
 
@@ -84,14 +82,14 @@ public class BudgetServiceTests
         var dto = new BudgetCreateDto(3, 2024, "March", templateId);
         var createdBudget = TestMocks.MakeBudget(month: 3, year: 2024, templateId: templateId);
 
-        _repo.ExistsForPeriod(3, 2024, _user.Id, _supabase, null).Returns(false);
-        _repo.Create(Arg.Any<object>(), _supabase).Returns(createdBudget);
-        _repo.FindById(createdBudget.Id, _supabase).Returns(createdBudget);
-        _repo.FindLinesByBudgetId(createdBudget.Id, _supabase).Returns(new List<DomainBudgetLine>());
-        _txRepo.FindByBudgetId(createdBudget.Id, _supabase).Returns(new List<DomainTransaction>());
+        _repo.ExistsForPeriod(3, 2024, _user.Id, null).Returns(false);
+        _repo.Create(Arg.Any<object>()).Returns(createdBudget);
+        _repo.FindById(createdBudget.Id).Returns(createdBudget);
+        _repo.FindLinesByBudgetId(createdBudget.Id).Returns(new List<DomainBudgetLine>());
+        _txRepo.FindByBudgetId(createdBudget.Id).Returns(new List<DomainTransaction>());
         _cache.InvalidateForUser(_user.Id).Returns(Task.CompletedTask);
 
-        var result = await _sut.Create(dto, _user, _supabase);
+        var result = await _sut.Create(dto, _user);
 
         result.Success.Should().BeTrue();
         result.Data.Should().NotBeNull();
@@ -103,9 +101,9 @@ public class BudgetServiceTests
     public async Task Create_DuplicatePeriod_ThrowsConflict()
     {
         var dto = new BudgetCreateDto(3, 2024, "", Guid.NewGuid());
-        _repo.ExistsForPeriod(3, 2024, _user.Id, _supabase, null).Returns(true);
+        _repo.ExistsForPeriod(3, 2024, _user.Id, null).Returns(true);
 
-        await _sut.Invoking(s => s.Create(dto, _user, _supabase))
+        await _sut.Invoking(s => s.Create(dto, _user))
             .Should().ThrowAsync<BusinessException>().Where(ex => ex.StatusCode == 409);
     }
 
@@ -114,7 +112,7 @@ public class BudgetServiceTests
     {
         var dto = new BudgetCreateDto(13, 2024, "", Guid.NewGuid());
 
-        await _sut.Invoking(s => s.Create(dto, _user, _supabase))
+        await _sut.Invoking(s => s.Create(dto, _user))
             .Should().ThrowAsync<BusinessException>().Where(ex => ex.StatusCode == 400);
     }
 
@@ -127,13 +125,13 @@ public class BudgetServiceTests
         var dto = new BudgetUpdateDto(Description: "Updated", Month: null, Year: null);
         var budget = TestMocks.MakeBudget(id: budgetId);
 
-        _repo.Update(budgetId, Arg.Any<object>(), _supabase).Returns(budget);
-        _repo.FindById(budgetId, _supabase).Returns(budget);
-        _repo.FindLinesByBudgetId(budgetId, _supabase).Returns(new List<DomainBudgetLine>());
-        _txRepo.FindByBudgetId(budgetId, _supabase).Returns(new List<DomainTransaction>());
+        _repo.Update(budgetId, Arg.Any<object>()).Returns(budget);
+        _repo.FindById(budgetId).Returns(budget);
+        _repo.FindLinesByBudgetId(budgetId).Returns(new List<DomainBudgetLine>());
+        _txRepo.FindByBudgetId(budgetId).Returns(new List<DomainTransaction>());
         _cache.InvalidateForUser(_user.Id).Returns(Task.CompletedTask);
 
-        var result = await _sut.Update(budgetId, dto, _user, _supabase);
+        var result = await _sut.Update(budgetId, dto, _user);
 
         result.Success.Should().BeTrue();
         await _cache.Received(1).InvalidateForUser(_user.Id);
@@ -145,13 +143,13 @@ public class BudgetServiceTests
     public async Task Remove_DeletesBudgetAndInvalidatesCache()
     {
         var budgetId = Guid.NewGuid();
-        _repo.Delete(budgetId, _supabase).Returns(Task.CompletedTask);
+        _repo.Delete(budgetId).Returns(Task.CompletedTask);
         _cache.InvalidateForUser(_user.Id).Returns(Task.CompletedTask);
 
-        var result = await _sut.Remove(budgetId, _user, _supabase);
+        var result = await _sut.Remove(budgetId, _user);
 
         result.Success.Should().BeTrue();
-        await _repo.Received(1).Delete(budgetId, _supabase);
+        await _repo.Received(1).Delete(budgetId);
         await _cache.Received(1).InvalidateForUser(_user.Id);
     }
 
@@ -170,17 +168,17 @@ public class BudgetServiceTests
                 return fetcher();
             });
 
-        _repo.FindAll(_user.Id, _supabase).Returns(budgets);
+        _repo.FindAll(_user.Id).Returns(budgets);
         _userMeta.GetPayDayOfMonth(_user.AccessToken).Returns(1);
 
         // Stub rollover lookups
         var bId = budgets[0].Id;
-        _repo.FindById(bId, _supabase).Returns(budgets[0]);
-        _repo.FindLinesByBudgetId(bId, _supabase).Returns(new List<DomainBudgetLine>());
-        _txRepo.FindByBudgetId(bId, _supabase).Returns(new List<DomainTransaction>());
-        _repo.FindAll(budgets[0].UserId.ToString(), _supabase).Returns(budgets);
+        _repo.FindById(bId).Returns(budgets[0]);
+        _repo.FindLinesByBudgetId(bId).Returns(new List<DomainBudgetLine>());
+        _txRepo.FindByBudgetId(bId).Returns(new List<DomainTransaction>());
+        _repo.FindAll(budgets[0].UserId.ToString()).Returns(budgets);
 
-        var result = await _sut.FindAll(_user, _supabase);
+        var result = await _sut.FindAll(_user);
 
         result.Success.Should().BeTrue();
         result.Data.Should().HaveCount(1);
@@ -193,8 +191,35 @@ public class BudgetServiceTests
     [InlineData(false)]
     public async Task HasBudgets_ReturnsRepositoryResult(bool expected)
     {
-        _repo.HasBudgets(_user.Id, _supabase).Returns(expected);
-        var result = await _sut.HasBudgets(_user, _supabase);
+        _repo.HasBudgets(_user.Id).Returns(expected);
+        var result = await _sut.HasBudgets(_user);
         result.Should().Be(expected);
+    }
+
+    // --- FindAllSparse: BUDGET_UNKNOWN_SPARSE_FIELDS ---
+
+    [Fact]
+    public async Task FindAllSparse_UnknownField_ThrowsBudgetUnknownSparseFields()
+    {
+        var query = new ListBudgetsQueryDto("unknownField,month", null, null);
+
+        var act = async () => await _sut.FindAllSparse(_user, query);
+
+        var ex = await act.Should().ThrowAsync<BusinessException>();
+        ex.Which.Code.Should().Be(ErrorCodes.BudgetUnknownSparseFields);
+        ex.Which.StatusCode.Should().Be(400);
+        ex.Which.Message.Should().Contain("unknownField");
+    }
+
+    [Fact]
+    public async Task FindAllSparse_MultipleUnknownFields_MessageContainsAllInvalidNames()
+    {
+        var query = new ListBudgetsQueryDto("badFieldA,badFieldB,month", null, null);
+
+        var act = async () => await _sut.FindAllSparse(_user, query);
+
+        var ex = await act.Should().ThrowAsync<BusinessException>();
+        ex.Which.Code.Should().Be(ErrorCodes.BudgetUnknownSparseFields);
+        ex.Which.Message.Should().Contain("badFieldA").And.Contain("badFieldB");
     }
 }

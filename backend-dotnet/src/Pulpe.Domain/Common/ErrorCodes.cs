@@ -23,6 +23,7 @@ public static class ErrorCodes
     public const string BudgetUpdateFailed = "ERR_BUDGET_UPDATE_FAILED";
     public const string BudgetDeleteFailed = "ERR_BUDGET_DELETE_FAILED";
     public const string BudgetFetchFailed = "ERR_BUDGET_FETCH_FAILED";
+    public const string BudgetUnknownSparseFields = "ERR_BUDGET_UNKNOWN_SPARSE_FIELDS";
     public const string BudgetAlreadyExists = "ERR_BUDGET_ALREADY_EXISTS_FOR_MONTH";
     public const string BudgetInvalidMonth = "ERR_BUDGET_INVALID_MONTH";
 
@@ -83,6 +84,11 @@ public static class ErrorCodes
     public const string DatabaseConnectionFailed = "ERR_DATABASE_CONNECTION_FAILED";
     public const string ValidationFailed = "ERR_VALIDATION_FAILED";
     public const string RateLimitExceeded = "ERR_RATE_LIMIT_EXCEEDED";
+
+    // Currency
+    public const string CurrencyRateFetchFailed = "ERR_CURRENCY_RATE_FETCH_FAILED";
+    public const string CurrencyUnsupportedCurrency = "ERR_CURRENCY_UNSUPPORTED";
+    public const string CurrencyInvalidFxMetadata = "ERR_CURRENCY_INVALID_FX_METADATA";
 
     // Demo
     public const string DemoSessionFailed = "ERR_DEMO_SESSION_FAILED";

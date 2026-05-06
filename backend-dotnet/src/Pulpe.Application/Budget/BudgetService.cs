@@ -1,5 +1,4 @@
 using Microsoft.Extensions.Logging;
-using Pulpe.Application.Budget;
 using Pulpe.Application.Budget.Dto;
 using Pulpe.Application.Common;
 using Pulpe.Domain.Budget;
@@ -7,9 +6,8 @@ using Pulpe.Domain.Common;
 using Pulpe.Domain.Encryption;
 using Pulpe.Domain.Transaction;
 using Pulpe.Domain.User;
-using Pulpe.Infrastructure.Supabase;
 
-namespace Pulpe.Infrastructure.Services.Budget;
+namespace Pulpe.Application.Budget;
 
 public sealed class BudgetService : IBudgetService, Application.Common.IBudgetRecalculationService
 {
@@ -48,51 +46,51 @@ public sealed class BudgetService : IBudgetService, Application.Common.IBudgetRe
     }
 
     // IBudgetService (Application/Budget/)
-    public async Task<object> FindAllAsync(AuthenticatedUser user, SupabaseRestClient supabase, object? query = null)
+    public async Task<object> FindAllAsync(AuthenticatedUser user, object? query = null)
     {
         var queryDto = query as ListBudgetsQueryDto;
         if (queryDto?.Fields is not null)
-            return await FindAllSparse(user, supabase, queryDto);
-        return await FindAll(user, supabase, queryDto);
+            return await FindAllSparse(user, queryDto);
+        return await FindAll(user, queryDto);
     }
 
-    public async Task<object> CreateAsync(object dto, AuthenticatedUser user, SupabaseRestClient supabase)
+    public async Task<object> CreateAsync(object dto, AuthenticatedUser user)
     {
         var createDto = dto as BudgetCreateDto ?? throw new ArgumentException("Expected BudgetCreateDto");
-        return await Create(createDto, user, supabase);
+        return await Create(createDto, user);
     }
 
-    public async Task<object> ExportAllAsync(AuthenticatedUser user, SupabaseRestClient supabase)
-        => await ExportAll(user, supabase);
+    public async Task<object> ExportAllAsync(AuthenticatedUser user)
+        => await ExportAll(user);
 
-    public async Task<bool> HasBudgetsAsync(AuthenticatedUser user, SupabaseRestClient supabase)
-        => await HasBudgets(user, supabase);
+    public async Task<bool> HasBudgetsAsync(AuthenticatedUser user)
+        => await HasBudgets(user);
 
-    public async Task<object> FindOneAsync(Guid id, AuthenticatedUser user, SupabaseRestClient supabase)
-        => await FindOne(id, user, supabase);
+    public async Task<object> FindOneAsync(Guid id, AuthenticatedUser user)
+        => await FindOne(id, user);
 
-    public async Task<object> FindOneWithDetailsAsync(Guid id, AuthenticatedUser user, SupabaseRestClient supabase)
-        => await FindOneWithDetails(id, user, supabase);
+    public async Task<object> FindOneWithDetailsAsync(Guid id, AuthenticatedUser user)
+        => await FindOneWithDetails(id, user);
 
-    public async Task<object> UpdateAsync(Guid id, object dto, AuthenticatedUser user, SupabaseRestClient supabase)
+    public async Task<object> UpdateAsync(Guid id, object dto, AuthenticatedUser user)
     {
         var updateDto = dto as BudgetUpdateDto ?? throw new ArgumentException("Expected BudgetUpdateDto");
-        return await Update(id, updateDto, user, supabase);
+        return await Update(id, updateDto, user);
     }
 
-    public async Task<object> RemoveAsync(Guid id, AuthenticatedUser user, SupabaseRestClient supabase)
-        => await Remove(id, user, supabase);
+    public async Task<object> RemoveAsync(Guid id, AuthenticatedUser user)
+        => await Remove(id, user);
 
     // Application.Common.IBudgetRecalculationService
-    public async Task RecalculateBalances(Guid budgetId, object supabaseClient, byte[] clientKey)
-        => await _calculator.RecalculateAndPersist(budgetId, supabaseClient, clientKey);
+    public async Task RecalculateBalances(Guid budgetId, byte[] clientKey)
+        => await _calculator.RecalculateAndPersist(budgetId, clientKey);
 
     // Typed public methods
-    public async Task<bool> HasBudgets(AuthenticatedUser user, object supabaseClient)
-        => await _repository.HasBudgets(user.Id, supabaseClient);
+    public async Task<bool> HasBudgets(AuthenticatedUser user)
+        => await _repository.HasBudgets(user.Id);
 
     public async Task<ApiListResponse<BudgetResponseDto>> FindAll(
-        AuthenticatedUser user, object supabaseClient, ListBudgetsQueryDto? query = null)
+        AuthenticatedUser user, ListBudgetsQueryDto? query = null)
     {
         var keyParts = string.Join(":",
             Convert.ToHexString(user.ClientKey).ToLower()[..16],
@@ -103,20 +101,20 @@ public sealed class BudgetService : IBudgetService, Application.Common.IBudgetRe
 
         return await _cacheService.GetOrSet(user.Id, cacheKey,
             TimeSpan.FromSeconds(Constants.DefaultCacheTtlSeconds),
-            () => FetchBudgetList(user, supabaseClient, query));
+            () => FetchBudgetList(user, query));
     }
 
     public async Task<ApiListResponse<BudgetSparseDto>> FindAllSparse(
-        AuthenticatedUser user, object supabaseClient, ListBudgetsQueryDto query)
+        AuthenticatedUser user, ListBudgetsQueryDto query)
     {
         var requestedFields = query.Fields!.Split(',').Select(f => f.Trim()).ToList();
         var invalidFields = requestedFields.Where(f => !AllowedSparseFields.Contains(f)).ToList();
 
         if (invalidFields.Count > 0)
-            throw BusinessException.BadRequest(ErrorCodes.ValidationFailed,
+            throw BusinessException.BadRequest(ErrorCodes.BudgetUnknownSparseFields,
                 $"Unknown sparse fields: {string.Join(", ", invalidFields)}");
 
-        var budgets = await FetchBudgetsWithFilters(user.Id, supabaseClient, query);
+        var budgets = await FetchBudgetsWithFilters(user.Id, query);
         var needsAggregates = FieldsRequireAggregates(requestedFields);
         var needsRollover = FieldsRequireRollover(requestedFields);
         var payDayOfMonth = await _userMetadataService.GetPayDayOfMonth(user.AccessToken);
@@ -132,8 +130,8 @@ public sealed class BudgetService : IBudgetService, Application.Common.IBudgetRe
             if (needsAggregates)
             {
                 var dek = await _encryptionService.GetUserDek(user.Id, user.ClientKey);
-                var lines = await _repository.FindLinesByBudgetId(budget.Id, supabaseClient);
-                var transactions = await _transactionRepository.FindByBudgetId(budget.Id, supabaseClient);
+                var lines = await _repository.FindLinesByBudgetId(budget.Id);
+                var transactions = await _transactionRepository.FindByBudgetId(budget.Id);
 
                 var decryptedLines = lines.Select(l => new FinancialItemWithId(
                     l.Id, l.Kind, _encryptionService.TryDecryptAmount(l.Amount, dek, 0m), l.CheckedAt)).ToList();
@@ -151,7 +149,7 @@ public sealed class BudgetService : IBudgetService, Application.Common.IBudgetRe
             {
                 try
                 {
-                    var rolloverResult = await _calculator.GetRollover(budget.Id, payDayOfMonth, supabaseClient, user.ClientKey);
+                    var rolloverResult = await _calculator.GetRollover(budget.Id, payDayOfMonth, user.ClientKey);
                     rollover = rolloverResult.Rollover;
                     if (needsAggregates && remaining.HasValue)
                         remaining = remaining.Value + rollover.Value;
@@ -178,15 +176,15 @@ public sealed class BudgetService : IBudgetService, Application.Common.IBudgetRe
         return new ApiListResponse<BudgetSparseDto>(true, [.. sparseResults]);
     }
 
-    public async Task<ApiResponse<BudgetExportDataDto>> ExportAll(AuthenticatedUser user, object supabaseClient)
+    public async Task<ApiResponse<BudgetExportDataDto>> ExportAll(AuthenticatedUser user)
     {
         var startTime = DateTimeOffset.UtcNow;
         var payDayOfMonth = await _userMetadataService.GetPayDayOfMonth(user.AccessToken);
-        var budgets = await _repository.FindAll(user.Id, supabaseClient);
+        var budgets = await _repository.FindAll(user.Id);
         var orderedBudgets = budgets.OrderBy(b => b.Year).ThenBy(b => b.Month).ToList();
 
         var budgetsWithDetails = await Task.WhenAll(orderedBudgets.Select(budget =>
-            EnrichBudgetForExport(budget, user, supabaseClient, payDayOfMonth)));
+            EnrichBudgetForExport(budget, user, payDayOfMonth)));
 
         _logger.LogInformation("Exported {Count} budgets for user {UserId} in {Duration}ms",
             budgetsWithDetails.Length, user.Id, (DateTimeOffset.UtcNow - startTime).TotalMilliseconds);
@@ -200,10 +198,10 @@ public sealed class BudgetService : IBudgetService, Application.Common.IBudgetRe
     }
 
     public async Task<ApiResponse<BudgetResponseDto>> Create(
-        BudgetCreateDto dto, AuthenticatedUser user, object supabaseClient)
+        BudgetCreateDto dto, AuthenticatedUser user)
     {
         _validator.ValidateBudgetInput(dto);
-        await _validator.ValidateNoDuplicatePeriod(_repository, supabaseClient, user.Id, dto.Month, dto.Year);
+        await _validator.ValidateNoDuplicatePeriod(_repository, user.Id, dto.Month, dto.Year);
 
         var rpcArgs = new
         {
@@ -214,8 +212,8 @@ public sealed class BudgetService : IBudgetService, Application.Common.IBudgetRe
             p_description = dto.Description ?? string.Empty
         };
 
-        var budget = await _repository.Create(rpcArgs, supabaseClient);
-        await _calculator.RecalculateAndPersist(budget.Id, supabaseClient, user.ClientKey);
+        var budget = await _repository.Create(rpcArgs);
+        await _calculator.RecalculateAndPersist(budget.Id, user.ClientKey);
         await _cacheService.InvalidateForUser(user.Id);
 
         _logger.LogInformation("Budget created {BudgetId} for user {UserId} period {Month}/{Year}",
@@ -224,9 +222,9 @@ public sealed class BudgetService : IBudgetService, Application.Common.IBudgetRe
         return new ApiResponse<BudgetResponseDto>(true, MapToResponseDto(budget));
     }
 
-    public async Task<ApiResponse<BudgetResponseDto>> FindOne(Guid id, AuthenticatedUser user, object supabaseClient)
+    public async Task<ApiResponse<BudgetResponseDto>> FindOne(Guid id, AuthenticatedUser user)
     {
-        var budget = await _repository.FindById(id, supabaseClient);
+        var budget = await _repository.FindById(id);
         if (budget is null)
             throw BusinessException.NotFound(ErrorCodes.BudgetNotFound, $"Budget {id} not found");
 
@@ -234,54 +232,54 @@ public sealed class BudgetService : IBudgetService, Application.Common.IBudgetRe
     }
 
     public async Task<ApiResponse<BudgetDetailsResponseDto>> FindOneWithDetails(
-        Guid id, AuthenticatedUser user, object supabaseClient)
+        Guid id, AuthenticatedUser user)
     {
         var clientKeyHex = Convert.ToHexString(user.ClientKey).ToLower()[..16];
         var cacheKey = $"budgets:detail:{clientKeyHex}:{id}";
 
         return await _cacheService.GetOrSet(user.Id, cacheKey,
             TimeSpan.FromSeconds(Constants.DefaultCacheTtlSeconds),
-            () => FetchBudgetWithDetails(id, user, supabaseClient));
+            () => FetchBudgetWithDetails(id, user));
     }
 
     public async Task<ApiResponse<BudgetResponseDto>> Update(
-        Guid id, BudgetUpdateDto dto, AuthenticatedUser user, object supabaseClient)
+        Guid id, BudgetUpdateDto dto, AuthenticatedUser user)
     {
         _validator.ValidateUpdateBudgetDto(dto);
 
         if (dto.Month.HasValue && dto.Year.HasValue)
-            await _validator.ValidateNoDuplicatePeriod(_repository, supabaseClient, user.Id, dto.Month.Value, dto.Year.Value, id);
+            await _validator.ValidateNoDuplicatePeriod(_repository, user.Id, dto.Month.Value, dto.Year.Value, id);
 
         var updatePayload = new Dictionary<string, object?>();
         if (dto.Description is not null) updatePayload["description"] = dto.Description;
         if (dto.Month.HasValue) updatePayload["month"] = dto.Month.Value;
         if (dto.Year.HasValue) updatePayload["year"] = dto.Year.Value;
 
-        var budget = await _repository.Update(id, updatePayload, supabaseClient);
-        await _calculator.RecalculateAndPersist(id, supabaseClient, user.ClientKey);
+        var budget = await _repository.Update(id, updatePayload);
+        await _calculator.RecalculateAndPersist(id, user.ClientKey);
         await _cacheService.InvalidateForUser(user.Id);
 
         return new ApiResponse<BudgetResponseDto>(true, MapToResponseDto(budget));
     }
 
-    public async Task<ApiResponse<string>> Remove(Guid id, AuthenticatedUser user, object supabaseClient)
+    public async Task<ApiResponse<string>> Remove(Guid id, AuthenticatedUser user)
     {
-        await _repository.Delete(id, supabaseClient);
+        await _repository.Delete(id);
         await _cacheService.InvalidateForUser(user.Id);
         return new ApiResponse<string>(true, "Budget deleted successfully");
     }
 
     private async Task<ApiListResponse<BudgetResponseDto>> FetchBudgetList(
-        AuthenticatedUser user, object supabaseClient, ListBudgetsQueryDto? query)
+        AuthenticatedUser user, ListBudgetsQueryDto? query)
     {
-        var budgets = await FetchBudgetsWithFilters(user.Id, supabaseClient, query);
+        var budgets = await FetchBudgetsWithFilters(user.Id, query);
         var payDayOfMonth = await _userMetadataService.GetPayDayOfMonth(user.AccessToken);
 
         var enrichedBudgets = await Task.WhenAll(budgets.Select(async budget =>
         {
             try
             {
-                var remaining = await CalculateRemainingForBudget(budget, supabaseClient, payDayOfMonth, user.ClientKey);
+                var remaining = await CalculateRemainingForBudget(budget, payDayOfMonth, user.ClientKey);
                 var decryptedBalance = await DecryptEndingBalance(budget, user.ClientKey);
                 return MapToResponseDto(budget, remaining: remaining, endingBalance: decryptedBalance);
             }
@@ -297,9 +295,9 @@ public sealed class BudgetService : IBudgetService, Application.Common.IBudgetRe
     }
 
     private async Task<List<Domain.Budget.Budget>> FetchBudgetsWithFilters(
-        string userId, object supabaseClient, ListBudgetsQueryDto? query)
+        string userId, ListBudgetsQueryDto? query)
     {
-        var budgets = await _repository.FindAll(userId, supabaseClient);
+        var budgets = await _repository.FindAll(userId);
 
         if (query?.Year.HasValue == true)
             budgets = budgets.Where(b => b.Year == query.Year.Value).ToList();
@@ -311,17 +309,17 @@ public sealed class BudgetService : IBudgetService, Application.Common.IBudgetRe
     }
 
     private async Task<ApiResponse<BudgetDetailsResponseDto>> FetchBudgetWithDetails(
-        Guid id, AuthenticatedUser user, object supabaseClient)
+        Guid id, AuthenticatedUser user)
     {
-        var budget = await _repository.FindById(id, supabaseClient);
+        var budget = await _repository.FindById(id);
         if (budget is null)
             throw BusinessException.NotFound(ErrorCodes.BudgetNotFound, $"Budget {id} not found");
 
         var payDayOfMonth = await _userMetadataService.GetPayDayOfMonth(user.AccessToken);
         var dek = await _encryptionService.GetUserDek(user.Id, user.ClientKey);
-        var budgetLines = await _repository.FindLinesByBudgetId(id, supabaseClient);
-        var transactions = await _transactionRepository.FindByBudgetId(id, supabaseClient);
-        var rolloverResult = await _calculator.GetRollover(id, payDayOfMonth, supabaseClient, user.ClientKey);
+        var budgetLines = await _repository.FindLinesByBudgetId(id);
+        var transactions = await _transactionRepository.FindByBudgetId(id);
+        var rolloverResult = await _calculator.GetRollover(id, payDayOfMonth, user.ClientKey);
 
         var decryptedBalance = budget.EndingBalance is not null
             ? _encryptionService.TryDecryptAmount(budget.EndingBalance, dek, 0m)
@@ -352,13 +350,13 @@ public sealed class BudgetService : IBudgetService, Application.Common.IBudgetRe
     }
 
     private async Task<BudgetWithDetailsDto> EnrichBudgetForExport(
-        Domain.Budget.Budget budget, AuthenticatedUser user, object supabaseClient, int payDayOfMonth)
+        Domain.Budget.Budget budget, AuthenticatedUser user, int payDayOfMonth)
     {
         var dek = await _encryptionService.GetUserDek(user.Id, user.ClientKey);
-        var budgetLines = await _repository.FindLinesByBudgetId(budget.Id, supabaseClient);
-        var transactions = await _transactionRepository.FindByBudgetId(budget.Id, supabaseClient);
-        var rolloverResult = await _calculator.GetRollover(budget.Id, payDayOfMonth, supabaseClient, user.ClientKey);
-        var remaining = await CalculateRemainingForBudget(budget, supabaseClient, payDayOfMonth, user.ClientKey);
+        var budgetLines = await _repository.FindLinesByBudgetId(budget.Id);
+        var transactions = await _transactionRepository.FindByBudgetId(budget.Id);
+        var rolloverResult = await _calculator.GetRollover(budget.Id, payDayOfMonth, user.ClientKey);
+        var remaining = await CalculateRemainingForBudget(budget, payDayOfMonth, user.ClientKey);
 
         var decryptedBalance = budget.EndingBalance is not null
             ? _encryptionService.TryDecryptAmount(budget.EndingBalance, dek, 0m)
@@ -386,18 +384,18 @@ public sealed class BudgetService : IBudgetService, Application.Common.IBudgetRe
     }
 
     private async Task<decimal> CalculateRemainingForBudget(
-        Domain.Budget.Budget budget, object supabaseClient, int payDayOfMonth, byte[] clientKey)
+        Domain.Budget.Budget budget, int payDayOfMonth, byte[] clientKey)
     {
         try
         {
-            var currentBalance = await _calculator.CalculateEndingBalance(budget.Id, supabaseClient, clientKey);
-            var rolloverResult = await _calculator.GetRollover(budget.Id, payDayOfMonth, supabaseClient, clientKey);
+            var currentBalance = await _calculator.CalculateEndingBalance(budget.Id, clientKey);
+            var rolloverResult = await _calculator.GetRollover(budget.Id, payDayOfMonth, clientKey);
             return currentBalance + rolloverResult.Rollover;
         }
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Failed to calculate dynamic remaining for budget {BudgetId}", budget.Id);
-            var rolloverResult = await _calculator.GetRollover(budget.Id, payDayOfMonth, supabaseClient, clientKey);
+            var rolloverResult = await _calculator.GetRollover(budget.Id, payDayOfMonth, clientKey);
             var storedBalance = await DecryptEndingBalance(budget, clientKey);
             return storedBalance + rolloverResult.Rollover;
         }
