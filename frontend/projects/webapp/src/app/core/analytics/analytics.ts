@@ -15,6 +15,14 @@ import { UserSettingsStore } from '../user-settings/user-settings-store';
 import { FeatureFlagsService } from '../feature-flags/feature-flags.service';
 import type { Properties } from 'posthog-js';
 
+// Trim + reject empty so re-identify can't overwrite a known-good
+// email/name with `undefined` (posthog-js serializes that as null).
+function pickNonEmptyString(value: unknown): string | undefined {
+  if (typeof value !== 'string') return undefined;
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : undefined;
+}
+
 /**
  * Simplified analytics service following KISS principle.
  * Leverages PostHog's auto-capture for most tracking needs.
@@ -84,19 +92,11 @@ export class AnalyticsService implements OnDestroy {
             | Record<string, unknown>
             | undefined;
 
-          // Trim + reject empty so re-identify can't overwrite a known-good
-          // email/name with `undefined` (posthog-js serializes that as null).
-          const pickString = (value: unknown): string | undefined => {
-            if (typeof value !== 'string') return undefined;
-            const trimmed = value.trim();
-            return trimmed.length > 0 ? trimmed : undefined;
-          };
-
           const fullName =
-            pickString(userMetadata?.['firstName']) ??
-            pickString(userMetadata?.['full_name']) ??
-            pickString(userMetadata?.['name']);
-          const userEmail = pickString(authState.user.email);
+            pickNonEmptyString(userMetadata?.['firstName']) ??
+            pickNonEmptyString(userMetadata?.['full_name']) ??
+            pickNonEmptyString(userMetadata?.['name']);
+          const userEmail = pickNonEmptyString(authState.user.email);
 
           const identifyProperties: Properties = {
             [ANALYTICS_PROPERTIES.SUPABASE_USER_ID]: authState.user.id,
