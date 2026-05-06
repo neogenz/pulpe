@@ -2,6 +2,8 @@ import Foundation
 @testable import Pulpe
 import Testing
 
+// swiftlint:disable type_body_length
+
 @MainActor
 @Suite(.serialized)
 struct OnboardingBootstrapperTests {
@@ -37,15 +39,28 @@ struct OnboardingBootstrapperTests {
         createTemplate: (@MainActor (BudgetTemplateCreateFromOnboarding) async throws -> BudgetTemplate)? = nil,
         createBudget: (@MainActor (BudgetCreate) async throws -> Budget)? = nil,
         toastManager: ToastManager = ToastManager(),
+        retryDelays: [Duration] = [.zero, .zero],
         persistCurrency: (@MainActor (SupportedCurrency) async -> Bool)? = nil
     ) -> OnboardingBootstrapper {
         let sut = OnboardingBootstrapper(
             createTemplate: createTemplate ?? { _ in Self.mockTemplate },
             createBudget: createBudget ?? { _ in Self.mockBudget },
-            toastManager: toastManager
+            toastManager: toastManager,
+            retryDelays: retryDelays
         )
         sut.persistCurrency = persistCurrency
         return sut
+    }
+
+    private func arrangePendingCurrency(
+        on sut: OnboardingBootstrapper,
+        currency: SupportedCurrency = .eur
+    ) {
+        sut.setPendingData(
+            BudgetTemplateCreateFromOnboarding(),
+            signupMethod: "email",
+            currency: currency
+        )
     }
 
     // MARK: - bootstrapIfNeeded
@@ -247,11 +262,7 @@ struct OnboardingBootstrapperTests {
                 return true
             }
         )
-        sut.setPendingData(
-            BudgetTemplateCreateFromOnboarding(),
-            signupMethod: "email",
-            currency: .eur
-        )
+        arrangePendingCurrency(on: sut)
 
         await sut.bootstrapIfNeeded()
 
@@ -263,11 +274,7 @@ struct OnboardingBootstrapperTests {
         let sut = makeSUT(
             persistCurrency: { _ in false }
         )
-        sut.setPendingData(
-            BudgetTemplateCreateFromOnboarding(),
-            signupMethod: "email",
-            currency: .eur
-        )
+        arrangePendingCurrency(on: sut)
 
         let result = await sut.bootstrapIfNeeded()
 
@@ -283,11 +290,7 @@ struct OnboardingBootstrapperTests {
             toastManager: toast,
             persistCurrency: { _ in false }
         )
-        sut.setPendingData(
-            BudgetTemplateCreateFromOnboarding(),
-            signupMethod: "email",
-            currency: .eur
-        )
+        arrangePendingCurrency(on: sut)
 
         await sut.bootstrapIfNeeded()
 
@@ -310,6 +313,108 @@ struct OnboardingBootstrapperTests {
         await sut.bootstrapIfNeeded()
 
         #expect(persistCallCount == 0)
+    }
+
+    // MARK: - Currency Persistence Retry (PUL-203)
+
+    @Test("bootstrapIfNeeded retries persistCurrency on failure and succeeds on 2nd attempt")
+    func bootstrapIfNeeded_persistCurrencyFailsThenSucceeds_succeedsWithoutToast() async {
+        nonisolated(unsafe) var attemptCount = 0
+        let toast = ToastManager()
+        let sut = makeSUT(
+            toastManager: toast,
+            persistCurrency: { _ in
+                attemptCount += 1
+                return attemptCount >= 2
+            }
+        )
+        arrangePendingCurrency(on: sut)
+
+        await sut.bootstrapIfNeeded()
+
+        #expect(attemptCount == 2)
+        #expect(toast.currentToast == nil, "No toast when retry eventually succeeds")
+    }
+
+    @Test("bootstrapIfNeeded retries persistCurrency twice and succeeds on 3rd attempt")
+    func bootstrapIfNeeded_persistCurrencyFailsTwiceThenSucceeds_succeedsOnFinalAttempt() async {
+        nonisolated(unsafe) var attemptCount = 0
+        let toast = ToastManager()
+        let sut = makeSUT(
+            toastManager: toast,
+            persistCurrency: { _ in
+                attemptCount += 1
+                return attemptCount >= 3
+            }
+        )
+        arrangePendingCurrency(on: sut)
+
+        await sut.bootstrapIfNeeded()
+
+        #expect(attemptCount == 3)
+        #expect(toast.currentToast == nil)
+    }
+
+    @Test("bootstrapIfNeeded persistCurrency fails all 3 attempts shows toast and returns true")
+    func bootstrapIfNeeded_persistCurrencyFailsAllAttempts_showsToastReturnsTrue() async {
+        nonisolated(unsafe) var attemptCount = 0
+        let toast = ToastManager()
+        let sut = makeSUT(
+            toastManager: toast,
+            persistCurrency: { _ in
+                attemptCount += 1
+                return false
+            }
+        )
+        arrangePendingCurrency(on: sut)
+
+        let result = await sut.bootstrapIfNeeded()
+
+        #expect(attemptCount == 3, "Initial attempt + 2 retries = 3 total")
+        #expect(toast.currentToast != nil)
+        #expect(result == true, "Bootstrap still returns true to avoid duplicating template/budget on retry")
+    }
+
+    @Test("bootstrapIfNeeded persistCurrency succeeds on first attempt does not retry")
+    func bootstrapIfNeeded_persistCurrencySucceedsImmediately_doesNotRetry() async {
+        nonisolated(unsafe) var attemptCount = 0
+        let sut = makeSUT(
+            persistCurrency: { _ in
+                attemptCount += 1
+                return true
+            }
+        )
+        arrangePendingCurrency(on: sut)
+
+        await sut.bootstrapIfNeeded()
+
+        #expect(attemptCount == 1, "Success on first attempt must short-circuit retries")
+    }
+
+    @Test("bootstrapIfNeeded cancellation mid-retry aborts loop without toast")
+    func bootstrapIfNeeded_cancelledMidRetry_abortsLoopNoToast() async {
+        nonisolated(unsafe) var attemptCount = 0
+        let toast = ToastManager()
+        let sut = makeSUT(
+            toastManager: toast,
+            retryDelays: [.milliseconds(50), .milliseconds(50)],
+            persistCurrency: { _ in
+                attemptCount += 1
+                return false
+            }
+        )
+        arrangePendingCurrency(on: sut)
+
+        // Run bootstrap in a detached task so Task.sleep in the retry loop can actually
+        // yield on the main actor while we cancel from the test body.
+        let task = Task.detached { await sut.bootstrapIfNeeded() }
+        // Let first attempt fire, then cancel during the 50ms sleep window.
+        try? await Task.sleep(for: .milliseconds(10))
+        task.cancel()
+        await task.value
+
+        #expect(attemptCount < 3, "Cancellation must short-circuit retry loop")
+        #expect(toast.currentToast == nil, "No toast on cancellation — bootstrap was aborted, not exhausted")
     }
 
     @Test("setPendingData with currency stores pendingCurrency; clearPendingData clears it")

@@ -29,6 +29,7 @@ struct AnalyticsServiceTests {
         #expect(AnalyticsEvent.budgetCreated.rawValue == "budget_created")
         #expect(AnalyticsEvent.transactionCreated.rawValue == "transaction_created")
         #expect(AnalyticsEvent.tabSwitched.rawValue == "tab_switched")
+        #expect(AnalyticsEvent.currencyPersistFailed.rawValue == "currency_persist_failed")
     }
 
     // MARK: - Sanitization
