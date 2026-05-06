@@ -79,9 +79,30 @@ export class AnalyticsService implements OnDestroy {
           // would otherwise re-fire identify on every settings tick or PostHog
           // `flagsVersion` bump (feedback loop with this same identify call).
           const isDemoMode = this.#demoModeService.isDemoMode();
+          const userMetadata = authState.user.user_metadata as
+            | Record<string, unknown>
+            | undefined;
+
+          // Trim + reject empty so re-identify can't overwrite a known-good
+          // email/name with `undefined` (posthog-js serializes that as null).
+          const pickString = (value: unknown): string | undefined => {
+            if (typeof value !== 'string') return undefined;
+            const trimmed = value.trim();
+            return trimmed.length > 0 ? trimmed : undefined;
+          };
+
+          const fullName =
+            pickString(userMetadata?.['firstName']) ??
+            pickString(userMetadata?.['full_name']) ??
+            pickString(userMetadata?.['name']);
+          const userEmail = pickString(authState.user.email);
+
           const identifyProperties: Properties = {
+            [ANALYTICS_PROPERTIES.SUPABASE_USER_ID]: authState.user.id,
             [ANALYTICS_PROPERTIES.EARLY_ADOPTER]:
               this.#authStore.isEarlyAdopter(),
+            ...(userEmail && { [ANALYTICS_PROPERTIES.EMAIL]: userEmail }),
+            ...(fullName && { [ANALYTICS_PROPERTIES.NAME]: fullName }),
             ...(isDemoMode && { is_demo: true }),
           };
 
