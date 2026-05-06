@@ -45,7 +45,9 @@ struct BudgetLineDetailSheet: View {
     // MARK: - Body
 
     var body: some View {
-        NavigationStack {
+        VStack(spacing: 0) {
+            sheetHeader
+
             List {
                 Section {
                     heroSection
@@ -81,22 +83,10 @@ struct BudgetLineDetailSheet: View {
             .listStyle(.insetGrouped)
             .listSectionSpacing(DesignTokens.Spacing.lg)
             .scrollContentBackground(.hidden)
-            .background(Color.sheetBackground.ignoresSafeArea())
-            .safeAreaInset(edge: .bottom) {
-                addTransactionButton
-            }
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    SheetCloseButton()
-                }
-                ToolbarItem(placement: .principal) {
-                    titleWithKindDot
-                }
-                ToolbarItem(placement: .primaryAction) {
-                    headerMenu
-                }
-            }
+        }
+        .background(Color.sheetBackground.ignoresSafeArea())
+        .safeAreaInset(edge: .bottom) {
+            addTransactionButton
         }
         .accessibilityIdentifier("budgetLineDetailSheetRoot")
         .standardSheetPresentation(detents: [.medium, .large])
@@ -107,6 +97,22 @@ struct BudgetLineDetailSheet: View {
             }
         }
         #endif
+    }
+
+    // MARK: - Sheet Header (DM2.1.c spec — left-aligned title with kind dot, menu + close)
+
+    private var sheetHeader: some View {
+        HStack(spacing: DesignTokens.Spacing.sm) {
+            titleWithKindDot
+
+            Spacer(minLength: DesignTokens.Spacing.sm)
+
+            headerMenu
+
+            SheetCloseButton()
+        }
+        .padding(.horizontal, DesignTokens.Spacing.lg)
+        .padding(.vertical, DesignTokens.Spacing.md)
     }
 
     #if DEBUG
@@ -193,8 +199,7 @@ struct BudgetLineDetailSheet: View {
                 .sensitiveAmount()
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(DesignTokens.Spacing.lg)
-        .pulpeCardBackground()
+        .padding(.horizontal, DesignTokens.Spacing.lg)
     }
 
     private var progressRow: some View {
