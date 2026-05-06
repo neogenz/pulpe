@@ -13,9 +13,9 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Pulpe.Api.Application.Encryption;
-using Pulpe.Api.Domain.User;
-using Pulpe.Api.Infrastructure.Supabase;
+using Pulpe.Infrastructure.Services.Encryption;
+using Pulpe.Domain.User;
+using Pulpe.Infrastructure.Supabase;
 
 namespace Pulpe.Api.Tests.Integration.Fixtures;
 

@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Pulpe.Api")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+334aa455c0998718aab9a30b41d483cf44c34306")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+e4d8adfeedd482ca86f54895f1216e6128c336fd")]
 [assembly: System.Reflection.AssemblyProductAttribute("Pulpe.Api")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Pulpe.Api")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

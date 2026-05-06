@@ -1,4 +1,4 @@
-using Pulpe.Api.Domain.User;
+using Pulpe.Domain.User;
 
 namespace Pulpe.Api.Api.Auth;
 

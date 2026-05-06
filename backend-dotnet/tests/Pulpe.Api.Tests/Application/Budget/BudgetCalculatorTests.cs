@@ -1,15 +1,15 @@
 using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
-using Pulpe.Api.Application.Budget;
-using Pulpe.Api.Domain.Budget;
-using Pulpe.Api.Domain.Common;
-using Pulpe.Api.Domain.Encryption;
-using Pulpe.Api.Domain.Transaction;
+using Pulpe.Application.Budget;
+using Pulpe.Domain.Budget;
+using Pulpe.Domain.Common;
+using Pulpe.Domain.Encryption;
+using Pulpe.Domain.Transaction;
 using Pulpe.Api.Tests.Helpers;
-using DomainBudget = Pulpe.Api.Domain.Budget.Budget;
-using DomainBudgetLine = Pulpe.Api.Domain.Budget.BudgetLine;
-using DomainTransaction = Pulpe.Api.Domain.Transaction.Transaction;
+using DomainBudget = Pulpe.Domain.Budget.Budget;
+using DomainBudgetLine = Pulpe.Domain.Budget.BudgetLine;
+using DomainTransaction = Pulpe.Domain.Transaction.Transaction;
 
 namespace Pulpe.Api.Tests.Application.Budget;
 

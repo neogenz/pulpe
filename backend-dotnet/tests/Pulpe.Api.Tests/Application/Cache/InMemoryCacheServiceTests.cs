@@ -1,7 +1,7 @@
 using FluentAssertions;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging.Abstractions;
-using Pulpe.Api.Infrastructure.Cache;
+using Pulpe.Infrastructure.Cache;
 
 namespace Pulpe.Api.Tests.Application.Cache;
 

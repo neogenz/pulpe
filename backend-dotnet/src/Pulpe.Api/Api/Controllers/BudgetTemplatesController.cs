@@ -1,9 +1,9 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Pulpe.Api.Api.Auth;
-using Pulpe.Api.Application.Template;
-using Pulpe.Api.Application.Template.Dto;
-using Pulpe.Api.Infrastructure.Supabase;
+using Pulpe.Infrastructure.Services.Template;
+using Pulpe.Application.Template.Dto;
+using Pulpe.Infrastructure.Supabase;
 
 namespace Pulpe.Api.Api.Controllers;
 

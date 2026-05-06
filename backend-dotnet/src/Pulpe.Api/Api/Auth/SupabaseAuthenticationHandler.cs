@@ -2,9 +2,9 @@ using System.Security.Claims;
 using System.Text.Encodings.Web;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Options;
-using Pulpe.Api.Domain.Common;
-using Pulpe.Api.Domain.User;
-using Pulpe.Api.Infrastructure.Supabase;
+using Pulpe.Domain.Common;
+using Pulpe.Domain.User;
+using Pulpe.Infrastructure.Supabase;
 
 namespace Pulpe.Api.Api.Auth;
 

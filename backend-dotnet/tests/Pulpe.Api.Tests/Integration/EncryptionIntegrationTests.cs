@@ -1,7 +1,7 @@
 using FluentAssertions;
 using Microsoft.Extensions.Options;
-using Pulpe.Api.Domain.Encryption;
-using Pulpe.Api.Infrastructure.Encryption;
+using Pulpe.Domain.Encryption;
+using Pulpe.Infrastructure.Encryption;
 
 namespace Pulpe.Api.Tests.Integration;
 
@@ -254,17 +254,20 @@ internal sealed class InMemoryEncryptionKeyRepository : IEncryptionKeyRepository
     public Task<EncryptionKey?> GetByUserId(string userId) =>
         Task.FromResult(_store.TryGetValue(userId, out var key) ? key : null);
 
-    public Task UpsertSalt(string userId, string salt, int kdfIterations)
+    public Task<string> UpsertSalt(string userId, string salt, int kdfIterations)
     {
         var existing = _store.GetValueOrDefault(userId);
+        if (existing is not null)
+            return Task.FromResult(existing.Salt);
+
         _store[userId] = new EncryptionKey
         {
             Salt = salt,
             KdfIterations = kdfIterations,
-            WrappedDek = existing?.WrappedDek,
-            KeyCheck = existing?.KeyCheck
+            WrappedDek = null,
+            KeyCheck = null
         };
-        return Task.CompletedTask;
+        return Task.FromResult(salt);
     }
 
     public Task UpdateKeyCheck(string userId, string keyCheck)

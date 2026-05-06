@@ -1,0 +1,14 @@
+{
+  "version": 2,
+  "dgSpecHash": "D0uZlYiT4Ow=",
+  "success": true,
+  "projectFilePath": "/Users/maximedesogus/conductor/workspaces/pulpe-workspace/copenhagen-v3/backend-dotnet/src/Pulpe.Application/Pulpe.Application.csproj",
+  "expectedPackageFiles": [
+    "/Users/maximedesogus/.nuget/packages/fluentvalidation/11.11.0/fluentvalidation.11.11.0.nupkg.sha512",
+    "/Users/maximedesogus/.nuget/packages/fluentvalidation.aspnetcore/11.3.1/fluentvalidation.aspnetcore.11.3.1.nupkg.sha512",
+    "/Users/maximedesogus/.nuget/packages/fluentvalidation.dependencyinjectionextensions/11.11.0/fluentvalidation.dependencyinjectionextensions.11.11.0.nupkg.sha512",
+    "/Users/maximedesogus/.nuget/packages/microsoft.extensions.dependencyinjection.abstractions/10.0.5/microsoft.extensions.dependencyinjection.abstractions.10.0.5.nupkg.sha512",
+    "/Users/maximedesogus/.nuget/packages/microsoft.extensions.logging.abstractions/10.0.5/microsoft.extensions.logging.abstractions.10.0.5.nupkg.sha512"
+  ],
+  "logs": []
+}

@@ -2,7 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using FluentAssertions;
-using Pulpe.Api.Domain.User;
+using Pulpe.Domain.User;
 using Pulpe.Api.Tests.Integration.Fixtures;
 
 namespace Pulpe.Api.Tests.Integration;

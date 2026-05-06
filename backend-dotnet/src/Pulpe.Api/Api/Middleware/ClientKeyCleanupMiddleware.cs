@@ -1,5 +1,5 @@
 using System.Security.Cryptography;
-using Pulpe.Api.Domain.User;
+using Pulpe.Domain.User;
 
 namespace Pulpe.Api.Api.Middleware;
 

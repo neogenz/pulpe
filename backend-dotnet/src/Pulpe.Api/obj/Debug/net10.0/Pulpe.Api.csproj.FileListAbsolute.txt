@@ -48,3 +48,9 @@
 /Users/maximedesogus/conductor/workspaces/pulpe-workspace/copenhagen-v3/backend-dotnet/src/Pulpe.Api/obj/Debug/net10.0/Pulpe.Api.pdb
 /Users/maximedesogus/conductor/workspaces/pulpe-workspace/copenhagen-v3/backend-dotnet/src/Pulpe.Api/obj/Debug/net10.0/Pulpe.Api.genruntimeconfig.cache
 /Users/maximedesogus/conductor/workspaces/pulpe-workspace/copenhagen-v3/backend-dotnet/src/Pulpe.Api/obj/Debug/net10.0/ref/Pulpe.Api.dll
+/Users/maximedesogus/conductor/workspaces/pulpe-workspace/copenhagen-v3/backend-dotnet/src/Pulpe.Api/bin/Debug/net10.0/Pulpe.Application.dll
+/Users/maximedesogus/conductor/workspaces/pulpe-workspace/copenhagen-v3/backend-dotnet/src/Pulpe.Api/bin/Debug/net10.0/Pulpe.Domain.dll
+/Users/maximedesogus/conductor/workspaces/pulpe-workspace/copenhagen-v3/backend-dotnet/src/Pulpe.Api/bin/Debug/net10.0/Pulpe.Infrastructure.dll
+/Users/maximedesogus/conductor/workspaces/pulpe-workspace/copenhagen-v3/backend-dotnet/src/Pulpe.Api/bin/Debug/net10.0/Pulpe.Domain.pdb
+/Users/maximedesogus/conductor/workspaces/pulpe-workspace/copenhagen-v3/backend-dotnet/src/Pulpe.Api/bin/Debug/net10.0/Pulpe.Application.pdb
+/Users/maximedesogus/conductor/workspaces/pulpe-workspace/copenhagen-v3/backend-dotnet/src/Pulpe.Api/bin/Debug/net10.0/Pulpe.Infrastructure.pdb

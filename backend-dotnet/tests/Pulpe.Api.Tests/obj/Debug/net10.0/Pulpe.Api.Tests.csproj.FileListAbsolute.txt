@@ -101,8 +101,6 @@
 /Users/maximedesogus/conductor/workspaces/pulpe-workspace/copenhagen-v3/backend-dotnet/tests/Pulpe.Api.Tests/bin/Debug/net10.0/refs/Microsoft.AspNetCore.WebSockets.dll
 /Users/maximedesogus/conductor/workspaces/pulpe-workspace/copenhagen-v3/backend-dotnet/tests/Pulpe.Api.Tests/bin/Debug/net10.0/refs/Microsoft.AspNetCore.WebUtilities.dll
 /Users/maximedesogus/conductor/workspaces/pulpe-workspace/copenhagen-v3/backend-dotnet/tests/Pulpe.Api.Tests/bin/Debug/net10.0/refs/Microsoft.CSharp.dll
-/Users/maximedesogus/conductor/workspaces/pulpe-workspace/copenhagen-v3/backend-dotnet/tests/Pulpe.Api.Tests/bin/Debug/net10.0/refs/Microsoft.Extensions.Caching.Abstractions.dll
-/Users/maximedesogus/conductor/workspaces/pulpe-workspace/copenhagen-v3/backend-dotnet/tests/Pulpe.Api.Tests/bin/Debug/net10.0/refs/Microsoft.Extensions.Caching.Memory.dll
 /Users/maximedesogus/conductor/workspaces/pulpe-workspace/copenhagen-v3/backend-dotnet/tests/Pulpe.Api.Tests/bin/Debug/net10.0/refs/Microsoft.Extensions.Configuration.Ini.dll
 /Users/maximedesogus/conductor/workspaces/pulpe-workspace/copenhagen-v3/backend-dotnet/tests/Pulpe.Api.Tests/bin/Debug/net10.0/refs/Microsoft.Extensions.Configuration.KeyPerFile.dll
 /Users/maximedesogus/conductor/workspaces/pulpe-workspace/copenhagen-v3/backend-dotnet/tests/Pulpe.Api.Tests/bin/Debug/net10.0/refs/Microsoft.Extensions.Configuration.Xml.dll
@@ -111,7 +109,6 @@
 /Users/maximedesogus/conductor/workspaces/pulpe-workspace/copenhagen-v3/backend-dotnet/tests/Pulpe.Api.Tests/bin/Debug/net10.0/refs/Microsoft.Extensions.Features.dll
 /Users/maximedesogus/conductor/workspaces/pulpe-workspace/copenhagen-v3/backend-dotnet/tests/Pulpe.Api.Tests/bin/Debug/net10.0/refs/Microsoft.Extensions.FileProviders.Composite.dll
 /Users/maximedesogus/conductor/workspaces/pulpe-workspace/copenhagen-v3/backend-dotnet/tests/Pulpe.Api.Tests/bin/Debug/net10.0/refs/Microsoft.Extensions.FileProviders.Embedded.dll
-/Users/maximedesogus/conductor/workspaces/pulpe-workspace/copenhagen-v3/backend-dotnet/tests/Pulpe.Api.Tests/bin/Debug/net10.0/refs/Microsoft.Extensions.Http.dll
 /Users/maximedesogus/conductor/workspaces/pulpe-workspace/copenhagen-v3/backend-dotnet/tests/Pulpe.Api.Tests/bin/Debug/net10.0/refs/Microsoft.Extensions.Identity.Core.dll
 /Users/maximedesogus/conductor/workspaces/pulpe-workspace/copenhagen-v3/backend-dotnet/tests/Pulpe.Api.Tests/bin/Debug/net10.0/refs/Microsoft.Extensions.Identity.Stores.dll
 /Users/maximedesogus/conductor/workspaces/pulpe-workspace/copenhagen-v3/backend-dotnet/tests/Pulpe.Api.Tests/bin/Debug/net10.0/refs/Microsoft.Extensions.Localization.Abstractions.dll
@@ -438,3 +435,12 @@
 /Users/maximedesogus/conductor/workspaces/pulpe-workspace/copenhagen-v3/backend-dotnet/tests/Pulpe.Api.Tests/obj/Debug/net10.0/Pulpe.Api.Tests.pdb
 /Users/maximedesogus/conductor/workspaces/pulpe-workspace/copenhagen-v3/backend-dotnet/tests/Pulpe.Api.Tests/obj/Debug/net10.0/Pulpe.Api.Tests.genruntimeconfig.cache
 /Users/maximedesogus/conductor/workspaces/pulpe-workspace/copenhagen-v3/backend-dotnet/tests/Pulpe.Api.Tests/obj/Debug/net10.0/ref/Pulpe.Api.Tests.dll
+/Users/maximedesogus/conductor/workspaces/pulpe-workspace/copenhagen-v3/backend-dotnet/tests/Pulpe.Api.Tests/bin/Debug/net10.0/Microsoft.Extensions.Caching.Abstractions.dll
+/Users/maximedesogus/conductor/workspaces/pulpe-workspace/copenhagen-v3/backend-dotnet/tests/Pulpe.Api.Tests/bin/Debug/net10.0/Microsoft.Extensions.Caching.Memory.dll
+/Users/maximedesogus/conductor/workspaces/pulpe-workspace/copenhagen-v3/backend-dotnet/tests/Pulpe.Api.Tests/bin/Debug/net10.0/Microsoft.Extensions.Http.dll
+/Users/maximedesogus/conductor/workspaces/pulpe-workspace/copenhagen-v3/backend-dotnet/tests/Pulpe.Api.Tests/bin/Debug/net10.0/Pulpe.Application.dll
+/Users/maximedesogus/conductor/workspaces/pulpe-workspace/copenhagen-v3/backend-dotnet/tests/Pulpe.Api.Tests/bin/Debug/net10.0/Pulpe.Domain.dll
+/Users/maximedesogus/conductor/workspaces/pulpe-workspace/copenhagen-v3/backend-dotnet/tests/Pulpe.Api.Tests/bin/Debug/net10.0/Pulpe.Infrastructure.dll
+/Users/maximedesogus/conductor/workspaces/pulpe-workspace/copenhagen-v3/backend-dotnet/tests/Pulpe.Api.Tests/bin/Debug/net10.0/Pulpe.Domain.pdb
+/Users/maximedesogus/conductor/workspaces/pulpe-workspace/copenhagen-v3/backend-dotnet/tests/Pulpe.Api.Tests/bin/Debug/net10.0/Pulpe.Application.pdb
+/Users/maximedesogus/conductor/workspaces/pulpe-workspace/copenhagen-v3/backend-dotnet/tests/Pulpe.Api.Tests/bin/Debug/net10.0/Pulpe.Infrastructure.pdb

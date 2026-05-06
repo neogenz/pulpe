@@ -1,5 +1,5 @@
 using FluentAssertions;
-using Pulpe.Api.Domain.Budget;
+using Pulpe.Domain.Budget;
 
 namespace Pulpe.Api.Tests.Domain.Budget;
 

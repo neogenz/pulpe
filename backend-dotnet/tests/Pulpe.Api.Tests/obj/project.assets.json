@@ -171,6 +171,48 @@
           "buildMultiTargeting/_._": {}
         }
       },
+      "Microsoft.Extensions.Caching.Abstractions/10.0.5": {
+        "type": "package",
+        "dependencies": {
+          "Microsoft.Extensions.Primitives": "10.0.5"
+        },
+        "compile": {
+          "lib/net10.0/Microsoft.Extensions.Caching.Abstractions.dll": {
+            "related": ".xml"
+          }
+        },
+        "runtime": {
+          "lib/net10.0/Microsoft.Extensions.Caching.Abstractions.dll": {
+            "related": ".xml"
+          }
+        },
+        "build": {
+          "buildTransitive/net8.0/_._": {}
+        }
+      },
+      "Microsoft.Extensions.Caching.Memory/10.0.5": {
+        "type": "package",
+        "dependencies": {
+          "Microsoft.Extensions.Caching.Abstractions": "10.0.5",
+          "Microsoft.Extensions.DependencyInjection.Abstractions": "10.0.5",
+          "Microsoft.Extensions.Logging.Abstractions": "10.0.5",
+          "Microsoft.Extensions.Options": "10.0.5",
+          "Microsoft.Extensions.Primitives": "10.0.5"
+        },
+        "compile": {
+          "lib/net10.0/Microsoft.Extensions.Caching.Memory.dll": {
+            "related": ".xml"
+          }
+        },
+        "runtime": {
+          "lib/net10.0/Microsoft.Extensions.Caching.Memory.dll": {
+            "related": ".xml"
+          }
+        },
+        "build": {
+          "buildTransitive/net8.0/_._": {}
+        }
+      },
       "Microsoft.Extensions.Configuration/10.0.5": {
         "type": "package",
         "dependencies": {
@@ -542,6 +584,30 @@
         },
         "runtime": {
           "lib/net10.0/Microsoft.Extensions.Hosting.Abstractions.dll": {
+            "related": ".xml"
+          }
+        },
+        "build": {
+          "buildTransitive/net8.0/_._": {}
+        }
+      },
+      "Microsoft.Extensions.Http/10.0.5": {
+        "type": "package",
+        "dependencies": {
+          "Microsoft.Extensions.Configuration.Abstractions": "10.0.5",
+          "Microsoft.Extensions.DependencyInjection.Abstractions": "10.0.5",
+          "Microsoft.Extensions.Diagnostics": "10.0.5",
+          "Microsoft.Extensions.Logging": "10.0.5",
+          "Microsoft.Extensions.Logging.Abstractions": "10.0.5",
+          "Microsoft.Extensions.Options": "10.0.5"
+        },
+        "compile": {
+          "lib/net10.0/Microsoft.Extensions.Http.dll": {
+            "related": ".xml"
+          }
+        },
+        "runtime": {
+          "lib/net10.0/Microsoft.Extensions.Http.dll": {
             "related": ".xml"
           }
         },
@@ -1424,6 +1490,9 @@
         "dependencies": {
           "FluentValidation.AspNetCore": "11.3.1",
           "Microsoft.AspNetCore.OpenApi": "10.0.3",
+          "Pulpe.Application": "1.0.0",
+          "Pulpe.Domain": "1.0.0",
+          "Pulpe.Infrastructure": "1.0.0",
           "Serilog.AspNetCore": "10.0.0",
           "Swashbuckle.AspNetCore": "10.1.5"
         },
@@ -1436,6 +1505,51 @@
         "frameworkReferences": [
           "Microsoft.AspNetCore.App"
         ]
+      },
+      "Pulpe.Application/1.0.0": {
+        "type": "project",
+        "framework": ".NETCoreApp,Version=v10.0",
+        "dependencies": {
+          "FluentValidation": "11.11.0",
+          "FluentValidation.AspNetCore": "11.3.1",
+          "Microsoft.Extensions.Logging.Abstractions": "10.0.5",
+          "Pulpe.Domain": "1.0.0"
+        },
+        "compile": {
+          "bin/placeholder/Pulpe.Application.dll": {}
+        },
+        "runtime": {
+          "bin/placeholder/Pulpe.Application.dll": {}
+        }
+      },
+      "Pulpe.Domain/1.0.0": {
+        "type": "project",
+        "framework": ".NETCoreApp,Version=v10.0",
+        "compile": {
+          "bin/placeholder/Pulpe.Domain.dll": {}
+        },
+        "runtime": {
+          "bin/placeholder/Pulpe.Domain.dll": {}
+        }
+      },
+      "Pulpe.Infrastructure/1.0.0": {
+        "type": "project",
+        "framework": ".NETCoreApp,Version=v10.0",
+        "dependencies": {
+          "Microsoft.Extensions.Caching.Memory": "10.0.5",
+          "Microsoft.Extensions.Configuration.Abstractions": "10.0.5",
+          "Microsoft.Extensions.Http": "10.0.5",
+          "Microsoft.Extensions.Logging.Abstractions": "10.0.5",
+          "Microsoft.Extensions.Options": "10.0.5",
+          "Pulpe.Application": "1.0.0",
+          "Pulpe.Domain": "1.0.0"
+        },
+        "compile": {
+          "bin/placeholder/Pulpe.Infrastructure.dll": {}
+        },
+        "runtime": {
+          "bin/placeholder/Pulpe.Infrastructure.dll": {}
+        }
       }
     }
   },
@@ -1999,6 +2113,64 @@
         "tools/net462/netstandard.dll"
       ]
     },
+    "Microsoft.Extensions.Caching.Abstractions/10.0.5": {
+      "sha512": "k/QDdQ94/0Shi0KfU+e12m73jfQo+3JpErTtgpZfsCIqkvdEEO0XIx6R+iTbN55rNPaNhOqNY4/sB+jZ8XxVPw==",
+      "type": "package",
+      "path": "microsoft.extensions.caching.abstractions/10.0.5",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "Icon.png",
+        "PACKAGE.md",
+        "THIRD-PARTY-NOTICES.TXT",
+        "buildTransitive/net461/Microsoft.Extensions.Caching.Abstractions.targets",
+        "buildTransitive/net462/_._",
+        "buildTransitive/net8.0/_._",
+        "buildTransitive/netcoreapp2.0/Microsoft.Extensions.Caching.Abstractions.targets",
+        "lib/net10.0/Microsoft.Extensions.Caching.Abstractions.dll",
+        "lib/net10.0/Microsoft.Extensions.Caching.Abstractions.xml",
+        "lib/net462/Microsoft.Extensions.Caching.Abstractions.dll",
+        "lib/net462/Microsoft.Extensions.Caching.Abstractions.xml",
+        "lib/net8.0/Microsoft.Extensions.Caching.Abstractions.dll",
+        "lib/net8.0/Microsoft.Extensions.Caching.Abstractions.xml",
+        "lib/net9.0/Microsoft.Extensions.Caching.Abstractions.dll",
+        "lib/net9.0/Microsoft.Extensions.Caching.Abstractions.xml",
+        "lib/netstandard2.0/Microsoft.Extensions.Caching.Abstractions.dll",
+        "lib/netstandard2.0/Microsoft.Extensions.Caching.Abstractions.xml",
+        "microsoft.extensions.caching.abstractions.10.0.5.nupkg.sha512",
+        "microsoft.extensions.caching.abstractions.nuspec",
+        "useSharedDesignerContext.txt"
+      ]
+    },
+    "Microsoft.Extensions.Caching.Memory/10.0.5": {
+      "sha512": "jUEXmkBUPdOS/MP9areK/sbKhdklq9+tEhvwfxGalZVnmyLUO5rrheNNutUBtvbZ7J8ECkG7/r2KXi/IFC06cA==",
+      "type": "package",
+      "path": "microsoft.extensions.caching.memory/10.0.5",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "Icon.png",
+        "PACKAGE.md",
+        "THIRD-PARTY-NOTICES.TXT",
+        "buildTransitive/net461/Microsoft.Extensions.Caching.Memory.targets",
+        "buildTransitive/net462/_._",
+        "buildTransitive/net8.0/_._",
+        "buildTransitive/netcoreapp2.0/Microsoft.Extensions.Caching.Memory.targets",
+        "lib/net10.0/Microsoft.Extensions.Caching.Memory.dll",
+        "lib/net10.0/Microsoft.Extensions.Caching.Memory.xml",
+        "lib/net462/Microsoft.Extensions.Caching.Memory.dll",
+        "lib/net462/Microsoft.Extensions.Caching.Memory.xml",
+        "lib/net8.0/Microsoft.Extensions.Caching.Memory.dll",
+        "lib/net8.0/Microsoft.Extensions.Caching.Memory.xml",
+        "lib/net9.0/Microsoft.Extensions.Caching.Memory.dll",
+        "lib/net9.0/Microsoft.Extensions.Caching.Memory.xml",
+        "lib/netstandard2.0/Microsoft.Extensions.Caching.Memory.dll",
+        "lib/netstandard2.0/Microsoft.Extensions.Caching.Memory.xml",
+        "microsoft.extensions.caching.memory.10.0.5.nupkg.sha512",
+        "microsoft.extensions.caching.memory.nuspec",
+        "useSharedDesignerContext.txt"
+      ]
+    },
     "Microsoft.Extensions.Configuration/10.0.5": {
       "sha512": "8Rx5sqg04FttxrumyG6bmoRuFRgYzK6IVwF1i0/o0cXfKBdDeVpJejKHtJCMjyg9E/DNMVqpqOGe/tCT5gYvVA==",
       "type": "package",
@@ -2541,6 +2713,35 @@
         "lib/netstandard2.1/Microsoft.Extensions.Hosting.Abstractions.xml",
         "microsoft.extensions.hosting.abstractions.10.0.5.nupkg.sha512",
         "microsoft.extensions.hosting.abstractions.nuspec",
+        "useSharedDesignerContext.txt"
+      ]
+    },
+    "Microsoft.Extensions.Http/10.0.5": {
+      "sha512": "AiFvHYM8nP0wPC7bGPI3NHQlSYSLqjjT7DMJUuuxhd+7pz3O89iu2gdQfgACy5DxsXENiok5i1bMacJL7KR8jA==",
+      "type": "package",
+      "path": "microsoft.extensions.http/10.0.5",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "Icon.png",
+        "PACKAGE.md",
+        "THIRD-PARTY-NOTICES.TXT",
+        "buildTransitive/net461/Microsoft.Extensions.Http.targets",
+        "buildTransitive/net462/_._",
+        "buildTransitive/net8.0/_._",
+        "buildTransitive/netcoreapp2.0/Microsoft.Extensions.Http.targets",
+        "lib/net10.0/Microsoft.Extensions.Http.dll",
+        "lib/net10.0/Microsoft.Extensions.Http.xml",
+        "lib/net462/Microsoft.Extensions.Http.dll",
+        "lib/net462/Microsoft.Extensions.Http.xml",
+        "lib/net8.0/Microsoft.Extensions.Http.dll",
+        "lib/net8.0/Microsoft.Extensions.Http.xml",
+        "lib/net9.0/Microsoft.Extensions.Http.dll",
+        "lib/net9.0/Microsoft.Extensions.Http.xml",
+        "lib/netstandard2.0/Microsoft.Extensions.Http.dll",
+        "lib/netstandard2.0/Microsoft.Extensions.Http.xml",
+        "microsoft.extensions.http.10.0.5.nupkg.sha512",
+        "microsoft.extensions.http.nuspec",
         "useSharedDesignerContext.txt"
       ]
     },
@@ -3637,6 +3838,21 @@
       "type": "project",
       "path": "../../src/Pulpe.Api/Pulpe.Api.csproj",
       "msbuildProject": "../../src/Pulpe.Api/Pulpe.Api.csproj"
+    },
+    "Pulpe.Application/1.0.0": {
+      "type": "project",
+      "path": "../../src/Pulpe.Application/Pulpe.Application.csproj",
+      "msbuildProject": "../../src/Pulpe.Application/Pulpe.Application.csproj"
+    },
+    "Pulpe.Domain/1.0.0": {
+      "type": "project",
+      "path": "../../src/Pulpe.Domain/Pulpe.Domain.csproj",
+      "msbuildProject": "../../src/Pulpe.Domain/Pulpe.Domain.csproj"
+    },
+    "Pulpe.Infrastructure/1.0.0": {
+      "type": "project",
+      "path": "../../src/Pulpe.Infrastructure/Pulpe.Infrastructure.csproj",
+      "msbuildProject": "../../src/Pulpe.Infrastructure/Pulpe.Infrastructure.csproj"
     }
   },
   "projectFileDependencyGroups": {
@@ -3647,6 +3863,9 @@
       "Microsoft.NET.Test.Sdk >= 17.14.1",
       "NSubstitute >= 5.3.0",
       "Pulpe.Api >= 1.0.0",
+      "Pulpe.Application >= 1.0.0",
+      "Pulpe.Domain >= 1.0.0",
+      "Pulpe.Infrastructure >= 1.0.0",
       "coverlet.collector >= 6.0.4",
       "xunit >= 2.9.3",
       "xunit.runner.visualstudio >= 3.1.4"
@@ -3679,6 +3898,15 @@
           "projectReferences": {
             "/Users/maximedesogus/conductor/workspaces/pulpe-workspace/copenhagen-v3/backend-dotnet/src/Pulpe.Api/Pulpe.Api.csproj": {
               "projectPath": "/Users/maximedesogus/conductor/workspaces/pulpe-workspace/copenhagen-v3/backend-dotnet/src/Pulpe.Api/Pulpe.Api.csproj"
+            },
+            "/Users/maximedesogus/conductor/workspaces/pulpe-workspace/copenhagen-v3/backend-dotnet/src/Pulpe.Application/Pulpe.Application.csproj": {
+              "projectPath": "/Users/maximedesogus/conductor/workspaces/pulpe-workspace/copenhagen-v3/backend-dotnet/src/Pulpe.Application/Pulpe.Application.csproj"
+            },
+            "/Users/maximedesogus/conductor/workspaces/pulpe-workspace/copenhagen-v3/backend-dotnet/src/Pulpe.Domain/Pulpe.Domain.csproj": {
+              "projectPath": "/Users/maximedesogus/conductor/workspaces/pulpe-workspace/copenhagen-v3/backend-dotnet/src/Pulpe.Domain/Pulpe.Domain.csproj"
+            },
+            "/Users/maximedesogus/conductor/workspaces/pulpe-workspace/copenhagen-v3/backend-dotnet/src/Pulpe.Infrastructure/Pulpe.Infrastructure.csproj": {
+              "projectPath": "/Users/maximedesogus/conductor/workspaces/pulpe-workspace/copenhagen-v3/backend-dotnet/src/Pulpe.Infrastructure/Pulpe.Infrastructure.csproj"
             }
           }
         }

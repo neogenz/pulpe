@@ -1,0 +1,16 @@
+/Users/maximedesogus/conductor/workspaces/pulpe-workspace/copenhagen-v3/backend-dotnet/src/Pulpe.Application/obj/Debug/net10.0/Pulpe.Application.csproj.AssemblyReference.cache
+/Users/maximedesogus/conductor/workspaces/pulpe-workspace/copenhagen-v3/backend-dotnet/src/Pulpe.Application/obj/Debug/net10.0/Pulpe.Application.GeneratedMSBuildEditorConfig.editorconfig
+/Users/maximedesogus/conductor/workspaces/pulpe-workspace/copenhagen-v3/backend-dotnet/src/Pulpe.Application/obj/Debug/net10.0/Pulpe.Application.AssemblyInfoInputs.cache
+/Users/maximedesogus/conductor/workspaces/pulpe-workspace/copenhagen-v3/backend-dotnet/src/Pulpe.Application/obj/Debug/net10.0/Pulpe.Application.AssemblyInfo.cs
+/Users/maximedesogus/conductor/workspaces/pulpe-workspace/copenhagen-v3/backend-dotnet/src/Pulpe.Application/obj/Debug/net10.0/Pulpe.Application.csproj.CoreCompileInputs.cache
+/Users/maximedesogus/conductor/workspaces/pulpe-workspace/copenhagen-v3/backend-dotnet/src/Pulpe.Application/obj/Debug/net10.0/Pulpe.Application.sourcelink.json
+/Users/maximedesogus/conductor/workspaces/pulpe-workspace/copenhagen-v3/backend-dotnet/src/Pulpe.Application/bin/Debug/net10.0/Pulpe.Application.deps.json
+/Users/maximedesogus/conductor/workspaces/pulpe-workspace/copenhagen-v3/backend-dotnet/src/Pulpe.Application/bin/Debug/net10.0/Pulpe.Application.dll
+/Users/maximedesogus/conductor/workspaces/pulpe-workspace/copenhagen-v3/backend-dotnet/src/Pulpe.Application/bin/Debug/net10.0/Pulpe.Application.pdb
+/Users/maximedesogus/conductor/workspaces/pulpe-workspace/copenhagen-v3/backend-dotnet/src/Pulpe.Application/bin/Debug/net10.0/Pulpe.Domain.dll
+/Users/maximedesogus/conductor/workspaces/pulpe-workspace/copenhagen-v3/backend-dotnet/src/Pulpe.Application/bin/Debug/net10.0/Pulpe.Domain.pdb
+/Users/maximedesogus/conductor/workspaces/pulpe-workspace/copenhagen-v3/backend-dotnet/src/Pulpe.Application/obj/Debug/net10.0/Pulpe.Ap.E52E457C.Up2Date
+/Users/maximedesogus/conductor/workspaces/pulpe-workspace/copenhagen-v3/backend-dotnet/src/Pulpe.Application/obj/Debug/net10.0/Pulpe.Application.dll
+/Users/maximedesogus/conductor/workspaces/pulpe-workspace/copenhagen-v3/backend-dotnet/src/Pulpe.Application/obj/Debug/net10.0/refint/Pulpe.Application.dll
+/Users/maximedesogus/conductor/workspaces/pulpe-workspace/copenhagen-v3/backend-dotnet/src/Pulpe.Application/obj/Debug/net10.0/Pulpe.Application.pdb
+/Users/maximedesogus/conductor/workspaces/pulpe-workspace/copenhagen-v3/backend-dotnet/src/Pulpe.Application/obj/Debug/net10.0/ref/Pulpe.Application.dll

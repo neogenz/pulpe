@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
 using Pulpe.Api.Api.Filters;
-using Pulpe.Api.Domain.Common;
+using Pulpe.Domain.Common;
 
 namespace Pulpe.Api.Tests.Api;
 

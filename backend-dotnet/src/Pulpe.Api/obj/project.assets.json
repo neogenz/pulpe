@@ -333,6 +333,45 @@
         "frameworkReferences": [
           "Microsoft.AspNetCore.App"
         ]
+      },
+      "Pulpe.Application/1.0.0": {
+        "type": "project",
+        "framework": ".NETCoreApp,Version=v10.0",
+        "dependencies": {
+          "FluentValidation": "11.11.0",
+          "FluentValidation.AspNetCore": "11.3.1",
+          "Pulpe.Domain": "1.0.0"
+        },
+        "compile": {
+          "bin/placeholder/Pulpe.Application.dll": {}
+        },
+        "runtime": {
+          "bin/placeholder/Pulpe.Application.dll": {}
+        }
+      },
+      "Pulpe.Domain/1.0.0": {
+        "type": "project",
+        "framework": ".NETCoreApp,Version=v10.0",
+        "compile": {
+          "bin/placeholder/Pulpe.Domain.dll": {}
+        },
+        "runtime": {
+          "bin/placeholder/Pulpe.Domain.dll": {}
+        }
+      },
+      "Pulpe.Infrastructure/1.0.0": {
+        "type": "project",
+        "framework": ".NETCoreApp,Version=v10.0",
+        "dependencies": {
+          "Pulpe.Application": "1.0.0",
+          "Pulpe.Domain": "1.0.0"
+        },
+        "compile": {
+          "bin/placeholder/Pulpe.Infrastructure.dll": {}
+        },
+        "runtime": {
+          "bin/placeholder/Pulpe.Infrastructure.dll": {}
+        }
       }
     }
   },
@@ -1017,12 +1056,30 @@
         "swashbuckle.aspnetcore.swaggerui.10.1.5.nupkg.sha512",
         "swashbuckle.aspnetcore.swaggerui.nuspec"
       ]
+    },
+    "Pulpe.Application/1.0.0": {
+      "type": "project",
+      "path": "../Pulpe.Application/Pulpe.Application.csproj",
+      "msbuildProject": "../Pulpe.Application/Pulpe.Application.csproj"
+    },
+    "Pulpe.Domain/1.0.0": {
+      "type": "project",
+      "path": "../Pulpe.Domain/Pulpe.Domain.csproj",
+      "msbuildProject": "../Pulpe.Domain/Pulpe.Domain.csproj"
+    },
+    "Pulpe.Infrastructure/1.0.0": {
+      "type": "project",
+      "path": "../Pulpe.Infrastructure/Pulpe.Infrastructure.csproj",
+      "msbuildProject": "../Pulpe.Infrastructure/Pulpe.Infrastructure.csproj"
     }
   },
   "projectFileDependencyGroups": {
     "net10.0": [
       "FluentValidation.AspNetCore >= 11.3.1",
       "Microsoft.AspNetCore.OpenApi >= 10.0.3",
+      "Pulpe.Application >= 1.0.0",
+      "Pulpe.Domain >= 1.0.0",
+      "Pulpe.Infrastructure >= 1.0.0",
       "Serilog.AspNetCore >= 10.0.0",
       "Swashbuckle.AspNetCore >= 10.1.5"
     ]
@@ -1051,7 +1108,17 @@
       "frameworks": {
         "net10.0": {
           "targetAlias": "net10.0",
-          "projectReferences": {}
+          "projectReferences": {
+            "/Users/maximedesogus/conductor/workspaces/pulpe-workspace/copenhagen-v3/backend-dotnet/src/Pulpe.Application/Pulpe.Application.csproj": {
+              "projectPath": "/Users/maximedesogus/conductor/workspaces/pulpe-workspace/copenhagen-v3/backend-dotnet/src/Pulpe.Application/Pulpe.Application.csproj"
+            },
+            "/Users/maximedesogus/conductor/workspaces/pulpe-workspace/copenhagen-v3/backend-dotnet/src/Pulpe.Domain/Pulpe.Domain.csproj": {
+              "projectPath": "/Users/maximedesogus/conductor/workspaces/pulpe-workspace/copenhagen-v3/backend-dotnet/src/Pulpe.Domain/Pulpe.Domain.csproj"
+            },
+            "/Users/maximedesogus/conductor/workspaces/pulpe-workspace/copenhagen-v3/backend-dotnet/src/Pulpe.Infrastructure/Pulpe.Infrastructure.csproj": {
+              "projectPath": "/Users/maximedesogus/conductor/workspaces/pulpe-workspace/copenhagen-v3/backend-dotnet/src/Pulpe.Infrastructure/Pulpe.Infrastructure.csproj"
+            }
+          }
         }
       },
       "warningProperties": {

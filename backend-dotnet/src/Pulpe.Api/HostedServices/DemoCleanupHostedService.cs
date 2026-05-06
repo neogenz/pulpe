@@ -1,4 +1,4 @@
-using Pulpe.Api.Application.Demo;
+using Pulpe.Infrastructure.Services.Demo;
 
 namespace Pulpe.Api.HostedServices;
 

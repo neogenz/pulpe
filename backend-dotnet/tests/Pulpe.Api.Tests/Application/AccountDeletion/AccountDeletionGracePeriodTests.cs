@@ -1,5 +1,5 @@
 using FluentAssertions;
-using Pulpe.Api.Domain.Common;
+using Pulpe.Domain.Common;
 
 namespace Pulpe.Api.Tests.Application.AccountDeletion;
 

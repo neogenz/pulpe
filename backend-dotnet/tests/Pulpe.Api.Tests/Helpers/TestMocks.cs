@@ -1,7 +1,7 @@
-using Pulpe.Api.Domain.Budget;
-using Pulpe.Api.Domain.Common;
-using Pulpe.Api.Domain.User;
-using DomainTransaction = Pulpe.Api.Domain.Transaction.Transaction;
+using Pulpe.Domain.Budget;
+using Pulpe.Domain.Common;
+using Pulpe.Domain.User;
+using DomainTransaction = Pulpe.Domain.Transaction.Transaction;
 
 namespace Pulpe.Api.Tests.Helpers;
 

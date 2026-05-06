@@ -1,7 +1,8 @@
+using System.Text.Json;
 using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
-using Pulpe.Api.Domain.Common;
+using Pulpe.Domain.Common;
 
 namespace Pulpe.Api.Api.Filters;
 
@@ -9,6 +10,14 @@ public class GlobalExceptionFilter : IExceptionFilter
 {
     private readonly ILogger<GlobalExceptionFilter> _logger;
     private readonly IWebHostEnvironment _env;
+
+    private static readonly HashSet<string> SensitiveFields = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "password", "token", "secret", "authorization", "auth",
+        "clientKey", "client_key", "newClientKey", "new_client_key",
+        "oldClientKey", "old_client_key", "recoveryKey", "recovery_key",
+        "accessToken", "access_token", "refreshToken", "refresh_token"
+    };
 
     public GlobalExceptionFilter(ILogger<GlobalExceptionFilter> logger, IWebHostEnvironment env)
     {
@@ -22,13 +31,15 @@ public class GlobalExceptionFilter : IExceptionFilter
 
         if (errorResponse.StatusCode >= 500)
         {
-            _logger.LogError(context.Exception, "SERVER ERROR: {Message} [{Code}] {Path}",
-                errorResponse.Message, errorResponse.Code, errorResponse.Path);
+            _logger.LogError(context.Exception, "SERVER ERROR: {Message} [{Code}] {Method} {Path}",
+                SanitizeMessage(errorResponse.Message), errorResponse.Code,
+                errorResponse.Method, errorResponse.Path);
         }
         else
         {
-            _logger.LogWarning("CLIENT ERROR: {Message} [{Code}] {Path}",
-                errorResponse.Message, errorResponse.Code, errorResponse.Path);
+            _logger.LogWarning("CLIENT ERROR: {Message} [{Code}] {Method} {Path}",
+                SanitizeMessage(errorResponse.Message), errorResponse.Code,
+                errorResponse.Method, errorResponse.Path);
         }
 
         context.Result = new JsonResult(errorResponse, ResponseWrapperActionFilter.CamelCaseOptions)
@@ -96,6 +107,28 @@ public class GlobalExceptionFilter : IExceptionFilter
                 Details = null
             }
         };
+    }
+
+    /// <summary>
+    /// Removes sensitive field values from a message string to prevent accidental logging of secrets.
+    /// </summary>
+    private static string SanitizeMessage(string message)
+    {
+        if (string.IsNullOrEmpty(message)) return message;
+
+        foreach (var field in SensitiveFields)
+        {
+            if (message.Contains(field, StringComparison.OrdinalIgnoreCase))
+            {
+                // Redact any value following the field name in common patterns like "field=value" or "field: value"
+                message = System.Text.RegularExpressions.Regex.Replace(
+                    message,
+                    $@"(?i){System.Text.RegularExpressions.Regex.Escape(field)}\s*[=:]\s*\S+",
+                    $"{field}=[REDACTED]");
+            }
+        }
+
+        return message;
     }
 }
 

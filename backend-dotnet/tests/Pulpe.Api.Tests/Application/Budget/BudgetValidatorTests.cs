@@ -1,9 +1,9 @@
 using FluentAssertions;
 using NSubstitute;
-using Pulpe.Api.Application.Budget;
-using Pulpe.Api.Application.Budget.Dto;
-using Pulpe.Api.Domain.Budget;
-using Pulpe.Api.Domain.Common;
+using Pulpe.Application.Budget;
+using Pulpe.Application.Budget.Dto;
+using Pulpe.Domain.Budget;
+using Pulpe.Domain.Common;
 
 namespace Pulpe.Api.Tests.Application.Budget;
 

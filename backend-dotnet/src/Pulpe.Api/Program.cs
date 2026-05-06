@@ -7,29 +7,31 @@ using Microsoft.OpenApi;
 using Pulpe.Api.Api.Auth;
 using Pulpe.Api.Api.Filters;
 using Pulpe.Api.Api.Middleware;
-using Pulpe.Api.Application.AccountDeletion;
-using Pulpe.Api.Application.Budget;
-using Pulpe.Api.Application.BudgetLine;
-using Pulpe.Api.Application.Common;
-using Pulpe.Api.Application.Demo;
-using Pulpe.Api.Application.Encryption;
-using Pulpe.Api.Application.Template;
-using Pulpe.Api.Application.Transaction;
-using Pulpe.Api.Application.User;
-using Pulpe.Api.Domain.Budget;
-using Pulpe.Api.Domain.Encryption;
-using Pulpe.Api.Domain.Template;
-using Pulpe.Api.Domain.Transaction;
+using Pulpe.Application.Budget;
+using Pulpe.Application.Common;
+using Pulpe.Application.User;
+using Pulpe.Domain.Budget;
+using Pulpe.Domain.Encryption;
+using Pulpe.Domain.Template;
+using Pulpe.Domain.Transaction;
 using Pulpe.Api.HostedServices;
-using Pulpe.Api.Infrastructure.Cache;
-using Pulpe.Api.Infrastructure.Encryption;
-using Pulpe.Api.Infrastructure.Supabase;
-using Pulpe.Api.Infrastructure.Supabase.Repositories;
-using Pulpe.Api.Infrastructure.Turnstile;
+using Pulpe.Infrastructure.Cache;
+using Pulpe.Infrastructure.Encryption;
+using Pulpe.Infrastructure.Services.AccountDeletion;
+using Pulpe.Infrastructure.Services.Budget;
+using Pulpe.Infrastructure.Services.BudgetLine;
+using Pulpe.Infrastructure.Services.Demo;
+using Pulpe.Infrastructure.Services.Encryption;
+using Pulpe.Infrastructure.Services.Template;
+using Pulpe.Infrastructure.Services.Transaction;
+using Pulpe.Infrastructure.Services.User;
+using Pulpe.Infrastructure.Supabase;
+using Pulpe.Infrastructure.Supabase.Repositories;
+using Pulpe.Infrastructure.Turnstile;
 using Serilog;
 
-using IBudgetRecalculationService = Pulpe.Api.Application.Common.IBudgetRecalculationService;
-using IBudgetAppService = Pulpe.Api.Application.Budget.IBudgetService;
+using IBudgetRecalculationService = Pulpe.Application.Common.IBudgetRecalculationService;
+using IBudgetAppService = Pulpe.Infrastructure.Services.Budget.IBudgetService;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -39,6 +41,20 @@ builder.Host.UseSerilog((context, config) =>
     config
         .ReadFrom.Configuration(context.Configuration)
         .Enrich.FromLogContext()
+        .Destructure.ByTransforming<Dictionary<string, object?>>(dict =>
+        {
+            var sensitiveKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+            {
+                "authorization", "cookie", "x-client-key", "set-cookie",
+                "password", "clientKey", "client_key", "newClientKey", "new_client_key",
+                "oldClientKey", "old_client_key", "recoveryKey", "recovery_key",
+                "token", "accessToken", "access_token", "refreshToken", "refresh_token",
+                "secret"
+            };
+            return dict.ToDictionary(
+                kv => kv.Key,
+                kv => sensitiveKeys.Contains(kv.Key) ? (object?)"[REDACTED]" : kv.Value);
+        })
         .WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}");
 });
 
@@ -121,18 +137,30 @@ builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = 429;
 
-    options.AddPolicy("default", context =>
+    // Global rate limit — 200 req/min per authenticated user (or IP for anon)
+    options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(context =>
         RateLimitPartition.GetFixedWindowLimiter(
-            partitionKey: context.User?.FindFirst("sub")?.Value ?? context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            partitionKey: context.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+                ?? context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
             factory: _ => new FixedWindowRateLimiterOptions
             {
                 PermitLimit = 200,
                 Window = TimeSpan.FromMinutes(1)
             }));
 
+    // Stricter limit for unauthenticated requests in production
+    options.AddPolicy("public", context =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 20,
+                Window = TimeSpan.FromMinutes(1)
+            }));
+
     options.AddPolicy("encryption-validate", context =>
         RateLimitPartition.GetFixedWindowLimiter(
-            partitionKey: context.User?.FindFirst("sub")?.Value ?? "anon",
+            partitionKey: context.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "anon",
             factory: _ => new FixedWindowRateLimiterOptions
             {
                 PermitLimit = 30,
@@ -141,7 +169,7 @@ builder.Services.AddRateLimiter(options =>
 
     options.AddPolicy("encryption-sensitive", context =>
         RateLimitPartition.GetFixedWindowLimiter(
-            partitionKey: context.User?.FindFirst("sub")?.Value ?? "anon",
+            partitionKey: context.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "anon",
             factory: _ => new FixedWindowRateLimiterOptions
             {
                 PermitLimit = 5,

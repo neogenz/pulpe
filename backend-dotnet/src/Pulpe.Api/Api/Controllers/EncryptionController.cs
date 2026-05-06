@@ -2,9 +2,9 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Pulpe.Api.Api.Auth;
-using Pulpe.Api.Application.Encryption;
-using Pulpe.Api.Application.Encryption.Dto;
-using Pulpe.Api.Infrastructure.Supabase;
+using Pulpe.Infrastructure.Services.Encryption;
+using Pulpe.Application.Encryption.Dto;
+using Pulpe.Infrastructure.Supabase;
 
 namespace Pulpe.Api.Api.Controllers;
 

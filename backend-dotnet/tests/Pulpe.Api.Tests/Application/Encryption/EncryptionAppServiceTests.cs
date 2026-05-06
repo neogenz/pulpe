@@ -1,9 +1,9 @@
 using FluentAssertions;
 using NSubstitute;
-using Pulpe.Api.Application.Encryption;
-using Pulpe.Api.Application.Encryption.Dto;
-using Pulpe.Api.Domain.Common;
-using Pulpe.Api.Domain.Encryption;
+using Pulpe.Infrastructure.Services.Encryption;
+using Pulpe.Application.Encryption.Dto;
+using Pulpe.Domain.Common;
+using Pulpe.Domain.Encryption;
 
 namespace Pulpe.Api.Tests.Application.Encryption;
 

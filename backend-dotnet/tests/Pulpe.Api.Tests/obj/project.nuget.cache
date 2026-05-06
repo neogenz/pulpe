@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "dgSpecHash": "TgUJAfwMSPg=",
+  "dgSpecHash": "urd5N+My9+Y=",
   "success": true,
   "projectFilePath": "/Users/maximedesogus/conductor/workspaces/pulpe-workspace/copenhagen-v3/backend-dotnet/tests/Pulpe.Api.Tests/Pulpe.Api.Tests.csproj",
   "expectedPackageFiles": [
@@ -15,6 +15,8 @@
     "/Users/maximedesogus/.nuget/packages/microsoft.aspnetcore.testhost/10.0.5/microsoft.aspnetcore.testhost.10.0.5.nupkg.sha512",
     "/Users/maximedesogus/.nuget/packages/microsoft.codecoverage/17.14.1/microsoft.codecoverage.17.14.1.nupkg.sha512",
     "/Users/maximedesogus/.nuget/packages/microsoft.extensions.apidescription.server/10.0.0/microsoft.extensions.apidescription.server.10.0.0.nupkg.sha512",
+    "/Users/maximedesogus/.nuget/packages/microsoft.extensions.caching.abstractions/10.0.5/microsoft.extensions.caching.abstractions.10.0.5.nupkg.sha512",
+    "/Users/maximedesogus/.nuget/packages/microsoft.extensions.caching.memory/10.0.5/microsoft.extensions.caching.memory.10.0.5.nupkg.sha512",
     "/Users/maximedesogus/.nuget/packages/microsoft.extensions.configuration/10.0.5/microsoft.extensions.configuration.10.0.5.nupkg.sha512",
     "/Users/maximedesogus/.nuget/packages/microsoft.extensions.configuration.abstractions/10.0.5/microsoft.extensions.configuration.abstractions.10.0.5.nupkg.sha512",
     "/Users/maximedesogus/.nuget/packages/microsoft.extensions.configuration.binder/10.0.5/microsoft.extensions.configuration.binder.10.0.5.nupkg.sha512",
@@ -33,6 +35,7 @@
     "/Users/maximedesogus/.nuget/packages/microsoft.extensions.filesystemglobbing/10.0.5/microsoft.extensions.filesystemglobbing.10.0.5.nupkg.sha512",
     "/Users/maximedesogus/.nuget/packages/microsoft.extensions.hosting/10.0.5/microsoft.extensions.hosting.10.0.5.nupkg.sha512",
     "/Users/maximedesogus/.nuget/packages/microsoft.extensions.hosting.abstractions/10.0.5/microsoft.extensions.hosting.abstractions.10.0.5.nupkg.sha512",
+    "/Users/maximedesogus/.nuget/packages/microsoft.extensions.http/10.0.5/microsoft.extensions.http.10.0.5.nupkg.sha512",
     "/Users/maximedesogus/.nuget/packages/microsoft.extensions.logging/10.0.5/microsoft.extensions.logging.10.0.5.nupkg.sha512",
     "/Users/maximedesogus/.nuget/packages/microsoft.extensions.logging.abstractions/10.0.5/microsoft.extensions.logging.abstractions.10.0.5.nupkg.sha512",
     "/Users/maximedesogus/.nuget/packages/microsoft.extensions.logging.configuration/10.0.5/microsoft.extensions.logging.configuration.10.0.5.nupkg.sha512",

@@ -1,10 +1,10 @@
 using FluentAssertions;
-using Pulpe.Api.Application.BudgetLine;
-using Pulpe.Api.Application.BudgetLine.Dto;
-using Pulpe.Api.Application.Common;
-using Pulpe.Api.Domain.Budget;
-using Pulpe.Api.Domain.Common;
-using Pulpe.Api.Domain.Encryption;
+using Pulpe.Infrastructure.Services.BudgetLine;
+using Pulpe.Application.BudgetLine.Dto;
+using Pulpe.Application.Common;
+using Pulpe.Domain.Budget;
+using Pulpe.Domain.Common;
+using Pulpe.Domain.Encryption;
 using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
 

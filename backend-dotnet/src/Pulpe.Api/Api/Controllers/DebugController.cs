@@ -1,10 +1,12 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Pulpe.Api.Domain.Common;
+using Pulpe.Domain.Common;
 
 namespace Pulpe.Api.Api.Controllers;
 
 [ApiController]
 [Route("api/v1/debug")]
+[Authorize]
 public class DebugController : ControllerBase
 {
     private readonly ILogger<DebugController> _logger;
