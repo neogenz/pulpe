@@ -453,6 +453,12 @@ export class EncryptionService {
       // regenerateRecoveryKey$() to replace it with a fresh one.
       const newWrappedDEK = this.wrapDEK(newDek, recoveryKey);
       await this.#repository.updateWrappedDEK(userId, newWrappedDEK);
+
+      // Re-invalidate after rekey succeeds: a concurrent request during the
+      // rekey window may have repopulated the cache with the old-clientKey DEK.
+      // Without this, subsequent reads would decrypt new ciphertext with the
+      // old DEK → silent corruption.
+      this.#invalidateUserDEKCache(userId);
     } finally {
       // Zero sensitive material (even on error)
       recoveryKey.fill(0);
@@ -638,6 +644,12 @@ export class EncryptionService {
       } finally {
         raw.fill(0);
       }
+
+      // Re-invalidate after rekey succeeds: a concurrent request during the
+      // rekey window may have repopulated the cache with the old-clientKey DEK.
+      // Without this, subsequent reads would decrypt new ciphertext with the
+      // old DEK → silent corruption.
+      this.#invalidateUserDEKCache(userId);
 
       return {
         keyCheck,

@@ -2140,6 +2140,98 @@ describe('EncryptionService', () => {
         expect.stringContaining('Failed to restore wrapped_dek'),
       );
     });
+
+    it('should invalidate DEK cache after rekey succeeds (concurrent request repopulates mid-rekey)', async () => {
+      const existingSalt = randomBytes(16).toString('hex');
+      const wrappedDekUpdates: Array<string | null> = [];
+
+      const findSaltByUserId = mock(() =>
+        Promise.resolve({
+          salt: existingSalt,
+          kdf_iterations: 600000,
+          key_check: null,
+        }),
+      );
+      const updateWrappedDEK = mock((_userId: string, value: string | null) => {
+        wrappedDekUpdates.push(value);
+        return Promise.resolve();
+      });
+      const updateWrappedDEKIfNull = mock((_userId: string, value: string) => {
+        wrappedDekUpdates.push(value);
+        return Promise.resolve(true);
+      });
+
+      // Bootstrap a wrapped DEK + recovery key via createRecoveryKey
+      const bootstrapClientKey = randomBytes(32);
+      const repo1 = createMockRepository({
+        findSaltByUserId,
+        updateWrappedDEK,
+        updateWrappedDEKIfNull,
+      });
+      const svc1 = new EncryptionService(
+        createMockLogger() as any,
+        mockConfigService as any,
+        repo1 as any,
+      );
+      const { formatted } = await svc1.createRecoveryKey(
+        TEST_USER_ID,
+        bootstrapClientKey,
+      );
+      const storedWrappedDek = wrappedDekUpdates[wrappedDekUpdates.length - 1];
+
+      const findByUserId = mock(() =>
+        Promise.resolve({
+          salt: existingSalt,
+          kdf_iterations: 600000,
+          wrapped_dek: storedWrappedDek,
+          key_check: null,
+        }),
+      );
+      const findSaltByUserId2 = mock(() =>
+        Promise.resolve({
+          salt: existingSalt,
+          kdf_iterations: 600000,
+          key_check: null,
+        }),
+      );
+
+      const repo2 = createMockRepository({
+        findByUserId,
+        findSaltByUserId: findSaltByUserId2,
+      });
+      const svc2 = new EncryptionService(
+        createMockLogger() as any,
+        mockConfigService as any,
+        repo2 as any,
+      );
+
+      // Simulate the vulnerability: a concurrent request repopulates the cache
+      // with the OLD client-key DEK while reEncryptAllUserData is running.
+      const oldClientKey = randomBytes(32);
+      const reEncryptSpy = spyOn(
+        svc2,
+        'reEncryptAllUserData',
+      ).mockImplementation(async () => {
+        await svc2.getUserDEK(TEST_USER_ID, oldClientKey);
+        return 'mock-key-check';
+      });
+
+      const newClientKey = randomBytes(32);
+      await svc2.recoverWithKey(
+        TEST_USER_ID,
+        formatted,
+        newClientKey,
+        {} as any,
+      );
+
+      reEncryptSpy.mockRestore();
+
+      // After successful recovery, the cache must be empty: a subsequent read
+      // for the old client-key MUST hit the DB again (cache miss).
+      const callsBeforeProbe = findSaltByUserId2.mock.calls.length;
+      await svc2.getUserDEK(TEST_USER_ID, oldClientKey);
+      expect(findSaltByUserId2.mock.calls.length).toBe(callsBeforeProbe + 1);
+    });
   });
 
   describe('changePinRekey', () => {
@@ -2786,6 +2878,64 @@ describe('EncryptionService', () => {
       expect(capturedNewDek!.every((b) => b === 0)).toBe(true);
 
       reEncryptSpy.mockRestore();
+    });
+
+    it('should invalidate DEK cache after rekey succeeds (concurrent request repopulates mid-rekey)', async () => {
+      const dek = await setupServiceWithValidKeyCheck();
+      const validKeyCheck = service.generateKeyCheck(dek);
+
+      const findByUserId = mock(() =>
+        Promise.resolve({
+          salt: existingSalt,
+          kdf_iterations: 600000,
+          wrapped_dek: null,
+          key_check: validKeyCheck,
+        }),
+      );
+      const findSaltByUserId = mock(() =>
+        Promise.resolve({
+          salt: existingSalt,
+          kdf_iterations: 600000,
+          key_check: validKeyCheck,
+        }),
+      );
+      const updateWrappedDEK = mock(() => Promise.resolve());
+
+      const repo = createMockRepository({
+        findByUserId,
+        findSaltByUserId,
+        updateWrappedDEK,
+      });
+      service = new EncryptionService(
+        createMockLogger() as any,
+        mockConfigService as any,
+        repo as any,
+      );
+
+      // Simulate the vulnerability: a concurrent request repopulates the cache
+      // with the OLD client-key DEK while reEncryptAllUserData is running.
+      const reEncryptSpy = spyOn(
+        service,
+        'reEncryptAllUserData',
+      ).mockImplementation(async () => {
+        await service.getUserDEK(TEST_USER_ID, oldClientKey);
+        return 'mock-key-check';
+      });
+
+      await service.changePinRekey(
+        TEST_USER_ID,
+        oldClientKey,
+        newClientKey,
+        mockSupabase,
+      );
+
+      reEncryptSpy.mockRestore();
+
+      // After successful rekey, the cache must be empty: a subsequent read
+      // for the old client-key MUST hit the DB again (cache miss).
+      const callsBeforeProbe = findSaltByUserId.mock.calls.length;
+      await service.getUserDEK(TEST_USER_ID, oldClientKey);
+      expect(findSaltByUserId.mock.calls.length).toBe(callsBeforeProbe + 1);
     });
   });
 });
