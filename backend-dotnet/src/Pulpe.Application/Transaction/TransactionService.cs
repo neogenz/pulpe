@@ -1,5 +1,4 @@
 using Microsoft.Extensions.Logging;
-using Pulpe.Application.Budget.Dto;
 using Pulpe.Application.Common;
 using Pulpe.Application.Currency;
 using Pulpe.Application.Transaction.Dto;
@@ -9,6 +8,7 @@ using Pulpe.Domain.Currency;
 using Pulpe.Domain.Encryption;
 using Pulpe.Domain.Transaction;
 using Pulpe.Domain.User;
+using TransactionResponseDto = Pulpe.Application.Transaction.Dto.TransactionResponseDto;
 
 namespace Pulpe.Application.Transaction;
 
