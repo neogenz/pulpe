@@ -109,17 +109,6 @@ struct BudgetLineMixedRow: View {
             .padding(.vertical, DesignTokens.Spacing.md)
             .padding(.leading, DesignTokens.Spacing.xs)
             .padding(.trailing, DesignTokens.Spacing.md)
-            .background(
-                RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.card, style: .continuous)
-                    .fill(Color.surface)
-            )
-            .overlay {
-                RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.card, style: .continuous)
-                    .strokeBorder(
-                        Color.outlineVariant.opacity(DesignTokens.Opacity.heavy),
-                        lineWidth: DesignTokens.BorderWidth.hairline
-                    )
-            }
             .opacity(isPointed ? DesignTokens.Opacity.pointedDim : 1)
             .animation(
                 reduceMotion ? nil : DesignTokens.Animation.gentleSpring,
@@ -128,7 +117,7 @@ struct BudgetLineMixedRow: View {
         }
         .buttonStyle(.plain)
         .frame(minHeight: DesignTokens.TapTarget.minimum)
-        .contentShape(.rect(cornerRadius: DesignTokens.CornerRadius.card, style: .continuous))
+        .contentShape(Rectangle())
         .sensoryFeedback(.success, trigger: triggerToggleFeedback)
         // `.contain` keeps the inner PointCircle as its own focus node so VoiceOver
         // can drive the pointed/unpointed toggle independently of the row's tap-to-open.

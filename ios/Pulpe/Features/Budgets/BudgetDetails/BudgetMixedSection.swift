@@ -49,7 +49,7 @@ struct BudgetMixedSection: View {
         Section {
             if let tip {
                 TipView(tip)
-                    .listRowCustomStyled(insets: EdgeInsets())
+                    .listRowSeparator(.hidden)
             }
 
             ForEach(items, id: \.id) { item in
@@ -63,7 +63,7 @@ struct BudgetMixedSection: View {
                     onTap: { onTap(item) },
                     onTogglePointed: { onTogglePointed(item) }
                 )
-                .listRowCustomStyled(insets: EdgeInsets())
+                .listRowSeparator(.hidden)
             }
         } header: {
             HStack(spacing: DesignTokens.Spacing.xxs) {
