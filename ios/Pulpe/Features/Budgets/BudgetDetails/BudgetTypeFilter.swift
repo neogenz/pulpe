@@ -82,10 +82,12 @@ struct BudgetTypeFilter: View {
                     checkedPill(option)
                 }
             }
-            .padding(.horizontal, DesignTokens.Spacing.lg)
             .padding(.vertical, DesignTokens.Spacing.sm)
         }
+        .contentMargins(.horizontal, DesignTokens.Spacing.lg, for: .scrollContent)
         .scrollIndicators(.hidden)
+        .scrollClipDisabled()
+        .frame(maxWidth: .infinity, alignment: .leading)
         .sensoryFeedback(.selection, trigger: kind)
         .sensoryFeedback(.selection, trigger: checked)
         .accessibilityElement(children: .contain)

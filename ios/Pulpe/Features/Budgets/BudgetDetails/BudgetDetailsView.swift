@@ -145,110 +145,111 @@ struct BudgetDetailsView: View {
         let filteredFree = viewModel.combinedFilteredFreeTransactions(searchText: searchText)
         let firstSectionKind = searchFilteredSections.first?.kind
 
-        let fullWidthInsets = EdgeInsets()
+        // The page row itself stays full-width. The filter and hero pills own
+        // their horizontal scroll margins, while normal hero content stays padded.
+        let fullBleedRowInsets = EdgeInsets()
 
-        return List {
-            // Unified type + checked filter
-            Section {
-                BudgetTypeFilter(
-                    kind: typeFilterBinding,
-                    checked: checkedFilterBinding,
-                    counts: viewModel.kindCounts
-                )
-            }
-            .listRowCustomStyled(insets: fullWidthInsets)
-            .listSectionSeparator(.hidden)
+        return VStack(spacing: 0) {
+            // Unified type + checked filter. Kept outside `List` so the rail is
+            // truly full-bleed instead of clipped by insetGrouped section chrome.
+            BudgetTypeFilter(
+                kind: typeFilterBinding,
+                checked: checkedFilterBinding,
+                counts: viewModel.kindCounts
+            )
             .popoverTip(ProductTips.checking)
 
-            // Hero balance card (with integrated rollover)
-            Section {
-                HeroBalanceCard(
-                    metrics: viewModel.metrics,
-                    timeElapsedPercentage: timeElapsedPercentage,
-                    onTapChart: { destination = .realizedBalance },
-                    rolloverAmount: viewModel.rolloverInfo?.amount,
-                    previousBudgetMonth: viewModel.previousBudgetMonth,
-                    onRolloverTap: viewModel.rolloverInfo?.previousBudgetId.map { id in
-                        { destination = .previousBudget(PreviousBudgetItem(id: id)) }
-                    }
-                )
-            }
-            .listRowCustomStyled(insets: fullWidthInsets)
-            .listSectionSeparator(.hidden)
-
-            // Empty search state
-            if !searchText.isEmpty && searchFilteredSections.isEmpty && filteredFree.isEmpty {
-                ContentUnavailableView("Aucune prévision trouvée", systemImage: "magnifyingglass")
-                    .listRowCustomStyled()
-            }
-
-            // All checked empty state (À pointer filter active, nothing left to check)
-            if searchText.isEmpty && viewModel.isShowingOnlyUnchecked &&
-                searchFilteredSections.isEmpty && filteredFree.isEmpty &&
-                (!viewModel.budgetLines.isEmpty || !viewModel.transactions.isEmpty) {
-                ContentUnavailableView {
-                    Label("Tout est pointé", systemImage: "checkmark.circle.fill")
-                } description: {
-                    Text("Bien joué ! Passe sur « Tout voir » pour revoir tes prévisions.")
-                }
-                .listRowCustomStyled()
-            }
-
-            // Mixed budget line sections (tip on first visible section)
-            ForEach(searchFilteredSections, id: \.kind) { section in
-                BudgetMixedSection(
-                    kind: section.kind,
-                    items: section.items,
-                    transactions: viewModel.transactions,
-                    syncingIds: viewModel.syncingBudgetLineIds,
-                    onTap: { line in destination = .lineDetail(line) },
-                    onTogglePointed: { line in
-                        Task {
-                            let succeeded = await viewModel.toggleBudgetLine(line)
-                            if succeeded {
-                                viewModel.showCheckToastIfNeeded(
-                                    for: line, toastManager: appState.toastManager,
-                                    presentationCurrency: userSettingsStore.currency,
-                                    amountsHidden: amountsHidden
-                                )
-                            }
+            List {
+                // Hero balance card (with integrated rollover)
+                Section {
+                    HeroBalanceCard(
+                        metrics: viewModel.metrics,
+                        timeElapsedPercentage: timeElapsedPercentage,
+                        onTapChart: { destination = .realizedBalance },
+                        rolloverAmount: viewModel.rolloverInfo?.amount,
+                        previousBudgetMonth: viewModel.previousBudgetMonth,
+                        onRolloverTap: viewModel.rolloverInfo?.previousBudgetId.map { id in
+                            { destination = .previousBudget(PreviousBudgetItem(id: id)) }
                         }
-                    },
-                    tip: section.kind == firstSectionKind ? ProductTips.gestures : nil
-                )
-            }
+                    )
+                }
+                .listRowCustomStyled(insets: fullBleedRowInsets)
+                .listSectionSeparator(.hidden)
 
-            // Free transactions
-            if !filteredFree.isEmpty {
-                TransactionSection(
-                    title: "Transactions libres",
-                    transactions: filteredFree,
-                    syncingIds: viewModel.syncingTransactionIds,
-                    onToggle: { transaction in
-                        Task { await viewModel.toggleTransaction(transaction) }
-                    },
-                    onDelete: { transaction in
-                        viewModel.softDeleteTransaction(
-                            transaction,
-                            toastManager: appState.toastManager,
-                            presentationCurrency: userSettingsStore.currency
-                        )
-                    },
-                    onEdit: { transaction in
-                        destination = .editTransaction(transaction)
+                // Empty search state
+                if !searchText.isEmpty && searchFilteredSections.isEmpty && filteredFree.isEmpty {
+                    ContentUnavailableView("Aucune prévision trouvée", systemImage: "magnifyingglass")
+                        .listRowCustomStyled()
+                }
+
+                // All checked empty state (À pointer filter active, nothing left to check)
+                if searchText.isEmpty && viewModel.isShowingOnlyUnchecked &&
+                    searchFilteredSections.isEmpty && filteredFree.isEmpty &&
+                    (!viewModel.budgetLines.isEmpty || !viewModel.transactions.isEmpty) {
+                    ContentUnavailableView {
+                        Label("Tout est pointé", systemImage: "checkmark.circle.fill")
+                    } description: {
+                        Text("Bien joué ! Passe sur « Tout voir » pour revoir tes prévisions.")
                     }
-                )
+                    .listRowCustomStyled()
+                }
+
+                // Mixed budget line sections (tip on first visible section)
+                ForEach(searchFilteredSections, id: \.kind) { section in
+                    BudgetMixedSection(
+                        kind: section.kind,
+                        items: section.items,
+                        transactions: viewModel.transactions,
+                        syncingIds: viewModel.syncingBudgetLineIds,
+                        onTap: { line in destination = .lineDetail(line) },
+                        onTogglePointed: { line in
+                            Task {
+                                let succeeded = await viewModel.toggleBudgetLine(line)
+                                if succeeded {
+                                    viewModel.showCheckToastIfNeeded(
+                                        for: line, toastManager: appState.toastManager,
+                                        presentationCurrency: userSettingsStore.currency,
+                                        amountsHidden: amountsHidden
+                                    )
+                                }
+                            }
+                        },
+                        tip: section.kind == firstSectionKind ? ProductTips.gestures : nil
+                    )
+                }
+
+                // Free transactions
+                if !filteredFree.isEmpty {
+                    TransactionSection(
+                        title: "Transactions libres",
+                        transactions: filteredFree,
+                        syncingIds: viewModel.syncingTransactionIds,
+                        onToggle: { transaction in
+                            Task { await viewModel.toggleTransaction(transaction) }
+                        },
+                        onDelete: { transaction in
+                            viewModel.softDeleteTransaction(
+                                transaction,
+                                toastManager: appState.toastManager,
+                                presentationCurrency: userSettingsStore.currency
+                            )
+                        },
+                        onEdit: { transaction in
+                            destination = .editTransaction(transaction)
+                        }
+                    )
+                }
+            }
+            .popoverTip(ProductTips.pessimisticCheck)
+            .listStyle(.insetGrouped)
+            .listRowSpacing(0)
+            .listSectionSpacing(DesignTokens.Spacing.xxl)
+            .scrollContentBackground(.hidden)
+            .refreshable {
+                await viewModel.loadDetails(force: true)
             }
         }
-        .popoverTip(ProductTips.pessimisticCheck)
-        .listStyle(.insetGrouped)
-        .listRowSpacing(0)
-        .listSectionSpacing(DesignTokens.Spacing.xxl)
-        .scrollContentBackground(.hidden)
         .pulpeBackground()
-        .refreshable {
-            await viewModel.loadDetails(force: true)
-        }
         .searchable(
             text: $searchText,
             placement: .navigationBarDrawer(displayMode: .automatic),
@@ -434,42 +435,43 @@ private struct BudgetLineDetailSheetWrapper: View {
 
 private struct BudgetDetailsSkeletonView: View {
     var body: some View {
-        List {
-            // Filter picker placeholder
-            Section {
-                SkeletonShape(height: 32, cornerRadius: DesignTokens.CornerRadius.sm)
-            }
-            .listRowCustomStyled(insets: EdgeInsets())
-            .listSectionSeparator(.hidden)
+        // Mirror the loaded state's full-width filter + hero host rows to avoid
+        // a visual jump on transition.
+        VStack(spacing: 0) {
+            SkeletonShape(height: DesignTokens.TapTarget.minimum, cornerRadius: DesignTokens.CornerRadius.sm)
+                .padding(.horizontal, DesignTokens.Spacing.lg)
+                .padding(.vertical, DesignTokens.Spacing.sm)
 
-            // Hero card placeholder
-            Section {
-                SkeletonShape(height: 200, cornerRadius: DesignTokens.CornerRadius.xl)
-            }
-            .listRowCustomStyled(insets: EdgeInsets())
-            .listSectionSeparator(.hidden)
-
-            // Budget line sections (Revenus + Dépenses)
-            ForEach(0..<2, id: \.self) { _ in
+            List {
+                // Hero card placeholder
                 Section {
-                    ForEach(0..<3, id: \.self) { _ in
-                        HStack {
-                            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                                SkeletonShape(width: 120, height: 14)
-                                SkeletonShape(width: 80, height: 11)
+                    SkeletonShape(height: 200, cornerRadius: DesignTokens.CornerRadius.xl)
+                }
+                .listRowCustomStyled(insets: EdgeInsets())
+                .listSectionSeparator(.hidden)
+
+                // Budget line sections (Revenus + Dépenses)
+                ForEach(0..<2, id: \.self) { _ in
+                    Section {
+                        ForEach(0..<3, id: \.self) { _ in
+                            HStack {
+                                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                                    SkeletonShape(width: 120, height: 14)
+                                    SkeletonShape(width: 80, height: 11)
+                                }
+                                Spacer()
+                                SkeletonShape(width: 70, height: 14)
                             }
-                            Spacer()
-                            SkeletonShape(width: 70, height: 14)
                         }
+                    } header: {
+                        SkeletonShape(width: 80, height: 14)
                     }
-                } header: {
-                    SkeletonShape(width: 80, height: 14)
                 }
             }
+            .listStyle(.insetGrouped)
+            .listSectionSpacing(DesignTokens.Spacing.lg)
+            .scrollContentBackground(.hidden)
         }
-        .listStyle(.insetGrouped)
-        .listSectionSpacing(DesignTokens.Spacing.lg)
-        .scrollContentBackground(.hidden)
         .shimmering()
         .pulpeBackground()
         .accessibilityLabel("Chargement du budget")

@@ -193,6 +193,10 @@ struct HeroBalanceCard: View {
     // MARK: - Pills Row
 
     private var pillsRow: some View {
+        // Only this horizontal rail goes full-bleed. The surrounding hero chunks
+        // keep their lg horizontal padding; the negative outer padding cancels
+        // it so the scroll viewport spans the whole card width, and the inner
+        // contentMargins re-adds it so the first pill aligns with the chunks.
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: DesignTokens.Spacing.tightGap) {
                 if hasRollover, let rolloverAmount {
@@ -203,9 +207,11 @@ struct HeroBalanceCard: View {
                 savingsPill
                 expensesPill
             }
-            .padding(.horizontal, DesignTokens.Spacing.xxs)
         }
+        .contentMargins(.horizontal, DesignTokens.Spacing.lg, for: .scrollContent)
         .scrollClipDisabled()
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, -DesignTokens.Spacing.lg)
     }
 
     // MARK: - Rollover Pill
