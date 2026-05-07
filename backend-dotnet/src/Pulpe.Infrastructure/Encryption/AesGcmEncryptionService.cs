@@ -395,41 +395,47 @@ public sealed class AesGcmEncryptionService : IEncryptionService
 
         var oldWrappedDek = keyRecord.WrappedDek;
         var recoveryKeyBytes = ParseRecoveryKey(recoveryKey);
-        var oldDek = UnwrapDek(keyRecord.WrappedDek, recoveryKeyBytes);
-
         try
         {
-            var newDek = DeriveDek(userId, newClientKey, keyRecord.Salt);
+            var oldDek = UnwrapDek(keyRecord.WrappedDek, recoveryKeyBytes);
             try
             {
-                string newKeyCheck;
+                var newDek = DeriveDek(userId, newClientKey, keyRecord.Salt);
                 try
                 {
-                    newKeyCheck = await ReEncryptAllUserData(userId, oldDek, newDek);
+                    string newKeyCheck;
+                    try
+                    {
+                        newKeyCheck = await ReEncryptAllUserData(userId, oldDek, newDek);
+                    }
+                    catch (Exception)
+                    {
+                        try { await _keyRepository.UpdateWrappedDek(userId, oldWrappedDek); }
+                        catch (Exception restoreEx) { _logger.LogWarning(restoreEx, "Failed to restore wrapped DEK for user {UserId} after rekey failure", userId); }
+                        throw;
+                    }
+
+                    // Invalidate cache immediately after successful re-encryption, before writing new wrapped DEK.
+                    InvalidateDekCache(userId);
+
+                    // Re-wrap the old DEK structure (same recovery key wraps new DEK)
+                    var newWrappedDek = WrapDek(newDek, recoveryKeyBytes);
+                    await _keyRepository.UpdateWrappedDek(userId, newWrappedDek);
+                    await _keyRepository.UpdateKeyCheck(userId, newKeyCheck);
                 }
-                catch (Exception)
+                finally
                 {
-                    try { await _keyRepository.UpdateWrappedDek(userId, oldWrappedDek); }
-                    catch (Exception restoreEx) { _logger.LogWarning(restoreEx, "Failed to restore wrapped DEK for user {UserId} after rekey failure", userId); }
-                    throw;
+                    CryptographicOperations.ZeroMemory(newDek);
                 }
-
-                // Invalidate cache immediately after successful re-encryption, before writing new wrapped DEK.
-                InvalidateDekCache(userId);
-
-                // Re-wrap the old DEK structure (same recovery key wraps new DEK)
-                var newWrappedDek = WrapDek(newDek, recoveryKeyBytes);
-                await _keyRepository.UpdateWrappedDek(userId, newWrappedDek);
-                await _keyRepository.UpdateKeyCheck(userId, newKeyCheck);
             }
             finally
             {
-                CryptographicOperations.ZeroMemory(newDek);
+                CryptographicOperations.ZeroMemory(oldDek);
             }
         }
         finally
         {
-            CryptographicOperations.ZeroMemory(oldDek);
+            CryptographicOperations.ZeroMemory(recoveryKeyBytes);
         }
     }
 
@@ -474,7 +480,15 @@ public sealed class AesGcmEncryptionService : IEncryptionService
 
                 // Generate new recovery key
                 var (recoveryRaw, recoveryFormatted) = GenerateRecoveryKey();
-                var wrappedDek = WrapDek(newDek, recoveryRaw);
+                string wrappedDek;
+                try
+                {
+                    wrappedDek = WrapDek(newDek, recoveryRaw);
+                }
+                finally
+                {
+                    CryptographicOperations.ZeroMemory(recoveryRaw);
+                }
 
                 await _keyRepository.UpdateWrappedDek(userId, wrappedDek);
                 await _keyRepository.UpdateKeyCheck(userId, newKeyCheck);
