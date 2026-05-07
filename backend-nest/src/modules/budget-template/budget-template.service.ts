@@ -40,7 +40,7 @@ import * as budgetTemplateMappers from './budget-template.mappers';
 import {
   applyTemplateLineOperationsListSchema,
   createTemplateLinesRpcPayloadSchema,
-} from './schemas/rpc-payload.schemas';
+} from './infrastructure/persistence/schemas/rpc-payload.schemas';
 
 type TemplateBulkOperationsResult = {
   deletedIds: string[];
