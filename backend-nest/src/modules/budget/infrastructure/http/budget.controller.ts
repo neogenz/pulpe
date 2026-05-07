@@ -39,8 +39,8 @@ import {
   SupabaseClient,
   type AuthenticatedUser,
 } from '@common/decorators/user.decorator';
-import { BudgetService } from './budget.service';
 import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
+import { ErrorResponseDto } from '@common/dto/response.dto';
 import {
   BudgetCreateDto,
   BudgetUpdateDto,
@@ -52,7 +52,15 @@ import {
   ListBudgetsQueryDto,
   BudgetSparseListResponseDto,
 } from './dto/budget-swagger.dto';
-import { ErrorResponseDto } from '@common/dto/response.dto';
+import { HasBudgetsUseCase } from '../../application/has-budgets.use-case';
+import { FindAllBudgetsUseCase } from '../../application/find-all-budgets.use-case';
+import { FindBudgetUseCase } from '../../application/find-budget.use-case';
+import { FindBudgetWithDetailsUseCase } from '../../application/find-budget-with-details.use-case';
+import { CreateBudgetUseCase } from '../../application/create-budget.use-case';
+import { UpdateBudgetUseCase } from '../../application/update-budget.use-case';
+import { RemoveBudgetUseCase } from '../../application/remove-budget.use-case';
+import { GenerateBudgetsUseCase } from '../../application/generate-budgets.use-case';
+import { ExportAllBudgetsUseCase } from '../../application/export-all-budgets.use-case';
 
 @ApiTags('Budgets')
 @ApiBearerAuth()
@@ -67,7 +75,17 @@ import { ErrorResponseDto } from '@common/dto/response.dto';
   type: ErrorResponseDto,
 })
 export class BudgetController {
-  constructor(private readonly budgetService: BudgetService) {}
+  constructor(
+    private readonly hasBudgetsUseCase: HasBudgetsUseCase,
+    private readonly findAllBudgetsUseCase: FindAllBudgetsUseCase,
+    private readonly findBudgetUseCase: FindBudgetUseCase,
+    private readonly findBudgetWithDetailsUseCase: FindBudgetWithDetailsUseCase,
+    private readonly createBudgetUseCase: CreateBudgetUseCase,
+    private readonly updateBudgetUseCase: UpdateBudgetUseCase,
+    private readonly removeBudgetUseCase: RemoveBudgetUseCase,
+    private readonly generateBudgetsUseCase: GenerateBudgetsUseCase,
+    private readonly exportAllBudgetsUseCase: ExportAllBudgetsUseCase,
+  ) {}
 
   @Get()
   @ApiOperation({
@@ -106,7 +124,7 @@ export class BudgetController {
     @User() user: AuthenticatedUser,
     @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetListResponse | BudgetSparseListResponse> {
-    return this.budgetService.findAll(
+    return this.findAllBudgetsUseCase.execute(
       user,
       supabase,
       query as ListBudgetsQuery,
@@ -132,7 +150,7 @@ export class BudgetController {
     @User() user: AuthenticatedUser,
     @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetResponse> {
-    return this.budgetService.create(createBudgetDto, user, supabase);
+    return this.createBudgetUseCase.execute(createBudgetDto, user, supabase);
   }
 
   @Post('generate')
@@ -153,7 +171,7 @@ export class BudgetController {
     @User() user: AuthenticatedUser,
     @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetGenerateResponse> {
-    return this.budgetService.generateBudgets(dto, user, supabase);
+    return this.generateBudgetsUseCase.execute(dto, user, supabase);
   }
 
   @Get('export')
@@ -170,7 +188,7 @@ export class BudgetController {
     @User() user: AuthenticatedUser,
     @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ) {
-    return this.budgetService.exportAll(user, supabase);
+    return this.exportAllBudgetsUseCase.execute(user, supabase);
   }
 
   @Get('exists')
@@ -193,7 +211,7 @@ export class BudgetController {
     @User() user: AuthenticatedUser,
     @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<{ hasBudget: boolean }> {
-    const hasBudget = await this.budgetService.hasBudgets(user, supabase);
+    const hasBudget = await this.hasBudgetsUseCase.execute(user, supabase);
     return { hasBudget };
   }
 
@@ -223,7 +241,7 @@ export class BudgetController {
     @User() user: AuthenticatedUser,
     @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetResponse> {
-    return this.budgetService.findOne(id, user, supabase);
+    return this.findBudgetUseCase.execute(id, user, supabase);
   }
 
   @Get(':id/details')
@@ -253,7 +271,7 @@ export class BudgetController {
     @User() user: AuthenticatedUser,
     @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetDetailsResponse> {
-    return this.budgetService.findOneWithDetails(id, user, supabase);
+    return this.findBudgetWithDetailsUseCase.execute(id, user, supabase);
   }
 
   @Patch(':id')
@@ -287,7 +305,12 @@ export class BudgetController {
     @User() user: AuthenticatedUser,
     @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetResponse> {
-    return this.budgetService.update(id, updateBudgetDto, user, supabase);
+    return this.updateBudgetUseCase.execute(
+      id,
+      updateBudgetDto,
+      user,
+      supabase,
+    );
   }
 
   @Delete(':id')
@@ -316,6 +339,6 @@ export class BudgetController {
     @User() user: AuthenticatedUser,
     @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetDeleteResponse> {
-    return this.budgetService.remove(id, user, supabase);
+    return this.removeBudgetUseCase.execute(id, user, supabase);
   }
 }
