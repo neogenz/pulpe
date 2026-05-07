@@ -4,7 +4,10 @@ import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
 import { type TransactionDeleteResponse } from 'pulpe-shared';
 import { CacheService } from '@modules/cache/cache.service';
-import { BudgetService } from '@modules/budget/budget.service';
+import {
+  BUDGET_RECALCULATION_PORT,
+  type BudgetRecalculationPort,
+} from '@modules/budget/domain/ports/budget-recalculation.port';
 import {
   TRANSACTION_REPOSITORY,
   type TransactionRepositoryPort,
@@ -16,7 +19,8 @@ export class RemoveTransactionUseCase {
     @Inject(TRANSACTION_REPOSITORY)
     private readonly repo: TransactionRepositoryPort,
     private readonly cacheService: CacheService,
-    private readonly budgetService: BudgetService,
+    @Inject(BUDGET_RECALCULATION_PORT)
+    private readonly budgetRecalculation: BudgetRecalculationPort,
     @InjectInfoLogger(RemoveTransactionUseCase.name)
     private readonly logger: InfoLogger,
   ) {}
@@ -30,7 +34,7 @@ export class RemoveTransactionUseCase {
     await this.repo.delete(id, supabase);
 
     if (budgetId) {
-      await this.budgetService.recalculateBalances(
+      await this.budgetRecalculation.recalculate(
         budgetId,
         supabase,
         user.clientKey,

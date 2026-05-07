@@ -5,7 +5,7 @@ import { TRANSACTION_REPOSITORY } from '../domain/ports/transaction-repository.p
 import { EncryptionService } from '@modules/encryption/encryption.service';
 import { CacheService } from '@modules/cache/cache.service';
 import { CurrencyService } from '@modules/currency/currency.service';
-import { BudgetService } from '@modules/budget/budget.service';
+import { BUDGET_RECALCULATION_PORT } from '@modules/budget/domain/ports/budget-recalculation.port';
 import { TransactionMapper } from '../infrastructure/mappers/transaction.mapper';
 import { BusinessException } from '@common/exceptions/business.exception';
 import type { TransactionCreate } from 'pulpe-shared';
@@ -52,7 +52,7 @@ describe('CreateTransactionUseCase', () => {
   };
   let mockCache: { invalidateForUser: ReturnType<typeof jest.fn> };
   let mockCurrency: { overrideExchangeRate: ReturnType<typeof jest.fn> };
-  let mockBudget: { recalculateBalances: ReturnType<typeof jest.fn> };
+  let mockBudget: { recalculate: ReturnType<typeof jest.fn> };
   let mockSupabase: AuthenticatedSupabaseClient;
 
   beforeEach(async () => {
@@ -77,7 +77,7 @@ describe('CreateTransactionUseCase', () => {
       overrideExchangeRate: jest.fn().mockImplementation((dto) => dto),
     };
     mockBudget = {
-      recalculateBalances: jest.fn().mockResolvedValue(undefined),
+      recalculate: jest.fn().mockResolvedValue(undefined),
     };
     mockSupabase = {} as AuthenticatedSupabaseClient;
 
@@ -88,7 +88,7 @@ describe('CreateTransactionUseCase', () => {
         { provide: EncryptionService, useValue: mockEncryption },
         { provide: CacheService, useValue: mockCache },
         { provide: CurrencyService, useValue: mockCurrency },
-        { provide: BudgetService, useValue: mockBudget },
+        { provide: BUDGET_RECALCULATION_PORT, useValue: mockBudget },
         { provide: TransactionMapper, useClass: TransactionMapper },
         {
           provide: `INFO_LOGGER:${CreateTransactionUseCase.name}`,
@@ -121,7 +121,7 @@ describe('CreateTransactionUseCase', () => {
     const data = result.data;
     expect(data && !Array.isArray(data) ? data.name : null).toBe('Restaurant');
     expect(mockRepo.insert).toHaveBeenCalledTimes(1);
-    expect(mockBudget.recalculateBalances).toHaveBeenCalledTimes(1);
+    expect(mockBudget.recalculate).toHaveBeenCalledTimes(1);
     expect(mockCache.invalidateForUser).toHaveBeenCalledWith(mockUser.id);
   });
 

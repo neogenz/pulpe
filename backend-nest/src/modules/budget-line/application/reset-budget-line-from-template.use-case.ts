@@ -5,7 +5,10 @@ import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.ser
 import { type BudgetLineResponse } from 'pulpe-shared';
 import { EncryptionService } from '@modules/encryption/encryption.service';
 import { CacheService } from '@modules/cache/cache.service';
-import { BudgetService } from '@modules/budget/budget.service';
+import {
+  BUDGET_RECALCULATION_PORT,
+  type BudgetRecalculationPort,
+} from '@modules/budget/domain/ports/budget-recalculation.port';
 import {
   BUDGET_LINE_REPOSITORY,
   type BudgetLineRepositoryPort,
@@ -21,7 +24,8 @@ export class ResetBudgetLineFromTemplateUseCase {
     private readonly repo: BudgetLineRepositoryPort,
     private readonly encryptionService: EncryptionService,
     private readonly cacheService: CacheService,
-    private readonly budgetService: BudgetService,
+    @Inject(BUDGET_RECALCULATION_PORT)
+    private readonly budgetRecalculation: BudgetRecalculationPort,
     private readonly mapper: BudgetLineMapper,
     @InjectInfoLogger(ResetBudgetLineFromTemplateUseCase.name)
     private readonly logger: InfoLogger,
@@ -53,7 +57,7 @@ export class ResetBudgetLineFromTemplateUseCase {
       dek,
     );
 
-    await this.budgetService.recalculateBalances(
+    await this.budgetRecalculation.recalculate(
       budgetId,
       supabase,
       user.clientKey,

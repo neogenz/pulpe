@@ -1,10 +1,13 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 import type { AuthenticatedSupabaseClient } from '../supabase/supabase.service';
 import { addMonths, startOfMonth } from 'date-fns';
 
 import type { Tables } from '../../types/database.types';
-import { BudgetCalculator } from '../budget/budget.calculator';
+import {
+  BUDGET_RECALCULATION_PORT,
+  type BudgetRecalculationPort,
+} from '@modules/budget/domain/ports/budget-recalculation.port';
 import {
   EncryptionService,
   DEMO_CLIENT_KEY_BUFFER,
@@ -30,7 +33,8 @@ export class DemoDataGeneratorService {
   constructor(
     @InjectInfoLogger(DemoDataGeneratorService.name)
     private readonly logger: InfoLogger,
-    private readonly budgetCalculator: BudgetCalculator,
+    @Inject(BUDGET_RECALCULATION_PORT)
+    private readonly budgetRecalculation: BudgetRecalculationPort,
     private readonly encryptionService: EncryptionService,
   ) {}
 
@@ -946,7 +950,7 @@ export class DemoDataGeneratorService {
     });
 
     for (const budget of sortedBudgets) {
-      await this.budgetCalculator.recalculateAndPersist(
+      await this.budgetRecalculation.recalculate(
         budget.id,
         supabase,
         DEMO_CLIENT_KEY_BUFFER,

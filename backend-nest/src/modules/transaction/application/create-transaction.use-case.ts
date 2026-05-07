@@ -10,7 +10,10 @@ import {
 import { EncryptionService } from '@modules/encryption/encryption.service';
 import { CacheService } from '@modules/cache/cache.service';
 import { CurrencyService } from '@modules/currency/currency.service';
-import { BudgetService } from '@modules/budget/budget.service';
+import {
+  BUDGET_RECALCULATION_PORT,
+  type BudgetRecalculationPort,
+} from '@modules/budget/domain/ports/budget-recalculation.port';
 import { mapCurrencyMetadataToDb } from '@common/utils/currency-metadata.mapper';
 import { BusinessException } from '@common/exceptions/business.exception';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
@@ -32,7 +35,8 @@ export class CreateTransactionUseCase {
     private readonly encryptionService: EncryptionService,
     private readonly cacheService: CacheService,
     private readonly currencyService: CurrencyService,
-    private readonly budgetService: BudgetService,
+    @Inject(BUDGET_RECALCULATION_PORT)
+    private readonly budgetRecalculation: BudgetRecalculationPort,
     private readonly mapper: TransactionMapper,
     @InjectInfoLogger(CreateTransactionUseCase.name)
     private readonly logger: InfoLogger,
@@ -76,7 +80,7 @@ export class CreateTransactionUseCase {
       supabase,
     );
 
-    await this.budgetService.recalculateBalances(
+    await this.budgetRecalculation.recalculate(
       row.budget_id,
       supabase,
       user.clientKey,

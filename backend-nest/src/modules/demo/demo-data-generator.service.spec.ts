@@ -1,7 +1,7 @@
 import { ConfigModule } from '@nestjs/config';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'bun:test';
-import { BudgetCalculator } from '../budget/budget.calculator';
+import { BUDGET_RECALCULATION_PORT } from '../budget/domain/ports/budget-recalculation.port';
 import { EncryptionService } from '../encryption/encryption.service';
 import type { AuthenticatedSupabaseClient } from '../supabase/supabase.service';
 import { DemoDataGeneratorService } from './demo-data-generator.service';
@@ -30,9 +30,9 @@ describe('DemoDataGeneratorService - Integration Tests', () => {
           },
         },
         {
-          provide: BudgetCalculator,
+          provide: BUDGET_RECALCULATION_PORT,
           useValue: {
-            recalculateAndPersist: async () => {},
+            recalculate: async () => {},
           },
         },
         {

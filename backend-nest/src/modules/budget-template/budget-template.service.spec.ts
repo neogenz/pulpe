@@ -13,7 +13,7 @@ describe('BudgetTemplateService - Simplified Tests', () => {
   let mockSupabase: any;
   let mockUser: AuthenticatedUser;
   let mockLogger: any;
-  let mockBudgetService: { recalculateBalances: ReturnType<typeof mock> };
+  let mockBudgetRecalculation: { recalculate: ReturnType<typeof mock> };
 
   const mockTemplate: Tables<'template'> = {
     id: 'template-123',
@@ -57,8 +57,8 @@ describe('BudgetTemplateService - Simplified Tests', () => {
       debug: mock(() => {}),
     };
 
-    mockBudgetService = {
-      recalculateBalances: mock(() => Promise.resolve()),
+    mockBudgetRecalculation = {
+      recalculate: mock(() => Promise.resolve()),
     };
 
     const mockEncryptionService = {
@@ -80,7 +80,7 @@ describe('BudgetTemplateService - Simplified Tests', () => {
 
     service = new BudgetTemplateService(
       mockLogger as any,
-      mockBudgetService as any,
+      mockBudgetRecalculation as any,
       mockEncryptionService as any,
       { invalidateForUser: () => Promise.resolve() } as any,
       mockCurrencyService as any,
@@ -225,7 +225,7 @@ describe('BudgetTemplateService - Simplified Tests', () => {
         affectedBudgetIds: [],
         affectedBudgetsCount: 0,
       });
-      expect(mockBudgetService.recalculateBalances).not.toHaveBeenCalled();
+      expect(mockBudgetRecalculation.recalculate).not.toHaveBeenCalled();
     });
 
     it('should execute transactional delete when propagation disabled but deletions exist', async () => {
@@ -333,8 +333,8 @@ describe('BudgetTemplateService - Simplified Tests', () => {
           budget_ids: ['budget-1'],
         }),
       );
-      expect(mockBudgetService.recalculateBalances).toHaveBeenCalledTimes(1);
-      expect(mockBudgetService.recalculateBalances).toHaveBeenCalledWith(
+      expect(mockBudgetRecalculation.recalculate).toHaveBeenCalledTimes(1);
+      expect(mockBudgetRecalculation.recalculate).toHaveBeenCalledWith(
         'budget-1',
         supabaseStub,
         mockUser.clientKey,
@@ -600,7 +600,7 @@ describe('BudgetTemplateService - Simplified Tests', () => {
 
       const currencyAwareService = new BudgetTemplateService(
         mockLogger as any,
-        mockBudgetService as any,
+        mockBudgetRecalculation as any,
         customEncryptionService as any,
         { invalidateForUser: () => Promise.resolve() } as any,
         customCurrencyService as any,
@@ -675,7 +675,7 @@ describe('BudgetTemplateService - Simplified Tests', () => {
 
       const monoCurrencyService = new BudgetTemplateService(
         mockLogger as any,
-        mockBudgetService as any,
+        mockBudgetRecalculation as any,
         customEncryptionService as any,
         { invalidateForUser: () => Promise.resolve() } as any,
         customCurrencyService as any,
@@ -722,7 +722,7 @@ describe('BudgetTemplateService - Simplified Tests', () => {
 
       const fxService = new BudgetTemplateService(
         mockLogger as any,
-        mockBudgetService as any,
+        mockBudgetRecalculation as any,
         customEncryptionService as any,
         { invalidateForUser: () => Promise.resolve() } as any,
         customCurrencyService as any,

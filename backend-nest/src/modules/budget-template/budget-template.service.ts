@@ -1,9 +1,12 @@
 import { type Database, Tables, TablesInsert } from '@/types/database.types';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
-import { BudgetService } from '@modules/budget/budget.service';
+import {
+  BUDGET_RECALCULATION_PORT,
+  type BudgetRecalculationPort,
+} from '@modules/budget/domain/ports/budget-recalculation.port';
 import { EncryptionService } from '@modules/encryption/encryption.service';
 import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { BusinessException } from '@common/exceptions/business.exception';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 import { CacheService } from '@modules/cache/cache.service';
@@ -52,7 +55,8 @@ export class BudgetTemplateService {
   constructor(
     @InjectInfoLogger(BudgetTemplateService.name)
     private readonly logger: InfoLogger,
-    private readonly budgetService: BudgetService,
+    @Inject(BUDGET_RECALCULATION_PORT)
+    private readonly budgetRecalculation: BudgetRecalculationPort,
     private readonly encryptionService: EncryptionService,
     private readonly cacheService: CacheService,
     private readonly currencyService: CurrencyService,
@@ -1531,7 +1535,7 @@ export class BudgetTemplateService {
 
     await Promise.all(
       budgetIds.map((budgetId) =>
-        this.budgetService.recalculateBalances(budgetId, supabase, clientKey),
+        this.budgetRecalculation.recalculate(budgetId, supabase, clientKey),
       ),
     );
   }

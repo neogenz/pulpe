@@ -6,7 +6,10 @@ import { type TransactionUpdate, type TransactionResponse } from 'pulpe-shared';
 import { EncryptionService } from '@modules/encryption/encryption.service';
 import { CacheService } from '@modules/cache/cache.service';
 import { CurrencyService } from '@modules/currency/currency.service';
-import { BudgetService } from '@modules/budget/budget.service';
+import {
+  BUDGET_RECALCULATION_PORT,
+  type BudgetRecalculationPort,
+} from '@modules/budget/domain/ports/budget-recalculation.port';
 import { mapCurrencyMetadataToDb } from '@common/utils/currency-metadata.mapper';
 import {
   TRANSACTION_REPOSITORY,
@@ -26,7 +29,8 @@ export class UpdateTransactionUseCase {
     private readonly encryptionService: EncryptionService,
     private readonly cacheService: CacheService,
     private readonly currencyService: CurrencyService,
-    private readonly budgetService: BudgetService,
+    @Inject(BUDGET_RECALCULATION_PORT)
+    private readonly budgetRecalculation: BudgetRecalculationPort,
     private readonly mapper: TransactionMapper,
     @InjectInfoLogger(UpdateTransactionUseCase.name)
     private readonly logger: InfoLogger,
@@ -63,7 +67,7 @@ export class UpdateTransactionUseCase {
 
     const row = await this.repo.update(id, updateData, supabase);
 
-    await this.budgetService.recalculateBalances(
+    await this.budgetRecalculation.recalculate(
       row.budget_id,
       supabase,
       user.clientKey,

@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, mock } from 'bun:test';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { ConfigModule } from '@nestjs/config';
-import { BudgetCalculator } from '../budget/budget.calculator';
+import { BUDGET_RECALCULATION_PORT } from '../budget/domain/ports/budget-recalculation.port';
 import { EncryptionService } from '../encryption/encryption.service';
 import { DemoService } from './demo.service';
 import { DemoDataGeneratorService } from './demo-data-generator.service';
@@ -32,9 +32,9 @@ describe('DemoService - Business Value Tests', () => {
           },
         },
         {
-          provide: BudgetCalculator,
+          provide: BUDGET_RECALCULATION_PORT,
           useValue: {
-            recalculateAndPersist: async () => {},
+            recalculate: async () => {},
           },
         },
         {

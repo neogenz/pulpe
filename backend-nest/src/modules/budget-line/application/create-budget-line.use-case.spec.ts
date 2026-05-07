@@ -5,7 +5,7 @@ import { BUDGET_LINE_REPOSITORY } from '../domain/ports/budget-line-repository.p
 import { EncryptionService } from '@modules/encryption/encryption.service';
 import { CacheService } from '@modules/cache/cache.service';
 import { CurrencyService } from '@modules/currency/currency.service';
-import { BudgetService } from '@modules/budget/budget.service';
+import { BUDGET_RECALCULATION_PORT } from '@modules/budget/domain/ports/budget-recalculation.port';
 import { BudgetLineMapper } from '../infrastructure/mappers/budget-line.mapper';
 import { BusinessException } from '@common/exceptions/business.exception';
 import type { BudgetLineCreate } from 'pulpe-shared';
@@ -50,7 +50,7 @@ describe('CreateBudgetLineUseCase', () => {
   };
   let mockCache: { invalidateForUser: ReturnType<typeof jest.fn> };
   let mockCurrency: { overrideExchangeRate: ReturnType<typeof jest.fn> };
-  let mockBudget: { recalculateBalances: ReturnType<typeof jest.fn> };
+  let mockBudget: { recalculate: ReturnType<typeof jest.fn> };
   let mockSupabase: AuthenticatedSupabaseClient;
 
   beforeEach(async () => {
@@ -74,7 +74,7 @@ describe('CreateBudgetLineUseCase', () => {
       overrideExchangeRate: jest.fn().mockImplementation((dto) => dto),
     };
     mockBudget = {
-      recalculateBalances: jest.fn().mockResolvedValue(undefined),
+      recalculate: jest.fn().mockResolvedValue(undefined),
     };
     mockSupabase = {} as AuthenticatedSupabaseClient;
 
@@ -85,7 +85,7 @@ describe('CreateBudgetLineUseCase', () => {
         { provide: EncryptionService, useValue: mockEncryption },
         { provide: CacheService, useValue: mockCache },
         { provide: CurrencyService, useValue: mockCurrency },
-        { provide: BudgetService, useValue: mockBudget },
+        { provide: BUDGET_RECALCULATION_PORT, useValue: mockBudget },
         { provide: BudgetLineMapper, useClass: BudgetLineMapper },
         {
           provide: `INFO_LOGGER:${CreateBudgetLineUseCase.name}`,
@@ -118,7 +118,7 @@ describe('CreateBudgetLineUseCase', () => {
     expect(result.success).toBe(true);
     expect(result.data.name).toBe('Loyer');
     expect(mockRepo.insert).toHaveBeenCalledTimes(1);
-    expect(mockBudget.recalculateBalances).toHaveBeenCalledTimes(1);
+    expect(mockBudget.recalculate).toHaveBeenCalledTimes(1);
     expect(mockCache.invalidateForUser).toHaveBeenCalledWith(mockUser.id);
   });
 
