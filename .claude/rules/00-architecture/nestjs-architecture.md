@@ -1,9 +1,11 @@
 ---
-description: NestJS backend module architecture, layered patterns, and dependency flow
+description: NestJS backend module architecture, 3-layer Clean Architecture, dependency rule, and port patterns
 paths: "backend-nest/src/**/*.ts"
 ---
 
 # NestJS Architecture
+
+The backend uses a 3-layer Clean Architecture per module. See full details in `backend-nest/docs/ARCHITECTURE.md`.
 
 ## Module Structure
 
@@ -11,133 +13,110 @@ Each domain in `src/modules/[domain]/`:
 
 ```
 [domain]/
-├── [domain].module.ts         # Module config + DI setup
-├── [domain].controller.ts     # HTTP routes + Swagger docs
-├── [domain].service.ts        # Business logic + orchestration
-├── [domain].repository.ts     # Data access (Supabase queries)
-├── [domain].mapper.ts         # DTO <-> Entity transformation
-├── [domain].calculator.ts     # Domain calculations (optional)
-├── [domain].validator.ts      # Domain validation (optional)
-├── [domain].constants.ts      # Domain constants (optional)
-├── dto/                       # Request/Response DTOs with Zod
-│   └── [domain]-swagger.dto.ts
-├── entities/                  # Business entities
-└── schemas/                   # Local Zod schemas (DB validation)
+├── domain/
+│   ├── [domain].entity.ts         # Plain types from DB row generators
+│   ├── [domain].invariants.ts     # Pure validation (throws BusinessException)
+│   ├── [domain].formulas.ts       # Pure domain logic (optional)
+│   └── ports/
+│       ├── [domain]-repository.port.ts
+│       └── other ports...
+├── application/
+│   └── *.use-case.ts              # @Injectable, single execute() method
+├── infrastructure/
+│   ├── http/
+│   │   ├── [domain].controller.ts
+│   │   └── dto/
+│   ├── persistence/
+│   │   ├── supabase-[domain].repository.ts
+│   │   └── schemas/               # Zod for RPC JSONB params
+│   └── mappers/
+│       └── [domain].mapper.ts
+├── [domain].module.ts
+├── [domain].tokens.ts
+└── index.ts
 ```
 
 ## Layer Responsibilities
 
-| Layer | Does | Does NOT |
-|-------|------|----------|
-| **Controller** | Route, validate input, Swagger docs, return response | Business logic, DB queries, error handling beyond HTTP |
-| **Service** | Business logic, orchestration, call repository/mapper | Direct Supabase queries, HTTP concerns |
-| **Repository** | Supabase queries, data access, error translation | Business rules, response formatting |
-| **Mapper** | DTO <-> Entity transformation, snake_case <-> camelCase | Business logic, DB queries |
+| Layer | Owns | May import | Must NOT import |
+|-------|------|-----------|-----------------|
+| **domain/** | Entities, invariants, port interfaces | `pulpe-shared`, `src/types/`, `src/common/exceptions`, `src/common/constants` | `@nestjs/*`, `@supabase/*`, `zod`, other layers |
+| **application/** | Use cases (`@Injectable`) | `domain/`, `src/common/` | `infrastructure/` |
+| **infrastructure/** | Controllers, repos, mappers, Zod RPC schemas | All layers + frameworks | — |
 
-## Controller Pattern
+## Dependency Rule
 
-```typescript
-@Controller('budgets')
-@ApiTags('budgets')
-@UseGuards(AuthGuard)
-@ApiBearerAuth()
-export class BudgetController {
-  constructor(private readonly budgetService: BudgetService) {}
-
-  @Post()
-  @ApiOperation({ summary: 'Create budget' })
-  @ApiResponse({ status: 201, type: BudgetResponseDto })
-  async create(
-    @Body() dto: BudgetCreateDto,       // Auto-validated by ZodValidationPipe
-    @User() user: AuthenticatedUser,     // Injected by AuthGuard
-    @SupabaseClient() supabase: AuthenticatedSupabaseClient,
-  ): Promise<BudgetResponse> {
-    return this.budgetService.create(dto, user, supabase);
-  }
-}
+```
+infrastructure → application → domain
 ```
 
-## Service Pattern
+Enforced at CI by `bun run quality` (ESLint boundaries) and `bun run lint:arch` (dep-cruiser).
+
+## Cross-module Communication
+
+Use ports (symbols + interfaces), never direct Service→Service imports.
+
+```typescript
+// In consuming module use-case:
+@Inject(BUDGET_RECALCULATION_PORT)
+private readonly recalculate: BudgetRecalculationPort,
+```
+
+Active ports: `BUDGET_REPOSITORY`, `BUDGET_RECALCULATION_PORT`, `BUDGET_LINE_REPOSITORY`,
+`TRANSACTION_REPOSITORY`, `BUDGET_TEMPLATE_REPOSITORY`, `ENCRYPTION_PORT`,
+`DEMO_CREDENTIALS_PORT`, `DEMO_REPOSITORY`.
+
+## Use Case Pattern
 
 ```typescript
 @Injectable()
-export class BudgetService {
+export class CreateBudgetLineUseCase {
   constructor(
-    @InjectInfoLogger(BudgetService.name)
+    @Inject(BUDGET_LINE_REPOSITORY)
+    private readonly repo: BudgetLineRepositoryPort,
+    @Inject(ENCRYPTION_PORT)
+    private readonly encryption: EncryptionPort,
+    @InjectInfoLogger(CreateBudgetLineUseCase.name)
     private readonly logger: InfoLogger,
-    private readonly budgetMapper: BudgetMapper,
   ) {}
 
-  async create(
-    dto: BudgetCreate,
-    user: AuthenticatedUser,
-    supabase: AuthenticatedSupabaseClient,
-  ): Promise<BudgetResponse> {
-    const startTime = Date.now();
-    // Business logic here
-    this.logger.info(
-      { operation: 'create_budget', userId: user.id, duration: Date.now() - startTime },
-      'Budget created successfully',
-    );
-    return { success: true, data: this.budgetMapper.toApi(result) };
+  async execute(dto: BudgetLineCreate, userId: string): Promise<BudgetLine> {
+    BudgetLineInvariants.validateCreate(dto);
+    const dek = await this.encryption.ensureUserDEK(userId);
+    const row = await this.repo.create(dto, userId, dek);
+    this.logger.info({ operation: 'create_budget_line', userId }, 'Budget line created');
+    return row;
   }
 }
 ```
 
 ## Module Pattern
 
-**MANDATORY:** Every class using `@InjectInfoLogger` MUST have matching `createInfoLoggerProvider` in module's `providers`. Forget = NestJS DI error at runtime.
+**MANDATORY:** Every class using `@InjectInfoLogger` MUST have matching `createInfoLoggerProvider` entry.
 
 ```typescript
-import { createInfoLoggerProvider } from '@common/logger';
-
 @Module({
-  controllers: [BudgetController],
+  imports: [ClsModule],
   providers: [
-    BudgetService,
-    BudgetRepository,
-    BudgetMapper,
-    createInfoLoggerProvider(BudgetService.name),      // required — service uses @InjectInfoLogger
-    createInfoLoggerProvider(BudgetController.name),   // required — controller uses @InjectInfoLogger
+    CreateBudgetLineUseCase,
+    { provide: BUDGET_LINE_REPOSITORY, useClass: SupabaseBudgetLineRepository },
+    createInfoLoggerProvider(CreateBudgetLineUseCase.name),
+    createInfoLoggerProvider(BudgetLineController.name),
   ],
+  controllers: [BudgetLineController],
 })
-export class BudgetModule {}
+export class BudgetLineModule {}
 ```
 
-**Checklist when create/modify module:**
-- [ ] Each `Service` using `@InjectInfoLogger` → `createInfoLoggerProvider(Service.name)` in providers
-- [ ] Each `Controller` using `@InjectInfoLogger` → `createInfoLoggerProvider(Controller.name)` in providers
+## AuthenticatedSupabaseClient
 
-## Dependency Flow
-
-```
-Controller -> Service -> Repository -> Supabase Client -> RLS -> PostgreSQL
-                |-> Mapper (DTO <-> Entity)
-                |-> Calculator (domain math)
-                |-> Validator (business rules)
-```
-
-## Common Layer (`src/common/`)
-
-```
-common/
-├── guards/          # AuthGuard
-├── decorators/      # @User(), @SupabaseClient()
-├── interceptors/    # Response formatting, client-key cleanup
-├── filters/         # GlobalExceptionFilter
-├── middleware/       # Request ID tracking
-├── pipes/           # ZodValidationPipe
-├── exceptions/      # BusinessException + ERROR_DEFINITIONS
-├── dto/             # Shared DTOs (ErrorResponse, etc.)
-├── logger/          # InfoLogger, split logger infrastructure
-└── utils/           # Error handler utilities
-```
+`AuthGuard` stores user + Supabase client in CLS. Repositories inject `AuthenticatedSupabaseProvider` and call `.getClient()`. Use-cases inject repos via ports — no direct Supabase at application layer.
 
 ## Rules
 
-- Controllers: thin — route traffic, validate input, return response
-- Services: inject repositories + mappers, never touch Supabase direct
-- Repositories: data access only — no business rules
-- Mappers: pure transformation — no side effects
+- Domain layer: pure TypeScript, zero framework imports
+- Application layer: use-cases only, no infrastructure imports
+- Mappers live in `infrastructure/mappers/` — called by use-cases (pending move to `application/mappers/`)
 - All endpoints protected by `AuthGuard` by default
-- `@SupabaseClient()` give authenticated client with RLS applied
+- Encryption columns (`amount`, `target_amount`, `ending_balance`) go through `ENCRYPTION_PORT`
+- RPC calls with JSONB params: strict Zod schema in `infrastructure/persistence/schemas/`

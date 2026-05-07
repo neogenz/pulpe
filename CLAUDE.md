@@ -83,15 +83,16 @@ paths: "**/*.ts"
 
 **IMPORTANT:** Before any task, read relevant docs below.
 
-| Purpose                  | Path                                       |
-| ------------------------ | ------------------------------------------ |
-| DB types                 | `backend-nest/src/types/database.types.ts` |
-| Shared schemas           | `shared/schemas.ts`                        |
-| Project overview         | `memory-bank/projectbrief.md`              |
-| Business rules           | `memory-bank/productContext.md`            |
-| Tech decisions           | `memory-bank/techContext.md`               |
-| Architecture             | `memory-bank/systemPatterns.md`            |
-| Encryption (AES-256-GCM) | `docs/ENCRYPTION.md`                       |
+| Purpose                        | Path                                           |
+| ------------------------------ | ---------------------------------------------- |
+| DB types                       | `backend-nest/src/types/database.types.ts`     |
+| Shared schemas                 | `shared/schemas.ts`                            |
+| Project overview               | `memory-bank/projectbrief.md`                  |
+| Business rules                 | `memory-bank/productContext.md`                |
+| Tech decisions                 | `memory-bank/techContext.md`                   |
+| Architecture                   | `memory-bank/systemPatterns.md`                |
+| Backend Clean Architecture     | `backend-nest/docs/ARCHITECTURE.md`            |
+| Encryption (AES-256-GCM)       | `docs/ENCRYPTION.md`                           |
 
 ## Bug Reporting
 
