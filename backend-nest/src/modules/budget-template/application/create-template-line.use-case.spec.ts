@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, jest } from 'bun:test';
 import { Test } from '@nestjs/testing';
 import { CreateTemplateLineUseCase } from './create-template-line.use-case';
 import { BUDGET_TEMPLATE_REPOSITORY } from '../domain/ports/budget-template-repository.port';
-import { EncryptionService } from '@modules/encryption/encryption.service';
+import { ENCRYPTION_PORT } from '@modules/encryption/encryption.tokens';
 import { CurrencyService } from '@modules/currency/currency.service';
 import { BudgetTemplateMapper } from '../infrastructure/mappers/budget-template.mapper';
 import type { TemplateLineCreateWithoutTemplateId } from 'pulpe-shared';
@@ -70,7 +70,7 @@ describe('CreateTemplateLineUseCase', () => {
       providers: [
         CreateTemplateLineUseCase,
         { provide: BUDGET_TEMPLATE_REPOSITORY, useValue: mockRepo },
-        { provide: EncryptionService, useValue: mockEncryption },
+        { provide: ENCRYPTION_PORT, useValue: mockEncryption },
         { provide: CurrencyService, useValue: mockCurrency },
         { provide: BudgetTemplateMapper, useClass: BudgetTemplateMapper },
         {

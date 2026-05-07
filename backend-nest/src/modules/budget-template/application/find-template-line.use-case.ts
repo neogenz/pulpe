@@ -5,7 +5,10 @@ import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
 import type { TemplateLineResponse } from 'pulpe-shared';
-import { EncryptionService } from '@modules/encryption/encryption.service';
+import {
+  ENCRYPTION_PORT,
+  type EncryptionPort,
+} from '@modules/encryption/encryption.tokens';
 import {
   BUDGET_TEMPLATE_REPOSITORY,
   type BudgetTemplateRepositoryPort,
@@ -17,7 +20,7 @@ export class FindTemplateLineUseCase {
   constructor(
     @Inject(BUDGET_TEMPLATE_REPOSITORY)
     private readonly repo: BudgetTemplateRepositoryPort,
-    private readonly encryptionService: EncryptionService,
+    @Inject(ENCRYPTION_PORT) private readonly encryption: EncryptionPort,
     private readonly mapper: BudgetTemplateMapper,
     @InjectInfoLogger(FindTemplateLineUseCase.name)
     private readonly logger: InfoLogger,
@@ -39,13 +42,10 @@ export class FindTemplateLineUseCase {
       );
     }
 
-    const dek = await this.encryptionService.getUserDEK(
-      user.id,
-      user.clientKey,
-    );
+    const dek = await this.encryption.getUserDEK(user.id, user.clientKey);
     const decryptedLine = this.mapper.decryptLine(
       lineWithTemplate,
-      this.encryptionService,
+      this.encryption,
       dek,
     );
 

@@ -7,7 +7,10 @@ import {
   type TemplateLineResponse,
   templateLineCreateWithoutTemplateIdSchema,
 } from 'pulpe-shared';
-import { EncryptionService } from '@modules/encryption/encryption.service';
+import {
+  ENCRYPTION_PORT,
+  type EncryptionPort,
+} from '@modules/encryption/encryption.tokens';
 import { CurrencyService } from '@modules/currency/currency.service';
 import {
   BUDGET_TEMPLATE_REPOSITORY,
@@ -20,7 +23,7 @@ export class CreateTemplateLineUseCase {
   constructor(
     @Inject(BUDGET_TEMPLATE_REPOSITORY)
     private readonly repo: BudgetTemplateRepositoryPort,
-    private readonly encryptionService: EncryptionService,
+    @Inject(ENCRYPTION_PORT) private readonly encryption: EncryptionPort,
     private readonly currencyService: CurrencyService,
     private readonly mapper: BudgetTemplateMapper,
     @InjectInfoLogger(CreateTemplateLineUseCase.name)
@@ -40,12 +43,12 @@ export class CreateTemplateLineUseCase {
     validated = await this.currencyService.overrideExchangeRate(validated);
 
     const [{ amount }, encryptedOriginalAmount] = await Promise.all([
-      this.encryptionService.prepareAmountData(
+      this.encryption.prepareAmountData(
         validated.amount,
         user.id,
         user.clientKey,
       ),
-      this.encryptionService.encryptOptionalAmount(
+      this.encryption.encryptOptionalAmount(
         validated.originalAmount,
         user.id,
         user.clientKey,
@@ -73,15 +76,8 @@ export class CreateTemplateLineUseCase {
       'Template line created successfully',
     );
 
-    const dek = await this.encryptionService.getUserDEK(
-      user.id,
-      user.clientKey,
-    );
-    const decryptedLine = this.mapper.decryptLine(
-      line,
-      this.encryptionService,
-      dek,
-    );
+    const dek = await this.encryption.getUserDEK(user.id, user.clientKey);
+    const decryptedLine = this.mapper.decryptLine(line, this.encryption, dek);
 
     return {
       success: true,

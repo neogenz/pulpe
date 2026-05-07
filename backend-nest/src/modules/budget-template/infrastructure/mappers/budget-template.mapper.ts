@@ -8,7 +8,7 @@ import {
   type TemplateLineUpdate,
 } from 'pulpe-shared';
 import type { Tables, TablesInsert } from '../../../../types/database.types';
-import { EncryptionService } from '@modules/encryption/encryption.service';
+import { type EncryptionPort } from '@modules/encryption/encryption.tokens';
 import {
   mapCurrencyMetadataToApi,
   mapCurrencyMetadataToDb,
@@ -116,7 +116,7 @@ export class BudgetTemplateMapper {
 
   decryptLine(
     line: Tables<'template_line'>,
-    encryptionService: EncryptionService,
+    encryptionService: EncryptionPort,
     dek: Buffer,
   ): DecryptedTemplateLineRow {
     return {

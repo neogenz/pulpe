@@ -11,7 +11,10 @@ import {
   templateLinesBulkOperationsSchema,
 } from 'pulpe-shared';
 import type { Tables, TablesInsert } from '@/types/database.types';
-import { EncryptionService } from '@modules/encryption/encryption.service';
+import {
+  ENCRYPTION_PORT,
+  type EncryptionPort,
+} from '@modules/encryption/encryption.tokens';
 import { CurrencyService } from '@modules/currency/currency.service';
 import { CacheService } from '@modules/cache/cache.service';
 import {
@@ -36,7 +39,7 @@ export class BulkTemplateLineOperationsUseCase {
   constructor(
     @Inject(BUDGET_TEMPLATE_REPOSITORY)
     private readonly repo: BudgetTemplateRepositoryPort,
-    private readonly encryptionService: EncryptionService,
+    @Inject(ENCRYPTION_PORT) private readonly encryption: EncryptionPort,
     private readonly currencyService: CurrencyService,
     private readonly cacheService: CacheService,
     @Inject(BUDGET_RECALCULATION_PORT)
@@ -95,12 +98,9 @@ export class BulkTemplateLineOperationsUseCase {
       await this.cacheService.invalidateForUser(user.id);
     }
 
-    const dek = await this.encryptionService.getUserDEK(
-      user.id,
-      user.clientKey,
-    );
+    const dek = await this.encryption.getUserDEK(user.id, user.clientKey);
     const decrypt = (l: Tables<'template_line'>) =>
-      this.mapper.decryptLine(l, this.encryptionService, dek);
+      this.mapper.decryptLine(l, this.encryption, dek);
 
     const decryptedUpdated = operationsResult.updatedLines.map(decrypt);
     const decryptedCreated = operationsResult.createdLines.map(decrypt);
@@ -324,12 +324,12 @@ export class BulkTemplateLineOperationsUseCase {
 
         const [encryptedAmount, encryptedOriginalAmount] = await Promise.all([
           updateData.amount !== undefined
-            ? this.encryptionService
+            ? this.encryption
                 .prepareAmountData(updateData.amount, user.id, user.clientKey)
                 .then((p) => p.amount)
             : Promise.resolve(undefined),
           updateData.originalAmount !== undefined
-            ? this.encryptionService.encryptOptionalAmount(
+            ? this.encryption.encryptOptionalAmount(
                 updateData.originalAmount,
                 user.id,
                 user.clientKey,
@@ -384,7 +384,7 @@ export class BulkTemplateLineOperationsUseCase {
     );
 
     const amounts = overriddenCreates.map((line) => line.amount);
-    const preparedAmounts = await this.encryptionService.prepareAmountsData(
+    const preparedAmounts = await this.encryption.prepareAmountsData(
       amounts,
       user.id,
       user.clientKey,
@@ -392,7 +392,7 @@ export class BulkTemplateLineOperationsUseCase {
 
     const encryptedOriginalAmounts = await Promise.all(
       overriddenCreates.map((line) =>
-        this.encryptionService.encryptOptionalAmount(
+        this.encryption.encryptOptionalAmount(
           line.originalAmount,
           user.id,
           user.clientKey,

@@ -7,7 +7,10 @@ import {
   type BudgetTemplateCreateResponse,
   budgetTemplateCreateSchema,
 } from 'pulpe-shared';
-import { EncryptionService } from '@modules/encryption/encryption.service';
+import {
+  ENCRYPTION_PORT,
+  type EncryptionPort,
+} from '@modules/encryption/encryption.tokens';
 import { CurrencyService } from '@modules/currency/currency.service';
 import { type Database } from '@/types/database.types';
 import {
@@ -23,7 +26,7 @@ export class CreateTemplateUseCase {
   constructor(
     @Inject(BUDGET_TEMPLATE_REPOSITORY)
     private readonly repo: BudgetTemplateRepositoryPort,
-    private readonly encryptionService: EncryptionService,
+    @Inject(ENCRYPTION_PORT) private readonly encryption: EncryptionPort,
     private readonly currencyService: CurrencyService,
     private readonly mapper: BudgetTemplateMapper,
     @InjectInfoLogger(CreateTemplateUseCase.name)
@@ -53,12 +56,9 @@ export class CreateTemplateUseCase {
     );
 
     const lines = await this.repo.findLinesByTemplateId(template.id, supabase);
-    const dek = await this.encryptionService.getUserDEK(
-      user.id,
-      user.clientKey,
-    );
+    const dek = await this.encryption.getUserDEK(user.id, user.clientKey);
     const decryptedLines = lines.map((l) =>
-      this.mapper.decryptLine(l, this.encryptionService, dek),
+      this.mapper.decryptLine(l, this.encryption, dek),
     );
 
     this.logger.info(
@@ -93,14 +93,10 @@ export class CreateTemplateUseCase {
 
     const amounts = overriddenLines.map((line) => line.amount);
     const [preparedAmounts, encryptedOriginalAmounts] = await Promise.all([
-      this.encryptionService.prepareAmountsData(
-        amounts,
-        user.id,
-        user.clientKey,
-      ),
+      this.encryption.prepareAmountsData(amounts, user.id, user.clientKey),
       Promise.all(
         overriddenLines.map((line) =>
-          this.encryptionService.encryptOptionalAmount(
+          this.encryption.encryptOptionalAmount(
             line.originalAmount,
             user.id,
             user.clientKey,

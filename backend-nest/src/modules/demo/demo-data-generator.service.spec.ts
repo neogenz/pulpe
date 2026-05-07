@@ -2,7 +2,7 @@ import { ConfigModule } from '@nestjs/config';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'bun:test';
 import { BUDGET_RECALCULATION_PORT } from '../budget/domain/ports/budget-recalculation.port';
-import { EncryptionService } from '../encryption/encryption.service';
+import { ENCRYPTION_PORT } from '../encryption/encryption.tokens';
 import type { AuthenticatedSupabaseClient } from '../supabase/supabase.service';
 import { DemoDataGeneratorService } from './demo-data-generator.service';
 
@@ -36,7 +36,7 @@ describe('DemoDataGeneratorService - Integration Tests', () => {
           },
         },
         {
-          provide: EncryptionService,
+          provide: ENCRYPTION_PORT,
           useValue: {
             ensureUserDEK: async () => Buffer.from('00'.repeat(32), 'hex'),
             encryptAmount: (amount: number) => {

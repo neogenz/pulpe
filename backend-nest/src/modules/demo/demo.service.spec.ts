@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, mock } from 'bun:test';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { ConfigModule } from '@nestjs/config';
 import { BUDGET_RECALCULATION_PORT } from '../budget/domain/ports/budget-recalculation.port';
-import { EncryptionService } from '../encryption/encryption.service';
+import { ENCRYPTION_PORT } from '../encryption/encryption.tokens';
 import { DemoService } from './demo.service';
 import { DemoDataGeneratorService } from './demo-data-generator.service';
 import { SupabaseService } from '../supabase/supabase.service';
@@ -38,7 +38,7 @@ describe('DemoService - Business Value Tests', () => {
           },
         },
         {
-          provide: EncryptionService,
+          provide: ENCRYPTION_PORT,
           useValue: {
             ensureUserDEK: async () => Buffer.from('00'.repeat(32), 'hex'),
             encryptAmount: (amount: number) => {

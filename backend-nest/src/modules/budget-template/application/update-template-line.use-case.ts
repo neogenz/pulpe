@@ -8,7 +8,10 @@ import {
   templateLineUpdateSchema,
 } from 'pulpe-shared';
 import type { TablesInsert } from '@/types/database.types';
-import { EncryptionService } from '@modules/encryption/encryption.service';
+import {
+  ENCRYPTION_PORT,
+  type EncryptionPort,
+} from '@modules/encryption/encryption.tokens';
 import { CurrencyService } from '@modules/currency/currency.service';
 import {
   BUDGET_TEMPLATE_REPOSITORY,
@@ -21,7 +24,7 @@ export class UpdateTemplateLineUseCase {
   constructor(
     @Inject(BUDGET_TEMPLATE_REPOSITORY)
     private readonly repo: BudgetTemplateRepositoryPort,
-    private readonly encryptionService: EncryptionService,
+    @Inject(ENCRYPTION_PORT) private readonly encryption: EncryptionPort,
     private readonly currencyService: CurrencyService,
     private readonly mapper: BudgetTemplateMapper,
     @InjectInfoLogger(UpdateTemplateLineUseCase.name)
@@ -42,7 +45,7 @@ export class UpdateTemplateLineUseCase {
 
     let encryptedAmount: string | undefined;
     if (validated.amount !== undefined) {
-      const prepared = await this.encryptionService.prepareAmountData(
+      const prepared = await this.encryption.prepareAmountData(
         validated.amount,
         user.id,
         user.clientKey,
@@ -52,7 +55,7 @@ export class UpdateTemplateLineUseCase {
 
     const encryptedOriginalAmount =
       validated.originalAmount !== undefined
-        ? await this.encryptionService.encryptOptionalAmount(
+        ? await this.encryption.encryptOptionalAmount(
             validated.originalAmount,
             user.id,
             user.clientKey,
@@ -79,15 +82,8 @@ export class UpdateTemplateLineUseCase {
       'Template line updated successfully',
     );
 
-    const dek = await this.encryptionService.getUserDEK(
-      user.id,
-      user.clientKey,
-    );
-    const decryptedLine = this.mapper.decryptLine(
-      line,
-      this.encryptionService,
-      dek,
-    );
+    const dek = await this.encryption.getUserDEK(user.id, user.clientKey);
+    const decryptedLine = this.mapper.decryptLine(line, this.encryption, dek);
 
     return {
       success: true,

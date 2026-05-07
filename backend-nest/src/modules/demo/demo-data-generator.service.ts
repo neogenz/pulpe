@@ -8,10 +8,11 @@ import {
   BUDGET_RECALCULATION_PORT,
   type BudgetRecalculationPort,
 } from '@modules/budget/domain/ports/budget-recalculation.port';
+import { DEMO_CLIENT_KEY_BUFFER } from '@modules/encryption/encryption.service';
 import {
-  EncryptionService,
-  DEMO_CLIENT_KEY_BUFFER,
-} from '@modules/encryption/encryption.service';
+  ENCRYPTION_PORT,
+  type EncryptionPort,
+} from '@modules/encryption/encryption.tokens';
 
 type TemplateRow = Tables<'template'>;
 type TemplateLineRow = Tables<'template_line'>;
@@ -35,7 +36,7 @@ export class DemoDataGeneratorService {
     private readonly logger: InfoLogger,
     @Inject(BUDGET_RECALCULATION_PORT)
     private readonly budgetRecalculation: BudgetRecalculationPort,
-    private readonly encryptionService: EncryptionService,
+    @Inject(ENCRYPTION_PORT) private readonly encryption: EncryptionPort,
   ) {}
 
   /**
@@ -48,7 +49,7 @@ export class DemoDataGeneratorService {
   ): Promise<void> {
     this.logger.info({ userId }, 'Starting demo data generation');
 
-    const dek = await this.encryptionService.ensureUserDEK(
+    const dek = await this.encryption.ensureUserDEK(
       userId,
       DEMO_CLIENT_KEY_BUFFER,
     );
@@ -349,7 +350,7 @@ export class DemoDataGeneratorService {
     return {
       template_id: templateId,
       name,
-      amount: this.encryptionService.encryptAmount(amount, dek),
+      amount: this.encryption.encryptAmount(amount, dek),
       kind,
       recurrence,
       description: '',
@@ -761,7 +762,7 @@ export class DemoDataGeneratorService {
 
       for (const templateLine of relevantTemplateLines) {
         const actualAmount = templateLine.amount
-          ? this.encryptionService.decryptAmount(templateLine.amount, dek)
+          ? this.encryption.decryptAmount(templateLine.amount, dek)
           : 0;
 
         budgetLinesToCreate.push({
@@ -769,7 +770,7 @@ export class DemoDataGeneratorService {
           template_line_id: templateLine.id,
           savings_goal_id: null,
           name: templateLine.name,
-          amount: this.encryptionService.encryptAmount(actualAmount, dek),
+          amount: this.encryption.encryptAmount(actualAmount, dek),
           kind: templateLine.kind,
           recurrence: templateLine.recurrence,
           is_manually_adjusted: false,
@@ -920,7 +921,7 @@ export class DemoDataGeneratorService {
       budget_id: budget.id,
       budget_line_id: null,
       name,
-      amount: this.encryptionService.encryptAmount(amount, dek),
+      amount: this.encryption.encryptAmount(amount, dek),
       kind: 'expense',
       category,
       transaction_date: new Date(
