@@ -30,8 +30,8 @@ export class RemoveBudgetLineUseCase {
     user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetLineDeleteResponse> {
-    const budgetId = await this.repo.fetchBudgetIdForLine(id, supabase);
-    await this.repo.delete(id, supabase);
+    const budgetId = await this.repo.fetchBudgetIdForLine(id);
+    await this.repo.delete(id);
 
     if (budgetId) {
       await this.budgetRecalculation.recalculate(

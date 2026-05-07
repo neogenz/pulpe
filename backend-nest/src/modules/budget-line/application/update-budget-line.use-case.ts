@@ -65,7 +65,7 @@ export class UpdateBudgetLineUseCase {
       );
     }
 
-    const row = await this.repo.update(id, updateData, supabase);
+    const row = await this.repo.update(id, updateData);
     const dek = await this.encryption.getUserDEK(user.id, user.clientKey);
     const decrypted = this.encryption.decryptRowAmountFields(row, dek);
 

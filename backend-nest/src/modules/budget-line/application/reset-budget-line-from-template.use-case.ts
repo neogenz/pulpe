@@ -42,14 +42,12 @@ export class ResetBudgetLineFromTemplateUseCase {
     const { encryptedAmount, resetData, budgetId } = await this.prepareReset(
       id,
       user,
-      supabase,
     );
 
-    const updated = await this.repo.update(
-      id,
-      { ...resetData, amount: encryptedAmount },
-      supabase,
-    );
+    const updated = await this.repo.update(id, {
+      ...resetData,
+      amount: encryptedAmount,
+    });
 
     const dek = await this.encryption.getUserDEK(user.id, user.clientKey);
     const decrypted = this.encryption.decryptRowAmountFields(updated, dek);
@@ -73,19 +71,14 @@ export class ResetBudgetLineFromTemplateUseCase {
     return { success: true, data: this.mapper.toApi(decrypted) };
   }
 
-  private async prepareReset(
-    id: string,
-    user: AuthenticatedUser,
-    supabase: AuthenticatedSupabaseClient,
-  ) {
-    const budgetLine = await this.repo.findById(id, supabase);
+  private async prepareReset(id: string, user: AuthenticatedUser) {
+    const budgetLine = await this.repo.findById(id);
     BudgetLineInvariants.validateTemplateLineIdExists(
       budgetLine.template_line_id,
     );
 
     const templateLine = await this.repo.fetchTemplateLineById(
       budgetLine.template_line_id!,
-      supabase,
     );
 
     const templateAmount = await this.resolveTemplateAmount(templateLine, user);

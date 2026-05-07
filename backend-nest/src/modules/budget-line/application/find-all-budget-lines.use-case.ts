@@ -26,9 +26,9 @@ export class FindAllBudgetLinesUseCase {
 
   async execute(
     user: AuthenticatedUser,
-    supabase: AuthenticatedSupabaseClient,
+    _supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetLineListResponse> {
-    const rows = await this.repo.findAll(supabase);
+    const rows = await this.repo.findAll();
     const dek = await this.encryption.getUserDEK(user.id, user.clientKey);
     const decrypted = rows.map((row) =>
       this.encryption.decryptRowAmountFields(row, dek),

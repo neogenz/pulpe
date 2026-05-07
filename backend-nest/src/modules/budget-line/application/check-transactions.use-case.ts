@@ -28,9 +28,9 @@ export class CheckTransactionsUseCase {
   async execute(
     id: string,
     user: AuthenticatedUser,
-    supabase: AuthenticatedSupabaseClient,
+    _supabase: AuthenticatedSupabaseClient,
   ): Promise<TransactionListResponse> {
-    const rows = await this.repo.checkUncheckedTransactionsRpc(id, supabase);
+    const rows = await this.repo.checkUncheckedTransactionsRpc(id);
     const dek = await this.encryption.getUserDEK(user.id, user.clientKey);
     const decrypted = rows.map((row) =>
       this.encryption.decryptRowAmountFields(row, dek),

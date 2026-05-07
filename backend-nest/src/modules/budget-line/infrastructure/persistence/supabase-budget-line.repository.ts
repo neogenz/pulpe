@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { BusinessException } from '@common/exceptions/business.exception';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
-import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
+import { AuthenticatedSupabaseProvider } from '@modules/supabase/authenticated-supabase.provider';
 import type { BudgetLineRepositoryPort } from '../../domain/ports/budget-line-repository.port';
 import type {
   BudgetLineRow,
@@ -13,9 +13,12 @@ import type {
 
 @Injectable()
 export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
-  async findAll(
-    supabase: AuthenticatedSupabaseClient,
-  ): Promise<BudgetLineRow[]> {
+  constructor(
+    private readonly supabaseProvider: AuthenticatedSupabaseProvider,
+  ) {}
+
+  async findAll(): Promise<BudgetLineRow[]> {
+    const supabase = this.supabaseProvider.client;
     const { data, error } = await supabase
       .from('budget_line')
       .select('*')
@@ -37,10 +40,8 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
     return data ?? [];
   }
 
-  async findById(
-    id: string,
-    supabase: AuthenticatedSupabaseClient,
-  ): Promise<BudgetLineRow> {
+  async findById(id: string): Promise<BudgetLineRow> {
+    const supabase = this.supabaseProvider.client;
     const { data, error } = await supabase
       .from('budget_line')
       .select('*')
@@ -63,10 +64,8 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
     return data;
   }
 
-  async findByBudgetId(
-    budgetId: string,
-    supabase: AuthenticatedSupabaseClient,
-  ): Promise<BudgetLineRow[]> {
+  async findByBudgetId(budgetId: string): Promise<BudgetLineRow[]> {
+    const supabase = this.supabaseProvider.client;
     const { data, error } = await supabase
       .from('budget_line')
       .select('*')
@@ -90,10 +89,8 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
     return data ?? [];
   }
 
-  async fetchBudgetIdForLine(
-    id: string,
-    supabase: AuthenticatedSupabaseClient,
-  ): Promise<string | null> {
+  async fetchBudgetIdForLine(id: string): Promise<string | null> {
+    const supabase = this.supabaseProvider.client;
     const { data } = await supabase
       .from('budget_line')
       .select('budget_id')
@@ -103,10 +100,8 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
     return data?.budget_id ?? null;
   }
 
-  async insert(
-    data: BudgetLineInsert,
-    supabase: AuthenticatedSupabaseClient,
-  ): Promise<BudgetLineRow> {
+  async insert(data: BudgetLineInsert): Promise<BudgetLineRow> {
+    const supabase = this.supabaseProvider.client;
     const { data: row, error } = await supabase
       .from('budget_line')
       .insert(data)
@@ -143,8 +138,8 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
   async update(
     id: string,
     data: Partial<BudgetLineUpdate>,
-    supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetLineRow> {
+    const supabase = this.supabaseProvider.client;
     const { data: row, error } = await supabase
       .from('budget_line')
       .update(data)
@@ -169,10 +164,8 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
     return row;
   }
 
-  async delete(
-    id: string,
-    supabase: AuthenticatedSupabaseClient,
-  ): Promise<void> {
+  async delete(id: string): Promise<void> {
+    const supabase = this.supabaseProvider.client;
     const { error } = await supabase.from('budget_line').delete().eq('id', id);
 
     if (error) {
@@ -185,15 +178,14 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
           entityType: 'budget_line',
           supabaseError: error,
         },
-        { cause: error },
       );
     }
   }
 
   async fetchTemplateLineById(
     templateLineId: string,
-    supabase: AuthenticatedSupabaseClient,
   ): Promise<TemplateLineRow> {
+    const supabase = this.supabaseProvider.client;
     const { data, error } = await supabase
       .from('template_line')
       .select(
@@ -211,10 +203,8 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
     return data;
   }
 
-  async toggleCheckRpc(
-    id: string,
-    supabase: AuthenticatedSupabaseClient,
-  ): Promise<BudgetLineRow> {
+  async toggleCheckRpc(id: string): Promise<BudgetLineRow> {
+    const supabase = this.supabaseProvider.client;
     const { data, error } = await supabase
       .rpc('toggle_budget_line_check', {
         p_budget_line_id: id,
@@ -238,10 +228,8 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
     return data;
   }
 
-  async checkUncheckedTransactionsRpc(
-    id: string,
-    supabase: AuthenticatedSupabaseClient,
-  ): Promise<TransactionRow[]> {
+  async checkUncheckedTransactionsRpc(id: string): Promise<TransactionRow[]> {
+    const supabase = this.supabaseProvider.client;
     const { data, error } = await supabase.rpc('check_unchecked_transactions', {
       p_budget_line_id: id,
     });
@@ -256,7 +244,6 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
           entityType: 'budget_line',
           supabaseError: error,
         },
-        { cause: error },
       );
     }
 

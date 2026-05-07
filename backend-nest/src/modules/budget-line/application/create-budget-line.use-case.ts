@@ -60,10 +60,11 @@ export class CreateBudgetLineUseCase {
       ),
     ]);
 
-    const row = await this.repo.insert(
-      { ...baseData, amount, original_amount: encryptedOriginalAmount },
-      supabase,
-    );
+    const row = await this.repo.insert({
+      ...baseData,
+      amount,
+      original_amount: encryptedOriginalAmount,
+    });
 
     const dek = await this.encryption.getUserDEK(user.id, user.clientKey);
     const decrypted = this.encryption.decryptRowAmountFields(row, dek);

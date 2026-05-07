@@ -29,9 +29,9 @@ export class ToggleBudgetLineCheckUseCase {
   async execute(
     id: string,
     user: AuthenticatedUser,
-    supabase: AuthenticatedSupabaseClient,
+    _supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetLineResponse> {
-    const row = await this.repo.toggleCheckRpc(id, supabase);
+    const row = await this.repo.toggleCheckRpc(id);
     const dek = await this.encryption.getUserDEK(user.id, user.clientKey);
     const decrypted = this.encryption.decryptRowAmountFields(row, dek);
 

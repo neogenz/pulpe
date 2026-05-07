@@ -1,4 +1,3 @@
-import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
 import type {
   BudgetLineRow,
   BudgetLineInsert,
@@ -10,39 +9,14 @@ import type {
 export const BUDGET_LINE_REPOSITORY = Symbol('BUDGET_LINE_REPOSITORY');
 
 export interface BudgetLineRepositoryPort {
-  findAll(supabase: AuthenticatedSupabaseClient): Promise<BudgetLineRow[]>;
-  findById(
-    id: string,
-    supabase: AuthenticatedSupabaseClient,
-  ): Promise<BudgetLineRow>;
-  findByBudgetId(
-    budgetId: string,
-    supabase: AuthenticatedSupabaseClient,
-  ): Promise<BudgetLineRow[]>;
-  fetchBudgetIdForLine(
-    id: string,
-    supabase: AuthenticatedSupabaseClient,
-  ): Promise<string | null>;
-  insert(
-    data: BudgetLineInsert,
-    supabase: AuthenticatedSupabaseClient,
-  ): Promise<BudgetLineRow>;
-  update(
-    id: string,
-    data: Partial<BudgetLineUpdate>,
-    supabase: AuthenticatedSupabaseClient,
-  ): Promise<BudgetLineRow>;
-  delete(id: string, supabase: AuthenticatedSupabaseClient): Promise<void>;
-  fetchTemplateLineById(
-    templateLineId: string,
-    supabase: AuthenticatedSupabaseClient,
-  ): Promise<TemplateLineRow>;
-  toggleCheckRpc(
-    id: string,
-    supabase: AuthenticatedSupabaseClient,
-  ): Promise<BudgetLineRow>;
-  checkUncheckedTransactionsRpc(
-    id: string,
-    supabase: AuthenticatedSupabaseClient,
-  ): Promise<TransactionRow[]>;
+  findAll(): Promise<BudgetLineRow[]>;
+  findById(id: string): Promise<BudgetLineRow>;
+  findByBudgetId(budgetId: string): Promise<BudgetLineRow[]>;
+  fetchBudgetIdForLine(id: string): Promise<string | null>;
+  insert(data: BudgetLineInsert): Promise<BudgetLineRow>;
+  update(id: string, data: Partial<BudgetLineUpdate>): Promise<BudgetLineRow>;
+  delete(id: string): Promise<void>;
+  fetchTemplateLineById(templateLineId: string): Promise<TemplateLineRow>;
+  toggleCheckRpc(id: string): Promise<BudgetLineRow>;
+  checkUncheckedTransactionsRpc(id: string): Promise<TransactionRow[]>;
 }
