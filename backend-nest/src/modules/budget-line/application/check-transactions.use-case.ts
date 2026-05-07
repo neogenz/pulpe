@@ -3,7 +3,10 @@ import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
 import { type TransactionListResponse } from 'pulpe-shared';
-import { EncryptionService } from '@modules/encryption/encryption.service';
+import {
+  ENCRYPTION_PORT,
+  type EncryptionPort,
+} from '@modules/encryption/encryption.tokens';
 import { CacheService } from '@modules/cache/cache.service';
 import * as transactionMappers from '@modules/transaction/transaction.mappers';
 import {
@@ -16,7 +19,7 @@ export class CheckTransactionsUseCase {
   constructor(
     @Inject(BUDGET_LINE_REPOSITORY)
     private readonly repo: BudgetLineRepositoryPort,
-    private readonly encryptionService: EncryptionService,
+    @Inject(ENCRYPTION_PORT) private readonly encryption: EncryptionPort,
     private readonly cacheService: CacheService,
     @InjectInfoLogger(CheckTransactionsUseCase.name)
     private readonly logger: InfoLogger,
@@ -28,12 +31,9 @@ export class CheckTransactionsUseCase {
     supabase: AuthenticatedSupabaseClient,
   ): Promise<TransactionListResponse> {
     const rows = await this.repo.checkUncheckedTransactionsRpc(id, supabase);
-    const dek = await this.encryptionService.getUserDEK(
-      user.id,
-      user.clientKey,
-    );
+    const dek = await this.encryption.getUserDEK(user.id, user.clientKey);
     const decrypted = rows.map((row) =>
-      this.encryptionService.decryptRowAmountFields(row, dek),
+      this.encryption.decryptRowAmountFields(row, dek),
     );
 
     await this.cacheService.invalidateForUser(user.id);

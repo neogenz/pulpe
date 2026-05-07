@@ -3,7 +3,10 @@ import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
 import { type BudgetLineCreate, type BudgetLineResponse } from 'pulpe-shared';
-import { EncryptionService } from '@modules/encryption/encryption.service';
+import {
+  ENCRYPTION_PORT,
+  type EncryptionPort,
+} from '@modules/encryption/encryption.tokens';
 import { CacheService } from '@modules/cache/cache.service';
 import { CurrencyService } from '@modules/currency/currency.service';
 import {
@@ -24,7 +27,7 @@ export class CreateBudgetLineUseCase {
   constructor(
     @Inject(BUDGET_LINE_REPOSITORY)
     private readonly repo: BudgetLineRepositoryPort,
-    private readonly encryptionService: EncryptionService,
+    @Inject(ENCRYPTION_PORT) private readonly encryption: EncryptionPort,
     private readonly cacheService: CacheService,
     private readonly currencyService: CurrencyService,
     @Inject(BUDGET_RECALCULATION_PORT)
@@ -45,12 +48,12 @@ export class CreateBudgetLineUseCase {
     const baseData = this.prepareInsertData(withRate);
 
     const [{ amount }, encryptedOriginalAmount] = await Promise.all([
-      this.encryptionService.prepareAmountData(
+      this.encryption.prepareAmountData(
         baseData.amount as number,
         user.id,
         user.clientKey,
       ),
-      this.encryptionService.encryptOptionalAmount(
+      this.encryption.encryptOptionalAmount(
         withRate.originalAmount,
         user.id,
         user.clientKey,
@@ -62,11 +65,8 @@ export class CreateBudgetLineUseCase {
       supabase,
     );
 
-    const dek = await this.encryptionService.getUserDEK(
-      user.id,
-      user.clientKey,
-    );
-    const decrypted = this.encryptionService.decryptRowAmountFields(row, dek);
+    const dek = await this.encryption.getUserDEK(user.id, user.clientKey);
+    const decrypted = this.encryption.decryptRowAmountFields(row, dek);
 
     await this.budgetRecalculation.recalculate(
       row.budget_id,

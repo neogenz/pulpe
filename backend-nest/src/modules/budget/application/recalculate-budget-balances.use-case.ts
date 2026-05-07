@@ -1,7 +1,10 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
-import { EncryptionService } from '@modules/encryption/encryption.service';
+import {
+  ENCRYPTION_PORT,
+  type EncryptionPort,
+} from '@modules/encryption/encryption.tokens';
 import { BudgetFormulas, type TransactionKind } from 'pulpe-shared';
 import {
   BUDGET_REPOSITORY,
@@ -14,7 +17,7 @@ export class RecalculateBudgetBalancesUseCase implements BudgetRecalculationPort
   constructor(
     @Inject(BUDGET_REPOSITORY)
     private readonly repo: BudgetRepositoryPort,
-    private readonly encryptionService: EncryptionService,
+    @Inject(ENCRYPTION_PORT) private readonly encryption: EncryptionPort,
     @InjectInfoLogger(RecalculateBudgetBalancesUseCase.name)
     private readonly logger: InfoLogger,
   ) {}
@@ -106,7 +109,7 @@ export class RecalculateBudgetBalancesUseCase implements BudgetRecalculationPort
 
     const hasEncryptedData = allBudgets.some((b) => b.ending_balance);
     const dek = hasEncryptedData
-      ? await this.encryptionService.getUserDEK(userId, clientKey)
+      ? await this.encryption.getUserDEK(userId, clientKey)
       : null;
 
     const budgetsForFormula = allBudgets.map((b) => ({
@@ -115,7 +118,7 @@ export class RecalculateBudgetBalancesUseCase implements BudgetRecalculationPort
       year: b.year,
       endingBalance:
         b.ending_balance && dek
-          ? this.encryptionService.tryDecryptAmount(b.ending_balance, dek, 0)
+          ? this.encryption.tryDecryptAmount(b.ending_balance, dek, 0)
           : 0,
     }));
 
@@ -138,11 +141,8 @@ export class RecalculateBudgetBalancesUseCase implements BudgetRecalculationPort
     clientKey: Buffer,
   ): Promise<void> {
     const userId = await this.repo.fetchBudgetUserId(budgetId, supabase);
-    const dek = await this.encryptionService.ensureUserDEK(userId, clientKey);
-    const encryptedBalance = this.encryptionService.encryptAmount(
-      endingBalance,
-      dek,
-    );
+    const dek = await this.encryption.ensureUserDEK(userId, clientKey);
+    const encryptedBalance = this.encryption.encryptAmount(endingBalance, dek);
 
     await this.repo.persistEndingBalance(budgetId, encryptedBalance, supabase);
 
@@ -162,12 +162,12 @@ export class RecalculateBudgetBalancesUseCase implements BudgetRecalculationPort
     if (!hasEncrypted) return rows.map((row) => ({ ...row, amount: 0 }));
 
     const userId = await this.repo.fetchBudgetUserId(budgetId, supabase);
-    const dek = await this.encryptionService.getUserDEK(userId, clientKey);
+    const dek = await this.encryption.getUserDEK(userId, clientKey);
 
     return rows.map((row) => ({
       ...row,
       amount: row.amount
-        ? this.encryptionService.tryDecryptAmount(row.amount, dek, 0)
+        ? this.encryption.tryDecryptAmount(row.amount, dek, 0)
         : 0,
     }));
   }

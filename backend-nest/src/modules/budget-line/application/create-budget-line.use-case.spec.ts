@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, jest } from 'bun:test';
 import { Test } from '@nestjs/testing';
 import { CreateBudgetLineUseCase } from './create-budget-line.use-case';
 import { BUDGET_LINE_REPOSITORY } from '../domain/ports/budget-line-repository.port';
-import { EncryptionService } from '@modules/encryption/encryption.service';
+import { ENCRYPTION_PORT } from '@modules/encryption/encryption.tokens';
 import { CacheService } from '@modules/cache/cache.service';
 import { CurrencyService } from '@modules/currency/currency.service';
 import { BUDGET_RECALCULATION_PORT } from '@modules/budget/domain/ports/budget-recalculation.port';
@@ -82,7 +82,7 @@ describe('CreateBudgetLineUseCase', () => {
       providers: [
         CreateBudgetLineUseCase,
         { provide: BUDGET_LINE_REPOSITORY, useValue: mockRepo },
-        { provide: EncryptionService, useValue: mockEncryption },
+        { provide: ENCRYPTION_PORT, useValue: mockEncryption },
         { provide: CacheService, useValue: mockCache },
         { provide: CurrencyService, useValue: mockCurrency },
         { provide: BUDGET_RECALCULATION_PORT, useValue: mockBudget },

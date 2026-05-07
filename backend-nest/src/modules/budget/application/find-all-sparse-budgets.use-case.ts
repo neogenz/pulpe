@@ -10,7 +10,10 @@ import {
   PAY_DAY_MIN,
   PAY_DAY_MAX,
 } from 'pulpe-shared';
-import { EncryptionService } from '@modules/encryption/encryption.service';
+import {
+  ENCRYPTION_PORT,
+  type EncryptionPort,
+} from '@modules/encryption/encryption.tokens';
 import {
   BUDGET_REPOSITORY,
   type BudgetRepositoryPort,
@@ -38,7 +41,7 @@ export class FindAllSparseBudgetsUseCase {
   constructor(
     @Inject(BUDGET_REPOSITORY)
     private readonly repo: BudgetRepositoryPort,
-    private readonly encryptionService: EncryptionService,
+    @Inject(ENCRYPTION_PORT) private readonly encryption: EncryptionPort,
     private readonly mapper: BudgetMapper,
     private readonly recalculateUseCase: RecalculateBudgetBalancesUseCase,
     @InjectInfoLogger(FindAllSparseBudgetsUseCase.name)
@@ -74,17 +77,12 @@ export class FindAllSparseBudgetsUseCase {
 
     const aggregatesMap = needsAggregates
       ? await (async () => {
-          const dek = await this.encryptionService.getUserDEK(
-            user.id,
-            user.clientKey,
-          );
+          const dek = await this.encryption.getUserDEK(user.id, user.clientKey);
           return this.repo.fetchBudgetAggregates(
             budgetIds,
             supabase,
             (amount) =>
-              amount
-                ? this.encryptionService.tryDecryptAmount(amount, dek, 0)
-                : 0,
+              amount ? this.encryption.tryDecryptAmount(amount, dek, 0) : 0,
           );
         })()
       : new Map();

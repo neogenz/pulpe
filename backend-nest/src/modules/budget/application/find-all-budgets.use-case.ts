@@ -9,7 +9,10 @@ import {
   PAY_DAY_MIN,
   PAY_DAY_MAX,
 } from 'pulpe-shared';
-import { EncryptionService } from '@modules/encryption/encryption.service';
+import {
+  ENCRYPTION_PORT,
+  type EncryptionPort,
+} from '@modules/encryption/encryption.tokens';
 import { CacheService } from '@modules/cache/cache.service';
 import {
   BUDGET_REPOSITORY,
@@ -28,7 +31,7 @@ export class FindAllBudgetsUseCase {
   constructor(
     @Inject(BUDGET_REPOSITORY)
     private readonly repo: BudgetRepositoryPort,
-    private readonly encryptionService: EncryptionService,
+    @Inject(ENCRYPTION_PORT) private readonly encryption: EncryptionPort,
     private readonly cacheService: CacheService,
     private readonly mapper: BudgetMapper,
     private readonly findAllSparseUseCase: FindAllSparseBudgetsUseCase,
@@ -172,15 +175,8 @@ export class FindAllBudgetsUseCase {
     clientKey: Buffer,
   ): Promise<number> {
     if (!budget.ending_balance) return 0;
-    const dek = await this.encryptionService.getUserDEK(
-      budget.user_id!,
-      clientKey,
-    );
-    return this.encryptionService.tryDecryptAmount(
-      budget.ending_balance,
-      dek,
-      0,
-    );
+    const dek = await this.encryption.getUserDEK(budget.user_id!, clientKey);
+    return this.encryption.tryDecryptAmount(budget.ending_balance, dek, 0);
   }
 
   private async getPayDayOfMonth(

@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, jest } from 'bun:test';
 import { Test } from '@nestjs/testing';
 import { CreateTransactionUseCase } from './create-transaction.use-case';
 import { TRANSACTION_REPOSITORY } from '../domain/ports/transaction-repository.port';
-import { EncryptionService } from '@modules/encryption/encryption.service';
+import { ENCRYPTION_PORT } from '@modules/encryption/encryption.tokens';
 import { CacheService } from '@modules/cache/cache.service';
 import { CurrencyService } from '@modules/currency/currency.service';
 import { BUDGET_RECALCULATION_PORT } from '@modules/budget/domain/ports/budget-recalculation.port';
@@ -85,7 +85,7 @@ describe('CreateTransactionUseCase', () => {
       providers: [
         CreateTransactionUseCase,
         { provide: TRANSACTION_REPOSITORY, useValue: mockRepo },
-        { provide: EncryptionService, useValue: mockEncryption },
+        { provide: ENCRYPTION_PORT, useValue: mockEncryption },
         { provide: CacheService, useValue: mockCache },
         { provide: CurrencyService, useValue: mockCurrency },
         { provide: BUDGET_RECALCULATION_PORT, useValue: mockBudget },

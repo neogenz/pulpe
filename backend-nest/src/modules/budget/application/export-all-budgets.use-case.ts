@@ -8,7 +8,10 @@ import {
   PAY_DAY_MIN,
   PAY_DAY_MAX,
 } from 'pulpe-shared';
-import { EncryptionService } from '@modules/encryption/encryption.service';
+import {
+  ENCRYPTION_PORT,
+  type EncryptionPort,
+} from '@modules/encryption/encryption.tokens';
 import * as transactionMappers from '@modules/transaction/transaction.mappers';
 import * as budgetLineMappers from '@modules/budget-line/budget-line.mappers';
 import {
@@ -24,7 +27,7 @@ export class ExportAllBudgetsUseCase {
   constructor(
     @Inject(BUDGET_REPOSITORY)
     private readonly repo: BudgetRepositoryPort,
-    private readonly encryptionService: EncryptionService,
+    @Inject(ENCRYPTION_PORT) private readonly encryption: EncryptionPort,
     private readonly mapper: BudgetMapper,
     private readonly recalculateUseCase: RecalculateBudgetBalancesUseCase,
     @InjectInfoLogger(ExportAllBudgetsUseCase.name)
@@ -99,27 +102,20 @@ export class ExportAllBudgetsUseCase {
       clientKey,
     );
 
-    const dek = await this.encryptionService.getUserDEK(
-      budget.user_id!,
-      clientKey,
-    );
+    const dek = await this.encryption.getUserDEK(budget.user_id!, clientKey);
 
     const decryptedBudgetLines = budgetLines.map((line) =>
-      this.encryptionService.decryptRowAmountFields(line, dek),
+      this.encryption.decryptRowAmountFields(line, dek),
     );
     const decryptedTransactions = transactions.map((tx) =>
-      this.encryptionService.decryptRowAmountFields(tx, dek),
+      this.encryption.decryptRowAmountFields(tx, dek),
     );
 
     return {
       ...this.mapper.toApi({
         ...budget,
         ending_balance: budget.ending_balance
-          ? this.encryptionService.tryDecryptAmount(
-              budget.ending_balance,
-              dek,
-              0,
-            )
+          ? this.encryption.tryDecryptAmount(budget.ending_balance, dek, 0)
           : null,
       }),
       rollover: rolloverData.rollover,

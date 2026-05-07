@@ -3,7 +3,10 @@ import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
 import { type BudgetLineResponse } from 'pulpe-shared';
-import { EncryptionService } from '@modules/encryption/encryption.service';
+import {
+  ENCRYPTION_PORT,
+  type EncryptionPort,
+} from '@modules/encryption/encryption.tokens';
 import { CacheService } from '@modules/cache/cache.service';
 import {
   BUDGET_RECALCULATION_PORT,
@@ -22,7 +25,7 @@ export class ResetBudgetLineFromTemplateUseCase {
   constructor(
     @Inject(BUDGET_LINE_REPOSITORY)
     private readonly repo: BudgetLineRepositoryPort,
-    private readonly encryptionService: EncryptionService,
+    @Inject(ENCRYPTION_PORT) private readonly encryption: EncryptionPort,
     private readonly cacheService: CacheService,
     @Inject(BUDGET_RECALCULATION_PORT)
     private readonly budgetRecalculation: BudgetRecalculationPort,
@@ -48,14 +51,8 @@ export class ResetBudgetLineFromTemplateUseCase {
       supabase,
     );
 
-    const dek = await this.encryptionService.getUserDEK(
-      user.id,
-      user.clientKey,
-    );
-    const decrypted = this.encryptionService.decryptRowAmountFields(
-      updated,
-      dek,
-    );
+    const dek = await this.encryption.getUserDEK(user.id, user.clientKey);
+    const decrypted = this.encryption.decryptRowAmountFields(updated, dek);
 
     await this.budgetRecalculation.recalculate(
       budgetId,
@@ -92,12 +89,11 @@ export class ResetBudgetLineFromTemplateUseCase {
     );
 
     const templateAmount = await this.resolveTemplateAmount(templateLine, user);
-    const { amount: encryptedAmount } =
-      await this.encryptionService.prepareAmountData(
-        templateAmount,
-        user.id,
-        user.clientKey,
-      );
+    const { amount: encryptedAmount } = await this.encryption.prepareAmountData(
+      templateAmount,
+      user.id,
+      user.clientKey,
+    );
 
     return {
       encryptedAmount,
@@ -111,11 +107,8 @@ export class ResetBudgetLineFromTemplateUseCase {
     user: AuthenticatedUser,
   ): Promise<number> {
     if (!templateLine.amount) return 0;
-    const dek = await this.encryptionService.getUserDEK(
-      user.id,
-      user.clientKey,
-    );
-    return this.encryptionService.tryDecryptAmount(templateLine.amount, dek, 0);
+    const dek = await this.encryption.getUserDEK(user.id, user.clientKey);
+    return this.encryption.tryDecryptAmount(templateLine.amount, dek, 0);
   }
 
   private buildResetData(templateLine: TemplateLineRow) {

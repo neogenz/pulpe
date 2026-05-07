@@ -7,7 +7,10 @@ import {
   type TransactionSearchResult,
   type TransactionKind,
 } from 'pulpe-shared';
-import { EncryptionService } from '@modules/encryption/encryption.service';
+import {
+  ENCRYPTION_PORT,
+  type EncryptionPort,
+} from '@modules/encryption/encryption.tokens';
 import {
   TRANSACTION_REPOSITORY,
   type TransactionRepositoryPort,
@@ -33,7 +36,7 @@ export class SearchTransactionsUseCase {
   constructor(
     @Inject(TRANSACTION_REPOSITORY)
     private readonly repo: TransactionRepositoryPort,
-    private readonly encryptionService: EncryptionService,
+    @Inject(ENCRYPTION_PORT) private readonly encryption: EncryptionPort,
     @InjectInfoLogger(SearchTransactionsUseCase.name)
     private readonly logger: InfoLogger,
   ) {}
@@ -59,22 +62,17 @@ export class SearchTransactionsUseCase {
       this.repo.fetchBudgetLinesByPattern(searchPattern, budgetIds, supabase),
     ]);
 
-    const dek = await this.encryptionService.getUserDEK(
-      user.id,
-      user.clientKey,
-    );
+    const dek = await this.encryption.getUserDEK(user.id, user.clientKey);
 
     const decryptedTransactions = transactionsDb.map((t) => ({
       ...t,
-      amount: t.amount
-        ? this.encryptionService.tryDecryptAmount(t.amount, dek, 0)
-        : 0,
+      amount: t.amount ? this.encryption.tryDecryptAmount(t.amount, dek, 0) : 0,
     }));
 
     const decryptedBudgetLines = budgetLinesDb.map((bl) => ({
       ...bl,
       amount: bl.amount
-        ? this.encryptionService.tryDecryptAmount(bl.amount, dek, 0)
+        ? this.encryption.tryDecryptAmount(bl.amount, dek, 0)
         : 0,
     }));
 

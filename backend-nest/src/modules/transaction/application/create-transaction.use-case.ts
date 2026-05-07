@@ -7,7 +7,10 @@ import {
   type TransactionResponse,
   type TransactionKind,
 } from 'pulpe-shared';
-import { EncryptionService } from '@modules/encryption/encryption.service';
+import {
+  ENCRYPTION_PORT,
+  type EncryptionPort,
+} from '@modules/encryption/encryption.tokens';
 import { CacheService } from '@modules/cache/cache.service';
 import { CurrencyService } from '@modules/currency/currency.service';
 import {
@@ -32,7 +35,7 @@ export class CreateTransactionUseCase {
   constructor(
     @Inject(TRANSACTION_REPOSITORY)
     private readonly repo: TransactionRepositoryPort,
-    private readonly encryptionService: EncryptionService,
+    @Inject(ENCRYPTION_PORT) private readonly encryption: EncryptionPort,
     private readonly cacheService: CacheService,
     private readonly currencyService: CurrencyService,
     @Inject(BUDGET_RECALCULATION_PORT)
@@ -63,12 +66,12 @@ export class CreateTransactionUseCase {
     const baseData = this.prepareInsertData(withRate);
 
     const [{ amount }, encryptedOriginalAmount] = await Promise.all([
-      this.encryptionService.prepareAmountData(
+      this.encryption.prepareAmountData(
         withRate.amount,
         user.id,
         user.clientKey,
       ),
-      this.encryptionService.encryptOptionalAmount(
+      this.encryption.encryptOptionalAmount(
         withRate.originalAmount,
         user.id,
         user.clientKey,
@@ -86,11 +89,8 @@ export class CreateTransactionUseCase {
       user.clientKey,
     );
 
-    const dek = await this.encryptionService.getUserDEK(
-      user.id,
-      user.clientKey,
-    );
-    const decrypted = this.encryptionService.decryptRowAmountFields(row, dek);
+    const dek = await this.encryption.getUserDEK(user.id, user.clientKey);
+    const decrypted = this.encryption.decryptRowAmountFields(row, dek);
 
     await this.cacheService.invalidateForUser(user.id);
 

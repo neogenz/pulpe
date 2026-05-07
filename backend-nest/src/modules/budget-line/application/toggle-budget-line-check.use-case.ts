@@ -3,7 +3,10 @@ import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
 import { type BudgetLineResponse } from 'pulpe-shared';
-import { EncryptionService } from '@modules/encryption/encryption.service';
+import {
+  ENCRYPTION_PORT,
+  type EncryptionPort,
+} from '@modules/encryption/encryption.tokens';
 import { CacheService } from '@modules/cache/cache.service';
 import {
   BUDGET_LINE_REPOSITORY,
@@ -16,7 +19,7 @@ export class ToggleBudgetLineCheckUseCase {
   constructor(
     @Inject(BUDGET_LINE_REPOSITORY)
     private readonly repo: BudgetLineRepositoryPort,
-    private readonly encryptionService: EncryptionService,
+    @Inject(ENCRYPTION_PORT) private readonly encryption: EncryptionPort,
     private readonly cacheService: CacheService,
     private readonly mapper: BudgetLineMapper,
     @InjectInfoLogger(ToggleBudgetLineCheckUseCase.name)
@@ -29,11 +32,8 @@ export class ToggleBudgetLineCheckUseCase {
     supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetLineResponse> {
     const row = await this.repo.toggleCheckRpc(id, supabase);
-    const dek = await this.encryptionService.getUserDEK(
-      user.id,
-      user.clientKey,
-    );
-    const decrypted = this.encryptionService.decryptRowAmountFields(row, dek);
+    const dek = await this.encryption.getUserDEK(user.id, user.clientKey);
+    const decrypted = this.encryption.decryptRowAmountFields(row, dek);
 
     await this.cacheService.invalidateForUser(user.id);
 

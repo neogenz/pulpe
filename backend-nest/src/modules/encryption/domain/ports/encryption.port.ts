@@ -19,10 +19,16 @@ export interface EncryptionPort {
   decryptAmount(ciphertext: string, dek: Buffer): number;
   /** Decrypt amount with fallback; never throw. */
   tryDecryptAmount(
+    ciphertext: string,
+    dek: Buffer,
+    fallbackAmount: number,
+  ): number;
+  tryDecryptAmount(
     ciphertext: string | null,
     dek: Buffer,
-    fallbackAmount: number | null,
-  ): number | null;
+    fallbackAmount: number,
+  ): number;
+  tryDecryptAmount(ciphertext: string, dek: Buffer, fallbackAmount: null): null;
   /** Encrypt amount as base64. */
   encryptAmount(amount: number, dek: Buffer): string;
 
