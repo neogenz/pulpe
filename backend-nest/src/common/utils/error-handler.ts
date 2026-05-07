@@ -3,12 +3,20 @@ import { BusinessException } from '@common/exceptions/business.exception';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 
 /**
- * Handles errors by re-throwing known exceptions or wrapping unknown errors
- * @param error - The error to handle
- * @param fallbackErrorDefinition - The error definition to use for unknown errors
- * @param fallbackData - Additional data for the fallback error
- * @param contextData - Context data for logging/debugging
- * @param causeError - The original error to include as cause
+ * Translates unknown errors into BusinessException with a typed fallback definition.
+ *
+ * Use when a catch block must distinguish between already-typed exceptions
+ * (BusinessException / HttpException — re-thrown as-is) and raw unknown errors
+ * from external APIs (Supabase, third-party SDKs) that need wrapping.
+ *
+ * Current call sites:
+ * - budget.service.ts — budget create/update/delete operations
+ * - budget-line.service.ts — budget-line mutations
+ * - transaction.service.ts — transaction mutations
+ * - budget-template.service.ts — template propagation + create
+ *
+ * DO NOT use as a generic catch-all wrapper: services that throw only
+ * BusinessException directly don't need this function.
  */
 export function handleServiceError(
   error: unknown,

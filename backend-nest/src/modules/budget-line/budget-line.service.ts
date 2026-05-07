@@ -4,7 +4,6 @@ import { Injectable } from '@nestjs/common';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 import { BusinessException } from '@common/exceptions/business.exception';
 import { mapCurrencyMetadataToDb } from '@common/utils/currency-metadata.mapper';
-import { handleServiceError } from '@common/utils/error-handler';
 import { CacheService } from '@modules/cache/cache.service';
 import {
   type BudgetLineCreate,
@@ -71,46 +70,34 @@ export class BudgetLineService {
     user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetLineListResponse> {
-    try {
-      const { data: budgetLinesDb, error } = await supabase
-        .from('budget_line')
-        .select('*')
-        .order('created_at', { ascending: false });
+    const { data: budgetLinesDb, error } = await supabase
+      .from('budget_line')
+      .select('*')
+      .order('created_at', { ascending: false });
 
-      if (error) {
-        throw new BusinessException(
-          ERROR_DEFINITIONS.BUDGET_LINE_FETCH_FAILED,
-          undefined,
-          {
-            operation: 'listBudgetLines',
-            entityType: 'budget_line',
-            supabaseError: error,
-          },
-          { cause: error },
-        );
-      }
-
-      const decryptedLines = await this.#decryptBudgetLines(
-        budgetLinesDb || [],
-        user,
-      );
-      const apiData = budgetLineMappers.toApiList(decryptedLines);
-
-      return {
-        success: true as const,
-        data: apiData,
-      } as BudgetLineListResponse;
-    } catch (error) {
-      handleServiceError(
-        error,
+    if (error) {
+      throw new BusinessException(
         ERROR_DEFINITIONS.BUDGET_LINE_FETCH_FAILED,
         undefined,
         {
           operation: 'listBudgetLines',
           entityType: 'budget_line',
+          supabaseError: error,
         },
+        { cause: error },
       );
     }
+
+    const decryptedLines = await this.#decryptBudgetLines(
+      budgetLinesDb || [],
+      user,
+    );
+    const apiData = budgetLineMappers.toApiList(decryptedLines);
+
+    return {
+      success: true as const,
+      data: apiData,
+    } as BudgetLineListResponse;
   }
 
   private validateCreateBudgetLineDto(
@@ -237,51 +224,38 @@ export class BudgetLineService {
     user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetLineResponse> {
-    try {
-      this.validateCreateBudgetLineDto(createBudgetLineDto);
+    this.validateCreateBudgetLineDto(createBudgetLineDto);
 
-      createBudgetLineDto =
-        await this.currencyService.overrideExchangeRate(createBudgetLineDto);
+    createBudgetLineDto =
+      await this.currencyService.overrideExchangeRate(createBudgetLineDto);
 
-      const budgetLineData = this.prepareBudgetLineData(createBudgetLineDto);
-      const budgetLineDb = await this.insertBudgetLine(
-        budgetLineData,
-        supabase,
-        user,
-        createBudgetLineDto,
-      );
+    const budgetLineData = this.prepareBudgetLineData(createBudgetLineDto);
+    const budgetLineDb = await this.insertBudgetLine(
+      budgetLineData,
+      supabase,
+      user,
+      createBudgetLineDto,
+    );
 
-      const decryptedBudgetLine = await this.#decryptBudgetLine(
-        budgetLineDb,
-        user,
-      );
+    const decryptedBudgetLine = await this.#decryptBudgetLine(
+      budgetLineDb,
+      user,
+    );
 
-      await this.budgetService.recalculateBalances(
-        budgetLineDb.budget_id,
-        supabase,
-        user.clientKey,
-      );
+    await this.budgetService.recalculateBalances(
+      budgetLineDb.budget_id,
+      supabase,
+      user.clientKey,
+    );
 
-      const apiData = budgetLineMappers.toApi(decryptedBudgetLine);
+    const apiData = budgetLineMappers.toApi(decryptedBudgetLine);
 
-      await this.cacheService.invalidateForUser(user.id);
+    await this.cacheService.invalidateForUser(user.id);
 
-      return {
-        success: true,
-        data: apiData,
-      };
-    } catch (error) {
-      handleServiceError(
-        error,
-        ERROR_DEFINITIONS.BUDGET_LINE_CREATE_FAILED,
-        undefined,
-        {
-          operation: 'createBudgetLine',
-          userId: user.id,
-          entityType: 'budget_line',
-        },
-      );
-    }
+    return {
+      success: true,
+      data: apiData,
+    };
   }
 
   async findOne(
@@ -289,21 +263,17 @@ export class BudgetLineService {
     user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetLineResponse> {
-    try {
-      const budgetLineDb = await this.fetchBudgetLineById(id, user, supabase);
-      const decryptedBudgetLine = await this.#decryptBudgetLine(
-        budgetLineDb,
-        user,
-      );
-      const apiData = budgetLineMappers.toApi(decryptedBudgetLine);
+    const budgetLineDb = await this.fetchBudgetLineById(id, user, supabase);
+    const decryptedBudgetLine = await this.#decryptBudgetLine(
+      budgetLineDb,
+      user,
+    );
+    const apiData = budgetLineMappers.toApi(decryptedBudgetLine);
 
-      return {
-        success: true,
-        data: apiData,
-      };
-    } catch (error) {
-      this.handleFindOneError(error, id, user);
-    }
+    return {
+      success: true,
+      data: apiData,
+    };
   }
 
   private async fetchBudgetLineById(
@@ -332,24 +302,6 @@ export class BudgetLineService {
     }
 
     return budgetLineDb;
-  }
-
-  private handleFindOneError(
-    error: unknown,
-    id: string,
-    user: AuthenticatedUser,
-  ): never {
-    handleServiceError(
-      error,
-      ERROR_DEFINITIONS.BUDGET_LINE_FETCH_FAILED,
-      undefined,
-      {
-        operation: 'getBudgetLine',
-        userId: user.id,
-        entityId: id,
-        entityType: 'budget_line',
-      },
-    );
   }
 
   private validateUpdateBudgetLineDto(
@@ -440,73 +392,59 @@ export class BudgetLineService {
     user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetLineResponse> {
-    try {
-      this.validateUpdateBudgetLineDto(updateBudgetLineDto);
+    this.validateUpdateBudgetLineDto(updateBudgetLineDto);
 
-      updateBudgetLineDto =
-        await this.currencyService.overrideExchangeRate(updateBudgetLineDto);
+    updateBudgetLineDto =
+      await this.currencyService.overrideExchangeRate(updateBudgetLineDto);
 
-      let updateData = this.prepareBudgetLineUpdateData(updateBudgetLineDto);
-      if (updateBudgetLineDto.amount !== undefined) {
-        const { amount } = await this.encryptionService.prepareAmountData(
-          updateBudgetLineDto.amount,
+    let updateData = this.prepareBudgetLineUpdateData(updateBudgetLineDto);
+    if (updateBudgetLineDto.amount !== undefined) {
+      const { amount } = await this.encryptionService.prepareAmountData(
+        updateBudgetLineDto.amount,
+        user.id,
+        user.clientKey,
+      );
+      updateData = {
+        ...updateData,
+        amount,
+      };
+    }
+
+    if (updateBudgetLineDto.originalAmount !== undefined) {
+      updateData.original_amount =
+        await this.encryptionService.encryptOptionalAmount(
+          updateBudgetLineDto.originalAmount,
           user.id,
           user.clientKey,
         );
-        updateData = {
-          ...updateData,
-          amount,
-        };
-      }
-
-      if (updateBudgetLineDto.originalAmount !== undefined) {
-        updateData.original_amount =
-          await this.encryptionService.encryptOptionalAmount(
-            updateBudgetLineDto.originalAmount,
-            user.id,
-            user.clientKey,
-          );
-      }
-
-      const budgetLineDb = await this.updateBudgetLineInDb(
-        id,
-        updateData,
-        supabase,
-        user,
-      );
-
-      const decryptedBudgetLine = await this.#decryptBudgetLine(
-        budgetLineDb,
-        user,
-      );
-
-      await this.budgetService.recalculateBalances(
-        budgetLineDb.budget_id,
-        supabase,
-        user.clientKey,
-      );
-
-      const apiData = budgetLineMappers.toApi(decryptedBudgetLine);
-
-      await this.cacheService.invalidateForUser(user.id);
-
-      return {
-        success: true,
-        data: apiData,
-      };
-    } catch (error) {
-      handleServiceError(
-        error,
-        ERROR_DEFINITIONS.BUDGET_LINE_UPDATE_FAILED,
-        { id },
-        {
-          operation: 'updateBudgetLine',
-          userId: user.id,
-          entityId: id,
-          entityType: 'budget_line',
-        },
-      );
     }
+
+    const budgetLineDb = await this.updateBudgetLineInDb(
+      id,
+      updateData,
+      supabase,
+      user,
+    );
+
+    const decryptedBudgetLine = await this.#decryptBudgetLine(
+      budgetLineDb,
+      user,
+    );
+
+    await this.budgetService.recalculateBalances(
+      budgetLineDb.budget_id,
+      supabase,
+      user.clientKey,
+    );
+
+    const apiData = budgetLineMappers.toApi(decryptedBudgetLine);
+
+    await this.cacheService.invalidateForUser(user.id);
+
+    return {
+      success: true,
+      data: apiData,
+    };
   }
 
   async remove(
@@ -514,31 +452,27 @@ export class BudgetLineService {
     user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetLineDeleteResponse> {
-    try {
-      const { data: budgetLine } = await supabase
-        .from('budget_line')
-        .select('budget_id')
-        .eq('id', id)
-        .single();
-      await this.deleteBudgetLine(id, user, supabase);
+    const { data: budgetLine } = await supabase
+      .from('budget_line')
+      .select('budget_id')
+      .eq('id', id)
+      .single();
+    await this.deleteBudgetLine(id, user, supabase);
 
-      if (budgetLine?.budget_id) {
-        await this.budgetService.recalculateBalances(
-          budgetLine.budget_id,
-          supabase,
-          user.clientKey,
-        );
-      }
-
-      await this.cacheService.invalidateForUser(user.id);
-
-      return {
-        success: true,
-        message: 'Budget line deleted successfully',
-      };
-    } catch (error) {
-      this.handleRemovalError(error, id, user);
+    if (budgetLine?.budget_id) {
+      await this.budgetService.recalculateBalances(
+        budgetLine.budget_id,
+        supabase,
+        user.clientKey,
+      );
     }
+
+    await this.cacheService.invalidateForUser(user.id);
+
+    return {
+      success: true,
+      message: 'Budget line deleted successfully',
+    };
   }
 
   private async deleteBudgetLine(
@@ -566,87 +500,55 @@ export class BudgetLineService {
     return;
   }
 
-  private handleRemovalError(
-    error: unknown,
-    id: string,
-    user: AuthenticatedUser,
-  ): never {
-    handleServiceError(
-      error,
-      ERROR_DEFINITIONS.BUDGET_LINE_DELETE_FAILED,
-      { id },
-      {
-        operation: 'deleteBudgetLine',
-        userId: user.id,
-        entityId: id,
-        entityType: 'budget_line',
-      },
-    );
-  }
-
   async resetFromTemplate(
     id: string,
     user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetLineResponse> {
-    try {
-      const budgetLine = await this.fetchBudgetLineById(id, user, supabase);
-      this.validateTemplateLineIdExists(budgetLine.template_line_id);
+    const budgetLine = await this.fetchBudgetLineById(id, user, supabase);
+    this.validateTemplateLineIdExists(budgetLine.template_line_id);
 
-      const templateLine = await this.fetchTemplateLineById(
-        budgetLine.template_line_id!,
-        supabase,
-        user,
-      );
+    const templateLine = await this.fetchTemplateLineById(
+      budgetLine.template_line_id!,
+      supabase,
+      user,
+    );
 
-      let updateData = this.prepareResetUpdateData(templateLine);
-      const { amount } = await this.encryptionService.prepareAmountData(
-        templateLine.amount,
-        user.id,
-        user.clientKey,
-      );
-      updateData = {
-        ...updateData,
-        amount,
-      };
+    let updateData = this.prepareResetUpdateData(templateLine);
+    const { amount } = await this.encryptionService.prepareAmountData(
+      templateLine.amount,
+      user.id,
+      user.clientKey,
+    );
+    updateData = {
+      ...updateData,
+      amount,
+    };
 
-      const updatedBudgetLine = await this.updateBudgetLineInDb(
-        id,
-        updateData,
-        supabase,
-        user,
-      );
+    const updatedBudgetLine = await this.updateBudgetLineInDb(
+      id,
+      updateData,
+      supabase,
+      user,
+    );
 
-      const decryptedBudgetLine = await this.#decryptBudgetLine(
-        updatedBudgetLine,
-        user,
-      );
+    const decryptedBudgetLine = await this.#decryptBudgetLine(
+      updatedBudgetLine,
+      user,
+    );
 
-      await this.budgetService.recalculateBalances(
-        updatedBudgetLine.budget_id,
-        supabase,
-        user.clientKey,
-      );
+    await this.budgetService.recalculateBalances(
+      updatedBudgetLine.budget_id,
+      supabase,
+      user.clientKey,
+    );
 
-      await this.cacheService.invalidateForUser(user.id);
+    await this.cacheService.invalidateForUser(user.id);
 
-      return {
-        success: true,
-        data: budgetLineMappers.toApi(decryptedBudgetLine),
-      };
-    } catch (error) {
-      handleServiceError(
-        error,
-        ERROR_DEFINITIONS.BUDGET_LINE_UPDATE_FAILED,
-        { id },
-        {
-          operation: 'resetFromTemplate',
-          userId: user.id,
-          entityId: id,
-          entityType: 'budget_line',
-        },
-      );
-    }
+    return {
+      success: true,
+      data: budgetLineMappers.toApi(decryptedBudgetLine),
+    };
   }
 
   private validateTemplateLineIdExists(templateLineId: string | null): void {
@@ -725,52 +627,38 @@ export class BudgetLineService {
     user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetLineResponse> {
-    try {
-      const { data: updatedBudgetLine, error } = await supabase
-        .rpc('toggle_budget_line_check', {
-          p_budget_line_id: id,
-        })
-        .single();
+    const { data: updatedBudgetLine, error } = await supabase
+      .rpc('toggle_budget_line_check', {
+        p_budget_line_id: id,
+      })
+      .single();
 
-      if (error || !updatedBudgetLine) {
-        throw new BusinessException(
-          ERROR_DEFINITIONS.BUDGET_LINE_UPDATE_FAILED,
-          undefined,
-          {
-            operation: 'toggleCheck',
-            userId: user.id,
-            entityId: id,
-            entityType: 'budget_line',
-            supabaseError: error,
-          },
-          { cause: error },
-        );
-      }
-
-      const decryptedBudgetLine = await this.#decryptBudgetLine(
-        updatedBudgetLine,
-        user,
-      );
-
-      await this.cacheService.invalidateForUser(user.id);
-
-      return {
-        success: true,
-        data: budgetLineMappers.toApi(decryptedBudgetLine),
-      };
-    } catch (error) {
-      handleServiceError(
-        error,
+    if (error || !updatedBudgetLine) {
+      throw new BusinessException(
         ERROR_DEFINITIONS.BUDGET_LINE_UPDATE_FAILED,
-        { id },
+        undefined,
         {
           operation: 'toggleCheck',
           userId: user.id,
           entityId: id,
           entityType: 'budget_line',
+          supabaseError: error,
         },
+        { cause: error },
       );
     }
+
+    const decryptedBudgetLine = await this.#decryptBudgetLine(
+      updatedBudgetLine,
+      user,
+    );
+
+    await this.cacheService.invalidateForUser(user.id);
+
+    return {
+      success: true,
+      data: budgetLineMappers.toApi(decryptedBudgetLine),
+    };
   }
 
   async checkTransactions(
@@ -778,51 +666,37 @@ export class BudgetLineService {
     user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<TransactionListResponse> {
-    try {
-      const { data: updatedTransactions, error } = await supabase.rpc(
-        'check_unchecked_transactions',
-        { p_budget_line_id: id },
-      );
+    const { data: updatedTransactions, error } = await supabase.rpc(
+      'check_unchecked_transactions',
+      { p_budget_line_id: id },
+    );
 
-      if (error) {
-        throw new BusinessException(
-          ERROR_DEFINITIONS.BUDGET_LINE_UPDATE_FAILED,
-          undefined,
-          {
-            operation: 'checkTransactions',
-            userId: user.id,
-            entityId: id,
-            entityType: 'budget_line',
-            supabaseError: error,
-          },
-          { cause: error },
-        );
-      }
-
-      const decryptedTransactions = await this.#decryptTransactions(
-        updatedTransactions ?? [],
-        user,
-      );
-
-      await this.cacheService.invalidateForUser(user.id);
-
-      return {
-        success: true,
-        data: transactionMappers.toApiList(decryptedTransactions),
-      };
-    } catch (error) {
-      handleServiceError(
-        error,
+    if (error) {
+      throw new BusinessException(
         ERROR_DEFINITIONS.BUDGET_LINE_UPDATE_FAILED,
-        { id },
+        undefined,
         {
           operation: 'checkTransactions',
           userId: user.id,
           entityId: id,
           entityType: 'budget_line',
+          supabaseError: error,
         },
+        { cause: error },
       );
     }
+
+    const decryptedTransactions = await this.#decryptTransactions(
+      updatedTransactions ?? [],
+      user,
+    );
+
+    await this.cacheService.invalidateForUser(user.id);
+
+    return {
+      success: true,
+      data: transactionMappers.toApiList(decryptedTransactions),
+    };
   }
 
   async findByBudgetId(
@@ -830,48 +704,35 @@ export class BudgetLineService {
     user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetLineListResponse> {
-    try {
-      const { data: budgetLinesDb, error } = await supabase
-        .from('budget_line')
-        .select('*')
-        .eq('budget_id', budgetId)
-        .order('created_at', { ascending: false });
+    const { data: budgetLinesDb, error } = await supabase
+      .from('budget_line')
+      .select('*')
+      .eq('budget_id', budgetId)
+      .order('created_at', { ascending: false });
 
-      if (error) {
-        throw new BusinessException(
-          ERROR_DEFINITIONS.BUDGET_LINE_FETCH_FAILED,
-          undefined,
-          {
-            operation: 'listBudgetLinesByBudget',
-            entityId: budgetId,
-            entityType: 'budget_line',
-            supabaseError: error,
-          },
-          { cause: error },
-        );
-      }
-
-      const decryptedLines = await this.#decryptBudgetLines(
-        budgetLinesDb || [],
-        user,
-      );
-      const apiData = budgetLineMappers.toApiList(decryptedLines);
-
-      return {
-        success: true as const,
-        data: apiData,
-      } as BudgetLineListResponse;
-    } catch (error) {
-      handleServiceError(
-        error,
+    if (error) {
+      throw new BusinessException(
         ERROR_DEFINITIONS.BUDGET_LINE_FETCH_FAILED,
         undefined,
         {
           operation: 'listBudgetLinesByBudget',
           entityId: budgetId,
           entityType: 'budget_line',
+          supabaseError: error,
         },
+        { cause: error },
       );
     }
+
+    const decryptedLines = await this.#decryptBudgetLines(
+      budgetLinesDb || [],
+      user,
+    );
+    const apiData = budgetLineMappers.toApiList(decryptedLines);
+
+    return {
+      success: true as const,
+      data: apiData,
+    } as BudgetLineListResponse;
   }
 }

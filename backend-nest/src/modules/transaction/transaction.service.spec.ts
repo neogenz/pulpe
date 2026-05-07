@@ -294,7 +294,7 @@ describe('TransactionService', () => {
       );
     });
 
-    it('should handle unexpected errors during transaction creation', async () => {
+    it('should propagate unexpected errors during transaction creation', async () => {
       // Arrange
       const mockUser = createMockAuthenticatedUser();
       const createTransactionDto: TransactionCreate = {
@@ -304,24 +304,20 @@ describe('TransactionService', () => {
         kind: 'expense',
       };
 
-      // Mock a rejected promise to simulate unexpected error
       const originalMethod = mockSupabaseClient.from;
       mockSupabaseClient.from = () => {
         throw new Error('Unexpected database error');
       };
 
-      // Act & Assert
-      await expectBusinessExceptionThrown(
-        () =>
-          service.create(
-            createTransactionDto,
-            mockUser,
-            mockSupabaseClient as any,
-          ),
-        ERROR_DEFINITIONS.TRANSACTION_CREATE_FAILED,
-      );
+      // Act & Assert — raw errors propagate; GlobalExceptionFilter handles them
+      await expect(
+        service.create(
+          createTransactionDto,
+          mockUser,
+          mockSupabaseClient as any,
+        ),
+      ).rejects.toThrow('Unexpected database error');
 
-      // Restore
       mockSupabaseClient.from = originalMethod;
     });
   });
@@ -363,22 +359,19 @@ describe('TransactionService', () => {
       );
     });
 
-    it('should handle database error when finding transaction', async () => {
+    it('should propagate unexpected errors when finding transaction', async () => {
       // Arrange
       const mockUser = createMockAuthenticatedUser();
       const transactionId = 'transaction-123';
 
-      // Force an unexpected error
       mockSupabaseClient.from = () => {
         throw new Error('Unexpected error');
       };
 
-      // Act & Assert
-      await expectBusinessExceptionThrown(
-        () =>
-          service.findOne(transactionId, mockUser, mockSupabaseClient as any),
-        ERROR_DEFINITIONS.TRANSACTION_FETCH_FAILED,
-      );
+      // Act & Assert — raw errors propagate; GlobalExceptionFilter handles them
+      await expect(
+        service.findOne(transactionId, mockUser, mockSupabaseClient as any),
+      ).rejects.toThrow('Unexpected error');
     });
   });
 
@@ -564,7 +557,7 @@ describe('TransactionService', () => {
       expect(writtenPayload.exchange_rate).toBeNull();
     });
 
-    it('should handle unexpected errors during transaction update', async () => {
+    it('should propagate unexpected errors during transaction update', async () => {
       // Arrange
       const mockUser = createMockAuthenticatedUser();
       const transactionId = 'transaction-123';
@@ -572,25 +565,21 @@ describe('TransactionService', () => {
         name: 'Updated Transaction',
       };
 
-      // Mock a rejected promise to simulate unexpected error
       const originalMethod = mockSupabaseClient.from;
       mockSupabaseClient.from = () => {
         throw new Error('Unexpected database error');
       };
 
-      // Act & Assert
-      await expectBusinessExceptionThrown(
-        () =>
-          service.update(
-            transactionId,
-            updateData,
-            mockUser,
-            mockSupabaseClient as any,
-          ),
-        ERROR_DEFINITIONS.TRANSACTION_UPDATE_FAILED,
-      );
+      // Act & Assert — raw errors propagate; GlobalExceptionFilter handles them
+      await expect(
+        service.update(
+          transactionId,
+          updateData,
+          mockUser,
+          mockSupabaseClient as any,
+        ),
+      ).rejects.toThrow('Unexpected database error');
 
-      // Restore
       mockSupabaseClient.from = originalMethod;
     });
   });
@@ -631,25 +620,21 @@ describe('TransactionService', () => {
       );
     });
 
-    it('should handle unexpected errors during transaction deletion', async () => {
+    it('should propagate unexpected errors during transaction deletion', async () => {
       // Arrange
       const mockUser = createMockAuthenticatedUser();
       const transactionId = 'transaction-123';
 
-      // Mock a rejected promise to simulate unexpected error
       const originalMethod = mockSupabaseClient.from;
       mockSupabaseClient.from = () => {
         throw new Error('Unexpected database error');
       };
 
-      // Act & Assert
-      await expectBusinessExceptionThrown(
-        () =>
-          service.remove(transactionId, mockUser, mockSupabaseClient as any),
-        ERROR_DEFINITIONS.TRANSACTION_DELETE_FAILED,
-      );
+      // Act & Assert — raw errors propagate; GlobalExceptionFilter handles them
+      await expect(
+        service.remove(transactionId, mockUser, mockSupabaseClient as any),
+      ).rejects.toThrow('Unexpected database error');
 
-      // Restore
       mockSupabaseClient.from = originalMethod;
     });
   });

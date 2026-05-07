@@ -3,7 +3,6 @@ import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.ser
 import { Injectable } from '@nestjs/common';
 import { BusinessException } from '@common/exceptions/business.exception';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
-import { handleServiceError } from '@common/utils/error-handler';
 import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 import { CacheService } from '@modules/cache/cache.service';
 import { ZodError } from 'zod';
@@ -73,41 +72,27 @@ export class BudgetService {
     user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<boolean> {
-    try {
-      const { data, error } = await supabase
-        .from('monthly_budget')
-        .select('id')
-        .limit(1)
-        .maybeSingle();
+    const { data, error } = await supabase
+      .from('monthly_budget')
+      .select('id')
+      .limit(1)
+      .maybeSingle();
 
-      if (error) {
-        throw new BusinessException(
-          ERROR_DEFINITIONS.BUDGET_FETCH_FAILED,
-          undefined,
-          {
-            operation: 'hasBudgets',
-            userId: user.id,
-            entityType: 'budget',
-            supabaseError: error,
-          },
-          { cause: error },
-        );
-      }
-
-      return data !== null;
-    } catch (error) {
-      if (error instanceof BusinessException) throw error;
-      throw handleServiceError(
-        error,
+    if (error) {
+      throw new BusinessException(
         ERROR_DEFINITIONS.BUDGET_FETCH_FAILED,
         undefined,
         {
           operation: 'hasBudgets',
           userId: user.id,
           entityType: 'budget',
+          supabaseError: error,
         },
+        { cause: error },
       );
     }
+
+    return data !== null;
   }
 
   async findAll(
@@ -132,58 +117,45 @@ export class BudgetService {
     supabase: AuthenticatedSupabaseClient,
     query?: ListBudgetsQuery,
   ): Promise<BudgetListResponse | BudgetSparseListResponse> {
-    try {
-      if (query?.fields) {
-        return this.findAllSparse(user, supabase, query);
-      }
+    if (query?.fields) {
+      return this.findAllSparse(user, supabase, query);
+    }
 
-      const { data: budgets, error } = await supabase
-        .from('monthly_budget')
-        .select('*')
-        .order('year', { ascending: false })
-        .order('month', { ascending: false });
+    const { data: budgets, error } = await supabase
+      .from('monthly_budget')
+      .select('*')
+      .order('year', { ascending: false })
+      .order('month', { ascending: false });
 
-      if (error) {
-        throw new BusinessException(
-          ERROR_DEFINITIONS.BUDGET_FETCH_FAILED,
-          undefined,
-          {
-            operation: 'listBudgets',
-            userId: user.id,
-            entityType: 'budget',
-            supabaseError: error,
-          },
-          { cause: error },
-        );
-      }
-
-      const payDayOfMonth = await this.getPayDayOfMonth(supabase);
-
-      const enrichedBudgets = await this.enrichBudgetsWithRemaining(
-        budgets || [],
-        supabase,
-        payDayOfMonth,
-        user.clientKey,
-      );
-
-      const apiData = budgetMappers.toApiList(enrichedBudgets);
-
-      return {
-        success: true as const,
-        data: apiData,
-      } as BudgetListResponse;
-    } catch (error) {
-      throw handleServiceError(
-        error,
-        ERROR_DEFINITIONS.INTERNAL_SERVER_ERROR,
+    if (error) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.BUDGET_FETCH_FAILED,
         undefined,
         {
           operation: 'listBudgets',
           userId: user.id,
           entityType: 'budget',
+          supabaseError: error,
         },
+        { cause: error },
       );
     }
+
+    const payDayOfMonth = await this.getPayDayOfMonth(supabase);
+
+    const enrichedBudgets = await this.enrichBudgetsWithRemaining(
+      budgets || [],
+      supabase,
+      payDayOfMonth,
+      user.clientKey,
+    );
+
+    const apiData = budgetMappers.toApiList(enrichedBudgets);
+
+    return {
+      success: true as const,
+      data: apiData,
+    } as BudgetListResponse;
   }
 
   private async findAllSparse(
@@ -346,32 +318,19 @@ export class BudgetService {
     user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetExportResponse> {
-    try {
-      const startTime = Date.now();
-      const payDayOfMonth = await this.getPayDayOfMonth(supabase);
-      const budgets = await this.fetchAllBudgetsForExport(user.id, supabase);
-      const budgetsWithDetails = await this.enrichBudgetsForExport(
-        budgets,
-        supabase,
-        payDayOfMonth,
-        user.clientKey,
-      );
+    const startTime = Date.now();
+    const payDayOfMonth = await this.getPayDayOfMonth(supabase);
+    const budgets = await this.fetchAllBudgetsForExport(user.id, supabase);
+    const budgetsWithDetails = await this.enrichBudgetsForExport(
+      budgets,
+      supabase,
+      payDayOfMonth,
+      user.clientKey,
+    );
 
-      this.logExportSuccess(user.id, budgetsWithDetails.length, startTime);
+    this.logExportSuccess(user.id, budgetsWithDetails.length, startTime);
 
-      return this.buildExportResponse(budgetsWithDetails);
-    } catch (error) {
-      throw handleServiceError(
-        error,
-        ERROR_DEFINITIONS.INTERNAL_SERVER_ERROR,
-        undefined,
-        {
-          operation: 'exportAllBudgets',
-          userId: user.id,
-          entityType: 'budget',
-        },
-      );
-    }
+    return this.buildExportResponse(budgetsWithDetails);
   }
 
   private async fetchAllBudgetsForExport(
@@ -511,47 +470,34 @@ export class BudgetService {
     user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetResponse> {
-    try {
-      const validatedDto = this.validator.validateBudgetInput(createBudgetDto);
+    const validatedDto = this.validator.validateBudgetInput(createBudgetDto);
 
-      await this.validator.validateNoDuplicatePeriod(
-        supabase,
-        validatedDto.month,
-        validatedDto.year,
-      );
+    await this.validator.validateNoDuplicatePeriod(
+      supabase,
+      validatedDto.month,
+      validatedDto.year,
+    );
 
-      const processedResult = await this.createBudgetFromTemplate(
-        validatedDto,
-        user,
-        supabase,
-      );
+    const processedResult = await this.createBudgetFromTemplate(
+      validatedDto,
+      user,
+      supabase,
+    );
 
-      await this.calculator.recalculateAndPersist(
-        processedResult.budgetData.id,
-        supabase,
-        user.clientKey,
-      );
+    await this.calculator.recalculateAndPersist(
+      processedResult.budgetData.id,
+      supabase,
+      user.clientKey,
+    );
 
-      const apiData = budgetMappers.toApi(processedResult.budgetData);
+    const apiData = budgetMappers.toApi(processedResult.budgetData);
 
-      await this.cacheService.invalidateForUser(user.id);
+    await this.cacheService.invalidateForUser(user.id);
 
-      return {
-        success: true,
-        data: apiData,
-      };
-    } catch (error) {
-      throw handleServiceError(
-        error,
-        ERROR_DEFINITIONS.BUDGET_CREATE_FAILED,
-        undefined,
-        {
-          operation: 'createBudget',
-          userId: user.id,
-          entityType: 'budget',
-        },
-      );
-    }
+    return {
+      success: true,
+      data: apiData,
+    };
   }
 
   async generateBudgets(
@@ -722,31 +668,13 @@ export class BudgetService {
     user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetResponse> {
-    try {
-      const budgetDb = await this.repository.fetchBudgetById(
-        id,
-        user,
-        supabase,
-      );
-      const apiData = budgetMappers.toApi(budgetDb as Tables<'monthly_budget'>);
+    const budgetDb = await this.repository.fetchBudgetById(id, user, supabase);
+    const apiData = budgetMappers.toApi(budgetDb as Tables<'monthly_budget'>);
 
-      return {
-        success: true,
-        data: apiData,
-      };
-    } catch (error) {
-      throw handleServiceError(
-        error,
-        ERROR_DEFINITIONS.INTERNAL_SERVER_ERROR,
-        undefined,
-        {
-          operation: 'getBudget',
-          userId: user.id,
-          entityId: id,
-          entityType: 'budget',
-        },
-      );
-    }
+    return {
+      success: true,
+      data: apiData,
+    };
   }
 
   async findOneWithDetails(
@@ -766,42 +694,28 @@ export class BudgetService {
     user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetDetailsResponse> {
-    try {
-      const payDayOfMonth = await this.getPayDayOfMonth(supabase);
-      const budgetData = await this.validateBudgetExists(budgetId, supabase);
-      const responseData = await this.buildDetailsResponse(
-        budgetId,
-        budgetData,
-        supabase,
-        user,
-      );
-      await this.addRolloverToBudget(
-        budgetId,
-        responseData,
-        supabase,
-        payDayOfMonth,
-        user.clientKey,
-      );
+    const payDayOfMonth = await this.getPayDayOfMonth(supabase);
+    const budgetData = await this.validateBudgetExists(budgetId, supabase);
+    const responseData = await this.buildDetailsResponse(
+      budgetId,
+      budgetData,
+      supabase,
+      user,
+    );
+    await this.addRolloverToBudget(
+      budgetId,
+      responseData,
+      supabase,
+      payDayOfMonth,
+      user.clientKey,
+    );
 
-      this.logBudgetDetailsFetch(budgetId, responseData);
+    this.logBudgetDetailsFetch(budgetId, responseData);
 
-      return {
-        success: true,
-        data: responseData,
-      } as BudgetDetailsResponse;
-    } catch (error) {
-      throw handleServiceError(
-        error,
-        ERROR_DEFINITIONS.INTERNAL_SERVER_ERROR,
-        undefined,
-        {
-          operation: 'getBudgetWithDetails',
-          userId: user.id,
-          entityId: budgetId,
-          entityType: 'budget',
-        },
-      );
-    }
+    return {
+      success: true,
+      data: responseData,
+    } as BudgetDetailsResponse;
   }
 
   private async validateBudgetExists(
@@ -917,37 +831,23 @@ export class BudgetService {
     user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetResponse> {
-    try {
-      await this.validateAndPrepareUpdate(id, updateBudgetDto, supabase);
-      const budgetDb = await this.repository.updateBudgetInDb(
-        id,
-        updateBudgetDto,
-        supabase,
-      );
+    await this.validateAndPrepareUpdate(id, updateBudgetDto, supabase);
+    const budgetDb = await this.repository.updateBudgetInDb(
+      id,
+      updateBudgetDto,
+      supabase,
+    );
 
-      await this.calculator.recalculateAndPersist(id, supabase, user.clientKey);
+    await this.calculator.recalculateAndPersist(id, supabase, user.clientKey);
 
-      const apiData = budgetMappers.toApi(budgetDb as Tables<'monthly_budget'>);
+    const apiData = budgetMappers.toApi(budgetDb as Tables<'monthly_budget'>);
 
-      await this.cacheService.invalidateForUser(user.id);
+    await this.cacheService.invalidateForUser(user.id);
 
-      return {
-        success: true,
-        data: apiData,
-      };
-    } catch (error) {
-      throw handleServiceError(
-        error,
-        ERROR_DEFINITIONS.INTERNAL_SERVER_ERROR,
-        undefined,
-        {
-          operation: 'updateBudget',
-          userId: user.id,
-          entityId: id,
-          entityType: 'budget',
-        },
-      );
-    }
+    return {
+      success: true,
+      data: apiData,
+    };
   }
 
   private async validateAndPrepareUpdate(
@@ -973,46 +873,32 @@ export class BudgetService {
     user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetDeleteResponse> {
-    try {
-      const { error } = await supabase
-        .from('monthly_budget')
-        .delete()
-        .eq('id', id);
+    const { error } = await supabase
+      .from('monthly_budget')
+      .delete()
+      .eq('id', id);
 
-      if (error) {
-        throw new BusinessException(
-          ERROR_DEFINITIONS.BUDGET_NOT_FOUND,
-          { id },
-          {
-            operation: 'deleteBudget',
-            userId: user.id,
-            entityId: id,
-            entityType: 'budget',
-            supabaseError: error,
-          },
-          { cause: error },
-        );
-      }
-
-      await this.cacheService.invalidateForUser(user.id);
-
-      return {
-        success: true,
-        message: 'Budget deleted successfully',
-      };
-    } catch (error) {
-      throw handleServiceError(
-        error,
-        ERROR_DEFINITIONS.INTERNAL_SERVER_ERROR,
-        undefined,
+    if (error) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.BUDGET_NOT_FOUND,
+        { id },
         {
           operation: 'deleteBudget',
           userId: user.id,
           entityId: id,
           entityType: 'budget',
+          supabaseError: error,
         },
+        { cause: error },
       );
     }
+
+    await this.cacheService.invalidateForUser(user.id);
+
+    return {
+      success: true,
+      message: 'Budget deleted successfully',
+    };
   }
 
   private async createBudgetFromTemplate(

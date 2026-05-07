@@ -4,7 +4,6 @@ import { SupabaseService } from '../supabase/supabase.service';
 import { DemoDataGeneratorService } from './demo-data-generator.service';
 import { BusinessException } from '@common/exceptions/business.exception';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
-import { handleServiceError } from '@common/utils/error-handler';
 import type { DemoSessionResponse } from 'pulpe-shared';
 import { v4 as uuidv4 } from 'uuid';
 import type { SupabaseClient } from '@supabase/supabase-js';
@@ -42,35 +41,24 @@ export class DemoService {
   async createDemoSession(): Promise<DemoSessionResponse> {
     const startTime = Date.now();
 
-    try {
-      const adminClient = this.supabaseService.getServiceRoleClient();
-      const { demoEmail, demoPassword } = this.generateDemoCredentials();
+    const adminClient = this.supabaseService.getServiceRoleClient();
+    const { demoEmail, demoPassword } = this.generateDemoCredentials();
 
-      const userId = await this.createDemoUser(
-        adminClient,
-        demoEmail,
-        demoPassword,
-      );
-      const session = await this.signInDemoUser(
-        adminClient,
-        demoEmail,
-        demoPassword,
-        userId,
-      );
+    const userId = await this.createDemoUser(
+      adminClient,
+      demoEmail,
+      demoPassword,
+    );
+    const session = await this.signInDemoUser(
+      adminClient,
+      demoEmail,
+      demoPassword,
+      userId,
+    );
 
-      await this.seedDemoData(userId, session.access_token, startTime);
+    await this.seedDemoData(userId, session.access_token, startTime);
 
-      return this.buildDemoSessionResponse(session, userId, demoEmail);
-    } catch (error) {
-      handleServiceError(
-        error,
-        ERROR_DEFINITIONS.INTERNAL_SERVER_ERROR,
-        undefined,
-        {
-          operation: 'create_demo_session',
-        },
-      );
-    }
+    return this.buildDemoSessionResponse(session, userId, demoEmail);
   }
 
   private generateDemoCredentials() {

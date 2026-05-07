@@ -1,7 +1,6 @@
 import { Controller, Get, Put, Delete, Body, UseGuards } from '@nestjs/common';
 import { BusinessException } from '@common/exceptions/business.exception';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
-import { handleServiceError } from '@common/utils/error-handler';
 import {
   ApiTags,
   ApiOperation,
@@ -94,17 +93,8 @@ export class UserController {
     @User() user: AuthenticatedUser,
     @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<UserProfileResponseDto> {
-    try {
-      const updatedUser = await this.performProfileUpdate(updateData, supabase);
-      return this.buildProfileResponse(updatedUser);
-    } catch (error) {
-      handleServiceError(
-        error,
-        ERROR_DEFINITIONS.USER_PROFILE_UPDATE_FAILED,
-        undefined,
-        { operation: 'updateProfile', userId: user.id },
-      );
-    }
+    const updatedUser = await this.performProfileUpdate(updateData, supabase);
+    return this.buildProfileResponse(updatedUser);
   }
 
   private async performProfileUpdate(
@@ -182,35 +172,26 @@ export class UserController {
   async getSettings(
     @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<UserSettingsResponseDto> {
-    try {
-      const currentUserData = await this.getCurrentUserData(supabase);
-      const rawPayDay = currentUserData.user.user_metadata?.payDayOfMonth;
-      const parsedPayDay = payDayOfMonthSchema.safeParse(rawPayDay);
-      const payDayOfMonth = parsedPayDay.success ? parsedPayDay.data : null;
+    const currentUserData = await this.getCurrentUserData(supabase);
+    const rawPayDay = currentUserData.user.user_metadata?.payDayOfMonth;
+    const parsedPayDay = payDayOfMonthSchema.safeParse(rawPayDay);
+    const payDayOfMonth = parsedPayDay.success ? parsedPayDay.data : null;
 
-      const rawCurrency = currentUserData.user.user_metadata?.currency;
-      const parsedCurrency = supportedCurrencySchema.safeParse(rawCurrency);
-      const currency = parsedCurrency.success ? parsedCurrency.data : 'CHF';
+    const rawCurrency = currentUserData.user.user_metadata?.currency;
+    const parsedCurrency = supportedCurrencySchema.safeParse(rawCurrency);
+    const currency = parsedCurrency.success ? parsedCurrency.data : 'CHF';
 
-      const showCurrencySelector =
-        currentUserData.user.user_metadata?.showCurrencySelector === true;
+    const showCurrencySelector =
+      currentUserData.user.user_metadata?.showCurrencySelector === true;
 
-      return {
-        success: true as const,
-        data: {
-          payDayOfMonth,
-          currency,
-          showCurrencySelector,
-        },
-      };
-    } catch (error) {
-      handleServiceError(
-        error,
-        ERROR_DEFINITIONS.USER_SETTINGS_FETCH_FAILED,
-        undefined,
-        { operation: 'getSettings' },
-      );
-    }
+    return {
+      success: true as const,
+      data: {
+        payDayOfMonth,
+        currency,
+        showCurrencySelector,
+      },
+    };
   }
 
   @Put('settings')
@@ -233,55 +214,46 @@ export class UserController {
     @User() user: AuthenticatedUser,
     @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<UserSettingsResponseDto> {
-    try {
-      const currentUserData = await this.getCurrentUserData(supabase);
-      const serviceClient = this.supabaseService.getServiceRoleClient();
+    const currentUserData = await this.getCurrentUserData(supabase);
+    const serviceClient = this.supabaseService.getServiceRoleClient();
 
-      const { data: updatedUser, error } =
-        await serviceClient.auth.admin.updateUserById(user.id, {
-          user_metadata: {
-            ...currentUserData.user.user_metadata,
-            ...(updateData.payDayOfMonth !== undefined && {
-              payDayOfMonth: updateData.payDayOfMonth,
-            }),
-            ...(updateData.currency !== undefined && {
-              currency: updateData.currency,
-            }),
-            ...(updateData.showCurrencySelector !== undefined && {
-              showCurrencySelector: updateData.showCurrencySelector,
-            }),
-          },
-        });
-
-      if (error || !updatedUser.user) {
-        throw new BusinessException(
-          ERROR_DEFINITIONS.USER_SETTINGS_UPDATE_FAILED,
-          undefined,
-          undefined,
-          { cause: error },
-        );
-      }
-
-      const rawCurrency = updatedUser.user.user_metadata?.currency;
-      const parsedCurrency = supportedCurrencySchema.safeParse(rawCurrency);
-
-      return {
-        success: true as const,
-        data: {
-          payDayOfMonth: updatedUser.user.user_metadata?.payDayOfMonth ?? null,
-          currency: parsedCurrency.success ? parsedCurrency.data : 'CHF',
-          showCurrencySelector:
-            updatedUser.user.user_metadata?.showCurrencySelector === true,
+    const { data: updatedUser, error } =
+      await serviceClient.auth.admin.updateUserById(user.id, {
+        user_metadata: {
+          ...currentUserData.user.user_metadata,
+          ...(updateData.payDayOfMonth !== undefined && {
+            payDayOfMonth: updateData.payDayOfMonth,
+          }),
+          ...(updateData.currency !== undefined && {
+            currency: updateData.currency,
+          }),
+          ...(updateData.showCurrencySelector !== undefined && {
+            showCurrencySelector: updateData.showCurrencySelector,
+          }),
         },
-      };
-    } catch (error) {
-      handleServiceError(
-        error,
+      });
+
+    if (error || !updatedUser.user) {
+      throw new BusinessException(
         ERROR_DEFINITIONS.USER_SETTINGS_UPDATE_FAILED,
         undefined,
-        { operation: 'updateSettings', userId: user.id },
+        undefined,
+        { cause: error },
       );
     }
+
+    const rawCurrency = updatedUser.user.user_metadata?.currency;
+    const parsedCurrency = supportedCurrencySchema.safeParse(rawCurrency);
+
+    return {
+      success: true as const,
+      data: {
+        payDayOfMonth: updatedUser.user.user_metadata?.payDayOfMonth ?? null,
+        currency: parsedCurrency.success ? parsedCurrency.data : 'CHF',
+        showCurrencySelector:
+          updatedUser.user.user_metadata?.showCurrencySelector === true,
+      },
+    };
   }
 
   @Delete('account')
@@ -300,42 +272,33 @@ export class UserController {
     @User() user: AuthenticatedUser,
     @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<DeleteAccountResponseDto> {
-    try {
-      const currentUserData = await this.getCurrentUserData(supabase);
-      const existingDeletion =
-        currentUserData.user.user_metadata?.scheduledDeletionAt;
+    const currentUserData = await this.getCurrentUserData(supabase);
+    const existingDeletion =
+      currentUserData.user.user_metadata?.scheduledDeletionAt;
 
-      if (typeof existingDeletion === 'string' && existingDeletion.length > 0) {
-        return {
-          success: true as const,
-          message: 'Ton compte est déjà programmé pour suppression',
-          scheduledDeletionAt: existingDeletion,
-        };
-      }
-
-      // Schedule deletion FIRST - if this fails, user stays logged in (correct state)
-      // If we signed out first and this failed, user would be logged out but not scheduled
-      const scheduledDeletionAt = await this.scheduleAccountDeletion(
-        user.id,
-        currentUserData.user.user_metadata,
-      );
-
-      // Sign out AFTER scheduling - if this fails, AuthGuard blocks access anyway
-      await this.signOutUserGlobally(user.accessToken);
-
+    if (typeof existingDeletion === 'string' && existingDeletion.length > 0) {
       return {
         success: true as const,
-        message: 'Ton compte sera supprimé dans 3 jours',
-        scheduledDeletionAt,
+        message: 'Ton compte est déjà programmé pour suppression',
+        scheduledDeletionAt: existingDeletion,
       };
-    } catch (error) {
-      handleServiceError(
-        error,
-        ERROR_DEFINITIONS.USER_ACCOUNT_DELETION_FAILED,
-        undefined,
-        { operation: 'deleteAccount', userId: user.id },
-      );
     }
+
+    // Schedule deletion FIRST - if this fails, user stays logged in (correct state)
+    // If we signed out first and this failed, user would be logged out but not scheduled
+    const scheduledDeletionAt = await this.scheduleAccountDeletion(
+      user.id,
+      currentUserData.user.user_metadata,
+    );
+
+    // Sign out AFTER scheduling - if this fails, AuthGuard blocks access anyway
+    await this.signOutUserGlobally(user.accessToken);
+
+    return {
+      success: true as const,
+      message: 'Ton compte sera supprimé dans 3 jours',
+      scheduledDeletionAt,
+    };
   }
 
   private async scheduleAccountDeletion(
