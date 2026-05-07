@@ -27,7 +27,7 @@ public sealed class CurrencyService : ICurrencyService
 
     private sealed record CachedRate(decimal Rate, DateOnly Date, DateTimeOffset ExpiresAt);
 
-    private readonly Dictionary<string, CachedRate> _cache = [];
+    private readonly ConcurrentDictionary<string, CachedRate> _cache = new();
     private readonly ConcurrentDictionary<string, Task<CurrencyRateResult>> _inFlight = new();
     private readonly IFrankfurterClient _frankfurterClient;
     private readonly ILogger<CurrencyService> _logger;
@@ -150,6 +150,12 @@ public sealed class CurrencyService : ICurrencyService
             throw new BusinessException(ErrorCodes.CurrencyUnsupportedCurrency, $"Unsupported currency: {baseCurrency}");
         if (!Enum.IsDefined(targetCurrency))
             throw new BusinessException(ErrorCodes.CurrencyUnsupportedCurrency, $"Unsupported currency: {targetCurrency}");
+
+        if (!carrier.OriginalAmount.HasValue)
+            throw new BusinessException(
+                ErrorCodes.ValidationFailed,
+                "originalAmount required when originalCurrency != targetCurrency",
+                statusCode: 400);
 
         var rate = await GetRate(baseCurrency, targetCurrency, ct);
 
