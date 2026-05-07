@@ -59,7 +59,6 @@ export class CreateTransactionUseCase {
         withRate.budgetLineId,
         withRate.budgetId,
         withRate.kind,
-        supabase,
       );
     }
 
@@ -78,10 +77,11 @@ export class CreateTransactionUseCase {
       ),
     ]);
 
-    const row = await this.repo.insert(
-      { ...baseData, amount, original_amount: encryptedOriginalAmount },
-      supabase,
-    );
+    const row = await this.repo.insert({
+      ...baseData,
+      amount,
+      original_amount: encryptedOriginalAmount,
+    });
 
     await this.budgetRecalculation.recalculate(
       row.budget_id,
@@ -110,12 +110,9 @@ export class CreateTransactionUseCase {
     budgetLineId: string,
     budgetId: string,
     transactionKind: TransactionKind,
-    supabase: AuthenticatedSupabaseClient,
   ): Promise<void> {
-    const budgetLine = await this.repo.fetchBudgetLineForAllocation(
-      budgetLineId,
-      supabase,
-    );
+    const budgetLine =
+      await this.repo.fetchBudgetLineForAllocation(budgetLineId);
 
     if (!budgetLine) {
       throw new BusinessException(

@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { BusinessException } from '@common/exceptions/business.exception';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
-import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
+import { AuthenticatedSupabaseProvider } from '@modules/supabase/authenticated-supabase.provider';
 import type { TransactionRepositoryPort } from '../../domain/ports/transaction-repository.port';
 import type {
   TransactionRow,
@@ -11,9 +11,12 @@ import type {
 
 @Injectable()
 export class SupabaseTransactionRepository implements TransactionRepositoryPort {
-  async findAll(
-    supabase: AuthenticatedSupabaseClient,
-  ): Promise<TransactionRow[]> {
+  constructor(
+    private readonly supabaseProvider: AuthenticatedSupabaseProvider,
+  ) {}
+
+  async findAll(): Promise<TransactionRow[]> {
+    const supabase = this.supabaseProvider.client;
     const { data, error } = await supabase
       .from('transaction')
       .select('*')
@@ -35,10 +38,8 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
     return data ?? [];
   }
 
-  async findById(
-    id: string,
-    supabase: AuthenticatedSupabaseClient,
-  ): Promise<TransactionRow> {
+  async findById(id: string): Promise<TransactionRow> {
+    const supabase = this.supabaseProvider.client;
     const { data, error } = await supabase
       .from('transaction')
       .select('*')
@@ -61,10 +62,8 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
     return data;
   }
 
-  async findByBudgetId(
-    budgetId: string,
-    supabase: AuthenticatedSupabaseClient,
-  ): Promise<TransactionRow[]> {
+  async findByBudgetId(budgetId: string): Promise<TransactionRow[]> {
+    const supabase = this.supabaseProvider.client;
     const { data, error } = await supabase
       .from('transaction')
       .select('*')
@@ -88,10 +87,8 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
     return data ?? [];
   }
 
-  async findByBudgetLineId(
-    budgetLineId: string,
-    supabase: AuthenticatedSupabaseClient,
-  ): Promise<TransactionRow[]> {
+  async findByBudgetLineId(budgetLineId: string): Promise<TransactionRow[]> {
+    const supabase = this.supabaseProvider.client;
     const { data, error } = await supabase
       .from('transaction')
       .select('*')
@@ -115,10 +112,8 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
     return data ?? [];
   }
 
-  async insert(
-    data: TransactionInsert,
-    supabase: AuthenticatedSupabaseClient,
-  ): Promise<TransactionRow> {
+  async insert(data: TransactionInsert): Promise<TransactionRow> {
+    const supabase = this.supabaseProvider.client;
     const { data: row, error } = await supabase
       .from('transaction')
       .insert(data)
@@ -155,8 +150,8 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
   async update(
     id: string,
     data: Partial<TransactionUpdate>,
-    supabase: AuthenticatedSupabaseClient,
   ): Promise<TransactionRow> {
+    const supabase = this.supabaseProvider.client;
     const { data: row, error } = await supabase
       .from('transaction')
       .update(data)
@@ -181,10 +176,8 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
     return row;
   }
 
-  async delete(
-    id: string,
-    supabase: AuthenticatedSupabaseClient,
-  ): Promise<void> {
+  async delete(id: string): Promise<void> {
+    const supabase = this.supabaseProvider.client;
     const { error } = await supabase.from('transaction').delete().eq('id', id);
 
     if (error) {
@@ -197,15 +190,12 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
           entityType: 'transaction',
           supabaseError: error,
         },
-        { cause: error },
       );
     }
   }
 
-  async fetchBudgetIdForTransaction(
-    id: string,
-    supabase: AuthenticatedSupabaseClient,
-  ): Promise<string> {
+  async fetchBudgetIdForTransaction(id: string): Promise<string> {
+    const supabase = this.supabaseProvider.client;
     const { data } = await supabase
       .from('transaction')
       .select('budget_id')
@@ -217,8 +207,8 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
 
   async fetchBudgetLineForAllocation(
     budgetLineId: string,
-    supabase: AuthenticatedSupabaseClient,
   ): Promise<{ id: string; budget_id: string; kind: string } | null> {
+    const supabase = this.supabaseProvider.client;
     const { data, error } = await supabase
       .from('budget_line')
       .select('id, budget_id, kind')
@@ -232,10 +222,8 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
     return data;
   }
 
-  async assertBudgetLineExists(
-    budgetLineId: string,
-    supabase: AuthenticatedSupabaseClient,
-  ): Promise<void> {
+  async assertBudgetLineExists(budgetLineId: string): Promise<void> {
+    const supabase = this.supabaseProvider.client;
     const { data, error } = await supabase
       .from('budget_line')
       .select('id')
@@ -259,8 +247,8 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
   async fetchBudgetIdsByYears(
     _userId: string,
     years: number[],
-    supabase: AuthenticatedSupabaseClient,
   ): Promise<string[]> {
+    const supabase = this.supabaseProvider.client;
     const { data, error } = await supabase
       .from('monthly_budget')
       .select('id')
@@ -285,7 +273,6 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
   async fetchTransactionsByPattern(
     searchPattern: string,
     budgetIds: string[] | null,
-    supabase: AuthenticatedSupabaseClient,
   ): Promise<
     {
       id: string;
@@ -298,6 +285,7 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
       budget: unknown;
     }[]
   > {
+    const supabase = this.supabaseProvider.client;
     let query = supabase
       .from('transaction')
       .select(
@@ -354,7 +342,6 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
   async fetchBudgetLinesByPattern(
     searchPattern: string,
     budgetIds: string[] | null,
-    supabase: AuthenticatedSupabaseClient,
   ): Promise<
     {
       id: string;
@@ -366,6 +353,7 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
       budget: unknown;
     }[]
   > {
+    const supabase = this.supabaseProvider.client;
     let query = supabase
       .from('budget_line')
       .select(

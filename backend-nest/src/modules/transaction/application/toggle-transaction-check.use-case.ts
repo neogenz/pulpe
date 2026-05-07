@@ -1,7 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
-import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
 import { type TransactionResponse } from 'pulpe-shared';
 import {
   ENCRYPTION_PORT,
@@ -29,18 +28,17 @@ export class ToggleTransactionCheckUseCase {
   async execute(
     id: string,
     user: AuthenticatedUser,
-    supabase: AuthenticatedSupabaseClient,
+    _supabase: unknown,
   ): Promise<TransactionResponse> {
-    const current = await this.repo.findById(id, supabase);
+    const current = await this.repo.findById(id);
 
     const newCheckedAt =
       current.checked_at === null ? new Date().toISOString() : null;
 
-    const row = await this.repo.update(
-      id,
-      { checked_at: newCheckedAt, updated_at: new Date().toISOString() },
-      supabase,
-    );
+    const row = await this.repo.update(id, {
+      checked_at: newCheckedAt,
+      updated_at: new Date().toISOString(),
+    });
 
     const dek = await this.encryption.getUserDEK(user.id, user.clientKey);
     const decrypted = this.encryption.decryptRowAmountFields(row, dek);

@@ -67,7 +67,7 @@ export class UpdateTransactionUseCase {
       );
     }
 
-    const row = await this.repo.update(id, updateData, supabase);
+    const row = await this.repo.update(id, updateData);
 
     await this.budgetRecalculation.recalculate(
       row.budget_id,

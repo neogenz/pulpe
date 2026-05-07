@@ -1,7 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
-import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
 import {
   type TransactionSearchResponse,
   type TransactionSearchResult,
@@ -44,13 +43,13 @@ export class SearchTransactionsUseCase {
   async execute(
     query: string,
     user: AuthenticatedUser,
-    supabase: AuthenticatedSupabaseClient,
+    _supabase: unknown,
     years?: number[],
   ): Promise<TransactionSearchResponse> {
     const searchPattern = this.buildSearchPattern(query);
 
     const budgetIds = years?.length
-      ? await this.repo.fetchBudgetIdsByYears(user.id, years, supabase)
+      ? await this.repo.fetchBudgetIdsByYears(user.id, years)
       : null;
 
     if (years?.length && budgetIds?.length === 0) {
@@ -58,8 +57,8 @@ export class SearchTransactionsUseCase {
     }
 
     const [transactionsDb, budgetLinesDb] = await Promise.all([
-      this.repo.fetchTransactionsByPattern(searchPattern, budgetIds, supabase),
-      this.repo.fetchBudgetLinesByPattern(searchPattern, budgetIds, supabase),
+      this.repo.fetchTransactionsByPattern(searchPattern, budgetIds),
+      this.repo.fetchBudgetLinesByPattern(searchPattern, budgetIds),
     ]);
 
     const dek = await this.encryption.getUserDEK(user.id, user.clientKey);

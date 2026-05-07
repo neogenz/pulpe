@@ -173,7 +173,6 @@ describe('CreateTransactionUseCase', () => {
     expect(result.success).toBe(true);
     expect(mockRepo.fetchBudgetLineForAllocation).toHaveBeenCalledWith(
       'line-1',
-      mockSupabase,
     );
   });
 

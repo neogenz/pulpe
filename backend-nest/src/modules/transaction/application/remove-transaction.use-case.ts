@@ -30,8 +30,8 @@ export class RemoveTransactionUseCase {
     user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<TransactionDeleteResponse> {
-    const budgetId = await this.repo.fetchBudgetIdForTransaction(id, supabase);
-    await this.repo.delete(id, supabase);
+    const budgetId = await this.repo.fetchBudgetIdForTransaction(id);
+    await this.repo.delete(id);
 
     if (budgetId) {
       await this.budgetRecalculation.recalculate(

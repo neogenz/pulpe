@@ -1,7 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
-import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
 import { type TransactionListResponse } from 'pulpe-shared';
 import {
   ENCRYPTION_PORT,
@@ -27,11 +26,11 @@ export class FindTransactionsByBudgetLineUseCase {
   async execute(
     budgetLineId: string,
     user: AuthenticatedUser,
-    supabase: AuthenticatedSupabaseClient,
+    _supabase: unknown,
   ): Promise<TransactionListResponse> {
-    await this.repo.assertBudgetLineExists(budgetLineId, supabase);
+    await this.repo.assertBudgetLineExists(budgetLineId);
 
-    const rows = await this.repo.findByBudgetLineId(budgetLineId, supabase);
+    const rows = await this.repo.findByBudgetLineId(budgetLineId);
     const dek = await this.encryption.getUserDEK(user.id, user.clientKey);
     const decrypted = rows.map((row) =>
       this.encryption.decryptRowAmountFields(row, dek),
