@@ -1,7 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
-import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
 import {
   type BudgetTemplateResponse,
   type BudgetTemplateUpdate,
@@ -27,19 +26,19 @@ export class UpdateTemplateUseCase {
     id: string,
     updateDto: BudgetTemplateUpdate,
     user: AuthenticatedUser,
-    supabase: AuthenticatedSupabaseClient,
+    _supabase: unknown,
   ): Promise<BudgetTemplateResponse> {
     const startTime = Date.now();
 
-    await this.repo.validateAccess(id, user.id, supabase);
+    await this.repo.validateAccess(id, user.id);
     const validated = budgetTemplateUpdateSchema.parse(updateDto);
 
     if (validated.isDefault) {
-      await this.repo.resetDefaultTemplates(user.id, id, supabase);
+      await this.repo.resetDefaultTemplates(user.id, id);
     }
 
     const updateData = this.mapper.toDbTemplateUpdate(validated);
-    const data = await this.repo.update(id, updateData, supabase);
+    const data = await this.repo.update(id, updateData);
 
     this.logger.info(
       {

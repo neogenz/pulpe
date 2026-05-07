@@ -1,7 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
-import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
 import {
   type BudgetTemplateCreate,
   type BudgetTemplateCreateFromOnboarding,
@@ -74,7 +73,7 @@ export class CreateTemplateFromOnboardingUseCase {
   async execute(
     onboardingData: BudgetTemplateCreateFromOnboarding,
     user: AuthenticatedUser,
-    supabase: AuthenticatedSupabaseClient,
+    _supabase: unknown,
   ): Promise<BudgetTemplateCreateResponse> {
     const startTime = Date.now();
 
@@ -86,7 +85,6 @@ export class CreateTemplateFromOnboardingUseCase {
     const recentCount = await this.repo.countOnboardingTemplatesInWindow(
       user.id,
       twentyFourHoursAgo.toISOString(),
-      supabase,
     );
     BudgetTemplateInvariants.validateOnboardingRateLimit(recentCount);
 
@@ -107,11 +105,7 @@ export class CreateTemplateFromOnboardingUseCase {
       'Creating template from onboarding',
     );
 
-    return this.createTemplateUseCase.execute(
-      templateCreateDto,
-      user,
-      supabase,
-    );
+    return this.createTemplateUseCase.execute(templateCreateDto, user, null);
   }
 
   private buildOnboardingTemplateLines(

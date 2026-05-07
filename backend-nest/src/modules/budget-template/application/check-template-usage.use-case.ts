@@ -1,7 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
-import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
 import {
   BUDGET_TEMPLATE_REPOSITORY,
   type BudgetTemplateRepositoryPort,
@@ -19,7 +18,7 @@ export class CheckTemplateUsageUseCase {
   async execute(
     id: string,
     user: AuthenticatedUser,
-    supabase: AuthenticatedSupabaseClient,
+    _supabase: unknown,
   ): Promise<{
     success: boolean;
     data: {
@@ -35,8 +34,8 @@ export class CheckTemplateUsageUseCase {
   }> {
     const startTime = Date.now();
 
-    await this.repo.validateAccess(id, user.id, supabase);
-    const budgets = await this.repo.fetchTemplateBudgets(id, supabase);
+    await this.repo.validateAccess(id, user.id);
+    const budgets = await this.repo.fetchTemplateBudgets(id);
 
     this.logger.info(
       {

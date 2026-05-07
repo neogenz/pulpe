@@ -1,7 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
-import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
 import type { TemplateLineListResponse } from 'pulpe-shared';
 import {
   ENCRYPTION_PORT,
@@ -27,12 +26,12 @@ export class FindTemplateLinesUseCase {
   async execute(
     templateId: string,
     user: AuthenticatedUser,
-    supabase: AuthenticatedSupabaseClient,
+    _supabase: unknown,
   ): Promise<TemplateLineListResponse> {
     const startTime = Date.now();
 
-    await this.repo.validateAccess(templateId, user.id, supabase);
-    const lines = await this.repo.findLinesByTemplateId(templateId, supabase);
+    await this.repo.validateAccess(templateId, user.id);
+    const lines = await this.repo.findLinesByTemplateId(templateId);
 
     if (!lines.length) {
       return {

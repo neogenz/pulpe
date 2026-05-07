@@ -1,7 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
-import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
 import type { BudgetTemplateDeleteResponse } from 'pulpe-shared';
 import {
   BUDGET_TEMPLATE_REPOSITORY,
@@ -21,16 +20,16 @@ export class RemoveTemplateUseCase {
   async execute(
     id: string,
     user: AuthenticatedUser,
-    supabase: AuthenticatedSupabaseClient,
+    _supabase: unknown,
   ): Promise<BudgetTemplateDeleteResponse> {
     const startTime = Date.now();
 
-    await this.repo.validateAccess(id, user.id, supabase);
+    await this.repo.validateAccess(id, user.id);
 
-    const isInUse = await this.repo.isTemplateInUse(id, supabase);
+    const isInUse = await this.repo.isTemplateInUse(id);
     BudgetTemplateInvariants.validateTemplateNotUsed(id, isInUse ? 1 : 0);
 
-    await this.repo.delete(id, supabase);
+    await this.repo.delete(id);
 
     this.logger.info(
       {

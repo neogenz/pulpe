@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 import { BusinessException } from '@common/exceptions/business.exception';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
-import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
+import { AuthenticatedSupabaseProvider } from '@modules/supabase/authenticated-supabase.provider';
 import type { BudgetTemplateRepositoryPort } from '../../domain/ports/budget-template-repository.port';
 import type {
   TemplateRow,
@@ -15,14 +15,13 @@ import type {
 @Injectable()
 export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositoryPort {
   constructor(
+    private readonly supabaseProvider: AuthenticatedSupabaseProvider,
     @InjectInfoLogger(SupabaseBudgetTemplateRepository.name)
     private readonly logger: InfoLogger,
   ) {}
 
-  async findAllForUser(
-    userId: string,
-    supabase: AuthenticatedSupabaseClient,
-  ): Promise<TemplateRow[]> {
+  async findAllForUser(userId: string): Promise<TemplateRow[]> {
+    const supabase = this.supabaseProvider.client;
     const { data, error } = await supabase
       .from('template')
       .select('*')
@@ -41,11 +40,8 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
     return data ?? [];
   }
 
-  async findById(
-    id: string,
-    userId: string,
-    supabase: AuthenticatedSupabaseClient,
-  ): Promise<TemplateRow> {
+  async findById(id: string, userId: string): Promise<TemplateRow> {
+    const supabase = this.supabaseProvider.client;
     const { data, error } = await supabase
       .from('template')
       .select('*')
@@ -63,11 +59,8 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
     return data;
   }
 
-  async validateAccess(
-    id: string,
-    userId: string,
-    supabase: AuthenticatedSupabaseClient,
-  ): Promise<TemplateRow> {
+  async validateAccess(id: string, userId: string): Promise<TemplateRow> {
+    const supabase = this.supabaseProvider.client;
     const { data, error } = await supabase
       .from('template')
       .select('*')
@@ -89,10 +82,8 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
     return data;
   }
 
-  async countForUser(
-    userId: string,
-    supabase: AuthenticatedSupabaseClient,
-  ): Promise<number> {
+  async countForUser(userId: string): Promise<number> {
+    const supabase = this.supabaseProvider.client;
     const { count, error } = await supabase
       .from('template')
       .select('*', { count: 'exact', head: true })
@@ -113,8 +104,8 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
   async resetDefaultTemplates(
     userId: string,
     exceptId: string | null,
-    supabase: AuthenticatedSupabaseClient,
   ): Promise<void> {
+    const supabase = this.supabaseProvider.client;
     let query = supabase
       .from('template')
       .update({ is_default: false })
@@ -128,11 +119,8 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
     await query;
   }
 
-  async update(
-    id: string,
-    data: TemplateUpdate,
-    supabase: AuthenticatedSupabaseClient,
-  ): Promise<TemplateRow> {
+  async update(id: string, data: TemplateUpdate): Promise<TemplateRow> {
+    const supabase = this.supabaseProvider.client;
     const { data: result, error } = await supabase
       .from('template')
       .update(data)
@@ -152,10 +140,8 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
     return result;
   }
 
-  async delete(
-    id: string,
-    supabase: AuthenticatedSupabaseClient,
-  ): Promise<void> {
+  async delete(id: string): Promise<void> {
+    const supabase = this.supabaseProvider.client;
     const { error } = await supabase.from('template').delete().eq('id', id);
 
     if (error) {
@@ -168,10 +154,8 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
     }
   }
 
-  async findLinesByTemplateId(
-    templateId: string,
-    supabase: AuthenticatedSupabaseClient,
-  ): Promise<TemplateLineRow[]> {
+  async findLinesByTemplateId(templateId: string): Promise<TemplateLineRow[]> {
+    const supabase = this.supabaseProvider.client;
     const { data, error } = await supabase
       .from('template_line')
       .select('*')
@@ -190,10 +174,8 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
     return data ?? [];
   }
 
-  async insertLine(
-    data: TemplateLineInsert,
-    supabase: AuthenticatedSupabaseClient,
-  ): Promise<TemplateLineRow> {
+  async insertLine(data: TemplateLineInsert): Promise<TemplateLineRow> {
+    const supabase = this.supabaseProvider.client;
     const { data: result, error } = await supabase
       .from('template_line')
       .insert(data)
@@ -214,8 +196,8 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
 
   async findLineById(
     lineId: string,
-    supabase: AuthenticatedSupabaseClient,
   ): Promise<TemplateLineRow & { template: { user_id: string | null } }> {
+    const supabase = this.supabaseProvider.client;
     const { data, error } = await supabase
       .from('template_line')
       .select('*, template!inner(*)')
@@ -234,8 +216,8 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
   async validateLineAccess(
     lineId: string,
     userId: string,
-    supabase: AuthenticatedSupabaseClient,
   ): Promise<TemplateLineRow> {
+    const supabase = this.supabaseProvider.client;
     const { data, error } = await supabase
       .from('template_line')
       .select('*, template!inner(*)')
@@ -265,8 +247,8 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
   async updateLine(
     lineId: string,
     data: Partial<TemplateLineInsert>,
-    supabase: AuthenticatedSupabaseClient,
   ): Promise<TemplateLineRow> {
+    const supabase = this.supabaseProvider.client;
     const { data: result, error } = await supabase
       .from('template_line')
       .update(data)
@@ -289,8 +271,8 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
   async updateLinesInBatch(
     ids: string[],
     data: Partial<TemplateLineInsert>,
-    supabase: AuthenticatedSupabaseClient,
   ): Promise<TemplateLineRow[]> {
+    const supabase = this.supabaseProvider.client;
     const { data: result, error } = await supabase
       .from('template_line')
       .update(data)
@@ -309,10 +291,8 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
     return result ?? [];
   }
 
-  async insertLines(
-    data: TemplateLineInsert[],
-    supabase: AuthenticatedSupabaseClient,
-  ): Promise<TemplateLineRow[]> {
+  async insertLines(data: TemplateLineInsert[]): Promise<TemplateLineRow[]> {
+    const supabase = this.supabaseProvider.client;
     const { data: result, error } = await supabase
       .from('template_line')
       .insert(data)
@@ -330,10 +310,8 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
     return result ?? [];
   }
 
-  async deleteLine(
-    lineId: string,
-    supabase: AuthenticatedSupabaseClient,
-  ): Promise<void> {
+  async deleteLine(lineId: string): Promise<void> {
+    const supabase = this.supabaseProvider.client;
     const { error } = await supabase
       .from('template_line')
       .delete()
@@ -349,10 +327,8 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
     }
   }
 
-  async isTemplateInUse(
-    templateId: string,
-    supabase: AuthenticatedSupabaseClient,
-  ): Promise<boolean> {
+  async isTemplateInUse(templateId: string): Promise<boolean> {
+    const supabase = this.supabaseProvider.client;
     const { data } = await supabase
       .from('monthly_budget')
       .select('id')
@@ -364,10 +340,10 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
 
   async fetchTemplateBudgets(
     templateId: string,
-    supabase: AuthenticatedSupabaseClient,
   ): Promise<
     Array<{ id: string; month: number; year: number; description: string }>
   > {
+    const supabase = this.supabaseProvider.client;
     const { data, error } = await supabase
       .from('monthly_budget')
       .select('id, month, year, description')
@@ -395,8 +371,8 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
   async countOnboardingTemplatesInWindow(
     userId: string,
     sinceIso: string,
-    supabase: AuthenticatedSupabaseClient,
   ): Promise<number> {
+    const supabase = this.supabaseProvider.client;
     const { data } = await supabase
       .from('template')
       .select('id')
@@ -410,10 +386,10 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
   async validateLinesExist(
     templateId: string,
     lineIds: string[],
-    supabase: AuthenticatedSupabaseClient,
   ): Promise<string[]> {
     if (!lineIds.length) return [];
 
+    const supabase = this.supabaseProvider.client;
     const { data } = await supabase
       .from('template_line')
       .select('id')
@@ -431,8 +407,8 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
     templateId: string,
     userId: string,
     currentPeriod: { year: number; month: number },
-    supabase: AuthenticatedSupabaseClient,
   ): Promise<Pick<MonthlyBudgetRow, 'id' | 'month' | 'year'>[]> {
+    const supabase = this.supabaseProvider.client;
     const { year, month } = currentPeriod;
     const futureFilter = `year.gt.${year},and(year.eq.${year},month.gte.${month})`;
 
@@ -458,8 +434,8 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
   async fetchAllBudgetsForTemplate(
     templateId: string,
     userId: string,
-    supabase: AuthenticatedSupabaseClient,
   ): Promise<MonthlyBudgetRow[]> {
+    const supabase = this.supabaseProvider.client;
     const { data, error } = await supabase
       .from('monthly_budget')
       .select('*')
@@ -478,16 +454,14 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
     return data ?? [];
   }
 
-  async createTemplateWithLinesRpc(
-    payload: {
-      p_user_id: string;
-      p_name: string;
-      p_description: string | undefined;
-      p_is_default: boolean;
-      p_lines: unknown[];
-    },
-    supabase: AuthenticatedSupabaseClient,
-  ): Promise<TemplateRow> {
+  async createTemplateWithLinesRpc(payload: {
+    p_user_id: string;
+    p_name: string;
+    p_description: string | undefined;
+    p_is_default: boolean;
+    p_lines: unknown[];
+  }): Promise<TemplateRow> {
+    const supabase = this.supabaseProvider.client;
     const { data, error } = await supabase.rpc('create_template_with_lines', {
       p_user_id: payload.p_user_id,
       p_name: payload.p_name,
@@ -505,16 +479,14 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
     return data as unknown as TemplateRow;
   }
 
-  async applyTemplateLineOperationsRpc(
-    payload: {
-      template_id: string;
-      budget_ids: string[];
-      delete_ids: string[];
-      updated_lines: unknown[];
-      created_lines: unknown[];
-    },
-    supabase: AuthenticatedSupabaseClient,
-  ): Promise<string[]> {
+  async applyTemplateLineOperationsRpc(payload: {
+    template_id: string;
+    budget_ids: string[];
+    delete_ids: string[];
+    updated_lines: unknown[];
+    created_lines: unknown[];
+  }): Promise<string[]> {
+    const supabase = this.supabaseProvider.client;
     const { data, error } = await supabase.rpc(
       'apply_template_line_operations',
       {

@@ -1,7 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
-import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
 import {
   type TemplateLineCreateWithoutTemplateId,
   type TemplateLineResponse,
@@ -34,11 +33,11 @@ export class CreateTemplateLineUseCase {
     templateId: string,
     createDto: TemplateLineCreateWithoutTemplateId,
     user: AuthenticatedUser,
-    supabase: AuthenticatedSupabaseClient,
+    _supabase: unknown,
   ): Promise<TemplateLineResponse> {
     const startTime = Date.now();
 
-    await this.repo.validateAccess(templateId, user.id, supabase);
+    await this.repo.validateAccess(templateId, user.id);
     let validated = templateLineCreateWithoutTemplateIdSchema.parse(createDto);
     validated = await this.currencyService.overrideExchangeRate(validated);
 
@@ -63,7 +62,7 @@ export class CreateTemplateLineUseCase {
       }),
     };
 
-    const line = await this.repo.insertLine(insertData, supabase);
+    const line = await this.repo.insertLine(insertData);
 
     this.logger.info(
       {

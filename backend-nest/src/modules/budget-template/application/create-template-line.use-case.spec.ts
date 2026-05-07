@@ -7,7 +7,6 @@ import { CurrencyService } from '@modules/currency/currency.service';
 import { BudgetTemplateMapper } from '../infrastructure/mappers/budget-template.mapper';
 import type { TemplateLineCreateWithoutTemplateId } from 'pulpe-shared';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
-import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
 import type { Tables } from '../../../types/database.types';
 
 const mockTemplateLineRow: Tables<'template_line'> = {
@@ -46,7 +45,6 @@ describe('CreateTemplateLineUseCase', () => {
     tryDecryptAmount: ReturnType<typeof jest.fn>;
   };
   let mockCurrency: { overrideExchangeRate: ReturnType<typeof jest.fn> };
-  let mockSupabase: AuthenticatedSupabaseClient;
 
   beforeEach(async () => {
     mockRepo = {
@@ -64,7 +62,6 @@ describe('CreateTemplateLineUseCase', () => {
     mockCurrency = {
       overrideExchangeRate: jest.fn().mockImplementation((dto) => dto),
     };
-    mockSupabase = {} as AuthenticatedSupabaseClient;
 
     const module = await Test.createTestingModule({
       providers: [
@@ -97,19 +94,13 @@ describe('CreateTemplateLineUseCase', () => {
       description: 'Salaire mensuel',
     };
 
-    const result = await useCase.execute(
-      'template-1',
-      dto,
-      mockUser,
-      mockSupabase,
-    );
+    const result = await useCase.execute('template-1', dto, mockUser, null);
 
     expect(result.success).toBe(true);
     expect(result.data.name).toBe('Salaire');
     expect(mockRepo.validateAccess).toHaveBeenCalledWith(
       'template-1',
       mockUser.id,
-      mockSupabase,
     );
     expect(mockRepo.insertLine).toHaveBeenCalledTimes(1);
     expect(mockEncryption.prepareAmountData).toHaveBeenCalledTimes(1);
@@ -126,7 +117,7 @@ describe('CreateTemplateLineUseCase', () => {
     mockRepo.validateAccess.mockRejectedValueOnce(new Error('Access denied'));
 
     await expect(
-      useCase.execute('template-99', dto, mockUser, mockSupabase),
+      useCase.execute('template-99', dto, mockUser, null),
     ).rejects.toThrow('Access denied');
 
     expect(mockRepo.insertLine).not.toHaveBeenCalled();
@@ -141,7 +132,7 @@ describe('CreateTemplateLineUseCase', () => {
       description: '',
     };
 
-    await useCase.execute('template-1', dto, mockUser, mockSupabase);
+    await useCase.execute('template-1', dto, mockUser, null);
 
     expect(mockEncryption.prepareAmountData).toHaveBeenCalledWith(
       150,
@@ -159,7 +150,7 @@ describe('CreateTemplateLineUseCase', () => {
       description: '',
     };
 
-    await useCase.execute('template-1', dto, mockUser, mockSupabase);
+    await useCase.execute('template-1', dto, mockUser, null);
 
     expect(mockCurrency.overrideExchangeRate).toHaveBeenCalledTimes(1);
   });

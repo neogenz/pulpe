@@ -57,26 +57,24 @@ export class BulkTemplateLineOperationsUseCase {
   ): Promise<TemplateLinesBulkOperationsResponse> {
     const startTime = Date.now();
 
-    await this.repo.validateAccess(templateId, user.id, supabase);
+    await this.repo.validateAccess(templateId, user.id);
 
     const validated =
       templateLinesBulkOperationsSchema.parse(bulkOperationsDto);
     const deleteIds = validated.delete || [];
 
     if (deleteIds.length) {
-      await this.repo.validateLinesExist(templateId, deleteIds, supabase);
+      await this.repo.validateLinesExist(templateId, deleteIds);
     }
 
     const updatedLines = await this.performBulkUpdates(
       validated.update || [],
       templateId,
-      supabase,
       user,
     );
     const createdLines = await this.performBulkCreates(
       validated.create || [],
       templateId,
-      supabase,
       user,
     );
 
@@ -89,9 +87,9 @@ export class BulkTemplateLineOperationsUseCase {
     const propagationSummary = await this.handlePropagation(
       templateId,
       user,
-      supabase,
       validated.propagateToBudgets,
       operationsResult,
+      supabase,
     );
 
     if (propagationSummary.affectedBudgetsCount > 0) {
@@ -139,9 +137,9 @@ export class BulkTemplateLineOperationsUseCase {
   private async handlePropagation(
     templateId: string,
     user: AuthenticatedUser,
-    supabase: AuthenticatedSupabaseClient,
     propagateToBudgets: boolean,
     operations: BulkOperationsResult,
+    supabase: AuthenticatedSupabaseClient,
   ): Promise<TemplateLinesPropagationSummary> {
     const hasDeletes = operations.deletedIds.length > 0;
     const hasBudgetMutations =
@@ -149,7 +147,7 @@ export class BulkTemplateLineOperationsUseCase {
 
     if (!propagateToBudgets) {
       if (hasDeletes) {
-        await this.applyRpc(templateId, [], operations, supabase);
+        await this.applyRpc(templateId, [], operations);
       }
       return {
         mode: 'template-only',
@@ -199,13 +197,12 @@ export class BulkTemplateLineOperationsUseCase {
       templateId,
       user.id,
       currentPeriod,
-      supabase,
     );
 
     const budgetIds = budgets.map((b) => b.id);
 
     if (!budgetIds.length) {
-      await this.applyRpc(templateId, [], operations, supabase);
+      await this.applyRpc(templateId, [], operations);
       this.logger.warn(
         {
           operation: 'propagateTemplateChangesToBudgets',
@@ -225,7 +222,6 @@ export class BulkTemplateLineOperationsUseCase {
       templateId,
       budgetIds,
       operations,
-      supabase,
     );
 
     if (impactedBudgetIds.length) {
@@ -273,7 +269,6 @@ export class BulkTemplateLineOperationsUseCase {
     templateId: string,
     budgetIds: string[],
     operations: BulkOperationsResult,
-    supabase: AuthenticatedSupabaseClient,
   ): Promise<string[]> {
     if (!this.hasRpcOperations(operations, budgetIds)) return [];
 
@@ -293,28 +288,24 @@ export class BulkTemplateLineOperationsUseCase {
         )
       : [];
 
-    return this.repo.applyTemplateLineOperationsRpc(
-      {
-        template_id: templateId,
-        budget_ids: budgetIds,
-        delete_ids: operations.deletedIds,
-        updated_lines: updatedLinesPayload,
-        created_lines: createdLinesPayload,
-      },
-      supabase,
-    );
+    return this.repo.applyTemplateLineOperationsRpc({
+      template_id: templateId,
+      budget_ids: budgetIds,
+      delete_ids: operations.deletedIds,
+      updated_lines: updatedLinesPayload,
+      created_lines: createdLinesPayload,
+    });
   }
 
   private async performBulkUpdates(
     updates: TemplateLineUpdateWithId[],
     templateId: string,
-    supabase: AuthenticatedSupabaseClient,
     user: AuthenticatedUser,
   ): Promise<Tables<'template_line'>[]> {
     if (!updates.length) return [];
 
     const updateIds = updates.map((u) => u.id);
-    await this.repo.validateLinesExist(templateId, updateIds, supabase);
+    await this.repo.validateLinesExist(templateId, updateIds);
 
     const prepared = await Promise.all(
       updates.map(async (line) => {
@@ -364,7 +355,7 @@ export class BulkTemplateLineOperationsUseCase {
 
     const results = await Promise.all(
       Array.from(updateGroups.values()).map(({ ids, data }) =>
-        this.repo.updateLinesInBatch(ids, data, supabase),
+        this.repo.updateLinesInBatch(ids, data),
       ),
     );
 
@@ -374,7 +365,6 @@ export class BulkTemplateLineOperationsUseCase {
   private async performBulkCreates(
     creates: TemplateLineCreateWithoutTemplateId[],
     templateId: string,
-    supabase: AuthenticatedSupabaseClient,
     user: AuthenticatedUser,
   ): Promise<Tables<'template_line'>[]> {
     if (!creates.length) return [];
@@ -410,6 +400,6 @@ export class BulkTemplateLineOperationsUseCase {
       original_amount: encryptedOriginalAmounts[index],
     }));
 
-    return this.repo.insertLines(inserts, supabase);
+    return this.repo.insertLines(inserts);
   }
 }

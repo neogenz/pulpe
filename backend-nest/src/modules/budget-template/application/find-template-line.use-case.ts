@@ -3,7 +3,6 @@ import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 import { BusinessException } from '@common/exceptions/business.exception';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
-import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
 import type { TemplateLineResponse } from 'pulpe-shared';
 import {
   ENCRYPTION_PORT,
@@ -29,11 +28,11 @@ export class FindTemplateLineUseCase {
   async execute(
     lineId: string,
     user: AuthenticatedUser,
-    supabase: AuthenticatedSupabaseClient,
+    _supabase: unknown,
   ): Promise<TemplateLineResponse> {
     const startTime = Date.now();
 
-    const lineWithTemplate = await this.repo.findLineById(lineId, supabase);
+    const lineWithTemplate = await this.repo.findLineById(lineId);
 
     if (lineWithTemplate.template.user_id !== user.id) {
       throw new BusinessException(

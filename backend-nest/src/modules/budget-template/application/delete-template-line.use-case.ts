@@ -1,7 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
-import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
 import type { TemplateLineDeleteResponse } from 'pulpe-shared';
 import {
   BUDGET_TEMPLATE_REPOSITORY,
@@ -20,12 +19,12 @@ export class DeleteTemplateLineUseCase {
   async execute(
     lineId: string,
     user: AuthenticatedUser,
-    supabase: AuthenticatedSupabaseClient,
+    _supabase: unknown,
   ): Promise<TemplateLineDeleteResponse> {
     const startTime = Date.now();
 
-    await this.repo.validateLineAccess(lineId, user.id, supabase);
-    await this.repo.deleteLine(lineId, supabase);
+    await this.repo.validateLineAccess(lineId, user.id);
+    await this.repo.deleteLine(lineId);
 
     this.logger.info(
       {

@@ -1,7 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
-import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
 import {
   type BudgetTemplateCreate,
   type BudgetTemplateCreateResponse,
@@ -36,26 +35,22 @@ export class CreateTemplateUseCase {
   async execute(
     createDto: BudgetTemplateCreate,
     user: AuthenticatedUser,
-    supabase: AuthenticatedSupabaseClient,
+    _supabase: unknown,
   ): Promise<BudgetTemplateCreateResponse> {
     const startTime = Date.now();
 
     const validated = budgetTemplateCreateSchema.parse(createDto);
 
-    const count = await this.repo.countForUser(user.id, supabase);
+    const count = await this.repo.countForUser(user.id);
     BudgetTemplateInvariants.validateTemplateLimit(count);
 
     if (validated.isDefault) {
-      await this.repo.resetDefaultTemplates(user.id, null, supabase);
+      await this.repo.resetDefaultTemplates(user.id, null);
     }
 
-    const template = await this.createTemplateWithRpc(
-      validated,
-      user,
-      supabase,
-    );
+    const template = await this.createTemplateWithRpc(validated, user);
 
-    const lines = await this.repo.findLinesByTemplateId(template.id, supabase);
+    const lines = await this.repo.findLinesByTemplateId(template.id);
     const dek = await this.encryption.getUserDEK(user.id, user.clientKey);
     const decryptedLines = lines.map((l) =>
       this.mapper.decryptLine(l, this.encryption, dek),
@@ -83,7 +78,6 @@ export class CreateTemplateUseCase {
   private async createTemplateWithRpc(
     validated: BudgetTemplateCreate,
     user: AuthenticatedUser,
-    supabase: AuthenticatedSupabaseClient,
   ) {
     const overriddenLines = await Promise.all(
       validated.lines.map((line) =>
@@ -121,15 +115,12 @@ export class CreateTemplateUseCase {
     const validatedRpcLines =
       createTemplateLinesRpcPayloadSchema.parse(rpcLines);
 
-    return this.repo.createTemplateWithLinesRpc(
-      {
-        p_user_id: user.id,
-        p_name: validated.name,
-        p_description: validated.description,
-        p_is_default: validated.isDefault || false,
-        p_lines: validatedRpcLines,
-      },
-      supabase,
-    );
+    return this.repo.createTemplateWithLinesRpc({
+      p_user_id: user.id,
+      p_name: validated.name,
+      p_description: validated.description,
+      p_is_default: validated.isDefault || false,
+      p_lines: validatedRpcLines,
+    });
   }
 }
