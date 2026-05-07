@@ -69,20 +69,17 @@ export class FindAllSparseBudgetsUseCase {
     const needsAggregates = fieldsRequireAggregates(requestedFields);
     const needsRollover = fieldsRequireRollover(requestedFields);
 
-    const budgetsList = await this.repo.fetchBudgetsWithFilters(
-      { limit: query.limit, year: query.year },
-      supabase,
-    );
+    const budgetsList = await this.repo.fetchBudgetsWithFilters({
+      limit: query.limit,
+      year: query.year,
+    });
     const budgetIds = budgetsList.map((b) => b.id);
 
     const aggregatesMap = needsAggregates
       ? await (async () => {
           const dek = await this.encryption.getUserDEK(user.id, user.clientKey);
-          return this.repo.fetchBudgetAggregates(
-            budgetIds,
-            supabase,
-            (amount) =>
-              amount ? this.encryption.tryDecryptAmount(amount, dek, 0) : 0,
+          return this.repo.fetchBudgetAggregates(budgetIds, (amount) =>
+            amount ? this.encryption.tryDecryptAmount(amount, dek, 0) : 0,
           );
         })()
       : new Map();

@@ -45,7 +45,6 @@ export class UpdateBudgetUseCase {
     const budget = await this.repo.updateBudget(
       id,
       dto as Record<string, unknown>,
-      supabase,
     );
 
     await this.budgetRecalculation.recalculate(id, supabase, user.clientKey);

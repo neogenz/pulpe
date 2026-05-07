@@ -52,9 +52,9 @@ export class FindBudgetWithDetailsUseCase {
     supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetDetailsResponse> {
     const payDayOfMonth = await this.getPayDayOfMonth(supabase);
-    const budgetData = await this.repo.validateBudgetExists(budgetId, supabase);
+    const budgetData = await this.repo.validateBudgetExists(budgetId);
 
-    const results = await this.repo.fetchBudgetData(budgetId, supabase, {
+    const results = await this.repo.fetchBudgetData(budgetId, {
       budgetLineFields: '*',
       transactionFields: '*',
       orderTransactions: true,

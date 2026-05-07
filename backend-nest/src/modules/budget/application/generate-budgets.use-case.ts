@@ -62,7 +62,6 @@ export class GenerateBudgetsUseCase {
     const existingPeriods = await this.repo.getExistingPeriods(
       user.id,
       targetMonths,
-      supabase,
     );
 
     const createdBudgets: Budget[] = [];
@@ -76,12 +75,7 @@ export class GenerateBudgetsUseCase {
           continue;
         }
 
-        const result = await this.tryCreateSingleBudget(
-          target,
-          dto,
-          user,
-          supabase,
-        );
+        const result = await this.tryCreateSingleBudget(target, dto, user);
         createdBudgets.push(result.budget);
         createdBudgetIds.push(result.budgetId);
         await this.budgetRecalculation.recalculate(
@@ -92,7 +86,7 @@ export class GenerateBudgetsUseCase {
       }
     } catch (error) {
       await this.cacheService.invalidateForUser(user.id);
-      await this.rollbackCreatedBudgets(createdBudgetIds, supabase, user.id);
+      await this.rollbackCreatedBudgets(createdBudgetIds, user.id);
       throw new BusinessException(
         ERROR_DEFINITIONS.BUDGET_GENERATE_FAILED,
         undefined,
@@ -123,20 +117,16 @@ export class GenerateBudgetsUseCase {
     target: { month: number; year: number },
     dto: BudgetGenerate,
     user: AuthenticatedUser,
-    supabase: AuthenticatedSupabaseClient,
   ): Promise<{ budget: Budget; budgetId: string }> {
     let rpcResult: unknown;
     try {
-      rpcResult = await this.repo.createBudgetFromTemplateRpc(
-        {
-          p_user_id: user.id,
-          p_template_id: dto.templateId,
-          p_month: target.month,
-          p_year: target.year,
-          p_description: `Budget ${target.month}/${target.year}`,
-        },
-        supabase,
-      );
+      rpcResult = await this.repo.createBudgetFromTemplateRpc({
+        p_user_id: user.id,
+        p_template_id: dto.templateId,
+        p_month: target.month,
+        p_year: target.year,
+        p_description: `Budget ${target.month}/${target.year}`,
+      });
     } catch (error) {
       throw new BusinessException(
         ERROR_DEFINITIONS.BUDGET_CREATE_FAILED,
@@ -183,7 +173,6 @@ export class GenerateBudgetsUseCase {
 
   private async rollbackCreatedBudgets(
     budgetIds: string[],
-    supabase: AuthenticatedSupabaseClient,
     userId: string,
   ): Promise<void> {
     if (budgetIds.length === 0) return;
@@ -197,7 +186,7 @@ export class GenerateBudgetsUseCase {
       'Rolling back created budgets after generation failure',
     );
 
-    const deleted = await this.repo.deleteBudgetsByIds(budgetIds, supabase);
+    const deleted = await this.repo.deleteBudgetsByIds(budgetIds);
     if (!deleted) {
       throw new BusinessException(
         ERROR_DEFINITIONS.BUDGET_GENERATE_FAILED,

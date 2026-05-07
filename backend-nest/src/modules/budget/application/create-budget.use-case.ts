@@ -42,11 +42,7 @@ export class CreateBudgetUseCase {
 
     await this.validateNoDuplicatePeriod(supabase, dto.month, dto.year);
 
-    const processedResult = await this.createBudgetFromTemplate(
-      dto,
-      user,
-      supabase,
-    );
+    const processedResult = await this.createBudgetFromTemplate(dto, user);
 
     await this.budgetRecalculation.recalculate(
       processedResult.budgetData.id,
@@ -75,7 +71,6 @@ export class CreateBudgetUseCase {
   private async createBudgetFromTemplate(
     dto: BudgetCreate,
     user: AuthenticatedUser,
-    supabase: AuthenticatedSupabaseClient,
   ) {
     const startTime = Date.now();
 
@@ -89,7 +84,7 @@ export class CreateBudgetUseCase {
       'Starting budget creation from template',
     );
 
-    const result = await this.executeBudgetCreationRpc(dto, user, supabase);
+    const result = await this.executeBudgetCreationRpc(dto, user);
     const processedResult = this.processBudgetCreationResult(
       result,
       user.id,
@@ -116,19 +111,15 @@ export class CreateBudgetUseCase {
   private async executeBudgetCreationRpc(
     dto: BudgetCreate,
     user: AuthenticatedUser,
-    supabase: AuthenticatedSupabaseClient,
   ): Promise<unknown> {
     try {
-      return await this.repo.createBudgetFromTemplateRpc(
-        {
-          p_user_id: user.id,
-          p_template_id: dto.templateId!,
-          p_month: dto.month,
-          p_year: dto.year,
-          p_description: dto.description,
-        },
-        supabase,
-      );
+      return await this.repo.createBudgetFromTemplateRpc({
+        p_user_id: user.id,
+        p_template_id: dto.templateId!,
+        p_month: dto.month,
+        p_year: dto.year,
+        p_description: dto.description,
+      });
     } catch (error) {
       throw this.mapPostgreSQLErrorToBusinessException(
         error,

@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 import { BusinessException } from '@common/exceptions/business.exception';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
+import { AuthenticatedSupabaseProvider } from '@modules/supabase/authenticated-supabase.provider';
 import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
 import { BudgetFormulas, type TransactionKind } from 'pulpe-shared';
 import type {
@@ -31,11 +32,13 @@ interface QueryResult<T> {
 @Injectable()
 export class SupabaseBudgetRepository implements BudgetRepositoryPort {
   constructor(
+    private readonly supabaseProvider: AuthenticatedSupabaseProvider,
     @InjectInfoLogger(SupabaseBudgetRepository.name)
     private readonly logger: InfoLogger,
   ) {}
 
-  async hasAnyBudget(supabase: AuthenticatedSupabaseClient): Promise<boolean> {
+  async hasAnyBudget(): Promise<boolean> {
+    const supabase = this.supabaseProvider.client;
     const { data, error } = await supabase
       .from('monthly_budget')
       .select('id')
@@ -58,9 +61,8 @@ export class SupabaseBudgetRepository implements BudgetRepositoryPort {
     return data !== null;
   }
 
-  async fetchAllBudgets(
-    supabase: AuthenticatedSupabaseClient,
-  ): Promise<BudgetRow[]> {
+  async fetchAllBudgets(): Promise<BudgetRow[]> {
+    const supabase = this.supabaseProvider.client;
     const { data, error } = await supabase
       .from('monthly_budget')
       .select('*')
@@ -83,10 +85,11 @@ export class SupabaseBudgetRepository implements BudgetRepositoryPort {
     return data ?? [];
   }
 
-  async fetchBudgetsWithFilters(
-    filters: { limit?: number; year?: number },
-    supabase: AuthenticatedSupabaseClient,
-  ): Promise<BudgetRow[]> {
+  async fetchBudgetsWithFilters(filters: {
+    limit?: number;
+    year?: number;
+  }): Promise<BudgetRow[]> {
+    const supabase = this.supabaseProvider.client;
     let query = supabase
       .from('monthly_budget')
       .select('*')
@@ -114,9 +117,8 @@ export class SupabaseBudgetRepository implements BudgetRepositoryPort {
     return data ?? [];
   }
 
-  async fetchAllBudgetsForExport(
-    supabase: AuthenticatedSupabaseClient,
-  ): Promise<BudgetRow[]> {
+  async fetchAllBudgetsForExport(): Promise<BudgetRow[]> {
+    const supabase = this.supabaseProvider.client;
     const { data, error } = await supabase
       .from('monthly_budget')
       .select('*')
@@ -139,11 +141,8 @@ export class SupabaseBudgetRepository implements BudgetRepositoryPort {
     return data ?? [];
   }
 
-  async fetchBudgetById(
-    id: string,
-    userId: string,
-    supabase: AuthenticatedSupabaseClient,
-  ): Promise<BudgetRow> {
+  async fetchBudgetById(id: string, userId: string): Promise<BudgetRow> {
+    const supabase = this.supabaseProvider.client;
     const { data, error } = await supabase
       .from('monthly_budget')
       .select('*')
@@ -167,10 +166,8 @@ export class SupabaseBudgetRepository implements BudgetRepositoryPort {
     return data;
   }
 
-  async fetchBudgetUserId(
-    id: string,
-    supabase: AuthenticatedSupabaseClient,
-  ): Promise<string> {
+  async fetchBudgetUserId(id: string): Promise<string> {
+    const supabase = this.supabaseProvider.client;
     const { data, error } = await supabase
       .from('monthly_budget')
       .select('user_id')
@@ -184,10 +181,8 @@ export class SupabaseBudgetRepository implements BudgetRepositoryPort {
     return data.user_id;
   }
 
-  async validateBudgetExists(
-    id: string,
-    supabase: AuthenticatedSupabaseClient,
-  ): Promise<BudgetRow> {
+  async validateBudgetExists(id: string): Promise<BudgetRow> {
+    const supabase = this.supabaseProvider.client;
     const { data, error } = await supabase
       .from('monthly_budget')
       .select('*')
@@ -213,8 +208,8 @@ export class SupabaseBudgetRepository implements BudgetRepositoryPort {
   async updateBudget(
     id: string,
     updateData: Record<string, unknown>,
-    supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetRow> {
+    const supabase = this.supabaseProvider.client;
     const { data, error } = await supabase
       .from('monthly_budget')
       .update(updateData)
@@ -239,10 +234,8 @@ export class SupabaseBudgetRepository implements BudgetRepositoryPort {
     return data;
   }
 
-  async deleteBudget(
-    id: string,
-    supabase: AuthenticatedSupabaseClient,
-  ): Promise<void> {
+  async deleteBudget(id: string): Promise<void> {
+    const supabase = this.supabaseProvider.client;
     const { error } = await supabase
       .from('monthly_budget')
       .delete()
@@ -263,10 +256,8 @@ export class SupabaseBudgetRepository implements BudgetRepositoryPort {
     }
   }
 
-  async deleteBudgetsByIds(
-    ids: string[],
-    supabase: AuthenticatedSupabaseClient,
-  ): Promise<boolean> {
+  async deleteBudgetsByIds(ids: string[]): Promise<boolean> {
+    const supabase = this.supabaseProvider.client;
     const { error } = await supabase
       .from('monthly_budget')
       .delete()
@@ -277,10 +268,10 @@ export class SupabaseBudgetRepository implements BudgetRepositoryPort {
   async getExistingPeriods(
     userId: string,
     targetMonths: { month: number; year: number }[],
-    supabase: AuthenticatedSupabaseClient,
   ): Promise<Set<string>> {
     if (targetMonths.length === 0) return new Set();
 
+    const supabase = this.supabaseProvider.client;
     const periodFilters = targetMonths
       .map((t) => `and(month.eq.${t.month},year.eq.${t.year})`)
       .join(',');
@@ -312,7 +303,6 @@ export class SupabaseBudgetRepository implements BudgetRepositoryPort {
 
   async fetchBudgetData(
     budgetId: string,
-    supabase: AuthenticatedSupabaseClient,
     options: BudgetDataOptions = {},
   ): Promise<BudgetDataResult> {
     const {
@@ -322,6 +312,7 @@ export class SupabaseBudgetRepository implements BudgetRepositoryPort {
       orderTransactions = false,
     } = options;
 
+    const supabase = this.supabaseProvider.client;
     const queries = this.buildFetchQueries(
       budgetId,
       supabase,
@@ -337,16 +328,14 @@ export class SupabaseBudgetRepository implements BudgetRepositoryPort {
     return this.processFetchResults(results, includeBudget);
   }
 
-  async createBudgetFromTemplateRpc(
-    payload: {
-      p_user_id: string;
-      p_template_id: string;
-      p_month: number;
-      p_year: number;
-      p_description: string;
-    },
-    supabase: AuthenticatedSupabaseClient,
-  ): Promise<unknown> {
+  async createBudgetFromTemplateRpc(payload: {
+    p_user_id: string;
+    p_template_id: string;
+    p_month: number;
+    p_year: number;
+    p_description: string;
+  }): Promise<unknown> {
+    const supabase = this.supabaseProvider.client;
     const { data, error } = await supabase.rpc(
       'create_budget_from_template',
       payload,
@@ -362,8 +351,8 @@ export class SupabaseBudgetRepository implements BudgetRepositoryPort {
   async persistEndingBalance(
     budgetId: string,
     encryptedBalance: string,
-    supabase: AuthenticatedSupabaseClient,
   ): Promise<void> {
+    const supabase = this.supabaseProvider.client;
     const { error } = await supabase
       .from('monthly_budget')
       .update({ ending_balance: encryptedBalance })
@@ -385,10 +374,10 @@ export class SupabaseBudgetRepository implements BudgetRepositoryPort {
 
   async fetchAllBudgetsForRollover(
     userId: string,
-    supabase: AuthenticatedSupabaseClient,
   ): Promise<
     { id: string; month: number; year: number; ending_balance: string | null }[]
   > {
+    const supabase = this.supabaseProvider.client;
     const { data, error } = await supabase
       .from('monthly_budget')
       .select('id, month, year, ending_balance')
@@ -412,7 +401,6 @@ export class SupabaseBudgetRepository implements BudgetRepositoryPort {
 
   async fetchBudgetAggregates(
     budgetIds: string[],
-    supabase: AuthenticatedSupabaseClient,
     decryptFn: (amount: string | null) => number,
   ): Promise<Map<string, BudgetAggregates>> {
     const aggregatesMap = new Map<string, BudgetAggregates>();
@@ -428,6 +416,7 @@ export class SupabaseBudgetRepository implements BudgetRepositoryPort {
     }
 
     try {
+      const supabase = this.supabaseProvider.client;
       const [budgetLinesResult, transactionsResult] = await Promise.all([
         supabase
           .from('budget_line')

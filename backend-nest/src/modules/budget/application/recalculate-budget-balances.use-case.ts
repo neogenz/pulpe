@@ -47,7 +47,6 @@ export class RecalculateBudgetBalancesUseCase implements BudgetRecalculationPort
   ): Promise<number> {
     const { budgetLines, transactions } = await this.repo.fetchBudgetData(
       budgetId,
-      supabase,
       {
         budgetLineFields: 'id, kind, amount',
         transactionFields: 'id, kind, amount, budget_line_id',
@@ -57,13 +56,11 @@ export class RecalculateBudgetBalancesUseCase implements BudgetRecalculationPort
     const decryptedBudgetLines = await this.decryptAmounts(
       budgetLines as { amount: string | null }[],
       budgetId,
-      supabase,
       clientKey,
     );
     const decryptedTransactions = await this.decryptAmounts(
       transactions as { amount: string | null }[],
       budgetId,
-      supabase,
       clientKey,
     );
 
@@ -97,11 +94,8 @@ export class RecalculateBudgetBalancesUseCase implements BudgetRecalculationPort
     supabase: AuthenticatedSupabaseClient,
     clientKey: Buffer,
   ): Promise<{ rollover: number; previousBudgetId: string | null }> {
-    const userId = await this.repo.fetchBudgetUserId(budgetId, supabase);
-    const allBudgets = await this.repo.fetchAllBudgetsForRollover(
-      userId,
-      supabase,
-    );
+    const userId = await this.repo.fetchBudgetUserId(budgetId);
+    const allBudgets = await this.repo.fetchAllBudgetsForRollover(userId);
 
     if (!allBudgets.length) {
       return { rollover: 0, previousBudgetId: null };
@@ -140,11 +134,11 @@ export class RecalculateBudgetBalancesUseCase implements BudgetRecalculationPort
     supabase: AuthenticatedSupabaseClient,
     clientKey: Buffer,
   ): Promise<void> {
-    const userId = await this.repo.fetchBudgetUserId(budgetId, supabase);
+    const userId = await this.repo.fetchBudgetUserId(budgetId);
     const dek = await this.encryption.ensureUserDEK(userId, clientKey);
     const encryptedBalance = this.encryption.encryptAmount(endingBalance, dek);
 
-    await this.repo.persistEndingBalance(budgetId, encryptedBalance, supabase);
+    await this.repo.persistEndingBalance(budgetId, encryptedBalance);
 
     this.logger.info(
       { budgetId, operation: 'balance.recalculated' },
@@ -155,13 +149,12 @@ export class RecalculateBudgetBalancesUseCase implements BudgetRecalculationPort
   private async decryptAmounts<T extends object>(
     rows: (T & { amount: string | null })[],
     budgetId: string,
-    supabase: AuthenticatedSupabaseClient,
     clientKey: Buffer,
   ): Promise<(T & { amount: number })[]> {
     const hasEncrypted = rows.some((r) => r.amount);
     if (!hasEncrypted) return rows.map((row) => ({ ...row, amount: 0 }));
 
-    const userId = await this.repo.fetchBudgetUserId(budgetId, supabase);
+    const userId = await this.repo.fetchBudgetUserId(budgetId);
     const dek = await this.encryption.getUserDEK(userId, clientKey);
 
     return rows.map((row) => ({

@@ -1,7 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
-import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
 import { type BudgetResponse } from 'pulpe-shared';
 import {
   BUDGET_REPOSITORY,
@@ -22,9 +21,9 @@ export class FindBudgetUseCase {
   async execute(
     id: string,
     user: AuthenticatedUser,
-    supabase: AuthenticatedSupabaseClient,
+    _supabase: unknown,
   ): Promise<BudgetResponse> {
-    const budget = await this.repo.fetchBudgetById(id, user.id, supabase);
+    const budget = await this.repo.fetchBudgetById(id, user.id);
 
     this.logger.info(
       { budgetId: id, userId: user.id, operation: 'budget.findOne' },

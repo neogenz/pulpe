@@ -1,7 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
-import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
 import {
   BUDGET_REPOSITORY,
   type BudgetRepositoryPort,
@@ -16,11 +15,8 @@ export class HasBudgetsUseCase {
     private readonly logger: InfoLogger,
   ) {}
 
-  async execute(
-    user: AuthenticatedUser,
-    supabase: AuthenticatedSupabaseClient,
-  ): Promise<boolean> {
-    const result = await this.repo.hasAnyBudget(supabase);
+  async execute(user: AuthenticatedUser, _supabase: unknown): Promise<boolean> {
+    const result = await this.repo.hasAnyBudget();
 
     this.logger.info(
       { userId: user.id, hasBudgets: result, operation: 'budget.hasBudgets' },

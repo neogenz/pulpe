@@ -40,7 +40,7 @@ export class ExportAllBudgetsUseCase {
   ): Promise<BudgetExportResponse> {
     const startTime = Date.now();
     const payDayOfMonth = await this.getPayDayOfMonth(supabase);
-    const budgets = await this.repo.fetchAllBudgetsForExport(supabase);
+    const budgets = await this.repo.fetchAllBudgetsForExport();
     const budgetsWithDetails = await Promise.all(
       budgets.map((budget) =>
         this.enrichBudgetForExport(
@@ -80,7 +80,6 @@ export class ExportAllBudgetsUseCase {
   ): Promise<BudgetWithDetails> {
     const { transactions, budgetLines } = await this.repo.fetchBudgetData(
       budget.id,
-      supabase,
       {
         budgetLineFields: '*',
         transactionFields: '*',

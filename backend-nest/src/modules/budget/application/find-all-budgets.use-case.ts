@@ -66,7 +66,7 @@ export class FindAllBudgetsUseCase {
       return this.findAllSparseUseCase.execute(user, supabase, query);
     }
 
-    const budgets = await this.repo.fetchAllBudgets(supabase);
+    const budgets = await this.repo.fetchAllBudgets();
     const payDayOfMonth = await this.getPayDayOfMonth(supabase);
 
     const enrichedBudgets = await this.enrichBudgetsWithRemaining(

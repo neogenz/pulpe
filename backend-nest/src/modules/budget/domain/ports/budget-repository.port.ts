@@ -1,4 +1,3 @@
-import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
 import type {
   BudgetRow,
   BudgetLineRow,
@@ -22,74 +21,47 @@ export interface BudgetDataResult {
 }
 
 export interface BudgetRepositoryPort {
-  fetchBudgetById(
-    id: string,
-    userId: string,
-    supabase: AuthenticatedSupabaseClient,
-  ): Promise<BudgetRow>;
-  fetchBudgetUserId(
-    id: string,
-    supabase: AuthenticatedSupabaseClient,
-  ): Promise<string>;
+  fetchBudgetById(id: string, userId: string): Promise<BudgetRow>;
+  fetchBudgetUserId(id: string): Promise<string>;
   updateBudget(
     id: string,
     updateData: Record<string, unknown>,
-    supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetRow>;
-  deleteBudgetsByIds(
-    ids: string[],
-    supabase: AuthenticatedSupabaseClient,
-  ): Promise<boolean>;
+  deleteBudgetsByIds(ids: string[]): Promise<boolean>;
   getExistingPeriods(
     userId: string,
     targetMonths: { month: number; year: number }[],
-    supabase: AuthenticatedSupabaseClient,
   ): Promise<Set<string>>;
   fetchBudgetData(
     budgetId: string,
-    supabase: AuthenticatedSupabaseClient,
     options?: BudgetDataOptions,
   ): Promise<BudgetDataResult>;
   fetchBudgetAggregates(
     budgetIds: string[],
-    supabase: AuthenticatedSupabaseClient,
     decryptFn: (amount: string | null) => number,
   ): Promise<Map<string, BudgetAggregates>>;
-  hasAnyBudget(supabase: AuthenticatedSupabaseClient): Promise<boolean>;
-  fetchAllBudgets(supabase: AuthenticatedSupabaseClient): Promise<BudgetRow[]>;
-  fetchBudgetsWithFilters(
-    filters: { limit?: number; year?: number },
-    supabase: AuthenticatedSupabaseClient,
-  ): Promise<BudgetRow[]>;
-  fetchAllBudgetsForExport(
-    supabase: AuthenticatedSupabaseClient,
-  ): Promise<BudgetRow[]>;
-  validateBudgetExists(
-    id: string,
-    supabase: AuthenticatedSupabaseClient,
-  ): Promise<BudgetRow>;
-  deleteBudget(
-    id: string,
-    supabase: AuthenticatedSupabaseClient,
-  ): Promise<void>;
-  createBudgetFromTemplateRpc(
-    payload: {
-      p_user_id: string;
-      p_template_id: string;
-      p_month: number;
-      p_year: number;
-      p_description: string;
-    },
-    supabase: AuthenticatedSupabaseClient,
-  ): Promise<unknown>;
+  hasAnyBudget(): Promise<boolean>;
+  fetchAllBudgets(): Promise<BudgetRow[]>;
+  fetchBudgetsWithFilters(filters: {
+    limit?: number;
+    year?: number;
+  }): Promise<BudgetRow[]>;
+  fetchAllBudgetsForExport(): Promise<BudgetRow[]>;
+  validateBudgetExists(id: string): Promise<BudgetRow>;
+  deleteBudget(id: string): Promise<void>;
+  createBudgetFromTemplateRpc(payload: {
+    p_user_id: string;
+    p_template_id: string;
+    p_month: number;
+    p_year: number;
+    p_description: string;
+  }): Promise<unknown>;
   persistEndingBalance(
     budgetId: string,
     encryptedBalance: string,
-    supabase: AuthenticatedSupabaseClient,
   ): Promise<void>;
   fetchAllBudgetsForRollover(
     userId: string,
-    supabase: AuthenticatedSupabaseClient,
   ): Promise<
     { id: string; month: number; year: number; ending_balance: string | null }[]
   >;
