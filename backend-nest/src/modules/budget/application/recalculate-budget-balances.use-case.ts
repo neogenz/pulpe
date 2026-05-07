@@ -1,0 +1,174 @@
+import { Inject, Injectable } from '@nestjs/common';
+import { type InfoLogger, InjectInfoLogger } from '@common/logger';
+import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
+import { EncryptionService } from '@modules/encryption/encryption.service';
+import { BudgetFormulas, type TransactionKind } from 'pulpe-shared';
+import {
+  BUDGET_REPOSITORY,
+  type BudgetRepositoryPort,
+} from '../domain/ports/budget-repository.port';
+import type { BudgetRecalculationPort } from '../domain/ports/budget-recalculation.port';
+
+@Injectable()
+export class RecalculateBudgetBalancesUseCase implements BudgetRecalculationPort {
+  constructor(
+    @Inject(BUDGET_REPOSITORY)
+    private readonly repo: BudgetRepositoryPort,
+    private readonly encryptionService: EncryptionService,
+    @InjectInfoLogger(RecalculateBudgetBalancesUseCase.name)
+    private readonly logger: InfoLogger,
+  ) {}
+
+  async recalculate(
+    budgetId: string,
+    supabase: AuthenticatedSupabaseClient,
+    clientKey: Buffer,
+  ): Promise<void> {
+    const endingBalance = await this.calculateEndingBalance(
+      budgetId,
+      supabase,
+      clientKey,
+    );
+    await this.persistEndingBalance(
+      budgetId,
+      endingBalance,
+      supabase,
+      clientKey,
+    );
+  }
+
+  async calculateEndingBalance(
+    budgetId: string,
+    supabase: AuthenticatedSupabaseClient,
+    clientKey: Buffer,
+  ): Promise<number> {
+    const { budgetLines, transactions } = await this.repo.fetchBudgetData(
+      budgetId,
+      supabase,
+      {
+        budgetLineFields: 'id, kind, amount',
+        transactionFields: 'id, kind, amount, budget_line_id',
+      },
+    );
+
+    const decryptedBudgetLines = await this.decryptAmounts(
+      budgetLines as { amount: string | null }[],
+      budgetId,
+      supabase,
+      clientKey,
+    );
+    const decryptedTransactions = await this.decryptAmounts(
+      transactions as { amount: string | null }[],
+      budgetId,
+      supabase,
+      clientKey,
+    );
+
+    const mappedTransactions = decryptedTransactions.map((tx, i) => ({
+      ...transactions[i],
+      ...tx,
+      budgetLineId:
+        (transactions[i] as { budget_line_id?: string | null })
+          .budget_line_id ?? null,
+    }));
+
+    const mappedLines = decryptedBudgetLines.map((bl, i) => ({
+      ...budgetLines[i],
+      ...bl,
+    }));
+
+    const metrics = BudgetFormulas.calculateAllMetrics(
+      mappedLines as { id: string; kind: TransactionKind; amount: number }[],
+      mappedTransactions as {
+        kind: TransactionKind;
+        amount: number;
+        budgetLineId: string | null;
+      }[],
+    );
+    return metrics.endingBalance;
+  }
+
+  async getRollover(
+    budgetId: string,
+    payDayOfMonth: number,
+    supabase: AuthenticatedSupabaseClient,
+    clientKey: Buffer,
+  ): Promise<{ rollover: number; previousBudgetId: string | null }> {
+    const userId = await this.repo.fetchBudgetUserId(budgetId, supabase);
+    const allBudgets = await this.repo.fetchAllBudgetsForRollover(
+      userId,
+      supabase,
+    );
+
+    if (!allBudgets.length) {
+      return { rollover: 0, previousBudgetId: null };
+    }
+
+    const hasEncryptedData = allBudgets.some((b) => b.ending_balance);
+    const dek = hasEncryptedData
+      ? await this.encryptionService.getUserDEK(userId, clientKey)
+      : null;
+
+    const budgetsForFormula = allBudgets.map((b) => ({
+      id: b.id,
+      month: b.month,
+      year: b.year,
+      endingBalance:
+        b.ending_balance && dek
+          ? this.encryptionService.tryDecryptAmount(b.ending_balance, dek, 0)
+          : 0,
+    }));
+
+    const result = BudgetFormulas.calculateRollover(
+      budgetsForFormula,
+      budgetId,
+      payDayOfMonth,
+    );
+
+    return {
+      rollover: result.rollover,
+      previousBudgetId: result.previousBudgetId,
+    };
+  }
+
+  private async persistEndingBalance(
+    budgetId: string,
+    endingBalance: number,
+    supabase: AuthenticatedSupabaseClient,
+    clientKey: Buffer,
+  ): Promise<void> {
+    const userId = await this.repo.fetchBudgetUserId(budgetId, supabase);
+    const dek = await this.encryptionService.ensureUserDEK(userId, clientKey);
+    const encryptedBalance = this.encryptionService.encryptAmount(
+      endingBalance,
+      dek,
+    );
+
+    await this.repo.persistEndingBalance(budgetId, encryptedBalance, supabase);
+
+    this.logger.info(
+      { budgetId, operation: 'balance.recalculated' },
+      'Balance de fin de mois recalculée et persistée',
+    );
+  }
+
+  private async decryptAmounts<T extends object>(
+    rows: (T & { amount: string | null })[],
+    budgetId: string,
+    supabase: AuthenticatedSupabaseClient,
+    clientKey: Buffer,
+  ): Promise<(T & { amount: number })[]> {
+    const hasEncrypted = rows.some((r) => r.amount);
+    if (!hasEncrypted) return rows.map((row) => ({ ...row, amount: 0 }));
+
+    const userId = await this.repo.fetchBudgetUserId(budgetId, supabase);
+    const dek = await this.encryptionService.getUserDEK(userId, clientKey);
+
+    return rows.map((row) => ({
+      ...row,
+      amount: row.amount
+        ? this.encryptionService.tryDecryptAmount(row.amount, dek, 0)
+        : 0,
+    }));
+  }
+}
