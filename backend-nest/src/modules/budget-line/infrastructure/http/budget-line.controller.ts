@@ -31,7 +31,6 @@ import {
   SupabaseClient,
   type AuthenticatedUser,
 } from '@common/decorators/user.decorator';
-import { BudgetLineService } from './budget-line.service';
 import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
 import {
   BudgetLineCreateDto,
@@ -42,6 +41,15 @@ import {
   TransactionListResponseDto,
 } from './dto/budget-line-swagger.dto';
 import { ErrorResponseDto } from '@common/dto/response.dto';
+import { FindAllBudgetLinesUseCase } from '../../application/find-all-budget-lines.use-case';
+import { FindBudgetLineUseCase } from '../../application/find-budget-line.use-case';
+import { FindBudgetLinesByBudgetUseCase } from '../../application/find-budget-lines-by-budget.use-case';
+import { CreateBudgetLineUseCase } from '../../application/create-budget-line.use-case';
+import { UpdateBudgetLineUseCase } from '../../application/update-budget-line.use-case';
+import { RemoveBudgetLineUseCase } from '../../application/remove-budget-line.use-case';
+import { ResetBudgetLineFromTemplateUseCase } from '../../application/reset-budget-line-from-template.use-case';
+import { ToggleBudgetLineCheckUseCase } from '../../application/toggle-budget-line-check.use-case';
+import { CheckTransactionsUseCase } from '../../application/check-transactions.use-case';
 
 @ApiTags('Budget Lines')
 @ApiBearerAuth()
@@ -56,7 +64,18 @@ import { ErrorResponseDto } from '@common/dto/response.dto';
   type: ErrorResponseDto,
 })
 export class BudgetLineController {
-  constructor(private readonly budgetLineService: BudgetLineService) {}
+  // eslint-disable-next-line max-params
+  constructor(
+    private readonly findAllUseCase: FindAllBudgetLinesUseCase,
+    private readonly findOneUseCase: FindBudgetLineUseCase,
+    private readonly findByBudgetUseCase: FindBudgetLinesByBudgetUseCase,
+    private readonly createUseCase: CreateBudgetLineUseCase,
+    private readonly updateUseCase: UpdateBudgetLineUseCase,
+    private readonly removeUseCase: RemoveBudgetLineUseCase,
+    private readonly resetFromTemplateUseCase: ResetBudgetLineFromTemplateUseCase,
+    private readonly toggleCheckUseCase: ToggleBudgetLineCheckUseCase,
+    private readonly checkTransactionsUseCase: CheckTransactionsUseCase,
+  ) {}
 
   @Get('budget/:budgetId')
   @ApiOperation({ summary: "Liste toutes les lignes budgétaires d'un budget" })
@@ -75,7 +94,7 @@ export class BudgetLineController {
     @User() user: AuthenticatedUser,
     @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetLineListResponse> {
-    return this.budgetLineService.findByBudgetId(budgetId, user, supabase);
+    return this.findByBudgetUseCase.execute(budgetId, user, supabase);
   }
 
   @Post()
@@ -90,7 +109,7 @@ export class BudgetLineController {
     @User() user: AuthenticatedUser,
     @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetLineResponse> {
-    return this.budgetLineService.create(createBudgetLineDto, user, supabase);
+    return this.createUseCase.execute(createBudgetLineDto, user, supabase);
   }
 
   @Get(':id')
@@ -112,7 +131,7 @@ export class BudgetLineController {
     @User() user: AuthenticatedUser,
     @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetLineResponse> {
-    return this.budgetLineService.findOne(id, user, supabase);
+    return this.findOneUseCase.execute(id, user, supabase);
   }
 
   @Patch(':id')
@@ -143,12 +162,7 @@ export class BudgetLineController {
     @User() user: AuthenticatedUser,
     @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetLineResponse> {
-    return this.budgetLineService.update(
-      id,
-      updateBudgetLineDto,
-      user,
-      supabase,
-    );
+    return this.updateUseCase.execute(id, updateBudgetLineDto, user, supabase);
   }
 
   @Post(':id/reset-from-template')
@@ -180,7 +194,7 @@ export class BudgetLineController {
     @User() user: AuthenticatedUser,
     @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetLineResponse> {
-    return this.budgetLineService.resetFromTemplate(id, user, supabase);
+    return this.resetFromTemplateUseCase.execute(id, user, supabase);
   }
 
   @Post(':id/toggle-check')
@@ -208,7 +222,7 @@ export class BudgetLineController {
     @User() user: AuthenticatedUser,
     @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetLineResponse> {
-    return this.budgetLineService.toggleCheck(id, user, supabase);
+    return this.toggleCheckUseCase.execute(id, user, supabase);
   }
 
   @Post(':id/check-transactions')
@@ -234,7 +248,7 @@ export class BudgetLineController {
     @User() user: AuthenticatedUser,
     @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<TransactionListResponse> {
-    return this.budgetLineService.checkTransactions(id, user, supabase);
+    return this.checkTransactionsUseCase.execute(id, user, supabase);
   }
 
   @Delete(':id')
@@ -258,6 +272,6 @@ export class BudgetLineController {
     @User() user: AuthenticatedUser,
     @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetLineDeleteResponse> {
-    return this.budgetLineService.remove(id, user, supabase);
+    return this.removeUseCase.execute(id, user, supabase);
   }
 }

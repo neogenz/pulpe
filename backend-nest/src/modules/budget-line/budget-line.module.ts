@@ -1,11 +1,10 @@
 import { Module } from '@nestjs/common';
-import { BudgetLineController } from './budget-line.controller';
-import { BudgetLineService } from './budget-line.service';
 import { SupabaseModule } from '@modules/supabase/supabase.module';
 import { BudgetModule } from '@modules/budget/budget.module';
 import { EncryptionModule } from '@modules/encryption/encryption.module';
 import { CurrencyModule } from '@modules/currency/currency.module';
 import { createInfoLoggerProvider } from '@common/logger';
+import { BudgetLineController } from './infrastructure/http/budget-line.controller';
 import { SupabaseBudgetLineRepository } from './infrastructure/persistence/supabase-budget-line.repository';
 import { BudgetLineMapper } from './infrastructure/mappers/budget-line.mapper';
 import { BUDGET_LINE_REPOSITORY } from './domain/ports/budget-line-repository.port';
@@ -23,7 +22,6 @@ import { CheckTransactionsUseCase } from './application/check-transactions.use-c
   imports: [SupabaseModule, BudgetModule, EncryptionModule, CurrencyModule],
   controllers: [BudgetLineController],
   providers: [
-    BudgetLineService,
     FindAllBudgetLinesUseCase,
     FindBudgetLineUseCase,
     FindBudgetLinesByBudgetUseCase,
@@ -46,6 +44,6 @@ import { CheckTransactionsUseCase } from './application/check-transactions.use-c
     createInfoLoggerProvider(ToggleBudgetLineCheckUseCase.name),
     createInfoLoggerProvider(CheckTransactionsUseCase.name),
   ],
-  exports: [BudgetLineService],
+  exports: [],
 })
 export class BudgetLineModule {}
