@@ -37,7 +37,6 @@ import {
   SupabaseClient,
   type AuthenticatedUser,
 } from '@common/decorators/user.decorator';
-import { BudgetTemplateService } from './budget-template.service';
 import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
 import {
   BudgetTemplateCreateDto,
@@ -57,6 +56,19 @@ import {
   TemplateUsageResponseDto,
 } from './dto/budget-template-swagger.dto';
 import { ErrorResponseDto } from '@common/dto/response.dto';
+import { FindAllTemplatesUseCase } from '../../application/find-all-templates.use-case';
+import { FindTemplateUseCase } from '../../application/find-template.use-case';
+import { CreateTemplateUseCase } from '../../application/create-template.use-case';
+import { CreateTemplateFromOnboardingUseCase } from '../../application/create-template-from-onboarding.use-case';
+import { UpdateTemplateUseCase } from '../../application/update-template.use-case';
+import { RemoveTemplateUseCase } from '../../application/remove-template.use-case';
+import { CheckTemplateUsageUseCase } from '../../application/check-template-usage.use-case';
+import { FindTemplateLinesUseCase } from '../../application/find-template-lines.use-case';
+import { FindTemplateLineUseCase } from '../../application/find-template-line.use-case';
+import { CreateTemplateLineUseCase } from '../../application/create-template-line.use-case';
+import { UpdateTemplateLineUseCase } from '../../application/update-template-line.use-case';
+import { DeleteTemplateLineUseCase } from '../../application/delete-template-line.use-case';
+import { BulkTemplateLineOperationsUseCase } from '../../application/bulk-template-line-operations.use-case';
 
 @ApiTags('Budget Templates')
 @ApiBearerAuth()
@@ -71,7 +83,21 @@ import { ErrorResponseDto } from '@common/dto/response.dto';
   type: ErrorResponseDto,
 })
 export class BudgetTemplateController {
-  constructor(private readonly budgetTemplateService: BudgetTemplateService) {}
+  constructor(
+    private readonly findAllTemplatesUseCase: FindAllTemplatesUseCase,
+    private readonly findTemplateUseCase: FindTemplateUseCase,
+    private readonly createTemplateUseCase: CreateTemplateUseCase,
+    private readonly createTemplateFromOnboardingUseCase: CreateTemplateFromOnboardingUseCase,
+    private readonly updateTemplateUseCase: UpdateTemplateUseCase,
+    private readonly removeTemplateUseCase: RemoveTemplateUseCase,
+    private readonly checkTemplateUsageUseCase: CheckTemplateUsageUseCase,
+    private readonly findTemplateLinesUseCase: FindTemplateLinesUseCase,
+    private readonly findTemplateLineUseCase: FindTemplateLineUseCase,
+    private readonly createTemplateLineUseCase: CreateTemplateLineUseCase,
+    private readonly updateTemplateLineUseCase: UpdateTemplateLineUseCase,
+    private readonly deleteTemplateLineUseCase: DeleteTemplateLineUseCase,
+    private readonly bulkTemplateLineOperationsUseCase: BulkTemplateLineOperationsUseCase,
+  ) {}
 
   @Get()
   @ApiOperation({
@@ -88,7 +114,7 @@ export class BudgetTemplateController {
     @User() user: AuthenticatedUser,
     @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<_BudgetTemplateListResponse> {
-    return this.budgetTemplateService.findAll(user, supabase);
+    return this.findAllTemplatesUseCase.execute(user, supabase);
   }
 
   @Post()
@@ -109,7 +135,11 @@ export class BudgetTemplateController {
     @User() user: AuthenticatedUser,
     @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<_BudgetTemplateCreateResponse> {
-    return this.budgetTemplateService.create(createTemplateDto, user, supabase);
+    return this.createTemplateUseCase.execute(
+      createTemplateDto,
+      user,
+      supabase,
+    );
   }
 
   @Post('from-onboarding')
@@ -131,7 +161,7 @@ export class BudgetTemplateController {
     @User() user: AuthenticatedUser,
     @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<_BudgetTemplateCreateResponse> {
-    return this.budgetTemplateService.createFromOnboarding(
+    return this.createTemplateFromOnboardingUseCase.execute(
       onboardingData,
       user,
       supabase,
@@ -165,7 +195,7 @@ export class BudgetTemplateController {
     @User() user: AuthenticatedUser,
     @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ) {
-    return this.budgetTemplateService.checkTemplateUsage(id, user, supabase);
+    return this.checkTemplateUsageUseCase.execute(id, user, supabase);
   }
 
   @Get(':id')
@@ -195,7 +225,7 @@ export class BudgetTemplateController {
     @User() user: AuthenticatedUser,
     @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<_BudgetTemplateResponse> {
-    return this.budgetTemplateService.findOne(id, user, supabase);
+    return this.findTemplateUseCase.execute(id, user, supabase);
   }
 
   @Patch(':id')
@@ -229,7 +259,7 @@ export class BudgetTemplateController {
     @User() user: AuthenticatedUser,
     @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<_BudgetTemplateResponse> {
-    return this.budgetTemplateService.update(
+    return this.updateTemplateUseCase.execute(
       id,
       updateTemplateDto,
       user,
@@ -264,7 +294,7 @@ export class BudgetTemplateController {
     @User() user: AuthenticatedUser,
     @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<TemplateLineListResponse> {
-    return this.budgetTemplateService.findTemplateLines(id, user, supabase);
+    return this.findTemplateLinesUseCase.execute(id, user, supabase);
   }
 
   @Post(':id/lines/bulk-operations')
@@ -299,7 +329,7 @@ export class BudgetTemplateController {
     @User() user: AuthenticatedUser,
     @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<_TemplateLinesBulkOperationsResponse> {
-    return this.budgetTemplateService.bulkOperationsTemplateLines(
+    return this.bulkTemplateLineOperationsUseCase.execute(
       templateId,
       bulkOperationsDto,
       user,
@@ -337,7 +367,7 @@ export class BudgetTemplateController {
     @User() user: AuthenticatedUser,
     @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<_TemplateLineResponse> {
-    return this.budgetTemplateService.createTemplateLine(
+    return this.createTemplateLineUseCase.execute(
       templateId,
       createLineDto,
       user,
@@ -379,7 +409,7 @@ export class BudgetTemplateController {
     @User() user: AuthenticatedUser,
     @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<_TemplateLineResponse> {
-    return this.budgetTemplateService.findTemplateLine(lineId, user, supabase);
+    return this.findTemplateLineUseCase.execute(lineId, user, supabase);
   }
 
   @Patch(':templateId/lines/:lineId')
@@ -421,7 +451,7 @@ export class BudgetTemplateController {
     @User() user: AuthenticatedUser,
     @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<_TemplateLineResponse> {
-    return this.budgetTemplateService.updateTemplateLine(
+    return this.updateTemplateLineUseCase.execute(
       lineId,
       updateLineDto,
       user,
@@ -463,11 +493,7 @@ export class BudgetTemplateController {
     @User() user: AuthenticatedUser,
     @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<_TemplateLineDeleteResponse> {
-    return this.budgetTemplateService.deleteTemplateLine(
-      lineId,
-      user,
-      supabase,
-    );
+    return this.deleteTemplateLineUseCase.execute(lineId, user, supabase);
   }
 
   @Delete(':id')
@@ -500,6 +526,6 @@ export class BudgetTemplateController {
     @User() user: AuthenticatedUser,
     @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<_BudgetTemplateDeleteResponse> {
-    return this.budgetTemplateService.remove(id, user, supabase);
+    return this.removeTemplateUseCase.execute(id, user, supabase);
   }
 }
