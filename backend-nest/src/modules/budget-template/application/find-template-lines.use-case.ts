@@ -1,0 +1,65 @@
+import { Inject, Injectable } from '@nestjs/common';
+import { type InfoLogger, InjectInfoLogger } from '@common/logger';
+import type { AuthenticatedUser } from '@common/decorators/user.decorator';
+import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
+import type { TemplateLineListResponse } from 'pulpe-shared';
+import { EncryptionService } from '@modules/encryption/encryption.service';
+import {
+  BUDGET_TEMPLATE_REPOSITORY,
+  type BudgetTemplateRepositoryPort,
+} from '../domain/ports/budget-template-repository.port';
+import { BudgetTemplateMapper } from '../infrastructure/mappers/budget-template.mapper';
+
+@Injectable()
+export class FindTemplateLinesUseCase {
+  constructor(
+    @Inject(BUDGET_TEMPLATE_REPOSITORY)
+    private readonly repo: BudgetTemplateRepositoryPort,
+    private readonly encryptionService: EncryptionService,
+    private readonly mapper: BudgetTemplateMapper,
+    @InjectInfoLogger(FindTemplateLinesUseCase.name)
+    private readonly logger: InfoLogger,
+  ) {}
+
+  async execute(
+    templateId: string,
+    user: AuthenticatedUser,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<TemplateLineListResponse> {
+    const startTime = Date.now();
+
+    await this.repo.validateAccess(templateId, user.id, supabase);
+    const lines = await this.repo.findLinesByTemplateId(templateId, supabase);
+
+    if (!lines.length) {
+      return {
+        success: true,
+        data: [],
+      };
+    }
+
+    const dek = await this.encryptionService.getUserDEK(
+      user.id,
+      user.clientKey,
+    );
+    const decryptedLines = lines.map((l) =>
+      this.mapper.decryptLine(l, this.encryptionService, dek),
+    );
+
+    this.logger.info(
+      {
+        operation: 'findTemplateLines',
+        userId: user.id,
+        entityId: templateId,
+        duration: Date.now() - startTime,
+        lineCount: decryptedLines.length,
+      },
+      'Template lines retrieved successfully',
+    );
+
+    return {
+      success: true,
+      data: this.mapper.toApiTemplateLineList(decryptedLines),
+    };
+  }
+}

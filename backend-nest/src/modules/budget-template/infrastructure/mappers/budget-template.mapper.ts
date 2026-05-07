@@ -8,6 +8,7 @@ import {
   type TemplateLineUpdate,
 } from 'pulpe-shared';
 import type { Tables, TablesInsert } from '../../../../types/database.types';
+import { EncryptionService } from '@modules/encryption/encryption.service';
 import {
   mapCurrencyMetadataToApi,
   mapCurrencyMetadataToDb,
@@ -115,16 +116,17 @@ export class BudgetTemplateMapper {
 
   decryptLine(
     line: Tables<'template_line'>,
-    decryptFn: (ciphertext: string | null, fallback: number) => number,
-    decryptOptionalFn: (
-      ciphertext: string | null,
-      fallback: null,
-    ) => number | null,
+    encryptionService: EncryptionService,
+    dek: Buffer,
   ): DecryptedTemplateLineRow {
     return {
       ...line,
-      amount: decryptFn(line.amount, 0),
-      original_amount: decryptOptionalFn(line.original_amount, null),
+      amount: line.amount
+        ? encryptionService.tryDecryptAmount(line.amount, dek, 0)
+        : 0,
+      original_amount: line.original_amount
+        ? encryptionService.tryDecryptAmount(line.original_amount, dek, null)
+        : null,
     };
   }
 }
