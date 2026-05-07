@@ -8,7 +8,7 @@ const boundariesPlugin = require('eslint-plugin-boundaries');
 
 module.exports = tseslint.config(
   {
-    ignores: ['dist/**', 'node_modules/**', '**/*.js', '**/*.d.ts'],
+    ignores: ['dist/**', 'node_modules/**', '**/*.js', '**/*.cjs', '**/*.d.ts'],
   },
   eslint.configs.recommended,
   ...tseslint.configs.recommended,

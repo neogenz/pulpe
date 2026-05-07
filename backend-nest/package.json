@@ -40,7 +40,9 @@
     "format:check": "prettier --check .",
     "type-check:full": "bunx tsc --project tsconfig.full-check.json --noEmit",
     "quality": "bun run type-check:full && bun run lint && bun run format:check",
-    "quality:fix": "bun run type-check:full && bun run lint:fix && bun run format"
+    "quality:fix": "bun run type-check:full && bun run lint:fix && bun run format",
+    "lint:arch": "bunx depcruise --validate src/",
+    "lint:arch:graph": "bunx depcruise --validate src/ --output-type dot | dot -Tsvg > docs/architecture-graph.svg"
   },
   "keywords": [],
   "author": "",
@@ -88,6 +90,7 @@
     "@typescript-eslint/eslint-plugin": "^8.15.0",
     "@typescript-eslint/parser": "^8.15.0",
     "bun-types": "^1.2.17",
+    "dependency-cruiser": "^17.4.0",
     "eslint": "^9.0.0",
     "eslint-config-prettier": "^10.1.5",
     "eslint-plugin-boundaries": "^4.2.2",
