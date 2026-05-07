@@ -9,7 +9,6 @@ import {
   transactionSearchResponseSchema,
 } from 'pulpe-shared';
 
-// DTOs pour la documentation Swagger basés sur les schémas Zod partagés
 export class TransactionCreateDto extends createZodDto(
   transactionCreateSchema,
 ) {}
@@ -26,7 +25,6 @@ export class TransactionDeleteResponseDto extends createZodDto(
   transactionDeleteResponseSchema,
 ) {}
 
-// Search DTOs
 const searchQuerySchema = z.object({
   q: z.string().min(2).max(100),
 });

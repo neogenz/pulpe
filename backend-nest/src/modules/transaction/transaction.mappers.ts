@@ -1,6 +1,6 @@
 import { type Transaction } from 'pulpe-shared';
 import { mapCurrencyMetadataToApi } from '@common/utils/currency-metadata.mapper';
-import { type TransactionRow } from './entities/transaction.entity';
+import { type TransactionRow } from './domain/transaction.entity';
 
 /**
  * Transform database row (snake_case) to API entity (camelCase)

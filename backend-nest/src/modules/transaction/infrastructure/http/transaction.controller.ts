@@ -34,7 +34,6 @@ import {
   SupabaseClient,
   type AuthenticatedUser,
 } from '@common/decorators/user.decorator';
-import { TransactionService } from './transaction.service';
 import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
 import {
   TransactionCreateDto,
@@ -45,6 +44,15 @@ import {
   TransactionSearchResponseDto,
 } from './dto/transaction-swagger.dto';
 import { ErrorResponseDto } from '@common/dto/response.dto';
+import { FindAllTransactionsUseCase } from '../../application/find-all-transactions.use-case';
+import { FindTransactionUseCase } from '../../application/find-transaction.use-case';
+import { FindTransactionsByBudgetUseCase } from '../../application/find-transactions-by-budget.use-case';
+import { FindTransactionsByBudgetLineUseCase } from '../../application/find-transactions-by-budget-line.use-case';
+import { CreateTransactionUseCase } from '../../application/create-transaction.use-case';
+import { UpdateTransactionUseCase } from '../../application/update-transaction.use-case';
+import { RemoveTransactionUseCase } from '../../application/remove-transaction.use-case';
+import { ToggleTransactionCheckUseCase } from '../../application/toggle-transaction-check.use-case';
+import { SearchTransactionsUseCase } from '../../application/search-transactions.use-case';
 
 @ApiTags('Transactions')
 @ApiBearerAuth()
@@ -59,7 +67,18 @@ import { ErrorResponseDto } from '@common/dto/response.dto';
   type: ErrorResponseDto,
 })
 export class TransactionController {
-  constructor(private readonly transactionService: TransactionService) {}
+  // eslint-disable-next-line max-params
+  constructor(
+    private readonly findAllUseCase: FindAllTransactionsUseCase,
+    private readonly findOneUseCase: FindTransactionUseCase,
+    private readonly findByBudgetUseCase: FindTransactionsByBudgetUseCase,
+    private readonly findByBudgetLineUseCase: FindTransactionsByBudgetLineUseCase,
+    private readonly createUseCase: CreateTransactionUseCase,
+    private readonly updateUseCase: UpdateTransactionUseCase,
+    private readonly removeUseCase: RemoveTransactionUseCase,
+    private readonly toggleCheckUseCase: ToggleTransactionCheckUseCase,
+    private readonly searchUseCase: SearchTransactionsUseCase,
+  ) {}
 
   @Get('budget/:budgetId')
   @ApiOperation({ summary: "Liste toutes les transactions d'un budget" })
@@ -78,7 +97,7 @@ export class TransactionController {
     @User() user: AuthenticatedUser,
     @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<TransactionListResponse> {
-    return this.transactionService.findByBudgetId(budgetId, user, supabase);
+    return this.findByBudgetUseCase.execute(budgetId, user, supabase);
   }
 
   @Get('budget-line/:budgetLineId')
@@ -100,11 +119,7 @@ export class TransactionController {
     @User() user: AuthenticatedUser,
     @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<TransactionListResponse> {
-    return this.transactionService.findByBudgetLineId(
-      budgetLineId,
-      user,
-      supabase,
-    );
+    return this.findByBudgetLineUseCase.execute(budgetLineId, user, supabase);
   }
 
   @Get('search')
@@ -148,17 +163,8 @@ export class TransactionController {
       );
     }
 
-    const years = this.#parseYearsParam(yearsParam);
-    return this.transactionService.search(query, user, supabase, years);
-  }
-
-  #parseYearsParam(yearsParam: string | string[] | undefined): number[] {
-    if (!yearsParam) return [];
-    const arr = Array.isArray(yearsParam) ? yearsParam : [yearsParam];
-    const maxYear = new Date().getFullYear() + 100;
-    return arr
-      .map((y) => parseInt(y, 10))
-      .filter((y) => !isNaN(y) && y >= 1900 && y <= maxYear);
+    const years = this.parseYearsParam(yearsParam);
+    return this.searchUseCase.execute(query, user, supabase, years);
   }
 
   @Post()
@@ -173,7 +179,7 @@ export class TransactionController {
     @User() user: AuthenticatedUser,
     @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<TransactionResponse> {
-    return this.transactionService.create(createTransactionDto, user, supabase);
+    return this.createUseCase.execute(createTransactionDto, user, supabase);
   }
 
   @Get(':id')
@@ -193,7 +199,7 @@ export class TransactionController {
     @User() user: AuthenticatedUser,
     @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<TransactionResponse> {
-    return this.transactionService.findOne(id, user, supabase);
+    return this.findOneUseCase.execute(id, user, supabase);
   }
 
   @Patch(':id')
@@ -224,12 +230,7 @@ export class TransactionController {
     @User() user: AuthenticatedUser,
     @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<TransactionResponse> {
-    return this.transactionService.update(
-      id,
-      updateTransactionDto,
-      user,
-      supabase,
-    );
+    return this.updateUseCase.execute(id, updateTransactionDto, user, supabase);
   }
 
   @Delete(':id')
@@ -253,7 +254,7 @@ export class TransactionController {
     @User() user: AuthenticatedUser,
     @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<TransactionDeleteResponse> {
-    return this.transactionService.remove(id, user, supabase);
+    return this.removeUseCase.execute(id, user, supabase);
   }
 
   @Post(':id/toggle-check')
@@ -281,6 +282,15 @@ export class TransactionController {
     @User() user: AuthenticatedUser,
     @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<TransactionResponse> {
-    return this.transactionService.toggleCheck(id, user, supabase);
+    return this.toggleCheckUseCase.execute(id, user, supabase);
+  }
+
+  private parseYearsParam(yearsParam: string | string[] | undefined): number[] {
+    if (!yearsParam) return [];
+    const arr = Array.isArray(yearsParam) ? yearsParam : [yearsParam];
+    const maxYear = new Date().getFullYear() + 100;
+    return arr
+      .map((y) => parseInt(y, 10))
+      .filter((y) => !isNaN(y) && y >= 1900 && y <= maxYear);
   }
 }
