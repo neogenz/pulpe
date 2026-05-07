@@ -1,9 +1,8 @@
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
-import { Injectable, HttpException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 import { BusinessException } from '@common/exceptions/business.exception';
-import { handleServiceError } from '@common/utils/error-handler';
 import { mapCurrencyMetadataToDb } from '@common/utils/currency-metadata.mapper';
 import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 import { CacheService } from '@modules/cache/cache.service';
@@ -39,47 +38,35 @@ export class TransactionService {
     user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<TransactionListResponse> {
-    try {
-      const { data: transactionsDb, error } = await supabase
-        .from('transaction')
-        .select('*')
-        .order('created_at', { ascending: false });
+    const { data: transactionsDb, error } = await supabase
+      .from('transaction')
+      .select('*')
+      .order('created_at', { ascending: false });
 
-      if (error) {
-        throw new BusinessException(
-          ERROR_DEFINITIONS.TRANSACTION_FETCH_FAILED,
-          undefined,
-          {
-            operation: 'listTransactions',
-            entityType: 'transaction',
-            supabaseError: error,
-          },
-          { cause: error },
-        );
-      }
-
-      const decryptedTransactions = await this.decryptTransactions(
-        transactionsDb || [],
-        user.id,
-        user.clientKey,
-      );
-      const apiData = transactionMappers.toApiList(decryptedTransactions);
-
-      return {
-        success: true as const,
-        data: apiData,
-      } as TransactionListResponse;
-    } catch (error) {
-      handleServiceError(
-        error,
+    if (error) {
+      throw new BusinessException(
         ERROR_DEFINITIONS.TRANSACTION_FETCH_FAILED,
         undefined,
         {
           operation: 'listTransactions',
           entityType: 'transaction',
+          supabaseError: error,
         },
+        { cause: error },
       );
     }
+
+    const decryptedTransactions = await this.decryptTransactions(
+      transactionsDb || [],
+      user.id,
+      user.clientKey,
+    );
+    const apiData = transactionMappers.toApiList(decryptedTransactions);
+
+    return {
+      success: true as const,
+      data: apiData,
+    } as TransactionListResponse;
   }
 
   private validateCreateTransactionDto(
@@ -307,81 +294,66 @@ export class TransactionService {
     user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<TransactionResponse> {
-    try {
-      this.validateCreateTransactionDto(createTransactionDto);
+    this.validateCreateTransactionDto(createTransactionDto);
 
-      createTransactionDto =
-        await this.currencyService.overrideExchangeRate(createTransactionDto);
+    createTransactionDto =
+      await this.currencyService.overrideExchangeRate(createTransactionDto);
 
-      // Validate budget line allocation if provided
-      if (createTransactionDto.budgetLineId) {
-        await this.validateBudgetLineAllocation(
-          createTransactionDto.budgetLineId,
-          createTransactionDto.budgetId,
-          createTransactionDto.kind,
-          supabase,
-        );
-      }
-
-      const transactionData = this.prepareTransactionData(createTransactionDto);
-
-      const [{ amount }, encryptedOriginalAmount] = await Promise.all([
-        this.encryptionService.prepareAmountData(
-          createTransactionDto.amount,
-          user.id,
-          user.clientKey,
-        ),
-        this.encryptionService.encryptOptionalAmount(
-          createTransactionDto.originalAmount,
-          user.id,
-          user.clientKey,
-        ),
-      ]);
-
-      const dataWithEncryption = {
-        ...transactionData,
-        amount,
-        original_amount: encryptedOriginalAmount,
-      };
-
-      const transactionDb = await this.insertTransaction(
-        dataWithEncryption,
+    if (createTransactionDto.budgetLineId) {
+      await this.validateBudgetLineAllocation(
+        createTransactionDto.budgetLineId,
+        createTransactionDto.budgetId,
+        createTransactionDto.kind,
         supabase,
-        user.id,
-      );
-
-      await this.budgetService.recalculateBalances(
-        transactionDb.budget_id,
-        supabase,
-        user.clientKey,
-      );
-
-      // Decrypt for API response (needed in normal mode where amount is 0 in DB)
-      const decryptedTransaction = await this.decryptTransaction(
-        transactionDb,
-        user.id,
-        user.clientKey,
-      );
-      const apiData = transactionMappers.toApi(decryptedTransaction);
-
-      await this.cacheService.invalidateForUser(user.id);
-
-      return {
-        success: true,
-        data: apiData,
-      };
-    } catch (error) {
-      handleServiceError(
-        error,
-        ERROR_DEFINITIONS.TRANSACTION_CREATE_FAILED,
-        undefined,
-        {
-          operation: 'createTransaction',
-          userId: user.id,
-          entityType: 'transaction',
-        },
       );
     }
+
+    const transactionData = this.prepareTransactionData(createTransactionDto);
+
+    const [{ amount }, encryptedOriginalAmount] = await Promise.all([
+      this.encryptionService.prepareAmountData(
+        createTransactionDto.amount,
+        user.id,
+        user.clientKey,
+      ),
+      this.encryptionService.encryptOptionalAmount(
+        createTransactionDto.originalAmount,
+        user.id,
+        user.clientKey,
+      ),
+    ]);
+
+    const dataWithEncryption = {
+      ...transactionData,
+      amount,
+      original_amount: encryptedOriginalAmount,
+    };
+
+    const transactionDb = await this.insertTransaction(
+      dataWithEncryption,
+      supabase,
+      user.id,
+    );
+
+    await this.budgetService.recalculateBalances(
+      transactionDb.budget_id,
+      supabase,
+      user.clientKey,
+    );
+
+    const decryptedTransaction = await this.decryptTransaction(
+      transactionDb,
+      user.id,
+      user.clientKey,
+    );
+    const apiData = transactionMappers.toApi(decryptedTransaction);
+
+    await this.cacheService.invalidateForUser(user.id);
+
+    return {
+      success: true,
+      data: apiData,
+    };
   }
 
   async findOne(
@@ -389,22 +361,18 @@ export class TransactionService {
     user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<TransactionResponse> {
-    try {
-      const transactionDb = await this.fetchTransactionById(id, user, supabase);
-      const decryptedTransaction = await this.decryptTransaction(
-        transactionDb,
-        user.id,
-        user.clientKey,
-      );
-      const apiData = transactionMappers.toApi(decryptedTransaction);
+    const transactionDb = await this.fetchTransactionById(id, user, supabase);
+    const decryptedTransaction = await this.decryptTransaction(
+      transactionDb,
+      user.id,
+      user.clientKey,
+    );
+    const apiData = transactionMappers.toApi(decryptedTransaction);
 
-      return {
-        success: true,
-        data: apiData,
-      };
-    } catch (error) {
-      this.handleTransactionFindOneError(error, id, user);
-    }
+    return {
+      success: true,
+      data: apiData,
+    };
   }
 
   private async fetchTransactionById(
@@ -433,24 +401,6 @@ export class TransactionService {
     }
 
     return transactionDb;
-  }
-
-  private handleTransactionFindOneError(
-    error: unknown,
-    id: string,
-    user: AuthenticatedUser,
-  ): never {
-    handleServiceError(
-      error,
-      ERROR_DEFINITIONS.TRANSACTION_FETCH_FAILED,
-      undefined,
-      {
-        operation: 'getTransaction',
-        userId: user.id,
-        entityId: id,
-        entityType: 'transaction',
-      },
-    );
   }
 
   private validateUpdateTransactionDto(
@@ -552,74 +502,57 @@ export class TransactionService {
     user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<TransactionResponse> {
-    try {
-      this.validateUpdateTransactionDto(updateTransactionDto);
+    this.validateUpdateTransactionDto(updateTransactionDto);
 
-      updateTransactionDto =
-        await this.currencyService.overrideExchangeRate(updateTransactionDto);
+    updateTransactionDto =
+      await this.currencyService.overrideExchangeRate(updateTransactionDto);
 
-      const updateData =
-        this.prepareTransactionUpdateData(updateTransactionDto);
+    const updateData = this.prepareTransactionUpdateData(updateTransactionDto);
 
-      // If amount is being updated, prepare encrypted data
-      if (updateTransactionDto.amount !== undefined) {
-        const { amount } = await this.encryptionService.prepareAmountData(
-          updateTransactionDto.amount,
+    if (updateTransactionDto.amount !== undefined) {
+      const { amount } = await this.encryptionService.prepareAmountData(
+        updateTransactionDto.amount,
+        user.id,
+        user.clientKey,
+      );
+      updateData.amount = amount;
+    }
+
+    if (updateTransactionDto.originalAmount !== undefined) {
+      updateData.original_amount =
+        await this.encryptionService.encryptOptionalAmount(
+          updateTransactionDto.originalAmount,
           user.id,
           user.clientKey,
         );
-        updateData.amount = amount;
-      }
-
-      if (updateTransactionDto.originalAmount !== undefined) {
-        updateData.original_amount =
-          await this.encryptionService.encryptOptionalAmount(
-            updateTransactionDto.originalAmount,
-            user.id,
-            user.clientKey,
-          );
-      }
-
-      const transactionDb = await this.updateTransactionInDb(
-        id,
-        updateData,
-        supabase,
-        user.id,
-      );
-
-      await this.budgetService.recalculateBalances(
-        transactionDb.budget_id,
-        supabase,
-        user.clientKey,
-      );
-
-      // Decrypt for API response (needed in normal mode where amount is 0 in DB)
-      const decryptedTransaction = await this.decryptTransaction(
-        transactionDb,
-        user.id,
-        user.clientKey,
-      );
-      const apiData = transactionMappers.toApi(decryptedTransaction);
-
-      await this.cacheService.invalidateForUser(user.id);
-
-      return {
-        success: true,
-        data: apiData,
-      };
-    } catch (error) {
-      handleServiceError(
-        error,
-        ERROR_DEFINITIONS.TRANSACTION_UPDATE_FAILED,
-        { id },
-        {
-          operation: 'updateTransaction',
-          userId: user.id,
-          entityId: id,
-          entityType: 'transaction',
-        },
-      );
     }
+
+    const transactionDb = await this.updateTransactionInDb(
+      id,
+      updateData,
+      supabase,
+      user.id,
+    );
+
+    await this.budgetService.recalculateBalances(
+      transactionDb.budget_id,
+      supabase,
+      user.clientKey,
+    );
+
+    const decryptedTransaction = await this.decryptTransaction(
+      transactionDb,
+      user.id,
+      user.clientKey,
+    );
+    const apiData = transactionMappers.toApi(decryptedTransaction);
+
+    await this.cacheService.invalidateForUser(user.id);
+
+    return {
+      success: true,
+      data: apiData,
+    };
   }
 
   async remove(
@@ -629,34 +562,30 @@ export class TransactionService {
   ): Promise<TransactionDeleteResponse> {
     const startTime = Date.now();
 
-    try {
-      const { data: transaction } = await supabase
-        .from('transaction')
-        .select('budget_id')
-        .eq('id', id)
-        .single();
+    const { data: transaction } = await supabase
+      .from('transaction')
+      .select('budget_id')
+      .eq('id', id)
+      .single();
 
-      await this.performTransactionDeletion(id, supabase);
+    await this.performTransactionDeletion(id, supabase);
 
-      if (transaction?.budget_id) {
-        await this.budgetService.recalculateBalances(
-          transaction.budget_id,
-          supabase,
-          user.clientKey,
-        );
-      }
-
-      this.logTransactionDeletionSuccess(user.id, id, startTime);
-
-      await this.cacheService.invalidateForUser(user.id);
-
-      return {
-        success: true,
-        message: 'Transaction deleted successfully',
-      };
-    } catch (error) {
-      return this.handleTransactionDeletionError(error, user.id, id, startTime);
+    if (transaction?.budget_id) {
+      await this.budgetService.recalculateBalances(
+        transaction.budget_id,
+        supabase,
+        user.clientKey,
+      );
     }
+
+    this.logTransactionDeletionSuccess(user.id, id, startTime);
+
+    await this.cacheService.invalidateForUser(user.id);
+
+    return {
+      success: true,
+      message: 'Transaction deleted successfully',
+    };
   }
 
   private async performTransactionDeletion(
@@ -697,81 +626,42 @@ export class TransactionService {
     );
   }
 
-  private handleTransactionDeletionError(
-    error: unknown,
-    userId: string,
-    entityId: string,
-    _startTime: number,
-  ): never {
-    // Use the error handler for consistency (it will re-throw known exceptions)
-    if (error instanceof BusinessException || error instanceof HttpException) {
-      throw error;
-    }
-
-    // Pattern "Log or Throw" - GlobalExceptionFilter handles logging
-    // Use error handler for the wrapping logic
-    handleServiceError(
-      error,
-      ERROR_DEFINITIONS.TRANSACTION_DELETE_FAILED,
-      { id: entityId },
-      {
-        operation: 'deleteTransaction',
-        userId,
-        entityId,
-        entityType: 'transaction',
-      },
-    );
-  }
-
   async findByBudgetId(
     budgetId: string,
     user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<TransactionListResponse> {
-    try {
-      const { data: transactionsDb, error } = await supabase
-        .from('transaction')
-        .select('*')
-        .eq('budget_id', budgetId)
-        .order('created_at', { ascending: false });
+    const { data: transactionsDb, error } = await supabase
+      .from('transaction')
+      .select('*')
+      .eq('budget_id', budgetId)
+      .order('created_at', { ascending: false });
 
-      if (error) {
-        throw new BusinessException(
-          ERROR_DEFINITIONS.TRANSACTION_FETCH_FAILED,
-          undefined,
-          {
-            operation: 'listTransactionsByBudget',
-            entityId: budgetId,
-            entityType: 'budget',
-            supabaseError: error,
-          },
-          { cause: error },
-        );
-      }
-
-      const decryptedTransactions = await this.decryptTransactions(
-        transactionsDb || [],
-        user.id,
-        user.clientKey,
-      );
-      const apiData = transactionMappers.toApiList(decryptedTransactions);
-
-      return {
-        success: true as const,
-        data: apiData,
-      } as TransactionListResponse;
-    } catch (error) {
-      handleServiceError(
-        error,
+    if (error) {
+      throw new BusinessException(
         ERROR_DEFINITIONS.TRANSACTION_FETCH_FAILED,
         undefined,
         {
           operation: 'listTransactionsByBudget',
           entityId: budgetId,
           entityType: 'budget',
+          supabaseError: error,
         },
+        { cause: error },
       );
     }
+
+    const decryptedTransactions = await this.decryptTransactions(
+      transactionsDb || [],
+      user.id,
+      user.clientKey,
+    );
+    const apiData = transactionMappers.toApiList(decryptedTransactions);
+
+    return {
+      success: true as const,
+      data: apiData,
+    } as TransactionListResponse;
   }
 
   /**
@@ -811,52 +701,39 @@ export class TransactionService {
     user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<TransactionListResponse> {
-    try {
-      await this.validateBudgetLineExists(budgetLineId, supabase);
+    await this.validateBudgetLineExists(budgetLineId, supabase);
 
-      const { data: transactionsDb, error } = await supabase
-        .from('transaction')
-        .select('*')
-        .eq('budget_line_id', budgetLineId)
-        .order('transaction_date', { ascending: false });
+    const { data: transactionsDb, error } = await supabase
+      .from('transaction')
+      .select('*')
+      .eq('budget_line_id', budgetLineId)
+      .order('transaction_date', { ascending: false });
 
-      if (error) {
-        throw new BusinessException(
-          ERROR_DEFINITIONS.TRANSACTION_FETCH_FAILED,
-          undefined,
-          {
-            operation: 'listTransactionsByBudgetLine',
-            entityId: budgetLineId,
-            entityType: 'budget_line',
-            supabaseError: error,
-          },
-          { cause: error },
-        );
-      }
-
-      const decryptedTransactions = await this.decryptTransactions(
-        transactionsDb || [],
-        user.id,
-        user.clientKey,
-      );
-      const apiData = transactionMappers.toApiList(decryptedTransactions);
-
-      return {
-        success: true as const,
-        data: apiData,
-      } as TransactionListResponse;
-    } catch (error) {
-      handleServiceError(
-        error,
+    if (error) {
+      throw new BusinessException(
         ERROR_DEFINITIONS.TRANSACTION_FETCH_FAILED,
         undefined,
         {
           operation: 'listTransactionsByBudgetLine',
           entityId: budgetLineId,
           entityType: 'budget_line',
+          supabaseError: error,
         },
+        { cause: error },
       );
     }
+
+    const decryptedTransactions = await this.decryptTransactions(
+      transactionsDb || [],
+      user.id,
+      user.clientKey,
+    );
+    const apiData = transactionMappers.toApiList(decryptedTransactions);
+
+    return {
+      success: true as const,
+      data: apiData,
+    } as TransactionListResponse;
   }
 
   /**
@@ -872,58 +749,43 @@ export class TransactionService {
   ): Promise<TransactionResponse> {
     const startTime = Date.now();
 
-    try {
-      const transactionDb = await this.fetchTransactionById(id, user, supabase);
+    const transactionDb = await this.fetchTransactionById(id, user, supabase);
 
-      const newCheckedAt =
-        transactionDb.checked_at === null ? new Date().toISOString() : null;
+    const newCheckedAt =
+      transactionDb.checked_at === null ? new Date().toISOString() : null;
 
-      const updatedTransaction = await this.updateTransactionInDb(
-        id,
-        { checked_at: newCheckedAt, updated_at: new Date().toISOString() },
-        supabase,
-        user.id,
-      );
+    const updatedTransaction = await this.updateTransactionInDb(
+      id,
+      { checked_at: newCheckedAt, updated_at: new Date().toISOString() },
+      supabase,
+      user.id,
+    );
 
-      // Decrypt for API response (needed in normal mode where amount is 0 in DB)
-      const decryptedTransaction = await this.decryptTransaction(
-        updatedTransaction,
-        user.id,
-        user.clientKey,
-      );
-      const apiData = transactionMappers.toApi(decryptedTransaction);
+    const decryptedTransaction = await this.decryptTransaction(
+      updatedTransaction,
+      user.id,
+      user.clientKey,
+    );
+    const apiData = transactionMappers.toApi(decryptedTransaction);
 
-      this.logger.info(
-        {
-          operation: 'toggleTransactionCheck',
-          userId: user.id,
-          entityId: id,
-          entityType: 'transaction',
-          newCheckedAt,
-          duration: Date.now() - startTime,
-        },
-        'Transaction check state toggled successfully',
-      );
+    this.logger.info(
+      {
+        operation: 'toggleTransactionCheck',
+        userId: user.id,
+        entityId: id,
+        entityType: 'transaction',
+        newCheckedAt,
+        duration: Date.now() - startTime,
+      },
+      'Transaction check state toggled successfully',
+    );
 
-      await this.cacheService.invalidateForUser(user.id);
+    await this.cacheService.invalidateForUser(user.id);
 
-      return {
-        success: true,
-        data: apiData,
-      };
-    } catch (error) {
-      handleServiceError(
-        error,
-        ERROR_DEFINITIONS.TRANSACTION_UPDATE_FAILED,
-        { id },
-        {
-          operation: 'toggleTransactionCheck',
-          userId: user.id,
-          entityId: id,
-          entityType: 'transaction',
-        },
-      );
-    }
+    return {
+      success: true,
+      data: apiData,
+    };
   }
 
   /**
@@ -937,67 +799,55 @@ export class TransactionService {
     supabase: AuthenticatedSupabaseClient,
     years?: number[],
   ): Promise<TransactionSearchResponse> {
-    try {
-      const searchPattern = this.#buildSearchPattern(query);
+    const searchPattern = this.#buildSearchPattern(query);
 
-      const budgetIds = years?.length
-        ? await this.#fetchBudgetIdsByYears(years, supabase)
-        : undefined;
+    const budgetIds = years?.length
+      ? await this.#fetchBudgetIdsByYears(years, supabase)
+      : undefined;
 
-      if (years?.length && budgetIds?.length === 0) {
-        return { success: true, data: [] };
-      }
-
-      const [transactionsDb, budgetLinesDb] = await Promise.all([
-        this.#fetchTransactionsByPattern(searchPattern, budgetIds, supabase),
-        this.#fetchBudgetLinesByPattern(searchPattern, budgetIds, supabase),
-      ]);
-
-      const dek = await this.encryptionService.getUserDEK(
-        user.id,
-        user.clientKey,
-      );
-
-      const decryptedTransactions = transactionsDb.map((t) => {
-        if (!t.amount) return { ...t, amount: 0 };
-        return {
-          ...t,
-          amount: this.encryptionService.tryDecryptAmount(t.amount, dek, 0),
-        };
-      });
-
-      const decryptedBudgetLines = budgetLinesDb.map((bl) => {
-        if (!bl.amount) return { ...bl, amount: 0 };
-        return {
-          ...bl,
-          amount: this.encryptionService.tryDecryptAmount(bl.amount, dek, 0),
-        };
-      });
-
-      const allResults = [
-        ...decryptedTransactions.map((t) =>
-          this.#mapTransactionToSearchResult(t),
-        ),
-        ...decryptedBudgetLines.map((bl) =>
-          this.#mapBudgetLineToSearchResult(bl),
-        ),
-      ].sort((a, b) => b.year - a.year || b.month - a.month);
-
-      return {
-        success: true as const,
-        data: allResults.slice(0, 50),
-      };
-    } catch (error) {
-      handleServiceError(
-        error,
-        ERROR_DEFINITIONS.TRANSACTION_FETCH_FAILED,
-        undefined,
-        {
-          operation: 'search',
-          entityType: 'transaction',
-        },
-      );
+    if (years?.length && budgetIds?.length === 0) {
+      return { success: true, data: [] };
     }
+
+    const [transactionsDb, budgetLinesDb] = await Promise.all([
+      this.#fetchTransactionsByPattern(searchPattern, budgetIds, supabase),
+      this.#fetchBudgetLinesByPattern(searchPattern, budgetIds, supabase),
+    ]);
+
+    const dek = await this.encryptionService.getUserDEK(
+      user.id,
+      user.clientKey,
+    );
+
+    const decryptedTransactions = transactionsDb.map((t) => {
+      if (!t.amount) return { ...t, amount: 0 };
+      return {
+        ...t,
+        amount: this.encryptionService.tryDecryptAmount(t.amount, dek, 0),
+      };
+    });
+
+    const decryptedBudgetLines = budgetLinesDb.map((bl) => {
+      if (!bl.amount) return { ...bl, amount: 0 };
+      return {
+        ...bl,
+        amount: this.encryptionService.tryDecryptAmount(bl.amount, dek, 0),
+      };
+    });
+
+    const allResults = [
+      ...decryptedTransactions.map((t) =>
+        this.#mapTransactionToSearchResult(t),
+      ),
+      ...decryptedBudgetLines.map((bl) =>
+        this.#mapBudgetLineToSearchResult(bl),
+      ),
+    ].sort((a, b) => b.year - a.year || b.month - a.month);
+
+    return {
+      success: true as const,
+      data: allResults.slice(0, 50),
+    };
   }
 
   #buildSearchPattern(query: string): string {

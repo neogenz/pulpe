@@ -6,7 +6,6 @@ import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.ser
 import { Injectable } from '@nestjs/common';
 import { BusinessException } from '@common/exceptions/business.exception';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
-import { handleServiceError } from '@common/utils/error-handler';
 import { CacheService } from '@modules/cache/cache.service';
 import {
   type BudgetTemplateCreate,
@@ -123,32 +122,28 @@ export class BudgetTemplateService {
   ): Promise<BudgetTemplateListResponse> {
     const startTime = Date.now();
 
-    try {
-      const { data, error } = await supabase
-        .from('template')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
+    const { data, error } = await supabase
+      .from('template')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false });
 
-      if (error) throw error;
+    if (error) throw error;
 
-      this.logger.info(
-        {
-          operation: 'findAll',
-          userId: user.id,
-          duration: Date.now() - startTime,
-          count: data?.length || 0,
-        },
-        'Templates retrieved successfully',
-      );
+    this.logger.info(
+      {
+        operation: 'findAll',
+        userId: user.id,
+        duration: Date.now() - startTime,
+        count: data?.length || 0,
+      },
+      'Templates retrieved successfully',
+    );
 
-      return {
-        success: true,
-        data: budgetTemplateMappers.toApiTemplateList(data || []),
-      };
-    } catch (error) {
-      handleServiceError(error, ERROR_DEFINITIONS.TEMPLATE_FETCH_FAILED);
-    }
+    return {
+      success: true,
+      data: budgetTemplateMappers.toApiTemplateList(data || []),
+    };
   }
 
   async findOne(
@@ -158,37 +153,31 @@ export class BudgetTemplateService {
   ): Promise<BudgetTemplateResponse> {
     const startTime = Date.now();
 
-    try {
-      await this.validateTemplateAccess(id, user, supabase);
+    await this.validateTemplateAccess(id, user, supabase);
 
-      const { data, error } = await supabase
-        .from('template')
-        .select('*')
-        .eq('id', id)
-        .single();
+    const { data, error } = await supabase
+      .from('template')
+      .select('*')
+      .eq('id', id)
+      .single();
 
-      if (error || !data) {
-        throw new BusinessException(ERROR_DEFINITIONS.TEMPLATE_NOT_FOUND, {
-          id,
-        });
-      }
-
-      this.logger.info(
-        {
-          operation: 'findOne',
-          userId: user.id,
-          entityId: id,
-          duration: Date.now() - startTime,
-        },
-        'Template retrieved successfully',
-      );
-
-      return { success: true, data: budgetTemplateMappers.toApiTemplate(data) };
-    } catch (error) {
-      handleServiceError(error, ERROR_DEFINITIONS.TEMPLATE_FETCH_FAILED, {
+    if (error || !data) {
+      throw new BusinessException(ERROR_DEFINITIONS.TEMPLATE_NOT_FOUND, {
         id,
       });
     }
+
+    this.logger.info(
+      {
+        operation: 'findOne',
+        userId: user.id,
+        entityId: id,
+        duration: Date.now() - startTime,
+      },
+      'Template retrieved successfully',
+    );
+
+    return { success: true, data: budgetTemplateMappers.toApiTemplate(data) };
   }
 
   async create(
@@ -198,32 +187,27 @@ export class BudgetTemplateService {
   ): Promise<BudgetTemplateCreateResponse> {
     const startTime = Date.now();
 
-    try {
-      const validated = budgetTemplateCreateSchema.parse(createDto);
+    const validated = budgetTemplateCreateSchema.parse(createDto);
 
-      // Check template count limit
-      await this.validateTemplateLimit(user.id, supabase);
+    await this.validateTemplateLimit(user.id, supabase);
 
-      const result = await this.executeTemplateCreation(
-        validated,
-        user,
-        supabase,
-      );
+    const result = await this.executeTemplateCreation(
+      validated,
+      user,
+      supabase,
+    );
 
-      this.logger.info(
-        {
-          operation: 'create',
-          userId: user.id,
-          entityId: result.data.template.id,
-          duration: Date.now() - startTime,
-        },
-        'Template created successfully',
-      );
+    this.logger.info(
+      {
+        operation: 'create',
+        userId: user.id,
+        entityId: result.data.template.id,
+        duration: Date.now() - startTime,
+      },
+      'Template created successfully',
+    );
 
-      return result;
-    } catch (error) {
-      handleServiceError(error, ERROR_DEFINITIONS.TEMPLATE_CREATE_FAILED);
-    }
+    return result;
   }
 
   private async executeTemplateCreation(
@@ -339,32 +323,26 @@ export class BudgetTemplateService {
   ): Promise<BudgetTemplateResponse> {
     const startTime = Date.now();
 
-    try {
-      await this.validateTemplateAccess(id, user, supabase);
-      const validated = budgetTemplateUpdateSchema.parse(updateDto);
+    await this.validateTemplateAccess(id, user, supabase);
+    const validated = budgetTemplateUpdateSchema.parse(updateDto);
 
-      if (validated.isDefault) {
-        await this.resetDefaultTemplates(user.id, id, supabase);
-      }
-
-      const data = await this.performTemplateUpdate(id, validated, supabase);
-
-      this.logger.info(
-        {
-          operation: 'update',
-          userId: user.id,
-          entityId: id,
-          duration: Date.now() - startTime,
-        },
-        'Template updated successfully',
-      );
-
-      return { success: true, data: budgetTemplateMappers.toApiTemplate(data) };
-    } catch (error) {
-      handleServiceError(error, ERROR_DEFINITIONS.TEMPLATE_UPDATE_FAILED, {
-        id,
-      });
+    if (validated.isDefault) {
+      await this.resetDefaultTemplates(user.id, id, supabase);
     }
+
+    const data = await this.performTemplateUpdate(id, validated, supabase);
+
+    this.logger.info(
+      {
+        operation: 'update',
+        userId: user.id,
+        entityId: id,
+        duration: Date.now() - startTime,
+      },
+      'Template updated successfully',
+    );
+
+    return { success: true, data: budgetTemplateMappers.toApiTemplate(data) };
   }
 
   private async resetDefaultTemplates(
@@ -430,19 +408,13 @@ export class BudgetTemplateService {
   ): Promise<BudgetTemplateDeleteResponse> {
     const startTime = Date.now();
 
-    try {
-      await this.validateTemplateAccess(id, user, supabase);
-      await this.validateTemplateNotUsed(id, supabase);
-      await this.performTemplateDeletion(id, supabase);
+    await this.validateTemplateAccess(id, user, supabase);
+    await this.validateTemplateNotUsed(id, supabase);
+    await this.performTemplateDeletion(id, supabase);
 
-      this.logTemplateDeletionSuccess(user.id, id, startTime);
+    this.logTemplateDeletionSuccess(user.id, id, startTime);
 
-      return { success: true, message: 'Template deleted successfully' };
-    } catch (error) {
-      handleServiceError(error, ERROR_DEFINITIONS.TEMPLATE_DELETE_FAILED, {
-        id,
-      });
-    }
+    return { success: true, message: 'Template deleted successfully' };
   }
 
   async checkTemplateUsage(
@@ -464,18 +436,12 @@ export class BudgetTemplateService {
   }> {
     const startTime = Date.now();
 
-    try {
-      await this.validateTemplateAccess(id, user, supabase);
-      const budgets = await this.fetchTemplateBudgets(id, supabase);
+    await this.validateTemplateAccess(id, user, supabase);
+    const budgets = await this.fetchTemplateBudgets(id, supabase);
 
-      this.logTemplateUsageSuccess(user.id, id, startTime, budgets.length);
+    this.logTemplateUsageSuccess(user.id, id, startTime, budgets.length);
 
-      return this.buildTemplateUsageResponse(budgets);
-    } catch (error) {
-      handleServiceError(error, ERROR_DEFINITIONS.TEMPLATE_FETCH_FAILED, {
-        id,
-      });
-    }
+    return this.buildTemplateUsageResponse(budgets);
   }
 
   async createFromOnboarding(
@@ -485,33 +451,29 @@ export class BudgetTemplateService {
   ): Promise<BudgetTemplateCreateResponse> {
     const startTime = Date.now();
 
-    try {
-      const validated =
-        budgetTemplateCreateFromOnboardingSchema.parse(onboardingData);
+    const validated =
+      budgetTemplateCreateFromOnboardingSchema.parse(onboardingData);
 
-      await this.checkOnboardingRateLimit(user.id, supabase);
+    await this.checkOnboardingRateLimit(user.id, supabase);
 
-      const lines = this.buildOnboardingTemplateLines(validated);
-      const templateCreateDto: BudgetTemplateCreate = {
-        name: validated.name || 'Mois Standard',
-        description: validated.description,
-        isDefault: validated.isDefault,
-        lines,
-      };
+    const lines = this.buildOnboardingTemplateLines(validated);
+    const templateCreateDto: BudgetTemplateCreate = {
+      name: validated.name || 'Mois Standard',
+      description: validated.description,
+      isDefault: validated.isDefault,
+      lines,
+    };
 
-      this.logger.info(
-        {
-          operation: 'createFromOnboarding',
-          userId: user.id,
-          duration: Date.now() - startTime,
-        },
-        'Creating template from onboarding',
-      );
+    this.logger.info(
+      {
+        operation: 'createFromOnboarding',
+        userId: user.id,
+        duration: Date.now() - startTime,
+      },
+      'Creating template from onboarding',
+    );
 
-      return this.create(templateCreateDto, user, supabase);
-    } catch (error) {
-      handleServiceError(error, ERROR_DEFINITIONS.TEMPLATE_CREATE_FAILED);
-    }
+    return this.create(templateCreateDto, user, supabase);
   }
 
   private async checkOnboardingRateLimit(
@@ -627,35 +589,29 @@ export class BudgetTemplateService {
   ): Promise<TemplateLineListResponse> {
     const startTime = Date.now();
 
-    try {
-      await this.validateTemplateAccess(templateId, user, supabase);
-      const lines = await this.fetchTemplateLines(templateId, supabase);
-      const decryptedLines = await this.#decryptTemplateLines(
-        lines,
-        user.id,
-        user.clientKey,
-      );
+    await this.validateTemplateAccess(templateId, user, supabase);
+    const lines = await this.fetchTemplateLines(templateId, supabase);
+    const decryptedLines = await this.#decryptTemplateLines(
+      lines,
+      user.id,
+      user.clientKey,
+    );
 
-      this.logger.info(
-        {
-          operation: 'findTemplateLines',
-          userId: user.id,
-          entityId: templateId,
-          duration: Date.now() - startTime,
-          lineCount: decryptedLines.length,
-        },
-        'Template lines retrieved successfully',
-      );
+    this.logger.info(
+      {
+        operation: 'findTemplateLines',
+        userId: user.id,
+        entityId: templateId,
+        duration: Date.now() - startTime,
+        lineCount: decryptedLines.length,
+      },
+      'Template lines retrieved successfully',
+    );
 
-      return {
-        success: true,
-        data: budgetTemplateMappers.toApiTemplateLineList(decryptedLines),
-      };
-    } catch (error) {
-      handleServiceError(error, ERROR_DEFINITIONS.TEMPLATE_LINES_FETCH_FAILED, {
-        templateId,
-      });
-    }
+    return {
+      success: true,
+      data: budgetTemplateMappers.toApiTemplateLineList(decryptedLines),
+    };
   }
 
   private async fetchTemplateLines(
@@ -680,36 +636,30 @@ export class BudgetTemplateService {
   ): Promise<TemplateLineResponse> {
     const startTime = Date.now();
 
-    try {
-      const data = await this.executeTemplateLineCreation(
-        templateId,
-        createDto,
-        user,
-        supabase,
-      );
+    const data = await this.executeTemplateLineCreation(
+      templateId,
+      createDto,
+      user,
+      supabase,
+    );
 
-      this.logger.info(
-        {
-          operation: 'createTemplateLine',
-          userId: user.id,
-          entityId: templateId,
-          duration: Date.now() - startTime,
-          lineId: data.id,
-        },
-        'Template line created successfully',
-      );
+    this.logger.info(
+      {
+        operation: 'createTemplateLine',
+        userId: user.id,
+        entityId: templateId,
+        duration: Date.now() - startTime,
+        lineId: data.id,
+      },
+      'Template line created successfully',
+    );
 
-      const decryptedLine = await this.#decryptTemplateLineWithUser(data, user);
+    const decryptedLine = await this.#decryptTemplateLineWithUser(data, user);
 
-      return {
-        success: true,
-        data: budgetTemplateMappers.toApiTemplateLine(decryptedLine),
-      };
-    } catch (error) {
-      handleServiceError(error, ERROR_DEFINITIONS.TEMPLATE_LINE_CREATE_FAILED, {
-        templateId,
-      });
-    }
+    return {
+      success: true,
+      data: budgetTemplateMappers.toApiTemplateLine(decryptedLine),
+    };
   }
 
   private async executeTemplateLineCreation(
@@ -781,38 +731,32 @@ export class BudgetTemplateService {
   ): Promise<TemplateLineResponse> {
     const startTime = Date.now();
 
-    try {
-      const line = await this.fetchAndValidateTemplateLine(
-        templateLineId,
-        user,
-        supabase,
-      );
+    const line = await this.fetchAndValidateTemplateLine(
+      templateLineId,
+      user,
+      supabase,
+    );
 
-      const dek = await this.encryptionService.getUserDEK(
-        user.id,
-        user.clientKey,
-      );
-      const decryptedLine = await this.#decryptTemplateLine(line, dek);
+    const dek = await this.encryptionService.getUserDEK(
+      user.id,
+      user.clientKey,
+    );
+    const decryptedLine = await this.#decryptTemplateLine(line, dek);
 
-      this.logger.info(
-        {
-          operation: 'findTemplateLine',
-          userId: user.id,
-          entityId: templateLineId,
-          duration: Date.now() - startTime,
-        },
-        'Template line retrieved successfully',
-      );
+    this.logger.info(
+      {
+        operation: 'findTemplateLine',
+        userId: user.id,
+        entityId: templateLineId,
+        duration: Date.now() - startTime,
+      },
+      'Template line retrieved successfully',
+    );
 
-      return {
-        success: true,
-        data: budgetTemplateMappers.toApiTemplateLine(decryptedLine),
-      };
-    } catch (error) {
-      handleServiceError(error, ERROR_DEFINITIONS.TEMPLATE_LINE_FETCH_FAILED, {
-        id: templateLineId,
-      });
-    }
+    return {
+      success: true,
+      data: budgetTemplateMappers.toApiTemplateLine(decryptedLine),
+    };
   }
 
   private async fetchAndValidateTemplateLine(
@@ -852,38 +796,32 @@ export class BudgetTemplateService {
   ): Promise<TemplateLineResponse> {
     const startTime = Date.now();
 
-    try {
-      await this.validateTemplateLineAccess(templateLineId, user, supabase);
-      let validated = templateLineUpdateSchema.parse(updateDto);
+    await this.validateTemplateLineAccess(templateLineId, user, supabase);
+    let validated = templateLineUpdateSchema.parse(updateDto);
 
-      validated = await this.currencyService.overrideExchangeRate(validated);
+    validated = await this.currencyService.overrideExchangeRate(validated);
 
-      const data = await this.performTemplateLineUpdate(
-        templateLineId,
-        validated,
-        supabase,
-        user,
-      );
+    const data = await this.performTemplateLineUpdate(
+      templateLineId,
+      validated,
+      supabase,
+      user,
+    );
 
-      this.logTemplateLineSuccess(
-        'updateTemplateLine',
-        user.id,
-        templateLineId,
-        startTime,
-        'Template line updated successfully',
-      );
+    this.logTemplateLineSuccess(
+      'updateTemplateLine',
+      user.id,
+      templateLineId,
+      startTime,
+      'Template line updated successfully',
+    );
 
-      const decryptedLine = await this.#decryptTemplateLineWithUser(data, user);
+    const decryptedLine = await this.#decryptTemplateLineWithUser(data, user);
 
-      return {
-        success: true,
-        data: budgetTemplateMappers.toApiTemplateLine(decryptedLine),
-      };
-    } catch (error) {
-      handleServiceError(error, ERROR_DEFINITIONS.TEMPLATE_LINE_UPDATE_FAILED, {
-        id: templateLineId,
-      });
-    }
+    return {
+      success: true,
+      data: budgetTemplateMappers.toApiTemplateLine(decryptedLine),
+    };
   }
 
   private async validateTemplateLineAccess(
@@ -1045,41 +983,34 @@ export class BudgetTemplateService {
     supabase: AuthenticatedSupabaseClient,
   ): Promise<TemplateLinesBulkOperationsResponse> {
     const startTime = Date.now();
-    try {
-      const data = await this.executeBulkOperations(
-        templateId,
-        bulkOperationsDto,
-        user,
-        supabase,
-      );
-      this.logger.info(
-        {
-          operation: 'bulkOperationsTemplateLines',
-          userId: user.id,
-          entityId: templateId,
-          operationCount: {
-            create: bulkOperationsDto.create?.length || 0,
-            update: bulkOperationsDto.update?.length || 0,
-            delete: bulkOperationsDto.delete?.length || 0,
-          },
-          propagateToBudgets: bulkOperationsDto.propagateToBudgets,
-          propagationImpact: {
-            mode: data.data.propagation?.mode ?? 'template-only',
-            affectedBudgetsCount:
-              data.data.propagation?.affectedBudgetsCount ?? 0,
-          },
-          duration: Date.now() - startTime,
+
+    const data = await this.executeBulkOperations(
+      templateId,
+      bulkOperationsDto,
+      user,
+      supabase,
+    );
+    this.logger.info(
+      {
+        operation: 'bulkOperationsTemplateLines',
+        userId: user.id,
+        entityId: templateId,
+        operationCount: {
+          create: bulkOperationsDto.create?.length || 0,
+          update: bulkOperationsDto.update?.length || 0,
+          delete: bulkOperationsDto.delete?.length || 0,
         },
-        'Bulk operations on template lines completed successfully',
-      );
-      return data;
-    } catch (error) {
-      handleServiceError(
-        error,
-        ERROR_DEFINITIONS.TEMPLATE_LINES_BULK_OPERATIONS_FAILED,
-        { templateId },
-      );
-    }
+        propagateToBudgets: bulkOperationsDto.propagateToBudgets,
+        propagationImpact: {
+          mode: data.data.propagation?.mode ?? 'template-only',
+          affectedBudgetsCount:
+            data.data.propagation?.affectedBudgetsCount ?? 0,
+        },
+        duration: Date.now() - startTime,
+      },
+      'Bulk operations on template lines completed successfully',
+    );
+    return data;
   }
 
   private async executeBulkOperations(
@@ -1750,26 +1681,20 @@ export class BudgetTemplateService {
   ): Promise<TemplateLineDeleteResponse> {
     const startTime = Date.now();
 
-    try {
-      await this.validateTemplateLineAccess(templateLineId, user, supabase);
-      await this.performTemplateLineDelete(templateLineId, supabase);
+    await this.validateTemplateLineAccess(templateLineId, user, supabase);
+    await this.performTemplateLineDelete(templateLineId, supabase);
 
-      this.logger.info(
-        {
-          operation: 'deleteTemplateLine',
-          userId: user.id,
-          entityId: templateLineId,
-          duration: Date.now() - startTime,
-        },
-        'Template line deleted successfully',
-      );
+    this.logger.info(
+      {
+        operation: 'deleteTemplateLine',
+        userId: user.id,
+        entityId: templateLineId,
+        duration: Date.now() - startTime,
+      },
+      'Template line deleted successfully',
+    );
 
-      return { success: true, message: 'Template line deleted successfully' };
-    } catch (error) {
-      handleServiceError(error, ERROR_DEFINITIONS.TEMPLATE_LINE_DELETE_FAILED, {
-        id: templateLineId,
-      });
-    }
+    return { success: true, message: 'Template line deleted successfully' };
   }
 
   private async performTemplateLineDelete(

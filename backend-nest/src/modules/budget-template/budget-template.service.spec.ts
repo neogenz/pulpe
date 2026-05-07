@@ -953,7 +953,7 @@ describe('BudgetTemplateService - Simplified Tests', () => {
 
       await expect(
         service.findAll(mockUser, mockSupabase as any),
-      ).rejects.toThrow(BusinessException);
+      ).rejects.toThrow('Database error');
     });
   });
 
@@ -1214,7 +1214,7 @@ describe('BudgetTemplateService - Simplified Tests', () => {
 
       await expect(
         service.create(createDto, mockUser, mockSupabase as any),
-      ).rejects.toThrow(BusinessException);
+      ).rejects.toThrow();
     });
 
     it('should create default template when no existing default exists', async () => {
