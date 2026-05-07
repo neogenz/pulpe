@@ -649,6 +649,12 @@ public sealed class AesGcmEncryptionService : IEncryptionService
         }
     }
 
+    internal bool HasCachedDek(string userId, byte[] clientKey)
+    {
+        var cacheKey = GetCacheKey(userId, clientKey);
+        return _dekCache.TryGetValue(cacheKey, out var cached) && cached.Expiry > DateTimeOffset.UtcNow;
+    }
+
     private static string Base32Encode(byte[] data)
     {
         var sb = new StringBuilder();

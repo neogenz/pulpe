@@ -270,21 +270,20 @@ public class CurrencyServiceTests
     }
 
     [Fact]
-    public async Task BranchC_NoOriginalAmount_StillSetsRateAndCurrencies()
+    public async Task BranchC_NoOriginalAmount_Throws()
     {
-        _frankfurter.GetLatest(SupportedCurrency.EUR, SupportedCurrency.CHF, Arg.Any<CancellationToken>())
-            .Returns(new FrankfurterResponse("EUR", DateOnly.FromDateTime(DateTime.UtcNow),
-                new Dictionary<string, decimal> { ["CHF"] = 1.05m }));
-
         var svc = CreateService();
         var carrier = MakeCarrier(
             originalCurrency: SupportedCurrency.EUR,
             targetCurrency: SupportedCurrency.CHF);
 
-        var result = await svc.ComputeOverride(carrier);
+        var act = async () => await svc.ComputeOverride(carrier);
 
-        result.OriginalAmount.Should().BeNull();
-        result.ExchangeRate.Should().Be(1.05m);
+        await act.Should().ThrowAsync<BusinessException>()
+            .Where(ex => ex.Code == ErrorCodes.ValidationFailed);
+
+        await _frankfurter.DidNotReceive().GetLatest(
+            Arg.Any<SupportedCurrency>(), Arg.Any<SupportedCurrency>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -315,12 +314,91 @@ public class CurrencyServiceTests
 
         var svc = CreateService();
         var carrier = MakeCarrier(
+            originalAmount: 100m,
             originalCurrency: SupportedCurrency.EUR,
             targetCurrency: SupportedCurrency.CHF);
 
         var act = async () => await svc.ComputeOverride(carrier);
         await act.Should().ThrowAsync<BusinessException>()
             .Where(ex => ex.Code == ErrorCodes.CurrencyRateFetchFailed);
+    }
+
+    // ===== Branch A: unsupported currency =====
+
+    [Fact]
+    public async Task BranchA_SameCurrency_UnsupportedCurrency_Throws()
+    {
+        var svc = CreateService();
+        var unsupported = (SupportedCurrency)999;
+        var carrier = MakeCarrier(originalCurrency: unsupported, targetCurrency: unsupported);
+
+        var act = async () => await svc.ComputeOverride(carrier);
+
+        await act.Should().ThrowAsync<BusinessException>()
+            .Where(ex => ex.Code == ErrorCodes.CurrencyUnsupportedCurrency);
+
+        await _frankfurter.DidNotReceive().GetLatest(
+            Arg.Any<SupportedCurrency>(), Arg.Any<SupportedCurrency>(), Arg.Any<CancellationToken>());
+    }
+
+    // ===== Branch A: same-currency Frankfurter not called =====
+
+    [Fact]
+    public async Task BranchA_SameCurrency_FrankfurterNotCalled()
+    {
+        var svc = CreateService();
+        var carrier = MakeCarrier(
+            originalCurrency: SupportedCurrency.CHF,
+            targetCurrency: SupportedCurrency.CHF);
+
+        await svc.ComputeOverride(carrier);
+
+        await _frankfurter.DidNotReceive().GetLatest(
+            Arg.Any<SupportedCurrency>(), Arg.Any<SupportedCurrency>(), Arg.Any<CancellationToken>());
+    }
+
+    // ===== Branch B: target-only PATCH clears source FX =====
+
+    [Fact]
+    public async Task BranchB_PatchTargetCurrencyOnly_ClearsSourceFx()
+    {
+        var svc = CreateService();
+        // Simulate a PATCH that only sends targetCurrency (DB row was in state 3 with EUR→CHF)
+        var carrier = MakeCarrier(targetCurrency: SupportedCurrency.EUR);
+
+        var result = await svc.ComputeOverride(carrier);
+
+        result.OriginalAmount.Should().BeNull();
+        result.OriginalCurrency.Should().BeNull();
+        result.ExchangeRate.Should().BeNull();
+        result.TargetCurrency.Should().Be(SupportedCurrency.EUR);
+        result.OriginalAmountChanged.Should().BeTrue();
+        result.OriginalCurrencyChanged.Should().BeTrue();
+        result.TargetCurrencyChanged.Should().BeTrue();
+        result.ExchangeRateChanged.Should().BeTrue();
+
+        await _frankfurter.DidNotReceive().GetLatest(
+            Arg.Any<SupportedCurrency>(), Arg.Any<SupportedCurrency>(), Arg.Any<CancellationToken>());
+    }
+
+    // ===== Branch C: missing originalAmount guard =====
+
+    [Fact]
+    public async Task BranchC_FullFx_MissingOriginalAmount_ThrowsBeforeFrankfurterCall()
+    {
+        var svc = CreateService();
+        var carrier = MakeCarrier(
+            originalCurrency: SupportedCurrency.EUR,
+            targetCurrency: SupportedCurrency.CHF);
+        // OriginalAmount is null (default)
+
+        var act = async () => await svc.ComputeOverride(carrier);
+
+        await act.Should().ThrowAsync<BusinessException>()
+            .Where(ex => ex.Code == ErrorCodes.ValidationFailed);
+
+        await _frankfurter.DidNotReceive().GetLatest(
+            Arg.Any<SupportedCurrency>(), Arg.Any<SupportedCurrency>(), Arg.Any<CancellationToken>());
     }
 
     // ===== Helpers =====
