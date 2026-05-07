@@ -1,7 +1,7 @@
 using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
-using Pulpe.Infrastructure.Services.AccountDeletion;
+using Pulpe.Application.AccountDeletion;
 using Pulpe.Infrastructure.Supabase;
 using Pulpe.Api.Tests.Integration.Fixtures;
 

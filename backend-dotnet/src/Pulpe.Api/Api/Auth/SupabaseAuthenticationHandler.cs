@@ -11,18 +11,15 @@ namespace Pulpe.Api.Api.Auth;
 public class SupabaseAuthenticationHandler : AuthenticationHandler<AuthenticationSchemeOptions>
 {
     private readonly SupabaseAuthClient _authClient;
-    private readonly SupabaseClientFactory _clientFactory;
 
     public SupabaseAuthenticationHandler(
         IOptionsMonitor<AuthenticationSchemeOptions> options,
         ILoggerFactory logger,
         UrlEncoder encoder,
-        SupabaseAuthClient authClient,
-        SupabaseClientFactory clientFactory)
+        SupabaseAuthClient authClient)
         : base(options, logger, encoder)
     {
         _authClient = authClient;
-        _clientFactory = clientFactory;
     }
 
     protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
@@ -70,7 +67,6 @@ public class SupabaseAuthenticationHandler : AuthenticationHandler<Authenticatio
         };
 
         Context.Items["AuthenticatedUser"] = authenticatedUser;
-        Context.Items["SupabaseClient"] = _clientFactory.CreateAuthenticated(token);
 
         var claims = new[]
         {

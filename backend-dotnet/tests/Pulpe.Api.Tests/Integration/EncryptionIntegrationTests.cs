@@ -1,7 +1,10 @@
 using FluentAssertions;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using NSubstitute;
 using Pulpe.Domain.Encryption;
 using Pulpe.Infrastructure.Encryption;
+using Pulpe.Application.Common;
 
 namespace Pulpe.Api.Tests.Integration;
 
@@ -19,7 +22,9 @@ public sealed class EncryptionIntegrationTests
     private static AesGcmEncryptionService CreateSut(InMemoryEncryptionKeyRepository? repo = null)
     {
         var options = Options.Create(new EncryptionOptions { MasterKey = MasterKey });
-        return new AesGcmEncryptionService(options, repo ?? new InMemoryEncryptionKeyRepository());
+        var factory = Substitute.For<ISupabaseClientFactory>();
+        var logger = Substitute.For<ILogger<AesGcmEncryptionService>>();
+        return new AesGcmEncryptionService(options, repo ?? new InMemoryEncryptionKeyRepository(), factory, logger);
     }
 
     // --- DEK derivation consistency ---

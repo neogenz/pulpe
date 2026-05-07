@@ -1,12 +1,16 @@
+using Pulpe.Application.Common;
 using Pulpe.Domain.Encryption;
+using Supabase.Postgrest.Attributes;
+using Supabase.Postgrest.Models;
+using static Supabase.Postgrest.Constants;
 
 namespace Pulpe.Infrastructure.Supabase.Repositories;
 
 public sealed class EncryptionKeyRepository : IEncryptionKeyRepository
 {
-    private readonly SupabaseClientFactory _factory;
+    private readonly ISupabaseClientFactory _factory;
 
-    public EncryptionKeyRepository(SupabaseClientFactory factory)
+    public EncryptionKeyRepository(ISupabaseClientFactory factory)
     {
         _factory = factory;
     }
@@ -14,55 +18,50 @@ public sealed class EncryptionKeyRepository : IEncryptionKeyRepository
     public async Task<EncryptionKey?> GetByUserId(string userId)
     {
         // Always use service role to bypass RLS
-        var client = _factory.GetServiceRole();
-        var builder = client.From("user_encryption_key")
-            .Select("*")
-            .Eq("user_id", userId)
+        var client = _factory.CreateAdminClient();
+        var response = await client.Table<EncryptionKeyRow>()
+            .Filter("user_id", Operator.Equals, userId)
             .Single();
 
-        var response = await client.Execute<EncryptionKeyRow>(builder);
-        return response.Data is null ? null : MapToEncryptionKey(response.Data);
+        return response is null ? null : MapToEncryptionKey(response);
     }
 
     public async Task<string> UpsertSalt(string userId, string salt, int kdfIterations)
     {
-        var client = _factory.GetServiceRole();
-        var data = new
+        var client = _factory.CreateAdminClient();
+        var row = new EncryptionKeyRow
         {
-            user_id = userId,
-            salt,
-            kdf_iterations = kdfIterations,
-            updated_at = DateTimeOffset.UtcNow
+            UserId = Guid.Parse(userId),
+            Salt = salt,
+            KdfIterations = kdfIterations,
+            UpdatedAt = DateTimeOffset.UtcNow
         };
 
-        // INSERT — if row already exists, just ignore the conflict
-        var builder = client.From("user_encryption_key").Insert(data);
-        var response = await client.Execute<object>(builder);
+        await client.Table<EncryptionKeyRow>().Insert(row,
+            new global::Supabase.Postgrest.QueryOptions { DuplicateResolution = global::Supabase.Postgrest.QueryOptions.DuplicateResolutionType.IgnoreDuplicates });
 
-        // Conflict (409) or any error means the row already exists — that's fine
-        // Always read back the stored salt to get the winner's value
         var stored = await GetByUserId(userId);
         return stored?.Salt ?? salt;
     }
 
     public async Task UpdateKeyCheck(string userId, string keyCheck)
     {
-        var client = _factory.GetServiceRole();
-        var builder = client.From("user_encryption_key")
-            .Eq("user_id", userId)
-            .Update(new { key_check = keyCheck, updated_at = DateTimeOffset.UtcNow });
-
-        await client.Execute<object>(builder);
+        var client = _factory.CreateAdminClient();
+        await client.Table<EncryptionKeyRow>()
+            .Filter("user_id", Operator.Equals, userId)
+            .Set(r => r.KeyCheck, keyCheck)
+            .Set(r => r.UpdatedAt, DateTimeOffset.UtcNow)
+            .Update();
     }
 
     public async Task UpdateWrappedDek(string userId, string? wrappedDek)
     {
-        var client = _factory.GetServiceRole();
-        var builder = client.From("user_encryption_key")
-            .Eq("user_id", userId)
-            .Update(new { wrapped_dek = wrappedDek, updated_at = DateTimeOffset.UtcNow });
-
-        await client.Execute<object>(builder);
+        var client = _factory.CreateAdminClient();
+        await client.Table<EncryptionKeyRow>()
+            .Filter("user_id", Operator.Equals, userId)
+            .Set(r => r.WrappedDek, wrappedDek)
+            .Set(r => r.UpdatedAt, DateTimeOffset.UtcNow)
+            .Update();
     }
 
     public async Task<bool> HasWrappedDek(string userId)
@@ -73,7 +72,7 @@ public sealed class EncryptionKeyRepository : IEncryptionKeyRepository
 
     private static EncryptionKey MapToEncryptionKey(EncryptionKeyRow row) => new()
     {
-        UserId = Guid.Parse(row.UserId),
+        UserId = row.UserId,
         Salt = row.Salt ?? string.Empty,
         KdfIterations = row.KdfIterations,
         WrappedDek = row.WrappedDek,
@@ -82,14 +81,28 @@ public sealed class EncryptionKeyRepository : IEncryptionKeyRepository
         UpdatedAt = row.UpdatedAt
     };
 
-    private sealed class EncryptionKeyRow
+    [Table("user_encryption_key")]
+    private sealed class EncryptionKeyRow : BaseModel
     {
-        public string UserId { get; set; } = string.Empty;
+        [PrimaryKey("user_id", false)]
+        public Guid UserId { get; set; }
+
+        [Column("salt")]
         public string? Salt { get; set; }
+
+        [Column("kdf_iterations")]
         public int KdfIterations { get; set; } = 600_000;
+
+        [Column("wrapped_dek")]
         public string? WrappedDek { get; set; }
+
+        [Column("key_check")]
         public string? KeyCheck { get; set; }
+
+        [Column("created_at")]
         public DateTimeOffset CreatedAt { get; set; }
+
+        [Column("updated_at")]
         public DateTimeOffset UpdatedAt { get; set; }
     }
 }

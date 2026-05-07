@@ -1,9 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Pulpe.Api.Api.Auth;
-using Pulpe.Infrastructure.Services.BudgetLine;
+using Pulpe.Application.BudgetLine;
 using Pulpe.Application.BudgetLine.Dto;
-using Pulpe.Infrastructure.Supabase;
 
 namespace Pulpe.Api.Api.Controllers;
 
@@ -23,8 +22,7 @@ public class BudgetLinesController : ControllerBase
     public async Task<IActionResult> FindByBudget(Guid budgetId)
     {
         var user = HttpContext.GetUser();
-        var supabase = (SupabaseRestClient)HttpContext.GetSupabaseClient();
-        var result = await _budgetLineService.FindByBudgetAsync(budgetId, user, supabase);
+        var result = await _budgetLineService.FindByBudgetAsync(budgetId, user);
         return Ok(result);
     }
 
@@ -32,8 +30,7 @@ public class BudgetLinesController : ControllerBase
     public async Task<IActionResult> Create([FromBody] BudgetLineCreateDto dto)
     {
         var user = HttpContext.GetUser();
-        var supabase = (SupabaseRestClient)HttpContext.GetSupabaseClient();
-        var result = await _budgetLineService.CreateAsync(dto, user, supabase);
+        var result = await _budgetLineService.CreateAsync(dto, user);
         return Created(string.Empty, result);
     }
 
@@ -41,8 +38,7 @@ public class BudgetLinesController : ControllerBase
     public async Task<IActionResult> FindOne(Guid id)
     {
         var user = HttpContext.GetUser();
-        var supabase = (SupabaseRestClient)HttpContext.GetSupabaseClient();
-        var result = await _budgetLineService.FindOneAsync(id, user, supabase);
+        var result = await _budgetLineService.FindOneAsync(id, user);
         return Ok(result);
     }
 
@@ -50,8 +46,7 @@ public class BudgetLinesController : ControllerBase
     public async Task<IActionResult> Update(Guid id, [FromBody] BudgetLineUpdateDto dto)
     {
         var user = HttpContext.GetUser();
-        var supabase = (SupabaseRestClient)HttpContext.GetSupabaseClient();
-        var result = await _budgetLineService.UpdateAsync(id, dto, user, supabase);
+        var result = await _budgetLineService.UpdateAsync(id, dto, user);
         return Ok(result);
     }
 
@@ -59,8 +54,7 @@ public class BudgetLinesController : ControllerBase
     public async Task<IActionResult> ResetFromTemplate(Guid id)
     {
         var user = HttpContext.GetUser();
-        var supabase = (SupabaseRestClient)HttpContext.GetSupabaseClient();
-        var result = await _budgetLineService.ResetFromTemplateAsync(id, user, supabase);
+        var result = await _budgetLineService.ResetFromTemplateAsync(id, user);
         return Ok(result);
     }
 
@@ -68,8 +62,7 @@ public class BudgetLinesController : ControllerBase
     public async Task<IActionResult> ToggleCheck(Guid id)
     {
         var user = HttpContext.GetUser();
-        var supabase = (SupabaseRestClient)HttpContext.GetSupabaseClient();
-        var result = await _budgetLineService.ToggleCheckAsync(id, user, supabase);
+        var result = await _budgetLineService.ToggleCheckAsync(id, user);
         return Ok(result);
     }
 
@@ -77,8 +70,7 @@ public class BudgetLinesController : ControllerBase
     public async Task<IActionResult> CheckTransactions(Guid id)
     {
         var user = HttpContext.GetUser();
-        var supabase = (SupabaseRestClient)HttpContext.GetSupabaseClient();
-        var result = await _budgetLineService.CheckTransactionsAsync(id, user, supabase);
+        var result = await _budgetLineService.CheckTransactionsAsync(id, user);
         return Ok(result);
     }
 
@@ -86,8 +78,7 @@ public class BudgetLinesController : ControllerBase
     public async Task<IActionResult> Remove(Guid id)
     {
         var user = HttpContext.GetUser();
-        var supabase = (SupabaseRestClient)HttpContext.GetSupabaseClient();
-        var result = await _budgetLineService.RemoveAsync(id, user, supabase);
+        var result = await _budgetLineService.RemoveAsync(id, user);
         return Ok(result);
     }
 }

@@ -2,10 +2,11 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Options;
+using Pulpe.Application.Common;
 
 namespace Pulpe.Infrastructure.Supabase;
 
-public sealed class SupabaseAuthClient
+public sealed class SupabaseAuthClient : ISupabaseAuthClient
 {
     private readonly SupabaseOptions _options;
     private readonly IHttpClientFactory _httpClientFactory;

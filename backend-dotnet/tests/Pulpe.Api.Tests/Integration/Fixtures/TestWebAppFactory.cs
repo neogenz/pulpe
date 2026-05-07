@@ -1,5 +1,4 @@
 using System.Net.Http.Headers;
-using System.Reflection;
 using System.Security.Claims;
 using System.Text.Encodings.Web;
 using System.Threading.RateLimiting;
@@ -13,9 +12,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Pulpe.Infrastructure.Services.Encryption;
+using Pulpe.Application.Encryption;
 using Pulpe.Domain.User;
-using Pulpe.Infrastructure.Supabase;
 
 namespace Pulpe.Api.Tests.Integration.Fixtures;
 
@@ -110,10 +108,7 @@ internal sealed class TestAuthHandler : AuthenticationHandler<AuthenticationSche
         if (user is null)
             return Task.FromResult(AuthenticateResult.Fail("No test user set"));
 
-        // Inject user and a dummy SupabaseRestClient created via reflection (constructor is internal)
         Context.Items["AuthenticatedUser"] = user;
-        var supabaseClient = CreateDummySupabaseRestClient();
-        Context.Items["SupabaseClient"] = supabaseClient;
 
         var claims = new[]
         {
@@ -127,19 +122,6 @@ internal sealed class TestAuthHandler : AuthenticationHandler<AuthenticationSche
         return Task.FromResult(AuthenticateResult.Success(ticket));
     }
 
-    /// <summary>
-    /// Creates a SupabaseRestClient via reflection since its constructor is internal.
-    /// The fake service never invokes it; this only prevents InvalidCastException in controllers.
-    /// </summary>
-    private static SupabaseRestClient CreateDummySupabaseRestClient()
-    {
-        var ctor = typeof(SupabaseRestClient).GetConstructor(
-            BindingFlags.Instance | BindingFlags.NonPublic,
-            null,
-            [typeof(HttpClient), typeof(string), typeof(string), typeof(string)],
-            null)!;
-        return (SupabaseRestClient)ctor.Invoke([new HttpClient(), "http://localhost:54321", "dummy-token", "dummy-anon-key"]);
-    }
 }
 
 /// <summary>Fake IEncryptionAppService that returns canned responses without DB I/O.</summary>
@@ -160,9 +142,12 @@ internal sealed class FakeEncryptionAppService : IEncryptionAppService
     public Task<object> RegenerateRecoveryAsync(string userId, byte[] clientKey) =>
         Task.FromResult<object>(new { RecoveryKey = "EEEE-FFFF-GGGG-HHHH" });
 
-    public Task<object> RecoverAsync(string userId, string recoveryKey, string newClientKeyHex, SupabaseRestClient supabase) =>
+    public Task<object> RecoverAsync(string userId, string recoveryKey, string newClientKeyHex) =>
         Task.FromResult<object>(new { Success = true });
 
-    public Task<object> ChangePinAsync(string userId, string oldClientKeyHex, string newClientKeyHex, SupabaseRestClient supabase) =>
+    public Task<object> ChangePinAsync(string userId, string oldClientKeyHex, string newClientKeyHex) =>
         Task.FromResult<object>(new { KeyCheck = "check", RecoveryKey = "IIII-JJJJ" });
+
+    public Task VerifyRecoveryKeyAsync(string userId, string recoveryKey) =>
+        Task.CompletedTask;
 }

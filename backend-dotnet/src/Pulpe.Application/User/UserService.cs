@@ -1,14 +1,13 @@
 using Microsoft.Extensions.Logging;
-using Pulpe.Application.User;
 using Pulpe.Application.User.Dto;
 using Pulpe.Domain.User;
-using Pulpe.Infrastructure.Supabase;
+using Pulpe.Application.Common;
 
-namespace Pulpe.Infrastructure.Services.User;
+namespace Pulpe.Application.User;
 
 public sealed class UserService : IUserService
 {
-    private readonly SupabaseAuthClient _authClient;
+    private readonly ISupabaseAuthClient _authClient;
     private readonly ILogger<UserService> _logger;
 
     private static readonly System.Text.Json.JsonSerializerOptions JsonOptions = new()
@@ -17,7 +16,7 @@ public sealed class UserService : IUserService
         PropertyNameCaseInsensitive = true
     };
 
-    public UserService(SupabaseAuthClient authClient, ILogger<UserService> logger)
+    public UserService(ISupabaseAuthClient authClient, ILogger<UserService> logger)
     {
         _authClient = authClient;
         _logger = logger;

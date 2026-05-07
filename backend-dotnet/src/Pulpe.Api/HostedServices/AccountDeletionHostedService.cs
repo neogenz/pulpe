@@ -1,4 +1,4 @@
-using Pulpe.Infrastructure.Services.AccountDeletion;
+using Pulpe.Application.AccountDeletion;
 
 namespace Pulpe.Api.HostedServices;
 

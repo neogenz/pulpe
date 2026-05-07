@@ -64,9 +64,9 @@ public class BudgetValidatorTests
     public async Task ValidateNoDuplicatePeriod_NoDuplicate_DoesNotThrow()
     {
         var repo = Substitute.For<IBudgetRepository>();
-        repo.ExistsForPeriod(3, 2024, "user-1", Arg.Any<object>(), null).Returns(false);
+        repo.ExistsForPeriod(3, 2024, "user-1", null).Returns(false);
 
-        await _sut.Invoking(v => v.ValidateNoDuplicatePeriod(repo, new object(), "user-1", 3, 2024))
+        await _sut.Invoking(v => v.ValidateNoDuplicatePeriod(repo, "user-1", 3, 2024))
             .Should().NotThrowAsync();
     }
 
@@ -74,9 +74,9 @@ public class BudgetValidatorTests
     public async Task ValidateNoDuplicatePeriod_Duplicate_ThrowsConflict()
     {
         var repo = Substitute.For<IBudgetRepository>();
-        repo.ExistsForPeriod(3, 2024, "user-1", Arg.Any<object>(), null).Returns(true);
+        repo.ExistsForPeriod(3, 2024, "user-1", null).Returns(true);
 
-        await _sut.Invoking(v => v.ValidateNoDuplicatePeriod(repo, new object(), "user-1", 3, 2024))
+        await _sut.Invoking(v => v.ValidateNoDuplicatePeriod(repo, "user-1", 3, 2024))
             .Should().ThrowAsync<BusinessException>().Where(ex => ex.StatusCode == 409);
     }
 }

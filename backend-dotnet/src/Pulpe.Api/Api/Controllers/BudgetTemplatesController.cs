@@ -1,9 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Pulpe.Api.Api.Auth;
-using Pulpe.Infrastructure.Services.Template;
+using Pulpe.Application.Template;
 using Pulpe.Application.Template.Dto;
-using Pulpe.Infrastructure.Supabase;
 
 namespace Pulpe.Api.Api.Controllers;
 
@@ -23,8 +22,7 @@ public class BudgetTemplatesController : ControllerBase
     public async Task<IActionResult> FindAll()
     {
         var user = HttpContext.GetUser();
-        var supabase = (SupabaseRestClient)HttpContext.GetSupabaseClient();
-        var result = await _templateService.FindAllAsync(user, supabase);
+        var result = await _templateService.FindAllAsync(user);
         return Ok(result);
     }
 
@@ -32,8 +30,7 @@ public class BudgetTemplatesController : ControllerBase
     public async Task<IActionResult> Create([FromBody] BudgetTemplateCreateDto dto)
     {
         var user = HttpContext.GetUser();
-        var supabase = (SupabaseRestClient)HttpContext.GetSupabaseClient();
-        var result = await _templateService.CreateAsync(dto, user, supabase);
+        var result = await _templateService.CreateAsync(dto, user);
         return Created(string.Empty, result);
     }
 
@@ -41,8 +38,7 @@ public class BudgetTemplatesController : ControllerBase
     public async Task<IActionResult> CreateFromOnboarding([FromBody] BudgetTemplateCreateFromOnboardingDto dto)
     {
         var user = HttpContext.GetUser();
-        var supabase = (SupabaseRestClient)HttpContext.GetSupabaseClient();
-        var result = await _templateService.CreateFromOnboardingAsync(dto, user, supabase);
+        var result = await _templateService.CreateFromOnboardingAsync(dto, user);
         return Created(string.Empty, result);
     }
 
@@ -50,8 +46,7 @@ public class BudgetTemplatesController : ControllerBase
     public async Task<IActionResult> CheckUsage(Guid id)
     {
         var user = HttpContext.GetUser();
-        var supabase = (SupabaseRestClient)HttpContext.GetSupabaseClient();
-        var result = await _templateService.CheckUsageAsync(id, user, supabase);
+        var result = await _templateService.CheckUsageAsync(id, user);
         return Ok(result);
     }
 
@@ -59,8 +54,7 @@ public class BudgetTemplatesController : ControllerBase
     public async Task<IActionResult> FindOne(Guid id)
     {
         var user = HttpContext.GetUser();
-        var supabase = (SupabaseRestClient)HttpContext.GetSupabaseClient();
-        var result = await _templateService.FindOneAsync(id, user, supabase);
+        var result = await _templateService.FindOneAsync(id, user);
         return Ok(result);
     }
 
@@ -68,8 +62,7 @@ public class BudgetTemplatesController : ControllerBase
     public async Task<IActionResult> Update(Guid id, [FromBody] BudgetTemplateUpdateDto dto)
     {
         var user = HttpContext.GetUser();
-        var supabase = (SupabaseRestClient)HttpContext.GetSupabaseClient();
-        var result = await _templateService.UpdateAsync(id, dto, user, supabase);
+        var result = await _templateService.UpdateAsync(id, dto, user);
         return Ok(result);
     }
 
@@ -77,8 +70,7 @@ public class BudgetTemplatesController : ControllerBase
     public async Task<IActionResult> FindTemplateLines(Guid id)
     {
         var user = HttpContext.GetUser();
-        var supabase = (SupabaseRestClient)HttpContext.GetSupabaseClient();
-        var result = await _templateService.FindTemplateLinesAsync(id, user, supabase);
+        var result = await _templateService.FindTemplateLinesAsync(id, user);
         return Ok(result);
     }
 
@@ -86,8 +78,7 @@ public class BudgetTemplatesController : ControllerBase
     public async Task<IActionResult> BulkUpdateTemplateLines(Guid id, [FromBody] TemplateLinesBulkUpdateDto dto)
     {
         var user = HttpContext.GetUser();
-        var supabase = (SupabaseRestClient)HttpContext.GetSupabaseClient();
-        var result = await _templateService.BulkUpdateTemplateLinesAsync(id, dto, user, supabase);
+        var result = await _templateService.BulkUpdateTemplateLinesAsync(id, dto, user);
         return Ok(result);
     }
 
@@ -95,8 +86,7 @@ public class BudgetTemplatesController : ControllerBase
     public async Task<IActionResult> BulkOperationsTemplateLines(Guid id, [FromBody] TemplateLinesBulkOperationsDto dto)
     {
         var user = HttpContext.GetUser();
-        var supabase = (SupabaseRestClient)HttpContext.GetSupabaseClient();
-        var result = await _templateService.BulkOperationsTemplateLinesAsync(id, dto, user, supabase);
+        var result = await _templateService.BulkOperationsTemplateLinesAsync(id, dto, user);
         return Ok(result);
     }
 
@@ -104,8 +94,7 @@ public class BudgetTemplatesController : ControllerBase
     public async Task<IActionResult> CreateTemplateLine(Guid id, [FromBody] TemplateLineCreateDto dto)
     {
         var user = HttpContext.GetUser();
-        var supabase = (SupabaseRestClient)HttpContext.GetSupabaseClient();
-        var result = await _templateService.CreateTemplateLineAsync(id, dto, user, supabase);
+        var result = await _templateService.CreateTemplateLineAsync(id, dto, user);
         return Created(string.Empty, result);
     }
 
@@ -113,8 +102,7 @@ public class BudgetTemplatesController : ControllerBase
     public async Task<IActionResult> FindTemplateLine(Guid templateId, Guid lineId)
     {
         var user = HttpContext.GetUser();
-        var supabase = (SupabaseRestClient)HttpContext.GetSupabaseClient();
-        var result = await _templateService.FindTemplateLineAsync(lineId, user, supabase);
+        var result = await _templateService.FindTemplateLineAsync(lineId, user);
         return Ok(result);
     }
 
@@ -122,8 +110,7 @@ public class BudgetTemplatesController : ControllerBase
     public async Task<IActionResult> UpdateTemplateLine(Guid templateId, Guid lineId, [FromBody] TemplateLineUpdateDto dto)
     {
         var user = HttpContext.GetUser();
-        var supabase = (SupabaseRestClient)HttpContext.GetSupabaseClient();
-        var result = await _templateService.UpdateTemplateLineAsync(lineId, dto, user, supabase);
+        var result = await _templateService.UpdateTemplateLineAsync(lineId, dto, user);
         return Ok(result);
     }
 
@@ -131,8 +118,7 @@ public class BudgetTemplatesController : ControllerBase
     public async Task<IActionResult> DeleteTemplateLine(Guid templateId, Guid lineId)
     {
         var user = HttpContext.GetUser();
-        var supabase = (SupabaseRestClient)HttpContext.GetSupabaseClient();
-        var result = await _templateService.DeleteTemplateLineAsync(lineId, user, supabase);
+        var result = await _templateService.DeleteTemplateLineAsync(lineId, user);
         return Ok(result);
     }
 
@@ -140,8 +126,7 @@ public class BudgetTemplatesController : ControllerBase
     public async Task<IActionResult> Remove(Guid id)
     {
         var user = HttpContext.GetUser();
-        var supabase = (SupabaseRestClient)HttpContext.GetSupabaseClient();
-        var result = await _templateService.RemoveAsync(id, user, supabase);
+        var result = await _templateService.RemoveAsync(id, user);
         return Ok(result);
     }
 }

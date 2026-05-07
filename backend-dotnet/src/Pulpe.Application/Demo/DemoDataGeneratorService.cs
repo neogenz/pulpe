@@ -2,88 +2,89 @@ using Microsoft.Extensions.Logging;
 using Pulpe.Domain.Budget;
 using Pulpe.Domain.Common;
 using Pulpe.Domain.Encryption;
-using Pulpe.Infrastructure.Supabase;
+using Pulpe.Application.Common;
+using Supabase.Postgrest.Attributes;
+using Supabase.Postgrest.Models;
+using static Supabase.Postgrest.Constants;
+using PgClient = global::Supabase.Postgrest.Client;
 
-namespace Pulpe.Infrastructure.Services.Demo;
+namespace Pulpe.Application.Demo;
 
 public sealed class DemoDataGeneratorService
 {
     private readonly IEncryptionService _encryptionService;
+    private readonly ISupabaseClientFactory _clientFactory;
     private readonly ILogger<DemoDataGeneratorService> _logger;
 
-    // Fixed 32-byte demo key — same hex as NestJS DEMO_CLIENT_KEY_BUFFER
     public static readonly byte[] DemoClientKeyBuffer = Convert.FromHexString(
         "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef");
 
-    public DemoDataGeneratorService(IEncryptionService encryptionService, ILogger<DemoDataGeneratorService> logger)
+    public DemoDataGeneratorService(
+        IEncryptionService encryptionService,
+        ISupabaseClientFactory clientFactory,
+        ILogger<DemoDataGeneratorService> logger)
     {
         _encryptionService = encryptionService;
+        _clientFactory = clientFactory;
         _logger = logger;
     }
 
-    public async Task SeedDemoData(string userId, SupabaseRestClient supabase)
+    public async Task SeedDemoData(string userId)
     {
         _logger.LogInformation("Starting demo data generation for user {UserId}", userId);
 
+        var client = _clientFactory.CreateAdminClient();
         var dek = await _encryptionService.EnsureUserDek(userId, DemoClientKeyBuffer);
 
-        var templates = await CreateTemplates(userId, supabase);
+        var templates = await CreateTemplates(userId, client);
         _logger.LogInformation("Templates created for user {UserId}: {Count}", userId, templates.Count);
 
-        var templateLines = await CreateTemplateLines(templates, supabase, dek);
+        var templateLines = await CreateTemplateLines(templates, client, dek);
         _logger.LogInformation("Template lines created for user {UserId}: {Count}", userId, templateLines.Count);
 
-        var budgets = await CreateBudgets(userId, templates, supabase);
+        var budgets = await CreateBudgets(userId, templates, client);
         _logger.LogInformation("Budgets created for user {UserId}: {Count}", userId, budgets.Count);
 
-        var budgetLines = await CreateBudgetLines(budgets, templateLines, supabase, dek);
+        var budgetLines = await CreateBudgetLines(budgets, templateLines, client, dek);
         _logger.LogInformation("Budget lines created for user {UserId}: {Count}", userId, budgetLines.Count);
 
-        var transactions = await CreateTransactions(budgets, supabase, dek);
+        var transactions = await CreateTransactions(budgets, client, dek);
         _logger.LogInformation("Transactions created for user {UserId}: {Count}", userId, transactions.Count);
 
-        await RecalculateAllBudgetBalances(budgets, supabase, dek);
+        await RecalculateAllBudgetBalances(budgets, client, dek);
         _logger.LogInformation("Budget balances recalculated for user {UserId}", userId);
 
         _logger.LogInformation("Demo data generation completed for user {UserId}", userId);
     }
 
-    private static async Task<List<DemoTemplateRow>> CreateTemplates(string userId, SupabaseRestClient supabase)
+    private static async Task<List<DemoTemplateRow>> CreateTemplates(string userId, PgClient client)
     {
-        var payload = new[]
+        var rows = new List<DemoTemplateRow>
         {
-            new { user_id = userId, name = "Mois Standard", description = "Mon budget mensuel habituel avec toutes mes depenses recurrentes", is_default = true },
-            new { user_id = userId, name = "Mois Vacances", description = "Budget special pour les mois avec voyages et sorties supplementaires", is_default = false },
-            new { user_id = userId, name = "Mois Economies Renforcees", description = "Focus sur l'epargne avec reduction des depenses variables", is_default = false },
-            new { user_id = userId, name = "Mois de Fetes", description = "Budget adapte pour les periodes de fetes avec cadeaux et repas", is_default = false },
+            new() { UserId = userId, Name = "Mois Standard", Description = "Mon budget mensuel habituel avec toutes mes depenses recurrentes", IsDefault = true },
+            new() { UserId = userId, Name = "Mois Vacances", Description = "Budget special pour les mois avec voyages et sorties supplementaires", IsDefault = false },
+            new() { UserId = userId, Name = "Mois Economies Renforcees", Description = "Focus sur l'epargne avec reduction des depenses variables", IsDefault = false },
+            new() { UserId = userId, Name = "Mois de Fetes", Description = "Budget adapte pour les periodes de fetes avec cadeaux et repas", IsDefault = false },
         };
 
-        var builder = supabase.From("template").Insert(payload).Select();
-        var result = await supabase.Execute<List<DemoTemplateRow>>(builder);
-        if (result.Error is not null)
-            throw new InvalidOperationException($"Failed to create templates: {result.Error.Message}");
-
-        return result.Data ?? new List<DemoTemplateRow>();
+        var result = await client.Table<DemoTemplateRow>().Insert(rows);
+        return result.Models;
     }
 
     private async Task<List<DemoTemplateLineRow>> CreateTemplateLines(
-        List<DemoTemplateRow> templates, SupabaseRestClient supabase, byte[] dek)
+        List<DemoTemplateRow> templates, PgClient client, byte[] dek)
     {
-        var allLines = new List<object>();
-        allLines.AddRange(GetStandardMonthLines(templates[0].Id, dek));
-        allLines.AddRange(GetVacationMonthLines(templates[1].Id, dek));
-        allLines.AddRange(GetSavingsMonthLines(templates[2].Id, dek));
-        allLines.AddRange(GetHolidayMonthLines(templates[3].Id, dek));
+        var allLines = new List<DemoTemplateLineRow>();
+        allLines.AddRange(GetStandardMonthLines(templates[0].Id.ToString(), dek));
+        allLines.AddRange(GetVacationMonthLines(templates[1].Id.ToString(), dek));
+        allLines.AddRange(GetSavingsMonthLines(templates[2].Id.ToString(), dek));
+        allLines.AddRange(GetHolidayMonthLines(templates[3].Id.ToString(), dek));
 
-        var builder = supabase.From("template_line").Insert(allLines).Select();
-        var result = await supabase.Execute<List<DemoTemplateLineRow>>(builder);
-        if (result.Error is not null)
-            throw new InvalidOperationException($"Failed to create template lines: {result.Error.Message}");
-
-        return result.Data ?? new List<DemoTemplateLineRow>();
+        var result = await client.Table<DemoTemplateLineRow>().Insert(allLines);
+        return result.Models;
     }
 
-    private List<object> GetStandardMonthLines(string templateId, byte[] dek) =>
+    private List<DemoTemplateLineRow> GetStandardMonthLines(string templateId, byte[] dek) =>
     [
         Line(templateId, "Salaire net", 6500, "income", "fixed", dek),
         Line(templateId, "Freelance design", 800, "income", "one_off", dek),
@@ -108,7 +109,7 @@ public sealed class DemoDataGeneratorService
         Line(templateId, "Fonds d'urgence", 300, "saving", "fixed", dek),
     ];
 
-    private List<object> GetVacationMonthLines(string templateId, byte[] dek) =>
+    private List<DemoTemplateLineRow> GetVacationMonthLines(string templateId, byte[] dek) =>
     [
         Line(templateId, "Salaire net", 6500, "income", "fixed", dek),
         Line(templateId, "13eme salaire", 2500, "income", "one_off", dek),
@@ -123,7 +124,7 @@ public sealed class DemoDataGeneratorService
         Line(templateId, "3eme pilier", 580, "saving", "fixed", dek),
     ];
 
-    private List<object> GetSavingsMonthLines(string templateId, byte[] dek) =>
+    private List<DemoTemplateLineRow> GetSavingsMonthLines(string templateId, byte[] dek) =>
     [
         Line(templateId, "Salaire net", 6500, "income", "fixed", dek),
         Line(templateId, "Vente Anibis", 200, "income", "one_off", dek),
@@ -140,7 +141,7 @@ public sealed class DemoDataGeneratorService
         Line(templateId, "Fonds d'urgence", 400, "saving", "fixed", dek),
     ];
 
-    private List<object> GetHolidayMonthLines(string templateId, byte[] dek) =>
+    private List<DemoTemplateLineRow> GetHolidayMonthLines(string templateId, byte[] dek) =>
     [
         Line(templateId, "Salaire net", 6500, "income", "fixed", dek),
         Line(templateId, "Prime de fin d'annee", 3000, "income", "one_off", dek),
@@ -158,22 +159,22 @@ public sealed class DemoDataGeneratorService
         Line(templateId, "3eme pilier", 580, "saving", "fixed", dek),
     ];
 
-    private object Line(string templateId, string name, decimal amount, string kind, string recurrence, byte[] dek) =>
-        new
+    private DemoTemplateLineRow Line(string templateId, string name, decimal amount, string kind, string recurrence, byte[] dek) =>
+        new()
         {
-            template_id = templateId,
-            name,
-            amount = _encryptionService.EncryptAmount(amount, dek),
-            kind,
-            recurrence,
-            description = ""
+            TemplateId = templateId,
+            Name = name,
+            Amount = _encryptionService.EncryptAmount(amount, dek),
+            Kind = kind,
+            Recurrence = recurrence,
+            Description = string.Empty
         };
 
     private static async Task<List<DemoBudgetRow>> CreateBudgets(
-        string userId, List<DemoTemplateRow> templates, SupabaseRestClient supabase)
+        string userId, List<DemoTemplateRow> templates, PgClient client)
     {
         var currentDate = DateTime.UtcNow;
-        var budgets = new List<object>();
+        var budgets = new List<DemoBudgetRow>();
 
         for (var i = -6; i <= 5; i++)
         {
@@ -182,23 +183,18 @@ public sealed class DemoDataGeneratorService
             var year = date.Year;
             var (template, description) = SelectTemplateForMonth(month, templates);
 
-            budgets.Add(new
+            budgets.Add(new DemoBudgetRow
             {
-                user_id = userId,
-                month,
-                year,
-                description,
-                template_id = template.Id,
-                ending_balance = (string?)null
+                UserId = userId,
+                Month = month,
+                Year = year,
+                Description = description,
+                TemplateId = template.Id.ToString()
             });
         }
 
-        var builder = supabase.From("monthly_budget").Insert(budgets).Select();
-        var result = await supabase.Execute<List<DemoBudgetRow>>(builder);
-        if (result.Error is not null)
-            throw new InvalidOperationException($"Failed to create budgets: {result.Error.Message}");
-
-        return result.Data ?? new List<DemoBudgetRow>();
+        var result = await client.Table<DemoBudgetRow>().Insert(budgets);
+        return result.Models;
     }
 
     private static (DemoTemplateRow Template, string Description) SelectTemplateForMonth(int month, List<DemoTemplateRow> templates)
@@ -211,46 +207,41 @@ public sealed class DemoDataGeneratorService
 
     private async Task<List<DemoBudgetLineRow>> CreateBudgetLines(
         List<DemoBudgetRow> budgets, List<DemoTemplateLineRow> templateLines,
-        SupabaseRestClient supabase, byte[] dek)
+        PgClient client, byte[] dek)
     {
-        var linesToCreate = new List<object>();
+        var linesToCreate = new List<DemoBudgetLineRow>();
 
         foreach (var budget in budgets)
         {
-            var relevantLines = templateLines.Where(tl => tl.TemplateId == budget.TemplateId);
+            var relevantLines = templateLines.Where(tl => tl.TemplateId == budget.Id.ToString());
             foreach (var tl in relevantLines)
             {
                 var actualAmount = !string.IsNullOrEmpty(tl.Amount)
                     ? _encryptionService.DecryptAmount(tl.Amount, dek)
                     : 0m;
 
-                linesToCreate.Add(new
+                linesToCreate.Add(new DemoBudgetLineRow
                 {
-                    budget_id = budget.Id,
-                    template_line_id = tl.Id,
-                    name = tl.Name,
-                    amount = _encryptionService.EncryptAmount(actualAmount, dek),
-                    kind = tl.Kind,
-                    recurrence = tl.Recurrence,
-                    is_manually_adjusted = false,
-                    checked_at = (string?)null
+                    BudgetId = budget.Id.ToString(),
+                    TemplateLineId = tl.Id.ToString(),
+                    Name = tl.Name ?? string.Empty,
+                    Amount = _encryptionService.EncryptAmount(actualAmount, dek),
+                    Kind = tl.Kind ?? string.Empty,
+                    Recurrence = tl.Recurrence ?? string.Empty,
+                    IsManuallyAdjusted = false
                 });
             }
         }
 
-        var builder = supabase.From("budget_line").Insert(linesToCreate).Select();
-        var result = await supabase.Execute<List<DemoBudgetLineRow>>(builder);
-        if (result.Error is not null)
-            throw new InvalidOperationException($"Failed to create budget lines: {result.Error.Message}");
-
-        return result.Data ?? new List<DemoBudgetLineRow>();
+        var result = await client.Table<DemoBudgetLineRow>().Insert(linesToCreate);
+        return result.Models;
     }
 
     private async Task<List<DemoTransactionRow>> CreateTransactions(
-        List<DemoBudgetRow> budgets, SupabaseRestClient supabase, byte[] dek)
+        List<DemoBudgetRow> budgets, PgClient client, byte[] dek)
     {
         var currentDate = DateTime.UtcNow;
-        var transactionsToCreate = new List<object>();
+        var transactionsToCreate = new List<DemoTransactionRow>();
 
         foreach (var budget in budgets)
         {
@@ -270,120 +261,190 @@ public sealed class DemoDataGeneratorService
         }
 
         if (transactionsToCreate.Count == 0)
-            return new List<DemoTransactionRow>();
+            return [];
 
-        var builder = supabase.From("transaction").Insert(transactionsToCreate).Select();
-        var result = await supabase.Execute<List<DemoTransactionRow>>(builder);
-        if (result.Error is not null)
-            throw new InvalidOperationException($"Failed to create transactions: {result.Error.Message}");
-
-        return result.Data ?? new List<DemoTransactionRow>();
+        var result = await client.Table<DemoTransactionRow>().Insert(transactionsToCreate);
+        return result.Models;
     }
 
-    private object BuildTransaction(DemoBudgetRow budget, int day, string name, decimal amount, string category, byte[] dek) =>
-        new
+    private DemoTransactionRow BuildTransaction(DemoBudgetRow budget, int day, string name, decimal amount, string category, byte[] dek) =>
+        new()
         {
-            budget_id = budget.Id,
-            budget_line_id = (string?)null,
-            name,
-            amount = _encryptionService.EncryptAmount(amount, dek),
-            kind = "expense",
-            category,
-            transaction_date = new DateTime(budget.Year, budget.Month, day).ToString("O"),
-            checked_at = (string?)null
+            BudgetId = budget.Id.ToString(),
+            Name = name,
+            Amount = _encryptionService.EncryptAmount(amount, dek),
+            Kind = "expense",
+            Category = category,
+            TransactionDate = new DateTime(budget.Year, budget.Month, day).ToString("O")
         };
 
-    private async Task RecalculateAllBudgetBalances(List<DemoBudgetRow> budgets, SupabaseRestClient supabase, byte[] dek)
+    private async Task RecalculateAllBudgetBalances(
+        List<DemoBudgetRow> budgets, PgClient client, byte[] dek)
     {
         var sorted = budgets.OrderBy(b => b.Year).ThenBy(b => b.Month).ToList();
 
         foreach (var budget in sorted)
         {
-            var linesResult = await supabase.Execute<List<DemoBudgetLineRow>>(
-                supabase.From("budget_line").Select().Eq("budget_id", budget.Id));
+            var linesResponse = await client.Table<DemoBudgetLineRow>()
+                .Filter("budget_id", Operator.Equals, budget.Id.ToString())
+                .Get();
 
-            var txResult = await supabase.Execute<List<DemoTransactionRow>>(
-                supabase.From("transaction").Select().Eq("budget_id", budget.Id));
+            var txResponse = await client.Table<DemoTransactionRow>()
+                .Filter("budget_id", Operator.Equals, budget.Id.ToString())
+                .Get();
 
-            var lines = (linesResult.Data ?? new List<DemoBudgetLineRow>())
+            var lines = linesResponse.Models
                 .Select(l => new FinancialItemWithId(
-                    Guid.Parse(l.Id),
-                    l.Kind,
+                    Guid.TryParse(l.Id.ToString(), out var lineId) ? lineId : Guid.Empty,
+                    Enum.TryParse<TransactionKind>(l.Kind, true, out var lk) ? lk : TransactionKind.Expense,
                     string.IsNullOrEmpty(l.Amount) ? 0m : _encryptionService.DecryptAmount(l.Amount, dek)))
                 .ToList();
 
-            var txs = (txResult.Data ?? new List<DemoTransactionRow>())
+            var txs = txResponse.Models
                 .Select(t => new TransactionWithBudgetLineId(
-                    string.IsNullOrEmpty(t.BudgetLineId) ? null : Guid.Parse(t.BudgetLineId),
-                    t.Kind,
+                    string.IsNullOrEmpty(t.BudgetLineId) ? null : Guid.TryParse(t.BudgetLineId, out var tid) ? tid : (Guid?)null,
+                    Enum.TryParse<TransactionKind>(t.Kind, true, out var tk) ? tk : TransactionKind.Expense,
                     string.IsNullOrEmpty(t.Amount) ? 0m : _encryptionService.DecryptAmount(t.Amount, dek)))
                 .ToList();
 
             var metrics = BudgetFormulas.CalculateAllMetrics(lines, txs);
             var encryptedBalance = _encryptionService.EncryptAmount(metrics.EndingBalance, dek);
 
-            var updateBuilder = supabase.From("monthly_budget")
-                .Eq("id", budget.Id)
-                .Update(new { ending_balance = encryptedBalance });
-            await supabase.Execute<object>(updateBuilder);
+            await client.Table<DemoBudgetRow>()
+                .Filter("id", Operator.Equals, budget.Id.ToString())
+                .Set(r => r.EndingBalance, encryptedBalance)
+                .Update();
         }
     }
 
-    // Internal row types for Supabase deserialization
-    internal sealed class DemoTemplateRow
+    [Table("template")]
+    internal sealed class DemoTemplateRow : BaseModel
     {
-        public string Id { get; set; } = string.Empty;
+        [PrimaryKey("id", false)]
+        public Guid Id { get; set; }
+
+        [Column("user_id")]
         public string UserId { get; set; } = string.Empty;
+
+        [Column("name")]
         public string Name { get; set; } = string.Empty;
+
+        [Column("description")]
         public string? Description { get; set; }
+
+        [Column("is_default")]
         public bool IsDefault { get; set; }
     }
 
-    internal sealed class DemoTemplateLineRow
+    [Table("template_line")]
+    internal sealed class DemoTemplateLineRow : BaseModel
     {
-        public string Id { get; set; } = string.Empty;
+        [PrimaryKey("id", false)]
+        public Guid Id { get; set; }
+
+        [Column("template_id")]
         public string TemplateId { get; set; } = string.Empty;
-        public string Name { get; set; } = string.Empty;
+
+        [Column("name")]
+        public string? Name { get; set; }
+
+        [Column("amount")]
         public string? Amount { get; set; }
-        public TransactionKind Kind { get; set; }
-        public TransactionRecurrence Recurrence { get; set; }
+
+        [Column("kind")]
+        public string? Kind { get; set; }
+
+        [Column("recurrence")]
+        public string? Recurrence { get; set; }
+
+        [Column("description")]
         public string? Description { get; set; }
     }
 
-    internal sealed class DemoBudgetRow
+    [Table("monthly_budget")]
+    internal sealed class DemoBudgetRow : BaseModel
     {
-        public string Id { get; set; } = string.Empty;
+        [PrimaryKey("id", false)]
+        public Guid Id { get; set; }
+
+        [Column("user_id")]
         public string UserId { get; set; } = string.Empty;
+
+        [Column("month")]
         public int Month { get; set; }
+
+        [Column("year")]
         public int Year { get; set; }
+
+        [Column("description")]
         public string? Description { get; set; }
+
+        [Column("template_id")]
         public string? TemplateId { get; set; }
+
+        [Column("ending_balance")]
         public string? EndingBalance { get; set; }
     }
 
-    internal sealed class DemoBudgetLineRow
+    [Table("budget_line")]
+    internal sealed class DemoBudgetLineRow : BaseModel
     {
-        public string Id { get; set; } = string.Empty;
+        [PrimaryKey("id", false)]
+        public Guid Id { get; set; }
+
+        [Column("budget_id")]
         public string BudgetId { get; set; } = string.Empty;
+
+        [Column("template_line_id")]
         public string? TemplateLineId { get; set; }
+
+        [Column("name")]
         public string Name { get; set; } = string.Empty;
+
+        [Column("amount")]
         public string? Amount { get; set; }
-        public TransactionKind Kind { get; set; }
-        public TransactionRecurrence Recurrence { get; set; }
+
+        [Column("kind")]
+        public string Kind { get; set; } = string.Empty;
+
+        [Column("recurrence")]
+        public string Recurrence { get; set; } = string.Empty;
+
+        [Column("is_manually_adjusted")]
         public bool IsManuallyAdjusted { get; set; }
+
+        [Column("checked_at")]
         public string? CheckedAt { get; set; }
     }
 
-    internal sealed class DemoTransactionRow
+    [Table("transaction")]
+    internal sealed class DemoTransactionRow : BaseModel
     {
-        public string Id { get; set; } = string.Empty;
+        [PrimaryKey("id", false)]
+        public Guid Id { get; set; }
+
+        [Column("budget_id")]
         public string BudgetId { get; set; } = string.Empty;
+
+        [Column("budget_line_id")]
         public string? BudgetLineId { get; set; }
+
+        [Column("name")]
         public string Name { get; set; } = string.Empty;
+
+        [Column("amount")]
         public string? Amount { get; set; }
-        public TransactionKind Kind { get; set; }
+
+        [Column("kind")]
+        public string Kind { get; set; } = string.Empty;
+
+        [Column("category")]
         public string? Category { get; set; }
+
+        [Column("transaction_date")]
         public string? TransactionDate { get; set; }
+
+        [Column("checked_at")]
         public string? CheckedAt { get; set; }
     }
 }

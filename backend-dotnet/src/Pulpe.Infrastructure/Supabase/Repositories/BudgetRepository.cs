@@ -1,162 +1,145 @@
-using System.Text.Json.Serialization;
+using Pulpe.Application.Common;
+using Newtonsoft.Json;
 using Pulpe.Domain.Budget;
 using Pulpe.Domain.Common;
+using Supabase.Postgrest.Attributes;
+using Supabase.Postgrest.Models;
+using static Supabase.Postgrest.Constants;
 
 namespace Pulpe.Infrastructure.Supabase.Repositories;
 
 public sealed class BudgetRepository : IBudgetRepository
 {
-    private readonly SupabaseClientFactory _factory;
+    private readonly ISupabaseClientFactory _factory;
 
-    public BudgetRepository(SupabaseClientFactory factory)
+    public BudgetRepository(ISupabaseClientFactory factory)
     {
         _factory = factory;
     }
 
-    public async Task<Budget?> FindById(Guid id, object supabaseClient)
+    public async Task<Budget?> FindById(Guid id)
     {
-        var client = CastClient(supabaseClient);
-        var builder = client.From("monthly_budget")
-            .Select("*")
-            .Eq("id", id.ToString())
+        var client = _factory.CreateUserClient();
+        var response = await client.Table<BudgetRow>()
+            .Filter("id", Operator.Equals, id.ToString())
             .Single();
 
-        var response = await client.Execute<BudgetRow>(builder);
-        return response.Data is null ? null : MapToBudget(response.Data);
+        return response is null ? null : MapToBudget(response);
     }
 
-    public async Task<List<Budget>> FindAll(string userId, object supabaseClient)
+    public async Task<List<Budget>> FindAll(string userId)
     {
-        var client = CastClient(supabaseClient);
-        var builder = client.From("monthly_budget")
-            .Select("*")
-            .Eq("user_id", userId)
-            .Order("year", ascending: false)
-            .Order("month", ascending: false);
+        var client = _factory.CreateUserClient();
+        var response = await client.Table<BudgetRow>()
+            .Filter("user_id", Operator.Equals, userId)
+            .Order("year", Ordering.Descending)
+            .Order("month", Ordering.Descending)
+            .Get();
 
-        var response = await client.Execute<List<BudgetRow>>(builder);
-        return response.Data?.Select(MapToBudget).ToList() ?? [];
+        return response.Models.Select(MapToBudget).ToList();
     }
 
-    public async Task<Budget> Create(object createDto, object supabaseClient)
+    public async Task<Budget> Create(object createDto)
     {
-        var client = CastClient(supabaseClient);
+        var client = _factory.CreateUserClient();
         var response = await client.Rpc<BudgetRow>("create_budget_from_template", createDto);
 
-        if (!response.IsSuccess || response.Data is null)
-        {
-            var code = response.Error?.Code;
-            if (code == "23505") throw new Domain.Common.BusinessException(ErrorCodes.BudgetAlreadyExists, "Budget already exists for this period", 409);
-            if (code == "P0001") throw new Domain.Common.BusinessException(ErrorCodes.BudgetCreateFailed, response.Error?.Message ?? "Failed to create budget");
-            throw new Domain.Common.BusinessException(ErrorCodes.BudgetCreateFailed, response.Error?.Message ?? "Failed to create budget");
-        }
+        if (response is null)
+            throw new Domain.Common.BusinessException(ErrorCodes.BudgetCreateFailed, "Failed to create budget");
 
-        return MapToBudget(response.Data);
+        return MapToBudget(response);
     }
 
-    public async Task<Budget> Update(Guid id, object updateDto, object supabaseClient)
+    public async Task<Budget> Update(Guid id, object updateDto)
     {
-        var client = CastClient(supabaseClient);
-        var builder = client.From("monthly_budget")
-            .Eq("id", id.ToString())
-            .Update(updateDto);
+        var client = _factory.CreateUserClient();
+        var dict = updateDto as Dictionary<string, object?> ?? ToDictionary(updateDto);
 
-        var response = await client.Execute<List<BudgetRow>>(builder);
-        var row = response.Data?.FirstOrDefault();
-        if (!response.IsSuccess || row is null)
-            throw new Domain.Common.BusinessException(ErrorCodes.BudgetUpdateFailed, response.Error?.Message ?? "Failed to update budget");
+        var table = client.Table<BudgetRow>().Filter("id", Operator.Equals, id.ToString());
+        if (dict.TryGetValue("description", out var desc)) table = table.Set(r => r.Description, desc as string);
+        if (dict.TryGetValue("month", out var month)) table = table.Set(r => r.Month, Convert.ToInt32(month));
+        if (dict.TryGetValue("year", out var year)) table = table.Set(r => r.Year, Convert.ToInt32(year));
+
+        var response = await table.Update();
+        var row = response.Models.FirstOrDefault()
+            ?? throw new Domain.Common.BusinessException(ErrorCodes.BudgetUpdateFailed, "Failed to update budget");
 
         return MapToBudget(row);
     }
 
-    public async Task Delete(Guid id, object supabaseClient)
+    public async Task Delete(Guid id)
     {
-        var client = CastClient(supabaseClient);
-        var builder = client.From("monthly_budget")
-            .Eq("id", id.ToString())
+        var client = _factory.CreateUserClient();
+        await client.Table<BudgetRow>()
+            .Filter("id", Operator.Equals, id.ToString())
             .Delete();
-
-        var response = await client.Execute<object>(builder);
-        if (!response.IsSuccess)
-            throw new Domain.Common.BusinessException(ErrorCodes.BudgetDeleteFailed, response.Error?.Message ?? "Failed to delete budget");
     }
 
-    public async Task<bool> HasBudgets(string userId, object supabaseClient)
+    public async Task<bool> HasBudgets(string userId)
     {
-        var client = CastClient(supabaseClient);
-        var builder = client.From("monthly_budget")
-            .Select("id")
-            .Eq("user_id", userId)
-            .Limit(1);
+        var client = _factory.CreateUserClient();
+        var response = await client.Table<BudgetRow>()
+            .Filter("user_id", Operator.Equals, userId)
+            .Limit(1)
+            .Get();
 
-        var response = await client.Execute<List<IdRow>>(builder);
-        return response.Data?.Count > 0;
+        return response.Models.Count > 0;
     }
 
-    public async Task<bool> ExistsForPeriod(int month, int year, string userId, object supabaseClient, Guid? excludeId = null)
+    public async Task<bool> ExistsForPeriod(int month, int year, string userId, Guid? excludeId = null)
     {
-        var client = CastClient(supabaseClient);
-        var builder = client.From("monthly_budget")
-            .Select("id")
-            .Eq("month", month.ToString())
-            .Eq("year", year.ToString())
-            .Eq("user_id", userId)
-            .Limit(1);
+        var client = _factory.CreateUserClient();
+        var query = client.Table<BudgetRow>()
+            .Filter("month", Operator.Equals, month.ToString())
+            .Filter("year", Operator.Equals, year.ToString())
+            .Filter("user_id", Operator.Equals, userId);
 
         if (excludeId.HasValue)
-            builder.Neq("id", excludeId.Value.ToString());
+            query = query.Filter("id", Operator.NotEqual, excludeId.Value.ToString());
 
-        var response = await client.Execute<List<IdRow>>(builder);
-        return response.Data?.Count > 0;
+        var response = await query.Limit(1).Get();
+        return response.Models.Count > 0;
     }
 
-    public async Task UpdateEndingBalance(Guid id, string encryptedBalance, object supabaseClient)
+    public async Task UpdateEndingBalance(Guid id, string encryptedBalance)
     {
-        var client = CastClient(supabaseClient);
-        var builder = client.From("monthly_budget")
-            .Eq("id", id.ToString())
-            .Update(new { ending_balance = encryptedBalance });
-
-        var response = await client.Execute<object>(builder);
-        if (!response.IsSuccess)
-            throw new Domain.Common.BusinessException(ErrorCodes.BudgetUpdateFailed, response.Error?.Message ?? "Failed to update ending balance");
+        var client = _factory.CreateUserClient();
+        await client.Table<BudgetRow>()
+            .Filter("id", Operator.Equals, id.ToString())
+            .Set(r => r.EndingBalance, encryptedBalance)
+            .Update();
     }
 
-    public async Task<List<BudgetLine>> FindLinesByBudgetId(Guid budgetId, object supabaseClient)
+    public async Task<List<BudgetLine>> FindLinesByBudgetId(Guid budgetId)
     {
-        var client = CastClient(supabaseClient);
-        var builder = client.From("budget_line")
-            .Select("*")
-            .Eq("budget_id", budgetId.ToString())
-            .Order("created_at", ascending: true);
+        var client = _factory.CreateUserClient();
+        var response = await client.Table<BudgetLineRow>()
+            .Filter("budget_id", Operator.Equals, budgetId.ToString())
+            .Order("created_at", Ordering.Ascending)
+            .Get();
 
-        var response = await client.Execute<List<BudgetLineRow>>(builder);
-        return response.Data?.Select(MapToBudgetLine).ToList() ?? [];
+        return response.Models.Select(MapToBudgetLine).ToList();
     }
-
-    private static SupabaseRestClient CastClient(object supabaseClient) =>
-        supabaseClient as SupabaseRestClient
-            ?? throw new ArgumentException("Expected SupabaseRestClient", nameof(supabaseClient));
 
     private static Budget MapToBudget(BudgetRow row) => new()
     {
-        Id = Guid.Parse(row.Id),
+        Id = row.Id,
         Month = row.Month,
         Year = row.Year,
         Description = row.Description ?? string.Empty,
         EndingBalance = row.EndingBalance,
-        TemplateId = row.TemplateId is not null ? Guid.Parse(row.TemplateId) : null,
-        UserId = Guid.Parse(row.UserId),
+        TemplateId = row.TemplateId == Guid.Empty ? null : row.TemplateId,
+        UserId = row.UserId,
         CreatedAt = row.CreatedAt,
         UpdatedAt = row.UpdatedAt
     };
 
     private static BudgetLine MapToBudgetLine(BudgetLineRow row) => new()
     {
-        Id = Guid.Parse(row.Id),
-        BudgetId = Guid.Parse(row.BudgetId),
-        TemplateLineId = row.TemplateLineId is not null ? Guid.Parse(row.TemplateLineId) : null,
-        SavingsGoalId = row.SavingsGoalId is not null ? Guid.Parse(row.SavingsGoalId) : null,
+        Id = row.Id,
+        BudgetId = row.BudgetId,
+        TemplateLineId = row.TemplateLineId == Guid.Empty ? null : row.TemplateLineId,
+        SavingsGoalId = row.SavingsGoalId == Guid.Empty ? null : row.SavingsGoalId,
         Name = row.Name ?? string.Empty,
         Amount = row.Amount ?? string.Empty,
         Recurrence = row.Recurrence,
@@ -167,37 +150,80 @@ public sealed class BudgetRepository : IBudgetRepository
         UpdatedAt = row.UpdatedAt
     };
 
-    private sealed class BudgetRow
+    private static Dictionary<string, object?> ToDictionary(object obj)
     {
-        public string Id { get; set; } = string.Empty;
+        var json = JsonConvert.SerializeObject(obj);
+        return JsonConvert.DeserializeObject<Dictionary<string, object?>>(json) ?? [];
+    }
+
+    [Table("monthly_budget")]
+    private sealed class BudgetRow : BaseModel
+    {
+        [PrimaryKey("id", false)]
+        public Guid Id { get; set; }
+
+        [Column("user_id")]
+        public Guid UserId { get; set; }
+
+        [Column("month")]
         public int Month { get; set; }
+
+        [Column("year")]
         public int Year { get; set; }
+
+        [Column("description")]
         public string? Description { get; set; }
+
+        [Column("ending_balance")]
         public string? EndingBalance { get; set; }
-        public string? TemplateId { get; set; }
-        public string UserId { get; set; } = string.Empty;
+
+        [Column("template_id")]
+        public Guid? TemplateId { get; set; }
+
+        [Column("created_at")]
         public DateTimeOffset CreatedAt { get; set; }
+
+        [Column("updated_at")]
         public DateTimeOffset UpdatedAt { get; set; }
     }
 
-    private sealed class BudgetLineRow
+    [Table("budget_line")]
+    private sealed class BudgetLineRow : BaseModel
     {
-        public string Id { get; set; } = string.Empty;
-        public string BudgetId { get; set; } = string.Empty;
-        public string? TemplateLineId { get; set; }
-        public string? SavingsGoalId { get; set; }
+        [PrimaryKey("id", false)]
+        public Guid Id { get; set; }
+
+        [Column("budget_id")]
+        public Guid BudgetId { get; set; }
+
+        [Column("template_line_id")]
+        public Guid? TemplateLineId { get; set; }
+
+        [Column("savings_goal_id")]
+        public Guid? SavingsGoalId { get; set; }
+
+        [Column("name")]
         public string? Name { get; set; }
-        public string? Amount { get; set; }
-        public TransactionRecurrence Recurrence { get; set; }
-        public TransactionKind Kind { get; set; }
-        public bool IsManuallyAdjusted { get; set; }
-        public DateTimeOffset? CheckedAt { get; set; }
-        public DateTimeOffset CreatedAt { get; set; }
-        public DateTimeOffset UpdatedAt { get; set; }
-    }
 
-    private sealed class IdRow
-    {
-        public string Id { get; set; } = string.Empty;
+        [Column("amount")]
+        public string? Amount { get; set; }
+
+        [Column("recurrence")]
+        public TransactionRecurrence Recurrence { get; set; }
+
+        [Column("kind")]
+        public TransactionKind Kind { get; set; }
+
+        [Column("is_manually_adjusted")]
+        public bool IsManuallyAdjusted { get; set; }
+
+        [Column("checked_at")]
+        public DateTimeOffset? CheckedAt { get; set; }
+
+        [Column("created_at")]
+        public DateTimeOffset CreatedAt { get; set; }
+
+        [Column("updated_at")]
+        public DateTimeOffset UpdatedAt { get; set; }
     }
 }

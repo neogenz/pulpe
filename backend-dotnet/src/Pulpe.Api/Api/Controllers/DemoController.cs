@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Pulpe.Application.Demo;
-using Pulpe.Infrastructure.Services.Demo;
 
 namespace Pulpe.Api.Api.Controllers;
 

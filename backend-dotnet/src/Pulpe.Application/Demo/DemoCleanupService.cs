@@ -1,15 +1,15 @@
 using Microsoft.Extensions.Logging;
-using Pulpe.Infrastructure.Supabase;
+using Pulpe.Application.Common;
 
-namespace Pulpe.Infrastructure.Services.Demo;
+namespace Pulpe.Application.Demo;
 
 public sealed class DemoCleanupService
 {
-    private readonly SupabaseAuthClient _authClient;
+    private readonly ISupabaseAuthClient _authClient;
     private readonly ILogger<DemoCleanupService> _logger;
     private const int PerPage = 1000;
 
-    public DemoCleanupService(SupabaseAuthClient authClient, ILogger<DemoCleanupService> logger)
+    public DemoCleanupService(ISupabaseAuthClient authClient, ILogger<DemoCleanupService> logger)
     {
         _authClient = authClient;
         _logger = logger;

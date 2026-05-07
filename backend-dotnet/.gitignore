@@ -1,0 +1,15 @@
+# .NET build output
+bin/
+obj/
+*.user
+
+# Rider / Visual Studio
+.vs/
+.idea/
+*.suo
+
+# Test output
+TestResults/
+*.trx
+*.coverage
+coverage.*.xml

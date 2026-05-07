@@ -1,9 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Pulpe.Api.Api.Auth;
-using Pulpe.Infrastructure.Services.Transaction;
+using Pulpe.Application.Transaction;
 using Pulpe.Application.Transaction.Dto;
-using Pulpe.Infrastructure.Supabase;
 
 namespace Pulpe.Api.Api.Controllers;
 
@@ -23,8 +22,7 @@ public class TransactionsController : ControllerBase
     public async Task<IActionResult> FindByBudget(Guid budgetId)
     {
         var user = HttpContext.GetUser();
-        var supabase = (SupabaseRestClient)HttpContext.GetSupabaseClient();
-        var result = await _transactionService.FindByBudgetAsync(budgetId, user, supabase);
+        var result = await _transactionService.FindByBudgetAsync(budgetId, user);
         return Ok(result);
     }
 
@@ -32,8 +30,7 @@ public class TransactionsController : ControllerBase
     public async Task<IActionResult> FindByBudgetLine(Guid budgetLineId)
     {
         var user = HttpContext.GetUser();
-        var supabase = (SupabaseRestClient)HttpContext.GetSupabaseClient();
-        var result = await _transactionService.FindByBudgetLineAsync(budgetLineId, user, supabase);
+        var result = await _transactionService.FindByBudgetLineAsync(budgetLineId, user);
         return Ok(result);
     }
 
@@ -41,8 +38,7 @@ public class TransactionsController : ControllerBase
     public async Task<IActionResult> Search([FromQuery] string q, [FromQuery] int[]? years)
     {
         var user = HttpContext.GetUser();
-        var supabase = (SupabaseRestClient)HttpContext.GetSupabaseClient();
-        var result = await _transactionService.SearchAsync(q, years, user, supabase);
+        var result = await _transactionService.SearchAsync(q, years, user);
         return Ok(result);
     }
 
@@ -50,8 +46,7 @@ public class TransactionsController : ControllerBase
     public async Task<IActionResult> Create([FromBody] TransactionCreateDto dto)
     {
         var user = HttpContext.GetUser();
-        var supabase = (SupabaseRestClient)HttpContext.GetSupabaseClient();
-        var result = await _transactionService.CreateAsync(dto, user, supabase);
+        var result = await _transactionService.CreateAsync(dto, user);
         return Created(string.Empty, result);
     }
 
@@ -59,8 +54,7 @@ public class TransactionsController : ControllerBase
     public async Task<IActionResult> FindOne(Guid id)
     {
         var user = HttpContext.GetUser();
-        var supabase = (SupabaseRestClient)HttpContext.GetSupabaseClient();
-        var result = await _transactionService.FindOneAsync(id, user, supabase);
+        var result = await _transactionService.FindOneAsync(id, user);
         return Ok(result);
     }
 
@@ -68,8 +62,7 @@ public class TransactionsController : ControllerBase
     public async Task<IActionResult> Update(Guid id, [FromBody] TransactionUpdateDto dto)
     {
         var user = HttpContext.GetUser();
-        var supabase = (SupabaseRestClient)HttpContext.GetSupabaseClient();
-        var result = await _transactionService.UpdateAsync(id, dto, user, supabase);
+        var result = await _transactionService.UpdateAsync(id, dto, user);
         return Ok(result);
     }
 
@@ -77,8 +70,7 @@ public class TransactionsController : ControllerBase
     public async Task<IActionResult> Remove(Guid id)
     {
         var user = HttpContext.GetUser();
-        var supabase = (SupabaseRestClient)HttpContext.GetSupabaseClient();
-        var result = await _transactionService.RemoveAsync(id, user, supabase);
+        var result = await _transactionService.RemoveAsync(id, user);
         return Ok(result);
     }
 
@@ -86,8 +78,7 @@ public class TransactionsController : ControllerBase
     public async Task<IActionResult> ToggleCheck(Guid id)
     {
         var user = HttpContext.GetUser();
-        var supabase = (SupabaseRestClient)HttpContext.GetSupabaseClient();
-        var result = await _transactionService.ToggleCheckAsync(id, user, supabase);
+        var result = await _transactionService.ToggleCheckAsync(id, user);
         return Ok(result);
     }
 }

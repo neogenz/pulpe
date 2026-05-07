@@ -20,7 +20,6 @@ public class BudgetCalculatorTests
     private readonly IEncryptionService _encryption = Substitute.For<IEncryptionService>();
     private readonly BudgetCalculator _sut;
 
-    private readonly object _supabase = new();
     private readonly byte[] _clientKey = new byte[32];
     private readonly byte[] _dek = new byte[32];
 
@@ -38,11 +37,11 @@ public class BudgetCalculatorTests
     public async Task CalculateEndingBalance_NoLinesNoTx_ReturnsZero()
     {
         var budget = TestMocks.MakeBudget();
-        _repo.FindById(budget.Id, _supabase).Returns(budget);
-        _repo.FindLinesByBudgetId(budget.Id, _supabase).Returns(new List<DomainBudgetLine>());
-        _txRepo.FindByBudgetId(budget.Id, _supabase).Returns(new List<DomainTransaction>());
+        _repo.FindById(budget.Id).Returns(budget);
+        _repo.FindLinesByBudgetId(budget.Id).Returns(new List<DomainBudgetLine>());
+        _txRepo.FindByBudgetId(budget.Id).Returns(new List<DomainTransaction>());
 
-        var result = await _sut.CalculateEndingBalance(budget.Id, _supabase, _clientKey);
+        var result = await _sut.CalculateEndingBalance(budget.Id, _clientKey);
 
         result.Should().Be(0m);
     }
@@ -60,15 +59,15 @@ public class BudgetCalculatorTests
             new() { Id = expenseLineId, BudgetId = budget.Id, Name = "Rent", Amount = "enc-1000", Kind = TransactionKind.Expense, Recurrence = TransactionRecurrence.Fixed, CreatedAt = DateTimeOffset.UtcNow, UpdatedAt = DateTimeOffset.UtcNow }
         };
 
-        _repo.FindById(budget.Id, _supabase).Returns(budget);
-        _repo.FindLinesByBudgetId(budget.Id, _supabase).Returns(lines);
-        _txRepo.FindByBudgetId(budget.Id, _supabase).Returns(new List<DomainTransaction>());
+        _repo.FindById(budget.Id).Returns(budget);
+        _repo.FindLinesByBudgetId(budget.Id).Returns(lines);
+        _txRepo.FindByBudgetId(budget.Id).Returns(new List<DomainTransaction>());
 
         // Decrypt: income line → 3000, expense line → 1000
         _encryption.TryDecryptAmount("enc-3000", _dek, 0m).Returns(3000m);
         _encryption.TryDecryptAmount("enc-1000", _dek, 0m).Returns(1000m);
 
-        var result = await _sut.CalculateEndingBalance(budget.Id, _supabase, _clientKey);
+        var result = await _sut.CalculateEndingBalance(budget.Id, _clientKey);
 
         result.Should().Be(2000m); // 3000 income - 1000 expense
     }
@@ -76,9 +75,9 @@ public class BudgetCalculatorTests
     [Fact]
     public async Task CalculateEndingBalance_BudgetNotFound_ThrowsNotFound()
     {
-        _repo.FindById(Arg.Any<Guid>(), _supabase).Returns((DomainBudget?)null);
+        _repo.FindById(Arg.Any<Guid>()).Returns((DomainBudget?)null);
 
-        await _sut.Invoking(c => c.CalculateEndingBalance(Guid.NewGuid(), _supabase, _clientKey))
+        await _sut.Invoking(c => c.CalculateEndingBalance(Guid.NewGuid(), _clientKey))
             .Should().ThrowAsync<BusinessException>().Where(ex => ex.StatusCode == 404);
     }
 
@@ -88,14 +87,14 @@ public class BudgetCalculatorTests
     public async Task RecalculateAndPersist_UpdatesEndingBalance()
     {
         var budget = TestMocks.MakeBudget();
-        _repo.FindById(budget.Id, _supabase).Returns(budget);
-        _repo.FindLinesByBudgetId(budget.Id, _supabase).Returns(new List<DomainBudgetLine>());
-        _txRepo.FindByBudgetId(budget.Id, _supabase).Returns(new List<DomainTransaction>());
-        _repo.UpdateEndingBalance(budget.Id, "encrypted", _supabase).Returns(Task.CompletedTask);
+        _repo.FindById(budget.Id).Returns(budget);
+        _repo.FindLinesByBudgetId(budget.Id).Returns(new List<DomainBudgetLine>());
+        _txRepo.FindByBudgetId(budget.Id).Returns(new List<DomainTransaction>());
+        _repo.UpdateEndingBalance(budget.Id, "encrypted").Returns(Task.CompletedTask);
 
-        await _sut.RecalculateAndPersist(budget.Id, _supabase, _clientKey);
+        await _sut.RecalculateAndPersist(budget.Id, _clientKey);
 
-        await _repo.Received(1).UpdateEndingBalance(budget.Id, "encrypted", _supabase);
+        await _repo.Received(1).UpdateEndingBalance(budget.Id, "encrypted");
     }
 
     // --- GetRollover ---
@@ -104,10 +103,10 @@ public class BudgetCalculatorTests
     public async Task GetRollover_SingleBudget_ReturnsZeroRollover()
     {
         var budget = TestMocks.MakeBudget();
-        _repo.FindById(budget.Id, _supabase).Returns(budget);
-        _repo.FindAll(budget.UserId.ToString(), _supabase).Returns(new List<DomainBudget> { budget });
+        _repo.FindById(budget.Id).Returns(budget);
+        _repo.FindAll(budget.UserId.ToString()).Returns(new List<DomainBudget> { budget });
 
-        var result = await _sut.GetRollover(budget.Id, 1, _supabase, _clientKey);
+        var result = await _sut.GetRollover(budget.Id, 1, _clientKey);
 
         result.Rollover.Should().Be(0m);
     }
@@ -116,10 +115,10 @@ public class BudgetCalculatorTests
     public async Task GetRollover_NoBudgets_ReturnsZeroResult()
     {
         var budget = TestMocks.MakeBudget();
-        _repo.FindById(budget.Id, _supabase).Returns(budget);
-        _repo.FindAll(budget.UserId.ToString(), _supabase).Returns(new List<DomainBudget>());
+        _repo.FindById(budget.Id).Returns(budget);
+        _repo.FindAll(budget.UserId.ToString()).Returns(new List<DomainBudget>());
 
-        var result = await _sut.GetRollover(budget.Id, 1, _supabase, _clientKey);
+        var result = await _sut.GetRollover(budget.Id, 1, _clientKey);
 
         result.Rollover.Should().Be(0m);
         result.EndingBalance.Should().Be(0m);

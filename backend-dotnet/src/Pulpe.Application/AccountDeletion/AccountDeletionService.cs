@@ -1,17 +1,17 @@
 using Microsoft.Extensions.Logging;
-using Pulpe.Infrastructure.Supabase;
+using Pulpe.Application.Common;
 
-namespace Pulpe.Infrastructure.Services.AccountDeletion;
+namespace Pulpe.Application.AccountDeletion;
 
 public sealed class AccountDeletionService
 {
-    private readonly SupabaseAuthClient _authClient;
+    private readonly ISupabaseAuthClient _authClient;
     private readonly ILogger<AccountDeletionService> _logger;
     private const int GracePeriodDays = 3;
     private const int MaxPages = 100;
     private const int PerPage = 1000;
 
-    public AccountDeletionService(SupabaseAuthClient authClient, ILogger<AccountDeletionService> logger)
+    public AccountDeletionService(ISupabaseAuthClient authClient, ILogger<AccountDeletionService> logger)
     {
         _authClient = authClient;
         _logger = logger;

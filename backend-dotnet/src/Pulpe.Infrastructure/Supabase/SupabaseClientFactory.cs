@@ -1,43 +1,58 @@
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
+using Pulpe.Application.Common;
+using Supabase.Postgrest;
 
 namespace Pulpe.Infrastructure.Supabase;
 
-public sealed class SupabaseClientFactory
+public sealed class SupabaseClientFactory : ISupabaseClientFactory
 {
     private readonly SupabaseOptions _options;
-    private readonly IHttpClientFactory _httpClientFactory;
-    private SupabaseRestClient? _serviceRoleClient;
-    private SupabaseRestClient? _anonymousClient;
+    private readonly IHttpContextAccessor _httpContextAccessor;
 
-    public SupabaseClientFactory(IOptions<SupabaseOptions> options, IHttpClientFactory httpClientFactory)
+    public SupabaseClientFactory(IOptions<SupabaseOptions> options, IHttpContextAccessor httpContextAccessor)
     {
         _options = options.Value;
-        _httpClientFactory = httpClientFactory;
+        _httpContextAccessor = httpContextAccessor;
     }
 
-    public SupabaseRestClient CreateAuthenticated(string accessToken)
+    public Client CreateAdminClient()
     {
-        var httpClient = _httpClientFactory.CreateClient("supabase");
-        return new SupabaseRestClient(httpClient, _options.Url, accessToken, _options.AnonKey);
+        var restUrl = $"{_options.Url.TrimEnd('/')}/rest/v1";
+        var clientOptions = new ClientOptions
+        {
+            Headers = new Dictionary<string, string>
+            {
+                ["Authorization"] = $"Bearer {_options.ServiceRoleKey}",
+                ["apikey"] = _options.ServiceRoleKey
+            }
+        };
+        return new Client(restUrl, clientOptions);
     }
 
-    public SupabaseRestClient GetServiceRole()
+    public Client CreateUserClient()
     {
-        if (_serviceRoleClient is not null)
-            return _serviceRoleClient;
+        var jwt = ExtractBearerToken()
+            ?? throw new InvalidOperationException("Cannot create user client without a request JWT");
 
-        var httpClient = _httpClientFactory.CreateClient("supabase");
-        _serviceRoleClient = new SupabaseRestClient(httpClient, _options.Url, _options.ServiceRoleKey, _options.AnonKey);
-        return _serviceRoleClient;
+        var restUrl = $"{_options.Url.TrimEnd('/')}/rest/v1";
+        var clientOptions = new ClientOptions
+        {
+            Headers = new Dictionary<string, string>
+            {
+                ["Authorization"] = $"Bearer {jwt}",
+                ["apikey"] = _options.AnonKey
+            }
+        };
+        return new Client(restUrl, clientOptions);
     }
 
-    public SupabaseRestClient GetAnonymous()
+    private string? ExtractBearerToken()
     {
-        if (_anonymousClient is not null)
-            return _anonymousClient;
-
-        var httpClient = _httpClientFactory.CreateClient("supabase");
-        _anonymousClient = new SupabaseRestClient(httpClient, _options.Url, _options.AnonKey, _options.AnonKey);
-        return _anonymousClient;
+        var authHeader = _httpContextAccessor.HttpContext?.Request.Headers["Authorization"].ToString();
+        if (string.IsNullOrEmpty(authHeader)) return null;
+        return authHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase)
+            ? authHeader[7..]
+            : authHeader;
     }
 }

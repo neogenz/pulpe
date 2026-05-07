@@ -25,29 +25,29 @@ public sealed class BudgetCalculator
         _logger = logger;
     }
 
-    public async Task<decimal> CalculateEndingBalance(Guid budgetId, object supabaseClient, byte[] clientKey)
+    public async Task<decimal> CalculateEndingBalance(Guid budgetId, byte[] clientKey)
     {
-        var userId = await FetchBudgetUserId(budgetId, supabaseClient);
-        return await CalculateEndingBalanceInternal(budgetId, userId, supabaseClient, clientKey);
+        var userId = await FetchBudgetUserId(budgetId);
+        return await CalculateEndingBalanceInternal(budgetId, userId, clientKey);
     }
 
-    public async Task RecalculateAndPersist(Guid budgetId, object supabaseClient, byte[] clientKey)
+    public async Task RecalculateAndPersist(Guid budgetId, byte[] clientKey)
     {
-        var userId = await FetchBudgetUserId(budgetId, supabaseClient);
-        var endingBalance = await CalculateEndingBalanceInternal(budgetId, userId, supabaseClient, clientKey);
+        var userId = await FetchBudgetUserId(budgetId);
+        var endingBalance = await CalculateEndingBalanceInternal(budgetId, userId, clientKey);
 
         var dek = await _encryptionService.EnsureUserDek(userId, clientKey);
         var encryptedBalance = _encryptionService.EncryptAmount(endingBalance, dek);
 
-        await _budgetRepository.UpdateEndingBalance(budgetId, encryptedBalance, supabaseClient);
+        await _budgetRepository.UpdateEndingBalance(budgetId, encryptedBalance);
 
         _logger.LogInformation("Balance recalculated and persisted for budget {BudgetId}", budgetId);
     }
 
-    private async Task<decimal> CalculateEndingBalanceInternal(Guid budgetId, string userId, object supabaseClient, byte[] clientKey)
+    private async Task<decimal> CalculateEndingBalanceInternal(Guid budgetId, string userId, byte[] clientKey)
     {
-        var budgetLines = await _budgetRepository.FindLinesByBudgetId(budgetId, supabaseClient);
-        var transactions = await _transactionRepository.FindByBudgetId(budgetId, supabaseClient);
+        var budgetLines = await _budgetRepository.FindLinesByBudgetId(budgetId);
+        var transactions = await _transactionRepository.FindByBudgetId(budgetId);
 
         var dek = await _encryptionService.GetUserDek(userId, clientKey);
 
@@ -69,10 +69,10 @@ public sealed class BudgetCalculator
         return metrics.EndingBalance;
     }
 
-    public async Task<RolloverResult> GetRollover(Guid budgetId, int payDayOfMonth, object supabaseClient, byte[] clientKey)
+    public async Task<RolloverResult> GetRollover(Guid budgetId, int payDayOfMonth, byte[] clientKey)
     {
-        var userId = await FetchBudgetUserId(budgetId, supabaseClient);
-        var allBudgets = await FetchAndDecryptBudgets(userId, supabaseClient, clientKey);
+        var userId = await FetchBudgetUserId(budgetId);
+        var allBudgets = await FetchAndDecryptBudgets(userId, clientKey);
 
         if (allBudgets.Count == 0)
             return new RolloverResult(0m, 0m, 0m, null);
@@ -80,9 +80,9 @@ public sealed class BudgetCalculator
         return BudgetFormulas.CalculateRollover(allBudgets, budgetId, payDayOfMonth);
     }
 
-    private async Task<string> FetchBudgetUserId(Guid budgetId, object supabaseClient)
+    private async Task<string> FetchBudgetUserId(Guid budgetId)
     {
-        var budget = await _budgetRepository.FindById(budgetId, supabaseClient);
+        var budget = await _budgetRepository.FindById(budgetId);
         if (budget is null)
             throw BusinessException.NotFound(ErrorCodes.BudgetNotFound, $"Budget {budgetId} not found");
 
@@ -90,9 +90,9 @@ public sealed class BudgetCalculator
     }
 
     private async Task<List<(Guid Id, int Month, int Year, decimal? EndingBalance)>> FetchAndDecryptBudgets(
-        string userId, object supabaseClient, byte[] clientKey)
+        string userId, byte[] clientKey)
     {
-        var budgets = await _budgetRepository.FindAll(userId, supabaseClient);
+        var budgets = await _budgetRepository.FindAll(userId);
 
         if (budgets.Count == 0)
             return [];

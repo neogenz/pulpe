@@ -1,23 +1,20 @@
 using Microsoft.Extensions.Logging;
 using Pulpe.Application.Demo.Dto;
-using Pulpe.Infrastructure.Supabase;
+using Pulpe.Application.Common;
 
-namespace Pulpe.Infrastructure.Services.Demo;
+namespace Pulpe.Application.Demo;
 
 public sealed class DemoService
 {
-    private readonly SupabaseClientFactory _clientFactory;
-    private readonly SupabaseAuthClient _authClient;
+    private readonly ISupabaseAuthClient _authClient;
     private readonly DemoDataGeneratorService _dataGenerator;
     private readonly ILogger<DemoService> _logger;
 
     public DemoService(
-        SupabaseClientFactory clientFactory,
-        SupabaseAuthClient authClient,
+        ISupabaseAuthClient authClient,
         DemoDataGeneratorService dataGenerator,
         ILogger<DemoService> logger)
     {
-        _clientFactory = clientFactory;
         _authClient = authClient;
         _dataGenerator = dataGenerator;
         _logger = logger;
@@ -59,8 +56,7 @@ public sealed class DemoService
 
         _logger.LogInformation("Demo session created for user {UserId}", userId);
 
-        var authenticatedClient = _clientFactory.CreateAuthenticated(signInResult.AccessToken);
-        await SeedDemoDataSafely(userId, authenticatedClient, startTime);
+        await SeedDemoDataSafely(userId, startTime);
 
         return new DemoSessionResponseDto(
             Success: true,
@@ -77,11 +73,11 @@ public sealed class DemoService
             Message: "Demo session created successfully");
     }
 
-    private async Task SeedDemoDataSafely(string userId, SupabaseRestClient client, DateTimeOffset startTime)
+    private async Task SeedDemoDataSafely(string userId, DateTimeOffset startTime)
     {
         try
         {
-            await _dataGenerator.SeedDemoData(userId, client);
+            await _dataGenerator.SeedDemoData(userId);
             _logger.LogInformation(
                 "Demo data seeded for user {UserId}, duration {Duration}ms",
                 userId, (DateTimeOffset.UtcNow - startTime).TotalMilliseconds);

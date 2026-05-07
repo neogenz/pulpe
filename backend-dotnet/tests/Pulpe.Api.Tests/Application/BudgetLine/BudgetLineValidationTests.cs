@@ -1,5 +1,5 @@
 using FluentAssertions;
-using Pulpe.Infrastructure.Services.BudgetLine;
+using Pulpe.Application.BudgetLine;
 using Pulpe.Application.BudgetLine.Dto;
 using Pulpe.Application.Common;
 using Pulpe.Domain.Budget;

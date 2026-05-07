@@ -30,9 +30,9 @@ public sealed class BudgetValidator
         }
     }
 
-    public async Task ValidateNoDuplicatePeriod(IBudgetRepository repository, object supabaseClient, string userId, int month, int year, Guid? excludeId = null)
+    public async Task ValidateNoDuplicatePeriod(IBudgetRepository repository, string userId, int month, int year, Guid? excludeId = null)
     {
-        var exists = await repository.ExistsForPeriod(month, year, userId, supabaseClient, excludeId);
+        var exists = await repository.ExistsForPeriod(month, year, userId, excludeId);
         if (exists)
         {
             throw BusinessException.Conflict(
