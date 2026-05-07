@@ -473,6 +473,10 @@ public sealed class BudgetTemplateService : ITemplateService
             amount = l.Amount,
             kind = l.Kind,
             recurrence = l.Recurrence,
+            original_amount = l.OriginalAmount,
+            original_currency = l.OriginalCurrency,
+            target_currency = l.TargetCurrency,
+            exchange_rate = l.ExchangeRate,
         };
 
         await client.Rpc<object>("apply_template_line_operations", rpcArgs);
@@ -518,7 +522,11 @@ public sealed class BudgetTemplateService : ITemplateService
         var result = new List<object>();
         foreach (var line in lines)
         {
+            var fx = await _currencyService.ComputeOverride(line);
             var encryptedAmount = await _encryptionService.PrepareAmountData(line.Amount, user.Id, user.ClientKey);
+            var encryptedOriginalAmount = fx.OriginalAmount.HasValue
+                ? await _encryptionService.PrepareAmountData(fx.OriginalAmount.Value, user.Id, user.ClientKey)
+                : (string?)null;
             result.Add(new
             {
                 name = line.Name,
@@ -526,6 +534,10 @@ public sealed class BudgetTemplateService : ITemplateService
                 kind = line.Kind,
                 recurrence = line.Recurrence,
                 description = line.Description ?? string.Empty,
+                original_amount = encryptedOriginalAmount,
+                original_currency = fx.OriginalCurrency?.ToIsoCode(),
+                target_currency = fx.TargetCurrency?.ToIsoCode(),
+                exchange_rate = fx.ExchangeRate,
             });
         }
         return result;
