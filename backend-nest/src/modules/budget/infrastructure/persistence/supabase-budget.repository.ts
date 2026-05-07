@@ -9,6 +9,7 @@ import type {
   BudgetRow,
   BudgetLineRow,
   TransactionRow,
+  BudgetAggregates,
 } from '../../domain/budget.entity';
 import type {
   BudgetRepositoryPort,
@@ -17,11 +18,7 @@ import type {
 } from '../../domain/ports/budget-repository.port';
 import type { PostgrestError } from '@supabase/supabase-js';
 
-export interface BudgetAggregates {
-  totalExpenses: number;
-  totalSavings: number;
-  totalIncome: number;
-}
+export type { BudgetAggregates };
 
 interface QueryResult<T> {
   data: T | null;

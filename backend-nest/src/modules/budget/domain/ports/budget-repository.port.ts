@@ -2,8 +2,8 @@ import type {
   BudgetRow,
   BudgetLineRow,
   TransactionRow,
+  BudgetAggregates,
 } from '../budget.entity';
-import type { BudgetAggregates } from '../../infrastructure/persistence/supabase-budget.repository';
 
 export const BUDGET_REPOSITORY = Symbol('BUDGET_REPOSITORY');
 

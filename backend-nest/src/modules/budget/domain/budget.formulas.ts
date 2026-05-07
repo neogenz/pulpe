@@ -1,5 +1,5 @@
 import { BudgetFormulas, type TransactionKind } from 'pulpe-shared';
-import type { BudgetAggregates } from '../infrastructure/persistence/supabase-budget.repository';
+import type { BudgetAggregates } from './budget.entity';
 
 export type { BudgetAggregates };
 

@@ -1,4 +1,4 @@
-import type { Session, User } from '@supabase/supabase-js';
+import type { DemoAuthUser, DemoAuthSession } from '../auth.types';
 
 export const DEMO_CREDENTIALS_PORT = Symbol('DEMO_CREDENTIALS_PORT');
 
@@ -7,11 +7,11 @@ export interface DemoCredentialsPort {
   createDemoUser(
     email: string,
     password: string,
-  ): Promise<{ userId: string; user: User }>;
+  ): Promise<{ userId: string; user: DemoAuthUser }>;
   signInDemoUser(
     email: string,
     password: string,
-  ): Promise<{ session: Session; user: User }>;
+  ): Promise<{ session: DemoAuthSession; user: DemoAuthUser }>;
   deleteUser(userId: string): Promise<void>;
   listExpiredDemoUsers(
     cutoffTime: Date,

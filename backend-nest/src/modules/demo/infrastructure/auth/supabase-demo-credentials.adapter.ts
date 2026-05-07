@@ -3,9 +3,9 @@ import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 import { v4 as uuidv4 } from 'uuid';
 import { BusinessException } from '@common/exceptions/business.exception';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
-import type { Session, User } from '@supabase/supabase-js';
 import { SupabaseService } from '@modules/supabase/supabase.service';
 import type { DemoCredentialsPort } from '../../domain/ports/demo-credentials.port';
+import type { DemoAuthUser, DemoAuthSession } from '../../domain/auth.types';
 
 @Injectable()
 export class SupabaseDemoCredentialsAdapter implements DemoCredentialsPort {
@@ -25,7 +25,7 @@ export class SupabaseDemoCredentialsAdapter implements DemoCredentialsPort {
   async createDemoUser(
     email: string,
     password: string,
-  ): Promise<{ userId: string; user: User }> {
+  ): Promise<{ userId: string; user: DemoAuthUser }> {
     const adminClient = this.supabaseService.getServiceRoleClient();
 
     const { data: authData, error: createError } =
@@ -64,7 +64,7 @@ export class SupabaseDemoCredentialsAdapter implements DemoCredentialsPort {
   async signInDemoUser(
     email: string,
     password: string,
-  ): Promise<{ session: Session; user: User }> {
+  ): Promise<{ session: DemoAuthSession; user: DemoAuthUser }> {
     const adminClient = this.supabaseService.getServiceRoleClient();
 
     const { data: signInData, error: signInError } =

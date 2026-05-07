@@ -7,3 +7,9 @@ export type BudgetUpdate =
   Database['public']['Tables']['monthly_budget']['Update'];
 export type BudgetLineRow = Database['public']['Tables']['budget_line']['Row'];
 export type TransactionRow = Database['public']['Tables']['transaction']['Row'];
+
+export interface BudgetAggregates {
+  totalExpenses: number;
+  totalSavings: number;
+  totalIncome: number;
+}

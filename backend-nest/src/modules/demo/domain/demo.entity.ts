@@ -1,4 +1,4 @@
-import type { Session, User } from '@supabase/supabase-js';
+import type { DemoAuthUser, DemoAuthSession } from './auth.types';
 
 export interface DemoCredentials {
   email: string;
@@ -7,10 +7,10 @@ export interface DemoCredentials {
 
 export interface DemoUser {
   userId: string;
-  user: User;
+  user: DemoAuthUser;
 }
 
 export interface DemoSession {
-  session: Session;
-  user: User;
+  session: DemoAuthSession;
+  user: DemoAuthUser;
 }
