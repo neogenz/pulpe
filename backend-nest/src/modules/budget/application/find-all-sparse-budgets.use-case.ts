@@ -127,7 +127,6 @@ export class FindAllSparseBudgetsUseCase {
           const rolloverData = await this.recalculateUseCase.getRollover(
             budget.id,
             payDayOfMonth,
-            supabase,
             clientKey,
           );
           rolloversMap.set(budget.id, rolloverData.rollover);

@@ -47,7 +47,7 @@ export class UpdateBudgetUseCase {
       dto as Record<string, unknown>,
     );
 
-    await this.budgetRecalculation.recalculate(id, supabase, user.clientKey);
+    await this.budgetRecalculation.recalculate(id, user.clientKey);
     await this.cacheService.invalidateForUser(user.id);
 
     this.logger.info(

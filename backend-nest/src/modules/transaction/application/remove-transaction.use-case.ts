@@ -1,7 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
-import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
 import { type TransactionDeleteResponse } from 'pulpe-shared';
 import { CacheService } from '@modules/cache/cache.service';
 import {
@@ -28,17 +27,13 @@ export class RemoveTransactionUseCase {
   async execute(
     id: string,
     user: AuthenticatedUser,
-    supabase: AuthenticatedSupabaseClient,
+    _supabase: unknown,
   ): Promise<TransactionDeleteResponse> {
     const budgetId = await this.repo.fetchBudgetIdForTransaction(id);
     await this.repo.delete(id);
 
     if (budgetId) {
-      await this.budgetRecalculation.recalculate(
-        budgetId,
-        supabase,
-        user.clientKey,
-      );
+      await this.budgetRecalculation.recalculate(budgetId, user.clientKey);
     }
 
     await this.cacheService.invalidateForUser(user.id);

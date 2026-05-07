@@ -71,7 +71,6 @@ export class FindAllBudgetsUseCase {
 
     const enrichedBudgets = await this.enrichBudgetsWithRemaining(
       budgets,
-      supabase,
       payDayOfMonth,
       user.clientKey,
     );
@@ -84,7 +83,6 @@ export class FindAllBudgetsUseCase {
 
   private async enrichBudgetsWithRemaining(
     budgets: BudgetRow[],
-    supabase: AuthenticatedSupabaseClient,
     payDayOfMonth: number,
     clientKey: Buffer,
   ): Promise<EnrichedBudgetRow[]> {
@@ -93,7 +91,6 @@ export class FindAllBudgetsUseCase {
         try {
           const remaining = await this.calculateRemainingForBudget(
             budget,
-            supabase,
             payDayOfMonth,
             clientKey,
           );
@@ -129,7 +126,6 @@ export class FindAllBudgetsUseCase {
 
   private async calculateRemainingForBudget(
     budget: BudgetRow,
-    supabase: AuthenticatedSupabaseClient,
     payDayOfMonth: number,
     clientKey: Buffer,
   ): Promise<number> {
@@ -137,13 +133,11 @@ export class FindAllBudgetsUseCase {
       const currentBalance =
         await this.recalculateUseCase.calculateEndingBalance(
           budget.id,
-          supabase,
           clientKey,
         );
       const rolloverData = await this.recalculateUseCase.getRollover(
         budget.id,
         payDayOfMonth,
-        supabase,
         clientKey,
       );
       return currentBalance + rolloverData.rollover;
@@ -159,7 +153,6 @@ export class FindAllBudgetsUseCase {
       const rolloverData = await this.recalculateUseCase.getRollover(
         budget.id,
         payDayOfMonth,
-        supabase,
         clientKey,
       );
       const endingBalanceStored = await this.decryptEndingBalance(

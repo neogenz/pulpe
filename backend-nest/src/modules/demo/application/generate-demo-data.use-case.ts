@@ -93,7 +93,7 @@ export class GenerateDemoDataUseCase {
       'Transactions created',
     );
 
-    await this.recalculateAllBudgetBalances(budgets, supabase);
+    await this.recalculateAllBudgetBalances(budgets);
     this.logger.info(
       { userId, count: budgets.length },
       'Budget balances recalculated',
@@ -340,7 +340,6 @@ export class GenerateDemoDataUseCase {
 
   private async recalculateAllBudgetBalances(
     budgets: BudgetRow[],
-    supabase: AuthenticatedSupabaseClient,
   ): Promise<void> {
     const sorted = [...budgets].sort((a, b) => {
       if (a.year !== b.year) return a.year - b.year;
@@ -350,7 +349,6 @@ export class GenerateDemoDataUseCase {
     for (const budget of sorted) {
       await this.budgetRecalculation.recalculate(
         budget.id,
-        supabase,
         DEMO_CLIENT_KEY_BUFFER,
       );
     }

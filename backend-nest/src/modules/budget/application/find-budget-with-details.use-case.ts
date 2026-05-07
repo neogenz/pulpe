@@ -74,7 +74,6 @@ export class FindBudgetWithDetailsUseCase {
     const rolloverData = await this.recalculateUseCase.getRollover(
       budgetId,
       payDayOfMonth,
-      supabase,
       user.clientKey,
     );
 

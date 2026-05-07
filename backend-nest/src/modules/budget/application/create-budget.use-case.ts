@@ -46,7 +46,6 @@ export class CreateBudgetUseCase {
 
     await this.budgetRecalculation.recalculate(
       processedResult.budgetData.id,
-      supabase,
       user.clientKey,
     );
     await this.cacheService.invalidateForUser(user.id);

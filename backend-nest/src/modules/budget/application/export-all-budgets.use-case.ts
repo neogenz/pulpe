@@ -43,12 +43,7 @@ export class ExportAllBudgetsUseCase {
     const budgets = await this.repo.fetchAllBudgetsForExport();
     const budgetsWithDetails = await Promise.all(
       budgets.map((budget) =>
-        this.enrichBudgetForExport(
-          budget,
-          supabase,
-          payDayOfMonth,
-          user.clientKey,
-        ),
+        this.enrichBudgetForExport(budget, payDayOfMonth, user.clientKey),
       ),
     );
 
@@ -74,7 +69,6 @@ export class ExportAllBudgetsUseCase {
 
   private async enrichBudgetForExport(
     budget: BudgetRow,
-    supabase: AuthenticatedSupabaseClient,
     payDayOfMonth: number,
     clientKey: Buffer,
   ): Promise<BudgetWithDetails> {
@@ -90,13 +84,11 @@ export class ExportAllBudgetsUseCase {
     const rolloverData = await this.recalculateUseCase.getRollover(
       budget.id,
       payDayOfMonth,
-      supabase,
       clientKey,
     );
 
     const remaining = await this.calculateRemainingForBudget(
       budget,
-      supabase,
       payDayOfMonth,
       clientKey,
     );
@@ -127,19 +119,16 @@ export class ExportAllBudgetsUseCase {
 
   private async calculateRemainingForBudget(
     budget: BudgetRow,
-    supabase: AuthenticatedSupabaseClient,
     payDayOfMonth: number,
     clientKey: Buffer,
   ): Promise<number> {
     const currentBalance = await this.recalculateUseCase.calculateEndingBalance(
       budget.id,
-      supabase,
       clientKey,
     );
     const rolloverData = await this.recalculateUseCase.getRollover(
       budget.id,
       payDayOfMonth,
-      supabase,
       clientKey,
     );
     return currentBalance + rolloverData.rollover;

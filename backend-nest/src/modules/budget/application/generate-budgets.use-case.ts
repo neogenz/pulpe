@@ -1,7 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
-import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
 import { BusinessException } from '@common/exceptions/business.exception';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 import { ZodError } from 'zod';
@@ -40,7 +39,7 @@ export class GenerateBudgetsUseCase {
   async execute(
     dto: BudgetGenerate,
     user: AuthenticatedUser,
-    supabase: AuthenticatedSupabaseClient,
+    _supabase: unknown,
   ): Promise<BudgetGenerateResponse> {
     const targetMonths = computeTargetMonths(
       dto.startMonth,
@@ -80,7 +79,6 @@ export class GenerateBudgetsUseCase {
         createdBudgetIds.push(result.budgetId);
         await this.budgetRecalculation.recalculate(
           result.budgetId,
-          supabase,
           user.clientKey,
         );
       }

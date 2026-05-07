@@ -1,7 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
-import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
 import { type BudgetLineUpdate, type BudgetLineResponse } from 'pulpe-shared';
 import {
   ENCRYPTION_PORT,
@@ -41,7 +40,7 @@ export class UpdateBudgetLineUseCase {
     id: string,
     dto: BudgetLineUpdate,
     user: AuthenticatedUser,
-    supabase: AuthenticatedSupabaseClient,
+    _supabase: unknown,
   ): Promise<BudgetLineResponse> {
     BudgetLineInvariants.validateUpdate(dto);
 
@@ -69,11 +68,7 @@ export class UpdateBudgetLineUseCase {
     const dek = await this.encryption.getUserDEK(user.id, user.clientKey);
     const decrypted = this.encryption.decryptRowAmountFields(row, dek);
 
-    await this.budgetRecalculation.recalculate(
-      row.budget_id,
-      supabase,
-      user.clientKey,
-    );
+    await this.budgetRecalculation.recalculate(row.budget_id, user.clientKey);
     await this.cacheService.invalidateForUser(user.id);
 
     this.logger.info(

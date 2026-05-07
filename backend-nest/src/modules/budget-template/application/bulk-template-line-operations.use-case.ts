@@ -1,7 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
-import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
 import {
   type TemplateLineCreateWithoutTemplateId,
   type TemplateLinesBulkOperations,
@@ -53,7 +52,7 @@ export class BulkTemplateLineOperationsUseCase {
     templateId: string,
     bulkOperationsDto: TemplateLinesBulkOperations,
     user: AuthenticatedUser,
-    supabase: AuthenticatedSupabaseClient,
+    _supabase: unknown,
   ): Promise<TemplateLinesBulkOperationsResponse> {
     const startTime = Date.now();
 
@@ -89,7 +88,6 @@ export class BulkTemplateLineOperationsUseCase {
       user,
       validated.propagateToBudgets,
       operationsResult,
-      supabase,
     );
 
     if (propagationSummary.affectedBudgetsCount > 0) {
@@ -139,7 +137,6 @@ export class BulkTemplateLineOperationsUseCase {
     user: AuthenticatedUser,
     propagateToBudgets: boolean,
     operations: BulkOperationsResult,
-    supabase: AuthenticatedSupabaseClient,
   ): Promise<TemplateLinesPropagationSummary> {
     const hasDeletes = operations.deletedIds.length > 0;
     const hasBudgetMutations =
@@ -164,14 +161,13 @@ export class BulkTemplateLineOperationsUseCase {
       };
     }
 
-    return this.propagateToBudgets(templateId, operations, user, supabase);
+    return this.propagateToBudgets(templateId, operations, user);
   }
 
   private async propagateToBudgets(
     templateId: string,
     operations: BulkOperationsResult,
     user: AuthenticatedUser,
-    supabase: AuthenticatedSupabaseClient,
   ): Promise<TemplateLinesPropagationSummary> {
     this.logger.info(
       {
@@ -227,7 +223,7 @@ export class BulkTemplateLineOperationsUseCase {
     if (impactedBudgetIds.length) {
       await Promise.all(
         impactedBudgetIds.map((id) =>
-          this.budgetRecalculation.recalculate(id, supabase, user.clientKey),
+          this.budgetRecalculation.recalculate(id, user.clientKey),
         ),
       );
     }

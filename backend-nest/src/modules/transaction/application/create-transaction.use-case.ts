@@ -1,7 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
-import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
 import {
   type TransactionCreate,
   type TransactionResponse,
@@ -48,7 +47,7 @@ export class CreateTransactionUseCase {
   async execute(
     dto: TransactionCreate,
     user: AuthenticatedUser,
-    supabase: AuthenticatedSupabaseClient,
+    _supabase: unknown,
   ): Promise<TransactionResponse> {
     TransactionInvariants.validateCreate(dto);
 
@@ -83,11 +82,7 @@ export class CreateTransactionUseCase {
       original_amount: encryptedOriginalAmount,
     });
 
-    await this.budgetRecalculation.recalculate(
-      row.budget_id,
-      supabase,
-      user.clientKey,
-    );
+    await this.budgetRecalculation.recalculate(row.budget_id, user.clientKey);
 
     const dek = await this.encryption.getUserDEK(user.id, user.clientKey);
     const decrypted = this.encryption.decryptRowAmountFields(row, dek);

@@ -1,7 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
-import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
 import { type BudgetLineResponse } from 'pulpe-shared';
 import {
   ENCRYPTION_PORT,
@@ -37,7 +36,7 @@ export class ResetBudgetLineFromTemplateUseCase {
   async execute(
     id: string,
     user: AuthenticatedUser,
-    supabase: AuthenticatedSupabaseClient,
+    _supabase: unknown,
   ): Promise<BudgetLineResponse> {
     const { encryptedAmount, resetData, budgetId } = await this.prepareReset(
       id,
@@ -52,11 +51,7 @@ export class ResetBudgetLineFromTemplateUseCase {
     const dek = await this.encryption.getUserDEK(user.id, user.clientKey);
     const decrypted = this.encryption.decryptRowAmountFields(updated, dek);
 
-    await this.budgetRecalculation.recalculate(
-      budgetId,
-      supabase,
-      user.clientKey,
-    );
+    await this.budgetRecalculation.recalculate(budgetId, user.clientKey);
     await this.cacheService.invalidateForUser(user.id);
 
     this.logger.info(

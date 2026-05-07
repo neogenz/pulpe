@@ -1,6 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { type InfoLogger, InjectInfoLogger } from '@common/logger';
-import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
 import {
   ENCRYPTION_PORT,
   type EncryptionPort,
@@ -22,27 +21,16 @@ export class RecalculateBudgetBalancesUseCase implements BudgetRecalculationPort
     private readonly logger: InfoLogger,
   ) {}
 
-  async recalculate(
-    budgetId: string,
-    supabase: AuthenticatedSupabaseClient,
-    clientKey: Buffer,
-  ): Promise<void> {
+  async recalculate(budgetId: string, clientKey: Buffer): Promise<void> {
     const endingBalance = await this.calculateEndingBalance(
       budgetId,
-      supabase,
       clientKey,
     );
-    await this.persistEndingBalance(
-      budgetId,
-      endingBalance,
-      supabase,
-      clientKey,
-    );
+    await this.persistEndingBalance(budgetId, endingBalance, clientKey);
   }
 
   async calculateEndingBalance(
     budgetId: string,
-    supabase: AuthenticatedSupabaseClient,
     clientKey: Buffer,
   ): Promise<number> {
     const { budgetLines, transactions } = await this.repo.fetchBudgetData(
@@ -91,7 +79,6 @@ export class RecalculateBudgetBalancesUseCase implements BudgetRecalculationPort
   async getRollover(
     budgetId: string,
     payDayOfMonth: number,
-    supabase: AuthenticatedSupabaseClient,
     clientKey: Buffer,
   ): Promise<{ rollover: number; previousBudgetId: string | null }> {
     const userId = await this.repo.fetchBudgetUserId(budgetId);
@@ -131,7 +118,6 @@ export class RecalculateBudgetBalancesUseCase implements BudgetRecalculationPort
   private async persistEndingBalance(
     budgetId: string,
     endingBalance: number,
-    supabase: AuthenticatedSupabaseClient,
     clientKey: Buffer,
   ): Promise<void> {
     const userId = await this.repo.fetchBudgetUserId(budgetId);
