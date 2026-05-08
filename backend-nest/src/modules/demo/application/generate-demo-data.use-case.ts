@@ -8,29 +8,19 @@ import {
 } from '@modules/budget/domain/ports/budget-recalculation.port';
 import { DEMO_CLIENT_KEY_BUFFER } from '@modules/encryption/domain/encryption.constants';
 import {
-  ENCRYPTION_PORT,
-  type EncryptionPort,
-} from '@modules/encryption/encryption.tokens';
-import {
   DEMO_REPOSITORY,
   type DemoRepositoryPort,
-  type TemplateRow,
-  type BudgetRow,
-  type TemplateInsert,
-  type MonthlyBudgetInsert,
-  type BudgetLineInsert,
-  type TransactionInsert,
 } from '../domain/ports/demo-repository.port';
+import type {
+  DemoBudgetLineSeed,
+  DemoBudgetSeed,
+  DemoSeededBudget,
+  DemoSeededTemplate,
+  DemoSeededTemplateLine,
+  DemoTemplateSeed,
+  DemoTransactionSeed,
+} from '../domain/demo.entity';
 import { DEMO_TEMPLATE_SPECS } from '../domain/demo.constants';
-import {
-  getStandardMonthLines,
-  getVacationMonthLines,
-  getSavingsMonthLines,
-  getHolidayMonthLines,
-} from '../infrastructure/persistence/demo-template-specs';
-import type { Tables } from '../../../types/database.types';
-
-type TemplateLineRow = Tables<'template_line'>;
 
 @Injectable()
 export class GenerateDemoDataUseCase {
@@ -38,7 +28,6 @@ export class GenerateDemoDataUseCase {
     @Inject(DEMO_REPOSITORY) private readonly repo: DemoRepositoryPort,
     @Inject(BUDGET_RECALCULATION_PORT)
     private readonly budgetRecalculation: BudgetRecalculationPort,
-    @Inject(ENCRYPTION_PORT) private readonly encryption: EncryptionPort,
     @InjectInfoLogger(GenerateDemoDataUseCase.name)
     private readonly logger: InfoLogger,
   ) {}
@@ -49,49 +38,15 @@ export class GenerateDemoDataUseCase {
   ): Promise<void> {
     this.logger.info({ userId }, 'Starting demo data generation');
 
-    const dek = await this.encryption.ensureUserDEK(
+    const templates = await this.seedTemplates(userId, supabase);
+    const templateLines = await this.seedTemplateLines(
       userId,
-      DEMO_CLIENT_KEY_BUFFER,
-    );
-
-    const templates = await this.repo.insertTemplates(
-      this.buildTemplateInserts(userId),
+      templates,
       supabase,
     );
-    this.logger.info({ userId, count: templates.length }, 'Templates created');
-
-    const templateLines = await this.repo.insertTemplateLines(
-      this.buildTemplateLineInserts(templates, dek),
-      supabase,
-    );
-    this.logger.info(
-      { userId, count: templateLines.length },
-      'Template lines created',
-    );
-
-    const budgets = await this.repo.insertBudgets(
-      this.buildBudgetInserts(userId, templates),
-      supabase,
-    );
-    this.logger.info({ userId, count: budgets.length }, 'Budgets created');
-
-    const budgetLines = this.buildBudgetLineInserts(
-      budgets,
-      templateLines,
-      dek,
-    );
-    await this.repo.insertBudgetLines(budgetLines, supabase);
-    this.logger.info(
-      { userId, count: budgetLines.length },
-      'Budget lines created',
-    );
-
-    const transactions = this.buildTransactionInserts(budgets, dek);
-    await this.repo.insertTransactions(transactions, supabase);
-    this.logger.info(
-      { userId, count: transactions.length },
-      'Transactions created',
-    );
+    const budgets = await this.seedBudgets(userId, templates, supabase);
+    await this.seedBudgetLines(userId, budgets, templateLines, supabase);
+    await this.seedTransactions(userId, budgets, supabase);
 
     await this.recalculateAllBudgetBalances(budgets);
     this.logger.info(
@@ -102,71 +57,126 @@ export class GenerateDemoDataUseCase {
     this.logger.info({ userId }, 'Demo data generation completed');
   }
 
-  private buildTemplateInserts(userId: string): TemplateInsert[] {
+  private async seedTemplates(
+    userId: string,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<DemoSeededTemplate[]> {
+    const templates = await this.repo.insertTemplates(
+      this.buildTemplateSeeds(userId),
+      supabase,
+    );
+    this.logger.info({ userId, count: templates.length }, 'Templates created');
+    return templates;
+  }
+
+  private async seedTemplateLines(
+    userId: string,
+    templates: DemoSeededTemplate[],
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<DemoSeededTemplateLine[]> {
+    const [standard, vacations, savings, holidays] = templates;
+    const templateLines = await this.repo.insertCanonicalTemplateLines(
+      {
+        standardId: standard.id,
+        vacationId: vacations.id,
+        savingsId: savings.id,
+        holidayId: holidays.id,
+      },
+      userId,
+      supabase,
+    );
+    this.logger.info(
+      { userId, count: templateLines.length },
+      'Template lines created',
+    );
+    return templateLines;
+  }
+
+  private async seedBudgets(
+    userId: string,
+    templates: DemoSeededTemplate[],
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<DemoSeededBudget[]> {
+    const budgets = await this.repo.insertBudgets(
+      this.buildBudgetSeeds(userId, templates),
+      supabase,
+    );
+    this.logger.info({ userId, count: budgets.length }, 'Budgets created');
+    return budgets;
+  }
+
+  private async seedBudgetLines(
+    userId: string,
+    budgets: DemoSeededBudget[],
+    templateLines: DemoSeededTemplateLine[],
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<void> {
+    const budgetLineSeeds = this.buildBudgetLineSeeds(budgets, templateLines);
+    await this.repo.insertBudgetLines(budgetLineSeeds, userId, supabase);
+    this.logger.info(
+      { userId, count: budgetLineSeeds.length },
+      'Budget lines created',
+    );
+  }
+
+  private async seedTransactions(
+    userId: string,
+    budgets: DemoSeededBudget[],
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<void> {
+    const transactionSeeds = this.buildTransactionSeeds(budgets);
+    await this.repo.insertTransactions(transactionSeeds, userId, supabase);
+    this.logger.info(
+      { userId, count: transactionSeeds.length },
+      'Transactions created',
+    );
+  }
+
+  private buildTemplateSeeds(userId: string): DemoTemplateSeed[] {
     return [
       {
-        user_id: userId,
+        userId,
         name: DEMO_TEMPLATE_SPECS.STANDARD.name,
         description: DEMO_TEMPLATE_SPECS.STANDARD.description,
-        is_default: DEMO_TEMPLATE_SPECS.STANDARD.isDefault,
+        isDefault: DEMO_TEMPLATE_SPECS.STANDARD.isDefault,
       },
       {
-        user_id: userId,
+        userId,
         name: DEMO_TEMPLATE_SPECS.VACATIONS.name,
         description: DEMO_TEMPLATE_SPECS.VACATIONS.description,
-        is_default: DEMO_TEMPLATE_SPECS.VACATIONS.isDefault,
+        isDefault: DEMO_TEMPLATE_SPECS.VACATIONS.isDefault,
       },
       {
-        user_id: userId,
+        userId,
         name: DEMO_TEMPLATE_SPECS.SAVINGS.name,
         description: DEMO_TEMPLATE_SPECS.SAVINGS.description,
-        is_default: DEMO_TEMPLATE_SPECS.SAVINGS.isDefault,
+        isDefault: DEMO_TEMPLATE_SPECS.SAVINGS.isDefault,
       },
       {
-        user_id: userId,
+        userId,
         name: DEMO_TEMPLATE_SPECS.HOLIDAYS.name,
         description: DEMO_TEMPLATE_SPECS.HOLIDAYS.description,
-        is_default: DEMO_TEMPLATE_SPECS.HOLIDAYS.isDefault,
+        isDefault: DEMO_TEMPLATE_SPECS.HOLIDAYS.isDefault,
       },
     ];
   }
 
-  private buildTemplateLineInserts(
-    templates: TemplateRow[],
-    dek: Buffer,
-  ): Omit<TemplateLineRow, 'id' | 'created_at' | 'updated_at'>[] {
-    const [standard, vacations, savings, holidays] = templates;
-    return [
-      ...getStandardMonthLines(standard.id, this.encryption, dek),
-      ...getVacationMonthLines(vacations.id, this.encryption, dek),
-      ...getSavingsMonthLines(savings.id, this.encryption, dek),
-      ...getHolidayMonthLines(holidays.id, this.encryption, dek),
-    ];
-  }
-
-  private buildBudgetInserts(
+  private buildBudgetSeeds(
     userId: string,
-    templates: TemplateRow[],
-  ): MonthlyBudgetInsert[] {
+    templates: DemoSeededTemplate[],
+  ): DemoBudgetSeed[] {
     const currentDate = new Date();
-    const budgets: MonthlyBudgetInsert[] = [];
+    const budgets: DemoBudgetSeed[] = [];
 
     for (let i = -6; i <= 5; i++) {
       const budgetDate = addMonths(startOfMonth(currentDate), i);
       const month = budgetDate.getMonth() + 1;
       const year = budgetDate.getFullYear();
-      const { template, description } = this.selectTemplateForMonth(
+      const { templateId, description } = this.selectTemplateForMonth(
         month,
         templates,
       );
-      budgets.push({
-        user_id: userId,
-        month,
-        year,
-        description,
-        template_id: template.id,
-        ending_balance: null,
-      });
+      budgets.push({ userId, month, year, description, templateId });
     }
 
     return budgets;
@@ -174,63 +184,51 @@ export class GenerateDemoDataUseCase {
 
   private selectTemplateForMonth(
     month: number,
-    templates: TemplateRow[],
-  ): { template: TemplateRow; description: string } {
+    templates: DemoSeededTemplate[],
+  ): { templateId: string; description: string } {
     if (month === 12) {
       return {
-        template: templates[3],
+        templateId: templates[3].id,
         description: "Budget des fêtes de fin d'année 🎄",
       };
     }
     if (month === 7 || month === 8) {
       return {
-        template: templates[1],
+        templateId: templates[1].id,
         description: "Budget vacances d'été ☀️",
       };
     }
     if (month === 3 || month === 9) {
       return {
-        template: templates[2],
+        templateId: templates[2].id,
         description: "Focus sur l'épargne ce mois-ci 💪",
       };
     }
     return {
-      template: templates[0],
+      templateId: templates[0].id,
       description: 'Budget mensuel standard',
     };
   }
 
-  private buildBudgetLineInserts(
-    budgets: BudgetRow[],
-    templateLines: TemplateLineRow[],
-    dek: Buffer,
-  ): BudgetLineInsert[] {
-    const lines: BudgetLineInsert[] = [];
+  private buildBudgetLineSeeds(
+    budgets: DemoSeededBudget[],
+    templateLines: DemoSeededTemplateLine[],
+  ): DemoBudgetLineSeed[] {
+    const lines: DemoBudgetLineSeed[] = [];
 
     for (const budget of budgets) {
       const relevantLines = templateLines.filter(
-        (tl) => tl.template_id === budget.template_id,
+        (tl) => tl.templateId === budget.templateId,
       );
 
       for (const templateLine of relevantLines) {
-        const actualAmount = templateLine.amount
-          ? this.encryption.decryptAmount(templateLine.amount, dek)
-          : 0;
-
         lines.push({
-          budget_id: budget.id,
-          template_line_id: templateLine.id,
-          savings_goal_id: null,
+          budgetId: budget.id,
+          templateLineId: templateLine.id,
           name: templateLine.name,
-          amount: this.encryption.encryptAmount(actualAmount, dek),
+          amount: templateLine.amount,
           kind: templateLine.kind,
           recurrence: templateLine.recurrence,
-          is_manually_adjusted: false,
-          checked_at: null,
-          original_amount: null,
-          original_currency: null,
-          target_currency: null,
-          exchange_rate: null,
         });
       }
     }
@@ -238,17 +236,16 @@ export class GenerateDemoDataUseCase {
     return lines;
   }
 
-  private buildTransactionInserts(
-    budgets: BudgetRow[],
-    dek: Buffer,
-  ): TransactionInsert[] {
+  private buildTransactionSeeds(
+    budgets: DemoSeededBudget[],
+  ): DemoTransactionSeed[] {
     const currentDate = new Date();
     const pastBudgets = budgets.filter((b) => {
       const budgetDate = new Date(b.year, b.month - 1);
       return budgetDate <= currentDate;
     });
 
-    const transactions: TransactionInsert[] = [];
+    const transactions: DemoTransactionSeed[] = [];
 
     for (const budget of pastBudgets) {
       const isCurrentMonth =
@@ -257,18 +254,17 @@ export class GenerateDemoDataUseCase {
       const daysInMonth = new Date(budget.year, budget.month, 0).getDate();
       const maxDay = isCurrentMonth ? currentDate.getDate() : daysInMonth;
 
-      transactions.push(...this.buildMonthTransactions(budget, maxDay, dek));
+      transactions.push(...this.buildMonthTransactions(budget, maxDay));
     }
 
     return transactions;
   }
 
   private buildMonthTransactions(
-    budget: BudgetRow,
+    budget: DemoSeededBudget,
     maxDay: number,
-    dek: Buffer,
-  ): TransactionInsert[] {
-    const transactions: TransactionInsert[] = [];
+  ): DemoTransactionSeed[] {
+    const transactions: DemoTransactionSeed[] = [];
 
     if (maxDay >= 5) {
       transactions.push(
@@ -278,7 +274,6 @@ export class GenerateDemoDataUseCase {
           'Migros - Courses',
           127.85,
           'Alimentation',
-          dek,
         ),
       );
     }
@@ -290,7 +285,6 @@ export class GenerateDemoDataUseCase {
           'Restaurant Molino',
           78.5,
           'Restaurants',
-          dek,
         ),
       );
     }
@@ -302,7 +296,6 @@ export class GenerateDemoDataUseCase {
           'Coop - Courses',
           94.2,
           'Alimentation',
-          dek,
         ),
       );
     }
@@ -311,35 +304,28 @@ export class GenerateDemoDataUseCase {
   }
 
   private buildTransaction(
-    budget: BudgetRow,
+    budget: DemoSeededBudget,
     day: number,
     name: string,
     amount: number,
     category: string,
-    dek: Buffer,
-  ): TransactionInsert {
+  ): DemoTransactionSeed {
     return {
-      budget_id: budget.id,
-      budget_line_id: null,
+      budgetId: budget.id,
       name,
-      amount: this.encryption.encryptAmount(amount, dek),
+      amount,
       kind: 'expense',
       category,
-      transaction_date: new Date(
+      transactionDate: new Date(
         budget.year,
         budget.month - 1,
         day,
       ).toISOString(),
-      checked_at: null,
-      original_amount: null,
-      original_currency: null,
-      target_currency: null,
-      exchange_rate: null,
     };
   }
 
   private async recalculateAllBudgetBalances(
-    budgets: BudgetRow[],
+    budgets: DemoSeededBudget[],
   ): Promise<void> {
     const sorted = [...budgets].sort((a, b) => {
       if (a.year !== b.year) return a.year - b.year;

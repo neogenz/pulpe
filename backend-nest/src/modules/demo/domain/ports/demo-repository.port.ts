@@ -1,55 +1,64 @@
 import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
-import type { Tables } from '../../../../types/database.types';
+import type {
+  DemoBudgetLineSeed,
+  DemoBudgetSeed,
+  DemoSeededBudget,
+  DemoSeededTemplate,
+  DemoSeededTemplateLine,
+  DemoTemplateSeed,
+  DemoTransactionSeed,
+} from '../demo.entity';
 
 export const DEMO_REPOSITORY = Symbol('DEMO_REPOSITORY');
 
-type TemplateRow = Tables<'template'>;
-type BudgetRow = Tables<'monthly_budget'>;
+/**
+ * Mapping from a demo template kind to its persisted id. The repo uses this to
+ * load the canonical per-kind line specs from `infrastructure/persistence/demo-template-specs.ts`,
+ * encrypt amounts internally, and insert them.
+ */
+export interface DemoTemplateIds {
+  standardId: string;
+  vacationId: string;
+  savingsId: string;
+  holidayId: string;
+}
 
-type TemplateInsert = Omit<TemplateRow, 'id' | 'created_at' | 'updated_at'>;
-type TemplateLineInsert = Omit<
-  Tables<'template_line'>,
-  'id' | 'created_at' | 'updated_at'
->;
-type MonthlyBudgetInsert = Omit<BudgetRow, 'id' | 'created_at' | 'updated_at'>;
-type BudgetLineInsert = Omit<
-  Tables<'budget_line'>,
-  'id' | 'created_at' | 'updated_at'
->;
-type TransactionInsert = Omit<
-  Tables<'transaction'>,
-  'id' | 'created_at' | 'updated_at'
->;
-
-export type {
-  TemplateRow,
-  BudgetRow,
-  TemplateInsert,
-  TemplateLineInsert,
-  MonthlyBudgetInsert,
-  BudgetLineInsert,
-  TransactionInsert,
-};
-
+/**
+ * DemoRepositoryPort — entity-shaped seed surface.
+ *
+ * Inputs are plain entity types (no DB row knowledge, no ciphertext). The repo
+ * encrypts amounts internally with `DEMO_CLIENT_KEY_BUFFER` before writing.
+ *
+ * The repo accepts an explicit `supabase` client because the demo seed flow
+ * runs outside the per-request CLS context (the freshly minted demo session
+ * is used to author its own seed data).
+ */
 export interface DemoRepositoryPort {
   insertTemplates(
-    rows: TemplateInsert[],
+    templates: DemoTemplateSeed[],
     supabase: AuthenticatedSupabaseClient,
-  ): Promise<TemplateRow[]>;
-  insertTemplateLines(
-    rows: TemplateLineInsert[],
+  ): Promise<DemoSeededTemplate[]>;
+  /**
+   * Insert the canonical 4-kind set of demo template lines. The repo owns the
+   * per-kind spec data and encrypts amounts internally.
+   */
+  insertCanonicalTemplateLines(
+    templateIds: DemoTemplateIds,
+    userId: string,
     supabase: AuthenticatedSupabaseClient,
-  ): Promise<Tables<'template_line'>[]>;
+  ): Promise<DemoSeededTemplateLine[]>;
   insertBudgets(
-    rows: MonthlyBudgetInsert[],
+    budgets: DemoBudgetSeed[],
     supabase: AuthenticatedSupabaseClient,
-  ): Promise<BudgetRow[]>;
+  ): Promise<DemoSeededBudget[]>;
   insertBudgetLines(
-    rows: BudgetLineInsert[],
+    lines: DemoBudgetLineSeed[],
+    userId: string,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<void>;
   insertTransactions(
-    rows: TransactionInsert[],
+    transactions: DemoTransactionSeed[],
+    userId: string,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<void>;
 }

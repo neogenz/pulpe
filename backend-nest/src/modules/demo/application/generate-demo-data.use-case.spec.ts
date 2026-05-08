@@ -1,21 +1,34 @@
 import { describe, it, expect, beforeEach, mock } from 'bun:test';
 import { Test, type TestingModule } from '@nestjs/testing';
+import { ConfigModule } from '@nestjs/config';
 import { BUDGET_RECALCULATION_PORT } from '../../budget/domain/ports/budget-recalculation.port';
-import { ENCRYPTION_PORT } from '../../encryption/encryption.tokens';
 import { DEMO_REPOSITORY } from '../domain/ports/demo-repository.port';
 import { GenerateDemoDataUseCase } from './generate-demo-data.use-case';
-import { ConfigModule } from '@nestjs/config';
 
 function buildMockRepo() {
   return {
     insertTemplates: mock(async (rows: unknown[]) =>
-      rows.map((_, i) => ({ id: `template-${i}`, user_id: 'user-1' })),
+      rows.map((_, i) => ({ id: `template-${i}` })),
     ),
-    insertTemplateLines: mock(async (rows: unknown[]) =>
-      rows.map((r, i) => ({ ...(r as object), id: `tl-${i}` })),
-    ),
+    insertCanonicalTemplateLines: mock(async () => [
+      {
+        id: 'tl-0',
+        templateId: 'template-0',
+        name: 'Salaire',
+        amount: 6500,
+        kind: 'income' as const,
+        recurrence: 'fixed' as const,
+      },
+    ]),
     insertBudgets: mock(async (rows: unknown[]) =>
-      rows.map((r, i) => ({ ...(r as object), id: `budget-${i}` })),
+      rows.map(
+        (r, i) =>
+          ({
+            ...(r as object),
+            id: `budget-${i}`,
+            templateId: (r as { templateId: string }).templateId,
+          }) as unknown,
+      ),
     ),
     insertBudgetLines: mock(async () => {}),
     insertTransactions: mock(async () => {}),
@@ -36,14 +49,6 @@ describe('GenerateDemoDataUseCase', () => {
         GenerateDemoDataUseCase,
         { provide: DEMO_REPOSITORY, useValue: mockRepo },
         {
-          provide: ENCRYPTION_PORT,
-          useValue: {
-            ensureUserDEK: async () => Buffer.alloc(32),
-            encryptAmount: () => 'encrypted',
-            decryptAmount: () => 100,
-          },
-        },
-        {
           provide: BUDGET_RECALCULATION_PORT,
           useValue: { recalculate: mock(async () => {}) },
         },
@@ -59,7 +64,7 @@ describe('GenerateDemoDataUseCase', () => {
 
   describe('execute - complete financial setup', () => {
     it('should create 4 templates via repository', async () => {
-      await useCase.execute('user-1', {} as any);
+      await useCase.execute('user-1', {} as never);
 
       const [[templatesInserted]] = (
         mockRepo.insertTemplates as ReturnType<typeof mock>
@@ -68,7 +73,7 @@ describe('GenerateDemoDataUseCase', () => {
     });
 
     it('should create 12 monthly budgets (6 past + 6 future)', async () => {
-      await useCase.execute('user-1', {} as any);
+      await useCase.execute('user-1', {} as never);
 
       const [[budgetsInserted]] = (
         mockRepo.insertBudgets as ReturnType<typeof mock>
@@ -84,14 +89,6 @@ describe('GenerateDemoDataUseCase', () => {
           GenerateDemoDataUseCase,
           { provide: DEMO_REPOSITORY, useValue: buildMockRepo() },
           {
-            provide: ENCRYPTION_PORT,
-            useValue: {
-              ensureUserDEK: async () => Buffer.alloc(32),
-              encryptAmount: () => 'encrypted',
-              decryptAmount: () => 100,
-            },
-          },
-          {
             provide: BUDGET_RECALCULATION_PORT,
             useValue: { recalculate: mockRecalc },
           },
@@ -103,9 +100,28 @@ describe('GenerateDemoDataUseCase', () => {
       }).compile();
 
       const uc = module.get(GenerateDemoDataUseCase);
-      await uc.execute('user-1', {} as any);
+      await uc.execute('user-1', {} as never);
 
       expect(mockRecalc.mock.calls.length).toBe(12);
+    });
+
+    it('should pass userId to repo encryption-aware methods', async () => {
+      await useCase.execute('user-7', {} as never);
+
+      const linesCall = (
+        mockRepo.insertCanonicalTemplateLines as ReturnType<typeof mock>
+      ).mock.calls[0];
+      expect(linesCall[1]).toBe('user-7');
+
+      const budgetLinesCall = (
+        mockRepo.insertBudgetLines as ReturnType<typeof mock>
+      ).mock.calls[0];
+      expect(budgetLinesCall[1]).toBe('user-7');
+
+      const transactionsCall = (
+        mockRepo.insertTransactions as ReturnType<typeof mock>
+      ).mock.calls[0];
+      expect(transactionsCall[1]).toBe('user-7');
     });
 
     it('should throw if repository fails', async () => {
@@ -113,7 +129,7 @@ describe('GenerateDemoDataUseCase', () => {
         throw new Error('DB error');
       });
 
-      await expect(useCase.execute('user-1', {} as any)).rejects.toThrow(
+      await expect(useCase.execute('user-1', {} as never)).rejects.toThrow(
         'DB error',
       );
     });
