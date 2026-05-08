@@ -32,6 +32,12 @@ interface BulkOperationsResult {
   createdLines: TemplateLine[];
 }
 
+const EMPTY_PROPAGATION_SUMMARY: TemplateLinesPropagationSummary = {
+  mode: 'propagate',
+  affectedBudgetIds: [],
+  affectedBudgetsCount: 0,
+};
+
 @Injectable()
 export class BulkTemplateLineOperationsUseCase {
   constructor(
@@ -64,20 +70,11 @@ export class BulkTemplateLineOperationsUseCase {
       await this.repo.validateLinesExist(templateId, deleteIds);
     }
 
-    const updatedLines = await this.performBulkUpdates(
-      validated.update || [],
+    const operationsResult = await this.applyBulkOperations(
       templateId,
+      validated,
+      deleteIds,
     );
-    const createdLines = await this.performBulkCreates(
-      validated.create || [],
-      templateId,
-    );
-
-    const operationsResult: BulkOperationsResult = {
-      deletedIds: deleteIds,
-      updatedLines,
-      createdLines,
-    };
 
     const propagationSummary = await this.handlePropagation(
       templateId,
@@ -90,26 +87,40 @@ export class BulkTemplateLineOperationsUseCase {
       await this.cacheService.invalidateForUser(user.id);
     }
 
-    this.logger.info(
-      {
-        operation: 'bulkOperationsTemplateLines',
-        userId: user.id,
-        entityId: templateId,
-        operationCount: {
-          create: validated.create?.length || 0,
-          update: validated.update?.length || 0,
-          delete: deleteIds.length,
-        },
-        propagateToBudgets: validated.propagateToBudgets,
-        propagationImpact: {
-          mode: propagationSummary.mode,
-          affectedBudgetsCount: propagationSummary.affectedBudgetsCount,
-        },
-        duration: Date.now() - startTime,
-      },
-      'Bulk operations on template lines completed successfully',
+    this.logBulkOperationsCompleted(
+      templateId,
+      user,
+      validated,
+      deleteIds.length,
+      propagationSummary,
+      Date.now() - startTime,
     );
 
+    return this.buildResponse(operationsResult, propagationSummary);
+  }
+
+  private async applyBulkOperations(
+    templateId: string,
+    validated: TemplateLinesBulkOperations,
+    deleteIds: string[],
+  ): Promise<BulkOperationsResult> {
+    return {
+      deletedIds: deleteIds,
+      updatedLines: await this.performBulkUpdates(
+        validated.update || [],
+        templateId,
+      ),
+      createdLines: await this.performBulkCreates(
+        validated.create || [],
+        templateId,
+      ),
+    };
+  }
+
+  private buildResponse(
+    operationsResult: BulkOperationsResult,
+    propagationSummary: TemplateLinesPropagationSummary,
+  ): TemplateLinesBulkOperationsResponse {
     return {
       success: true,
       data: {
@@ -123,6 +134,35 @@ export class BulkTemplateLineOperationsUseCase {
         propagation: propagationSummary,
       },
     };
+  }
+
+  private logBulkOperationsCompleted(
+    templateId: string,
+    user: AuthenticatedUser,
+    validated: TemplateLinesBulkOperations,
+    deletedCount: number,
+    propagationSummary: TemplateLinesPropagationSummary,
+    duration: number,
+  ): void {
+    this.logger.info(
+      {
+        operation: 'bulkOperationsTemplateLines',
+        userId: user.id,
+        entityId: templateId,
+        operationCount: {
+          create: validated.create?.length || 0,
+          update: validated.update?.length || 0,
+          delete: deletedCount,
+        },
+        propagateToBudgets: validated.propagateToBudgets,
+        propagationImpact: {
+          mode: propagationSummary.mode,
+          affectedBudgetsCount: propagationSummary.affectedBudgetsCount,
+        },
+        duration,
+      },
+      'Bulk operations on template lines completed successfully',
+    );
   }
 
   private async handlePropagation(
@@ -147,11 +187,7 @@ export class BulkTemplateLineOperationsUseCase {
     }
 
     if (!hasDeletes && !hasBudgetMutations) {
-      return {
-        mode: 'propagate',
-        affectedBudgetIds: [],
-        affectedBudgetsCount: 0,
-      };
+      return EMPTY_PROPAGATION_SUMMARY;
     }
 
     return this.propagateToBudgets(templateId, operations, user);
@@ -162,32 +198,13 @@ export class BulkTemplateLineOperationsUseCase {
     operations: BulkOperationsResult,
     user: AuthenticatedUser,
   ): Promise<TemplateLinesPropagationSummary> {
-    this.logger.info(
-      {
-        operation: 'propagateTemplateChangesToBudgets',
-        templateId,
-        userId: user.id,
-        operations: {
-          deletedCount: operations.deletedIds.length,
-          updatedCount: operations.updatedLines.length,
-          createdCount: operations.createdLines.length,
-        },
-      },
-      'Starting template propagation to budgets',
-    );
+    this.logPropagationStart(templateId, user.id, operations);
 
     const now = new Date();
-    const currentPeriod = {
+    const budgets = await this.repo.fetchFutureBudgets(templateId, user.id, {
       year: now.getUTCFullYear(),
       month: now.getUTCMonth() + 1,
-    };
-
-    const budgets = await this.repo.fetchFutureBudgets(
-      templateId,
-      user.id,
-      currentPeriod,
-    );
-
+    });
     const budgetIds = budgets.map((b) => b.id);
 
     if (!budgetIds.length) {
@@ -200,11 +217,7 @@ export class BulkTemplateLineOperationsUseCase {
         },
         'No budgets found for propagation',
       );
-      return {
-        mode: 'propagate',
-        affectedBudgetIds: [],
-        affectedBudgetsCount: 0,
-      };
+      return EMPTY_PROPAGATION_SUMMARY;
     }
 
     const affectedBudgetIds = await this.applyRpc(
@@ -226,6 +239,26 @@ export class BulkTemplateLineOperationsUseCase {
       affectedBudgetIds,
       affectedBudgetsCount: affectedBudgetIds.length,
     };
+  }
+
+  private logPropagationStart(
+    templateId: string,
+    userId: string,
+    operations: BulkOperationsResult,
+  ): void {
+    this.logger.info(
+      {
+        operation: 'propagateTemplateChangesToBudgets',
+        templateId,
+        userId,
+        operations: {
+          deletedCount: operations.deletedIds.length,
+          updatedCount: operations.updatedLines.length,
+          createdCount: operations.createdLines.length,
+        },
+      },
+      'Starting template propagation to budgets',
+    );
   }
 
   private async applyRpc(
