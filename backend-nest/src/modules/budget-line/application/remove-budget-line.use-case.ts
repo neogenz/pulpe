@@ -1,7 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
-import { type BudgetLineDeleteResponse } from 'pulpe-shared';
 import { CacheService } from '@modules/cache/cache.service';
 import {
   BUDGET_RECALCULATION_PORT,
@@ -28,7 +27,7 @@ export class RemoveBudgetLineUseCase {
     id: string,
     user: AuthenticatedUser,
     _supabase: unknown,
-  ): Promise<BudgetLineDeleteResponse> {
+  ): Promise<void> {
     const budgetId = await this.repo.fetchBudgetIdForLine(id);
     await this.repo.delete(id);
 
@@ -42,7 +41,5 @@ export class RemoveBudgetLineUseCase {
       { budgetLineId: id, userId: user.id, operation: 'budgetLine.remove' },
       'Budget line deleted',
     );
-
-    return { success: true, message: 'Budget line deleted successfully' };
   }
 }

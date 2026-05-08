@@ -1,37 +1,32 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
-import { type BudgetLineCreate, type BudgetLineResponse } from 'pulpe-shared';
-import {
-  ENCRYPTION_PORT,
-  type EncryptionPort,
-} from '@modules/encryption/encryption.tokens';
+import { type BudgetLineCreate } from 'pulpe-shared';
 import { CacheService } from '@modules/cache/cache.service';
 import { CurrencyService } from '@modules/currency/currency.service';
 import {
   BUDGET_RECALCULATION_PORT,
   type BudgetRecalculationPort,
 } from '@modules/budget/domain/ports/budget-recalculation.port';
-import { mapCurrencyMetadataToDb } from '@common/utils/currency-metadata.mapper';
 import {
   BUDGET_LINE_REPOSITORY,
   type BudgetLineRepositoryPort,
 } from '../domain/ports/budget-line-repository.port';
 import { BudgetLineInvariants } from '../domain/budget-line.invariants';
-import { BudgetLineMapper } from '../infrastructure/mappers/budget-line.mapper';
-import type { Database } from '../../../types/database.types';
+import type {
+  BudgetLine,
+  BudgetLineCreateInput,
+} from '../domain/budget-line.entity';
 
 @Injectable()
 export class CreateBudgetLineUseCase {
   constructor(
     @Inject(BUDGET_LINE_REPOSITORY)
     private readonly repo: BudgetLineRepositoryPort,
-    @Inject(ENCRYPTION_PORT) private readonly encryption: EncryptionPort,
     private readonly cacheService: CacheService,
     private readonly currencyService: CurrencyService,
     @Inject(BUDGET_RECALCULATION_PORT)
     private readonly budgetRecalculation: BudgetRecalculationPort,
-    private readonly mapper: BudgetLineMapper,
     @InjectInfoLogger(CreateBudgetLineUseCase.name)
     private readonly logger: InfoLogger,
   ) {}
@@ -40,60 +35,41 @@ export class CreateBudgetLineUseCase {
     dto: BudgetLineCreate,
     user: AuthenticatedUser,
     _supabase: unknown,
-  ): Promise<BudgetLineResponse> {
+  ): Promise<BudgetLine> {
     BudgetLineInvariants.validateCreate(dto);
 
     const withRate = await this.currencyService.overrideExchangeRate(dto);
-    const baseData = this.prepareInsertData(withRate);
+    const input: BudgetLineCreateInput = {
+      ...(withRate.id ? { id: withRate.id } : {}),
+      budgetId: withRate.budgetId!,
+      templateLineId: withRate.templateLineId ?? null,
+      savingsGoalId: withRate.savingsGoalId ?? null,
+      name: withRate.name,
+      amount: withRate.amount,
+      originalAmount: withRate.originalAmount ?? null,
+      originalCurrency: withRate.originalCurrency ?? null,
+      targetCurrency: withRate.targetCurrency ?? null,
+      exchangeRate: withRate.exchangeRate ?? null,
+      kind: withRate.kind,
+      recurrence: withRate.recurrence,
+      isManuallyAdjusted: withRate.isManuallyAdjusted ?? false,
+      checkedAt: withRate.checkedAt ?? null,
+    };
 
-    const [{ amount }, encryptedOriginalAmount] = await Promise.all([
-      this.encryption.prepareAmountData(
-        baseData.amount as number,
-        user.id,
-        user.clientKey,
-      ),
-      this.encryption.encryptOptionalAmount(
-        withRate.originalAmount,
-        user.id,
-        user.clientKey,
-      ),
-    ]);
+    const entity = await this.repo.insert(input);
 
-    const row = await this.repo.insert({
-      ...baseData,
-      amount,
-      original_amount: encryptedOriginalAmount,
-    });
-
-    const dek = await this.encryption.getUserDEK(user.id, user.clientKey);
-    const decrypted = this.encryption.decryptRowAmountFields(row, dek);
-
-    await this.budgetRecalculation.recalculate(row.budget_id, user.clientKey);
+    await this.budgetRecalculation.recalculate(entity.budgetId, user.clientKey);
     await this.cacheService.invalidateForUser(user.id);
 
     this.logger.info(
-      { budgetLineId: row.id, userId: user.id, operation: 'budgetLine.create' },
+      {
+        budgetLineId: entity.id,
+        userId: user.id,
+        operation: 'budgetLine.create',
+      },
       'Budget line created',
     );
 
-    return { success: true, data: this.mapper.toApi(decrypted) };
-  }
-
-  private prepareInsertData(dto: BudgetLineCreate) {
-    return {
-      ...(dto.id ? { id: dto.id } : {}),
-      budget_id: dto.budgetId!,
-      template_line_id: dto.templateLineId ?? null,
-      savings_goal_id: dto.savingsGoalId ?? null,
-      name: dto.name,
-      amount: dto.amount,
-      kind: dto.kind as Database['public']['Enums']['transaction_kind'],
-      recurrence: dto.recurrence,
-      is_manually_adjusted: dto.isManuallyAdjusted ?? false,
-      checked_at: dto.checkedAt ?? null,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      ...mapCurrencyMetadataToDb(dto),
-    };
+    return entity;
   }
 }

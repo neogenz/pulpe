@@ -1,37 +1,66 @@
 import { Injectable } from '@nestjs/common';
-import { type BudgetLine } from 'pulpe-shared';
+import {
+  type BudgetLine as BudgetLineApi,
+  type Transaction as TransactionApi,
+} from 'pulpe-shared';
 import { mapCurrencyMetadataToApi } from '@common/utils/currency-metadata.mapper';
-import type { BudgetLineRow } from '../../domain/budget-line.entity';
-
-export type DecryptedBudgetLineRow = Omit<
-  BudgetLineRow,
-  'amount' | 'original_amount'
-> & {
-  amount: number;
-  original_amount: number | null;
-};
+import type {
+  BudgetLine,
+  TransactionEntity,
+} from '../../domain/budget-line.entity';
 
 @Injectable()
 export class BudgetLineMapper {
-  toApi(row: DecryptedBudgetLineRow): BudgetLine {
+  toApi(entity: BudgetLine): BudgetLineApi {
     return {
-      id: row.id,
-      budgetId: row.budget_id,
-      templateLineId: row.template_line_id,
-      savingsGoalId: row.savings_goal_id,
-      name: row.name,
-      amount: row.amount,
-      kind: row.kind,
-      recurrence: row.recurrence,
-      isManuallyAdjusted: row.is_manually_adjusted,
-      checkedAt: row.checked_at,
-      createdAt: row.created_at,
-      updatedAt: row.updated_at,
-      ...mapCurrencyMetadataToApi(row),
+      id: entity.id,
+      budgetId: entity.budgetId,
+      templateLineId: entity.templateLineId,
+      savingsGoalId: entity.savingsGoalId,
+      name: entity.name,
+      amount: entity.amount,
+      kind: entity.kind,
+      recurrence: entity.recurrence,
+      isManuallyAdjusted: entity.isManuallyAdjusted,
+      checkedAt: entity.checkedAt,
+      createdAt: entity.createdAt,
+      updatedAt: entity.updatedAt,
+      ...mapCurrencyMetadataToApi({
+        original_amount: entity.originalAmount,
+        original_currency: entity.originalCurrency,
+        target_currency: entity.targetCurrency,
+        exchange_rate: entity.exchangeRate,
+      }),
     };
   }
 
-  toApiList(rows: DecryptedBudgetLineRow[]): BudgetLine[] {
-    return rows.map((row) => this.toApi(row));
+  toApiList(entities: BudgetLine[]): BudgetLineApi[] {
+    return entities.map((entity) => this.toApi(entity));
+  }
+
+  toTransactionApi(entity: TransactionEntity): TransactionApi {
+    return {
+      id: entity.id,
+      createdAt: entity.createdAt,
+      updatedAt: entity.updatedAt,
+      budgetId: entity.budgetId,
+      budgetLineId: entity.budgetLineId,
+      amount: entity.amount,
+      name: entity.name,
+      kind: entity.kind,
+      transactionDate: entity.transactionDate,
+      category: entity.category,
+      checkedAt: entity.checkedAt,
+      ...mapCurrencyMetadataToApi({
+        original_amount: entity.originalAmount,
+        original_currency: entity.originalCurrency,
+        target_currency: entity.targetCurrency,
+        exchange_rate: entity.exchangeRate,
+      }),
+    };
+  }
+
+  toTransactionApiList(entities: TransactionEntity[]): TransactionApi[] {
+    return entities.map((entity) => this.toTransactionApi(entity));
   }
 }

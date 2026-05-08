@@ -1,11 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
-import { type BudgetLineResponse } from 'pulpe-shared';
-import {
-  ENCRYPTION_PORT,
-  type EncryptionPort,
-} from '@modules/encryption/encryption.tokens';
 import { CacheService } from '@modules/cache/cache.service';
 import {
   BUDGET_RECALCULATION_PORT,
@@ -16,19 +11,20 @@ import {
   type BudgetLineRepositoryPort,
 } from '../domain/ports/budget-line-repository.port';
 import { BudgetLineInvariants } from '../domain/budget-line.invariants';
-import { BudgetLineMapper } from '../infrastructure/mappers/budget-line.mapper';
-import type { TemplateLineRow } from '../domain/budget-line.entity';
+import type {
+  BudgetLine,
+  BudgetLineUpdatePatch,
+  TemplateLineEntity,
+} from '../domain/budget-line.entity';
 
 @Injectable()
 export class ResetBudgetLineFromTemplateUseCase {
   constructor(
     @Inject(BUDGET_LINE_REPOSITORY)
     private readonly repo: BudgetLineRepositoryPort,
-    @Inject(ENCRYPTION_PORT) private readonly encryption: EncryptionPort,
     private readonly cacheService: CacheService,
     @Inject(BUDGET_RECALCULATION_PORT)
     private readonly budgetRecalculation: BudgetRecalculationPort,
-    private readonly mapper: BudgetLineMapper,
     @InjectInfoLogger(ResetBudgetLineFromTemplateUseCase.name)
     private readonly logger: InfoLogger,
   ) {}
@@ -37,21 +33,20 @@ export class ResetBudgetLineFromTemplateUseCase {
     id: string,
     user: AuthenticatedUser,
     _supabase: unknown,
-  ): Promise<BudgetLineResponse> {
-    const { encryptedAmount, resetData, budgetId } = await this.prepareReset(
-      id,
-      user,
+  ): Promise<BudgetLine> {
+    const budgetLine = await this.repo.findById(id);
+    BudgetLineInvariants.validateTemplateLineIdExists(
+      budgetLine.templateLineId,
     );
 
-    const updated = await this.repo.update(id, {
-      ...resetData,
-      amount: encryptedAmount,
-    });
+    const templateLine = await this.repo.fetchTemplateLineById(
+      budgetLine.templateLineId!,
+    );
 
-    const dek = await this.encryption.getUserDEK(user.id, user.clientKey);
-    const decrypted = this.encryption.decryptRowAmountFields(updated, dek);
+    const patch = this.buildResetPatch(templateLine);
+    const entity = await this.repo.update(id, patch);
 
-    await this.budgetRecalculation.recalculate(budgetId, user.clientKey);
+    await this.budgetRecalculation.recalculate(entity.budgetId, user.clientKey);
     await this.cacheService.invalidateForUser(user.id);
 
     this.logger.info(
@@ -63,53 +58,26 @@ export class ResetBudgetLineFromTemplateUseCase {
       'Budget line reset from template',
     );
 
-    return { success: true, data: this.mapper.toApi(decrypted) };
+    return entity;
   }
 
-  private async prepareReset(id: string, user: AuthenticatedUser) {
-    const budgetLine = await this.repo.findById(id);
-    BudgetLineInvariants.validateTemplateLineIdExists(
-      budgetLine.template_line_id,
-    );
-
-    const templateLine = await this.repo.fetchTemplateLineById(
-      budgetLine.template_line_id!,
-    );
-
-    const templateAmount = await this.resolveTemplateAmount(templateLine, user);
-    const { amount: encryptedAmount } = await this.encryption.prepareAmountData(
-      templateAmount,
-      user.id,
-      user.clientKey,
-    );
-
-    return {
-      encryptedAmount,
-      resetData: this.buildResetData(templateLine),
-      budgetId: budgetLine.budget_id,
-    };
-  }
-
-  private async resolveTemplateAmount(
-    templateLine: TemplateLineRow,
-    user: AuthenticatedUser,
-  ): Promise<number> {
-    if (!templateLine.amount) return 0;
-    const dek = await this.encryption.getUserDEK(user.id, user.clientKey);
-    return this.encryption.tryDecryptAmount(templateLine.amount, dek, 0);
-  }
-
-  private buildResetData(templateLine: TemplateLineRow) {
+  private buildResetPatch(
+    templateLine: TemplateLineEntity,
+  ): BudgetLineUpdatePatch {
     return {
       name: templateLine.name,
+      amount: templateLine.amount,
+      originalAmount: templateLine.originalAmount,
+      originalCurrency:
+        (templateLine.originalCurrency as BudgetLineUpdatePatch['originalCurrency']) ??
+        null,
+      targetCurrency:
+        (templateLine.targetCurrency as BudgetLineUpdatePatch['targetCurrency']) ??
+        null,
+      exchangeRate: templateLine.exchangeRate,
       kind: templateLine.kind,
       recurrence: templateLine.recurrence,
-      is_manually_adjusted: false,
-      original_amount: templateLine.original_amount,
-      original_currency: templateLine.original_currency,
-      target_currency: templateLine.target_currency,
-      exchange_rate: templateLine.exchange_rate,
-      updated_at: new Date().toISOString(),
+      isManuallyAdjusted: false,
     };
   }
 }

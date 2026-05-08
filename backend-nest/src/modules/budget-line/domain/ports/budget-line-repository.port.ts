@@ -1,22 +1,22 @@
 import type {
-  BudgetLineRow,
-  BudgetLineInsert,
-  BudgetLineUpdate,
-  TemplateLineRow,
-  TransactionRow,
+  BudgetLine,
+  BudgetLineCreateInput,
+  BudgetLineUpdatePatch,
+  TemplateLineEntity,
+  TransactionEntity,
 } from '../budget-line.entity';
 
 export const BUDGET_LINE_REPOSITORY = Symbol('BUDGET_LINE_REPOSITORY');
 
 export interface BudgetLineRepositoryPort {
-  findAll(): Promise<BudgetLineRow[]>;
-  findById(id: string): Promise<BudgetLineRow>;
-  findByBudgetId(budgetId: string): Promise<BudgetLineRow[]>;
+  findAll(): Promise<BudgetLine[]>;
+  findById(id: string): Promise<BudgetLine>;
+  findByBudgetId(budgetId: string): Promise<BudgetLine[]>;
   fetchBudgetIdForLine(id: string): Promise<string | null>;
-  insert(data: BudgetLineInsert): Promise<BudgetLineRow>;
-  update(id: string, data: Partial<BudgetLineUpdate>): Promise<BudgetLineRow>;
+  insert(input: BudgetLineCreateInput): Promise<BudgetLine>;
+  update(id: string, patch: BudgetLineUpdatePatch): Promise<BudgetLine>;
   delete(id: string): Promise<void>;
-  fetchTemplateLineById(templateLineId: string): Promise<TemplateLineRow>;
-  toggleCheckRpc(id: string): Promise<BudgetLineRow>;
-  checkUncheckedTransactionsRpc(id: string): Promise<TransactionRow[]>;
+  fetchTemplateLineById(templateLineId: string): Promise<TemplateLineEntity>;
+  toggleCheckRpc(id: string): Promise<BudgetLine>;
+  checkUncheckedTransactionsRpc(id: string): Promise<TransactionEntity[]>;
 }

@@ -1,9 +1,22 @@
 import { describe, it, expect, jest } from 'bun:test';
+import { Buffer } from 'node:buffer';
 import { SupabaseBudgetLineRepository } from './supabase-budget-line.repository';
 import { BusinessException } from '@common/exceptions/business.exception';
-import type { BudgetLineRow } from '../../domain/budget-line.entity';
+import type {
+  BudgetLine,
+  BudgetLineRow,
+} from '../../domain/budget-line.entity';
 import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
 import type { AuthenticatedSupabaseProvider } from '@modules/supabase/authenticated-supabase.provider';
+import type { EncryptionPort } from '@modules/encryption/encryption.tokens';
+import type { AuthenticatedUser } from '@common/decorators/user.decorator';
+
+const mockUser: AuthenticatedUser = {
+  id: 'user-1',
+  email: 'test@example.com',
+  accessToken: 'token',
+  clientKey: Buffer.from('client-key'),
+};
 
 const mockRow: BudgetLineRow = {
   id: 'line-1',
@@ -11,7 +24,7 @@ const mockRow: BudgetLineRow = {
   template_line_id: null,
   savings_goal_id: null,
   name: 'Loyer',
-  amount: 'encrypted',
+  amount: 'encrypted-1200',
   kind: 'expense' as const,
   recurrence: 'fixed' as const,
   is_manually_adjusted: false,
@@ -22,6 +35,25 @@ const mockRow: BudgetLineRow = {
   original_currency: null,
   target_currency: null,
   exchange_rate: null,
+};
+
+const expectedEntity: BudgetLine = {
+  id: 'line-1',
+  budgetId: 'budget-1',
+  templateLineId: null,
+  savingsGoalId: null,
+  name: 'Loyer',
+  amount: 1200,
+  originalAmount: null,
+  originalCurrency: null,
+  targetCurrency: null,
+  exchangeRate: null,
+  kind: 'expense',
+  recurrence: 'fixed',
+  isManuallyAdjusted: false,
+  checkedAt: null,
+  createdAt: '2024-01-01T00:00:00Z',
+  updatedAt: '2024-01-01T00:00:00Z',
 };
 
 function createMockProvider(
@@ -38,16 +70,38 @@ function createMockProvider(
       return client;
     },
     get user() {
-      throw new Error('user not needed in these tests');
+      return mockUser;
     },
   } as unknown as AuthenticatedSupabaseProvider;
+}
+
+function createMockEncryption(): EncryptionPort {
+  return {
+    getUserDEK: jest.fn().mockResolvedValue(Buffer.from('dek')),
+    ensureUserDEK: jest.fn().mockResolvedValue(Buffer.from('dek')),
+    decryptAmount: jest.fn().mockReturnValue(1200),
+    tryDecryptAmount: jest.fn().mockReturnValue(1200),
+    encryptAmount: jest.fn().mockReturnValue('encrypted-1200'),
+    decryptRowAmountFields: jest.fn().mockImplementation((row) => ({
+      ...row,
+      amount: 1200,
+      original_amount: null,
+    })),
+    prepareAmountData: jest
+      .fn()
+      .mockResolvedValue({ amount: 'encrypted-1200' }),
+    prepareAmountsData: jest
+      .fn()
+      .mockResolvedValue([{ amount: 'encrypted-1200' }]),
+    encryptOptionalAmount: jest.fn().mockResolvedValue(null),
+  } as unknown as EncryptionPort;
 }
 
 describe('SupabaseBudgetLineRepository', () => {
   let repo: SupabaseBudgetLineRepository;
 
   describe('findById', () => {
-    it('should return a budget line row on success', async () => {
+    it('should return decrypted entity on success', async () => {
       const provider = createMockProvider(() => ({
         select: () => ({
           eq: () => ({
@@ -55,11 +109,11 @@ describe('SupabaseBudgetLineRepository', () => {
           }),
         }),
       }));
-      repo = new SupabaseBudgetLineRepository(provider);
+      repo = new SupabaseBudgetLineRepository(provider, createMockEncryption());
 
       const result = await repo.findById('line-1');
 
-      expect(result).toEqual(mockRow);
+      expect(result).toEqual(expectedEntity);
     });
 
     it('should throw BusinessException when not found', async () => {
@@ -73,14 +127,14 @@ describe('SupabaseBudgetLineRepository', () => {
           }),
         }),
       }));
-      repo = new SupabaseBudgetLineRepository(provider);
+      repo = new SupabaseBudgetLineRepository(provider, createMockEncryption());
 
       await expect(repo.findById('missing')).rejects.toThrow(BusinessException);
     });
   });
 
   describe('insert', () => {
-    it('should return inserted row on success', async () => {
+    it('should encrypt amount and return decrypted entity on success', async () => {
       const provider = createMockProvider(() => ({
         insert: () => ({
           select: () => ({
@@ -88,18 +142,24 @@ describe('SupabaseBudgetLineRepository', () => {
           }),
         }),
       }));
-      repo = new SupabaseBudgetLineRepository(provider);
+      const encryption = createMockEncryption();
+      repo = new SupabaseBudgetLineRepository(provider, encryption);
 
       const result = await repo.insert({
-        budget_id: 'budget-1',
+        budgetId: 'budget-1',
         name: 'Loyer',
-        amount: 'enc',
+        amount: 1200,
         kind: 'expense',
         recurrence: 'fixed',
-        is_manually_adjusted: false,
+        isManuallyAdjusted: false,
       });
 
-      expect(result).toEqual(mockRow);
+      expect(result).toEqual(expectedEntity);
+      expect(encryption.prepareAmountData).toHaveBeenCalledWith(
+        1200,
+        mockUser.id,
+        mockUser.clientKey,
+      );
     });
 
     it('should throw BUDGET_LINE_ALREADY_EXISTS on 23505', async () => {
@@ -113,16 +173,16 @@ describe('SupabaseBudgetLineRepository', () => {
           }),
         }),
       }));
-      repo = new SupabaseBudgetLineRepository(provider);
+      repo = new SupabaseBudgetLineRepository(provider, createMockEncryption());
 
       await expect(
         repo.insert({
-          budget_id: 'budget-1',
+          budgetId: 'budget-1',
           name: 'Loyer',
-          amount: 'enc',
+          amount: 1200,
           kind: 'expense',
           recurrence: 'fixed',
-          is_manually_adjusted: false,
+          isManuallyAdjusted: false,
         }),
       ).rejects.toThrow(BusinessException);
     });
@@ -135,7 +195,7 @@ describe('SupabaseBudgetLineRepository', () => {
           eq: jest.fn().mockResolvedValue({ error: null }),
         }),
       }));
-      repo = new SupabaseBudgetLineRepository(provider);
+      repo = new SupabaseBudgetLineRepository(provider, createMockEncryption());
 
       await expect(repo.delete('line-1')).resolves.toBeUndefined();
     });
@@ -148,23 +208,23 @@ describe('SupabaseBudgetLineRepository', () => {
           }),
         }),
       }));
-      repo = new SupabaseBudgetLineRepository(provider);
+      repo = new SupabaseBudgetLineRepository(provider, createMockEncryption());
 
       await expect(repo.delete('line-1')).rejects.toThrow(BusinessException);
     });
   });
 
   describe('toggleCheckRpc', () => {
-    it('should return updated row from rpc', async () => {
+    it('should return decrypted entity from rpc', async () => {
       const mockRpc = jest.fn().mockReturnValue({
         single: jest.fn().mockResolvedValue({ data: mockRow, error: null }),
       });
       const provider = createMockProvider(() => ({}), mockRpc);
-      repo = new SupabaseBudgetLineRepository(provider);
+      repo = new SupabaseBudgetLineRepository(provider, createMockEncryption());
 
       const result = await repo.toggleCheckRpc('line-1');
 
-      expect(result).toEqual(mockRow);
+      expect(result).toEqual(expectedEntity);
       expect(mockRpc).toHaveBeenCalledWith('toggle_budget_line_check', {
         p_budget_line_id: 'line-1',
       });
@@ -178,7 +238,7 @@ describe('SupabaseBudgetLineRepository', () => {
         }),
       });
       const provider = createMockProvider(() => ({}), mockRpc);
-      repo = new SupabaseBudgetLineRepository(provider);
+      repo = new SupabaseBudgetLineRepository(provider, createMockEncryption());
 
       await expect(repo.toggleCheckRpc('line-1')).rejects.toThrow(
         BusinessException,

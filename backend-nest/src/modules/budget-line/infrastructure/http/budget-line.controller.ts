@@ -50,6 +50,7 @@ import { RemoveBudgetLineUseCase } from '../../application/remove-budget-line.us
 import { ResetBudgetLineFromTemplateUseCase } from '../../application/reset-budget-line-from-template.use-case';
 import { ToggleBudgetLineCheckUseCase } from '../../application/toggle-budget-line-check.use-case';
 import { CheckTransactionsUseCase } from '../../application/check-transactions.use-case';
+import { BudgetLineMapper } from '../mappers/budget-line.mapper';
 
 @ApiTags('Budget Lines')
 @ApiBearerAuth()
@@ -75,6 +76,7 @@ export class BudgetLineController {
     private readonly resetFromTemplateUseCase: ResetBudgetLineFromTemplateUseCase,
     private readonly toggleCheckUseCase: ToggleBudgetLineCheckUseCase,
     private readonly checkTransactionsUseCase: CheckTransactionsUseCase,
+    private readonly mapper: BudgetLineMapper,
   ) {}
 
   @Get('budget/:budgetId')
@@ -94,7 +96,12 @@ export class BudgetLineController {
     @User() user: AuthenticatedUser,
     @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetLineListResponse> {
-    return this.findByBudgetUseCase.execute(budgetId, user, supabase);
+    const entities = await this.findByBudgetUseCase.execute(
+      budgetId,
+      user,
+      supabase,
+    );
+    return { success: true, data: this.mapper.toApiList(entities) };
   }
 
   @Post()
@@ -109,7 +116,12 @@ export class BudgetLineController {
     @User() user: AuthenticatedUser,
     @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetLineResponse> {
-    return this.createUseCase.execute(createBudgetLineDto, user, supabase);
+    const entity = await this.createUseCase.execute(
+      createBudgetLineDto,
+      user,
+      supabase,
+    );
+    return { success: true, data: this.mapper.toApi(entity) };
   }
 
   @Get(':id')
@@ -131,7 +143,8 @@ export class BudgetLineController {
     @User() user: AuthenticatedUser,
     @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetLineResponse> {
-    return this.findOneUseCase.execute(id, user, supabase);
+    const entity = await this.findOneUseCase.execute(id, user, supabase);
+    return { success: true, data: this.mapper.toApi(entity) };
   }
 
   @Patch(':id')
@@ -162,7 +175,13 @@ export class BudgetLineController {
     @User() user: AuthenticatedUser,
     @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetLineResponse> {
-    return this.updateUseCase.execute(id, updateBudgetLineDto, user, supabase);
+    const entity = await this.updateUseCase.execute(
+      id,
+      updateBudgetLineDto,
+      user,
+      supabase,
+    );
+    return { success: true, data: this.mapper.toApi(entity) };
   }
 
   @Post(':id/reset-from-template')
@@ -194,7 +213,12 @@ export class BudgetLineController {
     @User() user: AuthenticatedUser,
     @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetLineResponse> {
-    return this.resetFromTemplateUseCase.execute(id, user, supabase);
+    const entity = await this.resetFromTemplateUseCase.execute(
+      id,
+      user,
+      supabase,
+    );
+    return { success: true, data: this.mapper.toApi(entity) };
   }
 
   @Post(':id/toggle-check')
@@ -222,7 +246,8 @@ export class BudgetLineController {
     @User() user: AuthenticatedUser,
     @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetLineResponse> {
-    return this.toggleCheckUseCase.execute(id, user, supabase);
+    const entity = await this.toggleCheckUseCase.execute(id, user, supabase);
+    return { success: true, data: this.mapper.toApi(entity) };
   }
 
   @Post(':id/check-transactions')
@@ -248,7 +273,12 @@ export class BudgetLineController {
     @User() user: AuthenticatedUser,
     @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<TransactionListResponse> {
-    return this.checkTransactionsUseCase.execute(id, user, supabase);
+    const entities = await this.checkTransactionsUseCase.execute(
+      id,
+      user,
+      supabase,
+    );
+    return { success: true, data: this.mapper.toTransactionApiList(entities) };
   }
 
   @Delete(':id')
@@ -272,6 +302,7 @@ export class BudgetLineController {
     @User() user: AuthenticatedUser,
     @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetLineDeleteResponse> {
-    return this.removeUseCase.execute(id, user, supabase);
+    await this.removeUseCase.execute(id, user, supabase);
+    return { success: true, message: 'Budget line deleted successfully' };
   }
 }

@@ -1,37 +1,32 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
-import { type BudgetLineUpdate, type BudgetLineResponse } from 'pulpe-shared';
-import {
-  ENCRYPTION_PORT,
-  type EncryptionPort,
-} from '@modules/encryption/encryption.tokens';
+import { type BudgetLineUpdate } from 'pulpe-shared';
 import { CacheService } from '@modules/cache/cache.service';
 import { CurrencyService } from '@modules/currency/currency.service';
 import {
   BUDGET_RECALCULATION_PORT,
   type BudgetRecalculationPort,
 } from '@modules/budget/domain/ports/budget-recalculation.port';
-import { mapCurrencyMetadataToDb } from '@common/utils/currency-metadata.mapper';
 import {
   BUDGET_LINE_REPOSITORY,
   type BudgetLineRepositoryPort,
 } from '../domain/ports/budget-line-repository.port';
 import { BudgetLineInvariants } from '../domain/budget-line.invariants';
-import { BudgetLineMapper } from '../infrastructure/mappers/budget-line.mapper';
-import type { Database } from '../../../types/database.types';
+import type {
+  BudgetLine,
+  BudgetLineUpdatePatch,
+} from '../domain/budget-line.entity';
 
 @Injectable()
 export class UpdateBudgetLineUseCase {
   constructor(
     @Inject(BUDGET_LINE_REPOSITORY)
     private readonly repo: BudgetLineRepositoryPort,
-    @Inject(ENCRYPTION_PORT) private readonly encryption: EncryptionPort,
     private readonly cacheService: CacheService,
     private readonly currencyService: CurrencyService,
     @Inject(BUDGET_RECALCULATION_PORT)
     private readonly budgetRecalculation: BudgetRecalculationPort,
-    private readonly mapper: BudgetLineMapper,
     @InjectInfoLogger(UpdateBudgetLineUseCase.name)
     private readonly logger: InfoLogger,
   ) {}
@@ -41,34 +36,15 @@ export class UpdateBudgetLineUseCase {
     dto: BudgetLineUpdate,
     user: AuthenticatedUser,
     _supabase: unknown,
-  ): Promise<BudgetLineResponse> {
+  ): Promise<BudgetLine> {
     BudgetLineInvariants.validateUpdate(dto);
 
     const withRate = await this.currencyService.overrideExchangeRate(dto);
-    let updateData = this.prepareUpdateData(withRate);
+    const patch = this.buildPatch(withRate);
 
-    if (withRate.amount !== undefined) {
-      const { amount } = await this.encryption.prepareAmountData(
-        withRate.amount,
-        user.id,
-        user.clientKey,
-      );
-      updateData = { ...updateData, amount };
-    }
+    const entity = await this.repo.update(id, patch);
 
-    if (withRate.originalAmount !== undefined) {
-      updateData.original_amount = await this.encryption.encryptOptionalAmount(
-        withRate.originalAmount,
-        user.id,
-        user.clientKey,
-      );
-    }
-
-    const row = await this.repo.update(id, updateData);
-    const dek = await this.encryption.getUserDEK(user.id, user.clientKey);
-    const decrypted = this.encryption.decryptRowAmountFields(row, dek);
-
-    await this.budgetRecalculation.recalculate(row.budget_id, user.clientKey);
+    await this.budgetRecalculation.recalculate(entity.budgetId, user.clientKey);
     await this.cacheService.invalidateForUser(user.id);
 
     this.logger.info(
@@ -76,28 +52,34 @@ export class UpdateBudgetLineUseCase {
       'Budget line updated',
     );
 
-    return { success: true, data: this.mapper.toApi(decrypted) };
+    return entity;
   }
 
-  private prepareUpdateData(dto: BudgetLineUpdate): Record<string, unknown> {
-    return {
-      ...(dto.name && { name: dto.name }),
-      ...(dto.amount !== undefined && { amount: dto.amount }),
-      ...(dto.templateLineId !== undefined && {
-        template_line_id: dto.templateLineId,
-      }),
-      ...(dto.savingsGoalId !== undefined && {
-        savings_goal_id: dto.savingsGoalId,
-      }),
-      ...(dto.kind !== undefined && {
-        kind: dto.kind as Database['public']['Enums']['transaction_kind'],
-      }),
-      ...(dto.recurrence !== undefined && { recurrence: dto.recurrence }),
-      ...(dto.isManuallyAdjusted !== undefined && {
-        is_manually_adjusted: dto.isManuallyAdjusted,
-      }),
-      ...mapCurrencyMetadataToDb(dto),
-      updated_at: new Date().toISOString(),
-    };
+  private buildPatch(dto: BudgetLineUpdate): BudgetLineUpdatePatch {
+    const patch: BudgetLineUpdatePatch = {};
+    if (dto.name !== undefined) patch.name = dto.name;
+    if (dto.amount !== undefined) patch.amount = dto.amount;
+    if (dto.originalAmount !== undefined)
+      patch.originalAmount = dto.originalAmount;
+    if (dto.originalCurrency !== undefined) {
+      patch.originalCurrency = dto.originalCurrency;
+    }
+    if (dto.targetCurrency !== undefined) {
+      patch.targetCurrency = dto.targetCurrency;
+    }
+    if (dto.exchangeRate !== undefined) patch.exchangeRate = dto.exchangeRate;
+    if (dto.kind !== undefined) patch.kind = dto.kind;
+    if (dto.recurrence !== undefined) patch.recurrence = dto.recurrence;
+    if (dto.templateLineId !== undefined) {
+      patch.templateLineId = dto.templateLineId;
+    }
+    if (dto.savingsGoalId !== undefined) {
+      patch.savingsGoalId = dto.savingsGoalId;
+    }
+    if (dto.isManuallyAdjusted !== undefined) {
+      patch.isManuallyAdjusted = dto.isManuallyAdjusted;
+    }
+    if (dto.checkedAt !== undefined) patch.checkedAt = dto.checkedAt;
+    return patch;
   }
 }
