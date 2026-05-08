@@ -46,10 +46,32 @@ struct BudgetMixedSection: View {
     }
 
     var body: some View {
-        Section {
+        // Plain VStack so the section can live inside a ScrollView/LazyVStack
+        // and let the whole page scroll as one unit. Each row's card chrome is
+        // self-contained (`BudgetLineMixedRow` styles its own surface), so the
+        // section just stacks header + tip + rows with consistent horizontal
+        // insets matching the design system.
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(spacing: DesignTokens.Spacing.xxs) {
+                Text(headerTitle)
+                    .font(PulpeTypography.headline)
+                    .foregroundStyle(Color.textPrimary)
+                Text(" · \(items.count)")
+                    .font(PulpeTypography.subheadline)
+                    .foregroundStyle(Color.textSecondary)
+                Spacer()
+            }
+            .accessibilityElement(children: .combine)
+            .accessibilityAddTraits(.isHeader)
+            .accessibilityLabel("\(headerTitle), \(items.count)")
+            .padding(.horizontal, DesignTokens.Spacing.lg)
+            .padding(.top, DesignTokens.Spacing.lg)
+            .padding(.bottom, DesignTokens.Spacing.sm)
+
             if let tip {
                 TipView(tip)
-                    .listRowSeparator(.hidden)
+                    .padding(.horizontal, DesignTokens.Spacing.lg)
+                    .padding(.bottom, DesignTokens.Spacing.md)
             }
 
             ForEach(items, id: \.id) { item in
@@ -63,26 +85,13 @@ struct BudgetMixedSection: View {
                     onTap: { onTap(item) },
                     onTogglePointed: { onTogglePointed(item) }
                 )
-                .listRowCustomStyled(insets: EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
+                .padding(.horizontal, DesignTokens.Spacing.lg)
+                .padding(.bottom, DesignTokens.Spacing.md)
                 .transition(.asymmetric(
                     insertion: .opacity.combined(with: .move(edge: .leading)),
                     removal: .opacity.combined(with: .scale(scale: 0.95))
                 ))
             }
-        } header: {
-            HStack(spacing: DesignTokens.Spacing.xxs) {
-                Text(headerTitle)
-                    .font(PulpeTypography.headline)
-                    .foregroundStyle(Color.textPrimary)
-                Text(" · \(items.count)")
-                    .font(PulpeTypography.subheadline)
-                    .foregroundStyle(Color.textSecondary)
-                Spacer()
-            }
-            .textCase(nil)
-            .accessibilityElement(children: .combine)
-            .accessibilityAddTraits(.isHeader)
-            .accessibilityLabel("\(headerTitle), \(items.count)")
         }
     }
 }

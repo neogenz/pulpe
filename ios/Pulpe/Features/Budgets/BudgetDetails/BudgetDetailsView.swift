@@ -5,7 +5,6 @@ private struct PreviousBudgetItem: Identifiable {
     let id: String
 }
 
-// swiftlint:disable:next type_body_length
 struct BudgetDetailsView: View {
     let budgetId: String
     @Environment(AppState.self) private var appState
@@ -146,36 +145,34 @@ struct BudgetDetailsView: View {
         let filteredFree = viewModel.combinedFilteredFreeTransactions(searchText: searchText)
         let firstSectionKind = searchFilteredSections.first?.kind
 
-        return VStack(spacing: 0) {
-            // Hero + filter both live above the List so the dynamic content area
-            // starts flush against the filter rail. Hosting the hero inside a
-            // List Section adds insetGrouped top chrome that reads as a "lost
-            // zone" between the filter and the amount.
-            HeroBalanceCard(
-                metrics: viewModel.metrics,
-                timeElapsedPercentage: timeElapsedPercentage,
-                onTapChart: { destination = .realizedBalance },
-                rolloverAmount: viewModel.rolloverInfo?.amount,
-                previousBudgetMonth: viewModel.previousBudgetMonth,
-                onRolloverTap: viewModel.rolloverInfo?.previousBudgetId.map { id in
-                    { destination = .previousBudget(PreviousBudgetItem(id: id)) }
-                }
-            )
+        return ScrollView {
+            LazyVStack(spacing: 0) {
+                // Hero + filter sit at full screen width with no surrounding
+                // chrome so the horizontal pill/chip rails stay full-bleed and
+                // the whole page scrolls as one unit.
+                HeroBalanceCard(
+                    metrics: viewModel.metrics,
+                    timeElapsedPercentage: timeElapsedPercentage,
+                    onTapChart: { destination = .realizedBalance },
+                    rolloverAmount: viewModel.rolloverInfo?.amount,
+                    previousBudgetMonth: viewModel.previousBudgetMonth,
+                    onRolloverTap: viewModel.rolloverInfo?.previousBudgetId.map { id in
+                        { destination = .previousBudget(PreviousBudgetItem(id: id)) }
+                    }
+                )
 
-            // Unified type + checked filter. Kept outside `List` so the rail is
-            // truly full-bleed instead of clipped by insetGrouped section chrome.
-            BudgetTypeFilter(
-                kind: typeFilterBinding,
-                checked: checkedFilterBinding,
-                counts: viewModel.kindCounts
-            )
-            .popoverTip(ProductTips.checking)
+                BudgetTypeFilter(
+                    kind: typeFilterBinding,
+                    checked: checkedFilterBinding,
+                    counts: viewModel.kindCounts
+                )
+                .popoverTip(ProductTips.checking)
 
-            List {
                 // Empty search state
                 if !searchText.isEmpty && searchFilteredSections.isEmpty && filteredFree.isEmpty {
                     ContentUnavailableView("Aucune prévision trouvée", systemImage: "magnifyingglass")
-                        .listRowCustomStyled()
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, DesignTokens.Spacing.xxl)
                 }
 
                 // All checked empty state (À pointer filter active, nothing left to check)
@@ -187,7 +184,8 @@ struct BudgetDetailsView: View {
                     } description: {
                         Text("Bien joué ! Passe sur « Tout voir » pour revoir tes prévisions.")
                     }
-                    .listRowCustomStyled()
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, DesignTokens.Spacing.xxl)
                 }
 
                 // Mixed budget line sections (tip on first visible section)
@@ -214,43 +212,32 @@ struct BudgetDetailsView: View {
                     )
                 }
 
-                // Free transactions
+                // Free transactions — inlined (TransactionSection is List-bound;
+                // tap opens the edit sheet, mirroring the budget-line detail flow).
                 if !filteredFree.isEmpty {
-                    TransactionSection(
-                        title: "Transactions libres",
+                    BudgetDetailsFreeTransactionsList(
                         transactions: filteredFree,
                         syncingIds: viewModel.syncingTransactionIds,
-                        onToggle: { transaction in
-                            Task { await viewModel.toggleTransaction(transaction) }
-                        },
-                        onDelete: { transaction in
-                            viewModel.softDeleteTransaction(
-                                transaction,
-                                toastManager: appState.toastManager,
-                                presentationCurrency: userSettingsStore.currency
-                            )
-                        },
-                        onEdit: { transaction in
+                        onTap: { transaction in
                             destination = .editTransaction(transaction)
                         }
                     )
                 }
+
+                // Bottom breathing room above tab bar
+                Color.clear.frame(height: DesignTokens.Spacing.xxl)
             }
-            .popoverTip(ProductTips.pessimisticCheck)
-            .listStyle(.insetGrouped)
-            .listRowSpacing(DesignTokens.Spacing.md)
-            .listSectionSpacing(DesignTokens.Spacing.lg)
-            .contentMargins(.top, 0, for: .scrollContent)
-            .scrollContentBackground(.hidden)
-            .refreshable {
-                await viewModel.loadDetails(force: true)
-            }
-            .animation(
-                reduceMotion ? nil : DesignTokens.Animation.gentleSpring,
-                value: searchFilteredSections.flatMap { $0.items.map(\.isChecked) }
-                    + filteredFree.map(\.isChecked)
-            )
         }
+        .popoverTip(ProductTips.pessimisticCheck)
+        .scrollContentBackground(.hidden)
+        .refreshable {
+            await viewModel.loadDetails(force: true)
+        }
+        .animation(
+            reduceMotion ? nil : DesignTokens.Animation.gentleSpring,
+            value: searchFilteredSections.flatMap { $0.items.map(\.isChecked) }
+                + filteredFree.map(\.isChecked)
+        )
         .pulpeBackground()
         .searchable(
             text: $searchText,
@@ -437,21 +424,26 @@ private struct BudgetLineDetailSheetWrapper: View {
 
 private struct BudgetDetailsSkeletonView: View {
     var body: some View {
-        // Mirror the loaded state's hero (above) + filter (above) + List layout
-        // so the loading→loaded transition has no visual jump.
-        VStack(spacing: 0) {
-            SkeletonShape(height: 200, cornerRadius: DesignTokens.CornerRadius.xl)
-                .padding(.horizontal, DesignTokens.Spacing.lg)
-                .padding(.vertical, DesignTokens.Spacing.lg)
+        // Mirror the loaded state's ScrollView/LazyVStack layout so the
+        // loading→loaded transition stays visually stable.
+        ScrollView {
+            LazyVStack(spacing: 0) {
+                SkeletonShape(height: 200, cornerRadius: DesignTokens.CornerRadius.xl)
+                    .padding(.horizontal, DesignTokens.Spacing.lg)
+                    .padding(.top, DesignTokens.Spacing.lg)
+                    .padding(.bottom, DesignTokens.Spacing.sm)
 
-            SkeletonShape(height: DesignTokens.TapTarget.minimum, cornerRadius: DesignTokens.CornerRadius.sm)
-                .padding(.horizontal, DesignTokens.Spacing.lg)
-                .padding(.vertical, DesignTokens.Spacing.sm)
+                SkeletonShape(height: DesignTokens.TapTarget.minimum, cornerRadius: DesignTokens.CornerRadius.sm)
+                    .padding(.horizontal, DesignTokens.Spacing.lg)
+                    .padding(.vertical, DesignTokens.Spacing.xs)
 
-            List {
-                // Budget line sections (Revenus + Dépenses)
                 ForEach(0..<2, id: \.self) { _ in
-                    Section {
+                    VStack(alignment: .leading, spacing: 0) {
+                        SkeletonShape(width: 80, height: 14)
+                            .padding(.horizontal, DesignTokens.Spacing.lg)
+                            .padding(.top, DesignTokens.Spacing.lg)
+                            .padding(.bottom, DesignTokens.Spacing.sm)
+
                         ForEach(0..<3, id: \.self) { _ in
                             HStack {
                                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
@@ -461,17 +453,17 @@ private struct BudgetDetailsSkeletonView: View {
                                 Spacer()
                                 SkeletonShape(width: 70, height: 14)
                             }
+                            .padding(DesignTokens.Spacing.md)
+                            .background(Color.surfaceContainerLowest)
+                            .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.xl))
+                            .padding(.horizontal, DesignTokens.Spacing.lg)
+                            .padding(.bottom, DesignTokens.Spacing.md)
                         }
-                    } header: {
-                        SkeletonShape(width: 80, height: 14)
                     }
                 }
             }
-            .listStyle(.insetGrouped)
-            .listRowSpacing(DesignTokens.Spacing.md)
-            .listSectionSpacing(DesignTokens.Spacing.lg)
-            .scrollContentBackground(.hidden)
         }
+        .scrollContentBackground(.hidden)
         .shimmering()
         .pulpeBackground()
         .accessibilityLabel("Chargement du budget")

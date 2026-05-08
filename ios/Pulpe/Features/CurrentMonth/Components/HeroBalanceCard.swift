@@ -139,7 +139,8 @@ struct HeroBalanceCard: View {
                 .padding(.top, DesignTokens.Spacing.md)
         }
         .padding(.horizontal, DesignTokens.Spacing.lg)
-        .padding(.vertical, DesignTokens.Spacing.lg)
+        .padding(.top, DesignTokens.Spacing.lg)
+        .padding(.bottom, DesignTokens.Spacing.sm)
         .frame(maxWidth: .infinity, alignment: .leading)
         .overlay(alignment: .topTrailing) {
             if let onTapChart {

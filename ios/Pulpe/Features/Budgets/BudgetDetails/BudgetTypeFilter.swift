@@ -82,7 +82,7 @@ struct BudgetTypeFilter: View {
                     checkedPill(option)
                 }
             }
-            .padding(.vertical, DesignTokens.Spacing.sm)
+            .padding(.vertical, DesignTokens.Spacing.xs)
         }
         .contentMargins(.horizontal, DesignTokens.Spacing.lg, for: .scrollContent)
         .scrollIndicators(.hidden)
