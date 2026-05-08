@@ -1,52 +1,35 @@
 import type {
-  TransactionRow,
-  TransactionInsert,
-  TransactionUpdate,
+  Transaction,
+  TransactionCreateInput,
+  TransactionUpdatePatch,
+  BudgetLineForAllocation,
+  TransactionSearchTransactionRow,
+  TransactionSearchBudgetLineRow,
 } from '../transaction.entity';
 
 export const TRANSACTION_REPOSITORY = Symbol('TRANSACTION_REPOSITORY');
 
 export interface TransactionRepositoryPort {
-  findAll(): Promise<TransactionRow[]>;
-  findById(id: string): Promise<TransactionRow>;
-  findByBudgetId(budgetId: string): Promise<TransactionRow[]>;
-  findByBudgetLineId(budgetLineId: string): Promise<TransactionRow[]>;
-  insert(data: TransactionInsert): Promise<TransactionRow>;
-  update(id: string, data: Partial<TransactionUpdate>): Promise<TransactionRow>;
+  findAll(): Promise<Transaction[]>;
+  findById(id: string): Promise<Transaction>;
+  findByBudgetId(budgetId: string): Promise<Transaction[]>;
+  findByBudgetLineId(budgetLineId: string): Promise<Transaction[]>;
+  insert(input: TransactionCreateInput): Promise<Transaction>;
+  update(id: string, patch: TransactionUpdatePatch): Promise<Transaction>;
   delete(id: string): Promise<void>;
+  toggleCheck(id: string): Promise<Transaction>;
   fetchBudgetIdForTransaction(id: string): Promise<string>;
   fetchBudgetLineForAllocation(
     budgetLineId: string,
-  ): Promise<{ id: string; budget_id: string; kind: string } | null>;
+  ): Promise<BudgetLineForAllocation | null>;
   assertBudgetLineExists(budgetLineId: string): Promise<void>;
   fetchBudgetIdsByYears(userId: string, years: number[]): Promise<string[]>;
   fetchTransactionsByPattern(
     searchPattern: string,
     budgetIds: string[] | null,
-  ): Promise<
-    {
-      id: string;
-      name: string;
-      amount: string | null;
-      kind: string;
-      transaction_date: string;
-      category: string | null;
-      budget_id: string;
-      budget: unknown;
-    }[]
-  >;
+  ): Promise<TransactionSearchTransactionRow[]>;
   fetchBudgetLinesByPattern(
     searchPattern: string,
     budgetIds: string[] | null,
-  ): Promise<
-    {
-      id: string;
-      name: string;
-      amount: string | null;
-      kind: string;
-      recurrence: 'fixed' | 'one_off';
-      budget_id: string;
-      budget: unknown;
-    }[]
-  >;
+  ): Promise<TransactionSearchBudgetLineRow[]>;
 }

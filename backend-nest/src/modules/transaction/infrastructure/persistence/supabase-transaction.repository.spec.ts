@@ -1,9 +1,19 @@
 import { describe, it, expect, jest } from 'bun:test';
+import { Buffer } from 'node:buffer';
 import { SupabaseTransactionRepository } from './supabase-transaction.repository';
 import { BusinessException } from '@common/exceptions/business.exception';
 import type { TransactionRow } from '../../domain/transaction.entity';
 import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
 import type { AuthenticatedSupabaseProvider } from '@modules/supabase/authenticated-supabase.provider';
+import type { EncryptionPort } from '@modules/encryption/encryption.tokens';
+import type { AuthenticatedUser } from '@common/decorators/user.decorator';
+
+const mockUser: AuthenticatedUser = {
+  id: 'user-1',
+  email: 'test@example.com',
+  accessToken: 'token',
+  clientKey: Buffer.from('key'),
+};
 
 const mockRow: TransactionRow = {
   id: 'txn-1',
@@ -23,6 +33,25 @@ const mockRow: TransactionRow = {
   exchange_rate: null,
 };
 
+function createMockEncryption(): EncryptionPort {
+  const dek = Buffer.from('dek');
+  return {
+    ensureUserDEK: jest.fn().mockResolvedValue(dek),
+    getUserDEK: jest.fn().mockResolvedValue(dek),
+    decryptAmount: jest.fn().mockReturnValue(50),
+    tryDecryptAmount: jest.fn().mockReturnValue(50),
+    encryptAmount: jest.fn().mockReturnValue('encrypted'),
+    decryptRowAmountFields: jest.fn().mockImplementation((row) => ({
+      ...row,
+      amount: 50,
+      original_amount: null,
+    })),
+    prepareAmountData: jest.fn().mockResolvedValue({ amount: 'encrypted' }),
+    prepareAmountsData: jest.fn().mockResolvedValue([{ amount: 'encrypted' }]),
+    encryptOptionalAmount: jest.fn().mockResolvedValue(null),
+  } as unknown as EncryptionPort;
+}
+
 function createMockProvider(
   fromFn: (table: string) => unknown,
   rpcFn?: jest.Mock,
@@ -37,7 +66,7 @@ function createMockProvider(
       return client;
     },
     get user() {
-      throw new Error('user not needed in these tests');
+      return mockUser;
     },
   } as unknown as AuthenticatedSupabaseProvider;
 }
@@ -46,7 +75,7 @@ describe('SupabaseTransactionRepository', () => {
   let repo: SupabaseTransactionRepository;
 
   describe('findById', () => {
-    it('should return a transaction row on success', async () => {
+    it('should return a decrypted entity on success', async () => {
       const provider = createMockProvider(() => ({
         select: () => ({
           eq: () => ({
@@ -54,11 +83,16 @@ describe('SupabaseTransactionRepository', () => {
           }),
         }),
       }));
-      repo = new SupabaseTransactionRepository(provider);
+      repo = new SupabaseTransactionRepository(
+        provider,
+        createMockEncryption(),
+      );
 
       const result = await repo.findById('txn-1');
 
-      expect(result).toEqual(mockRow);
+      expect(result.id).toBe('txn-1');
+      expect(result.budgetId).toBe('budget-1');
+      expect(result.amount).toBe(50);
     });
 
     it('should throw BusinessException when not found', async () => {
@@ -72,14 +106,17 @@ describe('SupabaseTransactionRepository', () => {
           }),
         }),
       }));
-      repo = new SupabaseTransactionRepository(provider);
+      repo = new SupabaseTransactionRepository(
+        provider,
+        createMockEncryption(),
+      );
 
       await expect(repo.findById('missing')).rejects.toThrow(BusinessException);
     });
   });
 
   describe('insert', () => {
-    it('should return inserted row on success', async () => {
+    it('should return inserted entity on success', async () => {
       const provider = createMockProvider(() => ({
         insert: () => ({
           select: () => ({
@@ -87,17 +124,21 @@ describe('SupabaseTransactionRepository', () => {
           }),
         }),
       }));
-      repo = new SupabaseTransactionRepository(provider);
+      repo = new SupabaseTransactionRepository(
+        provider,
+        createMockEncryption(),
+      );
 
       const result = await repo.insert({
-        budget_id: 'budget-1',
+        budgetId: 'budget-1',
         name: 'Restaurant',
-        amount: 'encrypted',
+        amount: 50,
         kind: 'expense',
-        transaction_date: '2024-01-15T12:00:00Z',
+        transactionDate: '2024-01-15T12:00:00Z',
       });
 
-      expect(result).toEqual(mockRow);
+      expect(result.id).toBe('txn-1');
+      expect(result.amount).toBe(50);
     });
 
     it('should throw TRANSACTION_ALREADY_EXISTS on 23505 error', async () => {
@@ -111,15 +152,18 @@ describe('SupabaseTransactionRepository', () => {
           }),
         }),
       }));
-      repo = new SupabaseTransactionRepository(provider);
+      repo = new SupabaseTransactionRepository(
+        provider,
+        createMockEncryption(),
+      );
 
       await expect(
         repo.insert({
-          budget_id: 'budget-1',
+          budgetId: 'budget-1',
           name: 'Restaurant',
-          amount: 'encrypted',
+          amount: 50,
           kind: 'expense',
-          transaction_date: '2024-01-15T12:00:00Z',
+          transactionDate: '2024-01-15T12:00:00Z',
         }),
       ).rejects.toThrow(BusinessException);
     });
@@ -135,15 +179,18 @@ describe('SupabaseTransactionRepository', () => {
           }),
         }),
       }));
-      repo = new SupabaseTransactionRepository(provider);
+      repo = new SupabaseTransactionRepository(
+        provider,
+        createMockEncryption(),
+      );
 
       await expect(
         repo.insert({
-          budget_id: 'budget-1',
+          budgetId: 'budget-1',
           name: 'Restaurant',
-          amount: 'encrypted',
+          amount: 50,
           kind: 'expense',
-          transaction_date: '2024-01-15T12:00:00Z',
+          transactionDate: '2024-01-15T12:00:00Z',
         }),
       ).rejects.toThrow(BusinessException);
     });
@@ -156,7 +203,10 @@ describe('SupabaseTransactionRepository', () => {
           eq: jest.fn().mockResolvedValue({ error: null }),
         }),
       }));
-      repo = new SupabaseTransactionRepository(provider);
+      repo = new SupabaseTransactionRepository(
+        provider,
+        createMockEncryption(),
+      );
 
       await expect(repo.delete('txn-1')).resolves.toBeUndefined();
     });
@@ -169,7 +219,10 @@ describe('SupabaseTransactionRepository', () => {
           }),
         }),
       }));
-      repo = new SupabaseTransactionRepository(provider);
+      repo = new SupabaseTransactionRepository(
+        provider,
+        createMockEncryption(),
+      );
 
       await expect(repo.delete('missing')).rejects.toThrow(BusinessException);
     });

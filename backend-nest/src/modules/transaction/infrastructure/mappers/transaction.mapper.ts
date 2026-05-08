@@ -1,36 +1,33 @@
 import { Injectable } from '@nestjs/common';
-import { type Transaction } from 'pulpe-shared';
+import { type Transaction as TransactionApi } from 'pulpe-shared';
 import { mapCurrencyMetadataToApi } from '@common/utils/currency-metadata.mapper';
-import type { TransactionRow } from '../../domain/transaction.entity';
-
-export type DecryptedTransactionRow = Omit<
-  TransactionRow,
-  'amount' | 'original_amount'
-> & {
-  amount: number;
-  original_amount: number | null;
-};
+import type { Transaction } from '../../domain/transaction.entity';
 
 @Injectable()
 export class TransactionMapper {
-  toApi(row: DecryptedTransactionRow): Transaction {
+  toApi(entity: Transaction): TransactionApi {
     return {
-      id: row.id,
-      createdAt: row.created_at,
-      updatedAt: row.updated_at,
-      budgetId: row.budget_id,
-      budgetLineId: row.budget_line_id ?? null,
-      amount: row.amount,
-      name: row.name,
-      kind: row.kind,
-      transactionDate: row.transaction_date,
-      category: row.category,
-      checkedAt: row.checked_at ?? null,
-      ...mapCurrencyMetadataToApi(row),
+      id: entity.id,
+      createdAt: entity.createdAt,
+      updatedAt: entity.updatedAt,
+      budgetId: entity.budgetId,
+      budgetLineId: entity.budgetLineId,
+      amount: entity.amount,
+      name: entity.name,
+      kind: entity.kind,
+      transactionDate: entity.transactionDate,
+      category: entity.category,
+      checkedAt: entity.checkedAt,
+      ...mapCurrencyMetadataToApi({
+        original_amount: entity.originalAmount,
+        original_currency: entity.originalCurrency,
+        target_currency: entity.targetCurrency,
+        exchange_rate: entity.exchangeRate,
+      }),
     };
   }
 
-  toApiList(rows: DecryptedTransactionRow[]): Transaction[] {
-    return rows.map((row) => this.toApi(row));
+  toApiList(entities: Transaction[]): TransactionApi[] {
+    return entities.map((entity) => this.toApi(entity));
   }
 }

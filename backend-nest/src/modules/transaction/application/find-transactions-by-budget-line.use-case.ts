@@ -1,24 +1,17 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
-import { type TransactionListResponse } from 'pulpe-shared';
-import {
-  ENCRYPTION_PORT,
-  type EncryptionPort,
-} from '@modules/encryption/encryption.tokens';
 import {
   TRANSACTION_REPOSITORY,
   type TransactionRepositoryPort,
 } from '../domain/ports/transaction-repository.port';
-import { TransactionMapper } from '../infrastructure/mappers/transaction.mapper';
+import type { Transaction } from '../domain/transaction.entity';
 
 @Injectable()
 export class FindTransactionsByBudgetLineUseCase {
   constructor(
     @Inject(TRANSACTION_REPOSITORY)
     private readonly repo: TransactionRepositoryPort,
-    @Inject(ENCRYPTION_PORT) private readonly encryption: EncryptionPort,
-    private readonly mapper: TransactionMapper,
     @InjectInfoLogger(FindTransactionsByBudgetLineUseCase.name)
     private readonly logger: InfoLogger,
   ) {}
@@ -26,26 +19,21 @@ export class FindTransactionsByBudgetLineUseCase {
   async execute(
     budgetLineId: string,
     user: AuthenticatedUser,
-    _supabase: unknown,
-  ): Promise<TransactionListResponse> {
+  ): Promise<Transaction[]> {
     await this.repo.assertBudgetLineExists(budgetLineId);
 
-    const rows = await this.repo.findByBudgetLineId(budgetLineId);
-    const dek = await this.encryption.getUserDEK(user.id, user.clientKey);
-    const decrypted = rows.map((row) =>
-      this.encryption.decryptRowAmountFields(row, dek),
-    );
+    const entities = await this.repo.findByBudgetLineId(budgetLineId);
 
     this.logger.info(
       {
         budgetLineId,
         userId: user.id,
-        count: decrypted.length,
+        count: entities.length,
         operation: 'transaction.findByBudgetLine',
       },
       'Transactions by budget line fetched',
     );
 
-    return { success: true as const, data: this.mapper.toApiList(decrypted) };
+    return entities;
   }
 }

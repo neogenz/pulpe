@@ -9,6 +9,7 @@ import {
 } from '@modules/encryption/encryption.tokens';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import { mapCurrencyMetadataToDb } from '@common/utils/currency-metadata.mapper';
+import type { Transaction } from '@modules/transaction/domain/transaction.entity';
 import type { BudgetLineRepositoryPort } from '../../domain/ports/budget-line-repository.port';
 import type {
   BudgetLine,
@@ -19,7 +20,6 @@ import type {
   BudgetLineUpdate,
   TemplateLineEntity,
   TemplateLineRow,
-  TransactionEntity,
   TransactionRow,
 } from '../../domain/budget-line.entity';
 
@@ -255,9 +255,7 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
     return this.toEntity(data, dek);
   }
 
-  async checkUncheckedTransactionsRpc(
-    id: string,
-  ): Promise<TransactionEntity[]> {
+  async checkUncheckedTransactionsRpc(id: string): Promise<Transaction[]> {
     const supabase = this.supabaseProvider.client;
     const { data, error } = await supabase.rpc('check_unchecked_transactions', {
       p_budget_line_id: id,
@@ -333,10 +331,7 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
     };
   }
 
-  private toTransactionEntity(
-    row: TransactionRow,
-    dek: Buffer,
-  ): TransactionEntity {
+  private toTransactionEntity(row: TransactionRow, dek: Buffer): Transaction {
     const decrypted = this.encryption.decryptRowAmountFields(row, dek);
     return {
       id: decrypted.id,

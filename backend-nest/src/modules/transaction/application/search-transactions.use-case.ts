@@ -2,18 +2,17 @@ import { Inject, Injectable } from '@nestjs/common';
 import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import {
-  type TransactionSearchResponse,
   type TransactionSearchResult,
   type TransactionKind,
 } from 'pulpe-shared';
 import {
-  ENCRYPTION_PORT,
-  type EncryptionPort,
-} from '@modules/encryption/encryption.tokens';
-import {
   TRANSACTION_REPOSITORY,
   type TransactionRepositoryPort,
 } from '../domain/ports/transaction-repository.port';
+import type {
+  TransactionSearchTransactionRow,
+  TransactionSearchBudgetLineRow,
+} from '../domain/transaction.entity';
 
 const MONTHS = [
   'Janvier',
@@ -35,7 +34,6 @@ export class SearchTransactionsUseCase {
   constructor(
     @Inject(TRANSACTION_REPOSITORY)
     private readonly repo: TransactionRepositoryPort,
-    @Inject(ENCRYPTION_PORT) private readonly encryption: EncryptionPort,
     @InjectInfoLogger(SearchTransactionsUseCase.name)
     private readonly logger: InfoLogger,
   ) {}
@@ -43,9 +41,8 @@ export class SearchTransactionsUseCase {
   async execute(
     query: string,
     user: AuthenticatedUser,
-    _supabase: unknown,
     years?: number[],
-  ): Promise<TransactionSearchResponse> {
+  ): Promise<TransactionSearchResult[]> {
     const searchPattern = this.buildSearchPattern(query);
 
     const budgetIds = years?.length
@@ -53,31 +50,17 @@ export class SearchTransactionsUseCase {
       : null;
 
     if (years?.length && budgetIds?.length === 0) {
-      return { success: true, data: [] };
+      return [];
     }
 
-    const [transactionsDb, budgetLinesDb] = await Promise.all([
+    const [transactions, budgetLines] = await Promise.all([
       this.repo.fetchTransactionsByPattern(searchPattern, budgetIds),
       this.repo.fetchBudgetLinesByPattern(searchPattern, budgetIds),
     ]);
 
-    const dek = await this.encryption.getUserDEK(user.id, user.clientKey);
-
-    const decryptedTransactions = transactionsDb.map((t) => ({
-      ...t,
-      amount: t.amount ? this.encryption.tryDecryptAmount(t.amount, dek, 0) : 0,
-    }));
-
-    const decryptedBudgetLines = budgetLinesDb.map((bl) => ({
-      ...bl,
-      amount: bl.amount
-        ? this.encryption.tryDecryptAmount(bl.amount, dek, 0)
-        : 0,
-    }));
-
     const allResults = [
-      ...decryptedTransactions.map((t) => this.mapTransactionToResult(t)),
-      ...decryptedBudgetLines.map((bl) => this.mapBudgetLineToResult(bl)),
+      ...transactions.map((t) => this.mapTransactionToResult(t)),
+      ...budgetLines.map((bl) => this.mapBudgetLineToResult(bl)),
     ].sort((a, b) => b.year - a.year || b.month - a.month);
 
     this.logger.info(
@@ -90,7 +73,7 @@ export class SearchTransactionsUseCase {
       'Transactions searched',
     );
 
-    return { success: true as const, data: allResults.slice(0, 50) };
+    return allResults.slice(0, 50);
   }
 
   private buildSearchPattern(query: string): string {
@@ -98,22 +81,9 @@ export class SearchTransactionsUseCase {
     return `*${escaped}*`;
   }
 
-  private mapTransactionToResult(t: {
-    id: string;
-    name: string;
-    amount: number;
-    kind: string;
-    transaction_date: string;
-    category: string | null;
-    budget_id: string;
-    budget: unknown;
-  }): TransactionSearchResult {
-    const budget = t.budget as {
-      description: string;
-      month: number;
-      year: number;
-    } | null;
-
+  private mapTransactionToResult(
+    t: TransactionSearchTransactionRow,
+  ): TransactionSearchResult {
     return {
       id: t.id,
       itemType: 'transaction' as const,
@@ -121,31 +91,19 @@ export class SearchTransactionsUseCase {
       amount: t.amount,
       kind: t.kind as TransactionKind,
       recurrence: null,
-      transactionDate: t.transaction_date,
+      transactionDate: t.transactionDate,
       category: t.category,
-      budgetId: t.budget_id,
-      budgetName: budget?.description ?? '',
-      year: budget?.year ?? new Date().getFullYear(),
-      month: budget?.month ?? 1,
-      monthLabel: MONTHS[(budget?.month ?? 1) - 1] ?? '',
+      budgetId: t.budgetId,
+      budgetName: t.budget?.description ?? '',
+      year: t.budget?.year ?? new Date().getFullYear(),
+      month: t.budget?.month ?? 1,
+      monthLabel: MONTHS[(t.budget?.month ?? 1) - 1] ?? '',
     };
   }
 
-  private mapBudgetLineToResult(bl: {
-    id: string;
-    name: string;
-    amount: number;
-    kind: string;
-    recurrence: 'fixed' | 'one_off';
-    budget_id: string;
-    budget: unknown;
-  }): TransactionSearchResult {
-    const budget = bl.budget as {
-      description: string;
-      month: number;
-      year: number;
-    } | null;
-
+  private mapBudgetLineToResult(
+    bl: TransactionSearchBudgetLineRow,
+  ): TransactionSearchResult {
     return {
       id: bl.id,
       itemType: 'budget_line' as const,
@@ -155,11 +113,11 @@ export class SearchTransactionsUseCase {
       recurrence: bl.recurrence,
       transactionDate: null,
       category: null,
-      budgetId: bl.budget_id,
-      budgetName: budget?.description ?? '',
-      year: budget?.year ?? new Date().getFullYear(),
-      month: budget?.month ?? 1,
-      monthLabel: MONTHS[(budget?.month ?? 1) - 1] ?? '',
+      budgetId: bl.budgetId,
+      budgetName: bl.budget?.description ?? '',
+      year: bl.budget?.year ?? new Date().getFullYear(),
+      month: bl.budget?.month ?? 1,
+      monthLabel: MONTHS[(bl.budget?.month ?? 1) - 1] ?? '',
     };
   }
 }

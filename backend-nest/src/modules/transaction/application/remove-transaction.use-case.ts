@@ -1,7 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
-import { type TransactionDeleteResponse } from 'pulpe-shared';
 import { CacheService } from '@modules/cache/cache.service';
 import {
   BUDGET_RECALCULATION_PORT,
@@ -24,11 +23,7 @@ export class RemoveTransactionUseCase {
     private readonly logger: InfoLogger,
   ) {}
 
-  async execute(
-    id: string,
-    user: AuthenticatedUser,
-    _supabase: unknown,
-  ): Promise<TransactionDeleteResponse> {
+  async execute(id: string, user: AuthenticatedUser): Promise<void> {
     const budgetId = await this.repo.fetchBudgetIdForTransaction(id);
     await this.repo.delete(id);
 
@@ -42,7 +37,5 @@ export class RemoveTransactionUseCase {
       { transactionId: id, userId: user.id, operation: 'transaction.remove' },
       'Transaction deleted',
     );
-
-    return { success: true, message: 'Transaction deleted successfully' };
   }
 }

@@ -1,22 +1,13 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
-import {
-  type TransactionCreate,
-  type TransactionResponse,
-  type TransactionKind,
-} from 'pulpe-shared';
-import {
-  ENCRYPTION_PORT,
-  type EncryptionPort,
-} from '@modules/encryption/encryption.tokens';
+import { type TransactionCreate, type TransactionKind } from 'pulpe-shared';
 import { CacheService } from '@modules/cache/cache.service';
 import { CurrencyService } from '@modules/currency/currency.service';
 import {
   BUDGET_RECALCULATION_PORT,
   type BudgetRecalculationPort,
 } from '@modules/budget/domain/ports/budget-recalculation.port';
-import { mapCurrencyMetadataToDb } from '@common/utils/currency-metadata.mapper';
 import { BusinessException } from '@common/exceptions/business.exception';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 import {
@@ -24,22 +15,17 @@ import {
   type TransactionRepositoryPort,
 } from '../domain/ports/transaction-repository.port';
 import { TransactionInvariants } from '../domain/transaction.invariants';
-import { TransactionMapper } from '../infrastructure/mappers/transaction.mapper';
-import type { Database } from '../../../types/database.types';
-
-type TransactionKindEnum = Database['public']['Enums']['transaction_kind'];
+import type { Transaction } from '../domain/transaction.entity';
 
 @Injectable()
 export class CreateTransactionUseCase {
   constructor(
     @Inject(TRANSACTION_REPOSITORY)
     private readonly repo: TransactionRepositoryPort,
-    @Inject(ENCRYPTION_PORT) private readonly encryption: EncryptionPort,
     private readonly cacheService: CacheService,
     private readonly currencyService: CurrencyService,
     @Inject(BUDGET_RECALCULATION_PORT)
     private readonly budgetRecalculation: BudgetRecalculationPort,
-    private readonly mapper: TransactionMapper,
     @InjectInfoLogger(CreateTransactionUseCase.name)
     private readonly logger: InfoLogger,
   ) {}
@@ -47,8 +33,7 @@ export class CreateTransactionUseCase {
   async execute(
     dto: TransactionCreate,
     user: AuthenticatedUser,
-    _supabase: unknown,
-  ): Promise<TransactionResponse> {
+  ): Promise<Transaction> {
     TransactionInvariants.validateCreate(dto);
 
     const withRate = await this.currencyService.overrideExchangeRate(dto);
@@ -61,44 +46,35 @@ export class CreateTransactionUseCase {
       );
     }
 
-    const baseData = this.prepareInsertData(withRate);
-
-    const [{ amount }, encryptedOriginalAmount] = await Promise.all([
-      this.encryption.prepareAmountData(
-        withRate.amount,
-        user.id,
-        user.clientKey,
-      ),
-      this.encryption.encryptOptionalAmount(
-        withRate.originalAmount,
-        user.id,
-        user.clientKey,
-      ),
-    ]);
-
-    const row = await this.repo.insert({
-      ...baseData,
-      amount,
-      original_amount: encryptedOriginalAmount,
+    const entity = await this.repo.insert({
+      id: withRate.id,
+      budgetId: withRate.budgetId,
+      budgetLineId: withRate.budgetLineId ?? null,
+      name: withRate.name,
+      amount: withRate.amount,
+      originalAmount: withRate.originalAmount ?? null,
+      originalCurrency: withRate.originalCurrency ?? null,
+      targetCurrency: withRate.targetCurrency ?? null,
+      exchangeRate: withRate.exchangeRate ?? null,
+      kind: withRate.kind,
+      category: withRate.category ?? null,
+      transactionDate: withRate.transactionDate || new Date().toISOString(),
+      checkedAt: withRate.checkedAt ?? null,
     });
 
-    await this.budgetRecalculation.recalculate(row.budget_id, user.clientKey);
-
-    const dek = await this.encryption.getUserDEK(user.id, user.clientKey);
-    const decrypted = this.encryption.decryptRowAmountFields(row, dek);
-
+    await this.budgetRecalculation.recalculate(entity.budgetId, user.clientKey);
     await this.cacheService.invalidateForUser(user.id);
 
     this.logger.info(
       {
-        transactionId: row.id,
+        transactionId: entity.id,
         userId: user.id,
         operation: 'transaction.create',
       },
       'Transaction created',
     );
 
-    return { success: true, data: this.mapper.toApi(decrypted) };
+    return entity;
   }
 
   private async validateBudgetLineAllocation(
@@ -121,7 +97,7 @@ export class CreateTransactionUseCase {
       );
     }
 
-    if (budgetLine.budget_id !== budgetId) {
+    if (budgetLine.budgetId !== budgetId) {
       throw new BusinessException(
         ERROR_DEFINITIONS.TRANSACTION_VALIDATION_FAILED,
         { reason: 'Transaction budget must match budget line budget' },
@@ -136,20 +112,5 @@ export class CreateTransactionUseCase {
         },
       );
     }
-  }
-
-  private prepareInsertData(dto: TransactionCreate) {
-    return {
-      ...(dto.id ? { id: dto.id } : {}),
-      budget_id: dto.budgetId,
-      budget_line_id: dto.budgetLineId ?? null,
-      amount: dto.amount,
-      name: dto.name,
-      kind: dto.kind as TransactionKindEnum,
-      transaction_date: dto.transactionDate || new Date().toISOString(),
-      category: dto.category ?? null,
-      checked_at: dto.checkedAt ?? null,
-      ...mapCurrencyMetadataToDb(dto),
-    };
   }
 }

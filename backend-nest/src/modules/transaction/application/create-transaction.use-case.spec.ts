@@ -2,33 +2,30 @@ import { describe, it, expect, beforeEach, jest } from 'bun:test';
 import { Test } from '@nestjs/testing';
 import { CreateTransactionUseCase } from './create-transaction.use-case';
 import { TRANSACTION_REPOSITORY } from '../domain/ports/transaction-repository.port';
-import { ENCRYPTION_PORT } from '@modules/encryption/encryption.tokens';
 import { CacheService } from '@modules/cache/cache.service';
 import { CurrencyService } from '@modules/currency/currency.service';
 import { BUDGET_RECALCULATION_PORT } from '@modules/budget/domain/ports/budget-recalculation.port';
-import { TransactionMapper } from '../infrastructure/mappers/transaction.mapper';
 import { BusinessException } from '@common/exceptions/business.exception';
 import type { TransactionCreate } from 'pulpe-shared';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
-import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
-import type { TransactionRow } from '../domain/transaction.entity';
+import type { Transaction } from '../domain/transaction.entity';
 
-const mockTransactionRow: TransactionRow = {
+const mockTransactionEntity: Transaction = {
   id: '123e4567-e89b-12d3-a456-426614174000',
-  budget_id: '123e4567-e89b-12d3-a456-426614174001',
-  budget_line_id: null,
-  amount: 'encrypted-50',
+  budgetId: '123e4567-e89b-12d3-a456-426614174001',
+  budgetLineId: null,
+  amount: 50,
   name: 'Restaurant',
-  kind: 'expense' as const,
-  transaction_date: '2024-01-15T12:00:00Z',
+  kind: 'expense',
+  transactionDate: '2024-01-15T12:00:00Z',
   category: null,
-  checked_at: null,
-  created_at: '2024-01-15T12:00:00Z',
-  updated_at: '2024-01-15T12:00:00Z',
-  original_amount: null,
-  original_currency: null,
-  target_currency: null,
-  exchange_rate: null,
+  checkedAt: null,
+  createdAt: '2024-01-15T12:00:00Z',
+  updatedAt: '2024-01-15T12:00:00Z',
+  originalAmount: null,
+  originalCurrency: null,
+  targetCurrency: null,
+  exchangeRate: null,
 };
 
 const mockUser: AuthenticatedUser = {
@@ -44,33 +41,14 @@ describe('CreateTransactionUseCase', () => {
     insert: ReturnType<typeof jest.fn>;
     fetchBudgetLineForAllocation: ReturnType<typeof jest.fn>;
   };
-  let mockEncryption: {
-    prepareAmountData: ReturnType<typeof jest.fn>;
-    encryptOptionalAmount: ReturnType<typeof jest.fn>;
-    getUserDEK: ReturnType<typeof jest.fn>;
-    decryptRowAmountFields: ReturnType<typeof jest.fn>;
-  };
   let mockCache: { invalidateForUser: ReturnType<typeof jest.fn> };
   let mockCurrency: { overrideExchangeRate: ReturnType<typeof jest.fn> };
   let mockBudget: { recalculate: ReturnType<typeof jest.fn> };
-  let mockSupabase: AuthenticatedSupabaseClient;
 
   beforeEach(async () => {
     mockRepo = {
-      insert: jest.fn().mockResolvedValue(mockTransactionRow),
+      insert: jest.fn().mockResolvedValue(mockTransactionEntity),
       fetchBudgetLineForAllocation: jest.fn().mockResolvedValue(null),
-    };
-    mockEncryption = {
-      prepareAmountData: jest
-        .fn()
-        .mockResolvedValue({ amount: 'encrypted-50' }),
-      encryptOptionalAmount: jest.fn().mockResolvedValue(null),
-      getUserDEK: jest.fn().mockResolvedValue(Buffer.from('dek')),
-      decryptRowAmountFields: jest.fn().mockReturnValue({
-        ...mockTransactionRow,
-        amount: 50,
-        original_amount: null,
-      }),
     };
     mockCache = { invalidateForUser: jest.fn().mockResolvedValue(undefined) };
     mockCurrency = {
@@ -79,17 +57,14 @@ describe('CreateTransactionUseCase', () => {
     mockBudget = {
       recalculate: jest.fn().mockResolvedValue(undefined),
     };
-    mockSupabase = {} as AuthenticatedSupabaseClient;
 
     const module = await Test.createTestingModule({
       providers: [
         CreateTransactionUseCase,
         { provide: TRANSACTION_REPOSITORY, useValue: mockRepo },
-        { provide: ENCRYPTION_PORT, useValue: mockEncryption },
         { provide: CacheService, useValue: mockCache },
         { provide: CurrencyService, useValue: mockCurrency },
         { provide: BUDGET_RECALCULATION_PORT, useValue: mockBudget },
-        { provide: TransactionMapper, useClass: TransactionMapper },
         {
           provide: `INFO_LOGGER:${CreateTransactionUseCase.name}`,
           useValue: {
@@ -115,11 +90,9 @@ describe('CreateTransactionUseCase', () => {
       transactionDate: '2024-01-15T12:00:00Z',
     };
 
-    const result = await useCase.execute(dto, mockUser, mockSupabase);
+    const result = await useCase.execute(dto, mockUser);
 
-    expect(result.success).toBe(true);
-    const data = result.data;
-    expect(data && !Array.isArray(data) ? data.name : null).toBe('Restaurant');
+    expect(result.name).toBe('Restaurant');
     expect(mockRepo.insert).toHaveBeenCalledTimes(1);
     expect(mockBudget.recalculate).toHaveBeenCalledTimes(1);
     expect(mockCache.invalidateForUser).toHaveBeenCalledWith(mockUser.id);
@@ -132,7 +105,7 @@ describe('CreateTransactionUseCase', () => {
       kind: 'expense',
     } as TransactionCreate;
 
-    await expect(useCase.execute(dto, mockUser, mockSupabase)).rejects.toThrow(
+    await expect(useCase.execute(dto, mockUser)).rejects.toThrow(
       BusinessException,
     );
     expect(mockRepo.insert).not.toHaveBeenCalled();
@@ -147,7 +120,7 @@ describe('CreateTransactionUseCase', () => {
       transactionDate: '2024-01-15T12:00:00Z',
     };
 
-    await expect(useCase.execute(dto, mockUser, mockSupabase)).rejects.toThrow(
+    await expect(useCase.execute(dto, mockUser)).rejects.toThrow(
       BusinessException,
     );
     expect(mockRepo.insert).not.toHaveBeenCalled();
@@ -164,13 +137,13 @@ describe('CreateTransactionUseCase', () => {
     };
     mockRepo.fetchBudgetLineForAllocation.mockResolvedValueOnce({
       id: 'line-1',
-      budget_id: '123e4567-e89b-12d3-a456-426614174001',
+      budgetId: '123e4567-e89b-12d3-a456-426614174001',
       kind: 'expense',
     });
 
-    const result = await useCase.execute(dto, mockUser, mockSupabase);
+    const result = await useCase.execute(dto, mockUser);
 
-    expect(result.success).toBe(true);
+    expect(result.id).toBe('123e4567-e89b-12d3-a456-426614174000');
     expect(mockRepo.fetchBudgetLineForAllocation).toHaveBeenCalledWith(
       'line-1',
     );
@@ -187,11 +160,11 @@ describe('CreateTransactionUseCase', () => {
     };
     mockRepo.fetchBudgetLineForAllocation.mockResolvedValueOnce({
       id: 'line-1',
-      budget_id: 'different-budget',
+      budgetId: 'different-budget',
       kind: 'expense',
     });
 
-    await expect(useCase.execute(dto, mockUser, mockSupabase)).rejects.toThrow(
+    await expect(useCase.execute(dto, mockUser)).rejects.toThrow(
       BusinessException,
     );
   });
@@ -215,7 +188,7 @@ describe('CreateTransactionUseCase', () => {
       ),
     );
 
-    await expect(useCase.execute(dto, mockUser, mockSupabase)).rejects.toThrow(
+    await expect(useCase.execute(dto, mockUser)).rejects.toThrow(
       BusinessException,
     );
   });

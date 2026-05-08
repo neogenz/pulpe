@@ -31,10 +31,8 @@ import {
 import { AuthGuard } from '@common/guards/auth.guard';
 import {
   User,
-  SupabaseClient,
   type AuthenticatedUser,
 } from '@common/decorators/user.decorator';
-import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
 import {
   TransactionCreateDto,
   TransactionUpdateDto,
@@ -53,6 +51,7 @@ import { UpdateTransactionUseCase } from '../../application/update-transaction.u
 import { RemoveTransactionUseCase } from '../../application/remove-transaction.use-case';
 import { ToggleTransactionCheckUseCase } from '../../application/toggle-transaction-check.use-case';
 import { SearchTransactionsUseCase } from '../../application/search-transactions.use-case';
+import { TransactionMapper } from '../mappers/transaction.mapper';
 
 @ApiTags('Transactions')
 @ApiBearerAuth()
@@ -78,6 +77,7 @@ export class TransactionController {
     private readonly removeUseCase: RemoveTransactionUseCase,
     private readonly toggleCheckUseCase: ToggleTransactionCheckUseCase,
     private readonly searchUseCase: SearchTransactionsUseCase,
+    private readonly mapper: TransactionMapper,
   ) {}
 
   @Get('budget/:budgetId')
@@ -95,9 +95,9 @@ export class TransactionController {
   async findByBudget(
     @Param('budgetId') budgetId: string,
     @User() user: AuthenticatedUser,
-    @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<TransactionListResponse> {
-    return this.findByBudgetUseCase.execute(budgetId, user, supabase);
+    const entities = await this.findByBudgetUseCase.execute(budgetId, user);
+    return { success: true, data: this.mapper.toApiList(entities) };
   }
 
   @Get('budget-line/:budgetLineId')
@@ -117,9 +117,12 @@ export class TransactionController {
   async findByBudgetLine(
     @Param('budgetLineId') budgetLineId: string,
     @User() user: AuthenticatedUser,
-    @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<TransactionListResponse> {
-    return this.findByBudgetLineUseCase.execute(budgetLineId, user, supabase);
+    const entities = await this.findByBudgetLineUseCase.execute(
+      budgetLineId,
+      user,
+    );
+    return { success: true, data: this.mapper.toApiList(entities) };
   }
 
   @Get('search')
@@ -155,7 +158,6 @@ export class TransactionController {
     @Query('q') query: string,
     @Query('years') yearsParam: string | string[] | undefined,
     @User() user: AuthenticatedUser,
-    @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<TransactionSearchResponse> {
     if (!query || query.length < 2) {
       throw new BadRequestException(
@@ -164,7 +166,8 @@ export class TransactionController {
     }
 
     const years = this.parseYearsParam(yearsParam);
-    return this.searchUseCase.execute(query, user, supabase, years);
+    const results = await this.searchUseCase.execute(query, user, years);
+    return { success: true, data: results };
   }
 
   @Post()
@@ -177,9 +180,9 @@ export class TransactionController {
   async create(
     @Body() createTransactionDto: TransactionCreateDto,
     @User() user: AuthenticatedUser,
-    @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<TransactionResponse> {
-    return this.createUseCase.execute(createTransactionDto, user, supabase);
+    const entity = await this.createUseCase.execute(createTransactionDto, user);
+    return { success: true, data: this.mapper.toApi(entity) };
   }
 
   @Get(':id')
@@ -197,9 +200,9 @@ export class TransactionController {
   async findOne(
     @Param('id') id: string,
     @User() user: AuthenticatedUser,
-    @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<TransactionResponse> {
-    return this.findOneUseCase.execute(id, user, supabase);
+    const entity = await this.findOneUseCase.execute(id, user);
+    return { success: true, data: this.mapper.toApi(entity) };
   }
 
   @Patch(':id')
@@ -228,9 +231,13 @@ export class TransactionController {
     @Param('id') id: string,
     @Body() updateTransactionDto: TransactionUpdateDto,
     @User() user: AuthenticatedUser,
-    @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<TransactionResponse> {
-    return this.updateUseCase.execute(id, updateTransactionDto, user, supabase);
+    const entity = await this.updateUseCase.execute(
+      id,
+      updateTransactionDto,
+      user,
+    );
+    return { success: true, data: this.mapper.toApi(entity) };
   }
 
   @Delete(':id')
@@ -252,9 +259,9 @@ export class TransactionController {
   async remove(
     @Param('id') id: string,
     @User() user: AuthenticatedUser,
-    @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<TransactionDeleteResponse> {
-    return this.removeUseCase.execute(id, user, supabase);
+    await this.removeUseCase.execute(id, user);
+    return { success: true, message: 'Transaction deleted successfully' };
   }
 
   @Post(':id/toggle-check')
@@ -280,9 +287,9 @@ export class TransactionController {
   async toggleCheck(
     @Param('id') id: string,
     @User() user: AuthenticatedUser,
-    @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<TransactionResponse> {
-    return this.toggleCheckUseCase.execute(id, user, supabase);
+    const entity = await this.toggleCheckUseCase.execute(id, user);
+    return { success: true, data: this.mapper.toApi(entity) };
   }
 
   private parseYearsParam(yearsParam: string | string[] | undefined): number[] {

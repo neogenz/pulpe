@@ -51,6 +51,7 @@ import { ResetBudgetLineFromTemplateUseCase } from '../../application/reset-budg
 import { ToggleBudgetLineCheckUseCase } from '../../application/toggle-budget-line-check.use-case';
 import { CheckTransactionsUseCase } from '../../application/check-transactions.use-case';
 import { BudgetLineMapper } from '../mappers/budget-line.mapper';
+import { TransactionMapper } from '@modules/transaction/infrastructure/mappers/transaction.mapper';
 
 @ApiTags('Budget Lines')
 @ApiBearerAuth()
@@ -77,6 +78,7 @@ export class BudgetLineController {
     private readonly toggleCheckUseCase: ToggleBudgetLineCheckUseCase,
     private readonly checkTransactionsUseCase: CheckTransactionsUseCase,
     private readonly mapper: BudgetLineMapper,
+    private readonly transactionMapper: TransactionMapper,
   ) {}
 
   @Get('budget/:budgetId')
@@ -278,7 +280,10 @@ export class BudgetLineController {
       user,
       supabase,
     );
-    return { success: true, data: this.mapper.toTransactionApiList(entities) };
+    return {
+      success: true,
+      data: this.transactionMapper.toApiList(entities),
+    };
   }
 
   @Delete(':id')

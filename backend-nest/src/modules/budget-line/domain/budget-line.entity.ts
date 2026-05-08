@@ -97,25 +97,3 @@ export interface TemplateLineEntity {
   createdAt: string;
   updatedAt: string;
 }
-
-/**
- * Inline minimal entity for decrypted transaction. Tier 3 transaction will
- * replace this with the canonical TransactionEntity from that module's domain.
- */
-export interface TransactionEntity {
-  id: string;
-  budgetId: string;
-  budgetLineId: string | null;
-  name: string;
-  amount: number;
-  originalAmount: number | null;
-  originalCurrency: string | null;
-  targetCurrency: string | null;
-  exchangeRate: number | null;
-  kind: TransactionKind;
-  category: string | null;
-  transactionDate: string;
-  checkedAt: string | null;
-  createdAt: string;
-  updatedAt: string;
-}

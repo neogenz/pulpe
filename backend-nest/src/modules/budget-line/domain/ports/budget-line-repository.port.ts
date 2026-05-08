@@ -1,9 +1,9 @@
+import type { Transaction } from '../../../transaction/domain/transaction.entity';
 import type {
   BudgetLine,
   BudgetLineCreateInput,
   BudgetLineUpdatePatch,
   TemplateLineEntity,
-  TransactionEntity,
 } from '../budget-line.entity';
 
 export const BUDGET_LINE_REPOSITORY = Symbol('BUDGET_LINE_REPOSITORY');
@@ -18,5 +18,5 @@ export interface BudgetLineRepositoryPort {
   delete(id: string): Promise<void>;
   fetchTemplateLineById(templateLineId: string): Promise<TemplateLineEntity>;
   toggleCheckRpc(id: string): Promise<BudgetLine>;
-  checkUncheckedTransactionsRpc(id: string): Promise<TransactionEntity[]>;
+  checkUncheckedTransactionsRpc(id: string): Promise<Transaction[]>;
 }

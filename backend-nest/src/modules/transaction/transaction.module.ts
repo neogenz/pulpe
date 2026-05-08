@@ -46,5 +46,6 @@ import { SearchTransactionsUseCase } from './application/search-transactions.use
     createInfoLoggerProvider(ToggleTransactionCheckUseCase.name),
     createInfoLoggerProvider(SearchTransactionsUseCase.name),
   ],
+  exports: [TransactionMapper],
 })
 export class TransactionModule {}

@@ -3,6 +3,7 @@ import { SupabaseModule } from '@modules/supabase/supabase.module';
 import { BudgetModule } from '@modules/budget/budget.module';
 import { EncryptionModule } from '@modules/encryption/encryption.module';
 import { CurrencyModule } from '@modules/currency/currency.module';
+import { TransactionModule } from '@modules/transaction/transaction.module';
 import { createInfoLoggerProvider } from '@common/logger';
 import { BudgetLineController } from './infrastructure/http/budget-line.controller';
 import { SupabaseBudgetLineRepository } from './infrastructure/persistence/supabase-budget-line.repository';
@@ -19,7 +20,13 @@ import { ToggleBudgetLineCheckUseCase } from './application/toggle-budget-line-c
 import { CheckTransactionsUseCase } from './application/check-transactions.use-case';
 
 @Module({
-  imports: [SupabaseModule, BudgetModule, EncryptionModule, CurrencyModule],
+  imports: [
+    SupabaseModule,
+    BudgetModule,
+    EncryptionModule,
+    CurrencyModule,
+    TransactionModule,
+  ],
   controllers: [BudgetLineController],
   providers: [
     FindAllBudgetLinesUseCase,
