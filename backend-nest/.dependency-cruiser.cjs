@@ -47,8 +47,8 @@ module.exports = {
     {
       name: 'no-cross-module-direct',
       comment:
-        'Modules should communicate via ports/tokens, not direct service imports',
-      severity: 'warn',
+        'Modules MUST communicate via ports/tokens, not direct application/infrastructure imports. See ADR-0002.',
+      severity: 'error',
       from: { path: '^src/modules/([^/]+)' },
       to: {
         path: '^src/modules/(?!\\1)([^/]+)/(application|infrastructure)',
