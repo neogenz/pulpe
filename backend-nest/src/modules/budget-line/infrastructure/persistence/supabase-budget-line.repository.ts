@@ -397,24 +397,7 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
     patch: BudgetLineUpdatePatch,
     user: AuthenticatedUser,
   ): Promise<BudgetLineUpdate> {
-    const updateData: BudgetLineUpdate = {};
-
-    if (patch.name !== undefined) updateData.name = patch.name;
-    if (patch.kind !== undefined) updateData.kind = patch.kind;
-    if (patch.recurrence !== undefined)
-      updateData.recurrence = patch.recurrence;
-    if (patch.templateLineId !== undefined) {
-      updateData.template_line_id = patch.templateLineId;
-    }
-    if (patch.savingsGoalId !== undefined) {
-      updateData.savings_goal_id = patch.savingsGoalId;
-    }
-    if (patch.isManuallyAdjusted !== undefined) {
-      updateData.is_manually_adjusted = patch.isManuallyAdjusted;
-    }
-    if (patch.checkedAt !== undefined) {
-      updateData.checked_at = patch.checkedAt;
-    }
+    const updateData: BudgetLineUpdate = this.buildScalarUpdates(patch);
 
     if (patch.amount !== undefined) {
       const { amount } = await this.encryption.prepareAmountData(
@@ -443,6 +426,27 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
     );
 
     updateData.updated_at = new Date().toISOString();
+    return updateData;
+  }
+
+  private buildScalarUpdates(patch: BudgetLineUpdatePatch): BudgetLineUpdate {
+    const updateData: BudgetLineUpdate = {};
+    if (patch.name !== undefined) updateData.name = patch.name;
+    if (patch.kind !== undefined) updateData.kind = patch.kind;
+    if (patch.recurrence !== undefined)
+      updateData.recurrence = patch.recurrence;
+    if (patch.templateLineId !== undefined) {
+      updateData.template_line_id = patch.templateLineId;
+    }
+    if (patch.savingsGoalId !== undefined) {
+      updateData.savings_goal_id = patch.savingsGoalId;
+    }
+    if (patch.isManuallyAdjusted !== undefined) {
+      updateData.is_manually_adjusted = patch.isManuallyAdjusted;
+    }
+    if (patch.checkedAt !== undefined) {
+      updateData.checked_at = patch.checkedAt;
+    }
     return updateData;
   }
 }
