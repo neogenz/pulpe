@@ -3,14 +3,8 @@ import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import { BusinessException } from '@common/exceptions/business.exception';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
-import { ZodError } from 'zod';
-import {
-  type BudgetGenerate,
-  type BudgetGenerateResponse,
-  type Budget,
-} from 'pulpe-shared';
+import { type BudgetGenerate } from 'pulpe-shared';
 import { CacheService } from '@modules/cache/cache.service';
-import { validateCreateBudgetResponse } from '../schemas/rpc-responses.schema';
 import {
   BUDGET_REPOSITORY,
   type BudgetRepositoryPort,
@@ -20,8 +14,7 @@ import {
   type BudgetRecalculationPort,
 } from '../domain/ports/budget-recalculation.port';
 import { computeTargetMonths } from '../domain/budget.formulas';
-import { BudgetMapper } from '../infrastructure/mappers/budget.mapper';
-import type { Tables } from '../../../types/database.types';
+import type { Budget } from '../domain/budget.entity';
 
 @Injectable()
 export class GenerateBudgetsUseCase {
@@ -31,7 +24,6 @@ export class GenerateBudgetsUseCase {
     @Inject(BUDGET_RECALCULATION_PORT)
     private readonly budgetRecalculation: BudgetRecalculationPort,
     private readonly cacheService: CacheService,
-    private readonly mapper: BudgetMapper,
     @InjectInfoLogger(GenerateBudgetsUseCase.name)
     private readonly logger: InfoLogger,
   ) {}
@@ -39,8 +31,10 @@ export class GenerateBudgetsUseCase {
   async execute(
     dto: BudgetGenerate,
     user: AuthenticatedUser,
-    _supabase: unknown,
-  ): Promise<BudgetGenerateResponse> {
+  ): Promise<{
+    budgets: Budget[];
+    skippedMonths: { month: number; year: number }[];
+  }> {
     const targetMonths = computeTargetMonths(
       dto.startMonth,
       dto.startYear,
@@ -63,9 +57,8 @@ export class GenerateBudgetsUseCase {
       targetMonths,
     );
 
-    const createdBudgets: Budget[] = [];
-    const skippedMonths: { month: number; year: number }[] = [];
     const createdBudgetIds: string[] = [];
+    const skippedMonths: { month: number; year: number }[] = [];
 
     try {
       for (const target of targetMonths) {
@@ -74,13 +67,9 @@ export class GenerateBudgetsUseCase {
           continue;
         }
 
-        const result = await this.tryCreateSingleBudget(target, dto, user);
-        createdBudgets.push(result.budget);
-        createdBudgetIds.push(result.budgetId);
-        await this.budgetRecalculation.recalculate(
-          result.budgetId,
-          user.clientKey,
-        );
+        const budgetId = await this.tryCreateSingleBudget(target, dto, user);
+        createdBudgetIds.push(budgetId);
+        await this.budgetRecalculation.recalculate(budgetId, user.clientKey);
       }
     } catch (error) {
       await this.cacheService.invalidateForUser(user.id);
@@ -95,6 +84,10 @@ export class GenerateBudgetsUseCase {
 
     await this.cacheService.invalidateForUser(user.id);
 
+    const createdBudgets = await Promise.all(
+      createdBudgetIds.map((id) => this.repo.fetchBudgetById(id, user.id)),
+    );
+
     this.logger.info(
       {
         userId: user.id,
@@ -105,67 +98,33 @@ export class GenerateBudgetsUseCase {
       'Budget generation completed',
     );
 
-    return {
-      success: true,
-      data: { budgets: createdBudgets, skippedMonths },
-    };
+    return { budgets: createdBudgets, skippedMonths };
   }
 
   private async tryCreateSingleBudget(
     target: { month: number; year: number },
     dto: BudgetGenerate,
     user: AuthenticatedUser,
-  ): Promise<{ budget: Budget; budgetId: string }> {
-    let rpcResult: unknown;
+  ): Promise<string> {
     try {
-      rpcResult = await this.repo.createBudgetFromTemplateRpc({
+      const result = await this.repo.createBudgetFromTemplateRpc({
         p_user_id: user.id,
         p_template_id: dto.templateId,
         p_month: target.month,
         p_year: target.year,
         p_description: `Budget ${target.month}/${target.year}`,
       });
+      return result.budget.id;
     } catch (error) {
+      if (error instanceof BusinessException) {
+        throw error;
+      }
       throw new BusinessException(
         ERROR_DEFINITIONS.BUDGET_CREATE_FAILED,
         undefined,
         { userId: user.id, templateId: dto.templateId },
         { cause: error },
       );
-    }
-
-    const processedResult = this.processBudgetCreationResult(
-      rpcResult,
-      user.id,
-      dto.templateId,
-    );
-
-    return {
-      budget: this.mapper.toApi(
-        processedResult.budgetData as Parameters<BudgetMapper['toApi']>[0],
-      ),
-      budgetId: processedResult.budgetData.id,
-    };
-  }
-
-  private processBudgetCreationResult(
-    result: unknown,
-    userId: string,
-    templateId: string,
-  ): { budgetData: Tables<'monthly_budget'> } {
-    try {
-      const validatedResult = validateCreateBudgetResponse(result);
-      return { budgetData: validatedResult.budget as Tables<'monthly_budget'> };
-    } catch (error) {
-      if (error instanceof ZodError) {
-        throw new BusinessException(
-          ERROR_DEFINITIONS.BUDGET_CREATE_FAILED,
-          { reason: 'Invalid result structure from RPC' },
-          { userId, templateId, operation: 'processBudgetCreationResult' },
-          { cause: error },
-        );
-      }
-      throw error;
     }
   }
 

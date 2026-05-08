@@ -15,7 +15,7 @@ export class HasBudgetsUseCase {
     private readonly logger: InfoLogger,
   ) {}
 
-  async execute(user: AuthenticatedUser, _supabase: unknown): Promise<boolean> {
+  async execute(user: AuthenticatedUser): Promise<boolean> {
     const result = await this.repo.hasAnyBudget();
 
     this.logger.info(

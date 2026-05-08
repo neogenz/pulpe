@@ -9,25 +9,18 @@ import {
   PAY_DAY_MAX,
 } from 'pulpe-shared';
 import {
-  ENCRYPTION_PORT,
-  type EncryptionPort,
-} from '@modules/encryption/encryption.tokens';
-import * as transactionMappers from '@modules/transaction/transaction.mappers';
-import * as budgetLineMappers from '@modules/budget-line/budget-line.mappers';
-import {
   BUDGET_REPOSITORY,
   type BudgetRepositoryPort,
 } from '../domain/ports/budget-repository.port';
 import { BudgetMapper } from '../infrastructure/mappers/budget.mapper';
 import { RecalculateBudgetBalancesUseCase } from './recalculate-budget-balances.use-case';
-import type { BudgetRow } from '../domain/budget.entity';
+import type { Budget } from '../domain/budget.entity';
 
 @Injectable()
 export class ExportAllBudgetsUseCase {
   constructor(
     @Inject(BUDGET_REPOSITORY)
     private readonly repo: BudgetRepositoryPort,
-    @Inject(ENCRYPTION_PORT) private readonly encryption: EncryptionPort,
     private readonly mapper: BudgetMapper,
     private readonly recalculateUseCase: RecalculateBudgetBalancesUseCase,
     @InjectInfoLogger(ExportAllBudgetsUseCase.name)
@@ -43,7 +36,7 @@ export class ExportAllBudgetsUseCase {
     const budgets = await this.repo.fetchAllBudgetsForExport();
     const budgetsWithDetails = await Promise.all(
       budgets.map((budget) =>
-        this.enrichBudgetForExport(budget, payDayOfMonth, user.clientKey),
+        this.enrichBudgetForExport(budget, payDayOfMonth),
       ),
     );
 
@@ -68,68 +61,43 @@ export class ExportAllBudgetsUseCase {
   }
 
   private async enrichBudgetForExport(
-    budget: BudgetRow,
+    budget: Budget,
     payDayOfMonth: number,
-    clientKey: Buffer,
   ): Promise<BudgetWithDetails> {
     const { transactions, budgetLines } = await this.repo.fetchBudgetData(
       budget.id,
-      {
-        budgetLineFields: '*',
-        transactionFields: '*',
-        orderTransactions: true,
-      },
     );
 
     const rolloverData = await this.recalculateUseCase.getRollover(
       budget.id,
       payDayOfMonth,
-      clientKey,
     );
 
     const remaining = await this.calculateRemainingForBudget(
       budget,
       payDayOfMonth,
-      clientKey,
-    );
-
-    const dek = await this.encryption.getUserDEK(budget.user_id!, clientKey);
-
-    const decryptedBudgetLines = budgetLines.map((line) =>
-      this.encryption.decryptRowAmountFields(line, dek),
-    );
-    const decryptedTransactions = transactions.map((tx) =>
-      this.encryption.decryptRowAmountFields(tx, dek),
     );
 
     return {
-      ...this.mapper.toApi({
-        ...budget,
-        ending_balance: budget.ending_balance
-          ? this.encryption.tryDecryptAmount(budget.ending_balance, dek, 0)
-          : null,
-      }),
+      ...this.mapper.toApi(budget),
       rollover: rolloverData.rollover,
       previousBudgetId: rolloverData.previousBudgetId,
       remaining,
-      transactions: transactionMappers.toApiList(decryptedTransactions),
-      budgetLines: budgetLineMappers.toApiList(decryptedBudgetLines),
+      transactions: this.mapper.toTransactionApiList(transactions),
+      budgetLines: this.mapper.toBudgetLineApiList(budgetLines),
     };
   }
 
   private async calculateRemainingForBudget(
-    budget: BudgetRow,
+    budget: Budget,
     payDayOfMonth: number,
-    clientKey: Buffer,
   ): Promise<number> {
     const currentBalance = await this.recalculateUseCase.calculateEndingBalance(
       budget.id,
-      clientKey,
     );
     const rolloverData = await this.recalculateUseCase.getRollover(
       budget.id,
       payDayOfMonth,
-      clientKey,
     );
     return currentBalance + rolloverData.rollover;
   }

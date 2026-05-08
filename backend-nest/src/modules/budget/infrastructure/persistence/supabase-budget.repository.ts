@@ -1,37 +1,36 @@
-import { Injectable } from '@nestjs/common';
-import { type InfoLogger, InjectInfoLogger } from '@common/logger';
+import { Inject, Injectable } from '@nestjs/common';
+import type { Buffer } from 'node:buffer';
+import { ZodError } from 'zod';
 import { BusinessException } from '@common/exceptions/business.exception';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 import { AuthenticatedSupabaseProvider } from '@modules/supabase/authenticated-supabase.provider';
-import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
+import {
+  ENCRYPTION_PORT,
+  type EncryptionPort,
+} from '@modules/encryption/encryption.tokens';
 import { BudgetFormulas, type TransactionKind } from 'pulpe-shared';
 import type {
-  BudgetRow,
+  Budget,
+  BudgetForRollover,
+  BudgetLineDecrypted,
   BudgetLineRow,
+  BudgetRow,
+  BudgetUpdatePatch,
+  BudgetWithRelations,
+  TransactionDecrypted,
   TransactionRow,
   BudgetAggregates,
 } from '../../domain/budget.entity';
-import type {
-  BudgetRepositoryPort,
-  BudgetDataOptions,
-  BudgetDataResult,
-} from '../../domain/ports/budget-repository.port';
-import type { PostgrestError } from '@supabase/supabase-js';
+import type { BudgetRepositoryPort } from '../../domain/ports/budget-repository.port';
+import { validateCreateBudgetResponse } from '../../schemas/rpc-responses.schema';
 
 export type { BudgetAggregates };
-
-interface QueryResult<T> {
-  data: T | null;
-  error: PostgrestError | null;
-  name?: string;
-}
 
 @Injectable()
 export class SupabaseBudgetRepository implements BudgetRepositoryPort {
   constructor(
     private readonly supabaseProvider: AuthenticatedSupabaseProvider,
-    @InjectInfoLogger(SupabaseBudgetRepository.name)
-    private readonly logger: InfoLogger,
+    @Inject(ENCRYPTION_PORT) private readonly encryption: EncryptionPort,
   ) {}
 
   async hasAnyBudget(): Promise<boolean> {
@@ -58,7 +57,7 @@ export class SupabaseBudgetRepository implements BudgetRepositoryPort {
     return data !== null;
   }
 
-  async fetchAllBudgets(): Promise<BudgetRow[]> {
+  async fetchAllBudgets(): Promise<Budget[]> {
     const supabase = this.supabaseProvider.client;
     const { data, error } = await supabase
       .from('monthly_budget')
@@ -79,13 +78,15 @@ export class SupabaseBudgetRepository implements BudgetRepositoryPort {
       );
     }
 
-    return data ?? [];
+    if (!data?.length) return [];
+    const dek = await this.getDek();
+    return data.map((row) => this.toEntity(row, dek));
   }
 
   async fetchBudgetsWithFilters(filters: {
     limit?: number;
     year?: number;
-  }): Promise<BudgetRow[]> {
+  }): Promise<Budget[]> {
     const supabase = this.supabaseProvider.client;
     let query = supabase
       .from('monthly_budget')
@@ -111,10 +112,12 @@ export class SupabaseBudgetRepository implements BudgetRepositoryPort {
       );
     }
 
-    return data ?? [];
+    if (!data?.length) return [];
+    const dek = await this.getDek();
+    return data.map((row) => this.toEntity(row, dek));
   }
 
-  async fetchAllBudgetsForExport(): Promise<BudgetRow[]> {
+  async fetchAllBudgetsForExport(): Promise<Budget[]> {
     const supabase = this.supabaseProvider.client;
     const { data, error } = await supabase
       .from('monthly_budget')
@@ -135,10 +138,12 @@ export class SupabaseBudgetRepository implements BudgetRepositoryPort {
       );
     }
 
-    return data ?? [];
+    if (!data?.length) return [];
+    const dek = await this.getDek();
+    return data.map((row) => this.toEntity(row, dek));
   }
 
-  async fetchBudgetById(id: string, userId: string): Promise<BudgetRow> {
+  async fetchBudgetById(id: string, userId: string): Promise<Budget> {
     const supabase = this.supabaseProvider.client;
     const { data, error } = await supabase
       .from('monthly_budget')
@@ -160,7 +165,8 @@ export class SupabaseBudgetRepository implements BudgetRepositoryPort {
       );
     }
 
-    return data;
+    const dek = await this.getDek();
+    return this.toEntity(data, dek);
   }
 
   async fetchBudgetUserId(id: string): Promise<string> {
@@ -178,7 +184,7 @@ export class SupabaseBudgetRepository implements BudgetRepositoryPort {
     return data.user_id;
   }
 
-  async validateBudgetExists(id: string): Promise<BudgetRow> {
+  async validateBudgetExists(id: string): Promise<Budget> {
     const supabase = this.supabaseProvider.client;
     const { data, error } = await supabase
       .from('monthly_budget')
@@ -199,17 +205,16 @@ export class SupabaseBudgetRepository implements BudgetRepositoryPort {
       );
     }
 
-    return data;
+    const dek = await this.getDek();
+    return this.toEntity(data, dek);
   }
 
-  async updateBudget(
-    id: string,
-    updateData: Record<string, unknown>,
-  ): Promise<BudgetRow> {
+  async updateBudget(id: string, patch: BudgetUpdatePatch): Promise<Budget> {
     const supabase = this.supabaseProvider.client;
+    const updateRow = this.toUpdateRow(patch);
     const { data, error } = await supabase
       .from('monthly_budget')
-      .update(updateData)
+      .update(updateRow)
       .eq('id', id)
       .select()
       .single();
@@ -228,7 +233,8 @@ export class SupabaseBudgetRepository implements BudgetRepositoryPort {
       );
     }
 
-    return data;
+    const dek = await this.getDek();
+    return this.toEntity(data, dek);
   }
 
   async deleteBudget(id: string): Promise<void> {
@@ -298,31 +304,72 @@ export class SupabaseBudgetRepository implements BudgetRepositoryPort {
     );
   }
 
-  async fetchBudgetData(
-    budgetId: string,
-    options: BudgetDataOptions = {},
-  ): Promise<BudgetDataResult> {
-    const {
-      budgetLineFields = 'kind, amount',
-      transactionFields = 'kind, amount',
-      includeBudget = false,
-      orderTransactions = false,
-    } = options;
-
+  async fetchBudgetData(budgetId: string): Promise<BudgetWithRelations> {
     const supabase = this.supabaseProvider.client;
-    const queries = this.buildFetchQueries(
-      budgetId,
-      supabase,
-      budgetLineFields,
-      transactionFields,
-      orderTransactions,
-      includeBudget,
-    );
+    const [budgetResult, budgetLinesResult, transactionsResult] =
+      await Promise.all([
+        supabase.from('monthly_budget').select('*').eq('id', budgetId).single(),
+        supabase
+          .from('budget_line')
+          .select('*')
+          .eq('budget_id', budgetId)
+          .order('created_at', { ascending: false }),
+        supabase
+          .from('transaction')
+          .select('*')
+          .eq('budget_id', budgetId)
+          .order('transaction_date', { ascending: false }),
+      ]);
 
-    const results = await Promise.all(queries);
-    this.validateQueryResults(results, budgetId, includeBudget);
+    if (budgetResult.error || !budgetResult.data) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.BUDGET_NOT_FOUND,
+        { id: budgetId },
+        {
+          operation: 'fetchBudget',
+          entityId: budgetId,
+          entityType: 'budget',
+        },
+        { cause: budgetResult.error },
+      );
+    }
 
-    return this.processFetchResults(results, includeBudget);
+    if (budgetLinesResult.error) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.BUDGET_FETCH_FAILED,
+        { budgetId },
+        {
+          operation: 'fetchBudgetLines',
+          entityId: budgetId,
+          entityType: 'budgetLines',
+        },
+        { cause: budgetLinesResult.error },
+      );
+    }
+
+    if (transactionsResult.error) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.TRANSACTION_FETCH_FAILED,
+        { budgetId },
+        {
+          operation: 'fetchTransactions',
+          entityId: budgetId,
+          entityType: 'transactions',
+        },
+        { cause: transactionsResult.error },
+      );
+    }
+
+    const dek = await this.getDek();
+    return {
+      budget: this.toEntity(budgetResult.data, dek),
+      budgetLines: (budgetLinesResult.data ?? []).map((row) =>
+        this.toBudgetLineDecrypted(row, dek),
+      ),
+      transactions: (transactionsResult.data ?? []).map((row) =>
+        this.toTransactionDecrypted(row, dek),
+      ),
+    };
   }
 
   async createBudgetFromTemplateRpc(payload: {
@@ -331,7 +378,11 @@ export class SupabaseBudgetRepository implements BudgetRepositoryPort {
     p_month: number;
     p_year: number;
     p_description: string;
-  }): Promise<unknown> {
+  }): Promise<{
+    budget: BudgetRow;
+    budget_lines_created: number;
+    template_name: string;
+  }> {
     const supabase = this.supabaseProvider.client;
     const { data, error } = await supabase.rpc(
       'create_budget_from_template',
@@ -342,14 +393,38 @@ export class SupabaseBudgetRepository implements BudgetRepositoryPort {
       throw error;
     }
 
-    return data;
+    try {
+      const validated = validateCreateBudgetResponse(data);
+      return {
+        budget: validated.budget as BudgetRow,
+        budget_lines_created: validated.budget_lines_created,
+        template_name: validated.template_name,
+      };
+    } catch (err) {
+      if (err instanceof ZodError) {
+        throw new BusinessException(
+          ERROR_DEFINITIONS.BUDGET_CREATE_FAILED,
+          { reason: 'Invalid result structure from RPC' },
+          {
+            operation: 'createBudgetFromTemplateRpc',
+            validationErrors: err.issues,
+          },
+          { cause: err },
+        );
+      }
+      throw err;
+    }
   }
 
   async persistEndingBalance(
     budgetId: string,
-    encryptedBalance: string,
+    endingBalance: number,
   ): Promise<void> {
     const supabase = this.supabaseProvider.client;
+    const user = this.supabaseProvider.user;
+    const dek = await this.encryption.ensureUserDEK(user.id, user.clientKey);
+    const encryptedBalance = this.encryption.encryptAmount(endingBalance, dek);
+
     const { error } = await supabase
       .from('monthly_budget')
       .update({ ending_balance: encryptedBalance })
@@ -371,9 +446,7 @@ export class SupabaseBudgetRepository implements BudgetRepositoryPort {
 
   async fetchAllBudgetsForRollover(
     userId: string,
-  ): Promise<
-    { id: string; month: number; year: number; ending_balance: string | null }[]
-  > {
+  ): Promise<BudgetForRollover[]> {
     const supabase = this.supabaseProvider.client;
     const { data, error } = await supabase
       .from('monthly_budget')
@@ -393,12 +466,24 @@ export class SupabaseBudgetRepository implements BudgetRepositoryPort {
       );
     }
 
-    return data ?? [];
+    if (!data?.length) return [];
+
+    const hasEncryptedData = data.some((b) => b.ending_balance);
+    const dek = hasEncryptedData ? await this.getDek() : null;
+
+    return data.map((row) => ({
+      id: row.id,
+      month: row.month,
+      year: row.year,
+      endingBalance:
+        row.ending_balance && dek
+          ? this.encryption.tryDecryptAmount(row.ending_balance, dek, 0)
+          : null,
+    }));
   }
 
   async fetchBudgetAggregates(
     budgetIds: string[],
-    decryptFn: (amount: string | null) => number,
   ): Promise<Map<string, BudgetAggregates>> {
     const aggregatesMap = new Map<string, BudgetAggregates>();
 
@@ -412,33 +497,151 @@ export class SupabaseBudgetRepository implements BudgetRepositoryPort {
       });
     }
 
-    try {
-      const supabase = this.supabaseProvider.client;
-      const [budgetLinesResult, transactionsResult] = await Promise.all([
-        supabase
-          .from('budget_line')
-          .select('id, budget_id, kind, amount')
-          .in('budget_id', budgetIds),
-        supabase
-          .from('transaction')
-          .select('budget_id, kind, amount, budget_line_id')
-          .in('budget_id', budgetIds),
-      ]);
+    const supabase = this.supabaseProvider.client;
+    const [budgetLinesResult, transactionsResult] = await Promise.all([
+      supabase
+        .from('budget_line')
+        .select('id, budget_id, kind, amount')
+        .in('budget_id', budgetIds),
+      supabase
+        .from('transaction')
+        .select('budget_id, kind, amount, budget_line_id')
+        .in('budget_id', budgetIds),
+    ]);
 
-      this.computeEnvelopeAggregates(
-        budgetLinesResult.data ?? [],
-        transactionsResult.data ?? [],
-        aggregatesMap,
-        decryptFn,
-      );
-    } catch (error) {
-      this.logger.warn('Failed to fetch budget aggregates, returning zeros', {
-        budgetIds,
-        error: error instanceof Error ? error.message : String(error),
-      });
-    }
+    const budgetLines = budgetLinesResult.data ?? [];
+    const transactions = transactionsResult.data ?? [];
+
+    const hasEncryptedData =
+      budgetLines.some((l) => l.amount) || transactions.some((t) => t.amount);
+    const dek = hasEncryptedData ? await this.getDek() : null;
+
+    const decrypt = (ciphertext: string | null): number =>
+      ciphertext && dek
+        ? this.encryption.tryDecryptAmount(ciphertext, dek, 0)
+        : 0;
+
+    this.computeEnvelopeAggregates(
+      budgetLines,
+      transactions,
+      aggregatesMap,
+      decrypt,
+    );
 
     return aggregatesMap;
+  }
+
+  async fetchBudgetIdByPeriod(
+    month: number,
+    year: number,
+  ): Promise<string | null> {
+    const supabase = this.supabaseProvider.client;
+    const { data } = await supabase
+      .from('monthly_budget')
+      .select('id')
+      .eq('month', month)
+      .eq('year', year)
+      .maybeSingle();
+
+    return data?.id ?? null;
+  }
+
+  async fetchBudgetIdByPeriodExcluding(
+    month: number,
+    year: number,
+    excludeId: string,
+  ): Promise<string | null> {
+    const supabase = this.supabaseProvider.client;
+    const { data } = await supabase
+      .from('monthly_budget')
+      .select('id')
+      .eq('month', month)
+      .eq('year', year)
+      .neq('id', excludeId)
+      .maybeSingle();
+
+    return data?.id ?? null;
+  }
+
+  private async getDek(): Promise<Buffer> {
+    const user = this.supabaseProvider.user;
+    return this.encryption.getUserDEK(user.id, user.clientKey);
+  }
+
+  private toEntity(row: BudgetRow, dek: Buffer): Budget {
+    return {
+      id: row.id,
+      userId: row.user_id,
+      templateId: row.template_id,
+      month: row.month,
+      year: row.year,
+      description: row.description,
+      endingBalance: row.ending_balance
+        ? this.encryption.tryDecryptAmount(row.ending_balance, dek, 0)
+        : null,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    };
+  }
+
+  private toBudgetLineDecrypted(
+    row: BudgetLineRow,
+    dek: Buffer,
+  ): BudgetLineDecrypted {
+    const decrypted = this.encryption.decryptRowAmountFields(row, dek);
+    return {
+      id: decrypted.id,
+      budgetId: decrypted.budget_id,
+      templateLineId: decrypted.template_line_id,
+      savingsGoalId: decrypted.savings_goal_id,
+      name: decrypted.name,
+      amount: decrypted.amount,
+      originalAmount: decrypted.original_amount,
+      originalCurrency: decrypted.original_currency,
+      targetCurrency: decrypted.target_currency,
+      exchangeRate: decrypted.exchange_rate,
+      kind: decrypted.kind,
+      recurrence: decrypted.recurrence,
+      isManuallyAdjusted: decrypted.is_manually_adjusted,
+      checkedAt: decrypted.checked_at,
+      createdAt: decrypted.created_at,
+      updatedAt: decrypted.updated_at,
+    };
+  }
+
+  private toTransactionDecrypted(
+    row: TransactionRow,
+    dek: Buffer,
+  ): TransactionDecrypted {
+    const decrypted = this.encryption.decryptRowAmountFields(row, dek);
+    return {
+      id: decrypted.id,
+      budgetId: decrypted.budget_id,
+      budgetLineId: decrypted.budget_line_id,
+      name: decrypted.name,
+      amount: decrypted.amount,
+      originalAmount: decrypted.original_amount,
+      originalCurrency: decrypted.original_currency,
+      targetCurrency: decrypted.target_currency,
+      exchangeRate: decrypted.exchange_rate,
+      kind: decrypted.kind,
+      category: decrypted.category,
+      transactionDate: decrypted.transaction_date,
+      checkedAt: decrypted.checked_at,
+      createdAt: decrypted.created_at,
+      updatedAt: decrypted.updated_at,
+    };
+  }
+
+  private toUpdateRow(patch: BudgetUpdatePatch): Record<string, unknown> {
+    const updateData: Record<string, unknown> = {};
+    if (patch.month !== undefined) updateData.month = patch.month;
+    if (patch.year !== undefined) updateData.year = patch.year;
+    if (patch.description !== undefined)
+      updateData.description = patch.description;
+    if (patch.templateId !== undefined)
+      updateData.template_id = patch.templateId;
+    return updateData;
   }
 
   private computeEnvelopeAggregates(
@@ -478,150 +681,6 @@ export class SupabaseBudgetRepository implements BudgetRepositoryPort {
       aggregates.totalIncome = metrics.totalIncome;
       aggregates.totalSavings = metrics.totalSavings;
     }
-  }
-
-  private buildFetchQueries(
-    budgetId: string,
-    supabase: AuthenticatedSupabaseClient,
-    budgetLineFields: string,
-    transactionFields: string,
-    orderTransactions: boolean,
-    includeBudget: boolean,
-  ): Array<PromiseLike<QueryResult<unknown>>> {
-    const queries = [
-      this.createBudgetLineQuery(budgetId, supabase, budgetLineFields),
-      this.createTransactionQuery(
-        budgetId,
-        supabase,
-        transactionFields,
-        orderTransactions,
-      ),
-    ];
-
-    if (includeBudget) {
-      queries.push(this.createBudgetQuery(budgetId, supabase));
-    }
-
-    return queries;
-  }
-
-  private createBudgetLineQuery(
-    budgetId: string,
-    supabase: AuthenticatedSupabaseClient,
-    budgetLineFields: string,
-  ): PromiseLike<QueryResult<unknown>> {
-    let query = supabase
-      .from('budget_line')
-      .select(budgetLineFields)
-      .eq('budget_id', budgetId);
-
-    if (budgetLineFields === '*') {
-      query = query.order('created_at', { ascending: false });
-    }
-
-    return query.then((result) => ({
-      name: 'budgetLines',
-      data: result.data,
-      error: result.error,
-    }));
-  }
-
-  private createTransactionQuery(
-    budgetId: string,
-    supabase: AuthenticatedSupabaseClient,
-    transactionFields: string,
-    orderTransactions: boolean,
-  ): PromiseLike<QueryResult<unknown>> {
-    let query = supabase
-      .from('transaction')
-      .select(transactionFields)
-      .eq('budget_id', budgetId);
-
-    if (orderTransactions) {
-      query = query.order('transaction_date', { ascending: false });
-    }
-
-    return query.then((result) => ({
-      name: 'transactions',
-      data: result.data,
-      error: result.error,
-    }));
-  }
-
-  private createBudgetQuery(
-    budgetId: string,
-    supabase: AuthenticatedSupabaseClient,
-  ): PromiseLike<QueryResult<unknown>> {
-    return supabase
-      .from('monthly_budget')
-      .select('*')
-      .eq('id', budgetId)
-      .single()
-      .then((result) => ({
-        name: 'budget',
-        data: result.data,
-        error: result.error,
-      }));
-  }
-
-  private validateQueryResults(
-    results: Array<QueryResult<unknown>>,
-    budgetId: string,
-    includeBudget: boolean,
-  ): void {
-    for (const result of results) {
-      if (!result.error) continue;
-
-      if (result.name === 'budget' && includeBudget) {
-        throw new BusinessException(
-          ERROR_DEFINITIONS.BUDGET_NOT_FOUND,
-          { id: budgetId },
-          {
-            operation: `fetchBudget`,
-            entityId: budgetId,
-            entityType: result.name,
-          },
-          { cause: result.error },
-        );
-      }
-
-      throw new BusinessException(
-        result.name === 'budgetLines'
-          ? ERROR_DEFINITIONS.BUDGET_FETCH_FAILED
-          : ERROR_DEFINITIONS.TRANSACTION_FETCH_FAILED,
-        { budgetId },
-        {
-          operation: `fetch${result.name}`,
-          entityId: budgetId,
-          entityType: result.name,
-        },
-        { cause: result.error },
-      );
-    }
-  }
-
-  private processFetchResults(
-    results: Array<QueryResult<unknown>>,
-    includeBudget: boolean,
-  ): BudgetDataResult {
-    const budgetLinesResult = results.find((r) => r.name === 'budgetLines');
-    const transactionsResult = results.find((r) => r.name === 'transactions');
-
-    const response: BudgetDataResult = {
-      budgetLines: Array.isArray(budgetLinesResult?.data)
-        ? (budgetLinesResult.data as BudgetLineRow[])
-        : [],
-      transactions: Array.isArray(transactionsResult?.data)
-        ? (transactionsResult.data as TransactionRow[])
-        : [],
-    };
-
-    if (includeBudget) {
-      response.budget = results.find((r) => r.name === 'budget')
-        ?.data as BudgetRow;
-    }
-
-    return response;
   }
 
   private groupByBudgetId<T extends { budget_id: string }>(

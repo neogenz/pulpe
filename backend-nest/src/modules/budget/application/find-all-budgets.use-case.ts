@@ -9,10 +9,6 @@ import {
   PAY_DAY_MIN,
   PAY_DAY_MAX,
 } from 'pulpe-shared';
-import {
-  ENCRYPTION_PORT,
-  type EncryptionPort,
-} from '@modules/encryption/encryption.tokens';
 import { CacheService } from '@modules/cache/cache.service';
 import {
   BUDGET_REPOSITORY,
@@ -20,18 +16,17 @@ import {
 } from '../domain/ports/budget-repository.port';
 import {
   BudgetMapper,
-  type EnrichedBudgetRow,
+  type BudgetWithRemaining,
 } from '../infrastructure/mappers/budget.mapper';
 import { FindAllSparseBudgetsUseCase } from './find-all-sparse-budgets.use-case';
 import { RecalculateBudgetBalancesUseCase } from './recalculate-budget-balances.use-case';
-import type { BudgetRow } from '../domain/budget.entity';
+import type { Budget } from '../domain/budget.entity';
 
 @Injectable()
 export class FindAllBudgetsUseCase {
   constructor(
     @Inject(BUDGET_REPOSITORY)
     private readonly repo: BudgetRepositoryPort,
-    @Inject(ENCRYPTION_PORT) private readonly encryption: EncryptionPort,
     private readonly cacheService: CacheService,
     private readonly mapper: BudgetMapper,
     private readonly findAllSparseUseCase: FindAllSparseBudgetsUseCase,
@@ -72,7 +67,6 @@ export class FindAllBudgetsUseCase {
     const enrichedBudgets = await this.enrichBudgetsWithRemaining(
       budgets,
       payDayOfMonth,
-      user.clientKey,
     );
 
     return {
@@ -82,23 +76,17 @@ export class FindAllBudgetsUseCase {
   }
 
   private async enrichBudgetsWithRemaining(
-    budgets: BudgetRow[],
+    budgets: Budget[],
     payDayOfMonth: number,
-    clientKey: Buffer,
-  ): Promise<EnrichedBudgetRow[]> {
+  ): Promise<BudgetWithRemaining[]> {
     return Promise.all(
       budgets.map(async (budget) => {
         try {
           const remaining = await this.calculateRemainingForBudget(
             budget,
             payDayOfMonth,
-            clientKey,
           );
-          const decryptedBalance = await this.decryptEndingBalance(
-            budget,
-            clientKey,
-          );
-          return { ...budget, ending_balance: decryptedBalance, remaining };
+          return { ...budget, remaining };
         } catch (error) {
           this.logger.warn(
             {
@@ -110,35 +98,22 @@ export class FindAllBudgetsUseCase {
             },
             'Failed to calculate remaining for budget, using fallback',
           );
-          const fallbackBalance = await this.decryptEndingBalance(
-            budget,
-            clientKey,
-          );
-          return {
-            ...budget,
-            ending_balance: fallbackBalance,
-            remaining: fallbackBalance,
-          };
+          return { ...budget, remaining: budget.endingBalance ?? 0 };
         }
       }),
     );
   }
 
   private async calculateRemainingForBudget(
-    budget: BudgetRow,
+    budget: Budget,
     payDayOfMonth: number,
-    clientKey: Buffer,
   ): Promise<number> {
     try {
       const currentBalance =
-        await this.recalculateUseCase.calculateEndingBalance(
-          budget.id,
-          clientKey,
-        );
+        await this.recalculateUseCase.calculateEndingBalance(budget.id);
       const rolloverData = await this.recalculateUseCase.getRollover(
         budget.id,
         payDayOfMonth,
-        clientKey,
       );
       return currentBalance + rolloverData.rollover;
     } catch (error) {
@@ -153,23 +128,9 @@ export class FindAllBudgetsUseCase {
       const rolloverData = await this.recalculateUseCase.getRollover(
         budget.id,
         payDayOfMonth,
-        clientKey,
       );
-      const endingBalanceStored = await this.decryptEndingBalance(
-        budget,
-        clientKey,
-      );
-      return endingBalanceStored + rolloverData.rollover;
+      return (budget.endingBalance ?? 0) + rolloverData.rollover;
     }
-  }
-
-  private async decryptEndingBalance(
-    budget: BudgetRow,
-    clientKey: Buffer,
-  ): Promise<number> {
-    if (!budget.ending_balance) return 0;
-    const dek = await this.encryption.getUserDEK(budget.user_id!, clientKey);
-    return this.encryption.tryDecryptAmount(budget.ending_balance, dek, 0);
   }
 
   private async getPayDayOfMonth(

@@ -1,54 +1,59 @@
 import { Injectable } from '@nestjs/common';
-import { type Budget, type BudgetSparse, BudgetFormulas } from 'pulpe-shared';
-import type { TablesInsert } from '../../../../types/database.types';
-import type { BudgetRow } from '../../domain/budget.entity';
-import type { BudgetAggregates } from '../persistence/supabase-budget.repository';
+import {
+  type Budget as BudgetApi,
+  type BudgetLine as BudgetLineApi,
+  type BudgetSparse,
+  type Transaction as TransactionApi,
+  BudgetFormulas,
+} from 'pulpe-shared';
+import { mapCurrencyMetadataToApi } from '@common/utils/currency-metadata.mapper';
+import type {
+  Budget,
+  BudgetAggregates,
+  BudgetLineDecrypted,
+  TransactionDecrypted,
+} from '../../domain/budget.entity';
 
-export type DecryptedBudgetRow = Omit<BudgetRow, 'ending_balance'> & {
-  ending_balance: number | null;
-};
-
-export type EnrichedBudgetRow = DecryptedBudgetRow & { remaining: number };
+export interface BudgetWithRemaining extends Budget {
+  remaining: number;
+}
 
 @Injectable()
 export class BudgetMapper {
-  toApi(budgetDb: DecryptedBudgetRow | EnrichedBudgetRow): Budget {
-    const base: Budget = {
-      id: budgetDb.id,
-      createdAt: budgetDb.created_at,
-      updatedAt: budgetDb.updated_at,
-      userId: budgetDb.user_id ?? undefined,
-      templateId: budgetDb.template_id,
-      month: budgetDb.month,
-      year: budgetDb.year,
-      description: budgetDb.description,
-      endingBalance:
-        typeof budgetDb.ending_balance === 'number'
-          ? (budgetDb.ending_balance ?? undefined)
-          : undefined,
+  toApi(entity: Budget | BudgetWithRemaining): BudgetApi {
+    const base: BudgetApi = {
+      id: entity.id,
+      createdAt: entity.createdAt,
+      updatedAt: entity.updatedAt,
+      userId: entity.userId ?? undefined,
+      templateId: entity.templateId,
+      month: entity.month,
+      year: entity.year,
+      description: entity.description,
+      endingBalance: entity.endingBalance ?? undefined,
     };
 
-    if ('remaining' in budgetDb) {
-      base.remaining = budgetDb.remaining;
+    if ('remaining' in entity) {
+      base.remaining = entity.remaining;
     }
 
     return base;
   }
 
-  toApiList(budgets: (DecryptedBudgetRow | EnrichedBudgetRow)[]): Budget[] {
-    return budgets.map((b) => this.toApi(b));
+  toApiList(entities: (Budget | BudgetWithRemaining)[]): BudgetApi[] {
+    return entities.map((b) => this.toApi(b));
   }
 
   toSparseApi(
-    budgetDb: BudgetRow,
+    entity: Budget,
     requestedFields: string[],
     aggregates?: BudgetAggregates,
     rollover?: number,
   ): BudgetSparse {
-    const sparse: BudgetSparse = { id: budgetDb.id };
+    const sparse: BudgetSparse = { id: entity.id };
 
-    if (requestedFields.includes('month')) sparse.month = budgetDb.month;
-    if (requestedFields.includes('year')) sparse.year = budgetDb.year;
+    if (requestedFields.includes('month')) sparse.month = entity.month;
+    if (requestedFields.includes('year')) sparse.year = entity.year;
     if (requestedFields.includes('rollover') && rollover !== undefined) {
       sparse.rollover = rollover;
     }
@@ -78,21 +83,56 @@ export class BudgetMapper {
     return sparse;
   }
 
-  toInsert(
-    createDto: {
-      month: number;
-      year: number;
-      description: string;
-      templateId: string;
-    },
-    userId: string,
-  ): TablesInsert<'monthly_budget'> {
+  toBudgetLineApi(entity: BudgetLineDecrypted): BudgetLineApi {
     return {
-      month: createDto.month,
-      year: createDto.year,
-      description: createDto.description,
-      user_id: userId,
-      template_id: createDto.templateId,
+      id: entity.id,
+      budgetId: entity.budgetId,
+      templateLineId: entity.templateLineId,
+      savingsGoalId: entity.savingsGoalId,
+      name: entity.name,
+      amount: entity.amount,
+      kind: entity.kind,
+      recurrence: entity.recurrence,
+      isManuallyAdjusted: entity.isManuallyAdjusted,
+      checkedAt: entity.checkedAt,
+      createdAt: entity.createdAt,
+      updatedAt: entity.updatedAt,
+      ...mapCurrencyMetadataToApi({
+        original_amount: entity.originalAmount,
+        original_currency: entity.originalCurrency,
+        target_currency: entity.targetCurrency,
+        exchange_rate: entity.exchangeRate,
+      }),
     };
+  }
+
+  toBudgetLineApiList(entities: BudgetLineDecrypted[]): BudgetLineApi[] {
+    return entities.map((e) => this.toBudgetLineApi(e));
+  }
+
+  toTransactionApi(entity: TransactionDecrypted): TransactionApi {
+    return {
+      id: entity.id,
+      createdAt: entity.createdAt,
+      updatedAt: entity.updatedAt,
+      budgetId: entity.budgetId,
+      budgetLineId: entity.budgetLineId,
+      amount: entity.amount,
+      name: entity.name,
+      kind: entity.kind,
+      transactionDate: entity.transactionDate,
+      category: entity.category,
+      checkedAt: entity.checkedAt,
+      ...mapCurrencyMetadataToApi({
+        original_amount: entity.originalAmount,
+        original_currency: entity.originalCurrency,
+        target_currency: entity.targetCurrency,
+        exchange_rate: entity.exchangeRate,
+      }),
+    };
+  }
+
+  toTransactionApiList(entities: TransactionDecrypted[]): TransactionApi[] {
+    return entities.map((e) => this.toTransactionApi(e));
   }
 }

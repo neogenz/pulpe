@@ -1,28 +1,22 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
-import { type BudgetResponse } from 'pulpe-shared';
 import {
   BUDGET_REPOSITORY,
   type BudgetRepositoryPort,
 } from '../domain/ports/budget-repository.port';
-import { BudgetMapper } from '../infrastructure/mappers/budget.mapper';
+import type { Budget } from '../domain/budget.entity';
 
 @Injectable()
 export class FindBudgetUseCase {
   constructor(
     @Inject(BUDGET_REPOSITORY)
     private readonly repo: BudgetRepositoryPort,
-    private readonly mapper: BudgetMapper,
     @InjectInfoLogger(FindBudgetUseCase.name)
     private readonly logger: InfoLogger,
   ) {}
 
-  async execute(
-    id: string,
-    user: AuthenticatedUser,
-    _supabase: unknown,
-  ): Promise<BudgetResponse> {
+  async execute(id: string, user: AuthenticatedUser): Promise<Budget> {
     const budget = await this.repo.fetchBudgetById(id, user.id);
 
     this.logger.info(
@@ -30,9 +24,6 @@ export class FindBudgetUseCase {
       'Budget fetched',
     );
 
-    return {
-      success: true,
-      data: this.mapper.toApi(budget as Parameters<BudgetMapper['toApi']>[0]),
-    };
+    return budget;
   }
 }

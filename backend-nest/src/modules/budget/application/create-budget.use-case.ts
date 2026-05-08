@@ -1,13 +1,10 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
-import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
 import { BusinessException } from '@common/exceptions/business.exception';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
-import { type BudgetCreate, type BudgetResponse } from 'pulpe-shared';
+import { type BudgetCreate } from 'pulpe-shared';
 import { CacheService } from '@modules/cache/cache.service';
-import { ZodError } from 'zod';
-import { validateCreateBudgetResponse } from '../schemas/rpc-responses.schema';
 import {
   BUDGET_REPOSITORY,
   type BudgetRepositoryPort,
@@ -17,8 +14,7 @@ import {
   type BudgetRecalculationPort,
 } from '../domain/ports/budget-recalculation.port';
 import { BudgetInvariants } from '../domain/budget.invariants';
-import { BudgetMapper } from '../infrastructure/mappers/budget.mapper';
-import type { Tables } from '../../../types/database.types';
+import type { Budget } from '../domain/budget.entity';
 
 @Injectable()
 export class CreateBudgetUseCase {
@@ -28,51 +24,16 @@ export class CreateBudgetUseCase {
     @Inject(BUDGET_RECALCULATION_PORT)
     private readonly budgetRecalculation: BudgetRecalculationPort,
     private readonly cacheService: CacheService,
-    private readonly mapper: BudgetMapper,
     @InjectInfoLogger(CreateBudgetUseCase.name)
     private readonly logger: InfoLogger,
   ) {}
 
-  async execute(
-    dto: BudgetCreate,
-    user: AuthenticatedUser,
-    supabase: AuthenticatedSupabaseClient,
-  ): Promise<BudgetResponse> {
+  async execute(dto: BudgetCreate, user: AuthenticatedUser): Promise<Budget> {
     BudgetInvariants.validateCreate(dto);
 
-    await this.validateNoDuplicatePeriod(supabase, dto.month, dto.year);
+    await this.validateNoDuplicatePeriod(dto.month, dto.year);
 
-    const processedResult = await this.createBudgetFromTemplate(dto, user);
-
-    await this.budgetRecalculation.recalculate(
-      processedResult.budgetData.id,
-      user.clientKey,
-    );
-    await this.cacheService.invalidateForUser(user.id);
-
-    this.logger.info(
-      {
-        userId: user.id,
-        budgetId: processedResult.budgetData.id,
-        operation: 'budget.create',
-      },
-      'Budget created',
-    );
-
-    return {
-      success: true,
-      data: this.mapper.toApi(
-        processedResult.budgetData as Parameters<BudgetMapper['toApi']>[0],
-      ),
-    };
-  }
-
-  private async createBudgetFromTemplate(
-    dto: BudgetCreate,
-    user: AuthenticatedUser,
-  ) {
     const startTime = Date.now();
-
     this.logger.info(
       {
         userId: user.id,
@@ -83,34 +44,40 @@ export class CreateBudgetUseCase {
       'Starting budget creation from template',
     );
 
-    const result = await this.executeBudgetCreationRpc(dto, user);
-    const processedResult = this.processBudgetCreationResult(
-      result,
+    const rpcResult = await this.executeBudgetCreationRpc(dto, user);
+
+    await this.budgetRecalculation.recalculate(
+      rpcResult.budget.id,
+      user.clientKey,
+    );
+    await this.cacheService.invalidateForUser(user.id);
+
+    const budget = await this.repo.fetchBudgetById(
+      rpcResult.budget.id,
       user.id,
-      dto.templateId!,
     );
 
     this.logger.info(
       {
         userId: user.id,
-        budgetId: processedResult.budgetData.id,
+        budgetId: budget.id,
         templateId: dto.templateId,
-        templateName: processedResult.templateName,
+        templateName: rpcResult.template_name,
         period: `${dto.month}/${dto.year}`,
-        linesCreated: processedResult.budgetLinesCreated,
+        linesCreated: rpcResult.budget_lines_created,
         duration: Date.now() - startTime,
         operation: 'budget.create.success',
       },
       'Budget created from template with atomic transaction',
     );
 
-    return processedResult;
+    return budget;
   }
 
   private async executeBudgetCreationRpc(
     dto: BudgetCreate,
     user: AuthenticatedUser,
-  ): Promise<unknown> {
+  ) {
     try {
       return await this.repo.createBudgetFromTemplateRpc({
         p_user_id: user.id,
@@ -128,45 +95,15 @@ export class CreateBudgetUseCase {
     }
   }
 
-  private processBudgetCreationResult(
-    result: unknown,
-    userId: string,
-    templateId: string,
-  ): {
-    budgetData: Tables<'monthly_budget'>;
-    budgetLinesCreated: number;
-    templateName: string;
-  } {
-    try {
-      const validatedResult = validateCreateBudgetResponse(result);
-      return {
-        budgetData: validatedResult.budget as Tables<'monthly_budget'>,
-        budgetLinesCreated: validatedResult.budget_lines_created,
-        templateName: validatedResult.template_name,
-      };
-    } catch (error) {
-      if (error instanceof ZodError) {
-        throw new BusinessException(
-          ERROR_DEFINITIONS.BUDGET_CREATE_FAILED,
-          { reason: 'Invalid result structure from RPC' },
-          {
-            userId,
-            templateId,
-            validationErrors: error.issues,
-            operation: 'processBudgetCreationResult',
-          },
-          { cause: error },
-        );
-      }
-      throw error;
-    }
-  }
-
   private mapPostgreSQLErrorToBusinessException(
     error: unknown,
     userId: string,
     templateId: string,
   ): BusinessException {
+    if (error instanceof BusinessException) {
+      return error;
+    }
+
     const errorObj = error as { code?: string; message?: string };
     const errorCode = errorObj?.code;
     const errorMessage = errorObj?.message || '';
@@ -212,18 +149,11 @@ export class CreateBudgetUseCase {
   }
 
   private async validateNoDuplicatePeriod(
-    supabase: AuthenticatedSupabaseClient,
     month: number,
     year: number,
   ): Promise<void> {
-    const { data: existingBudget } = await supabase
-      .from('monthly_budget')
-      .select('id')
-      .eq('month', month)
-      .eq('year', year)
-      .single();
-
-    if (existingBudget) {
+    const existingId = await this.repo.fetchBudgetIdByPeriod(month, year);
+    if (existingId) {
       throw new BusinessException(
         ERROR_DEFINITIONS.BUDGET_ALREADY_EXISTS_FOR_MONTH,
         { month, year },

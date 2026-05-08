@@ -61,6 +61,7 @@ import { UpdateBudgetUseCase } from '../../application/update-budget.use-case';
 import { RemoveBudgetUseCase } from '../../application/remove-budget.use-case';
 import { GenerateBudgetsUseCase } from '../../application/generate-budgets.use-case';
 import { ExportAllBudgetsUseCase } from '../../application/export-all-budgets.use-case';
+import { BudgetMapper } from '../mappers/budget.mapper';
 
 @ApiTags('Budgets')
 @ApiBearerAuth()
@@ -75,6 +76,7 @@ import { ExportAllBudgetsUseCase } from '../../application/export-all-budgets.us
   type: ErrorResponseDto,
 })
 export class BudgetController {
+  // eslint-disable-next-line max-params
   constructor(
     private readonly hasBudgetsUseCase: HasBudgetsUseCase,
     private readonly findAllBudgetsUseCase: FindAllBudgetsUseCase,
@@ -85,6 +87,7 @@ export class BudgetController {
     private readonly removeBudgetUseCase: RemoveBudgetUseCase,
     private readonly generateBudgetsUseCase: GenerateBudgetsUseCase,
     private readonly exportAllBudgetsUseCase: ExportAllBudgetsUseCase,
+    private readonly mapper: BudgetMapper,
   ) {}
 
   @Get()
@@ -148,9 +151,12 @@ export class BudgetController {
   async create(
     @Body() createBudgetDto: BudgetCreateDto,
     @User() user: AuthenticatedUser,
-    @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetResponse> {
-    return this.createBudgetUseCase.execute(createBudgetDto, user, supabase);
+    const entity = await this.createBudgetUseCase.execute(
+      createBudgetDto,
+      user,
+    );
+    return { success: true, data: this.mapper.toApi(entity) };
   }
 
   @Post('generate')
@@ -169,9 +175,15 @@ export class BudgetController {
   async generate(
     @Body() dto: BudgetGenerateDto,
     @User() user: AuthenticatedUser,
-    @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetGenerateResponse> {
-    return this.generateBudgetsUseCase.execute(dto, user, supabase);
+    const result = await this.generateBudgetsUseCase.execute(dto, user);
+    return {
+      success: true,
+      data: {
+        budgets: this.mapper.toApiList(result.budgets),
+        skippedMonths: result.skippedMonths,
+      },
+    };
   }
 
   @Get('export')
@@ -209,9 +221,8 @@ export class BudgetController {
   })
   async checkBudgetExists(
     @User() user: AuthenticatedUser,
-    @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<{ hasBudget: boolean }> {
-    const hasBudget = await this.hasBudgetsUseCase.execute(user, supabase);
+    const hasBudget = await this.hasBudgetsUseCase.execute(user);
     return { hasBudget };
   }
 
@@ -239,9 +250,9 @@ export class BudgetController {
   async findOne(
     @Param('id', ParseUUIDPipe) id: string,
     @User() user: AuthenticatedUser,
-    @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetResponse> {
-    return this.findBudgetUseCase.execute(id, user, supabase);
+    const entity = await this.findBudgetUseCase.execute(id, user);
+    return { success: true, data: this.mapper.toApi(entity) };
   }
 
   @Get(':id/details')
@@ -303,14 +314,13 @@ export class BudgetController {
     @Param('id', ParseUUIDPipe) id: string,
     @Body() updateBudgetDto: BudgetUpdateDto,
     @User() user: AuthenticatedUser,
-    @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetResponse> {
-    return this.updateBudgetUseCase.execute(
+    const entity = await this.updateBudgetUseCase.execute(
       id,
       updateBudgetDto,
       user,
-      supabase,
     );
+    return { success: true, data: this.mapper.toApi(entity) };
   }
 
   @Delete(':id')
@@ -337,8 +347,8 @@ export class BudgetController {
   async remove(
     @Param('id', ParseUUIDPipe) id: string,
     @User() user: AuthenticatedUser,
-    @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetDeleteResponse> {
-    return this.removeBudgetUseCase.execute(id, user, supabase);
+    await this.removeBudgetUseCase.execute(id, user);
+    return { success: true, message: 'Budget deleted successfully' };
   }
 }

@@ -7,13 +7,7 @@ import {
   PAY_DAY_MIN,
   PAY_DAY_MAX,
 } from 'pulpe-shared';
-import {
-  ENCRYPTION_PORT,
-  type EncryptionPort,
-} from '@modules/encryption/encryption.tokens';
 import { CacheService } from '@modules/cache/cache.service';
-import * as transactionMappers from '@modules/transaction/transaction.mappers';
-import * as budgetLineMappers from '@modules/budget-line/budget-line.mappers';
 import {
   BUDGET_REPOSITORY,
   type BudgetRepositoryPort,
@@ -26,7 +20,6 @@ export class FindBudgetWithDetailsUseCase {
   constructor(
     @Inject(BUDGET_REPOSITORY)
     private readonly repo: BudgetRepositoryPort,
-    @Inject(ENCRYPTION_PORT) private readonly encryption: EncryptionPort,
     private readonly cacheService: CacheService,
     private readonly mapper: BudgetMapper,
     private readonly recalculateUseCase: RecalculateBudgetBalancesUseCase,
@@ -42,58 +35,31 @@ export class FindBudgetWithDetailsUseCase {
     const clientKeyHash = user.clientKey.toString('hex').slice(0, 16);
     const cacheKey = `budgets:detail:${clientKeyHash}:${budgetId}`;
     return this.cacheService.getOrSet(user.id, cacheKey, 30_000, () =>
-      this.fetchBudgetWithDetails(budgetId, user, supabase),
+      this.fetchBudgetWithDetails(budgetId, supabase),
     );
   }
 
   private async fetchBudgetWithDetails(
     budgetId: string,
-    user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetDetailsResponse> {
     const payDayOfMonth = await this.getPayDayOfMonth(supabase);
-    const budgetData = await this.repo.validateBudgetExists(budgetId);
-
-    const results = await this.repo.fetchBudgetData(budgetId, {
-      budgetLineFields: '*',
-      transactionFields: '*',
-      orderTransactions: true,
-    });
-
-    results.budget = budgetData;
-
-    const dek = await this.encryption.getUserDEK(user.id, user.clientKey);
-
-    const decryptedBudgetLines = results.budgetLines.map((line) =>
-      this.encryption.decryptRowAmountFields(line, dek),
-    );
-    const decryptedTransactions = results.transactions.map((tx) =>
-      this.encryption.decryptRowAmountFields(tx, dek),
-    );
+    const { budget, budgetLines, transactions } =
+      await this.repo.fetchBudgetData(budgetId);
 
     const rolloverData = await this.recalculateUseCase.getRollover(
       budgetId,
       payDayOfMonth,
-      user.clientKey,
     );
 
     const responseData = {
       budget: {
-        ...this.mapper.toApi({
-          ...budgetData,
-          ending_balance: budgetData.ending_balance
-            ? this.encryption.tryDecryptAmount(
-                budgetData.ending_balance,
-                dek,
-                0,
-              )
-            : null,
-        }),
+        ...this.mapper.toApi(budget),
         rollover: rolloverData.rollover,
         previousBudgetId: rolloverData.previousBudgetId,
       },
-      transactions: transactionMappers.toApiList(decryptedTransactions),
-      budgetLines: budgetLineMappers.toApiList(decryptedBudgetLines),
+      transactions: this.mapper.toTransactionApiList(transactions),
+      budgetLines: this.mapper.toBudgetLineApiList(budgetLines),
     };
 
     this.logger.info(

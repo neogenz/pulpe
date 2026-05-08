@@ -11,10 +11,6 @@ import {
   PAY_DAY_MAX,
 } from 'pulpe-shared';
 import {
-  ENCRYPTION_PORT,
-  type EncryptionPort,
-} from '@modules/encryption/encryption.tokens';
-import {
   BUDGET_REPOSITORY,
   type BudgetRepositoryPort,
 } from '../domain/ports/budget-repository.port';
@@ -24,7 +20,7 @@ import {
   fieldsRequireRollover,
 } from '../domain/budget.formulas';
 import { RecalculateBudgetBalancesUseCase } from './recalculate-budget-balances.use-case';
-import type { BudgetRow } from '../domain/budget.entity';
+import type { Budget } from '../domain/budget.entity';
 
 const ALLOWED_SPARSE_FIELDS = [
   'month',
@@ -41,7 +37,6 @@ export class FindAllSparseBudgetsUseCase {
   constructor(
     @Inject(BUDGET_REPOSITORY)
     private readonly repo: BudgetRepositoryPort,
-    @Inject(ENCRYPTION_PORT) private readonly encryption: EncryptionPort,
     private readonly mapper: BudgetMapper,
     private readonly recalculateUseCase: RecalculateBudgetBalancesUseCase,
     @InjectInfoLogger(FindAllSparseBudgetsUseCase.name)
@@ -76,20 +71,11 @@ export class FindAllSparseBudgetsUseCase {
     const budgetIds = budgetsList.map((b) => b.id);
 
     const aggregatesMap = needsAggregates
-      ? await (async () => {
-          const dek = await this.encryption.getUserDEK(user.id, user.clientKey);
-          return this.repo.fetchBudgetAggregates(budgetIds, (amount) =>
-            amount ? this.encryption.tryDecryptAmount(amount, dek, 0) : 0,
-          );
-        })()
+      ? await this.repo.fetchBudgetAggregates(budgetIds)
       : new Map();
 
     const rolloversMap = needsRollover
-      ? await this.fetchRolloversForBudgets(
-          budgetsList,
-          supabase,
-          user.clientKey,
-        )
+      ? await this.fetchRolloversForBudgets(budgetsList, supabase)
       : new Map<string, number>();
 
     const sparseData = budgetsList.map((budget) =>
@@ -114,9 +100,8 @@ export class FindAllSparseBudgetsUseCase {
   }
 
   private async fetchRolloversForBudgets(
-    budgets: BudgetRow[],
+    budgets: Budget[],
     supabase: AuthenticatedSupabaseClient,
-    clientKey: Buffer,
   ): Promise<Map<string, number>> {
     const payDayOfMonth = await this.getPayDayOfMonth(supabase);
     const rolloversMap = new Map<string, number>();
@@ -127,7 +112,6 @@ export class FindAllSparseBudgetsUseCase {
           const rolloverData = await this.recalculateUseCase.getRollover(
             budget.id,
             payDayOfMonth,
-            clientKey,
           );
           rolloversMap.set(budget.id, rolloverData.rollover);
         } catch (error) {

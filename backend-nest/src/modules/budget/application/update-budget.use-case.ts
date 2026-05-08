@@ -1,10 +1,9 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
-import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
 import { BusinessException } from '@common/exceptions/business.exception';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
-import { type BudgetUpdate, type BudgetResponse } from 'pulpe-shared';
+import { type BudgetUpdate } from 'pulpe-shared';
 import { CacheService } from '@modules/cache/cache.service';
 import {
   BUDGET_REPOSITORY,
@@ -15,7 +14,7 @@ import {
   type BudgetRecalculationPort,
 } from '../domain/ports/budget-recalculation.port';
 import { BudgetInvariants } from '../domain/budget.invariants';
-import { BudgetMapper } from '../infrastructure/mappers/budget.mapper';
+import type { Budget, BudgetUpdatePatch } from '../domain/budget.entity';
 
 @Injectable()
 export class UpdateBudgetUseCase {
@@ -25,7 +24,6 @@ export class UpdateBudgetUseCase {
     @Inject(BUDGET_RECALCULATION_PORT)
     private readonly budgetRecalculation: BudgetRecalculationPort,
     private readonly cacheService: CacheService,
-    private readonly mapper: BudgetMapper,
     @InjectInfoLogger(UpdateBudgetUseCase.name)
     private readonly logger: InfoLogger,
   ) {}
@@ -34,18 +32,15 @@ export class UpdateBudgetUseCase {
     id: string,
     dto: BudgetUpdate,
     user: AuthenticatedUser,
-    supabase: AuthenticatedSupabaseClient,
-  ): Promise<BudgetResponse> {
+  ): Promise<Budget> {
     BudgetInvariants.validateUpdate(dto);
 
     if (dto.month && dto.year) {
-      await this.validateNoDuplicatePeriod(supabase, dto.month, dto.year, id);
+      await this.validateNoDuplicatePeriod(dto.month, dto.year, id);
     }
 
-    const budget = await this.repo.updateBudget(
-      id,
-      dto as Record<string, unknown>,
-    );
+    const patch = this.buildPatch(dto);
+    const budget = await this.repo.updateBudget(id, patch);
 
     await this.budgetRecalculation.recalculate(id, user.clientKey);
     await this.cacheService.invalidateForUser(user.id);
@@ -55,27 +50,29 @@ export class UpdateBudgetUseCase {
       'Budget updated',
     );
 
-    return {
-      success: true,
-      data: this.mapper.toApi(budget as Parameters<BudgetMapper['toApi']>[0]),
-    };
+    return budget;
+  }
+
+  private buildPatch(dto: BudgetUpdate): BudgetUpdatePatch {
+    const patch: BudgetUpdatePatch = {};
+    if (dto.month !== undefined) patch.month = dto.month;
+    if (dto.year !== undefined) patch.year = dto.year;
+    if (dto.description !== undefined) patch.description = dto.description;
+    return patch;
   }
 
   private async validateNoDuplicatePeriod(
-    supabase: AuthenticatedSupabaseClient,
     month: number,
     year: number,
     excludeId: string,
   ): Promise<void> {
-    const { data: existingBudget } = await supabase
-      .from('monthly_budget')
-      .select('id')
-      .eq('month', month)
-      .eq('year', year)
-      .neq('id', excludeId)
-      .single();
+    const existingId = await this.repo.fetchBudgetIdByPeriodExcluding(
+      month,
+      year,
+      excludeId,
+    );
 
-    if (existingBudget) {
+    if (existingId) {
       throw new BusinessException(
         ERROR_DEFINITIONS.BUDGET_ALREADY_EXISTS_FOR_MONTH,
         { month, year },
