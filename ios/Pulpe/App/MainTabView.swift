@@ -44,16 +44,14 @@ struct MainTabView: View {
                     }
                 }
                 .pulpeBackground()
-                // `safeAreaPadding` (iOS 17+) extends the bottom safe area by
-                // `reservedBottom` for the whole TabView subtree — including
-                // every nested NavigationStack push page. ScrollViews respect
-                // it (their content margins push up automatically) and pages
-                // with their own `safeAreaInset(.bottom)` for sticky CTAs
-                // stack above it. Unlike `safeAreaInset` on a TabView, which
-                // does not propagate through `NavigationStack` destinations
-                // on iOS 26, `safeAreaPadding` does — so pushed pages clear
-                // the floating tab bar without any per-page padding.
-                .safeAreaPadding(.bottom, reservedBottom)
+                // Publish the floating-bar reservation height through the
+                // environment so each tab's `NavigationStack` can apply the
+                // canonical safe-area pattern locally — see `BudgetsTab` etc.
+                // We do NOT apply `safeAreaInset` / `safeAreaPadding` /
+                // `contentMargins` on the TabView itself because iOS 26 does
+                // not cascade those through nested `NavigationStack`
+                // destinations (verified WWDC25 + community 2026).
+                .environment(\.tabBarClearance, reservedBottom)
 
                 Group {
                     if #available(iOS 26.0, *) {
@@ -216,6 +214,31 @@ struct MainTabView: View {
     }
 }
 
+// MARK: - Floating-tab-bar clearance
+
+/// Reserve a transparent inset at the bottom of the tab's `NavigationStack`
+/// matching the floating tab bar's visual height. Applied here — INSIDE the
+/// stack — because iOS 26 does not propagate `safeAreaInset` / `safeAreaPadding`
+/// applied on a parent `TabView` through `NavigationStack` destinations. With
+/// the inset on the stack itself, every pushed page (and its nested
+/// ScrollViews / `safeAreaInset` CTAs) inherits the extension and renders
+/// content cleanly above the floating bar.
+private struct FloatingTabBarSafeAreaModifier: ViewModifier {
+    @Environment(\.tabBarClearance) private var tabBarClearance
+
+    func body(content: Content) -> some View {
+        content.safeAreaInset(edge: .bottom, spacing: 0) {
+            Color.clear.frame(height: tabBarClearance)
+        }
+    }
+}
+
+private extension View {
+    func clearsFloatingTabBar() -> some View {
+        modifier(FloatingTabBarSafeAreaModifier())
+    }
+}
+
 // MARK: - Current Month Tab
 
 struct CurrentMonthTab: View {
@@ -223,6 +246,7 @@ struct CurrentMonthTab: View {
         NavigationStack {
             CurrentMonthView()
         }
+        .clearsFloatingTabBar()
     }
 }
 
@@ -243,6 +267,7 @@ struct BudgetsTab: View {
                     }
                 }
         }
+        .clearsFloatingTabBar()
     }
 }
 
@@ -263,5 +288,6 @@ struct TemplatesTab: View {
                     }
                 }
         }
+        .clearsFloatingTabBar()
     }
 }

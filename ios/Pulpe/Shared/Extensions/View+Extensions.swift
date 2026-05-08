@@ -1,10 +1,20 @@
 import SwiftUI
 
-// MARK: - Amount Visibility Environment
-// Single custom EnvironmentValues entry in Pulpe; `@Entry` replaces manual EnvironmentKey (Xcode 16+).
+// MARK: - Custom Environment Values
+// `@Entry` replaces manual EnvironmentKey (Xcode 16+).
 
 extension EnvironmentValues {
     @Entry var amountsHidden: Bool = false
+
+    /// Bottom safe-area padding (in points) that pushed pages should reserve so
+    /// their content clears `MainTabView`'s custom floating tab bar. Set by
+    /// `MainTabView` from a `GeometryReader`-computed value (varies with home
+    /// indicator presence). iOS 26 does NOT cascade `safeAreaPadding` /
+    /// `safeAreaInset` from a TabView through `NavigationStack` destinations,
+    /// so push pages with their own `safeAreaInset(.bottom)` (sticky CTAs)
+    /// must explicitly read this value and apply it via
+    /// `safeAreaPadding(.bottom:)` on their root.
+    @Entry var tabBarClearance: CGFloat = 0
 }
 
 // MARK: - Sensitive Amount Modifier
