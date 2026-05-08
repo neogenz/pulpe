@@ -42,6 +42,7 @@ xcodebuild test -scheme PulpeUITests -destination 'platform=iOS Simulator,name=i
 | Sheet presentation | `.standardSheetPresentation()` | Manual `.presentationDetents` + `.presentationBackground` |
 | List row styling | `.listRowCustomStyled()` | `.listRowBackground` + `.listRowInsets` + `.listRowSeparator` |
 | Background | `.pulpeBackground()` / `.pulpeCardBackground()` | Manual `.background(Color.surface)` |
+| État chip enveloppe (Bonne voie / À surveiller / Dépassé) | `BudgetLineStateChip` *[à implémenter — bottom sheet detail, voir RG-010]* | Manual HStack + Capsule + Text |
 
 **Form sheet checklist:**
 - [ ] Use `SheetFormContainer`

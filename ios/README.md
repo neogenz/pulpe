@@ -81,7 +81,7 @@ Déclarées dans [`project.yml`](project.yml) et résolues par XcodeGen :
 - [x] Onboarding 9 étapes
 - [x] Tutoriel interactif avec spotlight
 - [x] Gestion du mois courant
-- [x] Liste et détails des budgets
+- [x] Liste et détails des budgets (bottom sheet de détail enveloppe avec liste de transactions et support multi-devise)
 - [x] Liste et détails des templates
 - [x] Calculs métier partagés avec le frontend web
 - [x] Design iOS natif (HIG)

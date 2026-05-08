@@ -45,8 +45,38 @@ struct BudgetLineMixedRow: View {
     private var isSaving: Bool { line.kind == .saving }
     private var isExpense: Bool { line.kind == .expense }
 
-    /// Hero amount shown on the right — real if any spending, otherwise planned.
-    private var displayAmount: Decimal { hasReal ? realAmount : plannedAmount }
+    /// Hero amount shown on the right — kind-aware semantics (spec §2.6):
+    /// expenses surface the *remaining* envelope (the actionable info), while
+    /// income/saving surface the *real* received/transferred amount (mental
+    /// model: "did it land?" vs "did I transfer?"). Overflow surfaces the
+    /// excess (real − planned) so the red number reads as the overshoot.
+    private var displayAmount: Decimal {
+        if isExpense {
+            if isOverBudget { return realAmount - plannedAmount }
+            if hasReal { return consumption.available }
+            return plannedAmount
+        }
+        return hasReal ? realAmount : plannedAmount
+    }
+
+    /// Small grey caption under the hero amount. Kind-aware:
+    /// - expense empty → `prévu`
+    /// - expense partial → `restant sur {planned}`
+    /// - expense overflow → `de dépassement`
+    /// - income/saving partial → `/ {planned} prévu`
+    /// - everything else (full, equal, no-progress income/saving) → none.
+    private var amountSuffix: String? {
+        if isExpense {
+            if isOverBudget { return "de dépassement" }
+            if !hasReal { return "prévu" }
+            if realAmount == plannedAmount { return nil }
+            return "restant sur \(plannedAmount.asAmount(for: userSettingsStore.currency))"
+        }
+        if hasReal, realAmount < plannedAmount {
+            return "/ \(plannedAmount.asAmount(for: userSettingsStore.currency)) prévu"
+        }
+        return nil
+    }
 
     /// Spec §07 — amount color cascade.
     /// Income / saving keep their category color even when `real > planned`
@@ -152,8 +182,8 @@ struct BudgetLineMixedRow: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    /// Spec §08 — subtitle rules. Empty when pointed or when an expense has
-    /// no real spending yet (the row is loud enough already).
+    /// Spec §08 — subtitle rules. Empty when pointed, or for partial/empty
+    /// expenses where the hero already carries the remaining amount.
     @ViewBuilder
     private var subtitleView: some View {
         if isPointed {
@@ -164,53 +194,46 @@ struct BudgetLineMixedRow: View {
             savingSubtitle
         } else if isOverBudget {
             overBudgetSubtitle
-        } else if hasReal {
-            remainingExpenseSubtitle
         } else {
             EmptyView()
         }
     }
 
-    // Income: "Reçu" once fully covered, otherwise "X CHF à recevoir".
+    // Income: "Reçu" once fully covered, "X.XX CHF à recevoir" only on partial
+    // (the right hero already carries `prévu` when nothing has been received).
     @ViewBuilder
     private var incomeSubtitle: some View {
         if hasReal && realAmount >= plannedAmount {
             Text("Reçu")
                 .foregroundStyle(Color.textTertiary)
-        } else {
+        } else if hasReal {
             let remaining = plannedAmount - realAmount
-            Text("\(remaining.asCompactCurrency(userSettingsStore.currency)) à recevoir")
+            Text("\(remaining.asCurrency(userSettingsStore.currency)) à recevoir")
                 .foregroundStyle(Color.textTertiary)
         }
     }
 
-    // Saving: "Transféré" once fully covered, otherwise "X CHF à transférer".
+    // Saving: "Transféré" once fully covered, "X.XX CHF à transférer" only on
+    // partial. When nothing has been transferred yet the hero already shows the
+    // planned amount; repeating it as a subtitle would be redundant.
     @ViewBuilder
     private var savingSubtitle: some View {
         if hasReal && realAmount >= plannedAmount {
             Text("Transféré")
                 .foregroundStyle(Color.textTertiary)
-        } else {
+        } else if hasReal {
             let remaining = plannedAmount - realAmount
-            Text("\(remaining.asCompactCurrency(userSettingsStore.currency)) à transférer")
+            Text("\(remaining.asCurrency(userSettingsStore.currency)) à transférer")
                 .foregroundStyle(Color.textTertiary)
         }
     }
 
-    // Expense overflow: "Dépassé · −X CHF" in the warm overflow color.
+    // Expense overflow: "Budget dépassé" in the warm overflow color.
+    // The excess amount lives on the right hero with the "de dépassement" suffix.
     @ViewBuilder
     private var overBudgetSubtitle: some View {
-        let excess = realAmount - plannedAmount
-        Text("Dépassé · −\(excess.asCompactCurrency(userSettingsStore.currency))")
+        Text("Budget dépassé")
             .foregroundStyle(Color.financialOverBudget)
-    }
-
-    // Expense within budget but partially spent: "X CHF restant".
-    @ViewBuilder
-    private var remainingExpenseSubtitle: some View {
-        let remaining = plannedAmount - realAmount
-        Text("\(remaining.asCompactCurrency(userSettingsStore.currency)) restant")
-            .foregroundStyle(Color.textTertiary)
     }
 
     // MARK: - Amount column (digits + suffix + planned hint)
@@ -233,9 +256,8 @@ struct BudgetLineMixedRow: View {
             }
             .sensitiveAmount()
 
-            // "/ X prévu" — only when there's spending below planned and the two differ.
-            if hasReal, !isOverBudget, realAmount != plannedAmount {
-                Text("/ \(plannedAmount.asAmount(for: userSettingsStore.currency)) prévu")
+            if let suffix = amountSuffix {
+                Text(suffix)
                     .font(PulpeTypography.metricMini)
                     .foregroundStyle(Color.textTertiary)
                     .monospacedDigit()
