@@ -19,7 +19,7 @@ import {
   rekeySavingsGoalsRpcPayloadSchema,
   rekeyTemplateLinesRpcPayloadSchema,
   rekeyTransactionsRpcPayloadSchema,
-} from '../../schemas/rpc-payload.schemas';
+} from '../persistence/schemas/rpc-payload.schemas';
 
 const ALGORITHM = 'aes-256-gcm';
 const IV_LENGTH = 12;
