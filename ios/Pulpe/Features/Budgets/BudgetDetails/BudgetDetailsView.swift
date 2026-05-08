@@ -150,7 +150,7 @@ struct BudgetDetailsView: View {
                 // Hero + filter sit at full screen width with no surrounding
                 // chrome so the horizontal pill/chip rails stay full-bleed and
                 // the whole page scrolls as one unit.
-                HeroBalanceCard(
+                BudgetDetailHero(
                     metrics: viewModel.metrics,
                     timeElapsedPercentage: timeElapsedPercentage,
                     onTapChart: { destination = .realizedBalance },

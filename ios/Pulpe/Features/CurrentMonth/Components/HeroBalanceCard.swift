@@ -1,26 +1,17 @@
 import SwiftUI
 
-/// Hero balance block — flat layout on the page neutral background per DM2.1.b.c5.
-///
-/// Layout (refonte mai 2026):
-/// - Eyebrow: "DISPONIBLE · CHF" (or "DÉFICIT · CHF" if deficit)
-/// - Hero amount: Manrope ExtraBold, `Color.textPrimary`
-/// - Inline progress bar (green) + percent flush right
-/// - Horizontal scroll of pills: Reporté · Revenus · Épargne · Dépenses
-///
-/// No surface, no border, no shadow, no gradient. Sits flush on `Color.appBackground`.
+/// Hero balance card — 4 chunks: contextual label, hero amount, emotional message, spent ratio + bar.
 struct HeroBalanceCard: View {
     let metrics: BudgetFormulas.Metrics
     var timeElapsedPercentage: Double = 0
     var onTapProgress: (() -> Void)?
     var onTapChart: (() -> Void)?
     var rolloverAmount: Decimal?
-    /// Localized month name of the source budget (e.g. "mars"). Drives the rollover pill label.
-    var previousBudgetMonth: String?
     var onRolloverTap: (() -> Void)?
 
     // MARK: - Environment
 
+    @Environment(\.colorScheme) private var colorScheme
     @Environment(\.amountsHidden) private var amountsHidden
     @Environment(UserSettingsStore.self) private var userSettingsStore
     @State private var tapTrigger = false
@@ -29,7 +20,7 @@ struct HeroBalanceCard: View {
 
     private var contextLabel: String {
         let symbol = userSettingsStore.currency.symbol
-        return metrics.isDeficit ? "Déficit · \(symbol)" : "Disponible · \(symbol)"
+        return metrics.isDeficit ? "Déficit \(symbol)" : "Disponible \(symbol)"
     }
 
     /// VoiceOver-only label — no embedded currency symbol so it isn't doubled with the formatted amount.
@@ -42,23 +33,47 @@ struct HeroBalanceCard: View {
     }
 
     private var formattedBalance: String {
-        abs(metrics.remaining).asAmount(for: userSettingsStore.currency)
+        abs(metrics.remaining).asCompactAmount(for: userSettingsStore.currency)
+    }
+
+    private var formattedSpent: String {
+        metrics.totalExpenses.asCompactAmount(for: userSettingsStore.currency)
+    }
+
+    private var formattedAvailable: String {
+        metrics.available.asCompactAmount(for: userSettingsStore.currency)
     }
 
     private var usagePercentageText: String {
         "\(Int(metrics.usagePercentage))%"
     }
 
-    private var hasRollover: Bool {
-        guard let rolloverAmount else { return false }
-        return rolloverAmount != 0
+    private var supportingTextOpacity: Double {
+        switch metrics.emotionState {
+        case .tight:
+            0.96
+        case .comfortable, .deficit:
+            0.88
+        }
     }
 
-    private var rolloverPillLabel: String {
-        if let previousBudgetMonth, !previousBudgetMonth.isEmpty {
-            return "Reporté de \(previousBudgetMonth)"
+    private var subduedTextOpacity: Double {
+        switch metrics.emotionState {
+        case .tight:
+            0.94
+        case .comfortable, .deficit:
+            0.82
         }
-        return "Reporté"
+    }
+
+    /// Tint color for glass overlays — matches the hero gradient per emotion state
+    /// so Liquid Glass blends into the card instead of appearing white.
+    private var glassTintColor: Color {
+        switch metrics.emotionState {
+        case .comfortable: .heroTintComfortable
+        case .tight: .heroTintTight
+        case .deficit: .heroTintDeficit
+        }
     }
 
     private var accessibilityDescription: String {
@@ -68,11 +83,9 @@ struct HeroBalanceCard: View {
         let currency = userSettingsStore.currency
         var desc = """
         \(contextLabelForVoiceOver) \(abs(metrics.remaining).asCurrency(currency)). \
-        \(Int(metrics.usagePercentage))% utilisé. \
-        Revenus \(metrics.totalIncome.asCurrency(currency)). \
-        Épargne \(metrics.totalSavings.asCurrency(currency))
+        Dépensé \(metrics.totalExpenses.asCurrency(currency)) sur \(metrics.available.asCurrency(currency))
         """
-        if let rolloverAmount, rolloverAmount != 0 {
+        if let rolloverAmount {
             let label = rolloverAmount >= 0 ? "Excédent reporté" : "Déficit reporté"
             desc += ". \(label) de \(abs(rolloverAmount).asCurrency(currency))"
         }
@@ -110,45 +123,99 @@ struct HeroBalanceCard: View {
     // MARK: - Card Content
 
     private var cardContent: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.none) {
-            // Chunk 1 — Contextual eyebrow
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+            // Chunk 1 — Contextual label
             Text(contextLabel)
                 .font(PulpeTypography.labelLargeBold)
                 .textCase(.uppercase)
-                .tracking(DesignTokens.Tracking.uppercase)
-                .foregroundStyle(Color.textSecondary)
+                .foregroundStyle(.white.opacity(supportingTextOpacity))
 
-            // Chunk 2 — Hero amount (black on neutral) — tight 6pt gap to eyebrow
-            Text(formattedBalance)
-                .font(PulpeTypography.displayYear)
-                .tracking(DesignTokens.Tracking.display)
-                .minimumScaleFactor(0.5)
+            // Chunk 2 — Hero amount
+            Text("\(formattedBalance)")
+                .font(PulpeTypography.amountHero)
+                .minimumScaleFactor(0.6)
                 .lineLimit(1)
                 .monospacedDigit()
-                .foregroundStyle(Color.textPrimary)
+                .foregroundStyle(.white)
                 .contentTransition(.numericText())
                 .sensitiveAmount()
-                .padding(.top, DesignTokens.Spacing.tightGap)
 
-            // Chunk 3 — Inline progress + percent
-            progressRow
-                .padding(.top, DesignTokens.Spacing.md)
+            Spacer()
+                .frame(height: DesignTokens.Spacing.md)
 
-            // Chunk 4 — Pills row (Reporté · Revenus · Épargne · Dépenses)
-            pillsRow
-                .padding(.top, DesignTokens.Spacing.md)
+            // Chunk 4 — Spent ratio + progress bar
+            spentRatio
+
+            // Chunk 5 — Rollover (optional)
+            if let rolloverAmount {
+                rolloverFooter(amount: rolloverAmount)
+            }
         }
-        .padding(.horizontal, DesignTokens.Spacing.lg)
-        .padding(.top, DesignTokens.Spacing.lg)
-        .padding(.bottom, DesignTokens.Spacing.sm)
+        .padding(DesignTokens.Spacing.xxl)
         .frame(maxWidth: .infinity, alignment: .leading)
+        .background { cardBackground }
+        .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.xl))
         .overlay(alignment: .topTrailing) {
             if let onTapChart {
                 chartButton(action: onTapChart)
-                    .padding(.trailing, DesignTokens.Spacing.lg)
-                    .padding(.top, DesignTokens.Spacing.sm)
+                    .padding(DesignTokens.Spacing.md)
             }
         }
+        .overlay(alignment: .top) {
+            // Subtle specular highlight to keep the hero vivid without using shadows.
+            Capsule()
+                .fill(.white.opacity(0.15))
+                .frame(height: 1)
+                .padding(.horizontal, 28)
+        }
+        .overlay {
+            if colorScheme == .dark {
+                RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.xl)
+                    .stroke(.white.opacity(0.05), lineWidth: DesignTokens.BorderWidth.thin)
+            }
+        }
+        .animation(.spring(response: 0.7, dampingFraction: 0.8), value: metrics.emotionState)
+    }
+
+    // MARK: - Rollover Footer
+
+    @ViewBuilder
+    private func rolloverFooter(amount: Decimal) -> some View {
+        if let onRolloverTap {
+            Button(action: onRolloverTap) { rolloverPill(amount: amount) }
+                .textLinkButtonStyle()
+                .padding(.top, DesignTokens.Spacing.md)
+        } else {
+            rolloverPill(amount: amount)
+                .padding(.top, DesignTokens.Spacing.md)
+        }
+    }
+
+    private func rolloverPill(amount: Decimal) -> some View {
+        HStack(spacing: DesignTokens.Spacing.sm) {
+            Image(systemName: amount >= 0 ? "arrow.up.right.circle" : "arrow.down.right.circle")
+                .font(PulpeTypography.detailLabel)
+
+            Text("Report")
+                .font(PulpeTypography.labelMedium)
+
+            Text(abs(amount).asCompactCurrency(userSettingsStore.currency))
+                .font(PulpeTypography.labelLargeBold)
+                .monospacedDigit()
+                .sensitiveAmount()
+
+            if onRolloverTap != nil {
+                Spacer(minLength: 0)
+
+                Image(systemName: "chevron.right")
+                    .font(PulpeTypography.metricMini)
+            }
+        }
+        .foregroundStyle(.white)
+        .padding(.horizontal, DesignTokens.Spacing.md)
+        .padding(.vertical, DesignTokens.Spacing.sm)
+        .contentShape(Capsule())
+        .heroGlassBackground(tint: glassTintColor, shape: .capsule)
     }
 
     // MARK: - Chart Button
@@ -157,196 +224,166 @@ struct HeroBalanceCard: View {
         Button(action: action) {
             Image(systemName: "chart.bar.fill")
                 .font(PulpeTypography.metricLabel)
-                .foregroundStyle(Color.textSecondary)
+                .foregroundStyle(.white)
                 .frame(
                     width: DesignTokens.TapTarget.minimum,
                     height: DesignTokens.TapTarget.minimum
                 )
+                .heroGlassBackground(tint: glassTintColor, shape: .circle)
         }
-        .iconButtonStyle()
+        .circleIconButtonStyle()
         .accessibilityLabel("Suivi du budget")
     }
 
-    // MARK: - Progress + Inline Percent
+    // MARK: - Spent Ratio + Bar
 
-    private var progressRow: some View {
-        HStack(spacing: DesignTokens.Spacing.sm) {
-            progressBar
+    private var spentRatio: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+            HStack {
+                Text("Dépensé \(formattedSpent)")
+                    .font(PulpeTypography.labelLargeBold)
+                    .foregroundStyle(.white)
+                    .sensitiveAmount()
 
-            Text(usagePercentageText)
-                .font(PulpeTypography.progressValue)
-                .foregroundStyle(Color.financialSavings)
-                .monospacedDigit()
-                .accessibilityHidden(true)
+                Spacer()
+
+                Text("sur \(formattedAvailable)")
+                    .font(PulpeTypography.labelMedium)
+                    .foregroundStyle(.white.opacity(subduedTextOpacity))
+                    .sensitiveAmount()
+            }
+
+            HStack(spacing: DesignTokens.Spacing.sm) {
+                Text(usagePercentageText)
+                    .font(PulpeTypography.progressValue)
+                    .foregroundStyle(.white)
+                    .monospacedDigit()
+                    .frame(minWidth: 36, alignment: .leading)
+
+                progressBar
+            }
         }
     }
 
-    // MARK: - Progress Bar
+    // MARK: - Progress Bar with Pace Indicator
 
     private var progressBar: some View {
-        ZStack(alignment: .leading) {
+        ZStack {
             Capsule()
-                .fill(Color.progressTrack)
+                .fill(.white.opacity(0.2))
 
             ProgressBarShape(progress: fillPercentage)
-                .fill(Color.financialSavings)
+                .fill(Color.white)
                 .animation(DesignTokens.Animation.smoothEaseInOut, value: fillPercentage)
         }
         .frame(height: DesignTokens.ProgressBar.heroHeight)
     }
 
-    // MARK: - Pills Row
+    // MARK: - Card Background
 
-    private var pillsRow: some View {
-        // Only this horizontal rail goes full-bleed. The surrounding hero chunks
-        // keep their lg horizontal padding; the negative outer padding cancels
-        // it so the scroll viewport spans the whole card width, and the inner
-        // contentMargins re-adds it so the first pill aligns with the chunks.
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: DesignTokens.Spacing.tightGap) {
-                if hasRollover, let rolloverAmount {
-                    rolloverPill(amount: rolloverAmount)
-                }
+    private var cardBackground: some View {
+        ZStack {
+            // Gradient crossfade for smooth state transitions
+            LinearGradient(
+                colors: Color.heroGradientComfortable,
+                startPoint: UnitPoint(x: 0.1, y: 0),
+                endPoint: UnitPoint(x: 0.9, y: 1)
+            )
+            .opacity(metrics.emotionState == .comfortable ? 1 : 0)
 
-                incomePill
-                savingsPill
-                expensesPill
-            }
+            LinearGradient(
+                colors: Color.heroGradientTight,
+                startPoint: UnitPoint(x: 0.1, y: 0),
+                endPoint: UnitPoint(x: 0.9, y: 1)
+            )
+            .opacity(metrics.emotionState == .tight ? 1 : 0)
+
+            LinearGradient(
+                colors: Color.heroGradientDeficit,
+                startPoint: UnitPoint(x: 0.1, y: 0),
+                endPoint: UnitPoint(x: 0.9, y: 1)
+            )
+            .opacity(metrics.emotionState == .deficit ? 1 : 0)
+
+            decorativeCircles
         }
-        .contentMargins(.horizontal, DesignTokens.Spacing.lg, for: .scrollContent)
-        .scrollClipDisabled()
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, -DesignTokens.Spacing.lg)
     }
 
-    // MARK: - Rollover Pill
+    // MARK: - Decorative Circles
 
-    @ViewBuilder
-    private func rolloverPill(amount: Decimal) -> some View {
-        if let onRolloverTap {
-            Button(action: onRolloverTap) { rolloverPillContent(amount: amount) }
-                .buttonStyle(.plain)
+    private var decorativeCircles: some View {
+        ZStack {
+            Circle()
+                .fill(.white.opacity(0.07))
+                .frame(width: 224, height: 224)
+                .blur(radius: 48)
+                .offset(x: 100, y: 80)
+
+            Circle()
+                .fill(.white.opacity(0.05))
+                .frame(width: 144, height: 144)
+                .blur(radius: 32)
+                .offset(x: 80, y: -60)
+
+            Circle()
+                .fill(.white.opacity(0.03))
+                .frame(width: 96, height: 96)
+                .blur(radius: 32)
+                .offset(x: -60, y: 0)
+        }
+        .allowsHitTesting(false)
+    }
+}
+
+// MARK: - Hero Glass Background
+
+/// Tinted interactive glass on iOS 26+, subtle white overlay fallback on older.
+/// Use on elements inside the HeroBalanceCard gradient — the tint makes glass
+/// blend with the card color instead of appearing flat white.
+private struct HeroGlassModifier<S: Shape>: ViewModifier {
+    let tint: Color
+    let shape: S
+
+    func body(content: Content) -> some View {
+        #if compiler(>=6.2)
+        if #available(iOS 26.0, *) {
+            content
+                .glassEffect(.regular.tint(tint).interactive(), in: shape)
         } else {
-            rolloverPillContent(amount: amount)
+            content
+                .background(.white.opacity(0.15), in: shape)
         }
+        #else
+        content
+            .background(.white.opacity(0.15), in: shape)
+        #endif
     }
+}
 
-    private func rolloverPillContent(amount: Decimal) -> some View {
-        HStack(spacing: DesignTokens.Spacing.xs) {
-            Image(systemName: "arrow.clockwise")
-                .font(PulpeTypography.metricMini)
-                .foregroundStyle(Color.textTertiary)
-
-            Text("\(rolloverPillLabel) ·")
-                .font(PulpeTypography.metricLabel)
-                .foregroundStyle(Color.textTertiary)
-
-            Text(abs(amount).asCompactCurrency(userSettingsStore.currency))
-                .font(PulpeTypography.metricLabelBold)
-                .foregroundStyle(Color.textSecondary)
-                .monospacedDigit()
-                .sensitiveAmount()
-        }
-        .padding(.horizontal, DesignTokens.Spacing.md)
-        .padding(.vertical, DesignTokens.Spacing.tightGap)
-        .background {
-            Capsule()
-                .fill(Color.surfaceContainer)
-        }
-        .overlay {
-            Capsule()
-                .strokeBorder(
-                    Color.outlineVariant,
-                    style: StrokeStyle(lineWidth: DesignTokens.BorderWidth.thin, dash: [4])
-                )
-        }
-        .contentShape(Capsule())
-    }
-
-    // MARK: - Income / Savings / Expenses Pills
-
-    private var incomePill: some View {
-        tintedPill(
-            iconName: TransactionKind.income.icon,
-            amount: metrics.totalIncome,
-            label: "revenus",
-            tint: .financialIncome
-        )
-    }
-
-    private var savingsPill: some View {
-        tintedPill(
-            iconName: TransactionKind.saving.icon,
-            amount: metrics.totalSavings,
-            label: "épargne",
-            tint: .financialSavings
-        )
-    }
-
-    private var expensesPill: some View {
-        tintedPill(
-            iconName: TransactionKind.expense.icon,
-            amount: metrics.totalExpenses,
-            label: "dépenses",
-            tint: .financialExpense
-        )
-    }
-
-    /// Pale-tinted pill with colored ink text — pale category-tint background,
-    /// dark category text. Matches DM2.1.b.c5 maquette (incomeSoft/incomeInk pattern).
-    /// Icon is an SF Symbol from `TransactionKind.icon` so all three pills stay
-    /// visually consistent with the kind icons used in `TransactionRow` and
-    /// `BudgetLineMixedRow`.
-    private func tintedPill(
-        iconName: String,
-        amount: Decimal,
-        label: String,
-        tint: Color
-    ) -> some View {
-        HStack(spacing: DesignTokens.Spacing.xs) {
-            Image(systemName: iconName)
-                .font(PulpeTypography.metricLabelBold)
-                .foregroundStyle(tint)
-
-            Text(amount.asCompactAmount(for: userSettingsStore.currency))
-                .font(PulpeTypography.metricLabelBold)
-                .foregroundStyle(tint)
-                .monospacedDigit()
-                .sensitiveAmount()
-
-            Text(label)
-                .font(PulpeTypography.metricLabelBold)
-                .foregroundStyle(tint)
-        }
-        .padding(.horizontal, DesignTokens.Spacing.md)
-        .padding(.vertical, DesignTokens.Spacing.tightGap)
-        .background {
-            Capsule()
-                .fill(tint.opacity(DesignTokens.Opacity.accent))
-        }
-        .contentShape(Capsule())
+private extension View {
+    func heroGlassBackground<S: Shape>(tint: Color, shape: S) -> some View {
+        modifier(HeroGlassModifier(tint: tint, shape: shape))
     }
 }
 
 // MARK: - Preview
 
-#Preview("Hero Balance Card — Flat") {
+#Preview("Hero Balance Card — 3 States") {
     ScrollView {
-        VStack(spacing: DesignTokens.Spacing.xxl) {
+        VStack(spacing: 24) {
             // Comfortable with rollover
             HeroBalanceCard(
                 metrics: .init(
-                    totalIncome: 7500,
-                    totalExpenses: 3440,
-                    totalSavings: 600,
-                    available: 7500,
-                    endingBalance: 4060,
-                    remaining: 4060,
+                    totalIncome: 5500,
+                    totalExpenses: 2200,
+                    totalSavings: 500,
+                    available: 5500,
+                    endingBalance: 3300,
+                    remaining: 3300,
                     rollover: 0
                 ),
                 timeElapsedPercentage: 50,
-                rolloverAmount: 4060,
-                previousBudgetMonth: "mars",
+                rolloverAmount: 1274.02,
                 onRolloverTap: {}
             )
 
@@ -355,7 +392,7 @@ struct HeroBalanceCard: View {
                 metrics: .init(
                     totalIncome: 4300,
                     totalExpenses: 3800,
-                    totalSavings: 200,
+                    totalSavings: 0,
                     available: 4300,
                     endingBalance: 500,
                     remaining: 500,
@@ -376,11 +413,10 @@ struct HeroBalanceCard: View {
                     rollover: 0
                 ),
                 timeElapsedPercentage: 85,
-                rolloverAmount: -350,
-                previousBudgetMonth: "février"
+                rolloverAmount: -350
             )
         }
-        .padding(.vertical, DesignTokens.Spacing.lg)
+        .padding()
     }
     .pulpeBackground()
     .environment(UserSettingsStore())
