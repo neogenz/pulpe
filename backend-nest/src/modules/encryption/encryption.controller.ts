@@ -30,7 +30,7 @@ import { ErrorResponseDto } from '@common/dto/response.dto';
 import { BusinessException } from '@common/exceptions/business.exception';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 import { type InfoLogger, InjectInfoLogger } from '@common/logger';
-import { EncryptionService } from './encryption.service';
+import { AesGcmCryptoService } from './infrastructure/crypto/aes-gcm.crypto-service';
 import {
   EncryptionValidateKeyRequestDto,
   EncryptionRecoverRequestDto,
@@ -62,7 +62,7 @@ export class EncryptionController {
   constructor(
     @InjectInfoLogger(EncryptionController.name)
     private readonly logger: InfoLogger,
-    private readonly encryptionService: EncryptionService,
+    private readonly encryptionService: AesGcmCryptoService,
   ) {}
 
   @SkipClientKey()

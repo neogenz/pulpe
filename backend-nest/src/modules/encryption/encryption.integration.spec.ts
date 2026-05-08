@@ -7,7 +7,7 @@ import { SupabaseService } from '@modules/supabase/supabase.service';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '../../types/database.types';
 import { SupabaseEncryptionKeyRepository } from './infrastructure/persistence/supabase-encryption-key.repository';
-import { EncryptionService } from './encryption.service';
+import { AesGcmCryptoService } from './infrastructure/crypto/aes-gcm.crypto-service';
 
 const BACKEND_ROOT = resolve(__dirname, '../../..');
 
@@ -275,7 +275,7 @@ describe('Encryption integration (local Supabase)', () => {
   let hasSupabase = false;
   let supabaseEnv: SupabaseEnv;
   let adminClient: SupabaseClient<Database>;
-  let encryptionService: EncryptionService;
+  let encryptionService: AesGcmCryptoService;
 
   beforeAll(async () => {
     const env = await ensureSupabaseAvailable().catch((error) => {
@@ -352,7 +352,7 @@ describe('Encryption integration (local Supabase)', () => {
       debug: () => {},
       trace: () => {},
     };
-    encryptionService = new EncryptionService(
+    encryptionService = new AesGcmCryptoService(
       mockLogger as any,
       configService,
       repository,

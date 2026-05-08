@@ -5,7 +5,7 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { LoggerModule } from 'nestjs-pino';
 import { AccountDeletionModule } from './account-deletion.module';
 import { CleanupExpiredDeletionsUseCase } from './application/cleanup-expired-deletions.use-case';
-import { EncryptionService } from '@modules/encryption/encryption.service';
+import { AesGcmCryptoService } from '@modules/encryption/infrastructure/crypto/aes-gcm.crypto-service';
 import type { Database } from '../../types/database.types';
 
 const FOUR_DAYS_MS = 4 * 24 * 60 * 60 * 1000;
@@ -56,7 +56,7 @@ describe('AccountDeletionService Integration', () => {
       ],
       providers: [
         {
-          provide: EncryptionService,
+          provide: AesGcmCryptoService,
           useValue: {
             ensureUserDEK: () => Promise.resolve(Buffer.alloc(32)),
             encryptAmount: () => 'encrypted-mock',

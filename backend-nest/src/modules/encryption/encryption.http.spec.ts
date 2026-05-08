@@ -11,7 +11,7 @@ import request from 'supertest';
 import { ZodValidationPipe } from 'nestjs-zod';
 import { PinoLogger } from 'nestjs-pino';
 import { EncryptionController } from './encryption.controller';
-import { EncryptionService } from './encryption.service';
+import { AesGcmCryptoService } from './infrastructure/crypto/aes-gcm.crypto-service';
 import { GlobalExceptionFilter } from '@common/filters/global-exception.filter';
 import { AuthGuard } from '@common/guards/auth.guard';
 import { BusinessException } from '@common/exceptions/business.exception';
@@ -97,7 +97,7 @@ beforeAll(async () => {
   const moduleRef = await Test.createTestingModule({
     controllers: [EncryptionController],
     providers: [
-      { provide: EncryptionService, useValue: mockService },
+      { provide: AesGcmCryptoService, useValue: mockService },
       { provide: APP_PIPE, useClass: ZodValidationPipe },
       {
         provide: APP_FILTER,

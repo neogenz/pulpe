@@ -6,7 +6,7 @@ import {
   BUDGET_RECALCULATION_PORT,
   type BudgetRecalculationPort,
 } from '@modules/budget/domain/ports/budget-recalculation.port';
-import { DEMO_CLIENT_KEY_BUFFER } from '@modules/encryption/encryption.service';
+import { DEMO_CLIENT_KEY_BUFFER } from '@modules/encryption/domain/encryption.constants';
 import {
   ENCRYPTION_PORT,
   type EncryptionPort,

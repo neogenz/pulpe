@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, mock, spyOn } from 'bun:test';
 import { randomBytes } from 'node:crypto';
 import { BusinessException } from '@common/exceptions/business.exception';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
-import { EncryptionService } from './encryption.service';
+import { AesGcmCryptoService } from './aes-gcm.crypto-service';
 
 const TEST_MASTER_KEY = randomBytes(32).toString('hex');
 const TEST_USER_ID = 'test-user-123';
@@ -60,8 +60,8 @@ const createMockRepository = (overrides?: {
     ),
 });
 
-describe('EncryptionService', () => {
-  let service: EncryptionService;
+describe('AesGcmCryptoService', () => {
+  let service: AesGcmCryptoService;
   let mockConfigService: ReturnType<typeof createMockConfigService>;
   let mockRepository: ReturnType<typeof createMockRepository>;
 
@@ -72,7 +72,7 @@ describe('EncryptionService', () => {
 
   describe('constructor', () => {
     it('should create service with valid ENCRYPTION_MASTER_KEY', () => {
-      service = new EncryptionService(
+      service = new AesGcmCryptoService(
         createMockLogger() as any,
         mockConfigService as any,
         mockRepository as any,
@@ -85,7 +85,7 @@ describe('EncryptionService', () => {
         get: () => undefined,
       };
       expect(() => {
-        new EncryptionService(
+        new AesGcmCryptoService(
           createMockLogger() as any,
           configWithoutKey as any,
           mockRepository as any,
@@ -98,7 +98,7 @@ describe('EncryptionService', () => {
         get: () => '',
       };
       expect(() => {
-        new EncryptionService(
+        new AesGcmCryptoService(
           createMockLogger() as any,
           configWithEmptyKey as any,
           mockRepository as any,
@@ -109,7 +109,7 @@ describe('EncryptionService', () => {
 
   describe('encryptAmount and decryptAmount roundtrip', () => {
     beforeEach(() => {
-      service = new EncryptionService(
+      service = new AesGcmCryptoService(
         createMockLogger() as any,
         mockConfigService as any,
         mockRepository as any,
@@ -169,7 +169,7 @@ describe('EncryptionService', () => {
 
   describe('encryptAmount', () => {
     beforeEach(() => {
-      service = new EncryptionService(
+      service = new AesGcmCryptoService(
         createMockLogger() as any,
         mockConfigService as any,
         mockRepository as any,
@@ -213,7 +213,7 @@ describe('EncryptionService', () => {
 
   describe('decryptAmount', () => {
     beforeEach(() => {
-      service = new EncryptionService(
+      service = new AesGcmCryptoService(
         createMockLogger() as any,
         mockConfigService as any,
         mockRepository as any,
@@ -266,7 +266,7 @@ describe('EncryptionService', () => {
 
   describe('tryDecryptAmount', () => {
     beforeEach(() => {
-      service = new EncryptionService(
+      service = new AesGcmCryptoService(
         createMockLogger() as any,
         mockConfigService as any,
         mockRepository as any,
@@ -318,7 +318,7 @@ describe('EncryptionService', () => {
 
   describe('decryptRowAmountFields', () => {
     beforeEach(() => {
-      service = new EncryptionService(
+      service = new AesGcmCryptoService(
         createMockLogger() as any,
         mockConfigService as any,
         mockRepository as any,
@@ -367,7 +367,7 @@ describe('EncryptionService', () => {
 
       const repo = createMockRepository({ findSaltByUserId, upsertSalt });
 
-      service = new EncryptionService(
+      service = new AesGcmCryptoService(
         createMockLogger() as any,
         mockConfigService as any,
         repo as any,
@@ -392,7 +392,7 @@ describe('EncryptionService', () => {
 
       const repo = createMockRepository({ findSaltByUserId });
 
-      service = new EncryptionService(
+      service = new AesGcmCryptoService(
         createMockLogger() as any,
         mockConfigService as any,
         repo as any,
@@ -416,7 +416,7 @@ describe('EncryptionService', () => {
 
       const repo = createMockRepository({ findSaltByUserId });
 
-      service = new EncryptionService(
+      service = new AesGcmCryptoService(
         createMockLogger() as any,
         mockConfigService as any,
         repo as any,
@@ -441,12 +441,12 @@ describe('EncryptionService', () => {
 
       const repo = createMockRepository({ findSaltByUserId });
 
-      const service1 = new EncryptionService(
+      const service1 = new AesGcmCryptoService(
         createMockLogger() as any,
         mockConfigService as any,
         repo as any,
       );
-      const service2 = new EncryptionService(
+      const service2 = new AesGcmCryptoService(
         createMockLogger() as any,
         mockConfigService as any,
         repo as any,
@@ -473,12 +473,12 @@ describe('EncryptionService', () => {
       const clientKey1 = randomBytes(32);
       const clientKey2 = randomBytes(32);
 
-      const service1 = new EncryptionService(
+      const service1 = new AesGcmCryptoService(
         createMockLogger() as any,
         mockConfigService as any,
         repo as any,
       );
-      const service2 = new EncryptionService(
+      const service2 = new AesGcmCryptoService(
         createMockLogger() as any,
         mockConfigService as any,
         repo as any,
@@ -504,7 +504,7 @@ describe('EncryptionService', () => {
       const initialRepo = createMockRepository({
         findSaltByUserId: initialFindSaltByUserId,
       });
-      const initialService = new EncryptionService(
+      const initialService = new AesGcmCryptoService(
         createMockLogger() as any,
         mockConfigService as any,
         initialRepo as any,
@@ -524,7 +524,7 @@ describe('EncryptionService', () => {
         }),
       );
       const repo = createMockRepository({ findSaltByUserId });
-      service = new EncryptionService(
+      service = new AesGcmCryptoService(
         createMockLogger() as any,
         mockConfigService as any,
         repo as any,
@@ -538,7 +538,7 @@ describe('EncryptionService', () => {
       const existingSalt = randomBytes(16).toString('hex');
       const wrongDek = randomBytes(32);
 
-      service = new EncryptionService(
+      service = new AesGcmCryptoService(
         createMockLogger() as any,
         mockConfigService as any,
         mockRepository as any,
@@ -553,7 +553,7 @@ describe('EncryptionService', () => {
         }),
       );
       const repo = createMockRepository({ findSaltByUserId });
-      service = new EncryptionService(
+      service = new AesGcmCryptoService(
         createMockLogger() as any,
         mockConfigService as any,
         repo as any,
@@ -581,7 +581,7 @@ describe('EncryptionService', () => {
       );
       const repo = createMockRepository({ findSaltByUserId });
 
-      service = new EncryptionService(
+      service = new AesGcmCryptoService(
         createMockLogger() as any,
         mockConfigService as any,
         repo as any,
@@ -596,7 +596,7 @@ describe('EncryptionService', () => {
       const existingSalt = randomBytes(16).toString('hex');
       const wrongDek = randomBytes(32);
 
-      service = new EncryptionService(
+      service = new AesGcmCryptoService(
         createMockLogger() as any,
         mockConfigService as any,
         mockRepository as any,
@@ -612,7 +612,7 @@ describe('EncryptionService', () => {
         }),
       );
       const repo = createMockRepository({ findSaltByUserId });
-      service = new EncryptionService(
+      service = new AesGcmCryptoService(
         createMockLogger() as any,
         mockConfigService as any,
         repo as any,
@@ -642,7 +642,7 @@ describe('EncryptionService', () => {
 
       const repo = createMockRepository({ findSaltByUserId });
 
-      service = new EncryptionService(
+      service = new AesGcmCryptoService(
         createMockLogger() as any,
         mockConfigService as any,
         repo as any,
@@ -668,7 +668,7 @@ describe('EncryptionService', () => {
 
       const repo = createMockRepository({ findSaltByUserId });
 
-      service = new EncryptionService(
+      service = new AesGcmCryptoService(
         createMockLogger() as any,
         mockConfigService as any,
         repo as any,
@@ -694,7 +694,7 @@ describe('EncryptionService', () => {
 
       const repo = createMockRepository({ findSaltByUserId, hasRecoveryKey });
 
-      service = new EncryptionService(
+      service = new AesGcmCryptoService(
         createMockLogger() as any,
         mockConfigService as any,
         repo as any,
@@ -719,7 +719,7 @@ describe('EncryptionService', () => {
 
       const repo = createMockRepository({ findSaltByUserId, hasRecoveryKey });
 
-      service = new EncryptionService(
+      service = new AesGcmCryptoService(
         createMockLogger() as any,
         mockConfigService as any,
         repo as any,
@@ -752,7 +752,7 @@ describe('EncryptionService', () => {
         hasRecoveryKey,
       });
 
-      service = new EncryptionService(
+      service = new AesGcmCryptoService(
         createMockLogger() as any,
         mockConfigService as any,
         repo as any,
@@ -778,7 +778,7 @@ describe('EncryptionService', () => {
       );
 
       const repo = createMockRepository({ findSaltByUserId });
-      service = new EncryptionService(
+      service = new AesGcmCryptoService(
         createMockLogger() as any,
         mockConfigService as any,
         repo as any,
@@ -804,7 +804,7 @@ describe('EncryptionService', () => {
       );
       const repo = createMockRepository({ getVaultStatus });
 
-      service = new EncryptionService(
+      service = new AesGcmCryptoService(
         createMockLogger() as any,
         mockConfigService as any,
         repo as any,
@@ -830,7 +830,7 @@ describe('EncryptionService', () => {
       );
       const repo = createMockRepository({ getVaultStatus });
 
-      service = new EncryptionService(
+      service = new AesGcmCryptoService(
         createMockLogger() as any,
         mockConfigService as any,
         repo as any,
@@ -855,7 +855,7 @@ describe('EncryptionService', () => {
       );
       const repo = createMockRepository({ getVaultStatus });
 
-      service = new EncryptionService(
+      service = new AesGcmCryptoService(
         createMockLogger() as any,
         mockConfigService as any,
         repo as any,
@@ -880,7 +880,7 @@ describe('EncryptionService', () => {
       );
       const repo = createMockRepository({ getVaultStatus });
 
-      service = new EncryptionService(
+      service = new AesGcmCryptoService(
         createMockLogger() as any,
         mockConfigService as any,
         repo as any,
@@ -899,7 +899,7 @@ describe('EncryptionService', () => {
 
   describe('integration tests', () => {
     beforeEach(() => {
-      service = new EncryptionService(
+      service = new AesGcmCryptoService(
         createMockLogger() as any,
         mockConfigService as any,
         mockRepository as any,
@@ -918,7 +918,7 @@ describe('EncryptionService', () => {
 
       const repo = createMockRepository({ findSaltByUserId });
 
-      service = new EncryptionService(
+      service = new AesGcmCryptoService(
         createMockLogger() as any,
         mockConfigService as any,
         repo as any,
@@ -936,7 +936,7 @@ describe('EncryptionService', () => {
 
   describe('generateRecoveryKey', () => {
     beforeEach(() => {
-      service = new EncryptionService(
+      service = new AesGcmCryptoService(
         createMockLogger() as any,
         mockConfigService as any,
         mockRepository as any,
@@ -962,7 +962,7 @@ describe('EncryptionService', () => {
 
   describe('wrapDEK and unwrapDEK', () => {
     beforeEach(() => {
-      service = new EncryptionService(
+      service = new AesGcmCryptoService(
         createMockLogger() as any,
         mockConfigService as any,
         mockRepository as any,
@@ -1088,7 +1088,7 @@ describe('EncryptionService', () => {
       const initialRepo = createMockRepository({
         findSaltByUserId: initialFindSaltByUserId,
       });
-      const initialService = new EncryptionService(
+      const initialService = new AesGcmCryptoService(
         createMockLogger() as any,
         mockConfigService as any,
         initialRepo as any,
@@ -1117,7 +1117,7 @@ describe('EncryptionService', () => {
       );
 
       const repo = createMockRepository({ findByUserId, findSaltByUserId });
-      service = new EncryptionService(
+      service = new AesGcmCryptoService(
         createMockLogger() as any,
         mockConfigService as any,
         repo as any,
@@ -1154,7 +1154,7 @@ describe('EncryptionService', () => {
       );
 
       const repo = createMockRepository({ findByUserId, findSaltByUserId });
-      service = new EncryptionService(
+      service = new AesGcmCryptoService(
         createMockLogger() as any,
         mockConfigService as any,
         repo as any,
@@ -1195,7 +1195,7 @@ describe('EncryptionService', () => {
         findSaltByUserId,
         updateKeyCheckIfNull: updateKeyCheckIfNull as ReturnType<typeof mock>,
       });
-      service = new EncryptionService(
+      service = new AesGcmCryptoService(
         createMockLogger() as any,
         mockConfigService as any,
         repo as any,
@@ -1218,7 +1218,7 @@ describe('EncryptionService', () => {
       );
 
       const repo = createMockRepository({ findByUserId });
-      service = new EncryptionService(
+      service = new AesGcmCryptoService(
         createMockLogger() as any,
         mockConfigService as any,
         repo as any,
@@ -1242,7 +1242,7 @@ describe('EncryptionService', () => {
       );
       const repo = createMockRepository({ findSaltByUserId });
 
-      service = new EncryptionService(
+      service = new AesGcmCryptoService(
         createMockLogger() as any,
         mockConfigService as any,
         repo as any,
@@ -1270,7 +1270,7 @@ describe('EncryptionService', () => {
       );
       const repo = createMockRepository({ findSaltByUserId });
 
-      service = new EncryptionService(
+      service = new AesGcmCryptoService(
         createMockLogger() as any,
         mockConfigService as any,
         repo as any,
@@ -1300,7 +1300,7 @@ describe('EncryptionService', () => {
       );
       const repo = createMockRepository({ findSaltByUserId });
 
-      service = new EncryptionService(
+      service = new AesGcmCryptoService(
         createMockLogger() as any,
         mockConfigService as any,
         repo as any,
@@ -1332,7 +1332,7 @@ describe('EncryptionService', () => {
       );
       const repo = createMockRepository({ findSaltByUserId });
 
-      service = new EncryptionService(
+      service = new AesGcmCryptoService(
         createMockLogger() as any,
         mockConfigService as any,
         repo as any,
@@ -1363,7 +1363,7 @@ describe('EncryptionService', () => {
       );
       const repo = createMockRepository({ findSaltByUserId });
 
-      service = new EncryptionService(
+      service = new AesGcmCryptoService(
         createMockLogger() as any,
         mockConfigService as any,
         repo as any,
@@ -1394,7 +1394,7 @@ describe('EncryptionService', () => {
       );
       const repo = createMockRepository({ findSaltByUserId });
 
-      service = new EncryptionService(
+      service = new AesGcmCryptoService(
         createMockLogger() as any,
         mockConfigService as any,
         repo as any,
@@ -1420,7 +1420,7 @@ describe('EncryptionService', () => {
       );
       const repo = createMockRepository({ findSaltByUserId });
 
-      service = new EncryptionService(
+      service = new AesGcmCryptoService(
         createMockLogger() as any,
         mockConfigService as any,
         repo as any,
@@ -1440,7 +1440,7 @@ describe('EncryptionService', () => {
 
   describe('unwrapDEK', () => {
     beforeEach(() => {
-      service = new EncryptionService(
+      service = new AesGcmCryptoService(
         createMockLogger() as any,
         mockConfigService as any,
         mockRepository as any,
@@ -1498,7 +1498,7 @@ describe('EncryptionService', () => {
         findSaltByUserId,
         updateWrappedDEKIfNull,
       });
-      service = new EncryptionService(
+      service = new AesGcmCryptoService(
         createMockLogger() as any,
         mockConfigService as any,
         repo as any,
@@ -1527,7 +1527,7 @@ describe('EncryptionService', () => {
         findSaltByUserId,
         updateWrappedDEKIfNull,
       });
-      service = new EncryptionService(
+      service = new AesGcmCryptoService(
         createMockLogger() as any,
         mockConfigService as any,
         repo as any,
@@ -1570,7 +1570,7 @@ describe('EncryptionService', () => {
         findByUserId,
         updateWrappedDEK,
       });
-      service = new EncryptionService(
+      service = new AesGcmCryptoService(
         createMockLogger() as any,
         mockConfigService as any,
         repo as any,
@@ -1601,7 +1601,7 @@ describe('EncryptionService', () => {
         findByUserId,
         updateWrappedDEK,
       });
-      service = new EncryptionService(
+      service = new AesGcmCryptoService(
         createMockLogger() as any,
         mockConfigService as any,
         repo as any,
@@ -1618,7 +1618,7 @@ describe('EncryptionService', () => {
 
   describe('verifyRecoveryKey', () => {
     beforeEach(() => {
-      service = new EncryptionService(
+      service = new AesGcmCryptoService(
         createMockLogger() as any,
         mockConfigService as any,
         mockRepository as any,
@@ -1640,7 +1640,7 @@ describe('EncryptionService', () => {
         }),
       );
       const repo = createMockRepository({ findByUserId });
-      const svc = new EncryptionService(
+      const svc = new AesGcmCryptoService(
         createMockLogger() as any,
         mockConfigService as any,
         repo as any,
@@ -1659,7 +1659,7 @@ describe('EncryptionService', () => {
         }),
       );
       const repo = createMockRepository({ findByUserId });
-      const svc = new EncryptionService(
+      const svc = new AesGcmCryptoService(
         createMockLogger() as any,
         mockConfigService as any,
         repo as any,
@@ -1691,7 +1691,7 @@ describe('EncryptionService', () => {
         }),
       );
       const repo = createMockRepository({ findByUserId });
-      const svc = new EncryptionService(
+      const svc = new AesGcmCryptoService(
         createMockLogger() as any,
         mockConfigService as any,
         repo as any,
@@ -1709,7 +1709,7 @@ describe('EncryptionService', () => {
 
   describe('recoverWithKey', () => {
     beforeEach(() => {
-      service = new EncryptionService(
+      service = new AesGcmCryptoService(
         createMockLogger() as any,
         mockConfigService as any,
         mockRepository as any,
@@ -1728,7 +1728,7 @@ describe('EncryptionService', () => {
 
       const repo = createMockRepository({ findByUserId });
 
-      service = new EncryptionService(
+      service = new AesGcmCryptoService(
         createMockLogger() as any,
         mockConfigService as any,
         repo as any,
@@ -1767,7 +1767,7 @@ describe('EncryptionService', () => {
 
       const repo = createMockRepository({ findByUserId });
 
-      service = new EncryptionService(
+      service = new AesGcmCryptoService(
         createMockLogger() as any,
         mockConfigService as any,
         repo as any,
@@ -1818,7 +1818,7 @@ describe('EncryptionService', () => {
         updateWrappedDEK,
         updateWrappedDEKIfNull,
       });
-      const svc1 = new EncryptionService(
+      const svc1 = new AesGcmCryptoService(
         createMockLogger() as any,
         mockConfigService as any,
         repo1 as any,
@@ -1854,7 +1854,7 @@ describe('EncryptionService', () => {
         findByUserId,
         updateWrappedDEK: updateWrappedDEK2,
       });
-      const svc2 = new EncryptionService(
+      const svc2 = new AesGcmCryptoService(
         createMockLogger() as any,
         mockConfigService as any,
         repo2 as any,
@@ -1923,7 +1923,7 @@ describe('EncryptionService', () => {
         updateWrappedDEKIfNull,
       });
 
-      service = new EncryptionService(
+      service = new AesGcmCryptoService(
         createMockLogger() as any,
         mockConfigService as any,
         repo as any,
@@ -1978,7 +1978,7 @@ describe('EncryptionService', () => {
         updateWrappedDEK,
         updateWrappedDEKIfNull,
       });
-      const svc1 = new EncryptionService(
+      const svc1 = new AesGcmCryptoService(
         createMockLogger() as any,
         mockConfigService as any,
         repo1 as any,
@@ -2011,7 +2011,7 @@ describe('EncryptionService', () => {
         findByUserId,
         updateWrappedDEK: updateWrappedDEK2,
       });
-      const svc2 = new EncryptionService(
+      const svc2 = new AesGcmCryptoService(
         createMockLogger() as any,
         mockConfigService as any,
         repo2 as any,
@@ -2069,7 +2069,7 @@ describe('EncryptionService', () => {
         updateWrappedDEK,
         updateWrappedDEKIfNull,
       });
-      const svc1 = new EncryptionService(
+      const svc1 = new AesGcmCryptoService(
         createMockLogger() as any,
         mockConfigService as any,
         repo1 as any,
@@ -2105,7 +2105,7 @@ describe('EncryptionService', () => {
         findByUserId,
         updateWrappedDEK: updateWrappedDEK2,
       });
-      const svc2 = new EncryptionService(
+      const svc2 = new AesGcmCryptoService(
         mockLogger as any,
         mockConfigService as any,
         repo2 as any,
@@ -2168,7 +2168,7 @@ describe('EncryptionService', () => {
         updateWrappedDEK,
         updateWrappedDEKIfNull,
       });
-      const svc1 = new EncryptionService(
+      const svc1 = new AesGcmCryptoService(
         createMockLogger() as any,
         mockConfigService as any,
         repo1 as any,
@@ -2199,7 +2199,7 @@ describe('EncryptionService', () => {
         findByUserId,
         findSaltByUserId: findSaltByUserId2,
       });
-      const svc2 = new EncryptionService(
+      const svc2 = new AesGcmCryptoService(
         createMockLogger() as any,
         mockConfigService as any,
         repo2 as any,
@@ -2261,7 +2261,7 @@ describe('EncryptionService', () => {
         updateWrappedDEK: updateWrappedDEKBootstrap,
         updateWrappedDEKIfNull,
       });
-      const svc1 = new EncryptionService(
+      const svc1 = new AesGcmCryptoService(
         createMockLogger() as any,
         mockConfigService as any,
         repo1 as any,
@@ -2304,7 +2304,7 @@ describe('EncryptionService', () => {
         findSaltByUserId: findSaltByUserId2,
         updateWrappedDEK,
       });
-      const svc2 = new EncryptionService(
+      const svc2 = new AesGcmCryptoService(
         createMockLogger() as any,
         mockConfigService as any,
         repo2 as any,
@@ -2363,7 +2363,7 @@ describe('EncryptionService', () => {
       const bootstrapRepo = createMockRepository({
         findSaltByUserId: bootstrapFindSalt,
       });
-      const bootstrapService = new EncryptionService(
+      const bootstrapService = new AesGcmCryptoService(
         createMockLogger() as any,
         mockConfigService as any,
         bootstrapRepo as any,
@@ -2385,7 +2385,7 @@ describe('EncryptionService', () => {
           }),
         ),
       });
-      const bootstrapService = new EncryptionService(
+      const bootstrapService = new AesGcmCryptoService(
         createMockLogger() as any,
         mockConfigService as any,
         bootstrapRepo as any,
@@ -2402,7 +2402,7 @@ describe('EncryptionService', () => {
         }),
       );
       const repo = createMockRepository({ findByUserId });
-      service = new EncryptionService(
+      service = new AesGcmCryptoService(
         createMockLogger() as any,
         mockConfigService as any,
         repo as any,
@@ -2429,7 +2429,7 @@ describe('EncryptionService', () => {
 
       // key_check generated from a DIFFERENT DEK — would fail key verification
       const differentDek = randomBytes(32);
-      const mismatchedKeyCheck = new EncryptionService(
+      const mismatchedKeyCheck = new AesGcmCryptoService(
         createMockLogger() as any,
         mockConfigService as any,
         createMockRepository() as any,
@@ -2444,7 +2444,7 @@ describe('EncryptionService', () => {
         }),
       );
       const repo = createMockRepository({ findByUserId });
-      service = new EncryptionService(
+      service = new AesGcmCryptoService(
         createMockLogger() as any,
         mockConfigService as any,
         repo as any,
@@ -2469,7 +2469,7 @@ describe('EncryptionService', () => {
     it('should throw ENCRYPTION_KEY_CHECK_FAILED when old key is invalid', async () => {
       const wrongKey = randomBytes(32);
       const wrongDek = randomBytes(32);
-      const invalidKeyCheck = new EncryptionService(
+      const invalidKeyCheck = new AesGcmCryptoService(
         createMockLogger() as any,
         mockConfigService as any,
         createMockRepository() as any,
@@ -2492,7 +2492,7 @@ describe('EncryptionService', () => {
       );
 
       const repo = createMockRepository({ findByUserId, findSaltByUserId });
-      service = new EncryptionService(
+      service = new AesGcmCryptoService(
         createMockLogger() as any,
         mockConfigService as any,
         repo as any,
@@ -2540,7 +2540,7 @@ describe('EncryptionService', () => {
         findSaltByUserId,
         updateWrappedDEK,
       });
-      service = new EncryptionService(
+      service = new AesGcmCryptoService(
         createMockLogger() as any,
         mockConfigService as any,
         repo as any,
@@ -2599,7 +2599,7 @@ describe('EncryptionService', () => {
         findSaltByUserId,
         updateWrappedDEK,
       });
-      service = new EncryptionService(
+      service = new AesGcmCryptoService(
         createMockLogger() as any,
         mockConfigService as any,
         repo as any,
@@ -2659,7 +2659,7 @@ describe('EncryptionService', () => {
         findSaltByUserId,
         updateWrappedDEK,
       });
-      service = new EncryptionService(
+      service = new AesGcmCryptoService(
         createMockLogger() as any,
         mockConfigService as any,
         repo as any,
@@ -2731,7 +2731,7 @@ describe('EncryptionService', () => {
         findSaltByUserId,
         updateWrappedDEK,
       });
-      service = new EncryptionService(
+      service = new AesGcmCryptoService(
         mockLogger as any,
         mockConfigService as any,
         repo as any,
@@ -2777,7 +2777,7 @@ describe('EncryptionService', () => {
       );
 
       const repo = createMockRepository({ findByUserId });
-      service = new EncryptionService(
+      service = new AesGcmCryptoService(
         createMockLogger() as any,
         mockConfigService as any,
         repo as any,
@@ -2817,7 +2817,7 @@ describe('EncryptionService', () => {
         findByUserId,
         updateWrappedDEK,
       });
-      service = new EncryptionService(
+      service = new AesGcmCryptoService(
         createMockLogger() as any,
         mockConfigService as any,
         repo as any,
@@ -2862,7 +2862,7 @@ describe('EncryptionService', () => {
       const findByUserId = mock(() => Promise.resolve(null));
 
       const repo = createMockRepository({ findByUserId });
-      service = new EncryptionService(
+      service = new AesGcmCryptoService(
         createMockLogger() as any,
         mockConfigService as any,
         repo as any,
@@ -2905,7 +2905,7 @@ describe('EncryptionService', () => {
       );
 
       const repo = createMockRepository({ findByUserId, findSaltByUserId });
-      service = new EncryptionService(
+      service = new AesGcmCryptoService(
         createMockLogger() as any,
         mockConfigService as any,
         repo as any,
@@ -2956,7 +2956,7 @@ describe('EncryptionService', () => {
       );
 
       const repo = createMockRepository({ findByUserId, findSaltByUserId });
-      service = new EncryptionService(
+      service = new AesGcmCryptoService(
         createMockLogger() as any,
         mockConfigService as any,
         repo as any,
@@ -3017,7 +3017,7 @@ describe('EncryptionService', () => {
         findSaltByUserId,
         updateWrappedDEK,
       });
-      service = new EncryptionService(
+      service = new AesGcmCryptoService(
         createMockLogger() as any,
         mockConfigService as any,
         repo as any,
@@ -3084,7 +3084,7 @@ describe('EncryptionService', () => {
         findSaltByUserId,
         updateWrappedDEK,
       });
-      service = new EncryptionService(
+      service = new AesGcmCryptoService(
         createMockLogger() as any,
         mockConfigService as any,
         repo as any,

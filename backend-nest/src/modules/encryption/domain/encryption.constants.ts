@@ -1,3 +1,13 @@
+/**
+ * Deterministic clientKey used by demo mode (frontend + backend).
+ * Not a secret — demo data is public. Kept as a domain constant so non-crypto
+ * layers (demo seeding) can import it without crossing into infrastructure/.
+ */
+export const DEMO_CLIENT_KEY_BUFFER = Buffer.from(
+  '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
+  'hex',
+);
+
 export const ENCRYPTION_ALGORITHM = 'aes-256-gcm';
 export const ENCRYPTION_IV_LENGTH = 12;
 export const ENCRYPTION_AUTH_TAG_LENGTH = 16;

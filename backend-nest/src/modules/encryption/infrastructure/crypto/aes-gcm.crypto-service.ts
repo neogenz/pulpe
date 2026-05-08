@@ -11,15 +11,15 @@ import { BusinessException } from '@common/exceptions/business.exception';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
-import { SupabaseEncryptionKeyRepository } from './infrastructure/persistence/supabase-encryption-key.repository';
-import type { UserEncryptionKey } from './domain/encryption.entity';
+import { SupabaseEncryptionKeyRepository } from '../persistence/supabase-encryption-key.repository';
+import type { UserEncryptionKey } from '../../domain/encryption.entity';
 import {
   rekeyBudgetLinesRpcPayloadSchema,
   rekeyMonthlyBudgetsRpcPayloadSchema,
   rekeySavingsGoalsRpcPayloadSchema,
   rekeyTemplateLinesRpcPayloadSchema,
   rekeyTransactionsRpcPayloadSchema,
-} from './schemas/rpc-payload.schemas';
+} from '../../schemas/rpc-payload.schemas';
 
 const ALGORITHM = 'aes-256-gcm';
 const IV_LENGTH = 12;
@@ -33,24 +33,19 @@ const DEK_CACHE_TTL_MS = 5 * 60 * 1000;
 // Base32 alphabet (RFC 4648, no padding) — avoids 0/O and 1/l ambiguity
 const BASE32_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
 
-export const DEMO_CLIENT_KEY_BUFFER = Buffer.from(
-  '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
-  'hex',
-);
-
 interface CachedDEK {
   dek: Buffer;
   expiry: number;
 }
 
 @Injectable()
-export class EncryptionService {
+export class AesGcmCryptoService {
   readonly #masterKey: Buffer;
   readonly #dekCache = new Map<string, CachedDEK>();
   readonly #repository: SupabaseEncryptionKeyRepository;
 
   constructor(
-    @InjectInfoLogger(EncryptionService.name)
+    @InjectInfoLogger(AesGcmCryptoService.name)
     private readonly logger: InfoLogger,
     configService: ConfigService,
     repository: SupabaseEncryptionKeyRepository,
