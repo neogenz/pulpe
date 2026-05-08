@@ -13,11 +13,6 @@ struct BudgetDetailsView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var viewModel: BudgetDetailsViewModel
     @State private var destination: BudgetDetailDestination?
-    /// Persists across sheet dismissal so the H9 soft-delete toast can be triggered
-    /// from `onDismiss` (after the sheet animation completes). Lives outside
-    /// `BudgetDetailDestination` because its lifetime spans the destination
-    /// transitioning to `nil`.
-    @State private var pendingTransactionDeletion: Transaction?
 
     @State private var searchText = ""
 
@@ -97,11 +92,12 @@ struct BudgetDetailsView: View {
         #if DEBUG
         .onAppear { applyPUL209VerifyPriming() }
         #endif
-        .sheet(
-            item: $destination,
-            onDismiss: handleSheetDismiss
-        ) { dest in
+        .sheet(item: $destination) { dest in
             sheetContent(for: dest)
+        }
+        .navigationDestination(for: BudgetLinePushRoute.self) { route in
+            pushDestination(for: route)
+                .environment(viewModel)
         }
         .alert(
             "Pointer les transactions ?",
@@ -195,7 +191,9 @@ struct BudgetDetailsView: View {
                         items: section.items,
                         transactions: viewModel.transactions,
                         syncingIds: viewModel.syncingBudgetLineIds,
-                        onTap: { line in destination = .lineDetail(line) },
+                        onTap: { line in
+                            appState.budgetPath.append(BudgetLinePushRoute.lineDetail(lineId: line.id))
+                        },
                         onTogglePointed: { line in
                             Task {
                                 let succeeded = await viewModel.toggleBudgetLine(line)
@@ -219,7 +217,9 @@ struct BudgetDetailsView: View {
                         transactions: filteredFree,
                         syncingIds: viewModel.syncingTransactionIds,
                         onTap: { transaction in
-                            destination = .editTransaction(transaction)
+                            appState.budgetPath.append(
+                                BudgetLinePushRoute.editTx(transactionId: transaction.id)
+                            )
                         }
                     )
                 }
@@ -247,19 +247,25 @@ struct BudgetDetailsView: View {
         .searchPresentationToolbarBehavior(.avoidHidingContent)
     }
 
-    // MARK: - Sheet Routing
+    // MARK: - Routing
 
-    /// H9 onDismiss soft-delete: fires the toast only when the user explicitly
-    /// triggered a transaction deletion from `BudgetLineDetailSheetWrapper`.
-    /// Other dismiss paths leave `pendingTransactionDeletion` nil → no-op.
-    private func handleSheetDismiss() {
-        guard let transaction = pendingTransactionDeletion else { return }
-        pendingTransactionDeletion = nil
-        viewModel.softDeleteTransaction(
-            transaction,
-            toastManager: appState.toastManager,
-            presentationCurrency: userSettingsStore.currency
-        )
+    /// Routes each `BudgetLinePushRoute` to its push destination view. Sibling of
+    /// `sheetContent(for:)`. The viewModel is injected on the destination view via
+    /// `.environment(viewModel)` at the call site so pushed pages observe the same
+    /// reactive Observation context as the parent.
+    @ViewBuilder
+    private func pushDestination(for route: BudgetLinePushRoute) -> some View {
+        switch route {
+        case .lineDetail(let lineId):
+            BudgetLineDetailPage(
+                lineId: lineId,
+                onEditLine: { line in destination = .editBudgetLine(line) }
+            )
+        case .addAllocatedTx(let lineId):
+            AddAllocatedTransactionPage(lineId: lineId)
+        case .editTx(let transactionId):
+            EditTransactionPage(transactionId: transactionId)
+        }
     }
 
     /// Routes each `BudgetDetailDestination` to its sheet view. Extracted from the
@@ -269,26 +275,13 @@ struct BudgetDetailsView: View {
     @ViewBuilder
     private func sheetContent(for destination: BudgetDetailDestination) -> some View {
         switch destination {
-        case .addAllocatedTransaction(let line):
-            AddAllocatedTransactionSheet(budgetLine: line) { transaction in
-                viewModel.addTransaction(transaction)
-            }
         case .addBudgetLine:
             AddBudgetLineSheet(budgetId: viewModel.budgetId) { budgetLine in
                 viewModel.addBudgetLine(budgetLine)
             }
-        case .lineDetail(let line):
-            lineDetailSheet(for: line)
         case .editBudgetLine(let line):
             EditBudgetLineSheet(budgetLine: line, userCurrency: userSettingsStore.currency) { updatedLine in
                 Task { await viewModel.updateBudgetLine(updatedLine) }
-            }
-        case .editTransaction(let transaction):
-            EditTransactionSheet(
-                transaction: transaction,
-                userCurrency: userSettingsStore.currency
-            ) { updatedTransaction in
-                Task { await viewModel.updateTransaction(updatedTransaction) }
             }
         case .previousBudget(let item):
             PreviousBudgetSheet(budgetId: item.id)
@@ -314,42 +307,11 @@ struct BudgetDetailsView: View {
             viewModel.setCheckedFilter(filter)
         }
         if let lineId = PUL209VerifyState.pendingOpenLineId,
-           let line = viewModel.budgetLines.first(where: { $0.id == lineId }) {
-            destination = .lineDetail(line)
+           viewModel.budgetLines.contains(where: { $0.id == lineId }) {
+            appState.budgetPath.append(BudgetLinePushRoute.lineDetail(lineId: lineId))
         }
     }
     #endif
-
-    /// Wires `BudgetLineDetailSheetWrapper` callbacks back into this view's
-    /// destination state. Extracted so `sheetContent(for:)` stays readable and
-    /// under SwiftLint's function body length limit.
-    private func lineDetailSheet(for line: BudgetLine) -> some View {
-        BudgetLineDetailSheetWrapper(
-            budgetLineId: line.id,
-            viewModel: viewModel,
-            onDismissAndEdit: { currentLine in
-                self.destination = .editBudgetLine(currentLine)
-            },
-            onDismissAndDelete: { currentLine in
-                self.destination = nil
-                viewModel.softDeleteBudgetLine(
-                    currentLine,
-                    toastManager: appState.toastManager,
-                    presentationCurrency: userSettingsStore.currency
-                )
-            },
-            onDismissAndAddTransaction: { currentLine in
-                self.destination = .addAllocatedTransaction(currentLine)
-            },
-            onDismissAndEditTransaction: { transaction in
-                self.destination = .editTransaction(transaction)
-            },
-            onDismissAndDeleteTransaction: { transaction in
-                pendingTransactionDeletion = transaction
-                self.destination = nil
-            }
-        )
-    }
 }
 
 /// Single source of truth for sheet presentation.
@@ -360,64 +322,17 @@ struct BudgetDetailsView: View {
 /// presentations (dismiss-then-present) only animate cleanly when the system
 /// owns the transition.
 private enum BudgetDetailDestination: Identifiable {
-    case addAllocatedTransaction(BudgetLine)
     case addBudgetLine
-    case lineDetail(BudgetLine)
     case editBudgetLine(BudgetLine)
-    case editTransaction(Transaction)
     case previousBudget(PreviousBudgetItem)
     case realizedBalance
 
     var id: String {
         switch self {
-        case .addAllocatedTransaction(let line): "addAllocatedTransaction-\(line.id)"
         case .addBudgetLine: "addBudgetLine"
-        case .lineDetail(let line): "lineDetail-\(line.id)"
         case .editBudgetLine(let line): "editBudgetLine-\(line.id)"
-        case .editTransaction(let tx): "editTransaction-\(tx.id)"
         case .previousBudget(let item): "previousBudget-\(item.id)"
         case .realizedBalance: "realizedBalance"
-        }
-    }
-}
-
-/// Reactive wrapper that reads the latest budgetLine + linked transactions from
-/// the @Observable view model, so the sheet stays in sync when the user toggles
-/// a transaction or the underlying line gets mutated externally (FX rates,
-/// allocation update, etc.).
-private struct BudgetLineDetailSheetWrapper: View {
-    let budgetLineId: String
-    let viewModel: BudgetDetailsViewModel
-    let onDismissAndEdit: (BudgetLine) -> Void
-    let onDismissAndDelete: (BudgetLine) -> Void
-    let onDismissAndAddTransaction: (BudgetLine) -> Void
-    let onDismissAndEditTransaction: (Transaction) -> Void
-    let onDismissAndDeleteTransaction: (Transaction) -> Void
-
-    private var budgetLine: BudgetLine? {
-        viewModel.budgetLines.first { $0.id == budgetLineId }
-    }
-
-    private var transactions: [Transaction] {
-        viewModel.transactions
-            .filter { $0.budgetLineId == budgetLineId }
-            .sorted { $0.transactionDate > $1.transactionDate }
-    }
-
-    var body: some View {
-        if let budgetLine {
-            BudgetLineDetailSheet(
-                budgetLine: budgetLine,
-                transactions: transactions,
-                onEdit: { onDismissAndEdit(budgetLine) },
-                onDelete: { onDismissAndDelete(budgetLine) },
-                onEditTransaction: { transaction in onDismissAndEditTransaction(transaction) },
-                onDeleteTransaction: { transaction in onDismissAndDeleteTransaction(transaction) },
-                onToggleTransaction: { transaction in
-                    Task { await viewModel.toggleTransaction(transaction) }
-                },
-                onAddTransaction: { onDismissAndAddTransaction(budgetLine) }
-            )
         }
     }
 }
@@ -468,6 +383,20 @@ private struct BudgetDetailsSkeletonView: View {
         .pulpeBackground()
         .accessibilityLabel("Chargement du budget")
     }
+}
+
+// MARK: - Push Routing
+
+/// Push destinations within `BudgetDetailsView`'s NavigationStack branch. ID-based
+/// so pages re-resolve their model reactively from the shared
+/// `BudgetDetailsViewModel` (injected via `.environment(viewModel)` on the
+/// destination view) — matches the Observation framework idiom: pages re-render
+/// only when the read properties change, and `nil` lookups (model deleted while
+/// pushed) trigger an automatic pop.
+enum BudgetLinePushRoute: Hashable {
+    case lineDetail(lineId: String)
+    case addAllocatedTx(lineId: String)
+    case editTx(transactionId: String)
 }
 
 #Preview {
