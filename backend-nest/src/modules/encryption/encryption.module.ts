@@ -1,6 +1,6 @@
 import { Global, Module } from '@nestjs/common';
 import { createInfoLoggerProvider } from '@common/logger';
-import { EncryptionController } from './encryption.controller';
+import { EncryptionController } from './infrastructure/http/encryption.controller';
 import { AesGcmCryptoService } from './infrastructure/crypto/aes-gcm.crypto-service';
 import { SupabaseEncryptionKeyRepository } from './infrastructure/persistence/supabase-encryption-key.repository';
 import { ENCRYPTION_PORT } from './domain/ports/encryption.port';
@@ -34,7 +34,6 @@ import { ChangePinUseCase } from './application/change-pin.use-case';
       useExisting: SupabaseEncryptionKeyRepository,
     },
     createInfoLoggerProvider(AesGcmCryptoService.name),
-    createInfoLoggerProvider(EncryptionController.name),
     createInfoLoggerProvider(ValidateUserKeyUseCase.name),
     createInfoLoggerProvider(SetupRecoveryKeyUseCase.name),
     createInfoLoggerProvider(RegenerateRecoveryKeyUseCase.name),

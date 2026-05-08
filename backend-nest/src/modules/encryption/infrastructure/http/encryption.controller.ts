@@ -29,8 +29,6 @@ import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.ser
 import { ErrorResponseDto } from '@common/dto/response.dto';
 import { BusinessException } from '@common/exceptions/business.exception';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
-import { type InfoLogger, InjectInfoLogger } from '@common/logger';
-import { AesGcmCryptoService } from './infrastructure/crypto/aes-gcm.crypto-service';
 import {
   EncryptionValidateKeyRequestDto,
   EncryptionRecoverRequestDto,
@@ -42,6 +40,14 @@ import {
   EncryptionRecoverResponseDto,
   EncryptionChangePinResponseDto,
 } from './dto/encryption-swagger.dto';
+import { GetVaultStatusUseCase } from '../../application/get-vault-status.use-case';
+import { GetUserSaltUseCase } from '../../application/get-user-salt.use-case';
+import { ValidateUserKeyUseCase } from '../../application/validate-user-key.use-case';
+import { SetupRecoveryKeyUseCase } from '../../application/setup-recovery-key.use-case';
+import { RegenerateRecoveryKeyUseCase } from '../../application/regenerate-recovery-key.use-case';
+import { VerifyRecoveryKeyUseCase } from '../../application/verify-recovery-key.use-case';
+import { RecoverWithRecoveryKeyUseCase } from '../../application/recover-with-recovery-key.use-case';
+import { ChangePinUseCase } from '../../application/change-pin.use-case';
 
 const CLIENT_KEY_LENGTH = 32;
 const HEX_KEY_REGEX = /^[0-9a-f]{64}$/i;
@@ -60,9 +66,14 @@ const HEX_KEY_REGEX = /^[0-9a-f]{64}$/i;
 })
 export class EncryptionController {
   constructor(
-    @InjectInfoLogger(EncryptionController.name)
-    private readonly logger: InfoLogger,
-    private readonly encryptionService: AesGcmCryptoService,
+    private readonly getVaultStatusUseCase: GetVaultStatusUseCase,
+    private readonly getUserSaltUseCase: GetUserSaltUseCase,
+    private readonly validateUserKeyUseCase: ValidateUserKeyUseCase,
+    private readonly setupRecoveryKeyUseCase: SetupRecoveryKeyUseCase,
+    private readonly regenerateRecoveryKeyUseCase: RegenerateRecoveryKeyUseCase,
+    private readonly verifyRecoveryKeyUseCase: VerifyRecoveryKeyUseCase,
+    private readonly recoverWithRecoveryKeyUseCase: RecoverWithRecoveryKeyUseCase,
+    private readonly changePinUseCase: ChangePinUseCase,
   ) {}
 
   @SkipClientKey()
@@ -78,7 +89,7 @@ export class EncryptionController {
     recoveryKeyConfigured: boolean;
     vaultCodeConfigured: boolean;
   }> {
-    return this.encryptionService.getVaultStatus(user.id);
+    return this.getVaultStatusUseCase.execute(user.id);
   }
 
   @SkipClientKey()
@@ -92,7 +103,7 @@ export class EncryptionController {
   async getSalt(
     @User() user: AuthenticatedUser,
   ): Promise<{ salt: string; kdfIterations: number; hasRecoveryKey: boolean }> {
-    return this.encryptionService.getUserSalt(user.id);
+    return this.getUserSaltUseCase.execute(user.id);
   }
 
   @SkipClientKey()
@@ -114,20 +125,7 @@ export class EncryptionController {
   ): Promise<void> {
     const keyBuffer = this.#validateClientKeyHex(body.clientKey);
     try {
-      const isValid = await this.encryptionService.verifyAndEnsureKeyCheck(
-        user.id,
-        keyBuffer,
-      );
-
-      if (!isValid) {
-        this.logger.warn(
-          { userId: user.id, operation: 'validate_key.failed' },
-          'Client key verification failed',
-        );
-        throw new BusinessException(
-          ERROR_DEFINITIONS.ENCRYPTION_KEY_CHECK_FAILED,
-        );
-      }
+      await this.validateUserKeyUseCase.execute(user.id, keyBuffer);
     } finally {
       keyBuffer.fill(0);
     }
@@ -149,17 +147,7 @@ export class EncryptionController {
   async setupRecovery(
     @User() user: AuthenticatedUser,
   ): Promise<{ recoveryKey: string }> {
-    const { formatted } = await this.encryptionService.createRecoveryKey(
-      user.id,
-      user.clientKey,
-    );
-
-    this.logger.info(
-      { userId: user.id, operation: 'recovery_key.create' },
-      'Recovery key created',
-    );
-
-    return { recoveryKey: formatted };
+    return this.setupRecoveryKeyUseCase.execute(user.id, user.clientKey);
   }
 
   @Post('regenerate-recovery')
@@ -178,17 +166,7 @@ export class EncryptionController {
   async regenerateRecovery(
     @User() user: AuthenticatedUser,
   ): Promise<{ recoveryKey: string }> {
-    const { formatted } = await this.encryptionService.regenerateRecoveryKey(
-      user.id,
-      user.clientKey,
-    );
-
-    this.logger.info(
-      { userId: user.id, operation: 'recovery_key.regenerate' },
-      'Recovery key regenerated',
-    );
-
-    return { recoveryKey: formatted };
+    return this.regenerateRecoveryKeyUseCase.execute(user.id, user.clientKey);
   }
 
   @SkipClientKey()
@@ -220,22 +198,15 @@ export class EncryptionController {
     const newKeyBuffer = this.#validateClientKeyHex(body.newClientKey);
 
     try {
-      await this.encryptionService.recoverWithKey(
+      await this.recoverWithRecoveryKeyUseCase.execute(
         user.id,
         body.recoveryKey,
         newKeyBuffer,
         supabase,
       );
-    } catch (error) {
-      this.#handleRecoveryError(user.id, error);
     } finally {
       newKeyBuffer.fill(0);
     }
-
-    this.logger.info(
-      { userId: user.id, operation: 'recovery.complete' },
-      'Account recovered with recovery key',
-    );
 
     return { success: true };
   }
@@ -261,7 +232,7 @@ export class EncryptionController {
     @User() user: AuthenticatedUser,
     @Body() body: EncryptionVerifyRecoveryKeyRequestDto,
   ): Promise<void> {
-    await this.encryptionService.verifyRecoveryKey(user.id, body.recoveryKey);
+    await this.verifyRecoveryKeyUseCase.execute(user.id, body.recoveryKey);
   }
 
   /**
@@ -294,23 +265,12 @@ export class EncryptionController {
     try {
       oldKeyBuffer = this.#validateClientKeyHex(body.oldClientKey);
       newKeyBuffer = this.#validateClientKeyHex(body.newClientKey);
-      const result = await this.encryptionService.changePinRekey(
+      return await this.changePinUseCase.execute(
         user.id,
         oldKeyBuffer,
         newKeyBuffer,
         supabase,
       );
-
-      this.logger.info(
-        {
-          userId: user.id,
-          operation: 'pin_change.complete',
-          recoveryKeyRegenerated: true,
-        },
-        'PIN changed and data re-encrypted',
-      );
-
-      return result;
     } finally {
       oldKeyBuffer?.fill(0);
       newKeyBuffer?.fill(0);
@@ -331,26 +291,5 @@ export class EncryptionController {
     }
 
     return buffer;
-  }
-
-  #handleRecoveryError(userId: string, error: unknown): never {
-    if (error instanceof Error) {
-      const isRecoveryKeyError =
-        error.message.includes('No recovery key configured') ||
-        error.message.includes('Invalid recovery key') ||
-        error.message.includes('Invalid base32 character') ||
-        error.message.includes('Unsupported state or unable to authenticate') ||
-        error.message.includes('Unwrapped DEK has invalid length');
-
-      if (isRecoveryKeyError) {
-        throw new BusinessException(
-          ERROR_DEFINITIONS.RECOVERY_KEY_INVALID,
-          undefined,
-          { userId, operation: 'recovery.failed' },
-          { cause: error },
-        );
-      }
-    }
-    throw error;
   }
 }
