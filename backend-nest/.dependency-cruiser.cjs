@@ -16,15 +16,14 @@ module.exports = {
       name: 'no-application-to-infrastructure',
       severity: 'error',
       comment:
-        'Two carve-outs remain. (1) mappers — TEMPORARY: budget and budget-template use cases still inject *.mapper to wrap entities into API response shapes (BudgetTemplateResponse, BudgetListResponse, ...). The textbook fix is to push entity → DTO mapping to the controller; tracked as remaining Tier 3 cleanup. (2) encryption/infrastructure/crypto — PERMANENT: the encryption module IS the crypto layer; its use cases need access to AES/HKDF/wrap-unwrap primitives not exposed on the public ENCRYPTION_PORT (intentionally read-only for cross-module consumers).',
+        'Single PERMANENT carve-out: encryption/infrastructure/crypto. The encryption module IS the crypto layer; its use cases need access to AES/HKDF/wrap-unwrap primitives that are intentionally NOT exposed on the public ENCRYPTION_PORT (read-only for cross-module consumers).',
       from: {
         path: '^src/modules/[^/]+/application',
         pathNot: '\\.spec\\.ts$',
       },
       to: {
         path: '^src/modules/[^/]+/infrastructure',
-        pathNot:
-          '^src/modules/[^/]+/infrastructure/mappers|^src/modules/encryption/infrastructure/crypto',
+        pathNot: '^src/modules/encryption/infrastructure/crypto',
       },
     },
     {
