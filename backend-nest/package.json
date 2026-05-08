@@ -41,8 +41,8 @@
     "type-check:full": "bunx tsc --project tsconfig.full-check.json --noEmit",
     "quality": "bun run type-check:full && bun run lint && bun run format:check",
     "quality:fix": "bun run type-check:full && bun run lint:fix && bun run format",
-    "lint:arch": "bunx depcruise --validate src/",
-    "lint:arch:graph": "bunx depcruise --validate src/ --output-type dot | dot -Tsvg > docs/architecture-graph.svg"
+    "lint:arch": "bunx depcruise -c .dependency-cruiser.cjs src/",
+    "lint:arch:graph": "bunx depcruise -c .dependency-cruiser.cjs src/ --output-type dot | dot -Tsvg > docs/architecture-graph.svg"
   },
   "keywords": [],
   "author": "",
