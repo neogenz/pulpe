@@ -1,32 +1,21 @@
 import { Injectable } from '@nestjs/common';
 import { SupabaseService } from '@modules/supabase/supabase.service';
-
-interface UserEncryptionKeyRow {
-  salt: string;
-  kdf_iterations: number;
-  key_check: string | null;
-}
-
-export interface UserEncryptionKeyFullRow extends UserEncryptionKeyRow {
-  wrapped_dek: string | null;
-  key_check: string | null;
-}
-
-export interface VaultStatusRow {
-  pinCodeConfigured: boolean;
-  recoveryKeyConfigured: boolean;
-  vaultCodeConfigured: boolean;
-}
+import type { EncryptionKeyRepositoryPort } from '../../domain/ports/encryption-key-repository.port';
+import type {
+  UserEncryptionKey,
+  UserEncryptionSalt,
+  VaultStatus,
+} from '../../domain/encryption.entity';
 
 @Injectable()
-export class EncryptionKeyRepository {
+export class SupabaseEncryptionKeyRepository implements EncryptionKeyRepositoryPort {
   readonly #supabaseService: SupabaseService;
 
   constructor(supabaseService: SupabaseService) {
     this.#supabaseService = supabaseService;
   }
 
-  async findSaltByUserId(userId: string): Promise<UserEncryptionKeyRow | null> {
+  async findSaltByUserId(userId: string): Promise<UserEncryptionSalt | null> {
     const supabase = this.#supabaseService.getServiceRoleClient();
     const { data, error } = await supabase
       .from('user_encryption_key')
@@ -67,7 +56,7 @@ export class EncryptionKeyRepository {
     }
   }
 
-  async findByUserId(userId: string): Promise<UserEncryptionKeyFullRow | null> {
+  async findByUserId(userId: string): Promise<UserEncryptionKey | null> {
     const supabase = this.#supabaseService.getServiceRoleClient();
     const { data, error } = await supabase
       .from('user_encryption_key')
@@ -118,7 +107,7 @@ export class EncryptionKeyRepository {
     }
   }
 
-  async getVaultStatus(userId: string): Promise<VaultStatusRow> {
+  async getVaultStatus(userId: string): Promise<VaultStatus> {
     const supabase = this.#supabaseService.getServiceRoleClient();
     const { data, error } = await supabase
       .from('user_encryption_key')

@@ -11,10 +11,8 @@ import { BusinessException } from '@common/exceptions/business.exception';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
-import {
-  EncryptionKeyRepository,
-  type UserEncryptionKeyFullRow,
-} from './encryption-key.repository';
+import { SupabaseEncryptionKeyRepository } from './infrastructure/persistence/supabase-encryption-key.repository';
+import type { UserEncryptionKey } from './domain/encryption.entity';
 import {
   rekeyBudgetLinesRpcPayloadSchema,
   rekeyMonthlyBudgetsRpcPayloadSchema,
@@ -49,13 +47,13 @@ interface CachedDEK {
 export class EncryptionService {
   readonly #masterKey: Buffer;
   readonly #dekCache = new Map<string, CachedDEK>();
-  readonly #repository: EncryptionKeyRepository;
+  readonly #repository: SupabaseEncryptionKeyRepository;
 
   constructor(
     @InjectInfoLogger(EncryptionService.name)
     private readonly logger: InfoLogger,
     configService: ConfigService,
-    repository: EncryptionKeyRepository,
+    repository: SupabaseEncryptionKeyRepository,
   ) {
     const masterKeyHex = configService.get<string>('ENCRYPTION_MASTER_KEY');
     if (!masterKeyHex) {
@@ -374,7 +372,7 @@ export class EncryptionService {
   async #generateAndStoreRecoveryKey(
     userId: string,
     clientKey: Buffer,
-    existing: UserEncryptionKeyFullRow | null,
+    existing: UserEncryptionKey | null,
   ): Promise<{ formatted: string }> {
     const dek = await this.getUserDEK(userId, clientKey);
     const { raw, formatted } = this.generateRecoveryKey();

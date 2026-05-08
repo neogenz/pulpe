@@ -6,7 +6,7 @@ import { ConfigService } from '@nestjs/config';
 import { SupabaseService } from '@modules/supabase/supabase.service';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '../../types/database.types';
-import { EncryptionKeyRepository } from './encryption-key.repository';
+import { SupabaseEncryptionKeyRepository } from './infrastructure/persistence/supabase-encryption-key.repository';
 import { EncryptionService } from './encryption.service';
 
 const BACKEND_ROOT = resolve(__dirname, '../../..');
@@ -292,7 +292,7 @@ describe('Encryption integration (local Supabase)', () => {
       ENCRYPTION_MASTER_KEY: TEST_MASTER_KEY,
     }) as unknown as ConfigService;
     const supabaseService = new SupabaseService(configService);
-    const repository = new EncryptionKeyRepository(supabaseService);
+    const repository = new SupabaseEncryptionKeyRepository(supabaseService);
 
     adminClient = supabaseService.getServiceRoleClient();
     const { error: schemaError } = await adminClient
