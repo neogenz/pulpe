@@ -1,56 +1,75 @@
 # Backend Architecture
 
-The backend follows a lightweight 3-layer Clean Architecture per module.
+The backend follows a 3-layer Clean Architecture per module: `domain`, `application`, `infrastructure`. The dependency rule flows in one direction only: `infrastructure -> application -> domain`. The why behind every decision lives in [ADRs](./adr/README.md).
 
-## Module Structure
+## Layers at a glance
 
 ```
-src/modules/<domain>/
+┌──────────────────────────────────────────────────────────┐
+│                  infrastructure/                          │
+│  controllers, repositories, mappers, Zod RPC schemas      │
+│  (NestJS, Supabase, zod allowed)                          │
+└───────────────────────────┬──────────────────────────────┘
+                            │ depends on
+                            ▼
+┌──────────────────────────────────────────────────────────┐
+│                  application/                             │
+│  *.use-case.ts — @Injectable, single execute()            │
+│  (NestJS allowed; no Supabase, no zod)                    │
+└───────────────────────────┬──────────────────────────────┘
+                            │ depends on
+                            ▼
+┌──────────────────────────────────────────────────────────┐
+│                  domain/                                  │
+│  entity types, invariants, formulas, port interfaces      │
+│  (pure TS — no NestJS, no Supabase, no zod)               │
+└──────────────────────────────────────────────────────────┘
+```
+
+Cross-module: modules talk to each other only through ports + Symbol tokens, never via direct service imports. See [ADR-0002](./adr/0002-cross-module-via-ports-and-tokens.md).
+
+## Folder layout per module
+
+```
+backend-nest/src/modules/<domain>/
 ├── domain/
-│   ├── <domain>.entity.ts          # Plain types from Supabase row generators
-│   ├── <domain>.invariants.ts      # Pure validation functions (throw BusinessException)
-│   ├── <domain>.formulas.ts        # Pure domain logic (where applicable)
+│   ├── <domain>.entity.ts              # Plain types from DB row generators
+│   ├── <domain>.invariants.ts          # Pure validation, throws BusinessException
+│   ├── <domain>.formulas.ts            # Pure domain logic (optional)
 │   └── ports/
-│       ├── <domain>-repository.port.ts
-│       └── <other-port>.port.ts
+│       ├── <domain>-repository.port.ts # Symbol token + interface
+│       └── <other>.port.ts
 ├── application/
-│   └── *.use-case.ts               # @Injectable, single execute() method
+│   └── *.use-case.ts                   # @Injectable, single execute()
 ├── infrastructure/
 │   ├── http/
 │   │   ├── <domain>.controller.ts
 │   │   └── dto/
-│   │       └── <domain>-swagger.dto.ts
 │   ├── persistence/
 │   │   ├── supabase-<domain>.repository.ts
-│   │   └── schemas/                # Zod for RPC payloads with JSONB params
+│   │   └── schemas/                    # Zod schemas for RPC JSONB params
 │   └── mappers/
-│       └── <domain>.mapper.ts
+│       └── <domain>.mapper.ts          # Entity <-> API DTO (called by controllers)
 ├── <domain>.module.ts
-├── <domain>.tokens.ts
+├── <domain>.tokens.ts                  # Public token re-exports
 └── index.ts
 ```
 
-## Layer Responsibilities
+## Layer rules
 
 | Layer | Owns | May import | Must NOT import |
 |-------|------|-----------|-----------------|
-| **domain/** | Entity types, invariants, port interfaces | `pulpe-shared`, `src/types/`, `src/common/exceptions`, `src/common/constants` | `@nestjs/*`, `@supabase/*`, `zod`, other layers |
-| **application/** | Use cases (`@Injectable`) | `domain/`, `src/common/` | `infrastructure/` |
-| **infrastructure/** | Controllers, repositories, mappers, Zod RPC schemas | All layers + `@nestjs/*`, `@supabase/*`, `zod` | — |
+| `domain/` | Entities, invariants, ports | `pulpe-shared`, `src/types/`, `src/common/exceptions`, `src/common/constants` | `@nestjs/*`, `@supabase/*`, `zod`, sibling layers |
+| `application/` | Use cases | `domain/`, `src/common/`, ports of OTHER modules | own `infrastructure/`, other modules' `infrastructure/` |
+| `infrastructure/` | Controllers, repositories, mappers, RPC Zod schemas | All layers + frameworks | n/a |
 
-## Dependency Rule
+The single permanent exception: `encryption/application/*` may import `encryption/infrastructure/crypto/*`. Reason: the encryption module IS the crypto layer; primitives are intentionally not on the public `ENCRYPTION_PORT`. See [ADR-0008](./adr/0008-encryption-service-decomposition.md).
 
-```
-infrastructure → application → domain
-```
+Enforcement is double: ESLint `boundaries` (fast, IDE) and `dependency-cruiser` (transitive, CI). See [ADR-0009](./adr/0009-dependency-cruiser-and-eslint-boundaries.md).
 
-Enforced by:
-- ESLint `eslint-plugin-boundaries` (`bun run quality`)
-- dependency-cruiser (`bun run lint:arch`)
+## Use case pattern
 
-Any violation is a CI-blocking error.
-
-## Use Case Pattern
+One `@Injectable` class per file, with a single `execute()` method. See [ADR-0003](./adr/0003-use-case-single-execute-method.md).
 
 ```typescript
 @Injectable()
@@ -58,80 +77,50 @@ export class CreateBudgetLineUseCase {
   constructor(
     @Inject(BUDGET_LINE_REPOSITORY)
     private readonly repo: BudgetLineRepositoryPort,
-    @Inject(ENCRYPTION_PORT)
-    private readonly encryption: EncryptionPort,
+    @Inject(BUDGET_RECALCULATION_PORT)
+    private readonly budgetRecalculation: BudgetRecalculationPort,
     @InjectInfoLogger(CreateBudgetLineUseCase.name)
     private readonly logger: InfoLogger,
   ) {}
 
-  async execute(dto: BudgetLineCreate, userId: string): Promise<BudgetLine> {
-    BudgetLineInvariants.validateCreate(dto); // throws BusinessException on failure
-    const dek = await this.encryption.ensureUserDEK(userId);
-    const row = await this.repo.create(dto, userId, dek);
-    this.logger.info({ operation: 'create_budget_line', userId }, 'Budget line created');
-    return row;
+  async execute(dto: BudgetLineCreate, user: AuthenticatedUser): Promise<BudgetLine> {
+    BudgetLineInvariants.validateCreate(dto);
+    const entity = await this.repo.insert(/* plain numbers, no encryption here */);
+    await this.budgetRecalculation.recalculate(entity.budgetId, user.clientKey);
+    this.logger.info({ operation: 'budgetLine.create', userId: user.id }, 'Budget line created');
+    return entity;
   }
 }
 ```
 
-## Cross-module Communication
+Use cases work with plain numbers; repositories own the encryption boundary. See [ADR-0004](./adr/0004-repos-return-decrypted-entities.md).
 
-Modules communicate ONLY via ports (symbols + interfaces) — never via direct Service imports.
+## Port + token pattern
 
-| Symbol | Defined in | Used by |
-|--------|-----------|---------|
-| `BUDGET_REPOSITORY` | budget/domain/ports/ | budget use-cases |
-| `BUDGET_RECALCULATION_PORT` | budget/domain/ports/ | budget-line, transaction, budget-template, demo |
-| `BUDGET_LINE_REPOSITORY` | budget-line/domain/ports/ | budget-line use-cases |
-| `TRANSACTION_REPOSITORY` | transaction/domain/ports/ | transaction use-cases, budget-line |
-| `BUDGET_TEMPLATE_REPOSITORY` | budget-template/domain/ports/ | budget-template use-cases |
-| `ENCRYPTION_PORT` | encryption/domain/ports/ | all write use-cases |
-| `DEMO_CREDENTIALS_PORT` | demo/domain/ports/ | demo use-cases |
-| `DEMO_REPOSITORY` | demo/domain/ports/ | demo use-cases |
+```typescript
+// domain/ports/budget-line-repository.port.ts
+export const BUDGET_LINE_REPOSITORY = Symbol('BUDGET_LINE_REPOSITORY');
 
-## AuthenticatedSupabaseClient — CLS-based injection
-
-Controllers no longer receive `@SupabaseClient()` as a parameter. The authenticated Supabase client is stored in CLS (continuation-local storage) by `AuthGuard` and read lazily by `AuthenticatedSupabaseProvider`.
-
-Repositories inject `AuthenticatedSupabaseProvider` and call `.getClient()` to get the per-request client. Use cases inject repositories via ports — no direct Supabase access at the application layer.
-
-## Conventions
-
-- `BusinessException` + `ERROR_DEFINITIONS` — use-cases throw; `GlobalExceptionFilter` logs.
-- `InfoLogger` (no `error` method — compile-time enforced) for all use cases + controllers.
-- Encryption columns (`amount`, `target_amount`, `ending_balance`) MUST go through `ENCRYPTION_PORT` — never direct ciphertext shuffling outside encryption module.
-- RLS enforced per request via authenticated Supabase client (passed through CLS).
-- `@SupabaseClient()` decorator still works for back-compat (used by demo, encryption-controller, account-deletion).
-- RPC calls with JSONB params MUST have strict Zod schemas in `infrastructure/persistence/schemas/`.
-
-## Common Layer (`src/common/`)
-
-```
-common/
-├── guards/          # AuthGuard — stores user + supabase in CLS
-├── decorators/      # @User(), @SupabaseClient()
-├── interceptors/    # Response formatting, client-key cleanup
-├── filters/         # GlobalExceptionFilter (only place logger.error is called)
-├── middleware/      # Request ID tracking
-├── pipes/           # ZodValidationPipe
-├── exceptions/      # BusinessException + ERROR_DEFINITIONS
-├── constants/       # error-definitions.ts
-├── dto/             # Shared DTOs (ErrorResponse, etc.)
-├── logger/          # InfoLogger, InjectInfoLogger, createInfoLoggerProvider
-└── utils/           # currency-metadata.mapper, etc.
+export interface BudgetLineRepositoryPort {
+  findById(id: string): Promise<BudgetLine>;
+  insert(input: BudgetLineCreateInput): Promise<BudgetLine>;
+  update(id: string, patch: BudgetLineUpdatePatch): Promise<BudgetLine>;
+  delete(id: string): Promise<void>;
+}
 ```
 
-## Module Registration Pattern
+The Supabase implementation lives in `infrastructure/persistence/supabase-<domain>.repository.ts`, injects `AuthenticatedSupabaseProvider` + `ENCRYPTION_PORT`, decrypts on read, encrypts on write — use cases never see ciphertext.
+
+## Module registration
+
+Every class using `@InjectInfoLogger` MUST have a matching `createInfoLoggerProvider` entry, otherwise NestJS throws at startup.
 
 ```typescript
 @Module({
-  imports: [ClsModule], // required for AuthenticatedSupabaseProvider
+  imports: [ClsModule],
   providers: [
     CreateBudgetLineUseCase,
-    {
-      provide: BUDGET_LINE_REPOSITORY,
-      useClass: SupabaseBudgetLineRepository,
-    },
+    { provide: BUDGET_LINE_REPOSITORY, useClass: SupabaseBudgetLineRepository },
     createInfoLoggerProvider(CreateBudgetLineUseCase.name),
     createInfoLoggerProvider(BudgetLineController.name),
   ],
@@ -141,4 +130,34 @@ common/
 export class BudgetLineModule {}
 ```
 
-Every class using `@InjectInfoLogger` needs a matching `createInfoLoggerProvider` entry — missing one = NestJS DI error at runtime.
+The authenticated Supabase client is read lazily from CLS by `AuthenticatedSupabaseProvider` (set by `AuthGuard`). Use cases never inject the client. See [ADR-0006](./adr/0006-cls-authenticated-supabase-provider.md).
+
+## How to add a new module
+
+1. Create the folder structure above. Mirror an existing module like `backend-nest/src/modules/budget-line/`.
+2. Define entities + invariants in `domain/` (pure TS, no framework imports).
+3. Define repository port + Symbol token in `domain/ports/`.
+4. Implement the repository in `infrastructure/persistence/`. If it touches encrypted columns, inject `ENCRYPTION_PORT` and decrypt before returning entities.
+5. Write use cases in `application/` (one verb per file, single `execute()`). Throw `BusinessException` with `ERROR_DEFINITIONS` on invariant failures. See [ADR-0005](./adr/0005-error-handling-business-exception.md).
+6. Add controller(s) in `infrastructure/http/`. Use `createZodDto()` from shared schemas for request DTOs. Map entities to API DTOs with mappers in `infrastructure/mappers/`.
+7. If a controller calls an RPC with JSONB ciphertexts, add a strict Zod schema in `infrastructure/persistence/schemas/`. See [ADR-0007](./adr/0007-zod-rpc-payload-schemas.md).
+8. Wire the module: import `ClsModule`, register use cases, repository binding, `createInfoLoggerProvider` for every `@InjectInfoLogger` consumer, export ports that other modules need.
+9. Run `bun run quality` and `bun run lint:arch`. Both must pass.
+
+## Common layer
+
+```
+backend-nest/src/common/
+├── guards/          # AuthGuard — stores user + supabase in CLS
+├── decorators/      # @User(), @SupabaseClient() (legacy back-compat)
+├── interceptors/    # Response shape, client-key cleanup
+├── filters/         # GlobalExceptionFilter — only place logger.error is called
+├── exceptions/      # BusinessException
+├── constants/       # ERROR_DEFINITIONS
+├── logger/          # InfoLogger, InjectInfoLogger, createInfoLoggerProvider
+└── pipes/           # ZodValidationPipe
+```
+
+## ADR index
+
+Decisions and trade-offs live in [`backend-nest/docs/adr/`](./adr/README.md). Read those when changing architecture, not the rules.
