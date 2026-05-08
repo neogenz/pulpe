@@ -15,44 +15,42 @@ struct MainTabView: View {
     var body: some View {
         @Bindable var state = appState
 
-        GeometryReader { geometry in
-            let bottomInset = geometry.safeAreaInsets.bottom
-            // Position capsule just above the home indicator, like a standard tab bar
-            let tabBarBottom = bottomInset > 0 ? DesignTokens.Spacing.xl : DesignTokens.Spacing.xs
-            let scrollMargin = tabBarBottom + tabBarHeight + DesignTokens.Spacing.md - bottomInset
-
-            ZStack(alignment: .bottom) {
-                TabView(selection: $state.selectedTab) {
-                    SwiftUI.Tab(value: Tab.currentMonth) {
-                        CurrentMonthTab()
-                            .toolbarVisibility(.hidden, for: .tabBar)
-                    }
-
-                    SwiftUI.Tab(value: Tab.budgets) {
-                        BudgetsTab()
-                            .toolbarVisibility(.hidden, for: .tabBar)
-                    }
-
-                    SwiftUI.Tab(value: Tab.templates) {
-                        TemplatesTab()
-                            .toolbarVisibility(.hidden, for: .tabBar)
-                    }
-                }
-                .pulpeBackground()
-                .contentMargins(.bottom, scrollMargin, for: .scrollContent)
-
-                Group {
-                    if #available(iOS 26.0, *) {
-                        customTabBarView(selectedTab: $state.selectedTab)
-                            .padding(.horizontal, DesignTokens.Spacing.lg)
-                    } else {
-                        customTabBarViewLegacy(selectedTab: $state.selectedTab)
-                            .padding(.horizontal, DesignTokens.Spacing.lg)
-                    }
-                }
-                .padding(.bottom, tabBarBottom)
+        TabView(selection: $state.selectedTab) {
+            SwiftUI.Tab(value: Tab.currentMonth) {
+                CurrentMonthTab()
+                    .toolbarVisibility(.hidden, for: .tabBar)
             }
-            .ignoresSafeArea(.container, edges: .bottom)
+
+            SwiftUI.Tab(value: Tab.budgets) {
+                BudgetsTab()
+                    .toolbarVisibility(.hidden, for: .tabBar)
+            }
+
+            SwiftUI.Tab(value: Tab.templates) {
+                TemplatesTab()
+                    .toolbarVisibility(.hidden, for: .tabBar)
+            }
+        }
+        .pulpeBackground()
+        // Native idiom: declare the custom floating tab bar via `safeAreaInset`.
+        // SwiftUI then extends each tab's bottom safe area by the bar's height,
+        // so all nested ScrollViews push their content up automatically and any
+        // child `safeAreaInset(.bottom)` (e.g. the "Ajouter" button on the
+        // budget line detail page) stacks correctly above this bar — no manual
+        // `contentMargins` or per-page bottom padding needed.
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            Group {
+                if #available(iOS 26.0, *) {
+                    customTabBarView(selectedTab: $state.selectedTab)
+                } else {
+                    customTabBarViewLegacy(selectedTab: $state.selectedTab)
+                }
+            }
+            .padding(.horizontal, DesignTokens.Spacing.lg)
+            // Small gap above the home indicator so the capsule doesn't touch it.
+            .padding(.bottom, DesignTokens.Spacing.xs)
+            // Keep the bar pinned to the bottom even when the keyboard rises;
+            // scroll content above respects the keyboard normally.
             .ignoresSafeArea(.keyboard)
         }
         .onChange(of: appState.selectedTab) { _, newTab in

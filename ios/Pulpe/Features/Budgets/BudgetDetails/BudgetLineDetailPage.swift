@@ -387,12 +387,7 @@ private extension BudgetLineDetailPage {
         }
         .primaryButtonStyle()
         .padding(.horizontal, DesignTokens.Spacing.lg)
-        .padding(.top, DesignTokens.Spacing.md)
-        // Clear `MainTabView`'s custom floating tab bar (overlaid above this
-        // page via the parent ZStack) so the button is not hidden behind it.
-        // `safeAreaInset` only knows about the system safe area; the custom
-        // tab bar sits ON TOP of that band and would otherwise occlude us.
-        .padding(.bottom, DesignTokens.FrameHeight.tabBar + DesignTokens.Spacing.lg)
+        .padding(.vertical, DesignTokens.Spacing.md)
         .background {
             Color.appBackground
                 .ignoresSafeArea(edges: .bottom)
