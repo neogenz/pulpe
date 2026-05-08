@@ -42,7 +42,6 @@ import { BulkTemplateLineOperationsUseCase } from './application/bulk-template-l
     UpdateTemplateLineUseCase,
     DeleteTemplateLineUseCase,
     BulkTemplateLineOperationsUseCase,
-    createInfoLoggerProvider(SupabaseBudgetTemplateRepository.name),
     createInfoLoggerProvider(FindAllTemplatesUseCase.name),
     createInfoLoggerProvider(FindTemplateUseCase.name),
     createInfoLoggerProvider(CreateTemplateUseCase.name),

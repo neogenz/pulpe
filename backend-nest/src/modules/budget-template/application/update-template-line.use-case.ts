@@ -6,11 +6,6 @@ import {
   type TemplateLineUpdate,
   templateLineUpdateSchema,
 } from 'pulpe-shared';
-import type { TablesInsert } from '@/types/database.types';
-import {
-  ENCRYPTION_PORT,
-  type EncryptionPort,
-} from '@modules/encryption/encryption.tokens';
 import { CurrencyService } from '@modules/currency/currency.service';
 import {
   BUDGET_TEMPLATE_REPOSITORY,
@@ -23,7 +18,6 @@ export class UpdateTemplateLineUseCase {
   constructor(
     @Inject(BUDGET_TEMPLATE_REPOSITORY)
     private readonly repo: BudgetTemplateRepositoryPort,
-    @Inject(ENCRYPTION_PORT) private readonly encryption: EncryptionPort,
     private readonly currencyService: CurrencyService,
     private readonly mapper: BudgetTemplateMapper,
     @InjectInfoLogger(UpdateTemplateLineUseCase.name)
@@ -42,34 +36,17 @@ export class UpdateTemplateLineUseCase {
     let validated = templateLineUpdateSchema.parse(updateDto);
     validated = await this.currencyService.overrideExchangeRate(validated);
 
-    let encryptedAmount: string | undefined;
-    if (validated.amount !== undefined) {
-      const prepared = await this.encryption.prepareAmountData(
-        validated.amount,
-        user.id,
-        user.clientKey,
-      );
-      encryptedAmount = prepared.amount;
-    }
-
-    const encryptedOriginalAmount =
-      validated.originalAmount !== undefined
-        ? await this.encryption.encryptOptionalAmount(
-            validated.originalAmount,
-            user.id,
-            user.clientKey,
-          )
-        : undefined;
-
-    const updateData: Partial<TablesInsert<'template_line'>> = {
-      ...this.mapper.toDbTemplateLineUpdate(validated, encryptedAmount),
-      ...(encryptedAmount !== undefined && { amount: encryptedAmount }),
-      ...(encryptedOriginalAmount !== undefined && {
-        original_amount: encryptedOriginalAmount,
-      }),
-    };
-
-    const line = await this.repo.updateLine(lineId, updateData);
+    const line = await this.repo.updateLine(lineId, {
+      name: validated.name,
+      amount: validated.amount,
+      originalAmount: validated.originalAmount,
+      originalCurrency: validated.originalCurrency,
+      targetCurrency: validated.targetCurrency,
+      exchangeRate: validated.exchangeRate,
+      kind: validated.kind,
+      recurrence: validated.recurrence,
+      description: validated.description,
+    });
 
     this.logger.info(
       {
@@ -81,12 +58,9 @@ export class UpdateTemplateLineUseCase {
       'Template line updated successfully',
     );
 
-    const dek = await this.encryption.getUserDEK(user.id, user.clientKey);
-    const decryptedLine = this.mapper.decryptLine(line, this.encryption, dek);
-
     return {
       success: true,
-      data: this.mapper.toApiTemplateLine(decryptedLine),
+      data: this.mapper.toApiTemplateLine(line),
     };
   }
 }

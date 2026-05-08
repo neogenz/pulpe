@@ -6,8 +6,6 @@ export type BudgetLineInsert =
   Database['public']['Tables']['budget_line']['Insert'];
 export type BudgetLineUpdate =
   Database['public']['Tables']['budget_line']['Update'];
-export type TemplateLineRow =
-  Database['public']['Tables']['template_line']['Row'];
 export type TransactionRow = Database['public']['Tables']['transaction']['Row'];
 
 type TransactionKind = Database['public']['Enums']['transaction_kind'];
@@ -78,22 +76,4 @@ export interface BudgetLineUpdatePatch {
   checkedAt?: string | null;
 }
 
-/**
- * Inline minimal entity for decrypted template_line. Tier 3 budget-template will
- * replace this with the canonical TemplateLineEntity from that module's domain.
- */
-export interface TemplateLineEntity {
-  id: string;
-  templateId: string;
-  name: string;
-  amount: number;
-  originalAmount: number | null;
-  originalCurrency: string | null;
-  targetCurrency: string | null;
-  exchangeRate: number | null;
-  kind: TransactionKind;
-  recurrence: TransactionRecurrence;
-  description: string | null;
-  createdAt: string;
-  updatedAt: string;
-}
+export type { TemplateLine } from '../../budget-template/domain/budget-template.entity';

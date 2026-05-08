@@ -9,11 +9,6 @@ import {
   type TemplateLineUpdateWithId,
   templateLinesBulkOperationsSchema,
 } from 'pulpe-shared';
-import type { Tables, TablesInsert } from '@/types/database.types';
-import {
-  ENCRYPTION_PORT,
-  type EncryptionPort,
-} from '@modules/encryption/encryption.tokens';
 import { CurrencyService } from '@modules/currency/currency.service';
 import { CacheService } from '@modules/cache/cache.service';
 import {
@@ -25,20 +20,23 @@ import {
   type BudgetTemplateRepositoryPort,
 } from '../domain/ports/budget-template-repository.port';
 import { BudgetTemplateMapper } from '../infrastructure/mappers/budget-template.mapper';
-import { applyTemplateLineOperationsListSchema } from '../infrastructure/persistence/schemas/rpc-payload.schemas';
+import type {
+  TemplateLine,
+  TemplateLineCreateInput,
+  TemplateLineRpcUpdate,
+} from '../domain/budget-template.entity';
 
-type BulkOperationsResult = {
+interface BulkOperationsResult {
   deletedIds: string[];
-  updatedLines: Tables<'template_line'>[];
-  createdLines: Tables<'template_line'>[];
-};
+  updatedLines: TemplateLine[];
+  createdLines: TemplateLine[];
+}
 
 @Injectable()
 export class BulkTemplateLineOperationsUseCase {
   constructor(
     @Inject(BUDGET_TEMPLATE_REPOSITORY)
     private readonly repo: BudgetTemplateRepositoryPort,
-    @Inject(ENCRYPTION_PORT) private readonly encryption: EncryptionPort,
     private readonly currencyService: CurrencyService,
     private readonly cacheService: CacheService,
     @Inject(BUDGET_RECALCULATION_PORT)
@@ -69,12 +67,10 @@ export class BulkTemplateLineOperationsUseCase {
     const updatedLines = await this.performBulkUpdates(
       validated.update || [],
       templateId,
-      user,
     );
     const createdLines = await this.performBulkCreates(
       validated.create || [],
       templateId,
-      user,
     );
 
     const operationsResult: BulkOperationsResult = {
@@ -93,13 +89,6 @@ export class BulkTemplateLineOperationsUseCase {
     if (propagationSummary.affectedBudgetsCount > 0) {
       await this.cacheService.invalidateForUser(user.id);
     }
-
-    const dek = await this.encryption.getUserDEK(user.id, user.clientKey);
-    const decrypt = (l: Tables<'template_line'>) =>
-      this.mapper.decryptLine(l, this.encryption, dek);
-
-    const decryptedUpdated = operationsResult.updatedLines.map(decrypt);
-    const decryptedCreated = operationsResult.createdLines.map(decrypt);
 
     this.logger.info(
       {
@@ -124,8 +113,12 @@ export class BulkTemplateLineOperationsUseCase {
     return {
       success: true,
       data: {
-        created: this.mapper.toApiTemplateLineList(decryptedCreated),
-        updated: this.mapper.toApiTemplateLineList(decryptedUpdated),
+        created: this.mapper.toApiTemplateLineList(
+          operationsResult.createdLines,
+        ),
+        updated: this.mapper.toApiTemplateLineList(
+          operationsResult.updatedLines,
+        ),
         deleted: operationsResult.deletedIds,
         propagation: propagationSummary,
       },
@@ -214,15 +207,15 @@ export class BulkTemplateLineOperationsUseCase {
       };
     }
 
-    const impactedBudgetIds = await this.applyRpc(
+    const affectedBudgetIds = await this.applyRpc(
       templateId,
       budgetIds,
       operations,
     );
 
-    if (impactedBudgetIds.length) {
+    if (affectedBudgetIds.length) {
       await Promise.all(
-        impactedBudgetIds.map((id) =>
+        affectedBudgetIds.map((id) =>
           this.budgetRecalculation.recalculate(id, user.clientKey),
         ),
       );
@@ -230,35 +223,9 @@ export class BulkTemplateLineOperationsUseCase {
 
     return {
       mode: 'propagate',
-      affectedBudgetIds: impactedBudgetIds,
-      affectedBudgetsCount: impactedBudgetIds.length,
+      affectedBudgetIds,
+      affectedBudgetsCount: affectedBudgetIds.length,
     };
-  }
-
-  private hasRpcOperations(
-    operations: BulkOperationsResult,
-    budgetIds: string[],
-  ): boolean {
-    const hasDeletes = operations.deletedIds.length > 0;
-    const hasBudgetMutations =
-      budgetIds.length > 0 &&
-      (operations.updatedLines.length > 0 ||
-        operations.createdLines.length > 0);
-    return hasDeletes || hasBudgetMutations;
-  }
-
-  private mapLinesForRpc(lines: Tables<'template_line'>[]) {
-    return lines.map((line) => ({
-      id: line.id,
-      name: line.name,
-      amount: line.amount,
-      kind: line.kind,
-      recurrence: line.recurrence,
-      original_amount: line.original_amount,
-      original_currency: line.original_currency,
-      target_currency: line.target_currency,
-      exchange_rate: line.exchange_rate,
-    }));
   }
 
   private async applyRpc(
@@ -266,136 +233,109 @@ export class BulkTemplateLineOperationsUseCase {
     budgetIds: string[],
     operations: BulkOperationsResult,
   ): Promise<string[]> {
-    if (!this.hasRpcOperations(operations, budgetIds)) return [];
-
+    const hasDeletes = operations.deletedIds.length > 0;
     const hasBudgetMutations =
       budgetIds.length > 0 &&
       (operations.updatedLines.length > 0 ||
         operations.createdLines.length > 0);
+    if (!hasDeletes && !hasBudgetMutations) return [];
 
-    const updatedLinesPayload = hasBudgetMutations
-      ? applyTemplateLineOperationsListSchema.parse(
-          this.mapLinesForRpc(operations.updatedLines),
-        )
-      : [];
-    const createdLinesPayload = hasBudgetMutations
-      ? applyTemplateLineOperationsListSchema.parse(
-          this.mapLinesForRpc(operations.createdLines),
-        )
-      : [];
-
-    return this.repo.applyTemplateLineOperationsRpc({
-      template_id: templateId,
-      budget_ids: budgetIds,
-      delete_ids: operations.deletedIds,
-      updated_lines: updatedLinesPayload,
-      created_lines: createdLinesPayload,
+    const result = await this.repo.bulkApplyTemplateLineOperations({
+      templateId,
+      budgetIds,
+      deleteIds: operations.deletedIds,
+      updatedLines: hasBudgetMutations
+        ? operations.updatedLines.map((line) => this.entityToRpcUpdate(line))
+        : [],
+      createdLines: hasBudgetMutations
+        ? operations.createdLines.map((line) => this.entityToRpcUpdate(line))
+        : [],
     });
+
+    return result.affectedBudgetIds;
   }
 
   private async performBulkUpdates(
     updates: TemplateLineUpdateWithId[],
     templateId: string,
-    user: AuthenticatedUser,
-  ): Promise<Tables<'template_line'>[]> {
+  ): Promise<TemplateLine[]> {
     if (!updates.length) return [];
 
     const updateIds = updates.map((u) => u.id);
     await this.repo.validateLinesExist(templateId, updateIds);
 
-    const prepared = await Promise.all(
+    const overridden = await Promise.all(
       updates.map(async (line) => {
-        const { id, ...rawUpdateData } = line;
-        const updateData =
-          await this.currencyService.overrideExchangeRate(rawUpdateData);
-
-        const [encryptedAmount, encryptedOriginalAmount] = await Promise.all([
-          updateData.amount !== undefined
-            ? this.encryption
-                .prepareAmountData(updateData.amount, user.id, user.clientKey)
-                .then((p) => p.amount)
-            : Promise.resolve(undefined),
-          updateData.originalAmount !== undefined
-            ? this.encryption.encryptOptionalAmount(
-                updateData.originalAmount,
-                user.id,
-                user.clientKey,
-              )
-            : Promise.resolve(undefined),
-        ]);
-
-        const dbData: Partial<TablesInsert<'template_line'>> = {
-          ...this.mapper.toDbTemplateLineUpdate(updateData, encryptedAmount),
-          ...(encryptedAmount !== undefined && { amount: encryptedAmount }),
-          ...(encryptedOriginalAmount !== undefined && {
-            original_amount: encryptedOriginalAmount,
-          }),
-        };
-
-        return { id, dbData };
+        const { id, ...rest } = line;
+        const overriddenRest =
+          await this.currencyService.overrideExchangeRate(rest);
+        return { id, ...overriddenRest };
       }),
     );
 
-    const updateGroups = new Map<
-      string,
-      { ids: string[]; data: Partial<TablesInsert<'template_line'>> }
-    >();
-
-    for (const { id, dbData } of prepared) {
-      const key = JSON.stringify(dbData);
-      if (!updateGroups.has(key)) {
-        updateGroups.set(key, { ids: [], data: dbData });
-      }
-      updateGroups.get(key)!.ids.push(id);
-    }
-
-    const results = await Promise.all(
-      Array.from(updateGroups.values()).map(({ ids, data }) =>
-        this.repo.updateLinesInBatch(ids, data),
+    return Promise.all(
+      overridden.map(({ id, ...rest }) =>
+        this.repo.updateLine(id, {
+          name: rest.name,
+          amount: rest.amount,
+          originalAmount: rest.originalAmount,
+          originalCurrency: rest.originalCurrency,
+          targetCurrency: rest.targetCurrency,
+          exchangeRate: rest.exchangeRate,
+          kind: rest.kind,
+          recurrence: rest.recurrence,
+          description: rest.description,
+        }),
       ),
     );
-
-    return results.flat();
   }
 
   private async performBulkCreates(
     creates: TemplateLineCreateWithoutTemplateId[],
     templateId: string,
-    user: AuthenticatedUser,
-  ): Promise<Tables<'template_line'>[]> {
+  ): Promise<TemplateLine[]> {
     if (!creates.length) return [];
 
-    const overriddenCreates = await Promise.all(
+    const overridden = await Promise.all(
       creates.map((line) => this.currencyService.overrideExchangeRate(line)),
     );
 
-    const amounts = overriddenCreates.map((line) => line.amount);
-    const preparedAmounts = await this.encryption.prepareAmountsData(
-      amounts,
-      user.id,
-      user.clientKey,
-    );
-
-    const encryptedOriginalAmounts = await Promise.all(
-      overriddenCreates.map((line) =>
-        this.encryption.encryptOptionalAmount(
-          line.originalAmount,
-          user.id,
-          user.clientKey,
-        ),
+    return Promise.all(
+      overridden.map((line) =>
+        this.repo.insertLine(this.toCreateInput(line, templateId)),
       ),
     );
+  }
 
-    const inserts = overriddenCreates.map((line, index) => ({
-      ...this.mapper.toDbTemplateLineInsert(
-        line,
-        templateId,
-        preparedAmounts[index].amount,
-      ),
-      amount: preparedAmounts[index].amount,
-      original_amount: encryptedOriginalAmounts[index],
-    }));
+  private toCreateInput(
+    line: TemplateLineCreateWithoutTemplateId,
+    templateId: string,
+  ): TemplateLineCreateInput {
+    return {
+      templateId,
+      name: line.name,
+      amount: line.amount,
+      originalAmount: line.originalAmount,
+      originalCurrency: line.originalCurrency,
+      targetCurrency: line.targetCurrency,
+      exchangeRate: line.exchangeRate,
+      kind: line.kind,
+      recurrence: line.recurrence,
+      description: line.description,
+    };
+  }
 
-    return this.repo.insertLines(inserts);
+  private entityToRpcUpdate(entity: TemplateLine): TemplateLineRpcUpdate {
+    return {
+      id: entity.id,
+      name: entity.name,
+      amount: entity.amount,
+      originalAmount: entity.originalAmount,
+      originalCurrency: entity.originalCurrency,
+      targetCurrency: entity.targetCurrency,
+      exchangeRate: entity.exchangeRate,
+      kind: entity.kind,
+      recurrence: entity.recurrence,
+    };
   }
 }

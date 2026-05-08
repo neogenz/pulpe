@@ -1,26 +1,48 @@
-import { Injectable } from '@nestjs/common';
-import { type InfoLogger, InjectInfoLogger } from '@common/logger';
+import { Inject, Injectable } from '@nestjs/common';
+import type { Buffer } from 'node:buffer';
+import { ZodError } from 'zod';
 import { BusinessException } from '@common/exceptions/business.exception';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 import { AuthenticatedSupabaseProvider } from '@modules/supabase/authenticated-supabase.provider';
-import type { BudgetTemplateRepositoryPort } from '../../domain/ports/budget-template-repository.port';
+import {
+  ENCRYPTION_PORT,
+  type EncryptionPort,
+} from '@modules/encryption/encryption.tokens';
+import type { AuthenticatedUser } from '@common/decorators/user.decorator';
+import { mapCurrencyMetadataToDb } from '@common/utils/currency-metadata.mapper';
 import type {
-  TemplateRow,
-  TemplateUpdate,
-  TemplateLineRow,
-  TemplateLineInsert,
+  BudgetTemplate,
+  BudgetTemplateUpdatePatch,
+  BulkTemplateLineOperationsInput,
+  CreateTemplateWithLinesInput,
   MonthlyBudgetRow,
+  TemplateLine,
+  TemplateLineCreateInput,
+  TemplateLineInsert,
+  TemplateLineRow,
+  TemplateLineRpcInput,
+  TemplateLineRpcUpdate,
+  TemplateLineUpdatePatch,
+  TemplateRow,
+  TemplateUsageBudget,
 } from '../../domain/budget-template.entity';
+import type {
+  BudgetTemplateRepositoryPort,
+  BulkTemplateLineOperationsResult,
+} from '../../domain/ports/budget-template-repository.port';
+import {
+  applyTemplateLineOperationsListSchema,
+  createTemplateLinesRpcPayloadSchema,
+} from './schemas/rpc-payload.schemas';
 
 @Injectable()
 export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositoryPort {
   constructor(
     private readonly supabaseProvider: AuthenticatedSupabaseProvider,
-    @InjectInfoLogger(SupabaseBudgetTemplateRepository.name)
-    private readonly logger: InfoLogger,
+    @Inject(ENCRYPTION_PORT) private readonly encryption: EncryptionPort,
   ) {}
 
-  async findAllForUser(userId: string): Promise<TemplateRow[]> {
+  async findAllForUser(userId: string): Promise<BudgetTemplate[]> {
     const supabase = this.supabaseProvider.client;
     const { data, error } = await supabase
       .from('template')
@@ -37,10 +59,10 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
       );
     }
 
-    return data ?? [];
+    return (data ?? []).map((row) => this.toTemplateEntity(row));
   }
 
-  async findById(id: string, userId: string): Promise<TemplateRow> {
+  async findById(id: string, userId: string): Promise<BudgetTemplate> {
     const supabase = this.supabaseProvider.client;
     const { data, error } = await supabase
       .from('template')
@@ -56,10 +78,10 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
       );
     }
 
-    return data;
+    return this.toTemplateEntity(data);
   }
 
-  async validateAccess(id: string, userId: string): Promise<TemplateRow> {
+  async validateAccess(id: string, userId: string): Promise<BudgetTemplate> {
     const supabase = this.supabaseProvider.client;
     const { data, error } = await supabase
       .from('template')
@@ -79,7 +101,7 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
       });
     }
 
-    return data;
+    return this.toTemplateEntity(data);
   }
 
   async countForUser(userId: string): Promise<number> {
@@ -119,11 +141,21 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
     await query;
   }
 
-  async update(id: string, data: TemplateUpdate): Promise<TemplateRow> {
+  async update(
+    id: string,
+    patch: BudgetTemplateUpdatePatch,
+  ): Promise<BudgetTemplate> {
     const supabase = this.supabaseProvider.client;
+    const updateData: Partial<TemplateRow> = {};
+    if (patch.name !== undefined) updateData.name = patch.name;
+    if (patch.description !== undefined) {
+      updateData.description = patch.description ?? null;
+    }
+    if (patch.isDefault !== undefined) updateData.is_default = patch.isDefault;
+
     const { data: result, error } = await supabase
       .from('template')
-      .update(data)
+      .update(updateData)
       .eq('id', id)
       .select()
       .single();
@@ -137,7 +169,7 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
       );
     }
 
-    return result;
+    return this.toTemplateEntity(result);
   }
 
   async delete(id: string): Promise<void> {
@@ -154,7 +186,7 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
     }
   }
 
-  async findLinesByTemplateId(templateId: string): Promise<TemplateLineRow[]> {
+  async findLinesByTemplateId(templateId: string): Promise<TemplateLine[]> {
     const supabase = this.supabaseProvider.client;
     const { data, error } = await supabase
       .from('template_line')
@@ -171,18 +203,24 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
       );
     }
 
-    return data ?? [];
+    if (!data?.length) return [];
+    const dek = await this.getDek();
+    return data.map((row) => this.toTemplateLine(row, dek));
   }
 
-  async insertLine(data: TemplateLineInsert): Promise<TemplateLineRow> {
+  async insertLine(input: TemplateLineCreateInput): Promise<TemplateLine> {
     const supabase = this.supabaseProvider.client;
-    const { data: result, error } = await supabase
+    const user = this.supabaseProvider.user;
+
+    const insertRow = await this.toTemplateLineInsertRow(input, user);
+
+    const { data, error } = await supabase
       .from('template_line')
-      .insert(data)
+      .insert(insertRow)
       .select()
       .single();
 
-    if (error || !result) {
+    if (error || !data) {
       throw new BusinessException(
         ERROR_DEFINITIONS.TEMPLATE_CREATE_FAILED,
         undefined,
@@ -191,16 +229,17 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
       );
     }
 
-    return result;
+    const dek = await this.getDek();
+    return this.toTemplateLine(data, dek);
   }
 
   async findLineById(
     lineId: string,
-  ): Promise<TemplateLineRow & { template: { user_id: string | null } }> {
+  ): Promise<{ line: TemplateLine; templateUserId: string | null }> {
     const supabase = this.supabaseProvider.client;
     const { data, error } = await supabase
       .from('template_line')
-      .select('*, template!inner(*)')
+      .select('*, template!inner(user_id)')
       .eq('id', lineId)
       .single();
 
@@ -210,17 +249,25 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
       });
     }
 
-    return data as TemplateLineRow & { template: { user_id: string | null } };
+    const row = data as TemplateLineRow & {
+      template: { user_id: string | null };
+    };
+
+    const dek = await this.getDek();
+    return {
+      line: this.toTemplateLine(row, dek),
+      templateUserId: row.template.user_id,
+    };
   }
 
   async validateLineAccess(
     lineId: string,
     userId: string,
-  ): Promise<TemplateLineRow> {
+  ): Promise<TemplateLine> {
     const supabase = this.supabaseProvider.client;
     const { data, error } = await supabase
       .from('template_line')
-      .select('*, template!inner(*)')
+      .select('*, template!inner(user_id)')
       .eq('id', lineId)
       .single();
 
@@ -241,22 +288,27 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
       );
     }
 
-    return row;
+    const dek = await this.getDek();
+    return this.toTemplateLine(row, dek);
   }
 
   async updateLine(
     lineId: string,
-    data: Partial<TemplateLineInsert>,
-  ): Promise<TemplateLineRow> {
+    patch: TemplateLineUpdatePatch,
+  ): Promise<TemplateLine> {
     const supabase = this.supabaseProvider.client;
-    const { data: result, error } = await supabase
+    const user = this.supabaseProvider.user;
+
+    const updateRow = await this.toTemplateLineUpdateRow(patch, user);
+
+    const { data, error } = await supabase
       .from('template_line')
-      .update(data)
+      .update(updateRow)
       .eq('id', lineId)
       .select()
       .single();
 
-    if (error || !result) {
+    if (error || !data) {
       throw new BusinessException(
         ERROR_DEFINITIONS.TEMPLATE_LINE_NOT_FOUND,
         { id: lineId },
@@ -265,49 +317,8 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
       );
     }
 
-    return result;
-  }
-
-  async updateLinesInBatch(
-    ids: string[],
-    data: Partial<TemplateLineInsert>,
-  ): Promise<TemplateLineRow[]> {
-    const supabase = this.supabaseProvider.client;
-    const { data: result, error } = await supabase
-      .from('template_line')
-      .update(data)
-      .in('id', ids)
-      .select();
-
-    if (error) {
-      throw new BusinessException(
-        ERROR_DEFINITIONS.TEMPLATE_LINE_NOT_FOUND,
-        undefined,
-        { operation: 'updateLinesInBatch' },
-        { cause: error },
-      );
-    }
-
-    return result ?? [];
-  }
-
-  async insertLines(data: TemplateLineInsert[]): Promise<TemplateLineRow[]> {
-    const supabase = this.supabaseProvider.client;
-    const { data: result, error } = await supabase
-      .from('template_line')
-      .insert(data)
-      .select();
-
-    if (error) {
-      throw new BusinessException(
-        ERROR_DEFINITIONS.TEMPLATE_CREATE_FAILED,
-        undefined,
-        { operation: 'insertLines' },
-        { cause: error },
-      );
-    }
-
-    return result ?? [];
+    const dek = await this.getDek();
+    return this.toTemplateLine(data, dek);
   }
 
   async deleteLine(lineId: string): Promise<void> {
@@ -340,9 +351,7 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
 
   async fetchTemplateBudgets(
     templateId: string,
-  ): Promise<
-    Array<{ id: string; month: number; year: number; description: string }>
-  > {
+  ): Promise<TemplateUsageBudget[]> {
     const supabase = this.supabaseProvider.client;
     const { data, error } = await supabase
       .from('monthly_budget')
@@ -360,12 +369,7 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
       );
     }
 
-    return (data ?? []) as Array<{
-      id: string;
-      month: number;
-      year: number;
-      description: string;
-    }>;
+    return (data ?? []) as TemplateUsageBudget[];
   }
 
   async countOnboardingTemplatesInWindow(
@@ -454,20 +458,25 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
     return data ?? [];
   }
 
-  async createTemplateWithLinesRpc(payload: {
-    p_user_id: string;
-    p_name: string;
-    p_description: string | undefined;
-    p_is_default: boolean;
-    p_lines: unknown[];
-  }): Promise<TemplateRow> {
+  async createTemplateWithLines(
+    input: CreateTemplateWithLinesInput,
+  ): Promise<BudgetTemplate> {
     const supabase = this.supabaseProvider.client;
+    const user = this.supabaseProvider.user;
+
+    const rpcLines = await this.encryptLinesForCreateRpc(input.lines, user);
+    const validated = this.parseRpcPayload(
+      createTemplateLinesRpcPayloadSchema,
+      rpcLines,
+      'createTemplateWithLines',
+    );
+
     const { data, error } = await supabase.rpc('create_template_with_lines', {
-      p_user_id: payload.p_user_id,
-      p_name: payload.p_name,
-      p_description: payload.p_description,
-      p_is_default: payload.p_is_default,
-      p_lines: payload.p_lines as never,
+      p_user_id: input.userId,
+      p_name: input.name,
+      p_description: input.description,
+      p_is_default: input.isDefault,
+      p_lines: validated as never,
     });
 
     if (error) throw error;
@@ -476,50 +485,251 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
       throw new BusinessException(ERROR_DEFINITIONS.TEMPLATE_CREATE_FAILED);
     }
 
-    return data as unknown as TemplateRow;
+    return this.toTemplateEntity(data as unknown as TemplateRow);
   }
 
-  async applyTemplateLineOperationsRpc(payload: {
-    template_id: string;
-    budget_ids: string[];
-    delete_ids: string[];
-    updated_lines: unknown[];
-    created_lines: unknown[];
-  }): Promise<string[]> {
+  async bulkApplyTemplateLineOperations(
+    input: BulkTemplateLineOperationsInput,
+  ): Promise<BulkTemplateLineOperationsResult> {
     const supabase = this.supabaseProvider.client;
+    const user = this.supabaseProvider.user;
+
+    const hasBudgetMutations = input.budgetIds.length > 0;
+    const updatedLinesRpc =
+      hasBudgetMutations && input.updatedLines.length > 0
+        ? await this.encryptLinesForApplyRpc(input.updatedLines, user)
+        : [];
+    const createdLinesRpc =
+      hasBudgetMutations && input.createdLines.length > 0
+        ? await this.encryptLinesForApplyRpc(input.createdLines, user)
+        : [];
+
+    const updatedLinesPayload = this.parseRpcPayload(
+      applyTemplateLineOperationsListSchema,
+      updatedLinesRpc,
+      'bulkApplyTemplateLineOperations.updated',
+    );
+    const createdLinesPayload = this.parseRpcPayload(
+      applyTemplateLineOperationsListSchema,
+      createdLinesRpc,
+      'bulkApplyTemplateLineOperations.created',
+    );
+
     const { data, error } = await supabase.rpc(
       'apply_template_line_operations',
       {
-        template_id: payload.template_id,
-        budget_ids: payload.budget_ids,
-        delete_ids: payload.delete_ids,
-        updated_lines: payload.updated_lines as never,
-        created_lines: payload.created_lines as never,
+        template_id: input.templateId,
+        budget_ids: input.budgetIds,
+        delete_ids: input.deleteIds,
+        updated_lines: updatedLinesPayload as never,
+        created_lines: createdLinesPayload as never,
       },
     );
 
     if (error) throw error;
 
-    if (!data) return [];
-
-    return Array.isArray(data)
+    const affectedBudgetIds = Array.isArray(data)
       ? (data.filter((id): id is string => Boolean(id)) as string[])
       : [];
+
+    return { affectedBudgetIds };
   }
 
-  logFutureBudgetsFetch(
-    templateId: string,
-    userId: string,
-    count: number,
-  ): void {
-    this.logger.info(
-      {
-        operation: 'fetchFutureBudgets',
-        templateId,
-        userId,
-        futureBudgetsCount: count,
-      },
-      'Future budgets query completed',
+  private async getDek(): Promise<Buffer> {
+    const user = this.supabaseProvider.user;
+    return this.encryption.getUserDEK(user.id, user.clientKey);
+  }
+
+  private toTemplateEntity(row: TemplateRow): BudgetTemplate {
+    return {
+      id: row.id,
+      userId: row.user_id,
+      name: row.name,
+      description: row.description,
+      isDefault: row.is_default,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    };
+  }
+
+  private toTemplateLine(row: TemplateLineRow, dek: Buffer): TemplateLine {
+    return {
+      id: row.id,
+      templateId: row.template_id,
+      name: row.name,
+      amount: row.amount
+        ? this.encryption.tryDecryptAmount(row.amount, dek, 0)
+        : 0,
+      originalAmount: row.original_amount
+        ? this.encryption.tryDecryptAmount(row.original_amount, dek, null)
+        : null,
+      originalCurrency:
+        row.original_currency as TemplateLine['originalCurrency'],
+      targetCurrency: row.target_currency as TemplateLine['targetCurrency'],
+      exchangeRate: row.exchange_rate,
+      kind: row.kind,
+      recurrence: row.recurrence,
+      description: row.description,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    };
+  }
+
+  private async toTemplateLineInsertRow(
+    input: TemplateLineCreateInput,
+    user: AuthenticatedUser,
+  ): Promise<TemplateLineInsert> {
+    const { amount: encryptedAmount } = await this.encryption.prepareAmountData(
+      input.amount,
+      user.id,
+      user.clientKey,
     );
+    const encryptedOriginalAmount = await this.encryption.encryptOptionalAmount(
+      input.originalAmount,
+      user.id,
+      user.clientKey,
+    );
+
+    return {
+      template_id: input.templateId,
+      name: input.name,
+      amount: encryptedAmount,
+      original_amount: encryptedOriginalAmount,
+      ...mapCurrencyMetadataToDb({
+        originalCurrency: input.originalCurrency,
+        targetCurrency: input.targetCurrency,
+        exchangeRate: input.exchangeRate,
+      }),
+      kind: input.kind,
+      recurrence: input.recurrence,
+      description: input.description,
+    };
+  }
+
+  private async toTemplateLineUpdateRow(
+    patch: TemplateLineUpdatePatch,
+    user: AuthenticatedUser,
+  ): Promise<Partial<TemplateLineInsert>> {
+    const updateData: Partial<TemplateLineInsert> = {};
+    if (patch.name !== undefined) updateData.name = patch.name;
+    if (patch.kind !== undefined) updateData.kind = patch.kind;
+    if (patch.recurrence !== undefined)
+      updateData.recurrence = patch.recurrence;
+    if (patch.description !== undefined) {
+      updateData.description = patch.description;
+    }
+
+    if (patch.amount !== undefined) {
+      const { amount } = await this.encryption.prepareAmountData(
+        patch.amount,
+        user.id,
+        user.clientKey,
+      );
+      updateData.amount = amount;
+    }
+
+    if (patch.originalAmount !== undefined) {
+      updateData.original_amount = await this.encryption.encryptOptionalAmount(
+        patch.originalAmount,
+        user.id,
+        user.clientKey,
+      );
+    }
+
+    Object.assign(
+      updateData,
+      mapCurrencyMetadataToDb({
+        originalCurrency: patch.originalCurrency,
+        targetCurrency: patch.targetCurrency,
+        exchangeRate: patch.exchangeRate,
+      }),
+    );
+
+    return updateData;
+  }
+
+  private async encryptLinesForCreateRpc(
+    lines: TemplateLineRpcInput[],
+    user: AuthenticatedUser,
+  ): Promise<unknown[]> {
+    if (!lines.length) return [];
+    const amounts = lines.map((line) => line.amount);
+    const [preparedAmounts, encryptedOriginalAmounts] = await Promise.all([
+      this.encryption.prepareAmountsData(amounts, user.id, user.clientKey),
+      Promise.all(
+        lines.map((line) =>
+          this.encryption.encryptOptionalAmount(
+            line.originalAmount,
+            user.id,
+            user.clientKey,
+          ),
+        ),
+      ),
+    ]);
+
+    return lines.map((line, index) => ({
+      name: line.name,
+      amount: preparedAmounts[index].amount,
+      kind: line.kind,
+      recurrence: line.recurrence,
+      description: line.description,
+      original_amount: encryptedOriginalAmounts[index],
+      original_currency: line.originalCurrency ?? null,
+      target_currency: line.targetCurrency ?? null,
+      exchange_rate: line.exchangeRate,
+    }));
+  }
+
+  private async encryptLinesForApplyRpc(
+    lines: TemplateLineRpcUpdate[],
+    user: AuthenticatedUser,
+  ): Promise<unknown[]> {
+    if (!lines.length) return [];
+    const dek = await this.encryption.ensureUserDEK(user.id, user.clientKey);
+
+    const encryptedOriginalAmounts = await Promise.all(
+      lines.map((line) =>
+        this.encryption.encryptOptionalAmount(
+          line.originalAmount,
+          user.id,
+          user.clientKey,
+        ),
+      ),
+    );
+
+    return lines.map((line, index) => ({
+      id: line.id,
+      name: line.name,
+      amount:
+        line.amount === null
+          ? null
+          : this.encryption.encryptAmount(line.amount, dek),
+      kind: line.kind,
+      recurrence: line.recurrence,
+      original_amount: encryptedOriginalAmounts[index],
+      original_currency: line.originalCurrency ?? null,
+      target_currency: line.targetCurrency ?? null,
+      exchange_rate: line.exchangeRate,
+    }));
+  }
+
+  private parseRpcPayload<T>(
+    schema: { parse: (data: unknown) => T },
+    payload: unknown,
+    operation: string,
+  ): T {
+    try {
+      return schema.parse(payload);
+    } catch (err) {
+      if (err instanceof ZodError) {
+        throw new BusinessException(
+          ERROR_DEFINITIONS.TEMPLATE_CREATE_FAILED,
+          { reason: 'Invalid RPC payload structure' },
+          { operation, validationErrors: err.issues },
+          { cause: err },
+        );
+      }
+      throw err;
+    }
   }
 }

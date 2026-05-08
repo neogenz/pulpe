@@ -37,8 +37,11 @@ export class UpdateTemplateUseCase {
       await this.repo.resetDefaultTemplates(user.id, id);
     }
 
-    const updateData = this.mapper.toDbTemplateUpdate(validated);
-    const data = await this.repo.update(id, updateData);
+    const data = await this.repo.update(id, {
+      name: validated.name,
+      description: validated.description,
+      isDefault: validated.isDefault,
+    });
 
     this.logger.info(
       {

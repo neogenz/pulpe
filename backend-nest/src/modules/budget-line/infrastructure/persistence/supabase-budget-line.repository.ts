@@ -18,10 +18,10 @@ import type {
   BudgetLineInsert,
   BudgetLineRow,
   BudgetLineUpdate,
-  TemplateLineEntity,
-  TemplateLineRow,
+  TemplateLine,
   TransactionRow,
 } from '../../domain/budget-line.entity';
+import type { TemplateLineRow } from '@modules/budget-template/domain/budget-template.entity';
 
 @Injectable()
 export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
@@ -207,9 +207,7 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
     }
   }
 
-  async fetchTemplateLineById(
-    templateLineId: string,
-  ): Promise<TemplateLineEntity> {
+  async fetchTemplateLineById(templateLineId: string): Promise<TemplateLine> {
     const supabase = this.supabaseProvider.client;
     const { data, error } = await supabase
       .from('template_line')
@@ -226,7 +224,7 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
     }
 
     const dek = await this.getDek();
-    return this.toTemplateLineEntity(data, dek);
+    return this.toTemplateLine(data, dek);
   }
 
   async toggleCheckRpc(id: string): Promise<BudgetLine> {
@@ -306,10 +304,7 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
     };
   }
 
-  private toTemplateLineEntity(
-    row: TemplateLineRow,
-    dek: Buffer,
-  ): TemplateLineEntity {
+  private toTemplateLine(row: TemplateLineRow, dek: Buffer): TemplateLine {
     return {
       id: row.id,
       templateId: row.template_id,
@@ -320,8 +315,9 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
       originalAmount: row.original_amount
         ? this.encryption.tryDecryptAmount(row.original_amount, dek, null)
         : null,
-      originalCurrency: row.original_currency,
-      targetCurrency: row.target_currency,
+      originalCurrency:
+        row.original_currency as TemplateLine['originalCurrency'],
+      targetCurrency: row.target_currency as TemplateLine['targetCurrency'],
       exchangeRate: row.exchange_rate,
       kind: row.kind,
       recurrence: row.recurrence,

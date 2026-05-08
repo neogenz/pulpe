@@ -6,10 +6,6 @@ import {
   type TemplateLineResponse,
   templateLineCreateWithoutTemplateIdSchema,
 } from 'pulpe-shared';
-import {
-  ENCRYPTION_PORT,
-  type EncryptionPort,
-} from '@modules/encryption/encryption.tokens';
 import { CurrencyService } from '@modules/currency/currency.service';
 import {
   BUDGET_TEMPLATE_REPOSITORY,
@@ -22,7 +18,6 @@ export class CreateTemplateLineUseCase {
   constructor(
     @Inject(BUDGET_TEMPLATE_REPOSITORY)
     private readonly repo: BudgetTemplateRepositoryPort,
-    @Inject(ENCRYPTION_PORT) private readonly encryption: EncryptionPort,
     private readonly currencyService: CurrencyService,
     private readonly mapper: BudgetTemplateMapper,
     @InjectInfoLogger(CreateTemplateLineUseCase.name)
@@ -41,28 +36,18 @@ export class CreateTemplateLineUseCase {
     let validated = templateLineCreateWithoutTemplateIdSchema.parse(createDto);
     validated = await this.currencyService.overrideExchangeRate(validated);
 
-    const [{ amount }, encryptedOriginalAmount] = await Promise.all([
-      this.encryption.prepareAmountData(
-        validated.amount,
-        user.id,
-        user.clientKey,
-      ),
-      this.encryption.encryptOptionalAmount(
-        validated.originalAmount,
-        user.id,
-        user.clientKey,
-      ),
-    ]);
-
-    const insertData = {
-      ...this.mapper.toDbTemplateLineInsert(validated, templateId, amount),
-      amount,
-      ...(encryptedOriginalAmount !== null && {
-        original_amount: encryptedOriginalAmount,
-      }),
-    };
-
-    const line = await this.repo.insertLine(insertData);
+    const line = await this.repo.insertLine({
+      templateId,
+      name: validated.name,
+      amount: validated.amount,
+      originalAmount: validated.originalAmount,
+      originalCurrency: validated.originalCurrency,
+      targetCurrency: validated.targetCurrency,
+      exchangeRate: validated.exchangeRate,
+      kind: validated.kind,
+      recurrence: validated.recurrence,
+      description: validated.description,
+    });
 
     this.logger.info(
       {
@@ -75,12 +60,9 @@ export class CreateTemplateLineUseCase {
       'Template line created successfully',
     );
 
-    const dek = await this.encryption.getUserDEK(user.id, user.clientKey);
-    const decryptedLine = this.mapper.decryptLine(line, this.encryption, dek);
-
     return {
       success: true,
-      data: this.mapper.toApiTemplateLine(decryptedLine),
+      data: this.mapper.toApiTemplateLine(line),
     };
   }
 }

@@ -2,27 +2,26 @@ import { describe, it, expect, beforeEach, jest } from 'bun:test';
 import { Test } from '@nestjs/testing';
 import { CreateTemplateLineUseCase } from './create-template-line.use-case';
 import { BUDGET_TEMPLATE_REPOSITORY } from '../domain/ports/budget-template-repository.port';
-import { ENCRYPTION_PORT } from '@modules/encryption/encryption.tokens';
 import { CurrencyService } from '@modules/currency/currency.service';
 import { BudgetTemplateMapper } from '../infrastructure/mappers/budget-template.mapper';
 import type { TemplateLineCreateWithoutTemplateId } from 'pulpe-shared';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
-import type { Tables } from '../../../types/database.types';
+import type { TemplateLine } from '../domain/budget-template.entity';
 
-const mockTemplateLineRow: Tables<'template_line'> = {
+const mockTemplateLine: TemplateLine = {
   id: 'line-1',
-  template_id: 'template-1',
+  templateId: 'template-1',
   name: 'Salaire',
-  amount: 'encrypted-5000',
+  amount: 5000,
+  originalAmount: null,
+  originalCurrency: null,
+  targetCurrency: null,
+  exchangeRate: null,
   kind: 'income',
   recurrence: 'fixed',
   description: 'Salaire mensuel',
-  created_at: '2026-01-01T00:00:00Z',
-  updated_at: '2026-01-01T00:00:00Z',
-  original_amount: null,
-  original_currency: null,
-  target_currency: null,
-  exchange_rate: null,
+  createdAt: '2026-01-01T00:00:00Z',
+  updatedAt: '2026-01-01T00:00:00Z',
 };
 
 const mockUser: AuthenticatedUser = {
@@ -38,26 +37,12 @@ describe('CreateTemplateLineUseCase', () => {
     validateAccess: ReturnType<typeof jest.fn>;
     insertLine: ReturnType<typeof jest.fn>;
   };
-  let mockEncryption: {
-    prepareAmountData: ReturnType<typeof jest.fn>;
-    encryptOptionalAmount: ReturnType<typeof jest.fn>;
-    getUserDEK: ReturnType<typeof jest.fn>;
-    tryDecryptAmount: ReturnType<typeof jest.fn>;
-  };
   let mockCurrency: { overrideExchangeRate: ReturnType<typeof jest.fn> };
 
   beforeEach(async () => {
     mockRepo = {
       validateAccess: jest.fn().mockResolvedValue(undefined),
-      insertLine: jest.fn().mockResolvedValue(mockTemplateLineRow),
-    };
-    mockEncryption = {
-      prepareAmountData: jest
-        .fn()
-        .mockResolvedValue({ amount: 'encrypted-5000' }),
-      encryptOptionalAmount: jest.fn().mockResolvedValue(null),
-      getUserDEK: jest.fn().mockResolvedValue(Buffer.from('dek')),
-      tryDecryptAmount: jest.fn().mockReturnValue(5000),
+      insertLine: jest.fn().mockResolvedValue(mockTemplateLine),
     };
     mockCurrency = {
       overrideExchangeRate: jest.fn().mockImplementation((dto) => dto),
@@ -67,7 +52,6 @@ describe('CreateTemplateLineUseCase', () => {
       providers: [
         CreateTemplateLineUseCase,
         { provide: BUDGET_TEMPLATE_REPOSITORY, useValue: mockRepo },
-        { provide: ENCRYPTION_PORT, useValue: mockEncryption },
         { provide: CurrencyService, useValue: mockCurrency },
         { provide: BudgetTemplateMapper, useClass: BudgetTemplateMapper },
         {
@@ -98,12 +82,12 @@ describe('CreateTemplateLineUseCase', () => {
 
     expect(result.success).toBe(true);
     expect(result.data.name).toBe('Salaire');
+    expect(result.data.amount).toBe(5000);
     expect(mockRepo.validateAccess).toHaveBeenCalledWith(
       'template-1',
       mockUser.id,
     );
     expect(mockRepo.insertLine).toHaveBeenCalledTimes(1);
-    expect(mockEncryption.prepareAmountData).toHaveBeenCalledTimes(1);
   });
 
   it('should validate template access before inserting', async () => {
@@ -123,7 +107,7 @@ describe('CreateTemplateLineUseCase', () => {
     expect(mockRepo.insertLine).not.toHaveBeenCalled();
   });
 
-  it('should encrypt the amount before inserting', async () => {
+  it('should pass plain amount to repo (repo encrypts internally)', async () => {
     const dto: TemplateLineCreateWithoutTemplateId = {
       name: 'Transport',
       amount: 150,
@@ -134,10 +118,12 @@ describe('CreateTemplateLineUseCase', () => {
 
     await useCase.execute('template-1', dto, mockUser, null);
 
-    expect(mockEncryption.prepareAmountData).toHaveBeenCalledWith(
-      150,
-      mockUser.id,
-      mockUser.clientKey,
+    expect(mockRepo.insertLine).toHaveBeenCalledWith(
+      expect.objectContaining({
+        templateId: 'template-1',
+        name: 'Transport',
+        amount: 150,
+      }),
     );
   });
 

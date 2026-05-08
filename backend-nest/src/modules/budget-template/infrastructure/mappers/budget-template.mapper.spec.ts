@@ -1,125 +1,69 @@
 import { describe, it, expect } from 'bun:test';
 import { BudgetTemplateMapper } from './budget-template.mapper';
-import type { Tables } from '../../../../types/database.types';
+import type {
+  BudgetTemplate,
+  TemplateLine,
+} from '../../domain/budget-template.entity';
 
-const makeEncryptionService = (decryptFn: (ct: string) => number) => ({
-  tryDecryptAmount: (ciphertext: string, _dek: Buffer, fallback: unknown) => {
-    try {
-      return decryptFn(ciphertext);
-    } catch {
-      return fallback as number;
-    }
-  },
-});
+const baseTemplate: BudgetTemplate = {
+  id: 'template-1',
+  userId: 'user-1',
+  name: 'Standard',
+  description: 'Default template',
+  isDefault: true,
+  createdAt: '2026-01-01T00:00:00Z',
+  updatedAt: '2026-01-01T00:00:00Z',
+};
 
-const mockDek = Buffer.from('dek');
-
-const baseTemplateLine: Tables<'template_line'> = {
+const baseLine: TemplateLine = {
   id: 'line-1',
-  template_id: 'template-1',
+  templateId: 'template-1',
   name: 'Salaire',
-  amount: 'encrypted-5000',
+  amount: 5000,
+  originalAmount: null,
+  originalCurrency: null,
+  targetCurrency: null,
+  exchangeRate: null,
   kind: 'income',
   recurrence: 'fixed',
   description: 'Salaire mensuel',
-  created_at: '2026-01-01T00:00:00Z',
-  updated_at: '2026-01-01T00:00:00Z',
-  original_amount: null,
-  original_currency: null,
-  target_currency: null,
-  exchange_rate: null,
+  createdAt: '2026-01-01T00:00:00Z',
+  updatedAt: '2026-01-01T00:00:00Z',
 };
 
 describe('BudgetTemplateMapper', () => {
   const mapper = new BudgetTemplateMapper();
 
-  describe('decryptLine', () => {
-    it('should decrypt amount and return numeric value', () => {
-      const encryptionService = makeEncryptionService(() => 5000);
+  describe('toApiTemplate', () => {
+    it('should map domain template to API DTO', () => {
+      const result = mapper.toApiTemplate(baseTemplate);
 
-      const result = mapper.decryptLine(
-        baseTemplateLine,
-        encryptionService as never,
-        mockDek,
-      );
-
-      expect(result.amount).toBe(5000);
-      expect(result.original_amount).toBeNull();
+      expect(result.id).toBe('template-1');
+      expect(result.name).toBe('Standard');
+      expect(result.userId).toBe('user-1');
+      expect(result.isDefault).toBe(true);
+      expect(result.description).toBe('Default template');
     });
 
-    it('should use 0 as fallback when amount is null', () => {
-      const line: Tables<'template_line'> = {
-        ...baseTemplateLine,
-        amount: null,
-      };
-      const encryptionService = makeEncryptionService(() => 5000);
+    it('should convert null description to undefined', () => {
+      const result = mapper.toApiTemplate({
+        ...baseTemplate,
+        description: null,
+      });
 
-      const result = mapper.decryptLine(
-        line,
-        encryptionService as never,
-        mockDek,
-      );
-
-      expect(result.amount).toBe(0);
+      expect(result.description).toBeUndefined();
     });
 
-    it('should decrypt original_amount when present', () => {
-      const line: Tables<'template_line'> = {
-        ...baseTemplateLine,
-        original_amount: 'encrypted-4700',
-      };
-      const encryptionService = makeEncryptionService((ct) =>
-        ct === 'encrypted-5000' ? 5000 : 4700,
-      );
+    it('should convert null userId to undefined', () => {
+      const result = mapper.toApiTemplate({ ...baseTemplate, userId: null });
 
-      const result = mapper.decryptLine(
-        line,
-        encryptionService as never,
-        mockDek,
-      );
-
-      expect(result.amount).toBe(5000);
-      expect(result.original_amount).toBe(4700);
-    });
-
-    it('should return null for original_amount when not set', () => {
-      const encryptionService = makeEncryptionService(() => 5000);
-
-      const result = mapper.decryptLine(
-        baseTemplateLine,
-        encryptionService as never,
-        mockDek,
-      );
-
-      expect(result.original_amount).toBeNull();
-    });
-
-    it('should preserve all non-encrypted fields', () => {
-      const encryptionService = makeEncryptionService(() => 5000);
-
-      const result = mapper.decryptLine(
-        baseTemplateLine,
-        encryptionService as never,
-        mockDek,
-      );
-
-      expect(result.id).toBe('line-1');
-      expect(result.template_id).toBe('template-1');
-      expect(result.name).toBe('Salaire');
-      expect(result.kind).toBe('income');
-      expect(result.recurrence).toBe('fixed');
+      expect(result.userId).toBeUndefined();
     });
   });
 
   describe('toApiTemplateLine', () => {
     it('should map all fields to camelCase API shape', () => {
-      const decrypted = {
-        ...baseTemplateLine,
-        amount: 5000,
-        original_amount: null as null,
-      };
-
-      const result = mapper.toApiTemplateLine(decrypted);
+      const result = mapper.toApiTemplateLine(baseLine);
 
       expect(result.id).toBe('line-1');
       expect(result.templateId).toBe('template-1');
@@ -128,21 +72,29 @@ describe('BudgetTemplateMapper', () => {
       expect(result.kind).toBe('income');
       expect(result.recurrence).toBe('fixed');
     });
-  });
 
-  describe('toDbTemplateUpdate', () => {
-    it('should only include defined fields', () => {
-      const result = mapper.toDbTemplateUpdate({ name: 'New Name' });
+    it('should default null description to empty string', () => {
+      const result = mapper.toApiTemplateLine({
+        ...baseLine,
+        description: null,
+      });
 
-      expect(result).toEqual({ name: 'New Name' });
-      expect(result).not.toHaveProperty('is_default');
-      expect(result).not.toHaveProperty('description');
+      expect(result.description).toBe('');
     });
 
-    it('should map isDefault to is_default', () => {
-      const result = mapper.toDbTemplateUpdate({ isDefault: true });
+    it('should map currency metadata when present', () => {
+      const result = mapper.toApiTemplateLine({
+        ...baseLine,
+        originalAmount: 4700,
+        originalCurrency: 'EUR',
+        targetCurrency: 'CHF',
+        exchangeRate: 0.94,
+      });
 
-      expect(result).toEqual({ is_default: true });
+      expect(result.originalAmount).toBe(4700);
+      expect(result.originalCurrency).toBe('EUR');
+      expect(result.targetCurrency).toBe('CHF');
+      expect(result.exchangeRate).toBe(0.94);
     });
   });
 });

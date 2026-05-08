@@ -1,48 +1,51 @@
 import type {
-  TemplateRow,
-  TemplateUpdate,
-  TemplateLineRow,
-  TemplateLineInsert,
+  BudgetTemplate,
+  BudgetTemplateUpdatePatch,
+  BulkTemplateLineOperationsInput,
+  CreateTemplateWithLinesInput,
   MonthlyBudgetRow,
+  TemplateLine,
+  TemplateLineCreateInput,
+  TemplateLineUpdatePatch,
+  TemplateUsageBudget,
 } from '../budget-template.entity';
 
 export const BUDGET_TEMPLATE_REPOSITORY = Symbol('BUDGET_TEMPLATE_REPOSITORY');
 
+/**
+ * Result of a bulk template-line operations RPC. The repo encrypts inputs,
+ * invokes the RPC, then decrypts and shapes the result before returning.
+ */
+export interface BulkTemplateLineOperationsResult {
+  affectedBudgetIds: string[];
+}
+
 export interface BudgetTemplateRepositoryPort {
-  // Template CRUD
-  findAllForUser(userId: string): Promise<TemplateRow[]>;
-  findById(id: string, userId: string): Promise<TemplateRow>;
-  validateAccess(id: string, userId: string): Promise<TemplateRow>;
+  // Template CRUD — return entities
+  findAllForUser(userId: string): Promise<BudgetTemplate[]>;
+  findById(id: string, userId: string): Promise<BudgetTemplate>;
+  validateAccess(id: string, userId: string): Promise<BudgetTemplate>;
   countForUser(userId: string): Promise<number>;
   resetDefaultTemplates(userId: string, exceptId: string | null): Promise<void>;
-  update(id: string, data: TemplateUpdate): Promise<TemplateRow>;
+  update(id: string, patch: BudgetTemplateUpdatePatch): Promise<BudgetTemplate>;
   delete(id: string): Promise<void>;
 
-  // Template Line CRUD
-  findLinesByTemplateId(templateId: string): Promise<TemplateLineRow[]>;
-  insertLine(data: TemplateLineInsert): Promise<TemplateLineRow>;
+  // Template Line CRUD — return entities; accept plain numbers
+  findLinesByTemplateId(templateId: string): Promise<TemplateLine[]>;
+  insertLine(input: TemplateLineCreateInput): Promise<TemplateLine>;
   findLineById(
     lineId: string,
-  ): Promise<TemplateLineRow & { template: { user_id: string | null } }>;
-  validateLineAccess(lineId: string, userId: string): Promise<TemplateLineRow>;
+  ): Promise<{ line: TemplateLine; templateUserId: string | null }>;
+  validateLineAccess(lineId: string, userId: string): Promise<TemplateLine>;
   updateLine(
     lineId: string,
-    data: Partial<TemplateLineInsert>,
-  ): Promise<TemplateLineRow>;
-  updateLinesInBatch(
-    ids: string[],
-    data: Partial<TemplateLineInsert>,
-  ): Promise<TemplateLineRow[]>;
-  insertLines(data: TemplateLineInsert[]): Promise<TemplateLineRow[]>;
+    patch: TemplateLineUpdatePatch,
+  ): Promise<TemplateLine>;
   deleteLine(lineId: string): Promise<void>;
 
   // Validation queries
   isTemplateInUse(templateId: string): Promise<boolean>;
-  fetchTemplateBudgets(
-    templateId: string,
-  ): Promise<
-    Array<{ id: string; month: number; year: number; description: string }>
-  >;
+  fetchTemplateBudgets(templateId: string): Promise<TemplateUsageBudget[]>;
   countOnboardingTemplatesInWindow(
     userId: string,
     sinceIso: string,
@@ -58,19 +61,11 @@ export interface BudgetTemplateRepositoryPort {
     userId: string,
   ): Promise<MonthlyBudgetRow[]>;
 
-  // RPCs
-  createTemplateWithLinesRpc(payload: {
-    p_user_id: string;
-    p_name: string;
-    p_description: string | undefined;
-    p_is_default: boolean;
-    p_lines: unknown[];
-  }): Promise<TemplateRow>;
-  applyTemplateLineOperationsRpc(payload: {
-    template_id: string;
-    budget_ids: string[];
-    delete_ids: string[];
-    updated_lines: unknown[];
-    created_lines: unknown[];
-  }): Promise<string[]>;
+  // RPC orchestration — encrypt inputs, decrypt outputs, validate Zod payload internally
+  createTemplateWithLines(
+    input: CreateTemplateWithLinesInput,
+  ): Promise<BudgetTemplate>;
+  bulkApplyTemplateLineOperations(
+    input: BulkTemplateLineOperationsInput,
+  ): Promise<BulkTemplateLineOperationsResult>;
 }

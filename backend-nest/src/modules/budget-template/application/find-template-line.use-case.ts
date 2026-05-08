@@ -5,10 +5,6 @@ import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import type { TemplateLineResponse } from 'pulpe-shared';
 import {
-  ENCRYPTION_PORT,
-  type EncryptionPort,
-} from '@modules/encryption/encryption.tokens';
-import {
   BUDGET_TEMPLATE_REPOSITORY,
   type BudgetTemplateRepositoryPort,
 } from '../domain/ports/budget-template-repository.port';
@@ -19,7 +15,6 @@ export class FindTemplateLineUseCase {
   constructor(
     @Inject(BUDGET_TEMPLATE_REPOSITORY)
     private readonly repo: BudgetTemplateRepositoryPort,
-    @Inject(ENCRYPTION_PORT) private readonly encryption: EncryptionPort,
     private readonly mapper: BudgetTemplateMapper,
     @InjectInfoLogger(FindTemplateLineUseCase.name)
     private readonly logger: InfoLogger,
@@ -32,21 +27,14 @@ export class FindTemplateLineUseCase {
   ): Promise<TemplateLineResponse> {
     const startTime = Date.now();
 
-    const lineWithTemplate = await this.repo.findLineById(lineId);
+    const { line, templateUserId } = await this.repo.findLineById(lineId);
 
-    if (lineWithTemplate.template.user_id !== user.id) {
+    if (templateUserId !== user.id) {
       throw new BusinessException(
         ERROR_DEFINITIONS.TEMPLATE_LINE_ACCESS_FORBIDDEN,
         { id: lineId },
       );
     }
-
-    const dek = await this.encryption.getUserDEK(user.id, user.clientKey);
-    const decryptedLine = this.mapper.decryptLine(
-      lineWithTemplate,
-      this.encryption,
-      dek,
-    );
 
     this.logger.info(
       {
@@ -60,7 +48,7 @@ export class FindTemplateLineUseCase {
 
     return {
       success: true,
-      data: this.mapper.toApiTemplateLine(decryptedLine),
+      data: this.mapper.toApiTemplateLine(line),
     };
   }
 }

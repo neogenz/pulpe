@@ -25,8 +25,7 @@ export class FindTemplateUseCase {
   ): Promise<BudgetTemplateResponse> {
     const startTime = Date.now();
 
-    await this.repo.validateAccess(id, user.id);
-    const data = await this.repo.findById(id, user.id);
+    const data = await this.repo.validateAccess(id, user.id);
 
     this.logger.info(
       {

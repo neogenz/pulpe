@@ -14,7 +14,7 @@ import { BudgetLineInvariants } from '../domain/budget-line.invariants';
 import type {
   BudgetLine,
   BudgetLineUpdatePatch,
-  TemplateLineEntity,
+  TemplateLine,
 } from '../domain/budget-line.entity';
 
 @Injectable()
@@ -61,9 +61,7 @@ export class ResetBudgetLineFromTemplateUseCase {
     return entity;
   }
 
-  private buildResetPatch(
-    templateLine: TemplateLineEntity,
-  ): BudgetLineUpdatePatch {
+  private buildResetPatch(templateLine: TemplateLine): BudgetLineUpdatePatch {
     return {
       name: templateLine.name,
       amount: templateLine.amount,

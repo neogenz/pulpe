@@ -3,7 +3,7 @@ import type {
   BudgetLine,
   BudgetLineCreateInput,
   BudgetLineUpdatePatch,
-  TemplateLineEntity,
+  TemplateLine,
 } from '../budget-line.entity';
 
 export const BUDGET_LINE_REPOSITORY = Symbol('BUDGET_LINE_REPOSITORY');
@@ -16,7 +16,7 @@ export interface BudgetLineRepositoryPort {
   insert(input: BudgetLineCreateInput): Promise<BudgetLine>;
   update(id: string, patch: BudgetLineUpdatePatch): Promise<BudgetLine>;
   delete(id: string): Promise<void>;
-  fetchTemplateLineById(templateLineId: string): Promise<TemplateLineEntity>;
+  fetchTemplateLineById(templateLineId: string): Promise<TemplateLine>;
   toggleCheckRpc(id: string): Promise<BudgetLine>;
   checkUncheckedTransactionsRpc(id: string): Promise<Transaction[]>;
 }

@@ -1,132 +1,53 @@
 import { Injectable } from '@nestjs/common';
 import {
-  TemplateLine,
-  type BudgetTemplate,
-  type BudgetTemplateCreate,
-  type BudgetTemplateUpdate,
-  type TemplateLineCreateWithoutTemplateId,
-  type TemplateLineUpdate,
+  type BudgetTemplate as BudgetTemplateApi,
+  type TemplateLine as TemplateLineApi,
 } from 'pulpe-shared';
-import type { Tables, TablesInsert } from '../../../../types/database.types';
-import { type EncryptionPort } from '@modules/encryption/encryption.tokens';
-import {
-  mapCurrencyMetadataToApi,
-  mapCurrencyMetadataToDb,
-} from '@common/utils/currency-metadata.mapper';
-
-export type DecryptedTemplateLineRow = Omit<
-  Tables<'template_line'>,
-  'amount' | 'original_amount'
-> & {
-  amount: number;
-  original_amount: number | null;
-};
+import { mapCurrencyMetadataToApi } from '@common/utils/currency-metadata.mapper';
+import type {
+  BudgetTemplate,
+  TemplateLine,
+} from '../../domain/budget-template.entity';
 
 @Injectable()
 export class BudgetTemplateMapper {
-  toApiTemplate(db: Tables<'template'>): BudgetTemplate {
+  toApiTemplate(entity: BudgetTemplate): BudgetTemplateApi {
     return {
-      id: db.id,
-      name: db.name,
-      description: db.description ?? undefined,
-      isDefault: db.is_default,
-      userId: db.user_id ?? undefined,
-      createdAt: db.created_at,
-      updatedAt: db.updated_at,
+      id: entity.id,
+      name: entity.name,
+      description: entity.description ?? undefined,
+      isDefault: entity.isDefault,
+      userId: entity.userId ?? undefined,
+      createdAt: entity.createdAt,
+      updatedAt: entity.updatedAt,
     };
   }
 
-  toApiTemplateList(templates: Tables<'template'>[]): BudgetTemplate[] {
-    return templates.map((t) => this.toApiTemplate(t));
+  toApiTemplateList(entities: BudgetTemplate[]): BudgetTemplateApi[] {
+    return entities.map((t) => this.toApiTemplate(t));
   }
 
-  toApiTemplateLine(db: DecryptedTemplateLineRow): TemplateLine {
+  toApiTemplateLine(entity: TemplateLine): TemplateLineApi {
     return {
-      id: db.id,
-      description: db.description ?? '',
-      createdAt: db.created_at,
-      updatedAt: db.updated_at,
-      kind: db.kind,
-      amount: db.amount,
-      name: db.name,
-      recurrence: db.recurrence,
-      templateId: db.template_id,
-      ...mapCurrencyMetadataToApi(db),
+      id: entity.id,
+      templateId: entity.templateId,
+      name: entity.name,
+      amount: entity.amount,
+      kind: entity.kind,
+      recurrence: entity.recurrence,
+      description: entity.description ?? '',
+      createdAt: entity.createdAt,
+      updatedAt: entity.updatedAt,
+      ...mapCurrencyMetadataToApi({
+        original_amount: entity.originalAmount,
+        original_currency: entity.originalCurrency,
+        target_currency: entity.targetCurrency,
+        exchange_rate: entity.exchangeRate,
+      }),
     };
   }
 
-  toApiTemplateLineList(lines: DecryptedTemplateLineRow[]): TemplateLine[] {
-    return lines.map((l) => this.toApiTemplateLine(l));
-  }
-
-  toDbTemplateInsert(
-    dto: BudgetTemplateCreate,
-    userId: string,
-  ): TablesInsert<'template'> {
-    return {
-      name: dto.name,
-      description: dto.description ?? null,
-      is_default: dto.isDefault ?? false,
-      user_id: userId,
-    };
-  }
-
-  toDbTemplateUpdate(
-    dto: BudgetTemplateUpdate,
-  ): Partial<TablesInsert<'template'>> {
-    const update: Partial<TablesInsert<'template'>> = {};
-    if (dto.name !== undefined) update.name = dto.name;
-    if (dto.description !== undefined)
-      update.description = dto.description ?? null;
-    if (dto.isDefault !== undefined) update.is_default = dto.isDefault;
-    return update;
-  }
-
-  toDbTemplateLineInsert(
-    dto: TemplateLineCreateWithoutTemplateId,
-    templateId: string,
-    amountEncrypted?: string | null,
-  ): TablesInsert<'template_line'> {
-    return {
-      template_id: templateId,
-      name: dto.name,
-      amount: amountEncrypted ?? null,
-      kind: dto.kind,
-      recurrence: dto.recurrence,
-      description: dto.description,
-      ...mapCurrencyMetadataToDb(dto),
-    };
-  }
-
-  toDbTemplateLineUpdate(
-    dto: TemplateLineUpdate,
-    amountEncrypted?: string | null,
-  ): Partial<TablesInsert<'template_line'>> {
-    const update: Partial<TablesInsert<'template_line'>> = {};
-    if (dto.name !== undefined) update.name = dto.name;
-    if (dto.amount !== undefined) {
-      update.amount = amountEncrypted ?? null;
-    }
-    if (dto.kind !== undefined) update.kind = dto.kind;
-    if (dto.recurrence !== undefined) update.recurrence = dto.recurrence;
-    if (dto.description !== undefined) update.description = dto.description;
-    Object.assign(update, mapCurrencyMetadataToDb(dto));
-    return update;
-  }
-
-  decryptLine(
-    line: Tables<'template_line'>,
-    encryptionService: EncryptionPort,
-    dek: Buffer,
-  ): DecryptedTemplateLineRow {
-    return {
-      ...line,
-      amount: line.amount
-        ? encryptionService.tryDecryptAmount(line.amount, dek, 0)
-        : 0,
-      original_amount: line.original_amount
-        ? encryptionService.tryDecryptAmount(line.original_amount, dek, null)
-        : null,
-    };
+  toApiTemplateLineList(entities: TemplateLine[]): TemplateLineApi[] {
+    return entities.map((l) => this.toApiTemplateLine(l));
   }
 }
