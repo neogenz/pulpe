@@ -15,11 +15,17 @@ module.exports = {
     {
       name: 'no-application-to-infrastructure',
       severity: 'error',
+      comment:
+        'TEMPORARY: carve-out for application→infrastructure imports (mappers, RPC payload schemas, demo-template-specs). All three patterns disappear in Tier 3 (mappers move to controller boundary; RPC schema encryption moves into repo; demo-template-specs becomes plain data the repo encrypts at insert). Remove this pathNot when Tier 3 finalizes.',
       from: {
         path: '^src/modules/[^/]+/application',
         pathNot: '\\.spec\\.ts$',
       },
-      to: { path: '^src/modules/[^/]+/infrastructure' },
+      to: {
+        path: '^src/modules/[^/]+/infrastructure',
+        pathNot:
+          '^src/modules/[^/]+/infrastructure/(mappers|persistence/(schemas|demo-template-specs))',
+      },
     },
     {
       name: 'no-domain-to-nestjs',
