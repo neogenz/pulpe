@@ -15,43 +15,61 @@ struct MainTabView: View {
     var body: some View {
         @Bindable var state = appState
 
-        TabView(selection: $state.selectedTab) {
-            SwiftUI.Tab(value: Tab.currentMonth) {
-                CurrentMonthTab()
-                    .toolbarVisibility(.hidden, for: .tabBar)
-            }
+        GeometryReader { geometry in
+            let bottomInset = geometry.safeAreaInsets.bottom
+            // Position the capsule just above the home indicator (or with a
+            // small gap on devices without one), like a standard tab bar.
+            let tabBarBottom = bottomInset > 0 ? DesignTokens.Spacing.xl : DesignTokens.Spacing.xs
+            // Extra bottom safe area we need to RESERVE so all tab content
+            // (ScrollViews, sticky CTAs in pushed pages) clears the floating
+            // capsule that's overlaid in the ZStack sibling. Subtract the
+            // existing system bottom inset so we don't double-count.
+            let reservedBottom = tabBarBottom + tabBarHeight + DesignTokens.Spacing.md - bottomInset
 
-            SwiftUI.Tab(value: Tab.budgets) {
-                BudgetsTab()
-                    .toolbarVisibility(.hidden, for: .tabBar)
-            }
+            ZStack(alignment: .bottom) {
+                TabView(selection: $state.selectedTab) {
+                    SwiftUI.Tab(value: Tab.currentMonth) {
+                        CurrentMonthTab()
+                            .toolbarVisibility(.hidden, for: .tabBar)
+                    }
 
-            SwiftUI.Tab(value: Tab.templates) {
-                TemplatesTab()
-                    .toolbarVisibility(.hidden, for: .tabBar)
-            }
-        }
-        .pulpeBackground()
-        // Native idiom: declare the custom floating tab bar via `safeAreaInset`.
-        // SwiftUI then extends each tab's bottom safe area by the bar's height,
-        // so all nested ScrollViews push their content up automatically and any
-        // child `safeAreaInset(.bottom)` (e.g. the "Ajouter" button on the
-        // budget line detail page) stacks correctly above this bar — no manual
-        // `contentMargins` or per-page bottom padding needed.
-        .safeAreaInset(edge: .bottom, spacing: 0) {
-            Group {
-                if #available(iOS 26.0, *) {
-                    customTabBarView(selectedTab: $state.selectedTab)
-                } else {
-                    customTabBarViewLegacy(selectedTab: $state.selectedTab)
+                    SwiftUI.Tab(value: Tab.budgets) {
+                        BudgetsTab()
+                            .toolbarVisibility(.hidden, for: .tabBar)
+                    }
+
+                    SwiftUI.Tab(value: Tab.templates) {
+                        TemplatesTab()
+                            .toolbarVisibility(.hidden, for: .tabBar)
+                    }
                 }
+                .pulpeBackground()
+                // `safeAreaPadding` (iOS 17+) extends the bottom safe area by
+                // `reservedBottom` for the whole TabView subtree — including
+                // every nested NavigationStack push page. ScrollViews respect
+                // it (their content margins push up automatically) and pages
+                // with their own `safeAreaInset(.bottom)` for sticky CTAs
+                // stack above it. Unlike `safeAreaInset` on a TabView, which
+                // does not propagate through `NavigationStack` destinations
+                // on iOS 26, `safeAreaPadding` does — so pushed pages clear
+                // the floating tab bar without any per-page padding.
+                .safeAreaPadding(.bottom, reservedBottom)
+
+                Group {
+                    if #available(iOS 26.0, *) {
+                        customTabBarView(selectedTab: $state.selectedTab)
+                            .padding(.horizontal, DesignTokens.Spacing.lg)
+                    } else {
+                        customTabBarViewLegacy(selectedTab: $state.selectedTab)
+                            .padding(.horizontal, DesignTokens.Spacing.lg)
+                    }
+                }
+                .padding(.bottom, tabBarBottom)
+                // Keep the floating bar pinned even when the keyboard rises;
+                // scrollable content above respects the keyboard normally.
+                .ignoresSafeArea(.keyboard)
             }
-            .padding(.horizontal, DesignTokens.Spacing.lg)
-            // Small gap above the home indicator so the capsule doesn't touch it.
-            .padding(.bottom, DesignTokens.Spacing.xs)
-            // Keep the bar pinned to the bottom even when the keyboard rises;
-            // scroll content above respects the keyboard normally.
-            .ignoresSafeArea(.keyboard)
+            .ignoresSafeArea(.container, edges: .bottom)
         }
         .onChange(of: appState.selectedTab) { _, newTab in
             AnalyticsService.shared.capture(.tabSwitched, properties: ["tab": newTab.rawValue])
