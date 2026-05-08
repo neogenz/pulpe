@@ -1,19 +1,17 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
-import type { TemplateLineListResponse } from 'pulpe-shared';
 import {
   BUDGET_TEMPLATE_REPOSITORY,
   type BudgetTemplateRepositoryPort,
 } from '../domain/ports/budget-template-repository.port';
-import { BudgetTemplateMapper } from '../infrastructure/mappers/budget-template.mapper';
+import type { TemplateLine } from '../domain/budget-template.entity';
 
 @Injectable()
 export class FindTemplateLinesUseCase {
   constructor(
     @Inject(BUDGET_TEMPLATE_REPOSITORY)
     private readonly repo: BudgetTemplateRepositoryPort,
-    private readonly mapper: BudgetTemplateMapper,
     @InjectInfoLogger(FindTemplateLinesUseCase.name)
     private readonly logger: InfoLogger,
   ) {}
@@ -22,7 +20,7 @@ export class FindTemplateLinesUseCase {
     templateId: string,
     user: AuthenticatedUser,
     _supabase: unknown,
-  ): Promise<TemplateLineListResponse> {
+  ): Promise<TemplateLine[]> {
     const startTime = Date.now();
 
     await this.repo.validateAccess(templateId, user.id);
@@ -39,9 +37,6 @@ export class FindTemplateLinesUseCase {
       'Template lines retrieved successfully',
     );
 
-    return {
-      success: true,
-      data: this.mapper.toApiTemplateLineList(lines),
-    };
+    return lines;
   }
 }

@@ -1,4 +1,7 @@
-import type { SupportedCurrency } from 'pulpe-shared';
+import type {
+  SupportedCurrency,
+  TemplateLinesPropagationSummary,
+} from 'pulpe-shared';
 import type {
   Database,
   Tables,
@@ -161,4 +164,23 @@ export interface TemplateUsageBudget {
   month: number;
   year: number;
   description: string;
+}
+
+/**
+ * Composite — a template with its lines, returned by create flows.
+ */
+export interface TemplateWithLines {
+  template: BudgetTemplate;
+  lines: TemplateLine[];
+}
+
+/**
+ * Result of `bulk-template-line-operations` use case — entities returned
+ * for created/updated, IDs for deleted, plus propagation summary metadata.
+ */
+export interface BulkTemplateLineOperationsResult {
+  deletedIds: string[];
+  updatedLines: TemplateLine[];
+  createdLines: TemplateLine[];
+  propagation: TemplateLinesPropagationSummary;
 }

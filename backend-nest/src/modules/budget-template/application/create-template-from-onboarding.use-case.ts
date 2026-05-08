@@ -4,7 +4,6 @@ import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import {
   type BudgetTemplateCreate,
   type BudgetTemplateCreateFromOnboarding,
-  type BudgetTemplateCreateResponse,
   type TemplateLineCreateWithoutTemplateId,
   budgetTemplateCreateFromOnboardingSchema,
 } from 'pulpe-shared';
@@ -13,6 +12,7 @@ import {
   type BudgetTemplateRepositoryPort,
 } from '../domain/ports/budget-template-repository.port';
 import { BudgetTemplateInvariants } from '../domain/budget-template.invariants';
+import type { TemplateWithLines } from '../domain/budget-template.entity';
 import { CreateTemplateUseCase } from './create-template.use-case';
 
 const ONBOARDING_FIELD_MAPPINGS = [
@@ -74,7 +74,7 @@ export class CreateTemplateFromOnboardingUseCase {
     onboardingData: BudgetTemplateCreateFromOnboarding,
     user: AuthenticatedUser,
     _supabase: unknown,
-  ): Promise<BudgetTemplateCreateResponse> {
+  ): Promise<TemplateWithLines> {
     const startTime = Date.now();
 
     const validated =

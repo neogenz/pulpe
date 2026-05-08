@@ -3,7 +3,6 @@ import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import {
   type BudgetTemplateCreate,
-  type BudgetTemplateCreateResponse,
   type TemplateLineCreateWithoutTemplateId,
   budgetTemplateCreateSchema,
 } from 'pulpe-shared';
@@ -13,8 +12,10 @@ import {
   type BudgetTemplateRepositoryPort,
 } from '../domain/ports/budget-template-repository.port';
 import { BudgetTemplateInvariants } from '../domain/budget-template.invariants';
-import { BudgetTemplateMapper } from '../infrastructure/mappers/budget-template.mapper';
-import type { TemplateLineRpcInput } from '../domain/budget-template.entity';
+import type {
+  TemplateLineRpcInput,
+  TemplateWithLines,
+} from '../domain/budget-template.entity';
 
 @Injectable()
 export class CreateTemplateUseCase {
@@ -22,7 +23,6 @@ export class CreateTemplateUseCase {
     @Inject(BUDGET_TEMPLATE_REPOSITORY)
     private readonly repo: BudgetTemplateRepositoryPort,
     private readonly currencyService: CurrencyService,
-    private readonly mapper: BudgetTemplateMapper,
     @InjectInfoLogger(CreateTemplateUseCase.name)
     private readonly logger: InfoLogger,
   ) {}
@@ -31,7 +31,7 @@ export class CreateTemplateUseCase {
     createDto: BudgetTemplateCreate,
     user: AuthenticatedUser,
     _supabase: unknown,
-  ): Promise<BudgetTemplateCreateResponse> {
+  ): Promise<TemplateWithLines> {
     const startTime = Date.now();
 
     const validated = budgetTemplateCreateSchema.parse(createDto);
@@ -69,13 +69,7 @@ export class CreateTemplateUseCase {
       'Template created successfully',
     );
 
-    return {
-      success: true,
-      data: {
-        template: this.mapper.toApiTemplate(template),
-        lines: this.mapper.toApiTemplateLineList(lines),
-      },
-    };
+    return { template, lines };
   }
 
   private toRpcInput(

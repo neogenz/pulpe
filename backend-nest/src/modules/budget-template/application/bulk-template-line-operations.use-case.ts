@@ -4,7 +4,6 @@ import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import {
   type TemplateLineCreateWithoutTemplateId,
   type TemplateLinesBulkOperations,
-  type TemplateLinesBulkOperationsResponse,
   type TemplateLinesPropagationSummary,
   type TemplateLineUpdateWithId,
   templateLinesBulkOperationsSchema,
@@ -19,11 +18,11 @@ import {
   BUDGET_TEMPLATE_REPOSITORY,
   type BudgetTemplateRepositoryPort,
 } from '../domain/ports/budget-template-repository.port';
-import { BudgetTemplateMapper } from '../infrastructure/mappers/budget-template.mapper';
 import type {
   TemplateLine,
   TemplateLineCreateInput,
   TemplateLineRpcUpdate,
+  BulkTemplateLineOperationsResult,
 } from '../domain/budget-template.entity';
 
 interface BulkOperationsResult {
@@ -47,7 +46,6 @@ export class BulkTemplateLineOperationsUseCase {
     private readonly cacheService: CacheService,
     @Inject(BUDGET_RECALCULATION_PORT)
     private readonly budgetRecalculation: BudgetRecalculationPort,
-    private readonly mapper: BudgetTemplateMapper,
     @InjectInfoLogger(BulkTemplateLineOperationsUseCase.name)
     private readonly logger: InfoLogger,
   ) {}
@@ -57,7 +55,7 @@ export class BulkTemplateLineOperationsUseCase {
     bulkOperationsDto: TemplateLinesBulkOperations,
     user: AuthenticatedUser,
     _supabase: unknown,
-  ): Promise<TemplateLinesBulkOperationsResponse> {
+  ): Promise<BulkTemplateLineOperationsResult> {
     const startTime = Date.now();
 
     await this.repo.validateAccess(templateId, user.id);
@@ -96,7 +94,12 @@ export class BulkTemplateLineOperationsUseCase {
       Date.now() - startTime,
     );
 
-    return this.buildResponse(operationsResult, propagationSummary);
+    return {
+      deletedIds: operationsResult.deletedIds,
+      updatedLines: operationsResult.updatedLines,
+      createdLines: operationsResult.createdLines,
+      propagation: propagationSummary,
+    };
   }
 
   private async applyBulkOperations(
@@ -114,25 +117,6 @@ export class BulkTemplateLineOperationsUseCase {
         validated.create || [],
         templateId,
       ),
-    };
-  }
-
-  private buildResponse(
-    operationsResult: BulkOperationsResult,
-    propagationSummary: TemplateLinesPropagationSummary,
-  ): TemplateLinesBulkOperationsResponse {
-    return {
-      success: true,
-      data: {
-        created: this.mapper.toApiTemplateLineList(
-          operationsResult.createdLines,
-        ),
-        updated: this.mapper.toApiTemplateLineList(
-          operationsResult.updatedLines,
-        ),
-        deleted: operationsResult.deletedIds,
-        propagation: propagationSummary,
-      },
     };
   }
 

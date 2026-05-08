@@ -5,6 +5,13 @@ import {
   BUDGET_TEMPLATE_REPOSITORY,
   type BudgetTemplateRepositoryPort,
 } from '../domain/ports/budget-template-repository.port';
+import type { TemplateUsageBudget } from '../domain/budget-template.entity';
+
+export interface TemplateUsage {
+  isUsed: boolean;
+  budgetCount: number;
+  budgets: TemplateUsageBudget[];
+}
 
 @Injectable()
 export class CheckTemplateUsageUseCase {
@@ -19,19 +26,7 @@ export class CheckTemplateUsageUseCase {
     id: string,
     user: AuthenticatedUser,
     _supabase: unknown,
-  ): Promise<{
-    success: boolean;
-    data: {
-      isUsed: boolean;
-      budgetCount: number;
-      budgets: Array<{
-        id: string;
-        month: number;
-        year: number;
-        description: string;
-      }>;
-    };
-  }> {
+  ): Promise<TemplateUsage> {
     const startTime = Date.now();
 
     await this.repo.validateAccess(id, user.id);
@@ -49,12 +44,9 @@ export class CheckTemplateUsageUseCase {
     );
 
     return {
-      success: true,
-      data: {
-        isUsed: budgets.length > 0,
-        budgetCount: budgets.length,
-        budgets,
-      },
+      isUsed: budgets.length > 0,
+      budgetCount: budgets.length,
+      budgets,
     };
   }
 }

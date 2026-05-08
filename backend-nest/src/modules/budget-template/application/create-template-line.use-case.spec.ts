@@ -3,7 +3,6 @@ import { Test } from '@nestjs/testing';
 import { CreateTemplateLineUseCase } from './create-template-line.use-case';
 import { BUDGET_TEMPLATE_REPOSITORY } from '../domain/ports/budget-template-repository.port';
 import { CurrencyService } from '@modules/currency/currency.service';
-import { BudgetTemplateMapper } from '../infrastructure/mappers/budget-template.mapper';
 import type { TemplateLineCreateWithoutTemplateId } from 'pulpe-shared';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import type { TemplateLine } from '../domain/budget-template.entity';
@@ -53,7 +52,6 @@ describe('CreateTemplateLineUseCase', () => {
         CreateTemplateLineUseCase,
         { provide: BUDGET_TEMPLATE_REPOSITORY, useValue: mockRepo },
         { provide: CurrencyService, useValue: mockCurrency },
-        { provide: BudgetTemplateMapper, useClass: BudgetTemplateMapper },
         {
           provide: `INFO_LOGGER:${CreateTemplateLineUseCase.name}`,
           useValue: {
@@ -69,7 +67,7 @@ describe('CreateTemplateLineUseCase', () => {
     useCase = module.get(CreateTemplateLineUseCase);
   });
 
-  it('should create a template line and return decrypted response', async () => {
+  it('should create a template line and return the decrypted entity', async () => {
     const dto: TemplateLineCreateWithoutTemplateId = {
       name: 'Salaire',
       amount: 5000,
@@ -80,9 +78,9 @@ describe('CreateTemplateLineUseCase', () => {
 
     const result = await useCase.execute('template-1', dto, mockUser, null);
 
-    expect(result.success).toBe(true);
-    expect(result.data.name).toBe('Salaire');
-    expect(result.data.amount).toBe(5000);
+    expect(result.id).toBe('line-1');
+    expect(result.name).toBe('Salaire');
+    expect(result.amount).toBe(5000);
     expect(mockRepo.validateAccess).toHaveBeenCalledWith(
       'template-1',
       mockUser.id,

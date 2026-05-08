@@ -2,11 +2,15 @@ import { Injectable } from '@nestjs/common';
 import {
   type BudgetTemplate as BudgetTemplateApi,
   type TemplateLine as TemplateLineApi,
+  type BudgetTemplateCreateResponse,
+  type TemplateLinesBulkOperationsResponse,
 } from 'pulpe-shared';
 import { mapCurrencyMetadataToApi } from '@common/utils/currency-metadata.mapper';
 import type {
   BudgetTemplate,
   TemplateLine,
+  TemplateWithLines,
+  BulkTemplateLineOperationsResult,
 } from '../../domain/budget-template.entity';
 
 @Injectable()
@@ -49,5 +53,31 @@ export class BudgetTemplateMapper {
 
   toApiTemplateLineList(entities: TemplateLine[]): TemplateLineApi[] {
     return entities.map((l) => this.toApiTemplateLine(l));
+  }
+
+  toApiTemplateCreateResponse(
+    composite: TemplateWithLines,
+  ): BudgetTemplateCreateResponse {
+    return {
+      success: true,
+      data: {
+        template: this.toApiTemplate(composite.template),
+        lines: this.toApiTemplateLineList(composite.lines),
+      },
+    };
+  }
+
+  toApiBulkOperationsResponse(
+    result: BulkTemplateLineOperationsResult,
+  ): TemplateLinesBulkOperationsResponse {
+    return {
+      success: true,
+      data: {
+        created: this.toApiTemplateLineList(result.createdLines),
+        updated: this.toApiTemplateLineList(result.updatedLines),
+        deleted: result.deletedIds,
+        propagation: result.propagation,
+      },
+    };
   }
 }

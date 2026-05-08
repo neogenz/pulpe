@@ -3,7 +3,6 @@ import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import {
   type TemplateLineCreateWithoutTemplateId,
-  type TemplateLineResponse,
   templateLineCreateWithoutTemplateIdSchema,
 } from 'pulpe-shared';
 import { CurrencyService } from '@modules/currency/currency.service';
@@ -11,7 +10,7 @@ import {
   BUDGET_TEMPLATE_REPOSITORY,
   type BudgetTemplateRepositoryPort,
 } from '../domain/ports/budget-template-repository.port';
-import { BudgetTemplateMapper } from '../infrastructure/mappers/budget-template.mapper';
+import type { TemplateLine } from '../domain/budget-template.entity';
 
 @Injectable()
 export class CreateTemplateLineUseCase {
@@ -19,7 +18,6 @@ export class CreateTemplateLineUseCase {
     @Inject(BUDGET_TEMPLATE_REPOSITORY)
     private readonly repo: BudgetTemplateRepositoryPort,
     private readonly currencyService: CurrencyService,
-    private readonly mapper: BudgetTemplateMapper,
     @InjectInfoLogger(CreateTemplateLineUseCase.name)
     private readonly logger: InfoLogger,
   ) {}
@@ -29,7 +27,7 @@ export class CreateTemplateLineUseCase {
     createDto: TemplateLineCreateWithoutTemplateId,
     user: AuthenticatedUser,
     _supabase: unknown,
-  ): Promise<TemplateLineResponse> {
+  ): Promise<TemplateLine> {
     const startTime = Date.now();
 
     await this.repo.validateAccess(templateId, user.id);
@@ -60,9 +58,6 @@ export class CreateTemplateLineUseCase {
       'Template line created successfully',
     );
 
-    return {
-      success: true,
-      data: this.mapper.toApiTemplateLine(line),
-    };
+    return line;
   }
 }
