@@ -4,6 +4,9 @@ import {
   type BudgetLine as BudgetLineApi,
   type BudgetSparse,
   type Transaction as TransactionApi,
+  type BudgetDetailsResponse,
+  type BudgetWithDetails as BudgetWithDetailsApi,
+  type BudgetExportResponse,
   BudgetFormulas,
 } from 'pulpe-shared';
 import { mapCurrencyMetadataToApi } from '@common/utils/currency-metadata.mapper';
@@ -12,11 +15,11 @@ import type {
   BudgetAggregates,
   BudgetLineDecrypted,
   TransactionDecrypted,
+  BudgetWithRemaining,
+  BudgetWithDetails,
+  BudgetForExport,
+  SparseBudgetItem,
 } from '../../domain/budget.entity';
-
-export interface BudgetWithRemaining extends Budget {
-  remaining: number;
-}
 
 @Injectable()
 export class BudgetMapper {
@@ -134,5 +137,53 @@ export class BudgetMapper {
 
   toTransactionApiList(entities: TransactionDecrypted[]): TransactionApi[] {
     return entities.map((e) => this.toTransactionApi(e));
+  }
+
+  toSparseApiList(items: SparseBudgetItem[]): BudgetSparse[] {
+    return items.map((item) =>
+      this.toSparseApi(
+        item.budget,
+        item.requestedFields,
+        item.aggregates,
+        item.rollover,
+      ),
+    );
+  }
+
+  toBudgetDetailsResponse(composite: BudgetWithDetails): BudgetDetailsResponse {
+    return {
+      success: true as const,
+      data: {
+        budget: {
+          ...this.toApi(composite.budget),
+          rollover: composite.rollover,
+          previousBudgetId: composite.previousBudgetId,
+        },
+        transactions: this.toTransactionApiList(composite.transactions),
+        budgetLines: this.toBudgetLineApiList(composite.budgetLines),
+      },
+    };
+  }
+
+  toExportItem(composite: BudgetForExport): BudgetWithDetailsApi {
+    return {
+      ...this.toApi(composite.budget),
+      rollover: composite.rollover,
+      previousBudgetId: composite.previousBudgetId,
+      remaining: composite.remaining,
+      transactions: this.toTransactionApiList(composite.transactions),
+      budgetLines: this.toBudgetLineApiList(composite.budgetLines),
+    };
+  }
+
+  toExportResponse(composites: BudgetForExport[]): BudgetExportResponse {
+    return {
+      success: true as const,
+      data: {
+        exportDate: new Date().toISOString(),
+        totalBudgets: composites.length,
+        budgets: composites.map((c) => this.toExportItem(c)),
+      },
+    };
   }
 }

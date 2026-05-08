@@ -67,6 +67,44 @@ export interface BudgetWithRelations {
 }
 
 /**
+ * Domain composite — `Budget` enriched with the rolling computed `remaining` value
+ * (used by `find-all-budgets` to return the dashboard list).
+ */
+export interface BudgetWithRemaining extends Budget {
+  remaining: number;
+}
+
+/**
+ * Domain composite — `Budget` plus full relations and rollover/previousBudgetId.
+ * Used by `find-budget-with-details`.
+ */
+export interface BudgetWithDetails {
+  budget: Budget;
+  budgetLines: BudgetLineDecrypted[];
+  transactions: TransactionDecrypted[];
+  rollover: number;
+  previousBudgetId: string | null;
+}
+
+/**
+ * Domain composite for the export payload — `BudgetWithDetails` plus `remaining`.
+ */
+export interface BudgetForExport extends BudgetWithDetails {
+  remaining: number;
+}
+
+/**
+ * Domain item for the sparse budget endpoint — bundles a budget with the field
+ * selection requested and the (optional) precomputed aggregates / rollover.
+ */
+export interface SparseBudgetItem {
+  budget: Budget;
+  requestedFields: string[];
+  aggregates?: BudgetAggregates;
+  rollover?: number;
+}
+
+/**
  * Inline minimal entity for a decrypted budget_line row, kept here to avoid a
  * cross-module compile-time dependency from budget/domain/ to budget-line/domain/.
  * Mirrors the canonical `BudgetLine` entity in the budget-line module.

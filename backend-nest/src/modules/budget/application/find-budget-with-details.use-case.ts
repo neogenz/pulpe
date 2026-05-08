@@ -2,18 +2,14 @@ import { Inject, Injectable } from '@nestjs/common';
 import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
-import {
-  type BudgetDetailsResponse,
-  PAY_DAY_MIN,
-  PAY_DAY_MAX,
-} from 'pulpe-shared';
+import { PAY_DAY_MIN, PAY_DAY_MAX } from 'pulpe-shared';
 import { CacheService } from '@modules/cache/cache.service';
 import {
   BUDGET_REPOSITORY,
   type BudgetRepositoryPort,
 } from '../domain/ports/budget-repository.port';
-import { BudgetMapper } from '../infrastructure/mappers/budget.mapper';
 import { RecalculateBudgetBalancesUseCase } from './recalculate-budget-balances.use-case';
+import type { BudgetWithDetails } from '../domain/budget.entity';
 
 @Injectable()
 export class FindBudgetWithDetailsUseCase {
@@ -21,7 +17,6 @@ export class FindBudgetWithDetailsUseCase {
     @Inject(BUDGET_REPOSITORY)
     private readonly repo: BudgetRepositoryPort,
     private readonly cacheService: CacheService,
-    private readonly mapper: BudgetMapper,
     private readonly recalculateUseCase: RecalculateBudgetBalancesUseCase,
     @InjectInfoLogger(FindBudgetWithDetailsUseCase.name)
     private readonly logger: InfoLogger,
@@ -31,7 +26,7 @@ export class FindBudgetWithDetailsUseCase {
     budgetId: string,
     user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient,
-  ): Promise<BudgetDetailsResponse> {
+  ): Promise<BudgetWithDetails> {
     const clientKeyHash = user.clientKey.toString('hex').slice(0, 16);
     const cacheKey = `budgets:detail:${clientKeyHash}:${budgetId}`;
     return this.cacheService.getOrSet(user.id, cacheKey, 30_000, () =>
@@ -42,7 +37,7 @@ export class FindBudgetWithDetailsUseCase {
   private async fetchBudgetWithDetails(
     budgetId: string,
     supabase: AuthenticatedSupabaseClient,
-  ): Promise<BudgetDetailsResponse> {
+  ): Promise<BudgetWithDetails> {
     const payDayOfMonth = await this.getPayDayOfMonth(supabase);
     const { budget, budgetLines, transactions } =
       await this.repo.fetchBudgetData(budgetId);
@@ -52,27 +47,23 @@ export class FindBudgetWithDetailsUseCase {
       payDayOfMonth,
     );
 
-    const responseData = {
-      budget: {
-        ...this.mapper.toApi(budget),
-        rollover: rolloverData.rollover,
-        previousBudgetId: rolloverData.previousBudgetId,
-      },
-      transactions: this.mapper.toTransactionApiList(transactions),
-      budgetLines: this.mapper.toBudgetLineApiList(budgetLines),
-    };
-
     this.logger.info(
       {
         budgetId,
-        transactionCount: responseData.transactions.length,
-        budgetLineCount: responseData.budgetLines.length,
+        transactionCount: transactions.length,
+        budgetLineCount: budgetLines.length,
         operation: 'budget.details.fetched',
       },
       'Budget details fetched successfully',
     );
 
-    return { success: true, data: responseData } as BudgetDetailsResponse;
+    return {
+      budget,
+      budgetLines,
+      transactions,
+      rollover: rolloverData.rollover,
+      previousBudgetId: rolloverData.previousBudgetId,
+    };
   }
 
   private async getPayDayOfMonth(

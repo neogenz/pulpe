@@ -31,6 +31,7 @@ import {
   type BudgetDetailsResponse,
   type BudgetGenerateResponse,
   type BudgetSparseListResponse,
+  type BudgetExportResponse,
   type ListBudgetsQuery,
 } from 'pulpe-shared';
 import { AuthGuard } from '@common/guards/auth.guard';
@@ -127,11 +128,23 @@ export class BudgetController {
     @User() user: AuthenticatedUser,
     @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetListResponse | BudgetSparseListResponse> {
-    return this.findAllBudgetsUseCase.execute(
+    const result = await this.findAllBudgetsUseCase.execute(
       user,
       supabase,
       query as ListBudgetsQuery,
     );
+
+    if (result.kind === 'sparse') {
+      return {
+        success: true as const,
+        data: this.mapper.toSparseApiList(result.items),
+      };
+    }
+
+    return {
+      success: true as const,
+      data: this.mapper.toApiList(result.budgets),
+    };
   }
 
   @Post()
@@ -199,8 +212,12 @@ export class BudgetController {
   async exportAll(
     @User() user: AuthenticatedUser,
     @SupabaseClient() supabase: AuthenticatedSupabaseClient,
-  ) {
-    return this.exportAllBudgetsUseCase.execute(user, supabase);
+  ): Promise<BudgetExportResponse> {
+    const composites = await this.exportAllBudgetsUseCase.execute(
+      user,
+      supabase,
+    );
+    return this.mapper.toExportResponse(composites);
   }
 
   @Get('exists')
@@ -282,7 +299,12 @@ export class BudgetController {
     @User() user: AuthenticatedUser,
     @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetDetailsResponse> {
-    return this.findBudgetWithDetailsUseCase.execute(id, user, supabase);
+    const composite = await this.findBudgetWithDetailsUseCase.execute(
+      id,
+      user,
+      supabase,
+    );
+    return this.mapper.toBudgetDetailsResponse(composite);
   }
 
   @Patch(':id')

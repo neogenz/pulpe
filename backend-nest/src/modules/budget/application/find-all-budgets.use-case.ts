@@ -2,25 +2,23 @@ import { Inject, Injectable } from '@nestjs/common';
 import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
-import {
-  type BudgetListResponse,
-  type BudgetSparseListResponse,
-  type ListBudgetsQuery,
-  PAY_DAY_MIN,
-  PAY_DAY_MAX,
-} from 'pulpe-shared';
+import { type ListBudgetsQuery, PAY_DAY_MIN, PAY_DAY_MAX } from 'pulpe-shared';
 import { CacheService } from '@modules/cache/cache.service';
 import {
   BUDGET_REPOSITORY,
   type BudgetRepositoryPort,
 } from '../domain/ports/budget-repository.port';
-import {
-  BudgetMapper,
-  type BudgetWithRemaining,
-} from '../infrastructure/mappers/budget.mapper';
 import { FindAllSparseBudgetsUseCase } from './find-all-sparse-budgets.use-case';
 import { RecalculateBudgetBalancesUseCase } from './recalculate-budget-balances.use-case';
-import type { Budget } from '../domain/budget.entity';
+import type {
+  Budget,
+  BudgetWithRemaining,
+  SparseBudgetItem,
+} from '../domain/budget.entity';
+
+export type FindAllBudgetsResult =
+  | { kind: 'list'; budgets: BudgetWithRemaining[] }
+  | { kind: 'sparse'; items: SparseBudgetItem[] };
 
 @Injectable()
 export class FindAllBudgetsUseCase {
@@ -28,7 +26,6 @@ export class FindAllBudgetsUseCase {
     @Inject(BUDGET_REPOSITORY)
     private readonly repo: BudgetRepositoryPort,
     private readonly cacheService: CacheService,
-    private readonly mapper: BudgetMapper,
     private readonly findAllSparseUseCase: FindAllSparseBudgetsUseCase,
     private readonly recalculateUseCase: RecalculateBudgetBalancesUseCase,
     @InjectInfoLogger(FindAllBudgetsUseCase.name)
@@ -39,7 +36,7 @@ export class FindAllBudgetsUseCase {
     user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient,
     query?: ListBudgetsQuery,
-  ): Promise<BudgetListResponse | BudgetSparseListResponse> {
+  ): Promise<FindAllBudgetsResult> {
     const keyParts = [
       user.clientKey.toString('hex').slice(0, 16),
       query?.fields ?? '',
@@ -56,9 +53,14 @@ export class FindAllBudgetsUseCase {
     user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient,
     query?: ListBudgetsQuery,
-  ): Promise<BudgetListResponse | BudgetSparseListResponse> {
+  ): Promise<FindAllBudgetsResult> {
     if (query?.fields) {
-      return this.findAllSparseUseCase.execute(user, supabase, query);
+      const items = await this.findAllSparseUseCase.execute(
+        user,
+        supabase,
+        query,
+      );
+      return { kind: 'sparse', items };
     }
 
     const budgets = await this.repo.fetchAllBudgets();
@@ -69,10 +71,7 @@ export class FindAllBudgetsUseCase {
       payDayOfMonth,
     );
 
-    return {
-      success: true as const,
-      data: this.mapper.toApiList(enrichedBudgets),
-    } as BudgetListResponse;
+    return { kind: 'list', budgets: enrichedBudgets };
   }
 
   private async enrichBudgetsWithRemaining(

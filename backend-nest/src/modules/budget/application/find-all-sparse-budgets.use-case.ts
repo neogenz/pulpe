@@ -4,23 +4,17 @@ import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
 import { BusinessException } from '@common/exceptions/business.exception';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
-import {
-  type BudgetSparseListResponse,
-  type ListBudgetsQuery,
-  PAY_DAY_MIN,
-  PAY_DAY_MAX,
-} from 'pulpe-shared';
+import { type ListBudgetsQuery, PAY_DAY_MIN, PAY_DAY_MAX } from 'pulpe-shared';
 import {
   BUDGET_REPOSITORY,
   type BudgetRepositoryPort,
 } from '../domain/ports/budget-repository.port';
-import { BudgetMapper } from '../infrastructure/mappers/budget.mapper';
 import {
   fieldsRequireAggregates,
   fieldsRequireRollover,
 } from '../domain/budget.formulas';
 import { RecalculateBudgetBalancesUseCase } from './recalculate-budget-balances.use-case';
-import type { Budget } from '../domain/budget.entity';
+import type { Budget, SparseBudgetItem } from '../domain/budget.entity';
 
 const ALLOWED_SPARSE_FIELDS = [
   'month',
@@ -37,7 +31,6 @@ export class FindAllSparseBudgetsUseCase {
   constructor(
     @Inject(BUDGET_REPOSITORY)
     private readonly repo: BudgetRepositoryPort,
-    private readonly mapper: BudgetMapper,
     private readonly recalculateUseCase: RecalculateBudgetBalancesUseCase,
     @InjectInfoLogger(FindAllSparseBudgetsUseCase.name)
     private readonly logger: InfoLogger,
@@ -47,7 +40,7 @@ export class FindAllSparseBudgetsUseCase {
     user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient,
     query: ListBudgetsQuery,
-  ): Promise<BudgetSparseListResponse> {
+  ): Promise<SparseBudgetItem[]> {
     const requestedFields = query.fields!.split(',').map((f) => f.trim());
     const invalidFields = requestedFields.filter(
       (f) => !ALLOWED_SPARSE_FIELDS.includes(f),
@@ -78,25 +71,23 @@ export class FindAllSparseBudgetsUseCase {
       ? await this.fetchRolloversForBudgets(budgetsList, supabase)
       : new Map<string, number>();
 
-    const sparseData = budgetsList.map((budget) =>
-      this.mapper.toSparseApi(
-        budget,
-        requestedFields,
-        aggregatesMap.get(budget.id),
-        rolloversMap.get(budget.id),
-      ),
-    );
+    const items: SparseBudgetItem[] = budgetsList.map((budget) => ({
+      budget,
+      requestedFields,
+      aggregates: aggregatesMap.get(budget.id),
+      rollover: rolloversMap.get(budget.id),
+    }));
 
     this.logger.info(
       {
         userId: user.id,
-        count: sparseData.length,
+        count: items.length,
         operation: 'budget.listSparse',
       },
       'Sparse budgets fetched',
     );
 
-    return { success: true as const, data: sparseData };
+    return items;
   }
 
   private async fetchRolloversForBudgets(
