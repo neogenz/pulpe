@@ -16,7 +16,7 @@ module.exports = {
       name: 'no-application-to-infrastructure',
       severity: 'error',
       comment:
-        'TEMPORARY: carve-out for application→infrastructure imports (mappers, RPC payload schemas, demo-template-specs, encryption crypto adapter). The encryption crypto exception is permanent: the encryption module IS the crypto layer and its use cases must orchestrate its primitive AES/HKDF/wrap-unwrap operations that are not exposed on the public ENCRYPTION_PORT (intentionally read-only for cross-module consumers). The other three patterns disappear in Tier 3 (mappers move to controller boundary; RPC schema encryption moves into repo; demo-template-specs becomes plain data the repo encrypts at insert).',
+        'Two carve-outs remain. (1) mappers — TEMPORARY: budget and budget-template use cases still inject *.mapper to wrap entities into API response shapes (BudgetTemplateResponse, BudgetListResponse, ...). The textbook fix is to push entity → DTO mapping to the controller; tracked as remaining Tier 3 cleanup. (2) encryption/infrastructure/crypto — PERMANENT: the encryption module IS the crypto layer; its use cases need access to AES/HKDF/wrap-unwrap primitives not exposed on the public ENCRYPTION_PORT (intentionally read-only for cross-module consumers).',
       from: {
         path: '^src/modules/[^/]+/application',
         pathNot: '\\.spec\\.ts$',
@@ -24,7 +24,7 @@ module.exports = {
       to: {
         path: '^src/modules/[^/]+/infrastructure',
         pathNot:
-          '^src/modules/[^/]+/infrastructure/(mappers|persistence/(schemas|demo-template-specs))|^src/modules/encryption/infrastructure/crypto',
+          '^src/modules/[^/]+/infrastructure/mappers|^src/modules/encryption/infrastructure/crypto',
       },
     },
     {
