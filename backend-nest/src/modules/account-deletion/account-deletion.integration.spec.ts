@@ -4,7 +4,7 @@ import { ConfigModule } from '@nestjs/config';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { LoggerModule } from 'nestjs-pino';
 import { AccountDeletionModule } from './account-deletion.module';
-import { AccountDeletionService } from './account-deletion.service';
+import { CleanupExpiredDeletionsUseCase } from './application/cleanup-expired-deletions.use-case';
 import { EncryptionService } from '@modules/encryption/encryption.service';
 import type { Database } from '../../types/database.types';
 
@@ -31,7 +31,7 @@ beforeAll(async () => {
 });
 
 describe('AccountDeletionService Integration', () => {
-  let service: AccountDeletionService;
+  let useCase: CleanupExpiredDeletionsUseCase;
   let adminClient: SupabaseClient<Database>;
   let testUserId: string;
   let testTemplateId: string;
@@ -69,7 +69,9 @@ describe('AccountDeletionService Integration', () => {
       ],
     }).compile();
 
-    service = moduleRef.get<AccountDeletionService>(AccountDeletionService);
+    useCase = moduleRef.get<CleanupExpiredDeletionsUseCase>(
+      CleanupExpiredDeletionsUseCase,
+    );
 
     testUserId = `test-${crypto.randomUUID()}`;
     testTemplateId = crypto.randomUUID();
@@ -186,7 +188,7 @@ describe('AccountDeletionService Integration', () => {
       .single();
     expect(transactionBefore).not.toBeNull();
 
-    await service.cleanupScheduledDeletions();
+    await useCase.execute();
 
     const { data: userAfter } =
       await adminClient.auth.admin.getUserById(testUserId);
