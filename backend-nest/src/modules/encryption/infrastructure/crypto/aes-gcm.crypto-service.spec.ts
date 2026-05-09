@@ -2430,7 +2430,13 @@ describe('AesGcmCryptoService', () => {
         );
         expect.unreachable('Should have thrown');
       } catch (error) {
-        expect((error as Error).message).toBe('DB write failed after rekey');
+        expect(error).toBeInstanceOf(BusinessException);
+        expect((error as BusinessException).code).toBe(
+          ERROR_DEFINITIONS.ENCRYPTION_REKEY_PARTIAL_FAILURE.code,
+        );
+        expect(((error as BusinessException).cause as Error).message).toBe(
+          'DB write failed after rekey',
+        );
       }
 
       reEncryptSpy.mockRestore();
@@ -2441,6 +2447,107 @@ describe('AesGcmCryptoService', () => {
       const callsBeforeProbe = findSaltByUserId2.mock.calls.length;
       await svc2.getUserDEK(TEST_USER_ID, oldClientKey);
       expect(findSaltByUserId2.mock.calls.length).toBe(callsBeforeProbe + 1);
+    });
+
+    it('should throw ENCRYPTION_REKEY_PARTIAL_FAILURE when wrapDEK fails after re-encryption', async () => {
+      const existingSalt = randomBytes(16).toString('hex');
+      const wrappedDekUpdates: Array<string | null> = [];
+
+      const findSaltByUserId = mock(() =>
+        Promise.resolve({
+          salt: existingSalt,
+          kdf_iterations: 600000,
+          key_check: null,
+        }),
+      );
+      const updateWrappedDEKBootstrap = mock(
+        (_userId: string, value: string | null) => {
+          wrappedDekUpdates.push(value);
+          return Promise.resolve();
+        },
+      );
+      const updateWrappedDEKIfNull = mock((_userId: string, value: string) => {
+        wrappedDekUpdates.push(value);
+        return Promise.resolve(true);
+      });
+
+      const bootstrapClientKey = randomBytes(32);
+      const repo1 = createMockRepository({
+        findSaltByUserId,
+        updateWrappedDEK: updateWrappedDEKBootstrap,
+        updateWrappedDEKIfNull,
+      });
+      const svc1 = new AesGcmCryptoService(
+        createMockLogger() as any,
+        mockConfigService as any,
+        repo1 as any,
+      );
+      const { formatted } = await svc1.createRecoveryKey(
+        TEST_USER_ID,
+        bootstrapClientKey,
+      );
+      const storedWrappedDek = wrappedDekUpdates[wrappedDekUpdates.length - 1];
+
+      const findByUserId = mock(() =>
+        Promise.resolve({
+          salt: existingSalt,
+          kdf_iterations: 600000,
+          wrapped_dek: storedWrappedDek,
+          key_check: null,
+        }),
+      );
+      const updateWrappedDEK = mock(() => Promise.resolve());
+
+      const repo2 = createMockRepository({
+        findByUserId,
+        updateWrappedDEK,
+      });
+      const svc2 = new AesGcmCryptoService(
+        createMockLogger() as any,
+        mockConfigService as any,
+        repo2 as any,
+      );
+
+      const reEncryptSpy = spyOn(
+        svc2,
+        'reEncryptAllUserData',
+      ).mockResolvedValue('mock-key-check');
+
+      // Force wrapDEK on svc2 to always throw — recoverWithKey only wraps once
+      // (post-rekey). Bootstrap wrap happened on svc1, so this targets the
+      // recovery wrap path unambiguously regardless of future call-order changes.
+      const wrapSpy = spyOn(svc2, 'wrapDEK').mockImplementation(() => {
+        throw new Error('AES-GCM wrap failed');
+      });
+
+      const newClientKey = randomBytes(32);
+      try {
+        await svc2.recoverWithKey(
+          TEST_USER_ID,
+          formatted,
+          newClientKey,
+          {} as any,
+        );
+        expect.unreachable('Should have thrown');
+      } catch (error) {
+        expect(error).toBeInstanceOf(BusinessException);
+        expect((error as BusinessException).code).toBe(
+          ERROR_DEFINITIONS.ENCRYPTION_REKEY_PARTIAL_FAILURE.code,
+        );
+        expect(((error as BusinessException).cause as Error).message).toBe(
+          'AES-GCM wrap failed',
+        );
+      }
+
+      // wrapped_dek nullified twice: once before re-encryption, once after wrap
+      // failure (best-effort cleanup mirroring changePinRekey).
+      expect(updateWrappedDEK).toHaveBeenCalledTimes(2);
+      const calls = updateWrappedDEK.mock.calls as unknown[][];
+      expect(calls[0][1]).toBeNull(); // before re-encryption
+      expect(calls[1][1]).toBeNull(); // after wrap failure
+
+      reEncryptSpy.mockRestore();
+      wrapSpy.mockRestore();
     });
   });
 

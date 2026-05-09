@@ -487,8 +487,41 @@ export class AesGcmCryptoService {
 
       // Re-wrap with the same recovery key — the frontend will immediately call
       // regenerateRecoveryKey$() to replace it with a fresh one.
-      const newWrappedDEK = this.wrapDEK(newDek, recoveryKey);
-      await this.#repository.updateWrappedDEK(userId, newWrappedDEK);
+      // Forward recovery: re-encryption already committed (data rotated). On wrap
+      // failure we surface ENCRYPTION_REKEY_PARTIAL_FAILURE so the frontend can
+      // prompt the user to regenerate the recovery key from settings — vault
+      // remains accessible via newDek (user already holds newClientKey).
+      try {
+        const newWrappedDEK = this.wrapDEK(newDek, recoveryKey);
+        await this.#repository.updateWrappedDEK(userId, newWrappedDEK);
+      } catch (wrapError) {
+        try {
+          await this.#repository.updateWrappedDEK(userId, null);
+        } catch (nullifyError) {
+          this.logger.warn(
+            {
+              userId,
+              operation: 'recover.nullify_wrapped_dek_failed',
+              error:
+                nullifyError instanceof Error
+                  ? nullifyError.message
+                  : String(nullifyError),
+            },
+            'Failed to nullify wrapped_dek after wrap failure — stale wrapped_dek may remain until recovery key regeneration',
+          );
+        }
+        throw new BusinessException(
+          ERROR_DEFINITIONS.ENCRYPTION_REKEY_PARTIAL_FAILURE,
+          undefined,
+          { userId, operation: 'recover.recovery_wrap_failed' },
+          {
+            cause:
+              wrapError instanceof Error
+                ? wrapError
+                : new Error(String(wrapError)),
+          },
+        );
+      }
     } finally {
       // Zero sensitive material (even on error)
       recoveryKey.fill(0);
