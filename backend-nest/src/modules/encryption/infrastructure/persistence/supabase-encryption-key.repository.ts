@@ -1,5 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { SupabaseService } from '@modules/supabase/supabase.service';
+import { BusinessException } from '@common/exceptions/business.exception';
+import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 import type { EncryptionKeyRepositoryPort } from '../../domain/ports/encryption-key-repository.port';
 import type {
   UserEncryptionKey,
@@ -26,8 +28,16 @@ export class SupabaseEncryptionKeyRepository implements EncryptionKeyRepositoryP
     if (error) {
       // PGRST116 = "Searched for a single row but found 0 rows" (not found)
       if (error.code === 'PGRST116') return null;
-      throw new Error(
-        `Failed to fetch encryption key for user ${userId}: ${error.message}`,
+      throw new BusinessException(
+        ERROR_DEFINITIONS.ENCRYPTION_REPOSITORY_FAILURE,
+        undefined,
+        {
+          userId,
+          operation: 'findSaltByUserId',
+          supabaseCode: error.code,
+          supabaseMessage: error.message,
+        },
+        { cause: error },
       );
     }
     if (!data) return null;
@@ -50,8 +60,16 @@ export class SupabaseEncryptionKeyRepository implements EncryptionKeyRepositoryP
     );
 
     if (error) {
-      throw new Error(
-        `Failed to create encryption salt for user ${userId}: ${error.message}`,
+      throw new BusinessException(
+        ERROR_DEFINITIONS.ENCRYPTION_REPOSITORY_FAILURE,
+        undefined,
+        {
+          userId,
+          operation: 'upsertSalt',
+          supabaseCode: error.code,
+          supabaseMessage: error.message,
+        },
+        { cause: error },
       );
     }
   }
@@ -66,8 +84,16 @@ export class SupabaseEncryptionKeyRepository implements EncryptionKeyRepositoryP
 
     if (error) {
       if (error.code === 'PGRST116') return null;
-      throw new Error(
-        `Failed to fetch encryption key for user ${userId}: ${error.message}`,
+      throw new BusinessException(
+        ERROR_DEFINITIONS.ENCRYPTION_REPOSITORY_FAILURE,
+        undefined,
+        {
+          userId,
+          operation: 'findByUserId',
+          supabaseCode: error.code,
+          supabaseMessage: error.message,
+        },
+        { cause: error },
       );
     }
     return data ?? null;
@@ -83,8 +109,16 @@ export class SupabaseEncryptionKeyRepository implements EncryptionKeyRepositoryP
 
     if (error) {
       if (error.code === 'PGRST116') return false;
-      throw new Error(
-        `Failed to check recovery key for user ${userId}: ${error.message}`,
+      throw new BusinessException(
+        ERROR_DEFINITIONS.ENCRYPTION_REPOSITORY_FAILURE,
+        undefined,
+        {
+          userId,
+          operation: 'hasRecoveryKey',
+          supabaseCode: error.code,
+          supabaseMessage: error.message,
+        },
+        { cause: error },
       );
     }
     return !!data?.wrapped_dek;
@@ -101,8 +135,16 @@ export class SupabaseEncryptionKeyRepository implements EncryptionKeyRepositoryP
       .eq('user_id', userId);
 
     if (error) {
-      throw new Error(
-        `Failed to update wrapped DEK for user ${userId}: ${error.message}`,
+      throw new BusinessException(
+        ERROR_DEFINITIONS.ENCRYPTION_REPOSITORY_FAILURE,
+        undefined,
+        {
+          userId,
+          operation: 'updateWrappedDEK',
+          supabaseCode: error.code,
+          supabaseMessage: error.message,
+        },
+        { cause: error },
       );
     }
   }
@@ -123,8 +165,16 @@ export class SupabaseEncryptionKeyRepository implements EncryptionKeyRepositoryP
           vaultCodeConfigured: false,
         };
       }
-      throw new Error(
-        `Failed to fetch vault status for user ${userId}: ${error.message}`,
+      throw new BusinessException(
+        ERROR_DEFINITIONS.ENCRYPTION_REPOSITORY_FAILURE,
+        undefined,
+        {
+          userId,
+          operation: 'getVaultStatus',
+          supabaseCode: error.code,
+          supabaseMessage: error.message,
+        },
+        { cause: error },
       );
     }
 
@@ -147,8 +197,16 @@ export class SupabaseEncryptionKeyRepository implements EncryptionKeyRepositoryP
       .is('key_check', null);
 
     if (error) {
-      throw new Error(
-        `Failed to update key_check for user ${userId}: ${error.message}`,
+      throw new BusinessException(
+        ERROR_DEFINITIONS.ENCRYPTION_REPOSITORY_FAILURE,
+        undefined,
+        {
+          userId,
+          operation: 'updateKeyCheckIfNull',
+          supabaseCode: error.code,
+          supabaseMessage: error.message,
+        },
+        { cause: error },
       );
     }
   }
@@ -167,8 +225,16 @@ export class SupabaseEncryptionKeyRepository implements EncryptionKeyRepositoryP
       .maybeSingle();
 
     if (error) {
-      throw new Error(
-        `Failed to update wrapped DEK for user ${userId}: ${error.message}`,
+      throw new BusinessException(
+        ERROR_DEFINITIONS.ENCRYPTION_REPOSITORY_FAILURE,
+        undefined,
+        {
+          userId,
+          operation: 'updateWrappedDEKIfNull',
+          supabaseCode: error.code,
+          supabaseMessage: error.message,
+        },
+        { cause: error },
       );
     }
     return data !== null;

@@ -109,6 +109,11 @@ export const ERROR_DEFINITIONS = {
       'Re-encryption failed. Data remains encrypted with the previous key.',
     httpStatus: HttpStatus.INTERNAL_SERVER_ERROR,
   },
+  ENCRYPTION_REPOSITORY_FAILURE: {
+    code: API_ERROR_CODES.ENCRYPTION_REPOSITORY_FAILURE,
+    message: () => 'Encryption key store unavailable',
+    httpStatus: HttpStatus.INTERNAL_SERVER_ERROR,
+  },
 
   // Budget Errors
   BUDGET_NOT_FOUND: {
