@@ -473,13 +473,28 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
       p_lines: validated as never,
     });
 
-    if (error) throw error;
+    if (error) {
+      this.throwIfTemplateLimitExceeded(error);
+      throw error;
+    }
 
     if (!data) {
       throw new BusinessException(ERROR_DEFINITIONS.TEMPLATE_CREATE_FAILED);
     }
 
     return this.toTemplateEntity(data as unknown as TemplateRow);
+  }
+
+  private throwIfTemplateLimitExceeded(error: unknown): void {
+    const message = (error as { message?: string })?.message ?? '';
+    if (message.includes('TEMPLATE_LIMIT_EXCEEDED')) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.TEMPLATE_LIMIT_EXCEEDED,
+        { limit: 5 },
+        { operation: 'createTemplateWithLines' },
+        { cause: error },
+      );
+    }
   }
 
   async bulkApplyTemplateLineOperations(
