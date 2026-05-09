@@ -16,6 +16,7 @@ const mockCache = {
   clear: vi.fn(),
   clearDirty: vi.fn(),
   version: signal(0),
+  _dataVersion: signal(0),
 };
 
 const mockUserSettingsStore = {
