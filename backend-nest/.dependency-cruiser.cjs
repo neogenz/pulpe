@@ -55,6 +55,18 @@ module.exports = {
         pathNot: 'tokens|ports',
       },
     },
+    {
+      name: 'no-encryption-internal-leak',
+      comment:
+        'CR-03 regression guard: ONLY the encryption module may import from encryption/application/* or encryption/infrastructure/*. External modules must consume ENCRYPTION_PORT via @modules/encryption/domain/ports/encryption.port. Direct imports of AesGcmCryptoService or any internal encryption file expose wrap/unwrap/recovery primitives the port intentionally hides. See ADR-0008.',
+      severity: 'error',
+      from: {
+        path: '^src/modules/(?!encryption/)',
+      },
+      to: {
+        path: '^src/modules/encryption/(application|infrastructure)/',
+      },
+    },
   ],
   options: {
     doNotFollow: { path: 'node_modules' },

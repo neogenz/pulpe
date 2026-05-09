@@ -40,6 +40,6 @@ import { ChangePinUseCase } from './application/change-pin.use-case';
     createInfoLoggerProvider(RecoverWithRecoveryKeyUseCase.name),
     createInfoLoggerProvider(ChangePinUseCase.name),
   ],
-  exports: [AesGcmCryptoService, ENCRYPTION_PORT],
+  exports: [ENCRYPTION_PORT],
 })
 export class EncryptionModule {}
