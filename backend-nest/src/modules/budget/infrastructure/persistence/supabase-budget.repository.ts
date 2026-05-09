@@ -8,12 +8,7 @@ import {
   ENCRYPTION_PORT,
   type EncryptionPort,
 } from '@modules/encryption/encryption.tokens';
-import {
-  BudgetFormulas,
-  PAY_DAY_MIN,
-  PAY_DAY_MAX,
-  type TransactionKind,
-} from 'pulpe-shared';
+import { BudgetFormulas, type TransactionKind } from 'pulpe-shared';
 import type {
   Budget,
   BudgetForRollover,
@@ -485,16 +480,6 @@ export class SupabaseBudgetRepository implements BudgetRepositoryPort {
           ? this.encryption.tryDecryptAmount(row.ending_balance, dek, 0)
           : null,
     }));
-  }
-
-  async fetchUserPayDayOfMonth(): Promise<number> {
-    const supabase = this.supabaseProvider.client;
-    const { data } = await supabase.auth.getUser();
-    const raw = data?.user?.user_metadata?.payDayOfMonth;
-
-    if (typeof raw !== 'number' || !Number.isInteger(raw)) return PAY_DAY_MIN;
-
-    return Math.max(PAY_DAY_MIN, Math.min(PAY_DAY_MAX, raw));
   }
 
   async fetchBudgetAggregates(

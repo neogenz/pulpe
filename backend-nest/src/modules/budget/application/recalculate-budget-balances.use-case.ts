@@ -21,17 +21,8 @@ export class RecalculateBudgetBalancesUseCase implements BudgetRecalculationPort
   ) {}
 
   async recalculate(budgetId: string, _clientKey: Buffer): Promise<void> {
-    const [currentMonthBalance, payDayOfMonth] = await Promise.all([
-      this.calculateEndingBalance(budgetId),
-      this.repo.fetchUserPayDayOfMonth(),
-    ]);
-
-    const { rollover } = await this.getRollover(budgetId, payDayOfMonth);
-
-    await this.repo.persistEndingBalance(
-      budgetId,
-      currentMonthBalance + rollover,
-    );
+    const endingBalance = await this.calculateEndingBalance(budgetId);
+    await this.repo.persistEndingBalance(budgetId, endingBalance);
 
     this.logger.info(
       { budgetId, operation: 'balance.recalculated' },

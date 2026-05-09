@@ -1,26 +1,25 @@
 import { describe, it, expect, beforeEach, mock } from 'bun:test';
 import { RecalculateBudgetBalancesUseCase } from './recalculate-budget-balances.use-case';
 import type { BudgetRepositoryPort } from '../domain/ports/budget-repository.port';
-import type {
-  BudgetForRollover,
-  BudgetWithRelations,
-} from '../domain/budget.entity';
+import type { BudgetWithRelations } from '../domain/budget.entity';
 
 const BUDGET_ID = 'budget-current';
 const USER_ID = 'user-abc';
 const CLIENT_KEY = Buffer.from('test-key');
 
 /**
- * Current month budget data:
- *   - one income line: 500
- *   - one expense line: 100
- *   => income − expenses = 400
+ * Persisted `monthly_budget.ending_balance` is the CURRENT-MONTH DELTA only —
+ * `income − expenses` for the month. Rollover from prior months is added at
+ * READ time by `find-all-budgets.use-case.ts:117/131`. Storing rollover into
+ * the column would compound across months on every read path that adds
+ * rollover, double-counting the carry-over.
  *
- * Prior month budget:
- *   - endingBalance = 800 (rollover)
- *
- * Correct ending_balance = rollover + income − expenses = 800 + 500 − 100 = 1200
- * Buggy  ending_balance =              income − expenses =        500 − 100 =  400
+ * Cross-stack contract:
+ *   - frontend `excel-export.service.ts:103` displays `endingBalance` as the
+ *     month's "Solde final" delta;
+ *   - iOS `BudgetListView+YearComponents.swift:13` documents the contract
+ *     verbatim: "Sum of endingBalance per month (remaining - rollover) to
+ *     avoid double-counting rollover across months".
  */
 
 const MOCK_BUDGET_DATA: BudgetWithRelations = {
@@ -76,28 +75,12 @@ const MOCK_BUDGET_DATA: BudgetWithRelations = {
   transactions: [],
 };
 
-/** Prior month budget with a known rollover balance. */
-const PRIOR_BUDGET: BudgetForRollover = {
-  id: 'budget-april',
-  month: 4,
-  year: 2026,
-  endingBalance: 800,
-};
-
-const CURRENT_BUDGET_FOR_ROLLOVER: BudgetForRollover = {
-  id: BUDGET_ID,
-  month: 5,
-  year: 2026,
-  endingBalance: null,
-};
-
 describe('RecalculateBudgetBalancesUseCase', () => {
   let useCase: RecalculateBudgetBalancesUseCase;
   let mockRepo: {
     fetchBudgetData: ReturnType<typeof mock>;
     fetchBudgetUserId: ReturnType<typeof mock>;
     fetchAllBudgetsForRollover: ReturnType<typeof mock>;
-    fetchUserPayDayOfMonth: ReturnType<typeof mock>;
     persistEndingBalance: ReturnType<typeof mock>;
   };
   let mockLogger: {
@@ -108,13 +91,27 @@ describe('RecalculateBudgetBalancesUseCase', () => {
   };
 
   beforeEach(() => {
+    // A non-zero rollover so any regression that adds it to the persist path
+    // shifts the asserted value visibly (400 → 1200), instead of 0 hiding the bug.
     mockRepo = {
       fetchBudgetData: mock(() => Promise.resolve(MOCK_BUDGET_DATA)),
       fetchBudgetUserId: mock(() => Promise.resolve(USER_ID)),
       fetchAllBudgetsForRollover: mock(() =>
-        Promise.resolve([PRIOR_BUDGET, CURRENT_BUDGET_FOR_ROLLOVER]),
+        Promise.resolve([
+          {
+            id: 'budget-prior',
+            month: 4,
+            year: 2026,
+            endingBalance: 800,
+          },
+          {
+            id: BUDGET_ID,
+            month: 5,
+            year: 2026,
+            endingBalance: null,
+          },
+        ]),
       ),
-      fetchUserPayDayOfMonth: mock(() => Promise.resolve(1)),
       persistEndingBalance: mock(() => Promise.resolve()),
     };
 
@@ -127,14 +124,15 @@ describe('RecalculateBudgetBalancesUseCase', () => {
 
     useCase = new RecalculateBudgetBalancesUseCase(
       mockRepo as unknown as BudgetRepositoryPort,
-      mockLogger as any,
+      mockLogger as never,
     );
   });
 
   describe('recalculate', () => {
-    it('should persist ending_balance including rollover from prior month (expected: 1200, not 400)', async () => {
-      // Arrange: prior month has endingBalance=800, current month has income=500, expense=100
-      // Formula: ending_balance = rollover(800) + income(500) − expense(100) = 1200
+    it('should persist current-month delta only (income − expenses), no rollover added', async () => {
+      // Arrange
+      // income=500, expenses=100 → expected delta = 400
+      // Rollover MUST NOT be added at persist — it is applied at read time only.
 
       // Act
       await useCase.recalculate(BUDGET_ID, CLIENT_KEY);
@@ -143,19 +141,15 @@ describe('RecalculateBudgetBalancesUseCase', () => {
       expect(mockRepo.persistEndingBalance).toHaveBeenCalledTimes(1);
       const persistedBalance = mockRepo.persistEndingBalance.mock
         .calls[0][1] as number;
-
-      // This assertion FAILS if the bug is present (rollover ignored → 400 persisted)
-      expect(persistedBalance).toBe(1200);
+      expect(persistedBalance).toBe(400);
     });
 
-    it('should NOT persist 400 (income minus expenses only, rollover ignored)', async () => {
+    it('should never call fetchAllBudgetsForRollover when persisting (rollover lives at read time)', async () => {
       // Act
       await useCase.recalculate(BUDGET_ID, CLIENT_KEY);
 
-      // Assert: 400 would mean rollover was never added
-      const persistedBalance = mockRepo.persistEndingBalance.mock
-        .calls[0][1] as number;
-      expect(persistedBalance).not.toBe(400);
+      // Assert: persist path must not touch rollover at all.
+      expect(mockRepo.fetchAllBudgetsForRollover).not.toHaveBeenCalled();
     });
   });
 });
