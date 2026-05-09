@@ -87,7 +87,7 @@ paths: "**/*.ts"
 | ----------------------------- | ------------------------------------------ |
 | Strategic foundation          | `PRODUCT.md`                               |
 | Visual common (cross-platform DA) | `DESIGN.md`                            |
-| iOS visual extensions         | `ios/DESIGN.md` (+ `ios/.impeccable/design.json` sidecar) |
+| iOS visual extensions         | `ios/DESIGN.md` (no sidecar — `/impeccable live` is browser-only) |
 | Webapp visual extensions      | `frontend/DESIGN.md` *(seed)*              |
 | Landing visual extensions     | `landing/DESIGN.md` *(seed)*               |
 | DB types                      | `backend-nest/src/types/database.types.ts` |

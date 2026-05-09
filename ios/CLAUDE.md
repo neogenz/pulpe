@@ -2,7 +2,7 @@
 
 ## Design Docs
 
-Before any visual work, read in order: `../PRODUCT.md` (strategic) → `../DESIGN.md` (cross-platform DA) → `DESIGN.md` (this directory; iOS-specific tokens, components, Liquid Glass, sheets). Sidecar: `.impeccable/design.json` for Stitch-format extensions (shadows, motion, tonal ramps, narrative, full HTML/CSS component snippets). Never duplicate cross-platform rules here — push them up to `../DESIGN.md`.
+Before any visual work, read in order: `../PRODUCT.md` (strategic) → `../DESIGN.md` (cross-platform DA) → `DESIGN.md` (this directory; iOS-specific tokens, components, Liquid Glass, sheets). No Stitch sidecar here — `/impeccable live` is browser-only and unsupported on SwiftUI. Never duplicate cross-platform rules here — push them up to `../DESIGN.md`.
 
 ## XcodeGen
 

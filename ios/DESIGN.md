@@ -198,7 +198,7 @@ components:
 > - **Cross-platform visual common:** [../DESIGN.md](../DESIGN.md) — read first; this file inherits everything there
 > - **This file:** iOS-native extensions — tokens, components, Liquid Glass, sheets, SwiftUI patterns
 > - **Sibling platforms:** [../frontend/DESIGN.md](../frontend/DESIGN.md), [../landing/DESIGN.md](../landing/DESIGN.md)
-> - **Sidecar:** [.impeccable/design.json](./.impeccable/design.json) — Stitch-format extensions (shadows, motion, tonal ramps, narrative, full HTML/CSS component snippets)
+> - **No sidecar:** `/impeccable live` (which consumes `.impeccable/design.json`) is browser-only and unsupported on SwiftUI. iOS visual canon lives in this file alone.
 >
 > Everything in this doc is iOS-only. Cross-platform rules live in `../DESIGN.md` and are not repeated here.
 
