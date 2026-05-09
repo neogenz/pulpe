@@ -34,8 +34,6 @@ interface ConverterAmountModel {
 
 /**
  * Convertisseur de devises (paramètres).
- * Template: `[formField]="$any(converterForm.amount)"` — le compilateur n’accepte pas encore
- * `number | null` pour les inputs number liés au FormField signal (TS2322).
  */
 @Component({
   selector: 'pulpe-currency-converter-widget',
@@ -83,7 +81,7 @@ interface ConverterAmountModel {
               matInput
               type="number"
               inputmode="decimal"
-              [formField]="$any(converterForm.amount)"
+              [formField]="converterForm.amount"
               [errorStateMatcher]="converterAmountErrorMatcher"
               step="0.01"
               class="tabular-nums"
