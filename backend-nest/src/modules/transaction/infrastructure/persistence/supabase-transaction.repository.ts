@@ -229,11 +229,29 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
   }
 
   async toggleCheck(id: string): Promise<Transaction> {
-    const current = await this.findById(id);
-    const newCheckedAt =
-      current.checkedAt === null ? new Date().toISOString() : null;
+    const supabase = this.supabaseProvider.client;
+    const { data, error } = await supabase
+      .rpc('toggle_transaction_check', {
+        p_transaction_id: id,
+      })
+      .single();
 
-    return this.update(id, { checkedAt: newCheckedAt });
+    if (error || !data) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.TRANSACTION_UPDATE_FAILED,
+        undefined,
+        {
+          operation: 'toggleCheck',
+          entityId: id,
+          entityType: 'transaction',
+          supabaseError: error,
+        },
+        { cause: error ?? undefined },
+      );
+    }
+
+    const dek = await this.encryption.getDekFor(this.supabaseProvider.user);
+    return this.toEntity(data, dek);
   }
 
   async fetchBudgetIdForTransaction(id: string): Promise<string | null> {

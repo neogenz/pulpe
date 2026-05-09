@@ -503,6 +503,32 @@ export type Database = {
           isSetofReturn: false;
         };
       };
+      toggle_transaction_check: {
+        Args: { p_transaction_id: string };
+        Returns: {
+          amount: string | null;
+          budget_id: string;
+          budget_line_id: string | null;
+          category: string | null;
+          checked_at: string | null;
+          created_at: string;
+          exchange_rate: number | null;
+          id: string;
+          kind: Database['public']['Enums']['transaction_kind'];
+          name: string;
+          original_amount: string | null;
+          original_currency: string | null;
+          target_currency: string | null;
+          transaction_date: string;
+          updated_at: string;
+        };
+        SetofOptions: {
+          from: '*';
+          to: 'transaction';
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
+      };
     };
     Enums: {
       priority_level: 'HIGH' | 'MEDIUM' | 'LOW';

@@ -229,6 +229,53 @@ describe('SupabaseTransactionRepository', () => {
     });
   });
 
+  describe('toggleCheck (atomic RPC)', () => {
+    it('should return decrypted entity from atomic RPC call', async () => {
+      const mockRpc = jest.fn().mockReturnValue({
+        single: jest.fn().mockResolvedValue({ data: mockRow, error: null }),
+      });
+      const provider = createMockProvider(() => ({}), mockRpc);
+      repo = new SupabaseTransactionRepository(
+        provider,
+        createMockEncryption(),
+      );
+
+      const result = await repo.toggleCheck('txn-1');
+
+      expect(result.id).toBe('txn-1');
+      expect(result.amount).toBe(50);
+      expect(mockRpc).toHaveBeenCalledWith('toggle_transaction_check', {
+        p_transaction_id: 'txn-1',
+      });
+      // Atomicity guarantee: single RPC call, no separate read+write
+      expect(mockRpc).toHaveBeenCalledTimes(1);
+    });
+
+    it('should throw TRANSACTION_UPDATE_FAILED when RPC fails', async () => {
+      const mockRpc = jest.fn().mockReturnValue({
+        single: jest.fn().mockResolvedValue({
+          data: null,
+          error: { message: 'Transaction not found or access denied' },
+        }),
+      });
+      const provider = createMockProvider(() => ({}), mockRpc);
+      repo = new SupabaseTransactionRepository(
+        provider,
+        createMockEncryption(),
+      );
+
+      try {
+        await repo.toggleCheck('txn-1');
+        throw new Error('expected to throw');
+      } catch (error) {
+        expect(error).toBeInstanceOf(BusinessException);
+        expect((error as BusinessException).code).toBe(
+          'ERR_TRANSACTION_UPDATE_FAILED',
+        );
+      }
+    });
+  });
+
   describe('fetchBudgetIdForTransaction', () => {
     it('should return the budget id on success', async () => {
       const provider = createMockProvider(() => ({
