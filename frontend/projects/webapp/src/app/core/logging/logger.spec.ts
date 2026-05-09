@@ -131,6 +131,42 @@ describe('Logger', () => {
       expect(sanitized['anonKey']).toBe('***');
     });
 
+    it('should mask user identifier keys to prevent PII leakage', () => {
+      const data = {
+        userId: 'auth0|123456',
+        user_id: 'supabase-uuid-789',
+        sub: 'jwt-subject-claim',
+        username: 'john',
+      };
+
+      logger.debug('Identity data', data);
+
+      const args =
+        consoleDebugSpy.mock.calls[consoleDebugSpy.mock.calls.length - 1];
+      const sanitized = args[1] as Record<string, unknown>;
+      expect(sanitized['userId']).toBe('***');
+      expect(sanitized['user_id']).toBe('***');
+      expect(sanitized['sub']).toBe('***');
+      expect(sanitized['username']).toBe('john');
+    });
+
+    it('should not mask keys that merely contain "sub" as substring', () => {
+      const data = {
+        subject: 'meeting agenda',
+        subtitle: 'chapter 1',
+        substring: 'foo',
+      };
+
+      logger.debug('Non-PII data', data);
+
+      const args =
+        consoleDebugSpy.mock.calls[consoleDebugSpy.mock.calls.length - 1];
+      const sanitized = args[1] as Record<string, unknown>;
+      expect(sanitized['subject']).toBe('meeting agenda');
+      expect(sanitized['subtitle']).toBe('chapter 1');
+      expect(sanitized['substring']).toBe('foo');
+    });
+
     it('should handle nested objects', () => {
       const data = {
         user: {

@@ -128,12 +128,16 @@ export class Logger {
           const lowerKey = key.toLowerCase();
 
           // Mask sensitive keys
+          // Exact match on 'userid' / 'user_id' / 'sub' (JWT subject claim)
+          // avoids false positives on substrings like subject, subtitle, subscription, userIdentity.
           if (
             lowerKey.includes('password') ||
             lowerKey.includes('secret') ||
             lowerKey.includes('token') ||
             lowerKey.includes('key') ||
-            lowerKey.includes('anonkey')
+            lowerKey === 'userid' ||
+            lowerKey === 'user_id' ||
+            lowerKey === 'sub'
           ) {
             (sanitized as Record<string, unknown>)[key] = '***';
           } else {

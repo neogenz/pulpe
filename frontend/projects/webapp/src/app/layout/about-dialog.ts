@@ -76,7 +76,7 @@ const LONG_PRESS_DURATION_MS = 10_000;
               class="text-body-medium text-primary py-1 hover:underline"
               href="https://pulpe.app/changelog"
               target="_blank"
-              rel="noopener"
+              rel="noopener noreferrer"
             >
               {{ 'about.newFeatures' | transloco }}
             </a>

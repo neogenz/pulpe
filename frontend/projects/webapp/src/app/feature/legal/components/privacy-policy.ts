@@ -310,6 +310,7 @@ import { ROUTES } from '@core/routing';
                 href="https://github.com/neogenz/pulpe"
                 class="text-primary"
                 target="_blank"
+                rel="noopener noreferrer"
                 >Issues & Discussions</a
               >
             </li>

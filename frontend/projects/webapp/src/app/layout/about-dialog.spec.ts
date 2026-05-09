@@ -124,7 +124,7 @@ describe('AboutDialog', () => {
       'https://pulpe.app/changelog',
     );
     expect(changelogLink?.getAttribute('target')).toBe('_blank');
-    expect(changelogLink?.getAttribute('rel')).toBe('noopener');
+    expect(changelogLink?.getAttribute('rel')).toBe('noopener noreferrer');
   });
 
   it('should have a link to CGU', () => {

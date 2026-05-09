@@ -160,6 +160,7 @@ import { NgxTurnstileModule, type NgxTurnstileComponent } from 'ngx-turnstile';
         <a
           [routerLink]="['/', ROUTES.LEGAL, ROUTES.LEGAL_TERMS]"
           target="_blank"
+          rel="noopener noreferrer"
           class="text-primary underline underline-offset-2"
           >{{ 'welcome.termsShort' | transloco }}</a
         >
@@ -167,6 +168,7 @@ import { NgxTurnstileModule, type NgxTurnstileComponent } from 'ngx-turnstile';
         <a
           [routerLink]="['/', ROUTES.LEGAL, ROUTES.LEGAL_PRIVACY]"
           target="_blank"
+          rel="noopener noreferrer"
           class="text-primary underline underline-offset-2"
           >{{ 'welcome.privacyPolicy' | transloco }}</a
         >
