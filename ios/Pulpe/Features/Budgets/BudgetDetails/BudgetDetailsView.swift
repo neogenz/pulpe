@@ -1,3 +1,4 @@
+// swiftlint:disable file_length type_body_length
 import SwiftUI
 import TipKit
 
@@ -16,6 +17,8 @@ struct BudgetDetailsView: View {
     @State private var destination: BudgetDetailDestination?
 
     @State private var searchText = ""
+    @State private var heroHeight: CGFloat = 0
+    @State private var pagerStickyOpacity: Double = 0
 
     init(budgetId: String) {
         self.budgetId = budgetId
@@ -64,25 +67,15 @@ struct BudgetDetailsView: View {
         }
         .trackScreen("BudgetDetails")
         .animation(DesignTokens.Animation.smoothEaseOut, value: viewModel.isLoading)
+        .navigationTitle(viewModel.budget?.monthYear ?? "Budget")
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .principal) {
-                MonthDropdownMenu(
-                    budgets: viewModel.allBudgets,
-                    currentBudgetId: viewModel.budgetId,
-                    currentMonthYear: viewModel.budget?.monthYear ?? "Budget",
-                    onSelect: { viewModel.prepareNavigation(to: $0) }
-                )
-            }
-            ToolbarItem(placement: .primaryAction) {
-                Button {
-                    destination = .addBudgetLine
-                } label: {
-                    Image(systemName: "plus")
-                }
-                .accessibilityLabel("Ajouter une prévision")
-            }
-        }
+        // Force an opaque title bar so content scrolling under it does NOT bleed through
+        // (iOS 26 defaults to translucent Liquid Glass on the nav bar; on a light theme that
+        // reads as "title floating over blurred content"). The sticky pager below provides
+        // the blur — the title stays solid so the global header reads as a layered stack:
+        // opaque title → variable-blur chip strate → fade-to-clear → crisp content.
+        .toolbarBackground(Color.appBackground, for: .navigationBar)
+        .toolbarBackgroundVisibility(.visible, for: .navigationBar)
         .task(id: viewModel.budgetId) {
             if viewModel.allBudgets.isEmpty {
                 await viewModel.loadDetails()
@@ -144,9 +137,6 @@ struct BudgetDetailsView: View {
 
         return ScrollView {
             LazyVStack(spacing: 0) {
-                // Hero + filter sit at full screen width with no surrounding
-                // chrome so the horizontal pill/chip rails stay full-bleed and
-                // the whole page scrolls as one unit.
                 BudgetDetailHero(
                     metrics: viewModel.metrics,
                     timeElapsedPercentage: timeElapsedPercentage,
@@ -156,6 +146,11 @@ struct BudgetDetailsView: View {
                     onRolloverTap: viewModel.rolloverInfo?.previousBudgetId.map { id in
                         { destination = .previousBudget(PreviousBudgetItem(id: id)) }
                     }
+                )
+                .onGeometryChange(
+                    for: CGFloat.self,
+                    of: { $0.size.height },
+                    action: { newHeight in heroHeight = newHeight }
                 )
 
                 TipView(ProductTips.pessimisticCheck)
@@ -241,6 +236,28 @@ struct BudgetDetailsView: View {
         .refreshable {
             await viewModel.loadDetails(force: true)
         }
+        .onScrollGeometryChange(
+            for: Double.self,
+            of: { geometry in
+                // Continuous progress 0…1 mapping the last `fadeRange` points of hero
+                // scroll-out to the pager's reveal. Smooth, scroll-driven, never binary.
+                let fadeRange: CGFloat = DesignTokens.Spacing.xxxl + DesignTokens.Spacing.lg
+                let fadeStart = max(heroHeight - fadeRange, DesignTokens.Spacing.xxxl)
+                let raw = (geometry.contentOffset.y - fadeStart) / fadeRange
+                return Double(min(max(raw, 0), 1))
+            },
+            action: { _, newOpacity in
+                pagerStickyOpacity = newOpacity
+            }
+        )
+        .overlay(alignment: .top) {
+            stickyPagerLayer
+                .opacity(pagerStickyOpacity)
+                .allowsHitTesting(pagerStickyOpacity > 0.5)
+        }
+        .overlay(alignment: .bottomTrailing) {
+            addBudgetLineFAB
+        }
         .animation(
             reduceMotion ? nil : DesignTokens.Animation.gentleSpring,
             value: searchFilteredSections.flatMap { $0.items.map(\.isChecked) }
@@ -253,6 +270,83 @@ struct BudgetDetailsView: View {
             prompt: "Rechercher..."
         )
         .searchPresentationToolbarBehavior(.avoidHidingContent)
+    }
+
+    // MARK: - Sticky Pager Layer
+
+    /// Sticky month pager rendered as an `overlay(alignment: .top)` on the ScrollView so
+    /// content scrolls UNDER it (no safe-area-inset reflow on visibility toggle). Pure
+    /// opacity fade in/out driven by `pagerStickyVisible` — set by the visibility marker
+    /// after the hero. Hysteresis-free: `onScrollVisibilityChange` only fires once per
+    /// crossing, so the pager never oscillates between two heights.
+    ///
+    /// Composition (Revolut-style):
+    /// 1. `ProgressiveBlurEdge` (top fade): blurs the gap between the nav bar and the chip
+    ///    row so content scrolling behind isn't crisp.
+    /// 2. Pager bar with **opaque** `appBackground` so the bar itself reads as a solid row.
+    /// 3. `ProgressiveBlurEdge` (bottom fade): blurs the band of content right below the
+    ///    bar — same trailing-edge variable blur Apple Music/Photos use.
+    @ViewBuilder
+    private var stickyPagerLayer: some View {
+        if !viewModel.pagerMonths.isEmpty {
+            let barHeight = DesignTokens.TapTarget.minimum + DesignTokens.Spacing.sm * 2
+            let trailingFade = DesignTokens.Blur.bottomFadeHeight
+            let bridgeHeight = DesignTokens.Spacing.xl   // ~20pt opaque→clear bridge
+
+            // Three-layer composition that gives a continuous opaque→blur→clear gradient
+            // matching Revolut's sticky pager:
+            //   1. Variable-blur backdrop (chips + trailing fade)
+            //   2. Top "bridge" gradient — opaque appBackground at the very top fading to
+            //      clear over `bridgeHeight`. Hides the hard line between the opaque nav-bar
+            //      and the variable blur below.
+            //   3. Chips floated on top.
+            ZStack(alignment: .top) {
+                ProgressiveBlurEdge(
+                    edge: .top,
+                    height: barHeight + trailingFade,
+                    maxBlurRadius: 20
+                )
+
+                LinearGradient(
+                    colors: [Color.appBackground, Color.appBackground.opacity(0)],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .frame(height: bridgeHeight)
+                .allowsHitTesting(false)
+
+                BudgetMonthPagerBar(
+                    months: viewModel.pagerMonths,
+                    currentBudgetId: viewModel.budgetId,
+                    onSelect: { id in
+                        guard id != viewModel.budgetId else { return }
+                        viewModel.prepareNavigation(to: id)
+                    }
+                )
+                .frame(height: barHeight)
+            }
+        }
+    }
+
+    // MARK: - Floating Action Button
+
+    /// Page-local FAB that replaces the toolbar `+` button. Sits bottom-right above the
+    /// floating tab bar, never moves with content scroll. iOS 26+ uses Liquid Glass with the
+    /// brand tint for visual parity with the Home tab's action button.
+    private var addBudgetLineFAB: some View {
+        Button {
+            destination = .addBudgetLine
+        } label: {
+            Image(systemName: "plus")
+                .font(PulpeTypography.sectionIcon)
+                .foregroundStyle(Color.white)
+                .frame(width: DesignTokens.FrameHeight.tabBar, height: DesignTokens.FrameHeight.tabBar)
+        }
+        .contentShape(Circle())
+        .modifier(BudgetDetailsFABBackground())
+        .accessibilityLabel("Ajouter une prévision")
+        .padding(.trailing, DesignTokens.Spacing.lg)
+        .padding(.bottom, tabBarClearance + DesignTokens.Spacing.md)
     }
 
     // MARK: - Routing
@@ -455,6 +549,28 @@ private struct BudgetDetailsSkeletonView: View {
         .frame(maxWidth: .infinity, minHeight: DesignTokens.ListRow.minHeight, alignment: .leading)
         .background(Color.surfaceContainerLowest)
         .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.xl))
+    }
+}
+
+// MARK: - FAB Background Modifier
+
+/// Wraps the FAB body with iOS 26 Liquid Glass when available, falling back to
+/// `.ultraThinMaterial` on iOS 18-25. Mirrors the visual treatment of the Home tab's
+/// action button (`MainTabView.tabBarActionButton`) without sharing code — the two FABs
+/// are siblings, not the same component (the Home FAB lives inside the tab bar capsule;
+/// this one is page-local).
+private struct BudgetDetailsFABBackground: ViewModifier {
+    func body(content: Content) -> some View {
+        if #available(iOS 26.0, *) {
+            content.glassEffect(
+                .regular.tint(Color.pulpePrimary).interactive(),
+                in: .capsule
+            )
+        } else {
+            content
+                .background(Color.pulpePrimary, in: Circle())
+                .shadow(DesignTokens.Shadow.elevated)
+        }
     }
 }
 

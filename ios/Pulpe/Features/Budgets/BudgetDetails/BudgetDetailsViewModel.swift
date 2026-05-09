@@ -120,6 +120,19 @@ final class BudgetDetailsViewModel {
     var hasPreviousBudget: Bool { previousBudgetId != nil }
     var hasNextBudget: Bool { nextBudgetId != nil }
 
+    /// All budgets safe to render in the sticky horizontal month pager — month/year guaranteed,
+    /// sorted chronologically across years. Drives `BudgetMonthPagerBar`.
+    var pagerMonths: [BudgetSparse] {
+        allBudgets
+            .filter { $0.month != nil && $0.year != nil }
+            .sorted { lhs, rhs in
+                let lhsYear = lhs.year ?? 0
+                let rhsYear = rhs.year ?? 0
+                if lhsYear != rhsYear { return lhsYear < rhsYear }
+                return (lhs.month ?? 0) < (rhs.month ?? 0)
+            }
+    }
+
     /// Prepare navigation by changing the budgetId (synchronous)
     /// Pre-populates from cache if available, otherwise clears stale data so skeleton shows
     func prepareNavigation(to id: String) {

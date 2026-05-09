@@ -443,7 +443,7 @@ Le fond de contenu reste **toujours** le neutre chaud défini en §3.1, quel que
 
 - Bottom tabs : **Accueil**, **Budgets**, **Modèles**
 - **Mon compte** n'est pas un onglet : accès via action toolbar depuis Accueil, en sheet
-- Le détail d'un mois se fait depuis **Budgets** ; la navigation entre mois utilise un menu de mois (`MonthDropdownMenu`), pas un swipe horizontal personnalisé
+- Le détail d'un mois se fait depuis **Budgets** ; la navigation entre mois utilise un sticky pager horizontal (`BudgetMonthPagerBar`) qui apparaît sous la nav bar quand le hero a scrollé hors écran (Revolut-style), avec snap centré et fade aux bords
 - `pull-to-refresh` et `swipe actions` suivent les conventions natives iOS
 
 #### Dashboard actuel (mars 2026)
