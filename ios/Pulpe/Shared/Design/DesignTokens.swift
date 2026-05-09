@@ -141,6 +141,8 @@ enum DesignTokens {
         static let strong: Double = 0.3
         /// Heavy overlays
         static let heavy: Double = 0.5
+        /// Disabled controls (e.g. type pills with count==0)
+        static let disabled: Double = 0.4
         /// Dimmed row card — DM2.1.b.c5 pointed state on per-row card
         static let pointedDim: Double = 0.62
         /// Pressed state for interactive elements

@@ -196,4 +196,109 @@ struct BudgetDetailsViewModelTypeFilterTests {
 
         #expect(recreated.checkedFilter == .checked)
     }
+
+    // MARK: - checkedCounts (drives the leading icon's contextual menu)
+
+    /// With `typeFilter = .all`, `checkedCounts` reflects the full set of budget lines
+    /// partitioned by checked state, regardless of the active checked filter.
+    @Test
+    func checkedCounts_withTypeFilterAll_returnsTotals() {
+        clearFilterDefaults()
+        defer { clearFilterDefaults() }
+
+        let viewModel = BudgetDetailsViewModel(budgetId: "test-budget")
+        viewModel.setTypeFilter(.all)
+        // 2 unchecked income, 1 checked income
+        viewModel.addBudgetLine(TestDataFactory.createBudgetLine(id: "i1", kind: .income))
+        viewModel.addBudgetLine(TestDataFactory.createBudgetLine(id: "i2", kind: .income))
+        viewModel.addBudgetLine(
+            TestDataFactory.createBudgetLine(id: "i3", kind: .income, isChecked: true)
+        )
+        // 1 unchecked expense, 2 checked expense
+        viewModel.addBudgetLine(TestDataFactory.createBudgetLine(id: "e1", kind: .expense))
+        viewModel.addBudgetLine(
+            TestDataFactory.createBudgetLine(id: "e2", kind: .expense, isChecked: true)
+        )
+        viewModel.addBudgetLine(
+            TestDataFactory.createBudgetLine(id: "e3", kind: .expense, isChecked: true)
+        )
+
+        // Active checked filter must NOT influence checkedCounts (asymmetric vs kindCounts).
+        viewModel.setCheckedFilter(.unchecked)
+        let counts = viewModel.checkedCounts
+
+        #expect(counts.unchecked == 3)
+        #expect(counts.checked == 3)
+        #expect(counts.all == 6)
+    }
+
+    /// With `typeFilter = .income`, `checkedCounts` is computed only over income lines.
+    @Test
+    func checkedCounts_withTypeFilterIncome_countsOnlyIncomeLines() {
+        clearFilterDefaults()
+        defer { clearFilterDefaults() }
+
+        let viewModel = BudgetDetailsViewModel(budgetId: "test-budget")
+        // 2 unchecked income, 1 checked income
+        viewModel.addBudgetLine(TestDataFactory.createBudgetLine(id: "i1", kind: .income))
+        viewModel.addBudgetLine(TestDataFactory.createBudgetLine(id: "i2", kind: .income))
+        viewModel.addBudgetLine(
+            TestDataFactory.createBudgetLine(id: "i3", kind: .income, isChecked: true)
+        )
+        // expenses must be excluded
+        viewModel.addBudgetLine(TestDataFactory.createBudgetLine(id: "e1", kind: .expense))
+        viewModel.addBudgetLine(
+            TestDataFactory.createBudgetLine(id: "e2", kind: .expense, isChecked: true)
+        )
+
+        viewModel.setTypeFilter(.income)
+        let counts = viewModel.checkedCounts
+
+        #expect(counts.unchecked == 2)
+        #expect(counts.checked == 1)
+        #expect(counts.all == 3)
+    }
+
+    /// With a type filter that selects no lines, every checkedCounts bucket is zero.
+    @Test
+    func checkedCounts_zero_whenNoLinesMatchType() {
+        clearFilterDefaults()
+        defer { clearFilterDefaults() }
+
+        let viewModel = BudgetDetailsViewModel(budgetId: "test-budget")
+        viewModel.addBudgetLine(TestDataFactory.createBudgetLine(id: "e1", kind: .expense))
+        viewModel.addBudgetLine(
+            TestDataFactory.createBudgetLine(id: "e2", kind: .expense, isChecked: true)
+        )
+
+        viewModel.setTypeFilter(.income)
+        let counts = viewModel.checkedCounts
+
+        #expect(counts == .zero)
+    }
+
+    /// Regression: `kindCounts` semantics are unchanged — counts are computed AFTER
+    /// the checked filter (NOT after the type filter), the inverse of `checkedCounts`.
+    @Test
+    func kindCounts_unchangedSemantics_afterCheckedFilterOnly() {
+        clearFilterDefaults()
+        defer { clearFilterDefaults() }
+
+        let viewModel = BudgetDetailsViewModel(budgetId: "test-budget")
+        viewModel.addBudgetLine(TestDataFactory.createBudgetLine(id: "i1", kind: .income))
+        viewModel.addBudgetLine(
+            TestDataFactory.createBudgetLine(id: "i2", kind: .income, isChecked: true)
+        )
+        viewModel.addBudgetLine(TestDataFactory.createBudgetLine(id: "e1", kind: .expense))
+
+        // Switching the type filter must NOT influence kindCounts.
+        viewModel.setTypeFilter(.income)
+        viewModel.setCheckedFilter(.unchecked)
+        let counts = viewModel.kindCounts
+
+        #expect(counts.income == 1)
+        #expect(counts.expense == 1)
+        #expect(counts.saving == 0)
+        #expect(counts.all == 2)
+    }
 }

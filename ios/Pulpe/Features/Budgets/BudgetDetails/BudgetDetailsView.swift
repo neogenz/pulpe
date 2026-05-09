@@ -161,7 +161,8 @@ struct BudgetDetailsView: View {
                 BudgetTypeFilter(
                     kind: typeFilterBinding,
                     checked: checkedFilterBinding,
-                    counts: viewModel.kindCounts
+                    counts: viewModel.kindCounts,
+                    checkedCounts: viewModel.checkedCounts
                 )
                 .popoverTip(ProductTips.checking)
 

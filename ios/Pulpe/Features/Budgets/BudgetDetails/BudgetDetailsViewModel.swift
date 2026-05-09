@@ -222,6 +222,25 @@ final class BudgetDetailsViewModel {
 
     // MARK: - Type Filter (cumulative AND with checked filter)
 
+    /// Per-état counts AFTER applying ONLY the type filter (not the checked filter).
+    /// Drives the état icon menu so each option reflects "what tapping this would show"
+    /// against the currently active type filter — symmetric with `kindCounts`.
+    var checkedCounts: CheckedFilterCounts {
+        let typeFiltered: [BudgetLine] = switch typeFilter {
+        case .all: budgetLines
+        case .income: incomeLines
+        case .saving: savingLines
+        case .expense: expenseLines
+        }
+        let unchecked = typeFiltered.filter { $0.checkedAt == nil }.count
+        let checked = typeFiltered.filter { $0.checkedAt != nil }.count
+        return CheckedFilterCounts(
+            unchecked: unchecked,
+            checked: checked,
+            all: typeFiltered.count
+        )
+    }
+
     /// Per-kind counts AFTER applying ONLY the checked filter (not the type filter).
     /// Drives the type-filter pill counts so each pill reflects "what tapping this would show".
     var kindCounts: BudgetLineKindCounts {

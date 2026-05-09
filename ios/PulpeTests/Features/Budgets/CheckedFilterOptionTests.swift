@@ -2,7 +2,7 @@ import Foundation
 @testable import Pulpe
 import Testing
 
-struct CheckedFilterPickerTests {
+struct CheckedFilterOptionTests {
     // MARK: - Filter Option Properties
 
     @Test func uncheckedOptionHasCorrectLabel() {
