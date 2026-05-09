@@ -158,6 +158,10 @@ struct BudgetDetailsView: View {
                     }
                 )
 
+                TipView(ProductTips.pessimisticCheck)
+                    .padding(.horizontal, DesignTokens.Spacing.lg)
+                    .padding(.bottom, DesignTokens.Spacing.sm)
+
                 BudgetTypeFilter(
                     kind: typeFilterBinding,
                     checked: checkedFilterBinding,
@@ -233,7 +237,6 @@ struct BudgetDetailsView: View {
                 Color.clear.frame(height: tabBarClearance + DesignTokens.Spacing.lg)
             }
         }
-        .popoverTip(ProductTips.pessimisticCheck)
         .scrollContentBackground(.hidden)
         .refreshable {
             await viewModel.loadDetails(force: true)
