@@ -9,6 +9,8 @@ struct MainTabView: View {
     @Environment(AppState.self) private var appState
     @Environment(CurrentMonthStore.self) private var monthStore
     @State private var addTransactionBudgetId: AddTransactionItem?
+    @State private var keyboardVisible = false
+    @State private var pageRequestsHide = false
 
     private let tabBarHeight = DesignTokens.FrameHeight.tabBar
 
@@ -24,7 +26,13 @@ struct MainTabView: View {
             // (ScrollViews, sticky CTAs in pushed pages) clears the floating
             // capsule that's overlaid in the ZStack sibling. Subtract the
             // existing system bottom inset so we don't double-count.
-            let reservedBottom = tabBarBottom + tabBarHeight + DesignTokens.Spacing.md - bottomInset
+            // Collapses to 0 when the bar is hidden (keyboard up, or push
+            // page opted into deep-focus mode) — sticky CTAs should sit flush
+            // above the keyboard / screen bottom in those states.
+            let barHidden = keyboardVisible || pageRequestsHide
+            let reservedBottom: CGFloat = barHidden
+                ? 0
+                : tabBarBottom + tabBarHeight + DesignTokens.Spacing.md - bottomInset
 
             ZStack(alignment: .bottom) {
                 TabView(selection: $state.selectedTab) {
@@ -53,24 +61,35 @@ struct MainTabView: View {
                 // destinations (verified WWDC25 + community 2026).
                 .environment(\.tabBarClearance, reservedBottom)
 
-                Group {
-                    if #available(iOS 26.0, *) {
-                        customTabBarView(selectedTab: $state.selectedTab)
-                            .padding(.horizontal, DesignTokens.Spacing.lg)
-                    } else {
-                        customTabBarViewLegacy(selectedTab: $state.selectedTab)
-                            .padding(.horizontal, DesignTokens.Spacing.lg)
+                if !barHidden {
+                    Group {
+                        if #available(iOS 26.0, *) {
+                            customTabBarView(selectedTab: $state.selectedTab)
+                                .padding(.horizontal, DesignTokens.Spacing.lg)
+                        } else {
+                            customTabBarViewLegacy(selectedTab: $state.selectedTab)
+                                .padding(.horizontal, DesignTokens.Spacing.lg)
+                        }
                     }
+                    .padding(.bottom, tabBarBottom)
+                    .ignoresSafeArea(.keyboard)
+                    .transition(.opacity.combined(with: .move(edge: .bottom)))
                 }
-                .padding(.bottom, tabBarBottom)
-                // Keep the floating bar pinned even when the keyboard rises;
-                // scrollable content above respects the keyboard normally.
-                .ignoresSafeArea(.keyboard)
             }
             .ignoresSafeArea(.container, edges: .bottom)
+            .animation(.easeInOut(duration: DesignTokens.Animation.quickSnap), value: barHidden)
+        }
+        .onPreferenceChange(HidesFloatingTabBarKey.self) { hide in
+            pageRequestsHide = hide
         }
         .onChange(of: appState.selectedTab) { _, newTab in
             AnalyticsService.shared.capture(.tabSwitched, properties: ["tab": newTab.rawValue])
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in
+            keyboardVisible = true
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
+            keyboardVisible = false
         }
         .sheet(item: $addTransactionBudgetId) { item in
             AddTransactionSheet(budgetId: item.budgetId) { transaction in

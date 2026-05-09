@@ -74,10 +74,11 @@ struct AddAllocatedTransactionPage: View {
         ScrollView {
             formContent(for: line)
         }
-        .contentMargins(.bottom, DesignTokens.Spacing.xxl, for: .scrollContent)
         .scrollBounceBehavior(.basedOnSize)
         .scrollDismissesKeyboard(.interactively)
         .pulpeBackground()
+        .pulpeStickyBottomCTA { addButton(for: line) }
+        .hidesFloatingTabBar()
         .navigationTitle(line.name)
         .navigationBarTitleDisplayMode(.inline)
         .loadingOverlay(isLoading)
@@ -132,12 +133,9 @@ struct AddAllocatedTransactionPage: View {
                     self.error = nil
                 }
             }
-
-            addButton(for: line)
         }
         .padding(.horizontal, DesignTokens.Spacing.xl)
         .padding(.top, DesignTokens.Spacing.lg)
-        .padding(.bottom, DesignTokens.Spacing.xl)
     }
 
     private func descriptionField(line: BudgetLine) -> some View {

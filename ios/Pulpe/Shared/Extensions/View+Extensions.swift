@@ -361,3 +361,56 @@ private struct ShimmerModifier: ViewModifier {
             }
     }
 }
+
+// MARK: - Floating Tab Bar Clearance
+
+/// Bubbled up by push pages that want the floating tab bar hidden while they
+/// are visible (deep-focus pattern: envelope detail, transaction forms).
+struct HidesFloatingTabBarKey: PreferenceKey {
+    static let defaultValue: Bool = false
+    static func reduce(value: inout Bool, nextValue: () -> Bool) {
+        value = value || nextValue()
+    }
+}
+
+extension View {
+    /// Hide the floating custom tab bar while this page is on screen.
+    func hidesFloatingTabBar(_ hidden: Bool = true) -> some View {
+        preference(key: HidesFloatingTabBarKey.self, value: hidden)
+    }
+}
+
+/// Pins a primary CTA at the bottom of a push page. Bakes `tabBarClearance`
+/// into the inset content because `safeAreaInset(.bottom)` on a destination
+/// anchors to the outer safe area, which does NOT inherit the NavigationStack
+/// inset on iOS 26. The chrome's opaque background extends through the bottom
+/// safe area so scroll content cannot peek between the CTA and the keyboard /
+/// home indicator.
+private struct PulpeStickyBottomCTAModifier<CTA: View>: ViewModifier {
+    @Environment(\.tabBarClearance) private var tabBarClearance
+    let cta: () -> CTA
+
+    func body(content: Content) -> some View {
+        content.safeAreaInset(edge: .bottom, spacing: 0) {
+            cta()
+                .padding(.horizontal, DesignTokens.Spacing.lg)
+                .padding(.vertical, DesignTokens.Spacing.md)
+                .padding(.bottom, tabBarClearance)
+                .background(alignment: .top) {
+                    Rectangle()
+                        .fill(Color.appBackground)
+                        .ignoresSafeArea(edges: .bottom)
+                        .overlay(alignment: .top) {
+                            Divider()
+                        }
+                }
+        }
+    }
+}
+
+extension View {
+    /// Pin a primary CTA above the floating tab bar with project-standard chrome.
+    func pulpeStickyBottomCTA<CTA: View>(@ViewBuilder _ cta: @escaping () -> CTA) -> some View {
+        modifier(PulpeStickyBottomCTAModifier(cta: cta))
+    }
+}

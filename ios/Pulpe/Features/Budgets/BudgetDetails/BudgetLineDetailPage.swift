@@ -80,9 +80,8 @@ struct BudgetLineDetailPage: View {
 
             transactionsList(line: line, transactions: transactions)
         }
-        .safeAreaInset(edge: .bottom) {
-            addTransactionButton(line: line)
-        }
+        .pulpeStickyBottomCTA { addTransactionButton(line: line) }
+        .hidesFloatingTabBar()
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 headerMenu(for: line)
@@ -386,12 +385,6 @@ private extension BudgetLineDetailPage {
             Label("Ajouter une transaction", systemImage: "plus")
         }
         .primaryButtonStyle()
-        .padding(.horizontal, DesignTokens.Spacing.lg)
-        .padding(.vertical, DesignTokens.Spacing.md)
-        .background {
-            Color.appBackground
-                .ignoresSafeArea(edges: .bottom)
-        }
     }
 }
 

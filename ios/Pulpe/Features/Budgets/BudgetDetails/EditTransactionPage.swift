@@ -77,10 +77,11 @@ struct EditTransactionPage: View {
         ScrollView {
             formContent(for: tx)
         }
-        .contentMargins(.bottom, DesignTokens.Spacing.xxl, for: .scrollContent)
         .scrollBounceBehavior(.basedOnSize)
         .scrollDismissesKeyboard(.interactively)
         .pulpeBackground()
+        .pulpeStickyBottomCTA { saveButton(for: tx) }
+        .hidesFloatingTabBar()
         .navigationTitle("Modifier la transaction")
         .navigationBarTitleDisplayMode(.inline)
         .loadingOverlay(isLoading)
@@ -139,12 +140,9 @@ struct EditTransactionPage: View {
                     self.error = nil
                 }
             }
-
-            saveButton(for: tx)
         }
         .padding(.horizontal, DesignTokens.Spacing.xl)
         .padding(.top, DesignTokens.Spacing.lg)
-        .padding(.bottom, DesignTokens.Spacing.xl)
     }
 
     private var descriptionField: some View {
