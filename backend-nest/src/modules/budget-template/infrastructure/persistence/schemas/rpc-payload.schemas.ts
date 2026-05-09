@@ -46,17 +46,22 @@ export type CreateTemplateLineRpcPayload = z.infer<
 // `amount` + `original_amount` are ciphertexts. `exchange_rate` is a finite
 // positive number or null.
 // ----------------------------------------------------------------------------
+// Partial-patch shape — only `id` is mandatory. Missing keys mean
+// "preserve existing" on the SQL side via the `jsonb ? 'key'` operator.
+// Creates pass all fields (use case populates them); updates pass only
+// the subset the user changed.
 export const applyTemplateLineOperationsItemSchema = z
   .object({
     id: z.string().uuid(),
-    name: z.string().min(1),
-    amount: z.string().min(1).nullable(),
-    kind: transactionKindSchema,
-    recurrence: transactionRecurrenceSchema,
-    original_amount: z.string().min(1).nullable(),
-    original_currency: supportedCurrencySchema.nullable(),
-    target_currency: supportedCurrencySchema.nullable(),
-    exchange_rate: exchangeRateWirePositive.nullable(),
+    name: z.string().min(1).optional(),
+    amount: z.string().min(1).nullable().optional(),
+    kind: transactionKindSchema.optional(),
+    recurrence: transactionRecurrenceSchema.optional(),
+    original_amount: z.string().min(1).nullable().optional(),
+    original_currency: supportedCurrencySchema.nullable().optional(),
+    target_currency: supportedCurrencySchema.nullable().optional(),
+    exchange_rate: exchangeRateWirePositive.nullable().optional(),
+    description: z.string().nullable().optional(),
   })
   .strict();
 

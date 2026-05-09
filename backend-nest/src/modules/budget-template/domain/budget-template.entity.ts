@@ -136,14 +136,15 @@ export interface TemplateLineRpcInput {
  */
 export interface TemplateLineRpcUpdate {
   id: string;
-  name: string;
-  amount: number | null;
-  originalAmount: number | null;
-  originalCurrency: SupportedCurrency | null;
-  targetCurrency: SupportedCurrency | null;
-  exchangeRate: number | null;
-  kind: TransactionKindEnum;
-  recurrence: TransactionRecurrenceEnum;
+  name?: string;
+  amount?: number | null;
+  originalAmount?: number | null;
+  originalCurrency?: SupportedCurrency | null;
+  targetCurrency?: SupportedCurrency | null;
+  exchangeRate?: number | null;
+  kind?: TransactionKindEnum;
+  recurrence?: TransactionRecurrenceEnum;
+  description?: string | null;
 }
 
 /**

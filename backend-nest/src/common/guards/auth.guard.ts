@@ -52,7 +52,11 @@ export class AuthGuard implements CanActivate {
     skipClientKey: boolean,
   ): boolean {
     try {
-      const cachedUser = request.__throttlerUserCache!;
+      const cachedUser = request.__throttlerUserCache;
+      if (!cachedUser?.id) {
+        throw new BusinessException(ERROR_DEFINITIONS.AUTH_UNAUTHORIZED);
+      }
+
       const supabase =
         this.supabaseService.createAuthenticatedClient(accessToken);
 

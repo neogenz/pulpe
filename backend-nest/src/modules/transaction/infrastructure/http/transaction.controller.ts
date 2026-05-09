@@ -8,8 +8,9 @@ import {
   Param,
   Query,
   UseGuards,
-  BadRequestException,
 } from '@nestjs/common';
+import { BusinessException } from '@common/exceptions/business.exception';
+import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 import {
   ApiTags,
   ApiOperation,
@@ -160,8 +161,9 @@ export class TransactionController {
     @User() user: AuthenticatedUser,
   ): Promise<TransactionSearchResponse> {
     if (!query || query.length < 2) {
-      throw new BadRequestException(
-        'Le terme de recherche doit contenir au moins 2 caractères',
+      throw new BusinessException(
+        ERROR_DEFINITIONS.TRANSACTION_VALIDATION_FAILED,
+        { reason: 'Search query must be at least 2 characters' },
       );
     }
 

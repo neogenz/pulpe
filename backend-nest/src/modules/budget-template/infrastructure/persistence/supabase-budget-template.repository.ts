@@ -28,7 +28,7 @@ import type {
 } from '../../domain/budget-template.entity';
 import type {
   BudgetTemplateRepositoryPort,
-  BulkTemplateLineOperationsResult,
+  BulkTemplateLineOperationsRepoResult,
 } from '../../domain/ports/budget-template-repository.port';
 import {
   applyTemplateLineOperationsListSchema,
@@ -377,14 +377,14 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
     sinceIso: string,
   ): Promise<number> {
     const supabase = this.supabaseProvider.client;
-    const { data } = await supabase
+    const { count } = await supabase
       .from('template')
-      .select('id')
+      .select('*', { count: 'exact', head: true })
       .eq('user_id', userId)
       .eq('is_from_onboarding', true)
       .gte('created_at', sinceIso);
 
-    return data?.length ?? 0;
+    return count ?? 0;
   }
 
   async validateLinesExist(
@@ -490,19 +490,16 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
 
   async bulkApplyTemplateLineOperations(
     input: BulkTemplateLineOperationsInput,
-  ): Promise<BulkTemplateLineOperationsResult> {
+  ): Promise<BulkTemplateLineOperationsRepoResult> {
     const supabase = this.supabaseProvider.client;
     const user = this.supabaseProvider.user;
 
-    const hasBudgetMutations = input.budgetIds.length > 0;
-    const updatedLinesRpc =
-      hasBudgetMutations && input.updatedLines.length > 0
-        ? await this.encryptLinesForApplyRpc(input.updatedLines, user)
-        : [];
-    const createdLinesRpc =
-      hasBudgetMutations && input.createdLines.length > 0
-        ? await this.encryptLinesForApplyRpc(input.createdLines, user)
-        : [];
+    const updatedLinesRpc = input.updatedLines.length
+      ? await this.encryptLinesForApplyRpc(input.updatedLines, user)
+      : [];
+    const createdLinesRpc = input.createdLines.length
+      ? await this.encryptLinesForApplyRpc(input.createdLines, user)
+      : [];
 
     const updatedLinesPayload = this.parseRpcPayload(
       applyTemplateLineOperationsListSchema,
@@ -532,7 +529,45 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
       ? (data.filter((id): id is string => Boolean(id)) as string[])
       : [];
 
-    return { affectedBudgetIds };
+    const writtenIds = [
+      ...input.updatedLines.map((line) => line.id),
+      ...input.createdLines.map((line) => line.id),
+    ];
+
+    if (writtenIds.length === 0) {
+      return { affectedBudgetIds, updatedLines: [], createdLines: [] };
+    }
+
+    const { data: rows, error: fetchError } = await supabase
+      .from('template_line')
+      .select('*')
+      .in('id', writtenIds);
+
+    if (fetchError || !rows) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.TEMPLATE_LINE_FETCH_FAILED,
+        undefined,
+        {
+          operation: 'bulkApplyTemplateLineOperations.refetch',
+          entityType: 'template_line',
+        },
+        { cause: fetchError ?? new Error('No rows returned') },
+      );
+    }
+
+    const dek = await this.getDek();
+    const byId = new Map<string, TemplateLine>(
+      rows.map((row) => [row.id, this.toTemplateLine(row, dek)]),
+    );
+
+    const updatedLines = input.updatedLines
+      .map((line) => byId.get(line.id))
+      .filter((line): line is TemplateLine => Boolean(line));
+    const createdLines = input.createdLines
+      .map((line) => byId.get(line.id))
+      .filter((line): line is TemplateLine => Boolean(line));
+
+    return { affectedBudgetIds, updatedLines, createdLines };
   }
 
   private async getDek(): Promise<Buffer> {
@@ -687,30 +722,42 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
     if (!lines.length) return [];
     const dek = await this.encryption.ensureUserDEK(user.id, user.clientKey);
 
-    const encryptedOriginalAmounts = await Promise.all(
-      lines.map((line) =>
-        this.encryption.encryptOptionalAmount(
-          line.originalAmount,
-          user.id,
-          user.clientKey,
-        ),
-      ),
-    );
+    return Promise.all(
+      lines.map(async (line) => {
+        const payload: Record<string, unknown> = { id: line.id };
 
-    return lines.map((line, index) => ({
-      id: line.id,
-      name: line.name,
-      amount:
-        line.amount === null
-          ? null
-          : this.encryption.encryptAmount(line.amount, dek),
-      kind: line.kind,
-      recurrence: line.recurrence,
-      original_amount: encryptedOriginalAmounts[index],
-      original_currency: line.originalCurrency ?? null,
-      target_currency: line.targetCurrency ?? null,
-      exchange_rate: line.exchangeRate,
-    }));
+        if (line.name !== undefined) payload.name = line.name;
+        if (line.amount !== undefined) {
+          payload.amount =
+            line.amount === null
+              ? null
+              : this.encryption.encryptAmount(line.amount, dek);
+        }
+        if (line.kind !== undefined) payload.kind = line.kind;
+        if (line.recurrence !== undefined) payload.recurrence = line.recurrence;
+        if (line.originalAmount !== undefined) {
+          payload.original_amount = await this.encryption.encryptOptionalAmount(
+            line.originalAmount,
+            user.id,
+            user.clientKey,
+          );
+        }
+        if (line.originalCurrency !== undefined) {
+          payload.original_currency = line.originalCurrency;
+        }
+        if (line.targetCurrency !== undefined) {
+          payload.target_currency = line.targetCurrency;
+        }
+        if (line.exchangeRate !== undefined) {
+          payload.exchange_rate = line.exchangeRate;
+        }
+        if (line.description !== undefined) {
+          payload.description = line.description;
+        }
+
+        return payload;
+      }),
+    );
   }
 
   private parseRpcPayload<T>(

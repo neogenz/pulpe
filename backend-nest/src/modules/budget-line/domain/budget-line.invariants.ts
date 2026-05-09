@@ -10,7 +10,7 @@ export class BudgetLineInvariants {
       });
     }
 
-    if (!dto.amount || dto.amount < 0) {
+    if (dto.amount === undefined || dto.amount === null || dto.amount < 0) {
       throw new BusinessException(
         ERROR_DEFINITIONS.BUDGET_LINE_VALIDATION_FAILED,
         { reason: 'Amount must be greater than or equal to 0' },

@@ -20,6 +20,7 @@ Explicitly NOT adopted at this stage:
 - **Domain events / event-sourcing / message bus.** No `BudgetCreated` event published anywhere. State changes are direct DB writes followed by cache invalidation. We have no consumer that subscribes to domain events.
 - **Hexagonal-with-adapters terminology.** We use ports + tokens (the concept) without adopting "adapter" or "primary/secondary port" naming.
 - **Repository returning aggregates only.** Repos return entities (sometimes lists). We do not enforce "load an aggregate, mutate, save the whole thing." Use cases call narrow methods like `repo.update(id, patch)`.
+- **Public templates with cross-user encryption.** The `create_budget_from_template` RPC originally accepted `user_id IS NULL` templates (intended as system-shared). After per-user AES-256-GCM encryption was introduced, copying ciphertext across DEKs silently produced zero amounts via the `tryDecryptAmount` fallback. Migration `20260508120000_create_budget_from_template_owner_only.sql` restricts the RPC to the template owner. A real public-template feature would require a dedicated server-side re-encryption design (system DEK held server-side, decrypt under system DEK, re-encrypt under requester's DEK) and is intentionally deferred until product needs it.
 
 ## Consequences
 
@@ -33,6 +34,7 @@ Explicitly NOT adopted at this stage:
 - **Aggregates / value objects:** if domain logic exceeds invariants + arithmetic — e.g., complex tax calculations, currency conversions with state, multi-currency reconciliation that spans multiple entities.
 - **Domain events:** if a second consumer (analytics, search index, notification system) needs to react to state changes without coupling to the writer.
 - **Message bus:** if we add async work that must be durably retried (webhooks, third-party integrations).
+- **Public templates:** if product wants to ship system-shared templates (curated starter packs, partner integrations). Design must specify: where the system DEK lives, how it's rotated, who can write public templates, and whether re-encryption happens at template creation time or at budget creation time.
 
 ## References
 

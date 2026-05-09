@@ -66,6 +66,12 @@ export interface BudgetRepositoryPort {
   fetchAllBudgetsForRollover(userId: string): Promise<BudgetForRollover[]>;
 
   /**
+   * Resolves the authenticated user's `payDayOfMonth` from auth metadata,
+   * clamped to `[PAY_DAY_MIN, PAY_DAY_MAX]`. Defaults to PAY_DAY_MIN when missing.
+   */
+  fetchUserPayDayOfMonth(): Promise<number>;
+
+  /**
    * Existence check for duplicate-period validation. Returns the colliding
    * budget id, or `null` if no duplicate exists. RLS scopes the query to the
    * authenticated user.

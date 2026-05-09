@@ -32,7 +32,7 @@ describe('BudgetLineInvariants', () => {
       );
     });
 
-    it('should throw when amount is zero or falsy', () => {
+    it('should accept amount of zero', () => {
       const dto = {
         budgetId: 'budget-1',
         name: 'Test',
@@ -40,6 +40,17 @@ describe('BudgetLineInvariants', () => {
         kind: 'expense',
         recurrence: 'fixed',
       } as BudgetLineCreate;
+
+      expect(() => BudgetLineInvariants.validateCreate(dto)).not.toThrow();
+    });
+
+    it('should throw when amount is missing', () => {
+      const dto = {
+        budgetId: 'budget-1',
+        name: 'Test',
+        kind: 'expense',
+        recurrence: 'fixed',
+      } as unknown as BudgetLineCreate;
 
       expect(() => BudgetLineInvariants.validateCreate(dto)).toThrow(
         BusinessException,

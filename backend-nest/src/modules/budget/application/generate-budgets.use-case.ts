@@ -73,10 +73,14 @@ export class GenerateBudgetsUseCase {
       }
     } catch (error) {
       await this.cacheService.invalidateForUser(user.id);
-      await this.rollbackCreatedBudgets(createdBudgetIds, user.id);
+      const orphanedBudgetIds = await this.rollbackCreatedBudgets(
+        createdBudgetIds,
+        user.id,
+        error,
+      );
       throw new BusinessException(
         ERROR_DEFINITIONS.BUDGET_GENERATE_FAILED,
-        undefined,
+        orphanedBudgetIds.length > 0 ? { orphanedBudgetIds } : undefined,
         { operation: 'generateBudgets', userId: user.id },
         { cause: error },
       );
@@ -131,8 +135,9 @@ export class GenerateBudgetsUseCase {
   private async rollbackCreatedBudgets(
     budgetIds: string[],
     userId: string,
-  ): Promise<void> {
-    if (budgetIds.length === 0) return;
+    originalError: unknown,
+  ): Promise<string[]> {
+    if (budgetIds.length === 0) return [];
 
     this.logger.warn(
       {
@@ -143,13 +148,22 @@ export class GenerateBudgetsUseCase {
       'Rolling back created budgets after generation failure',
     );
 
-    const deleted = await this.repo.deleteBudgetsByIds(budgetIds);
-    if (!deleted) {
-      throw new BusinessException(
-        ERROR_DEFINITIONS.BUDGET_GENERATE_FAILED,
-        { orphanedBudgetIds: budgetIds },
-        { operation: 'budget.generate.rollback', userId },
+    try {
+      const deleted = await this.repo.deleteBudgetsByIds(budgetIds);
+      if (deleted) return [];
+    } catch (rollbackError) {
+      this.logger.warn(
+        {
+          userId,
+          budgetIds,
+          err: rollbackError,
+          originalErr: originalError,
+          operation: 'budget.generate.rollback.failed',
+        },
+        'Rollback of created budgets failed; budgets remain orphaned',
       );
     }
+
+    return budgetIds;
   }
 }

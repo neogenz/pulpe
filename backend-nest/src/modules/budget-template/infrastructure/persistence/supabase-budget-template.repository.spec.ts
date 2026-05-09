@@ -269,8 +269,32 @@ describe('SupabaseBudgetTemplateRepository', () => {
       const rpc = jest
         .fn()
         .mockResolvedValue({ data: ['budget-1'], error: null });
+      const fromFn = (_table: string) => ({
+        select: () => ({
+          in: jest.fn().mockResolvedValue({
+            data: [
+              {
+                id: '8a0f6c80-1234-4e5f-89ab-111111111111',
+                template_id: 'template-1',
+                name: 'Loyer',
+                amount: VALID_CIPHERTEXT,
+                original_amount: null,
+                original_currency: null,
+                target_currency: null,
+                exchange_rate: null,
+                kind: 'expense',
+                recurrence: 'fixed',
+                description: null,
+                created_at: '2026-01-01T00:00:00Z',
+                updated_at: '2026-01-01T00:00:00Z',
+              },
+            ],
+            error: null,
+          }),
+        }),
+      });
       const provider = createMockProvider(
-        () => ({}) as never,
+        fromFn as never,
         rpc as unknown as jest.Mock,
       );
       const encryption = createMockEncryption();

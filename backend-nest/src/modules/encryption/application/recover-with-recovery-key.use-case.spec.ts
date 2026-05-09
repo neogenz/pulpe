@@ -112,7 +112,7 @@ describe('RecoverWithRecoveryKeyUseCase', () => {
     }
   });
 
-  it('rethrows non-recovery errors unchanged', async () => {
+  it('wraps non-recovery errors in BusinessException with cause chain', async () => {
     const original = new Error('some unrelated DB failure');
     const cryptoService = {
       recoverWithKey: mock(() => Promise.reject(original)),
@@ -131,7 +131,9 @@ describe('RecoverWithRecoveryKeyUseCase', () => {
       );
       expect.unreachable('Should have thrown');
     } catch (error: any) {
-      expect(error).toBe(original);
+      expect(error).toBeInstanceOf(BusinessException);
+      expect(error.code).toBe(ERROR_DEFINITIONS.ENCRYPTION_REKEY_FAILED.code);
+      expect(error.cause).toBe(original);
     }
   });
 

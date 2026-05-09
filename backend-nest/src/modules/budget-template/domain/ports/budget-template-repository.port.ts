@@ -14,10 +14,14 @@ export const BUDGET_TEMPLATE_REPOSITORY = Symbol('BUDGET_TEMPLATE_REPOSITORY');
 
 /**
  * Result of a bulk template-line operations RPC. The repo encrypts inputs,
- * invokes the RPC, then decrypts and shapes the result before returning.
+ * invokes the RPC atomically (all template + budget writes in a single SQL
+ * transaction), then re-fetches and decrypts the affected template_line rows
+ * before returning.
  */
-export interface BulkTemplateLineOperationsResult {
+export interface BulkTemplateLineOperationsRepoResult {
   affectedBudgetIds: string[];
+  updatedLines: TemplateLine[];
+  createdLines: TemplateLine[];
 }
 
 export interface BudgetTemplateRepositoryPort {
@@ -67,5 +71,5 @@ export interface BudgetTemplateRepositoryPort {
   ): Promise<BudgetTemplate>;
   bulkApplyTemplateLineOperations(
     input: BulkTemplateLineOperationsInput,
-  ): Promise<BulkTemplateLineOperationsResult>;
+  ): Promise<BulkTemplateLineOperationsRepoResult>;
 }
