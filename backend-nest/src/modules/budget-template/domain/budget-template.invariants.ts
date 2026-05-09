@@ -22,12 +22,4 @@ export class BudgetTemplateInvariants {
       });
     }
   }
-
-  static validateOnboardingRateLimit(recentCount: number): void {
-    if (recentCount > 0) {
-      throw new BusinessException(
-        ERROR_DEFINITIONS.TEMPLATE_ONBOARDING_RATE_LIMIT,
-      );
-    }
-  }
 }

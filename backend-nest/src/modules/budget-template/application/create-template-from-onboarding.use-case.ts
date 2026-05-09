@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import {
@@ -7,11 +7,6 @@ import {
   type TemplateLineCreateWithoutTemplateId,
   budgetTemplateCreateFromOnboardingSchema,
 } from 'pulpe-shared';
-import {
-  BUDGET_TEMPLATE_REPOSITORY,
-  type BudgetTemplateRepositoryPort,
-} from '../domain/ports/budget-template-repository.port';
-import { BudgetTemplateInvariants } from '../domain/budget-template.invariants';
 import type { TemplateWithLines } from '../domain/budget-template.entity';
 import { CreateTemplateUseCase } from './create-template.use-case';
 
@@ -63,8 +58,6 @@ const ONBOARDING_FIELD_MAPPINGS = [
 @Injectable()
 export class CreateTemplateFromOnboardingUseCase {
   constructor(
-    @Inject(BUDGET_TEMPLATE_REPOSITORY)
-    private readonly repo: BudgetTemplateRepositoryPort,
     private readonly createTemplateUseCase: CreateTemplateUseCase,
     @InjectInfoLogger(CreateTemplateFromOnboardingUseCase.name)
     private readonly logger: InfoLogger,
@@ -79,14 +72,6 @@ export class CreateTemplateFromOnboardingUseCase {
 
     const validated =
       budgetTemplateCreateFromOnboardingSchema.parse(onboardingData);
-
-    const twentyFourHoursAgo = new Date();
-    twentyFourHoursAgo.setHours(twentyFourHoursAgo.getHours() - 24);
-    const recentCount = await this.repo.countOnboardingTemplatesInWindow(
-      user.id,
-      twentyFourHoursAgo.toISOString(),
-    );
-    BudgetTemplateInvariants.validateOnboardingRateLimit(recentCount);
 
     const lines = this.buildOnboardingTemplateLines(validated);
     const templateCreateDto: BudgetTemplateCreate = {

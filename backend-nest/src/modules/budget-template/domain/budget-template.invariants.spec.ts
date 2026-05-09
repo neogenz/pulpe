@@ -48,24 +48,4 @@ describe('BudgetTemplateInvariants', () => {
       ).not.toThrow();
     });
   });
-
-  describe('validateOnboardingRateLimit', () => {
-    it('should throw when a recent onboarding template already exists', () => {
-      expect(() =>
-        BudgetTemplateInvariants.validateOnboardingRateLimit(1),
-      ).toThrow(BusinessException);
-    });
-
-    it('should throw when multiple recent onboarding templates exist', () => {
-      expect(() =>
-        BudgetTemplateInvariants.validateOnboardingRateLimit(2),
-      ).toThrow(BusinessException);
-    });
-
-    it('should not throw when no recent onboarding template exists', () => {
-      expect(() =>
-        BudgetTemplateInvariants.validateOnboardingRateLimit(0),
-      ).not.toThrow();
-    });
-  });
 });

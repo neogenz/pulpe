@@ -9,6 +9,7 @@ import {
   UseGuards,
   ParseUUIDPipe,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import {
   ApiTags,
   ApiOperation,
@@ -151,6 +152,7 @@ export class BudgetTemplateController {
     return this.mapper.toApiTemplateCreateResponse(composite);
   }
 
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
   @Post('from-onboarding')
   @ApiOperation({
     summary: 'Create budget template from onboarding data',

@@ -50,10 +50,6 @@ export interface BudgetTemplateRepositoryPort {
   // Validation queries
   isTemplateInUse(templateId: string): Promise<boolean>;
   fetchTemplateBudgets(templateId: string): Promise<TemplateUsageBudget[]>;
-  countOnboardingTemplatesInWindow(
-    userId: string,
-    sinceIso: string,
-  ): Promise<number>;
   validateLinesExist(templateId: string, lineIds: string[]): Promise<string[]>;
   fetchFutureBudgets(
     templateId: string,

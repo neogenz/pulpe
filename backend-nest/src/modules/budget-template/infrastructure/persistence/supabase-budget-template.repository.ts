@@ -372,21 +372,6 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
     return (data ?? []) as TemplateUsageBudget[];
   }
 
-  async countOnboardingTemplatesInWindow(
-    userId: string,
-    sinceIso: string,
-  ): Promise<number> {
-    const supabase = this.supabaseProvider.client;
-    const { count } = await supabase
-      .from('template')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', userId)
-      .eq('is_from_onboarding', true)
-      .gte('created_at', sinceIso);
-
-    return count ?? 0;
-  }
-
   async validateLinesExist(
     templateId: string,
     lineIds: string[],

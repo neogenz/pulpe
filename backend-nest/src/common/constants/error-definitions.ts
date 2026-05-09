@@ -245,12 +245,6 @@ export const ERROR_DEFINITIONS = {
         : 'Failed to delete template line',
     httpStatus: HttpStatus.INTERNAL_SERVER_ERROR,
   },
-  TEMPLATE_ONBOARDING_RATE_LIMIT: {
-    code: API_ERROR_CODES.TEMPLATE_ONBOARDING_RATE_LIMIT,
-    message: () =>
-      'You can only create one template from onboarding per 24 hours',
-    httpStatus: HttpStatus.TOO_MANY_REQUESTS,
-  },
   TEMPLATE_ACCESS_FORBIDDEN: {
     code: API_ERROR_CODES.TEMPLATE_ACCESS_FORBIDDEN,
     message: (details?: Record<string, unknown>) =>
