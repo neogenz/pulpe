@@ -52,18 +52,22 @@ import { PostHogService } from '@core/analytics';
       class="pulpe-entry-card w-full max-w-md"
       data-testid="enter-vault-code-page"
     >
-      <div class="text-center mb-8">
-        <mat-icon class="text-6xl! w-auto! h-auto! text-primary"
+      <div
+        class="flex items-center gap-4 mb-7 pb-5 border-b border-outline-variant"
+      >
+        <mat-icon class="text-[40px]! w-10! h-10! leading-none! text-primary"
           >lock_open</mat-icon
         >
-        <h1
-          class="text-headline-large md:text-display-small font-bold text-on-surface mb-2 leading-tight"
-        >
-          {{ 'auth.vaultCode.enterTitle' | transloco }}
-        </h1>
-        <p class="text-body-large text-on-surface-variant">
-          {{ 'auth.vaultCode.enterSubtitle' | transloco }}
-        </p>
+        <div class="min-w-0 flex-1">
+          <h1
+            class="text-headline-medium font-bold text-on-surface leading-tight mb-0.5"
+          >
+            {{ 'auth.vaultCode.enterTitle' | transloco }}
+          </h1>
+          <p class="text-body-medium text-on-surface-variant">
+            {{ 'auth.vaultCode.enterSubtitle' | transloco }}
+          </p>
+        </div>
       </div>
 
       <!-- ngSubmit kept as keyboard a11y fallback (Enter key); auto-submit fires via valueChanges -->
