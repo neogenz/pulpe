@@ -62,8 +62,30 @@ export class CreateTransactionUseCase {
       checkedAt: withRate.checkedAt ?? null,
     });
 
-    await this.budgetRecalculation.recalculate(entity.budgetId, user.clientKey);
+    // Cache invalidation BEFORE recalc — if recalc fails, the stale list
+    // cache (missing the new transaction) won't survive the failed write.
     await this.cacheService.invalidateForUser(user.id);
+
+    try {
+      await this.budgetRecalculation.recalculate(
+        entity.budgetId,
+        user.clientKey,
+      );
+    } catch (cause) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.TRANSACTION_CREATE_FAILED,
+        undefined,
+        {
+          operation: 'transaction.create.recalcAfterInsert',
+          severity: 'critical',
+          partialFailure: true,
+          transactionId: entity.id,
+          budgetId: entity.budgetId,
+          userId: user.id,
+        },
+        { cause },
+      );
+    }
 
     this.logger.info(
       {

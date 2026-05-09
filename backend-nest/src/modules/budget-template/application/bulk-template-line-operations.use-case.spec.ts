@@ -221,4 +221,65 @@ describe('BulkTemplateLineOperationsUseCase — atomicity', () => {
     expect(result.createdLines[0].id).toBe('line-new-1');
     expect(result.propagation.affectedBudgetIds).toEqual(['budget-1']);
   });
+
+  describe('cache invalidation ordering (R1)', () => {
+    const buildPropagationPayload = (): TemplateLinesBulkOperations => ({
+      update: [
+        {
+          id: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d',
+          name: 'Updated Salaire',
+          amount: 5500,
+          kind: 'income',
+          recurrence: 'fixed',
+          description: '',
+        },
+      ],
+      create: [],
+      delete: [],
+      propagateToBudgets: true,
+    });
+
+    it('should invalidate cache BEFORE recalc — proven by call order', async () => {
+      const callOrder: string[] = [];
+      mockCache.invalidateForUser.mockImplementationOnce(async () => {
+        callOrder.push('invalidate');
+      });
+      mockBudgetRecalculation.recalculate.mockImplementationOnce(async () => {
+        callOrder.push('recalculate');
+      });
+
+      await useCase.execute(
+        'template-1',
+        buildPropagationPayload(),
+        mockUser,
+        null,
+      );
+
+      expect(callOrder.indexOf('invalidate')).toBeLessThan(
+        callOrder.indexOf('recalculate'),
+      );
+    });
+
+    it('should still invalidate cache when recalc throws (no stale 30s window)', async () => {
+      mockBudgetRecalculation.recalculate.mockRejectedValueOnce(
+        new Error('DB unreachable'),
+      );
+
+      try {
+        await useCase.execute(
+          'template-1',
+          buildPropagationPayload(),
+          mockUser,
+          null,
+        );
+        throw new Error('expected to throw');
+      } catch (error) {
+        expect((error as { code?: string }).code).toBe(
+          'ERR_TEMPLATE_UPDATE_FAILED',
+        );
+      }
+
+      expect(mockCache.invalidateForUser).toHaveBeenCalledWith(mockUser.id);
+    });
+  });
 });

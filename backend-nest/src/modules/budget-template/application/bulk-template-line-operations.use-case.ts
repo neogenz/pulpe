@@ -1,6 +1,8 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import { type InfoLogger, InjectInfoLogger } from '@common/logger';
+import { BusinessException } from '@common/exceptions/business.exception';
+import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import {
   type TemplateLinesBulkOperations,
@@ -90,21 +92,40 @@ export class BulkTemplateLineOperationsUseCase {
         })
       : { affectedBudgetIds: [], updatedLines: [], createdLines: [] };
 
-    if (repoResult.affectedBudgetIds.length) {
-      await Promise.all(
-        repoResult.affectedBudgetIds.map((id) =>
-          this.budgetRecalculation.recalculate(id, user.clientKey),
-        ),
-      );
-    }
-
     const propagationSummary = this.buildPropagationSummary(
       validated.propagateToBudgets,
       repoResult.affectedBudgetIds,
     );
 
+    // Cache invalidation BEFORE recalc — if any recalc fails, the stale list
+    // cache won't be locked in across the affected budgets while DB rows
+    // already changed via the atomic RPC.
     if (propagationSummary.affectedBudgetsCount > 0) {
       await this.cacheService.invalidateForUser(user.id);
+    }
+
+    if (repoResult.affectedBudgetIds.length) {
+      try {
+        await Promise.all(
+          repoResult.affectedBudgetIds.map((id) =>
+            this.budgetRecalculation.recalculate(id, user.clientKey),
+          ),
+        );
+      } catch (cause) {
+        throw new BusinessException(
+          ERROR_DEFINITIONS.TEMPLATE_UPDATE_FAILED,
+          { id: templateId },
+          {
+            operation: 'bulkTemplateLineOps.recalcAfterPropagation',
+            severity: 'critical',
+            partialFailure: true,
+            templateId,
+            affectedBudgetIds: repoResult.affectedBudgetIds,
+            userId: user.id,
+          },
+          { cause },
+        );
+      }
     }
 
     this.logBulkOperationsCompleted(

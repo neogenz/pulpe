@@ -192,4 +192,50 @@ describe('CreateTransactionUseCase', () => {
       BusinessException,
     );
   });
+
+  describe('cache invalidation ordering (R1)', () => {
+    it('should invalidate cache BEFORE recalc — proven by call order', async () => {
+      const dto: TransactionCreate = {
+        budgetId: '123e4567-e89b-12d3-a456-426614174001',
+        name: 'Restaurant',
+        amount: 50,
+        kind: 'expense',
+        transactionDate: '2024-01-15T12:00:00Z',
+      };
+      const callOrder: string[] = [];
+      mockCache.invalidateForUser.mockImplementationOnce(async () => {
+        callOrder.push('invalidate');
+      });
+      mockBudget.recalculate.mockImplementationOnce(async () => {
+        callOrder.push('recalculate');
+      });
+
+      await useCase.execute(dto, mockUser);
+
+      expect(callOrder).toEqual(['invalidate', 'recalculate']);
+    });
+
+    it('should still invalidate cache when recalc throws (no stale 30s window)', async () => {
+      const dto: TransactionCreate = {
+        budgetId: '123e4567-e89b-12d3-a456-426614174001',
+        name: 'Restaurant',
+        amount: 50,
+        kind: 'expense',
+        transactionDate: '2024-01-15T12:00:00Z',
+      };
+      mockBudget.recalculate.mockRejectedValueOnce(new Error('DB unreachable'));
+
+      try {
+        await useCase.execute(dto, mockUser);
+        throw new Error('expected to throw');
+      } catch (error) {
+        expect(error).toBeInstanceOf(BusinessException);
+        expect((error as BusinessException).code).toBe(
+          'ERR_TRANSACTION_CREATE_FAILED',
+        );
+      }
+
+      expect(mockCache.invalidateForUser).toHaveBeenCalledWith(mockUser.id);
+    });
+  });
 });

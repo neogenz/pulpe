@@ -46,11 +46,31 @@ export class CreateBudgetUseCase {
 
     const rpcResult = await this.executeBudgetCreationRpc(dto, user);
 
-    await this.budgetRecalculation.recalculate(
-      rpcResult.budget.id,
-      user.clientKey,
-    );
+    // Cache invalidation BEFORE recalc — if recalc fails, the stale list
+    // cache (without the new budget) won't survive the failed write while
+    // the budget already exists in DB via the atomic RPC.
     await this.cacheService.invalidateForUser(user.id);
+
+    try {
+      await this.budgetRecalculation.recalculate(
+        rpcResult.budget.id,
+        user.clientKey,
+      );
+    } catch (cause) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.BUDGET_CREATE_FAILED,
+        undefined,
+        {
+          operation: 'budget.create.recalcAfterRpc',
+          severity: 'critical',
+          partialFailure: true,
+          budgetId: rpcResult.budget.id,
+          userId: user.id,
+          templateId: dto.templateId,
+        },
+        { cause },
+      );
+    }
 
     const budget = await this.repo.fetchBudgetById(
       rpcResult.budget.id,
