@@ -14,7 +14,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatTableModule } from '@angular/material/table';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
-import { debounce, Field, form } from '@angular/forms/signals';
+import { debounce, FormField, form } from '@angular/forms/signals';
 import { firstValueFrom } from 'rxjs';
 import type { TransactionSearchResult } from 'pulpe-shared';
 import { TransactionApi } from '@core/transaction/transaction-api';
@@ -35,7 +35,7 @@ import { Logger } from '@core/logging/logger';
     MatTableModule,
     MatProgressSpinnerModule,
     MatSelectModule,
-    Field,
+    FormField,
     AppCurrencyPipe,
     TranslocoPipe,
   ],
@@ -62,7 +62,7 @@ import { Logger } from '@core/logging/logger';
           }
           <input
             matInput
-            [field]="filterForm.query"
+            [formField]="filterForm.query"
             placeholder="Nom ou description..."
             autocomplete="off"
             data-testid="search-input"
@@ -87,7 +87,7 @@ import { Logger } from '@core/logging/logger';
         >
           <mat-label>{{ 'budget.filterByYear' | transloco }}</mat-label>
           <mat-select
-            [field]="filterForm.years"
+            [formField]="filterForm.years"
             multiple
             data-testid="year-filter"
           >

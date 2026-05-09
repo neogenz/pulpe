@@ -11,13 +11,12 @@ import {
   untracked,
 } from '@angular/core';
 import {
-  Field,
+  FormField,
   form,
   required,
   minLength,
   maxLength,
   validate,
-  customError,
 } from '@angular/forms/signals';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -79,7 +78,7 @@ interface DateOutOfRangeError {
     MatNativeDateModule,
     TransactionLabelPipe,
     TranslocoPipe,
-    Field,
+    FormField,
     AmountInput,
   ],
 
@@ -95,7 +94,7 @@ interface DateOutOfRangeError {
         <mat-label>{{ 'transactionForm.nameLabel' | transloco }}</mat-label>
         <input
           matInput
-          [field]="transactionForm.name"
+          [formField]="transactionForm.name"
           [placeholder]="'transactionForm.namePlaceholder' | transloco"
           aria-describedby="name-hint"
         />
@@ -131,7 +130,7 @@ interface DateOutOfRangeError {
         <mat-form-field class="w-full" subscriptSizing="dynamic">
           <mat-label>{{ 'transactionForm.typeLabel' | transloco }}</mat-label>
           <mat-select
-            [field]="transactionForm.kind"
+            [formField]="transactionForm.kind"
             [attr.aria-label]="'transactionForm.typeLabel' | transloco"
           >
             <mat-option value="expense">
@@ -158,7 +157,7 @@ interface DateOutOfRangeError {
           [matDatepicker]="picker"
           [min]="minDate()"
           [max]="maxDate()"
-          [field]="transactionForm.transactionDate"
+          [formField]="transactionForm.transactionDate"
           [placeholder]="'transactionForm.datePlaceholder' | transloco"
           aria-describedby="date-hint"
           readonly
@@ -199,7 +198,7 @@ interface DateOutOfRangeError {
           <mat-label>{{ 'transactionForm.notesLabel' | transloco }}</mat-label>
           <input
             matInput
-            [field]="transactionForm.category"
+            [formField]="transactionForm.category"
             [placeholder]="'transactionForm.notesPlaceholder' | transloco"
             aria-describedby="category-hint"
           />
@@ -307,11 +306,11 @@ export class EditTransactionForm {
       const min = this.minDate();
       const max = this.maxDate();
       if (date < min || date > max) {
-        return customError({
+        return {
           kind: 'dateOutOfRange',
           min: min.toLocaleDateString(this.#locale),
           max: max.toLocaleDateString(this.#locale),
-        });
+        } satisfies DateOutOfRangeError;
       }
       return null;
     });

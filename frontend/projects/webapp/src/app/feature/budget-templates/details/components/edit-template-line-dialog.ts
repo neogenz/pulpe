@@ -5,7 +5,7 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { Field, form, minLength, required } from '@angular/forms/signals';
+import { FormField, form, minLength, required } from '@angular/forms/signals';
 import {
   MatDialogRef,
   MAT_DIALOG_DATA,
@@ -72,7 +72,7 @@ interface EditTemplateLineModel {
     TransactionIconPipe,
     TransactionLabelPipe,
     FinancialKindDirective,
-    Field,
+    FormField,
     AmountInput,
   ],
   template: `
@@ -95,7 +95,7 @@ interface EditTemplateLineModel {
             <mat-label>{{ 'budget.forecastNameLabel' | transloco }}</mat-label>
             <input
               matInput
-              [field]="addForm.name"
+              [formField]="addForm.name"
               [placeholder]="'budget.forecastNamePlaceholder' | transloco"
               data-testid="edit-template-line-name"
             />
@@ -123,7 +123,7 @@ interface EditTemplateLineModel {
           >
             <mat-label>{{ 'budget.forecastTypeLabel' | transloco }}</mat-label>
             <mat-select
-              [field]="addForm.kind"
+              [formField]="addForm.kind"
               data-testid="edit-template-line-kind"
             >
               @for (kind of kinds; track kind) {

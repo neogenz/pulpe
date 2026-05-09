@@ -7,7 +7,7 @@ import {
   viewChild,
 } from '@angular/core';
 import {
-  Field,
+  FormField,
   form,
   maxLength,
   minLength,
@@ -69,7 +69,7 @@ interface AddTransactionModel {
     TranslocoPipe,
     TransactionLabelPipe,
     AppCurrencyPipe,
-    Field,
+    FormField,
     AmountInput,
     BlurOnVisibilityResumeDirective,
   ],
@@ -135,7 +135,7 @@ interface AddTransactionModel {
           }}</mat-label>
           <input
             matInput
-            [field]="transactionForm.name"
+            [formField]="transactionForm.name"
             data-testid="transaction-description-input"
             placeholder="Ex: Courses chez Migros"
           />
@@ -157,7 +157,7 @@ interface AddTransactionModel {
             'currentMonth.addTransactionType' | transloco
           }}</mat-label>
           <mat-select
-            [field]="transactionForm.kind"
+            [formField]="transactionForm.kind"
             [attr.aria-label]="'currentMonth.addTransactionType' | transloco"
             data-testid="transaction-type-select"
           >
@@ -183,7 +183,7 @@ interface AddTransactionModel {
           }}</mat-label>
           <input
             matInput
-            [field]="transactionForm.category"
+            [formField]="transactionForm.category"
             [placeholder]="
               'currentMonth.addTransactionNotesPlaceholder' | transloco
             "
@@ -215,7 +215,7 @@ interface AddTransactionModel {
             'transactionForm.checkedToggle' | transloco
           }}</span>
           <mat-slide-toggle
-            [field]="transactionForm.isChecked"
+            [formField]="transactionForm.isChecked"
             [attr.aria-label]="'transactionForm.checkedToggle' | transloco"
           />
         </div>

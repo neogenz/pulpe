@@ -1,4 +1,9 @@
-import { signal, type ResourceRef, type WritableSignal } from '@angular/core';
+import {
+  computed,
+  signal,
+  type ResourceRef,
+  type WritableSignal,
+} from '@angular/core';
 import { vi, type Mock } from 'vitest';
 import type { Session, User } from '@supabase/supabase-js';
 
@@ -73,6 +78,10 @@ export function createMockResourceRef<T>(initialValue: T): ResourceRef<T> {
     status: signal('idle' as const),
     error: signal(undefined),
     isLoading: signal(false),
+    snapshot: computed(() => ({
+      status: 'idle' as const,
+      value: valueSignal(),
+    })),
 
     // From WritableResource<T>
     hasValue: function (): this is ResourceRef<Exclude<T, undefined>> {

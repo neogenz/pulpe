@@ -5,7 +5,7 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { Field, form, minLength, required } from '@angular/forms/signals';
+import { FormField, form, minLength, required } from '@angular/forms/signals';
 import {
   MAT_DIALOG_DATA,
   MatDialogModule,
@@ -64,7 +64,7 @@ interface AddBudgetLineModel {
     TranslocoPipe,
     TransactionIconPipe,
     TransactionLabelPipe,
-    Field,
+    FormField,
     AmountInput,
   ],
   host: { 'data-testid': 'add-budget-line-dialog' },
@@ -84,7 +84,7 @@ interface AddBudgetLineModel {
             <mat-label>{{ 'budget.forecastNameLabel' | transloco }}</mat-label>
             <input
               matInput
-              [field]="addForm.name"
+              [formField]="addForm.name"
               [placeholder]="'budget.forecastNamePlaceholder' | transloco"
               data-testid="new-line-name"
             />
@@ -107,7 +107,7 @@ interface AddBudgetLineModel {
             class="w-full"
           >
             <mat-label>{{ 'budget.forecastTypeLabel' | transloco }}</mat-label>
-            <mat-select [field]="addForm.kind" data-testid="new-line-kind">
+            <mat-select [formField]="addForm.kind" data-testid="new-line-kind">
               <mat-option value="income">
                 <mat-icon class="text-financial-income">{{
                   'income' | transactionIcon
@@ -139,7 +139,7 @@ interface AddBudgetLineModel {
               'budget.forecastCheckedToggle' | transloco
             }}</span>
             <mat-slide-toggle
-              [field]="addForm.isChecked"
+              [formField]="addForm.isChecked"
               [attr.aria-label]="'budget.forecastCheckedToggle' | transloco"
             />
           </div>
