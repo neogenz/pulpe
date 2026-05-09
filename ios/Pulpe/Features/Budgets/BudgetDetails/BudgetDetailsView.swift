@@ -239,11 +239,10 @@ struct BudgetDetailsView: View {
         .onScrollGeometryChange(
             for: Double.self,
             of: { geometry in
-                // Continuous progress 0…1 mapping the last `fadeRange` points of hero
-                // scroll-out to the pager's reveal. Smooth, scroll-driven, never binary.
-                let fadeRange: CGFloat = DesignTokens.Spacing.xxxl + DesignTokens.Spacing.lg
-                let fadeStart = max(heroHeight - fadeRange, DesignTokens.Spacing.xxxl)
-                let raw = (geometry.contentOffset.y - fadeStart) / fadeRange
+                // Fade starts the instant the user scrolls and completes within ~40pt,
+                // so the pager is fully visible long before the hero leaves the viewport.
+                let fadeRange: CGFloat = DesignTokens.Spacing.sectionGap   // 40pt
+                let raw = geometry.contentOffset.y / fadeRange
                 return Double(min(max(raw, 0), 1))
             },
             action: { _, newOpacity in
@@ -290,8 +289,8 @@ struct BudgetDetailsView: View {
     private var stickyPagerLayer: some View {
         if !viewModel.pagerMonths.isEmpty {
             let barHeight = DesignTokens.TapTarget.minimum + DesignTokens.Spacing.sm * 2
-            let trailingFade = DesignTokens.Blur.bottomFadeHeight
-            let bridgeHeight = DesignTokens.Spacing.xl   // ~20pt opaque→clear bridge
+            let trailingFade = DesignTokens.Spacing.xxxl   // ~32pt — tight blur tail
+            let bridgeHeight = DesignTokens.Spacing.xl    // ~20pt opaque→clear bridge
 
             // Three-layer composition that gives a continuous opaque→blur→clear gradient
             // matching Revolut's sticky pager:
