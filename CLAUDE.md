@@ -83,16 +83,23 @@ paths: "**/*.ts"
 
 **IMPORTANT:** Before any task, read relevant docs below.
 
-| Purpose                        | Path                                           |
-| ------------------------------ | ---------------------------------------------- |
-| DB types                       | `backend-nest/src/types/database.types.ts`     |
-| Shared schemas                 | `shared/schemas.ts`                            |
-| Project overview               | `memory-bank/projectbrief.md`                  |
-| Business rules                 | `memory-bank/productContext.md`                |
-| Tech decisions                 | `memory-bank/techContext.md`                   |
-| Architecture                   | `memory-bank/systemPatterns.md`                |
-| Backend Clean Architecture     | `backend-nest/docs/ARCHITECTURE.md`            |
-| Encryption (AES-256-GCM)       | `docs/ENCRYPTION.md`                           |
+| Purpose                       | Path                                       |
+| ----------------------------- | ------------------------------------------ |
+| Strategic foundation          | `PRODUCT.md`                               |
+| Visual common (cross-platform DA) | `DESIGN.md`                            |
+| iOS visual extensions         | `ios/DESIGN.md` (+ `ios/.impeccable/design.json` sidecar) |
+| Webapp visual extensions      | `frontend/DESIGN.md` *(seed)*              |
+| Landing visual extensions     | `landing/DESIGN.md` *(seed)*               |
+| DB types                      | `backend-nest/src/types/database.types.ts` |
+| Shared schemas                | `shared/schemas.ts`                        |
+| Project overview              | `memory-bank/projectbrief.md`              |
+| Business rules                | `memory-bank/productContext.md`            |
+| Tech decisions                | `memory-bank/techContext.md`               |
+| Architecture                  | `memory-bank/systemPatterns.md`            |
+| Backend Clean Architecture    | `backend-nest/docs/ARCHITECTURE.md`        |
+| Encryption (AES-256-GCM)      | `docs/ENCRYPTION.md`                       |
+
+**Design doc hierarchy:** `PRODUCT.md` (strategic) → `DESIGN.md` (cross-platform visual common) → per-platform `{ios,frontend,landing}/DESIGN.md` (extensions). Each DESIGN.md links to its parent and siblings; never duplicate cross-platform rules in a platform doc.
 
 ## Bug Reporting
 
