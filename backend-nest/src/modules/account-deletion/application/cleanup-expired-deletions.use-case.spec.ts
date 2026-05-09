@@ -60,19 +60,68 @@ describe('CleanupExpiredDeletionsUseCase', () => {
       expect(mockRepo.deleteUser).toHaveBeenCalledWith('user-2');
     });
 
-    it('logs partial failures without throwing', async () => {
+    it('continues processing remaining users when one deletion fails', async () => {
+      mockRepo.listExpiredScheduledUsers = mock(async () => [
+        { id: 'user-1', email: 'a@example.com' },
+        { id: 'user-2', email: 'b@example.com' },
+        { id: 'user-3', email: 'c@example.com' },
+      ]);
+      mockRepo.deleteUser = mock(async (userId: string) => {
+        if (userId === 'user-2') throw new Error('Delete failed');
+      });
+
+      await expect(useCase.execute()).resolves.toBeUndefined();
+
+      expect(mockRepo.deleteUser).toHaveBeenCalledTimes(3);
+    });
+
+    it('logs summary with severity=critical and failed count when any deletion fails', async () => {
       mockRepo.listExpiredScheduledUsers = mock(async () => [
         { id: 'user-1', email: 'a@example.com' },
         { id: 'user-2', email: 'b@example.com' },
       ]);
-      let calls = 0;
-      mockRepo.deleteUser = mock(async () => {
-        calls += 1;
-        if (calls === 2) throw new Error('Delete failed');
+      mockRepo.deleteUser = mock(async (userId: string) => {
+        if (userId === 'user-2') throw new Error('Delete failed');
       });
 
-      await expect(useCase.execute()).resolves.toBeUndefined();
-      expect(mockLogger.warn).toHaveBeenCalled();
+      await useCase.execute();
+
+      const summaryWarnCall = mockLogger.warn.mock.calls.find(
+        ([payload]) =>
+          typeof payload === 'object' &&
+          payload !== null &&
+          'op' in payload &&
+          payload.op === 'accountDeletion.cleanup.summary',
+      );
+      expect(summaryWarnCall).toBeDefined();
+      const [payload] = summaryWarnCall!;
+      expect(payload.severity).toBe('critical');
+      expect(payload.failedCount).toBe(1);
+      expect(payload.deletedCount).toBe(1);
+      expect(payload.scheduledCount).toBe(2);
+    });
+
+    it('logs summary with severity=normal at info level when all deletions succeed', async () => {
+      mockRepo.listExpiredScheduledUsers = mock(async () => [
+        { id: 'user-1', email: 'a@example.com' },
+        { id: 'user-2', email: 'b@example.com' },
+      ]);
+
+      await useCase.execute();
+
+      const summaryInfoCall = mockLogger.info.mock.calls.find(
+        ([payload]) =>
+          typeof payload === 'object' &&
+          payload !== null &&
+          'op' in payload &&
+          payload.op === 'accountDeletion.cleanup.summary',
+      );
+      expect(summaryInfoCall).toBeDefined();
+      const [payload] = summaryInfoCall!;
+      expect(payload.severity).toBe('normal');
+      expect(payload.failedCount).toBe(0);
+      expect(payload.deletedCount).toBe(2);
+      expect(payload.scheduledCount).toBe(2);
     });
 
     it('does not throw when listExpiredScheduledUsers fails (cron resilience)', async () => {
@@ -81,7 +130,26 @@ describe('CleanupExpiredDeletionsUseCase', () => {
       });
 
       await expect(useCase.execute()).resolves.toBeUndefined();
-      expect(mockLogger.warn).toHaveBeenCalled();
+    });
+
+    it('logs catch-all failure with severity=critical and op tag for alerting', async () => {
+      mockRepo.listExpiredScheduledUsers = mock(async () => {
+        throw new Error('Auth API unavailable');
+      });
+
+      await useCase.execute();
+
+      const failureWarnCall = mockLogger.warn.mock.calls.find(
+        ([payload]) =>
+          typeof payload === 'object' &&
+          payload !== null &&
+          'op' in payload &&
+          payload.op === 'accountDeletion.cleanup.fatal',
+      );
+      expect(failureWarnCall).toBeDefined();
+      const [payload] = failureWarnCall!;
+      expect(payload.severity).toBe('critical');
+      expect(payload.err).toBeInstanceOf(Error);
     });
   });
 });

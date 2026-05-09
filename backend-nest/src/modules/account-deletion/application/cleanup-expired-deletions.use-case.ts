@@ -6,6 +6,18 @@ import {
 } from '../domain/ports/account-deletion-repository.port';
 import type { ScheduledDeletionUser } from '../domain/account-deletion.entity';
 
+const SUMMARY_OP = 'accountDeletion.cleanup.summary';
+const FATAL_OP = 'accountDeletion.cleanup.fatal';
+
+interface CleanupSummary {
+  op: typeof SUMMARY_OP;
+  severity: 'critical' | 'normal';
+  scheduledCount: number;
+  deletedCount: number;
+  failedCount: number;
+  duration: number;
+}
+
 /**
  * Use case responsible for cleaning up accounts whose grace period has expired.
  *
@@ -13,6 +25,10 @@ import type { ScheduledDeletionUser } from '../domain/account-deletion.entity';
  * - template (user_id) -> template_line (template_id)
  * - monthly_budget (user_id) -> budget_line (budget_id), transaction (budget_id)
  * - savings_goal (user_id)
+ *
+ * Alerting: failure paths emit `severity: 'critical'` with `op` tag —
+ * matchable in PostHog/Sentry/structured logs to escalate RGPD-impacting
+ * deletion failures (Art. 17).
  */
 @Injectable()
 export class CleanupExpiredDeletionsUseCase {
@@ -38,11 +54,16 @@ export class CleanupExpiredDeletionsUseCase {
       }
 
       const deleteResults = await this.#deleteUsers(expiredUsers);
-      this.#logResults(deleteResults, expiredUsers.length, startTime);
+      this.#logSummary(deleteResults, expiredUsers.length, startTime);
     } catch (error) {
       this.logger.warn(
-        { err: error, duration: Date.now() - startTime },
-        'Scheduled account deletion cleanup job failed',
+        {
+          op: FATAL_OP,
+          severity: 'critical',
+          err: error,
+          duration: Date.now() - startTime,
+        },
+        'Scheduled account deletion cleanup job failed — RGPD deletions may be delayed',
       );
     }
   }
@@ -69,23 +90,37 @@ export class CleanupExpiredDeletionsUseCase {
     );
   }
 
-  #logResults(
+  #logSummary(
     deleteResults: PromiseSettledResult<void>[],
-    total: number,
+    scheduledCount: number,
     startTime: number,
   ): void {
-    const succeeded = deleteResults.filter(
+    const deletedCount = deleteResults.filter(
       (r) => r.status === 'fulfilled',
     ).length;
-    const failed = deleteResults.filter((r) => r.status === 'rejected').length;
+    const failedCount = deleteResults.filter(
+      (r) => r.status === 'rejected',
+    ).length;
+
+    const summary: CleanupSummary = {
+      op: SUMMARY_OP,
+      severity: failedCount > 0 ? 'critical' : 'normal',
+      scheduledCount,
+      deletedCount,
+      failedCount,
+      duration: Date.now() - startTime,
+    };
+
+    if (failedCount > 0) {
+      this.logger.warn(
+        summary,
+        'Scheduled account deletion cleanup completed with failures — RGPD escalation needed',
+      );
+      return;
+    }
 
     this.logger.info(
-      {
-        total,
-        succeeded,
-        failed,
-        duration: Date.now() - startTime,
-      },
+      summary,
       'Scheduled account deletion cleanup job completed',
     );
   }
