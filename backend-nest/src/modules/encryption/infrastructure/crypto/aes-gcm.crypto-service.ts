@@ -124,10 +124,12 @@ export class AesGcmCryptoService {
       // or salt rotation without re-encryption)
       this.logger.warn(
         {
+          op: 'crypto.decrypt.fallback',
+          severity: 'critical',
           error: error instanceof Error ? error.message : String(error),
           ciphertextLength: ciphertext.length,
         },
-        'Decryption failed, using fallback amount',
+        'Decryption failed, using fallback amount — possible cross-DEK ciphertext or tamper',
       );
       return fallbackAmount;
     }

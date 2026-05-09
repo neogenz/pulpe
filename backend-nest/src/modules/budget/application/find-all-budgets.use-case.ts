@@ -10,11 +10,19 @@ import {
 } from '../domain/ports/budget-repository.port';
 import { FindAllSparseBudgetsUseCase } from './find-all-sparse-budgets.use-case';
 import { RecalculateBudgetBalancesUseCase } from './recalculate-budget-balances.use-case';
+import { calculateRolloverFromBudgets } from '../domain/budget.formulas';
 import type {
   Budget,
   BudgetWithRemaining,
   SparseBudgetItem,
 } from '../domain/budget.entity';
+
+type RolloverInput = {
+  id: string;
+  month: number;
+  year: number;
+  endingBalance: number;
+};
 
 export type FindAllBudgetsResult =
   | { kind: 'list'; budgets: BudgetWithRemaining[] }
@@ -66,9 +74,17 @@ export class FindAllBudgetsUseCase {
     const budgets = await this.repo.fetchAllBudgets();
     const payDayOfMonth = await this.getPayDayOfMonth(supabase);
 
+    const rolloverInputs: RolloverInput[] = budgets.map((b) => ({
+      id: b.id,
+      month: b.month,
+      year: b.year,
+      endingBalance: b.endingBalance ?? 0,
+    }));
+
     const enrichedBudgets = await this.enrichBudgetsWithRemaining(
       budgets,
       payDayOfMonth,
+      rolloverInputs,
     );
 
     return { kind: 'list', budgets: enrichedBudgets };
@@ -77,15 +93,22 @@ export class FindAllBudgetsUseCase {
   private async enrichBudgetsWithRemaining(
     budgets: Budget[],
     payDayOfMonth: number,
+    rolloverInputs: RolloverInput[],
   ): Promise<BudgetWithRemaining[]> {
     return Promise.all(
       budgets.map(async (budget) => {
+        const rolloverData = calculateRolloverFromBudgets(
+          rolloverInputs,
+          budget.id,
+          payDayOfMonth,
+        );
         try {
-          const remaining = await this.calculateRemainingForBudget(
-            budget,
-            payDayOfMonth,
-          );
-          return { ...budget, remaining };
+          const currentBalance =
+            await this.recalculateUseCase.calculateEndingBalance(budget.id);
+          return {
+            ...budget,
+            remaining: currentBalance + rolloverData.rollover,
+          };
         } catch (error) {
           this.logger.warn(
             {
@@ -95,41 +118,15 @@ export class FindAllBudgetsUseCase {
               err: error,
               operation: 'enrichBudgetsWithRemaining',
             },
-            'Failed to calculate remaining for budget, using fallback',
+            'Failed to calculate dynamic remaining, using stored ending_balance',
           );
-          return { ...budget, remaining: budget.endingBalance ?? 0 };
+          return {
+            ...budget,
+            remaining: (budget.endingBalance ?? 0) + rolloverData.rollover,
+          };
         }
       }),
     );
-  }
-
-  private async calculateRemainingForBudget(
-    budget: Budget,
-    payDayOfMonth: number,
-  ): Promise<number> {
-    try {
-      const currentBalance =
-        await this.recalculateUseCase.calculateEndingBalance(budget.id);
-      const rolloverData = await this.recalculateUseCase.getRollover(
-        budget.id,
-        payDayOfMonth,
-      );
-      return currentBalance + rolloverData.rollover;
-    } catch (error) {
-      this.logger.warn(
-        {
-          budgetId: budget.id,
-          err: error,
-          operation: 'calculateRemainingForBudget.fallback',
-        },
-        'Failed to calculate dynamic remaining, using stored ending_balance',
-      );
-      const rolloverData = await this.recalculateUseCase.getRollover(
-        budget.id,
-        payDayOfMonth,
-      );
-      return (budget.endingBalance ?? 0) + rolloverData.rollover;
-    }
   }
 
   private async getPayDayOfMonth(

@@ -7,7 +7,10 @@ import {
   BUDGET_REPOSITORY,
   type BudgetRepositoryPort,
 } from '../domain/ports/budget-repository.port';
-import { RecalculateBudgetBalancesUseCase } from './recalculate-budget-balances.use-case';
+import {
+  calculateEndingBalanceFromMetrics,
+  calculateRolloverFromBudgets,
+} from '../domain/budget.formulas';
 import type { Budget, BudgetForExport } from '../domain/budget.entity';
 
 @Injectable()
@@ -15,7 +18,6 @@ export class ExportAllBudgetsUseCase {
   constructor(
     @Inject(BUDGET_REPOSITORY)
     private readonly repo: BudgetRepositoryPort,
-    private readonly recalculateUseCase: RecalculateBudgetBalancesUseCase,
     @InjectInfoLogger(ExportAllBudgetsUseCase.name)
     private readonly logger: InfoLogger,
   ) {}
@@ -27,9 +29,17 @@ export class ExportAllBudgetsUseCase {
     const startTime = Date.now();
     const payDayOfMonth = await this.getPayDayOfMonth(supabase);
     const budgets = await this.repo.fetchAllBudgetsForExport();
+
+    const budgetsForRollover = budgets.map((b) => ({
+      id: b.id,
+      month: b.month,
+      year: b.year,
+      endingBalance: b.endingBalance ?? 0,
+    }));
+
     const budgetsWithDetails = await Promise.all(
       budgets.map((budget) =>
-        this.enrichBudgetForExport(budget, payDayOfMonth),
+        this.enrichBudgetForExport(budget, payDayOfMonth, budgetsForRollover),
       ),
     );
 
@@ -49,20 +59,38 @@ export class ExportAllBudgetsUseCase {
   private async enrichBudgetForExport(
     budget: Budget,
     payDayOfMonth: number,
+    budgetsForRollover: {
+      id: string;
+      month: number;
+      year: number;
+      endingBalance: number;
+    }[],
   ): Promise<BudgetForExport> {
     const { transactions, budgetLines } = await this.repo.fetchBudgetData(
       budget.id,
     );
 
-    const rolloverData = await this.recalculateUseCase.getRollover(
+    const rolloverData = calculateRolloverFromBudgets(
+      budgetsForRollover,
       budget.id,
       payDayOfMonth,
     );
 
-    const remaining = await this.calculateRemainingForBudget(
-      budget,
-      payDayOfMonth,
+    const linesForFormula = budgetLines.map((bl) => ({
+      id: bl.id,
+      kind: bl.kind,
+      amount: bl.amount,
+    }));
+    const txsForFormula = transactions.map((tx) => ({
+      kind: tx.kind,
+      amount: tx.amount,
+      budgetLineId: tx.budgetLineId,
+    }));
+    const currentBalance = calculateEndingBalanceFromMetrics(
+      linesForFormula,
+      txsForFormula,
     );
+    const remaining = currentBalance + rolloverData.rollover;
 
     return {
       budget,
@@ -72,20 +100,6 @@ export class ExportAllBudgetsUseCase {
       previousBudgetId: rolloverData.previousBudgetId,
       remaining,
     };
-  }
-
-  private async calculateRemainingForBudget(
-    budget: Budget,
-    payDayOfMonth: number,
-  ): Promise<number> {
-    const currentBalance = await this.recalculateUseCase.calculateEndingBalance(
-      budget.id,
-    );
-    const rolloverData = await this.recalculateUseCase.getRollover(
-      budget.id,
-      payDayOfMonth,
-    );
-    return currentBalance + rolloverData.rollover;
   }
 
   private async getPayDayOfMonth(

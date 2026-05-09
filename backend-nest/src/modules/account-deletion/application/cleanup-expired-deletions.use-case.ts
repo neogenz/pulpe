@@ -76,12 +76,12 @@ export class CleanupExpiredDeletionsUseCase {
         try {
           await this.repo.deleteUser(user.id);
           this.logger.info(
-            { userId: user.id, email: user.email },
+            { userId: user.id },
             'Scheduled account deleted successfully',
           );
         } catch (error) {
           this.logger.warn(
-            { userId: user.id, email: user.email, err: error },
+            { userId: user.id, err: error },
             'Failed to delete scheduled account',
           );
           throw error;
