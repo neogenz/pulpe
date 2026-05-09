@@ -77,8 +77,19 @@ export class SearchTransactionsUseCase {
   }
 
   private buildSearchPattern(query: string): string {
-    const escaped = query.replace(/[*.()[\]\\]/g, '\\$&');
-    return `*${escaped}*`;
+    // Two layers of escaping coexist in a PostgREST `.or()` filter value:
+    //   1. ILIKE pattern semantics: `*` (alias for `%`) and `_` are wildcards;
+    //      `\` is the SQL pattern escape char.
+    //   2. PostgREST URL grammar: `,` `.` `:` `(` `)` are reserved as filter
+    //      separators, but lose their meaning when the value is wrapped in `"..."`.
+    // We escape user-typed wildcards (`*` `_`) so they match literally, double
+    // any backslashes (covers both layers), escape embedded double quotes so the
+    // outer wrapper stays balanced, then prepend/append `*` as our own wildcards.
+    const escaped = query
+      .replace(/\\/g, '\\\\')
+      .replace(/"/g, '\\"')
+      .replace(/[*_]/g, '\\$&');
+    return `"*${escaped}*"`;
   }
 
   private mapTransactionToResult(
