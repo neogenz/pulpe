@@ -15,7 +15,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { TranslocoPipe } from '@jsverse/transloco';
-import { Field, form, max, min, required } from '@angular/forms/signals';
+import { FormField, form, max, min, required } from '@angular/forms/signals';
 import {
   AppCurrencyPipe,
   CURRENCY_CONFIG,
@@ -34,8 +34,8 @@ interface ConverterAmountModel {
 
 /**
  * Convertisseur de devises (paramètres).
- * Template: `[field]="$any(converterForm.amount)"` — le compilateur n’accepte pas encore
- * `number | null` pour les inputs number liés au Field signal (TS2322).
+ * Template: `[formField]="$any(converterForm.amount)"` — le compilateur n’accepte pas encore
+ * `number | null` pour les inputs number liés au FormField signal (TS2322).
  */
 @Component({
   selector: 'pulpe-currency-converter-widget',
@@ -47,7 +47,7 @@ interface ConverterAmountModel {
     AppCurrencyPipe,
     CurrencyConversionBadge,
     DecimalPipe,
-    Field,
+    FormField,
     MatButtonModule,
     MatFormFieldModule,
     MatIconModule,
@@ -83,7 +83,7 @@ interface ConverterAmountModel {
               matInput
               type="number"
               inputmode="decimal"
-              [field]="$any(converterForm.amount)"
+              [formField]="$any(converterForm.amount)"
               [errorStateMatcher]="converterAmountErrorMatcher"
               step="0.01"
               class="tabular-nums"

@@ -15,7 +15,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { Field, form, minLength, required } from '@angular/forms/signals';
+import { FormField, form, minLength, required } from '@angular/forms/signals';
 import {
   type BudgetLine,
   type BudgetLineUpdate,
@@ -64,7 +64,7 @@ interface EditBudgetLineModel {
     TranslocoPipe,
     TransactionIconPipe,
     TransactionLabelPipe,
-    Field,
+    FormField,
     AmountInput,
   ],
   host: { 'data-testid': 'edit-budget-line-dialog' },
@@ -84,7 +84,7 @@ interface EditBudgetLineModel {
             <mat-label>{{ 'budget.forecastNameLabel' | transloco }}</mat-label>
             <input
               matInput
-              [field]="editForm.name"
+              [formField]="editForm.name"
               [placeholder]="'budget.forecastNamePlaceholder' | transloco"
               data-testid="edit-line-name"
             />
@@ -111,7 +111,10 @@ interface EditBudgetLineModel {
             class="w-full"
           >
             <mat-label>{{ 'budget.forecastTypeLabel' | transloco }}</mat-label>
-            <mat-select [field]="editForm.kind" data-testid="edit-line-kind">
+            <mat-select
+              [formField]="editForm.kind"
+              data-testid="edit-line-kind"
+            >
               <mat-option value="income">
                 <mat-icon class="text-financial-income">{{
                   'income' | transactionIcon

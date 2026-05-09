@@ -10,8 +10,7 @@ import {
   untracked,
 } from '@angular/core';
 import {
-  Field,
-  customError,
+  FormField,
   form,
   maxLength,
   required,
@@ -62,7 +61,7 @@ interface CreateAllocatedTransactionModel {
     MatDatepickerModule,
     MatSlideToggleModule,
     TranslocoPipe,
-    Field,
+    FormField,
     AmountInput,
   ],
   template: `
@@ -80,7 +79,7 @@ interface CreateAllocatedTransactionModel {
         <mat-label>{{ 'budget.tableDescription' | transloco }}</mat-label>
         <input
           matInput
-          [field]="transactionForm.name"
+          [formField]="transactionForm.name"
           [placeholder]="'transactionForm.namePlaceholder' | transloco"
           data-testid="transaction-name"
         />
@@ -104,7 +103,7 @@ interface CreateAllocatedTransactionModel {
           [matDatepicker]="picker"
           [min]="minDate()"
           [max]="maxDate()"
-          [field]="transactionForm.transactionDate"
+          [formField]="transactionForm.transactionDate"
           data-testid="transaction-date"
           readonly
         />
@@ -127,7 +126,7 @@ interface CreateAllocatedTransactionModel {
           'transactionForm.checkedToggle' | transloco
         }}</span>
         <mat-slide-toggle
-          [field]="transactionForm.isChecked"
+          [formField]="transactionForm.isChecked"
           [attr.aria-label]="'transactionForm.checkedToggle' | transloco"
         />
       </div>
@@ -197,7 +196,7 @@ export class CreateAllocatedTransactionForm {
         return null;
       const time = date.getTime();
       if (time < this.minDate().getTime() || time > this.maxDate().getTime())
-        return customError({ kind: 'dateOutOfRange' });
+        return { kind: 'dateOutOfRange' };
       return null;
     });
   });
