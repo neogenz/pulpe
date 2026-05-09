@@ -11,6 +11,7 @@ struct BudgetDetailsView: View {
     @Environment(UserSettingsStore.self) private var userSettingsStore
     @Environment(\.amountsHidden) private var amountsHidden
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.tabBarClearance) private var tabBarClearance
     @State private var viewModel: BudgetDetailsViewModel
     @State private var destination: BudgetDetailDestination?
 
@@ -224,8 +225,11 @@ struct BudgetDetailsView: View {
                     )
                 }
 
-                // Bottom breathing room above tab bar
-                Color.clear.frame(height: DesignTokens.Spacing.xxl)
+                // Bottom breathing room above the floating tab bar.
+                // Bakes the env-published clearance directly so the last row
+                // clears the bar even when the parent NavigationStack's
+                // `safeAreaInset` doesn't fully cascade through `.searchable`.
+                Color.clear.frame(height: tabBarClearance + DesignTokens.Spacing.lg)
             }
         }
         .popoverTip(ProductTips.pessimisticCheck)

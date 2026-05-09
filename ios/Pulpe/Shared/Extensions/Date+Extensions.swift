@@ -36,6 +36,12 @@ extension Date {
         Formatters.dayMonth.string(from: self)
     }
 
+    /// Format as "Le 15" — used when the surrounding context already names
+    /// the month (e.g. budget detail header). Day-of-month only, no padding.
+    var dayInMonthFormatted: String {
+        "Le \(Calendar.current.component(.day, from: self))"
+    }
+
     /// Create a date from month and year
     static func from(month: Int, year: Int) -> Date? {
         var components = DateComponents()
