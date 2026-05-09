@@ -219,7 +219,11 @@ export class AesGcmCryptoService {
 
     const row = await this.#repository.findSaltByUserId(userId);
     if (!row) {
-      throw new Error(`No encryption key found for user ${userId}`);
+      throw new BusinessException(
+        ERROR_DEFINITIONS.ENCRYPTION_KEY_CHECK_FAILED,
+        undefined,
+        { userId, operation: 'getUserDEK.no_key_row' },
+      );
     }
 
     const salt = Buffer.from(row.salt, 'hex');
@@ -395,15 +399,48 @@ export class AesGcmCryptoService {
   ): Promise<void> {
     const row = await this.#repository.findByUserId(userId);
     if (!row?.wrapped_dek) {
-      throw new Error('No recovery key configured for this user');
+      throw new BusinessException(
+        ERROR_DEFINITIONS.RECOVERY_KEY_NOT_CONFIGURED,
+        undefined,
+        { userId, operation: 'recover.no_wrapped_dek' },
+      );
     }
 
-    const recoveryKey = decodeBase32(recoveryKeyFormatted.replace(/-/g, ''));
+    let recoveryKey: Buffer;
+    try {
+      recoveryKey = decodeBase32(recoveryKeyFormatted.replace(/-/g, ''));
+    } catch (error) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.RECOVERY_KEY_INVALID,
+        undefined,
+        { userId, operation: 'recover.decode_failed' },
+        { cause: error },
+      );
+    }
     if (recoveryKey.length !== KEY_LENGTH) {
-      throw new Error('Invalid recovery key format');
+      throw new BusinessException(
+        ERROR_DEFINITIONS.RECOVERY_KEY_INVALID,
+        undefined,
+        { userId, operation: 'recover.invalid_length' },
+      );
     }
 
-    const oldDek = this.unwrapDEK(row.wrapped_dek, recoveryKey);
+    let oldDek: Buffer;
+    try {
+      oldDek = this.unwrapDEK(row.wrapped_dek, recoveryKey);
+    } catch (error) {
+      // Catches both `Unwrapped DEK has invalid length` and Node's AES-GCM auth
+      // failure (`Unsupported state or unable to authenticate data`). Mapping
+      // both to RECOVERY_KEY_INVALID matches verifyRecoveryKey() and removes the
+      // brittle string-match in RecoverWithRecoveryKeyUseCase.
+      recoveryKey.fill(0);
+      throw new BusinessException(
+        ERROR_DEFINITIONS.RECOVERY_KEY_INVALID,
+        undefined,
+        { userId, operation: 'recover.unwrap_failed' },
+        { cause: error },
+      );
+    }
 
     // Reuse existing salt - newClientKey was derived with this salt on frontend
     const existingSalt = Buffer.from(row.salt, 'hex');
@@ -976,7 +1013,11 @@ export class AesGcmCryptoService {
     // Re-read to get the winning salt (in case of concurrent insert)
     const winner = await this.#repository.findSaltByUserId(userId);
     if (!winner) {
-      throw new Error(`Failed to retrieve salt for user ${userId}`);
+      throw new BusinessException(
+        ERROR_DEFINITIONS.INTERNAL_SERVER_ERROR,
+        undefined,
+        { userId, operation: 'ensure_salt.race_lost' },
+      );
     }
 
     return {

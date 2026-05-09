@@ -35,11 +35,14 @@ describe('RecoverWithRecoveryKeyUseCase', () => {
     );
   });
 
-  it('maps "Invalid recovery key" message to RECOVERY_KEY_INVALID', async () => {
+  it('rethrows BusinessException from cryptoService unchanged', async () => {
+    const original = new BusinessException(
+      ERROR_DEFINITIONS.RECOVERY_KEY_INVALID,
+      undefined,
+      { userId: 'user-1', operation: 'recover.unwrap_failed' },
+    );
     const cryptoService = {
-      recoverWithKey: mock(() =>
-        Promise.reject(new Error('Invalid recovery key format')),
-      ),
+      recoverWithKey: mock(() => Promise.reject(original)),
     };
     const useCase = new RecoverWithRecoveryKeyUseCase(
       cryptoService as any,
@@ -55,16 +58,19 @@ describe('RecoverWithRecoveryKeyUseCase', () => {
       );
       expect.unreachable('Should have thrown');
     } catch (error: any) {
-      expect(error).toBeInstanceOf(BusinessException);
+      expect(error).toBe(original);
       expect(error.code).toBe(ERROR_DEFINITIONS.RECOVERY_KEY_INVALID.code);
     }
   });
 
-  it('maps "Invalid base32 character" to RECOVERY_KEY_INVALID', async () => {
+  it('rethrows RECOVERY_KEY_NOT_CONFIGURED unchanged', async () => {
+    const original = new BusinessException(
+      ERROR_DEFINITIONS.RECOVERY_KEY_NOT_CONFIGURED,
+      undefined,
+      { userId: 'user-1', operation: 'recover.no_wrapped_dek' },
+    );
     const cryptoService = {
-      recoverWithKey: mock(() =>
-        Promise.reject(new Error('Invalid base32 character: !')),
-      ),
+      recoverWithKey: mock(() => Promise.reject(original)),
     };
     const useCase = new RecoverWithRecoveryKeyUseCase(
       cryptoService as any,
@@ -74,45 +80,20 @@ describe('RecoverWithRecoveryKeyUseCase', () => {
     try {
       await useCase.execute(
         'user-1',
-        'BAD!',
+        'AAAA-BBBB',
         Buffer.alloc(32, 0xab),
         {} as any,
       );
       expect.unreachable('Should have thrown');
     } catch (error: any) {
-      expect(error).toBeInstanceOf(BusinessException);
-      expect(error.code).toBe(ERROR_DEFINITIONS.RECOVERY_KEY_INVALID.code);
-    }
-  });
-
-  it('maps AES-GCM auth failure ("Unsupported state or unable to authenticate") to RECOVERY_KEY_INVALID', async () => {
-    const cryptoService = {
-      recoverWithKey: mock(() =>
-        Promise.reject(
-          new Error('Unsupported state or unable to authenticate data'),
-        ),
-      ),
-    };
-    const useCase = new RecoverWithRecoveryKeyUseCase(
-      cryptoService as any,
-      createMockLogger() as any,
-    );
-
-    try {
-      await useCase.execute(
-        'user-1',
-        'AAAA-BBBB-CCCC-DDDD',
-        Buffer.alloc(32, 0xab),
-        {} as any,
+      expect(error).toBe(original);
+      expect(error.code).toBe(
+        ERROR_DEFINITIONS.RECOVERY_KEY_NOT_CONFIGURED.code,
       );
-      expect.unreachable('Should have thrown');
-    } catch (error: any) {
-      expect(error).toBeInstanceOf(BusinessException);
-      expect(error.code).toBe(ERROR_DEFINITIONS.RECOVERY_KEY_INVALID.code);
     }
   });
 
-  it('wraps non-recovery errors in BusinessException with cause chain', async () => {
+  it('wraps non-BusinessException errors in ENCRYPTION_REKEY_FAILED with cause chain', async () => {
     const original = new Error('some unrelated DB failure');
     const cryptoService = {
       recoverWithKey: mock(() => Promise.reject(original)),
@@ -140,7 +121,9 @@ describe('RecoverWithRecoveryKeyUseCase', () => {
   it('does not log info when recovery fails', async () => {
     const cryptoService = {
       recoverWithKey: mock(() =>
-        Promise.reject(new Error('Invalid recovery key')),
+        Promise.reject(
+          new BusinessException(ERROR_DEFINITIONS.RECOVERY_KEY_INVALID),
+        ),
       ),
     };
     const logger = createMockLogger();

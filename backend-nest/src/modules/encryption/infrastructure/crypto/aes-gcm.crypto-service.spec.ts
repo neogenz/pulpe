@@ -404,6 +404,39 @@ describe('AesGcmCryptoService', () => {
       expect(dek.length).toBe(32);
     });
 
+    it('should throw BusinessException without leaking userId when salt re-read returns null after upsert', async () => {
+      // Simulates a pathological race where the second findSaltByUserId
+      // (post-upsert read) returns null. Service must throw a structured
+      // BusinessException with userId only in loggingContext, never in message.
+      const findSaltByUserId = mock(() => Promise.resolve(null));
+      const upsertSalt = mock(() => Promise.resolve());
+
+      const repo = createMockRepository({ findSaltByUserId, upsertSalt });
+
+      service = new AesGcmCryptoService(
+        createMockLogger() as any,
+        mockConfigService as any,
+        repo as any,
+      );
+
+      try {
+        await service.ensureUserDEK(TEST_USER_ID, TEST_CLIENT_KEY);
+        expect.unreachable('Should have thrown');
+      } catch (error: any) {
+        expect(error).toBeInstanceOf(BusinessException);
+        expect((error as BusinessException).code).toBe(
+          ERROR_DEFINITIONS.INTERNAL_SERVER_ERROR.code,
+        );
+        expect((error as BusinessException).message).not.toContain(
+          TEST_USER_ID,
+        );
+        expect((error as BusinessException).loggingContext).toMatchObject({
+          userId: TEST_USER_ID,
+          operation: 'ensure_salt.race_lost',
+        });
+      }
+    });
+
     it('should return cached DEK on second call', async () => {
       const existingSalt = randomBytes(16).toString('hex');
       const findSaltByUserId = mock(() =>
@@ -652,7 +685,18 @@ describe('AesGcmCryptoService', () => {
         await service.getUserDEK(TEST_USER_ID, TEST_CLIENT_KEY);
         expect.unreachable('Should have thrown');
       } catch (error: any) {
-        expect(error.message).toContain('No encryption key found');
+        expect(error).toBeInstanceOf(BusinessException);
+        expect((error as BusinessException).code).toBe(
+          ERROR_DEFINITIONS.ENCRYPTION_KEY_CHECK_FAILED.code,
+        );
+        // userId must NOT leak to client message — only loggingContext
+        expect((error as BusinessException).message).not.toContain(
+          TEST_USER_ID,
+        );
+        expect((error as BusinessException).loggingContext).toMatchObject({
+          userId: TEST_USER_ID,
+          operation: 'getUserDEK.no_key_row',
+        });
       }
     });
 
@@ -1747,7 +1791,10 @@ describe('AesGcmCryptoService', () => {
         );
         expect.unreachable('Should have thrown');
       } catch (error: any) {
-        expect(error.message).toContain('No recovery key configured');
+        expect(error).toBeInstanceOf(BusinessException);
+        expect((error as BusinessException).code).toBe(
+          ERROR_DEFINITIONS.RECOVERY_KEY_NOT_CONFIGURED.code,
+        );
       }
     });
 
@@ -1786,7 +1833,59 @@ describe('AesGcmCryptoService', () => {
         );
         expect.unreachable('Should have thrown');
       } catch (error: any) {
-        expect(error.message).toContain('Invalid recovery key');
+        expect(error).toBeInstanceOf(BusinessException);
+        expect((error as BusinessException).code).toBe(
+          ERROR_DEFINITIONS.RECOVERY_KEY_INVALID.code,
+        );
+      }
+    });
+
+    it('should map AES-GCM auth failure on unwrapDEK to RECOVERY_KEY_INVALID', async () => {
+      const existingSalt = randomBytes(16).toString('hex');
+      const correctRecoveryKey = randomBytes(32);
+      const dek = randomBytes(32);
+
+      const findByUserId = mock(() =>
+        Promise.resolve({
+          salt: existingSalt,
+          kdf_iterations: 600000,
+          // wrapped_dek is valid, but caller will pass a different recovery key
+          // → AES-GCM authTag fails → Node throws "Unsupported state or unable
+          // to authenticate data". Service must translate to RECOVERY_KEY_INVALID
+          // so the use-case never has to string-match Node's crypto error.
+          wrapped_dek: service.wrapDEK(dek, correctRecoveryKey),
+          key_check: null,
+        }),
+      );
+
+      const repo = createMockRepository({ findByUserId });
+
+      service = new AesGcmCryptoService(
+        createMockLogger() as any,
+        mockConfigService as any,
+        repo as any,
+      );
+
+      // 52 chars base32 → decodes to exactly 32 bytes (KEY_LENGTH).
+      // Passes the length check, fails AES-GCM authTag verification on unwrap.
+      const wrongRecoveryKeyFormatted =
+        'AAAA-BBBB-CCCC-DDDD-EEEE-FFFF-GGGG-HHHH-IIII-JJJJ-KKKK-LLLL-MNOP';
+
+      try {
+        await service.recoverWithKey(
+          TEST_USER_ID,
+          wrongRecoveryKeyFormatted,
+          randomBytes(32),
+          {} as any,
+        );
+        expect.unreachable('Should have thrown');
+      } catch (error: any) {
+        expect(error).toBeInstanceOf(BusinessException);
+        expect((error as BusinessException).code).toBe(
+          ERROR_DEFINITIONS.RECOVERY_KEY_INVALID.code,
+        );
+        // Cause chain preserves the original AES error for ops debugging
+        expect((error as BusinessException).cause).toBeDefined();
       }
     });
 
