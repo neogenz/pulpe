@@ -133,18 +133,25 @@ export interface TemplateLineRpcInput {
  * Plain-number patch shape for `apply_template_line_operations` updated_lines.
  * Repo encrypts amounts internally and validates the Zod RPC payload before
  * calling the RPC.
+ *
+ * `null` semantics: only FX-pair fields (`originalAmount`, `originalCurrency`,
+ * `targetCurrency`, `exchangeRate`) accept `null` — used when caller wants to
+ * clear an existing FX conversion. Core fields (`name`, `amount`, `description`,
+ * `kind`, `recurrence`) reject `null` because the wire schema
+ * (`templateLineUpdateSchema`) is `.optional()` only — `undefined` means
+ * "preserve existing", and clearing makes no business sense for these.
  */
 export interface TemplateLineRpcUpdate {
   id: string;
   name?: string;
-  amount?: number | null;
+  amount?: number;
   originalAmount?: number | null;
   originalCurrency?: SupportedCurrency | null;
   targetCurrency?: SupportedCurrency | null;
   exchangeRate?: number | null;
   kind?: TransactionKindEnum;
   recurrence?: TransactionRecurrenceEnum;
-  description?: string | null;
+  description?: string;
 }
 
 /**

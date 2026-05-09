@@ -708,10 +708,7 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
 
         if (line.name !== undefined) payload.name = line.name;
         if (line.amount !== undefined) {
-          payload.amount =
-            line.amount === null
-              ? null
-              : this.encryption.encryptAmount(line.amount, dek);
+          payload.amount = this.encryption.encryptAmount(line.amount, dek);
         }
         if (line.kind !== undefined) payload.kind = line.kind;
         if (line.recurrence !== undefined) payload.recurrence = line.recurrence;
