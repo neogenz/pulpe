@@ -251,7 +251,7 @@ describe('SupabaseTransactionRepository', () => {
       expect(mockRpc).toHaveBeenCalledTimes(1);
     });
 
-    it('should throw TRANSACTION_UPDATE_FAILED when RPC fails', async () => {
+    it('should throw TRANSACTION_NOT_FOUND (404) when RPC raises "not found or access denied"', async () => {
       const mockRpc = jest.fn().mockReturnValue({
         single: jest.fn().mockResolvedValue({
           data: null,
@@ -270,8 +270,34 @@ describe('SupabaseTransactionRepository', () => {
       } catch (error) {
         expect(error).toBeInstanceOf(BusinessException);
         expect((error as BusinessException).code).toBe(
+          'ERR_TRANSACTION_NOT_FOUND',
+        );
+        expect((error as BusinessException).getStatus()).toBe(404);
+      }
+    });
+
+    it('should throw TRANSACTION_UPDATE_FAILED (500) on genuine RPC failure', async () => {
+      const mockRpc = jest.fn().mockReturnValue({
+        single: jest.fn().mockResolvedValue({
+          data: null,
+          error: { message: 'connection timeout' },
+        }),
+      });
+      const provider = createMockProvider(() => ({}), mockRpc);
+      repo = new SupabaseTransactionRepository(
+        provider,
+        createMockEncryption(),
+      );
+
+      try {
+        await repo.toggleCheck('txn-1');
+        throw new Error('expected to throw');
+      } catch (error) {
+        expect(error).toBeInstanceOf(BusinessException);
+        expect((error as BusinessException).code).toBe(
           'ERR_TRANSACTION_UPDATE_FAILED',
         );
+        expect((error as BusinessException).getStatus()).toBe(500);
       }
     });
   });

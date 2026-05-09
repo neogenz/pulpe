@@ -237,6 +237,25 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
       .single();
 
     if (error || !data) {
+      // RPC raises 'Transaction not found or access denied' (SQLSTATE P0001)
+      // when the row does not exist or RLS denies access. Map it to 404 instead
+      // of the generic 500, so clients can distinguish missing/forbidden from
+      // genuine update failures.
+      const isNotFoundOrForbidden = error?.message?.includes(
+        'Transaction not found or access denied',
+      );
+      if (isNotFoundOrForbidden) {
+        throw new BusinessException(
+          ERROR_DEFINITIONS.TRANSACTION_NOT_FOUND,
+          { id },
+          {
+            operation: 'toggleCheck',
+            entityId: id,
+            entityType: 'transaction',
+          },
+          { cause: error },
+        );
+      }
       throw new BusinessException(
         ERROR_DEFINITIONS.TRANSACTION_UPDATE_FAILED,
         undefined,
