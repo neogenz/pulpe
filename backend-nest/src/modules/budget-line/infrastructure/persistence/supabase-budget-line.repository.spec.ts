@@ -215,6 +215,167 @@ describe('SupabaseBudgetLineRepository', () => {
     });
   });
 
+  describe('fetchBudgetIdForLine', () => {
+    it('should return the budget id on success', async () => {
+      const provider = createMockProvider(() => ({
+        select: () => ({
+          eq: () => ({
+            single: jest.fn().mockResolvedValue({
+              data: { budget_id: 'budget-1' },
+              error: null,
+            }),
+          }),
+        }),
+      }));
+      repo = new SupabaseBudgetLineRepository(provider, createMockEncryption());
+
+      const result = await repo.fetchBudgetIdForLine('line-1');
+
+      expect(result).toBe('budget-1');
+    });
+
+    it('should return null when row not found (PGRST116)', async () => {
+      const provider = createMockProvider(() => ({
+        select: () => ({
+          eq: () => ({
+            single: jest.fn().mockResolvedValue({
+              data: null,
+              error: { code: 'PGRST116', message: 'No rows' },
+            }),
+          }),
+        }),
+      }));
+      repo = new SupabaseBudgetLineRepository(provider, createMockEncryption());
+
+      const result = await repo.fetchBudgetIdForLine('missing');
+
+      expect(result).toBeNull();
+    });
+
+    it('should throw BUDGET_LINE_FETCH_FAILED on real error', async () => {
+      const provider = createMockProvider(() => ({
+        select: () => ({
+          eq: () => ({
+            single: jest.fn().mockResolvedValue({
+              data: null,
+              error: { code: '42000', message: 'DB connection lost' },
+            }),
+          }),
+        }),
+      }));
+      repo = new SupabaseBudgetLineRepository(provider, createMockEncryption());
+
+      try {
+        await repo.fetchBudgetIdForLine('line-1');
+        throw new Error('expected to throw');
+      } catch (error) {
+        expect(error).toBeInstanceOf(BusinessException);
+        expect((error as BusinessException).code).toBe(
+          'ERR_BUDGET_LINE_FETCH_FAILED',
+        );
+      }
+    });
+  });
+
+  describe('update', () => {
+    it('should return decrypted entity on success', async () => {
+      const provider = createMockProvider(() => ({
+        update: () => ({
+          eq: () => ({
+            select: () => ({
+              single: jest
+                .fn()
+                .mockResolvedValue({ data: mockRow, error: null }),
+            }),
+          }),
+        }),
+      }));
+      repo = new SupabaseBudgetLineRepository(provider, createMockEncryption());
+
+      const result = await repo.update('line-1', { name: 'Updated' });
+
+      expect(result).toEqual(expectedEntity);
+    });
+
+    it('should throw BUDGET_LINE_NOT_FOUND on PGRST116', async () => {
+      const provider = createMockProvider(() => ({
+        update: () => ({
+          eq: () => ({
+            select: () => ({
+              single: jest.fn().mockResolvedValue({
+                data: null,
+                error: { code: 'PGRST116', message: 'No rows' },
+              }),
+            }),
+          }),
+        }),
+      }));
+      repo = new SupabaseBudgetLineRepository(provider, createMockEncryption());
+
+      try {
+        await repo.update('missing', { name: 'X' });
+        throw new Error('expected to throw');
+      } catch (error) {
+        expect(error).toBeInstanceOf(BusinessException);
+        expect((error as BusinessException).code).toBe(
+          'ERR_BUDGET_LINE_NOT_FOUND',
+        );
+      }
+    });
+
+    it('should throw BUDGET_LINE_ALREADY_EXISTS on 23505', async () => {
+      const provider = createMockProvider(() => ({
+        update: () => ({
+          eq: () => ({
+            select: () => ({
+              single: jest.fn().mockResolvedValue({
+                data: null,
+                error: { code: '23505', message: 'Unique violation' },
+              }),
+            }),
+          }),
+        }),
+      }));
+      repo = new SupabaseBudgetLineRepository(provider, createMockEncryption());
+
+      try {
+        await repo.update('line-1', { name: 'X' });
+        throw new Error('expected to throw');
+      } catch (error) {
+        expect(error).toBeInstanceOf(BusinessException);
+        expect((error as BusinessException).code).toBe(
+          'ERR_BUDGET_LINE_ALREADY_EXISTS',
+        );
+      }
+    });
+
+    it('should throw BUDGET_LINE_UPDATE_FAILED on generic error', async () => {
+      const provider = createMockProvider(() => ({
+        update: () => ({
+          eq: () => ({
+            select: () => ({
+              single: jest.fn().mockResolvedValue({
+                data: null,
+                error: { code: '42000', message: 'DB error' },
+              }),
+            }),
+          }),
+        }),
+      }));
+      repo = new SupabaseBudgetLineRepository(provider, createMockEncryption());
+
+      try {
+        await repo.update('line-1', { name: 'X' });
+        throw new Error('expected to throw');
+      } catch (error) {
+        expect(error).toBeInstanceOf(BusinessException);
+        expect((error as BusinessException).code).toBe(
+          'ERR_BUDGET_LINE_UPDATE_FAILED',
+        );
+      }
+    });
+  });
+
   describe('toggleCheckRpc', () => {
     it('should return decrypted entity from rpc', async () => {
       const mockRpc = jest.fn().mockReturnValue({

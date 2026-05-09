@@ -109,11 +109,27 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
 
   async fetchBudgetIdForLine(id: string): Promise<string | null> {
     const supabase = this.supabaseProvider.client;
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('budget_line')
       .select('budget_id')
       .eq('id', id)
       .single();
+
+    if (error) {
+      // PGRST116 = "Searched for a single row but found 0 rows"
+      if (error.code === 'PGRST116') return null;
+      throw new BusinessException(
+        ERROR_DEFINITIONS.BUDGET_LINE_FETCH_FAILED,
+        undefined,
+        {
+          operation: 'fetchBudgetIdForLine',
+          entityId: id,
+          entityType: 'budget_line',
+          supabaseError: error,
+        },
+        { cause: error },
+      );
+    }
 
     return data?.budget_id ?? null;
   }
@@ -172,16 +188,37 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
       .single();
 
     if (error || !row) {
+      const loggingContext = {
+        operation: 'updateBudgetLine',
+        entityId: id,
+        entityType: 'budget_line',
+        supabaseError: error,
+      };
+
+      // PGRST116 = "Searched for a single row but found 0 rows"
+      if (!error || error.code === 'PGRST116') {
+        throw new BusinessException(
+          ERROR_DEFINITIONS.BUDGET_LINE_NOT_FOUND,
+          { id },
+          loggingContext,
+          { cause: error ?? undefined },
+        );
+      }
+
+      if (error.code === '23505') {
+        throw new BusinessException(
+          ERROR_DEFINITIONS.BUDGET_LINE_ALREADY_EXISTS,
+          { id },
+          loggingContext,
+          { cause: error },
+        );
+      }
+
       throw new BusinessException(
-        ERROR_DEFINITIONS.BUDGET_LINE_NOT_FOUND,
-        { id },
-        {
-          operation: 'updateBudgetLine',
-          entityId: id,
-          entityType: 'budget_line',
-          supabaseError: error,
-        },
-        { cause: error ?? undefined },
+        ERROR_DEFINITIONS.BUDGET_LINE_UPDATE_FAILED,
+        undefined,
+        loggingContext,
+        { cause: error },
       );
     }
 

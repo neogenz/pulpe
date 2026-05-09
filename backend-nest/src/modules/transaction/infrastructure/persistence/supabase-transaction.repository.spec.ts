@@ -228,4 +228,75 @@ describe('SupabaseTransactionRepository', () => {
       await expect(repo.delete('missing')).rejects.toThrow(BusinessException);
     });
   });
+
+  describe('fetchBudgetIdForTransaction', () => {
+    it('should return the budget id on success', async () => {
+      const provider = createMockProvider(() => ({
+        select: () => ({
+          eq: () => ({
+            single: jest.fn().mockResolvedValue({
+              data: { budget_id: 'budget-1' },
+              error: null,
+            }),
+          }),
+        }),
+      }));
+      repo = new SupabaseTransactionRepository(
+        provider,
+        createMockEncryption(),
+      );
+
+      const result = await repo.fetchBudgetIdForTransaction('txn-1');
+
+      expect(result).toBe('budget-1');
+    });
+
+    it('should return null when row not found (PGRST116)', async () => {
+      const provider = createMockProvider(() => ({
+        select: () => ({
+          eq: () => ({
+            single: jest.fn().mockResolvedValue({
+              data: null,
+              error: { code: 'PGRST116', message: 'No rows' },
+            }),
+          }),
+        }),
+      }));
+      repo = new SupabaseTransactionRepository(
+        provider,
+        createMockEncryption(),
+      );
+
+      const result = await repo.fetchBudgetIdForTransaction('missing');
+
+      expect(result).toBeNull();
+    });
+
+    it('should throw TRANSACTION_FETCH_FAILED on real error', async () => {
+      const provider = createMockProvider(() => ({
+        select: () => ({
+          eq: () => ({
+            single: jest.fn().mockResolvedValue({
+              data: null,
+              error: { code: '42000', message: 'DB connection lost' },
+            }),
+          }),
+        }),
+      }));
+      repo = new SupabaseTransactionRepository(
+        provider,
+        createMockEncryption(),
+      );
+
+      try {
+        await repo.fetchBudgetIdForTransaction('txn-1');
+        throw new Error('expected to throw');
+      } catch (error) {
+        expect(error).toBeInstanceOf(BusinessException);
+        expect((error as BusinessException).code).toBe(
+          'ERR_TRANSACTION_FETCH_FAILED',
+        );
+      }
+    });
+  });
 });

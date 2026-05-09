@@ -236,15 +236,31 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
     return this.update(id, { checkedAt: newCheckedAt });
   }
 
-  async fetchBudgetIdForTransaction(id: string): Promise<string> {
+  async fetchBudgetIdForTransaction(id: string): Promise<string | null> {
     const supabase = this.supabaseProvider.client;
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('transaction')
       .select('budget_id')
       .eq('id', id)
       .single();
 
-    return data?.budget_id ?? '';
+    if (error) {
+      // PGRST116 = "Searched for a single row but found 0 rows"
+      if (error.code === 'PGRST116') return null;
+      throw new BusinessException(
+        ERROR_DEFINITIONS.TRANSACTION_FETCH_FAILED,
+        undefined,
+        {
+          operation: 'fetchBudgetIdForTransaction',
+          entityId: id,
+          entityType: 'transaction',
+          supabaseError: error,
+        },
+        { cause: error },
+      );
+    }
+
+    return data?.budget_id ?? null;
   }
 
   async fetchBudgetLineForAllocation(

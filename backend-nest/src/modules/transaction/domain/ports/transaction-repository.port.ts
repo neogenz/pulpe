@@ -18,7 +18,7 @@ export interface TransactionRepositoryPort {
   update(id: string, patch: TransactionUpdatePatch): Promise<Transaction>;
   delete(id: string): Promise<void>;
   toggleCheck(id: string): Promise<Transaction>;
-  fetchBudgetIdForTransaction(id: string): Promise<string>;
+  fetchBudgetIdForTransaction(id: string): Promise<string | null>;
   fetchBudgetLineForAllocation(
     budgetLineId: string,
   ): Promise<BudgetLineForAllocation | null>;
