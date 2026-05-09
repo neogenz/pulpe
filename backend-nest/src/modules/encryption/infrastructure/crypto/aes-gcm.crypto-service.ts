@@ -237,6 +237,13 @@ export class AesGcmCryptoService {
     return dek;
   }
 
+  getDekFor(user: {
+    readonly id: string;
+    readonly clientKey: Buffer;
+  }): Promise<Buffer> {
+    return this.getUserDEK(user.id, user.clientKey);
+  }
+
   async getVaultStatus(userId: string): Promise<{
     pinCodeConfigured: boolean;
     recoveryKeyConfigured: boolean;

@@ -14,6 +14,11 @@ export interface EncryptionPort {
   ensureUserDEK(userId: string, clientKey: Buffer): Promise<Buffer>;
   /** Retrieve cached DEK; skip keyCheck validation. Use after `ensureUserDEK` already ran. */
   getUserDEK(userId: string, clientKey: Buffer): Promise<Buffer>;
+  /** Convenience wrapper around getUserDEK for an authenticated user. */
+  getDekFor(user: {
+    readonly id: string;
+    readonly clientKey: Buffer;
+  }): Promise<Buffer>;
 
   /** Decrypt amount; throw on failure. */
   decryptAmount(ciphertext: string, dek: Buffer): number;

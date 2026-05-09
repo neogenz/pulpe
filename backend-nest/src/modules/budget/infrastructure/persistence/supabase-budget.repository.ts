@@ -79,7 +79,7 @@ export class SupabaseBudgetRepository implements BudgetRepositoryPort {
     }
 
     if (!data?.length) return [];
-    const dek = await this.getDek();
+    const dek = await this.encryption.getDekFor(this.supabaseProvider.user);
     return data.map((row) => this.toEntity(row, dek));
   }
 
@@ -113,7 +113,7 @@ export class SupabaseBudgetRepository implements BudgetRepositoryPort {
     }
 
     if (!data?.length) return [];
-    const dek = await this.getDek();
+    const dek = await this.encryption.getDekFor(this.supabaseProvider.user);
     return data.map((row) => this.toEntity(row, dek));
   }
 
@@ -139,7 +139,7 @@ export class SupabaseBudgetRepository implements BudgetRepositoryPort {
     }
 
     if (!data?.length) return [];
-    const dek = await this.getDek();
+    const dek = await this.encryption.getDekFor(this.supabaseProvider.user);
     return data.map((row) => this.toEntity(row, dek));
   }
 
@@ -165,7 +165,7 @@ export class SupabaseBudgetRepository implements BudgetRepositoryPort {
       );
     }
 
-    const dek = await this.getDek();
+    const dek = await this.encryption.getDekFor(this.supabaseProvider.user);
     return this.toEntity(data, dek);
   }
 
@@ -205,7 +205,7 @@ export class SupabaseBudgetRepository implements BudgetRepositoryPort {
       );
     }
 
-    const dek = await this.getDek();
+    const dek = await this.encryption.getDekFor(this.supabaseProvider.user);
     return this.toEntity(data, dek);
   }
 
@@ -233,7 +233,7 @@ export class SupabaseBudgetRepository implements BudgetRepositoryPort {
       );
     }
 
-    const dek = await this.getDek();
+    const dek = await this.encryption.getDekFor(this.supabaseProvider.user);
     return this.toEntity(data, dek);
   }
 
@@ -360,7 +360,7 @@ export class SupabaseBudgetRepository implements BudgetRepositoryPort {
       );
     }
 
-    const dek = await this.getDek();
+    const dek = await this.encryption.getDekFor(this.supabaseProvider.user);
     return {
       budget: this.toEntity(budgetResult.data, dek),
       budgetLines: (budgetLinesResult.data ?? []).map((row) =>
@@ -469,7 +469,9 @@ export class SupabaseBudgetRepository implements BudgetRepositoryPort {
     if (!data?.length) return [];
 
     const hasEncryptedData = data.some((b) => b.ending_balance);
-    const dek = hasEncryptedData ? await this.getDek() : null;
+    const dek = hasEncryptedData
+      ? await this.encryption.getDekFor(this.supabaseProvider.user)
+      : null;
 
     return data.map((row) => ({
       id: row.id,
@@ -514,7 +516,9 @@ export class SupabaseBudgetRepository implements BudgetRepositoryPort {
 
     const hasEncryptedData =
       budgetLines.some((l) => l.amount) || transactions.some((t) => t.amount);
-    const dek = hasEncryptedData ? await this.getDek() : null;
+    const dek = hasEncryptedData
+      ? await this.encryption.getDekFor(this.supabaseProvider.user)
+      : null;
 
     const decrypt = (ciphertext: string | null): number =>
       ciphertext && dek
@@ -561,11 +565,6 @@ export class SupabaseBudgetRepository implements BudgetRepositoryPort {
       .maybeSingle();
 
     return data?.id ?? null;
-  }
-
-  private async getDek(): Promise<Buffer> {
-    const user = this.supabaseProvider.user;
-    return this.encryption.getUserDEK(user.id, user.clientKey);
   }
 
   private toEntity(row: BudgetRow, dek: Buffer): Budget {

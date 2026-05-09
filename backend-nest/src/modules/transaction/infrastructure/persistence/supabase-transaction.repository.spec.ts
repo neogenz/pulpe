@@ -38,6 +38,7 @@ function createMockEncryption(): EncryptionPort {
   return {
     ensureUserDEK: jest.fn().mockResolvedValue(dek),
     getUserDEK: jest.fn().mockResolvedValue(dek),
+    getDekFor: jest.fn().mockResolvedValue(dek),
     decryptAmount: jest.fn().mockReturnValue(50),
     tryDecryptAmount: jest.fn().mockReturnValue(50),
     encryptAmount: jest.fn().mockReturnValue('encrypted'),

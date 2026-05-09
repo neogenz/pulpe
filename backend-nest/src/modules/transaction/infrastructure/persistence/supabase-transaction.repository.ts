@@ -53,7 +53,7 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
     }
 
     if (!data?.length) return [];
-    const dek = await this.getDek();
+    const dek = await this.encryption.getDekFor(this.supabaseProvider.user);
     return data.map((row) => this.toEntity(row, dek));
   }
 
@@ -78,7 +78,7 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
       );
     }
 
-    const dek = await this.getDek();
+    const dek = await this.encryption.getDekFor(this.supabaseProvider.user);
     return this.toEntity(data, dek);
   }
 
@@ -105,7 +105,7 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
     }
 
     if (!data?.length) return [];
-    const dek = await this.getDek();
+    const dek = await this.encryption.getDekFor(this.supabaseProvider.user);
     return data.map((row) => this.toEntity(row, dek));
   }
 
@@ -132,7 +132,7 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
     }
 
     if (!data?.length) return [];
-    const dek = await this.getDek();
+    const dek = await this.encryption.getDekFor(this.supabaseProvider.user);
     return data.map((row) => this.toEntity(row, dek));
   }
 
@@ -172,7 +172,7 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
       );
     }
 
-    const dek = await this.getDek();
+    const dek = await this.encryption.getDekFor(this.supabaseProvider.user);
     return this.toEntity(row, dek);
   }
 
@@ -206,7 +206,7 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
       );
     }
 
-    const dek = await this.getDek();
+    const dek = await this.encryption.getDekFor(this.supabaseProvider.user);
     return this.toEntity(row, dek);
   }
 
@@ -326,7 +326,7 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
     );
 
     if (!data.length) return [];
-    const dek = await this.getDek();
+    const dek = await this.encryption.getDekFor(this.supabaseProvider.user);
     return data.map((row) => this.toSearchTransactionRow(row, dek));
   }
 
@@ -337,7 +337,7 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
     const data = await this.queryBudgetLinesByPattern(searchPattern, budgetIds);
 
     if (!data.length) return [];
-    const dek = await this.getDek();
+    const dek = await this.encryption.getDekFor(this.supabaseProvider.user);
     return data.map((row) => this.toSearchBudgetLineRow(row, dek));
   }
 
@@ -436,11 +436,6 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
     }
 
     return (data ?? []) as RawSearchBudgetLineRow[];
-  }
-
-  private async getDek(): Promise<Buffer> {
-    const user = this.supabaseProvider.user;
-    return this.encryption.getUserDEK(user.id, user.clientKey);
   }
 
   private toEntity(row: TransactionRow, dek: Buffer): Transaction {

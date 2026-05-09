@@ -51,7 +51,7 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
     }
 
     if (!data?.length) return [];
-    const dek = await this.getDek();
+    const dek = await this.encryption.getDekFor(this.supabaseProvider.user);
     return data.map((row) => this.toEntity(row, dek));
   }
 
@@ -76,7 +76,7 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
       );
     }
 
-    const dek = await this.getDek();
+    const dek = await this.encryption.getDekFor(this.supabaseProvider.user);
     return this.toEntity(data, dek);
   }
 
@@ -103,7 +103,7 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
     }
 
     if (!data?.length) return [];
-    const dek = await this.getDek();
+    const dek = await this.encryption.getDekFor(this.supabaseProvider.user);
     return data.map((row) => this.toEntity(row, dek));
   }
 
@@ -154,7 +154,7 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
       );
     }
 
-    const dek = await this.getDek();
+    const dek = await this.encryption.getDekFor(this.supabaseProvider.user);
     return this.toEntity(row, dek);
   }
 
@@ -185,7 +185,7 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
       );
     }
 
-    const dek = await this.getDek();
+    const dek = await this.encryption.getDekFor(this.supabaseProvider.user);
     return this.toEntity(row, dek);
   }
 
@@ -223,7 +223,7 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
       });
     }
 
-    const dek = await this.getDek();
+    const dek = await this.encryption.getDekFor(this.supabaseProvider.user);
     return this.toTemplateLine(data, dek);
   }
 
@@ -249,7 +249,7 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
       );
     }
 
-    const dek = await this.getDek();
+    const dek = await this.encryption.getDekFor(this.supabaseProvider.user);
     return this.toEntity(data, dek);
   }
 
@@ -273,13 +273,8 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
     }
 
     if (!data?.length) return [];
-    const dek = await this.getDek();
+    const dek = await this.encryption.getDekFor(this.supabaseProvider.user);
     return data.map((row) => this.toTransactionEntity(row, dek));
-  }
-
-  private async getDek(): Promise<Buffer> {
-    const user = this.supabaseProvider.user;
-    return this.encryption.getUserDEK(user.id, user.clientKey);
   }
 
   private toEntity(row: BudgetLineRow, dek: Buffer): BudgetLine {

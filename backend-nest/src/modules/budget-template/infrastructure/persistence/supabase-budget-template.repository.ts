@@ -204,7 +204,7 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
     }
 
     if (!data?.length) return [];
-    const dek = await this.getDek();
+    const dek = await this.encryption.getDekFor(this.supabaseProvider.user);
     return data.map((row) => this.toTemplateLine(row, dek));
   }
 
@@ -229,7 +229,7 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
       );
     }
 
-    const dek = await this.getDek();
+    const dek = await this.encryption.getDekFor(this.supabaseProvider.user);
     return this.toTemplateLine(data, dek);
   }
 
@@ -253,7 +253,7 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
       template: { user_id: string | null };
     };
 
-    const dek = await this.getDek();
+    const dek = await this.encryption.getDekFor(this.supabaseProvider.user);
     return {
       line: this.toTemplateLine(row, dek),
       templateUserId: row.template.user_id,
@@ -288,7 +288,7 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
       );
     }
 
-    const dek = await this.getDek();
+    const dek = await this.encryption.getDekFor(this.supabaseProvider.user);
     return this.toTemplateLine(row, dek);
   }
 
@@ -317,7 +317,7 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
       );
     }
 
-    const dek = await this.getDek();
+    const dek = await this.encryption.getDekFor(this.supabaseProvider.user);
     return this.toTemplateLine(data, dek);
   }
 
@@ -540,7 +540,7 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
       );
     }
 
-    const dek = await this.getDek();
+    const dek = await this.encryption.getDekFor(this.supabaseProvider.user);
     const byId = new Map<string, TemplateLine>(
       rows.map((row) => [row.id, this.toTemplateLine(row, dek)]),
     );
@@ -553,11 +553,6 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
       .filter((line): line is TemplateLine => Boolean(line));
 
     return { affectedBudgetIds, updatedLines, createdLines };
-  }
-
-  private async getDek(): Promise<Buffer> {
-    const user = this.supabaseProvider.user;
-    return this.encryption.getUserDEK(user.id, user.clientKey);
   }
 
   private toTemplateEntity(row: TemplateRow): BudgetTemplate {
