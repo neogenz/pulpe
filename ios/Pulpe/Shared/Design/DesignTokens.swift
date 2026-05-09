@@ -327,6 +327,38 @@ enum DesignTokens {
         static let bottomFadeHeight: CGFloat = 80
     }
 
+    // MARK: - Chip Metrics
+
+    /// Spacing tokens for `PulpeChip` (Shared/Components/PulpeChip.swift).
+    /// Two sizes — `Standard` (default chips: filter pills, menu triggers) and
+    /// `Prominent` (CTA chips). No `.compact` size on purpose: Pulpe DA pillar
+    /// "Légèreté" forbids tight density.
+    enum ChipMetrics {
+        enum Standard {
+            /// Horizontal padding inside the capsule
+            static let horizontalPadding: CGFloat = Spacing.lg
+            /// Vertical padding inside the capsule
+            static let verticalPadding: CGFloat = Spacing.md
+            /// Gap between elements inside the chip (icon → label → count → trailing)
+            static let interElementGap: CGFloat = Spacing.tightGap
+            /// Gap between adjacent chips on a rail
+            static let interChipGap: CGFloat = Spacing.sm
+        }
+
+        enum Prominent {
+            static let horizontalPadding: CGFloat = Spacing.xl
+            static let verticalPadding: CGFloat = Spacing.lg
+            static let interElementGap: CGFloat = Spacing.sm
+            static let interChipGap: CGFloat = Spacing.md
+        }
+
+        /// Inner-badge (count pill) padding — shared across sizes.
+        enum CountBadge {
+            static let horizontalPadding: CGFloat = Spacing.tightGap
+            static let verticalPadding: CGFloat = Spacing.xxs
+        }
+    }
+
     // MARK: - Progress Bar
 
     enum ProgressBar {

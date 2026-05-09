@@ -73,5 +73,30 @@ nesting:
   function_level:
     warning: 3
 
+# Custom rules
+custom_rules:
+  no_adhoc_capsule_chip:
+    name: "No ad-hoc chip"
+    regex: 'Capsule\(\)\s*\.\s*fill'
+    excluded:
+      # The atom itself is the only legitimate caller.
+      - ".*/Shared/Components/PulpeChip\\.swift"
+      # Decorative / progress shapes: these are NOT chips, just stroked or
+      # filled capsules used as progress bars, divider rails, hero accent
+      # segments, toast rails, onboarding flow bars. Migration to PulpeChip
+      # not applicable. Audited 2026-05-09 (PUL-216).
+      - ".*/Shared/Components/RealizedBalanceSheet\\.swift"
+      - ".*/Shared/Components/ToastView\\.swift"
+      - ".*/Features/CurrentMonth/Components/LinkedTransactionsSheet\\.swift"
+      - ".*/Features/CurrentMonth/Components/HeroBalanceCard\\.swift"
+      - ".*/Features/CurrentMonth/Components/SavingsSummaryCard\\.swift"
+      - ".*/Features/Budgets/BudgetList/BudgetListView\\+YearComponents\\.swift"
+      - ".*/Features/Budgets/BudgetDetails/BudgetDetailHero\\.swift"
+      - ".*/Features/Budgets/BudgetDetails/BudgetLineDetailPage\\.swift"
+      - ".*/Features/Onboarding/Components/OnboardingProgressIndicator\\.swift"
+      - ".*/Features/Onboarding/Steps/BudgetPreviewFlowBars\\.swift"
+    message: "Use PulpeChip from Shared/Components instead of raw Capsule().fill(...). Capsule chip rendering is centralised."
+    severity: warning
+
 # Reporter type (xcode, json, csv, checkstyle, codeclimate, junit, html, emoji, sonarqube, markdown, github-actions-logging, summary)
 reporter: xcode

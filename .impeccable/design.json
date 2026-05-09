@@ -1,0 +1,316 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-05-09T00:00:00Z",
+  "title": "Design System: Pulpe",
+  "platformNote": "Pulpe is primarily a SwiftUI native iOS app. The HTML/CSS snippets below are illustrative approximations of the SwiftUI component output, suitable for Stitch's shadow-DOM panel rendering. They are NOT the source of truth — the canonical implementations live in ios/Pulpe/Shared/Design/ and ios/Pulpe/Shared/Components/. Webapp (Angular) and landing (Next.js) are noted in DESIGN.md prose; their tokens map to the same semantic intent but resolve to different concrete values in their respective stacks.",
+  "extensions": {
+    "colorMeta": {
+      "pulpe-primary": {
+        "role": "primary",
+        "displayName": "Pulpe Forest",
+        "canonical": "#006E25",
+        "tonalRamp": ["#001A07", "#00310E", "#004B16", "#006E25", "#1F8A3C", "#4FA862", "#88C895", "#D6F0DC"]
+      },
+      "pulpe-secondary": {
+        "role": "secondary",
+        "displayName": "Sage",
+        "canonical": "#406741",
+        "tonalRamp": ["#0E1B0F", "#1B2E1C", "#284B29", "#406741", "#5C8A5D", "#88B189", "#B6D4B7", "#E5F2E5"]
+      },
+      "pulpe-tertiary": {
+        "role": "tertiary",
+        "displayName": "Lake",
+        "canonical": "#0061A6",
+        "tonalRamp": ["#001830", "#002E58", "#00497F", "#0061A6", "#3A86C6", "#73A8DA", "#AFCBE8", "#E2EEF7"]
+      },
+      "financial-income": {
+        "role": "tertiary",
+        "displayName": "Income Lake",
+        "canonical": "#0061A6",
+        "purpose": "All income amounts, income pill, income kind tag",
+        "tonalRamp": ["#001830", "#002E58", "#00497F", "#0061A6", "#3A86C6", "#73A8DA", "#AFCBE8", "#E2EEF7"]
+      },
+      "financial-expense": {
+        "role": "expense-warning",
+        "displayName": "Amber",
+        "canonical": "#B35800",
+        "purpose": "All expense amounts, expense pill, expense kind tag, moderate over-budget warnings — never red",
+        "tonalRamp": ["#2A1500", "#4F2700", "#7C3E00", "#B35800", "#D17A1F", "#E59B5A", "#F0BE92", "#FAE3CE"]
+      },
+      "financial-savings": {
+        "role": "primary",
+        "displayName": "Forest Bright",
+        "canonical": "#157038",
+        "purpose": "All savings amounts, savings pill, savings kind tag, savings progress bar fill",
+        "tonalRamp": ["#021A0B", "#053418", "#0A4F23", "#157038", "#34925A", "#5DB680", "#94D2AC", "#D6EFDF"]
+      },
+      "financial-over-budget": {
+        "role": "warning",
+        "displayName": "Burnt Amber",
+        "canonical": "#A86800",
+        "purpose": "Envelopes that have actually overrun — still amber, the overshoot is factual, not punitive",
+        "tonalRamp": ["#28190A", "#4D3015", "#7A4C00", "#A86800", "#C68A28", "#D9AC5C", "#E9CB97", "#F7E9D0"]
+      },
+      "hero-comfortable": {
+        "role": "state-positive",
+        "displayName": "Emerald Bright",
+        "canonical": "#14AD45",
+        "purpose": "Mid-stop of the dashboard hero gradient when financial state is Comfortable (<80% spent)",
+        "tonalRamp": ["#001A07", "#003D10", "#005C20", "#007C32", "#14AD45", "#38D062", "#7FE497", "#D4F4DD"]
+      },
+      "hero-tight": {
+        "role": "state-warning",
+        "displayName": "Tangerine",
+        "canonical": "#D88010",
+        "purpose": "Mid-stop of the dashboard hero gradient when financial state is Tight (80–100% spent)",
+        "tonalRamp": ["#1A0E00", "#3D2200", "#6E3A00", "#925208", "#D88010", "#F49E28", "#F8C170", "#FCE4C2"]
+      },
+      "hero-deficit": {
+        "role": "state-deficit",
+        "displayName": "Sunset Coral",
+        "canonical": "#C45028",
+        "purpose": "Mid-stop of the dashboard hero gradient when financial state is Deficit (>100% spent) — the ONE legitimate red-adjacent surface in the entire app",
+        "tonalRamp": ["#1F0A04", "#561C0C", "#7C3418", "#9C3418", "#C45028", "#E06C38", "#F49E7C", "#FCDDCD"]
+      },
+      "destructive": {
+        "role": "destructive",
+        "displayName": "True Red",
+        "canonical": "#C62828",
+        "purpose": "Account deletion, danger-zone confirmations only — irreversible actions. Never used for over-budget feedback.",
+        "tonalRamp": ["#1F0606", "#3D0C0C", "#7A1818", "#C62828", "#E04E4E", "#EF7E7E", "#F5B0B0", "#FBE0E0"]
+      },
+      "app-background": {
+        "role": "neutral-bg",
+        "displayName": "Warm Neutral Canvas",
+        "canonical": "#F7F6F3",
+        "purpose": "The app surface. Every screen sits on this. Never green-tinted, never cold gray.",
+        "darkCounterpart": "#141210",
+        "tonalRamp": ["#141210", "#2A2620", "#403B33", "#5C544A", "#807464", "#A99E8C", "#D4C9B6", "#F7F6F3"]
+      },
+      "sheet-background": {
+        "role": "neutral-bg",
+        "displayName": "Sheet Warm",
+        "canonical": "#F5F3F0",
+        "purpose": "Slightly cooler-warm than the app, providing dark-mode contrast against cards",
+        "darkCounterpart": "#111111"
+      },
+      "surface": {
+        "role": "neutral-surface",
+        "displayName": "Card White",
+        "canonical": "#FFFFFF",
+        "darkCounterpart": "#1A1816",
+        "tonalRamp": ["#1A1816", "#2A2826", "#3F3D3A", "#5A5752", "#7A746C", "#A39C8E", "#D0CABE", "#FFFFFF"]
+      },
+      "text-primary": {
+        "role": "ink",
+        "displayName": "Forest Ink",
+        "canonical": "#1A1C19",
+        "purpose": "Body text. Never pure #000."
+      },
+      "text-secondary": {
+        "role": "ink-muted",
+        "displayName": "Bark",
+        "canonical": "#524D48",
+        "purpose": "Subtitles, captions. WCAG AAA on warm surfaces."
+      },
+      "text-tertiary": {
+        "role": "ink-faint",
+        "displayName": "Driftwood",
+        "canonical": "#6E6762",
+        "purpose": "Hints, footers, decorative metadata."
+      },
+      "outline": {
+        "role": "border",
+        "displayName": "Outline",
+        "canonical": "#6F7A6D"
+      },
+      "outline-variant": {
+        "role": "border-faint",
+        "displayName": "Outline Variant",
+        "canonical": "#BFCABA"
+      }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display Year", "purpose": "72pt Manrope ExtraBold — year recap big number on budget list. Tracking -3px." },
+      "headline": { "displayName": "Brand Headline", "purpose": "34pt Manrope Bold — hero amount on dashboard, brand titles. Sole headline per screen." },
+      "amount-hero": { "displayName": "Hero Amount", "purpose": "34pt Manrope ExtraBold — Budget Detail page hero balance. Black on neutral." },
+      "amount-card": { "displayName": "Card Amount", "purpose": "20pt Manrope ExtraBold — per-row card amounts. Always tabular figures." },
+      "title": { "displayName": "Section Title", "purpose": "22pt SF Pro Semibold — section titles, sheet titles." },
+      "body": { "displayName": "Body", "purpose": "17pt SF Pro Regular — default content, descriptions." },
+      "list-row-title": { "displayName": "Row Title", "purpose": "17pt SF Pro Semibold — budget line names, transaction descriptions." },
+      "metric-label": { "displayName": "Metric Label", "purpose": "13pt SF Pro Bold — pill text, chip labels, count badges." },
+      "kind-tag": { "displayName": "Kind Tag", "purpose": "10pt Manrope ExtraBold uppercased, tracking 0.7px — REVENU / ÉPARGNE / DÉPENSE inline tags." },
+      "label-medium": { "displayName": "Label Medium", "purpose": "13pt SF Pro Medium — form field labels, secondary metadata." },
+      "button": { "displayName": "Button", "purpose": "17pt SF Pro Semibold — all primary, secondary, destructive button text." }
+    },
+    "shadows": [
+      { "name": "subtle", "value": "0 1px 2px rgba(0,0,0,0.05)", "purpose": "Per-row card lift on Budget Detail. Faintest possible separation." },
+      { "name": "card", "value": "0 2px 4px rgba(0,0,0,0.06)", "purpose": "Default card lift. Used sparingly." },
+      { "name": "elevated", "value": "0 4px 8px rgba(0,0,0,0.08)", "purpose": "Hero cards (gradient), modals, dialog surfaces." },
+      { "name": "input", "value": "0 2px 6px rgba(0,0,0,0.04)", "purpose": "Auth and currency input field rest state." },
+      { "name": "toast", "value": "0 4px 8px rgba(0,0,0,0.10)", "purpose": "Toast notifications — transient, top-of-stack only." }
+    ],
+    "motion": [
+      { "name": "duration-fast", "value": "200ms", "purpose": "Pressed-state opacity transitions, snappy filter selections." },
+      { "name": "duration-normal", "value": "300ms", "purpose": "Default ease transitions." },
+      { "name": "spring-default", "value": "spring(response: 0.5, dampingFraction: 0.8)", "purpose": "General interactive feedback." },
+      { "name": "spring-gentle", "value": "spring(response: 0.6, dampingFraction: 0.85)", "purpose": "Soft confirmations, checkbox toggles." },
+      { "name": "spring-bouncy", "value": "spring(response: 0.4, dampingFraction: 0.65)", "purpose": "Playful interactions — used sparingly. Forbidden in landing/marketing surfaces of the app." },
+      { "name": "spring-entrance", "value": "spring(response: 0.6, dampingFraction: 0.8)", "purpose": "View-entrance animations." },
+      { "name": "hero-breathing", "value": "easeInOut(duration: 3.5s).repeatForever(autoreverses: true)", "purpose": "Slow ambient breathing on brand heroes — feels like ambient life, not a notification." }
+    ],
+    "tapTargets": [
+      { "name": "minimum", "value": "44pt", "purpose": "Apple HIG minimum tap target. Goes on the Button, never on the label." }
+    ],
+    "borderWidths": [
+      { "name": "hairline", "value": "0.75pt" },
+      { "name": "thin", "value": "1pt", "purpose": "Default border width — pill borders, dividers, form field outlines." },
+      { "name": "medium", "value": "1.5pt" },
+      { "name": "thick", "value": "2pt" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Full-width capsule CTA, forest→mint gradient fill, white text, 54pt height. The single dominant action per screen.",
+      "html": "<button class=\"ds-btn-primary\">Continuer</button>",
+      "css": ".ds-btn-primary { display: inline-flex; align-items: center; justify-content: center; width: 100%; height: 54px; padding: 0 24px; background: linear-gradient(90deg, #006E25 0%, #00A838 100%); color: #FFFFFF; font-family: -apple-system, 'SF Pro', BlinkMacSystemFont, sans-serif; font-size: 17px; font-weight: 600; line-height: 1; border: none; border-radius: 9999px; cursor: pointer; transition: opacity 0.2s ease-in-out; } .ds-btn-primary:hover { opacity: 0.95; } .ds-btn-primary:active { opacity: 0.8; } .ds-btn-primary:focus-visible { outline: 2px solid #006E25; outline-offset: 2px; } .ds-btn-primary:disabled { background: #D6E8DC; color: #524D48; border: 1px solid #BFCABA; cursor: not-allowed; }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Capsule with hairline border, transparent fill, primary ink. Cancel, back, alternative actions.",
+      "html": "<button class=\"ds-btn-secondary\">Annuler</button>",
+      "css": ".ds-btn-secondary { display: inline-flex; align-items: center; justify-content: center; width: 100%; height: 54px; padding: 0 24px; background: transparent; color: #1A1C19; font-family: -apple-system, 'SF Pro', BlinkMacSystemFont, sans-serif; font-size: 17px; font-weight: 600; line-height: 1; border: 1px solid #BFCABA; border-radius: 9999px; cursor: pointer; transition: opacity 0.2s ease-in-out; } .ds-btn-secondary:hover { opacity: 0.9; } .ds-btn-secondary:active { opacity: 0.8; } .ds-btn-secondary:focus-visible { outline: 2px solid #006E25; outline-offset: 2px; }"
+    },
+    {
+      "name": "Destructive Button",
+      "kind": "button",
+      "refersTo": "button-destructive",
+      "description": "True-red capsule, white text. Reserved for irreversible actions only — account deletion, danger zones.",
+      "html": "<button class=\"ds-btn-destructive\">Supprimer mon compte</button>",
+      "css": ".ds-btn-destructive { display: inline-flex; align-items: center; justify-content: center; width: 100%; height: 54px; padding: 0 24px; background: #C62828; color: #FFFFFF; font-family: -apple-system, 'SF Pro', BlinkMacSystemFont, sans-serif; font-size: 17px; font-weight: 600; line-height: 1; border: none; border-radius: 9999px; cursor: pointer; transition: opacity 0.2s ease-in-out; } .ds-btn-destructive:hover { opacity: 0.92; } .ds-btn-destructive:active { opacity: 0.8; } .ds-btn-destructive:focus-visible { outline: 2px solid #C62828; outline-offset: 2px; }"
+    },
+    {
+      "name": "Icon Button (44×44pt hit area)",
+      "kind": "button",
+      "refersTo": "button-icon",
+      "description": "Icon-only button with 44×44pt minimum tap target. Eye toggle, dismiss X, delete, chart. Hitbox goes on the Button, NOT the label — visual stays compact.",
+      "html": "<button class=\"ds-btn-icon\" aria-label=\"Fermer\"><svg viewBox=\"0 0 24 24\" width=\"20\" height=\"20\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><line x1=\"18\" y1=\"6\" x2=\"6\" y2=\"18\"></line><line x1=\"6\" y1=\"6\" x2=\"18\" y2=\"18\"></line></svg></button>",
+      "css": ".ds-btn-icon { display: inline-flex; align-items: center; justify-content: center; min-width: 44px; min-height: 44px; padding: 0; background: transparent; color: #524D48; border: none; border-radius: 8px; cursor: pointer; transition: opacity 0.2s ease-in-out; } .ds-btn-icon:hover { opacity: 0.9; } .ds-btn-icon:active { opacity: 0.8; } .ds-btn-icon:focus-visible { outline: 2px solid #006E25; outline-offset: 2px; }"
+    },
+    {
+      "name": "Filter Pill (Selected)",
+      "kind": "chip",
+      "refersTo": "chip-filter-selected",
+      "description": "Selected state of the type filter pill on the Budget Detail filter rail. Dark inverse — ink fill, surface text, count badge in translucent surface capsule.",
+      "html": "<button class=\"ds-chip-filter-selected\" aria-pressed=\"true\"><span class=\"ds-chip-filter-label\">Dépenses</span><span class=\"ds-chip-filter-count\">4</span></button>",
+      "css": ".ds-chip-filter-selected { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 12px 16px; background: #1A1C19; color: #F7F6F3; font-family: -apple-system, 'SF Pro', BlinkMacSystemFont, sans-serif; font-size: 13px; font-weight: 700; border: none; border-radius: 9999px; cursor: pointer; transition: opacity 0.2s ease-in-out; } .ds-chip-filter-selected:hover { opacity: 0.92; } .ds-chip-filter-selected:active { opacity: 0.8; } .ds-chip-filter-selected .ds-chip-filter-count { display: inline-flex; align-items: center; justify-content: center; padding: 2px 6px; background: rgba(247, 246, 243, 0.20); color: #F7F6F3; font-size: 11px; font-weight: 600; font-variant-numeric: tabular-nums; border-radius: 9999px; min-width: 18px; }"
+    },
+    {
+      "name": "Filter Pill (Unselected)",
+      "kind": "chip",
+      "refersTo": "chip-filter-unselected",
+      "description": "Unselected type filter pill. Surface fill, hairline border, primary ink. Disabled state at 0.4 opacity when count = 0.",
+      "html": "<button class=\"ds-chip-filter\" aria-pressed=\"false\"><span class=\"ds-chip-filter-label\">Revenus</span><span class=\"ds-chip-filter-count\">2</span></button>",
+      "css": ".ds-chip-filter { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 12px 16px; background: #FFFFFF; color: #1A1C19; font-family: -apple-system, 'SF Pro', BlinkMacSystemFont, sans-serif; font-size: 13px; font-weight: 700; border: 1px solid rgba(82, 77, 72, 0.22); border-radius: 9999px; cursor: pointer; transition: opacity 0.2s ease-in-out, background 0.2s ease-in-out; } .ds-chip-filter:hover { background: #FCFAF7; } .ds-chip-filter:active { opacity: 0.8; } .ds-chip-filter:focus-visible { outline: 2px solid #006E25; outline-offset: 2px; } .ds-chip-filter:disabled { opacity: 0.4; cursor: not-allowed; } .ds-chip-filter .ds-chip-filter-count { display: inline-flex; align-items: center; justify-content: center; padding: 2px 6px; background: #F0EDE9; color: #6E6762; font-size: 11px; font-weight: 600; font-variant-numeric: tabular-nums; border-radius: 9999px; min-width: 18px; }"
+    },
+    {
+      "name": "Stat Pill — Income (hero)",
+      "kind": "chip",
+      "refersTo": "chip-stat-income",
+      "description": "Tinted stat pill for the hero card's category row. Lake tint at 15% opacity, Lake ink. Same pattern for savings (Forest Bright) and expense (Amber).",
+      "html": "<div class=\"ds-pill-stat-income\"><svg viewBox=\"0 0 24 24\" width=\"14\" height=\"14\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><polyline points=\"18 15 12 9 6 15\"></polyline></svg><span class=\"ds-pill-amount\">4 300</span><span class=\"ds-pill-label\">revenus</span></div>",
+      "css": ".ds-pill-stat-income { display: inline-flex; align-items: center; gap: 4px; padding: 6px 12px; background: rgba(0, 97, 166, 0.15); color: #0061A6; font-family: -apple-system, 'SF Pro', BlinkMacSystemFont, sans-serif; font-size: 13px; font-weight: 700; border-radius: 9999px; } .ds-pill-stat-income .ds-pill-amount { font-variant-numeric: tabular-nums; }"
+    },
+    {
+      "name": "Kind Badge (Inline Tag)",
+      "kind": "custom",
+      "refersTo": "kind-tag",
+      "description": "Inline uppercase kind tag preceding a row label. 10pt Manrope ExtraBold, tracking 0.7px, financial-color ink. Income blue, saving green, expense neutral (textSecondary, NOT amber — the amount column already carries the amber).",
+      "html": "<span class=\"ds-kind-tag-income\">REVENU</span>",
+      "css": ".ds-kind-tag-income { display: inline-block; font-family: 'Manrope', -apple-system, BlinkMacSystemFont, sans-serif; font-size: 10px; font-weight: 800; line-height: 1.1; letter-spacing: 0.7px; text-transform: uppercase; color: #0061A6; }"
+    },
+    {
+      "name": "Per-Row Card (Budget Line)",
+      "kind": "card",
+      "refersTo": "card-row",
+      "description": "Budget line row card on the Budget Detail page. Surface fill, 32pt corner radius, faintest subtle shadow. Pointed (checked) state dims the card to 0.62 opacity with strikethrough on the title.",
+      "html": "<button class=\"ds-card-row\"><span class=\"ds-card-row-circle\" aria-label=\"À pointer\"></span><div class=\"ds-card-row-center\"><span class=\"ds-card-row-kind\">DÉPENSE</span><span class=\"ds-card-row-title\">Courses</span><span class=\"ds-card-row-subtitle\">restant sur 600.00 CHF</span></div><div class=\"ds-card-row-amount\"><span class=\"ds-card-row-amount-value\">238.00</span><span class=\"ds-card-row-amount-suffix\">CHF</span></div><svg class=\"ds-card-row-chevron\" viewBox=\"0 0 24 24\" width=\"16\" height=\"16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><polyline points=\"9 18 15 12 9 6\"></polyline></svg></button>",
+      "css": ".ds-card-row { display: flex; align-items: center; gap: 2px; width: 100%; min-height: 56px; padding: 12px 12px 12px 4px; background: #FFFFFF; border: none; border-radius: 32px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); cursor: pointer; text-align: left; transition: opacity 0.3s ease-in-out; } .ds-card-row:hover { opacity: 0.95; } .ds-card-row:active { opacity: 0.85; } .ds-card-row .ds-card-row-circle { display: inline-block; width: 24px; height: 24px; margin: 0 8px; border: 2px solid #B35800; border-radius: 9999px; flex-shrink: 0; } .ds-card-row .ds-card-row-center { display: flex; flex-direction: column; gap: 2px; flex: 1 1 auto; min-width: 0; } .ds-card-row .ds-card-row-kind { font-family: 'Manrope', -apple-system, BlinkMacSystemFont, sans-serif; font-size: 10px; font-weight: 800; letter-spacing: 0.7px; text-transform: uppercase; color: #524D48; } .ds-card-row .ds-card-row-title { font-family: -apple-system, 'SF Pro', BlinkMacSystemFont, sans-serif; font-size: 17px; font-weight: 600; color: #1A1C19; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .ds-card-row .ds-card-row-subtitle { font-family: -apple-system, 'SF Pro', BlinkMacSystemFont, sans-serif; font-size: 13px; font-weight: 700; color: #6E6762; } .ds-card-row .ds-card-row-amount { display: flex; flex-direction: column; align-items: flex-end; gap: 0; flex-shrink: 0; padding-left: 8px; } .ds-card-row .ds-card-row-amount-value { font-family: 'Manrope', -apple-system, BlinkMacSystemFont, sans-serif; font-size: 20px; font-weight: 800; color: #B35800; font-variant-numeric: tabular-nums; } .ds-card-row .ds-card-row-amount-suffix { font-family: -apple-system, 'SF Pro', BlinkMacSystemFont, sans-serif; font-size: 11px; font-weight: 700; color: #6E6762; opacity: 1; } .ds-card-row .ds-card-row-chevron { color: #BFCABA; flex-shrink: 0; }"
+    },
+    {
+      "name": "Form Text Field",
+      "kind": "input",
+      "refersTo": "input-form",
+      "description": "Form text field used inside SheetFormContainer. Soft system-tinted fill, 24pt corner radius, 16pt internal padding, optional label above. Tap anywhere on the padded background focuses the field.",
+      "html": "<label class=\"ds-form-field\"><span class=\"ds-form-field-label\">Description</span><input class=\"ds-form-field-input\" type=\"text\" placeholder=\"Courses, restaurant, abonnement…\" /></label>",
+      "css": ".ds-form-field { display: flex; flex-direction: column; gap: 4px; } .ds-form-field .ds-form-field-label { font-family: -apple-system, 'SF Pro', BlinkMacSystemFont, sans-serif; font-size: 13px; font-weight: 500; color: #524D48; } .ds-form-field .ds-form-field-input { width: 100%; padding: 16px; background: rgba(118, 118, 128, 0.12); color: #1A1C19; font-family: -apple-system, 'SF Pro', BlinkMacSystemFont, sans-serif; font-size: 17px; line-height: 1.4; border: 1px solid rgba(191, 202, 186, 0.5); border-radius: 24px; outline: none; transition: border-color 0.2s ease-in-out; } .ds-form-field .ds-form-field-input::placeholder { color: #6E6762; } .ds-form-field .ds-form-field-input:focus-visible { border-color: #006E25; box-shadow: 0 0 0 2px rgba(0, 110, 37, 0.15); }"
+    },
+    {
+      "name": "Sheet Form Container",
+      "kind": "custom",
+      "refersTo": "sheet-form-container",
+      "description": "Reusable wrapper for sheet forms. NavigationStack + ScrollView + VStack with sheetBackground, inline navigation title, leading close button. Always declared with .standardSheetPresentation() — sheets without explicit presentation background bleed iOS 26 Liquid Glass.",
+      "html": "<section class=\"ds-sheet\"><header class=\"ds-sheet-header\"><button class=\"ds-sheet-close\" aria-label=\"Fermer\"><svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><line x1=\"18\" y1=\"6\" x2=\"6\" y2=\"18\"></line><line x1=\"6\" y1=\"6\" x2=\"18\" y2=\"18\"></line></svg></button><h2 class=\"ds-sheet-title\">Nouvelle dépense</h2></header><div class=\"ds-sheet-body\"><slot></slot></div></section>",
+      "css": ".ds-sheet { display: flex; flex-direction: column; width: 100%; min-height: 320px; background: #F5F3F0; border-top-left-radius: 30px; border-top-right-radius: 30px; overflow: hidden; } .ds-sheet .ds-sheet-header { display: grid; grid-template-columns: 44px 1fr 44px; align-items: center; padding: 8px 16px; min-height: 56px; } .ds-sheet .ds-sheet-close { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; padding: 0; background: transparent; color: #524D48; border: none; border-radius: 9999px; cursor: pointer; } .ds-sheet .ds-sheet-close:active { opacity: 0.8; } .ds-sheet .ds-sheet-title { grid-column: 2; margin: 0; text-align: center; font-family: -apple-system, 'SF Pro', BlinkMacSystemFont, sans-serif; font-size: 17px; font-weight: 600; color: #1A1C19; } .ds-sheet .ds-sheet-body { display: flex; flex-direction: column; gap: 24px; padding: 16px 20px 20px; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "Un grand bol d'air frais après avoir fermé Excel.",
+    "overview": "Pulpe is calm naturalism for personal budgeting. The interface is the visceral shift from subir to maîtriser — fog lifts, cognitive load drops, the user breathes. Every surface is a warm neutral (#F7F6F3), every accent is a deliberate financial signal, every motion is a soft spring (no bounce, no elastic, no anxiety). The primary green is a brand color, not a celebration; red is reserved for one rare context where it earns its keep. The system is split into two zones. The emotion zone at the top of dashboards and budget headers carries feeling — colored gradients keyed to the user's financial state. The content zone below is neutral warm and ruthlessly readable. Character lives at the top; clarity lives below. This is non-negotiable. This system explicitly rejects: cold corporate banking apps with navy and aggressive charts; anxious finance apps that drench the UI in red; dense accounting software that intimidates with jargon-heavy chrome; Revolut's crunchy gradients on content cards (we keep gradients in the hero and nowhere else); generic AI-tool sterile minimalism. Pulpe is warm. Pulpe is grounded. Pulpe is a companion, not a coach.",
+    "keyCharacteristics": [
+      "Warm neutral surface (#F7F6F3), never cold gray, never green-tinted",
+      "Two-zone layout — emotion at the top, information below, soft 40–60px gradient transition",
+      "Color carries meaning: green = savings/positive, amber = expense, blue = income, red = global deficit only",
+      "Soft springs (response 0.4–0.6s, damping 0.65–0.85), zero bounce",
+      "Manrope (display + amounts) + system body font (SF Pro on iOS, DM Sans on web). Two families, max",
+      "Apple HIG 44pt tap targets, AA contrast, prefers-reduced-motion respected",
+      "Liquid Glass on navigation only — never on content"
+    ],
+    "rules": [
+      { "name": "The Two-Zone Rule", "body": "Every screen with a hero is split. Top 30–35% is the emotion zone — gradient-filled, financial-state-keyed (Comfortable green / Tight amber / Deficit coral). Below is the content zone — neutral warm #F7F6F3, lists and cards on top. Transition is a soft gradient (40–60px), never a hard cut. Screens without a hero (templates, settings) skip the emotion zone entirely; the warm canvas fills full screen.", "section": "colors" },
+      { "name": "The Color Means Something Rule", "body": "Every hue maps to a financial concept or a state. Green = positive / savings / actions. Blue = income / information / links. Amber = expense / moderate warning / over-budget. Red = hero deficit only. There is no decorative color in Pulpe. If a color doesn't map to a meaning, it doesn't ship.", "section": "colors" },
+      { "name": "The Anxiety Red Rule", "body": "Red is forbidden everywhere except the hero card when financial state is Deficit (>100% of available spent). Lines, rows, transactions, pills, and labels for expenses use amber, never red. Le rouge n'est pas punitif.", "section": "colors" },
+      { "name": "The Tutoiement Rule", "body": "Always 'tu', never 'vous'. This is brand voice, not preference. Errors explain what happened and suggest a next step — never blame the user. Empty states guide. Microcopy disarms anxiety: Ça arrive, Tu le sais, et c'est déjà ça.", "section": "typography" },
+      { "name": "The Tabular Digits Rule", "body": "Every numeric amount uses monospacedDigit() (iOS) / tabular-nums (web). Digits don't wobble between updates. Non-negotiable on hero amounts, row amounts, pill counts.", "section": "typography" },
+      { "name": "The Two-Decimals Rule", "body": "On the iOS Budget Detail page, all currency amounts render with two decimals (1'234.56 CHF). asCompactCurrency (the rounded compact format) is prohibited in this context. Other surfaces apply the dual aggregation/ligne policy from the project's currency-formatting rule.", "section": "typography" },
+      { "name": "The Glass Restraint Rule", "body": "iOS 26 Liquid Glass appears on navigation only — toolbars, tab bars, floating buttons, sheets with partial detents. Never on content cards, list rows, or text. The system handles this for standard navigation components; custom views must .glassEffect() only on navigation chrome. Pre-auth flows may use glow / shadow for brand expressivity; the authenticated app stays restrained.", "section": "elevation" },
+      { "name": "The Sheet Background Rule", "body": "Every sheet must declare .standardSheetPresentation() (which bundles .presentationBackground(Color.sheetBackground) + detents + drag indicator + corner radius). iOS 26's Liquid Glass bleeds through any sheet without an explicit presentation background. No exceptions.", "section": "elevation" },
+      { "name": "The No Magic Values Rule", "body": "Every visual value flows through DesignTokens.* (spacing, corner radius, opacity, animation, border width, frame heights, icon sizes) or Color.* from Color+Pulpe. Raw #000, raw Color.white, raw padding 16, raw radius 12, raw lineWidth: 2 are all prohibited. If no token matches, add a named token to DesignTokens first, then use it.", "section": "components" },
+      { "name": "The Tap Target Rule", "body": "Every interactive element has a 44×44pt minimum hit area (Apple HIG). The frame(minHeight: 44) goes on the Button, never inside the label — putting it on the label inflates the visible background. Pair with .contentShape(...) so the full hit area is tappable. Icon buttons use IconButtonStyle() or CircleIconButtonStyle() which encode this.", "section": "components" },
+      { "name": "The Chip Composition Rule", "body": "Chips and pills are never composed ad-hoc from Capsule().fill(...) + padding + text in feature code. They go through a shared PulpeChip atom in Shared/Components/. The current BudgetTypeFilter is the migration target — until the atom lands, new chips reuse BudgetTypeFilter's pill builders rather than re-rolling the same Capsule + padding + border combinator.", "section": "components" }
+    ],
+    "dos": [
+      "Do route every visual value through DesignTokens.Spacing/CornerRadius/Opacity/Animation/BorderWidth/FrameHeight/IconSize or Color+Pulpe semantic colors.",
+      "Do apply .standardSheetPresentation() on every sheet — without it, iOS 26 Liquid Glass bleeds through.",
+      "Do put frame(minHeight: 44) on the Button (not the label) and pair with .contentShape().",
+      "Do use Color.financialIncome / Color.financialSavings / Color.financialExpense for category accents, and Color.financialOverBudget for envelopes that have actually overrun.",
+      "Do use PrimaryButtonStyle / SecondaryButtonStyle / DestructiveButtonStyle / IconButtonStyle / TextLinkButtonStyle / PlainPressedButtonStyle / CircleIconButtonStyle — never hand-roll a button.",
+      "Do use Manrope for display, brand titles, and amount text. Use system body font (SF Pro / DM Sans) for everything else.",
+      "Do use monospacedDigit() on every Text rendering a Decimal.",
+      "Do keep the emotion zone at the top (gradient, financial-state-keyed) and the content zone below (neutral warm). Transition with a soft gradient, never a hard cut.",
+      "Do address the user with 'tu', always. Microcopy disarms anxiety.",
+      "Do use Manrope ExtraBold for the hero amount on the Budget Detail page, rendered in Color.textPrimary (black on neutral) — the hero is flat, not colored."
+    ],
+    "donts": [
+      "Don't use Revolut's crunchy gradients on content cards. Gradients live in the hero zone and nowhere else.",
+      "Don't ship cold banking apps with navy + aggressive charts.",
+      "Don't use anxiety red anywhere except the hero deficit (>100% spent). Lines, rows, transactions, pills, kind tags for expenses use amber, never red.",
+      "Don't use dense accounting jargon-heavy chrome — Pulpe is for tired humans, not finance nerds.",
+      "Don't use display fonts (Manrope, Poppins) in UI labels, captions, or buttons — body fonts (SF Pro, DM Sans) only for chrome.",
+      "Don't use raw Color.white or #000 — use Color(.systemBackground) and Color.textPrimary. Pure black is iOS 2014.",
+      "Don't write side-stripe borders (a >1px colored accent strip on the left or right edge of a card). Pulpe uses full borders + tints, never decorative side stripes.",
+      "Don't apply Liquid Glass (.glassEffect()) to content cards, list rows, or text. Glass is for navigation chrome only.",
+      "Don't compose chips or pills from raw Capsule().fill(...) + padding ad-hoc — go through BudgetTypeFilter's pill patterns today, the forthcoming PulpeChip atom tomorrow.",
+      "Don't write magic numeric values for visual properties. .padding(16), .cornerRadius(12), .opacity(0.5), lineWidth: 2, .easeInOut(duration: 0.3) — all forbidden. Use the token.",
+      "Don't put frame(minHeight: 44) inside a Button's label — it inflates the visible background to 44pt. The hitbox goes on the Button, the visual stays compact.",
+      "Don't ship a sheet without an explicit .presentationBackground(...) — iOS 26 will bleed glass through it.",
+      "Don't use ::ng-deep in Angular components. Material overrides go through mat.*-overrides() mixins in global SCSS.",
+      "Don't mix three font families on any single platform. Two max — display + body."
+    ]
+  }
+}

@@ -128,7 +128,7 @@ struct BudgetTypeFilter: View {
 
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: DesignTokens.Spacing.sm) {
+            HStack(spacing: DesignTokens.ChipMetrics.Standard.interChipGap) {
                 checkedMenuButton()
                     .padding(.trailing, DesignTokens.Spacing.xs)
 
@@ -155,11 +155,19 @@ struct BudgetTypeFilter: View {
         Menu {
             checkedMenuItems()
         } label: {
-            checkedMenuLabel()
+            PulpeChip(
+                icon: checked.icon,
+                label: checked.label,
+                count: checkedCounts.count(for: checked),
+                style: .outlined,
+                trailing: {
+                    Image(systemName: "chevron.down")
+                        .font(PulpeTypography.metricMini)
+                        .foregroundStyle(Color.textTertiary)
+                }
+            )
         }
         .menuStyle(.button)
-        .frame(minHeight: DesignTokens.TapTarget.minimum)
-        .contentShape(Capsule())
         .plainPressedButtonStyle()
         .accessibilityLabel("Filtre d'état")
         .accessibilityValue("\(checked.label), \(checkedCounts.count(for: checked)) éléments")
@@ -182,37 +190,6 @@ struct BudgetTypeFilter: View {
         }
     }
 
-    @ViewBuilder
-    private func checkedMenuLabel() -> some View {
-        HStack(spacing: DesignTokens.Spacing.tightGap) {
-            Image(systemName: checked.icon)
-                .contentTransition(.symbolEffect(.replace))
-            Text(checked.label)
-                .font(PulpeTypography.metricLabelBold)
-            Text("\(checkedCounts.count(for: checked))")
-                .font(PulpeTypography.metricMini)
-                .monospacedDigit()
-                .padding(.horizontal, DesignTokens.Spacing.tightGap)
-                .padding(.vertical, DesignTokens.Spacing.xxs)
-                .background(Capsule().fill(Color.surfaceContainerHigh))
-                .foregroundStyle(Color.textTertiary)
-            Image(systemName: "chevron.down")
-                .font(PulpeTypography.metricMini)
-                .foregroundStyle(Color.textTertiary)
-        }
-        .padding(.horizontal, DesignTokens.Spacing.lg)
-        .padding(.vertical, DesignTokens.Spacing.md)
-        .background(Capsule().fill(Color.surface))
-        .overlay {
-            Capsule()
-                .strokeBorder(
-                    Color.onSurfaceVariant.opacity(DesignTokens.Opacity.outlinePill),
-                    lineWidth: DesignTokens.BorderWidth.thin
-                )
-        }
-        .foregroundStyle(Color.textPrimary)
-    }
-
     // MARK: - Type Pill (with count badge)
 
     @ViewBuilder
@@ -226,54 +203,18 @@ struct BudgetTypeFilter: View {
                 kind = option
             }
         } label: {
-            typePillLabel(option, isSelected: isSelected, count: count)
+            PulpeChip(
+                label: option.label,
+                count: count,
+                style: isSelected ? .solid : .outlined,
+                isDisabled: isDisabled
+            )
         }
-        .frame(minHeight: DesignTokens.TapTarget.minimum)
-        .contentShape(Capsule())
         .plainPressedButtonStyle()
         .disabled(isDisabled)
-        .opacity(isDisabled ? DesignTokens.Opacity.disabled : 1)
         .accessibilityLabel(option.accessibilityLabel)
         .accessibilityValue("\(count) éléments")
         .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
-    }
-
-    @ViewBuilder
-    private func typePillLabel(
-        _ option: BudgetLineKindFilter,
-        isSelected: Bool,
-        count: Int
-    ) -> some View {
-        HStack(spacing: DesignTokens.Spacing.tightGap) {
-            Text(option.label)
-                .font(PulpeTypography.metricLabelBold)
-            Text("\(count)")
-                .font(PulpeTypography.metricMini)
-                .monospacedDigit()
-                .padding(.horizontal, DesignTokens.Spacing.tightGap)
-                .padding(.vertical, DesignTokens.Spacing.xxs)
-                .background(
-                    Capsule().fill(
-                        isSelected
-                            ? Color(.systemBackground).opacity(DesignTokens.Opacity.secondary)
-                            : Color.surfaceContainerHigh
-                    )
-                )
-                .foregroundStyle(isSelected ? Color(.systemBackground) : Color.textTertiary)
-        }
-        .padding(.horizontal, DesignTokens.Spacing.lg)
-        .padding(.vertical, DesignTokens.Spacing.md)
-        .background(Capsule().fill(isSelected ? Color.textPrimary : Color.surface))
-        .overlay {
-            if !isSelected {
-                Capsule()
-                    .strokeBorder(
-                        Color.onSurfaceVariant.opacity(DesignTokens.Opacity.outlinePill),
-                        lineWidth: DesignTokens.BorderWidth.thin
-                    )
-            }
-        }
-        .foregroundStyle(isSelected ? Color(.systemBackground) : Color.textPrimary)
     }
 }
 
