@@ -203,6 +203,7 @@ import { signupFormSchema } from './signup-form.schema';
               <a
                 [routerLink]="['/', ROUTES.LEGAL, ROUTES.LEGAL_TERMS]"
                 target="_blank"
+                rel="noopener noreferrer"
                 class="text-primary underline"
                 (click)="$event.stopPropagation()"
               >
@@ -212,6 +213,7 @@ import { signupFormSchema } from './signup-form.schema';
               <a
                 [routerLink]="['/', ROUTES.LEGAL, ROUTES.LEGAL_PRIVACY]"
                 target="_blank"
+                rel="noopener noreferrer"
                 class="text-primary underline"
                 (click)="$event.stopPropagation()"
               >

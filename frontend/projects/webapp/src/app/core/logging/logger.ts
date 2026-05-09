@@ -133,7 +133,10 @@ export class Logger {
             lowerKey.includes('secret') ||
             lowerKey.includes('token') ||
             lowerKey.includes('key') ||
-            lowerKey.includes('anonkey')
+            lowerKey.includes('anonkey') ||
+            lowerKey === 'userid' ||
+            lowerKey === 'user_id' ||
+            lowerKey === 'sub'
           ) {
             (sanitized as Record<string, unknown>)[key] = '***';
           } else {

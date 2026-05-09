@@ -93,7 +93,7 @@ describe('WhatsNewToast', () => {
       expect(link).toBeTruthy();
       expect(link.getAttribute('href')).toBe('https://pulpe.app/changelog');
       expect(link.getAttribute('target')).toBe('_blank');
-      expect(link.getAttribute('rel')).toBe('noopener');
+      expect(link.getAttribute('rel')).toBe('noopener noreferrer');
     });
   });
 
