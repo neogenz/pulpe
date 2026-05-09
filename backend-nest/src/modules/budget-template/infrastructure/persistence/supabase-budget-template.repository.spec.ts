@@ -233,6 +233,70 @@ describe('SupabaseBudgetTemplateRepository', () => {
     });
   });
 
+  describe('resetDefaultTemplates', () => {
+    it('should resolve when update succeeds', async () => {
+      const finalThenable = {
+        then: (
+          resolve: (value: { data: null; error: null }) => void,
+        ): unknown => resolve({ data: null, error: null }),
+      };
+      const neq = jest.fn().mockReturnValue(finalThenable);
+      const eqIsDefault = jest.fn().mockReturnValue({
+        neq,
+        ...finalThenable,
+      });
+      const eqUserId = jest.fn().mockReturnValue({ eq: eqIsDefault });
+      const update = jest.fn().mockReturnValue({ eq: eqUserId });
+      const provider = createMockProvider(
+        () => ({ update }) as unknown as ReturnType<typeof Object>,
+      );
+      const repo = new SupabaseBudgetTemplateRepository(
+        provider,
+        createMockEncryption(),
+      );
+
+      await expect(
+        repo.resetDefaultTemplates('user-1', 'template-2'),
+      ).resolves.toBeUndefined();
+
+      expect(update).toHaveBeenCalledWith({ is_default: false });
+      expect(eqUserId).toHaveBeenCalledWith('user_id', 'user-1');
+      expect(eqIsDefault).toHaveBeenCalledWith('is_default', true);
+      expect(neq).toHaveBeenCalledWith('id', 'template-2');
+    });
+
+    it('should throw BusinessException when update fails (HI-25 regression)', async () => {
+      const dbError = { message: 'RLS denied' };
+      const finalThenable = {
+        then: (
+          resolve: (value: { data: null; error: typeof dbError }) => void,
+        ): unknown => resolve({ data: null, error: dbError }),
+      };
+      const eqIsDefault = jest.fn().mockReturnValue(finalThenable);
+      const eqUserId = jest.fn().mockReturnValue({ eq: eqIsDefault });
+      const update = jest.fn().mockReturnValue({ eq: eqUserId });
+      const provider = createMockProvider(
+        () => ({ update }) as unknown as ReturnType<typeof Object>,
+      );
+      const repo = new SupabaseBudgetTemplateRepository(
+        provider,
+        createMockEncryption(),
+      );
+
+      let caught: unknown;
+      try {
+        await repo.resetDefaultTemplates('user-1', null);
+      } catch (err) {
+        caught = err;
+      }
+      expect(caught).toBeInstanceOf(BusinessException);
+      expect((caught as BusinessException).code).toBe(
+        'ERR_TEMPLATE_UPDATE_FAILED',
+      );
+      expect((caught as BusinessException).cause).toBe(dbError);
+    });
+  });
+
   describe('bulkApplyTemplateLineOperations', () => {
     it('should pass through with no budget mutations and only deletes', async () => {
       const rpc = jest.fn().mockResolvedValue({ data: [], error: null });

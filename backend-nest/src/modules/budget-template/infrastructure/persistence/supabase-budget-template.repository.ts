@@ -138,7 +138,16 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
       query = query.neq('id', exceptId);
     }
 
-    await query;
+    const { error } = await query;
+
+    if (error) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.TEMPLATE_UPDATE_FAILED,
+        undefined,
+        { operation: 'resetDefaultTemplates', userId },
+        { cause: error },
+      );
+    }
   }
 
   async update(
