@@ -45,10 +45,6 @@ Apply when ALL of the following are true:
 
 If only 1-2 of these are true, simpler `@Observable` view model in the view file is fine. **Do not over-engineer.**
 
-## Reference plan
-
-See `ios/docs/BUDGET_DETAILS_REFACTOR_PLAN.md` for the migration plan and phase-by-phase acceptance criteria.
-
 ## Anti-patterns
 
 | Anti-pattern | Why it's wrong | Replacement |

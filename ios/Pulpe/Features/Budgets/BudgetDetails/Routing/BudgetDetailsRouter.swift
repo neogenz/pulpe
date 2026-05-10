@@ -8,8 +8,6 @@ import SwiftUI
 /// BudgetDetails feature go through this type. Cross-feature entry points
 /// (deep link, BudgetList CTA, CurrentMonth CTA) keep writing to
 /// `appState.budgetPath` directly — they are not feature-internal navigation.
-///
-/// Pattern: see `ios/docs/BUDGET_DETAILS_REFACTOR_PLAN.md` Phase 1.
 @Observable @MainActor
 final class BudgetDetailsRouter {
     /// Active sheet, or `nil` if no sheet is presented. Bound to

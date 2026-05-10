@@ -100,20 +100,12 @@ custom_rules:
     severity: warning
 
   # ──────────────────────────────────────────────────────────────────────
-  # BudgetDetails refactor anti-drift rules (PUL-209+).
-  # See ios/docs/BUDGET_DETAILS_REFACTOR_PLAN.md.
-  # All start at `warning` until the matching phase escalates to `error`.
-  # Severity escalation per phase:
-  #   Phase 1 (Router): no_app_state_path_outside_router → error
-  #   Phase 2 (Projector): no_formula_in_view_body, no_collection_ops_in_view_body → error
-  #   Phase 3 (Sub-stores): no_user_settings_store_in_row → error
-  #   Phase 4 (Coordinator): no_swiftlint_disable_in_feature → error
-  #   Phase 5 (Subview decomp): no_task_sleep_in_feature, no_magic_timing_literals → error
+  # BudgetDetails feature anti-drift rules (PUL-209+).
+  # The matching architecture rule lives in
+  # `.claude/rules/00-architecture/budget-details-feature-architecture.md`
+  # and is enforced at test time by
+  # `PulpeTests/Architecture/BudgetDetailsArchitectureTests.swift`.
   # ──────────────────────────────────────────────────────────────────────
-
-  # NOTE: Each new rule below excludes the files that currently violate it.
-  # Each phase's PR removes the relevant exclusion entry as part of the fix.
-  # See ios/docs/BUDGET_DETAILS_REFACTOR_PLAN.md for the per-phase mapping.
 
   no_formula_in_view_body:
     name: "BudgetFormulas inside BudgetDetails view file"
@@ -125,7 +117,7 @@ custom_rules:
       # Out of scope — has its own VM + data domain.
       - ".*/PreviousBudgetSheet\\.swift"
     regex: "BudgetFormulas\\.(calculate|displayBudgetLines|emotionState)"
-    message: "Derivation must live in the projector or a store, not in views. See ios/docs/BUDGET_DETAILS_REFACTOR_PLAN.md."
+    message: "Derivation must live in the projector or a store, not in views."
     severity: error
 
   no_collection_ops_in_view_body:

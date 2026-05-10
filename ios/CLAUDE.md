@@ -4,10 +4,6 @@
 
 Before any visual work, read in order: `../PRODUCT.md` (strategic) → `../DESIGN.md` (cross-platform DA) → `DESIGN.md` (this directory; iOS-specific tokens, components, Liquid Glass, sheets). No Stitch sidecar here — `/impeccable live` is browser-only and unsupported on SwiftUI. Never duplicate cross-platform rules here — push them up to `../DESIGN.md`.
 
-## Active refactors
-
-- **BudgetDetails (PUL-209+)** — Stores + Projector + Coordinator + Router pattern. See `docs/BUDGET_DETAILS_REFACTOR_PLAN.md` for phases, acceptance criteria, anti-drift gates. Architecture rule auto-loaded from `.claude/rules/00-architecture/budget-details-feature-architecture.md` for any work in `Features/Budgets/BudgetDetails/`.
-
 ## XcodeGen
 
 **`project.yml` single source of truth.** `.xcodeproj` generated, gitignored.

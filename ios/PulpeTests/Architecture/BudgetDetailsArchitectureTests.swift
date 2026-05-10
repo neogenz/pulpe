@@ -3,21 +3,12 @@ import Testing
 
 /// Architecture invariants for the `Features/Budgets/BudgetDetails` feature.
 ///
-/// These tests guard the BudgetDetails refactor (PUL-209+) by walking the
-/// source tree on disk and asserting structural rules. They fail loud when
-/// future code drifts from the architecture target documented in
-/// `ios/docs/BUDGET_DETAILS_REFACTOR_PLAN.md`.
-///
-/// Tests run in two modes:
-///
-/// 1. **Active**: assertions are enforced. Failures break the build.
-/// 2. **Pending**: assertion is wrapped in `withKnownIssue` because the matching
-///    refactor phase has not yet shipped. The test still runs and surfaces the
-///    current state, but does not block the build until the phase that
-///    enables it.
-///
-/// Each test documents which phase activates it. When a phase ships, remove
-/// the `withKnownIssue` wrapper.
+/// These tests walk the source tree on disk and assert structural rules — the
+/// same rules listed in the auto-loaded architecture rule at
+/// `.claude/rules/00-architecture/budget-details-feature-architecture.md`. They
+/// fail loud when future code drifts from the target shape (Stores + Projector
+/// + DTO + Coordinator + Router) and run alongside the SwiftLint custom rules
+/// in `ios/.swiftlint.yml`.
 @Suite("BudgetDetails architecture invariants")
 struct BudgetDetailsArchitectureTests {
     // MARK: - Sources roots
