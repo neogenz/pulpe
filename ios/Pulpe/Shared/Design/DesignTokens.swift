@@ -280,16 +280,6 @@ enum DesignTokens {
         /// field, so the push transition completes before the keyboard rises.
         /// Matches `SheetFormContainer` autofocus behavior.
         static let pushAutofocusDelayMs: UInt64 = 200
-    }
-
-    // MARK: - Sync indicators
-
-    /// Visibility thresholds for sync state UI (BudgetDetails feature pattern).
-    enum Sync {
-        /// Optimistic mutations under this delay don't surface a sync indicator
-        /// — the green dot only flashes if the server round-trip exceeds the
-        /// threshold, so fast updates feel instantaneous.
-        static let indicatorRampDelayMs: UInt64 = 300
 
         // MARK: - Skeleton
 
@@ -305,6 +295,16 @@ enum DesignTokens {
                 try await Task.sleep(for: skeletonMinimumDuration - elapsed)
             }
         }
+    }
+
+    // MARK: - Sync indicators
+
+    /// Visibility thresholds for sync state UI (BudgetDetails feature pattern).
+    enum Sync {
+        /// Optimistic mutations under this delay don't surface a sync indicator
+        /// — the green dot only flashes if the server round-trip exceeds the
+        /// threshold, so fast updates feel instantaneous.
+        static let indicatorRampDelayMs: UInt64 = 300
     }
 
     // MARK: - Frame Heights

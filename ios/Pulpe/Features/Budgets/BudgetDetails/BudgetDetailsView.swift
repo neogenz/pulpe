@@ -1,19 +1,15 @@
 import SwiftUI
 import TipKit
 
-private struct PreviousBudgetItem: Identifiable {
-    let id: String
-}
-
 struct BudgetDetailsView: View {
     let budgetId: String
     @Environment(AppState.self) private var appState
+    @Environment(BudgetDetailsRouter.self) private var router
     @Environment(UserSettingsStore.self) private var userSettingsStore
     @Environment(\.amountsHidden) private var amountsHidden
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.tabBarClearance) private var tabBarClearance
     @State private var viewModel: BudgetDetailsViewModel
-    @State private var destination: BudgetDetailDestination?
 
     @State private var searchText = ""
     @State private var scrollTracker = BudgetDetailsScrollTracker()
@@ -49,7 +45,12 @@ struct BudgetDetailsView: View {
     }
 
     var body: some View {
-        Group {
+        // Bindable shadow so `$router.sheet` resolves to a Binding for the
+        // sheet(item:) modifier below. Standard iOS 17+ idiom for
+        // environment-injected `@Observable` types that need binding.
+        @Bindable var router = router
+
+        return Group {
             if viewModel.isLoading && viewModel.budget == nil {
                 BudgetDetailsSkeletonView()
                     .transition(.opacity)
@@ -84,7 +85,7 @@ struct BudgetDetailsView: View {
         #if DEBUG
         .onAppear { applyPUL209VerifyPriming() }
         #endif
-        .sheet(item: $destination) { dest in
+        .sheet(item: $router.sheet) { dest in
             sheetContent(for: dest)
         }
         .navigationDestination(for: BudgetLinePushRoute.self) { route in
@@ -138,11 +139,11 @@ struct BudgetDetailsView: View {
                 BudgetDetailHero(
                     metrics: viewModel.metrics,
                     timeElapsedPercentage: timeElapsedPercentage,
-                    onTapChart: { destination = .realizedBalance },
+                    onTapChart: { router.present(.realizedBalance) },
                     rolloverAmount: viewModel.rolloverInfo?.amount,
                     previousBudgetMonth: viewModel.previousBudgetMonth,
                     onRolloverTap: viewModel.rolloverInfo?.previousBudgetId.map { id in
-                        { destination = .previousBudget(PreviousBudgetItem(id: id)) }
+                        { router.present(.previousBudget(PreviousBudgetItem(id: id))) }
                     }
                 )
                 // Drives the sticky pager by measuring the hero's frame relative to the
@@ -196,7 +197,7 @@ struct BudgetDetailsView: View {
                         transactions: viewModel.transactions,
                         syncingIds: viewModel.syncingBudgetLineIds,
                         onTap: { line in
-                            appState.budgetPath.append(BudgetLinePushRoute.lineDetail(lineId: line.id))
+                            router.push(.lineDetail(lineId: line.id))
                         },
                         onTogglePointed: { line in
                             Task {
@@ -221,9 +222,7 @@ struct BudgetDetailsView: View {
                         transactions: filteredFree,
                         syncingIds: viewModel.syncingTransactionIds,
                         onTap: { transaction in
-                            appState.budgetPath.append(
-                                BudgetLinePushRoute.editTx(transactionId: transaction.id)
-                            )
+                            router.push(.editTx(transactionId: transaction.id))
                         }
                     )
                 }
@@ -251,7 +250,7 @@ struct BudgetDetailsView: View {
             )
         }
         .overlay(alignment: .bottomTrailing) {
-            BudgetDetailsAddFAB { destination = .addBudgetLine }
+            BudgetDetailsAddFAB { router.present(.addBudgetLine) }
         }
         .animation(
             reduceMotion ? nil : DesignTokens.Animation.gentleSpring,
@@ -279,7 +278,7 @@ struct BudgetDetailsView: View {
         case .lineDetail(let lineId):
             BudgetLineDetailPage(
                 lineId: lineId,
-                onEditLine: { line in destination = .editBudgetLine(line) }
+                onEditLine: { line in router.present(.editBudgetLine(line)) }
             )
         case .addAllocatedTx(let lineId):
             AddAllocatedTransactionPage(lineId: lineId)
@@ -328,47 +327,10 @@ struct BudgetDetailsView: View {
         }
         if let lineId = PUL209VerifyState.pendingOpenLineId,
            viewModel.budgetLines.contains(where: { $0.id == lineId }) {
-            appState.budgetPath.append(BudgetLinePushRoute.lineDetail(lineId: lineId))
+            router.push(.lineDetail(lineId: lineId))
         }
     }
     #endif
-}
-
-/// Single source of truth for sheet presentation.
-///
-/// Apple's guidance is to drive sheet presentation from a single `.sheet(item:)`
-/// modifier rather than stacking multiple `.sheet(...)` siblings. Stacked sheets
-/// have undefined ordering when more than one tries to present, and chained
-/// presentations (dismiss-then-present) only animate cleanly when the system
-/// owns the transition.
-private enum BudgetDetailDestination: Identifiable {
-    case addBudgetLine
-    case editBudgetLine(BudgetLine)
-    case previousBudget(PreviousBudgetItem)
-    case realizedBalance
-
-    var id: String {
-        switch self {
-        case .addBudgetLine: "addBudgetLine"
-        case .editBudgetLine(let line): "editBudgetLine-\(line.id)"
-        case .previousBudget(let item): "previousBudget-\(item.id)"
-        case .realizedBalance: "realizedBalance"
-        }
-    }
-}
-
-// MARK: - Push Routing
-
-/// Push destinations within `BudgetDetailsView`'s NavigationStack branch. ID-based
-/// so pages re-resolve their model reactively from the shared
-/// `BudgetDetailsViewModel` (injected via `.environment(viewModel)` on the
-/// destination view) — matches the Observation framework idiom: pages re-render
-/// only when the read properties change, and `nil` lookups (model deleted while
-/// pushed) trigger an automatic pop.
-enum BudgetLinePushRoute: Hashable {
-    case lineDetail(lineId: String)
-    case addAllocatedTx(lineId: String)
-    case editTx(transactionId: String)
 }
 
 #Preview {
@@ -376,6 +338,7 @@ enum BudgetLinePushRoute: Hashable {
         BudgetDetailsView(budgetId: "test")
     }
     .environment(AppState())
+    .environment(BudgetDetailsRouter())
     .environment(UserSettingsStore())
 }
 #Preview("Gestures Tip") {

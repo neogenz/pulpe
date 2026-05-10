@@ -25,6 +25,7 @@ struct BudgetLineDetailPage: View {
 
     @Environment(BudgetDetailsViewModel.self) private var viewModel
     @Environment(AppState.self) private var appState
+    @Environment(BudgetDetailsRouter.self) private var router
     @Environment(UserSettingsStore.self) private var userSettingsStore
     @Environment(\.amountsHidden) private var amountsHidden
     @Environment(\.dismiss) private var dismiss
@@ -145,9 +146,7 @@ struct BudgetLineDetailPage: View {
             transaction: transaction,
             displayCurrency: userSettingsStore.currency,
             onTap: {
-                appState.budgetPath.append(
-                    BudgetLinePushRoute.editTx(transactionId: transaction.id)
-                )
+                router.push(.editTx(transactionId: transaction.id))
             }
         )
         .listRowBackground(Color.clear)
@@ -367,9 +366,7 @@ private extension BudgetLineDetailPage {
         .tint(transaction.isChecked ? Color.financialOverBudget : .pulpePrimary)
 
         Button {
-            appState.budgetPath.append(
-                BudgetLinePushRoute.editTx(transactionId: transaction.id)
-            )
+            router.push(.editTx(transactionId: transaction.id))
         } label: {
             Label("Modifier", systemImage: "pencil")
         }
@@ -378,9 +375,7 @@ private extension BudgetLineDetailPage {
 
     func addTransactionButton(line: BudgetLine) -> some View {
         Button {
-            appState.budgetPath.append(
-                BudgetLinePushRoute.addAllocatedTx(lineId: line.id)
-            )
+            router.push(.addAllocatedTx(lineId: line.id))
         } label: {
             Label("Ajouter une transaction", systemImage: "plus")
         }

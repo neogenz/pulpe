@@ -273,6 +273,11 @@ struct CurrentMonthTab: View {
 
 struct BudgetsTab: View {
     @Environment(AppState.self) private var appState
+    /// Tab-scoped router instance. Owns sheet state and provides the typed
+    /// push API used inside the BudgetDetails feature; `appState.budgetPath`
+    /// remains the underlying NavigationPath surface for cross-feature
+    /// entries (deep link, BudgetList CTA, CurrentMonth CTA).
+    @State private var router = BudgetDetailsRouter()
 
     var body: some View {
         @Bindable var state = appState
@@ -286,6 +291,8 @@ struct BudgetsTab: View {
                     }
                 }
         }
+        .environment(router)
+        .task { router.bind(to: appState) }
         .clearsFloatingTabBar()
     }
 }

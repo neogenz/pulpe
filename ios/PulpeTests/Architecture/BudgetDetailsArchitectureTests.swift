@@ -206,9 +206,10 @@ struct BudgetDetailsArchitectureTests {
 
     // MARK: - Phase 1 — Router is sole budgetPath writer
 
-    /// Activated by Phase 1 (router extraction). Outside the router file,
-    /// AppState files, and PulpeApp deeplink, no source should write to
-    /// `appState.budgetPath`.
+    /// Activated by Phase 1 (router extraction). Inside the BudgetDetails
+    /// feature, only `BudgetDetailsRouter` writes to `appState.budgetPath`.
+    /// Cross-feature entry points (deep link, BudgetList CTA, CurrentMonth
+    /// CTA, session reset) are explicitly allowed.
     @Test("Router is sole BudgetDetails feature writer of appState.budgetPath")
     func routerIsSoleBudgetPathWriter() {
         // Walk the whole iOS source tree, not just the feature.
@@ -221,6 +222,10 @@ struct BudgetDetailsArchitectureTests {
             "/App/AppState.swift",
             "/App/AppState+SessionReset.swift",
             "/App/PulpeApp.swift",
+            // Cross-feature entry points: pushing into the budget tab from
+            // outside BudgetDetails is allowed (cross-feature CTAs).
+            "/Features/Budgets/BudgetList/BudgetListView.swift",
+            "/Features/CurrentMonth/CurrentMonthView.swift",
         ]
         // Probe split into substrings to keep the lint rule from flagging
         // this test file as a feature-level writer of the path.
@@ -235,12 +240,8 @@ struct BudgetDetailsArchitectureTests {
                 body.contains("\(target) =")
         }.map { $0.lastPathComponent }
 
-        withKnownIssue(
-            "Phase 1 not yet shipped: \(offenders.count) files write the path outside the router",
-            isIntermittent: false
-        ) {
-            #expect(offenders.isEmpty, "Offenders: \(offenders.joined(separator: ", "))")
-        }
+        // Phase 1 shipped — assert strictly. Future regressions break the build.
+        #expect(offenders.isEmpty, "Offenders: \(offenders.joined(separator: ", "))")
     }
 
     // MARK: - Phase 4 — No BudgetDetailsViewModel file

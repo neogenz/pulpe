@@ -163,21 +163,22 @@ custom_rules:
   no_app_state_path_outside_router:
     name: "AppState.budgetPath written outside the router"
     excluded:
+      # The router is the canonical writer.
       - ".*/Features/Budgets/BudgetDetails/Routing/BudgetDetailsRouter\\.swift"
+      # AppState owns the underlying path; deeplink + session reset live here.
       - ".*/App/AppState\\.swift"
       - ".*/App/AppState\\+SessionReset\\.swift"
       - ".*/App/PulpeApp\\.swift"
-      # Architecture test references the path string in literals — the
-      # test reads the offenders, it never mutates state.
+      # Architecture test reads the path string in literals — never mutates.
       - ".*/PulpeTests/Architecture/.*\\.swift"
-      # Phase 1 — router becomes the sole writer.
-      - ".*/Features/Budgets/BudgetDetails/BudgetDetailsView\\.swift"
-      - ".*/Features/Budgets/BudgetDetails/BudgetLineDetailPage\\.swift"
+      # Cross-feature entry points: pushing into the budget tab from
+      # outside BudgetDetails is allowed (BudgetList CTA, CurrentMonth CTA).
       - ".*/Features/Budgets/BudgetList/BudgetListView\\.swift"
       - ".*/Features/CurrentMonth/CurrentMonthView\\.swift"
     regex: "appState\\.budgetPath\\.(append|removeLast)|appState\\.budgetPath\\s*="
     message: "Use BudgetDetailsRouter.push / popToRoot — do not mutate AppState.budgetPath directly."
-    severity: warning
+    # Phase 1 shipped — escalated to error.
+    severity: error
 
   no_task_sleep_in_feature:
     name: "Task.sleep outside dedicated helpers"
