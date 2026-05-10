@@ -13,7 +13,6 @@ import { BudgetApi } from '@core/budget/budget-api';
 import { ApiErrorLocalizer } from '@core/api/api-error-localizer';
 import { isApiError } from '@core/api/api-error';
 import { Logger } from '@core/logging/logger';
-import { createRolloverLine } from '@core/budget/rollover/rollover-types';
 import { formatLocalDate } from '@core/date/format-local-date';
 import { StorageService } from '@core/storage/storage.service';
 import { STORAGE_KEYS } from '@core/storage/storage-keys';
@@ -164,27 +163,17 @@ export class BudgetDetailsStore {
   readonly displayBudgetLines = computed<BudgetLine[]>(() => {
     const details = this.budgetDetails();
     if (!details) return [];
+    return details.budgetLines;
+  });
 
-    const rollover = details.rollover;
-    const previousBudgetId = details.previousBudgetId;
+  readonly previousMonthRollover = computed<number>(() => {
+    const details = this.budgetDetails();
+    return details?.rollover ?? 0;
+  });
 
-    // Add virtual rollover line for display if rollover exists
-    if (rollover !== 0 && rollover !== undefined) {
-      const rolloverLine = createRolloverLine({
-        budgetId: details.id,
-        amount: rollover,
-        month: details.month,
-        year: details.year,
-        previousBudgetId: previousBudgetId,
-      });
-
-      // Apply local checked state for rollover
-      rolloverLine.checkedAt = this.#state.rolloverCheckedAt();
-
-      return [rolloverLine, ...details.budgetLines];
-    }
-
-    return [...details.budgetLines];
+  readonly previousMonthBudgetId = computed<string | null>(() => {
+    const details = this.budgetDetails();
+    return details?.previousBudgetId ?? null;
   });
 
   readonly realizedBalance = computed<number>(() => {
@@ -208,18 +197,37 @@ export class BudgetDetailsStore {
   readonly financialTotals = computed(() => {
     const lines = this.displayBudgetLines();
     const transactions = this.budgetDetails()?.transactions ?? [];
+    const rollover = this.previousMonthRollover();
     const consumptionMap = calculateAllConsumptions(lines, transactions);
 
     const income = this.#budgetCalculator.calculatePlannedIncome(lines);
+    const { expenses, savings } = this.#aggregatePlannedByKind(
+      lines,
+      consumptionMap,
+    );
+
+    const freeTransactions = transactions.filter((tx) => !tx.budgetLineId);
+    const transactionImpact =
+      this.#budgetCalculator.calculateActualTransactionsAmount(
+        freeTransactions,
+      );
+    const remaining =
+      income - expenses - savings + transactionImpact + rollover;
+
+    return { income, expenses, savings, remaining };
+  });
+
+  #aggregatePlannedByKind(
+    lines: BudgetLine[],
+    consumptionMap: Map<string, { consumed: number; transactionCount: number }>,
+  ): { expenses: number; savings: number } {
     let expenses = 0;
     let savings = 0;
-
     lines.forEach((line) => {
       const consumption = consumptionMap.get(line.id);
       const effectiveAmount = consumption
         ? Math.max(line.amount, consumption.consumed)
         : line.amount;
-
       switch (line.kind) {
         case 'expense':
           expenses += effectiveAmount;
@@ -229,17 +237,8 @@ export class BudgetDetailsStore {
           break;
       }
     });
-
-    const freeTransactions = transactions.filter((tx) => !tx.budgetLineId);
-    const initialLivingAllowance = income - expenses - savings;
-    const transactionImpact =
-      this.#budgetCalculator.calculateActualTransactionsAmount(
-        freeTransactions,
-      );
-    const remaining = initialLivingAllowance + transactionImpact;
-
-    return { income, expenses, savings, remaining };
-  });
+    return { expenses, savings };
+  }
 
   readonly checkedItemsCount = computed<number>(() => {
     const details = this.budgetDetails();
@@ -326,7 +325,6 @@ export class BudgetDetailsStore {
 
   setBudgetId(budgetId: string): void {
     this.#state.budgetId.set(budgetId);
-    this.#state.rolloverCheckedAt.set(new Date().toISOString());
   }
 
   // ── 5. Mutations (async/await) ──
@@ -633,14 +631,6 @@ export class BudgetDetailsStore {
   });
 
   async toggleCheck(id: string): Promise<boolean> {
-    if (id === 'rollover-display') {
-      const currentCheckedAt = this.#state.rolloverCheckedAt();
-      this.#state.rolloverCheckedAt.set(
-        currentCheckedAt === null ? new Date().toISOString() : null,
-      );
-      return true;
-    }
-
     if (this.#mutatingIds.has(id)) return false;
 
     const details = this.budgetDetails();

@@ -36,23 +36,21 @@ import type { BudgetLineTableItem } from '../../../view-models/table-items.view-
               }}</span>
             }
           </span>
-          @if (!line().metadata.isRollover) {
-            <mat-progress-bar
-              mode="determinate"
-              [value]="
-                line().consumption!.percentage > 100
-                  ? 100
-                  : line().consumption!.percentage
-              "
-              [class.near-limit-bar]="
-                line().consumption!.consumptionState === 'near-limit'
-              "
-              [class.over-budget-bar]="
-                line().consumption!.consumptionState === 'over-budget'
-              "
-              class="h-1.5! w-24! rounded-full"
-            />
-          }
+          <mat-progress-bar
+            mode="determinate"
+            [value]="
+              line().consumption!.percentage > 100
+                ? 100
+                : line().consumption!.percentage
+            "
+            [class.near-limit-bar]="
+              line().consumption!.consumptionState === 'near-limit'
+            "
+            [class.over-budget-bar]="
+              line().consumption!.consumptionState === 'over-budget'
+            "
+            class="h-1.5! w-24! rounded-full"
+          />
         </div>
       </div>
     }

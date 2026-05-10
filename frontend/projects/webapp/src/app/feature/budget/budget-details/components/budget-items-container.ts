@@ -275,6 +275,7 @@ export class BudgetItemsContainer {
     this.#budgetItemDataProvider.provideTableData({
       budgetLines: this.store.filteredBudgetLines(),
       transactions: this.store.filteredTransactions(),
+      openingBalance: this.store.previousMonthRollover(),
       viewMode: this.viewMode(),
       searchText: this.store.searchText(),
     }),
@@ -454,11 +455,6 @@ export class BudgetItemsContainer {
   }
 
   protected async handleToggleCheck(budgetLineId: string): Promise<void> {
-    if (budgetLineId.startsWith('rollover')) {
-      await this.store.toggleCheck(budgetLineId);
-      return;
-    }
-
     const details = this.store.budgetDetails();
     if (!details) return;
 

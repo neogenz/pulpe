@@ -13,9 +13,7 @@ export interface TableItemDisplayMetadata {
   kindIcon: string;
   /** Label pour l'action d'allocation ('Saisir une dépense', etc.) */
   allocationLabel: string;
-  /** ID du budget source pour les lignes rollover */
-  rolloverSourceBudgetId?: string;
-  /** Nom formaté pour l'affichage (rollover → "Report mois année") */
+  /** Nom formaté pour l'affichage */
   displayName: string;
 }
 
@@ -42,7 +40,6 @@ export interface TableItem {
   metadata: {
     itemType: 'budget_line' | 'transaction';
     cumulativeBalance: number;
-    isRollover?: boolean;
     isTemplateLinked?: boolean;
     isPropagationLocked?: boolean;
     canResetFromTemplate?: boolean;

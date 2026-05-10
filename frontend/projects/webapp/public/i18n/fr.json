@@ -494,6 +494,11 @@
       "youManageWell": "Tu gères bien",
       "justBalanced": "Pile à l'équilibre",
       "tightMonth": "Ce mois sera serré — mais tu le sais"
+    },
+    "rolloverInfo": {
+      "label": "Report du mois précédent",
+      "ariaSurplus": "Report positif du mois précédent : {{ amount }} {{ currency }}",
+      "ariaDeficit": "Report négatif du mois précédent : {{ amount }} {{ currency }}"
     }
   },
   "budgetLine": {

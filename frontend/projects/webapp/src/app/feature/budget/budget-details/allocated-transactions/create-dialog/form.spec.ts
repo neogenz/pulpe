@@ -29,8 +29,6 @@ const createFormData = (
     kind: 'expense',
     frequency: 'monthly',
     savingsGoalId: null,
-    isRollover: false,
-    rolloverSourceBudgetId: undefined,
     ...overrides,
   } as CreateAllocatedTransactionFormData['budgetLine'],
   budgetMonth: new Date().getMonth() + 1,

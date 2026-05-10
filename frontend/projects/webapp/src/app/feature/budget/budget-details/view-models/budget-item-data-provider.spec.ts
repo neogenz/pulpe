@@ -197,7 +197,7 @@ describe('BudgetItemDataProvider', () => {
   });
 
   describe('Rollover Line Management', () => {
-    it('should identify rollover lines correctly', () => {
+    it('should treat former rollover lines as regular budget lines', () => {
       // Arrange
       const budgetLines: BudgetLine[] = [
         createMockBudgetLine({
@@ -221,22 +221,15 @@ describe('BudgetItemDataProvider', () => {
         transactions: [],
       });
 
-      // Assert
+      // Assert — rollover lines are treated as regular budget lines
       const dataItems = filterDataItems(result);
       expect(dataItems).toHaveLength(2);
-
-      const rolloverItem = dataItems.find((item) =>
-        item.data.name.includes('rollover'),
-      );
-      const regularItem = dataItems.find(
-        (item) => !item.data.name.includes('rollover'),
-      );
-
-      expect(rolloverItem?.metadata.isRollover).toBe(true);
-      expect(regularItem?.metadata.isRollover).toBe(false);
+      dataItems.forEach((item) => {
+        expect(item.metadata.itemType).toBe('budget_line');
+      });
     });
 
-    it('should sort rollover lines according to business rules, grouped by kind', () => {
+    it('should sort former rollover lines by recurrence within their kind group', () => {
       // Arrange
       const budgetLines: BudgetLine[] = [
         // Fixed expense
@@ -247,7 +240,7 @@ describe('BudgetItemDataProvider', () => {
           kind: 'expense',
           recurrence: 'fixed',
         }),
-        // Rollover income (one_off recurrence)
+        // one_off income (previously rollover recurrence)
         createMockRolloverBudgetLine({
           id: 'rollover-income',
           name: 'rollover_12_2024',
@@ -275,10 +268,9 @@ describe('BudgetItemDataProvider', () => {
       expect(dataItems).toHaveLength(3);
 
       // Items are grouped by kind (income first, then expense)
-      // Within income group: fixed items before one_off (rollover)
+      // Within income group: fixed items before one_off
       expect(dataItems[0].data.name).toBe('Salary'); // Income group: fixed
-      expect(dataItems[1].data.name).toBe('rollover_12_2024'); // Income group: one_off (rollover)
-      expect(dataItems[1].metadata.isRollover).toBe(true);
+      expect(dataItems[1].data.name).toBe('rollover_12_2024'); // Income group: one_off
       expect(dataItems[2].data.name).toBe('Regular Expense'); // Expense group
     });
   });
@@ -416,7 +408,7 @@ describe('BudgetItemDataProvider', () => {
       expect(dataItems[2].metadata.cumulativeBalance).toBe(1500); // 2500 - 1000
     });
 
-    it('should maintain balance continuity with mixed rollover and regular lines, grouped by kind', () => {
+    it('should accumulate balance from openingBalance when provided', () => {
       // Arrange
       const budgetLines: BudgetLine[] = [
         createMockBudgetLine({
@@ -425,12 +417,6 @@ describe('BudgetItemDataProvider', () => {
           amount: 5000,
           kind: 'income',
           recurrence: 'fixed',
-        }),
-        createMockRolloverBudgetLine({
-          id: 'rollover',
-          name: 'rollover_12_2024',
-          amount: 200,
-          kind: 'income',
         }),
         createMockBudgetLine({
           id: 'rent',
@@ -441,25 +427,21 @@ describe('BudgetItemDataProvider', () => {
         }),
       ];
 
-      // Act
+      // Act — pass openingBalance simulating a rollover from previous month
       const result = service.provideTableData({
         budgetLines,
         transactions: [],
+        openingBalance: 200,
       });
 
-      // Assert - items are grouped by kind for display (income first, then expense)
-      // Cumulative balance is calculated in display order (after grouping)
+      // Assert — display order: Salary (income) → Rent (expense), seeded from openingBalance
       const dataItems = filterDataItems(result);
-      expect(dataItems).toHaveLength(3);
+      expect(dataItems).toHaveLength(2);
 
-      // Display order: Salary → Rollover (both income) → Rent (expense)
-      // Balance calculated in this display order
       expect(dataItems[0].data.name).toBe('Salary');
-      expect(dataItems[0].metadata.cumulativeBalance).toBe(5000); // +5000
-      expect(dataItems[1].data.name).toBe('rollover_12_2024');
-      expect(dataItems[1].metadata.cumulativeBalance).toBe(5200); // 5000 + 200
-      expect(dataItems[2].data.name).toBe('Rent');
-      expect(dataItems[2].metadata.cumulativeBalance).toBe(3700); // 5200 - 1500
+      expect(dataItems[0].metadata.cumulativeBalance).toBe(5200); // 200 + 5000
+      expect(dataItems[1].data.name).toBe('Rent');
+      expect(dataItems[1].metadata.cumulativeBalance).toBe(3700); // 5200 - 1500
     });
   });
 
@@ -583,15 +565,13 @@ describe('BudgetItemDataProvider', () => {
         (item) => item.data.id === 'regular-line',
       );
       expect(regularItem?.metadata.itemType).toBe('budget_line');
-      expect(regularItem?.metadata.isRollover).toBe(false);
       expect(typeof regularItem?.metadata.cumulativeBalance).toBe('number');
 
-      // Rollover budget line
+      // Former rollover budget line — treated as a regular line
       const rolloverItem = dataItems.find(
         (item) => item.data.id === 'rollover-line',
       );
       expect(rolloverItem?.metadata.itemType).toBe('budget_line');
-      expect(rolloverItem?.metadata.isRollover).toBe(true);
       expect(typeof rolloverItem?.metadata.cumulativeBalance).toBe('number');
 
       // Transaction
@@ -599,7 +579,6 @@ describe('BudgetItemDataProvider', () => {
         (item) => item.data.id === 'transaction-1',
       );
       expect(transactionItem?.metadata.itemType).toBe('transaction');
-      expect(transactionItem?.metadata.isRollover).toBe(false);
       expect(typeof transactionItem?.metadata.cumulativeBalance).toBe('number');
     });
 
