@@ -325,6 +325,10 @@ enum DesignTokens {
         static let topFadeHeight: CGFloat = 60
         /// Height of the gradient fade at the bottom of scrollable content
         static let bottomFadeHeight: CGFloat = 80
+        /// Strong variable-blur radius for emphasized scroll-edge backdrops
+        /// (e.g. sticky pager). Higher than `ProgressiveBlurEdge` default (8)
+        /// so content underneath is fully obscured rather than softly blurred.
+        static let maxRadiusStrong: CGFloat = 20
     }
 
     // MARK: - Chip Metrics

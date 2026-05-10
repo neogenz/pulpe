@@ -53,6 +53,10 @@ final class BudgetDetailsViewModel {
     @ObservationIgnored private var cachedRealizedMetrics: BudgetFormulas.RealizedMetrics?
     /// Éléments retirés de l’UI en attente de commit API — pile unique (tous types confondus), undo LIFO.
     @ObservationIgnored private var pendingSoftDeletions: [PendingBudgetDetailSoftDeletion] = []
+    /// Pre-sorted, null-safe view of `allBudgets` shared by `pagerMonths` and
+    /// `updateAdjacentBudgets`. Recomputed only when `allBudgets` changes —
+    /// avoids re-sorting on every body re-eval of the sticky pager.
+    @ObservationIgnored private var sortedBudgetsCache: [BudgetSparse] = []
 
     private let budgetService = BudgetService.shared
     private let budgetLineService = BudgetLineService.shared
@@ -91,6 +95,7 @@ final class BudgetDetailsViewModel {
         }
         if let cachedBudgets = cache.getAllBudgets() {
             self.allBudgets = cachedBudgets
+            recomputeSortedBudgets()
             updateAdjacentBudgets()
         }
     }
@@ -121,9 +126,15 @@ final class BudgetDetailsViewModel {
     var hasNextBudget: Bool { nextBudgetId != nil }
 
     /// All budgets safe to render in the sticky horizontal month pager — month/year guaranteed,
-    /// sorted chronologically across years. Drives `BudgetMonthPagerBar`.
-    var pagerMonths: [BudgetSparse] {
-        allBudgets
+    /// sorted chronologically across years. Drives `BudgetMonthPagerBar`. Reads the
+    /// `sortedBudgetsCache` so successive accesses (one per pager body re-eval)
+    /// don't re-sort the array.
+    var pagerMonths: [BudgetSparse] { sortedBudgetsCache }
+
+    /// Recomputes the chronological view of `allBudgets`, dropping entries with a
+    /// missing month or year. Call after every assignment to `allBudgets`.
+    private func recomputeSortedBudgets() {
+        sortedBudgetsCache = allBudgets
             .filter { $0.month != nil && $0.year != nil }
             .sorted { lhs, rhs in
                 let lhsYear = lhs.year ?? 0
@@ -395,6 +406,8 @@ final class BudgetDetailsViewModel {
 
             applyDetails(details)
             allBudgets = budgets
+            recomputeSortedBudgets()
+            updateAdjacentBudgets()
             cache.storeAllBudgets(budgets)
         } catch is CancellationError {
             // Task was cancelled, don't update error state
@@ -427,14 +440,7 @@ final class BudgetDetailsViewModel {
             return
         }
 
-        // Sort budgets chronologically
-        let sorted = allBudgets.sorted { lhs, rhs in
-            let lhsYear = lhs.year ?? 0
-            let rhsYear = rhs.year ?? 0
-            if lhsYear != rhsYear { return lhsYear < rhsYear }
-            return (lhs.month ?? 0) < (rhs.month ?? 0)
-        }
-
+        let sorted = sortedBudgetsCache
         guard let currentIndex = sorted.firstIndex(where: { $0.id == currentBudget.id }) else {
             previousBudgetId = nil
             nextBudgetId = nil

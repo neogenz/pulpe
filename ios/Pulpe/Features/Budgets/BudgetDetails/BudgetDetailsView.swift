@@ -1,4 +1,3 @@
-// swiftlint:disable file_length type_body_length
 import SwiftUI
 import TipKit
 
@@ -17,7 +16,7 @@ struct BudgetDetailsView: View {
     @State private var destination: BudgetDetailDestination?
 
     @State private var searchText = ""
-    @State private var pagerStickyOpacity: Double = 0
+    @State private var scrollTracker = BudgetDetailsScrollTracker()
 
     init(budgetId: String) {
         self.budgetId = budgetId
@@ -148,19 +147,13 @@ struct BudgetDetailsView: View {
                 )
                 // Drives the sticky pager by measuring the hero's frame relative to the
                 // ScrollView. `minY` is 0 when the hero's top is flush with the scroll-view
-                // top and becomes negative as the user scrolls down. We take `-minY` as the
-                // raw scroll-past distance, ignoring nav-drawer / searchable inset noise
-                // that affects `contentOffset.y`.
+                // top and becomes negative as the user scrolls down. Writes go to
+                // `scrollTracker` (an @Observable owned only by the pager subview), so the
+                // parent body never re-evals on scroll — only the sticky overlay does.
                 .onGeometryChange(
                     for: CGFloat.self,
                     of: { $0.frame(in: .scrollView).minY },
-                    action: { newMinY in
-                        let scrolled = max(0, -newMinY)
-                        let deadZone: CGFloat = DesignTokens.Spacing.xxxl         // 32pt
-                        let fadeRange: CGFloat = DesignTokens.Spacing.sectionGap  // 40pt
-                        let progress = (scrolled - deadZone) / fadeRange
-                        pagerStickyOpacity = Double(min(max(progress, 0), 1))
-                    }
+                    action: { newMinY in scrollTracker.update(heroMinY: newMinY) }
                 )
 
                 TipView(ProductTips.pessimisticCheck)
@@ -247,12 +240,18 @@ struct BudgetDetailsView: View {
             await viewModel.loadDetails(force: true)
         }
         .overlay(alignment: .top) {
-            stickyPagerLayer
-                .opacity(pagerStickyOpacity)
-                .allowsHitTesting(pagerStickyOpacity > 0.5)
+            BudgetDetailsStickyPagerLayer(
+                months: viewModel.pagerMonths,
+                currentBudgetId: viewModel.budgetId,
+                onSelect: { id in
+                    guard id != viewModel.budgetId else { return }
+                    viewModel.prepareNavigation(to: id)
+                },
+                tracker: scrollTracker
+            )
         }
         .overlay(alignment: .bottomTrailing) {
-            addBudgetLineFAB
+            BudgetDetailsAddFAB { destination = .addBudgetLine }
         }
         .animation(
             reduceMotion ? nil : DesignTokens.Animation.gentleSpring,
@@ -266,83 +265,6 @@ struct BudgetDetailsView: View {
             prompt: "Rechercher..."
         )
         .searchPresentationToolbarBehavior(.avoidHidingContent)
-    }
-
-    // MARK: - Sticky Pager Layer
-
-    /// Sticky month pager rendered as an `overlay(alignment: .top)` on the ScrollView so
-    /// content scrolls UNDER it (no safe-area-inset reflow on visibility toggle). Pure
-    /// opacity fade in/out driven by `pagerStickyVisible` — set by the visibility marker
-    /// after the hero. Hysteresis-free: `onScrollVisibilityChange` only fires once per
-    /// crossing, so the pager never oscillates between two heights.
-    ///
-    /// Composition (Revolut-style):
-    /// 1. `ProgressiveBlurEdge` (top fade): blurs the gap between the nav bar and the chip
-    ///    row so content scrolling behind isn't crisp.
-    /// 2. Pager bar with **opaque** `appBackground` so the bar itself reads as a solid row.
-    /// 3. `ProgressiveBlurEdge` (bottom fade): blurs the band of content right below the
-    ///    bar — same trailing-edge variable blur Apple Music/Photos use.
-    @ViewBuilder
-    private var stickyPagerLayer: some View {
-        if !viewModel.pagerMonths.isEmpty {
-            let barHeight = DesignTokens.TapTarget.minimum + DesignTokens.Spacing.sm * 2
-            let trailingFade = DesignTokens.Spacing.xxxl   // ~32pt — tight blur tail
-            let bridgeHeight = DesignTokens.Spacing.xl    // ~20pt opaque→clear bridge
-
-            // Three-layer composition that gives a continuous opaque→blur→clear gradient
-            // matching Revolut's sticky pager:
-            //   1. Variable-blur backdrop (chips + trailing fade)
-            //   2. Top "bridge" gradient — opaque appBackground at the very top fading to
-            //      clear over `bridgeHeight`. Hides the hard line between the opaque nav-bar
-            //      and the variable blur below.
-            //   3. Chips floated on top.
-            ZStack(alignment: .top) {
-                ProgressiveBlurEdge(
-                    edge: .top,
-                    height: barHeight + trailingFade,
-                    maxBlurRadius: 20
-                )
-
-                LinearGradient(
-                    colors: [Color.appBackground, Color.appBackground.opacity(0)],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-                .frame(height: bridgeHeight)
-                .allowsHitTesting(false)
-
-                BudgetMonthPagerBar(
-                    months: viewModel.pagerMonths,
-                    currentBudgetId: viewModel.budgetId,
-                    onSelect: { id in
-                        guard id != viewModel.budgetId else { return }
-                        viewModel.prepareNavigation(to: id)
-                    }
-                )
-                .frame(height: barHeight)
-            }
-        }
-    }
-
-    // MARK: - Floating Action Button
-
-    /// Page-local FAB that replaces the toolbar `+` button. Sits bottom-right above the
-    /// floating tab bar, never moves with content scroll. iOS 26+ uses Liquid Glass with the
-    /// brand tint for visual parity with the Home tab's action button.
-    private var addBudgetLineFAB: some View {
-        Button {
-            destination = .addBudgetLine
-        } label: {
-            Image(systemName: "plus")
-                .font(PulpeTypography.sectionIcon)
-                .foregroundStyle(Color.white)
-                .frame(width: DesignTokens.FrameHeight.tabBar, height: DesignTokens.FrameHeight.tabBar)
-        }
-        .contentShape(Circle())
-        .modifier(BudgetDetailsFABBackground())
-        .accessibilityLabel("Ajouter une prévision")
-        .padding(.trailing, DesignTokens.Spacing.lg)
-        .padding(.bottom, tabBarClearance + DesignTokens.Spacing.md)
     }
 
     // MARK: - Routing
@@ -431,141 +353,6 @@ private enum BudgetDetailDestination: Identifiable {
         case .editBudgetLine(let line): "editBudgetLine-\(line.id)"
         case .previousBudget(let item): "previousBudget-\(item.id)"
         case .realizedBalance: "realizedBalance"
-        }
-    }
-}
-
-private struct BudgetDetailsSkeletonView: View {
-    var body: some View {
-        // Mirror the loaded state's ScrollView/LazyVStack layout so the
-        // loading→loaded transition stays visually stable: hero (eyebrow +
-        // amount + progress + pills) → filter chips → section header → cards.
-        ScrollView {
-            LazyVStack(spacing: 0) {
-                heroSkeleton
-                filterBarSkeleton
-                sectionSkeleton
-            }
-        }
-        .scrollContentBackground(.hidden)
-        .shimmering()
-        .pulpeBackground()
-        .accessibilityLabel("Chargement du budget")
-    }
-
-    // MARK: - Hero
-
-    private var heroSkeleton: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            // Eyebrow ("DISPONIBLE · €")
-            SkeletonShape(width: 120, height: 12, cornerRadius: DesignTokens.CornerRadius.xs)
-
-            // Hero amount — mirrors `PulpeTypography.displayYear` block height
-            SkeletonShape(width: 240, height: 56, cornerRadius: DesignTokens.CornerRadius.sm)
-                .padding(.top, DesignTokens.Spacing.tightGap)
-
-            // Progress bar + percent
-            HStack(spacing: DesignTokens.Spacing.sm) {
-                SkeletonShape(
-                    height: DesignTokens.ProgressBar.heroHeight,
-                    cornerRadius: DesignTokens.CornerRadius.progressBar
-                )
-                SkeletonShape(width: 36, height: 14, cornerRadius: DesignTokens.CornerRadius.xs)
-            }
-            .padding(.top, DesignTokens.Spacing.md)
-
-            // Pills row (Revenus · Épargne · Dépenses)
-            HStack(spacing: DesignTokens.Spacing.tightGap) {
-                ForEach(0..<3, id: \.self) { _ in
-                    SkeletonShape(width: 120, height: 30, cornerRadius: 15)
-                }
-            }
-            .padding(.top, DesignTokens.Spacing.md)
-        }
-        .padding(.horizontal, DesignTokens.Spacing.lg)
-        .padding(.top, DesignTokens.Spacing.lg)
-        .padding(.bottom, DesignTokens.Spacing.sm)
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    // MARK: - Filter bar
-
-    private var filterBarSkeleton: some View {
-        HStack(spacing: DesignTokens.Spacing.tightGap) {
-            ForEach(0..<4, id: \.self) { _ in
-                SkeletonShape(width: 96, height: 36, cornerRadius: 18)
-            }
-        }
-        .padding(.horizontal, DesignTokens.Spacing.lg)
-        .padding(.vertical, DesignTokens.Spacing.xs)
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    // MARK: - Section + rows
-
-    private var sectionSkeleton: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            // Section header ("Dépenses · 8")
-            SkeletonShape(width: 110, height: 18, cornerRadius: DesignTokens.CornerRadius.xs)
-                .padding(.horizontal, DesignTokens.Spacing.lg)
-                .padding(.top, DesignTokens.Spacing.lg)
-                .padding(.bottom, DesignTokens.Spacing.sm)
-
-            ForEach(0..<5, id: \.self) { _ in
-                rowSkeleton
-                    .padding(.horizontal, DesignTokens.Spacing.lg)
-                    .padding(.bottom, DesignTokens.Spacing.md)
-            }
-        }
-    }
-
-    /// Mirrors `BudgetLineMixedRow`: PointCircle · (kind tag + name) · amount + suffix · chevron.
-    private var rowSkeleton: some View {
-        HStack(spacing: DesignTokens.Spacing.xxs) {
-            SkeletonCircle(size: DesignTokens.Checkbox.size)
-
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
-                SkeletonShape(width: 60, height: 10)
-                SkeletonShape(width: 130, height: 16)
-            }
-
-            Spacer(minLength: DesignTokens.Spacing.sm)
-
-            VStack(alignment: .trailing, spacing: DesignTokens.Spacing.xxs) {
-                SkeletonShape(width: 80, height: 18)
-                SkeletonShape(width: 50, height: 10)
-            }
-
-            SkeletonShape(width: 6, height: 12, cornerRadius: DesignTokens.CornerRadius.xs)
-                .padding(.leading, DesignTokens.Spacing.xs)
-        }
-        .padding(.vertical, DesignTokens.Spacing.md)
-        .padding(.leading, DesignTokens.Spacing.xs)
-        .padding(.trailing, DesignTokens.Spacing.md)
-        .frame(maxWidth: .infinity, minHeight: DesignTokens.ListRow.minHeight, alignment: .leading)
-        .background(Color.surfaceContainerLowest)
-        .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.xl))
-    }
-}
-
-// MARK: - FAB Background Modifier
-
-/// Wraps the FAB body with iOS 26 Liquid Glass when available, falling back to
-/// `.ultraThinMaterial` on iOS 18-25. Mirrors the visual treatment of the Home tab's
-/// action button (`MainTabView.tabBarActionButton`) without sharing code — the two FABs
-/// are siblings, not the same component (the Home FAB lives inside the tab bar capsule;
-/// this one is page-local).
-private struct BudgetDetailsFABBackground: ViewModifier {
-    func body(content: Content) -> some View {
-        if #available(iOS 26.0, *) {
-            content.glassEffect(
-                .regular.tint(Color.pulpePrimary).interactive(),
-                in: .capsule
-            )
-        } else {
-            content
-                .background(Color.pulpePrimary, in: Circle())
-                .shadow(DesignTokens.Shadow.elevated)
         }
     }
 }
