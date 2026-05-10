@@ -121,16 +121,13 @@ custom_rules:
       - ".*/Projection/.*\\.swift"
       - ".*/State/.*\\.swift"
       - ".*/Coordinator/.*\\.swift"
-      # Phase 2 will move BudgetFormulas calls behind the projector. Until
-      # then, keep the existing call sites compiling without lint noise.
+      # Phase 4 will retire the VM in favor of stores + coordinator.
       - ".*/BudgetDetailsViewModel\\.swift"
-      - ".*/BudgetMixedSection\\.swift"
-      - ".*/BudgetLineMixedRow\\.swift"
-      - ".*/BudgetLineDetailPage\\.swift"
+      # Out of scope for Phase 2 — has its own VM + data domain.
       - ".*/PreviousBudgetSheet\\.swift"
     regex: "BudgetFormulas\\.(calculate|displayBudgetLines|emotionState)"
     message: "Derivation must live in the projector or a store, not in views. See ios/docs/BUDGET_DETAILS_REFACTOR_PLAN.md."
-    severity: warning
+    severity: error
 
   no_collection_ops_in_view_body:
     name: "filter/sorted/sort in BudgetDetails view files"
@@ -141,14 +138,9 @@ custom_rules:
       - ".*/Features/Budgets/BudgetDetails/.*Row\\.swift"
       - ".*/Features/Budgets/BudgetDetails/.*Section\\.swift"
       - ".*/Features/Budgets/BudgetDetails/.*Hero\\.swift"
-    excluded:
-      # Phase 2 — projector pre-shapes sections. Until shipped, keep
-      # existing inline filter/sorted call sites here.
-      - ".*/BudgetDetailsView\\.swift"
-      - ".*/BudgetLineDetailPage\\.swift"
     regex: "\\.(filter|sorted|sort)\\b"
     message: "Pre-shape data in BudgetDetailsScreenState; views must not transform collections."
-    severity: warning
+    severity: error
 
   no_user_settings_store_in_row:
     name: "Row reads UserSettingsStore from environment"

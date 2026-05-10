@@ -418,7 +418,9 @@ private struct BudgetLineMixedRowPreviewHost: View {
 
 #Preview("Expense — empty (no real)") {
     let line = BudgetLine.preview(name: "Téléphone", amount: 100, kind: .expense)
-    let consumption = BudgetFormulas.calculateConsumption(for: line, transactions: [])
+    // Literal zero consumption — projector pre-computes this at runtime; previews
+    // mock it so the file stays compliant with `no_formula_in_view_body`.
+    let consumption = BudgetFormulas.Consumption(allocated: 0, available: line.amount, percentage: 0)
     return BudgetLineMixedRowPreviewHost(cases: [(line, consumption)])
 }
 
@@ -460,7 +462,8 @@ private struct BudgetLineMixedRowPreviewHost: View {
     let savingConsumption = BudgetFormulas.Consumption(allocated: 600, available: 0, percentage: 100)
 
     let phone = BudgetLine.preview(name: "Téléphone", amount: 100, kind: .expense)
-    let phoneConsumption = BudgetFormulas.calculateConsumption(for: phone, transactions: [])
+    // Literal zero consumption — projector pre-computes at runtime; previews mock it.
+    let phoneConsumption = BudgetFormulas.Consumption(allocated: 0, available: phone.amount, percentage: 0)
 
     let groceries = BudgetLine.preview(name: "Courses", amount: 800, kind: .expense)
     let groceriesConsumption = BudgetFormulas.Consumption(allocated: 540, available: 260, percentage: 67.5)

@@ -141,12 +141,8 @@ struct BudgetDetailsArchitectureTests {
                 body.contains("BudgetFormulas.emotionState")
         }.map { $0.lastPathComponent }
 
-        withKnownIssue(
-            "Phase 2 not yet shipped: \(offenders.count) view files reference BudgetFormulas",
-            isIntermittent: false
-        ) {
-            #expect(offenders.isEmpty, "Offenders: \(offenders.joined(separator: ", "))")
-        }
+        // Phase 2 shipped — assert strictly. Future regressions break the build.
+        #expect(offenders.isEmpty, "Offenders: \(offenders.joined(separator: ", "))")
     }
 
     // MARK: - Phase 2 — No collection ops in view body
@@ -175,12 +171,8 @@ struct BudgetDetailsArchitectureTests {
             return regex?.firstMatch(in: body, range: range) != nil
         }.map { $0.lastPathComponent }
 
-        withKnownIssue(
-            "Phase 2 not yet shipped: \(offenders.count) view files use filter/sorted",
-            isIntermittent: false
-        ) {
-            #expect(offenders.isEmpty, "Offenders: \(offenders.joined(separator: ", "))")
-        }
+        // Phase 2 shipped — assert strictly. Future regressions break the build.
+        #expect(offenders.isEmpty, "Offenders: \(offenders.joined(separator: ", "))")
     }
 
     // MARK: - Phase 3 — No UserSettingsStore in row files

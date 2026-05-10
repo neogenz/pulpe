@@ -10,20 +10,27 @@ struct BudgetDetailsView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.tabBarClearance) private var tabBarClearance
     @State private var viewModel: BudgetDetailsViewModel
+    @State private var projector: BudgetDetailsProjector
 
     @State private var searchText = ""
     @State private var scrollTracker = BudgetDetailsScrollTracker()
 
     init(budgetId: String) {
         self.budgetId = budgetId
-        self._viewModel = State(initialValue: BudgetDetailsViewModel(budgetId: budgetId))
+        let initialVM = BudgetDetailsViewModel(budgetId: budgetId)
+        self._viewModel = State(initialValue: initialVM)
+        self._projector = State(initialValue: BudgetDetailsProjector(viewModel: initialVM))
     }
 
+    /// Pay-day-aware elapsed percentage. Computed in the view (not the
+    /// projector) so the projection layer stays independent of
+    /// `UserSettingsStore` — its only consumer is the hero.
     private var timeElapsedPercentage: Double {
-        guard let budget = viewModel.budget else { return 0 }
+        guard let month = projector.screenState.hero.month,
+              let year = projector.screenState.hero.year else { return 0 }
         return BudgetPeriodCalculator.timeElapsedPercentage(
-            month: budget.month,
-            year: budget.year,
+            month: month,
+            year: year,
             payDayOfMonth: userSettingsStore.payDayOfMonth
         )
     }
@@ -49,12 +56,13 @@ struct BudgetDetailsView: View {
         // sheet(item:) modifier below. Standard iOS 17+ idiom for
         // environment-injected `@Observable` types that need binding.
         @Bindable var router = router
+        let screenState = projector.screenState
 
         return Group {
-            if viewModel.isLoading && viewModel.budget == nil {
+            if screenState.isLoading && viewModel.budget == nil {
                 BudgetDetailsSkeletonView()
                     .transition(.opacity)
-            } else if let error = viewModel.error, viewModel.budget == nil {
+            } else if screenState.errorIsTerminal, let error = viewModel.error {
                 ErrorView(error: error) {
                     await viewModel.loadDetails()
                 }
@@ -65,8 +73,8 @@ struct BudgetDetailsView: View {
             }
         }
         .trackScreen("BudgetDetails")
-        .animation(DesignTokens.Animation.smoothEaseOut, value: viewModel.isLoading)
-        .navigationTitle(viewModel.budget?.monthYear ?? "Budget")
+        .animation(DesignTokens.Animation.smoothEaseOut, value: screenState.isLoading)
+        .navigationTitle(screenState.monthYear.isEmpty ? "Budget" : screenState.monthYear)
         .navigationBarTitleDisplayMode(.inline)
         // Force an opaque title bar so content scrolling under it does NOT bleed through
         // (iOS 26 defaults to translucent Liquid Glass on the nav bar; on a light theme that
@@ -82,6 +90,9 @@ struct BudgetDetailsView: View {
                 await viewModel.reloadCurrentBudget()
             }
         }
+        .onChange(of: searchText) { _, newValue in
+            projector.setSearchText(newValue)
+        }
         #if DEBUG
         .onAppear { applyPUL209VerifyPriming() }
         #endif
@@ -91,6 +102,7 @@ struct BudgetDetailsView: View {
         .navigationDestination(for: BudgetLinePushRoute.self) { route in
             pushDestination(for: route)
                 .environment(viewModel)
+                .environment(projector)
         }
         .alert(
             "Pointer les transactions ?",
@@ -125,24 +137,19 @@ struct BudgetDetailsView: View {
     }
 
     private var content: some View {
-        // Apply both checked filter (from VM) and search filter (from view) on top
-        // of the VM's already-type-filtered sections. Empty sections are dropped so
-        // headers never render without rows.
-        let searchFilteredSections = viewModel.displayedSections
-            .map { (kind: $0.kind, items: viewModel.filteredLines($0.items, searchText: searchText)) }
-            .filter { !$0.items.isEmpty }
-        let filteredFree = viewModel.combinedFilteredFreeTransactions(searchText: searchText)
-        let firstSectionKind = searchFilteredSections.first?.kind
+        let screenState = projector.screenState
+        let sections = screenState.sections
+        let free = screenState.free
 
         return ScrollView {
             LazyVStack(spacing: 0) {
                 BudgetDetailHero(
-                    metrics: viewModel.metrics,
+                    metrics: screenState.hero.metrics,
                     timeElapsedPercentage: timeElapsedPercentage,
                     onTapChart: { router.present(.realizedBalance) },
-                    rolloverAmount: viewModel.rolloverInfo?.amount,
-                    previousBudgetMonth: viewModel.previousBudgetMonth,
-                    onRolloverTap: viewModel.rolloverInfo?.previousBudgetId.map { id in
+                    rolloverAmount: screenState.rollover?.amount,
+                    previousBudgetMonth: screenState.rollover?.previousBudgetMonth,
+                    onRolloverTap: screenState.rollover?.previousBudgetId.map { id in
                         { router.present(.previousBudget(PreviousBudgetItem(id: id))) }
                     }
                 )
@@ -164,22 +171,20 @@ struct BudgetDetailsView: View {
                 BudgetTypeFilter(
                     kind: typeFilterBinding,
                     checked: checkedFilterBinding,
-                    counts: viewModel.kindCounts,
-                    checkedCounts: viewModel.checkedCounts
+                    counts: screenState.kindCounts,
+                    checkedCounts: screenState.checkedCounts
                 )
                 .popoverTip(ProductTips.checking)
 
                 // Empty search state
-                if !searchText.isEmpty && searchFilteredSections.isEmpty && filteredFree.isEmpty {
+                if !searchText.isEmpty && sections.isEmpty && free.isEmpty {
                     ContentUnavailableView("Aucune prévision trouvée", systemImage: "magnifyingglass")
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, DesignTokens.Spacing.xxl)
                 }
 
-                // All checked empty state (À pointer filter active, nothing left to check)
-                if searchText.isEmpty && viewModel.isShowingOnlyUnchecked &&
-                    searchFilteredSections.isEmpty && filteredFree.isEmpty &&
-                    (!viewModel.budgetLines.isEmpty || !viewModel.transactions.isEmpty) {
+                // All checked empty state — projector pre-computes the gate.
+                if screenState.canShowEmptyChecked {
                     ContentUnavailableView {
                         Label("Tout est pointé", systemImage: "checkmark.circle.fill")
                     } description: {
@@ -190,12 +195,10 @@ struct BudgetDetailsView: View {
                 }
 
                 // Mixed budget line sections (tip on first visible section)
-                ForEach(searchFilteredSections, id: \.kind) { section in
+                ForEach(sections) { section in
                     BudgetMixedSection(
                         kind: section.kind,
                         items: section.items,
-                        transactions: viewModel.transactions,
-                        syncingIds: viewModel.syncingBudgetLineIds,
                         onTap: { line in
                             router.push(.lineDetail(lineId: line.id))
                         },
@@ -211,16 +214,15 @@ struct BudgetDetailsView: View {
                                 }
                             }
                         },
-                        tip: section.kind == firstSectionKind ? ProductTips.gestures : nil
+                        tip: section.kind == screenState.firstSectionKind ? ProductTips.gestures : nil
                     )
                 }
 
                 // Free transactions — inlined (TransactionSection is List-bound;
                 // tap opens the edit sheet, mirroring the budget-line detail flow).
-                if !filteredFree.isEmpty {
+                if !free.isEmpty {
                     BudgetDetailsFreeTransactionsList(
-                        transactions: filteredFree,
-                        syncingIds: viewModel.syncingTransactionIds,
+                        items: free,
                         onTap: { transaction in
                             router.push(.editTx(transactionId: transaction.id))
                         }
@@ -239,6 +241,11 @@ struct BudgetDetailsView: View {
             await viewModel.loadDetails(force: true)
         }
         .overlay(alignment: .top) {
+            // The pager bar is List-bound to `[BudgetSparse]`; migrating it to
+            // the projector-shaped `[PagerMonth]` type is out of scope for
+            // Phase 2 (no pager files in the Phase 2 file list). The DTO's
+            // pre-shaped pagerMonths is still available to consumers — the
+            // sticky bar reads the original VM array for now.
             BudgetDetailsStickyPagerLayer(
                 months: viewModel.pagerMonths,
                 currentBudgetId: viewModel.budgetId,
@@ -252,10 +259,12 @@ struct BudgetDetailsView: View {
         .overlay(alignment: .bottomTrailing) {
             BudgetDetailsAddFAB { router.present(.addBudgetLine) }
         }
+        // Animation tick: a single Int that flips iff any item's `isChecked`
+        // flag changes. Avoids allocating a `flatMap`/`map` over the whole
+        // list per body re-eval.
         .animation(
             reduceMotion ? nil : DesignTokens.Animation.gentleSpring,
-            value: searchFilteredSections.flatMap { $0.items.map(\.isChecked) }
-                + filteredFree.map(\.isChecked)
+            value: screenState.checkedTickHash
         )
         .pulpeBackground()
         .searchable(
@@ -269,9 +278,9 @@ struct BudgetDetailsView: View {
     // MARK: - Routing
 
     /// Routes each `BudgetLinePushRoute` to its push destination view. Sibling of
-    /// `sheetContent(for:)`. The viewModel is injected on the destination view via
-    /// `.environment(viewModel)` at the call site so pushed pages observe the same
-    /// reactive Observation context as the parent.
+    /// `sheetContent(for:)`. The viewModel + projector are injected on the
+    /// destination via `.environment(...)` at the call site so pushed pages
+    /// observe the same reactive Observation context as the parent.
     @ViewBuilder
     private func pushDestination(for route: BudgetLinePushRoute) -> some View {
         switch route {

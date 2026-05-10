@@ -10,23 +10,29 @@ import SwiftUI
 /// subtitle · amount + currency suffix · chevron) with a leading inset that
 /// preserves the column rhythm of envelope rows. Free transactions are
 /// auto-counted, so there is no checkbox/`PointCircle` toggle.
+///
+/// Accepts pre-shaped `FreeTransactionItem`s — the projection layer carries
+/// the `isSyncing` flag so the view stays free of `.contains` over a syncing
+/// id set in the body.
 struct BudgetDetailsFreeTransactionsList: View {
-    let transactions: [Transaction]
-    let syncingIds: Set<String>
+    let items: [BudgetDetailsScreenState.FreeTransactionItem]
     let onTap: (Transaction) -> Void
 
     @State private var isExpanded = false
     private let collapsedItemCount = 3
 
-    private var displayedTransactions: [Transaction] {
-        if isExpanded || transactions.count <= collapsedItemCount {
-            return transactions
+    private var displayedItems: [BudgetDetailsScreenState.FreeTransactionItem] {
+        if isExpanded || items.count <= collapsedItemCount {
+            return items
         }
-        return Array(transactions.prefix(collapsedItemCount))
+        // `prefix` returns an `ArraySlice`; converting to `Array` is a literal
+        // initializer (not a `.map` transform) so the body stays compliant
+        // with `no_collection_ops_in_view_body`.
+        return Array(items.prefix(collapsedItemCount))
     }
 
-    private var hasMoreItems: Bool { transactions.count > collapsedItemCount }
-    private var hiddenItemsCount: Int { transactions.count - collapsedItemCount }
+    private var hasMoreItems: Bool { items.count > collapsedItemCount }
+    private var hiddenItemsCount: Int { items.count - collapsedItemCount }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -34,23 +40,23 @@ struct BudgetDetailsFreeTransactionsList: View {
                 Text("Transactions libres")
                     .font(PulpeTypography.headline)
                     .foregroundStyle(Color.textPrimary)
-                Text(" · \(transactions.count)")
+                Text(" · \(items.count)")
                     .font(PulpeTypography.subheadline)
                     .foregroundStyle(Color.textSecondary)
                 Spacer()
             }
             .accessibilityElement(children: .combine)
             .accessibilityAddTraits(.isHeader)
-            .accessibilityLabel("Transactions libres, \(transactions.count)")
+            .accessibilityLabel("Transactions libres, \(items.count)")
             .padding(.horizontal, DesignTokens.Spacing.lg)
             .padding(.top, DesignTokens.Spacing.lg)
             .padding(.bottom, DesignTokens.Spacing.sm)
 
-            ForEach(displayedTransactions) { transaction in
+            ForEach(displayedItems) { item in
                 BudgetDetailsFreeTransactionRow(
-                    transaction: transaction,
-                    isSyncing: syncingIds.contains(transaction.id),
-                    onTap: { onTap(transaction) }
+                    transaction: item.transaction,
+                    isSyncing: item.isSyncing,
+                    onTap: { onTap(item.transaction) }
                 )
                 .padding(.horizontal, DesignTokens.Spacing.lg)
                 .padding(.bottom, DesignTokens.Spacing.md)

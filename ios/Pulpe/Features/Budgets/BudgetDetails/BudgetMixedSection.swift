@@ -10,28 +10,26 @@ import TipKit
 /// Spec: `Pulpe - Règles métier UX-UI` §02 — section header is a short word
 /// followed by " · N" (count). No totals, no collapsibility, no swipe actions.
 /// Edit/delete live in `BudgetLineDetailSheet`'s header `Menu`.
+///
+/// Each item is a pre-shaped `LineItem` carrying its `consumption` + `isSyncing`
+/// flag. The projection pipeline computes those once per source change — the
+/// section never calls `BudgetFormulas.*` or transforms collections.
 struct BudgetMixedSection: View {
     let kind: TransactionKind
-    let items: [BudgetLine]
-    let transactions: [Transaction]
-    let syncingIds: Set<String>
+    let items: [BudgetDetailsScreenState.LineItem]
     let onTap: (BudgetLine) -> Void
     let onTogglePointed: (BudgetLine) -> Void
     var tip: (any Tip)?
 
     init(
         kind: TransactionKind,
-        items: [BudgetLine],
-        transactions: [Transaction],
-        syncingIds: Set<String>,
+        items: [BudgetDetailsScreenState.LineItem],
         onTap: @escaping (BudgetLine) -> Void,
         onTogglePointed: @escaping (BudgetLine) -> Void,
         tip: (any Tip)? = nil
     ) {
         self.kind = kind
         self.items = items
-        self.transactions = transactions
-        self.syncingIds = syncingIds
         self.onTap = onTap
         self.onTogglePointed = onTogglePointed
         self.tip = tip
@@ -74,16 +72,13 @@ struct BudgetMixedSection: View {
                     .padding(.bottom, DesignTokens.Spacing.md)
             }
 
-            ForEach(items, id: \.id) { item in
+            ForEach(items) { item in
                 BudgetLineMixedRow(
-                    line: item,
-                    consumption: BudgetFormulas.calculateConsumption(
-                        for: item,
-                        transactions: transactions
-                    ),
-                    isSyncing: syncingIds.contains(item.id),
-                    onTap: { onTap(item) },
-                    onTogglePointed: { onTogglePointed(item) }
+                    line: item.line,
+                    consumption: item.consumption,
+                    isSyncing: item.isSyncing,
+                    onTap: { onTap(item.line) },
+                    onTogglePointed: { onTogglePointed(item.line) }
                 )
                 .padding(.horizontal, DesignTokens.Spacing.lg)
                 .padding(.bottom, DesignTokens.Spacing.md)
@@ -122,6 +117,24 @@ private extension BudgetLine {
             updatedAt: Date()
         )
     }
+
+    /// Shapes a list of preview lines into the LineItem shape consumed by the
+    /// migrated `BudgetMixedSection`. Mirrors what the projector does at runtime
+    /// but uses a literal zero `Consumption` so previews stay compliant with
+    /// the `no_formula_in_view_body` lint rule.
+    static func previewItems(_ lines: [BudgetLine]) -> [BudgetDetailsScreenState.LineItem] {
+        lines.map { line in
+            BudgetDetailsScreenState.LineItem(
+                line: line,
+                consumption: BudgetFormulas.Consumption(
+                    allocated: 0,
+                    available: line.amount,
+                    percentage: 0
+                ),
+                isSyncing: false
+            )
+        }
+    }
 }
 
 #Preview("Mixed section — 3 kinds") {
@@ -143,25 +156,19 @@ private extension BudgetLine {
     return List {
         BudgetMixedSection(
             kind: .income,
-            items: income,
-            transactions: [],
-            syncingIds: [],
+            items: BudgetLine.previewItems(income),
             onTap: { _ in },
             onTogglePointed: { _ in }
         )
         BudgetMixedSection(
             kind: .saving,
-            items: savings,
-            transactions: [],
-            syncingIds: [],
+            items: BudgetLine.previewItems(savings),
             onTap: { _ in },
             onTogglePointed: { _ in }
         )
         BudgetMixedSection(
             kind: .expense,
-            items: expenses,
-            transactions: [],
-            syncingIds: [],
+            items: BudgetLine.previewItems(expenses),
             onTap: { _ in },
             onTogglePointed: { _ in }
         )

@@ -24,6 +24,7 @@ struct BudgetLineDetailPage: View {
     let onEditLine: (BudgetLine) -> Void
 
     @Environment(BudgetDetailsViewModel.self) private var viewModel
+    @Environment(BudgetDetailsProjector.self) private var projector
     @Environment(AppState.self) private var appState
     @Environment(BudgetDetailsRouter.self) private var router
     @Environment(UserSettingsStore.self) private var userSettingsStore
@@ -34,14 +35,18 @@ struct BudgetLineDetailPage: View {
 
     // MARK: - Derived
 
+    /// `first(where:)` returns a single element via direct iteration — it's
+    /// not a collection-shaping op (unlike `filter`/`sorted`/`sort`/`map`),
+    /// so the page stays compliant with the no-collection-ops rule.
     private var budgetLine: BudgetLine? {
         viewModel.budgetLines.first { $0.id == lineId }
     }
 
+    /// Transactions for this line are pre-grouped (newest first) by
+    /// `BudgetDetailsProjector` once per source change. O(1) lookup, no
+    /// per-body collection transform.
     private var transactions: [Transaction] {
-        viewModel.transactions
-            .filter { $0.budgetLineId == lineId }
-            .sorted { $0.transactionDate > $1.transactionDate }
+        projector.screenState.transactionsByLineId[lineId] ?? []
     }
 
     // MARK: - Body
@@ -162,7 +167,12 @@ struct BudgetLineDetailPage: View {
 private extension BudgetLineDetailPage {
     @ViewBuilder
     func heroSection(line: BudgetLine, transactions: [Transaction]) -> some View {
-        let consumption = BudgetFormulas.calculateConsumption(for: line, transactions: transactions)
+        // Projector pre-computes consumption for every line in source state
+        // once per source change. Fall back to a zero consumption if a rare
+        // race observes the line before the projector publishes — the page
+        // re-renders one frame later with the real value.
+        let consumption = projector.screenState.consumptionByLineId[line.id]
+            ?? BudgetFormulas.Consumption(allocated: 0, available: line.amount, percentage: 0)
         let remaining = line.amount - consumption.allocated
         let clampedProgress = CGFloat(min(max(consumption.percentage / 100, 0), 1))
         let stateColor = stateColor(for: consumption, kind: line.kind)
