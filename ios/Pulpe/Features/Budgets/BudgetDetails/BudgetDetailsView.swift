@@ -17,7 +17,6 @@ struct BudgetDetailsView: View {
     @State private var destination: BudgetDetailDestination?
 
     @State private var searchText = ""
-    @State private var heroHeight: CGFloat = 0
     @State private var pagerStickyOpacity: Double = 0
 
     init(budgetId: String) {
@@ -147,10 +146,21 @@ struct BudgetDetailsView: View {
                         { destination = .previousBudget(PreviousBudgetItem(id: id)) }
                     }
                 )
+                // Drives the sticky pager by measuring the hero's frame relative to the
+                // ScrollView. `minY` is 0 when the hero's top is flush with the scroll-view
+                // top and becomes negative as the user scrolls down. We take `-minY` as the
+                // raw scroll-past distance, ignoring nav-drawer / searchable inset noise
+                // that affects `contentOffset.y`.
                 .onGeometryChange(
                     for: CGFloat.self,
-                    of: { $0.size.height },
-                    action: { newHeight in heroHeight = newHeight }
+                    of: { $0.frame(in: .scrollView).minY },
+                    action: { newMinY in
+                        let scrolled = max(0, -newMinY)
+                        let deadZone: CGFloat = DesignTokens.Spacing.xxxl         // 32pt
+                        let fadeRange: CGFloat = DesignTokens.Spacing.sectionGap  // 40pt
+                        let progress = (scrolled - deadZone) / fadeRange
+                        pagerStickyOpacity = Double(min(max(progress, 0), 1))
+                    }
                 )
 
                 TipView(ProductTips.pessimisticCheck)
@@ -236,19 +246,6 @@ struct BudgetDetailsView: View {
         .refreshable {
             await viewModel.loadDetails(force: true)
         }
-        .onScrollGeometryChange(
-            for: Double.self,
-            of: { geometry in
-                // Fade starts the instant the user scrolls and completes within ~40pt,
-                // so the pager is fully visible long before the hero leaves the viewport.
-                let fadeRange: CGFloat = DesignTokens.Spacing.sectionGap   // 40pt
-                let raw = geometry.contentOffset.y / fadeRange
-                return Double(min(max(raw, 0), 1))
-            },
-            action: { _, newOpacity in
-                pagerStickyOpacity = newOpacity
-            }
-        )
         .overlay(alignment: .top) {
             stickyPagerLayer
                 .opacity(pagerStickyOpacity)
