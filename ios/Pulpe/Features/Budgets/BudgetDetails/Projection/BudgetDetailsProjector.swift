@@ -1,36 +1,43 @@
 import Foundation
 import SwiftUI
 
-/// Projects `BudgetDetailsViewModel` source state into a pre-shaped
+/// Projects the four BudgetDetails stores into a pre-shaped
 /// `BudgetDetailsScreenState` for the view layer to consume.
 ///
 /// All `.filter` / `.sorted` / `.map` operations and every `BudgetFormulas.*`
-/// call for this feature live in this file. Views read `screenState.X`
-/// directly — no derivation runs in any view body.
+/// call for this feature live in this file or in the State layer. Views read
+/// `screenState.X` directly — no derivation runs in any view body.
 ///
 /// Re-projection is driven by Swift Observation's `withObservationTracking`:
-/// the projector touches every VM property that influences screen state, then
-/// re-arms tracking after each pass. A mutation on any tracked property fires
-/// `onChange`, which schedules another `applyProjection()` call — once per
-/// source change, not once per body re-eval.
+/// the projector touches every store property that influences screen state,
+/// then re-arms tracking after each pass. A mutation on any tracked property
+/// fires `onChange`, which schedules another `applyProjection()` call — once
+/// per source change, not once per body re-eval.
 @Observable @MainActor
 final class BudgetDetailsProjector {
     private(set) var screenState: BudgetDetailsScreenState
 
-    /// Strong reference is fine here: the projector lives as `@State` inside
-    /// `BudgetDetailsView`, so it shares the view's lifetime. Marked
-    /// `@ObservationIgnored` because reads of the VM happen explicitly
-    /// inside `withObservationTracking { ... }` — we do NOT want auto-track
-    /// on the projector itself observing its own `vm` property.
-    @ObservationIgnored private let viewModel: BudgetDetailsViewModel
+    /// Strong references — projectors live as `@State` inside the parent view
+    /// so they share its lifetime. `@ObservationIgnored` because reads happen
+    /// explicitly inside `withObservationTracking { ... }`; we do NOT want
+    /// the projector observing its own `dataStore` property.
+    @ObservationIgnored private let dataStore: BudgetDataStore
+    @ObservationIgnored private let filtersStore: FiltersStore
+    @ObservationIgnored private let syncStore: SyncStateStore
 
     /// Search text owned by the view; pushed into the projector via
     /// `setSearchText(_:)` so a re-projection runs synchronously on each
     /// keystroke. Search-filtering otherwise bypasses Observation tracking.
     @ObservationIgnored private var searchText: String = ""
 
-    init(viewModel: BudgetDetailsViewModel) {
-        self.viewModel = viewModel
+    init(
+        dataStore: BudgetDataStore,
+        filtersStore: FiltersStore,
+        syncStore: SyncStateStore
+    ) {
+        self.dataStore = dataStore
+        self.filtersStore = filtersStore
+        self.syncStore = syncStore
         // Seed with empty so the property is non-optional; the first arm cycle
         // immediately overwrites it with the real projection.
         self.screenState = .empty
@@ -49,24 +56,21 @@ final class BudgetDetailsProjector {
     // MARK: - Observation arming + apply
 
     private func applyProjection() {
-        // Re-arm Observation tracking and re-derive on any source change.
-        // Touching every VM property that contributes to the projection
-        // here means a mutation on any of them fires onChange exactly once,
-        // and the next applyProjection() call re-arms for the next change.
-        let next = withObservationTracking { [viewModel, searchText] in
-            BudgetDetailsProjector.project(from: viewModel, searchText: searchText)
+        let next = withObservationTracking { [dataStore, filtersStore, syncStore, searchText] in
+            BudgetDetailsProjector.project(
+                dataStore: dataStore,
+                filtersStore: filtersStore,
+                syncStore: syncStore,
+                searchText: searchText
+            )
         } onChange: { [weak self] in
             // Observation fires onChange off the calling actor; hop back to
-            // MainActor before mutating @Observable state. `Task { @MainActor }`
-            // is the standard idiom — we don't need to await anything else.
+            // MainActor before mutating @Observable state.
             Task { @MainActor [weak self] in
                 self?.applyProjection()
             }
         }
 
-        // Equatable short-circuit: if the projection is identical to what we
-        // already published, skip the publish. This collapses the rare case
-        // where Observation fires onChange for an irrelevant write.
         if next != screenState {
             screenState = next
         }
@@ -75,76 +79,121 @@ final class BudgetDetailsProjector {
     // MARK: - Pure projection
 
     /// Pure derivation. All filtering, sorting, mapping and BudgetFormulas
-    /// invocations for this feature live here.
+    /// invocations for this feature live here or in the store layer.
     static func project(
-        from vm: BudgetDetailsViewModel,
+        dataStore: BudgetDataStore,
+        filtersStore: FiltersStore,
+        syncStore: SyncStateStore,
         searchText: String
     ) -> BudgetDetailsScreenState {
         let consumptionByLineId = makeConsumptionIndex(
-            budgetLines: vm.budgetLines,
-            transactions: vm.transactions
+            budgetLines: dataStore.budgetLines,
+            transactions: dataStore.transactions
         )
         let transactionsByLineId = makeTransactionsByLineIdIndex(
-            transactions: vm.transactions
+            transactions: dataStore.transactions
         )
         let sections = makeSections(
-            vm: vm,
+            dataStore: dataStore,
+            filtersStore: filtersStore,
+            syncStore: syncStore,
             searchText: searchText,
             consumptionByLineId: consumptionByLineId
         )
-        let free = makeFreeItems(vm: vm, searchText: searchText)
-
-        return BudgetDetailsScreenState(
-            budgetId: vm.budgetId,
-            monthYear: vm.budget?.monthYear ?? "",
-            isLoading: vm.isLoading,
-            errorIsTerminal: vm.error != nil && vm.budget == nil,
-            hero: BudgetDetailsScreenState.HeroState(
-                metrics: vm.metrics,
-                month: vm.budget?.month,
-                year: vm.budget?.year
-            ),
-            rollover: makeRollover(vm: vm),
-            sections: sections,
-            free: free,
-            kindCounts: vm.kindCounts,
-            checkedCounts: vm.checkedCounts,
-            pagerMonths: makePagerMonths(from: vm.pagerMonths),
-            typeFilter: vm.typeFilter,
-            checkedFilter: vm.checkedFilter,
-            isShowingOnlyUnchecked: vm.isShowingOnlyUnchecked,
-            firstSectionKind: sections.first?.kind,
-            canShowEmptyChecked: makeCanShowEmptyChecked(
-                vm: vm,
+        let free = makeFreeItems(
+            dataStore: dataStore,
+            filtersStore: filtersStore,
+            syncStore: syncStore,
+            searchText: searchText
+        )
+        return assembleScreenState(
+            AssemblyContext(
+                dataStore: dataStore,
+                filtersStore: filtersStore,
+                syncStore: syncStore,
                 searchText: searchText,
                 sections: sections,
-                free: free
+                free: free,
+                consumptionByLineId: consumptionByLineId,
+                transactionsByLineId: transactionsByLineId
+            )
+        )
+    }
+
+    /// Bundle of inputs to `assembleScreenState`. Avoids a long parameter
+    /// list (SwiftLint's `function_parameter_count` budget is 5).
+    private struct AssemblyContext {
+        let dataStore: BudgetDataStore
+        let filtersStore: FiltersStore
+        let syncStore: SyncStateStore
+        let searchText: String
+        let sections: [BudgetDetailsScreenState.Section]
+        let free: [BudgetDetailsScreenState.FreeTransactionItem]
+        let consumptionByLineId: [String: BudgetFormulas.Consumption]
+        let transactionsByLineId: [String: [Transaction]]
+    }
+
+    private static func assembleScreenState(
+        _ ctx: AssemblyContext
+    ) -> BudgetDetailsScreenState {
+        BudgetDetailsScreenState(
+            budgetId: ctx.dataStore.budgetId,
+            monthYear: ctx.dataStore.budget?.monthYear ?? "",
+            isLoading: ctx.syncStore.isLoading,
+            errorIsTerminal: ctx.syncStore.error != nil && ctx.dataStore.budget == nil,
+            hero: BudgetDetailsScreenState.HeroState(
+                metrics: ctx.dataStore.metrics,
+                month: ctx.dataStore.budget?.month,
+                year: ctx.dataStore.budget?.year
             ),
-            consumptionByLineId: consumptionByLineId,
-            transactionsByLineId: transactionsByLineId,
+            rollover: makeRollover(dataStore: ctx.dataStore),
+            sections: ctx.sections,
+            free: ctx.free,
+            kindCounts: ctx.filtersStore.kindCounts(for: ctx.dataStore.budgetLines),
+            checkedCounts: ctx.filtersStore.checkedCounts(for: ctx.dataStore.budgetLines),
+            pagerMonths: makePagerMonths(from: ctx.dataStore.pagerMonths),
+            typeFilter: ctx.filtersStore.typeFilter,
+            checkedFilter: ctx.filtersStore.checkedFilter,
+            isShowingOnlyUnchecked: ctx.filtersStore.isShowingOnlyUnchecked,
+            firstSectionKind: ctx.sections.first?.kind,
+            canShowEmptyChecked: makeCanShowEmptyChecked(
+                dataStore: ctx.dataStore,
+                filtersStore: ctx.filtersStore,
+                searchText: ctx.searchText,
+                sections: ctx.sections,
+                free: ctx.free
+            ),
+            consumptionByLineId: ctx.consumptionByLineId,
+            transactionsByLineId: ctx.transactionsByLineId,
             checkedTickHash: makeCheckedTickHash(
-                budgetLines: vm.budgetLines,
-                transactions: vm.transactions
+                budgetLines: ctx.dataStore.budgetLines,
+                transactions: ctx.dataStore.transactions
             )
         )
     }
 
     private static func makeSections(
-        vm: BudgetDetailsViewModel,
+        dataStore: BudgetDataStore,
+        filtersStore: FiltersStore,
+        syncStore: SyncStateStore,
         searchText: String,
         consumptionByLineId: [String: BudgetFormulas.Consumption]
     ) -> [BudgetDetailsScreenState.Section] {
-        let syncing = vm.syncingBudgetLineIds
+        let syncing = syncStore.syncingBudgetLineIds
         var sections: [BudgetDetailsScreenState.Section] = []
-        sections.reserveCapacity(vm.displayedSections.count)
-        for section in vm.displayedSections {
-            let searchFiltered = vm.filteredLines(section.items, searchText: searchText)
+        let displayed = filtersStore.displayedSections(for: dataStore.budgetLines)
+        sections.reserveCapacity(displayed.count)
+        for section in displayed {
+            let searchFiltered = filtersStore.filteredLines(
+                section.items,
+                searchText: searchText,
+                transactions: dataStore.transactions
+            )
             guard !searchFiltered.isEmpty else { continue }
             let items = searchFiltered.map { line in
                 BudgetDetailsScreenState.LineItem(
                     line: line,
-                    consumption: consumptionByLineId[line.id]
-                        ?? zeroConsumption(for: line),
+                    consumption: consumptionByLineId[line.id] ?? zeroConsumption(for: line),
                     isSyncing: syncing.contains(line.id)
                 )
             }
@@ -156,11 +205,16 @@ final class BudgetDetailsProjector {
     }
 
     private static func makeFreeItems(
-        vm: BudgetDetailsViewModel,
+        dataStore: BudgetDataStore,
+        filtersStore: FiltersStore,
+        syncStore: SyncStateStore,
         searchText: String
     ) -> [BudgetDetailsScreenState.FreeTransactionItem] {
-        let syncing = vm.syncingTransactionIds
-        return vm.combinedFilteredFreeTransactions(searchText: searchText).map { tx in
+        let syncing = syncStore.syncingTransactionIds
+        return filtersStore.combinedFilteredFreeTransactions(
+            dataStore.freeTransactions,
+            searchText: searchText
+        ).map { tx in
             BudgetDetailsScreenState.FreeTransactionItem(
                 transaction: tx,
                 isSyncing: syncing.contains(tx.id)
@@ -169,27 +223,28 @@ final class BudgetDetailsProjector {
     }
 
     private static func makeRollover(
-        vm: BudgetDetailsViewModel
+        dataStore: BudgetDataStore
     ) -> BudgetDetailsScreenState.RolloverInfo? {
-        guard let info = vm.rolloverInfo else { return nil }
+        guard let info = dataStore.rolloverInfo else { return nil }
         return BudgetDetailsScreenState.RolloverInfo(
             amount: info.amount,
             previousBudgetId: info.previousBudgetId,
-            previousBudgetMonth: vm.previousBudgetMonth
+            previousBudgetMonth: dataStore.previousBudgetMonth
         )
     }
 
     private static func makeCanShowEmptyChecked(
-        vm: BudgetDetailsViewModel,
+        dataStore: BudgetDataStore,
+        filtersStore: FiltersStore,
         searchText: String,
         sections: [BudgetDetailsScreenState.Section],
         free: [BudgetDetailsScreenState.FreeTransactionItem]
     ) -> Bool {
         searchText.isEmpty
-            && vm.isShowingOnlyUnchecked
+            && filtersStore.isShowingOnlyUnchecked
             && sections.isEmpty
             && free.isEmpty
-            && (!vm.budgetLines.isEmpty || !vm.transactions.isEmpty)
+            && (!dataStore.budgetLines.isEmpty || !dataStore.transactions.isEmpty)
     }
 
     // MARK: - Index builders (private helpers)
@@ -240,8 +295,7 @@ final class BudgetDetailsProjector {
     /// Stable as long as the set of `(id, isChecked)` pairs is stable, so it
     /// only changes when a check flips. Used as the `value:` of the list
     /// `.animation(_:value:)` modifier without allocating a new array per
-    /// body re-eval (the previous shape did `flatMap { items.map(\.isChecked) }`
-    /// which built a new array on every access).
+    /// body re-eval.
     private static func makeCheckedTickHash(
         budgetLines: [BudgetLine],
         transactions: [Transaction]

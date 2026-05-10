@@ -9,7 +9,7 @@ import SwiftUI
 struct AddAllocatedTransactionPage: View {
     let lineId: String
 
-    @Environment(BudgetDetailsViewModel.self) private var viewModel
+    @Environment(BudgetDetailsCoordinator.self) private var coordinator
     @Environment(\.dismiss) private var dismiss
     @Environment(ToastManager.self) private var toastManager
     @Environment(UserSettingsStore.self) private var userSettingsStore
@@ -35,7 +35,7 @@ struct AddAllocatedTransactionPage: View {
     // MARK: - Derived
 
     private var budgetLine: BudgetLine? {
-        viewModel.budgetLines.first { $0.id == lineId }
+        coordinator.dataStore.budgetLines.first { $0.id == lineId }
     }
 
     /// The currency the form types in — picker selection if the user changed
@@ -214,9 +214,10 @@ struct AddAllocatedTransactionPage: View {
             let transaction = try await TransactionService.shared.createTransaction(data)
 
             // Apply local update + emit feedback + pop. `addTransaction` is
-            // a synchronous local insert on the viewModel — no detached Task
-            // needed here.
-            viewModel.addTransaction(transaction)
+            // a synchronous local insert on the data store — no detached Task
+            // needed here for correctness; we kick off dispatch concurrently
+            // with dismiss so the UI doesn't await on local state writes.
+            await coordinator.dispatch(.addTransaction(transaction))
             submitSuccessTrigger.toggle()
             toastManager.show("Transaction ajoutée")
             dismiss()

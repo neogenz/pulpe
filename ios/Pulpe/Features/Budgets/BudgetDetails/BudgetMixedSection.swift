@@ -4,19 +4,14 @@ import TipKit
 /// Mixed-list section for the budget detail screen (DM2.1.b.c5).
 ///
 /// Hosts `BudgetLineMixedRow` cards inside the parent `List` from
-/// `BudgetDetailsView`. Replaces `BudgetSection` for that screen only —
-/// `BudgetSection` is still used elsewhere (CurrentMonth, PreviousBudgetSheet).
-///
-/// Spec: `Pulpe - Règles métier UX-UI` §02 — section header is a short word
-/// followed by " · N" (count). No totals, no collapsibility, no swipe actions.
-/// Edit/delete live in `BudgetLineDetailSheet`'s header `Menu`.
-///
-/// Each item is a pre-shaped `LineItem` carrying its `consumption` + `isSyncing`
-/// flag. The projection pipeline computes those once per source change — the
-/// section never calls `BudgetFormulas.*` or transforms collections.
+/// `BudgetDetailsView`. Each item is a pre-shaped `LineItem` carrying its
+/// `consumption` + `isSyncing` flag. The projection pipeline computes those
+/// once per source change — the section never calls `BudgetFormulas.*` or
+/// transforms collections.
 struct BudgetMixedSection: View {
     let kind: TransactionKind
     let items: [BudgetDetailsScreenState.LineItem]
+    let currency: SupportedCurrency
     let onTap: (BudgetLine) -> Void
     let onTogglePointed: (BudgetLine) -> Void
     var tip: (any Tip)?
@@ -24,12 +19,14 @@ struct BudgetMixedSection: View {
     init(
         kind: TransactionKind,
         items: [BudgetDetailsScreenState.LineItem],
+        currency: SupportedCurrency,
         onTap: @escaping (BudgetLine) -> Void,
         onTogglePointed: @escaping (BudgetLine) -> Void,
         tip: (any Tip)? = nil
     ) {
         self.kind = kind
         self.items = items
+        self.currency = currency
         self.onTap = onTap
         self.onTogglePointed = onTogglePointed
         self.tip = tip
@@ -44,11 +41,6 @@ struct BudgetMixedSection: View {
     }
 
     var body: some View {
-        // Plain VStack so the section can live inside a ScrollView/LazyVStack
-        // and let the whole page scroll as one unit. Each row's card chrome is
-        // self-contained (`BudgetLineMixedRow` styles its own surface), so the
-        // section just stacks header + tip + rows with consistent horizontal
-        // insets matching the design system.
         VStack(alignment: .leading, spacing: 0) {
             HStack(spacing: DesignTokens.Spacing.xxs) {
                 Text(headerTitle)
@@ -77,6 +69,7 @@ struct BudgetMixedSection: View {
                     line: item.line,
                     consumption: item.consumption,
                     isSyncing: item.isSyncing,
+                    currency: currency,
                     onTap: { onTap(item.line) },
                     onTogglePointed: { onTogglePointed(item.line) }
                 )
@@ -157,18 +150,21 @@ private extension BudgetLine {
         BudgetMixedSection(
             kind: .income,
             items: BudgetLine.previewItems(income),
+            currency: .chf,
             onTap: { _ in },
             onTogglePointed: { _ in }
         )
         BudgetMixedSection(
             kind: .saving,
             items: BudgetLine.previewItems(savings),
+            currency: .chf,
             onTap: { _ in },
             onTogglePointed: { _ in }
         )
         BudgetMixedSection(
             kind: .expense,
             items: BudgetLine.previewItems(expenses),
+            currency: .chf,
             onTap: { _ in },
             onTogglePointed: { _ in }
         )
@@ -178,5 +174,4 @@ private extension BudgetLine {
     .listSectionSpacing(DesignTokens.Spacing.xxl)
     .scrollContentBackground(.hidden)
     .pulpeBackground()
-    .environment(UserSettingsStore())
 }

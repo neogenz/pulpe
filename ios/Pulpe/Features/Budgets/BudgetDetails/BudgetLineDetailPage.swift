@@ -23,7 +23,7 @@ struct BudgetLineDetailPage: View {
     let lineId: String
     let onEditLine: (BudgetLine) -> Void
 
-    @Environment(BudgetDetailsViewModel.self) private var viewModel
+    @Environment(BudgetDetailsCoordinator.self) private var coordinator
     @Environment(BudgetDetailsProjector.self) private var projector
     @Environment(AppState.self) private var appState
     @Environment(BudgetDetailsRouter.self) private var router
@@ -39,7 +39,7 @@ struct BudgetLineDetailPage: View {
     /// not a collection-shaping op (unlike `filter`/`sorted`/`sort`/`map`),
     /// so the page stays compliant with the no-collection-ops rule.
     private var budgetLine: BudgetLine? {
-        viewModel.budgetLines.first { $0.id == lineId }
+        coordinator.dataStore.budgetLines.first { $0.id == lineId }
     }
 
     /// Transactions for this line are pre-grouped (newest first) by
@@ -292,16 +292,16 @@ private extension BudgetLineDetailPage {
     }
 
     func deleteBudgetLine(_ line: BudgetLine) {
-        // `softDeleteBudgetLine` removes the line from `viewModel.budgetLines`
+        // `softDeleteBudgetLine` removes the line from the data store
         // synchronously. Observation re-evaluates the body, the empty branch
         // fires `autoPopIfStillEmpty`, and the page pops.
         // We do NOT call `dismiss()` here — racing the auto-pop branch can
         // double-pop and accidentally pop the parent `BudgetDetailsView`.
-        viewModel.softDeleteBudgetLine(
-            line,
+        let ctx = ToastContext(
             toastManager: appState.toastManager,
             presentationCurrency: userSettingsStore.currency
         )
+        Task { await coordinator.dispatch(.softDeleteBudgetLine(line, ctx)) }
     }
 }
 
@@ -355,18 +355,18 @@ private extension BudgetLineDetailPage {
     @ViewBuilder
     func swipeActions(for transaction: Transaction) -> some View {
         Button {
-            viewModel.softDeleteTransaction(
-                transaction,
+            let ctx = ToastContext(
                 toastManager: appState.toastManager,
                 presentationCurrency: userSettingsStore.currency
             )
+            Task { await coordinator.dispatch(.softDeleteTransaction(transaction, ctx)) }
         } label: {
             Label("Supprimer", systemImage: "trash")
         }
         .tint(Color.destructivePrimary)
 
         Button {
-            Task { await viewModel.toggleTransaction(transaction) }
+            Task { await coordinator.dispatch(.toggleTransaction(transaction)) }
         } label: {
             Label(
                 transaction.isChecked ? "Dépointer" : "Pointer",

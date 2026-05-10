@@ -112,12 +112,8 @@ struct BudgetDetailsArchitectureTests {
                 body.contains("\(prefix) type_body_length")
         }.map { $0.lastPathComponent }
 
-        withKnownIssue(
-            "Phase 4 not yet shipped: \(offenders.count) files contain a length disable",
-            isIntermittent: false
-        ) {
-            #expect(offenders.isEmpty, "Offenders: \(offenders.joined(separator: ", "))")
-        }
+        // Phase 4 shipped — assert strictly. Future regressions break the build.
+        #expect(offenders.isEmpty, "Offenders: \(offenders.joined(separator: ", "))")
     }
 
     // MARK: - Phase 2 — No BudgetFormulas in view files
@@ -188,12 +184,8 @@ struct BudgetDetailsArchitectureTests {
             Self.read(url).contains("@Environment(UserSettingsStore.self)")
         }.map { $0.lastPathComponent }
 
-        withKnownIssue(
-            "Phase 3 not yet shipped: \(offenders.count) row files read UserSettingsStore",
-            isIntermittent: false
-        ) {
-            #expect(offenders.isEmpty, "Offenders: \(offenders.joined(separator: ", "))")
-        }
+        // Phase 3 shipped — row receives `currency` as a `let` primitive.
+        #expect(offenders.isEmpty, "Offenders: \(offenders.joined(separator: ", "))")
     }
 
     // MARK: - Phase 1 — Router is sole budgetPath writer
@@ -246,12 +238,8 @@ struct BudgetDetailsArchitectureTests {
         let offenders = files.filter { $0.lastPathComponent == "BudgetDetailsViewModel.swift" }
             .map { $0.lastPathComponent }
 
-        withKnownIssue(
-            "Phase 4 not yet shipped: BudgetDetailsViewModel.swift still present",
-            isIntermittent: false
-        ) {
-            #expect(offenders.isEmpty)
-        }
+        // Phase 4 shipped — VM retired in favor of stores + coordinator.
+        #expect(offenders.isEmpty)
     }
 
     // MARK: - Phase 5 — No Task.sleep outside helpers

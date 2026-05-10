@@ -21,11 +21,14 @@ struct BudgetLineMixedRow: View {
     let line: BudgetLine
     let consumption: BudgetFormulas.Consumption
     let isSyncing: Bool
+    /// Display currency. Passed as a primitive `let` instead of read from
+    /// the user-settings environment so the row does not observe the whole
+    /// store and re-render on unrelated changes (broad observation fan-out).
+    let currency: SupportedCurrency
     let onTap: () -> Void
     let onTogglePointed: () -> Void
 
     @Environment(\.amountsHidden) private var amountsHidden
-    @Environment(UserSettingsStore.self) private var userSettingsStore
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     @State private var triggerToggleFeedback = false
@@ -70,10 +73,10 @@ struct BudgetLineMixedRow: View {
             if isOverBudget { return "de dépassement" }
             if !hasReal { return "prévu" }
             if realAmount == plannedAmount { return nil }
-            return "restant sur \(plannedAmount.asAmount(for: userSettingsStore.currency))"
+            return "restant sur \(plannedAmount.asAmount(for: currency))"
         }
         if hasReal, realAmount < plannedAmount {
-            return "/ \(plannedAmount.asAmount(for: userSettingsStore.currency)) prévu"
+            return "/ \(plannedAmount.asAmount(for: currency)) prévu"
         }
         return nil
     }
@@ -208,7 +211,7 @@ struct BudgetLineMixedRow: View {
                 .foregroundStyle(Color.textTertiary)
         } else if hasReal {
             let remaining = plannedAmount - realAmount
-            Text("\(remaining.asCurrency(userSettingsStore.currency)) à recevoir")
+            Text("\(remaining.asCurrency(currency)) à recevoir")
                 .foregroundStyle(Color.textTertiary)
         }
     }
@@ -223,7 +226,7 @@ struct BudgetLineMixedRow: View {
                 .foregroundStyle(Color.textTertiary)
         } else if hasReal {
             let remaining = plannedAmount - realAmount
-            Text("\(remaining.asCurrency(userSettingsStore.currency)) à transférer")
+            Text("\(remaining.asCurrency(currency)) à transférer")
                 .foregroundStyle(Color.textTertiary)
         }
     }
@@ -242,13 +245,13 @@ struct BudgetLineMixedRow: View {
     private var amountColumn: some View {
         VStack(alignment: .trailing, spacing: DesignTokens.Spacing.xxs) {
             HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.xxs) {
-                Text(displayAmount.asAmount(for: userSettingsStore.currency))
+                Text(displayAmount.asAmount(for: currency))
                     .font(PulpeTypography.amountCard)
                     .foregroundStyle(amountColor)
                     .monospacedDigit()
                     .lineLimit(1)
 
-                Text(userSettingsStore.currency.symbol)
+                Text(currency.symbol)
                     .font(PulpeTypography.metricMini)
                     .foregroundStyle(currencyCodeColor)
                     .opacity(currencyCodeOpacity)
@@ -294,7 +297,7 @@ struct BudgetLineMixedRow: View {
     private var accessibilityLabel: String {
         let kindWord = line.kind.label
         let pointed = isPointed ? "Pointé" : "À pointer"
-        let amount = displayAmount.asCurrency(userSettingsStore.currency)
+        let amount = displayAmount.asCurrency(currency)
         return "\(kindWord) · \(line.name) · \(amount) · \(pointed)"
     }
 }
@@ -404,6 +407,7 @@ private struct BudgetLineMixedRowPreviewHost: View {
                         line: item.line,
                         consumption: item.consumption,
                         isSyncing: false,
+                        currency: .chf,
                         onTap: {},
                         onTogglePointed: {}
                     )
@@ -412,7 +416,6 @@ private struct BudgetLineMixedRowPreviewHost: View {
             .padding(DesignTokens.Spacing.lg)
         }
         .background(Color.appBackground)
-        .environment(UserSettingsStore())
     }
 }
 

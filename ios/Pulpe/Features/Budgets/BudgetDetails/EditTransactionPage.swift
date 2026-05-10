@@ -12,7 +12,7 @@ import SwiftUI
 struct EditTransactionPage: View {
     let transactionId: String
 
-    @Environment(BudgetDetailsViewModel.self) private var viewModel
+    @Environment(BudgetDetailsCoordinator.self) private var coordinator
     @Environment(\.dismiss) private var dismiss
     @Environment(ToastManager.self) private var toastManager
     @Environment(UserSettingsStore.self) private var userSettingsStore
@@ -33,7 +33,7 @@ struct EditTransactionPage: View {
     // MARK: - Derived
 
     private var transaction: Transaction? {
-        viewModel.transactions.first { $0.id == transactionId }
+        coordinator.dataStore.transactions.first { $0.id == transactionId }
     }
 
     /// Currency the user types in (matches the original capture currency for FX
@@ -226,7 +226,7 @@ struct EditTransactionPage: View {
             submitSuccessTrigger.toggle()
             toastManager.show("Transaction modifiée")
             dismiss()
-            Task { await viewModel.updateTransaction(updated) }
+            Task { await coordinator.dispatch(.updateTransaction(updated)) }
         } catch {
             self.error = error
         }
