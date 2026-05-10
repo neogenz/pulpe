@@ -268,6 +268,29 @@ enum DesignTokens {
             .easeInOut(duration: heroBreathingDuration).repeatForever(autoreverses: true)
         }
 
+        // MARK: - Push transition timings (BudgetDetails feature pattern)
+
+        /// Grace window after a pushed page detects its target model has
+        /// disappeared, before auto-popping. Gives Observation the chance to
+        /// settle on the first push frame so a transient lookup miss during
+        /// reload races does not pop a freshly-pushed page.
+        static let autoPopGraceMs: UInt64 = 150
+
+        /// Delay between view appearance and programmatic focus on a form
+        /// field, so the push transition completes before the keyboard rises.
+        /// Matches `SheetFormContainer` autofocus behavior.
+        static let pushAutofocusDelayMs: UInt64 = 200
+    }
+
+    // MARK: - Sync indicators
+
+    /// Visibility thresholds for sync state UI (BudgetDetails feature pattern).
+    enum Sync {
+        /// Optimistic mutations under this delay don't surface a sync indicator
+        /// — the green dot only flashes if the server round-trip exceeds the
+        /// threshold, so fast updates feel instantaneous.
+        static let indicatorRampDelayMs: UInt64 = 300
+
         // MARK: - Skeleton
 
         /// Minimum skeleton display time to prevent jarring flash on fast loads

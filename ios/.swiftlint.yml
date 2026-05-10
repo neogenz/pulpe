@@ -98,5 +98,125 @@ custom_rules:
     message: "Use PulpeChip from Shared/Components instead of raw Capsule().fill(...). Capsule chip rendering is centralised."
     severity: warning
 
+  # ──────────────────────────────────────────────────────────────────────
+  # BudgetDetails refactor anti-drift rules (PUL-209+).
+  # See ios/docs/BUDGET_DETAILS_REFACTOR_PLAN.md.
+  # All start at `warning` until the matching phase escalates to `error`.
+  # Severity escalation per phase:
+  #   Phase 1 (Router): no_app_state_path_outside_router → error
+  #   Phase 2 (Projector): no_formula_in_view_body, no_collection_ops_in_view_body → error
+  #   Phase 3 (Sub-stores): no_user_settings_store_in_row → error
+  #   Phase 4 (Coordinator): no_swiftlint_disable_in_feature → error
+  #   Phase 5 (Subview decomp): no_task_sleep_in_feature, no_magic_timing_literals → error
+  # ──────────────────────────────────────────────────────────────────────
+
+  # NOTE: Each new rule below excludes the files that currently violate it.
+  # Each phase's PR removes the relevant exclusion entry as part of the fix.
+  # See ios/docs/BUDGET_DETAILS_REFACTOR_PLAN.md for the per-phase mapping.
+
+  no_formula_in_view_body:
+    name: "BudgetFormulas inside BudgetDetails view file"
+    included: ".*/Features/Budgets/BudgetDetails/.*\\.swift"
+    excluded:
+      - ".*/Projection/.*\\.swift"
+      - ".*/State/.*\\.swift"
+      - ".*/Coordinator/.*\\.swift"
+      # Phase 2 will move BudgetFormulas calls behind the projector. Until
+      # then, keep the existing call sites compiling without lint noise.
+      - ".*/BudgetDetailsViewModel\\.swift"
+      - ".*/BudgetMixedSection\\.swift"
+      - ".*/BudgetLineMixedRow\\.swift"
+      - ".*/BudgetLineDetailPage\\.swift"
+      - ".*/PreviousBudgetSheet\\.swift"
+    regex: "BudgetFormulas\\.(calculate|displayBudgetLines|emotionState)"
+    message: "Derivation must live in the projector or a store, not in views. See ios/docs/BUDGET_DETAILS_REFACTOR_PLAN.md."
+    severity: warning
+
+  no_collection_ops_in_view_body:
+    name: "filter/sorted/sort in BudgetDetails view files"
+    included:
+      - ".*/Features/Budgets/BudgetDetails/Views/.*\\.swift"
+      - ".*/Features/Budgets/BudgetDetails/.*View\\.swift"
+      - ".*/Features/Budgets/BudgetDetails/.*Page\\.swift"
+      - ".*/Features/Budgets/BudgetDetails/.*Row\\.swift"
+      - ".*/Features/Budgets/BudgetDetails/.*Section\\.swift"
+      - ".*/Features/Budgets/BudgetDetails/.*Hero\\.swift"
+    excluded:
+      # Phase 2 — projector pre-shapes sections. Until shipped, keep
+      # existing inline filter/sorted call sites here.
+      - ".*/BudgetDetailsView\\.swift"
+      - ".*/BudgetLineDetailPage\\.swift"
+    regex: "\\.(filter|sorted|sort)\\b"
+    message: "Pre-shape data in BudgetDetailsScreenState; views must not transform collections."
+    severity: warning
+
+  no_user_settings_store_in_row:
+    name: "Row reads UserSettingsStore from environment"
+    included: ".*/Features/Budgets/BudgetDetails/(Views/Rows|BudgetLineMixedRow|BudgetLineDetailTransactionRow).*\\.swift"
+    excluded:
+      # Phase 3 — row receives currency as a let primitive.
+      - ".*/BudgetLineMixedRow\\.swift"
+    regex: "@Environment\\(UserSettingsStore\\.self\\)"
+    message: "Rows accept currency as a let primitive; do not read store from environment (broad observation fan-out)."
+    severity: warning
+
+  no_app_state_path_outside_router:
+    name: "AppState.budgetPath written outside the router"
+    excluded:
+      - ".*/Features/Budgets/BudgetDetails/Routing/BudgetDetailsRouter\\.swift"
+      - ".*/App/AppState\\.swift"
+      - ".*/App/AppState\\+SessionReset\\.swift"
+      - ".*/App/PulpeApp\\.swift"
+      # Architecture test references the path string in literals — the
+      # test reads the offenders, it never mutates state.
+      - ".*/PulpeTests/Architecture/.*\\.swift"
+      # Phase 1 — router becomes the sole writer.
+      - ".*/Features/Budgets/BudgetDetails/BudgetDetailsView\\.swift"
+      - ".*/Features/Budgets/BudgetDetails/BudgetLineDetailPage\\.swift"
+      - ".*/Features/Budgets/BudgetList/BudgetListView\\.swift"
+      - ".*/Features/CurrentMonth/CurrentMonthView\\.swift"
+    regex: "appState\\.budgetPath\\.(append|removeLast)|appState\\.budgetPath\\s*="
+    message: "Use BudgetDetailsRouter.push / popToRoot — do not mutate AppState.budgetPath directly."
+    severity: warning
+
+  no_task_sleep_in_feature:
+    name: "Task.sleep outside dedicated helpers"
+    included: ".*/Features/Budgets/BudgetDetails/.*\\.swift"
+    excluded:
+      - ".*/Helpers/AutoPopView\\.swift"
+      - ".*/Helpers/View\\+afterPushTransition\\.swift"
+      # Phase 5 — autofocus + autopop helpers replace inline Task.sleep.
+      - ".*/BudgetLineMixedRow\\.swift"
+      - ".*/BudgetLineDetailPage\\.swift"
+      - ".*/AddAllocatedTransactionPage\\.swift"
+      - ".*/EditTransactionPage\\.swift"
+    regex: "Task\\.sleep\\(for:"
+    message: "Use AutoPopView or View.afterPushTransition helpers instead of inline Task.sleep."
+    severity: warning
+
+  no_magic_timing_literals:
+    name: "Magic timing literals in BudgetDetails"
+    included: ".*/Features/Budgets/BudgetDetails/.*\\.swift"
+    excluded:
+      - ".*/Helpers/.*"
+      # Phase 5 — replaced by DesignTokens entries.
+      - ".*/BudgetLineMixedRow\\.swift"
+      - ".*/BudgetLineDetailPage\\.swift"
+      - ".*/AddAllocatedTransactionPage\\.swift"
+      - ".*/EditTransactionPage\\.swift"
+    regex: "milliseconds\\(\\s*(150|200|300)\\s*\\)"
+    message: "Promote to DesignTokens.Animation.{autoPopGraceMs|pushAutofocusDelayMs} or DesignTokens.Sync.indicatorRampDelayMs."
+    severity: warning
+
+  no_swiftlint_disable_in_feature:
+    name: "swiftlint disable file_length / type_body_length in BudgetDetails"
+    included: ".*/Features/Budgets/BudgetDetails/.*\\.swift"
+    excluded:
+      # Phase 4 — file is split into stores + projector + coordinator.
+      - ".*/BudgetDetailsViewModel\\.swift"
+    regex: "swiftlint:disable\\s+(file_length|type_body_length)"
+    message: "Files must stay under thresholds; split into stores/projector/coordinator instead of disabling."
+    severity: warning
+
 # Reporter type (xcode, json, csv, checkstyle, codeclimate, junit, html, emoji, sonarqube, markdown, github-actions-logging, summary)
 reporter: xcode
