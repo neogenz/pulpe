@@ -9,6 +9,7 @@ export class BudgetItemDataProvider {
   provideTableData(params: {
     budgetLines: BudgetLine[];
     transactions: Transaction[];
+    openingBalance?: number;
     viewMode?: BudgetViewMode;
     searchText?: string;
   }): TableRowItem[] {

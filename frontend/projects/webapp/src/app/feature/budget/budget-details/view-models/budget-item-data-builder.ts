@@ -3,10 +3,6 @@ import {
   calculateAllConsumptions,
   calculateBudgetLineConsumption,
 } from '@core/budget/budget-line-consumption';
-import {
-  isRolloverLine,
-  formatRolloverDisplayName,
-} from '@core/budget/rollover/rollover-types';
 import type {
   BudgetLineConsumptionDisplay,
   BudgetLineTableItem,
@@ -24,7 +20,6 @@ import {
   getTransactionCountLabel,
   getSignedAmount,
   calculatePercentage,
-  getRolloverSourceBudgetId,
   safeParseDate,
   normalizeText,
   getBudgetConsumptionState,
@@ -121,8 +116,9 @@ function isDataItem(
 function calculateBalancesInDisplayOrder(
   items: TableRowItem[],
   consumptionMap: Map<string, { consumed: number }>,
+  openingBalance = 0,
 ): void {
-  let runningBalance = 0;
+  let runningBalance = openingBalance;
 
   items.forEach((item) => {
     if (!isDataItem(item)) return;
@@ -195,7 +191,6 @@ function createBudgetLineViewModel(
   budgetLine: BudgetLine,
   consumptionMap: Map<string, { consumed: number; transactionCount: number }>,
 ): BudgetLineTableItem {
-  const isRollover = isRolloverLine(budgetLine);
   const isPropagationLocked =
     !!budgetLine.templateLineId && !!budgetLine.isManuallyAdjusted;
   const consumption = consumptionMap.get(budgetLine.id);
@@ -209,17 +204,13 @@ function createBudgetLineViewModel(
     metadata: {
       itemType: 'budget_line',
       cumulativeBalance: 0,
-      isRollover,
       isTemplateLinked: !!budgetLine.templateLineId,
       isPropagationLocked,
       canResetFromTemplate: isPropagationLocked,
       envelopeName: null,
       kindIcon: getKindIcon(budgetLine.kind),
       allocationLabel: getAllocationLabel(budgetLine.kind),
-      rolloverSourceBudgetId: getRolloverSourceBudgetId(budgetLine),
-      displayName: isRollover
-        ? formatRolloverDisplayName(budgetLine.name)
-        : budgetLine.name,
+      displayName: budgetLine.name,
     },
     consumption: {
       consumed,
@@ -242,24 +233,18 @@ function createBudgetLineViewModel(
 function createTransactionViewModel(
   transaction: Transaction,
 ): TransactionTableItem {
-  const isRollover = isRolloverLine(transaction);
-
   return {
     data: transaction,
     metadata: {
       itemType: 'transaction',
       cumulativeBalance: 0,
-      isRollover,
       isTemplateLinked: false,
       isPropagationLocked: false,
       canResetFromTemplate: false,
       envelopeName: null,
       kindIcon: getKindIcon(transaction.kind),
       allocationLabel: getAllocationLabel(transaction.kind),
-      rolloverSourceBudgetId: undefined,
-      displayName: isRollover
-        ? formatRolloverDisplayName(transaction.name)
-        : transaction.name,
+      displayName: transaction.name,
     },
   };
 }
@@ -312,9 +297,10 @@ export function createBudgetLineConsumptionDisplay(
 export function buildViewData(params: {
   budgetLines: BudgetLine[];
   transactions: Transaction[];
+  openingBalance?: number;
   searchText?: string;
 }): TableRowItem[] {
-  const { budgetLines, transactions, searchText } = params;
+  const { budgetLines, transactions, openingBalance = 0, searchText } = params;
 
   const consumptionMap = calculateAllConsumptions(budgetLines, transactions);
   const items = [...createDisplayItems(budgetLines, transactions)].sort(
@@ -342,6 +328,6 @@ export function buildViewData(params: {
   }
 
   const result = insertGroupHeaders(mappedItems);
-  calculateBalancesInDisplayOrder(result, consumptionMap);
+  calculateBalancesInDisplayOrder(result, consumptionMap, openingBalance);
   return result;
 }

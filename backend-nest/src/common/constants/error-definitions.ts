@@ -109,6 +109,11 @@ export const ERROR_DEFINITIONS = {
       'Re-encryption failed. Data remains encrypted with the previous key.',
     httpStatus: HttpStatus.INTERNAL_SERVER_ERROR,
   },
+  ENCRYPTION_REPOSITORY_FAILURE: {
+    code: API_ERROR_CODES.ENCRYPTION_REPOSITORY_FAILURE,
+    message: () => 'Encryption key store unavailable',
+    httpStatus: HttpStatus.INTERNAL_SERVER_ERROR,
+  },
 
   // Budget Errors
   BUDGET_NOT_FOUND: {
@@ -244,12 +249,6 @@ export const ERROR_DEFINITIONS = {
         ? `Failed to delete template line with ID '${details.id}'`
         : 'Failed to delete template line',
     httpStatus: HttpStatus.INTERNAL_SERVER_ERROR,
-  },
-  TEMPLATE_ONBOARDING_RATE_LIMIT: {
-    code: API_ERROR_CODES.TEMPLATE_ONBOARDING_RATE_LIMIT,
-    message: () =>
-      'You can only create one template from onboarding per 24 hours',
-    httpStatus: HttpStatus.TOO_MANY_REQUESTS,
   },
   TEMPLATE_ACCESS_FORBIDDEN: {
     code: API_ERROR_CODES.TEMPLATE_ACCESS_FORBIDDEN,

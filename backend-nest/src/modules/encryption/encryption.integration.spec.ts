@@ -6,8 +6,8 @@ import { ConfigService } from '@nestjs/config';
 import { SupabaseService } from '@modules/supabase/supabase.service';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '../../types/database.types';
-import { EncryptionKeyRepository } from './encryption-key.repository';
-import { EncryptionService } from './encryption.service';
+import { SupabaseEncryptionKeyRepository } from './infrastructure/persistence/supabase-encryption-key.repository';
+import { AesGcmCryptoService } from './infrastructure/crypto/aes-gcm.crypto-service';
 
 const BACKEND_ROOT = resolve(__dirname, '../../..');
 
@@ -275,7 +275,7 @@ describe('Encryption integration (local Supabase)', () => {
   let hasSupabase = false;
   let supabaseEnv: SupabaseEnv;
   let adminClient: SupabaseClient<Database>;
-  let encryptionService: EncryptionService;
+  let encryptionService: AesGcmCryptoService;
 
   beforeAll(async () => {
     const env = await ensureSupabaseAvailable().catch((error) => {
@@ -292,7 +292,7 @@ describe('Encryption integration (local Supabase)', () => {
       ENCRYPTION_MASTER_KEY: TEST_MASTER_KEY,
     }) as unknown as ConfigService;
     const supabaseService = new SupabaseService(configService);
-    const repository = new EncryptionKeyRepository(supabaseService);
+    const repository = new SupabaseEncryptionKeyRepository(supabaseService);
 
     adminClient = supabaseService.getServiceRoleClient();
     const { error: schemaError } = await adminClient
@@ -352,7 +352,7 @@ describe('Encryption integration (local Supabase)', () => {
       debug: () => {},
       trace: () => {},
     };
-    encryptionService = new EncryptionService(
+    encryptionService = new AesGcmCryptoService(
       mockLogger as any,
       configService,
       repository,

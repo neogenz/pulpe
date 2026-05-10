@@ -5,7 +5,7 @@ import {
   ThrottlerGuard,
   ThrottlerStorageService,
 } from '@nestjs/throttler';
-import { EncryptionController } from './encryption.controller';
+import { EncryptionController } from './infrastructure/http/encryption.controller';
 
 type TestContext = {
   getHandler: () => unknown;

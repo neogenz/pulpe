@@ -1,0 +1,81 @@
+import { describe, expect, it } from 'bun:test';
+import { Reflector } from '@nestjs/core';
+import {
+  ThrottlerException,
+  ThrottlerGuard,
+  ThrottlerStorageService,
+} from '@nestjs/throttler';
+import { BudgetTemplateController } from './infrastructure/http/budget-template.controller';
+
+type TestContext = {
+  getHandler: () => unknown;
+  getClass: () => unknown;
+  switchToHttp: () => {
+    getRequest: () => { ip: string; headers: Record<string, string> };
+    getResponse: () => { header: (name: string, value: unknown) => void };
+  };
+};
+
+const createContext = (handler: unknown): TestContext => {
+  const req = {
+    ip: '127.0.0.1',
+    headers: { 'user-agent': 'bun-test' },
+  };
+  const res = {
+    header: () => undefined,
+  };
+
+  return {
+    getHandler: () => handler,
+    getClass: () => BudgetTemplateController,
+    switchToHttp: () => ({
+      getRequest: () => req,
+      getResponse: () => res,
+    }),
+  };
+};
+
+const createGuard = async (): Promise<ThrottlerGuard> => {
+  const guard = new ThrottlerGuard(
+    {
+      throttlers: [
+        {
+          name: 'default',
+          ttl: 60_000,
+          limit: 1000,
+        },
+      ],
+    },
+    new ThrottlerStorageService(),
+    new Reflector(),
+  );
+  await guard.onModuleInit();
+  return guard;
+};
+
+const runAttempts = async (
+  guard: ThrottlerGuard,
+  handler: unknown,
+  attempts: number,
+): Promise<void> => {
+  for (let i = 0; i < attempts; i += 1) {
+    const context = createContext(handler);
+    await guard.canActivate(context as any);
+  }
+};
+
+describe('BudgetTemplateController Rate Limiting', () => {
+  it('throttles createFromOnboarding after 5 attempts per minute', async () => {
+    const guard = await createGuard();
+    const handler = BudgetTemplateController.prototype.createFromOnboarding;
+
+    await runAttempts(guard, handler, 5);
+
+    try {
+      await guard.canActivate(createContext(handler) as any);
+      expect.unreachable('Expected throttling exception after 5 attempts');
+    } catch (error) {
+      expect(error).toBeInstanceOf(ThrottlerException);
+    }
+  });
+});

@@ -1278,4 +1278,61 @@ describe('GlobalExceptionFilter', () => {
       );
     });
   });
+
+  describe('Wire response leak armor', () => {
+    it('never leaks BusinessException loggingContext fields onto the JSON response body', () => {
+      // Adversarial scenario: a service throws a BusinessException whose
+      // loggingContext carries DB-internal fields that must NEVER hit the wire
+      // (column names from RLS errors, internal user IDs, postgres codes).
+      // The filter MUST keep loggingContext on the log line only.
+      const businessException = new BusinessException(
+        ERROR_DEFINITIONS.ENCRYPTION_REPOSITORY_FAILURE,
+        undefined,
+        {
+          userId: 'leaky-uuid',
+          operation: 'findSaltByUserId',
+          supabaseCode: '42P01',
+          supabaseMessage: 'sensitive-column-name',
+        },
+        { cause: { code: '42P01', message: 'sensitive-column-name' } },
+      );
+
+      const request = createMockRequest({
+        method: 'GET',
+        url: '/api/v1/encryption/keys/me',
+        // Request-derived userId is allowed in response.context.userId; it's
+        // distinct from the service-supplied 'leaky-uuid' so we can assert the
+        // leak string is absent without false-matching the request's user.
+        user: { id: 'request-user-id' },
+      });
+      const response = createMockResponse();
+      const host = createMockArgumentsHost(request, response);
+
+      filter.catch(businessException, host);
+
+      const responseData = (response as any).getResponseData();
+      const serialized = JSON.stringify(responseData);
+
+      // Service-supplied leak strings must not appear anywhere on the wire.
+      expect(serialized).not.toContain('leaky-uuid');
+      expect(serialized).not.toContain('sensitive-column-name');
+      expect(serialized).not.toContain('42P01');
+
+      // Top-level keys carrying internal context must not be exposed.
+      expect(responseData).not.toHaveProperty('loggingContext');
+      expect(responseData).not.toHaveProperty('supabaseCode');
+      expect(responseData).not.toHaveProperty('supabaseMessage');
+      // Top-level userId must not exist either (only context.userId is allowed,
+      // and that path comes from the request, not the service-supplied leak).
+      expect(responseData).not.toHaveProperty('userId');
+
+      // Sanity: context.userId is the request-derived user, never the leak.
+      expect(responseData.context?.userId).toBe('request-user-id');
+      expect(responseData.context?.userId).not.toBe('leaky-uuid');
+
+      // Sanity: the standard, intentionally-public fields are still there.
+      expect(responseData.code).toBe('ERR_ENCRYPTION_REPOSITORY_FAILURE');
+      expect(responseData.message).toBe('Encryption key store unavailable');
+    });
+  });
 });

@@ -11,7 +11,6 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { RouterLink } from '@angular/router';
 import { type BudgetLine, type SupportedCurrency } from 'pulpe-shared';
 import { AppCurrencyPipe, FormatConversionPipe } from '@core/currency';
 import { FinancialKindDirective } from '@ui/financial-kind';
@@ -30,7 +29,6 @@ import { BudgetActionMenu } from '../budget-action-menu';
     MatIconModule,
     MatButtonModule,
     MatTooltipModule,
-    RouterLink,
     TranslocoPipe,
     AppCurrencyPipe,
     FinancialKindDirective,
@@ -46,9 +44,7 @@ import { BudgetActionMenu } from '../budget-action-menu';
       [name]="item().metadata.displayName"
       [amount]="item().data.amount"
       [currency]="currency()"
-      [recurrence]="
-        !item().metadata.isRollover ? item().data.recurrence : undefined
-      "
+      [recurrence]="item().data.recurrence"
       [isStriked]="!!item().data.checkedAt"
       [dataTestId]="'envelope-card-' + item().data.id"
       [class.ring-2]="isSelected()"
@@ -61,18 +57,7 @@ import { BudgetActionMenu } from '../budget-action-menu';
           [class.line-through]="item().data.checkedAt"
           [class.text-on-surface-variant]="item().data.checkedAt"
         >
-          @if (
-            item().metadata.isRollover && item().metadata.rolloverSourceBudgetId
-          ) {
-            <a
-              [routerLink]="['/budget', item().metadata.rolloverSourceBudgetId]"
-              class="text-primary underline-offset-2 hover:underline"
-            >
-              {{ item().metadata.displayName }}
-            </a>
-          } @else {
-            {{ item().metadata.displayName }}
-          }
+          {{ item().metadata.displayName }}
         </span>
       </ng-container>
 
@@ -87,21 +72,19 @@ import { BudgetActionMenu } from '../budget-action-menu';
         </ng-container>
       }
 
-      @if (!item().metadata.isRollover) {
-        <ng-container ngProjectAs="[menu]">
-          <pulpe-budget-action-menu
-            [item]="item()"
-            [currency]="currency()"
-            menuIcon="more_horiz"
-            buttonClass="!-mr-2 !-mt-1"
-            [showBalance]="true"
-            (edit)="edit.emit($event)"
-            (delete)="delete.emit($event)"
-            (addTransaction)="addTransaction.emit($event)"
-            (resetFromTemplate)="resetFromTemplate.emit($event)"
-          />
-        </ng-container>
-      }
+      <ng-container ngProjectAs="[menu]">
+        <pulpe-budget-action-menu
+          [item]="item()"
+          [currency]="currency()"
+          menuIcon="more_horiz"
+          buttonClass="!-mr-2 !-mt-1"
+          [showBalance]="true"
+          (edit)="edit.emit($event)"
+          (delete)="delete.emit($event)"
+          (addTransaction)="addTransaction.emit($event)"
+          (resetFromTemplate)="resetFromTemplate.emit($event)"
+        />
+      </ng-container>
 
       @if (item().consumption?.hasTransactions) {
         @let remaining = item().data.amount - item().consumption!.consumed;
@@ -160,9 +143,7 @@ import { BudgetActionMenu } from '../budget-action-menu';
           </div>
         }
 
-        @if (
-          item().consumption?.hasTransactions && !item().metadata.isRollover
-        ) {
+        @if (item().consumption?.hasTransactions) {
           <div class="mb-4">
             <pulpe-segmented-budget-progress
               [percentage]="item().consumption!.percentage"
@@ -202,53 +183,51 @@ import { BudgetActionMenu } from '../budget-action-menu';
         }
       </ng-container>
 
-      @if (!item().metadata.isRollover) {
-        <ng-container ngProjectAs="[actions]">
-          @if (item().consumption?.hasTransactions) {
-            <button
-              matButton
-              class="text-body-small h-8! px-3!"
-              [matBadge]="item().consumption!.transactionCount"
-              matBadgeColor="primary"
-              (click)="viewTransactions.emit(item())"
-              [matTooltip]="
-                'budget.viewTransactionsCount'
-                  | transloco
-                    : { label: item().consumption!.transactionCountLabel }
-              "
-            >
-              <mat-icon class="text-base! mr-1">receipt_long</mat-icon>
-              <span class="ph-no-capture">{{
-                item().consumption!.consumed | appCurrency: currency() : '1.0-0'
-              }}</span>
-            </button>
-          }
+      <ng-container ngProjectAs="[actions]">
+        @if (item().consumption?.hasTransactions) {
           <button
-            matIconButton
-            class="text-primary"
-            (click)="addTransaction.emit(item().data)"
-            [matTooltip]="'budgetLine.addTransaction' | transloco"
-            [attr.aria-label]="'budgetLine.addTransaction' | transloco"
-            [attr.data-testid]="'add-transaction-' + item().data.id"
-          >
-            <mat-icon>add</mat-icon>
-          </button>
-
-          <mat-slide-toggle
-            [checked]="!!item().data.checkedAt"
-            (change)="toggleCheck.emit(item().data.id)"
-            (click)="$event.stopPropagation()"
-            [attr.data-testid]="'toggle-check-' + item().data.id"
-            [attr.aria-label]="
-              item().data.checkedAt
-                ? ('budgetLine.uncheckLabel'
-                  | transloco: { name: item().data.name })
-                : ('budgetLine.checkLabel'
-                  | transloco: { name: item().data.name })
+            matButton
+            class="text-body-small h-8! px-3!"
+            [matBadge]="item().consumption!.transactionCount"
+            matBadgeColor="primary"
+            (click)="viewTransactions.emit(item())"
+            [matTooltip]="
+              'budget.viewTransactionsCount'
+                | transloco
+                  : { label: item().consumption!.transactionCountLabel }
             "
-          />
-        </ng-container>
-      }
+          >
+            <mat-icon class="text-base! mr-1">receipt_long</mat-icon>
+            <span class="ph-no-capture">{{
+              item().consumption!.consumed | appCurrency: currency() : '1.0-0'
+            }}</span>
+          </button>
+        }
+        <button
+          matIconButton
+          class="text-primary"
+          (click)="addTransaction.emit(item().data)"
+          [matTooltip]="'budgetLine.addTransaction' | transloco"
+          [attr.aria-label]="'budgetLine.addTransaction' | transloco"
+          [attr.data-testid]="'add-transaction-' + item().data.id"
+        >
+          <mat-icon>add</mat-icon>
+        </button>
+
+        <mat-slide-toggle
+          [checked]="!!item().data.checkedAt"
+          (change)="toggleCheck.emit(item().data.id)"
+          (click)="$event.stopPropagation()"
+          [attr.data-testid]="'toggle-check-' + item().data.id"
+          [attr.aria-label]="
+            item().data.checkedAt
+              ? ('budgetLine.uncheckLabel'
+                | transloco: { name: item().data.name })
+              : ('budgetLine.checkLabel'
+                | transloco: { name: item().data.name })
+          "
+        />
+      </ng-container>
     </pulpe-financial-line-card>
   `,
   styles: `

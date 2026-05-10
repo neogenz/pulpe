@@ -46,64 +46,62 @@ import type {
           [attr.data-testid]="'toggle-check-tx-' + line().data.id"
         />
       }
-      @if (!line().metadata.isRollover) {
-        <button
-          matIconButton
-          [matMenuTriggerFor]="rowActionMenu"
-          [attr.data-testid]="'actions-menu-' + line().data.id"
-          [disabled]="line().metadata.isLoading"
-        >
-          <mat-icon>more_vert</mat-icon>
-        </button>
+      <button
+        matIconButton
+        [matMenuTriggerFor]="rowActionMenu"
+        [attr.data-testid]="'actions-menu-' + line().data.id"
+        [disabled]="line().metadata.isLoading"
+      >
+        <mat-icon>more_vert</mat-icon>
+      </button>
 
-        <mat-menu #rowActionMenu="matMenu" xPosition="before">
-          <div
-            class="px-4 py-2 text-label-medium text-on-surface-variant max-w-48 truncate"
-            [matTooltip]="line().data.name"
-            matTooltipShowDelay="500"
-          >
-            {{ line().data.name }}
-          </div>
-          <mat-divider />
-          @if (line().metadata.itemType === 'budget_line') {
-            <button
-              mat-menu-item
-              (click)="addTransaction.emit(budgetLineData())"
-              [attr.data-testid]="'add-transaction-' + line().data.id"
-            >
-              <mat-icon matMenuItemIcon>add</mat-icon>
-              <span>{{ line().metadata.allocationLabel }}</span>
-            </button>
-            <button
-              mat-menu-item
-              (click)="edit.emit(asBudgetLineItem())"
-              [attr.data-testid]="'edit-' + line().data.id"
-            >
-              <mat-icon matMenuItemIcon>edit</mat-icon>
-              <span>{{ 'common.edit' | transloco }}</span>
-            </button>
-          }
-          @if (line().metadata.canResetFromTemplate) {
-            <button
-              mat-menu-item
-              (click)="resetFromTemplate.emit(asBudgetLineItem())"
-              [attr.data-testid]="'reset-from-template-' + line().data.id"
-            >
-              <mat-icon matMenuItemIcon>refresh</mat-icon>
-              <span>{{ 'budget.reset' | transloco }}</span>
-            </button>
-          }
+      <mat-menu #rowActionMenu="matMenu" xPosition="before">
+        <div
+          class="px-4 py-2 text-label-medium text-on-surface-variant max-w-48 truncate"
+          [matTooltip]="line().data.name"
+          matTooltipShowDelay="500"
+        >
+          {{ line().data.name }}
+        </div>
+        <mat-divider />
+        @if (line().metadata.itemType === 'budget_line') {
           <button
             mat-menu-item
-            (click)="delete.emit(line().data.id)"
-            [attr.data-testid]="'delete-' + line().data.id"
-            class="text-error"
+            (click)="addTransaction.emit(budgetLineData())"
+            [attr.data-testid]="'add-transaction-' + line().data.id"
           >
-            <mat-icon matMenuItemIcon class="text-error">delete</mat-icon>
-            <span>{{ 'common.delete' | transloco }}</span>
+            <mat-icon matMenuItemIcon>add</mat-icon>
+            <span>{{ line().metadata.allocationLabel }}</span>
           </button>
-        </mat-menu>
-      }
+          <button
+            mat-menu-item
+            (click)="edit.emit(asBudgetLineItem())"
+            [attr.data-testid]="'edit-' + line().data.id"
+          >
+            <mat-icon matMenuItemIcon>edit</mat-icon>
+            <span>{{ 'common.edit' | transloco }}</span>
+          </button>
+        }
+        @if (line().metadata.canResetFromTemplate) {
+          <button
+            mat-menu-item
+            (click)="resetFromTemplate.emit(asBudgetLineItem())"
+            [attr.data-testid]="'reset-from-template-' + line().data.id"
+          >
+            <mat-icon matMenuItemIcon>refresh</mat-icon>
+            <span>{{ 'budget.reset' | transloco }}</span>
+          </button>
+        }
+        <button
+          mat-menu-item
+          (click)="delete.emit(line().data.id)"
+          [attr.data-testid]="'delete-' + line().data.id"
+          class="text-error"
+        >
+          <mat-icon matMenuItemIcon class="text-error">delete</mat-icon>
+          <span>{{ 'common.delete' | transloco }}</span>
+        </button>
+      </mat-menu>
     </div>
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,

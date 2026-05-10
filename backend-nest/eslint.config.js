@@ -4,10 +4,11 @@ const tseslint = require('typescript-eslint');
 const nestjsTyped = require('@darraghor/eslint-plugin-nestjs-typed');
 const prettier = require('eslint-plugin-prettier');
 const prettierConfig = require('eslint-config-prettier');
+const boundariesPlugin = require('eslint-plugin-boundaries');
 
 module.exports = tseslint.config(
   {
-    ignores: ['dist/**', 'node_modules/**', '**/*.js', '**/*.d.ts'],
+    ignores: ['dist/**', 'node_modules/**', '**/*.js', '**/*.cjs', '**/*.d.ts'],
   },
   eslint.configs.recommended,
   ...tseslint.configs.recommended,
@@ -16,6 +17,35 @@ module.exports = tseslint.config(
     files: ['src/**/*.ts'],
     plugins: {
       prettier: prettier,
+      boundaries: boundariesPlugin,
+    },
+    settings: {
+      'boundaries/elements': [
+        {
+          type: 'domain',
+          pattern: 'src/modules/*/domain/**',
+        },
+        {
+          type: 'application',
+          pattern: 'src/modules/*/application/**',
+        },
+        {
+          type: 'infrastructure',
+          pattern: 'src/modules/*/infrastructure/**',
+        },
+        {
+          type: 'common',
+          pattern: 'src/common/**',
+        },
+        {
+          type: 'config',
+          pattern: 'src/config/**',
+        },
+        {
+          type: 'types',
+          pattern: 'src/types/**',
+        },
+      ],
     },
     rules: {
       // === PRETTIER INTEGRATION ===
@@ -89,6 +119,54 @@ module.exports = tseslint.config(
       '@typescript-eslint/explicit-function-return-type': 'off', // Trop strict pour les contrôleurs NestJS
       '@typescript-eslint/explicit-module-boundary-types': 'off', // Trop strict pour NestJS
       '@typescript-eslint/no-extraneous-class': 'off', // Modules NestJS ont souvent des classes vides
+
+      // === CLEAN ARCH BOUNDARY RULES ===
+      'boundaries/element-types': [
+        'error',
+        {
+          default: 'allow',
+          rules: [
+            {
+              from: 'domain',
+              disallow: ['application', 'infrastructure'],
+              message:
+                'Domain layer may not import from application or infrastructure',
+            },
+            {
+              from: 'application',
+              disallow: ['infrastructure'],
+              message: 'Application layer may not import from infrastructure',
+            },
+          ],
+        },
+      ],
+    },
+  },
+
+  // === DOMAIN LAYER: forbid framework/infra dependencies ===
+  {
+    files: ['src/modules/*/domain/**/*.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['@nestjs/*'],
+              message: 'Domain layer must not import from @nestjs/*',
+            },
+            {
+              group: ['@supabase/*'],
+              message: 'Domain layer must not import from @supabase/*',
+            },
+            {
+              group: ['zod', 'zod/*'],
+              message:
+                'Domain layer must not import zod (use plain TypeScript types)',
+            },
+          ],
+        },
+      ],
     },
   },
 
@@ -104,6 +182,8 @@ module.exports = tseslint.config(
       complexity: 'off',
       '@typescript-eslint/no-floating-promises': 'off',
       '@typescript-eslint/require-await': 'off',
+      'boundaries/element-types': 'off',
+      'no-restricted-imports': 'off',
     },
   },
 );

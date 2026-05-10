@@ -364,6 +364,65 @@ describe('RecoverVaultCode', () => {
         ),
       );
     });
+
+    it('should forward recovery when recover$ throws ENCRYPTION_REKEY_PARTIAL_FAILURE', async () => {
+      mockEncryptionApi.recover$.mockReturnValue(
+        throwError(
+          () =>
+            new ApiError(
+              'Partial failure',
+              'ERR_ENCRYPTION_REKEY_PARTIAL_FAILURE',
+              500,
+              null,
+            ),
+        ),
+      );
+
+      await submitFormViaDom();
+
+      await vi.waitFor(() => {
+        expect(mockClientKeyService.setDirectKey).toHaveBeenCalledWith(
+          'abcd'.repeat(16),
+          false,
+        );
+        expect(mockEncryptionApi.regenerateRecoveryKey$).toHaveBeenCalled();
+        expect(navigateSpy).toHaveBeenCalledWith(['/', 'dashboard']);
+        expect(component['errorMessage']()).toBe('');
+      });
+    });
+
+    it('should forward recovery and show snackbar when PARTIAL_FAILURE then regenerate fails', async () => {
+      mockEncryptionApi.recover$.mockReturnValue(
+        throwError(
+          () =>
+            new ApiError(
+              'Partial failure',
+              'ERR_ENCRYPTION_REKEY_PARTIAL_FAILURE',
+              500,
+              null,
+            ),
+        ),
+      );
+      mockEncryptionApi.regenerateRecoveryKey$.mockReturnValue(
+        throwError(() => new Error('Recovery key setup failed')),
+      );
+
+      await submitFormViaDom();
+
+      await vi.waitFor(() => {
+        expect(mockClientKeyService.setDirectKey).toHaveBeenCalledWith(
+          'abcd'.repeat(16),
+          false,
+        );
+        expect(mockSnackBar.open).toHaveBeenCalledWith(
+          expect.stringContaining('clé de récupération'),
+          'OK',
+          expect.objectContaining({ duration: 8000 }),
+        );
+        expect(navigateSpy).toHaveBeenCalledWith(['/', 'dashboard']);
+        expect(component['errorMessage']()).toBe('');
+      });
+    });
   });
 
   describe('onSubmit - Incomplete recovery', () => {

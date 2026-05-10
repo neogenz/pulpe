@@ -1,0 +1,563 @@
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Delete,
+  Body,
+  Param,
+  UseGuards,
+  ParseUUIDPipe,
+} from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+  ApiParam,
+  ApiBadRequestResponse,
+  ApiNotFoundResponse,
+  ApiUnauthorizedResponse,
+  ApiInternalServerErrorResponse,
+  ApiCreatedResponse,
+} from '@nestjs/swagger';
+import {
+  type BudgetTemplateListResponse as _BudgetTemplateListResponse,
+  type BudgetTemplateResponse as _BudgetTemplateResponse,
+  type BudgetTemplateCreateResponse as _BudgetTemplateCreateResponse,
+  type BudgetTemplateDeleteResponse as _BudgetTemplateDeleteResponse,
+  type TemplateLineListResponse,
+  type TemplateLineResponse as _TemplateLineResponse,
+  type TemplateLineDeleteResponse as _TemplateLineDeleteResponse,
+  type TemplateLinesBulkOperationsResponse as _TemplateLinesBulkOperationsResponse,
+  type TemplateUsageResponse,
+} from 'pulpe-shared';
+import { AuthGuard } from '@common/guards/auth.guard';
+import {
+  User,
+  SupabaseClient,
+  type AuthenticatedUser,
+} from '@common/decorators/user.decorator';
+import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
+import {
+  BudgetTemplateCreateDto,
+  BudgetTemplateCreateFromOnboardingDto,
+  BudgetTemplateUpdateDto,
+  BudgetTemplateListResponseDto,
+  BudgetTemplateResponseDto,
+  BudgetTemplateCreateResponseDto,
+  BudgetTemplateDeleteResponseDto,
+  TemplateLineCreateDto,
+  TemplateLineUpdateDto,
+  TemplateLineListResponseDto,
+  TemplateLineResponseDto,
+  TemplateLineDeleteResponseDto,
+  TemplateLinesBulkOperationsDto,
+  TemplateLinesBulkOperationsResponseDto,
+  TemplateUsageResponseDto,
+} from './dto/budget-template-swagger.dto';
+import { ErrorResponseDto } from '@common/dto/response.dto';
+import { FindAllTemplatesUseCase } from '../../application/find-all-templates.use-case';
+import { FindTemplateUseCase } from '../../application/find-template.use-case';
+import { CreateTemplateUseCase } from '../../application/create-template.use-case';
+import { CreateTemplateFromOnboardingUseCase } from '../../application/create-template-from-onboarding.use-case';
+import { UpdateTemplateUseCase } from '../../application/update-template.use-case';
+import { RemoveTemplateUseCase } from '../../application/remove-template.use-case';
+import { CheckTemplateUsageUseCase } from '../../application/check-template-usage.use-case';
+import { FindTemplateLinesUseCase } from '../../application/find-template-lines.use-case';
+import { FindTemplateLineUseCase } from '../../application/find-template-line.use-case';
+import { CreateTemplateLineUseCase } from '../../application/create-template-line.use-case';
+import { UpdateTemplateLineUseCase } from '../../application/update-template-line.use-case';
+import { DeleteTemplateLineUseCase } from '../../application/delete-template-line.use-case';
+import { BulkTemplateLineOperationsUseCase } from '../../application/bulk-template-line-operations.use-case';
+import { BudgetTemplateMapper } from '../mappers/budget-template.mapper';
+
+@ApiTags('Budget Templates')
+@ApiBearerAuth()
+@Controller({ path: 'budget-templates', version: '1' })
+@UseGuards(AuthGuard)
+@ApiUnauthorizedResponse({
+  description: 'Authentication required',
+  type: ErrorResponseDto,
+})
+@ApiInternalServerErrorResponse({
+  description: 'Internal server error',
+  type: ErrorResponseDto,
+})
+export class BudgetTemplateController {
+  // eslint-disable-next-line max-params
+  constructor(
+    private readonly findAllTemplatesUseCase: FindAllTemplatesUseCase,
+    private readonly findTemplateUseCase: FindTemplateUseCase,
+    private readonly createTemplateUseCase: CreateTemplateUseCase,
+    private readonly createTemplateFromOnboardingUseCase: CreateTemplateFromOnboardingUseCase,
+    private readonly updateTemplateUseCase: UpdateTemplateUseCase,
+    private readonly removeTemplateUseCase: RemoveTemplateUseCase,
+    private readonly checkTemplateUsageUseCase: CheckTemplateUsageUseCase,
+    private readonly findTemplateLinesUseCase: FindTemplateLinesUseCase,
+    private readonly findTemplateLineUseCase: FindTemplateLineUseCase,
+    private readonly createTemplateLineUseCase: CreateTemplateLineUseCase,
+    private readonly updateTemplateLineUseCase: UpdateTemplateLineUseCase,
+    private readonly deleteTemplateLineUseCase: DeleteTemplateLineUseCase,
+    private readonly bulkTemplateLineOperationsUseCase: BulkTemplateLineOperationsUseCase,
+    private readonly mapper: BudgetTemplateMapper,
+  ) {}
+
+  @Get()
+  @ApiOperation({
+    summary: 'List all budget templates',
+    description:
+      "Retrieves all budget templates accessible to the user (public templates + user's own templates)",
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Budget templates list retrieved successfully',
+    type: BudgetTemplateListResponseDto,
+  })
+  async findAll(
+    @User() user: AuthenticatedUser,
+    @SupabaseClient() supabase: AuthenticatedSupabaseClient,
+  ): Promise<_BudgetTemplateListResponse> {
+    const templates = await this.findAllTemplatesUseCase.execute(
+      user,
+      supabase,
+    );
+    return { success: true, data: this.mapper.toApiTemplateList(templates) };
+  }
+
+  @Post()
+  @ApiOperation({
+    summary: 'Create a new budget template',
+    description: 'Creates a new budget template for the authenticated user',
+  })
+  @ApiCreatedResponse({
+    description: 'Budget template created successfully',
+    type: BudgetTemplateCreateResponseDto,
+  })
+  @ApiBadRequestResponse({
+    description: 'Invalid input data',
+    type: ErrorResponseDto,
+  })
+  async create(
+    @Body() createTemplateDto: BudgetTemplateCreateDto,
+    @User() user: AuthenticatedUser,
+    @SupabaseClient() supabase: AuthenticatedSupabaseClient,
+  ): Promise<_BudgetTemplateCreateResponse> {
+    const composite = await this.createTemplateUseCase.execute(
+      createTemplateDto,
+      user,
+      supabase,
+    );
+    return this.mapper.toApiTemplateCreateResponse(composite);
+  }
+
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  @Post('from-onboarding')
+  @ApiOperation({
+    summary: 'Create budget template from onboarding data',
+    description:
+      'Creates a new budget template based on user onboarding data including income and fixed expenses',
+  })
+  @ApiCreatedResponse({
+    description: 'Budget template created successfully from onboarding data',
+    type: BudgetTemplateCreateResponseDto,
+  })
+  @ApiBadRequestResponse({
+    description: 'Invalid onboarding data',
+    type: ErrorResponseDto,
+  })
+  async createFromOnboarding(
+    @Body() onboardingData: BudgetTemplateCreateFromOnboardingDto,
+    @User() user: AuthenticatedUser,
+    @SupabaseClient() supabase: AuthenticatedSupabaseClient,
+  ): Promise<_BudgetTemplateCreateResponse> {
+    const composite = await this.createTemplateFromOnboardingUseCase.execute(
+      onboardingData,
+      user,
+      supabase,
+    );
+    return this.mapper.toApiTemplateCreateResponse(composite);
+  }
+
+  @Get(':id/usage')
+  @ApiOperation({
+    summary: 'Check template usage in budgets',
+    description:
+      'Checks if a budget template is being used in any monthly budgets and returns the list',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Unique budget template identifier',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+    type: 'string',
+    format: 'uuid',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Template usage information retrieved successfully',
+    type: TemplateUsageResponseDto,
+  })
+  @ApiNotFoundResponse({
+    description: 'Budget template not found',
+    type: ErrorResponseDto,
+  })
+  async checkUsage(
+    @Param('id', ParseUUIDPipe) id: string,
+    @User() user: AuthenticatedUser,
+    @SupabaseClient() supabase: AuthenticatedSupabaseClient,
+  ): Promise<TemplateUsageResponse> {
+    const usage = await this.checkTemplateUsageUseCase.execute(
+      id,
+      user,
+      supabase,
+    );
+    return { success: true, data: usage };
+  }
+
+  @Get(':id')
+  @ApiOperation({
+    summary: 'Get budget template by ID',
+    description:
+      'Retrieves a specific budget template by its unique identifier',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Unique budget template identifier',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+    type: 'string',
+    format: 'uuid',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Budget template retrieved successfully',
+    type: BudgetTemplateResponseDto,
+  })
+  @ApiNotFoundResponse({
+    description: 'Budget template not found',
+    type: ErrorResponseDto,
+  })
+  async findOne(
+    @Param('id', ParseUUIDPipe) id: string,
+    @User() user: AuthenticatedUser,
+    @SupabaseClient() supabase: AuthenticatedSupabaseClient,
+  ): Promise<_BudgetTemplateResponse> {
+    const template = await this.findTemplateUseCase.execute(id, user, supabase);
+    return { success: true, data: this.mapper.toApiTemplate(template) };
+  }
+
+  @Patch(':id')
+  @ApiOperation({
+    summary: 'Update existing budget template',
+    description: 'Updates an existing budget template with new information',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Unique budget template identifier',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+    type: 'string',
+    format: 'uuid',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Budget template updated successfully',
+    type: BudgetTemplateResponseDto,
+  })
+  @ApiBadRequestResponse({
+    description: 'Invalid input data',
+    type: ErrorResponseDto,
+  })
+  @ApiNotFoundResponse({
+    description: 'Budget template not found',
+    type: ErrorResponseDto,
+  })
+  async update(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() updateTemplateDto: BudgetTemplateUpdateDto,
+    @User() user: AuthenticatedUser,
+    @SupabaseClient() supabase: AuthenticatedSupabaseClient,
+  ): Promise<_BudgetTemplateResponse> {
+    const template = await this.updateTemplateUseCase.execute(
+      id,
+      updateTemplateDto,
+      user,
+      supabase,
+    );
+    return { success: true, data: this.mapper.toApiTemplate(template) };
+  }
+
+  @Get(':id/lines')
+  @ApiOperation({
+    summary: 'Get template lines',
+    description:
+      'Retrieves all transactions associated with a specific budget template',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Unique budget template identifier',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+    type: 'string',
+    format: 'uuid',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Template lines retrieved successfully',
+    type: TemplateLineListResponseDto,
+  })
+  @ApiNotFoundResponse({
+    description: 'Budget template not found',
+    type: ErrorResponseDto,
+  })
+  async findTemplateLines(
+    @Param('id', ParseUUIDPipe) id: string,
+    @User() user: AuthenticatedUser,
+    @SupabaseClient() supabase: AuthenticatedSupabaseClient,
+  ): Promise<TemplateLineListResponse> {
+    const lines = await this.findTemplateLinesUseCase.execute(
+      id,
+      user,
+      supabase,
+    );
+    return { success: true, data: this.mapper.toApiTemplateLineList(lines) };
+  }
+
+  @Post(':id/lines/bulk-operations')
+  @ApiOperation({
+    summary: 'Bulk operations on template lines',
+    description:
+      'Performs bulk operations (create, update, delete) on template lines for a specific budget template',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Unique budget template identifier',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+    type: 'string',
+    format: 'uuid',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Bulk operations completed successfully',
+    type: TemplateLinesBulkOperationsResponseDto,
+  })
+  @ApiBadRequestResponse({
+    description: 'Invalid input data',
+    type: ErrorResponseDto,
+  })
+  @ApiNotFoundResponse({
+    description: 'Budget template not found',
+    type: ErrorResponseDto,
+  })
+  async bulkOperationsTemplateLines(
+    @Param('id', ParseUUIDPipe) templateId: string,
+    @Body() bulkOperationsDto: TemplateLinesBulkOperationsDto,
+    @User() user: AuthenticatedUser,
+    @SupabaseClient() supabase: AuthenticatedSupabaseClient,
+  ): Promise<_TemplateLinesBulkOperationsResponse> {
+    const result = await this.bulkTemplateLineOperationsUseCase.execute(
+      templateId,
+      bulkOperationsDto,
+      user,
+      supabase,
+    );
+    return this.mapper.toApiBulkOperationsResponse(result);
+  }
+
+  @Post(':id/lines')
+  @ApiOperation({
+    summary: 'Create a new template line',
+    description: 'Creates a new template line for a specific budget template',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Unique budget template identifier',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+    type: 'string',
+    format: 'uuid',
+  })
+  @ApiCreatedResponse({
+    description: 'Template line created successfully',
+    type: TemplateLineResponseDto,
+  })
+  @ApiBadRequestResponse({
+    description: 'Invalid input data',
+    type: ErrorResponseDto,
+  })
+  @ApiNotFoundResponse({
+    description: 'Budget template not found',
+    type: ErrorResponseDto,
+  })
+  async createTemplateLine(
+    @Param('id', ParseUUIDPipe) templateId: string,
+    @Body() createLineDto: TemplateLineCreateDto,
+    @User() user: AuthenticatedUser,
+    @SupabaseClient() supabase: AuthenticatedSupabaseClient,
+  ): Promise<_TemplateLineResponse> {
+    const line = await this.createTemplateLineUseCase.execute(
+      templateId,
+      createLineDto,
+      user,
+      supabase,
+    );
+    return { success: true, data: this.mapper.toApiTemplateLine(line) };
+  }
+
+  @Get(':templateId/lines/:lineId')
+  @ApiOperation({
+    summary: 'Get template line by ID',
+    description: 'Retrieves a specific template line by its unique identifier',
+  })
+  @ApiParam({
+    name: 'templateId',
+    description: 'Unique budget template identifier',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+    type: 'string',
+    format: 'uuid',
+  })
+  @ApiParam({
+    name: 'lineId',
+    description: 'Unique template line identifier',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+    type: 'string',
+    format: 'uuid',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Template line retrieved successfully',
+    type: TemplateLineResponseDto,
+  })
+  @ApiNotFoundResponse({
+    description: 'Template line not found',
+    type: ErrorResponseDto,
+  })
+  async findTemplateLine(
+    @Param('templateId', ParseUUIDPipe) templateId: string,
+    @Param('lineId', ParseUUIDPipe) lineId: string,
+    @User() user: AuthenticatedUser,
+    @SupabaseClient() supabase: AuthenticatedSupabaseClient,
+  ): Promise<_TemplateLineResponse> {
+    const line = await this.findTemplateLineUseCase.execute(
+      lineId,
+      user,
+      supabase,
+    );
+    return { success: true, data: this.mapper.toApiTemplateLine(line) };
+  }
+
+  @Patch(':templateId/lines/:lineId')
+  @ApiOperation({
+    summary: 'Update template line',
+    description: 'Updates an existing template line with new information',
+  })
+  @ApiParam({
+    name: 'templateId',
+    description: 'Unique budget template identifier',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+    type: 'string',
+    format: 'uuid',
+  })
+  @ApiParam({
+    name: 'lineId',
+    description: 'Unique template line identifier',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+    type: 'string',
+    format: 'uuid',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Template line updated successfully',
+    type: TemplateLineResponseDto,
+  })
+  @ApiBadRequestResponse({
+    description: 'Invalid input data',
+    type: ErrorResponseDto,
+  })
+  @ApiNotFoundResponse({
+    description: 'Template line not found',
+    type: ErrorResponseDto,
+  })
+  async updateTemplateLine(
+    @Param('templateId', ParseUUIDPipe) templateId: string,
+    @Param('lineId', ParseUUIDPipe) lineId: string,
+    @Body() updateLineDto: TemplateLineUpdateDto,
+    @User() user: AuthenticatedUser,
+    @SupabaseClient() supabase: AuthenticatedSupabaseClient,
+  ): Promise<_TemplateLineResponse> {
+    const line = await this.updateTemplateLineUseCase.execute(
+      lineId,
+      updateLineDto,
+      user,
+      supabase,
+    );
+    return { success: true, data: this.mapper.toApiTemplateLine(line) };
+  }
+
+  @Delete(':templateId/lines/:lineId')
+  @ApiOperation({
+    summary: 'Delete template line',
+    description: 'Permanently deletes a template line',
+  })
+  @ApiParam({
+    name: 'templateId',
+    description: 'Unique budget template identifier',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+    type: 'string',
+    format: 'uuid',
+  })
+  @ApiParam({
+    name: 'lineId',
+    description: 'Unique template line identifier',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+    type: 'string',
+    format: 'uuid',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Template line deleted successfully',
+    type: TemplateLineDeleteResponseDto,
+  })
+  @ApiNotFoundResponse({
+    description: 'Template line not found',
+    type: ErrorResponseDto,
+  })
+  async deleteTemplateLine(
+    @Param('templateId', ParseUUIDPipe) templateId: string,
+    @Param('lineId', ParseUUIDPipe) lineId: string,
+    @User() user: AuthenticatedUser,
+    @SupabaseClient() supabase: AuthenticatedSupabaseClient,
+  ): Promise<_TemplateLineDeleteResponse> {
+    return this.deleteTemplateLineUseCase.execute(lineId, user, supabase);
+  }
+
+  @Delete(':id')
+  @ApiOperation({
+    summary: 'Delete existing budget template',
+    description:
+      'Permanently deletes a budget template and all associated data. Will fail if template is used in any budgets.',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Unique budget template identifier',
+    type: 'string',
+    format: 'uuid',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Budget template deleted successfully',
+    type: BudgetTemplateDeleteResponseDto,
+  })
+  @ApiBadRequestResponse({
+    description: 'Template is being used in one or more budgets',
+    type: ErrorResponseDto,
+  })
+  @ApiNotFoundResponse({
+    description: 'Budget template not found',
+    type: ErrorResponseDto,
+  })
+  async remove(
+    @Param('id', ParseUUIDPipe) id: string,
+    @User() user: AuthenticatedUser,
+    @SupabaseClient() supabase: AuthenticatedSupabaseClient,
+  ): Promise<_BudgetTemplateDeleteResponse> {
+    return this.removeTemplateUseCase.execute(id, user, supabase);
+  }
+}

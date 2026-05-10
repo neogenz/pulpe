@@ -54,33 +54,61 @@ base64(IV[12 bytes] || authTag[16 bytes] || ciphertext)
 
 | File | Role |
 |------|------|
-| `encryption.service.ts` | DEK derivation, AES-GCM encrypt/decrypt, wrap/unwrap, rekey, cache |
-| `encryption-key.repository.ts` | CRUD `user_encryption_key` table |
-| `encryption.controller.ts` | `/salt`, `/validate-key`, `/setup-recovery`, `/recover` |
+| `encryption/infrastructure/crypto/aes-gcm.crypto-service.ts` | DEK derivation, AES-GCM encrypt/decrypt, wrap/unwrap, rekey RPC, cache. Implements `ENCRYPTION_PORT` (read-only primitives) + exposes wrap/unwrap/recovery for in-module use cases |
+| `encryption/infrastructure/persistence/supabase-encryption-key.repository.ts` | CRUD `user_encryption_key` table. Implements `ENCRYPTION_KEY_REPOSITORY` port |
+| `encryption/infrastructure/http/encryption.controller.ts` | `/salt`, `/validate-key`, `/vault-status`, `/setup-recovery`, `/regenerate-recovery`, `/verify-recovery`, `/recover`, `/change-pin` — controller injects use cases only |
+| `encryption/application/*.use-case.ts` | 8 use cases per high-level flow (validate-user-key, setup-recovery-key, regenerate-recovery-key, verify-recovery-key, recover-with-recovery-key, change-pin, get-vault-status, get-user-salt) |
 | `client-key-cleanup.interceptor.ts` | Wipes clientKey from memory after request (`buffer.fill(0)`) |
+
+See [ADR-0008](../../../backend-nest/docs/adr/0008-encryption-service-decomposition.md) for the decomposition rationale.
 
 ## Patterns
 
-### Reading Encrypted Data
+Repositories own the encryption boundary post-Tier-3. Use cases work with plain numbers and never inject `ENCRYPTION_PORT` for read paths. See [ADR-0004](../../../backend-nest/docs/adr/0004-repos-return-decrypted-entities.md).
+
+### Reading encrypted data (inside the repository)
 
 ```typescript
-// Service decrypts after DB read
-const budgetLines = await this.repository.findByBudgetId(budgetId, supabase);
-return budgetLines.map(line => ({
-  ...line,
-  amount: this.encryptionService.decrypt(line.amount, dek),
-}));
+@Injectable()
+export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
+  constructor(
+    private readonly supabaseProvider: AuthenticatedSupabaseProvider,
+    @Inject(ENCRYPTION_PORT) private readonly encryption: EncryptionPort,
+  ) {}
+
+  async findByBudgetId(budgetId: string): Promise<BudgetLine[]> {
+    const { data } = await this.supabaseProvider.client
+      .from('budget_line').select('*').eq('budget_id', budgetId);
+    const dek = await this.getDek();
+    return data.map(row => this.toEntity(row, dek));  // returns plain-number entities
+  }
+}
 ```
 
-### Writing Encrypted Data
+### Writing encrypted data (inside the repository)
 
 ```typescript
-// Service encrypts before DB write
-const amountData = this.encryptionService.prepareAmountData(dto.amount, dek);
-await this.repository.create({
-  ...dto,
-  ...amountData,  // { amount: encryptedCiphertext }
-}, supabase);
+async insert(input: BudgetLineCreateInput): Promise<BudgetLine> {
+  const user = this.supabaseProvider.user;
+  const { amount: encryptedAmount } = await this.encryption.prepareAmountData(
+    input.amount, user.id, user.clientKey,
+  );
+  const { data } = await this.supabaseProvider.client.from('budget_line')
+    .insert({ ...this.toRow(input), amount: encryptedAmount }).select().single();
+  const dek = await this.getDek();
+  return this.toEntity(data, dek);
+}
+```
+
+### Use case (no encryption awareness)
+
+```typescript
+async execute(input: BudgetLineCreate, user: AuthenticatedUser): Promise<BudgetLine> {
+  BudgetLineInvariants.validateCreate(input);
+  const entity = await this.repo.insert(input);  // plain numbers in, decrypted entity out
+  await this.budgetRecalculation.recalculate(entity.budgetId, user.clientKey);
+  return entity;
+}
 ```
 
 ## Security Rules

@@ -85,17 +85,15 @@ import { BudgetActionMenu } from '../budget-action-menu';
           </span>
         </div>
 
-        @if (!item().metadata.isRollover) {
-          <pulpe-budget-action-menu
-            [item]="item()"
-            [currency]="currency()"
-            buttonClass="!-mr-2 !-mt-1"
-            (edit)="edit.emit($event)"
-            (delete)="delete.emit($event)"
-            (addTransaction)="addTransaction.emit($event)"
-            (resetFromTemplate)="resetFromTemplate.emit($event)"
-          />
-        }
+        <pulpe-budget-action-menu
+          [item]="item()"
+          [currency]="currency()"
+          buttonClass="!-mr-2 !-mt-1"
+          (edit)="edit.emit($event)"
+          (delete)="delete.emit($event)"
+          (addTransaction)="addTransaction.emit($event)"
+          (resetFromTemplate)="resetFromTemplate.emit($event)"
+        />
       </div>
 
       @if (matchAnnotation()) {
@@ -152,7 +150,7 @@ import { BudgetActionMenu } from '../budget-action-menu';
       </div>
 
       <!-- Segmented Progress -->
-      @if (item().consumption?.hasTransactions && !item().metadata.isRollover) {
+      @if (item().consumption?.hasTransactions) {
         <div class="mb-4">
           <pulpe-segmented-budget-progress
             [percentage]="item().consumption!.percentage"
@@ -189,29 +187,27 @@ import { BudgetActionMenu } from '../budget-action-menu';
       }
 
       <!-- Footer: Chip + Toggle -->
-      @if (!item().metadata.isRollover) {
-        <div
-          class="flex items-center justify-between pt-3 border-t border-outline-variant/30"
-        >
-          <mat-chip class="!h-6 !text-label-small bg-surface-container">
-            {{ item().data.recurrence | recurrenceLabel }}
-          </mat-chip>
+      <div
+        class="flex items-center justify-between pt-3 border-t border-outline-variant/30"
+      >
+        <mat-chip class="!h-6 !text-label-small bg-surface-container">
+          {{ item().data.recurrence | recurrenceLabel }}
+        </mat-chip>
 
-          <mat-slide-toggle
-            [checked]="!!item().data.checkedAt"
-            (change)="toggleCheck.emit(item().data.id)"
-            (click)="$event.stopPropagation()"
-            [attr.data-testid]="'toggle-check-' + item().data.id"
-            [attr.aria-label]="
-              item().data.checkedAt
-                ? ('budgetLine.uncheckLabel'
-                  | transloco: { name: item().data.name })
-                : ('budgetLine.checkLabel'
-                  | transloco: { name: item().data.name })
-            "
-          />
-        </div>
-      }
+        <mat-slide-toggle
+          [checked]="!!item().data.checkedAt"
+          (change)="toggleCheck.emit(item().data.id)"
+          (click)="$event.stopPropagation()"
+          [attr.data-testid]="'toggle-check-' + item().data.id"
+          [attr.aria-label]="
+            item().data.checkedAt
+              ? ('budgetLine.uncheckLabel'
+                | transloco: { name: item().data.name })
+              : ('budgetLine.checkLabel'
+                | transloco: { name: item().data.name })
+          "
+        />
+      </div>
     </div>
   `,
   styles: `

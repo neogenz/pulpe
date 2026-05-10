@@ -5,10 +5,8 @@ import {
   computed,
   input,
 } from '@angular/core';
-import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { RouterLink } from '@angular/router';
 import { FinancialKindDirective } from '@ui/financial-kind';
 import { TransactionLabelPipe } from '@ui/transaction-display';
 import { formatMatchAnnotation } from '../../../view-models/budget-item-constants';
@@ -21,9 +19,7 @@ import type {
   selector: 'pulpe-name-cell',
   imports: [
     MatIconModule,
-    MatButtonModule,
     MatTooltipModule,
-    RouterLink,
     DatePipe,
     FinancialKindDirective,
     TransactionLabelPipe,
@@ -44,63 +40,44 @@ import type {
           {{ line().metadata.kindIcon }}
         </mat-icon>
       }
-      <span
-        class="inline-flex items-center gap-2"
-        [class.rollover-text]="line().metadata.isRollover"
-      >
-        @if (
-          line().metadata.isRollover && line().metadata.rolloverSourceBudgetId
-        ) {
-          <a
-            [routerLink]="[
-              '/app/budget',
-              line().metadata.rolloverSourceBudgetId,
-            ]"
-            matButton
-            class="ph-no-capture text-body-medium font-semibold"
+      <span class="inline-flex items-center gap-2">
+        <div class="flex flex-col">
+          <span
+            class="ph-no-capture text-body-medium font-semibold flex items-center gap-1"
+            [pulpeFinancialKind]="line().data.kind"
           >
-            <mat-icon class="text-base!">open_in_new</mat-icon>
             {{ line().metadata.displayName }}
-          </a>
-        } @else {
-          <div class="flex flex-col">
+            @if (line().metadata.isPropagationLocked) {
+              <mat-icon
+                class="text-base! text-outline"
+                matTooltip="Montants verrouillés = non affectés par la propagation"
+                matTooltipPosition="above"
+              >
+                lock
+              </mat-icon>
+            }
+          </span>
+          @if (line().metadata.envelopeName) {
             <span
-              class="ph-no-capture text-body-medium font-semibold flex items-center gap-1"
-              [pulpeFinancialKind]="line().data.kind"
+              class="flex items-center gap-1 text-label-small text-on-surface-variant ph-no-capture"
             >
-              {{ line().metadata.displayName }}
-              @if (line().metadata.isPropagationLocked) {
-                <mat-icon
-                  class="text-base! text-outline"
-                  matTooltip="Montants verrouillés = non affectés par la propagation"
-                  matTooltipPosition="above"
-                >
-                  lock
-                </mat-icon>
-              }
+              <mat-icon class="text-sm!">folder</mat-icon>
+              {{ line().metadata.envelopeName }}
             </span>
-            @if (line().metadata.envelopeName) {
-              <span
-                class="flex items-center gap-1 text-label-small text-on-surface-variant ph-no-capture"
-              >
-                <mat-icon class="text-sm!">folder</mat-icon>
-                {{ line().metadata.envelopeName }}
-              </span>
-            }
-            @if (matchAnnotation()) {
-              <span
-                class="inline-flex items-center gap-1 text-label-small
-                       bg-tertiary-container/50 text-on-tertiary-container
-                       rounded-full px-2 py-0.5 w-fit"
-              >
-                <mat-icon class="text-xs! shrink-0 h-auto! w-auto!">
-                  search
-                </mat-icon>
-                {{ matchAnnotation() }}
-              </span>
-            }
-          </div>
-        }
+          }
+          @if (matchAnnotation()) {
+            <span
+              class="inline-flex items-center gap-1 text-label-small
+                     bg-tertiary-container/50 text-on-tertiary-container
+                     rounded-full px-2 py-0.5 w-fit"
+            >
+              <mat-icon class="text-xs! shrink-0 h-auto! w-auto!">
+                search
+              </mat-icon>
+              {{ matchAnnotation() }}
+            </span>
+          }
+        </div>
         @if (line().data.checkedAt) {
           <span class="text-body-small text-on-surface-variant ml-2">
             {{ line().data.checkedAt | date: 'dd.MM' }}
