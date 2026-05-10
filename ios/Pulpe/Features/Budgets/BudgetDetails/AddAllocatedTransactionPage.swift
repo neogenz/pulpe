@@ -58,15 +58,9 @@ struct AddAllocatedTransactionPage: View {
             if let line = budgetLine {
                 pageContent(for: line)
             } else {
-                Color.clear.task { await autoPopIfStillEmpty() }
+                AutoPopView { budgetLine == nil }
             }
         }
-    }
-
-    private func autoPopIfStillEmpty() async {
-        try? await Task.sleep(for: .milliseconds(150))
-        guard !Task.isCancelled else { return }
-        if budgetLine == nil { dismiss() }
     }
 
     @ViewBuilder
@@ -85,14 +79,12 @@ struct AddAllocatedTransactionPage: View {
         .dismissKeyboardOnTap()
         .keyboardFieldNavigation(focus: $focusedField, order: [.amount, .description])
         .sensoryFeedback(.success, trigger: submitSuccessTrigger)
-        .task {
+        .afterPushTransition {
             // Autofocus once. `didAutofocus` guards against re-entering this
             // task after a programmatic re-push that would otherwise steal
             // focus away from the description field.
             guard !didAutofocus else { return }
             didAutofocus = true
-            try? await Task.sleep(for: .milliseconds(200))
-            guard !Task.isCancelled else { return }
             focusedField = .amount
         }
     }

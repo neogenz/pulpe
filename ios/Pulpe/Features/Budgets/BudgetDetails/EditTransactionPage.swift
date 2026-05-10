@@ -57,19 +57,9 @@ struct EditTransactionPage: View {
             if let tx = transaction {
                 pageContent(for: tx)
             } else {
-                // Transaction removed externally → auto-pop after a short
-                // grace window. The grace gives Observation a chance to
-                // settle on first push frame so a transient lookup miss
-                // (rare during reload races) does not pop a fresh page.
-                Color.clear.task { await autoPopIfStillEmpty() }
+                AutoPopView { transaction == nil }
             }
         }
-    }
-
-    private func autoPopIfStillEmpty() async {
-        try? await Task.sleep(for: .milliseconds(150))
-        guard !Task.isCancelled else { return }
-        if transaction == nil { dismiss() }
     }
 
     @ViewBuilder
@@ -89,17 +79,13 @@ struct EditTransactionPage: View {
         .keyboardFieldNavigation(focus: $focusedField, order: [.amount, .description])
         .sensoryFeedback(.success, trigger: submitSuccessTrigger)
         .task(id: tx.id) { hydrate(from: tx) }
-        .task {
+        .afterPushTransition {
             // Autofocus once. `didAutofocus` guards against re-entering this
             // task after a programmatic re-push (deep link, back-then-forward)
             // that would otherwise steal focus away from the description field
             // if the user has already typed there.
             guard !didAutofocus else { return }
             didAutofocus = true
-            // Short delay so the push transition completes before the
-            // keyboard rises (matches `SheetFormContainer` behavior).
-            try? await Task.sleep(for: .milliseconds(200))
-            guard !Task.isCancelled else { return }
             focusedField = .amount
         }
     }

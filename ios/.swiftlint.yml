@@ -93,6 +93,7 @@ custom_rules:
       - ".*/Features/Budgets/BudgetList/BudgetListView\\+YearComponents\\.swift"
       - ".*/Features/Budgets/BudgetDetails/BudgetDetailHero\\.swift"
       - ".*/Features/Budgets/BudgetDetails/BudgetLineDetailPage\\.swift"
+      - ".*/Features/Budgets/BudgetDetails/BudgetLineDetailPage\\+Hero\\.swift"
       - ".*/Features/Onboarding/Components/OnboardingProgressIndicator\\.swift"
       - ".*/Features/Onboarding/Steps/BudgetPreviewFlowBars\\.swift"
     message: "Use PulpeChip from Shared/Components instead of raw Capsule().fill(...). Capsule chip rendering is centralised."
@@ -173,28 +174,19 @@ custom_rules:
     excluded:
       - ".*/Helpers/AutoPopView\\.swift"
       - ".*/Helpers/View\\+afterPushTransition\\.swift"
-      # Phase 5 — autofocus + autopop helpers replace inline Task.sleep.
-      - ".*/BudgetLineMixedRow\\.swift"
-      - ".*/BudgetLineDetailPage\\.swift"
-      - ".*/AddAllocatedTransactionPage\\.swift"
-      - ".*/EditTransactionPage\\.swift"
+      - ".*/Helpers/View\\+syncIndicatorRamp\\.swift"
     regex: "Task\\.sleep\\(for:"
-    message: "Use AutoPopView or View.afterPushTransition helpers instead of inline Task.sleep."
-    severity: warning
+    message: "Use AutoPopView, View.afterPushTransition, or View.rampSyncIndicator helpers instead of inline Task.sleep."
+    severity: error
 
   no_magic_timing_literals:
     name: "Magic timing literals in BudgetDetails"
     included: ".*/Pulpe/Features/Budgets/BudgetDetails/.*\\.swift"
     excluded:
       - ".*/Helpers/.*"
-      # Phase 5 — replaced by DesignTokens entries.
-      - ".*/BudgetLineMixedRow\\.swift"
-      - ".*/BudgetLineDetailPage\\.swift"
-      - ".*/AddAllocatedTransactionPage\\.swift"
-      - ".*/EditTransactionPage\\.swift"
     regex: "milliseconds\\(\\s*(150|200|300)\\s*\\)"
     message: "Promote to DesignTokens.Animation.{autoPopGraceMs|pushAutofocusDelayMs} or DesignTokens.Sync.indicatorRampDelayMs."
-    severity: warning
+    severity: error
 
   no_swiftlint_disable_in_feature:
     name: "swiftlint disable file_length / type_body_length in BudgetDetails"

@@ -76,8 +76,8 @@ struct BudgetDetailsArchitectureTests {
 
     // MARK: - Phase 5 — File length invariant (≤350 LOC)
 
-    /// Activated by Phase 5 (subview decomposition). Currently surfaces
-    /// offenders without breaking the build via `withKnownIssue`.
+    /// Phase 5 invariant: every file in the feature stays ≤350 LOC. Splits
+    /// happen via dedicated subview / helper / extension files.
     @Test("All BudgetDetails files are ≤350 LOC")
     func noFileExceedsLineLimit() {
         let limit = 350
@@ -89,12 +89,7 @@ struct BudgetDetailsArchitectureTests {
         }
 
         let summary = offenders.map { "\($0.0)=\($0.1)" }.joined(separator: ", ")
-        withKnownIssue(
-            "Phase 5 not yet shipped: \(offenders.count) files over \(limit) LOC",
-            isIntermittent: false
-        ) {
-            #expect(offenders.isEmpty, "Files over \(limit) LOC: \(summary)")
-        }
+        #expect(offenders.isEmpty, "Files over \(limit) LOC: \(summary)")
     }
 
     // MARK: - Phase 4 — No file_length / type_body_length disables
@@ -244,29 +239,30 @@ struct BudgetDetailsArchitectureTests {
 
     // MARK: - Phase 5 — No Task.sleep outside helpers
 
-    /// Activated by Phase 5. Inside the feature, `Task.sleep` is only allowed
-    /// in `Helpers/AutoPopView.swift` and `Helpers/View+afterPushTransition.swift`.
+    /// Phase 5 invariant: inside the feature, `Task.sleep` is only allowed in
+    /// the dedicated `Helpers/` modifiers (`AutoPopView`, `afterPushTransition`,
+    /// `rampSyncIndicator`). Any other location must route through one of them.
     @Test("No Task.sleep outside helpers")
     func noTaskSleepOutsideHelpers() {
         let files = Self.swiftFiles(under: Self.featureDirectory())
-        let helperFilenames: Set<String> = ["AutoPopView.swift", "View+afterPushTransition.swift"]
+        let helperFilenames: Set<String> = [
+            "AutoPopView.swift",
+            "View+afterPushTransition.swift",
+            "View+syncIndicatorRamp.swift",
+        ]
         let offenders = files.filter { url in
             guard !helperFilenames.contains(url.lastPathComponent) else { return false }
             return Self.read(url).contains("Task.sleep(for:")
         }.map { $0.lastPathComponent }
 
-        withKnownIssue(
-            "Phase 5 not yet shipped: \(offenders.count) non-helper files use Task.sleep",
-            isIntermittent: false
-        ) {
-            #expect(offenders.isEmpty, "Offenders: \(offenders.joined(separator: ", "))")
-        }
+        #expect(offenders.isEmpty, "Offenders: \(offenders.joined(separator: ", "))")
     }
 
     // MARK: - Phase 5 — No magic timing literals
 
-    /// Activated by Phase 5. Magic timing literals (.milliseconds(150|200|300))
-    /// must be replaced by DesignTokens entries.
+    /// Phase 5 invariant: magic timing literals (.milliseconds(150|200|300))
+    /// must be replaced by `DesignTokens` entries. Helpers are exempt because
+    /// they are the canonical site for the underlying token consumption.
     @Test("No magic timing literals (.milliseconds(150|200|300))")
     func noMagicTimingLiterals() {
         let files = Self.swiftFiles(under: Self.featureDirectory())
@@ -279,11 +275,6 @@ struct BudgetDetailsArchitectureTests {
             return regex?.firstMatch(in: body, range: range) != nil
         }.map { $0.lastPathComponent }
 
-        withKnownIssue(
-            "Phase 5 not yet shipped: \(offenders.count) files contain magic timing literals",
-            isIntermittent: false
-        ) {
-            #expect(offenders.isEmpty, "Offenders: \(offenders.joined(separator: ", "))")
-        }
+        #expect(offenders.isEmpty, "Offenders: \(offenders.joined(separator: ", "))")
     }
 }
