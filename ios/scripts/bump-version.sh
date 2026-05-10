@@ -81,4 +81,4 @@ sed -i '' "s/CURRENT_PROJECT_VERSION: \"$CURRENT_BUILD\"/CURRENT_PROJECT_VERSION
 
 echo "Updated: $CURRENT_VERSION (build $CURRENT_BUILD) → $NEW_VERSION (build $NEW_BUILD)"
 echo ""
-echo "Next: run 'xcodegen generate' to update Xcode project"
+echo "Next: run 'xcodegen generate --use-cache' to update Xcode project"

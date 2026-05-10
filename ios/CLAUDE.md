@@ -9,11 +9,13 @@ Before any visual work, read in order: `../PRODUCT.md` (strategic) → `../DESIG
 **`project.yml` single source of truth.** `.xcodeproj` generated, gitignored.
 **NEVER edit settings in Xcode UI** — changes lost on next `xcodegen generate`.
 
+**ALWAYS use `xcodegen generate --use-cache`.** Without `--use-cache`, every regen rewrites `project.pbxproj` (even when `project.yml` unchanged), invalidates Xcode's incremental cache → next build = full clean rebuild (~3-5 min on this project). With `--use-cache`, repeated runs are no-ops if the spec hasn't changed: `"Project Pulpe has not changed since cache was written"`.
+
 ## Commands
 
 ```bash
-# After git pull / clone
-xcodegen generate
+# After git pull / clone (idempotent — safe to run repeatedly)
+xcodegen generate --use-cache
 xcode-build-server config -scheme PulpeLocal -project Pulpe.xcodeproj  # SourceKit LSP (once)
 
 # Build (replace scheme: PulpeLocal | PulpePreview | PulpeProd)
