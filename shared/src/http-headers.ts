@@ -9,9 +9,3 @@
  *   server-generated UUID instead.
  */
 export const REQUEST_ID_HEADER = 'X-Request-Id';
-
-/**
- * Lowercased variant for environments that normalize incoming headers
- * (Node.js `IncomingMessage.headers`, Express, etc.).
- */
-export const REQUEST_ID_HEADER_LOWER = 'x-request-id';

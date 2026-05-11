@@ -1,6 +1,8 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 import { randomUUID } from 'crypto';
-import { REQUEST_ID_HEADER, REQUEST_ID_HEADER_LOWER } from 'pulpe-shared';
+import { REQUEST_ID_HEADER } from 'pulpe-shared';
+
+const REQUEST_ID_HEADER_LOWER = REQUEST_ID_HEADER.toLowerCase();
 
 type ReqId = string | number | object;
 

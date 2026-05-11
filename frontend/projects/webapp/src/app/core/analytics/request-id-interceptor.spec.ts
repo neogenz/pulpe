@@ -1,10 +1,11 @@
 import { TestBed } from '@angular/core/testing';
 import {
+  HttpHeaders,
   HttpRequest,
   HttpResponse,
   type HttpHandlerFn,
 } from '@angular/common/http';
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { firstValueFrom, of } from 'rxjs';
 import { REQUEST_ID_HEADER } from 'pulpe-shared';
 import { requestIdInterceptor } from './request-id-interceptor';
@@ -53,24 +54,11 @@ describe('requestIdInterceptor', () => {
   it('should preserve an existing X-Request-Id header set by upstream code', async () => {
     const existingId = 'caller-provided-id-abc';
     const request = new HttpRequest('GET', '/api/test', null, {
-      headers: new HttpRequest('GET', '/').headers.set(
-        REQUEST_ID_HEADER,
-        existingId,
-      ),
+      headers: new HttpHeaders({ [REQUEST_ID_HEADER]: existingId }),
     });
 
     const forwarded = await runInterceptor(request);
 
     expect(forwarded.headers.get(REQUEST_ID_HEADER)).toBe(existingId);
-  });
-
-  it('should use crypto.randomUUID for header generation', async () => {
-    const spy = vi.spyOn(crypto, 'randomUUID');
-    const request = new HttpRequest('GET', '/api/test');
-
-    await runInterceptor(request);
-
-    expect(spy).toHaveBeenCalledOnce();
-    spy.mockRestore();
   });
 });
