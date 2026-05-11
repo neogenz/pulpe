@@ -161,6 +161,7 @@ struct YearPicker: View {
                 }
                 .padding(.horizontal, DesignTokens.Spacing.xl)
             }
+            .scrollClipDisabled()
             .sensoryFeedback(.selection, trigger: selectedYear)
             .task {
                 await Task.yield()
