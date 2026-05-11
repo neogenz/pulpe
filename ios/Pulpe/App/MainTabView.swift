@@ -11,74 +11,55 @@ struct MainTabView: View {
     @State private var addTransactionBudgetId: AddTransactionItem?
     @State private var keyboardVisible = false
     @State private var pageRequestsHide = false
+    @Namespace private var tabSelectionNamespace
 
-    private let tabBarHeight = DesignTokens.FrameHeight.tabBar
+    /// Vertical space the floating tab bar visually occupies above the system
+    /// bottom safe area. Pushed pages read this via `\.tabBarClearance` because
+    /// iOS 26 does not cascade `safeAreaInset` from a TabView through nested
+    /// `NavigationStack` destinations — they must re-reserve the bar's
+    /// height themselves. Collapses to 0 when the bar is hidden.
+    private static let tabBarClearanceHeight: CGFloat =
+        DesignTokens.FrameHeight.tabBar
+        + DesignTokens.Spacing.md
+        + DesignTokens.Spacing.xs
 
     var body: some View {
         @Bindable var state = appState
+        let barHidden = keyboardVisible || pageRequestsHide
+        let clearance: CGFloat = barHidden ? 0 : Self.tabBarClearanceHeight
 
-        GeometryReader { geometry in
-            let bottomInset = geometry.safeAreaInsets.bottom
-            // Position the capsule just above the home indicator (or with a
-            // small gap on devices without one), like a standard tab bar.
-            let tabBarBottom = bottomInset > 0 ? DesignTokens.Spacing.xl : DesignTokens.Spacing.xs
-            // Extra bottom safe area we need to RESERVE so all tab content
-            // (ScrollViews, sticky CTAs in pushed pages) clears the floating
-            // capsule that's overlaid in the ZStack sibling. Subtract the
-            // existing system bottom inset so we don't double-count.
-            // Collapses to 0 when the bar is hidden (keyboard up, or push
-            // page opted into deep-focus mode) — sticky CTAs should sit flush
-            // above the keyboard / screen bottom in those states.
-            let barHidden = keyboardVisible || pageRequestsHide
-            let reservedBottom: CGFloat = barHidden
-                ? 0
-                : tabBarBottom + tabBarHeight + DesignTokens.Spacing.md - bottomInset
-
-            ZStack(alignment: .bottom) {
-                TabView(selection: $state.selectedTab) {
-                    SwiftUI.Tab(value: Tab.currentMonth) {
-                        CurrentMonthTab()
-                            .toolbarVisibility(.hidden, for: .tabBar)
-                    }
-
-                    SwiftUI.Tab(value: Tab.budgets) {
-                        BudgetsTab()
-                            .toolbarVisibility(.hidden, for: .tabBar)
-                    }
-
-                    SwiftUI.Tab(value: Tab.templates) {
-                        TemplatesTab()
-                            .toolbarVisibility(.hidden, for: .tabBar)
-                    }
-                }
-                .pulpeBackground()
-                // Publish the floating-bar reservation height through the
-                // environment so each tab's `NavigationStack` can apply the
-                // canonical safe-area pattern locally — see `BudgetsTab` etc.
-                // We do NOT apply `safeAreaInset` / `safeAreaPadding` /
-                // `contentMargins` on the TabView itself because iOS 26 does
-                // not cascade those through nested `NavigationStack`
-                // destinations (verified WWDC25 + community 2026).
-                .environment(\.tabBarClearance, reservedBottom)
-
-                if !barHidden {
-                    Group {
-                        if #available(iOS 26.0, *) {
-                            customTabBarView(selectedTab: $state.selectedTab)
-                                .padding(.horizontal, DesignTokens.Spacing.lg)
-                        } else {
-                            customTabBarViewLegacy(selectedTab: $state.selectedTab)
-                                .padding(.horizontal, DesignTokens.Spacing.lg)
-                        }
-                    }
-                    .padding(.bottom, tabBarBottom)
-                    .ignoresSafeArea(.keyboard)
-                    .transition(.opacity.combined(with: .move(edge: .bottom)))
-                }
+        TabView(selection: $state.selectedTab) {
+            SwiftUI.Tab(value: Tab.currentMonth) {
+                CurrentMonthTab()
+                    .toolbarVisibility(.hidden, for: .tabBar)
             }
-            .ignoresSafeArea(.container, edges: .bottom)
-            .animation(.easeInOut(duration: DesignTokens.Animation.quickSnap), value: barHidden)
+
+            SwiftUI.Tab(value: Tab.budgets) {
+                BudgetsTab()
+                    .toolbarVisibility(.hidden, for: .tabBar)
+            }
+
+            SwiftUI.Tab(value: Tab.templates) {
+                TemplatesTab()
+                    .toolbarVisibility(.hidden, for: .tabBar)
+            }
         }
+        .pulpeBackground()
+        // Publish the floating-bar reservation through the environment so each
+        // tab's `NavigationStack` can re-apply the canonical safe-area pattern
+        // locally — see `clearsFloatingTabBar()` below. iOS 26 does not cascade
+        // `safeAreaInset` / `safeAreaPadding` from this TabView through nested
+        // `NavigationStack` destinations (verified WWDC25 + community 2026).
+        .environment(\.tabBarClearance, clearance)
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            floatingTabBar(selectedTab: $state.selectedTab)
+                .padding(.horizontal, DesignTokens.Spacing.lg)
+                .padding(.bottom, DesignTokens.Spacing.xs)
+                .opacity(barHidden ? 0 : 1)
+                .frame(height: barHidden ? 0 : nil)
+                .allowsHitTesting(!barHidden)
+        }
+        .animation(.easeInOut(duration: DesignTokens.Animation.quickSnap), value: barHidden)
         .onPreferenceChange(HidesFloatingTabBarKey.self) { hide in
             pageRequestsHide = hide
         }
@@ -98,67 +79,89 @@ struct MainTabView: View {
         }
     }
 
-    // MARK: - Custom Tab Bar (iOS 26+ with Glass Effect)
+    // MARK: - Floating Tab Bar
+
+    @ViewBuilder
+    private func floatingTabBar(selectedTab: Binding<Tab>) -> some View {
+        if #available(iOS 26.0, *) {
+            iOS26TabBar(selectedTab: selectedTab)
+        } else {
+            legacyTabBar(selectedTab: selectedTab)
+        }
+    }
 
     @available(iOS 26.0, *)
     @ViewBuilder
-    private func customTabBarView(selectedTab: Binding<Tab>) -> some View {
+    private func iOS26TabBar(selectedTab: Binding<Tab>) -> some View {
         GlassEffectContainer(spacing: DesignTokens.Spacing.compactGap) {
             HStack(spacing: DesignTokens.Spacing.compactGap) {
-                GeometryReader { geometry in
-                    let segmentInset = DesignTokens.Spacing.xs
-                    CustomTabBar(
-                        size: CGSize(
-                            width: geometry.size.width - segmentInset * 2,
-                            height: geometry.size.height - segmentInset * 2
-                        ),
-                        barTint: .gray.opacity(0.3),
-                        activeTab: selectedTab
-                    )
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .overlay { tabBarItems(selectedTab: selectedTab) }
+                tabSegment(selectedTab: selectedTab)
                     .glassEffect(.regular.interactive(), in: .capsule)
-                }
-
-                tabBarActionButton(selectedTab: selectedTab)
+                actionFAB(selectedTab: selectedTab)
             }
         }
-        .frame(height: tabBarHeight)
+        .frame(height: DesignTokens.FrameHeight.tabBar)
         .animation(.smooth(duration: DesignTokens.Animation.quickSnap), value: selectedTab.wrappedValue)
     }
 
-    @available(iOS 26.0, *)
     @ViewBuilder
-    private func tabBarItems(selectedTab: Binding<Tab>) -> some View {
-        HStack(spacing: DesignTokens.Spacing.none) {
-            ForEach(Tab.allCases) { tab in
-                let isSelected = selectedTab.wrappedValue == tab
-                VStack(spacing: DesignTokens.Spacing.dividerGap) {
-                    tabBarIcon(for: tab, isSelected: isSelected)
-                    Text(tab.title).font(PulpeTypography.tabLabel)
-                }
-                .foregroundStyle(isSelected ? Color.pulpePrimary : Color(.label))
-                .frame(maxWidth: .infinity)
-            }
+    private func legacyTabBar(selectedTab: Binding<Tab>) -> some View {
+        HStack(spacing: DesignTokens.Spacing.compactGap) {
+            tabSegment(selectedTab: selectedTab)
+                .background(.ultraThinMaterial)
+                .clipShape(Capsule())
+            actionFAB(selectedTab: selectedTab)
         }
-        .animation(.easeInOut(duration: DesignTokens.Animation.quickSnap), value: selectedTab.wrappedValue)
+        .frame(height: DesignTokens.FrameHeight.tabBar)
+        .animation(.smooth(duration: DesignTokens.Animation.quickSnap), value: selectedTab.wrappedValue)
     }
 
-    @available(iOS 26.0, *)
     @ViewBuilder
-    private func tabBarActionButton(selectedTab: Binding<Tab>) -> some View {
+    private func tabSegment(selectedTab: Binding<Tab>) -> some View {
+        HStack(spacing: DesignTokens.Spacing.none) {
+            ForEach(Tab.allCases) { tab in
+                Button {
+                    withAnimation(.smooth(duration: DesignTokens.Animation.quickSnap)) {
+                        selectedTab.wrappedValue = tab
+                    }
+                } label: {
+                    let isSelected = selectedTab.wrappedValue == tab
+                    VStack(spacing: DesignTokens.Spacing.dividerGap) {
+                        tabBarIcon(for: tab, isSelected: isSelected)
+                        Text(tab.title).font(PulpeTypography.tabLabel)
+                    }
+                    .foregroundStyle(isSelected ? Color.pulpePrimary : Color(.label))
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background {
+                        if isSelected {
+                            Color.gray.opacity(DesignTokens.Opacity.strong)
+                                .clipShape(Capsule())
+                                .matchedGeometryEffect(id: "selectedTabPill", in: tabSelectionNamespace)
+                                .padding(.vertical, DesignTokens.Spacing.xs)
+                        }
+                    }
+                    .contentShape(Rectangle())
+                }
+                .plainPressedButtonStyle()
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    @ViewBuilder
+    private func actionFAB(selectedTab: Binding<Tab>) -> some View {
         if selectedTab.wrappedValue == .currentMonth, let budgetId = monthStore.budget?.id {
             Button {
                 addTransactionBudgetId = AddTransactionItem(id: budgetId)
             } label: {
                 Image(systemName: "plus")
                     .font(PulpeTypography.sectionIcon)
-                    .foregroundStyle(Color.white)
+                    .foregroundStyle(actionFABForeground)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
-            .frame(width: tabBarHeight, height: tabBarHeight)
+            .frame(width: DesignTokens.FrameHeight.tabBar, height: DesignTokens.FrameHeight.tabBar)
             .contentShape(Circle())
-            .glassEffect(.regular.tint(Color.pulpePrimary).interactive(), in: .capsule)
+            .modifier(ActionFABBackgroundModifier())
             .transition(.asymmetric(
                 insertion: .scale(scale: 0.5).combined(with: .opacity),
                 removal: .scale.combined(with: .opacity)
@@ -166,62 +169,13 @@ struct MainTabView: View {
         }
     }
 
-    // MARK: - Custom Tab Bar (iOS 18-25 Legacy)
-
-    @ViewBuilder
-    private func customTabBarViewLegacy(selectedTab: Binding<Tab>) -> some View {
-        HStack(spacing: DesignTokens.Spacing.compactGap) {
-            HStack(spacing: DesignTokens.Spacing.none) {
-                ForEach(Tab.allCases) { tab in
-                    Button {
-                        withAnimation(.smooth) {
-                            selectedTab.wrappedValue = tab
-                        }
-                    } label: {
-                        let isSelected = selectedTab.wrappedValue == tab
-
-                        VStack(spacing: DesignTokens.Spacing.dividerGap) {
-                            tabBarIcon(for: tab, isSelected: isSelected)
-                            Text(tab.title)
-                                .font(PulpeTypography.tabLabel)
-                        }
-                        .foregroundStyle(isSelected ? Color.pulpePrimary : .primary)
-                        .frame(maxWidth: .infinity)
-                    }
-                    .plainPressedButtonStyle()
-                }
-            }
-            .frame(maxWidth: .infinity)
-            .frame(height: tabBarHeight)
-            .background(.ultraThinMaterial)
-            .clipShape(Capsule())
-
-            // Action button (only visible on current month tab)
-            if selectedTab.wrappedValue == .currentMonth, let budgetId = monthStore.budget?.id {
-                Button {
-                    addTransactionBudgetId = AddTransactionItem(id: budgetId)
-                } label: {
-                    Image(systemName: "plus")
-                        .font(PulpeTypography.sectionIcon)
-                        .foregroundStyle(Color.pulpePrimary)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                }
-                .plainPressedButtonStyle()
-                .frame(width: tabBarHeight, height: tabBarHeight)
-                .contentShape(Circle())
-                .background(.ultraThinMaterial)
-                .clipShape(Capsule())
-                .transition(.asymmetric(
-                    insertion: .scale(scale: 0.5).combined(with: .opacity),
-                    removal: .scale.combined(with: .opacity)
-                ))
-            }
+    private var actionFABForeground: Color {
+        if #available(iOS 26.0, *) {
+            return .white
+        } else {
+            return Color.pulpePrimary
         }
-        .frame(height: tabBarHeight)
-        .animation(.smooth(duration: DesignTokens.Animation.quickSnap), value: selectedTab.wrappedValue)
     }
-
-    // MARK: - Shared Helpers
 
     @ViewBuilder
     private func tabBarIcon(for tab: Tab, isSelected: Bool) -> some View {
@@ -230,6 +184,22 @@ struct MainTabView: View {
             Image(systemName: tab.icon).symbolVariant(.fill).opacity(isSelected ? 1 : 0)
         }
         .font(.title3)
+    }
+}
+
+// MARK: - Action FAB Background
+
+/// Liquid Glass tint on iOS 26+; pre-iOS 26 falls back to a solid pulpePrimary
+/// capsule.
+private struct ActionFABBackgroundModifier: ViewModifier {
+    func body(content: Content) -> some View {
+        if #available(iOS 26.0, *) {
+            content.glassEffect(.regular.tint(Color.pulpePrimary).interactive(), in: .capsule)
+        } else {
+            content
+                .background(.ultraThinMaterial)
+                .clipShape(Capsule())
+        }
     }
 }
 
