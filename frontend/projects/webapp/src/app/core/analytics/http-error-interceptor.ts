@@ -6,6 +6,7 @@ import { inject } from '@angular/core';
 import { catchError, throwError } from 'rxjs';
 import { isExpectedBusinessHttpError } from '@core/api/http-expected-business-noise';
 import { PostHogService, sanitizeUrl, sanitizeRecord } from '@core/analytics';
+import { REQUEST_ID_HEADER } from 'pulpe-shared';
 import { Logger } from '../logging/logger';
 import { ApplicationConfiguration } from '../config/application-configuration';
 
@@ -17,6 +18,7 @@ export const httpErrorInterceptor: HttpInterceptorFn = (req, next) => {
   const postHogService = inject(PostHogService);
   const logger = inject(Logger);
   const applicationConfiguration = inject(ApplicationConfiguration);
+  const requestId = req.headers.get(REQUEST_ID_HEADER) ?? undefined;
 
   return next(req).pipe(
     catchError((error: HttpErrorResponse) => {
@@ -24,6 +26,7 @@ export const httpErrorInterceptor: HttpInterceptorFn = (req, next) => {
       captureHttpError(
         error,
         req.method,
+        requestId,
         postHogService,
         logger,
         applicationConfiguration,
@@ -44,6 +47,7 @@ const AUTH_HANDLED_STATUSES = new Set([401, 403]);
 function captureHttpError(
   error: HttpErrorResponse,
   requestMethod: string,
+  requestId: string | undefined,
   postHogService: PostHogService,
   logger: Logger,
   applicationConfiguration: ApplicationConfiguration,
@@ -64,6 +68,7 @@ function captureHttpError(
       httpStatus: error.status,
       errorName: posthogError.name,
       errorMessage: posthogError.message,
+      ...(requestId ? { request_id: requestId } : {}),
     };
 
     if (error.url) {
@@ -136,6 +141,7 @@ interface HttpErrorContext extends Record<string, unknown> {
   httpStatus: number;
   errorName: string;
   errorMessage: string;
+  request_id?: string;
   httpUrl?: string;
   backendErrorCode?: string;
   backendErrorName?: string;

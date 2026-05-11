@@ -8,6 +8,7 @@ import compression from 'compression';
 import { AppModule } from './app.module';
 import { cleanupOpenApiDoc } from 'nestjs-zod';
 import { isProductionLike, type Environment } from '@config/environment';
+import { REQUEST_ID_HEADER } from 'pulpe-shared';
 
 // ValidationPipe removed - using ZodValidationPipe from app.module.ts instead
 
@@ -23,7 +24,9 @@ function setupCors(app: import('@nestjs/common').INestApplication): void {
       'Authorization',
       'ngrok-skip-browser-warning',
       'X-Client-Key',
+      REQUEST_ID_HEADER,
     ],
+    exposedHeaders: [REQUEST_ID_HEADER],
     credentials: true,
   });
 }

@@ -133,6 +133,12 @@ export {
 // Export error codes
 export { API_ERROR_CODES, type ApiErrorCode } from './src/error-codes.js';
 
+// Export HTTP header constants
+export {
+  REQUEST_ID_HEADER,
+  REQUEST_ID_HEADER_LOWER,
+} from './src/http-headers.js';
+
 // Export feature flag keys
 export {
   FEATURE_FLAGS,
