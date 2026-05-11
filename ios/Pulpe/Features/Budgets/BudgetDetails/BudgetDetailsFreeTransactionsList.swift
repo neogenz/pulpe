@@ -16,6 +16,7 @@ import SwiftUI
 /// id set in the body.
 struct BudgetDetailsFreeTransactionsList: View {
     let items: [BudgetDetailsScreenState.FreeTransactionItem]
+    let currency: SupportedCurrency
     let onTap: (Transaction) -> Void
 
     @State private var isExpanded = false
@@ -56,6 +57,7 @@ struct BudgetDetailsFreeTransactionsList: View {
                 BudgetDetailsFreeTransactionRow(
                     transaction: item.transaction,
                     isSyncing: item.isSyncing,
+                    currency: currency,
                     onTap: { onTap(item.transaction) }
                 )
                 .padding(.horizontal, DesignTokens.Spacing.lg)
@@ -95,9 +97,8 @@ struct BudgetDetailsFreeTransactionsList: View {
 private struct BudgetDetailsFreeTransactionRow: View {
     let transaction: Transaction
     let isSyncing: Bool
+    let currency: SupportedCurrency
     let onTap: () -> Void
-
-    @Environment(UserSettingsStore.self) private var userSettingsStore
 
     private var kind: TransactionKind { transaction.kind }
     private var isIncome: Bool { kind == .income }
@@ -124,7 +125,7 @@ private struct BudgetDetailsFreeTransactionRow: View {
     }
 
     private var accessibilityLabel: String {
-        let amount = transaction.amount.asCurrency(userSettingsStore.currency)
+        let amount = transaction.amount.asCurrency(currency)
         return "\(kind.label) · \(transaction.name) · \(amount) · \(transaction.transactionDate.dayMonthFormatted)"
     }
 
@@ -186,13 +187,13 @@ private struct BudgetDetailsFreeTransactionRow: View {
 
     private var amountColumn: some View {
         HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.xxs) {
-            Text(transaction.amount.asAmount(for: userSettingsStore.currency))
+            Text(transaction.amount.asAmount(for: currency))
                 .font(PulpeTypography.amountCard)
                 .foregroundStyle(amountColor)
                 .monospacedDigit()
                 .lineLimit(1)
 
-            Text(userSettingsStore.currency.symbol)
+            Text(currency.symbol)
                 .font(PulpeTypography.metricMini)
                 .foregroundStyle(currencySuffixColor)
                 .opacity(currencySuffixOpacity)

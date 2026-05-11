@@ -135,7 +135,7 @@ extension BudgetDetailsCoordinator {
 
     private func commitDeleteTransaction(_ tx: Transaction) async {
         do {
-            try await TransactionService.shared.deleteTransaction(id: tx.id)
+            try await transactionService.deleteTransaction(id: tx.id)
         } catch {
             dataStore.appendTransaction(tx)
             dataStore.recomputeMetrics()
@@ -146,7 +146,7 @@ extension BudgetDetailsCoordinator {
 
     private func commitDeleteBudgetLine(_ line: BudgetLine) async {
         do {
-            try await BudgetLineService.shared.deleteBudgetLine(id: line.id)
+            try await budgetLineService.deleteBudgetLine(id: line.id)
         } catch {
             dataStore.appendBudgetLine(line)
             dataStore.recomputeMetrics()

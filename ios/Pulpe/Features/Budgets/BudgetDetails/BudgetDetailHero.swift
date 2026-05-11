@@ -227,7 +227,9 @@ struct BudgetDetailHero: View {
     private func rolloverPill(amount: Decimal) -> some View {
         if let onRolloverTap {
             Button(action: onRolloverTap) { rolloverPillContent(amount: amount) }
-                .buttonStyle(.plain)
+                .frame(minHeight: DesignTokens.TapTarget.minimum)
+                .contentShape(Capsule())
+                .plainPressedButtonStyle()
         } else {
             rolloverPillContent(amount: amount)
         }
@@ -243,7 +245,7 @@ struct BudgetDetailHero: View {
                 .font(PulpeTypography.metricLabel)
                 .foregroundStyle(Color.textTertiary)
 
-            Text(abs(amount).asCompactCurrency(userSettingsStore.currency))
+            Text(abs(amount).asCurrency(userSettingsStore.currency))
                 .font(PulpeTypography.metricLabelBold)
                 .foregroundStyle(Color.textSecondary)
                 .monospacedDigit()
@@ -310,7 +312,7 @@ struct BudgetDetailHero: View {
                 .font(PulpeTypography.metricLabelBold)
                 .foregroundStyle(tint)
 
-            Text(amount.asCompactAmount(for: userSettingsStore.currency))
+            Text(amount.asAmount(for: userSettingsStore.currency))
                 .font(PulpeTypography.metricLabelBold)
                 .foregroundStyle(tint)
                 .monospacedDigit()

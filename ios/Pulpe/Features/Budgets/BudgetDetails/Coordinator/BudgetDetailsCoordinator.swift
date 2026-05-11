@@ -16,8 +16,8 @@ final class BudgetDetailsCoordinator {
     let mutationQueue: MutationQueue
 
     @ObservationIgnored private let budgetService: BudgetService
-    @ObservationIgnored private let budgetLineService: BudgetLineService
-    @ObservationIgnored private let transactionService: TransactionService
+    @ObservationIgnored let budgetLineService: BudgetLineService
+    @ObservationIgnored let transactionService: TransactionService
 
     init(
         budgetId: String,

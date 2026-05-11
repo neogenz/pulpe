@@ -93,7 +93,7 @@ struct BudgetLineDetailPage: View {
                 deleteBudgetLine(line)
             }
         } message: { _ in
-            Text("Tu peux toujours annuler depuis la notification.")
+            Text("Tu auras quelques secondes pour annuler.")
         }
         .accessibilityIdentifier("budgetLineDetailPageRoot")
         #if DEBUG
@@ -116,7 +116,7 @@ struct BudgetLineDetailPage: View {
 
             if transactions.isEmpty {
                 Section {
-                    emptyStateView
+                    emptyStateView(for: line.kind)
                         .listRowCustomStyled(insets: EdgeInsets())
                 }
                 .listSectionSeparator(.hidden)
@@ -213,7 +213,7 @@ private extension BudgetLineDetailPage {
         }
     }
 
-    var emptyStateView: some View {
+    func emptyStateView(for kind: TransactionKind) -> some View {
         VStack(spacing: DesignTokens.Spacing.lg) {
             Image(systemName: "tray")
                 .font(PulpeTypography.amountHeroLight)
@@ -224,7 +224,7 @@ private extension BudgetLineDetailPage {
                     .font(PulpeTypography.headline)
                     .foregroundStyle(Color.textSecondary)
 
-                Text("Ajoute une transaction pour suivre tes dépenses")
+                Text(emptyStateMessage(for: kind))
                     .font(PulpeTypography.subheadline)
                     .foregroundStyle(Color.textTertiary)
                     .multilineTextAlignment(.center)
@@ -233,6 +233,14 @@ private extension BudgetLineDetailPage {
         .frame(maxWidth: .infinity)
         .padding(.vertical, DesignTokens.Spacing.stepHeaderTop)
         .padding(.horizontal, DesignTokens.Spacing.lg)
+    }
+
+    func emptyStateMessage(for kind: TransactionKind) -> String {
+        switch kind {
+        case .income: "Ajoute une transaction pour suivre tes revenus"
+        case .saving: "Ajoute une transaction pour suivre ton épargne"
+        case .expense: "Ajoute une transaction pour suivre tes dépenses"
+        }
     }
 
     @ViewBuilder

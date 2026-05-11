@@ -50,7 +50,7 @@ extension BudgetDetailsCoordinator {
         dataStore.invalidateAdjacentCache()
 
         do {
-            try await BudgetLineService.shared.deleteBudgetLine(id: line.id)
+            try await budgetLineService.deleteBudgetLine(id: line.id)
         } catch {
             dataStore.setBudgetLines(originalLines)
             dataStore.recomputeMetrics()
@@ -67,7 +67,7 @@ extension BudgetDetailsCoordinator {
         dataStore.invalidateAdjacentCache()
 
         do {
-            try await TransactionService.shared.deleteTransaction(id: tx.id)
+            try await transactionService.deleteTransaction(id: tx.id)
         } catch {
             dataStore.setTransactions(originalTransactions)
             dataStore.recomputeMetrics()

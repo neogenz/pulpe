@@ -216,6 +216,7 @@ struct BudgetDetailsView: View {
                 if !free.isEmpty {
                     BudgetDetailsFreeTransactionsList(
                         items: free,
+                        currency: userSettingsStore.currency,
                         onTap: { transaction in
                             router.push(.editTx(transactionId: transaction.id))
                         }
