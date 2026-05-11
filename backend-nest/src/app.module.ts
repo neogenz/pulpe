@@ -8,7 +8,6 @@ import {
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_GUARD, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
 import { ThrottlerModule } from '@nestjs/throttler';
-import { randomUUID } from 'crypto';
 import { CurlGenerator } from 'curl-generator';
 import type { IncomingMessage, ServerResponse } from 'http';
 import { ClsModule } from 'nestjs-cls';
@@ -55,31 +54,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 
 // Utils
 import { anonymizeIp, parseDeviceType } from '@common/utils/log-anonymization';
-
-// Logger configuration helpers
-function createRequestIdGenerator() {
-  return (
-    req: IncomingMessage & {
-      headers: Record<string, string | string[] | undefined>;
-    },
-    res: ServerResponse,
-  ) => {
-    const reqId = (req as typeof req & { id?: string }).id;
-    if (reqId) return reqId;
-
-    const headerValue = req.headers['x-request-id'];
-    if (headerValue) {
-      const existingId = Array.isArray(headerValue)
-        ? headerValue[0]
-        : headerValue;
-      if (existingId) return existingId;
-    }
-
-    const id = randomUUID();
-    res.setHeader('X-Request-Id', id);
-    return id;
-  };
-}
+import { createRequestIdGenerator } from '@common/utils/request-id';
 
 function createLoggerTransport(isProdLike: boolean) {
   if (!isProdLike) {

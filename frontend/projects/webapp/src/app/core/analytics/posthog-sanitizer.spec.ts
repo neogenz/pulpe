@@ -103,6 +103,21 @@ describe('posthog-sanitizer', () => {
       });
     });
 
+    it('preserves the request_id correlation id (snake_case and camelCase)', () => {
+      const requestId = 'feedf00d-dead-beef-cafe-1234567890ab';
+      const sanitized = sanitizeRecord({
+        request_id: requestId,
+        requestId,
+        source: 'http_interceptor',
+      });
+
+      expect(sanitized).toEqual({
+        request_id: requestId,
+        requestId,
+        source: 'http_interceptor',
+      });
+    });
+
     it('recursively sanitizes nested objects', () => {
       const sanitized = sanitizeRecord({
         budget: {
