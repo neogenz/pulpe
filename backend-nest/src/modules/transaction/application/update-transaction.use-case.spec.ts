@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, jest } from 'bun:test';
 import { Test } from '@nestjs/testing';
+import { Buffer } from 'node:buffer';
 import { UpdateTransactionUseCase } from './update-transaction.use-case';
 import { TRANSACTION_REPOSITORY } from '../domain/ports/transaction-repository.port';
 import { CacheService } from '@modules/cache/cache.service';
@@ -102,5 +103,59 @@ describe('UpdateTransactionUseCase — cache invalidation ordering (R1)', () => 
     }
 
     expect(mockCache.invalidateForUser).toHaveBeenCalledWith(mockUser.id);
+  });
+
+  it('should override exchange rate before calling repo.update', async () => {
+    const callOrder: string[] = [];
+    mockCurrency.overrideExchangeRate.mockImplementationOnce(async (d) => {
+      callOrder.push('currency');
+      return d;
+    });
+    mockRepo.update.mockImplementationOnce(async () => {
+      callOrder.push('repo');
+      return mockEntity;
+    });
+
+    await useCase.execute('txn-1', dto, mockUser);
+
+    expect(callOrder).toEqual(['currency', 'repo']);
+  });
+
+  it('should build a partial patch — only updated fields reach the repo', async () => {
+    const partial: TransactionUpdate = { name: 'Brunch', amount: 42 };
+
+    await useCase.execute('txn-1', partial, mockUser);
+
+    const patch = mockRepo.update.mock.calls[0][1];
+    expect(patch).toEqual({ name: 'Brunch', amount: 42 });
+    expect(patch).not.toHaveProperty('kind');
+    expect(patch).not.toHaveProperty('transactionDate');
+  });
+
+  it('should reject a negative amount via invariants (no repo call)', async () => {
+    await expect(
+      useCase.execute('txn-1', { amount: -5 }, mockUser),
+    ).rejects.toThrow(BusinessException);
+    expect(mockRepo.update).not.toHaveBeenCalled();
+    expect(mockBudget.recalculate).not.toHaveBeenCalled();
+  });
+
+  it('should propagate repo.update errors without recalculation', async () => {
+    const repoError = new Error('row not found');
+    mockRepo.update.mockRejectedValueOnce(repoError);
+
+    await expect(useCase.execute('txn-1', dto, mockUser)).rejects.toThrow(
+      repoError,
+    );
+    expect(mockBudget.recalculate).not.toHaveBeenCalled();
+    expect(mockCache.invalidateForUser).not.toHaveBeenCalled();
+  });
+
+  it('should return the updated entity from the repository', async () => {
+    const result = await useCase.execute('txn-1', dto, mockUser);
+
+    expect(result).toEqual(mockEntity);
+    expect(mockRepo.update).toHaveBeenCalledTimes(1);
+    expect(mockBudget.recalculate).toHaveBeenCalledWith(mockEntity.budgetId);
   });
 });
