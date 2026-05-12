@@ -14,7 +14,7 @@ Use the `build` command to increment the build number only:
 
 ```bash
 cd ios && ./scripts/bump-version.sh build
-cd ios && xcodegen generate
+cd ios && xcodegen generate --use-cache
 ```
 
 This increments `CURRENT_PROJECT_VERSION` (e.g. 1 -> 2) without touching `MARKETING_VERSION`.

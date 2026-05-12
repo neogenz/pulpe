@@ -1,15 +1,21 @@
 # CLAUDE.md - Pulpe iOS
 
+## Design Docs
+
+Before any visual work, read in order: `../PRODUCT.md` (strategic) → `../DESIGN.md` (cross-platform DA) → `DESIGN.md` (this directory; iOS-specific tokens, components, Liquid Glass, sheets). No Stitch sidecar here — `/impeccable live` is browser-only and unsupported on SwiftUI. Never duplicate cross-platform rules here — push them up to `../DESIGN.md`.
+
 ## XcodeGen
 
 **`project.yml` single source of truth.** `.xcodeproj` generated, gitignored.
 **NEVER edit settings in Xcode UI** — changes lost on next `xcodegen generate`.
 
+**ALWAYS use `xcodegen generate --use-cache`.** Without `--use-cache`, every regen rewrites `project.pbxproj` (even when `project.yml` unchanged), invalidates Xcode's incremental cache → next build = full clean rebuild (~3-5 min on this project). With `--use-cache`, repeated runs are no-ops if the spec hasn't changed: `"Project Pulpe has not changed since cache was written"`.
+
 ## Commands
 
 ```bash
-# After git pull / clone
-xcodegen generate
+# After git pull / clone (idempotent — safe to run repeatedly)
+xcodegen generate --use-cache
 xcode-build-server config -scheme PulpeLocal -project Pulpe.xcodeproj  # SourceKit LSP (once)
 
 # Build (replace scheme: PulpeLocal | PulpePreview | PulpeProd)
@@ -42,6 +48,7 @@ xcodebuild test -scheme PulpeUITests -destination 'platform=iOS Simulator,name=i
 | Sheet presentation | `.standardSheetPresentation()` | Manual `.presentationDetents` + `.presentationBackground` |
 | List row styling | `.listRowCustomStyled()` | `.listRowBackground` + `.listRowInsets` + `.listRowSeparator` |
 | Background | `.pulpeBackground()` / `.pulpeCardBackground()` | Manual `.background(Color.surface)` |
+| État chip enveloppe (Bonne voie / À surveiller / Dépassé) | `BudgetLineStateChip` *[à implémenter — bottom sheet detail, voir RG-010]* | Manual HStack + Capsule + Text |
 
 **Form sheet checklist:**
 - [ ] Use `SheetFormContainer`

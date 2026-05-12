@@ -74,7 +74,7 @@ struct PulpeApp: App {
     var body: some Scene {
         WindowGroup {
             if let uiTestScenario = UITestLaunchScenario.current {
-                BudgetLongPressUITestHarness(scenario: uiTestScenario)
+                uiTestHarness(for: uiTestScenario)
             } else {
                 RootView(
                     runtimeCoordinator: runtimeCoordinator,
@@ -102,6 +102,15 @@ struct PulpeApp: App {
                         handleDeepLink(url)
                     }
             }
+        }
+    }
+
+    /// Routes a UI test launch scenario to the matching harness.
+    @ViewBuilder
+    private func uiTestHarness(for scenario: UITestLaunchScenario) -> some View {
+        switch scenario {
+        case .budgetLongPressWithTransactions, .budgetLongPressEmpty:
+            BudgetLongPressUITestHarness(scenario: scenario)
         }
     }
 

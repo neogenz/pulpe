@@ -107,11 +107,13 @@ La transition entre les deux zones est un dégradé doux (40-60 points), pas une
 
 #### Surfaces et fonds
 
+> **Refonte mai 2026** : le hero card devient un bloc plat. Les anciens états émotionnels gradient (comfortable/tight/deficit) sont remplacés par un texte noir constant et une progress bar verte ; l'expressivité passe par les pills latérales et le ton du microcopy.
+
 | Élément | Light mode | Dark mode |
 |---------|-----------|-----------|
 | **Fond de contenu** | Neutre chaud `#F7F6F3` | Fond système sombre |
 | **Cartes** | Blanc `#FFFFFF` ou surface élevée | Surface sombre secondaire |
-| **Hero card** | Couleur pleine (vert / ambre / rouge) | Ton sombre de la couleur d'état |
+| **Hero block** | Plat sur fond neutre chaud — pas de surface, pas de bordure, pas de gradient | Texte primary noir, accents (progress + pills) en couleur sémantique |
 
 Le neutre chaud `#F7F6F3` est le token de fond le plus important. Il est défini ici une seule fois — les sections plateforme (§8) ne font que préciser son implémentation technique (variable CSS, Color SwiftUI, etc.).
 
@@ -221,14 +223,14 @@ L'icône actuelle (tranche d'agrume neumorphique) :
 | Élément | Principe |
 |---------|----------|
 | **Montant texte — sans transactions** | Couleur pleine de la catégorie (bleu / ambre / vert) |
-| **Montant texte — avec transactions** | Couleur d'état uniquement : neutre (0–79%), warning amber (80–100%), over-budget amber (>100%). L'icône porte déjà la catégorie. |
+| **Montant texte — avec transactions (iOS, révisé mai 2026)** | **Revenu** : couleur income en permanence. **Épargne** : couleur primary en permanence. **Dépense** : couleur d'état — neutre (<50 %) → warning (≥50 %) → critical (>100 %). Le double-codage couleur + étiquette texte uppercase (« REVENU / ÉPARGNE / DÉPENSE ») est explicite — voir `productContext.md` RG-010 + `docs/ux-ui-principles.md` principe 26 (révisé). |
 | **Icône badge** | Fond = version transparente de la couleur ; texte = couleur pleine. Exception : dépense utilise un fond/texte neutre |
 | **Pills hero** | Fond et bordure = versions transparentes de la couleur de catégorie |
 | **Barre de progression — sans transactions** | Masquée |
 | **Barre de progression — avec transactions** | Track = version transparente ; fill = couleur d'état (même logique que montant texte) |
 | **Section header badge** | Fond = version transparente de la couleur dominante de la section |
 
-**Asymétrie intentionnelle :** dès qu'une ligne a des transactions liées, la logique bascule de "catégorie" à "état". L'icône colorée suffit à identifier le type — doubler la catégorie sur le montant crée une collision cognitive (principe 26, ux-ui-principles.md).
+**Asymétrie intentionnelle (iOS, révisé mai 2026) :** la couleur du montant est scopée par type. Revenu et Épargne gardent leur couleur catégorie en permanence (le « plus » est positif). Dépense seule passe en spectre état (neutre → warning → critical) selon la consommation. Le double-codage couleur + étiquette texte uppercase (REVENU / ÉPARGNE / DÉPENSE) lève toute ambiguïté — voir principe 26 révisé (`ux-ui-principles.md`) et RG-010 (`productContext.md`) pour le détail comportemental.
 
 Les valeurs d'opacité exactes vivent dans les DesignTokens du code, pas ici.
 
@@ -426,7 +428,7 @@ Le fond de contenu reste **toujours** le neutre chaud défini en §3.1, quel que
 |---------|-------|------|
 | Fond de contenu | Neutre chaud §3.1 (`Color.pulpeNeutralWarm`) | `systemGroupedBackground` |
 | Cartes | Blanc (`Color.surfaceCard`) | `secondarySystemGroupedBackground` |
-| Hero card | Couleur pleine (vert/ambre/rouge) | Ton sombre de la couleur d'état |
+| Hero block | Plat sur fond neutre (`.pulpeBackground()`) — pas de surface, pas de bordure, pas de gradient | Texte primary noir, accents (progress + pills) en couleur sémantique |
 
 #### Liquid Glass (iOS 26+)
 
@@ -441,7 +443,7 @@ Le fond de contenu reste **toujours** le neutre chaud défini en §3.1, quel que
 
 - Bottom tabs : **Accueil**, **Budgets**, **Modèles**
 - **Mon compte** n'est pas un onglet : accès via action toolbar depuis Accueil, en sheet
-- Le détail d'un mois se fait depuis **Budgets** ; la navigation entre mois utilise un menu de mois (`MonthDropdownMenu`), pas un swipe horizontal personnalisé
+- Le détail d'un mois se fait depuis **Budgets** ; la navigation entre mois utilise un sticky pager horizontal (`BudgetMonthPagerBar`) qui apparaît sous la nav bar quand le hero a scrollé hors écran (Revolut-style), avec snap centré et fade aux bords
 - `pull-to-refresh` et `swipe actions` suivent les conventions natives iOS
 
 #### Dashboard actuel (mars 2026)

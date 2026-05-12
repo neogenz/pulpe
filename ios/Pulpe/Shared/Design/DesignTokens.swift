@@ -18,6 +18,8 @@ enum DesignTokens {
         static let sm: CGFloat = 8
         /// Progress bars with visible rounding (10pt)
         static let progressBar: CGFloat = 10
+        /// Per-row inline card (18pt) — DM2.1.b.c5 budget line card
+        static let card: CGFloat = 18
         /// Medium elements: inputs, cards (24pt)
         static let md: CGFloat = 24
         /// Primary buttons (14pt)
@@ -133,10 +135,16 @@ enum DesignTokens {
         static let secondary: Double = 0.2
         /// Glow effects, shadows
         static let glow: Double = 0.25
+        /// Outline-pill stroke (slightly above secondary 0.2 for hairline pill borders)
+        static let outlinePill: Double = 0.22
         /// Strong accents, selected states
         static let strong: Double = 0.3
         /// Heavy overlays
         static let heavy: Double = 0.5
+        /// Disabled controls (e.g. type pills with count==0)
+        static let disabled: Double = 0.4
+        /// Dimmed row card — DM2.1.b.c5 pointed state on per-row card
+        static let pointedDim: Double = 0.62
         /// Pressed state for interactive elements
         static let pressed: Double = 0.8
         /// Dark overlays (tutorial, modal backdrops)
@@ -167,6 +175,13 @@ enum DesignTokens {
     enum ListRow {
         /// Vertical padding for all list/transaction/budget rows
         static let verticalPadding: CGFloat = 8
+        /// Minimum row height shared across the app's list rows.
+        ///
+        /// Matches the natural height of `TransactionRow` (free transactions
+        /// section): `IconSize.listRow` (40) + 2 × `verticalPadding` (8) = 56.
+        /// Pinning budget line rows to the same minimum keeps the rhythm
+        /// consistent regardless of subtitle presence.
+        static let minHeight: CGFloat = IconSize.listRow + verticalPadding * 2
     }
 
     // MARK: - Animation
@@ -214,6 +229,10 @@ enum DesignTokens {
             .easeInOut(duration: normal)
         }
 
+        static var quickEaseInOut: SwiftUI.Animation {
+            .easeInOut(duration: quickSnap)
+        }
+
         // MARK: - Step Transitions
 
         static var stepTransition: SwiftUI.Animation {
@@ -253,6 +272,19 @@ enum DesignTokens {
             .easeInOut(duration: heroBreathingDuration).repeatForever(autoreverses: true)
         }
 
+        // MARK: - Push transition timings (BudgetDetails feature pattern)
+
+        /// Grace window after a pushed page detects its target model has
+        /// disappeared, before auto-popping. Gives Observation the chance to
+        /// settle on the first push frame so a transient lookup miss during
+        /// reload races does not pop a freshly-pushed page.
+        static let autoPopGraceMs: UInt64 = 150
+
+        /// Delay between view appearance and programmatic focus on a form
+        /// field, so the push transition completes before the keyboard rises.
+        /// Matches `SheetFormContainer` autofocus behavior.
+        static let pushAutofocusDelayMs: UInt64 = 200
+
         // MARK: - Skeleton
 
         /// Minimum skeleton display time to prevent jarring flash on fast loads
@@ -269,6 +301,16 @@ enum DesignTokens {
         }
     }
 
+    // MARK: - Sync indicators
+
+    /// Visibility thresholds for sync state UI (BudgetDetails feature pattern).
+    enum Sync {
+        /// Optimistic mutations under this delay don't surface a sync indicator
+        /// — the green dot only flashes if the server round-trip exceeds the
+        /// threshold, so fast updates feel instantaneous.
+        static let indicatorRampDelayMs: UInt64 = 300
+    }
+
     // MARK: - Frame Heights
 
     enum FrameHeight {
@@ -280,6 +322,8 @@ enum DesignTokens {
         static let progressBar: CGFloat = 8
         /// Thin separator lines
         static let separator: CGFloat = 1
+        /// Inline vertical divider inside a horizontally scrollable filter bar
+        static let dividerInline: CGFloat = 22
     }
 
     // MARK: - Numpad
@@ -308,6 +352,42 @@ enum DesignTokens {
         static let topFadeHeight: CGFloat = 60
         /// Height of the gradient fade at the bottom of scrollable content
         static let bottomFadeHeight: CGFloat = 80
+        /// Strong variable-blur radius for emphasized scroll-edge backdrops
+        /// (e.g. sticky pager). Higher than `ProgressiveBlurEdge` default (8)
+        /// so content underneath is fully obscured rather than softly blurred.
+        static let maxRadiusStrong: CGFloat = 20
+    }
+
+    // MARK: - Chip Metrics
+
+    /// Spacing tokens for `PulpeChip` (Shared/Components/PulpeChip.swift).
+    /// Two sizes — `Standard` (default chips: filter pills, menu triggers) and
+    /// `Prominent` (CTA chips). No `.compact` size on purpose: Pulpe DA pillar
+    /// "Légèreté" forbids tight density.
+    enum ChipMetrics {
+        enum Standard {
+            /// Horizontal padding inside the capsule
+            static let horizontalPadding: CGFloat = Spacing.lg
+            /// Vertical padding inside the capsule
+            static let verticalPadding: CGFloat = Spacing.md
+            /// Gap between elements inside the chip (icon → label → count → trailing)
+            static let interElementGap: CGFloat = Spacing.tightGap
+            /// Gap between adjacent chips on a rail
+            static let interChipGap: CGFloat = Spacing.sm
+        }
+
+        enum Prominent {
+            static let horizontalPadding: CGFloat = Spacing.xl
+            static let verticalPadding: CGFloat = Spacing.lg
+            static let interElementGap: CGFloat = Spacing.sm
+            static let interChipGap: CGFloat = Spacing.md
+        }
+
+        /// Inner-badge (count pill) padding — shared across sizes.
+        enum CountBadge {
+            static let horizontalPadding: CGFloat = Spacing.tightGap
+            static let verticalPadding: CGFloat = Spacing.xxs
+        }
     }
 
     // MARK: - Progress Bar

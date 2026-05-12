@@ -65,6 +65,10 @@ enum PulpeTypography {
     static let metricLabelBold: Font = .system(.footnote, weight: .bold)
     static let metricMini: Font = .system(.caption2, weight: .semibold)
 
+    /// Inline uppercase kind tag preceding a label (Revenu / Épargne / Dépense).
+    /// 10pt Manrope ExtraBold — see Pulpe v2 KindTag spec.
+    static let kindTagInline = Font.custom("Manrope", size: 10, relativeTo: .caption2).weight(.heavy)
+
     // MARK: - System (SF Pro)
 
     static let stepSubtitle: Font = .subheadline
