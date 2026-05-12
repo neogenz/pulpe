@@ -202,17 +202,16 @@ struct EditTransactionPage: View {
                 conversion: conversion
             )
 
-            let updated = try await TransactionService.shared.updateTransaction(id: tx.id, data: data)
+            // Routes the server call through the coordinator (Rule 9 — no
+            // direct `TransactionService.shared.*` from view files). Local
+            // apply is synchronous on return; background reload converges the
+            // rest of the budget without blocking dismiss.
+            _ = try await coordinator.updateTransaction(id: tx.id, data: data)
 
-            // Fire haptic + toast + dismiss while the view is still alive so
-            // SwiftUI can resolve the sensory feedback and animate the pop.
-            // The viewModel reconciliation runs detached: the optimistic
-            // local update is fast, the server reload converges asynchronously
-            // without blocking the UI.
             submitSuccessTrigger.toggle()
             toastManager.show("Transaction modifiée")
             dismiss()
-            Task { await coordinator.dispatch(.updateTransaction(updated)) }
+            Task { await coordinator.dispatch(.reloadCurrentBudget) }
         } catch {
             self.error = error
         }

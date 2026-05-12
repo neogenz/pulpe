@@ -14,7 +14,7 @@ struct BudgetDetailsAddFAB: View {
         Button(action: action) {
             Image(systemName: "plus")
                 .font(PulpeTypography.sectionIcon)
-                .foregroundStyle(Color.white)
+                .foregroundStyle(Color.textOnPrimary)
                 .frame(width: DesignTokens.FrameHeight.tabBar, height: DesignTokens.FrameHeight.tabBar)
         }
         .contentShape(Circle())

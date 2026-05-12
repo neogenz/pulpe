@@ -203,13 +203,11 @@ struct AddAllocatedTransactionPage: View {
                 )
             )
 
-            let transaction = try await TransactionService.shared.createTransaction(data)
-
-            // Apply local update + emit feedback + pop. `addTransaction` is
-            // a synchronous local insert on the data store — no detached Task
-            // needed here for correctness; we kick off dispatch concurrently
-            // with dismiss so the UI doesn't await on local state writes.
-            await coordinator.dispatch(.addTransaction(transaction))
+            // Routes the server call through the coordinator (Rule 9 — no
+            // direct `TransactionService.shared.*` from view files). The
+            // coordinator applies the optimistic local insert synchronously
+            // once the server confirms, so the UI can dismiss immediately.
+            _ = try await coordinator.createAllocatedTransaction(data)
             submitSuccessTrigger.toggle()
             toastManager.show("Transaction ajoutée")
             dismiss()

@@ -229,6 +229,10 @@ enum DesignTokens {
             .easeInOut(duration: normal)
         }
 
+        static var quickEaseInOut: SwiftUI.Animation {
+            .easeInOut(duration: quickSnap)
+        }
+
         // MARK: - Step Transitions
 
         static var stepTransition: SwiftUI.Animation {

@@ -59,7 +59,7 @@ struct MainTabView: View {
                 .frame(height: barHidden ? 0 : nil)
                 .allowsHitTesting(!barHidden)
         }
-        .animation(.easeInOut(duration: DesignTokens.Animation.quickSnap), value: barHidden)
+        .animation(DesignTokens.Animation.quickEaseInOut, value: barHidden)
         .onPreferenceChange(HidesFloatingTabBarKey.self) { hide in
             pageRequestsHide = hide
         }
@@ -134,7 +134,7 @@ struct MainTabView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .background {
                         if isSelected {
-                            Color.gray.opacity(DesignTokens.Opacity.strong)
+                            Color.surfaceContainerHigh
                                 .clipShape(Capsule())
                                 .matchedGeometryEffect(id: "selectedTabPill", in: tabSelectionNamespace)
                                 .padding(.vertical, DesignTokens.Spacing.xs)
@@ -171,7 +171,7 @@ struct MainTabView: View {
 
     private var actionFABForeground: Color {
         if #available(iOS 26.0, *) {
-            return .white
+            return Color.textOnPrimary
         } else {
             return Color.pulpePrimary
         }

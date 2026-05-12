@@ -75,4 +75,35 @@ extension BudgetDetailsCoordinator {
             syncStore.setError(error)
         }
     }
+
+    // MARK: - Form-driven server mutations
+    //
+    // Form pages (`AddAllocatedTransactionPage`, `EditTransactionPage`) need
+    // the server-confirmed entity to drive their dismiss/error path. Routing
+    // through `dispatch(_:)` would require shipping the error back via a
+    // callback or a transient store; instead, expose typed throwing async
+    // methods on the coordinator so views never reach into
+    // `TransactionService.shared` directly (Rule 9 — feature architecture).
+
+    func createAllocatedTransaction(
+        _ data: TransactionCreate
+    ) async throws -> Transaction {
+        let transaction = try await transactionService.createTransaction(data)
+        addTransaction(transaction)
+        return transaction
+    }
+
+    func updateTransaction(
+        id: String,
+        data: TransactionUpdate
+    ) async throws -> Transaction {
+        let updated = try await transactionService.updateTransaction(id: id, data: data)
+        if dataStore.transactions.contains(where: { $0.id == updated.id }) {
+            dataStore.updateTransaction(updated)
+            dataStore.recomputeMetrics()
+            dataStore.syncCache()
+            dataStore.invalidateAdjacentCache()
+        }
+        return updated
+    }
 }
