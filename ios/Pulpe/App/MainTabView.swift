@@ -134,16 +134,14 @@ struct MainTabView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .background {
                         if isSelected {
-                            // Translucent neutral overlay (not a Pulpe surface
-                            // token) — the segment pill must blend into the
-                            // outer capsule's rounded edge. An opaque warm
-                            // surface (e.g. surfaceContainerHigh) reveals the
-                            // capsule-in-capsule clip artefact at the bar's
-                            // rounded ends; the 30% gray hides it.
+                            // Translucent neutral overlay inset on all sides
+                            // so the pill sits inside the bar with breathing
+                            // room — never touches the bar's rounded edge.
+                            // Mirrors the pre-refactor `CustomTabBar` inset.
                             Color.gray.opacity(DesignTokens.Opacity.strong)
                                 .clipShape(Capsule())
                                 .matchedGeometryEffect(id: "selectedTabPill", in: tabSelectionNamespace)
-                                .padding(.vertical, DesignTokens.Spacing.xs)
+                                .padding(DesignTokens.Spacing.xs)
                         }
                     }
                     .contentShape(Rectangle())
