@@ -1,5 +1,4 @@
 import { Inject, Injectable } from '@nestjs/common';
-import type { Buffer } from 'node:buffer';
 import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 import {
   BUDGET_REPOSITORY,
@@ -20,7 +19,7 @@ export class RecalculateBudgetBalancesUseCase implements BudgetRecalculationPort
     private readonly logger: InfoLogger,
   ) {}
 
-  async recalculate(budgetId: string, _clientKey: Buffer): Promise<void> {
+  async recalculate(budgetId: string): Promise<void> {
     const endingBalance = await this.calculateEndingBalance(budgetId);
     await this.repo.persistEndingBalance(budgetId, endingBalance);
 

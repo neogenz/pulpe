@@ -141,7 +141,7 @@ describe('BulkTemplateLineOperationsUseCase — atomicity', () => {
       propagateToBudgets: true,
     };
 
-    await useCase.execute('template-1', payload, mockUser, null);
+    await useCase.execute('template-1', payload, mockUser);
 
     expect(mockRepo.bulkApplyTemplateLineOperations).toHaveBeenCalledTimes(1);
     expect(mockRepo.updateLine).not.toHaveBeenCalled();
@@ -177,7 +177,7 @@ describe('BulkTemplateLineOperationsUseCase — atomicity', () => {
     };
 
     await expect(
-      useCase.execute('template-1', payload, mockUser, null),
+      useCase.execute('template-1', payload, mockUser),
     ).rejects.toThrow('RPC apply_template_line_operations failed');
 
     // Per-line write methods are never called — all template writes live
@@ -211,7 +211,7 @@ describe('BulkTemplateLineOperationsUseCase — atomicity', () => {
       propagateToBudgets: true,
     };
 
-    const result = await useCase.execute('template-1', payload, mockUser, null);
+    const result = await useCase.execute('template-1', payload, mockUser);
 
     expect(result.updatedLines).toHaveLength(1);
     expect(result.updatedLines[0].id).toBe(
@@ -248,12 +248,7 @@ describe('BulkTemplateLineOperationsUseCase — atomicity', () => {
         callOrder.push('recalculate');
       });
 
-      await useCase.execute(
-        'template-1',
-        buildPropagationPayload(),
-        mockUser,
-        null,
-      );
+      await useCase.execute('template-1', buildPropagationPayload(), mockUser);
 
       expect(callOrder.indexOf('invalidate')).toBeLessThan(
         callOrder.indexOf('recalculate'),
@@ -270,7 +265,6 @@ describe('BulkTemplateLineOperationsUseCase — atomicity', () => {
           'template-1',
           buildPropagationPayload(),
           mockUser,
-          null,
         );
         throw new Error('expected to throw');
       } catch (error) {

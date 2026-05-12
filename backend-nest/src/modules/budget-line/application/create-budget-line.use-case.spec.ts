@@ -89,7 +89,7 @@ describe('CreateBudgetLineUseCase', () => {
       isManuallyAdjusted: false,
     };
 
-    const result = await useCase.execute(dto, mockUser, undefined);
+    const result = await useCase.execute(dto, mockUser);
 
     expect(result.id).toBe(mockEntity.id);
     expect(result.name).toBe('Loyer');
@@ -107,7 +107,7 @@ describe('CreateBudgetLineUseCase', () => {
       recurrence: 'fixed',
     } as BudgetLineCreate;
 
-    await expect(useCase.execute(dto, mockUser, undefined)).rejects.toThrow(
+    await expect(useCase.execute(dto, mockUser)).rejects.toThrow(
       BusinessException,
     );
     expect(mockRepo.insert).not.toHaveBeenCalled();
@@ -133,7 +133,7 @@ describe('CreateBudgetLineUseCase', () => {
       ),
     );
 
-    await expect(useCase.execute(dto, mockUser, undefined)).rejects.toThrow(
+    await expect(useCase.execute(dto, mockUser)).rejects.toThrow(
       BusinessException,
     );
   });

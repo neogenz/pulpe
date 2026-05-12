@@ -6,7 +6,6 @@ import {
   BUDGET_RECALCULATION_PORT,
   type BudgetRecalculationPort,
 } from '@modules/budget/domain/ports/budget-recalculation.port';
-import { DEMO_CLIENT_KEY_BUFFER } from '@modules/encryption/domain/encryption.constants';
 import {
   DEMO_REPOSITORY,
   type DemoRepositoryPort,
@@ -333,10 +332,7 @@ export class GenerateDemoDataUseCase {
     });
 
     for (const budget of sorted) {
-      await this.budgetRecalculation.recalculate(
-        budget.id,
-        DEMO_CLIENT_KEY_BUFFER,
-      );
+      await this.budgetRecalculation.recalculate(budget.id);
     }
   }
 }

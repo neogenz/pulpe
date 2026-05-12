@@ -35,7 +35,7 @@ export class RemoveTransactionUseCase {
 
     if (budgetId) {
       try {
-        await this.budgetRecalculation.recalculate(budgetId, user.clientKey);
+        await this.budgetRecalculation.recalculate(budgetId);
       } catch (cause) {
         throw new BusinessException(
           ERROR_DEFINITIONS.TRANSACTION_DELETE_FAILED,

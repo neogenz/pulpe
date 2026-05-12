@@ -70,7 +70,7 @@ describe('RemoveBudgetLineUseCase', () => {
   });
 
   it('should delete, invalidate cache, then recalculate in that order', async () => {
-    await useCase.execute('line-1', mockUser, undefined);
+    await useCase.execute('line-1', mockUser);
 
     expect(callOrder).toEqual([
       'fetchBudgetIdForLine',
@@ -78,16 +78,13 @@ describe('RemoveBudgetLineUseCase', () => {
       'invalidateForUser',
       'recalculate',
     ]);
-    expect(mockBudget.recalculate).toHaveBeenCalledWith(
-      'budget-1',
-      mockUser.clientKey,
-    );
+    expect(mockBudget.recalculate).toHaveBeenCalledWith('budget-1');
   });
 
   it('should skip recalculate when budgetId is null (genuine not-found)', async () => {
     mockRepo.fetchBudgetIdForLine.mockResolvedValueOnce(null);
 
-    await useCase.execute('missing', mockUser, undefined);
+    await useCase.execute('missing', mockUser);
 
     expect(mockRepo.delete).toHaveBeenCalledTimes(1);
     expect(mockCache.invalidateForUser).toHaveBeenCalledTimes(1);
@@ -105,9 +102,9 @@ describe('RemoveBudgetLineUseCase', () => {
     );
     mockRepo.fetchBudgetIdForLine.mockRejectedValueOnce(fetchError);
 
-    await expect(
-      useCase.execute('line-1', mockUser, undefined),
-    ).rejects.toThrow(BusinessException);
+    await expect(useCase.execute('line-1', mockUser)).rejects.toThrow(
+      BusinessException,
+    );
     expect(mockRepo.delete).not.toHaveBeenCalled();
     expect(mockCache.invalidateForUser).not.toHaveBeenCalled();
     expect(mockBudget.recalculate).not.toHaveBeenCalled();
@@ -125,9 +122,9 @@ describe('RemoveBudgetLineUseCase', () => {
       ),
     );
 
-    await expect(
-      useCase.execute('line-1', mockUser, undefined),
-    ).rejects.toThrow(BusinessException);
+    await expect(useCase.execute('line-1', mockUser)).rejects.toThrow(
+      BusinessException,
+    );
     expect(mockCache.invalidateForUser).not.toHaveBeenCalled();
     expect(mockBudget.recalculate).not.toHaveBeenCalled();
   });
@@ -137,7 +134,7 @@ describe('RemoveBudgetLineUseCase', () => {
     mockBudget.recalculate.mockRejectedValueOnce(recalcError);
 
     try {
-      await useCase.execute('line-1', mockUser, undefined);
+      await useCase.execute('line-1', mockUser);
       throw new Error('expected to throw');
     } catch (error) {
       expect(error).toBeInstanceOf(BusinessException);

@@ -69,7 +69,7 @@ export class GenerateBudgetsUseCase {
 
         const budgetId = await this.tryCreateSingleBudget(target, dto, user);
         createdBudgetIds.push(budgetId);
-        await this.budgetRecalculation.recalculate(budgetId, user.clientKey);
+        await this.budgetRecalculation.recalculate(budgetId);
       }
     } catch (error) {
       await this.cacheService.invalidateForUser(user.id);

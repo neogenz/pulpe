@@ -36,10 +36,8 @@ import {
 import { AuthGuard } from '@common/guards/auth.guard';
 import {
   User,
-  SupabaseClient,
   type AuthenticatedUser,
 } from '@common/decorators/user.decorator';
-import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
 import {
   BudgetTemplateCreateDto,
   BudgetTemplateCreateFromOnboardingDto,
@@ -117,12 +115,8 @@ export class BudgetTemplateController {
   })
   async findAll(
     @User() user: AuthenticatedUser,
-    @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<_BudgetTemplateListResponse> {
-    const templates = await this.findAllTemplatesUseCase.execute(
-      user,
-      supabase,
-    );
+    const templates = await this.findAllTemplatesUseCase.execute(user);
     return { success: true, data: this.mapper.toApiTemplateList(templates) };
   }
 
@@ -142,12 +136,10 @@ export class BudgetTemplateController {
   async create(
     @Body() createTemplateDto: BudgetTemplateCreateDto,
     @User() user: AuthenticatedUser,
-    @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<_BudgetTemplateCreateResponse> {
     const composite = await this.createTemplateUseCase.execute(
       createTemplateDto,
       user,
-      supabase,
     );
     return this.mapper.toApiTemplateCreateResponse(composite);
   }
@@ -170,12 +162,10 @@ export class BudgetTemplateController {
   async createFromOnboarding(
     @Body() onboardingData: BudgetTemplateCreateFromOnboardingDto,
     @User() user: AuthenticatedUser,
-    @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<_BudgetTemplateCreateResponse> {
     const composite = await this.createTemplateFromOnboardingUseCase.execute(
       onboardingData,
       user,
-      supabase,
     );
     return this.mapper.toApiTemplateCreateResponse(composite);
   }
@@ -205,13 +195,8 @@ export class BudgetTemplateController {
   async checkUsage(
     @Param('id', ParseUUIDPipe) id: string,
     @User() user: AuthenticatedUser,
-    @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<TemplateUsageResponse> {
-    const usage = await this.checkTemplateUsageUseCase.execute(
-      id,
-      user,
-      supabase,
-    );
+    const usage = await this.checkTemplateUsageUseCase.execute(id, user);
     return { success: true, data: usage };
   }
 
@@ -240,9 +225,8 @@ export class BudgetTemplateController {
   async findOne(
     @Param('id', ParseUUIDPipe) id: string,
     @User() user: AuthenticatedUser,
-    @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<_BudgetTemplateResponse> {
-    const template = await this.findTemplateUseCase.execute(id, user, supabase);
+    const template = await this.findTemplateUseCase.execute(id, user);
     return { success: true, data: this.mapper.toApiTemplate(template) };
   }
 
@@ -275,13 +259,11 @@ export class BudgetTemplateController {
     @Param('id', ParseUUIDPipe) id: string,
     @Body() updateTemplateDto: BudgetTemplateUpdateDto,
     @User() user: AuthenticatedUser,
-    @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<_BudgetTemplateResponse> {
     const template = await this.updateTemplateUseCase.execute(
       id,
       updateTemplateDto,
       user,
-      supabase,
     );
     return { success: true, data: this.mapper.toApiTemplate(template) };
   }
@@ -311,13 +293,8 @@ export class BudgetTemplateController {
   async findTemplateLines(
     @Param('id', ParseUUIDPipe) id: string,
     @User() user: AuthenticatedUser,
-    @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<TemplateLineListResponse> {
-    const lines = await this.findTemplateLinesUseCase.execute(
-      id,
-      user,
-      supabase,
-    );
+    const lines = await this.findTemplateLinesUseCase.execute(id, user);
     return { success: true, data: this.mapper.toApiTemplateLineList(lines) };
   }
 
@@ -351,13 +328,11 @@ export class BudgetTemplateController {
     @Param('id', ParseUUIDPipe) templateId: string,
     @Body() bulkOperationsDto: TemplateLinesBulkOperationsDto,
     @User() user: AuthenticatedUser,
-    @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<_TemplateLinesBulkOperationsResponse> {
     const result = await this.bulkTemplateLineOperationsUseCase.execute(
       templateId,
       bulkOperationsDto,
       user,
-      supabase,
     );
     return this.mapper.toApiBulkOperationsResponse(result);
   }
@@ -390,13 +365,11 @@ export class BudgetTemplateController {
     @Param('id', ParseUUIDPipe) templateId: string,
     @Body() createLineDto: TemplateLineCreateDto,
     @User() user: AuthenticatedUser,
-    @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<_TemplateLineResponse> {
     const line = await this.createTemplateLineUseCase.execute(
       templateId,
       createLineDto,
       user,
-      supabase,
     );
     return { success: true, data: this.mapper.toApiTemplateLine(line) };
   }
@@ -433,13 +406,8 @@ export class BudgetTemplateController {
     @Param('templateId', ParseUUIDPipe) templateId: string,
     @Param('lineId', ParseUUIDPipe) lineId: string,
     @User() user: AuthenticatedUser,
-    @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<_TemplateLineResponse> {
-    const line = await this.findTemplateLineUseCase.execute(
-      lineId,
-      user,
-      supabase,
-    );
+    const line = await this.findTemplateLineUseCase.execute(lineId, user);
     return { success: true, data: this.mapper.toApiTemplateLine(line) };
   }
 
@@ -480,13 +448,11 @@ export class BudgetTemplateController {
     @Param('lineId', ParseUUIDPipe) lineId: string,
     @Body() updateLineDto: TemplateLineUpdateDto,
     @User() user: AuthenticatedUser,
-    @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<_TemplateLineResponse> {
     const line = await this.updateTemplateLineUseCase.execute(
       lineId,
       updateLineDto,
       user,
-      supabase,
     );
     return { success: true, data: this.mapper.toApiTemplateLine(line) };
   }
@@ -523,9 +489,8 @@ export class BudgetTemplateController {
     @Param('templateId', ParseUUIDPipe) templateId: string,
     @Param('lineId', ParseUUIDPipe) lineId: string,
     @User() user: AuthenticatedUser,
-    @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<_TemplateLineDeleteResponse> {
-    return this.deleteTemplateLineUseCase.execute(lineId, user, supabase);
+    return this.deleteTemplateLineUseCase.execute(lineId, user);
   }
 
   @Delete(':id')
@@ -556,8 +521,7 @@ export class BudgetTemplateController {
   async remove(
     @Param('id', ParseUUIDPipe) id: string,
     @User() user: AuthenticatedUser,
-    @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<_BudgetTemplateDeleteResponse> {
-    return this.removeTemplateUseCase.execute(id, user, supabase);
+    return this.removeTemplateUseCase.execute(id, user);
   }
 }

@@ -16,11 +16,7 @@ export class FindTemplateUseCase {
     private readonly logger: InfoLogger,
   ) {}
 
-  async execute(
-    id: string,
-    user: AuthenticatedUser,
-    _supabase: unknown,
-  ): Promise<BudgetTemplate> {
+  async execute(id: string, user: AuthenticatedUser): Promise<BudgetTemplate> {
     const startTime = Date.now();
 
     const data = await this.repo.validateAccess(id, user.id);

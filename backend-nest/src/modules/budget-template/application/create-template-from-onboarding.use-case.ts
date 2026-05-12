@@ -66,7 +66,6 @@ export class CreateTemplateFromOnboardingUseCase {
   async execute(
     onboardingData: BudgetTemplateCreateFromOnboarding,
     user: AuthenticatedUser,
-    _supabase: unknown,
   ): Promise<TemplateWithLines> {
     const startTime = Date.now();
 
@@ -90,7 +89,7 @@ export class CreateTemplateFromOnboardingUseCase {
       'Creating template from onboarding',
     );
 
-    return this.createTemplateUseCase.execute(templateCreateDto, user, null);
+    return this.createTemplateUseCase.execute(templateCreateDto, user);
   }
 
   private buildOnboardingTemplateLines(

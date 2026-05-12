@@ -76,7 +76,7 @@ describe('CreateTemplateLineUseCase', () => {
       description: 'Salaire mensuel',
     };
 
-    const result = await useCase.execute('template-1', dto, mockUser, null);
+    const result = await useCase.execute('template-1', dto, mockUser);
 
     expect(result.id).toBe('line-1');
     expect(result.name).toBe('Salaire');
@@ -98,9 +98,9 @@ describe('CreateTemplateLineUseCase', () => {
     };
     mockRepo.validateAccess.mockRejectedValueOnce(new Error('Access denied'));
 
-    await expect(
-      useCase.execute('template-99', dto, mockUser, null),
-    ).rejects.toThrow('Access denied');
+    await expect(useCase.execute('template-99', dto, mockUser)).rejects.toThrow(
+      'Access denied',
+    );
 
     expect(mockRepo.insertLine).not.toHaveBeenCalled();
   });
@@ -114,7 +114,7 @@ describe('CreateTemplateLineUseCase', () => {
       description: '',
     };
 
-    await useCase.execute('template-1', dto, mockUser, null);
+    await useCase.execute('template-1', dto, mockUser);
 
     expect(mockRepo.insertLine).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -134,7 +134,7 @@ describe('CreateTemplateLineUseCase', () => {
       description: '',
     };
 
-    await useCase.execute('template-1', dto, mockUser, null);
+    await useCase.execute('template-1', dto, mockUser);
 
     expect(mockCurrency.overrideExchangeRate).toHaveBeenCalledTimes(1);
   });

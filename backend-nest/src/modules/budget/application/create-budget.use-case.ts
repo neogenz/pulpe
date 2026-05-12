@@ -52,10 +52,7 @@ export class CreateBudgetUseCase {
     await this.cacheService.invalidateForUser(user.id);
 
     try {
-      await this.budgetRecalculation.recalculate(
-        rpcResult.budget.id,
-        user.clientKey,
-      );
+      await this.budgetRecalculation.recalculate(rpcResult.budget.id);
     } catch (cause) {
       throw new BusinessException(
         ERROR_DEFINITIONS.BUDGET_CREATE_FAILED,

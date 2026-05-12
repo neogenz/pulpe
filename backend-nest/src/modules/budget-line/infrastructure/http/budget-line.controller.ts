@@ -28,10 +28,8 @@ import {
 import { AuthGuard } from '@common/guards/auth.guard';
 import {
   User,
-  SupabaseClient,
   type AuthenticatedUser,
 } from '@common/decorators/user.decorator';
-import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
 import {
   BudgetLineCreateDto,
   BudgetLineUpdateDto,
@@ -96,13 +94,8 @@ export class BudgetLineController {
   async findByBudget(
     @Param('budgetId') budgetId: string,
     @User() user: AuthenticatedUser,
-    @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetLineListResponse> {
-    const entities = await this.findByBudgetUseCase.execute(
-      budgetId,
-      user,
-      supabase,
-    );
+    const entities = await this.findByBudgetUseCase.execute(budgetId, user);
     return { success: true, data: this.mapper.toApiList(entities) };
   }
 
@@ -116,13 +109,8 @@ export class BudgetLineController {
   async create(
     @Body() createBudgetLineDto: BudgetLineCreateDto,
     @User() user: AuthenticatedUser,
-    @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetLineResponse> {
-    const entity = await this.createUseCase.execute(
-      createBudgetLineDto,
-      user,
-      supabase,
-    );
+    const entity = await this.createUseCase.execute(createBudgetLineDto, user);
     return { success: true, data: this.mapper.toApi(entity) };
   }
 
@@ -143,9 +131,8 @@ export class BudgetLineController {
   async findOne(
     @Param('id') id: string,
     @User() user: AuthenticatedUser,
-    @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetLineResponse> {
-    const entity = await this.findOneUseCase.execute(id, user, supabase);
+    const entity = await this.findOneUseCase.execute(id, user);
     return { success: true, data: this.mapper.toApi(entity) };
   }
 
@@ -175,13 +162,11 @@ export class BudgetLineController {
     @Param('id') id: string,
     @Body() updateBudgetLineDto: BudgetLineUpdateDto,
     @User() user: AuthenticatedUser,
-    @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetLineResponse> {
     const entity = await this.updateUseCase.execute(
       id,
       updateBudgetLineDto,
       user,
-      supabase,
     );
     return { success: true, data: this.mapper.toApi(entity) };
   }
@@ -213,13 +198,8 @@ export class BudgetLineController {
   async resetFromTemplate(
     @Param('id') id: string,
     @User() user: AuthenticatedUser,
-    @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetLineResponse> {
-    const entity = await this.resetFromTemplateUseCase.execute(
-      id,
-      user,
-      supabase,
-    );
+    const entity = await this.resetFromTemplateUseCase.execute(id, user);
     return { success: true, data: this.mapper.toApi(entity) };
   }
 
@@ -246,9 +226,8 @@ export class BudgetLineController {
   async toggleCheck(
     @Param('id') id: string,
     @User() user: AuthenticatedUser,
-    @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetLineResponse> {
-    const entity = await this.toggleCheckUseCase.execute(id, user, supabase);
+    const entity = await this.toggleCheckUseCase.execute(id, user);
     return { success: true, data: this.mapper.toApi(entity) };
   }
 
@@ -273,13 +252,8 @@ export class BudgetLineController {
   async checkTransactions(
     @Param('id') id: string,
     @User() user: AuthenticatedUser,
-    @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<TransactionListResponse> {
-    const entities = await this.checkTransactionsUseCase.execute(
-      id,
-      user,
-      supabase,
-    );
+    const entities = await this.checkTransactionsUseCase.execute(id, user);
     return {
       success: true,
       data: this.transactionMapper.toApiList(entities),
@@ -305,9 +279,8 @@ export class BudgetLineController {
   async remove(
     @Param('id') id: string,
     @User() user: AuthenticatedUser,
-    @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetLineDeleteResponse> {
-    await this.removeUseCase.execute(id, user, supabase);
+    await this.removeUseCase.execute(id, user);
     return { success: true, message: 'Budget line deleted successfully' };
   }
 }

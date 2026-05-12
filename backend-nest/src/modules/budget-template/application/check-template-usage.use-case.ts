@@ -22,11 +22,7 @@ export class CheckTemplateUsageUseCase {
     private readonly logger: InfoLogger,
   ) {}
 
-  async execute(
-    id: string,
-    user: AuthenticatedUser,
-    _supabase: unknown,
-  ): Promise<TemplateUsage> {
+  async execute(id: string, user: AuthenticatedUser): Promise<TemplateUsage> {
     const startTime = Date.now();
 
     await this.repo.validateAccess(id, user.id);
