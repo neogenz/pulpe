@@ -134,7 +134,13 @@ struct MainTabView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .background {
                         if isSelected {
-                            Color.surfaceContainerHigh
+                            // Translucent neutral overlay (not a Pulpe surface
+                            // token) — the segment pill must blend into the
+                            // outer capsule's rounded edge. An opaque warm
+                            // surface (e.g. surfaceContainerHigh) reveals the
+                            // capsule-in-capsule clip artefact at the bar's
+                            // rounded ends; the 30% gray hides it.
+                            Color.gray.opacity(DesignTokens.Opacity.strong)
                                 .clipShape(Capsule())
                                 .matchedGeometryEffect(id: "selectedTabPill", in: tabSelectionNamespace)
                                 .padding(.vertical, DesignTokens.Spacing.xs)
