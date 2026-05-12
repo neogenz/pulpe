@@ -68,10 +68,16 @@ final class BudgetDetailsCoordinator {
 
     private func dispatchToggle(_ action: BudgetDetailsAction) async -> Bool {
         switch action {
-        case .toggleLine(let line):
-            await toggleBudgetLine(line)
-        case .confirmCheckAll(let line, let checkAll):
-            await confirmToggle(for: line, checkAll: checkAll)
+        case .toggleLine(let line, let ctx, let amountsHidden):
+            let succeeded = await toggleBudgetLine(line)
+            if succeeded {
+                showCheckToastIfNeeded(for: line, context: ctx, amountsHidden: amountsHidden)
+            }
+        case .confirmCheckAll(let line, let checkAll, let ctx, let amountsHidden):
+            let succeeded = await confirmToggle(for: line, checkAll: checkAll)
+            if succeeded {
+                showCheckToastIfNeeded(for: line, context: ctx, amountsHidden: amountsHidden)
+            }
         case .toggleTransaction(let tx):
             await toggleTransaction(tx)
         default:

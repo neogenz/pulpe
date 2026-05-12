@@ -70,15 +70,15 @@ struct BudgetDetailsView: View {
         let screenState = projector.screenState
 
         return Group {
-            if screenState.isLoading && coordinator.dataStore.budget == nil {
+            if screenState.isLoading && !screenState.isBudgetPresent {
                 BudgetDetailsSkeletonView()
                     .transition(.opacity)
-            } else if screenState.errorIsTerminal, let error = coordinator.syncStore.error {
+            } else if screenState.errorIsTerminal, let error = projector.terminalError {
                 ErrorView(error: error) {
                     await coordinator.dispatch(.loadDetails(force: false))
                 }
                 .transition(.opacity)
-            } else if coordinator.dataStore.budget != nil {
+            } else if screenState.isBudgetPresent {
                 content
                     .transition(.opacity)
             }
@@ -89,8 +89,8 @@ struct BudgetDetailsView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(Color.appBackground, for: .navigationBar)
         .toolbarBackgroundVisibility(.visible, for: .navigationBar)
-        .task(id: coordinator.dataStore.budgetId) {
-            if coordinator.dataStore.allBudgets.isEmpty {
+        .task(id: screenState.budgetId) {
+            if !screenState.hasAllBudgets {
                 await coordinator.dispatch(.loadDetails(force: false))
             } else {
                 await coordinator.dispatch(.reloadCurrentBudget)
@@ -99,9 +99,6 @@ struct BudgetDetailsView: View {
         .onChange(of: searchText) { _, newValue in
             projector.setSearchText(newValue)
         }
-        #if DEBUG
-        .onAppear { applyPUL209VerifyPriming() }
-        #endif
         .sheet(item: $router.sheet) { dest in
             sheetContent(for: dest)
         }
@@ -117,22 +114,16 @@ struct BudgetDetailsView: View {
         ) { line in
             Button("Non, juste la prévision", role: .cancel) {
                 Task {
-                    let succeeded = await coordinator.confirmToggle(for: line, checkAll: false)
-                    if succeeded {
-                        await coordinator.dispatch(
-                            .showCheckToastIfNeeded(line, toastContext, amountsHidden: amountsHidden)
-                        )
-                    }
+                    await coordinator.dispatch(
+                        .confirmCheckAll(line: line, checkAll: false, toastContext, amountsHidden: amountsHidden)
+                    )
                 }
             }
             Button("Oui, tout pointer") {
                 Task {
-                    let succeeded = await coordinator.confirmToggle(for: line, checkAll: true)
-                    if succeeded {
-                        await coordinator.dispatch(
-                            .showCheckToastIfNeeded(line, toastContext, amountsHidden: amountsHidden)
-                        )
-                    }
+                    await coordinator.dispatch(
+                        .confirmCheckAll(line: line, checkAll: true, toastContext, amountsHidden: amountsHidden)
+                    )
                 }
             }
         } message: { _ in
@@ -201,12 +192,9 @@ struct BudgetDetailsView: View {
                         },
                         onTogglePointed: { line in
                             Task {
-                                let succeeded = await coordinator.toggleBudgetLine(line)
-                                if succeeded {
-                                    await coordinator.dispatch(
-                                        .showCheckToastIfNeeded(line, toastContext, amountsHidden: amountsHidden)
-                                    )
-                                }
+                                await coordinator.dispatch(
+                                    .toggleLine(line, toastContext, amountsHidden: amountsHidden)
+                                )
                             }
                         },
                         tip: section.kind == screenState.firstSectionKind ? ProductTips.gestures : nil
@@ -294,25 +282,6 @@ struct BudgetDetailsView: View {
             )
         }
     }
-
-    #if DEBUG
-    /// Reads `PUL209VerifyState` priming vars and forces filter / sheet state for
-    /// the visual verification harness. No-op outside that flow.
-    private func applyPUL209VerifyPriming() {
-        if let raw = PUL209VerifyState.pendingTypeFilter,
-           let filter = BudgetLineKindFilter(rawValue: raw) {
-            Task { await coordinator.dispatch(.setTypeFilter(filter)) }
-        }
-        if let raw = PUL209VerifyState.pendingCheckedFilter,
-           let filter = CheckedFilterOption(rawValue: raw) {
-            Task { await coordinator.dispatch(.setCheckedFilter(filter)) }
-        }
-        if let lineId = PUL209VerifyState.pendingOpenLineId,
-           coordinator.dataStore.budgetLines.contains(where: { $0.id == lineId }) {
-            router.push(.lineDetail(lineId: lineId))
-        }
-    }
-    #endif
 }
 
 #Preview {

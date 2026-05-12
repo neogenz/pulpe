@@ -33,6 +33,14 @@ struct BudgetDetailsScreenState: Equatable {
     /// "error visible AND budget == nil → ErrorView".
     let errorIsTerminal: Bool
 
+    /// `dataStore.budget != nil`. Hoisted into the DTO so views never reach
+    /// into the data store for a presence check.
+    let isBudgetPresent: Bool
+
+    /// `!dataStore.allBudgets.isEmpty`. Drives the "skip the full load when
+    /// the pager already has all months" path inside `.task(id:)`.
+    let hasAllBudgets: Bool
+
     let hero: HeroState
     let rollover: RolloverInfo?
 
@@ -66,6 +74,12 @@ struct BudgetDetailsScreenState: Equatable {
     /// even ones currently filtered out.
     let consumptionByLineId: [String: BudgetFormulas.Consumption]
 
+    /// O(1) lookup of every line in the current source state, keyed by id.
+    /// Symmetric with `transactionsByLineId` — lets `BudgetLineDetailPage`
+    /// resolve `BudgetLine` from the projection without touching the data
+    /// store directly.
+    let lineById: [String: BudgetLine]
+
     /// Transactions grouped by parent budget line, pre-sorted newest-first.
     /// Drives `BudgetLineDetailPage` without calling `.filter`/`.sorted` in
     /// the view body.
@@ -83,6 +97,8 @@ struct BudgetDetailsScreenState: Equatable {
         monthYear: "",
         isLoading: false,
         errorIsTerminal: false,
+        isBudgetPresent: false,
+        hasAllBudgets: false,
         hero: HeroState.empty,
         rollover: nil,
         sections: [],
@@ -96,6 +112,7 @@ struct BudgetDetailsScreenState: Equatable {
         firstSectionKind: nil,
         canShowEmptyChecked: false,
         consumptionByLineId: [:],
+        lineById: [:],
         transactionsByLineId: [:],
         checkedTickHash: 0
     )

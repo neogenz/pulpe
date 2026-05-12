@@ -17,17 +17,18 @@ import SwiftUI
 final class BudgetDetailsProjector {
     private(set) var screenState: BudgetDetailsScreenState
 
-    /// Strong references — projectors live as `@State` inside the parent view
-    /// so they share its lifetime. `@ObservationIgnored` because reads happen
-    /// explicitly inside `withObservationTracking { ... }`; we do NOT want
-    /// the projector observing its own `dataStore` property.
+    /// Mirrors `SyncStateStore.error`. Lives outside `BudgetDetailsScreenState`
+    /// because `Error` is not `Equatable` (the DTO short-circuits on equality).
+    private(set) var terminalError: Error?
+
+    /// `@ObservationIgnored`: reads happen inside `withObservationTracking` —
+    /// the projector must not observe its own store properties directly.
     @ObservationIgnored private let dataStore: BudgetDataStore
     @ObservationIgnored private let filtersStore: FiltersStore
     @ObservationIgnored private let syncStore: SyncStateStore
 
-    /// Search text owned by the view; pushed into the projector via
-    /// `setSearchText(_:)` so a re-projection runs synchronously on each
-    /// keystroke. Search-filtering otherwise bypasses Observation tracking.
+    /// Search text pushed in from the view; re-projects synchronously since
+    /// search filtering bypasses Observation tracking.
     @ObservationIgnored private var searchText: String = ""
 
     init(
@@ -41,6 +42,7 @@ final class BudgetDetailsProjector {
         // Seed with empty so the property is non-optional; the first arm cycle
         // immediately overwrites it with the real projection.
         self.screenState = .empty
+        self.terminalError = nil
         applyProjection()
     }
 
@@ -56,13 +58,14 @@ final class BudgetDetailsProjector {
     // MARK: - Observation arming + apply
 
     private func applyProjection() {
-        let next = withObservationTracking { [dataStore, filtersStore, syncStore, searchText] in
-            BudgetDetailsProjector.project(
+        let (next, latestError) = withObservationTracking { [dataStore, filtersStore, syncStore, searchText] in
+            let state = BudgetDetailsProjector.project(
                 dataStore: dataStore,
                 filtersStore: filtersStore,
                 syncStore: syncStore,
                 searchText: searchText
             )
+            return (state, syncStore.error)
         } onChange: { [weak self] in
             // Observation fires onChange off the calling actor; hop back to
             // MainActor before mutating @Observable state.
@@ -74,6 +77,10 @@ final class BudgetDetailsProjector {
         if next != screenState {
             screenState = next
         }
+        // `Error` is not `Equatable`, so we publish the latest reference
+        // unconditionally. Observation diffs the property on storage identity;
+        // identical optional `nil → nil` transitions are inert.
+        terminalError = latestError
     }
 
     // MARK: - Pure projection
@@ -90,6 +97,7 @@ final class BudgetDetailsProjector {
             budgetLines: dataStore.budgetLines,
             transactions: dataStore.transactions
         )
+        let lineById = makeLineByIdIndex(budgetLines: dataStore.budgetLines)
         let transactionsByLineId = makeTransactionsByLineIdIndex(
             transactions: dataStore.transactions
         )
@@ -115,6 +123,7 @@ final class BudgetDetailsProjector {
                 sections: sections,
                 free: free,
                 consumptionByLineId: consumptionByLineId,
+                lineById: lineById,
                 transactionsByLineId: transactionsByLineId
             )
         )
@@ -130,6 +139,7 @@ final class BudgetDetailsProjector {
         let sections: [BudgetDetailsScreenState.Section]
         let free: [BudgetDetailsScreenState.FreeTransactionItem]
         let consumptionByLineId: [String: BudgetFormulas.Consumption]
+        let lineById: [String: BudgetLine]
         let transactionsByLineId: [String: [Transaction]]
     }
 
@@ -141,6 +151,8 @@ final class BudgetDetailsProjector {
             monthYear: ctx.dataStore.budget?.monthYear ?? "",
             isLoading: ctx.syncStore.isLoading,
             errorIsTerminal: ctx.syncStore.error != nil && ctx.dataStore.budget == nil,
+            isBudgetPresent: ctx.dataStore.budget != nil,
+            hasAllBudgets: !ctx.dataStore.allBudgets.isEmpty,
             hero: BudgetDetailsScreenState.HeroState(
                 metrics: ctx.dataStore.metrics,
                 month: ctx.dataStore.budget?.month,
@@ -164,6 +176,7 @@ final class BudgetDetailsProjector {
                 free: ctx.free
             ),
             consumptionByLineId: ctx.consumptionByLineId,
+            lineById: ctx.lineById,
             transactionsByLineId: ctx.transactionsByLineId,
             checkedTickHash: makeCheckedTickHash(
                 budgetLines: ctx.dataStore.budgetLines,
@@ -260,6 +273,17 @@ final class BudgetDetailsProjector {
                 for: line,
                 transactions: transactions
             )
+        }
+        return index
+    }
+
+    private static func makeLineByIdIndex(
+        budgetLines: [BudgetLine]
+    ) -> [String: BudgetLine] {
+        var index: [String: BudgetLine] = [:]
+        index.reserveCapacity(budgetLines.count)
+        for line in budgetLines {
+            index[line.id] = line
         }
         return index
     }

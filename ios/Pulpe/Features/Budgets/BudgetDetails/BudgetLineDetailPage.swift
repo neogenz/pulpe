@@ -35,11 +35,12 @@ struct BudgetLineDetailPage: View {
 
     // MARK: - Derived
 
-    /// `first(where:)` returns a single element via direct iteration — it's
-    /// not a collection-shaping op (unlike `filter`/`sorted`/`sort`/`map`),
-    /// so the page stays compliant with the no-collection-ops rule.
+    /// O(1) lookup from the projection's `lineById` index — symmetric with
+    /// `transactionsByLineId` below. The view never reaches into
+    /// `coordinator.dataStore` directly: every read flows through
+    /// `BudgetDetailsScreenState`.
     private var budgetLine: BudgetLine? {
-        coordinator.dataStore.budgetLines.first { $0.id == lineId }
+        projector.screenState.lineById[lineId]
     }
 
     /// Transactions for this line are pre-grouped (newest first) by
@@ -96,13 +97,6 @@ struct BudgetLineDetailPage: View {
             Text("Tu auras quelques secondes pour annuler.")
         }
         .accessibilityIdentifier("budgetLineDetailPageRoot")
-        #if DEBUG
-        .overlay(alignment: .topTrailing) {
-            if PUL209VerifyState.pendingShowMenu {
-                debugMenuOverlay
-            }
-        }
-        #endif
     }
 
     @ViewBuilder

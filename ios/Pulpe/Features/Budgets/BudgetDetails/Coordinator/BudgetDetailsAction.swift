@@ -21,9 +21,11 @@ enum BudgetDetailsAction {
     case setCheckedFilter(CheckedFilterOption)
     case setTypeFilter(BudgetLineKindFilter)
 
-    // Toggles
-    case toggleLine(BudgetLine)
-    case confirmCheckAll(line: BudgetLine, checkAll: Bool)
+    // Toggles — carry `ToastContext` + `amountsHidden` so the coordinator
+    // emits the "Pointé" toast internally on success. Views never inspect
+    // the toggle's Bool return value.
+    case toggleLine(BudgetLine, ToastContext, amountsHidden: Bool)
+    case confirmCheckAll(line: BudgetLine, checkAll: Bool, ToastContext, amountsHidden: Bool)
     case toggleTransaction(Transaction)
 
     // Budget line mutations
