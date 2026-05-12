@@ -85,7 +85,7 @@ export class CreateBudgetLineUseCase {
   async execute(dto: BudgetLineCreate, user: AuthenticatedUser): Promise<BudgetLine> {
     BudgetLineInvariants.validateCreate(dto);
     const entity = await this.repo.insert(dto);  // plain numbers in, decrypted entity out
-    await this.budgetRecalculation.recalculate(entity.budgetId, user.clientKey);
+    await this.budgetRecalculation.recalculate(entity.budgetId);
     this.logger.info({ operation: 'budgetLine.create', userId: user.id }, 'Budget line created');
     return entity;
   }
