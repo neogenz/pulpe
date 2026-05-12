@@ -29,11 +29,7 @@ export class ResetBudgetLineFromTemplateUseCase {
     private readonly logger: InfoLogger,
   ) {}
 
-  async execute(
-    id: string,
-    user: AuthenticatedUser,
-    _supabase: unknown,
-  ): Promise<BudgetLine> {
+  async execute(id: string, user: AuthenticatedUser): Promise<BudgetLine> {
     const budgetLine = await this.repo.findById(id);
     BudgetLineInvariants.validateTemplateLineIdExists(
       budgetLine.templateLineId,
@@ -46,7 +42,7 @@ export class ResetBudgetLineFromTemplateUseCase {
     const patch = this.buildResetPatch(templateLine);
     const entity = await this.repo.update(id, patch);
 
-    await this.budgetRecalculation.recalculate(entity.budgetId, user.clientKey);
+    await this.budgetRecalculation.recalculate(entity.budgetId);
     await this.cacheService.invalidateForUser(user.id);
 
     this.logger.info(

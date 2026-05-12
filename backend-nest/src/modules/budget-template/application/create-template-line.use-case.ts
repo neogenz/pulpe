@@ -26,7 +26,6 @@ export class CreateTemplateLineUseCase {
     templateId: string,
     createDto: TemplateLineCreateWithoutTemplateId,
     user: AuthenticatedUser,
-    _supabase: unknown,
   ): Promise<TemplateLine> {
     const startTime = Date.now();
 

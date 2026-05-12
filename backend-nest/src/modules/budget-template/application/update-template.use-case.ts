@@ -24,7 +24,6 @@ export class UpdateTemplateUseCase {
     id: string,
     updateDto: BudgetTemplateUpdate,
     user: AuthenticatedUser,
-    _supabase: unknown,
   ): Promise<BudgetTemplate> {
     const startTime = Date.now();
 

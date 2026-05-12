@@ -5,7 +5,6 @@ import type { BudgetWithRelations } from '../domain/budget.entity';
 
 const BUDGET_ID = 'budget-current';
 const USER_ID = 'user-abc';
-const CLIENT_KEY = Buffer.from('test-key');
 
 /**
  * Persisted `monthly_budget.ending_balance` is the CURRENT-MONTH DELTA only —
@@ -135,7 +134,7 @@ describe('RecalculateBudgetBalancesUseCase', () => {
       // Rollover MUST NOT be added at persist — it is applied at read time only.
 
       // Act
-      await useCase.recalculate(BUDGET_ID, CLIENT_KEY);
+      await useCase.recalculate(BUDGET_ID);
 
       // Assert
       expect(mockRepo.persistEndingBalance).toHaveBeenCalledTimes(1);
@@ -146,7 +145,7 @@ describe('RecalculateBudgetBalancesUseCase', () => {
 
     it('should never call fetchAllBudgetsForRollover when persisting (rollover lives at read time)', async () => {
       // Act
-      await useCase.recalculate(BUDGET_ID, CLIENT_KEY);
+      await useCase.recalculate(BUDGET_ID);
 
       // Assert: persist path must not touch rollover at all.
       expect(mockRepo.fetchAllBudgetsForRollover).not.toHaveBeenCalled();

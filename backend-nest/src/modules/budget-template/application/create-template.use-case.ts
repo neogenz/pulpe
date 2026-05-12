@@ -30,7 +30,6 @@ export class CreateTemplateUseCase {
   async execute(
     createDto: BudgetTemplateCreate,
     user: AuthenticatedUser,
-    _supabase: unknown,
   ): Promise<TemplateWithLines> {
     const startTime = Date.now();
 

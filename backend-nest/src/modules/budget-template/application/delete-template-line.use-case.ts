@@ -19,7 +19,6 @@ export class DeleteTemplateLineUseCase {
   async execute(
     lineId: string,
     user: AuthenticatedUser,
-    _supabase: unknown,
   ): Promise<TemplateLineDeleteResponse> {
     const startTime = Date.now();
 

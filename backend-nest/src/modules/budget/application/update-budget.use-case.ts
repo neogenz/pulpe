@@ -42,7 +42,7 @@ export class UpdateBudgetUseCase {
     const patch = this.buildPatch(dto);
     const budget = await this.repo.updateBudget(id, patch);
 
-    await this.budgetRecalculation.recalculate(id, user.clientKey);
+    await this.budgetRecalculation.recalculate(id);
     await this.cacheService.invalidateForUser(user.id);
 
     this.logger.info(

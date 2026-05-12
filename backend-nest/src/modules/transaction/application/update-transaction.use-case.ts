@@ -66,10 +66,7 @@ export class UpdateTransactionUseCase {
     await this.cacheService.invalidateForUser(user.id);
 
     try {
-      await this.budgetRecalculation.recalculate(
-        entity.budgetId,
-        user.clientKey,
-      );
+      await this.budgetRecalculation.recalculate(entity.budgetId);
     } catch (cause) {
       throw new BusinessException(
         ERROR_DEFINITIONS.TRANSACTION_UPDATE_FAILED,

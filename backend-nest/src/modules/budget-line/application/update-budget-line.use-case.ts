@@ -35,7 +35,6 @@ export class UpdateBudgetLineUseCase {
     id: string,
     dto: BudgetLineUpdate,
     user: AuthenticatedUser,
-    _supabase: unknown,
   ): Promise<BudgetLine> {
     BudgetLineInvariants.validateUpdate(dto);
 
@@ -44,7 +43,7 @@ export class UpdateBudgetLineUseCase {
 
     const entity = await this.repo.update(id, patch);
 
-    await this.budgetRecalculation.recalculate(entity.budgetId, user.clientKey);
+    await this.budgetRecalculation.recalculate(entity.budgetId);
     await this.cacheService.invalidateForUser(user.id);
 
     this.logger.info(

@@ -20,7 +20,6 @@ export class RemoveTemplateUseCase {
   async execute(
     id: string,
     user: AuthenticatedUser,
-    _supabase: unknown,
   ): Promise<BudgetTemplateDeleteResponse> {
     const startTime = Date.now();
 

@@ -25,11 +25,7 @@ export class RemoveBudgetLineUseCase {
     private readonly logger: InfoLogger,
   ) {}
 
-  async execute(
-    id: string,
-    user: AuthenticatedUser,
-    _supabase: unknown,
-  ): Promise<void> {
+  async execute(id: string, user: AuthenticatedUser): Promise<void> {
     // HI-09 contract: throws on real error, returns null only for genuine PGRST116 not-found.
     const budgetId = await this.repo.fetchBudgetIdForLine(id);
     await this.repo.delete(id);
@@ -40,7 +36,7 @@ export class RemoveBudgetLineUseCase {
 
     if (budgetId !== null) {
       try {
-        await this.budgetRecalculation.recalculate(budgetId, user.clientKey);
+        await this.budgetRecalculation.recalculate(budgetId);
       } catch (cause) {
         throw new BusinessException(
           ERROR_DEFINITIONS.BUDGET_LINE_DELETE_FAILED,

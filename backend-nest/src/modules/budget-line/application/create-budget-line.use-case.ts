@@ -34,7 +34,6 @@ export class CreateBudgetLineUseCase {
   async execute(
     dto: BudgetLineCreate,
     user: AuthenticatedUser,
-    _supabase: unknown,
   ): Promise<BudgetLine> {
     BudgetLineInvariants.validateCreate(dto);
 
@@ -58,7 +57,7 @@ export class CreateBudgetLineUseCase {
 
     const entity = await this.repo.insert(input);
 
-    await this.budgetRecalculation.recalculate(entity.budgetId, user.clientKey);
+    await this.budgetRecalculation.recalculate(entity.budgetId);
     await this.cacheService.invalidateForUser(user.id);
 
     this.logger.info(

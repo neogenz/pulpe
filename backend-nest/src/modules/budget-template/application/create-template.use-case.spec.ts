@@ -76,7 +76,7 @@ describe('CreateTemplateUseCase', () => {
   it('should create a template when below the limit', async () => {
     mockRepo.countForUser.mockResolvedValueOnce(2);
 
-    const result = await useCase.execute(baseDto, mockUser, null);
+    const result = await useCase.execute(baseDto, mockUser);
 
     expect(result.template.id).toBe('template-1');
     expect(mockRepo.createTemplateWithLines).toHaveBeenCalledTimes(1);
@@ -87,7 +87,7 @@ describe('CreateTemplateUseCase', () => {
 
     let caught: unknown;
     try {
-      await useCase.execute(baseDto, mockUser, null);
+      await useCase.execute(baseDto, mockUser);
     } catch (error) {
       caught = error;
     }
@@ -118,7 +118,7 @@ describe('CreateTemplateUseCase', () => {
 
     let caught: unknown;
     try {
-      await useCase.execute(baseDto, mockUser, null);
+      await useCase.execute(baseDto, mockUser);
     } catch (error) {
       caught = error;
     }
@@ -132,7 +132,7 @@ describe('CreateTemplateUseCase', () => {
   it('should reset default templates when isDefault is true', async () => {
     mockRepo.countForUser.mockResolvedValueOnce(0);
 
-    await useCase.execute({ ...baseDto, isDefault: true }, mockUser, null);
+    await useCase.execute({ ...baseDto, isDefault: true }, mockUser);
 
     expect(mockRepo.resetDefaultTemplates).toHaveBeenCalledWith('user-1', null);
     expect(mockRepo.createTemplateWithLines).toHaveBeenCalledTimes(1);

@@ -1,7 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
-import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
 import {
   BUDGET_LINE_REPOSITORY,
   type BudgetLineRepositoryPort,
@@ -17,11 +16,7 @@ export class FindBudgetLineUseCase {
     private readonly logger: InfoLogger,
   ) {}
 
-  async execute(
-    id: string,
-    user: AuthenticatedUser,
-    _supabase: AuthenticatedSupabaseClient,
-  ): Promise<BudgetLine> {
+  async execute(id: string, user: AuthenticatedUser): Promise<BudgetLine> {
     const entity = await this.repo.findById(id);
 
     this.logger.info(

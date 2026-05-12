@@ -47,7 +47,6 @@ export class BulkTemplateLineOperationsUseCase {
     templateId: string,
     bulkOperationsDto: TemplateLinesBulkOperations,
     user: AuthenticatedUser,
-    _supabase: unknown,
   ): Promise<BulkTemplateLineOperationsResult> {
     const startTime = Date.now();
 
@@ -108,7 +107,7 @@ export class BulkTemplateLineOperationsUseCase {
       try {
         await Promise.all(
           repoResult.affectedBudgetIds.map((id) =>
-            this.budgetRecalculation.recalculate(id, user.clientKey),
+            this.budgetRecalculation.recalculate(id),
           ),
         );
       } catch (cause) {

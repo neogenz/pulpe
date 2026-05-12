@@ -19,7 +19,6 @@ export class FindTemplateLinesUseCase {
   async execute(
     templateId: string,
     user: AuthenticatedUser,
-    _supabase: unknown,
   ): Promise<TemplateLine[]> {
     const startTime = Date.now();
 

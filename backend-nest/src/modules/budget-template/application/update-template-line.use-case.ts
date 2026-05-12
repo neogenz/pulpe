@@ -26,7 +26,6 @@ export class UpdateTemplateLineUseCase {
     lineId: string,
     updateDto: TemplateLineUpdate,
     user: AuthenticatedUser,
-    _supabase: unknown,
   ): Promise<TemplateLine> {
     const startTime = Date.now();
 

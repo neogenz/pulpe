@@ -16,10 +16,7 @@ export class FindAllTemplatesUseCase {
     private readonly logger: InfoLogger,
   ) {}
 
-  async execute(
-    user: AuthenticatedUser,
-    _supabase: unknown,
-  ): Promise<BudgetTemplate[]> {
+  async execute(user: AuthenticatedUser): Promise<BudgetTemplate[]> {
     const startTime = Date.now();
 
     const data = await this.repo.findAllForUser(user.id);
