@@ -11,7 +11,7 @@
     "predev": "pnpm run generate:config && pnpm run generate:build-info",
     "dev": "ng serve --host 0.0.0.0",
     "prebuild": "pnpm run generate:config && pnpm run generate:build-info",
-    "build": "ng build",
+    "build": "ng build && tsx scripts/check-no-inline-scripts.ts",
     "watch": "ng build --watch --configuration development",
     "generate:build-info": "node scripts/generate-build-info.js",
     "generate:config": "node --import tsx scripts/generate-config.ts",
