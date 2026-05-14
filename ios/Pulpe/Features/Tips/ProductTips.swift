@@ -88,11 +88,41 @@ enum ProductTips {
         }
     }
 
+    // MARK: - Templates Web Parity Tip
+
+    struct TemplatesWebParityTip: Tip {
+        var title: Text {
+            Text("Modèles : version iOS encore allégée")
+        }
+
+        var message: Text? {
+            Text(
+                "Toutes les actions sur les modèles ne sont pas encore dispos ici. "
+                + "Pour aller au bout, l'app web fait tout — n'hésite pas à y faire un tour."
+            )
+        }
+
+        var image: Image? {
+            Image(systemName: "laptopcomputer.and.iphone")
+        }
+
+        var actions: [Action] {
+            [Action(id: "open-web", title: "Ouvrir sur le web")]
+        }
+
+        var rules: [Rule] {
+            [
+                #Rule(ProductTips.$isSheetPresented) { $0 == false }
+            ]
+        }
+    }
+
     // MARK: - Shared Instances
 
     static let gestures = GesturesTip()
     static let checking = CheckingTip()
     static let pessimisticCheck = PessimisticCheckTip()
+    static let templatesWebParity = TemplatesWebParityTip()
 
     // MARK: - Reset
 

@@ -1,12 +1,15 @@
 import SwiftUI
+import TipKit
 
 struct TemplateListView: View {
     @Environment(AppState.self) private var appState
+    @Environment(\.openURL) private var openURL
     @State private var viewModel = TemplateListViewModel()
     @State private var showCreateTemplate = false
     @State private var templateToDelete: BudgetTemplate?
     @State private var showDeleteAlert = false
     @State private var deleteWarningTrigger = false
+    private let webParityTip = ProductTips.templatesWebParity
 
     var body: some View {
         Group {
@@ -72,6 +75,23 @@ struct TemplateListView: View {
 
     private var templateList: some View {
         List {
+            Section {
+                TipView(webParityTip) { action in
+                    if action.id == "open-web" {
+                        openURL(AppURLs.webappBudgetTemplates)
+                        webParityTip.invalidate(reason: .actionPerformed)
+                    }
+                }
+            }
+            .listRowBackground(Color.clear)
+            .listRowInsets(EdgeInsets(
+                top: DesignTokens.Spacing.sm,
+                leading: DesignTokens.Spacing.lg,
+                bottom: DesignTokens.Spacing.sm,
+                trailing: DesignTokens.Spacing.lg
+            ))
+            .listRowSeparator(.hidden)
+
             Section {
                 ForEach(viewModel.templates) { template in
                     TemplateRow(template: template) {
