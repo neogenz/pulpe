@@ -9,7 +9,6 @@ import { AppModule } from './app.module';
 import { cleanupOpenApiDoc } from 'nestjs-zod';
 import { isProductionLike, type Environment } from '@config/environment';
 import { REQUEST_ID_HEADER } from 'pulpe-shared';
-import { buildAppVersionResponse } from './app-version-handler';
 
 // ValidationPipe removed - using ZodValidationPipe from app.module.ts instead
 
@@ -171,11 +170,6 @@ function setupHealthEndpoints(
         ? 'Application en maintenance — réessaie plus tard'
         : null,
     });
-  });
-
-  app.getHttpAdapter().get('/api/v1/app/version', (req, res) => {
-    const body = buildAppVersionResponse(configService);
-    res.setHeader('Cache-Control', 'public, max-age=60').json(body);
   });
 
   // Only expose OpenAPI JSON in non-production environments

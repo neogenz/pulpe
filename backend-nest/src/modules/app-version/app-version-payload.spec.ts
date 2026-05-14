@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'bun:test';
 import type { ConfigService } from '@nestjs/config';
-import { buildAppVersionResponse } from './app-version-handler';
+import { buildAppVersionResponse } from './app-version-payload';
 
 function createMockConfig(values: Record<string, string>): ConfigService {
   return {
