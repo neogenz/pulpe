@@ -8,13 +8,10 @@ extension EnvironmentValues {
 
     /// Bottom safe-area padding (in points) that pushed pages should reserve so
     /// their content clears `MainTabView`'s custom floating tab bar. Set by
-    /// `MainTabView` from a `GeometryReader`-computed value (varies with home
-    /// indicator presence). iOS 26 does NOT cascade `safeAreaPadding` /
-    /// `safeAreaInset` from a TabView through `NavigationStack` destinations,
-    /// so push pages with their own `safeAreaInset(.bottom)` (sticky CTAs)
-    /// must explicitly read this value and apply it via
-    /// `safeAreaPadding(.bottom:)` on their root.
+    /// `MainTabView` from the canonical tab bar height and spacing tokens.
     @Entry var tabBarClearance: CGFloat = 0
+
+    @Entry var floatingTabBarVisibilityActions: FloatingTabBarVisibilityActions = .noop
 }
 
 // MARK: - Sensitive Amount Modifier
@@ -362,21 +359,54 @@ private struct ShimmerModifier: ViewModifier {
     }
 }
 
-// MARK: - Floating Tab Bar Clearance
+// MARK: - Floating Tab Bar Visibility
 
-/// Bubbled up by push pages that want the floating tab bar hidden while they
-/// are visible (deep-focus pattern: envelope detail, transaction forms).
-struct HidesFloatingTabBarKey: PreferenceKey {
-    static let defaultValue: Bool = false
-    static func reduce(value: inout Bool, nextValue: () -> Bool) {
-        value = value || nextValue()
+struct FloatingTabBarHideRequests: Equatable {
+    private var activeRequestIDs: Set<UUID> = []
+
+    var isHidden: Bool {
+        !activeRequestIDs.isEmpty
+    }
+
+    mutating func setHidden(_ hidden: Bool, for requestID: UUID) {
+        if hidden {
+            activeRequestIDs.insert(requestID)
+        } else {
+            activeRequestIDs.remove(requestID)
+        }
+    }
+}
+
+struct FloatingTabBarVisibilityActions {
+    let setHidden: @MainActor (_ requestID: UUID, _ hidden: Bool) -> Void
+
+    static let noop = Self { _, _ in }
+}
+
+private struct HidesFloatingTabBarModifier: ViewModifier {
+    @Environment(\.floatingTabBarVisibilityActions) private var visibilityActions
+    @State private var requestID = UUID()
+    let hidden: Bool
+
+    func body(content: Content) -> some View {
+        content
+            .onAppear {
+                visibilityActions.setHidden(requestID, hidden)
+            }
+            .onChange(of: hidden) { _, newValue in
+                visibilityActions.setHidden(requestID, newValue)
+            }
+            .onDisappear {
+                visibilityActions.setHidden(requestID, false)
+            }
     }
 }
 
 extension View {
-    /// Hide the floating custom tab bar while this page is on screen.
+    /// Hide the floating custom tab bar while this page is on screen. Requests
+    /// are reference-counted so nested push pages can disappear independently.
     func hidesFloatingTabBar(_ hidden: Bool = true) -> some View {
-        preference(key: HidesFloatingTabBarKey.self, value: hidden)
+        modifier(HidesFloatingTabBarModifier(hidden: hidden))
     }
 }
 
@@ -388,29 +418,47 @@ extension View {
 /// home indicator.
 private struct PulpeStickyBottomCTAModifier<CTA: View>: ViewModifier {
     @Environment(\.tabBarClearance) private var tabBarClearance
+    let avoidsKeyboard: Bool
     let cta: () -> CTA
 
+    @ViewBuilder
     func body(content: Content) -> some View {
-        content.safeAreaInset(edge: .bottom, spacing: 0) {
-            cta()
-                .padding(.horizontal, DesignTokens.Spacing.lg)
-                .padding(.vertical, DesignTokens.Spacing.md)
-                .padding(.bottom, tabBarClearance)
-                .background(alignment: .top) {
-                    Rectangle()
-                        .fill(Color.appBackground)
-                        .ignoresSafeArea(edges: .bottom)
-                        .overlay(alignment: .top) {
-                            Divider()
-                        }
-                }
+        if avoidsKeyboard {
+            content.safeAreaInset(edge: .bottom, spacing: 0) {
+                stickyBottomCTAChrome
+            }
+        } else {
+            content.safeAreaInset(edge: .bottom, spacing: 0) {
+                stickyBottomCTAChrome
+            }
+            .ignoresSafeArea(.keyboard, edges: .bottom)
         }
+    }
+
+    private var stickyBottomCTAChrome: some View {
+        cta()
+            .padding(.horizontal, DesignTokens.Spacing.lg)
+            .padding(.vertical, DesignTokens.Spacing.md)
+            .padding(.bottom, tabBarClearance)
+            .background(alignment: .top) {
+                Rectangle()
+                    .fill(Color.appBackground)
+                    .ignoresSafeArea(edges: .bottom)
+                    .overlay(alignment: .top) {
+                        Divider()
+                    }
+            }
     }
 }
 
 extension View {
     /// Pin a primary CTA above the floating tab bar with project-standard chrome.
-    func pulpeStickyBottomCTA<CTA: View>(@ViewBuilder _ cta: @escaping () -> CTA) -> some View {
-        modifier(PulpeStickyBottomCTAModifier(cta: cta))
+    /// Keep `avoidsKeyboard` enabled for forms; disable it on non-input pages so
+    /// a keyboard dismissed during a pop cannot leave the CTA anchored mid-screen.
+    func pulpeStickyBottomCTA<CTA: View>(
+        avoidsKeyboard: Bool = true,
+        @ViewBuilder _ cta: @escaping () -> CTA
+    ) -> some View {
+        modifier(PulpeStickyBottomCTAModifier(avoidsKeyboard: avoidsKeyboard, cta: cta))
     }
 }

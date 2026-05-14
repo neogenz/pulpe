@@ -10,7 +10,7 @@ struct MainTabView: View {
     @Environment(CurrentMonthStore.self) private var monthStore
     @State private var addTransactionBudgetId: AddTransactionItem?
     @State private var keyboardVisible = false
-    @State private var pageRequestsHide = false
+    @State private var tabBarHideRequests = FloatingTabBarHideRequests()
     @Namespace private var tabSelectionNamespace
 
     /// Vertical space the floating tab bar visually occupies above the system
@@ -25,7 +25,7 @@ struct MainTabView: View {
 
     var body: some View {
         @Bindable var state = appState
-        let barHidden = keyboardVisible || pageRequestsHide
+        let barHidden = keyboardVisible || tabBarHideRequests.isHidden
         let clearance: CGFloat = barHidden ? 0 : Self.tabBarClearanceHeight
 
         TabView(selection: $state.selectedTab) {
@@ -47,22 +47,20 @@ struct MainTabView: View {
         .pulpeBackground()
         // Publish the floating-bar reservation through the environment so each
         // tab's `NavigationStack` can re-apply the canonical safe-area pattern
-        // locally — see `clearsFloatingTabBar()` below. iOS 26 does not cascade
-        // `safeAreaInset` / `safeAreaPadding` from this TabView through nested
-        // `NavigationStack` destinations (verified WWDC25 + community 2026).
+        // locally — see `clearsFloatingTabBar()` below. The visible bar itself
+        // is hosted by a keyboard-independent overlay so stale keyboard safe-area
+        // propagation during push/pop transitions cannot re-anchor it mid-screen.
         .environment(\.tabBarClearance, clearance)
-        .safeAreaInset(edge: .bottom, spacing: 0) {
-            floatingTabBar(selectedTab: $state.selectedTab)
-                .padding(.horizontal, DesignTokens.Spacing.lg)
-                .padding(.bottom, DesignTokens.Spacing.xs)
-                .opacity(barHidden ? 0 : 1)
-                .frame(height: barHidden ? 0 : nil)
-                .allowsHitTesting(!barHidden)
+        .environment(
+            \.floatingTabBarVisibilityActions,
+            FloatingTabBarVisibilityActions { requestID, hidden in
+                tabBarHideRequests.setHidden(hidden, for: requestID)
+            }
+        )
+        .overlay {
+            floatingTabBarOverlay(selectedTab: $state.selectedTab, barHidden: barHidden)
         }
         .animation(DesignTokens.Animation.quickEaseInOut, value: barHidden)
-        .onPreferenceChange(HidesFloatingTabBarKey.self) { hide in
-            pageRequestsHide = hide
-        }
         .onChange(of: appState.selectedTab) { _, newTab in
             AnalyticsService.shared.capture(.tabSwitched, properties: ["tab": newTab.rawValue])
         }
@@ -80,6 +78,20 @@ struct MainTabView: View {
     }
 
     // MARK: - Floating Tab Bar
+
+    @ViewBuilder
+    private func floatingTabBarOverlay(selectedTab: Binding<Tab>, barHidden: Bool) -> some View {
+        ZStack(alignment: .bottom) {
+            floatingTabBar(selectedTab: selectedTab)
+                .padding(.horizontal, DesignTokens.Spacing.lg)
+                .padding(.bottom, DesignTokens.Spacing.xs)
+                .opacity(barHidden ? 0 : 1)
+                .frame(height: barHidden ? 0 : nil)
+                .allowsHitTesting(!barHidden)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+        .ignoresSafeArea(.keyboard, edges: .bottom)
+    }
 
     @ViewBuilder
     private func floatingTabBar(selectedTab: Binding<Tab>) -> some View {

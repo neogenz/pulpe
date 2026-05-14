@@ -88,6 +88,9 @@ struct EditTransactionPage: View {
             didAutofocus = true
             focusedField = .amount
         }
+        .onDisappear {
+            focusedField = nil
+        }
     }
 
     @ViewBuilder
