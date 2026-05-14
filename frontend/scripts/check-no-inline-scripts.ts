@@ -31,6 +31,12 @@ function hashSource(source: string): string {
   return `sha256-${createHash('sha256').update(source).digest('base64')}`;
 }
 
+const FORBIDDEN_SCRIPT_KEYWORDS = ['unsafe-inline', 'unsafe-eval'] as const;
+const SCRIPT_DIRECTIVES_TO_GUARD = [
+  'script-src',
+  'script-src-elem',
+] as const;
+
 function readCspDirectives(): {
   scriptSrcElemHashes: Set<string>;
   scriptSrcAttrHashes: Set<string>;
@@ -46,20 +52,32 @@ function readCspDirectives(): {
   }
   const directives = header.value.split(';').map((d) => d.trim());
 
-  const hashesFor = (prefix: string): Set<string> => {
-    const matching = directives.find((d) => d.startsWith(prefix));
-    if (!matching) return new Set();
-    return new Set(
-      matching
-        .split(/\s+/)
-        .map((token) => token.replace(/^'|'$/g, ''))
-        .filter((token) => token.startsWith('sha256-')),
-    );
+  const tokensFor = (prefix: string): string[] => {
+    const matching = directives.find((d) => d.startsWith(`${prefix} `));
+    if (!matching) return [];
+    return matching
+      .split(/\s+/)
+      .slice(1)
+      .map((token) => token.replace(/^'|'$/g, ''));
   };
 
+  for (const directive of SCRIPT_DIRECTIVES_TO_GUARD) {
+    const tokens = tokensFor(directive);
+    for (const forbidden of FORBIDDEN_SCRIPT_KEYWORDS) {
+      if (tokens.includes(forbidden)) {
+        throw new Error(
+          `[csp-check] ${directive} contains '${forbidden}' — hash-only strict policy regressed (PUL-234).`,
+        );
+      }
+    }
+  }
+
+  const hashesIn = (prefix: string): Set<string> =>
+    new Set(tokensFor(prefix).filter((token) => token.startsWith('sha256-')));
+
   return {
-    scriptSrcElemHashes: hashesFor('script-src-elem'),
-    scriptSrcAttrHashes: hashesFor('script-src-attr'),
+    scriptSrcElemHashes: hashesIn('script-src-elem'),
+    scriptSrcAttrHashes: hashesIn('script-src-attr'),
   };
 }
 

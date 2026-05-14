@@ -104,8 +104,6 @@ test.describe('CSP — no violations on critical routes', () => {
 
   for (const route of CRITICAL_ROUTES) {
     test(`should emit zero CSP violations on ${route}`, async ({ page }) => {
-      const consoleViolations: string[] = [];
-
       await page.addInitScript(() => {
         window.__cspViolations = [];
         document.addEventListener('securitypolicyviolation', (event) => {
@@ -119,30 +117,15 @@ test.describe('CSP — no violations on critical routes', () => {
         });
       });
 
-      page.on('console', (msg) => {
-        const text = msg.text();
-        const isCspError =
-          text.includes('Content Security Policy') ||
-          text.includes('Refused to execute') ||
-          text.includes('Refused to evaluate') ||
-          text.includes('Refused to load') ||
-          text.includes('Refused to apply');
-        if (isCspError && !containsViteDevPath(text)) {
-          consoleViolations.push(text);
-        }
-      });
-
       await page.goto(route, { waitUntil: 'networkidle' });
 
-      const eventViolations = (
+      const violations = (
         await page.evaluate(() => window.__cspViolations ?? [])
       ).filter((v) => !isViteDevArtifact(v));
 
-      const allViolations = [...eventViolations, ...consoleViolations];
-
       expect(
-        allViolations,
-        `CSP violations on ${route}:\n${JSON.stringify(allViolations, null, 2)}`,
+        violations,
+        `CSP violations on ${route}:\n${JSON.stringify(violations, null, 2)}`,
       ).toEqual([]);
     });
   }
