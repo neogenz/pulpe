@@ -97,6 +97,14 @@
     data-tour="financial-overview"
   />
 
+  <!-- Previous-month rollover (read-only context, not editable, not pointable) -->
+  <pulpe-budget-rollover-info
+    [rollover]="store.previousMonthRollover()"
+    [rolloverSourceBudgetId]="store.previousMonthBudgetId()"
+    [currency]="userSettingsStore.currency()"
+    [locale]="currencyLocale()"
+  />
+
   <!-- Budget Items -->
   <pulpe-budget-items data-tour="budget-table" />
 

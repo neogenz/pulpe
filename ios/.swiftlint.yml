@@ -73,5 +73,119 @@ nesting:
   function_level:
     warning: 3
 
+# Custom rules
+custom_rules:
+  no_adhoc_capsule_chip:
+    name: "No ad-hoc chip"
+    regex: 'Capsule\(\)\s*\.\s*fill'
+    excluded:
+      # The atom itself is the only legitimate caller.
+      - ".*/Shared/Components/PulpeChip\\.swift"
+      # Decorative / progress shapes: these are NOT chips, just stroked or
+      # filled capsules used as progress bars, divider rails, hero accent
+      # segments, toast rails, onboarding flow bars. Migration to PulpeChip
+      # not applicable. Audited 2026-05-09 (PUL-216).
+      - ".*/Shared/Components/RealizedBalanceSheet\\.swift"
+      - ".*/Shared/Components/ToastView\\.swift"
+      - ".*/Features/CurrentMonth/Components/LinkedTransactionsSheet\\.swift"
+      - ".*/Features/CurrentMonth/Components/HeroBalanceCard\\.swift"
+      - ".*/Features/CurrentMonth/Components/SavingsSummaryCard\\.swift"
+      - ".*/Features/Budgets/BudgetList/BudgetListView\\+YearComponents\\.swift"
+      - ".*/Features/Budgets/BudgetDetails/BudgetDetailHero\\.swift"
+      - ".*/Features/Budgets/BudgetDetails/BudgetLineDetailPage\\.swift"
+      - ".*/Features/Budgets/BudgetDetails/BudgetLineDetailPage\\+Hero\\.swift"
+      - ".*/Features/Onboarding/Components/OnboardingProgressIndicator\\.swift"
+      - ".*/Features/Onboarding/Steps/BudgetPreviewFlowBars\\.swift"
+    message: "Use PulpeChip from Shared/Components instead of raw Capsule().fill(...). Capsule chip rendering is centralised."
+    severity: warning
+
+  # ──────────────────────────────────────────────────────────────────────
+  # BudgetDetails feature anti-drift rules (PUL-209+).
+  # The matching architecture rule lives in
+  # `.claude/rules/00-architecture/budget-details-feature-architecture.md`
+  # and is enforced at test time by
+  # `PulpeTests/Architecture/BudgetDetailsArchitectureTests.swift`.
+  # ──────────────────────────────────────────────────────────────────────
+
+  no_formula_in_view_body:
+    name: "BudgetFormulas inside BudgetDetails view file"
+    included: ".*/Pulpe/Features/Budgets/BudgetDetails/.*\\.swift"
+    excluded:
+      - ".*/Projection/.*\\.swift"
+      - ".*/State/.*\\.swift"
+      - ".*/Coordinator/.*\\.swift"
+      # Out of scope — has its own VM + data domain.
+      - ".*/PreviousBudgetSheet\\.swift"
+    regex: "BudgetFormulas\\.(calculate|displayBudgetLines|emotionState)"
+    message: "Derivation must live in the projector or a store, not in views."
+    severity: error
+
+  no_collection_ops_in_view_body:
+    name: "filter/sorted/sort in BudgetDetails view files"
+    included:
+      - ".*/Pulpe/Features/Budgets/BudgetDetails/Views/.*\\.swift"
+      - ".*/Pulpe/Features/Budgets/BudgetDetails/.*View\\.swift"
+      - ".*/Pulpe/Features/Budgets/BudgetDetails/.*Page\\.swift"
+      - ".*/Pulpe/Features/Budgets/BudgetDetails/.*Row\\.swift"
+      - ".*/Pulpe/Features/Budgets/BudgetDetails/.*Section\\.swift"
+      - ".*/Pulpe/Features/Budgets/BudgetDetails/.*Hero\\.swift"
+    regex: "\\.(filter|sorted|sort)\\b"
+    message: "Pre-shape data in BudgetDetailsScreenState; views must not transform collections."
+    severity: error
+
+  no_user_settings_store_in_row:
+    name: "Row reads UserSettingsStore from environment"
+    included: ".*/Pulpe/Features/Budgets/BudgetDetails/(Views/Rows|BudgetLineMixedRow|BudgetLineDetailTransactionRow).*\\.swift"
+    regex: "@Environment\\(UserSettingsStore\\.self\\)"
+    message: "Rows accept currency as a let primitive; do not read store from environment (broad observation fan-out)."
+    severity: error
+
+  no_app_state_path_outside_router:
+    name: "AppState.budgetPath written outside the router"
+    excluded:
+      # The router is the canonical writer.
+      - ".*/Features/Budgets/BudgetDetails/Routing/BudgetDetailsRouter\\.swift"
+      # AppState owns the underlying path; deeplink + session reset live here.
+      - ".*/App/AppState\\.swift"
+      - ".*/App/AppState\\+SessionReset\\.swift"
+      - ".*/App/PulpeApp\\.swift"
+      # Architecture test reads the path string in literals — never mutates.
+      - ".*/PulpeTests/Architecture/.*\\.swift"
+      # Cross-feature entry points: pushing into the budget tab from
+      # outside BudgetDetails is allowed (BudgetList CTA, CurrentMonth CTA).
+      - ".*/Features/Budgets/BudgetList/BudgetListView\\.swift"
+      - ".*/Features/CurrentMonth/CurrentMonthView\\.swift"
+    regex: "appState\\.budgetPath\\.(append|removeLast)|appState\\.budgetPath\\s*="
+    message: "Use BudgetDetailsRouter.push / popToRoot — do not mutate AppState.budgetPath directly."
+    # Phase 1 shipped — escalated to error.
+    severity: error
+
+  no_task_sleep_in_feature:
+    name: "Task.sleep outside dedicated helpers"
+    included: ".*/Pulpe/Features/Budgets/BudgetDetails/.*\\.swift"
+    excluded:
+      - ".*/Helpers/AutoPopView\\.swift"
+      - ".*/Helpers/View\\+afterPushTransition\\.swift"
+      - ".*/Helpers/View\\+syncIndicatorRamp\\.swift"
+    regex: "Task\\.sleep\\(for:"
+    message: "Use AutoPopView, View.afterPushTransition, or View.rampSyncIndicator helpers instead of inline Task.sleep."
+    severity: error
+
+  no_magic_timing_literals:
+    name: "Magic timing literals in BudgetDetails"
+    included: ".*/Pulpe/Features/Budgets/BudgetDetails/.*\\.swift"
+    excluded:
+      - ".*/Helpers/.*"
+    regex: "milliseconds\\(\\s*(150|200|300)\\s*\\)"
+    message: "Promote to DesignTokens.Animation.{autoPopGraceMs|pushAutofocusDelayMs} or DesignTokens.Sync.indicatorRampDelayMs."
+    severity: error
+
+  no_swiftlint_disable_in_feature:
+    name: "swiftlint disable file_length / type_body_length in BudgetDetails"
+    included: ".*/Pulpe/Features/Budgets/BudgetDetails/.*\\.swift"
+    regex: "swiftlint:disable\\s+(file_length|type_body_length)"
+    message: "Files must stay under thresholds; split into stores/projector/coordinator instead of disabling."
+    severity: error
+
 # Reporter type (xcode, json, csv, checkstyle, codeclimate, junit, html, emoji, sonarqube, markdown, github-actions-logging, summary)
 reporter: xcode

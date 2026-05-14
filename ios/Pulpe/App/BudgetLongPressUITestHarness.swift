@@ -11,28 +11,37 @@ enum UITestLaunchScenario {
     static var current: Self? {
         let processInfo = ProcessInfo.processInfo
 
-        if let scenario = processInfo.environment[scenarioEnvironmentKey] {
-            switch scenario {
-            case longPressWithTransactionsKey:
-                return .budgetLongPressWithTransactions
-            case longPressEmptyKey:
-                return .budgetLongPressEmpty
-            default:
-                break
+        if let scenario = processInfo.environment[scenarioEnvironmentKey],
+           let resolved = match(scenario) {
+            return resolved
+        }
+
+        // Argv may carry the key as-is (UI test runner) or dash-prefixed (simctl
+        // launch passes `-FOO` directly, which keeps the dash in argv). Try both.
+        for argument in processInfo.arguments {
+            let normalized = argument.hasPrefix("-") ? String(argument.dropFirst()) : argument
+            if let resolved = match(normalized) {
+                return resolved
             }
         }
 
-        let arguments = processInfo.arguments
-
-        if arguments.contains(longPressWithTransactionsKey) {
-            return .budgetLongPressWithTransactions
-        }
-
-        if arguments.contains(longPressEmptyKey) {
-            return .budgetLongPressEmpty
-        }
-
         return nil
+    }
+
+    private static func match(_ key: String) -> Self? {
+        switch key {
+        case longPressWithTransactionsKey: .budgetLongPressWithTransactions
+        case longPressEmptyKey: .budgetLongPressEmpty
+        default: nil
+        }
+    }
+
+    /// Stable filename written into the app sandbox by the UI test harness.
+    var captureName: String {
+        switch self {
+        case .budgetLongPressWithTransactions: "long-press-with-transactions"
+        case .budgetLongPressEmpty: "long-press-empty"
+        }
     }
 }
 

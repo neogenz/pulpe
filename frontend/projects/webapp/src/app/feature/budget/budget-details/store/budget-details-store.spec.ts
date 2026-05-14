@@ -101,18 +101,6 @@ describe('BudgetDetailsStore - Logique Métier', () => {
       expect(isValidUpdate({ id: 'test-id', amount: 0 })).toBe(false); // Montant zéro
       expect(isValidUpdate({ id: 'test-id', amount: -50 })).toBe(false); // Montant négatif
     });
-
-    it('should enforce rollover budget lines are not editable', () => {
-      // Arrange
-      const isEditableByUser = (budgetLine: { isRollover?: boolean }) => {
-        return !budgetLine.isRollover;
-      };
-
-      // Act & Assert
-      expect(isEditableByUser({ isRollover: false })).toBe(true);
-      expect(isEditableByUser({})).toBe(true); // Par défaut éditable
-      expect(isEditableByUser({ isRollover: true })).toBe(false); // Rollover non éditable
-    });
   });
 
   describe('Validation des transactions', () => {
@@ -368,28 +356,6 @@ describe('BudgetDetailsStore - Logique Métier', () => {
         },
       ];
       expect(calculateBalance(withNewExpense)).toBe(2100); // Balance updated correctly
-    });
-
-    it('should prevent editing rollover budget lines', () => {
-      // Arrange - Mix de prévisions normales et rollover
-      const budgetLines = [
-        { id: 'line-1', name: 'Salaire', isRollover: false },
-        { id: 'line-2', name: 'rollover_12_2024', isRollover: true },
-        { id: 'line-3', name: 'Loyer', isRollover: false },
-      ];
-
-      // Act - Determine which lines can be edited
-      const getEditableLines = (lines: typeof budgetLines) => {
-        return lines.filter((line) => !line.isRollover);
-      };
-
-      // Assert - Seules les lignes non-rollover sont éditables
-      const editableLines = getEditableLines(budgetLines);
-      expect(editableLines).toHaveLength(2);
-      expect(
-        editableLines.find((l) => l.name.includes('rollover')),
-      ).toBeUndefined();
-      expect(editableLines.every((l) => !l.isRollover)).toBe(true);
     });
 
     it('should handle concurrent modifications on same budget', () => {

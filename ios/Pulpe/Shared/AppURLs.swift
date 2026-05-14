@@ -6,6 +6,7 @@ enum AppURLs {
     static let privacy = URL(string: "https://app.pulpe.app/legal/confidentialite")!
     static let support = URL(string: "https://pulpe.app/support")!
     static let changelog = URL(string: "https://pulpe.app/changelog")!
+    static let webappBudgetTemplates = URL(string: "https://app.pulpe.app/budget-templates")!
     // swiftlint:enable force_unwrapping
 
     /// Builds a French legal disclosure with markdown links to the ToS and Privacy URLs.

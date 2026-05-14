@@ -154,7 +154,7 @@ xcodebuild test -scheme PulpeUITests \
 | Add external dependencies | SPM only (Supabase + Lottie already present) |
 | Use `ObservableObject` | iOS 18+ — use `@Observable` only |
 | Store data locally | Keychain for tokens only, API is source of truth |
-| Edit `.xcodeproj` in Xcode | Edit `project.yml` then `xcodegen generate` |
+| Edit `.xcodeproj` in Xcode | Edit `project.yml` then `xcodegen generate --use-cache` |
 | `UIScreen.main.bounds` | Use `containerRelativeFrame()` or SwiftUI layout |
 
 ## Vocabulary

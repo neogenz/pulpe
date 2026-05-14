@@ -24,6 +24,7 @@ struct PulpeApp: App {
     @State private var featureFlagsStore: FeatureFlagsStore
     @State private var runtimeCoordinator: AppRuntimeCoordinator
     @State private var deepLinkDestination: DeepLinkDestination?
+    @State private var appVersionStore = AppVersionStore()
 
     init() {
         let appState = AppState()
@@ -74,7 +75,7 @@ struct PulpeApp: App {
     var body: some Scene {
         WindowGroup {
             if let uiTestScenario = UITestLaunchScenario.current {
-                BudgetLongPressUITestHarness(scenario: uiTestScenario)
+                uiTestHarness(for: uiTestScenario)
             } else {
                 RootView(
                     runtimeCoordinator: runtimeCoordinator,
@@ -87,21 +88,53 @@ struct PulpeApp: App {
                     .environment(dashboardStore)
                     .environment(userSettingsStore)
                     .environment(featureFlagsStore)
+                    .environment(appVersionStore)
                     .overlay(alignment: .topLeading) {
                         ToastOverlayWindowHost(toastManager: appState.toastManager)
                     }
                     .task {
                         featureFlagsStore.refresh()
+                        await appVersionStore.check()
                     }
                     .onChange(of: scenePhase) { _, newPhase in
                         if newPhase == .active {
                             featureFlagsStore.refresh()
+                            Task { await appVersionStore.check() }
                         }
                     }
                     .onOpenURL { url in
                         handleDeepLink(url)
                     }
+                    .fullScreenCover(isPresented: forceUpdateBinding) {
+                        ForceUpdateView(storeURL: forceUpdateStoreURL)
+                    }
             }
+        }
+    }
+
+    private var forceUpdateBinding: Binding<Bool> {
+        Binding(
+            get: {
+                if case .forceUpdate = appVersionStore.status { return true }
+                return false
+            },
+            set: { _ in }
+        )
+    }
+
+    private var forceUpdateStoreURL: URL? {
+        if case .forceUpdate(let url) = appVersionStore.status {
+            return url
+        }
+        return nil
+    }
+
+    /// Routes a UI test launch scenario to the matching harness.
+    @ViewBuilder
+    private func uiTestHarness(for scenario: UITestLaunchScenario) -> some View {
+        switch scenario {
+        case .budgetLongPressWithTransactions, .budgetLongPressEmpty:
+            BudgetLongPressUITestHarness(scenario: scenario)
         }
     }
 

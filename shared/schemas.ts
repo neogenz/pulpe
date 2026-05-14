@@ -1122,3 +1122,32 @@ export const encryptionChangePinResponseSchema = z.object({
 export type EncryptionChangePinResponse = z.infer<
   typeof encryptionChangePinResponseSchema
 >;
+
+/**
+ * APP VERSION — Force update gate
+ *
+ * Server-published minimum-supported-version per platform. Clients fetch on
+ * launch + foreground, compare against their bundle version, and gate the UI
+ * behind a non-dismissable "update required" screen when below `minVersion`.
+ *
+ * Endpoint: `GET /api/v1/app/version` (public, unauthenticated, cacheable).
+ *
+ * `latestVersion` is informational today (reserved for an optional soft-update
+ * prompt). `storeUrl` is the platform store deep link (App Store for `ios`).
+ */
+const semverString = z.string().regex(/^\d+\.\d+\.\d+$/);
+
+const platformVersionSchema = z.object({
+  minVersion: semverString,
+  latestVersion: semverString,
+  storeUrl: z.url().optional(),
+});
+
+export const appVersionResponseSchema = z.object({
+  success: z.literal(true),
+  data: z.object({
+    ios: platformVersionSchema,
+    web: platformVersionSchema,
+  }),
+});
+export type AppVersionResponse = z.infer<typeof appVersionResponseSchema>;

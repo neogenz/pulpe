@@ -4,8 +4,7 @@ import { ConfigModule } from '@nestjs/config';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { LoggerModule } from 'nestjs-pino';
 import { AccountDeletionModule } from './account-deletion.module';
-import { AccountDeletionService } from './account-deletion.service';
-import { EncryptionService } from '@modules/encryption/encryption.service';
+import { CleanupExpiredDeletionsUseCase } from './application/cleanup-expired-deletions.use-case';
 import type { Database } from '../../types/database.types';
 
 const FOUR_DAYS_MS = 4 * 24 * 60 * 60 * 1000;
@@ -31,7 +30,7 @@ beforeAll(async () => {
 });
 
 describe('AccountDeletionService Integration', () => {
-  let service: AccountDeletionService;
+  let useCase: CleanupExpiredDeletionsUseCase;
   let adminClient: SupabaseClient<Database>;
   let testUserId: string;
   let testTemplateId: string;
@@ -54,22 +53,11 @@ describe('AccountDeletionService Integration', () => {
         }),
         AccountDeletionModule,
       ],
-      providers: [
-        {
-          provide: EncryptionService,
-          useValue: {
-            ensureUserDEK: () => Promise.resolve(Buffer.alloc(32)),
-            encryptAmount: () => 'encrypted-mock',
-            getUserDEK: () => Promise.resolve(Buffer.alloc(32)),
-            decryptAmount: () => 100,
-            tryDecryptAmount: (_ct: string, _dek: Buffer, fallback: number) =>
-              fallback,
-          },
-        },
-      ],
     }).compile();
 
-    service = moduleRef.get<AccountDeletionService>(AccountDeletionService);
+    useCase = moduleRef.get<CleanupExpiredDeletionsUseCase>(
+      CleanupExpiredDeletionsUseCase,
+    );
 
     testUserId = `test-${crypto.randomUUID()}`;
     testTemplateId = crypto.randomUUID();
@@ -186,7 +174,7 @@ describe('AccountDeletionService Integration', () => {
       .single();
     expect(transactionBefore).not.toBeNull();
 
-    await service.cleanupScheduledDeletions();
+    await useCase.execute();
 
     const { data: userAfter } =
       await adminClient.auth.admin.getUserById(testUserId);

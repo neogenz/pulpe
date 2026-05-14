@@ -19,6 +19,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { firstValueFrom } from 'rxjs';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
+import { API_ERROR_CODES } from 'pulpe-shared';
 
 import {
   ClientKeyService,
@@ -334,12 +335,14 @@ export default class RecoverVaultCode {
     const { recoveryKey, newVaultCode, rememberDevice } =
       this.form.getRawValue();
 
+    let newClientKeyHex: string | undefined;
+
     try {
       // 1. Get current salt and derive new client key
       const { salt, kdfIterations } = await firstValueFrom(
         this.#encryptionApi.getSalt$(),
       );
-      const newClientKeyHex = await deriveClientKey(
+      newClientKeyHex = await deriveClientKey(
         newVaultCode,
         salt,
         kdfIterations,
@@ -368,6 +371,28 @@ export default class RecoverVaultCode {
       }
     } catch (error) {
       this.#logger.error('Recover vault code failed:', error);
+
+      if (
+        isApiError(error) &&
+        error.code === API_ERROR_CODES.ENCRYPTION_REKEY_PARTIAL_FAILURE &&
+        newClientKeyHex
+      ) {
+        // Forward recovery: data was re-encrypted successfully (commit point passed),
+        // only the post-rekey wrap failed. Vault is accessible with newClientKeyHex,
+        // and #showNewRecoveryKey() has its own graceful fallback (snackbar) if
+        // regeneration also fails.
+        this.#clientKeyService.setDirectKey(newClientKeyHex, rememberDevice);
+        await this.#showNewRecoveryKey();
+        this.isRedirecting.set(true);
+        const navigated = await this.#router.navigate(['/', ROUTES.DASHBOARD]);
+        if (!navigated) {
+          this.isRedirecting.set(false);
+          this.errorMessage.set(
+            this.#transloco.translate('auth.vaultCode.redirectFailed'),
+          );
+        }
+        return;
+      }
 
       if (
         (error instanceof HttpErrorResponse && error.status === 429) ||

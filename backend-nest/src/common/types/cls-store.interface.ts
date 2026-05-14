@@ -1,4 +1,8 @@
-import { ClsStore } from 'nestjs-cls';
+import type { ClsStore } from 'nestjs-cls';
+import type { AuthenticatedUser } from '@common/decorators/user.decorator';
+import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
 
-// eslint-disable-next-line @typescript-eslint/no-empty-object-type
-export interface AppClsStore extends ClsStore {}
+export interface AppClsStore extends ClsStore {
+  user?: AuthenticatedUser;
+  supabase?: AuthenticatedSupabaseClient;
+}

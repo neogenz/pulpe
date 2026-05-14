@@ -285,17 +285,19 @@ constructor() {
 
 ---
 
-## Signal Forms (Experimental)
+## Signal Forms (Experimental — Angular 21.1+)
+
+> **Migration 21.1:** `Field` directive renamed → `FormField`. Selector `[field]` → `[formField]`. Type `Field<T>` still exported as a **type only** (signature for field signals). `customError({ kind })` removed → return plain `{ kind }` from `validate()`.
 
 ```typescript
 import { signal } from '@angular/core';
-import { form, Field } from '@angular/forms/signals';
+import { form, FormField } from '@angular/forms/signals';
 
 @Component({
-  imports: [Field],
+  imports: [FormField],
   template: `
-    <input [field]="loginForm.email" />
-    <input type="password" [field]="loginForm.password" />
+    <input [formField]="loginForm.email" />
+    <input type="password" [formField]="loginForm.password" />
   `
 })
 export class LoginComponent {

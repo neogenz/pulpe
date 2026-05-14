@@ -1,7 +1,7 @@
 # Pulpe — Principes UX/UI & Biais Cognitifs
 
 > Document vivant. Chaque principe est sourcé scientifiquement et illustré par une décision concrète prise pour Pulpe.
-> Dernière mise à jour : 1er mars 2026
+> Dernière mise à jour : 8 mai 2026
 
 ---
 
@@ -648,40 +648,36 @@ L'onboarding en 5 étapes avec barre de progression utilise l'effet Zeigarnik po
 
 ---
 
-## 26. Couleur = état, jamais catégorie dans les listes financières 🔴
+## 26. Couleur sur les listes financières — règle scopée par type 🟡
 
-### Le principe
+### Le principe (révisé mai 2026)
 
-Dans une liste financière, la couleur d'un montant doit communiquer l'**état** (ok / attention / alerte), jamais la **catégorie** (dépense / revenu / épargne). L'identité catégorie est déjà portée par l'icône colorée — y ajouter la couleur sur le montant crée une collision cognitive : l'utilisateur ne sait plus si la couleur dit "ça va" ou "c'est une dépense".
+Sur la liste enveloppes du budget mensuel iOS, la couleur du montant suit deux logiques distinctes selon le type :
 
-Ce principe s'applique dès qu'il y a **consommation active** (transactions liées). Sans consommation, pas d'état à communiquer — la couleur catégorie sur le montant est correcte car elle aide à différencier visuellement les types de lignes (income/expense/saving).
+- **Revenu** et **Épargne** → couleur catégorie en permanence (income / primary). Le « plus » est positif, pas d'état warning à signaler.
+- **Dépense** → couleur d'état selon consommation : neutre (<50 %) → warning (≥50 %) → critical (dépassement).
+
+En complément, chaque ligne porte une étiquette texte uppercase (« REVENU » / « ÉPARGNE » / « DÉPENSE ») au-dessus du label. Le double-codage couleur + texte est volontaire : il évite l'ambiguïté pour les daltoniens et renforce le scan.
+
+### Pourquoi cette révision
+
+La V1 du principe (mars 2026) interdisait la couleur catégorie sur le montant dès qu'une transaction existait, pour éviter la collision « état vs catégorie ». La spec mai 2026 (référentiel `Pulpe v2 UX UI`, validated DM2.1.b.c5) résout cette collision autrement : en ajoutant l'étiquette texte uppercase au-dessus du label.
+
+Le mot porte l'identité catégorie sans ambiguïté → la couleur peut renforcer le mot pour Revenu / Épargne. Pour Dépense, l'état reste pertinent (un dépassement est une info actionnable), donc la couleur passe en spectre état (neutre → warning → critical).
 
 ### Source
 
-- YNAB (You Need A Budget) — modèle mental établi chez les utilisateurs d'apps budget : rouge = over-budget, vert = healthy, jamais "rouge = dépense".
-- Monzo — toutes les listes de transactions en app bancaire : couleur = direction du solde, jamais catégorie comptable.
-- Nielsen Norman Group — "Color should reinforce meaning, not add noise." Principle of semantic consistency.
-- Tractinsky, N. & Meyer, J. (1999). "Chartjunk or goldgraph? Effects of presentation objectives and content desirability on information presentation." *MIS Quarterly*, 23(3), 397-420. — La redondance de codage visuel (couleur catégorie + icône catégorie) réduit la lisibilité sans ajouter d'information.
+- Référentiel Pulpe mai 2026 (DM2.1.b.c5) — validation interne après comparaison directe avec la version V1.
+- Tractinsky, N. & Meyer, J. (1999). "Chartjunk or goldgraph?" *MIS Quarterly*, 23(3), 397-420. — La redondance de codage est neutralisée quand chaque canal porte une info distincte (texte = type, couleur = renforcement / état).
+- Nielsen Norman Group — "Color should reinforce meaning, not add noise." Le double-codage texte + couleur reste valide quand le texte porte la sémantique principale.
 
 ### Application Pulpe
 
-`BudgetLineRow` applique cette asymétrie intentionnelle :
-
-| État | Montant | Barre |
-|------|---------|-------|
-| Sans transactions | `kind.color` (catégorie) | — |
-| 0–79% consommé (expense) | `.secondary` gris | `.secondary` gris |
-| 80–100% near-limit (expense) | `.warningPrimary` amber | `.warningPrimary` amber |
-| >100% over-budget (expense) | `.financialOverBudget` amber profond | `.financialOverBudget` saturé |
-| Income/Saving (tout %) | `.secondary` gris (healthy) | `.secondary` gris |
-
-Les états `near-limit` et `over-budget` ne s'appliquent qu'aux lignes `expense`. Pour `income` et `saving`, dépasser 100% est une bonne nouvelle (plus de revenus/épargne que prévu) — l'état reste toujours `healthy`.
-
-L'icône colorée (orange/bleu/vert) porte l'identité catégorie en permanence — elle ne change pas selon l'état. Le montant et la barre changent uniquement selon l'état de consommation.
+`BudgetLineMixedRow` (iOS) applique cette règle. Voir `productContext.md` RG-010 pour le détail du tableau montant + couleur. Côté webapp, principe à reconfirmer s'il n'y a pas d'étiquette uppercase équivalente — la V1 du principe peut rester valide tant que ce double-codage n'existe pas.
 
 ### Règle à retenir
 
-> **Dès qu'une ligne a des transactions liées, utilise exclusivement les couleurs d'état (neutre/warning/danger) sur le montant et la barre. L'icône catégorie suffit à identifier le type. Double-coder la catégorie avec une couleur sur le montant = bruit cognitif.**
+> **Sur iOS, double-codage couleur + texte uppercase. Couleur catégorie pour Revenu/Épargne. Couleur d'état pour Dépense (neutre → warning → critical).**
 
 ---
 

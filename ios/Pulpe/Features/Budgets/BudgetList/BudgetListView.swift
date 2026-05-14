@@ -5,6 +5,7 @@ struct BudgetListView: View {
     @Environment(BudgetListStore.self) private var store
     @Environment(UserSettingsStore.self) private var userSettingsStore
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.tabBarClearance) private var tabBarClearance
     @State private var createBudgetTarget: (month: Int, year: Int)?
     @State private var hasAppeared = false
     @State private var selectedYear: Int = Calendar.current.component(.year, from: Date())
@@ -133,8 +134,7 @@ struct BudgetListView: View {
 
     private func monthSlots(from budgets: [BudgetSparse], currentPeriod: BudgetPeriod) -> [MonthSlot] {
         var slots: [MonthSlot] = budgets.compactMap { budget in
-            guard let month = budget.month else { return nil }
-            return MonthSlot(month: month, budget: budget)
+            budget.month.map { MonthSlot(month: $0, budget: budget) }
         }
 
         // Add one placeholder for the next missing month if selectedYear >= current year
@@ -295,7 +295,7 @@ struct BudgetListView: View {
                     .padding(.horizontal, DesignTokens.Spacing.xl)
                 }
             }
-            .padding(.bottom, DesignTokens.Spacing.xxxl)
+            .padding(.bottom, tabBarClearance + DesignTokens.Spacing.lg)
             .opacity(hasAppeared ? 1 : 0)
             .animation(.easeOut(duration: DesignTokens.Animation.fast), value: hasAppeared)
         }

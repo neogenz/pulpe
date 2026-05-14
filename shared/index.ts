@@ -128,10 +128,16 @@ export {
   encryptionSetupRecoveryResponseSchema,
   encryptionRecoverResponseSchema,
   encryptionChangePinResponseSchema,
+
+  // App version (force update gate)
+  appVersionResponseSchema,
 } from './schemas.js';
 
 // Export error codes
 export { API_ERROR_CODES, type ApiErrorCode } from './src/error-codes.js';
+
+// Export HTTP header constants
+export { REQUEST_ID_HEADER } from './src/http-headers.js';
 
 // Export feature flag keys
 export {
@@ -295,4 +301,7 @@ export type {
   EncryptionSetupRecoveryResponse,
   EncryptionRecoverResponse,
   EncryptionChangePinResponse,
+
+  // App version
+  AppVersionResponse,
 } from './schemas.js';

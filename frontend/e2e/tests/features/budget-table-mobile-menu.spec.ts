@@ -173,88 +173,6 @@ test.describe('Budget Table Mobile Menu', () => {
         .filter({ hasText: 'Annuler' });
       await cancelButton.click();
     });
-
-    test('should not show menu button for rollover budget lines', async ({
-      authenticatedPage: page,
-    }) => {
-      // Use valid UUIDs for Zod validation
-      const testBudgetId = '00000000-0000-4000-a000-000000000003';
-      const lineId = '00000000-0000-4000-a000-000000001009';
-      const rolloverId = '00000000-0000-4000-a000-000000001010';
-      const previousBudgetId = '00000000-0000-4000-a000-000000000004';
-
-      // Override route with rollover line in mock data
-      await page.route('**/api/v1/budgets/*/details', (route) =>
-        route.fulfill({
-          status: 200,
-          body: JSON.stringify({
-            success: true,
-            data: {
-              budget: {
-                id: testBudgetId,
-                description: 'Test Budget',
-                month: 8,
-                year: 2025,
-                userId: '00000000-0000-4000-a000-000000000201',
-                templateId: '00000000-0000-4000-a000-000000000101',
-                createdAt: '2025-01-01T00:00:00Z',
-                updatedAt: '2025-01-01T00:00:00Z',
-              },
-              budgetLines: [
-                {
-                  id: lineId,
-                  budgetId: testBudgetId,
-                  name: 'Groceries',
-                  amount: 400,
-                  kind: 'expense',
-                  recurrence: 'fixed',
-                  isManuallyAdjusted: false,
-                  templateLineId: null,
-                  savingsGoalId: null,
-                  checkedAt: null,
-                  createdAt: '2025-01-01T00:00:00Z',
-                  updatedAt: '2025-01-01T00:00:00Z',
-                },
-                {
-                  id: rolloverId,
-                  budgetId: testBudgetId,
-                  name: 'rollover_7_2025',
-                  amount: 150,
-                  kind: 'income',
-                  recurrence: 'fixed',
-                  isManuallyAdjusted: false,
-                  templateLineId: null,
-                  savingsGoalId: null,
-                  checkedAt: null,
-                  createdAt: '2025-01-01T00:00:00Z',
-                  updatedAt: '2025-01-01T00:00:00Z',
-                  isRollover: true,
-                  rolloverSourceBudgetId: previousBudgetId,
-                },
-              ],
-              transactions: [],
-            },
-          }),
-        }),
-      );
-
-      // Reload page to get new mock data
-      await page.goto(`/budget/${testBudgetId}`);
-      await page.waitForLoadState('domcontentloaded');
-      await expect(page.locator('pulpe-budget-items')).toBeVisible();
-
-      // Regular line should have menu button
-      const regularLineMenu = page.locator(
-        `[data-testid="card-menu-${lineId}"]`,
-      );
-      await expect(regularLineMenu).toBeVisible();
-
-      // Rollover line should NOT have menu button
-      const rolloverLineMenu = page.locator(
-        `[data-testid="card-menu-${rolloverId}"]`,
-      );
-      await expect(rolloverLineMenu).not.toBeVisible();
-    });
   });
 
   test.describe('Desktop View', () => {
@@ -320,7 +238,9 @@ test.describe('Budget Table Mobile Menu', () => {
 
       // Verify dialog form fields are visible
       const editNameInput = page.locator('[data-testid="edit-line-name"]');
-      const editAmountInput = page.locator('[data-testid="edit-budget-line-dialog"] [data-testid="amount-input-value"]');
+      const editAmountInput = page.locator(
+        '[data-testid="edit-budget-line-dialog"] [data-testid="amount-input-value"]',
+      );
 
       await expect(editNameInput).toBeVisible();
       await expect(editAmountInput).toBeVisible();

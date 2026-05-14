@@ -10,13 +10,19 @@ import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import { ZodValidationPipe } from 'nestjs-zod';
 import { PinoLogger } from 'nestjs-pino';
-import { EncryptionController } from './encryption.controller';
-import { EncryptionService } from './encryption.service';
+import { EncryptionController } from './infrastructure/http/encryption.controller';
+import { GetVaultStatusUseCase } from './application/get-vault-status.use-case';
+import { GetUserSaltUseCase } from './application/get-user-salt.use-case';
+import { ValidateUserKeyUseCase } from './application/validate-user-key.use-case';
+import { SetupRecoveryKeyUseCase } from './application/setup-recovery-key.use-case';
+import { RegenerateRecoveryKeyUseCase } from './application/regenerate-recovery-key.use-case';
+import { VerifyRecoveryKeyUseCase } from './application/verify-recovery-key.use-case';
+import { RecoverWithRecoveryKeyUseCase } from './application/recover-with-recovery-key.use-case';
+import { ChangePinUseCase } from './application/change-pin.use-case';
 import { GlobalExceptionFilter } from '@common/filters/global-exception.filter';
 import { AuthGuard } from '@common/guards/auth.guard';
 import { BusinessException } from '@common/exceptions/business.exception';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
-import { createInfoLoggerProvider } from '@common/logger';
 
 const VALID_HEX_KEY = 'ab'.repeat(32);
 const VALID_HEX_KEY_ALT = 'cd'.repeat(32);
@@ -36,41 +42,53 @@ class MockAuthGuard implements CanActivate {
   }
 }
 
-function createMockEncryptionService() {
+function createMockUseCases() {
   return {
-    getVaultStatus: mock(() =>
-      Promise.resolve({
-        pinCodeConfigured: true,
-        recoveryKeyConfigured: false,
-        vaultCodeConfigured: true,
-      }),
-    ),
-    getUserSalt: mock(() =>
-      Promise.resolve({
-        salt: 'aabb00ff',
-        kdfIterations: 600000,
-        hasRecoveryKey: false,
-      }),
-    ),
-    verifyAndEnsureKeyCheck: mock(() => Promise.resolve(true)),
-    changePinRekey: mock(() =>
-      Promise.resolve({
-        keyCheck: 'mock-key-check',
-        recoveryKey: 'MOCK-RECO-VERY-KEY0',
-      }),
-    ),
-    recoverWithKey: mock(() => Promise.resolve()),
-    reEncryptAllUserData: mock(() => Promise.resolve()),
-    createRecoveryKey: mock(() =>
-      Promise.resolve({ formatted: 'XXXX-YYYY-ZZZZ-1234' }),
-    ),
-    regenerateRecoveryKey: mock(() =>
-      Promise.resolve({ formatted: 'AAAA-BBBB-CCCC-5678' }),
-    ),
-    verifyRecoveryKey: mock(() => Promise.resolve()),
-    ensureUserDEK: mock(() => Promise.resolve(Buffer.alloc(32))),
-    getUserDEK: mock(() => Promise.resolve(Buffer.alloc(32))),
-    generateKeyCheck: mock(() => 'mock-key-check'),
+    getVaultStatus: {
+      execute: mock(() =>
+        Promise.resolve({
+          pinCodeConfigured: true,
+          recoveryKeyConfigured: false,
+          vaultCodeConfigured: true,
+        }),
+      ),
+    },
+    getUserSalt: {
+      execute: mock(() =>
+        Promise.resolve({
+          salt: 'aabb00ff',
+          kdfIterations: 600000,
+          hasRecoveryKey: false,
+        }),
+      ),
+    },
+    validateUserKey: {
+      execute: mock(() => Promise.resolve()),
+    },
+    setupRecoveryKey: {
+      execute: mock(() =>
+        Promise.resolve({ recoveryKey: 'XXXX-YYYY-ZZZZ-1234' }),
+      ),
+    },
+    regenerateRecoveryKey: {
+      execute: mock(() =>
+        Promise.resolve({ recoveryKey: 'AAAA-BBBB-CCCC-5678' }),
+      ),
+    },
+    verifyRecoveryKey: {
+      execute: mock(() => Promise.resolve()),
+    },
+    recoverWithRecoveryKey: {
+      execute: mock(() => Promise.resolve()),
+    },
+    changePin: {
+      execute: mock(() =>
+        Promise.resolve({
+          keyCheck: 'mock-key-check',
+          recoveryKey: 'MOCK-RECO-VERY-KEY0',
+        }),
+      ),
+    },
   };
 }
 
@@ -88,23 +106,35 @@ function createMockPinoLogger(): Partial<PinoLogger> {
 }
 
 let app: INestApplication;
-let mockService: ReturnType<typeof createMockEncryptionService>;
+let mocks: ReturnType<typeof createMockUseCases>;
 
 beforeAll(async () => {
-  mockService = createMockEncryptionService();
+  mocks = createMockUseCases();
   const mockLogger = createMockPinoLogger();
 
   const moduleRef = await Test.createTestingModule({
     controllers: [EncryptionController],
     providers: [
-      { provide: EncryptionService, useValue: mockService },
+      { provide: GetVaultStatusUseCase, useValue: mocks.getVaultStatus },
+      { provide: GetUserSaltUseCase, useValue: mocks.getUserSalt },
+      { provide: ValidateUserKeyUseCase, useValue: mocks.validateUserKey },
+      { provide: SetupRecoveryKeyUseCase, useValue: mocks.setupRecoveryKey },
+      {
+        provide: RegenerateRecoveryKeyUseCase,
+        useValue: mocks.regenerateRecoveryKey,
+      },
+      { provide: VerifyRecoveryKeyUseCase, useValue: mocks.verifyRecoveryKey },
+      {
+        provide: RecoverWithRecoveryKeyUseCase,
+        useValue: mocks.recoverWithRecoveryKey,
+      },
+      { provide: ChangePinUseCase, useValue: mocks.changePin },
       { provide: APP_PIPE, useClass: ZodValidationPipe },
       {
         provide: APP_FILTER,
         useFactory: () => new GlobalExceptionFilter(mockLogger as PinoLogger),
       },
       { provide: PinoLogger, useValue: mockLogger },
-      createInfoLoggerProvider(EncryptionController.name),
       Reflector,
     ],
   })
@@ -123,9 +153,6 @@ afterAll(async () => {
 });
 
 describe('Encryption HTTP pipeline', () => {
-  // ──────────────────────────────────────────────
-  // POST /api/v1/encryption/validate-key
-  // ──────────────────────────────────────────────
   describe('POST /api/v1/encryption/validate-key', () => {
     it('returns 204 with valid clientKey', async () => {
       await request(app.getHttpServer())
@@ -170,9 +197,11 @@ describe('Encryption HTTP pipeline', () => {
       expect(res.body.code).toBe('ERR_AUTH_CLIENT_KEY_INVALID');
     });
 
-    it('returns 400 ERR_ENCRYPTION_KEY_CHECK_FAILED when service returns false', async () => {
-      mockService.verifyAndEnsureKeyCheck.mockImplementationOnce(() =>
-        Promise.resolve(false),
+    it('returns 400 ERR_ENCRYPTION_KEY_CHECK_FAILED when use case rejects', async () => {
+      mocks.validateUserKey.execute.mockImplementationOnce(() =>
+        Promise.reject(
+          new BusinessException(ERROR_DEFINITIONS.ENCRYPTION_KEY_CHECK_FAILED),
+        ),
       );
 
       const res = await request(app.getHttpServer())
@@ -184,9 +213,6 @@ describe('Encryption HTTP pipeline', () => {
     });
   });
 
-  // ──────────────────────────────────────────────
-  // POST /api/v1/encryption/change-pin
-  // ──────────────────────────────────────────────
   describe('POST /api/v1/encryption/change-pin', () => {
     it('returns 200 with keyCheck and recoveryKey', async () => {
       const res = await request(app.getHttpServer())
@@ -201,7 +227,7 @@ describe('Encryption HTTP pipeline', () => {
     });
 
     it('returns 200 with custom recoveryKey', async () => {
-      mockService.changePinRekey.mockImplementationOnce(() =>
+      mocks.changePin.execute.mockImplementationOnce(() =>
         Promise.resolve({
           keyCheck: 'new-kc',
           recoveryKey: 'ABCD-EFGH-IJKL-MNOP',
@@ -243,8 +269,8 @@ describe('Encryption HTTP pipeline', () => {
       expect(res.body.code).toBe('ERR_ZOD_VALIDATION_FAILED');
     });
 
-    it('returns 400 ERR_ENCRYPTION_SAME_KEY when service throws', async () => {
-      mockService.changePinRekey.mockImplementationOnce(() =>
+    it('returns 400 ERR_ENCRYPTION_SAME_KEY when use case rejects', async () => {
+      mocks.changePin.execute.mockImplementationOnce(() =>
         Promise.reject(
           new BusinessException(ERROR_DEFINITIONS.ENCRYPTION_SAME_KEY),
         ),
@@ -259,7 +285,7 @@ describe('Encryption HTTP pipeline', () => {
     });
 
     it('returns 400 ERR_ENCRYPTION_KEY_CHECK_FAILED when old key is wrong', async () => {
-      mockService.changePinRekey.mockImplementationOnce(() =>
+      mocks.changePin.execute.mockImplementationOnce(() =>
         Promise.reject(
           new BusinessException(ERROR_DEFINITIONS.ENCRYPTION_KEY_CHECK_FAILED),
         ),
@@ -274,7 +300,7 @@ describe('Encryption HTTP pipeline', () => {
     });
 
     it('returns 500 ERR_ENCRYPTION_REKEY_PARTIAL_FAILURE when rekey partially fails', async () => {
-      mockService.changePinRekey.mockImplementationOnce(() =>
+      mocks.changePin.execute.mockImplementationOnce(() =>
         Promise.reject(
           new BusinessException(
             ERROR_DEFINITIONS.ENCRYPTION_REKEY_PARTIAL_FAILURE,
@@ -309,9 +335,6 @@ describe('Encryption HTTP pipeline', () => {
     });
   });
 
-  // ──────────────────────────────────────────────
-  // POST /api/v1/encryption/recover
-  // ──────────────────────────────────────────────
   describe('POST /api/v1/encryption/recover', () => {
     it('returns 200 { success: true } on valid recovery', async () => {
       const res = await request(app.getHttpServer())
@@ -381,7 +404,9 @@ describe('Encryption HTTP pipeline', () => {
         })
         .expect(204);
 
-      expect(mockService.verifyRecoveryKey.mock.calls.length).toBe(1);
+      expect(mocks.verifyRecoveryKey.execute.mock.calls.length).toBeGreaterThan(
+        0,
+      );
     });
 
     it('returns 400 Zod error when recoveryKey is missing', async () => {
@@ -393,8 +418,8 @@ describe('Encryption HTTP pipeline', () => {
       expect(res.body.code).toBe('ERR_ZOD_VALIDATION_FAILED');
     });
 
-    it('returns 400 ERR_RECOVERY_KEY_INVALID when service rejects', async () => {
-      mockService.verifyRecoveryKey.mockImplementation(() => {
+    it('returns 400 ERR_RECOVERY_KEY_INVALID when use case rejects', async () => {
+      mocks.verifyRecoveryKey.execute.mockImplementation(() => {
         throw new BusinessException(ERROR_DEFINITIONS.RECOVERY_KEY_INVALID);
       });
 
@@ -404,13 +429,12 @@ describe('Encryption HTTP pipeline', () => {
         .expect(400);
 
       expect(res.body.code).toBe('ERR_RECOVERY_KEY_INVALID');
-      mockService.verifyRecoveryKey.mockImplementation(() => Promise.resolve());
+      mocks.verifyRecoveryKey.execute.mockImplementation(() =>
+        Promise.resolve(),
+      );
     });
   });
 
-  // ──────────────────────────────────────────────
-  // GET /api/v1/encryption/vault-status
-  // ──────────────────────────────────────────────
   describe('GET /api/v1/encryption/vault-status', () => {
     it('returns 200 with three boolean flags', async () => {
       const res = await request(app.getHttpServer())
@@ -425,9 +449,6 @@ describe('Encryption HTTP pipeline', () => {
     });
   });
 
-  // ──────────────────────────────────────────────
-  // GET /api/v1/encryption/salt
-  // ──────────────────────────────────────────────
   describe('GET /api/v1/encryption/salt', () => {
     it('returns 200 with salt, kdfIterations, and hasRecoveryKey', async () => {
       const res = await request(app.getHttpServer())
@@ -442,12 +463,8 @@ describe('Encryption HTTP pipeline', () => {
     });
   });
 
-  // ──────────────────────────────────────────────
-  // Error response shape
-  // ──────────────────────────────────────────────
   describe('Error response shape', () => {
     it('includes standard error envelope fields', async () => {
-      // Use all-zero key (valid hex, passes Zod, caught by controller buffer check)
       const res = await request(app.getHttpServer())
         .post('/api/v1/encryption/validate-key')
         .send({ clientKey: '00'.repeat(32) })

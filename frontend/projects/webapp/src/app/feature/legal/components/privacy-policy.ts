@@ -206,12 +206,11 @@ import { ROUTES } from '@core/routing';
             </li>
           </ul>
           <p class="text-body-large mt-4">
-            <strong>Note sur PostHog :</strong> à ce jour, la suppression du
-            compte côté Pulpe n'entraîne pas automatiquement la suppression du
-            profil analytics chez PostHog. Pour exercer votre droit à
-            l'effacement sur les données analytics, contactez-moi par email — je
-            procéderai à la suppression manuelle via l'API PostHog (sous 7 jours
-            ouvrés).
+            <strong>Suppression analytics :</strong> la suppression de votre
+            compte Pulpe déclenche automatiquement la suppression de votre
+            profil PostHog (événements et enregistrements de session inclus).
+            L'effacement chez PostHog est asynchrone et finalisé sous quelques
+            jours après la fin du délai de grâce de votre compte.
           </p>
         </section>
 
@@ -310,6 +309,7 @@ import { ROUTES } from '@core/routing';
                 href="https://github.com/neogenz/pulpe"
                 class="text-primary"
                 target="_blank"
+                rel="noopener noreferrer"
                 >Issues & Discussions</a
               >
             </li>

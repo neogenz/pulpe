@@ -259,6 +259,12 @@
       "skillPath": "mastering-typescript/SKILL.md",
       "computedHash": "1cba0ac27ae3ceb517b93bb6ccf053607b8ba939a1c1c9d4716eed7e4d9175b2"
     },
+    "nestjs-expert": {
+      "source": "jeffallan/claude-skills",
+      "sourceType": "github",
+      "skillPath": "skills/nestjs-expert/SKILL.md",
+      "computedHash": "0775f4ba14e4f372b894cc86feb0bf58a51b2038bc98b3ff18f2021565cea494"
+    },
     "playwright-best-practices": {
       "source": "currents-dev/playwright-best-practices-skill",
       "sourceType": "github",
@@ -300,6 +306,12 @@
       "sourceType": "github",
       "skillPath": "swiftui-performance-audit/SKILL.md",
       "computedHash": "4c153a7401d4d878fad3b7b83ca3d29f43245f8404dd34b7beb400cdfcab46f7"
+    },
+    "swiftui-pro": {
+      "source": "twostraws/swiftui-agent-skill",
+      "sourceType": "github",
+      "skillPath": "swiftui-pro/SKILL.md",
+      "computedHash": "07033426e384295a4b49cf0b2ffdefd4098cae4af53fef16bc1f2d9281118c41"
     },
     "swiftui-ui-patterns": {
       "source": "dimillian/skills",

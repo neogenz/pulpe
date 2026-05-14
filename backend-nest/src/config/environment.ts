@@ -29,6 +29,43 @@ const envSchema = z.object({
   DEBUG_HTTP_FULL: z.string().optional(),
   MAINTENANCE_MODE: z.string().optional(),
   IP_BLACKLIST: z.string().optional(),
+
+  // PostHog person deletion (RGPD Art. 17). Requires a Personal API Key
+  // with `person:write` scope — NOT a project key (PostHog rejects project
+  // keys for person deletion).
+  POSTHOG_API_KEY: z.string().optional(),
+  POSTHOG_PROJECT_ID: z
+    .string()
+    .regex(/^\d+$/, {
+      error: 'POSTHOG_PROJECT_ID must be a positive integer',
+    })
+    .optional(),
+  POSTHOG_HOST: z
+    .string()
+    .regex(/^https:\/\/[^/]+$/, {
+      error:
+        'POSTHOG_HOST must be HTTPS with no trailing slash or path (e.g. https://eu.posthog.com)',
+    })
+    .optional(),
+
+  // Force-update gate (consumed by GET /api/v1/app/version)
+  MIN_IOS_VERSION: z
+    .string()
+    .regex(/^\d+\.\d+\.\d+$/)
+    .default('1.0.0'),
+  LATEST_IOS_VERSION: z
+    .string()
+    .regex(/^\d+\.\d+\.\d+$/)
+    .default('1.0.0'),
+  IOS_STORE_URL: z.url().default('https://apps.apple.com/app/id6758464920'),
+  MIN_WEB_VERSION: z
+    .string()
+    .regex(/^\d+\.\d+\.\d+$/)
+    .default('0.0.1'),
+  LATEST_WEB_VERSION: z
+    .string()
+    .regex(/^\d+\.\d+\.\d+$/)
+    .default('0.0.1'),
 });
 
 export type Environment = z.infer<typeof envSchema>;
@@ -46,6 +83,9 @@ export function validateEnvironment(configService: ConfigService): Environment {
     DEBUG_HTTP_FULL: configService.get('DEBUG_HTTP_FULL'),
     MAINTENANCE_MODE: configService.get('MAINTENANCE_MODE'),
     IP_BLACKLIST: configService.get('IP_BLACKLIST'),
+    POSTHOG_API_KEY: configService.get('POSTHOG_API_KEY'),
+    POSTHOG_PROJECT_ID: configService.get('POSTHOG_PROJECT_ID'),
+    POSTHOG_HOST: configService.get('POSTHOG_HOST'),
   };
 
   const result = envSchema.safeParse(config);

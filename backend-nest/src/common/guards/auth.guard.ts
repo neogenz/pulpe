@@ -8,6 +8,7 @@ import { SupabaseService } from '@modules/supabase/supabase.service';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import type { SupabaseClient } from '@/types/supabase-helpers';
 import { SKIP_CLIENT_KEY } from '@common/decorators/skip-client-key.decorator';
+import { ClsService } from 'nestjs-cls';
 
 interface RequestWithCache extends Request {
   __throttlerUserCache?: AuthenticatedUser | null;
@@ -22,6 +23,7 @@ export class AuthGuard implements CanActivate {
     private readonly logger: InfoLogger,
     private readonly supabaseService: SupabaseService,
     private readonly reflector: Reflector,
+    private readonly cls: ClsService,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -50,7 +52,11 @@ export class AuthGuard implements CanActivate {
     skipClientKey: boolean,
   ): boolean {
     try {
-      const cachedUser = request.__throttlerUserCache!;
+      const cachedUser = request.__throttlerUserCache;
+      if (!cachedUser?.id) {
+        throw new BusinessException(ERROR_DEFINITIONS.AUTH_UNAUTHORIZED);
+      }
+
       const supabase =
         this.supabaseService.createAuthenticatedClient(accessToken);
 
@@ -60,8 +66,11 @@ export class AuthGuard implements CanActivate {
       );
 
       const clientKey = this.#resolveClientKey(request, skipClientKey);
-      request.user = { ...cachedUser, accessToken, clientKey };
+      const authenticatedUser = { ...cachedUser, accessToken, clientKey };
+      request.user = authenticatedUser;
       request.supabase = supabase;
+      this.cls.set('user', authenticatedUser);
+      this.cls.set('supabase', supabase);
 
       return true;
     } catch (error) {
@@ -107,6 +116,8 @@ export class AuthGuard implements CanActivate {
 
       request.user = authenticatedUser;
       request.supabase = supabase;
+      this.cls.set('user', authenticatedUser);
+      this.cls.set('supabase', supabase);
 
       return true;
     } catch (error) {

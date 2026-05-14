@@ -127,6 +127,7 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
       toggleTransactionCheck$: vi.fn(),
       cache: {
         version: signal(0),
+        _dataVersion: signal(0),
         get: vi.fn().mockReturnValue(null),
         set: vi.fn(),
         has: vi.fn().mockReturnValue(false),

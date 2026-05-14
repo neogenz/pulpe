@@ -60,11 +60,11 @@ test.describe('Financial Overview Calculations', () => {
     epargneLine,
   ];
 
-  // Revenus = 3500 + 800 = 4300
-  // With rollover 500: Disponible (income) = 4300 + 500 = 4800
+  // Revenus = 3500 + 800 = 4300 (real income, rollover excluded from pill)
   // Dépenses = 1200 + 400 + 75 = 1675
   // Épargne = 500
-  // Reste = 4800 - 1675 - 500 = 2625
+  // Rollover = 500 (shown separately as read-only context, not in pills)
+  // Reste = (4300 - 1675 - 500) + 500 (rollover) = 2625
 
   function createMockWithRollover() {
     return createBudgetDetailsMock(budgetId, {
@@ -78,7 +78,7 @@ test.describe('Financial Overview Calculations', () => {
     });
   }
 
-  test('Disponible shows sum of revenus plus rollover', async ({
+  test('Revenus pill shows real income only, rollover surfaced separately', async ({
     authenticatedPage,
     budgetDetailsPage,
   }) => {
@@ -97,9 +97,16 @@ test.describe('Financial Overview Calculations', () => {
     );
     await expect(financialOverview).toBeVisible();
 
-    // Revenus pill should show 4800 (3500 + 800 + 500 rollover)
-    // Note: fr-CH locale uses NARROW NO-BREAK SPACE (U+202F) as thousands separator
-    await expect(financialOverview).toContainText('4\u2019800 CHF');
+    // Revenus pill shows real income (3500 + 800 = 4300), rollover NOT folded in.
+    // Note: fr-CH locale uses NARROW NO-BREAK SPACE (U+202F) as thousands separator.
+    await expect(financialOverview).toContainText('4\u2019300 CHF');
+
+    // Rollover (+500) is rendered separately in the dedicated read-only widget.
+    const rolloverInfo = authenticatedPage.locator(
+      'pulpe-budget-rollover-info',
+    );
+    await expect(rolloverInfo).toBeVisible();
+    await expect(rolloverInfo).toContainText('500 CHF');
   });
 
   test('Reste equals Disponible minus Depenses minus Epargne', async ({
@@ -127,7 +134,7 @@ test.describe('Financial Overview Calculations', () => {
     // Épargne pill: 500
     await expect(financialOverview).toContainText('500 CHF');
 
-    // Reste = 4800 - 1675 - 500 = 2625
+    // Reste = (4300 revenus - 1675 d\u00e9penses - 500 \u00e9pargne) + 500 rollover = 2625
     await expect(
       financialOverview.locator('.text-display-medium, .text-display-large'),
     ).toContainText('2\u2019625');
@@ -234,7 +241,9 @@ test.describe('Financial Overview Calculations', () => {
       .locator('[data-testid="new-line-name"]')
       .fill('Abonnement');
     await authenticatedPage
-      .locator('[data-testid="add-budget-line-dialog"] [data-testid="amount-input-value"]')
+      .locator(
+        '[data-testid="add-budget-line-dialog"] [data-testid="amount-input-value"]',
+      )
       .fill('200');
     await authenticatedPage.getByTestId('add-new-line').click();
     await expect(dialog).not.toBeVisible();

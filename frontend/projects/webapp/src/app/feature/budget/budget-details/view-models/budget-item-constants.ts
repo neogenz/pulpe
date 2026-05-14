@@ -1,8 +1,4 @@
-import type {
-  TransactionKind,
-  TransactionRecurrence,
-  BudgetLine,
-} from 'pulpe-shared';
+import type { TransactionKind, TransactionRecurrence } from 'pulpe-shared';
 
 export type BudgetConsumptionState =
   | 'no-transactions'
@@ -82,14 +78,6 @@ export function getBudgetConsumptionState(
   if (percentage > 100) return 'over-budget';
   if (percentage >= NEAR_LIMIT_THRESHOLD) return 'near-limit';
   return 'healthy';
-}
-
-export function getRolloverSourceBudgetId(
-  data: BudgetLine,
-): string | undefined {
-  if (!('rolloverSourceBudgetId' in data)) return undefined;
-  const value = data.rolloverSourceBudgetId;
-  return typeof value === 'string' ? value : undefined;
 }
 
 export function getSignedAmount(kind: TransactionKind, amount: number): number {

@@ -81,7 +81,6 @@ import { BudgetDetailsDialogService } from '../../budget-details-dialog.service'
           <td mat-cell *matCellDef="let line" class="text-right">
             <span
               class="text-body-medium font-bold ph-no-capture"
-              [class.italic]="line.metadata.isRollover"
               [pulpeFinancialKind]="line.data.kind"
             >
               {{ line.data.amount | appCurrency: currency() : '1.2-2' }}
@@ -97,7 +96,6 @@ import { BudgetDetailsDialogService } from '../../budget-details-dialog.service'
           <td mat-cell *matCellDef="let line">
             @if (
               line.metadata.itemType === 'budget_line' &&
-              !line.metadata.isRollover &&
               line.consumption?.hasTransactions
             ) {
               <button

@@ -49,6 +49,7 @@ interface MockStore {
   totalItemsCount: ReturnType<typeof signal<number>>;
   totalBudgetLinesCount: ReturnType<typeof signal<number>>;
   realizedBalance: ReturnType<typeof signal<number>>;
+  previousMonthRollover: ReturnType<typeof signal<number>>;
   setSearchText: ReturnType<typeof vi.fn>;
   setIsShowingOnlyUnchecked: ReturnType<typeof vi.fn>;
   createBudgetLine: ReturnType<typeof vi.fn>;
@@ -74,6 +75,7 @@ function createMockStore(): MockStore {
     totalItemsCount: signal(0),
     totalBudgetLinesCount: signal(0),
     realizedBalance: signal(0),
+    previousMonthRollover: signal(0),
     setSearchText: vi.fn(),
     setIsShowingOnlyUnchecked: vi.fn(),
     createBudgetLine: vi.fn(),

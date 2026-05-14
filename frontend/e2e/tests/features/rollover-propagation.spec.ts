@@ -9,9 +9,10 @@ import {
  * E2E Tests for Rollover Propagation (Scenario 7.3)
  *
  * Verifies:
- * - Rollover from month M appears as a virtual income line in month M+1
- * - Navigation between months shows consistent rollover data
- * - Available amount correctly includes rollover
+ * - Rollover from month M surfaces in month M+1 via the dedicated read-only widget
+ *   (`pulpe-budget-rollover-info`), not as a budget line.
+ * - Cross-month navigation toggles widget visibility based on rollover state.
+ * - Financial overview Reste reflects rollover from the previous month.
  */
 
 const BUDGET_IDS = {
@@ -74,7 +75,7 @@ const februaryDetails = createBudgetDetailsMock(BUDGET_IDS.FEBRUARY, {
   ],
 });
 
-// Mar: Income 5000 + rollover 3800 from Feb, Loyer 1200 => remaining 7600
+// Mar: Income 5000 + rollover 3800 from Feb, Loyer 1200 => Reste 7600
 const marchDetails = createBudgetDetailsMock(BUDGET_IDS.MARCH, {
   budget: {
     month: 3,
@@ -132,67 +133,40 @@ function setupRoutes(authenticatedPage: import('@playwright/test').Page) {
 }
 
 test.describe('Rollover Propagation - Impact on next month', () => {
-  test('rollover from Feb appears as virtual income line in March', async ({
+  test('rollover from Feb surfaces in March via dedicated widget', async ({
     authenticatedPage,
     budgetDetailsPage,
   }) => {
-    // Rollover line starts as "checked"; disable the unchecked-only filter to see it
-    await authenticatedPage.addInitScript(() => {
-      const entry = {
-        version: 1,
-        data: false,
-        updatedAt: new Date().toISOString(),
-      };
-      localStorage.setItem(
-        'pulpe-budget-show-only-unchecked',
-        JSON.stringify(entry),
-      );
-    });
     await setupRoutes(authenticatedPage);
     await budgetDetailsPage.goto(BUDGET_IDS.MARCH);
 
     const heading = authenticatedPage.locator('h1');
     await expect(heading).toContainText('mars 2026');
 
-    // Virtual rollover line should appear as an envelope card
-    // id = 'rollover-display', name rendered as "Report fevrier 2026"
-    const rolloverCard = authenticatedPage.getByTestId(
-      'envelope-card-rollover-display',
+    const rolloverWidget = authenticatedPage.locator(
+      'pulpe-budget-rollover-info',
     );
-    await expect(rolloverCard).toBeVisible();
-    await expect(rolloverCard).toContainText(/Report/i);
-    await expect(rolloverCard).toContainText('CHF');
+    await expect(rolloverWidget).toBeVisible();
+    await expect(rolloverWidget).toContainText(/Report/i);
+    await expect(rolloverWidget).toContainText('+3’800');
+    await expect(rolloverWidget).toContainText('CHF');
   });
 
-  test('navigating Feb to Mar to Feb shows consistent data', async ({
+  test('widget visibility toggles correctly across month navigation', async ({
     authenticatedPage,
     budgetDetailsPage,
   }) => {
-    // Rollover line starts as "checked"; disable the unchecked-only filter to see it
-    await authenticatedPage.addInitScript(() => {
-      const entry = {
-        version: 1,
-        data: false,
-        updatedAt: new Date().toISOString(),
-      };
-      localStorage.setItem(
-        'pulpe-budget-show-only-unchecked',
-        JSON.stringify(entry),
-      );
-    });
     await setupRoutes(authenticatedPage);
 
-    // Start on February
     await budgetDetailsPage.goto(BUDGET_IDS.FEBRUARY);
     const heading = authenticatedPage.locator('h1');
     await expect(heading).toContainText('février 2026');
 
-    // Feb should NOT have a rollover line (rollover = 0)
-    await expect(
-      authenticatedPage.getByTestId('envelope-card-rollover-display'),
-    ).not.toBeVisible();
+    const rolloverWidget = authenticatedPage.locator(
+      'pulpe-budget-rollover-info',
+    );
+    await expect(rolloverWidget).not.toBeVisible();
 
-    // Feb budget lines should be visible
     await expect(
       authenticatedPage.getByTestId(`envelope-card-${TEST_UUIDS.LINE_1}`),
     ).toBeVisible();
@@ -200,16 +174,12 @@ test.describe('Rollover Propagation - Impact on next month', () => {
       authenticatedPage.getByTestId(`envelope-card-${TEST_UUIDS.LINE_2}`),
     ).toBeVisible();
 
-    // Navigate to March
     await authenticatedPage.getByTestId('next-month-button-desktop').click();
     await expect(heading).toContainText('mars 2026');
 
-    // March SHOULD have a rollover line
-    await expect(
-      authenticatedPage.getByTestId('envelope-card-rollover-display'),
-    ).toBeVisible();
+    await expect(rolloverWidget).toBeVisible();
+    await expect(rolloverWidget).toContainText('+3’800');
 
-    // March budget lines visible, Feb lines gone
     await expect(
       authenticatedPage.getByTestId(`envelope-card-${TEST_UUIDS.LINE_3}`),
     ).toBeVisible();
@@ -217,19 +187,15 @@ test.describe('Rollover Propagation - Impact on next month', () => {
       authenticatedPage.getByTestId(`envelope-card-${TEST_UUIDS.LINE_1}`),
     ).not.toBeVisible();
 
-    // Navigate back to February
     await authenticatedPage
       .getByTestId('previous-month-button-desktop')
       .click();
     await expect(heading).toContainText('février 2026');
 
-    // Feb should still have no rollover line
-    await expect(
-      authenticatedPage.getByTestId('envelope-card-rollover-display'),
-    ).not.toBeVisible();
+    await expect(rolloverWidget).not.toBeVisible();
   });
 
-  test('March available amount includes rollover from February', async ({
+  test('March Reste in financial overview includes rollover from February', async ({
     authenticatedPage,
     budgetDetailsPage,
   }) => {
@@ -239,16 +205,12 @@ test.describe('Rollover Propagation - Impact on next month', () => {
     const heading = authenticatedPage.locator('h1');
     await expect(heading).toContainText('mars 2026');
 
-    // Income pill should show 8800 (5000 salary + 3800 rollover)
-    // The financial overview computes income from all income-type budget lines
-    // including the virtual rollover line
     const financialOverview = authenticatedPage.locator(
       'pulpe-budget-financial-overview',
     );
     await expect(financialOverview).toBeVisible();
 
-    // Remaining = income (5000 + 3800) - expenses (1200) = 7600
-    // The hero section shows the remaining amount
-    await expect(financialOverview).toContainText('7\u2019600');
+    // Reste = income (5000) - expenses (1200) + rollover (3800) = 7600
+    await expect(financialOverview).toContainText('7’600');
   });
 });

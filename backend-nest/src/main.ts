@@ -8,6 +8,7 @@ import compression from 'compression';
 import { AppModule } from './app.module';
 import { cleanupOpenApiDoc } from 'nestjs-zod';
 import { isProductionLike, type Environment } from '@config/environment';
+import { REQUEST_ID_HEADER } from 'pulpe-shared';
 
 // ValidationPipe removed - using ZodValidationPipe from app.module.ts instead
 
@@ -23,7 +24,9 @@ function setupCors(app: import('@nestjs/common').INestApplication): void {
       'Authorization',
       'ngrok-skip-browser-warning',
       'X-Client-Key',
+      REQUEST_ID_HEADER,
     ],
+    exposedHeaders: [REQUEST_ID_HEADER],
     credentials: true,
   });
 }
@@ -240,6 +243,11 @@ async function bootstrap() {
     TURNSTILE_SECRET_KEY: configService.get('TURNSTILE_SECRET_KEY')!,
     ENCRYPTION_MASTER_KEY: configService.get('ENCRYPTION_MASTER_KEY')!,
     DEBUG_HTTP_FULL: configService.get('DEBUG_HTTP_FULL'),
+    MIN_IOS_VERSION: configService.get('MIN_IOS_VERSION')!,
+    LATEST_IOS_VERSION: configService.get('LATEST_IOS_VERSION')!,
+    IOS_STORE_URL: configService.get('IOS_STORE_URL')!,
+    MIN_WEB_VERSION: configService.get('MIN_WEB_VERSION')!,
+    LATEST_WEB_VERSION: configService.get('LATEST_WEB_VERSION')!,
   };
 
   app.useLogger(app.get(Logger));

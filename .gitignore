@@ -81,6 +81,7 @@ coverage-report.json
 .claude/ralph/
 .claude/plans/
 .claude/data/
+.claude/worktrees/
 
 docs/angular-full.txt
 

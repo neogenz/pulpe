@@ -8,7 +8,6 @@ import {
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_GUARD, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
 import { ThrottlerModule } from '@nestjs/throttler';
-import { randomUUID } from 'crypto';
 import { CurlGenerator } from 'curl-generator';
 import type { IncomingMessage, ServerResponse } from 'http';
 import { ClsModule } from 'nestjs-cls';
@@ -29,6 +28,7 @@ import { TransactionModule } from '@modules/transaction/transaction.module';
 import { CurrencyModule } from '@modules/currency/currency.module';
 import { UserModule } from '@modules/user/user.module';
 import { AccountDeletionModule } from '@modules/account-deletion/account-deletion.module';
+import { AppVersionModule } from '@modules/app-version/app-version.module';
 
 // Filters
 import { FiltersModule } from '@common/filters/filters.module';
@@ -55,31 +55,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 
 // Utils
 import { anonymizeIp, parseDeviceType } from '@common/utils/log-anonymization';
-
-// Logger configuration helpers
-function createRequestIdGenerator() {
-  return (
-    req: IncomingMessage & {
-      headers: Record<string, string | string[] | undefined>;
-    },
-    res: ServerResponse,
-  ) => {
-    const reqId = (req as typeof req & { id?: string }).id;
-    if (reqId) return reqId;
-
-    const headerValue = req.headers['x-request-id'];
-    if (headerValue) {
-      const existingId = Array.isArray(headerValue)
-        ? headerValue[0]
-        : headerValue;
-      if (existingId) return existingId;
-    }
-
-    const id = randomUUID();
-    res.setHeader('X-Request-Id', id);
-    return id;
-  };
-}
+import { createRequestIdGenerator } from '@common/utils/request-id';
 
 function createLoggerTransport(isProdLike: boolean) {
   if (!isProdLike) {
@@ -313,6 +289,7 @@ function createPinoLoggerConfig(configService: ConfigService) {
     CurrencyModule,
     UserModule,
     AccountDeletionModule,
+    AppVersionModule,
     // Only include DebugModule in non-production-like environments
     ...(!isProductionLike(process.env.NODE_ENV) ? [DebugModule] : []),
     FiltersModule,
@@ -345,6 +322,7 @@ export class AppModule implements NestModule {
         { path: 'health', method: RequestMethod.GET },
         { path: '/', method: RequestMethod.GET },
         { path: 'api/v1/maintenance/status', method: RequestMethod.GET },
+        { path: 'api/v1/app/version', method: RequestMethod.GET },
       )
       .forRoutes('*');
     consumer.apply(ResponseLoggerMiddleware).forRoutes('*');

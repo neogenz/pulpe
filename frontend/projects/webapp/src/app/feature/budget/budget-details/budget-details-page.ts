@@ -25,6 +25,7 @@ import { formatDate } from 'date-fns';
 import { frCH } from 'date-fns/locale';
 import { BaseLoading } from '@ui/loading';
 import { BudgetFinancialOverview } from '@ui/budget-financial-overview/budget-financial-overview';
+import { BudgetRolloverInfo } from '@ui/budget-rollover-info/budget-rollover-info';
 import { BudgetDetailsStore } from './store/budget-details-store';
 import { BudgetItemsContainer } from './components/budget-items-container';
 import { BudgetDetailsDialogService } from './budget-details-dialog.service';
@@ -42,6 +43,7 @@ import { CURRENCY_CONFIG } from '@core/currency';
     TranslocoPipe,
     BudgetItemsContainer,
     BudgetFinancialOverview,
+    BudgetRolloverInfo,
     BaseLoading,
   ],
   providers: [BudgetDetailsStore, BudgetDetailsDialogService],
