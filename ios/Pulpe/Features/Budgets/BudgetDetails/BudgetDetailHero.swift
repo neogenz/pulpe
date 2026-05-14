@@ -15,7 +15,6 @@ struct BudgetDetailHero: View {
     let metrics: BudgetFormulas.Metrics
     var timeElapsedPercentage: Double = 0
     var onTapProgress: (() -> Void)?
-    var onTapChart: (() -> Void)?
     var rolloverAmount: Decimal?
     /// Localized month name of the source budget (e.g. "mars"). Drives the rollover pill label.
     var previousBudgetMonth: String?
@@ -44,7 +43,16 @@ struct BudgetDetailHero: View {
     }
 
     private var formattedBalance: String {
-        abs(metrics.remaining).asAmount(for: userSettingsStore.currency)
+        let amount = abs(metrics.remaining).asAmount(for: userSettingsStore.currency)
+        let sign: String
+        if metrics.remaining > 0 {
+            sign = "+"
+        } else if metrics.isDeficit {
+            sign = "-"
+        } else {
+            sign = ""
+        }
+        return "\(sign)\(amount)"
     }
 
     private var usagePercentageText: String {
@@ -104,9 +112,6 @@ struct BudgetDetailHero: View {
         .ifLet(onRolloverTap) { view, action in
             view.accessibilityAction(named: "Voir le budget précédent", action)
         }
-        .ifLet(onTapChart) { view, action in
-            view.accessibilityAction(named: "Suivi du budget", action)
-        }
     }
 
     // MARK: - Card Content
@@ -144,29 +149,6 @@ struct BudgetDetailHero: View {
         .padding(.top, DesignTokens.Spacing.lg)
         .padding(.bottom, DesignTokens.Spacing.sm)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .overlay(alignment: .topTrailing) {
-            if let onTapChart {
-                chartButton(action: onTapChart)
-                    .padding(.trailing, DesignTokens.Spacing.lg)
-                    .padding(.top, DesignTokens.Spacing.sm)
-            }
-        }
-    }
-
-    // MARK: - Chart Button
-
-    private func chartButton(action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Image(systemName: "chart.bar.fill")
-                .font(PulpeTypography.metricLabel)
-                .foregroundStyle(Color.textSecondary)
-                .frame(
-                    width: DesignTokens.TapTarget.minimum,
-                    height: DesignTokens.TapTarget.minimum
-                )
-        }
-        .iconButtonStyle()
-        .accessibilityLabel("Suivi du budget")
     }
 
     // MARK: - Progress + Inline Percent
