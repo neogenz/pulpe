@@ -62,3 +62,20 @@ After running `pnpm changeset version`:
 - `.changeset/<name>.md` — consumed (deleted)
 
 All must be staged in the release commit, alongside the manually-bumped root `package.json`.
+
+## Sync Railway `LATEST_WEB_VERSION` (force-update gate)
+
+After bumping the product version, update `LATEST_WEB_VERSION` on Railway in **both** `preview` and `production` environments to the new value. The force-update endpoint (`GET /api/v1/app/version`) serves this value to webapp clients; if it drifts, the soft-update prompt (follow-up) will lie.
+
+Use the Railway MCP `set-variables` tool — one call per environment:
+
+```
+mcp__Railway__set-variables
+  workspacePath: <repo root>
+  environment: preview     # then repeat with production
+  service: backend
+  skipDeploys: true
+  variables: ["LATEST_WEB_VERSION=<new root version>"]
+```
+
+> **Never** touch `MIN_WEB_VERSION` from this skill. That value is a deliberate kill switch — only bumped when a release contains a breaking change or critical fix that must force users off old binaries. Always require explicit user confirmation before changing it.
