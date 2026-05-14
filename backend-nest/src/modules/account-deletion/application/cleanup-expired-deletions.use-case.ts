@@ -4,10 +4,15 @@ import {
   ACCOUNT_DELETION_REPOSITORY,
   type AccountDeletionRepositoryPort,
 } from '../domain/ports/account-deletion-repository.port';
+import {
+  POSTHOG_PERSON_DELETION_PORT,
+  type PostHogPersonDeletionPort,
+} from '../domain/ports/posthog-person-deletion.port';
 import type { ScheduledDeletionUser } from '../domain/account-deletion.entity';
 
 const SUMMARY_OP = 'accountDeletion.cleanup.summary';
 const FATAL_OP = 'accountDeletion.cleanup.fatal';
+const POSTHOG_FAILED_OP = 'accountDeletion.posthog.failed';
 
 interface CleanupSummary {
   op: typeof SUMMARY_OP;
@@ -35,6 +40,8 @@ export class CleanupExpiredDeletionsUseCase {
   constructor(
     @Inject(ACCOUNT_DELETION_REPOSITORY)
     private readonly repo: AccountDeletionRepositoryPort,
+    @Inject(POSTHOG_PERSON_DELETION_PORT)
+    private readonly posthog: PostHogPersonDeletionPort,
     @InjectInfoLogger(CleanupExpiredDeletionsUseCase.name)
     private readonly logger: InfoLogger,
   ) {}
@@ -75,10 +82,6 @@ export class CleanupExpiredDeletionsUseCase {
       users.map(async (user) => {
         try {
           await this.repo.deleteUser(user.id);
-          this.logger.info(
-            { userId: user.id },
-            'Scheduled account deleted successfully',
-          );
         } catch (error) {
           this.logger.warn(
             { userId: user.id, err: error },
@@ -86,7 +89,39 @@ export class CleanupExpiredDeletionsUseCase {
           );
           throw error;
         }
+
+        try {
+          await this.#deletePostHogPerson(user.id);
+          this.logger.info(
+            { userId: user.id },
+            'Scheduled account deleted successfully',
+          );
+        } catch (error) {
+          this.logger.warn(
+            { userId: user.id, err: error },
+            'Post-deletion side-effect failed unexpectedly',
+          );
+        }
       }),
+    );
+  }
+
+  async #deletePostHogPerson(userId: string): Promise<void> {
+    const result = await this.posthog.deletePerson(userId);
+
+    if (result.ok || result.reason === 'disabled') {
+      return;
+    }
+
+    this.logger.warn(
+      {
+        op: POSTHOG_FAILED_OP,
+        severity: 'critical',
+        userId,
+        reason: result.reason,
+        statusCode: result.statusCode,
+      },
+      'PostHog person deletion failed — RGPD Art.17 manual follow-up may be required',
     );
   }
 

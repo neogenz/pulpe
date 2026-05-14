@@ -127,4 +127,86 @@ describe('Environment Validation', () => {
       expect(() => validateConfig(config)).toThrow(/TURNSTILE_SECRET_KEY/);
     });
   });
+
+  describe('PostHog person deletion vars (optional)', () => {
+    const baseConfig = {
+      NODE_ENV: 'production',
+      SUPABASE_URL: 'https://example.supabase.co',
+      SUPABASE_ANON_KEY: 'prod-anon-key',
+      SUPABASE_SERVICE_ROLE_KEY: 'service-role-key',
+      TURNSTILE_SECRET_KEY: 'prod-turnstile-key',
+      ENCRYPTION_MASTER_KEY:
+        '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
+    };
+
+    it('should accept all three PostHog vars when set', () => {
+      const config = {
+        ...baseConfig,
+        POSTHOG_API_KEY: 'phx_xxx',
+        POSTHOG_PROJECT_ID: '12345',
+        POSTHOG_HOST: 'https://eu.posthog.com',
+      };
+
+      const result = validateConfig(config);
+
+      expect(result.POSTHOG_API_KEY).toBe('phx_xxx');
+      expect(result.POSTHOG_PROJECT_ID).toBe('12345');
+      expect(result.POSTHOG_HOST).toBe('https://eu.posthog.com');
+    });
+
+    it('should parse successfully when all three PostHog vars are absent', () => {
+      const result = validateConfig(baseConfig);
+
+      expect(result.POSTHOG_API_KEY).toBeUndefined();
+      expect(result.POSTHOG_PROJECT_ID).toBeUndefined();
+      expect(result.POSTHOG_HOST).toBeUndefined();
+    });
+
+    it('should reject POSTHOG_HOST when not a valid URL', () => {
+      const config = {
+        ...baseConfig,
+        POSTHOG_HOST: 'not-a-url',
+      };
+
+      expect(() => validateConfig(config)).toThrow(/POSTHOG_HOST/);
+    });
+
+    it('should reject POSTHOG_HOST with http:// scheme', () => {
+      const config = {
+        ...baseConfig,
+        POSTHOG_HOST: 'http://eu.posthog.com',
+      };
+
+      expect(() => validateConfig(config)).toThrow(/POSTHOG_HOST/);
+    });
+
+    it('should reject POSTHOG_HOST with trailing slash', () => {
+      const config = {
+        ...baseConfig,
+        POSTHOG_HOST: 'https://eu.posthog.com/',
+      };
+
+      expect(() => validateConfig(config)).toThrow(/POSTHOG_HOST/);
+    });
+
+    it('should reject POSTHOG_HOST with path', () => {
+      const config = {
+        ...baseConfig,
+        POSTHOG_HOST: 'https://eu.posthog.com/api',
+      };
+
+      expect(() => validateConfig(config)).toThrow(/POSTHOG_HOST/);
+    });
+
+    it('should reject POSTHOG_PROJECT_ID when not numeric', () => {
+      const config = {
+        ...baseConfig,
+        POSTHOG_API_KEY: 'phx_xxx',
+        POSTHOG_PROJECT_ID: 'abc',
+        POSTHOG_HOST: 'https://eu.posthog.com',
+      };
+
+      expect(() => validateConfig(config)).toThrow(/POSTHOG_PROJECT_ID/);
+    });
+  });
 });

@@ -30,6 +30,25 @@ const envSchema = z.object({
   MAINTENANCE_MODE: z.string().optional(),
   IP_BLACKLIST: z.string().optional(),
 
+  // PostHog person deletion (RGPD Art. 17). All three are optional —
+  // missing config means the integration is disabled and the adapter
+  // silently skips the bulk-delete call. Requires a Personal API Key
+  // with `person:write` scope (NOT a project key).
+  POSTHOG_API_KEY: z.string().optional(),
+  POSTHOG_PROJECT_ID: z
+    .string()
+    .regex(/^\d+$/, {
+      error: 'POSTHOG_PROJECT_ID must be a positive integer',
+    })
+    .optional(),
+  POSTHOG_HOST: z
+    .string()
+    .regex(/^https:\/\/[^/]+$/, {
+      error:
+        'POSTHOG_HOST must be HTTPS with no trailing slash or path (e.g. https://eu.posthog.com)',
+    })
+    .optional(),
+
   // Force-update gate (consumed by GET /api/v1/app/version)
   MIN_IOS_VERSION: z
     .string()
@@ -65,6 +84,9 @@ export function validateEnvironment(configService: ConfigService): Environment {
     DEBUG_HTTP_FULL: configService.get('DEBUG_HTTP_FULL'),
     MAINTENANCE_MODE: configService.get('MAINTENANCE_MODE'),
     IP_BLACKLIST: configService.get('IP_BLACKLIST'),
+    POSTHOG_API_KEY: configService.get('POSTHOG_API_KEY'),
+    POSTHOG_PROJECT_ID: configService.get('POSTHOG_PROJECT_ID'),
+    POSTHOG_HOST: configService.get('POSTHOG_HOST'),
   };
 
   const result = envSchema.safeParse(config);

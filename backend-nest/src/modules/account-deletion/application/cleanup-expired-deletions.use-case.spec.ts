@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, mock } from 'bun:test';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { ACCOUNT_DELETION_REPOSITORY } from '../domain/ports/account-deletion-repository.port';
+import { POSTHOG_PERSON_DELETION_PORT } from '../domain/ports/posthog-person-deletion.port';
 import { CleanupExpiredDeletionsUseCase } from './cleanup-expired-deletions.use-case';
 
 describe('CleanupExpiredDeletionsUseCase', () => {
@@ -8,6 +9,9 @@ describe('CleanupExpiredDeletionsUseCase', () => {
   let mockRepo: {
     listExpiredScheduledUsers: ReturnType<typeof mock>;
     deleteUser: ReturnType<typeof mock>;
+  };
+  let mockPosthog: {
+    deletePerson: ReturnType<typeof mock>;
   };
   let mockLogger: {
     info: ReturnType<typeof mock>;
@@ -19,12 +23,16 @@ describe('CleanupExpiredDeletionsUseCase', () => {
       listExpiredScheduledUsers: mock(async () => []),
       deleteUser: mock(async () => {}),
     };
+    mockPosthog = {
+      deletePerson: mock(async () => ({ ok: true, statusCode: 202 })),
+    };
     mockLogger = { info: mock(() => {}), warn: mock(() => {}) };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         CleanupExpiredDeletionsUseCase,
         { provide: ACCOUNT_DELETION_REPOSITORY, useValue: mockRepo },
+        { provide: POSTHOG_PERSON_DELETION_PORT, useValue: mockPosthog },
         {
           provide: `INFO_LOGGER:${CleanupExpiredDeletionsUseCase.name}`,
           useValue: mockLogger,
@@ -150,6 +158,113 @@ describe('CleanupExpiredDeletionsUseCase', () => {
       const [payload] = failureWarnCall!;
       expect(payload.severity).toBe('critical');
       expect(payload.err).toBeInstanceOf(Error);
+    });
+
+    it('calls PostHog deletePerson once per successfully deleted user', async () => {
+      mockRepo.listExpiredScheduledUsers = mock(async () => [
+        { id: 'user-1', email: 'a@example.com' },
+        { id: 'user-2', email: 'b@example.com' },
+      ]);
+
+      await useCase.execute();
+
+      expect(mockPosthog.deletePerson).toHaveBeenCalledTimes(2);
+      expect(mockPosthog.deletePerson).toHaveBeenCalledWith('user-1');
+      expect(mockPosthog.deletePerson).toHaveBeenCalledWith('user-2');
+    });
+
+    it('emits a critical warn but does not roll back Supabase delete when PostHog fails', async () => {
+      mockRepo.listExpiredScheduledUsers = mock(async () => [
+        { id: 'user-1', email: 'a@example.com' },
+      ]);
+      mockPosthog.deletePerson = mock(async () => ({
+        ok: false,
+        reason: 'http_error' as const,
+        statusCode: 500,
+      }));
+
+      await useCase.execute();
+
+      expect(mockRepo.deleteUser).toHaveBeenCalledWith('user-1');
+      const posthogFailedWarn = mockLogger.warn.mock.calls.find(
+        ([payload]) =>
+          typeof payload === 'object' &&
+          payload !== null &&
+          'op' in payload &&
+          payload.op === 'accountDeletion.posthog.failed',
+      );
+      expect(posthogFailedWarn).toBeDefined();
+      const [payload] = posthogFailedWarn!;
+      expect(payload.severity).toBe('critical');
+      expect(payload.userId).toBe('user-1');
+      expect(payload.reason).toBe('http_error');
+      expect(payload.statusCode).toBe(500);
+
+      const summaryInfoCall = mockLogger.info.mock.calls.find(
+        ([p]) =>
+          typeof p === 'object' &&
+          p !== null &&
+          'op' in p &&
+          p.op === 'accountDeletion.cleanup.summary',
+      );
+      expect(summaryInfoCall).toBeDefined();
+      const [summary] = summaryInfoCall!;
+      expect(summary.deletedCount).toBe(1);
+      expect(summary.failedCount).toBe(0);
+    });
+
+    it('silently skips PostHog warn when integration is disabled', async () => {
+      mockRepo.listExpiredScheduledUsers = mock(async () => [
+        { id: 'user-1', email: 'a@example.com' },
+      ]);
+      mockPosthog.deletePerson = mock(async () => ({
+        ok: false,
+        reason: 'disabled' as const,
+      }));
+
+      await useCase.execute();
+
+      expect(mockRepo.deleteUser).toHaveBeenCalledWith('user-1');
+      const posthogFailedWarn = mockLogger.warn.mock.calls.find(
+        ([payload]) =>
+          typeof payload === 'object' &&
+          payload !== null &&
+          'op' in payload &&
+          payload.op === 'accountDeletion.posthog.failed',
+      );
+      expect(posthogFailedWarn).toBeUndefined();
+    });
+
+    it('should count Supabase deletion as fulfilled even when PostHog port unexpectedly throws', async () => {
+      mockRepo.listExpiredScheduledUsers = mock(async () => [
+        { id: 'user-1', email: 'a@example.com' },
+      ]);
+      mockPosthog.deletePerson = mock(async () => {
+        throw new Error('boom');
+      });
+
+      await useCase.execute();
+
+      expect(mockRepo.deleteUser).toHaveBeenCalledWith('user-1');
+
+      const summaryInfoCall = mockLogger.info.mock.calls.find(
+        ([payload]) =>
+          typeof payload === 'object' &&
+          payload !== null &&
+          'op' in payload &&
+          payload.op === 'accountDeletion.cleanup.summary',
+      );
+      expect(summaryInfoCall).toBeDefined();
+      const [summary] = summaryInfoCall!;
+      expect(summary.deletedCount).toBe(1);
+      expect(summary.failedCount).toBe(0);
+
+      const sideEffectWarn = mockLogger.warn.mock.calls.find(
+        ([, message]) =>
+          typeof message === 'string' &&
+          message === 'Post-deletion side-effect failed unexpectedly',
+      );
+      expect(sideEffectWarn).toBeDefined();
     });
   });
 });
