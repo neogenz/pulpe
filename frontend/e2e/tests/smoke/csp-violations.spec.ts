@@ -70,8 +70,14 @@ function readCspFromVercel(): string {
 
 function withLocalOrigins(csp: string): string {
   const extra = LOCAL_BACKEND_ORIGINS.join(' ');
+  const pattern = /(connect-src [^;]+)/;
+  if (!pattern.test(csp)) {
+    throw new Error(
+      'connect-src directive not found in vercel.json CSP — cannot inject local backend origins for e2e.',
+    );
+  }
   return csp.replace(
-    /(connect-src [^;]+)/,
+    pattern,
     (_, directive: string) => `${directive} ${extra}`,
   );
 }

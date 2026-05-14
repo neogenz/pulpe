@@ -35,6 +35,7 @@ const FORBIDDEN_SCRIPT_KEYWORDS = ['unsafe-inline', 'unsafe-eval'] as const;
 const SCRIPT_DIRECTIVES_TO_GUARD = [
   'script-src',
   'script-src-elem',
+  'script-src-attr',
 ] as const;
 
 function readCspDirectives(): {
