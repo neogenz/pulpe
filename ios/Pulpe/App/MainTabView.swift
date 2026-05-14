@@ -103,16 +103,14 @@ struct MainTabView: View {
 
     @ViewBuilder
     private func floatingTabBarOverlay(selectedTab: Binding<Tab>, barHidden: Bool) -> some View {
-        ZStack(alignment: .bottom) {
-            floatingTabBar(selectedTab: selectedTab)
-                .padding(.horizontal, DesignTokens.Spacing.lg)
-                .padding(.bottom, DesignTokens.Spacing.xs)
-                .opacity(barHidden ? 0 : 1)
-                .frame(height: barHidden ? 0 : nil)
-                .allowsHitTesting(!barHidden)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
-        .ignoresSafeArea(.keyboard, edges: .bottom)
+        floatingTabBar(selectedTab: selectedTab)
+            .padding(.horizontal, DesignTokens.Spacing.lg)
+            .padding(.bottom, DesignTokens.Spacing.xs)
+            .opacity(barHidden ? 0 : 1)
+            .frame(height: barHidden ? 0 : nil)
+            .allowsHitTesting(!barHidden)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+            .ignoresSafeArea(.keyboard, edges: .bottom)
     }
 
     @ViewBuilder

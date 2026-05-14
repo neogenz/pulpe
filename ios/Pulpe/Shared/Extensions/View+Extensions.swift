@@ -368,18 +368,12 @@ private struct PulpeStickyBottomCTAModifier<CTA: View>: ViewModifier {
     let avoidsKeyboard: Bool
     let cta: () -> CTA
 
-    @ViewBuilder
     func body(content: Content) -> some View {
-        if avoidsKeyboard {
-            content.safeAreaInset(edge: .bottom, spacing: 0) {
+        content
+            .safeAreaInset(edge: .bottom, spacing: 0) {
                 stickyBottomCTAChrome
             }
-        } else {
-            content.safeAreaInset(edge: .bottom, spacing: 0) {
-                stickyBottomCTAChrome
-            }
-            .ignoresSafeArea(.keyboard, edges: .bottom)
-        }
+            .ignoresSafeArea(avoidsKeyboard ? [] : .keyboard, edges: .bottom)
     }
 
     private var stickyBottomCTAChrome: some View {
