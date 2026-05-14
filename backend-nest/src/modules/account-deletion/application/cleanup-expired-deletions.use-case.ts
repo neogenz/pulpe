@@ -90,12 +90,13 @@ export class CleanupExpiredDeletionsUseCase {
           throw error;
         }
 
+        this.logger.info(
+          { userId: user.id },
+          'Scheduled account deleted successfully',
+        );
+
         try {
           await this.#deletePostHogPerson(user.id);
-          this.logger.info(
-            { userId: user.id },
-            'Scheduled account deleted successfully',
-          );
         } catch (error) {
           this.logger.warn(
             { userId: user.id, err: error },

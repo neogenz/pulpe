@@ -30,10 +30,9 @@ const envSchema = z.object({
   MAINTENANCE_MODE: z.string().optional(),
   IP_BLACKLIST: z.string().optional(),
 
-  // PostHog person deletion (RGPD Art. 17). All three are optional —
-  // missing config means the integration is disabled and the adapter
-  // silently skips the bulk-delete call. Requires a Personal API Key
-  // with `person:write` scope (NOT a project key).
+  // PostHog person deletion (RGPD Art. 17). Requires a Personal API Key
+  // with `person:write` scope — NOT a project key (PostHog rejects project
+  // keys for person deletion).
   POSTHOG_API_KEY: z.string().optional(),
   POSTHOG_PROJECT_ID: z
     .string()

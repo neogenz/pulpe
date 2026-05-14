@@ -2,11 +2,7 @@ export const POSTHOG_PERSON_DELETION_PORT = Symbol(
   'POSTHOG_PERSON_DELETION_PORT',
 );
 
-export type PostHogDeletionReason =
-  | 'disabled'
-  | 'not_found'
-  | 'http_error'
-  | 'timeout';
+export type PostHogDeletionReason = 'disabled' | 'http_error' | 'timeout';
 
 export type PostHogDeletionResult =
   | { ok: true; statusCode: number }

@@ -4,6 +4,15 @@ import { ACCOUNT_DELETION_REPOSITORY } from '../domain/ports/account-deletion-re
 import { POSTHOG_PERSON_DELETION_PORT } from '../domain/ports/posthog-person-deletion.port';
 import { CleanupExpiredDeletionsUseCase } from './cleanup-expired-deletions.use-case';
 
+const findLogCall = (calls: unknown[][], op: string): unknown[] | undefined =>
+  calls.find(
+    ([payload]) =>
+      typeof payload === 'object' &&
+      payload !== null &&
+      'op' in payload &&
+      (payload as { op: unknown }).op === op,
+  );
+
 describe('CleanupExpiredDeletionsUseCase', () => {
   let useCase: CleanupExpiredDeletionsUseCase;
   let mockRepo: {
@@ -94,19 +103,22 @@ describe('CleanupExpiredDeletionsUseCase', () => {
 
       await useCase.execute();
 
-      const summaryWarnCall = mockLogger.warn.mock.calls.find(
-        ([payload]) =>
-          typeof payload === 'object' &&
-          payload !== null &&
-          'op' in payload &&
-          payload.op === 'accountDeletion.cleanup.summary',
+      const summaryWarnCall = findLogCall(
+        mockLogger.warn.mock.calls,
+        'accountDeletion.cleanup.summary',
       );
       expect(summaryWarnCall).toBeDefined();
       const [payload] = summaryWarnCall!;
-      expect(payload.severity).toBe('critical');
-      expect(payload.failedCount).toBe(1);
-      expect(payload.deletedCount).toBe(1);
-      expect(payload.scheduledCount).toBe(2);
+      const p = payload as {
+        severity: string;
+        failedCount: number;
+        deletedCount: number;
+        scheduledCount: number;
+      };
+      expect(p.severity).toBe('critical');
+      expect(p.failedCount).toBe(1);
+      expect(p.deletedCount).toBe(1);
+      expect(p.scheduledCount).toBe(2);
     });
 
     it('logs summary with severity=normal at info level when all deletions succeed', async () => {
@@ -117,19 +129,22 @@ describe('CleanupExpiredDeletionsUseCase', () => {
 
       await useCase.execute();
 
-      const summaryInfoCall = mockLogger.info.mock.calls.find(
-        ([payload]) =>
-          typeof payload === 'object' &&
-          payload !== null &&
-          'op' in payload &&
-          payload.op === 'accountDeletion.cleanup.summary',
+      const summaryInfoCall = findLogCall(
+        mockLogger.info.mock.calls,
+        'accountDeletion.cleanup.summary',
       );
       expect(summaryInfoCall).toBeDefined();
       const [payload] = summaryInfoCall!;
-      expect(payload.severity).toBe('normal');
-      expect(payload.failedCount).toBe(0);
-      expect(payload.deletedCount).toBe(2);
-      expect(payload.scheduledCount).toBe(2);
+      const p = payload as {
+        severity: string;
+        failedCount: number;
+        deletedCount: number;
+        scheduledCount: number;
+      };
+      expect(p.severity).toBe('normal');
+      expect(p.failedCount).toBe(0);
+      expect(p.deletedCount).toBe(2);
+      expect(p.scheduledCount).toBe(2);
     });
 
     it('does not throw when listExpiredScheduledUsers fails (cron resilience)', async () => {
@@ -147,17 +162,15 @@ describe('CleanupExpiredDeletionsUseCase', () => {
 
       await useCase.execute();
 
-      const failureWarnCall = mockLogger.warn.mock.calls.find(
-        ([payload]) =>
-          typeof payload === 'object' &&
-          payload !== null &&
-          'op' in payload &&
-          payload.op === 'accountDeletion.cleanup.fatal',
+      const failureWarnCall = findLogCall(
+        mockLogger.warn.mock.calls,
+        'accountDeletion.cleanup.fatal',
       );
       expect(failureWarnCall).toBeDefined();
       const [payload] = failureWarnCall!;
-      expect(payload.severity).toBe('critical');
-      expect(payload.err).toBeInstanceOf(Error);
+      const p = payload as { severity: string; err: unknown };
+      expect(p.severity).toBe('critical');
+      expect(p.err).toBeInstanceOf(Error);
     });
 
     it('calls PostHog deletePerson once per successfully deleted user', async () => {
@@ -186,31 +199,32 @@ describe('CleanupExpiredDeletionsUseCase', () => {
       await useCase.execute();
 
       expect(mockRepo.deleteUser).toHaveBeenCalledWith('user-1');
-      const posthogFailedWarn = mockLogger.warn.mock.calls.find(
-        ([payload]) =>
-          typeof payload === 'object' &&
-          payload !== null &&
-          'op' in payload &&
-          payload.op === 'accountDeletion.posthog.failed',
+      const posthogFailedWarn = findLogCall(
+        mockLogger.warn.mock.calls,
+        'accountDeletion.posthog.failed',
       );
       expect(posthogFailedWarn).toBeDefined();
       const [payload] = posthogFailedWarn!;
-      expect(payload.severity).toBe('critical');
-      expect(payload.userId).toBe('user-1');
-      expect(payload.reason).toBe('http_error');
-      expect(payload.statusCode).toBe(500);
+      const p = payload as {
+        severity: string;
+        userId: string;
+        reason: string;
+        statusCode: number;
+      };
+      expect(p.severity).toBe('critical');
+      expect(p.userId).toBe('user-1');
+      expect(p.reason).toBe('http_error');
+      expect(p.statusCode).toBe(500);
 
-      const summaryInfoCall = mockLogger.info.mock.calls.find(
-        ([p]) =>
-          typeof p === 'object' &&
-          p !== null &&
-          'op' in p &&
-          p.op === 'accountDeletion.cleanup.summary',
+      const summaryInfoCall = findLogCall(
+        mockLogger.info.mock.calls,
+        'accountDeletion.cleanup.summary',
       );
       expect(summaryInfoCall).toBeDefined();
       const [summary] = summaryInfoCall!;
-      expect(summary.deletedCount).toBe(1);
-      expect(summary.failedCount).toBe(0);
+      const s = summary as { deletedCount: number; failedCount: number };
+      expect(s.deletedCount).toBe(1);
+      expect(s.failedCount).toBe(0);
     });
 
     it('silently skips PostHog warn when integration is disabled', async () => {
@@ -225,17 +239,14 @@ describe('CleanupExpiredDeletionsUseCase', () => {
       await useCase.execute();
 
       expect(mockRepo.deleteUser).toHaveBeenCalledWith('user-1');
-      const posthogFailedWarn = mockLogger.warn.mock.calls.find(
-        ([payload]) =>
-          typeof payload === 'object' &&
-          payload !== null &&
-          'op' in payload &&
-          payload.op === 'accountDeletion.posthog.failed',
+      const posthogFailedWarn = findLogCall(
+        mockLogger.warn.mock.calls,
+        'accountDeletion.posthog.failed',
       );
       expect(posthogFailedWarn).toBeUndefined();
     });
 
-    it('should count Supabase deletion as fulfilled even when PostHog port unexpectedly throws', async () => {
+    it('counts Supabase deletion as fulfilled even when PostHog port unexpectedly throws', async () => {
       mockRepo.listExpiredScheduledUsers = mock(async () => [
         { id: 'user-1', email: 'a@example.com' },
       ]);
@@ -247,17 +258,15 @@ describe('CleanupExpiredDeletionsUseCase', () => {
 
       expect(mockRepo.deleteUser).toHaveBeenCalledWith('user-1');
 
-      const summaryInfoCall = mockLogger.info.mock.calls.find(
-        ([payload]) =>
-          typeof payload === 'object' &&
-          payload !== null &&
-          'op' in payload &&
-          payload.op === 'accountDeletion.cleanup.summary',
+      const summaryInfoCall = findLogCall(
+        mockLogger.info.mock.calls,
+        'accountDeletion.cleanup.summary',
       );
       expect(summaryInfoCall).toBeDefined();
       const [summary] = summaryInfoCall!;
-      expect(summary.deletedCount).toBe(1);
-      expect(summary.failedCount).toBe(0);
+      const s = summary as { deletedCount: number; failedCount: number };
+      expect(s.deletedCount).toBe(1);
+      expect(s.failedCount).toBe(0);
 
       const sideEffectWarn = mockLogger.warn.mock.calls.find(
         ([, message]) =>

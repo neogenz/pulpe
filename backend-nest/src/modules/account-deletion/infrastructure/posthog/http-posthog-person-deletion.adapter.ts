@@ -24,37 +24,38 @@ const POSTHOG_TIMEOUT_MS = 5000;
  */
 @Injectable()
 export class HttpPostHogPersonDeletionAdapter implements PostHogPersonDeletionPort {
+  readonly #config: { apiKey: string; projectId: string; host: string } | null;
+
   constructor(
     @InjectInfoLogger(HttpPostHogPersonDeletionAdapter.name)
     private readonly logger: InfoLogger,
-    private readonly configService: ConfigService,
-  ) {}
+    configService: ConfigService,
+  ) {
+    const apiKey = configService.get<string>('POSTHOG_API_KEY');
+    const projectId = configService.get<string>('POSTHOG_PROJECT_ID');
+    const host = configService.get<string>('POSTHOG_HOST');
+    this.#config =
+      apiKey && projectId && host ? { apiKey, projectId, host } : null;
+  }
 
   async deletePerson(distinctId: string): Promise<PostHogDeletionResult> {
-    const apiKey = this.configService.get<string>('POSTHOG_API_KEY');
-    const projectId = this.configService.get<string>('POSTHOG_PROJECT_ID');
-    const host = this.configService.get<string>('POSTHOG_HOST');
-
-    if (!apiKey || !projectId || !host) {
+    if (!this.#config) {
       return { ok: false, reason: 'disabled' };
     }
-
-    return this.#callPostHog(distinctId, apiKey, projectId, host);
+    return this.#callPostHog(distinctId, this.#config);
   }
 
   async #callPostHog(
     distinctId: string,
-    apiKey: string,
-    projectId: string,
-    host: string,
+    config: { apiKey: string; projectId: string; host: string },
   ): Promise<PostHogDeletionResult> {
-    const url = `${host}/api/projects/${projectId}/persons/bulk_delete/`;
+    const url = `${config.host}/api/projects/${config.projectId}/persons/bulk_delete/`;
 
     try {
       const response = await fetch(url, {
         method: 'POST',
         headers: {
-          Authorization: `Bearer ${apiKey}`,
+          Authorization: `Bearer ${config.apiKey}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
