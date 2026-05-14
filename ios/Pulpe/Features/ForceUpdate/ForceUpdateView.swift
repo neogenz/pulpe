@@ -39,7 +39,6 @@ struct ForceUpdateView: View {
         .padding(DesignTokens.Spacing.xl)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .pulpeBackground()
-        .interactiveDismissDisabled()
     }
 
     private func openStore() {
