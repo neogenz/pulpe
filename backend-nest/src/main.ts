@@ -243,6 +243,11 @@ async function bootstrap() {
     TURNSTILE_SECRET_KEY: configService.get('TURNSTILE_SECRET_KEY')!,
     ENCRYPTION_MASTER_KEY: configService.get('ENCRYPTION_MASTER_KEY')!,
     DEBUG_HTTP_FULL: configService.get('DEBUG_HTTP_FULL'),
+    MIN_IOS_VERSION: configService.get('MIN_IOS_VERSION')!,
+    LATEST_IOS_VERSION: configService.get('LATEST_IOS_VERSION')!,
+    IOS_STORE_URL: configService.get('IOS_STORE_URL')!,
+    MIN_WEB_VERSION: configService.get('MIN_WEB_VERSION')!,
+    LATEST_WEB_VERSION: configService.get('LATEST_WEB_VERSION')!,
   };
 
   app.useLogger(app.get(Logger));

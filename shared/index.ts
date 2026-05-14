@@ -128,6 +128,9 @@ export {
   encryptionSetupRecoveryResponseSchema,
   encryptionRecoverResponseSchema,
   encryptionChangePinResponseSchema,
+
+  // App version (force update gate)
+  appVersionResponseSchema,
 } from './schemas.js';
 
 // Export error codes
@@ -298,4 +301,7 @@ export type {
   EncryptionSetupRecoveryResponse,
   EncryptionRecoverResponse,
   EncryptionChangePinResponse,
+
+  // App version
+  AppVersionResponse,
 } from './schemas.js';

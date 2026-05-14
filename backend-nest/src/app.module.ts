@@ -28,6 +28,7 @@ import { TransactionModule } from '@modules/transaction/transaction.module';
 import { CurrencyModule } from '@modules/currency/currency.module';
 import { UserModule } from '@modules/user/user.module';
 import { AccountDeletionModule } from '@modules/account-deletion/account-deletion.module';
+import { AppVersionModule } from '@modules/app-version/app-version.module';
 
 // Filters
 import { FiltersModule } from '@common/filters/filters.module';
@@ -288,6 +289,7 @@ function createPinoLoggerConfig(configService: ConfigService) {
     CurrencyModule,
     UserModule,
     AccountDeletionModule,
+    AppVersionModule,
     // Only include DebugModule in non-production-like environments
     ...(!isProductionLike(process.env.NODE_ENV) ? [DebugModule] : []),
     FiltersModule,
@@ -320,6 +322,7 @@ export class AppModule implements NestModule {
         { path: 'health', method: RequestMethod.GET },
         { path: '/', method: RequestMethod.GET },
         { path: 'api/v1/maintenance/status', method: RequestMethod.GET },
+        { path: 'api/v1/app/version', method: RequestMethod.GET },
       )
       .forRoutes('*');
     consumer.apply(ResponseLoggerMiddleware).forRoutes('*');

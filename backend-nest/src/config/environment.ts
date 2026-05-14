@@ -29,6 +29,25 @@ const envSchema = z.object({
   DEBUG_HTTP_FULL: z.string().optional(),
   MAINTENANCE_MODE: z.string().optional(),
   IP_BLACKLIST: z.string().optional(),
+
+  // Force-update gate (consumed by GET /api/v1/app/version)
+  MIN_IOS_VERSION: z
+    .string()
+    .regex(/^\d+\.\d+\.\d+$/)
+    .default('1.0.0'),
+  LATEST_IOS_VERSION: z
+    .string()
+    .regex(/^\d+\.\d+\.\d+$/)
+    .default('1.0.0'),
+  IOS_STORE_URL: z.url().default('https://apps.apple.com/app/id6758464920'),
+  MIN_WEB_VERSION: z
+    .string()
+    .regex(/^\d+\.\d+\.\d+$/)
+    .default('0.0.1'),
+  LATEST_WEB_VERSION: z
+    .string()
+    .regex(/^\d+\.\d+\.\d+$/)
+    .default('0.0.1'),
 });
 
 export type Environment = z.infer<typeof envSchema>;
