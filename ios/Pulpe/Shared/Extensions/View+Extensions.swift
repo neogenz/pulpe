@@ -10,8 +10,6 @@ extension EnvironmentValues {
     /// their content clears `MainTabView`'s custom floating tab bar. Set by
     /// `MainTabView` from the canonical tab bar height and spacing tokens.
     @Entry var tabBarClearance: CGFloat = 0
-
-    @Entry var floatingTabBarVisibilityActions: FloatingTabBarVisibilityActions = .noop
 }
 
 // MARK: - Sensitive Amount Modifier
@@ -356,57 +354,6 @@ private struct ShimmerModifier: ViewModifier {
             .onChange(of: reduceMotion) { _, reduced in
                 if reduced { isAnimating = false }
             }
-    }
-}
-
-// MARK: - Floating Tab Bar Visibility
-
-struct FloatingTabBarHideRequests: Equatable {
-    private var activeRequestIDs: Set<UUID> = []
-
-    var isHidden: Bool {
-        !activeRequestIDs.isEmpty
-    }
-
-    mutating func setHidden(_ hidden: Bool, for requestID: UUID) {
-        if hidden {
-            activeRequestIDs.insert(requestID)
-        } else {
-            activeRequestIDs.remove(requestID)
-        }
-    }
-}
-
-struct FloatingTabBarVisibilityActions {
-    let setHidden: @MainActor (_ requestID: UUID, _ hidden: Bool) -> Void
-
-    static let noop = Self { _, _ in }
-}
-
-private struct HidesFloatingTabBarModifier: ViewModifier {
-    @Environment(\.floatingTabBarVisibilityActions) private var visibilityActions
-    @State private var requestID = UUID()
-    let hidden: Bool
-
-    func body(content: Content) -> some View {
-        content
-            .onAppear {
-                visibilityActions.setHidden(requestID, hidden)
-            }
-            .onChange(of: hidden) { _, newValue in
-                visibilityActions.setHidden(requestID, newValue)
-            }
-            .onDisappear {
-                visibilityActions.setHidden(requestID, false)
-            }
-    }
-}
-
-extension View {
-    /// Hide the floating custom tab bar while this page is on screen. Requests
-    /// are reference-counted so nested push pages can disappear independently.
-    func hidesFloatingTabBar(_ hidden: Bool = true) -> some View {
-        modifier(HidesFloatingTabBarModifier(hidden: hidden))
     }
 }
 

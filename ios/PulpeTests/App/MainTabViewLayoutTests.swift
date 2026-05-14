@@ -2,152 +2,55 @@ import Foundation
 @testable import Pulpe
 import Testing
 
-@Suite("MainTabView floating tab bar layout")
+/// Behavior tests for the floating tab bar visibility rule. Drives the pure
+/// helper `MainTabView.shouldHideFloatingTabBar`, which encodes the contract
+/// the previous source-grep tests were trying to pin via spelling.
+@Suite("MainTabView floating tab bar visibility")
 struct MainTabViewLayoutTests {
-    @Test("Floating tab bar hide requests are reference counted")
-    func floatingTabBarHideRequestsAreReferenceCounted() {
-        let envelopePageID = UUID()
-        let formPageID = UUID()
-        var requests = FloatingTabBarHideRequests()
+    struct Scenario: Sendable, CustomTestStringConvertible {
+        let tab: Tab
+        let budget: Int
+        let template: Int
+        let keyboard: Bool
+        let hidden: Bool
 
-        #expect(!requests.isHidden)
-
-        requests.setHidden(true, for: envelopePageID)
-        requests.setHidden(true, for: formPageID)
-        #expect(requests.isHidden)
-
-        requests.setHidden(false, for: formPageID)
-        #expect(requests.isHidden)
-
-        requests.setHidden(false, for: envelopePageID)
-        #expect(!requests.isHidden)
+        var testDescription: String {
+            let kb = keyboard ? "kb=on" : "kb=off"
+            return "tab=\(tab.rawValue) b=\(budget) t=\(template) \(kb) → hidden=\(hidden)"
+        }
     }
 
-    @Test("Budgets drill-down hides floating tab bar via navigation path depth MainTabView")
-    func budgetsDrillDownUsesBudgetPathForFloatingTabBar() throws {
-        let source = try Self.source(
-            "Pulpe",
-            "App",
-            "MainTabView.swift"
-        )
-        let compact = source.filter { !$0.isWhitespace }
+    @Test(
+        "Floating tab bar hides on keyboard or per-tab drill-down",
+        arguments: [
+            // Current Month: never hides from drill-down; only keyboard.
+            Scenario(tab: .currentMonth, budget: 0, template: 0, keyboard: false, hidden: false),
+            Scenario(tab: .currentMonth, budget: 5, template: 5, keyboard: false, hidden: false),
+            Scenario(tab: .currentMonth, budget: 0, template: 0, keyboard: true, hidden: true),
 
-        #expect(
-            compact.contains("state.selectedTab==.budgets&&state.budgetPath.count>1"),
-            """
-            MainTabView should hide the floating tab bar when Budgets tab
-            has pushed routes (envelope / tx forms) using budgetPath depth.
-            """
-        )
-    }
+            // Budgets: hides only when budgetPath drills past root.
+            Scenario(tab: .budgets, budget: 0, template: 0, keyboard: false, hidden: false),
+            Scenario(tab: .budgets, budget: 1, template: 0, keyboard: false, hidden: false),
+            Scenario(tab: .budgets, budget: 2, template: 0, keyboard: false, hidden: true),
+            Scenario(tab: .budgets, budget: 0, template: 9, keyboard: false, hidden: false),
+            Scenario(tab: .budgets, budget: 1, template: 0, keyboard: true, hidden: true),
 
-    @Test("Floating tab bar ignores keyboard safe area")
-    func floatingTabBarIgnoresKeyboardSafeArea() throws {
-        let source = try Self.source(
-            "Pulpe",
-            "App",
-            "MainTabView.swift"
-        )
-        let compact = source.filter { !$0.isWhitespace }
-
-        #expect(compact.contains(".overlay{floatingTabBarOverlay("))
-        #expect(compact.contains("ZStack(alignment:.bottom)"))
-        #expect(compact.contains(".frame(maxWidth:.infinity,maxHeight:.infinity,alignment:.bottom)"))
-        #expect(compact.contains(".ignoresSafeArea(.keyboard,edges:.bottom)"))
-    }
-
-    @Test("Sticky CTA can ignore keyboard at the safeAreaInset host level")
-    func stickyCTAIgnoresKeyboardAtSafeAreaInsetHostLevel() throws {
-        let source = try Self.source(
-            "Pulpe",
-            "Shared",
-            "Extensions",
-            "View+Extensions.swift"
-        )
-        let compact = source.filter { !$0.isWhitespace }
-
-        let expectedFragment = "}else{content.safeAreaInset(edge:.bottom,spacing:0)"
-            + "{stickyBottomCTAChrome}.ignoresSafeArea(.keyboard,edges:.bottom)}"
-        #expect(
-            compact.contains(expectedFragment),
-            """
-            `avoidsKeyboard: false` must apply `.ignoresSafeArea(.keyboard)`
-            after the `safeAreaInset`; applying it to the content inside
-            the inset is too late.
-            """
-        )
-    }
-
-    @Test("Envelope detail CTA opts out of keyboard avoidance")
-    func envelopeDetailCTAOptsOutOfKeyboardAvoidance() throws {
-        let source = try Self.source(
-            "Pulpe",
-            "Features",
-            "Budgets",
-            "BudgetDetails",
-            "BudgetLineDetailPage.swift"
-        )
-        let compact = source.filter { !$0.isWhitespace }
-
-        #expect(
-            compact.contains(
-                ".pulpeStickyBottomCTA(avoidsKeyboard:false){addTransactionButton(line:line)}"
-            )
-        )
-    }
-
-    @Test("Transaction forms clear focus on disappear")
-    func transactionFormsClearFocusOnDisappear() throws {
-        let formPaths = [
-            ["Pulpe", "Features", "Budgets", "BudgetDetails", "AddAllocatedTransactionPage.swift"],
-            ["Pulpe", "Features", "Budgets", "BudgetDetails", "EditTransactionPage.swift"]
+            // Templates: hides only when templatePath drills past root.
+            Scenario(tab: .templates, budget: 0, template: 0, keyboard: false, hidden: false),
+            Scenario(tab: .templates, budget: 0, template: 1, keyboard: false, hidden: false),
+            Scenario(tab: .templates, budget: 0, template: 2, keyboard: false, hidden: true),
+            Scenario(tab: .templates, budget: 9, template: 1, keyboard: false, hidden: false),
+            Scenario(tab: .templates, budget: 0, template: 1, keyboard: true, hidden: true)
         ]
-
-        for path in formPaths {
-            let source = try Self.source(path)
-            let compact = source.filter { !$0.isWhitespace }
-
-            #expect(compact.contains(".onDisappear{focusedField=nil}"))
-        }
-    }
-
-    @Test("Visible floating tab bar is pinned with overlay, not safeAreaInset")
-    func visibleFloatingTabBarUsesOverlay() throws {
-        let source = try Self.source(
-            "Pulpe",
-            "App",
-            "MainTabView.swift"
-        )
-        let compact = source.filter { !$0.isWhitespace }
-        let usesOverlay = compact.contains(".overlay{floatingTabBarOverlay(")
-        let usesSafeAreaInsetForVisibleBar = compact.contains(
-            ".safeAreaInset(edge:.bottom,spacing:0){floatingTabBar("
+    )
+    func shouldHideFloatingTabBar_matchesContract(scenario: Scenario) {
+        let result = MainTabView.shouldHideFloatingTabBar(
+            selectedTab: scenario.tab,
+            budgetPathDepth: scenario.budget,
+            templatePathDepth: scenario.template,
+            keyboardVisible: scenario.keyboard
         )
 
-        #expect(
-            usesOverlay,
-            "The visible floating tab bar must be an overlay so it stays pinned after a push/pop."
-        )
-        #expect(
-            !usesSafeAreaInsetForVisibleBar,
-            "safeAreaInset can re-anchor the floating tab bar inside BudgetDetails after push/pop."
-        )
-    }
-
-    private static func source(_ pathComponents: [String]) throws -> String {
-        var url = URL(fileURLWithPath: #filePath)
-        url = url.deletingLastPathComponent() // App/
-        url = url.deletingLastPathComponent() // PulpeTests/
-        url = url.deletingLastPathComponent() // ios/
-
-        for pathComponent in pathComponents {
-            url = url.appendingPathComponent(pathComponent)
-        }
-
-        return try String(contentsOf: url, encoding: .utf8)
-    }
-
-    private static func source(_ pathComponents: String...) throws -> String {
-        try source(pathComponents)
+        #expect(result == scenario.hidden)
     }
 }

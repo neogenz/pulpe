@@ -10,7 +10,6 @@ struct MainTabView: View {
     @Environment(CurrentMonthStore.self) private var monthStore
     @State private var addTransactionBudgetId: AddTransactionItem?
     @State private var keyboardVisible = false
-    @State private var tabBarHideRequests = FloatingTabBarHideRequests()
     @Namespace private var tabSelectionNamespace
 
     /// Vertical space the floating tab bar visually occupies above the system
@@ -23,16 +22,32 @@ struct MainTabView: View {
         + DesignTokens.Spacing.md
         + DesignTokens.Spacing.xs
 
+    /// Whether the floating tab bar should be hidden, given current state.
+    /// Hidden when the keyboard is up, or when the active tab is drilled
+    /// past its root (`count > 1` == root destination plus ≥1 push route).
+    /// Pure: extracted for unit-testing the visibility truth table.
+    static func shouldHideFloatingTabBar(
+        selectedTab: Tab,
+        budgetPathDepth: Int,
+        templatePathDepth: Int,
+        keyboardVisible: Bool
+    ) -> Bool {
+        if keyboardVisible { return true }
+        switch selectedTab {
+        case .budgets: return budgetPathDepth > 1
+        case .templates: return templatePathDepth > 1
+        case .currentMonth: return false
+        }
+    }
+
     var body: some View {
         @Bindable var state = appState
-        // Hide during Budgets drill-down (envelope / tx forms) from `NavigationPath`
-        // so visibility tracks pop as soon as the path shrinks — not only on
-        // `onDisappear` of child views. `count > 1` == root `BudgetDestination`
-        // plus at least one `BudgetLinePushRoute`.
-        let budgetDrillDownHidesBar =
-            state.selectedTab == .budgets && state.budgetPath.count > 1
-        let barHidden =
-            keyboardVisible || tabBarHideRequests.isHidden || budgetDrillDownHidesBar
+        let barHidden = Self.shouldHideFloatingTabBar(
+            selectedTab: state.selectedTab,
+            budgetPathDepth: state.budgetPath.count,
+            templatePathDepth: state.templatePath.count,
+            keyboardVisible: keyboardVisible
+        )
         let clearance: CGFloat = barHidden ? 0 : Self.tabBarClearanceHeight
 
         TabView(selection: $state.selectedTab) {
@@ -58,12 +73,6 @@ struct MainTabView: View {
         // is hosted by a keyboard-independent overlay so stale keyboard safe-area
         // propagation during push/pop transitions cannot re-anchor it mid-screen.
         .environment(\.tabBarClearance, clearance)
-        .environment(
-            \.floatingTabBarVisibilityActions,
-            FloatingTabBarVisibilityActions { requestID, hidden in
-                tabBarHideRequests.setHidden(hidden, for: requestID)
-            }
-        )
         .overlay {
             floatingTabBarOverlay(selectedTab: $state.selectedTab, barHidden: barHidden)
                 .transaction { transaction in
