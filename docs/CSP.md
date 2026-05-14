@@ -2,25 +2,57 @@
 
 CSP lives in `vercel.json` (webapp) and `landing/vercel.json` (landing).
 
-## Known weakness
+## State
 
-`script-src` and `script-src-elem` ship with `'unsafe-inline'`. A successful HTML/script injection bypasses CSP. Tracked in PUL-215 follow-up.
+| App | script-src `'unsafe-inline'` | Tracking |
+|-----|------------------------------|----------|
+| Webapp | **removed** (PUL-234) | done |
+| Landing | still present | follow-up |
 
-## What actually requires it
+`style-src 'unsafe-inline'` stays — Angular Material + Tailwind v4 inject runtime `<style>` tags; removal requires SSR + per-request nonces, low ROI (XSS still blocked by `script-src`).
 
-| App | Inline source | File |
-|-----|---------------|------|
-| Webapp | Theme detection script (pre-paint, prevents dark/light flash) | `frontend/projects/webapp/src/index.html` |
-| Webapp | Splash spinner animation script | `frontend/projects/webapp/src/index.html` |
-| Webapp | `<link onload="this.media='all'">` for Material Symbols | `frontend/projects/webapp/src/index.html` |
-| Landing | JSON-LD via `dangerouslySetInnerHTML` | `landing/app/layout.tsx` |
-| Landing | Next.js hydration scripts (per-build content) | injected by framework |
+## Webapp init scripts
 
-Turnstile (`ngx-turnstile`) and PostHog (`posthog-js`) load external bundles; both are already covered by the host allowlist and do not need `'unsafe-inline'`.
+3 bootstrap-time blocks live in `frontend/projects/webapp/public/init/`:
 
-## Path forward
+- `theme.js` — applies `.dark-theme` class pre-paint based on `prefers-color-scheme`.
+- `splash.js` — braille animation on the splash element. Respects `prefers-reduced-motion`.
+- `fonts.js` — swaps Material Symbols `<link>` media attr from `print` → `all` after load.
 
-- **Webapp**: extract the 3 inline pieces to `assets/init/{theme,splash,fonts}.js`, load render-blocking before `<pulpe-root>`. Remove `'unsafe-inline'`. No nonce needed. ~30 min of work + manual FOUC test.
-- **Landing**: needs a Vercel edge middleware that mints a per-request nonce and injects it into Next.js `headers()`. Drop `'unsafe-inline'` and add `'nonce-<value>' 'strict-dynamic'`. Reference: <https://nextjs.org/docs/app/building-your-application/configuring/content-security-policy>.
+Loaded via `<script src="init/*.js">` in `index.html`. Synchronous (head) for `theme.js` + `fonts.js`; in `<body>` after splash DOM for `splash.js`.
 
-`style-src 'unsafe-inline'` stays — Angular Material and Tailwind both emit inline styles by design.
+## Critical CSS + hash-based attr CSP
+
+`inlineCritical: true` stays in `angular.json` — Angular's beasties optimizer inlines above-the-fold CSS (faster FCP/LCP) and emits a single deterministic inline handler on the non-critical CSS preload tag:
+
+```html
+<link rel="stylesheet" href="styles-<hash>.css" media="print" onload="this.media='all'">
+```
+
+CSP allow-lists this exact handler value:
+
+```
+script-src-attr 'unsafe-hashes' 'sha256-MhtPZXr7+LpJUY5qtMutB+qWfQtMaPccfe7QXtCcEYc='
+```
+
+`'unsafe-hashes'` only enables hash matching for inline event handlers — arbitrary inline JS is still blocked. The hash is `sha256(this.media='all')`. The string is stable across builds; if beasties ever changes its template, the build-time scanner fails and surfaces the new hash.
+
+## Regression guards (webapp)
+
+| Layer | File | Trigger |
+|-------|------|---------|
+| Build-time scanner | `frontend/scripts/check-no-inline-scripts.ts` | chained inside `pnpm build` (`ng build && tsx scripts/check-no-inline-scripts.ts`) so Turbo + Vercel both run it |
+| Playwright e2e | `frontend/e2e/tests/smoke/csp-violations.spec.ts` | `pnpm test:e2e --grep CSP` |
+
+The scanner parses `dist/webapp/browser/index.html` with JSDOM, computes a `sha256-...` for every inline `<script>` and every `on*=` handler, and fails the build if any hash is missing from the corresponding directive in `vercel.json` (`script-src-elem` for inline scripts, `script-src-attr` for handlers).
+
+The e2e injects the production CSP via `page.route` and asserts zero `securitypolicyviolation` events on `/`, `/login`, `/welcome` (Vite-dev artifacts filtered).
+
+## Landing follow-up
+
+Landing CSP still ships `'unsafe-inline'` for Next.js hydration scripts. Removing it requires a Vercel edge middleware that mints a per-request nonce and injects it into Next.js `headers()` (`'nonce-<value>' 'strict-dynamic'`). Separate ticket. `<script type="application/ld+json">` is data-only and not affected by `script-src`.
+
+## Links
+
+- OWASP audit: PUL-215
+- Webapp removal: PUL-234

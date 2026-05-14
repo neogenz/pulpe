@@ -13,10 +13,10 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
+      id="material-symbols-link"
       href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200"
       rel="stylesheet"
       media="print"
-      onload="this.media = 'all'"
     />
     <!-- Fallback pour navigateurs sans JS -->
     <noscript>
@@ -25,15 +25,9 @@
         rel="stylesheet"
       />
     </noscript>
-    <script>
-      // Apply .dark-theme class before first paint to prevent FOUC.
-      // The ThemeService takes over once Angular bootstraps.
-      (function () {
-        if (matchMedia("(prefers-color-scheme: dark)").matches) {
-          document.documentElement.classList.add("dark-theme");
-        }
-      })();
-    </script>
+    <!-- Init scripts (CSP-safe, no inline). theme.js is render-blocking on purpose (pre-paint anti-FOUC); fonts.js only wires a load listener so it can defer. -->
+    <script src="init/theme.js"></script>
+    <script src="init/fonts.js" defer></script>
   </head>
   <body class="mat-typography">
     <style>
@@ -82,19 +76,7 @@
     >
       <span id="pulpe-splash-braille" class="pulpe-splash-braille">⠋</span>
     </div>
-    <script>
-      (function () {
-        var frames = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
-        var el = document.getElementById("pulpe-splash-braille");
-        if (!el || matchMedia("(prefers-reduced-motion: reduce)").matches)
-          return;
-        var i = 0;
-        setInterval(function () {
-          i = (i + 1) % frames.length;
-          el.textContent = frames[i];
-        }, 80);
-      })();
-    </script>
+    <script src="init/splash.js"></script>
     <pulpe-root></pulpe-root>
   </body>
 </html>
