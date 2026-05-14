@@ -1,5 +1,58 @@
 [
   {
+    "version": "0.35.0",
+    "date": "2026-05-14",
+    "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.35.0",
+    "platforms": [
+      "web",
+      "ios"
+    ],
+    "changes": {
+      "features": [
+        {
+          "title": "Refonte du détail budget (iOS)",
+          "description": "Navigation mois par mois, hero épuré, regroupement intelligent des transactions et prévisions, sections filtrables"
+        },
+        {
+          "title": "Mise à jour forcée",
+          "description": "Sortie obligatoire des versions obsolètes (iOS + webapp) via vérification serveur au démarrage"
+        },
+        {
+          "title": "Astuce parité web (iOS)",
+          "description": "Repère contextuel dans la liste des modèles pour orienter vers la webapp"
+        },
+        {
+          "title": "Identifiant de corrélation",
+          "description": "X-Request-Id propagé entre webapp et backend pour faciliter le support"
+        },
+        {
+          "title": "Effacement analytique (RGPD)",
+          "description": "Suppression automatique du profil PostHog lors de la suppression de compte"
+        }
+      ],
+      "fixes": [
+        {
+          "title": "Barre d'onglets stable (iOS)",
+          "description": "Plus de saut visuel lors des navigations push/pop sur le détail budget"
+        },
+        {
+          "title": "Durcissement sécurité (web + landing)",
+          "description": "Audit OWASP appliqué, retrait du 'unsafe-inline' dans la CSP, validation stricte des en-têtes X-Request-Id"
+        }
+      ],
+      "technical": [
+        {
+          "title": "Clean Architecture backend",
+          "description": "Refactorisation des modules sur les Tiers 1-3 (entités, use cases, infrastructure)"
+        },
+        {
+          "title": "Migration Angular 21.2",
+          "description": "Mise à niveau du framework et adoption progressive de Signal Forms côté webapp"
+        }
+      ]
+    }
+  },
+  {
     "version": "0.34.1",
     "date": "2026-05-06",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.34.1",
