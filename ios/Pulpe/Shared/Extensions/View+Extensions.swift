@@ -8,12 +8,7 @@ extension EnvironmentValues {
 
     /// Bottom safe-area padding (in points) that pushed pages should reserve so
     /// their content clears `MainTabView`'s custom floating tab bar. Set by
-    /// `MainTabView` from a `GeometryReader`-computed value (varies with home
-    /// indicator presence). iOS 26 does NOT cascade `safeAreaPadding` /
-    /// `safeAreaInset` from a TabView through `NavigationStack` destinations,
-    /// so push pages with their own `safeAreaInset(.bottom)` (sticky CTAs)
-    /// must explicitly read this value and apply it via
-    /// `safeAreaPadding(.bottom:)` on their root.
+    /// `MainTabView` from the canonical tab bar height and spacing tokens.
     @Entry var tabBarClearance: CGFloat = 0
 }
 
@@ -362,24 +357,6 @@ private struct ShimmerModifier: ViewModifier {
     }
 }
 
-// MARK: - Floating Tab Bar Clearance
-
-/// Bubbled up by push pages that want the floating tab bar hidden while they
-/// are visible (deep-focus pattern: envelope detail, transaction forms).
-struct HidesFloatingTabBarKey: PreferenceKey {
-    static let defaultValue: Bool = false
-    static func reduce(value: inout Bool, nextValue: () -> Bool) {
-        value = value || nextValue()
-    }
-}
-
-extension View {
-    /// Hide the floating custom tab bar while this page is on screen.
-    func hidesFloatingTabBar(_ hidden: Bool = true) -> some View {
-        preference(key: HidesFloatingTabBarKey.self, value: hidden)
-    }
-}
-
 /// Pins a primary CTA at the bottom of a push page. Bakes `tabBarClearance`
 /// into the inset content because `safeAreaInset(.bottom)` on a destination
 /// anchors to the outer safe area, which does NOT inherit the NavigationStack
@@ -388,29 +365,41 @@ extension View {
 /// home indicator.
 private struct PulpeStickyBottomCTAModifier<CTA: View>: ViewModifier {
     @Environment(\.tabBarClearance) private var tabBarClearance
+    let avoidsKeyboard: Bool
     let cta: () -> CTA
 
     func body(content: Content) -> some View {
-        content.safeAreaInset(edge: .bottom, spacing: 0) {
-            cta()
-                .padding(.horizontal, DesignTokens.Spacing.lg)
-                .padding(.vertical, DesignTokens.Spacing.md)
-                .padding(.bottom, tabBarClearance)
-                .background(alignment: .top) {
-                    Rectangle()
-                        .fill(Color.appBackground)
-                        .ignoresSafeArea(edges: .bottom)
-                        .overlay(alignment: .top) {
-                            Divider()
-                        }
-                }
-        }
+        content
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                stickyBottomCTAChrome
+            }
+            .ignoresSafeArea(avoidsKeyboard ? [] : .keyboard, edges: .bottom)
+    }
+
+    private var stickyBottomCTAChrome: some View {
+        cta()
+            .padding(.horizontal, DesignTokens.Spacing.lg)
+            .padding(.vertical, DesignTokens.Spacing.md)
+            .padding(.bottom, tabBarClearance)
+            .background(alignment: .top) {
+                Rectangle()
+                    .fill(Color.appBackground)
+                    .ignoresSafeArea(edges: .bottom)
+                    .overlay(alignment: .top) {
+                        Divider()
+                    }
+            }
     }
 }
 
 extension View {
     /// Pin a primary CTA above the floating tab bar with project-standard chrome.
-    func pulpeStickyBottomCTA<CTA: View>(@ViewBuilder _ cta: @escaping () -> CTA) -> some View {
-        modifier(PulpeStickyBottomCTAModifier(cta: cta))
+    /// Keep `avoidsKeyboard` enabled for forms; disable it on non-input pages so
+    /// a keyboard dismissed during a pop cannot leave the CTA anchored mid-screen.
+    func pulpeStickyBottomCTA<CTA: View>(
+        avoidsKeyboard: Bool = true,
+        @ViewBuilder _ cta: @escaping () -> CTA
+    ) -> some View {
+        modifier(PulpeStickyBottomCTAModifier(avoidsKeyboard: avoidsKeyboard, cta: cta))
     }
 }

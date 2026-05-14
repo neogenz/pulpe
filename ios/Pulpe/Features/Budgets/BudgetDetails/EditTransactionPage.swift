@@ -71,7 +71,6 @@ struct EditTransactionPage: View {
         .scrollDismissesKeyboard(.interactively)
         .pulpeBackground()
         .pulpeStickyBottomCTA { saveButton(for: tx) }
-        .hidesFloatingTabBar()
         .navigationTitle("Modifier la transaction")
         .navigationBarTitleDisplayMode(.inline)
         .loadingOverlay(isLoading)
@@ -87,6 +86,9 @@ struct EditTransactionPage: View {
             guard !didAutofocus else { return }
             didAutofocus = true
             focusedField = .amount
+        }
+        .onDisappear {
+            focusedField = nil
         }
     }
 

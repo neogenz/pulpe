@@ -72,7 +72,6 @@ struct AddAllocatedTransactionPage: View {
         .scrollDismissesKeyboard(.interactively)
         .pulpeBackground()
         .pulpeStickyBottomCTA { addButton(for: line) }
-        .hidesFloatingTabBar()
         .navigationTitle(line.name)
         .navigationBarTitleDisplayMode(.inline)
         .loadingOverlay(isLoading)
@@ -86,6 +85,9 @@ struct AddAllocatedTransactionPage: View {
             guard !didAutofocus else { return }
             didAutofocus = true
             focusedField = .amount
+        }
+        .onDisappear {
+            focusedField = nil
         }
     }
 

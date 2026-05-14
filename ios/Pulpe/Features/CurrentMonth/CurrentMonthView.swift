@@ -20,6 +20,7 @@ struct CurrentMonthView: View {
     @State private var navigateToBudget = false
     @State private var hasAppeared = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.tabBarClearance) private var tabBarClearance
 
     private var animationPhase: Int {
         switch store.contentState {
@@ -231,7 +232,8 @@ struct CurrentMonthView: View {
                     }
                 }
                 .padding(.horizontal, DesignTokens.Spacing.lg)
-                .padding(.vertical, DesignTokens.Spacing.lg)
+                .padding(.top, DesignTokens.Spacing.lg)
+                .padding(.bottom, tabBarClearance + DesignTokens.Spacing.lg)
             }
             .refreshable {
                 await store.forceRefresh()
@@ -308,6 +310,8 @@ struct CurrentMonthView: View {
 // MARK: - Skeleton
 
 private struct CurrentMonthSkeletonView: View {
+    @Environment(\.tabBarClearance) private var tabBarClearance
+
     var body: some View {
         ZStack(alignment: .top) {
             LinearGradient(
@@ -357,7 +361,8 @@ private struct CurrentMonthSkeletonView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 .padding(.horizontal, DesignTokens.Spacing.lg)
-                .padding(.vertical, DesignTokens.Spacing.lg)
+                .padding(.top, DesignTokens.Spacing.lg)
+                .padding(.bottom, tabBarClearance + DesignTokens.Spacing.lg)
             }
             .shimmering()
         }

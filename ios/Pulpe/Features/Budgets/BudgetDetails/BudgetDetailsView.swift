@@ -89,6 +89,16 @@ struct BudgetDetailsView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(Color.appBackground, for: .navigationBar)
         .toolbarBackgroundVisibility(.visible, for: .navigationBar)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    router.present(.realizedBalance)
+                } label: {
+                    Image(systemName: "chart.bar.fill")
+                }
+                .accessibilityLabel("Suivi du budget")
+            }
+        }
         .task(id: screenState.budgetId) {
             if !screenState.hasAllBudgets {
                 await coordinator.dispatch(.loadDetails(force: false))
@@ -141,7 +151,6 @@ struct BudgetDetailsView: View {
                 BudgetDetailHero(
                     metrics: screenState.hero.metrics,
                     timeElapsedPercentage: timeElapsedPercentage,
-                    onTapChart: { router.present(.realizedBalance) },
                     rolloverAmount: screenState.rollover?.amount,
                     previousBudgetMonth: screenState.rollover?.previousBudgetMonth,
                     onRolloverTap: screenState.rollover?.previousBudgetId.map { id in
