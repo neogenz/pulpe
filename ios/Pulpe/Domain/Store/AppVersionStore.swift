@@ -39,7 +39,15 @@ final class AppVersionStore {
                 status = .ok
             }
         } catch {
-            status = .ok
+            // Fail-open ONLY on first launch (status == .unknown) so a backend
+            // outage on cold-launch never bricks users. Once we have a
+            // confirmed status — either .ok or .forceUpdate — preserve it:
+            // dropping to .ok on a later failure would let an offline device
+            // bypass the gate by toggling airplane mode after a forced cover
+            // already displayed.
+            if status == .unknown {
+                status = .ok
+            }
         }
     }
 }

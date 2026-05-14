@@ -56,6 +56,42 @@ struct AppVersionStoreTests {
 
         #expect(store.status == .forceUpdate(storeURL: nil))
     }
+
+    @Test("Force-update persists if a later fetch fails (e.g. airplane mode)")
+    func check_forceUpdateThenFetchThrows_preservesForceUpdate() async {
+        let storeURL = URL(string: "https://apps.apple.com/app/id6758464920")
+        let failingService = SwitchableStubService(
+            initialOutcome: .success(.makeFixture(
+                iosMin: "2.0.0",
+                iosStoreURL: storeURL?.absoluteString
+            ))
+        )
+        let store = AppVersionStore(service: failingService, currentVersion: "1.0.0")
+
+        await store.check()
+        #expect(store.status == .forceUpdate(storeURL: storeURL))
+
+        failingService.swap(to: .failure(URLError(.notConnectedToInternet)))
+        await store.check()
+
+        #expect(store.status == .forceUpdate(storeURL: storeURL))
+    }
+
+    @Test("OK status persists on later fetch failure")
+    func check_okThenFetchThrows_preservesOk() async {
+        let okThenFailing = SwitchableStubService(
+            initialOutcome: .success(.makeFixture(iosMin: "1.0.0"))
+        )
+        let store = AppVersionStore(service: okThenFailing, currentVersion: "1.0.0")
+
+        await store.check()
+        #expect(store.status == .ok)
+
+        okThenFailing.swap(to: .failure(URLError(.timedOut)))
+        await store.check()
+
+        #expect(store.status == .ok)
+    }
 }
 
 // MARK: - Fixtures
@@ -74,6 +110,27 @@ private final class StubAppVersionService: AppVersionServiceProtocol, @unchecked
 
     init(error: Error) {
         self.outcome = .failure(error)
+    }
+
+    func fetch() async throws -> AppVersionResponse {
+        switch outcome {
+        case .success(let response):
+            return response
+        case .failure(let error):
+            throw error
+        }
+    }
+}
+
+private final class SwitchableStubService: AppVersionServiceProtocol, @unchecked Sendable {
+    private var outcome: StubFetchOutcome
+
+    init(initialOutcome: StubFetchOutcome) {
+        self.outcome = initialOutcome
+    }
+
+    func swap(to newOutcome: StubFetchOutcome) {
+        outcome = newOutcome
     }
 
     func fetch() async throws -> AppVersionResponse {
