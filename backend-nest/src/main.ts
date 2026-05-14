@@ -9,6 +9,7 @@ import { AppModule } from './app.module';
 import { cleanupOpenApiDoc } from 'nestjs-zod';
 import { isProductionLike, type Environment } from '@config/environment';
 import { REQUEST_ID_HEADER } from 'pulpe-shared';
+import { buildAppVersionResponse } from './app-version-handler';
 
 // ValidationPipe removed - using ZodValidationPipe from app.module.ts instead
 
@@ -172,6 +173,11 @@ function setupHealthEndpoints(
     });
   });
 
+  app.getHttpAdapter().get('/api/v1/app/version', (req, res) => {
+    const body = buildAppVersionResponse(configService);
+    res.setHeader('Cache-Control', 'public, max-age=60').json(body);
+  });
+
   // Only expose OpenAPI JSON in non-production environments
   if (document) {
     app.getHttpAdapter().get('/api/openapi', (req, res) => {
@@ -243,6 +249,11 @@ async function bootstrap() {
     TURNSTILE_SECRET_KEY: configService.get('TURNSTILE_SECRET_KEY')!,
     ENCRYPTION_MASTER_KEY: configService.get('ENCRYPTION_MASTER_KEY')!,
     DEBUG_HTTP_FULL: configService.get('DEBUG_HTTP_FULL'),
+    MIN_IOS_VERSION: configService.get('MIN_IOS_VERSION')!,
+    LATEST_IOS_VERSION: configService.get('LATEST_IOS_VERSION')!,
+    IOS_STORE_URL: configService.get('IOS_STORE_URL')!,
+    MIN_WEB_VERSION: configService.get('MIN_WEB_VERSION')!,
+    LATEST_WEB_VERSION: configService.get('LATEST_WEB_VERSION')!,
   };
 
   app.useLogger(app.get(Logger));

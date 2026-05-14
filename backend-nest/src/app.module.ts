@@ -320,6 +320,7 @@ export class AppModule implements NestModule {
         { path: 'health', method: RequestMethod.GET },
         { path: '/', method: RequestMethod.GET },
         { path: 'api/v1/maintenance/status', method: RequestMethod.GET },
+        { path: 'api/v1/app/version', method: RequestMethod.GET },
       )
       .forRoutes('*');
     consumer.apply(ResponseLoggerMiddleware).forRoutes('*');
