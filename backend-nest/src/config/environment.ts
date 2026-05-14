@@ -39,7 +39,9 @@ const envSchema = z.object({
     .string()
     .regex(/^\d+\.\d+\.\d+$/)
     .default('1.0.0'),
-  IOS_STORE_URL: z.url().default('https://apps.apple.com/app/pulpe'),
+  IOS_STORE_URL: z
+    .url()
+    .default('https://apps.apple.com/ch/app/pulpe/id6758464920'),
   MIN_WEB_VERSION: z
     .string()
     .regex(/^\d+\.\d+\.\d+$/)
