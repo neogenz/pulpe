@@ -23,16 +23,22 @@ struct MainTabViewLayoutTests {
         #expect(!requests.isHidden)
     }
 
-    @Test("Floating tab bar visibility does not depend on budget path depth")
-    func floatingTabBarVisibilityDoesNotDependOnBudgetPathDepth() throws {
+    @Test("Budgets drill-down hides floating tab bar via navigation path depth MainTabView")
+    func budgetsDrillDownUsesBudgetPathForFloatingTabBar() throws {
         let source = try Self.source(
             "Pulpe",
             "App",
             "MainTabView.swift"
         )
+        let compact = source.filter { !$0.isWhitespace }
 
-        #expect(!source.contains("budgetPath.count"))
-        #expect(!source.contains("budgetPathCount"))
+        #expect(
+            compact.contains("state.selectedTab==.budgets&&state.budgetPath.count>1"),
+            """
+            MainTabView should hide the floating tab bar when Budgets tab
+            has pushed routes (envelope / tx forms) using budgetPath depth.
+            """
+        )
     }
 
     @Test("Floating tab bar ignores keyboard safe area")
@@ -60,11 +66,15 @@ struct MainTabViewLayoutTests {
         )
         let compact = source.filter { !$0.isWhitespace }
 
+        let expectedFragment = "}else{content.safeAreaInset(edge:.bottom,spacing:0)"
+            + "{stickyBottomCTAChrome}.ignoresSafeArea(.keyboard,edges:.bottom)}"
         #expect(
-            compact.contains(
-                "}else{content.safeAreaInset(edge:.bottom,spacing:0){stickyBottomCTAChrome}.ignoresSafeArea(.keyboard,edges:.bottom)}"
-            ),
-            "`avoidsKeyboard: false` must apply `.ignoresSafeArea(.keyboard)` after the `safeAreaInset`; applying it to the content inside the inset is too late."
+            compact.contains(expectedFragment),
+            """
+            `avoidsKeyboard: false` must apply `.ignoresSafeArea(.keyboard)`
+            after the `safeAreaInset`; applying it to the content inside
+            the inset is too late.
+            """
         )
     }
 

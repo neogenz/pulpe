@@ -25,7 +25,14 @@ struct MainTabView: View {
 
     var body: some View {
         @Bindable var state = appState
-        let barHidden = keyboardVisible || tabBarHideRequests.isHidden
+        // Hide during Budgets drill-down (envelope / tx forms) from `NavigationPath`
+        // so visibility tracks pop as soon as the path shrinks — not only on
+        // `onDisappear` of child views. `count > 1` == root `BudgetDestination`
+        // plus at least one `BudgetLinePushRoute`.
+        let budgetDrillDownHidesBar =
+            state.selectedTab == .budgets && state.budgetPath.count > 1
+        let barHidden =
+            keyboardVisible || tabBarHideRequests.isHidden || budgetDrillDownHidesBar
         let clearance: CGFloat = barHidden ? 0 : Self.tabBarClearanceHeight
 
         TabView(selection: $state.selectedTab) {
@@ -59,8 +66,14 @@ struct MainTabView: View {
         )
         .overlay {
             floatingTabBarOverlay(selectedTab: $state.selectedTab, barHidden: barHidden)
+                .transaction { transaction in
+                    if !barHidden {
+                        transaction.animation = nil
+                    } else {
+                        transaction.animation = DesignTokens.Animation.quickEaseInOut
+                    }
+                }
         }
-        .animation(DesignTokens.Animation.quickEaseInOut, value: barHidden)
         .onChange(of: appState.selectedTab) { _, newTab in
             AnalyticsService.shared.capture(.tabSwitched, properties: ["tab": newTab.rawValue])
         }

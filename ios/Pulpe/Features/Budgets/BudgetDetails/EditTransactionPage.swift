@@ -71,7 +71,6 @@ struct EditTransactionPage: View {
         .scrollDismissesKeyboard(.interactively)
         .pulpeBackground()
         .pulpeStickyBottomCTA { saveButton(for: tx) }
-        .hidesFloatingTabBar()
         .navigationTitle("Modifier la transaction")
         .navigationBarTitleDisplayMode(.inline)
         .loadingOverlay(isLoading)

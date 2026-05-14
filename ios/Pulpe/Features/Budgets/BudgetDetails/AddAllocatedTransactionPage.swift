@@ -72,7 +72,6 @@ struct AddAllocatedTransactionPage: View {
         .scrollDismissesKeyboard(.interactively)
         .pulpeBackground()
         .pulpeStickyBottomCTA { addButton(for: line) }
-        .hidesFloatingTabBar()
         .navigationTitle(line.name)
         .navigationBarTitleDisplayMode(.inline)
         .loadingOverlay(isLoading)
