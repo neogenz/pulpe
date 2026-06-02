@@ -1,5 +1,15 @@
 # pulpe-frontend
 
+## 0.35.0
+
+### Minor Changes
+
+- Release v0.35.0 — Refonte du détail budget iOS (PUL-209), mise à jour forcée serveur, identifiant de corrélation X-Request-Id, effacement RGPD PostHog, durcissement sécurité OWASP, Angular 21.2 + Signal Forms, Clean Architecture backend.
+
+### Patch Changes
+
+- pulpe-shared@0.35.0
+
 ## 0.34.2
 
 ### Patch Changes
