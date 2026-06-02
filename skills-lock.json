@@ -17,7 +17,7 @@
       "source": "angular/angular",
       "sourceType": "github",
       "skillPath": "skills/dev-skills/angular-developer/SKILL.md",
-      "computedHash": "28eb592b92e5a24c4e3a1c0229a854069f0b8c49bed7b8d2bf6b852812dbe214"
+      "computedHash": "4de273da58236f27f3a59e70a2bbcc34167e298933f9a6f3b132f1d9ca44643c"
     },
     "angular-di": {
       "source": "analogjs/angular-skills",
@@ -71,13 +71,13 @@
       "source": "wshobson/agents",
       "sourceType": "github",
       "skillPath": "plugins/backend-development/skills/api-design-principles/SKILL.md",
-      "computedHash": "3316239df2bdcb41e992857b8142e0239e6964564dd5d7224e470c2ab350a03c"
+      "computedHash": "19715a3a3ff7bf7b1e2ab1cb631ebe810d5b050ed6b3ab0c358e39e5e2e6d33a"
     },
     "app-store-screenshots": {
       "source": "ParthJadhav/app-store-screenshots",
       "sourceType": "github",
       "skillPath": "skills/app-store-screenshots/SKILL.md",
-      "computedHash": "5a339bcfe7be93fdb687e0a33946065c5af0c985da04b9887d1dd0811197f6dd"
+      "computedHash": "31fe3ed0d459bf3bab2a4fa9432599a46a66a8f134131c74e4b70addae6dfde4"
     },
     "apple-appstore-reviewer": {
       "source": "github/awesome-copilot",
@@ -95,7 +95,7 @@
       "source": "wshobson/agents",
       "sourceType": "github",
       "skillPath": "plugins/backend-development/skills/architecture-patterns/SKILL.md",
-      "computedHash": "cf81f4523a2fd3017590cf2792fe305e4375d2f75d22037b92f05852e22feae2"
+      "computedHash": "a66aaa5aa49b75bec12b6270dcde8794b1f0cc75fbb9ecb999e43f8b723b461f"
     },
     "asc-app-create-ui": {
       "source": "rudrankriyam/app-store-connect-cli-skills",
@@ -107,7 +107,7 @@
       "source": "rudrankriyam/app-store-connect-cli-skills",
       "sourceType": "github",
       "skillPath": "skills/asc-aso-audit/SKILL.md",
-      "computedHash": "eff3d21b26cc20b7e09445953c50c09885777b8cda1797493bb10cf9aa24d851"
+      "computedHash": "00d3a89c0601d7a1df280febd7ed38fd749a75427646676e07cc7e16dcf11d82"
     },
     "asc-build-lifecycle": {
       "source": "rudrankriyam/app-store-connect-cli-skills",
@@ -119,7 +119,7 @@
       "source": "rudrankriyam/app-store-connect-cli-skills",
       "sourceType": "github",
       "skillPath": "skills/asc-cli-usage/SKILL.md",
-      "computedHash": "4205f51d2fc9aa95bc4b89f38c7ddf409263e7967856532c8763f47f7c37e696"
+      "computedHash": "7c6737e9d83e101de962b374605ca3f845f4debc53b89f723e5ac8dafd0dd09f"
     },
     "asc-crash-triage": {
       "source": "rudrankriyam/app-store-connect-cli-skills",
@@ -137,7 +137,7 @@
       "source": "rudrankriyam/app-store-connect-cli-skills",
       "sourceType": "github",
       "skillPath": "skills/asc-localize-metadata/SKILL.md",
-      "computedHash": "39e4eaced9f49adad24b8d9067b8cdf44d5df5aa9b373c2a303159d42446b512"
+      "computedHash": "ea4c1d528dc803d0ac78d1c55adde92e4af11a40fb5bba2c1b7379091852f46a"
     },
     "asc-metadata-sync": {
       "source": "rudrankriyam/app-store-connect-cli-skills",
@@ -161,7 +161,7 @@
       "source": "rudrankriyam/app-store-connect-cli-skills",
       "sourceType": "github",
       "skillPath": "skills/asc-release-flow/SKILL.md",
-      "computedHash": "dfa8c0799f710b6a8c5b248f7f45249cbf61c0b6006d069066f29bc45599f605"
+      "computedHash": "6c0dafe6bca88e326c20eb1ee8924caebb1e7570a9b1ae8486018b2142068aab"
     },
     "asc-revenuecat-catalog-sync": {
       "source": "rudrankriyam/app-store-connect-cli-skills",
@@ -173,19 +173,19 @@
       "source": "rudrankriyam/app-store-connect-cli-skills",
       "sourceType": "github",
       "skillPath": "skills/asc-shots-pipeline/SKILL.md",
-      "computedHash": "c1fcdf9efd0a6cf6bfce407b759506eb35bd11ce86b8fa3492535bc973ffb19f"
+      "computedHash": "fe53d15d9b91a8c4ee5751ad8981132ce949b6c0018190d86081e82f73a8b0f1"
     },
     "asc-signing-setup": {
       "source": "rudrankriyam/app-store-connect-cli-skills",
       "sourceType": "github",
       "skillPath": "skills/asc-signing-setup/SKILL.md",
-      "computedHash": "93d25a0cca8a2e37a9551c52499fe78b3c49dea2c4842e6ac3984a502916642e"
+      "computedHash": "e78e30944b1a797927535f2c5bdc0acd0fdac4e95dbc98868b9ffaa02fc44317"
     },
     "asc-submission-health": {
       "source": "rudrankriyam/app-store-connect-cli-skills",
       "sourceType": "github",
       "skillPath": "skills/asc-submission-health/SKILL.md",
-      "computedHash": "67e3c1c061c262dc176e8e51f58e2133af1e855be4e36be1470f9d355818dbfd"
+      "computedHash": "9638d2e4b942d4dec5849b0a1e1c93c29d5a3f531cfd44ba984a1a81ea2862d8"
     },
     "asc-subscription-localization": {
       "source": "rudrankriyam/app-store-connect-cli-skills",
@@ -227,13 +227,13 @@
       "source": "wshobson/agents",
       "sourceType": "github",
       "skillPath": "plugins/developer-essentials/skills/auth-implementation-patterns/SKILL.md",
-      "computedHash": "d38d7eef32534d75370b72be089faee9f58e84a33b7273d601e42eb308017dfb"
+      "computedHash": "f97118b792830d928ce691a44d0f38fb55a2032e2fa15b22b482c229d2853e87"
     },
     "design-taste-frontend": {
       "source": "leonxlnx/taste-skill",
       "sourceType": "github",
       "skillPath": "skills/taste-skill/SKILL.md",
-      "computedHash": "9d1e82c5c409d2b0247245a005bc0f7e4447c0999b78dcea60f568c1ba4a6694"
+      "computedHash": "6d838b246d0e35d0b53f4f23f98ba7a1dd561937e64f7d0c7553b0928e376c3e"
     },
     "github-actions-templates": {
       "source": "wshobson/agents",
@@ -244,8 +244,8 @@
     "impeccable": {
       "source": "pbakaus/impeccable",
       "sourceType": "github",
-      "skillPath": "skill/SKILL.md",
-      "computedHash": "8cdf2e788eaca3af7d02026ef9cec55b506100a00d130f938e3fb1ad669c0ad0"
+      "skillPath": ".agents/skills/impeccable/SKILL.md",
+      "computedHash": "45f00bac84048d02d4506b93c761c846490dd4f70d336100fb962019568a5e54"
     },
     "ios-marketing-capture": {
       "source": "ParthJadhav/ios-marketing-capture",
@@ -281,7 +281,7 @@
       "source": "supabase/agent-skills",
       "sourceType": "github",
       "skillPath": "skills/supabase-postgres-best-practices/SKILL.md",
-      "computedHash": "d606a1146be6d54fb9e73f718b5320b9acac5ff2ba2d7230a555df4b5a923b4a"
+      "computedHash": "292c93e5a86e2429204bc37abe26b3c9023c4760eb02418462887f2082f118ce"
     },
     "swift-concurrency-expert": {
       "source": "dimillian/skills",
@@ -299,7 +299,7 @@
       "source": "avdlee/swiftui-agent-skill",
       "sourceType": "github",
       "skillPath": "swiftui-expert-skill/SKILL.md",
-      "computedHash": "9db9a694b7354dea993bff22d038bc39e4d64b28a9c598b84793f2e1153db1cb"
+      "computedHash": "ffe7adc4c442d2e75985b61ab281e3e303fe201c077ed05d82c0198a18fb1a25"
     },
     "swiftui-performance-audit": {
       "source": "dimillian/skills",
@@ -329,7 +329,7 @@
       "source": "wshobson/agents",
       "sourceType": "github",
       "skillPath": "plugins/frontend-mobile-development/skills/tailwind-design-system/SKILL.md",
-      "computedHash": "988d80e52c67c3692d43cc963b6a048a239895e88b272b061de55370d0f8efc3"
+      "computedHash": "cd61afd28f594e8b6712b61749209cbb4466e3eec4e4223793bbd97fc85c1b63"
     },
     "ui-ux-pro-max": {
       "source": "nextlevelbuilder/ui-ux-pro-max-skill",
