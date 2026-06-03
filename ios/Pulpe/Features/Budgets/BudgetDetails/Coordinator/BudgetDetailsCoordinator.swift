@@ -55,6 +55,7 @@ final class BudgetDetailsCoordinator {
         case .reloadCurrentBudget:
             await reloadCurrentBudget()
         case .prepareNavigation(let id):
+            await commitPendingSoftDeletionsBeforeNavigation()
             dataStore.prepareNavigation(to: id)
         case .setCheckedFilter(let filter):
             filtersStore.setCheckedFilter(filter)

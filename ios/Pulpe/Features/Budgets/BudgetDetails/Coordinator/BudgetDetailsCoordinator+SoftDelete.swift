@@ -127,6 +127,17 @@ extension BudgetDetailsCoordinator {
         )
     }
 
+    /// Finalize pending soft-deletions before the screen navigates to another
+    /// month. Commits them against the still-current store and drops any stale
+    /// error, so neither the undo/rollback paths nor an error banner can target
+    /// the next month's data (PUL-258). Must be awaited BEFORE
+    /// `dataStore.prepareNavigation` swaps the budget — otherwise a failed
+    /// commit re-injects into, and a stale error surfaces on, the wrong month.
+    func commitPendingSoftDeletionsBeforeNavigation() async {
+        await commitPendingSoftDeletions()
+        syncStore.clearError()
+    }
+
     private func commitPendingSoftDeletions() async {
         // The queue is the source of truth: undo already removed any restored
         // item via `popLast`, so everything still pending must be committed —

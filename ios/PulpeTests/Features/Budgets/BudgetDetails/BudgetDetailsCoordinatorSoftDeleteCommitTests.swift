@@ -117,3 +117,74 @@ struct BudgetDetailsCoordinatorSoftDeleteTests {
         #expect(coord.dataStore.budgetLines.first?.id == "line-1")
     }
 }
+
+/// Regression harness for PUL-258 — month navigation must not strand a pending
+/// soft-delete or a stale error on the previous month.
+///
+/// `prepareNavigation(to:)` swaps the `BudgetDataStore`'s budget out from under
+/// the still-open undo toast and its pending `MutationQueue`. Before the fix it
+/// left the queue and `syncStore.error` untouched, so a delete queued on month
+/// A could later commit, roll back, or undo against month B's store — deleting
+/// or re-injecting a transaction on the wrong budget — and a month-A error
+/// banner bled onto month B.
+///
+/// The fix commits the pending deletions against the month being LEFT and
+/// clears the error, all BEFORE the store swaps. These tests are deterministic:
+/// every assertion holds synchronously inside the awaited `dispatch`, no toast
+/// timing involved.
+@Suite(.serialized)
+@MainActor
+struct BudgetDetailsCoordinatorNavFlushTests {
+    @Test
+    func prepareNavigation_withPendingSoftDelete_commitsToServerBeforeSwap() async {
+        let service = MockTransactionService()
+        let toastManager = ToastManager()
+        let coord = BudgetDetailsCoordinator(budgetId: "month-a", transactionService: service)
+        let tx = TestDataFactory.createTransaction(id: "tx-1")
+        await coord.dispatch(.addTransaction(tx))
+
+        let ctx = ToastContext(toastManager: toastManager, presentationCurrency: .chf)
+        await coord.dispatch(.softDeleteTransaction(tx, ctx))
+
+        await coord.dispatch(.prepareNavigation(to: "month-b"))
+
+        // Leaving the month finalizes the deletion the user walked away from.
+        #expect(service.deletedIds == ["tx-1"])
+        #expect(coord.mutationQueue.isEmpty)
+        #expect(coord.dataStore.budgetId == "month-b")
+    }
+
+    @Test
+    func prepareNavigation_failedCommit_doesNotBleedIntoNextMonth() async {
+        let service = MockTransactionService()
+        service.deleteError = URLError(.badServerResponse)
+        let toastManager = ToastManager()
+        let coord = BudgetDetailsCoordinator(budgetId: "month-a", transactionService: service)
+        let tx = TestDataFactory.createTransaction(id: "tx-1")
+        await coord.dispatch(.addTransaction(tx))
+
+        let ctx = ToastContext(toastManager: toastManager, presentationCurrency: .chf)
+        await coord.dispatch(.softDeleteTransaction(tx, ctx))
+
+        await coord.dispatch(.prepareNavigation(to: "month-b"))
+
+        // The commit ran during navigation (against month A) and failed; its
+        // rollback re-injected into the month being left, which the swap then
+        // discards. Month B must be clean and the queue drained — pre-fix the
+        // delete was never attempted (count 0) and the queue still held tx-1.
+        #expect(service.deleteTransactionCallCount == 1)
+        #expect(coord.mutationQueue.isEmpty)
+        #expect(coord.dataStore.budgetId == "month-b")
+        #expect(!coord.dataStore.transactions.contains { $0.id == "tx-1" })
+    }
+
+    @Test
+    func prepareNavigation_clearsStaleErrorFromPreviousMonth() async {
+        let coord = BudgetDetailsCoordinator(budgetId: "month-a")
+        coord.syncStore.setError(URLError(.badServerResponse))
+
+        await coord.dispatch(.prepareNavigation(to: "month-b"))
+
+        #expect(coord.syncStore.error == nil)
+    }
+}
