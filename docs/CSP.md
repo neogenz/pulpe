@@ -7,7 +7,7 @@ CSP lives in `vercel.json` (webapp) and `landing/vercel.json` (landing).
 | App | script-src `'unsafe-inline'` | Tracking |
 |-----|------------------------------|----------|
 | Webapp | **removed** (PUL-234) | done |
-| Landing | still present | follow-up |
+| Landing | **kept by design** (PUL-254) | wontfix |
 
 `style-src 'unsafe-inline'` stays — Angular Material + Tailwind v4 inject runtime `<style>` tags; removal requires SSR + per-request nonces, low ROI (XSS still blocked by `script-src`).
 
@@ -48,11 +48,21 @@ The scanner parses `dist/webapp/browser/index.html` with JSDOM, computes a `sha2
 
 The e2e injects the production CSP via `page.route` and asserts zero `securitypolicyviolation` events on `/`, `/login`, `/welcome` (Vite-dev artifacts filtered).
 
-## Landing follow-up
+## Landing — `'unsafe-inline'` kept by design (PUL-254)
 
-Landing CSP still ships `'unsafe-inline'` for Next.js hydration scripts. Removing it requires a Vercel edge middleware that mints a per-request nonce and injects it into Next.js `headers()` (`'nonce-<value>' 'strict-dynamic'`). Separate ticket. `<script type="application/ld+json">` is data-only and not affected by `script-src`.
+The landing is a **static export** (`landing/next.config.ts` → `output: 'export'`). Each page ships framework-generated inline scripts — React streaming runtime (`$RC`/`$RB`/`$RV`) + RSC flight payload (`self.__next_f.push(...)`): ~30 on `/`, ~55 on `/changelog`, ~25 on `/support`. They carry the serialized page (hash changes on any content edit) and can't be extracted — the framework emits them.
+
+Neither removal path is worth it:
+
+- **Nonces** need a server to mint per-request values. Static export has none (no middleware runs) — impossible without dropping `output: 'export'` for SSR.
+- **Hashing** means a build scanner unioning ~120 content-coupled hashes across all pages into one CSP header every deploy — fragile, breaks prod silently on any copy edit.
+
+And the payoff is ~nil: the landing renders no user input (static marketing + `data/releases.json`), so no XSS injection vector exists, and the dangerous escalations are already blocked by `object-src 'none'` / `base-uri 'self'` / `form-action 'self'` / `frame-ancestors 'none'`. Different risk class from the webapp (auth'd financial data), where removal was worth it.
+
+`<script type="application/ld+json">` (structured data in `layout.tsx`, `support/page.tsx`) is a data block, not executable JS — `script-src` never governed it. PostHog loads via the `posthog-js` npm bundle (`'self'`), not an inline snippet, so `'unsafe-inline'` is unrelated to it.
 
 ## Links
 
 - OWASP audit: PUL-215
 - Webapp removal: PUL-234
+- Landing wontfix rationale: PUL-254
