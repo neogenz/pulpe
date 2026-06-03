@@ -21,7 +21,7 @@ struct BudgetDetailsCoordinatorSoftDeleteTests {
     // MARK: - Lifetime: commit must survive view teardown
 
     @Test
-    func budgetLineSoftDelete_commitsToServer_afterCoordinatorDeallocated() async {
+    func budgetLineSoftDelete_commitsToServer_survivesViewTeardown() async {
         let service = MockBudgetLineService()
         let toastManager = ToastManager()
         var coord: BudgetDetailsCoordinator? = BudgetDetailsCoordinator(
@@ -45,7 +45,7 @@ struct BudgetDetailsCoordinatorSoftDeleteTests {
     }
 
     @Test
-    func transactionSoftDelete_commitsToServer_afterCoordinatorDeallocated() async {
+    func transactionSoftDelete_commitsToServer_survivesViewTeardown() async {
         let service = MockTransactionService()
         let toastManager = ToastManager()
         var coord: BudgetDetailsCoordinator? = BudgetDetailsCoordinator(
