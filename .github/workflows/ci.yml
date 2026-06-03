@@ -22,6 +22,8 @@ env:
   NODE_VERSION: "22"
   PNPM_VERSION: "10.12.1"
   BUN_VERSION: "1.2.17"
+  # Pinned: "latest" resolves via unauthenticated GitHub Releases API → rate-limited across the 6 setup-cli jobs
+  SUPABASE_CLI_VERSION: "2.75.5"
 
   # CI-only npm/pnpm tweaks — mitigate NPM 429s, keep local .npmrc clean
   NPM_CONFIG_FETCH_RETRIES: "3"
@@ -77,7 +79,7 @@ jobs:
       - name: 🗄️ Setup Supabase CLI
         uses: supabase/setup-cli@v1
         with:
-          version: latest
+          version: ${{ env.SUPABASE_CLI_VERSION }}
 
       - name: 🐳 Start Supabase Local (Optimisé)
         working-directory: backend-nest
@@ -163,7 +165,7 @@ jobs:
       - name: 🗄️ Setup Supabase CLI
         uses: supabase/setup-cli@v1
         with:
-          version: latest
+          version: ${{ env.SUPABASE_CLI_VERSION }}
 
       - name: 📥 Download Supabase State
         uses: actions/download-artifact@v8
@@ -237,7 +239,7 @@ jobs:
       - name: 🗄️ Setup Supabase CLI
         uses: supabase/setup-cli@v1
         with:
-          version: latest
+          version: ${{ env.SUPABASE_CLI_VERSION }}
 
       - name: 📥 Download Supabase State
         uses: actions/download-artifact@v8
@@ -430,7 +432,7 @@ jobs:
       - name: 🗄️ Setup Supabase CLI
         uses: supabase/setup-cli@v1
         with:
-          version: latest
+          version: ${{ env.SUPABASE_CLI_VERSION }}
 
       - name: 📥 Download Supabase State
         uses: actions/download-artifact@v8
@@ -645,7 +647,7 @@ jobs:
       - name: 🗄️ Setup Supabase CLI
         uses: supabase/setup-cli@v1
         with:
-          version: latest
+          version: ${{ env.SUPABASE_CLI_VERSION }}
 
       - name: 🔗 Link Supabase Project
         working-directory: backend-nest
@@ -715,7 +717,7 @@ jobs:
       - name: 🗄️ Setup Supabase CLI
         uses: supabase/setup-cli@v1
         with:
-          version: latest
+          version: ${{ env.SUPABASE_CLI_VERSION }}
 
       - name: 🔗 Link Supabase Project
         working-directory: backend-nest
