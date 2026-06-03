@@ -63,11 +63,17 @@ extension BudgetDetailsCoordinator {
 
     private func presentOrRefreshDeletionToast(context: ToastContext) {
         let copy = mutationQueue.deletionToastCopy(presentationCurrency: context.presentationCurrency)
-        let undo: @MainActor () async -> Void = { [weak self] in
-            await self?.restoreLastPendingDeletion(context: context)
+        // Capture `self` strongly: the undo/commit work must outlive the view.
+        // `ToastContext.toastManager` is app-scoped, so when the user leaves the
+        // screen the view-scoped coordinator has to stay alive until the toast
+        // resolves — otherwise the deferred server DELETE is silently dropped
+        // (PUL-264). No retain cycle: the coordinator never holds the toast
+        // manager, so `self` is released as soon as the toast clears.
+        let undo: @MainActor () async -> Void = {
+            await self.restoreLastPendingDeletion(context: context)
         }
-        let commit: @MainActor () async -> Void = { [weak self] in
-            await self?.commitPendingSoftDeletions()
+        let commit: @MainActor () async -> Void = {
+            await self.commitPendingSoftDeletions()
         }
         if mutationQueue.count == 1 {
             context.toastManager.showWithUndo(
@@ -105,11 +111,13 @@ extension BudgetDetailsCoordinator {
         guard !mutationQueue.isEmpty else { return }
 
         let copy = mutationQueue.deletionToastCopy(presentationCurrency: context.presentationCurrency)
-        let undo: @MainActor () async -> Void = { [weak self] in
-            await self?.restoreLastPendingDeletion(context: context)
+        // Strong `self` — same app-scoped lifetime rationale as the initial
+        // toast presentation above (PUL-264).
+        let undo: @MainActor () async -> Void = {
+            await self.restoreLastPendingDeletion(context: context)
         }
-        let commit: @MainActor () async -> Void = { [weak self] in
-            await self?.commitPendingSoftDeletions()
+        let commit: @MainActor () async -> Void = {
+            await self.commitPendingSoftDeletions()
         }
         context.toastManager.showWithUndo(
             copy.title,
@@ -120,14 +128,17 @@ extension BudgetDetailsCoordinator {
     }
 
     private func commitPendingSoftDeletions() async {
+        // The queue is the source of truth: undo already removed any restored
+        // item via `popLast`, so everything still pending must be committed —
+        // even if a reload re-injected the line into the store in the meantime
+        // (PUL-264). A store-membership guard here would let that reload cancel
+        // a deletion the user confirmed.
         let batch = mutationQueue.drainAll()
         for item in batch {
             switch item {
             case .transaction(let tx):
-                guard !dataStore.transactions.contains(where: { $0.id == tx.id }) else { continue }
                 await commitDeleteTransaction(tx)
             case .budgetLine(let line):
-                guard !dataStore.budgetLines.contains(where: { $0.id == line.id }) else { continue }
                 await commitDeleteBudgetLine(line)
             }
         }
