@@ -93,6 +93,61 @@ struct BudgetDetailsCoordinatorSoftDeleteTests {
         #expect(service.deletedIds == ["line-1"])
     }
 
+    // MARK: - Commit must clear a reload-re-injected row from the rendered store
+
+    @Test
+    func budgetLineSoftDelete_reinjectedByReload_commitClearsRowFromStore() async {
+        let service = MockBudgetLineService()
+        let toastManager = ToastManager()
+        let coord = BudgetDetailsCoordinator(
+            budgetId: "test-budget",
+            budgetLineService: service
+        )
+        let line = TestDataFactory.createBudgetLine(id: "line-1")
+        await coord.dispatch(.addBudgetLine(line))
+
+        let ctx = ToastContext(toastManager: toastManager, presentationCurrency: .chf)
+        await coord.dispatch(.softDeleteBudgetLine(line, ctx))
+
+        // A reload races the undo window and re-injects the not-yet-deleted line.
+        await coord.dispatch(.addBudgetLine(line))
+        #expect(coord.dataStore.budgetLines.count == 1)
+
+        // Toast ends → the server DELETE commits. The row the user confirmed
+        // gone must not linger in the store the screen renders, even though the
+        // reload put it back after the local soft-delete removed it.
+        toastManager.dismiss()
+
+        await waitForCondition { service.deleteBudgetLineCallCount == 1 }
+        await waitForCondition { coord.dataStore.budgetLines.isEmpty }
+        #expect(service.deletedIds == ["line-1"])
+    }
+
+    @Test
+    func transactionSoftDelete_reinjectedByReload_commitClearsRowFromStore() async {
+        let service = MockTransactionService()
+        let toastManager = ToastManager()
+        let coord = BudgetDetailsCoordinator(
+            budgetId: "test-budget",
+            transactionService: service
+        )
+        let tx = TestDataFactory.createTransaction(id: "tx-1")
+        await coord.dispatch(.addTransaction(tx))
+
+        let ctx = ToastContext(toastManager: toastManager, presentationCurrency: .chf)
+        await coord.dispatch(.softDeleteTransaction(tx, ctx))
+
+        // A reload races the undo window and re-injects the not-yet-deleted row.
+        await coord.dispatch(.addTransaction(tx))
+        #expect(coord.dataStore.transactions.count == 1)
+
+        toastManager.dismiss()
+
+        await waitForCondition { service.deleteTransactionCallCount == 1 }
+        await waitForCondition { coord.dataStore.transactions.isEmpty }
+        #expect(service.deletedIds == ["tx-1"])
+    }
+
     // MARK: - Undo must NOT reach the server (regression lock for the fix)
 
     @Test

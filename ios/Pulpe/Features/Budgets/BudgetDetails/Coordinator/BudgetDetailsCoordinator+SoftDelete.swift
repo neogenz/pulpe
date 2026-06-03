@@ -158,6 +158,15 @@ extension BudgetDetailsCoordinator {
     private func commitDeleteTransaction(_ tx: Transaction) async {
         do {
             try await transactionService.deleteTransaction(id: tx.id)
+            // A reload racing the undo window can re-inject the row via
+            // `applyDetails` (which overwrites the store and cache from the
+            // server, where the row still existed). The server DELETE has now
+            // succeeded, so drop the re-injected copy to keep the rendered
+            // store and the detail cache consistent (PUL-264). Idempotent when
+            // no reload raced — the row is already absent.
+            dataStore.removeTransaction(id: tx.id)
+            dataStore.recomputeMetrics()
+            dataStore.syncCache()
         } catch {
             dataStore.appendTransaction(tx)
             dataStore.recomputeMetrics()
@@ -169,6 +178,11 @@ extension BudgetDetailsCoordinator {
     private func commitDeleteBudgetLine(_ line: BudgetLine) async {
         do {
             try await budgetLineService.deleteBudgetLine(id: line.id)
+            // See `commitDeleteTransaction`: re-remove in case a reload
+            // re-injected the line during the undo window (PUL-264). Idempotent.
+            dataStore.removeBudgetLine(id: line.id)
+            dataStore.recomputeMetrics()
+            dataStore.syncCache()
         } catch {
             dataStore.appendBudgetLine(line)
             dataStore.recomputeMetrics()
