@@ -167,12 +167,18 @@ actor AuthService {
         do {
             let session = try await supabase.auth.session
             return Self.userInfo(from: session.user, fallbackEmail: "")
+        } catch AuthError.sessionMissing {
+            // Genuinely logged out — no token to restore. Expected on every cold start of a
+            // signed-out user, so log at `.info` to keep `.error` meaningful (the line below
+            // stays reserved for the real bug we are hunting).
+            Logger.auth.info("validateSession: no active session (logged out)")
+            return nil
         } catch {
             // Instrumentation: surface WHY cold-start / foreground session restore fails.
-            // `AuthError.sessionMissing` = genuinely logged out (expected, no token); any
-            // other error here (e.g. refresh-token reuse detection revoking the family) is
-            // the bug we are hunting. `.public` so the exact Supabase cause is visible on a
-            // device repro without leaking tokens (AuthError descriptions carry no secrets).
+            // Any error reaching here (e.g. refresh-token reuse detection revoking the whole
+            // token family) is the bug we are hunting. `.public` so the exact Supabase cause
+            // is visible on a device repro without leaking tokens (AuthError descriptions
+            // carry no secrets).
             Logger.auth.error("validateSession: SDK session unavailable - \(error, privacy: .public)")
             return nil
         }
@@ -267,17 +273,17 @@ actor AuthService {
     /// drifted stale within ~1h and biometric re-entry replayed a revoked token (login
     /// screen Face ID dead-end + family revocation killing the next cold-start restore).
     /// Re-snapshotting on every `.tokenRefreshed` keeps the slot current. Only refreshes an
-    /// EXISTING slot — never creates one — so non-biometric users keep no snapshot, and the
-    /// `hasBiometricTokens` guard also prevents racing the single-use clear in
-    /// `validateBiometricSession` (if the slot was just cleared, we skip re-creating it).
+    /// EXISTING slot — never creates one — so non-biometric users keep no snapshot. The
+    /// check-and-write is atomic in `KeychainManager.resyncBiometricTokensIfPresent`, so a
+    /// concurrent clear (the single-use clear in `validateBiometricSession`, or a Face ID
+    /// disable) can never be straddled — a cleared slot is never resurrected.
     private func refreshBiometricSnapshotIfPresent(_ session: Session?) async {
         guard let session else { return }
-        guard await keychain.hasBiometricTokens() else { return }
-        let saved = await keychain.saveBiometricTokens(
+        let outcome = await keychain.resyncBiometricTokensIfPresent(
             accessToken: session.accessToken,
             refreshToken: session.refreshToken
         )
-        if !saved {
+        if case .failed = outcome {
             Logger.auth.warning("[AUTH] biometric snapshot resync failed after token refresh")
         }
     }
