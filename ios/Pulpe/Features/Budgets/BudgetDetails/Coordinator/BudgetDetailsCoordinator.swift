@@ -16,14 +16,14 @@ final class BudgetDetailsCoordinator {
     let mutationQueue: MutationQueue
 
     @ObservationIgnored private let budgetService: BudgetService
-    @ObservationIgnored let budgetLineService: BudgetLineService
-    @ObservationIgnored let transactionService: TransactionService
+    @ObservationIgnored let budgetLineService: any BudgetLineServicing
+    @ObservationIgnored let transactionService: any TransactionServicing
 
     init(
         budgetId: String,
         budgetService: BudgetService = .shared,
-        budgetLineService: BudgetLineService = .shared,
-        transactionService: TransactionService = .shared,
+        budgetLineService: any BudgetLineServicing = BudgetLineService.shared,
+        transactionService: any TransactionServicing = TransactionService.shared,
         cache: BudgetDetailCache = .shared,
         defaults: UserDefaults = .standard
     ) {
@@ -55,6 +55,7 @@ final class BudgetDetailsCoordinator {
         case .reloadCurrentBudget:
             await reloadCurrentBudget()
         case .prepareNavigation(let id):
+            await commitPendingSoftDeletionsBeforeNavigation()
             dataStore.prepareNavigation(to: id)
         case .setCheckedFilter(let filter):
             filtersStore.setCheckedFilter(filter)

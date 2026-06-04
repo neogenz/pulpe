@@ -1,7 +1,15 @@
 import Foundation
 
+/// Mutation surface of `BudgetLineService` consumed by `BudgetDetailsCoordinator`.
+/// Lets the coordinator be driven by a test double so the deferred soft-delete
+/// commit can be asserted deterministically (see `MockBudgetLineService`).
+protocol BudgetLineServicing: Sendable {
+    func deleteBudgetLine(id: String) async throws
+    func toggleCheck(id: String) async throws -> BudgetLine
+}
+
 /// Service for budget line API operations
-actor BudgetLineService {
+actor BudgetLineService: BudgetLineServicing {
     static let shared = BudgetLineService()
 
     private let apiClient: APIClient
