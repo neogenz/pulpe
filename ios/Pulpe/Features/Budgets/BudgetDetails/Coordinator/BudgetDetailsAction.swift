@@ -36,7 +36,6 @@ enum BudgetDetailsAction {
 
     // Transaction mutations
     case addTransaction(Transaction)
-    case updateTransaction(Transaction)
     case softDeleteTransaction(Transaction, ToastContext)
     case deleteTransaction(Transaction)
 
