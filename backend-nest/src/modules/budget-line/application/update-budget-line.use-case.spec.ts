@@ -169,4 +169,18 @@ describe('UpdateBudgetLineUseCase', () => {
 
     expect(callOrder).toEqual(['repo', 'recalculate']);
   });
+
+  it('should invalidate cache even when recalculate rejects', async () => {
+    mockBudget.recalculate.mockRejectedValueOnce(new Error('recalc failed'));
+
+    await expect(
+      useCase.execute(
+        mockEntity.id,
+        { id: mockEntity.id, amount: 1500 },
+        mockUser,
+      ),
+    ).rejects.toThrow('recalc failed');
+
+    expect(mockCache.invalidateForUser).toHaveBeenCalledWith(mockUser.id);
+  });
 });
