@@ -17,7 +17,7 @@
       "source": "angular/angular",
       "sourceType": "github",
       "skillPath": "skills/dev-skills/angular-developer/SKILL.md",
-      "computedHash": "4de273da58236f27f3a59e70a2bbcc34167e298933f9a6f3b132f1d9ca44643c"
+      "computedHash": "c5d9759b9e39a49a382dedda3bb4b79a9d952c9d1aedbf07905272baa0e389ab"
     },
     "angular-di": {
       "source": "analogjs/angular-skills",
@@ -179,7 +179,7 @@
       "source": "rudrankriyam/app-store-connect-cli-skills",
       "sourceType": "github",
       "skillPath": "skills/asc-signing-setup/SKILL.md",
-      "computedHash": "e78e30944b1a797927535f2c5bdc0acd0fdac4e95dbc98868b9ffaa02fc44317"
+      "computedHash": "1f894b7be47bdf1dbc957bff3d370515f14482443ca91cc0aeffbf7d12c16885"
     },
     "asc-submission-health": {
       "source": "rudrankriyam/app-store-connect-cli-skills",
@@ -245,7 +245,7 @@
       "source": "pbakaus/impeccable",
       "sourceType": "github",
       "skillPath": ".agents/skills/impeccable/SKILL.md",
-      "computedHash": "45f00bac84048d02d4506b93c761c846490dd4f70d336100fb962019568a5e54"
+      "computedHash": "16180e7175cb29ef050926233b8514d7323294156890e1f1b17024ba8d9dab71"
     },
     "ios-marketing-capture": {
       "source": "ParthJadhav/ios-marketing-capture",
@@ -281,7 +281,7 @@
       "source": "supabase/agent-skills",
       "sourceType": "github",
       "skillPath": "skills/supabase-postgres-best-practices/SKILL.md",
-      "computedHash": "292c93e5a86e2429204bc37abe26b3c9023c4760eb02418462887f2082f118ce"
+      "computedHash": "efc547df91cc56b69792532db54607027884cb5873718c7ca1ebf6d6f1e4cb53"
     },
     "swift-concurrency-expert": {
       "source": "dimillian/skills",
