@@ -75,9 +75,16 @@ final class BudgetDetailsCoordinator {
                 showCheckToastIfNeeded(for: line, context: ctx, amountsHidden: amountsHidden)
             }
         case .confirmCheckAll(let line, let checkAll, let ctx, let amountsHidden):
-            let succeeded = await confirmToggle(for: line, checkAll: checkAll)
-            if succeeded {
+            switch await confirmToggle(for: line, checkAll: checkAll) {
+            case .lineNotToggled:
+                break
+            case .allChecked:
                 showCheckToastIfNeeded(for: line, context: ctx, amountsHidden: amountsHidden)
+            case .partialTransactionFailure:
+                ctx.toastManager.show(
+                    "Certaines transactions n'ont pas pu être pointées",
+                    type: .error
+                )
             }
         case .toggleTransaction(let tx):
             await toggleTransaction(tx)
@@ -209,16 +216,26 @@ final class BudgetDetailsCoordinator {
         return await performToggleBudgetLine(line)
     }
 
-    /// Confirms toggle after user answers the alert. Returns true if toggle succeeded.
+    /// Outcome of confirming a "check all" toggle from the alert. Lets the
+    /// dispatcher pick the right toast: the "Pointé" success toast when every
+    /// transaction reconciled, or an error toast when the bulk-check partially
+    /// failed (which also rolled the local apply back via reload).
+    enum CheckAllConfirmation {
+        case lineNotToggled
+        case allChecked
+        case partialTransactionFailure
+    }
+
+    /// Confirms toggle after user answers the alert.
     @discardableResult
-    func confirmToggle(for line: BudgetLine, checkAll: Bool) async -> Bool {
+    func confirmToggle(for line: BudgetLine, checkAll: Bool) async -> CheckAllConfirmation {
         defer { syncStore.resetCheckAllState() }
 
-        let succeeded = await performToggleBudgetLine(line)
-        if succeeded, checkAll {
-            await checkAllAllocatedTransactions(for: line.id)
-        }
-        return succeeded
+        guard await performToggleBudgetLine(line) else { return .lineNotToggled }
+        guard checkAll else { return .allChecked }
+
+        let hadFailure = await checkAllAllocatedTransactions(for: line.id)
+        return hadFailure ? .partialTransactionFailure : .allChecked
     }
 
     @discardableResult
@@ -249,11 +266,14 @@ final class BudgetDetailsCoordinator {
     }
 
     /// Toggle all unchecked transactions for a budget line in parallel.
-    private func checkAllAllocatedTransactions(for budgetLineId: String) async {
+    /// Returns `true` if at least one server call failed — the caller surfaces
+    /// the error toast; this method only reconciles local state via reload.
+    @discardableResult
+    private func checkAllAllocatedTransactions(for budgetLineId: String) async -> Bool {
         let unchecked = dataStore.transactions.filter {
             $0.budgetLineId == budgetLineId && !$0.isChecked
         }
-        guard !unchecked.isEmpty else { return }
+        guard !unchecked.isEmpty else { return false }
 
         for tx in unchecked {
             syncStore.markSyncing(txId: tx.id)
@@ -289,6 +309,7 @@ final class BudgetDetailsCoordinator {
         if hadFailure {
             await reloadCurrentBudget()
         }
+        return hadFailure
     }
 
     private func toggleTransaction(_ transaction: Transaction) async {
