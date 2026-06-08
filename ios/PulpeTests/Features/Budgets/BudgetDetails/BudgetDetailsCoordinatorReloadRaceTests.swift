@@ -104,6 +104,23 @@ struct BudgetDataStoreGenerationTests {
     }
 
     @Test
+    func prepareNavigation_bumpsGeneration() {
+        let budgetId = "gen-nav"
+        BudgetDetailCache.shared.invalidate(budgetId: budgetId)
+        let store = BudgetDataStore(budgetId: budgetId)
+        let start = store.mutationGeneration
+
+        // Swapping the budget must bump so an in-flight reload of the previous
+        // month is dropped on arrival — the keystone of the detached-reload
+        // defense that `.task(id:)` cancellation can't reach (PUL-257 / PUL-258).
+        store.prepareNavigation(to: "gen-nav-other")
+
+        #expect(store.mutationGeneration == start + 1)
+
+        BudgetDetailCache.shared.invalidate(budgetId: budgetId)
+    }
+
+    @Test
     func applyDetails_withMatchingGeneration_applies() {
         let budgetId = "gen-match"
         BudgetDetailCache.shared.invalidate(budgetId: budgetId)

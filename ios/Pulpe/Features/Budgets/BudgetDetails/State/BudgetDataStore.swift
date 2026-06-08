@@ -127,7 +127,10 @@ final class BudgetDataStore {
     }
 
     /// Apply fetched details to local state, recompute metrics, and update cache.
-    func applyDetails(_ details: BudgetDetails) {
+    /// Private: external callers must go through `applyDetails(_:ifGenerationMatches:)`
+    /// so a reload can never bypass the staleness guard and silently revert an
+    /// optimistic mutation (PUL-257).
+    private func applyDetails(_ details: BudgetDetails) {
         budget = details.budget
         budgetLines = details.budgetLines
         transactions = details.transactions
