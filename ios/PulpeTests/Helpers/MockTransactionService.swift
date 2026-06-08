@@ -15,6 +15,9 @@ final class MockTransactionService: TransactionServicing {
     var stubbedToggle: Transaction?
     var stubbedCreated: Transaction?
     var stubbedUpdated: Transaction?
+    /// Transaction ids whose `toggleCheck` should throw — drives partial
+    /// bulk-check failures deterministically (PUL-259).
+    var failingToggleIds: Set<String> = []
 
     func deleteTransaction(id: String) async throws {
         deleteTransactionCallCount += 1
@@ -23,7 +26,8 @@ final class MockTransactionService: TransactionServicing {
     }
 
     func toggleCheck(id: String) async throws -> Transaction {
-        stubbedToggle ?? TestDataFactory.createTransaction(id: id)
+        if failingToggleIds.contains(id) { throw URLError(.badServerResponse) }
+        return stubbedToggle ?? TestDataFactory.createTransaction(id: id)
     }
 
     func createTransaction(_ data: TransactionCreate) async throws -> Transaction {
