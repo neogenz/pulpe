@@ -314,4 +314,63 @@ struct BudgetDetailsScreenStateProjectionTests {
         #expect(state.free.map(\.transaction.id) == ["free"])
         #expect(state.transactionsByLineId["line-1"]?.map(\.id) == ["allocated"])
     }
+
+    // MARK: - Checked tick hash
+
+    /// `checkedTickHash` is the `value:` of the list-level `.animation(_:value:)`
+    /// in `BudgetDetailsView`. Its contract: change if-and-only-if some item's
+    /// `isChecked` flag flips. A hash that never changes silently kills pointage
+    /// animations; one that changes on unrelated edits thrashes them.
+
+    private func checkedTickHash(for stack: StoreStack) -> Int {
+        BudgetDetailsProjector.project(
+            dataStore: stack.data,
+            filtersStore: stack.filters,
+            syncStore: stack.sync,
+            searchText: ""
+        ).checkedTickHash
+    }
+
+    @Test
+    func checkedTickHash_reprojectedWithSameSource_staysStable() {
+        let stack = makeStores()
+        stack.data.appendBudgetLine(TestDataFactory.createBudgetLine(id: "line-1", isChecked: true))
+        stack.data.appendTransaction(TestDataFactory.createTransaction(id: "tx-1", isChecked: false))
+
+        #expect(checkedTickHash(for: stack) == checkedTickHash(for: stack))
+    }
+
+    @Test
+    func checkedTickHash_budgetLineCheckFlips_changes() {
+        let unchecked = makeStores()
+        unchecked.data.appendBudgetLine(TestDataFactory.createBudgetLine(id: "line-1", isChecked: false))
+
+        let checked = makeStores()
+        checked.data.appendBudgetLine(TestDataFactory.createBudgetLine(id: "line-1", isChecked: true))
+
+        #expect(checkedTickHash(for: unchecked) != checkedTickHash(for: checked))
+    }
+
+    @Test
+    func checkedTickHash_transactionCheckFlips_changes() {
+        let unchecked = makeStores()
+        unchecked.data.appendTransaction(TestDataFactory.createTransaction(id: "tx-1", isChecked: false))
+
+        let checked = makeStores()
+        checked.data.appendTransaction(TestDataFactory.createTransaction(id: "tx-1", isChecked: true))
+
+        #expect(checkedTickHash(for: unchecked) != checkedTickHash(for: checked))
+    }
+
+    @Test
+    func checkedTickHash_nonCheckedFieldChanges_staysStable() {
+        let base = makeStores()
+        base.data.appendBudgetLine(TestDataFactory.createBudgetLine(id: "line-1", name: "Loyer", amount: 1000, isChecked: false))
+
+        // Same id + same isChecked, but name and amount differ — hash must ignore them.
+        let edited = makeStores()
+        edited.data.appendBudgetLine(TestDataFactory.createBudgetLine(id: "line-1", name: "Loyer révisé", amount: 1200, isChecked: false))
+
+        #expect(checkedTickHash(for: base) == checkedTickHash(for: edited))
+    }
 }
