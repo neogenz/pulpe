@@ -13,12 +13,6 @@
       "skillPath": "skills/angular-component/SKILL.md",
       "computedHash": "2789fdf11e2a70832ce2e6e79954018325a010ebdd45c5d4b1e7bfdf44679b7c"
     },
-    "angular-developer": {
-      "source": "angular/angular",
-      "sourceType": "github",
-      "skillPath": "skills/dev-skills/angular-developer/SKILL.md",
-      "computedHash": "c5d9759b9e39a49a382dedda3bb4b79a9d952c9d1aedbf07905272baa0e389ab"
-    },
     "angular-di": {
       "source": "analogjs/angular-skills",
       "sourceType": "github",
