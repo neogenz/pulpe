@@ -43,8 +43,10 @@ export class UpdateBudgetLineUseCase {
 
     const entity = await this.repo.update(id, patch);
 
-    await this.budgetRecalculation.recalculate(entity.budgetId);
+    // Cache invalidation BEFORE recalc — if recalc fails, the stale cached
+    // list won't be locked in as authoritative against the just-mutated row.
     await this.cacheService.invalidateForUser(user.id);
+    await this.budgetRecalculation.recalculate(entity.budgetId);
 
     this.logger.info(
       { budgetLineId: id, userId: user.id, operation: 'budgetLine.update' },
