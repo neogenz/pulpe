@@ -29,11 +29,16 @@ final class MockBudgetService: BudgetServicing {
     private var gateContinuation: CheckedContinuation<Void, Never>?
     private var isGated = false
 
-    /// Suspend the next `getBudgetWithDetails` call until `releaseDetails()`.
+    /// Arm a one-shot gate: the next `getBudgetWithDetails` call suspends until
+    /// `releaseDetails()`. One-shot by design — drive at most one gated call per
+    /// instance; `releaseDetails()` disarms so later calls pass through.
     func gateDetails() { isGated = true }
 
-    /// Resume a gated `getBudgetWithDetails` call.
+    /// Resume the gated `getBudgetWithDetails` call and disarm the gate, so any
+    /// later call on this instance returns immediately instead of suspending on
+    /// a continuation that would never resume.
     func releaseDetails() {
+        isGated = false
         gateContinuation?.resume()
         gateContinuation = nil
     }
