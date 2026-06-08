@@ -304,6 +304,24 @@ struct FiltersStorePureTests {
         #expect(result.first?.id == "tx-2")
     }
 
+    @Test(arguments: ["1'500", "1 500", "1500,00"])
+    func combinedFilteredFreeTransactions_amountAsDisplayed_matches(query: String) {
+        // Free-transaction amount search also matches the displayed value (PUL-247).
+        let txs = [
+            TestDataFactory.createTransaction(id: "tx-1", name: "Coop", amount: 45),
+            TestDataFactory.createTransaction(id: "tx-2", name: "Migros", amount: 1500),
+        ]
+
+        let result = FiltersStore.combinedFilteredFreeTransactions(
+            txs,
+            searchText: query,
+            checkedFilter: .all
+        )
+
+        #expect(result.count == 1, "query \"\(query)\" should match only Migros (1500)")
+        #expect(result.first?.id == "tx-2")
+    }
+
     @Test
     func combinedFilteredFreeTransactions_bothFilters() {
         let txs = [
@@ -371,17 +389,51 @@ struct FiltersStorePureTests {
         #expect(result.count == 1)
     }
 
-    @Test
-    func filteredLines_amount_matchesExactAmount() {
+    /// Amount search must match the value **as displayed** to the user (PUL-247).
+    /// `1500` shows as `1'500.00` (CHF) / `1 500,00` (EUR); a user typing any of
+    /// the variants below — what they see — must find the `1500` line.
+    /// Every grouping/decimal variant the user might type — `1'500` (CHF
+    /// display), `1 500` / `1 500,00` (EUR display), `1500`, `1500.00` — must
+    /// find the `1500` line. The match is currency-independent by construction.
+    @Test(arguments: ["1500", "1'500", "1 500", "1500.00", "1500,00"])
+    func filteredLines_amountAsDisplayed_matches(query: String) {
         let lines = [
             TestDataFactory.createBudgetLine(id: "1", name: "Loyer", amount: 1500),
             TestDataFactory.createBudgetLine(id: "2", name: "Café", amount: 5),
         ]
 
-        let result = FiltersStore.filteredLines(lines, searchText: "1500", transactions: [])
+        let result = FiltersStore.filteredLines(lines, searchText: query, transactions: [])
+
+        #expect(result.count == 1, "query \"\(query)\" should match only the 1500 line")
+        #expect(result.first?.id == "1")
+    }
+
+    @Test
+    func filteredLines_amountWithSeparator_matchesLinkedTransaction() {
+        // Grouping separators must also match against linked transaction amounts (PUL-247).
+        let line = TestDataFactory.createBudgetLine(id: "line-x", name: "Courses", amount: 300)
+        let linkedTx = TestDataFactory.createTransaction(
+            id: "tx-linked",
+            budgetLineId: "line-x",
+            name: "Migros",
+            amount: 1500
+        )
+
+        let result = FiltersStore.filteredLines([line], searchText: "1'500", transactions: [linkedTx])
 
         #expect(result.count == 1)
-        #expect(result.first?.id == "1")
+        #expect(result.first?.id == "line-x")
+    }
+
+    @Test
+    func filteredLines_amountWrongValue_doesNotMatch() {
+        let lines = [
+            TestDataFactory.createBudgetLine(id: "1", name: "Loyer", amount: 1500),
+        ]
+
+        let result = FiltersStore.filteredLines(lines, searchText: "1600", transactions: [])
+
+        #expect(result.isEmpty)
     }
 
     @Test
