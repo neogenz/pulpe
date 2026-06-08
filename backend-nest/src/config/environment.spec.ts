@@ -1,5 +1,12 @@
+import type { ConfigService } from '@nestjs/config';
 import { describe, expect, it } from 'bun:test';
-import { validateConfig } from './environment';
+import { validateConfig, validateEnvironment } from './environment';
+
+const createConfigService = (values: Record<string, unknown>): ConfigService =>
+  ({
+    get: (key: string, defaultValue?: unknown) =>
+      key in values ? values[key] : defaultValue,
+  }) as unknown as ConfigService;
 
 describe('Environment Validation', () => {
   describe('SUPABASE_SERVICE_ROLE_KEY', () => {
@@ -269,6 +276,62 @@ describe('Environment Validation', () => {
       };
 
       expect(() => validateConfig(config)).not.toThrow();
+    });
+  });
+
+  describe('validateEnvironment force-update vars', () => {
+    const baseValues = {
+      NODE_ENV: 'production',
+      SUPABASE_URL: 'https://example.supabase.co',
+      SUPABASE_ANON_KEY: 'prod-anon-key',
+      SUPABASE_SERVICE_ROLE_KEY: 'service-role-key',
+      TURNSTILE_SECRET_KEY: 'prod-turnstile-key',
+      ENCRYPTION_MASTER_KEY:
+        '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
+    };
+
+    it('should return the force-update vars set on the ConfigService', () => {
+      const configService = createConfigService({
+        ...baseValues,
+        MIN_IOS_VERSION: '1.2.0',
+        LATEST_IOS_VERSION: '1.5.0',
+        IOS_STORE_URL: 'https://apps.apple.com/app/id123',
+        MIN_WEB_VERSION: '0.1.0',
+        LATEST_WEB_VERSION: '0.3.0',
+      });
+
+      const result = validateEnvironment(configService);
+
+      expect(result.MIN_IOS_VERSION).toBe('1.2.0');
+      expect(result.LATEST_IOS_VERSION).toBe('1.5.0');
+      expect(result.IOS_STORE_URL).toBe('https://apps.apple.com/app/id123');
+      expect(result.MIN_WEB_VERSION).toBe('0.1.0');
+      expect(result.LATEST_WEB_VERSION).toBe('0.3.0');
+    });
+
+    it('should fall back to schema defaults when force-update vars are absent', () => {
+      const configService = createConfigService(baseValues);
+
+      const result = validateEnvironment(configService);
+
+      expect(result.MIN_IOS_VERSION).toBe('1.0.0');
+      expect(result.LATEST_IOS_VERSION).toBe('1.0.0');
+      expect(result.IOS_STORE_URL).toBe(
+        'https://apps.apple.com/app/id6758464920',
+      );
+      expect(result.MIN_WEB_VERSION).toBe('0.0.1');
+      expect(result.LATEST_WEB_VERSION).toBe('0.0.1');
+    });
+
+    it('should throw when a force-update var is invalid', () => {
+      const configService = createConfigService({
+        ...baseValues,
+        MIN_IOS_VERSION: 'not-a-semver',
+      });
+
+      expect(() => validateEnvironment(configService)).toThrow(
+        /MIN_IOS_VERSION/,
+      );
     });
   });
 });
