@@ -209,4 +209,58 @@ describe('Environment Validation', () => {
       expect(() => validateConfig(config)).toThrow(/POSTHOG_PROJECT_ID/);
     });
   });
+
+  describe('force-update vars defaults', () => {
+    const baseConfig = {
+      NODE_ENV: 'production',
+      SUPABASE_URL: 'https://example.supabase.co',
+      SUPABASE_ANON_KEY: 'prod-anon-key',
+      SUPABASE_SERVICE_ROLE_KEY: 'service-role-key',
+      TURNSTILE_SECRET_KEY: 'prod-turnstile-key',
+      ENCRYPTION_MASTER_KEY:
+        '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
+    };
+
+    it('should apply default values when force-update vars are absent', () => {
+      const result = validateConfig(baseConfig);
+
+      expect(result.MIN_IOS_VERSION).toBe('1.0.0');
+      expect(result.LATEST_IOS_VERSION).toBe('1.0.0');
+      expect(result.IOS_STORE_URL).toBe(
+        'https://apps.apple.com/app/id6758464920',
+      );
+      expect(result.MIN_WEB_VERSION).toBe('0.0.1');
+      expect(result.LATEST_WEB_VERSION).toBe('0.0.1');
+    });
+
+    it('should use provided values over defaults when force-update vars are set', () => {
+      const config = {
+        ...baseConfig,
+        MIN_IOS_VERSION: '2.1.0',
+        LATEST_IOS_VERSION: '2.3.0',
+        IOS_STORE_URL: 'https://apps.apple.com/app/id1234567890',
+        MIN_WEB_VERSION: '1.5.0',
+        LATEST_WEB_VERSION: '1.6.0',
+      };
+
+      const result = validateConfig(config);
+
+      expect(result.MIN_IOS_VERSION).toBe('2.1.0');
+      expect(result.LATEST_IOS_VERSION).toBe('2.3.0');
+      expect(result.IOS_STORE_URL).toBe(
+        'https://apps.apple.com/app/id1234567890',
+      );
+      expect(result.MIN_WEB_VERSION).toBe('1.5.0');
+      expect(result.LATEST_WEB_VERSION).toBe('1.6.0');
+    });
+
+    it('should reject force-update version vars that are not semver', () => {
+      const config = {
+        ...baseConfig,
+        MIN_IOS_VERSION: '1.0',
+      };
+
+      expect(() => validateConfig(config)).toThrow(/MIN_IOS_VERSION/);
+    });
+  });
 });
