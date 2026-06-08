@@ -137,4 +137,22 @@ describe('CreateBudgetLineUseCase', () => {
       BusinessException,
     );
   });
+
+  it('should invalidate cache even when recalculate rejects', async () => {
+    const dto: BudgetLineCreate = {
+      budgetId: '123e4567-e89b-12d3-a456-426614174001',
+      name: 'Loyer',
+      amount: 1200,
+      kind: 'expense',
+      recurrence: 'fixed',
+      isManuallyAdjusted: false,
+    };
+    mockBudget.recalculate.mockRejectedValueOnce(new Error('recalc failed'));
+
+    await expect(useCase.execute(dto, mockUser)).rejects.toThrow(
+      'recalc failed',
+    );
+
+    expect(mockCache.invalidateForUser).toHaveBeenCalledWith(mockUser.id);
+  });
 });
