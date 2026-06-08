@@ -120,6 +120,11 @@ export function validateEnvironment(configService: ConfigService): Environment {
     POSTHOG_API_KEY: configService.get('POSTHOG_API_KEY'),
     POSTHOG_PROJECT_ID: configService.get('POSTHOG_PROJECT_ID'),
     POSTHOG_HOST: configService.get('POSTHOG_HOST'),
+    MIN_IOS_VERSION: configService.get('MIN_IOS_VERSION'),
+    LATEST_IOS_VERSION: configService.get('LATEST_IOS_VERSION'),
+    IOS_STORE_URL: configService.get('IOS_STORE_URL'),
+    MIN_WEB_VERSION: configService.get('MIN_WEB_VERSION'),
+    LATEST_WEB_VERSION: configService.get('LATEST_WEB_VERSION'),
   };
 
   const result = envSchema.safeParse(config);
