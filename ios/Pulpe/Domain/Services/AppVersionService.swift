@@ -48,24 +48,32 @@ actor AppVersionService: AppVersionServiceProtocol {
 
     func fetch() async throws -> AppVersionResponse {
         let url = baseURL.appendingPathComponent(Self.endpointPath)
+        // The endpoint is public/pre-auth and the store fails open, so any
+        // failure here would otherwise vanish — log it once (transport OR
+        // decode) so a broken gate (Railway deploy, CDN misconfig, 5xx,
+        // malformed payload) is visible in monitoring.
+        let data: Data
+        let response: URLResponse
         do {
-            let (data, response) = try await session.data(from: url)
-            if let http = response as? HTTPURLResponse, !(200..<300).contains(http.statusCode) {
-                Logger.app.warning(
-                    """
-                    [FORCE-UPDATE] version endpoint HTTP \(http.statusCode) — gate may be stale. \
-                    url=\(url.absoluteString, privacy: .public)
-                    """
-                )
-            }
+            (data, response) = try await session.data(from: url)
+        } catch {
+            Logger.network.warning(
+                """
+                [FORCE-UPDATE] version endpoint unreachable — gate cannot refresh, fails open. \
+                url=\(url.absoluteString, privacy: .public) \
+                error=\(error.localizedDescription, privacy: .public)
+                """
+            )
+            throw error
+        }
+
+        let statusCode = (response as? HTTPURLResponse)?.statusCode ?? -1
+        do {
             return try JSONDecoder().decode(AppVersionResponse.self, from: data)
         } catch {
-            // The endpoint is public/pre-auth and the store fails open, so this
-            // error would otherwise vanish — log it so a broken gate (Railway
-            // deploy, CDN misconfig, malformed payload) is visible in monitoring.
-            Logger.app.warning(
+            Logger.network.warning(
                 """
-                [FORCE-UPDATE] version fetch failed — gate cannot refresh, app fails open on first launch. \
+                [FORCE-UPDATE] version response unusable (HTTP \(statusCode)) — gate cannot refresh, fails open. \
                 url=\(url.absoluteString, privacy: .public) \
                 error=\(error.localizedDescription, privacy: .public)
                 """
