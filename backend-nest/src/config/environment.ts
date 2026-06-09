@@ -1,4 +1,3 @@
-import { ConfigService } from '@nestjs/config';
 import { z } from 'zod';
 
 const SEMVER_SEGMENT_COUNT = 3;
@@ -103,42 +102,6 @@ const envSchema = z
   );
 
 export type Environment = z.infer<typeof envSchema>;
-
-export function validateEnvironment(configService: ConfigService): Environment {
-  const config = {
-    NODE_ENV: configService.get('NODE_ENV', 'development'),
-    PORT: configService.get('PORT', 3000),
-    SUPABASE_URL: configService.get('SUPABASE_URL'),
-    SUPABASE_ANON_KEY: configService.get('SUPABASE_ANON_KEY'),
-    SUPABASE_SERVICE_ROLE_KEY: configService.get('SUPABASE_SERVICE_ROLE_KEY'),
-    TURNSTILE_SECRET_KEY: configService.get('TURNSTILE_SECRET_KEY'),
-    ENCRYPTION_MASTER_KEY: configService.get('ENCRYPTION_MASTER_KEY'),
-    CORS_ORIGIN: configService.get('CORS_ORIGIN'),
-    DEBUG_HTTP_FULL: configService.get('DEBUG_HTTP_FULL'),
-    MAINTENANCE_MODE: configService.get('MAINTENANCE_MODE'),
-    IP_BLACKLIST: configService.get('IP_BLACKLIST'),
-    POSTHOG_API_KEY: configService.get('POSTHOG_API_KEY'),
-    POSTHOG_PROJECT_ID: configService.get('POSTHOG_PROJECT_ID'),
-    POSTHOG_HOST: configService.get('POSTHOG_HOST'),
-    MIN_IOS_VERSION: configService.get('MIN_IOS_VERSION'),
-    LATEST_IOS_VERSION: configService.get('LATEST_IOS_VERSION'),
-    IOS_STORE_URL: configService.get('IOS_STORE_URL'),
-    MIN_WEB_VERSION: configService.get('MIN_WEB_VERSION'),
-    LATEST_WEB_VERSION: configService.get('LATEST_WEB_VERSION'),
-  };
-
-  const result = envSchema.safeParse(config);
-
-  if (!result.success) {
-    throw new Error(
-      `Environment validation failed:\n${result.error.issues
-        .map((issue) => `- ${issue.path.join('.')}: ${issue.message}`)
-        .join('\n')}`,
-    );
-  }
-
-  return result.data;
-}
 
 // Configuration validation function for NestJS ConfigModule
 export function validateConfig(config: Record<string, unknown>): Environment {
