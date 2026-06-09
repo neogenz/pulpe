@@ -315,3 +315,72 @@ struct BudgetFormulasTests {
         #expect(metrics.usagePercentage > 100)
     }
 }
+
+// By-design guard against the "sum of per-month nets" vs "cumulative closing balance"
+// confusion. `remaining` is already cumulative, so a year's closing balance is its last
+// budgeted month's `remaining`. Fixtures use TestDataFactory.createMonthlyLedger, which
+// derives `remaining`/`rollover` from raw nets exactly as the backend does — a fixture
+// can't encode the wrong semantics and accidentally pass.
+@Suite("Year closing balance (PUL-263)")
+struct BudgetFormulasYearClosingTests {
+    /// Invariant pinning the contract: closing balance = opening carried in + the year's own
+    /// nets, for ANY opening. The old per-month-sum formula ignored the opening and returned
+    /// only the year's nets — so it failed this for every non-zero opening.
+    @Test("Closing = opening + year nets, for any opening", arguments: [
+        Decimal(-856), Decimal(0), Decimal(1200), Decimal(-1), Decimal(50_000)
+    ])
+    func equalsOpeningPlusYearNets(opening: Decimal) {
+        let ledger = TestDataFactory.createMonthlyLedger([
+            .init(month: 12, year: 2025, net: opening),       // prior-year close = opening into 2026
+            .init(month: 1, year: 2026, net: 200),
+            .init(month: 2, year: 2026, net: 163),
+            .init(month: 12, year: 2026, net: 200)            // 2026 nets = +563
+        ])
+        let budgets2026 = ledger.filter { $0.year == 2026 }
+        #expect(BudgetFormulas.yearClosingBalance(budgets2026) == opening + 563)
+    }
+
+    /// Documents the exact trap: summing per-month nets diverges from the real closing balance
+    /// whenever an opening exists. Reproduces the prod numbers — hero showed +563, truth was −293.
+    @Test func sumOfMonthNetsDivergesFromClosing_whenOpeningNonZero() {
+        let budgets2026 = TestDataFactory.createMonthlyLedger([
+            .init(month: 12, year: 2025, net: -856),
+            .init(month: 1, year: 2026, net: 200),
+            .init(month: 2, year: 2026, net: 163),
+            .init(month: 12, year: 2026, net: 200)
+        ]).filter { $0.year == 2026 }
+
+        let sumOfNets = budgets2026.reduce(Decimal(0)) {
+            $0 + (($1.remaining ?? 0) - ($1.rollover ?? 0))
+        }
+        let closing = BudgetFormulas.yearClosingBalance(budgets2026)
+
+        #expect(sumOfNets == 563)          // what the buggy hero showed
+        #expect(closing == -293)           // the real year-end balance
+        #expect(sumOfNets != closing)      // by design: these MUST differ when opening ≠ 0
+    }
+
+    /// Closing is the highest budgeted month, not the last element — robust to input order.
+    @Test func unorderedInput_picksHighestMonth() {
+        let budgets = TestDataFactory.createMonthlyLedger([
+            .init(month: 1, year: 2026, net: 200),
+            .init(month: 2, year: 2026, net: 163),
+            .init(month: 12, year: 2026, net: 200)
+        ]).reversed()
+        #expect(BudgetFormulas.yearClosingBalance(Array(budgets)) == 563)
+    }
+
+    @Test func emptyBudgets_returnsZero() {
+        #expect(BudgetFormulas.yearClosingBalance([]) == 0)
+    }
+
+    /// CA4: incomplete year (only some months budgeted) → balance at the last budgeted month.
+    @Test func incompleteYear_usesLastBudgetedMonth() {
+        let budgets2026 = TestDataFactory.createMonthlyLedger([
+            .init(month: 12, year: 2025, net: 300),           // opening into 2026
+            .init(month: 1, year: 2026, net: -200),
+            .init(month: 2, year: 2026, net: 150)             // only 2 months budgeted → closes at 250
+        ]).filter { $0.year == 2026 }
+        #expect(BudgetFormulas.yearClosingBalance(budgets2026) == 250)
+    }
+}

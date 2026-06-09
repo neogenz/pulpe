@@ -299,6 +299,16 @@ enum BudgetFormulas {
         calculateEndingBalance(available: available, totalExpenses: totalExpenses)
     }
 
+    // MARK: - Year Recap
+
+    /// Closing balance of a budgeted year = the last budgeted month's cumulative `remaining`.
+    /// `remaining` is already the cumulative ending balance (income + rollover − expenses), so the
+    /// latest month carries the whole-year balance — including the opening balance brought forward
+    /// from prior years. Summing per-month nets (`remaining − rollover`) drops that opening. (PUL-263)
+    static func yearClosingBalance(_ budgets: [BudgetSparse]) -> Decimal {
+        budgets.max { ($0.month ?? 0) < ($1.month ?? 0) }?.remaining ?? 0
+    }
+
     // MARK: - Consumption Tracking
 
     struct Consumption: Equatable, Sendable {

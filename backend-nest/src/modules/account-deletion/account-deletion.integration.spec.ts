@@ -5,7 +5,15 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { LoggerModule } from 'nestjs-pino';
 import { AccountDeletionModule } from './account-deletion.module';
 import { CleanupExpiredDeletionsUseCase } from './application/cleanup-expired-deletions.use-case';
+import {
+  POSTHOG_PERSON_DELETION_PORT,
+  type PostHogPersonDeletionPort,
+} from './domain/ports/posthog-person-deletion.port';
 import type { Database } from '../../types/database.types';
+
+const stubPostHogPort: PostHogPersonDeletionPort = {
+  deletePerson: async () => ({ ok: true, statusCode: 202 }),
+};
 
 const FOUR_DAYS_MS = 4 * 24 * 60 * 60 * 1000;
 
@@ -53,7 +61,10 @@ describe('AccountDeletionService Integration', () => {
         }),
         AccountDeletionModule,
       ],
-    }).compile();
+    })
+      .overrideProvider(POSTHOG_PERSON_DELETION_PORT)
+      .useValue(stubPostHogPort)
+      .compile();
 
     useCase = moduleRef.get<CleanupExpiredDeletionsUseCase>(
       CleanupExpiredDeletionsUseCase,

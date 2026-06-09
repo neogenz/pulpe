@@ -263,4 +263,66 @@ describe('Environment Validation', () => {
       expect(() => validateConfig(config)).toThrow(/MIN_IOS_VERSION/);
     });
   });
+
+  describe('Force-update version invariants (MIN <= LATEST)', () => {
+    const baseConfig = {
+      NODE_ENV: 'production',
+      SUPABASE_URL: 'https://example.supabase.co',
+      SUPABASE_ANON_KEY: 'prod-anon-key',
+      SUPABASE_SERVICE_ROLE_KEY: 'service-role-key',
+      TURNSTILE_SECRET_KEY: 'prod-turnstile-key',
+      ENCRYPTION_MASTER_KEY:
+        '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
+    };
+
+    it('should accept iOS versions when MIN is below LATEST', () => {
+      const config = {
+        ...baseConfig,
+        MIN_IOS_VERSION: '1.0.0',
+        LATEST_IOS_VERSION: '1.0.2',
+      };
+
+      expect(() => validateConfig(config)).not.toThrow();
+    });
+
+    it('should accept versions when MIN equals LATEST', () => {
+      const config = {
+        ...baseConfig,
+        MIN_IOS_VERSION: '2.1.0',
+        LATEST_IOS_VERSION: '2.1.0',
+      };
+
+      expect(() => validateConfig(config)).not.toThrow();
+    });
+
+    it('should reject when MIN_IOS_VERSION is above LATEST_IOS_VERSION', () => {
+      const config = {
+        ...baseConfig,
+        MIN_IOS_VERSION: '2.0.0',
+        LATEST_IOS_VERSION: '0.1.0',
+      };
+
+      expect(() => validateConfig(config)).toThrow(/LATEST_IOS_VERSION/);
+    });
+
+    it('should reject when MIN_WEB_VERSION is above LATEST_WEB_VERSION', () => {
+      const config = {
+        ...baseConfig,
+        MIN_WEB_VERSION: '3.0.0',
+        LATEST_WEB_VERSION: '2.9.9',
+      };
+
+      expect(() => validateConfig(config)).toThrow(/LATEST_WEB_VERSION/);
+    });
+
+    it('should compare segments numerically (1.0.10 is above 1.0.2)', () => {
+      const config = {
+        ...baseConfig,
+        MIN_IOS_VERSION: '1.0.2',
+        LATEST_IOS_VERSION: '1.0.10',
+      };
+
+      expect(() => validateConfig(config)).not.toThrow();
+    });
+  });
 });

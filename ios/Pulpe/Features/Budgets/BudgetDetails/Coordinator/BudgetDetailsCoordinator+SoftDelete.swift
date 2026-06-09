@@ -63,11 +63,17 @@ extension BudgetDetailsCoordinator {
 
     private func presentOrRefreshDeletionToast(context: ToastContext) {
         let copy = mutationQueue.deletionToastCopy(presentationCurrency: context.presentationCurrency)
-        let undo: @MainActor () async -> Void = { [weak self] in
-            await self?.restoreLastPendingDeletion(context: context)
+        // Capture `self` strongly: the undo/commit work must outlive the view.
+        // `ToastContext.toastManager` is app-scoped, so when the user leaves the
+        // screen the view-scoped coordinator has to stay alive until the toast
+        // resolves — otherwise the deferred server DELETE is silently dropped
+        // (PUL-264). No retain cycle: the coordinator never holds the toast
+        // manager, so `self` is released as soon as the toast clears.
+        let undo: @MainActor () async -> Void = {
+            await self.restoreLastPendingDeletion(context: context)
         }
-        let commit: @MainActor () async -> Void = { [weak self] in
-            await self?.commitPendingSoftDeletions()
+        let commit: @MainActor () async -> Void = {
+            await self.commitPendingSoftDeletions()
         }
         if mutationQueue.count == 1 {
             context.toastManager.showWithUndo(
@@ -105,11 +111,13 @@ extension BudgetDetailsCoordinator {
         guard !mutationQueue.isEmpty else { return }
 
         let copy = mutationQueue.deletionToastCopy(presentationCurrency: context.presentationCurrency)
-        let undo: @MainActor () async -> Void = { [weak self] in
-            await self?.restoreLastPendingDeletion(context: context)
+        // Strong `self` — same app-scoped lifetime rationale as the initial
+        // toast presentation above (PUL-264).
+        let undo: @MainActor () async -> Void = {
+            await self.restoreLastPendingDeletion(context: context)
         }
-        let commit: @MainActor () async -> Void = { [weak self] in
-            await self?.commitPendingSoftDeletions()
+        let commit: @MainActor () async -> Void = {
+            await self.commitPendingSoftDeletions()
         }
         context.toastManager.showWithUndo(
             copy.title,
@@ -119,15 +127,29 @@ extension BudgetDetailsCoordinator {
         )
     }
 
+    /// Finalize pending soft-deletions before the screen navigates to another
+    /// month. Commits them against the still-current store and drops any stale
+    /// error, so neither the undo/rollback paths nor an error banner can target
+    /// the next month's data (PUL-258). Must be awaited BEFORE
+    /// `dataStore.prepareNavigation` swaps the budget — otherwise a failed
+    /// commit re-injects into, and a stale error surfaces on, the wrong month.
+    func commitPendingSoftDeletionsBeforeNavigation() async {
+        await commitPendingSoftDeletions()
+        syncStore.clearError()
+    }
+
     private func commitPendingSoftDeletions() async {
+        // The queue is the source of truth: undo already removed any restored
+        // item via `popLast`, so everything still pending must be committed —
+        // even if a reload re-injected the line into the store in the meantime
+        // (PUL-264). A store-membership guard here would let that reload cancel
+        // a deletion the user confirmed.
         let batch = mutationQueue.drainAll()
         for item in batch {
             switch item {
             case .transaction(let tx):
-                guard !dataStore.transactions.contains(where: { $0.id == tx.id }) else { continue }
                 await commitDeleteTransaction(tx)
             case .budgetLine(let line):
-                guard !dataStore.budgetLines.contains(where: { $0.id == line.id }) else { continue }
                 await commitDeleteBudgetLine(line)
             }
         }
@@ -136,6 +158,15 @@ extension BudgetDetailsCoordinator {
     private func commitDeleteTransaction(_ tx: Transaction) async {
         do {
             try await transactionService.deleteTransaction(id: tx.id)
+            // A reload racing the undo window can re-inject the row via
+            // `applyDetails` (which overwrites the store and cache from the
+            // server, where the row still existed). The server DELETE has now
+            // succeeded, so drop the re-injected copy to keep the rendered
+            // store and the detail cache consistent (PUL-264). Idempotent when
+            // no reload raced — the row is already absent.
+            dataStore.removeTransaction(id: tx.id)
+            dataStore.recomputeMetrics()
+            dataStore.syncCache()
         } catch {
             dataStore.appendTransaction(tx)
             dataStore.recomputeMetrics()
@@ -147,6 +178,11 @@ extension BudgetDetailsCoordinator {
     private func commitDeleteBudgetLine(_ line: BudgetLine) async {
         do {
             try await budgetLineService.deleteBudgetLine(id: line.id)
+            // See `commitDeleteTransaction`: re-remove in case a reload
+            // re-injected the line during the undo window (PUL-264). Idempotent.
+            dataStore.removeBudgetLine(id: line.id)
+            dataStore.recomputeMetrics()
+            dataStore.syncCache()
         } catch {
             dataStore.appendBudgetLine(line)
             dataStore.recomputeMetrics()

@@ -94,6 +94,35 @@ enum TestDataFactory {
         )
     }
 
+    /// One month's net flow (income − expenses) for `createMonthlyLedger`.
+    struct LedgerEntry {
+        let month: Int
+        let year: Int
+        let net: Decimal
+    }
+
+    /// Builds sparse budgets from raw monthly nets using the canonical cumulative rule —
+    /// the backend SOT (`recalculate-budget-balances` + `shared/budget-formulas`):
+    ///   `rollover_M`  = Σ nets of every prior month (opening balance, carried cross-year)
+    ///   `remaining_M` = Σ nets up to and including M (cumulative closing balance)
+    /// Use this for any multi-month / multi-year aggregation fixture so tests can never
+    /// silently diverge from the real `remaining`/`rollover` semantics. (PUL-263)
+    static func createMonthlyLedger(_ entries: [LedgerEntry]) -> [BudgetSparse] {
+        let ordered = entries.sorted { ($0.year, $0.month) < ($1.year, $1.month) }
+        var cumulative: Decimal = 0
+        return ordered.map { entry in
+            let opening = cumulative
+            cumulative += entry.net
+            return createBudgetSparse(
+                id: "\(entry.year)-\(entry.month)",
+                month: entry.month,
+                year: entry.year,
+                remaining: cumulative,
+                rollover: opening
+            )
+        }
+    }
+
     // MARK: - Budget Factory
 
     static func createBudget(

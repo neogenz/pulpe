@@ -10,16 +10,15 @@ struct YearRecapCard: View {
     @Environment(\.amountsHidden) private var amountsHidden
     @Environment(UserSettingsStore.self) private var userSettingsStore
 
-    /// Sum of endingBalance per month (remaining - rollover) to avoid double-counting rollover across months
-    private var yearTotal: Decimal {
-        budgets.compactMap { budget in
-            guard let remaining = budget.remaining else { return nil as Decimal? }
-            return remaining - (budget.rollover ?? 0)
-        }.reduce(0, +)
+    /// Year-end balance = the last budgeted month's cumulative `remaining` (PUL-263).
+    /// `remaining` already includes rollover, so the latest month carries the whole-year
+    /// balance, including the opening balance brought forward from prior years.
+    private var closingBalance: Decimal {
+        BudgetFormulas.yearClosingBalance(budgets)
     }
 
     private var emotionColor: Color {
-        yearTotal >= 0 ? Color.pulpePrimary : Color.financialExpense
+        closingBalance >= 0 ? Color.pulpePrimary : Color.financialExpense
     }
 
     private var monthProgress: Double {
@@ -59,14 +58,14 @@ struct YearRecapCard: View {
             "\(isPastYear ? "Bilan" : "Potentiel") \(year), "
             + (amountsHidden
                 ? "montant masqué"
-                : yearTotal.asArithmeticSignedCompactCurrency(userSettingsStore.currency))
+                : closingBalance.asArithmeticSignedCompactCurrency(userSettingsStore.currency))
             + ", \(budgets.count) mois sur 12"
         )
     }
 
     private var heroAmount: some View {
         HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.xs) {
-            Text(yearTotal.asSignedCompactAmount(for: userSettingsStore.currency))
+            Text(closingBalance.asSignedCompactAmount(for: userSettingsStore.currency))
                 .font(PulpeTypography.heroIcon)
                 .monospacedDigit()
                 .tracking(DesignTokens.Tracking.hero)

@@ -1,5 +1,6 @@
 import { inject, Injectable } from '@angular/core';
 
+import { REQUEST_ID_HEADER } from 'pulpe-shared';
 import { z } from 'zod';
 
 import { ApplicationConfiguration } from '../config/application-configuration';
@@ -47,10 +48,12 @@ export class MaintenanceApi {
     const url = `${this.#config.backendApiUrl()}/maintenance/status`;
     const isNgrok = url.includes('ngrok');
 
-    const response = await fetch(
-      url,
-      isNgrok ? { headers: NGROK_SKIP_HEADER } : {},
-    );
+    const response = await fetch(url, {
+      headers: {
+        [REQUEST_ID_HEADER]: crypto.randomUUID(),
+        ...(isNgrok ? NGROK_SKIP_HEADER : {}),
+      },
+    });
 
     if (!response.ok) {
       throw new Error(`Maintenance check failed: ${response.status}`);

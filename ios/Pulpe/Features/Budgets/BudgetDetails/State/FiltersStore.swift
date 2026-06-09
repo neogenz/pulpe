@@ -141,7 +141,8 @@ final class FiltersStore {
     }
 
     /// Filters budget lines by name or by linked transaction names (accent and
-    /// case insensitive). O(n+m) with Dictionary indexing.
+    /// case insensitive). Amounts match the value **as displayed** to the user
+    /// (see `amountMatches`). O(n+m) with Dictionary indexing.
     static func filteredLines(
         _ lines: [BudgetLine],
         searchText: String,
@@ -154,12 +155,14 @@ final class FiltersStore {
             by: { $0.budgetLineId ?? "" }
         )
 
+        let amountNeedle = amountSearchKey(searchText)
+
         return lines.filter { line in
             line.name.localizedStandardContains(searchText) ||
-                "\(line.amount)".contains(searchText) ||
+                amountMatches(line.amount, needle: amountNeedle) ||
                 (transactionsByLineId[line.id]?.contains {
                     $0.name.localizedStandardContains(searchText) ||
-                        "\($0.amount)".contains(searchText)
+                        amountMatches($0.amount, needle: amountNeedle)
                 } ?? false)
         }
     }
@@ -182,10 +185,37 @@ final class FiltersStore {
         }
 
         guard !searchText.isEmpty else { return result }
+        let amountNeedle = amountSearchKey(searchText)
         return result.filter {
             $0.name.localizedStandardContains(searchText) ||
-                "\($0.amount)".contains(searchText)
+                amountMatches($0.amount, needle: amountNeedle)
         }
+    }
+
+    // MARK: - Amount search matching (PUL-247)
+
+    /// Canonicalises an amount string for search: maps the locale decimal
+    /// separator (`,` in fr-FR/EUR) to `.`, then keeps only digits and `.`.
+    /// This drops grouping separators (apostrophe, spaces, NBSP) and the currency
+    /// symbol, so the user's input and the displayed amount are compared on the
+    /// same footing regardless of locale. Returns `""` when no digit is present
+    /// (e.g. a lone space) so we never match every row.
+    private static func amountSearchKey(_ text: String) -> String {
+        let key = text
+            .replacingOccurrences(of: ",", with: ".")
+            .filter { $0.isNumber || $0 == "." }
+        return key.contains(where: \.isNumber) ? key : ""
+    }
+
+    /// Matches a needle against the amount **as the user sees it**. Both sides
+    /// are reduced to `amountSearchKey` form, which strips grouping and locale
+    /// decimal separators — so the displayed value's key is currency-independent
+    /// (`1'500.00` CHF and `1 500,00` EUR both reduce to `1500.00`). We therefore
+    /// format with an arbitrary fixed currency. Result: `1500`, `1'500`, `1 500`,
+    /// `1500.00` and `1 500,00` all match the `1500` amount.
+    private static func amountMatches(_ amount: Decimal, needle: String) -> Bool {
+        guard !needle.isEmpty else { return false }
+        return amountSearchKey(amount.asAmount(for: .chf)).contains(needle)
     }
 
     // MARK: - Instance forwarders (use store's current filters)
