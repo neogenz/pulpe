@@ -15,13 +15,13 @@ final class BudgetDetailsCoordinator {
     let syncStore: SyncStateStore
     let mutationQueue: MutationQueue
 
-    @ObservationIgnored private let budgetService: BudgetService
+    @ObservationIgnored private let budgetService: any BudgetServicing
     @ObservationIgnored let budgetLineService: any BudgetLineServicing
     @ObservationIgnored let transactionService: any TransactionServicing
 
     init(
         budgetId: String,
-        budgetService: BudgetService = .shared,
+        budgetService: any BudgetServicing = BudgetService.shared,
         budgetLineService: any BudgetLineServicing = BudgetLineService.shared,
         transactionService: any TransactionServicing = TransactionService.shared,
         cache: BudgetDetailCache = .shared,
@@ -114,8 +114,6 @@ final class BudgetDetailsCoordinator {
         switch action {
         case .addTransaction(let tx):
             addTransaction(tx)
-        case .updateTransaction(let tx):
-            await updateTransaction(tx)
         case .softDeleteTransaction(let tx, let ctx):
             softDeleteTransaction(tx, context: ctx)
         case .deleteTransaction(let tx):
@@ -156,9 +154,10 @@ final class BudgetDetailsCoordinator {
         let loadStart = ContinuousClock.now
         defer { syncStore.setLoading(false) }
 
+        let generation = dataStore.mutationGeneration
         do {
             async let detailsTask = budgetService.getBudgetWithDetails(id: dataStore.budgetId)
-            async let budgetsTask = budgetService.getBudgetsSparse(fields: "month,year")
+            async let budgetsTask = budgetService.getBudgetsSparse(fields: "month,year", limit: nil, year: nil)
 
             let (details, budgets) = try await (detailsTask, budgetsTask)
 
@@ -166,7 +165,8 @@ final class BudgetDetailsCoordinator {
                 try await DesignTokens.Animation.ensureMinimumSkeletonTime(since: loadStart)
             }
 
-            dataStore.applyDetails(details)
+            // Drop the snapshot if an optimistic mutation landed mid-fetch (PUL-257).
+            dataStore.applyDetails(details, ifGenerationMatches: generation)
             dataStore.applyAllBudgets(budgets)
         } catch is CancellationError {
             // Task was cancelled, don't update error state
@@ -182,9 +182,16 @@ final class BudgetDetailsCoordinator {
         syncStore.clearError()
         defer { syncStore.setLoading(false) }
 
+        // Capture the generation BEFORE the fetch. If an optimistic mutation
+        // (toggle / add / update) lands while the network call is in flight,
+        // the snapshot is stale and `applyDetails(_:ifGenerationMatches:)` drops
+        // it rather than silently reverting that mutation (PUL-257). Guards the
+        // detached, non-cancellable reload fired after an edit save, which
+        // `.task(id:)` cancellation can't reach.
+        let generation = dataStore.mutationGeneration
         do {
             let details = try await budgetService.getBudgetWithDetails(id: dataStore.budgetId)
-            dataStore.applyDetails(details)
+            dataStore.applyDetails(details, ifGenerationMatches: generation)
         } catch is CancellationError {
             // Task was cancelled, don't update error state
         } catch {

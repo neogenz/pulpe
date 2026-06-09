@@ -1,7 +1,16 @@
 import Foundation
 
+/// Read surface of `BudgetService` consumed by `BudgetDetailsCoordinator`'s
+/// reload paths. Lets the coordinator be driven by a test double so the
+/// reload-vs-optimistic-mutation race (PUL-257) can be asserted
+/// deterministically (see `MockBudgetService`).
+protocol BudgetServicing: Sendable {
+    func getBudgetWithDetails(id: String) async throws -> BudgetDetails
+    func getBudgetsSparse(fields: String, limit: Int?, year: Int?) async throws -> [BudgetSparse]
+}
+
 /// Service for budget-related API operations
-actor BudgetService {
+actor BudgetService: BudgetServicing {
     static let shared = BudgetService()
 
     // MARK: - Constants

@@ -30,16 +30,6 @@ extension BudgetDetailsCoordinator {
         await reloadCurrentBudget()
     }
 
-    func updateTransaction(_ tx: Transaction) async {
-        if dataStore.transactions.contains(where: { $0.id == tx.id }) {
-            dataStore.updateTransaction(tx)
-            dataStore.recomputeMetrics()
-            dataStore.syncCache()
-            dataStore.invalidateAdjacentCache()
-        }
-        await reloadCurrentBudget()
-    }
-
     func deleteBudgetLine(_ line: BudgetLine) async {
         guard !(line.isRollover ?? false) else { return }
 
