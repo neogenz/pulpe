@@ -315,11 +315,11 @@ final class BudgetDetailsProjector {
         }
     }
 
-    /// Cheap, order-independent hash of every `isChecked` flag in source.
-    /// Stable as long as the set of `(id, isChecked)` pairs is stable, so it
-    /// only changes when a check flips. Used as the `value:` of the list
-    /// `.animation(_:value:)` modifier without allocating a new array per
-    /// body re-eval.
+    /// Cheap hash of every `(id, isChecked)` pair, in source order — changes
+    /// if-and-only-if a check flips, as long as source order is stable. The
+    /// toggle path mutates in place (`BudgetDataStore.updateBudgetLine`) so it
+    /// is; a wholesale reorder would also bump it, worst case one harmless
+    /// extra `gentleSpring`. Drives the list `.animation(_:value:)`.
     private static func makeCheckedTickHash(
         budgetLines: [BudgetLine],
         transactions: [Transaction]
