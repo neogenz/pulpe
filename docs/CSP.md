@@ -2,6 +2,19 @@
 
 CSP lives in `vercel.json` (webapp) and `landing/vercel.json` (landing).
 
+## Host-conditioned split (PUL-236)
+
+The webapp `vercel.json` carries **two** CSP header entries, made mutually exclusive by `has`/`missing` host conditions (evaluated per request at the Vercel edge — one static file serves prod and previews):
+
+- **Production hosts** (`app.pulpe.app`, `pulpe-frontend.vercel.app` — the two public production hostnames): policy without the Railway preview backend and without Vercel Live/Pusher. Production responses reference zero preview infra.
+- **All other hosts** (preview deployments, SSO-protected deployment URLs): status-quo policy including `backend-preview-*.up.railway.app` and the Vercel Toolbar targets (`vercel.live`, Pusher).
+
+Rules when touching either entry:
+
+- The production entry comes **first** — the e2e spec picks the first CSP entry.
+- Keep `script-src*` directives aligned across both entries. The build scanner validates **every** entry: an inline source passes only if every policy allow-lists its hash, and the `unsafe-inline`/`unsafe-eval` guard runs per entry.
+- `vercel dev` does not evaluate `has`/`missing` — verify the split on a real deployment (`curl -sI https://app.pulpe.app/ | grep -i content-security-policy`).
+
 ## State
 
 | App | script-src `'unsafe-inline'` | Tracking |
@@ -44,9 +57,9 @@ script-src-attr 'unsafe-hashes' 'sha256-MhtPZXr7+LpJUY5qtMutB+qWfQtMaPccfe7QXtCc
 | Build-time scanner | `frontend/scripts/check-no-inline-scripts.ts` | chained inside `pnpm build` (`ng build && tsx scripts/check-no-inline-scripts.ts`) so Turbo + Vercel both run it |
 | Playwright e2e | `frontend/e2e/tests/smoke/csp-violations.spec.ts` | `pnpm test:e2e --grep CSP` |
 
-The scanner parses `dist/webapp/browser/index.html` with JSDOM, computes a `sha256-...` for every inline `<script>` and every `on*=` handler, and fails the build if any hash is missing from the corresponding directive in `vercel.json` (`script-src-elem` for inline scripts, `script-src-attr` for handlers).
+The scanner parses `dist/webapp/browser/index.html` with JSDOM, computes a `sha256-...` for every inline `<script>` and every `on*=` handler, and fails the build if any hash is missing from the corresponding directive of **any** CSP entry in `vercel.json` (`script-src-elem` for inline scripts, `script-src-attr` for handlers).
 
-The e2e injects the production CSP via `page.route` and asserts zero `securitypolicyviolation` events on `/`, `/login`, `/welcome` (Vite-dev artifacts filtered).
+The e2e injects the production CSP (first CSP entry in `vercel.json`) via `page.route` and asserts zero `securitypolicyviolation` events on `/`, `/login`, `/welcome` (Vite-dev artifacts filtered).
 
 ## Landing — `'unsafe-inline'` kept by design (PUL-254)
 

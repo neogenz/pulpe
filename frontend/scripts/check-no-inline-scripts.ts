@@ -38,20 +38,13 @@ const SCRIPT_DIRECTIVES_TO_GUARD = [
   'script-src-attr',
 ] as const;
 
-function readCspDirectives(): {
+interface CspHashAllowlist {
   scriptSrcElemHashes: Set<string>;
   scriptSrcAttrHashes: Set<string>;
-} {
-  const vercel = JSON.parse(
-    readFileSync(VERCEL_JSON_PATH, 'utf-8'),
-  ) as VercelJson;
-  const header = vercel.headers
-    .flatMap((block) => block.headers)
-    .find((h) => h.key === 'Content-Security-Policy');
-  if (!header) {
-    throw new Error('Content-Security-Policy header not found in vercel.json');
-  }
-  const directives = header.value.split(';').map((d) => d.trim());
+}
+
+function parseCspPolicy(cspValue: string): CspHashAllowlist {
+  const directives = cspValue.split(';').map((d) => d.trim());
 
   const tokensFor = (prefix: string): string[] => {
     const matching = directives.find((d) => d.startsWith(`${prefix} `));
@@ -82,6 +75,19 @@ function readCspDirectives(): {
   };
 }
 
+function readCspPolicies(): CspHashAllowlist[] {
+  const vercel = JSON.parse(
+    readFileSync(VERCEL_JSON_PATH, 'utf-8'),
+  ) as VercelJson;
+  const cspHeaders = vercel.headers
+    .flatMap((block) => block.headers)
+    .filter((h) => h.key === 'Content-Security-Policy');
+  if (cspHeaders.length === 0) {
+    throw new Error('Content-Security-Policy header not found in vercel.json');
+  }
+  return cspHeaders.map((header) => parseCspPolicy(header.value));
+}
+
 if (!existsSync(INDEX_PATH)) {
   console.error(`[csp-check] index.html not found at ${INDEX_PATH}`);
   process.exit(1);
@@ -90,7 +96,7 @@ if (!existsSync(INDEX_PATH)) {
 const html = readFileSync(INDEX_PATH, 'utf-8');
 const { document } = new JSDOM(html).window;
 
-const { scriptSrcElemHashes, scriptSrcAttrHashes } = readCspDirectives();
+const cspPolicies = readCspPolicies();
 const failures: string[] = [];
 
 document.querySelectorAll('script').forEach((script, index) => {
@@ -101,7 +107,8 @@ document.querySelectorAll('script').forEach((script, index) => {
   if (hasSrc || isJsonLd || isImportMap || !content) return;
 
   const hash = hashSource(content);
-  if (scriptSrcElemHashes.has(hash)) return;
+  if (cspPolicies.every((policy) => policy.scriptSrcElemHashes.has(hash)))
+    return;
   const preview = content.replace(/\s+/g, ' ').slice(0, 80);
   failures.push(
     `inline <script> #${index} not allow-listed (hash ${hash}): ${preview}...`,
@@ -113,7 +120,8 @@ document.querySelectorAll('*').forEach((element) => {
     if (!attr.name.toLowerCase().startsWith('on')) continue;
     const value = attr.value;
     const hash = hashSource(value);
-    if (scriptSrcAttrHashes.has(hash)) continue;
+    if (cspPolicies.every((policy) => policy.scriptSrcAttrHashes.has(hash)))
+      continue;
     failures.push(
       `inline handler ${attr.name}="${value}" on <${element.tagName.toLowerCase()}> not allow-listed (hash ${hash})`,
     );
