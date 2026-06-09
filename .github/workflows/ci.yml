@@ -77,7 +77,7 @@ jobs:
         uses: actions/checkout@v5
 
       - name: 🗄️ Setup Supabase CLI
-        uses: supabase/setup-cli@v1
+        uses: ./.github/actions/setup-supabase-cli
         with:
           version: ${{ env.SUPABASE_CLI_VERSION }}
 
@@ -163,7 +163,7 @@ jobs:
           bun-version: ${{ env.BUN_VERSION }}
 
       - name: 🗄️ Setup Supabase CLI
-        uses: supabase/setup-cli@v1
+        uses: ./.github/actions/setup-supabase-cli
         with:
           version: ${{ env.SUPABASE_CLI_VERSION }}
 
@@ -237,7 +237,7 @@ jobs:
           bun-version: ${{ env.BUN_VERSION }}
 
       - name: 🗄️ Setup Supabase CLI
-        uses: supabase/setup-cli@v1
+        uses: ./.github/actions/setup-supabase-cli
         with:
           version: ${{ env.SUPABASE_CLI_VERSION }}
 
@@ -430,7 +430,7 @@ jobs:
           bun-version: ${{ env.BUN_VERSION }}
 
       - name: 🗄️ Setup Supabase CLI
-        uses: supabase/setup-cli@v1
+        uses: ./.github/actions/setup-supabase-cli
         with:
           version: ${{ env.SUPABASE_CLI_VERSION }}
 
@@ -645,7 +645,7 @@ jobs:
         uses: actions/checkout@v5
 
       - name: 🗄️ Setup Supabase CLI
-        uses: supabase/setup-cli@v1
+        uses: ./.github/actions/setup-supabase-cli
         with:
           version: ${{ env.SUPABASE_CLI_VERSION }}
 
@@ -715,7 +715,7 @@ jobs:
         uses: actions/checkout@v5
 
       - name: 🗄️ Setup Supabase CLI
-        uses: supabase/setup-cli@v1
+        uses: ./.github/actions/setup-supabase-cli
         with:
           version: ${{ env.SUPABASE_CLI_VERSION }}
 
