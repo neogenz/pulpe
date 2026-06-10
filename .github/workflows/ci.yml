@@ -269,6 +269,20 @@ jobs:
             sleep 1
             counter=$((counter + 1))
           done
+
+          # GoTrue boots last (DB migrations at startup) and the encryption
+          # integration/e2e specs probe /auth/v1/health (reachable = status < 500).
+          # Mirror that exact criterion here so tests never start before auth is up.
+          counter=0
+          until code=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:54321/auth/v1/health); [ "$code" -ge 200 ] && [ "$code" -lt 500 ]; do
+            if [ $counter -gt $timeout ]; then
+              echo "❌ Supabase auth (GoTrue) not ready for tests"
+              supabase status
+              exit 1
+            fi
+            sleep 1
+            counter=$((counter + 1))
+          done
           echo "✅ Supabase ready for tests"
 
           # Export local Supabase keys as outputs (using heredoc for robust special character handling)
