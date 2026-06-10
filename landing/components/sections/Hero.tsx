@@ -13,12 +13,19 @@ import { angularUrl } from "@/lib/config";
 import { trackCTAClick } from "@/lib/posthog";
 import { CalendarCheck, PiggyBank, Wallet } from "lucide-react";
 import type { ReactNode } from "react";
+import { useEffect, useMemo, useState } from "react";
 
-const TYPEWRITER_STRINGS = [
-  "Ce mois, il te reste 847 à dépenser.",
-  "Impôts de juillet ? Budgétés.",
-  "Épargne maison : sur les rails.",
-];
+function useVisitorCurrency(): 'CHF' | 'EUR' {
+  const [currency, setCurrency] = useState<'CHF' | 'EUR'>('CHF')
+  useEffect(() => {
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone
+    const langs = (navigator.languages ?? [navigator.language]).join(',')
+    const isSwiss = tz === 'Europe/Zurich' || /-CH\b/i.test(langs)
+    const isFrench = tz === 'Europe/Paris' || /\bfr(-FR)?\b/i.test(langs)
+    if (!isSwiss && isFrench) setCurrency('EUR')
+  }, [])
+  return currency
+}
 
 interface FloatingCardConfig {
   id: string;
@@ -29,8 +36,8 @@ interface FloatingCardConfig {
   content: ReactNode;
 }
 
-const FLOATING_CARDS: FloatingCardConfig[] = [
-  {
+function buildDisponibleCard(amountLabel: string): FloatingCardConfig {
+  return {
     id: "disponible",
     position: "top-4 -right-2",
     delay: "delay-200",
@@ -41,11 +48,13 @@ const FLOATING_CARDS: FloatingCardConfig[] = [
         <Wallet className="w-5 h-5" />
         <div>
           <div className="text-xs">Disponible ce mois</div>
-          <div className="text-xl font-bold tabular-nums">847</div>
+          <div className="text-xl font-bold tabular-nums">{amountLabel}</div>
         </div>
       </div>
     ),
-  },
+  };
+}
+const STATIC_FLOATING_CARDS: FloatingCardConfig[] = [
   {
     id: "impots-budgetes",
     position: "top-[30%] right-[38%]",
@@ -85,13 +94,27 @@ const FLOATING_CARDS: FloatingCardConfig[] = [
 ];
 
 export function Hero() {
+  const currency = useVisitorCurrency()
+  const suffix = currency === 'CHF' ? '847 CHF' : '847 €'
+
+  const typewriterStrings = useMemo(() => [
+    `${suffix} disponibles ce mois.`,
+    "Impôts de juillet ? Budgétés.",
+    "Épargne maison : sur les rails.",
+  ], [suffix])
+
+  const floatingCards = useMemo(() => [
+    buildDisponibleCard(suffix),
+    ...STATIC_FLOATING_CARDS,
+  ], [suffix])
+
   return (
     <section className="hero-mesh relative min-h-[100dvh] flex items-center pt-32 pb-16 md:pt-32 md:pb-24 bg-gradient-to-b from-background via-background to-surface-alt overflow-hidden">
       <GrainOverlay opacity={0.03} />
 
       <div className="relative z-10 w-full max-w-6xl mx-auto px-4 md:px-6 lg:px-8">
         {/* Floating cards — desktop only */}
-        {FLOATING_CARDS.map((card) => (
+        {floatingCards.map((card) => (
           <div
             key={card.id}
             className={`absolute ${card.position} hidden lg:block z-20 animate-fade-in-float ${card.delay}`}
@@ -120,9 +143,9 @@ export function Hero() {
               </span>
             </h1>
             <div className="text-xl md:text-2xl lg:text-3xl font-normal text-text-secondary mb-8 tabular-nums">
-              <span className="md:hidden">Ce mois, il te reste 847 à dépenser.</span>
+              <span className="md:hidden">{suffix} disponibles ce mois.</span>
               <span className="hidden md:block min-h-[2.5rem] lg:min-h-[3rem]">
-                <TypeWriter strings={TYPEWRITER_STRINGS} />
+                <TypeWriter strings={typewriterStrings} />
               </span>
             </div>
             <div className="flex flex-col sm:flex-row gap-4 sm:items-center items-center justify-center lg:justify-start">

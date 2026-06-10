@@ -655,7 +655,6 @@
     "incomeGroupLabel": "Revenus",
     "savingsGroupLabel": "Épargne",
     "expensesGroupLabel": "Dépenses",
-    "lineDescriptionPlaceholder": "Ex. Loyer, Courses, Épargne...",
     "lineAmountLabel": "Montant",
     "lineKindLabel": "Type",
     "linesCount": "{{count}} prévision(s)",

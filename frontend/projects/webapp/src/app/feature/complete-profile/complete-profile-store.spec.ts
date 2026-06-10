@@ -4,7 +4,7 @@ import { of, throwError } from 'rxjs';
 import {
   CompleteProfileStore,
   MAX_CUSTOM_TRANSACTIONS,
-  ONBOARDING_SUGGESTIONS,
+  getOnboardingSuggestions,
 } from './complete-profile-store';
 import { ProfileSetupService } from '@core/complete-profile';
 import { BudgetApi } from '@core/budget';
@@ -653,7 +653,21 @@ describe('CompleteProfileStore', () => {
   });
 
   describe('suggestions', () => {
-    const suggestion = ONBOARDING_SUGGESTIONS[0];
+    const suggestion = getOnboardingSuggestions('EUR')[0];
+
+    describe('getOnboardingSuggestions', () => {
+      it('should label the retirement-savings chip "3ème pilier" for CHF users', () => {
+        const retirementChip = getOnboardingSuggestions('CHF')[4];
+
+        expect(retirementChip.name).toBe('3ème pilier');
+      });
+
+      it('should label the retirement-savings chip "Épargne retraite" for EUR users', () => {
+        const retirementChip = getOnboardingSuggestions('EUR')[4];
+
+        expect(retirementChip.name).toBe('Épargne retraite');
+      });
+    });
 
     describe('toggleSuggestion', () => {
       it('should add a suggestion when not present', () => {
@@ -769,7 +783,7 @@ describe('CompleteProfileStore', () => {
         // After the M1 fix, identity is carried by the __suggestionId tag,
         // which survives amount edits. Chip stays selected after edit and
         // re-tap removes (not duplicates) the entry.
-        const suggestion = ONBOARDING_SUGGESTIONS[0]; // Courses / alimentation, 600
+        const suggestion = getOnboardingSuggestions('EUR')[0]; // Courses / alimentation, 600
 
         store.toggleSuggestion(suggestion);
         expect(store.customTransactions()).toHaveLength(1);
@@ -786,7 +800,7 @@ describe('CompleteProfileStore', () => {
       });
 
       it('should remove the edited entry on re-toggle, regardless of amount drift', () => {
-        const suggestion = ONBOARDING_SUGGESTIONS[3]; // Épargne, 500
+        const suggestion = getOnboardingSuggestions('EUR')[3]; // Épargne, 500
         store.toggleSuggestion(suggestion);
         store.updateCustomTransactionAmount(0, 1234);
 

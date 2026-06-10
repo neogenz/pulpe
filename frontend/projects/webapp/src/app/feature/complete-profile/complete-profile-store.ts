@@ -11,44 +11,56 @@ import { UserSettingsStore } from '@core/user-settings';
 import { AuthOAuthService } from '@core/auth/auth-oauth.service';
 import { firstValueFrom } from 'rxjs';
 import { TranslocoService } from '@jsverse/transloco';
+import { type SupportedCurrency } from 'pulpe-shared';
 
-export const ONBOARDING_SUGGESTIONS: readonly OnboardingTransaction[] = [
-  {
-    name: 'Courses / alimentation',
-    amount: 600,
-    type: 'expense',
-    expenseType: 'fixed',
-    isRecurring: true,
-  },
-  {
-    name: 'Restaurants & sorties',
-    amount: 150,
-    type: 'expense',
-    expenseType: 'fixed',
-    isRecurring: true,
-  },
-  {
-    name: 'Loisirs & sport',
-    amount: 100,
-    type: 'expense',
-    expenseType: 'fixed',
-    isRecurring: true,
-  },
-  {
-    name: 'Épargne',
-    amount: 500,
-    type: 'saving',
-    expenseType: 'fixed',
-    isRecurring: true,
-  },
-  {
-    name: 'Épargne retraite',
-    amount: 587,
-    type: 'saving',
-    expenseType: 'fixed',
-    isRecurring: true,
-  },
-];
+/**
+ * Onboarding suggestion chips. All amounts/types/order are identical regardless
+ * of currency — only the retirement-savings label is localized per market:
+ * CHF users (Swiss) see "3ème pilier", EUR users (French) see "Épargne retraite".
+ */
+export function getOnboardingSuggestions(
+  currency: SupportedCurrency,
+): readonly OnboardingTransaction[] {
+  const retirementSavingsName =
+    currency === 'CHF' ? '3ème pilier' : 'Épargne retraite';
+  return [
+    {
+      name: 'Courses / alimentation',
+      amount: 600,
+      type: 'expense',
+      expenseType: 'fixed',
+      isRecurring: true,
+    },
+    {
+      name: 'Restaurants & sorties',
+      amount: 150,
+      type: 'expense',
+      expenseType: 'fixed',
+      isRecurring: true,
+    },
+    {
+      name: 'Loisirs & sport',
+      amount: 100,
+      type: 'expense',
+      expenseType: 'fixed',
+      isRecurring: true,
+    },
+    {
+      name: 'Épargne',
+      amount: 500,
+      type: 'saving',
+      expenseType: 'fixed',
+      isRecurring: true,
+    },
+    {
+      name: retirementSavingsName,
+      amount: 587,
+      type: 'saving',
+      expenseType: 'fixed',
+      isRecurring: true,
+    },
+  ];
+}
 
 export const MAX_CUSTOM_TRANSACTIONS = 50;
 
@@ -259,8 +271,8 @@ export class CompleteProfileStore {
   }
 
   toggleSuggestion(suggestion: OnboardingTransaction): void {
-    // Each suggestion is keyed by its canonical `name` — ONBOARDING_SUGGESTIONS
-    // is a hardcoded constant with unique names, so the name is a stable id.
+    // Each suggestion is keyed by its canonical `name` — getOnboardingSuggestions
+    // returns entries with unique names, so the name is a stable id.
     const suggestionId = suggestion.name;
     const current = this.#state().customTransactions;
     const matchIndex = current.findIndex(
