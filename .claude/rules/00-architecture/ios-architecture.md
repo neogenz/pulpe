@@ -76,6 +76,7 @@ final class CurrentMonthStore: StoreProtocol {
 
     func loadIfNeeded() async   // Smart cache (30s TTL)
     func forceRefresh() async   // Bypass cache
+    func invalidateCache()      // Mark stale → next loadIfNeeded() refetches
 }
 ```
 
@@ -85,6 +86,11 @@ final class CurrentMonthStore: StoreProtocol {
 - Implement `StoreProtocol` for cache management
 - Constructor injection, `.shared` defaults
 - Inject via `.environment()` in views
+
+**Cross-store invalidation (PUL-270):**
+- Any mutation surface whose data overlaps an app-scoped store MUST call that store's `invalidateCache()` after the mutation — otherwise the TTL silently serves stale aggregates on the next screen.
+- A surface states ONE fact ("I mutated budget data") through a single `onMutation: (@MainActor () -> Void)?` seam fired by its mutation choke point — never a hand-enumerated store list at each mutation site. Wiring lives at app level (`PulpeApp.init`) or in the view's `.task` (`coordinator.bind(...)`).
+- Existing seams: `BudgetDataStore.onMutation` (fired by `syncCache()`), `CurrentMonthStore.onMutation` (fired by amount-changing mutations; toggles don't change aggregates).
 
 ## ViewModel Pattern (Feature-Level State)
 

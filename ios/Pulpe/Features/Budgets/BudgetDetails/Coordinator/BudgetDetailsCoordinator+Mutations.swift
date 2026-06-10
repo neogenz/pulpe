@@ -5,6 +5,19 @@ import Foundation
 /// All mutations follow the same shape: optimistic local apply, server call,
 /// rollback on error.
 extension BudgetDetailsCoordinator {
+    /// Late-binds the app-scoped stores projecting the same budget aggregates
+    /// (list + dashboard) so every mutation below marks them stale and their
+    /// next `loadIfNeeded()` refetches (PUL-270). Called from the view's
+    /// `.task` because `@Environment` is unavailable in `init` — same
+    /// precedent as `router.bind(to:)` in `MainTabView`. Strong captures on
+    /// purpose: both stores are app-scoped and outlive this coordinator.
+    func bind(budgetListStore: BudgetListStore, dashboardStore: DashboardStore) {
+        dataStore.onMutation = {
+            budgetListStore.invalidateCache()
+            dashboardStore.invalidateCache()
+        }
+    }
+
     func addBudgetLine(_ line: BudgetLine) {
         dataStore.appendBudgetLine(line)
         dataStore.recomputeMetrics()
