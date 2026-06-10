@@ -41,6 +41,14 @@ struct PulpeApp: App {
             userSettingsStore: userSettingsStore
         )
 
+        // Cross-store consistency (PUL-270): any amount-changing mutation on
+        // the dashboard marks the sibling stores projecting the same sparse
+        // aggregates stale, so their next loadIfNeeded() refetches.
+        currentMonthStore.onMutation = { [budgetListStore, dashboardStore] in
+            budgetListStore.invalidateCache()
+            dashboardStore.invalidateCache()
+        }
+
         // Wire currency persistence from `OnboardingBootstrapper` to `UserSettingsStore`.
         // Runs after PIN setup completes so the API call carries `X-Client-Key`.
         // Returns `true` only when the store's optimistic update was confirmed by the

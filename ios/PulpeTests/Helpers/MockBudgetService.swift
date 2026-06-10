@@ -22,6 +22,7 @@ final class MockBudgetService: BudgetServicing {
     var detailsError: Error?
 
     private(set) var getBudgetWithDetailsCallCount = 0
+    private(set) var getBudgetsSparseCallCount = 0
     /// Flips true the moment a reload enters `getBudgetWithDetails`. Tests poll
     /// this with `waitForCondition` to know the reload reached the gate.
     private(set) var didEnterDetails = false
@@ -56,6 +57,7 @@ final class MockBudgetService: BudgetServicing {
     }
 
     func getBudgetsSparse(fields: String, limit: Int?, year: Int?) async throws -> [BudgetSparse] {
-        stubbedSparse
+        getBudgetsSparseCallCount += 1
+        return stubbedSparse
     }
 }

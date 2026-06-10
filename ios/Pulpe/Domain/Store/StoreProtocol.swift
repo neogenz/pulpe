@@ -18,6 +18,10 @@ protocol StoreProtocol: Observable {
     /// Forces a fresh data load, bypassing cache
     func forceRefresh() async
 
+    /// Invalidates the cache so the next `loadIfNeeded()` re-fetches — call
+    /// when a mutation elsewhere makes this store's data stale (PUL-270)
+    func invalidateCache()
+
     /// Clears all cached data — call when the user logs out
     func reset()
 }

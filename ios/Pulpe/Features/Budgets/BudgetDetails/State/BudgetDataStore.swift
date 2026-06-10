@@ -255,11 +255,18 @@ final class BudgetDataStore {
         cachedRealizedMetrics = nil
     }
 
+    /// Fired at the end of every successful `syncCache()` — the single choke
+    /// point all mutations go through (loads use `applyDetails` instead). Lets
+    /// the coordinator invalidate app-scoped stores (e.g. `BudgetListStore`)
+    /// without this State layer knowing about them (PUL-270).
+    @ObservationIgnored var onMutation: (@MainActor () -> Void)?
+
     /// Sync current in-memory state to the detail cache so popping back and
     /// re-entering doesn't flash stale data after an optimistic mutation.
     func syncCache() {
         guard let budget else { return }
         cache.store(budgetId: budgetId, budget: budget, budgetLines: budgetLines, transactions: transactions)
+        onMutation?()
     }
 
     /// Invalidate cached data for adjacent months so rollover values are

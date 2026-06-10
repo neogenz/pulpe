@@ -91,6 +91,11 @@ final class UserSettingsStore: StoreProtocol {
         if loadGeneration == currentGeneration { loadTask = nil }
     }
 
+    /// Invalidates the cache so the next `loadIfNeeded()` will re-fetch.
+    func invalidateCache() {
+        lastLoadTime = nil
+    }
+
     func reset() {
         loadTask?.cancel()
         loadTask = nil
