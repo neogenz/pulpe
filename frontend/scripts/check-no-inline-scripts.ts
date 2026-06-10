@@ -117,6 +117,16 @@ function parseCspPolicy(
 }
 
 function assertHostConditionsMirror(blocks: VercelHeadersBlock[]): void {
+  const unconditioned = blocks.filter(
+    (block) =>
+      hostPattern(block.has) === undefined &&
+      hostPattern(block.missing) === undefined,
+  );
+  if (unconditioned.length > 0) {
+    throw new Error(
+      `[csp-check] found ${unconditioned.length} CSP entr${unconditioned.length === 1 ? 'y' : 'ies'} without a host condition — every CSP entry must carry a 'has' or 'missing' host condition, otherwise Vercel can serve it to production hosts in place of the reviewed production policy (PUL-236).`,
+    );
+  }
   const patternsIn = (
     select: (block: VercelHeadersBlock) => VercelRouteCondition[] | undefined,
   ): Set<string> =>
