@@ -256,7 +256,10 @@ jobs:
         id: start-supabase-tests
         working-directory: backend-nest
         run: |
-          supabase start --exclude studio,mailpit,imgproxy,edge-runtime
+          # Tests only need db + kong + gotrue + postgrest. The extra services
+          # (Alpine-based realtime/storage-api among them) destabilize the stack
+          # on the 20260607+ runner images and waste runner RAM/CPU.
+          supabase start --exclude studio,mailpit,imgproxy,edge-runtime,realtime,storage-api,logflare,vector,postgres-meta
 
           # Health check pour tests
           timeout=60
@@ -314,6 +317,17 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ steps.start-supabase-tests.outputs.SUPABASE_SERVICE_ROLE_KEY }}
           TURNSTILE_SECRET_KEY: ci-test-turnstile-key
           ENCRYPTION_MASTER_KEY: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+
+      - name: 🩺 Supabase diagnostics on failure
+        if: failure()
+        working-directory: backend-nest
+        run: |
+          supabase status || true
+          docker ps -a || true
+          for container in $(docker ps -aq --filter "name=supabase"); do
+            echo "===== logs: $(docker inspect --format '{{.Name}}' "$container") ====="
+            docker logs --tail 80 "$container" 2>&1 | tail -80 || true
+          done
 
       - name: 🧹 Cleanup Supabase
         if: always() && steps.start-supabase-tests.outcome == 'success'
