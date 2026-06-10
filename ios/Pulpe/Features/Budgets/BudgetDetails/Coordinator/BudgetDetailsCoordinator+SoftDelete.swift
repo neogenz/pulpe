@@ -127,6 +127,33 @@ extension BudgetDetailsCoordinator {
         )
     }
 
+    // MARK: - Snapshot filtering
+
+    /// Strips rows still pending soft-deletion from a fetched server snapshot.
+    /// The server keeps them until the undo toast commits, so a reload landing
+    /// inside the undo window (pop-back restarting the screen's `.task`,
+    /// pull-to-refresh) would otherwise re-display every deleted row on apply
+    /// (PUL-271). Call AFTER the fetch returns: an undo landing mid-fetch pops
+    /// its item from the queue, and the restored row must survive the apply.
+    func filteringPendingSoftDeletions(from details: BudgetDetails) -> BudgetDetails {
+        guard !mutationQueue.isEmpty else { return details }
+        var lineIds = Set<String>()
+        var txIds = Set<String>()
+        for pending in mutationQueue.pendingSoftDeletions {
+            switch pending {
+            case .transaction(let tx):
+                txIds.insert(tx.id)
+            case .budgetLine(let line):
+                lineIds.insert(line.id)
+            }
+        }
+        return BudgetDetails(
+            budget: details.budget,
+            transactions: details.transactions.filter { !txIds.contains($0.id) },
+            budgetLines: details.budgetLines.filter { !lineIds.contains($0.id) }
+        )
+    }
+
     /// Finalize pending soft-deletions before the screen navigates to another
     /// month. Commits them against the still-current store and drops any stale
     /// error, so neither the undo/rollback paths nor an error banner can target
