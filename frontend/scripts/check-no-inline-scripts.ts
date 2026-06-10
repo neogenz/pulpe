@@ -73,19 +73,21 @@ function parseCspPolicy(
   label: string,
   isHostConditioned: boolean,
 ): CspPolicy {
-  const directives = new Map<string, Set<string>>(
-    cspValue
-      .split(';')
-      .map((directive) => directive.trim())
-      .filter(Boolean)
-      .map((directive) => {
-        const [name = '', ...tokens] = directive.split(/\s+/);
-        return [
-          name,
-          new Set(tokens.map((token) => token.replace(/^'|'$/g, ''))),
-        ];
-      }),
-  );
+  const directives = new Map<string, Set<string>>();
+  for (const rawDirective of cspValue.split(';')) {
+    const directive = rawDirective.trim();
+    if (!directive) continue;
+    const [name = '', ...tokens] = directive.split(/\s+/);
+    if (directives.has(name)) {
+      throw new Error(
+        `[csp-check] directive '${name}' is declared twice in the CSP entry for ${label} — browsers enforce only the first occurrence and ignore the rest; merge the duplicates.`,
+      );
+    }
+    directives.set(
+      name,
+      new Set(tokens.map((token) => token.replace(/^'|'$/g, ''))),
+    );
+  }
 
   const tokensFor = (name: string): Set<string> =>
     directives.get(name) ?? new Set();
@@ -114,11 +116,36 @@ function parseCspPolicy(
   };
 }
 
+function assertHostConditionsMirror(blocks: VercelHeadersBlock[]): void {
+  const patternsIn = (
+    select: (block: VercelHeadersBlock) => VercelRouteCondition[] | undefined,
+  ): Set<string> =>
+    new Set(
+      blocks
+        .map((block) => hostPattern(select(block)))
+        .filter((pattern): pattern is string => pattern !== undefined),
+    );
+  const hasPatterns = patternsIn((block) => block.has);
+  const missingPatterns = patternsIn((block) => block.missing);
+  const mirrored =
+    hasPatterns.size === missingPatterns.size &&
+    [...hasPatterns].every((pattern) => missingPatterns.has(pattern));
+  if (!mirrored) {
+    throw new Error(
+      `[csp-check] the 'has' and 'missing' host patterns on the CSP entries must be identical (has: ${[...hasPatterns].join(', ') || 'none'} / missing: ${[...missingPatterns].join(', ') || 'none'}) — a host matching one pattern but not the other would be served with no Content-Security-Policy at all (PUL-236).`,
+    );
+  }
+}
+
 function readCspPolicies(): CspPolicy[] {
   const vercel = JSON.parse(
     readFileSync(VERCEL_JSON_PATH, 'utf-8'),
   ) as VercelJson;
-  const policies = vercel.headers.flatMap((block) =>
+  const cspBlocks = vercel.headers.filter((block) =>
+    block.headers.some((header) => header.key === 'Content-Security-Policy'),
+  );
+  assertHostConditionsMirror(cspBlocks);
+  const policies = cspBlocks.flatMap((block) =>
     block.headers
       .filter((header) => header.key === 'Content-Security-Policy')
       .map((header) =>
@@ -167,6 +194,11 @@ function assertProductionIsSubsetOfFallback(policies: CspPolicy[]): void {
   const fallbackPolicies = policies.filter(
     (policy) => !policy.isHostConditioned,
   );
+  if (strictPolicies.length === 0 || fallbackPolicies.length === 0) {
+    throw new Error(
+      `[csp-check] vercel.json must declare both a host-conditioned production CSP and a fallback CSP (found ${strictPolicies.length} host-conditioned, ${fallbackPolicies.length} fallback) — with either missing, the subset invariant is unverifiable (PUL-236).`,
+    );
+  }
   for (const strict of strictPolicies) {
     for (const fallback of fallbackPolicies) {
       assertGrantsNothingBeyond(strict, fallback);
