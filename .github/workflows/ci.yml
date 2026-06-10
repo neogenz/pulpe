@@ -762,3 +762,49 @@ jobs:
           POSTHOG_HOST: https://eu.i.posthog.com
           POSTHOG_PERSONAL_API_KEY: ${{ secrets.POSTHOG_PERSONAL_API_KEY }}
           POSTHOG_PROJECT_ID: ${{ secrets.POSTHOG_WEBAPP_PROJECT_ID }}
+
+  # 🔒 CSP CONFORMANCE (push main only — verifies prod hosts serve the host-conditioned CSP from vercel.json, PUL-236)
+  verify-prod-csp:
+    name: 🔒 Verify Production CSP Headers
+    if: always() && needs.ci-success.result == 'success' && github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: [ci-success]
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v5
+
+      - name: 🔒 Compare served CSP against vercel.json
+        run: |
+          EXPECTED=$(python3 -c "
+          import json, re
+          v = json.load(open('vercel.json'))
+          for block in v['headers']:
+              for cond in block.get('has', []):
+                  if cond.get('type') == 'host' and re.match('^(?:' + cond['value'] + ')$', 'app.pulpe.app'):
+                      for h in block['headers']:
+                          if h['key'] == 'Content-Security-Policy':
+                              print(h['value'])
+                              raise SystemExit
+          ")
+          if [ -z "$EXPECTED" ]; then
+            echo "❌ No host-conditioned production CSP entry found in vercel.json"
+            exit 1
+          fi
+          for HOST in app.pulpe.app pulpe-frontend.vercel.app; do
+            for ATTEMPT in $(seq 1 10); do
+              SERVED=$(curl -s -o /dev/null -D - "https://${HOST}/" | grep -i '^content-security-policy:' | sed 's/^[^:]*: *//' | tr -d '\r')
+              if [ "$SERVED" = "$EXPECTED" ]; then
+                echo "✅ ${HOST} serves the expected production CSP"
+                break
+              fi
+              if [ "$ATTEMPT" = "10" ]; then
+                echo "❌ ${HOST} still serves a CSP that differs from vercel.json after 10 attempts"
+                echo "expected: $EXPECTED"
+                echo "served:   $SERVED"
+                exit 1
+              fi
+              echo "⏳ ${HOST} attempt ${ATTEMPT}/10: CSP not conformant yet, retrying in 30s (deploy may be rolling out)"
+              sleep 30
+            done
+          done

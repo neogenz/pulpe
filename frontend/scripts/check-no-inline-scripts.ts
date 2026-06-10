@@ -48,6 +48,8 @@ const SCRIPT_DIRECTIVES_TO_GUARD = [
 
 interface CspPolicy {
   label: string;
+  isHostConditioned: boolean;
+  directives: Map<string, Set<string>>;
   scriptSrcElemHashes: Set<string>;
   scriptSrcAttrHashes: Set<string>;
 }
@@ -66,22 +68,31 @@ function policyLabel(block: VercelHeadersBlock): string {
   return 'all hosts';
 }
 
-function parseCspPolicy(cspValue: string, label: string): CspPolicy {
-  const directives = cspValue.split(';').map((d) => d.trim());
+function parseCspPolicy(
+  cspValue: string,
+  label: string,
+  isHostConditioned: boolean,
+): CspPolicy {
+  const directives = new Map<string, Set<string>>(
+    cspValue
+      .split(';')
+      .map((directive) => directive.trim())
+      .filter(Boolean)
+      .map((directive) => {
+        const [name = '', ...tokens] = directive.split(/\s+/);
+        return [
+          name,
+          new Set(tokens.map((token) => token.replace(/^'|'$/g, ''))),
+        ];
+      }),
+  );
 
-  const tokensFor = (prefix: string): string[] => {
-    const matching = directives.find((d) => d.startsWith(`${prefix} `));
-    if (!matching) return [];
-    return matching
-      .split(/\s+/)
-      .slice(1)
-      .map((token) => token.replace(/^'|'$/g, ''));
-  };
+  const tokensFor = (name: string): Set<string> =>
+    directives.get(name) ?? new Set();
 
   for (const directive of SCRIPT_DIRECTIVES_TO_GUARD) {
-    const tokens = tokensFor(directive);
     for (const forbidden of FORBIDDEN_SCRIPT_KEYWORDS) {
-      if (tokens.includes(forbidden)) {
+      if (tokensFor(directive).has(forbidden)) {
         throw new Error(
           `[csp-check] ${directive} contains '${forbidden}' in the CSP entry for ${label} — hash-only strict policy regressed (PUL-234).`,
         );
@@ -89,11 +100,15 @@ function parseCspPolicy(cspValue: string, label: string): CspPolicy {
     }
   }
 
-  const hashesIn = (prefix: string): Set<string> =>
-    new Set(tokensFor(prefix).filter((token) => token.startsWith('sha256-')));
+  const hashesIn = (name: string): Set<string> =>
+    new Set(
+      [...tokensFor(name)].filter((token) => token.startsWith('sha256-')),
+    );
 
   return {
     label,
+    isHostConditioned,
+    directives,
     scriptSrcElemHashes: hashesIn('script-src-elem'),
     scriptSrcAttrHashes: hashesIn('script-src-attr'),
   };
@@ -106,12 +121,57 @@ function readCspPolicies(): CspPolicy[] {
   const policies = vercel.headers.flatMap((block) =>
     block.headers
       .filter((header) => header.key === 'Content-Security-Policy')
-      .map((header) => parseCspPolicy(header.value, policyLabel(block))),
+      .map((header) =>
+        parseCspPolicy(
+          header.value,
+          policyLabel(block),
+          hostPattern(block.has) !== undefined,
+        ),
+      ),
   );
   if (policies.length === 0) {
     throw new Error('Content-Security-Policy header not found in vercel.json');
   }
   return policies;
+}
+
+function assertGrantsNothingBeyond(
+  strict: CspPolicy,
+  permissive: CspPolicy,
+): void {
+  const strictNames = [...strict.directives.keys()];
+  const permissiveNames = [...permissive.directives.keys()];
+  if (
+    strictNames.length !== permissiveNames.length ||
+    strictNames.some((name) => !permissive.directives.has(name))
+  ) {
+    throw new Error(
+      `[csp-check] CSP entries declare different directive sets (${strict.label} vs ${permissive.label}) — keep both entries aligned directive-for-directive so the subset invariant stays decidable.`,
+    );
+  }
+  for (const [name, strictTokens] of strict.directives) {
+    const permissiveTokens = permissive.directives.get(name) ?? new Set();
+    const extra = [...strictTokens].filter(
+      (token) => !permissiveTokens.has(token),
+    );
+    if (extra.length > 0) {
+      throw new Error(
+        `[csp-check] ${name} for ${strict.label} grants source(s) absent from the policy for ${permissive.label}: ${extra.join(' ')}. The host-conditioned production CSP must only REMOVE sources relative to the fallback, so the worst-case policy Vercel can serve is the fallback (PUL-236).`,
+      );
+    }
+  }
+}
+
+function assertProductionIsSubsetOfFallback(policies: CspPolicy[]): void {
+  const strictPolicies = policies.filter((policy) => policy.isHostConditioned);
+  const fallbackPolicies = policies.filter(
+    (policy) => !policy.isHostConditioned,
+  );
+  for (const strict of strictPolicies) {
+    for (const fallback of fallbackPolicies) {
+      assertGrantsNothingBeyond(strict, fallback);
+    }
+  }
 }
 
 function rejectingLabels(
@@ -133,6 +193,7 @@ const html = readFileSync(INDEX_PATH, 'utf-8');
 const { document } = new JSDOM(html).window;
 
 const cspPolicies = readCspPolicies();
+assertProductionIsSubsetOfFallback(cspPolicies);
 const failures: string[] = [];
 
 document.querySelectorAll('script').forEach((script, index) => {
