@@ -140,26 +140,8 @@ function getSupabaseEnvFromProcess(): SupabaseEnv | null {
 
   if (!apiUrl || !anonKey || !serviceRoleKey) return null;
   if (!isLocalSupabaseUrl(apiUrl)) return null;
-  if (!isLocalSupabaseKeyCompatible(serviceRoleKey)) return null;
 
   return { apiUrl, anonKey, serviceRoleKey };
-}
-
-function isLocalSupabaseKeyCompatible(serviceRoleKey: string): boolean {
-  const alg = getJwtAlg(serviceRoleKey);
-  if (!alg) return false;
-  return alg === 'ES256';
-}
-
-function getJwtAlg(token: string): string | null {
-  const parts = token.split('.');
-  if (parts.length !== 3) return null;
-  try {
-    const header = JSON.parse(Buffer.from(parts[0], 'base64url').toString());
-    return typeof header.alg === 'string' ? header.alg : null;
-  } catch {
-    return null;
-  }
 }
 
 function isMissingTableError(error: { message?: string } | null): boolean {

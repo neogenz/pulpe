@@ -121,17 +121,6 @@ function isLocalSupabaseUrl(value: string): boolean {
   }
 }
 
-function getJwtAlg(token: string): string | null {
-  const parts = token.split('.');
-  if (parts.length !== 3) return null;
-  try {
-    const header = JSON.parse(Buffer.from(parts[0], 'base64url').toString());
-    return typeof header.alg === 'string' ? header.alg : null;
-  } catch {
-    return null;
-  }
-}
-
 function getSupabaseEnvFromProcess(): SupabaseEnv | null {
   const apiUrl = process.env.SUPABASE_URL;
   const anonKey = process.env.SUPABASE_ANON_KEY;
@@ -139,8 +128,6 @@ function getSupabaseEnvFromProcess(): SupabaseEnv | null {
 
   if (!apiUrl || !anonKey || !serviceRoleKey) return null;
   if (!isLocalSupabaseUrl(apiUrl)) return null;
-  const alg = getJwtAlg(serviceRoleKey);
-  if (!alg || alg !== 'ES256') return null;
 
   return { apiUrl, anonKey, serviceRoleKey };
 }
