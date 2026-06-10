@@ -288,20 +288,29 @@ jobs:
           done
           echo "✅ Supabase ready for tests"
 
-          # Export local Supabase keys as outputs (using heredoc for robust special character handling)
+          # Export local Supabase keys as outputs (using heredoc for robust special character handling).
+          # Newer local stacks may only expose sb_publishable_/sb_secret_ keys
+          # (PUBLISHABLE_KEY/SECRET_KEY) — fall back to those when the legacy
+          # JWT keys are absent.
+          status_env="$(supabase status -o env 2>/dev/null)"
+          read_status_env() { echo "$status_env" | grep "^$1=" | cut -d'=' -f2- | tr -d '"'; }
+          anon_key="$(read_status_env ANON_KEY)"
+          [ -n "$anon_key" ] || anon_key="$(read_status_env PUBLISHABLE_KEY)"
+          service_key="$(read_status_env SERVICE_ROLE_KEY)"
+          [ -n "$service_key" ] || service_key="$(read_status_env SECRET_KEY)"
           {
             echo 'SUPABASE_URL<<EOF'
-            supabase status -o env 2>/dev/null | grep API_URL | cut -d'=' -f2 | tr -d '\"'
+            read_status_env API_URL
             echo 'EOF'
           } >> $GITHUB_OUTPUT
           {
             echo 'SUPABASE_ANON_KEY<<EOF'
-            supabase status -o env 2>/dev/null | grep ANON_KEY | cut -d'=' -f2 | tr -d '\"'
+            echo "$anon_key"
             echo 'EOF'
           } >> $GITHUB_OUTPUT
           {
             echo 'SUPABASE_SERVICE_ROLE_KEY<<EOF'
-            supabase status -o env 2>/dev/null | grep SERVICE_ROLE_KEY | cut -d'=' -f2 | tr -d '\"'
+            echo "$service_key"
             echo 'EOF'
           } >> $GITHUB_OUTPUT
 
@@ -323,6 +332,8 @@ jobs:
         working-directory: backend-nest
         run: |
           supabase status || true
+          echo "===== status -o env key names ====="
+          supabase status -o env 2>/dev/null | cut -d'=' -f1 | sort || true
           docker ps -a || true
           for container in $(docker ps -aq --filter "name=supabase"); do
             echo "===== logs: $(docker inspect --format '{{.Name}}' "$container") ====="
@@ -492,20 +503,29 @@ jobs:
           done
           echo "✅ Supabase ready for performance tests"
 
-          # Export local Supabase keys as outputs (using heredoc for robust special character handling)
+          # Export local Supabase keys as outputs (using heredoc for robust special character handling).
+          # Newer local stacks may only expose sb_publishable_/sb_secret_ keys
+          # (PUBLISHABLE_KEY/SECRET_KEY) — fall back to those when the legacy
+          # JWT keys are absent.
+          status_env="$(supabase status -o env 2>/dev/null)"
+          read_status_env() { echo "$status_env" | grep "^$1=" | cut -d'=' -f2- | tr -d '"'; }
+          anon_key="$(read_status_env ANON_KEY)"
+          [ -n "$anon_key" ] || anon_key="$(read_status_env PUBLISHABLE_KEY)"
+          service_key="$(read_status_env SERVICE_ROLE_KEY)"
+          [ -n "$service_key" ] || service_key="$(read_status_env SECRET_KEY)"
           {
             echo 'SUPABASE_URL<<EOF'
-            supabase status -o env 2>/dev/null | grep API_URL | cut -d'=' -f2 | tr -d '\"'
+            read_status_env API_URL
             echo 'EOF'
           } >> $GITHUB_OUTPUT
           {
             echo 'SUPABASE_ANON_KEY<<EOF'
-            supabase status -o env 2>/dev/null | grep ANON_KEY | cut -d'=' -f2 | tr -d '\"'
+            echo "$anon_key"
             echo 'EOF'
           } >> $GITHUB_OUTPUT
           {
             echo 'SUPABASE_SERVICE_ROLE_KEY<<EOF'
-            supabase status -o env 2>/dev/null | grep SERVICE_ROLE_KEY | cut -d'=' -f2 | tr -d '\"'
+            echo "$service_key"
             echo 'EOF'
           } >> $GITHUB_OUTPUT
 

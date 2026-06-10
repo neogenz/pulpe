@@ -86,13 +86,22 @@ function parseSupabaseStatus(raw: string): SupabaseEnv {
 
   const apiUrl =
     status.api_url ?? status.API_URL ?? status.apiUrl ?? status.ApiUrl;
+  // Newer local stacks may only expose the sb_publishable_/sb_secret_ key
+  // pair (PUBLISHABLE_KEY/SECRET_KEY) instead of the legacy JWT keys.
   const anonKey =
-    status.anon_key ?? status.ANON_KEY ?? status.anonKey ?? status.AnonKey;
+    status.anon_key ??
+    status.ANON_KEY ??
+    status.anonKey ??
+    status.AnonKey ??
+    status.PUBLISHABLE_KEY ??
+    status.publishable_key;
   const serviceRoleKey =
     status.service_role_key ??
     status.SERVICE_ROLE_KEY ??
     status.serviceRoleKey ??
-    status.ServiceRoleKey;
+    status.ServiceRoleKey ??
+    status.SECRET_KEY ??
+    status.secret_key;
 
   if (!apiUrl || !anonKey || !serviceRoleKey) {
     throw new Error(
@@ -139,8 +148,10 @@ function getSupabaseEnvFromProcess(): SupabaseEnv | null {
 
   if (!apiUrl || !anonKey || !serviceRoleKey) return null;
   if (!isLocalSupabaseUrl(apiUrl)) return null;
-  const alg = getJwtAlg(serviceRoleKey);
-  if (!alg || alg !== 'ES256') return null;
+  if (!serviceRoleKey.startsWith('sb_secret_')) {
+    const alg = getJwtAlg(serviceRoleKey);
+    if (!alg || alg !== 'ES256') return null;
+  }
 
   return { apiUrl, anonKey, serviceRoleKey };
 }
