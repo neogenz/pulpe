@@ -16,6 +16,12 @@ declare global {
   }
 }
 
+interface VercelRouteCondition {
+  type: 'host' | 'header' | 'cookie' | 'query';
+  key?: string;
+  value?: string;
+}
+
 interface VercelHeader {
   key: string;
   value: string;
@@ -23,6 +29,8 @@ interface VercelHeader {
 
 interface VercelHeadersBlock {
   source: string;
+  has?: VercelRouteCondition[];
+  missing?: VercelRouteCondition[];
   headers: VercelHeader[];
 }
 
@@ -32,6 +40,7 @@ interface VercelJson {
 
 const CRITICAL_ROUTES = ['/', '/login', '/welcome'] as const;
 const VERCEL_JSON_PATH = join(__dirname, '../../../../vercel.json');
+const PRODUCTION_HOST = 'app.pulpe.app';
 
 const LOCAL_BACKEND_ORIGINS = [
   'http://localhost:3000',
@@ -57,15 +66,35 @@ function isViteDevArtifact(violation: CspViolation): boolean {
   );
 }
 
-function readCspFromVercel(): string {
-  const config = JSON.parse(readFileSync(VERCEL_JSON_PATH, 'utf-8')) as VercelJson;
-  const header = config.headers
+function hasProductionHostCondition(block: VercelHeadersBlock): boolean {
+  return (block.has ?? []).some(
+    (condition) =>
+      condition.type === 'host' &&
+      condition.value !== undefined &&
+      new RegExp(`^(?:${condition.value})$`).test(PRODUCTION_HOST),
+  );
+}
+
+function readProductionCspFromVercel(): string {
+  const config = JSON.parse(
+    readFileSync(VERCEL_JSON_PATH, 'utf-8'),
+  ) as VercelJson;
+  const cspHeaders = config.headers
+    .filter(hasProductionHostCondition)
     .flatMap((block) => block.headers)
-    .find((h) => h.key === 'Content-Security-Policy');
-  if (!header) {
-    throw new Error('Content-Security-Policy header not found in vercel.json');
+    .filter((header) => header.key === 'Content-Security-Policy');
+  const cspHeader = cspHeaders[0];
+  if (!cspHeader) {
+    throw new Error(
+      `No Content-Security-Policy entry conditioned on host ${PRODUCTION_HOST} found in vercel.json — the production CSP cannot be tested.`,
+    );
   }
-  return header.value;
+  if (cspHeaders.length > 1) {
+    throw new Error(
+      `Multiple Content-Security-Policy entries match host ${PRODUCTION_HOST} in vercel.json — merge them so the tested production policy is unambiguous.`,
+    );
+  }
+  return cspHeader.value;
 }
 
 function withLocalOrigins(csp: string): string {
@@ -86,7 +115,7 @@ let cspValue: string;
 
 test.describe('CSP — no violations on critical routes', () => {
   test.beforeAll(() => {
-    cspValue = withLocalOrigins(readCspFromVercel());
+    cspValue = withLocalOrigins(readProductionCspFromVercel());
   });
 
   test.beforeEach(async ({ page }) => {

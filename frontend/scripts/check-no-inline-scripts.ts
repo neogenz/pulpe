@@ -3,6 +3,12 @@ import { createHash } from 'node:crypto';
 import { join } from 'node:path';
 import { JSDOM } from 'jsdom';
 
+interface VercelRouteCondition {
+  type: 'host' | 'header' | 'cookie' | 'query';
+  key?: string;
+  value?: string;
+}
+
 interface VercelHeader {
   key: string;
   value: string;
@@ -10,6 +16,8 @@ interface VercelHeader {
 
 interface VercelHeadersBlock {
   source: string;
+  has?: VercelRouteCondition[];
+  missing?: VercelRouteCondition[];
   headers: VercelHeader[];
 }
 
@@ -38,12 +46,27 @@ const SCRIPT_DIRECTIVES_TO_GUARD = [
   'script-src-attr',
 ] as const;
 
-interface CspHashAllowlist {
+interface CspPolicy {
+  label: string;
   scriptSrcElemHashes: Set<string>;
   scriptSrcAttrHashes: Set<string>;
 }
 
-function parseCspPolicy(cspValue: string): CspHashAllowlist {
+function hostPattern(
+  conditions: VercelRouteCondition[] | undefined,
+): string | undefined {
+  return conditions?.find((condition) => condition.type === 'host')?.value;
+}
+
+function policyLabel(block: VercelHeadersBlock): string {
+  const hasHost = hostPattern(block.has);
+  if (hasHost) return `hosts matching ${hasHost}`;
+  const missingHost = hostPattern(block.missing);
+  if (missingHost) return `hosts NOT matching ${missingHost}`;
+  return 'all hosts';
+}
+
+function parseCspPolicy(cspValue: string, label: string): CspPolicy {
   const directives = cspValue.split(';').map((d) => d.trim());
 
   const tokensFor = (prefix: string): string[] => {
@@ -60,7 +83,7 @@ function parseCspPolicy(cspValue: string): CspHashAllowlist {
     for (const forbidden of FORBIDDEN_SCRIPT_KEYWORDS) {
       if (tokens.includes(forbidden)) {
         throw new Error(
-          `[csp-check] ${directive} contains '${forbidden}' — hash-only strict policy regressed (PUL-234).`,
+          `[csp-check] ${directive} contains '${forbidden}' in the CSP entry for ${label} — hash-only strict policy regressed (PUL-234).`,
         );
       }
     }
@@ -70,22 +93,35 @@ function parseCspPolicy(cspValue: string): CspHashAllowlist {
     new Set(tokensFor(prefix).filter((token) => token.startsWith('sha256-')));
 
   return {
+    label,
     scriptSrcElemHashes: hashesIn('script-src-elem'),
     scriptSrcAttrHashes: hashesIn('script-src-attr'),
   };
 }
 
-function readCspPolicies(): CspHashAllowlist[] {
+function readCspPolicies(): CspPolicy[] {
   const vercel = JSON.parse(
     readFileSync(VERCEL_JSON_PATH, 'utf-8'),
   ) as VercelJson;
-  const cspHeaders = vercel.headers
-    .flatMap((block) => block.headers)
-    .filter((h) => h.key === 'Content-Security-Policy');
-  if (cspHeaders.length === 0) {
+  const policies = vercel.headers.flatMap((block) =>
+    block.headers
+      .filter((header) => header.key === 'Content-Security-Policy')
+      .map((header) => parseCspPolicy(header.value, policyLabel(block))),
+  );
+  if (policies.length === 0) {
     throw new Error('Content-Security-Policy header not found in vercel.json');
   }
-  return cspHeaders.map((header) => parseCspPolicy(header.value));
+  return policies;
+}
+
+function rejectingLabels(
+  policies: CspPolicy[],
+  selectHashes: (policy: CspPolicy) => Set<string>,
+  hash: string,
+): string[] {
+  return policies
+    .filter((policy) => !selectHashes(policy).has(hash))
+    .map((policy) => policy.label);
 }
 
 if (!existsSync(INDEX_PATH)) {
@@ -107,11 +143,15 @@ document.querySelectorAll('script').forEach((script, index) => {
   if (hasSrc || isJsonLd || isImportMap || !content) return;
 
   const hash = hashSource(content);
-  if (cspPolicies.every((policy) => policy.scriptSrcElemHashes.has(hash)))
-    return;
+  const rejecting = rejectingLabels(
+    cspPolicies,
+    (policy) => policy.scriptSrcElemHashes,
+    hash,
+  );
+  if (rejecting.length === 0) return;
   const preview = content.replace(/\s+/g, ' ').slice(0, 80);
   failures.push(
-    `inline <script> #${index} not allow-listed (hash ${hash}): ${preview}...`,
+    `inline <script> #${index} (hash ${hash}) not allow-listed by the CSP for: ${rejecting.join('; ')}: ${preview}...`,
   );
 });
 
@@ -120,10 +160,14 @@ document.querySelectorAll('*').forEach((element) => {
     if (!attr.name.toLowerCase().startsWith('on')) continue;
     const value = attr.value;
     const hash = hashSource(value);
-    if (cspPolicies.every((policy) => policy.scriptSrcAttrHashes.has(hash)))
-      continue;
+    const rejecting = rejectingLabels(
+      cspPolicies,
+      (policy) => policy.scriptSrcAttrHashes,
+      hash,
+    );
+    if (rejecting.length === 0) continue;
     failures.push(
-      `inline handler ${attr.name}="${value}" on <${element.tagName.toLowerCase()}> not allow-listed (hash ${hash})`,
+      `inline handler ${attr.name}="${value}" on <${element.tagName.toLowerCase()}> (hash ${hash}) not allow-listed by the CSP for: ${rejecting.join('; ')}`,
     );
   }
 });
@@ -138,11 +182,11 @@ if (failures.length) {
   console.error('[csp-check] FAILED:');
   for (const failure of failures) console.error(`  - ${failure}`);
   console.error(
-    '\nAdd the required hash to vercel.json CSP, or remove the inline source.',
+    '\nAdd the required hash to every CSP entry in vercel.json, or remove the inline source.',
   );
   process.exit(1);
 }
 
 console.log(
-  `[csp-check] OK — every inline script/handler is allow-listed by CSP hash`,
+  `[csp-check] OK — every inline script/handler is allow-listed by all ${cspPolicies.length} CSP policies`,
 );

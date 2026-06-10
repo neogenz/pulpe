@@ -11,8 +11,8 @@ The webapp `vercel.json` carries **two** CSP header entries, made mutually exclu
 
 Rules when touching either entry:
 
-- The production entry comes **first** — the e2e spec picks the first CSP entry.
-- Keep `script-src*` directives aligned across both entries. The build scanner validates **every** entry: an inline source passes only if every policy allow-lists its hash, and the `unsafe-inline`/`unsafe-eval` guard runs per entry.
+- Block order carries no meaning — the e2e spec selects the production policy by its `has` host condition (the entry whose pattern matches `app.pulpe.app`), and the build scanner validates **every** entry.
+- Keep `script-src*` directives aligned across both entries: an inline source passes the scanner only if every policy allow-lists its hash, and the `unsafe-inline`/`unsafe-eval` guard runs per entry (failures name the offending policy by its host condition).
 - `vercel dev` does not evaluate `has`/`missing` — verify the split on a real deployment (`curl -sI https://app.pulpe.app/ | grep -i content-security-policy`).
 
 ## State
@@ -59,7 +59,7 @@ script-src-attr 'unsafe-hashes' 'sha256-MhtPZXr7+LpJUY5qtMutB+qWfQtMaPccfe7QXtCc
 
 The scanner parses `dist/webapp/browser/index.html` with JSDOM, computes a `sha256-...` for every inline `<script>` and every `on*=` handler, and fails the build if any hash is missing from the corresponding directive of **any** CSP entry in `vercel.json` (`script-src-elem` for inline scripts, `script-src-attr` for handlers).
 
-The e2e injects the production CSP (first CSP entry in `vercel.json`) via `page.route` and asserts zero `securitypolicyviolation` events on `/`, `/login`, `/welcome` (Vite-dev artifacts filtered).
+The e2e injects the production CSP (the `vercel.json` entry whose `has` host condition matches `app.pulpe.app`) via `page.route` and asserts zero `securitypolicyviolation` events on `/`, `/login`, `/welcome` (Vite-dev artifacts filtered).
 
 ## Landing — `'unsafe-inline'` kept by design (PUL-254)
 
