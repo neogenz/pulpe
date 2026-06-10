@@ -764,9 +764,11 @@ jobs:
           POSTHOG_PROJECT_ID: ${{ secrets.POSTHOG_WEBAPP_PROJECT_ID }}
 
   # 🔒 CSP CONFORMANCE (push main only — verifies prod hosts serve the host-conditioned CSP from vercel.json, PUL-236)
+  # ${{ !cancelled() }} (not always()): an always() job survives workflow cancellation and would keep
+  # polling prod against a stale vercel.json while the superseding run deploys — spurious red on main.
   verify-prod-csp:
     name: 🔒 Verify Production CSP Headers
-    if: always() && needs.ci-success.result == 'success' && github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: ${{ !cancelled() && needs.ci-success.result == 'success' && github.event_name == 'push' && github.ref == 'refs/heads/main' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     needs: [ci-success]
