@@ -42,7 +42,7 @@ export const ONBOARDING_SUGGESTIONS: readonly OnboardingTransaction[] = [
     isRecurring: true,
   },
   {
-    name: '3ème pilier',
+    name: 'Épargne retraite',
     amount: 587,
     type: 'saving',
     expenseType: 'fixed',

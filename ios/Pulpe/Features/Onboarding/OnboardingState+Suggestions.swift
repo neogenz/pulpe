@@ -30,7 +30,7 @@ extension OnboardingState {
         ),
         makeStaticSuggestion(
             "F1A1E501-C0A5-4000-A000-000000000005",
-            amount: 587, type: .saving, name: "3ème pilier"
+            amount: 587, type: .saving, name: "Épargne retraite"
         )
     ]
 

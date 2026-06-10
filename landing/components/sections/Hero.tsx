@@ -15,7 +15,7 @@ import { CalendarCheck, PiggyBank, Wallet } from "lucide-react";
 import type { ReactNode } from "react";
 
 const TYPEWRITER_STRINGS = [
-  "847 CHF disponibles ce mois.",
+  "Ce mois, il te reste 847 à dépenser.",
   "Impôts de juillet ? Budgétés.",
   "Épargne maison : sur les rails.",
 ];
@@ -41,7 +41,7 @@ const FLOATING_CARDS: FloatingCardConfig[] = [
         <Wallet className="w-5 h-5" />
         <div>
           <div className="text-xs">Disponible ce mois</div>
-          <div className="text-xl font-bold tabular-nums">847 CHF</div>
+          <div className="text-xl font-bold tabular-nums">847</div>
         </div>
       </div>
     ),
@@ -120,7 +120,7 @@ export function Hero() {
               </span>
             </h1>
             <div className="text-xl md:text-2xl lg:text-3xl font-normal text-text-secondary mb-8 tabular-nums">
-              <span className="md:hidden">847 CHF disponibles ce mois.</span>
+              <span className="md:hidden">Ce mois, il te reste 847 à dépenser.</span>
               <span className="hidden md:block min-h-[2.5rem] lg:min-h-[3rem]">
                 <TypeWriter strings={TYPEWRITER_STRINGS} />
               </span>

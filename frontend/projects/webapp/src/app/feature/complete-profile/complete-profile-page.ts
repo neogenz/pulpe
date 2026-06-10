@@ -917,11 +917,11 @@ export default class CompleteProfilePage {
     return available < 0
       ? this.#transloco.translate(
           'completeProfile.summary.liveDeficitAnnouncement',
-          { amount },
+          { amount, currency: this.selectedCurrency() },
         )
       : this.#transloco.translate(
           'completeProfile.summary.liveAvailableAnnouncement',
-          { amount },
+          { amount, currency: this.selectedCurrency() },
         );
   });
 
