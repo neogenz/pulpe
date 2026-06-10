@@ -145,7 +145,25 @@ function getSupabaseEnvFromProcess(): SupabaseEnv | null {
   return { apiUrl, anonKey, serviceRoleKey };
 }
 
+// A single 1.5s probe flakes on saturated CI runners (turbo runs every
+// package's tests concurrently); retry before declaring Supabase down.
+// Locally keep one attempt so suites skip fast when Supabase is off.
+const REACHABILITY_PROBE_ATTEMPTS = process.env.CI === 'true' ? 8 : 1;
+const REACHABILITY_PROBE_BACKOFF_MS = 500;
+
 async function isSupabaseApiReachable(apiUrl: string): Promise<boolean> {
+  for (let attempt = 1; attempt <= REACHABILITY_PROBE_ATTEMPTS; attempt++) {
+    if (await probeSupabaseAuthHealth(apiUrl)) return true;
+    if (attempt < REACHABILITY_PROBE_ATTEMPTS) {
+      await new Promise((resolve) =>
+        setTimeout(resolve, attempt * REACHABILITY_PROBE_BACKOFF_MS),
+      );
+    }
+  }
+  return false;
+}
+
+async function probeSupabaseAuthHealth(apiUrl: string): Promise<boolean> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 1500);
   try {

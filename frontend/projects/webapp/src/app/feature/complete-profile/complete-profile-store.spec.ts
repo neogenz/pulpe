@@ -667,6 +667,13 @@ describe('CompleteProfileStore', () => {
 
         expect(retirementChip.name).toBe('Épargne retraite');
       });
+
+      it('should give the retirement chip a currency-invariant id across CHF and EUR', () => {
+        const chfRetirement = getOnboardingSuggestions('CHF')[4];
+        const eurRetirement = getOnboardingSuggestions('EUR')[4];
+
+        expect(chfRetirement.id).toBe(eurRetirement.id);
+      });
     });
 
     describe('toggleSuggestion', () => {
@@ -719,9 +726,7 @@ describe('CompleteProfileStore', () => {
         store.addCustomTransaction(manualCollision);
         // The chip must NOT register as selected just because a manual row
         // happens to share the same name + type.
-        expect(
-          store.selectedSuggestionNames().has('Courses / alimentation'),
-        ).toBe(false);
+        expect(store.selectedSuggestionIds().has('groceries')).toBe(false);
 
         // Toggling the chip adds a second entry (the suggestion), leaving the
         // manual row alone — both coexist.
@@ -733,26 +738,70 @@ describe('CompleteProfileStore', () => {
         store.toggleSuggestion(suggestion);
         expect(store.customTransactions()).toEqual([manualCollision]);
       });
+
+      it('should remove (not duplicate) the entry when the same chip is toggled across a currency relabel', () => {
+        // Reproduction of the currency-switch desync bug:
+        //   1. EUR user toggles the retirement chip ("Épargne retraite") ON.
+        //   2. User switches currency to CHF → chip relabels to "3ème pilier".
+        //   3. User taps the (now CHF-labelled) retirement chip.
+        // With a name-based id, step 3 saw a mismatched key, rendered the chip
+        // deselected, and APPENDED a duplicate row. With the stable `id`, both
+        // currency variants share id 'retirement', so step 3 removes the entry.
+        const eurRetirement = getOnboardingSuggestions('EUR')[4];
+        const chfRetirement = getOnboardingSuggestions('CHF')[4];
+        expect(eurRetirement.id).toBe(chfRetirement.id);
+
+        store.toggleSuggestion(eurRetirement);
+        expect(store.customTransactions()).toHaveLength(1);
+
+        store.toggleSuggestion(chfRetirement);
+        expect(store.customTransactions()).toHaveLength(0);
+      });
+
+      it('should strip the client-only id and __suggestionId from the submitted payload', async () => {
+        mockProfileSetupService.createInitialBudget.mockResolvedValue({
+          success: true,
+        });
+
+        store.updateFirstName('John');
+        store.updateMonthlyIncome(5000);
+        store.toggleSuggestion(suggestion);
+
+        await store.submitProfile();
+
+        const payload =
+          mockProfileSetupService.createInitialBudget.mock.calls[0][0];
+        expect(payload.customTransactions).toHaveLength(1);
+        expect(payload.customTransactions[0]).not.toHaveProperty('id');
+        expect(payload.customTransactions[0]).not.toHaveProperty(
+          '__suggestionId',
+        );
+        expect(payload.customTransactions[0]).toEqual({
+          name: suggestion.name,
+          amount: suggestion.amount,
+          type: suggestion.type,
+          expenseType: suggestion.expenseType,
+          isRecurring: suggestion.isRecurring,
+        });
+      });
     });
 
-    describe('selectedSuggestionNames', () => {
+    describe('selectedSuggestionIds', () => {
       it('should return empty set initially', () => {
-        expect(store.selectedSuggestionNames().size).toBe(0);
+        expect(store.selectedSuggestionIds().size).toBe(0);
       });
 
-      it('should contain name after toggling on', () => {
+      it('should contain id after toggling on', () => {
         store.toggleSuggestion(suggestion);
 
-        expect(store.selectedSuggestionNames().has(suggestion.name)).toBe(true);
+        expect(store.selectedSuggestionIds().has(suggestion.id)).toBe(true);
       });
 
-      it('should not contain name after toggling off', () => {
+      it('should not contain id after toggling off', () => {
         store.toggleSuggestion(suggestion);
         store.toggleSuggestion(suggestion);
 
-        expect(store.selectedSuggestionNames().has(suggestion.name)).toBe(
-          false,
-        );
+        expect(store.selectedSuggestionIds().has(suggestion.id)).toBe(false);
       });
 
       it('should NOT include manually added transactions even when the name matches a suggestion', () => {
@@ -767,9 +816,7 @@ describe('CompleteProfileStore', () => {
           isRecurring: true,
         });
 
-        expect(
-          store.selectedSuggestionNames().has('Courses / alimentation'),
-        ).toBe(false);
+        expect(store.selectedSuggestionIds().has('groceries')).toBe(false);
       });
     });
 
@@ -792,7 +839,7 @@ describe('CompleteProfileStore', () => {
         expect(store.customTransactions()[0].amount).toBe(800);
 
         // Chip stays selected after the edit (__suggestionId survived the spread).
-        expect(store.selectedSuggestionNames().has(suggestion.name)).toBe(true);
+        expect(store.selectedSuggestionIds().has(suggestion.id)).toBe(true);
 
         // Re-toggle removes the entry — does NOT append a duplicate.
         store.toggleSuggestion(suggestion);

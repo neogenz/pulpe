@@ -604,12 +604,9 @@ import {
                       class="flex flex-wrap gap-2 mb-5"
                       data-testid="suggestion-chips"
                     >
-                      @for (
-                        suggestion of suggestions();
-                        track suggestion.name
-                      ) {
+                      @for (suggestion of suggestions(); track suggestion.id) {
                         @let isSelected =
-                          store.selectedSuggestionNames().has(suggestion.name);
+                          store.selectedSuggestionIds().has(suggestion.id);
                         @let isChipDisabled =
                           !isSelected && store.customTransactionsLimitReached();
                         <button
