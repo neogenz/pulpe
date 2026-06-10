@@ -6,6 +6,8 @@ struct BudgetDetailsView: View {
     @Environment(AppState.self) private var appState
     @Environment(BudgetDetailsRouter.self) private var router
     @Environment(UserSettingsStore.self) private var userSettingsStore
+    @Environment(BudgetListStore.self) private var budgetListStore
+    @Environment(DashboardStore.self) private var dashboardStore
     @Environment(\.amountsHidden) private var amountsHidden
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.tabBarClearance) private var tabBarClearance
@@ -100,6 +102,7 @@ struct BudgetDetailsView: View {
             }
         }
         .task(id: screenState.budgetId) {
+            coordinator.bind(budgetListStore: budgetListStore, dashboardStore: dashboardStore)
             if !screenState.hasAllBudgets {
                 await coordinator.dispatch(.loadDetails(force: false))
             } else {
@@ -300,6 +303,8 @@ struct BudgetDetailsView: View {
     .environment(AppState())
     .environment(BudgetDetailsRouter())
     .environment(UserSettingsStore())
+    .environment(BudgetListStore())
+    .environment(DashboardStore())
 }
 #Preview("Gestures Tip") {
     List {

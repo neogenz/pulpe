@@ -32,6 +32,7 @@ This feature uses a layered split that other complex iOS features should adopt w
 8. **Every file in this feature ≤ 350 LOC.** Hard error in CI after Phase 5.
 9. **All mutations route through `BudgetDetailsCoordinator.dispatch(_:)`.** Views never call `*Service.shared.*` directly for mutations.
 10. **`BudgetDetailsViewModel` does not exist.** It was retired in Phase 4 of the refactor.
+11. **Every mutation path terminates in `dataStore.syncCache()`** — the lone invalidation choke point: it syncs `BudgetDetailCache` AND fires `onMutation` (app-scoped store invalidation, PUL-270). Any new entry point that constructs the coordinator must call `bind(budgetListStore:dashboardStore:)` in its `.task`, or list/dashboard aggregates go stale on pop-back.
 
 ## When to apply this pattern to a new feature
 

@@ -102,6 +102,12 @@ final class CurrentMonthStore: StoreProtocol {
 
     private var lastLoadTime: Date?
 
+    /// Fired by every amount-changing mutation below (adds, updates, deletes —
+    /// not toggles). Lets the app invalidate sibling stores that project the
+    /// same budget aggregates (`BudgetListStore`, `DashboardStore`) without
+    /// this store knowing them — wired once in `PulpeApp.init` (PUL-270).
+    @ObservationIgnored var onMutation: (@MainActor () -> Void)?
+
     // Cache for expensive computed properties
     private var cachedMetrics: BudgetFormulas.Metrics?
     private var cachedRealizedMetrics: BudgetFormulas.RealizedMetrics?
@@ -565,6 +571,8 @@ extension CurrentMonthStore {
 
 extension CurrentMonthStore {
     func toggleBudgetLine(_ line: BudgetLine) async {
+        // Note: toggles don't fire `onMutation` — checking a line/transaction
+        // never changes the sparse aggregates sibling stores display.
         // Skip virtual rollover lines
         guard !(line.isRollover ?? false) else { return }
 
@@ -639,6 +647,7 @@ extension CurrentMonthStore {
         transactions.append(transaction)
         recomputeMetrics()
         syncWidgetAfterChange()
+        onMutation?()
     }
 
     func deleteTransaction(_ transaction: Transaction) async {
@@ -646,6 +655,7 @@ extension CurrentMonthStore {
         let originalTransactions = transactions
         transactions.removeAll { $0.id == transaction.id }
         recomputeMetrics()
+        onMutation?()
 
         do {
             try await transactionService.deleteTransaction(id: transaction.id)
@@ -669,6 +679,7 @@ extension CurrentMonthStore {
         let originalLines = budgetLines
         budgetLines.removeAll { $0.id == line.id }
         recomputeMetrics()
+        onMutation?()
 
         do {
             try await budgetLineService.deleteBudgetLine(id: line.id)
@@ -691,6 +702,7 @@ extension CurrentMonthStore {
             budgetLines[index] = line
             recomputeMetrics()
         }
+        onMutation?()
 
         // Refresh to get server state (needed for recalculations)
         await forceRefresh()
@@ -702,6 +714,7 @@ extension CurrentMonthStore {
             transactions[index] = transaction
             recomputeMetrics()
         }
+        onMutation?()
         await forceRefresh()
     }
 }
