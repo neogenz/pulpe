@@ -170,8 +170,8 @@ importers:
         specifier: ^5.5.1
         version: 5.5.4(@types/eslint@9.6.1)(eslint-config-prettier@10.1.8(eslint@9.39.2(jiti@2.6.1)))(eslint@9.39.2(jiti@2.6.1))(prettier@3.7.4)
       supabase:
-        specifier: ^2.75.0
-        version: 2.75.5
+        specifier: 2.84.2
+        version: 2.84.2
       supertest:
         specifier: ^7.1.1
         version: 7.1.4
@@ -3458,6 +3458,10 @@ packages:
     resolution: {integrity: sha512-MnA+YT8fwfJPgBx3m60MNqakm30XOkyIoH1y6huTQvC0PwZG7ki8NacLBcrPbNoo8vEZy7Jpuk7+jMO+CUovTQ==}
     engines: {node: '>= 14'}
 
+  agent-base@8.0.0:
+    resolution: {integrity: sha512-QT8i0hCz6C/KQ+KTAbSNwCHDGdmUJl2tp2ZpNlGSWCfhUNVbYG2WLE3MdZGBAgXPV4GAvjGMxo+C1hroyxmZEg==}
+    engines: {node: '>= 14'}
+
   ajv-formats@2.1.1:
     resolution: {integrity: sha512-Wx0Kx52hxE7C18hkMEggYlEifqWZtYaRgouJor+WMdPnQyEK13vgEWyVNup7SoeeoLMsr4kf5h6dOW11I15MUA==}
     peerDependencies:
@@ -5074,6 +5078,10 @@ packages:
 
   https-proxy-agent@7.0.6:
     resolution: {integrity: sha512-vK9P5/iUfdl95AI+JVyUuIcVtd4ofvtrOr3HNtM2yxC9bnMbEdp3x01OhQNnjb8IJYi38VlTE3mBXwcfvywuSw==}
+    engines: {node: '>= 14'}
+
+  https-proxy-agent@8.0.0:
+    resolution: {integrity: sha512-YYeW+iCnAS3xhvj2dvVoWgsbca3RfQy/IlaNHHOtDmU0jMqPI9euIq3Y9BJETdxk16h9NHHCKqp/KB9nIMStCQ==}
     engines: {node: '>= 14'}
 
   human-id@4.1.1:
@@ -7107,8 +7115,8 @@ packages:
     engines: {node: '>=18'}
     hasBin: true
 
-  supabase@2.75.5:
-    resolution: {integrity: sha512-gjCFvMTJ51HDPEGkvLroGgA4GEB5VhU136Gc/9BZgaHogqAKvTs7M28xlPcG5flGzmZjiqlNP1PcgzuQdw9fxQ==}
+  supabase@2.84.2:
+    resolution: {integrity: sha512-d+tCSDL6ACAdZv8DCMvVK00XzNDlaNZb/QM1mLQeZmyiGB5E33HmBIdu0i7y6/1h3WzHj2meCxPNI73/BV+sgQ==}
     engines: {npm: '>=8'}
     hasBin: true
 
@@ -7160,6 +7168,10 @@ packages:
   tapable@2.3.3:
     resolution: {integrity: sha512-uxc/zpqFg6x7C8vOE7lh6Lbda8eEL9zmVm/PLeTPBRhh1xCgdWaQ+J1CUieGpIfm2HdtsUpRv+HshiasBMcc6A==}
     engines: {node: '>=6'}
+
+  tar@7.5.13:
+    resolution: {integrity: sha512-tOG/7GyXpFevhXVh8jOPJrmtRpOTsYqUIkVdVooZYJS/z8WhfQUX8RJILmeuJNinGAMSu1veBr4asSHFt5/hng==}
+    engines: {node: '>=18'}
 
   tar@7.5.7:
     resolution: {integrity: sha512-fov56fJiRuThVFXD6o6/Q354S7pnWMJIVlDBYijsTNx6jKSE4pvrDTs6lUnmGvNyfJwFQQwWy3owKz1ucIhveQ==}
@@ -9211,7 +9223,7 @@ snapshots:
 
   '@isaacs/fs-minipass@4.0.1':
     dependencies:
-      minipass: 7.1.2
+      minipass: 7.1.3
 
   '@istanbuljs/schema@0.1.3': {}
 
@@ -11010,6 +11022,8 @@ snapshots:
   adler-32@1.3.1: {}
 
   agent-base@7.1.4: {}
+
+  agent-base@8.0.0: {}
 
   ajv-formats@2.1.1(ajv@8.17.1):
     optionalDependencies:
@@ -12850,7 +12864,7 @@ snapshots:
       foreground-child: 3.3.1
       jackspeak: 3.4.3
       minimatch: 9.0.5
-      minipass: 7.1.2
+      minipass: 7.1.3
       package-json-from-dist: 1.0.1
       path-scurry: 1.11.1
 
@@ -13031,6 +13045,13 @@ snapshots:
   https-proxy-agent@7.0.6:
     dependencies:
       agent-base: 7.1.4
+      debug: 4.4.3
+    transitivePeerDependencies:
+      - supports-color
+
+  https-proxy-agent@8.0.0:
+    dependencies:
+      agent-base: 8.0.0
       debug: 4.4.3
     transitivePeerDependencies:
       - supports-color
@@ -13806,7 +13827,7 @@ snapshots:
 
   minizlib@3.1.0:
     dependencies:
-      minipass: 7.1.2
+      minipass: 7.1.3
 
   mkdirp@0.5.6:
     dependencies:
@@ -14320,7 +14341,7 @@ snapshots:
   path-scurry@1.11.1:
     dependencies:
       lru-cache: 10.4.3
-      minipass: 7.1.2
+      minipass: 7.1.3
 
   path-scurry@2.0.1:
     dependencies:
@@ -15264,12 +15285,12 @@ snapshots:
     dependencies:
       commander: 12.1.0
 
-  supabase@2.75.5:
+  supabase@2.84.2:
     dependencies:
       bin-links: 6.0.0
-      https-proxy-agent: 7.0.6
+      https-proxy-agent: 8.0.0
       node-fetch: 3.3.2
-      tar: 7.5.7
+      tar: 7.5.13
     transitivePeerDependencies:
       - supports-color
 
@@ -15326,11 +15347,19 @@ snapshots:
 
   tapable@2.3.3: {}
 
+  tar@7.5.13:
+    dependencies:
+      '@isaacs/fs-minipass': 4.0.1
+      chownr: 3.0.0
+      minipass: 7.1.3
+      minizlib: 3.1.0
+      yallist: 5.0.0
+
   tar@7.5.7:
     dependencies:
       '@isaacs/fs-minipass': 4.0.1
       chownr: 3.0.0
-      minipass: 7.1.2
+      minipass: 7.1.3
       minizlib: 3.1.0
       yallist: 5.0.0
 
