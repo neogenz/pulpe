@@ -23,6 +23,7 @@ DECLARE
   v_attacker_budget_id   uuid := gen_random_uuid();
   v_victim_budget_id     uuid := gen_random_uuid();
   v_ghost_line_id        uuid := gen_random_uuid();
+  v_mixed_line_id        uuid := gen_random_uuid();
   v_nominal_line_id      uuid := gen_random_uuid();
   v_caught               boolean;
   v_injected_count       int;
@@ -42,7 +43,7 @@ BEGIN
     true
   );
 
-  -- Attacker owns their template — passes the only ownership guard (line 56).
+  -- Attacker owns their template — clears the template-ownership guard.
   INSERT INTO public.template (id, user_id, name, description, is_default)
   VALUES (v_attacker_template_id, v_attacker_id, 'Attacker Template', '', false);
 
@@ -81,7 +82,7 @@ BEGIN
     );
   EXCEPTION WHEN OTHERS THEN
     v_caught := true;
-    RAISE NOTICE 'PASS 1/3: cross-user injection rejected: %', SQLERRM;
+    RAISE NOTICE 'PASS 1/4: cross-user injection rejected: %', SQLERRM;
   END;
 
   IF NOT v_caught THEN
@@ -95,7 +96,44 @@ BEGIN
   IF v_injected_count <> 0 THEN
     RAISE EXCEPTION 'FAIL: % ghost budget_line(s) leaked into victim budget', v_injected_count;
   END IF;
-  RAISE NOTICE 'PASS 2/3: victim budget has zero injected lines';
+  RAISE NOTICE 'PASS 2/4: victim budget has zero injected lines';
+
+  -- ---------- ATTACK 2: mixed array [own budget, victim budget] ----------
+  -- The strongest bypass attempt: smuggle the victim's budget alongside the
+  -- attacker's own. A naive guard ("at least one owned budget" / filter-then-write)
+  -- would write to the owned budget and silently drop the victim's. The guard must
+  -- instead reject the WHOLE call and — being atomic — write nothing, not even to
+  -- the attacker's own budget.
+  v_caught := false;
+  BEGIN
+    PERFORM public.apply_template_line_operations(
+      template_id := v_attacker_template_id,
+      budget_ids := ARRAY[v_attacker_budget_id, v_victim_budget_id]::uuid[],
+      created_lines := jsonb_build_array(
+        jsonb_build_object(
+          'id', v_mixed_line_id,
+          'name', 'GHOST_MIXED',
+          'amount', 'CIPHERTEXT_ATTACKER_DEK',
+          'kind', 'expense',
+          'recurrence', 'fixed'
+        )
+      )
+    );
+  EXCEPTION WHEN OTHERS THEN
+    v_caught := true;
+    RAISE NOTICE 'PASS 3/4: mixed own+victim array rejected: %', SQLERRM;
+  END;
+
+  IF NOT v_caught THEN
+    RAISE EXCEPTION 'FAIL: mixed own+victim array did not raise — guard checks "any owned" instead of "all owned"';
+  END IF;
+
+  -- Atomic rollback: zero rows written, including the attacker's OWN budget.
+  SELECT count(*) INTO v_injected_count
+  FROM public.budget_line WHERE template_line_id = v_mixed_line_id;
+  IF v_injected_count <> 0 THEN
+    RAISE EXCEPTION 'FAIL: % row(s) written despite rejected mixed call (non-atomic)', v_injected_count;
+  END IF;
 
   -- ---------- NOMINAL: attacker propagating to their OWN budget still works ----------
   PERFORM public.apply_template_line_operations(
@@ -117,7 +155,7 @@ BEGIN
   IF v_injected_count <> 1 THEN
     RAISE EXCEPTION 'FAIL: nominal own-budget propagation broken, count = %', v_injected_count;
   END IF;
-  RAISE NOTICE 'PASS 3/3: nominal own-budget propagation intact';
+  RAISE NOTICE 'PASS 4/4: nominal own-budget propagation intact';
 
   RAISE NOTICE 'CROSS-USER IDOR GUARD: ALL ASSERTIONS PASSED';
 END $$;
