@@ -185,8 +185,14 @@ async function isSupabaseApiReachable(apiUrl: string): Promise<boolean> {
 
 async function ensureSupabaseAvailable(): Promise<SupabaseEnv> {
   const envFromProcess = getSupabaseEnvFromProcess();
-  if (envFromProcess && (await isSupabaseApiReachable(envFromProcess.apiUrl))) {
-    return envFromProcess;
+  if (envFromProcess) {
+    // CI health-gates REST + auth right before the test step; re-probing here
+    // only adds a 5s-timeout failure window while parallel suites saturate the
+    // runner. Locally the probe stays — it is what turns "stack down" into skip.
+    if (process.env.CI === 'true') return envFromProcess;
+    if (await isSupabaseApiReachable(envFromProcess.apiUrl)) {
+      return envFromProcess;
+    }
   }
 
   const statusEnv = tryGetSupabaseEnv();
