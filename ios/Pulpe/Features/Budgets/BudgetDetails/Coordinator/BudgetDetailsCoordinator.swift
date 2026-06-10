@@ -166,7 +166,8 @@ final class BudgetDetailsCoordinator {
             }
 
             // Drop the snapshot if an optimistic mutation landed mid-fetch (PUL-257).
-            dataStore.applyDetails(details, ifGenerationMatches: generation)
+            // Strip rows pending soft-deletion — the server still has them (PUL-271).
+            dataStore.applyDetails(filteringPendingSoftDeletions(from: details), ifGenerationMatches: generation)
             dataStore.applyAllBudgets(budgets)
         } catch is CancellationError {
             // Task was cancelled, don't update error state
@@ -191,7 +192,8 @@ final class BudgetDetailsCoordinator {
         let generation = dataStore.mutationGeneration
         do {
             let details = try await budgetService.getBudgetWithDetails(id: dataStore.budgetId)
-            dataStore.applyDetails(details, ifGenerationMatches: generation)
+            // Strip rows pending soft-deletion — the server still has them (PUL-271).
+            dataStore.applyDetails(filteringPendingSoftDeletions(from: details), ifGenerationMatches: generation)
         } catch is CancellationError {
             // Task was cancelled, don't update error state
         } catch {
