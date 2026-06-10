@@ -145,9 +145,13 @@ function getSupabaseEnvFromProcess(): SupabaseEnv | null {
   return { apiUrl, anonKey, serviceRoleKey };
 }
 
-async function isSupabaseApiReachable(apiUrl: string): Promise<boolean> {
+const REACHABILITY_ATTEMPTS = 3;
+const REACHABILITY_TIMEOUT_MS = 5000;
+const REACHABILITY_RETRY_DELAY_MS = 2000;
+
+async function probeSupabaseAuthHealth(apiUrl: string): Promise<boolean> {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 1500);
+  const timeout = setTimeout(() => controller.abort(), REACHABILITY_TIMEOUT_MS);
   try {
     const response = await fetch(new URL('/auth/v1/health', apiUrl), {
       signal: controller.signal,
@@ -158,6 +162,18 @@ async function isSupabaseApiReachable(apiUrl: string): Promise<boolean> {
   } finally {
     clearTimeout(timeout);
   }
+}
+
+async function isSupabaseApiReachable(apiUrl: string): Promise<boolean> {
+  for (let attempt = 1; attempt <= REACHABILITY_ATTEMPTS; attempt++) {
+    if (await probeSupabaseAuthHealth(apiUrl)) return true;
+    if (attempt < REACHABILITY_ATTEMPTS) {
+      await new Promise((resolve) =>
+        setTimeout(resolve, REACHABILITY_RETRY_DELAY_MS),
+      );
+    }
+  }
+  return false;
 }
 
 async function ensureSupabaseAvailable(): Promise<SupabaseEnv> {

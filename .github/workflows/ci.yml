@@ -258,10 +258,10 @@ jobs:
         run: |
           supabase start --exclude studio,mailpit,imgproxy,edge-runtime
 
-          # Health check pour tests
+          # Health check pour tests — REST (postgrest) puis Auth (gotrue, sondé par les specs encryption)
           timeout=60
           counter=0
-          until curl -s http://127.0.0.1:54321/rest/v1/ >/dev/null; do
+          until curl -s http://127.0.0.1:54321/rest/v1/ >/dev/null && curl -sf http://127.0.0.1:54321/auth/v1/health >/dev/null; do
             if [ $counter -gt $timeout ]; then
               echo "❌ Supabase not ready for tests"
               exit 1
@@ -451,10 +451,10 @@ jobs:
         run: |
           supabase start --exclude studio,mailpit,imgproxy,edge-runtime
 
-          # Health check pour tests
+          # Health check pour tests — REST (postgrest) puis Auth (gotrue, sondé par les specs encryption)
           timeout=60
           counter=0
-          until curl -s http://127.0.0.1:54321/rest/v1/ >/dev/null; do
+          until curl -s http://127.0.0.1:54321/rest/v1/ >/dev/null && curl -sf http://127.0.0.1:54321/auth/v1/health >/dev/null; do
             if [ $counter -gt $timeout ]; then
               echo "❌ Supabase not ready for tests"
               exit 1
@@ -768,7 +768,7 @@ jobs:
     name: 🔒 Verify Production CSP Headers
     if: always() && needs.ci-success.result == 'success' && github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     needs: [ci-success]
     steps:
       - name: 📥 Checkout
@@ -793,7 +793,7 @@ jobs:
           fi
           for HOST in app.pulpe.app pulpe-frontend.vercel.app; do
             for ATTEMPT in $(seq 1 10); do
-              SERVED=$(curl -s -o /dev/null -D - "https://${HOST}/" | grep -i '^content-security-policy:' | sed 's/^[^:]*: *//' | tr -d '\r')
+              SERVED=$(curl -s --max-time 10 -o /dev/null -D - "https://${HOST}/" | grep -i '^content-security-policy:' | sed 's/^[^:]*: *//' | tr -d '\r')
               if [ "$SERVED" = "$EXPECTED" ]; then
                 echo "✅ ${HOST} serves the expected production CSP"
                 break
