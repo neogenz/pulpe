@@ -165,7 +165,10 @@ async function isSupabaseApiReachable(apiUrl: string): Promise<boolean> {
 export async function ensureSupabaseAvailable(): Promise<SupabaseEnv> {
   // The CLI is the source of truth for the running stack, locally and in the
   // dedicated CI job alike — `bun test` auto-loads .env.local, whose keys can
-  // be stale or placeholders, so process env only serves as a fallback.
+  // be stale or placeholders, so process env only serves as a fallback. Never
+  // gate that fallback on key format (JWT alg, sb_ prefixes): CLI 2.84.2
+  // issues plain HS256 demo JWTs that work fine — an ES256-only gate is what
+  // forced every CI run onto the flaky execSync path in the first place.
   const statusEnv = tryGetSupabaseEnv();
   if (
     statusEnv &&
