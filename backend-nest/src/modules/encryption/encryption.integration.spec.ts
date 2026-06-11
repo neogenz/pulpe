@@ -23,6 +23,8 @@ type SupabaseEnv = {
 };
 
 const LOCAL_SUPABASE_HOSTS = new Set(['localhost', '127.0.0.1', '0.0.0.0']);
+const IS_DEDICATED_INTEGRATION_RUN =
+  process.env.RUN_INTEGRATION_TESTS === 'true';
 
 class TestConfigService {
   constructor(private readonly values: Record<string, string>) {}
@@ -194,16 +196,14 @@ async function isSupabaseApiReachable(apiUrl: string): Promise<boolean> {
 
 async function ensureSupabaseAvailable(): Promise<SupabaseEnv> {
   const envFromProcess = getSupabaseEnvFromProcess();
-  if (envFromProcess) {
-    // CI health-gates REST + auth right before the test step; re-probing here
-    // only adds a 5s-timeout failure window while parallel suites saturate the
-    // runner. Locally the probe stays — it is what turns "stack down" into skip.
-    if (process.env.CI === 'true') return envFromProcess;
-    if (await isSupabaseApiReachable(envFromProcess.apiUrl)) {
-      return envFromProcess;
-    }
+  // The dedicated integration job sets these env vars explicitly and
+  // health-gates REST + auth right before the test step — trust them as-is.
+  if (IS_DEDICATED_INTEGRATION_RUN && envFromProcess) {
+    return envFromProcess;
   }
 
+  // Locally `bun test` auto-loads .env.local, whose keys can be stale or
+  // placeholders; the CLI is the source of truth for the running stack.
   const statusEnv = tryGetSupabaseEnv();
   if (
     statusEnv &&
@@ -211,6 +211,10 @@ async function ensureSupabaseAvailable(): Promise<SupabaseEnv> {
     (await isSupabaseApiReachable(statusEnv.apiUrl))
   ) {
     return statusEnv;
+  }
+
+  if (envFromProcess && (await isSupabaseApiReachable(envFromProcess.apiUrl))) {
+    return envFromProcess;
   }
 
   throw new Error(
@@ -292,7 +296,7 @@ describe('Encryption integration (local Supabase)', () => {
 
   beforeAll(async () => {
     const env = await ensureSupabaseAvailable().catch((error) => {
-      if (process.env.CI === 'true') throw error;
+      if (IS_DEDICATED_INTEGRATION_RUN) throw error;
       return null;
     });
     if (!env) return;
@@ -314,7 +318,7 @@ describe('Encryption integration (local Supabase)', () => {
       .limit(1);
     if (schemaError) {
       if (isMissingTableError(schemaError)) {
-        if (process.env.CI === 'true') {
+        if (IS_DEDICATED_INTEGRATION_RUN) {
           throw new Error(
             'Supabase encryption schema is missing in CI (user_encryption_key table not found).',
           );
@@ -341,7 +345,7 @@ describe('Encryption integration (local Supabase)', () => {
     if (
       insertError?.message?.includes('invalid input syntax for type numeric')
     ) {
-      if (process.env.CI !== 'true') {
+      if (!IS_DEDICATED_INTEGRATION_RUN) {
         console.warn(
           'Supabase schema is outdated: amount columns are still numeric. ' +
             'Run: supabase db reset',

@@ -209,9 +209,52 @@ jobs:
             backend-nest/dist/
           retention-days: 1
 
-  # 🧪 TESTS UNITAIRES (Modifié pour utiliser Supabase local)
+  # 🧪 TESTS UNITAIRES (sans Supabase — les suites d'intégration tournent dans test-backend-integration)
   test-unit:
     name: 🧪 Unit Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: [install, build]
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v5
+
+      - name: 📦 Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "pnpm"
+          cache-dependency-path: "**/pnpm-lock.yaml"
+
+      - name: 📦 Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - name: 📥 Download build artifacts
+        uses: actions/download-artifact@v8
+        with:
+          name: build-artifacts
+
+      - name: 📥 Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: 🧪 Run unit tests
+        run: pnpm test:unit
+        env:
+          NODE_ENV: test
+          TURNSTILE_SECRET_KEY: ci-test-turnstile-key
+          ENCRYPTION_MASTER_KEY: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+
+  # 🔌 TESTS D'INTÉGRATION BACKEND (seul job de test à démarrer Supabase — runner dédié,
+  # pas de concurrence avec vitest frontend, donc pas de saturation ni de flake réseau)
+  test-backend-integration:
+    name: 🔌 Backend Integration Tests
     runs-on: ubuntu-latest
     timeout-minutes: 10
     needs: [install, build]
@@ -317,10 +360,12 @@ jobs:
       - name: 📥 Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: 🧪 Run unit tests
-        run: pnpm test:unit
+      - name: 🔌 Run backend integration tests
+        working-directory: backend-nest
+        run: bun test .integration.spec .e2e.spec
         env:
           NODE_ENV: test
+          RUN_INTEGRATION_TESTS: "true"
           SUPABASE_URL: ${{ steps.start-supabase-tests.outputs.SUPABASE_URL }}
           SUPABASE_ANON_KEY: ${{ steps.start-supabase-tests.outputs.SUPABASE_ANON_KEY }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ steps.start-supabase-tests.outputs.SUPABASE_SERVICE_ROLE_KEY }}
@@ -717,13 +762,14 @@ jobs:
     name: ✅ CI Success
     runs-on: ubuntu-latest
     timeout-minutes: 1
-    needs: [build, test-unit, test-e2e, quality, test-performance, test-ios, migrate-dryrun]
+    needs: [build, test-unit, test-backend-integration, test-e2e, quality, test-performance, test-ios, migrate-dryrun]
     if: always()
     steps:
       - name: ✅ Check all jobs
         if: >-
           needs.build.result == 'success' &&
           needs.test-unit.result == 'success' &&
+          needs.test-backend-integration.result == 'success' &&
           needs.test-e2e.result == 'success' &&
           needs.quality.result == 'success' &&
           needs.test-performance.result == 'success' &&
@@ -735,6 +781,7 @@ jobs:
         if: >-
           needs.build.result != 'success' ||
           needs.test-unit.result != 'success' ||
+          needs.test-backend-integration.result != 'success' ||
           needs.test-e2e.result != 'success' ||
           needs.quality.result != 'success' ||
           needs.test-performance.result != 'success' ||
@@ -744,6 +791,7 @@ jobs:
           echo "❌ Some CI checks failed"
           echo "Build: ${{ needs.build.result }}"
           echo "Unit Tests: ${{ needs.test-unit.result }}"
+          echo "Backend Integration: ${{ needs.test-backend-integration.result }}"
           echo "E2E Tests: ${{ needs.test-e2e.result }}"
           echo "Quality: ${{ needs.quality.result }}"
           echo "Performance: ${{ needs.test-performance.result }}"
