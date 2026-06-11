@@ -1,6 +1,4 @@
 import { afterAll, beforeAll, describe, expect, it } from 'bun:test';
-import { execSync } from 'node:child_process';
-import { delimiter, resolve } from 'node:path';
 import { type INestApplication, VersioningType } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Test } from '@nestjs/testing';
@@ -9,205 +7,14 @@ import request from 'supertest';
 import type { Database } from '../../types/database.types';
 import { AppModule } from '../../app.module';
 import { UserThrottlerGuard } from '@common/guards/user-throttler.guard';
-
-const BACKEND_ROOT = resolve(__dirname, '../../..');
+import {
+  ensureSupabaseAvailable,
+  IS_DEDICATED_INTEGRATION_RUN,
+} from '@/test/local-supabase';
 
 const TEST_PASSWORD = 'test-password-e2e-123';
 const OLD_CLIENT_KEY_HEX = 'aa'.repeat(32);
 const NEW_CLIENT_KEY_HEX = 'bb'.repeat(32);
-
-type SupabaseEnv = {
-  apiUrl: string;
-  anonKey: string;
-  serviceRoleKey: string;
-};
-
-const LOCAL_SUPABASE_HOSTS = new Set(['localhost', '127.0.0.1', '0.0.0.0']);
-
-function stripNodeModulesBin(
-  pathValue: string | undefined,
-): string | undefined {
-  if (!pathValue) return pathValue;
-  return pathValue
-    .split(delimiter)
-    .filter((segment) => !segment.includes('node_modules/.bin'))
-    .join(delimiter);
-}
-
-function resolveSupabaseCliPath(): string {
-  if (process.env.SUPABASE_CLI_PATH) {
-    return process.env.SUPABASE_CLI_PATH;
-  }
-
-  const env = { ...process.env, PATH: stripNodeModulesBin(process.env.PATH) };
-
-  try {
-    const resolved = execSync('command -v supabase', {
-      env,
-      stdio: ['ignore', 'pipe', 'pipe'],
-    })
-      .toString()
-      .trim();
-    return resolved || 'supabase';
-  } catch {
-    return 'supabase';
-  }
-}
-
-function runSupabase(command: string): string {
-  const env = { ...process.env };
-  delete env.SUPABASE_ACCESS_TOKEN;
-  delete env.SUPABASE_PROJECT_REF;
-  delete env.SUPABASE_PROJECT_ID;
-
-  env.PATH = stripNodeModulesBin(env.PATH);
-  const cliPath = resolveSupabaseCliPath();
-  const cli = cliPath.includes(' ')
-    ? `"${cliPath.replace(/"/g, '\\"')}"`
-    : cliPath;
-
-  return execSync(`${cli} --workdir "${BACKEND_ROOT}" ${command}`, {
-    cwd: BACKEND_ROOT,
-    env,
-    stdio: ['ignore', 'pipe', 'pipe'],
-  }).toString();
-}
-
-function parseSupabaseStatus(raw: string): SupabaseEnv {
-  const start = raw.indexOf('{');
-  const end = raw.lastIndexOf('}');
-  if (start === -1 || end === -1 || end <= start) {
-    throw new Error('Supabase status output missing JSON payload');
-  }
-  const status = JSON.parse(raw.slice(start, end + 1)) as Record<
-    string,
-    string
-  >;
-
-  const apiUrl =
-    status.api_url ?? status.API_URL ?? status.apiUrl ?? status.ApiUrl;
-  // Newer local stacks may only expose the sb_publishable_/sb_secret_ key
-  // pair (PUBLISHABLE_KEY/SECRET_KEY) instead of the legacy JWT keys.
-  const anonKey =
-    status.anon_key ??
-    status.ANON_KEY ??
-    status.anonKey ??
-    status.AnonKey ??
-    status.PUBLISHABLE_KEY ??
-    status.publishable_key;
-  const serviceRoleKey =
-    status.service_role_key ??
-    status.SERVICE_ROLE_KEY ??
-    status.serviceRoleKey ??
-    status.ServiceRoleKey ??
-    status.SECRET_KEY ??
-    status.secret_key;
-
-  if (!apiUrl || !anonKey || !serviceRoleKey) {
-    throw new Error(
-      `Supabase status missing keys. Got: ${Object.keys(status).join(', ')}`,
-    );
-  }
-
-  return { apiUrl, anonKey, serviceRoleKey };
-}
-
-function tryGetSupabaseEnv(): SupabaseEnv | null {
-  try {
-    const raw = runSupabase('status --output json');
-    return parseSupabaseStatus(raw);
-  } catch {
-    return null;
-  }
-}
-
-function isLocalSupabaseUrl(value: string): boolean {
-  try {
-    const url = new URL(value);
-    return LOCAL_SUPABASE_HOSTS.has(url.hostname);
-  } catch {
-    return false;
-  }
-}
-
-function getJwtAlg(token: string): string | null {
-  const parts = token.split('.');
-  if (parts.length !== 3) return null;
-  try {
-    const header = JSON.parse(Buffer.from(parts[0], 'base64url').toString());
-    return typeof header.alg === 'string' ? header.alg : null;
-  } catch {
-    return null;
-  }
-}
-
-function getSupabaseEnvFromProcess(): SupabaseEnv | null {
-  const apiUrl = process.env.SUPABASE_URL;
-  const anonKey = process.env.SUPABASE_ANON_KEY;
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-  if (!apiUrl || !anonKey || !serviceRoleKey) return null;
-  if (!isLocalSupabaseUrl(apiUrl)) return null;
-  if (!serviceRoleKey.startsWith('sb_secret_')) {
-    const alg = getJwtAlg(serviceRoleKey);
-    if (!alg || alg !== 'ES256') return null;
-  }
-
-  return { apiUrl, anonKey, serviceRoleKey };
-}
-
-// A single 1.5s probe flakes on saturated CI runners (turbo runs every
-// package's tests concurrently); retry before declaring Supabase down.
-// Locally keep one attempt so suites skip fast when Supabase is off.
-const REACHABILITY_PROBE_ATTEMPTS = process.env.CI === 'true' ? 8 : 1;
-const REACHABILITY_PROBE_BACKOFF_MS = 500;
-
-async function isSupabaseApiReachable(apiUrl: string): Promise<boolean> {
-  for (let attempt = 1; attempt <= REACHABILITY_PROBE_ATTEMPTS; attempt++) {
-    if (await probeSupabaseAuthHealth(apiUrl)) return true;
-    if (attempt < REACHABILITY_PROBE_ATTEMPTS) {
-      await new Promise((resolve) =>
-        setTimeout(resolve, attempt * REACHABILITY_PROBE_BACKOFF_MS),
-      );
-    }
-  }
-  return false;
-}
-
-async function probeSupabaseAuthHealth(apiUrl: string): Promise<boolean> {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 1500);
-  try {
-    const response = await fetch(new URL('/auth/v1/health', apiUrl), {
-      signal: controller.signal,
-    });
-    return response.status < 500;
-  } catch {
-    return false;
-  } finally {
-    clearTimeout(timeout);
-  }
-}
-
-async function ensureSupabaseAvailable(): Promise<SupabaseEnv> {
-  const envFromProcess = getSupabaseEnvFromProcess();
-  if (envFromProcess && (await isSupabaseApiReachable(envFromProcess.apiUrl))) {
-    return envFromProcess;
-  }
-
-  const statusEnv = tryGetSupabaseEnv();
-  if (
-    statusEnv &&
-    isLocalSupabaseUrl(statusEnv.apiUrl) &&
-    (await isSupabaseApiReachable(statusEnv.apiUrl))
-  ) {
-    return statusEnv;
-  }
-
-  throw new Error(
-    'Supabase local is not reachable. Start it with `supabase start` from backend-nest.',
-  );
-}
 
 class NoopThrottlerGuard {
   canActivate(): boolean {
@@ -225,7 +32,7 @@ describe('Encryption E2E (local Supabase)', () => {
 
   beforeAll(async () => {
     const env = await ensureSupabaseAvailable().catch((error) => {
-      if (process.env.CI === 'true') throw error;
+      if (IS_DEDICATED_INTEGRATION_RUN) throw error;
       return null;
     });
     if (!env) return;
