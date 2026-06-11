@@ -29,6 +29,7 @@ import { provideAngularMaterial } from './angular-material';
 import { provideAuth } from './auth/auth-providers';
 import { AuthSessionService } from './auth/auth-session.service';
 import { PulpeTitleStrategy } from './routing/title-strategy';
+import { AppVersionStore } from './app-version/app-version-store';
 import { ApplicationConfiguration } from './config/application-configuration';
 import { PostHogService } from './analytics/posthog';
 import { AnalyticsService } from './analytics/analytics';
@@ -147,6 +148,7 @@ export function provideCore({ routes }: CoreOptions) {
       const storageMigrationRunner = inject(StorageMigrationRunnerService);
       const clientKeyService = inject(ClientKeyService);
       const resumeRefresh = inject(ResumeRefreshService);
+      const appVersionStore = inject(AppVersionStore);
       const injector = inject(Injector);
       const logger = inject(Logger);
 
@@ -164,6 +166,9 @@ export function provideCore({ routes }: CoreOptions) {
 
       // 1. Charger la configuration d'abord (requise par PostHog et Auth)
       await applicationConfig.initialize();
+
+      // 1b. Force-update gate : non-bloquant, fail-open (requiert backendApiUrl)
+      appVersionStore.initialize();
 
       // 2. Logger les informations complètes après chargement
       logAppInfo(applicationConfig, logger);
