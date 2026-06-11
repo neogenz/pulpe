@@ -56,7 +56,7 @@ struct SavingsStep: View {
 
     private var suggestionsSection: some View {
         OnboardingSuggestionGrid(
-            suggestions: OnboardingState.savingSuggestions,
+            suggestions: OnboardingState.savingSuggestions(for: state.currency),
             state: state,
             accentColor: .financialSavings,
             toggleTrigger: $suggestionToggleTrigger
