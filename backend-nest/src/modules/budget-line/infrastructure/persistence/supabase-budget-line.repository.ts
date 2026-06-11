@@ -88,10 +88,21 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
       .eq('id', id)
       .single();
 
+    const loggingContext = {
+      operation: 'validateAccess',
+      entityId: id,
+      entityType: 'budget_line',
+      userId,
+      supabaseError: error,
+    };
+
     if (error || !data) {
-      throw new BusinessException(ERROR_DEFINITIONS.BUDGET_LINE_NOT_FOUND, {
-        id,
-      });
+      throw new BusinessException(
+        ERROR_DEFINITIONS.BUDGET_LINE_NOT_FOUND,
+        { id },
+        loggingContext,
+        { cause: error ?? undefined },
+      );
     }
 
     const row = data as BudgetLineRow & {
@@ -99,9 +110,12 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
     };
 
     if (row.monthly_budget.user_id !== userId) {
-      throw new BusinessException(ERROR_DEFINITIONS.BUDGET_LINE_NOT_FOUND, {
-        id,
-      });
+      throw new BusinessException(
+        ERROR_DEFINITIONS.BUDGET_LINE_NOT_FOUND,
+        { id },
+        loggingContext,
+        { cause: error ?? undefined },
+      );
     }
   }
 

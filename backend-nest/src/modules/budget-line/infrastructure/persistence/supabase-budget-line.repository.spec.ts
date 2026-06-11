@@ -170,6 +170,41 @@ describe('SupabaseBudgetLineRepository', () => {
         BusinessException,
       );
     });
+
+    it('should throw with context and cause when supabase returns an error', async () => {
+      const supabaseError = {
+        message: 'connection error',
+        code: 'PGRST_CONN',
+      };
+      const provider = createMockProvider(() => ({
+        select: () => ({
+          eq: () => ({
+            single: jest.fn().mockResolvedValue({
+              data: null,
+              error: supabaseError,
+            }),
+          }),
+        }),
+      }));
+      repo = new SupabaseBudgetLineRepository(provider, createMockEncryption());
+
+      try {
+        await repo.validateAccess('line-1', mockUser.id);
+        throw new Error('expected to throw');
+      } catch (error) {
+        expect(error).toBeInstanceOf(BusinessException);
+        const businessError = error as BusinessException;
+        expect(businessError.code).toBe('ERR_BUDGET_LINE_NOT_FOUND');
+        expect(businessError.cause).toBe(supabaseError);
+        expect(businessError.loggingContext).toEqual({
+          operation: 'validateAccess',
+          entityId: 'line-1',
+          entityType: 'budget_line',
+          userId: mockUser.id,
+          supabaseError,
+        });
+      }
+    });
   });
 
   describe('insert', () => {
