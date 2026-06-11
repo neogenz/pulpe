@@ -3,10 +3,10 @@ import type { Buffer } from 'node:buffer';
 /**
  * EncryptionPort — port interface used by application use cases for encryption operations.
  *
- * The concrete implementation is `EncryptionService`. Use cases inject this port via DI token
- * to keep the application layer decoupled from the concrete service. (See encryption.module.ts wiring.)
+ * The concrete implementation is `AesGcmCryptoService`. Consumers inject this port via the
+ * `ENCRYPTION_PORT` DI token to stay decoupled from the concrete service. (See encryption.module.ts wiring.)
  *
- * NOTE: this interface is the SUPPORTED surface — methods on EncryptionService not listed here
+ * NOTE: this interface is the SUPPORTED surface — methods on AesGcmCryptoService not listed here
  * are reserved for the encryption controller (recovery flows, PIN change, key wrap/unwrap, etc.).
  */
 export interface EncryptionPort {
