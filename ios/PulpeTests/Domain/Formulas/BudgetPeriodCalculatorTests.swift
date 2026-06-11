@@ -293,25 +293,40 @@ struct PeriodDatesEdgeCaseTests {
 
 struct FormatPeriodTests {
     @Test func nilPayDay_returnsNil() {
-        let result = BudgetPeriodCalculator.formatPeriod(month: 3, year: 2026, payDayOfMonth: nil)
+        let result = BudgetPeriodCalculator.formatPeriod(month: 3, year: 2026, payDayOfMonth: nil, currency: .chf)
         #expect(result == nil)
     }
 
     @Test func payDayOne_returnsNil() {
-        let result = BudgetPeriodCalculator.formatPeriod(month: 3, year: 2026, payDayOfMonth: 1)
+        let result = BudgetPeriodCalculator.formatPeriod(month: 3, year: 2026, payDayOfMonth: 1, currency: .chf)
         #expect(result == nil)
     }
 
     @Test func payDay5_containsSeparator() {
-        let result = BudgetPeriodCalculator.formatPeriod(month: 3, year: 2026, payDayOfMonth: 5)
+        let result = BudgetPeriodCalculator.formatPeriod(month: 3, year: 2026, payDayOfMonth: 5, currency: .chf)
         #expect(result?.contains(" - ") == true)
     }
 
     @Test func payDay27_containsExpectedMonths() {
-        let result = BudgetPeriodCalculator.formatPeriod(month: 3, year: 2026, payDayOfMonth: 27)
+        let result = BudgetPeriodCalculator.formatPeriod(month: 3, year: 2026, payDayOfMonth: 27, currency: .chf)
         // Should contain "27" and "26" (start day and end day)
         #expect(result?.contains("27") == true)
         #expect(result?.contains("26") == true)
+    }
+
+    // The 'd MMM' format produces identical output for fr_CH (CHF) and fr_FR (EUR) —
+    // only the day number and abbreviated month name are rendered, which are the same
+    // in both French locales. These two tests document that business rule (PUL-100):
+    // the formatter locale follows the user's currency, but the period label stays stable.
+    @Test func payDay5_chf_rendersExpectedLabel() {
+        let result = BudgetPeriodCalculator.formatPeriod(month: 3, year: 2026, payDayOfMonth: 5, currency: .chf)
+        #expect(result == "5 mars - 4 avr.")
+    }
+
+    @Test func payDay5_eur_rendersSameLabelAsChf() {
+        let chf = BudgetPeriodCalculator.formatPeriod(month: 3, year: 2026, payDayOfMonth: 5, currency: .chf)
+        let eur = BudgetPeriodCalculator.formatPeriod(month: 3, year: 2026, payDayOfMonth: 5, currency: .eur)
+        #expect(chf == eur)
     }
 }
 

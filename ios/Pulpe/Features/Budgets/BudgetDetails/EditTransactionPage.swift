@@ -174,7 +174,7 @@ struct EditTransactionPage: View {
             userCurrency: userSettingsStore.currency
         )
         amount = editable
-        amountText = Formatters.amountInput.string(from: editable as NSDecimalNumber) ?? ""
+        amountText = Formatters.amountInput(for: inputCurrency).string(from: editable as NSDecimalNumber) ?? ""
     }
 
     private func save(for tx: Transaction) async {

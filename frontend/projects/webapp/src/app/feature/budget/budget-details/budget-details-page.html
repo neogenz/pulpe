@@ -146,13 +146,17 @@
           <div class="text-label-medium text-on-surface-variant">
             {{ 'budget.createdAt' | transloco }}
           </div>
-          <p class="text-body-large">{{ budget.createdAt | date: 'short' }}</p>
+          <p class="text-body-large">
+            {{ budget.createdAt | date: 'short' : undefined : dateLocale() }}
+          </p>
         </div>
         <div>
           <div class="text-label-medium text-on-surface-variant">
             {{ 'budget.lastModified' | transloco }}
           </div>
-          <p class="text-body-large">{{ budget.updatedAt | date: 'short' }}</p>
+          <p class="text-body-large">
+            {{ budget.updatedAt | date: 'short' : undefined : dateLocale() }}
+          </p>
         </div>
         <div>
           <div class="text-label-medium text-on-surface-variant">

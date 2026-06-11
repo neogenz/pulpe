@@ -167,7 +167,7 @@ interface ConverterAmountModel {
               | transloco
                 : {
                     base: converterBase(),
-                    rate: (rateForInfo()! | number: '1.3-3'),
+                    rate: (rateForInfo()! | number: '1.3-3' : rateLocale()),
                     target: converterTarget(),
                   }
           }}
@@ -244,6 +244,9 @@ export class CurrencyConverterWidget {
   });
   protected readonly converterBaseSymbol = computed(
     () => CURRENCY_CONFIG[this.converterBase()].symbol,
+  );
+  protected readonly rateLocale = computed(
+    () => CURRENCY_CONFIG[this.converterTarget()].numberLocale,
   );
 
   /**

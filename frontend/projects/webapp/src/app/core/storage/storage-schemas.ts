@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { supportedCurrencySchema } from 'pulpe-shared';
 import { isValidClientKeyHex } from '../encryption/crypto.utils';
 import { STORAGE_KEYS } from './storage-keys';
 import type { StorageSchemaConfig } from './storage.types';
@@ -39,6 +40,13 @@ export const STORAGE_SCHEMAS = {
     version: 1,
     schema: z.boolean(),
     scope: 'user',
+  },
+
+  // Currency snapshot for bootstrap locale selection (device-level, preserved across sessions)
+  [STORAGE_KEYS.SETTINGS_CURRENCY]: {
+    version: 1,
+    schema: supportedCurrencySchema,
+    scope: 'app',
   },
 
   // Vault client keys - hex string representing the AES-256 key

@@ -15,6 +15,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { AppCurrencyPipe, FormatConversionPipe } from '@core/currency';
+import { getDateDisplayFormats } from '@core/date/date-display-formats';
 import { FeatureFlagsService } from '@core/feature-flags';
 import { FinancialKindDirective } from '@ui/financial-kind';
 import { FinancialKindIndicator } from '@ui/financial-kind-indicator';
@@ -256,7 +257,7 @@ export function groupByKind<T extends { data: { kind: string } }>(
               <span
                 class="text-label-small text-on-surface-variant bg-surface-container px-2 py-0.5 rounded-full"
               >
-                {{ item.data.transactionDate | date: 'dd.MM.yyyy' }}
+                {{ item.data.transactionDate | date: shortDateFormat() }}
               </span>
             }
           </div>
@@ -339,7 +340,7 @@ export function groupByKind<T extends { data: { kind: string } }>(
               <span
                 class="text-label-small text-on-surface-variant bg-surface-container px-2 py-0.5 rounded-full"
               >
-                {{ item.data.transactionDate | date: 'dd.MM.yyyy' }}
+                {{ item.data.transactionDate | date: shortDateFormat() }}
               </span>
             }
           </div>
@@ -372,6 +373,9 @@ export class BudgetGrid {
 
   // Inputs
   readonly currency = input<SupportedCurrency>('CHF');
+  protected readonly shortDateFormat = computed(
+    () => getDateDisplayFormats(this.currency()).shortDate,
+  );
   readonly budgetLineItems = input.required<BudgetLineTableItem[]>();
   readonly transactionItems = input.required<
     {

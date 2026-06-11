@@ -192,13 +192,6 @@ struct BudgetListView: View {
         }
     }
 
-    private func periodLabel(for budget: BudgetSparse) -> String? {
-        guard let month = budget.month, let year = budget.year else { return nil }
-        return BudgetPeriodCalculator.formatPeriod(
-            month: month, year: year, payDayOfMonth: userSettingsStore.payDayOfMonth
-        )
-    }
-
     // MARK: - Budget List
 
     private var budgetList: some View {
@@ -329,6 +322,18 @@ struct BudgetListView: View {
         .buttonStyle(.plain)
         .accessibilityValue(showPastMonths ? "ouvert" : "fermé")
         .padding(.horizontal, DesignTokens.Spacing.xl)
+    }
+}
+
+// MARK: - Period Label
+
+private extension BudgetListView {
+    func periodLabel(for budget: BudgetSparse) -> String? {
+        guard let month = budget.month, let year = budget.year else { return nil }
+        return BudgetPeriodCalculator.formatPeriod(
+            month: month, year: year, payDayOfMonth: userSettingsStore.payDayOfMonth,
+            currency: userSettingsStore.currency
+        )
     }
 }
 

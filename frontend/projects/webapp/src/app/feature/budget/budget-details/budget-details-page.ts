@@ -146,6 +146,9 @@ export default class BudgetDetailsPage {
   protected readonly currencyLocale = computed(
     () => CURRENCY_CONFIG[this.userSettingsStore.currency()].numberLocale,
   );
+  protected readonly dateLocale = computed(
+    () => CURRENCY_CONFIG[this.userSettingsStore.currency()].locale,
+  );
   protected readonly financialTotals = this.store.financialTotals;
 
   readonly id = input.required<string>();

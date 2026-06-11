@@ -4,6 +4,7 @@ import { of, throwError } from 'rxjs';
 import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { UserSettingsStore } from './user-settings-store';
 import { UserSettingsApi } from './user-settings-api';
+import { StorageService } from '../storage/storage.service';
 import { AuthStore } from '../auth/auth-store';
 import { ClientKeyService } from '../encryption/client-key.service';
 import { DemoModeService } from '../demo/demo-mode.service';
@@ -33,6 +34,7 @@ describe('UserSettingsStore', () => {
   };
 
   beforeEach(() => {
+    localStorage.clear();
     mockCache.get.mockReturnValue(null);
     mockCache.set.mockClear();
     mockCache.clear.mockClear();
@@ -212,8 +214,46 @@ describe('UserSettingsStore', () => {
 
 describe('UserSettingsStore — loading conditions', () => {
   beforeEach(() => {
+    localStorage.clear();
     mockCache.get.mockReturnValue(null);
     mockCache.set.mockClear();
+  });
+
+  it('should fall back to the persisted currency snapshot while settings are not loaded', () => {
+    TestBed.configureTestingModule({
+      providers: [
+        provideZonelessChangeDetection(),
+        UserSettingsStore,
+        {
+          provide: UserSettingsApi,
+          useValue: { getSettings$: vi.fn(), cache: mockCache },
+        },
+        {
+          provide: StorageService,
+          useValue: {
+            getString: vi.fn().mockReturnValue('EUR'),
+            setString: vi.fn(),
+          },
+        },
+        {
+          provide: AuthStore,
+          useValue: { isAuthenticated: signal(false) },
+        },
+        {
+          provide: ClientKeyService,
+          useValue: { hasClientKey: signal(false) },
+        },
+        {
+          provide: DemoModeService,
+          useValue: { isDemoMode: signal(false) },
+        },
+      ],
+    });
+
+    const store = TestBed.inject(UserSettingsStore);
+
+    expect(store.settings()).toBeUndefined();
+    expect(store.currency()).toBe('EUR');
   });
 
   it('should not load settings when user is not authenticated', async () => {

@@ -28,6 +28,7 @@ import { TemplateStore } from './services/template-store';
 import { ApiErrorLocalizer } from '@core/api/api-error-localizer';
 import { isApiError } from '@core/api/api-error';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
+import { getDateDisplayFormats } from '@core/date/date-display-formats';
 import { UserSettingsStore } from '@core/user-settings';
 import {
   BUDGET_DESCRIPTION_MAX_LENGTH,
@@ -41,21 +42,24 @@ interface BudgetCreationDialogData {
 
 const DESCRIPTION_MAX_LENGTH = BUDGET_DESCRIPTION_MAX_LENGTH;
 
-// Format personnalisé pour le month/year picker
-const MONTH_YEAR_FORMATS = {
-  ...MAT_DATE_FNS_FORMATS,
-  parse: {
-    ...MAT_DATE_FNS_FORMATS.parse,
-    dateInput: ['MM.yyyy'],
-  },
-  display: {
-    ...MAT_DATE_FNS_FORMATS.display,
-    dateInput: 'MM.yyyy',
-    monthYearLabel: 'MMM yyyy',
-    dateA11yLabel: 'MM.yyyy',
-    monthYearA11yLabel: 'MMMM yyyy',
-  },
-};
+// Format personnalisé pour le month/year picker — le séparateur d'affichage suit
+// la devise (CHF → 06.2026, EUR → 06/2026) ; le parse accepte les deux saisies.
+function buildMonthYearFormats(monthYear: string) {
+  return {
+    ...MAT_DATE_FNS_FORMATS,
+    parse: {
+      ...MAT_DATE_FNS_FORMATS.parse,
+      dateInput: ['MM.yyyy', 'MM/yyyy'],
+    },
+    display: {
+      ...MAT_DATE_FNS_FORMATS.display,
+      dateInput: monthYear,
+      monthYearLabel: 'MMM yyyy',
+      dateA11yLabel: monthYear,
+      monthYearA11yLabel: 'MMMM yyyy',
+    },
+  };
+}
 
 @Component({
   selector: 'pulpe-create-budget-dialog',
@@ -72,7 +76,13 @@ const MONTH_YEAR_FORMATS = {
   ],
   providers: [
     TemplateStore,
-    { provide: MAT_DATE_FORMATS, useValue: MONTH_YEAR_FORMATS },
+    {
+      provide: MAT_DATE_FORMATS,
+      useFactory: () =>
+        buildMonthYearFormats(
+          getDateDisplayFormats(inject(UserSettingsStore).currency()).monthYear,
+        ),
+    },
   ],
   template: `
     <h2 mat-dialog-title>{{ 'budget.createTitle' | transloco }}</h2>

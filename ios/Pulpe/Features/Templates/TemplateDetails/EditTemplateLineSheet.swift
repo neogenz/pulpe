@@ -40,12 +40,14 @@ struct EditTemplateLineSheet: View {
         _kind = State(initialValue: templateLine.kind)
         _recurrence = State(initialValue: templateLine.recurrence)
 
+        let inputCurrency = templateLine.originalCurrency ?? userCurrency
         let editableAmount = Self.initialAmount(for: templateLine, userCurrency: userCurrency)
         _amount = State(initialValue: editableAmount)
-        let amountString = Formatters.amountInput.string(from: editableAmount as NSDecimalNumber) ?? ""
+        let amountString = Formatters.amountInput(for: inputCurrency)
+            .string(from: editableAmount as NSDecimalNumber) ?? ""
         _amountText = State(initialValue: amountString)
 
-        self.inputCurrency = templateLine.originalCurrency ?? userCurrency
+        self.inputCurrency = inputCurrency
         self.isAlternateCurrency = Self.shouldShowAlternateCurrency(for: templateLine, userCurrency: userCurrency)
     }
 
