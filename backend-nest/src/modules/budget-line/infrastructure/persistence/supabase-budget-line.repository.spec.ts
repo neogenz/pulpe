@@ -201,17 +201,28 @@ describe('SupabaseBudgetLineRepository', () => {
       await expect(repo.delete('line-1')).resolves.toBeUndefined();
     });
 
-    it('should throw when deletion fails', async () => {
+    it('should throw BUDGET_LINE_DELETE_FAILED with cause when deletion fails', async () => {
+      const dbError = { code: '08006', message: 'connection lost' };
       const provider = createMockProvider(() => ({
         delete: () => ({
           eq: jest.fn().mockResolvedValue({
-            error: { message: 'Delete failed' },
+            error: dbError,
           }),
         }),
       }));
       repo = new SupabaseBudgetLineRepository(provider, createMockEncryption());
 
-      await expect(repo.delete('line-1')).rejects.toThrow(BusinessException);
+      try {
+        await repo.delete('line-1');
+        throw new Error('expected to throw');
+      } catch (error) {
+        expect(error).toBeInstanceOf(BusinessException);
+        const businessError = error as BusinessException;
+        expect(businessError.code).toBe('ERR_BUDGET_LINE_DELETE_FAILED');
+        expect(businessError.getStatus()).toBe(500);
+        expect(businessError.cause).toBe(dbError);
+        expect(businessError.loggingContext.supabaseError).toBe(dbError);
+      }
     });
   });
 
