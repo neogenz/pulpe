@@ -84,7 +84,7 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
     const supabase = this.supabaseProvider.client;
     const { data, error } = await supabase
       .from('budget_line')
-      .select('*, monthly_budget!inner(user_id)')
+      .select('id, monthly_budget!inner(user_id)')
       .eq('id', id)
       .single();
 

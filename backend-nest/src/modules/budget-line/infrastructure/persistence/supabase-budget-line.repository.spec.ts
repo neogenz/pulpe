@@ -166,9 +166,15 @@ describe('SupabaseBudgetLineRepository', () => {
       }));
       repo = new SupabaseBudgetLineRepository(provider, createMockEncryption());
 
-      await expect(repo.validateAccess('line-1', mockUser.id)).rejects.toThrow(
-        BusinessException,
-      );
+      try {
+        await repo.validateAccess('line-1', mockUser.id);
+        throw new Error('expected to throw');
+      } catch (error) {
+        expect(error).toBeInstanceOf(BusinessException);
+        expect((error as BusinessException).code).toBe(
+          'ERR_BUDGET_LINE_NOT_FOUND',
+        );
+      }
     });
 
     it('should throw with context and cause when supabase returns an error', async () => {
