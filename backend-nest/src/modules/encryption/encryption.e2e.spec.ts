@@ -175,15 +175,9 @@ async function isSupabaseApiReachable(apiUrl: string): Promise<boolean> {
 }
 
 async function ensureSupabaseAvailable(): Promise<SupabaseEnv> {
-  const envFromProcess = getSupabaseEnvFromProcess();
-  // The dedicated integration job sets these env vars explicitly and
-  // health-gates REST + auth right before the test step — trust them as-is.
-  if (IS_DEDICATED_INTEGRATION_RUN && envFromProcess) {
-    return envFromProcess;
-  }
-
-  // Locally `bun test` auto-loads .env.local, whose keys can be stale or
-  // placeholders; the CLI is the source of truth for the running stack.
+  // The CLI is the source of truth for the running stack, locally and in the
+  // dedicated CI job alike — `bun test` auto-loads .env.local, whose keys can
+  // be stale or placeholders, so process env only serves as a fallback.
   const statusEnv = tryGetSupabaseEnv();
   if (
     statusEnv &&
@@ -193,6 +187,7 @@ async function ensureSupabaseAvailable(): Promise<SupabaseEnv> {
     return statusEnv;
   }
 
+  const envFromProcess = getSupabaseEnvFromProcess();
   if (envFromProcess && (await isSupabaseApiReachable(envFromProcess.apiUrl))) {
     return envFromProcess;
   }
