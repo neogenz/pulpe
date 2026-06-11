@@ -19,6 +19,7 @@ export class CheckTransactionsUseCase {
   ) {}
 
   async execute(id: string, user: AuthenticatedUser): Promise<Transaction[]> {
+    await this.repo.validateAccess(id, user.id);
     const entities = await this.repo.checkUncheckedTransactionsRpc(id);
 
     await this.cacheService.invalidateForUser(user.id);

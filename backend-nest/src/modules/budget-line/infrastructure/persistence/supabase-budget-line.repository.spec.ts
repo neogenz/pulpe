@@ -134,6 +134,44 @@ describe('SupabaseBudgetLineRepository', () => {
     });
   });
 
+  describe('validateAccess', () => {
+    it('should resolve when budget line belongs to user', async () => {
+      const provider = createMockProvider(() => ({
+        select: () => ({
+          eq: () => ({
+            single: jest.fn().mockResolvedValue({
+              data: { ...mockRow, monthly_budget: { user_id: mockUser.id } },
+              error: null,
+            }),
+          }),
+        }),
+      }));
+      repo = new SupabaseBudgetLineRepository(provider, createMockEncryption());
+
+      await expect(repo.validateAccess('line-1', mockUser.id)).resolves.toBe(
+        undefined,
+      );
+    });
+
+    it('should throw when budget line belongs to another user', async () => {
+      const provider = createMockProvider(() => ({
+        select: () => ({
+          eq: () => ({
+            single: jest.fn().mockResolvedValue({
+              data: { ...mockRow, monthly_budget: { user_id: 'user-2' } },
+              error: null,
+            }),
+          }),
+        }),
+      }));
+      repo = new SupabaseBudgetLineRepository(provider, createMockEncryption());
+
+      await expect(repo.validateAccess('line-1', mockUser.id)).rejects.toThrow(
+        BusinessException,
+      );
+    });
+  });
+
   describe('insert', () => {
     it('should encrypt amount and return decrypted entity on success', async () => {
       const provider = createMockProvider(() => ({
