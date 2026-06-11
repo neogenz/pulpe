@@ -30,7 +30,7 @@ import { ROUTES } from '@core/routing/routes-constants';
 import {
   CompleteProfileStore,
   MAX_CUSTOM_TRANSACTIONS,
-  ONBOARDING_SUGGESTIONS,
+  getOnboardingSuggestions,
 } from './complete-profile-store';
 import { OnboardingPreviewDesktop } from './components/onboarding-preview-desktop';
 import {
@@ -604,9 +604,9 @@ import {
                       class="flex flex-wrap gap-2 mb-5"
                       data-testid="suggestion-chips"
                     >
-                      @for (suggestion of suggestions; track suggestion.name) {
+                      @for (suggestion of suggestions(); track suggestion.id) {
                         @let isSelected =
-                          store.selectedSuggestionNames().has(suggestion.name);
+                          store.selectedSuggestionIds().has(suggestion.id);
                         @let isChipDisabled =
                           !isSelected && store.customTransactionsLimitReached();
                         <button
@@ -883,7 +883,11 @@ export default class CompleteProfilePage {
   readonly #featureFlags = inject(FeatureFlagsService);
 
   readonly #locale = inject(LOCALE_ID);
-  protected readonly suggestions = ONBOARDING_SUGGESTIONS;
+  // Currency-dependent: CHF → "3ème pilier", EUR → "Épargne retraite".
+  // computed() is lazy, so reading `selectedCurrency` (declared later) is safe.
+  protected readonly suggestions = computed(() =>
+    getOnboardingSuggestions(this.selectedCurrency()),
+  );
   protected readonly maxCustomTransactions = MAX_CUSTOM_TRANSACTIONS;
   protected readonly currencies = SUPPORTED_CURRENCIES;
   protected readonly currencyMetadata = CURRENCY_METADATA;
@@ -917,11 +921,11 @@ export default class CompleteProfilePage {
     return available < 0
       ? this.#transloco.translate(
           'completeProfile.summary.liveDeficitAnnouncement',
-          { amount },
+          { amount, currency: this.selectedCurrency() },
         )
       : this.#transloco.translate(
           'completeProfile.summary.liveAvailableAnnouncement',
-          { amount },
+          { amount, currency: this.selectedCurrency() },
         );
   });
 

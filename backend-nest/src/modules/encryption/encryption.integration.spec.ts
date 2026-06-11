@@ -94,13 +94,22 @@ function parseSupabaseStatus(raw: string): SupabaseEnv {
 
   const apiUrl =
     status.api_url ?? status.API_URL ?? status.apiUrl ?? status.ApiUrl;
+  // Newer local stacks may only expose the sb_publishable_/sb_secret_ key
+  // pair (PUBLISHABLE_KEY/SECRET_KEY) instead of the legacy JWT keys.
   const anonKey =
-    status.anon_key ?? status.ANON_KEY ?? status.anonKey ?? status.AnonKey;
+    status.anon_key ??
+    status.ANON_KEY ??
+    status.anonKey ??
+    status.AnonKey ??
+    status.PUBLISHABLE_KEY ??
+    status.publishable_key;
   const serviceRoleKey =
     status.service_role_key ??
     status.SERVICE_ROLE_KEY ??
     status.serviceRoleKey ??
-    status.ServiceRoleKey;
+    status.ServiceRoleKey ??
+    status.SECRET_KEY ??
+    status.secret_key;
 
   if (!apiUrl || !anonKey || !serviceRoleKey) {
     throw new Error(
@@ -146,6 +155,7 @@ function getSupabaseEnvFromProcess(): SupabaseEnv | null {
 }
 
 function isLocalSupabaseKeyCompatible(serviceRoleKey: string): boolean {
+  if (serviceRoleKey.startsWith('sb_secret_')) return true;
   const alg = getJwtAlg(serviceRoleKey);
   if (!alg) return false;
   return alg === 'ES256';
@@ -170,7 +180,25 @@ function isMissingTableError(error: { message?: string } | null): boolean {
   );
 }
 
+// A single 1.5s probe flakes on saturated CI runners (turbo runs every
+// package's tests concurrently); retry before declaring Supabase down.
+// Locally keep one attempt so suites skip fast when Supabase is off.
+const REACHABILITY_PROBE_ATTEMPTS = process.env.CI === 'true' ? 8 : 1;
+const REACHABILITY_PROBE_BACKOFF_MS = 500;
+
 async function isSupabaseApiReachable(apiUrl: string): Promise<boolean> {
+  for (let attempt = 1; attempt <= REACHABILITY_PROBE_ATTEMPTS; attempt++) {
+    if (await probeSupabaseAuthHealth(apiUrl)) return true;
+    if (attempt < REACHABILITY_PROBE_ATTEMPTS) {
+      await new Promise((resolve) =>
+        setTimeout(resolve, attempt * REACHABILITY_PROBE_BACKOFF_MS),
+      );
+    }
+  }
+  return false;
+}
+
+async function probeSupabaseAuthHealth(apiUrl: string): Promise<boolean> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 1500);
   try {
