@@ -171,9 +171,17 @@ describe('SupabaseBudgetLineRepository', () => {
         throw new Error('expected to throw');
       } catch (error) {
         expect(error).toBeInstanceOf(BusinessException);
-        expect((error as BusinessException).code).toBe(
-          'ERR_BUDGET_LINE_NOT_FOUND',
-        );
+        const businessError = error as BusinessException;
+        expect(businessError.code).toBe('ERR_BUDGET_LINE_NOT_FOUND');
+        expect(businessError.cause).toBeUndefined();
+        expect(businessError.loggingContext).toEqual({
+          operation: 'validateAccess',
+          entityId: 'line-1',
+          entityType: 'budget_line',
+          userId: mockUser.id,
+          supabaseError: null,
+          reason: 'user_mismatch',
+        });
       }
     });
 

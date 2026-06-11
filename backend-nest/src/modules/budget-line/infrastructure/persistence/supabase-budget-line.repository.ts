@@ -113,8 +113,8 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
       throw new BusinessException(
         ERROR_DEFINITIONS.BUDGET_LINE_NOT_FOUND,
         { id },
-        loggingContext,
-        { cause: error ?? undefined },
+        { ...loggingContext, reason: 'user_mismatch' },
+        { cause: undefined },
       );
     }
   }
