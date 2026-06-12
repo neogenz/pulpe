@@ -134,6 +134,87 @@ describe('SupabaseBudgetLineRepository', () => {
     });
   });
 
+  describe('validateAccess', () => {
+    it('should resolve when budget line belongs to user', async () => {
+      const provider = createMockProvider(() => ({
+        select: () => ({
+          eq: () => ({
+            single: jest.fn().mockResolvedValue({
+              data: { ...mockRow, monthly_budget: { user_id: mockUser.id } },
+              error: null,
+            }),
+          }),
+        }),
+      }));
+      repo = new SupabaseBudgetLineRepository(provider, createMockEncryption());
+
+      await expect(repo.validateAccess('line-1', mockUser.id)).resolves.toBe(
+        undefined,
+      );
+    });
+
+    it('should throw when budget line belongs to another user', async () => {
+      const provider = createMockProvider(() => ({
+        select: () => ({
+          eq: () => ({
+            single: jest.fn().mockResolvedValue({
+              data: { ...mockRow, monthly_budget: { user_id: 'user-2' } },
+              error: null,
+            }),
+          }),
+        }),
+      }));
+      repo = new SupabaseBudgetLineRepository(provider, createMockEncryption());
+
+      await expect(
+        repo.validateAccess('line-1', mockUser.id),
+      ).rejects.toMatchObject({
+        code: 'ERR_BUDGET_LINE_NOT_FOUND',
+        cause: undefined,
+        loggingContext: {
+          operation: 'validateAccess',
+          entityId: 'line-1',
+          entityType: 'budget_line',
+          userId: mockUser.id,
+          supabaseError: null,
+          reason: 'user_mismatch',
+        },
+      });
+    });
+
+    it('should throw with context and cause when supabase returns an error', async () => {
+      const supabaseError = {
+        message: 'connection error',
+        code: 'PGRST_CONN',
+      };
+      const provider = createMockProvider(() => ({
+        select: () => ({
+          eq: () => ({
+            single: jest.fn().mockResolvedValue({
+              data: null,
+              error: supabaseError,
+            }),
+          }),
+        }),
+      }));
+      repo = new SupabaseBudgetLineRepository(provider, createMockEncryption());
+
+      await expect(
+        repo.validateAccess('line-1', mockUser.id),
+      ).rejects.toMatchObject({
+        code: 'ERR_BUDGET_LINE_NOT_FOUND',
+        cause: supabaseError,
+        loggingContext: {
+          operation: 'validateAccess',
+          entityId: 'line-1',
+          entityType: 'budget_line',
+          userId: mockUser.id,
+          supabaseError,
+        },
+      });
+    });
+  });
+
   describe('insert', () => {
     it('should encrypt amount and return decrypted entity on success', async () => {
       const provider = createMockProvider(() => ({

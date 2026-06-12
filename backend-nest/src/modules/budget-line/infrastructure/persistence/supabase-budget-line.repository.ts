@@ -80,6 +80,45 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
     return this.toEntity(data, dek);
   }
 
+  async validateAccess(id: string, userId: string): Promise<void> {
+    const supabase = this.supabaseProvider.client;
+    const { data, error } = await supabase
+      .from('budget_line')
+      .select('id, monthly_budget!inner(user_id)')
+      .eq('id', id)
+      .single();
+
+    const loggingContext = {
+      operation: 'validateAccess',
+      entityId: id,
+      entityType: 'budget_line',
+      userId,
+      supabaseError: error,
+    };
+
+    if (error || !data) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.BUDGET_LINE_NOT_FOUND,
+        { id },
+        loggingContext,
+        { cause: error ?? undefined },
+      );
+    }
+
+    const row = data as BudgetLineRow & {
+      monthly_budget: { user_id: string };
+    };
+
+    if (row.monthly_budget.user_id !== userId) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.BUDGET_LINE_NOT_FOUND,
+        { id },
+        { ...loggingContext, reason: 'user_mismatch' },
+        { cause: undefined },
+      );
+    }
+  }
+
   async findByBudgetId(budgetId: string): Promise<BudgetLine[]> {
     const supabase = this.supabaseProvider.client;
     const { data, error } = await supabase
