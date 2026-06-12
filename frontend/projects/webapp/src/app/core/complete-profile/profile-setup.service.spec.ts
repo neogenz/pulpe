@@ -11,7 +11,10 @@ import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 
 describe('ProfileSetupService', () => {
   let service: ProfileSetupService;
-  let mockApiClient: { post$: ReturnType<typeof vi.fn> };
+  let mockApiClient: {
+    post$: ReturnType<typeof vi.fn>;
+    deleteVoid$: ReturnType<typeof vi.fn>;
+  };
   let mockBudgetApi: {
     generateBudgets$: ReturnType<typeof vi.fn>;
     getAllBudgets$: ReturnType<typeof vi.fn>;
@@ -31,6 +34,7 @@ describe('ProfileSetupService', () => {
           data: { template: { id: 'template-123' } },
         }),
       ),
+      deleteVoid$: vi.fn().mockReturnValue(of(undefined)),
     };
 
     mockBudgetApi = {
@@ -282,6 +286,51 @@ describe('ProfileSetupService', () => {
       expect(result.success).toBe(false);
       expect(result.error).toBeDefined();
       expect(mockBudgetApi.generateBudgets$).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('orphan template cleanup on generate failure', () => {
+    it('should delete the onboarding template when budget generation fails', async () => {
+      mockBudgetApi.generateBudgets$.mockReturnValue(
+        throwError(() => new Error('budget generation failed')),
+      );
+
+      const result = await service.createInitialBudget({
+        firstName: 'Test',
+        monthlyIncome: 3000,
+      });
+
+      expect(result.success).toBe(false);
+      expect(mockApiClient.deleteVoid$).toHaveBeenCalledWith(
+        '/budget-templates/template-123',
+      );
+    });
+
+    it('should still surface the budget error when template cleanup also fails', async () => {
+      mockBudgetApi.generateBudgets$.mockReturnValue(
+        throwError(() => new Error('budget generation failed')),
+      );
+      mockApiClient.deleteVoid$.mockReturnValue(
+        throwError(() => new Error('cleanup failed')),
+      );
+
+      const result = await service.createInitialBudget({
+        firstName: 'Test',
+        monthlyIncome: 3000,
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBeDefined();
+    });
+
+    it('should not delete the template when onboarding succeeds', async () => {
+      const result = await service.createInitialBudget({
+        firstName: 'Test',
+        monthlyIncome: 3000,
+      });
+
+      expect(result.success).toBe(true);
+      expect(mockApiClient.deleteVoid$).not.toHaveBeenCalled();
     });
   });
 });
