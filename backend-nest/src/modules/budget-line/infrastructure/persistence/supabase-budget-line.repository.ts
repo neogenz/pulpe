@@ -271,7 +271,7 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
 
     if (error) {
       throw new BusinessException(
-        ERROR_DEFINITIONS.BUDGET_LINE_NOT_FOUND,
+        ERROR_DEFINITIONS.BUDGET_LINE_DELETE_FAILED,
         { id },
         {
           operation: 'deleteBudgetLine',
@@ -279,6 +279,7 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
           entityType: 'budget_line',
           supabaseError: error,
         },
+        { cause: error },
       );
     }
   }
