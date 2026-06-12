@@ -4,19 +4,19 @@ import {
   runInInjectionContext,
 } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { localeIdFactory } from './locale';
 import { STORAGE_KEYS } from './storage/storage-keys';
 import { StorageService } from './storage/storage.service';
 
-function configureWithPersistedCurrency(persisted: string | null): void {
+function configureWithPersistedCurrency(persisted: 'CHF' | 'EUR' | null): void {
   TestBed.configureTestingModule({
     providers: [
       provideZonelessChangeDetection(),
       {
         provide: StorageService,
         useValue: {
-          getString: (key: string) =>
+          get: (key: string) =>
             key === STORAGE_KEYS.SETTINGS_CURRENCY ? persisted : null,
         },
       },
@@ -30,6 +30,10 @@ function resolveLocale(): string {
 }
 
 describe('localeIdFactory', () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
   it('returns fr-CH when CHF is persisted', () => {
     configureWithPersistedCurrency('CHF');
     expect(resolveLocale()).toBe('fr-CH');
@@ -45,8 +49,19 @@ describe('localeIdFactory', () => {
     expect(resolveLocale()).toBe('fr-CH');
   });
 
-  it('defaults to fr-CH when the persisted value is invalid', () => {
-    configureWithPersistedCurrency('USD');
+  it('defaults to fr-CH when the persisted value fails schema validation', () => {
+    localStorage.setItem(
+      STORAGE_KEYS.SETTINGS_CURRENCY,
+      JSON.stringify({
+        version: 1,
+        data: 'USD',
+        updatedAt: new Date().toISOString(),
+      }),
+    );
+    TestBed.configureTestingModule({
+      providers: [provideZonelessChangeDetection()],
+    });
+
     expect(resolveLocale()).toBe('fr-CH');
   });
 });

@@ -231,7 +231,7 @@ describe('UserSettingsStore — loading conditions', () => {
         {
           provide: StorageService,
           useValue: {
-            getString: vi.fn().mockReturnValue('EUR'),
+            get: vi.fn().mockReturnValue('EUR'),
             setString: vi.fn(),
           },
         },

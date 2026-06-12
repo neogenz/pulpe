@@ -21,7 +21,7 @@ import {
   provideDateFnsAdapter,
 } from '@angular/material-date-fns-adapter';
 import { fr, frCH } from 'date-fns/locale';
-import { CURRENCY_METADATA } from 'pulpe-shared';
+import { CURRENCY_METADATA, type SupportedCurrency } from 'pulpe-shared';
 import { StorageService } from './storage/storage.service';
 import { readPersistedCurrency, UserSettingsStore } from './user-settings';
 
@@ -54,17 +54,25 @@ export function localeIdFactory(): string {
   return CURRENCY_METADATA[currency].locale;
 }
 
+function dateFnsLocaleFor(currency: SupportedCurrency) {
+  return currency === 'CHF' ? frCH : fr;
+}
+
 export function provideLocale() {
   return [
     { provide: LOCALE_ID, useFactory: localeIdFactory },
-    { provide: MAT_DATE_LOCALE, useValue: frCH },
+    {
+      provide: MAT_DATE_LOCALE,
+      useFactory: () =>
+        dateFnsLocaleFor(readPersistedCurrency(inject(StorageService))),
+    },
     provideDateFnsAdapter(),
     { provide: MAT_DATE_FORMATS, useValue: CUSTOM_DATE_FORMATS },
     provideEnvironmentInitializer(() => {
       const dateAdapter = inject(DateAdapter);
       const userSettings = inject(UserSettingsStore);
       effect(() => {
-        dateAdapter.setLocale(userSettings.currency() === 'CHF' ? frCH : fr);
+        dateAdapter.setLocale(dateFnsLocaleFor(userSettings.currency()));
       });
     }),
   ];

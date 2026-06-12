@@ -7,6 +7,7 @@ describe('getDateDisplayFormats', () => {
       shortDate: 'dd.MM.yyyy',
       dayMonth: 'dd.MM',
       monthYear: 'MM.yyyy',
+      separator: '.',
     });
   });
 
@@ -15,6 +16,7 @@ describe('getDateDisplayFormats', () => {
       shortDate: 'dd/MM/yyyy',
       dayMonth: 'dd/MM',
       monthYear: 'MM/yyyy',
+      separator: '/',
     });
   });
 });

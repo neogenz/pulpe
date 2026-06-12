@@ -257,10 +257,8 @@ export class EditTransactionForm {
     () => CURRENCY_CONFIG[this.#settings.currency()].locale,
   );
 
-  protected readonly dateSeparator = computed(() =>
-    getDateDisplayFormats(this.#settings.currency()).shortDate.includes('/')
-      ? '/'
-      : '.',
+  protected readonly dateSeparator = computed(
+    () => getDateDisplayFormats(this.#settings.currency()).separator,
   );
 
   protected readonly minDate = computed(
