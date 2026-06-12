@@ -4,6 +4,7 @@ import { of, throwError } from 'rxjs';
 import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { UserSettingsStore } from './user-settings-store';
 import { UserSettingsApi } from './user-settings-api';
+import { STORAGE_KEYS } from '../storage/storage-keys';
 import { StorageService } from '../storage/storage.service';
 import { AuthStore } from '../auth/auth-store';
 import { ClientKeyService } from '../encryption/client-key.service';
@@ -231,7 +232,9 @@ describe('UserSettingsStore — loading conditions', () => {
         {
           provide: StorageService,
           useValue: {
-            get: vi.fn().mockReturnValue('EUR'),
+            get: vi.fn((key: string) =>
+              key === STORAGE_KEYS.SETTINGS_CURRENCY ? 'EUR' : null,
+            ),
             setString: vi.fn(),
           },
         },
