@@ -12,8 +12,8 @@ import {
 // Matches SQL access `line->>'name' | 'amount' | 'kind' | 'recurrence' |
 // 'description' | 'original_amount' | 'original_currency' | 'target_currency'
 // | 'exchange_rate'` (see migration 20260427120000_create_template_with_lines_fx_columns).
-// `amount` + `original_amount` are AES-256-GCM ciphertexts produced by
-// EncryptionService. `exchange_rate` is a finite positive number or null.
+// `amount` + `original_amount` are AES-256-GCM ciphertexts produced through
+// ENCRYPTION_PORT. `exchange_rate` is a finite positive number or null.
 // ----------------------------------------------------------------------------
 export const createTemplateLineRpcPayloadSchema = z
   .object({

@@ -10,7 +10,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { createCipheriv, hkdfSync, pbkdf2Sync, randomBytes } from 'node:crypto';
 
-// ── Constants (must match EncryptionService) ──────────────────────────
+// ── Constants (must match AesGcmCryptoService) ────────────────────────
 const ALGORITHM = 'aes-256-gcm';
 const IV_LENGTH = 12;
 const AUTH_TAG_LENGTH = 16;
@@ -20,7 +20,7 @@ const KDF_ITERATIONS = 600_000;
 const TEST_USER_ID = '11111111-1111-1111-8111-111111111111';
 const TEST_PIN = '1234';
 // Dev-only fixed salt — deterministic so re-runs after `supabase db reset` produce the same DEK.
-// NOT used in production; real users get a random salt via EncryptionService.#ensureUserSalt().
+// NOT used in production; real users get a random salt via AesGcmCryptoService.#ensureUserSalt().
 const SEED_SALT_HEX = 'deadbeefcafebabe1234567890abcdef';
 
 // ── Env ───────────────────────────────────────────────────────────────

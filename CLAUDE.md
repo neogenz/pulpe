@@ -70,7 +70,7 @@ paths: "**/*.ts"
 - **NEVER** destructive Supabase cmds (`db reset`, `db push --force`)
 - **ALWAYS** run `pnpm quality` before commit
 - **AFTER** DB schema change: `bun run generate-types:local` in backend
-- **ALWAYS** encrypt financial amounts (`amount`, `target_amount`, `ending_balance`) via `EncryptionService` before DB write. Columns `text` holding AES-256-GCM ciphertexts. (see `docs/ENCRYPTION.md`)
+- **ALWAYS** encrypt financial amounts (`amount`, `target_amount`, `ending_balance`) via `ENCRYPTION_PORT` before DB write. Columns `text` holding AES-256-GCM ciphertexts. (see `docs/ENCRYPTION.md`)
 
 ## Vocabulary
 
