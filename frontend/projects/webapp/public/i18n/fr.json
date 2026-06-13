@@ -916,6 +916,11 @@
     "title": "Maintenance en cours",
     "message": "Le service est temporairement indisponible. Réessaie dans quelques instants."
   },
+  "forceUpdate": {
+    "title": "Mise à jour requise",
+    "message": "Une nouvelle version de Pulpe est disponible. Recharge la page pour reprendre là où tu en étais.",
+    "reload": "Recharger"
+  },
   "pageTitle": {
     "login": "Connexion",
     "signup": "Créer un compte",
