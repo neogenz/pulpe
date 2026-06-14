@@ -39,4 +39,7 @@ export const STORAGE_KEYS = {
 
   // Stale-chunk recovery: one-shot guard to prevent reload loops (sessionStorage)
   CHUNK_RELOAD_GUARD: 'pulpe-chunk-reload-attempted',
+
+  // Dev-only manual feature-flag override (honored in test/local/development only)
+  DEV_FEATURE_FLAGS: 'pulpe-dev-feature-flags',
 } as const satisfies Record<string, StorageKey>;

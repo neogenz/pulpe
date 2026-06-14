@@ -82,6 +82,13 @@ export const STORAGE_SCHEMAS = {
     schema: z.string(),
     scope: 'app',
   },
+
+  // Dev-only manual feature-flag override map (device-level, dev environments only)
+  [STORAGE_KEYS.DEV_FEATURE_FLAGS]: {
+    version: 1,
+    schema: z.record(z.string(), z.boolean()),
+    scope: 'app',
+  },
 } as const satisfies Record<string, StorageSchemaConfig>;
 
 /**

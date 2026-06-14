@@ -34,8 +34,8 @@ export class PostHogService {
   #isTrackingEnabled = false;
 
   constructor() {
-    const e2eFlags = this.#readE2eFlagOverride();
-    if (e2eFlags) {
+    const overrides = this.#readFlagOverrides();
+    if (overrides) {
       queueMicrotask(() => this.#flagsVersion.update((v) => v + 1));
     }
   }
@@ -125,24 +125,40 @@ export class PostHogService {
    * missing. Pair with `flagsVersion` signal in computeds for reactive gating.
    */
   isFeatureEnabled(key: string): boolean {
-    const e2eOverride = this.#readE2eFlagOverride();
-    if (e2eOverride && key in e2eOverride) return e2eOverride[key] === true;
+    const overrides = this.#readFlagOverrides();
+    if (overrides && key in overrides) return overrides[key] === true;
     if (!this.#isInitialized()) return false;
     return posthog.isFeatureEnabled(key) === true;
   }
 
   /**
-   * Read the E2E feature-flag override only in non-production environments.
-   * Production and preview builds ignore the global to prevent any
-   * client-side script (DevTools, browser extension) from flipping flags.
+   * Read feature-flag overrides, honored only in non-production environments.
+   * Production and preview builds ignore them so no client-side script
+   * (DevTools, browser extension) can flip flags.
+   *
+   * Two sources, merged (E2E global wins):
+   * - `__E2E_POSTHOG_FLAGS__` global — set by the E2E harness before bootstrap.
+   * - `pulpe-dev-feature-flags` in localStorage — manual dev toggle that
+   *   survives reloads. Enable from the console:
+   *   `localStorage.setItem('pulpe-dev-feature-flags','{"version":1,"data":{"multi-currency-enabled":true},"updatedAt":""}')`
+   *   then reload. Disable with `localStorage.removeItem('pulpe-dev-feature-flags')`.
    */
-  #readE2eFlagOverride(): Record<string, boolean> | undefined {
+  #readFlagOverrides(): Record<string, boolean> | undefined {
     const env = this.#applicationConfiguration.environment();
     if (env !== 'test' && env !== 'local' && env !== 'development') {
       return undefined;
     }
-    return (globalThis as { __E2E_POSTHOG_FLAGS__?: Record<string, boolean> })
-      .__E2E_POSTHOG_FLAGS__;
+    const e2eOverride = (
+      globalThis as { __E2E_POSTHOG_FLAGS__?: Record<string, boolean> }
+    ).__E2E_POSTHOG_FLAGS__;
+    const devOverride =
+      this.#storageService.get<Record<string, boolean>>(
+        STORAGE_KEYS.DEV_FEATURE_FLAGS,
+      ) ?? undefined;
+    if (!e2eOverride && !devOverride) {
+      return undefined;
+    }
+    return { ...devOverride, ...e2eOverride };
   }
 
   /**
