@@ -313,7 +313,7 @@ import {
                         @if (store.monthlyIncome()) {
                           {{
                             store.monthlyIncome()
-                              | appCurrency: selectedCurrency() : '1.0-0'
+                              | appCurrency: selectedCurrency() : '1.0-2'
                           }}
                         } @else {
                           —
@@ -411,7 +411,7 @@ import {
                     >
                       {{
                         summary.income
-                          | appCurrency: selectedCurrency() : '1.0-0'
+                          | appCurrency: selectedCurrency() : '1.0-2'
                       }}
                     </span>
                   </div>
@@ -424,7 +424,7 @@ import {
                     >
                       {{
                         summary.committed
-                          | appCurrency: selectedCurrency() : '1.0-0'
+                          | appCurrency: selectedCurrency() : '1.0-2'
                       }}
                     </span>
                   </div>
@@ -439,7 +439,7 @@ import {
                     >
                       {{
                         summary.available
-                          | appCurrency: selectedCurrency() : '1.0-0'
+                          | appCurrency: selectedCurrency() : '1.0-2'
                       }}
                     </span>
                   </div>
@@ -641,7 +641,7 @@ import {
                           ·
                           <span class="ph-no-capture">{{
                             suggestion.amount
-                              | appCurrency: selectedCurrency() : '1.0-0'
+                              | appCurrency: selectedCurrency() : '1.0-2'
                           }}</span>
                         </button>
                       }
@@ -818,7 +818,7 @@ import {
                     >
                       {{
                         summary.available
-                          | appCurrency: selectedCurrency() : '1.0-0'
+                          | appCurrency: selectedCurrency() : '1.0-2'
                       }}
                     </span>
                   </div>
@@ -845,7 +845,7 @@ import {
                       <span class="text-on-surface font-medium ph-no-capture">
                         {{
                           summary.income
-                            | appCurrency: selectedCurrency() : '1.0-0'
+                            | appCurrency: selectedCurrency() : '1.0-2'
                         }}
                       </span>
                     </span>
@@ -855,7 +855,7 @@ import {
                       <span class="text-on-surface font-medium ph-no-capture">
                         {{
                           summary.committed
-                            | appCurrency: selectedCurrency() : '1.0-0'
+                            | appCurrency: selectedCurrency() : '1.0-2'
                         }}
                       </span>
                     </span>

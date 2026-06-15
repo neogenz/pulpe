@@ -103,7 +103,7 @@ const COUNTER_DURATION_MS = 600;
             <span
               class="text-display-small font-bold text-on-surface ph-no-capture tabular-nums tracking-tight"
             >
-              {{ displayedAmount() | appCurrency: currencyCode() : '1.0-0' }}
+              {{ displayedAmount() | appCurrency: currencyCode() : '1.0-2' }}
             </span>
           } @else {
             <span
