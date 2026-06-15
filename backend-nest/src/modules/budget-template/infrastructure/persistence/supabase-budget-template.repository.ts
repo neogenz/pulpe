@@ -9,7 +9,7 @@ import {
   type EncryptionPort,
 } from '@modules/encryption/encryption.tokens';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
-import { mapCurrencyMetadataToDb } from '@common/utils/currency-metadata.mapper';
+import { mapCurrencyNonAmountMetadataToDb } from '@common/utils/currency-metadata.mapper';
 import type {
   BudgetTemplate,
   BudgetTemplateUpdatePatch,
@@ -634,7 +634,7 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
       name: input.name,
       amount: encryptedAmount,
       original_amount: encryptedOriginalAmount,
-      ...mapCurrencyMetadataToDb({
+      ...mapCurrencyNonAmountMetadataToDb({
         originalCurrency: input.originalCurrency,
         targetCurrency: input.targetCurrency,
         exchangeRate: input.exchangeRate,
@@ -677,7 +677,7 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
 
     Object.assign(
       updateData,
-      mapCurrencyMetadataToDb({
+      mapCurrencyNonAmountMetadataToDb({
         originalCurrency: patch.originalCurrency,
         targetCurrency: patch.targetCurrency,
         exchangeRate: patch.exchangeRate,

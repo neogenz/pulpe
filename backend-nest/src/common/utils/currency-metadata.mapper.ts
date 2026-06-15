@@ -33,30 +33,46 @@ export function mapCurrencyMetadataToApi(
   };
 }
 
-interface CurrencyMetadataDto {
+interface CurrencyNonAmountMetadataDto {
   originalCurrency?: SupportedCurrency | null;
   targetCurrency?: SupportedCurrency | null;
   exchangeRate?: number | null;
+  originalAmount?: never;
 }
 
-interface CurrencyMetadataDb {
+interface CurrencyMetadataDbColumns {
+  original_amount: string | null;
   original_currency: string | null;
   target_currency: string | null;
   exchange_rate: number | null;
 }
 
+type CurrencyNonAmountDbColumns = Omit<
+  CurrencyMetadataDbColumns,
+  'original_amount'
+>;
+
 /**
- * Maps currency metadata DTO fields to their DB column names.
+ * Maps non-amount currency metadata DTO fields to their DB column names.
+ *
+ * `original_amount` is intentionally excluded because it is ciphertext. Callers
+ * must encrypt `originalAmount` separately with ENCRYPTION_PORT.encryptOptionalAmount.
  *
  * Returns only the keys that are explicitly defined in the input DTO — so
  * spreading the result onto a PATCH update object never clobbers untouched
  * columns. Missing keys are omitted; explicit `null` / `undefined` values
  * normalize to `null` for the columns the caller did mention.
  */
-export function mapCurrencyMetadataToDb(
-  dto: CurrencyMetadataDto,
-): Partial<CurrencyMetadataDb> {
-  const out: Partial<CurrencyMetadataDb> = {};
+export function mapCurrencyNonAmountMetadataToDb(
+  dto: CurrencyNonAmountMetadataDto,
+): Partial<CurrencyNonAmountDbColumns> {
+  if ('originalAmount' in dto) {
+    throw new Error(
+      'originalAmount must be encrypted separately with encryptOptionalAmount',
+    );
+  }
+
+  const out: Partial<CurrencyNonAmountDbColumns> = {};
   if (dto.originalCurrency !== undefined) {
     out.original_currency = dto.originalCurrency ?? null;
   }

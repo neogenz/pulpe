@@ -8,7 +8,7 @@ import {
   type EncryptionPort,
 } from '@modules/encryption/encryption.tokens';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
-import { mapCurrencyMetadataToDb } from '@common/utils/currency-metadata.mapper';
+import { mapCurrencyNonAmountMetadataToDb } from '@common/utils/currency-metadata.mapper';
 import type { TransactionRepositoryPort } from '../../domain/ports/transaction-repository.port';
 import type {
   Transaction,
@@ -574,7 +574,7 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
       transaction_date: input.transactionDate,
       category: input.category ?? null,
       checked_at: input.checkedAt ?? null,
-      ...mapCurrencyMetadataToDb({
+      ...mapCurrencyNonAmountMetadataToDb({
         originalCurrency: input.originalCurrency,
         targetCurrency: input.targetCurrency,
         exchangeRate: input.exchangeRate,
@@ -607,7 +607,7 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
 
     Object.assign(
       updateData,
-      mapCurrencyMetadataToDb({
+      mapCurrencyNonAmountMetadataToDb({
         originalCurrency: patch.originalCurrency,
         targetCurrency: patch.targetCurrency,
         exchangeRate: patch.exchangeRate,
