@@ -54,6 +54,10 @@ type CurrencyNonAmountDbColumns = Omit<
   'original_amount'
 >;
 
+interface CurrencyMetadataMappingContext {
+  userId?: string;
+}
+
 /**
  * Maps non-amount currency metadata DTO fields to their DB column names.
  *
@@ -67,6 +71,7 @@ type CurrencyNonAmountDbColumns = Omit<
  */
 export function mapCurrencyNonAmountMetadataToDb(
   dto: CurrencyNonAmountMetadataDto,
+  context: CurrencyMetadataMappingContext = {},
 ): Partial<CurrencyNonAmountDbColumns> {
   if ('originalAmount' in dto) {
     const cause = new Error(
@@ -78,6 +83,7 @@ export function mapCurrencyNonAmountMetadataToDb(
       {
         operation: 'mapCurrencyNonAmountMetadataToDb',
         violation: 'originalAmount present',
+        ...(context.userId && { userId: context.userId }),
       },
       { cause },
     );

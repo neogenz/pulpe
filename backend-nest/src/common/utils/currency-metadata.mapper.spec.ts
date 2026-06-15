@@ -4,25 +4,26 @@ import { BusinessException } from '@common/exceptions/business.exception';
 import { mapCurrencyNonAmountMetadataToDb } from './currency-metadata.mapper';
 
 function expectOriginalAmountGuard(input: never): void {
+  let caught: unknown;
   try {
-    mapCurrencyNonAmountMetadataToDb(input);
-    throw new Error('expected originalAmount guard to throw');
+    mapCurrencyNonAmountMetadataToDb(input, { userId: 'user-123' });
   } catch (error) {
-    expect(error).toBeInstanceOf(BusinessException);
-    const businessError = error as BusinessException;
-    expect(businessError.code).toBe(
-      ERROR_DEFINITIONS.INTERNAL_SERVER_ERROR.code,
-    );
-    expect(businessError.message).toBe('Internal server error');
-    expect(businessError.loggingContext).toEqual({
-      operation: 'mapCurrencyNonAmountMetadataToDb',
-      violation: 'originalAmount present',
-    });
-    expect(businessError.cause).toBeInstanceOf(Error);
-    expect((businessError.cause as Error).message).toBe(
-      'originalAmount must be encrypted separately with encryptOptionalAmount',
-    );
+    caught = error;
   }
+
+  expect(caught).toBeInstanceOf(BusinessException);
+  const businessError = caught as BusinessException;
+  expect(businessError.code).toBe(ERROR_DEFINITIONS.INTERNAL_SERVER_ERROR.code);
+  expect(businessError.message).toBe('Internal server error');
+  expect(businessError.loggingContext).toEqual({
+    operation: 'mapCurrencyNonAmountMetadataToDb',
+    violation: 'originalAmount present',
+    userId: 'user-123',
+  });
+  expect(businessError.cause).toBeInstanceOf(Error);
+  expect((businessError.cause as Error).message).toBe(
+    'originalAmount must be encrypted separately with encryptOptionalAmount',
+  );
 }
 
 describe('mapCurrencyNonAmountMetadataToDb', () => {

@@ -444,11 +444,14 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
       name: input.name,
       amount: encryptedAmount,
       original_amount: encryptedOriginalAmount,
-      ...mapCurrencyNonAmountMetadataToDb({
-        originalCurrency: input.originalCurrency,
-        targetCurrency: input.targetCurrency,
-        exchangeRate: input.exchangeRate,
-      }),
+      ...mapCurrencyNonAmountMetadataToDb(
+        {
+          originalCurrency: input.originalCurrency,
+          targetCurrency: input.targetCurrency,
+          exchangeRate: input.exchangeRate,
+        },
+        { userId: user.id },
+      ),
       kind: input.kind,
       recurrence: input.recurrence,
       is_manually_adjusted: input.isManuallyAdjusted ?? false,
@@ -481,11 +484,14 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
 
     Object.assign(
       updateData,
-      mapCurrencyNonAmountMetadataToDb({
-        originalCurrency: patch.originalCurrency,
-        targetCurrency: patch.targetCurrency,
-        exchangeRate: patch.exchangeRate,
-      }),
+      mapCurrencyNonAmountMetadataToDb(
+        {
+          originalCurrency: patch.originalCurrency,
+          targetCurrency: patch.targetCurrency,
+          exchangeRate: patch.exchangeRate,
+        },
+        { userId: user.id },
+      ),
     );
 
     updateData.updated_at = new Date().toISOString();

@@ -634,11 +634,14 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
       name: input.name,
       amount: encryptedAmount,
       original_amount: encryptedOriginalAmount,
-      ...mapCurrencyNonAmountMetadataToDb({
-        originalCurrency: input.originalCurrency,
-        targetCurrency: input.targetCurrency,
-        exchangeRate: input.exchangeRate,
-      }),
+      ...mapCurrencyNonAmountMetadataToDb(
+        {
+          originalCurrency: input.originalCurrency,
+          targetCurrency: input.targetCurrency,
+          exchangeRate: input.exchangeRate,
+        },
+        { userId: user.id },
+      ),
       kind: input.kind,
       recurrence: input.recurrence,
       description: input.description,
@@ -677,11 +680,14 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
 
     Object.assign(
       updateData,
-      mapCurrencyNonAmountMetadataToDb({
-        originalCurrency: patch.originalCurrency,
-        targetCurrency: patch.targetCurrency,
-        exchangeRate: patch.exchangeRate,
-      }),
+      mapCurrencyNonAmountMetadataToDb(
+        {
+          originalCurrency: patch.originalCurrency,
+          targetCurrency: patch.targetCurrency,
+          exchangeRate: patch.exchangeRate,
+        },
+        { userId: user.id },
+      ),
     );
 
     return updateData;
