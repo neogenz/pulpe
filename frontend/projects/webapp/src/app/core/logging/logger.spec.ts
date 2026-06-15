@@ -111,24 +111,38 @@ describe('Logger', () => {
     });
 
     it('should mask sensitive object keys', () => {
-      const data = {
+      const sensitiveEntries: [string, unknown][] = [
+        ['password', 'secret123'],
+        ['apiKey', 'key-123'],
+        ['token', 'token-456'],
+        ['secret', 'secret-789'],
+        ['key', 'generic-key'],
+        ['anonKey', 'anon-key'],
+        ['api_key', 'snake-api-key'],
+        ['supabase_anon_key', 'snake-anon-key'],
+        ['service_role_key', 'service-role-key'],
+        ['supabase_service_role_key', 'prefixed-service-role-key'],
+        ['encryptionKey', 'encryption-key'],
+        ['clientKey', 'client-key'],
+        ['authKey', 'auth-key'],
+        ['masterKey', 'master-key'],
+        ['signingKey', 'signing-key'],
+      ];
+      const data: Record<string, unknown> = {
         username: 'john',
-        password: 'secret123',
-        apiKey: 'key-123',
-        token: 'token-456',
-        secret: 'secret-789',
-        anonKey: 'anon-key',
       };
+      for (const [key, value] of sensitiveEntries) {
+        data[key] = value;
+      }
+
       logger.debug('User data', data);
       const args =
         consoleDebugSpy.mock.calls[consoleDebugSpy.mock.calls.length - 1];
       const sanitized = args[1] as Record<string, unknown>;
       expect(sanitized['username']).toBe('john');
-      expect(sanitized['password']).toBe('***');
-      expect(sanitized['apiKey']).toBe('***');
-      expect(sanitized['token']).toBe('***');
-      expect(sanitized['secret']).toBe('***');
-      expect(sanitized['anonKey']).toBe('***');
+      for (const [key] of sensitiveEntries) {
+        expect(sanitized[key]).toBe('***');
+      }
     });
 
     it('should mask user identifier keys to prevent PII leakage', () => {
@@ -165,6 +179,29 @@ describe('Logger', () => {
       expect(sanitized['subject']).toBe('meeting agenda');
       expect(sanitized['subtitle']).toBe('chapter 1');
       expect(sanitized['substring']).toBe('foo');
+    });
+
+    it('should not mask non-sensitive keys that merely contain "key" as substring', () => {
+      const nonSensitiveEntries: [string, unknown][] = [
+        ['keyword', 'budget'],
+        ['keyboard', 'azerty'],
+        ['keyPath', 'settings.theme'],
+        ['idempotencyKey', 'request-123'],
+        ['cacheKey', 'dashboard-current-month'],
+        ['idempotency_key', 'request-456'],
+        ['cache_key', 'dashboard-next-month'],
+        ['objectKeys', ['id', 'name']],
+      ];
+      const data = Object.fromEntries(nonSensitiveEntries);
+
+      logger.debug('Non-sensitive key data', data);
+
+      const args =
+        consoleDebugSpy.mock.calls[consoleDebugSpy.mock.calls.length - 1];
+      const sanitized = args[1] as Record<string, unknown>;
+      for (const [key, value] of nonSensitiveEntries) {
+        expect(sanitized[key]).toEqual(value);
+      }
     });
 
     it('should handle nested objects', () => {
