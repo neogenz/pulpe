@@ -76,6 +76,7 @@ claude-rules/
 coverage-report.json
 
 # Claude Code generated outputs
+.codex/
 .claude/output/
 .claude/analysis/
 .claude/ralph/
