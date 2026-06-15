@@ -1,4 +1,6 @@
 import { type SupportedCurrency, supportedCurrencySchema } from 'pulpe-shared';
+import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
+import { BusinessException } from '@common/exceptions/business.exception';
 
 interface DecryptedCurrencyMetadataDbRow {
   original_amount?: number | null;
@@ -67,8 +69,17 @@ export function mapCurrencyNonAmountMetadataToDb(
   dto: CurrencyNonAmountMetadataDto,
 ): Partial<CurrencyNonAmountDbColumns> {
   if ('originalAmount' in dto) {
-    throw new Error(
+    const cause = new Error(
       'originalAmount must be encrypted separately with encryptOptionalAmount',
+    );
+    throw new BusinessException(
+      ERROR_DEFINITIONS.INTERNAL_SERVER_ERROR,
+      undefined,
+      {
+        operation: 'mapCurrencyNonAmountMetadataToDb',
+        violation: 'originalAmount present',
+      },
+      { cause },
     );
   }
 

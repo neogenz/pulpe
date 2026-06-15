@@ -1,5 +1,29 @@
 import { describe, it, expect } from 'bun:test';
+import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
+import { BusinessException } from '@common/exceptions/business.exception';
 import { mapCurrencyNonAmountMetadataToDb } from './currency-metadata.mapper';
+
+function expectOriginalAmountGuard(input: never): void {
+  try {
+    mapCurrencyNonAmountMetadataToDb(input);
+    throw new Error('expected originalAmount guard to throw');
+  } catch (error) {
+    expect(error).toBeInstanceOf(BusinessException);
+    const businessError = error as BusinessException;
+    expect(businessError.code).toBe(
+      ERROR_DEFINITIONS.INTERNAL_SERVER_ERROR.code,
+    );
+    expect(businessError.message).toBe('Internal server error');
+    expect(businessError.loggingContext).toEqual({
+      operation: 'mapCurrencyNonAmountMetadataToDb',
+      violation: 'originalAmount present',
+    });
+    expect(businessError.cause).toBeInstanceOf(Error);
+    expect((businessError.cause as Error).message).toBe(
+      'originalAmount must be encrypted separately with encryptOptionalAmount',
+    );
+  }
+}
 
 describe('mapCurrencyNonAmountMetadataToDb', () => {
   it('should return an empty object when no currency fields are provided', () => {
@@ -64,19 +88,15 @@ describe('mapCurrencyNonAmountMetadataToDb', () => {
   });
 
   it('should reject originalAmount at runtime when callers bypass types', () => {
-    expect(() =>
-      mapCurrencyNonAmountMetadataToDb({
-        originalAmount: 120,
-      } as never),
-    ).toThrow('originalAmount must be encrypted separately');
+    expectOriginalAmountGuard({
+      originalAmount: 120,
+    } as never);
   });
 
   it('should reject present originalAmount even when its value is undefined', () => {
-    expect(() =>
-      mapCurrencyNonAmountMetadataToDb({
-        originalAmount: undefined,
-      } as never),
-    ).toThrow('originalAmount must be encrypted separately');
+    expectOriginalAmountGuard({
+      originalAmount: undefined,
+    } as never);
   });
 
   it('should reject originalAmount at compile time', () => {
@@ -91,6 +111,8 @@ describe('mapCurrencyNonAmountMetadataToDb', () => {
       // @ts-expect-error originalAmount must be encrypted before DB mapping.
       mapCurrencyNonAmountMetadataToDb(patch);
 
+    // Keep a runtime reference so TypeScript checks the closure without calling
+    // it; the regression guard is the @ts-expect-error above.
     expect(typeof compileTimeOnly).toBe('function');
   });
 });
