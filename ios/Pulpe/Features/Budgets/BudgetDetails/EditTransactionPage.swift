@@ -121,7 +121,7 @@ struct EditTransactionPage: View {
 
             descriptionField
 
-            TransactionDateSelector(date: $transactionDate)
+            TransactionDateSelector(date: $transactionDate, currency: userSettingsStore.currency)
 
             if let error {
                 ErrorBanner(message: DomainErrorLocalizer.localize(error)) {

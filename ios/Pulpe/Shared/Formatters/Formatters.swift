@@ -148,6 +148,9 @@ enum Formatters {
 
     // MARK: - Dates
 
+    // These emit named months/weekdays, identical across fr_FR/fr_CH — hence the
+    // hardcoded fr_FR. If you switch one to a NUMERIC pattern, parameterize via
+    // `locale(for:)`, else CHF users get fr_FR's "/" where they expect ".".
     static let monthYear: DateFormatter = {
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "fr_FR")

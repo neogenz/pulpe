@@ -118,7 +118,7 @@ struct AddAllocatedTransactionPage: View {
 
             descriptionField(line: line)
 
-            TransactionDateSelector(date: $transactionDate)
+            TransactionDateSelector(date: $transactionDate, currency: userSettingsStore.currency)
 
             CheckedToggle(isOn: $isChecked, tintColor: line.kind.color)
 

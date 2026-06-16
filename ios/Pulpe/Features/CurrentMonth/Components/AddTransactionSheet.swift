@@ -116,7 +116,7 @@ struct AddTransactionSheet: View {
     // MARK: - Date Selector
 
     private var dateSelector: some View {
-        TransactionDateSelector(date: $transactionDate)
+        TransactionDateSelector(date: $transactionDate, currency: userSettingsStore.currency)
     }
 
     // MARK: - Add Button
