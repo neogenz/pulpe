@@ -19,7 +19,7 @@ NEVER hand-roll currency display in templates. Always route through a shared hel
 
 > **Heuristique**: si le montant est une **somme**, un **total** ou un **solde dérivé** (`amount - consumed`, `consumption.consumed`, `consumption.remaining`, etc.) → aggregation `'1.0-0'`. Si c'est la valeur **directement portée par une seule entité** (un `budget_line.amount`, un `transaction.amount`) → ligne `'1.2-2'`.
 
-> **Exception — écho de saisie adaptatif `'1.0-2'`**: un montant qui est le **miroir live d'un champ que l'utilisateur vient de taper** (ex. preview "Revenus prévus" de l'onboarding `complete-profile`) utilise `'1.0-2'` — pas de décimales sur saisie ronde (`15 872 €`), décimales seulement si l'utilisateur les a saisies (`15 872,15 €`). C'est un écho de valeur directement saisie, pas un agrégat : ne pas le "corriger" en `'1.0-0'`. Les totaux/soldes voisins (disponible, engagé) restent en aggregation `'1.0-0'`.
+> **Exception — bloc résumé de saisie adaptatif `'1.0-2'`**: le **bloc résumé live de l'onboarding `complete-profile`** — le revenu saisi *et* ses dérivés immédiats `engagé`/`disponible` affichés dans la même rangée — utilise `'1.0-2'` : pas de décimales sur saisie ronde (`15 872 €`), décimales seulement si l'utilisateur en a saisi (`15 872,15 €`). C'est un **écho live de la saisie en cours**, pas un agrégat de dashboard : forcer `engagé`/`disponible` à `'1.0-0'` à côté d'un revenu à 2 décimales casserait la cohérence de la rangée et arrondirait un solde que l'utilisateur voit non-rond. Ne pas les "corriger" en `'1.0-0'`. **Hors de ce bloc résumé onboarding**, tout total/solde scanné (hero dashboard `disponible`, soldes, pills…) reste en aggregation `'1.0-0'`.
 
 ## In `feature/`, `pattern/`, `core/` layers
 
