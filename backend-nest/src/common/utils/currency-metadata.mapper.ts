@@ -1,4 +1,6 @@
 import { type SupportedCurrency, supportedCurrencySchema } from 'pulpe-shared';
+import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
+import { BusinessException } from '@common/exceptions/business.exception';
 
 interface DecryptedCurrencyMetadataDbRow {
   original_amount?: number | null;
@@ -33,30 +35,61 @@ export function mapCurrencyMetadataToApi(
   };
 }
 
-interface CurrencyMetadataDto {
+interface CurrencyNonAmountMetadataDto {
   originalCurrency?: SupportedCurrency | null;
   targetCurrency?: SupportedCurrency | null;
   exchangeRate?: number | null;
+  originalAmount?: never;
 }
 
-interface CurrencyMetadataDb {
+interface CurrencyMetadataDbColumns {
+  original_amount: string | null;
   original_currency: string | null;
   target_currency: string | null;
   exchange_rate: number | null;
 }
 
+type CurrencyNonAmountDbColumns = Omit<
+  CurrencyMetadataDbColumns,
+  'original_amount'
+>;
+
+interface CurrencyMetadataMappingContext {
+  userId?: string;
+}
+
 /**
- * Maps currency metadata DTO fields to their DB column names.
+ * Maps non-amount currency metadata DTO fields to their DB column names.
+ *
+ * `original_amount` is intentionally excluded because it is ciphertext. Callers
+ * must encrypt `originalAmount` separately with ENCRYPTION_PORT.encryptOptionalAmount.
  *
  * Returns only the keys that are explicitly defined in the input DTO — so
  * spreading the result onto a PATCH update object never clobbers untouched
  * columns. Missing keys are omitted; explicit `null` / `undefined` values
  * normalize to `null` for the columns the caller did mention.
  */
-export function mapCurrencyMetadataToDb(
-  dto: CurrencyMetadataDto,
-): Partial<CurrencyMetadataDb> {
-  const out: Partial<CurrencyMetadataDb> = {};
+export function mapCurrencyNonAmountMetadataToDb(
+  dto: CurrencyNonAmountMetadataDto,
+  context: CurrencyMetadataMappingContext = {},
+): Partial<CurrencyNonAmountDbColumns> {
+  if ('originalAmount' in dto) {
+    const cause = new Error(
+      'originalAmount must be encrypted separately with encryptOptionalAmount',
+    );
+    throw new BusinessException(
+      ERROR_DEFINITIONS.INTERNAL_SERVER_ERROR,
+      undefined,
+      {
+        operation: 'mapCurrencyNonAmountMetadataToDb',
+        violation: 'originalAmount present',
+        ...(context.userId && { userId: context.userId }),
+      },
+      { cause },
+    );
+  }
+
+  const out: Partial<CurrencyNonAmountDbColumns> = {};
   if (dto.originalCurrency !== undefined) {
     out.original_currency = dto.originalCurrency ?? null;
   }

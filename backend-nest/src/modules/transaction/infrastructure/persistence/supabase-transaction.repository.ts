@@ -8,7 +8,7 @@ import {
   type EncryptionPort,
 } from '@modules/encryption/encryption.tokens';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
-import { mapCurrencyMetadataToDb } from '@common/utils/currency-metadata.mapper';
+import { mapCurrencyNonAmountMetadataToDb } from '@common/utils/currency-metadata.mapper';
 import type { TransactionRepositoryPort } from '../../domain/ports/transaction-repository.port';
 import type {
   Transaction,
@@ -574,11 +574,14 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
       transaction_date: input.transactionDate,
       category: input.category ?? null,
       checked_at: input.checkedAt ?? null,
-      ...mapCurrencyMetadataToDb({
-        originalCurrency: input.originalCurrency,
-        targetCurrency: input.targetCurrency,
-        exchangeRate: input.exchangeRate,
-      }),
+      ...mapCurrencyNonAmountMetadataToDb(
+        {
+          originalCurrency: input.originalCurrency,
+          targetCurrency: input.targetCurrency,
+          exchangeRate: input.exchangeRate,
+        },
+        { userId: user.id },
+      ),
     };
   }
 
@@ -607,11 +610,14 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
 
     Object.assign(
       updateData,
-      mapCurrencyMetadataToDb({
-        originalCurrency: patch.originalCurrency,
-        targetCurrency: patch.targetCurrency,
-        exchangeRate: patch.exchangeRate,
-      }),
+      mapCurrencyNonAmountMetadataToDb(
+        {
+          originalCurrency: patch.originalCurrency,
+          targetCurrency: patch.targetCurrency,
+          exchangeRate: patch.exchangeRate,
+        },
+        { userId: user.id },
+      ),
     );
 
     updateData.updated_at = new Date().toISOString();
