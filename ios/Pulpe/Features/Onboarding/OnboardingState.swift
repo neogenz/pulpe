@@ -462,3 +462,16 @@ final class OnboardingState {
 // Suggestions, analytics helpers, and persistence live in dedicated extension files
 // (`OnboardingState+Suggestions.swift`, `OnboardingState+Persistence.swift`) to keep
 // this file focused on navigation, validation, and store-shape.
+
+extension OnboardingState {
+    /// Switches the onboarding currency from a user action. Mirrors the webapp
+    /// `onCurrencyChange`: health insurance is a CHF-only onboarding line, so any
+    /// entered amount is dropped when leaving CHF — a value typed in CHF must not
+    /// silently leak into a French budget where the field is hidden.
+    func selectCurrency(_ newCurrency: SupportedCurrency) {
+        currency = newCurrency
+        if newCurrency != .chf {
+            healthInsurance = nil
+        }
+    }
+}
