@@ -735,11 +735,11 @@ import {
 
                 <pulpe-error-alert [message]="store.error()" class="mt-6" />
 
-                <div class="h-16 lg:h-10" aria-hidden="true"></div>
+                <div class="h-16 lg:h-36" aria-hidden="true"></div>
 
-                <!-- Sticky CTA: lives inside left column so it naturally spans form width on desktop. -->
+                <!-- Sticky CTA: lg -2rem mirrors the desktop md:p-8 page-content padding. -->
                 <div
-                  class="sticky bottom-0 z-10 -mx-4 sm:mx-0 pt-5 pb-[calc(20px+env(safe-area-inset-bottom))] lg:pb-5 border-t border-outline-variant/15 bg-surface"
+                  class="sticky bottom-0 lg:bottom-[-2rem] z-10 -mx-4 sm:mx-0 pt-5 pb-[calc(20px+env(safe-area-inset-bottom))] lg:pb-5 border-t border-outline-variant/15 bg-surface"
                 >
                   <pulpe-loading-button
                     [loading]="store.isLoading()"
