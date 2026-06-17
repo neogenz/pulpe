@@ -412,14 +412,12 @@ struct AppStateBackgroundLockTests {
 
         await sut.handleEnterForeground()
 
-        // Refresh must have been attempted...
-        await waitForCondition(timeout: .seconds(1), "refresh must be attempted") {
-            refreshAttempted.value
-        }
-        // ...and the (buggy) destructive logout, if it fires, runs right after the throw.
-        // Give it time to settle so the assertions below are not racing a pending logout.
-        try? await Task.sleep(for: .milliseconds(400))
+        // Deterministically wait for the fire-and-forget background refresh — and any logout it
+        // would trigger — to finish, instead of a timing-dependent sleep. The task is @MainActor
+        // isolated, so it cannot run until we suspend on `.value`; the read is race-free.
+        await sut.backgroundRefreshTask?.value
 
+        #expect(refreshAttempted.value == true, "session refresh must be attempted")
         #expect(
             sut.authState == .authenticated,
             "Transient refresh failure must NOT force logout — the session is still valid server-side"
