@@ -84,7 +84,7 @@ final class SessionLifecycleCoordinator {
         } catch let error as URLError {
             Logger.auth.warning("checkAuthState: network error during biometric login - \(error)")
             authDebug("AUTH_BIO_VALIDATE_RESULT", "network")
-            return .networkError("Connexion impossible, r\u{00E9}essaie")
+            return .networkError(AuthErrorMessages.connectionUnavailable)
         } catch let error as AuthServiceError {
             Logger.auth.error("checkAuthState: biometric session refresh failed - \(error)")
             await biometric.handleSessionExpired()
@@ -114,7 +114,7 @@ final class SessionLifecycleCoordinator {
             // rather than dropping the user to the login screen.
             Logger.auth.warning("checkAuthState: regular session fallback network error - \(error)")
             authDebug("AUTH_COLD_START_REGULAR_NETWORK", "reason=\(reason)")
-            return .networkError("Connexion impossible, r\u{00E9}essaie")
+            return .networkError(AuthErrorMessages.connectionUnavailable)
         } catch {
             Logger.auth.warning("checkAuthState: regular session fallback failed - \(error)")
             authDebug("AUTH_COLD_START_REGULAR_ERROR", "reason=\(reason)")
@@ -133,7 +133,7 @@ final class SessionLifecycleCoordinator {
             // Transient connectivity failure — not a session loss. Surface the retry UI.
             Logger.auth.warning("checkAuthState: regular session validation network error - \(error)")
             authDebug("AUTH_COLD_START_REGULAR_NETWORK", "source=checkAuthState")
-            return .networkError("Connexion impossible, r\u{00E9}essaie")
+            return .networkError(AuthErrorMessages.connectionUnavailable)
         } catch {
             Logger.auth.warning("checkAuthState: regular session validation failed - \(error)")
             authDebug("AUTH_COLD_START_REGULAR_ERROR", "source=checkAuthState")

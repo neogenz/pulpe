@@ -185,8 +185,11 @@ actor AuthService {
         } catch let error as URLError {
             throw error
         } catch {
+            // `.public` (full error, not just localizedDescription) so a silent post-expiry
+            // refresh regression shows the exact Supabase cause (e.g. AuthError.api) on a device
+            // repro without leaking tokens.
             Logger.auth.warning(
-                "validateSessionStrict: auth session unavailable - \(error.localizedDescription, privacy: .public)"
+                "validateSessionStrict: auth session unavailable - \(error, privacy: .public)"
             )
             return nil
         }

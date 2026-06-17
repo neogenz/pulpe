@@ -212,7 +212,7 @@ actor StartupCoordinator {
                 return .cancelled
             } else {
                 Logger.auth.warning("[STARTUP] Maintenance network error: \(error)")
-                return .networkError("Connexion impossible, réessaie")
+                return .networkError(AuthErrorMessages.connectionUnavailable)
             }
         } catch {
             Logger.auth.warning("[STARTUP] Maintenance check failed: \(error)")
@@ -265,7 +265,7 @@ actor StartupCoordinator {
             return .cancelled
         } else {
             Logger.auth.warning("[STARTUP] Biometric validation network error: \(error)")
-            return .networkError("Connexion impossible, réessaie")
+            return .networkError(AuthErrorMessages.connectionUnavailable)
         }
     }
 
@@ -321,7 +321,7 @@ actor StartupCoordinator {
             // not gone — surface the retry UI instead of dumping the user to the login screen
             // (which would force credential re-entry over a momentary network blip).
             Logger.auth.warning("[STARTUP] Regular session validation network error: \(urlError)")
-            return .networkError("Connexion impossible, réessaie")
+            return .networkError(AuthErrorMessages.connectionUnavailable)
         } catch {
             Logger.auth.warning("[STARTUP] Regular session validation failed: \(error)")
             // AnalyticsService is @MainActor — hop required from actor context
