@@ -245,8 +245,12 @@ export class CurrencyConverterWidget {
   protected readonly converterBaseSymbol = computed(
     () => CURRENCY_CONFIG[this.converterBase()].symbol,
   );
+  // The rate is "1 <base> = X <target>", so format X with the base currency's
+  // numberLocale — same convention as the conversion tooltip (format-conversion),
+  // which keys off the source/base currency. Keeps the rate's decimal separator
+  // consistent across the converter widget and the transaction tooltip.
   protected readonly rateLocale = computed(
-    () => CURRENCY_CONFIG[this.converterTarget()].numberLocale,
+    () => CURRENCY_CONFIG[this.converterBase()].numberLocale,
   );
 
   /**
