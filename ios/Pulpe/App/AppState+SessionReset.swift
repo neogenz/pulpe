@@ -48,15 +48,19 @@ extension AppState {
                         )
                         await self?.logout(source: .system)
                     }
-                } catch is URLError {
-                    // Transient connectivity failure on a freshly-resumed radio. The session is
-                    // still valid server-side — content is already biometric-unlocked, so keep the
-                    // user authenticated and let the next successful network call (or the SDK's
-                    // auto-refresh) refresh the token. Logging out here would server-revoke a live
-                    // session and wipe Face ID over a momentary network blip (PUL-265 root cause).
-                    Logger.auth.warning(
-                        "handleEnterForeground: session refresh skipped — network unavailable, keeping session"
-                    )
+                } catch let error as URLError {
+                    // Keep the session: this URLError is either a transient connectivity blip on a
+                    // freshly-resumed radio (the session is still valid server-side — logging out
+                    // would server-revoke a live session and wipe Face ID, the PUL-265 root cause)
+                    // or a deliberate cancellation from a concurrent logout. Either way, do NOT log
+                    // out; the next successful network call / SDK auto-refresh refreshes the token.
+                    if error.code == .cancelled {
+                        Logger.auth.debug("handleEnterForeground: background refresh cancelled")
+                    } else {
+                        Logger.auth.warning(
+                            "handleEnterForeground: session refresh skipped — network unavailable, keeping session"
+                        )
+                    }
                 } catch {
                     guard !Task.isCancelled else { return }
                     Logger.auth.warning(
