@@ -320,7 +320,7 @@ actor StartupCoordinator {
             // Transient connectivity failure (offline / cold radio on launch). The session is
             // not gone — surface the retry UI instead of dumping the user to the login screen
             // (which would force credential re-entry over a momentary network blip).
-            Logger.auth.warning("[STARTUP] Regular session validation network error: \(urlError)")
+            Logger.auth.warning("[STARTUP] Regular session validation network error: \(urlError, privacy: .public)")
             return .networkError(AuthErrorMessages.connectionUnavailable)
         } catch {
             Logger.auth.warning("[STARTUP] Regular session validation failed: \(error)")

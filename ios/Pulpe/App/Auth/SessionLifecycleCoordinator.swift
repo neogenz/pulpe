@@ -112,7 +112,7 @@ final class SessionLifecycleCoordinator {
         } catch let error as URLError {
             // Transient connectivity failure — not a session loss. Surface the retry UI
             // rather than dropping the user to the login screen.
-            Logger.auth.warning("checkAuthState: regular session fallback network error - \(error)")
+            Logger.auth.warning("checkAuthState: regular session fallback network error - \(error, privacy: .public)")
             authDebug("AUTH_COLD_START_REGULAR_NETWORK", "reason=\(reason)")
             return .networkError(AuthErrorMessages.connectionUnavailable)
         } catch {
@@ -131,7 +131,7 @@ final class SessionLifecycleCoordinator {
             }
         } catch let error as URLError {
             // Transient connectivity failure — not a session loss. Surface the retry UI.
-            Logger.auth.warning("checkAuthState: regular session validation network error - \(error)")
+            Logger.auth.warning("checkAuthState: regular session validation network error - \(error, privacy: .public)")
             authDebug("AUTH_COLD_START_REGULAR_NETWORK", "source=checkAuthState")
             return .networkError(AuthErrorMessages.connectionUnavailable)
         } catch {
