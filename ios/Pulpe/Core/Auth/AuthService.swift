@@ -171,6 +171,27 @@ actor AuthService {
         }
     }
 
+    /// Like `validateSession()` but distinguishes a transient connectivity failure from a
+    /// genuine session loss. Throws on `URLError` (offline / timeout / connection lost on a
+    /// freshly-resumed radio) so callers can treat it as "retry later" instead of forcing a
+    /// destructive logout on a flaky connection. Returns nil only when the SDK confirms there
+    /// is no usable session (e.g. `AuthError.sessionMissing`, or a refresh the server rejected).
+    /// Mirrors `resolveAccessTokenStrict()` — the foreground/cold-start session checks use this
+    /// so a routine post-expiry refresh hiccup can no longer revoke the session (PUL-265 follow-up).
+    func validateSessionStrict() async throws -> UserInfo? {
+        do {
+            let session = try await supabase.auth.session
+            return Self.userInfo(from: session.user, fallbackEmail: "")
+        } catch let error as URLError {
+            throw error
+        } catch {
+            Logger.auth.warning(
+                "validateSessionStrict: auth session unavailable - \(error.localizedDescription, privacy: .public)"
+            )
+            return nil
+        }
+    }
+
     // MARK: - Logout
 
     /// Sign out of Supabase. Surfaces the underlying error so callers can decide how

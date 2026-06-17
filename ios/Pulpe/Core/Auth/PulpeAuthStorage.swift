@@ -8,6 +8,14 @@ import Supabase
 /// owns persistence across launches and silent token refreshes — eliminating
 /// drift between custom keychain slots that previously triggered
 /// refresh-token-reuse detection on cold-start biometric paths (PUL-132).
+///
+/// Accessibility: `AfterFirstUnlockThisDeviceOnly` (matches the SDK's own default
+/// `KeychainLocalStorage`). The SDK rotates the refresh token on a background timer and
+/// must be able to PERSIST the rotated token even while the device is locked; with
+/// `WhenUnlockedThisDeviceOnly`, a locked-device write fails (`errSecInteractionNotAllowed`)
+/// and the SDK silently keeps the now-consumed token, so the next launch replays it and
+/// rotation reuse-detection revokes the whole family. `ThisDeviceOnly` keeps the token off
+/// iCloud Keychain / device migration.
 public struct PulpeAuthStorage: AuthLocalStorage {
     public static let sessionStorageKey = "supabase.auth.token"
 
@@ -26,7 +34,7 @@ public struct PulpeAuthStorage: AuthLocalStorage {
 
         let updateAttributes: [String: Any] = [
             kSecValueData as String: value,
-            kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlockedThisDeviceOnly
+            kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
         ]
 
         let updateStatus = SecItemUpdate(baseQuery as CFDictionary, updateAttributes as CFDictionary)
@@ -51,7 +59,7 @@ public struct PulpeAuthStorage: AuthLocalStorage {
             kSecAttrService as String: service,
             kSecAttrAccount as String: key,
             kSecValueData as String: value,
-            kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlockedThisDeviceOnly
+            kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
         ]
         let addStatus = SecItemAdd(addQuery as CFDictionary, nil)
         // errSecDuplicateItem: a concurrent writer (e.g. SDK auto-refresh timer)

@@ -308,6 +308,12 @@ actor StartupCoordinator {
         } catch is CancellationError {
             Logger.auth.debug("[STARTUP] Regular session validation cancelled")
             return .cancelled
+        } catch let urlError as URLError {
+            // Transient connectivity failure (offline / cold radio on launch). The session is
+            // not gone — surface the retry UI instead of dumping the user to the login screen
+            // (which would force credential re-entry over a momentary network blip).
+            Logger.auth.warning("[STARTUP] Regular session validation network error: \(urlError)")
+            return .networkError("Connexion impossible, réessaie")
         } catch {
             Logger.auth.warning("[STARTUP] Regular session validation failed: \(error)")
             // AnalyticsService is @MainActor — hop required from actor context

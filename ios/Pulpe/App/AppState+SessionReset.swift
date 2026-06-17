@@ -48,6 +48,15 @@ extension AppState {
                         )
                         await self?.logout(source: .system)
                     }
+                } catch is URLError {
+                    // Transient connectivity failure on a freshly-resumed radio. The session is
+                    // still valid server-side — content is already biometric-unlocked, so keep the
+                    // user authenticated and let the next successful network call (or the SDK's
+                    // auto-refresh) refresh the token. Logging out here would server-revoke a live
+                    // session and wipe Face ID over a momentary network blip (PUL-265 root cause).
+                    Logger.auth.warning(
+                        "handleEnterForeground: session refresh skipped — network unavailable, keeping session"
+                    )
                 } catch {
                     guard !Task.isCancelled else { return }
                     Logger.auth.warning(

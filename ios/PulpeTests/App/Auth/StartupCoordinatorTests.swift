@@ -331,9 +331,12 @@ struct StartupCoordinatorTests {
             }
         )
 
-        // First attempt fails
+        // First attempt hits a transient network error (URLError) — this now surfaces the
+        // retry UI (.networkError), not a logout / credentials prompt.
         let firstResult = await sut.start(context: makeContext())
-        #expect(firstResult == .unauthenticated)
+        if case .networkError = firstResult {} else {
+            Issue.record("Expected .networkError on a transient first attempt, got \(firstResult)")
+        }
 
         // Retry succeeds
         let retryResult = await sut.retry(context: makeContext())

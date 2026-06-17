@@ -109,6 +109,12 @@ final class SessionLifecycleCoordinator {
                 authDebug("AUTH_COLD_START_REGULAR_MISSING", "reason=\(reason)")
                 return .unauthenticated
             }
+        } catch let error as URLError {
+            // Transient connectivity failure — not a session loss. Surface the retry UI
+            // rather than dropping the user to the login screen.
+            Logger.auth.warning("checkAuthState: regular session fallback network error - \(error)")
+            authDebug("AUTH_COLD_START_REGULAR_NETWORK", "reason=\(reason)")
+            return .networkError("Connexion impossible, r\u{00E9}essaie")
         } catch {
             Logger.auth.warning("checkAuthState: regular session fallback failed - \(error)")
             authDebug("AUTH_COLD_START_REGULAR_ERROR", "reason=\(reason)")
@@ -123,6 +129,11 @@ final class SessionLifecycleCoordinator {
                 authDebug("AUTH_COLD_START_REGULAR_VALID", "source=checkAuthState")
                 return .regularSession(user: user)
             }
+        } catch let error as URLError {
+            // Transient connectivity failure — not a session loss. Surface the retry UI.
+            Logger.auth.warning("checkAuthState: regular session validation network error - \(error)")
+            authDebug("AUTH_COLD_START_REGULAR_NETWORK", "source=checkAuthState")
+            return .networkError("Connexion impossible, r\u{00E9}essaie")
         } catch {
             Logger.auth.warning("checkAuthState: regular session validation failed - \(error)")
             authDebug("AUTH_COLD_START_REGULAR_ERROR", "source=checkAuthState")
