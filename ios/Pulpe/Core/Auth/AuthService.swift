@@ -184,6 +184,11 @@ actor AuthService {
             return Self.userInfo(from: session.user, fallbackEmail: "")
         } catch let error as URLError {
             throw error
+        } catch is CancellationError {
+            // A superseded startup run cancels before/at the session suspension point. Propagate so
+            // the caller maps it to `.cancelled` (a no-op) instead of `.unauthenticated`, which
+            // would let an obsolete run clobber the newer one's state.
+            throw CancellationError()
         } catch {
             // `.public` (full error, not just localizedDescription) so a silent post-expiry
             // refresh regression shows the exact Supabase cause (e.g. AuthError.api) on a device
@@ -255,6 +260,10 @@ actor AuthService {
             return session.accessToken
         } catch let error as URLError {
             throw error
+        } catch is CancellationError {
+            // Propagate cancellation (e.g. a superseded request) rather than reporting it as
+            // "no usable session", which would push APIClient into a spurious logout.
+            throw CancellationError()
         } catch {
             Logger.auth.warning(
                 "resolveAccessTokenStrict: auth session unavailable - \(error.localizedDescription, privacy: .public)"
