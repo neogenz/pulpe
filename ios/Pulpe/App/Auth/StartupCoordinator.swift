@@ -309,6 +309,14 @@ actor StartupCoordinator {
             Logger.auth.debug("[STARTUP] Regular session validation cancelled")
             return .cancelled
         } catch let urlError as URLError {
+            // A superseded startup run cancels its in-flight `supabase.auth.session` request,
+            // which URLSession surfaces as `URLError(.cancelled)` (not `CancellationError`).
+            // Treat it as cancellation so the obsolete run doesn't apply a stale network route —
+            // mirrors the maintenance and biometric paths.
+            if urlError.code == .cancelled {
+                Logger.auth.debug("[STARTUP] Regular session validation URL request cancelled")
+                return .cancelled
+            }
             // Transient connectivity failure (offline / cold radio on launch). The session is
             // not gone — surface the retry UI instead of dumping the user to the login screen
             // (which would force credential re-entry over a momentary network blip).

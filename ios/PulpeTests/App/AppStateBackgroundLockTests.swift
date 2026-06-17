@@ -375,7 +375,7 @@ struct AppStateBackgroundLockTests {
         }
     }
 
-    // MARK: - PUL-XXX: Transient Refresh Failure Must NOT Force Logout
+    // MARK: - PUL-278: Transient Refresh Failure Must NOT Force Logout
 
     /// Regression: after the 1h access-token expiry, every reopen forces a network refresh.
     /// On app-resume the radio is frequently cold, so the refresh hits a transient URLError.
