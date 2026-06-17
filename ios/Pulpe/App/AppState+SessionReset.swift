@@ -58,7 +58,7 @@ extension AppState {
                         Logger.auth.debug("handleEnterForeground: background refresh cancelled")
                     } else {
                         Logger.auth.warning(
-                            "handleEnterForeground: session refresh skipped — network unavailable, keeping session"
+                            "handleEnterForeground: session refresh skipped — keeping session - \(error)"
                         )
                     }
                 } catch {
