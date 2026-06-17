@@ -26,8 +26,9 @@ export function formatConversion(
 
   const config =
     CURRENCY_CONFIG[originalCurrency as keyof typeof CURRENCY_CONFIG];
+  // Amount and rate share the currency's numberLocale so both numbers use the
+  // same decimal separator in one tooltip (CHF → de-CH dot: `1’234.56` / `0.938`).
   const numberLocale = config?.numberLocale ?? 'de-CH';
-  const rateLocale = config?.locale ?? 'fr-CH';
 
   const formattedAmount = getCurrencyFormatter(
     originalCurrency,
@@ -35,7 +36,7 @@ export function formatConversion(
   ).format(originalAmount);
 
   if (exchangeRate != null) {
-    const formattedRate = getRateFormatter(rateLocale).format(exchangeRate);
+    const formattedRate = getRateFormatter(numberLocale).format(exchangeRate);
 
     return transloco.translate('currency.convertedFromTooltip', {
       amount: formattedAmount,

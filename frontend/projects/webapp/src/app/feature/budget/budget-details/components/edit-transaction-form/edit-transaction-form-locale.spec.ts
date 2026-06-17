@@ -39,9 +39,9 @@ function makeStorageServiceMock(
   currency: SupportedCurrency,
 ): Partial<StorageService> {
   return {
-    get: (key: string) =>
+    get: <T>(key: string): T | null =>
       key === STORAGE_KEYS.SETTINGS_CURRENCY
-        ? (currency as unknown as null)
+        ? (currency as unknown as T)
         : null,
     getString: () => null,
     set: vi.fn(),
