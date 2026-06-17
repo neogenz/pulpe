@@ -1,5 +1,3 @@
-import Foundation
-
 /// Centralized user-facing auth/session error messages (French).
 /// Keeps wording (and accents) consistent across the startup, foreground and biometric paths.
 enum AuthErrorMessages {
