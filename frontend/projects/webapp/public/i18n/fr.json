@@ -372,7 +372,7 @@
     "createTitle": "Créer un budget",
     "generalInfo": "Informations générales",
     "monthYearLabel": "Mois et année",
-    "monthYearHint": "mm.aaaa",
+    "monthYearHint": "mm{{separator}}aaaa",
     "monthYearRequired": "Le mois et l'année sont requis",
     "descriptionLabel": "Description (optionnelle)",
     "descriptionPlaceholder": "Ex: Budget vacances d'été",

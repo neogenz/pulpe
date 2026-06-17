@@ -54,7 +54,7 @@ export function localeIdFactory(): string {
   return CURRENCY_METADATA[currency].locale;
 }
 
-function dateFnsLocaleFor(currency: SupportedCurrency) {
+export function dateFnsLocaleFor(currency: SupportedCurrency) {
   return currency === 'CHF' ? frCH : fr;
 }
 

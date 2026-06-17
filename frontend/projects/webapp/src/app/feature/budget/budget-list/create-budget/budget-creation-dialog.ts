@@ -117,7 +117,10 @@ function buildMonthYearFormats(monthYear: string) {
               (monthSelected)="onMonthSelected($event, monthYearPicker)"
             >
             </mat-datepicker>
-            <mat-hint>{{ 'budget.monthYearHint' | transloco }}</mat-hint>
+            <mat-hint>{{
+              'budget.monthYearHint'
+                | transloco: { separator: monthYearHintSeparator() }
+            }}</mat-hint>
             @if (
               budgetForm.get('monthYear')?.invalid &&
               budgetForm.get('monthYear')?.touched
@@ -218,6 +221,9 @@ export class CreateBudgetDialogComponent {
   readonly #userSettingsStore = inject(UserSettingsStore);
   protected readonly templateStore = inject(TemplateStore);
   protected readonly currency = this.#userSettingsStore.currency;
+  protected readonly monthYearHintSeparator = computed(
+    () => getDateDisplayFormats(this.currency()).separator,
+  );
   readonly #data = inject<BudgetCreationDialogData | null>(MAT_DIALOG_DATA, {
     optional: true,
   });
