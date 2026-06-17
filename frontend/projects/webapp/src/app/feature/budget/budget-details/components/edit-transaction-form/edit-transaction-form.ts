@@ -23,7 +23,6 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatDatepickerModule } from '@angular/material/datepicker';
-import { MatNativeDateModule } from '@angular/material/core';
 import { TranslocoPipe } from '@jsverse/transloco';
 import {
   type Transaction,
@@ -76,7 +75,6 @@ interface DateOutOfRangeError {
     MatButtonModule,
     MatIconModule,
     MatDatepickerModule,
-    MatNativeDateModule,
     TransactionLabelPipe,
     TranslocoPipe,
     FormField,

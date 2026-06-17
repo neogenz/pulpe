@@ -22,7 +22,7 @@ export class AppCurrencyPipe implements PipeTransform {
       currency,
       'symbol',
       digitsInfo,
-      config.locale,
+      config.numberLocale,
     );
   }
 }

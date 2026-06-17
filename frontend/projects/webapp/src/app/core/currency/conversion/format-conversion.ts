@@ -26,14 +26,16 @@ export function formatConversion(
 
   const config =
     CURRENCY_CONFIG[originalCurrency as keyof typeof CURRENCY_CONFIG];
-  const locale = config?.locale ?? 'fr-CH';
+  const numberLocale = config?.numberLocale ?? 'de-CH';
+  const rateLocale = config?.locale ?? 'fr-CH';
 
-  const formattedAmount = getCurrencyFormatter(originalCurrency, locale).format(
-    originalAmount,
-  );
+  const formattedAmount = getCurrencyFormatter(
+    originalCurrency,
+    numberLocale,
+  ).format(originalAmount);
 
   if (exchangeRate != null) {
-    const formattedRate = getRateFormatter(locale).format(exchangeRate);
+    const formattedRate = getRateFormatter(rateLocale).format(exchangeRate);
 
     return transloco.translate('currency.convertedFromTooltip', {
       amount: formattedAmount,

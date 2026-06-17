@@ -33,11 +33,11 @@ Use `AppCurrencyPipe` from `@core/currency` with the right digitsInfo:
 {{ line.amount | appCurrency: currency() : '1.2-2' }}
 ```
 
-This pipe wraps Angular's `CurrencyPipe` with `style: 'symbol'` + locale from `CURRENCY_CONFIG`. Produces:
+This pipe wraps Angular's `CurrencyPipe` with `style: 'symbol'` + the `numberLocale` from `CURRENCY_CONFIG` (CHF uses `de-CH`, which yields the apostrophe `’` group separator — `fr-CH` would produce a space instead). Produces:
 - Aggregation EUR/fr-FR: `1 235 €`
-- Aggregation CHF/fr-CH: `CHF 1'235`
+- Aggregation CHF/de-CH: `CHF 1’235`
 - Ligne EUR/fr-FR: `1 234,56 €`
-- Ligne CHF/fr-CH: `CHF 1'234.56`
+- Ligne CHF/de-CH: `CHF 1’234.56`
 
 ## In `ui/` layer (cannot import `@core/`)
 

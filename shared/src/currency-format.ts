@@ -16,8 +16,9 @@ const formatterCache = new Map<string, Intl.NumberFormat>();
 /**
  * Returns a cached `Intl.NumberFormat` for the given currency and locale.
  *
- * If `locale` is omitted, the locale from {@link CURRENCY_METADATA} is used.
- * Falls back to `fr-CH` when the currency has no metadata entry.
+ * If `locale` is omitted, the `numberLocale` from {@link CURRENCY_METADATA} is
+ * used so CHF amounts render with the apostrophe group separator (`1’234.56`).
+ * Falls back to `de-CH` when the currency has no metadata entry.
  */
 export function getCurrencyFormatter(
   currency: SupportedCurrency | string,
@@ -25,8 +26,8 @@ export function getCurrencyFormatter(
 ): Intl.NumberFormat {
   const resolvedLocale =
     locale ??
-    CURRENCY_METADATA[currency as SupportedCurrency]?.locale ??
-    'fr-CH';
+    CURRENCY_METADATA[currency as SupportedCurrency]?.numberLocale ??
+    'de-CH';
   const key = `${resolvedLocale}_${currency}`;
   let formatter = formatterCache.get(key);
   if (!formatter) {

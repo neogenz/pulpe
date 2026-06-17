@@ -19,11 +19,22 @@ describe('AppCurrencyPipe', () => {
   });
 
   describe('CHF formatting', () => {
-    it('should format with CHF symbol and fr-CH locale', () => {
+    it('should format with CHF symbol and de-CH number locale', () => {
       const result = pipe.transform(1234.56, 'CHF');
       expect(result).toContain('CHF');
       expect(result).toContain('1');
       expect(result).toContain('234.56');
+    });
+
+    it('should use the apostrophe group separator (U+2019)', () => {
+      const result = pipe.transform(1234.56, 'CHF');
+      expect(result).toContain('1’234');
+      expect(result).not.toContain('1 234');
+    });
+
+    it('should use the apostrophe group separator for aggregations', () => {
+      const result = pipe.transform(1234, 'CHF', '1.0-0');
+      expect(result).toContain('1’234');
     });
 
     it('should use default digitsInfo (1.2-2)', () => {
