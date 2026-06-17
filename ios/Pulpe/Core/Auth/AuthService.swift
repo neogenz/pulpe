@@ -189,6 +189,11 @@ actor AuthService {
             // the caller maps it to `.cancelled` (a no-op) instead of `.unauthenticated`, which
             // would let an obsolete run clobber the newer one's state.
             throw CancellationError()
+        } catch AuthError.sessionMissing {
+            // Normal logged-out state (no stored session) — e.g. a fresh user or after an explicit
+            // logout. Not a warning; keep the real-error channel below clean for actual regressions.
+            Logger.auth.info("validateSessionStrict: no active session (logged out)")
+            return nil
         } catch {
             // `.public` (full error, not just localizedDescription) so a silent post-expiry
             // refresh regression shows the exact Supabase cause (e.g. AuthError.api) on a device
