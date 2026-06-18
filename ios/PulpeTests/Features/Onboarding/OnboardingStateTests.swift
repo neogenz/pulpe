@@ -906,6 +906,50 @@ struct OnboardingStateTests {
         #expect(state.currency == .eur)
     }
 
+    /// PUL-100 parity with the webapp `onCurrencyChange`: health insurance is a
+    /// CHF-only onboarding line. Switching to EUR must drop any entered amount so
+    /// a value typed in CHF can't silently leak into a French budget where the
+    /// field is hidden.
+    @Test
+    func selectCurrency_switchingToEUR_dropsHealthInsurance() {
+        let state = makeSUT()
+        defer { OnboardingState.clearPersistedData() }
+        state.healthInsurance = 400
+
+        state.selectCurrency(.eur)
+
+        #expect(state.currency == .eur)
+        #expect(state.healthInsurance == nil)
+    }
+
+    @Test
+    func selectCurrency_stayingInCHF_keepsHealthInsurance() {
+        let state = makeSUT()
+        defer { OnboardingState.clearPersistedData() }
+        state.healthInsurance = 400
+
+        state.selectCurrency(.chf)
+
+        #expect(state.currency == .chf)
+        #expect(state.healthInsurance == 400)
+    }
+
+    @Test
+    func selectCurrency_switchingToEUR_excludesHealthInsuranceFromTemplateAndCharges() {
+        let state = makeSUT()
+        defer { OnboardingState.clearPersistedData() }
+        state.housingCosts = 1200
+        state.healthInsurance = 400
+
+        state.selectCurrency(.eur)
+
+        let template = state.createTemplateData()
+        #expect(template.healthInsurance == nil)
+        #expect(!state.fixedChargeLines.contains { $0.label == "Assurance maladie" })
+        // Housing is a currency-agnostic charge — it must survive the switch.
+        #expect(template.housingCosts == 1200)
+    }
+
     @Test
     func saveAndLoad_persistsEURCurrency() {
         let state = makeSUT()

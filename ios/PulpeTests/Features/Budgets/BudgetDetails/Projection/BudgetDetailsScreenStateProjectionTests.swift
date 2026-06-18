@@ -365,11 +365,15 @@ struct BudgetDetailsScreenStateProjectionTests {
     @Test
     func checkedTickHash_nonCheckedFieldChanges_staysStable() {
         let base = makeStores()
-        base.data.appendBudgetLine(TestDataFactory.createBudgetLine(id: "line-1", name: "Loyer", amount: 1000, isChecked: false))
+        base.data.appendBudgetLine(
+            TestDataFactory.createBudgetLine(id: "line-1", name: "Loyer", amount: 1000, isChecked: false)
+        )
 
         // Same id + same isChecked, but name and amount differ — hash must ignore them.
         let edited = makeStores()
-        edited.data.appendBudgetLine(TestDataFactory.createBudgetLine(id: "line-1", name: "Loyer révisé", amount: 1200, isChecked: false))
+        edited.data.appendBudgetLine(
+            TestDataFactory.createBudgetLine(id: "line-1", name: "Loyer révisé", amount: 1200, isChecked: false)
+        )
 
         #expect(checkedTickHash(for: base) == checkedTickHash(for: edited))
     }

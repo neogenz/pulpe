@@ -313,7 +313,7 @@ import {
                         @if (store.monthlyIncome()) {
                           {{
                             store.monthlyIncome()
-                              | appCurrency: selectedCurrency() : '1.0-0'
+                              | appCurrency: selectedCurrency() : '1.0-2'
                           }}
                         } @else {
                           —
@@ -411,7 +411,7 @@ import {
                     >
                       {{
                         summary.income
-                          | appCurrency: selectedCurrency() : '1.0-0'
+                          | appCurrency: selectedCurrency() : '1.0-2'
                       }}
                     </span>
                   </div>
@@ -424,7 +424,7 @@ import {
                     >
                       {{
                         summary.committed
-                          | appCurrency: selectedCurrency() : '1.0-0'
+                          | appCurrency: selectedCurrency() : '1.0-2'
                       }}
                     </span>
                   </div>
@@ -439,7 +439,7 @@ import {
                     >
                       {{
                         summary.available
-                          | appCurrency: selectedCurrency() : '1.0-0'
+                          | appCurrency: selectedCurrency() : '1.0-2'
                       }}
                     </span>
                   </div>
@@ -502,17 +502,22 @@ import {
                       </h2>
                     </div>
                     <div class="space-y-3">
-                      <pulpe-currency-input
-                        [label]="'completeProfile.health' | transloco"
-                        [value]="store.healthInsurance()"
-                        (valueChange)="store.updateHealthInsurance($event)"
-                        placeholder="0"
-                        testId="health-insurance-input"
-                        [autoFocus]="false"
-                        [currency]="selectedCurrency()"
-                        [showCurrencySelector]="showCurrencySelector()"
-                        (currencyChange)="onCurrencyChange($event)"
-                      />
+                      <!-- Health insurance is a Swiss budget line (LAMal, paid
+                           out of pocket). In France base coverage is deducted at
+                           source, so the field is hidden for EUR users. -->
+                      @if (showHealthInsurance()) {
+                        <pulpe-currency-input
+                          [label]="'completeProfile.health' | transloco"
+                          [value]="store.healthInsurance()"
+                          (valueChange)="store.updateHealthInsurance($event)"
+                          placeholder="0"
+                          testId="health-insurance-input"
+                          [autoFocus]="false"
+                          [currency]="selectedCurrency()"
+                          [showCurrencySelector]="showCurrencySelector()"
+                          (currencyChange)="onCurrencyChange($event)"
+                        />
+                      }
                       <pulpe-currency-input
                         [label]="'completeProfile.phone' | transloco"
                         [value]="store.phonePlan()"
@@ -636,7 +641,7 @@ import {
                           ·
                           <span class="ph-no-capture">{{
                             suggestion.amount
-                              | appCurrency: selectedCurrency() : '1.0-0'
+                              | appCurrency: selectedCurrency() : '1.0-2'
                           }}</span>
                         </button>
                       }
@@ -813,7 +818,7 @@ import {
                     >
                       {{
                         summary.available
-                          | appCurrency: selectedCurrency() : '1.0-0'
+                          | appCurrency: selectedCurrency() : '1.0-2'
                       }}
                     </span>
                   </div>
@@ -840,7 +845,7 @@ import {
                       <span class="text-on-surface font-medium ph-no-capture">
                         {{
                           summary.income
-                            | appCurrency: selectedCurrency() : '1.0-0'
+                            | appCurrency: selectedCurrency() : '1.0-2'
                         }}
                       </span>
                     </span>
@@ -850,7 +855,7 @@ import {
                       <span class="text-on-surface font-medium ph-no-capture">
                         {{
                           summary.committed
-                            | appCurrency: selectedCurrency() : '1.0-0'
+                            | appCurrency: selectedCurrency() : '1.0-2'
                         }}
                       </span>
                     </span>
@@ -939,6 +944,10 @@ export default class CompleteProfilePage {
   protected readonly selectedCurrency = signal<SupportedCurrency>(
     this.#userSettings.currency(),
   );
+  // Health insurance is a CHF-only onboarding line — see the template note.
+  protected readonly showHealthInsurance = computed(
+    () => this.selectedCurrency() === 'CHF',
+  );
   protected readonly currentStep = signal<1 | 2>(1);
 
   protected readonly availableDays = Array.from(
@@ -997,6 +1006,11 @@ export default class CompleteProfilePage {
 
   protected onCurrencyChange(value: SupportedCurrency): void {
     this.selectedCurrency.set(value);
+    // Drop any health-insurance amount when switching to EUR so a value typed
+    // in CHF can't silently leak into a French budget where the field is hidden.
+    if (value !== 'CHF') {
+      this.store.updateHealthInsurance(null);
+    }
   }
 
   protected nextStep(): void {

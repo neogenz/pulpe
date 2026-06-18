@@ -17,8 +17,9 @@ Le système de breadcrumb (fil d'Ariane) est composé de deux parties principale
 ```
 
 ### Flux de données
+
 1. **Router Events** → `BreadcrumbState` écoute les changements de navigation
-2. **Route Analysis** → Analyse la hiérarchie des routes actives 
+2. **Route Analysis** → Analyse la hiérarchie des routes actives
 3. **Data Extraction** → Extrait les métadonnées `breadcrumb` des routes
 4. **Signal Emission** → Émet un signal réactif avec les items du breadcrumb
 5. **UI Rendering** → Le composant affiche conditionnellement le breadcrumb
@@ -28,15 +29,15 @@ Le système de breadcrumb (fil d'Ariane) est composé de deux parties principale
 ### 1. Service BreadcrumbState (Core)
 
 ```typescript
-@Injectable({ providedIn: 'root' })
+@Injectable({ providedIn: "root" })
 export class BreadcrumbState {
   readonly breadcrumbs = toSignal(
     this.#router.events.pipe(
-      filter(event => event instanceof NavigationEnd),
+      filter((event) => event instanceof NavigationEnd),
       startWith(null),
-      map(() => this.#buildBreadcrumbs())
+      map(() => this.#buildBreadcrumbs()),
     ),
-    { initialValue: [] }
+    { initialValue: [] },
   );
 }
 ```
@@ -57,6 +58,7 @@ const url: string = this.#router.serializeUrl(urlTree); // Sérialisation standa
 ```
 
 **Avantages** :
+
 - ✅ Gestion automatique de l'encodage des caractères spéciaux
 - ✅ Support des paramètres de matrice
 - ✅ Future-proof face aux évolutions Angular
@@ -67,14 +69,15 @@ const url: string = this.#router.serializeUrl(urlTree); // Sérialisation standa
 Le composant supporte deux modes d'utilisation :
 
 #### Mode 1: Data-Driven (par défaut)
+
 ```typescript
 @Component({
-  selector: 'pulpe-breadcrumb',
+  selector: "pulpe-breadcrumb",
   template: `
     @if (items().length >= 2) {
       <!-- Affichage seulement si 2+ niveaux -->
     }
-  `
+  `,
 })
 export class PulpeBreadcrumb {
   readonly items = input<BreadcrumbItemViewModel[]>([]);
@@ -82,7 +85,9 @@ export class PulpeBreadcrumb {
 ```
 
 #### Mode 2: Content Projection (flexible)
+
 Utilise des directives pour projeter du contenu personnalisé :
+
 - **`BreadcrumbItemDirective`** (`*pulpeBreadcrumbItem`) : Marque un élément comme item du breadcrumb
 - **`BreadcrumbSeparatorDirective`** (`*pulpeBreadcrumbSeparator`) : Permet de personnaliser le séparateur
 
@@ -121,7 +126,7 @@ Utilise des directives pour projeter du contenu personnalisé :
 <pulpe-breadcrumb>
   <a mat-button *pulpeBreadcrumbItem routerLink="/home">Home</a>
   <a mat-button *pulpeBreadcrumbItem routerLink="/docs">Docs</a>
-  
+
   <!-- Séparateur personnalisé -->
   <span *pulpeBreadcrumbSeparator class="mx-2">/</span>
 </pulpe-breadcrumb>
@@ -179,6 +184,7 @@ Utilise des directives pour projeter du contenu personnalisé :
 ```
 
 ### Règles de configuration :
+
 1. **Routes principales** : Définissent les breadcrumbs (`budget-templates`, `current-month`)
 2. **Routes wrapper** (`path: ''`) : N'ont PAS de `data.breadcrumb`
 3. **Routes spécialisées** : Ajoutent des niveaux (`add`, `:id`)
@@ -188,9 +194,9 @@ Utilise des directives pour projeter du contenu personnalisé :
 ```typescript
 // Pour le mode data-driven
 export interface BreadcrumbItemViewModel {
-  readonly label: string;      // Texte affiché
-  readonly url: string;        // URL de navigation (/app/budget-templates)
-  readonly icon?: string;      // Icône Material optional
+  readonly label: string; // Texte affiché
+  readonly url: string; // URL de navigation (/app/budget-templates)
+  readonly icon?: string; // Icône Material optional
   readonly isActive?: boolean; // true pour le dernier élément
 }
 ```
@@ -199,37 +205,42 @@ export interface BreadcrumbItemViewModel {
 
 ### URLs et breadcrumbs générés :
 
-| Route | Breadcrumb affiché | URLs |
-|-------|-------------------|------|
-| `/app/current-month` | *Aucun* (1 seul niveau) | - |
-| `/app/budget-templates` | *Aucun* (1 seul niveau) | - |
+| Route                       | Breadcrumb affiché                            | URLs                                                  |
+| --------------------------- | --------------------------------------------- | ----------------------------------------------------- |
+| `/app/current-month`        | _Aucun_ (1 seul niveau)                       | -                                                     |
+| `/app/budget-templates`     | _Aucun_ (1 seul niveau)                       | -                                                     |
 | `/app/budget-templates/add` | `📋 Modèles de budget > ➕ Ajouter un modèle` | `/app/budget-templates` → `/app/budget-templates/add` |
-| `/app/budget-templates/123` | `📋 Modèles de budget > 👁️ Détail du modèle` | `/app/budget-templates` → `/app/budget-templates/123` |
+| `/app/budget-templates/123` | `📋 Modèles de budget > 👁️ Détail du modèle`  | `/app/budget-templates` → `/app/budget-templates/123` |
 
 ## 🎯 Patterns Techniques Utilisés
 
 ### 1. **Content Projection avec Directives**
+
 - Utilisation de `contentChildren` et `contentChild` pour la projection de contenu
 - Directives structurelles pour marquer les éléments
 - `TemplateRef` pour capturer et projeter le contenu
 
 ### 2. **Séparation des préoccupations** (Separation of Concerns)
+
 - **Core** : Logique métier pure (extraction des données, construction d'URLs)
 - **UI** : Présentation pure (affichage conditionnel, styling)
 - **Layout** : Orchestration (injection, conversion de types)
 
 ### 3. **Programmation fonctionnelle**
+
 - `Array.reduce()` au lieu de boucles imperatives
 - Immutabilité avec spread operator (`[...acc.currentPath, ...segments]`)
 - Fonctions pure sans side-effects
 
 ### 4. **Signals Angular v20**
+
 - `toSignal()` pour la conversion Observables → Signals
 - `computed()` pour les transformations réactives
 - `input<T>()` pour les props typées
 - `contentChildren()` et `contentChild()` pour la projection de contenu
 
 ### 5. **Délégation aux APIs natives**
+
 - `Router.createUrlTree()` + `Router.serializeUrl()` au lieu de concaténation manuelle
 - Material Design 3 avec variables CSS `--mat-sys-*`
 - Angular Router pour la navigation

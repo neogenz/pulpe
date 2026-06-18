@@ -125,22 +125,32 @@ enum BudgetPeriodCalculator {
 
     // MARK: - Format Period
 
-    private static let periodFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "fr_CH")
-        formatter.dateFormat = "d MMM"
-        return formatter
-    }()
+    /// Thread-safe cache for period formatters, keyed by currency.
+    /// Locale follows the user's currency (CHF → fr_CH, EUR → fr_FR) via `Formatters.locale(for:)`.
+    nonisolated(unsafe) private static let periodFormatterCache = NSCache<NSString, DateFormatter>()
 
-    static func formatPeriod(month: Int, year: Int, payDayOfMonth: Int? = nil) -> String? {
+    private static func periodFormatter(for currency: SupportedCurrency) -> DateFormatter {
+        let key = currency.rawValue as NSString
+        if let cached = periodFormatterCache.object(forKey: key) {
+            return cached
+        }
+        let formatter = DateFormatter()
+        formatter.locale = Formatters.locale(for: currency)
+        formatter.dateFormat = "d MMM"
+        periodFormatterCache.setObject(formatter, forKey: key)
+        return formatter
+    }
+
+    static func formatPeriod(month: Int, year: Int, payDayOfMonth: Int?, currency: SupportedCurrency) -> String? {
         guard let payDay = payDayOfMonth, payDay != 0, payDay != 1 else {
             return nil
         }
 
         let dates = periodDates(month: month, year: year, payDayOfMonth: payDay)
 
-        let startStr = periodFormatter.string(from: dates.startDate)
-        let endStr = periodFormatter.string(from: dates.endDate)
+        let formatter = periodFormatter(for: currency)
+        let startStr = formatter.string(from: dates.startDate)
+        let endStr = formatter.string(from: dates.endDate)
 
         return "\(startStr) - \(endStr)"
     }

@@ -109,5 +109,5 @@ export function formatCurrency(
   currency: SupportedCurrency,
 ): string {
   const config = CURRENCY_CONFIG[currency];
-  return getCurrencyFormatter(currency, config.locale).format(value);
+  return getCurrencyFormatter(currency, config.numberLocale).format(value);
 }

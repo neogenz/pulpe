@@ -25,6 +25,16 @@ extension SupportedCurrency {
         }
     }
 
+    /// Separator for NUMERIC month/year & date badges, mirroring the webapp's
+    /// `getDateDisplayFormats(currency)` (`date-display-formats.ts`): CHF (fr-CH)
+    /// uses a dot, EUR (fr-FR) a slash. Named-month displays don't need this.
+    var dateSeparator: String {
+        switch self {
+        case .chf: "."
+        case .eur: "/"
+        }
+    }
+
     var compactLabel: String {
         "\(flag) \(rawValue)"
     }

@@ -19,6 +19,7 @@ import { type BudgetLine, type Transaction } from 'pulpe-shared';
 import { AppCurrencyPipe, FormatConversionPipe } from '@core/currency';
 import { FeatureFlagsService } from '@core/feature-flags';
 import { UserSettingsStore } from '@core/user-settings';
+import { getDateDisplayFormats } from '@core/date/date-display-formats';
 import { TranslocoPipe } from '@jsverse/transloco';
 import { OriginalAmountLine } from '@ui/original-amount-line';
 import { FinancialKindDirective } from '@ui/financial-kind';
@@ -252,7 +253,7 @@ const DETAIL_SEGMENT_COUNT = 12;
                       {{ tx.name }}
                     </div>
                     <div class="text-label-small text-on-surface-variant">
-                      {{ tx.transactionDate | date: 'dd.MM.yyyy' }}
+                      {{ tx.transactionDate | date: shortDateFormat() }}
                     </div>
                   </div>
                   <div class="shrink-0 text-right">
@@ -333,6 +334,9 @@ export class BudgetDetailPanel {
   readonly #userSettings = inject(UserSettingsStore);
   readonly #featureFlags = inject(FeatureFlagsService);
   protected readonly currency = this.#userSettings.currency;
+  protected readonly shortDateFormat = computed(
+    () => getDateDisplayFormats(this.currency()).shortDate,
+  );
   protected readonly isMultiCurrencyEnabled =
     this.#featureFlags.isMultiCurrencyEnabled;
   protected readonly data = inject<BudgetDetailPanelData>(MAT_DIALOG_DATA);

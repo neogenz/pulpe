@@ -15,7 +15,7 @@ struct HeroAmountField<Field: Hashable>: View {
 
     private var displayAmount: String {
         if let amount, amount > 0 {
-            return Formatters.amountInput.string(from: amount as NSDecimalNumber) ?? "0.00"
+            return Formatters.amountInput(for: currency).string(from: amount as NSDecimalNumber) ?? "0.00"
         }
         return "0.00"
     }

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { supportedCurrencySchema } from 'pulpe-shared';
 import { isValidClientKeyHex } from '../encryption/crypto.utils';
 import { STORAGE_KEYS } from './storage-keys';
 import type { StorageSchemaConfig } from './storage.types';
@@ -41,6 +42,13 @@ export const STORAGE_SCHEMAS = {
     scope: 'user',
   },
 
+  // Currency snapshot for bootstrap locale selection (device-level, preserved across sessions)
+  [STORAGE_KEYS.SETTINGS_CURRENCY]: {
+    version: 1,
+    schema: supportedCurrencySchema,
+    scope: 'app',
+  },
+
   // Vault client keys - hex string representing the AES-256 key
   // Session storage is cleared when tab closes, local persists with "remember device"
   [STORAGE_KEYS.VAULT_CLIENT_KEY_SESSION]: {
@@ -72,6 +80,13 @@ export const STORAGE_SCHEMAS = {
   [STORAGE_KEYS.WHATS_NEW_DISMISSED]: {
     version: 1,
     schema: z.string(),
+    scope: 'app',
+  },
+
+  // Dev-only manual feature-flag override map (device-level, dev environments only)
+  [STORAGE_KEYS.DEV_FEATURE_FLAGS]: {
+    version: 1,
+    schema: z.record(z.string(), z.boolean()),
     scope: 'app',
   },
 } as const satisfies Record<string, StorageSchemaConfig>;

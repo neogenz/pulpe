@@ -1,16 +1,33 @@
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideZonelessChangeDetection, signal } from '@angular/core';
-import { provideNativeDateAdapter } from '@angular/material/core';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { EditTransactionForm } from './edit-transaction-form';
 import { type TransactionUpdate } from 'pulpe-shared';
 import { setTestInput } from '@app/testing/signal-test-utils';
 import { provideTranslocoForTest } from '@app/testing/transloco-testing';
+import { provideLocale } from '@core/locale';
+import { StorageService } from '@core/storage/storage.service';
+import { Logger } from '@core/logging/logger';
 import { CurrencyConverterService } from '@core/currency';
 import { FeatureFlagsService } from '@core/feature-flags';
 import { UserSettingsStore } from '@core/user-settings';
 import type { SupportedCurrency, Transaction } from 'pulpe-shared';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+
+const mockStorageService: Partial<StorageService> = {
+  get: () => null,
+  getString: () => null,
+  set: vi.fn(),
+  setString: vi.fn(),
+  remove: vi.fn(),
+};
+
+const mockLogger = {
+  info: vi.fn(),
+  debug: vi.fn(),
+  warn: vi.fn(),
+  error: vi.fn(),
+};
 
 describe('EditTransactionForm', () => {
   let component: EditTransactionForm;
@@ -30,7 +47,9 @@ describe('EditTransactionForm', () => {
         provideZonelessChangeDetection(),
         ...provideTranslocoForTest(),
         provideAnimationsAsync(),
-        provideNativeDateAdapter(),
+        ...provideLocale(),
+        { provide: StorageService, useValue: mockStorageService },
+        { provide: Logger, useValue: mockLogger },
         { provide: CurrencyConverterService, useValue: converter },
       ],
     }).compileComponents();
@@ -415,7 +434,9 @@ function configureForm({
       provideZonelessChangeDetection(),
       ...provideTranslocoForTest(),
       provideAnimationsAsync(),
-      provideNativeDateAdapter(),
+      ...provideLocale(),
+      { provide: StorageService, useValue: mockStorageService },
+      { provide: Logger, useValue: mockLogger },
       { provide: FeatureFlagsService, useValue: flags },
       { provide: UserSettingsStore, useValue: settings },
       { provide: CurrencyConverterService, useValue: converter },

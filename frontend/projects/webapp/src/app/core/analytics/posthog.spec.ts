@@ -10,6 +10,8 @@ import type { CaptureResult } from 'posthog-js';
 import { PostHogService } from './posthog';
 import { ApplicationConfiguration } from '../config/application-configuration';
 import { Logger } from '../logging/logger';
+import { StorageService } from '../storage/storage.service';
+import { STORAGE_KEYS } from '../storage/storage-keys';
 import { createMockLogger } from '../../testing/mock-posthog';
 
 let beforeSendHandler:
@@ -281,5 +283,55 @@ describe('PostHogService', () => {
     expect(result?.properties?.['$lib']).toBe('posthog-js');
     expect(result?.properties?.['$lib_version']).toBe('1.260.2');
     expect(result?.properties?.['authToken']).toBe('should-be-stripped');
+  });
+});
+
+describe('PostHogService — dev feature-flag override', () => {
+  const MULTI_CURRENCY = 'multi-currency-enabled';
+  let environment: ReturnType<typeof signal<string>>;
+  let devFlags: Record<string, boolean> | null;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    environment = signal<string>('local');
+    devFlags = null;
+
+    TestBed.configureTestingModule({
+      providers: [
+        provideZonelessChangeDetection(),
+        PostHogService,
+        {
+          provide: ApplicationConfiguration,
+          useValue: { environment, postHogConfig: computed(() => null) },
+        },
+        { provide: Logger, useValue: createMockLogger() },
+        {
+          provide: StorageService,
+          useValue: {
+            get: vi.fn((key: string) =>
+              key === STORAGE_KEYS.DEV_FEATURE_FLAGS ? devFlags : null,
+            ),
+          },
+        },
+        { provide: PLATFORM_ID, useValue: 'browser' },
+      ],
+    });
+  });
+
+  it('enables a flag from the localStorage override in a dev environment', () => {
+    devFlags = { [MULTI_CURRENCY]: true };
+
+    const service = TestBed.inject(PostHogService);
+
+    expect(service.isFeatureEnabled(MULTI_CURRENCY)).toBe(true);
+  });
+
+  it('ignores the localStorage override in production', () => {
+    environment.set('production');
+    devFlags = { [MULTI_CURRENCY]: true };
+
+    const service = TestBed.inject(PostHogService);
+
+    expect(service.isFeatureEnabled(MULTI_CURRENCY)).toBe(false);
   });
 });

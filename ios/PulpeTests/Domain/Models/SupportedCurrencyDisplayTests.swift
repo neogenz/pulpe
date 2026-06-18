@@ -43,4 +43,14 @@ struct SupportedCurrencyDisplayTests {
     @Test func symbol_eur_usesEuroSign() {
         #expect(SupportedCurrency.eur.symbol == "€")
     }
+
+    // PUL-100: numeric month/year & date badges follow the currency separator,
+    // mirroring the webapp's getDateDisplayFormats (CHF dot, EUR slash).
+    @Test func dateSeparator_chf_usesDot() {
+        #expect(SupportedCurrency.chf.dateSeparator == ".")
+    }
+
+    @Test func dateSeparator_eur_usesSlash() {
+        #expect(SupportedCurrency.eur.dateSeparator == "/")
+    }
 }

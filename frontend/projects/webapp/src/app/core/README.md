@@ -6,7 +6,8 @@ The `core/` directory is the central hub for all shared, headless, application-w
 
 **Purpose**: Provide injector-based logic that needs to be available from application start or shared across multiple features.
 
-**Content**: 
+**Content**:
+
 - **Injector-based logic only** (no components, directives, or pipes - i.e., nothing with a template)
 - Services (`@Injectable`)
 - Route guards
@@ -20,6 +21,7 @@ The `core/` directory is the central hub for all shared, headless, application-w
 ## What Belongs in Core
 
 ### ✅ Include
+
 - Authentication services and guards
 - API interceptors and services
 - Global state management (shared between features)
@@ -30,6 +32,7 @@ The `core/` directory is the central hub for all shared, headless, application-w
 - Utility functions and services
 
 ### ❌ Exclude
+
 - Components, directives, or pipes (use `ui/` or `pattern/`)
 - Feature-specific logic that isn't shared (keep in `feature/`)
 - Layout components (use `layout/`)
@@ -76,7 +79,7 @@ core/
 All core services should be provided in root:
 
 ```typescript
-@Injectable({ providedIn: 'root' })
+@Injectable({ providedIn: "root" })
 export class AuthService {
   // Global authentication logic available from start
 }
@@ -85,6 +88,7 @@ export class AuthService {
 ## Sharing Logic Between Features
 
 When logic needs to be shared between multiple lazy features:
+
 1. Extract it to the appropriate domain folder in `core/`
 2. Make it injectable and provide in root
 3. Import and use in the features that need it
@@ -94,11 +98,13 @@ Example: If both `feature/orders/` and `feature/dashboard/` need order data, ext
 ## Dependencies
 
 Core services can only depend on:
+
 - Other core services
 - Angular framework
 - Third-party libraries
 
 Core **cannot** import from:
+
 - `feature/`
 - `pattern/`
 - `layout/`

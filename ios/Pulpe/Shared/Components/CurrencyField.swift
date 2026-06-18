@@ -7,14 +7,18 @@ struct CurrencyField: View {
         case flat
     }
 
-    private static let displayFormatter: NumberFormatter = {
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .decimal
-        formatter.minimumFractionDigits = 0
-        formatter.maximumFractionDigits = 2
-        formatter.groupingSeparator = ""
-        return formatter
-    }()
+    /// Echo string for the prefilled / blurred value. Uses the modern `FormatStyle`
+    /// API (value type — no per-call `NumberFormatter` allocation): decimal mark
+    /// follows the field's currency (CHF dot, EUR comma) like the rest of the app,
+    /// grouping dropped to match the webapp's bare onboarding input.
+    private static func echoText(_ value: Decimal, currency: SupportedCurrency) -> String {
+        value.formatted(
+            .number
+                .grouping(.never)
+                .precision(.fractionLength(0...2))
+                .locale(Formatters.locale(for: currency))
+        )
+    }
 
     @Binding var value: Decimal?
     let hint: String
@@ -53,7 +57,7 @@ struct CurrencyField: View {
 
         // Initialize text value from binding immediately (not in onAppear)
         if let decimal = value.wrappedValue {
-            self._textValue = State(initialValue: Self.displayFormatter.string(from: decimal as NSDecimalNumber) ?? "")
+            self._textValue = State(initialValue: Self.echoText(decimal, currency: currency))
         } else {
             self._textValue = State(initialValue: "")
         }
@@ -162,7 +166,7 @@ struct CurrencyField: View {
 
         // Only update if not focused (avoid cursor jumping)
         if !effectiveFocus {
-            textValue = Self.displayFormatter.string(from: decimal as NSDecimalNumber) ?? ""
+            textValue = Self.echoText(decimal, currency: currency)
         }
     }
 

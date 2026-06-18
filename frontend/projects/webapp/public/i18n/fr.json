@@ -195,10 +195,10 @@
     "earlyAdopter": "VIP"
   },
   "earlyAdopter": {
-    "title": "Merci d'être là depuis le début \u2728",
+    "title": "Merci d'être là depuis le début ✨",
     "message": "Tu fais partie des premiers utilisateurs de Pulpe. Ta confiance et tes retours m'aident à construire l'application que tu mérites.",
     "signature": "— Maxime, créateur de Pulpe",
-    "close": "Avec plaisir \uD83D\uDE4F"
+    "close": "Avec plaisir 🙏"
   },
   "about": {
     "title": "À propos",
@@ -372,7 +372,7 @@
     "createTitle": "Créer un budget",
     "generalInfo": "Informations générales",
     "monthYearLabel": "Mois et année",
-    "monthYearHint": "mm.aaaa",
+    "monthYearHint": "mm{{separator}}aaaa",
     "monthYearRequired": "Le mois et l'année sont requis",
     "descriptionLabel": "Description (optionnelle)",
     "descriptionPlaceholder": "Ex: Budget vacances d'été",
@@ -1040,7 +1040,7 @@
     "amountRequired": "Le montant est requis",
     "typeLabel": "Type de transaction",
     "dateLabel": "Date de transaction",
-    "datePlaceholder": "jj.mm.aaaa",
+    "datePlaceholder": "jj{{separator}}mm{{separator}}aaaa",
     "dateHintBudget": "Doit être dans la période du budget",
     "dateHintMonth": "Doit être dans le mois en cours",
     "dateRequired": "La date est requise",

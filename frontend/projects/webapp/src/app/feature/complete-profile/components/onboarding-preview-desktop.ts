@@ -60,14 +60,19 @@ const COUNTER_DURATION_MS = 600;
       [class.is-ready]="isReady()"
       [attr.aria-label]="'completeProfile.preview.ariaLabel' | transloco"
     >
-      <span
-        class="block text-label-small uppercase tracking-[0.12em] text-on-surface-variant/80 mb-4"
-        aria-hidden="true"
-      >
-        {{
-          'completeProfile.preview.title' | transloco: { month: monthLabel() }
-        }}
-      </span>
+      <div class="flex items-center justify-between mb-4">
+        <span
+          class="text-label-small uppercase tracking-[0.12em] text-on-surface-variant/80"
+          aria-hidden="true"
+        >
+          {{
+            'completeProfile.preview.title' | transloco: { month: monthLabel() }
+          }}
+        </span>
+        <span class="text-xl leading-none" aria-hidden="true">{{
+          currencyFlag()
+        }}</span>
+      </div>
 
       @if (trimmedFirstName()) {
         <p
@@ -94,24 +99,19 @@ const COUNTER_DURATION_MS = 600;
           <span class="block text-label-medium text-on-surface-variant mb-1">
             {{ 'completeProfile.preview.incomeLabel' | transloco }}
           </span>
-          <div class="flex items-baseline gap-2">
-            @if (hasIncome()) {
-              <span
-                class="text-display-small font-bold text-on-surface ph-no-capture tabular-nums tracking-tight"
-              >
-                {{ displayedAmount() | appCurrency: currencyCode() : '1.2-2' }}
-              </span>
-              <span class="text-body-small" aria-hidden="true">{{
-                currencyFlag()
-              }}</span>
-            } @else {
-              <span
-                class="text-display-small font-bold text-on-surface opacity-40"
-                aria-hidden="true"
-                >—</span
-              >
-            }
-          </div>
+          @if (hasIncome()) {
+            <span
+              class="text-display-small font-bold text-on-surface ph-no-capture tabular-nums tracking-tight"
+            >
+              {{ displayedAmount() | appCurrency: currencyCode() : '1.0-2' }}
+            </span>
+          } @else {
+            <span
+              class="text-display-small font-bold text-on-surface opacity-40"
+              aria-hidden="true"
+              >—</span
+            >
+          }
         </div>
       </div>
 
@@ -159,9 +159,6 @@ const COUNTER_DURATION_MS = 600;
     </div>
   `,
   styles: `
-    :host {
-      display: block;
-    }
     .onboarding-preview-desktop {
       transition: border-color var(--pulpe-motion-slow)
         var(--pulpe-ease-emphasized);

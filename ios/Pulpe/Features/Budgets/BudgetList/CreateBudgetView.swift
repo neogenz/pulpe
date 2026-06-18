@@ -6,6 +6,7 @@ struct CreateBudgetView: View {
     let onCreate: (Budget) -> Void
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(UserSettingsStore.self) private var userSettingsStore
     @State private var viewModel: CreateBudgetViewModel
     @State private var hasAppeared = false
     @State private var showCreateTemplate = false
@@ -120,8 +121,8 @@ struct CreateBudgetView: View {
 
             Spacer()
 
-            // Month indicator badge (Swiss format: MM.YYYY)
-            Text(String(format: "%02d.%d", month, year))
+            // Month indicator badge — MM.YYYY (CHF) / MM/YYYY (EUR), follows user currency
+            Text(String(format: "%02d\(userSettingsStore.currency.dateSeparator)%d", month, year))
                 .font(PulpeTypography.inputHelper).monospacedDigit()
                 .foregroundStyle(Color.textSecondary)
                 .padding(.horizontal, 10)

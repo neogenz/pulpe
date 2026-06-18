@@ -32,7 +32,7 @@ describe('formatConversion', () => {
     const result = formatConversion(transloco, 100, 'CHF', 1.05);
 
     expect(result).toContain('100');
-    expect(result).toContain('1,05');
+    expect(result).toContain('1.05');
   });
 
   it('without rate uses convertedFromTooltipNoRate key and includes the formatted amount', () => {

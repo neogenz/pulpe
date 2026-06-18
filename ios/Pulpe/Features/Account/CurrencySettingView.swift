@@ -400,7 +400,9 @@ final class CurrencySettingViewModel {
         guard let rate else { return nil }
         // PUL-114: rate is Decimal end-to-end. Format via Decimal.formatted to
         // preserve precision (no Double bridge through %.4f).
-        let rateText = rate.rate.formatted(.number.precision(.fractionLength(4)))
+        let rateText = rate.rate.formatted(
+            .number.precision(.fractionLength(4)).locale(Formatters.locale(for: rate.base))
+        )
         return "1 \(rate.base.rawValue) = \(rateText) \(rate.target.rawValue) (\(rate.date))"
     }
 
