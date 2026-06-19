@@ -78,6 +78,25 @@ actor KeychainManager {
         return true
     }
 
+    /// Outcome of an atomic biometric resync — distinguishes "no slot to refresh"
+    /// (normal for non-biometric users) from an actual keychain write failure.
+    enum BiometricResyncOutcome {
+        case noSlot
+        case resnapshotted
+        case failed
+    }
+
+    /// Atomically re-snapshots the biometric slot **only if it already exists**.
+    /// The presence check and the write run in a single actor hop (both are
+    /// synchronous), so a concurrent `clearBiometricTokens()` cannot interleave
+    /// between them — this prevents resurrecting a slot the user just cleared
+    /// (e.g. disabling Face ID while a `.tokenRefreshed` fires). Never creates a
+    /// new slot, so non-biometric users keep no snapshot.
+    func resyncBiometricTokensIfPresent(accessToken: String, refreshToken: String) -> BiometricResyncOutcome {
+        guard hasBiometricTokens() else { return .noSlot }
+        return saveBiometricTokens(accessToken: accessToken, refreshToken: refreshToken) ? .resnapshotted : .failed
+    }
+
     func getBiometricAccessToken() throws -> String? {
         try getBiometric(key: biometricAccessTokenKey)
     }

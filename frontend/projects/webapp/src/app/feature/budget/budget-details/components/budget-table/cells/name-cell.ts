@@ -3,10 +3,13 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  inject,
   input,
 } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { getDateDisplayFormats } from '@core/date/date-display-formats';
+import { UserSettingsStore } from '@core/user-settings';
 import { FinancialKindDirective } from '@ui/financial-kind';
 import { TransactionLabelPipe } from '@ui/transaction-display';
 import { formatMatchAnnotation } from '../../../view-models/budget-item-constants';
@@ -80,7 +83,7 @@ import type {
         </div>
         @if (line().data.checkedAt) {
           <span class="text-body-small text-on-surface-variant ml-2">
-            {{ line().data.checkedAt | date: 'dd.MM' }}
+            {{ line().data.checkedAt | date: dayMonthFormat() }}
           </span>
         }
       </span>
@@ -89,6 +92,10 @@ import type {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class NameCell {
+  readonly #userSettings = inject(UserSettingsStore);
+  protected readonly dayMonthFormat = computed(
+    () => getDateDisplayFormats(this.#userSettings.currency()).dayMonth,
+  );
   readonly line = input.required<BudgetLineTableItem | TransactionTableItem>();
 
   readonly matchAnnotation = computed(() =>

@@ -11,6 +11,7 @@ export const BUDGET_LINE_REPOSITORY = Symbol('BUDGET_LINE_REPOSITORY');
 export interface BudgetLineRepositoryPort {
   findAll(): Promise<BudgetLine[]>;
   findById(id: string): Promise<BudgetLine>;
+  validateAccess(id: string, userId: string): Promise<void>;
   findByBudgetId(budgetId: string): Promise<BudgetLine[]>;
   fetchBudgetIdForLine(id: string): Promise<string | null>;
   insert(input: BudgetLineCreateInput): Promise<BudgetLine>;

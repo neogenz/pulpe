@@ -5,7 +5,7 @@ import { Section, Badge, Button, FadeIn, Card, ShineBorder } from '@/components/
 import { angularUrl } from '@/lib/config'
 import { trackCTAClick } from '@/lib/posthog'
 
-const IOS_APP_URL = 'https://apps.apple.com/ch/app/pulpe/id6758464920'
+const IOS_APP_URL = 'https://apps.apple.com/app/pulpe/id6758464920'
 
 /** Apple brand mark — official silhouette (same glyph as the App Store badge) */
 function AppleLogo({ className }: { className?: string }) {

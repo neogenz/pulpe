@@ -30,7 +30,7 @@ import { ROUTES } from '@core/routing/routes-constants';
 import {
   CompleteProfileStore,
   MAX_CUSTOM_TRANSACTIONS,
-  ONBOARDING_SUGGESTIONS,
+  getOnboardingSuggestions,
 } from './complete-profile-store';
 import { OnboardingPreviewDesktop } from './components/onboarding-preview-desktop';
 import {
@@ -313,7 +313,7 @@ import {
                         @if (store.monthlyIncome()) {
                           {{
                             store.monthlyIncome()
-                              | appCurrency: selectedCurrency() : '1.0-0'
+                              | appCurrency: selectedCurrency() : '1.0-2'
                           }}
                         } @else {
                           —
@@ -411,7 +411,7 @@ import {
                     >
                       {{
                         summary.income
-                          | appCurrency: selectedCurrency() : '1.0-0'
+                          | appCurrency: selectedCurrency() : '1.0-2'
                       }}
                     </span>
                   </div>
@@ -424,7 +424,7 @@ import {
                     >
                       {{
                         summary.committed
-                          | appCurrency: selectedCurrency() : '1.0-0'
+                          | appCurrency: selectedCurrency() : '1.0-2'
                       }}
                     </span>
                   </div>
@@ -439,7 +439,7 @@ import {
                     >
                       {{
                         summary.available
-                          | appCurrency: selectedCurrency() : '1.0-0'
+                          | appCurrency: selectedCurrency() : '1.0-2'
                       }}
                     </span>
                   </div>
@@ -502,17 +502,22 @@ import {
                       </h2>
                     </div>
                     <div class="space-y-3">
-                      <pulpe-currency-input
-                        [label]="'completeProfile.health' | transloco"
-                        [value]="store.healthInsurance()"
-                        (valueChange)="store.updateHealthInsurance($event)"
-                        placeholder="0"
-                        testId="health-insurance-input"
-                        [autoFocus]="false"
-                        [currency]="selectedCurrency()"
-                        [showCurrencySelector]="showCurrencySelector()"
-                        (currencyChange)="onCurrencyChange($event)"
-                      />
+                      <!-- Health insurance is a Swiss budget line (LAMal, paid
+                           out of pocket). In France base coverage is deducted at
+                           source, so the field is hidden for EUR users. -->
+                      @if (showHealthInsurance()) {
+                        <pulpe-currency-input
+                          [label]="'completeProfile.health' | transloco"
+                          [value]="store.healthInsurance()"
+                          (valueChange)="store.updateHealthInsurance($event)"
+                          placeholder="0"
+                          testId="health-insurance-input"
+                          [autoFocus]="false"
+                          [currency]="selectedCurrency()"
+                          [showCurrencySelector]="showCurrencySelector()"
+                          (currencyChange)="onCurrencyChange($event)"
+                        />
+                      }
                       <pulpe-currency-input
                         [label]="'completeProfile.phone' | transloco"
                         [value]="store.phonePlan()"
@@ -604,9 +609,9 @@ import {
                       class="flex flex-wrap gap-2 mb-5"
                       data-testid="suggestion-chips"
                     >
-                      @for (suggestion of suggestions; track suggestion.name) {
+                      @for (suggestion of suggestions(); track suggestion.id) {
                         @let isSelected =
-                          store.selectedSuggestionNames().has(suggestion.name);
+                          store.selectedSuggestionIds().has(suggestion.id);
                         @let isChipDisabled =
                           !isSelected && store.customTransactionsLimitReached();
                         <button
@@ -636,7 +641,7 @@ import {
                           ·
                           <span class="ph-no-capture">{{
                             suggestion.amount
-                              | appCurrency: selectedCurrency() : '1.0-0'
+                              | appCurrency: selectedCurrency() : '1.0-2'
                           }}</span>
                         </button>
                       }
@@ -735,11 +740,11 @@ import {
 
                 <pulpe-error-alert [message]="store.error()" class="mt-6" />
 
-                <div class="h-16 lg:h-10" aria-hidden="true"></div>
+                <div class="h-16 lg:h-36" aria-hidden="true"></div>
 
-                <!-- Sticky CTA: lives inside left column so it naturally spans form width on desktop. -->
+                <!-- Sticky CTA: lg -2rem mirrors the desktop md:p-8 page-content padding. -->
                 <div
-                  class="sticky bottom-0 z-10 -mx-4 sm:mx-0 pt-5 pb-[calc(20px+env(safe-area-inset-bottom))] lg:pb-5 border-t border-outline-variant/15 bg-surface"
+                  class="sticky bottom-0 lg:bottom-[-2rem] z-10 -mx-4 sm:mx-0 pt-5 pb-[calc(20px+env(safe-area-inset-bottom))] lg:pb-5 border-t border-outline-variant/15 bg-surface"
                 >
                   <pulpe-loading-button
                     [loading]="store.isLoading()"
@@ -813,7 +818,7 @@ import {
                     >
                       {{
                         summary.available
-                          | appCurrency: selectedCurrency() : '1.0-0'
+                          | appCurrency: selectedCurrency() : '1.0-2'
                       }}
                     </span>
                   </div>
@@ -840,7 +845,7 @@ import {
                       <span class="text-on-surface font-medium ph-no-capture">
                         {{
                           summary.income
-                            | appCurrency: selectedCurrency() : '1.0-0'
+                            | appCurrency: selectedCurrency() : '1.0-2'
                         }}
                       </span>
                     </span>
@@ -850,7 +855,7 @@ import {
                       <span class="text-on-surface font-medium ph-no-capture">
                         {{
                           summary.committed
-                            | appCurrency: selectedCurrency() : '1.0-0'
+                            | appCurrency: selectedCurrency() : '1.0-2'
                         }}
                       </span>
                     </span>
@@ -883,7 +888,11 @@ export default class CompleteProfilePage {
   readonly #featureFlags = inject(FeatureFlagsService);
 
   readonly #locale = inject(LOCALE_ID);
-  protected readonly suggestions = ONBOARDING_SUGGESTIONS;
+  // Currency-dependent: CHF → "3ème pilier", EUR → "Épargne retraite".
+  // computed() is lazy, so reading `selectedCurrency` (declared later) is safe.
+  protected readonly suggestions = computed(() =>
+    getOnboardingSuggestions(this.selectedCurrency()),
+  );
   protected readonly maxCustomTransactions = MAX_CUSTOM_TRANSACTIONS;
   protected readonly currencies = SUPPORTED_CURRENCIES;
   protected readonly currencyMetadata = CURRENCY_METADATA;
@@ -917,11 +926,11 @@ export default class CompleteProfilePage {
     return available < 0
       ? this.#transloco.translate(
           'completeProfile.summary.liveDeficitAnnouncement',
-          { amount },
+          { amount, currency: this.selectedCurrency() },
         )
       : this.#transloco.translate(
           'completeProfile.summary.liveAvailableAnnouncement',
-          { amount },
+          { amount, currency: this.selectedCurrency() },
         );
   });
 
@@ -934,6 +943,10 @@ export default class CompleteProfilePage {
   );
   protected readonly selectedCurrency = signal<SupportedCurrency>(
     this.#userSettings.currency(),
+  );
+  // Health insurance is a CHF-only onboarding line — see the template note.
+  protected readonly showHealthInsurance = computed(
+    () => this.selectedCurrency() === 'CHF',
   );
   protected readonly currentStep = signal<1 | 2>(1);
 
@@ -993,6 +1006,11 @@ export default class CompleteProfilePage {
 
   protected onCurrencyChange(value: SupportedCurrency): void {
     this.selectedCurrency.set(value);
+    // Drop any health-insurance amount when switching to EUR so a value typed
+    // in CHF can't silently leak into a French budget where the field is hidden.
+    if (value !== 'CHF') {
+      this.store.updateHealthInsurance(null);
+    }
   }
 
   protected nextStep(): void {

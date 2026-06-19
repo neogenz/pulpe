@@ -1,4 +1,4 @@
-// swiftlint:disable file_length
+// swiftlint:disable file_length type_body_length
 import Foundation
 @testable import Pulpe
 import Testing
@@ -331,9 +331,12 @@ struct StartupCoordinatorTests {
             }
         )
 
-        // First attempt fails
+        // First attempt hits a transient network error (URLError) — this now surfaces the
+        // retry UI (.networkError), not a logout / credentials prompt.
         let firstResult = await sut.start(context: makeContext())
-        #expect(firstResult == .unauthenticated)
+        if case .networkError = firstResult {} else {
+            Issue.record("Expected .networkError on a transient first attempt, got \(firstResult)")
+        }
 
         // Retry succeeds
         let retryResult = await sut.retry(context: makeContext())
@@ -342,6 +345,19 @@ struct StartupCoordinatorTests {
         } else {
             Issue.record("Expected authenticated on retry")
         }
+    }
+
+    @Test func regularValidation_urlCancelled_returnsCancelled() async {
+        // A superseded startup run cancels its in-flight supabase.auth.session request, which
+        // URLSession surfaces as URLError(.cancelled). It must map to .cancelled, NOT the stale
+        // .networkError retry route an obsolete run would otherwise apply.
+        let sut = makeCoordinator(
+            validateRegularSession: { throw URLError(.cancelled) }
+        )
+
+        let result = await sut.start(context: makeContext())
+
+        #expect(result == .cancelled)
     }
 
     @Test func cancel_whileRunning_returnsCancelled() async {

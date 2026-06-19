@@ -289,7 +289,7 @@ private struct BalanceTrendChart: View {
                     .foregroundStyle(.secondary.opacity(0.2))
                 AxisValueLabel {
                     if let amount = value.as(Double.self) {
-                        Text(Self.formatAxisLabel(amount))
+                        Text(Self.formatAxisLabel(amount, currency: userSettingsStore.currency))
                             .font(PulpeTypography.caption2)
                             .foregroundStyle(Color.textSecondary)
                     }
@@ -301,11 +301,13 @@ private struct BalanceTrendChart: View {
         .frame(height: 150)
     }
 
-    private static func formatAxisLabel(_ value: Double) -> String {
+    private static func formatAxisLabel(_ value: Double, currency: SupportedCurrency) -> String {
         let abs = abs(value), sign = value < 0 ? "-" : ""
         guard abs >= 1000 else { return "\(Int(value))" }
         let k = abs / 1000
-        return k.truncatingRemainder(dividingBy: 1) == 0 ? "\(sign)\(Int(k))K" : String(format: "%@%.1fK", sign, k)
+        if k.truncatingRemainder(dividingBy: 1) == 0 { return "\(sign)\(Int(k))K" }
+        let kText = k.formatted(.number.precision(.fractionLength(1)).locale(Formatters.locale(for: currency)))
+        return "\(sign)\(kText)K"
     }
 
     private var areaGradient: LinearGradient {

@@ -51,11 +51,12 @@ actor AuthService {
     private func startAuthStateListener() {
         authStateListenerTask?.cancel()
         let stream = supabase.auth.authStateChanges
-        authStateListenerTask = Task(name: "AuthService.authStateListener") {
-            for await (event, _) in stream {
+        authStateListenerTask = Task(name: "AuthService.authStateListener") { [weak self] in
+            for await (event, session) in stream {
                 switch event {
                 case .tokenRefreshed:
                     Logger.auth.debug("[AUTH] tokenRefreshed — SDK persisted via PulpeAuthStorage")
+                    await self?.refreshBiometricSnapshotIfPresent(session)
                 case .signedOut:
                     Logger.auth.debug("[AUTH] signedOut — SDK cleared storage")
                 default:
@@ -166,7 +167,53 @@ actor AuthService {
         do {
             let session = try await supabase.auth.session
             return Self.userInfo(from: session.user, fallbackEmail: "")
+        } catch AuthError.sessionMissing {
+            // Genuinely logged out — no token to restore. Expected on every cold start of a
+            // signed-out user, so log at `.info` to keep `.error` meaningful (the line below
+            // stays reserved for the real bug we are hunting).
+            Logger.auth.info("validateSession: no active session (logged out)")
+            return nil
         } catch {
+            // Instrumentation: surface WHY cold-start / foreground session restore fails.
+            // Any error reaching here (e.g. refresh-token reuse detection revoking the whole
+            // token family) is the bug we are hunting. `.public` so the exact Supabase cause
+            // is visible on a device repro without leaking tokens (AuthError descriptions
+            // carry no secrets).
+            Logger.auth.error("validateSession: SDK session unavailable - \(error, privacy: .public)")
+            return nil
+        }
+    }
+
+    /// Like `validateSession()` but distinguishes a transient connectivity failure from a
+    /// genuine session loss. Throws on `URLError` (offline / timeout / connection lost on a
+    /// freshly-resumed radio) so callers can treat it as "retry later" instead of forcing a
+    /// destructive logout on a flaky connection. Returns nil only when the SDK confirms there
+    /// is no usable session (e.g. `AuthError.sessionMissing`, or a refresh the server rejected).
+    /// Mirrors `resolveAccessTokenStrict()` — the foreground/cold-start session checks use this
+    /// so a routine post-expiry refresh hiccup can no longer revoke the session (PUL-265 follow-up).
+    func validateSessionStrict() async throws -> UserInfo? {
+        do {
+            let session = try await supabase.auth.session
+            return Self.userInfo(from: session.user, fallbackEmail: "")
+        } catch let error as URLError {
+            throw error
+        } catch is CancellationError {
+            // A superseded startup run cancels before/at the session suspension point. Propagate so
+            // the caller maps it to `.cancelled` (a no-op) instead of `.unauthenticated`, which
+            // would let an obsolete run clobber the newer one's state.
+            throw CancellationError()
+        } catch AuthError.sessionMissing {
+            // Normal logged-out state (no stored session) — e.g. a fresh user or after an explicit
+            // logout. Not a warning; keep the real-error channel below clean for actual regressions.
+            Logger.auth.info("validateSessionStrict: no active session (logged out)")
+            return nil
+        } catch {
+            // `.public` (full error, not just localizedDescription) so a silent post-expiry
+            // refresh regression shows the exact Supabase cause (e.g. AuthError.api) on a device
+            // repro without leaking tokens.
+            Logger.auth.warning(
+                "validateSessionStrict: auth session unavailable - \(error, privacy: .public)"
+            )
             return nil
         }
     }
@@ -231,6 +278,10 @@ actor AuthService {
             return session.accessToken
         } catch let error as URLError {
             throw error
+        } catch is CancellationError {
+            // Propagate cancellation (e.g. a superseded request) rather than reporting it as
+            // "no usable session", which would push APIClient into a spurious logout.
+            throw CancellationError()
         } catch {
             Logger.auth.warning(
                 "resolveAccessTokenStrict: auth session unavailable - \(error.localizedDescription, privacy: .public)"
@@ -250,6 +301,28 @@ actor AuthService {
         )
         if !saved {
             throw AuthServiceError.biometricSaveFailed
+        }
+    }
+
+    /// Keeps the biometric snapshot in lock-step with the SDK's rotated refresh token.
+    /// `enable_refresh_token_rotation` is ON in Supabase: every refresh rotates the token,
+    /// and replaying a rotated-away one trips reuse detection — which revokes the WHOLE
+    /// token family. The snapshot was previously only re-written at auth transitions, so it
+    /// drifted stale within ~1h and biometric re-entry replayed a revoked token (login
+    /// screen Face ID dead-end + family revocation killing the next cold-start restore).
+    /// Re-snapshotting on every `.tokenRefreshed` keeps the slot current. Only refreshes an
+    /// EXISTING slot — never creates one — so non-biometric users keep no snapshot. The
+    /// check-and-write is atomic in `KeychainManager.resyncBiometricTokensIfPresent`, so a
+    /// concurrent clear (the single-use clear in `validateBiometricSession`, or a Face ID
+    /// disable) can never be straddled — a cleared slot is never resurrected.
+    private func refreshBiometricSnapshotIfPresent(_ session: Session?) async {
+        guard let session else { return }
+        let outcome = await keychain.resyncBiometricTokensIfPresent(
+            accessToken: session.accessToken,
+            refreshToken: session.refreshToken
+        )
+        if case .failed = outcome {
+            Logger.auth.warning("[AUTH] biometric snapshot resync failed after token refresh")
         }
     }
 
@@ -304,7 +377,16 @@ actor AuthService {
         do {
             session = try await supabase.auth.refreshSession(refreshToken: refreshToken)
         } catch {
-            Logger.auth.error("validateBiometricSession: session refresh failed - \(error)")
+            // The biometric snapshot is now kept in lock-step with the SDK's rotated token
+            // (see refreshBiometricSnapshotIfPresent), so a failure here means the refresh
+            // token is genuinely dead server-side (reuse detection / revoked / expired).
+            // `.public` + analytics so the exact Supabase cause is visible on a repro.
+            Logger.auth.error("validateBiometricSession: session refresh failed - \(error, privacy: .public)")
+            await MainActor.run {
+                AnalyticsService.shared.captureAuthError(
+                    .sessionRestoreFailed, error: error, method: "biometric_refresh"
+                )
+            }
             throw AuthServiceError.biometricSessionExpired
         }
 

@@ -34,12 +34,14 @@ struct EditBudgetLineSheet: View {
         _name = State(initialValue: budgetLine.name)
         _kind = State(initialValue: budgetLine.kind)
 
+        let inputCurrency = budgetLine.originalCurrency ?? userCurrency
         let editableAmount = Self.initialAmount(for: budgetLine, userCurrency: userCurrency)
         _amount = State(initialValue: editableAmount)
-        let amountString = Formatters.amountInput.string(from: editableAmount as NSDecimalNumber) ?? ""
+        let amountString = Formatters.amountInput(for: inputCurrency)
+            .string(from: editableAmount as NSDecimalNumber) ?? ""
         _amountText = State(initialValue: amountString)
 
-        self.inputCurrency = budgetLine.originalCurrency ?? userCurrency
+        self.inputCurrency = inputCurrency
         self.isAlternateCurrency = Self.shouldShowAlternateCurrency(for: budgetLine, userCurrency: userCurrency)
     }
 

@@ -32,7 +32,7 @@ final class DashboardStore: StoreProtocol {
 
     // MARK: - Services
 
-    private let budgetService: BudgetService
+    private let budgetService: any BudgetServicing
 
     // MARK: - Constants
 
@@ -41,7 +41,7 @@ final class DashboardStore: StoreProtocol {
 
     // MARK: - Initialization
 
-    init(budgetService: BudgetService = .shared, initialBudgets: [BudgetSparse] = []) {
+    init(budgetService: any BudgetServicing = BudgetService.shared, initialBudgets: [BudgetSparse] = []) {
         self.budgetService = budgetService
         self.sparseBudgets = initialBudgets
     }
@@ -87,8 +87,13 @@ final class DashboardStore: StoreProtocol {
                 let currentYear = Calendar.current.component(.year, from: Date())
 
                 // Fetch current year (all months including future) + recent history in parallel
-                async let currentYearBudgets = budgetService.getBudgetsSparse(year: currentYear)
+                async let currentYearBudgets = budgetService.getBudgetsSparse(
+                    fields: BudgetService.defaultSparseFields,
+                    limit: nil,
+                    year: currentYear
+                )
                 async let recentBudgets = budgetService.getBudgetsSparse(
+                    fields: BudgetService.defaultSparseFields,
                     limit: Self.maxHistoricalToFetch,
                     year: currentYear - 1
                 )

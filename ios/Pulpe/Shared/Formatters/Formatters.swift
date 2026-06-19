@@ -74,14 +74,28 @@ enum Formatters {
 
     static let chfCompact: NumberFormatter = currencyFormatter(for: .chf)
 
-    static let amountInput: NumberFormatter = {
+    /// Thread-safe cache for amount-input formatters used to prefill editable
+    /// amount fields. Locale follows the field's currency (CHF → fr_CH, EUR → fr_FR).
+    nonisolated(unsafe) private static let amountInputFormatterCache = NSCache<NSString, NumberFormatter>()
+
+    /// Returns a cached decimal NumberFormatter for prefilling amount input fields.
+    /// Fraction digits stay flexible (0–2) so whole amounts render without forced decimals.
+    static func amountInput(for currency: SupportedCurrency) -> NumberFormatter {
+        let key = currency.rawValue as NSString
+        if let cached = amountInputFormatterCache.object(forKey: key) {
+            return cached
+        }
         let formatter = NumberFormatter()
         formatter.numberStyle = .decimal
+        formatter.locale = locale(for: currency)
         formatter.minimumFractionDigits = 0
         formatter.maximumFractionDigits = 2
-        formatter.groupingSeparator = swissGroupingSeparator
+        if currency == .chf {
+            formatter.groupingSeparator = swissGroupingSeparator
+        }
+        amountInputFormatterCache.setObject(formatter, forKey: key)
         return formatter
-    }()
+    }
 
     static let percentage: NumberFormatter = {
         let formatter = NumberFormatter()
@@ -134,6 +148,9 @@ enum Formatters {
 
     // MARK: - Dates
 
+    // These emit named months/weekdays, identical across fr_FR/fr_CH — hence the
+    // hardcoded fr_FR. If you switch one to a NUMERIC pattern, parameterize via
+    // `locale(for:)`, else CHF users get fr_FR's "/" where they expect ".".
     static let monthYear: DateFormatter = {
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "fr_FR")

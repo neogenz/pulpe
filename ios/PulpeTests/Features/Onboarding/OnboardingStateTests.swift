@@ -15,6 +15,13 @@ struct OnboardingStateTests {
         return state
     }
 
+    /// Combined charge + saving suggestions for tests that exercise toggle/identity
+    /// behaviour independent of currency. Uses `.chf` as the canonical reference —
+    /// saving labels differ by currency (PUL-119) but UUID + amount (the only things
+    /// these tests assert on) are identical across variants.
+    private static let allSuggestions: [OnboardingTransaction] =
+        OnboardingState.chargeSuggestions + OnboardingState.savingSuggestions(for: .chf)
+
     // MARK: - canProceed: Required Steps
 
     @Test
@@ -541,7 +548,7 @@ struct OnboardingStateTests {
         let state = makeSUT()
         defer { OnboardingState.clearPersistedData() }
 
-        let suggestion = OnboardingState.suggestions[0]
+        let suggestion = Self.allSuggestions[0]
         state.toggleSuggestion(suggestion)
 
         #expect(state.customTransactions.count == 1)
@@ -554,7 +561,7 @@ struct OnboardingStateTests {
         let state = makeSUT()
         defer { OnboardingState.clearPersistedData() }
 
-        let suggestion = OnboardingState.suggestions[0]
+        let suggestion = Self.allSuggestions[0]
         state.toggleSuggestion(suggestion)
         #expect(state.customTransactions.count == 1)
 
@@ -567,7 +574,7 @@ struct OnboardingStateTests {
         let state = makeSUT()
         defer { OnboardingState.clearPersistedData() }
 
-        let suggestion = OnboardingState.suggestions[0]
+        let suggestion = Self.allSuggestions[0]
         #expect(!state.isSuggestionSelected(suggestion))
 
         state.toggleSuggestion(suggestion)
@@ -579,8 +586,8 @@ struct OnboardingStateTests {
         let state = makeSUT()
         defer { OnboardingState.clearPersistedData() }
 
-        let first = OnboardingState.suggestions[0]
-        let second = OnboardingState.suggestions[1]
+        let first = Self.allSuggestions[0]
+        let second = Self.allSuggestions[1]
         state.toggleSuggestion(first)
         state.toggleSuggestion(second)
 
@@ -597,7 +604,7 @@ struct OnboardingStateTests {
         defer { OnboardingState.clearPersistedData() }
 
         state.housingCosts = 1500
-        let suggestion = OnboardingState.suggestions[0] // 600
+        let suggestion = Self.allSuggestions[0] // 600
         state.toggleSuggestion(suggestion)
 
         #expect(state.totalExpenses == 2100)
@@ -605,9 +612,27 @@ struct OnboardingStateTests {
 
     @Test
     func suggestions_hasExpectedCount() {
-        #expect(OnboardingState.suggestions.count == 5)
         #expect(OnboardingState.chargeSuggestions.count == 3)
-        #expect(OnboardingState.savingSuggestions.count == 2)
+        #expect(OnboardingState.savingSuggestions(for: .chf).count == 2)
+        #expect(OnboardingState.savingSuggestions(for: .eur).count == 2)
+    }
+
+    /// PUL-119: the retirement-pillar saving suggestion is labelled per currency —
+    /// Swiss users see "3ème pilier", others "Épargne retraite". UUID + amount are
+    /// identical so chip identity stays currency-agnostic (see `isKnownSuggestion`).
+    @Test
+    func savingSuggestions_retirementPillarLabel_variesByCurrency() {
+        let chfPillar = OnboardingState.savingSuggestions(for: .chf)[1]
+        let eurPillar = OnboardingState.savingSuggestions(for: .eur)[1]
+
+        #expect(chfPillar.name == "3ème pilier")
+        #expect(eurPillar.name == "Épargne retraite")
+        // UUID + amount stay identical across both variants → identity unaffected.
+        #expect(chfPillar.id == eurPillar.id)
+        #expect(chfPillar.amount == 587)
+        #expect(eurPillar.amount == 587)
+        #expect(OnboardingState.isKnownSuggestion(chfPillar))
+        #expect(OnboardingState.isKnownSuggestion(eurPillar))
     }
 
     /// Locks the `?? UUID()` fallback in `makeStaticSuggestion` as unreachable.
@@ -616,7 +641,7 @@ struct OnboardingStateTests {
     /// cold-start identity would break. This test catches the typo at CI time.
     @Test
     func suggestions_haveStableUniqueUUIDs() {
-        let ids = OnboardingState.suggestions.map(\.id)
+        let ids = Self.allSuggestions.map(\.id)
         #expect(Set(ids).count == ids.count, "Suggestion UUIDs must be unique")
         // All expected UUIDs have the "F1A1E501-C0A5-4000-A000" prefix. If the
         // `?? UUID()` fallback triggered we'd see a random UUID here.
@@ -640,7 +665,7 @@ struct OnboardingStateTests {
     /// guarantee both expense and saving paths are covered.
     @Test
     func toggleSuggestion_afterAmountEdit_doesNotDuplicate_allSuggestions() {
-        for suggestion in OnboardingState.suggestions {
+        for suggestion in Self.allSuggestions {
             let state = makeSUT()
             defer { OnboardingState.clearPersistedData() }
 
@@ -678,7 +703,7 @@ struct OnboardingStateTests {
         defer { OnboardingState.clearPersistedData() }
         state.monthlyIncome = 5000
 
-        let suggestion = OnboardingState.suggestions[0] // Courses, 600 expense
+        let suggestion = Self.allSuggestions[0] // Courses, 600 expense
         state.toggleSuggestion(suggestion)
 
         let original = state.customTransactions[0]
@@ -879,6 +904,50 @@ struct OnboardingStateTests {
 
         state.currency = .eur
         #expect(state.currency == .eur)
+    }
+
+    /// PUL-100 parity with the webapp `onCurrencyChange`: health insurance is a
+    /// CHF-only onboarding line. Switching to EUR must drop any entered amount so
+    /// a value typed in CHF can't silently leak into a French budget where the
+    /// field is hidden.
+    @Test
+    func selectCurrency_switchingToEUR_dropsHealthInsurance() {
+        let state = makeSUT()
+        defer { OnboardingState.clearPersistedData() }
+        state.healthInsurance = 400
+
+        state.selectCurrency(.eur)
+
+        #expect(state.currency == .eur)
+        #expect(state.healthInsurance == nil)
+    }
+
+    @Test
+    func selectCurrency_stayingInCHF_keepsHealthInsurance() {
+        let state = makeSUT()
+        defer { OnboardingState.clearPersistedData() }
+        state.healthInsurance = 400
+
+        state.selectCurrency(.chf)
+
+        #expect(state.currency == .chf)
+        #expect(state.healthInsurance == 400)
+    }
+
+    @Test
+    func selectCurrency_switchingToEUR_excludesHealthInsuranceFromTemplateAndCharges() {
+        let state = makeSUT()
+        defer { OnboardingState.clearPersistedData() }
+        state.housingCosts = 1200
+        state.healthInsurance = 400
+
+        state.selectCurrency(.eur)
+
+        let template = state.createTemplateData()
+        #expect(template.healthInsurance == nil)
+        #expect(!state.fixedChargeLines.contains { $0.label == "Assurance maladie" })
+        // Housing is a currency-agnostic charge — it must survive the switch.
+        #expect(template.housingCosts == 1200)
     }
 
     @Test

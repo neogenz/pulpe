@@ -321,7 +321,7 @@ Si la validation échoue, le serveur refuse de démarrer.
 
 | Fichier | Rôle |
 |---------|------|
-| `encryption.service.ts` | Dérivation DEK, chiffrement/déchiffrement AES-GCM, wrap/unwrap DEK, cache, re-chiffrement |
+| `encryption/infrastructure/crypto/aes-gcm.crypto-service.ts` | Dérivation DEK, chiffrement/déchiffrement AES-GCM, wrap/unwrap DEK, cache, re-chiffrement |
 | `encryption-key.repository.ts` | CRUD de la table `user_encryption_key` (salt, wrapped_dek) |
 | `encryption.controller.ts` | Endpoints `/salt`, `/validate-key`, `/setup-recovery`, `/recover`, `/change-pin` |
 | `client-key-cleanup.interceptor.ts` | Efface le clientKey de la mémoire après chaque requête |

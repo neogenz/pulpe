@@ -1,7 +1,17 @@
 import Foundation
 
+/// Mutation surface of `TransactionService` consumed by `BudgetDetailsCoordinator`.
+/// Lets the coordinator be driven by a test double so the deferred soft-delete
+/// commit can be asserted deterministically (see `MockTransactionService`).
+protocol TransactionServicing: Sendable {
+    func deleteTransaction(id: String) async throws
+    func toggleCheck(id: String) async throws -> Transaction
+    func createTransaction(_ data: TransactionCreate) async throws -> Transaction
+    func updateTransaction(id: String, data: TransactionUpdate) async throws -> Transaction
+}
+
 /// Service for transaction API operations
-actor TransactionService {
+actor TransactionService: TransactionServicing {
     static let shared = TransactionService()
 
     private let apiClient: APIClient

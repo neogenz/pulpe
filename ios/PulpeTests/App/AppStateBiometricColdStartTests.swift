@@ -617,9 +617,9 @@ struct AppStateBiometricColdStartTests {
         let keychain = MockKeychainStore(lastUsedEmail: "returning@pulpe.app")
 
         UserDefaults.standard.set(true, forKey: "pulpe-has-launched-before")
-        // PUL-132: biometric path (which surfaces URLError as networkError) runs only
-        // on explicit-logout cold-start. Without this flag, validateBiometricSession
-        // is skipped and validateRegularSession's URLError maps to .unauthenticated.
+        // Explicit-logout cold-start so the biometric path runs (PUL-132). Both the biometric
+        // and the regular path now surface a transient URLError as `.networkError` (not a
+        // logout / credentials prompt), so the retry screen is shown either way.
         UserDefaults.standard.set(true, forKey: "pulpe-did-explicit-logout")
         defer {
             UserDefaults.standard.removeObject(forKey: "pulpe-has-launched-before")

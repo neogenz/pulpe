@@ -28,13 +28,13 @@ final class BudgetListStore: StoreProtocol {
 
     // MARK: - Services
 
-    private let budgetService: BudgetService
+    private let budgetService: any BudgetServicing
     private let widgetSyncService: WidgetDataSyncService
 
     // MARK: - Initialization
 
     init(
-        budgetService: BudgetService = .shared,
+        budgetService: any BudgetServicing = BudgetService.shared,
         widgetSyncService: WidgetDataSyncService = .shared,
         initialBudgets: [BudgetSparse] = []
     ) {
@@ -70,7 +70,7 @@ final class BudgetListStore: StoreProtocol {
 
             do {
                 let fields = "month,year,remaining,totalIncome,totalExpenses,rollover"
-                let fetchedBudgets = try await budgetService.getBudgetsSparse(fields: fields)
+                let fetchedBudgets = try await budgetService.getBudgetsSparse(fields: fields, limit: nil, year: nil)
 
                 // Check for cancellation before updating state
                 try Task.checkCancellation()
@@ -150,6 +150,11 @@ final class BudgetListStore: StoreProtocol {
 
     func addBudget(_ budget: Budget) {
         budgets.append(BudgetSparse(from: budget))
+        lastLoadTime = nil
+    }
+
+    /// Invalidates the cache so the next `loadIfNeeded()` will re-fetch.
+    func invalidateCache() {
         lastLoadTime = nil
     }
 }

@@ -15,15 +15,15 @@ final class BudgetDetailsCoordinator {
     let syncStore: SyncStateStore
     let mutationQueue: MutationQueue
 
-    @ObservationIgnored private let budgetService: BudgetService
-    @ObservationIgnored let budgetLineService: BudgetLineService
-    @ObservationIgnored let transactionService: TransactionService
+    @ObservationIgnored private let budgetService: any BudgetServicing
+    @ObservationIgnored let budgetLineService: any BudgetLineServicing
+    @ObservationIgnored let transactionService: any TransactionServicing
 
     init(
         budgetId: String,
-        budgetService: BudgetService = .shared,
-        budgetLineService: BudgetLineService = .shared,
-        transactionService: TransactionService = .shared,
+        budgetService: any BudgetServicing = BudgetService.shared,
+        budgetLineService: any BudgetLineServicing = BudgetLineService.shared,
+        transactionService: any TransactionServicing = TransactionService.shared,
         cache: BudgetDetailCache = .shared,
         defaults: UserDefaults = .standard
     ) {
@@ -55,6 +55,7 @@ final class BudgetDetailsCoordinator {
         case .reloadCurrentBudget:
             await reloadCurrentBudget()
         case .prepareNavigation(let id):
+            await commitPendingSoftDeletionsBeforeNavigation()
             dataStore.prepareNavigation(to: id)
         case .setCheckedFilter(let filter):
             filtersStore.setCheckedFilter(filter)
@@ -74,9 +75,16 @@ final class BudgetDetailsCoordinator {
                 showCheckToastIfNeeded(for: line, context: ctx, amountsHidden: amountsHidden)
             }
         case .confirmCheckAll(let line, let checkAll, let ctx, let amountsHidden):
-            let succeeded = await confirmToggle(for: line, checkAll: checkAll)
-            if succeeded {
+            switch await confirmToggle(for: line, checkAll: checkAll) {
+            case .lineNotToggled:
+                break
+            case .allChecked:
                 showCheckToastIfNeeded(for: line, context: ctx, amountsHidden: amountsHidden)
+            case .partialTransactionFailure:
+                ctx.toastManager.show(
+                    "Certaines transactions n'ont pas pu être pointées",
+                    type: .error
+                )
             }
         case .toggleTransaction(let tx):
             await toggleTransaction(tx)
@@ -106,8 +114,6 @@ final class BudgetDetailsCoordinator {
         switch action {
         case .addTransaction(let tx):
             addTransaction(tx)
-        case .updateTransaction(let tx):
-            await updateTransaction(tx)
         case .softDeleteTransaction(let tx, let ctx):
             softDeleteTransaction(tx, context: ctx)
         case .deleteTransaction(let tx):
@@ -148,9 +154,10 @@ final class BudgetDetailsCoordinator {
         let loadStart = ContinuousClock.now
         defer { syncStore.setLoading(false) }
 
+        let generation = dataStore.mutationGeneration
         do {
             async let detailsTask = budgetService.getBudgetWithDetails(id: dataStore.budgetId)
-            async let budgetsTask = budgetService.getBudgetsSparse(fields: "month,year")
+            async let budgetsTask = budgetService.getBudgetsSparse(fields: "month,year", limit: nil, year: nil)
 
             let (details, budgets) = try await (detailsTask, budgetsTask)
 
@@ -158,7 +165,9 @@ final class BudgetDetailsCoordinator {
                 try await DesignTokens.Animation.ensureMinimumSkeletonTime(since: loadStart)
             }
 
-            dataStore.applyDetails(details)
+            // Drop the snapshot if an optimistic mutation landed mid-fetch (PUL-257).
+            // Strip rows pending soft-deletion — the server still has them (PUL-271).
+            dataStore.applyDetails(filteringPendingSoftDeletions(from: details), ifGenerationMatches: generation)
             dataStore.applyAllBudgets(budgets)
         } catch is CancellationError {
             // Task was cancelled, don't update error state
@@ -174,9 +183,17 @@ final class BudgetDetailsCoordinator {
         syncStore.clearError()
         defer { syncStore.setLoading(false) }
 
+        // Capture the generation BEFORE the fetch. If an optimistic mutation
+        // (toggle / add / update) lands while the network call is in flight,
+        // the snapshot is stale and `applyDetails(_:ifGenerationMatches:)` drops
+        // it rather than silently reverting that mutation (PUL-257). Guards the
+        // detached, non-cancellable reload fired after an edit save, which
+        // `.task(id:)` cancellation can't reach.
+        let generation = dataStore.mutationGeneration
         do {
             let details = try await budgetService.getBudgetWithDetails(id: dataStore.budgetId)
-            dataStore.applyDetails(details)
+            // Strip rows pending soft-deletion — the server still has them (PUL-271).
+            dataStore.applyDetails(filteringPendingSoftDeletions(from: details), ifGenerationMatches: generation)
         } catch is CancellationError {
             // Task was cancelled, don't update error state
         } catch {
@@ -208,16 +225,26 @@ final class BudgetDetailsCoordinator {
         return await performToggleBudgetLine(line)
     }
 
-    /// Confirms toggle after user answers the alert. Returns true if toggle succeeded.
+    /// Outcome of confirming a "check all" toggle from the alert. Lets the
+    /// dispatcher pick the right toast: the "Pointé" success toast when every
+    /// transaction reconciled, or an error toast when the bulk-check partially
+    /// failed (which also rolled the local apply back via reload).
+    enum CheckAllConfirmation {
+        case lineNotToggled
+        case allChecked
+        case partialTransactionFailure
+    }
+
+    /// Confirms toggle after user answers the alert.
     @discardableResult
-    func confirmToggle(for line: BudgetLine, checkAll: Bool) async -> Bool {
+    func confirmToggle(for line: BudgetLine, checkAll: Bool) async -> CheckAllConfirmation {
         defer { syncStore.resetCheckAllState() }
 
-        let succeeded = await performToggleBudgetLine(line)
-        if succeeded, checkAll {
-            await checkAllAllocatedTransactions(for: line.id)
-        }
-        return succeeded
+        guard await performToggleBudgetLine(line) else { return .lineNotToggled }
+        guard checkAll else { return .allChecked }
+
+        let hadFailure = await checkAllAllocatedTransactions(for: line.id)
+        return hadFailure ? .partialTransactionFailure : .allChecked
     }
 
     @discardableResult
@@ -248,11 +275,14 @@ final class BudgetDetailsCoordinator {
     }
 
     /// Toggle all unchecked transactions for a budget line in parallel.
-    private func checkAllAllocatedTransactions(for budgetLineId: String) async {
+    /// Returns `true` if at least one server call failed — the caller surfaces
+    /// the error toast; this method only reconciles local state via reload.
+    @discardableResult
+    private func checkAllAllocatedTransactions(for budgetLineId: String) async -> Bool {
         let unchecked = dataStore.transactions.filter {
             $0.budgetLineId == budgetLineId && !$0.isChecked
         }
-        guard !unchecked.isEmpty else { return }
+        guard !unchecked.isEmpty else { return false }
 
         for tx in unchecked {
             syncStore.markSyncing(txId: tx.id)
@@ -288,6 +318,7 @@ final class BudgetDetailsCoordinator {
         if hadFailure {
             await reloadCurrentBudget()
         }
+        return hadFailure
     }
 
     private func toggleTransaction(_ transaction: Transaction) async {

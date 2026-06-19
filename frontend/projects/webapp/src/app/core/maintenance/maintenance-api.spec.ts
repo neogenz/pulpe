@@ -1,5 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { REQUEST_ID_HEADER } from 'pulpe-shared';
 import { MaintenanceApi } from './maintenance-api';
 import { ApplicationConfiguration } from '../config/application-configuration';
 import { NGROK_SKIP_HEADER } from '../config/ngrok.constants';
@@ -11,10 +12,12 @@ describe('MaintenanceApi', () => {
   const mockConfig = {
     backendApiUrl: () => 'http://localhost:3000/api/v1',
   };
+  const FIXED_REQUEST_ID = '00000000-0000-0000-0000-000000000000';
 
   beforeEach(() => {
     mockFetch = vi.fn();
     vi.stubGlobal('fetch', mockFetch);
+    vi.spyOn(crypto, 'randomUUID').mockReturnValue(FIXED_REQUEST_ID);
     vi.useFakeTimers();
 
     TestBed.configureTestingModule({
@@ -29,6 +32,7 @@ describe('MaintenanceApi', () => {
 
   afterEach(() => {
     vi.unstubAllGlobals();
+    vi.restoreAllMocks();
     vi.useRealTimers();
   });
 
@@ -45,8 +49,20 @@ describe('MaintenanceApi', () => {
       expect(result).toEqual(mockStatus);
       expect(mockFetch).toHaveBeenCalledWith(
         'http://localhost:3000/api/v1/maintenance/status',
-        {},
+        { headers: { [REQUEST_ID_HEADER]: FIXED_REQUEST_ID } },
       );
+    });
+
+    it('should attach an X-Request-Id correlation header on every request', async () => {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({ maintenanceMode: false }),
+      });
+
+      await service.checkStatus();
+
+      const [, options] = mockFetch.mock.calls[0];
+      expect(options.headers[REQUEST_ID_HEADER]).toBe(FIXED_REQUEST_ID);
     });
 
     it('should include ngrok header only when URL contains ngrok', async () => {
@@ -70,7 +86,12 @@ describe('MaintenanceApi', () => {
 
       expect(mockFetch).toHaveBeenCalledWith(
         'https://abc123.ngrok-free.app/api/v1/maintenance/status',
-        { headers: NGROK_SKIP_HEADER },
+        {
+          headers: {
+            [REQUEST_ID_HEADER]: FIXED_REQUEST_ID,
+            ...NGROK_SKIP_HEADER,
+          },
+        },
       );
     });
 

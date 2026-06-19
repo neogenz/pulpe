@@ -51,7 +51,7 @@ struct AddCustomExpenseSheet: View {
         self.currency = currency
         _name = State(initialValue: transaction.name)
         _amount = State(initialValue: transaction.amount)
-        let formatted = Formatters.amountInput.string(from: transaction.amount as NSDecimalNumber) ?? ""
+        let formatted = Formatters.amountInput(for: currency).string(from: transaction.amount as NSDecimalNumber) ?? ""
         _amountText = State(initialValue: formatted)
     }
 

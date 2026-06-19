@@ -18,11 +18,12 @@ import {
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { provideLocale } from '@core/locale';
+import { UserSettingsStore } from '@core/user-settings';
 import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 import { Subject, of } from 'rxjs';
 
 import { BudgetTemplatesApi } from '@core/budget-template/budget-templates-api';
-import { type BudgetTemplate } from 'pulpe-shared';
+import { type BudgetTemplate, type SupportedCurrency } from 'pulpe-shared';
 import { CreateBudgetDialogComponent } from './budget-creation-dialog';
 import { TemplateStore, type TemplateTotals } from './services/template-store';
 import { type TemplateViewModel } from './template-view-model';
@@ -231,6 +232,68 @@ describe('CreateBudgetDialogComponent', () => {
   describe('Component Initialization', () => {
     it('should create', () => {
       expect(component).toBeTruthy();
+    });
+
+    it('should render the month/year hint with the locale separator (CHF dot)', () => {
+      const hint: HTMLElement | null =
+        fixture.nativeElement.querySelector('mat-hint');
+
+      expect(hint?.textContent?.trim()).toBe('mm.aaaa');
+    });
+
+    it('should render the month/year hint with the slash separator for EUR', async () => {
+      TestBed.resetTestingModule();
+      await TestBed.configureTestingModule({
+        imports: [
+          CreateBudgetDialogComponent,
+          MockTemplatesList,
+          NoopAnimationsModule,
+          ReactiveFormsModule,
+        ],
+        providers: [
+          provideZonelessChangeDetection(),
+          ...provideLocale(),
+          ...provideTranslocoForTest(),
+          FormBuilder,
+          { provide: MatDialogRef, useValue: mockDialogRef },
+          { provide: MatSnackBar, useValue: mockSnackBar },
+          { provide: MatDialog, useValue: mockDialog },
+          {
+            provide: BudgetTemplatesApi,
+            useValue: {
+              cache: { get: vi.fn(), set: vi.fn(), invalidate: vi.fn() },
+              getAll$: vi.fn().mockReturnValue(of({ data: [], success: true })),
+              getTemplateTransactions$: vi
+                .fn()
+                .mockReturnValue(of({ data: [], success: true })),
+            },
+          },
+          { provide: MAT_DIALOG_DATA, useValue: {} },
+          {
+            provide: UserSettingsStore,
+            useValue: { currency: signal<SupportedCurrency>('EUR') },
+          },
+        ],
+        schemas: [NO_ERRORS_SCHEMA],
+      })
+        .overrideComponent(CreateBudgetDialogComponent, {
+          remove: { imports: [TemplatesList], providers: [TemplateStore] },
+          add: {
+            imports: [MockTemplatesList],
+            providers: [
+              { provide: TemplateStore, useValue: mockTemplateStore },
+            ],
+          },
+        })
+        .compileComponents();
+
+      const f = TestBed.createComponent(CreateBudgetDialogComponent);
+      f.detectChanges();
+
+      const hint: HTMLElement | null =
+        f.nativeElement.querySelector('mat-hint');
+
+      expect(hint?.textContent?.trim()).toBe('mm/aaaa');
     });
 
     it('should initialize form with current month/year', () => {

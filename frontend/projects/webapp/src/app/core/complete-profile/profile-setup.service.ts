@@ -87,6 +87,7 @@ export class ProfileSetupService {
       await firstValueFrom(this.#budgetApi.generateBudgets$(generateRequest));
     } catch (error: unknown) {
       this.#logger.error('Budget generation failed:', error);
+      await this.#cleanupOrphanTemplate(templateId);
       return {
         success: false,
         error: this.#transloco.translate('completeProfile.budgetGenerateError'),
@@ -120,5 +121,18 @@ export class ProfileSetupService {
       budgetTemplateCreateResponseSchema,
       budgetTemplateCreateFromOnboardingSchema,
     );
+  }
+
+  async #cleanupOrphanTemplate(templateId: string): Promise<void> {
+    try {
+      await firstValueFrom(
+        this.#api.deleteVoid$(`/budget-templates/${templateId}`),
+      );
+    } catch (error: unknown) {
+      this.#logger.warn(
+        '[ProfileSetupService] Failed to clean up orphan onboarding template',
+        error,
+      );
+    }
   }
 }

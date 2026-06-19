@@ -19,6 +19,7 @@ export class ToggleBudgetLineCheckUseCase {
   ) {}
 
   async execute(id: string, user: AuthenticatedUser): Promise<BudgetLine> {
+    await this.repo.validateAccess(id, user.id);
     const entity = await this.repo.toggleCheckRpc(id);
 
     await this.cacheService.invalidateForUser(user.id);

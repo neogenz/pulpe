@@ -11,51 +11,81 @@ import { UserSettingsStore } from '@core/user-settings';
 import { AuthOAuthService } from '@core/auth/auth-oauth.service';
 import { firstValueFrom } from 'rxjs';
 import { TranslocoService } from '@jsverse/transloco';
+import { type SupportedCurrency } from 'pulpe-shared';
 
-export const ONBOARDING_SUGGESTIONS: readonly OnboardingTransaction[] = [
-  {
-    name: 'Courses / alimentation',
-    amount: 600,
-    type: 'expense',
-    expenseType: 'fixed',
-    isRecurring: true,
-  },
-  {
-    name: 'Restaurants & sorties',
-    amount: 150,
-    type: 'expense',
-    expenseType: 'fixed',
-    isRecurring: true,
-  },
-  {
-    name: 'Loisirs & sport',
-    amount: 100,
-    type: 'expense',
-    expenseType: 'fixed',
-    isRecurring: true,
-  },
-  {
-    name: 'Épargne',
-    amount: 500,
-    type: 'saving',
-    expenseType: 'fixed',
-    isRecurring: true,
-  },
-  {
-    name: '3ème pilier',
-    amount: 587,
-    type: 'saving',
-    expenseType: 'fixed',
-    isRecurring: true,
-  },
-];
+/**
+ * An onboarding suggestion chip. Carries a stable `id` independent of the
+ * (currency-localized) display `name`, so a chip stays correctly matched even
+ * when its label changes after a currency switch. The id never crosses the API
+ * boundary — it's stripped alongside `__suggestionId` before submit.
+ */
+export interface OnboardingSuggestion extends OnboardingTransaction {
+  readonly id: string;
+}
+
+/**
+ * Onboarding suggestion chips. All amounts/types/order are identical regardless
+ * of currency — only the retirement-savings label is localized per market:
+ * CHF users (Swiss) see "3ème pilier", EUR users (French) see "Épargne retraite".
+ * The `id` is currency-invariant (notably identical across CHF/EUR for the
+ * retirement chip) so chip selection survives a currency relabel.
+ */
+export function getOnboardingSuggestions(
+  currency: SupportedCurrency,
+): readonly OnboardingSuggestion[] {
+  const retirementSavingsName =
+    currency === 'CHF' ? '3ème pilier' : 'Épargne retraite';
+  return [
+    {
+      id: 'groceries',
+      name: 'Courses / alimentation',
+      amount: 600,
+      type: 'expense',
+      expenseType: 'fixed',
+      isRecurring: true,
+    },
+    {
+      id: 'dining-out',
+      name: 'Restaurants & sorties',
+      amount: 150,
+      type: 'expense',
+      expenseType: 'fixed',
+      isRecurring: true,
+    },
+    {
+      id: 'leisure-sport',
+      name: 'Loisirs & sport',
+      amount: 100,
+      type: 'expense',
+      expenseType: 'fixed',
+      isRecurring: true,
+    },
+    {
+      id: 'saving',
+      name: 'Épargne',
+      amount: 500,
+      type: 'saving',
+      expenseType: 'fixed',
+      isRecurring: true,
+    },
+    {
+      id: 'retirement',
+      name: retirementSavingsName,
+      amount: 587,
+      type: 'saving',
+      expenseType: 'fixed',
+      isRecurring: true,
+    },
+  ];
+}
 
 export const MAX_CUSTOM_TRANSACTIONS = 50;
 
 /**
- * Client-only tag identifying a customTransactions entry sourced from a
- * suggestion chip (as opposed to a user-typed entry). Stripped from the
- * payload sent to the API so the wire contract stays clean.
+ * Client-only fields identifying a customTransactions entry sourced from a
+ * suggestion chip (as opposed to a user-typed entry). Both `__suggestionId`
+ * (the matching key) and `id` (copied from the spread suggestion) are stripped
+ * from the payload sent to the API so the wire contract stays clean.
  *
  * Keeping a single list + provenance tag (rather than two parallel states)
  * means "which chip is selected" and "which custom rows exist" can never
@@ -63,6 +93,7 @@ export const MAX_CUSTOM_TRANSACTIONS = 50;
  */
 interface InternalCustomTransaction extends OnboardingTransaction {
   readonly __suggestionId?: string;
+  readonly id?: string;
 }
 
 function stripSuggestionTag(
@@ -70,6 +101,7 @@ function stripSuggestionTag(
 ): OnboardingTransaction {
   const clean: Record<string, unknown> = { ...tx };
   delete clean['__suggestionId'];
+  delete clean['id'];
   return clean as OnboardingTransaction;
 }
 
@@ -131,7 +163,7 @@ export class CompleteProfileStore {
   readonly customTransactions = computed<readonly OnboardingTransaction[]>(
     () => this.#state().customTransactions,
   );
-  readonly selectedSuggestionNames = computed(() => {
+  readonly selectedSuggestionIds = computed(() => {
     // Only entries tagged with `__suggestionId` count as "chip selected".
     // A manually-added row with the same `name + type` as a suggestion is
     // intentionally NOT matched here — that's the whole point of the tag.
@@ -258,10 +290,11 @@ export class CompleteProfileStore {
     });
   }
 
-  toggleSuggestion(suggestion: OnboardingTransaction): void {
-    // Each suggestion is keyed by its canonical `name` — ONBOARDING_SUGGESTIONS
-    // is a hardcoded constant with unique names, so the name is a stable id.
-    const suggestionId = suggestion.name;
+  toggleSuggestion(suggestion: OnboardingSuggestion): void {
+    // Keyed by the currency-invariant `id`, not the localized `name`. A currency
+    // switch relabels the chip but keeps the id, so the entry stays matched and
+    // re-tapping removes it instead of appending a duplicate.
+    const suggestionId = suggestion.id;
     const current = this.#state().customTransactions;
     const matchIndex = current.findIndex(
       (t) => t.__suggestionId === suggestionId,

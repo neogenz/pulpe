@@ -8,7 +8,7 @@ import {
   type EncryptionPort,
 } from '@modules/encryption/encryption.tokens';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
-import { mapCurrencyMetadataToDb } from '@common/utils/currency-metadata.mapper';
+import { mapCurrencyNonAmountMetadataToDb } from '@common/utils/currency-metadata.mapper';
 import type { Transaction } from '@modules/transaction/domain/transaction.entity';
 import type { BudgetLineRepositoryPort } from '../../domain/ports/budget-line-repository.port';
 import type {
@@ -78,6 +78,45 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
 
     const dek = await this.encryption.getDekFor(this.supabaseProvider.user);
     return this.toEntity(data, dek);
+  }
+
+  async validateAccess(id: string, userId: string): Promise<void> {
+    const supabase = this.supabaseProvider.client;
+    const { data, error } = await supabase
+      .from('budget_line')
+      .select('id, monthly_budget!inner(user_id)')
+      .eq('id', id)
+      .single();
+
+    const loggingContext = {
+      operation: 'validateAccess',
+      entityId: id,
+      entityType: 'budget_line',
+      userId,
+      supabaseError: error,
+    };
+
+    if (error || !data) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.BUDGET_LINE_NOT_FOUND,
+        { id },
+        loggingContext,
+        { cause: error ?? undefined },
+      );
+    }
+
+    const row = data as BudgetLineRow & {
+      monthly_budget: { user_id: string };
+    };
+
+    if (row.monthly_budget.user_id !== userId) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.BUDGET_LINE_NOT_FOUND,
+        { id },
+        { ...loggingContext, reason: 'user_mismatch' },
+        { cause: undefined },
+      );
+    }
   }
 
   async findByBudgetId(budgetId: string): Promise<BudgetLine[]> {
@@ -232,7 +271,7 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
 
     if (error) {
       throw new BusinessException(
-        ERROR_DEFINITIONS.BUDGET_LINE_NOT_FOUND,
+        ERROR_DEFINITIONS.BUDGET_LINE_DELETE_FAILED,
         { id },
         {
           operation: 'deleteBudgetLine',
@@ -240,6 +279,7 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
           entityType: 'budget_line',
           supabaseError: error,
         },
+        { cause: error },
       );
     }
   }
@@ -404,11 +444,14 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
       name: input.name,
       amount: encryptedAmount,
       original_amount: encryptedOriginalAmount,
-      ...mapCurrencyMetadataToDb({
-        originalCurrency: input.originalCurrency,
-        targetCurrency: input.targetCurrency,
-        exchangeRate: input.exchangeRate,
-      }),
+      ...mapCurrencyNonAmountMetadataToDb(
+        {
+          originalCurrency: input.originalCurrency,
+          targetCurrency: input.targetCurrency,
+          exchangeRate: input.exchangeRate,
+        },
+        { userId: user.id },
+      ),
       kind: input.kind,
       recurrence: input.recurrence,
       is_manually_adjusted: input.isManuallyAdjusted ?? false,
@@ -441,11 +484,14 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
 
     Object.assign(
       updateData,
-      mapCurrencyMetadataToDb({
-        originalCurrency: patch.originalCurrency,
-        targetCurrency: patch.targetCurrency,
-        exchangeRate: patch.exchangeRate,
-      }),
+      mapCurrencyNonAmountMetadataToDb(
+        {
+          originalCurrency: patch.originalCurrency,
+          targetCurrency: patch.targetCurrency,
+          exchangeRate: patch.exchangeRate,
+        },
+        { userId: user.id },
+      ),
     );
 
     updateData.updated_at = new Date().toISOString();

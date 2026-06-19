@@ -34,12 +34,14 @@ struct ChargesStep: View {
                         icon: "shield.fill",
                         isExpanded: $isInsuranceExpanded
                     ) {
-                        CurrencyField(
-                            value: $state.healthInsurance,
-                            hint: "400",
-                            label: "Assurance maladie",
-                            currency: state.currency
-                        )
+                        if state.currency == .chf {
+                            CurrencyField(
+                                value: $state.healthInsurance,
+                                hint: "400",
+                                label: "Assurance maladie",
+                                currency: state.currency
+                            )
+                        }
                         CurrencyField(
                             value: $state.phonePlan,
                             hint: "50",

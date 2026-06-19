@@ -397,7 +397,7 @@ struct OnboardingCurrencySwapSheet: View {
             }
 
             Button {
-                state.currency = draft
+                state.selectCurrency(draft)
                 dismiss()
             } label: {
                 Text("Utiliser \(draft.nativeName)")

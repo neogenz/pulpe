@@ -18,6 +18,7 @@ import type { Transaction } from 'pulpe-shared';
 import { AppCurrencyPipe, FormatConversionPipe } from '@core/currency';
 import { FeatureFlagsService } from '@core/feature-flags';
 import { UserSettingsStore } from '@core/user-settings';
+import { getDateDisplayFormats } from '@core/date/date-display-formats';
 import { TranslocoPipe } from '@jsverse/transloco';
 import { CurrencyConversionBadge } from '@ui/currency-conversion-badge';
 import { OriginalAmountLine } from '@ui/original-amount-line';
@@ -183,7 +184,7 @@ import type {
                   <span
                     class="text-label-small text-on-surface-variant whitespace-nowrap"
                   >
-                    {{ tx.transactionDate | date: 'dd.MM.yyyy' }}
+                    {{ tx.transactionDate | date: shortDateFormat() }}
                   </span>
                   @if (isMultiCurrencyEnabled()) {
                     <pulpe-currency-conversion-badge
@@ -231,6 +232,9 @@ export class AllocatedTransactionsBottomSheet {
   readonly #userSettings = inject(UserSettingsStore);
   readonly #featureFlags = inject(FeatureFlagsService);
   protected readonly currency = this.#userSettings.currency;
+  protected readonly shortDateFormat = computed(
+    () => getDateDisplayFormats(this.currency()).shortDate,
+  );
   protected readonly isMultiCurrencyEnabled =
     this.#featureFlags.isMultiCurrencyEnabled;
   readonly data = inject<AllocatedTransactionsDialogData>(

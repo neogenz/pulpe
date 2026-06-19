@@ -11,6 +11,40 @@ export enum LogLevel {
   ERROR = 3,
 }
 
+const REDACTED_VALUE = '***';
+const KEY_SEPARATOR_PATTERN = /[_-]/g;
+
+const SENSITIVE_KEY_SUBSTRINGS = ['password', 'secret', 'token'] as const;
+const SENSITIVE_KEY_SUFFIXES = [
+  'apikey',
+  'anonkey',
+  'servicerolekey',
+  'privatekey',
+  'encryptionkey',
+  'clientkey',
+  'authkey',
+  'masterkey',
+  'signingkey',
+] as const;
+const SENSITIVE_EXACT_KEYS = new Set(['key', 'userid', 'user_id', 'sub']);
+
+function normalizeLogKey(key: string): string {
+  return key.toLowerCase().replace(KEY_SEPARATOR_PATTERN, '');
+}
+
+function isSensitiveLogKey(key: string): boolean {
+  const lowerKey = key.toLowerCase();
+  const normalizedKey = normalizeLogKey(key);
+
+  return (
+    SENSITIVE_KEY_SUBSTRINGS.some((substring) =>
+      lowerKey.includes(substring),
+    ) ||
+    SENSITIVE_KEY_SUFFIXES.some((suffix) => normalizedKey.endsWith(suffix)) ||
+    SENSITIVE_EXACT_KEYS.has(lowerKey)
+  );
+}
+
 /**
  * Centralized logging service for the application.
  * Provides environment-aware logging with automatic suppression in production.
@@ -125,21 +159,8 @@ export class Logger {
 
       for (const key in data) {
         if (Object.prototype.hasOwnProperty.call(data, key)) {
-          const lowerKey = key.toLowerCase();
-
-          // Mask sensitive keys
-          // Exact match on 'userid' / 'user_id' / 'sub' (JWT subject claim)
-          // avoids false positives on substrings like subject, subtitle, subscription, userIdentity.
-          if (
-            lowerKey.includes('password') ||
-            lowerKey.includes('secret') ||
-            lowerKey.includes('token') ||
-            lowerKey.includes('key') ||
-            lowerKey === 'userid' ||
-            lowerKey === 'user_id' ||
-            lowerKey === 'sub'
-          ) {
-            (sanitized as Record<string, unknown>)[key] = '***';
+          if (isSensitiveLogKey(key)) {
+            (sanitized as Record<string, unknown>)[key] = REDACTED_VALUE;
           } else {
             (sanitized as Record<string, unknown>)[key] = this.#sanitize(
               (data as Record<string, unknown>)[key],

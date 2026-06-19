@@ -22,6 +22,8 @@ env:
   NODE_VERSION: "22"
   PNPM_VERSION: "10.12.1"
   BUN_VERSION: "1.2.17"
+  # Pinned: "latest" resolves via unauthenticated GitHub Releases API → rate-limited across the 6 setup-cli jobs
+  SUPABASE_CLI_VERSION: "2.84.2"
 
   # CI-only npm/pnpm tweaks — mitigate NPM 429s, keep local .npmrc clean
   NPM_CONFIG_FETCH_RETRIES: "3"
@@ -75,16 +77,16 @@ jobs:
         uses: actions/checkout@v5
 
       - name: 🗄️ Setup Supabase CLI
-        uses: supabase/setup-cli@v1
+        uses: ./.github/actions/setup-supabase-cli
         with:
-          version: latest
+          version: ${{ env.SUPABASE_CLI_VERSION }}
 
       - name: 🐳 Start Supabase Local (Optimisé)
         working-directory: backend-nest
         run: |
           echo "🚀 Starting Supabase local instance..."
           # Exclure les services non nécessaires pour gain de performance
-          supabase start --exclude studio,mailpit,imgproxy,edge-runtime
+          supabase start --exclude studio,mailpit,imgproxy,edge-runtime,realtime,storage-api,logflare,vector,postgres-meta
 
           echo "⏳ Health check robuste..."
           timeout=180
@@ -161,9 +163,9 @@ jobs:
           bun-version: ${{ env.BUN_VERSION }}
 
       - name: 🗄️ Setup Supabase CLI
-        uses: supabase/setup-cli@v1
+        uses: ./.github/actions/setup-supabase-cli
         with:
-          version: latest
+          version: ${{ env.SUPABASE_CLI_VERSION }}
 
       - name: 📥 Download Supabase State
         uses: actions/download-artifact@v8
@@ -174,7 +176,7 @@ jobs:
       - name: 🐳 Restore Supabase
         working-directory: backend-nest
         run: |
-          supabase start --exclude studio,mailpit,imgproxy,edge-runtime
+          supabase start --exclude studio,mailpit,imgproxy,edge-runtime,realtime,storage-api,logflare,vector,postgres-meta
 
           # Health check rapide pour restore
           timeout=60
@@ -207,7 +209,7 @@ jobs:
             backend-nest/dist/
           retention-days: 1
 
-  # 🧪 TESTS UNITAIRES (Modifié pour utiliser Supabase local)
+  # 🧪 TESTS UNITAIRES (sans Supabase — les suites d'intégration tournent dans test-backend-integration)
   test-unit:
     name: 🧪 Unit Tests
     runs-on: ubuntu-latest
@@ -234,10 +236,53 @@ jobs:
         with:
           bun-version: ${{ env.BUN_VERSION }}
 
-      - name: 🗄️ Setup Supabase CLI
-        uses: supabase/setup-cli@v1
+      - name: 📥 Download build artifacts
+        uses: actions/download-artifact@v8
         with:
-          version: latest
+          name: build-artifacts
+
+      - name: 📥 Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: 🧪 Run unit tests
+        run: pnpm test:unit
+        env:
+          NODE_ENV: test
+          TURNSTILE_SECRET_KEY: ci-test-turnstile-key
+          ENCRYPTION_MASTER_KEY: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+
+  # 🔌 TESTS D'INTÉGRATION BACKEND (seul job de test à démarrer Supabase — runner dédié,
+  # pas de concurrence avec vitest frontend, donc pas de saturation ni de flake réseau)
+  test-backend-integration:
+    name: 🔌 Backend Integration Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: [install, build]
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v5
+
+      - name: 📦 Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "pnpm"
+          cache-dependency-path: "**/pnpm-lock.yaml"
+
+      - name: 📦 Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - name: 🗄️ Setup Supabase CLI
+        uses: ./.github/actions/setup-supabase-cli
+        with:
+          version: ${{ env.SUPABASE_CLI_VERSION }}
 
       - name: 📥 Download Supabase State
         uses: actions/download-artifact@v8
@@ -254,12 +299,15 @@ jobs:
         id: start-supabase-tests
         working-directory: backend-nest
         run: |
-          supabase start --exclude studio,mailpit,imgproxy,edge-runtime
+          # Tests only need db + kong + gotrue + postgrest. The extra services
+          # (Alpine-based realtime/storage-api among them) destabilize the stack
+          # on the 20260607+ runner images and waste runner RAM/CPU.
+          supabase start --exclude studio,mailpit,imgproxy,edge-runtime,realtime,storage-api,logflare,vector,postgres-meta
 
-          # Health check pour tests
+          # Health check pour tests — REST (postgrest) puis Auth (gotrue, sondé par les specs encryption)
           timeout=60
           counter=0
-          until curl -s http://127.0.0.1:54321/rest/v1/ >/dev/null; do
+          until curl -s http://127.0.0.1:54321/rest/v1/ >/dev/null && curl -sf http://127.0.0.1:54321/auth/v1/health >/dev/null; do
             if [ $counter -gt $timeout ]; then
               echo "❌ Supabase not ready for tests"
               exit 1
@@ -267,37 +315,75 @@ jobs:
             sleep 1
             counter=$((counter + 1))
           done
+
+          # GoTrue boots last (DB migrations at startup) and the encryption
+          # integration/e2e specs probe /auth/v1/health (reachable = status < 500).
+          # Mirror that exact criterion here so tests never start before auth is up.
+          counter=0
+          until code=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:54321/auth/v1/health); [ "$code" -ge 200 ] && [ "$code" -lt 500 ]; do
+            if [ $counter -gt $timeout ]; then
+              echo "❌ Supabase auth (GoTrue) not ready for tests"
+              supabase status
+              exit 1
+            fi
+            sleep 1
+            counter=$((counter + 1))
+          done
           echo "✅ Supabase ready for tests"
 
-          # Export local Supabase keys as outputs (using heredoc for robust special character handling)
+          # Export local Supabase keys as outputs (using heredoc for robust special character handling).
+          # Newer local stacks may only expose sb_publishable_/sb_secret_ keys
+          # (PUBLISHABLE_KEY/SECRET_KEY) — fall back to those when the legacy
+          # JWT keys are absent.
+          status_env="$(supabase status -o env 2>/dev/null)"
+          read_status_env() { echo "$status_env" | grep "^$1=" | cut -d'=' -f2- | tr -d '"'; }
+          anon_key="$(read_status_env ANON_KEY)"
+          [ -n "$anon_key" ] || anon_key="$(read_status_env PUBLISHABLE_KEY)"
+          service_key="$(read_status_env SERVICE_ROLE_KEY)"
+          [ -n "$service_key" ] || service_key="$(read_status_env SECRET_KEY)"
           {
             echo 'SUPABASE_URL<<EOF'
-            supabase status -o env 2>/dev/null | grep API_URL | cut -d'=' -f2 | tr -d '\"'
+            read_status_env API_URL
             echo 'EOF'
           } >> $GITHUB_OUTPUT
           {
             echo 'SUPABASE_ANON_KEY<<EOF'
-            supabase status -o env 2>/dev/null | grep ANON_KEY | cut -d'=' -f2 | tr -d '\"'
+            echo "$anon_key"
             echo 'EOF'
           } >> $GITHUB_OUTPUT
           {
             echo 'SUPABASE_SERVICE_ROLE_KEY<<EOF'
-            supabase status -o env 2>/dev/null | grep SERVICE_ROLE_KEY | cut -d'=' -f2 | tr -d '\"'
+            echo "$service_key"
             echo 'EOF'
           } >> $GITHUB_OUTPUT
 
       - name: 📥 Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: 🧪 Run unit tests
-        run: pnpm test:unit
+      - name: 🔌 Run backend integration tests
+        working-directory: backend-nest
+        run: bun test .integration.spec .e2e.spec
         env:
           NODE_ENV: test
+          RUN_INTEGRATION_TESTS: "true"
           SUPABASE_URL: ${{ steps.start-supabase-tests.outputs.SUPABASE_URL }}
           SUPABASE_ANON_KEY: ${{ steps.start-supabase-tests.outputs.SUPABASE_ANON_KEY }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ steps.start-supabase-tests.outputs.SUPABASE_SERVICE_ROLE_KEY }}
           TURNSTILE_SECRET_KEY: ci-test-turnstile-key
           ENCRYPTION_MASTER_KEY: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+
+      - name: 🩺 Supabase diagnostics on failure
+        if: failure()
+        working-directory: backend-nest
+        run: |
+          supabase status || true
+          echo "===== status -o env key names ====="
+          supabase status -o env 2>/dev/null | cut -d'=' -f1 | sort || true
+          docker ps -a || true
+          for container in $(docker ps -aq --filter "name=supabase"); do
+            echo "===== logs: $(docker inspect --format '{{.Name}}' "$container") ====="
+            docker logs --tail 80 "$container" 2>&1 | tail -80 || true
+          done
 
       - name: 🧹 Cleanup Supabase
         if: always() && steps.start-supabase-tests.outcome == 'success'
@@ -428,9 +514,9 @@ jobs:
           bun-version: ${{ env.BUN_VERSION }}
 
       - name: 🗄️ Setup Supabase CLI
-        uses: supabase/setup-cli@v1
+        uses: ./.github/actions/setup-supabase-cli
         with:
-          version: latest
+          version: ${{ env.SUPABASE_CLI_VERSION }}
 
       - name: 📥 Download Supabase State
         uses: actions/download-artifact@v8
@@ -447,12 +533,12 @@ jobs:
         id: start-supabase-performance
         working-directory: backend-nest
         run: |
-          supabase start --exclude studio,mailpit,imgproxy,edge-runtime
+          supabase start --exclude studio,mailpit,imgproxy,edge-runtime,realtime,storage-api,logflare,vector,postgres-meta
 
-          # Health check pour tests
+          # Health check pour tests — REST (postgrest) puis Auth (gotrue, sondé par les specs encryption)
           timeout=60
           counter=0
-          until curl -s http://127.0.0.1:54321/rest/v1/ >/dev/null; do
+          until curl -s http://127.0.0.1:54321/rest/v1/ >/dev/null && curl -sf http://127.0.0.1:54321/auth/v1/health >/dev/null; do
             if [ $counter -gt $timeout ]; then
               echo "❌ Supabase not ready for tests"
               exit 1
@@ -462,20 +548,29 @@ jobs:
           done
           echo "✅ Supabase ready for performance tests"
 
-          # Export local Supabase keys as outputs (using heredoc for robust special character handling)
+          # Export local Supabase keys as outputs (using heredoc for robust special character handling).
+          # Newer local stacks may only expose sb_publishable_/sb_secret_ keys
+          # (PUBLISHABLE_KEY/SECRET_KEY) — fall back to those when the legacy
+          # JWT keys are absent.
+          status_env="$(supabase status -o env 2>/dev/null)"
+          read_status_env() { echo "$status_env" | grep "^$1=" | cut -d'=' -f2- | tr -d '"'; }
+          anon_key="$(read_status_env ANON_KEY)"
+          [ -n "$anon_key" ] || anon_key="$(read_status_env PUBLISHABLE_KEY)"
+          service_key="$(read_status_env SERVICE_ROLE_KEY)"
+          [ -n "$service_key" ] || service_key="$(read_status_env SECRET_KEY)"
           {
             echo 'SUPABASE_URL<<EOF'
-            supabase status -o env 2>/dev/null | grep API_URL | cut -d'=' -f2 | tr -d '\"'
+            read_status_env API_URL
             echo 'EOF'
           } >> $GITHUB_OUTPUT
           {
             echo 'SUPABASE_ANON_KEY<<EOF'
-            supabase status -o env 2>/dev/null | grep ANON_KEY | cut -d'=' -f2 | tr -d '\"'
+            echo "$anon_key"
             echo 'EOF'
           } >> $GITHUB_OUTPUT
           {
             echo 'SUPABASE_SERVICE_ROLE_KEY<<EOF'
-            supabase status -o env 2>/dev/null | grep SERVICE_ROLE_KEY | cut -d'=' -f2 | tr -d '\"'
+            echo "$service_key"
             echo 'EOF'
           } >> $GITHUB_OUTPUT
 
@@ -643,9 +738,9 @@ jobs:
         uses: actions/checkout@v5
 
       - name: 🗄️ Setup Supabase CLI
-        uses: supabase/setup-cli@v1
+        uses: ./.github/actions/setup-supabase-cli
         with:
-          version: latest
+          version: ${{ env.SUPABASE_CLI_VERSION }}
 
       - name: 🔗 Link Supabase Project
         working-directory: backend-nest
@@ -667,13 +762,14 @@ jobs:
     name: ✅ CI Success
     runs-on: ubuntu-latest
     timeout-minutes: 1
-    needs: [build, test-unit, test-e2e, quality, test-performance, test-ios, migrate-dryrun]
+    needs: [build, test-unit, test-backend-integration, test-e2e, quality, test-performance, test-ios, migrate-dryrun]
     if: always()
     steps:
       - name: ✅ Check all jobs
         if: >-
           needs.build.result == 'success' &&
           needs.test-unit.result == 'success' &&
+          needs.test-backend-integration.result == 'success' &&
           needs.test-e2e.result == 'success' &&
           needs.quality.result == 'success' &&
           needs.test-performance.result == 'success' &&
@@ -685,6 +781,7 @@ jobs:
         if: >-
           needs.build.result != 'success' ||
           needs.test-unit.result != 'success' ||
+          needs.test-backend-integration.result != 'success' ||
           needs.test-e2e.result != 'success' ||
           needs.quality.result != 'success' ||
           needs.test-performance.result != 'success' ||
@@ -694,6 +791,7 @@ jobs:
           echo "❌ Some CI checks failed"
           echo "Build: ${{ needs.build.result }}"
           echo "Unit Tests: ${{ needs.test-unit.result }}"
+          echo "Backend Integration: ${{ needs.test-backend-integration.result }}"
           echo "E2E Tests: ${{ needs.test-e2e.result }}"
           echo "Quality: ${{ needs.quality.result }}"
           echo "Performance: ${{ needs.test-performance.result }}"
@@ -713,9 +811,9 @@ jobs:
         uses: actions/checkout@v5
 
       - name: 🗄️ Setup Supabase CLI
-        uses: supabase/setup-cli@v1
+        uses: ./.github/actions/setup-supabase-cli
         with:
-          version: latest
+          version: ${{ env.SUPABASE_CLI_VERSION }}
 
       - name: 🔗 Link Supabase Project
         working-directory: backend-nest
@@ -760,3 +858,51 @@ jobs:
           POSTHOG_HOST: https://eu.i.posthog.com
           POSTHOG_PERSONAL_API_KEY: ${{ secrets.POSTHOG_PERSONAL_API_KEY }}
           POSTHOG_PROJECT_ID: ${{ secrets.POSTHOG_WEBAPP_PROJECT_ID }}
+
+  # 🔒 CSP CONFORMANCE (push main only — verifies prod hosts serve the host-conditioned CSP from vercel.json, PUL-236)
+  # ${{ !cancelled() }} (not always()): an always() job survives workflow cancellation and would keep
+  # polling prod against a stale vercel.json while the superseding run deploys — spurious red on main.
+  verify-prod-csp:
+    name: 🔒 Verify Production CSP Headers
+    if: ${{ !cancelled() && needs.ci-success.result == 'success' && github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: [ci-success]
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v5
+
+      - name: 🔒 Compare served CSP against vercel.json
+        run: |
+          EXPECTED=$(python3 -c "
+          import json, re
+          v = json.load(open('vercel.json'))
+          for block in v['headers']:
+              for cond in block.get('has', []):
+                  if cond.get('type') == 'host' and re.match('^(?:' + cond['value'] + ')$', 'app.pulpe.app'):
+                      for h in block['headers']:
+                          if h['key'] == 'Content-Security-Policy':
+                              print(h['value'])
+                              raise SystemExit
+          ")
+          if [ -z "$EXPECTED" ]; then
+            echo "❌ No host-conditioned production CSP entry found in vercel.json"
+            exit 1
+          fi
+          for HOST in app.pulpe.app pulpe-frontend.vercel.app; do
+            for ATTEMPT in $(seq 1 10); do
+              SERVED=$(curl -s --max-time 10 -o /dev/null -D - "https://${HOST}/" | grep -i '^content-security-policy:' | sed 's/^[^:]*: *//' | tr -d '\r')
+              if [ "$SERVED" = "$EXPECTED" ]; then
+                echo "✅ ${HOST} serves the expected production CSP"
+                break
+              fi
+              if [ "$ATTEMPT" = "10" ]; then
+                echo "❌ ${HOST} still serves a CSP that differs from vercel.json after 10 attempts"
+                echo "expected: $EXPECTED"
+                echo "served:   $SERVED"
+                exit 1
+              fi
+              echo "⏳ ${HOST} attempt ${ATTEMPT}/10: CSP not conformant yet, retrying in 30s (deploy may be rolling out)"
+              sleep 30
+            done
+          done

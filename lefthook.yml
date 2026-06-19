@@ -12,9 +12,9 @@ pre-commit:
         LEFTHOOK: 1
 
     swiftlint:
-      glob: "ios/**/*.swift"
-      run: |
-        cd ios && swiftlint lint --strict --quiet {staged_files}
+      root: "ios/"
+      glob: "*.swift"
+      run: swiftlint lint --strict --quiet {staged_files}
       skip:
         - merge
         - rebase

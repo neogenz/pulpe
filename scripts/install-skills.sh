@@ -62,7 +62,9 @@ for skill in "$WORKTREE"/.agents/skills/*; do
   ln -s "../../.agents/skills/$name" "$target"
   synced=$((synced + 1))
 done
-(( synced > 0 )) && echo "✓ Linked $synced skills into .claude/skills/"
+if (( synced > 0 )); then
+  echo "✓ Linked $synced skills into .claude/skills/"
+fi
 
 # 5. Worktree-only: recreate missing .claude/skills symlinks from main repo
 MAIN_REPO="$(git worktree list --porcelain | head -1 | sed 's/^worktree //')"
@@ -81,4 +83,6 @@ for skill in "$MAIN_REPO"/.claude/skills/*; do
   linked=$((linked + 1))
 done
 
-(( linked > 0 )) && echo "✓ Linked $linked skills to worktree .claude/skills/"
+if (( linked > 0 )); then
+  echo "✓ Linked $linked skills to worktree .claude/skills/"
+fi

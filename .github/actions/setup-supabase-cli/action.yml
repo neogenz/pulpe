@@ -1,0 +1,55 @@
+name: "Setup Supabase CLI"
+description: "Install the Supabase CLI resiliently — cache the binary and download via curl with retries so transient GitHub release-CDN 504s self-heal instead of failing the job"
+
+inputs:
+  version:
+    description: "Supabase CLI version (without leading v)"
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    # Cache the binary keyed on version+arch. On a hit, the runner never touches
+    # GitHub's release CDN — which is where the intermittent 504 Gateway Timeouts
+    # originate. Shared across jobs, so only the first run per version downloads.
+    - name: Cache Supabase CLI
+      id: cache
+      uses: actions/cache@v4
+      with:
+        path: ~/.local/share/supabase-cli
+        key: supabase-cli-${{ inputs.version }}-${{ runner.os }}-${{ runner.arch }}
+
+    - name: Download Supabase CLI
+      if: steps.cache.outputs.cache-hit != 'true'
+      shell: bash
+      run: |
+        set -euo pipefail
+        case "$(uname -m)" in
+          x86_64) arch="amd64" ;;
+          aarch64 | arm64) arch="arm64" ;;
+          *) echo "::error::Unsupported architecture: $(uname -m)"; exit 1 ;;
+        esac
+        dest="$HOME/.local/share/supabase-cli"
+        mkdir -p "$dest"
+        url="https://github.com/supabase/cli/releases/download/v${{ inputs.version }}/supabase_linux_${arch}.tar.gz"
+        echo "Downloading Supabase CLI ${{ inputs.version }} from $url"
+        # --retry-all-errors makes curl retry on HTTP 5xx (e.g. the 504 the release
+        # CDN returns intermittently), not just on connection failures — the whole
+        # reason this action exists in place of supabase/setup-cli@v1.
+        curl -fSL --retry 6 --retry-all-errors --retry-delay 5 --connect-timeout 30 \
+          -o "$RUNNER_TEMP/supabase-cli.tar.gz" "$url"
+        # Tarball root is LICENSE, README.md, supabase — extract only the binary.
+        tar -xzf "$RUNNER_TEMP/supabase-cli.tar.gz" -C "$dest" supabase
+        rm -f "$RUNNER_TEMP/supabase-cli.tar.gz"
+
+    - name: Add Supabase CLI to PATH
+      shell: bash
+      run: |
+        set -euo pipefail
+        dest="$HOME/.local/share/supabase-cli"
+        chmod +x "$dest/supabase"
+        echo "$dest" >> "$GITHUB_PATH"
+
+    - name: Verify installation
+      shell: bash
+      run: supabase --version

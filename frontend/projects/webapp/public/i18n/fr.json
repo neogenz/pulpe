@@ -195,10 +195,10 @@
     "earlyAdopter": "VIP"
   },
   "earlyAdopter": {
-    "title": "Merci d'être là depuis le début \u2728",
+    "title": "Merci d'être là depuis le début ✨",
     "message": "Tu fais partie des premiers utilisateurs de Pulpe. Ta confiance et tes retours m'aident à construire l'application que tu mérites.",
     "signature": "— Maxime, créateur de Pulpe",
-    "close": "Avec plaisir \uD83D\uDE4F"
+    "close": "Avec plaisir 🙏"
   },
   "about": {
     "title": "À propos",
@@ -372,7 +372,7 @@
     "createTitle": "Créer un budget",
     "generalInfo": "Informations générales",
     "monthYearLabel": "Mois et année",
-    "monthYearHint": "mm.aaaa",
+    "monthYearHint": "mm{{separator}}aaaa",
     "monthYearRequired": "Le mois et l'année sont requis",
     "descriptionLabel": "Description (optionnelle)",
     "descriptionPlaceholder": "Ex: Budget vacances d'été",
@@ -655,7 +655,6 @@
     "incomeGroupLabel": "Revenus",
     "savingsGroupLabel": "Épargne",
     "expensesGroupLabel": "Dépenses",
-    "lineDescriptionPlaceholder": "Ex. Loyer, Courses, 3ème pilier...",
     "lineAmountLabel": "Montant",
     "lineKindLabel": "Type",
     "linesCount": "{{count}} prévision(s)",
@@ -714,7 +713,6 @@
     "addTransactionClose": "Fermer",
     "addTransactionAmount": "Montant",
     "addTransactionAmountRequired": "Le montant est requis",
-    "addTransactionAmountMin": "Le montant doit être au moins 0.01 CHF",
     "addTransactionQuickAmounts": "Montants rapides",
     "addTransactionDescription": "Description",
     "addTransactionDescriptionRequired": "La description est requise",
@@ -810,8 +808,8 @@
       "committed": "Dépenses",
       "available": "Disponible",
       "deficitHint": "Pas d'inquiétude — tu pourras ajuster tout ça après.",
-      "liveAvailableAnnouncement": "Disponible : {{ amount }} francs",
-      "liveDeficitAnnouncement": "Déficit de {{ amount }} francs à équilibrer"
+      "liveAvailableAnnouncement": "Disponible : {{ amount }} {{ currency }}",
+      "liveDeficitAnnouncement": "Déficit de {{ amount }} {{ currency }} à équilibrer"
     },
     "stepperAriaLabel": "Étape {{ current }} sur {{ total }}",
     "stepYou": "Toi",
@@ -917,6 +915,11 @@
   "maintenance": {
     "title": "Maintenance en cours",
     "message": "Le service est temporairement indisponible. Réessaie dans quelques instants."
+  },
+  "forceUpdate": {
+    "title": "Mise à jour requise",
+    "message": "Une nouvelle version de Pulpe est disponible. Recharge la page pour reprendre là où tu en étais.",
+    "reload": "Recharger"
   },
   "pageTitle": {
     "login": "Connexion",
@@ -1034,13 +1037,10 @@
     "nameMinLength": "Le nom doit contenir au moins 2 caractères",
     "nameMaxLength": "Le nom ne peut pas dépasser 100 caractères",
     "amountLabel": "Montant",
-    "amountHint": "Montant en francs suisses",
     "amountRequired": "Le montant est requis",
-    "amountMin": "Le montant doit être au moins 0.01 CHF",
-    "amountMax": "Le montant ne peut pas dépasser 999'999.99 CHF",
     "typeLabel": "Type de transaction",
     "dateLabel": "Date de transaction",
-    "datePlaceholder": "jj.mm.aaaa",
+    "datePlaceholder": "jj{{separator}}mm{{separator}}aaaa",
     "dateHintBudget": "Doit être dans la période du budget",
     "dateHintMonth": "Doit être dans le mois en cours",
     "dateRequired": "La date est requise",

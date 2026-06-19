@@ -11,13 +11,15 @@ NEVER hand-roll currency display in templates. Always route through a shared hel
 
 ## Decimal policy (aggregation vs ligne)
 
-| Catégorie | Décimales | digitsInfo | Exemples |
-|-----------|-----------|------------|----------|
-| **AGGREGATION** | 0 | `'1.0-0'` | hero `disponible`, hero `solde du mois`, pills `Revenus/Dépenses/Épargne`, totaux dashboard, soldes/balances, `consumed` total enveloppe, `remaining` enveloppe, `cumulativeBalance` table, `exceededBy`, cartes mois liste, totaux templates, soldes balance sheet |
-| **LIGNE** | 2 | `'1.2-2'` | montant prévu d'une `budget_line` individuelle, montant d'une `transaction` individuelle, ligne table `Prévu` |
-| **aria-label / VoiceOver** | n/a | `code` ISO (`EUR`/`CHF`) en raw text | accessibility uniquement — lecteurs d'écran prononcent `EUR` plus clairement que `€` |
+| Catégorie                  | Décimales | digitsInfo                           | Exemples                                                                                                                                                                                                                                                            |
+| -------------------------- | --------- | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **AGGREGATION**            | 0         | `'1.0-0'`                            | hero `disponible`, hero `solde du mois`, pills `Revenus/Dépenses/Épargne`, totaux dashboard, soldes/balances, `consumed` total enveloppe, `remaining` enveloppe, `cumulativeBalance` table, `exceededBy`, cartes mois liste, totaux templates, soldes balance sheet |
+| **LIGNE**                  | 2         | `'1.2-2'`                            | montant prévu d'une `budget_line` individuelle, montant d'une `transaction` individuelle, ligne table `Prévu`                                                                                                                                                       |
+| **aria-label / VoiceOver** | n/a       | `code` ISO (`EUR`/`CHF`) en raw text | accessibility uniquement — lecteurs d'écran prononcent `EUR` plus clairement que `€`                                                                                                                                                                                |
 
 > **Heuristique**: si le montant est une **somme**, un **total** ou un **solde dérivé** (`amount - consumed`, `consumption.consumed`, `consumption.remaining`, etc.) → aggregation `'1.0-0'`. Si c'est la valeur **directement portée par une seule entité** (un `budget_line.amount`, un `transaction.amount`) → ligne `'1.2-2'`.
+
+> **Exception — bloc résumé de saisie adaptatif `'1.0-2'`**: le **bloc résumé live de l'onboarding `complete-profile`** — le revenu saisi _et_ ses dérivés immédiats `engagé`/`disponible` affichés dans la même rangée — utilise `'1.0-2'` : pas de décimales sur saisie ronde (`15 872 €`), décimales seulement si l'utilisateur en a saisi (`15 872,15 €`). C'est un **écho live de la saisie en cours**, pas un agrégat de dashboard : forcer `engagé`/`disponible` à `'1.0-0'` à côté d'un revenu à 2 décimales casserait la cohérence de la rangée et arrondirait un solde que l'utilisateur voit non-rond. Ne pas les "corriger" en `'1.0-0'`. La même logique couvre les **montants de suggestions de l'onboarding** (chips/boutons `suggestion.amount` de `complete-profile`) : ce sont des montants ronds suggérés, donc `'1.0-2'` (pas de `1 500,00 €` bruité), pas la catégorie ligne `'1.2-2'`. **Hors de l'onboarding** (bloc résumé + suggestions), tout total/solde scanné (hero dashboard `disponible`, soldes, pills…) reste en aggregation `'1.0-0'`, et toute ligne `budget_line`/`transaction` reste en `'1.2-2'`.
 
 ## In `feature/`, `pattern/`, `core/` layers
 
@@ -31,11 +33,12 @@ Use `AppCurrencyPipe` from `@core/currency` with the right digitsInfo:
 {{ line.amount | appCurrency: currency() : '1.2-2' }}
 ```
 
-This pipe wraps Angular's `CurrencyPipe` with `style: 'symbol'` + locale from `CURRENCY_CONFIG`. Produces:
+This pipe formats the number with the `numberLocale` from `CURRENCY_CONFIG` (CHF uses `de-CH`, which yields the apostrophe `’` group separator — `fr-CH` would produce a space instead) and appends the symbol in **suffix** position, matching the split-typography hero and the iOS app. Produces:
+
 - Aggregation EUR/fr-FR: `1 235 €`
-- Aggregation CHF/fr-CH: `CHF 1'235`
+- Aggregation CHF/de-CH: `1’235 CHF`
 - Ligne EUR/fr-FR: `1 234,56 €`
-- Ligne CHF/fr-CH: `CHF 1'234.56`
+- Ligne CHF/de-CH: `1’234.56 CHF`
 
 ## In `ui/` layer (cannot import `@core/`)
 
@@ -76,10 +79,12 @@ For aggregations in the `ui/` layer, use `'1.0-0'`. For lines in the `ui/` layer
 {{ value | number: '1.0-0' : locale() }} {{ currency() }}
 
 <!-- ❌ Wrong digitsInfo for category — aggregation in 1.2-2 -->
-{{ totalConsumed | appCurrency: currency() : '1.2-2' }}   <!-- aggregation -->
+{{ totalConsumed | appCurrency: currency() : '1.2-2' }}
+<!-- aggregation -->
 
 <!-- ❌ Wrong digitsInfo for category — ligne in 1.0-0 -->
-{{ budgetLine.amount | appCurrency: currency() : '1.0-0' }}   <!-- ligne -->
+{{ budgetLine.amount | appCurrency: currency() : '1.0-0' }}
+<!-- ligne -->
 
 <!-- ❌ Direct CurrencyPipe natif (bypass de la config centralisée) -->
 {{ value | currency: currency() : 'symbol' : '1.0-0' : locale() }}

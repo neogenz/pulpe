@@ -70,6 +70,7 @@ struct CurrencyConversionBadge: View {
                     .padding(.vertical, DesignTokens.Spacing.xxs)
                 let formattedRate = rate.formatted(
                     .number.precision(.fractionLength(2...4))
+                        .locale(Formatters.locale(for: originalCurrency))
                 )
                 Text("Taux figé : 1 \(originalCurrency.rawValue) = \(formattedRate)")
                     .font(PulpeTypography.caption)

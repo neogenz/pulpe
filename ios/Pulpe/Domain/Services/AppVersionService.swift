@@ -1,4 +1,5 @@
 import Foundation
+import OSLog
 
 /// Decoded shape of `GET /api/v1/app/version` — mirrors `appVersionResponseSchema`
 /// in `shared/schemas.ts`.
@@ -47,7 +48,37 @@ actor AppVersionService: AppVersionServiceProtocol {
 
     func fetch() async throws -> AppVersionResponse {
         let url = baseURL.appendingPathComponent(Self.endpointPath)
-        let (data, _) = try await session.data(from: url)
-        return try JSONDecoder().decode(AppVersionResponse.self, from: data)
+        // The endpoint is public/pre-auth and the store fails open, so any
+        // failure here would otherwise vanish — log it once (transport OR
+        // decode) so a broken gate (Railway deploy, CDN misconfig, 5xx,
+        // malformed payload) is visible in monitoring.
+        let data: Data
+        let response: URLResponse
+        do {
+            (data, response) = try await session.data(from: url)
+        } catch {
+            Logger.network.warning(
+                """
+                [FORCE-UPDATE] version endpoint unreachable — gate cannot refresh, fails open. \
+                url=\(url.absoluteString, privacy: .public) \
+                error=\(error.localizedDescription, privacy: .public)
+                """
+            )
+            throw error
+        }
+
+        let statusCode = (response as? HTTPURLResponse)?.statusCode ?? -1
+        do {
+            return try JSONDecoder().decode(AppVersionResponse.self, from: data)
+        } catch {
+            Logger.network.warning(
+                """
+                [FORCE-UPDATE] version response unusable (HTTP \(statusCode)) — gate cannot refresh, fails open. \
+                url=\(url.absoluteString, privacy: .public) \
+                error=\(error.localizedDescription, privacy: .public)
+                """
+            )
+            throw error
+        }
     }
 }

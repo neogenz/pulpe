@@ -23,18 +23,39 @@ extension OnboardingState {
         )
     ]
 
-    static let savingSuggestions: [OnboardingTransaction] = [
-        makeStaticSuggestion(
-            "F1A1E501-C0A5-4000-A000-000000000004",
-            amount: 500, type: .saving, name: "Épargne"
-        ),
-        makeStaticSuggestion(
-            "F1A1E501-C0A5-4000-A000-000000000005",
-            amount: 587, type: .saving, name: "3ème pilier"
-        )
-    ]
+    /// Saving suggestions vary by currency for the retirement-pillar label only:
+    /// Swiss users (`.chf`) see "3ème pilier", others (`.eur`) see "Épargne retraite".
+    /// The UUID and amount stay identical across both variants, so chip identity
+    /// (`isSuggestionSelected`, `isKnownSuggestion`) remains currency-agnostic — a
+    /// suggestion toggled ON as `.chf` then viewed as `.eur` stays selected (the
+    /// already-added transaction keeps its original label; only the chip relabels).
+    static func savingSuggestions(for currency: SupportedCurrency) -> [OnboardingTransaction] {
+        [
+            makeStaticSuggestion(
+                "F1A1E501-C0A5-4000-A000-000000000004",
+                amount: 500, type: .saving, name: "Épargne"
+            ),
+            makeStaticSuggestion(
+                "F1A1E501-C0A5-4000-A000-000000000005",
+                amount: 587, type: .saving, name: retirementPillarName(for: currency)
+            )
+        ]
+    }
 
-    static let suggestions: [OnboardingTransaction] = chargeSuggestions + savingSuggestions
+    /// Currency-specific label for the retirement-pillar saving suggestion.
+    private static func retirementPillarName(for currency: SupportedCurrency) -> String {
+        switch currency {
+        case .chf: return "3ème pilier"
+        case .eur: return "Épargne retraite"
+        }
+    }
+
+    /// All suggestion IDs across both currency variants. Used for currency-agnostic
+    /// identity checks (`isKnownSuggestion`). The retirement-pillar UUID is identical
+    /// regardless of label, so `.chf` is a safe reference for the full ID set.
+    private static let allSuggestionIDs: Set<UUID> = Set(
+        (chargeSuggestions + savingSuggestions(for: .chf)).map(\.id)
+    )
 
     /// Builds a suggestion with a compile-time UUID literal. The `?? UUID()` fallback
     /// keeps app boot safe if a literal is ever malformed — unit tests assert all
@@ -100,6 +121,6 @@ extension OnboardingState {
     }
 
     static func isKnownSuggestion(_ tx: OnboardingTransaction) -> Bool {
-        suggestions.contains { $0.id == tx.id }
+        allSuggestionIDs.contains(tx.id)
     }
 }

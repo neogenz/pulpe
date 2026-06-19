@@ -2,7 +2,7 @@ import Foundation
 @testable import Pulpe
 import Testing
 
-// swiftlint:disable type_body_length
+// swiftlint:disable type_body_length file_length
 @Suite(.serialized)
 @MainActor
 struct AppStateBackgroundLockTests {
@@ -290,7 +290,7 @@ struct AppStateBackgroundLockTests {
         }
     }
 
-    @Test func foregroundBiometricUnlock_sessionRefreshFailure_logsOut() async {
+    @Test func foregroundBiometricUnlock_genuineSessionLoss_logsOut() async {
         let sessionRefreshAttempted = AtomicFlag()
         let now = AtomicProperty(Date(timeIntervalSince1970: 0))
 
@@ -302,7 +302,10 @@ struct AppStateBackgroundLockTests {
             validateBiometricKey: { _ in true },
             validateRegularSession: {
                 sessionRefreshAttempted.set()
-                throw URLError(.userAuthenticationRequired)
+                // A GENUINE (non-network) session loss — e.g. the server rejected the refresh
+                // token. This must still log out. Only transient URLErrors are now spared
+                // (see `foregroundBiometricUnlock_transientNetworkError_keepsSessionAndBiometric`).
+                throw AuthServiceError.sessionExpired
             },
             nowProvider: { now.value }
         )
@@ -322,10 +325,10 @@ struct AppStateBackgroundLockTests {
         ) {
             sessionRefreshAttempted.value
         }
-        // When session refresh fails, user should be logged out
+        // When the session is genuinely gone, the user should be logged out
         await waitForCondition(
             timeout: .milliseconds(500),
-            "authState should be unauthenticated after session refresh failure"
+            "authState should be unauthenticated after a genuine session loss"
         ) {
             sut.authState == .unauthenticated
         }
@@ -370,6 +373,63 @@ struct AppStateBackgroundLockTests {
         ) {
             sut.authState == .unauthenticated
         }
+    }
+
+    // MARK: - PUL-278: Transient Refresh Failure Must NOT Force Logout
+
+    /// Regression: after the 1h access-token expiry, every reopen forces a network refresh.
+    /// On app-resume the radio is frequently cold, so the refresh hits a transient URLError.
+    /// Today `validateSession()` swallows it -> nil/throw -> `logout(source: .system)`, which
+    /// server-revokes the refresh token, wipes+disables biometric, and forces credential
+    /// re-entry. The session was actually still valid server-side — this is a self-inflicted,
+    /// permanent logout. A transient/offline failure must leave the (already biometric-unlocked)
+    /// session intact and defer the refresh; only a CONFIRMED server-side session loss may log out.
+    @Test func foregroundBiometricUnlock_transientNetworkError_keepsSessionAndBiometric() async {
+        let refreshAttempted = AtomicFlag()
+        let signOutCalled = AtomicFlag()
+        let now = AtomicProperty(Date(timeIntervalSince1970: 0))
+
+        let sut = AppState(
+            postAuthResolver: pinResolver,
+            biometricPreferenceStore: AppStateTestFactory.biometricEnabledStore(),
+            syncBiometricCredentials: { true },
+            resolveBiometricKey: { "restored-key" },
+            validateBiometricKey: { _ in true },
+            validateRegularSession: {
+                refreshAttempted.set()
+                // Transient connectivity failure on a freshly-resumed radio.
+                throw URLError(.notConnectedToInternet)
+            },
+            performSignOut: { _ in signOutCalled.set() },
+            nowProvider: { now.value }
+        )
+        sut.biometricEnabled = true
+        await authenticateViaPinEntry(sut)
+
+        sut.handleEnterBackground()
+        now.set(Date(timeIntervalSince1970: 7200)) // 2h — access token definitely expired
+        sut.prepareForForeground()
+
+        await sut.handleEnterForeground()
+
+        // Deterministically wait for the fire-and-forget background refresh — and any logout it
+        // would trigger — to finish, instead of a timing-dependent sleep. The task is @MainActor
+        // isolated, so it cannot run until we suspend on `.value`; the read is race-free.
+        await sut.backgroundRefreshTask?.value
+
+        #expect(refreshAttempted.value == true, "session refresh must be attempted")
+        #expect(
+            sut.authState == .authenticated,
+            "Transient refresh failure must NOT force logout — the session is still valid server-side"
+        )
+        #expect(
+            signOutCalled.value == false,
+            "Transient refresh failure must NOT revoke the refresh token server-side"
+        )
+        #expect(
+            sut.biometricEnabled == true,
+            "Transient refresh failure must NOT wipe/disable biometric"
+        )
     }
 
     @Test func foregroundAfterGracePeriod_biometricDisabled_requiresPinEntry() async {

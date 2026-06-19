@@ -13,12 +13,12 @@ const environment = this.config.environment();
 
 ## Required Variables
 
-| Variable | Example | Description |
-|----------|---------|-------------|
-| `PUBLIC_SUPABASE_URL` | `http://localhost:54321` | Supabase API URL |
-| `PUBLIC_SUPABASE_ANON_KEY` | `eyJhbGci...` | Supabase anonymous key |
-| `PUBLIC_BACKEND_API_URL` | `http://localhost:3000/api/v1` | Backend API endpoint |
-| `PUBLIC_ENVIRONMENT` | `development` | Environment type |
+| Variable                   | Example                        | Description            |
+| -------------------------- | ------------------------------ | ---------------------- |
+| `PUBLIC_SUPABASE_URL`      | `http://localhost:54321`       | Supabase API URL       |
+| `PUBLIC_SUPABASE_ANON_KEY` | `eyJhbGci...`                  | Supabase anonymous key |
+| `PUBLIC_BACKEND_API_URL`   | `http://localhost:3000/api/v1` | Backend API endpoint   |
+| `PUBLIC_ENVIRONMENT`       | `development`                  | Environment type       |
 
 ## PostHog Analytics (Optional)
 

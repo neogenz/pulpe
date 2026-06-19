@@ -161,7 +161,6 @@
   font-family: var(--text-label-small--font-family);
 }
 
-
 /* Financial colors & Material overrides - need !important to override Material defaults */
 @utility mat-icon-sm {
   font-size: 1.125rem !important;

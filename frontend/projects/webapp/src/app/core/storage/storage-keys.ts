@@ -18,6 +18,9 @@ export const STORAGE_KEYS = {
   BUDGET_DESKTOP_VIEW: 'pulpe-budget-desktop-view',
   BUDGET_SHOW_ONLY_UNCHECKED: 'pulpe-budget-show-only-unchecked',
 
+  // Currency snapshot — read at bootstrap to pick the formatting locale (fr-CH / fr-FR)
+  SETTINGS_CURRENCY: 'pulpe-settings-currency',
+
   // Vault/Client key - stores encrypted client key for vault access
   VAULT_CLIENT_KEY_SESSION: 'pulpe-vault-client-key-session',
   VAULT_CLIENT_KEY_LOCAL: 'pulpe-vault-client-key-local',
@@ -36,4 +39,7 @@ export const STORAGE_KEYS = {
 
   // Stale-chunk recovery: one-shot guard to prevent reload loops (sessionStorage)
   CHUNK_RELOAD_GUARD: 'pulpe-chunk-reload-attempted',
+
+  // Dev-only manual feature-flag override (honored in test/local/development only)
+  DEV_FEATURE_FLAGS: 'pulpe-dev-feature-flags',
 } as const satisfies Record<string, StorageKey>;

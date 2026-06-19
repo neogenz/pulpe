@@ -48,6 +48,19 @@ extension AppState {
                         )
                         await self?.logout(source: .system)
                     }
+                } catch let error as URLError {
+                    // Keep the session: this URLError is either a transient connectivity blip on a
+                    // freshly-resumed radio (the session is still valid server-side — logging out
+                    // would server-revoke a live session and wipe Face ID, the PUL-265 root cause)
+                    // or a deliberate cancellation from a concurrent logout. Either way, do NOT log
+                    // out; the next successful network call / SDK auto-refresh refreshes the token.
+                    if error.code == .cancelled {
+                        Logger.auth.debug("handleEnterForeground: background refresh cancelled")
+                    } else {
+                        Logger.auth.warning(
+                            "handleEnterForeground: refresh skipped, keeping session - \(error, privacy: .public)"
+                        )
+                    }
                 } catch {
                     guard !Task.isCancelled else { return }
                     Logger.auth.warning(

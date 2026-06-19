@@ -4,7 +4,6 @@ import {
   computed,
   inject,
   input,
-  LOCALE_ID,
   output,
   signal,
   linkedSignal,
@@ -24,7 +23,6 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatDatepickerModule } from '@angular/material/datepicker';
-import { MatNativeDateModule } from '@angular/material/core';
 import { TranslocoPipe } from '@jsverse/transloco';
 import {
   type Transaction,
@@ -38,6 +36,7 @@ import {
   applyAmountValidators,
   type AmountFormSlice,
   createInitialAmountSlice,
+  CURRENCY_CONFIG,
   CurrencyConverterService,
   isCurrencyPickerVisible,
   runFormSubmit,
@@ -47,6 +46,7 @@ import { UserSettingsStore } from '@core/user-settings';
 import { touchedFieldErrors } from '@core/validators';
 import { AmountInput } from '@app/pattern/amount-input/amount-input';
 import { TransactionLabelPipe } from '@ui/transaction-display';
+import { getDateDisplayFormats } from '@core/date/date-display-formats';
 import { formatLocalDate } from '@core/date/format-local-date';
 import { Logger } from '@core/logging/logger';
 
@@ -75,7 +75,6 @@ interface DateOutOfRangeError {
     MatButtonModule,
     MatIconModule,
     MatDatepickerModule,
-    MatNativeDateModule,
     TransactionLabelPipe,
     TranslocoPipe,
     FormField,
@@ -158,7 +157,10 @@ interface DateOutOfRangeError {
           [min]="minDate()"
           [max]="maxDate()"
           [formField]="transactionForm.transactionDate"
-          [placeholder]="'transactionForm.datePlaceholder' | transloco"
+          [placeholder]="
+            'transactionForm.datePlaceholder'
+              | transloco: { separator: dateSeparator() }
+          "
           aria-describedby="date-hint"
           readonly
         />
@@ -228,7 +230,6 @@ interface DateOutOfRangeError {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class EditTransactionForm {
-  readonly #locale = inject(LOCALE_ID);
   readonly #flags = inject(FeatureFlagsService);
   readonly #settings = inject(UserSettingsStore);
   readonly #converter = inject(CurrencyConverterService);
@@ -249,6 +250,14 @@ export class EditTransactionForm {
     () => this.transactionForm().valid() && !this.#isUpdating(),
   );
   protected readonly conversionError = signal(false);
+
+  readonly #dateLocale = computed(
+    () => CURRENCY_CONFIG[this.#settings.currency()].locale,
+  );
+
+  protected readonly dateSeparator = computed(
+    () => getDateDisplayFormats(this.#settings.currency()).separator,
+  );
 
   protected readonly minDate = computed(
     () => this.minDateInput() ?? startOfMonth(new Date()),
@@ -308,8 +317,8 @@ export class EditTransactionForm {
       if (date < min || date > max) {
         return {
           kind: 'dateOutOfRange',
-          min: min.toLocaleDateString(this.#locale),
-          max: max.toLocaleDateString(this.#locale),
+          min: min.toLocaleDateString(this.#dateLocale()),
+          max: max.toLocaleDateString(this.#dateLocale()),
         } satisfies DateOutOfRangeError;
       }
       return null;

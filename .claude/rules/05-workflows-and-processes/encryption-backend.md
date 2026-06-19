@@ -40,7 +40,7 @@ Each column stores AES-256-GCM ciphertext encoded in base64, or `null`.
 
 ## Write Rule
 
-All financial amounts MUST be encrypted via `EncryptionService` before writing to the database. Use `prepareAmountData(amount, dek)` which returns `{ amount: encryptedCiphertext }`.
+All financial amounts MUST be encrypted via `ENCRYPTION_PORT` before writing to the database. Repositories inject `EncryptionPort` and call `prepareAmountData(amount, userId, clientKey)`, which returns `{ amount: encryptedCiphertext }`.
 
 Demo mode uses `DEMO_CLIENT_KEY_BUFFER` — same encryption pipeline as real users.
 

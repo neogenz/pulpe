@@ -53,6 +53,132 @@ struct DashboardStoreCacheInvalidationTests {
     }
 }
 
+// MARK: - BudgetListStore Cache Invalidation (PUL-270)
+
+@Suite(.serialized)
+@MainActor
+struct BudgetListStoreCacheInvalidationTests {
+    private let cache = BudgetDetailCache.shared
+
+    @Test
+    func detailMutation_thenPopBack_refetchesListAggregates() async {
+        cache.invalidateAll()
+
+        // List screen loaded → TTL fresh
+        let mockService = MockBudgetService()
+        mockService.stubbedSparse = [
+            TestDataFactory.createBudgetSparse(id: "budget-current", month: 2, year: 2025)
+        ]
+        let listStore = BudgetListStore(budgetService: mockService)
+        await listStore.forceRefresh()
+        #expect(mockService.getBudgetsSparseCallCount == 1, "Setup: initial list load")
+
+        // User opens detail and mutates (optimistic apply ends in syncCache())
+        let currentBudget = TestDataFactory.createBudget(id: "budget-current", month: 2, year: 2025)
+        cache.store(budgetId: "budget-current", budget: currentBudget, budgetLines: [], transactions: [])
+        // Dashboard store loaded too (300s TTL, projects the same sparse aggregates)
+        let dashboardMock = MockBudgetService()
+        let dashboardStore = DashboardStore(budgetService: dashboardMock)
+        await dashboardStore.forceRefresh()
+        let dashboardBaseline = dashboardMock.getBudgetsSparseCallCount
+
+        let coordinator = BudgetDetailsCoordinator(budgetId: "budget-current")
+        // mirrors BudgetDetailsView's .task
+        coordinator.bind(budgetListStore: listStore, dashboardStore: dashboardStore)
+        let tx = TestDataFactory.createTransaction(id: "new-tx", budgetId: "budget-current")
+        await coordinator.dispatch(.addTransaction(tx))
+
+        // Pop back within the 30s TTL: BudgetListView's .task re-fires loadIfNeeded()
+        await listStore.loadIfNeeded()
+        #expect(
+            mockService.getBudgetsSparseCallCount == 2,
+            "A detail mutation must invalidate the list TTL so pop-back refetches the aggregates (PUL-270)"
+        )
+
+        // Same mutation must also mark the dashboard stale (trend chart)
+        await dashboardStore.loadIfNeeded()
+        #expect(
+            dashboardMock.getBudgetsSparseCallCount > dashboardBaseline,
+            "A detail mutation must invalidate the dashboard TTL too (PUL-270)"
+        )
+    }
+
+    @Test
+    func invalidateCache_makesNextLoadIfNeededRefetch() async {
+        let mockService = MockBudgetService()
+        let store = BudgetListStore(budgetService: mockService)
+
+        await store.forceRefresh()
+        #expect(mockService.getBudgetsSparseCallCount == 1, "Setup: initial load")
+
+        // Cache valid: loadIfNeeded must skip the fetch (TTL gate — the bug's mechanism)
+        await store.loadIfNeeded()
+        #expect(mockService.getBudgetsSparseCallCount == 1, "Cache valid: loadIfNeeded should skip fetch")
+
+        store.invalidateCache()
+
+        await store.loadIfNeeded()
+        #expect(mockService.getBudgetsSparseCallCount == 2, "After invalidation, loadIfNeeded should re-fetch")
+    }
+}
+
+// MARK: - CurrentMonthStore Mutation Seam (PUL-270)
+
+@Suite(.serialized)
+@MainActor
+struct CurrentMonthStoreMutationSeamTests {
+    @Test
+    func addTransaction_firesOnMutation() {
+        let store = CurrentMonthStore()
+        nonisolated(unsafe) var fired = 0
+        store.onMutation = { fired += 1 }
+
+        store.addTransaction(TestDataFactory.createTransaction(id: "tx-seam"))
+
+        #expect(fired == 1, "Amount-changing dashboard mutation must fire onMutation")
+    }
+
+    @Test
+    func loadPath_doesNotFireOnMutation() async {
+        let store = CurrentMonthStore()
+        nonisolated(unsafe) var fired = 0
+        store.onMutation = { fired += 1 }
+
+        await store.forceRefresh()
+
+        #expect(fired == 0, "Loads must not fire onMutation (no over-invalidation)")
+    }
+}
+
+// MARK: - BudgetDataStore Mutation Seam (PUL-270)
+
+@Suite(.serialized)
+@MainActor
+struct BudgetDataStoreMutationSeamTests {
+    private let cache = BudgetDetailCache.shared
+
+    @Test
+    func syncCache_firesOnMutation_butLoadApplyDoesNot() {
+        cache.invalidateAll()
+
+        let budget = TestDataFactory.createBudget(id: "budget-seam", month: 2, year: 2025)
+        cache.store(budgetId: "budget-seam", budget: budget, budgetLines: [], transactions: [])
+        let dataStore = BudgetDataStore(budgetId: "budget-seam")
+
+        nonisolated(unsafe) var fired = 0
+        dataStore.onMutation = { fired += 1 }
+
+        // Mutation path: syncCache fires the seam exactly once
+        dataStore.syncCache()
+        #expect(fired == 1, "syncCache (mutation choke point) must fire onMutation")
+
+        // Load path: applying a server snapshot must NOT fire it (no over-invalidation)
+        let details = BudgetDetails(budget: budget, transactions: [], budgetLines: [])
+        dataStore.applyDetails(details, ifGenerationMatches: dataStore.mutationGeneration)
+        #expect(fired == 1, "applyDetails (load path) must not fire onMutation")
+    }
+}
+
 // MARK: - BudgetDetails Adjacent Cache Invalidation
 
 @Suite(.serialized)

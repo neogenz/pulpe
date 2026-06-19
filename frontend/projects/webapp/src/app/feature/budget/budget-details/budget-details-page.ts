@@ -22,7 +22,7 @@ import {
   TOUR_START_DELAY,
 } from '@core/product-tour/product-tour.service';
 import { formatDate } from 'date-fns';
-import { frCH } from 'date-fns/locale';
+import { dateFnsLocaleFor } from '@core/locale';
 import { BaseLoading } from '@ui/loading';
 import { BudgetFinancialOverview } from '@ui/budget-financial-overview/budget-financial-overview';
 import { BudgetRolloverInfo } from '@ui/budget-rollover-info/budget-rollover-info';
@@ -146,6 +146,12 @@ export default class BudgetDetailsPage {
   protected readonly currencyLocale = computed(
     () => CURRENCY_CONFIG[this.userSettingsStore.currency()].numberLocale,
   );
+  protected readonly dateLocale = computed(
+    () => CURRENCY_CONFIG[this.userSettingsStore.currency()].locale,
+  );
+  protected readonly dateFnsLocale = computed(() =>
+    dateFnsLocaleFor(this.userSettingsStore.currency()),
+  );
   protected readonly financialTotals = this.store.financialTotals;
 
   readonly id = input.required<string>();
@@ -154,7 +160,7 @@ export default class BudgetDetailsPage {
     const budget = this.store.budgetDetails();
     if (!budget) return '';
     const date = new Date(budget.year, budget.month - 1, 1);
-    return formatDate(date, 'MMMM yyyy', { locale: frCH });
+    return formatDate(date, 'MMMM yyyy', { locale: this.dateFnsLocale() });
   });
 
   protected readonly periodDisplay = computed(() => {
@@ -184,7 +190,7 @@ export default class BudgetDetailsPage {
         const label = formatDate(
           new Date(details.year, details.month - 1, 1),
           'MMMM yyyy',
-          { locale: frCH },
+          { locale: this.dateFnsLocale() },
         );
         this.#breadcrumbState.setDynamicBreadcrumb(label);
 

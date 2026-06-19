@@ -33,6 +33,18 @@ final class BudgetDataStore {
     @ObservationIgnored private var cachedMetrics: BudgetFormulas.Metrics?
     @ObservationIgnored private var cachedRealizedMetrics: BudgetFormulas.RealizedMetrics?
 
+    // MARK: - Optimistic-mutation generation (PUL-257)
+
+    /// Monotonic counter bumped by every optimistic LOCAL source-state mutation
+    /// (and by `prepareNavigation`). A reload captures this BEFORE its network
+    /// fetch and re-checks it before applying the server snapshot via
+    /// `applyDetails(_:ifGenerationMatches:)`; if a mutation landed mid-flight
+    /// the stale snapshot is dropped instead of silently reverting the mutation.
+    /// `@ObservationIgnored` — pure bookkeeping, never drives the view.
+    @ObservationIgnored private(set) var mutationGeneration: Int = 0
+
+    private func bumpGeneration() { mutationGeneration &+= 1 }
+
     private let cache: BudgetDetailCache
 
     init(budgetId: String, cache: BudgetDetailCache = .shared) {
@@ -115,7 +127,10 @@ final class BudgetDataStore {
     }
 
     /// Apply fetched details to local state, recompute metrics, and update cache.
-    func applyDetails(_ details: BudgetDetails) {
+    /// Private: external callers must go through `applyDetails(_:ifGenerationMatches:)`
+    /// so a reload can never bypass the staleness guard and silently revert an
+    /// optimistic mutation (PUL-257).
+    private func applyDetails(_ details: BudgetDetails) {
         budget = details.budget
         budgetLines = details.budgetLines
         transactions = details.transactions
@@ -127,6 +142,18 @@ final class BudgetDataStore {
             budgetLines: details.budgetLines,
             transactions: details.transactions
         )
+    }
+
+    /// Apply a server snapshot only if no optimistic local mutation has landed
+    /// since `generation` was captured — i.e. the snapshot isn't stale (PUL-257).
+    /// Returns `true` when applied, `false` when dropped. Callers capture
+    /// `mutationGeneration` before their async fetch and pass it back here so a
+    /// reload that finishes after a concurrent mutation can't silently revert it.
+    @discardableResult
+    func applyDetails(_ details: BudgetDetails, ifGenerationMatches generation: Int) -> Bool {
+        guard mutationGeneration == generation else { return false }
+        applyDetails(details)
+        return true
     }
 
     func applyAllBudgets(_ budgets: [BudgetSparse]) {
@@ -154,48 +181,60 @@ final class BudgetDataStore {
             cachedMetrics = nil
             cachedRealizedMetrics = nil
         }
+        // Swapping the budget invalidates any in-flight reload of the previous
+        // month — bump so its stale snapshot is dropped on arrival (PUL-257).
+        bumpGeneration()
     }
 
     // Budget line collection mutations
     func appendBudgetLine(_ line: BudgetLine) {
         budgetLines.append(line)
+        bumpGeneration()
     }
 
     func updateBudgetLine(_ line: BudgetLine) {
         if let index = budgetLines.firstIndex(where: { $0.id == line.id }) {
             budgetLines[index] = line
         }
+        bumpGeneration()
     }
 
     func removeBudgetLine(id: String) {
         budgetLines.removeAll { $0.id == id }
+        bumpGeneration()
     }
 
     func setBudgetLines(_ lines: [BudgetLine]) {
         budgetLines = lines
+        bumpGeneration()
     }
 
     // Transaction collection mutations
     func appendTransaction(_ tx: Transaction) {
         transactions.append(tx)
+        bumpGeneration()
     }
 
     func updateTransaction(_ tx: Transaction) {
         if let index = transactions.firstIndex(where: { $0.id == tx.id }) {
             transactions[index] = tx
         }
+        bumpGeneration()
     }
 
     func removeTransaction(id: String) {
         transactions.removeAll { $0.id == id }
+        bumpGeneration()
     }
 
     func setTransactions(_ txs: [Transaction]) {
         transactions = txs
+        bumpGeneration()
     }
 
     func setBudget(_ value: Budget?) {
         budget = value
+        bumpGeneration()
     }
 
     // MARK: - Cache + metric helpers
@@ -216,11 +255,18 @@ final class BudgetDataStore {
         cachedRealizedMetrics = nil
     }
 
+    /// Fired at the end of every successful `syncCache()` — the single choke
+    /// point all mutations go through (loads use `applyDetails` instead). Lets
+    /// the coordinator invalidate app-scoped stores (e.g. `BudgetListStore`)
+    /// without this State layer knowing about them (PUL-270).
+    @ObservationIgnored var onMutation: (@MainActor () -> Void)?
+
     /// Sync current in-memory state to the detail cache so popping back and
     /// re-entering doesn't flash stale data after an optimistic mutation.
     func syncCache() {
         guard let budget else { return }
         cache.store(budgetId: budgetId, budget: budget, budgetLines: budgetLines, transactions: transactions)
+        onMutation?()
     }
 
     /// Invalidate cached data for adjacent months so rollover values are

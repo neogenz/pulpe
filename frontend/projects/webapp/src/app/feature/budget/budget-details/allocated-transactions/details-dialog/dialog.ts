@@ -22,6 +22,7 @@ import { CurrencyConversionBadge } from '@ui/currency-conversion-badge';
 import type { BudgetLineConsumption } from '@core/budget';
 import { FeatureFlagsService } from '@core/feature-flags';
 import { UserSettingsStore } from '@core/user-settings';
+import { getDateDisplayFormats } from '@core/date/date-display-formats';
 
 export interface AllocatedTransactionsDialogData {
   budgetLine: BudgetLine;
@@ -133,7 +134,7 @@ export interface AllocatedTransactionsDialogResult {
                 {{ 'budget.dateColumn' | transloco }}
               </th>
               <td mat-cell *matCellDef="let tx" class="text-body-small">
-                {{ tx.transactionDate | date: 'dd.MM.yyyy' }}
+                {{ tx.transactionDate | date: shortDateFormat() }}
               </td>
             </ng-container>
 
@@ -246,6 +247,9 @@ export class AllocatedTransactionsDialog {
   readonly #userSettings = inject(UserSettingsStore);
   readonly #featureFlags = inject(FeatureFlagsService);
   protected readonly currency = this.#userSettings.currency;
+  protected readonly shortDateFormat = computed(
+    () => getDateDisplayFormats(this.currency()).shortDate,
+  );
   protected readonly isMultiCurrencyEnabled =
     this.#featureFlags.isMultiCurrencyEnabled;
   readonly data = inject<AllocatedTransactionsDialogData>(MAT_DIALOG_DATA);
