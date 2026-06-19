@@ -212,7 +212,7 @@ actor StartupCoordinator {
                 return .cancelled
             } else {
                 Logger.auth.warning("[STARTUP] Maintenance network error: \(error)")
-                return .networkError("Connexion impossible, réessaie")
+                return .networkError(AuthErrorMessages.connectionUnavailable)
             }
         } catch {
             Logger.auth.warning("[STARTUP] Maintenance check failed: \(error)")
@@ -265,7 +265,7 @@ actor StartupCoordinator {
             return .cancelled
         } else {
             Logger.auth.warning("[STARTUP] Biometric validation network error: \(error)")
-            return .networkError("Connexion impossible, réessaie")
+            return .networkError(AuthErrorMessages.connectionUnavailable)
         }
     }
 
@@ -308,6 +308,20 @@ actor StartupCoordinator {
         } catch is CancellationError {
             Logger.auth.debug("[STARTUP] Regular session validation cancelled")
             return .cancelled
+        } catch let urlError as URLError {
+            // A superseded startup run cancels its in-flight `supabase.auth.session` request,
+            // which URLSession surfaces as `URLError(.cancelled)` (not `CancellationError`).
+            // Treat it as cancellation so the obsolete run doesn't apply a stale network route —
+            // mirrors the maintenance and biometric paths.
+            if urlError.code == .cancelled {
+                Logger.auth.debug("[STARTUP] Regular session validation URL request cancelled")
+                return .cancelled
+            }
+            // Transient connectivity failure (offline / cold radio on launch). The session is
+            // not gone — surface the retry UI instead of dumping the user to the login screen
+            // (which would force credential re-entry over a momentary network blip).
+            Logger.auth.warning("[STARTUP] Regular session validation network error: \(urlError, privacy: .public)")
+            return .networkError(AuthErrorMessages.connectionUnavailable)
         } catch {
             Logger.auth.warning("[STARTUP] Regular session validation failed: \(error)")
             // AnalyticsService is @MainActor — hop required from actor context

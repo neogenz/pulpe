@@ -350,7 +350,11 @@ final class AppState {
         _ authService: AuthService
     ) -> @Sendable () async throws -> UserInfo? {
         {
-            try await authService.validateSession()
+            // Strict variant: rethrows URLError so a transient/offline refresh failure is
+            // treated as "retry later" by the cold-start and foreground paths, never as a
+            // session loss. Swallowing it (old `validateSession`) forced a destructive logout
+            // on every flaky post-expiry refresh — the PUL-265 forced-logout root cause.
+            try await authService.validateSessionStrict()
         }
     }
 
