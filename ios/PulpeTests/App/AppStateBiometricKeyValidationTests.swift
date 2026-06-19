@@ -318,9 +318,12 @@ struct AppStateBiometricKeyValidationTests {
 
         sut.biometricEnabled = true
 
-        // With no key resolved, result is false regardless of validator
+        // The default validator routes through encryptionAPI.validateKey. In the unit-test
+        // sandbox EncryptionAPI.shared has no server to reach, so the call fails with a wrapped
+        // APIError.networkError. PUL-280: offline must be TOLERATED (not misread as a stale key
+        // that would wipe the client key + disable biometric), so the unlock proceeds.
         let result = await sut.attemptBiometricUnlock()
-        #expect(result == false)
+        #expect(result == true)
     }
 
     // MARK: - Edge Cases
