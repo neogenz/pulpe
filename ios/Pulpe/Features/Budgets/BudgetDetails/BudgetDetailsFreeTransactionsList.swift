@@ -192,7 +192,6 @@ private struct BudgetDetailsFreeTransactionRow: View {
         .accessibilityElement(children: .contain)
         .accessibilityLabel(accessibilityLabel)
         .accessibilityHint("Touche pour modifier")
-        .accessibilityAddTraits(.isButton)
     }
 
     private var centerColumn: some View {
