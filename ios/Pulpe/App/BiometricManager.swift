@@ -266,7 +266,7 @@ final class BiometricManager {
             do {
                 try await encryptionAPI.validateKey(clientKeyHex)
                 return true
-            } catch let error as APIError where isNetworkUnreachable(error) {
+            } catch let error as APIError where isTransportFailure(error) {
                 // Offline / server unreachable: the validate-key check could not be COMPLETED.
                 // APIClient wraps every URLSession failure into APIError.networkError, so a raw
                 // URLError never surfaces here — match the wrapped case. Tolerate so the
@@ -288,13 +288,14 @@ final class BiometricManager {
         }
     }
 
-    /// Tolerate biometric key-validation ONLY when the check could not be completed
+    /// Tolerate biometric key-validation ONLY when the check could not be COMPLETED
     /// (transport failed) — never on a server verdict. APIClient wraps every URLSession
-    /// failure into `APIError.networkError`; a cancelled in-flight request is a race, not a
-    /// verdict, so it tolerates too. A genuine bad-key verdict is always `clientKeyInvalid`
-    /// (HTTP 400), never `.networkError`, so it correctly falls through to `return false`.
-    nonisolated private static func isNetworkUnreachable(_ error: APIError) -> Bool {
-        if error.isCancellation { return true }
+    /// failure into `APIError.networkError`, including a cancelled in-flight request from a
+    /// foreground bounce (URLError.cancelled), so matching that single case covers both an
+    /// unreachable server and a cancelled request — both are races/transport events, not
+    /// verdicts. A genuine bad-key verdict is always `clientKeyInvalid` (HTTP 400), never
+    /// `.networkError`, so it correctly falls through to `return false`.
+    nonisolated private static func isTransportFailure(_ error: APIError) -> Bool {
         if case .networkError = error { return true }
         return false
     }
