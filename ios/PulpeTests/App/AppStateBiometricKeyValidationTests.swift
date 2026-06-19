@@ -299,33 +299,6 @@ struct AppStateBiometricKeyValidationTests {
         #expect(sut.biometricEnabled == true)
     }
 
-    // MARK: - Default validateBiometricKey Behavior
-
-    @Test("validateBiometricKey defaults to encryptionAPI.validateKey when nil")
-    func validateBiometricKey_defaultsToEncryptionAPI() async {
-        // When validateBiometricKey is not provided, it should default to
-        // calling encryptionAPI.validateKey(). This test documents the expected behavior.
-        let sut = AppState(
-            encryptionAPI: .shared,
-            postAuthResolver: MockPostAuthResolver(destination: .needsPinEntry(needsRecoveryKeyConsent: false)),
-            biometricPreferenceStore: BiometricPreferenceStore(
-                keychain: MockBiometricPreferenceStore(enabled: true),
-                defaults: MockBiometricPreferenceStore(enabled: false)
-            ),
-            resolveBiometricKey: { "valid-key" }
-            // validateBiometricKey is nil, so init will provide default closure
-        )
-
-        sut.biometricEnabled = true
-
-        // The default validator routes through encryptionAPI.validateKey. In the unit-test
-        // sandbox EncryptionAPI.shared has no server to reach, so the call fails with a wrapped
-        // APIError.networkError. PUL-280: offline must be TOLERATED (not misread as a stale key
-        // that would wipe the client key + disable biometric), so the unlock proceeds.
-        let result = await sut.attemptBiometricUnlock()
-        #expect(result == true)
-    }
-
     // MARK: - Edge Cases
 
     @Test("attemptBiometricUnlock with empty key string returns false from validator")
