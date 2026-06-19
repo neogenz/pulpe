@@ -6,10 +6,10 @@ import SwiftUI
 /// `ScrollView/LazyVStack`. Each row is a tap target that opens the
 /// transaction edit sheet (matching the budget-line detail flow).
 ///
-/// Visual: rows mirror `BudgetLineMixedRow` (kind tag · name · date
-/// subtitle · amount + currency suffix · chevron) with a leading inset that
-/// preserves the column rhythm of envelope rows. Free transactions are
-/// auto-counted, so there is no checkbox/`PointCircle` toggle.
+/// Visual: rows mirror `BudgetLineMixedRow` (point circle · kind tag · name ·
+/// date subtitle · amount + currency suffix · chevron). Pointing a free
+/// transaction is a personal reconciliation marker — like envelopes, it never
+/// changes any total — so the leading slot carries a real `PointCircle`.
 ///
 /// Accepts pre-shaped `FreeTransactionItem`s — the projection layer carries
 /// the `isSyncing` flag so the view stays free of `.contains` over a syncing
@@ -18,6 +18,7 @@ struct BudgetDetailsFreeTransactionsList: View {
     let items: [BudgetDetailsScreenState.FreeTransactionItem]
     let currency: SupportedCurrency
     let onTap: (Transaction) -> Void
+    let onTogglePointed: (Transaction) -> Void
 
     @State private var isExpanded = false
     private let collapsedItemCount = 3
@@ -58,7 +59,8 @@ struct BudgetDetailsFreeTransactionsList: View {
                     transaction: item.transaction,
                     isSyncing: item.isSyncing,
                     currency: currency,
-                    onTap: { onTap(item.transaction) }
+                    onTap: { onTap(item.transaction) },
+                    onTogglePointed: { onTogglePointed(item.transaction) }
                 )
                 .padding(.horizontal, DesignTokens.Spacing.lg)
                 .padding(.bottom, DesignTokens.Spacing.md)
@@ -89,20 +91,36 @@ struct BudgetDetailsFreeTransactionsList: View {
 
 // MARK: - Row
 
-/// Free-transaction row visually aligned with `BudgetLineMixedRow`: kind tag
-/// + name + date subtitle on the left, kind-tinted amount + currency suffix
-/// on the right, chevron. No `PointCircle` — free transactions are
-/// auto-counted, so the leading column reserves the same horizontal space
-/// as the envelope toggle to keep card rhythm consistent.
+/// Free-transaction row visually aligned with `BudgetLineMixedRow`: a leading
+/// `PointCircle` toggle, then kind tag + name + date subtitle on the left,
+/// kind-tinted amount + currency suffix on the right, chevron. Tapping the
+/// circle points/unpoints the transaction (`onTogglePointed`); tapping the row
+/// surface opens the edit sheet (`onTap`).
 private struct BudgetDetailsFreeTransactionRow: View {
     let transaction: Transaction
     let isSyncing: Bool
     let currency: SupportedCurrency
     let onTap: () -> Void
+    let onTogglePointed: () -> Void
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    @State private var triggerToggleFeedback = false
 
     private var kind: TransactionKind { transaction.kind }
     private var isIncome: Bool { kind == .income }
     private var isSaving: Bool { kind == .saving }
+    private var isPointed: Bool { transaction.isChecked }
+
+    /// PointCircle dot color — kind-based, mirroring `BudgetLineMixedRow.dotColor`
+    /// minus the over-budget branch (a free transaction has no envelope to
+    /// overshoot). Expenses use `financialExpense` so the pointed state stays
+    /// visually consistent with envelope rows.
+    private var dotColor: Color {
+        if isIncome { return .financialIncome }
+        if isSaving { return .financialSavings }
+        return .financialExpense
+    }
 
     /// Mirrors `BudgetLineMixedRow.amountColor` minus the consumption-driven
     /// branches (no envelope to overshoot). Expenses fall back to the neutral
@@ -126,26 +144,28 @@ private struct BudgetDetailsFreeTransactionRow: View {
 
     private var accessibilityLabel: String {
         let amount = transaction.amount.asCurrency(currency)
-        return "\(kind.label) · \(transaction.name) · \(amount) · \(transaction.transactionDate.dayMonthFormatted)"
+        let pointed = isPointed ? "Pointé" : "À pointer"
+        return "\(kind.label) · \(transaction.name) · \(amount) · \(transaction.transactionDate.dayMonthFormatted) · \(pointed)"
+    }
+
+    private func handleTogglePointed() {
+        triggerToggleFeedback.toggle()
+        onTogglePointed()
     }
 
     var body: some View {
         Button(action: onTap) {
             HStack(spacing: DesignTokens.Spacing.xxs) {
-                // Empty leading slot keeps the same column origin as
-                // `BudgetLineMixedRow` (PointCircle width + leading xs) so
-                // free-tx and envelope rows share a clean vertical rhythm.
-                Color.clear
-                    .frame(
-                        width: DesignTokens.Checkbox.size,
-                        height: DesignTokens.Checkbox.size
-                    )
+                PointCircle(
+                    isPointed: isPointed,
+                    color: dotColor,
+                    isSyncing: isSyncing,
+                    onToggle: handleTogglePointed
+                )
 
                 centerColumn
 
                 Spacer(minLength: DesignTokens.Spacing.sm)
-
-                SyncIndicator(isSyncing: isSyncing)
 
                 amountColumn
 
@@ -156,12 +176,20 @@ private struct BudgetDetailsFreeTransactionRow: View {
             .padding(.trailing, DesignTokens.Spacing.md)
             .frame(maxWidth: .infinity, minHeight: DesignTokens.ListRow.minHeight, alignment: .leading)
             .contentShape(Rectangle())
+            .opacity(isPointed ? DesignTokens.Opacity.pointedDim : 1)
+            .animation(
+                reduceMotion ? nil : DesignTokens.Animation.gentleSpring,
+                value: isPointed
+            )
         }
         .buttonStyle(.plain)
         .background(Color.surfaceContainerLowest)
         .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.xl))
         .shadow(DesignTokens.Shadow.subtle)
-        .accessibilityElement(children: .ignore)
+        .sensoryFeedback(.success, trigger: triggerToggleFeedback)
+        // `.contain` keeps the inner PointCircle as its own focus node so VoiceOver
+        // can drive the pointed/unpointed toggle independently of the row's tap-to-open.
+        .accessibilityElement(children: .contain)
         .accessibilityLabel(accessibilityLabel)
         .accessibilityHint("Touche pour modifier")
         .accessibilityAddTraits(.isButton)
@@ -174,6 +202,7 @@ private struct BudgetDetailsFreeTransactionRow: View {
             Text(transaction.name)
                 .font(PulpeTypography.listRowTitle)
                 .foregroundStyle(Color.textPrimary)
+                .strikethrough(isPointed, color: Color.textTertiary)
                 .lineLimit(1)
                 .truncationMode(.tail)
 

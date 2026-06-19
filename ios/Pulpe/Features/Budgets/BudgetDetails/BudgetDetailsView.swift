@@ -219,6 +219,11 @@ struct BudgetDetailsView: View {
                         currency: userSettingsStore.currency,
                         onTap: { transaction in
                             router.push(.editTx(transactionId: transaction.id))
+                        },
+                        onTogglePointed: { transaction in
+                            Task {
+                                await coordinator.dispatch(.toggleTransaction(transaction))
+                            }
                         }
                     )
                 }
