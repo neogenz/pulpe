@@ -55,6 +55,10 @@ struct AppStateDependencies {
 
     var nowProvider: @Sendable () -> Date
 
+    /// Upper bound on the foreground biometric unlock (PUL-279). Test seam — production
+    /// leaves this at `AppConfiguration.foregroundUnlockTimeout`.
+    var foregroundUnlockTimeout: Duration
+
     // swiftlint:disable function_default_parameter_at_end
     init(
         authService: AuthService,
@@ -88,7 +92,8 @@ struct AppStateDependencies {
             (BudgetCreate) async throws -> Budget = { data in
             try await BudgetService.shared.createBudget(data)
         },
-        nowProvider: @escaping @Sendable () -> Date = { Date() }
+        nowProvider: @escaping @Sendable () -> Date = { Date() },
+        foregroundUnlockTimeout: Duration = AppConfiguration.foregroundUnlockTimeout
     ) {
         self.authService = authService
         self.clientKeyManager = clientKeyManager
@@ -114,6 +119,7 @@ struct AppStateDependencies {
         self.createTemplate = createTemplate
         self.createBudget = createBudget
         self.nowProvider = nowProvider
+        self.foregroundUnlockTimeout = foregroundUnlockTimeout
     }
     // swiftlint:enable function_default_parameter_at_end
 

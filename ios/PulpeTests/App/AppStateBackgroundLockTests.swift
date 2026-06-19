@@ -1,4 +1,5 @@
 import Foundation
+import Observation
 @testable import Pulpe
 import Testing
 
@@ -249,6 +250,102 @@ struct AppStateBackgroundLockTests {
 
         #expect(sut.authState == .needsPinEntry)
         #expect(sut.isRestoringSession == false)
+    }
+
+    // MARK: - PUL-279: Bounded Foreground Unlock (Frozen Privacy Shield)
+
+    /// A Face ID prompt the user never answers must not freeze the privacy shield: once
+    /// `resolveKey` exceeds `foregroundUnlockTimeout`, the restore is abandoned and the app
+    /// routes to PIN entry, releasing `isRestoringSession`.
+    @Test func foregroundAfterGracePeriod_biometricResolveTimeout_requiresPinEntry() async {
+        let now = AtomicProperty(Date(timeIntervalSince1970: 0))
+        let sut = AppState(
+            postAuthResolver: pinResolver,
+            biometricPreferenceStore: AppStateTestFactory.biometricEnabledStore(),
+            syncBiometricCredentials: { true },
+            resolveBiometricKey: {
+                // Simulate a Face ID prompt the user never answers — `resolveKey` never returns.
+                try? await Task.sleep(for: .seconds(60))
+                return "restored-key"
+            },
+            validateBiometricKey: { _ in true },
+            nowProvider: { now.value },
+            foregroundUnlockTimeout: .milliseconds(50)
+        )
+        sut.biometricEnabled = true
+        await authenticateViaPinEntry(sut)
+
+        sut.handleEnterBackground()
+        now.set(Date(timeIntervalSince1970: 31))
+        sut.prepareForForeground()
+        #expect(sut.isRestoringSession == true)
+
+        await sut.handleEnterForeground()
+
+        #expect(sut.authState == .needsPinEntry)
+        #expect(sut.isRestoringSession == false)
+    }
+
+    /// Same guarantee when `resolveKey` succeeds but `validateKey` stalls: the bounded unlock
+    /// still times out to PIN entry rather than leaving the shield frozen.
+    @Test func foregroundAfterGracePeriod_biometricValidateTimeout_requiresPinEntry() async {
+        let now = AtomicProperty(Date(timeIntervalSince1970: 0))
+        let sut = AppState(
+            postAuthResolver: pinResolver,
+            biometricPreferenceStore: AppStateTestFactory.biometricEnabledStore(),
+            syncBiometricCredentials: { true },
+            resolveBiometricKey: { "restored-key" },
+            validateBiometricKey: { _ in
+                // Key resolves, but validation never returns (e.g. a stalled crypto/keychain call).
+                try? await Task.sleep(for: .seconds(60))
+                return true
+            },
+            nowProvider: { now.value },
+            foregroundUnlockTimeout: .milliseconds(50)
+        )
+        sut.biometricEnabled = true
+        await authenticateViaPinEntry(sut)
+
+        sut.handleEnterBackground()
+        now.set(Date(timeIntervalSince1970: 31))
+        sut.prepareForForeground()
+        #expect(sut.isRestoringSession == true)
+
+        await sut.handleEnterForeground()
+
+        #expect(sut.authState == .needsPinEntry)
+        #expect(sut.isRestoringSession == false)
+    }
+
+    /// Regression: `isRestoringSession` must be observable. The privacy shield is gated on it
+    /// (`shouldShowPrivacyShield = privacyShieldActive || isRestoringSession`); if a change does
+    /// not notify SwiftUI, the overlay never re-renders to clear and the blur stays frozen even
+    /// after the restore completes.
+    @Test func handleEnterForeground_restoringSessionCleared_notifiesObservers() async {
+        let now = AtomicProperty(Date(timeIntervalSince1970: 0))
+        let sut = AppState(postAuthResolver: pinResolver, nowProvider: { now.value })
+        sut.biometricEnabled = false
+        await authenticateViaPinEntry(sut)
+
+        sut.handleEnterBackground()
+        now.set(Date(timeIntervalSince1970: 31))
+        sut.prepareForForeground()
+        #expect(sut.isRestoringSession == true)
+
+        nonisolated(unsafe) var observerNotified = false
+        withObservationTracking {
+            _ = sut.isRestoringSession
+        } onChange: {
+            observerNotified = true
+        }
+
+        await sut.handleEnterForeground()
+
+        #expect(sut.isRestoringSession == false)
+        #expect(
+            observerNotified,
+            "isRestoringSession change must notify observers, else the privacy shield stays frozen"
+        )
     }
 
     // MARK: - Session Refresh After Biometric Foreground Unlock (C2-2)

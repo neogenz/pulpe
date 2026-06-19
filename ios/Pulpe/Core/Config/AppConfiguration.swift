@@ -117,6 +117,11 @@ enum AppConfiguration {
     /// Grace period before requiring PIN re-entry after backgrounding (RG-006)
     static let backgroundGracePeriod: Duration = .seconds(30)
 
+    /// Upper bound on the foreground biometric unlock (`resolveKey` + `validateKey`) so a hung
+    /// Face ID prompt or stalled validation cannot freeze the privacy shield indefinitely
+    /// (PUL-279). Aligned with `requestTimeout`; on timeout the app routes to PIN entry.
+    static let foregroundUnlockTimeout: Duration = .seconds(requestTimeout)
+
     // MARK: - Private
 
     private static func requiredValue(for key: String) -> String {

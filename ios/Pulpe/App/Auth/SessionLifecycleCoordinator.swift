@@ -5,7 +5,11 @@ import OSLog
 ///
 /// Returns typed result enums for AppState to map into auth state transitions.
 /// Does NOT set `authState` directly.
-@MainActor
+///
+/// `@Observable` so `isRestoringSession` flips drive SwiftUI: the privacy shield
+/// (`AppRuntimeCoordinator.shouldShowPrivacyShield`) reads this flag transitively, and
+/// without observation it would never re-render to clear the blur when restore completes.
+@Observable @MainActor
 final class SessionLifecycleCoordinator {
     // MARK: - Result Types
     enum ColdStartResult: Equatable {
@@ -36,18 +40,24 @@ final class SessionLifecycleCoordinator {
     private let validateBiometricSession: @Sendable () async throws -> BiometricSessionResult?
     private let nowProvider: () -> Date
 
+    /// Upper bound on the foreground biometric unlock (PUL-279). Injectable so tests can
+    /// shrink it; production uses `AppConfiguration.foregroundUnlockTimeout`.
+    private let foregroundUnlockTimeout: Duration
+
     init(
         biometric: BiometricManager,
         clientKeyManager: ClientKeyManager,
         validateRegularSession: @escaping @Sendable () async throws -> UserInfo?,
         validateBiometricSession: @escaping @Sendable () async throws -> BiometricSessionResult?,
-        nowProvider: @escaping () -> Date
+        nowProvider: @escaping () -> Date,
+        foregroundUnlockTimeout: Duration = AppConfiguration.foregroundUnlockTimeout
     ) {
         self.biometric = biometric
         self.clientKeyManager = clientKeyManager
         self.validateRegularSession = validateRegularSession
         self.validateBiometricSession = validateBiometricSession
         self.nowProvider = nowProvider
+        self.foregroundUnlockTimeout = foregroundUnlockTimeout
     }
 
     // MARK: - Cold Start
@@ -171,6 +181,10 @@ final class SessionLifecycleCoordinator {
     /// Handles foreground entry after grace period: clears background date,
     /// clears client key cache, and attempts biometric unlock.
     /// Returns a result for AppState to map into state transitions.
+    ///
+    /// The biometric unlock is bounded by `foregroundUnlockTimeout` (PUL-279): a hung
+    /// Face ID prompt or stalled validation routes to PIN entry instead of leaving the
+    /// privacy shield frozen. The financial content stays masked either way.
     func handleEnterForeground(authState: AppState.AuthStatus) async -> ForegroundResult {
         guard backgroundLockApplies(authState: authState) else {
             return .noLockNeeded
@@ -182,20 +196,80 @@ final class SessionLifecycleCoordinator {
         await clientKeyManager.clearCache()
         authDebug("AUTH_FG_LOCK", "cache cleared, checking biometric key")
 
-        if biometric.isEnabled, let clientKeyHex = await biometric.resolveKey() {
-            authDebug("AUTH_FG_LOCK", "key resolved, validating")
-            if await biometric.validateKey(clientKeyHex) {
-                authDebug("AUTH_FG_LOCK", "key valid, biometric unlock success")
-                return .biometricUnlockSuccess
-            }
+        guard biometric.isEnabled else {
+            authDebug("AUTH_FG_LOCK", "biometric disabled, lock required")
+            return .lockRequired
+        }
+
+        switch await attemptBiometricUnlockWithinTimeout() {
+        case .success:
+            authDebug("AUTH_FG_LOCK", "key valid, biometric unlock success")
+            return .biometricUnlockSuccess
+        case .stale:
             authDebug("AUTH_FG_LOCK", "key stale, requiring PIN")
             Logger.auth.warning("handleEnterForeground: stale biometric key, requiring PIN")
             await biometric.handleStaleKey()
             return .staleKeyLockRequired
+        case .noKey:
+            authDebug("AUTH_FG_LOCK", "no biometric key, lock required")
+            return .lockRequired
+        case .timedOut:
+            authDebug("AUTH_FG_LOCK", "unlock timed out, requiring PIN")
+            Logger.auth.warning("handleEnterForeground: foreground unlock timed out, requiring PIN")
+            return .lockRequired
+        }
+    }
+
+    // MARK: - Bounded Biometric Unlock (PUL-279)
+
+    private enum ForegroundUnlockOutcome: Sendable {
+        case success
+        case stale
+        case noKey
+        case timedOut
+    }
+
+    /// Resolves the biometric key then validates it. Pure with respect to coordinator state —
+    /// side effects (`handleStaleKey`) are applied by the caller so a timed-out, abandoned
+    /// run never mutates state late.
+    private func attemptBiometricUnlock() async -> ForegroundUnlockOutcome {
+        guard let clientKeyHex = await biometric.resolveKey() else {
+            return .noKey
+        }
+        return await biometric.validateKey(clientKeyHex) ? .success : .stale
+    }
+
+    /// Races the biometric unlock against `foregroundUnlockTimeout` and returns whichever
+    /// resolves first. Uses unstructured tasks (not a task group) on purpose: the system
+    /// Face ID prompt may ignore cancellation, so a structured group would still block on the
+    /// hung child. A late unlock result is ignored once the timeout has resolved.
+    private func attemptBiometricUnlockWithinTimeout() async -> ForegroundUnlockOutcome {
+        await withCheckedContinuation { (continuation: CheckedContinuation<ForegroundUnlockOutcome, Never>) in
+            let unlockGuard = ForegroundUnlockGuard(continuation)
+            Task(name: "ForegroundUnlock.operation") { @MainActor in
+                unlockGuard.resolve(await self.attemptBiometricUnlock())
+            }
+            Task(name: "ForegroundUnlock.timeout") { @MainActor in
+                try? await Task.sleep(for: self.foregroundUnlockTimeout)
+                unlockGuard.resolve(.timedOut)
+            }
+        }
+    }
+
+    /// Resolves a `CheckedContinuation` exactly once across the racing unlock and timeout
+    /// tasks. Main-actor isolated so the two resumers never race; the second resume is a no-op.
+    @MainActor
+    private final class ForegroundUnlockGuard {
+        private var continuation: CheckedContinuation<ForegroundUnlockOutcome, Never>?
+
+        init(_ continuation: CheckedContinuation<ForegroundUnlockOutcome, Never>) {
+            self.continuation = continuation
         }
 
-        authDebug("AUTH_FG_LOCK", "no biometric key, lock required")
-        return .lockRequired
+        func resolve(_ outcome: ForegroundUnlockOutcome) {
+            continuation?.resume(returning: outcome)
+            continuation = nil
+        }
     }
 
     // MARK: - Private

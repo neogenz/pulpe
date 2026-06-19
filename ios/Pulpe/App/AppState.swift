@@ -235,6 +235,7 @@ final class AppState {
         let startup: StartupCoordinator
     }
 
+    // swiftlint:disable:next function_body_length
     private static func makeCoordinators(
         deps: AppStateDependencies,
         biometric: BiometricManager,
@@ -265,7 +266,8 @@ final class AppState {
             validateRegularSession: validateRegularSession,
             validateBiometricSession: deps.validateBiometricSession
                 ?? defaultValidateBiometricSession(deps.authService),
-            nowProvider: deps.nowProvider
+            nowProvider: deps.nowProvider,
+            foregroundUnlockTimeout: deps.foregroundUnlockTimeout
         )
         let startup = StartupCoordinator(
             checkMaintenance: deps.maintenanceChecking,
@@ -318,7 +320,8 @@ final class AppState {
         maintenanceChecking: @escaping @Sendable () async throws -> Bool = {
             try await MaintenanceService.shared.checkStatus()
         },
-        nowProvider: @escaping @Sendable () -> Date = { Date() }
+        nowProvider: @escaping @Sendable () -> Date = { Date() },
+        foregroundUnlockTimeout: Duration = AppConfiguration.foregroundUnlockTimeout
     ) {
         self.init(dependencies: AppStateDependencies(
             authService: authService,
@@ -340,7 +343,8 @@ final class AppState {
             deleteAccountRequest: deleteAccountRequest,
             performSignOut: performSignOut,
             maintenanceChecking: maintenanceChecking,
-            nowProvider: nowProvider
+            nowProvider: nowProvider,
+            foregroundUnlockTimeout: foregroundUnlockTimeout
         ))
     }
 
