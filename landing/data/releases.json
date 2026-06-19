@@ -1,5 +1,58 @@
 [
   {
+    "version": "0.36.0",
+    "date": "2026-06-19",
+    "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.36.0",
+    "platforms": [
+      "web",
+      "ios"
+    ],
+    "changes": {
+      "features": [
+        {
+          "title": "Affichage adapté au pays",
+          "description": "Dates, montants et formats suivent automatiquement ta devise : suisse (CHF) ou français (€)"
+        },
+        {
+          "title": "Textes localisés CH/FR",
+          "description": "Suggestions d'épargne et libellés adaptés au pays ; le hero de la landing détecte le pays du visiteur"
+        }
+      ],
+      "fixes": [
+        {
+          "title": "Connexion iOS plus stable",
+          "description": "Fin des déconnexions intempestives quasi quotidiennes et du bouton Face ID inactif"
+        },
+        {
+          "title": "Détail du budget (iOS)",
+          "description": "Suppression, rechargements simultanés, recherche par montant et erreurs de pointage fiabilisés"
+        },
+        {
+          "title": "Solde annuel (iOS)",
+          "description": "Le potentiel de l'année s'appuie sur le solde de clôture cumulé"
+        },
+        {
+          "title": "Onboarding",
+          "description": "Pied de page repositionné et nettoyage des modèles orphelins en cas d'échec de génération du budget"
+        }
+      ],
+      "technical": [
+        {
+          "title": "Cloisonnement des accès",
+          "description": "Isolation renforcée des accès entre comptes"
+        },
+        {
+          "title": "CSP de production",
+          "description": "Retrait de l'URL de préversion de la politique de sécurité"
+        },
+        {
+          "title": "Garde de version minimale",
+          "description": "Vérification de la version minimale et validation au démarrage du serveur"
+        }
+      ]
+    }
+  },
+  {
     "version": "0.35.0",
     "date": "2026-05-14",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.35.0",

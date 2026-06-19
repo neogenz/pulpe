@@ -1,5 +1,15 @@
 # pulpe-frontend
 
+## 0.36.0
+
+### Minor Changes
+
+- Adaptation CH/FR : formats (dates, montants) et libellés suivent la devise de l'utilisateur. Corrections iOS (stabilité de session, détail du budget, solde annuel) et onboarding.
+
+### Patch Changes
+
+- pulpe-shared@0.36.0
+
 ## 0.35.0
 
 ### Minor Changes

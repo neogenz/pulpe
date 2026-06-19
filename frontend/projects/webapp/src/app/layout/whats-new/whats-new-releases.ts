@@ -4,6 +4,6 @@ export interface WhatsNewRelease {
 }
 
 export const LATEST_RELEASE: WhatsNewRelease = {
-  version: '0.34.1',
-  features: ['Carte enveloppe mobile : "Disponible" + Dépensé / % restaurés'],
+  version: '0.36.0',
+  features: ['Affichage adapté à ta devise (CH/FR)'],
 };
