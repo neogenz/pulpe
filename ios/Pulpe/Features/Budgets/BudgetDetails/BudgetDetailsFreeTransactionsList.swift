@@ -145,7 +145,8 @@ private struct BudgetDetailsFreeTransactionRow: View {
     private var accessibilityLabel: String {
         let amount = transaction.amount.asCurrency(currency)
         let pointed = isPointed ? "Pointé" : "À pointer"
-        return "\(kind.label) · \(transaction.name) · \(amount) · \(transaction.transactionDate.dayMonthFormatted) · \(pointed)"
+        let date = transaction.transactionDate.dayMonthFormatted
+        return "\(kind.label) · \(transaction.name) · \(amount) · \(date) · \(pointed)"
     }
 
     private func handleTogglePointed() {
