@@ -5,7 +5,11 @@ import OSLog
 ///
 /// Returns typed result enums for AppState to map into auth state transitions.
 /// Does NOT set `authState` directly.
-@MainActor
+///
+/// `@Observable` so `isRestoringSession` flips drive SwiftUI: the privacy shield
+/// (`AppRuntimeCoordinator.shouldShowPrivacyShield`) reads this flag transitively, and
+/// without observation it would never re-render to clear the blur when restore completes.
+@Observable @MainActor
 final class SessionLifecycleCoordinator {
     // MARK: - Result Types
     enum ColdStartResult: Equatable {

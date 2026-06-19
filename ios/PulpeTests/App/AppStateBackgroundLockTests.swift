@@ -1,4 +1,5 @@
 import Foundation
+import Observation
 @testable import Pulpe
 import Testing
 
@@ -314,6 +315,37 @@ struct AppStateBackgroundLockTests {
 
         #expect(sut.authState == .needsPinEntry)
         #expect(sut.isRestoringSession == false)
+    }
+
+    /// Regression: `isRestoringSession` must be observable. The privacy shield is gated on it
+    /// (`shouldShowPrivacyShield = privacyShieldActive || isRestoringSession`); if a change does
+    /// not notify SwiftUI, the overlay never re-renders to clear and the blur stays frozen even
+    /// after the restore completes.
+    @Test func handleEnterForeground_restoringSessionCleared_notifiesObservers() async {
+        let now = AtomicProperty(Date(timeIntervalSince1970: 0))
+        let sut = AppState(postAuthResolver: pinResolver, nowProvider: { now.value })
+        sut.biometricEnabled = false
+        await authenticateViaPinEntry(sut)
+
+        sut.handleEnterBackground()
+        now.set(Date(timeIntervalSince1970: 31))
+        sut.prepareForForeground()
+        #expect(sut.isRestoringSession == true)
+
+        nonisolated(unsafe) var observerNotified = false
+        withObservationTracking {
+            _ = sut.isRestoringSession
+        } onChange: {
+            observerNotified = true
+        }
+
+        await sut.handleEnterForeground()
+
+        #expect(sut.isRestoringSession == false)
+        #expect(
+            observerNotified,
+            "isRestoringSession change must notify observers, else the privacy shield stays frozen"
+        )
     }
 
     // MARK: - Session Refresh After Biometric Foreground Unlock (C2-2)

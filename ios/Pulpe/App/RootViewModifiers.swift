@@ -144,7 +144,10 @@ struct PrivacyShieldOverlay: View {
         Rectangle()
             .fill(.ultraThinMaterial)
             .ignoresSafeArea()
-            .allowsHitTesting(false)
+            // Absorb all touches: while the shield is up the content below must not be
+            // interactive (PUL-279). A full-screen hit-testable shape with no gesture
+            // simply swallows taps/scrolls until the unlock resolves.
+            .contentShape(Rectangle())
             .accessibilityHidden(true)
     }
 }
