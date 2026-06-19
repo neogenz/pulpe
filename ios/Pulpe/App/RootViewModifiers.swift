@@ -142,7 +142,10 @@ struct RootViewLifecycle: ViewModifier {
 struct PrivacyShieldOverlay: View {
     var body: some View {
         Rectangle()
-            .fill(.ultraThinMaterial)
+            // .thickMaterial (not ultraThin): the masked content must be unreadable behind the
+            // shield, never just faintly blurred (PUL-279 CA3). Still a muted blur — no solid
+            // fill, spinner or label.
+            .fill(.thickMaterial)
             .ignoresSafeArea()
             // Absorb all touches: while the shield is up the content below must not be
             // interactive (PUL-279). A full-screen hit-testable shape with no gesture
