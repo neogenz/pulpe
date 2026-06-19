@@ -239,7 +239,7 @@
       "source": "pbakaus/impeccable",
       "sourceType": "github",
       "skillPath": ".agents/skills/impeccable/SKILL.md",
-      "computedHash": "16180e7175cb29ef050926233b8514d7323294156890e1f1b17024ba8d9dab71"
+      "computedHash": "c3fc1193e4777c1fde1e8455a6ce23bbc0ae506dabb026b639cf594fdfa6c733"
     },
     "ios-marketing-capture": {
       "source": "ParthJadhav/ios-marketing-capture",
@@ -275,7 +275,7 @@
       "source": "supabase/agent-skills",
       "sourceType": "github",
       "skillPath": "skills/supabase-postgres-best-practices/SKILL.md",
-      "computedHash": "efc547df91cc56b69792532db54607027884cb5873718c7ca1ebf6d6f1e4cb53"
+      "computedHash": "0d2c4857a7d6fdcd3fbc46e458fa4c497f029cab89a01548b3defce203003932"
     },
     "swift-concurrency-expert": {
       "source": "dimillian/skills",
@@ -293,7 +293,7 @@
       "source": "avdlee/swiftui-agent-skill",
       "sourceType": "github",
       "skillPath": "swiftui-expert-skill/SKILL.md",
-      "computedHash": "ffe7adc4c442d2e75985b61ab281e3e303fe201c077ed05d82c0198a18fb1a25"
+      "computedHash": "12a318304d7cdc6ec40e981f02865d098caf6eab1b992051e3322ebeecf287b1"
     },
     "swiftui-performance-audit": {
       "source": "dimillian/skills",
