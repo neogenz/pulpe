@@ -528,7 +528,15 @@
     "addTransactionAriaLabel": "Ajouter une transaction",
     "noTransactionHint": "Ajoute une transaction pour suivre tes dépenses",
     "editAriaLabel": "Modifier {{ name }}",
-    "deleteAriaLabel": "Supprimer {{ name }}"
+    "deleteAriaLabel": "Supprimer {{ name }}",
+    "spread": {
+      "pill": "Lissé",
+      "pillAriaLabel": "Dépense lissée — voir les autres mois",
+      "viewOtherMonths": "Voir les autres mois",
+      "panelTitle": "Réparti sur {{ count }} mois",
+      "currentMonth": "Ce mois",
+      "loadError": "Impossible de charger les occurrences"
+    }
   },
   "transaction": {
     "deleted": "Transaction supprimée",

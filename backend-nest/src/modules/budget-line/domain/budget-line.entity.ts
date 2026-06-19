@@ -22,6 +22,8 @@ export interface BudgetLine {
   budgetId: string;
   templateLineId: string | null;
   savingsGoalId: string | null;
+  /** PUL-17: groupe des prévisions sœurs d'une dépense lissée. null = non lissée. */
+  spreadGroupId: string | null;
   name: string;
   amount: number;
   originalAmount: number | null;
@@ -34,6 +36,25 @@ export interface BudgetLine {
   checkedAt: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+/**
+ * One occurrence of a spread group across its months (PUL-17 Lot C, read-only).
+ * Cross-budget projection: budget_line fields (decrypted) + its budget's month/year.
+ */
+export interface SpreadOccurrence {
+  budgetLineId: string;
+  budgetId: string;
+  month: number;
+  year: number;
+  name: string;
+  amount: number;
+  originalAmount: number | null;
+  originalCurrency: string | null;
+  targetCurrency: string | null;
+  exchangeRate: number | null;
+  kind: TransactionKind;
+  checkedAt: string | null;
 }
 
 /**

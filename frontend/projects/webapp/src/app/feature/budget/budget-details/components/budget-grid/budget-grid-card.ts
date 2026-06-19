@@ -20,6 +20,7 @@ import { formatMatchAnnotation } from '../../view-models/budget-item-constants';
 import type { BudgetLineTableItem } from '../../view-models/table-items.view-model';
 import { SegmentedBudgetProgress } from '../segmented-budget-progress';
 import { BudgetActionMenu } from '../budget-action-menu';
+import { SpreadPill } from '../spread-pill';
 
 /**
  * Desktop envelope card component following M3 Expressive design
@@ -52,6 +53,7 @@ import { BudgetActionMenu } from '../budget-action-menu';
     SegmentedBudgetProgress,
     FinancialKindIndicator,
     BudgetActionMenu,
+    SpreadPill,
   ],
   template: `
     <div
@@ -74,15 +76,24 @@ import { BudgetActionMenu } from '../budget-action-menu';
     >
       <!-- Header: Name + Menu -->
       <div class="flex items-start justify-between mb-4">
-        <div class="flex items-center gap-2.5 min-w-0 flex-1">
-          <pulpe-financial-kind-indicator [kind]="item().data.kind" />
-          <span
-            class="text-title-medium font-medium truncate ph-no-capture"
-            [class.line-through]="item().data.checkedAt"
-            [class.text-on-surface-variant]="item().data.checkedAt"
-          >
-            {{ item().metadata.displayName }}
-          </span>
+        <div class="flex flex-col gap-1 min-w-0 flex-1">
+          <div class="flex items-center gap-2.5 min-w-0">
+            <pulpe-financial-kind-indicator [kind]="item().data.kind" />
+            <span
+              class="text-title-medium font-medium truncate ph-no-capture"
+              [class.line-through]="item().data.checkedAt"
+              [class.text-on-surface-variant]="item().data.checkedAt"
+            >
+              {{ item().metadata.displayName }}
+            </span>
+          </div>
+          @if (item().metadata.isSpread && item().metadata.spreadGroupId) {
+            <pulpe-spread-pill
+              class="ml-7"
+              [spreadGroupId]="item().metadata.spreadGroupId!"
+              (openOccurrences)="viewSpreadOccurrences.emit($event)"
+            />
+          }
         </div>
 
         <pulpe-budget-action-menu
@@ -92,6 +103,7 @@ import { BudgetActionMenu } from '../budget-action-menu';
           (edit)="edit.emit($event)"
           (delete)="delete.emit($event)"
           (addTransaction)="addTransaction.emit($event)"
+          (viewSpreadOccurrences)="viewSpreadOccurrences.emit($event)"
           (resetFromTemplate)="resetFromTemplate.emit($event)"
         />
       </div>
@@ -231,6 +243,7 @@ export class BudgetGridCard {
   readonly edit = output<BudgetLineTableItem>();
   readonly delete = output<string>();
   readonly addTransaction = output<BudgetLine>();
+  readonly viewSpreadOccurrences = output<string>();
   readonly resetFromTemplate = output<BudgetLineTableItem>();
   readonly toggleCheck = output<string>();
 }

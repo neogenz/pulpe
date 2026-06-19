@@ -24,6 +24,12 @@ import {
   budgetLineResponseSchema,
   type BudgetLineDeleteResponse,
   budgetLineDeleteResponseSchema,
+  type BudgetLineSpreadCreate,
+  budgetLineSpreadCreateSchema,
+  type BudgetLineSpreadResponse,
+  budgetLineSpreadResponseSchema,
+  type SpreadOccurrence,
+  spreadOccurrencesResponseSchema,
   type Transaction,
   type TransactionCreate,
   type TransactionCreateResponse,
@@ -205,6 +211,26 @@ export class BudgetApi {
       budgetLineResponseSchema,
       budgetLineCreateSchema,
     );
+  }
+
+  createBudgetLineSpread$(
+    data: BudgetLineSpreadCreate,
+  ): Observable<BudgetLineSpreadResponse> {
+    return this.#api.post$(
+      '/budget-lines/spread',
+      data,
+      budgetLineSpreadResponseSchema,
+      budgetLineSpreadCreateSchema,
+    );
+  }
+
+  getSpreadOccurrences$(spreadGroupId: string): Observable<SpreadOccurrence[]> {
+    return this.#api
+      .get$(
+        `/budget-lines/spread/${spreadGroupId}`,
+        spreadOccurrencesResponseSchema,
+      )
+      .pipe(map((response) => response.data));
   }
 
   updateBudgetLine$(

@@ -81,6 +81,18 @@ import type {
             <mat-icon matMenuItemIcon>edit</mat-icon>
             <span>{{ 'common.edit' | transloco }}</span>
           </button>
+          @if (line().metadata.isSpread && line().metadata.spreadGroupId) {
+            <button
+              mat-menu-item
+              (click)="
+                viewSpreadOccurrences.emit(line().metadata.spreadGroupId!)
+              "
+              [attr.data-testid]="'view-spread-' + line().data.id"
+            >
+              <mat-icon matMenuItemIcon>date_range</mat-icon>
+              <span>{{ 'budgetLine.spread.viewOtherMonths' | transloco }}</span>
+            </button>
+          }
         }
         @if (line().metadata.canResetFromTemplate) {
           <button
@@ -112,6 +124,7 @@ export class ActionsCell {
   readonly edit = output<BudgetLineTableItem>();
   readonly delete = output<string>();
   readonly addTransaction = output<BudgetLine>();
+  readonly viewSpreadOccurrences = output<string>();
   readonly resetFromTemplate = output<BudgetLineTableItem>();
   readonly toggleCheck = output<string>();
   readonly toggleTransactionCheck = output<string>();

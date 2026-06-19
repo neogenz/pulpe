@@ -228,11 +228,16 @@ export default class BudgetDetailsPage {
     const budget = this.store.budgetDetails();
     if (!budget) return;
 
-    const budgetLine = await this.#dialogService.openAddBudgetLineDialog(
-      budget.id,
-    );
-    if (budgetLine) {
-      await this.store.createBudgetLine(budgetLine);
+    const result = await this.#dialogService.openAddBudgetLineDialog({
+      id: budget.id,
+      month: budget.month,
+      year: budget.year,
+    });
+    if (!result) return;
+    if (result.mode === 'spread') {
+      await this.store.createBudgetLineSpread(result.value);
+    } else {
+      await this.store.createBudgetLine(result.value);
     }
   }
 }

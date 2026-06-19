@@ -30,6 +30,8 @@ enum Endpoint {
 
     case budgetLines(budgetId: String)
     case budgetLinesCreate
+    case budgetLinesSpread
+    case budgetLinesSpreadOccurrences(spreadGroupId: String)
     case budgetLine(id: String)
     case budgetLineToggle(id: String)
     case budgetLineResetFromTemplate(id: String)
@@ -95,6 +97,8 @@ enum Endpoint {
         // Budget Lines
         case .budgetLines(let budgetId): return "/budgets/\(budgetId)/lines"
         case .budgetLinesCreate: return "/budget-lines"
+        case .budgetLinesSpread: return "/budget-lines/spread"
+        case .budgetLinesSpreadOccurrences(let id): return "/budget-lines/spread/\(id)"
         case .budgetLine(let id): return "/budget-lines/\(id)"
         case .budgetLineToggle(let id): return "/budget-lines/\(id)/toggle-check"
         case .budgetLineResetFromTemplate(let id): return "/budget-lines/\(id)/reset-from-template"
@@ -135,7 +139,7 @@ enum Endpoint {
 
     var method: HTTPMethod {
         switch self {
-        case .budgets, .budgetLines, .budgetLinesCreate, .transactionsCreate, .templates,
+        case .budgets, .budgetLines, .budgetLinesCreate, .budgetLinesSpread, .transactionsCreate, .templates,
              .templateLines, .templateFromOnboarding, .templateLinesBulk,
              .budgetLineToggle, .budgetLineResetFromTemplate, .transactionToggle,
              .encryptionValidateKey, .encryptionSetupRecovery, .encryptionRegenerateRecovery, .encryptionRecover,
@@ -143,7 +147,7 @@ enum Endpoint {
             return .post
 
         case .validateSession, .userProfile, .budget, .budgetDetails, .budgetsExport,
-             .budgetLine, .transaction, .template, .templateUsage, .templateLine,
+             .budgetLine, .budgetLinesSpreadOccurrences, .transaction, .template, .templateUsage, .templateLine,
              .transactionsByBudget, .budgetsSparse,
              .encryptionVaultStatus, .encryptionSalt,
              .userSettings, .currencyRate:

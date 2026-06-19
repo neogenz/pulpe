@@ -5,7 +5,6 @@ import { TranslocoService } from '@jsverse/transloco';
 import { firstValueFrom } from 'rxjs';
 import type {
   BudgetLine,
-  BudgetLineCreate,
   BudgetLineUpdate,
   Transaction,
   TransactionCreate,
@@ -16,6 +15,7 @@ import {
   AddBudgetLineDialog,
   type BudgetLineDialogData,
 } from './budget-line/create/dialog';
+import type { AddBudgetLineDialogResult } from './budget-line/create/dialog-result';
 import {
   AllocatedTransactionsDialog,
   type AllocatedTransactionsDialogData,
@@ -37,6 +37,8 @@ import {
   EditTransactionDialog,
   type EditTransactionDialogData,
 } from './components/edit-transaction-form';
+import { SpreadOccurrencesPanel } from './spread-occurrences/spread-occurrences-panel';
+import { SpreadOccurrencesBottomSheet } from './spread-occurrences/spread-occurrences-bottom-sheet';
 
 export interface ConfirmDeleteOptions {
   title: string;
@@ -50,12 +52,16 @@ export class BudgetDetailsDialogService {
   readonly #injector = inject(Injector);
   readonly #transloco = inject(TranslocoService);
 
-  async openAddBudgetLineDialog(
-    budgetId: string,
-  ): Promise<BudgetLineCreate | undefined> {
+  async openAddBudgetLineDialog(budget: {
+    id: string;
+    month: number;
+    year: number;
+  }): Promise<AddBudgetLineDialogResult | undefined> {
     const dialogRef = this.#dialog.open(AddBudgetLineDialog, {
       data: {
-        budgetId,
+        budgetId: budget.id,
+        budgetMonth: budget.month,
+        budgetYear: budget.year,
       } satisfies BudgetLineDialogData,
       width: '600px',
       maxWidth: '90vw',
@@ -165,6 +171,26 @@ export class BudgetDetailsDialogService {
       dialogRef.afterClosed(),
     );
     return result ? { id: transaction.id, update: result } : undefined;
+  }
+
+  openSpreadOccurrences(isMobile: boolean): void {
+    if (isMobile) {
+      this.#bottomSheet.open(SpreadOccurrencesBottomSheet, {
+        injector: this.#injector,
+      });
+      return;
+    }
+
+    this.#dialog.open(SpreadOccurrencesPanel, {
+      injector: this.#injector,
+      panelClass: 'side-sheet-panel',
+      position: { right: '0', top: '0' },
+      height: '100vh',
+      width: '480px',
+      maxWidth: '90vw',
+      autoFocus: false,
+      closeOnNavigation: true,
+    });
   }
 
   async confirmDelete(options: ConfirmDeleteOptions): Promise<boolean> {

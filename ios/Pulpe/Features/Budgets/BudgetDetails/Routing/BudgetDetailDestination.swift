@@ -17,6 +17,8 @@ enum BudgetDetailDestination: Identifiable {
     case editBudgetLine(BudgetLine)
     case previousBudget(PreviousBudgetItem)
     case realizedBalance
+    /// Read-only timeline of every month a "Lisser" expense touches (PUL-17 Lot C).
+    case spreadOccurrences(spreadGroupId: String)
 
     var id: String {
         switch self {
@@ -24,6 +26,7 @@ enum BudgetDetailDestination: Identifiable {
         case .editBudgetLine(let line): "editBudgetLine-\(line.id)"
         case .previousBudget(let item): "previousBudget-\(item.id)"
         case .realizedBalance: "realizedBalance"
+        case .spreadOccurrences(let groupId): "spreadOccurrences-\(groupId)"
         }
     }
 }

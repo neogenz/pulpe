@@ -62,6 +62,8 @@ function configureDialog({
         provide: MAT_DIALOG_DATA,
         useValue: {
           budgetId: '00000000-0000-4000-8000-000000000123',
+          budgetMonth: 6,
+          budgetYear: 2026,
         } satisfies BudgetLineDialogData,
       },
       { provide: MatDialogRef, useValue: dialogRef },
@@ -92,8 +94,9 @@ describe('AddBudgetLineDialog', () => {
 
       await component['handleSubmit']();
 
-      expect(dialogRef.close).toHaveBeenCalledWith(
-        expect.objectContaining({
+      expect(dialogRef.close).toHaveBeenCalledWith({
+        mode: 'single',
+        value: expect.objectContaining({
           budgetId: '00000000-0000-4000-8000-000000000123',
           name: 'Loyer',
           amount: 1200,
@@ -101,7 +104,7 @@ describe('AddBudgetLineDialog', () => {
           recurrence: 'fixed',
           isManuallyAdjusted: true,
         }),
-      );
+      });
     });
 
     it('should not close when form is invalid', async () => {
@@ -142,9 +145,10 @@ describe('AddBudgetLineDialog', () => {
 
       await component['handleSubmit']();
 
-      expect(dialogRef.close).toHaveBeenCalledWith(
-        expect.objectContaining({ name: 'Assurance' }),
-      );
+      expect(dialogRef.close).toHaveBeenCalledWith({
+        mode: 'single',
+        value: expect.objectContaining({ name: 'Assurance' }),
+      });
     });
   });
 
@@ -159,9 +163,10 @@ describe('AddBudgetLineDialog', () => {
 
       await component['handleSubmit']();
 
-      expect(dialogRef.close).toHaveBeenCalledWith(
-        expect.objectContaining({ checkedAt: null }),
-      );
+      expect(dialogRef.close).toHaveBeenCalledWith({
+        mode: 'single',
+        value: expect.objectContaining({ checkedAt: null }),
+      });
     });
 
     it('should set checkedAt to ISO string when isChecked is true', async () => {
@@ -176,9 +181,10 @@ describe('AddBudgetLineDialog', () => {
       await component['handleSubmit']();
 
       const callArg = dialogRef.close.mock.calls[0][0];
-      expect(callArg.checkedAt).toBeDefined();
-      expect(typeof callArg.checkedAt).toBe('string');
-      expect(() => new Date(callArg.checkedAt)).not.toThrow();
+      expect(callArg.mode).toBe('single');
+      expect(callArg.value.checkedAt).toBeDefined();
+      expect(typeof callArg.value.checkedAt).toBe('string');
+      expect(() => new Date(callArg.value.checkedAt)).not.toThrow();
     });
   });
 
@@ -230,7 +236,7 @@ describe('AddBudgetLineDialog', () => {
         'CHF',
       );
       expect(dialogRef.close).toHaveBeenCalledTimes(1);
-      const dto = dialogRef.close.mock.calls[0][0];
+      const { value: dto } = dialogRef.close.mock.calls[0][0];
       expect(dto.amount).toBe(180);
       expect(dto.originalAmount).toBe(150);
       expect(dto.originalCurrency).toBe('EUR');
@@ -264,7 +270,7 @@ describe('AddBudgetLineDialog', () => {
         'CHF',
       );
       expect(dialogRef.close).toHaveBeenCalledTimes(1);
-      const dto = dialogRef.close.mock.calls[0][0];
+      const { value: dto } = dialogRef.close.mock.calls[0][0];
       expect(dto.amount).toBe(1200);
       expect(dto).not.toHaveProperty('originalAmount');
       expect(dto).not.toHaveProperty('originalCurrency');

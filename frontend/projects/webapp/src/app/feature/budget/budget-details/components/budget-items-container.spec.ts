@@ -53,6 +53,7 @@ interface MockStore {
   setSearchText: ReturnType<typeof vi.fn>;
   setIsShowingOnlyUnchecked: ReturnType<typeof vi.fn>;
   createBudgetLine: ReturnType<typeof vi.fn>;
+  createBudgetLineSpread: ReturnType<typeof vi.fn>;
   updateBudgetLine: ReturnType<typeof vi.fn>;
   deleteBudgetLine: ReturnType<typeof vi.fn>;
   deleteTransaction: ReturnType<typeof vi.fn>;
@@ -79,6 +80,7 @@ function createMockStore(): MockStore {
     setSearchText: vi.fn(),
     setIsShowingOnlyUnchecked: vi.fn(),
     createBudgetLine: vi.fn(),
+    createBudgetLineSpread: vi.fn(),
     updateBudgetLine: vi.fn(),
     deleteBudgetLine: vi.fn(),
     deleteTransaction: vi.fn(),
@@ -242,17 +244,43 @@ describe('BudgetItemsContainer — orchestration', () => {
     expect(mockStore.createBudgetLine).not.toHaveBeenCalled();
   });
 
-  it('creates a budget line when add dialog returns a value', async () => {
+  it('creates a budget line when add dialog returns a single value', async () => {
     mockStore.budgetDetails.set({ id: 'budget-1', month: 1, year: 2026 });
     const newLine = { name: 'Loyer', amount: 100 };
-    mockDialogService.openAddBudgetLineDialog.mockResolvedValue(newLine);
+    mockDialogService.openAddBudgetLineDialog.mockResolvedValue({
+      mode: 'single',
+      value: newLine,
+    });
 
     await component.openAddBudgetLineDialog();
 
-    expect(mockDialogService.openAddBudgetLineDialog).toHaveBeenCalledWith(
-      'budget-1',
-    );
+    expect(mockDialogService.openAddBudgetLineDialog).toHaveBeenCalledWith({
+      id: 'budget-1',
+      month: 1,
+      year: 2026,
+    });
     expect(mockStore.createBudgetLine).toHaveBeenCalledWith(newLine);
+  });
+
+  it('fans out a spread when add dialog returns a spread value', async () => {
+    mockStore.budgetDetails.set({ id: 'budget-1', month: 1, year: 2026 });
+    const spread = {
+      name: 'Prime',
+      kind: 'expense' as const,
+      tranches: [
+        { year: 2026, month: 1, amount: 100 },
+        { year: 2026, month: 2, amount: 100 },
+      ],
+    };
+    mockDialogService.openAddBudgetLineDialog.mockResolvedValue({
+      mode: 'spread',
+      value: spread,
+    });
+
+    await component.openAddBudgetLineDialog();
+
+    expect(mockStore.createBudgetLineSpread).toHaveBeenCalledWith(spread);
+    expect(mockStore.createBudgetLine).not.toHaveBeenCalled();
   });
 });
 

@@ -19,7 +19,10 @@ import { STORAGE_KEYS } from '@core/storage/storage-keys';
 import {
   type BudgetLine,
   type BudgetLineCreate,
+  type BudgetLineSpreadCreate,
+  type BudgetLineSpreadResponse,
   type BudgetLineUpdate,
+  type SpreadOccurrence,
   type Transaction,
   type TransactionCreate,
   type TransactionListResponse,
@@ -42,6 +45,9 @@ const BUDGET_DETAIL_INVALIDATION_KEYS: string[][] = [
   ['budget', 'list'],
   ['budget', 'dashboard'],
   ['budget', 'history'],
+  // PUL-17 — a spread write fans out across N months (cross-budget). Invalidate
+  // the whole budget tree so every touched month + auto-created budget refreshes.
+  ['budget', 'spread'],
 ];
 
 @Injectable()
@@ -119,6 +125,36 @@ export class BudgetDetailsStore {
     cacheKey: ['budget', 'list'],
     loader: () => this.#budgetApi.getAllBudgets$(),
   });
+
+  // PUL-17 Lot C — cross-month occurrences of a spread group. Suspended (idle)
+  // until a `spreadGroupId` is set when the user opens the occurrences panel.
+  readonly #spreadGroupId = signal<string | null>(null);
+  readonly #spreadOccurrencesResource = cachedResource<
+    SpreadOccurrence[],
+    { spreadGroupId: string }
+  >({
+    cache: this.#budgetApi.cache,
+    cacheKey: (params) => ['budget', 'spread', params.spreadGroupId],
+    params: () => {
+      const id = this.#spreadGroupId();
+      return id ? { spreadGroupId: id } : undefined;
+    },
+    loader: ({ params }) =>
+      firstValueFrom(
+        this.#budgetApi.getSpreadOccurrences$(params.spreadGroupId),
+      ),
+  });
+
+  readonly spreadOccurrences = computed(
+    () => this.#spreadOccurrencesResource.value() ?? [],
+  );
+  readonly isSpreadOccurrencesLoading =
+    this.#spreadOccurrencesResource.isInitialLoading;
+  readonly spreadOccurrencesError = this.#spreadOccurrencesResource.error;
+
+  setSpreadGroupId(spreadGroupId: string | null): void {
+    this.#spreadGroupId.set(spreadGroupId);
+  }
 
   // ── 4. Public selectors (readonly/computed) ──
   readonly budgetDetails = computed(
@@ -371,6 +407,30 @@ export class BudgetDetailsStore {
   async createBudgetLine(input: BudgetLineCreate): Promise<void> {
     const id = input.id ?? uuidv4();
     await this.#createBudgetLineMutation.mutate({ ...input, id });
+  }
+
+  // PUL-17 — a spread fans out across N months (possibly auto-creating budgets),
+  // so there is no single-budget optimistic shape to apply. We rely on the
+  // cross-budget invalidation to refetch every touched month.
+  readonly #createBudgetLineSpreadMutation = cachedMutation<
+    BudgetLineSpreadCreate,
+    BudgetLineSpreadResponse,
+    void
+  >({
+    cache: this.#budgetApi.cache,
+    invalidateKeys: () => BUDGET_DETAIL_INVALIDATION_KEYS,
+    mutationFn: (data) => this.#budgetApi.createBudgetLineSpread$(data),
+    onSuccess: () => this.#onFinancialMutationSuccess(),
+    onError: () => {
+      this.#setError(this.#transloco.translate('budget.spreadCreateError'));
+    },
+  });
+
+  async createBudgetLineSpread(
+    input: BudgetLineSpreadCreate,
+  ): Promise<BudgetLineSpreadResponse['data'] | undefined> {
+    const response = await this.#createBudgetLineSpreadMutation.mutate(input);
+    return response?.data;
   }
 
   readonly #updateBudgetLineMutation = cachedMutation<

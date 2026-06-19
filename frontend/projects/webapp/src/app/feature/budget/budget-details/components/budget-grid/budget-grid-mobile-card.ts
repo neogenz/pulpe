@@ -20,6 +20,7 @@ import { formatMatchAnnotation } from '../../view-models/budget-item-constants';
 import type { BudgetLineTableItem } from '../../view-models/table-items.view-model';
 import { SegmentedBudgetProgress } from '../segmented-budget-progress';
 import { BudgetActionMenu } from '../budget-action-menu';
+import { SpreadPill } from '../spread-pill';
 
 @Component({
   selector: 'pulpe-budget-grid-mobile-card',
@@ -37,6 +38,7 @@ import { BudgetActionMenu } from '../budget-action-menu';
     FormatConversionPipe,
     SegmentedBudgetProgress,
     BudgetActionMenu,
+    SpreadPill,
   ],
   template: `
     <pulpe-financial-line-card
@@ -61,14 +63,25 @@ import { BudgetActionMenu } from '../budget-action-menu';
         </span>
       </ng-container>
 
-      @if (item().metadata.isPropagationLocked) {
+      @if (
+        item().metadata.isPropagationLocked ||
+        (item().metadata.isSpread && item().metadata.spreadGroupId)
+      ) {
         <ng-container ngProjectAs="[indicators]">
-          <mat-icon
-            class="text-sm! text-outline shrink-0"
-            [matTooltip]="'budget.lockedAmountsTooltip' | transloco"
-          >
-            lock
-          </mat-icon>
+          @if (item().metadata.isPropagationLocked) {
+            <mat-icon
+              class="text-sm! text-outline shrink-0"
+              [matTooltip]="'budget.lockedAmountsTooltip' | transloco"
+            >
+              lock
+            </mat-icon>
+          }
+          @if (item().metadata.isSpread && item().metadata.spreadGroupId) {
+            <pulpe-spread-pill
+              [spreadGroupId]="item().metadata.spreadGroupId!"
+              (openOccurrences)="viewSpreadOccurrences.emit($event)"
+            />
+          }
         </ng-container>
       }
 
@@ -82,6 +95,7 @@ import { BudgetActionMenu } from '../budget-action-menu';
           (edit)="edit.emit($event)"
           (delete)="delete.emit($event)"
           (addTransaction)="addTransaction.emit($event)"
+          (viewSpreadOccurrences)="viewSpreadOccurrences.emit($event)"
           (resetFromTemplate)="resetFromTemplate.emit($event)"
         />
       </ng-container>
@@ -251,6 +265,7 @@ export class BudgetGridMobileCard {
   readonly delete = output<string>();
   readonly addTransaction = output<BudgetLine>();
   readonly viewTransactions = output<BudgetLineTableItem>();
+  readonly viewSpreadOccurrences = output<string>();
   readonly resetFromTemplate = output<BudgetLineTableItem>();
   readonly toggleCheck = output<string>();
 }

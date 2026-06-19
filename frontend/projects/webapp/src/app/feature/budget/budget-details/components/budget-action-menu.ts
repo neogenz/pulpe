@@ -92,6 +92,16 @@ function getBalanceFormatter(
         <mat-icon matMenuItemIcon>edit</mat-icon>
         <span>{{ 'budget.modify' | transloco }}</span>
       </button>
+      @if (item().metadata.isSpread && item().metadata.spreadGroupId) {
+        <button
+          mat-menu-item
+          (click)="viewSpreadOccurrences.emit(item().metadata.spreadGroupId!)"
+          [attr.data-testid]="'view-spread-' + item().data.id"
+        >
+          <mat-icon matMenuItemIcon>date_range</mat-icon>
+          <span>{{ 'budgetLine.spread.viewOtherMonths' | transloco }}</span>
+        </button>
+      }
       @if (item().metadata.canResetFromTemplate) {
         <button
           mat-menu-item
@@ -130,6 +140,7 @@ export class BudgetActionMenu {
   readonly edit = output<BudgetLineTableItem>();
   readonly delete = output<string>();
   readonly addTransaction = output<BudgetLine>();
+  readonly viewSpreadOccurrences = output<string>();
   readonly resetFromTemplate = output<BudgetLineTableItem>();
 
   protected readonly formattedBalance = computed(() => {

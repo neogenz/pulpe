@@ -101,6 +101,7 @@ export function groupByKind<T extends { data: { kind: string } }>(
             (delete)="delete.emit($event)"
             (addTransaction)="addTransaction.emit($event)"
             (viewTransactions)="viewTransactions.emit($event)"
+            (viewSpreadOccurrences)="viewSpreadOccurrences.emit($event)"
             (resetFromTemplate)="resetFromTemplate.emit($event)"
             (toggleCheck)="toggleCheck.emit($event)"
           />
@@ -151,6 +152,7 @@ export function groupByKind<T extends { data: { kind: string } }>(
                     (edit)="edit.emit($event)"
                     (delete)="delete.emit($event)"
                     (addTransaction)="addTransaction.emit($event)"
+                    (viewSpreadOccurrences)="viewSpreadOccurrences.emit($event)"
                     (resetFromTemplate)="resetFromTemplate.emit($event)"
                     (toggleCheck)="toggleCheck.emit($event)"
                   />
@@ -394,6 +396,7 @@ export class BudgetGrid {
   readonly add = output<void>();
   readonly addTransaction = output<BudgetLine>();
   readonly viewTransactions = output<BudgetLineTableItem>();
+  readonly viewSpreadOccurrences = output<string>();
   readonly resetFromTemplate = output<BudgetLineTableItem>();
   readonly toggleCheck = output<string>();
   readonly toggleTransactionCheck = output<string>();

@@ -69,7 +69,10 @@ import { BudgetDetailsDialogService } from '../../budget-details-dialog.service'
             {{ 'budget.tableDescription' | transloco }}
           </th>
           <td mat-cell *matCellDef="let line">
-            <pulpe-name-cell [line]="line" />
+            <pulpe-name-cell
+              [line]="line"
+              (openSpreadOccurrences)="viewSpreadOccurrences.emit($event)"
+            />
           </td>
         </ng-container>
 
@@ -186,6 +189,7 @@ import { BudgetDetailsDialogService } from '../../budget-details-dialog.service'
               (edit)="startEdit($event)"
               (delete)="delete.emit($event)"
               (addTransaction)="addTransaction.emit($event)"
+              (viewSpreadOccurrences)="viewSpreadOccurrences.emit($event)"
               (resetFromTemplate)="onResetFromTemplateClick($event)"
               (toggleCheck)="toggleCheck.emit($event)"
               (toggleTransactionCheck)="toggleTransactionCheck.emit($event)"
@@ -298,6 +302,7 @@ export class BudgetTable {
   readonly add = output<void>();
   readonly addTransaction = output<BudgetLine>();
   readonly viewTransactions = output<BudgetLineTableItem>();
+  readonly viewSpreadOccurrences = output<string>();
   readonly resetFromTemplate = output<string>();
   readonly toggleCheck = output<string>();
   readonly toggleTransactionCheck = output<string>();

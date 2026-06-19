@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { Buffer } from 'node:buffer';
+import { ZodError } from 'zod';
 import { BusinessException } from '@common/exceptions/business.exception';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 import { AuthenticatedSupabaseProvider } from '@modules/supabase/authenticated-supabase.provider';
@@ -18,10 +19,15 @@ import type {
   BudgetLineInsert,
   BudgetLineRow,
   BudgetLineUpdate,
+  SpreadOccurrence,
   TemplateLine,
   TransactionRow,
 } from '../../domain/budget-line.entity';
 import type { TemplateLineRow } from '@modules/budget-template/domain/budget-template.entity';
+import {
+  createBudgetLineSpreadListSchema,
+  type CreateBudgetLineSpreadItem,
+} from './schemas/rpc-payload.schemas';
 
 @Injectable()
 export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
@@ -146,6 +152,60 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
     return data.map((row) => this.toEntity(row, dek));
   }
 
+  async findBySpreadGroupId(
+    spreadGroupId: string,
+  ): Promise<SpreadOccurrence[]> {
+    const supabase = this.supabaseProvider.client;
+    const { data, error } = await supabase
+      .from('budget_line')
+      .select('*, monthly_budget!inner(month, year, user_id)')
+      .eq('spread_group_id', spreadGroupId);
+
+    if (error) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.BUDGET_LINE_FETCH_FAILED,
+        undefined,
+        {
+          operation: 'findBudgetLinesBySpreadGroup',
+          entityId: spreadGroupId,
+          entityType: 'budget_line',
+          supabaseError: error,
+        },
+        { cause: error },
+      );
+    }
+
+    if (!data?.length) return [];
+    const dek = await this.encryption.getDekFor(this.supabaseProvider.user);
+    const rows = data as Array<
+      BudgetLineRow & {
+        monthly_budget: { month: number; year: number; user_id: string };
+      }
+    >;
+    return rows.map((row) => this.toSpreadOccurrence(row, dek));
+  }
+
+  private toSpreadOccurrence(
+    row: BudgetLineRow & { monthly_budget: { month: number; year: number } },
+    dek: Buffer,
+  ): SpreadOccurrence {
+    const decrypted = this.encryption.decryptRowAmountFields(row, dek);
+    return {
+      budgetLineId: decrypted.id,
+      budgetId: decrypted.budget_id,
+      month: row.monthly_budget.month,
+      year: row.monthly_budget.year,
+      name: decrypted.name,
+      amount: decrypted.amount,
+      originalAmount: decrypted.original_amount,
+      originalCurrency: decrypted.original_currency,
+      targetCurrency: decrypted.target_currency,
+      exchangeRate: decrypted.exchange_rate,
+      kind: decrypted.kind,
+      checkedAt: decrypted.checked_at,
+    };
+  }
+
   async fetchBudgetIdForLine(id: string): Promise<string | null> {
     const supabase = this.supabaseProvider.client;
     const { data, error } = await supabase
@@ -211,6 +271,91 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
 
     const dek = await this.encryption.getDekFor(this.supabaseProvider.user);
     return this.toEntity(row, dek);
+  }
+
+  async createSpread(
+    spreadGroupId: string,
+    inputs: BudgetLineCreateInput[],
+  ): Promise<BudgetLine[]> {
+    const supabase = this.supabaseProvider.client;
+    const user = this.supabaseProvider.user;
+
+    const rpcLines = await Promise.all(
+      inputs.map((input) => this.toSpreadRpcLine(input, user)),
+    );
+    const payload = this.parseSpreadPayload(rpcLines);
+
+    const { data, error } = await supabase.rpc('create_budget_lines_spread', {
+      p_spread_group_id: spreadGroupId,
+      p_lines: payload as never,
+    });
+
+    if (error || !data) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.BUDGET_LINE_CREATE_FAILED,
+        undefined,
+        {
+          operation: 'createSpreadBudgetLines',
+          entityType: 'budget_line',
+          supabaseError: error,
+        },
+        { cause: error ?? undefined },
+      );
+    }
+
+    const dek = await this.encryption.getDekFor(user);
+    return data.map((row) => this.toEntity(row, dek));
+  }
+
+  private parseSpreadPayload(
+    rpcLines: CreateBudgetLineSpreadItem[],
+  ): CreateBudgetLineSpreadItem[] {
+    try {
+      return createBudgetLineSpreadListSchema.parse(rpcLines);
+    } catch (error) {
+      if (error instanceof ZodError) {
+        throw new BusinessException(
+          ERROR_DEFINITIONS.BUDGET_LINE_CREATE_FAILED,
+          { reason: 'Invalid spread RPC payload' },
+          {
+            operation: 'createSpreadBudgetLines',
+            entityType: 'budget_line',
+            validationErrors: error.issues,
+          },
+          { cause: error },
+        );
+      }
+      throw error;
+    }
+  }
+
+  private async toSpreadRpcLine(
+    input: BudgetLineCreateInput,
+    user: AuthenticatedUser,
+  ): Promise<CreateBudgetLineSpreadItem> {
+    const { amount } = await this.encryption.prepareAmountData(
+      input.amount,
+      user.id,
+      user.clientKey,
+    );
+    const originalAmount = await this.encryption.encryptOptionalAmount(
+      input.originalAmount,
+      user.id,
+      user.clientKey,
+    );
+
+    return {
+      budget_id: input.budgetId,
+      name: input.name,
+      amount,
+      kind: input.kind,
+      recurrence: input.recurrence,
+      savings_goal_id: input.savingsGoalId ?? null,
+      original_amount: originalAmount,
+      original_currency: input.originalCurrency ?? null,
+      target_currency: input.targetCurrency ?? null,
+      exchange_rate: input.exchangeRate ?? null,
+    };
   }
 
   async update(id: string, patch: BudgetLineUpdatePatch): Promise<BudgetLine> {
@@ -361,6 +506,7 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
       budgetId: decrypted.budget_id,
       templateLineId: decrypted.template_line_id,
       savingsGoalId: decrypted.savings_goal_id,
+      spreadGroupId: decrypted.spread_group_id,
       name: decrypted.name,
       amount: decrypted.amount,
       originalAmount: decrypted.original_amount,

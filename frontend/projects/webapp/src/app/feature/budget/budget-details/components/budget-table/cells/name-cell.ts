@@ -5,6 +5,7 @@ import {
   computed,
   inject,
   input,
+  output,
 } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -17,6 +18,7 @@ import type {
   BudgetLineTableItem,
   TransactionTableItem,
 } from '../../../view-models/table-items.view-model';
+import { SpreadPill } from '../../spread-pill';
 
 @Component({
   selector: 'pulpe-name-cell',
@@ -26,6 +28,7 @@ import type {
     DatePipe,
     FinancialKindDirective,
     TransactionLabelPipe,
+    SpreadPill,
   ],
   template: `
     <div class="flex items-center gap-2">
@@ -80,6 +83,13 @@ import type {
               {{ matchAnnotation() }}
             </span>
           }
+          @if (line().metadata.isSpread && line().metadata.spreadGroupId) {
+            <pulpe-spread-pill
+              class="mt-0.5"
+              [spreadGroupId]="line().metadata.spreadGroupId!"
+              (openOccurrences)="openSpreadOccurrences.emit($event)"
+            />
+          }
         </div>
         @if (line().data.checkedAt) {
           <span class="text-body-small text-on-surface-variant ml-2">
@@ -97,6 +107,8 @@ export class NameCell {
     () => getDateDisplayFormats(this.#userSettings.currency()).dayMonth,
   );
   readonly line = input.required<BudgetLineTableItem | TransactionTableItem>();
+
+  readonly openSpreadOccurrences = output<string>();
 
   readonly matchAnnotation = computed(() =>
     formatMatchAnnotation(this.line().metadata.matchingTransactionNames),

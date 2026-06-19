@@ -8,6 +8,7 @@ struct AddBudgetLineSheet: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(ToastManager.self) private var toastManager
     @Environment(UserSettingsStore.self) private var userSettingsStore
+    @Environment(BudgetListStore.self) private var budgetListStore
     @State private var name = ""
     @State private var amount: Decimal?
     @State private var kind: TransactionKind = .expense
@@ -18,6 +19,8 @@ struct AddBudgetLineSheet: View {
     @State private var amountText = ""
     @State private var submitSuccessTrigger = false
     @State private var inputCurrency: SupportedCurrency = .chf
+    @State private var mode: BudgetLineCreationMode = .once
+    @State private var spreadCalculator: SpreadCalculator
 
     private let dependencies: AddBudgetLineDependencies
     private let conversionService = CurrencyConversionService.shared
@@ -30,12 +33,21 @@ struct AddBudgetLineSheet: View {
         self.budgetId = budgetId
         self.dependencies = dependencies
         self.onAdd = onAdd
+        let now = Date()
+        let calendar = Calendar.current
+        self._spreadCalculator = State(initialValue: SpreadCalculator(
+            anchorMonth: calendar.component(.month, from: now),
+            anchorYear: calendar.component(.year, from: now)
+        ))
     }
 
+    private var isSpreadMode: Bool { mode == .spread }
+
     private var canSubmit: Bool {
-        !name.trimmingCharacters(in: .whitespaces).isEmpty &&
-        (amount ?? 0) > 0 &&
-        !isLoading
+        guard !name.trimmingCharacters(in: .whitespaces).isEmpty,
+              (amount ?? 0) > 0,
+              !isLoading else { return false }
+        return isSpreadMode ? spreadCalculator.isValid : true
     }
 
     private var hasStartedFilling: Bool {
@@ -65,6 +77,7 @@ struct AddBudgetLineSheet: View {
                 amountText: $amountText,
                 focus: $focusedField,
                 field: .amount,
+                hint: isSpreadMode ? "Montant par mois" : nil,
                 currency: inputCurrency,
                 accentColor: kind.color
             )
@@ -77,8 +90,24 @@ struct AddBudgetLineSheet: View {
                 currency: inputCurrency
             )
             .animation(.snappy(duration: DesignTokens.Animation.fast), value: kind)
+
+            // Spread toggle hidden for income — revenu lissé is out of scope (PUL-17).
+            if kind != .income {
+                SpreadModeToggle(selection: $mode, accentColor: kind.color)
+            }
+
             descriptionField
-            CheckedToggle(isOn: $isChecked, tintColor: kind.color)
+
+            if isSpreadMode {
+                SpreadFormSection(
+                    calculator: spreadCalculator,
+                    amountPerMonth: amount,
+                    currency: inputCurrency,
+                    accentColor: kind.color
+                )
+            } else {
+                CheckedToggle(isOn: $isChecked, tintColor: kind.color)
+            }
 
             if let error {
                 ErrorBanner(message: DomainErrorLocalizer.localize(error)) {
@@ -90,6 +119,10 @@ struct AddBudgetLineSheet: View {
         }
         .sensoryFeedback(.success, trigger: submitSuccessTrigger)
         .onAppear { inputCurrency = userSettingsStore.currency }
+        // Income can't be spread: bouncing back to income resets the mode.
+        .onChange(of: kind) { _, newKind in
+            if newKind == .income { mode = .once }
+        }
     }
 
     // MARK: - Description
@@ -107,10 +140,14 @@ struct AddBudgetLineSheet: View {
 
     // MARK: - Add Button
 
+    private var ctaTitle: String {
+        isSpreadMode ? "Lisser la dépense" : "Ajouter"
+    }
+
     private var addButton: some View {
         VStack(spacing: DesignTokens.Spacing.sm) {
-            Button { Task { await addBudgetLine() } } label: {
-                Text("Ajouter")
+            Button { Task { await submit() } } label: {
+                Text(ctaTitle)
             }
             .disabled(!canSubmit)
             .primaryButtonStyle(isEnabled: canSubmit)
@@ -126,6 +163,16 @@ struct AddBudgetLineSheet: View {
     }
 
     // MARK: - Logic
+
+    /// Routes to the single-line or spread flow. The "Une seule fois" path is
+    /// unchanged; "Lisser" fans the amount out over the selected months.
+    private func submit() async {
+        if isSpreadMode {
+            await addSpread()
+        } else {
+            await addBudgetLine()
+        }
+    }
 
     private func addBudgetLine() async {
         guard let amount else { return }
@@ -163,14 +210,67 @@ struct AddBudgetLineSheet: View {
             self.error = error
         }
     }
+
+    /// Fans the per-month amount over every SELECTED month (PUL-17, interpretation B).
+    /// FX is frozen once: a single conversion feeds one `exchangeRate` shared by
+    /// every tranche, and each tranche carries the same `originalAmount` when
+    /// multi-currency. On success the cross-budget caches are invalidated OUTSIDE
+    /// any coordinator (a spread touches N months that the detail coordinator
+    /// doesn't own) so the list and every detail page revalidate.
+    private func addSpread() async {
+        guard let amount, spreadCalculator.isValid else { return }
+
+        isLoading = true
+        defer { isLoading = false }
+        error = nil
+
+        do {
+            let conversion = try await conversionService.convert(
+                amount: amount,
+                from: inputCurrency,
+                to: userSettingsStore.currency
+            )
+            let data = AddBudgetLineSpreadLogic.buildCreate(
+                calculator: spreadCalculator,
+                input: AddBudgetLineSpreadLogic.SubmitInput(
+                    name: name,
+                    kind: kind,
+                    amount: amount,
+                    conversion: conversion
+                )
+            )
+
+            let response = try await dependencies.createSpread(data)
+
+            // Cross-budget invalidation — OUTSIDE the coordinator (spec PUL-17).
+            dependencies.invalidateCrossBudgetCaches(budgetListStore)
+
+            submitSuccessTrigger.toggle()
+            toastManager.show(AddBudgetLineSpreadLogic.successMessage(for: response))
+            dismiss()
+        } catch {
+            self.error = error
+        }
+    }
 }
 
 struct AddBudgetLineDependencies: Sendable {
     var createBudgetLine: @Sendable (BudgetLineCreate) async throws -> BudgetLine
+    var createSpread: @Sendable (BudgetLineSpreadCreate) async throws -> BudgetLineSpreadResponse
+    /// Cross-budget cache invalidation fired on spread success — OUTSIDE the
+    /// BudgetDetails coordinator. Injectable so tests can assert it ran.
+    var invalidateCrossBudgetCaches: @MainActor (BudgetListStore) -> Void
 
     static let live = AddBudgetLineDependencies(
         createBudgetLine: { data in
             try await BudgetLineService.shared.createBudgetLine(data)
+        },
+        createSpread: { data in
+            try await BudgetLineService.shared.createSpread(data)
+        },
+        invalidateCrossBudgetCaches: { budgetListStore in
+            BudgetDetailCache.shared.invalidateAll()
+            budgetListStore.invalidateCache()
         }
     )
 }
@@ -181,4 +281,5 @@ struct AddBudgetLineDependencies: Sendable {
     }
     .environment(ToastManager())
     .environment(UserSettingsStore())
+    .environment(BudgetListStore())
 }

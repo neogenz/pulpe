@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { SupabaseModule } from '@modules/supabase/supabase.module';
 import { BudgetModule } from '@modules/budget/budget.module';
+import { BudgetTemplateModule } from '@modules/budget-template/budget-template.module';
 import { EncryptionModule } from '@modules/encryption/encryption.module';
 import { CurrencyModule } from '@modules/currency/currency.module';
 import { TransactionModule } from '@modules/transaction/transaction.module';
@@ -13,6 +14,8 @@ import { FindAllBudgetLinesUseCase } from './application/find-all-budget-lines.u
 import { FindBudgetLineUseCase } from './application/find-budget-line.use-case';
 import { FindBudgetLinesByBudgetUseCase } from './application/find-budget-lines-by-budget.use-case';
 import { CreateBudgetLineUseCase } from './application/create-budget-line.use-case';
+import { CreateBudgetLineSpreadUseCase } from './application/create-budget-line-spread.use-case';
+import { FindBudgetLinesBySpreadGroupUseCase } from './application/find-budget-lines-by-spread-group.use-case';
 import { UpdateBudgetLineUseCase } from './application/update-budget-line.use-case';
 import { RemoveBudgetLineUseCase } from './application/remove-budget-line.use-case';
 import { ResetBudgetLineFromTemplateUseCase } from './application/reset-budget-line-from-template.use-case';
@@ -23,6 +26,7 @@ import { CheckTransactionsUseCase } from './application/check-transactions.use-c
   imports: [
     SupabaseModule,
     BudgetModule,
+    BudgetTemplateModule,
     EncryptionModule,
     CurrencyModule,
     TransactionModule,
@@ -33,6 +37,8 @@ import { CheckTransactionsUseCase } from './application/check-transactions.use-c
     FindBudgetLineUseCase,
     FindBudgetLinesByBudgetUseCase,
     CreateBudgetLineUseCase,
+    CreateBudgetLineSpreadUseCase,
+    FindBudgetLinesBySpreadGroupUseCase,
     UpdateBudgetLineUseCase,
     RemoveBudgetLineUseCase,
     ResetBudgetLineFromTemplateUseCase,
@@ -45,6 +51,8 @@ import { CheckTransactionsUseCase } from './application/check-transactions.use-c
     createInfoLoggerProvider(FindBudgetLineUseCase.name),
     createInfoLoggerProvider(FindBudgetLinesByBudgetUseCase.name),
     createInfoLoggerProvider(CreateBudgetLineUseCase.name),
+    createInfoLoggerProvider(CreateBudgetLineSpreadUseCase.name),
+    createInfoLoggerProvider(FindBudgetLinesBySpreadGroupUseCase.name),
     createInfoLoggerProvider(UpdateBudgetLineUseCase.name),
     createInfoLoggerProvider(RemoveBudgetLineUseCase.name),
     createInfoLoggerProvider(ResetBudgetLineFromTemplateUseCase.name),

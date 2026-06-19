@@ -1,5 +1,41 @@
 import type { TranslocoService } from '@jsverse/transloco';
-import type { BudgetLine, SupportedCurrency, Transaction } from 'pulpe-shared';
+import type {
+  BudgetLine,
+  BudgetLineSpreadResponse,
+  SupportedCurrency,
+  Transaction,
+} from 'pulpe-shared';
+
+/**
+ * Success toast for a smoothed expense (PUL-17). Base line counts the created
+ * occurrences; suffixes surface auto-created budgets and months skipped for
+ * lack of a default template.
+ */
+export function computeSpreadSnackbarMessage(
+  outcome: Pick<
+    BudgetLineSpreadResponse['data'],
+    'lines' | 'createdBudgets' | 'skippedMonths'
+  >,
+  transloco: TranslocoService,
+): string {
+  let message = transloco.translate('budget.spreadSuccess', {
+    count: outcome.lines.length,
+  });
+
+  if (outcome.createdBudgets.length > 0) {
+    message += transloco.translate('budget.spreadCreatedBudgetsSuffix', {
+      count: outcome.createdBudgets.length,
+    });
+  }
+
+  if (outcome.skippedMonths.length > 0) {
+    message += transloco.translate('budget.spreadSkippedMonthsSuffix', {
+      count: outcome.skippedMonths.length,
+    });
+  }
+
+  return message;
+}
 
 export function computeEnvelopeSnackbarMessage(
   budgetLineId: string,

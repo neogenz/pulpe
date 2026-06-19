@@ -211,6 +211,8 @@ function createBudgetLineViewModel(
       kindIcon: getKindIcon(budgetLine.kind),
       allocationLabel: getAllocationLabel(budgetLine.kind),
       displayName: budgetLine.name,
+      isSpread: !!budgetLine.spreadGroupId,
+      spreadGroupId: budgetLine.spreadGroupId ?? null,
     },
     consumption: {
       consumed,

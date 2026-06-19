@@ -86,6 +86,13 @@ export {
   budgetLineListResponseSchema,
   budgetLineDeleteResponseSchema,
 
+  // Budget Line Spread schemas (PUL-17)
+  budgetLineSpreadTrancheSchema,
+  budgetLineSpreadCreateSchema,
+  budgetLineSpreadResponseSchema,
+  spreadOccurrenceSchema,
+  spreadOccurrencesResponseSchema,
+
   // Currency schemas
   supportedCurrencySchema,
   SUPPORTED_CURRENCIES,
@@ -262,6 +269,13 @@ export type {
   BudgetLineResponse,
   BudgetLineListResponse,
   BudgetLineDeleteResponse,
+
+  // Budget Line Spread types (PUL-17)
+  BudgetLineSpreadTranche,
+  BudgetLineSpreadCreate,
+  BudgetLineSpreadResponse,
+  SpreadOccurrence,
+  SpreadOccurrencesResponse,
 
   // Currency types
   SupportedCurrency,

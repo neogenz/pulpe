@@ -44,6 +44,7 @@ import { BudgetDetailsStore } from '../store/budget-details-store';
 import { determineCheckBehavior } from '../store/budget-details-check.utils';
 import {
   computeEnvelopeSnackbarMessage,
+  computeSpreadSnackbarMessage,
   computeTransactionSnackbarMessage,
 } from '../utils/budget-details-snackbar.utils';
 
@@ -187,6 +188,7 @@ import {
           (add)="openAddBudgetLineDialog()"
           (addTransaction)="openCreateAllocatedTransactionDialog($event)"
           (viewTransactions)="onViewTransactions($event)"
+          (viewSpreadOccurrences)="onViewSpreadOccurrences($event)"
           (resetFromTemplate)="onResetFromTemplateClick($event)"
           (toggleCheck)="handleToggleCheck($event)"
           (toggleTransactionCheck)="handleToggleTransactionCheck($event)"
@@ -199,6 +201,7 @@ import {
           (add)="openAddBudgetLineDialog()"
           (addTransaction)="openCreateAllocatedTransactionDialog($event)"
           (viewTransactions)="onViewTransactions($event)"
+          (viewSpreadOccurrences)="onViewSpreadOccurrences($event)"
           (resetFromTemplate)="handleResetFromTemplate($event)"
           (toggleCheck)="handleToggleCheck($event)"
           (toggleTransactionCheck)="handleToggleTransactionCheck($event)"
@@ -346,6 +349,11 @@ export class BudgetItemsContainer {
       budgetLine: item.data,
       consumption,
     });
+  }
+
+  protected onViewSpreadOccurrences(spreadGroupId: string): void {
+    this.store.setSpreadGroupId(spreadGroupId);
+    this.#dialogService.openSpreadOccurrences(this.isMobile());
   }
 
   protected async openAllocatedTransactionsDialog(event: {
@@ -579,11 +587,24 @@ export class BudgetItemsContainer {
     const budget = this.store.budgetDetails();
     if (!budget) return;
 
-    const budgetLine = await this.#dialogService.openAddBudgetLineDialog(
-      budget.id,
-    );
-    if (budgetLine) {
-      await this.store.createBudgetLine(budgetLine);
+    const result = await this.#dialogService.openAddBudgetLineDialog({
+      id: budget.id,
+      month: budget.month,
+      year: budget.year,
+    });
+    if (!result) return;
+
+    if (result.mode === 'spread') {
+      const outcome = await this.store.createBudgetLineSpread(result.value);
+      if (outcome) {
+        this.#snackBar.open(
+          computeSpreadSnackbarMessage(outcome, this.#transloco),
+          this.#transloco.translate('common.close'),
+          { duration: 5000 },
+        );
+      }
+      return;
     }
+    await this.store.createBudgetLine(result.value);
   }
 }

@@ -292,6 +292,12 @@ struct BudgetDetailsView: View {
                 metrics: coordinator.dataStore.metrics,
                 realizedMetrics: coordinator.dataStore.realizedMetrics
             )
+        case .spreadOccurrences(let spreadGroupId):
+            SpreadOccurrencesSheet(
+                spreadGroupId: spreadGroupId,
+                payDayOfMonth: userSettingsStore.payDayOfMonth,
+                currency: userSettingsStore.currency
+            )
         }
     }
 }

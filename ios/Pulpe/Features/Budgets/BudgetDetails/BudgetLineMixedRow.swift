@@ -170,6 +170,11 @@ struct BudgetLineMixedRow: View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
             KindTagInline(kind: line.kind)
 
+            if line.isSpread {
+                PulpeChip(icon: "calendar", label: "Lissé", style: .muted)
+                    .accessibilityLabel("Dépense lissée")
+            }
+
             Text(line.name)
                 .font(PulpeTypography.listRowTitle)
                 .foregroundStyle(Color.textPrimary)
