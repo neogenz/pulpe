@@ -266,13 +266,36 @@ final class BiometricManager {
             do {
                 try await encryptionAPI.validateKey(clientKeyHex)
                 return true
+            } catch let error as APIError where isNetworkUnreachable(error) {
+                // Offline / server unreachable: the validate-key check could not be COMPLETED.
+                // APIClient wraps every URLSession failure into APIError.networkError, so a raw
+                // URLError never surfaces here — match the wrapped case. Tolerate so the
+                // already-locally-passed Face ID unlock proceeds, instead of wiping the client
+                // key + disabling biometric over a network blip (PUL-280).
+                Logger.auth.info("Biometric key validation skipped (network unavailable)")
+                return true
             } catch is URLError {
+                // Defensive: a raw URLError would only escape if thrown outside APIClient.
                 Logger.auth.info("Biometric key validation skipped (network unavailable)")
                 return true
             } catch {
+                // Any definitive server verdict (clientKeyInvalid, forbidden, serverError,
+                // unauthorized, …) means the server WAS reachable and rejected the key.
+                // Treat the key as stale → PIN. Never tolerate a real bad-key verdict.
                 Logger.auth.warning("Biometric client key validation failed: \(error.localizedDescription)")
                 return false
             }
         }
+    }
+
+    /// Tolerate biometric key-validation ONLY when the check could not be completed
+    /// (transport failed) — never on a server verdict. APIClient wraps every URLSession
+    /// failure into `APIError.networkError`; a cancelled in-flight request is a race, not a
+    /// verdict, so it tolerates too. A genuine bad-key verdict is always `clientKeyInvalid`
+    /// (HTTP 400), never `.networkError`, so it correctly falls through to `return false`.
+    nonisolated private static func isNetworkUnreachable(_ error: APIError) -> Bool {
+        if error.isCancellation { return true }
+        if case .networkError = error { return true }
+        return false
     }
 }
