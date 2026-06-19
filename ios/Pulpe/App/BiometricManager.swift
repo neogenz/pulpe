@@ -266,13 +266,37 @@ final class BiometricManager {
             do {
                 try await encryptionAPI.validateKey(clientKeyHex)
                 return true
+            } catch let error as APIError where isTransportFailure(error) {
+                // Offline / server unreachable: the validate-key check could not be COMPLETED.
+                // APIClient wraps every URLSession failure into APIError.networkError, so a raw
+                // URLError never surfaces here — match the wrapped case. Tolerate so the
+                // already-locally-passed Face ID unlock proceeds, instead of wiping the client
+                // key + disabling biometric over a network blip (PUL-280).
+                Logger.auth.info("Biometric key validation skipped (network unavailable)")
+                return true
             } catch is URLError {
+                // Defensive: a raw URLError would only escape if thrown outside APIClient.
                 Logger.auth.info("Biometric key validation skipped (network unavailable)")
                 return true
             } catch {
+                // Any definitive server verdict (clientKeyInvalid, forbidden, serverError,
+                // unauthorized, …) means the server WAS reachable and rejected the key.
+                // Treat the key as stale → PIN. Never tolerate a real bad-key verdict.
                 Logger.auth.warning("Biometric client key validation failed: \(error.localizedDescription)")
                 return false
             }
         }
+    }
+
+    /// Tolerate biometric key-validation ONLY when the check could not be COMPLETED
+    /// (transport failed) — never on a server verdict. APIClient wraps every URLSession
+    /// failure into `APIError.networkError`, including a cancelled in-flight request from a
+    /// foreground bounce (URLError.cancelled), so matching that single case covers both an
+    /// unreachable server and a cancelled request — both are races/transport events, not
+    /// verdicts. A genuine bad-key verdict is always `clientKeyInvalid` (HTTP 400), never
+    /// `.networkError`, so it correctly falls through to `return false`.
+    nonisolated private static func isTransportFailure(_ error: APIError) -> Bool {
+        if case .networkError = error { return true }
+        return false
     }
 }
