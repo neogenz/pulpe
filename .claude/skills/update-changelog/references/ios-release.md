@@ -1,8 +1,13 @@
 # iOS Release
 
-## Pre-launch freeze
+## Versioning
 
-Until the official App Store launch, `MARKETING_VERSION` stays at **1.0.0**. Only the build number (`CURRENT_PROJECT_VERSION`) is incremented.
+The app is **live on the App Store**. `MARKETING_VERSION` (currently `1.0.x`) tracks the iOS app's own SemVer, **independent** from the unified npm product version (`vX.Y.Z`). Do NOT map one onto the other.
+
+- **Build number** (`CURRENT_PROJECT_VERSION`) — increments on **every** release that ships iOS changes. Always.
+- **`MARKETING_VERSION`** — bump only when the release ships **user-facing iOS changes worth a new store version** (patch for fixes, minor for features). Releases that only touch web/backend leave it untouched.
+
+The releaser decides build-only vs. marketing-bump per release. When unsure for a fix-only iOS release, a `build` bump is the safe default.
 
 ## When to bump iOS
 
@@ -10,7 +15,7 @@ iOS is bumped **only when `ios/**` files are modified** in the release. If only 
 
 ## Apply version
 
-Use the `build` command to increment the build number only:
+**Build number only** (default for iOS fix-only releases, or web/backend releases that happened to touch `ios/`):
 
 ```bash
 cd ios && ./scripts/bump-version.sh build
@@ -19,7 +24,14 @@ cd ios && xcodegen generate --use-cache
 
 This increments `CURRENT_PROJECT_VERSION` (e.g. 1 -> 2) without touching `MARKETING_VERSION`.
 
-Do NOT use `set`, `major`, `minor`, or `patch` — these would change `MARKETING_VERSION`, which must stay at 1.0.0 until store launch.
+**Marketing version** (new user-facing iOS store version) — confirm with the releaser first, then:
+
+```bash
+cd ios && ./scripts/bump-version.sh patch   # or minor
+cd ios && xcodegen generate --use-cache
+```
+
+This bumps `MARKETING_VERSION` and resets/advances the build number. When you do this, also sync Railway `LATEST_IOS_VERSION` (see below).
 
 ## Files modified
 
