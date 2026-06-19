@@ -26,6 +26,7 @@ struct EditTransactionPage: View {
     @State private var isLoading = false
     @State private var submitSuccessTrigger = false
     @State private var didAutofocus = false
+    @State private var showDeleteConfirmation = false
     @FocusState private var focusedField: AmountDescriptionField?
 
     private let conversionService = CurrencyConversionService.shared
@@ -73,6 +74,23 @@ struct EditTransactionPage: View {
         .pulpeStickyBottomCTA { saveButton(for: tx) }
         .navigationTitle("Modifier la transaction")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                headerMenu
+            }
+        }
+        .alert(
+            "Supprimer la transaction ?",
+            isPresented: $showDeleteConfirmation,
+            presenting: tx
+        ) { tx in
+            Button("Annuler", role: .cancel) {}
+            Button("Supprimer", role: .destructive) {
+                deleteTransaction(tx)
+            }
+        } message: { _ in
+            Text("Tu auras quelques secondes pour annuler.")
+        }
         .loadingOverlay(isLoading)
         .dismissKeyboardOnTap()
         .keyboardFieldNavigation(focus: $focusedField, order: [.amount, .description])
@@ -160,7 +178,32 @@ struct EditTransactionPage: View {
         .primaryButtonStyle(isEnabled: canSubmit)
     }
 
+    private var headerMenu: some View {
+        Menu {
+            Button(role: .destructive) {
+                showDeleteConfirmation = true
+            } label: {
+                Label("Supprimer", systemImage: "trash")
+            }
+        } label: {
+            Image(systemName: "ellipsis.circle")
+        }
+        .accessibilityLabel("Plus d'options")
+    }
+
     // MARK: - Logic
+
+    /// Soft-deletes via the coordinator (same undo-toast machinery as budget
+    /// lines). We do NOT call `dismiss()`: removing the transaction empties
+    /// `transaction`, the `AutoPopView` branch fires, and the page pops once —
+    /// calling `dismiss()` here too would race that and risk a double-pop.
+    private func deleteTransaction(_ tx: Transaction) {
+        let ctx = ToastContext(
+            toastManager: toastManager,
+            presentationCurrency: userSettingsStore.currency
+        )
+        Task { await coordinator.dispatch(.softDeleteTransaction(tx, ctx)) }
+    }
 
     /// Re-fires when `tx.id` changes (i.e. on first appearance, never again
     /// during this push lifecycle since the transaction id is stable).
