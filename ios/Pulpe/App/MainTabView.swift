@@ -10,17 +10,33 @@ struct MainTabView: View {
     @Environment(CurrentMonthStore.self) private var monthStore
     @State private var addTransactionBudgetId: AddTransactionItem?
     @State private var keyboardVisible = false
+    @State private var bottomSafeAreaInset: CGFloat = 0
     @Namespace private var tabSelectionNamespace
 
-    /// Vertical space the floating tab bar visually occupies above the system
-    /// bottom safe area. Pushed pages read this via `\.tabBarClearance` because
-    /// iOS 26 does not cascade `safeAreaInset` from a TabView through nested
-    /// `NavigationStack` destinations — they must re-reserve the bar's
-    /// height themselves. Collapses to 0 when the bar is hidden.
-    private static let tabBarClearanceHeight: CGFloat =
-        DesignTokens.FrameHeight.tabBar
-        + DesignTokens.Spacing.md
-        + DesignTokens.Spacing.xs
+    /// Gap between the floating tab bar's bottom edge and the physical screen
+    /// bottom. The bar ignores the bottom safe area (see `floatingTabBarOverlay`)
+    /// and sits this far above the true edge, hugging the rounded corners.
+    /// Single source of truth: both the bar's bottom padding and the content
+    /// clearance below derive from it, so they cannot drift apart.
+    private static let tabBarBottomInset = DesignTokens.Spacing.xxl
+
+    /// Breathing room reserved between scrolled content and the bar's top edge.
+    private static let tabBarContentSpacing = DesignTokens.Spacing.md
+
+    /// Bottom clearance each tab's content must reserve so it clears the floating
+    /// bar. Pushed pages read the published value via `\.tabBarClearance` because
+    /// iOS 26 does not cascade a `safeAreaInset` from a `TabView` through nested
+    /// `NavigationStack` destinations — they re-reserve it locally
+    /// (`clearsFloatingTabBar()`). Collapses to 0 when the bar is hidden.
+    ///
+    /// The bar's top sits `tabBarBottomInset + tabBar` above the physical bottom,
+    /// while content respects the safe area — and `safeAreaInset` already
+    /// reserves that inset — so it is subtracted here to avoid double-counting.
+    /// `max(0, …)` guards devices whose safe area alone already clears the bar.
+    private static func tabBarClearance(bottomSafeAreaInset: CGFloat) -> CGFloat {
+        let barTopAbovePhysicalBottom = tabBarBottomInset + DesignTokens.FrameHeight.tabBar
+        return max(0, barTopAbovePhysicalBottom + tabBarContentSpacing - bottomSafeAreaInset)
+    }
 
     /// Whether the floating tab bar should be hidden, given current state.
     /// Hidden when the keyboard is up, or when the active tab is drilled
@@ -48,7 +64,9 @@ struct MainTabView: View {
             templatePathDepth: state.templatePath.count,
             keyboardVisible: keyboardVisible
         )
-        let clearance: CGFloat = barHidden ? 0 : Self.tabBarClearanceHeight
+        let clearance: CGFloat = barHidden
+            ? 0
+            : Self.tabBarClearance(bottomSafeAreaInset: bottomSafeAreaInset)
 
         TabView(selection: $state.selectedTab) {
             SwiftUI.Tab(value: Tab.currentMonth) {
@@ -67,6 +85,14 @@ struct MainTabView: View {
             }
         }
         .pulpeBackground()
+        // Track the device's bottom safe-area inset so `tabBarClearance` reserves
+        // exactly the right space regardless of device (the bar is positioned from
+        // the physical bottom; content respects the safe area).
+        .onGeometryChange(for: CGFloat.self) { proxy in
+            proxy.safeAreaInsets.bottom
+        } action: { newInset in
+            bottomSafeAreaInset = newInset
+        }
         // Publish the floating-bar reservation through the environment so each
         // tab's `NavigationStack` can re-apply the canonical safe-area pattern
         // locally — see `clearsFloatingTabBar()` below. The visible bar itself
@@ -106,12 +132,12 @@ struct MainTabView: View {
         floatingTabBar(selectedTab: selectedTab)
             .padding(.horizontal, DesignTokens.Spacing.lg)
             // Sit closer to the screen's bottom rounded corners: ignore the
-            // bottom safe area (home indicator) and pad a fixed gap from the
-            // true bottom edge, instead of floating above the full safe-area
-            // inset. `.ignoresSafeArea(edges:.bottom)` covers `.all` regions
-            // (incl. `.keyboard`), so the bar stays keyboard-independent during
-            // push/pop. The gap stays above the home-indicator pill.
-            .padding(.bottom, DesignTokens.Spacing.xxl)
+            // bottom safe area (home indicator) and pad `tabBarBottomInset` from
+            // the physical bottom edge, instead of floating above the full
+            // safe-area inset. `.ignoresSafeArea(edges:.bottom)` covers `.all`
+            // regions (incl. `.keyboard`), so the bar stays keyboard-independent
+            // during push/pop. The gap stays above the home-indicator pill.
+            .padding(.bottom, Self.tabBarBottomInset)
             .opacity(barHidden ? 0 : 1)
             .frame(height: barHidden ? 0 : nil)
             .allowsHitTesting(!barHidden)
