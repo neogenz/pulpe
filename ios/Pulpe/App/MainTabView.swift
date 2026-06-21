@@ -105,12 +105,18 @@ struct MainTabView: View {
     private func floatingTabBarOverlay(selectedTab: Binding<Tab>, barHidden: Bool) -> some View {
         floatingTabBar(selectedTab: selectedTab)
             .padding(.horizontal, DesignTokens.Spacing.lg)
-            .padding(.bottom, DesignTokens.Spacing.xs)
+            // Sit closer to the screen's bottom rounded corners: ignore the
+            // bottom safe area (home indicator) and pad a fixed gap from the
+            // true bottom edge, instead of floating above the full safe-area
+            // inset. `.ignoresSafeArea(edges:.bottom)` covers `.all` regions
+            // (incl. `.keyboard`), so the bar stays keyboard-independent during
+            // push/pop. The gap stays above the home-indicator pill.
+            .padding(.bottom, DesignTokens.Spacing.xxl)
             .opacity(barHidden ? 0 : 1)
             .frame(height: barHidden ? 0 : nil)
             .allowsHitTesting(!barHidden)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
-            .ignoresSafeArea(.keyboard, edges: .bottom)
+            .ignoresSafeArea(edges: .bottom)
     }
 
     @ViewBuilder
