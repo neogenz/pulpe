@@ -260,6 +260,17 @@ struct BudgetDetailsView: View {
             prompt: "Rechercher..."
         )
         .searchPresentationToolbarBehavior(.avoidHidingContent)
+        // Reset the keyboard safe-area inset for this whole subtree — both
+        // overlays (sticky pager + FAB) inherit the reset. This screen has no
+        // bottom text input (the only field is the `.searchable` bar, which
+        // lives in the top nav-bar drawer), so ignoring the bottom keyboard
+        // inset hides nothing. Without this, a stale ~keyboard-height bottom
+        // inset inherited from a pushed, auto-focused child (EditTransactionPage)
+        // strands on pop — phantom over-scroll + FAB floating mid-page. Mirrors
+        // the existing guards on the tab bar (MainTabView) and sticky CTA
+        // (pulpeStickyBottomCTA). Must stay LAST so both overlays inherit it; if
+        // a bottom text field is ever added here, remove or scope this.
+        .ignoresSafeArea(.keyboard, edges: .bottom)
     }
 
     // MARK: - Routing
