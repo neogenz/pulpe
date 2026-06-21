@@ -33,7 +33,9 @@ struct MainTabView: View {
     /// while content respects the safe area — and `safeAreaInset` already
     /// reserves that inset — so it is subtracted here to avoid double-counting.
     /// `max(0, …)` guards devices whose safe area alone already clears the bar.
-    private static func tabBarClearance(bottomSafeAreaInset: CGFloat) -> CGFloat {
+    /// Pure + `internal` so the formula's edge cases are unit-tested
+    /// (`MainTabViewClearanceTests`).
+    static func tabBarClearance(bottomSafeAreaInset: CGFloat) -> CGFloat {
         let barTopAbovePhysicalBottom = tabBarBottomInset + DesignTokens.FrameHeight.tabBar
         return max(0, barTopAbovePhysicalBottom + tabBarContentSpacing - bottomSafeAreaInset)
     }
