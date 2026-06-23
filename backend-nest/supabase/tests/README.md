@@ -16,6 +16,7 @@ psql "$DB" -f supabase/tests/apply_template_line_operations_cross_user.sql
 psql "$DB" -f supabase/tests/create_budget_from_template_owner_only.sql
 psql "$DB" -f supabase/tests/toggle_transaction_check.sql
 psql "$DB" -f supabase/tests/enforce_template_limit_per_user.sql
+psql "$DB" -f supabase/tests/create_budget_lines_spread_source_consumption.sql
 ```
 
 Each script prints `NOTICE:  ALL ASSERTIONS PASSED` on success, or raises an exception on failure.
@@ -30,6 +31,7 @@ Each script prints `NOTICE:  ALL ASSERTIONS PASSED` on success, or raises an exc
 | `create_budget_from_template_owner_only.sql` | `create_budget_from_template` | owner can create budget from own template, other user's template is rejected (Bug #2 fix) |
 | `toggle_transaction_check.sql` | `toggle_transaction_check` | toggle null↔now, ownership enforcement, ending_balance untouched (Option A regression guard) — HI-14 |
 | `enforce_template_limit_per_user.sql` | `enforce_template_limit_per_user` trigger | 6th template insert rejected with P0001/TEMPLATE_LIMIT_EXCEEDED, cross-user isolation — HI-30 |
+| `create_budget_lines_spread_source_consumption.sql` | `create_budget_lines_spread` | consumed source rejects retry before insert, duplicate group prevention, dual-source rejection — PUL-17 |
 
 ## Why SQL files (not Bun specs)
 

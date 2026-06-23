@@ -1,14 +1,8 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { type InfoLogger, InjectInfoLogger } from '@common/logger';
-import { BusinessException } from '@common/exceptions/business.exception';
-import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import type { BudgetLineSpreadFromLineCreate } from 'pulpe-shared';
 import { CacheService } from '@modules/cache/cache.service';
-import {
-  BUDGET_RECALCULATION_PORT,
-  type BudgetRecalculationPort,
-} from '@modules/budget/domain/ports/budget-recalculation.port';
 import {
   BUDGET_LINE_REPOSITORY,
   type BudgetLineRepositoryPort,
@@ -32,10 +26,8 @@ import { buildSpreadFromExistingPlan } from '../domain/spread-from-existing.form
  * strict fan-out RPC — insert(N tranches) + delete(source) are one all-or-nothing
  * transaction. A failure leaves the source intact with nothing created (no
  * double-count, no money loss), and a retry can't duplicate (the source is gone
- * on success). After the RPC, the cache is invalidated BEFORE the M0 recalc, then
- * M0 is recalculated (its weight dropped T → T/N) inside a guard that surfaces a
- * `partialFailure` BusinessException if the recalc throws (the persisted M0
- * ending_balance is then observably inconsistent — mirrors RemoveBudgetLine).
+ * on success). The fan-out core recalculates every touched budget once; this
+ * terminal use case owns the single cache invalidation.
  */
 @Injectable()
 export class SpreadBudgetLineFromLineUseCase {
@@ -44,8 +36,6 @@ export class SpreadBudgetLineFromLineUseCase {
     private readonly repo: BudgetLineRepositoryPort,
     @Inject(BUDGET_LINE_SPREAD_PORT)
     private readonly spread: BudgetLineSpreadPort,
-    @Inject(BUDGET_RECALCULATION_PORT)
-    private readonly budgetRecalculation: BudgetRecalculationPort,
     private readonly cacheService: CacheService,
     @InjectInfoLogger(SpreadBudgetLineFromLineUseCase.name)
     private readonly logger: InfoLogger,
@@ -85,7 +75,7 @@ export class SpreadBudgetLineFromLineUseCase {
       throw error;
     }
 
-    await this.invalidateThenRecalcM0(source.id, source.budgetId, user);
+    await this.cacheService.invalidateForUser(user.id);
 
     this.logger.info(
       {
@@ -99,37 +89,5 @@ export class SpreadBudgetLineFromLineUseCase {
     );
 
     return result;
-  }
-
-  /**
-   * Invalidate the cache BEFORE the M0 recalc (so a recalc failure can't lock in
-   * the about-to-be-stale ending_balance as the cached read), then recalc M0
-   * inside a guard surfacing a `partialFailure` BusinessException — the fan-out
-   * (incl. the atomic source delete) already committed, so a recalc throw leaves
-   * the persisted M0 balance observably inconsistent (mirrors RemoveBudgetLine).
-   */
-  private async invalidateThenRecalcM0(
-    sourceId: string,
-    budgetId: string,
-    user: AuthenticatedUser,
-  ): Promise<void> {
-    await this.cacheService.invalidateForUser(user.id);
-
-    try {
-      await this.budgetRecalculation.recalculate(budgetId);
-    } catch (cause) {
-      throw new BusinessException(
-        ERROR_DEFINITIONS.BUDGET_LINE_DELETE_FAILED,
-        { id: sourceId },
-        {
-          operation: 'budgetLine.spreadFromLine.recalcAfterFanOut',
-          severity: 'critical',
-          partialFailure: true,
-          budgetId,
-          userId: user.id,
-        },
-        { cause },
-      );
-    }
   }
 }

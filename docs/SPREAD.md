@@ -8,9 +8,9 @@ Une grosse dépense irrégulière — prime d'assurance annuelle, impôts, gros 
 
 Avant le lissage, l'enum `recurrence` n'offrait que deux extrêmes : **Récurrent** (`fixed`, tous les mois indéfiniment) et **Prévu** (`one_off`, une seule fois, un seul mois). Aucun moyen de dire « pose 100 CHF/mois de janvier à juin, mais saute mars ».
 
-## L'interprétation retenue : B (et non A)
+## Création additive V1 : interprétation B
 
-« Lisser » a deux lectures incompatibles. La décision produit (gelée, PUL-17) est **B** :
+La création d'une nouvelle dépense lissée suit l'interprétation **B** :
 
 | | A — Total ÷ N | **B — Montant/mois répliqué** ✅ |
 | -- | -- | -- |
@@ -21,17 +21,11 @@ Avant le lissage, l'enum `recurrence` n'offrait que deux extrêmes : **Récurren
 
 Sous B, une dépense lissée se matérialise en **N prévisions `one_off` INDÉPENDANTES**, une par mois. « Lisser » est une **commodité de saisie**, pas un nouveau type de ligne ni une valeur de `recurrence`. Conséquence : toute la machinerie existante (chiffrement per-row, FX figé, rollover, consumption, édition/suppression par mois, pointage) fonctionne sans entité cross-mois.
 
-## Le calculateur réactif à 3 modes (client uniquement)
+## Saisie V1 (client uniquement)
 
-L'utilisateur ne pense pas en « tranches ». Il pense en trois variables liées par `Total = Σ tranches` :
+L'utilisateur saisit un **montant par mois** et sélectionne les mois cibles. Le client produit les tranches concrètes ; désélectionner un mois le retire sans redistribuer les autres montants.
 
-- **Mode 1** — plafond **Montant/mois** + **Total** → l'app calcule la **fenêtre** (« jusqu'à quand »).
-- **Mode 2** — **Total** + **mois cible** → l'app répartit (calcule le **Montant/mois**).
-- **Mode 3** — **Montant/mois** + **fenêtre** → **Total** = somme.
-
-C'est **un seul formulaire réactif** : on remplit 2 champs, le 3ᵉ se calcule en live. Le reste d'arrondi tombe sur le **dernier mois sélectionné** (visible dans l'écho). Les mois sont **désélectionnables**. L'UX est **distincte webapp ≠ iOS** (chaque plateforme suit son idiome natif).
-
-**Clé de voûte :** ce calcul vit **100 % côté client**. Le serveur est **agnostique du mode** — il reçoit des **tranches concrètes** `[{year, month, amount}]` et les insère telles quelles. Ajouter un mode futur ne touche pas le backend.
+**Clé de voûte :** le serveur reste **agnostique du mode de saisie** — il reçoit des **tranches concrètes** `[{year, month, amount}]` et les insère telles quelles. Les modes pilotés par un total sont différés pour la création additive ; le flux v1.1 « lisser un existant » décrit plus bas est, lui, total-préservant.
 
 ## Résolution du modèle (les 3 « formes de dépense »)
 
@@ -39,7 +33,7 @@ C'est **un seul formulaire réactif** : on remplit 2 champs, le 3ᵉ se calcule 
 | -- | -- | -- |
 | enveloppe / prévision | `budget_line` (`recurrence=one_off`) | **Oui** — porte `spread_group_id` |
 | sous-dépense d'une enveloppe | `transaction` avec `budget_line_id` SET | Non — **dérive** via son `budget_line` parent |
-| transaction libre | `transaction` avec `budget_line_id = NULL` | Non, jamais |
+| transaction libre | `transaction` avec `budget_line_id = NULL` | Ne porte jamais le groupe ; peut être la source remplacée en v1.1 |
 
 - `spread_group_id uuid NULLABLE` vit sur `budget_line` **uniquement**. Une `transaction` n'est jamais une tranche ; sa lissé-ness est dérivable via son parent.
 - **Aucun nesting** (`parent_id`) : les occurrences sont N lignes **sœurs** réparties horizontalement, pas un arbre.
@@ -68,13 +62,13 @@ Le fan-out des tranches est tout-ou-rien. L'auto-création des budgets est **bes
 
 Distinct du fan-out de création additif ci-dessus. Ici la source **existe déjà** dans le mois courant M0 (une prévision `one_off` **ou** une transaction libre/réel) avec un montant total `T`. « Lisser » = **redistribuer** `T` en N tranches `one_off` de `T/N` (Σ === T exactement), une par mois M0..M(N-1), partageant un nouveau `spread_group_id`, puis **supprimer la source**. C'est l'**interprétation A** (total ÷ N) — initialement différée — appliquée à un existant.
 
-**Décision produit (la tension du réel)** : lisser un réel supprime le réel et le remplace par le plan → M0 affiche `T/N` au lieu du `T` réellement dépensé. « Comptablement faux » mais **validé par l'utilisateur** (lissage budgétaire d'un gros achat). Le réel n'est **pas** conservé en parallèle (sinon double comptage). Opération **uniforme** prévision/réel : supprimer la source + fan-out.
+**Exception RG-005 validée** : une transaction réelle s'ajoute normalement aux prévisions. Lorsqu'un utilisateur lisse explicitement une transaction libre, celle-ci est remplacée atomiquement par les prévisions lissées, dont la somme conserve exactement le montant initial. Le réel n'est pas conservé en parallèle, ce qui évite tout double comptage.
 
 **Répartition (Σ = T garantie)** : `splitTotalPreserving(T, N)` (dans `pulpe-shared`, utilisée côté serveur **et** côté client pour l'aperçu live → l'aperçu égale toujours le persisté) répartit en **centimes** — `floor(T*100/N)` par tranche, le reste distribué un centime sur les **premières** tranches (M0 d'abord, jamais caché sur un mois lointain). `originalAmount` (FX) suit le même schéma. Le client n'envoie que les `periods` (mois cibles) ; le serveur lit `T` du montant **déchiffré** de la source (autorité unique → Σ=T ingarantissable côté client).
 
 **Fenêtre** : démarre à M0 vers le **futur** uniquement (jamais réécrire un mois clôturé). N ≥ 2 (lisser sur 1 mois = no-op).
 
-**Atomicité (renforcée vs le create additif)** : `insert(N tranches)` + `delete(source)` sont **une seule** transaction `SECURITY DEFINER` — la suppression de la source est **repliée dans la RPC** (`p_source_budget_line_id` / `p_source_transaction_id`). Un échec laisse la source intacte + rien créé (pas de double comptage, pas de perte) ; un re-submit ne duplique pas. Après la RPC : `invalidateForUser` **avant** le recalc M0, puis recalc M0 sous garde (une erreur de recalc lève une `BusinessException partialFailure` — le solde M0 persisté devient observablement incohérent, calqué sur `RemoveBudgetLine`).
+**Atomicité (renforcée vs le create additif)** : `delete(source)` + `insert(N tranches)` sont **une seule** transaction `SECURITY DEFINER` — la suppression de la source est **repliée dans la RPC** (`p_source_budget_line_id` / `p_source_transaction_id`). Le `DELETE` consomme et verrouille logiquement la source avant l'`INSERT` : un appel concurrent ou rejoué échoue avant de créer un second groupe. Toute erreur d'insertion rollbacke aussi la suppression. Après commit, chaque budget touché est recalculé une seule fois ; une erreur est signalée comme `partialFailure`, puis le cache utilisateur est invalidé.
 
 **Endpoints** : `POST /v1/budget-lines/:id/spread` (source = prévision `one_off`, `kind ≠ income`, pas déjà lissée) et `POST /v1/transactions/:id/spread` (source = transaction **libre** `budgetLineId = null`, `kind ≠ income` ; une transaction allouée renvoie vers le lissage de sa prévision parente). Cross-module via `BUDGET_LINE_SPREAD_PORT` (+ `forwardRef` entre modules) : `fanOutStrict` (tout-ou-rien, échoue si un mois est non-provisionnable — contrat Σ=T) vs `fanOut` (tolérant — le create additif).
 
@@ -82,7 +76,7 @@ Distinct du fan-out de création additif ci-dessus. Ici la source **existe déj�
 
 ## Hors scope V1 (différé)
 
-Édition « en bloc » de la série (changer T ou N d'un groupe d'un coup), compteur `Lissé · X/N` **inline sur la pill** (le tracker vit dans le panneau d'occurrences, pas sur la ligne du mois), `consumed`/`remaining` par occurrence, suppression du groupe entier, lissage rétroactif sur mois **passés**, lissage de revenu, réutilisation de `savingsGoal` (les tranches posent `savingsGoalId = null`), parité **iOS** (web-first ; iOS dans un ticket séparé).
+Édition « en bloc » de la série (changer T ou N d'un groupe d'un coup), compteur `Lissé · X/N` **inline sur la pill** (le tracker vit dans le panneau d'occurrences, pas sur la ligne du mois), `remaining` par occurrence, suppression du groupe entier, lissage rétroactif sur mois **passés**, lissage de revenu, réutilisation de `savingsGoal` (les tranches posent `savingsGoalId = null`), parité **iOS** (web-first ; iOS dans un ticket séparé).
 
 ## Références
 
@@ -95,7 +89,7 @@ Distinct du fan-out de création additif ci-dessus. Ici la source **existe déj�
 | Auto-création | `backend-nest/src/modules/budget/application/ensure-budgets-for-periods.use-case.ts` (port `BUDGET_PROVISIONING_PORT`) |
 | Repo (encryption + RPC) | `backend-nest/src/modules/budget-line/infrastructure/persistence/supabase-budget-line.repository.ts` (`createSpread`) |
 | **v1.1** Split Σ=T | `shared/src/calculators/spread-split.ts` (`splitTotalPreserving`) |
-| **v1.1** RPC suppression atomique | `backend-nest/supabase/migrations/20260620120000_spread_rpc_atomic_source_delete.sql` |
+| **v1.1** RPC suppression atomique | `backend-nest/supabase/migrations/20260620120000_spread_rpc_atomic_source_delete.sql`, durcie contre les appels concurrents par `20260623150000_consume_spread_source_before_insert.sql` |
 | **v1.1** Schémas from-existing | `shared/schemas.ts` (`budgetLineSpreadFromLineCreateSchema`, `transactionSpreadFromTxnCreateSchema`) |
 | **v1.1** Use-case lisser prévision | `backend-nest/src/modules/budget-line/application/spread-budget-line-from-line.use-case.ts` |
 | **v1.1** Use-case lisser réel | `backend-nest/src/modules/transaction/application/spread-transaction-from-txn.use-case.ts` |

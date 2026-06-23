@@ -97,7 +97,7 @@ import type {
           [class.p-3]="density() === 'compact'"
           [class.opacity-60]="vm.isPast"
           [attr.data-testid]="'spread-occurrence-' + vm.occurrence.budgetLineId"
-          [attr.data-current]="vm.isCurrent"
+          [attr.data-current]="vm.isViewed"
           [attr.data-past]="vm.isPast"
         >
           <div class="min-w-0 flex items-center gap-2">
@@ -111,7 +111,7 @@ import type {
                   | date: 'MMMM yyyy' : undefined : locale()
               }}
             </span>
-            @if (vm.isCurrent) {
+            @if (vm.isViewed) {
               <span
                 class="text-label-small font-medium rounded-full px-2 py-0.5
                        bg-primary-container text-on-primary-container shrink-0"

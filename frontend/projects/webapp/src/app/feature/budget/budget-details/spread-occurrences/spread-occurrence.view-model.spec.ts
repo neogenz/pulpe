@@ -8,8 +8,9 @@ import {
 
 /**
  * PUL-17 — two distinct axes:
- *  - DISPLAY: isPast / isCurrent, relative to the VIEWED budget period.
- *  - REALIZATION: isClosed, relative to the LIVE current period (today). The
+ *  - DISPLAY: isPast is relative to LIVE; isViewed marks the VIEWED period.
+ *  - TRACKER: isBeforeViewed preserves the viewed position independently.
+ *  - REALIZATION: isClosed is relative to the LIVE current period (today). The
  *    réalisé cumulé counts occurrences that are closed OR checked, using their
  *    consumed (Σ sub-transactions) when any exist, else the prévu.
  */
@@ -64,11 +65,11 @@ describe('buildSpreadOccurrenceViewModels (PUL-17)', () => {
       liveJune,
     );
 
-    expect(vms.filter((v) => v.isCurrent)).toHaveLength(1);
-    expect(vms.find((v) => v.isCurrent)!.occurrence.month).toBe(6);
+    expect(vms.filter((v) => v.isViewed)).toHaveLength(1);
+    expect(vms.find((v) => v.isViewed)!.occurrence.month).toBe(6);
   });
 
-  it('should follow the viewed period when it changes (track viewed month, not now)', () => {
+  it('should follow the viewed period for its marker without changing live past state', () => {
     const occurrences = [
       occurrence({ month: 6, year: 2026 }),
       occurrence({ month: 7, year: 2026 }),
@@ -80,8 +81,30 @@ describe('buildSpreadOccurrenceViewModels (PUL-17)', () => {
       liveJune,
     );
 
-    expect(vms.find((v) => v.occurrence.month === 6)!.isPast).toBe(true);
-    expect(vms.find((v) => v.occurrence.month === 7)!.isCurrent).toBe(true);
+    expect(vms.find((v) => v.occurrence.month === 6)!.isPast).toBe(false);
+    expect(vms.find((v) => v.occurrence.month === 6)!.isBeforeViewed).toBe(
+      true,
+    );
+    expect(vms.find((v) => v.occurrence.month === 7)!.isViewed).toBe(true);
+  });
+
+  it('should flag past occurrences against the live period, not an older viewed budget', () => {
+    const occurrences = [
+      occurrence({ month: 3, year: 2026 }),
+      occurrence({ month: 4, year: 2026 }),
+      occurrence({ month: 6, year: 2026 }),
+    ];
+
+    const vms = buildSpreadOccurrenceViewModels(
+      occurrences,
+      { month: 3, year: 2026 },
+      liveJune,
+    );
+
+    expect(vms.find((v) => v.occurrence.month === 3)!.isPast).toBe(true);
+    expect(vms.find((v) => v.occurrence.month === 4)!.isPast).toBe(true);
+    expect(vms.find((v) => v.occurrence.month === 6)!.isPast).toBe(false);
+    expect(buildSpreadTracker(vms)!.currentIndex).toBe(1);
   });
 
   it('should compute isClosed relative to the LIVE period, independent of the viewed one', () => {
@@ -91,7 +114,7 @@ describe('buildSpreadOccurrenceViewModels (PUL-17)', () => {
       occurrence({ month: 7, year: 2026 }),
     ];
 
-    // Viewed = October (all three are isPast vs viewed) but live = June.
+    // Viewed = October, but only May is truly past against live June.
     const vms = buildSpreadOccurrenceViewModels(
       occurrences,
       { month: 10, year: 2026 },
@@ -101,7 +124,7 @@ describe('buildSpreadOccurrenceViewModels (PUL-17)', () => {
     expect(vms.find((v) => v.occurrence.month === 5)!.isClosed).toBe(true);
     expect(vms.find((v) => v.occurrence.month === 6)!.isClosed).toBe(false);
     expect(vms.find((v) => v.occurrence.month === 7)!.isClosed).toBe(false);
-    expect(vms.every((v) => v.isPast)).toBe(true);
+    expect(vms.map((v) => v.isPast)).toEqual([true, false, false]);
   });
 
   it('should mark checked occurrences via checkedAt', () => {

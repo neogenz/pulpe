@@ -18,13 +18,8 @@ import type {
 export type { SpreadOccurrenceViewModel, SpreadTracker };
 
 /**
- * Builds the per-occurrence view-models relative to the VIEWED budget period.
- *
- * `isPast` / `isCurrent` are computed against `referencePeriod` (the month the
- * user is currently looking at) via `compareBudgetPeriods` — NOT against `now`.
- * This means the tracker reflects the position of the VIEWED month inside the
- * spread, not where the live calendar clock is. The viewed budget's
- * `month`/`year` ARE the budget-period label (already payDay-resolved upstream).
+ * Builds payDay-aware display state against the LIVE period while keeping the
+ * VIEWED period as an independent tracker/marker axis.
  */
 export function buildSpreadOccurrenceViewModels(
   occurrences: readonly SpreadOccurrence[],
@@ -37,15 +32,15 @@ export function buildSpreadOccurrenceViewModels(
         month: occurrence.month,
         year: occurrence.year,
       };
-      const comparison = compareBudgetPeriods(period, referencePeriod);
+      const viewedComparison = compareBudgetPeriods(period, referencePeriod);
+      const liveComparison = compareBudgetPeriods(period, livePeriod);
       return {
         occurrence,
-        isPast: comparison < 0,
-        isCurrent: comparison === 0,
+        isPast: liveComparison < 0,
+        isViewed: viewedComparison === 0,
+        isBeforeViewed: viewedComparison < 0,
         isChecked: occurrence.checkedAt != null,
-        // Realization axis: closed = strictly before TODAY's live period (≠ the
-        // viewed reference). A month is "clôturé" once it has truly elapsed.
-        isClosed: compareBudgetPeriods(period, livePeriod) < 0,
+        isClosed: liveComparison < 0,
       };
     })
     .sort((a, b) =>
@@ -74,7 +69,7 @@ export function spreadOccurrenceRealizedAmount(
  * functions of the occurrence list (see {@link SpreadTracker}):
  *
  * - `currentIndex`    = 1-based rank of the VIEWED month among the occurrences
- *                       (count of `isPast || isCurrent`). 0 when the viewed
+ *                       (count of `isBeforeViewed || isViewed`). 0 when the viewed
  *                       month precedes every occurrence (plan not started here).
  *                       Position indicator only — independent of realization.
  * - `cumulatedAmount` = RÉALISÉ: Σ over REALIZED occurrences (`isClosed ||
@@ -93,7 +88,7 @@ export function buildSpreadTracker(
   if (count === 0) return null;
 
   const currentIndex = viewModels.reduce(
-    (rank, vm, index) => (vm.isPast || vm.isCurrent ? index + 1 : rank),
+    (rank, vm, index) => (vm.isBeforeViewed || vm.isViewed ? index + 1 : rank),
     0,
   );
 
@@ -107,7 +102,7 @@ export function buildSpreadTracker(
   );
 
   const representative =
-    viewModels.find((vm) => vm.isCurrent)?.occurrence.amount ??
+    viewModels.find((vm) => vm.isViewed)?.occurrence.amount ??
     viewModels.at(-1)?.occurrence.amount ??
     0;
 

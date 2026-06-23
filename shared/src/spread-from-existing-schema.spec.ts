@@ -6,7 +6,7 @@ import {
 
 const buildPeriods = (count: number): { year: number; month: number }[] =>
   Array.from({ length: count }, (_, index) => ({
-    year: 2026,
+    year: 2026 + Math.floor(index / 12),
     month: (index % 12) + 1,
   }));
 
@@ -37,6 +37,16 @@ describe.each([
 
   it('rejects a window exceeding 36 periods', () => {
     const result = schema.safeParse({ periods: buildPeriods(37) });
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects duplicate periods even when the array has the minimum length', () => {
+    const result = schema.safeParse({
+      periods: [
+        { year: 2026, month: 1 },
+        { year: 2026, month: 1 },
+      ],
+    });
     expect(result.success).toBe(false);
   });
 

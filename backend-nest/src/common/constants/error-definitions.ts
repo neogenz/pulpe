@@ -479,6 +479,12 @@ export const ERROR_DEFINITIONS = {
         : 'Cannot smooth across a month with no budget and no default template to create one.',
     httpStatus: HttpStatus.UNPROCESSABLE_ENTITY,
   },
+  BUDGET_LINE_SPREAD_RECALCULATION_FAILED: {
+    code: API_ERROR_CODES.BUDGET_LINE_SPREAD_RECALCULATION_FAILED,
+    message: () =>
+      'The spread was created, but budget balances could not be refreshed. Reload without retrying the spread.',
+    httpStatus: HttpStatus.INTERNAL_SERVER_ERROR,
+  },
 
   // User Errors
   USER_NOT_FOUND: {

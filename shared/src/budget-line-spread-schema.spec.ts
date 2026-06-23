@@ -92,6 +92,17 @@ describe('budgetLineSpreadCreateSchema', () => {
     expect(result.success).toBe(false);
   });
 
+  it('rejects duplicate target periods', () => {
+    const result = budgetLineSpreadCreateSchema.safeParse({
+      ...base,
+      tranches: [
+        { year: 2026, month: 1, amount: 100 },
+        { year: 2026, month: 1, amount: 100 },
+      ],
+    });
+    expect(result.success).toBe(false);
+  });
+
   it('rejects a client-supplied spreadGroupId (server-generated, strictObject)', () => {
     const result = budgetLineSpreadCreateSchema.safeParse({
       ...base,

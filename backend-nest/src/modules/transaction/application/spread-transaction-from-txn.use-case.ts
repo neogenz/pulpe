@@ -6,10 +6,6 @@ import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import type { TransactionSpreadFromTxnCreate } from 'pulpe-shared';
 import { CacheService } from '@modules/cache/cache.service';
 import {
-  BUDGET_RECALCULATION_PORT,
-  type BudgetRecalculationPort,
-} from '@modules/budget/domain/ports/budget-recalculation.port';
-import {
   BUDGET_LINE_SPREAD_PORT,
   type BudgetLineSpreadPort,
   type SpreadFanOutResult,
@@ -37,9 +33,8 @@ import { TransactionInvariants } from '../domain/transaction.invariants';
  * transaction. Critical for a RÉEL: delete-then-fanout is NOT a safe fallback (a
  * fan-out failure after delete would LOSE the actual). A failure now leaves the
  * réel intact with nothing created; a retry can't duplicate (the réel is gone on
- * success). After the RPC, the cache is invalidated BEFORE the M0 recalc, then M0
- * is recalculated inside a guard that surfaces a `partialFailure` BusinessException
- * if the recalc throws (mirrors RemoveTransaction).
+ * success). The fan-out core recalculates every touched budget once; this
+ * terminal use case owns the single cache invalidation.
  */
 @Injectable()
 export class SpreadTransactionFromTxnUseCase {
@@ -48,8 +43,6 @@ export class SpreadTransactionFromTxnUseCase {
     private readonly repo: TransactionRepositoryPort,
     @Inject(BUDGET_LINE_SPREAD_PORT)
     private readonly spread: BudgetLineSpreadPort,
-    @Inject(BUDGET_RECALCULATION_PORT)
-    private readonly budgetRecalculation: BudgetRecalculationPort,
     private readonly cacheService: CacheService,
     @InjectInfoLogger(SpreadTransactionFromTxnUseCase.name)
     private readonly logger: InfoLogger,
@@ -105,7 +98,7 @@ export class SpreadTransactionFromTxnUseCase {
       throw error;
     }
 
-    await this.invalidateThenRecalcM0(source.id, source.budgetId, user);
+    await this.cacheService.invalidateForUser(user.id);
 
     this.logger.info(
       {
@@ -119,37 +112,5 @@ export class SpreadTransactionFromTxnUseCase {
     );
 
     return result;
-  }
-
-  /**
-   * Invalidate the cache BEFORE the M0 recalc (so a recalc failure can't lock in
-   * the about-to-be-stale ending_balance as the cached read), then recalc M0
-   * inside a guard surfacing a `partialFailure` BusinessException — the fan-out
-   * (incl. the atomic réel delete) already committed, so a recalc throw leaves
-   * the persisted M0 balance observably inconsistent (mirrors RemoveTransaction).
-   */
-  private async invalidateThenRecalcM0(
-    sourceId: string,
-    budgetId: string,
-    user: AuthenticatedUser,
-  ): Promise<void> {
-    await this.cacheService.invalidateForUser(user.id);
-
-    try {
-      await this.budgetRecalculation.recalculate(budgetId);
-    } catch (cause) {
-      throw new BusinessException(
-        ERROR_DEFINITIONS.TRANSACTION_DELETE_FAILED,
-        { id: sourceId },
-        {
-          operation: 'transaction.spreadFromTxn.recalcAfterFanOut',
-          severity: 'critical',
-          partialFailure: true,
-          budgetId,
-          userId: user.id,
-        },
-        { cause },
-      );
-    }
   }
 }

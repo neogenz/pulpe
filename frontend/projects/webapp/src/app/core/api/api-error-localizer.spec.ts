@@ -35,6 +35,18 @@ describe('ApiErrorLocalizer', () => {
     );
   });
 
+  it('should warn that a spread committed when balance refresh fails', () => {
+    const error = new ApiError(
+      'Spread committed but recalculation failed',
+      'ERR_BUDGET_LINE_SPREAD_RECALCULATION_FAILED',
+      500,
+      null,
+    );
+    expect(service.localizeApiError(error)).toBe(
+      'Le lissage a bien été créé, mais les soldes n’ont pas pu être actualisés — recharge la page sans relancer le lissage',
+    );
+  });
+
   it('should localize template errors', () => {
     const error = new ApiError(
       'Not found',

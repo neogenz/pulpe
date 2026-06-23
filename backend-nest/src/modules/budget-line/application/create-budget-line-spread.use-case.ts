@@ -172,9 +172,7 @@ export class CreateBudgetLineSpreadUseCase implements BudgetLineSpreadPort {
     const touchedBudgetIds = [
       ...new Set(inputs.map((createInput) => createInput.budgetId)),
     ];
-    await Promise.all(
-      touchedBudgetIds.map((id) => this.budgetRecalculation.recalculate(id)),
-    );
+    await this.recalculateAfterCommit(touchedBudgetIds, spreadGroupId, user.id);
 
     this.logger.info(
       {
@@ -207,6 +205,32 @@ export class CreateBudgetLineSpreadUseCase implements BudgetLineSpreadPort {
       { operation: 'budgetLine.spread', userId: user.id },
       { cause: error },
     );
+  }
+
+  private async recalculateAfterCommit(
+    budgetIds: string[],
+    spreadGroupId: string,
+    userId: string,
+  ): Promise<void> {
+    try {
+      await Promise.all(
+        budgetIds.map((id) => this.budgetRecalculation.recalculate(id)),
+      );
+    } catch (cause) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.BUDGET_LINE_SPREAD_RECALCULATION_FAILED,
+        undefined,
+        {
+          operation: 'budgetLine.spread.recalcAfterCommit',
+          severity: 'critical',
+          partialFailure: true,
+          affectedBudgetIds: budgetIds,
+          spreadGroupId,
+          userId,
+        },
+        { cause },
+      );
+    }
   }
 
   private buildInputs(

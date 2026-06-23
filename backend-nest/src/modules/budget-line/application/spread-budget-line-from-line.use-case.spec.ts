@@ -304,21 +304,9 @@ describe('SpreadBudgetLineFromLineUseCase', () => {
     expect(mockCache.invalidateForUser).toHaveBeenCalledWith(mockUser.id);
   });
 
-  it('throws a partialFailure BusinessException AND still invalidated the cache when the M0 recalc fails after a successful fan-out', async () => {
-    // The fan-out (incl. atomic source delete) already committed; only the M0
-    // recalc AFTER the fan-out throws. The persisted M0 ending_balance is then
-    // inconsistent, so the error must be observable (partialFailure). The
-    // in-fan-out recalcs (one per touched budget) must still succeed; only the
-    // final post-fan-out M0 recalc fails — mirrors RemoveBudgetLine.
+  it('throws a partialFailure BusinessException and invalidates cache when a touched-budget recalc fails after commit', async () => {
     const recalcError = new Error('transient recalc failure');
-    const touchedCount = eightPeriods.length;
-    let recalcCalls = 0;
-    mockBudget.recalculate.mockImplementation(() => {
-      recalcCalls += 1;
-      return recalcCalls > touchedCount
-        ? Promise.reject(recalcError)
-        : Promise.resolve(undefined);
-    });
+    mockBudget.recalculate.mockRejectedValue(recalcError);
 
     try {
       await useCase.execute('line-source', { periods: eightPeriods }, mockUser);
@@ -326,13 +314,17 @@ describe('SpreadBudgetLineFromLineUseCase', () => {
     } catch (error) {
       expect(error).toBeInstanceOf(BusinessException);
       const businessError = error as BusinessException;
-      expect(businessError.code).toBe('ERR_BUDGET_LINE_DELETE_FAILED');
+      expect(businessError.code).toBe(
+        'ERR_BUDGET_LINE_SPREAD_RECALCULATION_FAILED',
+      );
       expect(businessError.cause).toBe(recalcError);
       expect(businessError.loggingContext.severity).toBe('critical');
       expect(businessError.loggingContext.partialFailure).toBe(true);
-      expect(businessError.loggingContext.budgetId).toBe('b-1-2026');
+      expect(businessError.loggingContext.affectedBudgetIds).toEqual(
+        eightPeriods.map((period) => `b-${period.month}-${period.year}`),
+      );
       expect(businessError.loggingContext.operation).toBe(
-        'budgetLine.spreadFromLine.recalcAfterFanOut',
+        'budgetLine.spread.recalcAfterCommit',
       );
     }
 

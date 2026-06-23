@@ -1031,6 +1031,7 @@
     "budgetLineCreationFailed": "L'ajout de la prévision a échoué — réessaie",
     "budgetLineUpdateFailed": "La modification de la prévision a échoué — réessaie",
     "budgetLineDeleteFailed": "La suppression de la prévision a échoué — réessaie",
+    "budgetLineSpreadRecalculationFailed": "Le lissage a bien été créé, mais les soldes n’ont pas pu être actualisés — recharge la page sans relancer le lissage",
     "transactionNotFound": "Transaction introuvable",
     "transactionCreationFailed": "L'ajout de la transaction a échoué — réessaie",
     "transactionUpdateFailed": "La modification de la transaction a échoué — réessaie",

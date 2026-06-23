@@ -9,18 +9,16 @@ import type { SpreadOccurrence } from 'pulpe-shared';
  * (forbidden by layer rules). The feature view-model file imports these
  * interfaces from here; the BUILDERS (domain logic) stay in `feature/`.
  *
- * `isPast` / `isCurrent` are payDay-aware (computed relative to the VIEWED budget
- * period) and drive DISPLAY (dimming, "Ici" badge). `isChecked` mirrors
- * `checkedAt`. `isClosed` is the REALIZATION axis: payDay-aware relative to the
- * LIVE current period (today), so a month genuinely past — independent of which
- * month you're viewing. Display (`isPast`) and realization (`isClosed`) are
- * distinct: you can view a future month (its past occurrences are `isPast`) yet
- * only the truly-elapsed ones are `isClosed`.
+ * `isPast` / `isClosed` are payDay-aware against the LIVE current period.
+ * `isViewed` marks the VIEWED budget month (the "Ici" badge), while
+ * `isBeforeViewed` preserves its position for the tracker independently from
+ * the live clock. `isChecked` mirrors `checkedAt`.
  */
 export interface SpreadOccurrenceViewModel {
   readonly occurrence: SpreadOccurrence;
   readonly isPast: boolean;
-  readonly isCurrent: boolean;
+  readonly isViewed: boolean;
+  readonly isBeforeViewed: boolean;
   readonly isChecked: boolean;
   readonly isClosed: boolean;
 }

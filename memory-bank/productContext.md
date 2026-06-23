@@ -111,7 +111,10 @@ Cette dissymétrie (visuel à 50 %, logique à 80 %) est volontaire : le tint do
 ### RG-005: Transactions
 
 - Manual entry only
-- Added to budget lines (don't replace)
+- Une transaction réelle s’ajoute normalement aux prévisions.
+- Exception : lorsqu’un utilisateur lisse explicitement une transaction libre,
+  celle-ci est remplacée atomiquement par les prévisions lissées, dont la somme
+  conserve exactement le montant initial.
 - Modification allowed for allocated tx (name, amount)
 - Reallocation to another envelope not allowed
 - Free tx editing follows same pattern

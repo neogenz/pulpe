@@ -231,4 +231,30 @@ describe('CreateBudgetLineSpreadUseCase', () => {
     );
     expect(mockCache.invalidateForUser).toHaveBeenCalledWith(mockUser.id);
   });
+
+  it('should expose a partial failure when recalculation fails after the spread committed', async () => {
+    const recalcError = new Error('recalculation failed');
+    mockBudget.recalculate.mockRejectedValue(recalcError);
+
+    try {
+      await useCase.execute(makeDto(), mockUser);
+      throw new Error('expected to throw');
+    } catch (error) {
+      expect(error).toBeInstanceOf(BusinessException);
+      const businessError = error as BusinessException;
+      expect(businessError.code).toBe(
+        'ERR_BUDGET_LINE_SPREAD_RECALCULATION_FAILED',
+      );
+      expect(businessError.cause).toBe(recalcError);
+      expect(businessError.loggingContext.partialFailure).toBe(true);
+      expect(businessError.loggingContext.affectedBudgetIds).toEqual([
+        'b-1-2026',
+        'b-2-2026',
+        'b-3-2026',
+      ]);
+    }
+
+    expect(mockRepo.createSpread).toHaveBeenCalledTimes(1);
+    expect(mockCache.invalidateForUser).toHaveBeenCalledWith(mockUser.id);
+  });
 });

@@ -46,7 +46,8 @@ function viewModel(
   return {
     occurrence: occ,
     isPast: false,
-    isCurrent: false,
+    isViewed: false,
+    isBeforeViewed: false,
     isChecked: occ.checkedAt != null,
     isClosed: false,
     ...flags,
@@ -285,7 +286,7 @@ describe('SpreadOccurrencesList', () => {
   it('should mark the viewed-month row with the current marker', () => {
     const occurrences = [
       viewModel(occurrence({ month: 5, year: 2026 }), { isPast: true }),
-      viewModel(occurrence({ month: 6, year: 2026 }), { isCurrent: true }),
+      viewModel(occurrence({ month: 6, year: 2026 }), { isViewed: true }),
       viewModel(occurrence({ month: 7, year: 2026 })),
     ];
 
@@ -307,7 +308,7 @@ describe('SpreadOccurrencesList', () => {
 
   it('should label the marker "Ici" when not the live current period', () => {
     const occurrences = [
-      viewModel(occurrence({ month: 6, year: 2026 }), { isCurrent: true }),
+      viewModel(occurrence({ month: 6, year: 2026 }), { isViewed: true }),
     ];
 
     const host = render({
@@ -323,7 +324,7 @@ describe('SpreadOccurrencesList', () => {
 
   it('should label the marker "Ce mois" when it is the live current period', () => {
     const occurrences = [
-      viewModel(occurrence({ month: 6, year: 2026 }), { isCurrent: true }),
+      viewModel(occurrence({ month: 6, year: 2026 }), { isViewed: true }),
     ];
 
     const host = render({

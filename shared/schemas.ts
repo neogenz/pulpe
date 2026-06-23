@@ -371,6 +371,12 @@ export type BudgetLineSpreadTranche = z.infer<
   typeof budgetLineSpreadTrancheSchema
 >;
 
+const hasUniqueSpreadPeriods = (
+  periods: readonly { year: number; month: number }[],
+): boolean =>
+  new Set(periods.map(({ year, month }) => `${year}-${month}`)).size ===
+  periods.length;
+
 /**
  * Création d'une dépense lissée. `kind` exclut `income` (revenu lissé hors scope V1).
  * Un SEUL `exchangeRate` figé à la saisie est partagé par toutes les tranches (FX gelé).
@@ -383,7 +389,10 @@ export const budgetLineSpreadCreateSchema = z
     tranches: z
       .array(budgetLineSpreadTrancheSchema)
       .min(1)
-      .max(MAX_SPREAD_TRANCHES),
+      .max(MAX_SPREAD_TRANCHES)
+      .refine(hasUniqueSpreadPeriods, {
+        message: 'Chaque mois cible ne peut apparaître qu’une fois.',
+      }),
     originalCurrency: supportedCurrencySchema.optional(),
     targetCurrency: supportedCurrencySchema.optional(),
     exchangeRate: exchangeRateWirePositive.optional(),
@@ -491,7 +500,10 @@ export const budgetLineSpreadFromLineCreateSchema = z.strictObject({
   periods: z
     .array(spreadFromExistingPeriodSchema)
     .min(2)
-    .max(MAX_SPREAD_TRANCHES),
+    .max(MAX_SPREAD_TRANCHES)
+    .refine(hasUniqueSpreadPeriods, {
+      message: 'Chaque mois cible ne peut apparaître qu’une fois.',
+    }),
 });
 export type BudgetLineSpreadFromLineCreate = z.infer<
   typeof budgetLineSpreadFromLineCreateSchema
@@ -508,7 +520,10 @@ export const transactionSpreadFromTxnCreateSchema = z.strictObject({
   periods: z
     .array(spreadFromExistingPeriodSchema)
     .min(2)
-    .max(MAX_SPREAD_TRANCHES),
+    .max(MAX_SPREAD_TRANCHES)
+    .refine(hasUniqueSpreadPeriods, {
+      message: 'Chaque mois cible ne peut apparaître qu’une fois.',
+    }),
 });
 export type TransactionSpreadFromTxnCreate = z.infer<
   typeof transactionSpreadFromTxnCreateSchema
