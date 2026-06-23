@@ -290,12 +290,10 @@ export class SpreadExistingDialog {
   // the end must be strictly after the start so N ≥ 2 is reachable).
   protected readonly monthOptions = computed(() => {
     const last = offsetMonth(this.#start, MAX_SPREAD_MONTHS - 1);
-    return enumerateMonths(offsetMonth(this.#start, 1), last).map(
-      (m) => ({
-        key: monthKey(m),
-        label: this.#formatMonth(m, 'MMMM yyyy'),
-      }),
-    );
+    return enumerateMonths(offsetMonth(this.#start, 1), last).map((m) => ({
+      key: monthKey(m),
+      label: this.#formatMonth(m, 'MMMM yyyy'),
+    }));
   });
 
   protected readonly rangeMonths = computed(() =>

@@ -62,18 +62,28 @@ export class SpreadBudgetLineFromLineUseCase {
 
     const plan = buildSpreadFromExistingPlan(source, dto.periods);
 
-    const result = await this.spread.fanOutStrict(
-      {
-        name: source.name,
-        kind: source.kind,
-        tranches: plan.tranches,
-        originalCurrency: plan.originalCurrency,
-        targetCurrency: plan.targetCurrency,
-        exchangeRate: plan.exchangeRate,
-      },
-      user,
-      { type: 'budget_line', id: source.id },
-    );
+    // fanOutStrict provisions budgets for the missing months before the strict
+    // RPC. If it throws AFTER creating some, those budgets are committed but the
+    // success-path invalidate is never reached → GET /budgets serves a 30s-stale
+    // list. Invalidate on the failure path too (the rule: any mutation invalidates).
+    let result: SpreadFanOutResult;
+    try {
+      result = await this.spread.fanOutStrict(
+        {
+          name: source.name,
+          kind: source.kind,
+          tranches: plan.tranches,
+          originalCurrency: plan.originalCurrency,
+          targetCurrency: plan.targetCurrency,
+          exchangeRate: plan.exchangeRate,
+        },
+        user,
+        { type: 'budget_line', id: source.id },
+      );
+    } catch (error) {
+      await this.cacheService.invalidateForUser(user.id);
+      throw error;
+    }
 
     await this.invalidateThenRecalcM0(source.id, source.budgetId, user);
 

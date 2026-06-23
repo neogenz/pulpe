@@ -244,6 +244,20 @@ describe('SpreadTransactionFromTxnUseCase', () => {
     expect(mockTxnRepo.delete).not.toHaveBeenCalled();
   });
 
+  it('invalidates the cache when the fan-out fails, so provisioned budgets are not left 30s-stale', async () => {
+    mockBudgetLineRepo.createSpread.mockRejectedValueOnce(
+      new Error('rpc boom'),
+    );
+
+    await expect(
+      useCase.execute('txn-source', { periods: eightPeriods }, mockUser),
+    ).rejects.toThrow();
+
+    expect(mockCache.invalidateForUser).toHaveBeenCalledWith(mockUser.id);
+    expect(mockBudget.recalculate).not.toHaveBeenCalled();
+    expect(mockTxnRepo.delete).not.toHaveBeenCalled();
+  });
+
   it('recalculates the touched budgets + source budget and invalidates cache once', async () => {
     await useCase.execute(
       'txn-source',

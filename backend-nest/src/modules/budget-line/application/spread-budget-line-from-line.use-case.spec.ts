@@ -195,6 +195,17 @@ describe('SpreadBudgetLineFromLineUseCase', () => {
     expect(mockRepo.delete).not.toHaveBeenCalled();
   });
 
+  it('invalidates the cache when the fan-out fails, so provisioned budgets are not left 30s-stale', async () => {
+    mockRepo.createSpread.mockRejectedValueOnce(new Error('rpc boom'));
+
+    await expect(
+      useCase.execute('line-source', { periods: eightPeriods }, mockUser),
+    ).rejects.toThrow();
+
+    expect(mockCache.invalidateForUser).toHaveBeenCalledWith(mockUser.id);
+    expect(mockBudget.recalculate).not.toHaveBeenCalled();
+  });
+
   it('puts the remainder cent on the earliest month (M0 first)', async () => {
     mockRepo.findSpreadSource.mockResolvedValue(makeSource({ amount: 100 }));
     await useCase.execute(
