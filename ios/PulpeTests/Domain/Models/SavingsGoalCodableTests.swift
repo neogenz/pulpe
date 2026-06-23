@@ -84,6 +84,16 @@ struct SavingsGoalCodableTests {
         #expect((object["targetAmount"] as? NSNumber)?.intValue == 12000)
     }
 
+    // MARK: - Kind guard
+
+    @Test("savingsGoalLink keeps the id only for saving, clears it otherwise")
+    func kindGuard_savingsGoalLink() {
+        #expect(TransactionKind.saving.savingsGoalLink("goal-1") == "goal-1")
+        #expect(TransactionKind.saving.savingsGoalLink(nil) == nil)
+        #expect(TransactionKind.expense.savingsGoalLink("goal-1") == nil)
+        #expect(TransactionKind.income.savingsGoalLink("goal-1") == nil)
+    }
+
     // MARK: - Tri-state savingsGoalId (BudgetLineUpdate)
 
     @Test("BudgetLineUpdate omits savingsGoalId when unset (no change)")

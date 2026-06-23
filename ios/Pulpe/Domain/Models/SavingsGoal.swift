@@ -57,6 +57,17 @@ struct SavingsGoalUpdate: Encodable {
     var status: SavingsGoalStatus?
 }
 
+// MARK: - Kind guard
+
+extension TransactionKind {
+    /// Only a `saving` prévision may carry a savings-goal link. Mirrors the
+    /// backend kind-guard (`kind ≠ saving ⇒ savingsGoalId = null`), so a line
+    /// whose kind moved away from `saving` is untagged.
+    func savingsGoalLink(_ selection: String?) -> String? {
+        self == .saving ? selection : nil
+    }
+}
+
 // MARK: - ISO date helper
 
 /// Converts between the API's `YYYY-MM-DD` `targetDate` strings and `Date`.
