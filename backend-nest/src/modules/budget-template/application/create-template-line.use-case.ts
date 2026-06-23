@@ -6,6 +6,7 @@ import {
   templateLineCreateWithoutTemplateIdSchema,
 } from 'pulpe-shared';
 import { CurrencyService } from '@modules/currency/currency.service';
+import { savingsGoalIdForKind } from '@common/utils/savings-goal-link';
 import {
   BUDGET_TEMPLATE_REPOSITORY,
   type BudgetTemplateRepositoryPort,
@@ -35,6 +36,10 @@ export class CreateTemplateLineUseCase {
 
     const line = await this.repo.insertLine({
       templateId,
+      savingsGoalId: savingsGoalIdForKind(
+        validated.kind,
+        validated.savingsGoalId,
+      ),
       name: validated.name,
       amount: validated.amount,
       originalAmount: validated.originalAmount,

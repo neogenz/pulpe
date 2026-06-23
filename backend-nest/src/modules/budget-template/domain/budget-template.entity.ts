@@ -74,6 +74,7 @@ export interface BudgetTemplateUpdatePatch {
  */
 export interface TemplateLineCreateInput {
   templateId: string;
+  savingsGoalId?: string | null;
   name: string;
   amount: number;
   originalAmount?: number | null;
@@ -93,6 +94,7 @@ export interface TemplateLineCreateInput {
 export interface TemplateLineUpdatePatch {
   name?: string;
   amount?: number;
+  savingsGoalId?: string | null;
   originalAmount?: number | null;
   originalCurrency?: SupportedCurrency | null;
   targetCurrency?: SupportedCurrency | null;
@@ -146,6 +148,7 @@ export interface TemplateLineRpcUpdate {
   id: string;
   name?: string;
   amount?: number;
+  savingsGoalId?: string | null;
   originalAmount?: number | null;
   originalCurrency?: SupportedCurrency | null;
   targetCurrency?: SupportedCurrency | null;

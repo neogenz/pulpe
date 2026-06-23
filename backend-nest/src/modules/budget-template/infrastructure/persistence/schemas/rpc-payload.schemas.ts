@@ -57,6 +57,8 @@ export const applyTemplateLineOperationsItemSchema = z
     amount: z.string().min(1).nullable().optional(),
     kind: transactionKindSchema.optional(),
     recurrence: transactionRecurrenceSchema.optional(),
+    // PUL-12 link. null = untag, absent = preserve (SQL `? 'savings_goal_id'`).
+    savings_goal_id: z.string().uuid().nullable().optional(),
     original_amount: z.string().min(1).nullable().optional(),
     original_currency: supportedCurrencySchema.nullable().optional(),
     target_currency: supportedCurrencySchema.nullable().optional(),
