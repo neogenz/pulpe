@@ -6,6 +6,8 @@ import {
   Delete,
   Body,
   Param,
+  HttpCode,
+  HttpStatus,
   UseGuards,
 } from '@nestjs/common';
 import {
@@ -145,6 +147,7 @@ export class BudgetLineController {
     description: 'Invalid input data',
     type: ErrorResponseDto,
   })
+  @HttpCode(HttpStatus.CREATED)
   async createSpread(
     @Body() createSpreadDto: BudgetLineSpreadCreateDto,
     @User() user: AuthenticatedUser,
@@ -189,6 +192,7 @@ export class BudgetLineController {
     description: 'Prévision source non trouvée',
     type: ErrorResponseDto,
   })
+  @HttpCode(HttpStatus.CREATED)
   async spreadFromLine(
     @Param('id') id: string,
     @Body() spreadFromLineDto: BudgetLineSpreadFromLineCreateDto,

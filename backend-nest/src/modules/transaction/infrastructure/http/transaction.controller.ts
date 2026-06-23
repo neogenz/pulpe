@@ -7,6 +7,8 @@ import {
   Body,
   Param,
   Query,
+  HttpCode,
+  HttpStatus,
   UseGuards,
 } from '@nestjs/common';
 import { BusinessException } from '@common/exceptions/business.exception';
@@ -329,6 +331,7 @@ export class TransactionController {
     description: 'Transaction source non trouvée',
     type: ErrorResponseDto,
   })
+  @HttpCode(HttpStatus.CREATED)
   async spreadFromTxn(
     @Param('id') id: string,
     @Body() spreadFromTxnDto: TransactionSpreadFromTxnCreateDto,

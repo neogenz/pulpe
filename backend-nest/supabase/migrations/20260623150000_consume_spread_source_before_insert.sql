@@ -36,6 +36,14 @@ BEGIN
     RAISE EXCEPTION 'Budget access denied' USING ERRCODE = 'P0001';
   END IF;
 
+  -- Defense in depth: a source-backed spread with no target lines would delete
+  -- the source then insert nothing. The use case guards this; the RPC must too.
+  IF num_nonnulls(p_source_budget_line_id, p_source_transaction_id) = 1
+     AND jsonb_array_length(p_lines) = 0 THEN
+    RAISE EXCEPTION 'Spread source provided with no target lines'
+      USING ERRCODE = 'P0001';
+  END IF;
+
   -- Consume the source before INSERT. Concurrent calls serialize on DELETE;
   -- only the first can observe ROW_COUNT = 1 and proceed to the fan-out.
   IF p_source_budget_line_id IS NOT NULL THEN
