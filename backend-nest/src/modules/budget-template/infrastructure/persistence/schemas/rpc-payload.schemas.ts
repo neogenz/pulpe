@@ -21,6 +21,8 @@ export const createTemplateLineRpcPayloadSchema = z
     amount: z.string().min(1),
     kind: transactionKindSchema,
     recurrence: transactionRecurrenceSchema,
+    // PUL-12 link — null when untagged / non-saving line.
+    savings_goal_id: z.string().uuid().nullable().optional(),
     description: z.string(),
     original_amount: z.string().min(1).nullable(),
     original_currency: supportedCurrencySchema.nullable(),
