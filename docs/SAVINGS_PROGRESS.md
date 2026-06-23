@@ -9,9 +9,9 @@
 
 ## Step status
 
-- [x] **PUL-12 — backend + shared** (fondation : module CRUD, migrations, lien `template_line`, RPC RG-001, door-keepers FX) — **FAIT** (PR sur `preview`)
-- [ ] PUL-12 — iOS (carte tappable, liste/détail/form, pickers template + budget, service) — **NEXT**
-- [ ] PUL-12 — web (route `/savings-goals`, store, pickers, carte)
+- [x] **PUL-12 — backend + shared** (fondation : module CRUD, migrations, lien `template_line`, RPC RG-001, door-keepers FX) — **FAIT** (PR #485 sur `preview`)
+- [x] **PUL-12 — iOS** (carte tappable + empty state, liste/form, pickers template + budget, service/store) — **FAIT** (PR #486 sur `preview`)
+- [ ] PUL-12 — web (route `/savings-goals`, store, pickers, carte) — **NEXT**
 - [ ] PUL-8 — progression (endpoint `/:id/progress` + vues détail iOS/web)
 - [ ] PUL-285 — Phase 3 (auto-décompose + redistribution advisory)
 
@@ -68,3 +68,24 @@ Voir le bloc `<known_traps_by_layer>` de `.claude/commands/impl-savings.md` + `d
 - **Review adversariale** (workflow 11 agents) : 3 findings confirmés. 1 corrigé (batch path, ci-dessus). 2 laissés en follow-up (LOW, sans impact) : (a) pas de validation d'ownership du `savingsGoalId` taggé (UUID opaque, aucune fuite, RLS protège les reads ; nécessite un appel PostgREST direct) ; (b) `DELETE` d'un goal inexistant/étranger renvoie 200 (idiome de tous les repos du projet, RLS empêche toute suppression réelle).
 - **PR** : `feat(savings-goals): backend + shared foundation (PUL-12)` sur `preview` (lien dans Linear).
 - **NEXT** : `/impl-savings PUL-12 — iOS` (carte tappable + empty state + liste/détail/form + pickers template & budget + `SavingsGoalService` + DTO Swift `BudgetLineUpdate`/template manquants), puis `PUL-12 — web`, puis `PUL-8` (progression).
+
+### 2026-06-23 — PUL-12 iOS (implémenté)
+
+- **CA cochés** : CA17–CA22 (toute la surface iOS). CA27/CA28 **satisfaits côté iOS** (devise du compte, aucune couleur d'alerte) mais laissés **décochés** car cross-surface — à reconfirmer côté web.
+- **Branche / worktree** : `maximedesogus/pul-12-creer-et-rattacher-des-objectifs-depargne-ios`, worktree `../pulpe-savings-ios` (depuis `origin/preview`). 5 commits. PR #486 sur `preview`.
+- **Décisions d'impl** :
+  - **Lien tag = tri-state Swift `String??`** sur les 3 DTO PATCH (`BudgetLineUpdate`, `TemplateLineUpdate`, `TemplateLineUpdateWithId`) : `.none` omet (no-change) / `.some(nil)` envoie `null` (untag) / `.some(id)` tag. Seule façon d'exprimer l'untag via un PATCH partiel (`encodeIfPresent` omet les `nil` simples). Create + read = `String?` simple.
+  - **Kind-guard partagé** `TransactionKind.savingsGoalLink(_:)` (`kind ≠ saving ⇒ nil`) + `onChange(of: kind)` qui clear, sur les 3 éditeurs.
+  - **Picker réutilisable** `SavingsGoalPickerField` (template-line + budget-line Add/Edit), affiché seulement si `kind == saving`, lit `SavingsGoalStore` via `@Environment`.
+  - **Entrée dashboard** : la section Épargne est **toujours rendue** avec `SavingsGoalsEntryRow` (la carte résumé est masquée si `!hasSavings`, donc l'entrée porte l'empty state). « Voir mes objectifs » / « Fixe ton premier objectif ».
+  - **« détail » v1 = le formulaire d'édition** (la barre prévu/confirmé = PUL-8). Nav `CurrentMonthTab` via `SavingsGoalDestination`.
+  - `SavingsGoalStore` (`@Observable @MainActor`) calqué sur `BudgetListStore`, injecté à la racine + reset au logout. Le CRUD d'objectif ne touche aucun agrégat budget → pas d'invalidation des stores frères.
+  - `targetDate` = **String ISO `YYYY-MM-DD`** côté Swift, jamais `Date` (le décodeur ISO8601 *datetime* rejetterait une date nue). `DatePicker(in: Date()...)` borne ≥ today (miroir du `refine` backend).
+- **Gotchas rencontrés** :
+  - Worktree neuf : lefthook pre-commit `pnpm quality` meurt (turbo absent, pas de `node_modules`) → commits iOS vérifiés à la main (`xcodebuild` + `swiftlint --strict`) puis `git commit --no-verify`.
+  - `Pulpe.xcodeproj` gitignored (xcodegen) → ne pas committer ; `xcodegen generate --use-cache` après tout ajout de fichier.
+  - `PulpeWidget` globe `Pulpe/Domain/Models` → `SavingsGoal.swift` compile aussi dans le widget (OK, ne dépend que de `SupportedCurrency`).
+  - Suite complète : **1 échec PRÉEXISTANT** `BudgetDetailsCoordinatorTests.showCheckToast…SwissLocale` (séparateur décimal CHF) — passe en isolation, reproduit avec mes tests savings **exclus**, dans du code non touché. Pollution d'ordre du cache `NumberFormatter`, **pas** une régression PUL-12.
+- **Review adversariale** (2 `code-reviewer`) : 0 défaut correctness/contrat/concurrence. 4 findings design-system corrigés (delete → `Color.destructivePrimary` ; `.monospacedDigit()` ; opacité via `DesignTokens.Opacity.badgeBackground` ; test bulk-path `TemplateLineUpdateWithId`).
+- **PR** : `feat(savings-goals): iOS surface (PUL-12)` → #486 sur `preview`. ⚠️ Ce fichier est introduit aussi par #485 (docs non encore sur `preview`) → possible conflit add/add à la fusion : garder la version superset.
+- **NEXT** : `/impl-savings PUL-12 — web` (route `/savings-goals`, store ziflux, carte tappable **hors** `ph-no-capture`, pickers template + dialogs budget), puis `PUL-8` (progression).
