@@ -21,6 +21,7 @@ import {
 import { STORAGE_KEYS, StorageService } from '@core/storage';
 import {
   type BudgetLine,
+  type BudgetLineSpreadResponse,
   type BudgetLineUpdate,
   type Transaction,
   type TransactionUpdate,
@@ -188,7 +189,8 @@ import {
           (add)="openAddBudgetLineDialog()"
           (addTransaction)="openCreateAllocatedTransactionDialog($event)"
           (viewTransactions)="onViewTransactions($event)"
-          (viewSpreadOccurrences)="onViewSpreadOccurrences($event)"
+          (spread)="handleSpreadBudgetLine($event)"
+          (spreadTransaction)="handleSpreadTransaction($event)"
           (resetFromTemplate)="onResetFromTemplateClick($event)"
           (toggleCheck)="handleToggleCheck($event)"
           (toggleTransactionCheck)="handleToggleTransactionCheck($event)"
@@ -201,7 +203,8 @@ import {
           (add)="openAddBudgetLineDialog()"
           (addTransaction)="openCreateAllocatedTransactionDialog($event)"
           (viewTransactions)="onViewTransactions($event)"
-          (viewSpreadOccurrences)="onViewSpreadOccurrences($event)"
+          (spread)="handleSpreadBudgetLine($event)"
+          (spreadTransaction)="handleSpreadTransaction($event)"
           (resetFromTemplate)="handleResetFromTemplate($event)"
           (toggleCheck)="handleToggleCheck($event)"
           (toggleTransactionCheck)="handleToggleTransactionCheck($event)"
@@ -345,15 +348,68 @@ export class BudgetItemsContainer {
   protected async onViewTransactions(item: BudgetLineTableItem): Promise<void> {
     const consumption = this.#consumptions().get(item.data.id);
     if (!consumption) return;
+    // PUL-17 — load the spread group so the detail dialog can show the
+    // cross-month occurrences section; null clears it for non-spread lines.
+    this.store.setSpreadGroupId(item.data.spreadGroupId ?? null);
     await this.openAllocatedTransactionsDialog({
       budgetLine: item.data,
       consumption,
     });
   }
 
-  protected onViewSpreadOccurrences(spreadGroupId: string): void {
-    this.store.setSpreadGroupId(spreadGroupId);
-    this.#dialogService.openSpreadOccurrences(this.isMobile());
+  protected async handleSpreadBudgetLine(
+    item: BudgetLineTableItem,
+  ): Promise<void> {
+    const budget = this.store.budgetDetails();
+    if (!budget) return;
+
+    const result = await this.#dialogService.openSpreadExisting({
+      source: 'forecast',
+      total: item.data.amount,
+      month: budget.month,
+      year: budget.year,
+    });
+    if (!result) return;
+
+    const outcome = await this.store.spreadExistingBudgetLine(
+      item.data.id,
+      result.periods,
+    );
+    this.#notifySpread(outcome);
+  }
+
+  protected async handleSpreadTransaction(item: Transaction): Promise<void> {
+    const budget = this.store.budgetDetails();
+    if (!budget) return;
+
+    const result = await this.#dialogService.openSpreadExisting({
+      source: 'transaction',
+      total: item.amount,
+      month: budget.month,
+      year: budget.year,
+    });
+    if (!result) return;
+
+    const outcome = await this.store.spreadExistingTransaction(
+      item.id,
+      result.periods,
+    );
+    this.#notifySpread(outcome);
+  }
+
+  #notifySpread(outcome: BudgetLineSpreadResponse['data'] | undefined): void {
+    if (!outcome) return;
+    const snackbarRef = this.#snackBar.open(
+      this.#transloco.translate('budgetLine.spread.success', {
+        count: outcome.lines.length,
+      }),
+      this.#transloco.translate('budgetLine.spread.successAction'),
+      { duration: 6000 },
+    );
+    snackbarRef.onAction().subscribe(() => {
+      this.store.setSpreadGroupId(outcome.spreadGroupId);
+      this.#dialogService.openSpreadOccurrences(this.isMobile());
+    });
   }
 
   protected async openAllocatedTransactionsDialog(event: {

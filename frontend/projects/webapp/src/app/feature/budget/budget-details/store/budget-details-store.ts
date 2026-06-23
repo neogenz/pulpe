@@ -16,19 +16,28 @@ import { Logger } from '@core/logging/logger';
 import { formatLocalDate } from '@core/date/format-local-date';
 import { StorageService } from '@core/storage/storage.service';
 import { STORAGE_KEYS } from '@core/storage/storage-keys';
+import { UserSettingsStore } from '@core/user-settings';
 import {
   type BudgetLine,
   type BudgetLineCreate,
   type BudgetLineSpreadCreate,
   type BudgetLineSpreadResponse,
   type BudgetLineUpdate,
+  type BudgetPeriod,
+  type SpreadFromExistingPeriod,
   type SpreadOccurrence,
   type Transaction,
   type TransactionCreate,
   type TransactionListResponse,
   type TransactionUpdate,
   BudgetFormulas,
+  compareBudgetPeriods,
+  getBudgetPeriodForDate,
 } from 'pulpe-shared';
+import type {
+  SpreadOccurrenceViewModel,
+  SpreadTracker,
+} from '@ui/spread-occurrences-list';
 
 import { firstValueFrom, map } from 'rxjs';
 import { v4 as uuidv4 } from 'uuid';
@@ -39,6 +48,10 @@ import {
 } from './budget-details-check.utils';
 import { normalizeText } from '../view-models/budget-item-constants';
 import { createInitialBudgetDetailsState } from './budget-details-state';
+import {
+  buildSpreadOccurrenceViewModels,
+  buildSpreadTracker,
+} from '../spread-occurrences/spread-occurrence.view-model';
 
 const BUDGET_DETAIL_INVALIDATION_KEYS: string[][] = [
   ['budget', 'details'],
@@ -59,6 +72,7 @@ export class BudgetDetailsStore {
   readonly #logger = inject(Logger);
   readonly #storage = inject(StorageService);
   readonly #transloco = inject(TranslocoService);
+  readonly #userSettings = inject(UserSettingsStore);
 
   // ── 2. Internal state (private/writable) ──
   readonly #state = createInitialBudgetDetailsState();
@@ -155,6 +169,42 @@ export class BudgetDetailsStore {
   setSpreadGroupId(spreadGroupId: string | null): void {
     this.#spreadGroupId.set(spreadGroupId);
   }
+
+  // PUL-17 — single source of the spread occurrences derived view, shared by all
+  // 5 detail surfaces (was duplicated in each). Pure builders live in the
+  // view-model; the store wires them reactively. Reference = the VIEWED budget
+  // period (display: dimming/"Ici"); live = today, payDay-aware (realization:
+  // "clôturé"). These are intentionally distinct axes.
+  readonly #spreadReferencePeriod = computed<BudgetPeriod | null>(() => {
+    const budget = this.budgetDetails();
+    return budget ? { month: budget.month, year: budget.year } : null;
+  });
+
+  readonly #spreadLivePeriod = computed<BudgetPeriod>(() =>
+    getBudgetPeriodForDate(new Date(), this.#userSettings.payDayOfMonth()),
+  );
+
+  readonly spreadOccurrenceViewModels = computed<SpreadOccurrenceViewModel[]>(
+    () => {
+      const reference = this.#spreadReferencePeriod();
+      if (!reference) return [];
+      return buildSpreadOccurrenceViewModels(
+        this.spreadOccurrences(),
+        reference,
+        this.#spreadLivePeriod(),
+      );
+    },
+  );
+
+  readonly spreadTracker = computed<SpreadTracker | null>(() =>
+    buildSpreadTracker(this.spreadOccurrenceViewModels()),
+  );
+
+  readonly isViewingSpreadCurrentPeriod = computed<boolean>(() => {
+    const reference = this.#spreadReferencePeriod();
+    if (!reference) return false;
+    return compareBudgetPeriods(reference, this.#spreadLivePeriod()) === 0;
+  });
 
   // ── 4. Public selectors (readonly/computed) ──
   readonly budgetDetails = computed(
@@ -422,7 +472,7 @@ export class BudgetDetailsStore {
     mutationFn: (data) => this.#budgetApi.createBudgetLineSpread$(data),
     onSuccess: () => this.#onFinancialMutationSuccess(),
     onError: () => {
-      this.#setError(this.#transloco.translate('budget.spreadCreateError'));
+      this.#setError(this.#transloco.translate('budgetLine.spread.error'));
     },
   });
 
@@ -430,6 +480,70 @@ export class BudgetDetailsStore {
     input: BudgetLineSpreadCreate,
   ): Promise<BudgetLineSpreadResponse['data'] | undefined> {
     const response = await this.#createBudgetLineSpreadMutation.mutate(input);
+    return response?.data;
+  }
+
+  // PUL-17 v1.1 — total-preserving spread of an EXISTING source (prévision OR
+  // free transaction). The server reads the source total, redistributes it,
+  // fans out across N months (possibly auto-creating budgets), then DELETES the
+  // source — so no single-budget optimistic shape applies. Cross-budget
+  // invalidation refetches every touched month; on success we wire the new
+  // spreadGroupId so the occurrences panel can reload.
+  readonly #spreadExistingBudgetLineMutation = cachedMutation<
+    { id: string; periods: SpreadFromExistingPeriod[] },
+    BudgetLineSpreadResponse,
+    void
+  >({
+    cache: this.#budgetApi.cache,
+    invalidateKeys: () => BUDGET_DETAIL_INVALIDATION_KEYS,
+    mutationFn: ({ id, periods }) =>
+      this.#budgetApi.spreadExistingBudgetLine$(id, periods),
+    onSuccess: (response) => {
+      this.setSpreadGroupId(response.data.spreadGroupId);
+      this.#onFinancialMutationSuccess();
+    },
+    onError: () => {
+      this.#setError(this.#transloco.translate('budgetLine.spread.error'));
+    },
+  });
+
+  async spreadExistingBudgetLine(
+    id: string,
+    periods: SpreadFromExistingPeriod[],
+  ): Promise<BudgetLineSpreadResponse['data'] | undefined> {
+    const response = await this.#spreadExistingBudgetLineMutation.mutate({
+      id,
+      periods,
+    });
+    return response?.data;
+  }
+
+  readonly #spreadExistingTransactionMutation = cachedMutation<
+    { id: string; periods: SpreadFromExistingPeriod[] },
+    BudgetLineSpreadResponse,
+    void
+  >({
+    cache: this.#budgetApi.cache,
+    invalidateKeys: () => BUDGET_DETAIL_INVALIDATION_KEYS,
+    mutationFn: ({ id, periods }) =>
+      this.#budgetApi.spreadExistingTransaction$(id, periods),
+    onSuccess: (response) => {
+      this.setSpreadGroupId(response.data.spreadGroupId);
+      this.#onFinancialMutationSuccess();
+    },
+    onError: () => {
+      this.#setError(this.#transloco.translate('budgetLine.spread.error'));
+    },
+  });
+
+  async spreadExistingTransaction(
+    id: string,
+    periods: SpreadFromExistingPeriod[],
+  ): Promise<BudgetLineSpreadResponse['data'] | undefined> {
+    const response = await this.#spreadExistingTransactionMutation.mutate({
+      id,
+      periods,
+    });
     return response?.data;
   }
 

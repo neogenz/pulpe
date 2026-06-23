@@ -390,6 +390,133 @@ describe('BudgetApi', () => {
     });
   });
 
+  const SPREAD_GROUP_ID = '99999999-9999-4999-8999-999999999999';
+
+  const SPREAD_BUDGET_DATA = {
+    id: '550e8400-e29b-41d4-a716-446655440099',
+    month: 3,
+    year: 2024,
+    description: '',
+    templateId: '550e8400-e29b-41d4-a716-446655440001',
+    createdAt: '2024-03-01T00:00:00+00:00',
+    updatedAt: '2024-03-01T00:00:00+00:00',
+  };
+
+  const SPREAD_RESPONSE = {
+    success: true as const,
+    data: {
+      spreadGroupId: SPREAD_GROUP_ID,
+      lines: [BUDGET_LINE_DATA],
+      createdBudgets: [SPREAD_BUDGET_DATA],
+      skippedMonths: [{ month: 4, year: 2024 }],
+    },
+  };
+
+  describe('createBudgetLineSpread$', () => {
+    it('should POST to /budget-lines/spread with the tranches body and unwrap data', async () => {
+      const { service, httpTesting } = createTestBed();
+      const data = {
+        name: 'Prime assurance',
+        kind: 'expense' as const,
+        tranches: [
+          { year: 2024, month: 3, amount: 100 },
+          { year: 2024, month: 4, amount: 100 },
+        ],
+      };
+
+      const resultPromise = firstValueFrom(
+        service.createBudgetLineSpread$(data),
+      );
+
+      const req = httpTesting.expectOne(
+        'http://localhost:3000/api/v1/budget-lines/spread',
+      );
+      expect(req.request.method).toBe('POST');
+      expect(req.request.body).toEqual(data);
+      req.flush(SPREAD_RESPONSE);
+
+      expect(await resultPromise).toEqual(SPREAD_RESPONSE);
+    });
+  });
+
+  describe('spreadExistingBudgetLine$', () => {
+    it('should POST to /budget-lines/:id/spread with a { periods } body and unwrap data', async () => {
+      const { service, httpTesting } = createTestBed();
+      const id = '550e8400-e29b-41d4-a716-446655440010';
+      const periods = [
+        { year: 2024, month: 3 },
+        { year: 2024, month: 4 },
+      ];
+
+      const resultPromise = firstValueFrom(
+        service.spreadExistingBudgetLine$(id, periods),
+      );
+
+      const req = httpTesting.expectOne(
+        `http://localhost:3000/api/v1/budget-lines/${id}/spread`,
+      );
+      expect(req.request.method).toBe('POST');
+      expect(req.request.body).toEqual({ periods });
+      req.flush(SPREAD_RESPONSE);
+
+      expect(await resultPromise).toEqual(SPREAD_RESPONSE);
+    });
+  });
+
+  describe('spreadExistingTransaction$', () => {
+    it('should POST to /transactions/:id/spread with a { periods } body and unwrap data', async () => {
+      const { service, httpTesting } = createTestBed();
+      const id = '550e8400-e29b-41d4-a716-446655440020';
+      const periods = [
+        { year: 2024, month: 3 },
+        { year: 2024, month: 4 },
+      ];
+
+      const resultPromise = firstValueFrom(
+        service.spreadExistingTransaction$(id, periods),
+      );
+
+      const req = httpTesting.expectOne(
+        `http://localhost:3000/api/v1/transactions/${id}/spread`,
+      );
+      expect(req.request.method).toBe('POST');
+      expect(req.request.body).toEqual({ periods });
+      req.flush(SPREAD_RESPONSE);
+
+      expect(await resultPromise).toEqual(SPREAD_RESPONSE);
+    });
+  });
+
+  describe('getSpreadOccurrences$', () => {
+    it('should GET /budget-lines/spread/:id and unwrap the occurrences list', async () => {
+      const { service, httpTesting } = createTestBed();
+      const occurrence = {
+        budgetLineId: '550e8400-e29b-41d4-a716-446655440010',
+        budgetId: '550e8400-e29b-41d4-a716-446655440000',
+        month: 3,
+        year: 2024,
+        name: 'Prime assurance',
+        amount: 100,
+        consumed: 0,
+        transactionCount: 0,
+        kind: 'expense' as const,
+        checkedAt: null,
+      };
+
+      const resultPromise = firstValueFrom(
+        service.getSpreadOccurrences$(SPREAD_GROUP_ID),
+      );
+
+      const req = httpTesting.expectOne(
+        `http://localhost:3000/api/v1/budget-lines/spread/${SPREAD_GROUP_ID}`,
+      );
+      expect(req.request.method).toBe('GET');
+      req.flush({ success: true, data: [occurrence] });
+
+      expect(await resultPromise).toEqual([occurrence]);
+    });
+  });
+
   describe('createTransaction$', () => {
     it('should delegate to TransactionApi.create$ and invalidate', () => {
       const { service, mockTransactionApi } = createTestBed();

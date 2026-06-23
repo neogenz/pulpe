@@ -54,6 +54,11 @@ export interface TableItem {
     isSpread?: boolean;
     /** PUL-17 — clé du groupe de lissage, pour ouvrir la vue des occurrences cross-mois */
     spreadGroupId?: string | null;
+    /**
+     * PUL-17 v1.1 — true quand la ligne peut être lissée sur plusieurs mois
+     * (prévision `one_off`, non-revenu, pas déjà lissée, montant > 0).
+     */
+    canSpread?: boolean;
   } & TableItemDisplayMetadata;
 }
 

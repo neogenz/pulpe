@@ -20,6 +20,8 @@ const occurrence = (month: number): SpreadOccurrence => ({
   year: 2026,
   name: 'Prime assurance',
   amount: 100,
+  consumed: 0,
+  transactionCount: 0,
   originalAmount: null,
   originalCurrency: null,
   targetCurrency: null,

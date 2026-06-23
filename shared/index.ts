@@ -90,6 +90,9 @@ export {
   budgetLineSpreadTrancheSchema,
   budgetLineSpreadCreateSchema,
   budgetLineSpreadResponseSchema,
+  spreadFromExistingPeriodSchema,
+  budgetLineSpreadFromLineCreateSchema,
+  transactionSpreadFromTxnCreateSchema,
   spreadOccurrenceSchema,
   spreadOccurrencesResponseSchema,
 
@@ -163,6 +166,7 @@ export {
 
 // Export calculators
 export { BudgetFormulas } from './src/calculators/index.js';
+export { splitTotalPreserving } from './src/calculators/index.js';
 
 // Export budget period utilities
 export {
@@ -274,6 +278,9 @@ export type {
   BudgetLineSpreadTranche,
   BudgetLineSpreadCreate,
   BudgetLineSpreadResponse,
+  SpreadFromExistingPeriod,
+  BudgetLineSpreadFromLineCreate,
+  TransactionSpreadFromTxnCreate,
   SpreadOccurrence,
   SpreadOccurrencesResponse,
 

@@ -25,8 +25,14 @@ import {
   type BudgetLineRepositoryPort,
 } from '../domain/ports/budget-line-repository.port';
 import type {
+  BudgetLineSpreadPort,
+  SpreadFanOutInput,
+  SpreadFanOutResult,
+} from '../domain/ports/budget-line-spread.port';
+import type {
   BudgetLine,
   BudgetLineCreateInput,
+  SpreadDeleteSource,
 } from '../domain/budget-line.entity';
 
 export interface CreateSpreadResult {
@@ -40,7 +46,15 @@ export interface CreateSpreadResult {
  * Fans a smoothed expense out into N independent `one_off` budget lines, one per
  * month, sharing a single server-generated `spread_group_id` (PUL-17 Lot A,
  * interpretation B). The per-month amounts arrive already computed from the
- * client calculator — this use case is mode-agnostic.
+ * caller — this use case is mode-agnostic.
+ *
+ * Two entry points share the SAME fan-out core:
+ * - `execute()` — the additive create flow (POST /budget-lines/spread): tolerates
+ *   months without a default template (they land in `skippedMonths`).
+ * - `fanOut()` — the reusable port (`BUDGET_LINE_SPREAD_PORT`) driving the
+ *   total-preserving spread-from flows (a prévision or a free réel). The CALLER
+ *   decides whether a skipped month is fatal (the Σ=T contract forbids dropping
+ *   one silently).
  *
  * Atomicity boundary: budget auto-creation runs first in its own short
  * transactions (idempotent, kept even on later failure); the line fan-out is a
@@ -48,8 +62,7 @@ export interface CreateSpreadResult {
  * the user cache is invalidated ONCE (a spread crosses N months).
  */
 @Injectable()
-export class CreateBudgetLineSpreadUseCase {
-  // eslint-disable-next-line max-params
+export class CreateBudgetLineSpreadUseCase implements BudgetLineSpreadPort {
   constructor(
     @Inject(BUDGET_LINE_REPOSITORY)
     private readonly repo: BudgetLineRepositoryPort,
@@ -68,86 +81,160 @@ export class CreateBudgetLineSpreadUseCase {
     dto: BudgetLineSpreadCreate,
     user: AuthenticatedUser,
   ): Promise<CreateSpreadResult> {
-    const spreadGroupId = randomUUID();
-    const periods = this.dedupePeriods(dto.tranches);
-    const templateId = await this.templateRepo.findDefaultTemplateId(user.id);
+    return this.fanOut(
+      {
+        name: dto.name,
+        kind: dto.kind,
+        tranches: dto.tranches.map((tranche) => ({
+          year: tranche.year,
+          month: tranche.month,
+          amount: tranche.amount,
+          originalAmount: tranche.originalAmount ?? null,
+        })),
+        originalCurrency: dto.originalCurrency ?? null,
+        targetCurrency: dto.targetCurrency ?? null,
+        exchangeRate: dto.exchangeRate ?? null,
+      },
+      user,
+    );
+  }
 
+  /**
+   * Terminal tolerant fan-out: provisions, inserts, recalculates, then
+   * invalidates the user cache (this IS the last mutation of the additive flow).
+   * No source to delete — the additive create flow only inserts.
+   */
+  async fanOut(
+    input: SpreadFanOutInput,
+    user: AuthenticatedUser,
+  ): Promise<SpreadFanOutResult> {
     try {
-      const ensured = await this.provisioning.ensureBudgetsForPeriods(
-        periods,
-        templateId,
-        user.id,
-      );
-
-      const inputs = this.buildInputs(dto, ensured.budgetIdByPeriod);
-      const lines = inputs.length
-        ? await this.repo.createSpread(spreadGroupId, inputs)
-        : [];
-
-      const touchedBudgetIds = [
-        ...new Set(inputs.map((input) => input.budgetId)),
-      ];
-      await Promise.all(
-        touchedBudgetIds.map((id) => this.budgetRecalculation.recalculate(id)),
-      );
+      const result = await this.provisionAndInsert(input, user, false);
       await this.cacheService.invalidateForUser(user.id);
-
-      this.logger.info(
-        {
-          userId: user.id,
-          spreadGroupId,
-          linesCreated: lines.length,
-          budgetsCreated: ensured.createdBudgets.length,
-          skippedMonths: ensured.skippedMonths.length,
-          operation: 'budgetLine.spread',
-        },
-        'Spread budget lines created',
-      );
-
-      return {
-        spreadGroupId,
-        lines,
-        createdBudgets: ensured.createdBudgets,
-        skippedMonths: ensured.skippedMonths,
-      };
+      return result;
     } catch (error) {
       await this.cacheService.invalidateForUser(user.id);
-      if (error instanceof BusinessException) throw error;
-      throw new BusinessException(
-        ERROR_DEFINITIONS.BUDGET_LINE_CREATE_FAILED,
-        undefined,
-        { operation: 'budgetLine.spread', userId: user.id },
-        { cause: error },
-      );
+      throw this.toFanOutError(error, user);
     }
   }
 
+  /**
+   * Non-terminal strict fan-out for the spread-from flows: fails entirely if any
+   * month is unprovisionable, and does NOT invalidate the cache — the caller
+   * performs further mutations and owns the single terminal `invalidateForUser`.
+   *
+   * `source` is deleted ATOMICALLY inside the same RPC as the insert (PUL-17 v1.1
+   * Defect 2): a fan-out failure leaves the source intact with nothing created
+   * (no double-count, no money loss, no duplicate-on-retry).
+   */
+  async fanOutStrict(
+    input: SpreadFanOutInput,
+    user: AuthenticatedUser,
+    source: SpreadDeleteSource,
+  ): Promise<SpreadFanOutResult> {
+    try {
+      return await this.provisionAndInsert(input, user, true, source);
+    } catch (error) {
+      throw this.toFanOutError(error, user);
+    }
+  }
+
+  private async provisionAndInsert(
+    input: SpreadFanOutInput,
+    user: AuthenticatedUser,
+    requireAllProvisioned: boolean,
+    source?: SpreadDeleteSource,
+  ): Promise<SpreadFanOutResult> {
+    const spreadGroupId = randomUUID();
+    const periods = this.dedupePeriods(input.tranches);
+    const templateId = await this.templateRepo.findDefaultTemplateId(user.id);
+
+    const ensured = await this.provisioning.ensureBudgetsForPeriods(
+      periods,
+      templateId,
+      user.id,
+    );
+
+    if (requireAllProvisioned && ensured.skippedMonths.length > 0) {
+      const [skipped] = ensured.skippedMonths;
+      throw new BusinessException(
+        ERROR_DEFINITIONS.BUDGET_LINE_SPREAD_MONTH_UNPROVISIONABLE,
+        { month: skipped.month, year: skipped.year },
+        { operation: 'budgetLine.spreadFrom', userId: user.id },
+      );
+    }
+
+    const inputs = this.buildInputs(input, ensured.budgetIdByPeriod);
+    const lines = inputs.length
+      ? await this.repo.createSpread(spreadGroupId, inputs, source)
+      : [];
+
+    const touchedBudgetIds = [
+      ...new Set(inputs.map((createInput) => createInput.budgetId)),
+    ];
+    await Promise.all(
+      touchedBudgetIds.map((id) => this.budgetRecalculation.recalculate(id)),
+    );
+
+    this.logger.info(
+      {
+        userId: user.id,
+        spreadGroupId,
+        linesCreated: lines.length,
+        budgetsCreated: ensured.createdBudgets.length,
+        skippedMonths: ensured.skippedMonths.length,
+        operation: 'budgetLine.spread',
+      },
+      'Spread budget lines created',
+    );
+
+    return {
+      spreadGroupId,
+      lines,
+      createdBudgets: ensured.createdBudgets,
+      skippedMonths: ensured.skippedMonths,
+    };
+  }
+
+  private toFanOutError(
+    error: unknown,
+    user: AuthenticatedUser,
+  ): BusinessException {
+    if (error instanceof BusinessException) return error;
+    return new BusinessException(
+      ERROR_DEFINITIONS.BUDGET_LINE_CREATE_FAILED,
+      undefined,
+      { operation: 'budgetLine.spread', userId: user.id },
+      { cause: error },
+    );
+  }
+
   private buildInputs(
-    dto: BudgetLineSpreadCreate,
+    input: SpreadFanOutInput,
     budgetIdByPeriod: Map<string, string>,
   ): BudgetLineCreateInput[] {
     const inputs: BudgetLineCreateInput[] = [];
-    for (const tranche of dto.tranches) {
+    for (const tranche of input.tranches) {
       const budgetId = budgetIdByPeriod.get(`${tranche.month}/${tranche.year}`);
       if (!budgetId) continue;
       inputs.push({
         budgetId,
-        name: dto.name,
+        name: input.name,
         amount: tranche.amount,
-        kind: dto.kind,
+        kind: input.kind,
         recurrence: 'one_off',
         savingsGoalId: null,
         originalAmount: tranche.originalAmount ?? null,
-        originalCurrency: dto.originalCurrency ?? null,
-        targetCurrency: dto.targetCurrency ?? null,
-        exchangeRate: dto.exchangeRate ?? null,
+        originalCurrency: input.originalCurrency ?? null,
+        targetCurrency: input.targetCurrency ?? null,
+        exchangeRate: input.exchangeRate ?? null,
       });
     }
     return inputs;
   }
 
   private dedupePeriods(
-    tranches: BudgetLineSpreadCreate['tranches'],
+    tranches: SpreadFanOutInput['tranches'],
   ): SpreadPeriod[] {
     const seen = new Set<string>();
     const periods: SpreadPeriod[] = [];

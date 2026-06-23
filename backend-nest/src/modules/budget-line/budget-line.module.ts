@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { SupabaseModule } from '@modules/supabase/supabase.module';
 import { BudgetModule } from '@modules/budget/budget.module';
 import { BudgetTemplateModule } from '@modules/budget-template/budget-template.module';
@@ -10,11 +10,13 @@ import { BudgetLineController } from './infrastructure/http/budget-line.controll
 import { SupabaseBudgetLineRepository } from './infrastructure/persistence/supabase-budget-line.repository';
 import { BudgetLineMapper } from './infrastructure/mappers/budget-line.mapper';
 import { BUDGET_LINE_REPOSITORY } from './domain/ports/budget-line-repository.port';
+import { BUDGET_LINE_SPREAD_PORT } from './domain/ports/budget-line-spread.port';
 import { FindAllBudgetLinesUseCase } from './application/find-all-budget-lines.use-case';
 import { FindBudgetLineUseCase } from './application/find-budget-line.use-case';
 import { FindBudgetLinesByBudgetUseCase } from './application/find-budget-lines-by-budget.use-case';
 import { CreateBudgetLineUseCase } from './application/create-budget-line.use-case';
 import { CreateBudgetLineSpreadUseCase } from './application/create-budget-line-spread.use-case';
+import { SpreadBudgetLineFromLineUseCase } from './application/spread-budget-line-from-line.use-case';
 import { FindBudgetLinesBySpreadGroupUseCase } from './application/find-budget-lines-by-spread-group.use-case';
 import { UpdateBudgetLineUseCase } from './application/update-budget-line.use-case';
 import { RemoveBudgetLineUseCase } from './application/remove-budget-line.use-case';
@@ -29,7 +31,9 @@ import { CheckTransactionsUseCase } from './application/check-transactions.use-c
     BudgetTemplateModule,
     EncryptionModule,
     CurrencyModule,
-    TransactionModule,
+    // forwardRef: TransactionModule imports BudgetLineModule (for the spread
+    // port consumed by the transaction spread-from flow), so both sides defer.
+    forwardRef(() => TransactionModule),
   ],
   controllers: [BudgetLineController],
   providers: [
@@ -38,6 +42,7 @@ import { CheckTransactionsUseCase } from './application/check-transactions.use-c
     FindBudgetLinesByBudgetUseCase,
     CreateBudgetLineUseCase,
     CreateBudgetLineSpreadUseCase,
+    SpreadBudgetLineFromLineUseCase,
     FindBudgetLinesBySpreadGroupUseCase,
     UpdateBudgetLineUseCase,
     RemoveBudgetLineUseCase,
@@ -45,6 +50,10 @@ import { CheckTransactionsUseCase } from './application/check-transactions.use-c
     ToggleBudgetLineCheckUseCase,
     CheckTransactionsUseCase,
     { provide: BUDGET_LINE_REPOSITORY, useClass: SupabaseBudgetLineRepository },
+    {
+      provide: BUDGET_LINE_SPREAD_PORT,
+      useExisting: CreateBudgetLineSpreadUseCase,
+    },
     BudgetLineMapper,
     createInfoLoggerProvider(BudgetLineController.name),
     createInfoLoggerProvider(FindAllBudgetLinesUseCase.name),
@@ -52,6 +61,7 @@ import { CheckTransactionsUseCase } from './application/check-transactions.use-c
     createInfoLoggerProvider(FindBudgetLinesByBudgetUseCase.name),
     createInfoLoggerProvider(CreateBudgetLineUseCase.name),
     createInfoLoggerProvider(CreateBudgetLineSpreadUseCase.name),
+    createInfoLoggerProvider(SpreadBudgetLineFromLineUseCase.name),
     createInfoLoggerProvider(FindBudgetLinesBySpreadGroupUseCase.name),
     createInfoLoggerProvider(UpdateBudgetLineUseCase.name),
     createInfoLoggerProvider(RemoveBudgetLineUseCase.name),
@@ -59,6 +69,6 @@ import { CheckTransactionsUseCase } from './application/check-transactions.use-c
     createInfoLoggerProvider(ToggleBudgetLineCheckUseCase.name),
     createInfoLoggerProvider(CheckTransactionsUseCase.name),
   ],
-  exports: [],
+  exports: [BUDGET_LINE_SPREAD_PORT, BudgetLineMapper],
 })
 export class BudgetLineModule {}

@@ -464,6 +464,57 @@ export type BudgetLineSpreadResponse = z.infer<
 >;
 
 /**
+ * SPREAD-FROM-EXISTING (PUL-17 v1.1) — lissage TOTAL-PRÉSERVANT d'une source
+ * DÉJÀ existante (prévision OU transaction). Le montant total `T` de la source
+ * est REDISTRIBUÉ en N tranches `one_off` de `T/N` (Σ = T exactement, reste en
+ * centimes sur les PREMIERS mois, mois courant M0 inclus). Contrairement à la
+ * création additive (`budgetLineSpreadCreateSchema`, le client envoie les
+ * montants), ici le client n'envoie QUE les mois cibles : le serveur lit `T`
+ * (montant déchiffré de la source, autorité unique → Σ=T ingarantissable côté
+ * client), calcule le split, hérite le FX figé de la source, fait le fan-out,
+ * puis SUPPRIME la source. La fenêtre démarre à M0 vers le FUTUR (jamais le
+ * passé). N ≥ 2 (lisser sur 1 mois = no-op).
+ */
+export const spreadFromExistingPeriodSchema = z.object({
+  year: z.number().int().min(MIN_YEAR).max(MAX_YEAR),
+  month: z.number().int().min(MONTH_MIN).max(MONTH_MAX),
+});
+export type SpreadFromExistingPeriod = z.infer<
+  typeof spreadFromExistingPeriodSchema
+>;
+
+/**
+ * Lisser une PRÉVISION existante (`POST /budget-lines/:id/spread`).
+ * Source = budget_line `one_off`, `kind ≠ income`, pas déjà lissée.
+ */
+export const budgetLineSpreadFromLineCreateSchema = z.strictObject({
+  periods: z
+    .array(spreadFromExistingPeriodSchema)
+    .min(2)
+    .max(MAX_SPREAD_TRANCHES),
+});
+export type BudgetLineSpreadFromLineCreate = z.infer<
+  typeof budgetLineSpreadFromLineCreateSchema
+>;
+
+/**
+ * Lisser une TRANSACTION LIBRE existante (`POST /transactions/:id/spread`).
+ * Source = transaction `budgetLineId = null`, `kind ≠ income`. Le réel est
+ * SUPPRIMÉ et remplacé par le plan d'amortissement (redistribution totale —
+ * décision produit : M0 passe à T/N). Schéma distinct du from-line (règle
+ * 1 endpoint = 1 schéma nommé) même si structurellement identique aujourd'hui.
+ */
+export const transactionSpreadFromTxnCreateSchema = z.strictObject({
+  periods: z
+    .array(spreadFromExistingPeriodSchema)
+    .min(2)
+    .max(MAX_SPREAD_TRANCHES),
+});
+export type TransactionSpreadFromTxnCreate = z.infer<
+  typeof transactionSpreadFromTxnCreateSchema
+>;
+
+/**
  * SPREAD OCCURRENCES (PUL-17 Lot C) — one occurrence per `budget_line` of a
  * spread group, across all its months. Read-only cross-budget view.
  *
@@ -482,6 +533,14 @@ export const spreadOccurrenceSchema = z.object({
   amount: z.coerce.number().nonnegative(),
   kind: transactionKindSchema,
   checkedAt: z.iso.datetime({ offset: true }).nullable(),
+  /**
+   * Réalisé (PUL-17): `consumed` = Σ des sous-transactions de cette occurrence
+   * (déchiffrées côté serveur) ; `transactionCount` permet au client de choisir
+   * consommé vs prévu. La détermination « mois clôturé » (vs aujourd'hui, payDay)
+   * reste CLIENT — le serveur ne renvoie que ces faits. `default(0)` = additif.
+   */
+  consumed: z.coerce.number().nonnegative().default(0),
+  transactionCount: z.coerce.number().int().nonnegative().default(0),
   originalAmount: z.coerce.number().nonnegative().nullable().optional(),
   originalCurrency: supportedCurrencySchema.nullable().optional(),
   targetCurrency: supportedCurrencySchema.nullable().optional(),

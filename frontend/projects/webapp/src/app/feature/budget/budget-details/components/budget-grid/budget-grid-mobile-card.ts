@@ -14,13 +14,13 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { type BudgetLine, type SupportedCurrency } from 'pulpe-shared';
 import { AppCurrencyPipe, FormatConversionPipe } from '@core/currency';
 import { FinancialKindDirective } from '@ui/financial-kind';
+import { SpreadBadge } from '@ui/spread-badge';
 import { FinancialLineCard } from '@pattern/financial-line-card';
 import { OriginalAmountLine } from '@ui/original-amount-line';
 import { formatMatchAnnotation } from '../../view-models/budget-item-constants';
 import type { BudgetLineTableItem } from '../../view-models/table-items.view-model';
 import { SegmentedBudgetProgress } from '../segmented-budget-progress';
 import { BudgetActionMenu } from '../budget-action-menu';
-import { SpreadPill } from '../spread-pill';
 
 @Component({
   selector: 'pulpe-budget-grid-mobile-card',
@@ -38,7 +38,7 @@ import { SpreadPill } from '../spread-pill';
     FormatConversionPipe,
     SegmentedBudgetProgress,
     BudgetActionMenu,
-    SpreadPill,
+    SpreadBadge,
   ],
   template: `
     <pulpe-financial-line-card
@@ -52,6 +52,12 @@ import { SpreadPill } from '../spread-pill';
       [class.ring-2]="isSelected()"
       [class.ring-primary]="isSelected()"
       [class.opacity-60]="item().metadata.isLoading"
+      class="block cursor-pointer"
+      role="button"
+      tabindex="0"
+      (click)="viewTransactions.emit(item())"
+      (keydown.enter)="viewTransactions.emit(item())"
+      (keydown.space)="viewTransactions.emit(item())"
     >
       <ng-container ngProjectAs="[name]">
         <span
@@ -63,10 +69,7 @@ import { SpreadPill } from '../spread-pill';
         </span>
       </ng-container>
 
-      @if (
-        item().metadata.isPropagationLocked ||
-        (item().metadata.isSpread && item().metadata.spreadGroupId)
-      ) {
+      @if (item().metadata.isPropagationLocked || item().metadata.isSpread) {
         <ng-container ngProjectAs="[indicators]">
           @if (item().metadata.isPropagationLocked) {
             <mat-icon
@@ -76,11 +79,8 @@ import { SpreadPill } from '../spread-pill';
               lock
             </mat-icon>
           }
-          @if (item().metadata.isSpread && item().metadata.spreadGroupId) {
-            <pulpe-spread-pill
-              [spreadGroupId]="item().metadata.spreadGroupId!"
-              (openOccurrences)="viewSpreadOccurrences.emit($event)"
-            />
+          @if (item().metadata.isSpread) {
+            <pulpe-spread-badge />
           }
         </ng-container>
       }
@@ -95,7 +95,7 @@ import { SpreadPill } from '../spread-pill';
           (edit)="edit.emit($event)"
           (delete)="delete.emit($event)"
           (addTransaction)="addTransaction.emit($event)"
-          (viewSpreadOccurrences)="viewSpreadOccurrences.emit($event)"
+          (spread)="spread.emit($event)"
           (resetFromTemplate)="resetFromTemplate.emit($event)"
         />
       </ng-container>
@@ -204,7 +204,7 @@ import { SpreadPill } from '../spread-pill';
             class="text-body-small h-8! px-3!"
             [matBadge]="item().consumption!.transactionCount"
             matBadgeColor="primary"
-            (click)="viewTransactions.emit(item())"
+            (click)="viewTransactions.emit(item()); $event.stopPropagation()"
             [matTooltip]="
               'budget.viewTransactionsCount'
                 | transloco
@@ -220,7 +220,7 @@ import { SpreadPill } from '../spread-pill';
         <button
           matIconButton
           class="text-primary"
-          (click)="addTransaction.emit(item().data)"
+          (click)="addTransaction.emit(item().data); $event.stopPropagation()"
           [matTooltip]="'budgetLine.addTransaction' | transloco"
           [attr.aria-label]="'budgetLine.addTransaction' | transloco"
           [attr.data-testid]="'add-transaction-' + item().data.id"
@@ -265,7 +265,7 @@ export class BudgetGridMobileCard {
   readonly delete = output<string>();
   readonly addTransaction = output<BudgetLine>();
   readonly viewTransactions = output<BudgetLineTableItem>();
-  readonly viewSpreadOccurrences = output<string>();
+  readonly spread = output<BudgetLineTableItem>();
   readonly resetFromTemplate = output<BudgetLineTableItem>();
   readonly toggleCheck = output<string>();
 }

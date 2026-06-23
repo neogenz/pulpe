@@ -459,7 +459,12 @@ export type Database = {
         Returns: Json;
       };
       create_budget_lines_spread: {
-        Args: { p_lines?: Json; p_spread_group_id: string };
+        Args: {
+          p_lines?: Json;
+          p_source_budget_line_id?: string;
+          p_source_transaction_id?: string;
+          p_spread_group_id: string;
+        };
         Returns: {
           amount: string | null;
           budget_id: string;

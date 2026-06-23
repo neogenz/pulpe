@@ -470,6 +470,101 @@ describe('SupabaseBudgetLineRepository', () => {
     });
   });
 
+  describe('createSpread', () => {
+    const spreadGroupId = 'a3f1c2d4-5e6f-4a7b-8c9d-0e1f2a3b4c5d';
+    const spreadInput = {
+      budgetId: '550e8400-e29b-41d4-a716-446655440002',
+      name: 'Prime assurance',
+      amount: 100,
+      kind: 'expense' as const,
+      recurrence: 'one_off' as const,
+    };
+
+    function createSpreadRpc(): jest.Mock {
+      return jest.fn().mockResolvedValue({ data: [mockRow], error: null });
+    }
+
+    it('passes neither source id when no source descriptor is given (additive create)', async () => {
+      const mockRpc = createSpreadRpc();
+      const provider = createMockProvider(() => ({}), mockRpc);
+      repo = new SupabaseBudgetLineRepository(provider, createMockEncryption());
+
+      await repo.createSpread(spreadGroupId, [spreadInput]);
+
+      expect(mockRpc).toHaveBeenCalledWith(
+        'create_budget_lines_spread',
+        expect.objectContaining({
+          p_source_budget_line_id: undefined,
+          p_source_transaction_id: undefined,
+        }),
+      );
+    });
+
+    it('maps a budget_line source to p_source_budget_line_id only', async () => {
+      const mockRpc = createSpreadRpc();
+      const provider = createMockProvider(() => ({}), mockRpc);
+      repo = new SupabaseBudgetLineRepository(provider, createMockEncryption());
+
+      await repo.createSpread(spreadGroupId, [spreadInput], {
+        type: 'budget_line',
+        id: 'source-line-1',
+      });
+
+      expect(mockRpc).toHaveBeenCalledWith(
+        'create_budget_lines_spread',
+        expect.objectContaining({
+          p_source_budget_line_id: 'source-line-1',
+          p_source_transaction_id: undefined,
+        }),
+      );
+    });
+
+    it('maps a transaction source to p_source_transaction_id only', async () => {
+      const mockRpc = createSpreadRpc();
+      const provider = createMockProvider(() => ({}), mockRpc);
+      repo = new SupabaseBudgetLineRepository(provider, createMockEncryption());
+
+      await repo.createSpread(spreadGroupId, [spreadInput], {
+        type: 'transaction',
+        id: 'source-txn-1',
+      });
+
+      expect(mockRpc).toHaveBeenCalledWith(
+        'create_budget_lines_spread',
+        expect.objectContaining({
+          p_source_budget_line_id: undefined,
+          p_source_transaction_id: 'source-txn-1',
+        }),
+      );
+    });
+
+    it('forwards the spread group id and returns decrypted entities', async () => {
+      const mockRpc = createSpreadRpc();
+      const provider = createMockProvider(() => ({}), mockRpc);
+      repo = new SupabaseBudgetLineRepository(provider, createMockEncryption());
+
+      const result = await repo.createSpread(spreadGroupId, [spreadInput]);
+
+      expect(mockRpc).toHaveBeenCalledWith(
+        'create_budget_lines_spread',
+        expect.objectContaining({ p_spread_group_id: spreadGroupId }),
+      );
+      expect(result).toEqual([expectedEntity]);
+    });
+
+    it('throws BusinessException when the spread rpc fails', async () => {
+      const mockRpc = jest
+        .fn()
+        .mockResolvedValue({ data: null, error: { message: 'RPC error' } });
+      const provider = createMockProvider(() => ({}), mockRpc);
+      repo = new SupabaseBudgetLineRepository(provider, createMockEncryption());
+
+      await expect(
+        repo.createSpread(spreadGroupId, [spreadInput]),
+      ).rejects.toThrow(BusinessException);
+    });
+  });
+
   describe('toggleCheckRpc', () => {
     it('should return decrypted entity from rpc', async () => {
       const mockRpc = jest.fn().mockReturnValue({
@@ -499,6 +594,90 @@ describe('SupabaseBudgetLineRepository', () => {
       await expect(repo.toggleCheckRpc('line-1')).rejects.toThrow(
         BusinessException,
       );
+    });
+  });
+
+  describe('findBySpreadGroupId — réalisé (consumed)', () => {
+    const occurrenceRow = (
+      id: string,
+      budgetId: string,
+      amount: number,
+      month: number,
+    ) => ({
+      ...mockRow,
+      id,
+      budget_id: budgetId,
+      amount,
+      spread_group_id: 'grp-1',
+      monthly_budget: { month, year: 2026, user_id: mockUser.id },
+    });
+
+    // Decrypt passes each row's (numeric, in tests) amount through untouched, so
+    // every occurrence / transaction carries its own value.
+    const passthroughEncryption = () =>
+      ({
+        ...createMockEncryption(),
+        decryptRowAmountFields: jest.fn().mockImplementation((row) => ({
+          ...row,
+          amount: row.amount,
+          original_amount: null,
+        })),
+      }) as unknown as EncryptionPort;
+
+    it('attaches consumed = Σ sub-transactions and the transaction count per occurrence', async () => {
+      const occurrences = [
+        occurrenceRow('L1', 'b-1', 100, 5),
+        occurrenceRow('L2', 'b-2', 100, 6),
+      ];
+      const transactions = [
+        { budget_line_id: 'L1', amount: 30 },
+        { budget_line_id: 'L1', amount: 50 },
+        // L2 has no transactions
+      ];
+      const provider = createMockProvider((table) =>
+        table === 'transaction'
+          ? {
+              select: () => ({
+                in: () => ({ data: transactions, error: null }),
+              }),
+            }
+          : {
+              select: () => ({
+                eq: () => ({ data: occurrences, error: null }),
+              }),
+            },
+      );
+      repo = new SupabaseBudgetLineRepository(
+        provider,
+        passthroughEncryption(),
+      );
+
+      const result = await repo.findBySpreadGroupId('grp-1');
+
+      const l1 = result.find((o) => o.budgetLineId === 'L1')!;
+      const l2 = result.find((o) => o.budgetLineId === 'L2')!;
+      expect(l1.consumed).toBe(80);
+      expect(l1.transactionCount).toBe(2);
+      expect(l2.consumed).toBe(0);
+      expect(l2.transactionCount).toBe(0);
+    });
+
+    it('returns [] without querying transactions when the group has no occurrences', async () => {
+      const transactionSelect = jest.fn();
+      const provider = createMockProvider((table) =>
+        table === 'transaction'
+          ? { select: transactionSelect }
+          : { select: () => ({ eq: () => ({ data: [], error: null }) }) },
+      );
+      repo = new SupabaseBudgetLineRepository(
+        provider,
+        passthroughEncryption(),
+      );
+
+      const result = await repo.findBySpreadGroupId('grp-empty');
+
+      expect(result).toEqual([]);
+      expect(transactionSelect).not.toHaveBeenCalled();
     });
   });
 });

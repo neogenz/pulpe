@@ -42,6 +42,7 @@ import {
 } from './dto/budget-line-swagger.dto';
 import {
   BudgetLineSpreadCreateDto,
+  BudgetLineSpreadFromLineCreateDto,
   BudgetLineSpreadResponseDto,
   SpreadOccurrencesResponseDto,
 } from './dto/budget-line-spread-swagger.dto';
@@ -51,6 +52,7 @@ import { FindBudgetLineUseCase } from '../../application/find-budget-line.use-ca
 import { FindBudgetLinesByBudgetUseCase } from '../../application/find-budget-lines-by-budget.use-case';
 import { CreateBudgetLineUseCase } from '../../application/create-budget-line.use-case';
 import { CreateBudgetLineSpreadUseCase } from '../../application/create-budget-line-spread.use-case';
+import { SpreadBudgetLineFromLineUseCase } from '../../application/spread-budget-line-from-line.use-case';
 import { FindBudgetLinesBySpreadGroupUseCase } from '../../application/find-budget-lines-by-spread-group.use-case';
 import { UpdateBudgetLineUseCase } from '../../application/update-budget-line.use-case';
 import { RemoveBudgetLineUseCase } from '../../application/remove-budget-line.use-case';
@@ -81,6 +83,7 @@ export class BudgetLineController {
     private readonly findByBudgetUseCase: FindBudgetLinesByBudgetUseCase,
     private readonly createUseCase: CreateBudgetLineUseCase,
     private readonly createSpreadUseCase: CreateBudgetLineSpreadUseCase,
+    private readonly spreadFromLineUseCase: SpreadBudgetLineFromLineUseCase,
     private readonly findSpreadOccurrencesUseCase: FindBudgetLinesBySpreadGroupUseCase,
     private readonly updateUseCase: UpdateBudgetLineUseCase,
     private readonly removeUseCase: RemoveBudgetLineUseCase,
@@ -148,6 +151,52 @@ export class BudgetLineController {
   ): Promise<BudgetLineSpreadResponse> {
     const result = await this.createSpreadUseCase.execute(
       createSpreadDto,
+      user,
+    );
+    return {
+      success: true,
+      data: {
+        spreadGroupId: result.spreadGroupId,
+        lines: this.mapper.toApiList(result.lines),
+        createdBudgets: this.budgetMapper.toApiList(result.createdBudgets),
+        skippedMonths: result.skippedMonths,
+      },
+    };
+  }
+
+  @Post(':id/spread')
+  @ApiOperation({
+    summary:
+      'Lisse une prévision existante sur plusieurs mois (total préservé)',
+    description:
+      "Redistribue le montant total de la prévision source en N tranches « Prévu » (one_off) de T/N (Σ = T), une par mois choisi (mois courant inclus), puis SUPPRIME la source. Le client n'envoie que les mois cibles ; le serveur lit le total. Un mois cible sans budget ni template par défaut fait échouer toute l'opération (aucune tranche créée).",
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Identifiant unique de la prévision source à lisser',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Prévision lissée avec succès (source supprimée)',
+    type: BudgetLineSpreadResponseDto,
+  })
+  @ApiBadRequestResponse({
+    description: 'Invalid input data',
+    type: ErrorResponseDto,
+  })
+  @ApiNotFoundResponse({
+    description: 'Prévision source non trouvée',
+    type: ErrorResponseDto,
+  })
+  async spreadFromLine(
+    @Param('id') id: string,
+    @Body() spreadFromLineDto: BudgetLineSpreadFromLineCreateDto,
+    @User() user: AuthenticatedUser,
+  ): Promise<BudgetLineSpreadResponse> {
+    const result = await this.spreadFromLineUseCase.execute(
+      id,
+      spreadFromLineDto,
       user,
     );
     return {

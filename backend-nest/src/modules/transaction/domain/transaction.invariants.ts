@@ -1,6 +1,7 @@
 import { BusinessException } from '@common/exceptions/business.exception';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 import type { TransactionCreate, TransactionUpdate } from 'pulpe-shared';
+import type { SpreadSourceTransaction } from './transaction.entity';
 
 const TRANSACTION_CONSTANTS = {
   MAX_AMOUNT: 1000000,
@@ -41,6 +42,33 @@ export class TransactionInvariants {
         {
           reason: `Name cannot exceed ${TRANSACTION_CONSTANTS.NAME_MAX_LENGTH} characters`,
         },
+      );
+    }
+  }
+
+  /**
+   * PUL-17 v1.1 eligibility for total-preserving spread of an EXISTING réel:
+   * only a FREE (unallocated) non-income transaction can be smoothed. An
+   * allocated transaction derives its smoothing from its parent envelope line,
+   * so the user is steered to spread that line instead.
+   */
+  static validateSpreadFromTransactionSource(
+    source: SpreadSourceTransaction,
+  ): void {
+    if (source.budgetLineId !== null) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.TRANSACTION_NOT_SPREADABLE,
+        {
+          reason:
+            'this transaction is allocated to an envelope; smooth the envelope line instead',
+        },
+      );
+    }
+
+    if (source.kind === 'income') {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.TRANSACTION_NOT_SPREADABLE,
+        { reason: 'income transactions cannot be smoothed' },
       );
     }
   }

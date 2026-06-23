@@ -13,16 +13,24 @@ import {
 import { TranslocoPipe } from '@jsverse/transloco';
 import { MatTableModule } from '@angular/material/table';
 import { MatButtonModule } from '@angular/material/button';
+import { MatDividerModule } from '@angular/material/divider';
 import { MatIconModule } from '@angular/material/icon';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
-import type { BudgetLine, Transaction } from 'pulpe-shared';
-import { AppCurrencyPipe, FormatConversionPipe } from '@core/currency';
+import { type BudgetLine, type Transaction } from 'pulpe-shared';
+import {
+  AppCurrencyPipe,
+  CURRENCY_CONFIG,
+  FormatConversionPipe,
+} from '@core/currency';
 import { CurrencyConversionBadge } from '@ui/currency-conversion-badge';
+import { SpreadOccurrencesList } from '@ui/spread-occurrences-list';
 import type { BudgetLineConsumption } from '@core/budget';
 import { FeatureFlagsService } from '@core/feature-flags';
 import { UserSettingsStore } from '@core/user-settings';
 import { getDateDisplayFormats } from '@core/date/date-display-formats';
+import { BudgetDetailsStore } from '../../store/budget-details-store';
 
 export interface AllocatedTransactionsDialogData {
   budgetLine: BudgetLine;
@@ -41,12 +49,15 @@ export interface AllocatedTransactionsDialogResult {
     MatDialogModule,
     MatTableModule,
     MatButtonModule,
+    MatDividerModule,
     MatIconModule,
+    MatProgressSpinnerModule,
     MatTooltipModule,
     MatProgressBarModule,
     AppCurrencyPipe,
     FormatConversionPipe,
     CurrencyConversionBadge,
+    SpreadOccurrencesList,
     DatePipe,
     DecimalPipe,
     TranslocoPipe,
@@ -215,6 +226,38 @@ export interface AllocatedTransactionsDialogResult {
             </p>
           </div>
         }
+
+        <!-- PUL-17 — spread occurrences (when this line is part of a spread) -->
+        @if (data.budgetLine.spreadGroupId) {
+          <mat-divider />
+          <div class="flex items-center gap-2">
+            <mat-icon class="text-primary shrink-0">timelapse</mat-icon>
+            <h3 class="text-title-small font-semibold">
+              {{
+                'budgetLine.spread.sectionTitle'
+                  | transloco: { count: store.spreadOccurrences().length }
+              }}
+            </h3>
+          </div>
+          @if (store.isSpreadOccurrencesLoading()) {
+            <div class="flex justify-center py-4">
+              <mat-spinner diameter="28" />
+            </div>
+          } @else if (store.spreadOccurrencesError()) {
+            <p class="text-body-small text-on-surface-variant">
+              {{ 'budgetLine.spread.loadError' | transloco }}
+            </p>
+          } @else {
+            <pulpe-spread-occurrences-list
+              [occurrences]="spreadOccurrences()"
+              [tracker]="spreadTracker()"
+              [currency]="currency()"
+              [locale]="locale()"
+              [isCurrentPeriod]="isCurrentPeriod()"
+              density="compact"
+            />
+          }
+        }
       </div>
     </mat-dialog-content>
 
@@ -246,7 +289,13 @@ export interface AllocatedTransactionsDialogResult {
 export class AllocatedTransactionsDialog {
   readonly #userSettings = inject(UserSettingsStore);
   readonly #featureFlags = inject(FeatureFlagsService);
+  protected readonly store = inject(BudgetDetailsStore);
   protected readonly currency = this.#userSettings.currency;
+  // Date locale (fr-CH / fr-FR) for spread month names — NOT numberLocale
+  // (de-CH), which would render the months in German ("Juni" instead of "juin").
+  protected readonly locale = computed(
+    () => CURRENCY_CONFIG[this.currency()].locale,
+  );
   protected readonly shortDateFormat = computed(
     () => getDateDisplayFormats(this.currency()).shortDate,
   );
@@ -269,6 +318,13 @@ export class AllocatedTransactionsDialog {
         )
       : 0,
   );
+
+  // PUL-17 — spread occurrences/tracker derived once in the store (single source
+  // for every detail surface); thin aliases for the template. The caller
+  // (budget-items-container) sets the spreadGroupId on open so the resource loads.
+  protected readonly spreadOccurrences = this.store.spreadOccurrenceViewModels;
+  protected readonly spreadTracker = this.store.spreadTracker;
+  protected readonly isCurrentPeriod = this.store.isViewingSpreadCurrentPeriod;
 
   close(): void {
     this.#dialogRef.close();

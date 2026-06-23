@@ -15,12 +15,12 @@ import { AppCurrencyPipe, FormatConversionPipe } from '@core/currency';
 import { FinancialKindDirective } from '@ui/financial-kind';
 import { FinancialKindIndicator } from '@ui/financial-kind-indicator';
 import { OriginalAmountLine } from '@ui/original-amount-line';
+import { SpreadBadge } from '@ui/spread-badge';
 import { RecurrenceLabelPipe } from '@ui/transaction-display';
 import { formatMatchAnnotation } from '../../view-models/budget-item-constants';
 import type { BudgetLineTableItem } from '../../view-models/table-items.view-model';
 import { SegmentedBudgetProgress } from '../segmented-budget-progress';
 import { BudgetActionMenu } from '../budget-action-menu';
-import { SpreadPill } from '../spread-pill';
 
 /**
  * Desktop envelope card component following M3 Expressive design
@@ -53,7 +53,7 @@ import { SpreadPill } from '../spread-pill';
     SegmentedBudgetProgress,
     FinancialKindIndicator,
     BudgetActionMenu,
-    SpreadPill,
+    SpreadBadge,
   ],
   template: `
     <div
@@ -86,14 +86,10 @@ import { SpreadPill } from '../spread-pill';
             >
               {{ item().metadata.displayName }}
             </span>
+            @if (item().metadata.isSpread) {
+              <pulpe-spread-badge />
+            }
           </div>
-          @if (item().metadata.isSpread && item().metadata.spreadGroupId) {
-            <pulpe-spread-pill
-              class="ml-7"
-              [spreadGroupId]="item().metadata.spreadGroupId!"
-              (openOccurrences)="viewSpreadOccurrences.emit($event)"
-            />
-          }
         </div>
 
         <pulpe-budget-action-menu
@@ -103,7 +99,7 @@ import { SpreadPill } from '../spread-pill';
           (edit)="edit.emit($event)"
           (delete)="delete.emit($event)"
           (addTransaction)="addTransaction.emit($event)"
-          (viewSpreadOccurrences)="viewSpreadOccurrences.emit($event)"
+          (spread)="spread.emit($event)"
           (resetFromTemplate)="resetFromTemplate.emit($event)"
         />
       </div>
@@ -243,7 +239,7 @@ export class BudgetGridCard {
   readonly edit = output<BudgetLineTableItem>();
   readonly delete = output<string>();
   readonly addTransaction = output<BudgetLine>();
-  readonly viewSpreadOccurrences = output<string>();
+  readonly spread = output<BudgetLineTableItem>();
   readonly resetFromTemplate = output<BudgetLineTableItem>();
   readonly toggleCheck = output<string>();
 }

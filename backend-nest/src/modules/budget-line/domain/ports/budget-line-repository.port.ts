@@ -3,7 +3,9 @@ import type {
   BudgetLine,
   BudgetLineCreateInput,
   BudgetLineUpdatePatch,
+  SpreadDeleteSource,
   SpreadOccurrence,
+  SpreadSourceLine,
   TemplateLine,
 } from '../budget-line.entity';
 
@@ -19,16 +21,28 @@ export interface BudgetLineRepositoryPort {
   /**
    * PUL-17: set-based atomic fan-out — inserts N `one_off` lines (one per
    * `input`) sharing `spreadGroupId`, via the `create_budget_lines_spread` RPC.
+   *
+   * `source` (PUL-17 v1.1 Defect 2) lets the total-preserving spread-from flows
+   * fold the source deletion INTO the same all-or-nothing RPC transaction, so a
+   * fan-out failure leaves the source intact and nothing created (no double-count,
+   * no money loss, no duplicate-on-retry). The additive create flow omits it.
    */
   createSpread(
     spreadGroupId: string,
     inputs: BudgetLineCreateInput[],
+    source?: SpreadDeleteSource,
   ): Promise<BudgetLine[]>;
   /**
    * PUL-17 Lot C: all occurrences of a spread group across their months.
    * Cross-budget read; RLS scopes to the caller. Empty when not found/owned.
    */
   findBySpreadGroupId(spreadGroupId: string): Promise<SpreadOccurrence[]>;
+  /**
+   * PUL-17 v1.1: decrypted spread SOURCE (a budget_line + its budget's
+   * month/year M0). RLS scopes to the caller — throws NOT_FOUND for another
+   * user's line (IDOR guard before any fan-out).
+   */
+  findSpreadSource(id: string): Promise<SpreadSourceLine>;
   update(id: string, patch: BudgetLineUpdatePatch): Promise<BudgetLine>;
   delete(id: string): Promise<void>;
   fetchTemplateLineById(templateLineId: string): Promise<TemplateLine>;

@@ -33,6 +33,27 @@ export interface Transaction {
 }
 
 /**
+ * Decrypted spread SOURCE: a transaction plus its budget's month/year (M0),
+ * the fields the total-preserving spread-from flow needs to validate eligibility
+ * (must be a free réel, non-income) and redistribute the total. Fetched in one
+ * join so the use case stays I/O-free (PUL-17 v1.1).
+ */
+export interface SpreadSourceTransaction {
+  id: string;
+  budgetId: string;
+  budgetLineId: string | null;
+  month: number;
+  year: number;
+  name: string;
+  amount: number;
+  originalAmount: number | null;
+  originalCurrency: SupportedCurrency | null;
+  targetCurrency: SupportedCurrency | null;
+  exchangeRate: number | null;
+  kind: TransactionKind;
+}
+
+/**
  * Repo write input for inserts. Plain numbers — repo encrypts internally.
  */
 export interface TransactionCreateInput {

@@ -313,6 +313,7 @@ interface AddBudgetLineModel {
       align-items: center;
       justify-content: center;
       min-width: 4.5rem;
+      min-height: 2.75rem;
       padding: 0.375rem 0.75rem;
       border-radius: var(--mat-sys-corner-full);
       border: 1px solid var(--mat-sys-outline);

@@ -1,4 +1,3 @@
-import { DatePipe } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -10,14 +9,15 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { TranslocoPipe } from '@jsverse/transloco';
-import { AppCurrencyPipe } from '@core/currency';
+import { CURRENCY_CONFIG } from '@core/currency';
 import { UserSettingsStore } from '@core/user-settings';
+import { SpreadOccurrencesList } from '@ui/spread-occurrences-list';
 import { BudgetDetailsStore } from '../store/budget-details-store';
-import { buildSpreadOccurrenceViewModels } from './spread-occurrence.view-model';
 
 /**
  * PUL-17 Lot C — mobile bottom-sheet variant of the spread occurrences view.
- * Same data + view-model as the desktop side-panel; read-only.
+ * Thin shell over the shared `pulpe-spread-occurrences-list` (compact density);
+ * same data + view-model as the desktop side-panel; read-only.
  */
 @Component({
   selector: 'pulpe-spread-occurrences-bottom-sheet',
@@ -25,9 +25,8 @@ import { buildSpreadOccurrenceViewModels } from './spread-occurrence.view-model'
     MatButtonModule,
     MatIconModule,
     MatProgressSpinnerModule,
-    AppCurrencyPipe,
     TranslocoPipe,
-    DatePipe,
+    SpreadOccurrencesList,
   ],
   template: `
     <div class="flex flex-col gap-4 pb-6">
@@ -38,13 +37,11 @@ import { buildSpreadOccurrenceViewModels } from './spread-occurrence.view-model'
       <!-- Header -->
       <div class="flex justify-between items-center gap-3">
         <div class="min-w-0 flex items-center gap-2">
-          <mat-icon class="text-on-tertiary-container shrink-0">
-            date_range
-          </mat-icon>
+          <mat-icon class="text-primary shrink-0">timelapse</mat-icon>
           <h2 class="text-title-large text-on-surface m-0 ph-no-capture">
             {{
               'budgetLine.spread.panelTitle'
-                | transloco: { count: occurrences().length }
+                | transloco: { count: store.spreadOccurrences().length }
             }}
           </h2>
         </div>
@@ -70,45 +67,15 @@ import { buildSpreadOccurrenceViewModels } from './spread-occurrence.view-model'
           </p>
         </div>
       } @else {
-        <div class="flex flex-col gap-2 max-h-[55vh] overflow-y-auto">
-          @for (vm of occurrences(); track vm.occurrence.budgetLineId) {
-            <div
-              class="flex items-center justify-between gap-3 rounded-lg p-3
-                     bg-surface-container-low"
-              [class.opacity-60]="vm.isPast"
-              [attr.data-testid]="
-                'spread-occurrence-' + vm.occurrence.budgetLineId
-              "
-              [attr.data-current]="vm.isCurrent"
-              [attr.data-past]="vm.isPast"
-            >
-              <div class="min-w-0 flex items-center gap-2">
-                <span
-                  class="text-body-medium font-medium capitalize"
-                  [class.line-through]="vm.isChecked"
-                  [class.text-on-surface-variant]="vm.isChecked"
-                >
-                  {{ monthDate(vm.occurrence) | date: 'MMMM yyyy' }}
-                </span>
-                @if (vm.isCurrent) {
-                  <span
-                    class="text-label-small font-medium rounded-full px-2 py-0.5
-                           bg-primary-container text-on-primary-container shrink-0"
-                    data-testid="spread-current-marker"
-                  >
-                    {{ 'budgetLine.spread.currentMonth' | transloco }}
-                  </span>
-                }
-              </div>
-              <span
-                class="ph-no-capture text-body-medium font-semibold whitespace-nowrap"
-                [class.line-through]="vm.isChecked"
-                [class.text-on-surface-variant]="vm.isChecked"
-              >
-                {{ vm.occurrence.amount | appCurrency: currency() : '1.2-2' }}
-              </span>
-            </div>
-          }
+        <div class="max-h-[60vh] overflow-y-auto">
+          <pulpe-spread-occurrences-list
+            [occurrences]="occurrences()"
+            [tracker]="tracker()"
+            [currency]="currency()"
+            [locale]="locale()"
+            [isCurrentPeriod]="isCurrentPeriod()"
+            density="compact"
+          />
         </div>
       }
     </div>
@@ -127,17 +94,16 @@ export class SpreadOccurrencesBottomSheet {
   readonly #userSettings = inject(UserSettingsStore);
   protected readonly store = inject(BudgetDetailsStore);
   protected readonly currency = this.#userSettings.currency;
-
-  protected readonly occurrences = computed(() =>
-    buildSpreadOccurrenceViewModels(
-      this.store.spreadOccurrences(),
-      this.#userSettings.payDayOfMonth(),
-    ),
+  // Date locale (fr-CH / fr-FR) for month names — NOT numberLocale (de-CH),
+  // which would render the spread months in German ("Juni" instead of "juin").
+  protected readonly locale = computed(
+    () => CURRENCY_CONFIG[this.currency()].locale,
   );
 
-  protected monthDate(occurrence: { month: number; year: number }): Date {
-    return new Date(occurrence.year, occurrence.month - 1, 1);
-  }
+  // PUL-17 — derived once in the store (single source for every detail surface).
+  protected readonly occurrences = this.store.spreadOccurrenceViewModels;
+  protected readonly tracker = this.store.spreadTracker;
+  protected readonly isCurrentPeriod = this.store.isViewingSpreadCurrentPeriod;
 
   protected close(): void {
     this.#bottomSheetRef.dismiss();

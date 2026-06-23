@@ -39,6 +39,11 @@ import {
 } from './components/edit-transaction-form';
 import { SpreadOccurrencesPanel } from './spread-occurrences/spread-occurrences-panel';
 import { SpreadOccurrencesBottomSheet } from './spread-occurrences/spread-occurrences-bottom-sheet';
+import { SpreadExistingDialog } from './budget-line/spread-existing/dialog';
+import type {
+  SpreadExistingDialogData,
+  SpreadExistingDialogResult,
+} from './budget-line/spread-existing/dialog-result';
 
 export interface ConfirmDeleteOptions {
   title: string;
@@ -171,6 +176,17 @@ export class BudgetDetailsDialogService {
       dialogRef.afterClosed(),
     );
     return result ? { id: transaction.id, update: result } : undefined;
+  }
+
+  async openSpreadExisting(
+    data: SpreadExistingDialogData,
+  ): Promise<SpreadExistingDialogResult | undefined> {
+    const dialogRef = this.#dialog.open(SpreadExistingDialog, {
+      data,
+      width: '600px',
+      maxWidth: '90vw',
+    });
+    return firstValueFrom(dialogRef.afterClosed());
   }
 
   openSpreadOccurrences(isMobile: boolean): void {

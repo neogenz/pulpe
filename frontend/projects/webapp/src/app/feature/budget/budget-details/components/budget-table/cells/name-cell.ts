@@ -5,20 +5,19 @@ import {
   computed,
   inject,
   input,
-  output,
 } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { getDateDisplayFormats } from '@core/date/date-display-formats';
 import { UserSettingsStore } from '@core/user-settings';
 import { FinancialKindDirective } from '@ui/financial-kind';
+import { SpreadBadge } from '@ui/spread-badge';
 import { TransactionLabelPipe } from '@ui/transaction-display';
 import { formatMatchAnnotation } from '../../../view-models/budget-item-constants';
 import type {
   BudgetLineTableItem,
   TransactionTableItem,
 } from '../../../view-models/table-items.view-model';
-import { SpreadPill } from '../../spread-pill';
 
 @Component({
   selector: 'pulpe-name-cell',
@@ -27,8 +26,8 @@ import { SpreadPill } from '../../spread-pill';
     MatTooltipModule,
     DatePipe,
     FinancialKindDirective,
+    SpreadBadge,
     TransactionLabelPipe,
-    SpreadPill,
   ],
   template: `
     <div class="flex items-center gap-2">
@@ -62,6 +61,9 @@ import { SpreadPill } from '../../spread-pill';
                 lock
               </mat-icon>
             }
+            @if (line().metadata.isSpread) {
+              <pulpe-spread-badge />
+            }
           </span>
           @if (line().metadata.envelopeName) {
             <span
@@ -83,13 +85,6 @@ import { SpreadPill } from '../../spread-pill';
               {{ matchAnnotation() }}
             </span>
           }
-          @if (line().metadata.isSpread && line().metadata.spreadGroupId) {
-            <pulpe-spread-pill
-              class="mt-0.5"
-              [spreadGroupId]="line().metadata.spreadGroupId!"
-              (openOccurrences)="openSpreadOccurrences.emit($event)"
-            />
-          }
         </div>
         @if (line().data.checkedAt) {
           <span class="text-body-small text-on-surface-variant ml-2">
@@ -107,8 +102,6 @@ export class NameCell {
     () => getDateDisplayFormats(this.#userSettings.currency()).dayMonth,
   );
   readonly line = input.required<BudgetLineTableItem | TransactionTableItem>();
-
-  readonly openSpreadOccurrences = output<string>();
 
   readonly matchAnnotation = computed(() =>
     formatMatchAnnotation(this.line().metadata.matchingTransactionNames),

@@ -47,6 +47,8 @@ export class BudgetLineMapper {
       year: occurrence.year,
       name: occurrence.name,
       amount: occurrence.amount,
+      consumed: occurrence.consumed,
+      transactionCount: occurrence.transactionCount,
       kind: occurrence.kind,
       checkedAt: occurrence.checkedAt,
       ...mapCurrencyMetadataToApi({

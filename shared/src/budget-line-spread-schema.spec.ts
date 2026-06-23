@@ -91,4 +91,13 @@ describe('budgetLineSpreadCreateSchema', () => {
     });
     expect(result.success).toBe(false);
   });
+
+  it('rejects a client-supplied spreadGroupId (server-generated, strictObject)', () => {
+    const result = budgetLineSpreadCreateSchema.safeParse({
+      ...base,
+      spreadGroupId: 'a3f1c2d4-5e6f-4a7b-8c9d-0e1f2a3b4c5d',
+      tranches: [{ year: 2026, month: 1, amount: 100 }],
+    });
+    expect(result.success).toBe(false);
+  });
 });

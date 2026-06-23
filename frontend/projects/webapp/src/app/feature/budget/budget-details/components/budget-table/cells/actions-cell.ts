@@ -12,6 +12,7 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslocoPipe } from '@jsverse/transloco';
+import type { Transaction } from 'pulpe-shared';
 import type { BudgetLine } from 'pulpe-shared';
 import type {
   BudgetLineTableItem,
@@ -81,18 +82,29 @@ import type {
             <mat-icon matMenuItemIcon>edit</mat-icon>
             <span>{{ 'common.edit' | transloco }}</span>
           </button>
-          @if (line().metadata.isSpread && line().metadata.spreadGroupId) {
+          @if (line().metadata.canSpread) {
             <button
               mat-menu-item
-              (click)="
-                viewSpreadOccurrences.emit(line().metadata.spreadGroupId!)
-              "
-              [attr.data-testid]="'view-spread-' + line().data.id"
+              (click)="spread.emit(asBudgetLineItem())"
+              [attr.data-testid]="'spread-' + line().data.id"
             >
-              <mat-icon matMenuItemIcon>date_range</mat-icon>
-              <span>{{ 'budgetLine.spread.viewOtherMonths' | transloco }}</span>
+              <mat-icon matMenuItemIcon>calendar_month</mat-icon>
+              <span>{{ 'budgetLine.spread.spreadAction' | transloco }}</span>
             </button>
           }
+        }
+        @if (
+          line().metadata.itemType === 'transaction' &&
+          line().metadata.canSpread
+        ) {
+          <button
+            mat-menu-item
+            (click)="spreadTransaction.emit(asTransactionItem().data)"
+            [attr.data-testid]="'spread-tx-' + line().data.id"
+          >
+            <mat-icon matMenuItemIcon>calendar_month</mat-icon>
+            <span>{{ 'budgetLine.spread.spreadAction' | transloco }}</span>
+          </button>
         }
         @if (line().metadata.canResetFromTemplate) {
           <button
@@ -124,13 +136,18 @@ export class ActionsCell {
   readonly edit = output<BudgetLineTableItem>();
   readonly delete = output<string>();
   readonly addTransaction = output<BudgetLine>();
-  readonly viewSpreadOccurrences = output<string>();
+  readonly spread = output<BudgetLineTableItem>();
+  readonly spreadTransaction = output<Transaction>();
   readonly resetFromTemplate = output<BudgetLineTableItem>();
   readonly toggleCheck = output<string>();
   readonly toggleTransactionCheck = output<string>();
 
   readonly asBudgetLineItem = computed(
     () => this.line() as BudgetLineTableItem,
+  );
+
+  readonly asTransactionItem = computed(
+    () => this.line() as TransactionTableItem,
   );
 
   readonly budgetLineData = computed(() => this.line().data as BudgetLine);
