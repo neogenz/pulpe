@@ -61,6 +61,7 @@ describe('TemplateStore', () => {
     {
       id: 'line1',
       templateId: 'template1',
+      savingsGoalId: null,
       kind: 'income',
       name: 'Salary',
       description: 'Monthly salary',
@@ -72,6 +73,7 @@ describe('TemplateStore', () => {
     {
       id: 'line2',
       templateId: 'template1',
+      savingsGoalId: null,
       kind: 'expense',
       name: 'Rent',
       description: 'Monthly rent',

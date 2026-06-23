@@ -36,6 +36,7 @@ describe('TemplateDetailsStore', () => {
     {
       id: 'line-1',
       templateId: 'template-1',
+      savingsGoalId: null,
       name: 'Salary',
       amount: 3000,
       kind: 'income' as const,

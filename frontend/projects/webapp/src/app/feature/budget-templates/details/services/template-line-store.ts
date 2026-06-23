@@ -235,6 +235,7 @@ export class TemplateLineStore {
     return {
       id: tempId,
       templateId: template?.id ?? '',
+      savingsGoalId: payload.savingsGoalId ?? null,
       name: payload.name,
       amount: payload.amount,
       kind: payload.kind,

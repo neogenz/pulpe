@@ -243,8 +243,7 @@ export const savingsGoalSchema = z.object({
   name: z.string().min(1).max(100).trim(),
   // coerce: Supabase PostgREST returns numeric(12,2) columns as strings
   targetAmount: z.coerce.number().nonnegative(),
-  targetDate: z.string(), // Date in ISO format
-  priority: priorityLevelSchema,
+  targetDate: z.iso.date(), // ISO date (YYYY-MM-DD)
   status: savingsGoalStatusSchema,
   createdAt: z.iso.datetime({ offset: true }),
   updatedAt: z.iso.datetime({ offset: true }),
@@ -258,8 +257,14 @@ export type SavingsGoal = z.infer<typeof savingsGoalSchema>;
 export const savingsGoalCreateSchema = z.strictObject({
   name: z.string().min(1).max(100).trim(),
   targetAmount: z.number().positive(),
-  targetDate: z.string(), // Date in ISO format
-  priority: priorityLevelSchema,
+  // z.iso.date() + refine ≥ today. NOT .min() — in Zod 4, .min() on an ISO
+  // string measures LENGTH, not the date. ISO 'YYYY-MM-DD' strings compare
+  // lexicographically === chronologically, so a string compare is correct.
+  targetDate: z.iso
+    .date()
+    .refine((value) => value >= new Date().toISOString().slice(0, 10), {
+      error: 'Target date cannot be in the past',
+    }),
   status: savingsGoalStatusSchema.default('ACTIVE'),
   originalTargetAmount: z.number().positive().optional(),
   originalCurrency: supportedCurrencySchema.optional(),
@@ -764,6 +769,9 @@ export type BudgetTemplate = z.infer<typeof budgetTemplateSchema>;
 export const templateLineSchema = z.object({
   id: z.uuid(),
   templateId: z.uuid(),
+  // Link to a savings goal (PUL-12). Lives on the model so a recurring saving
+  // line stays tagged across monthly regenerations.
+  savingsGoalId: z.uuid().nullable(),
   name: z.string().min(1).max(100).trim(),
   // nonnegative: API may return 0 when encryption is active (real value in *_encrypted)
   // coerce: Supabase PostgREST returns numeric(12,2) columns as strings
@@ -782,6 +790,7 @@ export type TemplateLine = z.infer<typeof templateLineSchema>;
 
 export const templateLineCreateSchema = z.strictObject({
   templateId: z.uuid(),
+  savingsGoalId: z.uuid().nullable().optional(),
   name: z.string().min(1).max(100).trim(),
   amount: z.number().positive(),
   kind: transactionKindSchema,
@@ -796,6 +805,7 @@ export type TemplateLineCreate = z.infer<typeof templateLineCreateSchema>;
 
 // Template line create without templateId (for batch creation)
 export const templateLineCreateWithoutTemplateIdSchema = z.strictObject({
+  savingsGoalId: z.uuid().nullable().optional(),
   name: z.string().min(1).max(100).trim(),
   amount: z.number().positive(),
   kind: transactionKindSchema,
@@ -839,6 +849,7 @@ export type BudgetTemplateUpdate = z.infer<typeof budgetTemplateUpdateSchema>;
 
 // Template line update schema
 export const templateLineUpdateSchema = z.strictObject({
+  savingsGoalId: z.uuid().nullable().optional(),
   name: z.string().min(1).max(100).trim().optional(),
   amount: z.number().positive().optional(),
   kind: transactionKindSchema.optional(),
