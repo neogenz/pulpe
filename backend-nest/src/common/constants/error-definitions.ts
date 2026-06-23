@@ -443,6 +443,42 @@ export const ERROR_DEFINITIONS = {
     message: () => 'Failed to fetch budget lines',
     httpStatus: HttpStatus.INTERNAL_SERVER_ERROR,
   },
+
+  // Savings Goal Errors
+  SAVINGS_GOAL_NOT_FOUND: {
+    code: API_ERROR_CODES.SAVINGS_GOAL_NOT_FOUND,
+    message: (details?: Record<string, unknown>) =>
+      details?.id
+        ? `Savings goal with ID '${details.id}' not found`
+        : 'Savings goal not found',
+    httpStatus: HttpStatus.NOT_FOUND,
+  },
+  SAVINGS_GOAL_CREATE_FAILED: {
+    code: API_ERROR_CODES.SAVINGS_GOAL_CREATE_FAILED,
+    message: () => 'Failed to create savings goal',
+    httpStatus: HttpStatus.INTERNAL_SERVER_ERROR,
+  },
+  SAVINGS_GOAL_UPDATE_FAILED: {
+    code: API_ERROR_CODES.SAVINGS_GOAL_UPDATE_FAILED,
+    message: (details?: Record<string, unknown>) =>
+      details?.id
+        ? `Failed to update savings goal with ID '${details.id}'`
+        : 'Failed to update savings goal',
+    httpStatus: HttpStatus.INTERNAL_SERVER_ERROR,
+  },
+  SAVINGS_GOAL_DELETE_FAILED: {
+    code: API_ERROR_CODES.SAVINGS_GOAL_DELETE_FAILED,
+    message: (details?: Record<string, unknown>) =>
+      details?.id
+        ? `Failed to delete savings goal with ID '${details.id}'`
+        : 'Failed to delete savings goal',
+    httpStatus: HttpStatus.INTERNAL_SERVER_ERROR,
+  },
+  SAVINGS_GOAL_FETCH_FAILED: {
+    code: API_ERROR_CODES.SAVINGS_GOAL_FETCH_FAILED,
+    message: () => 'Failed to fetch savings goals',
+    httpStatus: HttpStatus.INTERNAL_SERVER_ERROR,
+  },
   BUDGET_LINE_BUDGET_MISMATCH: {
     code: API_ERROR_CODES.BUDGET_LINE_BUDGET_MISMATCH,
     message: (details?: Record<string, unknown>) =>
