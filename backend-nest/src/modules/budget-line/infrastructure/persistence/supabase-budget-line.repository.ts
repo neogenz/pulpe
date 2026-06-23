@@ -289,7 +289,7 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
     const { data, error } = await supabase
       .from('template_line')
       .select(
-        'name, amount, kind, recurrence, original_amount, original_currency, target_currency, exchange_rate, id, created_at, updated_at, description, template_id',
+        'name, amount, kind, recurrence, original_amount, original_currency, target_currency, exchange_rate, id, created_at, updated_at, description, template_id, savings_goal_id',
       )
       .eq('id', templateLineId)
       .single();
@@ -380,6 +380,7 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
     return {
       id: row.id,
       templateId: row.template_id,
+      savingsGoalId: row.savings_goal_id ?? null,
       name: row.name,
       amount: row.amount
         ? this.encryption.tryDecryptAmount(row.amount, dek, 0)

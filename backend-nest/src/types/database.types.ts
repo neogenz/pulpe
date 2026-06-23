@@ -165,7 +165,7 @@ export type Database = {
           name: string;
           original_currency: string | null;
           original_target_amount: string | null;
-          priority: Database['public']['Enums']['priority_level'];
+          priority: Database['public']['Enums']['priority_level'] | null;
           status: Database['public']['Enums']['savings_goal_status'];
           target_amount: string | null;
           target_currency: string | null;
@@ -180,7 +180,7 @@ export type Database = {
           name: string;
           original_currency?: string | null;
           original_target_amount?: string | null;
-          priority: Database['public']['Enums']['priority_level'];
+          priority?: Database['public']['Enums']['priority_level'] | null;
           status?: Database['public']['Enums']['savings_goal_status'];
           target_amount?: string | null;
           target_currency?: string | null;
@@ -195,7 +195,7 @@ export type Database = {
           name?: string;
           original_currency?: string | null;
           original_target_amount?: string | null;
-          priority?: Database['public']['Enums']['priority_level'];
+          priority?: Database['public']['Enums']['priority_level'] | null;
           status?: Database['public']['Enums']['savings_goal_status'];
           target_amount?: string | null;
           target_currency?: string | null;
@@ -247,6 +247,7 @@ export type Database = {
           original_amount: string | null;
           original_currency: string | null;
           recurrence: Database['public']['Enums']['transaction_recurrence'];
+          savings_goal_id: string | null;
           target_currency: string | null;
           template_id: string;
           updated_at: string;
@@ -262,6 +263,7 @@ export type Database = {
           original_amount?: string | null;
           original_currency?: string | null;
           recurrence: Database['public']['Enums']['transaction_recurrence'];
+          savings_goal_id?: string | null;
           target_currency?: string | null;
           template_id: string;
           updated_at?: string;
@@ -277,11 +279,19 @@ export type Database = {
           original_amount?: string | null;
           original_currency?: string | null;
           recurrence?: Database['public']['Enums']['transaction_recurrence'];
+          savings_goal_id?: string | null;
           target_currency?: string | null;
           template_id?: string;
           updated_at?: string;
         };
         Relationships: [
+          {
+            foreignKeyName: 'template_line_savings_goal_id_fkey';
+            columns: ['savings_goal_id'];
+            isOneToOne: false;
+            referencedRelation: 'savings_goal';
+            referencedColumns: ['id'];
+          },
           {
             foreignKeyName: 'template_transactions_template_id_fkey';
             columns: ['template_id'];

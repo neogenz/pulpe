@@ -595,6 +595,7 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
     return {
       id: row.id,
       templateId: row.template_id,
+      savingsGoalId: row.savings_goal_id ?? null,
       name: row.name,
       amount: row.amount
         ? this.encryption.tryDecryptAmount(row.amount, dek, 0)

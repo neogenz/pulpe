@@ -46,6 +46,7 @@ export interface BudgetTemplate {
 export interface TemplateLine {
   id: string;
   templateId: string;
+  savingsGoalId: string | null;
   name: string;
   amount: number;
   originalAmount: number | null;

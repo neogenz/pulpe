@@ -19,6 +19,7 @@ const mockUser: AuthenticatedUser = {
 const makeTemplateLine = (id: string): TemplateLine => ({
   id,
   templateId: 'template-1',
+  savingsGoalId: null,
   name: 'Salaire',
   amount: 5000,
   originalAmount: null,
