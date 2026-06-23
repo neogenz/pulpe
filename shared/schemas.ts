@@ -527,7 +527,7 @@ export const spreadOccurrenceSchema = z.object({
   budgetLineId: z.uuid(),
   budgetId: z.uuid(),
   month: z.number().int().min(MONTH_MIN).max(MONTH_MAX),
-  year: z.number().int().min(MIN_YEAR),
+  year: z.number().int().min(MIN_YEAR).max(MAX_YEAR),
   name: z.string(),
   // coerce: PostgREST returns numeric as string; nonnegative: 0 when encrypted
   amount: z.coerce.number().nonnegative(),

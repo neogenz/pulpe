@@ -2,10 +2,9 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
-  effect,
   inject,
+  linkedSignal,
   signal,
-  untracked,
 } from '@angular/core';
 import { FormField, form, minLength, required } from '@angular/forms/signals';
 import {
@@ -383,7 +382,13 @@ export class AddBudgetLineDialog {
   );
 
   // ── Spread (PUL-17) state ──
-  readonly #mode = signal<EntryMode>('single');
+  readonly #mode = linkedSignal<TransactionKind, EntryMode>({
+    source: () => this.model().kind,
+    // Income can't be spread (V1): force single on income, preserve the user's
+    // choice otherwise. Declarative replacement for the old constructor effect.
+    computation: (kind, prev) =>
+      kind === 'income' ? 'single' : (prev?.value ?? 'single'),
+  });
   protected readonly mode = this.#mode.asReadonly();
 
   readonly #start = signal<SpreadMonth>({
@@ -502,18 +507,6 @@ export class AddBudgetLineDialog {
     }
     return this.addForm().valid();
   });
-
-  constructor() {
-    // Revenu lissé hors scope V1: switching to income drops spread mode.
-    effect(() => {
-      if (
-        this.model().kind === 'income' &&
-        untracked(this.#mode) === 'spread'
-      ) {
-        this.#mode.set('single');
-      }
-    });
-  }
 
   protected async handleSubmit(): Promise<void> {
     if (this.#mode() === 'spread') {

@@ -138,7 +138,7 @@ import type {
               <span
                 class="text-label-small text-on-surface-variant line-through"
               >
-                {{ formatNumber(vm.occurrence.amount, 0) }}
+                {{ formatNumber(vm.occurrence.amount, 2) }}
               </span>
               <span class="text-body-medium font-semibold">
                 {{ currencySymbol() }}
@@ -193,8 +193,9 @@ export class SpreadOccurrencesList {
 
   /**
    * Number only (no symbol), `digits` decimals — for the composite "réel / prévu"
-   * row where the symbol is rendered once at the end. The consommé keeps the
-   * ligne policy (2 dec); the struck prévu is a secondary reference (0 dec).
+   * row where the symbol is rendered once at the end. Both the consommé and the
+   * struck prévu (`budget_line.amount`) follow the ligne policy (2 dec) so a
+   * 24,99 € prévision never shows as a struck "25" next to a 24,99 € réalisé.
    */
   protected formatNumber(value: number, digits: number): string {
     return new Intl.NumberFormat(this.#meta().numberLocale, {

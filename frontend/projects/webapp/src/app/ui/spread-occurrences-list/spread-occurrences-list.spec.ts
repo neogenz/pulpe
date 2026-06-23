@@ -258,11 +258,11 @@ describe('SpreadOccurrencesList', () => {
     const row = host.querySelector(
       '[data-testid="spread-occurrence-bl-2026-6"]',
     )!;
-    // Consommé réel shown (fr-FR, 2 decimals); prévu shown once, struck.
+    // Consommé réel + struck prévu both follow the ligne policy (2 decimals).
     expect(row.textContent).toContain('150,00');
     const struck = row.querySelectorAll('.line-through');
     expect(struck).toHaveLength(1);
-    expect(struck[0].textContent?.trim()).toBe('204');
+    expect(struck[0].textContent?.trim()).toBe('204,00');
   });
 
   it('should show only the prévu (no struck reference) when the occurrence has no sub-transactions', () => {

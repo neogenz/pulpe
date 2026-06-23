@@ -40,9 +40,12 @@ enum AddBudgetLineSpreadLogic {
     }
 
     /// Base toast + conditional suffixes (auto-created budgets / skipped months).
-    /// "Dépense lissée sur {n} mois · {b} budget(s) créé(s) · {s} mois ignoré(s) (aucun modèle)".
+    /// The noun follows the spread's kind — "Épargne lissée" for `.saving`,
+    /// "Dépense lissée" otherwise (both feminine, so "lissée" accords either way).
+    /// "{Noun} lissée sur {n} mois · {b} budget(s) créé(s) · {s} mois ignoré(s) (aucun modèle)".
     static func successMessage(for response: BudgetLineSpreadResponse) -> String {
-        var message = "Dépense lissée sur \(response.lines.count) mois"
+        let noun = response.lines.first?.kind == .saving ? "Épargne" : "Dépense"
+        var message = "\(noun) lissée sur \(response.lines.count) mois"
         let created = response.createdBudgets.count
         if created > 0 {
             message += " · \(created) budget\(created > 1 ? "s" : "") créé\(created > 1 ? "s" : "")"

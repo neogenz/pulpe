@@ -197,6 +197,33 @@ struct AddBudgetLineSpreadLogicTests {
         #expect(AddBudgetLineSpreadLogic.successMessage(for: response) == expected)
     }
 
+    @Test
+    func successMessage_savingKind_usesEpargneNoun() {
+        // Backend accepts kind `.saving` (Zod only excludes income), so a lissé
+        // épargne must read "Épargne lissée", not "Dépense lissée".
+        let response = Self.makeResponse(lines: [
+            TestDataFactory.createBudgetLine(id: "s-0", kind: .saving),
+            TestDataFactory.createBudgetLine(id: "s-1", kind: .saving),
+        ])
+
+        #expect(AddBudgetLineSpreadLogic.successMessage(for: response) == "Épargne lissée sur 2 mois")
+    }
+
+    @Test
+    func successMessage_savingKind_keepsConditionalSuffixes() {
+        let response = BudgetLineSpreadResponse(
+            spreadGroupId: UUID(),
+            lines: [TestDataFactory.createBudgetLine(id: "s-0", kind: .saving)],
+            createdBudgets: [TestDataFactory.createBudget(id: "b-0")],
+            skippedMonths: [SpreadSkippedMonth(month: 1, year: 2026)]
+        )
+
+        #expect(
+            AddBudgetLineSpreadLogic.successMessage(for: response)
+                == "Épargne lissée sur 1 mois · 1 budget créé · 1 mois ignoré (aucun modèle)"
+        )
+    }
+
     // MARK: - Helpers
 
     nonisolated private static func makeResponse(lines: [BudgetLine]) -> BudgetLineSpreadResponse {
