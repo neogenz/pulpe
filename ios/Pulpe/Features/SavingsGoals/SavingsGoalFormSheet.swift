@@ -144,10 +144,11 @@ struct SavingsGoalFormSheet: View {
             showDeleteConfirmation = true
         } label: {
             Text("Supprimer l'objectif")
+                .font(PulpeTypography.buttonSecondary)
+                .foregroundStyle(Color.destructivePrimary)
                 .frame(maxWidth: .infinity)
         }
-        .buttonStyle(.borderless)
-        .tint(.red)
+        .buttonStyle(.plain)
         .disabled(isLoading)
     }
 

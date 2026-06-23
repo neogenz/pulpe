@@ -135,6 +135,7 @@ private struct SavingsGoalRow: View {
             Spacer()
             Text(goal.targetAmount.asCurrency(currency))
                 .font(PulpeTypography.amountCard)
+                .monospacedDigit()
                 .foregroundStyle(Color.textPrimary)
         }
         .padding(DesignTokens.Spacing.lg)
@@ -155,7 +156,7 @@ private struct SavingsGoalStatusBadge: View {
             .foregroundStyle(color)
             .padding(.horizontal, DesignTokens.Spacing.sm)
             .padding(.vertical, DesignTokens.Spacing.xxs)
-            .background(color.opacity(0.12), in: Capsule())
+            .background(color.opacity(DesignTokens.Opacity.badgeBackground), in: Capsule())
     }
 
     /// Neutral / primary only — savings is never an alert color (RG-002).

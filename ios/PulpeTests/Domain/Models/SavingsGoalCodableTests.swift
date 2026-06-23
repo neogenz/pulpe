@@ -136,6 +136,20 @@ struct SavingsGoalCodableTests {
         #expect(try encodedObject(tag)["savingsGoalId"] as? String == "goal-9")
     }
 
+    @Test("TemplateLineUpdateWithId tri-states the link (bulk-propagate path)")
+    func templateLineUpdateWithId_triState() throws {
+        let unset = try encodedObject(TemplateLineUpdateWithId(id: "tl-1", name: "Épargne"))
+        #expect(unset["savingsGoalId"] == nil)
+
+        var untag = TemplateLineUpdateWithId(id: "tl-1")
+        untag.savingsGoalId = .some(nil)
+        #expect(try encodedObject(untag)["savingsGoalId"] is NSNull)
+
+        var tag = TemplateLineUpdateWithId(id: "tl-1")
+        tag.savingsGoalId = .some("goal-9")
+        #expect(try encodedObject(tag)["savingsGoalId"] as? String == "goal-9")
+    }
+
     @Test("TemplateLineCreate omits link when nil, sends id when set")
     func templateLineCreate_link() throws {
         let untagged = try encodedObject(
