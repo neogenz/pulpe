@@ -7,6 +7,14 @@ enum SavingsGoalStatus: String, Codable, Sendable, CaseIterable {
     case active = "ACTIVE"
     case completed = "COMPLETED"
     case paused = "PAUSED"
+
+    var label: String {
+        switch self {
+        case .active: "Actif"
+        case .completed: "Atteint"
+        case .paused: "En pause"
+        }
+    }
 }
 
 /// A long-term savings goal (PUL-12).
