@@ -62,6 +62,7 @@ const baseTransaction: Transaction = {
 const baseTemplateLine: TemplateLine = {
   id: TRANSACTION_ID,
   templateId: TEMPLATE_ID,
+  savingsGoalId: null,
   name: 'Loyer',
   amount: 1200,
   kind: 'expense',
@@ -97,8 +98,7 @@ const baseSavingsGoal: SavingsGoal = {
   userId: USER_ID,
   name: 'New car',
   targetAmount: 5000,
-  targetDate: '2027-01-01',
-  priority: 'HIGH',
+  targetDate: '2099-01-01',
   status: 'ACTIVE',
   createdAt: ISO_DATETIME,
   updatedAt: ISO_DATETIME,
@@ -106,8 +106,7 @@ const baseSavingsGoal: SavingsGoal = {
 const baseSavingsGoalCreate: SavingsGoalCreate = {
   name: 'New car',
   targetAmount: 5000,
-  targetDate: '2027-01-01',
-  priority: 'HIGH',
+  targetDate: '2099-01-01',
   status: 'ACTIVE',
 };
 const baseBudgetLine: BudgetLine = {

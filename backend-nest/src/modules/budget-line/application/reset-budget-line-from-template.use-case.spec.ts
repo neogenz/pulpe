@@ -32,6 +32,7 @@ const mockEntity: BudgetLine = {
 const mockTemplateLine: TemplateLine = {
   id: '123e4567-e89b-12d3-a456-426614174002',
   templateId: '123e4567-e89b-12d3-a456-426614174003',
+  savingsGoalId: null,
   name: 'Loyer',
   amount: 1200,
   originalAmount: null,
