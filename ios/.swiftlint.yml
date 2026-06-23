@@ -93,6 +93,8 @@ custom_rules:
       - ".*/Features/Budgets/BudgetList/BudgetListView\\+YearComponents\\.swift"
       - ".*/Features/Budgets/BudgetDetails/BudgetDetailHero\\.swift"
       - ".*/Features/Budgets/BudgetDetails/BudgetLineDetailPage\\.swift"
+      # PUL-17 spread progress tracker bar (filled capsule, not a chip).
+      - ".*/Features/Budgets/BudgetDetails/Spread/SpreadTrackerHeader\\.swift"
       - ".*/Features/Budgets/BudgetDetails/BudgetLineDetailPage\\+Hero\\.swift"
       - ".*/Features/Onboarding/Components/OnboardingProgressIndicator\\.swift"
       - ".*/Features/Onboarding/Steps/BudgetPreviewFlowBars\\.swift"

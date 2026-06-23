@@ -76,9 +76,11 @@ struct BudgetLineDetailPage: View {
                 .padding(.bottom, DesignTokens.Spacing.md)
 
             if let spreadGroupId = line.spreadGroupId {
-                spreadAffordance(spreadGroupId: spreadGroupId)
-                    .padding(.horizontal, DesignTokens.Spacing.lg)
-                    .padding(.bottom, DesignTokens.Spacing.md)
+                SpreadAffordanceButton {
+                    router.present(.spreadOccurrences(spreadGroupId: spreadGroupId.uuidString))
+                }
+                .padding(.horizontal, DesignTokens.Spacing.lg)
+                .padding(.bottom, DesignTokens.Spacing.md)
             }
 
             transactionsList(line: line, transactions: transactions)
@@ -162,6 +164,14 @@ private extension BudgetLineDetailPage {
                 Label("Modifier", systemImage: "pencil")
             }
 
+            if canSpread(line) {
+                Button {
+                    presentSpread(for: line)
+                } label: {
+                    Label("Lisser sur plusieurs mois", systemImage: "calendar")
+                }
+            }
+
             Button(role: .destructive) {
                 showDeleteConfirmation = true
             } label: {
@@ -171,6 +181,28 @@ private extension BudgetLineDetailPage {
             Image(systemName: "ellipsis.circle")
         }
         .accessibilityLabel("Plus d'options")
+    }
+
+    /// A prévision is spreadable only when it's a one-off expense/épargne that
+    /// isn't already lissée and isn't a rollover row (PUL-17 v1.1, total-preserving).
+    func canSpread(_ line: BudgetLine) -> Bool {
+        line.kind != .income
+            && line.recurrence == .oneOff
+            && line.spreadGroupId == nil
+            && !(line.isRollover ?? false)
+    }
+
+    func presentSpread(for line: BudgetLine) {
+        guard let budget = coordinator.dataStore.budget else { return }
+        router.present(.spreadExisting(SpreadExistingSource(
+            id: line.id,
+            sourceType: .budgetLine,
+            kind: line.kind,
+            name: line.name,
+            total: line.amount,
+            month: budget.month,
+            year: budget.year
+        )))
     }
 
     func deleteBudgetLine(_ line: BudgetLine) {

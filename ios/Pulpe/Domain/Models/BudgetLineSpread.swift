@@ -64,6 +64,22 @@ struct BudgetLineSpreadCreate: Encodable, Sendable {
     }
 }
 
+/// One target month for a total-preserving "lisser un existant" (PUL-17 v1.1).
+/// The client sends only the periods; the server reads the source's total T and
+/// redistributes it into T/N (splitTotalPreserving), then deletes the source.
+struct SpreadFromExistingPeriod: Encodable, Sendable {
+    let year: Int
+    let month: Int
+}
+
+/// Request body for the from-existing spread endpoints
+/// (`POST /budget-lines/:id/spread`, `POST /transactions/:id/spread`). N ≥ 2 —
+/// lisser sur 1 mois est un no-op. The window starts at M0 toward the future
+/// only (never rewrites a closed month).
+struct SpreadFromExistingCreate: Encodable, Sendable {
+    let periods: [SpreadFromExistingPeriod]
+}
+
 /// A month with no default template, skipped during fan-out (no budget created,
 /// no line inserted).
 struct SpreadSkippedMonth: Decodable, Sendable, Hashable {

@@ -6,6 +6,21 @@ struct PreviousBudgetItem: Identifiable {
     let id: String
 }
 
+/// Source of a total-preserving "lisser un existant" (PUL-17 v1.1): an existing
+/// prévision (`budgetLine`) or a free `transaction`, with its locked total and
+/// anchor month (M0). `kind` (expense/saving) drives the sheet's accent color.
+struct SpreadExistingSource: Identifiable, Hashable {
+    enum SourceType: Hashable { case budgetLine, transaction }
+
+    let id: String
+    let sourceType: SourceType
+    let kind: TransactionKind
+    let name: String
+    let total: Decimal
+    let month: Int
+    let year: Int
+}
+
 /// Sheet destinations for `BudgetDetailsView`.
 ///
 /// Single source of truth for sheet presentation. Apple's guidance is to
@@ -19,6 +34,8 @@ enum BudgetDetailDestination: Identifiable {
     case realizedBalance
     /// Read-only timeline of every month a "Lisser" expense touches (PUL-17 Lot C).
     case spreadOccurrences(spreadGroupId: String)
+    /// Total-preserving "lisser un existant" config sheet (PUL-17 v1.1).
+    case spreadExisting(SpreadExistingSource)
 
     var id: String {
         switch self {
@@ -27,6 +44,7 @@ enum BudgetDetailDestination: Identifiable {
         case .previousBudget(let item): "previousBudget-\(item.id)"
         case .realizedBalance: "realizedBalance"
         case .spreadOccurrences(let groupId): "spreadOccurrences-\(groupId)"
+        case .spreadExisting(let source): "spreadExisting-\(source.id)"
         }
     }
 }

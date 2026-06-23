@@ -109,4 +109,63 @@ extension BudgetDetailsCoordinator {
         }
         return updated
     }
+
+    // MARK: - Spread from existing (PUL-17 v1.1)
+
+    /// Lisse une prévision existante (total préservé). The server deletes the
+    /// source line and fans out N tranches in one transaction; on success we drop
+    /// the source locally, graft the M0 tranche that landed in THIS budget, and
+    /// invalidate the cross-budget caches the coordinator doesn't own. Applied
+    /// AFTER the server confirms (no optimistic rollback): a failure leaves the
+    /// source intact and the detail page open.
+    func spreadBudgetLineFromExisting(
+        lineId: String,
+        periods: [SpreadFromExistingPeriod],
+        context: ToastContext
+    ) async {
+        do {
+            let response = try await budgetLineService.spreadExistingBudgetLine(id: lineId, periods: periods)
+            applySpreadFromExisting(removingLineId: lineId, removingTransactionId: nil, response: response)
+            context.toastManager.show("C'est lissé sur \(periods.count) mois")
+        } catch {
+            syncStore.setError(error)
+            context.toastManager.show("Le lissage n'a pas pu aboutir", type: .error)
+        }
+    }
+
+    /// Lisse une transaction libre existante (total préservé). Same shape; the
+    /// source is a transaction (removed locally), the N tranches are budget lines.
+    func spreadTransactionFromExisting(
+        txId: String,
+        periods: [SpreadFromExistingPeriod],
+        context: ToastContext
+    ) async {
+        do {
+            let response = try await transactionService.spreadExistingTransaction(id: txId, periods: periods)
+            applySpreadFromExisting(removingLineId: nil, removingTransactionId: txId, response: response)
+            context.toastManager.show("C'est lissé sur \(periods.count) mois")
+        } catch {
+            syncStore.setError(error)
+            context.toastManager.show("Le lissage n'a pas pu aboutir", type: .error)
+        }
+    }
+
+    private func applySpreadFromExisting(
+        removingLineId: String?,
+        removingTransactionId: String?,
+        response: BudgetLineSpreadResponse
+    ) {
+        if let lineId = removingLineId { dataStore.removeBudgetLine(id: lineId) }
+        if let txId = removingTransactionId { dataStore.removeTransaction(id: txId) }
+        // Graft the tranche that landed in the currently-open budget (M0) so the
+        // screen updates immediately — same seam as the additive `onAdd`.
+        if let m0Line = response.lines.first(where: { $0.budgetId == dataStore.budgetId }) {
+            dataStore.appendBudgetLine(m0Line)
+        }
+        dataStore.recomputeMetrics()
+        dataStore.syncCache()
+        dataStore.invalidateAdjacentCache()
+        // Cross-budget: a spread touches N months the coordinator doesn't own.
+        BudgetDetailCache.shared.invalidateAll()
+    }
 }
