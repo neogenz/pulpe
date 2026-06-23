@@ -73,5 +73,17 @@ export class BudgetLineInvariants {
     if (source.spreadGroupId !== null) {
       throw new BusinessException(ERROR_DEFINITIONS.BUDGET_LINE_ALREADY_SPREAD);
     }
+
+    // A 0 € line is a valid budget_line (validateCreate accepts amount >= 0) but
+    // splitTotalPreserving rejects a non-positive total with a raw Error → reject
+    // here with a clean 400 instead of letting it surface as a 500.
+    if (source.amount <= 0) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.BUDGET_LINE_NOT_SPREADABLE,
+        {
+          reason: 'only a line with a positive amount can be smoothed',
+        },
+      );
+    }
   }
 }

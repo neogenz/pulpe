@@ -31,6 +31,7 @@ const makeSource = (
 ): SpreadSourceTransaction => ({
   id: 'txn-source',
   budgetId: 'b-1-2026',
+  userId: 'user-1',
   budgetLineId: null,
   month: 1,
   year: 2026,
@@ -217,6 +218,28 @@ describe('SpreadTransactionFromTxnUseCase', () => {
     await expect(
       useCase.execute('txn-source', { periods: eightPeriods }, mockUser),
     ).rejects.toMatchObject({ code: 'ERR_TRANSACTION_NOT_SPREADABLE' });
+    expect(mockBudgetLineRepo.createSpread).not.toHaveBeenCalled();
+    expect(mockTxnRepo.delete).not.toHaveBeenCalled();
+  });
+
+  it('rejects a zero-amount transaction with TRANSACTION_NOT_SPREADABLE (clean 400, no 500)', async () => {
+    mockTxnRepo.findSpreadSource.mockResolvedValue(makeSource({ amount: 0 }));
+
+    await expect(
+      useCase.execute('txn-source', { periods: eightPeriods }, mockUser),
+    ).rejects.toMatchObject({ code: 'ERR_TRANSACTION_NOT_SPREADABLE' });
+    expect(mockBudgetLineRepo.createSpread).not.toHaveBeenCalled();
+    expect(mockTxnRepo.delete).not.toHaveBeenCalled();
+  });
+
+  it('rejects a source owned by another user with NOT_FOUND before any fan-out (IDOR guard)', async () => {
+    mockTxnRepo.findSpreadSource.mockResolvedValue(
+      makeSource({ userId: 'attacker-2' }),
+    );
+
+    await expect(
+      useCase.execute('txn-source', { periods: eightPeriods }, mockUser),
+    ).rejects.toMatchObject({ code: 'ERR_TRANSACTION_NOT_FOUND' });
     expect(mockBudgetLineRepo.createSpread).not.toHaveBeenCalled();
     expect(mockTxnRepo.delete).not.toHaveBeenCalled();
   });

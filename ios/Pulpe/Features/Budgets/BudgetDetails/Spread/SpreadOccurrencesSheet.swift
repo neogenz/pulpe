@@ -16,13 +16,13 @@ final class SpreadOccurrencesSheetViewModel {
     private(set) var error: Error?
 
     let spreadGroupId: String
-    private let service: BudgetLineService
+    private let service: any BudgetLineServicing
     private let currentPeriod: BudgetPeriod
 
     init(
         spreadGroupId: String,
         payDayOfMonth: Int?,
-        service: BudgetLineService = .shared,
+        service: any BudgetLineServicing = BudgetLineService.shared,
         now: Date = Date()
     ) {
         self.spreadGroupId = spreadGroupId

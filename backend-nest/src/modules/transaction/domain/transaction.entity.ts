@@ -41,6 +41,8 @@ export interface Transaction {
 export interface SpreadSourceTransaction {
   id: string;
   budgetId: string;
+  /** Owner of the parent budget — application-layer IDOR guard (defense-in-depth vs RLS). */
+  userId: string;
   budgetLineId: string | null;
   month: number;
   year: number;

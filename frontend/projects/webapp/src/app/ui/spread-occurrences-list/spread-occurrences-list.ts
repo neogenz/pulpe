@@ -20,8 +20,12 @@ import type {
  * per-month) followed by the month-by-month occurrence list (past dimmed,
  * viewed-month badged, future normal, checked struck-through).
  *
- * Pure `ui/`: inputs only, NO `@core/` import, NO store. Amounts are formatted
- * via `getCurrencyFormatter` (the `ui/` alternative to `AppCurrencyPipe` — see
+ * Pure `ui/`: inputs only, NO `@core/` import, NO store. Amounts use
+ * `Intl.NumberFormat` with the currency's `numberLocale` + `CURRENCY_METADATA`
+ * symbol suffix — same output as `getCurrencyFormatter`/`AppCurrencyPipe`, but
+ * hand-rolled because this view needs three variants the fixed-2-decimal
+ * `getCurrencyFormatter` can't produce: 0-dec aggregation, 2-dec ligne, and the
+ * composite "consommé / prévu" sharing a single symbol (see
  * `webapp-currency-formatting.md`). Dual decimal policy: tracker cumulé/total =
  * aggregation (0 decimals), per-month + each occurrence amount = ligne (2
  * decimals). `ph-no-capture` wraps every amount span, never the month name or

@@ -2,6 +2,26 @@ import { describe, it, expect } from 'bun:test';
 import { BudgetLineInvariants } from './budget-line.invariants';
 import { BusinessException } from '@common/exceptions/business.exception';
 import type { BudgetLineCreate, BudgetLineUpdate } from 'pulpe-shared';
+import type { SpreadSourceLine } from './budget-line.entity';
+
+const spreadSourceLine = (
+  overrides: Partial<SpreadSourceLine> = {},
+): SpreadSourceLine => ({
+  id: 'line-1',
+  budgetId: 'budget-1',
+  month: 3,
+  year: 2026,
+  name: 'Assurance',
+  amount: 300,
+  originalAmount: null,
+  originalCurrency: null,
+  targetCurrency: null,
+  exchangeRate: null,
+  kind: 'expense',
+  recurrence: 'one_off',
+  spreadGroupId: null,
+  ...overrides,
+});
 
 describe('BudgetLineInvariants', () => {
   describe('validateCreate', () => {
@@ -126,6 +146,30 @@ describe('BudgetLineInvariants', () => {
         BudgetLineInvariants.validateTemplateLineIdExists(
           '123e4567-e89b-12d3-a456-426614174000',
         ),
+      ).not.toThrow();
+    });
+  });
+
+  describe('validateSpreadFromLineSource', () => {
+    it('rejects a zero-amount line (clean 400, not a 500 from splitTotalPreserving)', () => {
+      expect(() =>
+        BudgetLineInvariants.validateSpreadFromLineSource(
+          spreadSourceLine({ amount: 0 }),
+        ),
+      ).toThrow(BusinessException);
+    });
+
+    it('rejects a line already part of a spread group', () => {
+      expect(() =>
+        BudgetLineInvariants.validateSpreadFromLineSource(
+          spreadSourceLine({ spreadGroupId: 'grp-1' }),
+        ),
+      ).toThrow(BusinessException);
+    });
+
+    it('accepts a positive one-off expense line', () => {
+      expect(() =>
+        BudgetLineInvariants.validateSpreadFromLineSource(spreadSourceLine()),
       ).not.toThrow();
     });
   });

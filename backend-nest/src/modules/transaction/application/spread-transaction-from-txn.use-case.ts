@@ -61,6 +61,23 @@ export class SpreadTransactionFromTxnUseCase {
     user: AuthenticatedUser,
   ): Promise<SpreadFanOutResult> {
     const source = await this.repo.findSpreadSource(id);
+    // Defense-in-depth IDOR guard mirroring the budget-line path's validateAccess:
+    // RLS already scopes the query, but an explicit ownership check ensures a
+    // bypass (accidental service_role, future RLS-less test) can't fan another
+    // user's decrypted amount into the caller's budgets. NOT_FOUND avoids
+    // resource enumeration. The user_id rides on findSpreadSource's existing join
+    // — no extra query.
+    if (source.userId !== user.id) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.TRANSACTION_NOT_FOUND,
+        { id },
+        {
+          operation: 'transaction.spreadFromTxn.ownership',
+          entityId: id,
+          userId: user.id,
+        },
+      );
+    }
     TransactionInvariants.validateSpreadFromTransactionSource(source);
 
     const plan = buildSpreadFromExistingPlan(source, dto.periods);

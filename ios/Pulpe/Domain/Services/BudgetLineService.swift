@@ -6,6 +6,8 @@ import Foundation
 protocol BudgetLineServicing: Sendable {
     func deleteBudgetLine(id: String) async throws
     func toggleCheck(id: String) async throws -> BudgetLine
+    func createSpread(_ data: BudgetLineSpreadCreate) async throws -> BudgetLineSpreadResponse
+    func getSpreadOccurrences(spreadGroupId: String) async throws -> [SpreadOccurrence]
 }
 
 /// Service for budget line API operations

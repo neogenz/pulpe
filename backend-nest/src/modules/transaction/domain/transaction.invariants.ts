@@ -71,6 +71,17 @@ export class TransactionInvariants {
         { reason: 'income transactions cannot be smoothed' },
       );
     }
+
+    // splitTotalPreserving rejects a non-positive total with a raw Error → reject
+    // here with a clean 400 instead of letting it surface as a 500.
+    if (source.amount <= 0) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.TRANSACTION_NOT_SPREADABLE,
+        {
+          reason: 'only a transaction with a positive amount can be smoothed',
+        },
+      );
+    }
   }
 
   static validateUpdate(dto: TransactionUpdate): void {

@@ -61,10 +61,18 @@ export function defaultSpreadEnd(
   start: SpreadMonth,
   horizonMonths = 6,
 ): SpreadMonth {
-  const offset = Math.min(horizonMonths, MAX_SPREAD_MONTHS) - 1;
-  const zeroBased = start.month - 1 + offset;
+  return offsetMonth(start, Math.min(horizonMonths, MAX_SPREAD_MONTHS) - 1);
+}
+
+/**
+ * Shifts a month by `offset` months, normalizing year rollover/underflow. Single
+ * source for spread month arithmetic — used by {@link defaultSpreadEnd} and the
+ * from-existing dialog, so a calendar fix lands in exactly one place.
+ */
+export function offsetMonth(period: SpreadMonth, offset: number): SpreadMonth {
+  const zeroBased = period.month - 1 + offset;
   return {
-    year: start.year + Math.floor(zeroBased / 12),
+    year: period.year + Math.floor(zeroBased / 12),
     month: (zeroBased % 12) + 1,
   };
 }

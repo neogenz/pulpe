@@ -113,6 +113,7 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
     return {
       id: decrypted.id,
       budgetId: decrypted.budget_id,
+      userId: row.monthly_budget.user_id,
       budgetLineId: decrypted.budget_line_id,
       month: row.monthly_budget.month,
       year: row.monthly_budget.year,

@@ -26,6 +26,7 @@ import {
   enumerateMonths,
   MAX_SPREAD_MONTHS,
   monthKey,
+  offsetMonth,
   type SpreadMonth,
 } from '../create/spread.utils';
 import type {
@@ -288,8 +289,8 @@ export class SpreadExistingDialog {
   // 36-month forward horizon from M0 for the À picker (M0 itself excluded:
   // the end must be strictly after the start so N ≥ 2 is reachable).
   protected readonly monthOptions = computed(() => {
-    const last = this.#offsetMonth(this.#start, MAX_SPREAD_MONTHS - 1);
-    return enumerateMonths(this.#offsetMonth(this.#start, 1), last).map(
+    const last = offsetMonth(this.#start, MAX_SPREAD_MONTHS - 1);
+    return enumerateMonths(offsetMonth(this.#start, 1), last).map(
       (m) => ({
         key: monthKey(m),
         label: this.#formatMonth(m, 'MMMM yyyy'),
@@ -385,14 +386,6 @@ export class SpreadExistingDialog {
     return formatDate(new Date(period.year, period.month - 1, 1), pattern, {
       locale: this.#dateFnsLocale(),
     });
-  }
-
-  #offsetMonth(period: SpreadMonth, offset: number): SpreadMonth {
-    const zeroBased = period.month - 1 + offset;
-    return {
-      year: period.year + Math.floor(zeroBased / 12),
-      month: (zeroBased % 12) + 1,
-    };
   }
 
   #parseKey(key: string): SpreadMonth | null {

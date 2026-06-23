@@ -278,12 +278,10 @@ struct BudgetDetailsView: View {
     private func sheetContent(for destination: BudgetDetailDestination) -> some View {
         switch destination {
         case .addBudgetLine:
+            // Anchor the spread on the OPENED budget's period, not the device month (PUL-17).
             let openBudget = coordinator.dataStore.budget
             AddBudgetLineSheet(
                 budgetId: coordinator.dataStore.budgetId,
-                // Anchor the spread on the OPENED budget's period so tranches
-                // land in the right months (PUL-17). The sheet is only reachable
-                // via the FAB, which renders once the budget is present.
                 anchorMonth: openBudget?.month ?? Calendar.current.component(.month, from: Date()),
                 anchorYear: openBudget?.year ?? Calendar.current.component(.year, from: Date())
             ) { budgetLine in
