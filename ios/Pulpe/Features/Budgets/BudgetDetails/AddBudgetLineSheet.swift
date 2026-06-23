@@ -27,17 +27,19 @@ struct AddBudgetLineSheet: View {
 
     init(
         budgetId: String,
+        anchorMonth: Int,
+        anchorYear: Int,
         dependencies: AddBudgetLineDependencies = .live,
         onAdd: @escaping (BudgetLine) -> Void
     ) {
         self.budgetId = budgetId
         self.dependencies = dependencies
         self.onAdd = onAdd
-        let now = Date()
-        let calendar = Calendar.current
+        // Anchor the spread on the OPENED budget's period — not the device's
+        // current month — so tranches land in the right months (PUL-17).
         self._spreadCalculator = State(initialValue: SpreadCalculator(
-            anchorMonth: calendar.component(.month, from: now),
-            anchorYear: calendar.component(.year, from: now)
+            anchorMonth: anchorMonth,
+            anchorYear: anchorYear
         ))
     }
 
@@ -216,7 +218,10 @@ struct AddBudgetLineSheet: View {
     /// every tranche, and each tranche carries the same `originalAmount` when
     /// multi-currency. On success the cross-budget caches are invalidated OUTSIDE
     /// any coordinator (a spread touches N months that the detail coordinator
-    /// doesn't own) so the list and every detail page revalidate.
+    /// doesn't own) so the list and every detail page revalidate. The single
+    /// occurrence landing in the CURRENTLY-open budget is fed back through
+    /// `onAdd` so the active detail screen refreshes immediately (same seam as
+    /// the single-line path) — the `.task(id:)` doesn't re-run on sheet dismiss.
     private func addSpread() async {
         guard let amount, spreadCalculator.isValid else { return }
 
@@ -242,7 +247,15 @@ struct AddBudgetLineSheet: View {
 
             let response = try await dependencies.createSpread(data)
 
+            // Refresh the active detail screen when one occurrence landed in the
+            // currently-open budget — reuses the single-line `onAdd` seam so the
+            // coordinator appends the line + recomputes totals (PUL-270).
+            if let openLine = response.lines.first(where: { $0.budgetId == budgetId }) {
+                onAdd(openLine)
+            }
+
             // Cross-budget invalidation — OUTSIDE the coordinator (spec PUL-17).
+            // Still required for the OTHER months the coordinator doesn't own.
             dependencies.invalidateCrossBudgetCaches(budgetListStore)
 
             submitSuccessTrigger.toggle()
@@ -276,7 +289,7 @@ struct AddBudgetLineDependencies: Sendable {
 }
 
 #Preview {
-    AddBudgetLineSheet(budgetId: "test") { line in
+    AddBudgetLineSheet(budgetId: "test", anchorMonth: 6, anchorYear: 2026) { line in
         print("Added: \(line)")
     }
     .environment(ToastManager())

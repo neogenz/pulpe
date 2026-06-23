@@ -20,15 +20,15 @@ describe('EnsureBudgetsForPeriodsUseCase', () => {
   let useCase: EnsureBudgetsForPeriodsUseCase;
   let mockRepo: {
     getExistingPeriods: ReturnType<typeof jest.fn>;
-    fetchBudgetIdByPeriod: ReturnType<typeof jest.fn>;
     createBudgetFromTemplateRpc: ReturnType<typeof jest.fn>;
     fetchBudgetById: ReturnType<typeof jest.fn>;
   };
 
   beforeEach(async () => {
     mockRepo = {
-      getExistingPeriods: jest.fn().mockResolvedValue(new Set<string>()),
-      fetchBudgetIdByPeriod: jest.fn().mockResolvedValue(null),
+      getExistingPeriods: jest
+        .fn()
+        .mockResolvedValue(new Map<string, string>()),
       createBudgetFromTemplateRpc: jest.fn(),
       fetchBudgetById: jest.fn(),
     };
@@ -54,8 +54,9 @@ describe('EnsureBudgetsForPeriodsUseCase', () => {
   });
 
   it('maps an existing period to its budget id without creating anything', async () => {
-    mockRepo.getExistingPeriods.mockResolvedValue(new Set(['1/2026']));
-    mockRepo.fetchBudgetIdByPeriod.mockResolvedValue('existing-b');
+    mockRepo.getExistingPeriods.mockResolvedValue(
+      new Map([['1/2026', 'existing-b']]),
+    );
 
     const result = await useCase.ensureBudgetsForPeriods(
       [{ month: 1, year: 2026 }],

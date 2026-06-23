@@ -39,12 +39,9 @@ export class EnsureBudgetsForPeriodsUseCase implements BudgetProvisioningPort {
       const key = `${period.month}/${period.year}`;
       if (budgetIdByPeriod.has(key)) continue;
 
-      if (existingPeriods.has(key)) {
-        const existingId = await this.repo.fetchBudgetIdByPeriod(
-          period.month,
-          period.year,
-        );
-        if (existingId) budgetIdByPeriod.set(key, existingId);
+      const existingId = existingPeriods.get(key);
+      if (existingId) {
+        budgetIdByPeriod.set(key, existingId);
         continue;
       }
 

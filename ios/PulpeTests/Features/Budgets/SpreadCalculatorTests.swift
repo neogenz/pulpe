@@ -23,6 +23,23 @@ struct SpreadCalculatorTests {
         ])
     }
 
+    @Test func anchor_usesPassedPeriod_notDeviceCurrentMonth() {
+        // PUL-17 P1: opening the add sheet from a budget whose month differs from
+        // the device's current month must anchor the spread to the OPENED budget's
+        // period, not `Date()`. The window then starts on that month (+2 following).
+        let sut = SpreadCalculator(anchorMonth: 3, anchorYear: 2026)
+
+        #expect(sut.start == SpreadMonth(year: 2026, month: 3))
+        #expect(sut.windowMonths == [
+            SpreadMonth(year: 2026, month: 3),
+            SpreadMonth(year: 2026, month: 4),
+            SpreadMonth(year: 2026, month: 5),
+        ])
+        // The very first tranche lands in the anchored month, never in `Date()`.
+        #expect(sut.buildTranches(amount: 100).first?.month == 3)
+        #expect(sut.buildTranches(amount: 100).first?.year == 2026)
+    }
+
     @Test func windowMonths_enumeratesEveryMonthInclusiveAcrossYearBoundary() {
         let sut = SpreadCalculator(anchorMonth: 11, anchorYear: 2026)
         sut.setEnd(SpreadMonth(year: 2027, month: 2))

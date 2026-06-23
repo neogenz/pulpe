@@ -217,7 +217,7 @@ import { BudgetDetailsDialogService } from '../../budget-details-dialog.service'
             row.metadata?.isNestedUnderEnvelope
           "
           [attr.data-testid]="'budget-line-' + row.metadata?.displayName"
-          (click)="viewLineDetail(row)"
+          (click)="viewLineDetail(row, $event)"
         ></tr>
 
         <!-- No data row -->
@@ -337,11 +337,21 @@ export class BudgetTable {
 
   // Row tap opens the detail (which surfaces the spread occurrences inline) —
   // only for envelope rows; transaction rows have no detail panel. Replaces the
-  // explicit per-row "Voir les mois" button.
-  protected viewLineDetail(row: TableRowItem): void {
-    if (row.metadata.itemType === 'budget_line') {
-      this.viewTransactions.emit(row as BudgetLineTableItem);
+  // explicit per-row "Voir les mois" button. Clicks bubbling up from an
+  // interactive control inside the row (action-menu trigger, toggles, inline-edit
+  // inputs, badges) must NOT open the detail — otherwise opening the ⋮ menu would
+  // also open the detail overlay and swallow the menu items.
+  protected viewLineDetail(row: TableRowItem, event: Event): void {
+    if (row.metadata.itemType !== 'budget_line') return;
+    const target = event.target as HTMLElement | null;
+    if (
+      target?.closest(
+        'button, a, input, textarea, mat-slide-toggle, [role="menuitem"]',
+      )
+    ) {
+      return;
     }
+    this.viewTransactions.emit(row as BudgetLineTableItem);
   }
 
   startEdit(item: BudgetLineTableItem): void {

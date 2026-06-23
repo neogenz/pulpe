@@ -26,10 +26,16 @@ export interface BudgetRepositoryPort {
   deleteBudget(id: string): Promise<void>;
   deleteBudgetsByIds(ids: string[]): Promise<boolean>;
 
+  /**
+   * Returns the user's already-budgeted periods among `targetMonths` as a
+   * `periodKey → budgetId` map (`"3/2026" → uuid`). Existence-only callers use
+   * `.has(key)`; spread provisioning reads `.get(key)` to avoid an extra
+   * per-period id lookup.
+   */
   getExistingPeriods(
     userId: string,
     targetMonths: { month: number; year: number }[],
-  ): Promise<Set<string>>;
+  ): Promise<Map<string, string>>;
 
   fetchBudgetData(budgetId: string): Promise<BudgetWithRelations>;
 

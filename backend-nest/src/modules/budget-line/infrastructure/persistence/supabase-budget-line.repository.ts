@@ -218,7 +218,7 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
 
     const { data, error } = await this.supabaseProvider.client
       .from('transaction')
-      .select('*')
+      .select('budget_line_id, amount')
       .in('budget_line_id', lineIds);
 
     if (error) {

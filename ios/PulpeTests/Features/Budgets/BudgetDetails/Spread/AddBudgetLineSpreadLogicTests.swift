@@ -147,6 +147,39 @@ struct AddBudgetLineSpreadLogicTests {
         #expect(recorder.invalidationFired == false)
     }
 
+    // MARK: - P2: refresh the currently-open budget on spread success
+
+    @Test
+    func onSuccess_feedsTheOpenBudgetOccurrenceBackThroughOnAdd() {
+        // PUL-17 P2: when a tranche lands in the CURRENTLY-open budget, that exact
+        // occurrence is fed back through `onAdd` so the active detail screen
+        // refreshes via the coordinator (same seam as the single-line path).
+        let openBudgetId = "budget-open"
+        let lines = [
+            TestDataFactory.createBudgetLine(id: "line-open", budgetId: openBudgetId),
+            TestDataFactory.createBudgetLine(id: "line-other", budgetId: "budget-other"),
+        ]
+        let response = Self.makeResponse(lines: lines)
+
+        // Mirror exactly what `AddBudgetLineSheet.addSpread()` selects for `onAdd`.
+        let fedBack = response.lines.first { $0.budgetId == openBudgetId }
+
+        #expect(fedBack?.id == "line-open")
+    }
+
+    @Test
+    func onSuccess_doesNotFeedBack_whenNoTrancheTargetsTheOpenBudget() {
+        // The open budget wasn't part of the spread window — nothing to feed back;
+        // the cross-budget invalidation alone revalidates the touched months.
+        let response = Self.makeResponse(lines: [
+            TestDataFactory.createBudgetLine(id: "line-other", budgetId: "budget-other"),
+        ])
+
+        let fedBack = response.lines.first { $0.budgetId == "budget-open" }
+
+        #expect(fedBack == nil)
+    }
+
     // MARK: - Success toast copy
 
     @Test("Success toast carries base copy + conditional suffixes", arguments: [
@@ -165,6 +198,15 @@ struct AddBudgetLineSpreadLogicTests {
     }
 
     // MARK: - Helpers
+
+    nonisolated private static func makeResponse(lines: [BudgetLine]) -> BudgetLineSpreadResponse {
+        BudgetLineSpreadResponse(
+            spreadGroupId: UUID(),
+            lines: lines,
+            createdBudgets: [],
+            skippedMonths: []
+        )
+    }
 
     nonisolated private static func makeResponse(
         lineCount: Int,

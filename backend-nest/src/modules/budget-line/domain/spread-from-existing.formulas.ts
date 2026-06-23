@@ -46,18 +46,9 @@ export function buildSpreadFromExistingPlan(
   const sortedPeriods = dedupeAndSort(periods);
   const m0Ordinal = toOrdinal(source);
 
-  const includesM0 = sortedPeriods.some(
-    (period) => toOrdinal(period) === m0Ordinal,
-  );
-  if (!includesM0) {
-    throw new BusinessException(
-      ERROR_DEFINITIONS.BUDGET_LINE_VALIDATION_FAILED,
-      {
-        reason: `the smoothing window must include the source month ${source.month}/${source.year}`,
-      },
-    );
-  }
-
+  // Check the past-period guard first: when the user selects only past months,
+  // both conditions hold, and "cannot smooth into a past month" is the
+  // diagnostic error — it names the actual mistake, not the missing-M0 symptom.
   const hasPastPeriod = sortedPeriods.some(
     (period) => toOrdinal(period) < m0Ordinal,
   );
@@ -66,6 +57,18 @@ export function buildSpreadFromExistingPlan(
       ERROR_DEFINITIONS.BUDGET_LINE_VALIDATION_FAILED,
       {
         reason: `cannot smooth into a month before the source month ${source.month}/${source.year}`,
+      },
+    );
+  }
+
+  const includesM0 = sortedPeriods.some(
+    (period) => toOrdinal(period) === m0Ordinal,
+  );
+  if (!includesM0) {
+    throw new BusinessException(
+      ERROR_DEFINITIONS.BUDGET_LINE_VALIDATION_FAILED,
+      {
+        reason: `the smoothing window must include the source month ${source.month}/${source.year}`,
       },
     );
   }

@@ -208,9 +208,14 @@ describe('SpreadOccurrencesList', () => {
     const row = host.querySelector(
       '[data-testid="spread-occurrence-bl-2026-6"]',
     );
-    // de-CH numberLocale → apostrophe group separator + dot decimal.
-    expect(row?.textContent).toContain('1’234.56');
-    expect(row?.textContent).toContain('CHF');
+    const text = row?.textContent ?? '';
+    // de-CH grouping uses an apostrophe separator + dot decimal. The exact
+    // apostrophe glyph (straight U+0027 vs typographic U+2019) depends on the
+    // runtime's ICU, so match either — what matters is apostrophe grouping
+    // (de-CH), NOT the fr-CH space separator.
+    expect(text).toMatch(/1[’']234\.56/);
+    expect(text).not.toContain('1 234');
+    expect(text).toContain('CHF');
   });
 
   it('should wrap every amount span in ph-no-capture', () => {
