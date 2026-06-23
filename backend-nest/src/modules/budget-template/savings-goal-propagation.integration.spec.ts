@@ -302,4 +302,54 @@ describe('PUL-12 — savings_goal_id propagation (RPC integration)', () => {
     expect(lines.data?.length).toBeGreaterThan(0);
     expect(lines.data?.[0]?.savings_goal_id).toBe(goalId);
   });
+
+  it('create_template_with_lines persists an inline savings_goal_id (batch path)', async () => {
+    if (!env) return;
+
+    const user = await makeUser(`sg-tpl-${crypto.randomUUID()}@test.local`);
+    createdUserIds.push(user.id);
+
+    const goalId = crypto.randomUUID();
+    await admin.from('savings_goal').insert({
+      id: goalId,
+      user_id: user.id,
+      name: 'Voiture',
+      target_amount: 'enc',
+      target_date: '2099-01-01',
+      status: 'ACTIVE',
+    });
+
+    const { data, error } = await user.client.rpc(
+      'create_template_with_lines',
+      {
+        p_user_id: user.id,
+        p_name: 'Mois type',
+        p_description: '',
+        p_is_default: false,
+        p_lines: [
+          {
+            name: 'Épargne',
+            amount: 'enc',
+            kind: 'saving',
+            recurrence: 'fixed',
+            savings_goal_id: goalId,
+            description: '',
+            original_amount: null,
+            original_currency: null,
+            target_currency: null,
+            exchange_rate: null,
+          },
+        ] as never,
+      },
+    );
+    expect(error).toBeNull();
+
+    const templateId = (data as { id: string }).id;
+    const lines = await admin
+      .from('template_line')
+      .select('savings_goal_id')
+      .eq('template_id', templateId);
+    expect(lines.data?.length).toBe(1);
+    expect(lines.data?.[0]?.savings_goal_id).toBe(goalId);
+  });
 });

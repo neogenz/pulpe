@@ -722,6 +722,7 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
       amount: preparedAmounts[index].amount,
       kind: line.kind,
       recurrence: line.recurrence,
+      savings_goal_id: line.savingsGoalId ?? null,
       description: line.description,
       original_amount: encryptedOriginalAmounts[index],
       original_currency: line.originalCurrency ?? null,

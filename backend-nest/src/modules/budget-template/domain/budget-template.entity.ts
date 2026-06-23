@@ -121,6 +121,7 @@ export interface CreateTemplateWithLinesInput {
  * `apply_template_line_operations` create payloads. Repo encrypts amounts internally.
  */
 export interface TemplateLineRpcInput {
+  savingsGoalId?: string | null;
   name: string;
   amount: number;
   originalAmount: number | null;
