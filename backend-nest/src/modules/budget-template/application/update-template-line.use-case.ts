@@ -6,6 +6,7 @@ import {
   templateLineUpdateSchema,
 } from 'pulpe-shared';
 import { CurrencyService } from '@modules/currency/currency.service';
+import { savingsGoalIdPatchForKind } from '@common/utils/savings-goal-link';
 import {
   BUDGET_TEMPLATE_REPOSITORY,
   type BudgetTemplateRepositoryPort,
@@ -34,6 +35,10 @@ export class UpdateTemplateLineUseCase {
     validated = await this.currencyService.overrideExchangeRate(validated);
 
     const line = await this.repo.updateLine(lineId, {
+      savingsGoalId: savingsGoalIdPatchForKind(
+        validated.kind,
+        validated.savingsGoalId,
+      ),
       name: validated.name,
       amount: validated.amount,
       originalAmount: validated.originalAmount,

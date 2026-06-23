@@ -4,6 +4,7 @@ import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import { type BudgetLineUpdate } from 'pulpe-shared';
 import { CacheService } from '@modules/cache/cache.service';
 import { CurrencyService } from '@modules/currency/currency.service';
+import { savingsGoalIdPatchForKind } from '@common/utils/savings-goal-link';
 import {
   BUDGET_RECALCULATION_PORT,
   type BudgetRecalculationPort,
@@ -74,8 +75,14 @@ export class UpdateBudgetLineUseCase {
     if (dto.templateLineId !== undefined) {
       patch.templateLineId = dto.templateLineId;
     }
-    if (dto.savingsGoalId !== undefined) {
-      patch.savingsGoalId = dto.savingsGoalId;
+    // CA11: kind moved off 'saving' clears the link, even when savingsGoalId
+    // isn't in the patch (savingsGoalIdPatchForKind returns null in that case).
+    const ruledSavingsGoalId = savingsGoalIdPatchForKind(
+      dto.kind,
+      dto.savingsGoalId,
+    );
+    if (ruledSavingsGoalId !== undefined) {
+      patch.savingsGoalId = ruledSavingsGoalId;
     }
     if (dto.isManuallyAdjusted !== undefined) {
       patch.isManuallyAdjusted = dto.isManuallyAdjusted;
