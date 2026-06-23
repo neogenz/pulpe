@@ -4,6 +4,7 @@ import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import { type BudgetLineCreate } from 'pulpe-shared';
 import { CacheService } from '@modules/cache/cache.service';
 import { CurrencyService } from '@modules/currency/currency.service';
+import { savingsGoalIdForKind } from '@common/utils/savings-goal-link';
 import {
   BUDGET_RECALCULATION_PORT,
   type BudgetRecalculationPort,
@@ -42,7 +43,10 @@ export class CreateBudgetLineUseCase {
       ...(withRate.id ? { id: withRate.id } : {}),
       budgetId: withRate.budgetId!,
       templateLineId: withRate.templateLineId ?? null,
-      savingsGoalId: withRate.savingsGoalId ?? null,
+      savingsGoalId: savingsGoalIdForKind(
+        withRate.kind,
+        withRate.savingsGoalId,
+      ),
       name: withRate.name,
       amount: withRate.amount,
       originalAmount: withRate.originalAmount ?? null,

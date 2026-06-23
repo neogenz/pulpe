@@ -10,6 +10,10 @@ import {
   templateLinesBulkOperationsSchema,
 } from 'pulpe-shared';
 import { CurrencyService } from '@modules/currency/currency.service';
+import {
+  savingsGoalIdForKind,
+  savingsGoalIdPatchForKind,
+} from '@common/utils/savings-goal-link';
 import { CacheService } from '@modules/cache/cache.service';
 import {
   BUDGET_RECALCULATION_PORT,
@@ -166,7 +170,14 @@ export class BulkTemplateLineOperationsUseCase {
         const { id, ...rest } = line;
         const overridden =
           await this.currencyService.overrideExchangeRate(rest);
-        return { id, ...overridden };
+        return {
+          id,
+          ...overridden,
+          savingsGoalId: savingsGoalIdPatchForKind(
+            overridden.kind,
+            overridden.savingsGoalId,
+          ),
+        };
       }),
     );
   }
@@ -183,6 +194,7 @@ export class BulkTemplateLineOperationsUseCase {
     return overridden.map((line) => ({
       id: randomUUID(),
       ...line,
+      savingsGoalId: savingsGoalIdForKind(line.kind, line.savingsGoalId),
     }));
   }
 
