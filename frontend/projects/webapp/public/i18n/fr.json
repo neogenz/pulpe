@@ -776,13 +776,16 @@
     "statusActive": "Actif",
     "statusCompleted": "Atteint",
     "statusPaused": "En pause",
-    "reopen": "Ré-ouvrir",
     "deleteConfirmTitle": "Supprimer cet objectif ?",
     "deleteConfirmMessage": "Les prévisions rattachées seront déliées, aucune prévision n'est supprimée.",
     "targetDate": "Échéance",
     "pickerLabel": "Objectif",
     "pickerNone": "Aucun objectif",
-    "loadError": "Impossible de charger tes objectifs."
+    "loadError": "Impossible de charger tes objectifs.",
+    "nameRequired": "Le nom est requis",
+    "targetAmountRequired": "Un montant cible positif est requis",
+    "targetDateRequired": "L'échéance est requise",
+    "targetDatePast": "L'échéance ne peut pas être dans le passé"
   },
   "completeProfile": {
     "loading": "Préparation de ton espace de liberté...",

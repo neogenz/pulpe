@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { type SavingsGoal } from 'pulpe-shared';
 import {
   buildSavingsGoalCreate,
   buildSavingsGoalUpdate,
@@ -58,5 +59,31 @@ describe('buildSavingsGoalUpdate', () => {
     expect(() =>
       buildSavingsGoalUpdate({ ...baseValue, targetDate: PAST_DATE }),
     ).toThrow();
+  });
+
+  it('keeps an overdue goal editable: a status-only change omits the unchanged past date', () => {
+    const overdue = {
+      id: '00000000-0000-4000-8000-0000000000a1',
+      userId: '00000000-0000-4000-8000-0000000000b1',
+      name: 'Vacances été',
+      targetAmount: 3000,
+      targetDate: PAST_DATE,
+      status: 'ACTIVE',
+      createdAt: '2026-01-01T00:00:00.000Z',
+      updatedAt: '2026-01-01T00:00:00.000Z',
+    } as SavingsGoal;
+
+    const dto = buildSavingsGoalUpdate(
+      {
+        name: 'Vacances été',
+        targetAmount: 3000,
+        targetDate: PAST_DATE,
+        status: 'COMPLETED',
+      },
+      overdue,
+    );
+
+    // only the changed field is sent → no targetDate → past-date refine skipped
+    expect(dto).toEqual({ status: 'COMPLETED' });
   });
 });

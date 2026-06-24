@@ -1,15 +1,16 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  computed,
   inject,
   input,
   output,
 } from '@angular/core';
-import { toSignal } from '@angular/core/rxjs-interop';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
 import { TranslocoPipe } from '@jsverse/transloco';
 import { map } from 'rxjs';
+import { cachedResource } from 'ngx-ziflux';
 
 import { SavingsGoalApi } from '@core/savings-goal/savings-goal-api';
 
@@ -53,8 +54,16 @@ export class SavingsGoalPickerField {
 
   readonly #api = inject(SavingsGoalApi);
 
-  protected readonly goals = toSignal(
-    this.#api.getAll$().pipe(map((r) => r.data ?? [])),
-    { initialValue: [] },
-  );
+  // Shares the SavingsGoalApi DataCache (key ['savings-goals','list']) with
+  // SavingsGoalStore: dedups the fetch across pickers/list and picks up store
+  // invalidations. cachedResource.value() returns undefined (never throws) on
+  // load/error, so a failed fetch degrades to an empty picker instead of
+  // crashing the open dialog.
+  readonly #goalsResource = cachedResource({
+    cache: this.#api.cache,
+    cacheKey: ['savings-goals', 'list'],
+    loader: () => this.#api.getAll$().pipe(map((r) => r.data ?? [])),
+  });
+
+  protected readonly goals = computed(() => this.#goalsResource.value() ?? []);
 }

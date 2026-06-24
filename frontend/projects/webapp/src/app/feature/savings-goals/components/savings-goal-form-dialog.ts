@@ -94,7 +94,7 @@ function isoToDate(value: string): Date | null {
             data-testid="savings-goal-name"
           />
           @if (nameErrors().required) {
-            <mat-error>{{ 'savingsGoals.fieldName' | transloco }}</mat-error>
+            <mat-error>{{ 'savingsGoals.nameRequired' | transloco }}</mat-error>
           }
         </mat-form-field>
 
@@ -117,7 +117,7 @@ function isoToDate(value: string): Date | null {
           <span matTextSuffix>{{ currencySymbol() }}</span>
           @if (targetAmountErrors().required) {
             <mat-error>{{
-              'savingsGoals.fieldTargetAmount' | transloco
+              'savingsGoals.targetAmountRequired' | transloco
             }}</mat-error>
           }
         </mat-form-field>
@@ -141,9 +141,13 @@ function isoToDate(value: string): Date | null {
           />
           <mat-datepicker-toggle matIconSuffix [for]="picker" />
           <mat-datepicker #picker />
-          @if (targetDateErrors().required || targetDateErrors().pastDate) {
+          @if (targetDateErrors().required) {
             <mat-error>{{
-              'savingsGoals.fieldTargetDate' | transloco
+              'savingsGoals.targetDateRequired' | transloco
+            }}</mat-error>
+          } @else if (targetDateErrors().pastDate) {
+            <mat-error>{{
+              'savingsGoals.targetDatePast' | transloco
             }}</mat-error>
           }
         </mat-form-field>
@@ -241,6 +245,10 @@ export class SavingsGoalFormDialog {
     validate(path.targetDate, ({ value }) => {
       const v = value();
       if (!v) return null;
+      // An existing goal can legitimately sit past its deadline (it stays
+      // ACTIVE) — allow the UNCHANGED original date so status/name/amount edits
+      // aren't blocked. Only a new past date (create, or a changed date) fails.
+      if (v === this.#data.goal?.targetDate) return null;
       return v >= todayIso() ? null : { kind: 'pastDate' };
     });
   });
@@ -290,7 +298,7 @@ export class SavingsGoalFormDialog {
     if (!this.canSubmit()) return;
     const value = this.model();
     const result = this.isEdit()
-      ? buildSavingsGoalUpdate(value)
+      ? buildSavingsGoalUpdate(value, this.#data.goal)
       : buildSavingsGoalCreate(value);
     this.#dialogRef.close(result);
   }
