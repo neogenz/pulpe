@@ -254,9 +254,9 @@ Champs automatiquement masqués :
 @UseGuards(AuthGuard)  // Protection globale
 export class BudgetController {
   @Get()
-  async getBudgets(@User() user: User) {
+  async getBudgets(@User() user: AuthenticatedUser) {
     // user automatiquement injecté et validé
-    return this.budgetService.findByUser(user.id);
+    return this.findAllBudgets.execute(user);
   }
 }
 ```
@@ -286,18 +286,21 @@ CREATE POLICY "Users can only access their own budgets" ON monthly_budget
     USING (auth.uid() = user_id);
 ```
 
-## 🛠️ Module Structure Pattern
+## 🛠️ Architecture des Modules (Clean Architecture)
 
-### Structure Recommandée
+3 couches par module, règle de dépendance `infrastructure → application → domain`. Détails complets : [ARCHITECTURE.md](../backend-nest/docs/ARCHITECTURE.md).
+
+### Structure
 ```
 src/modules/[domain]/
-├── [domain].controller.ts    # HTTP routes + validation
-├── [domain].service.ts       # Business logic
-├── [domain].mapper.ts        # DTO ↔ Entity transformation
-├── [domain].module.ts        # DI configuration
-├── dto/                      # Request/Response DTOs
-└── entities/                 # Business entities
+├── domain/             # Entities, invariants, ports (Symbol tokens) — TS pur
+├── application/        # *.use-case.ts — @Injectable, un seul execute()
+├── infrastructure/     # http/ (controller, dto), persistence/ (repository, schemas RPC), mappers/
+├── [domain].module.ts
+└── [domain].tokens.ts  # Re-exports des ports publics
 ```
+
+La logique métier vit dans `application/*.use-case.ts` (**pas** de service). Les appels cross-module passent par des ports + Symbol tokens, jamais par import direct.
 
 ### Controller Pattern
 ```typescript
@@ -305,37 +308,45 @@ src/modules/[domain]/
 @ApiTags('budgets')
 @UseGuards(AuthGuard)
 export class BudgetController {
-  constructor(private readonly budgetService: BudgetService) {}
+  constructor(
+    private readonly createBudget: CreateBudgetUseCase,
+    private readonly budgetMapper: BudgetMapper,
+  ) {}
 
   @Post()
   @ApiOperation({ summary: 'Create new budget' })
   @ApiResponse({ status: 201, type: BudgetResponseDto })
   async create(
     @Body() dto: CreateBudgetDto,
-    @User() user: User,
+    @User() user: AuthenticatedUser,
   ): Promise<BudgetResponseDto> {
-    const budget = await this.budgetService.create(dto, user);
-    return BudgetMapper.toDto(budget);
+    const budget = await this.createBudget.execute(dto, user);
+    return this.budgetMapper.toApi(budget);
   }
 }
 ```
 
-### Service Pattern
+### Use Case Pattern
 ```typescript
 @Injectable()
-export class BudgetService {
+export class CreateBudgetUseCase {
   constructor(
-    @InjectInfoLogger(BudgetService.name)
+    @Inject(BUDGET_REPOSITORY)
+    private readonly repo: BudgetRepositoryPort,
+    @InjectInfoLogger(CreateBudgetUseCase.name)
     private readonly logger: InfoLogger,
-    @SupabaseClient() private readonly supabase: SupabaseClient,
   ) {}
 
-  async create(dto: CreateBudgetDto, user: User): Promise<Budget> {
-    // Business logic + error handling
-    // RLS automatiquement appliqué
+  async execute(dto: BudgetCreate, user: AuthenticatedUser): Promise<Budget> {
+    BudgetInvariants.validateCreate(dto);
+    const budget = await this.repo.insert(dto, user); // nombres en clair ; le repo chiffre
+    this.logger.info({ operation: 'budget.create', userId: user.id }, 'Budget created');
+    return budget;
   }
 }
 ```
+
+> Le repository injecte `AuthenticatedSupabaseProvider` (client lu depuis le CLS) + `ENCRYPTION_PORT` : chiffre à l'écriture, déchiffre à la lecture. Les use cases ne voient jamais de ciphertext.
 
 ## 🔧 Troubleshooting Backend
 

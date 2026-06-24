@@ -1,0 +1,233 @@
+// Pulpe Backend — architecture as code (LikeC4)
+// Source of truth: backend-nest/docs/ARCHITECTURE.md + ADRs.
+// View it: bunx likec4 serve backend-nest/docs/c4
+
+specification {
+  element client {
+    style {
+      shape browser
+      color secondary
+    }
+  }
+  element system {
+    style {
+      color primary
+    }
+  }
+  element external {
+    style {
+      color muted
+    }
+  }
+  element store {
+    style {
+      shape cylinder
+      color muted
+    }
+  }
+  element module {
+    style {
+      color blue
+    }
+  }
+  element component {
+    style {
+      color sky
+    }
+  }
+
+  tag hub          // module many others depend on (recalculation)
+  tag leaf         // dependency of almost everything (crypto)
+  tag infra        // infrastructure layer
+  tag application  // application layer (use cases)
+  tag domain       // domain layer (entities, ports, invariants)
+  tag crosscutting // common layer
+}
+
+model {
+
+  webapp = client 'Webapp' 'Angular 21 — Signals, Material'
+  ios = client 'iOS App' 'SwiftUI native' {
+    style {
+      shape mobile
+    }
+  }
+
+  api = system 'Pulpe Backend' 'NestJS 11 + Bun — Clean Architecture, 3 layers per module' {
+
+    common = module 'common' 'Cross-cutting plumbing' {
+      #crosscutting
+      authGuard = component 'AuthGuard' 'Verifies JWT, puts user + Supabase client in CLS'
+      clsProvider = component 'AuthenticatedSupabaseProvider' 'Reads authed client lazily from CLS'
+      responseInterceptor = component 'Response Interceptor' 'Uniform envelope, strips clientKey'
+      exceptionFilter = component 'GlobalExceptionFilter' 'Only place logger.error runs'
+    }
+
+    encryption = module 'encryption' 'AES-256-GCM — the crypto boundary' {
+      #leaf
+      encPort = component 'ENCRYPTION_PORT' 'encrypt() / decrypt() facade'
+    }
+
+    budget = module 'budget' 'Monthly budgets — recalculation hub' {
+      #hub
+      recalcPort = component 'BUDGET_RECALCULATION_PORT' 'recalculate(budgetId)'
+      provPort = component 'BUDGET_PROVISIONING_PORT' 'provision from template'
+      budgetRepo = component 'BUDGET_REPOSITORY' 'CRUD monthly_budget'
+    }
+
+    budgetLine = module 'budget-line' 'Prévisions (fixed / one_off) + spread (PUL-17)' {
+      // infrastructure layer
+      blController = component 'BudgetLineController' 'HTTP, Zod DTO, Swagger' {
+        #infra
+      }
+      blRepo = component 'SupabaseBudgetLineRepository' 'Encrypt on write / decrypt on read' {
+        #infra
+      }
+      blMapper = component 'BudgetLineMapper' 'Entity <-> API DTO' {
+        #infra
+      }
+      // application layer
+      blCreateUC = component 'CreateBudgetLineUseCase' 'single execute()' {
+        #application
+      }
+      blSpreadUC = component 'SpreadBudgetLineUseCase' 'Fan-out N one_off' {
+        #application
+      }
+      // domain layer
+      blPort = component 'BUDGET_LINE_REPOSITORY' 'Symbol token + interface' {
+        #domain
+      }
+      blInvariants = component 'BudgetLineInvariants' 'Pure validation, throws BusinessException' {
+        #domain
+      }
+      spreadPort = component 'BUDGET_LINE_SPREAD_PORT' 'Spread contract (impl here)' {
+        #domain
+      }
+    }
+
+    budgetTemplate = module 'budget-template' 'Templates + template_line' {
+      tmplRepo = component 'BUDGET_TEMPLATE_REPOSITORY' 'CRUD template + template_line'
+    }
+
+    transaction = module 'transaction' 'Réel — transactions'
+    user = module 'user' 'User profile'
+    currency = module 'currency' 'FX rates'
+    accountDeletion = module 'account-deletion' 'RGPD purge (cron)'
+    demo = module 'demo' 'Demo account seeding'
+    appVersion = module 'app-version' 'Minimum-version gate'
+    cache = module 'cache' 'Cache manager wrapper'
+  }
+
+  supabase = external 'Supabase' {
+    pg = store 'PostgreSQL' 'RLS + RPC (jsonb) — encrypted text columns'
+    sbauth = store 'Auth' 'JWT issuer'
+  }
+  posthog = external 'PostHog' 'Product analytics'
+
+  // ============================================================
+  // Context edges (aggregate up to api -> supabase / posthog)
+  // ============================================================
+  webapp -> api 'REST /api · Bearer JWT'
+  ios -> api 'REST /api · Bearer JWT'
+  api.common.authGuard -> supabase.sbauth 'verify JWT'
+  api.budgetLine.blRepo -> supabase.pg 'SQL + RPC (ciphertext)'
+  api.accountDeletion -> posthog 'bulk_delete person'
+
+  // ============================================================
+  // Encryption boundary — repositories own it (-> ENCRYPTION_PORT)
+  // ============================================================
+  api.budgetLine.blRepo -> api.encryption.encPort 'encrypt / decrypt'
+  api.budget.budgetRepo -> api.encryption.encPort 'encrypt / decrypt'
+  api.budgetTemplate.tmplRepo -> api.encryption.encPort 'encrypt / decrypt'
+  api.transaction -> api.encryption.encPort 'encrypt / decrypt'
+  api.demo -> api.encryption.encPort 'encrypt / decrypt'
+
+  // ============================================================
+  // Recalculation hub (-> BUDGET_RECALCULATION_PORT)
+  // ============================================================
+  api.budgetLine.blCreateUC -> api.budget.recalcPort 'recalculate'
+  api.budgetTemplate -> api.budget.recalcPort 'recalculate'
+  api.transaction -> api.budget.recalcPort 'recalculate'
+  api.demo -> api.budget.recalcPort 'recalculate'
+
+  // ============================================================
+  // Other cross-module ports
+  // ============================================================
+  api.budgetLine.blSpreadUC -> api.budget.provPort 'provision budget'
+  api.budgetLine -> api.budgetTemplate.tmplRepo 'read template'
+  api.transaction -> api.budgetLine.spreadPort 'spread fan-out (PUL-17)'
+
+  // ============================================================
+  // budget-line internal — the dependency rule (infra -> app -> domain)
+  // ============================================================
+  api.budgetLine.blController -> api.budgetLine.blCreateUC 'execute()'
+  api.budgetLine.blController -> api.budgetLine.blSpreadUC 'execute()'
+  api.budgetLine.blController -> api.budgetLine.blMapper 'toApi()'
+  api.budgetLine.blCreateUC -> api.budgetLine.blInvariants 'validate'
+  api.budgetLine.blCreateUC -> api.budgetLine.blPort 'insert / update'
+  api.budgetLine.blRepo -> api.budgetLine.blPort 'implements'
+}
+
+views {
+
+  view context {
+    title 'C1 — System context'
+    include webapp, ios, api, supabase, supabase.pg, supabase.sbauth, posthog
+    autoLayout LeftRight
+  }
+
+  view modules of api {
+    title 'C2 — Module map (cross-module ports)'
+    include *
+    include * where tag is #hub with {
+      color green
+    }
+    include * where tag is #leaf with {
+      color amber
+    }
+    exclude api.common
+    autoLayout LeftRight
+  }
+
+  view layers of api.budgetLine {
+    title 'C3 — Clean Architecture layers (budget-line)'
+    include *
+    include supabase.pg
+    include * where tag is #infra with {
+      color sky
+    }
+    include * where tag is #application with {
+      color indigo
+    }
+    include * where tag is #domain with {
+      color green
+    }
+    include api.encryption.encPort with {
+      color amber
+    }
+    include api.budget.recalcPort, api.budget.provPort with {
+      color green
+    }
+    autoLayout TopBottom
+  }
+
+  dynamic view requestLifecycle {
+    title 'C4 — Request lifecycle: POST /api/budget-lines'
+
+    webapp -> api.common.authGuard 'Bearer JWT'
+    api.common.authGuard -> supabase.sbauth 'verify token'
+    api.common.authGuard -> api.common.clsProvider 'store user + authed client in CLS'
+    api.common.authGuard -> api.budgetLine.blController 'next()'
+    api.budgetLine.blController -> api.budgetLine.blCreateUC 'execute(dto, user)'
+    api.budgetLine.blCreateUC -> api.budgetLine.blInvariants 'validateCreate(dto)'
+    api.budgetLine.blCreateUC -> api.budgetLine.blRepo 'insert(plain numbers)'
+    api.budgetLine.blRepo -> api.encryption.encPort 'encrypt(amount)'
+    api.budgetLine.blRepo -> api.common.clsProvider 'get authed client'
+    api.budgetLine.blRepo -> supabase.pg 'INSERT (ciphertext)'
+    api.budgetLine.blRepo -> api.encryption.encPort 'decrypt(row)'
+    api.budgetLine.blCreateUC -> api.budget.recalcPort 'recalculate(budgetId)'
+    api.budgetLine.blController -> api.budgetLine.blMapper 'toApi(entity)'
+    api.budgetLine.blController -> api.common.responseInterceptor 'envelope + strip clientKey'
+    api.common.responseInterceptor -> webapp '201 { data }'
+  }
+}

@@ -329,8 +329,9 @@ DEBUG_HTTP_FULL=false
 
 ### **Standards de code**
 
-- **Controllers** : HTTP uniquement, déléguer aux services
-- **Services** : Logique métier, pas d'accès DB direct
+- **Controllers** : HTTP uniquement, déléguer aux use cases
+- **Use cases** (`application/`) : logique métier, un seul `execute()` ; cross-module via ports + Symbol tokens
+- **Repositories** (`infrastructure/`) : accès Supabase + frontière de chiffrement (`ENCRYPTION_PORT`)
 - **DTOs** : Utiliser `createZodDto` avec schemas partagés
 - **Types** : Supabase types isolés dans backend
 

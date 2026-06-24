@@ -16,22 +16,27 @@ bun run generate-types:local   # Generate types from local Supabase
 
 ## Module Structure
 
+3-layer Clean Architecture per module (`infrastructure → application → domain`). Full details: `docs/ARCHITECTURE.md`.
+
 ```
 src/modules/[domain]/
-├── [domain].controller.ts    # HTTP routes, validation, Swagger docs
-├── [domain].service.ts       # Business logic, orchestration
-├── [domain].module.ts        # Module configuration, DI setup
-├── [domain].mapper.ts        # DTO ↔ Entity transformation
-├── dto/                      # Request/Response DTOs with Zod
-└── entities/                 # Business entities
+├── domain/             # Entities, invariants, ports (Symbol tokens) — pure TS
+├── application/        # *.use-case.ts — @Injectable, single execute()
+├── infrastructure/     # http/ (controller, dto), persistence/ (repository, RPC schemas), mappers/
+├── [domain].module.ts
+└── [domain].tokens.ts  # Public port re-exports
 ```
+
+Business logic lives in `application/*.use-case.ts`, **not** a service. Cross-module = ports + Symbol tokens only (never direct service imports).
 
 ## Data Flow
 
 ```
-Frontend (Zod) → Backend DTO → Service → Database (RLS)
-DB Row (snake_case) → Mapper → API Response (camelCase)
+Frontend (Zod) → Controller → Use Case → Repository → Database (RLS)
+DB Row (snake_case) → Repository (decrypt) → Mapper → API Response (camelCase)
 ```
+
+Repositories own the encryption boundary (encrypt on write / decrypt on read via `ENCRYPTION_PORT`); use cases see plain numbers.
 
 ## Key Tables
 
@@ -43,7 +48,7 @@ DB Row (snake_case) → Mapper → API Response (camelCase)
 ## Testing
 
 - Mock Supabase client `createMockSupabaseClient()`
-- Test services, guards independent
+- Test use cases, repositories, guards independent
 - Swagger docs: `http://localhost:3000/docs`
 
 ## Critical Rules

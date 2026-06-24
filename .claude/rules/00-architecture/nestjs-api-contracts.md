@@ -17,7 +17,7 @@ shared/schemas.ts → createZodDto (nestjs-zod) → Controller @Body() dto
 
 1. **Define schemas** in `shared/schemas.ts` (single source of truth)
 2. **Export** from `shared/index.ts` (schema + inferred type)
-3. **Create DTO class** in `backend-nest/src/modules/[domain]/dto/[domain]-swagger.dto.ts`
+3. **Create DTO class** in `backend-nest/src/modules/[domain]/infrastructure/http/dto/[domain]-swagger.dto.ts`
 4. **Use DTO** in controller with `@Body() dto: MyRequestDto`
 5. **Add response type** to `@ApiResponse({ type: MyResponseDto })`
 
@@ -59,7 +59,7 @@ async changePin(@Body() body: { oldKey: string; newKey: string }): Promise<{ suc
 - [ ] Schema defined in `shared/schemas.ts`
 - [ ] Schema + type exported from `shared/index.ts`
 - [ ] `shared` rebuilt (`pnpm build:shared`)
-- [ ] DTO class in `modules/[domain]/dto/[domain]-swagger.dto.ts`
+- [ ] DTO class in `modules/[domain]/infrastructure/http/dto/[domain]-swagger.dto.ts`
 - [ ] Controller uses DTO class for `@Body()`
 - [ ] `@ApiResponse` includes `type: ResponseDto`
 
@@ -68,4 +68,4 @@ async changePin(@Body() body: { oldKey: string; newKey: string }): Promise<{ suc
 - `ZodValidationPipe` (global) auto-validates request bodies
 - Swagger docs auto-generated from Zod schemas
 - Frontend and backend share the same contract via `pulpe-shared`
-- Type safety end-to-end: schema → DTO → controller → service
+- Type safety end-to-end: schema → DTO → controller → use case

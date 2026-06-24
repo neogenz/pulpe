@@ -160,22 +160,23 @@ In `src/common/`:
 
 ### Module Structure
 
-Each domain in `src/modules/[domain]/`:
+3-layer Clean Architecture per module — dependency rule `infrastructure → application → domain`. Each domain in `src/modules/[domain]/`:
 
 ```
 [domain]/
-├── [domain].controller.ts   # HTTP routes + validation
-├── [domain].service.ts      # Business logic
-├── [domain].repository.ts   # Data access layer
-├── [domain].calculator.ts   # Domain calculations (optional)
-├── [domain].validator.ts    # Domain validation (optional)
-├── [domain].mappers.ts      # DTO ↔ Entity transformation
-├── [domain].module.ts       # NestJS module definition
-├── [domain].constants.ts    # Domain constants (optional)
-├── dto/                     # NestJS DTOs (createZodDto from shared)
-├── schemas/                 # Additional Zod schemas (optional)
-└── __tests__/               # Integration tests (optional)
+├── domain/             # Entities, invariants, formulas, ports (Symbol tokens) — pure TS
+├── application/        # *.use-case.ts (@Injectable, single execute())
+├── infrastructure/     # http/ (controller + dto), persistence/ (repository + RPC Zod schemas), mappers/
+├── [domain].module.ts  # DI wiring + port bindings
+└── [domain].tokens.ts  # Public port re-exports
 ```
+
+- Business logic = use cases (`application/`), **not** services. One verb per file.
+- Cross-module calls go through ports + Symbol tokens (e.g. `BUDGET_RECALCULATION_PORT`), never direct service imports.
+- Repositories own the encryption boundary (`ENCRYPTION_PORT`); use cases see plain numbers.
+- Enforced by `bun run quality` (ESLint boundaries) + `bun run lint:arch` (dependency-cruiser).
+
+> Full reference: `backend-nest/docs/ARCHITECTURE.md` + ADRs in `backend-nest/docs/adr/`.
 
 ### Current Modules
 
@@ -333,7 +334,7 @@ public.template_line    -- Template transaction items
 ### Data Flow
 
 ```
-Frontend DTO (Zod) → Backend DTO (createZodDto) → Service → Repository → Supabase Client → RLS → PostgreSQL
+Frontend DTO (Zod) → Backend DTO (createZodDto) → Controller → Use Case → Repository → Supabase Client → RLS → PostgreSQL
 ```
 
 ### Key Calculations

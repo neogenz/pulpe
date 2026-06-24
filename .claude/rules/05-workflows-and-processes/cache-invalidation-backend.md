@@ -11,13 +11,13 @@ paths: "backend-nest/src/**/*.ts"
 
 ## Why
 
-`BudgetService.findAll()` and other list endpoints use `CacheService.getOrSet()` with a 30-second TTL. If a mutation modifies the underlying data (e.g., budget lines, transactions, balances) without invalidating the cache, subsequent GET requests serve stale data until the TTL expires.
+The budget read paths (`FindAllBudgetsUseCase`, `FindBudgetWithDetailsUseCase`) use `CacheService.getOrSet()` with a 30-second TTL. If a mutation modifies the underlying data (e.g., budget lines, transactions, balances) without invalidating the cache, subsequent GET requests serve stale data until the TTL expires.
 
 This caused a real bug: template propagation updated budget lines in the database, but `GET /budgets` returned stale cached responses — the budget list showed old "Disponible" values.
 
 ## When to invalidate
 
-Any service method that:
+Any use case that:
 
 1. **Writes to `budget_line`** (create, update, delete, propagation)
 2. **Writes to `monthly_budget`** (create, update balance recalculation)
@@ -37,7 +37,7 @@ await this.cacheService.invalidateForUser(user.id);
 
 - [ ] Does this mutation change data returned by `GET /budgets` or `GET /budgets/:id/details`?
 - [ ] If yes: is `cacheService.invalidateForUser()` called after the mutation?
-- [ ] If the mutation is in a different module than `BudgetService`: is `CacheService` injected?
+- [ ] If the mutation is in a different module than `budget`: is `CacheService` injected?
 
 ## Current cached endpoints
 
