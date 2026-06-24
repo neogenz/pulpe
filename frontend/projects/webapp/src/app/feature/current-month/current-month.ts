@@ -173,6 +173,7 @@ import { CURRENCY_CONFIG } from '@core/currency';
               [checkedCount]="store.savingsCheckedCount()"
               [totalCount]="store.savingsTotalCount()"
               [currency]="currency()"
+              (viewSavingsGoals)="navigateToSavingsGoals()"
               data-testid="dashboard-block-savings"
             />
 
@@ -371,6 +372,10 @@ export default class Dashboard {
 
   protected navigateToBudgetList(): void {
     this.#router.navigate(['/', ROUTES.BUDGET]);
+  }
+
+  protected navigateToSavingsGoals(): void {
+    this.#router.navigate(['/', ROUTES.SAVINGS_GOALS]);
   }
 
   protected async checkBudgetLine(budgetLineId: string): Promise<void> {

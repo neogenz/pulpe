@@ -23,6 +23,7 @@ export const budgetLineCreateFromFormSchema = z
     isChecked: z.boolean(),
     conversion: conversionFormSchema.nullable(),
     budgetId: z.uuid(),
+    savingsGoalId: z.uuid().nullable().optional(),
   })
   .transform(
     (input): BudgetLineCreate => ({
@@ -33,6 +34,7 @@ export const budgetLineCreateFromFormSchema = z
       recurrence: input.recurrence,
       isManuallyAdjusted: true,
       checkedAt: input.isChecked ? new Date().toISOString() : null,
+      savingsGoalId: input.savingsGoalId,
       ...(input.conversion ?? {}),
     }),
   );

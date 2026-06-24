@@ -39,6 +39,7 @@ import { FeatureFlagsService } from '@core/feature-flags';
 import { Logger } from '@core/logging/logger';
 import { touchedFieldErrors } from '@core/validators';
 import { AmountInput } from '@app/pattern/amount-input/amount-input';
+import { SavingsGoalPickerField } from '@app/pattern/savings-goal-picker/savings-goal-picker-field';
 import { budgetLineUpdateFromFormSchema } from './dialog.schema';
 
 export interface EditBudgetLineDialogData {
@@ -50,6 +51,7 @@ interface EditBudgetLineModel {
   money: AmountFormSlice;
   kind: TransactionKind;
   recurrence: TransactionRecurrence;
+  savingsGoalId: string | null;
 }
 
 @Component({
@@ -66,6 +68,7 @@ interface EditBudgetLineModel {
     TransactionLabelPipe,
     FormField,
     AmountInput,
+    SavingsGoalPickerField,
   ],
   host: { 'data-testid': 'edit-budget-line-dialog' },
   template: `
@@ -140,6 +143,15 @@ interface EditBudgetLineModel {
               }}</mat-error>
             }
           </mat-form-field>
+
+          @if (model().kind === 'saving') {
+            <pulpe-savings-goal-picker-field
+              [value]="model().savingsGoalId"
+              (valueChanged)="
+                model.update((m) => ({ ...m, savingsGoalId: $event }))
+              "
+            />
+          }
         </div>
       </div>
     </mat-dialog-content>
@@ -192,6 +204,7 @@ export class EditBudgetLineDialog {
     money: this.#computeInitialSlice(),
     kind: this.#data.budgetLine.kind,
     recurrence: this.#data.budgetLine.recurrence,
+    savingsGoalId: this.#data.budgetLine.savingsGoalId,
   });
 
   protected readonly editForm = form(this.model, (path) => {
@@ -247,12 +260,12 @@ export class EditBudgetLineDialog {
               amount,
               kind: m.kind,
               recurrence: m.recurrence,
+              savingsGoalId: m.kind === 'saving' ? m.savingsGoalId : null,
               conversion: metadata,
             });
             return {
               id: this.#data.budgetLine.id,
               templateLineId: this.#data.budgetLine.templateLineId,
-              savingsGoalId: this.#data.budgetLine.savingsGoalId,
               ...formPart,
             };
           },
