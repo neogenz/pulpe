@@ -50,6 +50,7 @@ const makeDto = (
 ): BudgetLineSpreadCreate => ({
   name: 'Prime assurance',
   kind: 'expense',
+  mode: 'perMonth',
   perMonthAmount: 100,
   months: [
     { year: 2026, month: 1 },
@@ -268,5 +269,86 @@ describe('CreateBudgetLineSpreadUseCase', () => {
 
     expect(mockRepo.createSpread).toHaveBeenCalledTimes(1);
     expect(mockCache.invalidateForUser).toHaveBeenCalledWith(mockUser.id);
+  });
+
+  describe('total mode', () => {
+    const makeTotalDto = (
+      overrides: Partial<BudgetLineSpreadCreate> = {},
+    ): BudgetLineSpreadCreate =>
+      makeDto({ mode: 'total', perMonthAmount: undefined, ...overrides });
+
+    it('should divide the typed total cents-preserving so the inserted amounts sum to it', async () => {
+      const dto = makeTotalDto({
+        totalAmount: 100,
+        months: [
+          { year: 2026, month: 1 },
+          { year: 2026, month: 2 },
+          { year: 2026, month: 3 },
+        ],
+      });
+
+      await useCase.execute(dto, mockUser);
+
+      const { inputs } = captured[0];
+      expect(inputs.map((i) => i.amount)).toEqual([33.34, 33.33, 33.33]);
+      const sum = inputs.reduce((acc, i) => acc + i.amount, 0);
+      expect(Math.round(sum * 100) / 100).toBe(100);
+    });
+
+    it('should split the FX original total and freeze the same rate quadruplet on every row', async () => {
+      const dto = makeTotalDto({
+        totalAmount: 96,
+        totalOriginalAmount: 100,
+        originalCurrency: 'EUR',
+        targetCurrency: 'CHF',
+        exchangeRate: 0.96,
+        months: [
+          { year: 2026, month: 1 },
+          { year: 2026, month: 2 },
+          { year: 2026, month: 3 },
+        ],
+      });
+
+      await useCase.execute(dto, mockUser);
+
+      const { inputs } = captured[0];
+      const sumOriginal = inputs.reduce(
+        (acc, i) => acc + (i.originalAmount ?? 0),
+        0,
+      );
+      expect(Math.round(sumOriginal * 100) / 100).toBe(100);
+      expect(inputs.every((i) => i.exchangeRate === 0.96)).toBe(true);
+      expect(inputs.every((i) => i.originalCurrency === 'EUR')).toBe(true);
+      expect(inputs.every((i) => i.targetCurrency === 'CHF')).toBe(true);
+    });
+
+    it('should invalidate the cache once on success', async () => {
+      await useCase.execute(makeTotalDto({ totalAmount: 100 }), mockUser);
+
+      expect(mockCache.invalidateForUser).toHaveBeenCalledTimes(1);
+      expect(mockCache.invalidateForUser).toHaveBeenCalledWith(mockUser.id);
+    });
+
+    it('should fail the whole op without inserting when any month is unprovisionable', async () => {
+      mockProvisioning.ensureBudgetsForPeriods.mockResolvedValue({
+        budgetIdByPeriod: new Map([['1/2026', 'b-1-2026']]),
+        createdBudgets: [],
+        skippedMonths: [{ month: 2, year: 2026 }],
+      });
+
+      const dto = makeTotalDto({
+        totalAmount: 100,
+        months: [
+          { year: 2026, month: 1 },
+          { year: 2026, month: 2 },
+        ],
+      });
+
+      await expect(useCase.execute(dto, mockUser)).rejects.toThrow(
+        BusinessException,
+      );
+      expect(mockRepo.createSpread).not.toHaveBeenCalled();
+      expect(mockCache.invalidateForUser).toHaveBeenCalledWith(mockUser.id);
+    });
   });
 });

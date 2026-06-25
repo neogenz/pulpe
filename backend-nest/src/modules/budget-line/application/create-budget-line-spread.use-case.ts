@@ -34,7 +34,10 @@ import type {
   BudgetLineCreateInput,
   SpreadDeleteSource,
 } from '../domain/budget-line.entity';
-import { buildSpreadTranches } from '../domain/spread-additive.formulas';
+import {
+  buildSpreadTranches,
+  buildSpreadTranchesFromTotal,
+} from '../domain/spread-additive.formulas';
 
 export interface CreateSpreadResult {
   spreadGroupId: string;
@@ -46,14 +49,17 @@ export interface CreateSpreadResult {
 /**
  * Fans a smoothed expense out into N independent `one_off` budget lines, one per
  * month, sharing a single server-generated `spread_group_id` (PUL-17 Lot A,
- * interpretation B). The additive create flow now BUILDS its tranches server-side
- * from the per-month intent (`{perMonthAmount, months}`, PUL-287) via
- * `buildSpreadTranches`; the PORT (`fanOut`/`fanOutStrict`) stays mode-agnostic —
- * the spread-from flows feed it pre-split tranches instead.
+ * interpretation B). The additive create flow BUILDS its tranches server-side
+ * from the dual-mode intent (PUL-287): `perMonth` REPLICATES one amount per month
+ * (`buildSpreadTranches`, tolerant), `total` DIVIDES a typed total cents-preserving
+ * (`buildSpreadTranchesFromTotal`, strict). The PORT (`fanOut`/`fanOutStrict`)
+ * stays mode-agnostic — the spread-from flows feed it pre-split tranches instead.
  *
- * Two entry points share the SAME fan-out core:
- * - `execute()` — the additive create flow (POST /budget-lines/spread): tolerates
- *   months without a default template (they land in `skippedMonths`).
+ * Entry points share the SAME provision-and-insert core:
+ * - `execute()` — the additive create flow (POST /budget-lines/spread): branches
+ *   on `dto.mode`. `perMonth` tolerates months without a default template (they
+ *   land in `skippedMonths`); `total` is strict — an unprovisionable month fails
+ *   the whole op (Σ === typed total forbids dropping one).
  * - `fanOut()` — the reusable port (`BUDGET_LINE_SPREAD_PORT`) driving the
  *   total-preserving spread-from flows (a prévision or a free réel). The CALLER
  *   decides whether a skipped month is fatal (the Σ=T contract forbids dropping
@@ -84,18 +90,42 @@ export class CreateBudgetLineSpreadUseCase implements BudgetLineSpreadPort {
     dto: BudgetLineSpreadCreate,
     user: AuthenticatedUser,
   ): Promise<CreateSpreadResult> {
+    const fx = {
+      originalCurrency: dto.originalCurrency ?? null,
+      targetCurrency: dto.targetCurrency ?? null,
+      exchangeRate: dto.exchangeRate ?? null,
+    };
+
+    // Total mode DIVIDES a typed total (Σ === total), so a month that cannot be
+    // provisioned must fail the whole op — dropping one would break the sum.
+    if (dto.mode === 'total') {
+      return this.fanOutStrictAdditive(
+        {
+          name: dto.name,
+          kind: dto.kind,
+          tranches: buildSpreadTranchesFromTotal(
+            dto.totalAmount!,
+            dto.months,
+            dto.totalOriginalAmount ?? null,
+          ),
+          ...fx,
+        },
+        user,
+      );
+    }
+
+    // Per-month mode REPLICATES one amount per month; a month without a default
+    // template tolerantly lands in `skippedMonths`.
     return this.fanOut(
       {
         name: dto.name,
         kind: dto.kind,
         tranches: buildSpreadTranches(
-          dto.perMonthAmount,
+          dto.perMonthAmount!,
           dto.months,
           dto.perMonthOriginalAmount ?? null,
         ),
-        originalCurrency: dto.originalCurrency ?? null,
-        targetCurrency: dto.targetCurrency ?? null,
-        exchangeRate: dto.exchangeRate ?? null,
+        ...fx,
       },
       user,
     );
@@ -137,6 +167,28 @@ export class CreateBudgetLineSpreadUseCase implements BudgetLineSpreadPort {
     try {
       return await this.provisionAndInsert(input, user, true, source);
     } catch (error) {
+      throw this.toFanOutError(error, user);
+    }
+  }
+
+  /**
+   * Terminal STRICT fan-out for the additive total-mode create flow: like
+   * `fanOut` it is the last mutation of the request (invalidates the cache on
+   * both success and failure), but like `fanOutStrict` it fails the whole op if
+   * ANY month is unprovisionable (HTTP 422) — total mode divides a typed total
+   * (Σ === total), so silently dropping a month would break the sum. No source
+   * to delete: the additive create flow only inserts.
+   */
+  private async fanOutStrictAdditive(
+    input: SpreadFanOutInput,
+    user: AuthenticatedUser,
+  ): Promise<SpreadFanOutResult> {
+    try {
+      const result = await this.provisionAndInsert(input, user, true);
+      await this.cacheService.invalidateForUser(user.id);
+      return result;
+    } catch (error) {
+      await this.cacheService.invalidateForUser(user.id);
       throw this.toFanOutError(error, user);
     }
   }

@@ -3,13 +3,15 @@ import SwiftUI
 /// The "Lisser sur plusieurs mois" block of the add-budget-line sheet (PUL-17).
 ///
 /// Owns the De/À month pickers, the help text, the deselectable months grid, the
-/// total echo and inline validation. All window/selection state lives in the
-/// injected `SpreadCalculator` (the tested B-only engine) — this view only renders
-/// it and routes taps back. The total echo reads the per-month amount entered in
-/// the hero field above.
+/// total/per-month echo and inline validation. All window/selection state lives in
+/// the injected `SpreadCalculator` (the tested B-only engine) — this view only
+/// renders it and routes taps back. The echo reads the amount entered in the hero
+/// field above and its `amountMode`: in `.perMonth` it shows `amount × N`; in
+/// `.total` it previews the cents-preserving per-month split.
 struct SpreadFormSection: View {
     let calculator: SpreadCalculator
-    let amountPerMonth: Decimal?
+    let amount: Decimal?
+    let amountMode: SpreadAmountMode
     let currency: SupportedCurrency
     let accentColor: Color
 
@@ -121,15 +123,15 @@ struct SpreadFormSection: View {
         .accessibilityAddTraits(isOn ? .isSelected : [])
     }
 
-    // MARK: - Total echo
+    // MARK: - Total / per-month echo
 
     private var totalEcho: some View {
         HStack {
-            Text("Total · \(calculator.selectedCount) mois")
+            Text(echoLabel)
                 .font(PulpeTypography.subheadline)
                 .foregroundStyle(Color.textSecondary)
             Spacer()
-            Text(calculator.total(amountPerMonth: amountPerMonth ?? 0).asCurrency(currency))
+            Text(echoAmount.asCurrency(currency))
                 .font(PulpeTypography.headline)
                 .foregroundStyle(Color.textPrimary)
                 .monospacedDigit()
@@ -140,6 +142,32 @@ struct SpreadFormSection: View {
         .frame(maxWidth: .infinity)
         .background(Color.surfaceContainerHigh, in: .rect(cornerRadius: DesignTokens.CornerRadius.button))
         .accessibilityElement(children: .combine)
+    }
+
+    /// `.perMonth`: "Total · N mois" — the right side is `amount × N`.
+    /// `.total`: "≈ {part}/mois · N mois" — the right side is the exact total typed,
+    /// the label previews the first cents-preserving part (server is authoritative).
+    private var echoLabel: String {
+        let count = calculator.selectedCount
+        switch amountMode {
+        case .perMonth:
+            return "Total · \(count) mois"
+        case .total:
+            let firstPart = SpreadSplit
+                .splitTotalPreserving(total: amount ?? 0, partCount: count)
+                .first ?? 0
+            return "≈ \(firstPart.asCurrency(currency))/mois · \(count) mois"
+        }
+    }
+
+    /// `.perMonth`: `amount × N`. `.total`: the exact amount typed (the total).
+    private var echoAmount: Decimal {
+        switch amountMode {
+        case .perMonth:
+            return calculator.total(amountPerMonth: amount ?? 0)
+        case .total:
+            return amount ?? 0
+        }
     }
 
     // MARK: - Picker sheet
@@ -170,7 +198,8 @@ struct SpreadFormSection: View {
     ScrollView {
         SpreadFormSection(
             calculator: calculator,
-            amountPerMonth: 80,
+            amount: 1200,
+            amountMode: .total,
             currency: .chf,
             accentColor: .financialExpense
         )

@@ -20,7 +20,11 @@ import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { TranslocoPipe } from '@jsverse/transloco';
-import { type TransactionKind, type TransactionRecurrence } from 'pulpe-shared';
+import {
+  splitTotalPreserving,
+  type TransactionKind,
+  type TransactionRecurrence,
+} from 'pulpe-shared';
 
 import {
   applyAmountValidators,
@@ -61,6 +65,7 @@ export interface BudgetLineDialogData {
 }
 
 type EntryMode = 'single' | 'spread';
+type AmountMode = 'total' | 'perMonth';
 
 interface AddBudgetLineModel {
   name: string;
@@ -172,6 +177,24 @@ interface AddBudgetLineModel {
             </mat-button-toggle-group>
           }
 
+          @if (mode() === 'spread') {
+            <mat-button-toggle-group
+              [value]="amountMode()"
+              (change)="setAmountMode($event.value)"
+              hideSingleSelectionIndicator
+              [attr.aria-label]="'budget.spreadAmountModeLabel' | transloco"
+              class="w-full"
+              data-testid="spread-amount-mode-toggle"
+            >
+              <mat-button-toggle value="total" class="flex-1">
+                {{ 'budget.spreadAmountModeTotal' | transloco }}
+              </mat-button-toggle>
+              <mat-button-toggle value="perMonth" class="flex-1">
+                {{ 'budget.spreadAmountModePerMonth' | transloco }}
+              </mat-button-toggle>
+            </mat-button-toggle-group>
+          }
+
           <pulpe-amount-input
             [control]="addForm.money"
             [label]="amountLabel()"
@@ -254,20 +277,57 @@ interface AddBudgetLineModel {
                   {{ errorKey | transloco }}
                 </p>
               } @else if (selectedCount() > 0) {
-                <div
-                  class="flex items-center justify-between rounded-corner-medium bg-surface-container px-4 py-3"
-                  data-testid="spread-total-echo"
-                >
-                  <span class="text-body-medium text-on-surface-variant">
-                    {{
-                      'budget.spreadTotalLabel'
-                        | transloco: { count: selectedCount() }
-                    }}
-                  </span>
-                  <span class="text-title-medium font-medium ph-no-capture">
-                    {{ spreadTotal() | appCurrency: currency() : '1.0-0' }}
-                  </span>
-                </div>
+                @if (amountMode() === 'total') {
+                  <div
+                    class="flex flex-col gap-2"
+                    data-testid="spread-breakdown"
+                  >
+                    @for (row of breakdownRows(); track row.key) {
+                      <div
+                        class="flex items-center justify-between rounded-corner-small bg-surface-container-low px-3 py-2"
+                        [attr.data-testid]="'spread-breakdown-' + row.key"
+                      >
+                        <span class="text-body-medium text-on-surface-variant">
+                          {{ row.label }}
+                        </span>
+                        <span
+                          class="text-body-medium font-medium ph-no-capture"
+                        >
+                          {{ row.amount | appCurrency: currency() : '1.2-2' }}
+                        </span>
+                      </div>
+                    }
+                    <div
+                      class="flex items-center justify-between rounded-corner-medium bg-surface-container px-4 py-3"
+                      data-testid="spread-total-echo"
+                    >
+                      <span class="text-body-medium text-on-surface-variant">
+                        {{
+                          'budget.spreadTotalLabel'
+                            | transloco: { count: selectedCount() }
+                        }}
+                      </span>
+                      <span class="text-title-medium font-medium ph-no-capture">
+                        {{ spreadTotal() | appCurrency: currency() : '1.0-0' }}
+                      </span>
+                    </div>
+                  </div>
+                } @else {
+                  <div
+                    class="flex items-center justify-between rounded-corner-medium bg-surface-container px-4 py-3"
+                    data-testid="spread-total-echo"
+                  >
+                    <span class="text-body-medium text-on-surface-variant">
+                      {{
+                        'budget.spreadTotalLabel'
+                          | transloco: { count: selectedCount() }
+                      }}
+                    </span>
+                    <span class="text-title-medium font-medium ph-no-capture">
+                      {{ spreadTotal() | appCurrency: currency() : '1.0-0' }}
+                    </span>
+                  </div>
+                }
               }
             </div>
           } @else {
@@ -391,6 +451,13 @@ export class AddBudgetLineDialog {
   });
   protected readonly mode = this.#mode.asReadonly();
 
+  // Total↔Par-mois amount interpretation in spread mode. Total is the default:
+  // the user types a TOTAL and the server divides it across the selected months
+  // (the client divides only for the live breakdown preview). Distinct from the
+  // single/spread EntryMode above.
+  readonly #amountMode = signal<AmountMode>('total');
+  protected readonly amountMode = this.#amountMode.asReadonly();
+
   readonly #start = signal<SpreadMonth>({
     year: this.#data.budgetYear,
     month: this.#data.budgetMonth,
@@ -412,11 +479,12 @@ export class AddBudgetLineDialog {
     () => this.model().kind !== 'income',
   );
 
-  protected readonly amountLabel = computed(() =>
-    this.#mode() === 'spread'
-      ? 'budget.spreadAmountPerMonthLabel'
-      : 'transactionForm.amountLabel',
-  );
+  protected readonly amountLabel = computed(() => {
+    if (this.#mode() !== 'spread') return 'transactionForm.amountLabel';
+    return this.#amountMode() === 'total'
+      ? 'budget.spreadAmountTotalLabel'
+      : 'budget.spreadAmountPerMonthLabel';
+  });
 
   readonly #dateFnsLocale = computed(() =>
     dateFnsLocaleFor(this.#settings.currency()),
@@ -455,9 +523,30 @@ export class AddBudgetLineDialog {
     () => this.selectedMonths().length,
   );
 
+  // The aggregated total of the plan. In `total` mode the entered amount IS the
+  // total; in `perMonth` mode it is the per-month amount × the selected count.
   protected readonly spreadTotal = computed(() => {
-    const perMonth = this.model().money.amount ?? 0;
-    return perMonth * this.selectedCount();
+    const amount = this.model().money.amount ?? 0;
+    return this.#amountMode() === 'total'
+      ? amount
+      : amount * this.selectedCount();
+  });
+
+  // Live per-month breakdown for `total` mode — uses the SAME cents-preserving
+  // division as the server (`splitTotalPreserving`), so the preview equals what
+  // is persisted. Each tranche is paired with its selected month's label.
+  protected readonly breakdownRows = computed(() => {
+    const months = this.selectedMonths();
+    const total = this.model().money.amount ?? 0;
+    if (this.#amountMode() !== 'total' || months.length === 0 || total <= 0) {
+      return [];
+    }
+    const tranches = splitTotalPreserving(total, months.length);
+    return months.map((m, index) => ({
+      key: monthKey(m),
+      label: this.#formatMonth(m, 'MMMM yyyy'),
+      amount: tranches[index],
+    }));
   });
 
   protected readonly spreadError = computed<string | null>(() => {
@@ -474,6 +563,10 @@ export class AddBudgetLineDialog {
 
   protected setMode(mode: EntryMode): void {
     this.#mode.set(mode);
+  }
+
+  protected setAmountMode(mode: AmountMode): void {
+    this.#amountMode.set(mode);
   }
 
   protected setStart(key: string): void {
@@ -559,11 +652,12 @@ export class AddBudgetLineDialog {
           targetCurrency: this.#settings.currency(),
           converter: this.#converter,
           logger: this.#logger,
-          build: (perMonthAmount, metadata) =>
+          build: (amount, metadata) =>
             budgetLineSpreadCreateFromFormSchema.parse({
               name: m.name.trim(),
               kind: m.kind,
-              perMonthAmount,
+              mode: this.#amountMode(),
+              amount,
               months: this.selectedMonths(),
               conversion: metadata,
             }),

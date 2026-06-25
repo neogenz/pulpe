@@ -197,6 +197,82 @@ describe('AddBudgetLineDialog', () => {
     });
   });
 
+  describe('spread amount mode', () => {
+    it('should default the amount mode to total', () => {
+      const { component } = configureDialog();
+
+      expect(component['amountMode']()).toBe('total');
+    });
+
+    it('should submit a total-mode spread payload by default', async () => {
+      const { component, dialogRef } = configureDialog();
+      component['model'].update((m) => ({
+        ...m,
+        name: 'Assurance',
+        kind: 'expense',
+        money: { amount: 600, inputCurrency: 'CHF' },
+      }));
+      component['setMode']('spread');
+
+      await component['handleSubmit']();
+
+      expect(dialogRef.close).toHaveBeenCalledWith({
+        mode: 'spread',
+        value: expect.objectContaining({
+          name: 'Assurance',
+          kind: 'expense',
+          mode: 'total',
+          totalAmount: 600,
+        }),
+      });
+      const { value: dto } = dialogRef.close.mock.calls[0][0];
+      expect(dto).not.toHaveProperty('perMonthAmount');
+      expect(dto.months).toHaveLength(6);
+    });
+
+    it('should submit a perMonth-mode spread payload when selected', async () => {
+      const { component, dialogRef } = configureDialog();
+      component['model'].update((m) => ({
+        ...m,
+        name: 'Assurance',
+        kind: 'expense',
+        money: { amount: 100, inputCurrency: 'CHF' },
+      }));
+      component['setMode']('spread');
+      component['setAmountMode']('perMonth');
+
+      await component['handleSubmit']();
+
+      expect(dialogRef.close).toHaveBeenCalledWith({
+        mode: 'spread',
+        value: expect.objectContaining({
+          mode: 'perMonth',
+          perMonthAmount: 100,
+        }),
+      });
+      const { value: dto } = dialogRef.close.mock.calls[0][0];
+      expect(dto).not.toHaveProperty('totalAmount');
+    });
+
+    it('should split an uneven total preserving the sum to the cent', () => {
+      const { component } = configureDialog();
+      component['model'].update((m) => ({
+        ...m,
+        money: { amount: 4000, inputCurrency: 'CHF' },
+      }));
+      component['setMode']('spread');
+      component['setEnd']('2026-8');
+
+      const amounts = component['breakdownRows']().map((row) => row.amount);
+
+      // Cents-preserving division (4000 / 3): the remainder cent lands on the
+      // first month so Σ === 4000 exactly. NOT integer-unit [1334, 1333, 1333].
+      expect(amounts).toEqual([1333.34, 1333.33, 1333.33]);
+      const sumCents = amounts.reduce((acc, a) => acc + Math.round(a * 100), 0);
+      expect(sumCents).toBe(400000);
+    });
+  });
+
   describe('currency create rules', () => {
     it('should initialize money slice with user currency', () => {
       const { component } = configureDialog({ userCurrency: 'EUR' });

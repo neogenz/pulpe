@@ -370,26 +370,31 @@ export type SpreadFromExistingPeriod = z.infer<
 /**
  * SPREAD — Création d'une dépense lissée sur plusieurs mois (PUL-17 / PUL-287).
  *
- * Le CLIENT envoie une INTENTION, pas des tranches : `perMonthAmount` (le montant
- * porté par chaque mois) + `months` (les mois cibles). Le SERVEUR construit les N
- * tranches `one_off` INDÉPENDANTES en RÉPLIQUANT cette intention par mois, puis fait
- * le fan-out. Interprétation B : pure réplication, AUCUNE division/redistribution —
- * chaque mois reçoit exactement `perMonthAmount` (et `perMonthOriginalAmount` en
- * full-FX). `kind` exclut `income` (revenu lissé hors scope V1).
+ * Le CLIENT envoie une INTENTION, pas des tranches. DEUX modes (`mode`) :
  *
- * Un SEUL `exchangeRate` figé à la saisie (FX gelé, RG-009) — répliqué tel quel sur
- * chaque tranche. En full-FX, `perMonthOriginalAmount` (unique) est répliqué en plein
- * sur chaque tranche (montant dans la devise d'origine). Le `spread_group_id` est
- * généré SERVEUR — jamais fourni par le client.
+ *   • `perMonth` — l'utilisateur saisit le montant porté par CHAQUE mois
+ *     (`perMonthAmount`). Le SERVEUR RÉPLIQUE ce montant sur chaque mois cible
+ *     (interprétation B : pure réplication, AUCUNE division — chaque mois reçoit
+ *     exactement `perMonthAmount`, et `perMonthOriginalAmount` en full-FX).
  *
- * NB : ce `perMonthAmount` (intention wire) est distinct du `perMonthAmount` du
+ *   • `total` — l'utilisateur saisit le montant TOTAL à lisser (`totalAmount`) et
+ *     sélectionne N mois. Le SERVEUR DIVISE ce total sur les N mois en préservant la
+ *     somme au centime (`splitTotalPreserving` : reste en centimes sur les PREMIERS
+ *     mois) → Σ tranches = `totalAmount` exactement. En full-FX, `totalOriginalAmount`
+ *     est divisé de la même façon (Σ originaux = `totalOriginalAmount`).
+ *
+ * `kind` exclut `income` (revenu lissé hors scope V1). Un SEUL `exchangeRate` figé à
+ * la saisie (FX gelé, RG-009) — partagé par tous les mois dans les deux modes. Le
+ * `spread_group_id` est généré SERVEUR — jamais fourni par le client.
+ *
+ * NB : `perMonthAmount` (intention wire) est distinct du `perMonthAmount` du
  * view-model spread-occurrence (montant représentatif reçu d'un groupe existant).
  */
 export const budgetLineSpreadCreateSchema = z
   .strictObject({
     name: z.string().min(1).max(100).trim(),
     kind: transactionKindSchema.exclude(['income']),
-    perMonthAmount: z.number().positive(),
+    mode: z.enum(['perMonth', 'total']),
     months: z
       .array(spreadFromExistingPeriodSchema)
       .min(1)
@@ -397,51 +402,92 @@ export const budgetLineSpreadCreateSchema = z
       .refine(hasUniqueSpreadPeriods, {
         message: 'Chaque mois cible ne peut apparaître qu’une fois.',
       }),
+    // mode `perMonth` — montant répliqué tel quel sur chaque mois
+    perMonthAmount: z.number().positive().optional(),
+    perMonthOriginalAmount: z.number().positive().optional(),
+    // mode `total` — montant divisé sur les mois côté serveur (Σ préservée)
+    totalAmount: z.number().positive().optional(),
+    totalOriginalAmount: z.number().positive().optional(),
+    // FX figé (RG-009), partagé par les deux modes
     originalCurrency: supportedCurrencySchema.optional(),
     targetCurrency: supportedCurrencySchema.optional(),
     exchangeRate: exchangeRateWirePositive.optional(),
-    perMonthOriginalAmount: z.number().positive().optional(),
   })
   /**
-   * FX coherence — mirrors the DB `fx_metadata_coherent` CHECK so an incoherent
-   * payload is rejected at the boundary (clean 400) instead of failing the
-   * all-or-nothing fan-out INSERT (generic 500). Every resulting `budget_line`
-   * row carries the shared currencies/rate + the replicated `perMonthOriginalAmount`,
-   * so exactly one of three FX states must hold:
-   *   1. no FX        — no currencies, no rate, no perMonthOriginalAmount
-   *   2. target-only  — targetCurrency set; originalCurrency/rate/perMonthOriginalAmount absent
-   *   3. full FX      — originalCurrency+targetCurrency+exchangeRate set, origin≠target,
-   *                     and perMonthOriginalAmount present
-   * The frozen rate is trusted as-is (RG-009) — never refetched here.
+   * Coherence — two cross-field invariants validated at the boundary so an
+   * incoherent payload is rejected with a clean 400 instead of failing the
+   * all-or-nothing fan-out INSERT (generic 500):
+   *
+   * (A) mode ⇄ amount: the mode's amount field is required, and mixing the other
+   *     mode's amount fields is forbidden (no `totalAmount` in `perMonth`, etc.).
+   *
+   * (B) FX triad (mirrors the DB `fx_metadata_coherent` CHECK), applied to the
+   *     mode-correct original-amount field (`perMonthOriginalAmount` or
+   *     `totalOriginalAmount`). Exactly one of three FX states must hold:
+   *       1. no FX        — no currencies, no rate, no original amount
+   *       2. target-only  — targetCurrency set; originalCurrency/rate/original amount absent
+   *       3. full FX      — originalCurrency+targetCurrency+exchangeRate set, origin≠target,
+   *                         and the mode's original amount present
+   *     The frozen rate is trusted as-is (RG-009) — never refetched here.
    */
   .superRefine((value, ctx) => {
+    const isPerMonth = value.mode === 'perMonth';
+    const baseAmount = isPerMonth ? value.perMonthAmount : value.totalAmount;
+    const originalAmount = isPerMonth
+      ? value.perMonthOriginalAmount
+      : value.totalOriginalAmount;
+    const wrongBaseAmount = isPerMonth
+      ? value.totalAmount
+      : value.perMonthAmount;
+    const wrongOriginalAmount = isPerMonth
+      ? value.totalOriginalAmount
+      : value.perMonthOriginalAmount;
+
+    // (A) mode ⇄ amount coherence
+    if (baseAmount == null) {
+      ctx.addIssue({
+        code: 'custom',
+        message: isPerMonth
+          ? 'perMonthAmount est requis en mode perMonth.'
+          : 'totalAmount est requis en mode total.',
+      });
+    }
+    if (wrongBaseAmount != null || wrongOriginalAmount != null) {
+      ctx.addIssue({
+        code: 'custom',
+        message:
+          'Champs de montant incompatibles avec le mode choisi (mélange perMonth/total interdit).',
+      });
+    }
+
+    // (B) FX triad on the mode-correct original amount
     const hasOriginalCurrency = value.originalCurrency != null;
     const hasTargetCurrency = value.targetCurrency != null;
     const hasRate = value.exchangeRate != null;
-    const hasPerMonthOriginalAmount = value.perMonthOriginalAmount != null;
+    const hasOriginalAmount = originalAmount != null;
 
     const noFx =
       !hasOriginalCurrency &&
       !hasTargetCurrency &&
       !hasRate &&
-      !hasPerMonthOriginalAmount;
+      !hasOriginalAmount;
     const targetOnly =
       hasTargetCurrency &&
       !hasOriginalCurrency &&
       !hasRate &&
-      !hasPerMonthOriginalAmount;
+      !hasOriginalAmount;
     const fullFx =
       hasTargetCurrency &&
       hasOriginalCurrency &&
       hasRate &&
-      hasPerMonthOriginalAmount &&
+      hasOriginalAmount &&
       value.originalCurrency !== value.targetCurrency;
 
     if (!noFx && !targetOnly && !fullFx) {
       ctx.addIssue({
         code: 'custom',
         message:
-          'Métadonnées de change incohérentes : fournis soit aucune métadonnée FX, soit targetCurrency seule, soit le quadruplet complet (originalCurrency, targetCurrency, exchangeRate avec devises distinctes + perMonthOriginalAmount).',
+          'Métadonnées de change incohérentes : fournis soit aucune métadonnée FX, soit targetCurrency seule, soit le quadruplet complet (originalCurrency, targetCurrency, exchangeRate avec devises distinctes + le montant original du mode).',
       });
     }
   });

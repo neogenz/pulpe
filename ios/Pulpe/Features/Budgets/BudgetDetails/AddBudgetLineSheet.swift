@@ -20,6 +20,7 @@ struct AddBudgetLineSheet: View {
     @State private var submitSuccessTrigger = false
     @State private var inputCurrency: SupportedCurrency = .chf
     @State private var mode: BudgetLineCreationMode = .once
+    @State private var amountMode: SpreadAmountMode = .total
     @State private var spreadCalculator: SpreadCalculator
 
     private let dependencies: AddBudgetLineDependencies
@@ -44,6 +45,13 @@ struct AddBudgetLineSheet: View {
     }
 
     private var isSpreadMode: Bool { mode == .spread }
+
+    /// Hero hint follows the amount mode in spread mode — "Montant total" when the
+    /// server divides, "Montant par mois" when it replicates. `nil` outside spread.
+    private var amountFieldHint: String? {
+        guard isSpreadMode else { return nil }
+        return amountMode == .total ? "Montant total" : "Montant par mois"
+    }
 
     private var canSubmit: Bool {
         guard !name.trimmingCharacters(in: .whitespaces).isEmpty,
@@ -79,7 +87,7 @@ struct AddBudgetLineSheet: View {
                 amountText: $amountText,
                 focus: $focusedField,
                 field: .amount,
-                hint: isSpreadMode ? "Montant par mois" : nil,
+                hint: amountFieldHint,
                 currency: inputCurrency,
                 accentColor: kind.color
             )
@@ -101,9 +109,11 @@ struct AddBudgetLineSheet: View {
             descriptionField
 
             if isSpreadMode {
+                SpreadAmountModeToggle(mode: $amountMode, accentColor: kind.color)
                 SpreadFormSection(
                     calculator: spreadCalculator,
-                    amountPerMonth: amount,
+                    amount: amount,
+                    amountMode: amountMode,
                     currency: inputCurrency,
                     accentColor: kind.color
                 )
@@ -241,6 +251,7 @@ struct AddBudgetLineSheet: View {
                     name: name,
                     kind: kind,
                     amount: amount,
+                    mode: amountMode,
                     conversion: conversion
                 )
             )

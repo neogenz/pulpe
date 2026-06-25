@@ -8,36 +8,44 @@ import Foundation
 /// invalidation fired, success-toast copy) without bootstrapping SwiftUI.
 enum AddBudgetLineSpreadLogic {
     /// Form inputs for one spread submit. FX is already resolved once upstream
-    /// (`conversion`) so a single frozen `exchangeRate` covers every month.
+    /// (`conversion`) so a single frozen `exchangeRate` covers every month. `mode`
+    /// decides whether `amount` is read as a per-month figure or the TOTAL.
     struct SubmitInput {
         let name: String
         let kind: TransactionKind
         let amount: Decimal
+        let mode: SpreadAmountMode
         let conversion: CurrencyConversion?
     }
 
-    /// Builds the `POST /budget-lines/spread` intent: the converted per-month
-    /// amount, the SELECTED months, and a single frozen `exchangeRate` +
-    /// `perMonthOriginalAmount` when multi-currency. The server replicates the
-    /// per-month amount into one tranche per month.
+    /// Builds the `POST /budget-lines/spread` intent: the converted amount, the
+    /// SELECTED months, and a single frozen `exchangeRate` + matching
+    /// `*OriginalAmount` when multi-currency. In `.total` mode the converted figure
+    /// is the TOTAL the server divides cents-preservingly; in `.perMonth` mode it is
+    /// the per-month amount the server replicates into one tranche per month.
     @MainActor
     static func buildCreate(
         calculator: SpreadCalculator,
         input: SubmitInput
     ) -> BudgetLineSpreadCreate {
-        let perMonth = input.conversion?.convertedAmount ?? input.amount
+        let convertedAmount = input.conversion?.convertedAmount ?? input.amount
+        let originalAmount = input.conversion?.originalAmount
         let months = calculator.selectedMonths.map {
             SpreadMonthRef(year: $0.year, month: $0.month)
         }
+        let isTotal = input.mode == .total
         return BudgetLineSpreadCreate(
             name: input.name.trimmingCharacters(in: .whitespaces),
             kind: input.kind,
-            perMonthAmount: perMonth,
+            mode: isTotal ? .total : .perMonth,
             months: months,
+            perMonthAmount: isTotal ? nil : convertedAmount,
+            perMonthOriginalAmount: isTotal ? nil : originalAmount,
+            totalAmount: isTotal ? convertedAmount : nil,
+            totalOriginalAmount: isTotal ? originalAmount : nil,
             originalCurrency: input.conversion?.originalCurrency,
             targetCurrency: input.conversion?.targetCurrency,
-            exchangeRate: input.conversion?.exchangeRate,
-            perMonthOriginalAmount: input.conversion?.originalAmount
+            exchangeRate: input.conversion?.exchangeRate
         )
     }
 

@@ -418,7 +418,8 @@ describe('BudgetApi', () => {
       const data = {
         name: 'Prime assurance',
         kind: 'expense' as const,
-        perMonthAmount: 100,
+        mode: 'total' as const,
+        totalAmount: 200,
         months: [
           { year: 2024, month: 3 },
           { year: 2024, month: 4 },

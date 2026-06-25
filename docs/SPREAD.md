@@ -8,24 +8,24 @@ Une grosse dépense irrégulière — prime d'assurance annuelle, impôts, gros 
 
 Avant le lissage, l'enum `recurrence` n'offrait que deux extrêmes : **Récurrent** (`fixed`, tous les mois indéfiniment) et **Prévu** (`one_off`, une seule fois, un seul mois). Aucun moyen de dire « pose 100 CHF/mois de janvier à juin, mais saute mars ».
 
-## Création additive V1 : interprétation B
+## Création additive : deux modes de saisie (`mode`)
 
-La création d'une nouvelle dépense lissée suit l'interprétation **B** :
+La création d'une nouvelle dépense lissée offre **deux modes**, un seul champ `mode` les discrimine. Les deux se matérialisent en **N prévisions `one_off` INDÉPENDANTES**, une par mois, partageant un `spread_group_id` (interprétation modèle inchangée — seule la saisie diffère) :
 
-| | A — Total ÷ N | **B — Montant/mois répliqué** ✅ |
+| | **`total` — Total ÷ N** ⭐ (défaut) | **`perMonth` — Montant/mois répliqué** |
 | -- | -- | -- |
-| Source de vérité | un total + fenêtre | N montants par mois |
-| Désélectionner un mois | ambigu (redistribuer ou trou ?) | trivial (on retire ce mois, les autres ne bougent pas) |
-| Arrondi | règle de reste nécessaire | aucun côté serveur |
-| Alignement modèle Pulpe | faible | **fort** (= N budgets indépendants) |
+| Source de vérité | un **total** + fenêtre | un **montant/mois** + fenêtre |
+| Le serveur… | **divise** `totalAmount` sur les N mois (`splitTotalPreserving`, Σ === total) | **réplique** `perMonthAmount` sur chaque mois |
+| Désélectionner un mois | la division se refait sur les mois restants | trivial (on retire ce mois, les autres ne bougent pas) |
+| Modèle mental | « j'ai une dépense de 4000, lisse-la sur 8 mois » | « je mets 500/mois pendant 8 mois » |
 
-Sous B, une dépense lissée se matérialise en **N prévisions `one_off` INDÉPENDANTES**, une par mois. « Lisser » est une **commodité de saisie**, pas un nouveau type de ligne ni une valeur de `recurrence`. Conséquence : toute la machinerie existante (chiffrement per-row, FX figé, rollover, consumption, édition/suppression par mois, pointage) fonctionne sans entité cross-mois.
+Le mode `total` est l'**interprétation A** (initialement différée dans le périmètre PUL-17, cf. Q1) : c'est le plus intuitif, défaut UI. Le mode `perMonth` est l'**interprétation B** d'origine, gardé en secondaire. « Lisser » reste une **commodité de saisie**, pas un nouveau type de ligne ni une valeur de `recurrence`. Toute la machinerie existante (chiffrement per-row, FX figé, rollover, consumption, édition/suppression par mois, pointage) fonctionne sans entité cross-mois.
 
-## Saisie V1 (client uniquement)
+## Saisie (client) + construction (serveur)
 
-L'utilisateur saisit un **montant par mois** et sélectionne les mois cibles. Le client choisit le montant par mois + les mois cibles ; désélectionner un mois le retire sans redistribuer les autres montants.
+L'utilisateur choisit le mode via un toggle (défaut `total`), saisit le montant correspondant et sélectionne les mois cibles. En mode `total`, le client divise **uniquement pour l'aperçu live** via `splitTotalPreserving` (l'aperçu égale le persisté, reste en centimes sur les premiers mois) ; en mode `perMonth`, l'aperçu est un simple `montant × n mois`.
 
-**Clé de voûte :** le serveur reste **agnostique du mode de saisie** — pour la création additive il reçoit `{perMonthAmount, months[]}` et **construit** lui-même les tranches (réplication pure, une par mois). Le PORT reste mode-agnostique : le flux v1.1 « lisser un existant » lui fournit des tranches déjà pré-réparties. Les modes pilotés par un total sont différés pour la création additive ; le flux v1.1 décrit plus bas est, lui, total-préservant.
+**Clé de voûte :** le serveur **construit lui-même les tranches** — il reçoit une INTENTION (`{mode, perMonthAmount|totalAmount, months[], FX?}`), jamais des tranches pré-calculées. `perMonth` → `buildSpreadTranches` (réplication) ; `total` → `buildSpreadTranchesFromTotal` (division `splitTotalPreserving`, Σ === total). Le flux v1.1 « lisser un existant » est lui aussi total-préservant et fournit ses propres tranches via le même PORT.
 
 ## Résolution du modèle (les 3 « formes de dépense »)
 
@@ -42,7 +42,7 @@ L'utilisateur saisit un **montant par mois** et sélectionne les mois cibles. Le
 
 ## Le fan-out (Lot A — le cœur)
 
-`POST /v1/budget-lines/spread` reçoit `{ name, kind, perMonthAmount, months[], FX? }` et retourne `{ spreadGroupId, lines, createdBudgets, skippedMonths }`. Le serveur réplique `perMonthAmount` (et `perMonthOriginalAmount` si FX) sur chaque `{year, month}` de `months[]` pour construire les tranches avant le fan-out.
+`POST /v1/budget-lines/spread` reçoit `{ name, kind, mode, perMonthAmount|totalAmount, months[], FX? }` et retourne `{ spreadGroupId, lines, createdBudgets, skippedMonths }`. Selon `mode`, le serveur **réplique** `perMonthAmount` ou **divise** `totalAmount` (`splitTotalPreserving`, Σ === total) sur chaque `{year, month}` de `months[]` pour construire les tranches avant le fan-out. En `total`, un mois non-provisionnable fait **échouer tout** (`fanOutStrict`, contrat Σ=total) ; en `perMonth`, le mois part dans `skippedMonths` (`fanOut` tolérant).
 
 1. **Auto-création des mois manquants** *(scope caché majeur)* : pour chaque `{year, month}` sans budget, on crée le `monthly_budget` depuis le **template par défaut** (`is_default`) de l'utilisateur. Chaque création est sa **propre transaction courte** (idempotente : un mois existant est réutilisé), **hors** de la transaction du fan-out. Pas de template par défaut → le mois part dans `skippedMonths` et ne reçoit aucune ligne.
 2. **Fan-out atomique** : un **seul** `INSERT … SELECT FROM jsonb_to_recordset(p_lines)` **set-based** (jamais une boucle PL/pgSQL) dans une RPC `SECURITY DEFINER` owner-only → **tout-ou-rien**. Chaque tranche est chiffrée via `ENCRYPTION_PORT` **dans le repository** avant l'appel ; `spread_group_id` (uuid, partagé, généré serveur) ne l'est jamais.

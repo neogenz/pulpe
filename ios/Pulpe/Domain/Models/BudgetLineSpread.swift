@@ -9,40 +9,58 @@ struct SpreadMonthRef: Encodable, Sendable {
     let month: Int
 }
 
+/// Which amount the user typed: a per-month figure (server replicates it) or a
+/// TOTAL the server divides cents-preservingly over the selected months (PUL-17
+/// dual-mode). The raw values are the wire contract — keep 1:1 with the backend.
+enum SpreadAmountKind: String, Encodable, Sendable {
+    case perMonth
+    case total
+}
+
 /// Request body for `POST /budget-lines/spread`. `kind` excludes `.income`
-/// (revenu lissé hors scope V1). The client sends a single `perMonthAmount`
-/// plus the selected `months`; the server builds tranches by replicating that
-/// amount per month. A single frozen FX trio (figé) covers every month;
-/// `perMonthOriginalAmount` is present only in full-FX (multi-currency) spreads.
+/// (revenu lissé hors scope V1). Two amount modes share this body (PUL-17 dual):
+/// - `mode == .perMonth`: `perMonthAmount` set, the server replicates it per month;
+/// - `mode == .total`: `totalAmount` set, the server divides it cents-preservingly.
+/// A single frozen FX trio (figé) covers every month; the `*OriginalAmount` mirror
+/// of the active amount is present only in full-FX (multi-currency) spreads.
 /// The `spreadGroupId` is generated server-side.
 struct BudgetLineSpreadCreate: Encodable, Sendable {
     let name: String
     let kind: TransactionKind
-    let perMonthAmount: Decimal
+    let mode: SpreadAmountKind
     let months: [SpreadMonthRef]
+    let perMonthAmount: Decimal?
+    let perMonthOriginalAmount: Decimal?
+    let totalAmount: Decimal?
+    let totalOriginalAmount: Decimal?
     let originalCurrency: SupportedCurrency?
     let targetCurrency: SupportedCurrency?
     let exchangeRate: Decimal?
-    let perMonthOriginalAmount: Decimal?
 
     init(
         name: String,
         kind: TransactionKind,
-        perMonthAmount: Decimal,
+        mode: SpreadAmountKind = .perMonth,
         months: [SpreadMonthRef],
+        perMonthAmount: Decimal? = nil,
+        perMonthOriginalAmount: Decimal? = nil,
+        totalAmount: Decimal? = nil,
+        totalOriginalAmount: Decimal? = nil,
         originalCurrency: SupportedCurrency? = nil,
         targetCurrency: SupportedCurrency? = nil,
-        exchangeRate: Decimal? = nil,
-        perMonthOriginalAmount: Decimal? = nil
+        exchangeRate: Decimal? = nil
     ) {
         self.name = name
         self.kind = kind
-        self.perMonthAmount = perMonthAmount
+        self.mode = mode
         self.months = months
+        self.perMonthAmount = perMonthAmount
+        self.perMonthOriginalAmount = perMonthOriginalAmount
+        self.totalAmount = totalAmount
+        self.totalOriginalAmount = totalOriginalAmount
         self.originalCurrency = originalCurrency
         self.targetCurrency = targetCurrency
         self.exchangeRate = exchangeRate
-        self.perMonthOriginalAmount = perMonthOriginalAmount
     }
 }
 

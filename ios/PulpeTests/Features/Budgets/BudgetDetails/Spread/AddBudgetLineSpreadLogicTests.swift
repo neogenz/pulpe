@@ -25,12 +25,15 @@ struct AddBudgetLineSpreadLogicTests {
 
         let data = AddBudgetLineSpreadLogic.buildCreate(
             calculator: calculator,
-            input: .init(name: "  Impôts  ", kind: .expense, amount: 80, conversion: nil)
+            input: .init(name: "  Impôts  ", kind: .expense, amount: 80, mode: .perMonth, conversion: nil)
         )
 
         #expect(data.name == "Impôts")
         #expect(data.kind == .expense)
+        #expect(data.mode == .perMonth)
         #expect(data.perMonthAmount == 80)
+        #expect(data.totalAmount == nil)
+        #expect(data.totalOriginalAmount == nil)
         #expect(data.months.map { TranchePair($0.year, $0.month) } == [
             TranchePair(2026, 11), TranchePair(2026, 12), TranchePair(2027, 1),
         ])
@@ -48,12 +51,61 @@ struct AddBudgetLineSpreadLogicTests {
 
         let data = AddBudgetLineSpreadLogic.buildCreate(
             calculator: calculator,
-            input: .init(name: "Loyer", kind: .expense, amount: 500, conversion: nil)
+            input: .init(name: "Loyer", kind: .expense, amount: 500, mode: .perMonth, conversion: nil)
         )
 
         #expect(data.months.map { TranchePair($0.year, $0.month) } == [
             TranchePair(2026, 1), TranchePair(2026, 3), TranchePair(2026, 4),
         ])
+    }
+
+    // MARK: - buildCreate: total mode emits totalAmount + mode "total"
+
+    @Test
+    func buildCreate_totalMode_sameCurrency_emitsTotalAmountAndModeTotal() {
+        let calculator = SpreadCalculator(anchorMonth: 1, anchorYear: 2026)
+        calculator.setEnd(SpreadMonth(year: 2026, month: 3)) // Jan, Feb, Mar
+
+        let data = AddBudgetLineSpreadLogic.buildCreate(
+            calculator: calculator,
+            input: .init(name: "Vacances", kind: .expense, amount: 90, mode: .total, conversion: nil)
+        )
+
+        #expect(data.mode == .total)
+        #expect(data.totalAmount == 90)
+        #expect(data.totalOriginalAmount == nil)
+        // Per-month fields are nil in total mode — the server divides.
+        #expect(data.perMonthAmount == nil)
+        #expect(data.perMonthOriginalAmount == nil)
+        #expect(data.months.count == 3)
+    }
+
+    @Test
+    func buildCreate_totalMode_multiCurrency_dividesBothTotals() {
+        let calculator = SpreadCalculator(anchorMonth: 1, anchorYear: 2026)
+        calculator.setEnd(SpreadMonth(year: 2026, month: 3)) // 3 months
+        let conversion = CurrencyConversion(
+            convertedAmount: 93,
+            originalAmount: 100,
+            originalCurrency: .eur,
+            targetCurrency: .chf,
+            exchangeRate: Decimal(string: "0.93") ?? 0
+        )
+
+        let data = AddBudgetLineSpreadLogic.buildCreate(
+            calculator: calculator,
+            input: .init(name: "Assurance", kind: .expense, amount: 100, mode: .total, conversion: conversion)
+        )
+
+        // FX figé: the converted total + the original total ride at request level.
+        #expect(data.mode == .total)
+        #expect(data.totalAmount == 93)
+        #expect(data.totalOriginalAmount == 100)
+        #expect(data.perMonthAmount == nil)
+        #expect(data.perMonthOriginalAmount == nil)
+        #expect(data.exchangeRate == Decimal(string: "0.93"))
+        #expect(data.originalCurrency == .eur)
+        #expect(data.targetCurrency == .chf)
     }
 
     // MARK: - buildCreate: single frozen FX shared across all months
@@ -72,10 +124,11 @@ struct AddBudgetLineSpreadLogicTests {
 
         let data = AddBudgetLineSpreadLogic.buildCreate(
             calculator: calculator,
-            input: .init(name: "Assurance", kind: .expense, amount: 100, conversion: conversion)
+            input: .init(name: "Assurance", kind: .expense, amount: 100, mode: .perMonth, conversion: conversion)
         )
 
         // One exchangeRate + one perMonthOriginalAmount at request level (FX figé).
+        #expect(data.mode == .perMonth)
         #expect(data.exchangeRate == Decimal(string: "0.93"))
         #expect(data.originalCurrency == .eur)
         #expect(data.targetCurrency == .chf)
@@ -83,6 +136,8 @@ struct AddBudgetLineSpreadLogicTests {
         // Converted (target) amount per month; single original repeated server-side.
         #expect(data.perMonthAmount == 93)
         #expect(data.perMonthOriginalAmount == 100)
+        #expect(data.totalAmount == nil)
+        #expect(data.totalOriginalAmount == nil)
     }
 
     // MARK: - Submit wiring: createSpread called + invalidation fired
@@ -105,7 +160,7 @@ struct AddBudgetLineSpreadLogicTests {
         // Mirror exactly what `AddBudgetLineSheet.addSpread()` does.
         let data = AddBudgetLineSpreadLogic.buildCreate(
             calculator: calculator,
-            input: .init(name: "Impôts", kind: .expense, amount: 80, conversion: nil)
+            input: .init(name: "Impôts", kind: .expense, amount: 80, mode: .perMonth, conversion: nil)
         )
         let response = try await dependencies.createSpread(data)
         dependencies.invalidateCrossBudgetCaches(BudgetListStore())
@@ -133,8 +188,9 @@ struct AddBudgetLineSpreadLogicTests {
         let data = BudgetLineSpreadCreate(
             name: "X",
             kind: .expense,
-            perMonthAmount: 80,
-            months: [SpreadMonthRef(year: 2026, month: 6)]
+            mode: .perMonth,
+            months: [SpreadMonthRef(year: 2026, month: 6)],
+            perMonthAmount: 80
         )
 
         // The view runs invalidation only AFTER a successful createSpread.

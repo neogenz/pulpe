@@ -38,7 +38,7 @@ struct BudgetLineSpreadRequestTests {
             SpreadMonthRef(year: $0.year, month: $0.month)
         }
         let body = BudgetLineSpreadCreate(
-            name: "Impôts", kind: .expense, perMonthAmount: 80, months: months
+            name: "Impôts", kind: .expense, mode: .perMonth, months: months, perMonthAmount: 80
         )
 
         let apiClient = makeAPIClient()
@@ -53,6 +53,7 @@ struct BudgetLineSpreadRequestTests {
         let decoded = try #require(recorder.decodedBody)
         #expect(decoded.kind == "expense")
         #expect(decoded.name == "Impôts")
+        #expect(decoded.mode == "perMonth")
         #expect(decoded.perMonthAmount == 80)
         // One month ref per selected month, ascending.
         #expect(decoded.months.map { TranchePair($0.year, $0.month) } == [
@@ -77,8 +78,9 @@ struct BudgetLineSpreadRequestTests {
         let body = BudgetLineSpreadCreate(
             name: "Épargne",
             kind: kind,
-            perMonthAmount: 200,
-            months: [SpreadMonthRef(year: 2026, month: 6)]
+            mode: .perMonth,
+            months: [SpreadMonthRef(year: 2026, month: 6)],
+            perMonthAmount: 200
         )
 
         let apiClient = makeAPIClient()
@@ -111,12 +113,13 @@ struct BudgetLineSpreadRequestTests {
         let body = BudgetLineSpreadCreate(
             name: "Assurance",
             kind: .expense,
-            perMonthAmount: 93,
+            mode: .perMonth,
             months: months,
+            perMonthAmount: 93,
+            perMonthOriginalAmount: 100,
             originalCurrency: .eur,
             targetCurrency: .chf,
-            exchangeRate: Decimal(string: "0.93"),
-            perMonthOriginalAmount: 100
+            exchangeRate: Decimal(string: "0.93")
         )
 
         let apiClient = makeAPIClient()
@@ -134,6 +137,47 @@ struct BudgetLineSpreadRequestTests {
         #expect(decoded.months.count == 3)
     }
 
+    // MARK: - Total mode: totalAmount serialized, perMonth fields omitted
+
+    @Test
+    func createSpread_totalMode_serializesTotalAmountAndOmitsPerMonth() async throws {
+        let recorder = RequestRecorder()
+        InterceptingURLProtocol.requestHandler = { request in
+            recorder.record(request)
+            return (makeHTTPResponse(for: request, statusCode: 200), Self.successResponseData())
+        }
+        defer { InterceptingURLProtocol.requestHandler = nil }
+
+        let body = BudgetLineSpreadCreate(
+            name: "Vacances",
+            kind: .expense,
+            mode: .total,
+            months: [
+                SpreadMonthRef(year: 2026, month: 6),
+                SpreadMonthRef(year: 2026, month: 7),
+                SpreadMonthRef(year: 2026, month: 8),
+            ],
+            totalAmount: 90
+        )
+
+        let apiClient = makeAPIClient()
+        let _: BudgetLineSpreadResponse = try await apiClient.request(
+            .budgetLinesSpread, body: body, method: .post
+        )
+
+        let decoded = try #require(recorder.decodedBody)
+        #expect(decoded.mode == "total")
+        #expect(decoded.totalAmount == 90)
+        // Per-month + FX keys are omitted (auto-synth Encodable drops nil).
+        #expect(decoded.perMonthAmount == nil)
+        #expect(decoded.perMonthOriginalAmount == nil)
+        #expect(decoded.totalOriginalAmount == nil)
+        #expect(decoded.exchangeRate == nil)
+        #expect(decoded.originalCurrency == nil)
+        #expect(decoded.targetCurrency == nil)
+        #expect(decoded.months.count == 3)
+    }
+
     @Test
     func createSpread_omitsFXFieldsForSameCurrencySpread() async throws {
         let recorder = RequestRecorder()
@@ -146,8 +190,9 @@ struct BudgetLineSpreadRequestTests {
         let body = BudgetLineSpreadCreate(
             name: "Loyer ponctuel",
             kind: .expense,
-            perMonthAmount: 500,
-            months: [SpreadMonthRef(year: 2026, month: 6)]
+            mode: .perMonth,
+            months: [SpreadMonthRef(year: 2026, month: 6)],
+            perMonthAmount: 500
         )
 
         let apiClient = makeAPIClient()
@@ -160,6 +205,8 @@ struct BudgetLineSpreadRequestTests {
         #expect(decoded.originalCurrency == nil)
         #expect(decoded.targetCurrency == nil)
         #expect(decoded.perMonthOriginalAmount == nil)
+        #expect(decoded.totalAmount == nil)
+        #expect(decoded.totalOriginalAmount == nil)
     }
 
     // MARK: - Response decoding
@@ -174,8 +221,9 @@ struct BudgetLineSpreadRequestTests {
         let body = BudgetLineSpreadCreate(
             name: "Impôts",
             kind: .expense,
-            perMonthAmount: 80,
-            months: [SpreadMonthRef(year: 2026, month: 6)]
+            mode: .perMonth,
+            months: [SpreadMonthRef(year: 2026, month: 6)],
+            perMonthAmount: 80
         )
 
         let apiClient = makeAPIClient()
@@ -201,8 +249,9 @@ struct BudgetLineSpreadRequestTests {
         let body = BudgetLineSpreadCreate(
             name: "Impôts",
             kind: .expense,
-            perMonthAmount: 80,
-            months: [SpreadMonthRef(year: 2026, month: 6)]
+            mode: .perMonth,
+            months: [SpreadMonthRef(year: 2026, month: 6)],
+            perMonthAmount: 80
         )
 
         let apiClient = makeAPIClient()
@@ -321,9 +370,12 @@ private struct DecodedSpreadBody: Decodable {
 
     let name: String
     let kind: String
-    let perMonthAmount: Decimal
+    let mode: String
     let months: [MonthRef]
+    let perMonthAmount: Decimal?
     let perMonthOriginalAmount: Decimal?
+    let totalAmount: Decimal?
+    let totalOriginalAmount: Decimal?
     let originalCurrency: String?
     let targetCurrency: String?
     let exchangeRate: Decimal?
