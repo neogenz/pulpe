@@ -413,14 +413,15 @@ describe('BudgetApi', () => {
   };
 
   describe('createBudgetLineSpread$', () => {
-    it('should POST to /budget-lines/spread with the tranches body and unwrap data', async () => {
+    it('should POST to /budget-lines/spread with the intent body and unwrap data', async () => {
       const { service, httpTesting } = createTestBed();
       const data = {
         name: 'Prime assurance',
         kind: 'expense' as const,
-        tranches: [
-          { year: 2024, month: 3, amount: 100 },
-          { year: 2024, month: 4, amount: 100 },
+        perMonthAmount: 100,
+        months: [
+          { year: 2024, month: 3 },
+          { year: 2024, month: 4 },
         ],
       };
 

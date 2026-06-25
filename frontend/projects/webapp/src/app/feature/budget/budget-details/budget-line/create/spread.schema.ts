@@ -9,19 +9,19 @@ import { conversionFormSchema } from '@core/currency';
  * Source of truth for the outgoing BudgetLineSpreadCreate DTO:
  * shared/schemas.ts (budgetLineSpreadCreateSchema).
  *
- * Interprétation B (PUL-17): the spread is fanned out client-side into one
- * tranche per SELECTED month, all sharing a single frozen `exchangeRate`. Each
- * tranche carries the SAME per-month amount (`perMonthAmount`, already
- * converted to the target currency at submit) — the server inserts them as N
- * independent `one_off` budget lines.
+ * Interprétation B (PUL-17, PUL-287): the client sends an INTENT, not tranches.
+ * It computes WHICH months are selected (`months`) and the per-month amount
+ * (`perMonthAmount`, already converted to the target currency at submit). The
+ * server replicates that per-month amount across every selected month into N
+ * independent `one_off` budget lines before the RPC fan-out.
  *
  * Form value shape:
  * - `name`, `kind` (income excluded — revenu lissé hors scope V1)
  * - `perMonthAmount`: the converted per-month amount (target currency)
  * - `months`: the selected `{year, month}` periods
  * - `conversion`: the single frozen FX metadata (null when no conversion);
- *   `conversion.originalAmount` is the per-month amount in the original currency
- *   and is replicated onto every tranche as `originalAmount`.
+ *   `conversion.originalAmount` maps to the top-level `perMonthOriginalAmount`,
+ *   which the server replicates per month.
  */
 
 const spreadMonthSchema = z.object({
@@ -39,22 +39,18 @@ export const budgetLineSpreadCreateFromFormSchema = z
   })
   .transform((input): BudgetLineSpreadCreate => {
     const conversion = input.conversion;
-    const tranches = input.months.map((period) => ({
-      year: period.year,
-      month: period.month,
-      amount: input.perMonthAmount,
-      ...(conversion ? { originalAmount: conversion.originalAmount } : {}),
-    }));
 
     return {
       name: input.name,
       kind: input.kind,
-      tranches,
+      perMonthAmount: input.perMonthAmount,
+      months: input.months,
       ...(conversion
         ? {
             originalCurrency: conversion.originalCurrency,
             targetCurrency: conversion.targetCurrency,
             exchangeRate: conversion.exchangeRate,
+            perMonthOriginalAmount: conversion.originalAmount,
           }
         : {}),
     };

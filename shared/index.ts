@@ -87,7 +87,6 @@ export {
   budgetLineDeleteResponseSchema,
 
   // Budget Line Spread schemas (PUL-17)
-  budgetLineSpreadTrancheSchema,
   budgetLineSpreadCreateSchema,
   budgetLineSpreadResponseSchema,
   spreadFromExistingPeriodSchema,
@@ -275,7 +274,6 @@ export type {
   BudgetLineDeleteResponse,
 
   // Budget Line Spread types (PUL-17)
-  BudgetLineSpreadTranche,
   BudgetLineSpreadCreate,
   BudgetLineSpreadResponse,
   SpreadFromExistingPeriod,

@@ -6,9 +6,12 @@ import Testing
 /// `BudgetLineService.createSpread`. The service is a thin pass-through to
 /// `APIClient.request(.budgetLinesSpread, body:, method: .post)`, so these tests
 /// drive a test-configured `APIClient` over the SAME encode/decode path:
-///   - the request body carries one tranche per selected month `{year, month, amount}`,
+///   - the request body carries a single `perMonthAmount` + one `months` ref
+///     `{year, month}` per selected month (ascending), which the server replicates
+///     into tranches,
 ///   - `kind` is expense|saving (income is never spread — model-level invariant),
-///   - a single frozen `exchangeRate` is shared across every tranche,
+///   - a single frozen `exchangeRate` + single `perMonthOriginalAmount` cover the
+///     whole spread; FX keys are absent for a same-currency spread,
 ///   - the `{ spreadGroupId, lines, createdBudgets, skippedMonths }` response decodes.
 @Suite("BudgetLineService.createSpread contract", .serialized)
 struct BudgetLineSpreadRequestTests {
@@ -18,10 +21,10 @@ struct BudgetLineSpreadRequestTests {
         self.baseURL = URL(string: "https://pulpe.test") ?? URL(fileURLWithPath: "/")
     }
 
-    // MARK: - Request body: one tranche per selected month
+    // MARK: - Request body: per-month amount + one month ref per selected month
 
     @Test
-    func createSpread_postsOneTranchePerSelectedMonth() async throws {
+    func createSpread_postsPerMonthAmountAndOneRefPerSelectedMonth() async throws {
         let recorder = RequestRecorder()
         InterceptingURLProtocol.requestHandler = { request in
             recorder.record(request)
@@ -31,8 +34,12 @@ struct BudgetLineSpreadRequestTests {
 
         let calculator = await SpreadCalculator(anchorMonth: 11, anchorYear: 2026)
         await calculator.setEnd(SpreadMonth(year: 2027, month: 1)) // Nov, Dec, Jan
-        let tranches = await calculator.buildTranches(amount: 80)
-        let body = BudgetLineSpreadCreate(name: "Impôts", kind: .expense, tranches: tranches)
+        let months = await calculator.selectedMonths.map {
+            SpreadMonthRef(year: $0.year, month: $0.month)
+        }
+        let body = BudgetLineSpreadCreate(
+            name: "Impôts", kind: .expense, perMonthAmount: 80, months: months
+        )
 
         let apiClient = makeAPIClient()
         let _: BudgetLineSpreadResponse = try await apiClient.request(
@@ -46,11 +53,11 @@ struct BudgetLineSpreadRequestTests {
         let decoded = try #require(recorder.decodedBody)
         #expect(decoded.kind == "expense")
         #expect(decoded.name == "Impôts")
-        #expect(decoded.tranches.count == 3)
-        #expect(decoded.tranches.map { TranchePair($0.year, $0.month) } == [
+        #expect(decoded.perMonthAmount == 80)
+        // One month ref per selected month, ascending.
+        #expect(decoded.months.map { TranchePair($0.year, $0.month) } == [
             TranchePair(2026, 11), TranchePair(2026, 12), TranchePair(2027, 1),
         ])
-        #expect(decoded.tranches.allSatisfy { $0.amount == 80 })
     }
 
     // MARK: - kind: expense | saving (income excluded)
@@ -70,7 +77,8 @@ struct BudgetLineSpreadRequestTests {
         let body = BudgetLineSpreadCreate(
             name: "Épargne",
             kind: kind,
-            tranches: [BudgetLineSpreadTranche(year: 2026, month: 6, amount: 200)]
+            perMonthAmount: 200,
+            months: [SpreadMonthRef(year: 2026, month: 6)]
         )
 
         let apiClient = makeAPIClient()
@@ -82,10 +90,10 @@ struct BudgetLineSpreadRequestTests {
         #expect(decoded.kind == expected)
     }
 
-    // MARK: - Single frozen exchangeRate shared across tranches
+    // MARK: - Single frozen exchangeRate + perMonthOriginalAmount for the whole spread
 
     @Test
-    func createSpread_sharesOneFrozenExchangeRateAcrossAllTranches() async throws {
+    func createSpread_sendsOneFrozenExchangeRateAndOnePerMonthOriginalAmount() async throws {
         let recorder = RequestRecorder()
         InterceptingURLProtocol.requestHandler = { request in
             recorder.record(request)
@@ -93,17 +101,22 @@ struct BudgetLineSpreadRequestTests {
         }
         defer { InterceptingURLProtocol.requestHandler = nil }
 
-        // Full-FX spread: amount is the converted (target) figure, originalAmount the input.
+        // Full-FX spread: perMonthAmount is the converted (target) figure,
+        // perMonthOriginalAmount the input — both single, replicated server-side.
         let calculator = await SpreadCalculator(anchorMonth: 1, anchorYear: 2026)
         await calculator.setEnd(SpreadMonth(year: 2026, month: 3)) // 3 months
-        let tranches = await calculator.buildTranches(amount: 93, originalAmount: 100)
+        let months = await calculator.selectedMonths.map {
+            SpreadMonthRef(year: $0.year, month: $0.month)
+        }
         let body = BudgetLineSpreadCreate(
             name: "Assurance",
             kind: .expense,
-            tranches: tranches,
+            perMonthAmount: 93,
+            months: months,
             originalCurrency: .eur,
             targetCurrency: .chf,
-            exchangeRate: Decimal(string: "0.93")
+            exchangeRate: Decimal(string: "0.93"),
+            perMonthOriginalAmount: 100
         )
 
         let apiClient = makeAPIClient()
@@ -112,14 +125,13 @@ struct BudgetLineSpreadRequestTests {
         )
 
         let decoded = try #require(recorder.decodedBody)
-        // Exactly ONE exchangeRate lives at the request level, not per tranche.
+        // Exactly ONE exchangeRate + ONE perMonthOriginalAmount at request level (FX figé).
         #expect(decoded.exchangeRate == Decimal(string: "0.93"))
+        #expect(decoded.perMonthOriginalAmount == 100)
+        #expect(decoded.perMonthAmount == 93)
         #expect(decoded.originalCurrency == "EUR")
         #expect(decoded.targetCurrency == "CHF")
-        #expect(decoded.tranches.count == 3)
-        // Every tranche shares the same converted/original pair (FX figé).
-        #expect(decoded.tranches.allSatisfy { $0.amount == 93 })
-        #expect(decoded.tranches.allSatisfy { $0.originalAmount == 100 })
+        #expect(decoded.months.count == 3)
     }
 
     @Test
@@ -134,7 +146,8 @@ struct BudgetLineSpreadRequestTests {
         let body = BudgetLineSpreadCreate(
             name: "Loyer ponctuel",
             kind: .expense,
-            tranches: [BudgetLineSpreadTranche(year: 2026, month: 6, amount: 500)]
+            perMonthAmount: 500,
+            months: [SpreadMonthRef(year: 2026, month: 6)]
         )
 
         let apiClient = makeAPIClient()
@@ -146,7 +159,7 @@ struct BudgetLineSpreadRequestTests {
         #expect(decoded.exchangeRate == nil)
         #expect(decoded.originalCurrency == nil)
         #expect(decoded.targetCurrency == nil)
-        #expect(decoded.tranches.first?.originalAmount == nil)
+        #expect(decoded.perMonthOriginalAmount == nil)
     }
 
     // MARK: - Response decoding
@@ -161,7 +174,8 @@ struct BudgetLineSpreadRequestTests {
         let body = BudgetLineSpreadCreate(
             name: "Impôts",
             kind: .expense,
-            tranches: [BudgetLineSpreadTranche(year: 2026, month: 6, amount: 80)]
+            perMonthAmount: 80,
+            months: [SpreadMonthRef(year: 2026, month: 6)]
         )
 
         let apiClient = makeAPIClient()
@@ -187,7 +201,8 @@ struct BudgetLineSpreadRequestTests {
         let body = BudgetLineSpreadCreate(
             name: "Impôts",
             kind: .expense,
-            tranches: [BudgetLineSpreadTranche(year: 2026, month: 6, amount: 80)]
+            perMonthAmount: 80,
+            months: [SpreadMonthRef(year: 2026, month: 6)]
         )
 
         let apiClient = makeAPIClient()
@@ -299,16 +314,16 @@ struct BudgetLineSpreadRequestTests {
 /// recorded request body (rather than reaching into the `Encodable`) proves the
 /// actual wire shape the backend receives.
 private struct DecodedSpreadBody: Decodable {
-    struct Tranche: Decodable {
+    struct MonthRef: Decodable {
         let year: Int
         let month: Int
-        let amount: Decimal
-        let originalAmount: Decimal?
     }
 
     let name: String
     let kind: String
-    let tranches: [Tranche]
+    let perMonthAmount: Decimal
+    let months: [MonthRef]
+    let perMonthOriginalAmount: Decimal?
     let originalCurrency: String?
     let targetCurrency: String?
     let exchangeRate: Decimal?

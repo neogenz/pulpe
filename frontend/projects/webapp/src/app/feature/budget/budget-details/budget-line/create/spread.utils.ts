@@ -1,10 +1,9 @@
 /**
  * Pure helpers for the "Lisser sur plusieurs mois" (PUL-17) entry flow.
  *
- * Interprétation B: the client enumerates the SELECTED months in the picked
- * range and the server receives concrete tranches `{year, month, amount}`.
- * The calculation lives 100% client-side — these helpers own the
- * range → months → selection mapping.
+ * Interprétation B: the client computes WHICH months are selected in the
+ * picked range; the server replicates the per-month amount across them. These
+ * helpers own the range → months → selection mapping.
  */
 
 export interface SpreadMonth {

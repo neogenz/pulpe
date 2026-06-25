@@ -4,11 +4,11 @@ import Foundation
 ///
 /// Lives in an `enum` namespace so `AddBudgetLineSheet` stays focused on layout +
 /// state, and unit tests can exercise the submit wiring (createSpread called with
-/// the right tranches, single frozen FX, cross-budget invalidation fired,
-/// success-toast copy) without bootstrapping SwiftUI.
+/// the right per-month amount + months, single frozen FX, cross-budget
+/// invalidation fired, success-toast copy) without bootstrapping SwiftUI.
 enum AddBudgetLineSpreadLogic {
     /// Form inputs for one spread submit. FX is already resolved once upstream
-    /// (`conversion`) so every tranche shares the same frozen `exchangeRate`.
+    /// (`conversion`) so a single frozen `exchangeRate` covers every month.
     struct SubmitInput {
         let name: String
         let kind: TransactionKind
@@ -16,26 +16,28 @@ enum AddBudgetLineSpreadLogic {
         let conversion: CurrencyConversion?
     }
 
-    /// Builds the `POST /budget-lines/spread` body: one tranche per SELECTED
-    /// month, the converted per-month amount, and a single frozen `exchangeRate`
-    /// + per-tranche `originalAmount` when multi-currency.
+    /// Builds the `POST /budget-lines/spread` intent: the converted per-month
+    /// amount, the SELECTED months, and a single frozen `exchangeRate` +
+    /// `perMonthOriginalAmount` when multi-currency. The server replicates the
+    /// per-month amount into one tranche per month.
     @MainActor
     static func buildCreate(
         calculator: SpreadCalculator,
         input: SubmitInput
     ) -> BudgetLineSpreadCreate {
         let perMonth = input.conversion?.convertedAmount ?? input.amount
-        let tranches = calculator.buildTranches(
-            amount: perMonth,
-            originalAmount: input.conversion?.originalAmount
-        )
+        let months = calculator.selectedMonths.map {
+            SpreadMonthRef(year: $0.year, month: $0.month)
+        }
         return BudgetLineSpreadCreate(
             name: input.name.trimmingCharacters(in: .whitespaces),
             kind: input.kind,
-            tranches: tranches,
+            perMonthAmount: perMonth,
+            months: months,
             originalCurrency: input.conversion?.originalCurrency,
             targetCurrency: input.conversion?.targetCurrency,
-            exchangeRate: input.conversion?.exchangeRate
+            exchangeRate: input.conversion?.exchangeRate,
+            perMonthOriginalAmount: input.conversion?.originalAmount
         )
     }
 

@@ -50,10 +50,11 @@ const makeDto = (
 ): BudgetLineSpreadCreate => ({
   name: 'Prime assurance',
   kind: 'expense',
-  tranches: [
-    { year: 2026, month: 1, amount: 100 },
-    { year: 2026, month: 2, amount: 100 },
-    { year: 2026, month: 3, amount: 100 },
+  perMonthAmount: 100,
+  months: [
+    { year: 2026, month: 1 },
+    { year: 2026, month: 2 },
+    { year: 2026, month: 3 },
   ],
   ...overrides,
 });
@@ -153,10 +154,10 @@ describe('CreateBudgetLineSpreadUseCase', () => {
 
   it('should NOT redistribute amounts across deselected months', async () => {
     const dto = makeDto({
-      tranches: [
-        { year: 2026, month: 1, amount: 100 },
-        { year: 2026, month: 2, amount: 100 },
-        { year: 2026, month: 4, amount: 100 },
+      months: [
+        { year: 2026, month: 1 },
+        { year: 2026, month: 2 },
+        { year: 2026, month: 4 },
       ],
     });
 
@@ -165,6 +166,12 @@ describe('CreateBudgetLineSpreadUseCase', () => {
     const { inputs } = captured[0];
     expect(inputs).toHaveLength(3);
     expect(inputs.every((i) => i.amount === 100)).toBe(true);
+    expect(inputs.some((i) => i.budgetId === 'b-3-2026')).toBe(false);
+    expect(inputs.map((i) => i.budgetId)).toEqual([
+      'b-1-2026',
+      'b-2-2026',
+      'b-4-2026',
+    ]);
   });
 
   it('should skip months with no budget and no default template', async () => {
@@ -176,9 +183,9 @@ describe('CreateBudgetLineSpreadUseCase', () => {
     });
 
     const dto = makeDto({
-      tranches: [
-        { year: 2026, month: 1, amount: 100 },
-        { year: 2026, month: 2, amount: 100 },
+      months: [
+        { year: 2026, month: 1 },
+        { year: 2026, month: 2 },
       ],
     });
 
@@ -196,20 +203,25 @@ describe('CreateBudgetLineSpreadUseCase', () => {
     expect(captured[0].spreadGroupId).not.toBe(captured[1].spreadGroupId);
   });
 
-  it('should freeze a single exchange rate across all tranches', async () => {
+  it('should freeze a single exchange rate and replicate the original amount across all tranches', async () => {
     const dto = makeDto({
+      perMonthAmount: 96,
       originalCurrency: 'EUR',
       targetCurrency: 'CHF',
       exchangeRate: 0.96,
-      tranches: [
-        { year: 2026, month: 1, amount: 96, originalAmount: 100 },
-        { year: 2026, month: 2, amount: 96, originalAmount: 100 },
+      perMonthOriginalAmount: 100,
+      months: [
+        { year: 2026, month: 1 },
+        { year: 2026, month: 2 },
       ],
     });
 
     await useCase.execute(dto, mockUser);
 
     const { inputs } = captured[0];
+    // Every row carries the identical frozen FX quadruplet — this is what the
+    // per-row DB `fx_metadata_coherent` CHECK requires across the spread group.
+    expect(inputs.every((i) => i.originalAmount === 100)).toBe(true);
     expect(inputs.every((i) => i.exchangeRate === 0.96)).toBe(true);
     expect(inputs.every((i) => i.originalCurrency === 'EUR')).toBe(true);
     expect(inputs.every((i) => i.targetCurrency === 'CHF')).toBe(true);

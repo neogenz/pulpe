@@ -267,9 +267,10 @@ describe('BudgetItemsContainer — orchestration', () => {
     const spread = {
       name: 'Prime',
       kind: 'expense' as const,
-      tranches: [
-        { year: 2026, month: 1, amount: 100 },
-        { year: 2026, month: 2, amount: 100 },
+      perMonthAmount: 100,
+      months: [
+        { year: 2026, month: 1 },
+        { year: 2026, month: 2 },
       ],
     };
     mockDialogService.openAddBudgetLineDialog.mockResolvedValue({

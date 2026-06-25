@@ -3,7 +3,7 @@ import Foundation
 import Testing
 
 /// PUL-17 Lot A — the reactive "Lisser" calculator (interpretation B: montant/mois
-/// répliqué). These tests pin the tranche/month math: window enumeration, per-month
+/// répliqué). These tests pin the selected-month math: window enumeration, per-month
 /// deselection WITHOUT redistribution, the 36-month cap, inverted-window blocking,
 /// the empty-selection block, and the `total = perMonth × selectedCount` echo.
 @Suite("SpreadCalculator")
@@ -35,9 +35,9 @@ struct SpreadCalculatorTests {
             SpreadMonth(year: 2026, month: 4),
             SpreadMonth(year: 2026, month: 5),
         ])
-        // The very first tranche lands in the anchored month, never in `Date()`.
-        #expect(sut.buildTranches(amount: 100).first?.month == 3)
-        #expect(sut.buildTranches(amount: 100).first?.year == 2026)
+        // The very first selected month is the anchored month, never `Date()`.
+        #expect(sut.selectedMonths.first?.month == 3)
+        #expect(sut.selectedMonths.first?.year == 2026)
     }
 
     @Test func windowMonths_enumeratesEveryMonthInclusiveAcrossYearBoundary() {
@@ -85,15 +85,15 @@ struct SpreadCalculatorTests {
         sut.setEnd(SpreadMonth(year: 2026, month: 3)) // 3 months
         let perMonth: Decimal = 100
 
-        let before = sut.buildTranches(amount: perMonth)
+        let before = sut.selectedCount
+        let totalBefore = sut.total(amountPerMonth: perMonth)
         sut.toggle(SpreadMonth(year: 2026, month: 2)) // drop the middle month
-        let after = sut.buildTranches(amount: perMonth)
 
-        #expect(before.count == 3)
-        #expect(after.count == 2)
-        // Each surviving tranche still carries the original per-month amount.
-        #expect(after.allSatisfy { $0.amount == perMonth })
-        // The total dropped by exactly one tranche's worth (no redistribution).
+        #expect(before == 3)
+        #expect(totalBefore == 300)
+        #expect(sut.selectedCount == 2)
+        // The total dropped by exactly one month's worth — no redistribution: the
+        // surviving months keep the SAME per-month amount.
         #expect(sut.total(amountPerMonth: perMonth) == 200)
     }
 
@@ -209,42 +209,27 @@ struct SpreadCalculatorTests {
         #expect(sut.validationMessage == nil)
     }
 
-    // MARK: - buildTranches output
+    // MARK: - selectedMonths output (intent the server replicates into tranches)
 
-    @Test func buildTranches_emitsOneConcreteTranchePerSelectedMonth() {
+    @Test func selectedMonths_enumeratesEverySelectedMonthAscending() {
         let sut = SpreadCalculator(anchorMonth: 11, anchorYear: 2026)
         sut.setEnd(SpreadMonth(year: 2027, month: 1)) // Nov, Dec, Jan
 
-        let tranches = sut.buildTranches(amount: 80)
-
-        #expect(tranches.count == 3)
-        #expect(tranches.map { Pair($0.year, $0.month) } == [
+        #expect(sut.selectedCount == 3)
+        #expect(sut.selectedMonths.map { Pair($0.year, $0.month) } == [
             Pair(2026, 11), Pair(2026, 12), Pair(2027, 1),
         ])
-        #expect(tranches.allSatisfy { $0.amount == 80 })
-        // No FX → originalAmount stays nil on every tranche.
-        #expect(tranches.allSatisfy { $0.originalAmount == nil })
+        // total = perMonth × selectedCount — pure replication, no division.
+        #expect(sut.total(amountPerMonth: 80) == 240)
     }
 
-    @Test func buildTranches_withOriginalAmount_setsItOnEveryTranche() {
-        let sut = SpreadCalculator(anchorMonth: 1, anchorYear: 2026)
-        sut.setEnd(SpreadMonth(year: 2026, month: 2))
-
-        let tranches = sut.buildTranches(amount: 93, originalAmount: 100)
-
-        #expect(tranches.count == 2)
-        #expect(tranches.allSatisfy { $0.amount == 93 })
-        #expect(tranches.allSatisfy { $0.originalAmount == 100 })
-    }
-
-    @Test func buildTranches_skipsDeselectedMonths() {
+    @Test func selectedMonths_skipsDeselectedMonths() {
         let sut = SpreadCalculator(anchorMonth: 1, anchorYear: 2026)
         sut.setEnd(SpreadMonth(year: 2026, month: 3))
         sut.toggle(SpreadMonth(year: 2026, month: 2))
 
-        let tranches = sut.buildTranches(amount: 50)
-
-        #expect(tranches.map { Pair($0.year, $0.month) } == [Pair(2026, 1), Pair(2026, 3)])
+        #expect(sut.selectedMonths.map { Pair($0.year, $0.month) } == [Pair(2026, 1), Pair(2026, 3)])
+        #expect(sut.selectedCount == 2)
     }
 }
 

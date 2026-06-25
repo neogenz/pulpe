@@ -20,8 +20,9 @@ export interface SpreadTranche {
 /**
  * Inputs for the reusable fan-out: a name/kind, the concrete tranches, and the
  * frozen FX metadata (all-or-nothing — either none, target-only, or the full
- * quadruplet, mirroring `fx_metadata_coherent`). Mode-agnostic: callers compute
- * the tranches; this port only inserts them.
+ * quadruplet, mirroring `fx_metadata_coherent`). Mode-agnostic: callers supply
+ * concrete tranches (the additive flow builds them from the per-month intent;
+ * the spread-from flows split a total); this port only inserts them.
  */
 export interface SpreadFanOutInput {
   name: string;

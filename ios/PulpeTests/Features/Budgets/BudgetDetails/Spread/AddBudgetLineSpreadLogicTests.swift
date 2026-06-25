@@ -7,18 +7,19 @@ import Testing
 /// `AddBudgetLineSheet.addSpread()` is a thin orchestration over
 /// `AddBudgetLineSpreadLogic` + the injectable `AddBudgetLineDependencies`. These
 /// tests drive that exact contract without bootstrapping SwiftUI:
-///   - `buildCreate` emits one tranche per SELECTED month, a single frozen
-///     `exchangeRate`, and per-tranche `originalAmount` only for multi-currency,
+///   - `buildCreate` sends the per-month amount + one month ref per SELECTED
+///     month, a single frozen `exchangeRate`, and a single
+///     `perMonthOriginalAmount` only for multi-currency,
 ///   - submitting calls `createSpread` with that body AND fires the cross-budget
 ///     invalidation on success,
 ///   - the success toast carries the base copy + conditional suffixes.
 @Suite("AddBudgetLine spread submit wiring")
 @MainActor
 struct AddBudgetLineSpreadLogicTests {
-    // MARK: - buildCreate: one tranche per selected month, same-currency
+    // MARK: - buildCreate: per-month amount + one month ref per selected month, same-currency
 
     @Test
-    func buildCreate_sameCurrency_emitsOneTranchePerSelectedMonth() {
+    func buildCreate_sameCurrency_sendsPerMonthAmountAndOneRefPerSelectedMonth() {
         let calculator = SpreadCalculator(anchorMonth: 11, anchorYear: 2026)
         calculator.setEnd(SpreadMonth(year: 2027, month: 1)) // Nov, Dec, Jan
 
@@ -29,12 +30,11 @@ struct AddBudgetLineSpreadLogicTests {
 
         #expect(data.name == "Impôts")
         #expect(data.kind == .expense)
-        #expect(data.tranches.count == 3)
-        #expect(data.tranches.map { TranchePair($0.year, $0.month) } == [
+        #expect(data.perMonthAmount == 80)
+        #expect(data.months.map { TranchePair($0.year, $0.month) } == [
             TranchePair(2026, 11), TranchePair(2026, 12), TranchePair(2027, 1),
         ])
-        #expect(data.tranches.allSatisfy { $0.amount == 80 })
-        #expect(data.tranches.allSatisfy { $0.originalAmount == nil })
+        #expect(data.perMonthOriginalAmount == nil)
         #expect(data.exchangeRate == nil)
         #expect(data.originalCurrency == nil)
         #expect(data.targetCurrency == nil)
@@ -51,16 +51,15 @@ struct AddBudgetLineSpreadLogicTests {
             input: .init(name: "Loyer", kind: .expense, amount: 500, conversion: nil)
         )
 
-        #expect(data.tranches.count == 3)
-        #expect(data.tranches.map { TranchePair($0.year, $0.month) } == [
+        #expect(data.months.map { TranchePair($0.year, $0.month) } == [
             TranchePair(2026, 1), TranchePair(2026, 3), TranchePair(2026, 4),
         ])
     }
 
-    // MARK: - buildCreate: single frozen FX shared across tranches
+    // MARK: - buildCreate: single frozen FX shared across all months
 
     @Test
-    func buildCreate_multiCurrency_freezesOneExchangeRateAcrossTranches() {
+    func buildCreate_multiCurrency_freezesOneExchangeRateForAllMonths() {
         let calculator = SpreadCalculator(anchorMonth: 1, anchorYear: 2026)
         calculator.setEnd(SpreadMonth(year: 2026, month: 3)) // 3 months
         let conversion = CurrencyConversion(
@@ -76,20 +75,20 @@ struct AddBudgetLineSpreadLogicTests {
             input: .init(name: "Assurance", kind: .expense, amount: 100, conversion: conversion)
         )
 
-        // One exchangeRate at request level, not per tranche.
+        // One exchangeRate + one perMonthOriginalAmount at request level (FX figé).
         #expect(data.exchangeRate == Decimal(string: "0.93"))
         #expect(data.originalCurrency == .eur)
         #expect(data.targetCurrency == .chf)
-        #expect(data.tranches.count == 3)
-        // Converted (target) amount on every tranche; original repeated (FX figé).
-        #expect(data.tranches.allSatisfy { $0.amount == 93 })
-        #expect(data.tranches.allSatisfy { $0.originalAmount == 100 })
+        #expect(data.months.count == 3)
+        // Converted (target) amount per month; single original repeated server-side.
+        #expect(data.perMonthAmount == 93)
+        #expect(data.perMonthOriginalAmount == 100)
     }
 
     // MARK: - Submit wiring: createSpread called + invalidation fired
 
     @Test
-    func submit_callsCreateSpreadWithTranches_andFiresInvalidationOnSuccess() async throws {
+    func submit_callsCreateSpreadWithPerMonthAmountAndMonths_andFiresInvalidationOnSuccess() async throws {
         let calculator = SpreadCalculator(anchorMonth: 6, anchorYear: 2026)
         calculator.setEnd(SpreadMonth(year: 2026, month: 8)) // Jun, Jul, Aug
 
@@ -112,8 +111,10 @@ struct AddBudgetLineSpreadLogicTests {
         dependencies.invalidateCrossBudgetCaches(BudgetListStore())
 
         let captured = try #require(recorder.captured)
-        #expect(captured.tranches.count == 3)
-        #expect(captured.tranches.allSatisfy { $0.amount == 80 })
+        #expect(captured.perMonthAmount == 80)
+        #expect(captured.months.map { TranchePair($0.year, $0.month) } == [
+            TranchePair(2026, 6), TranchePair(2026, 7), TranchePair(2026, 8),
+        ])
         #expect(captured.name == "Impôts")
         #expect(captured.kind == .expense)
         #expect(recorder.invalidationFired)
@@ -132,7 +133,8 @@ struct AddBudgetLineSpreadLogicTests {
         let data = BudgetLineSpreadCreate(
             name: "X",
             kind: .expense,
-            tranches: [BudgetLineSpreadTranche(year: 2026, month: 6, amount: 80)]
+            perMonthAmount: 80,
+            months: [SpreadMonthRef(year: 2026, month: 6)]
         )
 
         // The view runs invalidation only AFTER a successful createSpread.

@@ -5,7 +5,7 @@ import Foundation
 /// The user picks an amount-per-month and a `De → À` window; every month in the
 /// window starts selected and can be individually deselected. The total is simply
 /// `amountPerMonth × selectedCount` — no division, no rounding (RG: interpretation B).
-/// `buildTranches(amount:)` emits one concrete tranche per selected month.
+/// `selectedMonths` feeds the per-month + months intent the server replicates into tranches.
 @Observable @MainActor
 final class SpreadCalculator {
     /// Maximum number of tranches accepted by the backend (mirrors `MAX_SPREAD_TRANCHES`).
@@ -89,19 +89,5 @@ final class SpreadCalculator {
     private func pruneDeselections() {
         let windowOrdinals = Set(windowMonths.map(\.ordinal))
         deselectedOrdinals.formIntersection(windowOrdinals)
-    }
-
-    // MARK: - Output
-
-    /// One tranche per selected month. `originalAmount` is set only for full-FX spreads.
-    func buildTranches(amount: Decimal, originalAmount: Decimal? = nil) -> [BudgetLineSpreadTranche] {
-        selectedMonths.map { month in
-            BudgetLineSpreadTranche(
-                year: month.year,
-                month: month.month,
-                amount: amount,
-                originalAmount: originalAmount
-            )
-        }
     }
 }

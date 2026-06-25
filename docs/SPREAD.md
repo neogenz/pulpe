@@ -23,9 +23,9 @@ Sous B, une dépense lissée se matérialise en **N prévisions `one_off` INDÉP
 
 ## Saisie V1 (client uniquement)
 
-L'utilisateur saisit un **montant par mois** et sélectionne les mois cibles. Le client produit les tranches concrètes ; désélectionner un mois le retire sans redistribuer les autres montants.
+L'utilisateur saisit un **montant par mois** et sélectionne les mois cibles. Le client choisit le montant par mois + les mois cibles ; désélectionner un mois le retire sans redistribuer les autres montants.
 
-**Clé de voûte :** le serveur reste **agnostique du mode de saisie** — il reçoit des **tranches concrètes** `[{year, month, amount}]` et les insère telles quelles. Les modes pilotés par un total sont différés pour la création additive ; le flux v1.1 « lisser un existant » décrit plus bas est, lui, total-préservant.
+**Clé de voûte :** le serveur reste **agnostique du mode de saisie** — pour la création additive il reçoit `{perMonthAmount, months[]}` et **construit** lui-même les tranches (réplication pure, une par mois). Le PORT reste mode-agnostique : le flux v1.1 « lisser un existant » lui fournit des tranches déjà pré-réparties. Les modes pilotés par un total sont différés pour la création additive ; le flux v1.1 décrit plus bas est, lui, total-préservant.
 
 ## Résolution du modèle (les 3 « formes de dépense »)
 
@@ -42,7 +42,7 @@ L'utilisateur saisit un **montant par mois** et sélectionne les mois cibles. Le
 
 ## Le fan-out (Lot A — le cœur)
 
-`POST /v1/budget-lines/spread` reçoit `{ name, kind, tranches[], FX? }` et retourne `{ spreadGroupId, lines, createdBudgets, skippedMonths }`.
+`POST /v1/budget-lines/spread` reçoit `{ name, kind, perMonthAmount, months[], FX? }` et retourne `{ spreadGroupId, lines, createdBudgets, skippedMonths }`. Le serveur réplique `perMonthAmount` (et `perMonthOriginalAmount` si FX) sur chaque `{year, month}` de `months[]` pour construire les tranches avant le fan-out.
 
 1. **Auto-création des mois manquants** *(scope caché majeur)* : pour chaque `{year, month}` sans budget, on crée le `monthly_budget` depuis le **template par défaut** (`is_default`) de l'utilisateur. Chaque création est sa **propre transaction courte** (idempotente : un mois existant est réutilisé), **hors** de la transaction du fan-out. Pas de template par défaut → le mois part dans `skippedMonths` et ne reçoit aucune ligne.
 2. **Fan-out atomique** : un **seul** `INSERT … SELECT FROM jsonb_to_recordset(p_lines)` **set-based** (jamais une boucle PL/pgSQL) dans une RPC `SECURITY DEFINER` owner-only → **tout-ou-rien**. Chaque tranche est chiffrée via `ENCRYPTION_PORT` **dans le repository** avant l'appel ; `spread_group_id` (uuid, partagé, généré serveur) ne l'est jamais.

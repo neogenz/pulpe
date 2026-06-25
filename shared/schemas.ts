@@ -348,29 +348,6 @@ export type BudgetLineUpdate = z.infer<typeof budgetLineUpdateSchema>;
 
 const MAX_SPREAD_TRANCHES = 36;
 
-/**
- * SPREAD — Lissage d'une dépense sur plusieurs mois (PUL-17).
- *
- * Interprétation B : une dépense lissée se matérialise en N prévisions `one_off`
- * INDÉPENDANTES, une par mois, partageant un même `spread_group_id`. Le calcul
- * (montant/mois ⇄ total ⇄ fenêtre, modes réactifs) vit côté CLIENT ; le serveur
- * reçoit des tranches CONCRÈTES `{year, month, amount}` et fait le fan-out tel quel.
- * Le contrat est volontairement agnostique du mode de saisie — ajouter un mode
- * futur ne change pas le backend.
- *
- * Une tranche = un mois cible + son montant (déjà arrondi côté client).
- * `originalAmount` est présent en multi-devise (montant dans la devise d'origine).
- */
-export const budgetLineSpreadTrancheSchema = z.object({
-  year: z.number().int().min(MIN_YEAR).max(MAX_YEAR),
-  month: z.number().int().min(MONTH_MIN).max(MONTH_MAX),
-  amount: z.number().positive(),
-  originalAmount: z.number().positive().optional(),
-});
-export type BudgetLineSpreadTranche = z.infer<
-  typeof budgetLineSpreadTrancheSchema
->;
-
 const hasUniqueSpreadPeriods = (
   periods: readonly { year: number; month: number }[],
 ): boolean =>
@@ -378,16 +355,43 @@ const hasUniqueSpreadPeriods = (
   periods.length;
 
 /**
- * Création d'une dépense lissée. `kind` exclut `income` (revenu lissé hors scope V1).
- * Un SEUL `exchangeRate` figé à la saisie est partagé par toutes les tranches (FX gelé).
- * Le `spread_group_id` est généré SERVEUR — jamais fourni par le client.
+ * Un mois cible `{year, month}` — bornes MIN_YEAR/MAX_YEAR/MONTH partagées par
+ * la création additive (`budgetLineSpreadCreateSchema.months`) et le lissage
+ * d'une source existante (`*SpreadFrom*CreateSchema.periods`).
+ */
+export const spreadFromExistingPeriodSchema = z.object({
+  year: z.number().int().min(MIN_YEAR).max(MAX_YEAR),
+  month: z.number().int().min(MONTH_MIN).max(MONTH_MAX),
+});
+export type SpreadFromExistingPeriod = z.infer<
+  typeof spreadFromExistingPeriodSchema
+>;
+
+/**
+ * SPREAD — Création d'une dépense lissée sur plusieurs mois (PUL-17 / PUL-287).
+ *
+ * Le CLIENT envoie une INTENTION, pas des tranches : `perMonthAmount` (le montant
+ * porté par chaque mois) + `months` (les mois cibles). Le SERVEUR construit les N
+ * tranches `one_off` INDÉPENDANTES en RÉPLIQUANT cette intention par mois, puis fait
+ * le fan-out. Interprétation B : pure réplication, AUCUNE division/redistribution —
+ * chaque mois reçoit exactement `perMonthAmount` (et `perMonthOriginalAmount` en
+ * full-FX). `kind` exclut `income` (revenu lissé hors scope V1).
+ *
+ * Un SEUL `exchangeRate` figé à la saisie (FX gelé, RG-009) — répliqué tel quel sur
+ * chaque tranche. En full-FX, `perMonthOriginalAmount` (unique) est répliqué en plein
+ * sur chaque tranche (montant dans la devise d'origine). Le `spread_group_id` est
+ * généré SERVEUR — jamais fourni par le client.
+ *
+ * NB : ce `perMonthAmount` (intention wire) est distinct du `perMonthAmount` du
+ * view-model spread-occurrence (montant représentatif reçu d'un groupe existant).
  */
 export const budgetLineSpreadCreateSchema = z
   .strictObject({
     name: z.string().min(1).max(100).trim(),
     kind: transactionKindSchema.exclude(['income']),
-    tranches: z
-      .array(budgetLineSpreadTrancheSchema)
+    perMonthAmount: z.number().positive(),
+    months: z
+      .array(spreadFromExistingPeriodSchema)
       .min(1)
       .max(MAX_SPREAD_TRANCHES)
       .refine(hasUniqueSpreadPeriods, {
@@ -396,52 +400,48 @@ export const budgetLineSpreadCreateSchema = z
     originalCurrency: supportedCurrencySchema.optional(),
     targetCurrency: supportedCurrencySchema.optional(),
     exchangeRate: exchangeRateWirePositive.optional(),
+    perMonthOriginalAmount: z.number().positive().optional(),
   })
   /**
    * FX coherence — mirrors the DB `fx_metadata_coherent` CHECK so an incoherent
    * payload is rejected at the boundary (clean 400) instead of failing the
    * all-or-nothing fan-out INSERT (generic 500). Every resulting `budget_line`
-   * row carries the shared currencies/rate + its tranche's `originalAmount`, so
-   * exactly one of three states must hold for ALL tranches:
-   *   1. no FX        — no currencies, no rate, no tranche originalAmount
-   *   2. target-only  — targetCurrency set; originalCurrency/rate/originalAmount absent
+   * row carries the shared currencies/rate + the replicated `perMonthOriginalAmount`,
+   * so exactly one of three FX states must hold:
+   *   1. no FX        — no currencies, no rate, no perMonthOriginalAmount
+   *   2. target-only  — targetCurrency set; originalCurrency/rate/perMonthOriginalAmount absent
    *   3. full FX      — originalCurrency+targetCurrency+exchangeRate set, origin≠target,
-   *                     and EVERY tranche carries originalAmount
+   *                     and perMonthOriginalAmount present
    * The frozen rate is trusted as-is (RG-009) — never refetched here.
    */
   .superRefine((value, ctx) => {
     const hasOriginalCurrency = value.originalCurrency != null;
     const hasTargetCurrency = value.targetCurrency != null;
     const hasRate = value.exchangeRate != null;
-    const anyTrancheOriginal = value.tranches.some(
-      (tranche) => tranche.originalAmount != null,
-    );
-    const allTranchesOriginal = value.tranches.every(
-      (tranche) => tranche.originalAmount != null,
-    );
+    const hasPerMonthOriginalAmount = value.perMonthOriginalAmount != null;
 
     const noFx =
       !hasOriginalCurrency &&
       !hasTargetCurrency &&
       !hasRate &&
-      !anyTrancheOriginal;
+      !hasPerMonthOriginalAmount;
     const targetOnly =
       hasTargetCurrency &&
       !hasOriginalCurrency &&
       !hasRate &&
-      !anyTrancheOriginal;
+      !hasPerMonthOriginalAmount;
     const fullFx =
       hasTargetCurrency &&
       hasOriginalCurrency &&
       hasRate &&
-      value.originalCurrency !== value.targetCurrency &&
-      allTranchesOriginal;
+      hasPerMonthOriginalAmount &&
+      value.originalCurrency !== value.targetCurrency;
 
     if (!noFx && !targetOnly && !fullFx) {
       ctx.addIssue({
         code: 'custom',
         message:
-          'Métadonnées de change incohérentes : fournis soit aucune métadonnée FX, soit targetCurrency seule, soit le quadruplet complet (originalCurrency, targetCurrency, exchangeRate avec devises distinctes + originalAmount sur chaque tranche).',
+          'Métadonnées de change incohérentes : fournis soit aucune métadonnée FX, soit targetCurrency seule, soit le quadruplet complet (originalCurrency, targetCurrency, exchangeRate avec devises distinctes + perMonthOriginalAmount).',
       });
     }
   });
@@ -477,20 +477,13 @@ export type BudgetLineSpreadResponse = z.infer<
  * DÉJÀ existante (prévision OU transaction). Le montant total `T` de la source
  * est REDISTRIBUÉ en N tranches `one_off` de `T/N` (Σ = T exactement, reste en
  * centimes sur les PREMIERS mois, mois courant M0 inclus). Contrairement à la
- * création additive (`budgetLineSpreadCreateSchema`, le client envoie les
- * montants), ici le client n'envoie QUE les mois cibles : le serveur lit `T`
- * (montant déchiffré de la source, autorité unique → Σ=T ingarantissable côté
- * client), calcule le split, hérite le FX figé de la source, fait le fan-out,
- * puis SUPPRIME la source. La fenêtre démarre à M0 vers le FUTUR (jamais le
- * passé). N ≥ 2 (lisser sur 1 mois = no-op).
+ * création additive (`budgetLineSpreadCreateSchema`, où le client envoie le
+ * montant par mois + les mois et le serveur RÉPLIQUE), ici le client n'envoie QUE
+ * les mois cibles : le serveur lit `T` (montant déchiffré de la source, autorité
+ * unique → Σ=T ingarantissable côté client), calcule le SPLIT `T/N`, hérite le FX
+ * figé de la source, fait le fan-out, puis SUPPRIME la source. La fenêtre démarre
+ * à M0 vers le FUTUR (jamais le passé). N ≥ 2 (lisser sur 1 mois = no-op).
  */
-export const spreadFromExistingPeriodSchema = z.object({
-  year: z.number().int().min(MIN_YEAR).max(MAX_YEAR),
-  month: z.number().int().min(MONTH_MIN).max(MONTH_MAX),
-});
-export type SpreadFromExistingPeriod = z.infer<
-  typeof spreadFromExistingPeriodSchema
->;
 
 /**
  * Lisser une PRÉVISION existante (`POST /budget-lines/:id/spread`).

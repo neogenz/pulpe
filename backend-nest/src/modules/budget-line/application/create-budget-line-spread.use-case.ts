@@ -34,6 +34,7 @@ import type {
   BudgetLineCreateInput,
   SpreadDeleteSource,
 } from '../domain/budget-line.entity';
+import { buildSpreadTranches } from '../domain/spread-additive.formulas';
 
 export interface CreateSpreadResult {
   spreadGroupId: string;
@@ -45,8 +46,10 @@ export interface CreateSpreadResult {
 /**
  * Fans a smoothed expense out into N independent `one_off` budget lines, one per
  * month, sharing a single server-generated `spread_group_id` (PUL-17 Lot A,
- * interpretation B). The per-month amounts arrive already computed from the
- * caller — this use case is mode-agnostic.
+ * interpretation B). The additive create flow now BUILDS its tranches server-side
+ * from the per-month intent (`{perMonthAmount, months}`, PUL-287) via
+ * `buildSpreadTranches`; the PORT (`fanOut`/`fanOutStrict`) stays mode-agnostic —
+ * the spread-from flows feed it pre-split tranches instead.
  *
  * Two entry points share the SAME fan-out core:
  * - `execute()` — the additive create flow (POST /budget-lines/spread): tolerates
@@ -85,12 +88,11 @@ export class CreateBudgetLineSpreadUseCase implements BudgetLineSpreadPort {
       {
         name: dto.name,
         kind: dto.kind,
-        tranches: dto.tranches.map((tranche) => ({
-          year: tranche.year,
-          month: tranche.month,
-          amount: tranche.amount,
-          originalAmount: tranche.originalAmount ?? null,
-        })),
+        tranches: buildSpreadTranches(
+          dto.perMonthAmount,
+          dto.months,
+          dto.perMonthOriginalAmount ?? null,
+        ),
         originalCurrency: dto.originalCurrency ?? null,
         targetCurrency: dto.targetCurrency ?? null,
         exchangeRate: dto.exchangeRate ?? null,
