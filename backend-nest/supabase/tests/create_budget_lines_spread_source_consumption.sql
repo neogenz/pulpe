@@ -113,9 +113,16 @@ BEGIN
     );
   EXCEPTION WHEN OTHERS THEN
     v_caught := true;
+    v_errmsg := SQLERRM;
   END;
   IF NOT v_caught THEN
     RAISE EXCEPTION 'FAIL: providing both source kinds did not raise';
+  END IF;
+  -- Pin the guard: passing two source kinds must trip the num_nonnulls check
+  -- (raised before any DELETE), NOT the source-not-found path — otherwise the
+  -- random UUIDs would make this test pass for the wrong reason.
+  IF v_errmsg NOT LIKE '%Exactly one spread source type is allowed%' THEN
+    RAISE EXCEPTION 'FAIL: expected dual-source guard, got %', v_errmsg;
   END IF;
 
   SELECT count(*) INTO v_count
