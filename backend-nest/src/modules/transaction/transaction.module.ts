@@ -24,6 +24,13 @@ import { SpreadTransactionFromTxnUseCase } from './application/spread-transactio
     BudgetModule,
     // forwardRef: BudgetLineModule imports TransactionModule (for TransactionMapper),
     // and this module needs BUDGET_LINE_SPREAD_PORT + BudgetLineMapper from it.
+    //
+    // TRADE-OFF (interim — PUL-288): this budget-line ↔ transaction cycle is a
+    // documented violation of `no-cross-module-direct` (ADR-0002), caused by the
+    // cross-module mapper imports on both sides. `forwardRef` is the accepted
+    // controlled-coupling stop-gap UNTIL PUL-288 extracts an `allocation` domain
+    // module both sides depend on one-way — at which point this forwardRef is
+    // removed and the lint rule is promoted warn→error. Do NOT build on this cycle.
     forwardRef(() => BudgetLineModule),
     CurrencyModule,
     EncryptionModule,

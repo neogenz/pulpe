@@ -33,6 +33,13 @@ import { CheckTransactionsUseCase } from './application/check-transactions.use-c
     CurrencyModule,
     // forwardRef: TransactionModule imports BudgetLineModule (for the spread
     // port consumed by the transaction spread-from flow), so both sides defer.
+    //
+    // TRADE-OFF (interim — PUL-288): this budget-line ↔ transaction cycle is a
+    // documented violation of `no-cross-module-direct` (ADR-0002), caused by the
+    // cross-module mapper imports on both sides. `forwardRef` is the accepted
+    // controlled-coupling stop-gap UNTIL PUL-288 extracts an `allocation` domain
+    // module both sides depend on one-way — at which point this forwardRef is
+    // removed and the lint rule is promoted warn→error. Do NOT build on this cycle.
     forwardRef(() => TransactionModule),
   ],
   controllers: [BudgetLineController],
