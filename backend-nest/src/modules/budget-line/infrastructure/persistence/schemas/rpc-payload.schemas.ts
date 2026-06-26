@@ -40,3 +40,11 @@ export const createBudgetLineSpreadListSchema = z.array(
 export type CreateBudgetLineSpreadItem = z.infer<
   typeof createBudgetLineSpreadItemSchema
 >;
+
+// Exact message the spread RPC RAISEs (P0001) when the source row was already
+// consumed by a concurrent request. Mirrored verbatim by migration
+// consume_spread_source_before_insert and pinned by its SQL test; the repository
+// matches on it to map the conflict to a 409 (BUDGET_LINE_ALREADY_SPREAD). Named
+// here, next to the RPC contract, so the SQL↔TS coupling is greppable from one place.
+export const SPREAD_SOURCE_UNAVAILABLE_RPC_MESSAGE =
+  'Spread source unavailable';

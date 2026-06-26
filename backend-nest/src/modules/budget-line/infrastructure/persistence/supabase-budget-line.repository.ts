@@ -28,6 +28,7 @@ import type {
 import type { TemplateLineRow } from '@modules/budget-template/domain/budget-template.entity';
 import {
   createBudgetLineSpreadListSchema,
+  SPREAD_SOURCE_UNAVAILABLE_RPC_MESSAGE,
   type CreateBudgetLineSpreadItem,
 } from './schemas/rpc-payload.schemas';
 
@@ -412,7 +413,7 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
       // request already consumed the source (double-tap / retry). That's a
       // 409 Conflict, not a 500 — surface it as such instead of masking it as
       // an opaque server failure.
-      if (error?.message?.includes('Spread source unavailable')) {
+      if (error?.message?.includes(SPREAD_SOURCE_UNAVAILABLE_RPC_MESSAGE)) {
         throw new BusinessException(
           ERROR_DEFINITIONS.BUDGET_LINE_ALREADY_SPREAD,
           undefined,

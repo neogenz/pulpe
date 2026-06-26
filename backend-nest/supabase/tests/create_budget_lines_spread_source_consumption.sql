@@ -21,6 +21,7 @@ DECLARE
   v_lines jsonb;
   v_caught boolean;
   v_count int;
+  v_errmsg text;
 BEGIN
   INSERT INTO auth.users (id, email, encrypted_password, instance_id, aud, role)
   VALUES (
@@ -168,9 +169,17 @@ BEGIN
     );
   EXCEPTION WHEN OTHERS THEN
     v_caught := true;
+    v_errmsg := SQLERRM;
   END;
   IF NOT v_caught THEN
     RAISE EXCEPTION 'FAIL: spread with a cross-user source did not raise';
+  END IF;
+
+  -- Pin the SQL→TS error contract: the repository matches this exact message
+  -- (SPREAD_SOURCE_UNAVAILABLE_RPC_MESSAGE) to map the conflict to a 409. A
+  -- rename here must break this test, not silently degrade the API to a 500.
+  IF v_errmsg NOT LIKE '%Spread source unavailable%' THEN
+    RAISE EXCEPTION 'FAIL: expected "Spread source unavailable", got %', v_errmsg;
   END IF;
 
   SELECT count(*) INTO v_count

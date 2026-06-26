@@ -1,6 +1,7 @@
 import { describe, it, expect, jest } from 'bun:test';
 import { Buffer } from 'node:buffer';
 import { SupabaseBudgetLineRepository } from './supabase-budget-line.repository';
+import { SPREAD_SOURCE_UNAVAILABLE_RPC_MESSAGE } from './schemas/rpc-payload.schemas';
 import { BusinessException } from '@common/exceptions/business.exception';
 import type {
   BudgetLine,
@@ -567,7 +568,7 @@ describe('SupabaseBudgetLineRepository', () => {
     it('maps a consumed source (concurrent retry) to a 409 conflict', async () => {
       const mockRpc = jest.fn().mockResolvedValue({
         data: null,
-        error: { message: 'Spread source unavailable' },
+        error: { message: SPREAD_SOURCE_UNAVAILABLE_RPC_MESSAGE },
       });
       const provider = createMockProvider(() => ({}), mockRpc);
       repo = new SupabaseBudgetLineRepository(provider, createMockEncryption());
