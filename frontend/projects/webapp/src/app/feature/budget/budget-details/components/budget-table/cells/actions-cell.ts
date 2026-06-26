@@ -91,6 +91,25 @@ import type {
               <mat-icon matMenuItemIcon>calendar_month</mat-icon>
               <span>{{ 'budgetLine.spread.spreadAction' | transloco }}</span>
             </button>
+          } @else if (showSpreadUnavailable()) {
+            <!-- Tooltip lives on the wrapper: a disabled button emits no
+                 pointer events, so it couldn't trigger the tooltip itself. -->
+            <span
+              class="block"
+              [matTooltip]="
+                'budgetLine.spread.spreadUnavailableRecurrent' | transloco
+              "
+              matTooltipPosition="above"
+            >
+              <button
+                mat-menu-item
+                disabled
+                [attr.data-testid]="'spread-disabled-' + line().data.id"
+              >
+                <mat-icon matMenuItemIcon>calendar_month</mat-icon>
+                <span>{{ 'budgetLine.spread.spreadAction' | transloco }}</span>
+              </button>
+            </span>
           }
         }
         @if (
@@ -151,4 +170,16 @@ export class ActionsCell {
   );
 
   readonly budgetLineData = computed(() => this.line().data as BudgetLine);
+
+  // Recurrent (`fixed`) expense/saving lines are already laid down every month,
+  // so the "Lisser" action stays disabled with an explanation instead of
+  // vanishing. Income / already-spread / zero stay hidden (handled by canSpread).
+  readonly showSpreadUnavailable = computed(() => {
+    const item = this.line();
+    if (item.metadata.itemType !== 'budget_line' || item.metadata.canSpread) {
+      return false;
+    }
+    const data = item.data as BudgetLine;
+    return data.recurrence === 'fixed' && data.kind !== 'income';
+  });
 }

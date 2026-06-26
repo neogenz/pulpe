@@ -554,6 +554,7 @@
       "viewedMonth": "Ici",
       "loadError": "Impossible de charger les autres mois",
       "spreadAction": "Lisser sur plusieurs mois",
+      "spreadUnavailableRecurrent": "Une dépense récurrente est déjà répartie chaque mois. Pour lisser, crée une prévision ponctuelle.",
       "dialogTitle": "Lisser sur plusieurs mois",
       "lockedTotalLabel": "Montant à lisser",
       "fromLabel": "À partir de",

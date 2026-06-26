@@ -189,4 +189,60 @@ test.describe('Budget Line Spread Creation (dual mode)', () => {
     expect(payload.months.length).toBe(6);
     expect(payload).not.toHaveProperty('perMonthAmount');
   });
+
+  test('a recurrent line shows a disabled "Lisser" with an explanation; a one-off line offers it', async ({
+    authenticatedPage,
+    budgetDetailsPage,
+  }) => {
+    const recurrent = createBudgetLineMock(TEST_UUIDS.LINE_2, budgetId, {
+      name: 'Loisirs',
+      amount: 100,
+      kind: 'expense',
+      recurrence: 'fixed',
+    });
+    const oneOff = createBudgetLineMock(TEST_UUIDS.LINE_3, budgetId, {
+      name: 'Caution',
+      amount: 4000,
+      kind: 'expense',
+      recurrence: 'one_off',
+    });
+
+    await authenticatedPage.route('**/api/v1/budgets/*/details', (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          data: { ...detailsMock().data, budgetLines: [recurrent, oneOff] },
+        }),
+      }),
+    );
+
+    await budgetDetailsPage.goto(budgetId);
+
+    // Recurrent line → "Lisser" present but disabled (not silently absent).
+    await authenticatedPage
+      .getByTestId(`card-menu-${TEST_UUIDS.LINE_2}`)
+      .click();
+    const disabled = authenticatedPage.getByTestId(
+      `spread-disabled-${TEST_UUIDS.LINE_2}`,
+    );
+    await expect(disabled).toBeVisible();
+    await expect(disabled).toBeDisabled();
+    await expect(
+      authenticatedPage.getByTestId(`spread-${TEST_UUIDS.LINE_2}`),
+    ).toHaveCount(0);
+    await authenticatedPage.keyboard.press('Escape');
+
+    // One-off line → "Lisser" enabled, no disabled variant.
+    await authenticatedPage
+      .getByTestId(`card-menu-${TEST_UUIDS.LINE_3}`)
+      .click();
+    await expect(
+      authenticatedPage.getByTestId(`spread-${TEST_UUIDS.LINE_3}`),
+    ).toBeVisible();
+    await expect(
+      authenticatedPage.getByTestId(`spread-disabled-${TEST_UUIDS.LINE_3}`),
+    ).toHaveCount(0);
+  });
 });
