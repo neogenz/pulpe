@@ -26,7 +26,7 @@ export function buildSpreadOccurrenceViewModels(
   referencePeriod: BudgetPeriod,
   livePeriod: BudgetPeriod,
 ): SpreadOccurrenceViewModel[] {
-  return [...occurrences]
+  return occurrences
     .map((occurrence) => {
       const period: BudgetPeriod = {
         month: occurrence.month,
@@ -43,7 +43,7 @@ export function buildSpreadOccurrenceViewModels(
         isClosed: liveComparison < 0,
       };
     })
-    .sort((a, b) =>
+    .toSorted((a, b) =>
       compareBudgetPeriods(
         { month: a.occurrence.month, year: a.occurrence.year },
         { month: b.occurrence.month, year: b.occurrence.year },

@@ -2,12 +2,18 @@ import { TestBed } from '@angular/core/testing';
 import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
-import { of } from 'rxjs';
+import { of, throwError } from 'rxjs';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import type { SpreadOccurrence } from 'pulpe-shared';
+import {
+  API_ERROR_CODES,
+  type SpreadOccurrence,
+  type BudgetLineSpreadCreate,
+} from 'pulpe-shared';
 
 import { BudgetDetailsStore } from './budget-details-store';
 import { BudgetApi } from '@core/budget/budget-api';
+import { ApiError } from '@core/api/api-error';
+import { ApiErrorLocalizer } from '@core/api/api-error-localizer';
 import { Logger } from '@core/logging/logger';
 import { ApplicationConfiguration } from '@core/config/application-configuration';
 import { PostHogService } from '@core/analytics/posthog';
@@ -79,6 +85,28 @@ const SPREAD_OCCURRENCES: SpreadOccurrence[] = [
   }),
 ];
 
+// A spread create that the (always-throwing) API mock will reject — used to
+// prove the onError handler maps the typed code, not a blanket message.
+const SPREAD_INPUT: BudgetLineSpreadCreate = {
+  name: 'Assurance',
+  kind: 'expense',
+  mode: 'total',
+  totalAmount: 1200,
+  months: [
+    { year: 2026, month: 6 },
+    { year: 2026, month: 7 },
+  ],
+};
+
+// The server persists the spread then fails the downstream recalculation —
+// telling the user to "retry" here would duplicate the additive plan.
+const recalcError = new ApiError(
+  'recalc failed',
+  API_ERROR_CODES.BUDGET_LINE_SPREAD_RECALCULATION_FAILED,
+  500,
+  undefined,
+);
+
 describe('BudgetDetailsStore — spread réalisé tracker', () => {
   let store: BudgetDetailsStore;
 
@@ -112,6 +140,9 @@ describe('BudgetDetailsStore — spread réalisé tracker', () => {
             getSpreadOccurrences$: vi
               .fn()
               .mockReturnValue(of(SPREAD_OCCURRENCES)),
+            createBudgetLineSpread$: vi
+              .fn()
+              .mockReturnValue(throwError(() => recalcError)),
             cache: {
               version: signal(0),
               _dataVersion: signal(0),
@@ -178,5 +209,20 @@ describe('BudgetDetailsStore — spread réalisé tracker', () => {
     // The 4th occurrence (future, unchecked) would push cumulé to 380 if counted.
     expect(tracker.cumulatedAmount).not.toBe(380);
     expect(tracker.cumulatedAmount).toBe(280);
+  });
+
+  describe('spread mutation error mapping', () => {
+    it('routes a typed ApiError through the localizer instead of a blanket message', async () => {
+      // Arrange
+      const localizer = TestBed.inject(ApiErrorLocalizer);
+      const localizeSpy = vi.spyOn(localizer, 'localizeApiError');
+
+      // Act
+      await store.createBudgetLineSpread(SPREAD_INPUT);
+
+      // Assert
+      expect(localizeSpy).toHaveBeenCalledWith(recalcError);
+      expect(store.error()).toBe(localizer.localizeApiError(recalcError));
+    });
   });
 });

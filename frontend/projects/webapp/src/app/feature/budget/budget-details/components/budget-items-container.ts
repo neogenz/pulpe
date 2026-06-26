@@ -4,11 +4,12 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  DestroyRef,
   effect,
   inject,
   signal,
 } from '@angular/core';
-import { toSignal } from '@angular/core/rxjs-interop';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBar } from '@angular/material/snack-bar';
@@ -241,6 +242,7 @@ export class BudgetItemsContainer {
   readonly #dialogService = inject(BudgetDetailsDialogService);
   readonly #storageService = inject(StorageService);
   protected readonly store = inject(BudgetDetailsStore);
+  readonly #destroyRef = inject(DestroyRef);
   readonly #snackBar = inject(MatSnackBar);
   readonly #transloco = inject(TranslocoService);
   readonly #logger = inject(Logger);
@@ -400,16 +402,17 @@ export class BudgetItemsContainer {
   #notifySpread(outcome: BudgetLineSpreadResponse['data'] | undefined): void {
     if (!outcome) return;
     const snackbarRef = this.#snackBar.open(
-      this.#transloco.translate('budgetLine.spread.success', {
-        count: outcome.lines.length,
-      }),
+      computeSpreadSnackbarMessage(outcome, this.#transloco),
       this.#transloco.translate('budgetLine.spread.successAction'),
       { duration: 6000 },
     );
-    snackbarRef.onAction().subscribe(() => {
-      this.store.setSpreadGroupId(outcome.spreadGroupId);
-      this.#dialogService.openSpreadOccurrences(this.isMobile());
-    });
+    snackbarRef
+      .onAction()
+      .pipe(takeUntilDestroyed(this.#destroyRef))
+      .subscribe(() => {
+        this.store.setSpreadGroupId(outcome.spreadGroupId);
+        this.#dialogService.openSpreadOccurrences(this.isMobile());
+      });
   }
 
   protected async openAllocatedTransactionsDialog(event: {

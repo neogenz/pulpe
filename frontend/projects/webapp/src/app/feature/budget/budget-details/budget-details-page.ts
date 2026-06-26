@@ -13,8 +13,9 @@ import { Router } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { DatePipe } from '@angular/common';
-import { TranslocoPipe } from '@jsverse/transloco';
+import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { LoadingIndicator } from '@core/loading/loading-indicator';
 import { BreadcrumbState } from '@core/routing';
 import {
@@ -29,6 +30,7 @@ import { BudgetRolloverInfo } from '@ui/budget-rollover-info/budget-rollover-inf
 import { BudgetDetailsStore } from './store/budget-details-store';
 import { BudgetItemsContainer } from './components/budget-items-container';
 import { BudgetDetailsDialogService } from './budget-details-dialog.service';
+import { computeSpreadSnackbarMessage } from './utils/budget-details-snackbar.utils';
 import { formatBudgetPeriod } from 'pulpe-shared';
 import { UserSettingsStore } from '@core/user-settings';
 import { CURRENCY_CONFIG } from '@core/currency';
@@ -142,6 +144,8 @@ export default class BudgetDetailsPage {
   readonly #loadingIndicator = inject(LoadingIndicator);
   readonly #destroyRef = inject(DestroyRef);
   readonly #dialogService = inject(BudgetDetailsDialogService);
+  readonly #snackBar = inject(MatSnackBar);
+  readonly #transloco = inject(TranslocoService);
 
   protected readonly currencyLocale = computed(
     () => CURRENCY_CONFIG[this.userSettingsStore.currency()].numberLocale,
@@ -235,7 +239,14 @@ export default class BudgetDetailsPage {
     });
     if (!result) return;
     if (result.mode === 'spread') {
-      await this.store.createBudgetLineSpread(result.value);
+      const outcome = await this.store.createBudgetLineSpread(result.value);
+      if (outcome) {
+        this.#snackBar.open(
+          computeSpreadSnackbarMessage(outcome, this.#transloco),
+          this.#transloco.translate('common.close'),
+          { duration: 5000 },
+        );
+      }
     } else {
       await this.store.createBudgetLine(result.value);
     }

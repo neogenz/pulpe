@@ -54,6 +54,8 @@ import {
   MAX_SPREAD_MONTHS,
   monthKey,
   monthSpan,
+  offsetMonth,
+  parseMonthKey,
   type SpreadMonth,
 } from './spread.utils';
 import type { AddBudgetLineDialogResult } from './dialog-result';
@@ -313,37 +315,22 @@ interface AddBudgetLineModel {
                         </span>
                       </div>
                     }
-                    <div
-                      class="flex items-center justify-between rounded-corner-medium bg-surface-container px-4 py-3"
-                      data-testid="spread-total-echo"
-                    >
-                      <span class="text-body-medium text-on-surface-variant">
-                        {{
-                          'budget.spreadTotalLabel'
-                            | transloco: { count: selectedCount() }
-                        }}
-                      </span>
-                      <span class="text-title-medium font-medium ph-no-capture">
-                        {{ spreadTotal() | appCurrency: currency() : '1.0-0' }}
-                      </span>
-                    </div>
-                  </div>
-                } @else {
-                  <div
-                    class="flex items-center justify-between rounded-corner-medium bg-surface-container px-4 py-3"
-                    data-testid="spread-total-echo"
-                  >
-                    <span class="text-body-medium text-on-surface-variant">
-                      {{
-                        'budget.spreadTotalLabel'
-                          | transloco: { count: selectedCount() }
-                      }}
-                    </span>
-                    <span class="text-title-medium font-medium ph-no-capture">
-                      {{ spreadTotal() | appCurrency: currency() : '1.0-0' }}
-                    </span>
                   </div>
                 }
+                <div
+                  class="flex items-center justify-between rounded-corner-medium bg-surface-container px-4 py-3"
+                  data-testid="spread-total-echo"
+                >
+                  <span class="text-body-medium text-on-surface-variant">
+                    {{
+                      'budget.spreadTotalLabel'
+                        | transloco: { count: selectedCount() }
+                    }}
+                  </span>
+                  <span class="text-title-medium font-medium ph-no-capture">
+                    {{ spreadTotal() | appCurrency: currency() : '1.0-0' }}
+                  </span>
+                </div>
               }
             </div>
           } @else {
@@ -509,11 +496,7 @@ export class AddBudgetLineDialog {
   // 36-month horizon from the start budget month for the De/À pickers.
   protected readonly monthOptions = computed(() => {
     const base = { year: this.#data.budgetYear, month: this.#data.budgetMonth };
-    const last = {
-      year:
-        base.year + Math.floor((base.month - 1 + MAX_SPREAD_MONTHS - 1) / 12),
-      month: ((base.month - 1 + MAX_SPREAD_MONTHS - 1) % 12) + 1,
-    };
+    const last = offsetMonth(base, MAX_SPREAD_MONTHS - 1);
     return enumerateMonths(base, last).map((m) => ({
       key: monthKey(m),
       label: this.#formatMonth(m, 'MMMM yyyy'),
@@ -586,13 +569,11 @@ export class AddBudgetLineDialog {
   }
 
   protected setStart(key: string): void {
-    const period = this.#parseKey(key);
-    if (period) this.#start.set(period);
+    this.#start.set(parseMonthKey(key));
   }
 
   protected setEnd(key: string): void {
-    const period = this.#parseKey(key);
-    if (period) this.#end.set(period);
+    this.#end.set(parseMonthKey(key));
   }
 
   protected toggleMonth(key: string): void {
@@ -694,11 +675,5 @@ export class AddBudgetLineDialog {
     return formatDate(new Date(period.year, period.month - 1, 1), pattern, {
       locale: this.#dateFnsLocale(),
     });
-  }
-
-  #parseKey(key: string): SpreadMonth | null {
-    const [year, month] = key.split('-').map(Number);
-    if (Number.isNaN(year) || Number.isNaN(month)) return null;
-    return { year, month };
   }
 }

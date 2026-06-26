@@ -107,7 +107,7 @@ import type {
               [class.text-on-surface-variant]="vm.isChecked"
             >
               {{
-                monthDate(vm.occurrence)
+                monthDates().get(vm.occurrence.budgetLineId)
                   | date: 'MMMM yyyy' : undefined : locale()
               }}
             </span>
@@ -132,13 +132,13 @@ import type {
               class="ph-no-capture whitespace-nowrap inline-flex items-baseline gap-1.5"
             >
               <span class="text-body-medium font-semibold">
-                {{ formatNumber(vm.occurrence.consumed, 2) }}
+                {{ formatNumber(vm.occurrence.consumed) }}
               </span>
               <span class="text-label-small text-on-surface-variant">/</span>
               <span
                 class="text-label-small text-on-surface-variant line-through"
               >
-                {{ formatNumber(vm.occurrence.amount, 2) }}
+                {{ formatNumber(vm.occurrence.amount) }}
               </span>
               <span class="text-body-medium font-semibold">
                 {{ currencySymbol() }}
@@ -176,6 +176,35 @@ export class SpreadOccurrencesList {
   readonly #meta = computed(() => CURRENCY_METADATA[this.currency()]);
   protected readonly currencySymbol = computed(() => this.#meta().symbol);
 
+  // Constructing Intl.NumberFormat is the costly part, so build one per decimal
+  // policy and rebuild only when the currency changes — not per amount per row.
+  readonly #aggregationFormatter = computed(
+    () =>
+      new Intl.NumberFormat(this.#meta().numberLocale, {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0,
+      }),
+  );
+  readonly #lineFormatter = computed(
+    () =>
+      new Intl.NumberFormat(this.#meta().numberLocale, {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      }),
+  );
+
+  // One stable Date per occurrence, rebuilt only when the list changes — keeps
+  // the `date` pipe from re-formatting a fresh ref on every change detection.
+  protected readonly monthDates = computed(
+    () =>
+      new Map(
+        this.occurrences().map((vm) => [
+          vm.occurrence.budgetLineId,
+          new Date(vm.occurrence.year, vm.occurrence.month - 1, 1),
+        ]),
+      ),
+  );
+
   protected readonly ordinal = computed(() => {
     const index = this.tracker()?.currentIndex ?? 0;
     return index === 1 ? '1er' : `${index}e`;
@@ -183,42 +212,21 @@ export class SpreadOccurrencesList {
 
   /** Aggregation (0 decimals + symbol suffix): tracker cumulé/total. */
   protected formatAggregation(value: number): string {
-    return this.#format(value, 0);
+    return `${this.#aggregationFormatter().format(value)} ${this.#meta().symbol}`;
   }
 
   /** Ligne (2 decimals + symbol suffix): per-month + each occurrence amount. */
   protected formatLine(value: number): string {
-    return this.#format(value, 2);
+    return `${this.#lineFormatter().format(value)} ${this.#meta().symbol}`;
   }
 
   /**
-   * Number only (no symbol), `digits` decimals — for the composite "réel / prévu"
-   * row where the symbol is rendered once at the end. Both the consommé and the
-   * struck prévu (`budget_line.amount`) follow the ligne policy (2 dec) so a
+   * Number only (no symbol), ligne policy (2 dec) — for the composite "réel /
+   * prévu" row where the symbol is rendered once at the end. Both the consommé
+   * and the struck prévu (`budget_line.amount`) follow the ligne policy so a
    * 24,99 € prévision never shows as a struck "25" next to a 24,99 € réalisé.
    */
-  protected formatNumber(value: number, digits: number): string {
-    return new Intl.NumberFormat(this.#meta().numberLocale, {
-      minimumFractionDigits: digits,
-      maximumFractionDigits: digits,
-    }).format(value);
-  }
-
-  /**
-   * Symbol-in-suffix amount formatting (`1 235 €` / `1’234.56 CHF`), matching
-   * `getCurrencyFormatter` + `AppCurrencyPipe`. Uses the currency `numberLocale`
-   * so CHF keeps the apostrophe group separator.
-   */
-  #format(value: number, fractionDigits: number): string {
-    const meta = this.#meta();
-    const formatted = new Intl.NumberFormat(meta.numberLocale, {
-      minimumFractionDigits: fractionDigits,
-      maximumFractionDigits: fractionDigits,
-    }).format(value);
-    return `${formatted} ${meta.symbol}`;
-  }
-
-  protected monthDate(occurrence: { month: number; year: number }): Date {
-    return new Date(occurrence.year, occurrence.month - 1, 1);
+  protected formatNumber(value: number): string {
+    return this.#lineFormatter().format(value);
   }
 }

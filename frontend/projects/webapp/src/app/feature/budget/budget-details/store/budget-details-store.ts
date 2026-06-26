@@ -471,9 +471,7 @@ export class BudgetDetailsStore {
     invalidateKeys: () => BUDGET_DETAIL_INVALIDATION_KEYS,
     mutationFn: (data) => this.#budgetApi.createBudgetLineSpread$(data),
     onSuccess: () => this.#onFinancialMutationSuccess(),
-    onError: () => {
-      this.#setError(this.#transloco.translate('budgetLine.spread.error'));
-    },
+    onError: (error) => this.#handleSpreadError(error),
   });
 
   async createBudgetLineSpread(
@@ -502,9 +500,7 @@ export class BudgetDetailsStore {
       this.setSpreadGroupId(response.data.spreadGroupId);
       this.#onFinancialMutationSuccess();
     },
-    onError: () => {
-      this.#setError(this.#transloco.translate('budgetLine.spread.error'));
-    },
+    onError: (error) => this.#handleSpreadError(error),
   });
 
   async spreadExistingBudgetLine(
@@ -531,9 +527,7 @@ export class BudgetDetailsStore {
       this.setSpreadGroupId(response.data.spreadGroupId);
       this.#onFinancialMutationSuccess();
     },
-    onError: () => {
-      this.#setError(this.#transloco.translate('budgetLine.spread.error'));
-    },
+    onError: (error) => this.#handleSpreadError(error),
   });
 
   async spreadExistingTransaction(
@@ -747,10 +741,7 @@ export class BudgetDetailsStore {
       this.#onFinancialMutationSuccess();
     },
     onError: (error) => {
-      const errorMessage = isApiError(error)
-        ? this.#apiErrorLocalizer.localizeApiError(error)
-        : this.#transloco.translate('budget.forecastResetError');
-      this.#setError(errorMessage);
+      this.#setError(this.#localizeError(error, 'budget.forecastResetError'));
       this.#logger.error('Error resetting budget line from template', error);
     },
   });
@@ -959,6 +950,20 @@ export class BudgetDetailsStore {
 
   #setError(error: string): void {
     this.#state.errorMessage.set(error);
+  }
+
+  // Localize a mutation error: a typed ApiError's code maps to a precise
+  // message; anything else falls back to the operation's generic key.
+  #localizeError(error: unknown, fallbackKey: string): string {
+    return isApiError(error)
+      ? this.#apiErrorLocalizer.localizeApiError(error)
+      : this.#transloco.translate(fallbackKey);
+  }
+
+  // Shared failure path for the 3 spread mutations (identical key + log).
+  #handleSpreadError(error: unknown): void {
+    this.#setError(this.#localizeError(error, 'budgetLine.spread.error'));
+    this.#logger.error('Spread mutation failed', error);
   }
 
   #clearError(): void {

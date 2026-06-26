@@ -27,6 +27,7 @@ import {
   MAX_SPREAD_MONTHS,
   monthKey,
   offsetMonth,
+  parseMonthKey,
   type SpreadMonth,
 } from '../create/spread.utils';
 import type {
@@ -73,7 +74,7 @@ const MIN_SPREAD_MONTHS = 2;
             class="flex items-center gap-2 text-body-medium text-on-surface-variant"
           >
             <mat-icon
-              class="text-on-surface-variant !text-lg !w-[18px] !h-[18px]"
+              class="text-on-surface-variant text-lg! shrink-0 h-auto! w-auto!"
               >lock</mat-icon
             >
             {{ 'budgetLine.spread.lockedTotalLabel' | transloco }}
@@ -348,8 +349,7 @@ export class SpreadExistingDialog {
   }
 
   protected setEnd(key: string): void {
-    const period = this.#parseKey(key);
-    if (period) this.#end.set(period);
+    this.#end.set(parseMonthKey(key));
   }
 
   protected toggleMonth(key: string): void {
@@ -384,11 +384,5 @@ export class SpreadExistingDialog {
     return formatDate(new Date(period.year, period.month - 1, 1), pattern, {
       locale: this.#dateFnsLocale(),
     });
-  }
-
-  #parseKey(key: string): SpreadMonth | null {
-    const [year, month] = key.split('-').map(Number);
-    if (Number.isNaN(year) || Number.isNaN(month)) return null;
-    return { year, month };
   }
 }

@@ -18,6 +18,16 @@ export function monthKey({ year, month }: SpreadMonth): string {
 }
 
 /**
+ * Inverse of {@link monthKey}. The key always originates from `monthKey` applied
+ * to a `<mat-select>` option, so it is structurally `${year}-${month}` — no
+ * NaN/format guard needed (the value is never user/URL/storage input).
+ */
+export function parseMonthKey(key: string): SpreadMonth {
+  const [year, month] = key.split('-').map(Number);
+  return { year, month };
+}
+
+/**
  * Total inclusive month count between two periods (1 when start === end).
  * Returns a negative/zero value when `end` precedes `start` so callers can
  * surface a `fin < début` validation error.
@@ -72,6 +82,6 @@ export function offsetMonth(period: SpreadMonth, offset: number): SpreadMonth {
   const zeroBased = period.month - 1 + offset;
   return {
     year: period.year + Math.floor(zeroBased / 12),
-    month: (zeroBased % 12) + 1,
+    month: (((zeroBased % 12) + 12) % 12) + 1,
   };
 }
