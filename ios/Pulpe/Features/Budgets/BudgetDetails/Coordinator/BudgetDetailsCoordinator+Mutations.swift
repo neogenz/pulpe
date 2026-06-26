@@ -11,10 +11,18 @@ extension BudgetDetailsCoordinator {
     /// `.task` because `@Environment` is unavailable in `init` — same
     /// precedent as `router.bind(to:)` in `MainTabView`. Strong captures on
     /// purpose: both stores are app-scoped and outlive this coordinator.
-    func bind(budgetListStore: BudgetListStore, dashboardStore: DashboardStore) {
+    func bind(
+        budgetListStore: BudgetListStore,
+        dashboardStore: DashboardStore,
+        currentMonthStore: CurrentMonthStore
+    ) {
         dataStore.onMutation = {
             budgetListStore.invalidateCache()
             dashboardStore.invalidateCache()
+            // A budget-detail mutation can change the current month's aggregates
+            // (a cross-month spread especially) — invalidate it too so the
+            // CurrentMonth tab refetches instead of serving a stale 30s-TTL copy.
+            currentMonthStore.invalidateCache()
         }
     }
 
