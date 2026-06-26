@@ -4,7 +4,7 @@
 
 ## Le problème métier
 
-Une grosse dépense irrégulière — prime d'assurance annuelle, impôts, gros achat planifié, versement 3ᵉ pilier / épargne retraite — tombe sur **un seul mois** et déforme le « Disponible à dépenser » de ce mois. La hero card vire ambre/rouge alors que l'utilisateur peut absorber le coût sans douleur s'il l'**étale**. C'est exactement l'angoisse que Pulpe existe pour tuer (*sérénité > contrôle*, *Planning > Tracking*).
+Une grosse dépense irrégulière — prime d'assurance annuelle, impôts, gros achat planifié, versement 3ᵉ pilier / épargne retraite — tombe sur **un seul mois** et déforme le « Disponible à dépenser » de ce mois. La hero card vire ambre/rouge alors que l'utilisateur peut absorber le coût sans douleur s'il l'**étale**. C'est exactement l'angoisse que Pulpe existe pour tuer (_sérénité > contrôle_, _Planning > Tracking_).
 
 Avant le lissage, l'enum `recurrence` n'offrait que deux extrêmes : **Récurrent** (`fixed`, tous les mois indéfiniment) et **Prévu** (`one_off`, une seule fois, un seul mois). Aucun moyen de dire « pose 100 CHF/mois de janvier à juin, mais saute mars ».
 
@@ -12,12 +12,12 @@ Avant le lissage, l'enum `recurrence` n'offrait que deux extrêmes : **Récurren
 
 La création d'une nouvelle dépense lissée offre **deux modes**, un seul champ `mode` les discrimine. Les deux se matérialisent en **N prévisions `one_off` INDÉPENDANTES**, une par mois, partageant un `spread_group_id` (interprétation modèle inchangée — seule la saisie diffère) :
 
-| | **`total` — Total ÷ N** ⭐ (défaut) | **`perMonth` — Montant/mois répliqué** |
-| -- | -- | -- |
-| Source de vérité | un **total** + fenêtre | un **montant/mois** + fenêtre |
-| Le serveur… | **divise** `totalAmount` sur les N mois (`splitTotalPreserving`, Σ === total) | **réplique** `perMonthAmount` sur chaque mois |
-| Désélectionner un mois | la division se refait sur les mois restants | trivial (on retire ce mois, les autres ne bougent pas) |
-| Modèle mental | « j'ai une dépense de 4000, lisse-la sur 8 mois » | « je mets 500/mois pendant 8 mois » |
+|                        | **`total` — Total ÷ N** ⭐ (défaut)                                           | **`perMonth` — Montant/mois répliqué**                 |
+| ---------------------- | ----------------------------------------------------------------------------- | ------------------------------------------------------ |
+| Source de vérité       | un **total** + fenêtre                                                        | un **montant/mois** + fenêtre                          |
+| Le serveur…            | **divise** `totalAmount` sur les N mois (`splitTotalPreserving`, Σ === total) | **réplique** `perMonthAmount` sur chaque mois          |
+| Désélectionner un mois | la division se refait sur les mois restants                                   | trivial (on retire ce mois, les autres ne bougent pas) |
+| Modèle mental          | « j'ai une dépense de 4000, lisse-la sur 8 mois »                             | « je mets 500/mois pendant 8 mois »                    |
 
 Le mode `total` est l'**interprétation A** (initialement différée dans le périmètre PUL-17, cf. Q1) : c'est le plus intuitif, défaut UI. Le mode `perMonth` est l'**interprétation B** d'origine, gardé en secondaire. « Lisser » reste une **commodité de saisie**, pas un nouveau type de ligne ni une valeur de `recurrence`. Toute la machinerie existante (chiffrement per-row, FX figé, rollover, consumption, édition/suppression par mois, pointage) fonctionne sans entité cross-mois.
 
@@ -29,11 +29,11 @@ L'utilisateur choisit le mode via un toggle (défaut `total`), saisit le montant
 
 ## Résolution du modèle (les 3 « formes de dépense »)
 
-| Forme | Modèle | Porte le lissage ? |
-| -- | -- | -- |
-| enveloppe / prévision | `budget_line` (`recurrence=one_off`) | **Oui** — porte `spread_group_id` |
-| sous-dépense d'une enveloppe | `transaction` avec `budget_line_id` SET | Non — **dérive** via son `budget_line` parent |
-| transaction libre | `transaction` avec `budget_line_id = NULL` | Ne porte jamais le groupe ; peut être la source remplacée en v1.1 |
+| Forme                        | Modèle                                     | Porte le lissage ?                                                |
+| ---------------------------- | ------------------------------------------ | ----------------------------------------------------------------- |
+| enveloppe / prévision        | `budget_line` (`recurrence=one_off`)       | **Oui** — porte `spread_group_id`                                 |
+| sous-dépense d'une enveloppe | `transaction` avec `budget_line_id` SET    | Non — **dérive** via son `budget_line` parent                     |
+| transaction libre            | `transaction` avec `budget_line_id = NULL` | Ne porte jamais le groupe ; peut être la source remplacée en v1.1 |
 
 - `spread_group_id uuid NULLABLE` vit sur `budget_line` **uniquement**. Une `transaction` n'est jamais une tranche ; sa lissé-ness est dérivable via son parent.
 - **Aucun nesting** (`parent_id`) : les occurrences sont N lignes **sœurs** réparties horizontalement, pas un arbre.
@@ -42,9 +42,9 @@ L'utilisateur choisit le mode via un toggle (défaut `total`), saisit le montant
 
 ## Le fan-out (Lot A — le cœur)
 
-`POST /v1/budget-lines/spread` reçoit `{ name, kind, mode, perMonthAmount|totalAmount, months[], FX? }` et retourne `{ spreadGroupId, lines, createdBudgets, skippedMonths }`. Selon `mode`, le serveur **réplique** `perMonthAmount` ou **divise** `totalAmount` (`splitTotalPreserving`, Σ === total) sur chaque `{year, month}` de `months[]` pour construire les tranches avant le fan-out. En `total`, un mois non-provisionnable fait **échouer tout** (`fanOutStrict`, contrat Σ=total) ; en `perMonth`, le mois part dans `skippedMonths` (`fanOut` tolérant).
+`POST /v1/budget-lines/spread` reçoit `{ name, kind, mode, perMonthAmount|totalAmount, months[], FX?, spreadGroupId }` et retourne `{ spreadGroupId, lines, createdBudgets, skippedMonths }`. `spreadGroupId` est la **clé d'idempotence** (cf. _Idempotence_ ci-dessous) : le client minte **un** uuid stable par intention de création et le rejoue tel quel sur un retry. Selon `mode`, le serveur **réplique** `perMonthAmount` ou **divise** `totalAmount` (`splitTotalPreserving`, Σ === total) sur chaque `{year, month}` de `months[]` pour construire les tranches avant le fan-out. En `total`, un mois non-provisionnable fait **échouer tout** (`fanOutStrict`, contrat Σ=total) ; en `perMonth`, le mois part dans `skippedMonths` (`fanOut` tolérant).
 
-1. **Auto-création des mois manquants** *(scope caché majeur)* : pour chaque `{year, month}` sans budget, on crée le `monthly_budget` depuis le **template par défaut** (`is_default`) de l'utilisateur. Chaque création est sa **propre transaction courte** (idempotente : un mois existant est réutilisé), **hors** de la transaction du fan-out. Pas de template par défaut → le mois part dans `skippedMonths` et ne reçoit aucune ligne.
+1. **Auto-création des mois manquants** _(scope caché majeur)_ : pour chaque `{year, month}` sans budget, on crée le `monthly_budget` depuis le **template par défaut** (`is_default`) de l'utilisateur. Chaque création est sa **propre transaction courte** (idempotente : un mois existant est réutilisé), **hors** de la transaction du fan-out. Pas de template par défaut → le mois part dans `skippedMonths` et ne reçoit aucune ligne.
 2. **Fan-out atomique** : un **seul** `INSERT … SELECT FROM jsonb_to_recordset(p_lines)` **set-based** (jamais une boucle PL/pgSQL) dans une RPC `SECURITY DEFINER` owner-only → **tout-ou-rien**. Chaque tranche est chiffrée via `ENCRYPTION_PORT` **dans le repository** avant l'appel ; `spread_group_id` (uuid, partagé, généré serveur) ne l'est jamais.
 3. **FX figé** : un **seul** `exchangeRate` saisi à la création est partagé par toutes les tranches.
 4. **Effets** : `recalculate(budgetId)` **par budget touché**, puis `cacheService.invalidateForUser(userId)` **une fois** (une écriture lissée touche N mois — l'invalidation cross-budget est le bug le plus probable à shipper si oubliée).
@@ -52,6 +52,17 @@ L'utilisateur choisit le mode via un toggle (défaut `total`), saisit le montant
 ### Frontière d'atomicité (assumée)
 
 Le fan-out des tranches est tout-ou-rien. L'auto-création des budgets est **best-effort idempotente** : un budget auto-créé n'est **pas** rollback si le fan-out échoue ensuite — un re-submit le réutilise. C'est volontaire (évite une méga-transaction et la contention de locks sur `monthly_budget`).
+
+### Idempotence (retry-safe)
+
+Le fan-out est tout-ou-rien, mais l'écriture lissée fait **plusieurs** mutations (auto-création des budgets, INSERT set-based, recalculs, invalidation cache). Une étape **post-commit** qui échoue (ex. un recalcul qui throw après que l'INSERT a committé) renvoie une erreur au client alors que le groupe **existe déjà** → un retry naïf insérerait un **second groupe** (doublon).
+
+Fix = la clé d'idempotence façon Stripe :
+
+- Le **client** minte un `spreadGroupId` (uuid) **une fois par intention de création** et le **réutilise** sur tout retry de cette intention (sans jamais le régénérer par tentative). Une nouvelle intention = une nouvelle clé. Web : le dialog minte la clé et la porte dans le DTO ; sur échec de la création, un toast **« Réessayer »** re-soumet le **MÊME** DTO (donc la même clé) → le serveur rejoue au lieu de dupliquer. iOS : cf. #484.
+- Le **serveur** sérialise les appels qui rejouent la même clé (`pg_advisory_xact_lock`) puis **rejette** un groupe déjà présent (`RAISE 'Spread group already exists'`). Le repository traduit ce raise en `SpreadGroupAlreadyExistsError` typée, et le use case **REPLAY** : il renvoie les lignes du groupe d'origine (RLS-scopé : un groupe d'un autre user → 409, jamais une fabrication) et **re-joue le recalcul idempotent** pour soigner un solde laissé stale par le premier échec.
+
+Migration : `20260626120000_spread_group_idempotency_guard.sql` (garde en tête de RPC, avant tout provisioning/insert). Le seam SQL↔supabase-js↔repo est verrouillé par `budget-line-spread.integration.spec.ts` (vraie Supabase locale).
 
 ## Lecture (Lot B — indicateur, Lot C — occurrences)
 
@@ -80,18 +91,18 @@ Distinct du fan-out de création additif ci-dessus. Ici la source **existe déj�
 
 ## Références
 
-| Sujet | Fichier |
-| -- | -- |
-| Contrat (Zod) | `shared/schemas.ts` (`budgetLineSpreadCreateSchema`, `budgetLineSpreadResponseSchema`) |
-| Colonne + index | `backend-nest/supabase/migrations/20260619120000_add_budget_line_spread_group_id.sql` |
-| RPC set-based | `backend-nest/supabase/migrations/20260619130000_create_budget_lines_spread_rpc.sql` |
-| Use-case fan-out | `backend-nest/src/modules/budget-line/application/create-budget-line-spread.use-case.ts` |
-| Auto-création | `backend-nest/src/modules/budget/application/ensure-budgets-for-periods.use-case.ts` (port `BUDGET_PROVISIONING_PORT`) |
-| Repo (encryption + RPC) | `backend-nest/src/modules/budget-line/infrastructure/persistence/supabase-budget-line.repository.ts` (`createSpread`) |
-| **v1.1** Split Σ=T | `shared/src/calculators/spread-split.ts` (`splitTotalPreserving`) |
-| **v1.1** RPC suppression atomique | `backend-nest/supabase/migrations/20260620120000_spread_rpc_atomic_source_delete.sql`, durcie contre les appels concurrents par `20260623150000_consume_spread_source_before_insert.sql` |
-| **v1.1** Schémas from-existing | `shared/schemas.ts` (`budgetLineSpreadFromLineCreateSchema`, `transactionSpreadFromTxnCreateSchema`) |
-| **v1.1** Use-case lisser prévision | `backend-nest/src/modules/budget-line/application/spread-budget-line-from-line.use-case.ts` |
-| **v1.1** Use-case lisser réel | `backend-nest/src/modules/transaction/application/spread-transaction-from-txn.use-case.ts` |
-| **v1.1** Dialogue total-driven + tracker | `frontend/projects/webapp/src/app/feature/budget/budget-details/budget-line/spread-existing/dialog.ts`, `.../spread-occurrences/spread-occurrence.view-model.ts` (`buildSpreadTracker`) |
-| Chiffrement (contexte) | `docs/ENCRYPTION.md` |
+| Sujet                                    | Fichier                                                                                                                                                                                  |
+| ---------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Contrat (Zod)                            | `shared/schemas.ts` (`budgetLineSpreadCreateSchema`, `budgetLineSpreadResponseSchema`)                                                                                                   |
+| Colonne + index                          | `backend-nest/supabase/migrations/20260619120000_add_budget_line_spread_group_id.sql`                                                                                                    |
+| RPC set-based                            | `backend-nest/supabase/migrations/20260619130000_create_budget_lines_spread_rpc.sql`                                                                                                     |
+| Use-case fan-out                         | `backend-nest/src/modules/budget-line/application/create-budget-line-spread.use-case.ts`                                                                                                 |
+| Auto-création                            | `backend-nest/src/modules/budget/application/ensure-budgets-for-periods.use-case.ts` (port `BUDGET_PROVISIONING_PORT`)                                                                   |
+| Repo (encryption + RPC)                  | `backend-nest/src/modules/budget-line/infrastructure/persistence/supabase-budget-line.repository.ts` (`createSpread`)                                                                    |
+| **v1.1** Split Σ=T                       | `shared/src/calculators/spread-split.ts` (`splitTotalPreserving`)                                                                                                                        |
+| **v1.1** RPC suppression atomique        | `backend-nest/supabase/migrations/20260620120000_spread_rpc_atomic_source_delete.sql`, durcie contre les appels concurrents par `20260623150000_consume_spread_source_before_insert.sql` |
+| **v1.1** Schémas from-existing           | `shared/schemas.ts` (`budgetLineSpreadFromLineCreateSchema`, `transactionSpreadFromTxnCreateSchema`)                                                                                     |
+| **v1.1** Use-case lisser prévision       | `backend-nest/src/modules/budget-line/application/spread-budget-line-from-line.use-case.ts`                                                                                              |
+| **v1.1** Use-case lisser réel            | `backend-nest/src/modules/transaction/application/spread-transaction-from-txn.use-case.ts`                                                                                               |
+| **v1.1** Dialogue total-driven + tracker | `frontend/projects/webapp/src/app/feature/budget/budget-details/budget-line/spread-existing/dialog.ts`, `.../spread-occurrences/spread-occurrence.view-model.ts` (`buildSpreadTracker`)  |
+| Chiffrement (contexte)                   | `docs/ENCRYPTION.md`                                                                                                                                                                     |

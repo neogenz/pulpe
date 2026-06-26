@@ -461,6 +461,12 @@ export class AddBudgetLineDialog {
   readonly #amountMode = signal<AmountMode>('total');
   protected readonly amountMode = this.#amountMode.asReadonly();
 
+  // Idempotency key for THIS create intent (PUL-17). Minted ONCE per dialog
+  // instance and reused across submit retries, so a double-tap or a retry after a
+  // post-commit failure replays the same spread group server-side instead of
+  // creating a duplicate. A new dialog = a new intent = a new key.
+  readonly #spreadGroupId = crypto.randomUUID();
+
   readonly #start = signal<SpreadMonth>({
     year: this.#data.budgetYear,
     month: this.#data.budgetMonth,
@@ -657,6 +663,7 @@ export class AddBudgetLineDialog {
               amount,
               months: this.selectedMonths(),
               conversion: metadata,
+              spreadGroupId: this.#spreadGroupId,
             }),
         };
       },

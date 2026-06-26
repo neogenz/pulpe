@@ -28,6 +28,11 @@ import { conversionFormSchema } from '@core/currency';
  * - `conversion`: the single frozen FX metadata (null when no conversion);
  *   `conversion.originalAmount` maps to the mode-correct original-amount field
  *   (`totalOriginalAmount` in total mode, `perMonthOriginalAmount` otherwise).
+ * - `spreadGroupId`: the idempotency key (PUL-17). The dialog mints ONE stable
+ *   uuid per create intent and reuses it across submit retries, so a double-tap
+ *   or a retry after a post-commit failure replays the same group server-side
+ *   instead of creating a duplicate. Required here so a missing key is a parse
+ *   error, never a silently dormant fix.
  */
 
 export const budgetLineSpreadCreateFromFormSchema = z
@@ -38,6 +43,7 @@ export const budgetLineSpreadCreateFromFormSchema = z
     amount: z.number().positive(),
     months: z.array(spreadFromExistingPeriodSchema).min(1),
     conversion: conversionFormSchema.nullable(),
+    spreadGroupId: z.uuid(),
   })
   .transform((input): BudgetLineSpreadCreate => {
     const conversion = input.conversion;
@@ -56,6 +62,7 @@ export const budgetLineSpreadCreateFromFormSchema = z
         mode: 'total',
         totalAmount: input.amount,
         months: input.months,
+        spreadGroupId: input.spreadGroupId,
         ...fxFields,
         ...(conversion
           ? { totalOriginalAmount: conversion.originalAmount }
@@ -69,6 +76,7 @@ export const budgetLineSpreadCreateFromFormSchema = z
       mode: 'perMonth',
       perMonthAmount: input.amount,
       months: input.months,
+      spreadGroupId: input.spreadGroupId,
       ...fxFields,
       ...(conversion
         ? { perMonthOriginalAmount: conversion.originalAmount }

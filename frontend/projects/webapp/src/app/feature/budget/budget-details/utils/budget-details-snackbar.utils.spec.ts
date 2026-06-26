@@ -1,9 +1,16 @@
 import { describe, it, expect, vi } from 'vitest';
+import { Subject } from 'rxjs';
+import type { MatSnackBar } from '@angular/material/snack-bar';
 import type { TranslocoService } from '@jsverse/transloco';
-import type { BudgetLine, Transaction } from 'pulpe-shared';
+import type {
+  BudgetLine,
+  BudgetLineSpreadCreate,
+  Transaction,
+} from 'pulpe-shared';
 import {
   computeEnvelopeSnackbarMessage,
   computeTransactionSnackbarMessage,
+  submitSpreadWithRetry,
 } from './budget-details-snackbar.utils';
 
 const NOW = new Date().toISOString();
@@ -197,6 +204,60 @@ describe('computeEnvelopeSnackbarMessage', () => {
     );
 
     expect(result).toBe('Pointé · 408 CHF');
+  });
+});
+
+describe('submitSpreadWithRetry', () => {
+  const spreadValue: BudgetLineSpreadCreate = {
+    name: 'Prime assurance',
+    kind: 'expense',
+    mode: 'total',
+    totalAmount: 600,
+    months: [{ year: 2026, month: 1 }],
+    spreadGroupId: '11111111-1111-4111-8111-111111111111',
+  };
+
+  it('submits once and shows the occurrences toast on success', async () => {
+    const transloco = createMockTransloco();
+    const open = vi
+      .fn()
+      .mockReturnValue({ onAction: () => new Subject<void>() });
+    const snackBar = { open } as unknown as MatSnackBar;
+    const create = vi.fn().mockResolvedValue({
+      lines: [{}],
+      createdBudgets: [],
+      skippedMonths: [],
+    });
+
+    await submitSpreadWithRetry(spreadValue, create, snackBar, transloco);
+
+    expect(create).toHaveBeenCalledTimes(1);
+    expect(create).toHaveBeenCalledWith(spreadValue);
+    expect(open).toHaveBeenCalledTimes(1);
+  });
+
+  it('offers a retry that re-submits the SAME DTO (same spreadGroupId) on failure', async () => {
+    const transloco = createMockTransloco();
+    const action$ = new Subject<void>();
+    const open = vi.fn().mockReturnValue({ onAction: () => action$ });
+    const snackBar = { open } as unknown as MatSnackBar;
+    const create = vi.fn().mockResolvedValue(undefined);
+
+    await submitSpreadWithRetry(spreadValue, create, snackBar, transloco);
+
+    expect(create).toHaveBeenCalledTimes(1);
+    expect(open).toHaveBeenLastCalledWith(
+      'budgetLine.spread.error',
+      'common.retry',
+      expect.objectContaining({ duration: 8000 }),
+    );
+
+    // User taps "Réessayer" → the SAME value (hence the same spreadGroupId) is
+    // resubmitted, so the server replays instead of creating a duplicate.
+    action$.next();
+
+    expect(create).toHaveBeenCalledTimes(2);
+    expect(create).toHaveBeenNthCalledWith(2, spreadValue);
   });
 });
 

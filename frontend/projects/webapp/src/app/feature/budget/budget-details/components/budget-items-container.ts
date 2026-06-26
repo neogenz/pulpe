@@ -48,6 +48,7 @@ import {
   computeEnvelopeSnackbarMessage,
   computeSpreadSnackbarMessage,
   computeTransactionSnackbarMessage,
+  submitSpreadWithRetry,
 } from '../utils/budget-details-snackbar.utils';
 
 /**
@@ -654,14 +655,12 @@ export class BudgetItemsContainer {
     if (!result) return;
 
     if (result.mode === 'spread') {
-      const outcome = await this.store.createBudgetLineSpread(result.value);
-      if (outcome) {
-        this.#snackBar.open(
-          computeSpreadSnackbarMessage(outcome, this.#transloco),
-          this.#transloco.translate('common.close'),
-          { duration: 5000 },
-        );
-      }
+      await submitSpreadWithRetry(
+        result.value,
+        (value) => this.store.createBudgetLineSpread(value),
+        this.#snackBar,
+        this.#transloco,
+      );
       return;
     }
     await this.store.createBudgetLine(result.value);

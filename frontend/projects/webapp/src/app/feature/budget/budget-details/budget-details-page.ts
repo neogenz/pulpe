@@ -30,7 +30,7 @@ import { BudgetRolloverInfo } from '@ui/budget-rollover-info/budget-rollover-inf
 import { BudgetDetailsStore } from './store/budget-details-store';
 import { BudgetItemsContainer } from './components/budget-items-container';
 import { BudgetDetailsDialogService } from './budget-details-dialog.service';
-import { computeSpreadSnackbarMessage } from './utils/budget-details-snackbar.utils';
+import { submitSpreadWithRetry } from './utils/budget-details-snackbar.utils';
 import { formatBudgetPeriod } from 'pulpe-shared';
 import { UserSettingsStore } from '@core/user-settings';
 import { CURRENCY_CONFIG } from '@core/currency';
@@ -239,14 +239,12 @@ export default class BudgetDetailsPage {
     });
     if (!result) return;
     if (result.mode === 'spread') {
-      const outcome = await this.store.createBudgetLineSpread(result.value);
-      if (outcome) {
-        this.#snackBar.open(
-          computeSpreadSnackbarMessage(outcome, this.#transloco),
-          this.#transloco.translate('common.close'),
-          { duration: 5000 },
-        );
-      }
+      await submitSpreadWithRetry(
+        result.value,
+        (value) => this.store.createBudgetLineSpread(value),
+        this.#snackBar,
+        this.#transloco,
+      );
     } else {
       await this.store.createBudgetLine(result.value);
     }

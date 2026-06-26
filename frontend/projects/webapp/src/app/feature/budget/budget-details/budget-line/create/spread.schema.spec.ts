@@ -9,6 +9,8 @@ const months = [
   { year: 2026, month: 2 },
 ];
 
+const SPREAD_GROUP_ID = '11111111-1111-4111-8111-111111111111';
+
 const totalFormValue: BudgetLineSpreadCreateFormValue = {
   name: 'Prime assurance',
   kind: 'expense',
@@ -16,6 +18,7 @@ const totalFormValue: BudgetLineSpreadCreateFormValue = {
   amount: 200,
   months,
   conversion: null,
+  spreadGroupId: SPREAD_GROUP_ID,
 };
 
 const perMonthFormValue: BudgetLineSpreadCreateFormValue = {
@@ -25,6 +28,7 @@ const perMonthFormValue: BudgetLineSpreadCreateFormValue = {
   amount: 100,
   months,
   conversion: null,
+  spreadGroupId: SPREAD_GROUP_ID,
 };
 
 describe('budgetLineSpreadCreateFromFormSchema', () => {
@@ -38,6 +42,7 @@ describe('budgetLineSpreadCreateFromFormSchema', () => {
         mode: 'total',
         totalAmount: 200,
         months,
+        spreadGroupId: SPREAD_GROUP_ID,
       });
       expect('perMonthAmount' in result).toBe(false);
       expect('tranches' in result).toBe(false);
@@ -85,6 +90,7 @@ describe('budgetLineSpreadCreateFromFormSchema', () => {
         mode: 'perMonth',
         perMonthAmount: 100,
         months,
+        spreadGroupId: SPREAD_GROUP_ID,
       });
       expect('totalAmount' in result).toBe(false);
       expect('tranches' in result).toBe(false);

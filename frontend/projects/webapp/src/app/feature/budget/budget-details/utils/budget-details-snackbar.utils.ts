@@ -1,6 +1,8 @@
+import type { MatSnackBar } from '@angular/material/snack-bar';
 import type { TranslocoService } from '@jsverse/transloco';
 import type {
   BudgetLine,
+  BudgetLineSpreadCreate,
   BudgetLineSpreadResponse,
   SupportedCurrency,
   Transaction,
@@ -35,6 +37,46 @@ export function computeSpreadSnackbarMessage(
   }
 
   return message;
+}
+
+/**
+ * PUL-17 — submit a smoothed expense (additive create) and surface the outcome.
+ *
+ * On success: the occurrences toast. On failure: a "Réessayer" toast whose action
+ * re-submits the SAME DTO — crucially the SAME `spreadGroupId`. That is what makes
+ * the idempotency key actually do its job: the retry replays the original group
+ * server-side (or heals a balance left stale by a post-commit failure) instead of
+ * creating a duplicate. Recurses so each failed retry can be retried again.
+ *
+ * The mutation is injected as `create` so this stays decoupled from the store; the
+ * caller passes `(v) => store.createBudgetLineSpread(v)`.
+ */
+export async function submitSpreadWithRetry(
+  value: BudgetLineSpreadCreate,
+  create: (
+    value: BudgetLineSpreadCreate,
+  ) => Promise<BudgetLineSpreadResponse['data'] | undefined>,
+  snackBar: MatSnackBar,
+  transloco: TranslocoService,
+): Promise<void> {
+  const outcome = await create(value);
+  if (outcome) {
+    snackBar.open(
+      computeSpreadSnackbarMessage(outcome, transloco),
+      transloco.translate('common.close'),
+      { duration: 5000 },
+    );
+    return;
+  }
+
+  const ref = snackBar.open(
+    transloco.translate('budgetLine.spread.error'),
+    transloco.translate('common.retry'),
+    { duration: 8000 },
+  );
+  ref.onAction().subscribe(() => {
+    void submitSpreadWithRetry(value, create, snackBar, transloco);
+  });
 }
 
 export function computeEnvelopeSnackbarMessage(

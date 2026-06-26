@@ -277,6 +277,11 @@ describe('BudgetItemsContainer — orchestration', () => {
       mode: 'spread',
       value: spread,
     });
+    mockStore.createBudgetLineSpread.mockResolvedValue({
+      lines: [],
+      createdBudgets: [],
+      skippedMonths: [],
+    });
 
     await component.openAddBudgetLineDialog();
 
