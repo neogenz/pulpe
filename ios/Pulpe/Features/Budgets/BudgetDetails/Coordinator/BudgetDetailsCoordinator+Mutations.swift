@@ -165,12 +165,12 @@ extension BudgetDetailsCoordinator {
         dataStore.recomputeMetrics()
         // `syncCache()` first: it's the mutation choke point that fires `onMutation`
         // (invalidates the list/dashboard stores, PUL-270). Its cache WRITE is
-        // deliberately superseded by `invalidateAll()` below — a cross-month spread
-        // restructures N budgets the coordinator doesn't own, so every detail cache
-        // is wiped to force a server-authoritative refetch rather than serve this
-        // budget's optimistic copy.
+        // deliberately superseded by `invalidateAllCache()` below — a cross-month
+        // spread restructures N budgets the coordinator doesn't own, so every detail
+        // cache is wiped to force a server-authoritative refetch rather than serve
+        // this budget's optimistic copy.
         dataStore.syncCache()
         dataStore.invalidateAdjacentCache()
-        BudgetDetailCache.shared.invalidateAll()
+        dataStore.invalidateAllCache()
     }
 }

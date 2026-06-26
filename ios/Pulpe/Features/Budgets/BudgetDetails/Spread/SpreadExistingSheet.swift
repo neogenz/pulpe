@@ -30,7 +30,10 @@ struct SpreadExistingSheet: View {
     }
 
     private var accentColor: Color { Color.financialColor(for: source.kind) }
-    private var yearRange: ClosedRange<Int> { calculator.start.year...(calculator.start.year + 4) }
+    // M0 is locked, so the window is [M0, M0+35] at most (36-month cap). The
+    // worst case (M0 = December) ends in `start.year + 3`; +4 over-exposed a year
+    // of months the validation would reject.
+    private var yearRange: ClosedRange<Int> { calculator.start.year...(calculator.start.year + 3) }
 
     var body: some View {
         NavigationStack {
