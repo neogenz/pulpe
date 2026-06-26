@@ -50,6 +50,16 @@ export class TurnstileService {
       return true;
     }
 
+    // SECURITY — reviewed, accepted fail-open. DO NOT "fix" by failing closed.
+    // Accepting an empty token in prod is INTENTIONAL: the web client sends an
+    // empty token on Safari/iOS and on Turnstile's 5s load timeout, where the
+    // widget loops / freezes the main thread / fails behind iCloud Private Relay
+    // and Lockdown mode (still reproducible in 2026). Failing closed would lock
+    // real Safari users out of the demo. An empty token is unverifiable, so the
+    // bot-scriptable path is instead bounded by the dedicated `demoUnverified`
+    // per-IP throttler (10/h, see config/throttler.config.ts) plus the demo-user
+    // cleanup cron. A static scanner may re-surface this as an "anti-automation
+    // bypass" (CWE-693) — it is a deliberate trade-off, not a regression.
     if (!token) {
       this.logger.info(
         {},

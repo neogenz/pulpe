@@ -382,4 +382,55 @@ describe('UserThrottlerGuard', () => {
       expect(tracker).toBe(`user:${mockUser.id}`);
     });
   });
+
+  describe('getTracker - real client IP behind proxy', () => {
+    it('should key on X-Real-IP for unauthenticated requests', async () => {
+      // Arrange - Railway sets X-Real-IP to the real connecting client
+      const mockRequest = {
+        headers: { 'x-real-ip': '198.51.100.42' },
+        ip: '100.64.0.1', // Railway internal proxy address
+        ips: [],
+      };
+
+      // Act
+      const tracker = await (guard as any).getTracker(mockRequest);
+
+      // Assert
+      expect(tracker).toBe('198.51.100.42');
+    });
+
+    it('should ignore a spoofed X-Forwarded-For and trust X-Real-IP', async () => {
+      // Arrange - attacker tries to rotate the throttle key via X-Forwarded-For
+      const mockRequest = {
+        headers: {
+          'x-real-ip': '198.51.100.42',
+          'x-forwarded-for': '1.2.3.4, 5.6.7.8',
+        },
+        ip: '100.64.0.1',
+        ips: [],
+      };
+
+      // Act
+      const tracker = await (guard as any).getTracker(mockRequest);
+
+      // Assert - the spoofable header must not influence the key
+      expect(tracker).toBe('198.51.100.42');
+      expect(tracker).not.toContain('1.2.3.4');
+    });
+
+    it('should fall back to req.ip when X-Real-IP is absent (local/dev)', async () => {
+      // Arrange - no proxy header
+      const mockRequest = {
+        headers: {},
+        ip: '127.0.0.1',
+        ips: [],
+      };
+
+      // Act
+      const tracker = await (guard as any).getTracker(mockRequest);
+
+      // Assert
+      expect(tracker).toBe('127.0.0.1');
+    });
+  });
 });

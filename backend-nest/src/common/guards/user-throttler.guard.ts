@@ -161,7 +161,7 @@ export class UserThrottlerGuard extends ThrottlerGuard {
         return `user:${cachedUser.id}`;
       }
       // Cached null = auth failed, use IP-based tracking
-      return super.getTracker(req);
+      return this.#getClientIpTracker(req);
     }
 
     // Cache miss: resolve user and cache result
@@ -174,7 +174,29 @@ export class UserThrottlerGuard extends ThrottlerGuard {
     }
 
     // Fall back to IP-based tracking for public/unauthenticated requests
-    // This calls the parent class method which handles IP extraction properly
+    return this.#getClientIpTracker(req);
+  }
+
+  /**
+   * Resolves the throttle key for unauthenticated requests to the real client IP.
+   *
+   * Behind Railway's edge proxy `req.ip` (and `super.getTracker`) would resolve
+   * to the proxy address, collapsing every public request into one near-global
+   * bucket. Railway always sets `X-Real-IP` to the real connecting client and
+   * overwrites any client-supplied value (substituting `CF-Connecting-IP` when
+   * the service sits behind Cloudflare), so it is the spoof-proof per-client key.
+   *
+   * We deliberately do NOT read `X-Forwarded-For`: its entries can be
+   * client-supplied, which would let an attacker rotate the throttle key and
+   * defeat per-IP limits. When `X-Real-IP` is absent (local/dev, no proxy) we
+   * fall back to the base IP behaviour (`req.ip`).
+   */
+  async #getClientIpTracker(req: RequestWithThrottlerCache): Promise<string> {
+    const realIp = req.headers?.['x-real-ip'];
+    const clientIp = Array.isArray(realIp) ? realIp[0] : realIp;
+    if (clientIp) {
+      return clientIp;
+    }
     return super.getTracker(req);
   }
 }
