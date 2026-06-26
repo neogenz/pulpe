@@ -9,17 +9,25 @@ import type { SpreadOccurrence } from 'pulpe-shared';
  * (forbidden by layer rules). The feature view-model file imports these
  * interfaces from here; the BUILDERS (domain logic) stay in `feature/`.
  *
- * `isPast` / `isClosed` are payDay-aware against the LIVE current period.
+ * `isPast` and `isClosed` share today's formula (occurrence period strictly before
+ * the LIVE current period, payDay-aware) but are kept SEPARATE on purpose: `isPast`
+ * is PRESENTATION (greys out the row), `isClosed` is the DOMAIN signal that an
+ * occurrence is realized and counts toward the RÉALISÉ sum (`buildSpreadTracker`
+ * filters on `isClosed || isChecked`). Collapsing them would couple the realized
+ * aggregation to a display flag — keep distinct so either can evolve without
+ * silently moving the totals.
  * `isViewed` marks the VIEWED budget month (the "Ici" badge), while
  * `isBeforeViewed` preserves its position for the tracker independently from
  * the live clock. `isChecked` mirrors `checkedAt`.
  */
 export interface SpreadOccurrenceViewModel {
   readonly occurrence: SpreadOccurrence;
+  /** Presentation only: grey out an occurrence whose month is past. */
   readonly isPast: boolean;
   readonly isViewed: boolean;
   readonly isBeforeViewed: boolean;
   readonly isChecked: boolean;
+  /** Domain: occurrence is realized (closed month) → counts in the RÉALISÉ sum. */
   readonly isClosed: boolean;
 }
 
