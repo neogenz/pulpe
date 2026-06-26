@@ -31,6 +31,15 @@ export interface SpreadFanOutInput {
   originalCurrency?: SupportedCurrency | null;
   targetCurrency?: SupportedCurrency | null;
   exchangeRate?: number | null;
+  /**
+   * PUL-17 idempotency key (additive create flow only). When the client supplies
+   * it, it becomes the `spread_group_id` AND opts this fan-out into REPLAY: a
+   * retry with the same key returns the existing group instead of duplicating it.
+   * Absent → the server generates a fresh key (no replay). The total-preserving
+   * spread-from flows never set it: they are already retry-safe via source
+   * consumption (the source DELETE serializes concurrent calls).
+   */
+  spreadGroupId?: string;
 }
 
 export interface SpreadFanOutResult {

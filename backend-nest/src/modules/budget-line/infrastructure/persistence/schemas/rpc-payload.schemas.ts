@@ -48,3 +48,11 @@ export type CreateBudgetLineSpreadItem = z.infer<
 // here, next to the RPC contract, so the SQL↔TS coupling is greppable from one place.
 export const SPREAD_SOURCE_UNAVAILABLE_RPC_MESSAGE =
   'Spread source unavailable';
+
+// Exact message the spread RPC RAISEs (P0001) when `p_spread_group_id` already
+// has rows — the idempotency guard (PUL-17). A retry that replays the SAME
+// client-supplied key trips this instead of inserting a duplicate group. Mirrored
+// verbatim by migration spread_group_idempotency_guard and pinned by its SQL test;
+// the repository matches on it to raise a typed SpreadGroupAlreadyExistsError so the
+// additive create use case can REPLAY (return the existing lines, heal recalc).
+export const SPREAD_GROUP_EXISTS_RPC_MESSAGE = 'Spread group already exists';

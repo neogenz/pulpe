@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { Buffer } from 'node:buffer';
+import type { PostgrestError } from '@supabase/supabase-js';
 import { ZodError } from 'zod';
 import { BusinessException } from '@common/exceptions/business.exception';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
@@ -28,9 +29,11 @@ import type {
 import type { TemplateLineRow } from '@modules/budget-template/domain/budget-template.entity';
 import {
   createBudgetLineSpreadListSchema,
+  SPREAD_GROUP_EXISTS_RPC_MESSAGE,
   SPREAD_SOURCE_UNAVAILABLE_RPC_MESSAGE,
   type CreateBudgetLineSpreadItem,
 } from './schemas/rpc-payload.schemas';
+import { SpreadGroupAlreadyExistsError } from '../../domain/spread-group-conflict.error';
 
 @Injectable()
 export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
@@ -198,6 +201,35 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
         consumption?.transactionCount ?? 0,
       );
     });
+  }
+
+  async findBudgetLinesBySpreadGroupId(
+    spreadGroupId: string,
+  ): Promise<BudgetLine[]> {
+    const supabase = this.supabaseProvider.client;
+    const { data, error } = await supabase
+      .from('budget_line')
+      .select('*')
+      .eq('spread_group_id', spreadGroupId)
+      .order('created_at', { ascending: true });
+
+    if (error) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.BUDGET_LINE_FETCH_FAILED,
+        undefined,
+        {
+          operation: 'findBudgetLinesBySpreadGroup',
+          entityId: spreadGroupId,
+          entityType: 'budget_line',
+          supabaseError: error,
+        },
+        { cause: error },
+      );
+    }
+
+    if (!data?.length) return [];
+    const dek = await this.encryption.getDekFor(this.supabaseProvider.user);
+    return data.map((row) => this.toEntity(row, dek));
   }
 
   /**
@@ -409,32 +441,49 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
     });
 
     if (error || !data) {
-      // The RPC RAISEs 'Spread source unavailable' (P0001) when a concurrent
-      // request already consumed the source (double-tap / retry). That's a
-      // 409 Conflict, not a 500 — surface it as such instead of masking it as
-      // an opaque server failure.
-      if (error?.message?.includes(SPREAD_SOURCE_UNAVAILABLE_RPC_MESSAGE)) {
-        throw new BusinessException(
-          ERROR_DEFINITIONS.BUDGET_LINE_ALREADY_SPREAD,
-          undefined,
-          { operation: 'createSpreadBudgetLines', entityType: 'budget_line' },
-          { cause: error },
-        );
-      }
-      throw new BusinessException(
-        ERROR_DEFINITIONS.BUDGET_LINE_CREATE_FAILED,
-        undefined,
-        {
-          operation: 'createSpreadBudgetLines',
-          entityType: 'budget_line',
-          supabaseError: error,
-        },
-        { cause: error ?? undefined },
-      );
+      this.throwSpreadRpcError(error, spreadGroupId);
     }
 
     const dek = await this.encryption.getDekFor(user);
     return data.map((row) => this.toEntity(row, dek));
+  }
+
+  /**
+   * Translates the `create_budget_lines_spread` RPC failure into the right
+   * error. Each branch matches an exact message the RPC RAISEs (P0001) — named
+   * via a constant in rpc-payload.schemas so the SQL↔TS coupling is greppable:
+   * - dup-group guard → a TYPED `SpreadGroupAlreadyExistsError` so the additive
+   *   create use case catches it by `instanceof` and REPLAYs (idempotent retry),
+   *   without sniffing strings in the application layer;
+   * - source already consumed (concurrent double-tap / retry) → a 409 conflict
+   *   instead of an opaque 500;
+   * - anything else → a generic create failure (500).
+   */
+  private throwSpreadRpcError(
+    error: PostgrestError | null,
+    spreadGroupId: string,
+  ): never {
+    if (error?.message?.includes(SPREAD_GROUP_EXISTS_RPC_MESSAGE)) {
+      throw new SpreadGroupAlreadyExistsError(spreadGroupId);
+    }
+    if (error?.message?.includes(SPREAD_SOURCE_UNAVAILABLE_RPC_MESSAGE)) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.BUDGET_LINE_ALREADY_SPREAD,
+        undefined,
+        { operation: 'createSpreadBudgetLines', entityType: 'budget_line' },
+        { cause: error },
+      );
+    }
+    throw new BusinessException(
+      ERROR_DEFINITIONS.BUDGET_LINE_CREATE_FAILED,
+      undefined,
+      {
+        operation: 'createSpreadBudgetLines',
+        entityType: 'budget_line',
+        supabaseError: error,
+      },
+      { cause: error ?? undefined },
+    );
   }
 
   private parseSpreadPayload(

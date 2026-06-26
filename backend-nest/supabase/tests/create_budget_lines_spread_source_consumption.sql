@@ -18,6 +18,7 @@ DECLARE
   v_victim_budget_id uuid := gen_random_uuid();
   v_victim_source_id uuid := gen_random_uuid();
   v_cross_user_group_id uuid := gen_random_uuid();
+  v_additive_group_id uuid := gen_random_uuid();
   v_lines jsonb;
   v_caught boolean;
   v_count int;
@@ -201,6 +202,49 @@ BEGIN
   WHERE spread_group_id = v_cross_user_group_id;
   IF v_count <> 0 THEN
     RAISE EXCEPTION 'FAIL: cross-user spread inserted % line(s)', v_count;
+  END IF;
+
+  -- PUL-17 idempotency: the SOURCELESS additive create flow has no source DELETE
+  -- to serialize on, so the dup-group guard is what makes a retry safe. Replaying
+  -- the SAME spread_group_id (no source) must RAISE 'Spread group already exists'
+  -- and leave the group untouched (still 1 line) — the application catches this
+  -- and serves the existing lines (replay 200) instead of duplicating the group.
+  PERFORM public.create_budget_lines_spread(
+    p_spread_group_id := v_additive_group_id,
+    p_lines := v_lines
+  );
+
+  SELECT count(*) INTO v_count
+  FROM public.budget_line
+  WHERE spread_group_id = v_additive_group_id;
+  IF v_count <> 1 THEN
+    RAISE EXCEPTION 'FAIL: first additive fan-out expected 1 line, got %', v_count;
+  END IF;
+
+  v_caught := false;
+  BEGIN
+    PERFORM public.create_budget_lines_spread(
+      p_spread_group_id := v_additive_group_id,
+      p_lines := v_lines
+    );
+  EXCEPTION WHEN OTHERS THEN
+    v_caught := true;
+    v_errmsg := SQLERRM;
+  END;
+  IF NOT v_caught THEN
+    RAISE EXCEPTION 'FAIL: replaying a spread_group_id did not raise the dup-group guard';
+  END IF;
+  -- Pin the SQL→TS contract: the repository matches this exact message
+  -- (SPREAD_GROUP_EXISTS_RPC_MESSAGE) to raise a typed SpreadGroupAlreadyExistsError.
+  IF v_errmsg NOT LIKE '%Spread group already exists%' THEN
+    RAISE EXCEPTION 'FAIL: expected "Spread group already exists", got %', v_errmsg;
+  END IF;
+
+  SELECT count(*) INTO v_count
+  FROM public.budget_line
+  WHERE spread_group_id = v_additive_group_id;
+  IF v_count <> 1 THEN
+    RAISE EXCEPTION 'FAIL: replay inserted a duplicate group, lines now = %', v_count;
   END IF;
 
   RAISE NOTICE 'SOURCE CONSUMPTION: ALL ASSERTIONS PASSED';

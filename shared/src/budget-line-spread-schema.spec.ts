@@ -253,7 +253,7 @@ describe('budgetLineSpreadCreateSchema', () => {
       const result = budgetLineSpreadCreateSchema.safeParse({
         ...base,
         months: [{ year: 2026, month: 1 }],
-        spreadGroupId: 'a3f1c2d4-5e6f-4a7b-8c9d-0e1f2a3b4c5d',
+        unknownExtraKey: 'nope',
       });
       expect(result.success).toBe(false);
     });
@@ -263,6 +263,34 @@ describe('budgetLineSpreadCreateSchema', () => {
         ...base,
         months: [{ year: 2026, month: 1 }],
         tranches: [{ year: 2026, month: 1, amount: 100 }],
+      });
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe('spreadGroupId idempotency key', () => {
+    it('accepts a valid client-supplied uuid (idempotency opt-in)', () => {
+      const result = budgetLineSpreadCreateSchema.safeParse({
+        ...base,
+        months: [{ year: 2026, month: 1 }],
+        spreadGroupId: 'a3f1c2d4-5e6f-4a7b-8c9d-0e1f2a3b4c5d',
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it('stays backward-compatible when omitted (server generates the key)', () => {
+      const result = budgetLineSpreadCreateSchema.safeParse({
+        ...base,
+        months: [{ year: 2026, month: 1 }],
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it('rejects a non-uuid spreadGroupId', () => {
+      const result = budgetLineSpreadCreateSchema.safeParse({
+        ...base,
+        months: [{ year: 2026, month: 1 }],
+        spreadGroupId: 'not-a-uuid',
       });
       expect(result.success).toBe(false);
     });

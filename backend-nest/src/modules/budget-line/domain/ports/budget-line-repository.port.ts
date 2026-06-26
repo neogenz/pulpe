@@ -38,6 +38,15 @@ export interface BudgetLineRepositoryPort {
    */
   findBySpreadGroupId(spreadGroupId: string): Promise<SpreadOccurrence[]>;
   /**
+   * PUL-17 idempotency: the raw `BudgetLine[]` of a spread group, in the SAME
+   * shape `createSpread` returns. Distinct from `findBySpreadGroupId` (which
+   * returns the heavier `SpreadOccurrence` read model with the transaction-sum
+   * join): the replay path only needs the lines to return them verbatim and to
+   * derive the touched budgets for the healing recalculation. RLS scopes to the
+   * caller; empty when not found/owned.
+   */
+  findBudgetLinesBySpreadGroupId(spreadGroupId: string): Promise<BudgetLine[]>;
+  /**
    * PUL-17 v1.1: decrypted spread SOURCE (a budget_line + its budget's
    * month/year M0). RLS scopes to the caller — throws NOT_FOUND for another
    * user's line (IDOR guard before any fan-out).

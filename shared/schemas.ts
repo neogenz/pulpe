@@ -412,6 +412,17 @@ export const budgetLineSpreadCreateSchema = z
     originalCurrency: supportedCurrencySchema.optional(),
     targetCurrency: supportedCurrencySchema.optional(),
     exchangeRate: exchangeRateWirePositive.optional(),
+    /**
+     * Clé d'idempotence OPTIONNELLE (PUL-17). Le client génère un uuid v4 stable
+     * pour CETTE intention de lissage et le rejoue à l'identique sur un retry.
+     * Le serveur l'utilise comme `spread_group_id` : un second POST avec la même
+     * clé ne crée PAS un second groupe — il renvoie les lignes déjà créées (replay
+     * 200) après avoir re-tenté le recalcul (idempotent → soigne un solde laissé
+     * périmé par un premier recalcul échoué). Absente → le serveur génère la clé
+     * comme avant (rétro-compatible : iOS/web non cassés tant qu'ils ne l'adoptent
+     * pas). Champ additif, non-breaking.
+     */
+    spreadGroupId: z.uuid().optional(),
   })
   /**
    * Coherence — two cross-field invariants validated at the boundary so an

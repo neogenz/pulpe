@@ -1,7 +1,11 @@
 import { describe, it, expect, jest } from 'bun:test';
 import { Buffer } from 'node:buffer';
 import { SupabaseBudgetLineRepository } from './supabase-budget-line.repository';
-import { SPREAD_SOURCE_UNAVAILABLE_RPC_MESSAGE } from './schemas/rpc-payload.schemas';
+import {
+  SPREAD_GROUP_EXISTS_RPC_MESSAGE,
+  SPREAD_SOURCE_UNAVAILABLE_RPC_MESSAGE,
+} from './schemas/rpc-payload.schemas';
+import { SpreadGroupAlreadyExistsError } from '../../domain/spread-group-conflict.error';
 import { BusinessException } from '@common/exceptions/business.exception';
 import type {
   BudgetLine,
@@ -585,6 +589,25 @@ describe('SupabaseBudgetLineRepository', () => {
           'ERR_BUDGET_LINE_ALREADY_SPREAD',
         );
         expect((error as BusinessException).getStatus()).toBe(409);
+      }
+    });
+
+    it('maps the dup-group guard to a typed SpreadGroupAlreadyExistsError (idempotent replay signal)', async () => {
+      const mockRpc = jest.fn().mockResolvedValue({
+        data: null,
+        error: { message: SPREAD_GROUP_EXISTS_RPC_MESSAGE },
+      });
+      const provider = createMockProvider(() => ({}), mockRpc);
+      repo = new SupabaseBudgetLineRepository(provider, createMockEncryption());
+
+      try {
+        await repo.createSpread(spreadGroupId, [spreadInput]);
+        throw new Error('Expected createSpread to throw');
+      } catch (error) {
+        expect(error).toBeInstanceOf(SpreadGroupAlreadyExistsError);
+        expect((error as SpreadGroupAlreadyExistsError).spreadGroupId).toBe(
+          spreadGroupId,
+        );
       }
     });
   });

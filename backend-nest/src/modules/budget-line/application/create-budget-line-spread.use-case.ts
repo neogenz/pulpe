@@ -34,6 +34,7 @@ import type {
   BudgetLineCreateInput,
   SpreadDeleteSource,
 } from '../domain/budget-line.entity';
+import { SpreadGroupAlreadyExistsError } from '../domain/spread-group-conflict.error';
 import {
   buildSpreadTranches,
   buildSpreadTranchesFromTotal,
@@ -108,6 +109,7 @@ export class CreateBudgetLineSpreadUseCase implements BudgetLineSpreadPort {
             dto.months,
             dto.totalOriginalAmount ?? null,
           ),
+          spreadGroupId: dto.spreadGroupId,
           ...fx,
         },
         user,
@@ -125,6 +127,7 @@ export class CreateBudgetLineSpreadUseCase implements BudgetLineSpreadPort {
           dto.months,
           dto.perMonthOriginalAmount ?? null,
         ),
+        spreadGroupId: dto.spreadGroupId,
         ...fx,
       },
       user,
@@ -199,7 +202,9 @@ export class CreateBudgetLineSpreadUseCase implements BudgetLineSpreadPort {
     requireAllProvisioned: boolean,
     source?: SpreadDeleteSource,
   ): Promise<SpreadFanOutResult> {
-    const spreadGroupId = randomUUID();
+    // A client-supplied key is the idempotency token (PUL-17); absent → server
+    // generates one as before. The same value becomes the DB `spread_group_id`.
+    const spreadGroupId = input.spreadGroupId ?? randomUUID();
     const periods = this.dedupePeriods(input.tranches);
     const templateId = await this.templateRepo.findDefaultTemplateId(user.id);
 
@@ -223,10 +228,39 @@ export class CreateBudgetLineSpreadUseCase implements BudgetLineSpreadPort {
     }
 
     const inputs = this.buildInputs(input, ensured.budgetIdByPeriod);
-    const lines = inputs.length
-      ? await this.repo.createSpread(spreadGroupId, inputs, source)
-      : [];
+    try {
+      const lines = inputs.length
+        ? await this.repo.createSpread(spreadGroupId, inputs, source)
+        : [];
+      return await this.finalizeSpread(
+        spreadGroupId,
+        inputs,
+        lines,
+        ensured,
+        user,
+      );
+    } catch (error) {
+      // Idempotent retry (additive create only): the client replayed its own
+      // spreadGroupId and the DB dup-group guard fired. Serve the group already
+      // created instead of inserting a second one. The source-backed flows never
+      // set `input.spreadGroupId` (they are retry-safe via source consumption).
+      if (
+        input.spreadGroupId &&
+        error instanceof SpreadGroupAlreadyExistsError
+      ) {
+        return this.replayExistingSpread(input.spreadGroupId, ensured, user);
+      }
+      throw error;
+    }
+  }
 
+  private async finalizeSpread(
+    spreadGroupId: string,
+    inputs: BudgetLineCreateInput[],
+    lines: BudgetLine[],
+    ensured: EnsureBudgetsResult,
+    user: AuthenticatedUser,
+  ): Promise<SpreadFanOutResult> {
     const touchedBudgetIds = [
       ...new Set(inputs.map((createInput) => createInput.budgetId)),
     ];
@@ -242,6 +276,53 @@ export class CreateBudgetLineSpreadUseCase implements BudgetLineSpreadPort {
         operation: 'budgetLine.spread',
       },
       'Spread budget lines created',
+    );
+
+    return {
+      spreadGroupId,
+      lines,
+      createdBudgets: ensured.createdBudgets,
+      skippedMonths: ensured.skippedMonths,
+    };
+  }
+
+  /**
+   * Idempotent replay: the dup-group guard fired on a retry that reused the same
+   * client key. Return the lines the FIRST attempt committed and re-run the
+   * (idempotent) recalculation on their budgets — this HEALS a balance the first
+   * attempt left stale by failing its recalc after the insert committed. An empty
+   * fetch means the group exists but is not the caller's (RLS hid it): surface a
+   * 409 rather than fabricate a success.
+   */
+  private async replayExistingSpread(
+    spreadGroupId: string,
+    ensured: EnsureBudgetsResult,
+    user: AuthenticatedUser,
+  ): Promise<SpreadFanOutResult> {
+    const lines = await this.repo.findBudgetLinesBySpreadGroupId(spreadGroupId);
+    if (lines.length === 0) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.BUDGET_LINE_ALREADY_SPREAD,
+        undefined,
+        {
+          operation: 'budgetLine.spread.replay',
+          spreadGroupId,
+          userId: user.id,
+        },
+      );
+    }
+
+    const touchedBudgetIds = [...new Set(lines.map((line) => line.budgetId))];
+    await this.recalculateAfterCommit(touchedBudgetIds, spreadGroupId, user.id);
+
+    this.logger.info(
+      {
+        userId: user.id,
+        spreadGroupId,
+        linesReplayed: lines.length,
+        operation: 'budgetLine.spread.replay',
+      },
+      'Spread replay served the existing group',
     );
 
     return {

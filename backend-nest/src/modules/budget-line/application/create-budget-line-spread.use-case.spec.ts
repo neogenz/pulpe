@@ -9,6 +9,7 @@ import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import type { BudgetLineSpreadCreate } from 'pulpe-shared';
 import { CreateBudgetLineSpreadUseCase } from './create-budget-line-spread.use-case';
 import { BUDGET_LINE_REPOSITORY } from '../domain/ports/budget-line-repository.port';
+import { SpreadGroupAlreadyExistsError } from '../domain/spread-group-conflict.error';
 import type {
   BudgetLine,
   BudgetLineCreateInput,
@@ -63,7 +64,14 @@ const makeDto = (
 describe('CreateBudgetLineSpreadUseCase', () => {
   let useCase: CreateBudgetLineSpreadUseCase;
   let captured: { spreadGroupId: string; inputs: BudgetLineCreateInput[] }[];
-  let mockRepo: { createSpread: ReturnType<typeof jest.fn> };
+  // Simulates the DB dup-group guard: a second createSpread with an already-seen
+  // spreadGroupId rejects (like the RPC RAISEs), and the replay path reads its
+  // lines back via findBudgetLinesBySpreadGroupId — fully deterministic, no timing.
+  let spreadDb: Map<string, BudgetLine[]>;
+  let mockRepo: {
+    createSpread: ReturnType<typeof jest.fn>;
+    findBudgetLinesBySpreadGroupId: ReturnType<typeof jest.fn>;
+  };
   let mockProvisioning: {
     ensureBudgetsForPeriods: ReturnType<typeof jest.fn>;
   };
@@ -80,14 +88,25 @@ describe('CreateBudgetLineSpreadUseCase', () => {
 
   beforeEach(async () => {
     captured = [];
+    spreadDb = new Map();
     mockRepo = {
       createSpread: jest.fn(
         (spreadGroupId: string, inputs: BudgetLineCreateInput[]) => {
           captured.push({ spreadGroupId, inputs });
-          return Promise.resolve(
-            inputs.map((input, idx) => makeLine(input, spreadGroupId, idx)),
+          if (spreadDb.has(spreadGroupId)) {
+            return Promise.reject(
+              new SpreadGroupAlreadyExistsError(spreadGroupId),
+            );
+          }
+          const lines = inputs.map((input, idx) =>
+            makeLine(input, spreadGroupId, idx),
           );
+          spreadDb.set(spreadGroupId, lines);
+          return Promise.resolve(lines);
         },
+      ),
+      findBudgetLinesBySpreadGroupId: jest.fn((spreadGroupId: string) =>
+        Promise.resolve(spreadDb.get(spreadGroupId) ?? []),
       ),
     };
     mockProvisioning = {
@@ -380,6 +399,102 @@ describe('CreateBudgetLineSpreadUseCase', () => {
           { month: 3, year: 2026 },
         ]);
       }
+    });
+  });
+
+  describe('idempotency / replay', () => {
+    const idempotencyKey = 'a3f1c2d4-5e6f-4a7b-8c9d-0e1f2a3b4c5d';
+
+    it('uses the client-supplied spreadGroupId as the spread group key', async () => {
+      await useCase.execute(
+        makeDto({ spreadGroupId: idempotencyKey }),
+        mockUser,
+      );
+
+      expect(captured[0].spreadGroupId).toBe(idempotencyKey);
+    });
+
+    it('replays the same group on retry instead of creating a second one', async () => {
+      const first = await useCase.execute(
+        makeDto({ spreadGroupId: idempotencyKey }),
+        mockUser,
+      );
+      const second = await useCase.execute(
+        makeDto({ spreadGroupId: idempotencyKey }),
+        mockUser,
+      );
+
+      expect(second.spreadGroupId).toBe(idempotencyKey);
+      expect(second.lines.map((l) => l.id)).toEqual(
+        first.lines.map((l) => l.id),
+      );
+      // The retry's createSpread tripped the dup-group guard; the replay then
+      // read the existing lines back — no second group was created.
+      expect(mockRepo.createSpread).toHaveBeenCalledTimes(2);
+      expect(mockRepo.findBudgetLinesBySpreadGroupId).toHaveBeenCalledTimes(1);
+      expect(spreadDb.size).toBe(1);
+      expect(spreadDb.get(idempotencyKey)).toHaveLength(3);
+    });
+
+    it('re-runs the idempotent recalculation on replay to heal a stale balance', async () => {
+      await useCase.execute(
+        makeDto({ spreadGroupId: idempotencyKey }),
+        mockUser,
+      );
+      mockBudget.recalculate.mockClear();
+
+      await useCase.execute(
+        makeDto({ spreadGroupId: idempotencyKey }),
+        mockUser,
+      );
+
+      expect(mockBudget.recalculate).toHaveBeenCalledTimes(3);
+    });
+
+    it('heals the bug: first attempt commits but recalc throws, retry then succeeds without duplicating', async () => {
+      // Attempt 1: createSpread commits the group, then recalc throws → 500.
+      mockBudget.recalculate.mockRejectedValueOnce(new Error('recalc boom'));
+
+      await expect(
+        useCase.execute(makeDto({ spreadGroupId: idempotencyKey }), mockUser),
+      ).rejects.toBeInstanceOf(BusinessException);
+      // The lines committed despite the failed recalc (orphaned, group present).
+      expect(spreadDb.get(idempotencyKey)).toHaveLength(3);
+
+      // Retry with the SAME key: dup-group guard → replay, recalc now succeeds.
+      const result = await useCase.execute(
+        makeDto({ spreadGroupId: idempotencyKey }),
+        mockUser,
+      );
+
+      expect(result.spreadGroupId).toBe(idempotencyKey);
+      expect(result.lines).toHaveLength(3);
+      expect(mockRepo.createSpread).toHaveBeenCalledTimes(2);
+      expect(spreadDb.size).toBe(1);
+    });
+
+    it('surfaces a conflict (no fabricated success) when the existing group is not the caller’s', async () => {
+      // Group exists at the DB level (guard fires) but RLS hides its rows from
+      // this caller → the replay fetch is empty → must NOT pretend success.
+      mockRepo.createSpread.mockRejectedValue(
+        new SpreadGroupAlreadyExistsError(idempotencyKey),
+      );
+      mockRepo.findBudgetLinesBySpreadGroupId.mockResolvedValue([]);
+
+      await expect(
+        useCase.execute(makeDto({ spreadGroupId: idempotencyKey }), mockUser),
+      ).rejects.toMatchObject({ code: 'ERR_BUDGET_LINE_ALREADY_SPREAD' });
+    });
+
+    it('does not replay a dup-group error when the client supplied no idempotency key', async () => {
+      mockRepo.createSpread.mockRejectedValue(
+        new SpreadGroupAlreadyExistsError('server-generated'),
+      );
+
+      await expect(useCase.execute(makeDto(), mockUser)).rejects.toBeInstanceOf(
+        BusinessException,
+      );
+      expect(mockRepo.findBudgetLinesBySpreadGroupId).not.toHaveBeenCalled();
     });
   });
 });
