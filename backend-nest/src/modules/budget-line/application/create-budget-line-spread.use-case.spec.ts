@@ -350,5 +350,36 @@ describe('CreateBudgetLineSpreadUseCase', () => {
       expect(mockRepo.createSpread).not.toHaveBeenCalled();
       expect(mockCache.invalidateForUser).toHaveBeenCalledWith(mockUser.id);
     });
+
+    it('reports every unprovisionable month, not just the first', async () => {
+      mockProvisioning.ensureBudgetsForPeriods.mockResolvedValue({
+        budgetIdByPeriod: new Map([['1/2026', 'b-1-2026']]),
+        createdBudgets: [],
+        skippedMonths: [
+          { month: 2, year: 2026 },
+          { month: 3, year: 2026 },
+        ],
+      });
+
+      const dto = makeTotalDto({
+        totalAmount: 100,
+        months: [
+          { year: 2026, month: 1 },
+          { year: 2026, month: 2 },
+          { year: 2026, month: 3 },
+        ],
+      });
+
+      try {
+        await useCase.execute(dto, mockUser);
+        throw new Error('Expected execute to throw');
+      } catch (error) {
+        expect(error).toBeInstanceOf(BusinessException);
+        expect((error as BusinessException).details?.months).toEqual([
+          { month: 2, year: 2026 },
+          { month: 3, year: 2026 },
+        ]);
+      }
+    });
   });
 });

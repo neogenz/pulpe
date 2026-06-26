@@ -210,10 +210,14 @@ export class CreateBudgetLineSpreadUseCase implements BudgetLineSpreadPort {
     );
 
     if (requireAllProvisioned && ensured.skippedMonths.length > 0) {
-      const [skipped] = ensured.skippedMonths;
       throw new BusinessException(
         ERROR_DEFINITIONS.BUDGET_LINE_SPREAD_MONTH_UNPROVISIONABLE,
-        { month: skipped.month, year: skipped.year },
+        {
+          months: ensured.skippedMonths.map((m) => ({
+            month: m.month,
+            year: m.year,
+          })),
+        },
         { operation: 'budgetLine.spreadFrom', userId: user.id },
       );
     }

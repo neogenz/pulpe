@@ -563,6 +563,29 @@ describe('SupabaseBudgetLineRepository', () => {
         repo.createSpread(spreadGroupId, [spreadInput]),
       ).rejects.toThrow(BusinessException);
     });
+
+    it('maps a consumed source (concurrent retry) to a 409 conflict', async () => {
+      const mockRpc = jest.fn().mockResolvedValue({
+        data: null,
+        error: { message: 'Spread source unavailable' },
+      });
+      const provider = createMockProvider(() => ({}), mockRpc);
+      repo = new SupabaseBudgetLineRepository(provider, createMockEncryption());
+
+      try {
+        await repo.createSpread(spreadGroupId, [spreadInput], {
+          type: 'budget_line',
+          id: 'source-line-1',
+        });
+        throw new Error('Expected createSpread to throw');
+      } catch (error) {
+        expect(error).toBeInstanceOf(BusinessException);
+        expect((error as BusinessException).code).toBe(
+          'ERR_BUDGET_LINE_ALREADY_SPREAD',
+        );
+        expect((error as BusinessException).getStatus()).toBe(409);
+      }
+    });
   });
 
   describe('toggleCheckRpc', () => {

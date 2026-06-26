@@ -408,6 +408,18 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
     });
 
     if (error || !data) {
+      // The RPC RAISEs 'Spread source unavailable' (P0001) when a concurrent
+      // request already consumed the source (double-tap / retry). That's a
+      // 409 Conflict, not a 500 — surface it as such instead of masking it as
+      // an opaque server failure.
+      if (error?.message?.includes('Spread source unavailable')) {
+        throw new BusinessException(
+          ERROR_DEFINITIONS.BUDGET_LINE_ALREADY_SPREAD,
+          undefined,
+          { operation: 'createSpreadBudgetLines', entityType: 'budget_line' },
+          { cause: error },
+        );
+      }
       throw new BusinessException(
         ERROR_DEFINITIONS.BUDGET_LINE_CREATE_FAILED,
         undefined,

@@ -473,10 +473,16 @@ export const ERROR_DEFINITIONS = {
   },
   BUDGET_LINE_SPREAD_MONTH_UNPROVISIONABLE: {
     code: API_ERROR_CODES.BUDGET_LINE_SPREAD_MONTH_UNPROVISIONABLE,
-    message: (details?: Record<string, unknown>) =>
-      details?.month && details?.year
-        ? `Cannot smooth across ${details.month}/${details.year}: this month has no budget and no default template to create one. Set a default template or deselect this month.`
-        : 'Cannot smooth across a month with no budget and no default template to create one.',
+    message: (details?: Record<string, unknown>) => {
+      const months = (
+        details?.months as { month: number; year: number }[] | undefined
+      )?.map((m) => `${m.month}/${m.year}`);
+      if (!months?.length) {
+        return 'Cannot smooth across a month with no budget and no default template to create one.';
+      }
+      const plural = months.length > 1;
+      return `Cannot smooth across ${months.join(', ')}: ${plural ? 'these months have' : 'this month has'} no budget and no default template to create one. Set a default template or deselect ${plural ? 'them' : 'it'}.`;
+    },
     httpStatus: HttpStatus.UNPROCESSABLE_ENTITY,
   },
   BUDGET_LINE_SPREAD_RECALCULATION_FAILED: {
