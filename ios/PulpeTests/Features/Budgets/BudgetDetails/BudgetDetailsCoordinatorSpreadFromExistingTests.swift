@@ -104,4 +104,23 @@ struct SpreadFromExistingCoordinatorTests {
         #expect(mockTx.spreadFromTxnCalls.first?.id == "tx-1")
         #expect(manager.currentToast?.message == "C'est lissé sur 2 mois")
     }
+
+    @Test
+    func spreadTransactionFromExisting_onError_keepsSource_andShowsErrorToast() async {
+        let mockTx = MockTransactionService()
+        mockTx.spreadError = URLError(.badServerResponse)
+        let coord = BudgetDetailsCoordinator(
+            budgetId: budgetId, budgetLineService: MockBudgetLineService(), transactionService: mockTx
+        )
+        await coord.dispatch(.addTransaction(
+            TestDataFactory.createTransaction(id: "tx-1", budgetId: budgetId, budgetLineId: nil)
+        ))
+        let (manager, ctx) = toast()
+
+        await coord.dispatch(.spreadTransactionFromExisting(txId: "tx-1", periods: [period(6), period(7)], ctx))
+
+        let sourceIntact = coord.dataStore.transactions.contains { $0.id == "tx-1" }
+        #expect(sourceIntact)
+        #expect(manager.currentToast?.message == "Le lissage n'a pas pu aboutir")
+    }
 }

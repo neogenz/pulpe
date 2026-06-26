@@ -16,6 +16,9 @@ import Testing
 @Suite("AddBudgetLine spread submit wiring")
 @MainActor
 struct AddBudgetLineSpreadLogicTests {
+    /// A fixed idempotency key for the wiring tests that don't assert it specifically.
+    private static let testGroupId = "a3f1c2d4-5e6f-4a7b-8c9d-0e1f2a3b4c5d"
+
     // MARK: - buildCreate: per-month amount + one month ref per selected month, same-currency
 
     @Test
@@ -25,7 +28,7 @@ struct AddBudgetLineSpreadLogicTests {
 
         let data = AddBudgetLineSpreadLogic.buildCreate(
             calculator: calculator,
-            input: .init(name: "  Impôts  ", kind: .expense, amount: 80, mode: .perMonth, conversion: nil)
+            input: .init(name: "  Impôts  ", kind: .expense, amount: 80, mode: .perMonth, conversion: nil, spreadGroupId: Self.testGroupId)
         )
 
         #expect(data.name == "Impôts")
@@ -51,7 +54,7 @@ struct AddBudgetLineSpreadLogicTests {
 
         let data = AddBudgetLineSpreadLogic.buildCreate(
             calculator: calculator,
-            input: .init(name: "Loyer", kind: .expense, amount: 500, mode: .perMonth, conversion: nil)
+            input: .init(name: "Loyer", kind: .expense, amount: 500, mode: .perMonth, conversion: nil, spreadGroupId: Self.testGroupId)
         )
 
         #expect(data.months.map { TranchePair($0.year, $0.month) } == [
@@ -68,7 +71,7 @@ struct AddBudgetLineSpreadLogicTests {
 
         let data = AddBudgetLineSpreadLogic.buildCreate(
             calculator: calculator,
-            input: .init(name: "Vacances", kind: .expense, amount: 90, mode: .total, conversion: nil)
+            input: .init(name: "Vacances", kind: .expense, amount: 90, mode: .total, conversion: nil, spreadGroupId: Self.testGroupId)
         )
 
         #expect(data.mode == .total)
@@ -94,7 +97,7 @@ struct AddBudgetLineSpreadLogicTests {
 
         let data = AddBudgetLineSpreadLogic.buildCreate(
             calculator: calculator,
-            input: .init(name: "Assurance", kind: .expense, amount: 100, mode: .total, conversion: conversion)
+            input: .init(name: "Assurance", kind: .expense, amount: 100, mode: .total, conversion: conversion, spreadGroupId: Self.testGroupId)
         )
 
         // FX figé: the converted total + the original total ride at request level.
@@ -124,7 +127,7 @@ struct AddBudgetLineSpreadLogicTests {
 
         let data = AddBudgetLineSpreadLogic.buildCreate(
             calculator: calculator,
-            input: .init(name: "Assurance", kind: .expense, amount: 100, mode: .perMonth, conversion: conversion)
+            input: .init(name: "Assurance", kind: .expense, amount: 100, mode: .perMonth, conversion: conversion, spreadGroupId: Self.testGroupId)
         )
 
         // One exchangeRate + one perMonthOriginalAmount at request level (FX figé).
@@ -138,6 +141,46 @@ struct AddBudgetLineSpreadLogicTests {
         #expect(data.perMonthOriginalAmount == 100)
         #expect(data.totalAmount == nil)
         #expect(data.totalOriginalAmount == nil)
+    }
+
+    // MARK: - Idempotency key (PUL-17): carried into the DTO + reused across retries
+
+    @Test
+    func buildCreate_carriesTheIntentSpreadGroupId() {
+        let calculator = SpreadCalculator(anchorMonth: 6, anchorYear: 2026)
+        let intentId = "b7e8f9a0-1c2d-4e3f-8a9b-0c1d2e3f4a5b"
+
+        let perMonth = AddBudgetLineSpreadLogic.buildCreate(
+            calculator: calculator,
+            input: .init(name: "Impôts", kind: .expense, amount: 80, mode: .perMonth,
+                         conversion: nil, spreadGroupId: intentId)
+        )
+        let total = AddBudgetLineSpreadLogic.buildCreate(
+            calculator: calculator,
+            input: .init(name: "Vacances", kind: .expense, amount: 90, mode: .total,
+                         conversion: nil, spreadGroupId: intentId)
+        )
+
+        #expect(perMonth.spreadGroupId == intentId)
+        #expect(total.spreadGroupId == intentId)
+    }
+
+    @Test
+    func buildCreate_reusesTheSameSpreadGroupId_onRetryOfTheSameIntent() {
+        // The sheet mints ONE key per intent (@State) and reuses it on retry;
+        // buildCreate must be a faithful conduit — same SubmitInput → same key on
+        // every attempt, so a retry replays the group instead of duplicating it.
+        let calculator = SpreadCalculator(anchorMonth: 6, anchorYear: 2026)
+        let input = AddBudgetLineSpreadLogic.SubmitInput(
+            name: "Impôts", kind: .expense, amount: 80, mode: .perMonth,
+            conversion: nil, spreadGroupId: "b7e8f9a0-1c2d-4e3f-8a9b-0c1d2e3f4a5b"
+        )
+
+        let firstAttempt = AddBudgetLineSpreadLogic.buildCreate(calculator: calculator, input: input)
+        let retry = AddBudgetLineSpreadLogic.buildCreate(calculator: calculator, input: input)
+
+        #expect(firstAttempt.spreadGroupId == input.spreadGroupId)
+        #expect(retry.spreadGroupId == firstAttempt.spreadGroupId)
     }
 
     // MARK: - Submit wiring: createSpread called + invalidation fired
@@ -160,7 +203,7 @@ struct AddBudgetLineSpreadLogicTests {
         // Mirror exactly what `AddBudgetLineSheet.addSpread()` does.
         let data = AddBudgetLineSpreadLogic.buildCreate(
             calculator: calculator,
-            input: .init(name: "Impôts", kind: .expense, amount: 80, mode: .perMonth, conversion: nil)
+            input: .init(name: "Impôts", kind: .expense, amount: 80, mode: .perMonth, conversion: nil, spreadGroupId: Self.testGroupId)
         )
         let response = try await dependencies.createSpread(data)
         dependencies.invalidateCrossBudgetCaches(BudgetListStore())

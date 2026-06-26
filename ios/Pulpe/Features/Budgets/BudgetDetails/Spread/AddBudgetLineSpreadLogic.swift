@@ -10,12 +10,16 @@ enum AddBudgetLineSpreadLogic {
     /// Form inputs for one spread submit. FX is already resolved once upstream
     /// (`conversion`) so a single frozen `exchangeRate` covers every month. `mode`
     /// decides whether `amount` is read as a per-month figure or the TOTAL.
+    /// `spreadGroupId` is the idempotency key minted ONCE by the sheet per create
+    /// intent (`@State`) — required (no default) so the retry-driving view must
+    /// pass its stable id, never mint a fresh one per attempt.
     struct SubmitInput {
         let name: String
         let kind: TransactionKind
         let amount: Decimal
         let mode: SpreadAmountMode
         let conversion: CurrencyConversion?
+        let spreadGroupId: String
     }
 
     /// Builds the `POST /budget-lines/spread` intent: the converted amount, the
@@ -45,7 +49,8 @@ enum AddBudgetLineSpreadLogic {
             totalOriginalAmount: isTotal ? originalAmount : nil,
             originalCurrency: input.conversion?.originalCurrency,
             targetCurrency: input.conversion?.targetCurrency,
-            exchangeRate: input.conversion?.exchangeRate
+            exchangeRate: input.conversion?.exchangeRate,
+            spreadGroupId: input.spreadGroupId
         )
     }
 
