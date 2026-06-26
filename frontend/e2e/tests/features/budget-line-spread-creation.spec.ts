@@ -1,4 +1,4 @@
-import type { Page } from '@playwright/test';
+import type { Locator, Page } from '@playwright/test';
 import { test, expect } from '../../fixtures/test-fixtures';
 import { createBudgetLineMock, TEST_UUIDS } from '../../helpers/api-mocks';
 import type { BudgetDetailsResponse } from 'pulpe-shared';
@@ -7,7 +7,9 @@ import type { BudgetDetailsResponse } from 'pulpe-shared';
  * Dual-mode additive spread create (PUL-17): the user picks `total` (default —
  * the server divides cents-preservingly) or `perMonth` (the server replicates).
  * These tests drive the webapp through the add-line dialog and assert the
- * toggle, the live per-month breakdown, and the wire payload.
+ * toggle, the live per-month breakdown, and the wire payload. Locators are
+ * test-id based throughout (the toggle options carry `spread-amount-*` /
+ * `spread-mode-*` tags), so they don't break when the French copy changes.
  */
 const budgetId = TEST_UUIDS.BUDGET_1;
 
@@ -39,8 +41,11 @@ function detailsMock(): BudgetDetailsResponse {
   };
 }
 
-const amountInput =
-  '[data-testid="add-budget-line-dialog"] [data-testid="amount-input-value"]';
+function amountInput(page: Page): Locator {
+  return page
+    .getByTestId('add-budget-line-dialog')
+    .getByTestId('amount-input-value');
+}
 
 async function openSpreadDialog(
   page: Page,
@@ -57,14 +62,11 @@ async function openSpreadDialog(
   await budgetDetailsPage.goto(budgetId);
   await page.getByTestId('budget-items-add-line-button').click();
 
-  await expect(page.locator('mat-dialog-container')).toBeVisible();
-  await page.locator('[data-testid="new-line-name"]').fill('Prime assurance');
+  await expect(page.getByTestId('add-budget-line-dialog')).toBeVisible();
+  await page.getByTestId('new-line-name').fill('Prime assurance');
 
-  // Switch the entry mode from "Ponctuelle" to "Lissée" (spread).
-  await page
-    .locator('[data-testid="spread-mode-toggle"]')
-    .getByText('Lissée')
-    .click();
+  // Switch the entry mode from "Ponctuelle" to "Lissée" (spread) via its tag.
+  await page.getByTestId('spread-mode-spread').click();
 }
 
 test.describe('Budget Line Spread Creation (dual mode)', () => {
@@ -74,30 +76,29 @@ test.describe('Budget Line Spread Creation (dual mode)', () => {
   }) => {
     await openSpreadDialog(authenticatedPage, budgetDetailsPage);
 
-    // The amount-mode toggle is visible and "Total" is selected by default.
-    const amountModeToggle = authenticatedPage.locator(
-      '[data-testid="spread-amount-mode-toggle"]',
-    );
-    await expect(amountModeToggle).toBeVisible();
+    // The amount-mode toggle is visible and "Total" is selected by default
+    // (asserted via the real aria-checked state, not a Material CSS class).
     await expect(
-      amountModeToggle.locator('.mat-button-toggle-checked'),
-    ).toHaveText(/Total/);
+      authenticatedPage.getByTestId('spread-amount-mode-toggle'),
+    ).toBeVisible();
+    await expect(
+      authenticatedPage.getByTestId('spread-amount-total').getByRole('radio'),
+    ).toBeChecked();
 
-    await authenticatedPage.locator(amountInput).fill('4000');
-    await authenticatedPage.locator(amountInput).blur();
+    await amountInput(authenticatedPage).fill('4000');
+    await amountInput(authenticatedPage).blur();
 
     // Default window is 6 months → 6 breakdown rows (server divides the total).
-    const breakdown = authenticatedPage.locator(
-      '[data-testid="spread-breakdown"]',
-    );
-    await expect(breakdown).toBeVisible();
     await expect(
-      breakdown.locator('[data-testid^="spread-breakdown-"]'),
+      authenticatedPage.getByTestId('spread-breakdown'),
+    ).toBeVisible();
+    await expect(
+      authenticatedPage.getByTestId(/^spread-breakdown-/),
     ).toHaveCount(6);
 
     // Aggregated echo shows the typed total (no decimals).
     await expect(
-      authenticatedPage.locator('[data-testid="spread-total-echo"]'),
+      authenticatedPage.getByTestId('spread-total-echo'),
     ).toContainText(/4[\s’']?000/);
   });
 
@@ -107,24 +108,21 @@ test.describe('Budget Line Spread Creation (dual mode)', () => {
   }) => {
     await openSpreadDialog(authenticatedPage, budgetDetailsPage);
 
-    await authenticatedPage.locator(amountInput).fill('500');
-    await authenticatedPage.locator(amountInput).blur();
+    await amountInput(authenticatedPage).fill('500');
+    await amountInput(authenticatedPage).blur();
 
     await expect(
-      authenticatedPage.locator('[data-testid="spread-breakdown"]'),
+      authenticatedPage.getByTestId('spread-breakdown'),
     ).toBeVisible();
 
-    await authenticatedPage
-      .locator('[data-testid="spread-amount-mode-toggle"]')
-      .getByText('Par mois')
-      .click();
+    await authenticatedPage.getByTestId('spread-amount-permonth').click();
 
     // breakdown gone; a single total echo remains (500 × 6 = 3000)
+    await expect(authenticatedPage.getByTestId('spread-breakdown')).toHaveCount(
+      0,
+    );
     await expect(
-      authenticatedPage.locator('[data-testid="spread-breakdown"]'),
-    ).toHaveCount(0);
-    await expect(
-      authenticatedPage.locator('[data-testid="spread-total-echo"]'),
+      authenticatedPage.getByTestId('spread-total-echo'),
     ).toBeVisible();
   });
 
@@ -134,8 +132,8 @@ test.describe('Budget Line Spread Creation (dual mode)', () => {
   }) => {
     await openSpreadDialog(authenticatedPage, budgetDetailsPage);
 
-    await authenticatedPage.locator(amountInput).fill('4000');
-    await authenticatedPage.locator(amountInput).blur();
+    await amountInput(authenticatedPage).fill('4000');
+    await amountInput(authenticatedPage).blur();
 
     const spreadResponse = {
       success: true,

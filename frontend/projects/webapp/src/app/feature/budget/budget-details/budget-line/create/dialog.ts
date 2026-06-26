@@ -167,10 +167,18 @@ interface AddBudgetLineModel {
               class="w-full"
               data-testid="spread-mode-toggle"
             >
-              <mat-button-toggle value="single" class="flex-1">
+              <mat-button-toggle
+                value="single"
+                class="flex-1"
+                data-testid="spread-mode-single"
+              >
                 {{ 'budget.spreadModeOnce' | transloco }}
               </mat-button-toggle>
-              <mat-button-toggle value="spread" class="flex-1">
+              <mat-button-toggle
+                value="spread"
+                class="flex-1"
+                data-testid="spread-mode-spread"
+              >
                 <mat-icon class="mr-1 align-middle">calendar_month</mat-icon>
                 {{ 'budget.spreadModeSpread' | transloco }}
               </mat-button-toggle>
@@ -186,10 +194,18 @@ interface AddBudgetLineModel {
               class="w-full"
               data-testid="spread-amount-mode-toggle"
             >
-              <mat-button-toggle value="total" class="flex-1">
+              <mat-button-toggle
+                value="total"
+                class="flex-1"
+                data-testid="spread-amount-total"
+              >
                 {{ 'budget.spreadAmountModeTotal' | transloco }}
               </mat-button-toggle>
-              <mat-button-toggle value="perMonth" class="flex-1">
+              <mat-button-toggle
+                value="perMonth"
+                class="flex-1"
+                data-testid="spread-amount-permonth"
+              >
                 {{ 'budget.spreadAmountModePerMonth' | transloco }}
               </mat-button-toggle>
             </mat-button-toggle-group>
