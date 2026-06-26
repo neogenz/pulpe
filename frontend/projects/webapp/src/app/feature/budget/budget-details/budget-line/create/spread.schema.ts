@@ -1,6 +1,7 @@
 import { z } from 'zod/v4';
 import {
   transactionKindSchema,
+  spreadFromExistingPeriodSchema,
   type BudgetLineSpreadCreate,
 } from 'pulpe-shared';
 import { conversionFormSchema } from '@core/currency';
@@ -29,18 +30,13 @@ import { conversionFormSchema } from '@core/currency';
  *   (`totalOriginalAmount` in total mode, `perMonthOriginalAmount` otherwise).
  */
 
-const spreadMonthSchema = z.object({
-  year: z.number().int(),
-  month: z.number().int().min(1).max(12),
-});
-
 export const budgetLineSpreadCreateFromFormSchema = z
   .object({
     name: z.string().min(1).max(100).trim(),
     kind: transactionKindSchema.exclude(['income']),
     mode: z.enum(['total', 'perMonth']),
     amount: z.number().positive(),
-    months: z.array(spreadMonthSchema).min(1),
+    months: z.array(spreadFromExistingPeriodSchema).min(1),
     conversion: conversionFormSchema.nullable(),
   })
   .transform((input): BudgetLineSpreadCreate => {

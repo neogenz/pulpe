@@ -319,7 +319,7 @@ export class SpreadExistingDialog {
   // — the representative "X par mois" — and name the last remainder month.
   readonly #split = computed(() => {
     const count = this.selectedCount();
-    if (count < MIN_SPREAD_MONTHS) return [];
+    if (count < MIN_SPREAD_MONTHS || this.total() <= 0) return [];
     return splitTotalPreserving(this.total(), count);
   });
 

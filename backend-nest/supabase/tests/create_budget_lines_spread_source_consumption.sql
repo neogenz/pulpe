@@ -13,6 +13,11 @@ DECLARE
   v_first_group_id uuid := gen_random_uuid();
   v_retry_group_id uuid := gen_random_uuid();
   v_invalid_group_id uuid := gen_random_uuid();
+  v_victim_id uuid := gen_random_uuid();
+  v_victim_template_id uuid := gen_random_uuid();
+  v_victim_budget_id uuid := gen_random_uuid();
+  v_victim_source_id uuid := gen_random_uuid();
+  v_cross_user_group_id uuid := gen_random_uuid();
   v_lines jsonb;
   v_caught boolean;
   v_count int;
@@ -117,6 +122,69 @@ BEGIN
   WHERE spread_group_id = v_invalid_group_id;
   IF v_count <> 0 THEN
     RAISE EXCEPTION 'FAIL: invalid dual-source call inserted % line(s)', v_count;
+  END IF;
+
+  -- Cross-user IDOR: a source owned by another user must be invisible to the
+  -- DELETE (AND EXISTS ... mb.user_id = v_uid). The target lines stay on the
+  -- attacker's own budget so the budget-access guard passes and execution
+  -- reaches the source-consumption guard. The call must raise 'Spread source
+  -- unavailable', leave the victim's source row intact, and insert nothing.
+  INSERT INTO auth.users (id, email, encrypted_password, instance_id, aud, role)
+  VALUES (
+    v_victim_id,
+    'spread-source-victim@local.test',
+    'fake',
+    '00000000-0000-0000-0000-000000000000',
+    'authenticated',
+    'authenticated'
+  );
+
+  INSERT INTO public.template (id, user_id, name, description, is_default)
+  VALUES (v_victim_template_id, v_victim_id, 'Victim Template', '', false);
+
+  INSERT INTO public.monthly_budget (
+    id, user_id, template_id, month, year, description
+  ) VALUES (
+    v_victim_budget_id, v_victim_id, v_victim_template_id, 6, 2026, 'Victim June 2026'
+  );
+
+  INSERT INTO public.budget_line (
+    id, budget_id, name, amount, kind, recurrence
+  ) VALUES (
+    v_victim_source_id,
+    v_victim_budget_id,
+    'Victim Source',
+    'CIPHERTEXT_VICTIM_SOURCE',
+    'expense',
+    'one_off'
+  );
+
+  v_caught := false;
+  BEGIN
+    PERFORM public.create_budget_lines_spread(
+      p_spread_group_id := v_cross_user_group_id,
+      p_lines := v_lines,
+      p_source_budget_line_id := v_victim_source_id
+    );
+  EXCEPTION WHEN OTHERS THEN
+    v_caught := true;
+  END;
+  IF NOT v_caught THEN
+    RAISE EXCEPTION 'FAIL: spread with a cross-user source did not raise';
+  END IF;
+
+  SELECT count(*) INTO v_count
+  FROM public.budget_line
+  WHERE id = v_victim_source_id;
+  IF v_count <> 1 THEN
+    RAISE EXCEPTION 'FAIL: cross-user source was deleted (IDOR), rows left = %', v_count;
+  END IF;
+
+  SELECT count(*) INTO v_count
+  FROM public.budget_line
+  WHERE spread_group_id = v_cross_user_group_id;
+  IF v_count <> 0 THEN
+    RAISE EXCEPTION 'FAIL: cross-user spread inserted % line(s)', v_count;
   END IF;
 
   RAISE NOTICE 'SOURCE CONSUMPTION: ALL ASSERTIONS PASSED';
