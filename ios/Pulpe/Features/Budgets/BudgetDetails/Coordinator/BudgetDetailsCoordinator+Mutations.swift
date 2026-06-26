@@ -170,7 +170,8 @@ extension BudgetDetailsCoordinator {
         // cache is wiped to force a server-authoritative refetch rather than serve
         // this budget's optimistic copy.
         dataStore.syncCache()
-        dataStore.invalidateAdjacentCache()
+        // `invalidateAllCache()` already wipes adjacent budgets too, so no separate
+        // `invalidateAdjacentCache()` is needed on this cross-budget path.
         dataStore.invalidateAllCache()
     }
 }

@@ -217,7 +217,10 @@ struct SpreadExistingSheet: View {
         let total = source.total.asCurrency(currency)
         switch source.sourceType {
         case .transaction:
-            return "On transforme cette dépense de \(total) en un plan lissé : "
+            // Source kind drives the noun — a spread saving must read "épargne",
+            // not "dépense" (same accord as the additive successMessage).
+            let noun = source.kind == .saving ? "épargne" : "dépense"
+            return "On transforme cette \(noun) de \(total) en un plan lissé : "
                 + "\(perMonth) par mois sur \(count) mois. Le réel est remplacé par le plan."
         case .budgetLine:
             return "On répartit cette prévision de \(total) en \(perMonth) par mois sur \(count) mois."
