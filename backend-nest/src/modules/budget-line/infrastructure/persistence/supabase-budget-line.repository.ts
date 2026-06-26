@@ -343,8 +343,10 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
       consumed,
       transactionCount,
       originalAmount: decrypted.original_amount,
-      originalCurrency: decrypted.original_currency,
-      targetCurrency: decrypted.target_currency,
+      originalCurrency:
+        decrypted.original_currency as SpreadOccurrence['originalCurrency'],
+      targetCurrency:
+        decrypted.target_currency as SpreadOccurrence['targetCurrency'],
       exchangeRate: decrypted.exchange_rate,
       kind: decrypted.kind,
       checkedAt: decrypted.checked_at,

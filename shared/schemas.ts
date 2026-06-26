@@ -416,8 +416,10 @@ export const budgetLineSpreadCreateSchema = z
      * Clé d'idempotence OPTIONNELLE (PUL-17). Le client génère un uuid v4 stable
      * pour CETTE intention de lissage et le rejoue à l'identique sur un retry.
      * Le serveur l'utilise comme `spread_group_id` : un second POST avec la même
-     * clé ne crée PAS un second groupe — il renvoie les lignes déjà créées (replay
-     * 200) après avoir re-tenté le recalcul (idempotent → soigne un solde laissé
+     * clé ne crée PAS un second groupe — il rejoue et renvoie les lignes déjà
+     * créées avec le statut de la création d'origine (201 ; un replay idempotent
+     * renvoie le résultat original, à la Stripe), après avoir re-tenté le recalcul
+     * (idempotent → soigne un solde laissé
      * périmé par un premier recalcul échoué). Absente → le serveur génère la clé
      * comme avant (rétro-compatible : iOS/web non cassés tant qu'ils ne l'adoptent
      * pas). Champ additif, non-breaking.

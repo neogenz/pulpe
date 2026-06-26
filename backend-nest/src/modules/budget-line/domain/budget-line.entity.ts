@@ -76,8 +76,8 @@ export interface SpreadOccurrence {
   /** Number of allocated transactions — lets the client pick consumed vs prévu. */
   transactionCount: number;
   originalAmount: number | null;
-  originalCurrency: string | null;
-  targetCurrency: string | null;
+  originalCurrency: SupportedCurrency | null;
+  targetCurrency: SupportedCurrency | null;
   exchangeRate: number | null;
   kind: TransactionKind;
   checkedAt: string | null;
