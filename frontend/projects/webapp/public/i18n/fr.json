@@ -501,6 +501,9 @@
     "spreadErrorEndBeforeStart": "Le dernier mois doit suivre le premier.",
     "spreadErrorNoMonths": "Sélectionne au moins un mois.",
     "spreadErrorTooManyMonths": "36 mois maximum.",
+    "spreadSuccess": "Dépense lissée sur {{ count }} mois",
+    "spreadCreatedBudgetsSuffix": " · {{ count }} budget(s) créé(s)",
+    "spreadSkippedMonthsSuffix": " · {{ count }} mois ignoré(s) (aucun modèle)",
     "overview": {
       "remainingThisMonth": "Ce qu'il te reste ce mois",
       "perForecast": "selon tes prévisions",

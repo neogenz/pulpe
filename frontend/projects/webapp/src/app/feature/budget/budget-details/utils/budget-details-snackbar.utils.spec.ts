@@ -1,14 +1,17 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Subject } from 'rxjs';
+import { TestBed } from '@angular/core/testing';
 import type { MatSnackBar } from '@angular/material/snack-bar';
-import type { TranslocoService } from '@jsverse/transloco';
+import { TranslocoService } from '@jsverse/transloco';
 import type {
   BudgetLine,
   BudgetLineSpreadCreate,
   Transaction,
 } from 'pulpe-shared';
+import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 import {
   computeEnvelopeSnackbarMessage,
+  computeSpreadSnackbarMessage,
   computeTransactionSnackbarMessage,
   submitSpreadWithRetry,
 } from './budget-details-snackbar.utils';
@@ -301,5 +304,62 @@ describe('computeTransactionSnackbarMessage', () => {
     );
 
     expect(result).toBe('Pointé · 42 CHF');
+  });
+});
+
+describe('computeSpreadSnackbarMessage', () => {
+  // Uses the REAL fr.json via provideTranslocoForTest (not a mock that echoes the
+  // key) so a missing translation surfaces as the raw key and fails the test.
+  // Guards PUL-17: the spread success toast i18n keys must exist and interpolate.
+  let transloco: TranslocoService;
+
+  beforeEach(() => {
+    TestBed.configureTestingModule({
+      providers: [...provideTranslocoForTest()],
+    });
+    transloco = TestBed.inject(TranslocoService);
+  });
+
+  it('renders the translated base message, never the raw i18n key', () => {
+    const message = computeSpreadSnackbarMessage(
+      {
+        lines: [{}, {}, {}],
+        createdBudgets: [],
+        skippedMonths: [],
+      } as unknown as Parameters<typeof computeSpreadSnackbarMessage>[0],
+      transloco,
+    );
+
+    expect(message).not.toContain('budget.spreadSuccess');
+    expect(message).toContain('3');
+    expect(message).toContain('Dépense lissée');
+  });
+
+  it('appends the translated created-budgets suffix, never the raw key', () => {
+    const message = computeSpreadSnackbarMessage(
+      {
+        lines: [{}, {}],
+        createdBudgets: [{}],
+        skippedMonths: [],
+      } as unknown as Parameters<typeof computeSpreadSnackbarMessage>[0],
+      transloco,
+    );
+
+    expect(message).not.toContain('budget.spreadCreatedBudgetsSuffix');
+    expect(message).toContain('budget');
+  });
+
+  it('appends the translated skipped-months suffix, never the raw key', () => {
+    const message = computeSpreadSnackbarMessage(
+      {
+        lines: [{}, {}],
+        createdBudgets: [],
+        skippedMonths: [{}],
+      } as unknown as Parameters<typeof computeSpreadSnackbarMessage>[0],
+      transloco,
+    );
+
+    expect(message).not.toContain('budget.spreadSkippedMonthsSuffix');
+    expect(message).toContain('ignoré');
   });
 });
