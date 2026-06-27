@@ -16,6 +16,7 @@ import {
   ApiParam,
   ApiBadRequestResponse,
   ApiNotFoundResponse,
+  ApiConflictResponse,
   ApiUnauthorizedResponse,
   ApiInternalServerErrorResponse,
 } from '@nestjs/swagger';
@@ -253,6 +254,11 @@ export class BudgetLineController {
   })
   @ApiNotFoundResponse({
     description: 'Ligne budgétaire non trouvée',
+    type: ErrorResponseDto,
+  })
+  @ApiConflictResponse({
+    description:
+      'Ligne déjà pointée, récurrente, portant des transactions, ou budget du mois suivant inexistant',
     type: ErrorResponseDto,
   })
   async postpone(

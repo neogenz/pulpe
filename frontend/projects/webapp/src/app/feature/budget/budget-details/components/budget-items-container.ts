@@ -204,7 +204,7 @@ import {
           (addTransaction)="openCreateAllocatedTransactionDialog($event)"
           (viewTransactions)="onViewTransactions($event)"
           (resetFromTemplate)="handleResetFromTemplate($event)"
-          (postpone)="handlePostponeBudgetLine($event)"
+          (postpone)="handlePostponeItem($event)"
           (toggleCheck)="handleToggleCheck($event)"
           (toggleTransactionCheck)="handleToggleTransactionCheck($event)"
         />
@@ -557,6 +557,21 @@ export class BudgetItemsContainer {
     transactionId: string,
   ): Promise<void> {
     await this.#postpone(() => this.store.postponeTransaction(transactionId));
+  }
+
+  // The budget-table renders both budget lines and free transactions through a
+  // single `postpone` output (id only), so route by item type — mirrors
+  // handleDeleteItem.
+  protected async handlePostponeItem(id: string): Promise<void> {
+    const data = this.store.budgetDetails();
+    if (!data) return;
+
+    const isBudgetLine = data.budgetLines.some((line) => line.id === id);
+    if (isBudgetLine) {
+      await this.handlePostponeBudgetLine(id);
+    } else {
+      await this.handlePostponeTransaction(id);
+    }
   }
 
   async #postpone(mutate: () => Promise<boolean>): Promise<void> {

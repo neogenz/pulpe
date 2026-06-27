@@ -92,10 +92,7 @@ import type {
             <span>{{ 'budget.reset' | transloco }}</span>
           </button>
         }
-        @if (
-          line().metadata.itemType === 'budget_line' &&
-          line().metadata.canPostpone
-        ) {
+        @if (line().metadata.canPostpone) {
           <!-- Tooltip wrapper: matTooltip is suppressed on disabled buttons -->
           <span
             class="block w-full"

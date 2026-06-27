@@ -1,10 +1,11 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { addMonths } from 'date-fns';
 import {
   BUDGET_REPOSITORY,
   type BudgetRepositoryPort,
 } from '../domain/ports/budget-repository.port';
 import type { BudgetPeriodLookupPort } from '../domain/ports/budget-period-lookup.port';
+
+const DECEMBER = 12;
 
 @Injectable()
 export class ResolveNextMonthBudgetUseCase implements BudgetPeriodLookupPort {
@@ -18,13 +19,12 @@ export class ResolveNextMonthBudgetUseCase implements BudgetPeriodLookupPort {
     userId: string,
   ): Promise<string | null> {
     const source = await this.repo.fetchBudgetById(sourceBudgetId, userId);
-    const nextPeriod = addMonths(
-      new Date(Date.UTC(source.year, source.month - 1, 1)),
-      1,
-    );
-    return this.repo.fetchBudgetIdByPeriod(
-      nextPeriod.getUTCMonth() + 1,
-      nextPeriod.getUTCFullYear(),
-    );
+    // Pure month/year arithmetic — no Date math. `date-fns addMonths` on a
+    // UTC-constructed Date applies LOCAL-time calendar rules, so on a non-UTC
+    // (DST) host the read-back month could be off by one (e.g. March → March).
+    const targetMonth = source.month === DECEMBER ? 1 : source.month + 1;
+    const targetYear =
+      source.month === DECEMBER ? source.year + 1 : source.year;
+    return this.repo.fetchBudgetIdByPeriod(targetMonth, targetYear);
   }
 }

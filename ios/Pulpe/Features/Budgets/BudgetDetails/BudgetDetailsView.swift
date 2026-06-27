@@ -4,14 +4,18 @@ import TipKit
 struct BudgetDetailsView: View {
     let budgetId: String
     @Environment(AppState.self) private var appState
-    @Environment(BudgetDetailsRouter.self) private var router
-    @Environment(UserSettingsStore.self) private var userSettingsStore
+    // `router`, `coordinator` and `userSettingsStore` stay `internal` (no
+    // modifier) so the routing helpers in `BudgetDetailsView+Routing.swift`
+    // — a same-type extension in a separate file — can read them. Swift's
+    // `private` is file-scoped; `fileprivate` would not cross files either.
+    @Environment(BudgetDetailsRouter.self) var router
+    @Environment(UserSettingsStore.self) var userSettingsStore
     @Environment(BudgetListStore.self) private var budgetListStore
     @Environment(DashboardStore.self) private var dashboardStore
     @Environment(\.amountsHidden) private var amountsHidden
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.tabBarClearance) private var tabBarClearance
-    @State private var coordinator: BudgetDetailsCoordinator
+    @State var coordinator: BudgetDetailsCoordinator
     @State private var projector: BudgetDetailsProjector
 
     @State private var searchText = ""
@@ -306,67 +310,4 @@ struct BudgetDetailsView: View {
         }
         postponeSuccessTrigger.toggle()
     }
-}
-
-// MARK: - Routing
-
-private extension BudgetDetailsView {
-    @ViewBuilder
-    func pushDestination(for route: BudgetLinePushRoute) -> some View {
-        switch route {
-        case .lineDetail(let lineId):
-            BudgetLineDetailPage(
-                lineId: lineId,
-                onEditLine: { line in router.present(.editBudgetLine(line)) }
-            )
-        case .addAllocatedTx(let lineId):
-            AddAllocatedTransactionPage(lineId: lineId)
-        case .editTx(let transactionId):
-            EditTransactionPage(transactionId: transactionId)
-        }
-    }
-
-    @ViewBuilder
-    func sheetContent(for destination: BudgetDetailDestination) -> some View {
-        switch destination {
-        case .addBudgetLine:
-            AddBudgetLineSheet(budgetId: coordinator.dataStore.budgetId) { budgetLine in
-                Task { await coordinator.dispatch(.addBudgetLine(budgetLine)) }
-            }
-        case .editBudgetLine(let line):
-            EditBudgetLineSheet(budgetLine: line, userCurrency: userSettingsStore.currency) { updatedLine in
-                Task { await coordinator.dispatch(.updateBudgetLine(updatedLine)) }
-            }
-        case .previousBudget(let item):
-            PreviousBudgetSheet(budgetId: item.id)
-        case .realizedBalance:
-            RealizedBalanceSheet(
-                metrics: coordinator.dataStore.metrics,
-                realizedMetrics: coordinator.dataStore.realizedMetrics
-            )
-        }
-    }
-}
-
-#Preview {
-    NavigationStack {
-        BudgetDetailsView(budgetId: "test")
-    }
-    .environment(AppState())
-    .environment(BudgetDetailsRouter())
-    .environment(UserSettingsStore())
-    .environment(BudgetListStore())
-    .environment(DashboardStore())
-}
-#Preview("Gestures Tip") {
-    List {
-        Section("Dépenses") {
-            TipView(ProductTips.gestures)
-            Text("Courses alimentaires")
-        }
-    }
-    .listStyle(.insetGrouped)
-    .scrollContentBackground(.hidden)
-    .pulpeBackground()
-    .task { try? Tips.resetDatastore() }
 }

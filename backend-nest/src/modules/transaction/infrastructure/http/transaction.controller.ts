@@ -20,6 +20,7 @@ import {
   ApiQuery,
   ApiBadRequestResponse,
   ApiNotFoundResponse,
+  ApiConflictResponse,
   ApiUnauthorizedResponse,
   ApiInternalServerErrorResponse,
 } from '@nestjs/swagger';
@@ -316,6 +317,11 @@ export class TransactionController {
   })
   @ApiNotFoundResponse({
     description: 'Transaction not found',
+    type: ErrorResponseDto,
+  })
+  @ApiConflictResponse({
+    description:
+      'Transaction déjà pointée, allouée à une enveloppe, ou budget du mois suivant inexistant',
     type: ErrorResponseDto,
   })
   async postpone(
