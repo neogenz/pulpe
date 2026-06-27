@@ -300,14 +300,22 @@ struct BudgetDetailsView: View {
         .ignoresSafeArea(.keyboard, edges: .bottom)
     }
 
-    /// Routes a confirmed postpone (PUL-22) to the matching coordinator action.
+    /// Routes a confirmed postpone (PUL-22) to the matching coordinator method.
+    /// Fires the success haptic only when the server move actually succeeds —
+    /// the coordinator returns `false` on a rejected/rolled-back move (and has
+    /// already shown the error feedback), so an unconditional toggle would
+    /// celebrate a failure. Mirrors how `dispatchToggle` gates its success
+    /// toast on the Bool returned by `toggleBudgetLine`.
     private func dispatchPostpone(_ target: PostponeTarget) async {
+        let succeeded: Bool
         switch target {
         case .budgetLine(let line):
-            await coordinator.dispatch(.postponeBudgetLine(line, toastContext))
+            succeeded = await coordinator.postponeBudgetLine(line, context: toastContext)
         case .transaction(let tx):
-            await coordinator.dispatch(.postponeTransaction(tx, toastContext))
+            succeeded = await coordinator.postponeTransaction(tx, context: toastContext)
         }
-        postponeSuccessTrigger.toggle()
+        if succeeded {
+            postponeSuccessTrigger.toggle()
+        }
     }
 }

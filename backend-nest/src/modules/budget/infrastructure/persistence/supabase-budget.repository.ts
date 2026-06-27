@@ -149,6 +149,9 @@ export class SupabaseBudgetRepository implements BudgetRepositoryPort {
       .from('monthly_budget')
       .select('*')
       .eq('id', id)
+      // Explicit ownership filter on top of RLS — defense-in-depth + optimizer
+      // hint (see .claude/rules/.../supabase.md).
+      .eq('user_id', userId)
       .single();
 
     if (error || !data) {

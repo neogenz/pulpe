@@ -54,6 +54,40 @@ struct BudgetDetailsCoordinatorPostponeTests {
         #expect(lineService.postponeCallCount == 1)
     }
 
+    @Test
+    func postponeBudgetLine_returnsTrueOnSuccess() async {
+        let lineService = MockBudgetLineService()
+        let coord = BudgetDetailsCoordinator(
+            budgetId: "test-budget",
+            budgetLineService: lineService
+        )
+        let line = TestDataFactory.createBudgetLine(id: "line-1", recurrence: .oneOff)
+        await coord.dispatch(.addBudgetLine(line))
+
+        let succeeded = await coord.postponeBudgetLine(line, context: makeContext())
+
+        // The view gates its success haptic on this Bool — true only when the
+        // server move landed, not on a rollback.
+        #expect(succeeded)
+    }
+
+    @Test
+    func postponeBudgetLine_returnsFalseWhenServiceThrows() async {
+        let lineService = MockBudgetLineService()
+        lineService.postponeError = URLError(.badServerResponse)
+        let coord = BudgetDetailsCoordinator(
+            budgetId: "test-budget",
+            budgetLineService: lineService
+        )
+        let line = TestDataFactory.createBudgetLine(id: "line-1", recurrence: .oneOff)
+        await coord.dispatch(.addBudgetLine(line))
+
+        let succeeded = await coord.postponeBudgetLine(line, context: makeContext())
+
+        // Rejected move → false → the view must NOT fire the success haptic.
+        #expect(!succeeded)
+    }
+
     // MARK: - Transaction postpone
 
     @Test
@@ -88,6 +122,37 @@ struct BudgetDetailsCoordinatorPostponeTests {
 
         #expect(coord.dataStore.transactions.map(\.id) == ["tx-1"])
         #expect(txService.postponeCallCount == 1)
+    }
+
+    @Test
+    func postponeTransaction_returnsTrueOnSuccess() async {
+        let txService = MockTransactionService()
+        let coord = BudgetDetailsCoordinator(
+            budgetId: "test-budget",
+            transactionService: txService
+        )
+        let tx = TestDataFactory.createTransaction(id: "tx-1")
+        await coord.dispatch(.addTransaction(tx))
+
+        let succeeded = await coord.postponeTransaction(tx, context: makeContext())
+
+        #expect(succeeded)
+    }
+
+    @Test
+    func postponeTransaction_returnsFalseWhenServiceThrows() async {
+        let txService = MockTransactionService()
+        txService.postponeError = URLError(.badServerResponse)
+        let coord = BudgetDetailsCoordinator(
+            budgetId: "test-budget",
+            transactionService: txService
+        )
+        let tx = TestDataFactory.createTransaction(id: "tx-1")
+        await coord.dispatch(.addTransaction(tx))
+
+        let succeeded = await coord.postponeTransaction(tx, context: makeContext())
+
+        #expect(!succeeded)
     }
 
     // MARK: - CA5: calendar-adjacency guard (hasNextMonthBudget / nextMonthLabel)

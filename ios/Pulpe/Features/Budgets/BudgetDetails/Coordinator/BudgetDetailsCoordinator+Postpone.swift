@@ -22,11 +22,16 @@ extension BudgetDetailsCoordinator {
         return true
     }
 
-    func postponeBudgetLine(_ line: BudgetLine, context: ToastContext) async {
+    /// Returns `true` once the server move succeeds, `false` on rollback —
+    /// mirrors `toggleBudgetLine`'s Bool contract so the caller can gate its
+    /// success haptic (the view's `postponeSuccessTrigger`) on real success
+    /// rather than firing it unconditionally on a rejected/rolled-back move.
+    @discardableResult
+    func postponeBudgetLine(_ line: BudgetLine, context: ToastContext) async -> Bool {
         // The view gates eligibility (unchecked, one-off, no allocated tx) and
         // CA5 (next-month budget exists). This guard only rejects the virtual
         // rollover line, which is never a real server entity.
-        guard !(line.isRollover ?? false) else { return }
+        guard !(line.isRollover ?? false) else { return false }
 
         let originalLines = dataStore.budgetLines
         let targetMonth = dataStore.nextMonthLabel
@@ -40,15 +45,20 @@ extension BudgetDetailsCoordinator {
         do {
             _ = try await budgetLineService.postpone(id: line.id)
             showPostponeToast(context: context, targetMonth: targetMonth)
+            return true
         } catch {
             dataStore.setBudgetLines(originalLines)
             dataStore.recomputeMetrics()
             dataStore.syncCache()
             syncStore.setError(error)
+            return false
         }
     }
 
-    func postponeTransaction(_ transaction: Transaction, context: ToastContext) async {
+    /// Returns `true` once the server move succeeds, `false` on rollback. See
+    /// `postponeBudgetLine` for the success-gating rationale.
+    @discardableResult
+    func postponeTransaction(_ transaction: Transaction, context: ToastContext) async -> Bool {
         let originalTransactions = dataStore.transactions
         let targetMonth = dataStore.nextMonthLabel
         dataStore.removeTransaction(id: transaction.id)
@@ -59,11 +69,13 @@ extension BudgetDetailsCoordinator {
         do {
             _ = try await transactionService.postpone(id: transaction.id)
             showPostponeToast(context: context, targetMonth: targetMonth)
+            return true
         } catch {
             dataStore.setTransactions(originalTransactions)
             dataStore.recomputeMetrics()
             dataStore.syncCache()
             syncStore.setError(error)
+            return false
         }
     }
 
