@@ -236,7 +236,6 @@ struct SpreadExistingSheet: View {
 
     private var submitButton: some View {
         Button {
-            guard calculator.isValid else { return }
             onSpread(calculator.periods())
             dismiss()
         } label: {
