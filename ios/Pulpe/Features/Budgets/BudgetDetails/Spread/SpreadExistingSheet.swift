@@ -30,6 +30,11 @@ struct SpreadExistingSheet: View {
     }
 
     private var accentColor: Color { Color.financialColor(for: source.kind) }
+    // Source kind drives the noun — a spread saving must read "épargne", not
+    // "dépense" (same accord as the `disclosure` body and the additive flow).
+    private var spreadTitle: String {
+        source.kind == .saving ? "Lisser l'épargne" : "Lisser la dépense"
+    }
     // M0 is locked, so the window is [M0, M0+35] at most (36-month cap). The
     // worst case (M0 = December) ends in `start.year + 3`; +4 over-exposed a year
     // of months the validation would reject.
@@ -51,7 +56,7 @@ struct SpreadExistingSheet: View {
             .scrollBounceBehavior(.basedOnSize)
             .pulpeBackground()
             .pulpeStickyBottomCTA { submitButton }
-            .navigationTitle("Lisser la dépense")
+            .navigationTitle(spreadTitle)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { SheetCloseButton() }
@@ -235,7 +240,7 @@ struct SpreadExistingSheet: View {
             onSpread(calculator.periods())
             dismiss()
         } label: {
-            Text("Lisser la dépense")
+            Text(spreadTitle)
         }
         .disabled(!calculator.isValid)
         .primaryButtonStyle(isEnabled: calculator.isValid)

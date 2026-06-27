@@ -131,6 +131,9 @@ extension BudgetDetailsCoordinator {
         periods: [SpreadFromExistingPeriod],
         context: ToastContext
     ) async {
+        syncStore.setLoading(true)
+        syncStore.clearError()
+        defer { syncStore.setLoading(false) }
         do {
             let response = try await budgetLineService.spreadExistingBudgetLine(id: lineId, periods: periods)
             applySpreadFromExisting(removingLineId: lineId, removingTransactionId: nil, response: response)
@@ -148,6 +151,9 @@ extension BudgetDetailsCoordinator {
         periods: [SpreadFromExistingPeriod],
         context: ToastContext
     ) async {
+        syncStore.setLoading(true)
+        syncStore.clearError()
+        defer { syncStore.setLoading(false) }
         do {
             let response = try await transactionService.spreadExistingTransaction(id: txId, periods: periods)
             applySpreadFromExisting(removingLineId: nil, removingTransactionId: txId, response: response)
