@@ -313,12 +313,12 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
 
     if (error) {
       throw new BusinessException(
-        ERROR_DEFINITIONS.BUDGET_LINE_FETCH_FAILED,
+        ERROR_DEFINITIONS.TRANSACTION_FETCH_FAILED,
         undefined,
         {
           operation: 'hasAllocatedTransactions',
           entityId: budgetLineId,
-          entityType: 'budget_line',
+          entityType: 'transaction',
           supabaseError: error,
         },
         { cause: error },

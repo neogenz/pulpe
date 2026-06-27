@@ -46,6 +46,7 @@ describe('ResolveNextMonthBudgetUseCase', () => {
 
     const id = await useCase.findNextMonthBudgetId('budget-1', 'user-1');
 
+    expect(mockRepo.fetchBudgetById).toHaveBeenCalledWith('budget-1', 'user-1');
     expect(mockRepo.fetchBudgetIdByPeriod).toHaveBeenCalledWith(7, 2026);
     expect(id).toBe('budget-next');
   });
