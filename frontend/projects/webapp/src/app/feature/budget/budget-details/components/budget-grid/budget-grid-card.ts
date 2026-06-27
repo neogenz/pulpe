@@ -93,6 +93,7 @@ import { BudgetActionMenu } from '../budget-action-menu';
           (delete)="delete.emit($event)"
           (addTransaction)="addTransaction.emit($event)"
           (resetFromTemplate)="resetFromTemplate.emit($event)"
+          (postpone)="postpone.emit($event)"
         />
       </div>
 
@@ -232,5 +233,6 @@ export class BudgetGridCard {
   readonly delete = output<string>();
   readonly addTransaction = output<BudgetLine>();
   readonly resetFromTemplate = output<BudgetLineTableItem>();
+  readonly postpone = output<string>();
   readonly toggleCheck = output<string>();
 }

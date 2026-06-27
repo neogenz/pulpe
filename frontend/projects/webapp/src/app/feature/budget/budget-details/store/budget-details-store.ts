@@ -3,6 +3,7 @@ import {
   effect,
   inject,
   Injectable,
+  LOCALE_ID,
   signal,
   untracked,
 } from '@angular/core';
@@ -19,10 +20,12 @@ import { STORAGE_KEYS } from '@core/storage/storage-keys';
 import {
   type BudgetLine,
   type BudgetLineCreate,
+  type BudgetLinePostponeResponse,
   type BudgetLineUpdate,
   type Transaction,
   type TransactionCreate,
   type TransactionListResponse,
+  type TransactionPostponeResponse,
   type TransactionUpdate,
   BudgetFormulas,
 } from 'pulpe-shared';
@@ -53,6 +56,9 @@ export class BudgetDetailsStore {
   readonly #logger = inject(Logger);
   readonly #storage = inject(StorageService);
   readonly #transloco = inject(TranslocoService);
+  readonly #monthFormatter = new Intl.DateTimeFormat(inject(LOCALE_ID), {
+    month: 'long',
+  });
 
   // ── 2. Internal state (private/writable) ──
   readonly #state = createInitialBudgetDetailsState();
@@ -159,6 +165,37 @@ export class BudgetDetailsStore {
 
   readonly hasPrevious = computed(() => this.previousBudgetId() !== null);
   readonly hasNext = computed(() => this.nextBudgetId() !== null);
+
+  /**
+   * Next CALENDAR month relative to the current budget (with year rollover).
+   * Distinct from `nextBudgetId`, which is the next budget in the sorted list.
+   * Used to gate the "report to next month" action (PUL-22, CA5): postponing
+   * requires that the target month's budget already exists.
+   */
+  readonly #nextCalendarMonth = computed<{
+    month: number;
+    year: number;
+  } | null>(() => {
+    const details = this.budgetDetails();
+    if (!details) return null;
+    return details.month === 12
+      ? { month: 1, year: details.year + 1 }
+      : { month: details.month + 1, year: details.year };
+  });
+
+  readonly hasNextMonthBudget = computed<boolean>(() => {
+    const next = this.#nextCalendarMonth();
+    if (!next) return false;
+    return this.#budgetsList().some(
+      (b) => b.month === next.month && b.year === next.year,
+    );
+  });
+
+  readonly nextMonthLabel = computed<string>(() => {
+    const next = this.#nextCalendarMonth();
+    if (!next) return '';
+    return this.#monthFormatter.format(new Date(next.year, next.month - 1, 1));
+  });
 
   readonly displayBudgetLines = computed<BudgetLine[]>(() => {
     const details = this.budgetDetails();
@@ -591,6 +628,80 @@ export class BudgetDetailsStore {
     }
   }
 
+  readonly #postponeBudgetLineMutation = cachedMutation<
+    string,
+    BudgetLinePostponeResponse,
+    BudgetDetailsViewModel | null
+  >({
+    cache: this.#budgetApi.cache,
+    invalidateKeys: () => BUDGET_DETAIL_INVALIDATION_KEYS,
+    mutationFn: (id) => this.#budgetApi.postponeBudgetLine$(id),
+    // Optimistically remove the line — it moved to next month's budget.
+    onMutate: (id) => {
+      const previous = this.budgetDetails();
+      this.#updateDetails((details) => ({
+        ...details,
+        budgetLines: details.budgetLines.filter((line) => line.id !== id),
+      }));
+      return previous;
+    },
+    onSuccess: () => this.#onFinancialMutationSuccess(),
+    onError: (error, _id, previous) => {
+      if (previous) this.#budgetDetailsResource.set(previous);
+      this.#setError(
+        this.#localizePostponeError(error, 'budget.postponeError'),
+      );
+    },
+  });
+
+  async postponeBudgetLine(id: string): Promise<boolean> {
+    if (this.#mutatingIds.has(id)) return false;
+    this.#mutatingIds.add(id);
+    try {
+      const result = await this.#postponeBudgetLineMutation.mutate(id);
+      return result !== undefined;
+    } finally {
+      this.#mutatingIds.delete(id);
+    }
+  }
+
+  readonly #postponeTransactionMutation = cachedMutation<
+    string,
+    TransactionPostponeResponse,
+    BudgetDetailsViewModel | null
+  >({
+    cache: this.#budgetApi.cache,
+    invalidateKeys: () => BUDGET_DETAIL_INVALIDATION_KEYS,
+    mutationFn: (id) => this.#budgetApi.postponeTransaction$(id),
+    // Optimistically remove the transaction — it moved to next month's budget.
+    onMutate: (id) => {
+      const previous = this.budgetDetails();
+      this.#updateDetails((details) => ({
+        ...details,
+        transactions: details.transactions.filter((tx) => tx.id !== id),
+      }));
+      return previous;
+    },
+    onSuccess: () => this.#onFinancialMutationSuccess(),
+    onError: (error, _id, previous) => {
+      if (previous) this.#budgetDetailsResource.set(previous);
+      this.#setError(
+        this.#localizePostponeError(error, 'budget.postponeError'),
+      );
+    },
+  });
+
+  async postponeTransaction(id: string): Promise<boolean> {
+    if (this.#mutatingIds.has(id)) return false;
+    this.#mutatingIds.add(id);
+    try {
+      const result = await this.#postponeTransactionMutation.mutate(id);
+      return result !== undefined;
+    } finally {
+      this.#mutatingIds.delete(id);
+    }
+  }
+
   readonly #toggleCheckMutation = cachedMutation<
     string,
     { data: BudgetLine },
@@ -785,6 +896,14 @@ export class BudgetDetailsStore {
 
   #setError(error: string): void {
     this.#state.errorMessage.set(error);
+  }
+
+  #localizePostponeError(error: unknown, fallbackKey: string): string {
+    if (isApiError(error)) {
+      return this.#apiErrorLocalizer.localizeApiError(error);
+    }
+    this.#logger.error('Error postponing item to next month', error);
+    return this.#transloco.translate(fallbackKey);
   }
 
   #clearError(): void {

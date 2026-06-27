@@ -17,8 +17,14 @@ import SwiftUI
 struct BudgetDetailsFreeTransactionsList: View {
     let items: [BudgetDetailsScreenState.FreeTransactionItem]
     let currency: SupportedCurrency
+    /// Whether the next calendar month's budget exists (PUL-22 CA5). When false,
+    /// the postpone menu item is disabled with an explanatory message.
+    let canPostpone: Bool
+    /// Localized next-month name (e.g. "juillet") for the postpone menu / toast.
+    let nextMonthLabel: String?
     let onTap: (Transaction) -> Void
     let onTogglePointed: (Transaction) -> Void
+    let onPostpone: (Transaction) -> Void
 
     @State private var isExpanded = false
     private let collapsedItemCount = 3
@@ -62,6 +68,14 @@ struct BudgetDetailsFreeTransactionsList: View {
                     onTap: { onTap(item.transaction) },
                     onTogglePointed: { onTogglePointed(item.transaction) }
                 )
+                .contextMenu {
+                    PostponeMenuButton(
+                        isEligible: item.isPostponeEligible,
+                        canPostpone: canPostpone,
+                        nextMonthLabel: nextMonthLabel,
+                        onPostpone: { onPostpone(item.transaction) }
+                    )
+                }
                 .padding(.horizontal, DesignTokens.Spacing.lg)
                 .padding(.bottom, DesignTokens.Spacing.md)
             }

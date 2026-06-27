@@ -11,7 +11,10 @@ import Foundation
 final class MockBudgetLineService: BudgetLineServicing {
     private(set) var deleteBudgetLineCallCount = 0
     private(set) var deletedIds: [String] = []
+    private(set) var postponeCallCount = 0
+    private(set) var postponedIds: [String] = []
     var deleteError: Error?
+    var postponeError: Error?
     var stubbedToggle: BudgetLine?
 
     func deleteBudgetLine(id: String) async throws {
@@ -22,5 +25,12 @@ final class MockBudgetLineService: BudgetLineServicing {
 
     func toggleCheck(id: String) async throws -> BudgetLine {
         stubbedToggle ?? TestDataFactory.createBudgetLine(id: id)
+    }
+
+    func postpone(id: String) async throws -> BudgetLine {
+        postponeCallCount += 1
+        postponedIds.append(id)
+        if let postponeError { throw postponeError }
+        return TestDataFactory.createBudgetLine(id: id)
     }
 }

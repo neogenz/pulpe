@@ -29,6 +29,21 @@ type BudgetItemWithBalance =
   | { item: BudgetLine; cumulativeBalance: number; itemType: 'budget_line' }
   | { item: Transaction; cumulativeBalance: number; itemType: 'transaction' };
 
+/**
+ * Cross-budget context for the "report to next month" action (PUL-22).
+ * Carried into each item's metadata so the dumb menu components can read
+ * disable state + target label without injecting the store.
+ */
+interface PostponeContext {
+  hasNextMonthBudget: boolean;
+  nextMonthLabel: string;
+}
+
+const NO_POSTPONE_CONTEXT: PostponeContext = {
+  hasNextMonthBudget: false,
+  nextMonthLabel: '',
+};
+
 function compareBudgetLines(a: BudgetLine, b: BudgetLine): number {
   const recurrenceDiff =
     (RECURRENCE_ORDER[a.recurrence] ?? Number.MAX_SAFE_INTEGER) -
@@ -190,6 +205,7 @@ function insertGroupHeaders(
 function createBudgetLineViewModel(
   budgetLine: BudgetLine,
   consumptionMap: Map<string, { consumed: number; transactionCount: number }>,
+  postpone: PostponeContext,
 ): BudgetLineTableItem {
   const isPropagationLocked =
     !!budgetLine.templateLineId && !!budgetLine.isManuallyAdjusted;
@@ -198,6 +214,10 @@ function createBudgetLineViewModel(
   const transactionCount = consumption?.transactionCount ?? 0;
   const percentage = calculatePercentage(budgetLine.amount, consumed);
   const hasTransactions = transactionCount > 0;
+  const canPostpone =
+    budgetLine.checkedAt === null &&
+    budgetLine.recurrence === 'one_off' &&
+    transactionCount === 0;
 
   return {
     data: budgetLine,
@@ -207,6 +227,9 @@ function createBudgetLineViewModel(
       isTemplateLinked: !!budgetLine.templateLineId,
       isPropagationLocked,
       canResetFromTemplate: isPropagationLocked,
+      canPostpone,
+      isPostponeDisabled: canPostpone && !postpone.hasNextMonthBudget,
+      postponeTargetLabel: postpone.nextMonthLabel,
       envelopeName: null,
       kindIcon: getKindIcon(budgetLine.kind),
       allocationLabel: getAllocationLabel(budgetLine.kind),
@@ -232,7 +255,11 @@ function createBudgetLineViewModel(
 
 function createTransactionViewModel(
   transaction: Transaction,
+  postpone: PostponeContext,
 ): TransactionTableItem {
+  // Only free transactions reach this builder (allocated ones are filtered out).
+  const canPostpone = transaction.checkedAt === null;
+
   return {
     data: transaction,
     metadata: {
@@ -241,6 +268,9 @@ function createTransactionViewModel(
       isTemplateLinked: false,
       isPropagationLocked: false,
       canResetFromTemplate: false,
+      canPostpone,
+      isPostponeDisabled: canPostpone && !postpone.hasNextMonthBudget,
+      postponeTargetLabel: postpone.nextMonthLabel,
       envelopeName: null,
       kindIcon: getKindIcon(transaction.kind),
       allocationLabel: getAllocationLabel(transaction.kind),
@@ -252,12 +282,13 @@ function createTransactionViewModel(
 function mapToTableItems(
   items: BudgetItemWithBalance[],
   consumptionMap: Map<string, { consumed: number; transactionCount: number }>,
+  postpone: PostponeContext,
 ): (BudgetLineTableItem | TransactionTableItem)[] {
   return items.map((item) => {
     if (item.itemType === 'budget_line') {
-      return createBudgetLineViewModel(item.item, consumptionMap);
+      return createBudgetLineViewModel(item.item, consumptionMap, postpone);
     }
-    return createTransactionViewModel(item.item);
+    return createTransactionViewModel(item.item, postpone);
   });
 }
 
@@ -299,15 +330,22 @@ export function buildViewData(params: {
   transactions: Transaction[];
   openingBalance?: number;
   searchText?: string;
+  postpone?: PostponeContext;
 }): TableRowItem[] {
-  const { budgetLines, transactions, openingBalance = 0, searchText } = params;
+  const {
+    budgetLines,
+    transactions,
+    openingBalance = 0,
+    searchText,
+    postpone = NO_POSTPONE_CONTEXT,
+  } = params;
 
   const consumptionMap = calculateAllConsumptions(budgetLines, transactions);
   const items = [...createDisplayItems(budgetLines, transactions)].sort(
     compareItems,
   );
 
-  const mappedItems = mapToTableItems(items, consumptionMap);
+  const mappedItems = mapToTableItems(items, consumptionMap, postpone);
 
   if (searchText) {
     const search = normalizeText(searchText);

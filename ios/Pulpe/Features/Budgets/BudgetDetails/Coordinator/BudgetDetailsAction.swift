@@ -33,11 +33,13 @@ enum BudgetDetailsAction {
     case updateBudgetLine(BudgetLine)
     case softDeleteBudgetLine(BudgetLine, ToastContext)
     case deleteBudgetLine(BudgetLine)
+    case postponeBudgetLine(BudgetLine, ToastContext)
 
     // Transaction mutations
     case addTransaction(Transaction)
     case softDeleteTransaction(Transaction, ToastContext)
     case deleteTransaction(Transaction)
+    case postponeTransaction(Transaction, ToastContext)
 
     // Side-effect: emit "Pointé" toast after a successful toggle
     case showCheckToastIfNeeded(BudgetLine, ToastContext, amountsHidden: Bool)

@@ -24,6 +24,9 @@ import {
   budgetLineResponseSchema,
   type BudgetLineDeleteResponse,
   budgetLineDeleteResponseSchema,
+  type BudgetLinePostponeResponse,
+  budgetLinePostponeResponseSchema,
+  type TransactionPostponeResponse,
   type Transaction,
   type TransactionCreate,
   type TransactionCreateResponse,
@@ -234,6 +237,14 @@ export class BudgetApi {
     );
   }
 
+  postponeBudgetLine$(id: string): Observable<BudgetLinePostponeResponse> {
+    return this.#api.post$(
+      `/budget-lines/${id}/postpone`,
+      {},
+      budgetLinePostponeResponseSchema,
+    );
+  }
+
   toggleBudgetLineCheck$(budgetLineId: string): Observable<BudgetLineResponse> {
     return this.#api.post$(
       `/budget-lines/${budgetLineId}/toggle-check`,
@@ -271,5 +282,9 @@ export class BudgetApi {
 
   toggleTransactionCheck$(id: string): Observable<TransactionUpdateResponse> {
     return this.#transactionApi.toggleCheck$(id);
+  }
+
+  postponeTransaction$(id: string): Observable<TransactionPostponeResponse> {
+    return this.#transactionApi.postpone$(id);
   }
 }

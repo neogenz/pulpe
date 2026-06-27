@@ -23,6 +23,7 @@ import {
   type BudgetLineResponse,
   type BudgetLineListResponse,
   type BudgetLineDeleteResponse,
+  type BudgetLinePostponeResponse,
   type TransactionListResponse,
 } from 'pulpe-shared';
 import { AuthGuard } from '@common/guards/auth.guard';
@@ -36,6 +37,7 @@ import {
   BudgetLineResponseDto,
   BudgetLineListResponseDto,
   BudgetLineDeleteResponseDto,
+  BudgetLinePostponeResponseDto,
   TransactionListResponseDto,
 } from './dto/budget-line-swagger.dto';
 import { ErrorResponseDto } from '@common/dto/response.dto';
@@ -48,6 +50,7 @@ import { RemoveBudgetLineUseCase } from '../../application/remove-budget-line.us
 import { ResetBudgetLineFromTemplateUseCase } from '../../application/reset-budget-line-from-template.use-case';
 import { ToggleBudgetLineCheckUseCase } from '../../application/toggle-budget-line-check.use-case';
 import { CheckTransactionsUseCase } from '../../application/check-transactions.use-case';
+import { PostponeBudgetLineUseCase } from '../../application/postpone-budget-line.use-case';
 import { BudgetLineMapper } from '../mappers/budget-line.mapper';
 import { TransactionMapper } from '@modules/transaction/infrastructure/mappers/transaction.mapper';
 
@@ -75,6 +78,7 @@ export class BudgetLineController {
     private readonly resetFromTemplateUseCase: ResetBudgetLineFromTemplateUseCase,
     private readonly toggleCheckUseCase: ToggleBudgetLineCheckUseCase,
     private readonly checkTransactionsUseCase: CheckTransactionsUseCase,
+    private readonly postponeUseCase: PostponeBudgetLineUseCase,
     private readonly mapper: BudgetLineMapper,
     private readonly transactionMapper: TransactionMapper,
   ) {}
@@ -229,6 +233,38 @@ export class BudgetLineController {
   ): Promise<BudgetLineResponse> {
     const entity = await this.toggleCheckUseCase.execute(id, user);
     return { success: true, data: this.mapper.toApi(entity) };
+  }
+
+  @Post(':id/postpone')
+  @ApiOperation({
+    summary: 'Reporte une prévision non pointée au mois suivant',
+    description:
+      "Déplace une prévision ponctuelle (recurrence = 'one_off') non pointée et sans dépense allouée vers le budget du mois suivant. La ligne est détachée du modèle (template_line_id = null) et marquée ajustée manuellement. Le modèle source n'est jamais modifié.",
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Identifiant unique de la ligne budgétaire',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Prévision reportée au mois suivant avec succès',
+    type: BudgetLinePostponeResponseDto,
+  })
+  @ApiNotFoundResponse({
+    description: 'Ligne budgétaire non trouvée',
+    type: ErrorResponseDto,
+  })
+  async postpone(
+    @Param('id') id: string,
+    @User() user: AuthenticatedUser,
+  ): Promise<BudgetLinePostponeResponse> {
+    const { entity, sourceBudgetId, targetBudgetId } =
+      await this.postponeUseCase.execute(id, user);
+    return {
+      success: true,
+      data: { ...this.mapper.toApi(entity), sourceBudgetId, targetBudgetId },
+    };
   }
 
   @Post(':id/check-transactions')

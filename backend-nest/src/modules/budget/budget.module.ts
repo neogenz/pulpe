@@ -6,6 +6,7 @@ import { SupabaseBudgetRepository } from './infrastructure/persistence/supabase-
 import { BudgetMapper } from './infrastructure/mappers/budget.mapper';
 import { BUDGET_REPOSITORY } from './domain/ports/budget-repository.port';
 import { BUDGET_RECALCULATION_PORT } from './domain/ports/budget-recalculation.port';
+import { BUDGET_PERIOD_LOOKUP_PORT } from './domain/ports/budget-period-lookup.port';
 import { HasBudgetsUseCase } from './application/has-budgets.use-case';
 import { FindAllBudgetsUseCase } from './application/find-all-budgets.use-case';
 import { FindAllSparseBudgetsUseCase } from './application/find-all-sparse-budgets.use-case';
@@ -17,6 +18,7 @@ import { FindBudgetWithDetailsUseCase } from './application/find-budget-with-det
 import { UpdateBudgetUseCase } from './application/update-budget.use-case';
 import { RemoveBudgetUseCase } from './application/remove-budget.use-case';
 import { RecalculateBudgetBalancesUseCase } from './application/recalculate-budget-balances.use-case';
+import { ResolveNextMonthBudgetUseCase } from './application/resolve-next-month-budget.use-case';
 
 @Module({
   imports: [EncryptionModule],
@@ -33,10 +35,15 @@ import { RecalculateBudgetBalancesUseCase } from './application/recalculate-budg
     UpdateBudgetUseCase,
     RemoveBudgetUseCase,
     RecalculateBudgetBalancesUseCase,
+    ResolveNextMonthBudgetUseCase,
     { provide: BUDGET_REPOSITORY, useClass: SupabaseBudgetRepository },
     {
       provide: BUDGET_RECALCULATION_PORT,
       useExisting: RecalculateBudgetBalancesUseCase,
+    },
+    {
+      provide: BUDGET_PERIOD_LOOKUP_PORT,
+      useExisting: ResolveNextMonthBudgetUseCase,
     },
     BudgetMapper,
     createInfoLoggerProvider(BudgetController.name),
@@ -53,6 +60,6 @@ import { RecalculateBudgetBalancesUseCase } from './application/recalculate-budg
     createInfoLoggerProvider(RecalculateBudgetBalancesUseCase.name),
     createInfoLoggerProvider(SupabaseBudgetRepository.name),
   ],
-  exports: [BUDGET_RECALCULATION_PORT, BudgetMapper],
+  exports: [BUDGET_RECALCULATION_PORT, BUDGET_PERIOD_LOOKUP_PORT, BudgetMapper],
 })
 export class BudgetModule {}

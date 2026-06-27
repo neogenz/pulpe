@@ -102,6 +102,28 @@ function getBalanceFormatter(
           <span>{{ 'budget.reset' | transloco }}</span>
         </button>
       }
+      @if (item().metadata.canPostpone) {
+        <!-- Tooltip wrapper: matTooltip is suppressed on disabled buttons -->
+        <span
+          class="block w-full"
+          [matTooltip]="
+            item().metadata.isPostponeDisabled
+              ? ('budget.postponeDisabledTooltip'
+                | transloco: { month: item().metadata.postponeTargetLabel })
+              : ''
+          "
+        >
+          <button
+            mat-menu-item
+            [disabled]="item().metadata.isPostponeDisabled"
+            (click)="postpone.emit(item().data.id)"
+            [attr.data-testid]="'postpone-' + item().data.id"
+          >
+            <mat-icon matMenuItemIcon>event_upcoming</mat-icon>
+            <span>{{ 'budget.postpone' | transloco }}</span>
+          </button>
+        </span>
+      }
       <button
         mat-menu-item
         (click)="delete.emit(item().data.id)"
@@ -131,6 +153,7 @@ export class BudgetActionMenu {
   readonly delete = output<string>();
   readonly addTransaction = output<BudgetLine>();
   readonly resetFromTemplate = output<BudgetLineTableItem>();
+  readonly postpone = output<string>();
 
   protected readonly formattedBalance = computed(() => {
     const balance = this.item().metadata.cumulativeBalance;

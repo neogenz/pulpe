@@ -16,6 +16,7 @@ import { UpdateTransactionUseCase } from './application/update-transaction.use-c
 import { RemoveTransactionUseCase } from './application/remove-transaction.use-case';
 import { ToggleTransactionCheckUseCase } from './application/toggle-transaction-check.use-case';
 import { SearchTransactionsUseCase } from './application/search-transactions.use-case';
+import { PostponeTransactionUseCase } from './application/postpone-transaction.use-case';
 
 @Module({
   imports: [BudgetModule, CurrencyModule, EncryptionModule],
@@ -30,6 +31,7 @@ import { SearchTransactionsUseCase } from './application/search-transactions.use
     RemoveTransactionUseCase,
     ToggleTransactionCheckUseCase,
     SearchTransactionsUseCase,
+    PostponeTransactionUseCase,
     {
       provide: TRANSACTION_REPOSITORY,
       useClass: SupabaseTransactionRepository,
@@ -45,6 +47,7 @@ import { SearchTransactionsUseCase } from './application/search-transactions.use
     createInfoLoggerProvider(RemoveTransactionUseCase.name),
     createInfoLoggerProvider(ToggleTransactionCheckUseCase.name),
     createInfoLoggerProvider(SearchTransactionsUseCase.name),
+    createInfoLoggerProvider(PostponeTransactionUseCase.name),
   ],
   exports: [TransactionMapper],
 })

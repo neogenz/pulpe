@@ -43,6 +43,12 @@ export interface TableItem {
     isTemplateLinked?: boolean;
     isPropagationLocked?: boolean;
     canResetFromTemplate?: boolean;
+    /** Item is eligible for "report to next month" (unchecked, one-off, no allocated tx) — PUL-22 */
+    canPostpone?: boolean;
+    /** Postpone allowed but next calendar month's budget does not exist yet — PUL-22 CA5 */
+    isPostponeDisabled?: boolean;
+    /** Label of the target month for postpone tooltips/messages (e.g. "juillet") — PUL-22 */
+    postponeTargetLabel?: string;
     isLoading?: boolean;
     /** Nom de l'enveloppe pour les transactions allouées (mode transactions) */
     envelopeName?: string | null;

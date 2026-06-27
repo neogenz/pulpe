@@ -6,6 +6,7 @@ import Foundation
 protocol TransactionServicing: Sendable {
     func deleteTransaction(id: String) async throws
     func toggleCheck(id: String) async throws -> Transaction
+    func postpone(id: String) async throws -> Transaction
     func createTransaction(_ data: TransactionCreate) async throws -> Transaction
     func updateTransaction(id: String, data: TransactionUpdate) async throws -> Transaction
 }
@@ -52,6 +53,13 @@ actor TransactionService: TransactionServicing {
     /// Toggle the checked state of a transaction
     func toggleCheck(id: String) async throws -> Transaction {
         try await apiClient.request(.transactionToggle(id: id), method: .post)
+    }
+
+    /// Move an unchecked transaction to next month's budget (PUL-22). Returns
+    /// the moved transaction; the backend's extra `sourceBudgetId`/
+    /// `targetBudgetId` fields are ignored by `Codable`.
+    func postpone(id: String) async throws -> Transaction {
+        try await apiClient.request(.transactionPostpone(id: id), method: .post)
     }
 
     // MARK: - Queries

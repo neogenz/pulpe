@@ -16,6 +16,12 @@ struct BudgetDetailsView: View {
 
     @State private var searchText = ""
     @State private var scrollTracker = BudgetDetailsScrollTracker()
+    /// Item awaiting the postpone confirmation dialog (PUL-22, CA10). Set from a
+    /// row's context menu; cleared when the dialog resolves.
+    @State private var pendingPostpone: PostponeTarget?
+    /// Toggled once a confirmed postpone dispatch completes — drives the success
+    /// haptic, matching every other mutation in this feature.
+    @State private var postponeSuccessTrigger = false
 
     init(budgetId: String) {
         self.budgetId = budgetId
@@ -199,6 +205,8 @@ struct BudgetDetailsView: View {
                         kind: section.kind,
                         items: section.items,
                         currency: userSettingsStore.currency,
+                        canPostpone: screenState.canPostpone,
+                        nextMonthLabel: screenState.nextMonthLabel,
                         onTap: { line in
                             router.push(.lineDetail(lineId: line.id))
                         },
@@ -209,6 +217,9 @@ struct BudgetDetailsView: View {
                                 )
                             }
                         },
+                        onPostpone: { line in
+                            pendingPostpone = .budgetLine(line)
+                        },
                         tip: section.kind == screenState.firstSectionKind ? ProductTips.gestures : nil
                     )
                 }
@@ -217,6 +228,8 @@ struct BudgetDetailsView: View {
                     BudgetDetailsFreeTransactionsList(
                         items: free,
                         currency: userSettingsStore.currency,
+                        canPostpone: screenState.canPostpone,
+                        nextMonthLabel: screenState.nextMonthLabel,
                         onTap: { transaction in
                             router.push(.editTx(transactionId: transaction.id))
                         },
@@ -224,6 +237,9 @@ struct BudgetDetailsView: View {
                             Task {
                                 await coordinator.dispatch(.toggleTransaction(transaction))
                             }
+                        },
+                        onPostpone: { transaction in
+                            pendingPostpone = .transaction(transaction)
                         }
                     )
                 }
@@ -254,6 +270,13 @@ struct BudgetDetailsView: View {
             value: screenState.checkedTickHash
         )
         .pulpeBackground()
+        .postponeConfirmation(
+            target: $pendingPostpone,
+            nextMonthLabel: screenState.nextMonthLabel
+        ) { target in
+            Task { await dispatchPostpone(target) }
+        }
+        .sensoryFeedback(.success, trigger: postponeSuccessTrigger)
         .searchable(
             text: $searchText,
             placement: .navigationBarDrawer(displayMode: .automatic),
@@ -273,10 +296,23 @@ struct BudgetDetailsView: View {
         .ignoresSafeArea(.keyboard, edges: .bottom)
     }
 
-    // MARK: - Routing
+    /// Routes a confirmed postpone (PUL-22) to the matching coordinator action.
+    private func dispatchPostpone(_ target: PostponeTarget) async {
+        switch target {
+        case .budgetLine(let line):
+            await coordinator.dispatch(.postponeBudgetLine(line, toastContext))
+        case .transaction(let tx):
+            await coordinator.dispatch(.postponeTransaction(tx, toastContext))
+        }
+        postponeSuccessTrigger.toggle()
+    }
+}
 
+// MARK: - Routing
+
+private extension BudgetDetailsView {
     @ViewBuilder
-    private func pushDestination(for route: BudgetLinePushRoute) -> some View {
+    func pushDestination(for route: BudgetLinePushRoute) -> some View {
         switch route {
         case .lineDetail(let lineId):
             BudgetLineDetailPage(
@@ -291,7 +327,7 @@ struct BudgetDetailsView: View {
     }
 
     @ViewBuilder
-    private func sheetContent(for destination: BudgetDetailDestination) -> some View {
+    func sheetContent(for destination: BudgetDetailDestination) -> some View {
         switch destination {
         case .addBudgetLine:
             AddBudgetLineSheet(budgetId: coordinator.dataStore.budgetId) { budgetLine in

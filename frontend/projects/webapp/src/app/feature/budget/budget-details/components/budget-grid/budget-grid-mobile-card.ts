@@ -83,6 +83,7 @@ import { BudgetActionMenu } from '../budget-action-menu';
           (delete)="delete.emit($event)"
           (addTransaction)="addTransaction.emit($event)"
           (resetFromTemplate)="resetFromTemplate.emit($event)"
+          (postpone)="postpone.emit($event)"
         />
       </ng-container>
 
@@ -252,5 +253,6 @@ export class BudgetGridMobileCard {
   readonly addTransaction = output<BudgetLine>();
   readonly viewTransactions = output<BudgetLineTableItem>();
   readonly resetFromTemplate = output<BudgetLineTableItem>();
+  readonly postpone = output<string>();
   readonly toggleCheck = output<string>();
 }

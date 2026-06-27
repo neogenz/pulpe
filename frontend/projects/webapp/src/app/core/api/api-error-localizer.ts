@@ -15,6 +15,7 @@ const CODE_KEY_MAP = {
   [API_ERROR_CODES.BUDGET_UPDATE_FAILED]: 'apiError.budgetUpdateFailed',
   [API_ERROR_CODES.BUDGET_DELETE_FAILED]: 'apiError.budgetDeleteFailed',
   [API_ERROR_CODES.BUDGET_ALREADY_EXISTS]: 'apiError.budgetAlreadyExists',
+  [API_ERROR_CODES.TARGET_BUDGET_NOT_FOUND]: 'apiError.targetBudgetNotFound',
   [API_ERROR_CODES.BUDGET_LINE_NOT_FOUND]: 'apiError.budgetLineNotFound',
   [API_ERROR_CODES.BUDGET_LINE_CREATE_FAILED]:
     'apiError.budgetLineCreationFailed',
@@ -29,6 +30,16 @@ const CODE_KEY_MAP = {
     'apiError.transactionUpdateFailed',
   [API_ERROR_CODES.TRANSACTION_DELETE_FAILED]:
     'apiError.transactionDeleteFailed',
+  [API_ERROR_CODES.TRANSACTION_ALREADY_CHECKED]:
+    'apiError.transactionAlreadyChecked',
+  [API_ERROR_CODES.TRANSACTION_ALLOCATED]: 'apiError.transactionAllocated',
+  [API_ERROR_CODES.BUDGET_LINE_ALREADY_CHECKED]:
+    'apiError.budgetLineAlreadyChecked',
+  [API_ERROR_CODES.BUDGET_LINE_NOT_POSTPONABLE]:
+    'apiError.budgetLineNotPostponable',
+  [API_ERROR_CODES.BUDGET_LINE_HAS_TRANSACTIONS]:
+    'apiError.budgetLineHasTransactions',
+  [API_ERROR_CODES.CONCURRENT_MODIFICATION]: 'apiError.concurrentModification',
   [API_ERROR_CODES.TEMPLATE_NOT_FOUND]: 'apiError.templateNotFound',
   [API_ERROR_CODES.TEMPLATE_CREATE_FAILED]: 'apiError.templateCreationFailed',
   [API_ERROR_CODES.TEMPLATE_UPDATE_FAILED]: 'apiError.templateUpdateFailed',

@@ -60,6 +60,14 @@ struct BudgetDetailsScreenState: Equatable {
     let checkedFilter: CheckedFilterOption
     let isShowingOnlyUnchecked: Bool
 
+    /// `dataStore.hasNextMonthBudget` (PUL-22, CA5). Hoisted into the DTO so the
+    /// view gates the postpone affordance without reaching into the data store.
+    let canPostpone: Bool
+
+    /// `dataStore.nextMonthLabel` — localized next-month name for the postpone
+    /// confirmation / menu copy. Routed through the DTO for the same reason.
+    let nextMonthLabel: String?
+
     /// Kind of the first non-empty section after all filters. Drives the
     /// "first section gets the gestures tip" rule.
     let firstSectionKind: TransactionKind?
@@ -109,6 +117,8 @@ struct BudgetDetailsScreenState: Equatable {
         typeFilter: .all,
         checkedFilter: .unchecked,
         isShowingOnlyUnchecked: true,
+        canPostpone: false,
+        nextMonthLabel: nil,
         firstSectionKind: nil,
         canShowEmptyChecked: false,
         consumptionByLineId: [:],
@@ -161,12 +171,22 @@ struct BudgetDetailsScreenState: Equatable {
         let line: BudgetLine
         let consumption: BudgetFormulas.Consumption
         let isSyncing: Bool
+        /// Whether "Reporter au mois suivant" (PUL-22) may be offered for this
+        /// line: unchecked, one-off (not recurring), no allocated transactions,
+        /// not the virtual rollover line. Pre-shaped here so the row never runs
+        /// a `.contains` over the transaction list in its body.
+        let isPostponeEligible: Bool
         var id: String { line.id }
     }
 
     struct FreeTransactionItem: Identifiable, Equatable {
         let transaction: Transaction
         let isSyncing: Bool
+        /// Whether "Reporter au mois suivant" (PUL-22) may be offered for this
+        /// free transaction: unchecked (`checkedAt == nil`). Free transactions
+        /// are already unallocated (`budgetLineId == nil`), so no allocation
+        /// check is needed. Symmetric with `LineItem.isPostponeEligible`.
+        let isPostponeEligible: Bool
         var id: String { transaction.id }
     }
 

@@ -182,6 +182,23 @@ export class BudgetDetailsDialogService {
     return confirmed === true;
   }
 
+  async confirmPostpone(nextMonthLabel: string): Promise<boolean> {
+    const dialogRef = this.#dialog.open(ConfirmationDialog, {
+      data: {
+        title: this.#transloco.translate('budget.postponeTitle'),
+        message: this.#transloco.translate('budget.postponeMessage', {
+          month: nextMonthLabel,
+        }),
+        confirmText: this.#transloco.translate('budget.postponeConfirm'),
+        confirmColor: 'primary',
+      } satisfies ConfirmationDialogData,
+      width: '400px',
+    });
+
+    const confirmed = await firstValueFrom(dialogRef.afterClosed());
+    return confirmed === true;
+  }
+
   async confirmCheckAllocatedTransactions(): Promise<boolean> {
     const dialogRef = this.#dialog.open(ConfirmationDialog, {
       data: {

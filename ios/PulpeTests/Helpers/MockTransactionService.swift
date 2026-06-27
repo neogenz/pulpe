@@ -11,7 +11,10 @@ import Foundation
 final class MockTransactionService: TransactionServicing {
     private(set) var deleteTransactionCallCount = 0
     private(set) var deletedIds: [String] = []
+    private(set) var postponeCallCount = 0
+    private(set) var postponedIds: [String] = []
     var deleteError: Error?
+    var postponeError: Error?
     var stubbedToggle: Transaction?
     var stubbedCreated: Transaction?
     var stubbedUpdated: Transaction?
@@ -28,6 +31,13 @@ final class MockTransactionService: TransactionServicing {
     func toggleCheck(id: String) async throws -> Transaction {
         if failingToggleIds.contains(id) { throw URLError(.badServerResponse) }
         return stubbedToggle ?? TestDataFactory.createTransaction(id: id)
+    }
+
+    func postpone(id: String) async throws -> Transaction {
+        postponeCallCount += 1
+        postponedIds.append(id)
+        if let postponeError { throw postponeError }
+        return TestDataFactory.createTransaction(id: id)
     }
 
     func createTransaction(_ data: TransactionCreate) async throws -> Transaction {

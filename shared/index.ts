@@ -57,6 +57,7 @@ export {
   transactionResponseSchema,
   transactionListResponseSchema,
   transactionDeleteResponseSchema,
+  transactionPostponeResponseSchema,
   budgetTemplateResponseSchema,
   budgetTemplateListResponseSchema,
   budgetTemplateDeleteResponseSchema,
@@ -85,6 +86,7 @@ export {
   budgetLineResponseSchema,
   budgetLineListResponseSchema,
   budgetLineDeleteResponseSchema,
+  budgetLinePostponeResponseSchema,
 
   // Currency schemas
   supportedCurrencySchema,
@@ -232,6 +234,7 @@ export type {
   TransactionFindOneResponse,
   TransactionListResponse,
   TransactionDeleteResponse,
+  TransactionPostponeResponse,
   BudgetTemplateResponse,
   BudgetTemplateListResponse,
   BudgetTemplateDeleteResponse,
@@ -262,6 +265,7 @@ export type {
   BudgetLineResponse,
   BudgetLineListResponse,
   BudgetLineDeleteResponse,
+  BudgetLinePostponeResponse,
 
   // Currency types
   SupportedCurrency,

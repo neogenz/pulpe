@@ -167,6 +167,8 @@ final class BudgetDetailsProjector {
             typeFilter: ctx.filtersStore.typeFilter,
             checkedFilter: ctx.filtersStore.checkedFilter,
             isShowingOnlyUnchecked: ctx.filtersStore.isShowingOnlyUnchecked,
+            canPostpone: ctx.dataStore.hasNextMonthBudget,
+            nextMonthLabel: ctx.dataStore.nextMonthLabel,
             firstSectionKind: ctx.sections.first?.kind,
             canShowEmptyChecked: makeCanShowEmptyChecked(
                 dataStore: ctx.dataStore,
@@ -193,6 +195,9 @@ final class BudgetDetailsProjector {
         consumptionByLineId: [String: BudgetFormulas.Consumption]
     ) -> [BudgetDetailsScreenState.Section] {
         let syncing = syncStore.syncingBudgetLineIds
+        // Line ids carrying at least one allocated transaction — folds the
+        // PUL-22 CA7 "no allocated tx" check into per-line eligibility below.
+        let allocatedLineIds = Set(dataStore.transactions.compactMap(\.budgetLineId))
         var sections: [BudgetDetailsScreenState.Section] = []
         let displayed = filtersStore.displayedSections(for: dataStore.budgetLines)
         sections.reserveCapacity(displayed.count)
@@ -207,7 +212,10 @@ final class BudgetDetailsProjector {
                 BudgetDetailsScreenState.LineItem(
                     line: line,
                     consumption: consumptionByLineId[line.id] ?? zeroConsumption(for: line),
-                    isSyncing: syncing.contains(line.id)
+                    isSyncing: syncing.contains(line.id),
+                    isPostponeEligible: line.isPostponeEligible(
+                        hasAllocatedTransactions: allocatedLineIds.contains(line.id)
+                    )
                 )
             }
             sections.append(
@@ -230,7 +238,10 @@ final class BudgetDetailsProjector {
         ).map { tx in
             BudgetDetailsScreenState.FreeTransactionItem(
                 transaction: tx,
-                isSyncing: syncing.contains(tx.id)
+                isSyncing: syncing.contains(tx.id),
+                // Free transactions are unallocated by construction; eligibility
+                // reduces to "unchecked", mirroring `LineItem.isPostponeEligible`.
+                isPostponeEligible: tx.checkedAt == nil
             )
         }
     }

@@ -39,6 +39,15 @@ struct BudgetLine: Codable, Identifiable, Hashable, Sendable {
         isRollover == true
     }
 
+    /// PUL-22 (CA1/CA6/CA7) — whether "Reporter au mois suivant" may be offered:
+    /// an unchecked, one-off line that isn't the virtual rollover and carries no
+    /// allocated transactions. The caller supplies the allocation flag (the line
+    /// itself doesn't hold its transactions); CA5 (next-month budget exists) is a
+    /// screen-wide check applied separately in the view.
+    func isPostponeEligible(hasAllocatedTransactions: Bool) -> Bool {
+        !isChecked && recurrence == .oneOff && !isVirtualRollover && !hasAllocatedTransactions
+    }
+
     /// Returns a copy with toggled check status
     func toggled() -> BudgetLine {
         BudgetLine(

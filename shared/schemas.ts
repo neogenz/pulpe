@@ -771,6 +771,21 @@ export type TransactionListResponse = z.infer<
   typeof transactionListResponseSchema
 >;
 
+/**
+ * Response for `POST /transactions/:id/postpone` (PUL-22). Carries the
+ * postponed transaction plus both impacted budget ids so SWR clients can
+ * invalidate the source and target months.
+ */
+export const transactionPostponeResponseSchema = createSuccessResponse(
+  transactionSchema.extend({
+    sourceBudgetId: z.uuid(),
+    targetBudgetId: z.uuid(),
+  }),
+);
+export type TransactionPostponeResponse = z.infer<
+  typeof transactionPostponeResponseSchema
+>;
+
 export const transactionDeleteResponseSchema = deleteResponseSchema;
 export type TransactionDeleteResponse = z.infer<
   typeof transactionDeleteResponseSchema
@@ -967,6 +982,21 @@ export type BudgetLineListResponse = z.infer<
 export const budgetLineDeleteResponseSchema = deleteResponseSchema;
 export type BudgetLineDeleteResponse = z.infer<
   typeof budgetLineDeleteResponseSchema
+>;
+
+/**
+ * Response for `POST /budget-lines/:id/postpone` (PUL-22). Carries the
+ * postponed budget line plus both impacted budget ids so SWR clients can
+ * invalidate the source and target months.
+ */
+export const budgetLinePostponeResponseSchema = createSuccessResponse(
+  budgetLineSchema.extend({
+    sourceBudgetId: z.uuid(),
+    targetBudgetId: z.uuid(),
+  }),
+);
+export type BudgetLinePostponeResponse = z.infer<
+  typeof budgetLinePostponeResponseSchema
 >;
 
 // Auth schemas

@@ -265,6 +265,69 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
     return this.toEntity(row, dek);
   }
 
+  async postpone(
+    id: string,
+    sourceBudgetId: string,
+    targetBudgetId: string,
+  ): Promise<BudgetLine> {
+    const supabase = this.supabaseProvider.client;
+    const { data: row, error } = await supabase
+      .from('budget_line')
+      .update({
+        budget_id: targetBudgetId,
+        template_line_id: null,
+        is_manually_adjusted: true,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', id)
+      .eq('budget_id', sourceBudgetId)
+      .eq('recurrence', 'one_off')
+      .is('checked_at', null)
+      .select()
+      .single();
+
+    if (error || !row) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.CONCURRENT_MODIFICATION,
+        { resource: 'budget_line' },
+        {
+          operation: 'postponeBudgetLine',
+          entityId: id,
+          entityType: 'budget_line',
+          supabaseError: error,
+        },
+        { cause: error ?? undefined },
+      );
+    }
+
+    const dek = await this.encryption.getDekFor(this.supabaseProvider.user);
+    return this.toEntity(row, dek);
+  }
+
+  async hasAllocatedTransactions(budgetLineId: string): Promise<boolean> {
+    const supabase = this.supabaseProvider.client;
+    const { count, error } = await supabase
+      .from('transaction')
+      .select('id', { count: 'exact', head: true })
+      .eq('budget_line_id', budgetLineId);
+
+    if (error) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.BUDGET_LINE_FETCH_FAILED,
+        undefined,
+        {
+          operation: 'hasAllocatedTransactions',
+          entityId: budgetLineId,
+          entityType: 'budget_line',
+          supabaseError: error,
+        },
+        { cause: error },
+      );
+    }
+
+    return (count ?? 0) > 0;
+  }
+
   async delete(id: string): Promise<void> {
     const supabase = this.supabaseProvider.client;
     const { error } = await supabase.from('budget_line').delete().eq('id', id);

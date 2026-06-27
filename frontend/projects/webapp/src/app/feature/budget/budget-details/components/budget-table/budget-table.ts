@@ -187,6 +187,7 @@ import { BudgetDetailsDialogService } from '../../budget-details-dialog.service'
               (delete)="delete.emit($event)"
               (addTransaction)="addTransaction.emit($event)"
               (resetFromTemplate)="onResetFromTemplateClick($event)"
+              (postpone)="postpone.emit($event)"
               (toggleCheck)="toggleCheck.emit($event)"
               (toggleTransactionCheck)="toggleTransactionCheck.emit($event)"
             />
@@ -299,6 +300,7 @@ export class BudgetTable {
   readonly addTransaction = output<BudgetLine>();
   readonly viewTransactions = output<BudgetLineTableItem>();
   readonly resetFromTemplate = output<string>();
+  readonly postpone = output<string>();
   readonly toggleCheck = output<string>();
   readonly toggleTransactionCheck = output<string>();
 

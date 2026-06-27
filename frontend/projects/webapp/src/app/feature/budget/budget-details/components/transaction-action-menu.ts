@@ -1,6 +1,7 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  computed,
   input,
   output,
 } from '@angular/core';
@@ -57,6 +58,28 @@ import type { Transaction } from 'pulpe-shared';
         <mat-icon matMenuItemIcon>edit</mat-icon>
         <span>{{ 'common.edit' | transloco }}</span>
       </button>
+      @if (canPostpone()) {
+        <!-- Tooltip wrapper: matTooltip is suppressed on disabled buttons -->
+        <span
+          class="block w-full"
+          [matTooltip]="
+            isPostponeDisabled()
+              ? ('budget.postponeDisabledTooltip'
+                | transloco: { month: nextMonthLabel() })
+              : ''
+          "
+        >
+          <button
+            mat-menu-item
+            [disabled]="isPostponeDisabled()"
+            (click)="postpone.emit(transaction().id)"
+            [attr.data-testid]="'postpone-tx-' + transaction().id"
+          >
+            <mat-icon matMenuItemIcon>event_upcoming</mat-icon>
+            <span>{{ 'budget.postpone' | transloco }}</span>
+          </button>
+        </span>
+      }
       <button
         mat-menu-item
         (click)="delete.emit(transaction().id)"
@@ -79,7 +102,20 @@ export class TransactionActionMenu {
   readonly transaction = input.required<Transaction>();
   readonly menuIcon = input<string>('more_vert');
   readonly buttonClass = input<string>('');
+  /** Whether the next calendar month's budget exists (gates postpone enablement) — PUL-22 CA5 */
+  readonly hasNextMonthBudget = input<boolean>(false);
+  /** Target month label for the postpone tooltip (e.g. "juillet") — PUL-22 */
+  readonly nextMonthLabel = input<string>('');
 
   readonly edit = output<Transaction>();
   readonly delete = output<string>();
+  readonly postpone = output<string>();
+
+  // Free transactions only reach this menu; postponable when not yet pointed.
+  protected readonly canPostpone = computed(
+    () => this.transaction().checkedAt === null,
+  );
+  protected readonly isPostponeDisabled = computed(
+    () => !this.hasNextMonthBudget(),
+  );
 }
