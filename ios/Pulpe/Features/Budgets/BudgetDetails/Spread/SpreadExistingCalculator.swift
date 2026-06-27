@@ -41,15 +41,15 @@ final class SpreadExistingCalculator {
     }
 
     /// M0 is never deselectable; other months toggle in/out of the window.
-    var isLocked: (SpreadMonth) -> Bool {
-        { [start] month in month.ordinal == start.ordinal }
+    func isLocked(_ month: SpreadMonth) -> Bool {
+        month.ordinal == start.ordinal
     }
 
     // MARK: - Validation
 
     var validationMessage: String? {
         if end.ordinal < start.ordinal { return "Le mois de fin précède le mois de début" }
-        if windowMonths.count > Self.maxMonths { return "36 mois maximum" }
+        if selectedCount > Self.maxMonths { return "36 mois maximum" }
         if selectedCount < Self.minMonths { return "Choisis au moins deux mois" }
         return nil
     }
@@ -60,6 +60,10 @@ final class SpreadExistingCalculator {
 
     func setEnd(_ month: SpreadMonth) {
         end = month
+        // A temporarily-invalid window (end before start → empty range) must not
+        // wipe the user's deselections; only purge ordinals that fell out of a
+        // valid window.
+        guard end.ordinal >= start.ordinal else { return }
         let windowOrdinals = Set(windowMonths.map(\.ordinal))
         deselectedOrdinals.formIntersection(windowOrdinals)
     }

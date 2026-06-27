@@ -63,6 +63,30 @@ struct SpreadExistingCalculatorTests {
         #expect(calc.validationMessage == "36 mois maximum")
     }
 
+    /// The cap is on the tranches actually sent (`selectedCount`), not the raw
+    /// window span: a 37-month window with one month skipped is 36 tranches and
+    /// must pass — the server would accept it.
+    @Test func validation_oversizedWindow_validOnceDeselectedUnderCap() {
+        let calc = make(month: 1, year: 2026)
+        calc.setEnd(SpreadMonth(year: 2029, month: 1))  // Jan 2026…Jan 2029 = 37 months
+        #expect(calc.validationMessage == "36 mois maximum")
+        calc.toggle(SpreadMonth(year: 2026, month: 2))  // → 36 tranches
+        #expect(calc.selectedCount == 36)
+        #expect(calc.validationMessage == nil)
+        #expect(calc.isValid)
+    }
+
+    /// A transiently-inverted window (end before start) must not silently wipe
+    /// the user's deselections — they survive until a valid window prunes them.
+    @Test func setEnd_invertedWindow_preservesDeselections() {
+        let calc = make()  // Jun 2026 → [6, 7, 8]
+        calc.toggle(SpreadMonth(year: 2026, month: 7))  // deselect July
+        calc.setEnd(SpreadMonth(year: 2026, month: 5))  // end < start → invalid
+        calc.setEnd(SpreadMonth(year: 2026, month: 8))  // back to a valid window
+        #expect(!calc.isSelected(SpreadMonth(year: 2026, month: 7)))
+        #expect(calc.selectedCount == 2)
+    }
+
     @Test func perMonth_isBaseTranche() {
         let calc = make()  // 3 months → 100/3 base 33.33 (remainder on M0)
         #expect(calc.perMonth(total: 100) == Decimal(string: "33.33"))
