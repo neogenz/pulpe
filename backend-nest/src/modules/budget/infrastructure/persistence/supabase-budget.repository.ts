@@ -548,6 +548,7 @@ export class SupabaseBudgetRepository implements BudgetRepositoryPort {
       .select('id')
       .eq('month', month)
       .eq('year', year)
+      .eq('user_id', this.supabaseProvider.user.id)
       .maybeSingle();
 
     return data?.id ?? null;
@@ -564,6 +565,7 @@ export class SupabaseBudgetRepository implements BudgetRepositoryPort {
       .select('id')
       .eq('month', month)
       .eq('year', year)
+      .eq('user_id', this.supabaseProvider.user.id)
       .neq('id', excludeId)
       .maybeSingle();
 

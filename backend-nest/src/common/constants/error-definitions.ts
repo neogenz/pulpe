@@ -174,10 +174,9 @@ export const ERROR_DEFINITIONS = {
   },
   TARGET_BUDGET_NOT_FOUND: {
     code: API_ERROR_CODES.TARGET_BUDGET_NOT_FOUND,
-    message: (details?: Record<string, unknown>) =>
-      details?.monthLabel
-        ? `Crée d'abord le budget de ${details.monthLabel}`
-        : 'Le budget du mois suivant doit exister avant de reporter',
+    // Clients (web/iOS) render their own localized "Crée d'abord le budget de
+    // [mois+1]" from the error code; this message is for API consumers/logs.
+    message: () => 'Le budget du mois suivant doit exister avant de reporter',
     httpStatus: HttpStatus.CONFLICT,
   },
   BUDGET_INVALID_MONTH_FORMAT: {
