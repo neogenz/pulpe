@@ -185,6 +185,7 @@ struct SpreadExistingSheet: View {
         .plainPressedButtonStyle()
         .accessibilityLabel(month.longName)
         .accessibilityValue(isOn ? "Sélectionné" : "Désélectionné")
+        .accessibilityHint(calculator.isLocked(month) ? "Mois de départ, non modifiable" : "")
         .accessibilityAddTraits(isOn ? .isSelected : [])
     }
 
