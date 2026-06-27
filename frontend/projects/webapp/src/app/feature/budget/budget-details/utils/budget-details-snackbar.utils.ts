@@ -79,6 +79,24 @@ export async function submitSpreadWithRetry(
   });
 }
 
+/**
+ * PUL-17 — derive the `{amount} sur {count} mois` echo shown in the processing
+ * dialog from an additive spread-create DTO. In `total` mode the user typed the
+ * total to smooth; in `perMonth` mode the committed total is the per-month
+ * figure replicated over every target month.
+ */
+export function spreadCreateEcho(value: BudgetLineSpreadCreate): {
+  amount: number;
+  monthCount: number;
+} {
+  const monthCount = value.months.length;
+  const amount =
+    value.mode === 'total'
+      ? (value.totalAmount ?? 0)
+      : (value.perMonthAmount ?? 0) * monthCount;
+  return { amount, monthCount };
+}
+
 export function computeEnvelopeSnackbarMessage(
   budgetLineId: string,
   budgetLines: BudgetLine[],

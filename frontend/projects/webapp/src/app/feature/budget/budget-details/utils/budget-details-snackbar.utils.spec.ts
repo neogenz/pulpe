@@ -13,6 +13,7 @@ import {
   computeEnvelopeSnackbarMessage,
   computeSpreadSnackbarMessage,
   computeTransactionSnackbarMessage,
+  spreadCreateEcho,
   submitSpreadWithRetry,
 } from './budget-details-snackbar.utils';
 
@@ -361,5 +362,39 @@ describe('computeSpreadSnackbarMessage', () => {
 
     expect(message).not.toContain('budget.spreadSkippedMonthsSuffix');
     expect(message).toContain('ignoré');
+  });
+});
+
+describe('spreadCreateEcho', () => {
+  const months = [
+    { year: 2026, month: 1 },
+    { year: 2026, month: 2 },
+    { year: 2026, month: 3 },
+  ];
+
+  it('returns the typed total over the month count in total mode', () => {
+    const value: BudgetLineSpreadCreate = {
+      name: 'Prime assurance',
+      kind: 'expense',
+      mode: 'total',
+      totalAmount: 600,
+      months,
+      spreadGroupId: '11111111-1111-4111-8111-111111111111',
+    };
+
+    expect(spreadCreateEcho(value)).toEqual({ amount: 600, monthCount: 3 });
+  });
+
+  it('returns the per-month amount times the month count in perMonth mode', () => {
+    const value: BudgetLineSpreadCreate = {
+      name: 'Prime assurance',
+      kind: 'expense',
+      mode: 'perMonth',
+      perMonthAmount: 50,
+      months,
+      spreadGroupId: '11111111-1111-4111-8111-111111111111',
+    };
+
+    expect(spreadCreateEcho(value)).toEqual({ amount: 150, monthCount: 3 });
   });
 });

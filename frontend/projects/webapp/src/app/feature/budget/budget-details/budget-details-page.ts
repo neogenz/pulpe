@@ -30,7 +30,10 @@ import { BudgetRolloverInfo } from '@ui/budget-rollover-info/budget-rollover-inf
 import { BudgetDetailsStore } from './store/budget-details-store';
 import { BudgetItemsContainer } from './components/budget-items-container';
 import { BudgetDetailsDialogService } from './budget-details-dialog.service';
-import { submitSpreadWithRetry } from './utils/budget-details-snackbar.utils';
+import {
+  spreadCreateEcho,
+  submitSpreadWithRetry,
+} from './utils/budget-details-snackbar.utils';
 import { formatBudgetPeriod } from 'pulpe-shared';
 import { UserSettingsStore } from '@core/user-settings';
 import { CURRENCY_CONFIG } from '@core/currency';
@@ -241,7 +244,14 @@ export default class BudgetDetailsPage {
     if (result.mode === 'spread') {
       await submitSpreadWithRetry(
         result.value,
-        (value) => this.store.createBudgetLineSpread(value),
+        (value) =>
+          this.#dialogService.runSpreadProcessing(
+            () => this.store.createBudgetLineSpread(value),
+            {
+              ...spreadCreateEcho(value),
+              currency: this.userSettingsStore.currency(),
+            },
+          ),
         this.#snackBar,
         this.#transloco,
       );

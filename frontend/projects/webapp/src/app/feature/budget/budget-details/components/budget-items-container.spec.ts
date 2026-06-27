@@ -99,6 +99,8 @@ interface MockDialogService {
   openAllocatedTransactionsDialog: ReturnType<typeof vi.fn>;
   openCreateAllocatedTransactionDialog: ReturnType<typeof vi.fn>;
   openEditAllocatedTransactionDialog: ReturnType<typeof vi.fn>;
+  openSpreadExisting: ReturnType<typeof vi.fn>;
+  runSpreadProcessing: ReturnType<typeof vi.fn>;
   confirmDelete: ReturnType<typeof vi.fn>;
   confirmCheckAllocatedTransactions: ReturnType<typeof vi.fn>;
 }
@@ -110,6 +112,9 @@ function createMockDialogService(): MockDialogService {
     openAllocatedTransactionsDialog: vi.fn().mockResolvedValue(undefined),
     openCreateAllocatedTransactionDialog: vi.fn().mockResolvedValue(undefined),
     openEditAllocatedTransactionDialog: vi.fn().mockResolvedValue(undefined),
+    openSpreadExisting: vi.fn().mockResolvedValue(undefined),
+    // Pass-through: keeps the wrapped store spread mutation exercised in tests.
+    runSpreadProcessing: vi.fn((run: () => Promise<unknown>) => run()),
     confirmDelete: vi.fn().mockResolvedValue(false),
     confirmCheckAllocatedTransactions: vi.fn().mockResolvedValue(false),
   };

@@ -48,6 +48,7 @@ import {
   computeEnvelopeSnackbarMessage,
   computeSpreadSnackbarMessage,
   computeTransactionSnackbarMessage,
+  spreadCreateEcho,
   submitSpreadWithRetry,
 } from '../utils/budget-details-snackbar.utils';
 
@@ -374,9 +375,13 @@ export class BudgetItemsContainer {
     });
     if (!result) return;
 
-    const outcome = await this.store.spreadExistingBudgetLine(
-      item.data.id,
-      result.periods,
+    const outcome = await this.#dialogService.runSpreadProcessing(
+      () => this.store.spreadExistingBudgetLine(item.data.id, result.periods),
+      {
+        amount: item.data.amount,
+        monthCount: result.periods.length,
+        currency: this.currency(),
+      },
     );
     this.#notifySpread(outcome);
   }
@@ -393,9 +398,13 @@ export class BudgetItemsContainer {
     });
     if (!result) return;
 
-    const outcome = await this.store.spreadExistingTransaction(
-      item.id,
-      result.periods,
+    const outcome = await this.#dialogService.runSpreadProcessing(
+      () => this.store.spreadExistingTransaction(item.id, result.periods),
+      {
+        amount: item.amount,
+        monthCount: result.periods.length,
+        currency: this.currency(),
+      },
     );
     this.#notifySpread(outcome);
   }
@@ -657,7 +666,11 @@ export class BudgetItemsContainer {
     if (result.mode === 'spread') {
       await submitSpreadWithRetry(
         result.value,
-        (value) => this.store.createBudgetLineSpread(value),
+        (value) =>
+          this.#dialogService.runSpreadProcessing(
+            () => this.store.createBudgetLineSpread(value),
+            { ...spreadCreateEcho(value), currency: this.currency() },
+          ),
         this.#snackBar,
         this.#transloco,
       );
