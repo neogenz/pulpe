@@ -9,8 +9,8 @@ struct PreviousBudgetItem: Identifiable {
 /// Source of a total-preserving "lisser un existant" (PUL-17 v1.1): an existing
 /// prévision (`budgetLine`) or a free `transaction`, with its locked total and
 /// anchor month (M0). `kind` (expense/saving) drives the sheet's accent color.
-struct SpreadExistingSource: Identifiable, Hashable {
-    enum SourceType: Hashable { case budgetLine, transaction }
+struct SpreadExistingSource: Identifiable, Hashable, Sendable {
+    enum SourceType: Hashable, Sendable { case budgetLine, transaction }
 
     let id: String
     let sourceType: SourceType
