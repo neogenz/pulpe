@@ -98,6 +98,7 @@ paths: "**/*.ts"
 | Architecture                  | `memory-bank/systemPatterns.md`            |
 | Backend Clean Architecture    | `backend-nest/docs/ARCHITECTURE.md`        |
 | Encryption (AES-256-GCM)      | `docs/ENCRYPTION.md`                       |
+| Lissage d'une dépense (PUL-17)| `docs/SPREAD.md`                           |
 
 **Design doc hierarchy:** `PRODUCT.md` (strategic) → `DESIGN.md` (cross-platform visual common) → per-platform `{ios,frontend,landing}/DESIGN.md` (extensions). Each DESIGN.md links to its parent and siblings; never duplicate cross-platform rules in a platform doc.
 

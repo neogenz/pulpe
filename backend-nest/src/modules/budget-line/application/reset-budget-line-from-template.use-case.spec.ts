@@ -14,6 +14,7 @@ const mockEntity: BudgetLine = {
   budgetId: '123e4567-e89b-12d3-a456-426614174001',
   templateLineId: '123e4567-e89b-12d3-a456-426614174002',
   savingsGoalId: null,
+  spreadGroupId: null,
   name: 'Loyer ajusté',
   amount: 1500,
   originalAmount: null,

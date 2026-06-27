@@ -11,6 +11,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { getDateDisplayFormats } from '@core/date/date-display-formats';
 import { UserSettingsStore } from '@core/user-settings';
 import { FinancialKindDirective } from '@ui/financial-kind';
+import { SpreadBadge } from '@ui/spread-badge';
 import { TransactionLabelPipe } from '@ui/transaction-display';
 import { formatMatchAnnotation } from '../../../view-models/budget-item-constants';
 import type {
@@ -25,6 +26,7 @@ import type {
     MatTooltipModule,
     DatePipe,
     FinancialKindDirective,
+    SpreadBadge,
     TransactionLabelPipe,
   ],
   template: `
@@ -58,6 +60,9 @@ import type {
               >
                 lock
               </mat-icon>
+            }
+            @if (line().metadata.isSpread) {
+              <pulpe-spread-badge />
             }
           </span>
           @if (line().metadata.envelopeName) {

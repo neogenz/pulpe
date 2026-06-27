@@ -7,6 +7,8 @@ import {
   Body,
   Param,
   Query,
+  HttpCode,
+  HttpStatus,
   UseGuards,
 } from '@nestjs/common';
 import { BusinessException } from '@common/exceptions/business.exception';
@@ -28,6 +30,7 @@ import {
   type TransactionListResponse,
   type TransactionDeleteResponse,
   type TransactionSearchResponse,
+  type BudgetLineSpreadResponse,
 } from 'pulpe-shared';
 import { AuthGuard } from '@common/guards/auth.guard';
 import {
@@ -42,6 +45,10 @@ import {
   TransactionDeleteResponseDto,
   TransactionSearchResponseDto,
 } from './dto/transaction-swagger.dto';
+import {
+  TransactionSpreadFromTxnCreateDto,
+  TransactionSpreadResponseDto,
+} from './dto/transaction-spread-swagger.dto';
 import { ErrorResponseDto } from '@common/dto/response.dto';
 import { FindAllTransactionsUseCase } from '../../application/find-all-transactions.use-case';
 import { FindTransactionUseCase } from '../../application/find-transaction.use-case';
@@ -52,7 +59,10 @@ import { UpdateTransactionUseCase } from '../../application/update-transaction.u
 import { RemoveTransactionUseCase } from '../../application/remove-transaction.use-case';
 import { ToggleTransactionCheckUseCase } from '../../application/toggle-transaction-check.use-case';
 import { SearchTransactionsUseCase } from '../../application/search-transactions.use-case';
+import { SpreadTransactionFromTxnUseCase } from '../../application/spread-transaction-from-txn.use-case';
 import { TransactionMapper } from '../mappers/transaction.mapper';
+import { BudgetLineMapper } from '@modules/budget-line/infrastructure/mappers/budget-line.mapper';
+import { BudgetMapper } from '@modules/budget/infrastructure/mappers/budget.mapper';
 
 @ApiTags('Transactions')
 @ApiBearerAuth()
@@ -78,7 +88,10 @@ export class TransactionController {
     private readonly removeUseCase: RemoveTransactionUseCase,
     private readonly toggleCheckUseCase: ToggleTransactionCheckUseCase,
     private readonly searchUseCase: SearchTransactionsUseCase,
+    private readonly spreadFromTxnUseCase: SpreadTransactionFromTxnUseCase,
     private readonly mapper: TransactionMapper,
+    private readonly budgetLineMapper: BudgetLineMapper,
+    private readonly budgetMapper: BudgetMapper,
   ) {}
 
   @Get('budget/:budgetId')
@@ -292,6 +305,52 @@ export class TransactionController {
   ): Promise<TransactionResponse> {
     const entity = await this.toggleCheckUseCase.execute(id, user);
     return { success: true, data: this.mapper.toApi(entity) };
+  }
+
+  @Post(':id/spread')
+  @ApiOperation({
+    summary: 'Lisse une transaction libre existante sur plusieurs mois',
+    description:
+      "Redistribue le montant total d'un réel libre (non alloué) en N prévisions « Prévu » (one_off) de T/N (Σ = T) partageant un spread_group_id, une par mois choisi (mois courant inclus), puis SUPPRIME le réel source. Seul un réel libre non-revenu est éligible ; un réel alloué à une enveloppe dérive son lissage de sa ligne parente. Un mois cible sans budget ni template par défaut fait échouer toute l'opération.",
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Identifiant unique de la transaction libre source à lisser',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Transaction libre lissée avec succès (source supprimée)',
+    type: TransactionSpreadResponseDto,
+  })
+  @ApiBadRequestResponse({
+    description: 'Invalid input data',
+    type: ErrorResponseDto,
+  })
+  @ApiNotFoundResponse({
+    description: 'Transaction source non trouvée',
+    type: ErrorResponseDto,
+  })
+  @HttpCode(HttpStatus.CREATED)
+  async spreadFromTxn(
+    @Param('id') id: string,
+    @Body() spreadFromTxnDto: TransactionSpreadFromTxnCreateDto,
+    @User() user: AuthenticatedUser,
+  ): Promise<BudgetLineSpreadResponse> {
+    const result = await this.spreadFromTxnUseCase.execute(
+      id,
+      spreadFromTxnDto,
+      user,
+    );
+    return {
+      success: true,
+      data: {
+        spreadGroupId: result.spreadGroupId,
+        lines: this.budgetLineMapper.toApiList(result.lines),
+        createdBudgets: this.budgetMapper.toApiList(result.createdBudgets),
+        skippedMonths: result.skippedMonths,
+      },
+    };
   }
 
   private parseYearsParam(yearsParam: string | string[] | undefined): number[] {

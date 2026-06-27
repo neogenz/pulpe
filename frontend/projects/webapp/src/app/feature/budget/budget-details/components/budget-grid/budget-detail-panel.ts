@@ -13,10 +13,15 @@ import {
 } from '@angular/material/dialog';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatIconModule } from '@angular/material/icon';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { type BudgetLine, type Transaction } from 'pulpe-shared';
-import { AppCurrencyPipe, FormatConversionPipe } from '@core/currency';
+import {
+  AppCurrencyPipe,
+  CURRENCY_CONFIG,
+  FormatConversionPipe,
+} from '@core/currency';
 import { FeatureFlagsService } from '@core/feature-flags';
 import { UserSettingsStore } from '@core/user-settings';
 import { getDateDisplayFormats } from '@core/date/date-display-formats';
@@ -25,6 +30,7 @@ import { OriginalAmountLine } from '@ui/original-amount-line';
 import { FinancialKindDirective } from '@ui/financial-kind';
 import { FinancialKindIndicator } from '@ui/financial-kind-indicator';
 import { TransactionLabelPipe } from '@ui/transaction-display';
+import { SpreadOccurrencesList } from '@ui/spread-occurrences-list';
 import { createBudgetLineConsumptionDisplay } from '../../view-models/budget-item-data-builder';
 import type { BudgetLineTableItem } from '../../view-models/table-items.view-model';
 import { SegmentedBudgetProgress } from '../segmented-budget-progress';
@@ -65,6 +71,7 @@ const DETAIL_SEGMENT_COUNT = 12;
     MatDialogModule,
     MatIconModule,
     MatDividerModule,
+    MatProgressSpinnerModule,
     MatSlideToggleModule,
     MatTooltipModule,
     AppCurrencyPipe,
@@ -76,6 +83,7 @@ const DETAIL_SEGMENT_COUNT = 12;
     TransactionLabelPipe,
     SegmentedBudgetProgress,
     FinancialKindIndicator,
+    SpreadOccurrencesList,
   ],
   template: `
     @let envelope = envelopeItem();
@@ -317,6 +325,41 @@ const DETAIL_SEGMENT_COUNT = 12;
             </div>
           }
         </div>
+
+        <!-- PUL-17 — spread occurrences as its own section: full-width
+             separator + matching p-5 padding so it reads as a distinct block,
+             not glued to the Transactions list. -->
+        @if (envelope.data.spreadGroupId) {
+          <div class="p-5 border-t border-outline-variant">
+            <div class="flex items-center gap-2 mb-4">
+              <mat-icon class="text-primary shrink-0">timelapse</mat-icon>
+              <h3 class="text-title-medium font-semibold">
+                {{
+                  'budgetLine.spread.sectionTitle'
+                    | transloco: { count: spreadOccurrences().length }
+                }}
+              </h3>
+            </div>
+            @if (isSpreadLoading()) {
+              <div class="flex justify-center py-4">
+                <mat-spinner diameter="28" />
+              </div>
+            } @else if (spreadError()) {
+              <p class="text-body-small text-on-surface-variant">
+                {{ 'budgetLine.spread.loadError' | transloco }}
+              </p>
+            } @else {
+              <pulpe-spread-occurrences-list
+                [occurrences]="spreadOccurrences()"
+                [tracker]="spreadTracker()"
+                [currency]="currency()"
+                [locale]="locale()"
+                [isCurrentPeriod]="isCurrentPeriod()"
+                density="compact"
+              />
+            }
+          </div>
+        }
       </div>
     </div>
   `,
@@ -334,6 +377,11 @@ export class BudgetDetailPanel {
   readonly #userSettings = inject(UserSettingsStore);
   readonly #featureFlags = inject(FeatureFlagsService);
   protected readonly currency = this.#userSettings.currency;
+  // Date locale (fr-CH / fr-FR) for month names — NOT numberLocale (de-CH),
+  // which would render the spread months in German ("Juni" instead of "juin").
+  protected readonly locale = computed(
+    () => CURRENCY_CONFIG[this.currency()].locale,
+  );
   protected readonly shortDateFormat = computed(
     () => getDateDisplayFormats(this.currency()).shortDate,
   );
@@ -342,6 +390,12 @@ export class BudgetDetailPanel {
   protected readonly data = inject<BudgetDetailPanelData>(MAT_DIALOG_DATA);
 
   readonly detailSegmentCount = DETAIL_SEGMENT_COUNT;
+
+  constructor() {
+    // PUL-17 — load this line's spread group so the occurrences section can
+    // render its cross-month tranches; null clears it for non-spread lines.
+    this.#store.setSpreadGroupId(this.data.item.data.spreadGroupId ?? null);
+  }
 
   /**
    * Reactive envelope derived from the store.
@@ -378,6 +432,15 @@ export class BudgetDetailPanel {
       (tx) => tx.budgetLineId === this.data.item.data.id,
     );
   });
+
+  // PUL-17 — spread occurrences/tracker are derived once in the store (single
+  // source for every detail surface); these are thin protected aliases so the
+  // template can read them while #store stays private.
+  protected readonly spreadOccurrences = this.#store.spreadOccurrenceViewModels;
+  protected readonly spreadTracker = this.#store.spreadTracker;
+  protected readonly isCurrentPeriod = this.#store.isViewingSpreadCurrentPeriod;
+  protected readonly isSpreadLoading = this.#store.isSpreadOccurrencesLoading;
+  protected readonly spreadError = this.#store.spreadOccurrencesError;
 
   protected close(): void {
     this.#dialogRef.close();

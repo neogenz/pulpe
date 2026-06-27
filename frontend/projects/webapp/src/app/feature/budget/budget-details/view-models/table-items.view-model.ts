@@ -50,6 +50,15 @@ export interface TableItem {
     isNestedUnderEnvelope?: boolean;
     /** Noms des transactions allouées ayant matché la recherche (contexte visuel) */
     matchingTransactionNames?: string[];
+    /** PUL-17 — true quand la ligne fait partie d'une dépense lissée (spreadGroupId non-null) */
+    isSpread?: boolean;
+    /** PUL-17 — clé du groupe de lissage, pour ouvrir la vue des occurrences cross-mois */
+    spreadGroupId?: string | null;
+    /**
+     * PUL-17 v1.1 — true quand la ligne peut être lissée sur plusieurs mois
+     * (prévision `one_off`, non-revenu, pas déjà lissée, montant > 0).
+     */
+    canSpread?: boolean;
   } & TableItemDisplayMetadata;
 }
 

@@ -2,6 +2,26 @@ import { describe, it, expect } from 'bun:test';
 import { TransactionInvariants } from './transaction.invariants';
 import { BusinessException } from '@common/exceptions/business.exception';
 import type { TransactionCreate, TransactionUpdate } from 'pulpe-shared';
+import type { SpreadSourceTransaction } from './transaction.entity';
+
+const spreadSourceTransaction = (
+  overrides: Partial<SpreadSourceTransaction> = {},
+): SpreadSourceTransaction => ({
+  id: 'txn-1',
+  budgetId: 'budget-1',
+  userId: 'user-1',
+  budgetLineId: null,
+  month: 3,
+  year: 2026,
+  name: 'Resto',
+  amount: 120,
+  originalAmount: null,
+  originalCurrency: null,
+  targetCurrency: null,
+  exchangeRate: null,
+  kind: 'expense',
+  ...overrides,
+});
 
 describe('TransactionInvariants', () => {
   describe('validateCreate', () => {
@@ -138,6 +158,32 @@ describe('TransactionInvariants', () => {
       const dto = {} as TransactionUpdate;
 
       expect(() => TransactionInvariants.validateUpdate(dto)).not.toThrow();
+    });
+  });
+
+  describe('validateSpreadFromTransactionSource', () => {
+    it('rejects a zero-amount transaction (clean 400, not a 500 from splitTotalPreserving)', () => {
+      expect(() =>
+        TransactionInvariants.validateSpreadFromTransactionSource(
+          spreadSourceTransaction({ amount: 0 }),
+        ),
+      ).toThrow(BusinessException);
+    });
+
+    it('rejects an allocated transaction', () => {
+      expect(() =>
+        TransactionInvariants.validateSpreadFromTransactionSource(
+          spreadSourceTransaction({ budgetLineId: 'line-1' }),
+        ),
+      ).toThrow(BusinessException);
+    });
+
+    it('accepts a positive free expense transaction', () => {
+      expect(() =>
+        TransactionInvariants.validateSpreadFromTransactionSource(
+          spreadSourceTransaction(),
+        ),
+      ).not.toThrow();
     });
   });
 });

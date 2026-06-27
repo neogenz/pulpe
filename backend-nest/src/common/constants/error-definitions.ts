@@ -381,6 +381,14 @@ export const ERROR_DEFINITIONS = {
         : 'Transaction already exists',
     httpStatus: HttpStatus.CONFLICT,
   },
+  TRANSACTION_NOT_SPREADABLE: {
+    code: API_ERROR_CODES.TRANSACTION_NOT_SPREADABLE,
+    message: (details?: Record<string, unknown>) =>
+      details?.reason
+        ? `Transaction cannot be smoothed: ${details.reason}`
+        : 'Only a free (unallocated) expense or saving transaction can be smoothed; allocated transactions derive from their parent envelope.',
+    httpStatus: HttpStatus.CONFLICT,
+  },
 
   // Budget Line Errors
   BUDGET_LINE_NOT_FOUND: {
@@ -448,6 +456,40 @@ export const ERROR_DEFINITIONS = {
         ? `Budget line with ID '${details.id}' already exists`
         : 'Budget line already exists',
     httpStatus: HttpStatus.CONFLICT,
+  },
+  BUDGET_LINE_NOT_SPREADABLE: {
+    code: API_ERROR_CODES.BUDGET_LINE_NOT_SPREADABLE,
+    message: (details?: Record<string, unknown>) =>
+      details?.reason
+        ? `Budget line cannot be smoothed: ${details.reason}`
+        : 'Only a one-off (Prévu) expense or saving line can be smoothed; recurring and income lines are not eligible.',
+    httpStatus: HttpStatus.CONFLICT,
+  },
+  BUDGET_LINE_ALREADY_SPREAD: {
+    code: API_ERROR_CODES.BUDGET_LINE_ALREADY_SPREAD,
+    message: () =>
+      'Budget line already belongs to a smoothed group and cannot be smoothed again.',
+    httpStatus: HttpStatus.CONFLICT,
+  },
+  BUDGET_LINE_SPREAD_MONTH_UNPROVISIONABLE: {
+    code: API_ERROR_CODES.BUDGET_LINE_SPREAD_MONTH_UNPROVISIONABLE,
+    message: (details?: Record<string, unknown>) => {
+      const months = (
+        details?.months as { month: number; year: number }[] | undefined
+      )?.map((m) => `${m.month}/${m.year}`);
+      if (!months?.length) {
+        return 'Cannot smooth across a month with no budget and no default template to create one.';
+      }
+      const plural = months.length > 1;
+      return `Cannot smooth across ${months.join(', ')}: ${plural ? 'these months have' : 'this month has'} no budget and no default template to create one. Set a default template or deselect ${plural ? 'them' : 'it'}.`;
+    },
+    httpStatus: HttpStatus.UNPROCESSABLE_ENTITY,
+  },
+  BUDGET_LINE_SPREAD_RECALCULATION_FAILED: {
+    code: API_ERROR_CODES.BUDGET_LINE_SPREAD_RECALCULATION_FAILED,
+    message: () =>
+      'The spread was created, but budget balances could not be refreshed. Reload without retrying the spread.',
+    httpStatus: HttpStatus.INTERNAL_SERVER_ERROR,
   },
 
   // User Errors

@@ -76,6 +76,15 @@ Pour `Risque` ou `OUI` shippé:
 - Watch backend logs / Sentry pendant ≥7 jours pour `ZodValidationException`, `unrecognized_keys`, status 400 anormaux
 - Set up un agent `/schedule` pour audit dans 7 jours si pas couvert par alerting
 
+## Exemple : PUL-287 — `POST /v1/budget-lines/spread` (intent-based body)
+
+Le body de la création additive passe de tranches pré-calculées côté client à une intention répliquée côté serveur :
+
+- **Avant** : `{ name, kind, tranches[], FX? }` (le client envoyait les tranches `{year, month, amount}` déjà construites)
+- **Après** : `{ name, kind, perMonthAmount, months[], perMonthOriginalAmount?, FX? }` (`months[]` = liste de `{year, month}` ; le serveur réplique `perMonthAmount` par mois)
+- **Classification** : retrait de champ (request) + ajout de champs + `strictObject` → **OUI / breaking**
+- **Stratégie** : **Option C — Synchronized release**. La feature de lissage n'a **jamais été releasée** (branches WIP uniquement, tous les clients shippent ensemble) → **aucun client en circulation** ne porte l'ancien body, donc **pas de fenêtre de risque à documenter ni de monitoring post-merge** requis. Aucune compat ascendante : l'ancien chemin `tranches[]` est supprimé, pas déprécié.
+
 ## Anti-patterns observés
 
 | Don't | Do |

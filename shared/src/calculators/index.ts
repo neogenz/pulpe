@@ -10,6 +10,7 @@
  */
 
 export { BudgetFormulas } from './budget-formulas.js';
+export { splitTotalPreserving } from './spread-split.js';
 export {
   getBudgetPeriodForDate,
   isInCurrentBudgetPeriod,

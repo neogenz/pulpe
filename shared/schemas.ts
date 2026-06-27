@@ -305,6 +305,14 @@ export const budgetLineSchema = z.object({
   originalCurrency: supportedCurrencySchema.nullable().optional(),
   targetCurrency: supportedCurrencySchema.nullable().optional(),
   exchangeRate: exchangeRateWire.nullable().optional(),
+  /**
+   * Lissage (PUL-17): clé de groupe des N prévisions `one_off` sœurs réparties
+   * sur plusieurs mois (interprétation B — chaque mois est une ligne indépendante).
+   * uuid non-financier → JAMAIS chiffré. `null`/absent = ligne non lissée.
+   * Read-only ici : l'assignation du groupe appartient à `POST /budget-lines/spread`,
+   * pas à `budgetLineCreateSchema`. Champ additif, non-breaking.
+   */
+  spreadGroupId: z.uuid().nullable().optional(),
 });
 export type BudgetLine = z.infer<typeof budgetLineSchema>;
 
@@ -337,6 +345,282 @@ export const budgetLineUpdateSchema = budgetLineCreateSchema
     id: z.uuid(),
   });
 export type BudgetLineUpdate = z.infer<typeof budgetLineUpdateSchema>;
+
+const MAX_SPREAD_TRANCHES = 36;
+
+const hasUniqueSpreadPeriods = (
+  periods: readonly { year: number; month: number }[],
+): boolean =>
+  new Set(periods.map(({ year, month }) => `${year}-${month}`)).size ===
+  periods.length;
+
+/**
+ * Un mois cible `{year, month}` — bornes MIN_YEAR/MAX_YEAR/MONTH partagées par
+ * la création additive (`budgetLineSpreadCreateSchema.months`) et le lissage
+ * d'une source existante (`*SpreadFrom*CreateSchema.periods`).
+ */
+export const spreadFromExistingPeriodSchema = z.object({
+  year: z.number().int().min(MIN_YEAR).max(MAX_YEAR),
+  month: z.number().int().min(MONTH_MIN).max(MONTH_MAX),
+});
+export type SpreadFromExistingPeriod = z.infer<
+  typeof spreadFromExistingPeriodSchema
+>;
+
+/**
+ * SPREAD — Création d'une dépense lissée sur plusieurs mois (PUL-17 / PUL-287).
+ *
+ * Le CLIENT envoie une INTENTION, pas des tranches. DEUX modes (`mode`) :
+ *
+ *   • `perMonth` — l'utilisateur saisit le montant porté par CHAQUE mois
+ *     (`perMonthAmount`). Le SERVEUR RÉPLIQUE ce montant sur chaque mois cible
+ *     (interprétation B : pure réplication, AUCUNE division — chaque mois reçoit
+ *     exactement `perMonthAmount`, et `perMonthOriginalAmount` en full-FX).
+ *
+ *   • `total` — l'utilisateur saisit le montant TOTAL à lisser (`totalAmount`) et
+ *     sélectionne N mois. Le SERVEUR DIVISE ce total sur les N mois en préservant la
+ *     somme au centime (`splitTotalPreserving` : reste en centimes sur les PREMIERS
+ *     mois) → Σ tranches = `totalAmount` exactement. En full-FX, `totalOriginalAmount`
+ *     est divisé de la même façon (Σ originaux = `totalOriginalAmount`).
+ *
+ * `kind` exclut `income` (revenu lissé hors scope V1). Un SEUL `exchangeRate` figé à
+ * la saisie (FX gelé, RG-009) — partagé par tous les mois dans les deux modes. Le
+ * `spread_group_id` est généré SERVEUR — jamais fourni par le client.
+ *
+ * NB : `perMonthAmount` (intention wire) est distinct du `perMonthAmount` du
+ * view-model spread-occurrence (montant représentatif reçu d'un groupe existant).
+ */
+export const budgetLineSpreadCreateSchema = z
+  .strictObject({
+    name: z.string().min(1).max(100).trim(),
+    kind: transactionKindSchema.exclude(['income']),
+    mode: z.enum(['perMonth', 'total']),
+    months: z
+      .array(spreadFromExistingPeriodSchema)
+      .min(1)
+      .max(MAX_SPREAD_TRANCHES)
+      .refine(hasUniqueSpreadPeriods, {
+        message: 'Chaque mois cible ne peut apparaître qu’une fois.',
+      }),
+    // mode `perMonth` — montant répliqué tel quel sur chaque mois
+    perMonthAmount: z.number().positive().optional(),
+    perMonthOriginalAmount: z.number().positive().optional(),
+    // mode `total` — montant divisé sur les mois côté serveur (Σ préservée)
+    totalAmount: z.number().positive().optional(),
+    totalOriginalAmount: z.number().positive().optional(),
+    // FX figé (RG-009), partagé par les deux modes
+    originalCurrency: supportedCurrencySchema.optional(),
+    targetCurrency: supportedCurrencySchema.optional(),
+    exchangeRate: exchangeRateWirePositive.optional(),
+    /**
+     * Clé d'idempotence OPTIONNELLE (PUL-17). Le client génère un uuid v4 stable
+     * pour CETTE intention de lissage et le rejoue à l'identique sur un retry.
+     * Le serveur l'utilise comme `spread_group_id` : un second POST avec la même
+     * clé ne crée PAS un second groupe — il rejoue et renvoie les lignes déjà
+     * créées avec le statut de la création d'origine (201 ; un replay idempotent
+     * renvoie le résultat original, à la Stripe), après avoir re-tenté le recalcul
+     * (idempotent → soigne un solde laissé
+     * périmé par un premier recalcul échoué). Absente → le serveur génère la clé
+     * comme avant (rétro-compatible : iOS/web non cassés tant qu'ils ne l'adoptent
+     * pas). Champ additif, non-breaking.
+     */
+    spreadGroupId: z.uuid().optional(),
+  })
+  /**
+   * Coherence — two cross-field invariants validated at the boundary so an
+   * incoherent payload is rejected with a clean 400 instead of failing the
+   * all-or-nothing fan-out INSERT (generic 500):
+   *
+   * (A) mode ⇄ amount: the mode's amount field is required, and mixing the other
+   *     mode's amount fields is forbidden (no `totalAmount` in `perMonth`, etc.).
+   *
+   * (B) FX triad (mirrors the DB `fx_metadata_coherent` CHECK), applied to the
+   *     mode-correct original-amount field (`perMonthOriginalAmount` or
+   *     `totalOriginalAmount`). Exactly one of three FX states must hold:
+   *       1. no FX        — no currencies, no rate, no original amount
+   *       2. target-only  — targetCurrency set; originalCurrency/rate/original amount absent
+   *       3. full FX      — originalCurrency+targetCurrency+exchangeRate set, origin≠target,
+   *                         and the mode's original amount present
+   *     The frozen rate is trusted as-is (RG-009) — never refetched here.
+   */
+  .superRefine((value, ctx) => {
+    const isPerMonth = value.mode === 'perMonth';
+    const baseAmount = isPerMonth ? value.perMonthAmount : value.totalAmount;
+    const originalAmount = isPerMonth
+      ? value.perMonthOriginalAmount
+      : value.totalOriginalAmount;
+    const wrongBaseAmount = isPerMonth
+      ? value.totalAmount
+      : value.perMonthAmount;
+    const wrongOriginalAmount = isPerMonth
+      ? value.totalOriginalAmount
+      : value.perMonthOriginalAmount;
+
+    // (A) mode ⇄ amount coherence
+    if (baseAmount == null) {
+      ctx.addIssue({
+        code: 'custom',
+        message: isPerMonth
+          ? 'perMonthAmount est requis en mode perMonth.'
+          : 'totalAmount est requis en mode total.',
+      });
+    }
+    if (wrongBaseAmount != null || wrongOriginalAmount != null) {
+      ctx.addIssue({
+        code: 'custom',
+        message:
+          'Champs de montant incompatibles avec le mode choisi (mélange perMonth/total interdit).',
+      });
+    }
+
+    // (B) FX triad on the mode-correct original amount
+    const hasOriginalCurrency = value.originalCurrency != null;
+    const hasTargetCurrency = value.targetCurrency != null;
+    const hasRate = value.exchangeRate != null;
+    const hasOriginalAmount = originalAmount != null;
+
+    const noFx =
+      !hasOriginalCurrency &&
+      !hasTargetCurrency &&
+      !hasRate &&
+      !hasOriginalAmount;
+    const targetOnly =
+      hasTargetCurrency &&
+      !hasOriginalCurrency &&
+      !hasRate &&
+      !hasOriginalAmount;
+    const fullFx =
+      hasTargetCurrency &&
+      hasOriginalCurrency &&
+      hasRate &&
+      hasOriginalAmount &&
+      value.originalCurrency !== value.targetCurrency;
+
+    if (!noFx && !targetOnly && !fullFx) {
+      ctx.addIssue({
+        code: 'custom',
+        message:
+          'Métadonnées de change incohérentes : fournis soit aucune métadonnée FX, soit targetCurrency seule, soit le quadruplet complet (originalCurrency, targetCurrency, exchangeRate avec devises distinctes + le montant original du mode).',
+      });
+    }
+  });
+export type BudgetLineSpreadCreate = z.infer<
+  typeof budgetLineSpreadCreateSchema
+>;
+
+/**
+ * Réponse du fan-out : les lignes créées, les budgets auto-créés depuis le
+ * template par défaut, et les mois ignorés (aucun template par défaut →
+ * `skippedMonths`, calqué sur `budgetGenerateResponseSchema`).
+ */
+export const budgetLineSpreadResponseSchema = z.object({
+  success: z.literal(true),
+  data: z.object({
+    spreadGroupId: z.uuid(),
+    lines: z.array(budgetLineSchema),
+    createdBudgets: z.array(budgetSchema),
+    skippedMonths: z.array(
+      z.object({
+        month: z.number().int().min(MONTH_MIN).max(MONTH_MAX),
+        year: z.number().int().min(MIN_YEAR),
+      }),
+    ),
+  }),
+});
+export type BudgetLineSpreadResponse = z.infer<
+  typeof budgetLineSpreadResponseSchema
+>;
+
+/**
+ * SPREAD-FROM-EXISTING (PUL-17 v1.1) — lissage TOTAL-PRÉSERVANT d'une source
+ * DÉJÀ existante (prévision OU transaction). Le montant total `T` de la source
+ * est REDISTRIBUÉ en N tranches `one_off` de `T/N` (Σ = T exactement, reste en
+ * centimes sur les PREMIERS mois, mois courant M0 inclus). Contrairement à la
+ * création additive (`budgetLineSpreadCreateSchema`, où le client envoie le
+ * montant par mois + les mois et le serveur RÉPLIQUE), ici le client n'envoie QUE
+ * les mois cibles : le serveur lit `T` (montant déchiffré de la source, autorité
+ * unique → Σ=T ingarantissable côté client), calcule le SPLIT `T/N`, hérite le FX
+ * figé de la source, fait le fan-out, puis SUPPRIME la source. La fenêtre démarre
+ * à M0 vers le FUTUR (jamais le passé). N ≥ 2 (lisser sur 1 mois = no-op).
+ */
+
+/**
+ * Lisser une PRÉVISION existante (`POST /budget-lines/:id/spread`).
+ * Source = budget_line `one_off`, `kind ≠ income`, pas déjà lissée.
+ */
+export const budgetLineSpreadFromLineCreateSchema = z.strictObject({
+  periods: z
+    .array(spreadFromExistingPeriodSchema)
+    .min(2)
+    .max(MAX_SPREAD_TRANCHES)
+    .refine(hasUniqueSpreadPeriods, {
+      message: 'Chaque mois cible ne peut apparaître qu’une fois.',
+    }),
+});
+export type BudgetLineSpreadFromLineCreate = z.infer<
+  typeof budgetLineSpreadFromLineCreateSchema
+>;
+
+/**
+ * Lisser une TRANSACTION LIBRE existante (`POST /transactions/:id/spread`).
+ * Source = transaction `budgetLineId = null`, `kind ≠ income`. Le réel est
+ * SUPPRIMÉ et remplacé par le plan d'amortissement (redistribution totale —
+ * décision produit : M0 passe à T/N). Schéma distinct du from-line (règle
+ * 1 endpoint = 1 schéma nommé) même si structurellement identique aujourd'hui.
+ */
+export const transactionSpreadFromTxnCreateSchema = z.strictObject({
+  periods: z
+    .array(spreadFromExistingPeriodSchema)
+    .min(2)
+    .max(MAX_SPREAD_TRANCHES)
+    .refine(hasUniqueSpreadPeriods, {
+      message: 'Chaque mois cible ne peut apparaître qu’une fois.',
+    }),
+});
+export type TransactionSpreadFromTxnCreate = z.infer<
+  typeof transactionSpreadFromTxnCreateSchema
+>;
+
+/**
+ * SPREAD OCCURRENCES (PUL-17 Lot C) — one occurrence per `budget_line` of a
+ * spread group, across all its months. Read-only cross-budget view.
+ *
+ * `month`/`year` are returned RAW — the client computes past/current/future
+ * payDay-aware (`compareBudgetPeriods`), never the server (a frozen flag would
+ * be stale + TZ-blind on a short cache). `checkedAt` drives the existing
+ * "pointé" UI. Amounts decrypted server-side before serialization.
+ */
+export const spreadOccurrenceSchema = z.object({
+  budgetLineId: z.uuid(),
+  budgetId: z.uuid(),
+  month: z.number().int().min(MONTH_MIN).max(MONTH_MAX),
+  year: z.number().int().min(MIN_YEAR).max(MAX_YEAR),
+  name: z.string(),
+  // coerce: PostgREST returns numeric as string; nonnegative: 0 when encrypted
+  amount: z.coerce.number().nonnegative(),
+  kind: transactionKindSchema,
+  checkedAt: z.iso.datetime({ offset: true }).nullable(),
+  /**
+   * Réalisé (PUL-17): `consumed` = Σ des sous-transactions de cette occurrence
+   * (déchiffrées côté serveur) ; `transactionCount` permet au client de choisir
+   * consommé vs prévu. La détermination « mois clôturé » (vs aujourd'hui, payDay)
+   * reste CLIENT — le serveur ne renvoie que ces faits. `default(0)` = additif.
+   */
+  consumed: z.coerce.number().nonnegative().default(0),
+  transactionCount: z.coerce.number().int().nonnegative().default(0),
+  originalAmount: z.coerce.number().nonnegative().nullable().optional(),
+  originalCurrency: supportedCurrencySchema.nullable().optional(),
+  targetCurrency: supportedCurrencySchema.nullable().optional(),
+  exchangeRate: exchangeRateWire.nullable().optional(),
+});
+export type SpreadOccurrence = z.infer<typeof spreadOccurrenceSchema>;
+
+export const spreadOccurrencesResponseSchema = createListResponse(
+  spreadOccurrenceSchema,
+);
+export type SpreadOccurrencesResponse = z.infer<
+  typeof spreadOccurrencesResponseSchema
+>;
 
 /**
  * TRANSACTION - Opération réelle saisie par l'utilisateur

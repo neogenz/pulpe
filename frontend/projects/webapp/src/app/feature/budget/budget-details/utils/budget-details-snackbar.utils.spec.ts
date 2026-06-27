@@ -1,9 +1,20 @@
-import { describe, it, expect, vi } from 'vitest';
-import type { TranslocoService } from '@jsverse/transloco';
-import type { BudgetLine, Transaction } from 'pulpe-shared';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { Subject } from 'rxjs';
+import { TestBed } from '@angular/core/testing';
+import type { MatSnackBar } from '@angular/material/snack-bar';
+import { TranslocoService } from '@jsverse/transloco';
+import type {
+  BudgetLine,
+  BudgetLineSpreadCreate,
+  Transaction,
+} from 'pulpe-shared';
+import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 import {
   computeEnvelopeSnackbarMessage,
+  computeSpreadSnackbarMessage,
   computeTransactionSnackbarMessage,
+  spreadCreateEcho,
+  submitSpreadWithRetry,
 } from './budget-details-snackbar.utils';
 
 const NOW = new Date().toISOString();
@@ -200,6 +211,60 @@ describe('computeEnvelopeSnackbarMessage', () => {
   });
 });
 
+describe('submitSpreadWithRetry', () => {
+  const spreadValue: BudgetLineSpreadCreate = {
+    name: 'Prime assurance',
+    kind: 'expense',
+    mode: 'total',
+    totalAmount: 600,
+    months: [{ year: 2026, month: 1 }],
+    spreadGroupId: '11111111-1111-4111-8111-111111111111',
+  };
+
+  it('submits once and shows the occurrences toast on success', async () => {
+    const transloco = createMockTransloco();
+    const open = vi
+      .fn()
+      .mockReturnValue({ onAction: () => new Subject<void>() });
+    const snackBar = { open } as unknown as MatSnackBar;
+    const create = vi.fn().mockResolvedValue({
+      lines: [{}],
+      createdBudgets: [],
+      skippedMonths: [],
+    });
+
+    await submitSpreadWithRetry(spreadValue, create, snackBar, transloco);
+
+    expect(create).toHaveBeenCalledTimes(1);
+    expect(create).toHaveBeenCalledWith(spreadValue);
+    expect(open).toHaveBeenCalledTimes(1);
+  });
+
+  it('offers a retry that re-submits the SAME DTO (same spreadGroupId) on failure', async () => {
+    const transloco = createMockTransloco();
+    const action$ = new Subject<void>();
+    const open = vi.fn().mockReturnValue({ onAction: () => action$ });
+    const snackBar = { open } as unknown as MatSnackBar;
+    const create = vi.fn().mockResolvedValue(undefined);
+
+    await submitSpreadWithRetry(spreadValue, create, snackBar, transloco);
+
+    expect(create).toHaveBeenCalledTimes(1);
+    expect(open).toHaveBeenLastCalledWith(
+      'budgetLine.spread.error',
+      'common.retry',
+      expect.objectContaining({ duration: 8000 }),
+    );
+
+    // User taps "Réessayer" → the SAME value (hence the same spreadGroupId) is
+    // resubmitted, so the server replays instead of creating a duplicate.
+    action$.next();
+
+    expect(create).toHaveBeenCalledTimes(2);
+    expect(create).toHaveBeenNthCalledWith(2, spreadValue);
+  });
+});
+
 describe('computeTransactionSnackbarMessage', () => {
   const transloco = createMockTransloco();
 
@@ -240,5 +305,96 @@ describe('computeTransactionSnackbarMessage', () => {
     );
 
     expect(result).toBe('Pointé · 42 CHF');
+  });
+});
+
+describe('computeSpreadSnackbarMessage', () => {
+  // Uses the REAL fr.json via provideTranslocoForTest (not a mock that echoes the
+  // key) so a missing translation surfaces as the raw key and fails the test.
+  // Guards PUL-17: the spread success toast i18n keys must exist and interpolate.
+  let transloco: TranslocoService;
+
+  beforeEach(() => {
+    TestBed.configureTestingModule({
+      providers: [...provideTranslocoForTest()],
+    });
+    transloco = TestBed.inject(TranslocoService);
+  });
+
+  it('renders the translated base message, never the raw i18n key', () => {
+    const message = computeSpreadSnackbarMessage(
+      {
+        lines: [{}, {}, {}],
+        createdBudgets: [],
+        skippedMonths: [],
+      } as unknown as Parameters<typeof computeSpreadSnackbarMessage>[0],
+      transloco,
+    );
+
+    expect(message).not.toContain('budget.spreadSuccess');
+    expect(message).toContain('3');
+    expect(message).toContain('Dépense lissée');
+  });
+
+  it('appends the translated created-budgets suffix, never the raw key', () => {
+    const message = computeSpreadSnackbarMessage(
+      {
+        lines: [{}, {}],
+        createdBudgets: [{}],
+        skippedMonths: [],
+      } as unknown as Parameters<typeof computeSpreadSnackbarMessage>[0],
+      transloco,
+    );
+
+    expect(message).not.toContain('budget.spreadCreatedBudgetsSuffix');
+    expect(message).toContain('budget');
+  });
+
+  it('appends the translated skipped-months suffix, never the raw key', () => {
+    const message = computeSpreadSnackbarMessage(
+      {
+        lines: [{}, {}],
+        createdBudgets: [],
+        skippedMonths: [{}],
+      } as unknown as Parameters<typeof computeSpreadSnackbarMessage>[0],
+      transloco,
+    );
+
+    expect(message).not.toContain('budget.spreadSkippedMonthsSuffix');
+    expect(message).toContain('ignoré');
+  });
+});
+
+describe('spreadCreateEcho', () => {
+  const months = [
+    { year: 2026, month: 1 },
+    { year: 2026, month: 2 },
+    { year: 2026, month: 3 },
+  ];
+
+  it('returns the typed total over the month count in total mode', () => {
+    const value: BudgetLineSpreadCreate = {
+      name: 'Prime assurance',
+      kind: 'expense',
+      mode: 'total',
+      totalAmount: 600,
+      months,
+      spreadGroupId: '11111111-1111-4111-8111-111111111111',
+    };
+
+    expect(spreadCreateEcho(value)).toEqual({ amount: 600, monthCount: 3 });
+  });
+
+  it('returns the per-month amount times the month count in perMonth mode', () => {
+    const value: BudgetLineSpreadCreate = {
+      name: 'Prime assurance',
+      kind: 'expense',
+      mode: 'perMonth',
+      perMonthAmount: 50,
+      months,
+      spreadGroupId: '11111111-1111-4111-8111-111111111111',
+    };
+
+    expect(spreadCreateEcho(value)).toEqual({ amount: 150, monthCount: 3 });
   });
 });

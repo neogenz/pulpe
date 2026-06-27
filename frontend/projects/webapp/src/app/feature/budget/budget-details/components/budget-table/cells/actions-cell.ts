@@ -12,6 +12,7 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslocoPipe } from '@jsverse/transloco';
+import type { Transaction } from 'pulpe-shared';
 import type { BudgetLine } from 'pulpe-shared';
 import type {
   BudgetLineTableItem,
@@ -81,6 +82,48 @@ import type {
             <mat-icon matMenuItemIcon>edit</mat-icon>
             <span>{{ 'common.edit' | transloco }}</span>
           </button>
+          @if (line().metadata.canSpread) {
+            <button
+              mat-menu-item
+              (click)="spread.emit(asBudgetLineItem())"
+              [attr.data-testid]="'spread-' + line().data.id"
+            >
+              <mat-icon matMenuItemIcon>calendar_month</mat-icon>
+              <span>{{ 'budgetLine.spread.spreadAction' | transloco }}</span>
+            </button>
+          } @else if (showSpreadUnavailable()) {
+            <!-- Tooltip lives on the wrapper: a disabled button emits no
+                 pointer events, so it couldn't trigger the tooltip itself. -->
+            <span
+              class="block"
+              [matTooltip]="
+                'budgetLine.spread.spreadUnavailableRecurrent' | transloco
+              "
+              matTooltipPosition="above"
+            >
+              <button
+                mat-menu-item
+                disabled
+                [attr.data-testid]="'spread-disabled-' + line().data.id"
+              >
+                <mat-icon matMenuItemIcon>calendar_month</mat-icon>
+                <span>{{ 'budgetLine.spread.spreadAction' | transloco }}</span>
+              </button>
+            </span>
+          }
+        }
+        @if (
+          line().metadata.itemType === 'transaction' &&
+          line().metadata.canSpread
+        ) {
+          <button
+            mat-menu-item
+            (click)="spreadTransaction.emit(asTransactionItem().data)"
+            [attr.data-testid]="'spread-tx-' + line().data.id"
+          >
+            <mat-icon matMenuItemIcon>calendar_month</mat-icon>
+            <span>{{ 'budgetLine.spread.spreadAction' | transloco }}</span>
+          </button>
         }
         @if (line().metadata.canResetFromTemplate) {
           <button
@@ -112,6 +155,8 @@ export class ActionsCell {
   readonly edit = output<BudgetLineTableItem>();
   readonly delete = output<string>();
   readonly addTransaction = output<BudgetLine>();
+  readonly spread = output<BudgetLineTableItem>();
+  readonly spreadTransaction = output<Transaction>();
   readonly resetFromTemplate = output<BudgetLineTableItem>();
   readonly toggleCheck = output<string>();
   readonly toggleTransactionCheck = output<string>();
@@ -120,5 +165,21 @@ export class ActionsCell {
     () => this.line() as BudgetLineTableItem,
   );
 
+  readonly asTransactionItem = computed(
+    () => this.line() as TransactionTableItem,
+  );
+
   readonly budgetLineData = computed(() => this.line().data as BudgetLine);
+
+  // Recurrent (`fixed`) expense/saving lines are already laid down every month,
+  // so the "Lisser" action stays disabled with an explanation instead of
+  // vanishing. Income / already-spread / zero stay hidden (handled by canSpread).
+  readonly showSpreadUnavailable = computed(() => {
+    const item = this.line();
+    if (item.metadata.itemType !== 'budget_line' || item.metadata.canSpread) {
+      return false;
+    }
+    const data = item.data as BudgetLine;
+    return data.recurrence === 'fixed' && data.kind !== 'income';
+  });
 }

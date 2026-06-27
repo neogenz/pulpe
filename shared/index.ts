@@ -86,6 +86,15 @@ export {
   budgetLineListResponseSchema,
   budgetLineDeleteResponseSchema,
 
+  // Budget Line Spread schemas (PUL-17)
+  budgetLineSpreadCreateSchema,
+  budgetLineSpreadResponseSchema,
+  spreadFromExistingPeriodSchema,
+  budgetLineSpreadFromLineCreateSchema,
+  transactionSpreadFromTxnCreateSchema,
+  spreadOccurrenceSchema,
+  spreadOccurrencesResponseSchema,
+
   // Currency schemas
   supportedCurrencySchema,
   SUPPORTED_CURRENCIES,
@@ -156,6 +165,7 @@ export {
 
 // Export calculators
 export { BudgetFormulas } from './src/calculators/index.js';
+export { splitTotalPreserving } from './src/calculators/index.js';
 
 // Export budget period utilities
 export {
@@ -262,6 +272,15 @@ export type {
   BudgetLineResponse,
   BudgetLineListResponse,
   BudgetLineDeleteResponse,
+
+  // Budget Line Spread types (PUL-17)
+  BudgetLineSpreadCreate,
+  BudgetLineSpreadResponse,
+  SpreadFromExistingPeriod,
+  BudgetLineSpreadFromLineCreate,
+  TransactionSpreadFromTxnCreate,
+  SpreadOccurrence,
+  SpreadOccurrencesResponse,
 
   // Currency types
   SupportedCurrency,

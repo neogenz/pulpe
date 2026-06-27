@@ -21,7 +21,11 @@ import {
 } from '@ui/dialogs/confirmation-dialog';
 import { FinancialKindDirective } from '@ui/financial-kind';
 import { RecurrenceLabelPipe } from '@ui/transaction-display';
-import { type BudgetLine, type BudgetLineUpdate } from 'pulpe-shared';
+import {
+  type BudgetLine,
+  type BudgetLineUpdate,
+  type Transaction,
+} from 'pulpe-shared';
 import { AppCurrencyPipe } from '@core/currency';
 import { UserSettingsStore } from '@core/user-settings';
 import { ActionsCell, BalanceCell, NameCell, RemainingCell } from './cells';
@@ -103,7 +107,7 @@ import { BudgetDetailsDialogService } from '../../budget-details-dialog.service'
                 class="text-body-small h-8! px-3!"
                 [matBadge]="line.consumption.transactionCount"
                 matBadgeColor="primary"
-                (click)="viewTransactions.emit(line)"
+                (click)="viewTransactions.emit(line); $event.stopPropagation()"
                 [matTooltip]="
                   'budget.viewTransactionsCount'
                     | transloco
@@ -186,6 +190,8 @@ import { BudgetDetailsDialogService } from '../../budget-details-dialog.service'
               (edit)="startEdit($event)"
               (delete)="delete.emit($event)"
               (addTransaction)="addTransaction.emit($event)"
+              (spread)="spread.emit($event)"
+              (spreadTransaction)="spreadTransaction.emit($event)"
               (resetFromTemplate)="onResetFromTemplateClick($event)"
               (toggleCheck)="toggleCheck.emit($event)"
               (toggleTransactionCheck)="toggleTransactionCheck.emit($event)"
@@ -203,6 +209,7 @@ import { BudgetDetailsDialogService } from '../../budget-details-dialog.service'
           mat-row
           *matRowDef="let row; columns: displayedColumns"
           class="hover:bg-surface-container-low transition-opacity"
+          [class.cursor-pointer]="row.metadata?.itemType === 'budget_line'"
           [class.opacity-50]="row.metadata?.isLoading"
           [class.pointer-events-none]="row.metadata?.isLoading"
           [class.line-through]="row.data?.checkedAt"
@@ -210,6 +217,7 @@ import { BudgetDetailsDialogService } from '../../budget-details-dialog.service'
             row.metadata?.isNestedUnderEnvelope
           "
           [attr.data-testid]="'budget-line-' + row.metadata?.displayName"
+          (click)="viewLineDetail(row, $event)"
         ></tr>
 
         <!-- No data row -->
@@ -298,6 +306,8 @@ export class BudgetTable {
   readonly add = output<void>();
   readonly addTransaction = output<BudgetLine>();
   readonly viewTransactions = output<BudgetLineTableItem>();
+  readonly spread = output<BudgetLineTableItem>();
+  readonly spreadTransaction = output<Transaction>();
   readonly resetFromTemplate = output<string>();
   readonly toggleCheck = output<string>();
   readonly toggleTransactionCheck = output<string>();
@@ -324,6 +334,25 @@ export class BudgetTable {
     _index: number,
     row: TableRowItem,
   ): row is GroupHeaderTableItem => row.metadata.itemType === 'group_header';
+
+  // Row tap opens the detail (which surfaces the spread occurrences inline) —
+  // only for envelope rows; transaction rows have no detail panel. Replaces the
+  // explicit per-row "Voir les mois" button. Clicks bubbling up from an
+  // interactive control inside the row (action-menu trigger, toggles, inline-edit
+  // inputs, badges) must NOT open the detail — otherwise opening the ⋮ menu would
+  // also open the detail overlay and swallow the menu items.
+  protected viewLineDetail(row: TableRowItem, event: Event): void {
+    if (row.metadata.itemType !== 'budget_line') return;
+    const target = event.target as HTMLElement | null;
+    if (
+      target?.closest(
+        'button, a, input, textarea, mat-slide-toggle, [role="menuitem"]',
+      )
+    ) {
+      return;
+    }
+    this.viewTransactions.emit(row as BudgetLineTableItem);
+  }
 
   startEdit(item: BudgetLineTableItem): void {
     this.#openEditDialog(item);

@@ -56,5 +56,6 @@ import { BulkTemplateLineOperationsUseCase } from './application/bulk-template-l
     createInfoLoggerProvider(DeleteTemplateLineUseCase.name),
     createInfoLoggerProvider(BulkTemplateLineOperationsUseCase.name),
   ],
+  exports: [BUDGET_TEMPLATE_REPOSITORY],
 })
 export class BudgetTemplateModule {}

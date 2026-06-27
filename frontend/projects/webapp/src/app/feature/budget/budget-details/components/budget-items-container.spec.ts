@@ -53,6 +53,7 @@ interface MockStore {
   setSearchText: ReturnType<typeof vi.fn>;
   setIsShowingOnlyUnchecked: ReturnType<typeof vi.fn>;
   createBudgetLine: ReturnType<typeof vi.fn>;
+  createBudgetLineSpread: ReturnType<typeof vi.fn>;
   updateBudgetLine: ReturnType<typeof vi.fn>;
   deleteBudgetLine: ReturnType<typeof vi.fn>;
   deleteTransaction: ReturnType<typeof vi.fn>;
@@ -79,6 +80,7 @@ function createMockStore(): MockStore {
     setSearchText: vi.fn(),
     setIsShowingOnlyUnchecked: vi.fn(),
     createBudgetLine: vi.fn(),
+    createBudgetLineSpread: vi.fn(),
     updateBudgetLine: vi.fn(),
     deleteBudgetLine: vi.fn(),
     deleteTransaction: vi.fn(),
@@ -97,6 +99,8 @@ interface MockDialogService {
   openAllocatedTransactionsDialog: ReturnType<typeof vi.fn>;
   openCreateAllocatedTransactionDialog: ReturnType<typeof vi.fn>;
   openEditAllocatedTransactionDialog: ReturnType<typeof vi.fn>;
+  openSpreadExisting: ReturnType<typeof vi.fn>;
+  runSpreadProcessing: ReturnType<typeof vi.fn>;
   confirmDelete: ReturnType<typeof vi.fn>;
   confirmCheckAllocatedTransactions: ReturnType<typeof vi.fn>;
 }
@@ -108,6 +112,9 @@ function createMockDialogService(): MockDialogService {
     openAllocatedTransactionsDialog: vi.fn().mockResolvedValue(undefined),
     openCreateAllocatedTransactionDialog: vi.fn().mockResolvedValue(undefined),
     openEditAllocatedTransactionDialog: vi.fn().mockResolvedValue(undefined),
+    openSpreadExisting: vi.fn().mockResolvedValue(undefined),
+    // Pass-through: keeps the wrapped store spread mutation exercised in tests.
+    runSpreadProcessing: vi.fn((run: () => Promise<unknown>) => run()),
     confirmDelete: vi.fn().mockResolvedValue(false),
     confirmCheckAllocatedTransactions: vi.fn().mockResolvedValue(false),
   };
@@ -242,17 +249,49 @@ describe('BudgetItemsContainer — orchestration', () => {
     expect(mockStore.createBudgetLine).not.toHaveBeenCalled();
   });
 
-  it('creates a budget line when add dialog returns a value', async () => {
+  it('creates a budget line when add dialog returns a single value', async () => {
     mockStore.budgetDetails.set({ id: 'budget-1', month: 1, year: 2026 });
     const newLine = { name: 'Loyer', amount: 100 };
-    mockDialogService.openAddBudgetLineDialog.mockResolvedValue(newLine);
+    mockDialogService.openAddBudgetLineDialog.mockResolvedValue({
+      mode: 'single',
+      value: newLine,
+    });
 
     await component.openAddBudgetLineDialog();
 
-    expect(mockDialogService.openAddBudgetLineDialog).toHaveBeenCalledWith(
-      'budget-1',
-    );
+    expect(mockDialogService.openAddBudgetLineDialog).toHaveBeenCalledWith({
+      id: 'budget-1',
+      month: 1,
+      year: 2026,
+    });
     expect(mockStore.createBudgetLine).toHaveBeenCalledWith(newLine);
+  });
+
+  it('fans out a spread when add dialog returns a spread value', async () => {
+    mockStore.budgetDetails.set({ id: 'budget-1', month: 1, year: 2026 });
+    const spread = {
+      name: 'Prime',
+      kind: 'expense' as const,
+      perMonthAmount: 100,
+      months: [
+        { year: 2026, month: 1 },
+        { year: 2026, month: 2 },
+      ],
+    };
+    mockDialogService.openAddBudgetLineDialog.mockResolvedValue({
+      mode: 'spread',
+      value: spread,
+    });
+    mockStore.createBudgetLineSpread.mockResolvedValue({
+      lines: [],
+      createdBudgets: [],
+      skippedMonths: [],
+    });
+
+    await component.openAddBudgetLineDialog();
+
+    expect(mockStore.createBudgetLineSpread).toHaveBeenCalledWith(spread);
+    expect(mockStore.createBudgetLine).not.toHaveBeenCalled();
   });
 });
 

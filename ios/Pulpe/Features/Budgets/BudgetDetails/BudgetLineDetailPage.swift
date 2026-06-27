@@ -75,6 +75,12 @@ struct BudgetLineDetailPage: View {
                 .padding(.top, DesignTokens.Spacing.lg)
                 .padding(.bottom, DesignTokens.Spacing.md)
 
+            if let spreadGroupId = line.spreadGroupId {
+                spreadAffordance(spreadGroupId: spreadGroupId)
+                    .padding(.horizontal, DesignTokens.Spacing.lg)
+                    .padding(.bottom, DesignTokens.Spacing.md)
+            }
+
             transactionsList(line: line, transactions: transactions)
         }
         .pulpeStickyBottomCTA(avoidsKeyboard: false) { addTransactionButton(line: line) }

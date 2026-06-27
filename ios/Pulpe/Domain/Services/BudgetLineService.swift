@@ -6,6 +6,8 @@ import Foundation
 protocol BudgetLineServicing: Sendable {
     func deleteBudgetLine(id: String) async throws
     func toggleCheck(id: String) async throws -> BudgetLine
+    func createSpread(_ data: BudgetLineSpreadCreate) async throws -> BudgetLineSpreadResponse
+    func getSpreadOccurrences(spreadGroupId: String) async throws -> [SpreadOccurrence]
 }
 
 /// Service for budget line API operations
@@ -33,6 +35,19 @@ actor BudgetLineService: BudgetLineServicing {
     /// Create a new budget line
     func createBudgetLine(_ data: BudgetLineCreate) async throws -> BudgetLine {
         try await apiClient.request(.budgetLinesCreate, body: data, method: .post)
+    }
+
+    /// Fan out a "Lisser" expense into N independent `one_off` lines, one per
+    /// selected month (PUL-17). The server auto-creates missing budgets from the
+    /// default template and shares one frozen `exchangeRate` across all tranches.
+    func createSpread(_ data: BudgetLineSpreadCreate) async throws -> BudgetLineSpreadResponse {
+        try await apiClient.request(.budgetLinesSpread, body: data, method: .post)
+    }
+
+    /// Fetch every occurrence of a "Lisser" expense, one per host month (PUL-17
+    /// Lot C). Drives the read-only occurrences sheet.
+    func getSpreadOccurrences(spreadGroupId: String) async throws -> [SpreadOccurrence] {
+        try await apiClient.request(.budgetLinesSpreadOccurrences(spreadGroupId: spreadGroupId), method: .get)
     }
 
     /// Update a budget line

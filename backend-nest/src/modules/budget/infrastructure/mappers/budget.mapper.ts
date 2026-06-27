@@ -92,6 +92,7 @@ export class BudgetMapper {
       budgetId: entity.budgetId,
       templateLineId: entity.templateLineId,
       savingsGoalId: entity.savingsGoalId,
+      spreadGroupId: entity.spreadGroupId,
       name: entity.name,
       amount: entity.amount,
       kind: entity.kind,

@@ -1,6 +1,7 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  computed,
   input,
   output,
 } from '@angular/core';
@@ -57,6 +58,16 @@ import type { Transaction } from 'pulpe-shared';
         <mat-icon matMenuItemIcon>edit</mat-icon>
         <span>{{ 'common.edit' | transloco }}</span>
       </button>
+      @if (canSpread()) {
+        <button
+          mat-menu-item
+          (click)="spread.emit(transaction())"
+          [attr.data-testid]="'spread-tx-' + transaction().id"
+        >
+          <mat-icon matMenuItemIcon>calendar_month</mat-icon>
+          <span>{{ 'budgetLine.spread.spreadAction' | transloco }}</span>
+        </button>
+      }
       <button
         mat-menu-item
         (click)="delete.emit(transaction().id)"
@@ -82,4 +93,15 @@ export class TransactionActionMenu {
 
   readonly edit = output<Transaction>();
   readonly delete = output<string>();
+  readonly spread = output<Transaction>();
+
+  /**
+   * PUL-17 v1.1 — a FREE transaction (`budgetLineId == null`), non-revenu,
+   * positive amount can be smoothed over several months. Allocated txns derive
+   * their spread from the parent envelope line, never from the txn itself.
+   */
+  protected readonly canSpread = computed(() => {
+    const tx = this.transaction();
+    return tx.budgetLineId == null && tx.kind !== 'income' && tx.amount > 0;
+  });
 }

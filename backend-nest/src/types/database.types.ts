@@ -49,6 +49,7 @@ export type Database = {
           original_currency: string | null;
           recurrence: Database['public']['Enums']['transaction_recurrence'];
           savings_goal_id: string | null;
+          spread_group_id: string | null;
           target_currency: string | null;
           template_line_id: string | null;
           updated_at: string;
@@ -67,6 +68,7 @@ export type Database = {
           original_currency?: string | null;
           recurrence: Database['public']['Enums']['transaction_recurrence'];
           savings_goal_id?: string | null;
+          spread_group_id?: string | null;
           target_currency?: string | null;
           template_line_id?: string | null;
           updated_at?: string;
@@ -85,6 +87,7 @@ export type Database = {
           original_currency?: string | null;
           recurrence?: Database['public']['Enums']['transaction_recurrence'];
           savings_goal_id?: string | null;
+          spread_group_id?: string | null;
           target_currency?: string | null;
           template_line_id?: string | null;
           updated_at?: string;
@@ -455,6 +458,39 @@ export type Database = {
         };
         Returns: Json;
       };
+      create_budget_lines_spread: {
+        Args: {
+          p_lines?: Json;
+          p_source_budget_line_id?: string;
+          p_source_transaction_id?: string;
+          p_spread_group_id: string;
+        };
+        Returns: {
+          amount: string | null;
+          budget_id: string;
+          checked_at: string | null;
+          created_at: string;
+          exchange_rate: number | null;
+          id: string;
+          is_manually_adjusted: boolean;
+          kind: Database['public']['Enums']['transaction_kind'];
+          name: string;
+          original_amount: string | null;
+          original_currency: string | null;
+          recurrence: Database['public']['Enums']['transaction_recurrence'];
+          savings_goal_id: string | null;
+          spread_group_id: string | null;
+          target_currency: string | null;
+          template_line_id: string | null;
+          updated_at: string;
+        }[];
+        SetofOptions: {
+          from: '*';
+          to: 'budget_line';
+          isOneToOne: false;
+          isSetofReturn: true;
+        };
+      };
       create_template_with_lines: {
         Args: {
           p_description?: string;
@@ -492,6 +528,7 @@ export type Database = {
           original_currency: string | null;
           recurrence: Database['public']['Enums']['transaction_recurrence'];
           savings_goal_id: string | null;
+          spread_group_id: string | null;
           target_currency: string | null;
           template_line_id: string | null;
           updated_at: string;

@@ -271,8 +271,8 @@ export class SupabaseBudgetRepository implements BudgetRepositoryPort {
   async getExistingPeriods(
     userId: string,
     targetMonths: { month: number; year: number }[],
-  ): Promise<Set<string>> {
-    if (targetMonths.length === 0) return new Set();
+  ): Promise<Map<string, string>> {
+    if (targetMonths.length === 0) return new Map();
 
     const supabase = this.supabaseProvider.client;
     const periodFilters = targetMonths
@@ -281,7 +281,7 @@ export class SupabaseBudgetRepository implements BudgetRepositoryPort {
 
     const { data, error } = await supabase
       .from('monthly_budget')
-      .select('month, year')
+      .select('id, month, year')
       .eq('user_id', userId)
       .or(periodFilters);
 
@@ -297,9 +297,15 @@ export class SupabaseBudgetRepository implements BudgetRepositoryPort {
       );
     }
 
-    return new Set(
+    // periodKey → budgetId, so callers needing the id (spread provisioning) skip
+    // a per-period follow-up query; existence-only callers use `.has()` as before.
+    return new Map(
       (data ?? []).map(
-        (row: { month: number; year: number }) => `${row.month}/${row.year}`,
+        (row: {
+          id: string;
+          month: number;
+          year: number;
+        }): [string, string] => [`${row.month}/${row.year}`, row.id],
       ),
     );
   }
@@ -593,6 +599,7 @@ export class SupabaseBudgetRepository implements BudgetRepositoryPort {
       budgetId: decrypted.budget_id,
       templateLineId: decrypted.template_line_id,
       savingsGoalId: decrypted.savings_goal_id,
+      spreadGroupId: decrypted.spread_group_id ?? null,
       name: decrypted.name,
       amount: decrypted.amount,
       originalAmount: decrypted.original_amount,

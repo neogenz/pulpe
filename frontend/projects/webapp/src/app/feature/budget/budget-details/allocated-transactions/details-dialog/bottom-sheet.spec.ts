@@ -1,6 +1,6 @@
 import type { ComponentFixture } from '@angular/core/testing';
 import { TestBed } from '@angular/core/testing';
-import { provideZonelessChangeDetection } from '@angular/core';
+import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import {
   MAT_BOTTOM_SHEET_DATA,
@@ -11,6 +11,9 @@ import type { BudgetLine, Transaction } from 'pulpe-shared';
 import type { BudgetLineConsumption } from '@core/budget';
 import type { AllocatedTransactionsDialogData } from './dialog';
 import { provideTranslocoForTest } from '@app/testing/transloco-testing';
+import { UserSettingsStore } from '@core/user-settings';
+import { FeatureFlagsService } from '@core/feature-flags';
+import { BudgetDetailsStore } from '../../store/budget-details-store';
 import { AllocatedTransactionsBottomSheet } from './bottom-sheet';
 
 function buildTransaction(overrides: Partial<Transaction> = {}): Transaction {
@@ -97,6 +100,23 @@ describe('AllocatedTransactionsBottomSheet', () => {
         ...provideTranslocoForTest(),
         { provide: MAT_BOTTOM_SHEET_DATA, useValue: data },
         { provide: MatBottomSheetRef, useValue: mockBottomSheetRef },
+        {
+          provide: UserSettingsStore,
+          useValue: { currency: signal('CHF'), payDayOfMonth: signal(1) },
+        },
+        {
+          provide: FeatureFlagsService,
+          useValue: { isMultiCurrencyEnabled: signal(false) },
+        },
+        {
+          provide: BudgetDetailsStore,
+          useValue: {
+            spreadOccurrences: signal([]),
+            isSpreadOccurrencesLoading: signal(false),
+            spreadOccurrencesError: signal(null),
+            budgetDetails: signal({ month: 1, year: 2025 }),
+          },
+        },
       ],
     });
 

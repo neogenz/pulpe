@@ -3,6 +3,7 @@ import type {
   TransactionCreateInput,
   TransactionUpdatePatch,
   BudgetLineForAllocation,
+  SpreadSourceTransaction,
   TransactionSearchTransactionRow,
   TransactionSearchBudgetLineRow,
 } from '../transaction.entity';
@@ -14,6 +15,12 @@ export interface TransactionRepositoryPort {
   findById(id: string): Promise<Transaction>;
   findByBudgetId(budgetId: string): Promise<Transaction[]>;
   findByBudgetLineId(budgetLineId: string): Promise<Transaction[]>;
+  /**
+   * PUL-17 v1.1: decrypted spread SOURCE (a transaction + its budget's
+   * month/year M0). RLS scopes to the caller — throws NOT_FOUND for another
+   * user's transaction (IDOR guard before any fan-out).
+   */
+  findSpreadSource(id: string): Promise<SpreadSourceTransaction>;
   insert(input: TransactionCreateInput): Promise<Transaction>;
   update(id: string, patch: TransactionUpdatePatch): Promise<Transaction>;
   delete(id: string): Promise<void>;

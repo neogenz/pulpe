@@ -13,6 +13,7 @@ import { BudgetApi } from '@core/budget/budget-api';
 import { Logger } from '@core/logging/logger';
 import { ApplicationConfiguration } from '@core/config/application-configuration';
 import { PostHogService } from '@core/analytics/posthog';
+import { UserSettingsStore } from '@core/user-settings';
 import {
   createMockBudgetLine,
   createMockBudgetDetailsResponse,
@@ -148,6 +149,13 @@ describe('BudgetDetailsStore - Search Filtering', () => {
           },
         },
         { provide: Logger, useValue: { error: vi.fn() } },
+        {
+          provide: UserSettingsStore,
+          useValue: {
+            currency: signal('CHF'),
+            payDayOfMonth: signal(1),
+          },
+        },
         {
           provide: ApplicationConfiguration,
           useValue: {

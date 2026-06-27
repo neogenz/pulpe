@@ -4,11 +4,12 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  DestroyRef,
   effect,
   inject,
   signal,
 } from '@angular/core';
-import { toSignal } from '@angular/core/rxjs-interop';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBar } from '@angular/material/snack-bar';
@@ -21,6 +22,7 @@ import {
 import { STORAGE_KEYS, StorageService } from '@core/storage';
 import {
   type BudgetLine,
+  type BudgetLineSpreadResponse,
   type BudgetLineUpdate,
   type Transaction,
   type TransactionUpdate,
@@ -44,7 +46,10 @@ import { BudgetDetailsStore } from '../store/budget-details-store';
 import { determineCheckBehavior } from '../store/budget-details-check.utils';
 import {
   computeEnvelopeSnackbarMessage,
+  computeSpreadSnackbarMessage,
   computeTransactionSnackbarMessage,
+  spreadCreateEcho,
+  submitSpreadWithRetry,
 } from '../utils/budget-details-snackbar.utils';
 
 /**
@@ -187,6 +192,8 @@ import {
           (add)="openAddBudgetLineDialog()"
           (addTransaction)="openCreateAllocatedTransactionDialog($event)"
           (viewTransactions)="onViewTransactions($event)"
+          (spread)="handleSpreadBudgetLine($event)"
+          (spreadTransaction)="handleSpreadTransaction($event)"
           (resetFromTemplate)="onResetFromTemplateClick($event)"
           (toggleCheck)="handleToggleCheck($event)"
           (toggleTransactionCheck)="handleToggleTransactionCheck($event)"
@@ -199,6 +206,8 @@ import {
           (add)="openAddBudgetLineDialog()"
           (addTransaction)="openCreateAllocatedTransactionDialog($event)"
           (viewTransactions)="onViewTransactions($event)"
+          (spread)="handleSpreadBudgetLine($event)"
+          (spreadTransaction)="handleSpreadTransaction($event)"
           (resetFromTemplate)="handleResetFromTemplate($event)"
           (toggleCheck)="handleToggleCheck($event)"
           (toggleTransactionCheck)="handleToggleTransactionCheck($event)"
@@ -235,6 +244,7 @@ export class BudgetItemsContainer {
   readonly #dialogService = inject(BudgetDetailsDialogService);
   readonly #storageService = inject(StorageService);
   protected readonly store = inject(BudgetDetailsStore);
+  readonly #destroyRef = inject(DestroyRef);
   readonly #snackBar = inject(MatSnackBar);
   readonly #transloco = inject(TranslocoService);
   readonly #logger = inject(Logger);
@@ -342,10 +352,77 @@ export class BudgetItemsContainer {
   protected async onViewTransactions(item: BudgetLineTableItem): Promise<void> {
     const consumption = this.#consumptions().get(item.data.id);
     if (!consumption) return;
+    // PUL-17 — load the spread group so the detail dialog can show the
+    // cross-month occurrences section; null clears it for non-spread lines.
+    this.store.setSpreadGroupId(item.data.spreadGroupId ?? null);
     await this.openAllocatedTransactionsDialog({
       budgetLine: item.data,
       consumption,
     });
+  }
+
+  protected async handleSpreadBudgetLine(
+    item: BudgetLineTableItem,
+  ): Promise<void> {
+    const budget = this.store.budgetDetails();
+    if (!budget) return;
+
+    const result = await this.#dialogService.openSpreadExisting({
+      source: 'forecast',
+      total: item.data.amount,
+      month: budget.month,
+      year: budget.year,
+    });
+    if (!result) return;
+
+    const outcome = await this.#dialogService.runSpreadProcessing(
+      () => this.store.spreadExistingBudgetLine(item.data.id, result.periods),
+      {
+        amount: item.data.amount,
+        monthCount: result.periods.length,
+        currency: this.currency(),
+      },
+    );
+    this.#notifySpread(outcome);
+  }
+
+  protected async handleSpreadTransaction(item: Transaction): Promise<void> {
+    const budget = this.store.budgetDetails();
+    if (!budget) return;
+
+    const result = await this.#dialogService.openSpreadExisting({
+      source: 'transaction',
+      total: item.amount,
+      month: budget.month,
+      year: budget.year,
+    });
+    if (!result) return;
+
+    const outcome = await this.#dialogService.runSpreadProcessing(
+      () => this.store.spreadExistingTransaction(item.id, result.periods),
+      {
+        amount: item.amount,
+        monthCount: result.periods.length,
+        currency: this.currency(),
+      },
+    );
+    this.#notifySpread(outcome);
+  }
+
+  #notifySpread(outcome: BudgetLineSpreadResponse['data'] | undefined): void {
+    if (!outcome) return;
+    const snackbarRef = this.#snackBar.open(
+      computeSpreadSnackbarMessage(outcome, this.#transloco),
+      this.#transloco.translate('budgetLine.spread.successAction'),
+      { duration: 6000 },
+    );
+    snackbarRef
+      .onAction()
+      .pipe(takeUntilDestroyed(this.#destroyRef))
+      .subscribe(() => {
+        this.store.setSpreadGroupId(outcome.spreadGroupId);
+        this.#dialogService.openSpreadOccurrences(this.isMobile());
+      });
   }
 
   protected async openAllocatedTransactionsDialog(event: {
@@ -579,11 +656,26 @@ export class BudgetItemsContainer {
     const budget = this.store.budgetDetails();
     if (!budget) return;
 
-    const budgetLine = await this.#dialogService.openAddBudgetLineDialog(
-      budget.id,
-    );
-    if (budgetLine) {
-      await this.store.createBudgetLine(budgetLine);
+    const result = await this.#dialogService.openAddBudgetLineDialog({
+      id: budget.id,
+      month: budget.month,
+      year: budget.year,
+    });
+    if (!result) return;
+
+    if (result.mode === 'spread') {
+      await submitSpreadWithRetry(
+        result.value,
+        (value) =>
+          this.#dialogService.runSpreadProcessing(
+            () => this.store.createBudgetLineSpread(value),
+            { ...spreadCreateEcho(value), currency: this.currency() },
+          ),
+        this.#snackBar,
+        this.#transloco,
+      );
+      return;
     }
+    await this.store.createBudgetLine(result.value);
   }
 }

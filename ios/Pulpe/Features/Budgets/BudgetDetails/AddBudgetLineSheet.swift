@@ -8,6 +8,7 @@ struct AddBudgetLineSheet: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(ToastManager.self) private var toastManager
     @Environment(UserSettingsStore.self) private var userSettingsStore
+    @Environment(BudgetListStore.self) private var budgetListStore
     @State private var name = ""
     @State private var amount: Decimal?
     @State private var kind: TransactionKind = .expense
@@ -18,24 +19,45 @@ struct AddBudgetLineSheet: View {
     @State private var amountText = ""
     @State private var submitSuccessTrigger = false
     @State private var inputCurrency: SupportedCurrency = .chf
+    @State private var mode: BudgetLineCreationMode = .once
+    @State private var amountMode: SpreadAmountMode = .total
+    @State private var spreadCalculator: SpreadCalculator
 
     private let dependencies: AddBudgetLineDependencies
     private let conversionService = CurrencyConversionService.shared
 
     init(
         budgetId: String,
+        anchorMonth: Int,
+        anchorYear: Int,
         dependencies: AddBudgetLineDependencies = .live,
         onAdd: @escaping (BudgetLine) -> Void
     ) {
         self.budgetId = budgetId
         self.dependencies = dependencies
         self.onAdd = onAdd
+        // Anchor the spread on the OPENED budget's period — not the device's
+        // current month — so tranches land in the right months (PUL-17).
+        self._spreadCalculator = State(initialValue: SpreadCalculator(
+            anchorMonth: anchorMonth,
+            anchorYear: anchorYear
+        ))
+    }
+
+    private var isSpreadMode: Bool { mode == .spread }
+
+    /// Hero hint follows the amount mode in spread mode — "Montant total" when the
+    /// server divides, "Montant par mois" when it replicates. `nil` outside spread.
+    private var amountFieldHint: String? {
+        guard isSpreadMode else { return nil }
+        return amountMode == .total ? "Montant total" : "Montant par mois"
     }
 
     private var canSubmit: Bool {
-        !name.trimmingCharacters(in: .whitespaces).isEmpty &&
-        (amount ?? 0) > 0 &&
-        !isLoading
+        guard !name.trimmingCharacters(in: .whitespaces).isEmpty,
+              (amount ?? 0) > 0,
+              !isLoading else { return false }
+        return isSpreadMode ? spreadCalculator.isValid : true
     }
 
     private var hasStartedFilling: Bool {
@@ -65,6 +87,7 @@ struct AddBudgetLineSheet: View {
                 amountText: $amountText,
                 focus: $focusedField,
                 field: .amount,
+                hint: amountFieldHint,
                 currency: inputCurrency,
                 accentColor: kind.color
             )
@@ -77,8 +100,26 @@ struct AddBudgetLineSheet: View {
                 currency: inputCurrency
             )
             .animation(.snappy(duration: DesignTokens.Animation.fast), value: kind)
+
+            // Spread toggle hidden for income — revenu lissé is out of scope (PUL-17).
+            if kind != .income {
+                SpreadModeToggle(selection: $mode, accentColor: kind.color)
+            }
+
             descriptionField
-            CheckedToggle(isOn: $isChecked, tintColor: kind.color)
+
+            if isSpreadMode {
+                SpreadAmountModeToggle(mode: $amountMode, accentColor: kind.color)
+                SpreadFormSection(
+                    calculator: spreadCalculator,
+                    amount: amount,
+                    amountMode: amountMode,
+                    currency: inputCurrency,
+                    accentColor: kind.color
+                )
+            } else {
+                CheckedToggle(isOn: $isChecked, tintColor: kind.color)
+            }
 
             if let error {
                 ErrorBanner(message: DomainErrorLocalizer.localize(error)) {
@@ -90,6 +131,10 @@ struct AddBudgetLineSheet: View {
         }
         .sensoryFeedback(.success, trigger: submitSuccessTrigger)
         .onAppear { inputCurrency = userSettingsStore.currency }
+        // Income can't be spread: bouncing back to income resets the mode.
+        .onChange(of: kind) { _, newKind in
+            if newKind == .income { mode = .once }
+        }
     }
 
     // MARK: - Description
@@ -107,10 +152,14 @@ struct AddBudgetLineSheet: View {
 
     // MARK: - Add Button
 
+    private var ctaTitle: String {
+        isSpreadMode ? "Lisser la dépense" : "Ajouter"
+    }
+
     private var addButton: some View {
         VStack(spacing: DesignTokens.Spacing.sm) {
-            Button { Task { await addBudgetLine() } } label: {
-                Text("Ajouter")
+            Button { Task { await submit() } } label: {
+                Text(ctaTitle)
             }
             .disabled(!canSubmit)
             .primaryButtonStyle(isEnabled: canSubmit)
@@ -126,6 +175,16 @@ struct AddBudgetLineSheet: View {
     }
 
     // MARK: - Logic
+
+    /// Routes to the single-line or spread flow. The "Une seule fois" path is
+    /// unchanged; "Lisser" fans the amount out over the selected months.
+    private func submit() async {
+        if isSpreadMode {
+            await addSpread()
+        } else {
+            await addBudgetLine()
+        }
+    }
 
     private func addBudgetLine() async {
         guard let amount else { return }
@@ -163,22 +222,88 @@ struct AddBudgetLineSheet: View {
             self.error = error
         }
     }
+
+    /// Fans the per-month amount over every SELECTED month (PUL-17, interpretation B).
+    /// FX is frozen once: a single conversion feeds one `exchangeRate` shared by
+    /// every tranche, and each tranche carries the same `originalAmount` when
+    /// multi-currency. On success the cross-budget caches are invalidated OUTSIDE
+    /// any coordinator (a spread touches N months that the detail coordinator
+    /// doesn't own) so the list and every detail page revalidate. The single
+    /// occurrence landing in the CURRENTLY-open budget is fed back through
+    /// `onAdd` so the active detail screen refreshes immediately (same seam as
+    /// the single-line path) — the `.task(id:)` doesn't re-run on sheet dismiss.
+    private func addSpread() async {
+        guard let amount, spreadCalculator.isValid else { return }
+
+        isLoading = true
+        defer { isLoading = false }
+        error = nil
+
+        do {
+            let conversion = try await conversionService.convert(
+                amount: amount,
+                from: inputCurrency,
+                to: userSettingsStore.currency
+            )
+            let data = AddBudgetLineSpreadLogic.buildCreate(
+                calculator: spreadCalculator,
+                input: AddBudgetLineSpreadLogic.SubmitInput(
+                    name: name,
+                    kind: kind,
+                    amount: amount,
+                    mode: amountMode,
+                    conversion: conversion
+                )
+            )
+
+            let response = try await dependencies.createSpread(data)
+
+            // Refresh the active detail screen when one occurrence landed in the
+            // currently-open budget — reuses the single-line `onAdd` seam so the
+            // coordinator appends the line + recomputes totals (PUL-270).
+            if let openLine = response.lines.first(where: { $0.budgetId == budgetId }) {
+                onAdd(openLine)
+            }
+
+            // Cross-budget invalidation — OUTSIDE the coordinator (spec PUL-17).
+            // Still required for the OTHER months the coordinator doesn't own.
+            dependencies.invalidateCrossBudgetCaches(budgetListStore)
+
+            submitSuccessTrigger.toggle()
+            toastManager.show(AddBudgetLineSpreadLogic.successMessage(for: response))
+            dismiss()
+        } catch {
+            self.error = error
+        }
+    }
 }
 
 struct AddBudgetLineDependencies: Sendable {
     var createBudgetLine: @Sendable (BudgetLineCreate) async throws -> BudgetLine
+    var createSpread: @Sendable (BudgetLineSpreadCreate) async throws -> BudgetLineSpreadResponse
+    /// Cross-budget cache invalidation fired on spread success — OUTSIDE the
+    /// BudgetDetails coordinator. Injectable so tests can assert it ran.
+    var invalidateCrossBudgetCaches: @MainActor (BudgetListStore) -> Void
 
     static let live = AddBudgetLineDependencies(
         createBudgetLine: { data in
             try await BudgetLineService.shared.createBudgetLine(data)
+        },
+        createSpread: { data in
+            try await BudgetLineService.shared.createSpread(data)
+        },
+        invalidateCrossBudgetCaches: { budgetListStore in
+            BudgetDetailCache.shared.invalidateAll()
+            budgetListStore.invalidateCache()
         }
     )
 }
 
 #Preview {
-    AddBudgetLineSheet(budgetId: "test") { line in
+    AddBudgetLineSheet(budgetId: "test", anchorMonth: 6, anchorYear: 2026) { line in
         print("Added: \(line)")
     }
     .environment(ToastManager())
     .environment(UserSettingsStore())
+    .environment(BudgetListStore())
 }

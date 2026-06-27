@@ -18,6 +18,7 @@ import type {
   TransactionRow,
   TransactionUpdate,
   BudgetLineForAllocation,
+  SpreadSourceTransaction,
   TransactionSearchTransactionRow,
   TransactionSearchBudgetLineRow,
 } from '../../domain/transaction.entity';
@@ -80,6 +81,52 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
 
     const dek = await this.encryption.getDekFor(this.supabaseProvider.user);
     return this.toEntity(data, dek);
+  }
+
+  async findSpreadSource(id: string): Promise<SpreadSourceTransaction> {
+    const supabase = this.supabaseProvider.client;
+    const { data, error } = await supabase
+      .from('transaction')
+      .select('*, monthly_budget!inner(month, year, user_id)')
+      .eq('id', id)
+      .single();
+
+    if (error || !data) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.TRANSACTION_NOT_FOUND,
+        { id },
+        {
+          operation: 'findSpreadSource',
+          entityId: id,
+          entityType: 'transaction',
+          supabaseError: error,
+        },
+        { cause: error ?? undefined },
+      );
+    }
+
+    const dek = await this.encryption.getDekFor(this.supabaseProvider.user);
+    const row = data as TransactionRow & {
+      monthly_budget: { month: number; year: number; user_id: string };
+    };
+    const decrypted = this.encryption.decryptRowAmountFields(row, dek);
+    return {
+      id: decrypted.id,
+      budgetId: decrypted.budget_id,
+      userId: row.monthly_budget.user_id,
+      budgetLineId: decrypted.budget_line_id,
+      month: row.monthly_budget.month,
+      year: row.monthly_budget.year,
+      name: decrypted.name,
+      amount: decrypted.amount,
+      originalAmount: decrypted.original_amount,
+      originalCurrency:
+        decrypted.original_currency as SpreadSourceTransaction['originalCurrency'],
+      targetCurrency:
+        decrypted.target_currency as SpreadSourceTransaction['targetCurrency'],
+      exchangeRate: decrypted.exchange_rate,
+      kind: decrypted.kind,
+    };
   }
 
   async findByBudgetId(budgetId: string): Promise<Transaction[]> {

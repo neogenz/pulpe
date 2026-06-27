@@ -191,15 +191,21 @@ struct AppStateFlowBridgeTests {
 
     @Test func send_logoutRequested_transitionsToUnauthenticated() async {
         let sut = AppState(
-            postAuthResolver: MockPostAuthResolver(destination: .authenticated(needsRecoveryKeyConsent: false))
+            postAuthResolver: MockPostAuthResolver(destination: .authenticated(needsRecoveryKeyConsent: false)),
+            // Deterministic sign-out. The real AuthService.logout performs a network
+            // round-trip; under CI (no server) it fails with -1004 at a variable
+            // latency, and the local `.unauthenticated` reset is sequenced *after*
+            // that await (logout → runSignOutOrSurfaceFailure → resetSession). A real
+            // call therefore makes the transition arrive nondeterministically. This
+            // test asserts the local logout state machine, not the server round-trip.
+            performSignOut: { _ in }
         )
         await sut.resolvePostAuth(user: testUser)
         #expect(sut.authState == .authenticated)
 
         sut.send(.logoutRequested(source: .userInitiated))
 
-        // Allow async logout to complete
-        await waitForCondition(timeout: .milliseconds(500), "logout must complete") {
+        await waitForCondition("logout must complete") {
             sut.authState == .unauthenticated
         }
     }
@@ -298,7 +304,10 @@ struct AppStateFlowBridgeTests {
 
     @Test func concurrentEvents_logoutDuringRecovery_endsUnauthenticated() async {
         let sut = AppState(
-            postAuthResolver: MockPostAuthResolver(destination: .needsPinEntry(needsRecoveryKeyConsent: false))
+            postAuthResolver: MockPostAuthResolver(destination: .needsPinEntry(needsRecoveryKeyConsent: false)),
+            // Deterministic sign-out (see send_logoutRequested): no real network
+            // logout, so the local reset isn't gated by a variable CI round-trip.
+            performSignOut: { _ in }
         )
         await sut.resolvePostAuth(user: testUser)
         sut.send(.recoveryInitiated)
@@ -307,7 +316,7 @@ struct AppStateFlowBridgeTests {
         // Fire logout during recovery
         sut.send(.logoutRequested(source: .system))
 
-        await waitForCondition(timeout: .milliseconds(500), "logout must complete") {
+        await waitForCondition("logout must complete") {
             sut.authState == .unauthenticated
         }
         #expect(sut.currentUser == nil)
@@ -361,14 +370,17 @@ struct AppStateFlowBridgeTests {
 
     @Test func stateConsistency_afterLogout_allUserDataCleared() async {
         let sut = AppState(
-            postAuthResolver: MockPostAuthResolver(destination: .authenticated(needsRecoveryKeyConsent: false))
+            postAuthResolver: MockPostAuthResolver(destination: .authenticated(needsRecoveryKeyConsent: false)),
+            // Deterministic sign-out (see send_logoutRequested): no real network
+            // logout, so the local reset isn't gated by a variable CI round-trip.
+            performSignOut: { _ in }
         )
         await sut.resolvePostAuth(user: testUser)
         #expect(sut.currentUser != nil)
 
         sut.send(.logoutRequested(source: .userInitiated))
 
-        await waitForCondition(timeout: .milliseconds(500), "logout must complete") {
+        await waitForCondition("logout must complete") {
             sut.authState == .unauthenticated
         }
 

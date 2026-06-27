@@ -294,7 +294,13 @@ struct BudgetDetailsView: View {
     private func sheetContent(for destination: BudgetDetailDestination) -> some View {
         switch destination {
         case .addBudgetLine:
-            AddBudgetLineSheet(budgetId: coordinator.dataStore.budgetId) { budgetLine in
+            // Anchor the spread on the OPENED budget's period, not the device month (PUL-17).
+            let openBudget = coordinator.dataStore.budget
+            AddBudgetLineSheet(
+                budgetId: coordinator.dataStore.budgetId,
+                anchorMonth: openBudget?.month ?? Calendar.current.component(.month, from: Date()),
+                anchorYear: openBudget?.year ?? Calendar.current.component(.year, from: Date())
+            ) { budgetLine in
                 Task { await coordinator.dispatch(.addBudgetLine(budgetLine)) }
             }
         case .editBudgetLine(let line):
@@ -307,6 +313,12 @@ struct BudgetDetailsView: View {
             RealizedBalanceSheet(
                 metrics: coordinator.dataStore.metrics,
                 realizedMetrics: coordinator.dataStore.realizedMetrics
+            )
+        case .spreadOccurrences(let spreadGroupId):
+            SpreadOccurrencesSheet(
+                spreadGroupId: spreadGroupId,
+                payDayOfMonth: userSettingsStore.payDayOfMonth,
+                currency: userSettingsStore.currency
             )
         }
     }
