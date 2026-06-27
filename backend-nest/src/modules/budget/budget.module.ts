@@ -19,6 +19,8 @@ import { UpdateBudgetUseCase } from './application/update-budget.use-case';
 import { RemoveBudgetUseCase } from './application/remove-budget.use-case';
 import { RecalculateBudgetBalancesUseCase } from './application/recalculate-budget-balances.use-case';
 import { ResolveNextMonthBudgetUseCase } from './application/resolve-next-month-budget.use-case';
+import { EnsureBudgetsForPeriodsUseCase } from './application/ensure-budgets-for-periods.use-case';
+import { BUDGET_PROVISIONING_PORT } from './domain/ports/budget-provisioning.port';
 
 @Module({
   imports: [EncryptionModule],
@@ -36,6 +38,7 @@ import { ResolveNextMonthBudgetUseCase } from './application/resolve-next-month-
     RemoveBudgetUseCase,
     RecalculateBudgetBalancesUseCase,
     ResolveNextMonthBudgetUseCase,
+    EnsureBudgetsForPeriodsUseCase,
     { provide: BUDGET_REPOSITORY, useClass: SupabaseBudgetRepository },
     {
       provide: BUDGET_RECALCULATION_PORT,
@@ -44,6 +47,10 @@ import { ResolveNextMonthBudgetUseCase } from './application/resolve-next-month-
     {
       provide: BUDGET_PERIOD_LOOKUP_PORT,
       useExisting: ResolveNextMonthBudgetUseCase,
+    },
+    {
+      provide: BUDGET_PROVISIONING_PORT,
+      useExisting: EnsureBudgetsForPeriodsUseCase,
     },
     BudgetMapper,
     createInfoLoggerProvider(BudgetController.name),
@@ -58,8 +65,14 @@ import { ResolveNextMonthBudgetUseCase } from './application/resolve-next-month-
     createInfoLoggerProvider(UpdateBudgetUseCase.name),
     createInfoLoggerProvider(RemoveBudgetUseCase.name),
     createInfoLoggerProvider(RecalculateBudgetBalancesUseCase.name),
+    createInfoLoggerProvider(EnsureBudgetsForPeriodsUseCase.name),
     createInfoLoggerProvider(SupabaseBudgetRepository.name),
   ],
-  exports: [BUDGET_RECALCULATION_PORT, BUDGET_PERIOD_LOOKUP_PORT, BudgetMapper],
+  exports: [
+    BUDGET_RECALCULATION_PORT,
+    BUDGET_PERIOD_LOOKUP_PORT,
+    BUDGET_PROVISIONING_PORT,
+    BudgetMapper,
+  ],
 })
 export class BudgetModule {}

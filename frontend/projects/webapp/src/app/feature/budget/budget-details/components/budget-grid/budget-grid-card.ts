@@ -15,6 +15,7 @@ import { AppCurrencyPipe, FormatConversionPipe } from '@core/currency';
 import { FinancialKindDirective } from '@ui/financial-kind';
 import { FinancialKindIndicator } from '@ui/financial-kind-indicator';
 import { OriginalAmountLine } from '@ui/original-amount-line';
+import { SpreadBadge } from '@ui/spread-badge';
 import { RecurrenceLabelPipe } from '@ui/transaction-display';
 import { formatMatchAnnotation } from '../../view-models/budget-item-constants';
 import type { BudgetLineTableItem } from '../../view-models/table-items.view-model';
@@ -52,6 +53,7 @@ import { BudgetActionMenu } from '../budget-action-menu';
     SegmentedBudgetProgress,
     FinancialKindIndicator,
     BudgetActionMenu,
+    SpreadBadge,
   ],
   template: `
     <div
@@ -74,15 +76,20 @@ import { BudgetActionMenu } from '../budget-action-menu';
     >
       <!-- Header: Name + Menu -->
       <div class="flex items-start justify-between mb-4">
-        <div class="flex items-center gap-2.5 min-w-0 flex-1">
-          <pulpe-financial-kind-indicator [kind]="item().data.kind" />
-          <span
-            class="text-title-medium font-medium truncate ph-no-capture"
-            [class.line-through]="item().data.checkedAt"
-            [class.text-on-surface-variant]="item().data.checkedAt"
-          >
-            {{ item().metadata.displayName }}
-          </span>
+        <div class="flex flex-col gap-1 min-w-0 flex-1">
+          <div class="flex items-center gap-2.5 min-w-0">
+            <pulpe-financial-kind-indicator [kind]="item().data.kind" />
+            <span
+              class="text-title-medium font-medium truncate ph-no-capture"
+              [class.line-through]="item().data.checkedAt"
+              [class.text-on-surface-variant]="item().data.checkedAt"
+            >
+              {{ item().metadata.displayName }}
+            </span>
+            @if (item().metadata.isSpread) {
+              <pulpe-spread-badge />
+            }
+          </div>
         </div>
 
         <pulpe-budget-action-menu
@@ -92,6 +99,7 @@ import { BudgetActionMenu } from '../budget-action-menu';
           (edit)="edit.emit($event)"
           (delete)="delete.emit($event)"
           (addTransaction)="addTransaction.emit($event)"
+          (spread)="spread.emit($event)"
           (resetFromTemplate)="resetFromTemplate.emit($event)"
           (postpone)="postpone.emit($event)"
         />
@@ -232,6 +240,7 @@ export class BudgetGridCard {
   readonly edit = output<BudgetLineTableItem>();
   readonly delete = output<string>();
   readonly addTransaction = output<BudgetLine>();
+  readonly spread = output<BudgetLineTableItem>();
   readonly resetFromTemplate = output<BudgetLineTableItem>();
   readonly postpone = output<string>();
   readonly toggleCheck = output<string>();

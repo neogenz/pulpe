@@ -300,6 +300,10 @@ module.exports = tseslint.config(
                 ["shared"],
                 ["lib-api"],
                 ["testing"],
+                // e2e *.spec.ts files also classify as `test-spec`; they import
+                // their fixtures/helpers (type `e2e`). Permit it here rather than
+                // re-typing e2e specs (which destabilises unit-spec matching).
+                ["e2e"],
                 ["core", { app: "${from.app}" }],
                 ["ui", { app: "${from.app}" }],
                 ["layout", { app: "${from.app}" }],

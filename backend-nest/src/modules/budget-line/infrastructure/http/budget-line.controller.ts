@@ -6,6 +6,8 @@ import {
   Delete,
   Body,
   Param,
+  HttpCode,
+  HttpStatus,
   UseGuards,
 } from '@nestjs/common';
 import {
@@ -25,6 +27,8 @@ import {
   type BudgetLineListResponse,
   type BudgetLineDeleteResponse,
   type BudgetLinePostponeResponse,
+  type BudgetLineSpreadResponse,
+  type SpreadOccurrencesResponse,
   type TransactionListResponse,
 } from 'pulpe-shared';
 import { AuthGuard } from '@common/guards/auth.guard';
@@ -41,11 +45,20 @@ import {
   BudgetLinePostponeResponseDto,
   TransactionListResponseDto,
 } from './dto/budget-line-swagger.dto';
+import {
+  BudgetLineSpreadCreateDto,
+  BudgetLineSpreadFromLineCreateDto,
+  BudgetLineSpreadResponseDto,
+  SpreadOccurrencesResponseDto,
+} from './dto/budget-line-spread-swagger.dto';
 import { ErrorResponseDto } from '@common/dto/response.dto';
 import { FindAllBudgetLinesUseCase } from '../../application/find-all-budget-lines.use-case';
 import { FindBudgetLineUseCase } from '../../application/find-budget-line.use-case';
 import { FindBudgetLinesByBudgetUseCase } from '../../application/find-budget-lines-by-budget.use-case';
 import { CreateBudgetLineUseCase } from '../../application/create-budget-line.use-case';
+import { CreateBudgetLineSpreadUseCase } from '../../application/create-budget-line-spread.use-case';
+import { SpreadBudgetLineFromLineUseCase } from '../../application/spread-budget-line-from-line.use-case';
+import { FindBudgetLinesBySpreadGroupUseCase } from '../../application/find-budget-lines-by-spread-group.use-case';
 import { UpdateBudgetLineUseCase } from '../../application/update-budget-line.use-case';
 import { RemoveBudgetLineUseCase } from '../../application/remove-budget-line.use-case';
 import { ResetBudgetLineFromTemplateUseCase } from '../../application/reset-budget-line-from-template.use-case';
@@ -53,6 +66,7 @@ import { ToggleBudgetLineCheckUseCase } from '../../application/toggle-budget-li
 import { CheckTransactionsUseCase } from '../../application/check-transactions.use-case';
 import { PostponeBudgetLineUseCase } from '../../application/postpone-budget-line.use-case';
 import { BudgetLineMapper } from '../mappers/budget-line.mapper';
+import { BudgetMapper } from '@modules/budget/infrastructure/mappers/budget.mapper';
 import { TransactionMapper } from '@modules/transaction/infrastructure/mappers/transaction.mapper';
 
 @ApiTags('Budget Lines')
@@ -74,6 +88,9 @@ export class BudgetLineController {
     private readonly findOneUseCase: FindBudgetLineUseCase,
     private readonly findByBudgetUseCase: FindBudgetLinesByBudgetUseCase,
     private readonly createUseCase: CreateBudgetLineUseCase,
+    private readonly createSpreadUseCase: CreateBudgetLineSpreadUseCase,
+    private readonly spreadFromLineUseCase: SpreadBudgetLineFromLineUseCase,
+    private readonly findSpreadOccurrencesUseCase: FindBudgetLinesBySpreadGroupUseCase,
     private readonly updateUseCase: UpdateBudgetLineUseCase,
     private readonly removeUseCase: RemoveBudgetLineUseCase,
     private readonly resetFromTemplateUseCase: ResetBudgetLineFromTemplateUseCase,
@@ -81,6 +98,7 @@ export class BudgetLineController {
     private readonly checkTransactionsUseCase: CheckTransactionsUseCase,
     private readonly postponeUseCase: PostponeBudgetLineUseCase,
     private readonly mapper: BudgetLineMapper,
+    private readonly budgetMapper: BudgetMapper,
     private readonly transactionMapper: TransactionMapper,
   ) {}
 
@@ -117,6 +135,120 @@ export class BudgetLineController {
   ): Promise<BudgetLineResponse> {
     const entity = await this.createUseCase.execute(createBudgetLineDto, user);
     return { success: true, data: this.mapper.toApi(entity) };
+  }
+
+  @Post('spread')
+  @ApiOperation({
+    summary: 'Lisse une dépense sur plusieurs mois',
+    description:
+      'Crée N prévisions « Prévu » (one_off) indépendantes partageant un spread_group_id, une par tranche. Auto-crée les budgets manquants depuis le template par défaut ; les mois sans template sont renvoyés dans skippedMonths.',
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Dépense lissée créée avec succès',
+    type: BudgetLineSpreadResponseDto,
+  })
+  @ApiBadRequestResponse({
+    description: 'Invalid input data',
+    type: ErrorResponseDto,
+  })
+  @HttpCode(HttpStatus.CREATED)
+  async createSpread(
+    @Body() createSpreadDto: BudgetLineSpreadCreateDto,
+    @User() user: AuthenticatedUser,
+  ): Promise<BudgetLineSpreadResponse> {
+    const result = await this.createSpreadUseCase.execute(
+      createSpreadDto,
+      user,
+    );
+    return {
+      success: true,
+      data: {
+        spreadGroupId: result.spreadGroupId,
+        lines: this.mapper.toApiList(result.lines),
+        createdBudgets: this.budgetMapper.toApiList(result.createdBudgets),
+        skippedMonths: result.skippedMonths,
+      },
+    };
+  }
+
+  @Post(':id/spread')
+  @ApiOperation({
+    summary:
+      'Lisse une prévision existante sur plusieurs mois (total préservé)',
+    description:
+      "Redistribue le montant total de la prévision source en N tranches « Prévu » (one_off) de T/N (Σ = T), une par mois choisi (mois courant inclus), puis SUPPRIME la source. Le client n'envoie que les mois cibles ; le serveur lit le total. Un mois cible sans budget ni template par défaut fait échouer toute l'opération (aucune tranche créée).",
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Identifiant unique de la prévision source à lisser',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Prévision lissée avec succès (source supprimée)',
+    type: BudgetLineSpreadResponseDto,
+  })
+  @ApiBadRequestResponse({
+    description: 'Invalid input data',
+    type: ErrorResponseDto,
+  })
+  @ApiNotFoundResponse({
+    description: 'Prévision source non trouvée',
+    type: ErrorResponseDto,
+  })
+  @HttpCode(HttpStatus.CREATED)
+  async spreadFromLine(
+    @Param('id') id: string,
+    @Body() spreadFromLineDto: BudgetLineSpreadFromLineCreateDto,
+    @User() user: AuthenticatedUser,
+  ): Promise<BudgetLineSpreadResponse> {
+    const result = await this.spreadFromLineUseCase.execute(
+      id,
+      spreadFromLineDto,
+      user,
+    );
+    return {
+      success: true,
+      data: {
+        spreadGroupId: result.spreadGroupId,
+        lines: this.mapper.toApiList(result.lines),
+        createdBudgets: this.budgetMapper.toApiList(result.createdBudgets),
+        skippedMonths: result.skippedMonths,
+      },
+    };
+  }
+
+  @Get('spread/:spreadGroupId')
+  @ApiOperation({
+    summary: "Liste les occurrences d'une dépense lissée sur tous ses mois",
+  })
+  @ApiParam({
+    name: 'spreadGroupId',
+    description: 'Identifiant du groupe de lissage',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Occurrences de la dépense lissée récupérées avec succès',
+    type: SpreadOccurrencesResponseDto,
+  })
+  @ApiNotFoundResponse({
+    description: 'Aucune occurrence pour ce groupe de lissage',
+    type: ErrorResponseDto,
+  })
+  async findSpreadOccurrences(
+    @Param('spreadGroupId') spreadGroupId: string,
+    @User() user: AuthenticatedUser,
+  ): Promise<SpreadOccurrencesResponse> {
+    const occurrences = await this.findSpreadOccurrencesUseCase.execute(
+      spreadGroupId,
+      user,
+    );
+    return {
+      success: true,
+      data: this.mapper.toSpreadOccurrenceApiList(occurrences),
+    };
   }
 
   @Get(':id')

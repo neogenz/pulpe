@@ -31,6 +31,8 @@ export interface BudgetTemplateRepositoryPort {
   validateAccess(id: string, userId: string): Promise<BudgetTemplate>;
   countForUser(userId: string): Promise<number>;
   resetDefaultTemplates(userId: string, exceptId: string | null): Promise<void>;
+  /** PUL-17: id of the template flagged `is_default`, or null if the user has none. */
+  findDefaultTemplateId(userId: string): Promise<string | null>;
   update(id: string, patch: BudgetTemplateUpdatePatch): Promise<BudgetTemplate>;
   delete(id: string): Promise<void>;
 

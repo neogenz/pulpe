@@ -51,9 +51,7 @@ export type AmountInputMode = 'create' | 'edit';
         subscriptSizing="dynamic"
         class="w-full ph-no-capture"
       >
-        <mat-label class="ph-no-capture">{{
-          'transactionForm.amountLabel' | transloco
-        }}</mat-label>
+        <mat-label class="ph-no-capture">{{ label() | transloco }}</mat-label>
         <input
           #amountInput
           matInput
@@ -94,6 +92,8 @@ export class AmountInput {
   readonly control = input.required<FieldTree<AmountFormSlice>>();
   readonly mode = input<AmountInputMode>('create');
   readonly originalCurrency = input<SupportedCurrency | null>(null);
+  /** Transloco key for the field label. Defaults to the generic amount label. */
+  readonly label = input<string>('transactionForm.amountLabel');
 
   private readonly amountInputRef =
     viewChild<ElementRef<HTMLInputElement>>('amountInput');

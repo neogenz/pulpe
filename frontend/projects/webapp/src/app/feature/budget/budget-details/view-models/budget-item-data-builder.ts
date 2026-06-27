@@ -234,6 +234,13 @@ function createBudgetLineViewModel(
       kindIcon: getKindIcon(budgetLine.kind),
       allocationLabel: getAllocationLabel(budgetLine.kind),
       displayName: budgetLine.name,
+      isSpread: !!budgetLine.spreadGroupId,
+      spreadGroupId: budgetLine.spreadGroupId ?? null,
+      canSpread:
+        budgetLine.recurrence === 'one_off' &&
+        budgetLine.kind !== 'income' &&
+        !budgetLine.spreadGroupId &&
+        budgetLine.amount > 0,
     },
     consumption: {
       consumed,
@@ -275,6 +282,10 @@ function createTransactionViewModel(
       kindIcon: getKindIcon(transaction.kind),
       allocationLabel: getAllocationLabel(transaction.kind),
       displayName: transaction.name,
+      canSpread:
+        transaction.budgetLineId == null &&
+        transaction.kind !== 'income' &&
+        transaction.amount > 0,
     },
   };
 }

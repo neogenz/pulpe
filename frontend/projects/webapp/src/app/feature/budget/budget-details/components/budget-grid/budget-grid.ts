@@ -101,6 +101,7 @@ export function groupByKind<T extends { data: { kind: string } }>(
             (delete)="delete.emit($event)"
             (addTransaction)="addTransaction.emit($event)"
             (viewTransactions)="viewTransactions.emit($event)"
+            (spread)="spread.emit($event)"
             (resetFromTemplate)="resetFromTemplate.emit($event)"
             (postpone)="postpone.emit($event)"
             (toggleCheck)="toggleCheck.emit($event)"
@@ -152,6 +153,7 @@ export function groupByKind<T extends { data: { kind: string } }>(
                     (edit)="edit.emit($event)"
                     (delete)="delete.emit($event)"
                     (addTransaction)="addTransaction.emit($event)"
+                    (spread)="spread.emit($event)"
                     (resetFromTemplate)="resetFromTemplate.emit($event)"
                     (postpone)="postpone.emit($event)"
                     (toggleCheck)="toggleCheck.emit($event)"
@@ -236,6 +238,7 @@ export function groupByKind<T extends { data: { kind: string } }>(
               (edit)="editTransaction.emit($event)"
               (delete)="deleteTransaction.emit($event)"
               (postpone)="postponeTransaction.emit($event)"
+              (spread)="spreadTransaction.emit($event)"
             />
           </div>
 
@@ -315,6 +318,7 @@ export function groupByKind<T extends { data: { kind: string } }>(
             (edit)="editTransaction.emit($event)"
             (delete)="deleteTransaction.emit($event)"
             (postpone)="postponeTransaction.emit($event)"
+            (spread)="spreadTransaction.emit($event)"
           />
         </div>
 
@@ -403,9 +407,11 @@ export class BudgetGrid {
   readonly delete = output<string>();
   readonly deleteTransaction = output<string>();
   readonly editTransaction = output<Transaction>();
+  readonly spreadTransaction = output<Transaction>();
   readonly add = output<void>();
   readonly addTransaction = output<BudgetLine>();
   readonly viewTransactions = output<BudgetLineTableItem>();
+  readonly spread = output<BudgetLineTableItem>();
   readonly resetFromTemplate = output<BudgetLineTableItem>();
   readonly postpone = output<string>();
   readonly postponeTransaction = output<string>();

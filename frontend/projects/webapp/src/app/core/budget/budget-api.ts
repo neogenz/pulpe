@@ -27,6 +27,17 @@ import {
   type BudgetLinePostponeResponse,
   budgetLinePostponeResponseSchema,
   type TransactionPostponeResponse,
+  type BudgetLineSpreadCreate,
+  budgetLineSpreadCreateSchema,
+  type BudgetLineSpreadResponse,
+  budgetLineSpreadResponseSchema,
+  type BudgetLineSpreadFromLineCreate,
+  budgetLineSpreadFromLineCreateSchema,
+  type TransactionSpreadFromTxnCreate,
+  transactionSpreadFromTxnCreateSchema,
+  type SpreadFromExistingPeriod,
+  type SpreadOccurrence,
+  spreadOccurrencesResponseSchema,
   type Transaction,
   type TransactionCreate,
   type TransactionCreateResponse,
@@ -208,6 +219,61 @@ export class BudgetApi {
       budgetLineResponseSchema,
       budgetLineCreateSchema,
     );
+  }
+
+  createBudgetLineSpread$(
+    data: BudgetLineSpreadCreate,
+  ): Observable<BudgetLineSpreadResponse> {
+    return this.#api.post$(
+      '/budget-lines/spread',
+      data,
+      budgetLineSpreadResponseSchema,
+      budgetLineSpreadCreateSchema,
+    );
+  }
+
+  /**
+   * SPREAD-EXISTING (PUL-17 v1.1) — total-preserving spread of an existing
+   * prévision. The server reads the source amount `T`, redistributes it into
+   * `T/N` per period, fans out, then DELETES the source. Same fan-out response
+   * shape as the additive create (`budgetLineSpreadResponseSchema`).
+   */
+  spreadExistingBudgetLine$(
+    id: string,
+    periods: SpreadFromExistingPeriod[],
+  ): Observable<BudgetLineSpreadResponse> {
+    return this.#api.post$(
+      `/budget-lines/${id}/spread`,
+      { periods } satisfies BudgetLineSpreadFromLineCreate,
+      budgetLineSpreadResponseSchema,
+      budgetLineSpreadFromLineCreateSchema,
+    );
+  }
+
+  /**
+   * SPREAD-EXISTING (PUL-17 v1.1) — total-preserving spread of an existing free
+   * transaction. The réel is DELETED and replaced by the smoothed plan (M0
+   * drops to `T/N`). Same fan-out response shape as the prévision path.
+   */
+  spreadExistingTransaction$(
+    id: string,
+    periods: SpreadFromExistingPeriod[],
+  ): Observable<BudgetLineSpreadResponse> {
+    return this.#api.post$(
+      `/transactions/${id}/spread`,
+      { periods } satisfies TransactionSpreadFromTxnCreate,
+      budgetLineSpreadResponseSchema,
+      transactionSpreadFromTxnCreateSchema,
+    );
+  }
+
+  getSpreadOccurrences$(spreadGroupId: string): Observable<SpreadOccurrence[]> {
+    return this.#api
+      .get$(
+        `/budget-lines/spread/${spreadGroupId}`,
+        spreadOccurrencesResponseSchema,
+      )
+      .pipe(map((response) => response.data));
   }
 
   updateBudgetLine$(

@@ -123,6 +123,27 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
     return count ?? 0;
   }
 
+  async findDefaultTemplateId(userId: string): Promise<string | null> {
+    const supabase = this.supabaseProvider.client;
+    const { data, error } = await supabase
+      .from('template')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('is_default', true)
+      .maybeSingle();
+
+    if (error) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.TEMPLATE_FETCH_FAILED,
+        undefined,
+        { operation: 'findDefaultTemplateId', userId },
+        { cause: error },
+      );
+    }
+
+    return data?.id ?? null;
+  }
+
   async resetDefaultTemplates(
     userId: string,
     exceptId: string | null,

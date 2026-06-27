@@ -11,17 +11,25 @@ import {
   MatBottomSheetRef,
 } from '@angular/material/bottom-sheet';
 import { MatButtonModule } from '@angular/material/button';
+import { MatDividerModule } from '@angular/material/divider';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
-import type { Transaction } from 'pulpe-shared';
-import { AppCurrencyPipe, FormatConversionPipe } from '@core/currency';
+import { type Transaction } from 'pulpe-shared';
+import {
+  AppCurrencyPipe,
+  CURRENCY_CONFIG,
+  FormatConversionPipe,
+} from '@core/currency';
 import { FeatureFlagsService } from '@core/feature-flags';
 import { UserSettingsStore } from '@core/user-settings';
 import { getDateDisplayFormats } from '@core/date/date-display-formats';
 import { TranslocoPipe } from '@jsverse/transloco';
 import { CurrencyConversionBadge } from '@ui/currency-conversion-badge';
 import { OriginalAmountLine } from '@ui/original-amount-line';
+import { SpreadOccurrencesList } from '@ui/spread-occurrences-list';
+import { BudgetDetailsStore } from '../../store/budget-details-store';
 import type {
   AllocatedTransactionsDialogData,
   AllocatedTransactionsDialogResult,
@@ -31,13 +39,16 @@ import type {
   selector: 'pulpe-allocated-transactions-bottom-sheet',
   imports: [
     MatButtonModule,
+    MatDividerModule,
     MatIconModule,
     MatProgressBarModule,
+    MatProgressSpinnerModule,
     MatSlideToggleModule,
     AppCurrencyPipe,
     FormatConversionPipe,
     CurrencyConversionBadge,
     OriginalAmountLine,
+    SpreadOccurrencesList,
     TranslocoPipe,
     DatePipe,
     DecimalPipe,
@@ -128,8 +139,9 @@ import type {
         </div>
       </div>
 
-      <!-- Transactions list -->
-      <div class="max-h-[40vh] overflow-y-auto">
+      <!-- Transactions list — no inner scroll: the bottom-sheet owns the
+           single scroll (nested scroll-in-scroll feels broken on mobile). -->
+      <div>
         @if (transactions().length > 0) {
           <div class="flex flex-col gap-2">
             @for (tx of transactions(); track tx.id) {
@@ -208,6 +220,38 @@ import type {
         }
       </div>
 
+      <!-- PUL-17 — spread occurrences (when this line is part of a spread) -->
+      @if (data.budgetLine.spreadGroupId) {
+        <mat-divider class="my-1" />
+        <div class="flex items-center gap-2">
+          <mat-icon class="text-primary shrink-0">timelapse</mat-icon>
+          <h3 class="text-title-small font-semibold">
+            {{
+              'budgetLine.spread.sectionTitle'
+                | transloco: { count: store.spreadOccurrences().length }
+            }}
+          </h3>
+        </div>
+        @if (store.isSpreadOccurrencesLoading()) {
+          <div class="flex justify-center py-4">
+            <mat-spinner diameter="28" />
+          </div>
+        } @else if (store.spreadOccurrencesError()) {
+          <p class="text-body-small text-on-surface-variant">
+            {{ 'budgetLine.spread.loadError' | transloco }}
+          </p>
+        } @else {
+          <pulpe-spread-occurrences-list
+            [occurrences]="spreadOccurrences()"
+            [tracker]="spreadTracker()"
+            [currency]="currency()"
+            [locale]="locale()"
+            [isCurrentPeriod]="isCurrentPeriod()"
+            density="compact"
+          />
+        }
+      }
+
       <!-- Action button -->
       <div class="pt-2">
         <button matButton="filled" (click)="addTransaction()" class="w-full">
@@ -231,7 +275,13 @@ import type {
 export class AllocatedTransactionsBottomSheet {
   readonly #userSettings = inject(UserSettingsStore);
   readonly #featureFlags = inject(FeatureFlagsService);
+  protected readonly store = inject(BudgetDetailsStore);
   protected readonly currency = this.#userSettings.currency;
+  // Date locale (fr-CH / fr-FR) for spread month names — NOT numberLocale
+  // (de-CH), which would render the months in German ("Juni" instead of "juin").
+  protected readonly locale = computed(
+    () => CURRENCY_CONFIG[this.currency()].locale,
+  );
   protected readonly shortDateFormat = computed(
     () => getDateDisplayFormats(this.currency()).shortDate,
   );
@@ -261,6 +311,13 @@ export class AllocatedTransactionsBottomSheet {
       remaining: this.data.budgetLine.amount - consumed,
     };
   });
+
+  // PUL-17 — spread occurrences/tracker derived once in the store (single source
+  // for every detail surface); thin aliases for the template. The caller
+  // (budget-items-container) sets the spreadGroupId on open so the resource loads.
+  protected readonly spreadOccurrences = this.store.spreadOccurrenceViewModels;
+  protected readonly spreadTracker = this.store.spreadTracker;
+  protected readonly isCurrentPeriod = this.store.isViewingSpreadCurrentPeriod;
 
   protected readonly consumptionPercentage = computed(() =>
     this.data.budgetLine.amount > 0

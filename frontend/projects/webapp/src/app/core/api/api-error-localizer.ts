@@ -23,6 +23,8 @@ const CODE_KEY_MAP = {
     'apiError.budgetLineUpdateFailed',
   [API_ERROR_CODES.BUDGET_LINE_DELETE_FAILED]:
     'apiError.budgetLineDeleteFailed',
+  [API_ERROR_CODES.BUDGET_LINE_SPREAD_RECALCULATION_FAILED]:
+    'apiError.budgetLineSpreadRecalculationFailed',
   [API_ERROR_CODES.TRANSACTION_NOT_FOUND]: 'apiError.transactionNotFound',
   [API_ERROR_CODES.TRANSACTION_CREATE_FAILED]:
     'apiError.transactionCreationFailed',

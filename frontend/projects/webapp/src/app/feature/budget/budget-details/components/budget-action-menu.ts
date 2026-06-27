@@ -92,6 +92,35 @@ function getBalanceFormatter(
         <mat-icon matMenuItemIcon>edit</mat-icon>
         <span>{{ 'budget.modify' | transloco }}</span>
       </button>
+      @if (item().metadata.canSpread) {
+        <button
+          mat-menu-item
+          (click)="spread.emit(item())"
+          [attr.data-testid]="'spread-' + item().data.id"
+        >
+          <mat-icon matMenuItemIcon>calendar_month</mat-icon>
+          <span>{{ 'budgetLine.spread.spreadAction' | transloco }}</span>
+        </button>
+      } @else if (showSpreadUnavailable()) {
+        <!-- Wrapper span carries the tooltip: a disabled button emits no pointer
+             events, so the tooltip must live on a non-disabled ancestor. -->
+        <span
+          class="block"
+          [matTooltip]="
+            'budgetLine.spread.spreadUnavailableRecurrent' | transloco
+          "
+          matTooltipPosition="above"
+        >
+          <button
+            mat-menu-item
+            disabled
+            [attr.data-testid]="'spread-disabled-' + item().data.id"
+          >
+            <mat-icon matMenuItemIcon>calendar_month</mat-icon>
+            <span>{{ 'budgetLine.spread.spreadAction' | transloco }}</span>
+          </button>
+        </span>
+      }
       @if (item().metadata.canResetFromTemplate) {
         <button
           mat-menu-item
@@ -152,8 +181,20 @@ export class BudgetActionMenu {
   readonly edit = output<BudgetLineTableItem>();
   readonly delete = output<string>();
   readonly addTransaction = output<BudgetLine>();
+  readonly spread = output<BudgetLineTableItem>();
   readonly resetFromTemplate = output<BudgetLineTableItem>();
   readonly postpone = output<string>();
+
+  // A recurrent (`fixed`) expense/saving is already laid down every month, so
+  // smoothing it would double-count. Rather than silently hiding the action and
+  // leaving the user wondering, we surface it disabled with an explanation.
+  // Income / already-spread / zero-amount lines stay hidden — "Lisser" there is
+  // noise, not a teachable absence.
+  protected readonly showSpreadUnavailable = computed(() => {
+    const { data, metadata } = this.item();
+    if (metadata.canSpread) return false;
+    return data.recurrence === 'fixed' && data.kind !== 'income';
+  });
 
   protected readonly formattedBalance = computed(() => {
     const balance = this.item().metadata.cumulativeBalance;

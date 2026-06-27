@@ -1,6 +1,7 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { SupabaseModule } from '@modules/supabase/supabase.module';
 import { BudgetModule } from '@modules/budget/budget.module';
+import { BudgetTemplateModule } from '@modules/budget-template/budget-template.module';
 import { EncryptionModule } from '@modules/encryption/encryption.module';
 import { CurrencyModule } from '@modules/currency/currency.module';
 import { TransactionModule } from '@modules/transaction/transaction.module';
@@ -9,10 +10,14 @@ import { BudgetLineController } from './infrastructure/http/budget-line.controll
 import { SupabaseBudgetLineRepository } from './infrastructure/persistence/supabase-budget-line.repository';
 import { BudgetLineMapper } from './infrastructure/mappers/budget-line.mapper';
 import { BUDGET_LINE_REPOSITORY } from './domain/ports/budget-line-repository.port';
+import { BUDGET_LINE_SPREAD_PORT } from './domain/ports/budget-line-spread.port';
 import { FindAllBudgetLinesUseCase } from './application/find-all-budget-lines.use-case';
 import { FindBudgetLineUseCase } from './application/find-budget-line.use-case';
 import { FindBudgetLinesByBudgetUseCase } from './application/find-budget-lines-by-budget.use-case';
 import { CreateBudgetLineUseCase } from './application/create-budget-line.use-case';
+import { CreateBudgetLineSpreadUseCase } from './application/create-budget-line-spread.use-case';
+import { SpreadBudgetLineFromLineUseCase } from './application/spread-budget-line-from-line.use-case';
+import { FindBudgetLinesBySpreadGroupUseCase } from './application/find-budget-lines-by-spread-group.use-case';
 import { UpdateBudgetLineUseCase } from './application/update-budget-line.use-case';
 import { RemoveBudgetLineUseCase } from './application/remove-budget-line.use-case';
 import { ResetBudgetLineFromTemplateUseCase } from './application/reset-budget-line-from-template.use-case';
@@ -24,9 +29,19 @@ import { PostponeBudgetLineUseCase } from './application/postpone-budget-line.us
   imports: [
     SupabaseModule,
     BudgetModule,
+    BudgetTemplateModule,
     EncryptionModule,
     CurrencyModule,
-    TransactionModule,
+    // forwardRef: TransactionModule imports BudgetLineModule (for the spread
+    // port consumed by the transaction spread-from flow), so both sides defer.
+    //
+    // TRADE-OFF (interim — PUL-288): this budget-line ↔ transaction cycle is a
+    // documented violation of `no-cross-module-direct` (ADR-0002), caused by the
+    // cross-module mapper imports on both sides. `forwardRef` is the accepted
+    // controlled-coupling stop-gap UNTIL PUL-288 extracts an `allocation` domain
+    // module both sides depend on one-way — at which point this forwardRef is
+    // removed and the lint rule is promoted warn→error. Do NOT build on this cycle.
+    forwardRef(() => TransactionModule),
   ],
   controllers: [BudgetLineController],
   providers: [
@@ -34,6 +49,9 @@ import { PostponeBudgetLineUseCase } from './application/postpone-budget-line.us
     FindBudgetLineUseCase,
     FindBudgetLinesByBudgetUseCase,
     CreateBudgetLineUseCase,
+    CreateBudgetLineSpreadUseCase,
+    SpreadBudgetLineFromLineUseCase,
+    FindBudgetLinesBySpreadGroupUseCase,
     UpdateBudgetLineUseCase,
     RemoveBudgetLineUseCase,
     ResetBudgetLineFromTemplateUseCase,
@@ -41,12 +59,19 @@ import { PostponeBudgetLineUseCase } from './application/postpone-budget-line.us
     CheckTransactionsUseCase,
     PostponeBudgetLineUseCase,
     { provide: BUDGET_LINE_REPOSITORY, useClass: SupabaseBudgetLineRepository },
+    {
+      provide: BUDGET_LINE_SPREAD_PORT,
+      useExisting: CreateBudgetLineSpreadUseCase,
+    },
     BudgetLineMapper,
     createInfoLoggerProvider(BudgetLineController.name),
     createInfoLoggerProvider(FindAllBudgetLinesUseCase.name),
     createInfoLoggerProvider(FindBudgetLineUseCase.name),
     createInfoLoggerProvider(FindBudgetLinesByBudgetUseCase.name),
     createInfoLoggerProvider(CreateBudgetLineUseCase.name),
+    createInfoLoggerProvider(CreateBudgetLineSpreadUseCase.name),
+    createInfoLoggerProvider(SpreadBudgetLineFromLineUseCase.name),
+    createInfoLoggerProvider(FindBudgetLinesBySpreadGroupUseCase.name),
     createInfoLoggerProvider(UpdateBudgetLineUseCase.name),
     createInfoLoggerProvider(RemoveBudgetLineUseCase.name),
     createInfoLoggerProvider(ResetBudgetLineFromTemplateUseCase.name),
@@ -54,6 +79,6 @@ import { PostponeBudgetLineUseCase } from './application/postpone-budget-line.us
     createInfoLoggerProvider(CheckTransactionsUseCase.name),
     createInfoLoggerProvider(PostponeBudgetLineUseCase.name),
   ],
-  exports: [],
+  exports: [BUDGET_LINE_SPREAD_PORT, BudgetLineMapper],
 })
 export class BudgetLineModule {}

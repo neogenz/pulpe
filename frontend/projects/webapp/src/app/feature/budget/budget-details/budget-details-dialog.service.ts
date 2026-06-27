@@ -5,17 +5,23 @@ import { TranslocoService } from '@jsverse/transloco';
 import { firstValueFrom } from 'rxjs';
 import type {
   BudgetLine,
-  BudgetLineCreate,
   BudgetLineUpdate,
+  SupportedCurrency,
   Transaction,
   TransactionCreate,
   TransactionUpdate,
 } from 'pulpe-shared';
 import type { BudgetLineConsumption } from '@core/budget';
+import { AppCurrencyPipe } from '@core/currency';
+import {
+  ProcessingDialog,
+  type ProcessingDialogData,
+} from '@ui/dialogs/processing-dialog';
 import {
   AddBudgetLineDialog,
   type BudgetLineDialogData,
 } from './budget-line/create/dialog';
+import type { AddBudgetLineDialogResult } from './budget-line/create/dialog-result';
 import {
   AllocatedTransactionsDialog,
   type AllocatedTransactionsDialogData,
@@ -37,11 +43,32 @@ import {
   EditTransactionDialog,
   type EditTransactionDialogData,
 } from './components/edit-transaction-form';
+import { SpreadOccurrencesPanel } from './spread-occurrences/spread-occurrences-panel';
+import { SpreadOccurrencesBottomSheet } from './spread-occurrences/spread-occurrences-bottom-sheet';
+import { SpreadExistingDialog } from './budget-line/spread-existing/dialog';
+import type {
+  SpreadExistingDialogData,
+  SpreadExistingDialogResult,
+} from './budget-line/spread-existing/dialog-result';
 
 export interface ConfirmDeleteOptions {
   title: string;
   message: string;
 }
+
+export interface SpreadProcessingEcho {
+  amount: number;
+  monthCount: number;
+  currency: SupportedCurrency;
+}
+
+/**
+ * PUL-17 — minimum on-screen time for the spread processing dialog. A spread
+ * over a few months resolves in well under a second; without a floor the dialog
+ * would flash. The dialog stays at least this long, then closes as soon as the
+ * (possibly multi-second) server fan-out resolves.
+ */
+const SPREAD_PROCESSING_MIN_VISIBLE_MS = 700;
 
 @Injectable()
 export class BudgetDetailsDialogService {
@@ -49,13 +76,18 @@ export class BudgetDetailsDialogService {
   readonly #bottomSheet = inject(MatBottomSheet);
   readonly #injector = inject(Injector);
   readonly #transloco = inject(TranslocoService);
+  readonly #currencyPipe = new AppCurrencyPipe();
 
-  async openAddBudgetLineDialog(
-    budgetId: string,
-  ): Promise<BudgetLineCreate | undefined> {
+  async openAddBudgetLineDialog(budget: {
+    id: string;
+    month: number;
+    year: number;
+  }): Promise<AddBudgetLineDialogResult | undefined> {
     const dialogRef = this.#dialog.open(AddBudgetLineDialog, {
       data: {
-        budgetId,
+        budgetId: budget.id,
+        budgetMonth: budget.month,
+        budgetYear: budget.year,
       } satisfies BudgetLineDialogData,
       width: '600px',
       maxWidth: '90vw',
@@ -165,6 +197,90 @@ export class BudgetDetailsDialogService {
       dialogRef.afterClosed(),
     );
     return result ? { id: transaction.id, update: result } : undefined;
+  }
+
+  async openSpreadExisting(
+    data: SpreadExistingDialogData,
+  ): Promise<SpreadExistingDialogResult | undefined> {
+    const dialogRef = this.#dialog.open(SpreadExistingDialog, {
+      data,
+      width: '600px',
+      maxWidth: '90vw',
+    });
+    return firstValueFrom(dialogRef.afterClosed());
+  }
+
+  openSpreadOccurrences(isMobile: boolean): void {
+    if (isMobile) {
+      this.#bottomSheet.open(SpreadOccurrencesBottomSheet, {
+        injector: this.#injector,
+      });
+      return;
+    }
+
+    this.#dialog.open(SpreadOccurrencesPanel, {
+      injector: this.#injector,
+      panelClass: 'side-sheet-panel',
+      position: { right: '0', top: '0' },
+      height: '100vh',
+      width: '480px',
+      maxWidth: '90vw',
+      autoFocus: false,
+      closeOnNavigation: true,
+    });
+  }
+
+  /**
+   * PUL-17 — wrap a slow spread mutation in a non-dismissable processing dialog.
+   *
+   * The input dialog closes before the server fan-out starts (it only returns a
+   * DTO), so the spread runs with nothing on screen. This opens a blocking
+   * "Lissage en cours" dialog around the awaited mutation and guarantees a
+   * minimum visible time so quick spreads don't flash. `run` is whatever store
+   * mutation the caller awaits; its result is returned unchanged. The dialog is
+   * always closed in `finally`, even when the mutation throws.
+   */
+  async runSpreadProcessing<T>(
+    run: () => Promise<T>,
+    echo: SpreadProcessingEcho,
+  ): Promise<T> {
+    const dialogRef = this.#dialog.open(ProcessingDialog, {
+      data: {
+        title: this.#transloco.translate('budgetLine.spread.processingTitle'),
+        detail: this.#transloco.translate(
+          'budgetLine.spread.processingDetail',
+          {
+            amount: this.#currencyPipe.transform(
+              Math.abs(echo.amount),
+              echo.currency,
+              '1.0-0',
+            ),
+            count: echo.monthCount,
+          },
+        ),
+        hint: this.#transloco.translate('budgetLine.spread.processingHint'),
+      } satisfies ProcessingDialogData,
+      disableClose: true,
+      width: '360px',
+      maxWidth: '90vw',
+      autoFocus: 'dialog',
+    });
+
+    const startedAt = performance.now();
+    try {
+      return await run();
+    } finally {
+      // Load-bearing: awaiting the floor here is what holds the dialog (and the
+      // caller, hence the success/error snackbar) until the minimum visible time
+      // has elapsed. Don't hoist this out of `finally` — it must run on both the
+      // resolve and throw paths.
+      const remaining =
+        SPREAD_PROCESSING_MIN_VISIBLE_MS - (performance.now() - startedAt);
+      if (remaining > 0) {
+        await new Promise<void>((resolve) => setTimeout(resolve, remaining));
+      }
+      dialogRef.close();
+    }
   }
 
   async confirmDelete(options: ConfirmDeleteOptions): Promise<boolean> {

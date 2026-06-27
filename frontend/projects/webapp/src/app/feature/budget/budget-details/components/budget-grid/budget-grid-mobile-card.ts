@@ -14,6 +14,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { type BudgetLine, type SupportedCurrency } from 'pulpe-shared';
 import { AppCurrencyPipe, FormatConversionPipe } from '@core/currency';
 import { FinancialKindDirective } from '@ui/financial-kind';
+import { SpreadBadge } from '@ui/spread-badge';
 import { FinancialLineCard } from '@pattern/financial-line-card';
 import { OriginalAmountLine } from '@ui/original-amount-line';
 import { formatMatchAnnotation } from '../../view-models/budget-item-constants';
@@ -37,6 +38,7 @@ import { BudgetActionMenu } from '../budget-action-menu';
     FormatConversionPipe,
     SegmentedBudgetProgress,
     BudgetActionMenu,
+    SpreadBadge,
   ],
   template: `
     <pulpe-financial-line-card
@@ -50,6 +52,12 @@ import { BudgetActionMenu } from '../budget-action-menu';
       [class.ring-2]="isSelected()"
       [class.ring-primary]="isSelected()"
       [class.opacity-60]="item().metadata.isLoading"
+      class="block cursor-pointer"
+      role="button"
+      tabindex="0"
+      (click)="viewTransactions.emit(item())"
+      (keydown.enter)="viewTransactions.emit(item())"
+      (keydown.space)="viewTransactions.emit(item())"
     >
       <ng-container ngProjectAs="[name]">
         <span
@@ -61,14 +69,19 @@ import { BudgetActionMenu } from '../budget-action-menu';
         </span>
       </ng-container>
 
-      @if (item().metadata.isPropagationLocked) {
+      @if (item().metadata.isPropagationLocked || item().metadata.isSpread) {
         <ng-container ngProjectAs="[indicators]">
-          <mat-icon
-            class="text-sm! text-outline shrink-0"
-            [matTooltip]="'budget.lockedAmountsTooltip' | transloco"
-          >
-            lock
-          </mat-icon>
+          @if (item().metadata.isPropagationLocked) {
+            <mat-icon
+              class="text-sm! text-outline shrink-0"
+              [matTooltip]="'budget.lockedAmountsTooltip' | transloco"
+            >
+              lock
+            </mat-icon>
+          }
+          @if (item().metadata.isSpread) {
+            <pulpe-spread-badge />
+          }
         </ng-container>
       }
 
@@ -82,6 +95,7 @@ import { BudgetActionMenu } from '../budget-action-menu';
           (edit)="edit.emit($event)"
           (delete)="delete.emit($event)"
           (addTransaction)="addTransaction.emit($event)"
+          (spread)="spread.emit($event)"
           (resetFromTemplate)="resetFromTemplate.emit($event)"
           (postpone)="postpone.emit($event)"
         />
@@ -191,7 +205,7 @@ import { BudgetActionMenu } from '../budget-action-menu';
             class="text-body-small h-8! px-3!"
             [matBadge]="item().consumption!.transactionCount"
             matBadgeColor="primary"
-            (click)="viewTransactions.emit(item())"
+            (click)="viewTransactions.emit(item()); $event.stopPropagation()"
             [matTooltip]="
               'budget.viewTransactionsCount'
                 | transloco
@@ -207,7 +221,7 @@ import { BudgetActionMenu } from '../budget-action-menu';
         <button
           matIconButton
           class="text-primary"
-          (click)="addTransaction.emit(item().data)"
+          (click)="addTransaction.emit(item().data); $event.stopPropagation()"
           [matTooltip]="'budgetLine.addTransaction' | transloco"
           [attr.aria-label]="'budgetLine.addTransaction' | transloco"
           [attr.data-testid]="'add-transaction-' + item().data.id"
@@ -252,6 +266,7 @@ export class BudgetGridMobileCard {
   readonly delete = output<string>();
   readonly addTransaction = output<BudgetLine>();
   readonly viewTransactions = output<BudgetLineTableItem>();
+  readonly spread = output<BudgetLineTableItem>();
   readonly resetFromTemplate = output<BudgetLineTableItem>();
   readonly postpone = output<string>();
   readonly toggleCheck = output<string>();

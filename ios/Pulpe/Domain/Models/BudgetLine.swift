@@ -15,6 +15,11 @@ struct BudgetLine: Codable, Identifiable, Hashable, Sendable {
     let createdAt: Date
     let updatedAt: Date
 
+    /// Shared identifier of the spread group when this line is one occurrence of a
+    /// "Lisser" expense (PUL-17). Non-financial UUID — never encrypted. `nil` for
+    /// ordinary lines. Generated server-side by `POST /budget-lines/spread`.
+    var spreadGroupId: UUID?
+
     // Currency conversion metadata
     var originalAmount: Decimal?
     var originalCurrency: SupportedCurrency?
@@ -33,6 +38,13 @@ struct BudgetLine: Codable, Identifiable, Hashable, Sendable {
 
     var isFromTemplate: Bool {
         templateLineId != nil
+    }
+
+    /// `true` when this line is one occurrence of a "Lisser" expense (PUL-17),
+    /// i.e. it carries a `spreadGroupId`. Read by the projector / detail page to
+    /// surface the "Lissé" indicator — never recomputed inline in a view body.
+    var isSpread: Bool {
+        spreadGroupId != nil
     }
 
     var isVirtualRollover: Bool {
@@ -63,6 +75,7 @@ struct BudgetLine: Codable, Identifiable, Hashable, Sendable {
             checkedAt: isChecked ? nil : Date(),
             createdAt: createdAt,
             updatedAt: Date(),
+            spreadGroupId: spreadGroupId,
             originalAmount: originalAmount,
             originalCurrency: originalCurrency,
             targetCurrency: targetCurrency,

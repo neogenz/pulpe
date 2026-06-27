@@ -17,6 +17,14 @@ final class MockBudgetLineService: BudgetLineServicing {
     var postponeError: Error?
     var stubbedToggle: BudgetLine?
 
+    // Spread (PUL-17) — stubbed responses + recorded inputs so occurrence/spread
+    // suites can drive the VM and coordinator without hitting the network.
+    var stubbedSpreadResponse: BudgetLineSpreadResponse?
+    var stubbedSpreadOccurrences: [SpreadOccurrence] = []
+    var spreadError: Error?
+    private(set) var createdSpreads: [BudgetLineSpreadCreate] = []
+    private(set) var requestedOccurrenceGroupIds: [String] = []
+
     func deleteBudgetLine(id: String) async throws {
         deleteBudgetLineCallCount += 1
         deletedIds.append(id)
@@ -32,5 +40,22 @@ final class MockBudgetLineService: BudgetLineServicing {
         postponedIds.append(id)
         if let postponeError { throw postponeError }
         return TestDataFactory.createBudgetLine(id: id)
+    }
+
+    func createSpread(_ data: BudgetLineSpreadCreate) async throws -> BudgetLineSpreadResponse {
+        createdSpreads.append(data)
+        if let spreadError { throw spreadError }
+        return stubbedSpreadResponse ?? BudgetLineSpreadResponse(
+            spreadGroupId: UUID(),
+            lines: [],
+            createdBudgets: [],
+            skippedMonths: []
+        )
+    }
+
+    func getSpreadOccurrences(spreadGroupId: String) async throws -> [SpreadOccurrence] {
+        requestedOccurrenceGroupIds.append(spreadGroupId)
+        if let spreadError { throw spreadError }
+        return stubbedSpreadOccurrences
     }
 }
