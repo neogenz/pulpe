@@ -85,12 +85,15 @@ struct SpreadExistingCalculatorTests {
         #expect(calc.isValid)
     }
 
-    /// A transiently-inverted window (end before start) must not silently wipe
-    /// the user's deselections — they survive until a valid window prunes them.
-    @Test func setEnd_invertedWindow_preservesDeselections() {
+    /// A transiently-invalid window (end before OR equal to start) must not
+    /// silently wipe the user's deselections — they survive until a valid window
+    /// prunes them. `end == start` is the boundary: the window is just the locked
+    /// M0, so intersecting against it would otherwise clear everything.
+    @Test func setEnd_invalidWindow_preservesDeselections() {
         let calc = make()  // Jun 2026 → [6, 7, 8]
         calc.toggle(SpreadMonth(year: 2026, month: 7))  // deselect July
         calc.setEnd(SpreadMonth(year: 2026, month: 5))  // end < start → invalid
+        calc.setEnd(calc.start)                          // end == start → invalid
         calc.setEnd(SpreadMonth(year: 2026, month: 8))  // back to a valid window
         #expect(!calc.isSelected(SpreadMonth(year: 2026, month: 7)))
         #expect(calc.selectedCount == 2)

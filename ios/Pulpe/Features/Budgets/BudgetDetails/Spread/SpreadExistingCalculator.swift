@@ -62,10 +62,11 @@ final class SpreadExistingCalculator {
 
     func setEnd(_ month: SpreadMonth) {
         end = month
-        // A temporarily-invalid window (end before start → empty range) must not
-        // wipe the user's deselections; only purge ordinals that fell out of a
-        // valid window.
-        guard end.ordinal >= start.ordinal else { return }
+        // A temporarily-invalid window must not wipe the user's deselections; only
+        // purge ordinals that fell out of a VALID window. Strict `>`: end == start
+        // leaves only the locked M0 in the window, so intersecting against {M0}
+        // would clear every deselection the user made.
+        guard end.ordinal > start.ordinal else { return }
         let windowOrdinals = Set(windowMonths.map(\.ordinal))
         deselectedOrdinals.formIntersection(windowOrdinals)
     }
