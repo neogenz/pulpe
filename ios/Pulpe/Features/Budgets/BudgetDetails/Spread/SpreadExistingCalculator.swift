@@ -48,7 +48,9 @@ final class SpreadExistingCalculator {
     // MARK: - Validation
 
     var validationMessage: String? {
-        if end.ordinal < start.ordinal { return "Le mois de fin précède le mois de début" }
+        // `<=`: end == start leaves only the locked M0 in the window, so the grid
+        // offers nothing to toggle — point at the date, not at "choose two months".
+        if end.ordinal <= start.ordinal { return "Le mois de fin doit suivre le mois de début" }
         if selectedCount > Self.maxMonths { return "36 mois maximum" }
         if selectedCount < Self.minMonths { return "Choisis au moins deux mois" }
         return nil

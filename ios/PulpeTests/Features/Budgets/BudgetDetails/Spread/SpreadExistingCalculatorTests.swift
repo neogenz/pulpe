@@ -45,7 +45,16 @@ struct SpreadExistingCalculatorTests {
     @Test func validation_invertedWindow() {
         let calc = make()
         calc.setEnd(SpreadMonth(year: 2026, month: 5))
-        #expect(calc.validationMessage == "Le mois de fin précède le mois de début")
+        #expect(calc.validationMessage == "Le mois de fin doit suivre le mois de début")
+        #expect(!calc.isValid)
+    }
+
+    /// `end == start` leaves only the locked M0 in the window — the grid offers
+    /// nothing to toggle, so the message must point at the date, not at the grid.
+    @Test func validation_endEqualsStart_pointsAtTheDate() {
+        let calc = make()
+        calc.setEnd(calc.start)
+        #expect(calc.validationMessage == "Le mois de fin doit suivre le mois de début")
         #expect(!calc.isValid)
     }
 

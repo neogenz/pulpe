@@ -15,6 +15,7 @@ struct SpreadExistingSheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var calculator: SpreadExistingCalculator
     @State private var isPickingEnd = false
+    @State private var isSubmitting = false
 
     init(
         source: SpreadExistingSource,
@@ -237,6 +238,11 @@ struct SpreadExistingSheet: View {
 
     private var submitButton: some View {
         Button {
+            // The sheet dismisses synchronously, but the dismiss animation isn't
+            // instant — a fast double-tap would otherwise spawn two dispatches on
+            // the same source (the 2nd hits a 404 after the 1st deletes it).
+            guard !isSubmitting else { return }
+            isSubmitting = true
             onSpread(calculator.periods())
             dismiss()
         } label: {
