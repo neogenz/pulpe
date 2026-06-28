@@ -239,13 +239,13 @@
       "source": "pbakaus/impeccable",
       "sourceType": "github",
       "skillPath": ".agents/skills/impeccable/SKILL.md",
-      "computedHash": "c3fc1193e4777c1fde1e8455a6ce23bbc0ae506dabb026b639cf594fdfa6c733"
+      "computedHash": "d28c91b173fd8563f34dd5d9590d194e820a96ca6ae401453e39c72e9f908463"
     },
     "ios-marketing-capture": {
       "source": "ParthJadhav/ios-marketing-capture",
       "sourceType": "github",
       "skillPath": "SKILL.md",
-      "computedHash": "5d59383d4c9cf675e2c4b5fc6ed0130a2c0f23a7f3334d4cc68b7e79998ce7f3"
+      "computedHash": "de97c90ce514c5f730915e042aea0c0990e203dacc5a980e605458f0b48daeb6"
     },
     "likec4-dsl": {
       "source": "likec4.dev",
@@ -268,7 +268,7 @@
       "source": "currents-dev/playwright-best-practices-skill",
       "sourceType": "github",
       "skillPath": "SKILL.md",
-      "computedHash": "320eaf861e3a0a923bfaad0726cb311a3fe30093378f8d26c89b9c5ae5c42b35"
+      "computedHash": "63ce3ddf87fb796c7855f4d6b34f892b3f83b288cf11c1ea1e4503a0c1b6cc6b"
     },
     "posthog-instrumentation": {
       "source": "posthog/posthog-for-claude",
@@ -334,7 +334,7 @@
       "source": "nextlevelbuilder/ui-ux-pro-max-skill",
       "sourceType": "github",
       "skillPath": ".claude/skills/ui-ux-pro-max/SKILL.md",
-      "computedHash": "0a413bf988d06481f69bb81df2070741c3ba12dd9f1be2706d57f259c905992d"
+      "computedHash": "c0e71f1ea9d80c74f710960c2b4d9ab0f8a6d14c331f8d361df2c28d1879846e"
     },
     "update-swiftui-apis": {
       "source": "avdlee/swiftui-agent-skill",
