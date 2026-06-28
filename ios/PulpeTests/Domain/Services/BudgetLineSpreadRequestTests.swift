@@ -209,6 +209,37 @@ struct BudgetLineSpreadRequestTests {
         #expect(decoded.totalOriginalAmount == nil)
     }
 
+    // MARK: - Idempotency key on the wire (PUL-17)
+
+    @Test
+    func createSpread_sendsClientSpreadGroupIdUnderTheSpreadGroupIdKey() async throws {
+        let recorder = RequestRecorder()
+        InterceptingURLProtocol.requestHandler = { request in
+            recorder.record(request)
+            return (makeHTTPResponse(for: request, statusCode: 200), Self.successResponseData())
+        }
+        defer { InterceptingURLProtocol.requestHandler = nil }
+
+        let groupId = "b7e8f9a0-1c2d-4e3f-8a9b-0c1d2e3f4a5b"
+        let body = BudgetLineSpreadCreate(
+            name: "Impôts",
+            kind: .expense,
+            mode: .perMonth,
+            months: [SpreadMonthRef(year: 2026, month: 6)],
+            perMonthAmount: 80,
+            spreadGroupId: groupId
+        )
+
+        let apiClient = makeAPIClient()
+        let _: BudgetLineSpreadResponse = try await apiClient.request(
+            .budgetLinesSpread, body: body, method: .post
+        )
+
+        let decoded = try #require(recorder.decodedBody)
+        // The idempotency key rides on the wire under the `spreadGroupId` JSON key.
+        #expect(decoded.spreadGroupId == groupId)
+    }
+
     // MARK: - Response decoding
 
     @Test
@@ -379,6 +410,7 @@ private struct DecodedSpreadBody: Decodable {
     let originalCurrency: String?
     let targetCurrency: String?
     let exchangeRate: Decimal?
+    let spreadGroupId: String
 }
 
 private struct TranchePair: Equatable {

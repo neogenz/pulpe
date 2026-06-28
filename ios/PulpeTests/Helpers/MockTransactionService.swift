@@ -18,6 +18,10 @@ final class MockTransactionService: TransactionServicing {
     /// Transaction ids whose `toggleCheck` should throw — drives partial
     /// bulk-check failures deterministically (PUL-259).
     var failingToggleIds: Set<String> = []
+    // Spread-from-existing (PUL-17 v1.1) — stubbed response + recorded inputs.
+    var stubbedSpreadResponse: BudgetLineSpreadResponse?
+    var spreadError: Error?
+    private(set) var spreadFromTxnCalls: [(id: String, periods: [SpreadFromExistingPeriod])] = []
 
     func deleteTransaction(id: String) async throws {
         deleteTransactionCallCount += 1
@@ -36,5 +40,19 @@ final class MockTransactionService: TransactionServicing {
 
     func updateTransaction(id: String, data: TransactionUpdate) async throws -> Transaction {
         stubbedUpdated ?? TestDataFactory.createTransaction(id: id)
+    }
+
+    func spreadExistingTransaction(
+        id: String,
+        periods: [SpreadFromExistingPeriod]
+    ) async throws -> BudgetLineSpreadResponse {
+        spreadFromTxnCalls.append((id: id, periods: periods))
+        if let spreadError { throw spreadError }
+        return stubbedSpreadResponse ?? BudgetLineSpreadResponse(
+            spreadGroupId: UUID(),
+            lines: [],
+            createdBudgets: [],
+            skippedMonths: []
+        )
     }
 }

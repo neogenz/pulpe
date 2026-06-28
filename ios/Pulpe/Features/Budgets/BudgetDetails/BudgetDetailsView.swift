@@ -4,14 +4,17 @@ import TipKit
 struct BudgetDetailsView: View {
     let budgetId: String
     @Environment(AppState.self) private var appState
-    @Environment(BudgetDetailsRouter.self) private var router
-    @Environment(UserSettingsStore.self) private var userSettingsStore
+    // Non-private: shared with the `BudgetDetailsView+Routing` extension file
+    // (same precedent as `BudgetLineDetailPage` ↔ its `+Hero` extension).
+    @Environment(BudgetDetailsRouter.self) var router
+    @Environment(UserSettingsStore.self) var userSettingsStore
     @Environment(BudgetListStore.self) private var budgetListStore
     @Environment(DashboardStore.self) private var dashboardStore
+    @Environment(CurrentMonthStore.self) private var currentMonthStore
     @Environment(\.amountsHidden) private var amountsHidden
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.tabBarClearance) private var tabBarClearance
-    @State private var coordinator: BudgetDetailsCoordinator
+    @State var coordinator: BudgetDetailsCoordinator
     @State private var projector: BudgetDetailsProjector
 
     @State private var searchText = ""
@@ -59,7 +62,7 @@ struct BudgetDetailsView: View {
         )
     }
 
-    private var toastContext: ToastContext {
+    var toastContext: ToastContext {
         ToastContext(
             toastManager: appState.toastManager,
             presentationCurrency: userSettingsStore.currency
@@ -102,7 +105,11 @@ struct BudgetDetailsView: View {
             }
         }
         .task(id: screenState.budgetId) {
-            coordinator.bind(budgetListStore: budgetListStore, dashboardStore: dashboardStore)
+            coordinator.bind(
+                budgetListStore: budgetListStore,
+                dashboardStore: dashboardStore,
+                currentMonthStore: currentMonthStore
+            )
             if !screenState.hasAllBudgets {
                 await coordinator.dispatch(.loadDetails(force: false))
             } else {
@@ -272,56 +279,6 @@ struct BudgetDetailsView: View {
         // a bottom text field is ever added here, remove or scope this.
         .ignoresSafeArea(.keyboard, edges: .bottom)
     }
-
-    // MARK: - Routing
-
-    @ViewBuilder
-    private func pushDestination(for route: BudgetLinePushRoute) -> some View {
-        switch route {
-        case .lineDetail(let lineId):
-            BudgetLineDetailPage(
-                lineId: lineId,
-                onEditLine: { line in router.present(.editBudgetLine(line)) }
-            )
-        case .addAllocatedTx(let lineId):
-            AddAllocatedTransactionPage(lineId: lineId)
-        case .editTx(let transactionId):
-            EditTransactionPage(transactionId: transactionId)
-        }
-    }
-
-    @ViewBuilder
-    private func sheetContent(for destination: BudgetDetailDestination) -> some View {
-        switch destination {
-        case .addBudgetLine:
-            // Anchor the spread on the OPENED budget's period, not the device month (PUL-17).
-            let openBudget = coordinator.dataStore.budget
-            AddBudgetLineSheet(
-                budgetId: coordinator.dataStore.budgetId,
-                anchorMonth: openBudget?.month ?? Calendar.current.component(.month, from: Date()),
-                anchorYear: openBudget?.year ?? Calendar.current.component(.year, from: Date())
-            ) { budgetLine in
-                Task { await coordinator.dispatch(.addBudgetLine(budgetLine)) }
-            }
-        case .editBudgetLine(let line):
-            EditBudgetLineSheet(budgetLine: line, userCurrency: userSettingsStore.currency) { updatedLine in
-                Task { await coordinator.dispatch(.updateBudgetLine(updatedLine)) }
-            }
-        case .previousBudget(let item):
-            PreviousBudgetSheet(budgetId: item.id)
-        case .realizedBalance:
-            RealizedBalanceSheet(
-                metrics: coordinator.dataStore.metrics,
-                realizedMetrics: coordinator.dataStore.realizedMetrics
-            )
-        case .spreadOccurrences(let spreadGroupId):
-            SpreadOccurrencesSheet(
-                spreadGroupId: spreadGroupId,
-                payDayOfMonth: userSettingsStore.payDayOfMonth,
-                currency: userSettingsStore.currency
-            )
-        }
-    }
 }
 
 #Preview {
@@ -333,6 +290,7 @@ struct BudgetDetailsView: View {
     .environment(UserSettingsStore())
     .environment(BudgetListStore())
     .environment(DashboardStore())
+    .environment(CurrentMonthStore())
 }
 #Preview("Gestures Tip") {
     List {

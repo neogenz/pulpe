@@ -276,6 +276,14 @@ final class BudgetDataStore {
         if let nextId = nextBudgetId { cache.invalidate(budgetId: nextId) }
     }
 
+    /// Wipe EVERY budget's detail cache. Used after a cross-month spread, which
+    /// restructures N budgets this store doesn't own — each must refetch the
+    /// server-authoritative state. Keeps the cache singleton behind the store so
+    /// the coordinator never reaches `BudgetDetailCache.shared` directly (Rule 11).
+    func invalidateAllCache() {
+        cache.invalidateAll()
+    }
+
     /// Drop the current budget id from the cache. Used when prefetched data
     /// is known stale (e.g. after a server reload error path).
     func clearCacheBudgetEntry() {

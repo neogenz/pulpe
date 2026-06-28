@@ -11,10 +11,18 @@ extension BudgetDetailsCoordinator {
     /// `.task` because `@Environment` is unavailable in `init` — same
     /// precedent as `router.bind(to:)` in `MainTabView`. Strong captures on
     /// purpose: both stores are app-scoped and outlive this coordinator.
-    func bind(budgetListStore: BudgetListStore, dashboardStore: DashboardStore) {
+    func bind(
+        budgetListStore: BudgetListStore,
+        dashboardStore: DashboardStore,
+        currentMonthStore: CurrentMonthStore
+    ) {
         dataStore.onMutation = {
             budgetListStore.invalidateCache()
             dashboardStore.invalidateCache()
+            // A budget-detail mutation can change the current month's aggregates
+            // (a cross-month spread especially) — invalidate it too so the
+            // CurrentMonth tab refetches instead of serving a stale 30s-TTL copy.
+            currentMonthStore.invalidateCache()
         }
     }
 
@@ -108,5 +116,76 @@ extension BudgetDetailsCoordinator {
             dataStore.invalidateAdjacentCache()
         }
         return updated
+    }
+
+    // MARK: - Spread from existing (PUL-17 v1.1)
+
+    /// Lisse une prévision existante (total préservé). The server deletes the
+    /// source line and fans out N tranches in one transaction; on success we drop
+    /// the source locally, graft the M0 tranche that landed in THIS budget, and
+    /// invalidate the cross-budget caches the coordinator doesn't own. Applied
+    /// AFTER the server confirms (no optimistic rollback): a failure leaves the
+    /// source intact and the detail page open.
+    func spreadBudgetLineFromExisting(
+        lineId: String,
+        periods: [SpreadFromExistingPeriod],
+        context: ToastContext
+    ) async {
+        syncStore.setLoading(true)
+        syncStore.clearError()
+        defer { syncStore.setLoading(false) }
+        do {
+            let response = try await budgetLineService.spreadExistingBudgetLine(id: lineId, periods: periods)
+            applySpreadFromExisting(removingLineId: lineId, removingTransactionId: nil, response: response)
+            context.toastManager.show("C'est lissé sur \(periods.count) mois")
+        } catch {
+            syncStore.setError(error)
+            context.toastManager.show("Le lissage n'a pas pu aboutir", type: .error)
+        }
+    }
+
+    /// Lisse une transaction libre existante (total préservé). Same shape; the
+    /// source is a transaction (removed locally), the N tranches are budget lines.
+    func spreadTransactionFromExisting(
+        txId: String,
+        periods: [SpreadFromExistingPeriod],
+        context: ToastContext
+    ) async {
+        syncStore.setLoading(true)
+        syncStore.clearError()
+        defer { syncStore.setLoading(false) }
+        do {
+            let response = try await transactionService.spreadExistingTransaction(id: txId, periods: periods)
+            applySpreadFromExisting(removingLineId: nil, removingTransactionId: txId, response: response)
+            context.toastManager.show("C'est lissé sur \(periods.count) mois")
+        } catch {
+            syncStore.setError(error)
+            context.toastManager.show("Le lissage n'a pas pu aboutir", type: .error)
+        }
+    }
+
+    private func applySpreadFromExisting(
+        removingLineId: String?,
+        removingTransactionId: String?,
+        response: BudgetLineSpreadResponse
+    ) {
+        if let lineId = removingLineId { dataStore.removeBudgetLine(id: lineId) }
+        if let txId = removingTransactionId { dataStore.removeTransaction(id: txId) }
+        // Graft the tranche that landed in the currently-open budget (M0) so the
+        // screen updates immediately — same seam as the additive `onAdd`.
+        if let m0Line = response.lines.first(where: { $0.budgetId == dataStore.budgetId }) {
+            dataStore.appendBudgetLine(m0Line)
+        }
+        dataStore.recomputeMetrics()
+        // `syncCache()` first: it's the mutation choke point that fires `onMutation`
+        // (invalidates the list/dashboard stores, PUL-270). Its cache WRITE is
+        // deliberately superseded by `invalidateAllCache()` below — a cross-month
+        // spread restructures N budgets the coordinator doesn't own, so every detail
+        // cache is wiped to force a server-authoritative refetch rather than serve
+        // this budget's optimistic copy.
+        dataStore.syncCache()
+        // `invalidateAllCache()` already wipes adjacent budgets too, so no separate
+        // `invalidateAdjacentCache()` is needed on this cross-budget path.
+        dataStore.invalidateAllCache()
     }
 }

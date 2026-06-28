@@ -13,6 +13,8 @@ struct EditTransactionPage: View {
     let transactionId: String
 
     @Environment(BudgetDetailsCoordinator.self) private var coordinator
+    @Environment(BudgetDetailsProjector.self) private var projector
+    @Environment(BudgetDetailsRouter.self) private var router
     @Environment(\.dismiss) private var dismiss
     @Environment(ToastManager.self) private var toastManager
     @Environment(UserSettingsStore.self) private var userSettingsStore
@@ -51,6 +53,36 @@ struct EditTransactionPage: View {
         )
     }
 
+    /// The spread group of this transaction's parent budget line, if it belongs
+    /// to a "Lisser" expense — drives the occurrences affordance (PUL-17). A
+    /// transaction never carries `spreadGroupId` itself; its lissé-ness derives
+    /// from its parent line, resolved via the projector's O(1) `lineById` index.
+    private func parentSpreadGroupId(for tx: Transaction) -> UUID? {
+        guard let lineId = tx.budgetLineId else { return nil }
+        return projector.screenState.lineById[lineId]?.spreadGroupId
+    }
+
+    /// A FREE transaction (no parent line) that isn't income can be redistributed
+    /// into a total-preserving spread (PUL-17 v1.1). An allocated transaction
+    /// derives its lissé-ness from its parent line — it shows the occurrences
+    /// affordance instead, never this action.
+    private func canSpread(_ tx: Transaction) -> Bool {
+        tx.budgetLineId == nil && tx.kind != .income
+    }
+
+    private func presentSpread(for tx: Transaction) {
+        guard let budget = coordinator.dataStore.budget else { return }
+        router.present(.spreadExisting(SpreadExistingSource(
+            id: tx.id,
+            sourceType: .transaction,
+            kind: tx.kind,
+            name: tx.name,
+            total: tx.amount,
+            month: budget.month,
+            year: budget.year
+        )))
+    }
+
     // MARK: - Body
 
     var body: some View {
@@ -76,7 +108,7 @@ struct EditTransactionPage: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
-                headerMenu
+                headerMenu(for: tx)
             }
         }
         .alert(
@@ -113,6 +145,12 @@ struct EditTransactionPage: View {
     @ViewBuilder
     private func formContent(for tx: Transaction) -> some View {
         VStack(spacing: DesignTokens.Spacing.xxl) {
+            if let spreadGroupId = parentSpreadGroupId(for: tx) {
+                SpreadAffordanceButton {
+                    router.present(.spreadOccurrences(spreadGroupId: spreadGroupId.uuidString))
+                }
+            }
+
             KindToggle(selection: $kind)
 
             if userSettingsStore.showCurrencySelectorEffective && isAlternateCurrency {
@@ -178,8 +216,16 @@ struct EditTransactionPage: View {
         .primaryButtonStyle(isEnabled: canSubmit)
     }
 
-    private var headerMenu: some View {
+    @ViewBuilder
+    private func headerMenu(for tx: Transaction) -> some View {
         Menu {
+            if canSpread(tx) {
+                Button {
+                    presentSpread(for: tx)
+                } label: {
+                    Label("Lisser sur plusieurs mois", systemImage: "calendar")
+                }
+            }
             Button(role: .destructive) {
                 showDeleteConfirmation = true
             } label: {
