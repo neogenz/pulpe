@@ -12,6 +12,7 @@ struct BudgetDetailsView: View {
     @Environment(UserSettingsStore.self) var userSettingsStore
     @Environment(BudgetListStore.self) private var budgetListStore
     @Environment(DashboardStore.self) private var dashboardStore
+    @Environment(CurrentMonthStore.self) private var currentMonthStore
     @Environment(\.amountsHidden) private var amountsHidden
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.tabBarClearance) private var tabBarClearance
@@ -69,7 +70,7 @@ struct BudgetDetailsView: View {
         )
     }
 
-    private var toastContext: ToastContext {
+    var toastContext: ToastContext {
         ToastContext(
             toastManager: appState.toastManager,
             presentationCurrency: userSettingsStore.currency
@@ -112,7 +113,11 @@ struct BudgetDetailsView: View {
             }
         }
         .task(id: screenState.budgetId) {
-            coordinator.bind(budgetListStore: budgetListStore, dashboardStore: dashboardStore)
+            coordinator.bind(
+                budgetListStore: budgetListStore,
+                dashboardStore: dashboardStore,
+                currentMonthStore: currentMonthStore
+            )
             if !screenState.hasAllBudgets {
                 await coordinator.dispatch(.loadDetails(force: false))
             } else {

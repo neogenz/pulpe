@@ -22,6 +22,13 @@ struct AddBudgetLineSheet: View {
     @State private var mode: BudgetLineCreationMode = .once
     @State private var amountMode: SpreadAmountMode = .total
     @State private var spreadCalculator: SpreadCalculator
+    /// Idempotency key for the spread create (PUL-17), minted ONCE per sheet
+    /// presentation (= per create intent) and reused on every submit retry so a
+    /// double-tap or a retry after a post-commit failure replays the same group
+    /// instead of duplicating it. `.sheet(item:)` rebuilds this view per
+    /// presentation, so a fresh intent always gets a fresh key. Lowercased to
+    /// mirror the web's `crypto.randomUUID()`.
+    @State private var spreadGroupId = UUID().uuidString.lowercased()
 
     private let dependencies: AddBudgetLineDependencies
     private let conversionService = CurrencyConversionService.shared
@@ -252,7 +259,8 @@ struct AddBudgetLineSheet: View {
                     kind: kind,
                     amount: amount,
                     mode: amountMode,
-                    conversion: conversion
+                    conversion: conversion,
+                    spreadGroupId: spreadGroupId
                 )
             )
 

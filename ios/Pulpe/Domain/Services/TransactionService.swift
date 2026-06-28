@@ -9,6 +9,10 @@ protocol TransactionServicing: Sendable {
     func postpone(id: String) async throws -> Transaction
     func createTransaction(_ data: TransactionCreate) async throws -> Transaction
     func updateTransaction(id: String, data: TransactionUpdate) async throws -> Transaction
+    func spreadExistingTransaction(
+        id: String,
+        periods: [SpreadFromExistingPeriod]
+    ) async throws -> BudgetLineSpreadResponse
 }
 
 /// Service for transaction API operations
@@ -46,6 +50,21 @@ actor TransactionService: TransactionServicing {
     /// Delete a transaction
     func deleteTransaction(id: String) async throws {
         try await apiClient.requestVoid(.transaction(id: id), method: .delete)
+    }
+
+    /// Lisse une transaction libre EXISTANTE en préservant son total (PUL-17
+    /// v1.1). Le serveur lit le total T, le redistribue en T/N sur les `periods`,
+    /// puis supprime la transaction source — une seule transaction. Retourne les
+    /// `budget_line` créées (les occurrences sont des prévisions, pas des réels).
+    func spreadExistingTransaction(
+        id: String,
+        periods: [SpreadFromExistingPeriod]
+    ) async throws -> BudgetLineSpreadResponse {
+        try await apiClient.request(
+            .transactionSpreadFromTxn(id: id),
+            body: SpreadFromExistingCreate(periods: periods),
+            method: .post
+        )
     }
 
     // MARK: - Actions

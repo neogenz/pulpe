@@ -32,6 +32,7 @@ enum Endpoint {
     case budgetLinesCreate
     case budgetLinesSpread
     case budgetLinesSpreadOccurrences(spreadGroupId: String)
+    case budgetLineSpreadFromLine(id: String)
     case budgetLine(id: String)
     case budgetLineToggle(id: String)
     case budgetLinePostpone(id: String)
@@ -44,6 +45,7 @@ enum Endpoint {
     case transaction(id: String)
     case transactionToggle(id: String)
     case transactionPostpone(id: String)
+    case transactionSpreadFromTxn(id: String)
 
     // MARK: - Templates
 
@@ -101,6 +103,7 @@ enum Endpoint {
         case .budgetLinesCreate: return "/budget-lines"
         case .budgetLinesSpread: return "/budget-lines/spread"
         case .budgetLinesSpreadOccurrences(let id): return "/budget-lines/spread/\(id)"
+        case .budgetLineSpreadFromLine(let id): return "/budget-lines/\(id)/spread"
         case .budgetLine(let id): return "/budget-lines/\(id)"
         case .budgetLineToggle(let id): return "/budget-lines/\(id)/toggle-check"
         case .budgetLinePostpone(let id): return "/budget-lines/\(id)/postpone"
@@ -112,6 +115,7 @@ enum Endpoint {
         case .transaction(let id): return "/transactions/\(id)"
         case .transactionToggle(let id): return "/transactions/\(id)/toggle-check"
         case .transactionPostpone(let id): return "/transactions/\(id)/postpone"
+        case .transactionSpreadFromTxn(let id): return "/transactions/\(id)/spread"
 
         // Templates
         case .templates: return "/budget-templates"
@@ -143,7 +147,8 @@ enum Endpoint {
 
     var method: HTTPMethod {
         switch self {
-        case .budgets, .budgetLines, .budgetLinesCreate, .budgetLinesSpread, .transactionsCreate, .templates,
+        case .budgets, .budgetLines, .budgetLinesCreate, .budgetLinesSpread,
+             .budgetLineSpreadFromLine, .transactionSpreadFromTxn, .transactionsCreate, .templates,
              .templateLines, .templateFromOnboarding, .templateLinesBulk,
              .budgetLineToggle, .budgetLinePostpone, .budgetLineResetFromTemplate,
              .transactionToggle, .transactionPostpone,

@@ -38,8 +38,7 @@ final class BudgetDetailsCoordinator {
 
     // MARK: - Dispatch
 
-    /// Single mutation entrypoint. Routes by action category to keep each
-    /// branch under the cyclomatic-complexity budget.
+    /// Single mutation entrypoint. Routes by action category.
     func dispatch(_ action: BudgetDetailsAction) async {
         if await dispatchLoadOrFilter(action) { return }
         if await dispatchToggle(action) { return }
@@ -105,6 +104,8 @@ final class BudgetDetailsCoordinator {
             softDeleteBudgetLine(line, context: ctx)
         case .deleteBudgetLine(let line):
             await deleteBudgetLine(line)
+        case .spreadBudgetLineFromExisting(let lineId, let periods, let ctx):
+            await spreadBudgetLineFromExisting(lineId: lineId, periods: periods, context: ctx)
         default:
             return false
         }
@@ -119,6 +120,8 @@ final class BudgetDetailsCoordinator {
             softDeleteTransaction(tx, context: ctx)
         case .deleteTransaction(let tx):
             await deleteTransaction(tx)
+        case .spreadTransactionFromExisting(let txId, let periods, let ctx):
+            await spreadTransactionFromExisting(txId: txId, periods: periods, context: ctx)
         default:
             return false
         }
@@ -184,12 +187,9 @@ final class BudgetDetailsCoordinator {
         syncStore.clearError()
         defer { syncStore.setLoading(false) }
 
-        // Capture the generation BEFORE the fetch. If an optimistic mutation
-        // (toggle / add / update) lands while the network call is in flight,
-        // the snapshot is stale and `applyDetails(_:ifGenerationMatches:)` drops
-        // it rather than silently reverting that mutation (PUL-257). Guards the
-        // detached, non-cancellable reload fired after an edit save, which
-        // `.task(id:)` cancellation can't reach.
+        // Capture the generation BEFORE the fetch so an optimistic mutation
+        // landing mid-flight drops the stale snapshot instead of reverting it
+        // (PUL-257) — guards the detached reload fired after an edit save.
         let generation = dataStore.mutationGeneration
         do {
             let details = try await budgetService.getBudgetWithDetails(id: dataStore.budgetId)
@@ -226,10 +226,8 @@ final class BudgetDetailsCoordinator {
         return await performToggleBudgetLine(line)
     }
 
-    /// Outcome of confirming a "check all" toggle from the alert. Lets the
-    /// dispatcher pick the right toast: the "Pointé" success toast when every
-    /// transaction reconciled, or an error toast when the bulk-check partially
-    /// failed (which also rolled the local apply back via reload).
+    /// Outcome of confirming a "check all" toggle — drives the success vs
+    /// partial-failure toast.
     enum CheckAllConfirmation {
         case lineNotToggled
         case allChecked

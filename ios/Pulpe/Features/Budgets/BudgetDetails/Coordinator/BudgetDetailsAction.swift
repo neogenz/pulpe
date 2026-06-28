@@ -34,12 +34,17 @@ enum BudgetDetailsAction {
     case softDeleteBudgetLine(BudgetLine, ToastContext)
     case deleteBudgetLine(BudgetLine)
     case postponeBudgetLine(BudgetLine, ToastContext)
+    /// Lisser une prévision existante (total préservé) — supprime la source +
+    /// fan-out, puis reconcilie le budget courant (PUL-17 v1.1).
+    case spreadBudgetLineFromExisting(lineId: String, periods: [SpreadFromExistingPeriod], ToastContext)
 
     // Transaction mutations
     case addTransaction(Transaction)
     case softDeleteTransaction(Transaction, ToastContext)
     case deleteTransaction(Transaction)
     case postponeTransaction(Transaction, ToastContext)
+    /// Lisser une transaction libre existante (total préservé) (PUL-17 v1.1).
+    case spreadTransactionFromExisting(txId: String, periods: [SpreadFromExistingPeriod], ToastContext)
 
     // Side-effect: emit "Pointé" toast after a successful toggle
     case showCheckToastIfNeeded(BudgetLine, ToastContext, amountsHidden: Bool)

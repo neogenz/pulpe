@@ -24,6 +24,7 @@ final class MockBudgetLineService: BudgetLineServicing {
     var spreadError: Error?
     private(set) var createdSpreads: [BudgetLineSpreadCreate] = []
     private(set) var requestedOccurrenceGroupIds: [String] = []
+    private(set) var spreadFromLineCalls: [(id: String, periods: [SpreadFromExistingPeriod])] = []
 
     func deleteBudgetLine(id: String) async throws {
         deleteBudgetLineCallCount += 1
@@ -57,5 +58,19 @@ final class MockBudgetLineService: BudgetLineServicing {
         requestedOccurrenceGroupIds.append(spreadGroupId)
         if let spreadError { throw spreadError }
         return stubbedSpreadOccurrences
+    }
+
+    func spreadExistingBudgetLine(
+        id: String,
+        periods: [SpreadFromExistingPeriod]
+    ) async throws -> BudgetLineSpreadResponse {
+        spreadFromLineCalls.append((id: id, periods: periods))
+        if let spreadError { throw spreadError }
+        return stubbedSpreadResponse ?? BudgetLineSpreadResponse(
+            spreadGroupId: UUID(),
+            lines: [],
+            createdBudgets: [],
+            skippedMonths: []
+        )
     }
 }

@@ -86,30 +86,6 @@ extension BudgetLineDetailPage {
         .accessibilityLabel("\(Int(percentage.rounded()))% utilisé")
     }
 
-    /// Row-affordance opening the read-only occurrences sheet (PUL-17 Lot C).
-    /// A dedicated Button — NOT the whole detail row — so the gesture stays
-    /// explicit. Presented via the feature router's sheet slot.
-    func spreadAffordance(spreadGroupId: UUID) -> some View {
-        Button {
-            router.present(.spreadOccurrences(spreadGroupId: spreadGroupId.uuidString))
-        } label: {
-            PulpeChip(
-                icon: "calendar",
-                label: "Dépense lissée",
-                style: .muted,
-                trailing: {
-                    Image(systemName: "chevron.right")
-                        .font(PulpeTypography.metricMini)
-                        .foregroundStyle(Color.textTertiary)
-                }
-            )
-            .frame(maxWidth: .infinity, alignment: .leading)
-        }
-        .contentShape(Rectangle())
-        .plainPressedButtonStyle()
-        .accessibilityLabel("Voir les mois de la dépense lissée")
-    }
-
     func titleWithKindDot(line: BudgetLine) -> some View {
         HStack(spacing: DesignTokens.Spacing.sm) {
             Circle()

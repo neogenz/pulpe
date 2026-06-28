@@ -9,6 +9,10 @@ protocol BudgetLineServicing: Sendable {
     func postpone(id: String) async throws -> BudgetLine
     func createSpread(_ data: BudgetLineSpreadCreate) async throws -> BudgetLineSpreadResponse
     func getSpreadOccurrences(spreadGroupId: String) async throws -> [SpreadOccurrence]
+    func spreadExistingBudgetLine(
+        id: String,
+        periods: [SpreadFromExistingPeriod]
+    ) async throws -> BudgetLineSpreadResponse
 }
 
 /// Service for budget line API operations
@@ -49,6 +53,20 @@ actor BudgetLineService: BudgetLineServicing {
     /// Lot C). Drives the read-only occurrences sheet.
     func getSpreadOccurrences(spreadGroupId: String) async throws -> [SpreadOccurrence] {
         try await apiClient.request(.budgetLinesSpreadOccurrences(spreadGroupId: spreadGroupId), method: .get)
+    }
+
+    /// Lisse une prévision EXISTANTE en préservant son total (PUL-17 v1.1) :
+    /// le serveur lit le total T de la source, le redistribue en T/N sur les
+    /// `periods`, puis supprime la source — le tout dans une seule transaction.
+    func spreadExistingBudgetLine(
+        id: String,
+        periods: [SpreadFromExistingPeriod]
+    ) async throws -> BudgetLineSpreadResponse {
+        try await apiClient.request(
+            .budgetLineSpreadFromLine(id: id),
+            body: SpreadFromExistingCreate(periods: periods),
+            method: .post
+        )
     }
 
     /// Update a budget line

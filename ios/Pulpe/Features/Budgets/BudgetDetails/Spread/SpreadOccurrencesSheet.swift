@@ -2,32 +2,41 @@ import SwiftUI
 
 // MARK: - ViewModel
 
-/// Loads the read-only occurrences of a "Lisser" expense (PUL-17 Lot C).
+/// Loads the read-only occurrences of a "Lisser" expense (PUL-17 Lot C) and
+/// derives the realized progress (tracker + per-occurrence display flags) via
+/// the pure `SpreadProgress` formula.
 ///
-/// Mirrors `PreviousBudgetSheetViewModel`: fetches once via the service, exposes
-/// loading / error / data, and pre-computes which occurrences are past vs current
-/// using the payDay-aware `BudgetPeriodCalculator`. Past/current is resolved
-/// client-side (not a naive calendar compare) so a custom pay day shifts the
-/// "Ce mois" marker exactly like the rest of the app.
+/// Two reference frames are threaded in: `referencePeriod` (the VIEWED budget)
+/// drives the display axis (past/current/marker), and `livePeriod` (today,
+/// payDay-aware) drives the realization axis (`isClosed` → the tracker cumulé).
+/// `isCurrentPeriod` distinguishes "Ce mois" (viewed IS the live period) from
+/// "Ici" (just the month being looked at).
 @Observable @MainActor
 final class SpreadOccurrencesSheetViewModel {
-    private(set) var occurrences: [SpreadOccurrence] = []
+    private(set) var items: [SpreadOccurrenceItem] = []
+    private(set) var tracker: SpreadTracker?
     private(set) var isLoading = true
     private(set) var error: Error?
 
-    let spreadGroupId: String
+    let isCurrentPeriod: Bool
+
+    private let spreadGroupId: String
     private let service: any BudgetLineServicing
-    private let currentPeriod: BudgetPeriod
+    private let referencePeriod: BudgetPeriod
+    private let livePeriod: BudgetPeriod
 
     init(
         spreadGroupId: String,
+        referencePeriod: BudgetPeriod,
         payDayOfMonth: Int?,
         service: any BudgetLineServicing = BudgetLineService.shared,
         now: Date = Date()
     ) {
         self.spreadGroupId = spreadGroupId
         self.service = service
-        self.currentPeriod = BudgetPeriodCalculator.periodForDate(now, payDayOfMonth: payDayOfMonth)
+        self.referencePeriod = referencePeriod
+        self.livePeriod = BudgetPeriodCalculator.periodForDate(now, payDayOfMonth: payDayOfMonth)
+        self.isCurrentPeriod = BudgetPeriodCalculator.comparePeriods(referencePeriod, livePeriod) == 0
     }
 
     func load() async {
@@ -37,45 +46,39 @@ final class SpreadOccurrencesSheetViewModel {
 
         do {
             let fetched = try await service.getSpreadOccurrences(spreadGroupId: spreadGroupId)
-            occurrences = fetched.sorted { lhs, rhs in
-                BudgetPeriodCalculator.comparePeriods(lhs.period, rhs.period) < 0
-            }
+            items = SpreadProgress.buildItems(
+                occurrences: fetched,
+                referencePeriod: referencePeriod,
+                livePeriod: livePeriod
+            )
+            tracker = SpreadProgress.buildTracker(from: items)
         } catch is CancellationError {
             // Task cancelled — keep current state.
         } catch {
             self.error = error
         }
     }
-
-    /// `true` when the occurrence's period precedes the current budget period
-    /// (payDay-aware). Past occurrences are dimmed and non-interactive.
-    func isPast(_ occurrence: SpreadOccurrence) -> Bool {
-        BudgetPeriodCalculator.comparePeriods(occurrence.period, currentPeriod) < 0
-    }
-
-    /// `true` for the occurrence living in the current budget period.
-    func isCurrent(_ occurrence: SpreadOccurrence) -> Bool {
-        BudgetPeriodCalculator.comparePeriods(occurrence.period, currentPeriod) == 0
-    }
-
-    func monthLabel(_ occurrence: SpreadOccurrence) -> String {
-        "\(Formatters.monthName(for: occurrence.month)) \(occurrence.year)"
-    }
 }
 
 // MARK: - View
 
-/// Read-only month-by-month timeline of a "Lisser" expense (PUL-17 Lot C).
-/// Clones the `PreviousBudgetSheet` scaffolding: NavigationStack + List + close
-/// button + `.standardSheetPresentation(detents:)`.
+/// Read-only month-by-month timeline of a "Lisser" expense (PUL-17 Lot C),
+/// fronted by the realized progress tracker. Clones the `PreviousBudgetSheet`
+/// scaffolding: NavigationStack + List + close button + standard presentation.
 struct SpreadOccurrencesSheet: View {
     @State private var viewModel: SpreadOccurrencesSheetViewModel
     let currency: SupportedCurrency
 
-    init(spreadGroupId: String, payDayOfMonth: Int?, currency: SupportedCurrency) {
+    init(
+        spreadGroupId: String,
+        referencePeriod: BudgetPeriod,
+        payDayOfMonth: Int?,
+        currency: SupportedCurrency
+    ) {
         self._viewModel = State(
             initialValue: SpreadOccurrencesSheetViewModel(
                 spreadGroupId: spreadGroupId,
+                referencePeriod: referencePeriod,
                 payDayOfMonth: payDayOfMonth
             )
         )
@@ -85,9 +88,9 @@ struct SpreadOccurrencesSheet: View {
     var body: some View {
         NavigationStack {
             Group {
-                if viewModel.isLoading && viewModel.occurrences.isEmpty {
+                if viewModel.isLoading && viewModel.items.isEmpty {
                     LoadingView(message: "Chargement...")
-                } else if let error = viewModel.error, viewModel.occurrences.isEmpty {
+                } else if let error = viewModel.error, viewModel.items.isEmpty {
                     ErrorView(error: error) { await viewModel.load() }
                 } else {
                     content
@@ -107,15 +110,19 @@ struct SpreadOccurrencesSheet: View {
 
     private var content: some View {
         List {
+            if let tracker = viewModel.tracker {
+                Section {
+                    SpreadTrackerHeader(tracker: tracker, currency: currency)
+                        .listRowBackground(Color.clear)
+                }
+            }
+
             Section {
-                ForEach(viewModel.occurrences) { occurrence in
+                ForEach(viewModel.items) { item in
                     SpreadOccurrenceRow(
-                        monthLabel: viewModel.monthLabel(occurrence),
-                        amount: occurrence.amount,
+                        item: item,
                         currency: currency,
-                        isPast: viewModel.isPast(occurrence),
-                        isChecked: occurrence.isChecked,
-                        isCurrent: viewModel.isCurrent(occurrence)
+                        isCurrentPeriod: viewModel.isCurrentPeriod
                     )
                     .listRowBackground(Color.clear)
                 }
@@ -127,62 +134,10 @@ struct SpreadOccurrencesSheet: View {
     }
 }
 
-// MARK: - Row
-
-/// One occurrence row — month label + amount. Display-only.
-/// Past = dimmed + non-interactive; checked = struck-through + secondary; the two
-/// compose. The current period carries a "Ce mois" marker.
-private struct SpreadOccurrenceRow: View {
-    let monthLabel: String
-    let amount: Decimal
-    let currency: SupportedCurrency
-    let isPast: Bool
-    let isChecked: Bool
-    let isCurrent: Bool
-
-    var body: some View {
-        HStack(spacing: DesignTokens.Spacing.md) {
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
-                Text(monthLabel)
-                    .font(PulpeTypography.listRowTitle)
-                    .foregroundStyle(isChecked ? Color.secondary : Color.textPrimary)
-                    .strikethrough(isChecked, color: .secondary)
-
-                if isCurrent {
-                    Text("Ce mois")
-                        .font(PulpeTypography.metricMini)
-                        .foregroundStyle(Color.pulpePrimary)
-                }
-            }
-
-            Spacer(minLength: DesignTokens.Spacing.sm)
-
-            Text(amount.asCurrency(currency))
-                .font(PulpeTypography.amountCard)
-                .monospacedDigit()
-                .foregroundStyle(isChecked ? Color.secondary : Color.textPrimary)
-                .strikethrough(isChecked, color: .secondary)
-                .sensitiveAmount()
-        }
-        .padding(.vertical, DesignTokens.Spacing.xs)
-        .opacity(isPast ? DesignTokens.Opacity.disabled : 1)
-        .allowsHitTesting(!isPast)
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel(accessibilityLabel)
-    }
-
-    private var accessibilityLabel: String {
-        var parts = [monthLabel, amount.asCurrency(currency)]
-        if isCurrent { parts.append("ce mois") }
-        if isChecked { parts.append("pointé") }
-        if isPast { parts.append("passé") }
-        return parts.joined(separator: ", ")
-    }
-}
-
 #Preview {
     SpreadOccurrencesSheet(
         spreadGroupId: "preview-group",
+        referencePeriod: BudgetPeriod(month: 6, year: 2026),
         payDayOfMonth: nil,
         currency: .chf
     )

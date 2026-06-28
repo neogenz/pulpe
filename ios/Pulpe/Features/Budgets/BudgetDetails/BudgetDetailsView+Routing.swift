@@ -2,6 +2,11 @@ import SwiftUI
 
 // MARK: - Routing
 
+/// Push + sheet destination builders for `BudgetDetailsView`, split out to keep
+/// the main view file under the feature's 350-LOC budget (same precedent as the
+/// `BudgetLineDetailPage` ↔ `+Hero` split). The members used here
+/// (`coordinator`, `router`, `userSettingsStore`, `toastContext`) are declared
+/// non-private on the view for this reason.
 extension BudgetDetailsView {
     @ViewBuilder
     func pushDestination(for route: BudgetLinePushRoute) -> some View {
@@ -43,11 +48,34 @@ extension BudgetDetailsView {
                 realizedMetrics: coordinator.dataStore.realizedMetrics
             )
         case .spreadOccurrences(let spreadGroupId):
+            // The VIEWED budget's period anchors the display axis (past/current,
+            // "Ce mois" vs "Ici"); the live period (today) drives realization.
+            let openBudget = coordinator.dataStore.budget
             SpreadOccurrencesSheet(
                 spreadGroupId: spreadGroupId,
+                referencePeriod: BudgetPeriod(
+                    month: openBudget?.month ?? Calendar.current.component(.month, from: Date()),
+                    year: openBudget?.year ?? Calendar.current.component(.year, from: Date())
+                ),
                 payDayOfMonth: userSettingsStore.payDayOfMonth,
                 currency: userSettingsStore.currency
             )
+        case .spreadExisting(let source):
+            SpreadExistingSheet(source: source, currency: userSettingsStore.currency) { periods in
+                let ctx = toastContext
+                Task {
+                    switch source.sourceType {
+                    case .budgetLine:
+                        await coordinator.dispatch(
+                            .spreadBudgetLineFromExisting(lineId: source.id, periods: periods, ctx)
+                        )
+                    case .transaction:
+                        await coordinator.dispatch(
+                            .spreadTransactionFromExisting(txId: source.id, periods: periods, ctx)
+                        )
+                    }
+                }
+            }
         }
     }
 }

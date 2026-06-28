@@ -23,7 +23,11 @@ enum SpreadAmountKind: String, Encodable, Sendable {
 /// - `mode == .total`: `totalAmount` set, the server divides it cents-preservingly.
 /// A single frozen FX trio (figé) covers every month; the `*OriginalAmount` mirror
 /// of the active amount is present only in full-FX (multi-currency) spreads.
-/// The `spreadGroupId` is generated server-side.
+///
+/// `spreadGroupId` is the client-minted idempotency key (PUL-17): one stable uuid
+/// per create intent, replayed verbatim on every retry so the server REPLAYS the
+/// existing group instead of duplicating it (cf. docs/SPREAD.md « Idempotence »).
+/// Lowercased to mirror the web's `crypto.randomUUID()` byte-for-byte.
 struct BudgetLineSpreadCreate: Encodable, Sendable {
     let name: String
     let kind: TransactionKind
@@ -36,6 +40,7 @@ struct BudgetLineSpreadCreate: Encodable, Sendable {
     let originalCurrency: SupportedCurrency?
     let targetCurrency: SupportedCurrency?
     let exchangeRate: Decimal?
+    let spreadGroupId: String
 
     init(
         name: String,
@@ -48,7 +53,8 @@ struct BudgetLineSpreadCreate: Encodable, Sendable {
         totalOriginalAmount: Decimal? = nil,
         originalCurrency: SupportedCurrency? = nil,
         targetCurrency: SupportedCurrency? = nil,
-        exchangeRate: Decimal? = nil
+        exchangeRate: Decimal? = nil,
+        spreadGroupId: String = UUID().uuidString.lowercased()
     ) {
         self.name = name
         self.kind = kind
@@ -61,7 +67,24 @@ struct BudgetLineSpreadCreate: Encodable, Sendable {
         self.originalCurrency = originalCurrency
         self.targetCurrency = targetCurrency
         self.exchangeRate = exchangeRate
+        self.spreadGroupId = spreadGroupId
     }
+}
+
+/// One target month for a total-preserving "lisser un existant" (PUL-17 v1.1).
+/// The client sends only the periods; the server reads the source's total T and
+/// redistributes it into T/N (splitTotalPreserving), then deletes the source.
+struct SpreadFromExistingPeriod: Encodable, Sendable {
+    let year: Int
+    let month: Int
+}
+
+/// Request body for the from-existing spread endpoints
+/// (`POST /budget-lines/:id/spread`, `POST /transactions/:id/spread`). N ≥ 2 —
+/// lisser sur 1 mois est un no-op. The window starts at M0 toward the future
+/// only (never rewrites a closed month).
+struct SpreadFromExistingCreate: Encodable, Sendable {
+    let periods: [SpreadFromExistingPeriod]
 }
 
 /// A month with no default template, skipped during fan-out (no budget created,

@@ -83,8 +83,16 @@ struct BudgetListStoreCacheInvalidationTests {
         let dashboardBaseline = dashboardMock.getBudgetsSparseCallCount
 
         let coordinator = BudgetDetailsCoordinator(budgetId: "budget-current")
-        // mirrors BudgetDetailsView's .task
-        coordinator.bind(budgetListStore: listStore, dashboardStore: dashboardStore)
+        // CurrentMonthStore (concrete service, not mock-injectable) backs the
+        // CurrentMonth tab; bind() must wire it into the same onMutation closure
+        // whose execution the list + dashboard assertions below already prove.
+        let currentMonthStore = CurrentMonthStore()
+        // mirrors BudgetDetailsView's .task — wires all three app-scoped stores
+        coordinator.bind(
+            budgetListStore: listStore,
+            dashboardStore: dashboardStore,
+            currentMonthStore: currentMonthStore
+        )
         let tx = TestDataFactory.createTransaction(id: "new-tx", budgetId: "budget-current")
         await coordinator.dispatch(.addTransaction(tx))
 
