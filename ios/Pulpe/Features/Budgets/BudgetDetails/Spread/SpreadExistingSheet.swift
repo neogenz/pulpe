@@ -248,8 +248,8 @@ struct SpreadExistingSheet: View {
         } label: {
             Text(spreadTitle)
         }
-        .disabled(!calculator.isValid)
-        .primaryButtonStyle(isEnabled: calculator.isValid)
+        .disabled(!calculator.isValid || isSubmitting)
+        .primaryButtonStyle(isEnabled: calculator.isValid && !isSubmitting)
     }
 }
 
