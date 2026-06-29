@@ -31,7 +31,7 @@ import {
   BUDGET_LINE_SPREAD_OCCURRENCES_PORT,
   type BudgetLineCheckTransactionsPort,
   type BudgetLineSpreadOccurrencesPort,
-} from '../../../budget-line/domain/ports/budget-line-allocation.port';
+} from '@modules/budget-line/domain/ports/budget-line-allocation.port';
 import { AllocationMapper } from '../mappers/allocation.mapper';
 import {
   AllocationSpreadOccurrencesResponseDto,

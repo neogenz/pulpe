@@ -29,7 +29,7 @@ import { ErrorResponseDto } from '@common/dto/response.dto';
 import {
   TRANSACTION_SPREAD_FROM_TXN_PORT,
   type TransactionSpreadFromTxnPort,
-} from '../../../transaction/domain/ports/transaction-spread-from-txn.port';
+} from '@modules/transaction/domain/ports/transaction-spread-from-txn.port';
 import { AllocationMapper } from '../mappers/allocation.mapper';
 import {
   AllocationTransactionSpreadFromTxnCreateDto,

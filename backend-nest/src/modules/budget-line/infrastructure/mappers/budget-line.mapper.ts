@@ -5,11 +5,16 @@ import {
   type SpreadOccurrence as SpreadOccurrenceApi,
 } from 'pulpe-shared';
 import {
+  mapBudgetLineToApi,
+  mapBudgetLinesToApi,
+  mapSpreadOccurrenceToApi,
+  mapSpreadOccurrencesToApi,
+} from '@common/utils/budget-line-api.mapper';
+import {
+  type BudgetApiSource,
   mapBudgetToApi,
   mapBudgetsToApi,
 } from '@common/utils/budget-api.mapper';
-import { mapCurrencyMetadataToApi } from '@common/utils/currency-metadata.mapper';
-import type { Budget } from '../../../budget/domain/budget.entity';
 import type {
   BudgetLine,
   SpreadOccurrence,
@@ -18,67 +23,28 @@ import type {
 @Injectable()
 export class BudgetLineMapper {
   toApi(entity: BudgetLine): BudgetLineApi {
-    return {
-      id: entity.id,
-      budgetId: entity.budgetId,
-      templateLineId: entity.templateLineId,
-      savingsGoalId: entity.savingsGoalId,
-      spreadGroupId: entity.spreadGroupId,
-      name: entity.name,
-      amount: entity.amount,
-      kind: entity.kind,
-      recurrence: entity.recurrence,
-      isManuallyAdjusted: entity.isManuallyAdjusted,
-      checkedAt: entity.checkedAt,
-      createdAt: entity.createdAt,
-      updatedAt: entity.updatedAt,
-      ...mapCurrencyMetadataToApi({
-        original_amount: entity.originalAmount,
-        original_currency: entity.originalCurrency,
-        target_currency: entity.targetCurrency,
-        exchange_rate: entity.exchangeRate,
-      }),
-    };
+    return mapBudgetLineToApi(entity);
   }
 
   toApiList(entities: BudgetLine[]): BudgetLineApi[] {
-    return entities.map((entity) => this.toApi(entity));
+    return mapBudgetLinesToApi(entities);
   }
 
-  toBudgetApi(entity: Budget): BudgetApi {
+  toBudgetApi(entity: BudgetApiSource): BudgetApi {
     return mapBudgetToApi(entity);
   }
 
-  toBudgetApiList(entities: Budget[]): BudgetApi[] {
+  toBudgetApiList(entities: BudgetApiSource[]): BudgetApi[] {
     return mapBudgetsToApi(entities);
   }
 
   toSpreadOccurrenceApi(occurrence: SpreadOccurrence): SpreadOccurrenceApi {
-    return {
-      budgetLineId: occurrence.budgetLineId,
-      budgetId: occurrence.budgetId,
-      month: occurrence.month,
-      year: occurrence.year,
-      name: occurrence.name,
-      amount: occurrence.amount,
-      consumed: occurrence.consumed,
-      transactionCount: occurrence.transactionCount,
-      kind: occurrence.kind,
-      checkedAt: occurrence.checkedAt,
-      ...mapCurrencyMetadataToApi({
-        original_amount: occurrence.originalAmount,
-        original_currency: occurrence.originalCurrency,
-        target_currency: occurrence.targetCurrency,
-        exchange_rate: occurrence.exchangeRate,
-      }),
-    };
+    return mapSpreadOccurrenceToApi(occurrence);
   }
 
   toSpreadOccurrenceApiList(
     occurrences: SpreadOccurrence[],
   ): SpreadOccurrenceApi[] {
-    return occurrences.map((occurrence) =>
-      this.toSpreadOccurrenceApi(occurrence),
-    );
+    return mapSpreadOccurrencesToApi(occurrences);
   }
 }

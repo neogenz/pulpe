@@ -1,7 +1,6 @@
 import type { SupportedCurrency } from 'pulpe-shared';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import type { BudgetLine, SpreadDeleteSource } from '../budget-line.entity';
-import type { Budget } from '../../../budget/domain/budget.entity';
 
 export const BUDGET_LINE_SPREAD_PORT = Symbol('BUDGET_LINE_SPREAD_PORT');
 
@@ -42,10 +41,22 @@ export interface SpreadFanOutInput {
   spreadGroupId?: string;
 }
 
+export interface SpreadFanOutBudget {
+  id: string;
+  userId: string | null;
+  templateId: string;
+  month: number;
+  year: number;
+  description: string;
+  endingBalance: number | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface SpreadFanOutResult {
   spreadGroupId: string;
   lines: BudgetLine[];
-  createdBudgets: Budget[];
+  createdBudgets: SpreadFanOutBudget[];
   /** Periods with no budget and no default template (caller decides tolerance). */
   skippedMonths: { month: number; year: number }[];
 }

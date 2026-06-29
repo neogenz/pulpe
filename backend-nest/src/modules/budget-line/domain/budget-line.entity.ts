@@ -84,6 +84,50 @@ export interface SpreadOccurrence {
 }
 
 /**
+ * Transaction projection returned by the budget-line allocation RPC.
+ *
+ * Kept local to the budget-line domain port so this domain does not import the
+ * transaction domain only to describe a read result.
+ */
+export interface BudgetLineCheckedTransaction {
+  id: string;
+  budgetId: string;
+  budgetLineId: string | null;
+  name: string;
+  amount: number;
+  originalAmount: number | null;
+  originalCurrency: string | null;
+  targetCurrency: string | null;
+  exchangeRate: number | null;
+  kind: TransactionKind;
+  category: string | null;
+  transactionDate: string;
+  checkedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * Template-line projection used to reset a budget line from its source template.
+ * Mirrors the budget-template domain shape without importing that domain here.
+ */
+export interface TemplateLine {
+  id: string;
+  templateId: string;
+  name: string;
+  amount: number;
+  originalAmount: number | null;
+  originalCurrency: SupportedCurrency | null;
+  targetCurrency: SupportedCurrency | null;
+  exchangeRate: number | null;
+  kind: TransactionKind;
+  recurrence: TransactionRecurrence;
+  description: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
  * PUL-17 v1.1 (Defect 2): the source entity to delete ATOMICALLY inside the
  * `create_budget_lines_spread` RPC (same all-or-nothing transaction as the
  * fan-out insert). The discriminated `type` selects which guarded RPC delete
@@ -132,5 +176,3 @@ export interface BudgetLineUpdatePatch {
   isManuallyAdjusted?: boolean;
   checkedAt?: string | null;
 }
-
-export type { TemplateLine } from '../../budget-template/domain/budget-template.entity';
