@@ -10,6 +10,12 @@ export const TRANSACTION_SPREAD_FROM_TXN_PORT = Symbol(
   'TRANSACTION_SPREAD_FROM_TXN_PORT',
 );
 
+/**
+ * BudgetLine projection returned by the transaction spread-from flow.
+ *
+ * Kept local to the transaction port so this domain does not import the
+ * budget-line domain only to describe a read result.
+ */
 export interface TransactionSpreadBudgetLine {
   id: string;
   budgetId: string;
