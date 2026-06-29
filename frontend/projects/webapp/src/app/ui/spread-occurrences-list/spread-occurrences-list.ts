@@ -17,7 +17,7 @@ import type {
  * PUL-17 — pure presentational cross-month view of a spread group.
  *
  * Renders the progress tracker (ordinal position · cumulé · `bg-primary` bar ·
- * per-month) followed by the month-by-month occurrence list (past dimmed,
+ * PUL-290 catch-up) followed by the month-by-month occurrence list (past dimmed,
  * viewed-month badged, future normal, checked struck-through).
  *
  * Pure `ui/`: inputs only, NO `@core/` import, NO store. Amounts use
@@ -26,10 +26,11 @@ import type {
  * hand-rolled because this view needs three variants the fixed-2-decimal
  * `getCurrencyFormatter` can't produce: 0-dec aggregation, 2-dec ligne, and the
  * composite "consommé / prévu" sharing a single symbol (see
- * `webapp-currency-formatting.md`). Dual decimal policy: tracker cumulé/total =
- * aggregation (0 decimals), per-month + each occurrence amount = ligne (2
- * decimals). `ph-no-capture` wraps every amount span, never the month name or
- * the position label.
+ * `webapp-currency-formatting.md`). Dual decimal policy: tracker cumulé/total +
+ * the PUL-290 catch-up (reste à provisionner, à prévoir par mois) = aggregation
+ * (0 decimals, per CA8); each occurrence amount = ligne (2 decimals).
+ * `ph-no-capture` wraps every amount span, never the month name or the position
+ * label.
  *
  * `isCurrentPeriod` distinguishes "this budget IS the live current month"
  * ("Ce mois") from "this is just the month you are looking at" ("Ici").
@@ -79,12 +80,49 @@ import type {
             [style.width.%]="t.progressPercent"
           ></div>
         </div>
-        <span class="ph-no-capture text-body-small text-on-surface-variant">
-          {{
-            'budgetLine.spread.trackerPerMonth'
-              | transloco: { perMonth: formatLine(t.perMonthAmount) }
-          }}
-        </span>
+        <!-- PUL-290 — explicit catch-up: replaces the static "T/N par mois"
+             (which forced the user to do the math) with the forward-looking
+             amount to provision to hit the objectif. Three serene states. -->
+        @if (t.remainingToProvision === 0) {
+          <span
+            class="text-body-small font-medium text-primary"
+            data-testid="spread-provision-reached"
+          >
+            {{ 'budgetLine.spread.trackerGoalReached' | transloco }}
+          </span>
+        } @else if (t.perRemainingMonth === null) {
+          <span
+            class="ph-no-capture text-body-small text-on-surface-variant"
+            data-testid="spread-provision-final-gap"
+          >
+            {{
+              'budgetLine.spread.trackerFinalGap'
+                | transloco
+                  : { remaining: formatAggregation(t.remainingToProvision) }
+            }}
+          </span>
+        } @else {
+          <span
+            class="ph-no-capture text-body-small text-on-surface-variant"
+            data-testid="spread-provision-remaining"
+          >
+            {{
+              'budgetLine.spread.trackerRemaining'
+                | transloco
+                  : { remaining: formatAggregation(t.remainingToProvision) }
+            }}
+          </span>
+          <span
+            class="ph-no-capture text-body-small font-medium text-on-surface"
+            data-testid="spread-provision-per-month"
+          >
+            {{
+              'budgetLine.spread.trackerPerRemainingMonth'
+                | transloco
+                  : { perMonth: formatAggregation(t.perRemainingMonth) }
+            }}
+          </span>
+        }
       </div>
     }
 

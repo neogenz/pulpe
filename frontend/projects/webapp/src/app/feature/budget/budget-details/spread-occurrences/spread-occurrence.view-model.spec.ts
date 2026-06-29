@@ -330,3 +330,95 @@ describe('buildSpreadTracker (PUL-17 — réalisé)', () => {
     expect(buildSpreadTracker(vms)!.perMonthAmount).toBeCloseTo(33.34, 2);
   });
 });
+
+describe('buildSpreadTracker (PUL-290 — reste à provisionner)', () => {
+  const viewed: BudgetPeriod = { month: 6, year: 2026 };
+
+  it('should grow the per-remaining-month to cover an under-provisioned past month (300 / 3, mois 2 réalisé 50 → 150)', () => {
+    const occurrences = [
+      occurrence({ month: 5, year: 2026, amount: 100 }),
+      occurrence({
+        month: 6,
+        year: 2026,
+        amount: 100,
+        consumed: 50,
+        transactionCount: 2,
+      }),
+      occurrence({ month: 7, year: 2026, amount: 100 }),
+    ];
+    // live = July → May & June closed (réalisé 100 + 50 = 150), July still open.
+    const vms = buildSpreadOccurrenceViewModels(occurrences, viewed, {
+      month: 7,
+      year: 2026,
+    });
+
+    const tracker = buildSpreadTracker(vms)!;
+
+    expect(tracker.remainingToProvision).toBe(150);
+    expect(tracker.perRemainingMonth).toBe(150);
+  });
+
+  it('should report objectif atteint (remaining 0, no per-month) once provisionné ≥ objectif', () => {
+    const occurrences = [
+      occurrence({ month: 5, year: 2026, amount: 100 }),
+      occurrence({ month: 6, year: 2026, amount: 100 }),
+    ];
+    // live = December → both closed, réalisé = prévu = 200 = total.
+    const vms = buildSpreadOccurrenceViewModels(occurrences, viewed, {
+      month: 12,
+      year: 2026,
+    });
+
+    const tracker = buildSpreadTracker(vms)!;
+
+    expect(tracker.remainingToProvision).toBe(0);
+    expect(tracker.perRemainingMonth).toBeNull();
+  });
+
+  it('should leave a final gap with no per-month when every month is closed but under-provisioned', () => {
+    const occurrences = [
+      occurrence({
+        month: 5,
+        year: 2026,
+        amount: 100,
+        consumed: 60,
+        transactionCount: 1,
+      }),
+      occurrence({ month: 6, year: 2026, amount: 100 }),
+    ];
+    // live = December → both closed; réalisé = 60 (consumed) + 100 (prévu) = 160.
+    const vms = buildSpreadOccurrenceViewModels(occurrences, viewed, {
+      month: 12,
+      year: 2026,
+    });
+
+    const tracker = buildSpreadTracker(vms)!;
+
+    expect(tracker.remainingToProvision).toBe(40);
+    expect(tracker.perRemainingMonth).toBeNull();
+  });
+
+  it('should exclude a pointée-but-open current month from the divisor (no double-count)', () => {
+    const occurrences = [
+      occurrence({
+        month: 6,
+        year: 2026,
+        amount: 100,
+        checkedAt: '2026-06-02T00:00:00+02:00',
+      }),
+      occurrence({ month: 7, year: 2026, amount: 100 }),
+    ];
+    // live = June → June is current (not closed) but pointée → counts in réalisé
+    // AND must NOT also be a divisor slot. Only July is open → 100 / 1 = 100.
+    const vms = buildSpreadOccurrenceViewModels(occurrences, viewed, {
+      month: 6,
+      year: 2026,
+    });
+
+    const tracker = buildSpreadTracker(vms)!;
+
+    expect(tracker.cumulatedAmount).toBe(100);
+    expect(tracker.remainingToProvision).toBe(100);
+    expect(tracker.perRemainingMonth).toBe(100);
+  });
+});

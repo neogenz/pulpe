@@ -97,6 +97,8 @@ describe('SpreadOccurrencesList', () => {
     totalAmount: 100,
     perMonthAmount: 33.33,
     progressPercent: 66.67,
+    remainingToProvision: 33.33,
+    perRemainingMonth: 33.33,
     ...overrides,
   });
 
@@ -150,17 +152,64 @@ describe('SpreadOccurrencesList', () => {
     expect(text).not.toContain('100,00');
   });
 
-  it('should format the per-month tracker amount as ligne (2 decimals)', () => {
+  it('should render the PUL-290 catch-up (reste + à prévoir/mois) as aggregation (0 decimals)', () => {
     const occurrences = [viewModel(occurrence({ month: 6, year: 2026 }))];
 
     const host = render({
       occurrences,
-      tracker: tracker({ perMonthAmount: 33.33 }),
+      tracker: tracker({ remainingToProvision: 150, perRemainingMonth: 150 }),
     });
 
-    const text =
-      host.querySelector('[data-testid="spread-tracker"]')?.textContent ?? '';
-    expect(text).toContain('33,33');
+    const remaining = host.querySelector(
+      '[data-testid="spread-provision-remaining"]',
+    );
+    const perMonth = host.querySelector(
+      '[data-testid="spread-provision-per-month"]',
+    );
+    // Aggregation (0-dec, CA8): "Reste 150 € à provisionner" / "~150 € par mois".
+    expect(remaining?.textContent).toContain('150');
+    expect(remaining?.textContent).not.toContain('150,00');
+    expect(perMonth?.textContent).toContain('150');
+    expect(perMonth?.textContent).not.toContain('150,00');
+  });
+
+  it('should show "objectif atteint" and hide the catch-up lines when nothing is left to provision', () => {
+    const occurrences = [viewModel(occurrence({ month: 6, year: 2026 }))];
+
+    const host = render({
+      occurrences,
+      tracker: tracker({ remainingToProvision: 0, perRemainingMonth: null }),
+    });
+
+    expect(
+      host.querySelector('[data-testid="spread-provision-reached"]'),
+    ).not.toBeNull();
+    expect(
+      host.querySelector('[data-testid="spread-provision-remaining"]'),
+    ).toBeNull();
+    expect(
+      host.querySelector('[data-testid="spread-provision-per-month"]'),
+    ).toBeNull();
+  });
+
+  it('should show only the final gap (no per-month) when every month is closed but the objectif is unmet', () => {
+    const occurrences = [viewModel(occurrence({ month: 6, year: 2026 }))];
+
+    const host = render({
+      occurrences,
+      tracker: tracker({ remainingToProvision: 80, perRemainingMonth: null }),
+    });
+
+    const finalGap = host.querySelector(
+      '[data-testid="spread-provision-final-gap"]',
+    );
+    expect(finalGap?.textContent).toContain('80');
+    expect(
+      host.querySelector('[data-testid="spread-provision-per-month"]'),
+    ).toBeNull();
+    expect(
+      host.querySelector('[data-testid="spread-provision-reached"]'),
+    ).toBeNull();
   });
 
   it('should format each occurrence amount as ligne (2 decimals)', () => {

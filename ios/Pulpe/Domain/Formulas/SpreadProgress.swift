@@ -26,6 +26,13 @@ struct SpreadOccurrenceItem: Identifiable, Sendable {
 /// `cumulatedAmount` sums REALIZED occurrences only (closed OR pointé) of their
 /// realized amount (consommé if sub-transactions, else prévu) — never
 /// `index × perMonth`.
+///
+/// PUL-290 — the explicit catch-up (mirrors web): `remainingToProvision` =
+/// `max(0, totalAmount − cumulatedAmount)` (objectif − provisionné, 0 ⇒ objectif
+/// atteint); `perRemainingMonth` = that remainder ÷ the number of OPEN months
+/// (occurrences neither closed NOR pointée — exact complement of the réalisé
+/// filter), `nil` when nothing is left to provision OR no open month remains
+/// (no division by zero, no negative catch-up).
 struct SpreadTracker: Equatable, Sendable {
     let count: Int
     let currentIndex: Int
@@ -33,6 +40,8 @@ struct SpreadTracker: Equatable, Sendable {
     let totalAmount: Decimal
     let perMonthAmount: Decimal
     let progressPercent: Double
+    let remainingToProvision: Decimal
+    let perRemainingMonth: Decimal?
 }
 
 /// Pure derivation of the spread occurrence items + progress tracker. Port of
@@ -92,13 +101,21 @@ enum SpreadProgress {
             progressPercent = 0
         }
 
+        let remainingToProvision = Swift.max(Decimal.zero, totalAmount - cumulatedAmount)
+        let openMonths = items.filter { !($0.isClosed || $0.isChecked) }.count
+        let perRemainingMonth: Decimal? = (remainingToProvision > 0 && openMonths > 0)
+            ? remainingToProvision / Decimal(openMonths)
+            : nil
+
         return SpreadTracker(
             count: items.count,
             currentIndex: currentIndex,
             cumulatedAmount: cumulatedAmount,
             totalAmount: totalAmount,
             perMonthAmount: perMonthAmount,
-            progressPercent: progressPercent
+            progressPercent: progressPercent,
+            remainingToProvision: remainingToProvision,
+            perRemainingMonth: perRemainingMonth
         )
     }
 }
