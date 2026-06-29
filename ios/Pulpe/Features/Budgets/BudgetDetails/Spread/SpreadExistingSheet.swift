@@ -83,6 +83,10 @@ struct SpreadExistingSheet: View {
             }
         }
         .standardSheetPresentation(detents: [.medium, .large])
+        // Block swipe-to-dismiss while the spread runs — same guard as the
+        // disabled cancel button, closing the other path that could dismiss the
+        // sheet mid-fan-out (parity with ConfirmPasswordSheet).
+        .interactiveDismissDisabled(isSubmitting)
     }
 
     // MARK: - Locked total
