@@ -127,4 +127,50 @@ struct SpreadProgressTests {
         let noCurrent = [occ(month: 5, amount: 100), occ(month: 6, amount: 100), occ(month: 7, amount: 333)]
         #expect(tracker(noCurrent, ref: 2, live: 2)?.perMonthAmount == 333)
     }
+
+    // MARK: - PUL-290 reste à provisionner (parity with the web view-model spec)
+
+    @Test func buildTracker_perRemainingMonth_growsToCoverAnUnderProvisionedMonth() {
+        // 300 / 3, mois 2 réalisé 50 → reste 150, le mois restant doit prévoir 150.
+        let occurrences = [
+            occ(month: 5, amount: 100),
+            occ(month: 6, amount: 100, consumed: 50, transactionCount: 2),
+            occ(month: 7, amount: 100),
+        ]
+        // live = July → May & June closed (réalisé 100 + 50 = 150), July open.
+        let result = tracker(occurrences, ref: 6, live: 7)
+        #expect(result?.remainingToProvision == 150)
+        #expect(result?.perRemainingMonth == 150)
+    }
+
+    @Test func buildTracker_objectifAtteint_remainingZero_perRemainingNil() {
+        let occurrences = [occ(month: 5, amount: 100), occ(month: 6, amount: 100)]
+        // live = December → both closed, réalisé = prévu = 200 = total.
+        let result = tracker(occurrences, ref: 6, live: 12)
+        #expect(result?.remainingToProvision == 0)
+        #expect(result?.perRemainingMonth == nil)
+    }
+
+    @Test func buildTracker_finalGap_allClosedButUnderProvisioned_perRemainingNil() {
+        let occurrences = [
+            occ(month: 5, amount: 100, consumed: 60, transactionCount: 1),
+            occ(month: 6, amount: 100),
+        ]
+        // live = December → both closed; réalisé = 60 (consumed) + 100 (prévu) = 160.
+        let result = tracker(occurrences, ref: 6, live: 12)
+        #expect(result?.remainingToProvision == 40)
+        #expect(result?.perRemainingMonth == nil)
+    }
+
+    @Test func buildTracker_pointeeOpenMonth_isExcludedFromDivisor() {
+        let occurrences = [
+            occ(month: 6, amount: 100, checkedAt: Date()), // current + pointé → réalisé, NOT a divisor slot
+            occ(month: 7, amount: 100),                    // open → the only divisor slot
+        ]
+        // live = June → June current (not closed) but pointée; only July is open → 100 / 1.
+        let result = tracker(occurrences, ref: 6, live: 6)
+        #expect(result?.cumulatedAmount == 100)
+        #expect(result?.remainingToProvision == 100)
+        #expect(result?.perRemainingMonth == 100)
+    }
 }

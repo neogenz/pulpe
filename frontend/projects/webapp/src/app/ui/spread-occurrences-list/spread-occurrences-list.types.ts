@@ -45,9 +45,20 @@ export interface SpreadOccurrenceViewModel {
  *                       not calendar position — NOT `index × perMonth`.
  * - `totalAmount`     = Σ of ALL occurrence amounts (Σ = the source total T).
  * - `perMonthAmount`  = representative tranche (viewed month's amount, else the
- *                       last/base split value), for the "{{ perMonth }} par
- *                       mois" line.
+ *                       last/base split value). No longer rendered: PUL-290
+ *                       replaced the static "par mois" line with the
+ *                       forward-looking `perRemainingMonth`. Retained as the
+ *                       derived base split value (still locked by its spec).
  * - `progressPercent` = cumulated / total, clamped to [0, 100].
+ *
+ * PUL-290 — explicit catch-up so the user never does the mental math:
+ * - `remainingToProvision` = objectif − provisionné, clamped to ≥ 0
+ *                       (`max(0, totalAmount − cumulatedAmount)`). 0 ⇒ objectif
+ *                       atteint.
+ * - `perRemainingMonth` = `remainingToProvision` ÷ the number of months still
+ *                       open (occurrences NOT closed and NOT pointée), or `null`
+ *                       when nothing is left to provision OR no open month
+ *                       remains (no division by zero, no negative catch-up).
  */
 export interface SpreadTracker {
   readonly count: number;
@@ -56,4 +67,6 @@ export interface SpreadTracker {
   readonly totalAmount: number;
   readonly perMonthAmount: number;
   readonly progressPercent: number;
+  readonly remainingToProvision: number;
+  readonly perRemainingMonth: number | null;
 }
