@@ -26,13 +26,14 @@ import {
   type AuthenticatedUser,
 } from '@common/decorators/user.decorator';
 import { ErrorResponseDto } from '@common/dto/response.dto';
+import { mapSpreadOccurrencesToApi } from '@common/utils/budget-line-api.mapper';
+import { mapTransactionsToApi } from '@common/utils/transaction-api.mapper';
 import {
   BUDGET_LINE_CHECK_TRANSACTIONS_PORT,
   BUDGET_LINE_SPREAD_OCCURRENCES_PORT,
   type BudgetLineCheckTransactionsPort,
   type BudgetLineSpreadOccurrencesPort,
 } from '@modules/budget-line/domain/ports/budget-line-allocation.port';
-import { AllocationMapper } from '../mappers/allocation.mapper';
 import {
   AllocationSpreadOccurrencesResponseDto,
   AllocationTransactionListResponseDto,
@@ -56,7 +57,6 @@ export class AllocationBudgetLineController {
     private readonly spreadOccurrences: BudgetLineSpreadOccurrencesPort,
     @Inject(BUDGET_LINE_CHECK_TRANSACTIONS_PORT)
     private readonly checkTransactionsPort: BudgetLineCheckTransactionsPort,
-    private readonly mapper: AllocationMapper,
   ) {}
 
   @Get('spread/:spreadGroupId')
@@ -87,7 +87,7 @@ export class AllocationBudgetLineController {
     );
     return {
       success: true,
-      data: this.mapper.toSpreadOccurrenceApiList(occurrences),
+      data: mapSpreadOccurrencesToApi(occurrences),
     };
   }
 
@@ -116,7 +116,7 @@ export class AllocationBudgetLineController {
     const entities = await this.checkTransactionsPort.execute(id, user);
     return {
       success: true,
-      data: this.mapper.toTransactionApiList(entities),
+      data: mapTransactionsToApi(entities),
     };
   }
 }

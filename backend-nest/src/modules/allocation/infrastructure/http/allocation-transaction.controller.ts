@@ -26,11 +26,12 @@ import {
   type AuthenticatedUser,
 } from '@common/decorators/user.decorator';
 import { ErrorResponseDto } from '@common/dto/response.dto';
+import { mapBudgetLinesToApi } from '@common/utils/budget-line-api.mapper';
+import { mapBudgetsToApi } from '@common/utils/budget-api.mapper';
 import {
   TRANSACTION_SPREAD_FROM_TXN_PORT,
   type TransactionSpreadFromTxnPort,
 } from '@modules/transaction/domain/ports/transaction-spread-from-txn.port';
-import { AllocationMapper } from '../mappers/allocation.mapper';
 import {
   AllocationTransactionSpreadFromTxnCreateDto,
   AllocationTransactionSpreadResponseDto,
@@ -52,7 +53,6 @@ export class AllocationTransactionController {
   constructor(
     @Inject(TRANSACTION_SPREAD_FROM_TXN_PORT)
     private readonly spreadFromTxn: TransactionSpreadFromTxnPort,
-    private readonly mapper: AllocationMapper,
   ) {}
 
   @Post(':id/spread')
@@ -90,8 +90,8 @@ export class AllocationTransactionController {
       success: true,
       data: {
         spreadGroupId: result.spreadGroupId,
-        lines: this.mapper.toBudgetLineApiList(result.lines),
-        createdBudgets: this.mapper.toBudgetApiList(result.createdBudgets),
+        lines: mapBudgetLinesToApi(result.lines),
+        createdBudgets: mapBudgetsToApi(result.createdBudgets),
         skippedMonths: result.skippedMonths,
       },
     };
