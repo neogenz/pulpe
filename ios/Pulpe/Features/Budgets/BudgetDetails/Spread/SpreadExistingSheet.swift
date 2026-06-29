@@ -62,7 +62,12 @@ struct SpreadExistingSheet: View {
             .navigationTitle(spreadTitle)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { SheetCloseButton() }
+                // Disabled during submit: the loading overlay covers SwiftUI
+                // content but not the UIKit nav bar, so without this the user
+                // could dismiss mid-spread while the fan-out keeps running.
+                ToolbarItem(placement: .cancellationAction) {
+                    SheetCloseButton().disabled(isSubmitting)
+                }
             }
             // Blocking overlay while the spread runs server-side (delete source +
             // fan out N tranches) — parity with the additive flow. The message
