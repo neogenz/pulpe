@@ -261,6 +261,12 @@ struct SpreadExistingSheet: View {
                 // instant close (parity with the additive `AddBudgetLineSheet`).
                 guard !isSubmitting else { return }
                 isSubmitting = true
+                // Reset on every exit path so the sheet can never lock with the
+                // overlay up + cancel/swipe disabled — same escape hatch as every
+                // other submit handler (e.g. `AddBudgetLineSheet`). In the normal
+                // path `dismiss()` tears the view down anyway; this only matters if
+                // `dismiss()` no-ops or `onSpread` ever becomes throwing.
+                defer { isSubmitting = false }
                 await onSpread(calculator.periods())
                 dismiss()
             }
