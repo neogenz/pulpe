@@ -30,6 +30,10 @@ export interface TransactionSpreadBudgetLine {
   updatedAt: string;
 }
 
+/**
+ * Mirrors the budget-line fan-out budget projection, but stays local to the
+ * transaction port to avoid a domain-to-domain cross-module import.
+ */
 export interface TransactionSpreadBudget {
   id: string;
   userId: string | null;
