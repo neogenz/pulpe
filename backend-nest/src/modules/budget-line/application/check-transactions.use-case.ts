@@ -20,13 +20,6 @@ export class CheckTransactionsUseCase implements BudgetLineCheckTransactionsPort
   ) {}
 
   async execute(id: string, user: AuthenticatedUser): Promise<Transaction[]> {
-    return this.checkTransactions(id, user);
-  }
-
-  async checkTransactions(
-    id: string,
-    user: AuthenticatedUser,
-  ): Promise<Transaction[]> {
     await this.repo.validateAccess(id, user.id);
     const entities = await this.repo.checkUncheckedTransactionsRpc(id);
 

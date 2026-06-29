@@ -5,6 +5,10 @@ import {
   type SpreadOccurrence as SpreadOccurrenceApi,
   type Transaction as TransactionApi,
 } from 'pulpe-shared';
+import {
+  mapBudgetToApi,
+  mapBudgetsToApi,
+} from '@common/utils/budget-api.mapper';
 import { mapCurrencyMetadataToApi } from '@common/utils/currency-metadata.mapper';
 import type { Budget } from '../../../budget/domain/budget.entity';
 import type {
@@ -70,21 +74,11 @@ export class AllocationMapper {
   }
 
   toBudgetApi(entity: Budget): BudgetApi {
-    return {
-      id: entity.id,
-      createdAt: entity.createdAt,
-      updatedAt: entity.updatedAt,
-      userId: entity.userId ?? undefined,
-      templateId: entity.templateId,
-      month: entity.month,
-      year: entity.year,
-      description: entity.description,
-      endingBalance: entity.endingBalance ?? undefined,
-    };
+    return mapBudgetToApi(entity);
   }
 
   toBudgetApiList(entities: Budget[]): BudgetApi[] {
-    return entities.map((entity) => this.toBudgetApi(entity));
+    return mapBudgetsToApi(entities);
   }
 
   toSpreadOccurrenceApi(occurrence: SpreadOccurrence): SpreadOccurrenceApi {

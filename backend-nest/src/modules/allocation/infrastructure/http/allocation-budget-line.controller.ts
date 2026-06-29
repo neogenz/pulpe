@@ -81,7 +81,7 @@ export class AllocationBudgetLineController {
     @Param('spreadGroupId') spreadGroupId: string,
     @User() user: AuthenticatedUser,
   ): Promise<SpreadOccurrencesResponse> {
-    const occurrences = await this.spreadOccurrences.findSpreadOccurrences(
+    const occurrences = await this.spreadOccurrences.execute(
       spreadGroupId,
       user,
     );
@@ -113,10 +113,7 @@ export class AllocationBudgetLineController {
     @Param('id') id: string,
     @User() user: AuthenticatedUser,
   ): Promise<TransactionListResponse> {
-    const entities = await this.checkTransactionsPort.checkTransactions(
-      id,
-      user,
-    );
+    const entities = await this.checkTransactionsPort.execute(id, user);
     return {
       success: true,
       data: this.mapper.toTransactionApiList(entities),

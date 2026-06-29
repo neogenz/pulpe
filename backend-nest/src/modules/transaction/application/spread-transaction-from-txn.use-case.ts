@@ -54,14 +54,6 @@ export class SpreadTransactionFromTxnUseCase implements TransactionSpreadFromTxn
     dto: TransactionSpreadFromTxnCreate,
     user: AuthenticatedUser,
   ): Promise<SpreadFanOutResult> {
-    return this.spreadFromTransaction(id, dto, user);
-  }
-
-  async spreadFromTransaction(
-    id: string,
-    dto: TransactionSpreadFromTxnCreate,
-    user: AuthenticatedUser,
-  ): Promise<SpreadFanOutResult> {
     const source = await this.repo.findSpreadSource(id);
     // Defense-in-depth IDOR guard mirroring the budget-line path's validateAccess:
     // RLS already scopes the query, but an explicit ownership check ensures a

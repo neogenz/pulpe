@@ -7,7 +7,7 @@ export const TRANSACTION_SPREAD_FROM_TXN_PORT = Symbol(
 );
 
 export interface TransactionSpreadFromTxnPort {
-  spreadFromTransaction(
+  execute(
     id: string,
     dto: TransactionSpreadFromTxnCreate,
     user: AuthenticatedUser,

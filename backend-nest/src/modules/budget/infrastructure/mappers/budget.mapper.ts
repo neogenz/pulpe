@@ -9,6 +9,10 @@ import {
   type BudgetExportResponse,
   BudgetFormulas,
 } from 'pulpe-shared';
+import {
+  mapBudgetToApi,
+  mapBudgetsToApi,
+} from '@common/utils/budget-api.mapper';
 import { mapCurrencyMetadataToApi } from '@common/utils/currency-metadata.mapper';
 import type {
   Budget,
@@ -24,27 +28,11 @@ import type {
 @Injectable()
 export class BudgetMapper {
   toApi(entity: Budget | BudgetWithRemaining): BudgetApi {
-    const base: BudgetApi = {
-      id: entity.id,
-      createdAt: entity.createdAt,
-      updatedAt: entity.updatedAt,
-      userId: entity.userId ?? undefined,
-      templateId: entity.templateId,
-      month: entity.month,
-      year: entity.year,
-      description: entity.description,
-      endingBalance: entity.endingBalance ?? undefined,
-    };
-
-    if ('remaining' in entity) {
-      base.remaining = entity.remaining;
-    }
-
-    return base;
+    return mapBudgetToApi(entity);
   }
 
   toApiList(entities: (Budget | BudgetWithRemaining)[]): BudgetApi[] {
-    return entities.map((b) => this.toApi(b));
+    return mapBudgetsToApi(entities);
   }
 
   toSparseApi(

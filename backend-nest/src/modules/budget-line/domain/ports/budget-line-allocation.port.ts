@@ -7,10 +7,7 @@ export const BUDGET_LINE_CHECK_TRANSACTIONS_PORT = Symbol(
 );
 
 export interface BudgetLineCheckTransactionsPort {
-  checkTransactions(
-    id: string,
-    user: AuthenticatedUser,
-  ): Promise<Transaction[]>;
+  execute(id: string, user: AuthenticatedUser): Promise<Transaction[]>;
 }
 
 export const BUDGET_LINE_SPREAD_OCCURRENCES_PORT = Symbol(
@@ -18,7 +15,7 @@ export const BUDGET_LINE_SPREAD_OCCURRENCES_PORT = Symbol(
 );
 
 export interface BudgetLineSpreadOccurrencesPort {
-  findSpreadOccurrences(
+  execute(
     spreadGroupId: string,
     user: AuthenticatedUser,
   ): Promise<SpreadOccurrence[]>;

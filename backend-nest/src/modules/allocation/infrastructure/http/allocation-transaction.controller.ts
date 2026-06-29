@@ -85,11 +85,7 @@ export class AllocationTransactionController {
     @Body() spreadFromTxnDto: AllocationTransactionSpreadFromTxnCreateDto,
     @User() user: AuthenticatedUser,
   ): Promise<BudgetLineSpreadResponse> {
-    const result = await this.spreadFromTxn.spreadFromTransaction(
-      id,
-      spreadFromTxnDto,
-      user,
-    );
+    const result = await this.spreadFromTxn.execute(id, spreadFromTxnDto, user);
     return {
       success: true,
       data: {

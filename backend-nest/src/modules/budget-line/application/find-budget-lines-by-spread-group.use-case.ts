@@ -28,13 +28,6 @@ export class FindBudgetLinesBySpreadGroupUseCase implements BudgetLineSpreadOccu
     spreadGroupId: string,
     user: AuthenticatedUser,
   ): Promise<SpreadOccurrence[]> {
-    return this.findSpreadOccurrences(spreadGroupId, user);
-  }
-
-  async findSpreadOccurrences(
-    spreadGroupId: string,
-    user: AuthenticatedUser,
-  ): Promise<SpreadOccurrence[]> {
     const occurrences = await this.repo.findBySpreadGroupId(spreadGroupId);
 
     if (occurrences.length === 0) {
