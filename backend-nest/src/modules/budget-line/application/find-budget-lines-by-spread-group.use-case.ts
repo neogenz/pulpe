@@ -8,6 +8,7 @@ import {
   type BudgetLineRepositoryPort,
 } from '../domain/ports/budget-line-repository.port';
 import type { SpreadOccurrence } from '../domain/budget-line.entity';
+import type { BudgetLineSpreadOccurrencesPort } from '../domain/ports/budget-line-allocation.port';
 
 /**
  * PUL-17 Lot C: read all occurrences of a spread group across their months.
@@ -15,7 +16,7 @@ import type { SpreadOccurrence } from '../domain/budget-line.entity';
  * does not exist OR is not owned → 404 (no ownership leak).
  */
 @Injectable()
-export class FindBudgetLinesBySpreadGroupUseCase {
+export class FindBudgetLinesBySpreadGroupUseCase implements BudgetLineSpreadOccurrencesPort {
   constructor(
     @Inject(BUDGET_LINE_REPOSITORY)
     private readonly repo: BudgetLineRepositoryPort,
@@ -24,6 +25,13 @@ export class FindBudgetLinesBySpreadGroupUseCase {
   ) {}
 
   async execute(
+    spreadGroupId: string,
+    user: AuthenticatedUser,
+  ): Promise<SpreadOccurrence[]> {
+    return this.findSpreadOccurrences(spreadGroupId, user);
+  }
+
+  async findSpreadOccurrences(
     spreadGroupId: string,
     user: AuthenticatedUser,
   ): Promise<SpreadOccurrence[]> {

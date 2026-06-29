@@ -7,9 +7,10 @@ import {
   BUDGET_LINE_REPOSITORY,
   type BudgetLineRepositoryPort,
 } from '../domain/ports/budget-line-repository.port';
+import type { BudgetLineCheckTransactionsPort } from '../domain/ports/budget-line-allocation.port';
 
 @Injectable()
-export class CheckTransactionsUseCase {
+export class CheckTransactionsUseCase implements BudgetLineCheckTransactionsPort {
   constructor(
     @Inject(BUDGET_LINE_REPOSITORY)
     private readonly repo: BudgetLineRepositoryPort,
@@ -19,6 +20,13 @@ export class CheckTransactionsUseCase {
   ) {}
 
   async execute(id: string, user: AuthenticatedUser): Promise<Transaction[]> {
+    return this.checkTransactions(id, user);
+  }
+
+  async checkTransactions(
+    id: string,
+    user: AuthenticatedUser,
+  ): Promise<Transaction[]> {
     await this.repo.validateAccess(id, user.id);
     const entities = await this.repo.checkUncheckedTransactionsRpc(id);
 

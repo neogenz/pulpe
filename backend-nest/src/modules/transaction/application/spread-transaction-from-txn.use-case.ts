@@ -16,6 +16,7 @@ import {
   type TransactionRepositoryPort,
 } from '../domain/ports/transaction-repository.port';
 import { TransactionInvariants } from '../domain/transaction.invariants';
+import type { TransactionSpreadFromTxnPort } from '../domain/ports/transaction-spread-from-txn.port';
 
 /**
  * PUL-17 v1.1 — TOTAL-PRESERVING spread of an existing FREE réel
@@ -37,7 +38,7 @@ import { TransactionInvariants } from '../domain/transaction.invariants';
  * terminal use case owns the single cache invalidation.
  */
 @Injectable()
-export class SpreadTransactionFromTxnUseCase {
+export class SpreadTransactionFromTxnUseCase implements TransactionSpreadFromTxnPort {
   constructor(
     @Inject(TRANSACTION_REPOSITORY)
     private readonly repo: TransactionRepositoryPort,
@@ -49,6 +50,14 @@ export class SpreadTransactionFromTxnUseCase {
   ) {}
 
   async execute(
+    id: string,
+    dto: TransactionSpreadFromTxnCreate,
+    user: AuthenticatedUser,
+  ): Promise<SpreadFanOutResult> {
+    return this.spreadFromTransaction(id, dto, user);
+  }
+
+  async spreadFromTransaction(
     id: string,
     dto: TransactionSpreadFromTxnCreate,
     user: AuthenticatedUser,
