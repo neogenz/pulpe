@@ -349,6 +349,7 @@
     "postponeMessage": "Cet élément sera déplacé vers le budget de {{ month }}.",
     "postponeConfirm": "Reporter",
     "postponeDisabledTooltip": "Crée d'abord le budget de {{ month }}",
+    "postponeUnavailableChecked": "Un élément pointé ne peut pas être reporté",
     "postponed": "Reporté en {{ month }}",
     "postponeError": "Erreur lors du report au mois suivant",
     "forecastUpdateError": "Erreur lors de la modification de la prévision",

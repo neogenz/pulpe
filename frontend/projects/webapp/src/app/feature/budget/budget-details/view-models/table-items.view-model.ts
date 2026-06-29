@@ -43,10 +43,15 @@ export interface TableItem {
     isTemplateLinked?: boolean;
     isPropagationLocked?: boolean;
     canResetFromTemplate?: boolean;
-    /** Item is eligible for "report to next month" (unchecked, one-off, no allocated tx) — PUL-22 */
-    canPostpone?: boolean;
-    /** Postpone allowed but next calendar month's budget does not exist yet — PUL-22 CA5 */
+    /** Show the "report to next month" menu item (one-off forecast / free transaction) — PUL-22 */
+    showPostpone?: boolean;
+    /** The postpone menu item is shown but greyed out — PUL-22 */
     isPostponeDisabled?: boolean;
+    /**
+     * Transloco key explaining why postpone is disabled (already pointed, or next
+     * calendar month's budget missing — CA5). `null` when postpone is enabled — PUL-22
+     */
+    postponeDisabledReason?: string | null;
     /** Label of the target month for postpone tooltips/messages (e.g. "juillet") — PUL-22 */
     postponeTargetLabel?: string;
     isLoading?: boolean;

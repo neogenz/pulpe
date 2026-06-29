@@ -21,12 +21,6 @@ struct BudgetDetailsView: View {
 
     @State private var searchText = ""
     @State private var scrollTracker = BudgetDetailsScrollTracker()
-    /// Item awaiting the postpone confirmation dialog (PUL-22, CA10). Set from a
-    /// row's context menu; cleared when the dialog resolves.
-    @State private var pendingPostpone: PostponeTarget?
-    /// Toggled once a confirmed postpone dispatch completes — drives the success
-    /// haptic, matching every other mutation in this feature.
-    @State private var postponeSuccessTrigger = false
 
     init(budgetId: String) {
         self.budgetId = budgetId
@@ -214,8 +208,6 @@ struct BudgetDetailsView: View {
                         kind: section.kind,
                         items: section.items,
                         currency: userSettingsStore.currency,
-                        canPostpone: screenState.canPostpone,
-                        nextMonthLabel: screenState.nextMonthLabel,
                         onTap: { line in
                             router.push(.lineDetail(lineId: line.id))
                         },
@@ -226,9 +218,6 @@ struct BudgetDetailsView: View {
                                 )
                             }
                         },
-                        onPostpone: { line in
-                            pendingPostpone = .budgetLine(line)
-                        },
                         tip: section.kind == screenState.firstSectionKind ? ProductTips.gestures : nil
                     )
                 }
@@ -237,8 +226,6 @@ struct BudgetDetailsView: View {
                     BudgetDetailsFreeTransactionsList(
                         items: free,
                         currency: userSettingsStore.currency,
-                        canPostpone: screenState.canPostpone,
-                        nextMonthLabel: screenState.nextMonthLabel,
                         onTap: { transaction in
                             router.push(.editTx(transactionId: transaction.id))
                         },
@@ -246,9 +233,6 @@ struct BudgetDetailsView: View {
                             Task {
                                 await coordinator.dispatch(.toggleTransaction(transaction))
                             }
-                        },
-                        onPostpone: { transaction in
-                            pendingPostpone = .transaction(transaction)
                         }
                     )
                 }
@@ -279,13 +263,6 @@ struct BudgetDetailsView: View {
             value: screenState.checkedTickHash
         )
         .pulpeBackground()
-        .postponeConfirmation(
-            target: $pendingPostpone,
-            nextMonthLabel: screenState.nextMonthLabel
-        ) { target in
-            Task { await dispatchPostpone(target) }
-        }
-        .sensoryFeedback(.success, trigger: postponeSuccessTrigger)
         .searchable(
             text: $searchText,
             placement: .navigationBarDrawer(displayMode: .automatic),
@@ -303,24 +280,5 @@ struct BudgetDetailsView: View {
         // (pulpeStickyBottomCTA). Must stay LAST so both overlays inherit it; if
         // a bottom text field is ever added here, remove or scope this.
         .ignoresSafeArea(.keyboard, edges: .bottom)
-    }
-
-    /// Routes a confirmed postpone (PUL-22) to the matching coordinator method.
-    /// Fires the success haptic only when the server move actually succeeds —
-    /// the coordinator returns `false` on a rejected/rolled-back move (and has
-    /// already shown the error feedback), so an unconditional toggle would
-    /// celebrate a failure. Mirrors how `dispatchToggle` gates its success
-    /// toast on the Bool returned by `toggleBudgetLine`.
-    private func dispatchPostpone(_ target: PostponeTarget) async {
-        let succeeded: Bool
-        switch target {
-        case .budgetLine(let line):
-            succeeded = await coordinator.postponeBudgetLine(line, context: toastContext)
-        case .transaction(let tx):
-            succeeded = await coordinator.postponeTransaction(tx, context: toastContext)
-        }
-        if succeeded {
-            postponeSuccessTrigger.toggle()
-        }
     }
 }

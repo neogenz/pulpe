@@ -202,6 +202,25 @@ function insertGroupHeaders(
   return result;
 }
 
+/**
+ * Transloco key explaining why "Reporter au mois suivant" is disabled, or `null`
+ * when it's enabled. Only computed for postpone-relevant items (`isRelevant`):
+ * irrelevant ones are hidden, not greyed (PUL-22 — mirrors how spread hides
+ * income/already-spread rather than disabling them). Precedence: already pointed
+ * wins over the missing next-month budget — un-pointing a line that still has no
+ * target month would leave it blocked, so the pointed reason is the honest one.
+ */
+function getPostponeDisabledReason(
+  isRelevant: boolean,
+  checkedAt: string | null,
+  hasNextMonthBudget: boolean,
+): string | null {
+  if (!isRelevant) return null;
+  if (checkedAt !== null) return 'budget.postponeUnavailableChecked';
+  if (!hasNextMonthBudget) return 'budget.postponeDisabledTooltip';
+  return null;
+}
+
 function createBudgetLineViewModel(
   budgetLine: BudgetLine,
   consumptionMap: Map<string, { consumed: number; transactionCount: number }>,
@@ -214,10 +233,15 @@ function createBudgetLineViewModel(
   const transactionCount = consumption?.transactionCount ?? 0;
   const percentage = calculatePercentage(budgetLine.amount, consumed);
   const hasTransactions = transactionCount > 0;
-  const canPostpone =
-    budgetLine.checkedAt === null &&
-    budgetLine.recurrence === 'one_off' &&
-    transactionCount === 0;
+  // A one-off forecast with no allocated transactions can be reported; a
+  // recurring line or a consumed envelope cannot (those stay hidden).
+  const isPostponeRelevant =
+    budgetLine.recurrence === 'one_off' && transactionCount === 0;
+  const postponeDisabledReason = getPostponeDisabledReason(
+    isPostponeRelevant,
+    budgetLine.checkedAt,
+    postpone.hasNextMonthBudget,
+  );
 
   return {
     data: budgetLine,
@@ -227,8 +251,9 @@ function createBudgetLineViewModel(
       isTemplateLinked: !!budgetLine.templateLineId,
       isPropagationLocked,
       canResetFromTemplate: isPropagationLocked,
-      canPostpone,
-      isPostponeDisabled: canPostpone && !postpone.hasNextMonthBudget,
+      showPostpone: isPostponeRelevant,
+      isPostponeDisabled: postponeDisabledReason !== null,
+      postponeDisabledReason,
       postponeTargetLabel: postpone.nextMonthLabel,
       envelopeName: null,
       kindIcon: getKindIcon(budgetLine.kind),
@@ -264,8 +289,13 @@ function createTransactionViewModel(
   transaction: Transaction,
   postpone: PostponeContext,
 ): TransactionTableItem {
-  // Only free transactions reach this builder (allocated ones are filtered out).
-  const canPostpone = transaction.checkedAt === null;
+  // Only free transactions reach this builder (allocated ones are filtered out);
+  // always offer postpone — a pointed one is shown greyed with a reason, not hidden.
+  const postponeDisabledReason = getPostponeDisabledReason(
+    true,
+    transaction.checkedAt,
+    postpone.hasNextMonthBudget,
+  );
 
   return {
     data: transaction,
@@ -275,8 +305,9 @@ function createTransactionViewModel(
       isTemplateLinked: false,
       isPropagationLocked: false,
       canResetFromTemplate: false,
-      canPostpone,
-      isPostponeDisabled: canPostpone && !postpone.hasNextMonthBudget,
+      showPostpone: true,
+      isPostponeDisabled: postponeDisabledReason !== null,
+      postponeDisabledReason,
       postponeTargetLabel: postpone.nextMonthLabel,
       envelopeName: null,
       kindIcon: getKindIcon(transaction.kind),

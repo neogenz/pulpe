@@ -12,36 +12,23 @@ struct BudgetMixedSection: View {
     let kind: TransactionKind
     let items: [BudgetDetailsScreenState.LineItem]
     let currency: SupportedCurrency
-    /// Whether a budget for the next calendar month already exists (PUL-22 CA5).
-    /// When false, the postpone menu item is shown disabled with an explanatory
-    /// message rather than hidden, so the user learns why.
-    let canPostpone: Bool
-    /// Localized next-month name (e.g. "juillet") for the menu / disabled copy.
-    let nextMonthLabel: String?
     let onTap: (BudgetLine) -> Void
     let onTogglePointed: (BudgetLine) -> Void
-    let onPostpone: (BudgetLine) -> Void
     var tip: (any Tip)?
 
     init(
         kind: TransactionKind,
         items: [BudgetDetailsScreenState.LineItem],
         currency: SupportedCurrency,
-        canPostpone: Bool,
-        nextMonthLabel: String?,
         onTap: @escaping (BudgetLine) -> Void,
         onTogglePointed: @escaping (BudgetLine) -> Void,
-        onPostpone: @escaping (BudgetLine) -> Void,
         tip: (any Tip)? = nil
     ) {
         self.kind = kind
         self.items = items
         self.currency = currency
-        self.canPostpone = canPostpone
-        self.nextMonthLabel = nextMonthLabel
         self.onTap = onTap
         self.onTogglePointed = onTogglePointed
-        self.onPostpone = onPostpone
         self.tip = tip
     }
 
@@ -86,14 +73,6 @@ struct BudgetMixedSection: View {
                     onTap: { onTap(item.line) },
                     onTogglePointed: { onTogglePointed(item.line) }
                 )
-                .contextMenu {
-                    PostponeMenuButton(
-                        isEligible: item.isPostponeEligible,
-                        canPostpone: canPostpone,
-                        nextMonthLabel: nextMonthLabel,
-                        onPostpone: { onPostpone(item.line) }
-                    )
-                }
                 .padding(.horizontal, DesignTokens.Spacing.lg)
                 .padding(.bottom, DesignTokens.Spacing.md)
                 .transition(.asymmetric(
@@ -145,8 +124,7 @@ private extension BudgetLine {
                     available: line.amount,
                     percentage: 0
                 ),
-                isSyncing: false,
-                isPostponeEligible: false
+                isSyncing: false
             )
         }
     }
@@ -173,31 +151,22 @@ private extension BudgetLine {
             kind: .income,
             items: BudgetLine.previewItems(income),
             currency: .chf,
-            canPostpone: true,
-            nextMonthLabel: "février",
             onTap: { _ in },
-            onTogglePointed: { _ in },
-            onPostpone: { _ in }
+            onTogglePointed: { _ in }
         )
         BudgetMixedSection(
             kind: .saving,
             items: BudgetLine.previewItems(savings),
             currency: .chf,
-            canPostpone: true,
-            nextMonthLabel: "février",
             onTap: { _ in },
-            onTogglePointed: { _ in },
-            onPostpone: { _ in }
+            onTogglePointed: { _ in }
         )
         BudgetMixedSection(
             kind: .expense,
             items: BudgetLine.previewItems(expenses),
             currency: .chf,
-            canPostpone: true,
-            nextMonthLabel: "février",
             onTap: { _ in },
-            onTogglePointed: { _ in },
-            onPostpone: { _ in }
+            onTogglePointed: { _ in }
         )
     }
     .listStyle(.insetGrouped)

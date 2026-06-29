@@ -135,13 +135,13 @@ import type {
             <span>{{ 'budget.reset' | transloco }}</span>
           </button>
         }
-        @if (line().metadata.canPostpone) {
+        @if (line().metadata.showPostpone) {
           <!-- Tooltip wrapper: matTooltip is suppressed on disabled buttons -->
           <span
             class="block w-full"
             [matTooltip]="
-              line().metadata.isPostponeDisabled
-                ? ('budget.postponeDisabledTooltip'
+              line().metadata.postponeDisabledReason
+                ? (line().metadata.postponeDisabledReason
                   | transloco: { month: line().metadata.postponeTargetLabel })
                 : ''
             "

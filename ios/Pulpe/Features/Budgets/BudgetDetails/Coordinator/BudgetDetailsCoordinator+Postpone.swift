@@ -51,6 +51,9 @@ extension BudgetDetailsCoordinator {
             dataStore.recomputeMetrics()
             dataStore.syncCache()
             syncStore.setError(error)
+            // `syncStore.error` only renders for terminal LOAD errors — surface
+            // the rolled-back move with a toast, mirroring the spread path.
+            context.toastManager.show("Le report n'a pas pu aboutir", type: .error)
             return false
         }
     }
@@ -75,6 +78,9 @@ extension BudgetDetailsCoordinator {
             dataStore.recomputeMetrics()
             dataStore.syncCache()
             syncStore.setError(error)
+            // `syncStore.error` only renders for terminal LOAD errors — surface
+            // the rolled-back move with a toast, mirroring the spread path.
+            context.toastManager.show("Le report n'a pas pu aboutir", type: .error)
             return false
         }
     }

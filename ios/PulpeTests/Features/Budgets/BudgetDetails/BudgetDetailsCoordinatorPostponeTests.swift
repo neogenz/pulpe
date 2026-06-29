@@ -88,6 +88,28 @@ struct BudgetDetailsCoordinatorPostponeTests {
         #expect(!succeeded)
     }
 
+    @Test
+    func postponeBudgetLine_serverFailure_showsErrorToast() async {
+        let lineService = MockBudgetLineService()
+        lineService.postponeError = URLError(.badServerResponse)
+        let coord = BudgetDetailsCoordinator(
+            budgetId: "test-budget",
+            budgetLineService: lineService
+        )
+        let line = TestDataFactory.createBudgetLine(id: "line-1", recurrence: .oneOff)
+        await coord.dispatch(.addBudgetLine(line))
+
+        // Keep a reference to the manager so the rollback toast is assertable —
+        // `makeContext()` discards it.
+        let toastManager = ToastManager()
+        let ctx = ToastContext(toastManager: toastManager, presentationCurrency: .chf)
+        await coord.postponeBudgetLine(line, context: ctx)
+
+        // A rejected move must surface, not fail silently — mirror the spread path.
+        #expect(toastManager.currentToast?.type == .error)
+        #expect(toastManager.currentToast?.message == "Le report n'a pas pu aboutir")
+    }
+
     // MARK: - Transaction postpone
 
     @Test
@@ -153,6 +175,28 @@ struct BudgetDetailsCoordinatorPostponeTests {
         let succeeded = await coord.postponeTransaction(tx, context: makeContext())
 
         #expect(!succeeded)
+    }
+
+    @Test
+    func postponeTransaction_serverFailure_showsErrorToast() async {
+        let txService = MockTransactionService()
+        txService.postponeError = URLError(.badServerResponse)
+        let coord = BudgetDetailsCoordinator(
+            budgetId: "test-budget",
+            transactionService: txService
+        )
+        let tx = TestDataFactory.createTransaction(id: "tx-1")
+        await coord.dispatch(.addTransaction(tx))
+
+        // Keep a reference to the manager so the rollback toast is assertable —
+        // `makeContext()` discards it.
+        let toastManager = ToastManager()
+        let ctx = ToastContext(toastManager: toastManager, presentationCurrency: .chf)
+        await coord.postponeTransaction(tx, context: ctx)
+
+        // A rejected move must surface, not fail silently — mirror the spread path.
+        #expect(toastManager.currentToast?.type == .error)
+        #expect(toastManager.currentToast?.message == "Le report n'a pas pu aboutir")
     }
 
     // MARK: - CA5: calendar-adjacency guard (hasNextMonthBudget / nextMonthLabel)

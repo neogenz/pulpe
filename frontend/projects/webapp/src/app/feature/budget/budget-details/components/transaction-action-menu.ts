@@ -58,28 +58,27 @@ import type { Transaction } from 'pulpe-shared';
         <mat-icon matMenuItemIcon>edit</mat-icon>
         <span>{{ 'common.edit' | transloco }}</span>
       </button>
-      @if (canPostpone()) {
-        <!-- Tooltip wrapper: matTooltip is suppressed on disabled buttons -->
-        <span
-          class="block w-full"
-          [matTooltip]="
-            isPostponeDisabled()
-              ? ('budget.postponeDisabledTooltip'
-                | transloco: { month: nextMonthLabel() })
-              : ''
-          "
+      <!-- Tooltip wrapper: matTooltip is suppressed on disabled buttons.
+           Always shown — a pointed transaction is greyed with a reason, not hidden. -->
+      <span
+        class="block w-full"
+        [matTooltip]="
+          postponeDisabledReason()
+            ? (postponeDisabledReason()
+              | transloco: { month: nextMonthLabel() })
+            : ''
+        "
+      >
+        <button
+          mat-menu-item
+          [disabled]="isPostponeDisabled()"
+          (click)="postpone.emit(transaction().id)"
+          [attr.data-testid]="'postpone-tx-' + transaction().id"
         >
-          <button
-            mat-menu-item
-            [disabled]="isPostponeDisabled()"
-            (click)="postpone.emit(transaction().id)"
-            [attr.data-testid]="'postpone-tx-' + transaction().id"
-          >
-            <mat-icon matMenuItemIcon>event_upcoming</mat-icon>
-            <span>{{ 'budget.postpone' | transloco }}</span>
-          </button>
-        </span>
-      }
+          <mat-icon matMenuItemIcon>event_upcoming</mat-icon>
+          <span>{{ 'budget.postpone' | transloco }}</span>
+        </button>
+      </span>
       @if (canSpread()) {
         <button
           mat-menu-item
@@ -121,12 +120,19 @@ export class TransactionActionMenu {
   readonly delete = output<string>();
   readonly postpone = output<string>();
 
-  // Free transactions only reach this menu; postponable when not yet pointed.
-  protected readonly canPostpone = computed(
-    () => this.transaction().checkedAt === null,
-  );
+  // Free transactions always offer postpone; a pointed one is shown greyed with
+  // a reason, the missing-next-month case too. `null` => enabled.
+  protected readonly postponeDisabledReason = computed<string | null>(() => {
+    if (this.transaction().checkedAt !== null) {
+      return 'budget.postponeUnavailableChecked';
+    }
+    if (!this.hasNextMonthBudget()) {
+      return 'budget.postponeDisabledTooltip';
+    }
+    return null;
+  });
   protected readonly isPostponeDisabled = computed(
-    () => !this.hasNextMonthBudget(),
+    () => this.postponeDisabledReason() !== null,
   );
   readonly spread = output<Transaction>();
 

@@ -171,22 +171,12 @@ struct BudgetDetailsScreenState: Equatable {
         let line: BudgetLine
         let consumption: BudgetFormulas.Consumption
         let isSyncing: Bool
-        /// Whether "Reporter au mois suivant" (PUL-22) may be offered for this
-        /// line: unchecked, one-off (not recurring), no allocated transactions,
-        /// not the virtual rollover line. Pre-shaped here so the row never runs
-        /// a `.contains` over the transaction list in its body.
-        let isPostponeEligible: Bool
         var id: String { line.id }
     }
 
     struct FreeTransactionItem: Identifiable, Equatable {
         let transaction: Transaction
         let isSyncing: Bool
-        /// Whether "Reporter au mois suivant" (PUL-22) may be offered for this
-        /// free transaction: unchecked (`checkedAt == nil`). Free transactions
-        /// are already unallocated (`budgetLineId == nil`), so no allocation
-        /// check is needed. Symmetric with `LineItem.isPostponeEligible`.
-        let isPostponeEligible: Bool
         var id: String { transaction.id }
     }
 

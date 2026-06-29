@@ -25,7 +25,7 @@ enum PostponeTarget: Identifiable {
 extension View {
     /// Quick confirmation before reporting an item to next month (PUL-22, CA10).
     /// Driven by an optional `PostponeTarget` binding the caller sets from the
-    /// row context-menu; `onConfirm` fires the coordinator dispatch.
+    /// detail-page header menu; `onConfirm` fires the coordinator dispatch.
     func postponeConfirmation(
         target: Binding<PostponeTarget?>,
         nextMonthLabel: String?,

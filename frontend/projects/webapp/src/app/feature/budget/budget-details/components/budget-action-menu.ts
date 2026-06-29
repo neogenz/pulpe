@@ -131,13 +131,13 @@ function getBalanceFormatter(
           <span>{{ 'budget.reset' | transloco }}</span>
         </button>
       }
-      @if (item().metadata.canPostpone) {
+      @if (item().metadata.showPostpone) {
         <!-- Tooltip wrapper: matTooltip is suppressed on disabled buttons -->
         <span
           class="block w-full"
           [matTooltip]="
-            item().metadata.isPostponeDisabled
-              ? ('budget.postponeDisabledTooltip'
+            item().metadata.postponeDisabledReason
+              ? (item().metadata.postponeDisabledReason
                 | transloco: { month: item().metadata.postponeTargetLabel })
               : ''
           "

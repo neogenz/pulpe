@@ -318,13 +318,6 @@ struct BudgetDetailsScreenStateProjectionTests {
 
         #expect(state.free.map(\.transaction.id) == ["free", "free-checked"])
         #expect(state.transactionsByLineId["line-1"]?.map(\.id) == ["allocated"])
-        // PUL-22: free transactions inherit the same eligibility shape as lines —
-        // unchecked is postpone-eligible, checked is not.
-        let eligibilityById = Dictionary(
-            uniqueKeysWithValues: state.free.map { ($0.transaction.id, $0.isPostponeEligible) }
-        )
-        #expect(eligibilityById["free"] == true)
-        #expect(eligibilityById["free-checked"] == false)
     }
 
     // MARK: - Checked tick hash
