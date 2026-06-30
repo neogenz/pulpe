@@ -211,6 +211,7 @@ export type {
   TransactionCreate,
   TransactionUpdate,
   SearchItemType,
+  TransactionSearchQuery,
   TransactionSearchResult,
   TransactionSearchResponse,
 

@@ -67,6 +67,12 @@ import { TransactionMapper } from '../mappers/transaction.mapper';
 import { BudgetLineMapper } from '@modules/budget-line/infrastructure/mappers/budget-line.mapper';
 import { BudgetMapper } from '@modules/budget/infrastructure/mappers/budget.mapper';
 
+const SEARCH_QUERY_VALIDATION_REASON_BY_CODE: Partial<Record<string, string>> =
+  {
+    too_small: `Search query must be at least ${TRANSACTION_SEARCH_QUERY_MIN_LENGTH} characters`,
+    too_big: `Search query must be at most ${TRANSACTION_SEARCH_QUERY_MAX_LENGTH} characters`,
+  };
+
 @ApiTags('Transactions')
 @ApiBearerAuth()
 @Controller({ path: 'transactions', version: '1' })
@@ -150,7 +156,7 @@ export class TransactionController {
   })
   @ApiQuery({
     name: 'q',
-    description: 'Terme de recherche (minimum 2 caractères)',
+    description: `Terme de recherche (${TRANSACTION_SEARCH_QUERY_MIN_LENGTH} à ${TRANSACTION_SEARCH_QUERY_MAX_LENGTH} caractères)`,
     required: true,
     example: 'Restaurant',
   })
@@ -168,7 +174,7 @@ export class TransactionController {
     type: TransactionSearchResponseDto,
   })
   @ApiBadRequestResponse({
-    description: 'Query invalide ou trop courte (minimum 2 caractères)',
+    description: `Query invalide (${TRANSACTION_SEARCH_QUERY_MIN_LENGTH} à ${TRANSACTION_SEARCH_QUERY_MAX_LENGTH} caractères attendus)`,
     type: ErrorResponseDto,
   })
   async search(
@@ -380,31 +386,13 @@ export class TransactionController {
       return parsed.data;
     }
 
-    const issueCode = parsed.error.issues[0]?.code;
-
-    if (issueCode === 'too_small') {
-      throw new BusinessException(
-        ERROR_DEFINITIONS.TRANSACTION_VALIDATION_FAILED,
-        {
-          reason: `Search query must be at least ${TRANSACTION_SEARCH_QUERY_MIN_LENGTH} characters`,
-        },
-      );
-    }
-
-    if (issueCode === 'too_big') {
-      throw new BusinessException(
-        ERROR_DEFINITIONS.TRANSACTION_VALIDATION_FAILED,
-        {
-          reason: `Search query must be at most ${TRANSACTION_SEARCH_QUERY_MAX_LENGTH} characters`,
-        },
-      );
-    }
-
+    const reason =
+      SEARCH_QUERY_VALIDATION_REASON_BY_CODE[
+        parsed.error.issues[0]?.code ?? ''
+      ] ?? 'Search query is invalid';
     throw new BusinessException(
       ERROR_DEFINITIONS.TRANSACTION_VALIDATION_FAILED,
-      {
-        reason: 'Search query is invalid',
-      },
+      { reason },
     );
   }
 }
