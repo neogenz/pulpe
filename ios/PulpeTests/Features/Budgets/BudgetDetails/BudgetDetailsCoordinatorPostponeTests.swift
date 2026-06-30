@@ -66,8 +66,8 @@ struct BudgetDetailsCoordinatorPostponeTests {
 
         let succeeded = await coord.postponeBudgetLine(line, context: makeContext())
 
-        // The view gates its success haptic on this Bool — true only when the
-        // server move landed, not on a rollback.
+        // True only when the server move landed, not on a rollback — callers
+        // branch on this Bool to confirm the outcome.
         #expect(succeeded)
     }
 
@@ -84,7 +84,7 @@ struct BudgetDetailsCoordinatorPostponeTests {
 
         let succeeded = await coord.postponeBudgetLine(line, context: makeContext())
 
-        // Rejected move → false → the view must NOT fire the success haptic.
+        // Rejected move → false → callers must treat the postpone as failed.
         #expect(!succeeded)
     }
 

@@ -24,8 +24,8 @@ extension BudgetDetailsCoordinator {
 
     /// Returns `true` once the server move succeeds, `false` on rollback (the
     /// error toast is shown here). The detail pages rely on auto-pop + toast for
-    /// feedback and don't gate a success haptic on it, but the Bool lets any
-    /// future caller do so.
+    /// feedback and discard the result; the Bool lets a future caller branch on
+    /// the outcome.
     @discardableResult
     func postponeBudgetLine(_ line: BudgetLine, context: ToastContext) async -> Bool {
         // The view gates eligibility (unchecked, one-off, no allocated tx) and
@@ -59,7 +59,7 @@ extension BudgetDetailsCoordinator {
     }
 
     /// Returns `true` once the server move succeeds, `false` on rollback. See
-    /// `postponeBudgetLine` for the success-gating rationale.
+    /// `postponeBudgetLine` for the return-value rationale.
     @discardableResult
     func postponeTransaction(_ transaction: Transaction, context: ToastContext) async -> Bool {
         let originalTransactions = dataStore.transactions

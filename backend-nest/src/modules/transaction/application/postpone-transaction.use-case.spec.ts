@@ -133,6 +133,16 @@ describe('PostponeTransactionUseCase', () => {
     expect(result.entity.transactionDate).toBe('2026-02-28T23:00:00.000Z');
   });
 
+  it('rolls over from December to January of the next year', async () => {
+    mockRepo.findById.mockResolvedValueOnce({
+      ...eligibleTransaction,
+      transactionDate: '2026-12-15T10:00:00.000Z',
+    });
+
+    const result = await useCase.execute('tx-1', mockUser);
+    expect(result.entity.transactionDate).toBe('2027-01-15T10:00:00.000Z');
+  });
+
   it('recalculates BOTH the source and target budgets', async () => {
     await useCase.execute('tx-1', mockUser);
 
