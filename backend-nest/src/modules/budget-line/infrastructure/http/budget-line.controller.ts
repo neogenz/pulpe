@@ -32,6 +32,7 @@ import {
   User,
   type AuthenticatedUser,
 } from '@common/decorators/user.decorator';
+import { mapBudgetsToApi } from '@common/utils/budget-api.mapper';
 import {
   BudgetLineCreateDto,
   BudgetLineUpdateDto,
@@ -149,7 +150,7 @@ export class BudgetLineController {
       data: {
         spreadGroupId: result.spreadGroupId,
         lines: this.mapper.toApiList(result.lines),
-        createdBudgets: this.mapper.toBudgetApiList(result.createdBudgets),
+        createdBudgets: mapBudgetsToApi(result.createdBudgets),
         skippedMonths: result.skippedMonths,
       },
     };
@@ -196,7 +197,7 @@ export class BudgetLineController {
       data: {
         spreadGroupId: result.spreadGroupId,
         lines: this.mapper.toApiList(result.lines),
-        createdBudgets: this.mapper.toBudgetApiList(result.createdBudgets),
+        createdBudgets: mapBudgetsToApi(result.createdBudgets),
         skippedMonths: result.skippedMonths,
       },
     };

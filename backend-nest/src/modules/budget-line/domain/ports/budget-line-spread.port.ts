@@ -41,6 +41,10 @@ export interface SpreadFanOutInput {
   spreadGroupId?: string;
 }
 
+/**
+ * Canonical budget projection returned by the budget-line fan-out. Transaction
+ * keeps a local mirror to avoid a domain-to-domain cross-module import.
+ */
 export interface SpreadFanOutBudget {
   id: string;
   userId: string | null;
