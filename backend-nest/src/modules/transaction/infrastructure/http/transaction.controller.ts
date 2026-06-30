@@ -165,7 +165,7 @@ export class TransactionController {
     type: TransactionSearchResponseDto,
   })
   @ApiBadRequestResponse({
-    description: 'Query trop courte (minimum 2 caractères)',
+    description: 'Query invalide ou trop courte (minimum 2 caractères)',
     type: ErrorResponseDto,
   })
   async search(
@@ -357,7 +357,21 @@ export class TransactionController {
   }
 
   private parseSearchQuery(queryParam: unknown): string {
-    if (typeof queryParam !== 'string' || queryParam.length < 2) {
+    if (queryParam === undefined) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.TRANSACTION_VALIDATION_FAILED,
+        { reason: 'Search query is required' },
+      );
+    }
+
+    if (typeof queryParam !== 'string') {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.TRANSACTION_VALIDATION_FAILED,
+        { reason: 'Search query must be a string' },
+      );
+    }
+
+    if (queryParam.length < 2) {
       throw new BusinessException(
         ERROR_DEFINITIONS.TRANSACTION_VALIDATION_FAILED,
         { reason: 'Search query must be at least 2 characters' },

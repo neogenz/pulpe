@@ -1,6 +1,5 @@
 import { describe, it, expect, mock } from 'bun:test';
 import { createMockAuthenticatedUser } from '@/test/test-mocks';
-import { BusinessException } from '@common/exceptions/business.exception';
 import { TransactionController } from './transaction.controller';
 
 function buildController() {
@@ -48,7 +47,21 @@ describe('TransactionController', () => {
           undefined,
           createMockAuthenticatedUser(),
         ),
-      ).rejects.toBeInstanceOf(BusinessException);
+      ).rejects.toMatchObject({
+        details: { reason: 'Search query must be a string' },
+      });
+
+      expect(searchUseCase.execute).not.toHaveBeenCalled();
+    });
+
+    it('rejects missing query parameters before reaching the use case', async () => {
+      const { controller, searchUseCase } = buildController();
+
+      await expect(
+        controller.search(undefined, undefined, createMockAuthenticatedUser()),
+      ).rejects.toMatchObject({
+        details: { reason: 'Search query is required' },
+      });
 
       expect(searchUseCase.execute).not.toHaveBeenCalled();
     });
@@ -58,7 +71,9 @@ describe('TransactionController', () => {
 
       await expect(
         controller.search('c', undefined, createMockAuthenticatedUser()),
-      ).rejects.toBeInstanceOf(BusinessException);
+      ).rejects.toMatchObject({
+        details: { reason: 'Search query must be at least 2 characters' },
+      });
 
       expect(searchUseCase.execute).not.toHaveBeenCalled();
     });
