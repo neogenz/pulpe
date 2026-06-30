@@ -129,8 +129,12 @@ export class PostponeTransactionUseCase {
     // Cache invalidation BEFORE recalc — a stale cached list must not be locked
     // in as authoritative against the just-moved row.
     await this.cacheService.invalidateForUser(user.id);
-    await this.budgetRecalculation.recalculate(sourceBudgetId);
-    await this.budgetRecalculation.recalculate(targetBudgetId);
+    // Independent budgets, disjoint rows — recalc in parallel (one round-trip
+    // instead of two), matching the spread / bulk-template multi-budget pattern.
+    await Promise.all([
+      this.budgetRecalculation.recalculate(sourceBudgetId),
+      this.budgetRecalculation.recalculate(targetBudgetId),
+    ]);
 
     this.logger.info(
       { ...loggingContext, sourceBudgetId, targetBudgetId },
