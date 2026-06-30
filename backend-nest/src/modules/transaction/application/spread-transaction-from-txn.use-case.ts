@@ -8,7 +8,6 @@ import { CacheService } from '@modules/cache/cache.service';
 import {
   BUDGET_LINE_SPREAD_PORT,
   type BudgetLineSpreadPort,
-  type SpreadFanOutResult,
 } from '@modules/budget-line/domain/ports/budget-line-spread.port';
 import { buildSpreadFromExistingPlan } from '@modules/budget-line/domain/spread-from-existing.formulas';
 import {
@@ -16,7 +15,10 @@ import {
   type TransactionRepositoryPort,
 } from '../domain/ports/transaction-repository.port';
 import { TransactionInvariants } from '../domain/transaction.invariants';
-import type { TransactionSpreadFromTxnPort } from '../domain/ports/transaction-spread-from-txn.port';
+import type {
+  TransactionSpreadFanOutResult,
+  TransactionSpreadFromTxnPort,
+} from '../domain/ports/transaction-spread-from-txn.port';
 
 /**
  * PUL-17 v1.1 — TOTAL-PRESERVING spread of an existing FREE réel
@@ -53,7 +55,7 @@ export class SpreadTransactionFromTxnUseCase implements TransactionSpreadFromTxn
     id: string,
     dto: TransactionSpreadFromTxnCreate,
     user: AuthenticatedUser,
-  ): Promise<SpreadFanOutResult> {
+  ): Promise<TransactionSpreadFanOutResult> {
     const source = await this.repo.findSpreadSource(id);
     // Defense-in-depth IDOR guard mirroring the budget-line path's validateAccess:
     // RLS already scopes the query, but an explicit ownership check ensures a
@@ -80,7 +82,7 @@ export class SpreadTransactionFromTxnUseCase implements TransactionSpreadFromTxn
     // RPC. If it throws AFTER creating some, those budgets are committed but the
     // success-path invalidate is never reached → GET /budgets serves a 30s-stale
     // list. Invalidate on the failure path too (the rule: any mutation invalidates).
-    let result: SpreadFanOutResult;
+    let result: TransactionSpreadFanOutResult;
     try {
       result = await this.spread.fanOutStrict(
         {
