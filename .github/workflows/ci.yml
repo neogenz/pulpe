@@ -730,7 +730,10 @@ jobs:
   # 🗄️ MIGRATION DRY-RUN (PRs only — détecte les problèmes avant merge)
   migrate-dryrun:
     name: 🗄️ Migration Dry-Run
-    if: github.event_name == 'pull_request'
+    # Dependabot PRs run with the Dependabot secret store, so prod Supabase
+    # secrets are empty and `supabase link` fails. Skip — a dep bump touches no
+    # migrations. ci-success treats migrate-dryrun=skipped as success.
+    if: github.event_name == 'pull_request' && github.actor != 'dependabot[bot]'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
