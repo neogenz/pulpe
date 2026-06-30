@@ -85,6 +85,14 @@ export class PostponeBudgetLineUseCase {
       );
     }
 
+    // Pre-check, intentionally NOT atomic with the UPDATE below: the allocated-tx
+    // count lives on the transaction table and can't be re-checked in a single
+    // supabase-js UPDATE (unlike checked_at / recurrence / spread_group_id, which
+    // the repo re-guards atomically). The TOCTOU window — a transaction allocated
+    // to this line between this read and the move — is accepted: Pulpe is
+    // single-user-per-budget with no concurrent writer of transaction.budget_line_id,
+    // and the resulting cross-budget orphan is recoverable. Closing it fully would
+    // require a SECURITY DEFINER RPC (deferred — disproportionate to the risk).
     if (await this.repo.hasAllocatedTransactions(id)) {
       throw new BusinessException(
         ERROR_DEFINITIONS.BUDGET_LINE_HAS_TRANSACTIONS,

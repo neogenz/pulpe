@@ -22,10 +22,10 @@ extension BudgetDetailsCoordinator {
         return true
     }
 
-    /// Returns `true` once the server move succeeds, `false` on rollback —
-    /// mirrors `toggleBudgetLine`'s Bool contract so the caller can gate its
-    /// success haptic (the view's `postponeSuccessTrigger`) on real success
-    /// rather than firing it unconditionally on a rejected/rolled-back move.
+    /// Returns `true` once the server move succeeds, `false` on rollback (the
+    /// error toast is shown here). The detail pages rely on auto-pop + toast for
+    /// feedback and don't gate a success haptic on it, but the Bool lets any
+    /// future caller do so.
     @discardableResult
     func postponeBudgetLine(_ line: BudgetLine, context: ToastContext) async -> Bool {
         // The view gates eligibility (unchecked, one-off, no allocated tx) and

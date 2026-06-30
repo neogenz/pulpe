@@ -813,9 +813,7 @@ export class BudgetDetailsStore {
     onSuccess: () => this.#onFinancialMutationSuccess(),
     onError: (error, _id, previous) => {
       if (previous) this.#budgetDetailsResource.set(previous);
-      this.#setError(
-        this.#localizePostponeError(error, 'budget.postponeError'),
-      );
+      this.#handlePostponeError(error);
     },
   });
 
@@ -850,9 +848,7 @@ export class BudgetDetailsStore {
     onSuccess: () => this.#onFinancialMutationSuccess(),
     onError: (error, _id, previous) => {
       if (previous) this.#budgetDetailsResource.set(previous);
-      this.#setError(
-        this.#localizePostponeError(error, 'budget.postponeError'),
-      );
+      this.#handlePostponeError(error);
     },
   });
 
@@ -1063,12 +1059,15 @@ export class BudgetDetailsStore {
     this.#state.errorMessage.set(error);
   }
 
-  #localizePostponeError(error: unknown, fallbackKey: string): string {
-    if (isApiError(error)) {
-      return this.#apiErrorLocalizer.localizeApiError(error);
+  // Shared failure path for the 2 postpone mutations (mirrors #handleSpreadError):
+  // localize via the common helper, then log only UNEXPECTED (non-API) errors —
+  // expected business errors (already-checked, concurrent-mod) are surfaced to
+  // the user, not logged as noise.
+  #handlePostponeError(error: unknown): void {
+    this.#setError(this.#localizeError(error, 'budget.postponeError'));
+    if (!isApiError(error)) {
+      this.#logger.error('Error postponing item to next month', error);
     }
-    this.#logger.error('Error postponing item to next month', error);
-    return this.#transloco.translate(fallbackKey);
   }
 
   // Localize a mutation error: a typed ApiError's code maps to a precise
