@@ -4,6 +4,8 @@ import {
   Get,
   Post,
   Param,
+  HttpCode,
+  HttpStatus,
   UseGuards,
 } from '@nestjs/common';
 import {
@@ -109,6 +111,7 @@ export class AllocationBudgetLineController {
     description: 'Ligne budgétaire non trouvée',
     type: ErrorResponseDto,
   })
+  @HttpCode(HttpStatus.OK)
   async checkTransactions(
     @Param('id') id: string,
     @User() user: AuthenticatedUser,
