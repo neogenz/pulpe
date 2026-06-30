@@ -380,7 +380,9 @@ export class TransactionController {
       return parsed.data;
     }
 
-    if (queryParam.length < TRANSACTION_SEARCH_QUERY_MIN_LENGTH) {
+    const issueCode = parsed.error.issues[0]?.code;
+
+    if (issueCode === 'too_small') {
       throw new BusinessException(
         ERROR_DEFINITIONS.TRANSACTION_VALIDATION_FAILED,
         {
@@ -389,7 +391,7 @@ export class TransactionController {
       );
     }
 
-    if (queryParam.length > TRANSACTION_SEARCH_QUERY_MAX_LENGTH) {
+    if (issueCode === 'too_big') {
       throw new BusinessException(
         ERROR_DEFINITIONS.TRANSACTION_VALIDATION_FAILED,
         {

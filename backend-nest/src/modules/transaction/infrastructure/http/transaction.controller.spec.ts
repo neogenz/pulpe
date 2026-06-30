@@ -1,6 +1,9 @@
 import { describe, it, expect, mock } from 'bun:test';
 import { createMockAuthenticatedUser } from '@/test/test-mocks';
-import { TRANSACTION_SEARCH_QUERY_MAX_LENGTH } from 'pulpe-shared';
+import {
+  TRANSACTION_SEARCH_QUERY_MAX_LENGTH,
+  TRANSACTION_SEARCH_QUERY_MIN_LENGTH,
+} from 'pulpe-shared';
 import { TransactionController } from './transaction.controller';
 
 function buildController() {
@@ -69,7 +72,9 @@ describe('TransactionController', () => {
       await expect(
         controller.search('c', undefined, createMockAuthenticatedUser()),
       ).rejects.toMatchObject({
-        details: { reason: 'Search query must be at least 2 characters' },
+        details: {
+          reason: `Search query must be at least ${TRANSACTION_SEARCH_QUERY_MIN_LENGTH} characters`,
+        },
       });
 
       expect(searchUseCase.execute).not.toHaveBeenCalled();
@@ -85,7 +90,9 @@ describe('TransactionController', () => {
           createMockAuthenticatedUser(),
         ),
       ).rejects.toMatchObject({
-        details: { reason: 'Search query must be at most 100 characters' },
+        details: {
+          reason: `Search query must be at most ${TRANSACTION_SEARCH_QUERY_MAX_LENGTH} characters`,
+        },
       });
 
       expect(searchUseCase.execute).not.toHaveBeenCalled();
