@@ -1,5 +1,6 @@
 import { describe, it, expect, mock } from 'bun:test';
 import { createMockAuthenticatedUser } from '@/test/test-mocks';
+import { TRANSACTION_SEARCH_QUERY_MAX_LENGTH } from 'pulpe-shared';
 import { TransactionController } from './transaction.controller';
 
 function buildController() {
@@ -73,6 +74,22 @@ describe('TransactionController', () => {
         controller.search('c', undefined, createMockAuthenticatedUser()),
       ).rejects.toMatchObject({
         details: { reason: 'Search query must be at least 2 characters' },
+      });
+
+      expect(searchUseCase.execute).not.toHaveBeenCalled();
+    });
+
+    it('rejects too-long scalar queries', async () => {
+      const { controller, searchUseCase } = buildController();
+
+      await expect(
+        controller.search(
+          'x'.repeat(TRANSACTION_SEARCH_QUERY_MAX_LENGTH + 1),
+          undefined,
+          createMockAuthenticatedUser(),
+        ),
+      ).rejects.toMatchObject({
+        details: { reason: 'Search query must be at most 100 characters' },
       });
 
       expect(searchUseCase.execute).not.toHaveBeenCalled();

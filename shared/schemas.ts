@@ -708,6 +708,19 @@ export type TransactionUpdate = z.infer<typeof transactionUpdateSchema>;
 const searchItemTypeSchema = z.enum(['transaction', 'budget_line']);
 export type SearchItemType = z.infer<typeof searchItemTypeSchema>;
 
+export const TRANSACTION_SEARCH_QUERY_MIN_LENGTH = 2;
+export const TRANSACTION_SEARCH_QUERY_MAX_LENGTH = 100;
+
+export const transactionSearchQuerySchema = z.object({
+  q: z
+    .string()
+    .min(TRANSACTION_SEARCH_QUERY_MIN_LENGTH)
+    .max(TRANSACTION_SEARCH_QUERY_MAX_LENGTH),
+});
+export type TransactionSearchQuery = z.infer<
+  typeof transactionSearchQuerySchema
+>;
+
 export const transactionSearchResultSchema = z.object({
   id: z.uuid(),
   itemType: searchItemTypeSchema,

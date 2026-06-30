@@ -26,6 +26,8 @@ import {
   ApiInternalServerErrorResponse,
 } from '@nestjs/swagger';
 import {
+  TRANSACTION_SEARCH_QUERY_MAX_LENGTH,
+  TRANSACTION_SEARCH_QUERY_MIN_LENGTH,
   type TransactionResponse,
   type TransactionListResponse,
   type TransactionDeleteResponse,
@@ -371,10 +373,17 @@ export class TransactionController {
       );
     }
 
-    if (queryParam.length < 2) {
+    if (queryParam.length < TRANSACTION_SEARCH_QUERY_MIN_LENGTH) {
       throw new BusinessException(
         ERROR_DEFINITIONS.TRANSACTION_VALIDATION_FAILED,
         { reason: 'Search query must be at least 2 characters' },
+      );
+    }
+
+    if (queryParam.length > TRANSACTION_SEARCH_QUERY_MAX_LENGTH) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.TRANSACTION_VALIDATION_FAILED,
+        { reason: 'Search query must be at most 100 characters' },
       );
     }
 

@@ -1,11 +1,11 @@
 import { createZodDto } from 'nestjs-zod';
-import { z } from 'zod';
 import {
   transactionCreateSchema,
   transactionUpdateSchema,
   transactionResponseSchema,
   transactionListResponseSchema,
   transactionDeleteResponseSchema,
+  transactionSearchQuerySchema,
   transactionSearchResponseSchema,
 } from 'pulpe-shared';
 
@@ -24,12 +24,8 @@ export class TransactionListResponseDto extends createZodDto(
 export class TransactionDeleteResponseDto extends createZodDto(
   transactionDeleteResponseSchema,
 ) {}
-
-const searchQuerySchema = z.object({
-  q: z.string().min(2).max(100),
-});
 export class TransactionSearchQueryDto extends createZodDto(
-  searchQuerySchema,
+  transactionSearchQuerySchema,
 ) {}
 export class TransactionSearchResponseDto extends createZodDto(
   transactionSearchResponseSchema,
