@@ -234,9 +234,13 @@ function createBudgetLineViewModel(
   const percentage = calculatePercentage(budgetLine.amount, consumed);
   const hasTransactions = transactionCount > 0;
   // A one-off forecast with no allocated transactions can be reported; a
-  // recurring line or a consumed envelope cannot (those stay hidden).
+  // recurring line, a consumed envelope, or a spread occurrence cannot (those
+  // stay hidden). Moving a single spread occurrence would break its group's
+  // cross-month distribution (PUL-17 × PUL-22).
   const isPostponeRelevant =
-    budgetLine.recurrence === 'one_off' && transactionCount === 0;
+    budgetLine.recurrence === 'one_off' &&
+    transactionCount === 0 &&
+    !budgetLine.spreadGroupId;
   const postponeDisabledReason = getPostponeDisabledReason(
     isPostponeRelevant,
     budgetLine.checkedAt,

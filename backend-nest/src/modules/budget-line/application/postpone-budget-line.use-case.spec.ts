@@ -140,6 +140,17 @@ describe('PostponeBudgetLineUseCase', () => {
     expect(mockRepo.postpone).not.toHaveBeenCalled();
   });
 
+  it('rejects a spread occurrence (carries a spreadGroupId)', async () => {
+    mockRepo.findById.mockResolvedValueOnce({
+      ...eligibleLine,
+      spreadGroupId: 'grp-1',
+    });
+
+    const error = await useCase.execute('line-1', mockUser).catch((e) => e);
+    expect(error.code).toBe(API_ERROR_CODES.BUDGET_LINE_NOT_POSTPONABLE);
+    expect(mockRepo.postpone).not.toHaveBeenCalled();
+  });
+
   it('rejects a line carrying allocated transactions', async () => {
     mockRepo.hasAllocatedTransactions.mockResolvedValueOnce(true);
 

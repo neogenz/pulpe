@@ -134,6 +134,25 @@ describe('budget-item-data-builder — postpone (PUL-22) — budget lines', () =
     expect(findLine(result, 'recurrent').metadata.showPostpone).toBe(false);
   });
 
+  it('should hide postpone entirely for a spread occurrence (carries a spreadGroupId)', () => {
+    const line = createMockBudgetLine({
+      id: 'spread-occurrence',
+      recurrence: 'one_off',
+      checkedAt: null,
+      spreadGroupId: '11111111-1111-1111-1111-111111111111',
+    });
+
+    const result = buildViewData({
+      budgetLines: [line],
+      transactions: [],
+      postpone: NEXT_MONTH_READY,
+    });
+
+    expect(findLine(result, 'spread-occurrence').metadata.showPostpone).toBe(
+      false,
+    );
+  });
+
   it('should hide postpone entirely for a line with allocated transactions', () => {
     const line = createMockBudgetLine({
       id: 'consumed',

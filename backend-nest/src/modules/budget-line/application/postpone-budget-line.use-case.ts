@@ -73,6 +73,18 @@ export class PostponeBudgetLineUseCase {
       );
     }
 
+    // A spread occurrence (PUL-17) is a one_off line bound to a cross-month group
+    // via spreadGroupId. Moving one occurrence would leave its siblings behind and
+    // break the group's month distribution — so it is not postponable (mirrors
+    // `canSpread`, which excludes already-spread lines).
+    if (line.spreadGroupId !== null) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.BUDGET_LINE_NOT_POSTPONABLE,
+        undefined,
+        loggingContext,
+      );
+    }
+
     if (await this.repo.hasAllocatedTransactions(id)) {
       throw new BusinessException(
         ERROR_DEFINITIONS.BUDGET_LINE_HAS_TRANSACTIONS,

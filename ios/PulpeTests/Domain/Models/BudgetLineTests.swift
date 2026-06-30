@@ -235,4 +235,17 @@ struct BudgetLineTests {
         let line = TestDataFactory.createBudgetLine(amount: decimalValue)
         #expect(line.amount == decimalValue)
     }
+
+    // MARK: - Postpone Eligibility (PUL-22)
+
+    @Test func isPostponeEligible_uncheckedOneOffNoTx_isTrue() {
+        let line = TestDataFactory.createBudgetLine(recurrence: .oneOff, isChecked: false)
+        #expect(line.isPostponeEligible(hasAllocatedTransactions: false))
+    }
+
+    @Test func isPostponeEligible_spreadOccurrence_isFalse() {
+        var line = TestDataFactory.createBudgetLine(recurrence: .oneOff, isChecked: false)
+        line.spreadGroupId = UUID()
+        #expect(!line.isPostponeEligible(hasAllocatedTransactions: false))
+    }
 }

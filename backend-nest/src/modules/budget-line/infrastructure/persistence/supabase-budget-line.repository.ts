@@ -609,6 +609,7 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
       .eq('budget_id', sourceBudgetId)
       .eq('recurrence', 'one_off')
       .is('checked_at', null)
+      .is('spread_group_id', null)
       .select()
       .single();
 
