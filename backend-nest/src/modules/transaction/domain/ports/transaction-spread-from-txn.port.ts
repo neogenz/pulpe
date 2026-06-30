@@ -1,0 +1,68 @@
+import type { AuthenticatedUser } from '@common/decorators/user.decorator';
+import type { TransactionSpreadFromTxnCreate } from 'pulpe-shared';
+import type { Database } from '../../../../types/database.types';
+
+type TransactionKind = Database['public']['Enums']['transaction_kind'];
+type TransactionRecurrence =
+  Database['public']['Enums']['transaction_recurrence'];
+
+export const TRANSACTION_SPREAD_FROM_TXN_PORT = Symbol(
+  'TRANSACTION_SPREAD_FROM_TXN_PORT',
+);
+
+/**
+ * BudgetLine projection returned by the transaction spread-from flow.
+ *
+ * Kept local to the transaction port so this domain does not import the
+ * budget-line domain only to describe a read result.
+ */
+export interface TransactionSpreadBudgetLine {
+  id: string;
+  budgetId: string;
+  templateLineId: string | null;
+  savingsGoalId: string | null;
+  spreadGroupId: string | null;
+  name: string;
+  amount: number;
+  originalAmount: number | null;
+  originalCurrency: string | null;
+  targetCurrency: string | null;
+  exchangeRate: number | null;
+  kind: TransactionKind;
+  recurrence: TransactionRecurrence;
+  isManuallyAdjusted: boolean;
+  checkedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * Mirrors the budget-line fan-out budget projection, but stays local to the
+ * transaction port to avoid a domain-to-domain cross-module import.
+ */
+export interface TransactionSpreadBudget {
+  id: string;
+  userId: string | null;
+  templateId: string;
+  month: number;
+  year: number;
+  description: string;
+  endingBalance: number | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TransactionSpreadFanOutResult {
+  spreadGroupId: string;
+  lines: TransactionSpreadBudgetLine[];
+  createdBudgets: TransactionSpreadBudget[];
+  skippedMonths: { month: number; year: number }[];
+}
+
+export interface TransactionSpreadFromTxnPort {
+  execute(
+    id: string,
+    dto: TransactionSpreadFromTxnCreate,
+    user: AuthenticatedUser,
+  ): Promise<TransactionSpreadFanOutResult>;
+}
