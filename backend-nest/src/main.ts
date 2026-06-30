@@ -97,7 +97,18 @@ function setupSecurity(app: import('@nestjs/common').INestApplication): void {
   // Helmet for security headers
   app.use(
     helmet({
-      contentSecurityPolicy: false, // Disable CSP for API
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          baseUri: ["'self'"],
+          objectSrc: ["'none'"],
+          scriptSrc: ["'self'", "'unsafe-inline'"],
+          styleSrc: ["'self'", "'unsafe-inline'"],
+          imgSrc: ["'self'", 'data:'],
+          connectSrc: ["'self'"],
+          upgradeInsecureRequests: null,
+        },
+      },
       crossOriginEmbedderPolicy: false, // Allow embedding
     }),
   );

@@ -1,4 +1,4 @@
-import { execSync } from 'node:child_process';
+import { execFileSync, execSync } from 'node:child_process';
 import { delimiter, resolve } from 'node:path';
 
 const BACKEND_ROOT = resolve(__dirname, '../..');
@@ -44,7 +44,7 @@ function resolveSupabaseCliPath(): string {
   }
 }
 
-function runSupabase(command: string): string {
+function runSupabase(args: string[]): string {
   const env = { ...process.env };
   delete env.SUPABASE_ACCESS_TOKEN;
   delete env.SUPABASE_PROJECT_REF;
@@ -52,11 +52,8 @@ function runSupabase(command: string): string {
 
   env.PATH = stripNodeModulesBin(env.PATH);
   const cliPath = resolveSupabaseCliPath();
-  const cli = cliPath.includes(' ')
-    ? `"${cliPath.replace(/"/g, '\\"')}"`
-    : cliPath;
 
-  return execSync(`${cli} --workdir "${BACKEND_ROOT}" ${command}`, {
+  return execFileSync(cliPath, ['--workdir', BACKEND_ROOT, ...args], {
     cwd: BACKEND_ROOT,
     env,
     stdio: ['ignore', 'pipe', 'pipe'],
@@ -104,7 +101,7 @@ function parseSupabaseStatus(raw: string): SupabaseEnv {
 
 function tryGetSupabaseEnv(): SupabaseEnv | null {
   try {
-    const raw = runSupabase('status --output json');
+    const raw = runSupabase(['status', '--output', 'json']);
     return parseSupabaseStatus(raw);
   } catch {
     return null;

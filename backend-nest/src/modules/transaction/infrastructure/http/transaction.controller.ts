@@ -169,17 +169,11 @@ export class TransactionController {
     type: ErrorResponseDto,
   })
   async search(
-    @Query('q') query: string,
+    @Query('q') queryParam: unknown,
     @Query('years') yearsParam: string | string[] | undefined,
     @User() user: AuthenticatedUser,
   ): Promise<TransactionSearchResponse> {
-    if (!query || query.length < 2) {
-      throw new BusinessException(
-        ERROR_DEFINITIONS.TRANSACTION_VALIDATION_FAILED,
-        { reason: 'Search query must be at least 2 characters' },
-      );
-    }
-
+    const query = this.parseSearchQuery(queryParam);
     const years = this.parseYearsParam(yearsParam);
     const results = await this.searchUseCase.execute(query, user, years);
     return { success: true, data: results };
@@ -360,5 +354,16 @@ export class TransactionController {
     return arr
       .map((y) => parseInt(y, 10))
       .filter((y) => !isNaN(y) && y >= 1900 && y <= maxYear);
+  }
+
+  private parseSearchQuery(queryParam: unknown): string {
+    if (typeof queryParam !== 'string' || queryParam.length < 2) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.TRANSACTION_VALIDATION_FAILED,
+        { reason: 'Search query must be at least 2 characters' },
+      );
+    }
+
+    return queryParam;
   }
 }
