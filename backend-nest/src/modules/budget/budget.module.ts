@@ -72,7 +72,6 @@ import { BUDGET_PROVISIONING_PORT } from './domain/ports/budget-provisioning.por
     BUDGET_RECALCULATION_PORT,
     BUDGET_PERIOD_LOOKUP_PORT,
     BUDGET_PROVISIONING_PORT,
-    BudgetMapper,
   ],
 })
 export class BudgetModule {}

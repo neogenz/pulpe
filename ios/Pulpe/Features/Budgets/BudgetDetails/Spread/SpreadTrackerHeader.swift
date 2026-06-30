@@ -2,7 +2,8 @@ import SwiftUI
 
 /// PUL-17 — progress tracker header for the "Dépense lissée" sheet: a position
 /// line, the realized cumulé/total, a `pulpePrimary` bar filled to
-/// `progressPercent`, and the per-month tranche.
+/// `progressPercent`, and (PUL-290) the explicit catch-up that replaces the
+/// static "T/N par mois" line the user used to compute by hand.
 ///
 /// All amounts use `asCurrency` (2 decimals) per
 /// `feedback_two_decimals_ios_budget_detail` — the budget-detail surface forbids
@@ -30,15 +31,42 @@ struct SpreadTrackerHeader: View {
 
             progressBar
 
-            Text("\(tracker.perMonthAmount.asCurrency(currency)) par mois")
+            provisionLine
+        }
+        .padding(.vertical, DesignTokens.Spacing.xs)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(accessibilityLabel)
+    }
+
+    /// PUL-290 — three serene states: objectif atteint (nothing left), the
+    /// rattrapage (reste + à prévoir par mois), or the final gap (every month
+    /// closed yet under-provisioned — no actionable month, no division by zero).
+    @ViewBuilder
+    private var provisionLine: some View {
+        if tracker.remainingToProvision <= 0 {
+            Text("Objectif atteint")
+                .font(PulpeTypography.metricMini)
+                .foregroundStyle(Color.pulpePrimary)
+        } else if let perRemaining = tracker.perRemainingMonth {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
+                Text(remainingLabel)
+                    .font(PulpeTypography.metricMini)
+                    .foregroundStyle(Color.textTertiary)
+                    .monospacedDigit()
+                    .sensitiveAmount()
+                Text(perRemainingMonthLabel(perRemaining))
+                    .font(PulpeTypography.metricMini)
+                    .foregroundStyle(Color.textSecondary)
+                    .monospacedDigit()
+                    .sensitiveAmount()
+            }
+        } else {
+            Text(finalGapLabel)
                 .font(PulpeTypography.metricMini)
                 .foregroundStyle(Color.textTertiary)
                 .monospacedDigit()
                 .sensitiveAmount()
         }
-        .padding(.vertical, DesignTokens.Spacing.xs)
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel(accessibilityLabel)
     }
 
     private var progressBar: some View {
@@ -67,8 +95,31 @@ struct SpreadTrackerHeader: View {
         "\(tracker.cumulatedAmount.asCurrency(currency)) sur \(tracker.totalAmount.asCurrency(currency))"
     }
 
+    private var remainingLabel: String {
+        "Reste \(tracker.remainingToProvision.asCurrency(currency)) à provisionner"
+    }
+
+    private func perRemainingMonthLabel(_ amount: Decimal) -> String {
+        "Prévois ~\(amount.asCurrency(currency)) par mois pour tenir l'objectif"
+    }
+
+    private var finalGapLabel: String {
+        "Tous les mois sont clôturés · il reste "
+            + "\(tracker.remainingToProvision.asCurrency(currency)) non provisionné"
+    }
+
+    private var provisionLabel: String {
+        if tracker.remainingToProvision <= 0 {
+            return "Objectif atteint"
+        }
+        if let perRemaining = tracker.perRemainingMonth {
+            return "\(remainingLabel), \(perRemainingMonthLabel(perRemaining))"
+        }
+        return finalGapLabel
+    }
+
     private var accessibilityLabel: String {
-        "\(positionLabel), \(cumulatedLabel), \(tracker.perMonthAmount.asCurrency(currency)) par mois"
+        "\(positionLabel), \(cumulatedLabel), \(provisionLabel)"
     }
 }
 
@@ -80,7 +131,9 @@ struct SpreadTrackerHeader: View {
             cumulatedAmount: 200,
             totalAmount: 600,
             perMonthAmount: 100,
-            progressPercent: 33.3
+            progressPercent: 33.3,
+            remainingToProvision: 400,
+            perRemainingMonth: 100
         ),
         currency: .chf
     )

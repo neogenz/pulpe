@@ -80,6 +80,22 @@ export function spreadOccurrenceRealizedAmount(
  * - `perMonthAmount`  = representative tranche (viewed month's amount, else the
  *                       last/base split value).
  * - `progressPercent` = realized / total, clamped to [0, 100].
+ *
+ * PUL-290 — the explicit catch-up, so the user never subtracts and divides by
+ * hand:
+ *
+ * - `remainingToProvision` = `max(0, totalAmount − cumulatedAmount)`. The
+ *                       objectif is the Σ of the current tranches' prévu
+ *                       (`totalAmount`); the provisionné is the réalisé
+ *                       (`cumulatedAmount`). No stored target — editing a tranche
+ *                       moves the objectif. Clamped so over-provisioning never
+ *                       shows a negative catch-up.
+ * - `perRemainingMonth` = `remainingToProvision` ÷ the count of OPEN months
+ *                       (occurrences neither closed NOR pointée — the exact
+ *                       complement of the réalisé filter, so a pointée month
+ *                       counted in `cumulatedAmount` is never also a divisor
+ *                       slot). `null` when nothing remains to provision OR no
+ *                       open month is left (no division by zero).
  */
 export function buildSpreadTracker(
   viewModels: readonly SpreadOccurrenceViewModel[],
@@ -111,6 +127,15 @@ export function buildSpreadTracker(
       ? Math.min(100, Math.max(0, (cumulatedAmount / totalAmount) * 100))
       : 0;
 
+  const remainingToProvision = Math.max(0, totalAmount - cumulatedAmount);
+  const openMonths = viewModels.filter(
+    (vm) => !(vm.isClosed || vm.isChecked),
+  ).length;
+  const perRemainingMonth =
+    remainingToProvision > 0 && openMonths > 0
+      ? remainingToProvision / openMonths
+      : null;
+
   return {
     count,
     currentIndex,
@@ -118,5 +143,7 @@ export function buildSpreadTracker(
     totalAmount,
     perMonthAmount: representative,
     progressPercent,
+    remainingToProvision,
+    perRemainingMonth,
   };
 }

@@ -5,12 +5,14 @@ import SwiftUI
 /// The source total is LOCKED (read-only): the user picks the end month + the
 /// months to skip, and `T` is redistributed into `T/N` via the calculator's
 /// `SpreadSplit` (M0 included, drops to ~T/N). Mirrors the web
-/// `SpreadExistingDialog`. On submit it emits the chosen `periods` and dismisses;
-/// the caller routes them to the coordinator (which deletes the source + fans out).
+/// `SpreadExistingDialog`. On submit it awaits the caller's spread work behind a
+/// blocking loading overlay and dismisses only once it completes (parity with the
+/// additive `AddBudgetLineSheet` flow); the caller routes the chosen `periods` to
+/// the coordinator (which deletes the source + fans out).
 struct SpreadExistingSheet: View {
     let source: SpreadExistingSource
     let currency: SupportedCurrency
-    let onSpread: ([SpreadFromExistingPeriod]) -> Void
+    let onSpread: ([SpreadFromExistingPeriod]) async -> Void
 
     @Environment(\.dismiss) private var dismiss
     @State private var calculator: SpreadExistingCalculator
@@ -20,7 +22,7 @@ struct SpreadExistingSheet: View {
     init(
         source: SpreadExistingSource,
         currency: SupportedCurrency,
-        onSpread: @escaping ([SpreadFromExistingPeriod]) -> Void
+        onSpread: @escaping ([SpreadFromExistingPeriod]) async -> Void
     ) {
         self.source = source
         self.currency = currency
@@ -60,8 +62,17 @@ struct SpreadExistingSheet: View {
             .navigationTitle(spreadTitle)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { SheetCloseButton() }
+                // Disabled during submit: the loading overlay covers SwiftUI
+                // content but not the UIKit nav bar, so without this the user
+                // could dismiss mid-spread while the fan-out keeps running.
+                ToolbarItem(placement: .cancellationAction) {
+                    SheetCloseButton().disabled(isSubmitting)
+                }
             }
+            // Blocking overlay while the spread runs server-side (delete source +
+            // fan out N tranches) — parity with the additive flow. The message
+            // matters: a bare spinner on a multi-month fan-out reads as frozen.
+            .loadingOverlay(isSubmitting, message: "Lissage en cours…")
             .sheet(isPresented: $isPickingEnd) {
                 SpreadMonthPickerSheet(
                     title: "Dernier mois",
@@ -72,6 +83,10 @@ struct SpreadExistingSheet: View {
             }
         }
         .standardSheetPresentation(detents: [.medium, .large])
+        // Block swipe-to-dismiss while the spread runs — same guard as the
+        // disabled cancel button, closing the other path that could dismiss the
+        // sheet mid-fan-out (parity with ConfirmPasswordSheet).
+        .interactiveDismissDisabled(isSubmitting)
     }
 
     // MARK: - Locked total
@@ -238,13 +253,23 @@ struct SpreadExistingSheet: View {
 
     private var submitButton: some View {
         Button {
-            // The sheet dismisses synchronously, but the dismiss animation isn't
-            // instant — a fast double-tap would otherwise spawn two dispatches on
-            // the same source (the 2nd hits a 404 after the 1st deletes it).
-            guard !isSubmitting else { return }
-            isSubmitting = true
-            onSpread(calculator.periods())
-            dismiss()
+            Task {
+                // `isSubmitting` guards against a double-tap (the button is also
+                // disabled while it's true) AND drives the blocking overlay. We
+                // await the caller's spread work and dismiss only once it
+                // completes, so the user gets in-progress feedback instead of an
+                // instant close (parity with the additive `AddBudgetLineSheet`).
+                guard !isSubmitting else { return }
+                isSubmitting = true
+                // Reset on every exit path so the sheet can never lock with the
+                // overlay up + cancel/swipe disabled — same escape hatch as every
+                // other submit handler (e.g. `AddBudgetLineSheet`). In the normal
+                // path `dismiss()` tears the view down anyway; this only matters if
+                // `dismiss()` no-ops or `onSpread` ever becomes throwing.
+                defer { isSubmitting = false }
+                await onSpread(calculator.periods())
+                dismiss()
+            }
         } label: {
             Text(spreadTitle)
         }

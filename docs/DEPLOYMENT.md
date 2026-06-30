@@ -30,6 +30,15 @@ git push origin main      # Triggers automatic CI/CD
 | `app.pulpe.app` | Angular webapp | `pulpe-frontend` | Angular |
 | `api.pulpe.app` | Backend NestJS | Railway | - |
 
+## Branch Model
+
+| Branch | Role | Environment |
+|--------|------|-------------|
+| `preview` | **Default branch** — sprint integration + QA. Feature branches PR here. | Staging (Vercel Preview, Railway `preview` env) |
+| `main` | **Release / production** — fed by `preview` at release time. | Production |
+
+Day-to-day work branches off `preview` and merges back via PR. A **release promotes `preview` → `main`**; pushing the release commit to `main` triggers the production CI/CD described below. Both branches are protected (PR + 1 review + `✅ CI Success`, no force-push, no deletion); release tags `v*` are immutable. Full contributor workflow: [../CONTRIBUTING.md](../CONTRIBUTING.md).
+
 ## Initial Setup
 
 ### Database (Supabase)
@@ -306,6 +315,8 @@ git commit -m "chore: release version bump"
 ```
 
 ### 3. Production Deployment
+
+A release **promotes `preview` → `main`** (open a PR `preview` → `main` and merge it; the admin bypass covers the solo self-review constraint). Pushing the release commit to `main` triggers prod CI/CD:
 
 ```bash
 # Push main triggers CI/CD

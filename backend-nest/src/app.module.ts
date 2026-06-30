@@ -33,6 +33,7 @@ import { CurrencyModule } from '@modules/currency/currency.module';
 import { UserModule } from '@modules/user/user.module';
 import { AccountDeletionModule } from '@modules/account-deletion/account-deletion.module';
 import { AppVersionModule } from '@modules/app-version/app-version.module';
+import { AllocationModule } from '@modules/allocation/allocation.module';
 
 // Filters
 import { FiltersModule } from '@common/filters/filters.module';
@@ -301,6 +302,7 @@ function createPinoLoggerConfig(configService: ConfigService) {
     BudgetLineModule,
     BudgetTemplateModule,
     TransactionModule,
+    AllocationModule,
     CurrencyModule,
     UserModule,
     AccountDeletionModule,

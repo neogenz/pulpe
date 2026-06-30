@@ -61,19 +61,20 @@ extension BudgetDetailsView {
                 currency: userSettingsStore.currency
             )
         case .spreadExisting(let source):
+            // The closure is awaited by the sheet (behind its blocking overlay),
+            // so dispatch directly — NO wrapping `Task`, which would return
+            // instantly and defeat the in-progress feedback.
             SpreadExistingSheet(source: source, currency: userSettingsStore.currency) { periods in
                 let ctx = toastContext
-                Task {
-                    switch source.sourceType {
-                    case .budgetLine:
-                        await coordinator.dispatch(
-                            .spreadBudgetLineFromExisting(lineId: source.id, periods: periods, ctx)
-                        )
-                    case .transaction:
-                        await coordinator.dispatch(
-                            .spreadTransactionFromExisting(txId: source.id, periods: periods, ctx)
-                        )
-                    }
+                switch source.sourceType {
+                case .budgetLine:
+                    await coordinator.dispatch(
+                        .spreadBudgetLineFromExisting(lineId: source.id, periods: periods, ctx)
+                    )
+                case .transaction:
+                    await coordinator.dispatch(
+                        .spreadTransactionFromExisting(txId: source.id, periods: periods, ctx)
+                    )
                 }
             }
         }

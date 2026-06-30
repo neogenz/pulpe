@@ -1,6 +1,6 @@
-import type { Transaction } from '../../../transaction/domain/transaction.entity';
 import type {
   BudgetLine,
+  BudgetLineCheckedTransaction,
   BudgetLineCreateInput,
   BudgetLineUpdatePatch,
   SpreadDeleteSource,
@@ -67,5 +67,7 @@ export interface BudgetLineRepositoryPort {
   delete(id: string): Promise<void>;
   fetchTemplateLineById(templateLineId: string): Promise<TemplateLine>;
   toggleCheckRpc(id: string): Promise<BudgetLine>;
-  checkUncheckedTransactionsRpc(id: string): Promise<Transaction[]>;
+  checkUncheckedTransactionsRpc(
+    id: string,
+  ): Promise<BudgetLineCheckedTransaction[]>;
 }

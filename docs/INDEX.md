@@ -13,6 +13,7 @@
 ## 📋 Par Type de Tâche
 
 ### 🏗️ Opérationnel (Usage quotidien)
+- **[CONTRIBUTING.md](../CONTRIBUTING.md)** - Modèle de branches + workflow PR (preview = intégration/QA, main = release)
 - **[DEPLOYMENT.md](./DEPLOYMENT.md)** - Comment déployer ? Processus de release
 - **[TROUBLESHOOTING.md](./TROUBLESHOOTING.md)** - Solutions aux problèmes fréquents
 - **[QUICKSTART.md](./QUICKSTART.md)** - Commandes essentielles + setup rapide

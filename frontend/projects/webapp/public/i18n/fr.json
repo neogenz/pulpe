@@ -586,7 +586,10 @@
       "trackerPosition": "{{ ordinal }} mois sur {{ count }}",
       "trackerNotStarted": "Commence le mois prochain",
       "trackerCumulated": "{{ cumulated }} sur {{ total }}",
-      "trackerPerMonth": "{{ perMonth }} par mois"
+      "trackerRemaining": "Reste {{ remaining }} à provisionner",
+      "trackerPerRemainingMonth": "Prévois ~{{ perMonth }} par mois pour tenir l'objectif",
+      "trackerFinalGap": "Tous les mois sont clôturés · il reste {{ remaining }} non provisionné",
+      "trackerGoalReached": "Objectif atteint"
     }
   },
   "transaction": {
