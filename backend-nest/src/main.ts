@@ -93,11 +93,28 @@ function getProductionOrigins(configService: ConfigService): string[] {
     .filter((url) => url);
 }
 
-function setupSecurity(app: import('@nestjs/common').INestApplication): void {
+function setupSecurity(
+  app: import('@nestjs/common').INestApplication,
+  productionLike: boolean,
+): void {
+  const scriptSrc = productionLike ? ["'self'"] : ["'self'", "'unsafe-inline'"];
+  const styleSrc = productionLike ? ["'self'"] : ["'self'", "'unsafe-inline'"];
+
   // Helmet for security headers
   app.use(
     helmet({
-      contentSecurityPolicy: false, // Disable CSP for API
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          baseUri: ["'self'"],
+          objectSrc: ["'none'"],
+          scriptSrc,
+          styleSrc,
+          imgSrc: ["'self'", 'data:'],
+          connectSrc: ["'self'"],
+          upgradeInsecureRequests: null,
+        },
+      },
       crossOriginEmbedderPolicy: false, // Allow embedding
     }),
   );
@@ -251,17 +268,16 @@ async function bootstrap() {
   };
 
   app.useLogger(app.get(Logger));
+  const productionLike = isProductionLike(env.NODE_ENV);
 
   // Setup security middleware
-  setupSecurity(app);
+  setupSecurity(app, productionLike);
 
   // Setup CORS after security middleware
   setupCors(app);
 
   // Setup API versioning
   setupApiVersioning(app);
-
-  const productionLike = isProductionLike(env.NODE_ENV);
 
   // Only setup Swagger in non-production-like environments
   let document: import('@nestjs/swagger').OpenAPIObject | undefined;

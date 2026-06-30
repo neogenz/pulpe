@@ -25,6 +25,9 @@ import {
   ApiInternalServerErrorResponse,
 } from '@nestjs/swagger';
 import {
+  TRANSACTION_SEARCH_QUERY_MAX_LENGTH,
+  TRANSACTION_SEARCH_QUERY_MIN_LENGTH,
+  transactionSearchQuerySchema,
   type TransactionResponse,
   type TransactionListResponse,
   type TransactionDeleteResponse,
@@ -57,6 +60,12 @@ import { ToggleTransactionCheckUseCase } from '../../application/toggle-transact
 import { SearchTransactionsUseCase } from '../../application/search-transactions.use-case';
 import { PostponeTransactionUseCase } from '../../application/postpone-transaction.use-case';
 import { TransactionMapper } from '../mappers/transaction.mapper';
+
+const SEARCH_QUERY_VALIDATION_REASON_BY_CODE: Partial<Record<string, string>> =
+  {
+    too_small: `Search query must be at least ${TRANSACTION_SEARCH_QUERY_MIN_LENGTH} characters`,
+    too_big: `Search query must be at most ${TRANSACTION_SEARCH_QUERY_MAX_LENGTH} characters`,
+  };
 
 @ApiTags('Transactions')
 @ApiBearerAuth()
@@ -139,7 +148,7 @@ export class TransactionController {
   })
   @ApiQuery({
     name: 'q',
-    description: 'Terme de recherche (minimum 2 caractères)',
+    description: `Terme de recherche (${TRANSACTION_SEARCH_QUERY_MIN_LENGTH} à ${TRANSACTION_SEARCH_QUERY_MAX_LENGTH} caractères)`,
     required: true,
     example: 'Restaurant',
   })
@@ -157,21 +166,15 @@ export class TransactionController {
     type: TransactionSearchResponseDto,
   })
   @ApiBadRequestResponse({
-    description: 'Query trop courte (minimum 2 caractères)',
+    description: `Query invalide (${TRANSACTION_SEARCH_QUERY_MIN_LENGTH} à ${TRANSACTION_SEARCH_QUERY_MAX_LENGTH} caractères attendus)`,
     type: ErrorResponseDto,
   })
   async search(
-    @Query('q') query: string,
+    @Query('q') queryParam: unknown,
     @Query('years') yearsParam: string | string[] | undefined,
     @User() user: AuthenticatedUser,
   ): Promise<TransactionSearchResponse> {
-    if (!query || query.length < 2) {
-      throw new BusinessException(
-        ERROR_DEFINITIONS.TRANSACTION_VALIDATION_FAILED,
-        { reason: 'Search query must be at least 2 characters' },
-      );
-    }
-
+    const query = this.parseSearchQuery(queryParam);
     const years = this.parseYearsParam(yearsParam);
     const results = await this.searchUseCase.execute(query, user, years);
     return { success: true, data: results };
@@ -343,5 +346,36 @@ export class TransactionController {
     return arr
       .map((y) => parseInt(y, 10))
       .filter((y) => !isNaN(y) && y >= 1900 && y <= maxYear);
+  }
+
+  private parseSearchQuery(queryParam: unknown): string {
+    if (queryParam === undefined) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.TRANSACTION_VALIDATION_FAILED,
+        { reason: 'Search query is required' },
+      );
+    }
+
+    if (typeof queryParam !== 'string') {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.TRANSACTION_VALIDATION_FAILED,
+        { reason: 'Search query must be a string' },
+      );
+    }
+
+    const parsed = transactionSearchQuerySchema.shape.q.safeParse(queryParam);
+
+    if (parsed.success) {
+      return parsed.data;
+    }
+
+    const reason =
+      SEARCH_QUERY_VALIDATION_REASON_BY_CODE[
+        parsed.error.issues[0]?.code ?? ''
+      ] ?? 'Search query is invalid';
+    throw new BusinessException(
+      ERROR_DEFINITIONS.TRANSACTION_VALIDATION_FAILED,
+      { reason },
+    );
   }
 }

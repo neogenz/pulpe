@@ -22,6 +22,9 @@ export {
   transactionSchema,
   transactionCreateSchema,
   transactionUpdateSchema,
+  TRANSACTION_SEARCH_QUERY_MIN_LENGTH,
+  TRANSACTION_SEARCH_QUERY_MAX_LENGTH,
+  transactionSearchQuerySchema,
   transactionSearchResultSchema,
   transactionSearchResponseSchema,
 
@@ -210,6 +213,7 @@ export type {
   TransactionCreate,
   TransactionUpdate,
   SearchItemType,
+  TransactionSearchQuery,
   TransactionSearchResult,
   TransactionSearchResponse,
 
