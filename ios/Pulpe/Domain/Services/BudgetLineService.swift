@@ -6,6 +6,7 @@ import Foundation
 protocol BudgetLineServicing: Sendable {
     func deleteBudgetLine(id: String) async throws
     func toggleCheck(id: String) async throws -> BudgetLine
+    func postpone(id: String) async throws -> BudgetLine
     func createSpread(_ data: BudgetLineSpreadCreate) async throws -> BudgetLineSpreadResponse
     func getSpreadOccurrences(spreadGroupId: String) async throws -> [SpreadOccurrence]
     func spreadExistingBudgetLine(
@@ -83,6 +84,14 @@ actor BudgetLineService: BudgetLineServicing {
     /// Toggle the checked state of a budget line
     func toggleCheck(id: String) async throws -> BudgetLine {
         try await apiClient.request(.budgetLineToggle(id: id), method: .post)
+    }
+
+    /// Move an unchecked, one-off budget line to next month's budget (PUL-22).
+    /// Returns the moved line (the `success`/`data` envelope is unwrapped by
+    /// the APIClient; the extra `sourceBudgetId`/`targetBudgetId` fields the
+    /// backend appends are ignored by `Codable`).
+    func postpone(id: String) async throws -> BudgetLine {
+        try await apiClient.request(.budgetLinePostpone(id: id), method: .post)
     }
 
     /// Reset a budget line to its template value

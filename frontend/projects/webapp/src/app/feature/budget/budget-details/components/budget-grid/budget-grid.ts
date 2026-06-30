@@ -103,6 +103,7 @@ export function groupByKind<T extends { data: { kind: string } }>(
             (viewTransactions)="viewTransactions.emit($event)"
             (spread)="spread.emit($event)"
             (resetFromTemplate)="resetFromTemplate.emit($event)"
+            (postpone)="postpone.emit($event)"
             (toggleCheck)="toggleCheck.emit($event)"
           />
         } @empty {
@@ -154,6 +155,7 @@ export function groupByKind<T extends { data: { kind: string } }>(
                     (addTransaction)="addTransaction.emit($event)"
                     (spread)="spread.emit($event)"
                     (resetFromTemplate)="resetFromTemplate.emit($event)"
+                    (postpone)="postpone.emit($event)"
                     (toggleCheck)="toggleCheck.emit($event)"
                   />
                 }
@@ -231,8 +233,11 @@ export function groupByKind<T extends { data: { kind: string } }>(
               [transaction]="item.data"
               menuIcon="more_horiz"
               buttonClass="!-mr-2 !-mt-1"
+              [hasNextMonthBudget]="hasNextMonthBudget()"
+              [nextMonthLabel]="nextMonthLabel()"
               (edit)="editTransaction.emit($event)"
               (delete)="deleteTransaction.emit($event)"
+              (postpone)="postponeTransaction.emit($event)"
               (spread)="spreadTransaction.emit($event)"
             />
           </div>
@@ -308,8 +313,11 @@ export function groupByKind<T extends { data: { kind: string } }>(
           <pulpe-transaction-action-menu
             [transaction]="item.data"
             buttonClass="!-mr-2 !-mt-1"
+            [hasNextMonthBudget]="hasNextMonthBudget()"
+            [nextMonthLabel]="nextMonthLabel()"
             (edit)="editTransaction.emit($event)"
             (delete)="deleteTransaction.emit($event)"
+            (postpone)="postponeTransaction.emit($event)"
             (spread)="spreadTransaction.emit($event)"
           />
         </div>
@@ -389,6 +397,10 @@ export class BudgetGrid {
   >();
   readonly transactions = input.required<TransactionViewModel[]>();
   readonly isMobile = input.required<boolean>();
+  /** Next calendar month's budget exists — gates free-tx postpone enablement (PUL-22 CA5) */
+  readonly hasNextMonthBudget = input<boolean>(false);
+  /** Target month label for free-tx postpone tooltip (PUL-22) */
+  readonly nextMonthLabel = input<string>('');
 
   // Outputs
   readonly edit = output<BudgetLineTableItem>();
@@ -401,6 +413,8 @@ export class BudgetGrid {
   readonly viewTransactions = output<BudgetLineTableItem>();
   readonly spread = output<BudgetLineTableItem>();
   readonly resetFromTemplate = output<BudgetLineTableItem>();
+  readonly postpone = output<string>();
+  readonly postponeTransaction = output<string>();
   readonly toggleCheck = output<string>();
   readonly toggleTransactionCheck = output<string>();
 

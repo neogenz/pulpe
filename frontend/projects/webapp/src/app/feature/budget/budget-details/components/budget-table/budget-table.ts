@@ -193,6 +193,7 @@ import { BudgetDetailsDialogService } from '../../budget-details-dialog.service'
               (spread)="spread.emit($event)"
               (spreadTransaction)="spreadTransaction.emit($event)"
               (resetFromTemplate)="onResetFromTemplateClick($event)"
+              (postpone)="postpone.emit($event)"
               (toggleCheck)="toggleCheck.emit($event)"
               (toggleTransactionCheck)="toggleTransactionCheck.emit($event)"
             />
@@ -309,6 +310,7 @@ export class BudgetTable {
   readonly spread = output<BudgetLineTableItem>();
   readonly spreadTransaction = output<Transaction>();
   readonly resetFromTemplate = output<string>();
+  readonly postpone = output<string>();
   readonly toggleCheck = output<string>();
   readonly toggleTransactionCheck = output<string>();
 

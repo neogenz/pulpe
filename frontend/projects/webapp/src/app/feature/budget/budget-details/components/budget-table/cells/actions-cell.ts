@@ -135,6 +135,28 @@ import type {
             <span>{{ 'budget.reset' | transloco }}</span>
           </button>
         }
+        @if (line().metadata.showPostpone) {
+          <!-- Tooltip wrapper: matTooltip is suppressed on disabled buttons -->
+          <span
+            class="block w-full"
+            [matTooltip]="
+              line().metadata.postponeDisabledReason
+                ? (line().metadata.postponeDisabledReason
+                  | transloco: { month: line().metadata.postponeTargetLabel })
+                : ''
+            "
+          >
+            <button
+              mat-menu-item
+              [disabled]="line().metadata.isPostponeDisabled"
+              (click)="postpone.emit(line().data.id)"
+              [attr.data-testid]="'postpone-' + line().data.id"
+            >
+              <mat-icon matMenuItemIcon>event_upcoming</mat-icon>
+              <span>{{ 'budget.postpone' | transloco }}</span>
+            </button>
+          </span>
+        }
         <button
           mat-menu-item
           (click)="delete.emit(line().data.id)"
@@ -158,6 +180,7 @@ export class ActionsCell {
   readonly spread = output<BudgetLineTableItem>();
   readonly spreadTransaction = output<Transaction>();
   readonly resetFromTemplate = output<BudgetLineTableItem>();
+  readonly postpone = output<string>();
   readonly toggleCheck = output<string>();
   readonly toggleTransactionCheck = output<string>();
 

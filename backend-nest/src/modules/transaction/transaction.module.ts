@@ -18,6 +18,7 @@ import { UpdateTransactionUseCase } from './application/update-transaction.use-c
 import { RemoveTransactionUseCase } from './application/remove-transaction.use-case';
 import { ToggleTransactionCheckUseCase } from './application/toggle-transaction-check.use-case';
 import { SearchTransactionsUseCase } from './application/search-transactions.use-case';
+import { PostponeTransactionUseCase } from './application/postpone-transaction.use-case';
 import { SpreadTransactionFromTxnUseCase } from './application/spread-transaction-from-txn.use-case';
 
 @Module({
@@ -33,6 +34,7 @@ import { SpreadTransactionFromTxnUseCase } from './application/spread-transactio
     RemoveTransactionUseCase,
     ToggleTransactionCheckUseCase,
     SearchTransactionsUseCase,
+    PostponeTransactionUseCase,
     SpreadTransactionFromTxnUseCase,
     {
       provide: TRANSACTION_REPOSITORY,
@@ -53,6 +55,7 @@ import { SpreadTransactionFromTxnUseCase } from './application/spread-transactio
     createInfoLoggerProvider(RemoveTransactionUseCase.name),
     createInfoLoggerProvider(ToggleTransactionCheckUseCase.name),
     createInfoLoggerProvider(SearchTransactionsUseCase.name),
+    createInfoLoggerProvider(PostponeTransactionUseCase.name),
     createInfoLoggerProvider(SpreadTransactionFromTxnUseCase.name),
   ],
   exports: [TRANSACTION_SPREAD_FROM_TXN_PORT],

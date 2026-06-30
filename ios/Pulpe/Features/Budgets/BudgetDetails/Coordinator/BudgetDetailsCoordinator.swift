@@ -44,6 +44,7 @@ final class BudgetDetailsCoordinator {
         if await dispatchToggle(action) { return }
         if await dispatchBudgetLineMutation(action) { return }
         if await dispatchTransactionMutation(action) { return }
+        if await dispatchPostpone(action) { return }
         await dispatchSideEffect(action)
     }
 

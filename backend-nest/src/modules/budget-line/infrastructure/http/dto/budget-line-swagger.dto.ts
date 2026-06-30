@@ -5,6 +5,7 @@ import {
   budgetLineResponseSchema,
   budgetLineListResponseSchema,
   budgetLineDeleteResponseSchema,
+  budgetLinePostponeResponseSchema,
   transactionListResponseSchema,
 } from 'pulpe-shared';
 
@@ -19,6 +20,9 @@ export class BudgetLineListResponseDto extends createZodDto(
 ) {}
 export class BudgetLineDeleteResponseDto extends createZodDto(
   budgetLineDeleteResponseSchema,
+) {}
+export class BudgetLinePostponeResponseDto extends createZodDto(
+  budgetLinePostponeResponseSchema,
 ) {}
 export class TransactionListResponseDto extends createZodDto(
   transactionListResponseSchema,

@@ -26,6 +26,7 @@ import { RemoveBudgetLineUseCase } from './application/remove-budget-line.use-ca
 import { ResetBudgetLineFromTemplateUseCase } from './application/reset-budget-line-from-template.use-case';
 import { ToggleBudgetLineCheckUseCase } from './application/toggle-budget-line-check.use-case';
 import { CheckTransactionsUseCase } from './application/check-transactions.use-case';
+import { PostponeBudgetLineUseCase } from './application/postpone-budget-line.use-case';
 
 @Module({
   imports: [
@@ -49,6 +50,7 @@ import { CheckTransactionsUseCase } from './application/check-transactions.use-c
     ResetBudgetLineFromTemplateUseCase,
     ToggleBudgetLineCheckUseCase,
     CheckTransactionsUseCase,
+    PostponeBudgetLineUseCase,
     { provide: BUDGET_LINE_REPOSITORY, useClass: SupabaseBudgetLineRepository },
     {
       provide: BUDGET_LINE_SPREAD_PORT,
@@ -76,6 +78,7 @@ import { CheckTransactionsUseCase } from './application/check-transactions.use-c
     createInfoLoggerProvider(ResetBudgetLineFromTemplateUseCase.name),
     createInfoLoggerProvider(ToggleBudgetLineCheckUseCase.name),
     createInfoLoggerProvider(CheckTransactionsUseCase.name),
+    createInfoLoggerProvider(PostponeBudgetLineUseCase.name),
   ],
   exports: [
     BUDGET_LINE_SPREAD_PORT,

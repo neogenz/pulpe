@@ -20,6 +20,7 @@ import {
   ApiQuery,
   ApiBadRequestResponse,
   ApiNotFoundResponse,
+  ApiConflictResponse,
   ApiUnauthorizedResponse,
   ApiInternalServerErrorResponse,
 } from '@nestjs/swagger';
@@ -27,6 +28,7 @@ import {
   type TransactionResponse,
   type TransactionListResponse,
   type TransactionDeleteResponse,
+  type TransactionPostponeResponse,
   type TransactionSearchResponse,
 } from 'pulpe-shared';
 import { AuthGuard } from '@common/guards/auth.guard';
@@ -40,6 +42,7 @@ import {
   TransactionResponseDto,
   TransactionListResponseDto,
   TransactionDeleteResponseDto,
+  TransactionPostponeResponseDto,
   TransactionSearchResponseDto,
 } from './dto/transaction-swagger.dto';
 import { ErrorResponseDto } from '@common/dto/response.dto';
@@ -52,6 +55,7 @@ import { UpdateTransactionUseCase } from '../../application/update-transaction.u
 import { RemoveTransactionUseCase } from '../../application/remove-transaction.use-case';
 import { ToggleTransactionCheckUseCase } from '../../application/toggle-transaction-check.use-case';
 import { SearchTransactionsUseCase } from '../../application/search-transactions.use-case';
+import { PostponeTransactionUseCase } from '../../application/postpone-transaction.use-case';
 import { TransactionMapper } from '../mappers/transaction.mapper';
 
 @ApiTags('Transactions')
@@ -78,6 +82,7 @@ export class TransactionController {
     private readonly removeUseCase: RemoveTransactionUseCase,
     private readonly toggleCheckUseCase: ToggleTransactionCheckUseCase,
     private readonly searchUseCase: SearchTransactionsUseCase,
+    private readonly postponeUseCase: PostponeTransactionUseCase,
     private readonly mapper: TransactionMapper,
   ) {}
 
@@ -292,6 +297,43 @@ export class TransactionController {
   ): Promise<TransactionResponse> {
     const entity = await this.toggleCheckUseCase.execute(id, user);
     return { success: true, data: this.mapper.toApi(entity) };
+  }
+
+  @Post(':id/postpone')
+  @ApiOperation({
+    summary: 'Reporte une transaction libre non pointée au mois suivant',
+    description:
+      "Déplace une transaction libre (budget_line_id null) non pointée vers le budget du mois suivant et décale sa date d'opération de +1 mois (clamp fin de mois).",
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Identifiant unique de la transaction',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Transaction reportée au mois suivant avec succès',
+    type: TransactionPostponeResponseDto,
+  })
+  @ApiNotFoundResponse({
+    description: 'Transaction not found',
+    type: ErrorResponseDto,
+  })
+  @ApiConflictResponse({
+    description:
+      'Transaction déjà pointée, allouée à une enveloppe, ou budget du mois suivant inexistant',
+    type: ErrorResponseDto,
+  })
+  async postpone(
+    @Param('id') id: string,
+    @User() user: AuthenticatedUser,
+  ): Promise<TransactionPostponeResponse> {
+    const { entity, sourceBudgetId, targetBudgetId } =
+      await this.postponeUseCase.execute(id, user);
+    return {
+      success: true,
+      data: { ...this.mapper.toApi(entity), sourceBudgetId, targetBudgetId },
+    };
   }
 
   private parseYearsParam(yearsParam: string | string[] | undefined): number[] {

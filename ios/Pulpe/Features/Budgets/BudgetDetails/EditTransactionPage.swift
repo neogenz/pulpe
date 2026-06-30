@@ -29,6 +29,7 @@ struct EditTransactionPage: View {
     @State private var submitSuccessTrigger = false
     @State private var didAutofocus = false
     @State private var showDeleteConfirmation = false
+    @State private var pendingPostpone: PostponeTarget?
     @FocusState private var focusedField: AmountDescriptionField?
 
     private let conversionService = CurrencyConversionService.shared
@@ -122,6 +123,12 @@ struct EditTransactionPage: View {
             }
         } message: { _ in
             Text("Tu auras quelques secondes pour annuler.")
+        }
+        .postponeConfirmation(
+            target: $pendingPostpone,
+            nextMonthLabel: projector.screenState.nextMonthLabel
+        ) { target in
+            postpone(target)
         }
         .loadingOverlay(isLoading)
         .dismissKeyboardOnTap()
@@ -226,6 +233,12 @@ struct EditTransactionPage: View {
                     Label("Lisser sur plusieurs mois", systemImage: "calendar")
                 }
             }
+            PostponeMenuButton(
+                isEligible: tx.budgetLineId == nil && tx.checkedAt == nil,
+                canPostpone: projector.screenState.canPostpone,
+                nextMonthLabel: projector.screenState.nextMonthLabel,
+                onPostpone: { pendingPostpone = .transaction(tx) }
+            )
             Button(role: .destructive) {
                 showDeleteConfirmation = true
             } label: {
@@ -249,6 +262,17 @@ struct EditTransactionPage: View {
             presentationCurrency: userSettingsStore.currency
         )
         Task { await coordinator.dispatch(.softDeleteTransaction(tx, ctx)) }
+    }
+
+    /// Reports the transaction to next month. Optimistic remove → the page
+    /// auto-pops; the coordinator shows an error toast on failure (PUL-22).
+    private func postpone(_ target: PostponeTarget) {
+        guard case .transaction(let tx) = target else { return }
+        let ctx = ToastContext(
+            toastManager: toastManager,
+            presentationCurrency: userSettingsStore.currency
+        )
+        Task { await coordinator.postponeTransaction(tx, context: ctx) }
     }
 
     /// Re-fires when `tx.id` changes (i.e. on first appearance, never again

@@ -5,11 +5,13 @@ import {
   type TransactionCreateResponse,
   type TransactionFindOneResponse,
   type TransactionListResponse,
+  type TransactionPostponeResponse,
   type TransactionSearchResponse,
   type TransactionUpdate,
   type TransactionUpdateResponse,
   transactionCreateSchema,
   transactionListResponseSchema,
+  transactionPostponeResponseSchema,
   transactionResponseSchema,
   transactionSearchResponseSchema,
   transactionUpdateSchema,
@@ -66,6 +68,14 @@ export class TransactionApi {
       `/transactions/${id}/toggle-check`,
       {},
       transactionResponseSchema,
+    );
+  }
+
+  postpone$(id: string): Observable<TransactionPostponeResponse> {
+    return this.#api.post$(
+      `/transactions/${id}/postpone`,
+      {},
+      transactionPostponeResponseSchema,
     );
   }
 

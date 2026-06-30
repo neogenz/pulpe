@@ -172,6 +172,13 @@ export const ERROR_DEFINITIONS = {
     message: () => 'Failed to generate budgets',
     httpStatus: HttpStatus.INTERNAL_SERVER_ERROR,
   },
+  TARGET_BUDGET_NOT_FOUND: {
+    code: API_ERROR_CODES.TARGET_BUDGET_NOT_FOUND,
+    // Clients (web/iOS) render their own localized "Crée d'abord le budget de
+    // [mois+1]" from the error code; this message is for API consumers/logs.
+    message: () => 'Le budget du mois suivant doit exister avant de reporter',
+    httpStatus: HttpStatus.CONFLICT,
+  },
   BUDGET_INVALID_MONTH_FORMAT: {
     code: API_ERROR_CODES.BUDGET_INVALID_MONTH,
     message: (details?: Record<string, unknown>) =>
@@ -381,6 +388,17 @@ export const ERROR_DEFINITIONS = {
         : 'Transaction already exists',
     httpStatus: HttpStatus.CONFLICT,
   },
+  TRANSACTION_ALREADY_CHECKED: {
+    code: API_ERROR_CODES.TRANSACTION_ALREADY_CHECKED,
+    message: () => 'Une transaction pointée ne peut pas être reportée',
+    httpStatus: HttpStatus.CONFLICT,
+  },
+  TRANSACTION_ALLOCATED: {
+    code: API_ERROR_CODES.TRANSACTION_ALLOCATED,
+    message: () =>
+      'Une transaction allouée à une enveloppe ne peut pas être reportée seule',
+    httpStatus: HttpStatus.CONFLICT,
+  },
   TRANSACTION_NOT_SPREADABLE: {
     code: API_ERROR_CODES.TRANSACTION_NOT_SPREADABLE,
     message: (details?: Record<string, unknown>) =>
@@ -455,6 +473,23 @@ export const ERROR_DEFINITIONS = {
       details?.id
         ? `Budget line with ID '${details.id}' already exists`
         : 'Budget line already exists',
+    httpStatus: HttpStatus.CONFLICT,
+  },
+  BUDGET_LINE_ALREADY_CHECKED: {
+    code: API_ERROR_CODES.BUDGET_LINE_ALREADY_CHECKED,
+    message: () => 'Une prévision pointée ne peut pas être reportée',
+    httpStatus: HttpStatus.CONFLICT,
+  },
+  BUDGET_LINE_NOT_POSTPONABLE: {
+    code: API_ERROR_CODES.BUDGET_LINE_NOT_POSTPONABLE,
+    message: () =>
+      'Seule une prévision ponctuelle non récurrente peut être reportée',
+    httpStatus: HttpStatus.CONFLICT,
+  },
+  BUDGET_LINE_HAS_TRANSACTIONS: {
+    code: API_ERROR_CODES.BUDGET_LINE_HAS_TRANSACTIONS,
+    message: () =>
+      'Une prévision portant des dépenses réelles ne peut pas être reportée',
     httpStatus: HttpStatus.CONFLICT,
   },
   BUDGET_LINE_NOT_SPREADABLE: {

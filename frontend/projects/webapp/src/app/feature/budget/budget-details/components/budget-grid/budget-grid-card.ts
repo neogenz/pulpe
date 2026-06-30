@@ -101,6 +101,7 @@ import { BudgetActionMenu } from '../budget-action-menu';
           (addTransaction)="addTransaction.emit($event)"
           (spread)="spread.emit($event)"
           (resetFromTemplate)="resetFromTemplate.emit($event)"
+          (postpone)="postpone.emit($event)"
         />
       </div>
 
@@ -241,5 +242,6 @@ export class BudgetGridCard {
   readonly addTransaction = output<BudgetLine>();
   readonly spread = output<BudgetLineTableItem>();
   readonly resetFromTemplate = output<BudgetLineTableItem>();
+  readonly postpone = output<string>();
   readonly toggleCheck = output<string>();
 }

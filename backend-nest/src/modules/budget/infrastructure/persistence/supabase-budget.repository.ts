@@ -149,6 +149,9 @@ export class SupabaseBudgetRepository implements BudgetRepositoryPort {
       .from('monthly_budget')
       .select('*')
       .eq('id', id)
+      // Explicit ownership filter on top of RLS — defense-in-depth + optimizer
+      // hint (see .claude/rules/.../supabase.md).
+      .eq('user_id', userId)
       .single();
 
     if (error || !data) {
@@ -551,6 +554,7 @@ export class SupabaseBudgetRepository implements BudgetRepositoryPort {
       .select('id')
       .eq('month', month)
       .eq('year', year)
+      .eq('user_id', this.supabaseProvider.user.id)
       .maybeSingle();
 
     return data?.id ?? null;
@@ -567,6 +571,7 @@ export class SupabaseBudgetRepository implements BudgetRepositoryPort {
       .select('id')
       .eq('month', month)
       .eq('year', year)
+      .eq('user_id', this.supabaseProvider.user.id)
       .neq('id', excludeId)
       .maybeSingle();
 
