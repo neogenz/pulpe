@@ -7,8 +7,6 @@ import {
   Body,
   Param,
   Query,
-  HttpCode,
-  HttpStatus,
   UseGuards,
 } from '@nestjs/common';
 import { BusinessException } from '@common/exceptions/business.exception';
@@ -22,6 +20,7 @@ import {
   ApiQuery,
   ApiBadRequestResponse,
   ApiNotFoundResponse,
+  ApiConflictResponse,
   ApiUnauthorizedResponse,
   ApiInternalServerErrorResponse,
 } from '@nestjs/swagger';
@@ -32,8 +31,8 @@ import {
   type TransactionResponse,
   type TransactionListResponse,
   type TransactionDeleteResponse,
+  type TransactionPostponeResponse,
   type TransactionSearchResponse,
-  type BudgetLineSpreadResponse,
 } from 'pulpe-shared';
 import { AuthGuard } from '@common/guards/auth.guard';
 import {
@@ -46,12 +45,9 @@ import {
   TransactionResponseDto,
   TransactionListResponseDto,
   TransactionDeleteResponseDto,
+  TransactionPostponeResponseDto,
   TransactionSearchResponseDto,
 } from './dto/transaction-swagger.dto';
-import {
-  TransactionSpreadFromTxnCreateDto,
-  TransactionSpreadResponseDto,
-} from './dto/transaction-spread-swagger.dto';
 import { ErrorResponseDto } from '@common/dto/response.dto';
 import { FindAllTransactionsUseCase } from '../../application/find-all-transactions.use-case';
 import { FindTransactionUseCase } from '../../application/find-transaction.use-case';
@@ -62,10 +58,8 @@ import { UpdateTransactionUseCase } from '../../application/update-transaction.u
 import { RemoveTransactionUseCase } from '../../application/remove-transaction.use-case';
 import { ToggleTransactionCheckUseCase } from '../../application/toggle-transaction-check.use-case';
 import { SearchTransactionsUseCase } from '../../application/search-transactions.use-case';
-import { SpreadTransactionFromTxnUseCase } from '../../application/spread-transaction-from-txn.use-case';
+import { PostponeTransactionUseCase } from '../../application/postpone-transaction.use-case';
 import { TransactionMapper } from '../mappers/transaction.mapper';
-import { BudgetLineMapper } from '@modules/budget-line/infrastructure/mappers/budget-line.mapper';
-import { BudgetMapper } from '@modules/budget/infrastructure/mappers/budget.mapper';
 
 const SEARCH_QUERY_VALIDATION_REASON_BY_CODE: Partial<Record<string, string>> =
   {
@@ -97,10 +91,8 @@ export class TransactionController {
     private readonly removeUseCase: RemoveTransactionUseCase,
     private readonly toggleCheckUseCase: ToggleTransactionCheckUseCase,
     private readonly searchUseCase: SearchTransactionsUseCase,
-    private readonly spreadFromTxnUseCase: SpreadTransactionFromTxnUseCase,
+    private readonly postponeUseCase: PostponeTransactionUseCase,
     private readonly mapper: TransactionMapper,
-    private readonly budgetLineMapper: BudgetLineMapper,
-    private readonly budgetMapper: BudgetMapper,
   ) {}
 
   @Get('budget/:budgetId')
@@ -310,49 +302,40 @@ export class TransactionController {
     return { success: true, data: this.mapper.toApi(entity) };
   }
 
-  @Post(':id/spread')
+  @Post(':id/postpone')
   @ApiOperation({
-    summary: 'Lisse une transaction libre existante sur plusieurs mois',
+    summary: 'Reporte une transaction libre non pointée au mois suivant',
     description:
-      "Redistribue le montant total d'un réel libre (non alloué) en N prévisions « Prévu » (one_off) de T/N (Σ = T) partageant un spread_group_id, une par mois choisi (mois courant inclus), puis SUPPRIME le réel source. Seul un réel libre non-revenu est éligible ; un réel alloué à une enveloppe dérive son lissage de sa ligne parente. Un mois cible sans budget ni template par défaut fait échouer toute l'opération.",
+      "Déplace une transaction libre (budget_line_id null) non pointée vers le budget du mois suivant et décale sa date d'opération de +1 mois (clamp fin de mois).",
   })
   @ApiParam({
     name: 'id',
-    description: 'Identifiant unique de la transaction libre source à lisser',
+    description: 'Identifiant unique de la transaction',
     example: '123e4567-e89b-12d3-a456-426614174000',
   })
   @ApiResponse({
-    status: 201,
-    description: 'Transaction libre lissée avec succès (source supprimée)',
-    type: TransactionSpreadResponseDto,
-  })
-  @ApiBadRequestResponse({
-    description: 'Invalid input data',
-    type: ErrorResponseDto,
+    status: 200,
+    description: 'Transaction reportée au mois suivant avec succès',
+    type: TransactionPostponeResponseDto,
   })
   @ApiNotFoundResponse({
-    description: 'Transaction source non trouvée',
+    description: 'Transaction not found',
     type: ErrorResponseDto,
   })
-  @HttpCode(HttpStatus.CREATED)
-  async spreadFromTxn(
+  @ApiConflictResponse({
+    description:
+      'Transaction déjà pointée, allouée à une enveloppe, ou budget du mois suivant inexistant',
+    type: ErrorResponseDto,
+  })
+  async postpone(
     @Param('id') id: string,
-    @Body() spreadFromTxnDto: TransactionSpreadFromTxnCreateDto,
     @User() user: AuthenticatedUser,
-  ): Promise<BudgetLineSpreadResponse> {
-    const result = await this.spreadFromTxnUseCase.execute(
-      id,
-      spreadFromTxnDto,
-      user,
-    );
+  ): Promise<TransactionPostponeResponse> {
+    const { entity, sourceBudgetId, targetBudgetId } =
+      await this.postponeUseCase.execute(id, user);
     return {
       success: true,
-      data: {
-        spreadGroupId: result.spreadGroupId,
-        lines: this.budgetLineMapper.toApiList(result.lines),
-        createdBudgets: this.budgetMapper.toApiList(result.createdBudgets),
-        skippedMonths: result.skippedMonths,
-      },
+      data: { ...this.mapper.toApi(entity), sourceBudgetId, targetBudgetId },
     };
   }
 

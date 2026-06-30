@@ -60,6 +60,7 @@ export {
   transactionResponseSchema,
   transactionListResponseSchema,
   transactionDeleteResponseSchema,
+  transactionPostponeResponseSchema,
   budgetTemplateResponseSchema,
   budgetTemplateListResponseSchema,
   budgetTemplateDeleteResponseSchema,
@@ -88,6 +89,7 @@ export {
   budgetLineResponseSchema,
   budgetLineListResponseSchema,
   budgetLineDeleteResponseSchema,
+  budgetLinePostponeResponseSchema,
 
   // Budget Line Spread schemas (PUL-17)
   budgetLineSpreadCreateSchema,
@@ -246,6 +248,7 @@ export type {
   TransactionFindOneResponse,
   TransactionListResponse,
   TransactionDeleteResponse,
+  TransactionPostponeResponse,
   BudgetTemplateResponse,
   BudgetTemplateListResponse,
   BudgetTemplateDeleteResponse,
@@ -276,6 +279,7 @@ export type {
   BudgetLineResponse,
   BudgetLineListResponse,
   BudgetLineDeleteResponse,
+  BudgetLinePostponeResponse,
 
   // Budget Line Spread types (PUL-17)
   BudgetLineSpreadCreate,

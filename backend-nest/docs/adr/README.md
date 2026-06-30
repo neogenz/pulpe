@@ -12,6 +12,7 @@
 | [0008](0008-encryption-service-decomposition.md) | Encryption decomposition | Accepted | primitives in `infrastructure/crypto/` + 8 use cases |
 | [0009](0009-dependency-cruiser-and-eslint-boundaries.md) | Dual lint enforcement | Accepted | ESLint `boundaries` + `dependency-cruiser` |
 | [0010](0010-deferred-decisions.md) | Deferred decisions | Accepted | what we explicitly did NOT build |
+| [0011](0011-allocation-read-side-boundary.md) | Allocation read-side boundary | Accepted | prévu/réel relation endpoints live in `allocation` |
 
 ## Conventions
 

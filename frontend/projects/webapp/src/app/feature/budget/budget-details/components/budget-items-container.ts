@@ -185,6 +185,8 @@ import {
           [transactionItems]="transactionItems()"
           [transactions]="store.filteredTransactions()"
           [isMobile]="isMobile()"
+          [hasNextMonthBudget]="store.hasNextMonthBudget()"
+          [nextMonthLabel]="store.nextMonthLabel()"
           (edit)="startEditBudgetLine($event)"
           (delete)="handleDeleteItem($event)"
           (deleteTransaction)="handleDeleteItem($event)"
@@ -195,6 +197,8 @@ import {
           (spread)="handleSpreadBudgetLine($event)"
           (spreadTransaction)="handleSpreadTransaction($event)"
           (resetFromTemplate)="onResetFromTemplateClick($event)"
+          (postpone)="handlePostponeBudgetLine($event)"
+          (postponeTransaction)="handlePostponeTransaction($event)"
           (toggleCheck)="handleToggleCheck($event)"
           (toggleTransactionCheck)="handleToggleTransactionCheck($event)"
         />
@@ -209,6 +213,7 @@ import {
           (spread)="handleSpreadBudgetLine($event)"
           (spreadTransaction)="handleSpreadTransaction($event)"
           (resetFromTemplate)="handleResetFromTemplate($event)"
+          (postpone)="handlePostponeItem($event)"
           (toggleCheck)="handleToggleCheck($event)"
           (toggleTransactionCheck)="handleToggleTransactionCheck($event)"
         />
@@ -288,6 +293,10 @@ export class BudgetItemsContainer {
       openingBalance: this.store.previousMonthRollover(),
       viewMode: this.viewMode(),
       searchText: this.store.searchText(),
+      postpone: {
+        hasNextMonthBudget: this.store.hasNextMonthBudget(),
+        nextMonthLabel: this.store.nextMonthLabel(),
+      },
     }),
   );
 
@@ -613,6 +622,62 @@ export class BudgetItemsContainer {
         },
       );
     }
+  }
+
+  protected async handlePostponeBudgetLine(
+    budgetLineId: string,
+  ): Promise<void> {
+    await this.#postpone(() => this.store.postponeBudgetLine(budgetLineId));
+  }
+
+  protected async handlePostponeTransaction(
+    transactionId: string,
+  ): Promise<void> {
+    await this.#postpone(() => this.store.postponeTransaction(transactionId));
+  }
+
+  // The budget-table renders both budget lines and free transactions through a
+  // single `postpone` output (id only), so route by item type — mirrors
+  // handleDeleteItem.
+  protected async handlePostponeItem(id: string): Promise<void> {
+    const data = this.store.budgetDetails();
+    if (!data) return;
+
+    const isBudgetLine = data.budgetLines.some((line) => line.id === id);
+    if (isBudgetLine) {
+      await this.handlePostponeBudgetLine(id);
+    } else {
+      await this.handlePostponeTransaction(id);
+    }
+  }
+
+  async #postpone(mutate: () => Promise<boolean>): Promise<void> {
+    const nextMonthLabel = this.store.nextMonthLabel();
+    const confirmed = await this.#dialogService.confirmPostpone(nextMonthLabel);
+    if (!confirmed) return;
+
+    const succeeded = await mutate();
+
+    if (!succeeded) {
+      const error = this.store.error();
+      this.#snackBar.open(
+        typeof error === 'string'
+          ? error
+          : this.#transloco.translate('budget.postponeError'),
+        this.#transloco.translate('common.close'),
+        {
+          duration: 5000,
+          panelClass: ['bg-error-container', 'text-on-error-container'],
+        },
+      );
+      return;
+    }
+
+    this.#snackBar.open(
+      this.#transloco.translate('budget.postponed', { month: nextMonthLabel }),
+      this.#transloco.translate('common.close'),
+      { duration: 5000 },
+    );
   }
 
   protected async handleDeleteItem(id: string): Promise<void> {

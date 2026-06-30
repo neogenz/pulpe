@@ -11,10 +11,10 @@ import {
 } from '@modules/encryption/encryption.tokens';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import { mapCurrencyNonAmountMetadataToDb } from '@common/utils/currency-metadata.mapper';
-import type { Transaction } from '@modules/transaction/domain/transaction.entity';
 import type { BudgetLineRepositoryPort } from '../../domain/ports/budget-line-repository.port';
 import type {
   BudgetLine,
+  BudgetLineCheckedTransaction,
   BudgetLineCreateInput,
   BudgetLineUpdatePatch,
   BudgetLineInsert,
@@ -591,6 +591,70 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
     return this.toEntity(row, dek);
   }
 
+  async postpone(
+    id: string,
+    sourceBudgetId: string,
+    targetBudgetId: string,
+  ): Promise<BudgetLine> {
+    const supabase = this.supabaseProvider.client;
+    const { data: row, error } = await supabase
+      .from('budget_line')
+      .update({
+        budget_id: targetBudgetId,
+        template_line_id: null,
+        is_manually_adjusted: true,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', id)
+      .eq('budget_id', sourceBudgetId)
+      .eq('recurrence', 'one_off')
+      .is('checked_at', null)
+      .is('spread_group_id', null)
+      .select()
+      .single();
+
+    if (error || !row) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.CONCURRENT_MODIFICATION,
+        { resource: 'budget_line' },
+        {
+          operation: 'postponeBudgetLine',
+          entityId: id,
+          entityType: 'budget_line',
+          supabaseError: error,
+        },
+        { cause: error ?? undefined },
+      );
+    }
+
+    const dek = await this.encryption.getDekFor(this.supabaseProvider.user);
+    return this.toEntity(row, dek);
+  }
+
+  async hasAllocatedTransactions(budgetLineId: string): Promise<boolean> {
+    const supabase = this.supabaseProvider.client;
+    const { count, error } = await supabase
+      .from('transaction')
+      .select('id', { count: 'exact', head: true })
+      .eq('budget_line_id', budgetLineId);
+
+    if (error) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.TRANSACTION_FETCH_FAILED,
+        undefined,
+        {
+          operation: 'hasAllocatedTransactions',
+          entityId: budgetLineId,
+          entityType: 'transaction',
+          supabaseError: error,
+        },
+        { cause: error },
+      );
+    }
+
+    return (count ?? 0) > 0;
+  }
+
   async delete(id: string): Promise<void> {
     const supabase = this.supabaseProvider.client;
     const { error } = await supabase.from('budget_line').delete().eq('id', id);
@@ -656,7 +720,9 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
     return this.toEntity(data, dek);
   }
 
-  async checkUncheckedTransactionsRpc(id: string): Promise<Transaction[]> {
+  async checkUncheckedTransactionsRpc(
+    id: string,
+  ): Promise<BudgetLineCheckedTransaction[]> {
     const supabase = this.supabaseProvider.client;
     const { data, error } = await supabase.rpc('check_unchecked_transactions', {
       p_budget_line_id: id,
@@ -726,7 +792,10 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
     };
   }
 
-  private toTransactionEntity(row: TransactionRow, dek: Buffer): Transaction {
+  private toTransactionEntity(
+    row: TransactionRow,
+    dek: Buffer,
+  ): BudgetLineCheckedTransaction {
     const decrypted = this.encryption.decryptRowAmountFields(row, dek);
     return {
       id: decrypted.id,

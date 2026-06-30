@@ -32,6 +32,7 @@ struct BudgetLineDetailPage: View {
     @Environment(\.dismiss) var dismiss
 
     @State private var showDeleteConfirmation = false
+    @State private var pendingPostpone: PostponeTarget?
 
     // MARK: - Derived
 
@@ -103,6 +104,12 @@ struct BudgetLineDetailPage: View {
         } message: { _ in
             Text("Tu auras quelques secondes pour annuler.")
         }
+        .postponeConfirmation(
+            target: $pendingPostpone,
+            nextMonthLabel: projector.screenState.nextMonthLabel
+        ) { target in
+            postpone(target)
+        }
         .accessibilityIdentifier("budgetLineDetailPageRoot")
     }
 
@@ -172,6 +179,15 @@ private extension BudgetLineDetailPage {
                 }
             }
 
+            PostponeMenuButton(
+                isEligible: line.isPostponeEligible(
+                    hasAllocatedTransactions: !transactions.isEmpty
+                ),
+                canPostpone: projector.screenState.canPostpone,
+                nextMonthLabel: projector.screenState.nextMonthLabel,
+                onPostpone: { pendingPostpone = .budgetLine(line) }
+            )
+
             Button(role: .destructive) {
                 showDeleteConfirmation = true
             } label: {
@@ -216,6 +232,17 @@ private extension BudgetLineDetailPage {
             presentationCurrency: userSettingsStore.currency
         )
         Task { await coordinator.dispatch(.softDeleteBudgetLine(line, ctx)) }
+    }
+
+    // Optimistic remove → the page auto-pops once the line leaves the store; the
+    // coordinator surfaces an error toast on failure (PUL-22).
+    func postpone(_ target: PostponeTarget) {
+        guard case .budgetLine(let line) = target else { return }
+        let ctx = ToastContext(
+            toastManager: appState.toastManager,
+            presentationCurrency: userSettingsStore.currency
+        )
+        Task { await coordinator.postponeBudgetLine(line, context: ctx) }
     }
 }
 

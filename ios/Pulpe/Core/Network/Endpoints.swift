@@ -35,6 +35,7 @@ enum Endpoint {
     case budgetLineSpreadFromLine(id: String)
     case budgetLine(id: String)
     case budgetLineToggle(id: String)
+    case budgetLinePostpone(id: String)
     case budgetLineResetFromTemplate(id: String)
 
     // MARK: - Transactions
@@ -43,6 +44,7 @@ enum Endpoint {
     case transactionsCreate
     case transaction(id: String)
     case transactionToggle(id: String)
+    case transactionPostpone(id: String)
     case transactionSpreadFromTxn(id: String)
 
     // MARK: - Templates
@@ -104,6 +106,7 @@ enum Endpoint {
         case .budgetLineSpreadFromLine(let id): return "/budget-lines/\(id)/spread"
         case .budgetLine(let id): return "/budget-lines/\(id)"
         case .budgetLineToggle(let id): return "/budget-lines/\(id)/toggle-check"
+        case .budgetLinePostpone(let id): return "/budget-lines/\(id)/postpone"
         case .budgetLineResetFromTemplate(let id): return "/budget-lines/\(id)/reset-from-template"
 
         // Transactions
@@ -111,6 +114,7 @@ enum Endpoint {
         case .transactionsCreate: return "/transactions"
         case .transaction(let id): return "/transactions/\(id)"
         case .transactionToggle(let id): return "/transactions/\(id)/toggle-check"
+        case .transactionPostpone(let id): return "/transactions/\(id)/postpone"
         case .transactionSpreadFromTxn(let id): return "/transactions/\(id)/spread"
 
         // Templates
@@ -146,7 +150,8 @@ enum Endpoint {
         case .budgets, .budgetLines, .budgetLinesCreate, .budgetLinesSpread,
              .budgetLineSpreadFromLine, .transactionSpreadFromTxn, .transactionsCreate, .templates,
              .templateLines, .templateFromOnboarding, .templateLinesBulk,
-             .budgetLineToggle, .budgetLineResetFromTemplate, .transactionToggle,
+             .budgetLineToggle, .budgetLinePostpone, .budgetLineResetFromTemplate,
+             .transactionToggle, .transactionPostpone,
              .encryptionValidateKey, .encryptionSetupRecovery, .encryptionRegenerateRecovery, .encryptionRecover,
              .encryptionVerifyRecoveryKey, .encryptionChangePin:
             return .post

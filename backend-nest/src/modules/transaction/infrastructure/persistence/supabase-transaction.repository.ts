@@ -257,6 +257,45 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
     return this.toEntity(row, dek);
   }
 
+  async postpone(
+    id: string,
+    sourceBudgetId: string,
+    targetBudgetId: string,
+    shiftedDate: string,
+  ): Promise<Transaction> {
+    const supabase = this.supabaseProvider.client;
+    const { data: row, error } = await supabase
+      .from('transaction')
+      .update({
+        budget_id: targetBudgetId,
+        transaction_date: shiftedDate,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', id)
+      .eq('budget_id', sourceBudgetId)
+      .is('budget_line_id', null)
+      .is('checked_at', null)
+      .select()
+      .single();
+
+    if (error || !row) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.CONCURRENT_MODIFICATION,
+        { resource: 'transaction' },
+        {
+          operation: 'postponeTransaction',
+          entityId: id,
+          entityType: 'transaction',
+          supabaseError: error,
+        },
+        { cause: error ?? undefined },
+      );
+    }
+
+    const dek = await this.encryption.getDekFor(this.supabaseProvider.user);
+    return this.toEntity(row, dek);
+  }
+
   async delete(id: string): Promise<void> {
     const supabase = this.supabaseProvider.client;
     const { error } = await supabase.from('transaction').delete().eq('id', id);

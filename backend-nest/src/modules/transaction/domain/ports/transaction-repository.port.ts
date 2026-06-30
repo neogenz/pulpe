@@ -23,6 +23,18 @@ export interface TransactionRepositoryPort {
   findSpreadSource(id: string): Promise<SpreadSourceTransaction>;
   insert(input: TransactionCreateInput): Promise<Transaction>;
   update(id: string, patch: TransactionUpdatePatch): Promise<Transaction>;
+  /**
+   * Atomic, race-guarded move of an unchecked free transaction to another
+   * budget (PUL-22). The guard (`budget_id = :source AND budget_line_id IS NULL
+   * AND checked_at IS NULL`) wins exactly once. Shifts `transaction_date` to the
+   * pre-computed `shiftedDate`. Never round-trips `amount` (ciphertext kept).
+   */
+  postpone(
+    id: string,
+    sourceBudgetId: string,
+    targetBudgetId: string,
+    shiftedDate: string,
+  ): Promise<Transaction>;
   delete(id: string): Promise<void>;
   toggleCheck(id: string): Promise<Transaction>;
   fetchBudgetIdForTransaction(id: string): Promise<string | null>;

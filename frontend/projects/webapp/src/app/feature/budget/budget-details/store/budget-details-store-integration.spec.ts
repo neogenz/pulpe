@@ -15,6 +15,7 @@ import { Logger } from '@core/logging/logger';
 import { ApplicationConfiguration } from '@core/config/application-configuration';
 import { PostHogService } from '@core/analytics/posthog';
 import {
+  createMockBudget,
   createMockBudgetLine,
   createMockBudgetDetailsResponse,
   createMockTransaction,
@@ -75,12 +76,14 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
     updateBudgetLine$: ReturnType<typeof vi.fn>;
     deleteBudgetLine$: ReturnType<typeof vi.fn>;
     resetBudgetLineFromTemplate$: ReturnType<typeof vi.fn>;
+    postponeBudgetLine$: ReturnType<typeof vi.fn>;
     toggleBudgetLineCheck$: ReturnType<typeof vi.fn>;
     checkBudgetLineTransactions$: ReturnType<typeof vi.fn>;
     createTransaction$: ReturnType<typeof vi.fn>;
     updateTransaction$: ReturnType<typeof vi.fn>;
     deleteTransaction$: ReturnType<typeof vi.fn>;
     toggleTransactionCheck$: ReturnType<typeof vi.fn>;
+    postponeTransaction$: ReturnType<typeof vi.fn>;
     cache: Record<string, unknown>;
   };
   let mockLogger: {
@@ -119,12 +122,14 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
       updateBudgetLine$: vi.fn(),
       deleteBudgetLine$: vi.fn(),
       resetBudgetLineFromTemplate$: vi.fn(),
+      postponeBudgetLine$: vi.fn(),
       toggleBudgetLineCheck$: vi.fn(),
       checkBudgetLineTransactions$: vi.fn(),
       createTransaction$: vi.fn(),
       updateTransaction$: vi.fn(),
       deleteTransaction$: vi.fn(),
       toggleTransactionCheck$: vi.fn(),
+      postponeTransaction$: vi.fn(),
       cache: {
         version: signal(0),
         _dataVersion: signal(0),
@@ -1521,6 +1526,169 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
         ['budget', 'details', nextBudgetId],
         expect.any(Function),
       );
+    });
+  });
+
+  describe('User postpones items to next month (PUL-22)', () => {
+    beforeEach(async () => {
+      service.setBudgetId(mockBudgetId);
+      TestBed.tick();
+      await waitForResourceStable();
+    });
+
+    it('budget line disappears immediately when postponed', async () => {
+      mockBudgetApi.postponeBudgetLine$ = vi.fn().mockReturnValue(
+        of({
+          success: true,
+          data: {
+            ...mockBudgetDetailsResponse.data.budgetLines[1],
+            sourceBudgetId: mockBudgetId,
+            targetBudgetId: 'budget-next',
+          },
+        }),
+      );
+
+      const initialCount = service.budgetDetails()?.budgetLines.length ?? 0;
+
+      const succeeded = await service.postponeBudgetLine('line-2');
+
+      expect(succeeded).toBe(true);
+      const remaining = service.budgetDetails()?.budgetLines;
+      expect(remaining?.length).toBe(initialCount - 1);
+      expect(remaining?.find((l) => l.id === 'line-2')).toBeUndefined();
+      expect(mockBudgetApi.postponeBudgetLine$).toHaveBeenCalledWith('line-2');
+    });
+
+    it('postponed budget line reappears and surfaces an error when server rejects', async () => {
+      mockBudgetApi.postponeBudgetLine$ = vi
+        .fn()
+        .mockReturnValue(throwError(() => new Error('Cannot postpone')));
+
+      const succeeded = await service.postponeBudgetLine('line-2');
+
+      expect(succeeded).toBe(false);
+      expect(service.error()).toBeTruthy();
+      expect(
+        service.budgetDetails()?.budgetLines.find((l) => l.id === 'line-2'),
+      ).toBeDefined();
+    });
+
+    it('free transaction disappears immediately when postponed', async () => {
+      mockBudgetApi.postponeTransaction$ = vi.fn().mockReturnValue(
+        of({
+          success: true,
+          data: {
+            ...mockBudgetDetailsResponse.data.transactions[0],
+            sourceBudgetId: mockBudgetId,
+            targetBudgetId: 'budget-next',
+          },
+        }),
+      );
+
+      const initialCount = service.budgetDetails()?.transactions.length ?? 0;
+
+      const succeeded = await service.postponeTransaction('tx-1');
+
+      expect(succeeded).toBe(true);
+      const remaining = service.budgetDetails()?.transactions;
+      expect(remaining?.length).toBe(initialCount - 1);
+      expect(remaining?.find((t) => t.id === 'tx-1')).toBeUndefined();
+      expect(mockBudgetApi.postponeTransaction$).toHaveBeenCalledWith('tx-1');
+    });
+  });
+
+  describe('hasNextMonthBudget — calendar adjacency (PUL-22 CA5)', () => {
+    // Current budget is month 1 / year 2024 (mockBudgetDetailsResponse).
+    const currentMonthBudget = createMockBudget({
+      id: mockBudgetId,
+      month: 1,
+      year: 2024,
+    });
+
+    it('is true when the next calendar month budget exists in the list', async () => {
+      mockBudgetApi.getAllBudgets$ = vi
+        .fn()
+        .mockReturnValue(
+          of([
+            currentMonthBudget,
+            createMockBudget({ id: 'budget-feb', month: 2, year: 2024 }),
+          ]),
+        );
+      service.setBudgetId(mockBudgetId);
+      TestBed.tick();
+      await waitForResourceStable();
+
+      expect(service.hasNextMonthBudget()).toBe(true);
+    });
+
+    it('is false when the next calendar month budget is missing', async () => {
+      mockBudgetApi.getAllBudgets$ = vi
+        .fn()
+        .mockReturnValue(
+          of([
+            currentMonthBudget,
+            createMockBudget({ id: 'budget-mar', month: 3, year: 2024 }),
+          ]),
+        );
+      service.setBudgetId(mockBudgetId);
+      TestBed.tick();
+      await waitForResourceStable();
+
+      expect(service.hasNextMonthBudget()).toBe(false);
+    });
+
+    it('rolls over December to January of the next year', async () => {
+      const decemberBudgetId = 'budget-dec';
+      mockBudgetApi.getBudgetWithDetails$ = vi.fn().mockReturnValue(
+        of(
+          createMockBudgetDetailsResponse({
+            budget: { id: decemberBudgetId, month: 12, year: 2024 },
+            budgetLines: [],
+            transactions: [],
+          }),
+        ),
+      );
+      mockBudgetApi.getAllBudgets$ = vi
+        .fn()
+        .mockReturnValue(
+          of([
+            createMockBudget({ id: decemberBudgetId, month: 12, year: 2024 }),
+            createMockBudget({ id: 'budget-jan', month: 1, year: 2025 }),
+          ]),
+        );
+      service.setBudgetId(decemberBudgetId);
+      TestBed.tick();
+      await waitForResourceStable();
+
+      expect(service.hasNextMonthBudget()).toBe(true);
+    });
+
+    it('does not match same-month January of the current year across the December boundary', async () => {
+      const decemberBudgetId = 'budget-dec';
+      mockBudgetApi.getBudgetWithDetails$ = vi.fn().mockReturnValue(
+        of(
+          createMockBudgetDetailsResponse({
+            budget: { id: decemberBudgetId, month: 12, year: 2024 },
+            budgetLines: [],
+            transactions: [],
+          }),
+        ),
+      );
+      mockBudgetApi.getAllBudgets$ = vi.fn().mockReturnValue(
+        of([
+          createMockBudget({ id: decemberBudgetId, month: 12, year: 2024 }),
+          createMockBudget({
+            id: 'budget-jan-same-year',
+            month: 1,
+            year: 2024,
+          }),
+        ]),
+      );
+      service.setBudgetId(decemberBudgetId);
+      TestBed.tick();
+      await waitForResourceStable();
+
+      expect(service.hasNextMonthBudget()).toBe(false);
     });
   });
 });

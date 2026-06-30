@@ -1,16 +1,19 @@
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { SupabaseModule } from '@modules/supabase/supabase.module';
 import { BudgetModule } from '@modules/budget/budget.module';
 import { BudgetTemplateModule } from '@modules/budget-template/budget-template.module';
 import { EncryptionModule } from '@modules/encryption/encryption.module';
 import { CurrencyModule } from '@modules/currency/currency.module';
-import { TransactionModule } from '@modules/transaction/transaction.module';
 import { createInfoLoggerProvider } from '@common/logger';
 import { BudgetLineController } from './infrastructure/http/budget-line.controller';
 import { SupabaseBudgetLineRepository } from './infrastructure/persistence/supabase-budget-line.repository';
 import { BudgetLineMapper } from './infrastructure/mappers/budget-line.mapper';
 import { BUDGET_LINE_REPOSITORY } from './domain/ports/budget-line-repository.port';
 import { BUDGET_LINE_SPREAD_PORT } from './domain/ports/budget-line-spread.port';
+import {
+  BUDGET_LINE_CHECK_TRANSACTIONS_PORT,
+  BUDGET_LINE_SPREAD_OCCURRENCES_PORT,
+} from './domain/ports/budget-line-allocation.port';
 import { FindAllBudgetLinesUseCase } from './application/find-all-budget-lines.use-case';
 import { FindBudgetLineUseCase } from './application/find-budget-line.use-case';
 import { FindBudgetLinesByBudgetUseCase } from './application/find-budget-lines-by-budget.use-case';
@@ -23,6 +26,7 @@ import { RemoveBudgetLineUseCase } from './application/remove-budget-line.use-ca
 import { ResetBudgetLineFromTemplateUseCase } from './application/reset-budget-line-from-template.use-case';
 import { ToggleBudgetLineCheckUseCase } from './application/toggle-budget-line-check.use-case';
 import { CheckTransactionsUseCase } from './application/check-transactions.use-case';
+import { PostponeBudgetLineUseCase } from './application/postpone-budget-line.use-case';
 
 @Module({
   imports: [
@@ -31,16 +35,6 @@ import { CheckTransactionsUseCase } from './application/check-transactions.use-c
     BudgetTemplateModule,
     EncryptionModule,
     CurrencyModule,
-    // forwardRef: TransactionModule imports BudgetLineModule (for the spread
-    // port consumed by the transaction spread-from flow), so both sides defer.
-    //
-    // TRADE-OFF (interim — PUL-288): this budget-line ↔ transaction cycle is a
-    // documented violation of `no-cross-module-direct` (ADR-0002), caused by the
-    // cross-module mapper imports on both sides. `forwardRef` is the accepted
-    // controlled-coupling stop-gap UNTIL PUL-288 extracts an `allocation` domain
-    // module both sides depend on one-way — at which point this forwardRef is
-    // removed and the lint rule is promoted warn→error. Do NOT build on this cycle.
-    forwardRef(() => TransactionModule),
   ],
   controllers: [BudgetLineController],
   providers: [
@@ -56,10 +50,19 @@ import { CheckTransactionsUseCase } from './application/check-transactions.use-c
     ResetBudgetLineFromTemplateUseCase,
     ToggleBudgetLineCheckUseCase,
     CheckTransactionsUseCase,
+    PostponeBudgetLineUseCase,
     { provide: BUDGET_LINE_REPOSITORY, useClass: SupabaseBudgetLineRepository },
     {
       provide: BUDGET_LINE_SPREAD_PORT,
       useExisting: CreateBudgetLineSpreadUseCase,
+    },
+    {
+      provide: BUDGET_LINE_SPREAD_OCCURRENCES_PORT,
+      useExisting: FindBudgetLinesBySpreadGroupUseCase,
+    },
+    {
+      provide: BUDGET_LINE_CHECK_TRANSACTIONS_PORT,
+      useExisting: CheckTransactionsUseCase,
     },
     BudgetLineMapper,
     createInfoLoggerProvider(BudgetLineController.name),
@@ -75,7 +78,12 @@ import { CheckTransactionsUseCase } from './application/check-transactions.use-c
     createInfoLoggerProvider(ResetBudgetLineFromTemplateUseCase.name),
     createInfoLoggerProvider(ToggleBudgetLineCheckUseCase.name),
     createInfoLoggerProvider(CheckTransactionsUseCase.name),
+    createInfoLoggerProvider(PostponeBudgetLineUseCase.name),
   ],
-  exports: [BUDGET_LINE_SPREAD_PORT, BudgetLineMapper],
+  exports: [
+    BUDGET_LINE_SPREAD_PORT,
+    BUDGET_LINE_SPREAD_OCCURRENCES_PORT,
+    BUDGET_LINE_CHECK_TRANSACTIONS_PORT,
+  ],
 })
 export class BudgetLineModule {}

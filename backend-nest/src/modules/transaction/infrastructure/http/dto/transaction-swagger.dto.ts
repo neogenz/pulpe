@@ -5,6 +5,7 @@ import {
   transactionResponseSchema,
   transactionListResponseSchema,
   transactionDeleteResponseSchema,
+  transactionPostponeResponseSchema,
   transactionSearchQuerySchema,
   transactionSearchResponseSchema,
 } from 'pulpe-shared';
@@ -24,6 +25,10 @@ export class TransactionListResponseDto extends createZodDto(
 export class TransactionDeleteResponseDto extends createZodDto(
   transactionDeleteResponseSchema,
 ) {}
+export class TransactionPostponeResponseDto extends createZodDto(
+  transactionPostponeResponseSchema,
+) {}
+
 export class TransactionSearchQueryDto extends createZodDto(
   transactionSearchQuerySchema,
 ) {}

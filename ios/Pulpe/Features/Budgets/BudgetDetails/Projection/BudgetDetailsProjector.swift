@@ -167,6 +167,8 @@ final class BudgetDetailsProjector {
             typeFilter: ctx.filtersStore.typeFilter,
             checkedFilter: ctx.filtersStore.checkedFilter,
             isShowingOnlyUnchecked: ctx.filtersStore.isShowingOnlyUnchecked,
+            canPostpone: ctx.dataStore.hasNextMonthBudget,
+            nextMonthLabel: ctx.dataStore.nextMonthLabel,
             firstSectionKind: ctx.sections.first?.kind,
             canShowEmptyChecked: makeCanShowEmptyChecked(
                 dataStore: ctx.dataStore,
@@ -183,56 +185,6 @@ final class BudgetDetailsProjector {
                 transactions: ctx.dataStore.transactions
             )
         )
-    }
-
-    private static func makeSections(
-        dataStore: BudgetDataStore,
-        filtersStore: FiltersStore,
-        syncStore: SyncStateStore,
-        searchText: String,
-        consumptionByLineId: [String: BudgetFormulas.Consumption]
-    ) -> [BudgetDetailsScreenState.Section] {
-        let syncing = syncStore.syncingBudgetLineIds
-        var sections: [BudgetDetailsScreenState.Section] = []
-        let displayed = filtersStore.displayedSections(for: dataStore.budgetLines)
-        sections.reserveCapacity(displayed.count)
-        for section in displayed {
-            let searchFiltered = filtersStore.filteredLines(
-                section.items,
-                searchText: searchText,
-                transactions: dataStore.transactions
-            )
-            guard !searchFiltered.isEmpty else { continue }
-            let items = searchFiltered.map { line in
-                BudgetDetailsScreenState.LineItem(
-                    line: line,
-                    consumption: consumptionByLineId[line.id] ?? zeroConsumption(for: line),
-                    isSyncing: syncing.contains(line.id)
-                )
-            }
-            sections.append(
-                BudgetDetailsScreenState.Section(kind: section.kind, items: items)
-            )
-        }
-        return sections
-    }
-
-    private static func makeFreeItems(
-        dataStore: BudgetDataStore,
-        filtersStore: FiltersStore,
-        syncStore: SyncStateStore,
-        searchText: String
-    ) -> [BudgetDetailsScreenState.FreeTransactionItem] {
-        let syncing = syncStore.syncingTransactionIds
-        return filtersStore.combinedFilteredFreeTransactions(
-            dataStore.freeTransactions,
-            searchText: searchText
-        ).map { tx in
-            BudgetDetailsScreenState.FreeTransactionItem(
-                transaction: tx,
-                isSyncing: syncing.contains(tx.id)
-            )
-        }
     }
 
     private static func makeRollover(
@@ -334,15 +286,5 @@ final class BudgetDetailsProjector {
             hasher.combine(tx.isChecked)
         }
         return hasher.finalize()
-    }
-
-    private static func zeroConsumption(
-        for line: BudgetLine
-    ) -> BudgetFormulas.Consumption {
-        BudgetFormulas.Consumption(
-            allocated: 0,
-            available: line.amount,
-            percentage: 0
-        )
     }
 }

@@ -5,9 +5,9 @@ import { CheckTransactionsUseCase } from './check-transactions.use-case';
 import { BUDGET_LINE_REPOSITORY } from '../domain/ports/budget-line-repository.port';
 import { CacheService } from '@modules/cache/cache.service';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
-import type { Transaction } from '@modules/transaction/domain/transaction.entity';
+import type { BudgetLineCheckedTransaction } from '../domain/budget-line.entity';
 
-const mockTransactions: Transaction[] = [
+const mockTransactions: BudgetLineCheckedTransaction[] = [
   {
     id: 'transaction-1',
     budgetId: 'budget-1',

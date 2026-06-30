@@ -303,6 +303,11 @@ struct BudgetDetailsScreenStateProjectionTests {
                 id: "free", budgetLineId: nil, name: "Free"
             )
         )
+        stack.data.appendTransaction(
+            TestDataFactory.createTransaction(
+                id: "free-checked", budgetLineId: nil, name: "Free checked", isChecked: true
+            )
+        )
 
         let state = BudgetDetailsProjector.project(
             dataStore: stack.data,
@@ -311,7 +316,7 @@ struct BudgetDetailsScreenStateProjectionTests {
             searchText: ""
         )
 
-        #expect(state.free.map(\.transaction.id) == ["free"])
+        #expect(state.free.map(\.transaction.id) == ["free", "free-checked"])
         #expect(state.transactionsByLineId["line-1"]?.map(\.id) == ["allocated"])
     }
 

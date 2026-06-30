@@ -18,6 +18,7 @@ import {
   ApiParam,
   ApiBadRequestResponse,
   ApiNotFoundResponse,
+  ApiConflictResponse,
   ApiUnauthorizedResponse,
   ApiInternalServerErrorResponse,
 } from '@nestjs/swagger';
@@ -25,28 +26,27 @@ import {
   type BudgetLineResponse,
   type BudgetLineListResponse,
   type BudgetLineDeleteResponse,
+  type BudgetLinePostponeResponse,
   type BudgetLineSpreadResponse,
-  type SpreadOccurrencesResponse,
-  type TransactionListResponse,
 } from 'pulpe-shared';
 import { AuthGuard } from '@common/guards/auth.guard';
 import {
   User,
   type AuthenticatedUser,
 } from '@common/decorators/user.decorator';
+import { mapBudgetsToApi } from '@common/utils/budget-api.mapper';
 import {
   BudgetLineCreateDto,
   BudgetLineUpdateDto,
   BudgetLineResponseDto,
   BudgetLineListResponseDto,
   BudgetLineDeleteResponseDto,
-  TransactionListResponseDto,
+  BudgetLinePostponeResponseDto,
 } from './dto/budget-line-swagger.dto';
 import {
   BudgetLineSpreadCreateDto,
   BudgetLineSpreadFromLineCreateDto,
   BudgetLineSpreadResponseDto,
-  SpreadOccurrencesResponseDto,
 } from './dto/budget-line-spread-swagger.dto';
 import { ErrorResponseDto } from '@common/dto/response.dto';
 import { FindAllBudgetLinesUseCase } from '../../application/find-all-budget-lines.use-case';
@@ -55,15 +55,12 @@ import { FindBudgetLinesByBudgetUseCase } from '../../application/find-budget-li
 import { CreateBudgetLineUseCase } from '../../application/create-budget-line.use-case';
 import { CreateBudgetLineSpreadUseCase } from '../../application/create-budget-line-spread.use-case';
 import { SpreadBudgetLineFromLineUseCase } from '../../application/spread-budget-line-from-line.use-case';
-import { FindBudgetLinesBySpreadGroupUseCase } from '../../application/find-budget-lines-by-spread-group.use-case';
 import { UpdateBudgetLineUseCase } from '../../application/update-budget-line.use-case';
 import { RemoveBudgetLineUseCase } from '../../application/remove-budget-line.use-case';
 import { ResetBudgetLineFromTemplateUseCase } from '../../application/reset-budget-line-from-template.use-case';
 import { ToggleBudgetLineCheckUseCase } from '../../application/toggle-budget-line-check.use-case';
-import { CheckTransactionsUseCase } from '../../application/check-transactions.use-case';
+import { PostponeBudgetLineUseCase } from '../../application/postpone-budget-line.use-case';
 import { BudgetLineMapper } from '../mappers/budget-line.mapper';
-import { BudgetMapper } from '@modules/budget/infrastructure/mappers/budget.mapper';
-import { TransactionMapper } from '@modules/transaction/infrastructure/mappers/transaction.mapper';
 
 @ApiTags('Budget Lines')
 @ApiBearerAuth()
@@ -86,15 +83,12 @@ export class BudgetLineController {
     private readonly createUseCase: CreateBudgetLineUseCase,
     private readonly createSpreadUseCase: CreateBudgetLineSpreadUseCase,
     private readonly spreadFromLineUseCase: SpreadBudgetLineFromLineUseCase,
-    private readonly findSpreadOccurrencesUseCase: FindBudgetLinesBySpreadGroupUseCase,
     private readonly updateUseCase: UpdateBudgetLineUseCase,
     private readonly removeUseCase: RemoveBudgetLineUseCase,
     private readonly resetFromTemplateUseCase: ResetBudgetLineFromTemplateUseCase,
     private readonly toggleCheckUseCase: ToggleBudgetLineCheckUseCase,
-    private readonly checkTransactionsUseCase: CheckTransactionsUseCase,
+    private readonly postponeUseCase: PostponeBudgetLineUseCase,
     private readonly mapper: BudgetLineMapper,
-    private readonly budgetMapper: BudgetMapper,
-    private readonly transactionMapper: TransactionMapper,
   ) {}
 
   @Get('budget/:budgetId')
@@ -161,7 +155,7 @@ export class BudgetLineController {
       data: {
         spreadGroupId: result.spreadGroupId,
         lines: this.mapper.toApiList(result.lines),
-        createdBudgets: this.budgetMapper.toApiList(result.createdBudgets),
+        createdBudgets: mapBudgetsToApi(result.createdBudgets),
         skippedMonths: result.skippedMonths,
       },
     };
@@ -208,41 +202,9 @@ export class BudgetLineController {
       data: {
         spreadGroupId: result.spreadGroupId,
         lines: this.mapper.toApiList(result.lines),
-        createdBudgets: this.budgetMapper.toApiList(result.createdBudgets),
+        createdBudgets: mapBudgetsToApi(result.createdBudgets),
         skippedMonths: result.skippedMonths,
       },
-    };
-  }
-
-  @Get('spread/:spreadGroupId')
-  @ApiOperation({
-    summary: "Liste les occurrences d'une dépense lissée sur tous ses mois",
-  })
-  @ApiParam({
-    name: 'spreadGroupId',
-    description: 'Identifiant du groupe de lissage',
-    example: '123e4567-e89b-12d3-a456-426614174000',
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Occurrences de la dépense lissée récupérées avec succès',
-    type: SpreadOccurrencesResponseDto,
-  })
-  @ApiNotFoundResponse({
-    description: 'Aucune occurrence pour ce groupe de lissage',
-    type: ErrorResponseDto,
-  })
-  async findSpreadOccurrences(
-    @Param('spreadGroupId') spreadGroupId: string,
-    @User() user: AuthenticatedUser,
-  ): Promise<SpreadOccurrencesResponse> {
-    const occurrences = await this.findSpreadOccurrencesUseCase.execute(
-      spreadGroupId,
-      user,
-    );
-    return {
-      success: true,
-      data: this.mapper.toSpreadOccurrenceApiList(occurrences),
     };
   }
 
@@ -363,9 +325,11 @@ export class BudgetLineController {
     return { success: true, data: this.mapper.toApi(entity) };
   }
 
-  @Post(':id/check-transactions')
+  @Post(':id/postpone')
   @ApiOperation({
-    summary: 'Check all unchecked transactions for a budget line',
+    summary: 'Reporte une prévision non pointée au mois suivant',
+    description:
+      "Déplace une prévision ponctuelle (recurrence = 'one_off') non pointée et sans dépense allouée vers le budget du mois suivant. La ligne est détachée du modèle (template_line_id = null) et marquée ajustée manuellement. Le modèle source n'est jamais modifié.",
   })
   @ApiParam({
     name: 'id',
@@ -374,21 +338,27 @@ export class BudgetLineController {
   })
   @ApiResponse({
     status: 200,
-    description: 'Transactions pointées avec succès',
-    type: TransactionListResponseDto,
+    description: 'Prévision reportée au mois suivant avec succès',
+    type: BudgetLinePostponeResponseDto,
   })
   @ApiNotFoundResponse({
     description: 'Ligne budgétaire non trouvée',
     type: ErrorResponseDto,
   })
-  async checkTransactions(
+  @ApiConflictResponse({
+    description:
+      'Ligne déjà pointée, récurrente, portant des transactions, ou budget du mois suivant inexistant',
+    type: ErrorResponseDto,
+  })
+  async postpone(
     @Param('id') id: string,
     @User() user: AuthenticatedUser,
-  ): Promise<TransactionListResponse> {
-    const entities = await this.checkTransactionsUseCase.execute(id, user);
+  ): Promise<BudgetLinePostponeResponse> {
+    const { entity, sourceBudgetId, targetBudgetId } =
+      await this.postponeUseCase.execute(id, user);
     return {
       success: true,
-      data: this.transactionMapper.toApiList(entities),
+      data: { ...this.mapper.toApi(entity), sourceBudgetId, targetBudgetId },
     };
   }
 

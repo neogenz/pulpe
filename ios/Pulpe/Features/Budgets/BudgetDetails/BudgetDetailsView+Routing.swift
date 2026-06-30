@@ -1,5 +1,7 @@
 import SwiftUI
 
+// MARK: - Routing
+
 /// Push + sheet destination builders for `BudgetDetailsView`, split out to keep
 /// the main view file under the feature's 350-LOC budget (same precedent as the
 /// `BudgetLineDetailPage` ↔ `+Hero` split). The members used here

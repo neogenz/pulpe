@@ -29,6 +29,21 @@ type BudgetItemWithBalance =
   | { item: BudgetLine; cumulativeBalance: number; itemType: 'budget_line' }
   | { item: Transaction; cumulativeBalance: number; itemType: 'transaction' };
 
+/**
+ * Cross-budget context for the "report to next month" action (PUL-22).
+ * Carried into each item's metadata so the dumb menu components can read
+ * disable state + target label without injecting the store.
+ */
+interface PostponeContext {
+  hasNextMonthBudget: boolean;
+  nextMonthLabel: string;
+}
+
+const NO_POSTPONE_CONTEXT: PostponeContext = {
+  hasNextMonthBudget: false,
+  nextMonthLabel: '',
+};
+
 function compareBudgetLines(a: BudgetLine, b: BudgetLine): number {
   const recurrenceDiff =
     (RECURRENCE_ORDER[a.recurrence] ?? Number.MAX_SAFE_INTEGER) -
@@ -187,9 +202,29 @@ function insertGroupHeaders(
   return result;
 }
 
+/**
+ * Transloco key explaining why "Reporter au mois suivant" is disabled, or `null`
+ * when it's enabled. Only computed for postpone-relevant items (`isRelevant`):
+ * irrelevant ones are hidden, not greyed (PUL-22 — mirrors how spread hides
+ * income/already-spread rather than disabling them). Precedence: already pointed
+ * wins over the missing next-month budget — un-pointing a line that still has no
+ * target month would leave it blocked, so the pointed reason is the honest one.
+ */
+function getPostponeDisabledReason(
+  isRelevant: boolean,
+  checkedAt: string | null,
+  hasNextMonthBudget: boolean,
+): string | null {
+  if (!isRelevant) return null;
+  if (checkedAt !== null) return 'budget.postponeUnavailableChecked';
+  if (!hasNextMonthBudget) return 'budget.postponeDisabledTooltip';
+  return null;
+}
+
 function createBudgetLineViewModel(
   budgetLine: BudgetLine,
   consumptionMap: Map<string, { consumed: number; transactionCount: number }>,
+  postpone: PostponeContext,
 ): BudgetLineTableItem {
   const isPropagationLocked =
     !!budgetLine.templateLineId && !!budgetLine.isManuallyAdjusted;
@@ -198,6 +233,19 @@ function createBudgetLineViewModel(
   const transactionCount = consumption?.transactionCount ?? 0;
   const percentage = calculatePercentage(budgetLine.amount, consumed);
   const hasTransactions = transactionCount > 0;
+  // A one-off forecast with no allocated transactions can be reported; a
+  // recurring line, a consumed envelope, or a spread occurrence cannot (those
+  // stay hidden). Moving a single spread occurrence would break its group's
+  // cross-month distribution (PUL-17 × PUL-22).
+  const isPostponeRelevant =
+    budgetLine.recurrence === 'one_off' &&
+    transactionCount === 0 &&
+    !budgetLine.spreadGroupId;
+  const postponeDisabledReason = getPostponeDisabledReason(
+    isPostponeRelevant,
+    budgetLine.checkedAt,
+    postpone.hasNextMonthBudget,
+  );
 
   return {
     data: budgetLine,
@@ -207,6 +255,10 @@ function createBudgetLineViewModel(
       isTemplateLinked: !!budgetLine.templateLineId,
       isPropagationLocked,
       canResetFromTemplate: isPropagationLocked,
+      showPostpone: isPostponeRelevant,
+      isPostponeDisabled: postponeDisabledReason !== null,
+      postponeDisabledReason,
+      postponeTargetLabel: postpone.nextMonthLabel,
       envelopeName: null,
       kindIcon: getKindIcon(budgetLine.kind),
       allocationLabel: getAllocationLabel(budgetLine.kind),
@@ -239,7 +291,16 @@ function createBudgetLineViewModel(
 
 function createTransactionViewModel(
   transaction: Transaction,
+  postpone: PostponeContext,
 ): TransactionTableItem {
+  // Only free transactions reach this builder (allocated ones are filtered out);
+  // always offer postpone — a pointed one is shown greyed with a reason, not hidden.
+  const postponeDisabledReason = getPostponeDisabledReason(
+    true,
+    transaction.checkedAt,
+    postpone.hasNextMonthBudget,
+  );
+
   return {
     data: transaction,
     metadata: {
@@ -248,6 +309,10 @@ function createTransactionViewModel(
       isTemplateLinked: false,
       isPropagationLocked: false,
       canResetFromTemplate: false,
+      showPostpone: true,
+      isPostponeDisabled: postponeDisabledReason !== null,
+      postponeDisabledReason,
+      postponeTargetLabel: postpone.nextMonthLabel,
       envelopeName: null,
       kindIcon: getKindIcon(transaction.kind),
       allocationLabel: getAllocationLabel(transaction.kind),
@@ -263,12 +328,13 @@ function createTransactionViewModel(
 function mapToTableItems(
   items: BudgetItemWithBalance[],
   consumptionMap: Map<string, { consumed: number; transactionCount: number }>,
+  postpone: PostponeContext,
 ): (BudgetLineTableItem | TransactionTableItem)[] {
   return items.map((item) => {
     if (item.itemType === 'budget_line') {
-      return createBudgetLineViewModel(item.item, consumptionMap);
+      return createBudgetLineViewModel(item.item, consumptionMap, postpone);
     }
-    return createTransactionViewModel(item.item);
+    return createTransactionViewModel(item.item, postpone);
   });
 }
 
@@ -310,15 +376,22 @@ export function buildViewData(params: {
   transactions: Transaction[];
   openingBalance?: number;
   searchText?: string;
+  postpone?: PostponeContext;
 }): TableRowItem[] {
-  const { budgetLines, transactions, openingBalance = 0, searchText } = params;
+  const {
+    budgetLines,
+    transactions,
+    openingBalance = 0,
+    searchText,
+    postpone = NO_POSTPONE_CONTEXT,
+  } = params;
 
   const consumptionMap = calculateAllConsumptions(budgetLines, transactions);
   const items = [...createDisplayItems(budgetLines, transactions)].sort(
     compareItems,
   );
 
-  const mappedItems = mapToTableItems(items, consumptionMap);
+  const mappedItems = mapToTableItems(items, consumptionMap, postpone);
 
   if (searchText) {
     const search = normalizeText(searchText);

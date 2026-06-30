@@ -40,8 +40,9 @@ export interface BudgetTemplate {
 /**
  * Domain entity for a template line — camelCase, decrypted plain numbers.
  *
- * Canonical owner of the template-line shape. Other modules (budget-line)
- * consume this type via cross-module domain import.
+ * Canonical owner of the template-line shape. Budget-line keeps a local
+ * projection instead of importing this domain; update that projection when this
+ * shape changes.
  */
 export interface TemplateLine {
   id: string;

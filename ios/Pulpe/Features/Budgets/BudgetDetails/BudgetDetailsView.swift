@@ -4,8 +4,10 @@ import TipKit
 struct BudgetDetailsView: View {
     let budgetId: String
     @Environment(AppState.self) private var appState
-    // Non-private: shared with the `BudgetDetailsView+Routing` extension file
-    // (same precedent as `BudgetLineDetailPage` ↔ its `+Hero` extension).
+    // `router`, `coordinator` and `userSettingsStore` stay `internal` (no
+    // modifier) so the routing helpers in `BudgetDetailsView+Routing.swift`
+    // — a same-type extension in a separate file — can read them. Swift's
+    // `private` is file-scoped; `fileprivate` would not cross files either.
     @Environment(BudgetDetailsRouter.self) var router
     @Environment(UserSettingsStore.self) var userSettingsStore
     @Environment(BudgetListStore.self) private var budgetListStore
@@ -279,28 +281,4 @@ struct BudgetDetailsView: View {
         // a bottom text field is ever added here, remove or scope this.
         .ignoresSafeArea(.keyboard, edges: .bottom)
     }
-}
-
-#Preview {
-    NavigationStack {
-        BudgetDetailsView(budgetId: "test")
-    }
-    .environment(AppState())
-    .environment(BudgetDetailsRouter())
-    .environment(UserSettingsStore())
-    .environment(BudgetListStore())
-    .environment(DashboardStore())
-    .environment(CurrentMonthStore())
-}
-#Preview("Gestures Tip") {
-    List {
-        Section("Dépenses") {
-            TipView(ProductTips.gestures)
-            Text("Courses alimentaires")
-        }
-    }
-    .listStyle(.insetGrouped)
-    .scrollContentBackground(.hidden)
-    .pulpeBackground()
-    .task { try? Tips.resetDatastore() }
 }

@@ -50,6 +50,9 @@ interface MockStore {
   totalBudgetLinesCount: ReturnType<typeof signal<number>>;
   realizedBalance: ReturnType<typeof signal<number>>;
   previousMonthRollover: ReturnType<typeof signal<number>>;
+  hasNextMonthBudget: ReturnType<typeof signal<boolean>>;
+  nextMonthLabel: ReturnType<typeof signal<string>>;
+  error: ReturnType<typeof signal<string | null>>;
   setSearchText: ReturnType<typeof vi.fn>;
   setIsShowingOnlyUnchecked: ReturnType<typeof vi.fn>;
   createBudgetLine: ReturnType<typeof vi.fn>;
@@ -58,6 +61,8 @@ interface MockStore {
   deleteBudgetLine: ReturnType<typeof vi.fn>;
   deleteTransaction: ReturnType<typeof vi.fn>;
   resetBudgetLineFromTemplate: ReturnType<typeof vi.fn>;
+  postponeBudgetLine: ReturnType<typeof vi.fn>;
+  postponeTransaction: ReturnType<typeof vi.fn>;
   toggleCheck: ReturnType<typeof vi.fn>;
   toggleTransactionCheck: ReturnType<typeof vi.fn>;
   checkAllAllocatedTransactions: ReturnType<typeof vi.fn>;
@@ -77,6 +82,9 @@ function createMockStore(): MockStore {
     totalBudgetLinesCount: signal(0),
     realizedBalance: signal(0),
     previousMonthRollover: signal(0),
+    hasNextMonthBudget: signal(false),
+    nextMonthLabel: signal(''),
+    error: signal<string | null>(null),
     setSearchText: vi.fn(),
     setIsShowingOnlyUnchecked: vi.fn(),
     createBudgetLine: vi.fn(),
@@ -85,6 +93,8 @@ function createMockStore(): MockStore {
     deleteBudgetLine: vi.fn(),
     deleteTransaction: vi.fn(),
     resetBudgetLineFromTemplate: vi.fn(),
+    postponeBudgetLine: vi.fn().mockResolvedValue(true),
+    postponeTransaction: vi.fn().mockResolvedValue(true),
     toggleCheck: vi.fn().mockResolvedValue(true),
     toggleTransactionCheck: vi.fn(),
     checkAllAllocatedTransactions: vi.fn(),
@@ -103,6 +113,7 @@ interface MockDialogService {
   runSpreadProcessing: ReturnType<typeof vi.fn>;
   confirmDelete: ReturnType<typeof vi.fn>;
   confirmCheckAllocatedTransactions: ReturnType<typeof vi.fn>;
+  confirmPostpone: ReturnType<typeof vi.fn>;
 }
 
 function createMockDialogService(): MockDialogService {
@@ -117,6 +128,7 @@ function createMockDialogService(): MockDialogService {
     runSpreadProcessing: vi.fn((run: () => Promise<unknown>) => run()),
     confirmDelete: vi.fn().mockResolvedValue(false),
     confirmCheckAllocatedTransactions: vi.fn().mockResolvedValue(false),
+    confirmPostpone: vi.fn().mockResolvedValue(false),
   };
 }
 

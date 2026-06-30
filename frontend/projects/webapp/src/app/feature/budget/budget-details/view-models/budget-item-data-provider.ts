@@ -12,6 +12,7 @@ export class BudgetItemDataProvider {
     openingBalance?: number;
     viewMode?: BudgetViewMode;
     searchText?: string;
+    postpone?: { hasNextMonthBudget: boolean; nextMonthLabel: string };
   }): TableRowItem[] {
     return buildViewData(params);
   }

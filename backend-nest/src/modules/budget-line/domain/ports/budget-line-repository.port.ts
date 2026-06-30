@@ -1,6 +1,6 @@
-import type { Transaction } from '../../../transaction/domain/transaction.entity';
 import type {
   BudgetLine,
+  BudgetLineCheckedTransaction,
   BudgetLineCreateInput,
   BudgetLineUpdatePatch,
   SpreadDeleteSource,
@@ -53,8 +53,21 @@ export interface BudgetLineRepositoryPort {
    */
   findSpreadSource(id: string): Promise<SpreadSourceLine>;
   update(id: string, patch: BudgetLineUpdatePatch): Promise<BudgetLine>;
+  /**
+   * Atomic, race-guarded move of an unchecked line to another budget (PUL-22).
+   * The guard (`budget_id = :source AND checked_at IS NULL`) lets a concurrent
+   * check/move win exactly once. Never round-trips `amount` (ciphertext kept).
+   */
+  postpone(
+    id: string,
+    sourceBudgetId: string,
+    targetBudgetId: string,
+  ): Promise<BudgetLine>;
+  hasAllocatedTransactions(budgetLineId: string): Promise<boolean>;
   delete(id: string): Promise<void>;
   fetchTemplateLineById(templateLineId: string): Promise<TemplateLine>;
   toggleCheckRpc(id: string): Promise<BudgetLine>;
-  checkUncheckedTransactionsRpc(id: string): Promise<Transaction[]>;
+  checkUncheckedTransactionsRpc(
+    id: string,
+  ): Promise<BudgetLineCheckedTransaction[]>;
 }
