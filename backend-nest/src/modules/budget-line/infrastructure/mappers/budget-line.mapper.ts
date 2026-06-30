@@ -1,18 +1,10 @@
 import { Injectable } from '@nestjs/common';
-import {
-  type BudgetLine as BudgetLineApi,
-  type SpreadOccurrence as SpreadOccurrenceApi,
-} from 'pulpe-shared';
+import { type BudgetLine as BudgetLineApi } from 'pulpe-shared';
 import {
   mapBudgetLineToApi,
   mapBudgetLinesToApi,
-  mapSpreadOccurrenceToApi,
-  mapSpreadOccurrencesToApi,
 } from '@common/utils/budget-line-api.mapper';
-import type {
-  BudgetLine,
-  SpreadOccurrence,
-} from '../../domain/budget-line.entity';
+import type { BudgetLine } from '../../domain/budget-line.entity';
 
 @Injectable()
 export class BudgetLineMapper {
@@ -22,15 +14,5 @@ export class BudgetLineMapper {
 
   toApiList(entities: BudgetLine[]): BudgetLineApi[] {
     return mapBudgetLinesToApi(entities);
-  }
-
-  toSpreadOccurrenceApi(occurrence: SpreadOccurrence): SpreadOccurrenceApi {
-    return mapSpreadOccurrenceToApi(occurrence);
-  }
-
-  toSpreadOccurrenceApiList(
-    occurrences: SpreadOccurrence[],
-  ): SpreadOccurrenceApi[] {
-    return mapSpreadOccurrencesToApi(occurrences);
   }
 }
