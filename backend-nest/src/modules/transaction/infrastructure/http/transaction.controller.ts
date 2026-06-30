@@ -28,6 +28,7 @@ import {
 import {
   TRANSACTION_SEARCH_QUERY_MAX_LENGTH,
   TRANSACTION_SEARCH_QUERY_MIN_LENGTH,
+  transactionSearchQuerySchema,
   type TransactionResponse,
   type TransactionListResponse,
   type TransactionDeleteResponse,
@@ -373,20 +374,35 @@ export class TransactionController {
       );
     }
 
+    const parsed = transactionSearchQuerySchema.shape.q.safeParse(queryParam);
+
+    if (parsed.success) {
+      return parsed.data;
+    }
+
     if (queryParam.length < TRANSACTION_SEARCH_QUERY_MIN_LENGTH) {
       throw new BusinessException(
         ERROR_DEFINITIONS.TRANSACTION_VALIDATION_FAILED,
-        { reason: 'Search query must be at least 2 characters' },
+        {
+          reason: `Search query must be at least ${TRANSACTION_SEARCH_QUERY_MIN_LENGTH} characters`,
+        },
       );
     }
 
     if (queryParam.length > TRANSACTION_SEARCH_QUERY_MAX_LENGTH) {
       throw new BusinessException(
         ERROR_DEFINITIONS.TRANSACTION_VALIDATION_FAILED,
-        { reason: 'Search query must be at most 100 characters' },
+        {
+          reason: `Search query must be at most ${TRANSACTION_SEARCH_QUERY_MAX_LENGTH} characters`,
+        },
       );
     }
 
-    return queryParam;
+    throw new BusinessException(
+      ERROR_DEFINITIONS.TRANSACTION_VALIDATION_FAILED,
+      {
+        reason: 'Search query is invalid',
+      },
+    );
   }
 }

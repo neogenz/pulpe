@@ -8,20 +8,16 @@ function buildController() {
     execute: mock(async () => []),
   };
 
-  const controller = new TransactionController(
-    {} as never,
-    {} as never,
-    {} as never,
-    {} as never,
-    {} as never,
-    {} as never,
-    {} as never,
-    {} as never,
-    searchUseCase as never,
-    {} as never,
-    {} as never,
-    {} as never,
-    {} as never,
+  // search() only needs searchUseCase; avoid coupling this focused spec to
+  // unrelated controller constructor dependencies.
+  const controller = Object.create(
+    TransactionController.prototype,
+  ) as TransactionController;
+  Object.assign(
+    controller as unknown as { searchUseCase: typeof searchUseCase },
+    {
+      searchUseCase,
+    },
   );
 
   return { controller, searchUseCase };
