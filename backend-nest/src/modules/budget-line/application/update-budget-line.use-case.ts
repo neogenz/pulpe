@@ -40,7 +40,11 @@ export class UpdateBudgetLineUseCase {
     BudgetLineInvariants.validateUpdate(dto);
 
     const withRate = await this.currencyService.overrideExchangeRate(dto);
-    const patch = this.buildPatch(withRate);
+    const currentKind =
+      withRate.kind === undefined && withRate.savingsGoalId !== undefined
+        ? (await this.repo.findById(id)).kind
+        : undefined;
+    const patch = this.buildPatch(withRate, currentKind);
 
     const entity = await this.repo.update(id, patch);
 
@@ -57,7 +61,10 @@ export class UpdateBudgetLineUseCase {
     return entity;
   }
 
-  private buildPatch(dto: BudgetLineUpdate): BudgetLineUpdatePatch {
+  private buildPatch(
+    dto: BudgetLineUpdate,
+    currentKind?: BudgetLine['kind'],
+  ): BudgetLineUpdatePatch {
     const patch: BudgetLineUpdatePatch = {};
     if (dto.name !== undefined) patch.name = dto.name;
     if (dto.amount !== undefined) patch.amount = dto.amount;
@@ -78,7 +85,7 @@ export class UpdateBudgetLineUseCase {
     // CA11: kind moved off 'saving' clears the link, even when savingsGoalId
     // isn't in the patch (savingsGoalIdPatchForKind returns null in that case).
     const ruledSavingsGoalId = savingsGoalIdPatchForKind(
-      dto.kind,
+      dto.kind ?? currentKind,
       dto.savingsGoalId,
     );
     if (ruledSavingsGoalId !== undefined) {

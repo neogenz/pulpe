@@ -40,13 +40,19 @@ const mockUser: AuthenticatedUser = {
 
 describe('UpdateBudgetLineUseCase', () => {
   let useCase: UpdateBudgetLineUseCase;
-  let mockRepo: { update: ReturnType<typeof jest.fn> };
+  let mockRepo: {
+    findById: ReturnType<typeof jest.fn>;
+    update: ReturnType<typeof jest.fn>;
+  };
   let mockCache: { invalidateForUser: ReturnType<typeof jest.fn> };
   let mockCurrency: { overrideExchangeRate: ReturnType<typeof jest.fn> };
   let mockBudget: { recalculate: ReturnType<typeof jest.fn> };
 
   beforeEach(async () => {
-    mockRepo = { update: jest.fn().mockResolvedValue(mockEntity) };
+    mockRepo = {
+      findById: jest.fn().mockResolvedValue(mockEntity),
+      update: jest.fn().mockResolvedValue(mockEntity),
+    };
     mockCache = { invalidateForUser: jest.fn().mockResolvedValue(undefined) };
     mockCurrency = {
       overrideExchangeRate: jest.fn().mockImplementation((dto) => dto),
@@ -116,6 +122,21 @@ describe('UpdateBudgetLineUseCase', () => {
     expect(patch).toEqual({ name: 'Loyer Q1', amount: 1400 });
     expect(patch).not.toHaveProperty('kind');
     expect(patch).not.toHaveProperty('recurrence');
+  });
+
+  it('should clear a link-only savings goal patch when the current line is not saving', async () => {
+    const dto: BudgetLineUpdate = {
+      id: mockEntity.id,
+      savingsGoalId: '8a0f6c80-1234-4e5f-89ab-333333333333',
+    };
+
+    await useCase.execute(mockEntity.id, dto, mockUser);
+
+    expect(mockRepo.findById).toHaveBeenCalledWith(mockEntity.id);
+    expect(mockRepo.update).toHaveBeenCalledWith(
+      mockEntity.id,
+      expect.objectContaining({ savingsGoalId: null }),
+    );
   });
 
   it('should reject a negative amount via invariants (no repo call)', async () => {
