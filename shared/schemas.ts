@@ -273,7 +273,16 @@ export const savingsGoalCreateSchema = z.strictObject({
 });
 export type SavingsGoalCreate = z.infer<typeof savingsGoalCreateSchema>;
 
-export const savingsGoalUpdateSchema = savingsGoalCreateSchema.partial();
+export const savingsGoalUpdateSchema = z.strictObject({
+  name: z.string().min(1).max(100).trim().optional(),
+  targetAmount: z.number().positive().optional(),
+  targetDate: z.iso.date().optional(),
+  status: savingsGoalStatusSchema.optional(),
+  originalTargetAmount: z.number().positive().optional(),
+  originalCurrency: supportedCurrencySchema.optional(),
+  targetCurrency: supportedCurrencySchema.optional(),
+  exchangeRate: exchangeRateWirePositive.optional(),
+});
 export type SavingsGoalUpdate = z.infer<typeof savingsGoalUpdateSchema>;
 
 /**

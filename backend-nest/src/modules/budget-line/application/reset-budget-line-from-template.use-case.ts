@@ -63,6 +63,7 @@ export class ResetBudgetLineFromTemplateUseCase {
     return {
       name: templateLine.name,
       amount: templateLine.amount,
+      savingsGoalId: templateLine.savingsGoalId,
       originalAmount: templateLine.originalAmount,
       originalCurrency:
         (templateLine.originalCurrency as BudgetLineUpdatePatch['originalCurrency']) ??

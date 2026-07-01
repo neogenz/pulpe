@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'vitest';
 import {
   savingsGoalCreateSchema,
+  savingsGoalUpdateSchema,
   savingsGoalSchema,
   templateLineCreateSchema,
   templateLineCreateWithoutTemplateIdSchema,
@@ -86,6 +87,23 @@ describe('PUL-12 — savingsGoalSchema (read) drops priority', () => {
     if (result.success) {
       expect('priority' in result.data).toBe(false);
     }
+  });
+});
+
+describe('PUL-12 — savingsGoalUpdateSchema keeps PATCH semantics', () => {
+  test('does not default status to ACTIVE on partial updates', () => {
+    const result = savingsGoalUpdateSchema.safeParse({ name: 'Maison bis' });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect('status' in result.data).toBe(false);
+    }
+  });
+
+  test('accepts an existing past targetDate so expired goals stay editable', () => {
+    const result = savingsGoalUpdateSchema.safeParse({
+      targetDate: isoDateOffsetDays(-1),
+    });
+    expect(result.success).toBe(true);
   });
 });
 
