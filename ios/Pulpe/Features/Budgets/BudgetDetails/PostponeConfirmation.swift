@@ -47,14 +47,19 @@ private struct PostponeConfirmationModifier: ViewModifier {
     let onConfirm: (PostponeTarget) -> Void
 
     func body(content: Content) -> some View {
-        content.confirmationDialog(
+        // Alert, not a confirmationDialog: the action is reached from the
+        // detail-page header menu while the amount keyboard is often still up.
+        // A bottom action sheet can't anchor over the keyboard and degrades to
+        // a cramped popover near the toolbar button — an alert renders centered
+        // and robustly regardless of keyboard state, matching the sibling
+        // delete confirmation on the same page.
+        content.alert(
             confirmationTitle,
             isPresented: isPresentedBinding,
-            titleVisibility: .visible,
             presenting: target
         ) { item in
-            Button("Reporter") { onConfirm(item) }
             Button("Annuler", role: .cancel) {}
+            Button("Reporter") { onConfirm(item) }
         }
     }
 
@@ -66,7 +71,7 @@ private struct PostponeConfirmationModifier: ViewModifier {
         return "Reporter \(target.name) au mois suivant ?"
     }
 
-    /// Bridges the `PostponeTarget?` state to the `Bool` binding the dialog
+    /// Bridges the `PostponeTarget?` state to the `Bool` binding the alert
     /// needs: present while a target is set, clear the target on dismissal.
     private var isPresentedBinding: Binding<Bool> {
         Binding(
