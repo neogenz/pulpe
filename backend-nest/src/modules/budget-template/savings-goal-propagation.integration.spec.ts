@@ -252,6 +252,70 @@ describe('PUL-12 — savings_goal_id propagation (RPC integration)', () => {
     expect(error?.message ?? '').toContain('Budget access denied');
   });
 
+  it('rejects a foreign savings_goal_id through the SECURITY DEFINER propagation RPC', async () => {
+    if (!env) return;
+
+    const attacker = await makeUser(
+      `sg-prop-goal-atk-${crypto.randomUUID()}@test.local`,
+    );
+    const victim = await makeUser(
+      `sg-prop-goal-vic-${crypto.randomUUID()}@test.local`,
+    );
+    createdUserIds.push(attacker.id, victim.id);
+
+    const templateId = crypto.randomUUID();
+    const templateLineId = crypto.randomUUID();
+    const budgetId = crypto.randomUUID();
+    const foreignGoalId = crypto.randomUUID();
+
+    await admin.from('template').insert({
+      id: templateId,
+      user_id: attacker.id,
+      name: 'atk',
+      is_default: false,
+    });
+    await admin.from('template_line').insert({
+      id: templateLineId,
+      template_id: templateId,
+      name: 'Épargne',
+      amount: 'enc',
+      kind: 'saving',
+      recurrence: 'fixed',
+    });
+    await admin.from('monthly_budget').insert({
+      id: budgetId,
+      user_id: attacker.id,
+      template_id: templateId,
+      month: 5,
+      year: 2099,
+      description: '',
+    });
+    await admin.from('savings_goal').insert({
+      id: foreignGoalId,
+      user_id: victim.id,
+      name: 'Victim goal',
+      target_amount: 'enc',
+      target_date: '2099-01-01',
+      status: 'ACTIVE',
+    });
+
+    const { error } = await attacker.client.rpc(
+      'apply_template_line_operations',
+      {
+        template_id: templateId,
+        budget_ids: [budgetId],
+        delete_ids: [],
+        updated_lines: [
+          { id: templateLineId, savings_goal_id: foreignGoalId },
+        ] as never,
+        created_lines: [] as never,
+      },
+    );
+
+    expect(error).not.toBeNull();
+    expect(error?.message ?? '').toContain('Savings goal access denied');
+  });
+
   it('create_budget_from_template copies the link into the generated budget', async () => {
     if (!env) return;
 
@@ -351,5 +415,51 @@ describe('PUL-12 — savings_goal_id propagation (RPC integration)', () => {
       .eq('template_id', templateId);
     expect(lines.data?.length).toBe(1);
     expect(lines.data?.[0]?.savings_goal_id).toBe(goalId);
+  });
+
+  it('create_template_with_lines rejects a foreign savings_goal_id', async () => {
+    if (!env) return;
+
+    const attacker = await makeUser(
+      `sg-tpl-goal-atk-${crypto.randomUUID()}@test.local`,
+    );
+    const victim = await makeUser(
+      `sg-tpl-goal-vic-${crypto.randomUUID()}@test.local`,
+    );
+    createdUserIds.push(attacker.id, victim.id);
+
+    const foreignGoalId = crypto.randomUUID();
+    await admin.from('savings_goal').insert({
+      id: foreignGoalId,
+      user_id: victim.id,
+      name: 'Victim goal',
+      target_amount: 'enc',
+      target_date: '2099-01-01',
+      status: 'ACTIVE',
+    });
+
+    const { error } = await attacker.client.rpc('create_template_with_lines', {
+      p_user_id: attacker.id,
+      p_name: 'Mois type',
+      p_description: '',
+      p_is_default: false,
+      p_lines: [
+        {
+          name: 'Épargne',
+          amount: 'enc',
+          kind: 'saving',
+          recurrence: 'fixed',
+          savings_goal_id: foreignGoalId,
+          description: '',
+          original_amount: null,
+          original_currency: null,
+          target_currency: null,
+          exchange_rate: null,
+        },
+      ] as never,
+    });
+
+    expect(error).not.toBeNull();
+    expect(error?.message ?? '').toContain('Savings goal access denied');
   });
 });

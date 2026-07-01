@@ -99,6 +99,10 @@ describe('ResetBudgetLineFromTemplateUseCase', () => {
 
     expect(result).toEqual(mockEntity);
     expect(mockRepo.update).toHaveBeenCalledTimes(1);
+    expect(mockRepo.update).toHaveBeenCalledWith(
+      mockEntity.id,
+      expect.objectContaining({ savingsGoalId: null }),
+    );
     expect(mockCache.invalidateForUser).toHaveBeenCalledWith(mockUser.id);
     expect(mockBudget.recalculate).toHaveBeenCalledWith(mockEntity.budgetId);
   });

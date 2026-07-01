@@ -167,4 +167,65 @@ describe('PUL-12 — savings_goal DB integration', () => {
       .eq('id', goalId);
     expect(otherView.data?.length ?? 0).toBe(0); // foreign user blocked by RLS
   });
+
+  it('CA7: foreign goals cannot be linked to owned template or budget lines', async () => {
+    if (!env) return;
+
+    const owner = await makeUser(
+      `sg-link-own-${crypto.randomUUID()}@test.local`,
+    );
+    const other = await makeUser(
+      `sg-link-oth-${crypto.randomUUID()}@test.local`,
+    );
+    createdUserIds.push(owner.id, other.id);
+
+    const templateId = crypto.randomUUID();
+    const budgetId = crypto.randomUUID();
+    const foreignGoalId = crypto.randomUUID();
+
+    await admin.from('template').insert({
+      id: templateId,
+      user_id: owner.id,
+      name: 'Owner template',
+      is_default: false,
+    });
+    await admin.from('monthly_budget').insert({
+      id: budgetId,
+      user_id: owner.id,
+      template_id: templateId,
+      month: 4,
+      year: 2099,
+      description: '',
+    });
+    await admin.from('savings_goal').insert({
+      id: foreignGoalId,
+      user_id: other.id,
+      name: 'Foreign goal',
+      target_amount: 'enc',
+      target_date: '2099-01-01',
+      status: 'ACTIVE',
+    });
+
+    const templateLine = await owner.client.from('template_line').insert({
+      template_id: templateId,
+      name: 'Épargne étrangère',
+      amount: 'enc',
+      kind: 'saving',
+      recurrence: 'fixed',
+      savings_goal_id: foreignGoalId,
+      description: '',
+    });
+    expect(templateLine.error).not.toBeNull();
+
+    const budgetLine = await owner.client.from('budget_line').insert({
+      budget_id: budgetId,
+      name: 'Épargne étrangère',
+      amount: 'enc',
+      kind: 'saving',
+      recurrence: 'fixed',
+      is_manually_adjusted: false,
+      savings_goal_id: foreignGoalId,
+    });
+    expect(budgetLine.error).not.toBeNull();
+  });
 });

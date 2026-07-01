@@ -63,6 +63,13 @@ Voir le bloc `<known_traps_by_layer>` de `.claude/commands/impl-savings.md` + `d
 - **Gotchas rencontrés** :
   - DB locale polluée par le worktree PUL-17 (spread) → `supabase db reset` (approuvé) pour types propres ; sinon fuite spread dans `database.types.ts`.
   - `targetDate` : `z.iso.date().refine(≥ today)` (jamais `.min()` — Zod 4 mesure la longueur).
+
+### 2026-07-01 — Rebase PUL-12 sur `preview`
+
+- **Rebase** : branche `maximedesogus/pul-12-creer-et-rattacher-des-objectifs-depargne-backend` rebasée sur `origin/preview` (`v0.37.0`). L'ancien worktree `../pulpe-savings` a été supprimé ; le travail continue dans le worktree Codex courant.
+- **Migrations renommées après `preview`** : les IDs historiques `20260623120000` / `20260623130000` / `20260623140000` ont été déplacés vers `20260701083000` / `20260701083100` / `20260701083200` pour éviter un `supabase db push --dry-run` avec migrations insérées avant la dernière migration déjà présente dans `preview` (`20260626120000`).
+- **Review fixes ajoutés** : `20260701083300` ajoute le trigger DB `enforce_savings_goal_line_link` qui garantit que `budget_line.savings_goal_id` et `template_line.savings_goal_id` pointent vers un objectif du même utilisateur, y compris via RPC `SECURITY DEFINER`.
+- **PATCH schema** : `savingsGoalUpdateSchema` est découplé du create schema pour ne plus hériter du default `status: ACTIVE` ni de la contrainte create-only `targetDate >= today`.
   - Le retrait de `priority` casse 2 specs shared + ~8 littéraux `TemplateLine`/`SavingsGoal` (frontend + backend fixtures) → collatéral mécanique du contrat (savingsGoalId requis sur le read schema).
   - `supabase gen types` (CLI 2.84.2) émet sans `;` → toujours `prettier --write` après, sinon diff énorme.
 - **Review adversariale** (workflow 11 agents) : 3 findings confirmés. 1 corrigé (batch path, ci-dessus). 2 laissés en follow-up (LOW, sans impact) : (a) pas de validation d'ownership du `savingsGoalId` taggé (UUID opaque, aucune fuite, RLS protège les reads ; nécessite un appel PostgREST direct) ; (b) `DELETE` d'un goal inexistant/étranger renvoie 200 (idiome de tous les repos du projet, RLS empêche toute suppression réelle).
