@@ -350,6 +350,7 @@
     "postponeConfirm": "Reporter",
     "postponeDisabledTooltip": "Crée d'abord le budget de {{ month }}",
     "postponeUnavailableChecked": "Un élément pointé ne peut pas être reporté",
+    "postponeUnavailableRecurrent": "Une dépense récurrente revient chaque mois automatiquement, elle ne peut pas être reportée individuellement.",
     "postponed": "Reporté en {{ month }}",
     "postponeError": "Erreur lors du report au mois suivant",
     "forecastUpdateError": "Erreur lors de la modification de la prévision",
