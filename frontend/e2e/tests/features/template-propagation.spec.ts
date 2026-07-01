@@ -79,6 +79,7 @@ test.describe('Template propagation choices', () => {
               {
                 id: TEST_UUIDS.LINE_1,
                 templateId: TEST_CONFIG.TEMPLATES.DEFAULT.id,
+                savingsGoalId: null,
                 name: 'Salaire',
                 amount: 5100,
                 kind: 'income',
@@ -145,6 +146,7 @@ test.describe('Template propagation choices', () => {
               {
                 id: TEST_UUIDS.LINE_1,
                 templateId: TEST_CONFIG.TEMPLATES.DEFAULT.id,
+                savingsGoalId: null,
                 name: 'Salaire',
                 amount: 5200,
                 kind: 'income',

@@ -198,9 +198,10 @@ describe('PUL-12 — savings_goal_id propagation (RPC integration)', () => {
     const atkLineId = crypto.randomUUID();
     const vicBudgetId = crypto.randomUUID();
     const vicTemplateId = crypto.randomUUID();
+    const vicTemplateLineId = crypto.randomUUID();
     const vicLineId = crypto.randomUUID();
 
-    await admin.from('template').insert([
+    const { error: templateSeedError } = await admin.from('template').insert([
       {
         id: atkTemplateId,
         user_id: attacker.id,
@@ -209,32 +210,55 @@ describe('PUL-12 — savings_goal_id propagation (RPC integration)', () => {
       },
       { id: vicTemplateId, user_id: victim.id, name: 'vic', is_default: false },
     ]);
-    await admin.from('template_line').insert({
-      id: atkLineId,
-      template_id: atkTemplateId,
-      name: 'x',
-      amount: 'enc',
-      kind: 'saving',
-      recurrence: 'fixed',
-    });
-    await admin.from('monthly_budget').insert({
-      id: vicBudgetId,
-      user_id: victim.id,
-      template_id: vicTemplateId,
-      month: 2,
-      year: 2099,
-      description: '',
-    });
-    await admin.from('budget_line').insert({
-      id: vicLineId,
-      budget_id: vicBudgetId,
-      template_line_id: vicLineId,
-      name: 'victim line',
-      amount: 'enc',
-      kind: 'saving',
-      recurrence: 'fixed',
-      is_manually_adjusted: false,
-    });
+    expect(templateSeedError).toBeNull();
+
+    const { error: templateLineSeedError } = await admin
+      .from('template_line')
+      .insert([
+        {
+          id: atkLineId,
+          template_id: atkTemplateId,
+          name: 'x',
+          amount: 'enc',
+          kind: 'saving',
+          recurrence: 'fixed',
+        },
+        {
+          id: vicTemplateLineId,
+          template_id: vicTemplateId,
+          name: 'victim source line',
+          amount: 'enc',
+          kind: 'saving',
+          recurrence: 'fixed',
+        },
+      ]);
+    expect(templateLineSeedError).toBeNull();
+
+    const { error: budgetSeedError } = await admin
+      .from('monthly_budget')
+      .insert({
+        id: vicBudgetId,
+        user_id: victim.id,
+        template_id: vicTemplateId,
+        month: 2,
+        year: 2099,
+        description: '',
+      });
+    expect(budgetSeedError).toBeNull();
+
+    const { error: budgetLineSeedError } = await admin
+      .from('budget_line')
+      .insert({
+        id: vicLineId,
+        budget_id: vicBudgetId,
+        template_line_id: vicTemplateLineId,
+        name: 'victim line',
+        amount: 'enc',
+        kind: 'saving',
+        recurrence: 'fixed',
+        is_manually_adjusted: false,
+      });
+    expect(budgetLineSeedError).toBeNull();
 
     const { error } = await attacker.client.rpc(
       'apply_template_line_operations',

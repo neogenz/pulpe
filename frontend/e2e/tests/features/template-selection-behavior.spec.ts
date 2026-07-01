@@ -1,4 +1,5 @@
 import { test, expect } from '../../fixtures/test-fixtures';
+import { TEST_UUIDS } from '../../helpers/api-mocks';
 
 test.describe('Template Selection', () => {
   test('should select template for budget creation', async ({
@@ -15,20 +16,20 @@ test.describe('Template Selection', () => {
             success: true,
             data: [
               {
-                id: 'template-1',
+                id: TEST_UUIDS.TEMPLATE_1,
                 name: 'Regular Template',
                 description: 'A regular template',
                 isDefault: false,
-                userId: 'user-1',
+                userId: TEST_UUIDS.USER_1,
                 createdAt: '2024-01-01T00:00:00Z',
                 updatedAt: '2024-01-01T00:00:00Z',
               },
               {
-                id: 'template-2',
+                id: TEST_UUIDS.TEMPLATE_2,
                 name: 'Default Template',
                 description: 'This is the default template',
                 isDefault: true,
-                userId: 'user-1',
+                userId: TEST_UUIDS.USER_1,
                 createdAt: '2024-01-02T00:00:00Z',
                 updatedAt: '2024-01-02T00:00:00Z',
               },
@@ -49,8 +50,9 @@ test.describe('Template Selection', () => {
             success: true,
             data: [
               {
-                id: 'line-1',
-                templateId: 'template-1',
+                id: TEST_UUIDS.LINE_1,
+                templateId: TEST_UUIDS.TEMPLATE_1,
+                savingsGoalId: null,
                 name: 'Sample Income',
                 amount: 3000,
                 kind: 'income',
@@ -74,7 +76,7 @@ test.describe('Template Selection', () => {
           body: JSON.stringify({
             success: true,
             data: {
-              id: 'new-budget-123',
+              id: TEST_UUIDS.BUDGET_3,
               message: 'Budget created successfully',
             },
           }),
@@ -88,9 +90,7 @@ test.describe('Template Selection', () => {
     // Navigate to budget-related page (use current month as it's more reliable)
     await authenticatedPage.goto('/dashboard');
     await authenticatedPage.waitForLoadState('domcontentloaded');
-
-    // Wait for page content to be ready
-    await authenticatedPage.waitForLoadState('networkidle');
+    await expect(authenticatedPage.locator('body')).toBeVisible();
 
     // Look for any create/add buttons across the page
     const createSelectors = [

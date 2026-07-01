@@ -165,6 +165,9 @@ export class BulkTemplateLineOperationsUseCase {
   ): Promise<TemplateLineRpcUpdate[]> {
     if (!updates?.length) return [];
 
+    const currentKindByLineId =
+      await this.fetchCurrentKindsForLinkOnlyUpdates(updates);
+
     return Promise.all(
       updates.map(async (line) => {
         const { id, ...rest } = line;
@@ -174,11 +177,28 @@ export class BulkTemplateLineOperationsUseCase {
           id,
           ...overridden,
           savingsGoalId: savingsGoalIdPatchForKind(
-            overridden.kind,
+            overridden.kind ?? currentKindByLineId.get(id),
             overridden.savingsGoalId,
           ),
         };
       }),
+    );
+  }
+
+  private async fetchCurrentKindsForLinkOnlyUpdates(
+    updates: NonNullable<TemplateLinesBulkOperations['update']>,
+  ): Promise<Map<string, TemplateLineRpcUpdate['kind']>> {
+    const linkOnlyUpdates = updates.filter(
+      (line) => line.kind === undefined && line.savingsGoalId !== undefined,
+    );
+    if (!linkOnlyUpdates.length) return new Map();
+
+    const currentLines = await Promise.all(
+      linkOnlyUpdates.map((line) => this.repo.findLineById(line.id)),
+    );
+
+    return new Map(
+      currentLines.map(({ line }) => [line.id, line.kind] as const),
     );
   }
 

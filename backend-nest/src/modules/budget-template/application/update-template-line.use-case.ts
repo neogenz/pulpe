@@ -30,13 +30,17 @@ export class UpdateTemplateLineUseCase {
   ): Promise<TemplateLine> {
     const startTime = Date.now();
 
-    await this.repo.validateLineAccess(lineId, user.id);
+    const currentLine = await this.repo.validateLineAccess(lineId, user.id);
     let validated = templateLineUpdateSchema.parse(updateDto);
     validated = await this.currencyService.overrideExchangeRate(validated);
 
+    const effectiveKind =
+      validated.kind ??
+      (validated.savingsGoalId !== undefined ? currentLine.kind : undefined);
+
     const line = await this.repo.updateLine(lineId, {
       savingsGoalId: savingsGoalIdPatchForKind(
-        validated.kind,
+        effectiveKind,
         validated.savingsGoalId,
       ),
       name: validated.name,

@@ -38,6 +38,7 @@ describe('BulkTemplateLineOperationsUseCase — atomicity', () => {
   let mockRepo: {
     validateAccess: ReturnType<typeof jest.fn>;
     validateLinesExist: ReturnType<typeof jest.fn>;
+    findLineById: ReturnType<typeof jest.fn>;
     updateLine: ReturnType<typeof jest.fn>;
     insertLine: ReturnType<typeof jest.fn>;
     fetchFutureBudgets: ReturnType<typeof jest.fn>;
@@ -53,6 +54,10 @@ describe('BulkTemplateLineOperationsUseCase — atomicity', () => {
       validateLinesExist: jest
         .fn()
         .mockResolvedValue(['a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d']),
+      findLineById: jest.fn().mockResolvedValue({
+        line: makeTemplateLine('a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d'),
+        templateUserId: mockUser.id,
+      }),
       updateLine: jest
         .fn()
         .mockResolvedValue(
@@ -221,6 +226,36 @@ describe('BulkTemplateLineOperationsUseCase — atomicity', () => {
     expect(result.createdLines).toHaveLength(1);
     expect(result.createdLines[0].id).toBe('line-new-1');
     expect(result.propagation.affectedBudgetIds).toEqual(['budget-1']);
+  });
+
+  it('uses the current kind to reject link-only savings goal patches on non-saving lines', async () => {
+    const payload: TemplateLinesBulkOperations = {
+      update: [
+        {
+          id: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d',
+          savingsGoalId: '8a0f6c80-1234-4e5f-89ab-333333333333',
+        },
+      ],
+      create: [],
+      delete: [],
+      propagateToBudgets: false,
+    };
+
+    await useCase.execute('template-1', payload, mockUser);
+
+    expect(mockRepo.findLineById).toHaveBeenCalledWith(
+      'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d',
+    );
+    expect(mockRepo.bulkApplyTemplateLineOperations).toHaveBeenCalledWith(
+      expect.objectContaining({
+        updatedLines: [
+          expect.objectContaining({
+            id: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d',
+            savingsGoalId: null,
+          }),
+        ],
+      }),
+    );
   });
 
   describe('cache invalidation ordering (R1)', () => {

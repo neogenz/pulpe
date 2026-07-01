@@ -2,6 +2,7 @@ import { describe, it, expect, jest } from 'bun:test';
 import { Buffer } from 'node:buffer';
 import { SupabaseSavingsGoalRepository } from './supabase-savings-goal.repository';
 import { BusinessException } from '@common/exceptions/business.exception';
+import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 import type { SavingsGoalRow } from '../../domain/savings-goal.entity';
 import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
 import type { AuthenticatedSupabaseProvider } from '@modules/supabase/authenticated-supabase.provider';
@@ -140,5 +141,64 @@ describe('SupabaseSavingsGoalRepository', () => {
     expect(captured?.user_id).toBe('user-1');
     expect(captured?.status).toBe('ACTIVE');
     expect('priority' in (captured ?? {})).toBe(false); // dropped from product
+  });
+
+  it('update maps real database errors to SAVINGS_GOAL_UPDATE_FAILED', async () => {
+    const dbError = { message: 'violates check constraint' };
+    const provider = createMockProvider(() => ({
+      update: () => ({
+        eq: () => ({
+          select: () => ({
+            single: jest.fn().mockResolvedValue({ data: null, error: dbError }),
+          }),
+        }),
+      }),
+    }));
+    const repo = new SupabaseSavingsGoalRepository(
+      provider,
+      createMockEncryption(),
+    );
+
+    let caught: unknown;
+    try {
+      await repo.update('goal-1', { exchangeRate: 1.1 });
+    } catch (error) {
+      caught = error;
+    }
+
+    expect(caught).toBeInstanceOf(BusinessException);
+    expect((caught as BusinessException).code).toBe(
+      ERROR_DEFINITIONS.SAVINGS_GOAL_UPDATE_FAILED.code,
+    );
+    expect((caught as BusinessException).cause).toBe(dbError);
+  });
+
+  it('update maps a hidden or missing row to SAVINGS_GOAL_NOT_FOUND', async () => {
+    const provider = createMockProvider(() => ({
+      update: () => ({
+        eq: () => ({
+          select: () => ({
+            single: jest.fn().mockResolvedValue({ data: null, error: null }),
+          }),
+        }),
+      }),
+    }));
+    const repo = new SupabaseSavingsGoalRepository(
+      provider,
+      createMockEncryption(),
+    );
+
+    let caught: unknown;
+    try {
+      await repo.update('missing', { name: 'Maison' });
+    } catch (error) {
+      caught = error;
+    }
+
+    expect(caught).toBeInstanceOf(BusinessException);
+    expect((caught as BusinessException).code).toBe(
+      ERROR_DEFINITIONS.SAVINGS_GOAL_NOT_FOUND.code,
+    );
+    expect((caught as BusinessException).cause).toBeUndefined();
   });
 });

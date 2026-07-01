@@ -81,6 +81,7 @@ test.describe('Budget Template Management', () => {
               {
                 id: TEST_UUIDS.LINE_1,
                 templateId: TEST_CONFIG.TEMPLATES.DEFAULT.id,
+                savingsGoalId: null,
                 name: 'Salaire',
                 amount: 5000,
                 kind: 'income',

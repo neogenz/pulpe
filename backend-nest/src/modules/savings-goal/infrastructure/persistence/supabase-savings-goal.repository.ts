@@ -119,9 +119,9 @@ export class SupabaseSavingsGoalRepository implements SavingsGoalRepositoryPort 
       .select('*')
       .single();
 
-    if (error || !data) {
+    if (error) {
       throw new BusinessException(
-        ERROR_DEFINITIONS.SAVINGS_GOAL_NOT_FOUND,
+        ERROR_DEFINITIONS.SAVINGS_GOAL_UPDATE_FAILED,
         { id },
         {
           operation: 'updateSavingsGoal',
@@ -130,7 +130,20 @@ export class SupabaseSavingsGoalRepository implements SavingsGoalRepositoryPort 
           userId: user.id,
           supabaseError: error,
         },
-        { cause: error ?? undefined },
+        { cause: error },
+      );
+    }
+
+    if (!data) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.SAVINGS_GOAL_NOT_FOUND,
+        { id },
+        {
+          operation: 'updateSavingsGoal',
+          entityId: id,
+          entityType: 'savings_goal',
+          userId: user.id,
+        },
       );
     }
 
