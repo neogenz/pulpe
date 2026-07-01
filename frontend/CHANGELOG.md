@@ -1,5 +1,15 @@
 # pulpe-frontend
 
+## 0.37.0
+
+### Minor Changes
+
+- Lissage d'une dépense sur plusieurs mois (avec reste à provisionner), report d'une dépense non pointée au mois suivant, corrections sécurité et stabilité iOS.
+
+### Patch Changes
+
+- pulpe-shared@0.37.0
+
 ## 0.36.0
 
 ### Minor Changes

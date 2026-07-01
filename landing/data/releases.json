@@ -1,5 +1,41 @@
 [
   {
+    "version": "0.37.0",
+    "date": "2026-07-01",
+    "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.37.0",
+    "platforms": [
+      "web",
+      "ios"
+    ],
+    "changes": {
+      "features": [
+        {
+          "title": "Lisser une dépense",
+          "description": "Répartis une grosse dépense sur plusieurs mois, avec le suivi du reste à provisionner et du montant à prévoir chaque mois"
+        },
+        {
+          "title": "Reporter une dépense",
+          "description": "Reporte une dépense non pointée au mois suivant en un geste"
+        },
+        {
+          "title": "Transactions dans le détail (iOS)",
+          "description": "Pointe, modifie et supprime tes transactions directement depuis le détail du budget"
+        }
+      ],
+      "fixes": [
+        {
+          "title": "Sécurité renforcée",
+          "description": "Correctifs de sécurité et limitation des sessions de démonstration non vérifiées"
+        },
+        {
+          "title": "Stabilité iOS",
+          "description": "Clavier qui restait ouvert, déverrouillage biométrique hors-ligne et voile de confidentialité au retour d'app fiabilisés"
+        }
+      ],
+      "technical": []
+    }
+  },
+  {
     "version": "0.36.0",
     "date": "2026-06-19",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.36.0",

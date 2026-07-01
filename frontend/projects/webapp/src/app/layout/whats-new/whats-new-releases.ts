@@ -4,6 +4,9 @@ export interface WhatsNewRelease {
 }
 
 export const LATEST_RELEASE: WhatsNewRelease = {
-  version: '0.36.0',
-  features: ['Affichage adapté à ta devise (CH/FR)'],
+  version: '0.37.0',
+  features: [
+    'Lisser une dépense sur plusieurs mois',
+    'Reporter une dépense au mois suivant',
+  ],
 };
