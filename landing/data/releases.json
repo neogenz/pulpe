@@ -1,5 +1,23 @@
 [
   {
+    "version": "0.37.1",
+    "date": "2026-07-01",
+    "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.37.1",
+    "platforms": [
+      "web"
+    ],
+    "changes": {
+      "features": [],
+      "fixes": [
+        {
+          "title": "Report de dépense",
+          "description": "L'action de report est désormais désactivée avec une infobulle explicative sur les prévisions récurrentes, où le report ne s'applique pas"
+        }
+      ],
+      "technical": []
+    }
+  },
+  {
     "version": "0.37.0",
     "date": "2026-07-01",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.37.0",
