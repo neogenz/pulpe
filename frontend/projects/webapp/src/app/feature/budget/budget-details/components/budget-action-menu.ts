@@ -152,6 +152,22 @@ function getBalanceFormatter(
             <span>{{ 'budget.postpone' | transloco }}</span>
           </button>
         </span>
+      } @else if (showPostponeUnavailableRecurrent()) {
+        <!-- Tooltip wrapper: matTooltip is suppressed on disabled buttons -->
+        <span
+          class="block w-full"
+          [matTooltip]="'budget.postponeUnavailableRecurrent' | transloco"
+          matTooltipPosition="above"
+        >
+          <button
+            mat-menu-item
+            disabled
+            [attr.data-testid]="'postpone-disabled-' + item().data.id"
+          >
+            <mat-icon matMenuItemIcon>event_upcoming</mat-icon>
+            <span>{{ 'budget.postpone' | transloco }}</span>
+          </button>
+        </span>
       }
       <button
         mat-menu-item
@@ -193,6 +209,19 @@ export class BudgetActionMenu {
   protected readonly showSpreadUnavailable = computed(() => {
     const { data, metadata } = this.item();
     if (metadata.canSpread) return false;
+    return data.recurrence === 'fixed' && data.kind !== 'income';
+  });
+
+  // A recurrent (`fixed`) line is regenerated every month by its template, so
+  // postponing a single occurrence doesn't apply — but hiding the action
+  // outright leaves the user wondering where it went (same rationale as
+  // showSpreadUnavailable above). Income stays hidden too: the tooltip copy
+  // is expense-specific and recurring income has no "report" mental model.
+  // Other hidden cases (already has a transaction, spread occurrence) stay
+  // hidden — not a teachable absence.
+  protected readonly showPostponeUnavailableRecurrent = computed(() => {
+    const { data, metadata } = this.item();
+    if (metadata.showPostpone) return false;
     return data.recurrence === 'fixed' && data.kind !== 'income';
   });
 
