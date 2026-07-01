@@ -1,5 +1,12 @@
 # pulpe-frontend
 
+## 0.37.1
+
+### Patch Changes
+
+- Report de dépense : l'action de report est désormais désactivée avec une infobulle explicative sur les prévisions récurrentes, où le report ne s'applique pas.
+  - pulpe-shared@0.37.1
+
 ## 0.37.0
 
 ### Minor Changes
