@@ -179,4 +179,72 @@ describe('Spread idempotency guard — error-detection seam (local Supabase)', (
       repository.createSpread(spreadGroupId, [retryInput]),
     ).rejects.toBeInstanceOf(SpreadGroupAlreadyExistsError);
   });
+
+  // PUL-286 — the guard under REAL concurrency, not just the sequential replay
+  // case above (group pre-seeded, single call). Two parallel RPC calls race on a
+  // FRESH group id: the advisory xact lock must serialize them so exactly one
+  // fans out and the other trips the EXISTS guard after the winner commits. A
+  // broken lock (or a guard checked before acquiring it) would let both insert
+  // → 6 rows sharing one group — the duplicate-on-retry bug, undetectable by
+  // any single-call test.
+  it('lets exactly one of two concurrent same-key calls fan out', async () => {
+    if (!hasSupabase) return;
+
+    const raceGroupId = randomUUID();
+    const buildLines = (caller: string) =>
+      [1, 2, 3].map((tranche) => ({
+        budget_id: budgetId,
+        name: `${caller}-tranche-${tranche}`,
+        amount: `ciphertext-${caller}-${tranche}`,
+        kind: 'expense',
+        recurrence: 'one_off',
+        savings_goal_id: null,
+        original_amount: null,
+        original_currency: null,
+        target_currency: null,
+        exchange_rate: null,
+      }));
+
+    const results = await Promise.all([
+      authClient.rpc('create_budget_lines_spread', {
+        p_spread_group_id: raceGroupId,
+        p_lines: buildLines('racer-a'),
+      }),
+      authClient.rpc('create_budget_lines_spread', {
+        p_spread_group_id: raceGroupId,
+        p_lines: buildLines('racer-b'),
+      }),
+    ]);
+
+    const winners = results.filter((result) => result.error === null);
+    const losers = results.filter((result) => result.error !== null);
+    expect(winners).toHaveLength(1);
+    expect(losers).toHaveLength(1);
+
+    expect(losers[0].error?.code).toBe('P0001');
+    expect(losers[0].error?.message).toContain(SPREAD_GROUP_EXISTS_RPC_MESSAGE);
+
+    const winnerRows = winners[0].data ?? [];
+    expect(winnerRows).toHaveLength(3);
+
+    const { data: persisted, error: readErr } = await adminClient
+      .from('budget_line')
+      .select('id, name')
+      .eq('spread_group_id', raceGroupId);
+    expect(readErr).toBeNull();
+
+    // The surviving group is EXACTLY the winner's fan-out: no rows from the
+    // loser (partial or full), no duplicate group.
+    const persistedIds = (persisted ?? []).map((row) => row.id).sort();
+    const winnerIds = winnerRows.map((row) => row.id).sort();
+    expect(persistedIds).toEqual(winnerIds);
+
+    const winnerPrefix = winnerRows[0].name.startsWith('racer-a')
+      ? 'racer-a'
+      : 'racer-b';
+    const allFromWinner = (persisted ?? []).every((row) =>
+      row.name.startsWith(winnerPrefix),
+    );
+    expect(allFromWinner).toBe(true);
+  });
 });
