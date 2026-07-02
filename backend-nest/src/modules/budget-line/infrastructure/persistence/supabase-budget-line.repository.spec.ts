@@ -48,6 +48,7 @@ const expectedEntity: BudgetLine = {
   budgetId: 'budget-1',
   templateLineId: null,
   savingsGoalId: null,
+  tagIds: [],
   spreadGroupId: null,
   name: 'Loyer',
   amount: 1200,

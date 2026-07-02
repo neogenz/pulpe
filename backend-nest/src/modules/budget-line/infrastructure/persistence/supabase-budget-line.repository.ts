@@ -36,6 +36,13 @@ import {
 } from './schemas/rpc-payload.schemas';
 import { SpreadGroupAlreadyExistsError } from '../../domain/spread-group-conflict.error';
 
+/** Embed junction rows so every read maps to BudgetLine.tagIds in one query. */
+const BUDGET_LINE_WITH_TAGS_SELECT = '*, budget_line_tag(tag_id)';
+
+type BudgetLineRowWithTags = BudgetLineRow & {
+  budget_line_tag?: { tag_id: string }[];
+};
+
 @Injectable()
 export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
   constructor(
@@ -47,7 +54,7 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
     const supabase = this.supabaseProvider.client;
     const { data, error } = await supabase
       .from('budget_line')
-      .select('*')
+      .select(BUDGET_LINE_WITH_TAGS_SELECT)
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -72,7 +79,7 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
     const supabase = this.supabaseProvider.client;
     const { data, error } = await supabase
       .from('budget_line')
-      .select('*')
+      .select(BUDGET_LINE_WITH_TAGS_SELECT)
       .eq('id', id)
       .single();
 
@@ -136,7 +143,7 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
     const supabase = this.supabaseProvider.client;
     const { data, error } = await supabase
       .from('budget_line')
-      .select('*')
+      .select(BUDGET_LINE_WITH_TAGS_SELECT)
       .eq('budget_id', budgetId)
       .order('created_at', { ascending: false });
 
@@ -210,7 +217,7 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
     const supabase = this.supabaseProvider.client;
     const { data, error } = await supabase
       .from('budget_line')
-      .select('*')
+      .select(BUDGET_LINE_WITH_TAGS_SELECT)
       .eq('spread_group_id', spreadGroupId)
       .order('created_at', { ascending: true });
 
@@ -391,7 +398,7 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
     const { data: row, error } = await supabase
       .from('budget_line')
       .insert(insertRow)
-      .select()
+      .select(BUDGET_LINE_WITH_TAGS_SELECT)
       .single();
 
     if (error || !row) {
@@ -428,8 +435,90 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
       );
     }
 
+    if (input.tagIds?.length) {
+      try {
+        await this.replaceTagLinks(row.id, input.tagIds, 'createBudgetLine');
+      } catch (linkError) {
+        // Compensation: a line without its requested tags must not survive.
+        await supabase.from('budget_line').delete().eq('id', row.id);
+        throw linkError;
+      }
+    }
+
     const dek = await this.encryption.getDekFor(this.supabaseProvider.user);
-    return this.toEntity(row, dek);
+    return {
+      ...this.toEntity(row, dek),
+      tagIds: input.tagIds ?? [],
+    };
+  }
+
+  /**
+   * Replace-set semantics, mirror of the transaction repository: provided
+   * tagIds become the line's exact tag set; foreign/unknown tag ids surface
+   * as TAG_NOT_FOUND via FK (23503) / RLS WITH CHECK (42501).
+   */
+  private async replaceTagLinks(
+    budgetLineId: string,
+    tagIds: string[],
+    operation: string,
+  ): Promise<void> {
+    const supabase = this.supabaseProvider.client;
+
+    const { error: unlinkError } = await supabase
+      .from('budget_line_tag')
+      .delete()
+      .eq('budget_line_id', budgetLineId);
+
+    if (unlinkError) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.BUDGET_LINE_UPDATE_FAILED,
+        { id: budgetLineId },
+        {
+          operation,
+          entityId: budgetLineId,
+          entityType: 'budget_line_tag',
+          supabaseError: unlinkError,
+        },
+        { cause: unlinkError },
+      );
+    }
+
+    if (!tagIds.length) return;
+
+    const { error: linkError } = await supabase.from('budget_line_tag').insert(
+      tagIds.map((tagId) => ({
+        budget_line_id: budgetLineId,
+        tag_id: tagId,
+      })),
+    );
+
+    if (linkError) {
+      if (linkError.code === '23503' || linkError.code === '42501') {
+        throw new BusinessException(
+          ERROR_DEFINITIONS.TAG_NOT_FOUND,
+          undefined,
+          {
+            operation,
+            entityId: budgetLineId,
+            entityType: 'budget_line_tag',
+            supabaseError: linkError,
+          },
+          { cause: linkError },
+        );
+      }
+
+      throw new BusinessException(
+        ERROR_DEFINITIONS.BUDGET_LINE_UPDATE_FAILED,
+        { id: budgetLineId },
+        {
+          operation,
+          entityId: budgetLineId,
+          entityType: 'budget_line_tag',
+          supabaseError: linkError,
+        },
+        { cause: linkError },
+      );
+    }
   }
 
   async createSpread(
@@ -561,7 +650,7 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
       .from('budget_line')
       .update(updateRow)
       .eq('id', id)
-      .select()
+      .select(BUDGET_LINE_WITH_TAGS_SELECT)
       .single();
 
     if (error || !row) {
@@ -609,8 +698,15 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
       );
     }
 
+    if (patch.tagIds !== undefined) {
+      await this.replaceTagLinks(id, patch.tagIds, 'updateBudgetLine');
+    }
+
     const dek = await this.encryption.getDekFor(this.supabaseProvider.user);
-    return this.toEntity(row, dek);
+    const entity = this.toEntity(row, dek);
+    return patch.tagIds !== undefined
+      ? { ...entity, tagIds: patch.tagIds }
+      : entity;
   }
 
   async postpone(
@@ -768,7 +864,7 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
     return data.map((row) => this.toTransactionEntity(row, dek));
   }
 
-  private toEntity(row: BudgetLineRow, dek: Buffer): BudgetLine {
+  private toEntity(row: BudgetLineRowWithTags, dek: Buffer): BudgetLine {
     const decrypted = this.encryption.decryptRowAmountFields(row, dek);
     return {
       id: decrypted.id,
@@ -784,6 +880,7 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
       exchangeRate: decrypted.exchange_rate,
       kind: decrypted.kind,
       recurrence: decrypted.recurrence,
+      tagIds: (row.budget_line_tag ?? []).map((link) => link.tag_id),
       isManuallyAdjusted: decrypted.is_manually_adjusted,
       checkedAt: decrypted.checked_at,
       createdAt: decrypted.created_at,

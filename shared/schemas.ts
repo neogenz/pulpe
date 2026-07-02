@@ -521,6 +521,8 @@ export const budgetLineSchema = z.object({
   amount: z.coerce.number().nonnegative(),
   kind: transactionKindSchema,
   recurrence: transactionRecurrenceSchema,
+  // Tags (PUL-18) — même contrat que transaction.tagIds (ids only, noms via GET /tags)
+  tagIds: z.array(z.uuid()).optional(),
   isManuallyAdjusted: z.boolean(),
   checkedAt: z.iso.datetime({ offset: true }).nullable(),
   createdAt: z.iso.datetime({ offset: true }),
@@ -556,6 +558,13 @@ export const budgetLineCreateSchema = z.strictObject({
   amount: z.number().positive(),
   kind: transactionKindSchema,
   recurrence: transactionRecurrenceSchema,
+  tagIds: z
+    .array(z.uuid())
+    .max(MAX_TAGS_PER_TRANSACTION)
+    .refine(hasUniqueTagIds, {
+      message: 'Chaque tag ne peut être associé qu’une fois.',
+    })
+    .optional(),
   isManuallyAdjusted: z.boolean().default(false),
   checkedAt: z.iso.datetime({ offset: true }).nullable().optional(),
   originalAmount: z.number().positive().optional(),
