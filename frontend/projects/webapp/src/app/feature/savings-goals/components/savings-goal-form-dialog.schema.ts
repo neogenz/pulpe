@@ -37,11 +37,12 @@ export function buildSavingsGoalCreate(
 /**
  * Builds a PATCH payload containing ONLY the fields the user changed.
  *
- * This is what keeps an overdue goal editable: `savingsGoalUpdateSchema` keeps
- * the `targetDate >= today` refine, so re-sending an unchanged past date would
- * 400. By diffing against the original, a status-only edit (e.g. mark COMPLETED
- * or re-open) on a goal whose deadline has passed omits `targetDate` entirely
- * and succeeds. When `original` is absent every field is sent (and re-validated).
+ * `savingsGoalUpdateSchema.targetDate` carries no past-date refine (unlike
+ * create) — an overdue goal stays editable, and D1's "repousser la date" CTA
+ * can move a goal's deadline in either direction. Diffing against `original`
+ * is purely a payload-size optimization (skip unchanged fields), not a
+ * correctness requirement. When `original` is absent every field is sent
+ * (and re-validated).
  */
 export function buildSavingsGoalUpdate(
   value: SavingsGoalFormValue,

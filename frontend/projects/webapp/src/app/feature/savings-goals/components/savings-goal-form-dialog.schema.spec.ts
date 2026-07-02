@@ -55,10 +55,15 @@ describe('buildSavingsGoalUpdate', () => {
     });
   });
 
-  it('rejects a past target date on update too', () => {
-    expect(() =>
+  it('accepts an explicit past target date on update (no refine — D1 "repousser la date")', () => {
+    expect(
       buildSavingsGoalUpdate({ ...baseValue, targetDate: PAST_DATE }),
-    ).toThrow();
+    ).toEqual({
+      name: 'Vacances été',
+      targetAmount: 3000,
+      targetDate: PAST_DATE,
+      status: 'ACTIVE',
+    });
   });
 
   it('keeps an overdue goal editable: a status-only change omits the unchanged past date', () => {
