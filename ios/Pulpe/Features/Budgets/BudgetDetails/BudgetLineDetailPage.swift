@@ -314,15 +314,17 @@ private extension BudgetLineDetailPage {
         }
         .tint(Color.destructivePrimary)
 
-        Button {
-            Task { await coordinator.dispatch(.toggleTransaction(transaction)) }
-        } label: {
-            Label(
-                transaction.isChecked ? "Dépointer" : "Pointer",
-                systemImage: transaction.isChecked ? "arrow.uturn.backward" : "checkmark.circle"
-            )
+        if userSettingsStore.checkingEnabled {
+            Button {
+                Task { await coordinator.dispatch(.toggleTransaction(transaction)) }
+            } label: {
+                Label(
+                    transaction.isChecked ? "Dépointer" : "Pointer",
+                    systemImage: transaction.isChecked ? "arrow.uturn.backward" : "checkmark.circle"
+                )
+            }
+            .tint(transaction.isChecked ? Color.financialOverBudget : .pulpePrimary)
         }
-        .tint(transaction.isChecked ? Color.financialOverBudget : .pulpePrimary)
 
         Button {
             router.push(.editTx(transactionId: transaction.id))

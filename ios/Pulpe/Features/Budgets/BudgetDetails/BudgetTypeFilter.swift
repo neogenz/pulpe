@@ -125,12 +125,17 @@ struct BudgetTypeFilter: View {
     @Binding var checked: CheckedFilterOption
     let counts: BudgetLineKindCounts
     let checkedCounts: CheckedFilterCounts
+    /// PUL-110 — the état axis (À pointer / Pointé / Tout voir) disappears
+    /// when the user disabled pointage in the preferences.
+    var showsCheckedFilter = true
 
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: DesignTokens.ChipMetrics.Standard.interChipGap) {
-                checkedMenuButton()
-                    .padding(.trailing, DesignTokens.Spacing.xs)
+                if showsCheckedFilter {
+                    checkedMenuButton()
+                        .padding(.trailing, DesignTokens.Spacing.xs)
+                }
 
                 ForEach(BudgetLineKindFilter.allCases) { option in
                     typePill(option)

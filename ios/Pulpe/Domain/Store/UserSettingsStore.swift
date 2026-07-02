@@ -7,6 +7,8 @@ final class UserSettingsStore: StoreProtocol {
     private(set) var payDayOfMonth: Int?
     private(set) var currency: SupportedCurrency = .chf
     private(set) var showCurrencySelector = false
+    /// Pointage (bank reconciliation) visibility — defaults to enabled.
+    private(set) var checkingEnabled = true
     private(set) var isLoading = false
     private(set) var error: APIError?
 
@@ -76,6 +78,7 @@ final class UserSettingsStore: StoreProtocol {
                 payDayOfMonth = settings.payDayOfMonth
                 currency = settings.currency ?? .chf
                 showCurrencySelector = settings.showCurrencySelector ?? false
+                checkingEnabled = settings.checkingEnabled ?? true
                 lastLoadTime = Date()
             } catch is CancellationError {
                 // Task was cancelled, don't update error state
@@ -103,6 +106,7 @@ final class UserSettingsStore: StoreProtocol {
         payDayOfMonth = nil
         currency = .chf
         showCurrencySelector = false
+        checkingEnabled = true
         lastLoadTime = nil
         error = nil
     }
@@ -150,6 +154,29 @@ final class UserSettingsStore: StoreProtocol {
             self.error = apiError
         } catch {
             showCurrencySelector = previousValue
+            self.error = .networkError(error)
+        }
+    }
+
+    func updateCheckingEnabled(_ newValue: Bool) async {
+        let previousValue = checkingEnabled
+        error = nil
+
+        // Optimistic update
+        checkingEnabled = newValue
+
+        do {
+            let updated = try await service.updateSettings(
+                UpdateUserSettings(checkingEnabled: newValue)
+            )
+            // Backend may omit the field on partial responses; keep the value we just persisted.
+            checkingEnabled = updated.checkingEnabled ?? newValue
+            lastLoadTime = Date()
+        } catch let apiError as APIError {
+            checkingEnabled = previousValue
+            self.error = apiError
+        } catch {
+            checkingEnabled = previousValue
             self.error = .networkError(error)
         }
     }

@@ -15,12 +15,14 @@ actor MockUserSettingsService: UserSettingsServicing {
         stubbedGetSettings: UserSettings = UserSettings(
             payDayOfMonth: nil,
             currency: .chf,
-            showCurrencySelector: false
+            showCurrencySelector: false,
+            checkingEnabled: true
         ),
         stubbedUpdateSettings: UserSettings = UserSettings(
             payDayOfMonth: nil,
             currency: .chf,
-            showCurrencySelector: false
+            showCurrencySelector: false,
+            checkingEnabled: true
         )
     ) {
         self.stubbedGetSettings = stubbedGetSettings

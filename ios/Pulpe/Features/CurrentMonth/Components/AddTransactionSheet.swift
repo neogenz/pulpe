@@ -86,7 +86,9 @@ struct AddTransactionSheet: View {
             .animation(.snappy(duration: DesignTokens.Animation.fast), value: kind)
             descriptionField
             dateSelector
-            CheckedToggle(isOn: $isChecked, tintColor: kind.color)
+            if userSettingsStore.checkingEnabled {
+                CheckedToggle(isOn: $isChecked, tintColor: kind.color)
+            }
 
             if let error {
                 ErrorBanner(message: DomainErrorLocalizer.localize(error)) {

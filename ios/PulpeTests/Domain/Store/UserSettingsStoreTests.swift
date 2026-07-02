@@ -11,7 +11,8 @@ struct UserSettingsStoreTests {
             stubbedUpdateSettings: UserSettings(
                 payDayOfMonth: nil,
                 currency: .chf,
-                showCurrencySelector: true
+                showCurrencySelector: true,
+                checkingEnabled: true
             )
         )
         let store = UserSettingsStore(service: mockService)
@@ -41,6 +42,44 @@ struct UserSettingsStoreTests {
         #expect(store.error != nil)
     }
 
+    @Test func updateCheckingEnabled_onSuccess_updatesValueAndSendsPayload() async {
+        // Arrange
+        let mockService = MockUserSettingsService(
+            stubbedUpdateSettings: UserSettings(
+                payDayOfMonth: nil,
+                currency: .chf,
+                showCurrencySelector: false,
+                checkingEnabled: false
+            )
+        )
+        let store = UserSettingsStore(service: mockService)
+        #expect(store.checkingEnabled == true)
+
+        // Act
+        await store.updateCheckingEnabled(false)
+
+        // Assert
+        #expect(store.checkingEnabled == false)
+        #expect(store.error == nil)
+        #expect(await mockService.updateSettingsCallCount == 1)
+        let payload = await mockService.lastUpdatePayload
+        #expect(payload?.checkingEnabled == false)
+    }
+
+    @Test func updateCheckingEnabled_onFailure_revertsOptimisticUpdate() async {
+        // Arrange — store starts enabled, backend will reject
+        let mockService = MockUserSettingsService()
+        await mockService.setUpdateError(APIError.networkError(URLError(.notConnectedToInternet)))
+        let store = UserSettingsStore(service: mockService)
+
+        // Act
+        await store.updateCheckingEnabled(false)
+
+        // Assert — optimistic flip reverted to the initial `true`
+        #expect(store.checkingEnabled == true)
+        #expect(store.error != nil)
+    }
+
     @Test func showCurrencySelectorEffective_gatedByFeatureFlag_returnsFalseWhenFlagOff() async throws {
         // Arrange — fresh UserDefaults suite to control the feature flag without touching prod defaults
         let suiteName = "pulpe.tests.\(UUID().uuidString)"
@@ -54,7 +93,8 @@ struct UserSettingsStoreTests {
             stubbedUpdateSettings: UserSettings(
                 payDayOfMonth: nil,
                 currency: .chf,
-                showCurrencySelector: true
+                showCurrencySelector: true,
+                checkingEnabled: true
             )
         )
         let store = UserSettingsStore(service: mockService, featureFlags: featureFlags)

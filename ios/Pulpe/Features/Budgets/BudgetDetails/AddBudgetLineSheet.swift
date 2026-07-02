@@ -124,7 +124,7 @@ struct AddBudgetLineSheet: View {
                     currency: inputCurrency,
                     accentColor: kind.color
                 )
-            } else {
+            } else if userSettingsStore.checkingEnabled {
                 CheckedToggle(isOn: $isChecked, tintColor: kind.color)
             }
 

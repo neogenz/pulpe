@@ -120,7 +120,9 @@ struct AddAllocatedTransactionPage: View {
 
             TransactionDateSelector(date: $transactionDate, currency: userSettingsStore.currency)
 
-            CheckedToggle(isOn: $isChecked, tintColor: line.kind.color)
+            if userSettingsStore.checkingEnabled {
+                CheckedToggle(isOn: $isChecked, tintColor: line.kind.color)
+            }
 
             if let error {
                 ErrorBanner(message: DomainErrorLocalizer.localize(error)) {

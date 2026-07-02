@@ -19,6 +19,8 @@ struct BudgetDetailsFreeTransactionsList: View {
     let currency: SupportedCurrency
     let onTap: (Transaction) -> Void
     let onTogglePointed: (Transaction) -> Void
+    /// PUL-110 — hides the leading PointCircle when pointage is disabled.
+    var showsCheckToggle = true
 
     @State private var isExpanded = false
     private let collapsedItemCount = 3
@@ -59,6 +61,7 @@ struct BudgetDetailsFreeTransactionsList: View {
                     transaction: item.transaction,
                     isSyncing: item.isSyncing,
                     currency: currency,
+                    showsCheckToggle: showsCheckToggle,
                     onTap: { onTap(item.transaction) },
                     onTogglePointed: { onTogglePointed(item.transaction) }
                 )
@@ -100,6 +103,7 @@ private struct BudgetDetailsFreeTransactionRow: View {
     let transaction: Transaction
     let isSyncing: Bool
     let currency: SupportedCurrency
+    var showsCheckToggle = true
     let onTap: () -> Void
     let onTogglePointed: () -> Void
 
@@ -157,12 +161,14 @@ private struct BudgetDetailsFreeTransactionRow: View {
     var body: some View {
         Button(action: onTap) {
             HStack(spacing: DesignTokens.Spacing.xxs) {
-                PointCircle(
-                    isPointed: isPointed,
-                    color: dotColor,
-                    isSyncing: isSyncing,
-                    onToggle: handleTogglePointed
-                )
+                if showsCheckToggle {
+                    PointCircle(
+                        isPointed: isPointed,
+                        color: dotColor,
+                        isSyncing: isSyncing,
+                        onToggle: handleTogglePointed
+                    )
+                }
 
                 centerColumn
 

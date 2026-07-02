@@ -112,6 +112,14 @@ struct BudgetDetailsView: View {
                 dashboardStore: dashboardStore,
                 currentMonthStore: currentMonthStore
             )
+            // PUL-110 — the état filter chip is hidden when pointage is
+            // disabled, so a persisted "À pointer"/"Pointé" filter would
+            // silently hide items with no way to escape it. Normalize to
+            // "Tout voir".
+            if !userSettingsStore.checkingEnabled,
+               coordinator.filtersStore.checkedFilter != .all {
+                await coordinator.dispatch(.setCheckedFilter(.all))
+            }
             if !screenState.hasAllBudgets {
                 await coordinator.dispatch(.loadDetails(force: false))
             } else {
@@ -183,7 +191,8 @@ struct BudgetDetailsView: View {
                     kind: typeFilterBinding,
                     checked: checkedFilterBinding,
                     counts: screenState.kindCounts,
-                    checkedCounts: screenState.checkedCounts
+                    checkedCounts: screenState.checkedCounts,
+                    showsCheckedFilter: userSettingsStore.checkingEnabled
                 )
                 .popoverTip(ProductTips.checking)
 
@@ -218,7 +227,8 @@ struct BudgetDetailsView: View {
                                 )
                             }
                         },
-                        tip: section.kind == screenState.firstSectionKind ? ProductTips.gestures : nil
+                        tip: section.kind == screenState.firstSectionKind ? ProductTips.gestures : nil,
+                        showsCheckToggle: userSettingsStore.checkingEnabled
                     )
                 }
 
@@ -233,7 +243,8 @@ struct BudgetDetailsView: View {
                             Task {
                                 await coordinator.dispatch(.toggleTransaction(transaction))
                             }
-                        }
+                        },
+                        showsCheckToggle: userSettingsStore.checkingEnabled
                     )
                 }
 
