@@ -643,7 +643,6 @@ export class SupabaseBudgetRepository implements BudgetRepositoryPort {
       targetCurrency: decrypted.target_currency,
       exchangeRate: decrypted.exchange_rate,
       kind: decrypted.kind,
-      category: decrypted.category,
       transactionDate: decrypted.transaction_date,
       checkedAt: decrypted.checked_at,
       createdAt: decrypted.created_at,

@@ -11,7 +11,8 @@ export interface TransactionApiSource {
   name: string;
   kind: TransactionApi['kind'];
   transactionDate: string;
-  category: string | null;
+  /** Optionnel: les projections RPC (budget/budget-line) ne joignent pas les tags. */
+  tagIds?: string[];
   checkedAt: string | null;
   originalAmount: number | null;
   originalCurrency: string | null;
@@ -32,7 +33,7 @@ export function mapTransactionToApi(
     name: entity.name,
     kind: entity.kind,
     transactionDate: entity.transactionDate,
-    category: entity.category,
+    tagIds: entity.tagIds,
     checkedAt: entity.checkedAt,
     ...mapCurrencyMetadataToApi({
       original_amount: entity.originalAmount,

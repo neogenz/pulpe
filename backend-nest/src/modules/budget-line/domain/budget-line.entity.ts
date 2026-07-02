@@ -101,7 +101,6 @@ export interface BudgetLineCheckedTransaction {
   targetCurrency: string | null;
   exchangeRate: number | null;
   kind: TransactionKind;
-  category: string | null;
   transactionDate: string;
   checkedAt: string | null;
   createdAt: string;

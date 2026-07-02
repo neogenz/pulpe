@@ -219,7 +219,6 @@ export class SupabaseDemoRepository implements DemoRepositoryPort {
       name: tx.name,
       amount: this.encryption.encryptAmount(tx.amount, dek),
       kind: tx.kind,
-      category: tx.category,
       transaction_date: tx.transactionDate,
       checked_at: null,
       original_amount: null,
@@ -228,14 +227,97 @@ export class SupabaseDemoRepository implements DemoRepositoryPort {
       exchange_rate: null,
     }));
 
-    const { error } = await supabase.from('transaction').insert(rows);
+    const { data: insertedRows, error } = await supabase
+      .from('transaction')
+      .insert(rows)
+      .select('id');
 
-    if (error) {
+    if (error || !insertedRows) {
       throw new BusinessException(
         ERROR_DEFINITIONS.INTERNAL_SERVER_ERROR,
         undefined,
         { operation: 'insertDemoTransactions', supabaseError: error },
-        { cause: error },
+        { cause: error ?? undefined },
+      );
+    }
+
+    await this.linkTransactionTags(
+      transactions,
+      insertedRows.map((row) => row.id),
+      userId,
+      supabase,
+    );
+  }
+
+  /** Seeds demo tags from seed tagNames and links them (PUL-18 showcase). */
+  private async linkTransactionTags(
+    transactions: DemoTransactionSeed[],
+    insertedIds: string[],
+    userId: string,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<void> {
+    const tagNames = [...new Set(transactions.map((tx) => tx.tagName))];
+
+    // Pas d'upsert: l'unicité tag est un index d'expression (lower+NFC),
+    // que PostgREST on_conflict ne supporte pas. Le flux démo est séquentiel,
+    // select-puis-insert suffit.
+    const { data: existingTags, error: fetchError } = await supabase
+      .from('tag')
+      .select('id, name')
+      .in('name', tagNames);
+
+    if (fetchError) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.INTERNAL_SERVER_ERROR,
+        undefined,
+        { operation: 'fetchDemoTags', supabaseError: fetchError },
+        { cause: fetchError },
+      );
+    }
+
+    const tagIdByName = new Map(
+      (existingTags ?? []).map((tag) => [tag.name, tag.id]),
+    );
+    const missingNames = tagNames.filter((name) => !tagIdByName.has(name));
+
+    if (missingNames.length) {
+      const { data: createdTags, error: tagError } = await supabase
+        .from('tag')
+        .insert(missingNames.map((name) => ({ user_id: userId, name })))
+        .select('id, name');
+
+      if (tagError || !createdTags) {
+        throw new BusinessException(
+          ERROR_DEFINITIONS.INTERNAL_SERVER_ERROR,
+          undefined,
+          { operation: 'insertDemoTags', supabaseError: tagError },
+          { cause: tagError ?? undefined },
+        );
+      }
+
+      for (const tag of createdTags) {
+        tagIdByName.set(tag.name, tag.id);
+      }
+    }
+    const links = transactions.flatMap((tx, index) => {
+      const tagId = tagIdByName.get(tx.tagName);
+      return tagId
+        ? [{ transaction_id: insertedIds[index], tag_id: tagId }]
+        : [];
+    });
+
+    if (!links.length) return;
+
+    const { error: linkError } = await supabase
+      .from('transaction_tag')
+      .insert(links);
+
+    if (linkError) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.INTERNAL_SERVER_ERROR,
+        undefined,
+        { operation: 'linkDemoTransactionTags', supabaseError: linkError },
+        { cause: linkError },
       );
     }
   }

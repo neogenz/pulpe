@@ -23,7 +23,6 @@ const mockRow: TransactionRow = {
   name: 'Restaurant',
   kind: 'expense' as const,
   transaction_date: '2024-01-15T12:00:00Z',
-  category: null,
   checked_at: null,
   created_at: '2024-01-15T12:00:00Z',
   updated_at: '2024-01-15T12:00:00Z',
@@ -194,6 +193,98 @@ describe('SupabaseTransactionRepository', () => {
           transactionDate: '2024-01-15T12:00:00Z',
         }),
       ).rejects.toThrow(BusinessException);
+    });
+
+    it('should link provided tagIds and return them on the entity', async () => {
+      const capturedLinks: unknown[] = [];
+      const provider = createMockProvider((table: string) => {
+        if (table === 'transaction_tag') {
+          return {
+            delete: () => ({
+              eq: jest.fn().mockResolvedValue({ error: null }),
+            }),
+            insert: (rows: unknown) => {
+              capturedLinks.push(rows);
+              return Promise.resolve({ error: null });
+            },
+          };
+        }
+        return {
+          insert: () => ({
+            select: () => ({
+              single: jest
+                .fn()
+                .mockResolvedValue({ data: mockRow, error: null }),
+            }),
+          }),
+        };
+      });
+      repo = new SupabaseTransactionRepository(
+        provider,
+        createMockEncryption(),
+      );
+
+      const result = await repo.insert({
+        budgetId: 'budget-1',
+        name: 'Restaurant',
+        amount: 50,
+        kind: 'expense',
+        tagIds: ['tag-1', 'tag-2'],
+        transactionDate: '2024-01-15T12:00:00Z',
+      });
+
+      expect(capturedLinks[0]).toEqual([
+        { transaction_id: 'txn-1', tag_id: 'tag-1' },
+        { transaction_id: 'txn-1', tag_id: 'tag-2' },
+      ]);
+      expect(result.tagIds).toEqual(['tag-1', 'tag-2']);
+    });
+
+    it('should map FK violation on tag link to TAG_NOT_FOUND and delete the created transaction', async () => {
+      const compensationDeletes: string[] = [];
+      const provider = createMockProvider((table: string) => {
+        if (table === 'transaction_tag') {
+          return {
+            delete: () => ({
+              eq: jest.fn().mockResolvedValue({ error: null }),
+            }),
+            insert: jest.fn().mockResolvedValue({
+              error: { code: '23503', message: 'FK violation' },
+            }),
+          };
+        }
+        return {
+          insert: () => ({
+            select: () => ({
+              single: jest
+                .fn()
+                .mockResolvedValue({ data: mockRow, error: null }),
+            }),
+          }),
+          delete: () => ({
+            eq: (column: string, value: string) => {
+              compensationDeletes.push(`${column}=${value}`);
+              return Promise.resolve({ error: null });
+            },
+          }),
+        };
+      });
+      repo = new SupabaseTransactionRepository(
+        provider,
+        createMockEncryption(),
+      );
+
+      await expect(
+        repo.insert({
+          budgetId: 'budget-1',
+          name: 'Restaurant',
+          amount: 50,
+          kind: 'expense',
+          tagIds: ['foreign-tag'],
+          transactionDate: '2024-01-15T12:00:00Z',
+        }),
+      ).rejects.toMatchObject({ code: 'ERR_TAG_NOT_FOUND' });
+      expect(compensationDeletes).toEqual(['id=txn-1']);
     });
   });
 

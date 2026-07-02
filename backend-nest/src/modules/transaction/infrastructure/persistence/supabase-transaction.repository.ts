@@ -26,6 +26,13 @@ import type { Database } from '../../../../types/database.types';
 
 type TransactionKind = Database['public']['Enums']['transaction_kind'];
 
+/** Embed junction rows so every read maps to Transaction.tagIds in one query. */
+const TRANSACTION_WITH_TAGS_SELECT = '*, transaction_tag(tag_id)';
+
+type TransactionRowWithTags = TransactionRow & {
+  transaction_tag?: { tag_id: string }[];
+};
+
 @Injectable()
 export class SupabaseTransactionRepository implements TransactionRepositoryPort {
   constructor(
@@ -37,7 +44,7 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
     const supabase = this.supabaseProvider.client;
     const { data, error } = await supabase
       .from('transaction')
-      .select('*')
+      .select(TRANSACTION_WITH_TAGS_SELECT)
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -62,7 +69,7 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
     const supabase = this.supabaseProvider.client;
     const { data, error } = await supabase
       .from('transaction')
-      .select('*')
+      .select(TRANSACTION_WITH_TAGS_SELECT)
       .eq('id', id)
       .single();
 
@@ -133,7 +140,7 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
     const supabase = this.supabaseProvider.client;
     const { data, error } = await supabase
       .from('transaction')
-      .select('*')
+      .select(TRANSACTION_WITH_TAGS_SELECT)
       .eq('budget_id', budgetId)
       .order('created_at', { ascending: false });
 
@@ -160,7 +167,7 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
     const supabase = this.supabaseProvider.client;
     const { data, error } = await supabase
       .from('transaction')
-      .select('*')
+      .select(TRANSACTION_WITH_TAGS_SELECT)
       .eq('budget_line_id', budgetLineId)
       .order('transaction_date', { ascending: false });
 
@@ -192,7 +199,7 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
     const { data: row, error } = await supabase
       .from('transaction')
       .insert(insertRow)
-      .select()
+      .select(TRANSACTION_WITH_TAGS_SELECT)
       .single();
 
     if (error || !row) {
@@ -219,8 +226,22 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
       );
     }
 
+    if (input.tagIds?.length) {
+      try {
+        await this.replaceTagLinks(row.id, input.tagIds, 'createTransaction');
+      } catch (linkError) {
+        // Compensation: keep create atomic from the client's perspective —
+        // a transaction without its requested tags must not survive a failed link.
+        await supabase.from('transaction').delete().eq('id', row.id);
+        throw linkError;
+      }
+    }
+
     const dek = await this.encryption.getDekFor(this.supabaseProvider.user);
-    return this.toEntity(row, dek);
+    return {
+      ...this.toEntity(row, dek),
+      tagIds: input.tagIds ?? [],
+    };
   }
 
   async update(
@@ -236,7 +257,7 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
       .from('transaction')
       .update(updateRow)
       .eq('id', id)
-      .select()
+      .select(TRANSACTION_WITH_TAGS_SELECT)
       .single();
 
     if (error || !row) {
@@ -253,8 +274,85 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
       );
     }
 
+    if (patch.tagIds !== undefined) {
+      await this.replaceTagLinks(id, patch.tagIds, 'updateTransaction');
+    }
+
     const dek = await this.encryption.getDekFor(this.supabaseProvider.user);
-    return this.toEntity(row, dek);
+    const entity = this.toEntity(row, dek);
+    return patch.tagIds !== undefined
+      ? { ...entity, tagIds: patch.tagIds }
+      : entity;
+  }
+
+  /**
+   * Replace-set semantics: the provided tagIds become the transaction's exact
+   * tag set. RLS on transaction_tag guards both directions (own transaction,
+   * own tag) — a foreign/unknown tag id surfaces as TAG_NOT_FOUND.
+   */
+  private async replaceTagLinks(
+    transactionId: string,
+    tagIds: string[],
+    operation: string,
+  ): Promise<void> {
+    const supabase = this.supabaseProvider.client;
+
+    const { error: unlinkError } = await supabase
+      .from('transaction_tag')
+      .delete()
+      .eq('transaction_id', transactionId);
+
+    if (unlinkError) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.TRANSACTION_UPDATE_FAILED,
+        { id: transactionId },
+        {
+          operation,
+          entityId: transactionId,
+          entityType: 'transaction_tag',
+          supabaseError: unlinkError,
+        },
+        { cause: unlinkError },
+      );
+    }
+
+    if (!tagIds.length) return;
+
+    const { error: linkError } = await supabase.from('transaction_tag').insert(
+      tagIds.map((tagId) => ({
+        transaction_id: transactionId,
+        tag_id: tagId,
+      })),
+    );
+
+    if (linkError) {
+      // 23503 (FK) / 42501 (RLS WITH CHECK): the tag doesn't exist or isn't ours.
+      if (linkError.code === '23503' || linkError.code === '42501') {
+        throw new BusinessException(
+          ERROR_DEFINITIONS.TAG_NOT_FOUND,
+          undefined,
+          {
+            operation,
+            entityId: transactionId,
+            entityType: 'transaction_tag',
+            supabaseError: linkError,
+          },
+          { cause: linkError },
+        );
+      }
+
+      throw new BusinessException(
+        ERROR_DEFINITIONS.TRANSACTION_UPDATE_FAILED,
+        { id: transactionId },
+        {
+          operation,
+          entityId: transactionId,
+          entityType: 'transaction_tag',
+          supabaseError: linkError,
+        },
+        { cause: linkError },
+      );
+    }
   }
 
   async postpone(
@@ -275,7 +373,7 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
       .eq('budget_id', sourceBudgetId)
       .is('budget_line_id', null)
       .is('checked_at', null)
-      .select()
+      .select(TRANSACTION_WITH_TAGS_SELECT)
       .single();
 
     if (error || !row) {
@@ -494,7 +592,6 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
         amount,
         kind,
         transaction_date,
-        category,
         budget_id,
         budget:budget_id (
           description,
@@ -503,7 +600,7 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
         )
       `,
       )
-      .or(`name.ilike.${searchPattern},category.ilike.${searchPattern}`);
+      .ilike('name', searchPattern);
 
     if (budgetIds) {
       query = query.in('budget_id', budgetIds);
@@ -577,7 +674,7 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
     return (data ?? []) as RawSearchBudgetLineRow[];
   }
 
-  private toEntity(row: TransactionRow, dek: Buffer): Transaction {
+  private toEntity(row: TransactionRowWithTags, dek: Buffer): Transaction {
     const decrypted = this.encryption.decryptRowAmountFields(row, dek);
     return {
       id: decrypted.id,
@@ -590,7 +687,7 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
       targetCurrency: decrypted.target_currency,
       exchangeRate: decrypted.exchange_rate,
       kind: decrypted.kind,
-      category: decrypted.category,
+      tagIds: (row.transaction_tag ?? []).map((link) => link.tag_id),
       transactionDate: decrypted.transaction_date,
       checkedAt: decrypted.checked_at,
       createdAt: decrypted.created_at,
@@ -610,7 +707,6 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
         : 0,
       kind: row.kind,
       transactionDate: row.transaction_date,
-      category: row.category,
       budgetId: row.budget_id,
       budget: row.budget as TransactionSearchTransactionRow['budget'],
     };
@@ -658,7 +754,6 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
       original_amount: encryptedOriginalAmount,
       kind: input.kind as TransactionKind,
       transaction_date: input.transactionDate,
-      category: input.category ?? null,
       checked_at: input.checkedAt ?? null,
       ...mapCurrencyNonAmountMetadataToDb(
         {
@@ -717,7 +812,6 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
       updateData.kind = patch.kind as TransactionKind;
     if (patch.transactionDate !== undefined)
       updateData.transaction_date = patch.transactionDate;
-    if (patch.category !== undefined) updateData.category = patch.category;
     if (patch.checkedAt !== undefined) updateData.checked_at = patch.checkedAt;
     return updateData;
   }
@@ -729,7 +823,6 @@ interface RawSearchTransactionRow {
   amount: string | null;
   kind: string;
   transaction_date: string;
-  category: string | null;
   budget_id: string;
   budget: unknown;
 }

@@ -93,6 +93,7 @@ export {
   MAX_PLAN_ADJUSTMENTS,
 
   // Tag schemas (PUL-18)
+  MAX_TAGS_PER_TRANSACTION,
   tagSchema,
   tagCreateSchema,
   tagUpdateSchema,

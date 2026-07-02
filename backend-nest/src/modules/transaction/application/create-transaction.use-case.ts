@@ -57,7 +57,7 @@ export class CreateTransactionUseCase {
       targetCurrency: withRate.targetCurrency ?? null,
       exchangeRate: withRate.exchangeRate ?? null,
       kind: withRate.kind,
-      category: withRate.category ?? null,
+      tagIds: withRate.tagIds,
       transactionDate: withRate.transactionDate || new Date().toISOString(),
       checkedAt: withRate.checkedAt ?? null,
     });

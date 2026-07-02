@@ -313,6 +313,12 @@ export type SavingsGoalUpdate = z.infer<typeof savingsGoalUpdateSchema>;
  * utilisateur insensible à la casse côté DB (index sur lower(name)).
  * Le rattachement aux transactions / budget_lines arrive dans les PRs suivantes.
  */
+export const MAX_TAGS_PER_TRANSACTION = 10;
+
+function hasUniqueTagIds(tagIds: readonly string[]): boolean {
+  return new Set(tagIds).size === tagIds.length;
+}
+
 export const tagSchema = z.object({
   id: z.uuid(),
   userId: z.uuid(),
@@ -873,8 +879,9 @@ export const transactionSchema = z.object({
   amount: z.coerce.number().nonnegative(),
   kind: transactionKindSchema,
   transactionDate: z.iso.datetime({ offset: true }),
-  // NOTE: category pas définie dans SPECS V1 - "Pas de catégorisation avancée"
-  category: z.string().max(100).trim().nullable(),
+  // Tags remplacent l'ancien champ libre `category` (PUL-18). ids uniquement :
+  // le client résout les noms via GET /tags (cache) — pas de join côté réponse.
+  tagIds: z.array(z.uuid()).optional(),
   createdAt: z.iso.datetime({ offset: true }),
   updatedAt: z.iso.datetime({ offset: true }),
   checkedAt: z.iso.datetime({ offset: true }).nullable(),
@@ -897,7 +904,13 @@ export const transactionCreateSchema = z.strictObject({
   amount: z.number().positive(),
   kind: transactionKindSchema,
   transactionDate: z.iso.datetime({ offset: true }).optional(),
-  category: z.string().max(100).trim().nullable().optional(),
+  tagIds: z
+    .array(z.uuid())
+    .max(MAX_TAGS_PER_TRANSACTION)
+    .refine(hasUniqueTagIds, {
+      message: 'Chaque tag ne peut être associé qu’une fois.',
+    })
+    .optional(),
   checkedAt: z.iso.datetime({ offset: true }).nullable().optional(),
   originalAmount: z.number().positive().optional(),
   originalCurrency: supportedCurrencySchema.optional(),
@@ -911,7 +924,14 @@ export const transactionUpdateSchema = z.strictObject({
   amount: z.number().positive().optional(),
   kind: transactionKindSchema.optional(),
   transactionDate: z.iso.datetime({ offset: true }).optional(),
-  category: z.string().max(100).trim().nullable().optional(),
+  // présent = remplace l'ensemble des tags ; absent = ne touche pas
+  tagIds: z
+    .array(z.uuid())
+    .max(MAX_TAGS_PER_TRANSACTION)
+    .refine(hasUniqueTagIds, {
+      message: 'Chaque tag ne peut être associé qu’une fois.',
+    })
+    .optional(),
   originalAmount: z.number().positive().optional(),
   originalCurrency: supportedCurrencySchema.optional(),
   targetCurrency: supportedCurrencySchema.optional(),
@@ -952,7 +972,6 @@ export const transactionSearchResultSchema = z.object({
   kind: transactionKindSchema,
   recurrence: transactionRecurrenceSchema.or(z.null()),
   transactionDate: z.iso.datetime({ offset: true }).or(z.null()),
-  category: z.string().nullable(),
   budgetId: z.uuid(),
   budgetName: z.string(),
   year: z.number().int().min(MIN_YEAR).max(MAX_YEAR),

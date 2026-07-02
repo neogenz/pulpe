@@ -366,7 +366,6 @@ export type Database = {
           amount: string | null;
           budget_id: string;
           budget_line_id: string | null;
-          category: string | null;
           checked_at: string | null;
           created_at: string;
           exchange_rate: number | null;
@@ -383,7 +382,6 @@ export type Database = {
           amount?: string | null;
           budget_id: string;
           budget_line_id?: string | null;
-          category?: string | null;
           checked_at?: string | null;
           created_at?: string;
           exchange_rate?: number | null;
@@ -400,7 +398,6 @@ export type Database = {
           amount?: string | null;
           budget_id?: string;
           budget_line_id?: string | null;
-          category?: string | null;
           checked_at?: string | null;
           created_at?: string;
           exchange_rate?: number | null;
@@ -560,7 +557,6 @@ export type Database = {
           amount: string | null;
           budget_id: string;
           budget_line_id: string | null;
-          category: string | null;
           checked_at: string | null;
           created_at: string;
           exchange_rate: number | null;
@@ -686,7 +682,6 @@ export type Database = {
           amount: string | null;
           budget_id: string;
           budget_line_id: string | null;
-          category: string | null;
           checked_at: string | null;
           created_at: string;
           exchange_rate: number | null;
