@@ -290,7 +290,7 @@ export default class BudgetListPage {
   }
 
   async onExportBudgets(): Promise<void> {
-    const today = new Date().toISOString().split('T')[0];
+    const today = formatLocalDate(new Date()).split('T')[0];
     return this.#executeExport({
       isLoadingSignal: this.isExporting,
       download: (data) => downloadAsJsonFile(data, `pulpe-export-${today}`),

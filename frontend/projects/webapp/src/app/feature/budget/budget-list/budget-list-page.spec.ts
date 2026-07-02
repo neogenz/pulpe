@@ -9,7 +9,7 @@ import { of } from 'rxjs';
 import { type BudgetExportResponse } from 'pulpe-shared';
 
 import { ExcelExportService } from '@core/budget/excel-export.service';
-import { downloadAsExcelFile } from '@core/file-download';
+import { downloadAsExcelFile, downloadAsJsonFile } from '@core/file-download';
 import { Logger } from '@core/logging/logger';
 import { LoadingIndicator } from '@core/loading/loading-indicator';
 import { ProductTourService } from '@core/product-tour/product-tour.service';
@@ -101,6 +101,27 @@ describe('BudgetListPage', () => {
 
       // Assert
       expect(downloadAsExcelFile).toHaveBeenCalledWith(
+        expect.anything(),
+        'pulpe-export-2026-01-01',
+      );
+    });
+  });
+
+  describe('onExportBudgets', () => {
+    it('should name the file with the local date, not the UTC date', async () => {
+      // Arrange: Zurich local 00:30 on Jan 1st is still Dec 31st in UTC
+      vi.useFakeTimers({ toFake: ['Date'] });
+      vi.setSystemTime(new Date(2026, 0, 1, 0, 30));
+
+      // Canary: fail loudly if the TZ override above didn't take effect,
+      // instead of silently passing against a UTC-equivalent worker.
+      expect(new Date().getTimezoneOffset()).toBe(-60);
+
+      // Act
+      await component.onExportBudgets();
+
+      // Assert
+      expect(downloadAsJsonFile).toHaveBeenCalledWith(
         expect.anything(),
         'pulpe-export-2026-01-01',
       );
