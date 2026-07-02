@@ -52,7 +52,7 @@ import { AppCurrencyPipe } from '@core/currency';
                   : 'text-financial-negative'
               "
             >
-              {{ estimatedRollover() | appCurrency: currency() : '1.2-2' }}
+              {{ estimatedRollover() | appCurrency: currency() : '1.0-0' }}
             </span>
           </p>
         } @else {
