@@ -738,6 +738,12 @@ export default class MainLayout {
       icon: 'description',
       tooltipKey: 'navigation.templatesTooltip',
     },
+    {
+      route: ROUTES.SAVINGS_GOALS,
+      labelKey: 'navigation.savingsGoalsShort',
+      icon: 'savings',
+      tooltipKey: 'navigation.savingsGoalsTooltip',
+    },
     ...(isDevMode()
       ? [
           {
