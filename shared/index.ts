@@ -155,6 +155,11 @@ export {
 
   // App version (force update gate)
   appVersionResponseSchema,
+
+  // What's new (iOS release notes feed)
+  whatsNewEntrySchema,
+  whatsNewResponseSchema,
+  whatsNewQuerySchema,
 } from './schemas.js';
 
 // Export error codes
@@ -378,4 +383,9 @@ export type {
 
   // App version
   AppVersionResponse,
+
+  // What's new
+  WhatsNewEntry,
+  WhatsNewResponse,
+  WhatsNewQuery,
 } from './schemas.js';

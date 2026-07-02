@@ -1,0 +1,1302 @@
+export interface WhatsNewReleaseChangeItem {
+  title: string;
+  description: string;
+}
+
+export interface WhatsNewReleaseEntry {
+  version: string;
+  date: string;
+  platforms: string[];
+  changes: {
+    features: WhatsNewReleaseChangeItem[];
+    fixes: WhatsNewReleaseChangeItem[];
+    technical: WhatsNewReleaseChangeItem[];
+  };
+}
+
+/**
+ * Checked-in mirror of `landing/data/releases.json` (kept in sync by the
+ * `/update-changelog` skill). The deployed backend artifact does not contain
+ * the `landing/` package, so the data lives here as a TypeScript literal rather
+ * than being read from disk at runtime. Keep this list ordered newest-first,
+ * mirroring the source file. `githubUrl` and landing-only fields are dropped —
+ * the API surfaces only what the in-app "what's new" feed needs.
+ */
+export const RELEASES: WhatsNewReleaseEntry[] = [
+  {
+    version: '0.37.1',
+    date: '2026-07-01',
+    platforms: ['web'],
+    changes: {
+      features: [],
+      fixes: [
+        {
+          title: 'Report de dépense',
+          description:
+            "L'action de report est désormais désactivée avec une infobulle explicative sur les prévisions récurrentes, où le report ne s'applique pas",
+        },
+      ],
+      technical: [],
+    },
+  },
+  {
+    version: '0.37.0',
+    date: '2026-07-01',
+    platforms: ['web', 'ios'],
+    changes: {
+      features: [
+        {
+          title: 'Lisser une dépense',
+          description:
+            'Répartis une grosse dépense sur plusieurs mois, avec le suivi du reste à provisionner et du montant à prévoir chaque mois',
+        },
+        {
+          title: 'Reporter une dépense',
+          description:
+            'Reporte une dépense non pointée au mois suivant en un geste',
+        },
+        {
+          title: 'Transactions dans le détail (iOS)',
+          description:
+            'Pointe, modifie et supprime tes transactions directement depuis le détail du budget',
+        },
+      ],
+      fixes: [
+        {
+          title: 'Sécurité renforcée',
+          description:
+            'Correctifs de sécurité et limitation des sessions de démonstration non vérifiées',
+        },
+        {
+          title: 'Stabilité iOS',
+          description:
+            "Clavier qui restait ouvert, déverrouillage biométrique hors-ligne et voile de confidentialité au retour d'app fiabilisés",
+        },
+      ],
+      technical: [],
+    },
+  },
+  {
+    version: '0.36.0',
+    date: '2026-06-19',
+    platforms: ['web', 'ios'],
+    changes: {
+      features: [
+        {
+          title: 'Affichage adapté au pays',
+          description:
+            'Dates, montants et formats suivent automatiquement ta devise : suisse (CHF) ou français (€)',
+        },
+        {
+          title: 'Textes localisés CH/FR',
+          description:
+            "Suggestions d'épargne et libellés adaptés au pays ; le hero de la landing détecte le pays du visiteur",
+        },
+      ],
+      fixes: [
+        {
+          title: 'Connexion iOS plus stable',
+          description:
+            'Fin des déconnexions intempestives quasi quotidiennes et du bouton Face ID inactif',
+        },
+        {
+          title: 'Détail du budget (iOS)',
+          description:
+            'Suppression, rechargements simultanés, recherche par montant et erreurs de pointage fiabilisés',
+        },
+        {
+          title: 'Solde annuel (iOS)',
+          description:
+            "Le potentiel de l'année s'appuie sur le solde de clôture cumulé",
+        },
+        {
+          title: 'Onboarding',
+          description:
+            "Pied de page repositionné et nettoyage des modèles orphelins en cas d'échec de génération du budget",
+        },
+      ],
+      technical: [
+        {
+          title: 'Cloisonnement des accès',
+          description: 'Isolation renforcée des accès entre comptes',
+        },
+        {
+          title: 'CSP de production',
+          description:
+            "Retrait de l'URL de préversion de la politique de sécurité",
+        },
+        {
+          title: 'Garde de version minimale',
+          description:
+            'Vérification de la version minimale et validation au démarrage du serveur',
+        },
+      ],
+    },
+  },
+  {
+    version: '0.35.0',
+    date: '2026-05-14',
+    platforms: ['web', 'ios'],
+    changes: {
+      features: [
+        {
+          title: 'Refonte du détail budget (iOS)',
+          description:
+            'Navigation mois par mois, hero épuré, regroupement intelligent des transactions et prévisions, sections filtrables',
+        },
+        {
+          title: 'Mise à jour forcée',
+          description:
+            'Sortie obligatoire des versions obsolètes (iOS + webapp) via vérification serveur au démarrage',
+        },
+        {
+          title: 'Astuce parité web (iOS)',
+          description:
+            'Repère contextuel dans la liste des modèles pour orienter vers la webapp',
+        },
+        {
+          title: 'Identifiant de corrélation',
+          description:
+            'X-Request-Id propagé entre webapp et backend pour faciliter le support',
+        },
+        {
+          title: 'Effacement analytique (RGPD)',
+          description:
+            'Suppression automatique du profil PostHog lors de la suppression de compte',
+        },
+      ],
+      fixes: [
+        {
+          title: "Barre d'onglets stable (iOS)",
+          description:
+            'Plus de saut visuel lors des navigations push/pop sur le détail budget',
+        },
+        {
+          title: 'Durcissement sécurité (web + landing)',
+          description:
+            "Audit OWASP appliqué, retrait du 'unsafe-inline' dans la CSP, validation stricte des en-têtes X-Request-Id",
+        },
+      ],
+      technical: [
+        {
+          title: 'Clean Architecture backend',
+          description:
+            'Refactorisation des modules sur les Tiers 1-3 (entités, use cases, infrastructure)',
+        },
+        {
+          title: 'Migration Angular 21.2',
+          description:
+            'Mise à niveau du framework et adoption progressive de Signal Forms côté webapp',
+        },
+      ],
+    },
+  },
+  {
+    version: '0.34.1',
+    date: '2026-05-06',
+    platforms: ['web'],
+    changes: {
+      features: [],
+      fixes: [
+        {
+          title: 'Carte enveloppe mobile',
+          description:
+            'Affichage de "Disponible" restauré et répartition Dépensé / % alignée sur le desktop',
+        },
+        {
+          title: 'Robustesse du chiffrement',
+          description:
+            'Le cache des clés est invalidé immédiatement après une rotation pour éviter toute corruption silencieuse en cas de requête concurrente',
+        },
+      ],
+      technical: [
+        {
+          title: "Retrait d'un endpoint legacy de modèles de budget",
+          description:
+            "Suppression d'un piège de dérive de devise sur la mise à jour groupée des modèles",
+        },
+      ],
+    },
+  },
+  {
+    version: '0.34.0',
+    date: '2026-05-05',
+    platforms: ['web', 'ios'],
+    changes: {
+      features: [
+        {
+          title: 'Multi-devise EUR/CHF',
+          description:
+            'Gestion complète des devises avec taux de change, formatage localisé et conversion automatique (activable via feature flag)',
+        },
+        {
+          title: 'Convertisseur de devises',
+          description:
+            'Nouveau widget dans les Réglages pour convertir entre devises avec taux à jour',
+        },
+        {
+          title: 'Refonte des modèles de budget',
+          description:
+            'Page modèles harmonisée avec la vue détail du budget pour une expérience cohérente',
+        },
+        {
+          title: "Page d'accueil repensée",
+          description:
+            'Nouveau layout éditorial avec animations de transition entre vues',
+        },
+        {
+          title: 'Devise sur iOS',
+          description:
+            'Formatage natif selon la locale et bascule de devise utilisateur',
+        },
+        {
+          title: 'Clavier amélioré sur iOS',
+          description:
+            "Barre d'outils de navigation entre champs pendant l'onboarding",
+        },
+        {
+          title: 'Onboarding iOS plus accessible',
+          description:
+            'En-têtes de section et chips suggérées avec meilleurs contrastes et focus',
+        },
+        {
+          title: 'Suivi analytique devise',
+          description: "Tracking de l'adoption du sélecteur de devise",
+        },
+      ],
+      fixes: [
+        {
+          title: 'Tableau de bord',
+          description:
+            "Résolution d'un problème de course sur le pointage des prévisions",
+        },
+        {
+          title: 'Réinitialisation des réglages',
+          description: 'Nettoyage complet des données utilisateur au reset',
+        },
+        {
+          title: 'Reprise iOS Safari',
+          description: 'Récupération fiable après mise en veille longue',
+        },
+        {
+          title: 'Erreurs en français',
+          description: 'Messages de validation Zod traduits côté client',
+        },
+        {
+          title: 'Séparateur décimal CHF',
+          description: 'Cohérence du point décimal sur tous les écrans',
+        },
+        {
+          title: 'Limite onboarding',
+          description: 'Plafond de 50 transactions personnalisées dans l UI',
+        },
+        {
+          title: 'Déconnexion iOS',
+          description: 'Affichage des erreurs globales lors du sign out',
+        },
+        {
+          title: 'Devise onboarding iOS',
+          description:
+            'Persistance correcte de la devise après configuration du code PIN',
+        },
+        {
+          title: 'Biométrie iOS',
+          description:
+            "Bonne modalité affichée (Touch ID / Optic ID) selon l'appareil",
+        },
+        {
+          title: 'Sécurité backend',
+          description:
+            "Protection contre l'IDOR sur la création de modèles, préservation de la clé de récupération sur échec de rekey, métadonnées FX persistées correctement",
+        },
+      ],
+      technical: [
+        {
+          title: "Durcissement du noyau d'authentification",
+          description: 'Déduplication, validation JWT et atomicité renforcés',
+        },
+        {
+          title: 'Migration ziflux DataCache',
+          description:
+            'Mise en cache des taux de change via la nouvelle abstraction',
+        },
+        {
+          title: 'Révocation JWT serveur',
+          description:
+            'Sessions invalidées côté serveur lors de la suppression de compte et reset de mot de passe',
+        },
+        {
+          title: 'Formulaires devise',
+          description: 'Migration vers signal-forms',
+        },
+      ],
+    },
+  },
+  {
+    version: '0.33.1',
+    date: '2026-04-13',
+    platforms: ['web'],
+    changes: {
+      features: [],
+      fixes: [
+        {
+          title: 'Récupération automatique après mise à jour',
+          description:
+            "Si une page reste ouverte pendant qu'une nouvelle version est déployée, l'application se recharge maintenant toute seule au lieu de tomber en erreur",
+        },
+        {
+          title: "Lien App Store de l'app iOS",
+          description:
+            'Le bouton de téléchargement sur la landing pointe désormais vers la vraie page App Store',
+        },
+      ],
+      technical: [
+        {
+          title: "Filtrage du bruit réseau dans le suivi d'erreurs",
+          description:
+            'Les erreurs réseau « status 0 » (requêtes annulées, hors-ligne) ne sont plus remontées à PostHog pour réduire le bruit sans masquer les vraies erreurs',
+        },
+      ],
+    },
+  },
+  {
+    version: '0.33.0',
+    date: '2026-04-08',
+    platforms: ['ios'],
+    changes: {
+      features: [
+        {
+          title: "Confirmation de sortie de l'onboarding",
+          description:
+            "Une boîte de dialogue demande confirmation avant de quitter le parcours d'inscription",
+        },
+      ],
+      fixes: [
+        {
+          title: 'Récupération automatique du nom via Apple/Google',
+          description:
+            'Le nom est désormais pré-rempli depuis les identifiants Apple ou Google, évitant une saisie manuelle inutile',
+        },
+        {
+          title: 'Champ nom masqué pour les inscriptions sociales',
+          description:
+            'Le champ nom est correctement masqué pour toutes les connexions sociales lorsque le nom a été capturé',
+        },
+      ],
+      technical: [],
+    },
+  },
+  {
+    version: '0.32.1',
+    date: '2026-04-03',
+    platforms: ['web', 'ios'],
+    changes: {
+      features: [],
+      fixes: [
+        {
+          title: 'Authentification biométrique',
+          description:
+            "Correction de plusieurs problèmes de fiabilité sur iOS : préservation de la clé lors de la reconnexion, repli vers la session classique en cas d'échec au démarrage, et respect du choix de désactivation par l'utilisateur",
+        },
+        {
+          title: 'Inscription sociale',
+          description:
+            "Un utilisateur existant qui tente de s'inscrire via un réseau social est désormais redirigé vers la connexion au lieu d'obtenir une erreur",
+        },
+        {
+          title: 'Libellé « Appliquer aux mois suivants »',
+          description:
+            'Le bouton « Propager » dans les modèles est renommé pour une meilleure compréhension',
+        },
+      ],
+      technical: [],
+    },
+  },
+  {
+    version: '0.32.0',
+    date: '2026-04-02',
+    platforms: ['web', 'ios'],
+    changes: {
+      features: [
+        {
+          title: 'Suivi des releases PostHog',
+          description:
+            'Annotations automatiques, liaison des sources et suivi des versions dans PostHog pour le frontend et la landing page',
+        },
+        {
+          title: 'Migration Swift 6',
+          description:
+            "L'app iOS adopte le mode langage Swift 6 avec concurrence stricte",
+        },
+        {
+          title: 'Visibilité Instruments',
+          description:
+            'Les tâches asynchrones iOS sont nommées pour faciliter le profilage dans Instruments',
+        },
+      ],
+      fixes: [
+        {
+          title: 'Connexion sociale iOS',
+          description:
+            "Les nouveaux utilisateurs via Apple/Google depuis l'écran de login sont correctement redirigés vers l'onboarding",
+        },
+        {
+          title: 'Clé biométrique périmée',
+          description:
+            "Nettoyage de la clé biométrique obsolète lors d'une nouvelle connexion pour éviter les blocages",
+        },
+        {
+          title: 'Résilience du trousseau',
+          description:
+            "Meilleure gestion des erreurs d'authentification et robustesse du Keychain iOS",
+        },
+        {
+          title: 'Feuille de clé de récupération',
+          description:
+            "Correction de la transparence et de l'identifiant sur iOS 26",
+        },
+      ],
+      technical: [
+        {
+          title: 'Optimisation du build iOS',
+          description:
+            'Optimisation de la configuration de build et refactoring de la vue racine',
+        },
+        {
+          title: 'Mise à jour posthog-js',
+          description: 'Mise à jour de posthog-js (1.260.2 → 1.364.4)',
+        },
+      ],
+    },
+  },
+  {
+    version: '0.31.2',
+    date: '2026-03-29',
+    platforms: ['ios'],
+    changes: {
+      features: [],
+      fixes: [
+        {
+          title: 'Stabilité du tableau de bord',
+          description:
+            "Correction d'une condition de concurrence sur le dashboard et du gel de l'écran détails budget",
+        },
+        {
+          title: 'Animation du code PIN',
+          description:
+            "Correction de l'animation de pulsation des points et d'une fuite de layout du skeleton",
+        },
+        {
+          title: 'Conformité App Store',
+          description:
+            'Mise à jour des URLs, du manifeste de confidentialité et de la description Face ID pour la revue Apple',
+        },
+        {
+          title: 'Rafraîchissement du contenu',
+          description:
+            "Réinitialisation correcte de l'état lors d'une annulation de navigation",
+        },
+      ],
+      technical: [],
+    },
+  },
+  {
+    version: '0.31.1',
+    date: '2026-03-27',
+    platforms: ['ios'],
+    changes: {
+      features: [],
+      fixes: [
+        {
+          title: 'Race condition du jour de paie',
+          description:
+            "Le mois courant pouvait s'afficher incorrectement au lancement à cause d'un chargement concurrent",
+        },
+        {
+          title: 'Déverrouillage par code PIN',
+          description:
+            "Le jour de paie n'était pas rechargé après l'authentification, affichant des données obsolètes",
+        },
+        {
+          title: 'Refonte des widgets',
+          description:
+            'Les widgets adoptent le design system avec des couleurs et contrastes corrects',
+        },
+        {
+          title: 'Montants négatifs dans les widgets',
+          description:
+            'Les montants négatifs étaient invisibles, correction du contraste WCAG',
+        },
+        {
+          title: 'Contraste des cartes de création',
+          description:
+            "Meilleure lisibilité des cartes dans l'écran de création de budget",
+        },
+        {
+          title: 'Animation de chargement bloquée',
+          description:
+            "L'animation pulse ne s'arrêtait plus, remplacée par un mécanisme plus fiable",
+        },
+      ],
+      technical: [],
+    },
+  },
+  {
+    version: '0.31.0',
+    date: '2026-03-27',
+    platforms: ['web', 'ios'],
+    changes: {
+      features: [
+        {
+          title: 'Génération automatique des budgets',
+          description:
+            "À l'inscription, 12 mois de budgets sont créés automatiquement à partir du modèle choisi",
+        },
+        {
+          title: 'Vérification de la clé de récupération',
+          description:
+            "Vérifier sa clé de récupération depuis les paramètres pour s'assurer de pouvoir déchiffrer ses données",
+        },
+        {
+          title: 'Connexion Apple et Google sur iOS',
+          description:
+            "Authentification sociale via Apple Sign-In et Google Sign-In sur l'application native",
+        },
+        {
+          title: 'Cache intelligent des budgets',
+          description:
+            'Affichage instantané des budgets déjà consultés avec rafraîchissement en arrière-plan',
+        },
+        {
+          title: 'Refonte visuelle iOS',
+          description:
+            'Palette chaude, gradients hero, tokens de design harmonisés et meilleur contraste WCAG',
+        },
+        {
+          title: 'Retour haptique sur iOS',
+          description:
+            'Vibrations tactiles pour guider la saisie et la récupération du code PIN',
+        },
+      ],
+      fixes: [
+        {
+          title: 'Navigation après saisie du code coffre',
+          description:
+            "Le spinner reste visible jusqu'au chargement complet du tableau de bord",
+        },
+        {
+          title: 'État vide contextuel',
+          description:
+            'Message adapté lorsque tous les éléments sont pointés dans les filtres budget',
+        },
+        {
+          title: 'Champs sparse inconnus',
+          description:
+            "Message d'erreur explicite avec les noms des champs non reconnus",
+        },
+        {
+          title: 'Prévention du rate limiting',
+          description:
+            'Suppression des requêtes multiples lors du rafraîchissement du tableau de bord',
+        },
+        {
+          title: 'Tracking inter-domaines',
+          description:
+            'Suivi analytique continu entre la landing page et la webapp',
+        },
+        {
+          title: 'Cohérence des montants iOS',
+          description: 'Signe, alignement et détails de modèle corrigés',
+        },
+      ],
+      technical: [
+        {
+          title: 'Cache SWR ziflux',
+          description:
+            "Intégration du cache SWR ziflux sur l'ensemble des stores budget",
+        },
+        {
+          title: 'Audit clean code Angular 21',
+          description: 'Refactoring des patterns de signals et audit qualité',
+        },
+        {
+          title: 'Réécriture du copy landing',
+          description:
+            'Réécriture du copy de la landing page pour la conversion',
+        },
+      ],
+    },
+  },
+  {
+    version: '0.30.0',
+    date: '2026-03-13',
+    platforms: ['web', 'ios'],
+    changes: {
+      features: [
+        {
+          title: 'Changement de code PIN',
+          description:
+            'Nouveau flux sécurisé pour modifier son code PIN avec régénération automatique de la clé de récupération',
+        },
+        {
+          title: 'Toggle "Pointé" par défaut',
+          description:
+            'Les transactions libres sont désormais pointées par défaut à la création',
+        },
+        {
+          title: 'Refonte du tableau de bord mobile',
+          description:
+            'Nouvelles cartes "À pointer" et "Épargne" avec retour haptique sur les actions',
+        },
+        {
+          title: "Refonte de l'authentification mobile",
+          description:
+            'Nouveau design avec dégradés, validation visuelle du mot de passe et indicateur de correspondance',
+        },
+        {
+          title: 'Refonte du compte utilisateur mobile',
+          description:
+            'Menus regroupés avec sous-pages sécurité et préférences',
+        },
+        {
+          title: 'Visualisation du report mobile',
+          description:
+            'Report affiché en pastille directionnelle dans les budgets et la carte héro',
+        },
+        {
+          title: 'Internationalisation',
+          description:
+            'Migration complète vers Transloco pour préparer le support multilingue',
+        },
+        {
+          title: 'Badge early adopter',
+          description: 'Badge VIP animé pour les premiers utilisateurs',
+        },
+        {
+          title: 'Page support repensée',
+          description:
+            'FAQ avec 10 questions orientées résultats sur le site vitrine',
+        },
+        {
+          title: 'Page 404 personnalisée',
+          description: "Page d'erreur avec guidage vers l'application",
+        },
+      ],
+      fixes: [
+        {
+          title: 'Formule de projection',
+          description:
+            "Correction du calcul de solde qui soustrayait l'épargne en double",
+        },
+        {
+          title: 'Conditions de concurrence',
+          description:
+            'Résolution des race conditions sur les prévisions en attente et le re-chiffrement',
+        },
+        {
+          title: 'Accessibilité VoiceOver',
+          description:
+            'Boutons de graphiques et critères de mot de passe accessibles',
+        },
+      ],
+      technical: [
+        {
+          title: "Centralisation des codes d'erreur",
+          description:
+            "Centralisation des codes d'erreur API dans le package partagé",
+        },
+        {
+          title: 'Verrouillage de re-chiffrement',
+          description:
+            'Verrouillage de ligne sur la procédure de re-chiffrement pour prévenir les exécutions concurrentes',
+        },
+      ],
+    },
+  },
+  {
+    version: '0.29.0',
+    date: '2026-03-04',
+    platforms: ['web', 'ios'],
+    changes: {
+      features: [
+        {
+          title: 'États de consommation colorés',
+          description:
+            'Les lignes budgétaires affichent un code couleur selon le niveau de consommation (vert, orange, rouge) avec un panel réactif',
+        },
+        {
+          title: 'Écrans de chargement iOS',
+          description:
+            "Des squelettes d'interface s'affichent pendant le chargement des données sur toutes les pages",
+        },
+        {
+          title: 'Report du mois précédent iOS',
+          description:
+            "Consultez le budget du mois précédent directement depuis le détail d'un budget",
+        },
+        {
+          title: 'Analytics PostHog iOS',
+          description: "Suivi anonymisé de l'usage intégré à l'application iOS",
+        },
+        {
+          title: 'Protection des montants',
+          description:
+            'Les champs de montants sont exclus de la capture PostHog pour protéger la vie privée',
+        },
+      ],
+      fixes: [
+        {
+          title: 'Logique enveloppe',
+          description:
+            'Correction du calcul du reste disponible pour les enveloppes de revenus sur le backend, le partagé et iOS',
+        },
+        {
+          title: 'Formule du solde restant',
+          description:
+            "Correction de l'agrégation du solde restant dans les budgets",
+        },
+        {
+          title: 'Refonte visuelle iOS',
+          description:
+            'Alignement complet avec la direction artistique (thème sombre, Liquid Glass, couleurs système iOS, hero card redessinée)',
+        },
+        {
+          title: 'Stabilité iOS',
+          description:
+            'Correction de bugs de cache, conditions de course et écrans vides au chargement',
+        },
+      ],
+      technical: [
+        {
+          title: 'Optimisation des calculs',
+          description:
+            'Pré-indexation des transactions et migration vers onGeometryChange pour de meilleures performances',
+        },
+      ],
+    },
+  },
+  {
+    version: '0.28.0',
+    date: '2026-02-28',
+    platforms: ['web', 'ios'],
+    changes: {
+      features: [
+        {
+          title: "Menu d'actions sur les transactions",
+          description:
+            'Un menu contextuel permet désormais de modifier ou supprimer une transaction directement depuis le budget',
+        },
+        {
+          title: 'Support du jour de paie sur iOS',
+          description:
+            'Configuration du jour de paie dans les réglages, avec calcul automatique des périodes budgétaires',
+        },
+        {
+          title: 'Affichage de la version',
+          description:
+            "Le numéro de version de l'application est visible sur les écrans d'authentification",
+        },
+      ],
+      fixes: [
+        {
+          title: "Budget initial à l'inscription",
+          description:
+            'Le premier budget couvre désormais la bonne période budgétaire au lieu du mois calendaire',
+        },
+        {
+          title: 'Transactions libres dans le budget',
+          description:
+            'Les transactions non affectées à une prévision sont regroupées dans une section dédiée',
+        },
+        {
+          title: 'Limites du sélecteur de date',
+          description:
+            'Le sélecteur de date respecte les bornes de la période budgétaire en cours',
+        },
+        {
+          title: 'Démarrage à froid sur iOS',
+          description:
+            "Correction d'un faux état réseau indisponible lors de l'ouverture de l'app",
+        },
+      ],
+      technical: [],
+    },
+  },
+  {
+    version: '0.27.0',
+    date: '2026-02-27',
+    platforms: ['web', 'ios'],
+    changes: {
+      features: [
+        {
+          title: 'Code PIN et chiffrement sur iOS',
+          description:
+            "Securisation de l'acces a l'application par un code PIN lie au chiffrement de bout en bout des donnees",
+        },
+        {
+          title: 'Deverrouillage Face ID',
+          description:
+            'Deverrouillage rapide par reconnaissance faciale avec inscription automatique apres configuration du PIN',
+        },
+        {
+          title: 'Cle de recuperation',
+          description:
+            "Generation et regeneration d'une cle de recuperation pour retrouver l'acces en cas d'oubli du code PIN",
+        },
+        {
+          title: 'Reinitialisation de mot de passe sur iOS',
+          description:
+            'Parcours complet de mot de passe oublie et changement de mot de passe depuis les reglages',
+        },
+        {
+          title: 'Refonte visuelle iOS',
+          description:
+            'Nouvelles polices (Manrope, DM Sans), design tokens unifies, sheets modernes et effet Liquid Glass',
+        },
+        {
+          title: 'Cache intelligent sur iOS',
+          description:
+            'Navigation plus fluide grace au cache SWR avec revalidation en arriere-plan',
+        },
+      ],
+      fixes: [
+        {
+          title: "Stabilite de l'authentification iOS",
+          description:
+            "Correction de race conditions, timeouts et transitions d'etat dans le flux d'authentification",
+        },
+        {
+          title: 'Appui long sur les previsions',
+          description:
+            'Correction du geste appui long sur les lignes de budget iOS',
+        },
+        {
+          title: 'Fuite de donnees a la deconnexion',
+          description:
+            "Nettoyage complet de l'etat en memoire lors de la deconnexion douce",
+        },
+        {
+          title: 'Securite du chiffrement',
+          description:
+            "Elimination d'une race condition (TOCTOU) dans la verification des cles de chiffrement",
+        },
+      ],
+      technical: [],
+    },
+  },
+  {
+    version: '0.26.0',
+    date: '2026-02-27',
+    platforms: ['web'],
+    changes: {
+      features: [
+        {
+          title: 'Bloc de vérification du budget',
+          description:
+            'Résumé inline du pointage des lignes budgétaires directement dans la page budget',
+        },
+        {
+          title: 'Indicateurs de défilement',
+          description:
+            'Fondus visuels signalant le défilement horizontal sur les pilules de catégories',
+        },
+        {
+          title: 'Tokens de couleurs et mode sombre',
+          description:
+            'Ajustement des couleurs financières et du gradient hero pour le mode sombre',
+        },
+      ],
+      fixes: [
+        {
+          title: 'Bugs du tableau de bord',
+          description:
+            "Correction de la zone de clic des cases à pointer, de l'affichage du reste d'enveloppe et du rollover négatif",
+        },
+        {
+          title: 'Accessibilité des tooltips',
+          description:
+            "Utilisation du rôle correct sur les icônes d'information",
+        },
+      ],
+      technical: [
+        {
+          title: 'Intégration PostHog',
+          description:
+            'Suivi du funnel de conversion avec proxy inverse et sanitisation des données financières',
+        },
+      ],
+    },
+  },
+  {
+    version: '0.25.0',
+    date: '2026-02-25',
+    platforms: ['web'],
+    changes: {
+      features: [
+        {
+          title: 'Toast Nouveautes',
+          description:
+            'Un toast discret informe les utilisateurs des dernieres nouveautes a chaque nouvelle version',
+        },
+        {
+          title: "Seuil d'alerte budget unifie",
+          description:
+            'Le seuil de confort passe a 90% et est desormais identique entre le tableau de bord et le detail du budget',
+        },
+      ],
+      fixes: [],
+      technical: [],
+    },
+  },
+  {
+    version: '0.24.0',
+    date: '2026-02-25',
+    platforms: ['web'],
+    changes: {
+      features: [
+        {
+          title: 'Tableau de bord repense',
+          description:
+            'La page Mois courant devient un tableau de bord actionnable avec report de solde, indicateur de rythme de depenses, transactions recentes et navigation rapide',
+        },
+        {
+          title: 'Blocs epargne et apercu du mois suivant',
+          description:
+            "Nouveaux blocs pour le suivi de l'epargne, l'apercu du mois prochain et des graphiques ameliores",
+        },
+      ],
+      fixes: [
+        {
+          title: 'Message de mot de passe compromis clarifie',
+          description:
+            "Le message d'erreur pour un mot de passe compromis est plus explicite",
+        },
+      ],
+      technical: [],
+    },
+  },
+  {
+    version: '0.23.1',
+    date: '2026-02-25',
+    platforms: ['web'],
+    changes: {
+      features: [],
+      fixes: [
+        {
+          title: 'Detection des comptes OAuth',
+          description:
+            'La detection des utilisateurs connectes via un fournisseur OAuth est desormais plus fiable, avec une meilleure gestion du flux de suppression de compte',
+        },
+        {
+          title: 'Limite de recuperation de compte',
+          description:
+            'Le nombre de tentatives autorisees pour configurer la recuperation de compte passe de 1 a 5 par heure',
+        },
+      ],
+      technical: [],
+    },
+  },
+  {
+    version: '0.23.0',
+    date: '2026-02-20',
+    platforms: ['web'],
+    changes: {
+      features: [
+        {
+          title: 'Reprise de session intelligente',
+          description:
+            "L'application reprend la session en douceur apres une mise en arriere-plan de moins de 15 minutes, sans recharger la page",
+        },
+      ],
+      fixes: [
+        {
+          title: 'Bottom sheet illisible sur Samsung Browser',
+          description:
+            "Le clavier est desormais masque lors du retour d'arriere-plan pour eviter l'affichage incorrect des feuilles de bas de page",
+        },
+        {
+          title: 'Feedback apres recuperation du code PIN',
+          description:
+            'Un retour visuel est maintenant affiche pendant la redirection apres la recuperation du code PIN via la cle de secours',
+        },
+        {
+          title: 'Deconnexion intempestive',
+          description:
+            "Correction d'un bug qui forcait la reconnexion lorsque la cle de chiffrement client etait perdue",
+        },
+        {
+          title: 'Navigation apres reprise',
+          description:
+            "Les routes protegees du coffre-fort sont desormais correctement gerees par le garde d'authentification",
+        },
+      ],
+      technical: [],
+    },
+  },
+  {
+    version: '0.22.0',
+    date: '2026-02-15',
+    platforms: ['web', 'ios'],
+    changes: {
+      features: [
+        {
+          title: 'Navigation instantanee',
+          description:
+            'Un cache intelligent (SWR) charge les budgets et donnees instantanement avec revalidation en arriere-plan',
+        },
+        {
+          title: 'Clavier numerique mobile',
+          description:
+            'Les champs de montant affichent le pave numerique sur telephone',
+        },
+        {
+          title: 'Effet verre vibrant (iOS)',
+          description:
+            'La carte de solde adopte un nouvel effet visuel translucide',
+        },
+        {
+          title: 'Refonte visuelle des budgets (iOS)',
+          description:
+            'Nouvelle hierarchie avec cartes, pilules colorees et design ameliore',
+        },
+        {
+          title: 'Referencement ameliore',
+          description:
+            'Scores Lighthouse 98+ et nom du site affiche dans les resultats Google',
+        },
+      ],
+      fixes: [
+        {
+          title: 'Stabilite du cache',
+          description:
+            "Plus d'ecrans vides ni de doublons pendant la revalidation des donnees",
+        },
+        {
+          title: 'Flash de navigation iOS',
+          description:
+            "Le changement d'onglet ne provoque plus de flash visuel",
+        },
+        {
+          title: 'Onboarding iOS',
+          description:
+            'Direction de transition et indications dans les champs monetaires corrigees',
+        },
+        {
+          title: 'Accessibilite budgets iOS',
+          description:
+            'Dynamic Type, mode sombre et VoiceOver ameliores sur la liste des budgets',
+        },
+        {
+          title: 'Format suisse',
+          description: 'Affichage correct des montants au format de_CH',
+        },
+      ],
+      technical: [
+        {
+          title: 'Securite base de donnees',
+          description:
+            'Corrections de securite et performance sur la base de donnees Supabase',
+        },
+        {
+          title: 'Pipeline CI',
+          description:
+            'Deploiement automatique des migrations Supabase via GitHub Actions',
+        },
+      ],
+    },
+  },
+  {
+    version: '0.21.0',
+    date: '2026-02-14',
+    platforms: ['web'],
+    changes: {
+      features: [
+        {
+          title: 'Rotation des cles de chiffrement',
+          description:
+            'Mecanisme atomique de re-chiffrement via RPC SQL pour la rotation securisee des cles de chiffrement des donnees financieres',
+        },
+      ],
+      fixes: [
+        {
+          title: 'Fiabilite du chiffrement',
+          description:
+            'Correction de la verification de cle, gestion des valeurs nulles et traitement sequentiel des erreurs lors du re-chiffrement',
+        },
+        {
+          title: 'Parsing des montants',
+          description:
+            'Correction de la coercition des types numeriques depuis Supabase pour eviter des erreurs de validation',
+        },
+      ],
+      technical: [
+        {
+          title: 'Nettoyage du code de migration',
+          description:
+            'Suppression du code de migration de chiffrement temporaire',
+        },
+        {
+          title: 'Outils de developpement',
+          description:
+            "Ajout d'outils de chiffrement des donnees de seed et de reinitialisation de base liee",
+        },
+      ],
+    },
+  },
+  {
+    version: '0.20.0',
+    date: '2026-02-13',
+    platforms: ['web', 'ios'],
+    changes: {
+      features: [
+        {
+          title: 'Chiffrement des montants financiers',
+          description:
+            'Les montants sont desormais chiffres en AES-256-GCM cote serveur pour proteger les donnees personnelles des utilisateurs',
+        },
+        {
+          title: 'Modification des transactions allouees',
+          description:
+            'Il est maintenant possible de modifier directement les transactions deja allouees dans les enveloppes budgetaires',
+        },
+        {
+          title: 'Cache en memoire',
+          description:
+            'Les details de budget se chargent plus rapidement grace a un cache avec invalidation par utilisateur et TTL de 30 secondes',
+        },
+      ],
+      fixes: [],
+      technical: [],
+    },
+  },
+  {
+    version: '0.19.1',
+    date: '2026-02-11',
+    platforms: ['web'],
+    changes: {
+      features: [],
+      fixes: [
+        {
+          title: 'Solde actuel corrige',
+          description:
+            'Le report realise des mois precedents est desormais inclus dans le calcul du Solde actuel',
+        },
+      ],
+      technical: [],
+    },
+  },
+  {
+    version: '0.19.0',
+    date: '2026-02-10',
+    platforms: ['web', 'ios'],
+    changes: {
+      features: [
+        {
+          title: 'Recherche dans le detail du budget',
+          description:
+            'Recherchez rapidement une prevision ou transaction dans le detail de votre budget mensuel',
+        },
+        {
+          title: 'Restriction des dates de previsions',
+          description:
+            'Les dates de debut et fin des previsions sont desormais limitees a la periode du mois en cours',
+        },
+        {
+          title: 'Page changelog',
+          description:
+            'Nouvelle page changelog sur le site vitrine avec liens vers les releases GitHub',
+        },
+      ],
+      fixes: [
+        {
+          title: 'Calcul des depenses realisees',
+          description:
+            'Correction du double comptage des depenses realisees dans le budget',
+        },
+        {
+          title: 'Mode maintenance',
+          description:
+            'Le garde de maintenance fonctionne en fail-open pour eviter les faux blocages',
+        },
+        {
+          title: 'Session iOS',
+          description:
+            "Correction d'une boucle infinie de retry lors d'une session expiree",
+        },
+      ],
+      technical: [
+        {
+          title: 'Migration base de donnees',
+          description: 'Migration vers une nouvelle base de donnees',
+        },
+        {
+          title: 'Protection IP',
+          description:
+            "Ajout d'un middleware de blocage IP et renforcement du rate limiting",
+        },
+        {
+          title: 'Compatibilite Supabase',
+          description:
+            'Prise en charge du nouveau format de cle publique Supabase',
+        },
+      ],
+    },
+  },
+  {
+    version: '0.18.0',
+    date: '2026-01-30',
+    platforms: ['web', 'ios'],
+    changes: {
+      features: [
+        {
+          title: 'Planification budgetaire',
+          description:
+            'Modeles de mois reutilisables, generation automatique des budgets mensuels, report du solde entre les mois (rollover), alertes de depassement a 80%, 90% et 100%.',
+        },
+        {
+          title: 'Suivi mensuel',
+          description:
+            'Ajout de transactions manuelles, vue claire du disponible a depenser, cochage des previsions realisees, distinction plan vs realite.',
+        },
+        {
+          title: 'Onboarding',
+          description:
+            'Creation guidee du premier budget en quelques etapes, mode demo avec donnees realistes (session 24h, sans inscription).',
+        },
+        {
+          title: 'Application iOS',
+          description:
+            "App native SwiftUI avec navigation fluide, tableau de bord avec vue d'ensemble du mois, gestion des budgets et transactions depuis mobile.",
+        },
+        {
+          title: 'Application web',
+          description:
+            "Interface Angular responsive mobile-first, pages d'authentification alignees avec le design system, navigation par mois avec barre de progression temporelle.",
+        },
+        {
+          title: 'Landing page',
+          description:
+            "Page d'accueil Next.js avec presentation du produit, pages legales (confidentialite, CGU), page support.",
+        },
+        {
+          title: 'Export Excel',
+          description:
+            'Export des budgets en Excel avec formatage des montants et totaux automatiques.',
+        },
+        {
+          title: 'Suppression de compte',
+          description:
+            'Possibilite de supprimer son compte avec un delai de grace de 3 jours.',
+        },
+      ],
+      fixes: [],
+      technical: [
+        {
+          title: 'Backend et infrastructure',
+          description:
+            'API NestJS avec Supabase (PostgreSQL + Auth), schemas partages (Zod), mode maintenance configurable, journalisation RGPD.',
+        },
+      ],
+    },
+  },
+];

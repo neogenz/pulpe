@@ -212,6 +212,22 @@ Each entry: `{ "title": "Bold title from Step 5", "description": "Description fr
 Deduplicate: if both frontend and backend contributed bumping commits, `"web"` appears once.
 Empty sections stay as `[]` (never omit the key).
 
+### Step 5b-bis: Sync iOS whats-new backend data
+
+**Skip if `SKIP_WHATS_NEW=true`** (same rule as Step 5b — a technical-only release must stay invisible to the iOS "what's new" dialog too).
+
+**Auto-skip silently** if `"ios"` is not in the `platforms` array computed in Step 5b. The iOS whats-new endpoint (`GET /v1/whats-new/ios`) filters on `platforms.includes('ios')` anyway, so a web-only entry would never surface there — but skip writing it to avoid drift for no reason.
+
+The iOS app's "what's new" dialog (PUL-186) is served by `backend-nest/src/modules/whats-new/`, which reads a TypeScript literal — not `landing/data/releases.json` directly, because the deployed backend artifact (`pnpm --filter=backend-nest --prod deploy`) never includes the `landing/` package. `landing/data/releases.json` stays the single point of authorship; this step keeps the backend's copy mechanically in sync.
+
+**Procedure:**
+
+1. Read `backend-nest/src/modules/whats-new/releases-data.ts` (use Read tool)
+2. Prepend the SAME release object built in Step 5b (identical `version`/`date`/`platforms`/`changes` — just the `githubUrl` field is dropped, it's unused by this module) to the top of the `RELEASES` array
+3. Write back with Edit tool, keeping the existing TS formatting (double-quoted or single-quoted strings — match whatever the file already uses)
+
+A release entry only renders in the iOS dialog when it has at least one `features` or `fixes` item — an entry whose `changes.features` and `changes.fixes` are both empty (i.e. `technical` only) is filtered out by `buildWhatsNewResponse` even if present in this file, so there's no need to omit purely-technical-but-still-ios-tagged entries here; the backend already treats them as invisible.
+
 ### Step 5c: Update webapp "What's New" toast
 
 **Skip if `SKIP_WHATS_NEW=true`** (set in the Input section above by `--skip-whats-new`, an equivalent phrase, OR a technical-only signal): do NOT touch the file. The toast won't appear because `LATEST_RELEASE.version` stays at its previous value and won't match `buildInfo.version`.

@@ -55,6 +55,7 @@ struct RootViewAlerts: ViewModifier {
 
 struct RootViewSheets: ViewModifier {
     @Bindable var appState: AppState
+    var whatsNewStore: WhatsNewStore
     @Binding var showAddExpenseSheet: Bool
     @Binding var resetPasswordDeepLink: ResetPasswordDeepLink?
     var recoveryKeySheetItemBinding: Binding<RecoveryKeySheetItem?>
@@ -81,6 +82,26 @@ struct RootViewSheets: ViewModifier {
                     appState.send(.recoveryKeyPresentationDismissed)
                 }
             }
+            .sheet(isPresented: whatsNewPresentedBinding) {
+                WhatsNewSheet(
+                    currentVersion: AppConfiguration.appVersion,
+                    entries: whatsNewStore.entries,
+                    onDismiss: { whatsNewStore.dismiss() }
+                )
+                .standardSheetPresentation()
+            }
+    }
+
+    /// Drives the what's-new sheet off the store's `isPresented` flag. The setter
+    /// funnels every dismissal — including swipe-to-dismiss — through `dismiss()`
+    /// so the last-seen version is persisted on both paths (CA4/CA5).
+    private var whatsNewPresentedBinding: Binding<Bool> {
+        Binding(
+            get: { whatsNewStore.isPresented },
+            set: { isPresented in
+                if !isPresented { whatsNewStore.dismiss() }
+            }
+        )
     }
 }
 
