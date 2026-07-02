@@ -8,7 +8,6 @@ import {
 } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
-import { MatCardModule } from '@angular/material/card';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBar } from '@angular/material/snack-bar';
@@ -34,7 +33,6 @@ type DetailViewState = 'loading' | 'error' | 'notFound' | 'ready';
   imports: [
     DatePipe,
     MatButtonModule,
-    MatCardModule,
     MatChipsModule,
     MatIconModule,
     TranslocoPipe,
@@ -121,266 +119,261 @@ type DetailViewState = 'loading' | 'error' | 'notFound' | 'ready';
           @let g = goal()!;
           @let p = progress()!;
 
-          <mat-card appearance="outlined" class="w-full">
-            <mat-card-content class="flex flex-col gap-6 p-6!">
-              <!-- Header row: status + échéance + edit -->
-              <div class="flex flex-wrap items-center gap-3">
-                <mat-chip
-                  class="!h-6 !text-label-small bg-surface-container"
-                  data-testid="savings-goal-status-chip"
+          <!-- Content sits flat on the page like the other detail screens
+               (template-detail, budget-details) — no full-page card wrapper. -->
+          <div class="flex flex-col gap-6">
+            <!-- Header row: status + échéance + edit -->
+            <div class="flex flex-wrap items-center gap-3">
+              <mat-chip
+                class="!h-6 !text-label-small bg-surface-container"
+                data-testid="savings-goal-status-chip"
+              >
+                {{ statusLabelKey(g.status) | transloco }}
+              </mat-chip>
+              <span
+                class="text-body-medium text-on-surface-variant"
+                data-testid="savings-goal-target-date"
+              >
+                {{ 'savingsGoals.targetDate' | transloco }} :
+                {{ g.targetDate | date: shortDateFormat() }}
+              </span>
+              <button
+                matButton="outlined"
+                class="ml-auto"
+                (click)="onEdit()"
+                data-testid="edit-savings-goal-button"
+              >
+                <mat-icon>edit</mat-icon>
+                {{ 'savingsGoals.detail.edit' | transloco }}
+              </button>
+            </div>
+
+            @if (isEmpty()) {
+              <!-- Flat empty state — no nested card inside the outlined card. -->
+              <div
+                class="flex flex-col items-center gap-3 py-10 text-center"
+                data-testid="savings-goal-empty-lines"
+              >
+                <mat-icon class="text-5xl text-on-surface-variant"
+                  >savings</mat-icon
                 >
-                  {{ statusLabelKey(g.status) | transloco }}
-                </mat-chip>
-                <span
-                  class="text-body-medium text-on-surface-variant"
-                  data-testid="savings-goal-target-date"
+                <h2 class="text-title-large font-semibold">
+                  {{ 'savingsGoals.detail.emptyTitle' | transloco }}
+                </h2>
+                <p class="text-body-large text-on-surface-variant max-w-md">
+                  {{ 'savingsGoals.detail.emptyMessage' | transloco }}
+                </p>
+              </div>
+            } @else {
+              <!-- Two-layer progress bar (Prévu behind, Pointé in front) -->
+              <div class="flex flex-col gap-3">
+                <div class="flex items-end justify-between gap-2">
+                  <span
+                    class="text-headline-small font-bold text-financial-savings ph-no-capture"
+                    data-testid="savings-goal-achievement"
+                  >
+                    {{
+                      'savingsGoals.detail.achievement'
+                        | transloco: { percent: p.achievementPercent }
+                    }}
+                  </span>
+                  <span class="text-body-small text-on-surface-variant">
+                    {{ 'savingsGoals.detail.target' | transloco }} :
+                    <span class="ph-no-capture">{{
+                      g.targetAmount | appCurrency: currency() : '1.2-2'
+                    }}</span>
+                  </span>
+                </div>
+
+                <div
+                  class="relative w-full h-3 rounded-full bg-financial-savings/10 overflow-hidden"
+                  role="progressbar"
+                  [attr.aria-valuenow]="p.achievementPercent"
+                  aria-valuemin="0"
+                  aria-valuemax="100"
+                  [attr.aria-label]="
+                    'savingsGoals.detail.progressAriaLabel'
+                      | transloco: { percent: p.achievementPercent }
+                  "
+                  data-testid="savings-goal-progress-bar"
                 >
-                  {{ 'savingsGoals.targetDate' | transloco }} :
-                  {{ g.targetDate | date: shortDateFormat() }}
-                </span>
-                <button
-                  matButton="outlined"
-                  class="ml-auto"
-                  (click)="onEdit()"
-                  data-testid="edit-savings-goal-button"
-                >
-                  <mat-icon>edit</mat-icon>
-                  {{ 'savingsGoals.detail.edit' | transloco }}
-                </button>
+                  <div
+                    class="absolute inset-y-0 left-0 rounded-full bg-financial-savings/35 motion-safe:transition-all motion-safe:duration-700"
+                    [style.width.%]="plannedPercent()"
+                    data-testid="progress-planned-layer"
+                  ></div>
+                  <div
+                    class="absolute inset-y-0 left-0 rounded-full bg-financial-savings motion-safe:transition-all motion-safe:duration-700"
+                    [style.width.%]="p.achievementPercent"
+                    data-testid="progress-confirmed-layer"
+                  ></div>
+                </div>
               </div>
 
-              @if (isEmpty()) {
-                <!-- Flat empty state — no nested card inside the outlined card. -->
+              @if (paceChip(); as chip) {
                 <div
-                  class="flex flex-col items-center gap-3 py-10 text-center"
-                  data-testid="savings-goal-empty-lines"
+                  class="flex items-center gap-2 rounded-full px-3 py-1.5 w-fit text-label-large"
+                  [class]="chip.classes"
+                  data-testid="savings-goal-pace-chip"
                 >
-                  <mat-icon class="text-5xl text-on-surface-variant"
-                    >savings</mat-icon
-                  >
-                  <h2 class="text-title-large font-semibold">
-                    {{ 'savingsGoals.detail.emptyTitle' | transloco }}
-                  </h2>
-                  <p class="text-body-large text-on-surface-variant max-w-md">
-                    {{ 'savingsGoals.detail.emptyMessage' | transloco }}
-                  </p>
+                  <mat-icon class="text-base! size-4!" aria-hidden="true">{{
+                    chip.icon
+                  }}</mat-icon>
+                  {{ chip.labelKey | transloco }}
                 </div>
-              } @else {
-                <!-- Two-layer progress bar (Prévu behind, Pointé in front) -->
-                <div class="flex flex-col gap-3">
-                  <div class="flex items-end justify-between gap-2">
-                    <span
-                      class="text-headline-small font-bold text-financial-savings ph-no-capture"
-                      data-testid="savings-goal-achievement"
-                    >
-                      {{
-                        'savingsGoals.detail.achievement'
-                          | transloco: { percent: p.achievementPercent }
-                      }}
-                    </span>
-                    <span class="text-body-small text-on-surface-variant">
-                      {{ 'savingsGoals.detail.target' | transloco }} :
-                      <span class="ph-no-capture">{{
-                        g.targetAmount | appCurrency: currency() : '1.2-2'
-                      }}</span>
-                    </span>
-                  </div>
-
-                  <div
-                    class="relative w-full h-3 rounded-full bg-financial-savings/10 overflow-hidden"
-                    role="progressbar"
-                    [attr.aria-valuenow]="p.achievementPercent"
-                    aria-valuemin="0"
-                    aria-valuemax="100"
-                    [attr.aria-label]="
-                      'savingsGoals.detail.progressAriaLabel'
-                        | transloco: { percent: p.achievementPercent }
-                    "
-                    data-testid="savings-goal-progress-bar"
-                  >
-                    <div
-                      class="absolute inset-y-0 left-0 rounded-full bg-financial-savings/35 motion-safe:transition-all motion-safe:duration-700"
-                      [style.width.%]="plannedPercent()"
-                      data-testid="progress-planned-layer"
-                    ></div>
-                    <div
-                      class="absolute inset-y-0 left-0 rounded-full bg-financial-savings motion-safe:transition-all motion-safe:duration-700"
-                      [style.width.%]="p.achievementPercent"
-                      data-testid="progress-confirmed-layer"
-                    ></div>
-                  </div>
-                </div>
-
-                @if (paceChip(); as chip) {
-                  <div
-                    class="flex items-center gap-2 rounded-full px-3 py-1.5 w-fit text-label-large"
-                    [class]="chip.classes"
-                    data-testid="savings-goal-pace-chip"
-                  >
-                    <mat-icon class="text-base! size-4!" aria-hidden="true">{{
-                      chip.icon
-                    }}</mat-icon>
-                    {{ chip.labelKey | transloco }}
-                  </div>
-                }
-
-                <!-- Stats -->
-                <div class="mt-2 grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <!-- The colored dots double as the legend of the two bar layers. -->
-                  <div class="flex flex-col gap-1" data-testid="stat-confirmed">
-                    <span
-                      class="flex items-center gap-1.5 text-body-small text-on-surface-variant"
-                    >
-                      <span
-                        class="inline-block size-2.5 rounded-full bg-financial-savings"
-                        aria-hidden="true"
-                      ></span>
-                      {{ 'savingsGoals.detail.confirmed' | transloco }}
-                    </span>
-                    <span
-                      class="text-title-large font-bold text-financial-savings ph-no-capture"
-                    >
-                      {{ p.confirmed | appCurrency: currency() : '1.0-0' }}
-                    </span>
-                  </div>
-                  <div class="flex flex-col gap-1" data-testid="stat-planned">
-                    <span
-                      class="flex items-center gap-1.5 text-body-small text-on-surface-variant"
-                    >
-                      <span
-                        class="inline-block size-2.5 rounded-full bg-financial-savings/35"
-                        aria-hidden="true"
-                      ></span>
-                      {{ 'savingsGoals.detail.plannedCumulative' | transloco }}
-                    </span>
-                    <span class="text-title-large font-semibold ph-no-capture">
-                      {{
-                        p.plannedCumulative | appCurrency: currency() : '1.0-0'
-                      }}
-                    </span>
-                  </div>
-                  @if (p.required !== null) {
-                    <div
-                      class="flex flex-col gap-1"
-                      data-testid="stat-required"
-                    >
-                      <span class="text-body-small text-on-surface-variant">
-                        {{ 'savingsGoals.detail.required' | transloco }}
-                      </span>
-                      <span
-                        class="text-title-large font-semibold ph-no-capture"
-                      >
-                        {{
-                          'savingsGoals.detail.requiredPerMonth'
-                            | transloco
-                              : {
-                                  amount:
-                                    p.required
-                                    | appCurrency: currency() : '1.0-0',
-                                }
-                        }}
-                      </span>
-                    </div>
-                  }
-                  <div class="flex flex-col gap-1" data-testid="stat-projected">
-                    <span class="text-body-small text-on-surface-variant">
-                      {{ 'savingsGoals.detail.projected' | transloco }}
-                    </span>
-                    <span class="text-title-large font-semibold ph-no-capture">
-                      {{ p.projected | appCurrency: currency() : '1.0-0' }}
-                    </span>
-                  </div>
-                </div>
-
-                <!-- D1 — deadline passed (stays ACTIVE, neutral, actionable) -->
-                @if (p.isOverdue) {
-                  <div
-                    class="mt-2 flex flex-col gap-2 rounded-2xl bg-surface-container p-4"
-                    data-testid="savings-goal-overdue-block"
-                  >
-                    <div
-                      class="flex items-center gap-2 text-on-surface text-title-small font-medium"
-                    >
-                      <mat-icon aria-hidden="true">event</mat-icon>
-                      {{ 'savingsGoals.detail.overdueTitle' | transloco }}
-                    </div>
-                    <p class="text-body-medium text-on-surface-variant">
-                      {{ 'savingsGoals.detail.overdueMessage' | transloco }}
-                    </p>
-                    <!-- Outlined : un seul bouton primaire par écran (DA §3.5) —
-                         D1 et D2 peuvent coexister, le filled reste au CTA D2. -->
-                    <button
-                      matButton="outlined"
-                      class="w-fit"
-                      (click)="onEdit()"
-                      data-testid="savings-goal-postpone-button"
-                    >
-                      <mat-icon>edit_calendar</mat-icon>
-                      {{ 'savingsGoals.detail.postpone' | transloco }}
-                    </button>
-                  </div>
-                }
-
-                <!-- D2 — suggest completion (never auto-flipped) -->
-                @if (p.suggestCompletion) {
-                  <div
-                    class="mt-2 flex flex-col gap-2 rounded-2xl bg-financial-savings/10 p-4"
-                    data-testid="savings-goal-suggest-completion"
-                  >
-                    <div
-                      class="flex items-center gap-2 text-financial-savings text-title-small font-medium"
-                    >
-                      <mat-icon aria-hidden="true">check_circle</mat-icon>
-                      {{ 'savingsGoals.detail.suggestTitle' | transloco }}
-                    </div>
-                    <p class="text-body-medium text-on-surface-variant">
-                      {{ 'savingsGoals.detail.suggestMessage' | transloco }}
-                    </p>
-                    <button
-                      matButton="filled"
-                      class="w-fit"
-                      (click)="onComplete()"
-                      data-testid="savings-goal-mark-completed-button"
-                    >
-                      <mat-icon>flag</mat-icon>
-                      {{ 'savingsGoals.detail.markCompleted' | transloco }}
-                    </button>
-                  </div>
-                }
-
-                <!-- COMPLETED — reversible -->
-                @if (g.status === 'COMPLETED') {
-                  <div
-                    class="mt-2 flex flex-col gap-2 rounded-2xl bg-surface-container p-4"
-                    data-testid="savings-goal-completed-block"
-                  >
-                    <div
-                      class="flex items-center gap-2 text-on-surface text-title-small font-medium"
-                    >
-                      <mat-icon aria-hidden="true">emoji_events</mat-icon>
-                      {{ 'savingsGoals.detail.completedTitle' | transloco }}
-                    </div>
-                    <p class="text-body-medium text-on-surface-variant">
-                      {{ 'savingsGoals.detail.completedMessage' | transloco }}
-                    </p>
-                    <button
-                      matButton="outlined"
-                      class="w-fit"
-                      (click)="onReopen()"
-                      data-testid="savings-goal-reopen-button"
-                    >
-                      <mat-icon>refresh</mat-icon>
-                      {{ 'savingsGoals.detail.reopen' | transloco }}
-                    </button>
-                  </div>
-                }
               }
-            </mat-card-content>
-          </mat-card>
+
+              <!-- Stats -->
+              <div class="mt-2 grid grid-cols-2 md:grid-cols-4 gap-4">
+                <!-- The colored dots double as the legend of the two bar layers. -->
+                <div class="flex flex-col gap-1" data-testid="stat-confirmed">
+                  <span
+                    class="flex items-center gap-1.5 text-body-small text-on-surface-variant"
+                  >
+                    <span
+                      class="inline-block size-2.5 rounded-full bg-financial-savings"
+                      aria-hidden="true"
+                    ></span>
+                    {{ 'savingsGoals.detail.confirmed' | transloco }}
+                  </span>
+                  <span
+                    class="text-title-large font-bold text-financial-savings ph-no-capture"
+                  >
+                    {{ p.confirmed | appCurrency: currency() : '1.0-0' }}
+                  </span>
+                </div>
+                <div class="flex flex-col gap-1" data-testid="stat-planned">
+                  <span
+                    class="flex items-center gap-1.5 text-body-small text-on-surface-variant"
+                  >
+                    <span
+                      class="inline-block size-2.5 rounded-full bg-financial-savings/35"
+                      aria-hidden="true"
+                    ></span>
+                    {{ 'savingsGoals.detail.plannedCumulative' | transloco }}
+                  </span>
+                  <span class="text-title-large font-semibold ph-no-capture">
+                    {{
+                      p.plannedCumulative | appCurrency: currency() : '1.0-0'
+                    }}
+                  </span>
+                </div>
+                @if (p.required !== null) {
+                  <div class="flex flex-col gap-1" data-testid="stat-required">
+                    <span class="text-body-small text-on-surface-variant">
+                      {{ 'savingsGoals.detail.required' | transloco }}
+                    </span>
+                    <span class="text-title-large font-semibold ph-no-capture">
+                      {{
+                        'savingsGoals.detail.requiredPerMonth'
+                          | transloco
+                            : {
+                                amount:
+                                  p.required
+                                  | appCurrency: currency() : '1.0-0',
+                              }
+                      }}
+                    </span>
+                  </div>
+                }
+                <div class="flex flex-col gap-1" data-testid="stat-projected">
+                  <span class="text-body-small text-on-surface-variant">
+                    {{ 'savingsGoals.detail.projected' | transloco }}
+                  </span>
+                  <span class="text-title-large font-semibold ph-no-capture">
+                    {{ p.projected | appCurrency: currency() : '1.0-0' }}
+                  </span>
+                </div>
+              </div>
+
+              <!-- D1 — deadline passed (stays ACTIVE, neutral, actionable) -->
+              @if (p.isOverdue) {
+                <div
+                  class="mt-2 flex flex-col gap-2 rounded-2xl bg-surface-container p-4"
+                  data-testid="savings-goal-overdue-block"
+                >
+                  <div
+                    class="flex items-center gap-2 text-on-surface text-title-small font-medium"
+                  >
+                    <mat-icon aria-hidden="true">event</mat-icon>
+                    {{ 'savingsGoals.detail.overdueTitle' | transloco }}
+                  </div>
+                  <p class="text-body-medium text-on-surface-variant">
+                    {{ 'savingsGoals.detail.overdueMessage' | transloco }}
+                  </p>
+                  <!-- Outlined : un seul bouton primaire par écran (DA §3.5) —
+                         D1 et D2 peuvent coexister, le filled reste au CTA D2. -->
+                  <button
+                    matButton="outlined"
+                    class="w-fit"
+                    (click)="onEdit()"
+                    data-testid="savings-goal-postpone-button"
+                  >
+                    <mat-icon>edit_calendar</mat-icon>
+                    {{ 'savingsGoals.detail.postpone' | transloco }}
+                  </button>
+                </div>
+              }
+
+              <!-- D2 — suggest completion (never auto-flipped) -->
+              @if (p.suggestCompletion) {
+                <div
+                  class="mt-2 flex flex-col gap-2 rounded-2xl bg-financial-savings/10 p-4"
+                  data-testid="savings-goal-suggest-completion"
+                >
+                  <div
+                    class="flex items-center gap-2 text-financial-savings text-title-small font-medium"
+                  >
+                    <mat-icon aria-hidden="true">check_circle</mat-icon>
+                    {{ 'savingsGoals.detail.suggestTitle' | transloco }}
+                  </div>
+                  <p class="text-body-medium text-on-surface-variant">
+                    {{ 'savingsGoals.detail.suggestMessage' | transloco }}
+                  </p>
+                  <button
+                    matButton="filled"
+                    class="w-fit"
+                    (click)="onComplete()"
+                    data-testid="savings-goal-mark-completed-button"
+                  >
+                    <mat-icon>flag</mat-icon>
+                    {{ 'savingsGoals.detail.markCompleted' | transloco }}
+                  </button>
+                </div>
+              }
+
+              <!-- COMPLETED — reversible -->
+              @if (g.status === 'COMPLETED') {
+                <div
+                  class="mt-2 flex flex-col gap-2 rounded-2xl bg-surface-container p-4"
+                  data-testid="savings-goal-completed-block"
+                >
+                  <div
+                    class="flex items-center gap-2 text-on-surface text-title-small font-medium"
+                  >
+                    <mat-icon aria-hidden="true">emoji_events</mat-icon>
+                    {{ 'savingsGoals.detail.completedTitle' | transloco }}
+                  </div>
+                  <p class="text-body-medium text-on-surface-variant">
+                    {{ 'savingsGoals.detail.completedMessage' | transloco }}
+                  </p>
+                  <button
+                    matButton="outlined"
+                    class="w-fit"
+                    (click)="onReopen()"
+                    data-testid="savings-goal-reopen-button"
+                  >
+                    <mat-icon>refresh</mat-icon>
+                    {{ 'savingsGoals.detail.reopen' | transloco }}
+                  </button>
+                </div>
+              }
+            }
+          </div>
 
           @if (!isEmpty()) {
             <section
-              class="flex flex-col gap-3"
+              class="mt-4 flex flex-col gap-3"
               aria-labelledby="goal-transactions-heading"
               data-testid="savings-goal-transactions"
             >
