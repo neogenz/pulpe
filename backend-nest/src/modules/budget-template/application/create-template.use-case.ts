@@ -7,6 +7,7 @@ import {
   budgetTemplateCreateSchema,
 } from 'pulpe-shared';
 import { CurrencyService } from '@modules/currency/currency.service';
+import { savingsGoalIdForKind } from '@common/utils/savings-goal-link';
 import {
   BUDGET_TEMPLATE_REPOSITORY,
   type BudgetTemplateRepositoryPort,
@@ -75,6 +76,7 @@ export class CreateTemplateUseCase {
     line: TemplateLineCreateWithoutTemplateId,
   ): TemplateLineRpcInput {
     return {
+      savingsGoalId: savingsGoalIdForKind(line.kind, line.savingsGoalId),
       name: line.name,
       amount: line.amount,
       kind: line.kind,

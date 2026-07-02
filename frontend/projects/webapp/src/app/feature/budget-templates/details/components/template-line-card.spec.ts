@@ -9,6 +9,7 @@ import { TemplateLineCard } from './template-line-card';
 const mockLine: TemplateLine = {
   id: 'line-1',
   templateId: 'template-1',
+  savingsGoalId: null,
   name: 'Loyer',
   amount: 1500,
   kind: 'expense',

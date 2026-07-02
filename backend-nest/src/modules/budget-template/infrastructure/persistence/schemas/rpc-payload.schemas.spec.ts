@@ -192,6 +192,26 @@ describe('applyTemplateLineOperationsItemSchema', () => {
     expect(() => applyTemplateLineOperationsItemSchema.parse(forged)).toThrow();
   });
 
+  it('should accept a uuid savings_goal_id (tag) and null (untag) — PUL-12', () => {
+    const tag = {
+      ...base,
+      savings_goal_id: '8a0f6c80-1234-4e5f-89ab-222222222222',
+    };
+    expect(
+      applyTemplateLineOperationsItemSchema.parse(tag).savings_goal_id,
+    ).toBe('8a0f6c80-1234-4e5f-89ab-222222222222');
+
+    const untag = { ...base, savings_goal_id: null };
+    expect(
+      applyTemplateLineOperationsItemSchema.parse(untag).savings_goal_id,
+    ).toBeNull();
+  });
+
+  it('should reject a non-uuid savings_goal_id — PUL-12', () => {
+    const bad = { ...base, savings_goal_id: 'not-a-uuid' };
+    expect(() => applyTemplateLineOperationsItemSchema.parse(bad)).toThrow();
+  });
+
   it('should reject unsupported currency', () => {
     const bad = { ...base, original_currency: 'USD', target_currency: 'CHF' };
 

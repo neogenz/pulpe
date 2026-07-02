@@ -616,6 +616,7 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
     return {
       id: row.id,
       templateId: row.template_id,
+      savingsGoalId: row.savings_goal_id ?? null,
       name: row.name,
       amount: row.amount
         ? this.encryption.tryDecryptAmount(row.amount, dek, 0)
@@ -652,6 +653,7 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
 
     return {
       template_id: input.templateId,
+      savings_goal_id: input.savingsGoalId ?? null,
       name: input.name,
       amount: encryptedAmount,
       original_amount: encryptedOriginalAmount,
@@ -675,6 +677,9 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
   ): Promise<Partial<TemplateLineInsert>> {
     const updateData: Partial<TemplateLineInsert> = {};
     if (patch.name !== undefined) updateData.name = patch.name;
+    if (patch.savingsGoalId !== undefined) {
+      updateData.savings_goal_id = patch.savingsGoalId;
+    }
     if (patch.kind !== undefined) updateData.kind = patch.kind;
     if (patch.recurrence !== undefined)
       updateData.recurrence = patch.recurrence;
@@ -738,6 +743,7 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
       amount: preparedAmounts[index].amount,
       kind: line.kind,
       recurrence: line.recurrence,
+      savings_goal_id: line.savingsGoalId ?? null,
       description: line.description,
       original_amount: encryptedOriginalAmounts[index],
       original_currency: line.originalCurrency ?? null,
@@ -763,6 +769,9 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
         }
         if (line.kind !== undefined) payload.kind = line.kind;
         if (line.recurrence !== undefined) payload.recurrence = line.recurrence;
+        if (line.savingsGoalId !== undefined) {
+          payload.savings_goal_id = line.savingsGoalId;
+        }
         if (line.originalAmount !== undefined) {
           payload.original_amount = await this.encryption.encryptOptionalAmount(
             line.originalAmount,

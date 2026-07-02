@@ -64,6 +64,7 @@ const defaultBudgetTemplate: BudgetTemplate = {
 const defaultTemplateLine: TemplateLine = {
   id: 'template-line-1',
   templateId: 'template-1',
+  savingsGoalId: null,
   name: 'Test Template Line',
   amount: 1000,
   kind: 'expense',
