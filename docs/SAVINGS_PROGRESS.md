@@ -11,7 +11,7 @@
 
 - [x] **PUL-12 — backend + shared** (fondation : module CRUD, migrations, lien `template_line`, RPC RG-001, door-keepers FX) — **FAIT** (PR #485 sur `preview`, pas encore mergée)
 - [x] **PUL-12 — iOS** (carte tappable + empty state, liste/form, pickers template + budget, service/store) — **FAIT** (PR #486, GitHub "Merged" mais commits absents de `preview` — cf. incident ci-dessous)
-- [ ] PUL-12 — web (route `/savings-goals`, store, pickers, carte) — **FAIT côté code** (PR #487), CONFLICTING contre #485 actuel (rebase requis)
+- [x] **PUL-12 — web** (route `/savings-goals`, store ziflux, form dialog, carte tappable, pickers template + budget) — **FAIT côté code** (PR #487, stackée sur #485), CONFLICTING contre #485 actuel (rebase requis)
 - [ ] PUL-8 — progression (endpoint `/:id/progress` + vues détail iOS/web) — **EN COURS**
 - [ ] PUL-285 — Phase 3 (auto-décompose + redistribution advisory)
 
@@ -89,6 +89,26 @@ Voir le bloc `<known_traps_by_layer>` de `.claude/commands/impl-savings.md` + `d
 - **Review adversariale** (2 `code-reviewer`) : 0 défaut correctness/contrat/concurrence. 4 findings design-system corrigés (delete → `Color.destructivePrimary` ; `.monospacedDigit()` ; opacité via `DesignTokens.Opacity.badgeBackground` ; test bulk-path `TemplateLineUpdateWithId`).
 - **PR** : `feat(savings-goals): iOS surface (PUL-12)` → #486 sur `preview`. ⚠️ Ce fichier est introduit aussi par #485 (docs non encore sur `preview`) → possible conflit add/add à la fusion : garder la version superset.
 - **NEXT** : `/impl-savings PUL-12 — web` (route `/savings-goals`, store ziflux, carte tappable **hors** `ph-no-capture`, pickers template + dialogs budget), puis `PUL-8` (progression).
+
+### 2026-06-24 — PUL-12 web (implémenté)
+
+- **CA cochés** : CA23–CA26 (toute la surface web) + **CA27/CA28** confirmés côté web (devise du compte, aucune couleur d'alerte) → les 2 CA cross-surface sont maintenant cochés.
+- **Branche / worktree** : `maximedesogus/pul-12-...-web`, worktree `../pulpe-savings-web`. **Basée sur #485** (backend), pas `preview` : le web compile-dépend des changements shared de #485 (retrait `priority` + refine `targetDate` sur `savingsGoalCreateSchema`, `savingsGoalId` sur les schémas template-line) absents de `preview`. PR **#487 stackée sur #485** (diff web-only) — retarget auto vers `preview` à la fusion de #485.
+- **Décisions d'impl** :
+  - **Data layer** calqué sur budget-templates : `SavingsGoalApi` (root, `DataCache`) + `SavingsGoalStore` route-scoped (`cachedResource` liste + `cachedMutation` create/update/delete optimistes, settle depuis le retour `await mutate()` — gotcha ziflux latest-wins).
+  - **Form = MatDialog Signal Forms** (nom, montant devise-compte **sans** sélecteur CA27, datepicker `min=today` en string `YYYY-MM-DD`, statut Actif/Atteint/En pause réversible). « détail » v1 = le formulaire (barre prévu/confirmé = PUL-8).
+  - **Picker réutilisable** `SavingsGoalPickerField` (`pattern/`, API `value`/`valueChanged` — PAS de Field Signal-Forms passé en input) sur les **3** surfaces (edit-template-line + budget-line create/edit), `@if(kind==='saving')`, `null` = untag, liste via `cachedResource` sur le cache partagé `['savings-goals','list']`.
+  - **Untag** : les 3 schémas de form portent `savingsGoalId: z.uuid().nullable().optional()` (optional sinon `parse` throw sur les specs existantes qui l'omettent ; passthrough → `undefined` ignoré par `toEqual`). Le build envoie `kind==='saving' ? id : null`.
+  - **CA24** : output bubblé (calqué `dashboard-next-month`), bouton hors `ph-no-capture` ; nav via `ROUTES.SAVINGS_GOALS`.
+  - **targetAmount** = ligne `'1.2-2'` (valeur d'une entité), pas agrégat `'1.0-0'`.
+- **Gotchas rencontrés** :
+  - Worktree neuf sans `.env` → `generate:config` (prebuild) échoue → `ng build` ne tourne pas. Copier le `.env` du repo principal (build offline ; `.env` gitignored).
+  - `tsc --noEmit` (typecheck) NE valide PAS les templates Angular — seul `ng build` attrape les erreurs de template (ici `NG8022: 'min' interdit sur un nœud `[formField]``). `ng build` = gate réel.
+  - Ajouter `savingsGoalId` au transform des schémas budget-line casse 8 specs existantes (`toEqual` de forme exacte + champ requis) → input `.nullable().optional()` (undefined ignoré par `toEqual`, dialog envoie toujours la valeur).
+  - feature-ui (agent) coupé en cours : list page + list component manquants → écrits à la main (empty state inliné dans la list page).
+- **Review adversariale** (workflow 4 `code-reviewer`) : 1 HIGH + 1 MEDIUM + 4 LOW. **HIGH** corrigé : objectif échu (`targetDate < today`) inéditable (validator re-appliquait la règle create + refine `savingsGoalUpdateSchema`) → validator tolère la date **inchangée** + `buildSavingsGoalUpdate` envoie un **diff** (omet `targetDate` non modifié). **MEDIUM** : `mat-error` montraient le label brut → messages dédiés (required/past séparés). **LOW** : picker via `cachedResource` (cache partagé + dégradation gracieuse sans throw) ; clé i18n `reopen` morte supprimée. **LOW laissé** (non atteignable) : `removeGoal` détecte l'échec via `status()` (store route-scoped + confirm modale ⇒ pas de delete concurrents).
+- **PR** : #487 (stackée sur #485). **Merge order** : #485 → (#486 iOS indép.) → #487 web.
+- **NEXT** : `PUL-8` (progression — endpoint `/:id/progress`, barres prévu/confirmé, rythme/projection iOS + web), puis `PUL-285` (Phase 3).
 
 ### 2026-07-01 — Rebase PUL-12 backend sur `preview`
 

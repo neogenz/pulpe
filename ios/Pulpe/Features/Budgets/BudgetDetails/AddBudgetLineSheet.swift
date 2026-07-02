@@ -116,12 +116,6 @@ struct AddBudgetLineSheet: View {
 
             descriptionField
 
-            // Goal tagging is orthogonal to spread mode — shown whenever the line
-            // is a saving, whether it lands as one occurrence or split (PUL-17).
-            if kind == .saving {
-                SavingsGoalPickerField(selection: $savingsGoalId)
-            }
-
             if isSpreadMode {
                 SpreadAmountModeToggle(mode: $amountMode, accentColor: kind.color)
                 SpreadFormSection(
@@ -132,6 +126,12 @@ struct AddBudgetLineSheet: View {
                     accentColor: kind.color
                 )
             } else {
+                // Spread-created lines can never carry a goal tag — the additive
+                // spread RPC hardcodes savingsGoalId to nil at creation
+                // (create-budget-line-spread.use-case.ts). Picker only in single mode.
+                if kind == .saving {
+                    SavingsGoalPickerField(selection: $savingsGoalId)
+                }
                 CheckedToggle(isOn: $isChecked, tintColor: kind.color)
             }
 

@@ -40,6 +40,7 @@ import { UserSettingsStore } from '@core/user-settings';
 import { dateFnsLocaleFor } from '@core/locale';
 import { touchedFieldErrors } from '@core/validators';
 import { AmountInput } from '@app/pattern/amount-input/amount-input';
+import { SavingsGoalPickerField } from '@app/pattern/savings-goal-picker/savings-goal-picker-field';
 import {
   TransactionIconPipe,
   TransactionLabelPipe,
@@ -74,6 +75,7 @@ interface AddBudgetLineModel {
   kind: TransactionKind;
   recurrence: TransactionRecurrence;
   isChecked: boolean;
+  savingsGoalId: string | null;
   money: AmountFormSlice;
 }
 
@@ -94,6 +96,7 @@ interface AddBudgetLineModel {
     TransactionLabelPipe,
     FormField,
     AmountInput,
+    SavingsGoalPickerField,
   ],
   host: { 'data-testid': 'add-budget-line-dialog' },
   template: `
@@ -334,6 +337,14 @@ interface AddBudgetLineModel {
               }
             </div>
           } @else {
+            @if (model().kind === 'saving') {
+              <pulpe-savings-goal-picker-field
+                [value]="model().savingsGoalId"
+                (valueChanged)="
+                  model.update((m) => ({ ...m, savingsGoalId: $event }))
+                "
+              />
+            }
             <div class="flex items-center justify-between py-2 px-1">
               <span class="text-body-medium text-on-surface">{{
                 'budget.forecastCheckedToggle' | transloco
@@ -424,6 +435,7 @@ export class AddBudgetLineDialog {
     kind: 'expense',
     recurrence: 'one_off',
     isChecked: false,
+    savingsGoalId: null,
     money: createAmountSlice({ initialCurrency: this.#settings.currency() }),
   });
 
@@ -632,6 +644,7 @@ export class AddBudgetLineDialog {
               kind: m.kind,
               recurrence: m.recurrence,
               isChecked: m.isChecked,
+              savingsGoalId: m.kind === 'saving' ? m.savingsGoalId : null,
               conversion: metadata,
             }),
         };

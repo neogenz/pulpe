@@ -179,4 +179,42 @@ describe('DashboardSavingsSummary', () => {
       expect(icon.nativeElement.textContent.trim()).toBe('check_circle');
     });
   });
+
+  describe('savings goals navigation (CA24)', () => {
+    function clickButtonContaining(text: string): boolean {
+      const buttons = fixture.debugElement.queryAll(By.css('button'));
+      const target = buttons.find((b) =>
+        (b.nativeElement.textContent ?? '').includes(text),
+      );
+      target?.nativeElement.click();
+      return !!target;
+    }
+
+    it('emits viewSavingsGoals from the empty-state "Fixe ton premier objectif" button', () => {
+      // top-level beforeEach sets planned/realized to 0 → empty state
+      fixture.detectChanges();
+      let emitted = false;
+      component.viewSavingsGoals.subscribe(() => (emitted = true));
+
+      const found = clickButtonContaining('Fixe ton premier objectif');
+
+      expect(found).toBe(true);
+      expect(emitted).toBe(true);
+    });
+
+    it('emits viewSavingsGoals from the "Voir mes objectifs" affordance when savings exist', () => {
+      setTestInput(component.totalPlanned, 500);
+      setTestInput(component.totalRealized, 200);
+      setTestInput(component.checkedCount, 1);
+      setTestInput(component.totalCount, 3);
+      fixture.detectChanges();
+      let emitted = false;
+      component.viewSavingsGoals.subscribe(() => (emitted = true));
+
+      const found = clickButtonContaining('Voir mes objectifs');
+
+      expect(found).toBe(true);
+      expect(emitted).toBe(true);
+    });
+  });
 });

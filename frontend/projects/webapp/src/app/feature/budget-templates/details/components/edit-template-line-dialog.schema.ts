@@ -9,6 +9,7 @@ export const editTemplateLineFromFormSchema = z
     name: z.string().min(2).max(100).trim(),
     amount: z.number().positive(),
     kind: transactionKindSchema,
+    savingsGoalId: z.uuid().nullable().optional(),
     conversion: conversionFormSchema.nullable(),
   })
   .transform(
@@ -16,6 +17,7 @@ export const editTemplateLineFromFormSchema = z
       name: input.name,
       amount: input.amount,
       kind: input.kind,
+      savingsGoalId: input.savingsGoalId,
       ...(input.conversion ?? {}),
     }),
   );

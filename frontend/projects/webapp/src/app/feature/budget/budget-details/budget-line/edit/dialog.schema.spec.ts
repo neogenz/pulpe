@@ -64,6 +64,24 @@ describe('budgetLineUpdateFromFormSchema', () => {
 
       expect(result.name).toBe('Loyer');
     });
+
+    it('should carry savingsGoalId to tag and null to untag (CA26)', () => {
+      const goalId = '00000000-0000-4000-8000-0000000000aa';
+
+      const tagged = budgetLineUpdateFromFormSchema.parse({
+        ...updateFormValue,
+        kind: 'saving',
+        savingsGoalId: goalId,
+      });
+      expect(tagged.savingsGoalId).toBe(goalId);
+
+      const untagged = budgetLineUpdateFromFormSchema.parse({
+        ...updateFormValue,
+        kind: 'saving',
+        savingsGoalId: null,
+      });
+      expect(untagged.savingsGoalId).toBeNull();
+    });
   });
 
   describe('validation', () => {
