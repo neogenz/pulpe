@@ -73,6 +73,85 @@ function createMockEncryption(): EncryptionPort {
   } as unknown as EncryptionPort;
 }
 
+interface DbResult {
+  data: unknown;
+  error: unknown;
+}
+
+/**
+ * Provider for `findLinkedContributions` — dispatches by table so the
+ * budget_line line-query and the transaction follow-up query can each resolve
+ * (or fail) independently, while recording whether/for which ids the
+ * transaction round-trip fired.
+ */
+function createContributionsProvider(config: {
+  lineResult: DbResult;
+  txResult?: DbResult;
+}): {
+  provider: AuthenticatedSupabaseProvider;
+  transactionQueried: () => boolean;
+  transactionLineIds: () => string[] | undefined;
+} {
+  let queried = false;
+  let capturedIds: string[] | undefined;
+  const provider = createMockProvider((table: string) => {
+    if (table === 'budget_line') {
+      return {
+        select: () => ({
+          eq: () => ({ eq: () => Promise.resolve(config.lineResult) }),
+        }),
+      };
+    }
+    if (table === 'transaction') {
+      queried = true;
+      return {
+        select: () => ({
+          in: (_column: string, ids: string[]) => {
+            capturedIds = ids;
+            return Promise.resolve(
+              config.txResult ?? { data: [], error: null },
+            );
+          },
+        }),
+      };
+    }
+    throw new Error(`unexpected table: ${table}`);
+  });
+  return {
+    provider,
+    transactionQueried: () => queried,
+    transactionLineIds: () => capturedIds,
+  };
+}
+
+function createAuthProvider(
+  userMetadata: Record<string, unknown> | undefined,
+): AuthenticatedSupabaseProvider {
+  const client = {
+    auth: {
+      getUser: jest
+        .fn()
+        .mockResolvedValue({ data: { user: { user_metadata: userMetadata } } }),
+    },
+  } as unknown as AuthenticatedSupabaseClient;
+  return {
+    get client() {
+      return client;
+    },
+    get user() {
+      return mockUser;
+    },
+  } as unknown as AuthenticatedSupabaseProvider;
+}
+
+const linkedLineRow = {
+  id: 'line-1',
+  amount: 'enc:500',
+  kind: 'saving' as const,
+  checked_at: '2026-06-01T00:00:00Z',
+  monthly_budget: { month: 6, year: 2026 },
+};
+
 describe('SupabaseSavingsGoalRepository', () => {
   it('findById decrypts target_amount (dedicated field, not generic)', async () => {
     const provider = createMockProvider(() => ({
@@ -200,5 +279,168 @@ describe('SupabaseSavingsGoalRepository', () => {
       ERROR_DEFINITIONS.SAVINGS_GOAL_NOT_FOUND.code,
     );
     expect((caught as BusinessException).cause).toBeUndefined();
+  });
+
+  describe('findLinkedContributions', () => {
+    it('decrypts amounts, renames checked_at→checkedAt, flattens monthly_budget month/year', async () => {
+      const { provider } = createContributionsProvider({
+        lineResult: { data: [linkedLineRow], error: null },
+        txResult: {
+          data: [
+            {
+              budget_line_id: 'line-1',
+              amount: 'enc:120',
+              kind: 'saving',
+              checked_at: '2026-06-10T00:00:00Z',
+            },
+          ],
+          error: null,
+        },
+      });
+      const repo = new SupabaseSavingsGoalRepository(
+        provider,
+        createMockEncryption(),
+      );
+
+      const { lines, transactions } =
+        await repo.findLinkedContributions('goal-1');
+
+      expect(lines).toEqual([
+        {
+          id: 'line-1',
+          amount: 500, // decrypted from 'enc:500'
+          kind: 'saving',
+          checkedAt: '2026-06-01T00:00:00Z',
+          month: 6,
+          year: 2026,
+        },
+      ]);
+      expect(transactions).toEqual([
+        {
+          budgetLineId: 'line-1',
+          amount: 120,
+          kind: 'saving',
+          checkedAt: '2026-06-10T00:00:00Z',
+        },
+      ]);
+    });
+
+    it('returns empty lines/transactions WITHOUT a transaction query when no line is linked', async () => {
+      const { provider, transactionQueried } = createContributionsProvider({
+        lineResult: { data: [], error: null },
+      });
+      const repo = new SupabaseSavingsGoalRepository(
+        provider,
+        createMockEncryption(),
+      );
+
+      const result = await repo.findLinkedContributions('goal-1');
+
+      expect(result).toEqual({ lines: [], transactions: [] });
+      expect(transactionQueried()).toBe(false); // no ids → skip the round-trip
+    });
+
+    it('queries transactions only for the returned line ids', async () => {
+      const { provider, transactionLineIds } = createContributionsProvider({
+        lineResult: {
+          data: [
+            { ...linkedLineRow, id: 'line-1' },
+            { ...linkedLineRow, id: 'line-2' },
+          ],
+          error: null,
+        },
+      });
+      const repo = new SupabaseSavingsGoalRepository(
+        provider,
+        createMockEncryption(),
+      );
+
+      await repo.findLinkedContributions('goal-1');
+
+      expect(transactionLineIds()).toEqual(['line-1', 'line-2']);
+    });
+
+    it('wraps a line-query error in SAVINGS_GOAL_FETCH_FAILED', async () => {
+      const dbError = { message: 'permission denied' };
+      const { provider } = createContributionsProvider({
+        lineResult: { data: null, error: dbError },
+      });
+      const repo = new SupabaseSavingsGoalRepository(
+        provider,
+        createMockEncryption(),
+      );
+
+      let caught: unknown;
+      try {
+        await repo.findLinkedContributions('goal-1');
+      } catch (error) {
+        caught = error;
+      }
+
+      expect(caught).toBeInstanceOf(BusinessException);
+      expect((caught as BusinessException).code).toBe(
+        ERROR_DEFINITIONS.SAVINGS_GOAL_FETCH_FAILED.code,
+      );
+      expect((caught as BusinessException).cause).toBe(dbError);
+    });
+
+    it('wraps a transaction-query error in TRANSACTION_FETCH_FAILED', async () => {
+      const dbError = { message: 'statement timeout' };
+      const { provider } = createContributionsProvider({
+        lineResult: { data: [linkedLineRow], error: null },
+        txResult: { data: null, error: dbError },
+      });
+      const repo = new SupabaseSavingsGoalRepository(
+        provider,
+        createMockEncryption(),
+      );
+
+      let caught: unknown;
+      try {
+        await repo.findLinkedContributions('goal-1');
+      } catch (error) {
+        caught = error;
+      }
+
+      expect(caught).toBeInstanceOf(BusinessException);
+      expect((caught as BusinessException).code).toBe(
+        ERROR_DEFINITIONS.TRANSACTION_FETCH_FAILED.code,
+      );
+      expect((caught as BusinessException).cause).toBe(dbError);
+    });
+  });
+
+  describe('findPayDayOfMonth', () => {
+    it('returns the payDayOfMonth from user_metadata', async () => {
+      const repo = new SupabaseSavingsGoalRepository(
+        createAuthProvider({ payDayOfMonth: 25 }),
+        createMockEncryption(),
+      );
+      expect(await repo.findPayDayOfMonth()).toBe(25);
+    });
+
+    it('clamps an out-of-range payDayOfMonth into [PAY_DAY_MIN, PAY_DAY_MAX]', async () => {
+      const repo = new SupabaseSavingsGoalRepository(
+        createAuthProvider({ payDayOfMonth: 40 }),
+        createMockEncryption(),
+      );
+      expect(await repo.findPayDayOfMonth()).toBe(31); // PAY_DAY_MAX
+    });
+
+    it('returns null when payDayOfMonth is absent', async () => {
+      const repo = new SupabaseSavingsGoalRepository(
+        createAuthProvider({}),
+        createMockEncryption(),
+      );
+      expect(await repo.findPayDayOfMonth()).toBeNull();
+    });
+
+    it('returns null when payDayOfMonth is not an integer', async () => {
+      const repo = new SupabaseSavingsGoalRepository(
+        createAuthProvider({ payDayOfMonth: 15.5 }),
+        createMockEncryption(),
+      );
+      expect(await repo.findPayDayOfMonth()).toBeNull();
+    });
   });
 });
