@@ -13,17 +13,20 @@ final class LiveSessionDataResetter: SessionDataResetting {
     private let budgetListStore: BudgetListStore
     private let dashboardStore: DashboardStore
     private let userSettingsStore: UserSettingsStore
+    private let savingsGoalStore: SavingsGoalStore
 
     init(
         currentMonthStore: CurrentMonthStore,
         budgetListStore: BudgetListStore,
         dashboardStore: DashboardStore,
-        userSettingsStore: UserSettingsStore
+        userSettingsStore: UserSettingsStore,
+        savingsGoalStore: SavingsGoalStore
     ) {
         self.currentMonthStore = currentMonthStore
         self.budgetListStore = budgetListStore
         self.dashboardStore = dashboardStore
         self.userSettingsStore = userSettingsStore
+        self.savingsGoalStore = savingsGoalStore
     }
 
     func resetStores() {
@@ -31,5 +34,6 @@ final class LiveSessionDataResetter: SessionDataResetting {
         budgetListStore.reset()
         dashboardStore.reset()
         userSettingsStore.reset()
+        savingsGoalStore.reset()
     }
 }

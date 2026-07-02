@@ -220,16 +220,21 @@ struct CurrentMonthView: View {
                         .staggeredEntrance(isVisible: hasAppeared, index: 3)
                     }
 
-                    // 5. Savings progress
-                    if store.savingsSummary.hasSavings {
-                        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-                            Text("Épargne")
-                                .pulpeSectionHeader()
+                    // 5. Savings progress + goals entry
+                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+                        Text("Épargne")
+                            .pulpeSectionHeader()
 
+                        if store.savingsSummary.hasSavings {
                             SavingsSummaryCard(summary: store.savingsSummary)
                         }
-                        .staggeredEntrance(isVisible: hasAppeared, index: 4)
+
+                        NavigationLink(value: SavingsGoalDestination.list) {
+                            SavingsGoalsEntryRow(hasSavings: store.savingsSummary.hasSavings)
+                        }
+                        .buttonStyle(.plain)
                     }
+                    .staggeredEntrance(isVisible: hasAppeared, index: 4)
                 }
                 .padding(.horizontal, DesignTokens.Spacing.lg)
                 .padding(.top, DesignTokens.Spacing.lg)

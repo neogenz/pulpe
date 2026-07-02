@@ -12,6 +12,7 @@ struct EditTemplateLineSheet: View {
     @State private var amount: Decimal?
     @State private var kind: TransactionKind
     @State private var recurrence: TransactionRecurrence
+    @State private var savingsGoalId: String?
     @State private var isLoading = false
     @State private var error: Error?
     @FocusState private var focusedField: AmountDescriptionField?
@@ -39,6 +40,7 @@ struct EditTemplateLineSheet: View {
         _name = State(initialValue: templateLine.name)
         _kind = State(initialValue: templateLine.kind)
         _recurrence = State(initialValue: templateLine.recurrence)
+        _savingsGoalId = State(initialValue: templateLine.savingsGoalId)
 
         let inputCurrency = templateLine.originalCurrency ?? userCurrency
         let editableAmount = Self.initialAmount(for: templateLine, userCurrency: userCurrency)
@@ -85,6 +87,9 @@ struct EditTemplateLineSheet: View {
             )
             descriptionField
             recurrenceSelector
+            if kind == .saving {
+                SavingsGoalPickerField(selection: $savingsGoalId)
+            }
 
             if let error {
                 ErrorBanner(message: DomainErrorLocalizer.localize(error)) {
@@ -95,6 +100,10 @@ struct EditTemplateLineSheet: View {
             saveButton
         }
         .sensoryFeedback(.success, trigger: submitSuccessTrigger)
+        .onChange(of: kind) { _, newKind in
+            // Mirror the backend kind-guard: only savings can carry a goal.
+            if newKind != .saving { savingsGoalId = nil }
+        }
         .task {
             do {
                 usageData = try await dependencies.checkTemplateUsage(templateLine.templateId)
@@ -185,13 +194,17 @@ struct EditTemplateLineSheet: View {
                 nil
             }
 
-            pendingUpdate = Self.buildUpdate(
+            var update = Self.buildUpdate(
                 name: name.trimmingCharacters(in: .whitespaces),
                 amount: amount,
                 kind: kind,
                 recurrence: recurrence,
                 conversion: conversion
             )
+            // Always emit the link (id or explicit null) so a saving line can be
+            // tagged or untagged; the kind-guard clears it for non-saving kinds.
+            update.savingsGoalId = .some(kind.savingsGoalLink(savingsGoalId))
+            pendingUpdate = update
 
             let hasBudgets = usageFetchFailed || (usageData?.propagationBudgetCount ?? 0) > 0
             if hasBudgets {
@@ -235,6 +248,7 @@ struct EditTemplateLineSheet: View {
                     kind: data.kind,
                     recurrence: data.recurrence,
                     description: data.description,
+                    savingsGoalId: data.savingsGoalId,
                     originalAmount: data.originalAmount,
                     originalCurrency: data.originalCurrency,
                     targetCurrency: data.targetCurrency,
@@ -349,4 +363,5 @@ struct EditTemplateLineDependencies: Sendable {
     .environment(ToastManager())
     .environment(UserSettingsStore())
     .environment(FeatureFlagsStore())
+    .environment(SavingsGoalStore())
 }

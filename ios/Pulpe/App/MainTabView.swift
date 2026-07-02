@@ -304,6 +304,9 @@ struct CurrentMonthTab: View {
     var body: some View {
         NavigationStack {
             CurrentMonthView()
+                .navigationDestination(for: SavingsGoalDestination.self) { _ in
+                    SavingsGoalsListView()
+                }
         }
         .clearsFloatingTabBar()
     }

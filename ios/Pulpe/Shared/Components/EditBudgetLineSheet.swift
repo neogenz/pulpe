@@ -11,6 +11,7 @@ struct EditBudgetLineSheet: View {
     @State private var name: String
     @State private var amount: Decimal?
     @State private var kind: TransactionKind
+    @State private var savingsGoalId: String?
     @State private var isLoading = false
     @State private var error: Error?
     @FocusState private var focusedField: AmountDescriptionField?
@@ -33,6 +34,7 @@ struct EditBudgetLineSheet: View {
         self.onUpdate = onUpdate
         _name = State(initialValue: budgetLine.name)
         _kind = State(initialValue: budgetLine.kind)
+        _savingsGoalId = State(initialValue: budgetLine.savingsGoalId)
 
         let inputCurrency = budgetLine.originalCurrency ?? userCurrency
         let editableAmount = Self.initialAmount(for: budgetLine, userCurrency: userCurrency)
@@ -78,6 +80,9 @@ struct EditBudgetLineSheet: View {
                 exchangeRate: budgetLine.exchangeRate
             )
             descriptionField
+            if kind == .saving {
+                SavingsGoalPickerField(selection: $savingsGoalId)
+            }
 
             if let error {
                 ErrorBanner(message: DomainErrorLocalizer.localize(error)) {
@@ -88,6 +93,10 @@ struct EditBudgetLineSheet: View {
             saveButton
         }
         .sensoryFeedback(.success, trigger: submitSuccessTrigger)
+        .onChange(of: kind) { _, newKind in
+            // Mirror the backend kind-guard: only savings can carry a goal.
+            if newKind != .saving { savingsGoalId = nil }
+        }
     }
 
     // MARK: - Description
@@ -135,13 +144,16 @@ struct EditBudgetLineSheet: View {
                 nil
             }
 
-            let data = Self.buildUpdate(
+            var data = Self.buildUpdate(
                 id: budgetLine.id,
                 name: name.trimmingCharacters(in: .whitespaces),
                 amount: amount,
                 kind: kind,
                 conversion: conversion
             )
+            // Always emit the link (id or explicit null) so a saving line can be
+            // tagged or untagged; the kind-guard clears it for non-saving kinds.
+            data.savingsGoalId = .some(kind.savingsGoalLink(savingsGoalId))
 
             let updatedLine = try await dependencies.updateBudgetLine(budgetLine.id, data)
             submitSuccessTrigger.toggle()
@@ -175,6 +187,9 @@ struct EditBudgetLineSheet: View {
 
     /// Builds the update DTO. When the line is mono-currency (or flag-off fallback),
     /// currency metadata is omitted so the backend preserves the existing values.
+    /// Builds the update DTO. When the line is mono-currency (or flag-off fallback),
+    /// currency metadata is omitted so the backend preserves the existing values.
+    /// The savings-goal link is applied by the caller (see `updateBudgetLine`).
     static func buildUpdate(
         id: String,
         name: String,
@@ -238,4 +253,5 @@ struct EditBudgetLineDependencies: Sendable {
     .environment(ToastManager())
     .environment(UserSettingsStore())
     .environment(FeatureFlagsStore())
+    .environment(SavingsGoalStore())
 }
