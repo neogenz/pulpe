@@ -1,38 +1,20 @@
 import SwiftUI
 
-/// Navigation target for the savings goals, pushed from the dashboard Épargne
-/// section onto `CurrentMonthTab`'s stack.
+/// Navigation target for the savings goals, pushed onto `CurrentMonthTab`'s
+/// stack: `.list` from the dashboard Épargne section, `.detail` from a list row.
 enum SavingsGoalDestination: Hashable {
     case list
+    case detail(SavingsGoal)
 }
 
-/// What the form sheet is editing — a new goal or an existing one.
-private enum SavingsGoalFormTarget: Identifiable {
-    case create
-    case edit(SavingsGoal)
-
-    var id: String {
-        switch self {
-        case .create: "create"
-        case .edit(let goal): goal.id
-        }
-    }
-
-    var goal: SavingsGoal? {
-        switch self {
-        case .create: nil
-        case .edit(let goal): goal
-        }
-    }
-}
-
-/// Lists the user's savings goals with create / edit / status / delete entry
-/// points (PUL-12). Progression (bars, rythme) is PUL-8 — not shown here.
+/// Lists the user's savings goals (PUL-12). Creating opens the form sheet from
+/// here; a row now pushes the progression detail (PUL-8), which owns edit /
+/// status / delete.
 struct SavingsGoalsListView: View {
     @Environment(SavingsGoalStore.self) private var store
     @Environment(UserSettingsStore.self) private var userSettingsStore
 
-    @State private var formTarget: SavingsGoalFormTarget?
+    @State private var isCreatingGoal = false
 
     var body: some View {
         Group {
@@ -53,15 +35,15 @@ struct SavingsGoalsListView: View {
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Button {
-                    formTarget = .create
+                    isCreatingGoal = true
                 } label: {
                     Image(systemName: "plus")
                 }
                 .accessibilityLabel("Ajouter un objectif")
             }
         }
-        .sheet(item: $formTarget) { target in
-            SavingsGoalFormSheet(goal: target.goal, userCurrency: userSettingsStore.currency)
+        .sheet(isPresented: $isCreatingGoal) {
+            SavingsGoalFormSheet(goal: nil, userCurrency: userSettingsStore.currency)
         }
         .task { await store.loadIfNeeded() }
         .trackScreen("SavingsGoalsList")
@@ -83,7 +65,7 @@ struct SavingsGoalsListView: View {
                 .foregroundStyle(Color.textTertiary)
                 .multilineTextAlignment(.center)
             Button("Créer un objectif") {
-                formTarget = .create
+                isCreatingGoal = true
             }
             .primaryButtonStyle()
         }
@@ -95,9 +77,7 @@ struct SavingsGoalsListView: View {
     private var goalList: some View {
         List {
             ForEach(store.goals) { goal in
-                Button {
-                    formTarget = .edit(goal)
-                } label: {
+                NavigationLink(value: SavingsGoalDestination.detail(goal)) {
                     SavingsGoalRow(goal: goal, currency: userSettingsStore.currency)
                 }
                 .buttonStyle(.plain)

@@ -5,6 +5,7 @@ import Foundation
 protocol SavingsGoalServicing: Sendable {
     func getAll() async throws -> [SavingsGoal]
     func get(id: String) async throws -> SavingsGoal
+    func getProgress(id: String) async throws -> SavingsGoalProgress
     func create(_ data: SavingsGoalCreate) async throws -> SavingsGoal
     func update(id: String, data: SavingsGoalUpdate) async throws -> SavingsGoal
     func delete(id: String) async throws
@@ -27,6 +28,11 @@ actor SavingsGoalService: SavingsGoalServicing {
 
     func get(id: String) async throws -> SavingsGoal {
         try await apiClient.request(.savingsGoal(id: id), method: .get)
+    }
+
+    /// Fetches the derived progression (PUL-8). The backend computes every figure.
+    func getProgress(id: String) async throws -> SavingsGoalProgress {
+        try await apiClient.request(.savingsGoalProgress(id: id), method: .get)
     }
 
     func create(_ data: SavingsGoalCreate) async throws -> SavingsGoal {
