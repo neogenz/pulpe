@@ -83,7 +83,7 @@ import type {
       @if (linkedGoal(); as goal) {
         <button
           matButton
-          class="self-start !-ml-2 max-w-full"
+          class="self-start !h-8 !px-5 !-ml-5 max-w-full"
           (click)="openLinkedGoal(goal.id)"
           data-testid="allocated-transactions-bottom-sheet-linked-goal"
           [attr.aria-label]="'budgetLine.linkedGoalAriaLabel' | transloco"
