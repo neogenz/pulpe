@@ -11,6 +11,7 @@ import { FindSavingsGoalUseCase } from './application/find-savings-goal.use-case
 import { CreateSavingsGoalUseCase } from './application/create-savings-goal.use-case';
 import { UpdateSavingsGoalUseCase } from './application/update-savings-goal.use-case';
 import { RemoveSavingsGoalUseCase } from './application/remove-savings-goal.use-case';
+import { GetSavingsGoalProgressUseCase } from './application/get-savings-goal-progress.use-case';
 
 @Module({
   imports: [SupabaseModule, EncryptionModule],
@@ -21,6 +22,7 @@ import { RemoveSavingsGoalUseCase } from './application/remove-savings-goal.use-
     CreateSavingsGoalUseCase,
     UpdateSavingsGoalUseCase,
     RemoveSavingsGoalUseCase,
+    GetSavingsGoalProgressUseCase,
     {
       provide: SAVINGS_GOAL_REPOSITORY,
       useClass: SupabaseSavingsGoalRepository,
@@ -32,6 +34,7 @@ import { RemoveSavingsGoalUseCase } from './application/remove-savings-goal.use-
     createInfoLoggerProvider(CreateSavingsGoalUseCase.name),
     createInfoLoggerProvider(UpdateSavingsGoalUseCase.name),
     createInfoLoggerProvider(RemoveSavingsGoalUseCase.name),
+    createInfoLoggerProvider(GetSavingsGoalProgressUseCase.name),
   ],
   exports: [],
 })

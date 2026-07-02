@@ -210,6 +210,41 @@ export class BudgetFormulas {
   }
 
   /**
+   * Épargne réalisée (pointée) avec logique d'enveloppe — progression d'un
+   * objectif d'épargne (PUL-8, docs/SAVINGS.md §4).
+   *
+   * Clone de `calculateRealizedExpenses` avec DEUX différences OBLIGATOIRES :
+   * - filtre `kind === 'saving'` STRICT (PAS `isOutflowKind`, qui agrégerait
+   *   saving + expense) ;
+   * - PAS de bloc free-transaction (`budgetLineId = ''`) : un objectif n'a que
+   *   des lignes liées ; une épargne pointée non rattachée contaminerait le
+   *   confirmé.
+   */
+  static calculateRealizedSavings(
+    budgetLines: FinancialItemWithId[],
+    transactions: TransactionWithBudgetLineId[] = [],
+  ): number {
+    const txsByLineId = this.#indexByLineId(transactions);
+    let total = 0;
+
+    for (const line of budgetLines) {
+      if (line.kind !== 'saving') continue;
+
+      const consumed = (txsByLineId.get(line.id) ?? [])
+        .filter((tx) => tx.checkedAt != null && tx.kind === 'saving')
+        .reduce((sum, tx) => sum + tx.amount, 0);
+
+      if (line.checkedAt != null) {
+        total += Math.max(line.amount, consumed);
+      } else {
+        total += consumed;
+      }
+    }
+
+    return total;
+  }
+
+  /**
    * Calcule le solde réalisé (basé uniquement sur les éléments pointés)
    * Formule: solde_réalisé = Σ(revenus pointés) - Σ(dépenses + épargnes pointées)
    *

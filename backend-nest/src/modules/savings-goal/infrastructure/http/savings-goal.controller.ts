@@ -21,6 +21,7 @@ import {
   type SavingsGoalResponse,
   type SavingsGoalListResponse,
   type SavingsGoalDeleteResponse,
+  type SavingsGoalProgressResponse,
 } from 'pulpe-shared';
 import { AuthGuard } from '@common/guards/auth.guard';
 import {
@@ -34,12 +35,14 @@ import {
   SavingsGoalResponseDto,
   SavingsGoalListResponseDto,
   SavingsGoalDeleteResponseDto,
+  SavingsGoalProgressResponseDto,
 } from './dto/savings-goal-swagger.dto';
 import { FindAllSavingsGoalsUseCase } from '../../application/find-all-savings-goals.use-case';
 import { FindSavingsGoalUseCase } from '../../application/find-savings-goal.use-case';
 import { CreateSavingsGoalUseCase } from '../../application/create-savings-goal.use-case';
 import { UpdateSavingsGoalUseCase } from '../../application/update-savings-goal.use-case';
 import { RemoveSavingsGoalUseCase } from '../../application/remove-savings-goal.use-case';
+import { GetSavingsGoalProgressUseCase } from '../../application/get-savings-goal-progress.use-case';
 import { SavingsGoalMapper } from '../mappers/savings-goal.mapper';
 
 @ApiTags('Savings Goals')
@@ -61,6 +64,7 @@ export class SavingsGoalController {
     private readonly createUseCase: CreateSavingsGoalUseCase,
     private readonly updateUseCase: UpdateSavingsGoalUseCase,
     private readonly removeUseCase: RemoveSavingsGoalUseCase,
+    private readonly progressUseCase: GetSavingsGoalProgressUseCase,
     private readonly mapper: SavingsGoalMapper,
   ) {}
 
@@ -91,6 +95,25 @@ export class SavingsGoalController {
   ): Promise<SavingsGoalResponse> {
     const entity = await this.createUseCase.execute(createDto, user);
     return { success: true, data: this.mapper.toApi(entity) };
+  }
+
+  @Get(':id/progress')
+  @ApiOperation({
+    summary:
+      "Progression d'un objectif — prévu cumulé, confirmé (pointé), rythme, projection (PUL-8)",
+  })
+  @ApiParam({ name: 'id', description: "Identifiant unique de l'objectif" })
+  @ApiResponse({
+    status: 200,
+    description: 'Progression calculée avec succès',
+    type: SavingsGoalProgressResponseDto,
+  })
+  async progress(
+    @Param('id') id: string,
+    @User() user: AuthenticatedUser,
+  ): Promise<SavingsGoalProgressResponse> {
+    const computation = await this.progressUseCase.execute(id, user);
+    return { success: true, data: this.mapper.toProgressApi(computation) };
   }
 
   @Get(':id')
