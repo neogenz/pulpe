@@ -157,6 +157,16 @@ describe('RecoverVaultCode', () => {
       expect(newCodeInput).toBeTruthy();
       expect(confirmInput).toBeTruthy();
     });
+
+    it('should render a contact support link pointing to pulpe.app/support', () => {
+      const supportLink = fixture.nativeElement.querySelector(
+        '[data-testid="contact-support-link"]',
+      ) as HTMLAnchorElement;
+
+      expect(supportLink).toBeTruthy();
+      expect(supportLink.href).toBe('https://pulpe.app/support');
+      expect(supportLink.textContent).toContain('Contacter le support');
+    });
   });
 
   describe('Form Validation', () => {

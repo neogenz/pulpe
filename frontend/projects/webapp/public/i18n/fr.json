@@ -148,7 +148,9 @@
       "pinsMismatch": "Les codes ne correspondent pas",
       "submitting": "Récupération...",
       "submit": "Récupérer",
-      "recoveryKeyGenerationFailed": "La clé de récupération n'a pas pu être générée — pense à en créer une dans les paramètres"
+      "recoveryKeyGenerationFailed": "La clé de récupération n'a pas pu être générée — pense à en créer une dans les paramètres",
+      "lostRecoveryKey": "Tu n'as plus ta clé de récupération ?",
+      "contactSupport": "Contacter le support"
     },
     "errors": {
       "oauthConnection": "La connexion a échoué — réessaie",
