@@ -20,6 +20,7 @@ import { CurrencyConverterService } from '@core/currency';
 import { FeatureFlagsService } from '@core/feature-flags';
 import { AnalyticsService } from '@core/analytics';
 
+import { ConfirmationDialog } from '@ui/dialogs/confirmation-dialog';
 import SettingsPage from './settings-page';
 
 describe('SettingsPage', () => {
@@ -270,6 +271,55 @@ describe('SettingsPage', () => {
         'La suppression a échoué — réessaie plus tard',
         'OK',
         expect.any(Object),
+      );
+    });
+  });
+
+  describe('saveSettings currency change confirmation (PUL-205)', () => {
+    async function saveSettings(): Promise<void> {
+      await fixture.componentInstance.saveSettings();
+      await fixture.whenStable();
+    }
+
+    it('should ask for confirmation with no-conversion copy before persisting a currency change', async () => {
+      fixture.componentInstance.onCurrencyChange('EUR');
+
+      await saveSettings();
+
+      expect(mockDialog.open).toHaveBeenCalledWith(
+        ConfirmationDialog,
+        expect.objectContaining({
+          data: expect.objectContaining({
+            title: "Changer la devise d'affichage ?",
+            message:
+              "Tes montants existants ne sont pas convertis — 100 restera 100, affiché en EUR. Seule la devise d'affichage change.",
+          }),
+        }),
+      );
+      expect(mockUserSettingsStore.updateSettings).toHaveBeenCalledWith(
+        expect.objectContaining({ currency: 'EUR' }),
+      );
+    });
+
+    it('should not persist and revert the selector when confirmation is cancelled', async () => {
+      mockDialogRef.afterClosed = () => of(false);
+      fixture.componentInstance.onCurrencyChange('EUR');
+
+      await saveSettings();
+
+      expect(mockUserSettingsStore.updateSettings).not.toHaveBeenCalled();
+      expect(mockAnalytics.captureEvent).not.toHaveBeenCalled();
+      expect(fixture.componentInstance.selectedCurrency()).toBe('CHF');
+    });
+
+    it('should not ask for confirmation when currency is unchanged', async () => {
+      fixture.componentInstance.selectedPayDay.set(15);
+
+      await saveSettings();
+
+      expect(mockDialog.open).not.toHaveBeenCalled();
+      expect(mockUserSettingsStore.updateSettings).toHaveBeenCalledWith(
+        expect.objectContaining({ payDayOfMonth: 15, currency: 'CHF' }),
       );
     });
   });

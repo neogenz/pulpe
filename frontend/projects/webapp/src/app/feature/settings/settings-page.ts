@@ -35,6 +35,10 @@ import { ClientKeyService, EncryptionApi } from '@core/encryption';
 import { DemoModeService } from '@core/demo/demo-mode.service';
 import { ROUTES } from '@core/routing/routes-constants';
 import {
+  ConfirmationDialog,
+  type ConfirmationDialogData,
+} from '@ui/dialogs/confirmation-dialog';
+import {
   RecoveryKeyDialog,
   type RecoveryKeyDialogData,
 } from '@ui/dialogs/recovery-key-dialog';
@@ -459,6 +463,14 @@ export default class SettingsPage {
     const previousSelector = this.initialShowCurrencySelector();
     const newSelector = this.selectedShowCurrencySelector();
 
+    if (previousCurrency !== newCurrency) {
+      const confirmed = await this.#confirmCurrencyChange(newCurrency);
+      if (!confirmed) {
+        this.selectedCurrency.set(previousCurrency);
+        return;
+      }
+    }
+
     try {
       this.isSaving.set(true);
 
@@ -498,6 +510,28 @@ export default class SettingsPage {
     } finally {
       this.isSaving.set(false);
     }
+  }
+
+  /**
+   * PUL-205: a currency flip changes only the display unit — amounts are never
+   * converted. The confirmation makes that explicit before persisting.
+   */
+  async #confirmCurrencyChange(
+    newCurrency: SupportedCurrency,
+  ): Promise<boolean> {
+    const data: ConfirmationDialogData = {
+      title: this.#transloco.translate('settings.currencyChangeTitle'),
+      message: this.#transloco.translate('settings.currencyChangeMessage', {
+        currency: newCurrency,
+      }),
+      confirmText: this.#transloco.translate('settings.currencyChangeConfirm'),
+      cancelText: this.#transloco.translate('common.cancel'),
+    };
+    const dialogRef = this.#dialog.open(ConfirmationDialog, {
+      data,
+      width: '400px',
+    });
+    return (await firstValueFrom(dialogRef.afterClosed())) === true;
   }
 
   resetChanges(): void {
