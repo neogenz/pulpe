@@ -212,7 +212,7 @@ type DetailViewState = 'loading' | 'error' | 'notFound' | 'ready';
 
               @if (paceChip(); as chip) {
                 <div
-                  class="flex items-center gap-2 rounded-full px-3 py-1.5 w-fit text-label-large"
+                  class="flex items-center gap-1.5 rounded-full px-4 py-1.5 w-fit text-label-large"
                   [class]="chip.classes"
                   data-testid="savings-goal-pace-chip"
                 >
