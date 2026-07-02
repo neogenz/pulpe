@@ -216,15 +216,17 @@ struct PinRecoveryView: View {
     }
 
     private var contactSupportLink: some View {
-        HStack(spacing: DesignTokens.Spacing.xs) {
-            Text("Tu n'as plus ta clé ?")
+        VStack(spacing: DesignTokens.Spacing.xs) {
+            Text("Tu n'as plus ta clé de récupération ?")
                 .foregroundStyle(Color.textSecondaryOnboarding)
+                .multilineTextAlignment(.center)
             Link("Contacter le support", destination: AppURLs.support)
                 .foregroundStyle(Color.pulpePrimary)
+                .frame(minHeight: DesignTokens.TapTarget.minimum)
+                .contentShape(Rectangle())
+                .accessibilityIdentifier("contactSupportLink")
         }
         .font(PulpeTypography.subheadline)
-        .frame(minHeight: DesignTokens.TapTarget.minimum)
-        .accessibilityIdentifier("contactSupportLink")
     }
 
     private var recoveryKeySheetItemBinding: Binding<RecoveryKeySheetItem?> {
