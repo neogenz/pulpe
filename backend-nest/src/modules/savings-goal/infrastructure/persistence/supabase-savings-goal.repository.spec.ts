@@ -62,7 +62,22 @@ function createMockEncryption(): EncryptionPort {
     encryptAmount: jest
       .fn()
       .mockImplementation((amount: number) => `enc:${amount}`),
-    decryptRowAmountFields: jest.fn(),
+    decryptRowAmountFields: jest
+      .fn()
+      .mockImplementation(
+        (row: { amount: string | null; original_amount: string | null }) => ({
+          ...row,
+          amount:
+            typeof row.amount === 'string' && row.amount.startsWith('enc:')
+              ? Number(row.amount.slice(4))
+              : 0,
+          original_amount:
+            typeof row.original_amount === 'string' &&
+            row.original_amount.startsWith('enc:')
+              ? Number(row.original_amount.slice(4))
+              : null,
+        }),
+      ),
     prepareAmountData: jest.fn(),
     prepareAmountsData: jest.fn(),
     encryptOptionalAmount: jest
@@ -120,6 +135,55 @@ function createContributionsProvider(config: {
   return {
     provider,
     transactionQueried: () => queried,
+    transactionLineIds: () => capturedIds,
+  };
+}
+
+/**
+ * Provider for `findLinkedTransactions` — the budget_line query returns the
+ * linked lines (with their budget period), then the transaction query resolves
+ * `.in(...).order(...)`. Records the ordering args + the queried line ids.
+ */
+function createLinkedTransactionsProvider(config: {
+  lineResult: DbResult;
+  txResult?: DbResult;
+}): {
+  provider: AuthenticatedSupabaseProvider;
+  orderArgs: () => [string, { ascending: boolean }] | undefined;
+  transactionLineIds: () => string[] | undefined;
+} {
+  let capturedOrder: [string, { ascending: boolean }] | undefined;
+  let capturedIds: string[] | undefined;
+  const provider = createMockProvider((table: string) => {
+    if (table === 'budget_line') {
+      return {
+        select: () => ({
+          eq: () => ({ eq: () => Promise.resolve(config.lineResult) }),
+        }),
+      };
+    }
+    if (table === 'transaction') {
+      return {
+        select: () => ({
+          in: (_column: string, ids: string[]) => {
+            capturedIds = ids;
+            return {
+              order: (column: string, opts: { ascending: boolean }) => {
+                capturedOrder = [column, opts];
+                return Promise.resolve(
+                  config.txResult ?? { data: [], error: null },
+                );
+              },
+            };
+          },
+        }),
+      };
+    }
+    throw new Error(`unexpected table: ${table}`);
+  });
+  return {
+    provider,
+    orderArgs: () => capturedOrder,
     transactionLineIds: () => capturedIds,
   };
 }
@@ -398,6 +462,103 @@ describe('SupabaseSavingsGoalRepository', () => {
       let caught: unknown;
       try {
         await repo.findLinkedContributions('goal-1');
+      } catch (error) {
+        caught = error;
+      }
+
+      expect(caught).toBeInstanceOf(BusinessException);
+      expect((caught as BusinessException).code).toBe(
+        ERROR_DEFINITIONS.TRANSACTION_FETCH_FAILED.code,
+      );
+      expect((caught as BusinessException).cause).toBe(dbError);
+    });
+  });
+
+  describe('findLinkedTransactions', () => {
+    const linkedTxRow = {
+      id: 'tx-1',
+      budget_id: 'budget-1',
+      budget_line_id: 'line-1',
+      name: 'Virement épargne',
+      amount: 'enc:500',
+      original_amount: null,
+      original_currency: null,
+      target_currency: null,
+      exchange_rate: null,
+      kind: 'saving' as const,
+      category: null,
+      transaction_date: '2026-06-15',
+      checked_at: '2026-06-15T00:00:00Z',
+      created_at: '2026-06-15T00:00:00Z',
+      updated_at: '2026-06-15T00:00:00Z',
+    };
+
+    it('decrypts each transaction and situates it via its parent line period', async () => {
+      const { provider, orderArgs } = createLinkedTransactionsProvider({
+        lineResult: { data: [linkedLineRow], error: null },
+        txResult: { data: [linkedTxRow], error: null },
+      });
+      const repo = new SupabaseSavingsGoalRepository(
+        provider,
+        createMockEncryption(),
+      );
+
+      const result = await repo.findLinkedTransactions('goal-1');
+
+      expect(result).toEqual([
+        {
+          id: 'tx-1',
+          budgetId: 'budget-1',
+          budgetLineId: 'line-1',
+          name: 'Virement épargne',
+          amount: 500, // decrypted from 'enc:500'
+          originalAmount: null,
+          originalCurrency: null,
+          targetCurrency: null,
+          exchangeRate: null,
+          kind: 'saving',
+          category: null,
+          transactionDate: '2026-06-15',
+          checkedAt: '2026-06-15T00:00:00Z',
+          createdAt: '2026-06-15T00:00:00Z',
+          updatedAt: '2026-06-15T00:00:00Z',
+          budgetMonth: 6, // from the parent line's monthly_budget
+          budgetYear: 2026,
+        },
+      ]);
+      // Ordered most-recent-first at the DB layer.
+      expect(orderArgs()).toEqual(['transaction_date', { ascending: false }]);
+    });
+
+    it('returns [] WITHOUT a transaction query when no saving line is linked', async () => {
+      const { provider, transactionLineIds } = createLinkedTransactionsProvider(
+        { lineResult: { data: [], error: null } },
+      );
+      const repo = new SupabaseSavingsGoalRepository(
+        provider,
+        createMockEncryption(),
+      );
+
+      const result = await repo.findLinkedTransactions('goal-1');
+
+      expect(result).toEqual([]);
+      expect(transactionLineIds()).toBeUndefined(); // no ids → skip the round-trip
+    });
+
+    it('wraps a transaction-query error in TRANSACTION_FETCH_FAILED', async () => {
+      const dbError = { message: 'statement timeout' };
+      const { provider } = createLinkedTransactionsProvider({
+        lineResult: { data: [linkedLineRow], error: null },
+        txResult: { data: null, error: dbError },
+      });
+      const repo = new SupabaseSavingsGoalRepository(
+        provider,
+        createMockEncryption(),
+      );
+
+      let caught: unknown;
+      try {
+        await repo.findLinkedTransactions('goal-1');
       } catch (error) {
         caught = error;
       }

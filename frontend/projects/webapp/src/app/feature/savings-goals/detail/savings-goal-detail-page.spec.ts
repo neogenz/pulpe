@@ -12,7 +12,11 @@ import { By } from '@angular/platform-browser';
 import { Router } from '@angular/router';
 import { registerLocaleData } from '@angular/common';
 import localeDE from '@angular/common/locales/de-CH';
-import type { SavingsGoal, SavingsGoalProgress } from 'pulpe-shared';
+import type {
+  SavingsGoal,
+  SavingsGoalProgress,
+  SavingsGoalTransaction,
+} from 'pulpe-shared';
 import SavingsGoalDetailPage from './savings-goal-detail-page';
 import { SavingsGoalStore } from '../services/savings-goals-store';
 import { SavingsGoalsDialogService } from '../services/savings-goals-dialog.service';
@@ -95,12 +99,38 @@ function makeProgress(
   };
 }
 
+function makeTransaction(
+  overrides: Partial<SavingsGoalTransaction> = {},
+): SavingsGoalTransaction {
+  return {
+    id: 'tx-1',
+    budgetId: 'budget-1',
+    budgetLineId: 'line-1',
+    name: 'macbook1',
+    amount: 150,
+    kind: 'saving',
+    transactionDate: '2026-07-02T10:00:00.000Z',
+    checkedAt: '2026-07-02T10:00:00.000Z',
+    category: null,
+    createdAt: '2026-07-02T10:00:00.000Z',
+    updatedAt: '2026-07-02T10:00:00.000Z',
+    originalAmount: null,
+    originalCurrency: null,
+    targetCurrency: null,
+    exchangeRate: null,
+    budgetMonth: 7,
+    budgetYear: 2026,
+    ...overrides,
+  } as SavingsGoalTransaction;
+}
+
 describe('SavingsGoalDetailPage', () => {
   let fixture: ComponentFixture<SavingsGoalDetailPage>;
   let component: SavingsGoalDetailPage;
 
   const goalSig = signal<SavingsGoal | null>(makeGoal());
   const progressSig = signal<SavingsGoalProgress | null>(makeProgress());
+  const transactionsSig = signal<SavingsGoalTransaction[]>([]);
   const progressErrorSig = signal<unknown>(null);
   const isProgressLoadingSig = signal(false);
   const listInitialLoadingSig = signal(false);
@@ -115,6 +145,8 @@ describe('SavingsGoalDetailPage', () => {
     progress: progressSig,
     progressError: progressErrorSig,
     isProgressLoading: isProgressLoadingSig,
+    transactions: transactionsSig,
+    isTransactionsLoading: signal(false),
     savingsGoals: { isInitialLoading: listInitialLoadingSig },
     setSelectedGoalId: vi.fn(),
     reloadProgress,
@@ -132,6 +164,7 @@ describe('SavingsGoalDetailPage', () => {
   beforeEach(async () => {
     goalSig.set(makeGoal());
     progressSig.set(makeProgress());
+    transactionsSig.set([]);
     progressErrorSig.set(null);
     isProgressLoadingSig.set(false);
     listInitialLoadingSig.set(false);
@@ -282,6 +315,34 @@ describe('SavingsGoalDetailPage', () => {
     ).toBeTruthy();
     expect(query('savings-goal-progress-bar')).toBeFalsy();
     expect(query('edit-savings-goal-button')).toBeFalsy();
+  });
+
+  it('lists the transactions allocated to the goal-linked lines', () => {
+    transactionsSig.set([
+      makeTransaction(),
+      makeTransaction({ id: 'tx-2', name: 'acompte', checkedAt: null }),
+    ]);
+    fixture.detectChanges();
+
+    const rows = fixture.debugElement.queryAll(
+      By.css('[data-testid="savings-goal-transaction-row"]'),
+    );
+    expect(rows).toHaveLength(2);
+    expect(rows[0].nativeElement.textContent).toContain('macbook1');
+    expect(rows[0].nativeElement.textContent).toContain('150.00');
+    expect(query('savings-goal-transactions-empty')).toBeFalsy();
+  });
+
+  it('shows the transactions empty hint when no transaction exists yet', () => {
+    fixture.detectChanges();
+    expect(query('savings-goal-transactions')).toBeTruthy();
+    expect(query('savings-goal-transactions-empty')).toBeTruthy();
+  });
+
+  it('hides the transactions section entirely when no line is linked', () => {
+    progressSig.set(makeProgress({ linkedLineCount: 0 }));
+    fixture.detectChanges();
+    expect(query('savings-goal-transactions')).toBeFalsy();
   });
 
   it('navigates back to the list on back button', () => {

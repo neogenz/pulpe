@@ -2,11 +2,14 @@ import { Injectable } from '@nestjs/common';
 import {
   type SavingsGoal as SavingsGoalApi,
   type SavingsGoalProgress,
+  type SavingsGoalTransaction,
   type SupportedCurrency,
 } from 'pulpe-shared';
 import { parseCurrency } from '@common/utils/currency-metadata.mapper';
+import { mapTransactionToApi } from '@common/utils/transaction-api.mapper';
 import type {
   SavingsGoal,
+  SavingsGoalLinkedTransaction,
   SavingsGoalProgressComputation,
 } from '../../domain/savings-goal.entity';
 
@@ -74,5 +77,20 @@ export class SavingsGoalMapper {
       targetCurrency: parseCurrency(goal.targetCurrency) ?? null,
       exchangeRate: goal.exchangeRate,
     };
+  }
+
+  /**
+   * Transactions liées (PUL-12). Réutilise le mapper transaction commun pour
+   * le cœur camelCase + door-keepers FX, puis attache la période du budget
+   * parent (`budgetMonth`/`budgetYear`) qui situe chaque transaction.
+   */
+  toTransactionsApi(
+    transactions: SavingsGoalLinkedTransaction[],
+  ): SavingsGoalTransaction[] {
+    return transactions.map((transaction) => ({
+      ...mapTransactionToApi(transaction),
+      budgetMonth: transaction.budgetMonth,
+      budgetYear: transaction.budgetYear,
+    }));
   }
 }

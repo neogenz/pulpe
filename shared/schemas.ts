@@ -1346,6 +1346,26 @@ export type SavingsGoalProgressResponse = z.infer<
   typeof savingsGoalProgressResponseSchema
 >;
 
+/**
+ * Transactions allouées aux prévisions liées à un objectif (PUL-12).
+ * Un objectif couvre plusieurs budgets — chaque ligne porte le mois/année du
+ * budget parent pour situer la transaction sans charger les budgets.
+ */
+export const savingsGoalTransactionSchema = transactionSchema.extend({
+  budgetMonth: z.number().int().min(1).max(12),
+  budgetYear: z.number().int(),
+});
+export type SavingsGoalTransaction = z.infer<
+  typeof savingsGoalTransactionSchema
+>;
+
+export const savingsGoalTransactionsResponseSchema = createListResponse(
+  savingsGoalTransactionSchema,
+);
+export type SavingsGoalTransactionsResponse = z.infer<
+  typeof savingsGoalTransactionsResponseSchema
+>;
+
 // Budget Line response schemas
 export const budgetLineResponseSchema = createSuccessResponse(budgetLineSchema);
 export type BudgetLineResponse = z.infer<typeof budgetLineResponseSchema>;

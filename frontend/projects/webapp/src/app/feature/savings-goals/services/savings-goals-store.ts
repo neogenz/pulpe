@@ -3,6 +3,7 @@ import {
   type SavingsGoal,
   type SavingsGoalCreate,
   type SavingsGoalProgress,
+  type SavingsGoalTransaction,
   type SavingsGoalUpdate,
 } from 'pulpe-shared';
 import { firstValueFrom, map } from 'rxjs';
@@ -58,6 +59,28 @@ export class SavingsGoalStore {
   );
   readonly isProgressLoading = this.#progressResource.isInitialLoading;
   readonly progressError = this.#progressResource.error;
+
+  // Transactions allocated to the goal-linked lines (across all budgets).
+  readonly #transactionsResource = cachedResource<
+    SavingsGoalTransaction[],
+    { goalId: string }
+  >({
+    cache: this.#api.cache,
+    cacheKey: (params) => ['savings-goals', 'transactions', params.goalId],
+    params: () => {
+      const id = this.#selectedGoalId();
+      return id ? { goalId: id } : undefined;
+    },
+    loader: ({ params }) =>
+      firstValueFrom(
+        this.#api.getTransactions$(params.goalId).pipe(map((res) => res.data)),
+      ),
+  });
+
+  readonly transactions = computed<SavingsGoalTransaction[]>(
+    () => this.#transactionsResource.value() ?? [],
+  );
+  readonly isTransactionsLoading = this.#transactionsResource.isInitialLoading;
 
   setSelectedGoalId(id: string | null): void {
     this.#selectedGoalId.set(id);

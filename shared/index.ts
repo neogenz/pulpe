@@ -84,6 +84,8 @@ export {
   savingsGoalPaceStatusSchema,
   savingsGoalProgressSchema,
   savingsGoalProgressResponseSchema,
+  savingsGoalTransactionSchema,
+  savingsGoalTransactionsResponseSchema,
 
   // Budget Line schemas
   budgetLineSchema,
@@ -286,6 +288,8 @@ export type {
   SavingsGoalPaceStatus,
   SavingsGoalProgress,
   SavingsGoalProgressResponse,
+  SavingsGoalTransaction,
+  SavingsGoalTransactionsResponse,
 
   // Budget Line types
   BudgetLine,

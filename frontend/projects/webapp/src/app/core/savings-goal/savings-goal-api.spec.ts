@@ -111,6 +111,41 @@ describe('SavingsGoalApi', () => {
     expect(response.data.paceStatus).toBeNull();
   });
 
+  it('getTransactions$ GETs the goal transactions endpoint and parses the schema', async () => {
+    const responsePromise = firstValueFrom(service.getTransactions$(GOAL_ID));
+
+    const req = httpTesting.expectOne(
+      `http://localhost:3000/api/v1/savings-goals/${GOAL_ID}/transactions`,
+    );
+    expect(req.request.method).toBe('GET');
+
+    req.flush({
+      success: true,
+      data: [
+        {
+          id: '4f8f011f-3312-4676-9b18-3b237db2d40c',
+          budgetId: 'c2c15b83-9975-4534-a6be-30a19f2f1389',
+          budgetLineId: '3a15195c-2be2-4b64-a4a3-e064f34cb44b',
+          name: 'macbook1',
+          amount: 150,
+          kind: 'saving',
+          transactionDate: '2026-07-02T10:00:00.000Z',
+          checkedAt: '2026-07-02T10:00:00.000Z',
+          category: null,
+          createdAt: '2026-07-02T10:00:00.000Z',
+          updatedAt: '2026-07-02T10:00:00.000Z',
+          budgetMonth: 7,
+          budgetYear: 2026,
+        },
+      ],
+    });
+
+    const response = await responsePromise;
+    expect(response.data).toHaveLength(1);
+    expect(response.data[0].amount).toBe(150);
+    expect(response.data[0].budgetMonth).toBe(7);
+  });
+
   // Bug repro: a transaction pointée on a goal-linked line invalidates the
   // budget cache, but the goal progress cache stayed FRESH — the detail page
   // kept serving the pre-mutation confirmed amount for up to staleTime.

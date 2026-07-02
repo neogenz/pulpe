@@ -17,11 +17,13 @@ import type {
   SavingsGoalCreateInput,
   SavingsGoalInsert,
   SavingsGoalLinkedContributions,
+  SavingsGoalLinkedTransaction,
   SavingsGoalRow,
   SavingsGoalUpdatePatch,
 } from '../../domain/savings-goal.entity';
 
 type TransactionKindEnum = Database['public']['Enums']['transaction_kind'];
+type TransactionRow = Database['public']['Tables']['transaction']['Row'];
 
 interface LinkedLineRow {
   id: string;
@@ -36,6 +38,16 @@ interface LinkedTransactionRow {
   amount: string | null;
   kind: TransactionKindEnum;
   checked_at: string | null;
+}
+
+interface SavingLinePeriodRow {
+  id: string;
+  monthly_budget: { month: number; year: number };
+}
+
+interface BudgetPeriod {
+  month: number;
+  year: number;
 }
 
 @Injectable()
@@ -238,6 +250,14 @@ export class SupabaseSavingsGoalRepository implements SavingsGoalRepositoryPort 
     return { lines, transactions };
   }
 
+  async findLinkedTransactions(
+    goalId: string,
+  ): Promise<SavingsGoalLinkedTransaction[]> {
+    const periodByLineId = await this.findSavingLinePeriods(goalId);
+    if (!periodByLineId.size) return [];
+    return this.findTransactionsWithPeriods(periodByLineId);
+  }
+
   async findPayDayOfMonth(): Promise<number | null> {
     const { data } = await this.supabaseProvider.client.auth.getUser();
     const raw: unknown = data?.user?.user_metadata?.payDayOfMonth;
@@ -278,6 +298,106 @@ export class SupabaseSavingsGoalRepository implements SavingsGoalRepositoryPort 
       kind: row.kind,
       checkedAt: row.checked_at,
     }));
+  }
+
+  /**
+   * Prévisions Épargne liées au goal (kind=saving, RLS-scopé) → période du
+   * budget parent, indexée par id de ligne. Sert de base de jointure pour situer
+   * les transactions allouées (PUL-12).
+   */
+  private async findSavingLinePeriods(
+    goalId: string,
+  ): Promise<Map<string, BudgetPeriod>> {
+    const { data, error } = await this.supabaseProvider.client
+      .from('budget_line')
+      .select('id, monthly_budget!inner(month, year)')
+      .eq('savings_goal_id', goalId)
+      .eq('kind', 'saving');
+
+    if (error) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.SAVINGS_GOAL_FETCH_FAILED,
+        undefined,
+        {
+          operation: 'findSavingsGoalLinkedTransactions',
+          entityId: goalId,
+          entityType: 'savings_goal',
+          supabaseError: error,
+        },
+        { cause: error },
+      );
+    }
+
+    const rows = (data ?? []) as unknown as SavingLinePeriodRow[];
+    return new Map(
+      rows.map((row) => [
+        row.id,
+        { month: row.monthly_budget.month, year: row.monthly_budget.year },
+      ]),
+    );
+  }
+
+  /**
+   * Transactions allouées aux lignes fournies, déchiffrées et triées par date
+   * décroissante, chacune située par la période de son budget parent.
+   */
+  private async findTransactionsWithPeriods(
+    periodByLineId: Map<string, BudgetPeriod>,
+  ): Promise<SavingsGoalLinkedTransaction[]> {
+    const { data, error } = await this.supabaseProvider.client
+      .from('transaction')
+      .select('*')
+      .in('budget_line_id', Array.from(periodByLineId.keys()))
+      .order('transaction_date', { ascending: false });
+
+    if (error) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.TRANSACTION_FETCH_FAILED,
+        undefined,
+        {
+          operation: 'findSavingsGoalLinkedTransactions',
+          entityType: 'transaction',
+          supabaseError: error,
+        },
+        { cause: error },
+      );
+    }
+
+    const rows = (data ?? []) as TransactionRow[];
+    if (!rows.length) return [];
+
+    const dek = await this.encryption.getDekFor(this.supabaseProvider.user);
+    return rows.map((row) =>
+      this.toLinkedTransaction(row, dek, periodByLineId),
+    );
+  }
+
+  private toLinkedTransaction(
+    row: TransactionRow,
+    dek: Buffer,
+    periodByLineId: Map<string, BudgetPeriod>,
+  ): SavingsGoalLinkedTransaction {
+    const decrypted = this.encryption.decryptRowAmountFields(row, dek);
+    const period = periodByLineId.get(decrypted.budget_line_id ?? '');
+    return {
+      id: decrypted.id,
+      budgetId: decrypted.budget_id,
+      budgetLineId: decrypted.budget_line_id,
+      name: decrypted.name,
+      amount: decrypted.amount,
+      originalAmount: decrypted.original_amount,
+      originalCurrency: decrypted.original_currency,
+      targetCurrency: decrypted.target_currency,
+      exchangeRate: decrypted.exchange_rate,
+      kind: decrypted.kind,
+      category: decrypted.category,
+      transactionDate: decrypted.transaction_date,
+      checkedAt: decrypted.checked_at,
+      createdAt: decrypted.created_at,
+      updatedAt: decrypted.updated_at,
+      budgetMonth: period?.month ?? 0,
+      budgetYear: period?.year ?? 0,
+    };
   }
 
   private toEntity(row: SavingsGoalRow, dek: Buffer): SavingsGoal {

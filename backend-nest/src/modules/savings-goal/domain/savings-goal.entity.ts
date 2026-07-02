@@ -4,6 +4,7 @@ import type {
   SavingsGoalProgressResult,
   SupportedCurrency,
 } from 'pulpe-shared';
+import type { Transaction } from '@modules/transaction/domain/transaction.entity';
 import type { Database } from '../../../types/database.types';
 
 export type SavingsGoalRow =
@@ -82,4 +83,15 @@ export interface SavingsGoalLinkedContributions {
 export interface SavingsGoalProgressComputation {
   goal: SavingsGoal;
   computed: SavingsGoalProgressResult;
+}
+
+/**
+ * A decrypted transaction allocated to a prévision Épargne linked to a goal
+ * (PUL-12). A goal spans several budgets, so each transaction carries the
+ * month/year of its parent line's budget to situate it without loading budgets.
+ * Amounts are plain numbers — the repo decrypts internally.
+ */
+export interface SavingsGoalLinkedTransaction extends Transaction {
+  budgetMonth: number;
+  budgetYear: number;
 }

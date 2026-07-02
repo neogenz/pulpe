@@ -2,6 +2,7 @@ import type {
   SavingsGoal,
   SavingsGoalCreateInput,
   SavingsGoalLinkedContributions,
+  SavingsGoalLinkedTransaction,
   SavingsGoalUpdatePatch,
 } from '../savings-goal.entity';
 
@@ -21,6 +22,14 @@ export interface SavingsGoalRepositoryPort {
   findLinkedContributions(
     goalId: string,
   ): Promise<SavingsGoalLinkedContributions>;
+  /**
+   * Transactions allouées aux prévisions Épargne liées au goal (PUL-12).
+   * Chaque transaction porte le mois/année de son budget parent. Déchiffrées,
+   * RLS-scopées, triées par transaction_date décroissant.
+   */
+  findLinkedTransactions(
+    goalId: string,
+  ): Promise<SavingsGoalLinkedTransaction[]>;
   /**
    * payDayOfMonth de l'utilisateur authentifié (borné 1-31), ou null pour le
    * comportement calendaire standard. Lu depuis `auth.users.user_metadata`.

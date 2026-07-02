@@ -377,6 +377,68 @@ type DetailViewState = 'loading' | 'error' | 'notFound' | 'ready';
               }
             </mat-card-content>
           </mat-card>
+
+          @if (!isEmpty()) {
+            <section
+              class="flex flex-col gap-3"
+              aria-labelledby="goal-transactions-heading"
+              data-testid="savings-goal-transactions"
+            >
+              <h2
+                id="goal-transactions-heading"
+                class="text-title-large font-semibold"
+              >
+                {{ 'savingsGoals.detail.transactionsTitle' | transloco }}
+              </h2>
+              @if (store.transactions().length === 0) {
+                @if (!store.isTransactionsLoading()) {
+                  <p
+                    class="text-body-medium text-on-surface-variant"
+                    data-testid="savings-goal-transactions-empty"
+                  >
+                    {{ 'savingsGoals.detail.transactionsEmpty' | transloco }}
+                  </p>
+                }
+              } @else {
+                <ul class="flex flex-col gap-2">
+                  @for (tx of store.transactions(); track tx.id) {
+                    <li
+                      class="flex items-center gap-3 rounded-lg bg-surface-container-low p-4"
+                      data-testid="savings-goal-transaction-row"
+                    >
+                      <mat-icon
+                        [class.text-financial-savings]="!!tx.checkedAt"
+                        [class.icon-filled]="!!tx.checkedAt"
+                        [class.text-on-surface-variant]="!tx.checkedAt"
+                        [attr.aria-label]="
+                          (tx.checkedAt
+                            ? 'savingsGoals.detail.transactionChecked'
+                            : 'savingsGoals.detail.transactionUnchecked'
+                          ) | transloco
+                        "
+                        >{{
+                          tx.checkedAt
+                            ? 'check_circle'
+                            : 'radio_button_unchecked'
+                        }}</mat-icon
+                      >
+                      <div class="flex flex-col min-w-0 flex-1">
+                        <span class="text-body-large truncate ph-no-capture">{{
+                          tx.name
+                        }}</span>
+                        <span class="text-body-small text-on-surface-variant">
+                          {{ tx.transactionDate | date: shortDateFormat() }}
+                        </span>
+                      </div>
+                      <span class="text-body-large font-medium ph-no-capture">
+                        {{ tx.amount | appCurrency: currency() : '1.2-2' }}
+                      </span>
+                    </li>
+                  }
+                </ul>
+              }
+            </section>
+          }
         }
       }
     </div>

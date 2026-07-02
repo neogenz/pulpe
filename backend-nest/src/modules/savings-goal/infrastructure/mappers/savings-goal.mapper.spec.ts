@@ -1,7 +1,10 @@
 import { describe, it, expect } from 'bun:test';
 import type { SavingsGoalProgressResult } from 'pulpe-shared';
 import { SavingsGoalMapper } from './savings-goal.mapper';
-import type { SavingsGoal } from '../../domain/savings-goal.entity';
+import type {
+  SavingsGoal,
+  SavingsGoalLinkedTransaction,
+} from '../../domain/savings-goal.entity';
 
 const base: SavingsGoal = {
   id: 'goal-1',
@@ -88,6 +91,42 @@ describe('SavingsGoalMapper', () => {
       expect(progress.originalCurrency).toBeNull();
       expect(progress.targetCurrency).toBeNull();
       expect(progress.exchangeRate).toBeNull();
+    });
+  });
+
+  describe('toTransactionsApi', () => {
+    const linkedTransaction: SavingsGoalLinkedTransaction = {
+      id: 'tx-1',
+      budgetId: 'budget-1',
+      budgetLineId: 'line-1',
+      name: 'Virement épargne',
+      amount: 500,
+      originalAmount: null,
+      originalCurrency: null,
+      targetCurrency: null,
+      exchangeRate: null,
+      kind: 'saving',
+      category: null,
+      transactionDate: '2026-06-15',
+      checkedAt: '2026-06-15T00:00:00Z',
+      createdAt: '2026-06-15T00:00:00Z',
+      updatedAt: '2026-06-15T00:00:00Z',
+      budgetMonth: 6,
+      budgetYear: 2026,
+    };
+
+    it('maps the transaction core and attaches its parent budget period', () => {
+      const [api] = mapper.toTransactionsApi([linkedTransaction]);
+
+      expect(api.id).toBe('tx-1');
+      expect(api.budgetLineId).toBe('line-1');
+      expect(api.amount).toBe(500);
+      expect(api.kind).toBe('saving');
+      expect(api.budgetMonth).toBe(6);
+      expect(api.budgetYear).toBe(2026);
+      // v1 has no FX metadata — the common mapper leaves the door-keepers undefined.
+      expect(api.originalAmount).toBeUndefined();
+      expect(api.exchangeRate).toBeUndefined();
     });
   });
 });
