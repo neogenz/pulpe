@@ -321,6 +321,7 @@ export default class TemplateDetail implements OnInit {
   readonly #injector = inject(Injector);
   readonly #transloco = inject(TranslocoService);
   readonly #logger = inject(Logger);
+  readonly #currencyPipe = new AppCurrencyPipe();
 
   protected readonly loadingMessage =
     this.#transloco.translate('template.loading');
@@ -368,10 +369,11 @@ export default class TemplateDetail implements OnInit {
   );
 
   protected readonly heroSubtitleParams = computed(() => ({
-    amount: this.absNetBalance().toLocaleString(this.locale(), {
-      maximumFractionDigits: 0,
-    }),
-    currency: this.currency(),
+    amount: this.#currencyPipe.transform(
+      this.absNetBalance(),
+      this.currency(),
+      '1.0-0',
+    ),
   }));
 
   constructor() {

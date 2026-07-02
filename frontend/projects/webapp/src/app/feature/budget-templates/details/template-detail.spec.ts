@@ -250,7 +250,7 @@ const mockRoute = {
 };
 
 describe('TemplateDetail', () => {
-  async function createFixture() {
+  async function createFixture(currency: SupportedCurrency = 'CHF') {
     const TemplateDetail = (await import('./template-detail')).default;
 
     TestBed.configureTestingModule({
@@ -274,7 +274,7 @@ describe('TemplateDetail', () => {
         { provide: BudgetApi, useValue: mockBudgetApi },
         {
           provide: UserSettingsStore,
-          useValue: { currency: signal('CHF') },
+          useValue: { currency: signal(currency) },
         },
       ],
     })
@@ -470,6 +470,21 @@ describe('TemplateDetail', () => {
       expect(subtitle?.textContent).toContain('marge');
     });
 
+    it('should display the EUR symbol in the comfortable subtitle, never the raw ISO code', async () => {
+      storeTemplateDetails.set({
+        template: mockTemplate,
+        transactions: mockLines,
+      });
+      const fixture = await createFixture('EUR');
+      const el = fixture.nativeElement as HTMLElement;
+
+      const subtitle = el.querySelector(
+        '[data-testid="template-hero-subtitle"]',
+      );
+      expect(subtitle?.textContent).toContain('€');
+      expect(subtitle?.textContent).not.toContain('EUR');
+    });
+
     it('should apply error-container background when net balance is negative', async () => {
       const deficitLines: TemplateLine[] = [
         createMockTemplateLine({
@@ -525,6 +540,35 @@ describe('TemplateDetail', () => {
         '[data-testid="template-hero-subtitle"]',
       );
       expect(subtitle?.textContent).toContain('serré');
+    });
+
+    it('should display the EUR symbol in the deficit subtitle, never the raw ISO code', async () => {
+      const deficitLines: TemplateLine[] = [
+        createMockTemplateLine({
+          id: 'd1',
+          name: 'Revenu',
+          amount: 100,
+          kind: 'income',
+        }),
+        createMockTemplateLine({
+          id: 'd2',
+          name: 'Grosse dépense',
+          amount: 500,
+          kind: 'expense',
+        }),
+      ];
+      storeTemplateDetails.set({
+        template: mockTemplate,
+        transactions: deficitLines,
+      });
+      const fixture = await createFixture('EUR');
+      const el = fixture.nativeElement as HTMLElement;
+
+      const subtitle = el.querySelector(
+        '[data-testid="template-hero-subtitle"]',
+      );
+      expect(subtitle?.textContent).toContain('€');
+      expect(subtitle?.textContent).not.toContain('EUR');
     });
   });
 
