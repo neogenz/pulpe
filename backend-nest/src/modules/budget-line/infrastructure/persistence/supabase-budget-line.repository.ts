@@ -11,6 +11,7 @@ import {
 } from '@modules/encryption/encryption.tokens';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import { mapCurrencyNonAmountMetadataToDb } from '@common/utils/currency-metadata.mapper';
+import { isSavingsGoalLinkDenied } from '@common/utils/savings-goal-link';
 import type { BudgetLineRepositoryPort } from '../../domain/ports/budget-line-repository.port';
 import type {
   BudgetLine,
@@ -408,6 +409,16 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
         );
       }
 
+      // enforce_savings_goal_line_link trigger: deleted/foreign goal tagged.
+      if (isSavingsGoalLinkDenied(error)) {
+        throw new BusinessException(
+          ERROR_DEFINITIONS.SAVINGS_GOAL_NOT_FOUND,
+          undefined,
+          loggingContext,
+          { cause: error ?? undefined },
+        );
+      }
+
       throw new BusinessException(
         ERROR_DEFINITIONS.BUDGET_LINE_CREATE_FAILED,
         undefined,
@@ -574,6 +585,16 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
         throw new BusinessException(
           ERROR_DEFINITIONS.BUDGET_LINE_ALREADY_EXISTS,
           { id },
+          loggingContext,
+          { cause: error },
+        );
+      }
+
+      // enforce_savings_goal_line_link trigger: deleted/foreign goal tagged.
+      if (isSavingsGoalLinkDenied(error)) {
+        throw new BusinessException(
+          ERROR_DEFINITIONS.SAVINGS_GOAL_NOT_FOUND,
+          undefined,
           loggingContext,
           { cause: error },
         );

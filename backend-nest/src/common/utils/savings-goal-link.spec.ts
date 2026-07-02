@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'bun:test';
 import {
+  isSavingsGoalLinkDenied,
   savingsGoalIdForKind,
   savingsGoalIdPatchForKind,
 } from './savings-goal-link';
@@ -38,5 +39,33 @@ describe('savingsGoalIdPatchForKind (update path)', () => {
 
   it('passes through an explicit null untag', () => {
     expect(savingsGoalIdPatchForKind('saving', null)).toBeNull();
+  });
+});
+
+describe('isSavingsGoalLinkDenied (trigger rejection detection)', () => {
+  it('matches the exact trigger raise (P0001 + message)', () => {
+    expect(
+      isSavingsGoalLinkDenied({
+        code: 'P0001',
+        message: 'Savings goal access denied',
+      }),
+    ).toBe(true);
+  });
+
+  it('ignores other P0001 raises and other codes with the same words', () => {
+    expect(
+      isSavingsGoalLinkDenied({
+        code: 'P0001',
+        message: 'Budget access denied',
+      }),
+    ).toBe(false);
+    expect(
+      isSavingsGoalLinkDenied({
+        code: '23503',
+        message: 'Savings goal access denied',
+      }),
+    ).toBe(false);
+    expect(isSavingsGoalLinkDenied(null)).toBe(false);
+    expect(isSavingsGoalLinkDenied(undefined)).toBe(false);
   });
 });
