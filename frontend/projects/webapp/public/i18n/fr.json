@@ -238,6 +238,8 @@
     "currencyLabel": "Devise",
     "currencySelectorLabel": "Sélecteur de devise",
     "currencySelectorDescription": "Afficher un sélecteur de devise sur les champs montant",
+    "checkingLabel": "Suivi du pointage",
+    "checkingDescription": "Pointe tes prévisions et transactions après les avoir vérifiées sur ton relevé bancaire",
     "converterTitle": "Convertisseur",
     "converterAmountLabel": "Montant",
     "converterAmountMaxError": "Le montant ne peut pas dépasser {{ max }}.",

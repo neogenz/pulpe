@@ -2,6 +2,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  inject,
   input,
   output,
 } from '@angular/core';
@@ -12,6 +13,7 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslocoPipe } from '@jsverse/transloco';
+import { UserSettingsStore } from '@core/user-settings';
 import type { Transaction } from 'pulpe-shared';
 import type { BudgetLine } from 'pulpe-shared';
 import type {
@@ -32,20 +34,22 @@ import type {
   ],
   template: `
     <div class="flex gap-1 justify-end items-center">
-      @if (line().metadata.itemType === 'budget_line') {
-        <mat-slide-toggle
-          [checked]="!!line().data.checkedAt"
-          (change)="toggleCheck.emit(line().data.id)"
-          (click)="$event.stopPropagation()"
-          [attr.data-testid]="'toggle-check-' + line().data.id"
-        />
-      } @else if (line().metadata.itemType === 'transaction') {
-        <mat-slide-toggle
-          [checked]="!!line().data.checkedAt"
-          (change)="toggleTransactionCheck.emit(line().data.id)"
-          (click)="$event.stopPropagation()"
-          [attr.data-testid]="'toggle-check-tx-' + line().data.id"
-        />
+      @if (isCheckingEnabled()) {
+        @if (line().metadata.itemType === 'budget_line') {
+          <mat-slide-toggle
+            [checked]="!!line().data.checkedAt"
+            (change)="toggleCheck.emit(line().data.id)"
+            (click)="$event.stopPropagation()"
+            [attr.data-testid]="'toggle-check-' + line().data.id"
+          />
+        } @else if (line().metadata.itemType === 'transaction') {
+          <mat-slide-toggle
+            [checked]="!!line().data.checkedAt"
+            (change)="toggleTransactionCheck.emit(line().data.id)"
+            (click)="$event.stopPropagation()"
+            [attr.data-testid]="'toggle-check-tx-' + line().data.id"
+          />
+        }
       }
       <button
         matIconButton
@@ -188,6 +192,9 @@ import type {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ActionsCell {
+  protected readonly isCheckingEnabled =
+    inject(UserSettingsStore).isCheckingEnabled;
+
   readonly line = input.required<BudgetLineTableItem | TransactionTableItem>();
 
   readonly edit = output<BudgetLineTableItem>();

@@ -149,16 +149,18 @@ import type {
                 class="flex flex-col gap-1 py-2 px-2 bg-surface-container-low rounded-lg"
               >
                 <div class="flex items-center gap-2">
-                  <mat-slide-toggle
-                    [checked]="!!tx.checkedAt"
-                    (change)="onToggleCheck(tx.id)"
-                    (click)="$event.stopPropagation()"
-                    [attr.data-testid]="'toggle-tx-check-' + tx.id"
-                    [attr.aria-label]="
-                      'budget.toggleCheckAriaLabel'
-                        | transloco: { name: tx.name }
-                    "
-                  />
+                  @if (isCheckingEnabled()) {
+                    <mat-slide-toggle
+                      [checked]="!!tx.checkedAt"
+                      (change)="onToggleCheck(tx.id)"
+                      (click)="$event.stopPropagation()"
+                      [attr.data-testid]="'toggle-tx-check-' + tx.id"
+                      [attr.aria-label]="
+                        'budget.toggleCheckAriaLabel'
+                          | transloco: { name: tx.name }
+                      "
+                    />
+                  }
                   <span
                     class="flex-1 min-w-0 text-body-medium font-medium truncate ph-no-capture"
                     [class.line-through]="tx.checkedAt"
@@ -274,6 +276,7 @@ import type {
 })
 export class AllocatedTransactionsBottomSheet {
   readonly #userSettings = inject(UserSettingsStore);
+  protected readonly isCheckingEnabled = this.#userSettings.isCheckingEnabled;
   readonly #featureFlags = inject(FeatureFlagsService);
   protected readonly store = inject(BudgetDetailsStore);
   protected readonly currency = this.#userSettings.currency;

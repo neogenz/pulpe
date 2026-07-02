@@ -99,13 +99,17 @@ import {
       />
 
       <!-- Filter -->
-      <pulpe-budget-table-checked-filter
-        [isShowingOnlyUnchecked]="store.isShowingOnlyUnchecked()"
-        (isShowingOnlyUncheckedChange)="store.setIsShowingOnlyUnchecked($event)"
-      />
+      @if (isCheckingEnabled()) {
+        <pulpe-budget-table-checked-filter
+          [isShowingOnlyUnchecked]="store.isShowingOnlyUnchecked()"
+          (isShowingOnlyUncheckedChange)="
+            store.setIsShowingOnlyUnchecked($event)
+          "
+        />
+      }
 
       <!-- Checking summary — progressive disclosure -->
-      @if (store.checkedItemsCount() > 0) {
+      @if (isCheckingEnabled() && store.checkedItemsCount() > 0) {
         <p
           class="text-body-medium text-on-surface-variant flex items-center gap-1.5 -mt-1"
           data-testid="budget-items-checking-summary"
@@ -256,6 +260,7 @@ export class BudgetItemsContainer {
   readonly #userSettings = inject(UserSettingsStore);
 
   protected readonly currency = this.#userSettings.currency;
+  protected readonly isCheckingEnabled = this.#userSettings.isCheckingEnabled;
   protected readonly locale = computed(
     () => CURRENCY_CONFIG[this.currency()].numberLocale,
   );

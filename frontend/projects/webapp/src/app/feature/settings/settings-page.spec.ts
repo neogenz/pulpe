@@ -28,6 +28,7 @@ describe('SettingsPage', () => {
     payDayOfMonth: ReturnType<typeof signal<number | null>>;
     currency: ReturnType<typeof signal<string>>;
     showCurrencySelector: ReturnType<typeof signal<boolean>>;
+    isCheckingEnabled: ReturnType<typeof signal<boolean>>;
     updateSettings: ReturnType<typeof vi.fn>;
     deleteAccount: ReturnType<typeof vi.fn>;
   };
@@ -61,6 +62,7 @@ describe('SettingsPage', () => {
       payDayOfMonth: signal<number | null>(null),
       currency: signal('CHF'),
       showCurrencySelector: signal(false),
+      isCheckingEnabled: signal(true),
       updateSettings: vi.fn().mockResolvedValue({}),
       deleteAccount: vi.fn().mockResolvedValue(undefined),
     };
@@ -271,6 +273,37 @@ describe('SettingsPage', () => {
         'OK',
         expect.any(Object),
       );
+    });
+  });
+
+  describe('checking (pointage) toggle', () => {
+    it('should render the checking toggle', () => {
+      const toggle = fixture.nativeElement.querySelector(
+        '[data-testid="checking-enabled-toggle"]',
+      );
+
+      expect(toggle).not.toBeNull();
+    });
+
+    it('should save checkingEnabled=false when the toggle is turned off', async () => {
+      fixture.componentInstance.onCheckingEnabledChange(false);
+
+      await fixture.componentInstance.saveSettings();
+      await fixture.whenStable();
+
+      expect(mockUserSettingsStore.updateSettings).toHaveBeenCalledWith(
+        expect.objectContaining({ checkingEnabled: false }),
+      );
+    });
+
+    it('should reset the toggle to the stored value on cancel', () => {
+      fixture.componentInstance.onCheckingEnabledChange(false);
+      expect(fixture.componentInstance.hasChanges()).toBe(true);
+
+      fixture.componentInstance.resetChanges();
+
+      expect(fixture.componentInstance.selectedCheckingEnabled()).toBe(true);
+      expect(fixture.componentInstance.hasChanges()).toBe(false);
     });
   });
 

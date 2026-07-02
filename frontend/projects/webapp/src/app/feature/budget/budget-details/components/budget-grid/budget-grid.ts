@@ -16,6 +16,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { AppCurrencyPipe, FormatConversionPipe } from '@core/currency';
 import { getDateDisplayFormats } from '@core/date/date-display-formats';
+import { UserSettingsStore } from '@core/user-settings';
 import { FeatureFlagsService } from '@core/feature-flags';
 import { FinancialKindDirective } from '@ui/financial-kind';
 import { FinancialKindIndicator } from '@ui/financial-kind-indicator';
@@ -277,17 +278,19 @@ export function groupByKind<T extends { data: { kind: string } }>(
             <span class="text-label-small text-on-surface-variant">
               {{ item.data.kind | transactionLabel }}
             </span>
-            <mat-slide-toggle
-              [checked]="!!item.data.checkedAt"
-              (change)="toggleTransactionCheck.emit(item.data.id)"
-              (click)="$event.stopPropagation()"
-              [attr.data-testid]="'toggle-check-tx-' + item.data.id"
-              [attr.aria-label]="
-                item.data.checkedAt
-                  ? ('budgetLine.removeCheck' | transloco)
-                  : ('budgetLine.addCheck' | transloco)
-              "
-            />
+            @if (isCheckingEnabled()) {
+              <mat-slide-toggle
+                [checked]="!!item.data.checkedAt"
+                (change)="toggleTransactionCheck.emit(item.data.id)"
+                (click)="$event.stopPropagation()"
+                [attr.data-testid]="'toggle-check-tx-' + item.data.id"
+                [attr.aria-label]="
+                  item.data.checkedAt
+                    ? ('budgetLine.removeCheck' | transloco)
+                    : ('budgetLine.addCheck' | transloco)
+                "
+              />
+            }
           </div>
         </mat-card-content>
       </mat-card>
@@ -356,17 +359,19 @@ export function groupByKind<T extends { data: { kind: string } }>(
               </span>
             }
           </div>
-          <mat-slide-toggle
-            [checked]="!!item.data.checkedAt"
-            (change)="toggleTransactionCheck.emit(item.data.id)"
-            (click)="$event.stopPropagation()"
-            [attr.data-testid]="'toggle-check-tx-' + item.data.id"
-            [attr.aria-label]="
-              item.data.checkedAt
-                ? ('budgetLine.removeCheck' | transloco)
-                : ('budgetLine.addCheck' | transloco)
-            "
-          />
+          @if (isCheckingEnabled()) {
+            <mat-slide-toggle
+              [checked]="!!item.data.checkedAt"
+              (change)="toggleTransactionCheck.emit(item.data.id)"
+              (click)="$event.stopPropagation()"
+              [attr.data-testid]="'toggle-check-tx-' + item.data.id"
+              [attr.aria-label]="
+                item.data.checkedAt
+                  ? ('budgetLine.removeCheck' | transloco)
+                  : ('budgetLine.addCheck' | transloco)
+              "
+            />
+          }
         </div>
       </div>
     </ng-template>
@@ -380,6 +385,8 @@ export function groupByKind<T extends { data: { kind: string } }>(
 })
 export class BudgetGrid {
   readonly #dialog = inject(MatDialog);
+  protected readonly isCheckingEnabled =
+    inject(UserSettingsStore).isCheckingEnabled;
   readonly #viewContainerRef = inject(ViewContainerRef);
   readonly #featureFlags = inject(FeatureFlagsService);
 

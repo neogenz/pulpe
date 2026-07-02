@@ -19,6 +19,7 @@ const DEFAULT_SETTINGS: UserSettings = {
   payDayOfMonth: null,
   currency: 'CHF',
   showCurrencySelector: false,
+  checkingEnabled: true,
 };
 
 function createMockUserSettingsStore(
@@ -316,6 +317,7 @@ describe('User consent and tracking behavior', () => {
         payDayOfMonth: 25,
         currency: 'EUR',
         showCurrencySelector: true,
+        checkingEnabled: true,
       });
       mockFeatureFlagsService.setEnabled(true);
 
@@ -392,6 +394,7 @@ describe('User consent and tracking behavior', () => {
         payDayOfMonth: 1,
         currency: 'EUR',
         showCurrencySelector: false,
+        checkingEnabled: true,
       });
       TestBed.tick();
 

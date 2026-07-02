@@ -91,6 +91,14 @@ export class BudgetDetailsStore {
   );
   readonly isShowingOnlyUnchecked = this.#isShowingOnlyUnchecked.asReadonly();
 
+  // PUL-110 — when the user disabled pointage in settings, the "À pointer"
+  // filter chip is hidden, so the persisted filter must not silently hide
+  // checked items: the effective filter is forced off.
+  readonly #isUncheckedFilterActive = computed(
+    () =>
+      this.#isShowingOnlyUnchecked() && this.#userSettings.isCheckingEnabled(),
+  );
+
   readonly #searchText = signal('');
   readonly searchText = this.#searchText.asReadonly();
 
@@ -386,7 +394,7 @@ export class BudgetDetailsStore {
 
   readonly filteredBudgetLines = computed<BudgetLine[]>(() => {
     let lines = this.displayBudgetLines();
-    if (this.#isShowingOnlyUnchecked()) {
+    if (this.#isUncheckedFilterActive()) {
       lines = lines.filter((line) => line.checkedAt === null);
     }
     const search = normalizeText(this.#searchText());
@@ -428,7 +436,7 @@ export class BudgetDetailsStore {
       }
       // Free transaction
       const passesCheckedFilter =
-        !this.#isShowingOnlyUnchecked() || tx.checkedAt === null;
+        !this.#isUncheckedFilterActive() || tx.checkedAt === null;
       if (!passesCheckedFilter) return false;
       if (!search) return true;
       return (

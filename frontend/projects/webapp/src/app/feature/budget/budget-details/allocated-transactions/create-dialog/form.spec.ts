@@ -85,6 +85,7 @@ const setupWithCurrency = ({
   const settings = {
     currency: signal<SupportedCurrency>(userCurrency),
     showCurrencySelector: signal(showCurrencyPref),
+    isCheckingEnabled: signal(true),
   };
   const converter = {
     convertWithMetadata: vi.fn().mockResolvedValue({

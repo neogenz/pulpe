@@ -102,7 +102,11 @@ describe('AllocatedTransactionsBottomSheet', () => {
         { provide: MatBottomSheetRef, useValue: mockBottomSheetRef },
         {
           provide: UserSettingsStore,
-          useValue: { currency: signal('CHF'), payDayOfMonth: signal(1) },
+          useValue: {
+            currency: signal('CHF'),
+            payDayOfMonth: signal(1),
+            isCheckingEnabled: signal(true),
+          },
         },
         {
           provide: FeatureFlagsService,

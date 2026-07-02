@@ -122,7 +122,8 @@ import { CURRENCY_CONFIG } from '@core/currency';
 
           <!-- Paired lists: Recent Transactions + Unchecked Forecasts -->
           <div
-            class="grid grid-cols-1 lg:grid-cols-2 gap-8"
+            class="grid grid-cols-1 gap-8"
+            [class.lg:grid-cols-2]="isCheckingEnabled()"
             data-tour="dashboard-lists"
           >
             <pulpe-dashboard-recent-transactions
@@ -132,15 +133,17 @@ import { CURRENCY_CONFIG } from '@core/currency';
               data-testid="dashboard-block-recent-transactions"
             />
 
-            <pulpe-dashboard-unchecked-forecasts
-              class="order-1 lg:order-2"
-              [forecasts]="store.uncheckedForecasts()"
-              [consumptions]="store.consumptions()"
-              [currency]="currency()"
-              (toggleCheck)="checkBudgetLine($event)"
-              (viewBudget)="navigateToBudgetDetails()"
-              data-testid="dashboard-block-forecasts"
-            />
+            @if (isCheckingEnabled()) {
+              <pulpe-dashboard-unchecked-forecasts
+                class="order-1 lg:order-2"
+                [forecasts]="store.uncheckedForecasts()"
+                [consumptions]="store.consumptions()"
+                [currency]="currency()"
+                (toggleCheck)="checkBudgetLine($event)"
+                (viewBudget)="navigateToBudgetDetails()"
+                data-testid="dashboard-block-forecasts"
+              />
+            }
           </div>
 
           <!-- Future Projection Chart -->
@@ -323,7 +326,9 @@ import { CURRENCY_CONFIG } from '@core/currency';
 })
 export default class Dashboard {
   protected readonly store = inject(DashboardStore);
-  protected readonly currency = inject(UserSettingsStore).currency;
+  readonly #userSettings = inject(UserSettingsStore);
+  protected readonly currency = this.#userSettings.currency;
+  protected readonly isCheckingEnabled = this.#userSettings.isCheckingEnabled;
   protected readonly currencyLocale = computed(
     () => CURRENCY_CONFIG[this.currency()].numberLocale,
   );
