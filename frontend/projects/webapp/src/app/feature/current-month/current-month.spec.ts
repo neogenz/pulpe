@@ -32,6 +32,8 @@ const createBudgetLine = (overrides: Partial<BudgetLine> = {}): BudgetLine => ({
   ...overrides,
 });
 
+const TAG_ID = '00000000-0000-4000-8000-0000000000f1';
+
 const createTransaction = (
   overrides: Partial<Transaction> = {},
 ): Transaction => ({
@@ -42,7 +44,7 @@ const createTransaction = (
   amount: 50,
   kind: 'expense',
   transactionDate: '2024-01-15T10:00:00.000Z',
-  category: null,
+  tagIds: [],
   createdAt: '2024-01-01T00:00:00.000Z',
   updatedAt: '2024-01-01T00:00:00.000Z',
   checkedAt: null,
@@ -303,7 +305,7 @@ describe('CurrentMonth Component', () => {
         name: 'Test Transaction',
         amount: 100,
         type: 'expense' as const,
-        category: 'food',
+        tagIds: [TAG_ID],
       };
       const budget = createBudget();
 
@@ -314,7 +316,7 @@ describe('CurrentMonth Component', () => {
           name: string;
           amount: number;
           type: TransactionFormType;
-          category: string | null;
+          tagIds: string[];
         },
         budgetId: string,
       ) => {
@@ -329,7 +331,7 @@ describe('CurrentMonth Component', () => {
                 ? 'saving'
                 : 'expense',
           transactionDate: new Date().toISOString(),
-          category: formData.category,
+          tagIds: formData.tagIds,
         };
       };
 
@@ -341,7 +343,7 @@ describe('CurrentMonth Component', () => {
         name: 'Test Transaction',
         kind: 'expense',
         transactionDate: expect.any(String),
-        category: 'food',
+        tagIds: [TAG_ID],
       });
     });
 
@@ -586,7 +588,7 @@ describe('Dashboard (TestBed)', () => {
         name: 'Test pour claude',
         amount: 108.97,
         kind: 'expense',
-        category: null,
+        tagIds: [TAG_ID],
         checkedAt: null,
         originalAmount: 100,
         originalCurrency: 'CHF',
@@ -603,6 +605,7 @@ describe('Dashboard (TestBed)', () => {
           amount: 108.97,
           name: 'Test pour claude',
           kind: 'expense',
+          tagIds: [TAG_ID],
           originalAmount: 100,
           originalCurrency: 'CHF',
           targetCurrency: 'EUR',
@@ -616,7 +619,6 @@ describe('Dashboard (TestBed)', () => {
         name: 'Courses',
         amount: 50,
         kind: 'expense',
-        category: null,
         checkedAt: null,
       });
 
@@ -646,7 +648,6 @@ describe('Dashboard (TestBed)', () => {
         name: 'Test',
         amount: 10,
         kind: 'expense',
-        category: null,
         checkedAt: null,
       });
 

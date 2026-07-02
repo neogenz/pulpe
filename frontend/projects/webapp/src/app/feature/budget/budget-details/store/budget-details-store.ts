@@ -738,7 +738,7 @@ export class BudgetDetailsStore {
         ...data,
         budgetLineId: data.budgetLineId ?? null,
         transactionDate: data.transactionDate ?? formatLocalDate(new Date()),
-        category: data.category ?? null,
+        tagIds: data.tagIds,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         checkedAt: data.checkedAt ?? null,

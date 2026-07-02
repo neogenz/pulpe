@@ -188,7 +188,7 @@ export class BudgetDetailsDialogService {
     const dialogRef = this.#dialog.open(EditTransactionDialog, {
       data: {
         transaction,
-        hiddenFields: ['kind', 'category'],
+        hiddenFields: ['kind', 'tags'],
         minDate,
         maxDate,
       } satisfies EditTransactionDialogData,

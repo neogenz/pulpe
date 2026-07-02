@@ -415,7 +415,7 @@ export default class Dashboard {
       budgetId,
       amount: transaction.amount ?? 0,
       transactionDate: formatLocalDate(new Date()),
-      category: transaction.category ?? null,
+      tagIds: transaction.tagIds,
       checkedAt: transaction.checkedAt ?? null,
     });
   }

@@ -33,7 +33,7 @@ const defaultTransaction: Transaction = {
   amount: 100,
   kind: 'expense',
   transactionDate: '2024-01-01',
-  category: null,
+  tagIds: [],
   createdAt: '2024-01-01T00:00:00Z',
   updatedAt: '2024-01-01T00:00:00Z',
   checkedAt: null,

@@ -237,7 +237,6 @@ export class CreateAllocatedTransactionForm {
               amount,
               kind: budgetLine.kind,
               transactionDate: formatLocalDate(m.transactionDate),
-              category: null,
               isChecked: m.isChecked,
               conversion: metadata ?? null,
             }),

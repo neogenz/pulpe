@@ -150,7 +150,6 @@ describe('CreateAllocatedTransactionForm', () => {
           name: 'Consultation médecin',
           amount: 45.5,
           kind: 'expense',
-          category: null,
         }),
       );
     });

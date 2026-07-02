@@ -421,8 +421,8 @@ describe('posthog-sanitizer', () => {
           available_amount: 3000,
           total_income: 8000,
           transactions: [
-            { id: 'tx-1', amount: 100, category: 'food', balance: 2900 },
-            { id: 'tx-2', amount: 50, category: 'transport', balance: 2850 },
+            { id: 'tx-1', amount: 100, label: 'food', balance: 2900 },
+            { id: 'tx-2', amount: 50, label: 'transport', balance: 2850 },
           ],
           view_duration_seconds: 45,
           has_savings: true,
@@ -434,8 +434,8 @@ describe('posthog-sanitizer', () => {
       expect(sanitized?.properties).toEqual({
         budget_id: 'bud-123',
         transactions: [
-          { id: 'tx-1', category: 'food' },
-          { id: 'tx-2', category: 'transport' },
+          { id: 'tx-1', label: 'food' },
+          { id: 'tx-2', label: 'transport' },
         ],
         view_duration_seconds: 45,
         has_savings: true,

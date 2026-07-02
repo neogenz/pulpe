@@ -60,7 +60,7 @@ describe('TransactionApi', () => {
         amount: 0,
         kind: 'expense',
         transactionDate: '2026-02-04T00:00:00.000Z',
-        category: null,
+        tagIds: [],
         createdAt: '2026-02-04T00:00:00.000Z',
         updatedAt: '2026-02-04T00:00:00.000Z',
         checkedAt: '2026-02-04T00:00:00.000Z',

@@ -397,7 +397,7 @@ describe('BudgetItemsContainer — PATCH transaction body contract', () => {
       amount: 42,
       kind: 'expense',
       transactionDate: '2026-05-06T00:00:00.000Z',
-      category: null,
+      tagIds: [],
     };
     mockDialogService.openEditAllocatedTransactionDialog.mockResolvedValue({
       id: transaction.id,

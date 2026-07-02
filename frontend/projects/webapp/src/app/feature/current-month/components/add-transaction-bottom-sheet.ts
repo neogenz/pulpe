@@ -15,7 +15,6 @@ import {
 } from '@angular/forms/signals';
 import { MatBottomSheetRef } from '@angular/material/bottom-sheet';
 import { MatButtonModule } from '@angular/material/button';
-import { MatChipsModule } from '@angular/material/chips';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
@@ -36,11 +35,12 @@ import {
 } from '@core/currency';
 import { Logger } from '@core/logging/logger';
 import { AmountInput } from '@app/pattern/amount-input/amount-input';
+import { TagPicker } from '@app/pattern/tag-picker/tag-picker';
 import { BlurOnVisibilityResumeDirective } from '@ui/blur-on-visibility-resume/blur-on-visibility-resume.directive';
 
 export type TransactionFormData = Pick<
   TransactionCreate,
-  'name' | 'amount' | 'kind' | 'category' | 'checkedAt'
+  'name' | 'amount' | 'kind' | 'tagIds' | 'checkedAt'
 > & {
   originalAmount?: number;
   originalCurrency?: SupportedCurrency;
@@ -52,7 +52,7 @@ interface AddTransactionModel {
   name: string;
   money: AmountFormSlice;
   kind: 'expense' | 'income' | 'saving';
-  category: string;
+  tagIds: string[];
   isChecked: boolean;
 }
 
@@ -64,13 +64,13 @@ interface AddTransactionModel {
     MatFormFieldModule,
     MatInputModule,
     MatSelectModule,
-    MatChipsModule,
     MatSlideToggleModule,
     TranslocoPipe,
     TransactionLabelPipe,
     AppCurrencyPipe,
     FormField,
     AmountInput,
+    TagPicker,
     BlurOnVisibilityResumeDirective,
   ],
   template: `
@@ -176,31 +176,8 @@ interface AddTransactionModel {
           </mat-select>
         </mat-form-field>
 
-        <!-- Category/Notes Field -->
-        <mat-form-field class="w-full" subscriptSizing="dynamic">
-          <mat-label>{{
-            'currentMonth.addTransactionNotes' | transloco
-          }}</mat-label>
-          <input
-            matInput
-            [formField]="transactionForm.category"
-            [placeholder]="
-              'currentMonth.addTransactionNotesPlaceholder' | transloco
-            "
-            aria-describedby="category-hint"
-          />
-          <mat-hint id="category-hint" align="end"
-            >{{ model().category.length }}/50
-            {{
-              'currentMonth.addTransactionNotesOptional' | transloco
-            }}</mat-hint
-          >
-          @if (categoryMaxLengthError()) {
-            <mat-error>{{
-              'currentMonth.addTransactionNotesMaxLength' | transloco
-            }}</mat-error>
-          }
-        </mat-form-field>
+        <!-- Tags Field -->
+        <pulpe-tag-picker [control]="transactionForm.tagIds" />
 
         <!-- Date display (today by default) -->
         <div
@@ -280,7 +257,7 @@ export class AddTransactionBottomSheet {
       initialCurrency: this.#userSettings.currency(),
     }),
     kind: 'expense',
-    category: '',
+    tagIds: [],
     isChecked: true,
   });
 
@@ -294,9 +271,6 @@ export class AddTransactionBottomSheet {
     maxLength(path.name, 100);
     applyAmountValidators(path.money);
     required(path.kind);
-    maxLength(path.category, 50, {
-      message: 'currentMonth.addTransactionNotesMaxLength',
-    });
   });
 
   protected readonly canSubmit = computed(
@@ -319,15 +293,6 @@ export class AddTransactionBottomSheet {
         .errors()
         .some((e) => e.kind === 'minLength'),
   );
-  protected readonly categoryMaxLengthError = computed(
-    () =>
-      this.transactionForm.category().touched() &&
-      this.transactionForm
-        .category()
-        .errors()
-        .some((e) => e.kind === 'maxLength'),
-  );
-
   protected selectPredefinedAmount(amount: number): void {
     const amountField = this.transactionForm.money.amount();
     amountField.value.set(amount);
@@ -350,7 +315,7 @@ export class AddTransactionBottomSheet {
             name: m.name,
             amount,
             kind: m.kind,
-            category: m.category || null,
+            tagIds: m.tagIds.length ? m.tagIds : undefined,
             checkedAt: m.isChecked ? new Date().toISOString() : null,
             ...metadata,
           }),

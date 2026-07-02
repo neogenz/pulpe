@@ -8,11 +8,15 @@ import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 import { CurrencyConverterService } from '@core/currency';
 import { FeatureFlagsService } from '@core/feature-flags';
 import { UserSettingsStore } from '@core/user-settings';
+import { TagStore } from '@core/tag';
+import { createMockTagStore } from '@app/testing/tag-store.mock';
 import type { SupportedCurrency } from 'pulpe-shared';
 import {
   AddTransactionBottomSheet,
   type TransactionFormData,
 } from './add-transaction-bottom-sheet';
+
+const TAG_ID = '00000000-0000-4000-8000-0000000000f1';
 
 interface FlagsMock {
   isMultiCurrencyEnabled: ReturnType<typeof signal>;
@@ -66,6 +70,7 @@ function configureBottomSheet({
       { provide: FeatureFlagsService, useValue: flags },
       { provide: UserSettingsStore, useValue: settings },
       { provide: CurrencyConverterService, useValue: converter },
+      { provide: TagStore, useValue: createMockTagStore() },
     ],
   });
 
@@ -115,7 +120,6 @@ describe('AddTransactionBottomSheet', () => {
           name: 'Courses Migros',
           amount: 45.5,
           kind: 'expense',
-          category: null,
         }),
       );
     });
@@ -133,21 +137,37 @@ describe('AddTransactionBottomSheet', () => {
       expect(bottomSheetRef.dismiss).not.toHaveBeenCalled();
     });
 
-    it('should convert empty category to null', async () => {
+    it('should include selected tag ids in the dismissed payload', async () => {
       const { component, bottomSheetRef } = configureBottomSheet();
       component['model'].update((m) => ({
         ...m,
         name: 'Test',
         money: { ...m.money, amount: 10 },
         kind: 'expense',
-        category: '',
+        tagIds: [TAG_ID],
       }));
 
       await component['onSubmit']();
 
       expect(bottomSheetRef.dismiss).toHaveBeenCalledWith(
-        expect.objectContaining({ category: null }),
+        expect.objectContaining({ tagIds: [TAG_ID] }),
       );
+    });
+
+    it('should omit tag ids when none are selected', async () => {
+      const { component, bottomSheetRef } = configureBottomSheet();
+      component['model'].update((m) => ({
+        ...m,
+        name: 'Test',
+        money: { ...m.money, amount: 10 },
+        kind: 'expense',
+      }));
+
+      await component['onSubmit']();
+
+      const callArg: TransactionFormData =
+        bottomSheetRef.dismiss.mock.calls[0][0];
+      expect(callArg.tagIds).toBeUndefined();
     });
 
     it('should not dismiss when the conversion call throws', async () => {

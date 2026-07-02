@@ -24,7 +24,7 @@ const createTransaction = (
   amount: 50,
   kind: 'expense',
   transactionDate: '2026-02-15T12:00:00+01:00',
-  category: null,
+  tagIds: [],
   createdAt: '2026-02-01T00:00:00+01:00',
   updatedAt: '2026-02-01T00:00:00+01:00',
   checkedAt: null,

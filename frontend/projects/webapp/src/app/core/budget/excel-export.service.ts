@@ -10,6 +10,7 @@ import type {
   TransactionRecurrence,
 } from 'pulpe-shared';
 import { UserSettingsStore } from '@core/user-settings';
+import { TagStore } from '@core/tag';
 
 const KIND_LABELS: Record<TransactionKind, string> = {
   income: 'Revenu',
@@ -59,12 +60,14 @@ type CellValue = string | number | CurrencyCell | FormulaCell;
 @Injectable({ providedIn: 'root' })
 export class ExcelExportService {
   readonly #userSettings = inject(UserSettingsStore);
+  readonly #tagStore = inject(TagStore);
 
   get #currencyFormat(): string {
     return CURRENCY_EXCEL_FORMATS[this.#userSettings.currency()];
   }
 
-  buildWorkbook(response: BudgetExportResponse): WorkBook {
+  async buildWorkbook(response: BudgetExportResponse): Promise<WorkBook> {
+    await this.#tagStore.ensureLoaded();
     const workbook = utils.book_new();
     const budgets = response.data?.budgets ?? [];
 
@@ -122,7 +125,7 @@ export class ExcelExportService {
 
     rows.push([]);
     rows.push(['TRANSACTIONS']);
-    rows.push(['Date', 'Nom', 'Montant', 'Type', 'Catégorie']);
+    rows.push(['Date', 'Nom', 'Montant', 'Type', 'Tags']);
 
     const transactions = budget.transactions ?? [];
     const transactionsStartRow = rows.length + 1;
@@ -159,8 +162,17 @@ export class ExcelExportService {
       this.#escapeFormulaInjection(transaction.name ?? ''),
       this.#currencyCell(transaction.amount),
       KIND_LABELS[transaction.kind] ?? transaction.kind,
-      this.#escapeFormulaInjection(transaction.category ?? ''),
+      this.#escapeFormulaInjection(this.#formatTags(transaction.tagIds)),
     ];
+  }
+
+  #formatTags(tagIds: readonly string[] | undefined): string {
+    if (!tagIds?.length) return '';
+    const tagNameById = this.#tagStore.tagNameById();
+    return tagIds
+      .map((id) => tagNameById.get(id))
+      .filter((name): name is string => !!name)
+      .join(', ');
   }
 
   #currencyCell(amount: number): CurrencyCell {

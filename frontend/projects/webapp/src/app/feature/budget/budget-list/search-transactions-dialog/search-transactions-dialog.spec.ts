@@ -26,7 +26,6 @@ function buildSearchResult(
     kind: 'expense',
     recurrence: null,
     transactionDate: null,
-    category: null,
     budgetId: crypto.randomUUID(),
     budgetName: 'Budget 2024',
     year: 2024,
