@@ -60,6 +60,11 @@ enum Endpoint {
     case templateLine(templateId: String, lineId: String)
     case templateLinesBulk(templateId: String)
 
+    // MARK: - Savings Goals
+
+    case savingsGoals
+    case savingsGoal(id: String)
+
     // MARK: - Currency
 
     case currencyRate(base: SupportedCurrency, target: SupportedCurrency)
@@ -128,6 +133,10 @@ enum Endpoint {
         case .templateLine(let templateId, let lineId): return "/budget-templates/\(templateId)/lines/\(lineId)"
         case .templateLinesBulk(let templateId): return "/budget-templates/\(templateId)/lines/bulk-operations"
 
+        // Savings Goals
+        case .savingsGoals: return "/savings-goals"
+        case .savingsGoal(let id): return "/savings-goals/\(id)"
+
         // Currency
         case .currencyRate: return "/currency/rate"
 
@@ -159,6 +168,7 @@ enum Endpoint {
         case .validateSession, .userProfile, .budget, .budgetDetails, .budgetsExport,
              .budgetLine, .budgetLinesSpreadOccurrences, .transaction, .template, .templateUsage, .templateLine,
              .transactionsByBudget, .budgetsSparse,
+             .savingsGoals, .savingsGoal,
              .encryptionVaultStatus, .encryptionSalt,
              .userSettings, .currencyRate:
             return .get

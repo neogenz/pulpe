@@ -9,10 +9,10 @@
 
 ## Step status
 
-- [x] **PUL-12 — backend + shared** (fondation : module CRUD, migrations, lien `template_line`, RPC RG-001, door-keepers FX) — **FAIT** (PR sur `preview`)
-- [ ] PUL-12 — iOS (carte tappable, liste/détail/form, pickers template + budget, service) — **NEXT**
-- [ ] PUL-12 — web (route `/savings-goals`, store, pickers, carte)
-- [ ] PUL-8 — progression (endpoint `/:id/progress` + vues détail iOS/web)
+- [x] **PUL-12 — backend + shared** (fondation : module CRUD, migrations, lien `template_line`, RPC RG-001, door-keepers FX) — **FAIT** (PR #485 sur `preview`, pas encore mergée)
+- [x] **PUL-12 — iOS** (carte tappable + empty state, liste/form, pickers template + budget, service/store) — **FAIT** (PR #486, GitHub "Merged" mais commits absents de `preview` — cf. incident ci-dessous)
+- [ ] PUL-12 — web (route `/savings-goals`, store, pickers, carte) — **FAIT côté code** (PR #487), CONFLICTING contre #485 actuel (rebase requis)
+- [ ] PUL-8 — progression (endpoint `/:id/progress` + vues détail iOS/web) — **EN COURS**
 - [ ] PUL-285 — Phase 3 (auto-décompose + redistribution advisory)
 
 Estimations : PUL-12 = 21 · PUL-8 = 13 · PUL-285 = 21 (epic = 55).
@@ -63,15 +63,45 @@ Voir le bloc `<known_traps_by_layer>` de `.claude/commands/impl-savings.md` + `d
 - **Gotchas rencontrés** :
   - DB locale polluée par le worktree PUL-17 (spread) → `supabase db reset` (approuvé) pour types propres ; sinon fuite spread dans `database.types.ts`.
   - `targetDate` : `z.iso.date().refine(≥ today)` (jamais `.min()` — Zod 4 mesure la longueur).
-
-### 2026-07-01 — Rebase PUL-12 sur `preview`
-
-- **Rebase** : branche `maximedesogus/pul-12-creer-et-rattacher-des-objectifs-depargne-backend` rebasée sur `origin/preview` (`v0.37.0`). L'ancien worktree `../pulpe-savings` a été supprimé ; le travail continue dans le worktree Codex courant.
-- **Migrations renommées après `preview`** : les IDs historiques `20260623120000` / `20260623130000` / `20260623140000` ont été déplacés vers `20260701083000` / `20260701083100` / `20260701083200` pour éviter un `supabase db push --dry-run` avec migrations insérées avant la dernière migration déjà présente dans `preview` (`20260626120000`).
-- **Review fixes ajoutés** : `20260701083300` ajoute le trigger DB `enforce_savings_goal_line_link` qui garantit que `budget_line.savings_goal_id` et `template_line.savings_goal_id` pointent vers un objectif du même utilisateur, y compris via RPC `SECURITY DEFINER`.
-- **PATCH schema** : `savingsGoalUpdateSchema` est découplé du create schema pour ne plus hériter du default `status: ACTIVE` ni de la contrainte create-only `targetDate >= today`.
   - Le retrait de `priority` casse 2 specs shared + ~8 littéraux `TemplateLine`/`SavingsGoal` (frontend + backend fixtures) → collatéral mécanique du contrat (savingsGoalId requis sur le read schema).
   - `supabase gen types` (CLI 2.84.2) émet sans `;` → toujours `prettier --write` après, sinon diff énorme.
 - **Review adversariale** (workflow 11 agents) : 3 findings confirmés. 1 corrigé (batch path, ci-dessus). 2 laissés en follow-up (LOW, sans impact) : (a) pas de validation d'ownership du `savingsGoalId` taggé (UUID opaque, aucune fuite, RLS protège les reads ; nécessite un appel PostgREST direct) ; (b) `DELETE` d'un goal inexistant/étranger renvoie 200 (idiome de tous les repos du projet, RLS empêche toute suppression réelle).
 - **PR** : `feat(savings-goals): backend + shared foundation (PUL-12)` sur `preview` (lien dans Linear).
 - **NEXT** : `/impl-savings PUL-12 — iOS` (carte tappable + empty state + liste/détail/form + pickers template & budget + `SavingsGoalService` + DTO Swift `BudgetLineUpdate`/template manquants), puis `PUL-12 — web`, puis `PUL-8` (progression).
+
+### 2026-06-23 — PUL-12 iOS (implémenté)
+
+- **CA cochés** : CA17–CA22 (toute la surface iOS). CA27/CA28 **satisfaits côté iOS** (devise du compte, aucune couleur d'alerte) mais laissés **décochés** car cross-surface — à reconfirmer côté web.
+- **Branche / worktree** : `maximedesogus/pul-12-creer-et-rattacher-des-objectifs-depargne-ios`, worktree `../pulpe-savings-ios` (depuis `origin/preview`). 5 commits. PR #486 sur `preview`.
+- **Décisions d'impl** :
+  - **Lien tag = tri-state Swift `String??`** sur les 3 DTO PATCH (`BudgetLineUpdate`, `TemplateLineUpdate`, `TemplateLineUpdateWithId`) : `.none` omet (no-change) / `.some(nil)` envoie `null` (untag) / `.some(id)` tag. Seule façon d'exprimer l'untag via un PATCH partiel (`encodeIfPresent` omet les `nil` simples). Create + read = `String?` simple.
+  - **Kind-guard partagé** `TransactionKind.savingsGoalLink(_:)` (`kind ≠ saving ⇒ nil`) + `onChange(of: kind)` qui clear, sur les 3 éditeurs.
+  - **Picker réutilisable** `SavingsGoalPickerField` (template-line + budget-line Add/Edit), affiché seulement si `kind == saving`, lit `SavingsGoalStore` via `@Environment`.
+  - **Entrée dashboard** : la section Épargne est **toujours rendue** avec `SavingsGoalsEntryRow` (la carte résumé est masquée si `!hasSavings`, donc l'entrée porte l'empty state). « Voir mes objectifs » / « Fixe ton premier objectif ».
+  - **« détail » v1 = le formulaire d'édition** (la barre prévu/confirmé = PUL-8). Nav `CurrentMonthTab` via `SavingsGoalDestination`.
+  - `SavingsGoalStore` (`@Observable @MainActor`) calqué sur `BudgetListStore`, injecté à la racine + reset au logout. Le CRUD d'objectif ne touche aucun agrégat budget → pas d'invalidation des stores frères.
+  - `targetDate` = **String ISO `YYYY-MM-DD`** côté Swift, jamais `Date` (le décodeur ISO8601 *datetime* rejetterait une date nue). `DatePicker(in: Date()...)` borne ≥ today (miroir du `refine` backend).
+- **Gotchas rencontrés** :
+  - Worktree neuf : lefthook pre-commit `pnpm quality` meurt (turbo absent, pas de `node_modules`) → commits iOS vérifiés à la main (`xcodebuild` + `swiftlint --strict`) puis `git commit --no-verify`.
+  - `Pulpe.xcodeproj` gitignored (xcodegen) → ne pas committer ; `xcodegen generate --use-cache` après tout ajout de fichier.
+  - `PulpeWidget` globe `Pulpe/Domain/Models` → `SavingsGoal.swift` compile aussi dans le widget (OK, ne dépend que de `SupportedCurrency`).
+  - Suite complète : **1 échec PRÉEXISTANT** `BudgetDetailsCoordinatorTests.showCheckToast…SwissLocale` (séparateur décimal CHF) — passe en isolation, reproduit avec mes tests savings **exclus**, dans du code non touché. Pollution d'ordre du cache `NumberFormatter`, **pas** une régression PUL-12.
+- **Review adversariale** (2 `code-reviewer`) : 0 défaut correctness/contrat/concurrence. 4 findings design-system corrigés (delete → `Color.destructivePrimary` ; `.monospacedDigit()` ; opacité via `DesignTokens.Opacity.badgeBackground` ; test bulk-path `TemplateLineUpdateWithId`).
+- **PR** : `feat(savings-goals): iOS surface (PUL-12)` → #486 sur `preview`. ⚠️ Ce fichier est introduit aussi par #485 (docs non encore sur `preview`) → possible conflit add/add à la fusion : garder la version superset.
+- **NEXT** : `/impl-savings PUL-12 — web` (route `/savings-goals`, store ziflux, carte tappable **hors** `ph-no-capture`, pickers template + dialogs budget), puis `PUL-8` (progression).
+
+### 2026-07-01 — Rebase PUL-12 backend sur `preview`
+
+- **Rebase** : branche `maximedesogus/pul-12-creer-et-rattacher-des-objectifs-depargne-backend` rebasée sur `origin/preview` (`v0.37.0`). L'ancien worktree `../pulpe-savings` a été supprimé ; le travail continue dans le worktree Codex courant.
+- **Migrations renommées après `preview`** : les IDs historiques `20260623120000` / `20260623130000` / `20260623140000` ont été déplacés vers `20260701083000` / `20260701083100` / `20260701083200` pour éviter un `supabase db push --dry-run` avec migrations insérées avant la dernière migration déjà présente dans `preview` (`20260626120000`).
+- **Review fixes ajoutés** : `20260701083300` ajoute le trigger DB `enforce_savings_goal_line_link` qui garantit que `budget_line.savings_goal_id` et `template_line.savings_goal_id` pointent vers un objectif du même utilisateur, y compris via RPC `SECURITY DEFINER`.
+- **PATCH schema** : `savingsGoalUpdateSchema` est découplé du create schema pour ne plus hériter du default `status: ACTIVE` ni de la contrainte create-only `targetDate >= today`.
+- **PR** : `feat(savings-goals): backend + shared foundation (PUL-12)` — #485 sur `preview`, toujours ouverte.
+
+### 2026-07-02 — Deep review PR #485 + découverte incident `preview` + PUL-8 kickoff
+
+- **Review #485** (workflow 4 dimensions, chaque passe adversarialement re-vérifiée avec tooling réel — `depcruise`, `eslint`, tests d'intégration live-Postgres, pas juste relecture) : **0 défaut survivant** sur architecture, fidélité aux règles métier (`docs/SAVINGS.md`), et risque de régression migrations/RPC. Les deux RPC `CREATE OR REPLACE` (`apply_template_line_operations`, `create_budget_from_template`) sont **purement additives**, guard PUL-272 reproduit byte-for-byte. 2 findings mineurs non-bloquants : (a) le rejet du trigger d'ownership (`P0001` "Savings goal access denied") n'est catché nulle part → tombe en 500 générique au lieu du pattern `P0001`→4xx établi (`create-budget.use-case.ts:142`) ; (b) le corps de la PR #485 liste encore le gap d'ownership comme "follow-up différé" alors que la migration `083300` (même PR, commit ultérieur) l'a déjà corrigé.
+- **Incident découvert (hors scope #485)** : PR #486 (iOS) est étiquetée "Merged" sur GitHub (`2026-06-24T06:44:07Z`, commit `1112ad3b48`) mais **ce commit n'est PAS un ancêtre de `origin/preview`**. Cause racine tracée : un push direct sur `preview` (`0e5300c6f`, 25 min après le merge, mais parenté sur un tip `preview` vieux de 3 jours) a écrasé silencieusement l'historique post-merge — aucune trace sur la timeline GitHub de la PR. `ios/Pulpe/Domain/Models/SavingsGoal.swift` absent de `origin/preview` aujourd'hui. Idem PR #487 (web) : `CONFLICTING` contre #485 actuel (11 conflits, dont une copie dupliquée indépendante du module backend `savings-goal` — #487 date d'avant le rebase de #485).
+- **Décision utilisateur** : ne pas investiguer plus l'incident `preview` ; l'iOS PUL-12 sera **re-codé** plus tard sur une base propre plutôt que récupéré tel quel pour le merge final. **Mais** pour ce chantier PUL-8, le contenu de la branche `...-ios` existante est réutilisé tel quel (encore réel, juste orphelin de `preview`) — pas de perte de travail à ce stade.
+- **`pul-12-epic`** : branche locale (`/Users/maximedesogus/.codex/worktrees/0683/pulpe-epic`) = `preview` + #485 + #486 + #487 fusionnés, pour disposer d'une base complète PUL-12 et développer/tester PUL-8 dessus. Conflits résolus : ce fichier (union des journaux) + `ios/Pulpe/Features/Budgets/BudgetDetails/AddBudgetLineSheet.swift` (le picker objectif épargne PUL-12 et le mode lissage PUL-17 cohabitent — le picker s'affiche pour `kind == .saving` indépendamment du mode, `CheckedToggle`/`SpreadFormSection` restent mutuellement exclusifs comme avant) + conflit équivalent côté web (`budget-line/create/dialog.ts`, même logique d'union).
+- **NEXT** : `/impl-savings PUL-8` — formules partagées (`calculateRealizedSavings`, `paceStatus`) + endpoint `/savings-goals/:id/progress` (backend, en premier — iOS et web en dépendent), puis vues détail iOS + web en parallèle.

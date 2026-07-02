@@ -12,6 +12,7 @@ struct AddBudgetLineSheet: View {
     @State private var name = ""
     @State private var amount: Decimal?
     @State private var kind: TransactionKind = .expense
+    @State private var savingsGoalId: String?
     @State private var isChecked = false
     @State private var isLoading = false
     @State private var error: Error?
@@ -115,6 +116,12 @@ struct AddBudgetLineSheet: View {
 
             descriptionField
 
+            // Goal tagging is orthogonal to spread mode — shown whenever the line
+            // is a saving, whether it lands as one occurrence or split (PUL-17).
+            if kind == .saving {
+                SavingsGoalPickerField(selection: $savingsGoalId)
+            }
+
             if isSpreadMode {
                 SpreadAmountModeToggle(mode: $amountMode, accentColor: kind.color)
                 SpreadFormSection(
@@ -138,9 +145,11 @@ struct AddBudgetLineSheet: View {
         }
         .sensoryFeedback(.success, trigger: submitSuccessTrigger)
         .onAppear { inputCurrency = userSettingsStore.currency }
-        // Income can't be spread: bouncing back to income resets the mode.
         .onChange(of: kind) { _, newKind in
+            // Income can't be spread: bouncing back to income resets the mode.
             if newKind == .income { mode = .once }
+            // Mirror the backend kind-guard: only savings can carry a goal.
+            if newKind != .saving { savingsGoalId = nil }
         }
     }
 
@@ -213,6 +222,7 @@ struct AddBudgetLineSheet: View {
                 amount: conversion?.convertedAmount ?? amount,
                 kind: kind,
                 recurrence: .oneOff,
+                savingsGoalId: kind.savingsGoalLink(savingsGoalId),
                 checkedAt: isChecked ? Date() : nil,
                 originalAmount: conversion?.originalAmount,
                 originalCurrency: conversion?.originalCurrency,
@@ -314,4 +324,5 @@ struct AddBudgetLineDependencies: Sendable {
     .environment(ToastManager())
     .environment(UserSettingsStore())
     .environment(BudgetListStore())
+    .environment(SavingsGoalStore())
 }

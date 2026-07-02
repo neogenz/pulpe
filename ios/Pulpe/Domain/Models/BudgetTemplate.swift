@@ -27,6 +27,9 @@ struct TemplateLine: Codable, Identifiable, Hashable, Sendable {
     let createdAt: Date
     let updatedAt: Date
 
+    // Savings goal link (PUL-12) — the primary tagging surface lives on the template
+    var savingsGoalId: String?
+
     // Currency conversion metadata
     var originalAmount: Decimal?
     var originalCurrency: SupportedCurrency?
@@ -67,6 +70,7 @@ struct TemplateLineCreate: Encodable {
     let kind: TransactionKind
     let recurrence: TransactionRecurrence
     let description: String
+    let savingsGoalId: String?
     let originalAmount: Decimal?
     let originalCurrency: SupportedCurrency?
     let targetCurrency: SupportedCurrency?
@@ -78,6 +82,7 @@ struct TemplateLineCreate: Encodable {
         kind: TransactionKind,
         recurrence: TransactionRecurrence,
         description: String = "",
+        savingsGoalId: String? = nil,
         originalAmount: Decimal? = nil,
         originalCurrency: SupportedCurrency? = nil,
         targetCurrency: SupportedCurrency? = nil,
@@ -88,6 +93,7 @@ struct TemplateLineCreate: Encodable {
         self.kind = kind
         self.recurrence = recurrence
         self.description = description
+        self.savingsGoalId = savingsGoalId
         self.originalAmount = originalAmount
         self.originalCurrency = originalCurrency
         self.targetCurrency = targetCurrency
@@ -101,6 +107,8 @@ struct TemplateLineUpdate: Encodable {
     var kind: TransactionKind?
     var recurrence: TransactionRecurrence?
     var description: String?
+    /// Tri-state savings-goal link — see `BudgetLineUpdate.savingsGoalId`.
+    var savingsGoalId: String??
     var originalAmount: Decimal?
     var originalCurrency: SupportedCurrency?
     var targetCurrency: SupportedCurrency?
@@ -135,6 +143,8 @@ struct TemplateLineUpdateWithId: Encodable {
     var kind: TransactionKind?
     var recurrence: TransactionRecurrence?
     var description: String?
+    /// Tri-state savings-goal link — see `BudgetLineUpdate.savingsGoalId`.
+    var savingsGoalId: String??
     var originalAmount: Decimal?
     var originalCurrency: SupportedCurrency?
     var targetCurrency: SupportedCurrency?
