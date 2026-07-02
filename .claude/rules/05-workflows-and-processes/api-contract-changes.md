@@ -78,10 +78,10 @@ Pour `Risque` ou `OUI` shippé:
 
 ## Exemple : PUL-287 — `POST /v1/budget-lines/spread` (intent-based body)
 
-Le body de la création additive passe de tranches pré-calculées côté client à une intention répliquée côté serveur :
+Le body de la création additive passe de tranches pré-calculées côté client à une intention matérialisée côté serveur :
 
 - **Avant** : `{ name, kind, tranches[], FX? }` (le client envoyait les tranches `{year, month, amount}` déjà construites)
-- **Après** : `{ name, kind, perMonthAmount, months[], perMonthOriginalAmount?, FX? }` (`months[]` = liste de `{year, month}` ; le serveur réplique `perMonthAmount` par mois)
+- **Après** : `{ name, kind, mode, months[], perMonthAmount|totalAmount, perMonthOriginalAmount?|totalOriginalAmount?, FX?, spreadGroupId? }` (`months[]` = liste de `{year, month}` ; le serveur réplique `perMonthAmount` en mode `perMonth` ou divise `totalAmount` en mode `total`)
 - **Classification** : retrait de champ (request) + ajout de champs + `strictObject` → **OUI / breaking**
 - **Stratégie** : **Option C — Synchronized release**. La feature de lissage n'a **jamais été releasée** (branches WIP uniquement, tous les clients shippent ensemble) → **aucun client en circulation** ne porte l'ancien body, donc **pas de fenêtre de risque à documenter ni de monitoring post-merge** requis. Aucune compat ascendante : l'ancien chemin `tranches[]` est supprimé, pas déprécié.
 
