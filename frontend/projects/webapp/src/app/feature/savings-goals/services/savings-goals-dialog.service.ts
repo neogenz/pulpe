@@ -16,28 +16,12 @@ import {
   type SavingsGoalFormDialogData,
 } from '../components/savings-goal-form-dialog';
 
-/** Sentinel returned by the form dialog when the user taps the delete action. */
-export interface SavingsGoalDeleteRequest {
-  delete: true;
-}
-
-export type SavingsGoalCreateResult = SavingsGoalCreate;
-export type SavingsGoalEditResult =
-  | SavingsGoalUpdate
-  | SavingsGoalDeleteRequest;
-
-function isDeleteRequest(
-  result: SavingsGoalEditResult | undefined,
-): result is SavingsGoalDeleteRequest {
-  return !!result && 'delete' in result && result.delete === true;
-}
-
 @Injectable({ providedIn: 'root' })
 export class SavingsGoalsDialogService {
   readonly #dialog = inject(MatDialog);
   readonly #transloco = inject(TranslocoService);
 
-  async openCreate(): Promise<SavingsGoalCreateResult | undefined> {
+  async openCreate(): Promise<SavingsGoalCreate | undefined> {
     const dialogRef = this.#dialog.open(SavingsGoalFormDialog, {
       data: {} satisfies SavingsGoalFormDialogData,
       width: '600px',
@@ -46,9 +30,7 @@ export class SavingsGoalsDialogService {
     return firstValueFrom(dialogRef.afterClosed());
   }
 
-  async openEdit(
-    goal: SavingsGoal,
-  ): Promise<SavingsGoalEditResult | undefined> {
+  async openEdit(goal: SavingsGoal): Promise<SavingsGoalUpdate | undefined> {
     const dialogRef = this.#dialog.open(SavingsGoalFormDialog, {
       data: { goal } satisfies SavingsGoalFormDialogData,
       width: '600px',
@@ -69,11 +51,5 @@ export class SavingsGoalsDialogService {
     });
     const confirmed = await firstValueFrom(dialogRef.afterClosed());
     return confirmed === true;
-  }
-
-  isDeleteRequest(
-    result: SavingsGoalEditResult | undefined,
-  ): result is SavingsGoalDeleteRequest {
-    return isDeleteRequest(result);
   }
 }

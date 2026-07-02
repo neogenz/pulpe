@@ -62,6 +62,31 @@ type DetailViewState = 'loading' | 'error' | 'notFound' | 'ready';
         >
           {{ goal()?.name }}
         </h1>
+        @if (viewState() === 'ready') {
+          <div class="ml-auto flex items-center gap-1 shrink-0 md:hidden">
+            <button
+              matIconButton
+              class="warn-theme"
+              (click)="onDelete()"
+              [attr.aria-label]="'savingsGoals.detail.delete' | transloco"
+              data-testid="delete-savings-goal-button-mobile"
+            >
+              <mat-icon>delete</mat-icon>
+            </button>
+          </div>
+          <div class="ml-auto hidden md:flex items-center gap-2 shrink-0">
+            <button
+              matButton="filled"
+              class="warn-theme"
+              (click)="onDelete()"
+              [attr.aria-label]="'savingsGoals.detail.delete' | transloco"
+              data-testid="delete-savings-goal-button"
+            >
+              <mat-icon>delete</mat-icon>
+              {{ 'common.delete' | transloco }}
+            </button>
+          </div>
+        }
       </header>
 
       @switch (viewState()) {
@@ -125,12 +150,21 @@ type DetailViewState = 'loading' | 'error' | 'notFound' | 'ready';
               </div>
 
               @if (isEmpty()) {
-                <pulpe-state-card
-                  variant="empty"
-                  [title]="'savingsGoals.detail.emptyTitle' | transloco"
-                  [message]="'savingsGoals.detail.emptyMessage' | transloco"
-                  testId="savings-goal-empty-lines"
-                />
+                <!-- Flat empty state — no nested card inside the outlined card. -->
+                <div
+                  class="flex flex-col items-center gap-3 py-10 text-center"
+                  data-testid="savings-goal-empty-lines"
+                >
+                  <mat-icon class="text-5xl text-on-surface-variant"
+                    >savings</mat-icon
+                  >
+                  <h2 class="text-title-large font-semibold">
+                    {{ 'savingsGoals.detail.emptyTitle' | transloco }}
+                  </h2>
+                  <p class="text-body-large text-on-surface-variant max-w-md">
+                    {{ 'savingsGoals.detail.emptyMessage' | transloco }}
+                  </p>
+                </div>
               } @else {
                 <!-- Two-layer progress bar (Prévu behind, Pointé in front) -->
                 <div class="flex flex-col gap-3">
@@ -175,23 +209,6 @@ type DetailViewState = 'loading' | 'error' | 'notFound' | 'ready';
                       data-testid="progress-confirmed-layer"
                     ></div>
                   </div>
-
-                  <div
-                    class="flex flex-wrap items-center gap-x-4 gap-y-1 text-body-small text-on-surface-variant"
-                  >
-                    <span class="flex items-center gap-1.5">
-                      <span
-                        class="inline-block size-2.5 rounded-full bg-financial-savings"
-                      ></span>
-                      {{ 'savingsGoals.detail.confirmed' | transloco }}
-                    </span>
-                    <span class="flex items-center gap-1.5">
-                      <span
-                        class="inline-block size-2.5 rounded-full bg-financial-savings/35"
-                      ></span>
-                      {{ 'savingsGoals.detail.plannedCumulative' | transloco }}
-                    </span>
-                  </div>
                 </div>
 
                 @if (paceChip(); as chip) {
@@ -208,22 +225,35 @@ type DetailViewState = 'loading' | 'error' | 'notFound' | 'ready';
                 }
 
                 <!-- Stats -->
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div class="mt-2 grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <!-- The colored dots double as the legend of the two bar layers. -->
                   <div class="flex flex-col gap-1" data-testid="stat-confirmed">
-                    <span class="text-body-small text-on-surface-variant">
+                    <span
+                      class="flex items-center gap-1.5 text-body-small text-on-surface-variant"
+                    >
+                      <span
+                        class="inline-block size-2.5 rounded-full bg-financial-savings"
+                        aria-hidden="true"
+                      ></span>
                       {{ 'savingsGoals.detail.confirmed' | transloco }}
                     </span>
                     <span
-                      class="text-title-medium font-bold text-financial-savings ph-no-capture"
+                      class="text-title-large font-bold text-financial-savings ph-no-capture"
                     >
                       {{ p.confirmed | appCurrency: currency() : '1.0-0' }}
                     </span>
                   </div>
                   <div class="flex flex-col gap-1" data-testid="stat-planned">
-                    <span class="text-body-small text-on-surface-variant">
+                    <span
+                      class="flex items-center gap-1.5 text-body-small text-on-surface-variant"
+                    >
+                      <span
+                        class="inline-block size-2.5 rounded-full bg-financial-savings/35"
+                        aria-hidden="true"
+                      ></span>
                       {{ 'savingsGoals.detail.plannedCumulative' | transloco }}
                     </span>
-                    <span class="text-title-medium font-medium ph-no-capture">
+                    <span class="text-title-large font-semibold ph-no-capture">
                       {{
                         p.plannedCumulative | appCurrency: currency() : '1.0-0'
                       }}
@@ -237,7 +267,9 @@ type DetailViewState = 'loading' | 'error' | 'notFound' | 'ready';
                       <span class="text-body-small text-on-surface-variant">
                         {{ 'savingsGoals.detail.required' | transloco }}
                       </span>
-                      <span class="text-title-medium font-medium ph-no-capture">
+                      <span
+                        class="text-title-large font-semibold ph-no-capture"
+                      >
                         {{
                           'savingsGoals.detail.requiredPerMonth'
                             | transloco
@@ -254,7 +286,7 @@ type DetailViewState = 'loading' | 'error' | 'notFound' | 'ready';
                     <span class="text-body-small text-on-surface-variant">
                       {{ 'savingsGoals.detail.projected' | transloco }}
                     </span>
-                    <span class="text-title-medium font-medium ph-no-capture">
+                    <span class="text-title-large font-semibold ph-no-capture">
                       {{ p.projected | appCurrency: currency() : '1.0-0' }}
                     </span>
                   </div>
@@ -263,7 +295,7 @@ type DetailViewState = 'loading' | 'error' | 'notFound' | 'ready';
                 <!-- D1 — deadline passed (stays ACTIVE, neutral, actionable) -->
                 @if (p.isOverdue) {
                   <div
-                    class="flex flex-col gap-2 rounded-2xl bg-surface-container p-4"
+                    class="mt-2 flex flex-col gap-2 rounded-2xl bg-surface-container p-4"
                     data-testid="savings-goal-overdue-block"
                   >
                     <div
@@ -292,7 +324,7 @@ type DetailViewState = 'loading' | 'error' | 'notFound' | 'ready';
                 <!-- D2 — suggest completion (never auto-flipped) -->
                 @if (p.suggestCompletion) {
                   <div
-                    class="flex flex-col gap-2 rounded-2xl bg-financial-savings/10 p-4"
+                    class="mt-2 flex flex-col gap-2 rounded-2xl bg-financial-savings/10 p-4"
                     data-testid="savings-goal-suggest-completion"
                   >
                     <div
@@ -319,7 +351,7 @@ type DetailViewState = 'loading' | 'error' | 'notFound' | 'ready';
                 <!-- COMPLETED — reversible -->
                 @if (g.status === 'COMPLETED') {
                   <div
-                    class="flex flex-col gap-2 rounded-2xl bg-surface-container p-4"
+                    class="mt-2 flex flex-col gap-2 rounded-2xl bg-surface-container p-4"
                     data-testid="savings-goal-completed-block"
                   >
                     <div
@@ -434,14 +466,19 @@ export default class SavingsGoalDetailPage {
     const result = await this.#dialogs.openEdit(goal);
     if (!result) return;
     try {
-      if (this.#dialogs.isDeleteRequest(result)) {
-        if (await this.#dialogs.confirmDelete()) {
-          await this.store.removeGoal(goal.id);
-          this.goBack();
-        }
-        return;
-      }
       await this.store.editGoal(goal.id, result);
+    } catch (error) {
+      this.#showError(error);
+    }
+  }
+
+  protected async onDelete(): Promise<void> {
+    const goal = this.goal();
+    if (!goal) return;
+    if (!(await this.#dialogs.confirmDelete())) return;
+    try {
+      await this.store.removeGoal(goal.id);
+      this.goBack();
     } catch (error) {
       this.#showError(error);
     }

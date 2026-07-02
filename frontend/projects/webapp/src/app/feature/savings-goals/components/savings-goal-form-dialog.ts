@@ -175,17 +175,6 @@ function isoToDate(value: string): Date | null {
     </mat-dialog-content>
 
     <mat-dialog-actions align="end" class="gap-2">
-      @if (isEdit()) {
-        <button
-          matButton
-          class="delete-action mr-auto"
-          (click)="handleDelete()"
-          data-testid="savings-goal-delete"
-        >
-          <mat-icon>delete</mat-icon>
-          {{ 'common.delete' | transloco }}
-        </button>
-      }
       <button
         matButton
         (click)="handleCancel()"
@@ -207,10 +196,6 @@ function isoToDate(value: string): Date | null {
   styles: `
     :host {
       display: block;
-    }
-
-    .delete-action {
-      --mat-text-button-label-text-color: var(--mat-sys-error);
     }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -305,9 +290,5 @@ export class SavingsGoalFormDialog {
 
   handleCancel(): void {
     this.#dialogRef.close();
-  }
-
-  handleDelete(): void {
-    this.#dialogRef.close({ delete: true });
   }
 }

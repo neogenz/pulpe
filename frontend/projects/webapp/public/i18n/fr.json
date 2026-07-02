@@ -44,6 +44,7 @@
     "templates": "Modèles de budget",
     "templatesShort": "Modèles",
     "savingsGoals": "Objectifs d'épargne",
+    "savingsGoalsShort": "Objectifs",
     "settings": "Paramètres",
     "about": "À propos",
     "newFeatures": "Nouveautés",
@@ -51,6 +52,7 @@
     "dashboardTooltip": "Ta vue d'ensemble du mois",
     "budgetsTooltip": "Planifie tous tes mois",
     "templatesTooltip": "Prépare tes bases mensuelles",
+    "savingsGoalsTooltip": "Suis tes objectifs d'épargne",
     "designSystem": "Design System"
   },
   "auth": {
@@ -859,6 +861,7 @@
     "detail": {
       "back": "Retour aux objectifs",
       "edit": "Modifier",
+      "delete": "Supprimer l'objectif",
       "loading": "Récupération de ta progression...",
       "loadError": "Impossible de charger la progression de cet objectif.",
       "notFoundTitle": "Objectif introuvable",

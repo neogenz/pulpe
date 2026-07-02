@@ -127,7 +127,6 @@ describe('SavingsGoalDetailPage', () => {
   const mockDialogs = {
     openEdit: vi.fn(),
     confirmDelete: vi.fn(),
-    isDeleteRequest: vi.fn().mockReturnValue(false),
   };
 
   beforeEach(async () => {
@@ -137,7 +136,6 @@ describe('SavingsGoalDetailPage', () => {
     isProgressLoadingSig.set(false);
     listInitialLoadingSig.set(false);
     vi.clearAllMocks();
-    mockDialogs.isDeleteRequest.mockReturnValue(false);
 
     await TestBed.configureTestingModule({
       imports: [SavingsGoalDetailPage],
@@ -239,13 +237,32 @@ describe('SavingsGoalDetailPage', () => {
   it('shows the empty state when linkedLineCount is 0', () => {
     progressSig.set(makeProgress({ linkedLineCount: 0 }));
     fixture.detectChanges();
-    // Guidance replaces the bar/stats, but the header (edit) still renders.
-    expect(
-      fixture.debugElement.query(By.directive(StubStateCard)),
-    ).toBeTruthy();
+    // Flat guidance replaces the bar/stats, but the header (edit) still renders.
+    expect(query('savings-goal-empty-lines')).toBeTruthy();
     expect(query('savings-goal-progress-bar')).toBeFalsy();
     expect(query('stat-confirmed')).toBeFalsy();
     expect(query('edit-savings-goal-button')).toBeTruthy();
+  });
+
+  it('deletes the goal after confirmation and navigates back to the list', async () => {
+    mockDialogs.confirmDelete.mockResolvedValue(true);
+    fixture.detectChanges();
+
+    query('delete-savings-goal-button').nativeElement.click();
+    await fixture.whenStable();
+
+    expect(mockStore.removeGoal).toHaveBeenCalledWith('goal-1');
+    expect(navigate).toHaveBeenCalledWith(['/', 'savings-goals']);
+  });
+
+  it('does not delete when the confirmation is declined', async () => {
+    mockDialogs.confirmDelete.mockResolvedValue(false);
+    fixture.detectChanges();
+
+    query('delete-savings-goal-button').nativeElement.click();
+    await fixture.whenStable();
+
+    expect(mockStore.removeGoal).not.toHaveBeenCalled();
   });
 
   it('shows the loading state while progress is loading', () => {
