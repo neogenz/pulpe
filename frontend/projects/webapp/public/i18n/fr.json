@@ -126,6 +126,7 @@
       "setupSubmitting": "On prépare ton espace...",
       "setupSubmit": "Créer mon code PIN",
       "rateLimited": "Trop de tentatives, patiente quelques minutes",
+      "incorrectPin": "Code PIN incorrect — réessaie",
       "invalidCode": "Ce code ne semble pas correct — vérifie et réessaie",
       "invalidRecoveryKey": "Clé de récupération invalide — vérifie que tu as bien copié la clé",
       "redirectFailed": "La redirection a échoué — réessaie de te connecter"
