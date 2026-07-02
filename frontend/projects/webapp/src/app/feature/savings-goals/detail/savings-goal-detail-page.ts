@@ -420,45 +420,61 @@ type DetailViewState = 'loading' | 'error' | 'notFound' | 'ready';
                       </span>
                     </div>
                     @if (c.transactions.length > 0) {
-                      <ul class="flex flex-col gap-1 pl-9">
-                        @for (tx of c.transactions; track tx.id) {
-                          <li
-                            class="flex items-center gap-2 text-body-medium"
-                            data-testid="savings-goal-contribution-transaction"
-                          >
-                            <mat-icon
-                              class="text-base! size-4!"
-                              [class.text-financial-savings]="!!tx.checkedAt"
-                              [class.icon-filled]="!!tx.checkedAt"
-                              [class.text-on-surface-variant]="!tx.checkedAt"
-                              [attr.aria-label]="
-                                (tx.checkedAt
-                                  ? 'savingsGoals.detail.contributionChecked'
-                                  : 'savingsGoals.detail.contributionUnchecked'
-                                ) | transloco
-                              "
-                              >{{
-                                tx.checkedAt
-                                  ? 'check_circle'
-                                  : 'radio_button_unchecked'
-                              }}</mat-icon
+                      <!-- Réel de l'enveloppe — inset container makes the
+                           parent/child relationship readable at a glance. -->
+                      <div
+                        class="ml-9 flex flex-col gap-1.5 rounded-md bg-surface-container px-3 py-2"
+                      >
+                        <span class="text-label-small text-on-surface-variant">
+                          {{
+                            'savingsGoals.detail.contributionTransactions'
+                              | transloco
+                          }}
+                        </span>
+                        <ul class="flex flex-col gap-1">
+                          @for (tx of c.transactions; track tx.id) {
+                            <li
+                              class="flex items-center gap-2 text-body-medium"
+                              data-testid="savings-goal-contribution-transaction"
                             >
-                            <span class="min-w-0 flex-1 truncate ph-no-capture">
-                              {{ tx.name }}
-                            </span>
-                            <span
-                              class="text-body-small text-on-surface-variant"
-                            >
-                              {{ tx.transactionDate | date: shortDateFormat() }}
-                            </span>
-                            <span class="ph-no-capture">
-                              {{
-                                tx.amount | appCurrency: currency() : '1.2-2'
-                              }}
-                            </span>
-                          </li>
-                        }
-                      </ul>
+                              <mat-icon
+                                class="text-base! size-4!"
+                                [class.text-financial-savings]="!!tx.checkedAt"
+                                [class.icon-filled]="!!tx.checkedAt"
+                                [class.text-on-surface-variant]="!tx.checkedAt"
+                                [attr.aria-label]="
+                                  (tx.checkedAt
+                                    ? 'savingsGoals.detail.contributionChecked'
+                                    : 'savingsGoals.detail.contributionUnchecked'
+                                  ) | transloco
+                                "
+                                >{{
+                                  tx.checkedAt
+                                    ? 'check_circle'
+                                    : 'radio_button_unchecked'
+                                }}</mat-icon
+                              >
+                              <span
+                                class="min-w-0 flex-1 truncate ph-no-capture"
+                              >
+                                {{ tx.name }}
+                              </span>
+                              <span
+                                class="text-body-small text-on-surface-variant"
+                              >
+                                {{
+                                  tx.transactionDate | date: shortDateFormat()
+                                }}
+                              </span>
+                              <span class="ph-no-capture">
+                                {{
+                                  tx.amount | appCurrency: currency() : '1.2-2'
+                                }}
+                              </span>
+                            </li>
+                          }
+                        </ul>
+                      </div>
                     }
                   </li>
                 }

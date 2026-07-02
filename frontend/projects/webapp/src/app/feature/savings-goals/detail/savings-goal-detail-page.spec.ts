@@ -354,6 +354,10 @@ describe('SavingsGoalDetailPage', () => {
     expect(nested).toHaveLength(1);
     expect(nested[0].nativeElement.textContent).toContain('macbook1');
     expect(nested[0].nativeElement.textContent).toContain('150.00');
+    // The inset block is labeled « Réel » so the envelope/transaction
+    // relationship reads at a glance.
+    const row = query('savings-goal-contribution-row');
+    expect(row.nativeElement.textContent).toContain('Réel');
   });
 
   it('hides the contributions section entirely when no line is linked', () => {

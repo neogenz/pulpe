@@ -889,6 +889,7 @@
       "completedMessage": "Tu as atteint cette cible. Tu peux le ré-ouvrir si tu veux continuer.",
       "reopen": "Ré-ouvrir l'objectif",
       "contributionsTitle": "Contributions",
+      "contributionTransactions": "Réel",
       "contributionChecked": "Pointé",
       "contributionUnchecked": "À pointer",
       "emptyTitle": "Aucune prévision rattachée",
