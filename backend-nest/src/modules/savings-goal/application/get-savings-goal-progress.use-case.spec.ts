@@ -119,6 +119,37 @@ describe('GetSavingsGoalProgressUseCase', () => {
     expect(computed.monthsElapsed).toBe(expectedElapsed);
   });
 
+  // Use case métier (PUL-12): une prévision Épargne existante est rattachée à
+  // l'objectif via son modèle puis propagée sur TOUS les budgets — le suivi
+  // doit se calculer sans erreur: seuls les mois ≤ courant comptent dans le
+  // prévu cumulé, rien n'est confirmé tant que rien n'est pointé.
+  it('computes progress for a goal linked through template propagation (many future months, no transactions)', async () => {
+    const now = new Date();
+    const lines = Array.from({ length: 37 }, (_, i) => {
+      const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
+      return {
+        id: `line-${i}`,
+        amount: 500,
+        kind: 'saving' as const,
+        checkedAt: null,
+        month: d.getMonth() + 1,
+        year: d.getFullYear(),
+      };
+    });
+    mockRepo.findLinkedContributions.mockResolvedValue({
+      lines,
+      transactions: [],
+    });
+
+    const { computed } = await useCase.execute('goal-1', mockUser);
+
+    expect(computed.linkedLineCount).toBe(37);
+    // Seul le mois courant est écoulé — les 36 lignes futures n'entrent pas.
+    expect(computed.plannedCumulative).toBe(500);
+    expect(computed.confirmed).toBe(0);
+    expect(computed.achievementPercent).toBe(0);
+  });
+
   it('propagates NOT_FOUND from the repository (missing or foreign goal)', async () => {
     const error = new Error('SAVINGS_GOAL_NOT_FOUND');
     mockRepo.findById.mockRejectedValueOnce(error);
