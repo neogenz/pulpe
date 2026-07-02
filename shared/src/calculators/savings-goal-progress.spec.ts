@@ -96,9 +96,13 @@ describe('BudgetFormulas.calculateRealizedSavings', () => {
   });
 
   it('enveloppe max(line, consumed) pour une ligne pointée, consumed seul sinon', () => {
-    const checkedLine = savingLine(500, { month: 5, year: 2026 }, {
-      checkedAt: '2026-05-28T00:00:00Z',
-    });
+    const checkedLine = savingLine(
+      500,
+      { month: 5, year: 2026 },
+      {
+        checkedAt: '2026-05-28T00:00:00Z',
+      },
+    );
     const uncheckedLine = savingLine(500, { month: 6, year: 2026 });
     const confirmed = BudgetFormulas.calculateRealizedSavings(
       [checkedLine, uncheckedLine],
@@ -152,19 +156,27 @@ describe('computeSavingsGoalProgress — les deux couches', () => {
   });
 
   it('confirmed compte TOUS les mois, y compris un pointage anticipé futur (§4.3)', () => {
-    const july = savingLine(1_000, { month: 7, year: 2026 }, {
-      checkedAt: '2026-06-15T00:00:00Z',
-    });
+    const july = savingLine(
+      1_000,
+      { month: 7, year: 2026 },
+      {
+        checkedAt: '2026-06-15T00:00:00Z',
+      },
+    );
     const result = computeSavingsGoalProgress(baseInput({ lines: [july] }));
     expect(result.confirmed).toBe(1_000);
     expect(result.plannedCumulative).toBe(0); // futur — exclu du prévu
   });
 
   it('exclut les lignes de report virtuelles (isRollover)', () => {
-    const rollover = savingLine(9_999, { month: 6, year: 2026 }, {
-      isRollover: true,
-      checkedAt: '2026-06-01T00:00:00Z',
-    });
+    const rollover = savingLine(
+      9_999,
+      { month: 6, year: 2026 },
+      {
+        isRollover: true,
+        checkedAt: '2026-06-01T00:00:00Z',
+      },
+    );
     const result = computeSavingsGoalProgress(baseInput({ lines: [rollover] }));
     expect(result.plannedCumulative).toBe(0);
     expect(result.confirmed).toBe(0);
@@ -173,9 +185,13 @@ describe('computeSavingsGoalProgress — les deux couches', () => {
 
   it('achievementPercent est sur le CONFIRMÉ, jamais le prévu, plafonné à 100 (CA2, CA13)', () => {
     const planned = savingLine(12_000, { month: 6, year: 2026 });
-    const confirmed = savingLine(15_000, { month: 5, year: 2026 }, {
-      checkedAt: '2026-05-28T00:00:00Z',
-    });
+    const confirmed = savingLine(
+      15_000,
+      { month: 5, year: 2026 },
+      {
+        checkedAt: '2026-05-28T00:00:00Z',
+      },
+    );
     const onlyPlanned = computeSavingsGoalProgress(
       baseInput({ lines: [planned] }),
     );
@@ -188,9 +204,13 @@ describe('computeSavingsGoalProgress — les deux couches', () => {
   });
 
   it('targetAmount = 0 → achievementPercent 0, paceStatus null — jamais de division (CA2)', () => {
-    const line = savingLine(500, { month: 6, year: 2026 }, {
-      checkedAt: '2026-06-01T00:00:00Z',
-    });
+    const line = savingLine(
+      500,
+      { month: 6, year: 2026 },
+      {
+        checkedAt: '2026-06-01T00:00:00Z',
+      },
+    );
     const result = computeSavingsGoalProgress(
       baseInput({ targetAmount: 0, lines: [line] }),
     );
@@ -204,9 +224,13 @@ describe('computeSavingsGoalProgress — les deux couches', () => {
 describe('computeSavingsGoalProgress — rythme et projection (CA3)', () => {
   it('monthsElapsed inclut le mois courant ; pace = prévu / mois écoulés, confirmedPace = confirmé / mois écoulés', () => {
     const lines = [1, 2, 3, 4, 5, 6].map((month) =>
-      savingLine(1_000, { month, year: 2026 }, {
-        checkedAt: month <= 5 ? '2026-06-01T00:00:00Z' : null,
-      }),
+      savingLine(
+        1_000,
+        { month, year: 2026 },
+        {
+          checkedAt: month <= 5 ? '2026-06-01T00:00:00Z' : null,
+        },
+      ),
     );
     const result = computeSavingsGoalProgress(baseInput({ lines }));
     // janvier → juin = 6 mois écoulés
@@ -223,9 +247,13 @@ describe('computeSavingsGoalProgress — rythme et projection (CA3)', () => {
   });
 
   it('required est plancher à 0 quand le confirmé dépasse la cible', () => {
-    const line = savingLine(20_000, { month: 5, year: 2026 }, {
-      checkedAt: '2026-05-01T00:00:00Z',
-    });
+    const line = savingLine(
+      20_000,
+      { month: 5, year: 2026 },
+      {
+        checkedAt: '2026-05-01T00:00:00Z',
+      },
+    );
     const result = computeSavingsGoalProgress(baseInput({ lines: [line] }));
     expect(result.required).toBe(0);
     expect(result.paceStatus).toBe('ahead');
@@ -261,9 +289,13 @@ describe('computeSavingsGoalProgress — ancrage payDay (piège §4.3)', () => {
 
 describe('computeSavingsGoalProgress — D1 échéance dépassée (CA4)', () => {
   it('monthsRemaining ≤ 0 → required null, projected = confirmed, paceStatus null (pas behind)', () => {
-    const line = savingLine(3_000, { month: 3, year: 2026 }, {
-      checkedAt: '2026-03-28T00:00:00Z',
-    });
+    const line = savingLine(
+      3_000,
+      { month: 3, year: 2026 },
+      {
+        checkedAt: '2026-03-28T00:00:00Z',
+      },
+    );
     const result = computeSavingsGoalProgress(
       baseInput({
         targetDate: '2026-04-10', // dépassée (now = juin)
@@ -298,9 +330,13 @@ describe('computeSavingsGoalProgress — statuts (D2, PAUSED)', () => {
   });
 
   it('D2 : confirmed ≥ target sur un objectif ACTIVE → suggestCompletion, sans toucher au statut', () => {
-    const line = savingLine(12_000, { month: 5, year: 2026 }, {
-      checkedAt: '2026-05-01T00:00:00Z',
-    });
+    const line = savingLine(
+      12_000,
+      { month: 5, year: 2026 },
+      {
+        checkedAt: '2026-05-01T00:00:00Z',
+      },
+    );
     const result = computeSavingsGoalProgress(baseInput({ lines: [line] }));
     expect(result.suggestCompletion).toBe(true);
     expect(result.achievementPercent).toBe(100);
@@ -313,9 +349,13 @@ describe('computeSavingsGoalProgress — statuts (D2, PAUSED)', () => {
         .suggestCompletion,
     ).toBe(false);
 
-    const confirmedLine = savingLine(12_000, { month: 5, year: 2026 }, {
-      checkedAt: '2026-05-01T00:00:00Z',
-    });
+    const confirmedLine = savingLine(
+      12_000,
+      { month: 5, year: 2026 },
+      {
+        checkedAt: '2026-05-01T00:00:00Z',
+      },
+    );
     expect(
       computeSavingsGoalProgress(
         baseInput({ status: 'COMPLETED', lines: [confirmedLine] }),
