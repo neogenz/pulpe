@@ -29,12 +29,14 @@ function buildController() {
       payDayOfMonth: 15,
       currency: 'EUR' as const,
       showCurrencySelector: true,
+      checkingEnabled: true,
     })),
   };
   const updateSettings = {
     execute: mock(async () => ({
       payDayOfMonth: 20,
       currency: 'CHF' as const,
+      checkingEnabled: true,
       showCurrencySelector: false,
     })),
   };
@@ -112,6 +114,7 @@ describe('UserController (HTTP wiring)', () => {
         payDayOfMonth: 15,
         currency: 'EUR',
         showCurrencySelector: true,
+        checkingEnabled: true,
       });
     });
   });

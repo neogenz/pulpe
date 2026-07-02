@@ -1216,6 +1216,7 @@ export const updateUserSettingsSchema = z.strictObject({
     .optional(),
   currency: supportedCurrencySchema.optional(),
   showCurrencySelector: z.boolean().optional(),
+  checkingEnabled: z.boolean().optional(),
 });
 export type UpdateUserSettings = z.infer<typeof updateUserSettingsSchema>;
 
@@ -1223,6 +1224,7 @@ export const userSettingsSchema = z.object({
   payDayOfMonth: payDayOfMonthSchema,
   currency: supportedCurrencySchema.default('CHF'),
   showCurrencySelector: z.boolean().default(false),
+  checkingEnabled: z.boolean().default(true),
 });
 export type UserSettings = z.infer<typeof userSettingsSchema>;
 

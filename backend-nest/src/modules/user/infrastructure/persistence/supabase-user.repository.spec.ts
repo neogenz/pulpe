@@ -11,6 +11,7 @@ interface MockUserMetadata {
   payDayOfMonth?: number | null;
   currency?: string;
   showCurrencySelector?: boolean;
+  checkingEnabled?: boolean;
   scheduledDeletionAt?: string;
 }
 
@@ -180,7 +181,19 @@ describe('SupabaseUserRepository', () => {
         payDayOfMonth: 15,
         currency: 'EUR',
         showCurrencySelector: true,
+        checkingEnabled: true,
       });
+    });
+
+    it('returns checkingEnabled=false when metadata disables it', async () => {
+      const client = buildAuthenticatedClient({ checkingEnabled: false });
+      Object.defineProperty(authenticatedProvider, 'client', {
+        get: () => client,
+      });
+
+      const result = await repo.findSettings();
+
+      expect(result.checkingEnabled).toBe(false);
     });
 
     it('falls back to CHF when currency is invalid', async () => {
@@ -207,6 +220,7 @@ describe('SupabaseUserRepository', () => {
         payDayOfMonth: null,
         currency: 'CHF',
         showCurrencySelector: false,
+        checkingEnabled: true,
       });
     });
   });
