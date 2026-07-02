@@ -1,4 +1,4 @@
-import { inject, Injectable } from '@angular/core';
+import { effect, inject, Injectable, untracked } from '@angular/core';
 import { type Observable } from 'rxjs';
 import {
   type SavingsGoalCreate,
@@ -15,6 +15,7 @@ import {
   savingsGoalUpdateSchema,
 } from 'pulpe-shared';
 import { ApiClient } from '@core/api/api-client';
+import { BudgetApi } from '@core/budget/budget-api';
 import { DataCache } from 'ngx-ziflux';
 
 @Injectable({
@@ -22,11 +23,23 @@ import { DataCache } from 'ngx-ziflux';
 })
 export class SavingsGoalApi {
   readonly #api = inject(ApiClient);
+  readonly #budgetApi = inject(BudgetApi);
   readonly cache = new DataCache({
     name: 'savings-goals',
     staleTime: 30_000,
     expireTime: 300_000,
   });
+
+  constructor() {
+    // Goal progress is computed server-side from budget lines + transactions.
+    // Any budget-domain mutation (transaction pointée, ligne modifiée…) must
+    // mark progress stale, otherwise the goal detail serves the pre-mutation
+    // confirmed amount for up to staleTime.
+    effect(() => {
+      if (this.#budgetApi.cache.version() === 0) return;
+      untracked(() => this.cache.invalidate(['savings-goals']));
+    });
+  }
 
   clearCache(): void {
     this.cache.clear();

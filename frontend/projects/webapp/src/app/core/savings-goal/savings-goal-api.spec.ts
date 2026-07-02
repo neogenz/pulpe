@@ -9,6 +9,7 @@ import {
 import { firstValueFrom } from 'rxjs';
 import type { SavingsGoalProgress } from 'pulpe-shared';
 import { ApplicationConfiguration } from '@core/config/application-configuration';
+import { BudgetApi } from '@core/budget/budget-api';
 import { SavingsGoalApi } from './savings-goal-api';
 
 const mockApplicationConfig = {
@@ -108,5 +109,22 @@ describe('SavingsGoalApi', () => {
     expect(response.data.isOverdue).toBe(true);
     expect(response.data.required).toBeNull();
     expect(response.data.paceStatus).toBeNull();
+  });
+
+  // Bug repro: a transaction pointée on a goal-linked line invalidates the
+  // budget cache, but the goal progress cache stayed FRESH — the detail page
+  // kept serving the pre-mutation confirmed amount for up to staleTime.
+  it('marks savings-goal cache entries stale when the budget cache is invalidated', () => {
+    const budgetApi = TestBed.inject(BudgetApi);
+    const key = ['savings-goals', 'progress', GOAL_ID];
+    service.cache.set(key, makeProgress());
+    expect(service.cache.get(key)?.fresh).toBe(true);
+
+    budgetApi.cache.invalidate(['budget', 'details']);
+    TestBed.flushEffects();
+
+    const entry = service.cache.get<SavingsGoalProgress>(key);
+    expect(entry).not.toBeNull();
+    expect(entry?.fresh).toBe(false);
   });
 });
