@@ -489,9 +489,9 @@
     "lockedAmountsTooltip": "Montants verrouillés",
     "viewTransactionsCount": "Voir les {{ label }}",
     "snackbar": {
-      "envelopeOver": "Pointé · {{ consumed }} {{ currency }} — {{ envelope }} {{ currency }} prévus",
-      "envelopeWithin": "Pointé · {{ envelope }} {{ currency }}",
-      "transactionChecked": "Pointé · {{ amount }} {{ currency }}"
+      "envelopeOver": "Pointé · {{ consumed }} — {{ envelope }} prévus",
+      "envelopeWithin": "Pointé · {{ envelope }}",
+      "transactionChecked": "Pointé · {{ amount }}"
     },
     "forecastCheckedToggle": "Déjà pointé",
     "spreadModeLabel": "Répartition de la dépense",
