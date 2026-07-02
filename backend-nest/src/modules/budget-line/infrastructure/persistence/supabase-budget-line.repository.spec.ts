@@ -473,6 +473,37 @@ describe('SupabaseBudgetLineRepository', () => {
         );
       }
     });
+
+    it('maps the savings-goal link trigger rejection to SAVINGS_GOAL_NOT_FOUND (4xx), not a 500', async () => {
+      // Stale picker scenario: the goal was deleted in another tab, the PATCH
+      // still carries its id — the DB trigger rejects with P0001.
+      const provider = createMockProvider(() => ({
+        update: () => ({
+          eq: () => ({
+            select: () => ({
+              single: jest.fn().mockResolvedValue({
+                data: null,
+                error: {
+                  code: 'P0001',
+                  message: 'Savings goal access denied',
+                },
+              }),
+            }),
+          }),
+        }),
+      }));
+      repo = new SupabaseBudgetLineRepository(provider, createMockEncryption());
+
+      try {
+        await repo.update('line-1', { savingsGoalId: 'deleted-goal' });
+        throw new Error('expected to throw');
+      } catch (error) {
+        expect(error).toBeInstanceOf(BusinessException);
+        expect((error as BusinessException).code).toBe(
+          'ERR_SAVINGS_GOAL_NOT_FOUND',
+        );
+      }
+    });
   });
 
   describe('createSpread', () => {

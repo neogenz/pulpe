@@ -10,6 +10,7 @@ import {
 } from '@modules/encryption/encryption.tokens';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import { mapCurrencyNonAmountMetadataToDb } from '@common/utils/currency-metadata.mapper';
+import { isSavingsGoalLinkDenied } from '@common/utils/savings-goal-link';
 import type {
   BudgetTemplate,
   BudgetTemplateUpdatePatch,
@@ -251,6 +252,15 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
       .single();
 
     if (error || !data) {
+      // enforce_savings_goal_line_link trigger: deleted/foreign goal tagged.
+      if (isSavingsGoalLinkDenied(error)) {
+        throw new BusinessException(
+          ERROR_DEFINITIONS.SAVINGS_GOAL_NOT_FOUND,
+          undefined,
+          { operation: 'insertLine' },
+          { cause: error ?? undefined },
+        );
+      }
       throw new BusinessException(
         ERROR_DEFINITIONS.TEMPLATE_CREATE_FAILED,
         undefined,
@@ -339,6 +349,15 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
       .single();
 
     if (error || !data) {
+      // enforce_savings_goal_line_link trigger: deleted/foreign goal tagged.
+      if (isSavingsGoalLinkDenied(error)) {
+        throw new BusinessException(
+          ERROR_DEFINITIONS.SAVINGS_GOAL_NOT_FOUND,
+          undefined,
+          { operation: 'updateLine', entityId: lineId },
+          { cause: error ?? undefined },
+        );
+      }
       throw new BusinessException(
         ERROR_DEFINITIONS.TEMPLATE_LINE_NOT_FOUND,
         { id: lineId },
@@ -496,6 +515,7 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
 
     if (error) {
       this.throwIfTemplateLimitExceeded(error);
+      this.throwIfSavingsGoalLinkDenied(error, 'createTemplateWithLines');
       throw error;
     }
 
@@ -513,6 +533,25 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
         ERROR_DEFINITIONS.TEMPLATE_LIMIT_EXCEEDED,
         { limit: 5 },
         { operation: 'createTemplateWithLines' },
+        { cause: error },
+      );
+    }
+  }
+
+  /**
+   * enforce_savings_goal_line_link trigger fires inside the SECURITY DEFINER
+   * RPCs too — a deleted/foreign goal tagged on a line is a business
+   * rejection (4xx), not a server fault.
+   */
+  private throwIfSavingsGoalLinkDenied(
+    error: unknown,
+    operation: string,
+  ): void {
+    if (isSavingsGoalLinkDenied(error)) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.SAVINGS_GOAL_NOT_FOUND,
+        undefined,
+        { operation },
         { cause: error },
       );
     }
@@ -553,7 +592,13 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
       },
     );
 
-    if (error) throw error;
+    if (error) {
+      this.throwIfSavingsGoalLinkDenied(
+        error,
+        'bulkApplyTemplateLineOperations',
+      );
+      throw error;
+    }
 
     const affectedBudgetIds = Array.isArray(data)
       ? (data.filter((id): id is string => Boolean(id)) as string[])
