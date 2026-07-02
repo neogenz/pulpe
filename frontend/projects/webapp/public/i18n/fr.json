@@ -489,9 +489,9 @@
     "lockedAmountsTooltip": "Montants verrouillés",
     "viewTransactionsCount": "Voir les {{ label }}",
     "snackbar": {
-      "envelopeOver": "Pointé · {{ consumed }} {{ currency }} — {{ envelope }} {{ currency }} prévus",
-      "envelopeWithin": "Pointé · {{ envelope }} {{ currency }}",
-      "transactionChecked": "Pointé · {{ amount }} {{ currency }}"
+      "envelopeOver": "Pointé · {{ consumed }} — {{ envelope }} prévus",
+      "envelopeWithin": "Pointé · {{ envelope }}",
+      "transactionChecked": "Pointé · {{ amount }}"
     },
     "forecastCheckedToggle": "Déjà pointé",
     "spreadModeLabel": "Répartition de la dépense",
@@ -704,8 +704,8 @@
     "totalExpenses": "Total des dépenses :",
     "netBalanceLabel": "Solde net :",
     "noForecastInTemplate": "Pas de prévision dans ce modèle",
-    "heroSubtitleComfortable": "selon ce modèle, tu termines le mois avec {{amount}} {{currency}} de marge",
-    "heroSubtitleDeficit": "selon ce modèle, ce mois sera serré de {{amount}} {{currency}}",
+    "heroSubtitleComfortable": "selon ce modèle, tu termines le mois avec {{amount}} de marge",
+    "heroSubtitleDeficit": "selon ce modèle, ce mois sera serré de {{amount}}",
     "addLine": "Ajouter une prévision",
     "editLineTitle": "Modifier la prévision",
     "newLineTitle": "Nouvelle prévision",

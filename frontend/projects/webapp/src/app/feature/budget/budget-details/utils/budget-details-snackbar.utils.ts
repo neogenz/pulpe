@@ -8,6 +8,25 @@ import type {
   Transaction,
 } from 'pulpe-shared';
 
+import { AppCurrencyPipe } from '@core/currency';
+
+const currencyPipe = new AppCurrencyPipe();
+
+/**
+ * PUL-149 business rule: all snackbar amounts use aggregation digits
+ * (`'1.0-0'`) — the ticket explicitly treats them as totals, not individual
+ * budget_line/transaction lines, so a single message never mixes decimal
+ * precisions (e.g. "1'574 CHF — 408 CHF prévus", not "... — 408.00 CHF").
+ * See webapp-currency-formatting.md. `transform()` only returns `null` for
+ * null/undefined/NaN input; `amount` here is always a rounded finite number.
+ */
+function formatSnackbarAmount(
+  amount: number,
+  currency: SupportedCurrency,
+): string {
+  return currencyPipe.transform(amount, currency, '1.0-0')!;
+}
+
 /**
  * Success toast for a smoothed expense (PUL-17). Base line counts the created
  * occurrences; suffixes surface auto-created budgets and months skipped for
@@ -122,14 +141,12 @@ export function computeEnvelopeSnackbarMessage(
 
   if (roundedConsumed > roundedEnvelope) {
     return transloco.translate('budget.snackbar.envelopeOver', {
-      consumed: roundedConsumed,
-      envelope: roundedEnvelope,
-      currency,
+      consumed: formatSnackbarAmount(roundedConsumed, currency),
+      envelope: formatSnackbarAmount(roundedEnvelope, currency),
     });
   }
   return transloco.translate('budget.snackbar.envelopeWithin', {
-    envelope: roundedEnvelope,
-    currency,
+    envelope: formatSnackbarAmount(roundedEnvelope, currency),
   });
 }
 
@@ -143,7 +160,9 @@ export function computeTransactionSnackbarMessage(
   if (!transaction || transaction.checkedAt == null) return null;
 
   return transloco.translate('budget.snackbar.transactionChecked', {
-    amount: Math.round(Math.abs(transaction.amount)),
-    currency,
+    amount: formatSnackbarAmount(
+      Math.round(Math.abs(transaction.amount)),
+      currency,
+    ),
   });
 }

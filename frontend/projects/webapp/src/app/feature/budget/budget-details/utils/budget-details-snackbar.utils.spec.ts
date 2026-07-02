@@ -59,11 +59,11 @@ function createMockTransloco(): TranslocoService {
     translate: vi.fn((key: string, params?: Record<string, unknown>) => {
       switch (key) {
         case 'budget.snackbar.envelopeOver':
-          return `Pointé · ${params?.['consumed']} ${params?.['currency']} — ${params?.['envelope']} ${params?.['currency']} prévus`;
+          return `Pointé · ${params?.['consumed']} — ${params?.['envelope']} prévus`;
         case 'budget.snackbar.envelopeWithin':
-          return `Pointé · ${params?.['envelope']} ${params?.['currency']}`;
+          return `Pointé · ${params?.['envelope']}`;
         case 'budget.snackbar.transactionChecked':
-          return `Pointé · ${params?.['amount']} ${params?.['currency']}`;
+          return `Pointé · ${params?.['amount']}`;
         default:
           return key;
       }
@@ -132,7 +132,7 @@ describe('computeEnvelopeSnackbarMessage', () => {
       transloco,
     );
 
-    expect(result).toBe('Pointé · 1574 CHF — 408 CHF prévus');
+    expect(result).toBe('Pointé · 1’574 CHF — 408 CHF prévus');
   });
 
   it('AC3 — displays envelope amount when consumed < envelope (123 < 408)', () => {
@@ -180,6 +180,37 @@ describe('computeEnvelopeSnackbarMessage', () => {
     );
 
     expect(result).toBe('Pointé · 408 CHF');
+  });
+
+  it('CA3 — envelopeOver displays the EUR symbol, never the raw ISO code', () => {
+    const budgetLine = makeBudgetLine({ amount: 100 });
+    const tx = makeTransaction({ amount: 150, checkedAt: NOW });
+
+    const result = computeEnvelopeSnackbarMessage(
+      budgetLine.id,
+      [budgetLine],
+      [tx],
+      'EUR',
+      transloco,
+    );
+
+    expect(result).toBe('Pointé · 150 € — 100 € prévus');
+    expect(result).not.toContain('EUR');
+  });
+
+  it('CA3 — envelopeWithin displays the EUR symbol, never the raw ISO code', () => {
+    const budgetLine = makeBudgetLine({ amount: 234 });
+
+    const result = computeEnvelopeSnackbarMessage(
+      budgetLine.id,
+      [budgetLine],
+      [],
+      'EUR',
+      transloco,
+    );
+
+    expect(result).toBe('Pointé · 234 €');
+    expect(result).not.toContain('EUR');
   });
 
   it('AC4 — ignores income transactions in consumed calculation', () => {
@@ -305,6 +336,20 @@ describe('computeTransactionSnackbarMessage', () => {
     );
 
     expect(result).toBe('Pointé · 42 CHF');
+  });
+
+  it('CA3 — displays the EUR symbol, never the raw ISO code', () => {
+    const tx = makeTransaction({ amount: 234, checkedAt: NOW });
+
+    const result = computeTransactionSnackbarMessage(
+      tx.id,
+      [tx],
+      'EUR',
+      transloco,
+    );
+
+    expect(result).toBe('Pointé · 234 €');
+    expect(result).not.toContain('EUR');
   });
 });
 
