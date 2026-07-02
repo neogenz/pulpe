@@ -25,6 +25,10 @@ struct BudgetLineMixedRow: View {
     /// the user-settings environment so the row does not observe the whole
     /// store and re-render on unrelated changes (broad observation fan-out).
     let currency: SupportedCurrency
+    /// Name of the savings goal this saving prévision is linked to (PUL-12), or
+    /// `nil` when unlinked / not a saving line / the goal cache is still loading.
+    /// Passed as a primitive so the row never reads `SavingsGoalStore` directly.
+    let savingsGoalName: String?
     let onTap: () -> Void
     let onTogglePointed: () -> Void
 
@@ -173,6 +177,12 @@ struct BudgetLineMixedRow: View {
             if line.isSpread {
                 PulpeChip(icon: "calendar", label: "Lissé", style: .muted)
                     .accessibilityLabel("Dépense lissée")
+            }
+
+            if let savingsGoalName {
+                PulpeChip(icon: "target", label: savingsGoalName, style: .muted)
+                    .lineLimit(1)
+                    .accessibilityLabel("Objectif : \(savingsGoalName)")
             }
 
             Text(line.name)

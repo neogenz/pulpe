@@ -28,6 +28,7 @@ struct BudgetLineDetailPage: View {
     @Environment(AppState.self) var appState
     @Environment(BudgetDetailsRouter.self) var router
     @Environment(UserSettingsStore.self) var userSettingsStore
+    @Environment(SavingsGoalStore.self) var savingsGoalStore
     @Environment(\.amountsHidden) var amountsHidden
     @Environment(\.dismiss) var dismiss
 
@@ -75,6 +76,8 @@ struct BudgetLineDetailPage: View {
                 .padding(.horizontal, DesignTokens.Spacing.lg)
                 .padding(.top, DesignTokens.Spacing.lg)
                 .padding(.bottom, DesignTokens.Spacing.md)
+
+            savingsGoalLink(for: line)
 
             if let spreadGroupId = line.spreadGroupId {
                 SpreadAffordanceButton {

@@ -338,6 +338,17 @@ struct BudgetsTab: View {
                         BudgetDetailsView(budgetId: budgetId)
                     }
                 }
+                // A saving prévision's detail can push its linked goal's
+                // progression (PUL-12) — same destination as the CurrentMonth
+                // stack, registered here for the budget branch.
+                .navigationDestination(for: SavingsGoalDestination.self) { destination in
+                    switch destination {
+                    case .list:
+                        SavingsGoalsListView()
+                    case .detail(let goal):
+                        SavingsGoalDetailView(goal: goal)
+                    }
+                }
         }
         .environment(router)
         .task { router.bind(to: appState) }

@@ -12,6 +12,9 @@ struct BudgetMixedSection: View {
     let kind: TransactionKind
     let items: [BudgetDetailsScreenState.LineItem]
     let currency: SupportedCurrency
+    /// Savings goal names keyed by goal id (PUL-12). Only the Épargne section
+    /// resolves a name; other kinds never carry a `savingsGoalId`.
+    let goalNamesById: [String: String]
     let onTap: (BudgetLine) -> Void
     let onTogglePointed: (BudgetLine) -> Void
     var tip: (any Tip)?
@@ -20,6 +23,7 @@ struct BudgetMixedSection: View {
         kind: TransactionKind,
         items: [BudgetDetailsScreenState.LineItem],
         currency: SupportedCurrency,
+        goalNamesById: [String: String] = [:],
         onTap: @escaping (BudgetLine) -> Void,
         onTogglePointed: @escaping (BudgetLine) -> Void,
         tip: (any Tip)? = nil
@@ -27,9 +31,17 @@ struct BudgetMixedSection: View {
         self.kind = kind
         self.items = items
         self.currency = currency
+        self.goalNamesById = goalNamesById
         self.onTap = onTap
         self.onTogglePointed = onTogglePointed
         self.tip = tip
+    }
+
+    /// O(1) lookup of the linked goal's name for a line, or `nil` when the line
+    /// isn't tagged or the goal cache hasn't resolved the id yet.
+    private func goalName(for line: BudgetLine) -> String? {
+        guard let id = line.savingsGoalId else { return nil }
+        return goalNamesById[id]
     }
 
     private var headerTitle: String {
@@ -70,6 +82,7 @@ struct BudgetMixedSection: View {
                     consumption: item.consumption,
                     isSyncing: item.isSyncing,
                     currency: currency,
+                    savingsGoalName: goalName(for: item.line),
                     onTap: { onTap(item.line) },
                     onTogglePointed: { onTogglePointed(item.line) }
                 )
