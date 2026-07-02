@@ -4,15 +4,17 @@ import {
   computed,
   inject,
   input,
+  output,
 } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
+import { MatButtonModule } from '@angular/material/button';
 import { TranslocoService, TranslocoPipe } from '@jsverse/transloco';
 import type { SupportedCurrency } from 'pulpe-shared';
 import { AppCurrencyPipe } from '@core/currency';
 
 @Component({
   selector: 'pulpe-dashboard-savings-summary',
-  imports: [AppCurrencyPipe, MatIconModule, TranslocoPipe],
+  imports: [AppCurrencyPipe, MatIconModule, MatButtonModule, TranslocoPipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="flex flex-col w-full h-full">
@@ -39,6 +41,14 @@ import { AppCurrencyPipe } from '@core/currency';
             }
           </p>
         </div>
+        <button
+          matButton="outlined"
+          class="ml-auto shrink-0"
+          (click)="viewSavingsGoals.emit()"
+        >
+          <mat-icon aria-hidden="true">flag</mat-icon>
+          {{ 'currentMonth.savingsViewGoals' | transloco }}
+        </button>
       </div>
 
       <div
@@ -103,6 +113,10 @@ import { AppCurrencyPipe } from '@core/currency';
             >
               {{ 'currentMonth.savingsEmptyTitle' | transloco }}
             </h3>
+            <button matButton="outlined" (click)="viewSavingsGoals.emit()">
+              <mat-icon aria-hidden="true">flag</mat-icon>
+              {{ 'currentMonth.savingsSetFirstGoal' | transloco }}
+            </button>
           </div>
         }
       </div>
@@ -122,6 +136,8 @@ export class DashboardSavingsSummary {
   readonly checkedCount = input.required<number>();
   readonly totalCount = input.required<number>();
   readonly currency = input<SupportedCurrency>('CHF');
+
+  readonly viewSavingsGoals = output<void>();
 
   protected readonly progressPercentage = computed(() => {
     const planned = this.totalPlanned();

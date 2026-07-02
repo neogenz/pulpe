@@ -39,6 +39,11 @@ const NAVIGATION_CONFIG: NavigationSection[] = [
         route: ROUTES.BUDGET_TEMPLATES,
         icon: 'description',
       },
+      {
+        label: "Objectifs d'épargne",
+        route: ROUTES.SAVINGS_GOALS,
+        icon: 'savings',
+      },
     ],
   },
 ];
