@@ -14,8 +14,8 @@ import { registerLocaleData } from '@angular/common';
 import localeDE from '@angular/common/locales/de-CH';
 import type {
   SavingsGoal,
+  SavingsGoalContribution,
   SavingsGoalProgress,
-  SavingsGoalTransaction,
 } from 'pulpe-shared';
 import SavingsGoalDetailPage from './savings-goal-detail-page';
 import { SavingsGoalStore } from '../services/savings-goals-store';
@@ -99,29 +99,19 @@ function makeProgress(
   };
 }
 
-function makeTransaction(
-  overrides: Partial<SavingsGoalTransaction> = {},
-): SavingsGoalTransaction {
+function makeContribution(
+  overrides: Partial<SavingsGoalContribution> = {},
+): SavingsGoalContribution {
   return {
-    id: 'tx-1',
-    budgetId: 'budget-1',
-    budgetLineId: 'line-1',
-    name: 'macbook1',
-    amount: 150,
-    kind: 'saving',
-    transactionDate: '2026-07-02T10:00:00.000Z',
-    checkedAt: '2026-07-02T10:00:00.000Z',
-    category: null,
-    createdAt: '2026-07-02T10:00:00.000Z',
-    updatedAt: '2026-07-02T10:00:00.000Z',
-    originalAmount: null,
-    originalCurrency: null,
-    targetCurrency: null,
-    exchangeRate: null,
+    lineId: 'line-1',
+    name: 'Épargne mensuelle',
+    amount: 500,
+    checkedAt: null,
     budgetMonth: 7,
     budgetYear: 2026,
+    transactions: [],
     ...overrides,
-  } as SavingsGoalTransaction;
+  };
 }
 
 describe('SavingsGoalDetailPage', () => {
@@ -130,7 +120,7 @@ describe('SavingsGoalDetailPage', () => {
 
   const goalSig = signal<SavingsGoal | null>(makeGoal());
   const progressSig = signal<SavingsGoalProgress | null>(makeProgress());
-  const transactionsSig = signal<SavingsGoalTransaction[]>([]);
+  const contributionsSig = signal<SavingsGoalContribution[]>([]);
   const progressErrorSig = signal<unknown>(null);
   const isProgressLoadingSig = signal(false);
   const listInitialLoadingSig = signal(false);
@@ -145,8 +135,8 @@ describe('SavingsGoalDetailPage', () => {
     progress: progressSig,
     progressError: progressErrorSig,
     isProgressLoading: isProgressLoadingSig,
-    transactions: transactionsSig,
-    isTransactionsLoading: signal(false),
+    contributions: contributionsSig,
+    isContributionsLoading: signal(false),
     savingsGoals: { isInitialLoading: listInitialLoadingSig },
     setSelectedGoalId: vi.fn(),
     reloadProgress,
@@ -164,7 +154,7 @@ describe('SavingsGoalDetailPage', () => {
   beforeEach(async () => {
     goalSig.set(makeGoal());
     progressSig.set(makeProgress());
-    transactionsSig.set([]);
+    contributionsSig.set([]);
     progressErrorSig.set(null);
     isProgressLoadingSig.set(false);
     listInitialLoadingSig.set(false);
@@ -317,32 +307,59 @@ describe('SavingsGoalDetailPage', () => {
     expect(query('edit-savings-goal-button')).toBeFalsy();
   });
 
-  it('lists the transactions allocated to the goal-linked lines', () => {
-    transactionsSig.set([
-      makeTransaction(),
-      makeTransaction({ id: 'tx-2', name: 'acompte', checkedAt: null }),
+  it('lists one contribution per linked line, checked prévision included even without transaction', () => {
+    contributionsSig.set([
+      makeContribution({ checkedAt: '2026-07-02T18:00:00.000Z' }),
+      makeContribution({ lineId: 'line-2', budgetMonth: 8 }),
     ]);
     fixture.detectChanges();
 
     const rows = fixture.debugElement.queryAll(
-      By.css('[data-testid="savings-goal-transaction-row"]'),
+      By.css('[data-testid="savings-goal-contribution-row"]'),
     );
     expect(rows).toHaveLength(2);
-    expect(rows[0].nativeElement.textContent).toContain('macbook1');
-    expect(rows[0].nativeElement.textContent).toContain('150.00');
-    expect(query('savings-goal-transactions-empty')).toBeFalsy();
+    expect(rows[0].nativeElement.textContent).toContain('Épargne mensuelle');
+    expect(rows[0].nativeElement.textContent).toContain('500.00');
   });
 
-  it('shows the transactions empty hint when no transaction exists yet', () => {
+  it('nests the allocated transactions under their contribution', () => {
+    contributionsSig.set([
+      makeContribution({
+        transactions: [
+          {
+            id: 'tx-1',
+            budgetId: 'budget-1',
+            budgetLineId: 'line-1',
+            name: 'macbook1',
+            amount: 150,
+            kind: 'saving',
+            transactionDate: '2026-07-02T10:00:00.000Z',
+            checkedAt: '2026-07-02T10:00:00.000Z',
+            category: null,
+            createdAt: '2026-07-02T10:00:00.000Z',
+            updatedAt: '2026-07-02T10:00:00.000Z',
+            originalAmount: null,
+            originalCurrency: null,
+            targetCurrency: null,
+            exchangeRate: null,
+          },
+        ],
+      }),
+    ]);
     fixture.detectChanges();
-    expect(query('savings-goal-transactions')).toBeTruthy();
-    expect(query('savings-goal-transactions-empty')).toBeTruthy();
+
+    const nested = fixture.debugElement.queryAll(
+      By.css('[data-testid="savings-goal-contribution-transaction"]'),
+    );
+    expect(nested).toHaveLength(1);
+    expect(nested[0].nativeElement.textContent).toContain('macbook1');
+    expect(nested[0].nativeElement.textContent).toContain('150.00');
   });
 
-  it('hides the transactions section entirely when no line is linked', () => {
+  it('hides the contributions section entirely when no line is linked', () => {
     progressSig.set(makeProgress({ linkedLineCount: 0 }));
     fixture.detectChanges();
-    expect(query('savings-goal-transactions')).toBeFalsy();
+    expect(query('savings-goal-contributions')).toBeFalsy();
   });
 
   it('navigates back to the list on back button', () => {

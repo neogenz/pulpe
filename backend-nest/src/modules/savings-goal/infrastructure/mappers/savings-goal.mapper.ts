@@ -1,15 +1,15 @@
 import { Injectable } from '@nestjs/common';
 import {
   type SavingsGoal as SavingsGoalApi,
+  type SavingsGoalContribution as SavingsGoalContributionApi,
   type SavingsGoalProgress,
-  type SavingsGoalTransaction,
   type SupportedCurrency,
 } from 'pulpe-shared';
 import { parseCurrency } from '@common/utils/currency-metadata.mapper';
-import { mapTransactionToApi } from '@common/utils/transaction-api.mapper';
+import { mapTransactionsToApi } from '@common/utils/transaction-api.mapper';
 import type {
   SavingsGoal,
-  SavingsGoalLinkedTransaction,
+  SavingsGoalContribution,
   SavingsGoalProgressComputation,
 } from '../../domain/savings-goal.entity';
 
@@ -80,17 +80,21 @@ export class SavingsGoalMapper {
   }
 
   /**
-   * Transactions liées (PUL-12). Réutilise le mapper transaction commun pour
-   * le cœur camelCase + door-keepers FX, puis attache la période du budget
-   * parent (`budgetMonth`/`budgetYear`) qui situe chaque transaction.
+   * Contributions (PUL-12). Une par prévision Épargne liée, avec la période de
+   * son budget parent ; les transactions imbriquées passent par le mapper
+   * transaction commun (cœur camelCase + door-keepers FX).
    */
-  toTransactionsApi(
-    transactions: SavingsGoalLinkedTransaction[],
-  ): SavingsGoalTransaction[] {
-    return transactions.map((transaction) => ({
-      ...mapTransactionToApi(transaction),
-      budgetMonth: transaction.budgetMonth,
-      budgetYear: transaction.budgetYear,
+  toContributionsApi(
+    contributions: SavingsGoalContribution[],
+  ): SavingsGoalContributionApi[] {
+    return contributions.map((contribution) => ({
+      lineId: contribution.lineId,
+      name: contribution.name,
+      amount: contribution.amount,
+      checkedAt: contribution.checkedAt,
+      budgetMonth: contribution.budgetMonth,
+      budgetYear: contribution.budgetYear,
+      transactions: mapTransactionsToApi(contribution.transactions),
     }));
   }
 }

@@ -888,10 +888,9 @@
       "completedTitle": "Objectif atteint",
       "completedMessage": "Tu as atteint cette cible. Tu peux le ré-ouvrir si tu veux continuer.",
       "reopen": "Ré-ouvrir l'objectif",
-      "transactionsTitle": "Transactions",
-      "transactionsEmpty": "Aucune transaction pour l'instant.",
-      "transactionChecked": "Pointé",
-      "transactionUnchecked": "À pointer",
+      "contributionsTitle": "Contributions",
+      "contributionChecked": "Pointé",
+      "contributionUnchecked": "À pointer",
       "emptyTitle": "Aucune prévision rattachée",
       "emptyMessage": "Rattache une prévision Épargne à cet objectif depuis ton mois type ou un budget pour suivre ta progression.",
       "statusChangeError": "La mise à jour du statut n'a pas abouti — on retente ?"

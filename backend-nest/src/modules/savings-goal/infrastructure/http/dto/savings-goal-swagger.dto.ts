@@ -6,7 +6,7 @@ import {
   savingsGoalListResponseSchema,
   savingsGoalDeleteResponseSchema,
   savingsGoalProgressResponseSchema,
-  savingsGoalTransactionsResponseSchema,
+  savingsGoalContributionsResponseSchema,
 } from 'pulpe-shared';
 
 // Swagger DTOs derived from the shared Zod schemas (single source of truth).
@@ -28,6 +28,6 @@ export class SavingsGoalDeleteResponseDto extends createZodDto(
 export class SavingsGoalProgressResponseDto extends createZodDto(
   savingsGoalProgressResponseSchema,
 ) {}
-export class SavingsGoalTransactionsResponseDto extends createZodDto(
-  savingsGoalTransactionsResponseSchema,
+export class SavingsGoalContributionsResponseDto extends createZodDto(
+  savingsGoalContributionsResponseSchema,
 ) {}

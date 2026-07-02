@@ -14,6 +14,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router } from '@angular/router';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import {
+  type SavingsGoalContribution,
   type SavingsGoalPaceStatus,
   type SavingsGoalStatus,
 } from 'pulpe-shared';
@@ -374,62 +375,94 @@ type DetailViewState = 'loading' | 'error' | 'notFound' | 'ready';
           @if (!isEmpty()) {
             <section
               class="mt-4 flex flex-col gap-3"
-              aria-labelledby="goal-transactions-heading"
-              data-testid="savings-goal-transactions"
+              aria-labelledby="goal-contributions-heading"
+              data-testid="savings-goal-contributions"
             >
               <h2
-                id="goal-transactions-heading"
+                id="goal-contributions-heading"
                 class="text-title-large font-semibold"
               >
-                {{ 'savingsGoals.detail.transactionsTitle' | transloco }}
+                {{ 'savingsGoals.detail.contributionsTitle' | transloco }}
               </h2>
-              @if (store.transactions().length === 0) {
-                @if (!store.isTransactionsLoading()) {
-                  <p
-                    class="text-body-medium text-on-surface-variant"
-                    data-testid="savings-goal-transactions-empty"
+              <ul class="flex flex-col gap-2">
+                @for (c of store.contributions(); track c.lineId) {
+                  <li
+                    class="flex flex-col gap-2 rounded-lg bg-surface-container-low p-4"
+                    data-testid="savings-goal-contribution-row"
                   >
-                    {{ 'savingsGoals.detail.transactionsEmpty' | transloco }}
-                  </p>
-                }
-              } @else {
-                <ul class="flex flex-col gap-2">
-                  @for (tx of store.transactions(); track tx.id) {
-                    <li
-                      class="flex items-center gap-3 rounded-lg bg-surface-container-low p-4"
-                      data-testid="savings-goal-transaction-row"
-                    >
+                    <div class="flex items-center gap-3">
                       <mat-icon
-                        [class.text-financial-savings]="!!tx.checkedAt"
-                        [class.icon-filled]="!!tx.checkedAt"
-                        [class.text-on-surface-variant]="!tx.checkedAt"
+                        [class.text-financial-savings]="!!c.checkedAt"
+                        [class.icon-filled]="!!c.checkedAt"
+                        [class.text-on-surface-variant]="!c.checkedAt"
                         [attr.aria-label]="
-                          (tx.checkedAt
-                            ? 'savingsGoals.detail.transactionChecked'
-                            : 'savingsGoals.detail.transactionUnchecked'
+                          (c.checkedAt
+                            ? 'savingsGoals.detail.contributionChecked'
+                            : 'savingsGoals.detail.contributionUnchecked'
                           ) | transloco
                         "
                         >{{
-                          tx.checkedAt
+                          c.checkedAt
                             ? 'check_circle'
                             : 'radio_button_unchecked'
                         }}</mat-icon
                       >
                       <div class="flex flex-col min-w-0 flex-1">
                         <span class="text-body-large truncate ph-no-capture">{{
-                          tx.name
+                          c.name
                         }}</span>
                         <span class="text-body-small text-on-surface-variant">
-                          {{ tx.transactionDate | date: shortDateFormat() }}
+                          {{ periodOf(c) | date: monthYearFormat() }}
                         </span>
                       </div>
                       <span class="text-body-large font-medium ph-no-capture">
-                        {{ tx.amount | appCurrency: currency() : '1.2-2' }}
+                        {{ c.amount | appCurrency: currency() : '1.2-2' }}
                       </span>
-                    </li>
-                  }
-                </ul>
-              }
+                    </div>
+                    @if (c.transactions.length > 0) {
+                      <ul class="flex flex-col gap-1 pl-9">
+                        @for (tx of c.transactions; track tx.id) {
+                          <li
+                            class="flex items-center gap-2 text-body-medium"
+                            data-testid="savings-goal-contribution-transaction"
+                          >
+                            <mat-icon
+                              class="text-base! size-4!"
+                              [class.text-financial-savings]="!!tx.checkedAt"
+                              [class.icon-filled]="!!tx.checkedAt"
+                              [class.text-on-surface-variant]="!tx.checkedAt"
+                              [attr.aria-label]="
+                                (tx.checkedAt
+                                  ? 'savingsGoals.detail.contributionChecked'
+                                  : 'savingsGoals.detail.contributionUnchecked'
+                                ) | transloco
+                              "
+                              >{{
+                                tx.checkedAt
+                                  ? 'check_circle'
+                                  : 'radio_button_unchecked'
+                              }}</mat-icon
+                            >
+                            <span class="min-w-0 flex-1 truncate ph-no-capture">
+                              {{ tx.name }}
+                            </span>
+                            <span
+                              class="text-body-small text-on-surface-variant"
+                            >
+                              {{ tx.transactionDate | date: shortDateFormat() }}
+                            </span>
+                            <span class="ph-no-capture">
+                              {{
+                                tx.amount | appCurrency: currency() : '1.2-2'
+                              }}
+                            </span>
+                          </li>
+                        }
+                      </ul>
+                    }
+                  </li>
+                }
+              </ul>
             </section>
           }
         }
@@ -460,6 +493,13 @@ export default class SavingsGoalDetailPage {
   protected readonly shortDateFormat = computed(
     () => getDateDisplayFormats(this.currency()).shortDate,
   );
+  protected readonly monthYearFormat = computed(
+    () => getDateDisplayFormats(this.currency()).monthYear,
+  );
+
+  protected periodOf(contribution: SavingsGoalContribution): Date {
+    return new Date(contribution.budgetYear, contribution.budgetMonth - 1, 1);
+  }
 
   protected readonly viewState = computed<DetailViewState>(() => {
     if (this.store.progressError()) return 'error';

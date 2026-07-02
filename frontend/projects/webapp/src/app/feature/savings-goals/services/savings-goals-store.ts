@@ -1,9 +1,9 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import {
   type SavingsGoal,
+  type SavingsGoalContribution,
   type SavingsGoalCreate,
   type SavingsGoalProgress,
-  type SavingsGoalTransaction,
   type SavingsGoalUpdate,
 } from 'pulpe-shared';
 import { firstValueFrom, map } from 'rxjs';
@@ -60,27 +60,28 @@ export class SavingsGoalStore {
   readonly isProgressLoading = this.#progressResource.isInitialLoading;
   readonly progressError = this.#progressResource.error;
 
-  // Transactions allocated to the goal-linked lines (across all budgets).
-  readonly #transactionsResource = cachedResource<
-    SavingsGoalTransaction[],
+  // Linked saving lines + their allocated transactions (across all budgets).
+  readonly #contributionsResource = cachedResource<
+    SavingsGoalContribution[],
     { goalId: string }
   >({
     cache: this.#api.cache,
-    cacheKey: (params) => ['savings-goals', 'transactions', params.goalId],
+    cacheKey: (params) => ['savings-goals', 'contributions', params.goalId],
     params: () => {
       const id = this.#selectedGoalId();
       return id ? { goalId: id } : undefined;
     },
     loader: ({ params }) =>
       firstValueFrom(
-        this.#api.getTransactions$(params.goalId).pipe(map((res) => res.data)),
+        this.#api.getContributions$(params.goalId).pipe(map((res) => res.data)),
       ),
   });
 
-  readonly transactions = computed<SavingsGoalTransaction[]>(
-    () => this.#transactionsResource.value() ?? [],
+  readonly contributions = computed<SavingsGoalContribution[]>(
+    () => this.#contributionsResource.value() ?? [],
   );
-  readonly isTransactionsLoading = this.#transactionsResource.isInitialLoading;
+  readonly isContributionsLoading =
+    this.#contributionsResource.isInitialLoading;
 
   setSelectedGoalId(id: string | null): void {
     this.#selectedGoalId.set(id);

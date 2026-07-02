@@ -86,12 +86,18 @@ export interface SavingsGoalProgressComputation {
 }
 
 /**
- * A decrypted transaction allocated to a prévision Épargne linked to a goal
- * (PUL-12). A goal spans several budgets, so each transaction carries the
- * month/year of its parent line's budget to situate it without loading budgets.
- * Amounts are plain numbers — the repo decrypts internally.
+ * A goal-linked saving prévision with its parent budget period and the
+ * transactions allocated to it (PUL-12). Checking the prévision (`checkedAt`)
+ * is a contribution WITHOUT a transaction — the tracking list is therefore
+ * line-first, not transaction-first. Amounts are plain numbers — the repo
+ * decrypts internally.
  */
-export interface SavingsGoalLinkedTransaction extends Transaction {
+export interface SavingsGoalContribution {
+  lineId: string;
+  name: string;
+  amount: number;
+  checkedAt: string | null;
   budgetMonth: number;
   budgetYear: number;
+  transactions: Transaction[];
 }

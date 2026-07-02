@@ -11,8 +11,8 @@ import {
   savingsGoalResponseSchema,
   type SavingsGoalDeleteResponse,
   savingsGoalDeleteResponseSchema,
-  type SavingsGoalTransactionsResponse,
-  savingsGoalTransactionsResponseSchema,
+  type SavingsGoalContributionsResponse,
+  savingsGoalContributionsResponseSchema,
   type SavingsGoalUpdate,
   savingsGoalUpdateSchema,
 } from 'pulpe-shared';
@@ -62,10 +62,10 @@ export class SavingsGoalApi {
     );
   }
 
-  getTransactions$(id: string): Observable<SavingsGoalTransactionsResponse> {
+  getContributions$(id: string): Observable<SavingsGoalContributionsResponse> {
     return this.#api.get$(
-      `/savings-goals/${id}/transactions`,
-      savingsGoalTransactionsResponseSchema,
+      `/savings-goals/${id}/contributions`,
+      savingsGoalContributionsResponseSchema,
     );
   }
 

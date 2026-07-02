@@ -1,11 +1,11 @@
 import { describe, it, expect, beforeEach, jest } from 'bun:test';
 import { Test } from '@nestjs/testing';
 import { Buffer } from 'node:buffer';
-import { GetSavingsGoalTransactionsUseCase } from './get-savings-goal-transactions.use-case';
+import { GetSavingsGoalContributionsUseCase } from './get-savings-goal-contributions.use-case';
 import { SAVINGS_GOAL_REPOSITORY } from '../domain/ports/savings-goal-repository.port';
 import type {
   SavingsGoal,
-  SavingsGoalLinkedTransaction,
+  SavingsGoalContribution,
 } from '../domain/savings-goal.entity';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 
@@ -31,45 +31,35 @@ const goal: SavingsGoal = {
   exchangeRate: null,
 };
 
-const linkedTransaction: SavingsGoalLinkedTransaction = {
-  id: 'tx-1',
-  budgetId: 'budget-1',
-  budgetLineId: 'line-1',
-  name: 'Virement épargne',
+const contribution: SavingsGoalContribution = {
+  lineId: 'line-1',
+  name: 'Épargne mensuelle',
   amount: 500,
-  originalAmount: null,
-  originalCurrency: null,
-  targetCurrency: null,
-  exchangeRate: null,
-  kind: 'saving',
-  category: null,
-  transactionDate: '2026-06-15',
-  checkedAt: '2026-06-15T00:00:00Z',
-  createdAt: '2026-06-15T00:00:00Z',
-  updatedAt: '2026-06-15T00:00:00Z',
+  checkedAt: null,
   budgetMonth: 6,
   budgetYear: 2026,
+  transactions: [],
 };
 
-describe('GetSavingsGoalTransactionsUseCase', () => {
-  let useCase: GetSavingsGoalTransactionsUseCase;
+describe('GetSavingsGoalContributionsUseCase', () => {
+  let useCase: GetSavingsGoalContributionsUseCase;
   let mockRepo: {
     findById: ReturnType<typeof jest.fn>;
-    findLinkedTransactions: ReturnType<typeof jest.fn>;
+    findContributions: ReturnType<typeof jest.fn>;
   };
 
   beforeEach(async () => {
     mockRepo = {
       findById: jest.fn().mockResolvedValue(goal),
-      findLinkedTransactions: jest.fn().mockResolvedValue([linkedTransaction]),
+      findContributions: jest.fn().mockResolvedValue([contribution]),
     };
 
     const module = await Test.createTestingModule({
       providers: [
-        GetSavingsGoalTransactionsUseCase,
+        GetSavingsGoalContributionsUseCase,
         { provide: SAVINGS_GOAL_REPOSITORY, useValue: mockRepo },
         {
-          provide: `INFO_LOGGER:${GetSavingsGoalTransactionsUseCase.name}`,
+          provide: `INFO_LOGGER:${GetSavingsGoalContributionsUseCase.name}`,
           useValue: {
             info: () => {},
             debug: () => {},
@@ -80,15 +70,15 @@ describe('GetSavingsGoalTransactionsUseCase', () => {
       ],
     }).compile();
 
-    useCase = module.get(GetSavingsGoalTransactionsUseCase);
+    useCase = module.get(GetSavingsGoalContributionsUseCase);
   });
 
-  it('validates the goal then returns its linked transactions', async () => {
+  it('validates the goal then returns its contributions', async () => {
     const result = await useCase.execute('goal-1', mockUser);
 
-    expect(result).toEqual([linkedTransaction]);
+    expect(result).toEqual([contribution]);
     expect(mockRepo.findById).toHaveBeenCalledWith('goal-1');
-    expect(mockRepo.findLinkedTransactions).toHaveBeenCalledWith('goal-1');
+    expect(mockRepo.findContributions).toHaveBeenCalledWith('goal-1');
   });
 
   it('propagates NOT_FOUND from the repository (missing or foreign goal)', async () => {
@@ -96,6 +86,6 @@ describe('GetSavingsGoalTransactionsUseCase', () => {
     mockRepo.findById.mockRejectedValueOnce(error);
 
     await expect(useCase.execute('missing', mockUser)).rejects.toThrow(error);
-    expect(mockRepo.findLinkedTransactions).not.toHaveBeenCalled();
+    expect(mockRepo.findContributions).not.toHaveBeenCalled();
   });
 });

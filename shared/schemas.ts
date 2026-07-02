@@ -1347,23 +1347,29 @@ export type SavingsGoalProgressResponse = z.infer<
 >;
 
 /**
- * Transactions allouées aux prévisions liées à un objectif (PUL-12).
- * Un objectif couvre plusieurs budgets — chaque ligne porte le mois/année du
- * budget parent pour situer la transaction sans charger les budgets.
+ * Contribution d'un objectif (PUL-12) : une prévision Épargne liée, avec la
+ * période de son budget parent et les transactions qui lui sont allouées.
+ * Pointer la prévision (checkedAt) est une contribution SANS transaction —
+ * la liste du suivi doit donc partir des lignes, pas des transactions.
  */
-export const savingsGoalTransactionSchema = transactionSchema.extend({
+export const savingsGoalContributionSchema = z.object({
+  lineId: z.uuid(),
+  name: z.string(),
+  amount: z.coerce.number().nonnegative(),
+  checkedAt: z.iso.datetime({ offset: true }).nullable(),
   budgetMonth: z.number().int().min(1).max(12),
   budgetYear: z.number().int(),
+  transactions: z.array(transactionSchema),
 });
-export type SavingsGoalTransaction = z.infer<
-  typeof savingsGoalTransactionSchema
+export type SavingsGoalContribution = z.infer<
+  typeof savingsGoalContributionSchema
 >;
 
-export const savingsGoalTransactionsResponseSchema = createListResponse(
-  savingsGoalTransactionSchema,
+export const savingsGoalContributionsResponseSchema = createListResponse(
+  savingsGoalContributionSchema,
 );
-export type SavingsGoalTransactionsResponse = z.infer<
-  typeof savingsGoalTransactionsResponseSchema
+export type SavingsGoalContributionsResponse = z.infer<
+  typeof savingsGoalContributionsResponseSchema
 >;
 
 // Budget Line response schemas

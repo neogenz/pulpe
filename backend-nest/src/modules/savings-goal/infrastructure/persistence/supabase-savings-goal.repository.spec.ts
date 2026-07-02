@@ -140,11 +140,11 @@ function createContributionsProvider(config: {
 }
 
 /**
- * Provider for `findLinkedTransactions` — the budget_line query returns the
- * linked lines (with their budget period), then the transaction query resolves
+ * Provider for `findContributions` — the budget_line query returns the linked
+ * saving lines (with their budget period), then the transaction query resolves
  * `.in(...).order(...)`. Records the ordering args + the queried line ids.
  */
-function createLinkedTransactionsProvider(config: {
+function createGoalContributionsProvider(config: {
   lineResult: DbResult;
   txResult?: DbResult;
 }): {
@@ -474,72 +474,116 @@ describe('SupabaseSavingsGoalRepository', () => {
     });
   });
 
-  describe('findLinkedTransactions', () => {
-    const linkedTxRow = {
-      id: 'tx-1',
-      budget_id: 'budget-1',
-      budget_line_id: 'line-1',
-      name: 'Virement épargne',
+  describe('findContributions', () => {
+    // line-1 is a checked June prévision with no transaction; line-2 is an
+    // unchecked March prévision carrying two réels.
+    const checkedLineRow = {
+      id: 'line-1',
+      name: 'Épargne juin',
       amount: 'enc:500',
+      checked_at: '2026-06-01T00:00:00Z',
+      monthly_budget: { month: 6, year: 2026 },
+    };
+    const uncheckedLineRow = {
+      id: 'line-2',
+      name: 'Épargne mars',
+      amount: 'enc:300',
+      checked_at: null,
+      monthly_budget: { month: 3, year: 2026 },
+    };
+    const makeTxRow = (over: Record<string, unknown>) => ({
+      id: 'tx',
+      budget_id: 'budget-1',
+      budget_line_id: 'line-2',
+      name: 'Virement',
+      amount: 'enc:0',
       original_amount: null,
       original_currency: null,
       target_currency: null,
       exchange_rate: null,
       kind: 'saving' as const,
       category: null,
-      transaction_date: '2026-06-15',
-      checked_at: '2026-06-15T00:00:00Z',
-      created_at: '2026-06-15T00:00:00Z',
-      updated_at: '2026-06-15T00:00:00Z',
-    };
+      transaction_date: '2026-03-01',
+      checked_at: null,
+      created_at: '2026-03-01T00:00:00Z',
+      updated_at: '2026-03-01T00:00:00Z',
+      ...over,
+    });
 
-    it('decrypts each transaction and situates it via its parent line period', async () => {
-      const { provider, orderArgs } = createLinkedTransactionsProvider({
-        lineResult: { data: [linkedLineRow], error: null },
-        txResult: { data: [linkedTxRow], error: null },
+    it('groups transactions under each line, ordered chronologically with newest réels first', async () => {
+      // DB returns transactions transaction_date desc: the 20th before the 10th.
+      const { provider, orderArgs } = createGoalContributionsProvider({
+        lineResult: {
+          data: [checkedLineRow, uncheckedLineRow],
+          error: null,
+        },
+        txResult: {
+          data: [
+            makeTxRow({
+              id: 'tx-late',
+              amount: 'enc:200',
+              transaction_date: '2026-03-20',
+            }),
+            makeTxRow({
+              id: 'tx-early',
+              amount: 'enc:100',
+              transaction_date: '2026-03-10',
+            }),
+          ],
+          error: null,
+        },
       });
       const repo = new SupabaseSavingsGoalRepository(
         provider,
         createMockEncryption(),
       );
 
-      const result = await repo.findLinkedTransactions('goal-1');
+      const result = await repo.findContributions('goal-1');
 
-      expect(result).toEqual([
-        {
-          id: 'tx-1',
-          budgetId: 'budget-1',
-          budgetLineId: 'line-1',
-          name: 'Virement épargne',
-          amount: 500, // decrypted from 'enc:500'
-          originalAmount: null,
-          originalCurrency: null,
-          targetCurrency: null,
-          exchangeRate: null,
-          kind: 'saving',
-          category: null,
-          transactionDate: '2026-06-15',
-          checkedAt: '2026-06-15T00:00:00Z',
-          createdAt: '2026-06-15T00:00:00Z',
-          updatedAt: '2026-06-15T00:00:00Z',
-          budgetMonth: 6, // from the parent line's monthly_budget
-          budgetYear: 2026,
-        },
+      // Lines ordered ascending by (year, month): March (line-2) before June (line-1).
+      expect(result.map((c) => c.lineId)).toEqual(['line-2', 'line-1']);
+
+      const march = result[0];
+      expect(march).toMatchObject({
+        lineId: 'line-2',
+        name: 'Épargne mars',
+        amount: 300, // decrypted from 'enc:300'
+        checkedAt: null,
+        budgetMonth: 3,
+        budgetYear: 2026,
+      });
+      // Nested réels stay transaction_date desc and are decrypted.
+      expect(march.transactions.map((t) => t.id)).toEqual([
+        'tx-late',
+        'tx-early',
       ]);
-      // Ordered most-recent-first at the DB layer.
+      expect(march.transactions.map((t) => t.amount)).toEqual([200, 100]);
+
+      const june = result[1];
+      expect(june).toMatchObject({
+        lineId: 'line-1',
+        name: 'Épargne juin',
+        amount: 500,
+        checkedAt: '2026-06-01T00:00:00Z',
+        budgetMonth: 6,
+        budgetYear: 2026,
+      });
+      // A checked prévision with no réel is still a contribution — empty list.
+      expect(june.transactions).toEqual([]);
+
       expect(orderArgs()).toEqual(['transaction_date', { ascending: false }]);
     });
 
     it('returns [] WITHOUT a transaction query when no saving line is linked', async () => {
-      const { provider, transactionLineIds } = createLinkedTransactionsProvider(
-        { lineResult: { data: [], error: null } },
-      );
+      const { provider, transactionLineIds } = createGoalContributionsProvider({
+        lineResult: { data: [], error: null },
+      });
       const repo = new SupabaseSavingsGoalRepository(
         provider,
         createMockEncryption(),
       );
 
-      const result = await repo.findLinkedTransactions('goal-1');
+      const result = await repo.findContributions('goal-1');
 
       expect(result).toEqual([]);
       expect(transactionLineIds()).toBeUndefined(); // no ids → skip the round-trip
@@ -547,8 +591,8 @@ describe('SupabaseSavingsGoalRepository', () => {
 
     it('wraps a transaction-query error in TRANSACTION_FETCH_FAILED', async () => {
       const dbError = { message: 'statement timeout' };
-      const { provider } = createLinkedTransactionsProvider({
-        lineResult: { data: [linkedLineRow], error: null },
+      const { provider } = createGoalContributionsProvider({
+        lineResult: { data: [checkedLineRow], error: null },
         txResult: { data: null, error: dbError },
       });
       const repo = new SupabaseSavingsGoalRepository(
@@ -558,7 +602,7 @@ describe('SupabaseSavingsGoalRepository', () => {
 
       let caught: unknown;
       try {
-        await repo.findLinkedTransactions('goal-1');
+        await repo.findContributions('goal-1');
       } catch (error) {
         caught = error;
       }
