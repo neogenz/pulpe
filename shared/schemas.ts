@@ -385,7 +385,8 @@ export type SpreadFromExistingPeriod = z.infer<
  *
  * `kind` exclut `income` (revenu lissé hors scope V1). Un SEUL `exchangeRate` figé à
  * la saisie (FX gelé, RG-009) — partagé par tous les mois dans les deux modes. Le
- * `spread_group_id` est généré SERVEUR — jamais fourni par le client.
+ * `spread_group_id` est assigné par le SERVEUR : il reprend `spreadGroupId` quand le
+ * client fournit une clé d'idempotence, sinon il est généré côté serveur.
  *
  * NB : `perMonthAmount` (intention wire) est distinct du `perMonthAmount` du
  * view-model spread-occurrence (montant représentatif reçu d'un groupe existant).

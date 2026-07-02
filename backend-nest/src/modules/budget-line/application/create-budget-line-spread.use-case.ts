@@ -49,8 +49,8 @@ export interface CreateSpreadResult {
 
 /**
  * Fans a smoothed expense out into N independent `one_off` budget lines, one per
- * month, sharing a single server-generated `spread_group_id` (PUL-17 Lot A,
- * interpretation B). The additive create flow BUILDS its tranches server-side
+ * month, sharing a single `spread_group_id` (client idempotency key when present,
+ * otherwise server-generated). The additive create flow BUILDS its tranches server-side
  * from the dual-mode intent (PUL-287): `perMonth` REPLICATES one amount per month
  * (`buildSpreadTranches`, tolerant), `total` DIVIDES a typed total cents-preserving
  * (`buildSpreadTranchesFromTotal`, strict). The PORT (`fanOut`/`fanOutStrict`)
