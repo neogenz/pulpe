@@ -37,6 +37,7 @@ export const PAGE_TITLES = {
   BUDGET: 'pageTitle.budget',
   BUDGET_TEMPLATES: 'pageTitle.budgetTemplates',
   SAVINGS_GOALS: 'pageTitle.savingsGoals',
+  SAVINGS_GOAL_DETAILS: 'pageTitle.savingsGoalDetails',
   WELCOME: 'pageTitle.welcome',
   DASHBOARD_MONTH: 'pageTitle.dashboard',
   BUDGET_TEMPLATES_LIST: 'pageTitle.budgetTemplatesList',

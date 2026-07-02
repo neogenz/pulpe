@@ -30,7 +30,7 @@ import { UserSettingsStore } from '@core/user-settings';
     <mat-card
       appearance="outlined"
       class="savings-goal-card cursor-pointer h-full"
-      (click)="edit.emit(goal())"
+      (click)="openDetail.emit(goal())"
       [attr.data-testid]="'savings-goal-' + goal().name"
     >
       <mat-card-content class="flex flex-col gap-3 p-4!">
@@ -82,7 +82,7 @@ export class SavingsGoalCard {
   readonly #settings = inject(UserSettingsStore);
 
   readonly goal = input.required<SavingsGoal>();
-  readonly edit = output<SavingsGoal>();
+  readonly openDetail = output<SavingsGoal>();
 
   protected readonly currency = this.#settings.currency;
   protected readonly shortDateFormat = computed(
