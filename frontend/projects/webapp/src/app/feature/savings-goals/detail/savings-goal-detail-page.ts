@@ -275,8 +275,10 @@ type DetailViewState = 'loading' | 'error' | 'notFound' | 'ready';
                     <p class="text-body-medium text-on-surface-variant">
                       {{ 'savingsGoals.detail.overdueMessage' | transloco }}
                     </p>
+                    <!-- Outlined : un seul bouton primaire par écran (DA §3.5) —
+                         D1 et D2 peuvent coexister, le filled reste au CTA D2. -->
                     <button
-                      matButton="filled"
+                      matButton="outlined"
                       class="w-fit"
                       (click)="onEdit()"
                       data-testid="savings-goal-postpone-button"
