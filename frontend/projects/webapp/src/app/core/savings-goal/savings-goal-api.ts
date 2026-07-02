@@ -5,6 +5,8 @@ import {
   savingsGoalCreateSchema,
   type SavingsGoalListResponse,
   savingsGoalListResponseSchema,
+  type SavingsGoalProgressResponse,
+  savingsGoalProgressResponseSchema,
   type SavingsGoalResponse,
   savingsGoalResponseSchema,
   type SavingsGoalDeleteResponse,
@@ -36,6 +38,13 @@ export class SavingsGoalApi {
 
   getById$(id: string): Observable<SavingsGoalResponse> {
     return this.#api.get$(`/savings-goals/${id}`, savingsGoalResponseSchema);
+  }
+
+  getProgress$(id: string): Observable<SavingsGoalProgressResponse> {
+    return this.#api.get$(
+      `/savings-goals/${id}/progress`,
+      savingsGoalProgressResponseSchema,
+    );
   }
 
   create$(goal: SavingsGoalCreate): Observable<SavingsGoalResponse> {

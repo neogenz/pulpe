@@ -12,6 +12,12 @@ export const savingsGoalsRoutes: Routes = [
         title: PAGE_TITLES.SAVINGS_GOALS,
         loadComponent: () => import('./list/savings-goals-list-page'),
       },
+      {
+        path: ':id',
+        title: PAGE_TITLES.SAVINGS_GOAL_DETAILS,
+        data: { breadcrumb: 'pageTitle.savingsGoalDetails', icon: 'savings' },
+        loadComponent: () => import('./detail/savings-goal-detail-page'),
+      },
     ],
   },
 ];

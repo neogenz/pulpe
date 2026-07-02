@@ -1,10 +1,11 @@
-import { Injectable, computed, inject } from '@angular/core';
+import { Injectable, computed, inject, signal } from '@angular/core';
 import {
   type SavingsGoal,
   type SavingsGoalCreate,
+  type SavingsGoalProgress,
   type SavingsGoalUpdate,
 } from 'pulpe-shared';
-import { map } from 'rxjs';
+import { firstValueFrom, map } from 'rxjs';
 import { cachedResource, cachedMutation } from 'ngx-ziflux';
 import { SavingsGoalApi } from '@core/savings-goal/savings-goal-api';
 
@@ -23,6 +24,48 @@ export class SavingsGoalStore {
     () => this.savingsGoals.value() ?? [],
   );
   readonly isEmpty = computed(() => this.goals().length === 0);
+
+  // ── Detail page (PUL-8) ──
+  // One goal is "selected" when a detail page is mounted. The goal entity comes
+  // from the already-loaded list (no extra request); progression comes from the
+  // dedicated /progress endpoint (server computes every formula).
+  readonly #selectedGoalId = signal<string | null>(null);
+
+  readonly selectedGoal = computed<SavingsGoal | null>(() => {
+    const id = this.#selectedGoalId();
+    if (!id) return null;
+    return this.goals().find((goal) => goal.id === id) ?? null;
+  });
+
+  readonly #progressResource = cachedResource<
+    SavingsGoalProgress,
+    { goalId: string }
+  >({
+    cache: this.#api.cache,
+    cacheKey: (params) => ['savings-goals', 'progress', params.goalId],
+    params: () => {
+      const id = this.#selectedGoalId();
+      return id ? { goalId: id } : undefined;
+    },
+    loader: ({ params }) =>
+      firstValueFrom(
+        this.#api.getProgress$(params.goalId).pipe(map((res) => res.data)),
+      ),
+  });
+
+  readonly progress = computed<SavingsGoalProgress | null>(
+    () => this.#progressResource.value() ?? null,
+  );
+  readonly isProgressLoading = this.#progressResource.isInitialLoading;
+  readonly progressError = this.#progressResource.error;
+
+  setSelectedGoalId(id: string | null): void {
+    this.#selectedGoalId.set(id);
+  }
+
+  reloadProgress(): void {
+    this.#progressResource.reload();
+  }
 
   readonly #createMutation = cachedMutation<
     SavingsGoalCreate,
@@ -49,6 +92,9 @@ export class SavingsGoalStore {
     invalidateKeys: ({ id }) => [
       ['savings-goals', 'list'],
       ['savings-goals', 'details', id],
+      // A status change (COMPLETED / ACTIVE) shifts the derived progression, so
+      // refetch it — progress lives under a distinct key (prefix-based invalidation).
+      ['savings-goals', 'progress', id],
     ],
     mutationFn: ({ id, updates }) =>
       this.#api.update$(id, updates).pipe(map((response) => response.data)),
@@ -114,6 +160,16 @@ export class SavingsGoalStore {
       (data ?? []).map((goal) => (goal.id === id ? result : goal)),
     );
     return result;
+  }
+
+  /** D2 — mark an objective as reached (never auto-flipped; user confirms). */
+  async completeGoal(id: string): Promise<SavingsGoal> {
+    return this.editGoal(id, { status: 'COMPLETED' });
+  }
+
+  /** Re-open a COMPLETED objective (reversible transition). */
+  async reopenGoal(id: string): Promise<SavingsGoal> {
+    return this.editGoal(id, { status: 'ACTIVE' });
   }
 
   async removeGoal(id: string): Promise<void> {

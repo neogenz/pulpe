@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { of, throwError } from 'rxjs';
 import { provideZonelessChangeDetection, signal } from '@angular/core';
-import type { SavingsGoal } from 'pulpe-shared';
+import type { SavingsGoal, SavingsGoalProgress } from 'pulpe-shared';
 import { SavingsGoalStore } from './savings-goals-store';
 import { SavingsGoalApi } from '@core/savings-goal/savings-goal-api';
 
@@ -35,6 +35,35 @@ function makeGoal(overrides: Partial<SavingsGoal> = {}): SavingsGoal {
   } as SavingsGoal;
 }
 
+function makeProgress(
+  overrides: Partial<SavingsGoalProgress> = {},
+): SavingsGoalProgress {
+  return {
+    goalId: 'goal-1',
+    status: 'ACTIVE',
+    targetAmount: 3000,
+    targetDate: '2027-08-01',
+    plannedCumulative: 1200,
+    confirmed: 900,
+    achievementPercent: 30,
+    monthsElapsed: 3,
+    monthsRemaining: 12,
+    isOverdue: false,
+    pace: 400,
+    confirmedPace: 300,
+    required: 175,
+    projected: 4500,
+    paceStatus: 'on_track',
+    suggestCompletion: false,
+    linkedLineCount: 2,
+    originalTargetAmount: null,
+    originalCurrency: null,
+    targetCurrency: null,
+    exchangeRate: null,
+    ...overrides,
+  };
+}
+
 const settle = () => new Promise((resolve) => setTimeout(resolve, 50));
 
 describe('SavingsGoalStore', () => {
@@ -56,6 +85,9 @@ describe('SavingsGoalStore', () => {
 
     mockApi = {
       getAll$: vi.fn().mockReturnValue(of({ data: goals, success: true })),
+      getProgress$: vi
+        .fn()
+        .mockReturnValue(of({ data: makeProgress(), success: true })),
       create$: vi.fn(),
       update$: vi.fn(),
       delete$: vi.fn(),
@@ -176,5 +208,50 @@ describe('SavingsGoalStore', () => {
     const reloadSpy = vi.spyOn(store.savingsGoals, 'reload');
     store.refresh();
     expect(reloadSpy).toHaveBeenCalled();
+  });
+
+  it('loads progress for the selected goal via getProgress$', async () => {
+    await settle();
+    expect(store.progress()).toBeNull();
+
+    store.setSelectedGoalId('goal-1');
+    await settle();
+
+    expect(mockApi.getProgress$).toHaveBeenCalledWith('goal-1');
+    expect(store.progress()?.achievementPercent).toBe(30);
+  });
+
+  it('selectedGoal resolves from the loaded list', async () => {
+    await settle();
+    store.setSelectedGoalId('goal-2');
+    expect(store.selectedGoal()?.name).toBe('Voiture');
+  });
+
+  it('completeGoal PATCHes status COMPLETED', async () => {
+    const updated = makeGoal({ id: 'goal-1', status: 'COMPLETED' });
+    mockApi.update$ = vi
+      .fn()
+      .mockReturnValue(of({ data: updated, success: true }));
+    await settle();
+
+    await store.completeGoal('goal-1');
+
+    expect(mockApi.update$).toHaveBeenCalledWith('goal-1', {
+      status: 'COMPLETED',
+    });
+  });
+
+  it('reopenGoal PATCHes status ACTIVE', async () => {
+    const updated = makeGoal({ id: 'goal-1', status: 'ACTIVE' });
+    mockApi.update$ = vi
+      .fn()
+      .mockReturnValue(of({ data: updated, success: true }));
+    await settle();
+
+    await store.reopenGoal('goal-1');
+
+    expect(mockApi.update$).toHaveBeenCalledWith('goal-1', {
+      status: 'ACTIVE',
+    });
   });
 });

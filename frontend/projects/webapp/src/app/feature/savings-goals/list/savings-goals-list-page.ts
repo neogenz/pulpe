@@ -2,9 +2,10 @@ import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { Router } from '@angular/router';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { type SavingsGoal } from 'pulpe-shared';
-import { TitleDisplay } from '@core/routing';
+import { ROUTES, TitleDisplay } from '@core/routing';
 import { BaseLoading } from '@ui/loading';
 import { StateCard } from '@ui/state-card/state-card';
 import { SavingsGoalStore } from '../services/savings-goals-store';
@@ -84,7 +85,7 @@ import { SavingsGoalCard } from '../components/savings-goal-card';
               @for (goal of store.goals(); track goal.id) {
                 <pulpe-savings-goal-card
                   [goal]="goal"
-                  (edit)="onEdit($event)"
+                  (openDetail)="onOpen($event)"
                 />
               }
             </div>
@@ -108,6 +109,7 @@ export default class SavingsGoalsListPage {
   readonly #dialogs = inject(SavingsGoalsDialogService);
   readonly #snackBar = inject(MatSnackBar);
   readonly #transloco = inject(TranslocoService);
+  readonly #router = inject(Router);
 
   constructor() {
     this.store.refresh();
@@ -123,20 +125,8 @@ export default class SavingsGoalsListPage {
     }
   }
 
-  protected async onEdit(goal: SavingsGoal): Promise<void> {
-    const result = await this.#dialogs.openEdit(goal);
-    if (!result) return;
-    try {
-      if (this.#dialogs.isDeleteRequest(result)) {
-        if (await this.#dialogs.confirmDelete()) {
-          await this.store.removeGoal(goal.id);
-        }
-        return;
-      }
-      await this.store.editGoal(goal.id, result);
-    } catch (error) {
-      this.#showError(error);
-    }
+  protected onOpen(goal: SavingsGoal): void {
+    this.#router.navigate(['/', ROUTES.SAVINGS_GOALS, goal.id]);
   }
 
   #showError(error: unknown): void {
