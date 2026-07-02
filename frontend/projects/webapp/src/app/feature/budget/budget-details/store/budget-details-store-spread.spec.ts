@@ -12,6 +12,7 @@ import {
 
 import { BudgetDetailsStore } from './budget-details-store';
 import { BudgetApi } from '@core/budget/budget-api';
+import { SavingsGoalApi } from '@core/savings-goal/savings-goal-api';
 import { ApiError } from '@core/api/api-error';
 import { ApiErrorLocalizer } from '@core/api/api-error-localizer';
 import { Logger } from '@core/logging/logger';
@@ -143,6 +144,26 @@ describe('BudgetDetailsStore — spread réalisé tracker', () => {
             createBudgetLineSpread$: vi
               .fn()
               .mockReturnValue(throwError(() => recalcError)),
+            cache: {
+              version: signal(0),
+              _dataVersion: signal(0),
+              get: vi.fn().mockReturnValue(null),
+              set: vi.fn(),
+              has: vi.fn().mockReturnValue(false),
+              invalidate: vi.fn(),
+              deduplicate: vi.fn((_key: string[], fn: () => Promise<unknown>) =>
+                fn(),
+              ),
+              prefetch: vi.fn(),
+              clear: vi.fn(),
+              clearDirty: vi.fn(),
+            },
+          },
+        },
+        {
+          provide: SavingsGoalApi,
+          useValue: {
+            getAll$: vi.fn().mockReturnValue(of({ success: true, data: [] })),
             cache: {
               version: signal(0),
               _dataVersion: signal(0),

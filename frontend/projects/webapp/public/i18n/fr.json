@@ -567,6 +567,8 @@
     "noTransactionHint": "Ajoute une transaction pour suivre tes dépenses",
     "editAriaLabel": "Modifier {{ name }}",
     "deleteAriaLabel": "Supprimer {{ name }}",
+    "linkedGoal": "Objectif",
+    "linkedGoalAriaLabel": "Voir l'objectif d'épargne lié",
     "spread": {
       "glyphTooltip": "Dépense lissée sur plusieurs mois",
       "badgeLabel": "Lissé",

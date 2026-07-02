@@ -97,6 +97,9 @@ export function groupByKind<T extends { data: { kind: string } }>(
             [item]="item"
             [currency]="currency()"
             [isMultiCurrencyEnabled]="isMultiCurrencyEnabled()"
+            [linkedGoalName]="
+              savingsGoalNameById().get(item.data.savingsGoalId ?? '')
+            "
             (edit)="edit.emit($event)"
             (delete)="delete.emit($event)"
             (addTransaction)="addTransaction.emit($event)"
@@ -149,6 +152,9 @@ export function groupByKind<T extends { data: { kind: string } }>(
                     [item]="item"
                     [currency]="currency()"
                     [isMultiCurrencyEnabled]="isMultiCurrencyEnabled()"
+                    [linkedGoalName]="
+                      savingsGoalNameById().get(item.data.savingsGoalId ?? '')
+                    "
                     (cardClick)="openDetailPanel($event)"
                     (edit)="edit.emit($event)"
                     (delete)="delete.emit($event)"
@@ -389,6 +395,8 @@ export class BudgetGrid {
     () => getDateDisplayFormats(this.currency()).shortDate,
   );
   readonly budgetLineItems = input.required<BudgetLineTableItem[]>();
+  /** Goal id → name for the linked-goal indicator on saving envelope tiles (PUL-12) */
+  readonly savingsGoalNameById = input<Map<string, string>>(new Map());
   readonly transactionItems = input.required<
     {
       data: Transaction;

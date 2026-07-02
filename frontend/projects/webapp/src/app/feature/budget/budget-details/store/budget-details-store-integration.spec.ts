@@ -11,6 +11,7 @@ import type { BudgetLineCreate, BudgetLineUpdate } from 'pulpe-shared';
 
 import { BudgetDetailsStore } from './budget-details-store';
 import { BudgetApi } from '@core/budget/budget-api';
+import { SavingsGoalApi } from '@core/savings-goal/savings-goal-api';
 import { Logger } from '@core/logging/logger';
 import { ApplicationConfiguration } from '@core/config/application-configuration';
 import { PostHogService } from '@core/analytics/posthog';
@@ -171,6 +172,26 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
         ...provideTranslocoForTest(),
         BudgetDetailsStore,
         { provide: BudgetApi, useValue: mockBudgetApi },
+        {
+          provide: SavingsGoalApi,
+          useValue: {
+            getAll$: vi.fn().mockReturnValue(of({ success: true, data: [] })),
+            cache: {
+              version: signal(0),
+              _dataVersion: signal(0),
+              get: vi.fn().mockReturnValue(null),
+              set: vi.fn(),
+              has: vi.fn().mockReturnValue(false),
+              invalidate: vi.fn(),
+              deduplicate: vi.fn((_key: string[], fn: () => Promise<unknown>) =>
+                fn(),
+              ),
+              prefetch: vi.fn(),
+              clear: vi.fn(),
+              clearDirty: vi.fn(),
+            },
+          },
+        },
         { provide: Logger, useValue: mockLogger },
         {
           provide: ApplicationConfiguration,
