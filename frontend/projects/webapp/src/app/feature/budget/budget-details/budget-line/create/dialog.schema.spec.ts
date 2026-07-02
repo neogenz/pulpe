@@ -5,6 +5,7 @@ import {
 } from './dialog.schema';
 
 const BUDGET_ID = '00000000-0000-4000-8000-000000000001';
+const TAG_ID = '00000000-0000-4000-8000-0000000000f1';
 
 const createFormValue: BudgetLineCreateFormValue = {
   name: 'Loyer',
@@ -72,6 +73,15 @@ describe('budgetLineCreateFromFormSchema', () => {
       });
 
       expect(result.checkedAt).toBeNull();
+    });
+
+    it('should pass through selected tag ids', () => {
+      const result = budgetLineCreateFromFormSchema.parse({
+        ...createFormValue,
+        tagIds: [TAG_ID],
+      });
+
+      expect(result.tagIds).toEqual([TAG_ID]);
     });
 
     it('should pass through savingsGoalId when provided (CA26 tagging)', () => {

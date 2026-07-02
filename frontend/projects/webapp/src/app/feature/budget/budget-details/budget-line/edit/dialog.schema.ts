@@ -24,6 +24,7 @@ export const budgetLineUpdateFromFormSchema = z
     amount: z.number().positive(),
     kind: transactionKindSchema,
     recurrence: transactionRecurrenceSchema,
+    tagIds: z.array(z.uuid()).optional(),
     savingsGoalId: z.uuid().nullable().optional(),
     conversion: conversionFormSchema.nullable(),
   })
@@ -35,6 +36,7 @@ export const budgetLineUpdateFromFormSchema = z
       recurrence: input.recurrence,
       savingsGoalId: input.savingsGoalId,
       isManuallyAdjusted: true,
+      tagIds: input.tagIds,
       ...(input.conversion ?? {}),
     }),
   );

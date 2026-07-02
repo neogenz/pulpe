@@ -7,8 +7,12 @@ import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 import { CurrencyConverterService } from '@core/currency';
 import { FeatureFlagsService } from '@core/feature-flags';
 import { UserSettingsStore } from '@core/user-settings';
+import { TagStore } from '@core/tag';
+import { createMockTagStore } from '@app/testing/tag-store.mock';
 import type { SupportedCurrency } from 'pulpe-shared';
 import { AddBudgetLineDialog, type BudgetLineDialogData } from './dialog';
+
+const TAG_ID = '00000000-0000-4000-8000-0000000000f1';
 
 interface FlagsMock {
   isMultiCurrencyEnabled: ReturnType<typeof signal>;
@@ -70,6 +74,7 @@ function configureDialog({
       { provide: FeatureFlagsService, useValue: flags },
       { provide: UserSettingsStore, useValue: settings },
       { provide: CurrencyConverterService, useValue: converter },
+      { provide: TagStore, useValue: createMockTagStore() },
     ],
   });
 
@@ -104,6 +109,25 @@ describe('AddBudgetLineDialog', () => {
           recurrence: 'fixed',
           isManuallyAdjusted: true,
         }),
+      });
+    });
+
+    it('should include selected tag ids in the single-line payload', async () => {
+      const { component, dialogRef } = configureDialog();
+      component['model'].update((m) => ({
+        ...m,
+        name: 'Loyer',
+        kind: 'expense',
+        recurrence: 'fixed',
+        tagIds: [TAG_ID],
+        money: { amount: 1200, inputCurrency: 'CHF' },
+      }));
+
+      await component['handleSubmit']();
+
+      expect(dialogRef.close).toHaveBeenCalledWith({
+        mode: 'single',
+        value: expect.objectContaining({ tagIds: [TAG_ID] }),
       });
     });
 

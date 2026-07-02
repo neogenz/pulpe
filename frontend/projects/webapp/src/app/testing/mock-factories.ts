@@ -21,6 +21,7 @@ const defaultBudgetLine: BudgetLine = {
   recurrence: 'fixed',
   isManuallyAdjusted: false,
   checkedAt: null,
+  tagIds: [],
   createdAt: '2024-01-01T00:00:00Z',
   updatedAt: '2024-01-01T00:00:00Z',
 };

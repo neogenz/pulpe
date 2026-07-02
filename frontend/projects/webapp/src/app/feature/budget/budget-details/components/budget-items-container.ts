@@ -29,6 +29,7 @@ import {
 } from 'pulpe-shared';
 import { UserSettingsStore } from '@core/user-settings';
 import { AppCurrencyPipe, CURRENCY_CONFIG } from '@core/currency';
+import { TagStore } from '@core/tag';
 import { Logger } from '@core/logging/logger';
 import { map } from 'rxjs/operators';
 import { BudgetGrid } from './budget-grid';
@@ -39,8 +40,13 @@ import type {
 } from '../view-models/table-items.view-model';
 import type { BudgetViewMode } from '../view-models/budget-view-mode';
 import { BudgetItemDataProvider } from '../view-models/budget-item-data-provider';
+import {
+  collectPresentTagIds,
+  filterTableRowsByTags,
+} from '../view-models/tag-filter.util';
 import { BudgetViewToggle } from './budget-view-toggle';
 import { BudgetTableCheckedFilter } from './budget-table/budget-table-checked-filter';
+import { BudgetTagFilter } from './budget-table/budget-tag-filter';
 import { BudgetDetailsDialogService } from '../budget-details-dialog.service';
 import { BudgetDetailsStore } from '../store/budget-details-store';
 import { determineCheckBehavior } from '../store/budget-details-check.utils';
@@ -69,6 +75,7 @@ import {
     BudgetTable,
     BudgetViewToggle,
     BudgetTableCheckedFilter,
+    BudgetTagFilter,
   ],
   providers: [BudgetItemDataProvider],
   template: `
@@ -103,6 +110,15 @@ import {
         [isShowingOnlyUnchecked]="store.isShowingOnlyUnchecked()"
         (isShowingOnlyUncheckedChange)="store.setIsShowingOnlyUnchecked($event)"
       />
+
+      <!-- Tag filter (PUL-18) — hidden when the budget has no tagged items -->
+      @if (availableTags().length > 0) {
+        <pulpe-budget-tag-filter
+          [tags]="availableTags()"
+          [selectedTagIds]="selectedTagIds()"
+          (selectedTagIdsChange)="selectedTagIds.set($event)"
+        />
+      }
 
       <!-- Checking summary — progressive disclosure -->
       @if (store.checkedItemsCount() > 0) {
@@ -255,8 +271,27 @@ export class BudgetItemsContainer {
   readonly #transloco = inject(TranslocoService);
   readonly #logger = inject(Logger);
   readonly #userSettings = inject(UserSettingsStore);
+  readonly #tagStore = inject(TagStore);
 
   protected readonly currency = this.#userSettings.currency;
+
+  // Tag filter (PUL-18) — local UI state; applied on the built rows so the
+  // consumption figures baked into each row stay correct.
+  readonly selectedTagIds = signal<string[]>([]);
+  readonly #selectedTagIdSet = computed(() => new Set(this.selectedTagIds()));
+
+  readonly availableTags = computed(() => {
+    const details = this.store.budgetDetails();
+    if (!details) return [];
+    const presentIds = collectPresentTagIds([
+      ...details.budgetLines,
+      ...(details.transactions ?? []),
+    ]);
+    const nameById = this.#tagStore.tagNameById();
+    return [...presentIds]
+      .map((id) => ({ id, name: nameById.get(id) ?? id }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  });
   protected readonly locale = computed(
     () => CURRENCY_CONFIG[this.currency()].numberLocale,
   );
@@ -286,8 +321,8 @@ export class BudgetItemsContainer {
     ),
   );
 
-  // View Model with pre-computed values
-  readonly budgetTableData = computed(() =>
+  // View Model with pre-computed values (before the tag filter)
+  readonly #tableRows = computed(() =>
     this.#budgetItemDataProvider.provideTableData({
       budgetLines: this.store.filteredBudgetLines(),
       transactions: this.store.filteredTransactions(),
@@ -299,6 +334,10 @@ export class BudgetItemsContainer {
         nextMonthLabel: this.store.nextMonthLabel(),
       },
     }),
+  );
+
+  readonly budgetTableData = computed(() =>
+    filterTableRowsByTags(this.#tableRows(), this.#selectedTagIdSet()),
   );
 
   // Filtered items for grid view

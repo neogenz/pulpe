@@ -12,8 +12,10 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 import { createMockTransaction } from '@app/testing/mock-factories';
+import { createMockTagStore } from '@app/testing/tag-store.mock';
 import { createMockLogger } from '@app/testing/mock-posthog';
 import { StorageService } from '@core/storage';
+import { TagStore } from '@core/tag';
 import { Logger } from '@core/logging/logger';
 import { UserSettingsStore } from '@core/user-settings';
 import { ApplicationConfiguration } from '@core/config/application-configuration';
@@ -154,6 +156,7 @@ function setupComponent(
         },
       },
       { provide: Logger, useValue: { warn: vi.fn(), error: vi.fn() } },
+      { provide: TagStore, useValue: createMockTagStore() },
     ],
   });
 
@@ -357,6 +360,7 @@ describe('BudgetItemsContainer — PATCH transaction body contract', () => {
           provide: ApplicationConfiguration,
           useValue: { backendApiUrl: () => 'http://localhost:3000/api/v1' },
         },
+        { provide: TagStore, useValue: createMockTagStore() },
       ],
     });
 

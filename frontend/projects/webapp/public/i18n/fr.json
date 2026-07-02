@@ -435,6 +435,8 @@
     "viewTable": "Vue Table",
     "filterUnchecked": "À pointer",
     "filterAll": "Tout voir",
+    "tagFilterLabel": "Tags",
+    "tagFilterAriaLabel": "Filtrer par tag",
     "tableDescription": "Description",
     "tablePlanned": "Prévu",
     "tableSpent": "Dépensé",

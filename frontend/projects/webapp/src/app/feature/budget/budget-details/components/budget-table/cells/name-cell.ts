@@ -10,6 +10,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { getDateDisplayFormats } from '@core/date/date-display-formats';
 import { UserSettingsStore } from '@core/user-settings';
+import { TagStore } from '@core/tag';
 import { FinancialKindDirective } from '@ui/financial-kind';
 import { SpreadBadge } from '@ui/spread-badge';
 import { TransactionLabelPipe } from '@ui/transaction-display';
@@ -85,6 +86,19 @@ import type {
               {{ matchAnnotation() }}
             </span>
           }
+          @if (tagNames().length > 0) {
+            <span class="flex flex-wrap items-center gap-1 mt-0.5">
+              @for (name of tagNames(); track name) {
+                <span
+                  class="inline-flex items-center text-label-small
+                         bg-secondary-container text-on-secondary-container
+                         rounded-full px-2 py-0.5 ph-no-capture"
+                >
+                  {{ name }}
+                </span>
+              }
+            </span>
+          }
         </div>
         @if (line().data.checkedAt) {
           <span class="text-body-small text-on-surface-variant ml-2">
@@ -98,6 +112,7 @@ import type {
 })
 export class NameCell {
   readonly #userSettings = inject(UserSettingsStore);
+  readonly #tagStore = inject(TagStore);
   protected readonly dayMonthFormat = computed(
     () => getDateDisplayFormats(this.#userSettings.currency()).dayMonth,
   );
@@ -106,4 +121,13 @@ export class NameCell {
   readonly matchAnnotation = computed(() =>
     formatMatchAnnotation(this.line().metadata.matchingTransactionNames),
   );
+
+  readonly tagNames = computed(() => {
+    const tagIds = this.line().data.tagIds ?? [];
+    if (tagIds.length === 0) return [];
+    const nameById = this.#tagStore.tagNameById();
+    return tagIds
+      .map((id) => nameById.get(id))
+      .filter((name): name is string => !!name);
+  });
 }
