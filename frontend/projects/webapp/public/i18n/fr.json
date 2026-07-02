@@ -871,7 +871,7 @@
       "overdueMessage": "Ton objectif reste actif. Tu peux repousser la date pour te laisser plus de temps.",
       "postpone": "Repousser la date",
       "suggestTitle": "Objectif atteint",
-      "suggestMessage": "Tu as pointé de quoi atteindre ta cible. On le marque comme terminé ?",
+      "suggestMessage": "Tu as pointé de quoi atteindre ta cible. On le marque comme atteint ?",
       "markCompleted": "Marquer comme atteint",
       "completedTitle": "Objectif atteint",
       "completedMessage": "Tu as atteint cette cible. Tu peux le ré-ouvrir si tu veux continuer.",

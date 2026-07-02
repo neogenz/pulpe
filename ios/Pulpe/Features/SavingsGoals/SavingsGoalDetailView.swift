@@ -253,9 +253,9 @@ struct SavingsGoalDetailView: View {
         infoCard(
             icon: "checkmark.seal.fill",
             title: "Objectif atteint",
-            message: "Tu as mis de côté l'équivalent de ta cible. On le marque comme terminé ?"
+            message: "Tu as mis de côté l'équivalent de ta cible. On le marque comme atteint ?"
         ) {
-            Button("Marquer terminé") {
+            Button("Marquer comme atteint") {
                 Task { await setStatus(.completed) }
             }
             .primaryButtonStyle(isEnabled: !viewModel.isMutatingStatus)
@@ -266,7 +266,7 @@ struct SavingsGoalDetailView: View {
     private var reopenCard: some View {
         infoCard(
             icon: "flag.checkered",
-            title: "Objectif terminé",
+            title: "Objectif atteint",
             message: "Tu peux le ré-ouvrir si tu veux continuer à épargner dessus."
         ) {
             Button("Ré-ouvrir") {
@@ -281,7 +281,7 @@ struct SavingsGoalDetailView: View {
         infoCard(
             icon: "link",
             title: "Aucune prévision rattachée",
-            message: "Tague une prévision Épargne depuis ton Mois Type pour suivre cet objectif ici.",
+            message: "Rattache une prévision Épargne depuis ton Mois Type ou un budget pour suivre cet objectif ici.",
             action: { EmptyView() }
         )
     }
@@ -322,7 +322,7 @@ struct SavingsGoalDetailView: View {
         if let error = viewModel.error {
             toastManager.show(DomainErrorLocalizer.localize(error), type: .error)
         } else {
-            toastManager.show(status == .completed ? "Objectif marqué terminé" : "Objectif ré-ouvert")
+            toastManager.show(status == .completed ? "Objectif marqué comme atteint" : "Objectif ré-ouvert")
         }
     }
 

@@ -130,21 +130,9 @@ private struct SavingsGoalRow: View {
 private struct SavingsGoalStatusBadge: View {
     let status: SavingsGoalStatus
 
+    // Same muted PulpeChip as the detail header — one treatment per status
+    // everywhere, neutral only (RG-002: savings is never an alert color).
     var body: some View {
-        Text(status.label)
-            .font(PulpeTypography.metricMini)
-            .foregroundStyle(color)
-            .padding(.horizontal, DesignTokens.Spacing.sm)
-            .padding(.vertical, DesignTokens.Spacing.xxs)
-            .background(color.opacity(DesignTokens.Opacity.badgeBackground), in: Capsule())
-    }
-
-    /// Neutral / primary only — savings is never an alert color (RG-002).
-    private var color: Color {
-        switch status {
-        case .active: Color.pulpePrimary
-        case .completed: TransactionKind.saving.color
-        case .paused: Color.textTertiary
-        }
+        PulpeChip(label: status.label, style: .muted)
     }
 }
