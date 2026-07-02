@@ -304,6 +304,34 @@ export const savingsGoalUpdateSchema = z.strictObject({
 });
 export type SavingsGoalUpdate = z.infer<typeof savingsGoalUpdateSchema>;
 
+// Tag schemas (PUL-18)
+/**
+ * TAG - Étiquette utilisateur pour classifier les dépenses
+ *
+ * Remplace à terme le champ libre `transaction.category` (texte non structuré,
+ * jamais lu en aval). Pur métadonnée plaintext (name), unicité par
+ * utilisateur insensible à la casse côté DB (index sur lower(name)).
+ * Le rattachement aux transactions / budget_lines arrive dans les PRs suivantes.
+ */
+export const tagSchema = z.object({
+  id: z.uuid(),
+  userId: z.uuid(),
+  // trim AVANT min/max : sinon " " passe min(1) puis devient "" et viole le
+  // CHECK DB (char_length >= 1) → 500 au lieu d'un 400 de validation
+  name: z.string().trim().min(1).max(30),
+  createdAt: z.iso.datetime({ offset: true }),
+  updatedAt: z.iso.datetime({ offset: true }),
+});
+export type Tag = z.infer<typeof tagSchema>;
+
+export const tagCreateSchema = z.strictObject({
+  name: z.string().trim().min(1).max(30),
+});
+export type TagCreate = z.infer<typeof tagCreateSchema>;
+
+export const tagUpdateSchema = tagCreateSchema.partial();
+export type TagUpdate = z.infer<typeof tagUpdateSchema>;
+
 /**
  * SAVINGS GOAL PROGRESS - Progression d'un objectif (PUL-8)
  *
@@ -1511,6 +1539,16 @@ export const savingsGoalPlanApplyResponseSchema = createSuccessResponse(
 export type SavingsGoalPlanApplyResponse = z.infer<
   typeof savingsGoalPlanApplyResponseSchema
 >;
+
+// Tag response schemas (PUL-18)
+export const tagResponseSchema = createSuccessResponse(tagSchema);
+export type TagResponse = z.infer<typeof tagResponseSchema>;
+
+export const tagListResponseSchema = createListResponse(tagSchema);
+export type TagListResponse = z.infer<typeof tagListResponseSchema>;
+
+export const tagDeleteResponseSchema = deleteResponseSchema;
+export type TagDeleteResponse = z.infer<typeof tagDeleteResponseSchema>;
 
 // Budget Line response schemas
 export const budgetLineResponseSchema = createSuccessResponse(budgetLineSchema);

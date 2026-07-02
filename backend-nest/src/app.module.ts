@@ -29,6 +29,7 @@ import { DebugModule } from '@modules/debug/debug.module';
 import { DemoModule } from '@modules/demo/demo.module';
 import { EncryptionModule } from '@modules/encryption/encryption.module';
 import { SupabaseModule } from '@modules/supabase/supabase.module';
+import { TagModule } from '@modules/tag/tag.module';
 import { TransactionModule } from '@modules/transaction/transaction.module';
 import { CurrencyModule } from '@modules/currency/currency.module';
 import { UserModule } from '@modules/user/user.module';
@@ -304,6 +305,7 @@ function createPinoLoggerConfig(configService: ConfigService) {
     BudgetLineModule,
     BudgetTemplateModule,
     SavingsGoalModule,
+    TagModule,
     TransactionModule,
     AllocationModule,
     CurrencyModule,

@@ -92,6 +92,14 @@ export {
   MAX_SAVINGS_GOAL_PLAN_PERIODS,
   MAX_PLAN_ADJUSTMENTS,
 
+  // Tag schemas (PUL-18)
+  tagSchema,
+  tagCreateSchema,
+  tagUpdateSchema,
+  tagResponseSchema,
+  tagListResponseSchema,
+  tagDeleteResponseSchema,
+
   // Budget Line schemas
   budgetLineSchema,
   budgetLineCreateSchema,
@@ -323,6 +331,14 @@ export type {
   SavingsGoalPlanMonth,
   SavingsGoalPlanApply,
   SavingsGoalPlanApplyResponse,
+
+  // Tag types (PUL-18)
+  Tag,
+  TagCreate,
+  TagUpdate,
+  TagResponse,
+  TagListResponse,
+  TagDeleteResponse,
 
   // Budget Line types
   BudgetLine,
