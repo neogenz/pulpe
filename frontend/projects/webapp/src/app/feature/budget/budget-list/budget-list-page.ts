@@ -18,6 +18,7 @@ import { MatTabsModule } from '@angular/material/tabs';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { Router } from '@angular/router';
 import { ExcelExportService } from '@core/budget/excel-export.service';
+import { formatLocalDate } from '@core/date/format-local-date';
 import { downloadAsExcelFile, downloadAsJsonFile } from '@core/file-download';
 import { ROUTES, TitleDisplay } from '@core/routing';
 import {
@@ -289,7 +290,7 @@ export default class BudgetListPage {
   }
 
   async onExportBudgets(): Promise<void> {
-    const today = new Date().toISOString().split('T')[0];
+    const today = formatLocalDate(new Date()).split('T')[0];
     return this.#executeExport({
       isLoadingSignal: this.isExporting,
       download: (data) => downloadAsJsonFile(data, `pulpe-export-${today}`),
@@ -299,7 +300,7 @@ export default class BudgetListPage {
   }
 
   async onExportBudgetsAsExcel(): Promise<void> {
-    const today = new Date().toISOString().split('T')[0];
+    const today = formatLocalDate(new Date()).split('T')[0];
     return this.#executeExport({
       isLoadingSignal: this.isExportingExcel,
       download: (data) => {
