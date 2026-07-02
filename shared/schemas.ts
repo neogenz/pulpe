@@ -228,14 +228,12 @@ export type BudgetGenerateResponse = z.infer<
 
 // Savings Goal schemas
 /**
- * SAVINGS GOAL - Objectifs d'épargne
+ * SAVINGS GOAL - Objectifs d'épargne (PUL-98)
  *
- * ⚠️ FEATURE FUTURE - PAS DANS SPECS V1:
- * Cette entité n'est pas mentionnée dans SPECS.md V1.
- * SPECS indique: "Pas d'objectifs long terme : Focus sur le mois, pas de projections annuelles"
- *
- * STATUS: Préparation pour évolution future (hors V1)
- * IMPACT: Les BudgetLines ont un savingsGoalId pour cette feature future
+ * Livré : CRUD + tagging des prévisions Épargne (PUL-12), progression
+ * prévu/confirmé (PUL-8). Source de vérité métier : docs/SAVINGS.md.
+ * Le lien vit sur template_line (modèle, survit aux régénérations) et
+ * budget_line (mois effectif) — jamais sur transaction.
  */
 export const savingsGoalSchema = z.object({
   id: z.uuid(),
@@ -284,6 +282,60 @@ export const savingsGoalUpdateSchema = z.strictObject({
   exchangeRate: exchangeRateWirePositive.optional(),
 });
 export type SavingsGoalUpdate = z.infer<typeof savingsGoalUpdateSchema>;
+
+/**
+ * SAVINGS GOAL PROGRESS - Progression d'un objectif (PUL-8)
+ *
+ * Deux couches (docs/SAVINGS.md §4/§5) :
+ * - `plannedCumulative` : engagement — Σ `line.amount` BRUT des prévisions
+ *   Épargne liées des mois écoulés/en cours (pas d'enveloppe transactions).
+ * - `confirmed` : réalité pointée — enveloppe checked-only (`checkedAt`),
+ *   TOUS les mois (le pointage anticipé d'un mois futur compte).
+ *
+ * `achievementPercent` et `suggestCompletion` (D2) portent EXCLUSIVEMENT sur
+ * le confirmé — jamais le prévu. La projection (`projected`) et `paceStatus`
+ * se basent sur `confirmedPace` pour rester cohérents avec la barre.
+ *
+ * D1 échéance dépassée (`monthsRemaining ≤ 0`, exposé via `isOverdue`) :
+ * `required` et `paceStatus` sont `null`, `projected = confirmed` — état
+ * factuel, jamais un `behind` générique. `PAUSED` ⇒ `paceStatus = null`.
+ * Le serveur calcule tout (payDay-aware, montants déchiffrés) ; les clients
+ * n'implémentent AUCUNE formule.
+ */
+export const savingsGoalPaceStatusSchema = z.enum([
+  'behind',
+  'on_track',
+  'ahead',
+]);
+export type SavingsGoalPaceStatus = z.infer<typeof savingsGoalPaceStatusSchema>;
+
+export const savingsGoalProgressSchema = z.object({
+  goalId: z.uuid(),
+  status: savingsGoalStatusSchema,
+  targetAmount: z.number().nonnegative(),
+  targetDate: z.iso.date(),
+  plannedCumulative: z.number(),
+  confirmed: z.number(),
+  achievementPercent: z.number().int().min(0).max(100),
+  monthsElapsed: z.number().int().min(1),
+  // Mois courant ET mois d'échéance inclus ; ≤ 0 ⇒ échéance dépassée (D1).
+  monthsRemaining: z.number().int(),
+  isOverdue: z.boolean(),
+  pace: z.number(),
+  confirmedPace: z.number(),
+  required: z.number().nullable(),
+  projected: z.number(),
+  paceStatus: savingsGoalPaceStatusSchema.nullable(),
+  // D2 — suggestion « marquer terminé ? ». Jamais d'auto-flip côté serveur.
+  suggestCompletion: z.boolean(),
+  linkedLineCount: z.number().int().min(0),
+  // FX door-keepers (CA6) — devise du compte uniquement en v1, toujours null.
+  originalTargetAmount: z.number().nullable(),
+  originalCurrency: supportedCurrencySchema.nullable(),
+  targetCurrency: supportedCurrencySchema.nullable(),
+  exchangeRate: z.number().nullable(),
+});
+export type SavingsGoalProgress = z.infer<typeof savingsGoalProgressSchema>;
 
 /**
  * BUDGET LINE - Ligne budgétaire planifiée
@@ -1284,6 +1336,13 @@ export type SavingsGoalListResponse = z.infer<
 export const savingsGoalDeleteResponseSchema = deleteResponseSchema;
 export type SavingsGoalDeleteResponse = z.infer<
   typeof savingsGoalDeleteResponseSchema
+>;
+
+export const savingsGoalProgressResponseSchema = createSuccessResponse(
+  savingsGoalProgressSchema,
+);
+export type SavingsGoalProgressResponse = z.infer<
+  typeof savingsGoalProgressResponseSchema
 >;
 
 // Budget Line response schemas

@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { Buffer } from 'node:buffer';
+import { PAY_DAY_MAX, PAY_DAY_MIN } from 'pulpe-shared';
 import { BusinessException } from '@common/exceptions/business.exception';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 import { AuthenticatedSupabaseProvider } from '@modules/supabase/authenticated-supabase.provider';
@@ -9,14 +10,33 @@ import {
 } from '@modules/encryption/encryption.tokens';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import { mapCurrencyNonAmountMetadataToDb } from '@common/utils/currency-metadata.mapper';
+import type { Database } from '../../../../types/database.types';
 import type { SavingsGoalRepositoryPort } from '../../domain/ports/savings-goal-repository.port';
 import type {
   SavingsGoal,
   SavingsGoalCreateInput,
   SavingsGoalInsert,
+  SavingsGoalLinkedContributions,
   SavingsGoalRow,
   SavingsGoalUpdatePatch,
 } from '../../domain/savings-goal.entity';
+
+type TransactionKindEnum = Database['public']['Enums']['transaction_kind'];
+
+interface LinkedLineRow {
+  id: string;
+  amount: string | null;
+  kind: TransactionKindEnum;
+  checked_at: string | null;
+  monthly_budget: { month: number; year: number };
+}
+
+interface LinkedTransactionRow {
+  budget_line_id: string | null;
+  amount: string | null;
+  kind: TransactionKindEnum;
+  checked_at: string | null;
+}
 
 @Injectable()
 export class SupabaseSavingsGoalRepository implements SavingsGoalRepositoryPort {
@@ -170,6 +190,94 @@ export class SupabaseSavingsGoalRepository implements SavingsGoalRepositoryPort 
         { cause: error },
       );
     }
+  }
+
+  async findLinkedContributions(
+    goalId: string,
+  ): Promise<SavingsGoalLinkedContributions> {
+    const supabase = this.supabaseProvider.client;
+    // Double garde kind=saving (le lien est déjà kind-guardé à l'écriture par
+    // trigger + use-cases). RLS scope les lignes au user courant.
+    const { data, error } = await supabase
+      .from('budget_line')
+      .select('id, amount, kind, checked_at, monthly_budget!inner(month, year)')
+      .eq('savings_goal_id', goalId)
+      .eq('kind', 'saving');
+
+    if (error) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.SAVINGS_GOAL_FETCH_FAILED,
+        undefined,
+        {
+          operation: 'findSavingsGoalLinkedContributions',
+          entityId: goalId,
+          entityType: 'savings_goal',
+          supabaseError: error,
+        },
+        { cause: error },
+      );
+    }
+
+    const rows = (data ?? []) as unknown as LinkedLineRow[];
+    if (!rows.length) return { lines: [], transactions: [] };
+
+    const dek = await this.encryption.getDekFor(this.supabaseProvider.user);
+    const lines = rows.map((row) => ({
+      id: row.id,
+      amount: this.encryption.tryDecryptAmount(row.amount, dek, 0),
+      kind: row.kind,
+      checkedAt: row.checked_at,
+      month: row.monthly_budget.month,
+      year: row.monthly_budget.year,
+    }));
+
+    const transactions = await this.findTransactionsForLines(
+      lines.map((line) => line.id),
+      dek,
+    );
+    return { lines, transactions };
+  }
+
+  async findPayDayOfMonth(): Promise<number | null> {
+    const { data } = await this.supabaseProvider.client.auth.getUser();
+    const raw: unknown = data?.user?.user_metadata?.payDayOfMonth;
+    if (typeof raw !== 'number' || !Number.isInteger(raw)) return null;
+    return Math.max(PAY_DAY_MIN, Math.min(PAY_DAY_MAX, raw));
+  }
+
+  /**
+   * Transactions allouées aux prévisions liées. Montants chiffrés → décryptage
+   * applicatif (pas de SUM SQL possible). Les transactions libres n'entrent
+   * jamais ici (jointure par budget_line_id).
+   */
+  private async findTransactionsForLines(
+    lineIds: string[],
+    dek: Buffer,
+  ): Promise<SavingsGoalLinkedContributions['transactions']> {
+    const { data, error } = await this.supabaseProvider.client
+      .from('transaction')
+      .select('budget_line_id, amount, kind, checked_at')
+      .in('budget_line_id', lineIds);
+
+    if (error) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.TRANSACTION_FETCH_FAILED,
+        undefined,
+        {
+          operation: 'findSavingsGoalLinkedTransactions',
+          entityType: 'transaction',
+          supabaseError: error,
+        },
+        { cause: error },
+      );
+    }
+
+    return ((data ?? []) as LinkedTransactionRow[]).map((row) => ({
+      budgetLineId: row.budget_line_id,
+      amount: this.encryption.tryDecryptAmount(row.amount, dek, 0),
+      kind: row.kind,
+      checkedAt: row.checked_at,
+    }));
   }
 
   private toEntity(row: SavingsGoalRow, dek: Buffer): SavingsGoal {

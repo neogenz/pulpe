@@ -12,6 +12,15 @@
 export { BudgetFormulas } from './budget-formulas.js';
 export { splitTotalPreserving } from './spread-split.js';
 export {
+  PACE_TOLERANCE_PERCENT,
+  calculatePaceStatus,
+  computeSavingsGoalProgress,
+  type LinkedSavingLine,
+  type LinkedSavingTransaction,
+  type SavingsGoalProgressInput,
+  type SavingsGoalProgressResult,
+} from './savings-goal-progress.js';
+export {
   getBudgetPeriodForDate,
   isInCurrentBudgetPeriod,
   compareBudgetPeriods,

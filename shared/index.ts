@@ -81,6 +81,9 @@ export {
   savingsGoalResponseSchema,
   savingsGoalListResponseSchema,
   savingsGoalDeleteResponseSchema,
+  savingsGoalPaceStatusSchema,
+  savingsGoalProgressSchema,
+  savingsGoalProgressResponseSchema,
 
   // Budget Line schemas
   budgetLineSchema,
@@ -171,6 +174,15 @@ export {
 // Export calculators
 export { BudgetFormulas } from './src/calculators/index.js';
 export { splitTotalPreserving } from './src/calculators/index.js';
+export {
+  PACE_TOLERANCE_PERCENT,
+  calculatePaceStatus,
+  computeSavingsGoalProgress,
+  type LinkedSavingLine,
+  type LinkedSavingTransaction,
+  type SavingsGoalProgressInput,
+  type SavingsGoalProgressResult,
+} from './src/calculators/index.js';
 
 // Export budget period utilities
 export {
@@ -271,6 +283,9 @@ export type {
   SavingsGoalResponse,
   SavingsGoalListResponse,
   SavingsGoalDeleteResponse,
+  SavingsGoalPaceStatus,
+  SavingsGoalProgress,
+  SavingsGoalProgressResponse,
 
   // Budget Line types
   BudgetLine,
