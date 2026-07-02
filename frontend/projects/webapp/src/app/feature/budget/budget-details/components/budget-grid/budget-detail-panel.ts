@@ -106,7 +106,7 @@ const DETAIL_SEGMENT_COUNT = 12;
                 <div class="mt-1">
                   <button
                     matButton
-                    class="!h-8 !px-5 !-ml-5 max-w-full"
+                    class="self-start !-ml-2 max-w-full"
                     (click)="openLinkedGoal(goal.id)"
                     data-testid="budget-detail-panel-linked-goal"
                     [attr.aria-label]="
