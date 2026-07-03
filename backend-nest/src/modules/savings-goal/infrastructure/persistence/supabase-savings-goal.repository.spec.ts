@@ -217,6 +217,31 @@ const linkedLineRow = {
 };
 
 describe('SupabaseSavingsGoalRepository', () => {
+  it('findAll scopes the query to the authenticated user (optimizer hint)', async () => {
+    let capturedEq: [string, string] | undefined;
+    const provider = createMockProvider(() => ({
+      select: () => ({
+        eq: (column: string, value: string) => {
+          capturedEq = [column, value];
+          return {
+            order: jest
+              .fn()
+              .mockResolvedValue({ data: [mockRow], error: null }),
+          };
+        },
+      }),
+    }));
+    const repo = new SupabaseSavingsGoalRepository(
+      provider,
+      createMockEncryption(),
+    );
+
+    const result = await repo.findAll();
+
+    expect(capturedEq).toEqual(['user_id', 'user-1']);
+    expect(result).toHaveLength(1);
+  });
+
   it('findById decrypts target_amount (dedicated field, not generic)', async () => {
     const provider = createMockProvider(() => ({
       select: () => ({

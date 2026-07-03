@@ -58,9 +58,12 @@ export class SupabaseSavingsGoalRepository implements SavingsGoalRepositoryPort 
 
   async findAll(): Promise<SavingsGoal[]> {
     const supabase = this.supabaseProvider.client;
+    // RLS already isolates, but the explicit filter hands the planner the
+    // savings_goal(user_id) index (project Supabase rule).
     const { data, error } = await supabase
       .from('savings_goal')
       .select('*')
+      .eq('user_id', this.supabaseProvider.user.id)
       .order('created_at', { ascending: false });
 
     if (error) {

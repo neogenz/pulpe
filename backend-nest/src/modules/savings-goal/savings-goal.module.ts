@@ -30,7 +30,6 @@ import { GetSavingsGoalContributionsUseCase } from './application/get-savings-go
       useClass: SupabaseSavingsGoalRepository,
     },
     SavingsGoalMapper,
-    createInfoLoggerProvider(SavingsGoalController.name),
     createInfoLoggerProvider(FindAllSavingsGoalsUseCase.name),
     createInfoLoggerProvider(FindSavingsGoalUseCase.name),
     createInfoLoggerProvider(CreateSavingsGoalUseCase.name),
