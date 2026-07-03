@@ -423,7 +423,7 @@ type DetailViewState = 'loading' | 'error' | 'notFound' | 'ready';
                       <!-- Réel de l'enveloppe — inset container makes the
                            parent/child relationship readable at a glance. -->
                       <div
-                        class="ml-9 flex flex-col gap-1.5 rounded-md bg-surface-container px-3 py-2"
+                        class="ml-9 flex flex-col gap-2 rounded-md bg-surface-container px-4 py-3"
                       >
                         <span class="text-label-small text-on-surface-variant">
                           {{
