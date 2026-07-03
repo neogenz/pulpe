@@ -10,7 +10,7 @@ const poppins = Poppins({
   subsets: ['latin'],
   weight: ['400', '500', '600', '700', '800'],
   style: 'normal',
-  display: 'optional',
+  display: 'swap',
   variable: '--font-poppins',
 })
 
@@ -18,7 +18,7 @@ const poppinsItalic = Poppins({
   subsets: ['latin'],
   weight: ['400'],
   style: 'italic',
-  display: 'optional',
+  display: 'swap',
   variable: '--font-poppins',
 })
 
@@ -47,7 +47,8 @@ export const metadata: Metadata = {
     siteName: 'Pulpe',
     type: 'website',
     url: '/',
-    locale: 'fr_FR',
+    locale: 'fr_CH',
+    alternateLocale: ['fr_FR'],
     images: [
       {
         url: '/og-image.png',
@@ -79,7 +80,7 @@ const jsonLd = {
       alternateName: ['pulpe', 'Pulpe app', 'pulpe.app'],
       description:
         "L'app budget simple pour planifier ton année. Anticipe les grosses dépenses et note tes achats en 2 clics.",
-      inLanguage: 'fr-FR',
+      inLanguage: 'fr-CH',
     },
     {
       '@type': 'SoftwareApplication',
@@ -92,6 +93,7 @@ const jsonLd = {
       offers: {
         '@type': 'Offer',
         price: '0',
+        priceCurrency: 'CHF',
       },
     },
   ],
