@@ -237,13 +237,14 @@ describe('SupabaseSavingsGoalRepository', () => {
     expect(result.status).toBe('ACTIVE');
   });
 
-  it('findById throws BusinessException when not found (RLS-hidden)', async () => {
+  it('findById maps a zero-rows PGRST116 to SAVINGS_GOAL_NOT_FOUND (RLS-hidden)', async () => {
     const provider = createMockProvider(() => ({
       select: () => ({
         eq: () => ({
-          single: jest
-            .fn()
-            .mockResolvedValue({ data: null, error: { message: 'no rows' } }),
+          single: jest.fn().mockResolvedValue({
+            data: null,
+            error: { code: 'PGRST116', message: 'no rows' },
+          }),
         }),
       }),
     }));
@@ -252,7 +253,45 @@ describe('SupabaseSavingsGoalRepository', () => {
       createMockEncryption(),
     );
 
-    await expect(repo.findById('missing')).rejects.toThrow(BusinessException);
+    let caught: unknown;
+    try {
+      await repo.findById('missing');
+    } catch (error) {
+      caught = error;
+    }
+
+    expect(caught).toBeInstanceOf(BusinessException);
+    expect((caught as BusinessException).code).toBe(
+      ERROR_DEFINITIONS.SAVINGS_GOAL_NOT_FOUND.code,
+    );
+  });
+
+  it('findById maps an infra failure to SAVINGS_GOAL_FETCH_FAILED, never a lying 404', async () => {
+    const dbError = { code: '57014', message: 'canceling statement' };
+    const provider = createMockProvider(() => ({
+      select: () => ({
+        eq: () => ({
+          single: jest.fn().mockResolvedValue({ data: null, error: dbError }),
+        }),
+      }),
+    }));
+    const repo = new SupabaseSavingsGoalRepository(
+      provider,
+      createMockEncryption(),
+    );
+
+    let caught: unknown;
+    try {
+      await repo.findById('goal-1');
+    } catch (error) {
+      caught = error;
+    }
+
+    expect(caught).toBeInstanceOf(BusinessException);
+    expect((caught as BusinessException).code).toBe(
+      ERROR_DEFINITIONS.SAVINGS_GOAL_FETCH_FAILED.code,
+    );
+    expect((caught as BusinessException).cause).toBe(dbError);
   });
 
   it('insert encrypts target_amount and stamps the authenticated user_id', async () => {
@@ -316,12 +355,15 @@ describe('SupabaseSavingsGoalRepository', () => {
     expect((caught as BusinessException).cause).toBe(dbError);
   });
 
-  it('update maps a hidden or missing row to SAVINGS_GOAL_NOT_FOUND', async () => {
+  it('update maps a hidden or missing row (PGRST116) to SAVINGS_GOAL_NOT_FOUND', async () => {
     const provider = createMockProvider(() => ({
       update: () => ({
         eq: () => ({
           select: () => ({
-            single: jest.fn().mockResolvedValue({ data: null, error: null }),
+            single: jest.fn().mockResolvedValue({
+              data: null,
+              error: { code: 'PGRST116', message: 'no rows' },
+            }),
           }),
         }),
       }),

@@ -90,20 +90,41 @@ export class SupabaseSavingsGoalRepository implements SavingsGoalRepositoryPort 
       .single();
 
     if (error || !data) {
-      throw new BusinessException(
-        ERROR_DEFINITIONS.SAVINGS_GOAL_NOT_FOUND,
-        { id },
-        {
-          operation: 'getSavingsGoal',
-          entityId: id,
-          entityType: 'savings_goal',
-          supabaseError: error,
-        },
-      );
+      throw this.savingsGoalReadError(error, id, {
+        operation: 'getSavingsGoal',
+        entityId: id,
+        entityType: 'savings_goal',
+      });
     }
 
     const dek = await this.encryption.getDekFor(this.supabaseProvider.user);
     return this.toEntity(data, dek);
+  }
+
+  /**
+   * PostgREST returns code `PGRST116` when a `.single()` matched zero rows — a
+   * genuine 404 (missing or RLS-hidden). Any other error (statement timeout,
+   * PostgREST saturation) is an infra failure and must surface as 500, never a
+   * lying "Savings goal not found". Mirrors budgetReadError.
+   */
+  private savingsGoalReadError(
+    error: { code?: string } | null | undefined,
+    id: string,
+    loggingContext: Record<string, unknown>,
+  ): BusinessException {
+    if (error && error.code !== 'PGRST116') {
+      return new BusinessException(
+        ERROR_DEFINITIONS.SAVINGS_GOAL_FETCH_FAILED,
+        undefined,
+        loggingContext,
+        { cause: error },
+      );
+    }
+    return new BusinessException(
+      ERROR_DEFINITIONS.SAVINGS_GOAL_NOT_FOUND,
+      { id },
+      loggingContext,
+    );
   }
 
   async insert(input: SavingsGoalCreateInput): Promise<SavingsGoal> {
@@ -150,7 +171,8 @@ export class SupabaseSavingsGoalRepository implements SavingsGoalRepositoryPort 
       .select('*')
       .single();
 
-    if (error) {
+    // PGRST116 = zero rows matched → the NOT_FOUND branch below, not a 500.
+    if (error && error.code !== 'PGRST116') {
       throw new BusinessException(
         ERROR_DEFINITIONS.SAVINGS_GOAL_UPDATE_FAILED,
         { id },
