@@ -188,8 +188,11 @@ export class BulkTemplateLineOperationsUseCase {
   private async fetchCurrentKindsForLinkOnlyUpdates(
     updates: NonNullable<TemplateLinesBulkOperations['update']>,
   ): Promise<Map<string, TemplateLineRpcUpdate['kind']>> {
+    // The current kind only gates SETTING a link — an explicit untag
+    // (savingsGoalId: null) clears it whatever the kind, no fetch needed.
     const linkOnlyUpdates = updates.filter(
-      (line) => line.kind === undefined && line.savingsGoalId !== undefined,
+      (line) =>
+        line.kind === undefined && typeof line.savingsGoalId === 'string',
     );
     if (!linkOnlyUpdates.length) return new Map();
 

@@ -258,6 +258,34 @@ describe('BulkTemplateLineOperationsUseCase — atomicity', () => {
     );
   });
 
+  it('untags (savingsGoalId null) without fetching the current lines', async () => {
+    const payload: TemplateLinesBulkOperations = {
+      update: [
+        {
+          id: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d',
+          savingsGoalId: null,
+        },
+      ],
+      create: [],
+      delete: [],
+      propagateToBudgets: false,
+    };
+
+    await useCase.execute('template-1', payload, mockUser);
+
+    expect(mockRepo.findLineById).not.toHaveBeenCalled();
+    expect(mockRepo.bulkApplyTemplateLineOperations).toHaveBeenCalledWith(
+      expect.objectContaining({
+        updatedLines: [
+          expect.objectContaining({
+            id: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d',
+            savingsGoalId: null,
+          }),
+        ],
+      }),
+    );
+  });
+
   describe('cache invalidation ordering (R1)', () => {
     const buildPropagationPayload = (): TemplateLinesBulkOperations => ({
       update: [
