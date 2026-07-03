@@ -307,6 +307,12 @@ WHERE tl.template_id = 'aaaa1111-aaaa-1111-aaaa-111111111111';
 -- transaction.category was dropped by 20260702130000 (PUL-18); rows are staged
 -- with their legacy category, inserted without it, then categories become real
 -- tags + transaction_tag links (same conversion as the migration).
+-- The whole section lives in one DO block: the Supabase CLI seeds via a
+-- pipelined batch that parses every statement before executing any, so a
+-- table created by one statement does not exist yet when the next is parsed.
+DO $seed_transactions$
+BEGIN
+
 CREATE TEMP TABLE seed_transaction (
   budget_id uuid,
   name text,
@@ -521,6 +527,9 @@ WHERE st.category IS NOT NULL AND trim(st.category) <> ''
 ON CONFLICT DO NOTHING;
 
 DROP TABLE seed_transaction;
+
+END
+$seed_transactions$;
 
 -- =====================================================
 -- 6. LOG SUMMARY
