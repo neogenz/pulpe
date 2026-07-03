@@ -262,6 +262,21 @@ import {
             }}</span>
           </pulpe-loading-button>
         </form>
+
+        <div class="text-center mt-4 pt-4 border-t border-outline-variant">
+          <p class="text-body-small text-on-surface-variant">
+            {{ 'auth.recoverVaultCode.lostRecoveryKey' | transloco }}
+            <a
+              href="https://pulpe.app/support"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="text-primary hover:underline"
+              data-testid="contact-support-link"
+            >
+              {{ 'auth.recoverVaultCode.contactSupport' | transloco }}
+            </a>
+          </p>
+        </div>
       </div>
     }
   `,

@@ -17,6 +17,7 @@ import { MatCheckboxModule } from '@angular/material/checkbox';
 import { SpinnerComponent } from 'ngx-unicode-spinners';
 import { filter, firstValueFrom } from 'rxjs';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
+import { API_ERROR_CODES } from 'pulpe-shared';
 
 import {
   ClientKeyService,
@@ -252,6 +253,13 @@ export default class EnterVaultCode {
       ) {
         this.errorMessage.set(
           this.#transloco.translate('auth.vaultCode.rateLimited'),
+        );
+      } else if (
+        isApiError(error) &&
+        error.code === API_ERROR_CODES.ENCRYPTION_KEY_CHECK_FAILED
+      ) {
+        this.errorMessage.set(
+          this.#transloco.translate('auth.vaultCode.incorrectPin'),
         );
       } else if (
         (error instanceof HttpErrorResponse && error.status === 400) ||

@@ -102,6 +102,7 @@ struct PinRecoveryView: View {
 
                 continueButton
                 cancelButton
+                contactSupportLink
             }
             .animation(.easeInOut(duration: DesignTokens.Animation.fast), value: viewModel.errorMessage)
             .toolbar(.hidden, for: .navigationBar)
@@ -212,6 +213,20 @@ struct PinRecoveryView: View {
                 .font(PulpeTypography.stepSubtitle)
                 .foregroundStyle(Color.textSecondaryOnboarding)
         }
+    }
+
+    private var contactSupportLink: some View {
+        VStack(spacing: DesignTokens.Spacing.xs) {
+            Text("Tu n'as plus ta clé de récupération ?")
+                .foregroundStyle(Color.textSecondaryOnboarding)
+                .multilineTextAlignment(.center)
+            Link("Contacter le support", destination: AppURLs.support)
+                .foregroundStyle(Color.pulpePrimary)
+                .frame(minHeight: DesignTokens.TapTarget.minimum)
+                .contentShape(Rectangle())
+                .accessibilityIdentifier("contactSupportLink")
+        }
+        .font(PulpeTypography.subheadline)
     }
 
     private var recoveryKeySheetItemBinding: Binding<RecoveryKeySheetItem?> {

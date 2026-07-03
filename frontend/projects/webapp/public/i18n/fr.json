@@ -126,6 +126,7 @@
       "setupSubmitting": "On prépare ton espace...",
       "setupSubmit": "Créer mon code PIN",
       "rateLimited": "Trop de tentatives, patiente quelques minutes",
+      "incorrectPin": "Code PIN incorrect — réessaie",
       "invalidCode": "Ce code ne semble pas correct — vérifie et réessaie",
       "invalidRecoveryKey": "Clé de récupération invalide — vérifie que tu as bien copié la clé",
       "redirectFailed": "La redirection a échoué — réessaie de te connecter"
@@ -147,7 +148,9 @@
       "pinsMismatch": "Les codes ne correspondent pas",
       "submitting": "Récupération...",
       "submit": "Récupérer",
-      "recoveryKeyGenerationFailed": "La clé de récupération n'a pas pu être générée — pense à en créer une dans les paramètres"
+      "recoveryKeyGenerationFailed": "La clé de récupération n'a pas pu être générée — pense à en créer une dans les paramètres",
+      "lostRecoveryKey": "Tu n'as plus ta clé de récupération ?",
+      "contactSupport": "Contacter le support"
     },
     "errors": {
       "oauthConnection": "La connexion a échoué — réessaie",

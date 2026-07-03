@@ -5,6 +5,7 @@ import { provideAnimationsAsync } from '@angular/platform-browser/animations/asy
 import { provideRouter, Router } from '@angular/router';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { of, throwError } from 'rxjs';
+import { API_ERROR_CODES } from 'pulpe-shared';
 
 import { ClientKeyService, EncryptionApi } from '@core/encryption';
 import * as cryptoUtils from '@core/encryption/crypto.utils';
@@ -392,7 +393,28 @@ describe('EnterVaultCode', () => {
   });
 
   describe('onSubmit - ApiError handling', () => {
-    it('should show specific error when validateKey$ throws ApiError with status 400', async () => {
+    it('should show precise incorrect PIN error when validateKey$ throws ApiError with ERR_ENCRYPTION_KEY_CHECK_FAILED', async () => {
+      mockEncryptionApi.validateKey$.mockReturnValue(
+        throwError(
+          () =>
+            new ApiError(
+              'Client key verification failed',
+              API_ERROR_CODES.ENCRYPTION_KEY_CHECK_FAILED,
+              400,
+              null,
+            ),
+        ),
+      );
+      await triggerAutoSubmit();
+
+      await vi.waitFor(() =>
+        expect(component['errorMessage']()).toBe(
+          'Code PIN incorrect — réessaie',
+        ),
+      );
+    });
+
+    it('should keep generic message when validateKey$ throws ApiError 400 without key-check code', async () => {
       mockEncryptionApi.validateKey$.mockReturnValue(
         throwError(() => new ApiError('Bad request', 'ERR_INVALID', 400, null)),
       );
