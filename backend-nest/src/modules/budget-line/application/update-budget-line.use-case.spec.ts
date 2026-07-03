@@ -139,6 +139,18 @@ describe('UpdateBudgetLineUseCase', () => {
     );
   });
 
+  it('should untag (savingsGoalId null) without fetching the current line', async () => {
+    const dto: BudgetLineUpdate = { id: mockEntity.id, savingsGoalId: null };
+
+    await useCase.execute(mockEntity.id, dto, mockUser);
+
+    expect(mockRepo.findById).not.toHaveBeenCalled();
+    expect(mockRepo.update).toHaveBeenCalledWith(
+      mockEntity.id,
+      expect.objectContaining({ savingsGoalId: null }),
+    );
+  });
+
   it('should reject a negative amount via invariants (no repo call)', async () => {
     const dto: BudgetLineUpdate = { id: mockEntity.id, amount: -50 };
 

@@ -40,8 +40,11 @@ export class UpdateBudgetLineUseCase {
     BudgetLineInvariants.validateUpdate(dto);
 
     const withRate = await this.currencyService.overrideExchangeRate(dto);
+    // The current kind only gates SETTING a link (saving lines only). An
+    // explicit untag (savingsGoalId: null) clears it whatever the kind — no
+    // need to fetch the line for that.
     const currentKind =
-      withRate.kind === undefined && withRate.savingsGoalId !== undefined
+      withRate.kind === undefined && typeof withRate.savingsGoalId === 'string'
         ? (await this.repo.findById(id)).kind
         : undefined;
     const patch = this.buildPatch(withRate, currentKind);
