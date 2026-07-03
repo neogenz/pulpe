@@ -104,7 +104,7 @@ export function Hero() {
               <span className="italic block text-2xl md:text-3xl lg:text-4xl font-normal text-text-secondary mb-1 tracking-normal">
                 &laquo;&nbsp;Je peux me le permettre&nbsp;?&nbsp;&raquo;
               </span>
-              <span className="block text-5xl md:text-6xl lg:text-[4.25rem] font-bold text-primary tracking-[-0.02em]">
+              <span className="block text-6xl md:text-7xl lg:text-[5.25rem] font-extrabold text-primary tracking-[-0.035em] leading-[0.92]">
                 Tu sais d&apos;avance.
               </span>
             </h1>

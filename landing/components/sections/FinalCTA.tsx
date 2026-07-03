@@ -1,6 +1,6 @@
 'use client'
 
-import { Button, Container, FadeIn, GrainOverlay } from '@/components/ui'
+import { Button, Container, FadeIn, GrainOverlay, LimeWedge } from '@/components/ui'
 import { angularUrl } from '@/lib/config'
 import { trackCTAClick } from '@/lib/posthog'
 
@@ -18,6 +18,8 @@ export function FinalCTA() {
         className="absolute bottom-[-15%] left-[-8%] w-96 h-96 bg-white/5 organic-blob"
         aria-hidden="true"
       />
+      {/* Signature lime motif — brand texture at the emotional climax */}
+      <LimeWedge className="absolute -bottom-20 -right-16 w-[22rem] h-[22rem] text-white opacity-[0.06] pointer-events-none" />
 
       <Container>
         <div className="max-w-3xl mx-auto text-center relative z-10">

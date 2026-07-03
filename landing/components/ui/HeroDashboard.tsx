@@ -83,7 +83,7 @@ export const HeroDashboard = memo(function HeroDashboard({
               <CountUp
                 value={amount}
                 format={(n) => `${n}`}
-                className="text-[2.75rem] font-bold tabular-nums"
+                className="text-[3rem] font-extrabold tabular-nums tracking-[-0.02em]"
               />
               <span className="text-lg font-semibold text-white/80 ml-1">
                 {unit}
