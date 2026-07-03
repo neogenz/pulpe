@@ -118,7 +118,7 @@ import { type TemplateViewModel } from './template-view-model';
                 class="ph-no-capture text-body-medium! font-medium!"
               >
                 {{
-                  templateViewModel().income | appCurrency: currency() : '1.2-2'
+                  templateViewModel().income | appCurrency: currency() : '1.0-0'
                 }}
               </span>
             </mat-list-item>
@@ -139,7 +139,7 @@ import { type TemplateViewModel } from './template-view-model';
               >
                 {{
                   templateViewModel().expenses
-                    | appCurrency: currency() : '1.2-2'
+                    | appCurrency: currency() : '1.0-0'
                 }}
               </span>
             </mat-list-item>
@@ -160,7 +160,7 @@ import { type TemplateViewModel } from './template-view-model';
               >
                 {{
                   templateViewModel().netBalance
-                    | appCurrency: currency() : '1.2-2'
+                    | appCurrency: currency() : '1.0-0'
                 }}
               </span>
             </mat-list-item>
