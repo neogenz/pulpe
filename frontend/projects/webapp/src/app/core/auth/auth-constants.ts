@@ -25,6 +25,7 @@ export const AUTH_ERROR_KEYS = {
   REFRESH_FAILED: 'auth.errors.refreshFailed',
   ACCOUNT_BLOCKED: 'auth.errors.accountBlocked',
   CLIENT_KEY_MISSING: 'auth.errors.clientKeyMissing',
+  USER_NOT_CONNECTED: 'auth.errors.userNotConnected',
 } as const;
 
 export function formatDeletionDate(

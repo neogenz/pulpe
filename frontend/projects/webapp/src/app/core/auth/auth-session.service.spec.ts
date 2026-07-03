@@ -47,6 +47,7 @@ describe('AuthSessionService', () => {
     user: () => User | null;
   };
   let mockConfig: Partial<ApplicationConfiguration>;
+  let supabaseUrlSignal: ReturnType<typeof signal<string>>;
   let mockLogger: {
     info: Mock;
     warn: Mock;
@@ -97,8 +98,9 @@ describe('AuthSessionService', () => {
       user: mockUserSignal.asReadonly(),
     };
 
+    supabaseUrlSignal = signal('https://test.supabase.co');
     mockConfig = {
-      supabaseUrl: signal('https://test.supabase.co'),
+      supabaseUrl: supabaseUrlSignal,
       supabaseAnonKey: signal('test-key'),
     };
 
@@ -526,6 +528,27 @@ describe('AuthSessionService', () => {
       expect(mockErrorLocalizer.localizeAuthError).toHaveBeenCalledWith(error);
     });
 
+    it('should return failure when Supabase returns no session without error', async () => {
+      mockSupabaseClient.auth.setSession.mockResolvedValue({
+        data: { session: null, user: null },
+        error: null,
+      });
+
+      const result = await service.setSession({
+        access_token: validJwt,
+        refresh_token: 'test-refresh',
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBeDefined();
+      expect(mockAuthStore.set).toHaveBeenCalledWith({
+        phase: 'unauthenticated',
+      });
+      expect(mockLogger.warn).toHaveBeenCalledWith(
+        'setSession returned no session without error',
+      );
+    });
+
     it('should handle unexpected error in setSession', async () => {
       mockSupabaseClient.auth.setSession.mockRejectedValue(
         new Error('Unexpected error'),
@@ -637,6 +660,71 @@ describe('AuthSessionService', () => {
 
     expect(mockSupabaseClient.auth.getSession).toHaveBeenCalledTimes(1);
     expect(mockSupabaseClient.auth.onAuthStateChange).toHaveBeenCalledTimes(1);
+  });
+
+  it('should retry initialization after a failed attempt', async () => {
+    supabaseUrlSignal.set('');
+
+    await expect(service.initializeAuthState()).rejects.toThrow(
+      'Configuration Supabase manquante après initialisation',
+    );
+
+    supabaseUrlSignal.set('https://test.supabase.co');
+    mockSupabaseClient.auth.getSession.mockResolvedValue({
+      data: { session: mockSession },
+      error: null,
+    });
+    mockSupabaseClient.auth.onAuthStateChange.mockReturnValue({
+      data: { subscription: { unsubscribe: vi.fn() } },
+    });
+
+    await service.initializeAuthState();
+
+    expect(mockSupabaseClient.auth.getSession).toHaveBeenCalledTimes(1);
+  });
+
+  describe('signOut deduplication', () => {
+    beforeEach(async () => {
+      mockSupabaseClient.auth.getSession.mockResolvedValue({
+        data: { session: mockSession },
+        error: null,
+      });
+      mockSupabaseClient.auth.onAuthStateChange.mockReturnValue({
+        data: { subscription: { unsubscribe: vi.fn() } },
+      });
+      await service.initializeAuthState();
+      mockCleanup.performCleanup.mockClear();
+    });
+
+    it('should deduplicate concurrent signOut calls', async () => {
+      let resolveSignOut!: (value: { error: null }) => void;
+      mockSupabaseClient.auth.signOut.mockImplementation(
+        () =>
+          new Promise((resolve) => {
+            resolveSignOut = resolve;
+          }),
+      );
+
+      const pendingSignOuts = Promise.all([
+        service.signOut(),
+        service.signOut(),
+        service.signOut(),
+      ]);
+      resolveSignOut({ error: null });
+      await pendingSignOuts;
+
+      expect(mockSupabaseClient.auth.signOut).toHaveBeenCalledTimes(1);
+      expect(mockCleanup.performCleanup).toHaveBeenCalledTimes(1);
+    });
+
+    it('should allow a new signOut after the previous one completed', async () => {
+      mockSupabaseClient.auth.signOut.mockResolvedValue({ error: null });
+
+      await service.signOut();
+      await service.signOut();
+
+      expect(mockSupabaseClient.auth.signOut).toHaveBeenCalledTimes(2);
+    });
   });
 
   describe('verifyPassword', () => {

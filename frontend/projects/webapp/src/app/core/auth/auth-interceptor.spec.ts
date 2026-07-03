@@ -176,6 +176,39 @@ describe('authInterceptor', () => {
       await Promise.all([promise1, promise2]);
     });
 
+    it('should sign out and redirect all pending requests when shared refresh resolves false', async () => {
+      let resolveSharedRefresh!: (value: boolean) => void;
+      const sharedRefresh = new Promise<boolean>((resolve) => {
+        resolveSharedRefresh = resolve;
+      });
+      mockAuthSession.refreshSession.mockImplementation(() => sharedRefresh);
+
+      const promise1 = firstValueFrom(
+        http.get(`${BACKEND_URL}/endpoint1`),
+      ).catch((err) => err);
+      const promise2 = firstValueFrom(
+        http.get(`${BACKEND_URL}/endpoint2`),
+      ).catch((err) => err);
+
+      await flushMicrotasks();
+
+      httpTesting
+        .expectOne(`${BACKEND_URL}/endpoint1`)
+        .flush('Unauthorized', { status: 401, statusText: 'Unauthorized' });
+      httpTesting
+        .expectOne(`${BACKEND_URL}/endpoint2`)
+        .flush('Unauthorized', { status: 401, statusText: 'Unauthorized' });
+
+      resolveSharedRefresh(false);
+
+      const [result1, result2] = await Promise.all([promise1, promise2]);
+
+      expect(result1).toBeInstanceOf(Error);
+      expect(result2).toBeInstanceOf(Error);
+      expect(mockAuthSession.signOut).toHaveBeenCalled();
+      expect(mockRouter.navigate).toHaveBeenCalledWith(['/', 'login']);
+    });
+
     it('should redirect to login when refresh returns false', async () => {
       const promise1 = firstValueFrom(
         http.get(`${BACKEND_URL}/endpoint1`),

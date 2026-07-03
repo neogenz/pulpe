@@ -37,6 +37,7 @@ export class AuthSessionService {
   #authSubscription: (() => void) | null = null;
   #initPromise: Promise<void> | null = null;
   #refreshPromise: Promise<boolean> | null = null;
+  #signOutPromise: Promise<void> | null = null;
 
   getClient(): SupabaseClient {
     if (!this.#supabaseClient) {
@@ -50,7 +51,10 @@ export class AuthSessionService {
       this.#logger.debug('Auth already initialized, skipping');
       return Promise.resolve();
     }
-    return (this.#initPromise ??= this.#initializeSupabaseSessionTracking());
+    return (this.#initPromise ??=
+      this.#initializeSupabaseSessionTracking().finally(() => {
+        this.#initPromise = null;
+      }));
   }
 
   async setSession(session: {
@@ -88,6 +92,15 @@ export class AuthSessionService {
         };
       }
 
+      if (!data.session) {
+        this.#logger.warn('setSession returned no session without error');
+        this.#updateAuthStateFromSession(null);
+        return {
+          success: false,
+          error: this.#transloco.translate(AUTH_ERROR_KEYS.SESSION_EXPIRED),
+        };
+      }
+
       this.#updateAuthStateFromSession(data.session);
       return { success: true };
     } catch (error) {
@@ -107,7 +120,10 @@ export class AuthSessionService {
     try {
       const email = this.#authStore.user()?.email;
       if (!email) {
-        return { success: false, error: 'Utilisateur non connecté' };
+        return {
+          success: false,
+          error: this.#transloco.translate(AUTH_ERROR_KEYS.USER_NOT_CONNECTED),
+        };
       }
 
       const { error } = await this.getClient().auth.signInWithPassword({
@@ -168,7 +184,13 @@ export class AuthSessionService {
     }
   }
 
-  async signOut(): Promise<void> {
+  signOut(): Promise<void> {
+    return (this.#signOutPromise ??= this.#performSignOut().finally(() => {
+      this.#signOutPromise = null;
+    }));
+  }
+
+  async #performSignOut(): Promise<void> {
     try {
       if (isE2EMode()) {
         this.#logger.debug('🎭 Mode test E2E: Simulation du logout');
