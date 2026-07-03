@@ -195,21 +195,10 @@ describe('SupabaseTransactionRepository', () => {
       ).rejects.toThrow(BusinessException);
     });
 
-    it('should link provided tagIds and return them on the entity', async () => {
-      const capturedLinks: unknown[] = [];
-      const provider = createMockProvider((table: string) => {
-        if (table === 'transaction_tag') {
-          return {
-            delete: () => ({
-              eq: jest.fn().mockResolvedValue({ error: null }),
-            }),
-            insert: (rows: unknown) => {
-              capturedLinks.push(rows);
-              return Promise.resolve({ error: null });
-            },
-          };
-        }
-        return {
+    it('should link provided tagIds via atomic replace RPC and return them on the entity', async () => {
+      const mockRpc = jest.fn().mockResolvedValue({ error: null });
+      const provider = createMockProvider(
+        () => ({
           insert: () => ({
             select: () => ({
               single: jest
@@ -217,8 +206,9 @@ describe('SupabaseTransactionRepository', () => {
                 .mockResolvedValue({ data: mockRow, error: null }),
             }),
           }),
-        };
-      });
+        }),
+        mockRpc,
+      );
       repo = new SupabaseTransactionRepository(
         provider,
         createMockEncryption(),
@@ -233,26 +223,19 @@ describe('SupabaseTransactionRepository', () => {
         transactionDate: '2024-01-15T12:00:00Z',
       });
 
-      expect(capturedLinks[0]).toEqual([
-        { transaction_id: 'txn-1', tag_id: 'tag-1' },
-        { transaction_id: 'txn-1', tag_id: 'tag-2' },
-      ]);
+      expect(mockRpc).toHaveBeenCalledWith('replace_transaction_tags', {
+        p_transaction_id: 'txn-1',
+        p_tag_ids: ['tag-1', 'tag-2'],
+      });
       expect(result.tagIds).toEqual(['tag-1', 'tag-2']);
     });
 
     it('should map FK violation on tag link to TAG_NOT_FOUND and delete the created transaction', async () => {
       const compensationDeletes: string[] = [];
-      const provider = createMockProvider((table: string) => {
-        if (table === 'transaction_tag') {
-          return {
-            delete: () => ({
-              eq: jest.fn().mockResolvedValue({ error: null }),
-            }),
-            insert: jest.fn().mockResolvedValue({
-              error: { code: '23503', message: 'FK violation' },
-            }),
-          };
-        }
+      const mockRpc = jest.fn().mockResolvedValue({
+        error: { code: '23503', message: 'FK violation' },
+      });
+      const provider = createMockProvider(() => {
         return {
           insert: () => ({
             select: () => ({
@@ -268,7 +251,7 @@ describe('SupabaseTransactionRepository', () => {
             },
           }),
         };
-      });
+      }, mockRpc);
       repo = new SupabaseTransactionRepository(
         provider,
         createMockEncryption(),
@@ -321,11 +304,21 @@ describe('SupabaseTransactionRepository', () => {
   });
 
   describe('toggleCheck (atomic RPC)', () => {
-    it('should return decrypted entity from atomic RPC call', async () => {
+    it('should return decrypted entity with refetched tagIds from atomic RPC call', async () => {
       const mockRpc = jest.fn().mockReturnValue({
         single: jest.fn().mockResolvedValue({ data: mockRow, error: null }),
       });
-      const provider = createMockProvider(() => ({}), mockRpc);
+      const provider = createMockProvider(
+        () => ({
+          select: () => ({
+            eq: jest.fn().mockResolvedValue({
+              data: [{ tag_id: 'tag-1' }],
+              error: null,
+            }),
+          }),
+        }),
+        mockRpc,
+      );
       repo = new SupabaseTransactionRepository(
         provider,
         createMockEncryption(),
@@ -335,6 +328,7 @@ describe('SupabaseTransactionRepository', () => {
 
       expect(result.id).toBe('txn-1');
       expect(result.amount).toBe(50);
+      expect(result.tagIds).toEqual(['tag-1']);
       expect(mockRpc).toHaveBeenCalledWith('toggle_transaction_check', {
         p_transaction_id: 'txn-1',
       });

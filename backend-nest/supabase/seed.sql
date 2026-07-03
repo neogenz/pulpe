@@ -304,9 +304,20 @@ WHERE tl.template_id = 'aaaa1111-aaaa-1111-aaaa-111111111111';
 -- =====================================================
 -- 5. CREATE TRANSACTIONS
 -- =====================================================
+-- transaction.category was dropped by 20260702130000 (PUL-18); rows are staged
+-- with their legacy category, inserted without it, then categories become real
+-- tags + transaction_tag links (same conversion as the migration).
+CREATE TEMP TABLE seed_transaction (
+  budget_id uuid,
+  name text,
+  amount numeric,
+  kind public.transaction_kind,
+  transaction_date timestamptz,
+  category text
+);
 
 -- Transactions for Janvier 2025
-INSERT INTO public.transaction (budget_id, name, amount, kind, transaction_date, category)
+INSERT INTO seed_transaction (budget_id, name, amount, kind, transaction_date, category)
 VALUES
   -- Revenus
   ('11111111-0001-4025-a001-111111111111', 'Salaire Janvier', 3500.00, 'income', '2025-01-05 09:00:00', 'Salaire'),
@@ -354,7 +365,7 @@ VALUES
   ('11111111-0001-4025-a001-111111111111', 'Cadeau anniversaire', 45.00, 'expense', '2025-01-22 18:00:00', 'Cadeaux');
 
 -- Transactions for Février 2025 (moins de transactions pour l'instant)
-INSERT INTO public.transaction (budget_id, name, amount, kind, transaction_date, category)
+INSERT INTO seed_transaction (budget_id, name, amount, kind, transaction_date, category)
 VALUES
   -- Revenus
   ('11111111-0002-4025-a002-222222222222', 'Salaire Février', 3500.00, 'income', '2025-02-05 09:00:00', 'Salaire'),
@@ -374,7 +385,7 @@ VALUES
 
 -- Transactions principales pour Mars à Décembre 2025
 -- Mars 2025
-INSERT INTO public.transaction (budget_id, name, amount, kind, transaction_date, category)
+INSERT INTO seed_transaction (budget_id, name, amount, kind, transaction_date, category)
 VALUES
   ('11111111-0003-4025-a003-333333333333', 'Salaire Mars', 3500.00, 'income', '2025-03-05 09:00:00', 'Salaire'),
   ('11111111-0003-4025-a003-333333333333', 'Loyer Mars', 1200.00, 'expense', '2025-03-01 08:00:00', 'Logement'),
@@ -383,7 +394,7 @@ VALUES
   ('11111111-0003-4025-a003-333333333333', 'Virement Livret A', 500.00, 'saving', '2025-03-05 10:00:00', 'Épargne');
 
 -- Avril 2025
-INSERT INTO public.transaction (budget_id, name, amount, kind, transaction_date, category)
+INSERT INTO seed_transaction (budget_id, name, amount, kind, transaction_date, category)
 VALUES
   ('11111111-0004-4025-a004-444444444444', 'Salaire Avril', 3500.00, 'income', '2025-04-05 09:00:00', 'Salaire'),
   ('11111111-0004-4025-a004-444444444444', 'Prime trimestrielle', 1000.00, 'income', '2025-04-10 09:00:00', 'Prime'),
@@ -392,7 +403,7 @@ VALUES
   ('11111111-0004-4025-a004-444444444444', 'Virement Livret A', 800.00, 'saving', '2025-04-05 10:00:00', 'Épargne');
 
 -- Mai 2025
-INSERT INTO public.transaction (budget_id, name, amount, kind, transaction_date, category)
+INSERT INTO seed_transaction (budget_id, name, amount, kind, transaction_date, category)
 VALUES
   ('11111111-0005-4025-a005-555555555555', 'Salaire Mai', 3500.00, 'income', '2025-05-05 09:00:00', 'Salaire'),
   ('11111111-0005-4025-a005-555555555555', 'Loyer Mai', 1200.00, 'expense', '2025-05-01 08:00:00', 'Logement'),
@@ -400,7 +411,7 @@ VALUES
   ('11111111-0005-4025-a005-555555555555', 'Virement Livret A', 500.00, 'saving', '2025-05-05 10:00:00', 'Épargne');
 
 -- Juin 2025
-INSERT INTO public.transaction (budget_id, name, amount, kind, transaction_date, category)
+INSERT INTO seed_transaction (budget_id, name, amount, kind, transaction_date, category)
 VALUES
   ('11111111-0006-4025-a006-666666666666', 'Salaire Juin', 3500.00, 'income', '2025-06-05 09:00:00', 'Salaire'),
   ('11111111-0006-4025-a006-666666666666', 'Loyer Juin', 1200.00, 'expense', '2025-06-01 08:00:00', 'Logement'),
@@ -408,7 +419,7 @@ VALUES
   ('11111111-0006-4025-a006-666666666666', 'Virement Livret A', 500.00, 'saving', '2025-06-05 10:00:00', 'Épargne');
 
 -- Juillet 2025 (Vacances)
-INSERT INTO public.transaction (budget_id, name, amount, kind, transaction_date, category)
+INSERT INTO seed_transaction (budget_id, name, amount, kind, transaction_date, category)
 VALUES
   ('11111111-0007-4025-a007-777777777777', 'Salaire Juillet', 3500.00, 'income', '2025-07-05 09:00:00', 'Salaire'),
   ('11111111-0007-4025-a007-777777777777', 'Loyer Juillet', 1200.00, 'expense', '2025-07-01 08:00:00', 'Logement'),
@@ -417,14 +428,14 @@ VALUES
   ('11111111-0007-4025-a007-777777777777', 'Virement Livret A', 200.00, 'saving', '2025-07-05 10:00:00', 'Épargne');
 
 -- Août 2025 (Suite vacances)
-INSERT INTO public.transaction (budget_id, name, amount, kind, transaction_date, category)
+INSERT INTO seed_transaction (budget_id, name, amount, kind, transaction_date, category)
 VALUES
   ('11111111-0008-4025-a008-888888888888', 'Salaire Août', 3500.00, 'income', '2025-08-05 09:00:00', 'Salaire'),
   ('11111111-0008-4025-a008-888888888888', 'Loyer Août', 1200.00, 'expense', '2025-08-01 08:00:00', 'Logement'),
   ('11111111-0008-4025-a008-888888888888', 'Virement Livret A', 500.00, 'saving', '2025-08-05 10:00:00', 'Épargne');
 
 -- Septembre 2025 (Rentrée)
-INSERT INTO public.transaction (budget_id, name, amount, kind, transaction_date, category)
+INSERT INTO seed_transaction (budget_id, name, amount, kind, transaction_date, category)
 VALUES
   ('11111111-0009-4025-a009-999999999999', 'Salaire Septembre', 3500.00, 'income', '2025-09-05 09:00:00', 'Salaire'),
   ('11111111-0009-4025-a009-999999999999', 'Loyer Septembre', 1200.00, 'expense', '2025-09-01 08:00:00', 'Logement'),
@@ -433,7 +444,7 @@ VALUES
   ('11111111-0009-4025-a009-999999999999', 'Virement Livret A', 500.00, 'saving', '2025-09-05 10:00:00', 'Épargne');
 
 -- Octobre 2025
-INSERT INTO public.transaction (budget_id, name, amount, kind, transaction_date, category)
+INSERT INTO seed_transaction (budget_id, name, amount, kind, transaction_date, category)
 VALUES
   ('11111111-0010-4025-a010-aaaaaaaaaaaa', 'Salaire Octobre', 3500.00, 'income', '2025-10-05 09:00:00', 'Salaire'),
   ('11111111-0010-4025-a010-aaaaaaaaaaaa', 'Loyer Octobre', 1200.00, 'expense', '2025-10-01 08:00:00', 'Logement'),
@@ -441,7 +452,7 @@ VALUES
   ('11111111-0010-4025-a010-aaaaaaaaaaaa', 'Virement Livret A', 500.00, 'saving', '2025-10-05 10:00:00', 'Épargne');
 
 -- Novembre 2025
-INSERT INTO public.transaction (budget_id, name, amount, kind, transaction_date, category)
+INSERT INTO seed_transaction (budget_id, name, amount, kind, transaction_date, category)
 VALUES
   ('11111111-0011-4025-a011-bbbbbbbbbbbb', 'Salaire Novembre', 3500.00, 'income', '2025-11-05 09:00:00', 'Salaire'),
   ('11111111-0011-4025-a011-bbbbbbbbbbbb', 'Loyer Novembre', 1200.00, 'expense', '2025-11-01 08:00:00', 'Logement'),
@@ -450,7 +461,7 @@ VALUES
   ('11111111-0011-4025-a011-bbbbbbbbbbbb', 'Virement Livret A', 500.00, 'saving', '2025-11-05 10:00:00', 'Épargne');
 
 -- Décembre 2025 (Fêtes)
-INSERT INTO public.transaction (budget_id, name, amount, kind, transaction_date, category)
+INSERT INTO seed_transaction (budget_id, name, amount, kind, transaction_date, category)
 VALUES
   ('11111111-0012-4025-a012-cccccccccccc', 'Salaire Décembre', 3500.00, 'income', '2025-12-05 09:00:00', 'Salaire'),
   ('11111111-0012-4025-a012-cccccccccccc', 'Prime de fin d''année', 2000.00, 'income', '2025-12-20 09:00:00', 'Prime'),
@@ -462,7 +473,7 @@ VALUES
 
 -- Transactions principales pour 2026 (quelques transactions pour exemple)
 -- Janvier 2026
-INSERT INTO public.transaction (budget_id, name, amount, kind, transaction_date, category)
+INSERT INTO seed_transaction (budget_id, name, amount, kind, transaction_date, category)
 VALUES
   ('22222222-0001-4026-a001-111111111111', 'Salaire Janvier 2026', 3570.00, 'income', '2026-01-05 09:00:00', 'Salaire'),
   ('22222222-0001-4026-a001-111111111111', 'Loyer Janvier 2026', 1224.00, 'expense', '2026-01-01 08:00:00', 'Logement'),
@@ -470,20 +481,46 @@ VALUES
   ('22222222-0001-4026-a001-111111111111', 'Virement Livret A', 510.00, 'saving', '2026-01-05 10:00:00', 'Épargne');
 
 -- Juin 2026
-INSERT INTO public.transaction (budget_id, name, amount, kind, transaction_date, category)
+INSERT INTO seed_transaction (budget_id, name, amount, kind, transaction_date, category)
 VALUES
   ('22222222-0006-4026-a006-666666666666', 'Salaire Juin 2026', 3570.00, 'income', '2026-06-05 09:00:00', 'Salaire'),
   ('22222222-0006-4026-a006-666666666666', 'Loyer Juin 2026', 1224.00, 'expense', '2026-06-01 08:00:00', 'Logement'),
   ('22222222-0006-4026-a006-666666666666', 'Virement Livret A', 510.00, 'saving', '2026-06-05 10:00:00', 'Épargne');
 
 -- Décembre 2026
-INSERT INTO public.transaction (budget_id, name, amount, kind, transaction_date, category)
+INSERT INTO seed_transaction (budget_id, name, amount, kind, transaction_date, category)
 VALUES
   ('22222222-0012-4026-a012-cccccccccccc', 'Salaire Décembre 2026', 3570.00, 'income', '2026-12-05 09:00:00', 'Salaire'),
   ('22222222-0012-4026-a012-cccccccccccc', 'Prime fin d''année 2026', 2040.00, 'income', '2026-12-20 09:00:00', 'Prime'),
   ('22222222-0012-4026-a012-cccccccccccc', 'Loyer Décembre 2026', 1224.00, 'expense', '2026-12-01 08:00:00', 'Logement'),
   ('22222222-0012-4026-a012-cccccccccccc', 'Cadeaux Noël 2026', 500.00, 'expense', '2026-12-18 16:00:00', 'Cadeaux'),
   ('22222222-0012-4026-a012-cccccccccccc', 'Virement Livret A', 1020.00, 'saving', '2026-12-05 10:00:00', 'Épargne');
+
+INSERT INTO public.transaction (budget_id, name, amount, kind, transaction_date)
+SELECT budget_id, name, amount, kind, transaction_date
+FROM seed_transaction;
+
+INSERT INTO public.tag (user_id, name)
+SELECT DISTINCT mb.user_id, left(trim(st.category), 30)
+FROM seed_transaction st
+JOIN public.monthly_budget mb ON mb.id = st.budget_id
+WHERE st.category IS NOT NULL AND trim(st.category) <> ''
+ON CONFLICT (user_id, lower(normalize(name, NFC))) DO NOTHING;
+
+INSERT INTO public.transaction_tag (transaction_id, tag_id)
+SELECT DISTINCT t.id, tag.id
+FROM public.transaction t
+JOIN seed_transaction st
+  ON st.budget_id = t.budget_id
+ AND st.name = t.name
+ AND st.transaction_date = t.transaction_date
+JOIN public.monthly_budget mb ON mb.id = t.budget_id
+JOIN public.tag ON tag.user_id = mb.user_id
+ AND lower(normalize(tag.name, NFC)) = lower(normalize(left(trim(st.category), 30), NFC))
+WHERE st.category IS NOT NULL AND trim(st.category) <> ''
+ON CONFLICT DO NOTHING;
+
+DROP TABLE seed_transaction;
 
 -- =====================================================
 -- 6. LOG SUMMARY

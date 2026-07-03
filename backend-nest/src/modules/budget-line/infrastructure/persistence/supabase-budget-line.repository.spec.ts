@@ -681,16 +681,26 @@ describe('SupabaseBudgetLineRepository', () => {
   });
 
   describe('toggleCheckRpc', () => {
-    it('should return decrypted entity from rpc', async () => {
+    it('should return decrypted entity with refetched tagIds from rpc', async () => {
       const mockRpc = jest.fn().mockReturnValue({
         single: jest.fn().mockResolvedValue({ data: mockRow, error: null }),
       });
-      const provider = createMockProvider(() => ({}), mockRpc);
+      const provider = createMockProvider(
+        () => ({
+          select: () => ({
+            eq: jest.fn().mockResolvedValue({
+              data: [{ tag_id: 'tag-1' }],
+              error: null,
+            }),
+          }),
+        }),
+        mockRpc,
+      );
       repo = new SupabaseBudgetLineRepository(provider, createMockEncryption());
 
       const result = await repo.toggleCheckRpc('line-1');
 
-      expect(result).toEqual(expectedEntity);
+      expect(result).toEqual({ ...expectedEntity, tagIds: ['tag-1'] });
       expect(mockRpc).toHaveBeenCalledWith('toggle_budget_line_check', {
         p_budget_line_id: 'line-1',
       });

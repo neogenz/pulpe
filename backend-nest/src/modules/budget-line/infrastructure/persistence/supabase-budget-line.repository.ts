@@ -454,8 +454,10 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
 
   /**
    * Replace-set semantics, mirror of the transaction repository: provided
-   * tagIds become the line's exact tag set; foreign/unknown tag ids surface
-   * as TAG_NOT_FOUND via FK (23503) / RLS WITH CHECK (42501).
+   * tagIds become the line's exact tag set. The RPC runs delete + insert in
+   * one DB transaction, so a failed insert rolls back the delete and existing
+   * links survive. Foreign/unknown tag ids surface as TAG_NOT_FOUND via
+   * FK (23503) / RLS WITH CHECK (42501).
    */
   private async replaceTagLinks(
     budgetLineId: string,
@@ -464,36 +466,13 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
   ): Promise<void> {
     const supabase = this.supabaseProvider.client;
 
-    const { error: unlinkError } = await supabase
-      .from('budget_line_tag')
-      .delete()
-      .eq('budget_line_id', budgetLineId);
+    const { error } = await supabase.rpc('replace_budget_line_tags', {
+      p_budget_line_id: budgetLineId,
+      p_tag_ids: tagIds,
+    });
 
-    if (unlinkError) {
-      throw new BusinessException(
-        ERROR_DEFINITIONS.BUDGET_LINE_UPDATE_FAILED,
-        { id: budgetLineId },
-        {
-          operation,
-          entityId: budgetLineId,
-          entityType: 'budget_line_tag',
-          supabaseError: unlinkError,
-        },
-        { cause: unlinkError },
-      );
-    }
-
-    if (!tagIds.length) return;
-
-    const { error: linkError } = await supabase.from('budget_line_tag').insert(
-      tagIds.map((tagId) => ({
-        budget_line_id: budgetLineId,
-        tag_id: tagId,
-      })),
-    );
-
-    if (linkError) {
-      if (linkError.code === '23503' || linkError.code === '42501') {
+    if (error) {
+      if (error.code === '23503' || error.code === '42501') {
         throw new BusinessException(
           ERROR_DEFINITIONS.TAG_NOT_FOUND,
           undefined,
@@ -501,9 +480,9 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
             operation,
             entityId: budgetLineId,
             entityType: 'budget_line_tag',
-            supabaseError: linkError,
+            supabaseError: error,
           },
-          { cause: linkError },
+          { cause: error },
         );
       }
 
@@ -514,9 +493,9 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
           operation,
           entityId: budgetLineId,
           entityType: 'budget_line_tag',
-          supabaseError: linkError,
+          supabaseError: error,
         },
-        { cause: linkError },
+        { cause: error },
       );
     }
   }
@@ -728,7 +707,7 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
       .eq('recurrence', 'one_off')
       .is('checked_at', null)
       .is('spread_group_id', null)
-      .select()
+      .select(BUDGET_LINE_WITH_TAGS_SELECT)
       .single();
 
     if (error || !row) {
@@ -834,8 +813,32 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
       );
     }
 
+    // toggle_budget_line_check returns the bare row (RETURNING *) without the
+    // budget_line_tag embed; refetch the links so the response keeps tagIds.
+    const { data: tagLinks, error: tagError } = await supabase
+      .from('budget_line_tag')
+      .select('tag_id')
+      .eq('budget_line_id', id);
+
+    if (tagError) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.BUDGET_LINE_UPDATE_FAILED,
+        undefined,
+        {
+          operation: 'toggleCheck',
+          entityId: id,
+          entityType: 'budget_line_tag',
+          supabaseError: tagError,
+        },
+        { cause: tagError },
+      );
+    }
+
     const dek = await this.encryption.getDekFor(this.supabaseProvider.user);
-    return this.toEntity(data, dek);
+    return {
+      ...this.toEntity(data, dek),
+      tagIds: (tagLinks ?? []).map((link) => link.tag_id),
+    };
   }
 
   async checkUncheckedTransactionsRpc(

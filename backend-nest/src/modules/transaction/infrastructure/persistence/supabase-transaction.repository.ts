@@ -287,8 +287,10 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
 
   /**
    * Replace-set semantics: the provided tagIds become the transaction's exact
-   * tag set. RLS on transaction_tag guards both directions (own transaction,
-   * own tag) — a foreign/unknown tag id surfaces as TAG_NOT_FOUND.
+   * tag set. The RPC runs delete + insert in one DB transaction, so a failed
+   * insert (deleted or foreign tag id) rolls back the delete and existing
+   * links survive. RLS on transaction_tag guards both directions (own
+   * transaction, own tag) — a foreign/unknown tag id surfaces as TAG_NOT_FOUND.
    */
   private async replaceTagLinks(
     transactionId: string,
@@ -297,37 +299,14 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
   ): Promise<void> {
     const supabase = this.supabaseProvider.client;
 
-    const { error: unlinkError } = await supabase
-      .from('transaction_tag')
-      .delete()
-      .eq('transaction_id', transactionId);
+    const { error } = await supabase.rpc('replace_transaction_tags', {
+      p_transaction_id: transactionId,
+      p_tag_ids: tagIds,
+    });
 
-    if (unlinkError) {
-      throw new BusinessException(
-        ERROR_DEFINITIONS.TRANSACTION_UPDATE_FAILED,
-        { id: transactionId },
-        {
-          operation,
-          entityId: transactionId,
-          entityType: 'transaction_tag',
-          supabaseError: unlinkError,
-        },
-        { cause: unlinkError },
-      );
-    }
-
-    if (!tagIds.length) return;
-
-    const { error: linkError } = await supabase.from('transaction_tag').insert(
-      tagIds.map((tagId) => ({
-        transaction_id: transactionId,
-        tag_id: tagId,
-      })),
-    );
-
-    if (linkError) {
+    if (error) {
       // 23503 (FK) / 42501 (RLS WITH CHECK): the tag doesn't exist or isn't ours.
-      if (linkError.code === '23503' || linkError.code === '42501') {
+      if (error.code === '23503' || error.code === '42501') {
         throw new BusinessException(
           ERROR_DEFINITIONS.TAG_NOT_FOUND,
           undefined,
@@ -335,9 +314,9 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
             operation,
             entityId: transactionId,
             entityType: 'transaction_tag',
-            supabaseError: linkError,
+            supabaseError: error,
           },
-          { cause: linkError },
+          { cause: error },
         );
       }
 
@@ -348,9 +327,9 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
           operation,
           entityId: transactionId,
           entityType: 'transaction_tag',
-          supabaseError: linkError,
+          supabaseError: error,
         },
-        { cause: linkError },
+        { cause: error },
       );
     }
   }
@@ -453,8 +432,32 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
       );
     }
 
+    // toggle_transaction_check returns the bare row (SELECT *) without the
+    // transaction_tag embed; refetch the links so the response keeps tagIds.
+    const { data: tagLinks, error: tagError } = await supabase
+      .from('transaction_tag')
+      .select('tag_id')
+      .eq('transaction_id', id);
+
+    if (tagError) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.TRANSACTION_UPDATE_FAILED,
+        undefined,
+        {
+          operation: 'toggleCheck',
+          entityId: id,
+          entityType: 'transaction_tag',
+          supabaseError: tagError,
+        },
+        { cause: tagError },
+      );
+    }
+
     const dek = await this.encryption.getDekFor(this.supabaseProvider.user);
-    return this.toEntity(data, dek);
+    return {
+      ...this.toEntity(data, dek),
+      tagIds: (tagLinks ?? []).map((link) => link.tag_id),
+    };
   }
 
   async fetchBudgetIdForTransaction(id: string): Promise<string | null> {

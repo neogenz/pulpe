@@ -26,6 +26,14 @@ import { validateCreateBudgetResponse } from '../../schemas/rpc-responses.schema
 
 export type { BudgetAggregates };
 
+/** Embedded junction rows so budget details reads map to tagIds (PUL-18). */
+type BudgetLineRowWithTags = BudgetLineRow & {
+  budget_line_tag?: { tag_id: string }[];
+};
+type TransactionRowWithTags = TransactionRow & {
+  transaction_tag?: { tag_id: string }[];
+};
+
 @Injectable()
 export class SupabaseBudgetRepository implements BudgetRepositoryPort {
   constructor(
@@ -305,12 +313,12 @@ export class SupabaseBudgetRepository implements BudgetRepositoryPort {
         supabase.from('monthly_budget').select('*').eq('id', budgetId).single(),
         supabase
           .from('budget_line')
-          .select('*')
+          .select('*, budget_line_tag(tag_id)')
           .eq('budget_id', budgetId)
           .order('created_at', { ascending: false }),
         supabase
           .from('transaction')
-          .select('*')
+          .select('*, transaction_tag(tag_id)')
           .eq('budget_id', budgetId)
           .order('transaction_date', { ascending: false }),
       ]);
@@ -602,7 +610,7 @@ export class SupabaseBudgetRepository implements BudgetRepositoryPort {
   }
 
   private toBudgetLineDecrypted(
-    row: BudgetLineRow,
+    row: BudgetLineRowWithTags,
     dek: Buffer,
   ): BudgetLineDecrypted {
     const decrypted = this.encryption.decryptRowAmountFields(row, dek);
@@ -620,6 +628,7 @@ export class SupabaseBudgetRepository implements BudgetRepositoryPort {
       exchangeRate: decrypted.exchange_rate,
       kind: decrypted.kind,
       recurrence: decrypted.recurrence,
+      tagIds: (row.budget_line_tag ?? []).map((link) => link.tag_id),
       isManuallyAdjusted: decrypted.is_manually_adjusted,
       checkedAt: decrypted.checked_at,
       createdAt: decrypted.created_at,
@@ -628,7 +637,7 @@ export class SupabaseBudgetRepository implements BudgetRepositoryPort {
   }
 
   private toTransactionDecrypted(
-    row: TransactionRow,
+    row: TransactionRowWithTags,
     dek: Buffer,
   ): TransactionDecrypted {
     const decrypted = this.encryption.decryptRowAmountFields(row, dek);
@@ -644,6 +653,7 @@ export class SupabaseBudgetRepository implements BudgetRepositoryPort {
       exchangeRate: decrypted.exchange_rate,
       kind: decrypted.kind,
       transactionDate: decrypted.transaction_date,
+      tagIds: (row.transaction_tag ?? []).map((link) => link.tag_id),
       checkedAt: decrypted.checked_at,
       createdAt: decrypted.created_at,
       updatedAt: decrypted.updated_at,
