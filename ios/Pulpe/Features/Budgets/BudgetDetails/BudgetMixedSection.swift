@@ -15,6 +15,8 @@ struct BudgetMixedSection: View {
     let onTap: (BudgetLine) -> Void
     let onTogglePointed: (BudgetLine) -> Void
     var tip: (any Tip)?
+    /// PUL-110 — hides the leading PointCircle when pointage is disabled.
+    var showsCheckToggle = true
 
     init(
         kind: TransactionKind,
@@ -22,7 +24,8 @@ struct BudgetMixedSection: View {
         currency: SupportedCurrency,
         onTap: @escaping (BudgetLine) -> Void,
         onTogglePointed: @escaping (BudgetLine) -> Void,
-        tip: (any Tip)? = nil
+        tip: (any Tip)? = nil,
+        showsCheckToggle: Bool = true
     ) {
         self.kind = kind
         self.items = items
@@ -30,6 +33,7 @@ struct BudgetMixedSection: View {
         self.onTap = onTap
         self.onTogglePointed = onTogglePointed
         self.tip = tip
+        self.showsCheckToggle = showsCheckToggle
     }
 
     private var headerTitle: String {
@@ -70,6 +74,7 @@ struct BudgetMixedSection: View {
                     consumption: item.consumption,
                     isSyncing: item.isSyncing,
                     currency: currency,
+                    showsCheckToggle: showsCheckToggle,
                     onTap: { onTap(item.line) },
                     onTogglePointed: { onTogglePointed(item.line) }
                 )

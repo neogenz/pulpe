@@ -262,9 +262,11 @@ struct CurrentMonthView: View {
 
     // MARK: - Unchecked Forecasts Section
 
+    // PUL-110 — the whole section (list + empty state) disappears when the
+    // user disabled pointage in the preferences.
     @ViewBuilder
     private var uncheckedForecastsSection: some View {
-        if !store.uncheckedItems.isEmpty {
+        if userSettingsStore.checkingEnabled, !store.uncheckedItems.isEmpty {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
                 HStack(spacing: DesignTokens.Spacing.sm) {
                     Text("À pointer")
@@ -301,7 +303,8 @@ struct CurrentMonthView: View {
                 )
                 .popoverTip(ProductTips.checking)
             }
-        } else if !store.budgetLines.isEmpty || !store.transactions.isEmpty {
+        } else if userSettingsStore.checkingEnabled,
+                  !store.budgetLines.isEmpty || !store.transactions.isEmpty {
             UncheckedForecastsEmptyState()
         }
     }

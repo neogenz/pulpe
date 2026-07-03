@@ -210,15 +210,17 @@ interface AddTransactionModel {
           <span>{{ 'currentMonth.addTransactionToday' | transloco }}</span>
         </div>
 
-        <div class="flex items-center justify-between py-2 px-1">
-          <span class="text-body-medium text-on-surface">{{
-            'transactionForm.checkedToggle' | transloco
-          }}</span>
-          <mat-slide-toggle
-            [formField]="transactionForm.isChecked"
-            [attr.aria-label]="'transactionForm.checkedToggle' | transloco"
-          />
-        </div>
+        @if (isCheckingEnabled()) {
+          <div class="flex items-center justify-between py-2 px-1">
+            <span class="text-body-medium text-on-surface">{{
+              'transactionForm.checkedToggle' | transloco
+            }}</span>
+            <mat-slide-toggle
+              [formField]="transactionForm.isChecked"
+              [attr.aria-label]="'transactionForm.checkedToggle' | transloco"
+            />
+          </div>
+        }
       </form>
 
       @if (conversionError()) {
@@ -270,6 +272,7 @@ export class AddTransactionBottomSheet {
   }
 
   protected readonly currency = this.#userSettings.currency;
+  protected readonly isCheckingEnabled = this.#userSettings.isCheckingEnabled;
   protected readonly predefinedAmounts = [10, 15, 20, 30] as const;
   protected readonly conversionError = signal(false);
   protected readonly isSubmitting = signal(false);

@@ -52,6 +52,11 @@ export class UserSettingsStore {
     () => this.settings()?.showCurrencySelector ?? false,
   );
 
+  /** Pointage (bank reconciliation) visibility — defaults to enabled. */
+  readonly isCheckingEnabled = computed(
+    () => this.settings()?.checkingEnabled ?? true,
+  );
+
   readonly isLoading = this.#settingsResource.isInitialLoading;
 
   readonly error = this.#settingsResource.error;

@@ -154,6 +154,7 @@ describe('BudgetDetailsStore - Search Filtering', () => {
           useValue: {
             currency: signal('CHF'),
             payDayOfMonth: signal(1),
+            isCheckingEnabled: signal(true),
           },
         },
         {

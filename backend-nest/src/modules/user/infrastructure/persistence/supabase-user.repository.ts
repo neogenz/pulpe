@@ -25,6 +25,7 @@ interface SupabaseUserMetadata {
   payDayOfMonth?: number | null;
   currency?: string;
   showCurrencySelector?: boolean;
+  checkingEnabled?: boolean;
   scheduledDeletionAt?: string;
 }
 
@@ -107,6 +108,9 @@ export class SupabaseUserRepository implements UserRepositoryPort {
       ...(patch.currency !== undefined && { currency: patch.currency }),
       ...(patch.showCurrencySelector !== undefined && {
         showCurrencySelector: patch.showCurrencySelector,
+      }),
+      ...(patch.checkingEnabled !== undefined && {
+        checkingEnabled: patch.checkingEnabled,
       }),
     };
 
@@ -233,6 +237,9 @@ export class SupabaseUserRepository implements UserRepositoryPort {
       payDayOfMonth,
       currency,
       showCurrencySelector: metadata?.showCurrencySelector === true,
+      // Absent metadata means the user never touched the toggle — checking
+      // (pointage) stays visible, preserving pre-PUL-110 behavior.
+      checkingEnabled: metadata?.checkingEnabled !== false,
     };
   }
 }

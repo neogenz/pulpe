@@ -282,19 +282,21 @@ const DETAIL_SEGMENT_COUNT = 12;
                     />
                   </div>
                   <div class="flex items-center gap-1">
-                    <mat-slide-toggle
-                      [checked]="!!tx.checkedAt"
-                      (change)="onToggleCheck(tx.id)"
-                      (click)="$event.stopPropagation()"
-                      [attr.data-testid]="'toggle-tx-check-' + tx.id"
-                      [attr.aria-label]="
-                        tx.checkedAt
-                          ? ('budgetLine.uncheckLabel'
-                            | transloco: { name: tx.name })
-                          : ('budgetLine.checkLabel'
-                            | transloco: { name: tx.name })
-                      "
-                    />
+                    @if (isCheckingEnabled()) {
+                      <mat-slide-toggle
+                        [checked]="!!tx.checkedAt"
+                        (change)="onToggleCheck(tx.id)"
+                        (click)="$event.stopPropagation()"
+                        [attr.data-testid]="'toggle-tx-check-' + tx.id"
+                        [attr.aria-label]="
+                          tx.checkedAt
+                            ? ('budgetLine.uncheckLabel'
+                              | transloco: { name: tx.name })
+                            : ('budgetLine.checkLabel'
+                              | transloco: { name: tx.name })
+                        "
+                      />
+                    }
                     <button
                       matIconButton
                       (click)="onEditTransaction(tx)"
@@ -377,6 +379,7 @@ export class BudgetDetailPanel {
   readonly #userSettings = inject(UserSettingsStore);
   readonly #featureFlags = inject(FeatureFlagsService);
   protected readonly currency = this.#userSettings.currency;
+  protected readonly isCheckingEnabled = this.#userSettings.isCheckingEnabled;
   // Date locale (fr-CH / fr-FR) for month names — NOT numberLocale (de-CH),
   // which would render the spread months in German ("Juni" instead of "juin").
   protected readonly locale = computed(

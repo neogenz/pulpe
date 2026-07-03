@@ -2,10 +2,12 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  inject,
   input,
   output,
 } from '@angular/core';
 import { TranslocoPipe } from '@jsverse/transloco';
+import { UserSettingsStore } from '@core/user-settings';
 import { MatBadgeModule } from '@angular/material/badge';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatIconModule } from '@angular/material/icon';
@@ -203,19 +205,21 @@ import { BudgetActionMenu } from '../budget-action-menu';
           {{ item().data.recurrence | recurrenceLabel }}
         </mat-chip>
 
-        <mat-slide-toggle
-          [checked]="!!item().data.checkedAt"
-          (change)="toggleCheck.emit(item().data.id)"
-          (click)="$event.stopPropagation()"
-          [attr.data-testid]="'toggle-check-' + item().data.id"
-          [attr.aria-label]="
-            item().data.checkedAt
-              ? ('budgetLine.uncheckLabel'
-                | transloco: { name: item().data.name })
-              : ('budgetLine.checkLabel'
-                | transloco: { name: item().data.name })
-          "
-        />
+        @if (isCheckingEnabled()) {
+          <mat-slide-toggle
+            [checked]="!!item().data.checkedAt"
+            (change)="toggleCheck.emit(item().data.id)"
+            (click)="$event.stopPropagation()"
+            [attr.data-testid]="'toggle-check-' + item().data.id"
+            [attr.aria-label]="
+              item().data.checkedAt
+                ? ('budgetLine.uncheckLabel'
+                  | transloco: { name: item().data.name })
+                : ('budgetLine.checkLabel'
+                  | transloco: { name: item().data.name })
+            "
+          />
+        }
       </div>
     </div>
   `,
@@ -227,6 +231,9 @@ import { BudgetActionMenu } from '../budget-action-menu';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class BudgetGridCard {
+  protected readonly isCheckingEnabled =
+    inject(UserSettingsStore).isCheckingEnabled;
+
   readonly item = input.required<BudgetLineTableItem>();
   readonly currency = input<SupportedCurrency>('CHF');
   readonly isSelected = input<boolean>(false);

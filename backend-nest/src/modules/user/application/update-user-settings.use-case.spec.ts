@@ -35,6 +35,7 @@ describe('UpdateUserSettingsUseCase', () => {
       payDayOfMonth: 28,
       currency: 'EUR' as const,
       showCurrencySelector: false,
+      checkingEnabled: true,
     };
     mockRepo.updateSettings = mock(async () => settings);
 

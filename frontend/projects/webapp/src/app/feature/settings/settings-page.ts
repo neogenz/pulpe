@@ -168,6 +168,23 @@ import { VerifyRecoveryKeyDialog } from './components/verify-recovery-key-dialog
               }
             }
 
+            <!-- Checking (pointage) Toggle -->
+            <div class="flex items-center justify-between gap-4 py-2">
+              <div class="space-y-0.5">
+                <p class="text-body-medium">
+                  {{ 'settings.checkingLabel' | transloco }}
+                </p>
+                <p class="text-body-small text-on-surface-variant">
+                  {{ 'settings.checkingDescription' | transloco }}
+                </p>
+              </div>
+              <mat-slide-toggle
+                [checked]="selectedCheckingEnabled()"
+                (change)="onCheckingEnabledChange($event.checked)"
+                data-testid="checking-enabled-toggle"
+              />
+            </div>
+
             <mat-form-field
               appearance="outline"
               subscriptSizing="dynamic"
@@ -419,6 +436,11 @@ export default class SettingsPage {
     this.#userSettingsStore.showCurrencySelector(),
   );
 
+  // Checking (pointage) toggle
+  readonly selectedCheckingEnabled = linkedSignal(() =>
+    this.#userSettingsStore.isCheckingEnabled(),
+  );
+
   readonly initialPayDay = computed(() =>
     this.#userSettingsStore.payDayOfMonth(),
   );
@@ -426,12 +448,17 @@ export default class SettingsPage {
   readonly initialShowCurrencySelector = computed(() =>
     this.#userSettingsStore.showCurrencySelector(),
   );
+  readonly initialCheckingEnabled = computed(() =>
+    this.#userSettingsStore.isCheckingEnabled(),
+  );
 
   readonly hasChanges = computed(() => {
     return (
       this.initialPayDay() !== this.selectedPayDay() ||
       this.initialCurrency() !== this.selectedCurrency() ||
-      this.initialShowCurrencySelector() !== this.selectedShowCurrencySelector()
+      this.initialShowCurrencySelector() !==
+        this.selectedShowCurrencySelector() ||
+      this.initialCheckingEnabled() !== this.selectedCheckingEnabled()
     );
   });
 
@@ -445,6 +472,10 @@ export default class SettingsPage {
 
   onShowCurrencySelectorChange(value: boolean): void {
     this.selectedShowCurrencySelector.set(value);
+  }
+
+  onCheckingEnabledChange(value: boolean): void {
+    this.selectedCheckingEnabled.set(value);
   }
 
   onCurrencyChange(value: SupportedCurrency): void {
@@ -466,6 +497,7 @@ export default class SettingsPage {
         payDayOfMonth: this.selectedPayDay(),
         currency: newCurrency,
         showCurrencySelector: newSelector,
+        checkingEnabled: this.selectedCheckingEnabled(),
       });
 
       this.#trackCurrencyAnalytics({
@@ -504,6 +536,7 @@ export default class SettingsPage {
     this.selectedPayDay.set(this.initialPayDay());
     this.selectedCurrency.set(this.initialCurrency());
     this.selectedShowCurrencySelector.set(this.initialShowCurrencySelector());
+    this.selectedCheckingEnabled.set(this.initialCheckingEnabled());
   }
 
   #trackCurrencyAnalytics(args: {

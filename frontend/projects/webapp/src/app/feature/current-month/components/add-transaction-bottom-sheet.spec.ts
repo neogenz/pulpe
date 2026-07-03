@@ -20,6 +20,7 @@ interface FlagsMock {
 interface SettingsMock {
   currency: ReturnType<typeof signal<SupportedCurrency>>;
   showCurrencySelector: ReturnType<typeof signal<boolean>>;
+  isCheckingEnabled: ReturnType<typeof signal<boolean>>;
 }
 interface ConverterMock {
   convertWithMetadata: ReturnType<typeof vi.fn>;
@@ -33,10 +34,12 @@ function configureBottomSheet({
   userCurrency = 'CHF' as SupportedCurrency,
   flagEnabled = false,
   showCurrencyPref = true,
+  isCheckingEnabled = true,
 }: {
   userCurrency?: SupportedCurrency;
   flagEnabled?: boolean;
   showCurrencyPref?: boolean;
+  isCheckingEnabled?: boolean;
 } = {}) {
   const bottomSheetRef: BottomSheetRefMock = {
     dismiss: vi.fn(),
@@ -48,6 +51,7 @@ function configureBottomSheet({
   const settings: SettingsMock = {
     currency: signal<SupportedCurrency>(userCurrency),
     showCurrencySelector: signal(showCurrencyPref),
+    isCheckingEnabled: signal(isCheckingEnabled),
   };
   const converter: ConverterMock = {
     convertWithMetadata: vi.fn().mockImplementation(async (amount: number) => ({
@@ -203,6 +207,43 @@ describe('AddTransactionBottomSheet', () => {
       expect(bottomSheetRef.dismiss).toHaveBeenCalledWith(
         expect.objectContaining({ checkedAt: null }),
       );
+    });
+
+    it('should show the checked toggle when pointage is enabled (PUL-110)', () => {
+      const { fixture } = configureBottomSheet({ isCheckingEnabled: true });
+
+      fixture.detectChanges();
+
+      const toggle = fixture.nativeElement.querySelector('mat-slide-toggle');
+      expect(toggle).not.toBeNull();
+    });
+
+    it('should hide the checked toggle when pointage is disabled (PUL-110)', () => {
+      const { fixture } = configureBottomSheet({ isCheckingEnabled: false });
+
+      fixture.detectChanges();
+
+      const toggle = fixture.nativeElement.querySelector('mat-slide-toggle');
+      expect(toggle).toBeNull();
+    });
+
+    it('should keep auto-checking new transactions when pointage is disabled (PUL-110)', async () => {
+      const { component, bottomSheetRef } = configureBottomSheet({
+        isCheckingEnabled: false,
+      });
+      component['model'].update((m) => ({
+        ...m,
+        name: 'Test',
+        money: { ...m.money, amount: 10 },
+        kind: 'expense',
+      }));
+
+      await component['onSubmit']();
+
+      const callArg: TransactionFormData =
+        bottomSheetRef.dismiss.mock.calls[0][0];
+      expect(callArg.checkedAt).toBeDefined();
+      expect(typeof callArg.checkedAt).toBe('string');
     });
   });
 

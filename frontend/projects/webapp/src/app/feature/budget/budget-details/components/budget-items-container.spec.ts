@@ -136,6 +136,7 @@ function setupComponent(
   mockStore: MockStore,
   mockDialogService: MockDialogService,
   mockSnackBar: { open: ReturnType<typeof vi.fn> },
+  options: { isCheckingEnabled?: boolean } = {},
 ): ComponentFixture<BudgetItemsContainer> {
   TestBed.configureTestingModule({
     imports: [BudgetItemsContainer, NoopAnimationsModule],
@@ -151,6 +152,7 @@ function setupComponent(
         useValue: {
           currency: signal('CHF'),
           payDayOfMonth: signal(1),
+          isCheckingEnabled: signal(options.isCheckingEnabled ?? true),
         },
       },
       { provide: Logger, useValue: { warn: vi.fn(), error: vi.fn() } },
@@ -159,6 +161,55 @@ function setupComponent(
 
   return TestBed.createComponent(BudgetItemsContainer);
 }
+
+describe('BudgetItemsContainer — pointage visibility (PUL-110)', () => {
+  let mockStore: MockStore;
+
+  beforeEach(() => {
+    mockStore = createMockStore();
+    mockStore.checkedItemsCount.set(2);
+    mockStore.totalItemsCount.set(3);
+    // Render the search empty state instead of the table: BudgetTable's
+    // required inputs trigger NG0950 under TestBed host rendering (see
+    // template-list-item.spec.ts). Filter chips + summary render regardless.
+    mockStore.searchText.set('xyz');
+  });
+
+  it('shows the checked filter and checking summary when pointage is enabled', () => {
+    const fixture = setupComponent(mockStore, createMockDialogService(), {
+      open: vi.fn(),
+    });
+
+    fixture.detectChanges();
+
+    const nativeEl: HTMLElement = fixture.nativeElement;
+    expect(
+      nativeEl.querySelector('pulpe-budget-table-checked-filter'),
+    ).not.toBeNull();
+    expect(
+      nativeEl.querySelector('[data-testid="budget-items-checking-summary"]'),
+    ).not.toBeNull();
+  });
+
+  it('hides the checked filter and checking summary when pointage is disabled', () => {
+    const fixture = setupComponent(
+      mockStore,
+      createMockDialogService(),
+      { open: vi.fn() },
+      { isCheckingEnabled: false },
+    );
+
+    fixture.detectChanges();
+
+    const nativeEl: HTMLElement = fixture.nativeElement;
+    expect(
+      nativeEl.querySelector('pulpe-budget-table-checked-filter'),
+    ).toBeNull();
+    expect(
+      nativeEl.querySelector('[data-testid="budget-items-checking-summary"]'),
+    ).toBeNull();
+  });
+});
 
 describe('BudgetItemsContainer — contextual empty states', () => {
   let mockStore: MockStore;
@@ -350,6 +401,7 @@ describe('BudgetItemsContainer — PATCH transaction body contract', () => {
           useValue: {
             currency: signal('CHF'),
             payDayOfMonth: signal(1),
+            isCheckingEnabled: signal(true),
           },
         },
         { provide: Logger, useValue: createMockLogger() },

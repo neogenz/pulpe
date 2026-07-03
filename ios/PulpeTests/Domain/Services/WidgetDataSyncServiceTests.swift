@@ -10,7 +10,8 @@ struct WidgetDataSyncServiceTests {
             stubbedGetSettings: UserSettings(
                 payDayOfMonth: 15,
                 currency: .eur,
-                showCurrencySelector: false
+                showCurrencySelector: false,
+                checkingEnabled: true
             )
         )
         let sut = WidgetDataSyncService(userSettingsService: mockService)

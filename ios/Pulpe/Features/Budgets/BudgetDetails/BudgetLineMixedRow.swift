@@ -25,6 +25,10 @@ struct BudgetLineMixedRow: View {
     /// the user-settings environment so the row does not observe the whole
     /// store and re-render on unrelated changes (broad observation fan-out).
     let currency: SupportedCurrency
+    /// PUL-110 — hides the leading PointCircle when pointage is disabled.
+    /// Primitive `var` (not an environment read) for the same fan-out reason
+    /// as `currency` above.
+    var showsCheckToggle = true
     let onTap: () -> Void
     let onTogglePointed: () -> Void
 
@@ -124,12 +128,14 @@ struct BudgetLineMixedRow: View {
     var body: some View {
         Button(action: handleTap) {
             HStack(spacing: DesignTokens.Spacing.xxs) {
-                PointCircle(
-                    isPointed: isPointed,
-                    color: dotColor,
-                    isSyncing: isSyncing,
-                    onToggle: handleTogglePointed
-                )
+                if showsCheckToggle {
+                    PointCircle(
+                        isPointed: isPointed,
+                        color: dotColor,
+                        isSyncing: isSyncing,
+                        onToggle: handleTogglePointed
+                    )
+                }
 
                 centerColumn
 

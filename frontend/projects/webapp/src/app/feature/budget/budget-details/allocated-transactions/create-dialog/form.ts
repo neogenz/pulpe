@@ -121,15 +121,17 @@ interface CreateAllocatedTransactionModel {
         }
       </mat-form-field>
 
-      <div class="flex items-center justify-between py-2 px-1">
-        <span class="text-body-medium text-on-surface">{{
-          'transactionForm.checkedToggle' | transloco
-        }}</span>
-        <mat-slide-toggle
-          [formField]="transactionForm.isChecked"
-          [attr.aria-label]="'transactionForm.checkedToggle' | transloco"
-        />
-      </div>
+      @if (isCheckingEnabled()) {
+        <div class="flex items-center justify-between py-2 px-1">
+          <span class="text-body-medium text-on-surface">{{
+            'transactionForm.checkedToggle' | transloco
+          }}</span>
+          <mat-slide-toggle
+            [formField]="transactionForm.isChecked"
+            [attr.aria-label]="'transactionForm.checkedToggle' | transloco"
+          />
+        </div>
+      }
     </form>
 
     @if (conversionError()) {
@@ -143,6 +145,7 @@ interface CreateAllocatedTransactionModel {
 })
 export class CreateAllocatedTransactionForm {
   readonly #settings = inject(UserSettingsStore);
+  protected readonly isCheckingEnabled = this.#settings.isCheckingEnabled;
   readonly #converter = inject(CurrencyConverterService);
   readonly #logger = inject(Logger);
   readonly #staleRateNotifier = inject(StaleRateNotifier);

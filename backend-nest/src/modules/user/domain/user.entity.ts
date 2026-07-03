@@ -19,6 +19,7 @@ export interface UserSettings {
   payDayOfMonth: number | null;
   currency: SupportedCurrency;
   showCurrencySelector: boolean;
+  checkingEnabled: boolean;
 }
 
 /**
@@ -38,6 +39,7 @@ export interface UpdateUserSettingsInput {
   payDayOfMonth?: number | null;
   currency?: SupportedCurrency;
   showCurrencySelector?: boolean;
+  checkingEnabled?: boolean;
 }
 
 /**
