@@ -431,10 +431,12 @@ type DetailViewState = 'loading' | 'error' | 'notFound' | 'ready';
                               | transloco
                           }}
                         </span>
-                        <ul class="flex flex-col gap-1">
+                        <ul class="flex flex-col gap-2">
+                          <!-- Same row grammar as the parent contribution:
+                               name/date stacked left, amount alone right. -->
                           @for (tx of c.transactions; track tx.id) {
                             <li
-                              class="flex items-center gap-2 text-body-medium"
+                              class="flex items-center gap-3"
                               data-testid="savings-goal-contribution-transaction"
                             >
                               <mat-icon
@@ -454,19 +456,21 @@ type DetailViewState = 'loading' | 'error' | 'notFound' | 'ready';
                                     : 'radio_button_unchecked'
                                 }}</mat-icon
                               >
-                              <span
-                                class="min-w-0 flex-1 truncate ph-no-capture"
-                              >
-                                {{ tx.name }}
-                              </span>
-                              <span
-                                class="text-body-small text-on-surface-variant"
-                              >
-                                {{
-                                  tx.transactionDate | date: shortDateFormat()
-                                }}
-                              </span>
-                              <span class="ph-no-capture">
+                              <div class="flex min-w-0 flex-1 flex-col">
+                                <span
+                                  class="text-body-medium truncate ph-no-capture"
+                                >
+                                  {{ tx.name }}
+                                </span>
+                                <span
+                                  class="text-body-small text-on-surface-variant"
+                                >
+                                  {{
+                                    tx.transactionDate | date: shortDateFormat()
+                                  }}
+                                </span>
+                              </div>
+                              <span class="text-body-medium ph-no-capture">
                                 {{
                                   tx.amount | appCurrency: currency() : '1.2-2'
                                 }}
