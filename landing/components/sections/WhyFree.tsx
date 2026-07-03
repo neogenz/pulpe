@@ -77,7 +77,7 @@ export function WhyFree() {
         <div className="space-y-8 text-text-secondary">
           {REASONS.map((reason, index) => (
             <FadeIn key={reason.title} variant="blur" delay={0.3 + index * 0.1}>
-              <div className="border-l-2 border-primary/20 pl-6">
+              <div>
                 <h3 className="font-semibold text-text mb-2">{reason.title}</h3>
                 <p className="leading-relaxed">{reason.text}</p>
               </div>

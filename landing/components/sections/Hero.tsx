@@ -97,7 +97,7 @@ export function Hero() {
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
           {/* Left: text content */}
           <div className="text-center lg:text-left">
-            <p className="text-xs font-medium text-primary mb-4 tracking-[0.14em] uppercase">
+            <p className="text-[13px] font-semibold text-primary mb-4 tracking-[0.08em] uppercase">
               Ton budget annuel en 3 minutes
             </p>
             <h1 className="leading-[1.05] mb-4 balance">

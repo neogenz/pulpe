@@ -18,7 +18,7 @@ type ButtonAsAnchor = ButtonBaseProps & Omit<AnchorHTMLAttributes<HTMLAnchorElem
 type ButtonProps = ButtonAsButton | ButtonAsAnchor
 
 const BASE_STYLES =
-  'inline-flex items-center justify-center font-semibold transition-all duration-200 rounded-[var(--radius-button)] cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 disabled:pointer-events-none [transition-timing-function:var(--ease-spring)]'
+  'inline-flex items-center justify-center font-semibold transition-all duration-200 rounded-full cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 disabled:pointer-events-none [transition-timing-function:var(--ease-spring)]'
 
 const SIZE_STYLES = {
   sm: 'min-h-[44px] px-4 text-sm',
@@ -33,7 +33,7 @@ const VARIANT_STYLES: Record<ButtonVariant, string> = {
   ghost:
     'bg-transparent text-primary hover:bg-primary/5 underline-offset-4 hover:underline',
   inverse:
-    'bg-white text-primary shadow-[0_4px_20px_rgba(0,0,0,0.15)] active:scale-[0.98] md:hover:bg-white/90 md:hover:scale-[1.02] md:hover:shadow-[0_0_30px_rgba(255,255,255,0.3)]',
+    'bg-white text-primary shadow-[0_4px_20px_rgba(0,60,20,0.18)] active:scale-[0.98] md:hover:bg-white/90 md:hover:scale-[1.02] md:hover:shadow-[0_0_30px_rgba(255,255,255,0.3)]',
 }
 
 export const Button = memo(function Button({

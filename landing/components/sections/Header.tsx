@@ -26,7 +26,7 @@ const GLASS_SHINE_STYLE: CSSProperties = {
   boxShadow: `
     inset 0 1px 1px 0 rgba(255, 255, 255, 0.6),
     inset 0 -1px 1px 0 rgba(255, 255, 255, 0.3),
-    0 4px 24px rgba(0, 0, 0, 0.08)
+    0 4px 24px rgba(0, 60, 20, 0.10)
   `,
 }
 
@@ -117,7 +117,7 @@ export function Header() {
           </div>
 
           <div className="relative z-10 flex items-center gap-2">
-            <Button href={angularUrl('/signup', 'header_commencer')} size="sm" className="rounded-full shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-shadow" onClick={() => trackCTAClick('commencer', 'header', '/signup')}>
+            <Button href={angularUrl('/signup', 'header_commencer')} size="sm" className="shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-shadow" onClick={() => trackCTAClick('commencer', 'header', '/signup')}>
               Commencer
             </Button>
 

@@ -46,7 +46,7 @@ export function PainPoints() {
               className="absolute -top-8 -right-8 w-48 h-48 rounded-full bg-primary/5 blur-2xl"
             />
             <div className="relative">
-              <div className="inline-flex items-center gap-2 text-[11px] font-semibold tracking-[0.16em] uppercase text-primary/80 mb-4">
+              <div className="inline-flex items-center gap-2 text-[11px] font-semibold tracking-[0.16em] uppercase text-primary mb-4">
                 <span className="w-6 h-px bg-primary/40" aria-hidden="true" />
                 {LEAD.month}
               </div>

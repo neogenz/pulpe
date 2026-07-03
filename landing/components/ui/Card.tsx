@@ -7,12 +7,18 @@ interface CardProps extends HTMLAttributes<HTMLDivElement> {
   variant?: 'default' | 'elevated' | 'organic'
 }
 
-const BASE_STYLES = 'bg-surface rounded-[var(--radius-card)] p-6'
+const BASE_STYLES = 'bg-surface p-6'
+
+/* Hover lift is the landing's signature micro-interaction (Mild Bounce Rule):
+   feature cards rise slightly on the spring easing. Radius is set per variant so
+   the join-only cn() never leaves two conflicting `rounded-*` on one element. */
+const HOVER_LIFT =
+  'transition-all duration-300 [transition-timing-function:var(--ease-spring)] hover:-translate-y-0.5 hover:shadow-[var(--shadow-card-hover)]'
 
 const VARIANT_STYLES = {
-  default: 'border border-text/5',
-  elevated: 'shadow-[var(--shadow-card)]',
-  organic: 'shadow-[var(--shadow-organic)] rounded-[20px] border border-primary/15 hover:shadow-[var(--shadow-card-hover)] transition-shadow duration-300',
+  default: 'rounded-[var(--radius-card)] border border-text/5',
+  elevated: `rounded-[var(--radius-card)] shadow-[var(--shadow-card)] ${HOVER_LIFT}`,
+  organic: `rounded-[var(--radius-large)] shadow-[var(--shadow-organic)] border border-primary/15 ${HOVER_LIFT}`,
 } as const
 
 export const Card = memo(function Card({

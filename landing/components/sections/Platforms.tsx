@@ -40,14 +40,15 @@ export function Platforms() {
           with Web + Android stacked on the right. Breaks the 3-equal-towers pattern. */}
       <div className="grid lg:grid-cols-5 gap-6 lg:gap-8">
         {/* iOS App — hero card, spans 3/5 columns.
-            ShineBorder radius (22) = Card radius (20) + 2px border-width, so the
-            animated stroke hugs the card edge exactly instead of leaving a visible
-            inner-card silhouette. Card stretched via w-full h-full. */}
+            ShineBorder radius (26) = Card radius (24, --radius-large) + 2px
+            border-width, so the animated stroke hugs the card edge exactly
+            instead of leaving a visible inner-card silhouette. Card stretched
+            via w-full h-full. */}
         <FadeIn variant="blur" delay={0.1} className="lg:col-span-3">
-          <ShineBorder borderRadius={22} duration={10} className="h-full w-full">
+          <ShineBorder borderRadius={26} duration={10} className="h-full w-full">
             <Card
               variant="organic"
-              className="w-full h-full flex flex-col p-8 lg:p-12 relative overflow-hidden rounded-[20px]"
+              className="w-full h-full flex flex-col p-8 lg:p-12 relative overflow-hidden"
             >
               <div
                 aria-hidden="true"
