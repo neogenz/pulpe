@@ -2,6 +2,7 @@
 
 import {
   Button,
+  CountUp,
   FadeIn,
   FloatingCard,
   type FloatingCardVariant,
@@ -36,7 +37,7 @@ interface FloatingCardConfig {
   content: ReactNode;
 }
 
-function buildDisponibleCard(amountLabel: string): FloatingCardConfig {
+function buildDisponibleCard(amount: number, unit: string): FloatingCardConfig {
   return {
     id: "disponible",
     position: "top-4 -right-2",
@@ -48,7 +49,11 @@ function buildDisponibleCard(amountLabel: string): FloatingCardConfig {
         <Wallet className="w-5 h-5" />
         <div>
           <div className="text-xs">Disponible ce mois</div>
-          <div className="text-xl font-bold tabular-nums">{amountLabel}</div>
+          <CountUp
+            value={amount}
+            format={(n) => `${n} ${unit}`}
+            className="text-xl font-bold tabular-nums block"
+          />
         </div>
       </div>
     ),
@@ -95,7 +100,9 @@ const STATIC_FLOATING_CARDS: FloatingCardConfig[] = [
 
 export function Hero() {
   const currency = useVisitorCurrency()
-  const suffix = currency === 'CHF' ? '926 CHF' : '926 €'
+  const unit = currency === 'CHF' ? 'CHF' : '€'
+  const amount = 926
+  const suffix = `${amount} ${unit}`
 
   const typewriterStrings = useMemo(() => [
     `${suffix} disponibles ce mois.`,
@@ -104,9 +111,9 @@ export function Hero() {
   ], [suffix])
 
   const floatingCards = useMemo(() => [
-    buildDisponibleCard(suffix),
+    buildDisponibleCard(amount, unit),
     ...STATIC_FLOATING_CARDS,
-  ], [suffix])
+  ], [amount, unit])
 
   return (
     <section className="hero-mesh relative min-h-[100dvh] flex items-center pt-32 pb-16 md:pt-32 md:pb-24 bg-gradient-to-b from-background via-background to-surface-alt overflow-hidden">

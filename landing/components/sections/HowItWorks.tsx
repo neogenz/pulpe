@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect, useRef, useState } from 'react'
 import { Section, Button, FadeIn } from '@/components/ui'
 import { angularUrl } from '@/lib/config'
 import { trackCTAClick } from '@/lib/posthog'
@@ -13,6 +14,25 @@ const STEPS = [
 ]
 
 export function HowItWorks() {
+  const stepperRef = useRef<HTMLDivElement>(null)
+  const [progressed, setProgressed] = useState(false)
+
+  useEffect(() => {
+    const el = stepperRef.current
+    if (!el) return
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setProgressed(true)
+          observer.disconnect()
+        }
+      },
+      { threshold: 0.4 }
+    )
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [])
+
   return (
     <Section background="grain" id="how-it-works">
       <FadeIn variant="blur">
@@ -29,11 +49,18 @@ export function HowItWorks() {
 
       {/* Desktop: horizontal progression with connector line between steps.
           Replaces 4 identical circles floating in space. */}
-      <div className="hidden md:block mb-14 relative">
-        {/* Connector line — sits behind the circles, stops before the final check */}
+      <div ref={stepperRef} className="hidden md:block mb-14 relative">
+        {/* Connector track — faint rail behind the circles */}
         <div
           aria-hidden="true"
-          className="absolute top-7 left-[12.5%] right-[12.5%] h-px bg-gradient-to-r from-primary/30 via-primary/20 to-primary/40"
+          className="absolute top-7 left-[12.5%] right-[12.5%] h-px bg-primary/15"
+        />
+        {/* Progress fill — sweeps left→right when the stepper enters the viewport,
+            turning the "3 minutes" claim into a small demonstration. */}
+        <div
+          aria-hidden="true"
+          className="absolute top-7 left-[12.5%] right-[12.5%] h-px origin-left bg-gradient-to-r from-primary/50 to-primary transition-transform duration-[1300ms] ease-[cubic-bezier(0.22,1,0.36,1)]"
+          style={{ transform: progressed ? 'scaleX(1)' : 'scaleX(0)' }}
         />
         <div className="grid md:grid-cols-4 gap-8 relative">
           {STEPS.map((step, index) => {

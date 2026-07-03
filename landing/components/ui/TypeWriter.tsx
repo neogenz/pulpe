@@ -4,77 +4,37 @@ import { memo, useEffect, useState } from 'react'
 
 interface TypeWriterProps {
   strings: string[]
-  typeSpeed?: number
-  backSpeed?: number
-  backDelay?: number
-  loop?: boolean
+  /** Time each phrase stays on screen before rotating, in ms. */
+  interval?: number
   className?: string
 }
 
+/**
+ * Rotates through `strings`, one at a time, with a masked fade + slide-up on
+ * entry (no typing, no blinking cursor). The incoming phrase is remounted via
+ * `key` so the entry animation replays each rotation. Reduced-motion users get
+ * a plain swap. The caller reserves height so there is no layout shift.
+ */
 export const TypeWriter = memo(function TypeWriter({
   strings,
-  typeSpeed = 80,
-  backSpeed = 40,
-  backDelay = 1500,
-  loop = true,
+  interval = 2800,
   className,
 }: TypeWriterProps) {
-  const firstString = strings[0] ?? ''
-  const [text, setText] = useState(firstString)
+  const [index, setIndex] = useState(0)
 
   useEffect(() => {
     if (strings.length < 2) return
-
-    let stringIndex = 0
-    let charIndex = strings[0].length
-    let phase: 'waiting' | 'deleting' | 'typing' = 'waiting'
-    let timeoutId: ReturnType<typeof setTimeout>
-
-    const tick = () => {
-      if (phase === 'waiting') {
-        timeoutId = setTimeout(() => {
-          phase = 'deleting'
-          tick()
-        }, backDelay)
-        return
-      }
-
-      if (phase === 'deleting') {
-        charIndex--
-        setText(strings[stringIndex].substring(0, charIndex))
-
-        if (charIndex === 0) {
-          stringIndex = (stringIndex + 1) % strings.length
-          phase = 'typing'
-        }
-
-        timeoutId = setTimeout(tick, backSpeed)
-        return
-      }
-
-      if (phase === 'typing') {
-        charIndex++
-        setText(strings[stringIndex].substring(0, charIndex))
-
-        if (charIndex === strings[stringIndex].length) {
-          if (!loop && stringIndex === strings.length - 1) return
-          phase = 'waiting'
-          timeoutId = setTimeout(tick, backDelay)
-          return
-        }
-
-        timeoutId = setTimeout(tick, typeSpeed)
-      }
-    }
-
-    timeoutId = setTimeout(tick, backDelay)
-    return () => clearTimeout(timeoutId)
-  }, [strings, typeSpeed, backSpeed, backDelay, loop])
+    const id = setInterval(() => {
+      setIndex((current) => (current + 1) % strings.length)
+    }, interval)
+    return () => clearInterval(id)
+  }, [strings, interval])
 
   return (
     <span className={className}>
-      {text}
-      <span className="animate-blink">|</span>
+      <span key={index} className="animate-rotate-in inline-block">
+        {strings[index] ?? ''}
+      </span>
     </span>
   )
 })
