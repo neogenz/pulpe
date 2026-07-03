@@ -1,6 +1,8 @@
 import { describe, it, expect, jest } from 'bun:test';
 import { Buffer } from 'node:buffer';
 import { SupabaseBudgetRepository } from './supabase-budget.repository';
+import { BusinessException } from '@common/exceptions/business.exception';
+import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 import type { BudgetLineRow } from '../../domain/budget.entity';
 import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
 import type { AuthenticatedSupabaseProvider } from '@modules/supabase/authenticated-supabase.provider';
@@ -108,6 +110,82 @@ function fetchBudgetDataProvider(
     };
   });
 }
+
+/**
+ * `.from('monthly_budget').select().eq().eq().single()` — the fetchBudgetById
+ * chain — resolving to a configurable single result.
+ */
+function fetchByIdProvider(result: {
+  data: unknown;
+  error: unknown;
+}): AuthenticatedSupabaseProvider {
+  return createMockProvider((table: string) => {
+    if (table !== 'monthly_budget') {
+      throw new Error(`unexpected table: ${table}`);
+    }
+    return {
+      select: () => ({
+        eq: () => ({
+          eq: () => ({
+            single: jest.fn().mockResolvedValue(result),
+          }),
+        }),
+      }),
+    };
+  });
+}
+
+describe('SupabaseBudgetRepository fetchBudgetById error mapping', () => {
+  // Bug repro (2026-07): a saturated local PostgREST cancels the .single()
+  // query with a statement-timeout; the old `if (error || !data)` mapped it to
+  // BUDGET_NOT_FOUND → the user got a lying 404 for a budget that exists.
+  it('maps a statement-timeout (infra failure) to BUDGET_FETCH_FAILED, not a lying 404', async () => {
+    const dbError = {
+      code: '57014',
+      message: 'canceling statement due to statement timeout',
+    };
+    const provider = fetchByIdProvider({ data: null, error: dbError });
+    const repo = new SupabaseBudgetRepository(provider, createMockEncryption());
+
+    let caught: unknown;
+    try {
+      await repo.fetchBudgetById('budget-1', 'user-1');
+    } catch (error) {
+      caught = error;
+    }
+
+    expect(caught).toBeInstanceOf(BusinessException);
+    expect((caught as BusinessException).code).toBe(
+      ERROR_DEFINITIONS.BUDGET_FETCH_FAILED.code,
+    );
+    expect((caught as BusinessException).getStatus()).toBe(500);
+    expect((caught as BusinessException).cause).toBe(dbError);
+  });
+
+  it('maps PGRST116 (zero rows for .single()) to BUDGET_NOT_FOUND', async () => {
+    const provider = fetchByIdProvider({
+      data: null,
+      error: {
+        code: 'PGRST116',
+        message: 'JSON object requested, multiple (or no) rows returned',
+      },
+    });
+    const repo = new SupabaseBudgetRepository(provider, createMockEncryption());
+
+    let caught: unknown;
+    try {
+      await repo.fetchBudgetById('budget-1', 'user-1');
+    } catch (error) {
+      caught = error;
+    }
+
+    expect(caught).toBeInstanceOf(BusinessException);
+    expect((caught as BusinessException).code).toBe(
+      ERROR_DEFINITIONS.BUDGET_NOT_FOUND.code,
+    );
+    expect((caught as BusinessException).getStatus()).toBe(404);
+  });
+});
 
 describe('SupabaseBudgetRepository toBudgetLineDecrypted', () => {
   it('maps spread_group_id (snake) to spreadGroupId (camel) when set', async () => {

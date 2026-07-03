@@ -155,17 +155,12 @@ export class SupabaseBudgetRepository implements BudgetRepositoryPort {
       .single();
 
     if (error || !data) {
-      throw new BusinessException(
-        ERROR_DEFINITIONS.BUDGET_NOT_FOUND,
-        { id },
-        {
-          operation: 'getBudget',
-          userId,
-          entityId: id,
-          entityType: 'budget',
-          supabaseError: error,
-        },
-      );
+      throw this.budgetReadError(error, id, {
+        operation: 'getBudget',
+        userId,
+        entityId: id,
+        entityType: 'budget',
+      });
     }
 
     const dek = await this.encryption.getDekFor(this.supabaseProvider.user);
@@ -181,7 +176,11 @@ export class SupabaseBudgetRepository implements BudgetRepositoryPort {
       .single();
 
     if (error || !data?.user_id) {
-      throw new BusinessException(ERROR_DEFINITIONS.BUDGET_NOT_FOUND, { id });
+      throw this.budgetReadError(error, id, {
+        operation: 'fetchBudgetUserId',
+        entityId: id,
+        entityType: 'budget',
+      });
     }
 
     return data.user_id;
@@ -196,16 +195,11 @@ export class SupabaseBudgetRepository implements BudgetRepositoryPort {
       .single();
 
     if (error || !data) {
-      throw new BusinessException(
-        ERROR_DEFINITIONS.BUDGET_NOT_FOUND,
-        { id },
-        {
-          operation: 'getBudgetWithDetails',
-          entityId: id,
-          entityType: 'budget',
-          supabaseError: error,
-        },
-      );
+      throw this.budgetReadError(error, id, {
+        operation: 'getBudgetWithDetails',
+        entityId: id,
+        entityType: 'budget',
+      });
     }
 
     const dek = await this.encryption.getDekFor(this.supabaseProvider.user);
@@ -223,17 +217,11 @@ export class SupabaseBudgetRepository implements BudgetRepositoryPort {
       .single();
 
     if (error || !data) {
-      throw new BusinessException(
-        ERROR_DEFINITIONS.BUDGET_NOT_FOUND,
-        { id },
-        {
-          operation: 'updateBudgetInDb',
-          entityId: id,
-          entityType: 'budget',
-          supabaseError: error,
-        },
-        { cause: error },
-      );
+      throw this.budgetReadError(error, id, {
+        operation: 'updateBudgetInDb',
+        entityId: id,
+        entityType: 'budget',
+      });
     }
 
     const dek = await this.encryption.getDekFor(this.supabaseProvider.user);
@@ -248,17 +236,14 @@ export class SupabaseBudgetRepository implements BudgetRepositoryPort {
       .eq('id', id);
 
     if (error) {
-      throw new BusinessException(
-        ERROR_DEFINITIONS.BUDGET_NOT_FOUND,
-        { id },
-        {
-          operation: 'deleteBudget',
-          entityId: id,
-          entityType: 'budget',
-          supabaseError: error,
-        },
-        { cause: error },
-      );
+      // Deletes never return PGRST116 (no `.single()`), so any error here is an
+      // infra failure — budgetReadError routes it to BUDGET_FETCH_FAILED, never
+      // a lying 404. Deleting an absent row is a no-op success (0 rows, no error).
+      throw this.budgetReadError(error, id, {
+        operation: 'deleteBudget',
+        entityId: id,
+        entityType: 'budget',
+      });
     }
   }
 
@@ -331,16 +316,11 @@ export class SupabaseBudgetRepository implements BudgetRepositoryPort {
       ]);
 
     if (budgetResult.error || !budgetResult.data) {
-      throw new BusinessException(
-        ERROR_DEFINITIONS.BUDGET_NOT_FOUND,
-        { id: budgetId },
-        {
-          operation: 'fetchBudget',
-          entityId: budgetId,
-          entityType: 'budget',
-        },
-        { cause: budgetResult.error },
-      );
+      throw this.budgetReadError(budgetResult.error, budgetId, {
+        operation: 'fetchBudget',
+        entityId: budgetId,
+        entityType: 'budget',
+      });
     }
 
     if (budgetLinesResult.error) {
@@ -576,6 +556,33 @@ export class SupabaseBudgetRepository implements BudgetRepositoryPort {
       .maybeSingle();
 
     return data?.id ?? null;
+  }
+
+  /**
+   * PostgREST returns code `PGRST116` when a `.single()` matched zero rows — a
+   * genuine 404. Any other error (statement timeout, PostgREST saturation,
+   * permission) is an infra failure and must surface as 500, never a lying
+   * "Budget not found". The original error rides the cause chain (not the
+   * logging context) per "log or throw, not both".
+   */
+  private budgetReadError(
+    error: { code?: string } | null | undefined,
+    id: string,
+    loggingContext: Record<string, unknown>,
+  ): BusinessException {
+    if (error && error.code !== 'PGRST116') {
+      return new BusinessException(
+        ERROR_DEFINITIONS.BUDGET_FETCH_FAILED,
+        undefined,
+        loggingContext,
+        { cause: error },
+      );
+    }
+    return new BusinessException(
+      ERROR_DEFINITIONS.BUDGET_NOT_FOUND,
+      { id },
+      loggingContext,
+    );
   }
 
   private toEntity(row: BudgetRow, dek: Buffer): Budget {
