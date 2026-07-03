@@ -51,6 +51,7 @@ import { ChangePinDialog } from './components/change-pin-dialog';
 import { DeleteAccountDialog } from './components/delete-account-dialog';
 import { RegenerateRecoveryKeyDialog } from './components/regenerate-recovery-key-dialog';
 import { VerifyRecoveryKeyDialog } from './components/verify-recovery-key-dialog';
+import { SettingsDialogService } from './settings-dialog.service';
 
 @Component({
   selector: 'pulpe-settings-page',
@@ -394,6 +395,7 @@ export default class SettingsPage {
   readonly #transloco = inject(TranslocoService);
   readonly #featureFlags = inject(FeatureFlagsService);
   readonly #analytics = inject(AnalyticsService);
+  readonly #settingsDialog = inject(SettingsDialogService);
 
   readonly isDemoMode = this.#demoMode.isDemoMode;
   protected readonly isMultiCurrencyEnabled =
@@ -455,9 +457,19 @@ export default class SettingsPage {
     if (this.isSaving()) return;
 
     const previousCurrency = this.initialCurrency();
-    const newCurrency = this.selectedCurrency();
+    let newCurrency = this.selectedCurrency();
     const previousSelector = this.initialShowCurrencySelector();
     const newSelector = this.selectedShowCurrencySelector();
+
+    if (previousCurrency !== newCurrency) {
+      const confirmed =
+        await this.#settingsDialog.confirmCurrencyChange(newCurrency);
+      if (!confirmed) {
+        this.selectedCurrency.set(previousCurrency);
+        newCurrency = previousCurrency;
+        if (!this.hasChanges()) return;
+      }
+    }
 
     try {
       this.isSaving.set(true);
