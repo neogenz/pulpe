@@ -312,6 +312,27 @@ describe('SettingsPage', () => {
       expect(fixture.componentInstance.selectedCurrency()).toBe('CHF');
     });
 
+    it('should persist unrelated changes with the previous currency when confirmation is cancelled', async () => {
+      mockDialogRef.afterClosed = () => of(false);
+      fixture.componentInstance.selectedPayDay.set(28);
+      fixture.componentInstance.onShowCurrencySelectorChange(true);
+      fixture.componentInstance.onCurrencyChange('EUR');
+
+      await saveSettings();
+
+      expect(mockUserSettingsStore.updateSettings).toHaveBeenCalledWith({
+        payDayOfMonth: 28,
+        currency: 'CHF',
+        showCurrencySelector: true,
+      });
+      expect(mockAnalytics.captureEvent).toHaveBeenCalledWith(
+        'currency_selector_toggled',
+        { enabled: true },
+      );
+      expect(mockAnalytics.captureEvent).toHaveBeenCalledTimes(1);
+      expect(fixture.componentInstance.selectedCurrency()).toBe('CHF');
+    });
+
     it('should not ask for confirmation when currency is unchanged', async () => {
       fixture.componentInstance.selectedPayDay.set(15);
 

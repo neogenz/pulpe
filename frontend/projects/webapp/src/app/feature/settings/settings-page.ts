@@ -459,7 +459,7 @@ export default class SettingsPage {
     if (this.isSaving()) return;
 
     const previousCurrency = this.initialCurrency();
-    const newCurrency = this.selectedCurrency();
+    let newCurrency = this.selectedCurrency();
     const previousSelector = this.initialShowCurrencySelector();
     const newSelector = this.selectedShowCurrencySelector();
 
@@ -467,7 +467,8 @@ export default class SettingsPage {
       const confirmed = await this.#confirmCurrencyChange(newCurrency);
       if (!confirmed) {
         this.selectedCurrency.set(previousCurrency);
-        return;
+        newCurrency = previousCurrency;
+        if (!this.hasChanges()) return;
       }
     }
 
