@@ -191,6 +191,9 @@ describe('SavingsGoalStore', () => {
     expect(store.goals().some((g) => g.id === 'goal-2')).toBe(false);
     await promise;
     expect(mockApi.delete$).toHaveBeenCalledWith('goal-2');
+    // Progress/contributions of the deleted goal must not survive in cache
+    // (back-button on the detail URL would replay them) — whole-prefix nuke.
+    expect(mockCache.invalidate).toHaveBeenCalledWith(['savings-goals']);
   });
 
   it('removeGoal rolls back when the API fails', async () => {

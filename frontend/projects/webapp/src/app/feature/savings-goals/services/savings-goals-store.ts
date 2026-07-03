@@ -115,7 +115,6 @@ export class SavingsGoalStore {
     cache: this.#api.cache,
     invalidateKeys: ({ id }) => [
       ['savings-goals', 'list'],
-      ['savings-goals', 'details', id],
       // A status change (COMPLETED / ACTIVE) shifts the derived progression, so
       // refetch it — progress lives under a distinct key (prefix-based invalidation).
       ['savings-goals', 'progress', id],
@@ -138,10 +137,9 @@ export class SavingsGoalStore {
 
   readonly #deleteMutation = cachedMutation<string, void, SavingsGoal[]>({
     cache: this.#api.cache,
-    invalidateKeys: (id) => [
-      ['savings-goals', 'list'],
-      ['savings-goals', 'details', id],
-    ],
+    // The goal is gone — list, progress AND contributions are all stale, so
+    // nuke the whole domain prefix (same shape as create).
+    invalidateKeys: () => [['savings-goals']],
     mutationFn: (id) => this.#api.delete$(id).pipe(map(() => void 0 as void)),
     onMutate: (id) => {
       const previous = this.savingsGoals.value() ?? [];
