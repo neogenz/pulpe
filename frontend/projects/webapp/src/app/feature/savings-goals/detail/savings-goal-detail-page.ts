@@ -440,7 +440,7 @@ type DetailViewState = 'loading' | 'error' | 'notFound' | 'ready';
                               data-testid="savings-goal-contribution-transaction"
                             >
                               <mat-icon
-                                class="text-base! size-4!"
+                                class="text-base! w-4!"
                                 [class.text-financial-savings]="!!tx.checkedAt"
                                 [class.icon-filled]="!!tx.checkedAt"
                                 [class.text-on-surface-variant]="!tx.checkedAt"
