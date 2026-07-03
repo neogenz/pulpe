@@ -35,10 +35,6 @@ import { ClientKeyService, EncryptionApi } from '@core/encryption';
 import { DemoModeService } from '@core/demo/demo-mode.service';
 import { ROUTES } from '@core/routing/routes-constants';
 import {
-  ConfirmationDialog,
-  type ConfirmationDialogData,
-} from '@ui/dialogs/confirmation-dialog';
-import {
   RecoveryKeyDialog,
   type RecoveryKeyDialogData,
 } from '@ui/dialogs/recovery-key-dialog';
@@ -55,6 +51,7 @@ import { ChangePinDialog } from './components/change-pin-dialog';
 import { DeleteAccountDialog } from './components/delete-account-dialog';
 import { RegenerateRecoveryKeyDialog } from './components/regenerate-recovery-key-dialog';
 import { VerifyRecoveryKeyDialog } from './components/verify-recovery-key-dialog';
+import { SettingsDialogService } from './settings-dialog.service';
 
 @Component({
   selector: 'pulpe-settings-page',
@@ -398,6 +395,7 @@ export default class SettingsPage {
   readonly #transloco = inject(TranslocoService);
   readonly #featureFlags = inject(FeatureFlagsService);
   readonly #analytics = inject(AnalyticsService);
+  readonly #settingsDialog = inject(SettingsDialogService);
 
   readonly isDemoMode = this.#demoMode.isDemoMode;
   protected readonly isMultiCurrencyEnabled =
@@ -464,7 +462,8 @@ export default class SettingsPage {
     const newSelector = this.selectedShowCurrencySelector();
 
     if (previousCurrency !== newCurrency) {
-      const confirmed = await this.#confirmCurrencyChange(newCurrency);
+      const confirmed =
+        await this.#settingsDialog.confirmCurrencyChange(newCurrency);
       if (!confirmed) {
         this.selectedCurrency.set(previousCurrency);
         newCurrency = previousCurrency;
@@ -511,28 +510,6 @@ export default class SettingsPage {
     } finally {
       this.isSaving.set(false);
     }
-  }
-
-  /**
-   * PUL-205: a currency flip changes only the display unit — amounts are never
-   * converted. The confirmation makes that explicit before persisting.
-   */
-  async #confirmCurrencyChange(
-    newCurrency: SupportedCurrency,
-  ): Promise<boolean> {
-    const data: ConfirmationDialogData = {
-      title: this.#transloco.translate('settings.currencyChangeTitle'),
-      message: this.#transloco.translate('settings.currencyChangeMessage', {
-        currency: newCurrency,
-      }),
-      confirmText: this.#transloco.translate('settings.currencyChangeConfirm'),
-      cancelText: this.#transloco.translate('common.cancel'),
-    };
-    const dialogRef = this.#dialog.open(ConfirmationDialog, {
-      data,
-      width: '400px',
-    });
-    return (await firstValueFrom(dialogRef.afterClosed())) === true;
   }
 
   resetChanges(): void {

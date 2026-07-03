@@ -22,6 +22,7 @@ import { AnalyticsService } from '@core/analytics';
 
 import { ConfirmationDialog } from '@ui/dialogs/confirmation-dialog';
 import SettingsPage from './settings-page';
+import { SettingsDialogService } from './settings-dialog.service';
 
 describe('SettingsPage', () => {
   let fixture: ComponentFixture<SettingsPage>;
@@ -99,7 +100,9 @@ describe('SettingsPage', () => {
         provideAnimationsAsync(),
         provideRouter([]),
         ...provideTranslocoForTest(),
+        SettingsDialogService,
         { provide: UserSettingsStore, useValue: mockUserSettingsStore },
+        { provide: MatDialog, useValue: mockDialog },
         { provide: MatSnackBar, useValue: mockSnackBar },
         { provide: Logger, useValue: mockLogger },
         {
