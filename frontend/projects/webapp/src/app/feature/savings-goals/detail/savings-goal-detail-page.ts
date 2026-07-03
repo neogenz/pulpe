@@ -2,10 +2,10 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
-  effect,
   inject,
   input,
 } from '@angular/core';
+import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { DatePipe } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { MatChipsModule } from '@angular/material/chips';
@@ -555,9 +555,11 @@ export default class SavingsGoalDetailPage {
   });
 
   constructor() {
-    effect(() => {
-      this.store.setSelectedGoalId(this.id());
-    });
+    // Route id → store selection is an imperative store sync, not derived
+    // state — a signal-setting effect() is banned (angular-signals.md).
+    toObservable(this.id)
+      .pipe(takeUntilDestroyed())
+      .subscribe((id) => this.store.setSelectedGoalId(id));
   }
 
   protected statusLabelKey(status: SavingsGoalStatus): string {
