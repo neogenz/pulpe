@@ -338,6 +338,42 @@ body {
   animation: rotate-in 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
+/* Hero dashboard: the balance-projection curve draws itself in, then the area fades under it */
+.hero-spark-line {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: spark-draw 1.6s 0.35s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.hero-spark-area {
+  opacity: 0;
+  animation: spark-fade 0.9s 1.2s ease-out forwards;
+}
+
+@keyframes spark-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes spark-fade {
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-spark-line {
+    stroke-dashoffset: 0;
+    animation: none;
+  }
+
+  .hero-spark-area {
+    opacity: 1;
+    animation: none;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-fade-in,
   .animate-fade-in-opacity,

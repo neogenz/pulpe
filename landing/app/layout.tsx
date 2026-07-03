@@ -1,6 +1,5 @@
 import type { Metadata } from 'next'
 import { Poppins } from 'next/font/google'
-import { PreloadLCPImage } from '@/components/ui'
 import { PostHogProvider } from '../components/PostHogProvider'
 import './globals.css'
 
@@ -111,10 +110,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body className="font-sans antialiased">
-        <PreloadLCPImage
-          mobileSrc="/screenshots/mobile/dashboard.webp"
-          desktopSrc="/screenshots/webapp/dashboard.webp"
-        />
         <PostHogProvider>{children}</PostHogProvider>
         <div id="lightbox-root" />
       </body>
