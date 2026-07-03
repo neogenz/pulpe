@@ -23,7 +23,7 @@ const TRUST_BADGES = [
 const REASONS = [
   {
     title: "Un projet né d'un vrai besoin",
-    text: "J'ai créé Pulpe parce que j'en avais marre de galérer à suivre mon budget sur mobile. Ça m'aide beaucoup au quotidien, quelques amis aussi — je me dis que ça peut aider d'autres personnes.",
+    text: "J'ai créé Pulpe parce que j'en avais marre de galérer à suivre mon budget sur mobile. Je m'en sers tous les jours, des proches aussi. Je l'ai construit pour moi d'abord — s'il m'aide autant, il peut t'aider.",
   },
   {
     title: "Gratuit et open source",

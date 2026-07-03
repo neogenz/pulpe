@@ -1,4 +1,4 @@
-import { CalendarX, TableProperties, Smartphone } from 'lucide-react'
+import { CalendarX, TableProperties, Wallet } from 'lucide-react'
 import { Section, FadeIn, Card } from '@/components/ui'
 
 const LEAD = {
@@ -15,9 +15,9 @@ const SUPPORTING = [
     text: "Nouvelle année ? Tout refaire. Frais fixe qui change ? 4 mois à modifier à la main.",
   },
   {
-    icon: Smartphone,
-    title: 'Tu dépenses. Tu notes pas.',
-    text: "Ouvrir le tableur sur le tel, zoomer, trouver la cellule... Tu laisses tomber.",
+    icon: Wallet,
+    title: 'Le 25, tu retiens ton souffle',
+    text: "Tu regardes ton compte en croisant les doigts, sans savoir si ça passe jusqu'à la paie.",
   },
 ]
 

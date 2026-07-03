@@ -118,7 +118,7 @@ export function Hero() {
               <Button href={angularUrl('/signup', 'hero_commencer')} glow onClick={() => trackCTAClick('commencer', 'hero', '/signup')}>
                 Commencer
               </Button>
-              <Button href="#features" variant="ghost" className="text-text hover:text-text">
+              <Button href="#how-it-works" variant="ghost" className="text-text hover:text-text">
                 Voir comment ça marche
               </Button>
             </div>

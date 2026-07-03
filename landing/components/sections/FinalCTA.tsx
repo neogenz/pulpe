@@ -28,8 +28,8 @@ export function FinalCTA() {
               &laquo;&nbsp;Je sais pas comment je faisais avant Pulpe, c&apos;est
               tellement plus simple. Je suis tellement moins stressée par mes
               sous.&nbsp;&raquo;
-              <footer className="mt-3 text-sm text-white/60 not-italic font-sans tracking-[0.08em] uppercase">
-                — Julie
+              <footer className="mt-3 text-sm text-white/80 not-italic font-sans tracking-[0.08em] uppercase">
+                — Julie, 29 ans · Lausanne
               </footer>
             </blockquote>
             <h2 className="text-3xl md:text-4xl lg:text-[3.25rem] font-bold text-white mb-5 leading-[1.05] tracking-[-0.02em] balance">

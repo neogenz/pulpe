@@ -26,6 +26,10 @@ const WhyFree = dynamic(
   () => import('@/components/sections').then((mod) => mod.WhyFree),
   { loading: () => <div className="min-h-[200px]" /> }
 )
+const FAQ = dynamic(
+  () => import('@/components/sections').then((mod) => mod.FAQ),
+  { loading: () => <div className="min-h-[200px]" /> }
+)
 const FinalCTA = dynamic(
   () => import('@/components/sections').then((mod) => mod.FinalCTA),
   { loading: () => <div className="min-h-[200px]" /> }
@@ -53,9 +57,10 @@ export default function LandingPage() {
         <Solution />
         <Features />
         <HowItWorks />
-        <FinalCTA />
         <Platforms />
         <WhyFree />
+        <FAQ />
+        <FinalCTA />
       </main>
 
       <Footer />
