@@ -40,7 +40,7 @@ export function FinalCTA() {
               Gratuit, données privées, montants protégés. Essaie — si ça te
               plaît pas, tu retournes à Excel.
             </p>
-            <Button href={angularUrl('/signup', 'final_cta_commencer')} variant="inverse" onClick={() => trackCTAClick('commencer_gratuitement', 'final_cta', '/signup')}>
+            <Button href={angularUrl('/signup', 'final_cta_commencer')} variant="inverse" className="focus-on-dark" onClick={() => trackCTAClick('commencer_gratuitement', 'final_cta', '/signup')}>
               Commencer gratuitement
             </Button>
           </FadeIn>

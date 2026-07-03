@@ -92,6 +92,16 @@ body {
   outline: none;
 }
 
+/* Focus indicator for interactive elements sitting on dark / green surfaces
+   (e.g. the inverse CTA on the FinalCTA gradient), where the default green
+   outline is invisible. White ring, offset so it reads against both the
+   white button and the green surround. Meets WCAG 1.4.11 (>=3:1). */
+.focus-on-dark:focus-visible {
+  outline: 2px solid #ffffff;
+  outline-offset: 3px;
+  border-radius: var(--radius-button);
+}
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;

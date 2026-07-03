@@ -117,14 +117,14 @@ export function Header() {
           </div>
 
           <div className="relative z-10 flex items-center gap-2">
-            <Button href={angularUrl('/welcome', 'header_essayer')} size="sm" className="rounded-full shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-shadow" onClick={() => trackCTAClick('essayer', 'header', '/welcome')}>
-              Essayer
+            <Button href={angularUrl('/signup', 'header_commencer')} size="sm" className="rounded-full shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-shadow" onClick={() => trackCTAClick('commencer', 'header', '/signup')}>
+              Commencer
             </Button>
 
             <button
               ref={menuButtonRef}
               type="button"
-              className="md:hidden p-2.5 text-text-secondary hover:text-text hover:bg-white/30 rounded-full transition-all duration-200 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+              className="md:hidden p-2.5 text-text-secondary hover:text-text hover:bg-white/30 rounded-full transition-all duration-200 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               aria-label={mobileMenuOpen ? 'Fermer le menu' : 'Ouvrir le menu'}
               aria-expanded={mobileMenuOpen}

@@ -104,7 +104,7 @@ export function HowItWorks() {
 
       <FadeIn variant="blur" delay={0.4}>
         <div className="text-center">
-          <Button href={angularUrl('/signup', 'how_it_works_creer')} onClick={() => trackCTAClick('creer_mon_budget', 'how_it_works', '/signup')}>Créer mon budget</Button>
+          <Button href={angularUrl('/signup', 'how_it_works_commencer')} onClick={() => trackCTAClick('commencer', 'how_it_works', '/signup')}>Commencer</Button>
         </div>
       </FadeIn>
     </Section>

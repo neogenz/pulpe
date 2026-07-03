@@ -95,7 +95,7 @@ const STATIC_FLOATING_CARDS: FloatingCardConfig[] = [
 
 export function Hero() {
   const currency = useVisitorCurrency()
-  const suffix = currency === 'CHF' ? '847 CHF' : '847 €'
+  const suffix = currency === 'CHF' ? '926 CHF' : '926 €'
 
   const typewriterStrings = useMemo(() => [
     `${suffix} disponibles ce mois.`,
