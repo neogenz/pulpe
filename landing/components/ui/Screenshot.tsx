@@ -1,6 +1,6 @@
 'use client'
 
-import { memo, useCallback, useSyncExternalStore } from 'react'
+import { memo, useCallback, useSyncExternalStore, type CSSProperties } from 'react'
 import { Maximize2 } from 'lucide-react'
 import { useImageLightbox } from '@/contexts/useImageLightbox'
 
@@ -11,8 +11,13 @@ interface ScreenshotProps {
   className?: string
   isLCP?: boolean
   fetchPriority?: 'high' | 'low' | 'auto'
-  width?: number
-  height?: number
+  /** Intrinsic size of the mobile asset (portrait). Reserves the box < 768px. */
+  mobileWidth?: number
+  mobileHeight?: number
+  /** Intrinsic size of the desktop asset (landscape). Reserves the box >= 768px.
+      Defaults to the mobile size when omitted (same aspect at every breakpoint). */
+  desktopWidth?: number
+  desktopHeight?: number
 }
 
 const DESKTOP_MEDIA_QUERY = '(min-width: 768px)'
@@ -50,8 +55,10 @@ export const Screenshot = memo(function Screenshot({
   className = '',
   isLCP = false,
   fetchPriority,
-  width = TABLET_IMAGE_WIDTH,
-  height = 2456,
+  mobileWidth = 750,
+  mobileHeight = 1190,
+  desktopWidth,
+  desktopHeight,
 }: ScreenshotProps) {
   const { openLightbox } = useImageLightbox()
   const isDesktop = useSyncExternalStore(
@@ -66,6 +73,13 @@ export const Screenshot = memo(function Screenshot({
     openLightbox(imageSrc, label)
   }, [src, desktopSrc, label, isDesktop, openLightbox])
 
+  // Reserve the correct box at each breakpoint so the landscape desktop asset
+  // and the portrait mobile asset never cause a decode-time layout shift (CLS).
+  const frameStyle = {
+    '--m-ar': `${mobileWidth} / ${mobileHeight}`,
+    '--d-ar': `${desktopWidth ?? mobileWidth} / ${desktopHeight ?? mobileHeight}`,
+  } as CSSProperties
+
   if (src) {
     const mobileWebP = toMobileWebP(src)
     const tabletWebP = toWebP(src)
@@ -75,7 +89,8 @@ export const Screenshot = memo(function Screenshot({
       <button
         type="button"
         onClick={handleClick}
-        className="group relative block w-full cursor-pointer transition-transform duration-200 hover:scale-[1.02] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-xl md:rounded-[var(--radius-large)]"
+        style={frameStyle}
+        className="screenshot-frame group relative block w-full cursor-pointer overflow-hidden transition-transform duration-200 hover:scale-[1.02] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-xl md:rounded-[var(--radius-large)] shadow-[var(--shadow-screenshot)]"
         aria-label={`Agrandir : ${label}`}
       >
         <picture>
@@ -97,14 +112,14 @@ export const Screenshot = memo(function Screenshot({
           <img
             src={mobileWebP}
             alt={label}
-            width={MOBILE_IMAGE_WIDTH}
-            height={Math.round((height / width) * MOBILE_IMAGE_WIDTH)}
+            width={mobileWidth}
+            height={mobileHeight}
             loading={isLCP ? 'eager' : 'lazy'}
             fetchPriority={fetchPriority}
-            className={`rounded-xl md:rounded-[var(--radius-large)] shadow-[var(--shadow-screenshot)] w-full ${className}`}
+            className={`h-full w-full object-cover ${className}`}
           />
         </picture>
-        <span className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 rounded-xl md:rounded-[var(--radius-large)] pointer-events-none">
+        <span className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
           <span className="bg-black/50 backdrop-blur-sm rounded-full p-3">
             <Maximize2 className="w-5 h-5 text-white" />
           </span>
@@ -115,7 +130,8 @@ export const Screenshot = memo(function Screenshot({
 
   return (
     <div
-      className={`bg-surface-alt rounded-xl md:rounded-[var(--radius-large)] shadow-[var(--shadow-screenshot)] flex items-center justify-center text-text-secondary text-sm font-medium ${className}`}
+      style={frameStyle}
+      className={`screenshot-frame bg-surface-alt rounded-xl md:rounded-[var(--radius-large)] shadow-[var(--shadow-screenshot)] flex items-center justify-center text-text-secondary text-sm font-medium ${className}`}
       role="img"
       aria-label={label}
     >

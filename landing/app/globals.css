@@ -73,6 +73,19 @@ body {
   text-wrap: pretty;
 }
 
+/* Reserve the screenshot box per breakpoint (portrait mobile asset, landscape
+   desktop asset) so neither causes a decode-time layout shift. Vars are set
+   inline per instance from the real asset dimensions. */
+.screenshot-frame {
+  aspect-ratio: var(--m-ar);
+}
+
+@media (min-width: 768px) {
+  .screenshot-frame {
+    aspect-ratio: var(--d-ar);
+  }
+}
+
 /* Very subtle mesh of radial green glows behind hero — adds depth
    without touching layout. Pure CSS, zero cost. */
 .hero-mesh {

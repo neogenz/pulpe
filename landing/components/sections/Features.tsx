@@ -10,6 +10,10 @@ const FEATURES = [
       src: '/screenshots/responsive/modal-ajout-transaction.webp',
       desktopSrc: '/screenshots/webapp/modal-ajout-transaction.webp',
       label: 'Modal ajout de transaction',
+      mobileWidth: 750,
+      mobileHeight: 1190,
+      desktopWidth: 1260,
+      desktopHeight: 955,
     },
   },
   {
@@ -20,6 +24,10 @@ const FEATURES = [
       src: '/screenshots/responsive/liste-des-previsions.webp',
       desktopSrc: '/screenshots/webapp/liste-des-previsions.webp',
       label: 'Liste des prévisions',
+      mobileWidth: 750,
+      mobileHeight: 1212,
+      desktopWidth: 1500,
+      desktopHeight: 1235,
     },
   },
   {
@@ -30,6 +38,10 @@ const FEATURES = [
       src: '/screenshots/responsive/ecran-des-modeles.webp',
       desktopSrc: '/screenshots/webapp/ecran-des-modeles.webp',
       label: 'Écran des modèles',
+      mobileWidth: 750,
+      mobileHeight: 1190,
+      desktopWidth: 1261,
+      desktopHeight: 956,
     },
   },
 ]
@@ -67,6 +79,10 @@ export function Features() {
                   src={feature.screenshot.src}
                   desktopSrc={feature.screenshot.desktopSrc}
                   label={feature.screenshot.label}
+                  mobileWidth={feature.screenshot.mobileWidth}
+                  mobileHeight={feature.screenshot.mobileHeight}
+                  desktopWidth={feature.screenshot.desktopWidth}
+                  desktopHeight={feature.screenshot.desktopHeight}
                 />
               </div>
             </div>

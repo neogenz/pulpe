@@ -27,7 +27,10 @@ export function Solution() {
             src="/screenshots/responsive/vue-calendrier-annuel.webp"
             desktopSrc="/screenshots/webapp/vue-calendrier-annuel.webp"
             label="Vue annuelle des budgets"
-            className="w-full"
+            mobileWidth={750}
+            mobileHeight={1190}
+            desktopWidth={1695}
+            desktopHeight={1354}
           />
         </div>
       </FadeIn>
