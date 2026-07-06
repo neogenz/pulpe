@@ -333,24 +333,6 @@ body {
   filter: blur(60px);
 }
 
-/* Rotating sub-headline: masked fade + slide-up on entry (replaces typed cursor) */
-@keyframes rotate-in {
-  from {
-    opacity: 0;
-    transform: translateY(0.55em);
-    filter: blur(3px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-    filter: blur(0);
-  }
-}
-
-.animate-rotate-in {
-  animation: rotate-in 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-
 /* Hero dashboard: the balance-projection curve draws itself in, then the area fades under it */
 .hero-spark-line {
   stroke-dasharray: 1;
@@ -392,8 +374,7 @@ body {
   .animate-fade-in-opacity,
   .animate-fade-in-scale,
   .animate-fade-in-float,
-  .animate-blur-in,
-  .animate-rotate-in {
+  .animate-blur-in {
     animation: none;
     opacity: 1;
     transform: none;

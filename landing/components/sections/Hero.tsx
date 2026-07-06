@@ -7,13 +7,12 @@ import {
   type FloatingCardVariant,
   GrainOverlay,
   HeroDashboard,
-  TypeWriter,
 } from "@/components/ui";
 import { angularUrl } from "@/lib/config";
 import { trackCTAClick } from "@/lib/posthog";
 import { CalendarCheck, PiggyBank } from "lucide-react";
 import type { ReactNode } from "react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 
 function useVisitorCurrency(): 'CHF' | 'EUR' {
   const [currency, setCurrency] = useState<'CHF' | 'EUR'>('CHF')
@@ -79,13 +78,6 @@ export function Hero() {
   const currency = useVisitorCurrency()
   const unit = currency === 'CHF' ? 'CHF' : '€'
   const amount = 926
-  const suffix = `${amount} ${unit}`
-
-  const typewriterStrings = useMemo(() => [
-    `${suffix} disponibles ce mois.`,
-    "Impôts de juillet ? Budgétés.",
-    "Épargne maison : sur les rails.",
-  ], [suffix])
 
   const floatingCards = STATIC_FLOATING_CARDS
 
@@ -98,22 +90,18 @@ export function Hero() {
           {/* Left: text content */}
           <div className="text-center lg:text-left">
             <p className="text-[13px] font-semibold text-primary mb-4 tracking-[0.08em] uppercase">
-              Ton budget annuel en 3 minutes
+              Ton année financière, planifiée en 3 min
             </p>
-            <h1 className="leading-[1.05] mb-4 balance">
-              <span className="italic block text-2xl md:text-3xl lg:text-4xl font-normal text-text-secondary mb-1 tracking-normal">
-                &laquo;&nbsp;Je peux me le permettre&nbsp;?&nbsp;&raquo;
-              </span>
-              <span className="block text-6xl md:text-7xl lg:text-[5.25rem] font-extrabold text-primary tracking-[-0.035em] leading-[0.92]">
-                Tu sais d&apos;avance.
-              </span>
+            <h1 className="text-4xl md:text-5xl lg:text-[3.5rem] font-extrabold text-text tracking-[-0.03em] leading-[1.03] mb-5 balance">
+              Tu sais{' '}
+              <span className="text-primary">des mois à l&apos;avance</span>{' '}
+              ce qu&apos;il te restera.
             </h1>
-            <div className="text-xl md:text-2xl lg:text-3xl font-normal text-text-secondary mb-8 tabular-nums">
-              <span className="md:hidden">{suffix} disponibles ce mois.</span>
-              <span className="hidden md:block min-h-[2.5rem] lg:min-h-[3rem]">
-                <TypeWriter strings={typewriterStrings} />
-              </span>
-            </div>
+            <p className="text-lg md:text-xl text-text-secondary mb-8 max-w-xl mx-auto lg:mx-0 pretty">
+              Pulpe planifie ton année — impôts, vacances, imprévus compris — et
+              projette ton solde mois après mois. Tu vois venir, au lieu de
+              subir. Sans relier ta banque.
+            </p>
             <div className="flex flex-col sm:flex-row gap-4 sm:items-center items-center justify-center lg:justify-start">
               <Button href={angularUrl('/signup', 'hero_commencer')} glow onClick={() => trackCTAClick('commencer', 'hero', '/signup')}>
                 Commencer
