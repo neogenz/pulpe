@@ -7,6 +7,7 @@ import {
   Features,
   HowItWorks,
   Platforms,
+  Roadmap,
   WhyFree,
   FAQ,
   FinalCTA,
@@ -32,6 +33,7 @@ export default function LandingPage() {
         <Features />
         <HowItWorks />
         <Platforms />
+        <Roadmap />
         <WhyFree />
         <FAQ />
         <FinalCTA />
