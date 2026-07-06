@@ -30,6 +30,11 @@ export const ImageLightbox = memo(function ImageLightbox({
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         onClose()
+      } else if (e.key === 'Tab') {
+        // The close button is the only focusable element — keep focus trapped
+        // inside the dialog instead of letting Tab reach the page behind it.
+        e.preventDefault()
+        closeButtonRef.current?.focus()
       }
     }
 

@@ -28,7 +28,7 @@ export const FadeIn = memo(function FadeIn({
     // If element is already scrolled past (browser scroll restoration), show immediately
     if (element.getBoundingClientRect().bottom < 0) {
       if (variant === 'blur') {
-        element.classList.remove('opacity-0')
+        element.classList.remove('js-scroll-hidden')
       } else {
         element.classList.add('is-visible')
       }
@@ -73,7 +73,7 @@ export const FadeIn = memo(function FadeIn({
   }
 
   const scrollClass =
-    variant === 'blur' ? 'opacity-0' : 'fade-in-view'
+    variant === 'blur' ? 'js-scroll-hidden' : 'fade-in-view'
 
   return (
     <div

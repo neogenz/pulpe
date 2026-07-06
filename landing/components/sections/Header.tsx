@@ -9,7 +9,7 @@ import { trackCTAClick } from '@/lib/posthog'
 const navLinks = [
   { href: '/#features', label: 'Fonctionnalités' },
   { href: '/#how-it-works', label: 'Comment ça marche' },
-  { href: '/#platforms', label: 'Télécharger' },
+  { href: '/#platforms', label: 'Applications' },
   { href: '/#why-free', label: 'Pourquoi gratuit' },
 ]
 
@@ -19,7 +19,6 @@ const THROTTLE_MS = 100
 const GLASS_DISTORTION_STYLE: CSSProperties = {
   backdropFilter: 'blur(2px)',
   WebkitBackdropFilter: 'blur(2px)',
-  filter: 'url(#liquid-glass)',
 }
 
 const GLASS_SHINE_STYLE: CSSProperties = {
@@ -35,6 +34,7 @@ export function Header() {
   const [scrolled, setScrolled] = useState(false)
   const lastScrollTime = useRef(0)
   const menuButtonRef = useRef<HTMLButtonElement>(null)
+  const menuPanelRef = useRef<HTMLDivElement>(null)
   const wasOpen = useRef(false)
 
   useEffect(() => {
@@ -51,11 +51,37 @@ export function Header() {
   useEffect(() => {
     if (mobileMenuOpen) {
       wasOpen.current = true
-      const handleEscape = (e: KeyboardEvent) => {
-        if (e.key === 'Escape') setMobileMenuOpen(false)
+      document.body.style.overflow = 'hidden'
+
+      const focusables = menuPanelRef.current
+        ? Array.from(
+            menuPanelRef.current.querySelectorAll<HTMLElement>('a[href], button')
+          )
+        : []
+      focusables[0]?.focus()
+
+      const handleKeyDown = (e: KeyboardEvent) => {
+        if (e.key === 'Escape') {
+          setMobileMenuOpen(false)
+          return
+        }
+        if (e.key === 'Tab' && focusables.length > 0) {
+          const first = focusables[0]
+          const last = focusables[focusables.length - 1]
+          if (e.shiftKey && document.activeElement === first) {
+            e.preventDefault()
+            last.focus()
+          } else if (!e.shiftKey && document.activeElement === last) {
+            e.preventDefault()
+            first.focus()
+          }
+        }
       }
-      document.addEventListener('keydown', handleEscape)
-      return () => document.removeEventListener('keydown', handleEscape)
+      document.addEventListener('keydown', handleKeyDown)
+      return () => {
+        document.removeEventListener('keydown', handleKeyDown)
+        document.body.style.overflow = ''
+      }
     } else if (wasOpen.current) {
       wasOpen.current = false
       menuButtonRef.current?.focus({ preventScroll: true })
@@ -136,6 +162,7 @@ export function Header() {
 
         {/* Mobile Menu - absolute so it doesn't inflate header's bounding box when collapsed */}
         <div
+          ref={menuPanelRef}
           className={`md:hidden absolute left-0 right-0 top-full mt-2 rounded-2xl transition-all duration-250 ease-[cubic-bezier(0.4,0,0.2,1)] ${
             mobileMenuOpen
               ? 'opacity-100 translate-y-0 scale-100 pointer-events-auto'

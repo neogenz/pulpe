@@ -40,7 +40,7 @@ const STATIC_FLOATING_CARDS: FloatingCardConfig[] = [
   {
     id: "impots-budgetes",
     position: "-top-5 -left-5",
-    delay: "delay-400",
+    delay: "anim-delay-400",
     variant: "large",
     animationDelay: -2,
     content: (
@@ -58,7 +58,7 @@ const STATIC_FLOATING_CARDS: FloatingCardConfig[] = [
   {
     id: "epargne-maison",
     position: "-bottom-6 -right-5",
-    delay: "delay-600",
+    delay: "anim-delay-600",
     variant: "notification",
     animationDelay: -3,
     content: (

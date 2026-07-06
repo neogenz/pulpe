@@ -75,6 +75,9 @@ export function Platforms() {
                     rel="noopener noreferrer"
                     className="inline-block transition-transform duration-200 hover:scale-[1.03] [transition-timing-function:var(--ease-spring)]"
                     aria-label="Télécharger sur l'App Store"
+                    onClick={() =>
+                      trackCTAClick('download_app_store', 'platforms', IOS_APP_URL)
+                    }
                   >
                     <img
                       src="/app-store-badge.svg"
@@ -126,7 +129,7 @@ export function Platforms() {
           <FadeIn variant="blur" delay={0.3}>
             <Card
               variant="elevated"
-              className="h-full flex flex-col p-6 lg:p-7 opacity-70"
+              className="h-full flex flex-col p-6 lg:p-7"
             >
               <div className="flex items-center gap-3 mb-3">
                 <div className="w-11 h-11 rounded-xl bg-text/5 flex items-center justify-center shrink-0">
