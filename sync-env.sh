@@ -32,6 +32,12 @@ if [[ -z "$SOURCE_WORKSPACE" ]]; then
     exit 1
 fi
 
+if [[ ! -d "$SOURCE_WORKSPACE" ]]; then
+    echo -e "${RED}Erreur: le workspace source n'existe pas: $SOURCE_WORKSPACE${NC}"
+    echo "CONDUCTOR_ROOT_PATH ou PULPE_MAIN_WORKSPACE pointe vers un chemin invalide (workspace déplacé/supprimé ?)."
+    exit 1
+fi
+
 # Répertoire du worktree courant
 CURRENT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
