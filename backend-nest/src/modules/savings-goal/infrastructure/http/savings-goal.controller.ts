@@ -23,6 +23,7 @@ import {
   type SavingsGoalDeleteResponse,
   type SavingsGoalProgressResponse,
   type SavingsGoalContributionsResponse,
+  type SavingsGoalPlanApplyResponse,
 } from 'pulpe-shared';
 import { AuthGuard } from '@common/guards/auth.guard';
 import {
@@ -38,6 +39,8 @@ import {
   SavingsGoalDeleteResponseDto,
   SavingsGoalProgressResponseDto,
   SavingsGoalContributionsResponseDto,
+  SavingsGoalPlanApplyDto,
+  SavingsGoalPlanApplyResponseDto,
 } from './dto/savings-goal-swagger.dto';
 import { FindAllSavingsGoalsUseCase } from '../../application/find-all-savings-goals.use-case';
 import { FindSavingsGoalUseCase } from '../../application/find-savings-goal.use-case';
@@ -46,6 +49,7 @@ import { UpdateSavingsGoalUseCase } from '../../application/update-savings-goal.
 import { RemoveSavingsGoalUseCase } from '../../application/remove-savings-goal.use-case';
 import { GetSavingsGoalProgressUseCase } from '../../application/get-savings-goal-progress.use-case';
 import { GetSavingsGoalContributionsUseCase } from '../../application/get-savings-goal-contributions.use-case';
+import { ApplySavingsGoalPlanUseCase } from '../../application/apply-savings-goal-plan.use-case';
 import { SavingsGoalMapper } from '../mappers/savings-goal.mapper';
 
 @ApiTags('Savings Goals')
@@ -69,6 +73,7 @@ export class SavingsGoalController {
     private readonly removeUseCase: RemoveSavingsGoalUseCase,
     private readonly progressUseCase: GetSavingsGoalProgressUseCase,
     private readonly contributionsUseCase: GetSavingsGoalContributionsUseCase,
+    private readonly applyPlanUseCase: ApplySavingsGoalPlanUseCase,
     private readonly mapper: SavingsGoalMapper,
   ) {}
 
@@ -139,6 +144,32 @@ export class SavingsGoalController {
     return {
       success: true,
       data: this.mapper.toContributionsApi(contributions),
+    };
+  }
+
+  @Post(':id/plan')
+  @ApiOperation({
+    summary:
+      'Applique un plan simulé — réajuste les prévisions liées non pointées et le Mois Type (PUL-12)',
+  })
+  @ApiParam({ name: 'id', description: "Identifiant unique de l'objectif" })
+  @ApiResponse({
+    status: 201,
+    description: 'Plan appliqué avec succès',
+    type: SavingsGoalPlanApplyResponseDto,
+  })
+  async applyPlan(
+    @Param('id') id: string,
+    @Body() applyDto: SavingsGoalPlanApplyDto,
+    @User() user: AuthenticatedUser,
+  ): Promise<SavingsGoalPlanApplyResponse> {
+    const result = await this.applyPlanUseCase.execute(id, applyDto, user);
+    return {
+      success: true,
+      data: {
+        updatedLines: result.updatedLines,
+        updatedTemplateLineIds: result.updatedTemplateLineIds,
+      },
     };
   }
 

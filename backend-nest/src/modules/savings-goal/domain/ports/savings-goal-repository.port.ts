@@ -3,6 +3,9 @@ import type {
   SavingsGoalContribution,
   SavingsGoalCreateInput,
   SavingsGoalLinkedContributions,
+  SavingsGoalPlanApplyResult,
+  SavingsGoalPlanMonthAdjustment,
+  SavingsGoalPlanTemplateAdjustment,
   SavingsGoalUpdatePatch,
 } from '../savings-goal.entity';
 
@@ -34,4 +37,17 @@ export interface SavingsGoalRepositoryPort {
    * comportement calendaire standard. Lu depuis `auth.users.user_metadata`.
    */
   findPayDayOfMonth(): Promise<number | null>;
+  /**
+   * Applique un plan simulé (PUL-12) via la RPC atomique `apply_savings_goal_plan`.
+   * Chiffre chaque montant, écrit les prévisions liées non pointées du cycle
+   * courant ou futur (`is_manually_adjusted = true`) et les lignes du Mois Type
+   * ciblées. Tout écart de garde → RAISE → rollback total (rien de partiel). Le
+   * repo possède le chiffrement + le mapping des erreurs P0001.
+   */
+  applyPlan(
+    goalId: string,
+    monthAdjustments: SavingsGoalPlanMonthAdjustment[],
+    templateAdjustments: SavingsGoalPlanTemplateAdjustment[],
+    minPeriodIndex: number,
+  ): Promise<SavingsGoalPlanApplyResult>;
 }

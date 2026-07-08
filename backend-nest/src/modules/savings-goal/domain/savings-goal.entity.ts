@@ -1,7 +1,10 @@
 import type {
+  BudgetLine,
   LinkedSavingLine,
   LinkedSavingTransaction,
+  SavingsGoalPlanApply,
   SavingsGoalProgressResult,
+  SavingsPlanTimelineMonth,
   SupportedCurrency,
 } from 'pulpe-shared';
 import type { Transaction } from '@modules/transaction/domain/transaction.entity';
@@ -77,12 +80,17 @@ export interface SavingsGoalLinkedContributions {
 }
 
 /**
- * Use-case result for progress — the goal plus the computed formulas.
- * The mapper assembles the API DTO at the controller boundary.
+ * Use-case result for progress — the goal, the computed formulas, and the
+ * monthly timeline (ancrage → cible). `computed` carries formulas 1-11
+ * (including `cumulativeGap` / `estimatedCompletion`); `months` is the
+ * `buildSavingsGoalTimeline` output that feeds the trajectory chart and the
+ * month-by-month plan (docs/SAVINGS_PLAN.md §4.2). The mapper assembles the
+ * API DTO at the controller boundary.
  */
 export interface SavingsGoalProgressComputation {
   goal: SavingsGoal;
   computed: SavingsGoalProgressResult;
+  months: SavingsPlanTimelineMonth[];
 }
 
 /**
@@ -100,4 +108,23 @@ export interface SavingsGoalContribution {
   budgetMonth: number;
   budgetYear: number;
   transactions: Transaction[];
+}
+
+/** One line-scoped month adjustment of an applied plan (PUL-12, §4.3). */
+export type SavingsGoalPlanMonthAdjustment =
+  SavingsGoalPlanApply['monthAdjustments'][number];
+/** One template-line adjustment of an applied plan (Mois Type horizon). */
+export type SavingsGoalPlanTemplateAdjustment =
+  SavingsGoalPlanApply['templateAdjustments'][number];
+
+/**
+ * Result of applying a plan (PUL-12). `updatedLines` are the decrypted budget
+ * lines the RPC rewrote; `touchedBudgetIds` drives the post-commit recalc;
+ * `updatedTemplateLineIds` echoes the template lines that were adjusted (all of
+ * them on success — the RPC is all-or-nothing).
+ */
+export interface SavingsGoalPlanApplyResult {
+  updatedLines: BudgetLine[];
+  touchedBudgetIds: string[];
+  updatedTemplateLineIds: string[];
 }

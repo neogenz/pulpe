@@ -479,6 +479,23 @@ export const ERROR_DEFINITIONS = {
     message: () => 'Failed to fetch savings goals',
     httpStatus: HttpStatus.INTERNAL_SERVER_ERROR,
   },
+  // Savings goal plan apply (PUL-12 — POST /savings-goals/:id/plan)
+  SAVINGS_GOAL_PLAN_LINE_INVALID: {
+    code: API_ERROR_CODES.SAVINGS_GOAL_PLAN_LINE_INVALID,
+    message: () =>
+      'One or more plan lines are no longer linked to this goal. Refresh and re-simulate.',
+    httpStatus: HttpStatus.UNPROCESSABLE_ENTITY,
+  },
+  SAVINGS_GOAL_PLAN_CONFLICT: {
+    code: API_ERROR_CODES.SAVINGS_GOAL_PLAN_CONFLICT,
+    message: () => 'The plan changed since you simulated it. Re-simulate.',
+    httpStatus: HttpStatus.CONFLICT,
+  },
+  SAVINGS_GOAL_PLAN_APPLY_FAILED: {
+    code: API_ERROR_CODES.SAVINGS_GOAL_PLAN_APPLY_FAILED,
+    message: () => 'Failed to apply the savings goal plan',
+    httpStatus: HttpStatus.INTERNAL_SERVER_ERROR,
+  },
   BUDGET_LINE_BUDGET_MISMATCH: {
     code: API_ERROR_CODES.BUDGET_LINE_BUDGET_MISMATCH,
     message: (details?: Record<string, unknown>) =>

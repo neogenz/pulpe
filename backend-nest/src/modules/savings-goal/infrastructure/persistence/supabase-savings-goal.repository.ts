@@ -1,15 +1,21 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { Buffer } from 'node:buffer';
-import { PAY_DAY_MAX, PAY_DAY_MIN } from 'pulpe-shared';
+import type { PostgrestError } from '@supabase/supabase-js';
+import { ZodError } from 'zod';
+import { PAY_DAY_MAX, PAY_DAY_MIN, type BudgetLine } from 'pulpe-shared';
 import { BusinessException } from '@common/exceptions/business.exception';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
+import { isSavingsGoalLinkDenied } from '@common/utils/savings-goal-link';
 import { AuthenticatedSupabaseProvider } from '@modules/supabase/authenticated-supabase.provider';
 import {
   ENCRYPTION_PORT,
   type EncryptionPort,
 } from '@modules/encryption/encryption.tokens';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
-import { mapCurrencyNonAmountMetadataToDb } from '@common/utils/currency-metadata.mapper';
+import {
+  mapCurrencyNonAmountMetadataToDb,
+  parseCurrency,
+} from '@common/utils/currency-metadata.mapper';
 import type { Transaction } from '@modules/transaction/domain/transaction.entity';
 import type { Database } from '../../../../types/database.types';
 import type { SavingsGoalRepositoryPort } from '../../domain/ports/savings-goal-repository.port';
@@ -19,18 +25,33 @@ import type {
   SavingsGoalCreateInput,
   SavingsGoalInsert,
   SavingsGoalLinkedContributions,
+  SavingsGoalPlanApplyResult,
+  SavingsGoalPlanMonthAdjustment,
+  SavingsGoalPlanTemplateAdjustment,
   SavingsGoalRow,
   SavingsGoalUpdatePatch,
 } from '../../domain/savings-goal.entity';
+import {
+  applySavingsGoalPlanLineListSchema,
+  applySavingsGoalPlanTemplateLineListSchema,
+  PLAN_LINE_CHECKED_RPC_MESSAGE,
+  PLAN_LINE_NOT_LINKED_RPC_MESSAGE,
+  PLAN_LINE_PAST_RPC_MESSAGE,
+  PLAN_TEMPLATE_LINE_NOT_LINKED_RPC_MESSAGE,
+  type ApplySavingsGoalPlanLine,
+  type ApplySavingsGoalPlanTemplateLine,
+} from './schemas/rpc-payload.schemas';
 
 type TransactionKindEnum = Database['public']['Enums']['transaction_kind'];
 type TransactionRow = Database['public']['Tables']['transaction']['Row'];
+type BudgetLineRow = Database['public']['Tables']['budget_line']['Row'];
 
 interface LinkedLineRow {
   id: string;
   amount: string | null;
   kind: TransactionKindEnum;
   checked_at: string | null;
+  is_manually_adjusted: boolean;
   monthly_budget: { month: number; year: number };
 }
 
@@ -236,7 +257,9 @@ export class SupabaseSavingsGoalRepository implements SavingsGoalRepositoryPort 
     // trigger + use-cases). RLS scope les lignes au user courant.
     const { data, error } = await supabase
       .from('budget_line')
-      .select('id, amount, kind, checked_at, monthly_budget!inner(month, year)')
+      .select(
+        'id, amount, kind, checked_at, is_manually_adjusted, monthly_budget!inner(month, year)',
+      )
       .eq('savings_goal_id', goalId)
       .eq('kind', 'saving');
 
@@ -263,6 +286,7 @@ export class SupabaseSavingsGoalRepository implements SavingsGoalRepositoryPort 
       amount: this.encryption.tryDecryptAmount(row.amount, dek, 0),
       kind: row.kind,
       checkedAt: row.checked_at,
+      isManuallyAdjusted: row.is_manually_adjusted,
       month: row.monthly_budget.month,
       year: row.monthly_budget.year,
     }));
@@ -304,6 +328,186 @@ export class SupabaseSavingsGoalRepository implements SavingsGoalRepositoryPort 
     const raw: unknown = data?.user?.user_metadata?.payDayOfMonth;
     if (typeof raw !== 'number' || !Number.isInteger(raw)) return null;
     return Math.max(PAY_DAY_MIN, Math.min(PAY_DAY_MAX, raw));
+  }
+
+  async applyPlan(
+    goalId: string,
+    monthAdjustments: SavingsGoalPlanMonthAdjustment[],
+    templateAdjustments: SavingsGoalPlanTemplateAdjustment[],
+    minPeriodIndex: number,
+  ): Promise<SavingsGoalPlanApplyResult> {
+    const supabase = this.supabaseProvider.client;
+    const user = this.supabaseProvider.user;
+
+    const lineUpdates = await Promise.all(
+      monthAdjustments.map((adjustment) =>
+        this.toPlanRpcLine(adjustment, user),
+      ),
+    );
+    const templateUpdates = await Promise.all(
+      templateAdjustments.map((adjustment) =>
+        this.toPlanRpcTemplateLine(adjustment, user),
+      ),
+    );
+    const { linePayload, templatePayload } = this.parsePlanPayload(
+      lineUpdates,
+      templateUpdates,
+    );
+
+    const { data, error } = await supabase.rpc('apply_savings_goal_plan', {
+      p_goal_id: goalId,
+      p_min_period_index: minPeriodIndex,
+      p_line_updates: linePayload as never,
+      p_template_updates: templatePayload as never,
+    });
+
+    if (error || !data) {
+      this.throwPlanRpcError(error);
+    }
+
+    const dek = await this.encryption.getDekFor(user);
+    const updatedLines = data.map((row) => this.toBudgetLineEntity(row, dek));
+    const touchedBudgetIds = [
+      ...new Set(updatedLines.map((line) => line.budgetId)),
+    ];
+    // The RPC is all-or-nothing: on success every requested template line was
+    // updated, so the input ids ARE the touched ids (the RPC returns only
+    // budget lines).
+    const updatedTemplateLineIds = templateAdjustments.map(
+      (adjustment) => adjustment.templateLineId,
+    );
+
+    return { updatedLines, touchedBudgetIds, updatedTemplateLineIds };
+  }
+
+  private async toPlanRpcLine(
+    adjustment: SavingsGoalPlanMonthAdjustment,
+    user: AuthenticatedUser,
+  ): Promise<ApplySavingsGoalPlanLine> {
+    const { amount } = await this.encryption.prepareAmountData(
+      adjustment.amount,
+      user.id,
+      user.clientKey,
+    );
+    return { budget_line_id: adjustment.budgetLineId, amount };
+  }
+
+  private async toPlanRpcTemplateLine(
+    adjustment: SavingsGoalPlanTemplateAdjustment,
+    user: AuthenticatedUser,
+  ): Promise<ApplySavingsGoalPlanTemplateLine> {
+    const { amount } = await this.encryption.prepareAmountData(
+      adjustment.amount,
+      user.id,
+      user.clientKey,
+    );
+    return { template_line_id: adjustment.templateLineId, amount };
+  }
+
+  private parsePlanPayload(
+    lineUpdates: ApplySavingsGoalPlanLine[],
+    templateUpdates: ApplySavingsGoalPlanTemplateLine[],
+  ): {
+    linePayload: ApplySavingsGoalPlanLine[];
+    templatePayload: ApplySavingsGoalPlanTemplateLine[];
+  } {
+    try {
+      return {
+        linePayload: applySavingsGoalPlanLineListSchema.parse(lineUpdates),
+        templatePayload:
+          applySavingsGoalPlanTemplateLineListSchema.parse(templateUpdates),
+      };
+    } catch (error) {
+      if (error instanceof ZodError) {
+        throw new BusinessException(
+          ERROR_DEFINITIONS.SAVINGS_GOAL_PLAN_APPLY_FAILED,
+          undefined,
+          {
+            operation: 'applySavingsGoalPlan',
+            entityType: 'savings_goal',
+            validationErrors: error.issues,
+          },
+          { cause: error },
+        );
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Maps an `apply_savings_goal_plan` RPC failure to the right business error.
+   * Each branch matches an exact P0001 message the RPC RAISEs (named via a
+   * constant in rpc-payload.schemas so the SQL↔TS coupling is greppable):
+   * - ownership → SAVINGS_GOAL_NOT_FOUND (404, RLS-hiding idiom);
+   * - checked / past-period → 409 conflict (the plan drifted mid-simulation);
+   * - not-linked (line or template) → 422 (refetch + resimulate);
+   * - anything else → generic apply failure (500, safe to retry — idempotent).
+   */
+  private throwPlanRpcError(error: PostgrestError | null): never {
+    if (isSavingsGoalLinkDenied(error)) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.SAVINGS_GOAL_NOT_FOUND,
+        undefined,
+        { operation: 'applySavingsGoalPlan', entityType: 'savings_goal' },
+        { cause: error ?? undefined },
+      );
+    }
+    const message = error?.message ?? '';
+    if (
+      message.includes(PLAN_LINE_CHECKED_RPC_MESSAGE) ||
+      message.includes(PLAN_LINE_PAST_RPC_MESSAGE)
+    ) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.SAVINGS_GOAL_PLAN_CONFLICT,
+        undefined,
+        { operation: 'applySavingsGoalPlan', entityType: 'savings_goal' },
+        { cause: error ?? undefined },
+      );
+    }
+    if (
+      message.includes(PLAN_LINE_NOT_LINKED_RPC_MESSAGE) ||
+      message.includes(PLAN_TEMPLATE_LINE_NOT_LINKED_RPC_MESSAGE)
+    ) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.SAVINGS_GOAL_PLAN_LINE_INVALID,
+        undefined,
+        { operation: 'applySavingsGoalPlan', entityType: 'savings_goal' },
+        { cause: error ?? undefined },
+      );
+    }
+    throw new BusinessException(
+      ERROR_DEFINITIONS.SAVINGS_GOAL_PLAN_APPLY_FAILED,
+      undefined,
+      {
+        operation: 'applySavingsGoalPlan',
+        entityType: 'savings_goal',
+        supabaseError: error,
+      },
+      { cause: error ?? undefined },
+    );
+  }
+
+  private toBudgetLineEntity(row: BudgetLineRow, dek: Buffer): BudgetLine {
+    const decrypted = this.encryption.decryptRowAmountFields(row, dek);
+    return {
+      id: decrypted.id,
+      budgetId: decrypted.budget_id,
+      templateLineId: decrypted.template_line_id,
+      savingsGoalId: decrypted.savings_goal_id,
+      spreadGroupId: decrypted.spread_group_id,
+      name: decrypted.name,
+      amount: decrypted.amount,
+      originalAmount: decrypted.original_amount,
+      originalCurrency: parseCurrency(decrypted.original_currency) ?? null,
+      targetCurrency: parseCurrency(decrypted.target_currency) ?? null,
+      exchangeRate: decrypted.exchange_rate,
+      kind: decrypted.kind,
+      recurrence: decrypted.recurrence,
+      isManuallyAdjusted: decrypted.is_manually_adjusted,
+      checkedAt: decrypted.checked_at,
+      createdAt: decrypted.created_at,
+      updatedAt: decrypted.updated_at,
+    };
   }
 
   /**

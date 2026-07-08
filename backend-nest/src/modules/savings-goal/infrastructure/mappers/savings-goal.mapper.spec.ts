@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'bun:test';
-import type { SavingsGoalProgressResult } from 'pulpe-shared';
+import type {
+  SavingsGoalPlanMonth,
+  SavingsGoalProgressResult,
+} from 'pulpe-shared';
 import { SavingsGoalMapper } from './savings-goal.mapper';
 import type {
   SavingsGoal,
@@ -71,10 +74,14 @@ describe('SavingsGoalMapper', () => {
       paceStatus: 'behind',
       suggestCompletion: false,
       linkedLineCount: 3,
+      cumulativeGap: 150,
+      estimatedCompletion: { month: 6, year: 2027 },
     };
 
+    const months: SavingsGoalPlanMonth[] = [];
+
     it('flattens the goal identity fields and spreads every computed metric', () => {
-      const progress = mapper.toProgressApi({ goal: base, computed });
+      const progress = mapper.toProgressApi({ goal: base, computed, months });
 
       expect(progress.goalId).toBe(base.id);
       expect(progress.status).toBe('ACTIVE');
@@ -82,10 +89,12 @@ describe('SavingsGoalMapper', () => {
       expect(progress.targetDate).toBe('2099-01-01');
       // Every computed metric is passed through unchanged.
       expect(progress).toMatchObject(computed);
+      // The timeline is serialized alongside the formulas.
+      expect(progress.months).toBe(months);
     });
 
     it('mirrors the goal FX door-keepers — all null in v1 (CA6)', () => {
-      const progress = mapper.toProgressApi({ goal: base, computed });
+      const progress = mapper.toProgressApi({ goal: base, computed, months });
 
       expect(progress.originalTargetAmount).toBeNull();
       expect(progress.originalCurrency).toBeNull();

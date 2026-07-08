@@ -65,6 +65,7 @@ export class SavingsGoalMapper {
   toProgressApi({
     goal,
     computed,
+    months,
   }: SavingsGoalProgressComputation): SavingsGoalProgress {
     return {
       goalId: goal.id,
@@ -72,6 +73,7 @@ export class SavingsGoalMapper {
       targetAmount: goal.targetAmount,
       targetDate: goal.targetDate,
       ...computed,
+      months,
       originalTargetAmount: goal.originalTargetAmount,
       originalCurrency: parseCurrency(goal.originalCurrency) ?? null,
       targetCurrency: parseCurrency(goal.targetCurrency) ?? null,

@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { SupabaseModule } from '@modules/supabase/supabase.module';
 import { EncryptionModule } from '@modules/encryption/encryption.module';
+import { BudgetModule } from '@modules/budget/budget.module';
 import { createInfoLoggerProvider } from '@common/logger';
 import { SavingsGoalController } from './infrastructure/http/savings-goal.controller';
 import { SupabaseSavingsGoalRepository } from './infrastructure/persistence/supabase-savings-goal.repository';
@@ -13,9 +14,12 @@ import { UpdateSavingsGoalUseCase } from './application/update-savings-goal.use-
 import { RemoveSavingsGoalUseCase } from './application/remove-savings-goal.use-case';
 import { GetSavingsGoalProgressUseCase } from './application/get-savings-goal-progress.use-case';
 import { GetSavingsGoalContributionsUseCase } from './application/get-savings-goal-contributions.use-case';
+import { ApplySavingsGoalPlanUseCase } from './application/apply-savings-goal-plan.use-case';
 
 @Module({
-  imports: [SupabaseModule, EncryptionModule],
+  // BudgetModule provides BUDGET_RECALCULATION_PORT (plan apply recalculates the
+  // touched budgets). CacheService is @Global — no import needed.
+  imports: [SupabaseModule, EncryptionModule, BudgetModule],
   controllers: [SavingsGoalController],
   providers: [
     FindAllSavingsGoalsUseCase,
@@ -25,6 +29,7 @@ import { GetSavingsGoalContributionsUseCase } from './application/get-savings-go
     RemoveSavingsGoalUseCase,
     GetSavingsGoalProgressUseCase,
     GetSavingsGoalContributionsUseCase,
+    ApplySavingsGoalPlanUseCase,
     {
       provide: SAVINGS_GOAL_REPOSITORY,
       useClass: SupabaseSavingsGoalRepository,
@@ -37,6 +42,7 @@ import { GetSavingsGoalContributionsUseCase } from './application/get-savings-go
     createInfoLoggerProvider(RemoveSavingsGoalUseCase.name),
     createInfoLoggerProvider(GetSavingsGoalProgressUseCase.name),
     createInfoLoggerProvider(GetSavingsGoalContributionsUseCase.name),
+    createInfoLoggerProvider(ApplySavingsGoalPlanUseCase.name),
   ],
   exports: [],
 })
