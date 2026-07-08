@@ -12,7 +12,9 @@
 #
 # Never blocks session start: any failure here is non-fatal.
 
-set -uo pipefail
+# No `-e`: failures here must never block session start; each is handled
+# explicitly. No `pipefail` either — nothing consumes a pipeline's status.
+set -u
 
 INPUT=$(cat)
 CWD=$(echo "$INPUT" | jq -r '.cwd // empty')
@@ -40,8 +42,11 @@ if [[ -z "${CONDUCTOR_ROOT_PATH:-}" && -z "${PULPE_MAIN_WORKSPACE:-}" ]]; then
   exit 0
 fi
 
+# sync-env.sh colorizes with ANSI escapes; strip them so they don't show up
+# raw in the systemMessage shown to Claude Code.
 OUTPUT=$("$REPO_ROOT/sync-env.sh" 2>&1)
 STATUS=$?
+OUTPUT=$(printf '%s' "$OUTPUT" | sed $'s/\033\\[[0-9;]*m//g')
 
 if [[ $STATUS -eq 0 ]]; then
   touch "$MARKER"
