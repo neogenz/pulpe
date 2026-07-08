@@ -1,5 +1,5 @@
 import { effect, inject, Injectable, untracked } from '@angular/core';
-import { type Observable } from 'rxjs';
+import { type Observable, tap } from 'rxjs';
 import {
   type SavingsGoalCreate,
   savingsGoalCreateSchema,
@@ -15,6 +15,10 @@ import {
   savingsGoalContributionsResponseSchema,
   type SavingsGoalUpdate,
   savingsGoalUpdateSchema,
+  type SavingsGoalPlanApply,
+  savingsGoalPlanApplySchema,
+  type SavingsGoalPlanApplyResponse,
+  savingsGoalPlanApplyResponseSchema,
 } from 'pulpe-shared';
 import { ApiClient } from '@core/api/api-client';
 import { BudgetApi } from '@core/budget/budget-api';
@@ -95,5 +99,25 @@ export class SavingsGoalApi {
       `/savings-goals/${id}`,
       savingsGoalDeleteResponseSchema,
     );
+  }
+
+  /**
+   * Applies a simulated plan (`POST /savings-goals/:id/plan`). Amount-only,
+   * pessimistic write — the server recomputes the progression. Touches budget
+   * lines across several months, so the budget cache is invalidated here (the
+   * savings-goals cache is nuked by the store mutation's `invalidateKeys`).
+   */
+  applyPlan$(
+    id: string,
+    plan: SavingsGoalPlanApply,
+  ): Observable<SavingsGoalPlanApplyResponse> {
+    return this.#api
+      .post$(
+        `/savings-goals/${id}/plan`,
+        plan,
+        savingsGoalPlanApplyResponseSchema,
+        savingsGoalPlanApplySchema,
+      )
+      .pipe(tap(() => this.#budgetApi.cache.invalidate(['budget'])));
   }
 }

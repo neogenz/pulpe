@@ -3,6 +3,8 @@ import {
   type SavingsGoal,
   type SavingsGoalContribution,
   type SavingsGoalCreate,
+  type SavingsGoalPlanApply,
+  type SavingsGoalPlanApplyResponse,
   type SavingsGoalProgress,
   type SavingsGoalUpdate,
 } from 'pulpe-shared';
@@ -152,6 +154,34 @@ export class SavingsGoalStore {
       if (previous) this.savingsGoals.set(previous);
     },
   });
+
+  // Plan apply (PUL-12 simulateur) — pessimistic write. The server owns the
+  // recomputed progression, so no optimistic patch: invalidate the whole domain
+  // prefix (progress + list + contributions) and refetch progress.
+  readonly #applyPlanMutation = cachedMutation<
+    { goalId: string; plan: SavingsGoalPlanApply },
+    SavingsGoalPlanApplyResponse['data'],
+    void
+  >({
+    cache: this.#api.cache,
+    invalidateKeys: () => [['savings-goals']],
+    mutationFn: ({ goalId, plan }) =>
+      this.#api.applyPlan$(goalId, plan).pipe(map((response) => response.data)),
+  });
+
+  async applyPlan(
+    goalId: string,
+    plan: SavingsGoalPlanApply,
+  ): Promise<SavingsGoalPlanApplyResponse['data']> {
+    const result = await this.#applyPlanMutation.mutate({ goalId, plan });
+    if (!result) {
+      throw (
+        this.#applyPlanMutation.error() ?? new Error('Failed to apply plan')
+      );
+    }
+    this.reloadProgress();
+    return result;
+  }
 
   refresh(): void {
     this.savingsGoals.reload();

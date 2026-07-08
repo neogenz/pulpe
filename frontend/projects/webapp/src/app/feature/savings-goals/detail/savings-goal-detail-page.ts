@@ -4,21 +4,30 @@ import {
   computed,
   inject,
   input,
+  LOCALE_ID,
+  signal,
 } from '@angular/core';
-import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
+import {
+  takeUntilDestroyed,
+  toObservable,
+  toSignal,
+} from '@angular/core/rxjs-interop';
 import { DatePipe } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatIconModule } from '@angular/material/icon';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router } from '@angular/router';
+import { debounceTime } from 'rxjs';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import {
-  type SavingsGoalContribution,
   type SavingsGoalPaceStatus,
   type SavingsGoalStatus,
 } from 'pulpe-shared';
 import { AppCurrencyPipe } from '@core/currency';
+import { isApiError } from '@core/api/api-error';
+import { ApiErrorLocalizer } from '@core/api/api-error-localizer';
 import { getDateDisplayFormats } from '@core/date/date-display-formats';
 import { ROUTES } from '@core/routing';
 import { UserSettingsStore } from '@core/user-settings';
@@ -26,6 +35,11 @@ import { BaseLoading } from '@ui/loading';
 import { StateCard } from '@ui/state-card/state-card';
 import { SavingsGoalStore } from '../services/savings-goals-store';
 import { SavingsGoalsDialogService } from '../services/savings-goals-dialog.service';
+import { GoalPlanSimulatorStore } from './services/goal-plan-simulator-store';
+import { GoalProjectionChart } from './components/goal-projection-chart';
+import { GoalPlanTimeline } from './components/goal-plan-timeline';
+import { GoalPlanSimulatorToolbar } from './components/goal-plan-simulator-toolbar';
+import { GoalContributionsList } from './components/goal-contributions-list';
 
 type DetailViewState = 'loading' | 'error' | 'notFound' | 'ready';
 
@@ -36,14 +50,21 @@ type DetailViewState = 'loading' | 'error' | 'notFound' | 'ready';
     MatButtonModule,
     MatChipsModule,
     MatIconModule,
+    MatProgressSpinnerModule,
     TranslocoPipe,
     AppCurrencyPipe,
     BaseLoading,
     StateCard,
+    GoalProjectionChart,
+    GoalPlanTimeline,
+    GoalPlanSimulatorToolbar,
+    GoalContributionsList,
   ],
+  providers: [GoalPlanSimulatorStore],
   template: `
     <div
       class="flex flex-col gap-4 h-full min-w-0"
+      [class.min-h-dvh]="simulator.isSimulating()"
       data-testid="savings-goal-detail-page"
     >
       <header class="flex items-center gap-2 min-w-0">
@@ -61,7 +82,7 @@ type DetailViewState = 'loading' | 'error' | 'notFound' | 'ready';
         >
           {{ goal()?.name }}
         </h1>
-        @if (viewState() === 'ready') {
+        @if (viewState() === 'ready' && !simulator.isSimulating()) {
           <div class="ml-auto flex items-center gap-1 shrink-0 md:hidden">
             <button
               matIconButton
@@ -138,15 +159,17 @@ type DetailViewState = 'loading' | 'error' | 'notFound' | 'ready';
                 {{ 'savingsGoals.targetDate' | transloco }} :
                 {{ g.targetDate | date: shortDateFormat() }}
               </span>
-              <button
-                matButton="outlined"
-                class="ml-auto"
-                (click)="onEdit()"
-                data-testid="edit-savings-goal-button"
-              >
-                <mat-icon>edit</mat-icon>
-                {{ 'savingsGoals.detail.edit' | transloco }}
-              </button>
+              @if (!simulator.isSimulating()) {
+                <button
+                  matButton="outlined"
+                  class="ml-auto"
+                  (click)="onEdit()"
+                  data-testid="edit-savings-goal-button"
+                >
+                  <mat-icon>edit</mat-icon>
+                  {{ 'savingsGoals.detail.edit' | transloco }}
+                </button>
+              }
             </div>
 
             @if (isEmpty()) {
@@ -373,119 +396,147 @@ type DetailViewState = 'loading' | 'error' | 'notFound' | 'ready';
           </div>
 
           @if (!isEmpty()) {
+            <!-- Pilier A — « Ta trajectoire » (absent quand aucune ligne liée) -->
+            @if (chartMonths().length > 0) {
+              <section
+                class="mt-4 flex flex-col gap-3"
+                aria-labelledby="goal-trajectory-heading"
+                data-testid="savings-goal-trajectory"
+              >
+                <h2
+                  id="goal-trajectory-heading"
+                  class="text-title-large font-semibold"
+                >
+                  {{ 'savingsGoals.plan.trajectoryTitle' | transloco }}
+                </h2>
+                <pulpe-goal-projection-chart
+                  [months]="chartMonths()"
+                  [draft]="simulator.draft()"
+                  [targetAmount]="p.targetAmount"
+                  [currency]="currency()"
+                  [confirmedPace]="p.confirmedPace"
+                />
+                @if (simulator.isSimulating()) {
+                  <p
+                    class="text-body-medium font-medium text-financial-savings"
+                    data-testid="goal-plan-verdict"
+                    aria-hidden="true"
+                  >
+                    {{ verdict() }}
+                  </p>
+                  <p class="sr-only" aria-live="polite">{{ ariaVerdict() }}</p>
+                }
+              </section>
+            }
+
+            @if (simulator.isSimulating()) {
+              <div
+                class="flex items-center gap-2 rounded-xl bg-surface-container-low p-3 text-body-small text-on-surface-variant"
+                data-testid="goal-plan-sim-banner"
+              >
+                <mat-icon class="text-base! size-4!" aria-hidden="true"
+                  >lock_open</mat-icon
+                >
+                {{ 'savingsGoals.simulate.banner' | transloco }}
+              </div>
+              <pulpe-goal-plan-simulator-toolbar [currency]="currency()" />
+            }
+
+            <!-- Pilier B — « Ton plan, mois par mois » -->
             <section
               class="mt-4 flex flex-col gap-3"
-              aria-labelledby="goal-contributions-heading"
-              data-testid="savings-goal-contributions"
+              aria-labelledby="goal-plan-heading"
+              data-testid="savings-goal-plan"
             >
-              <h2
-                id="goal-contributions-heading"
-                class="text-title-large font-semibold"
-              >
-                {{ 'savingsGoals.detail.contributionsTitle' | transloco }}
-              </h2>
-              <ul class="flex flex-col gap-2">
-                @for (c of store.contributions(); track c.lineId) {
-                  <li
-                    class="flex flex-col gap-2 rounded-lg bg-surface-container-low p-4"
-                    data-testid="savings-goal-contribution-row"
+              <div class="flex flex-wrap items-center justify-between gap-2">
+                <h2
+                  id="goal-plan-heading"
+                  class="text-title-large font-semibold"
+                >
+                  {{ 'savingsGoals.plan.timelineTitle' | transloco }}
+                </h2>
+                @if (!simulator.isSimulating() && simulator.canSimulate()) {
+                  <button
+                    matButton="outlined"
+                    (click)="onEnterSimulation()"
+                    data-testid="goal-plan-adjust-button"
                   >
-                    <div class="flex items-center gap-3">
-                      <mat-icon
-                        [class.text-financial-savings]="!!c.checkedAt"
-                        [class.icon-filled]="!!c.checkedAt"
-                        [class.text-on-surface-variant]="!c.checkedAt"
-                        [attr.aria-label]="
-                          (c.checkedAt
-                            ? 'savingsGoals.detail.contributionChecked'
-                            : 'savingsGoals.detail.contributionUnchecked'
-                          ) | transloco
-                        "
-                        >{{
-                          c.checkedAt
-                            ? 'check_circle'
-                            : 'radio_button_unchecked'
-                        }}</mat-icon
-                      >
-                      <div class="flex flex-col min-w-0 flex-1">
-                        <span class="text-body-large truncate ph-no-capture">{{
-                          c.name
-                        }}</span>
-                        <span class="text-body-small text-on-surface-variant">
-                          {{ periodOf(c) | date: monthYearFormat() }}
-                        </span>
-                      </div>
-                      <span class="text-body-large font-medium ph-no-capture">
-                        {{ c.amount | appCurrency: currency() : '1.2-2' }}
-                      </span>
-                    </div>
-                    @if (c.transactions.length > 0) {
-                      <!-- Réel de l'enveloppe — inset container makes the
-                           parent/child relationship readable at a glance. -->
-                      <div
-                        class="ml-9 flex flex-col gap-2 rounded-md bg-surface-container px-4 py-3"
-                      >
-                        <span class="text-label-small text-on-surface-variant">
-                          {{
-                            'savingsGoals.detail.contributionTransactions'
-                              | transloco
-                          }}
-                        </span>
-                        <ul class="flex flex-col gap-2">
-                          <!-- Same row grammar as the parent contribution:
-                               name/date stacked left, amount alone right. -->
-                          @for (tx of c.transactions; track tx.id) {
-                            <li
-                              class="flex items-center gap-3"
-                              data-testid="savings-goal-contribution-transaction"
-                            >
-                              <mat-icon
-                                class="text-base! w-4!"
-                                [class.text-financial-savings]="!!tx.checkedAt"
-                                [class.icon-filled]="!!tx.checkedAt"
-                                [class.text-on-surface-variant]="!tx.checkedAt"
-                                [attr.aria-label]="
-                                  (tx.checkedAt
-                                    ? 'savingsGoals.detail.contributionChecked'
-                                    : 'savingsGoals.detail.contributionUnchecked'
-                                  ) | transloco
-                                "
-                                >{{
-                                  tx.checkedAt
-                                    ? 'check_circle'
-                                    : 'radio_button_unchecked'
-                                }}</mat-icon
-                              >
-                              <div class="flex min-w-0 flex-1 flex-col">
-                                <span
-                                  class="text-body-medium truncate ph-no-capture"
-                                >
-                                  {{ tx.name }}
-                                </span>
-                                <span
-                                  class="text-body-small text-on-surface-variant"
-                                >
-                                  {{
-                                    tx.transactionDate | date: shortDateFormat()
-                                  }}
-                                </span>
-                              </div>
-                              <span class="text-body-medium ph-no-capture">
-                                {{
-                                  tx.amount | appCurrency: currency() : '1.2-2'
-                                }}
-                              </span>
-                            </li>
-                          }
-                        </ul>
-                      </div>
-                    }
-                  </li>
+                    <mat-icon>tune</mat-icon>
+                    {{ 'savingsGoals.plan.adjustCta' | transloco }}
+                  </button>
                 }
-              </ul>
+              </div>
+              <pulpe-goal-plan-timeline
+                [months]="chartMonths()"
+                [simulatedMonths]="
+                  simulator.isSimulating() ? simulator.draftRows() : null
+                "
+                [currency]="currency()"
+                [locale]="locale"
+                [payDayOfMonth]="payDayOfMonth()"
+                [editable]="simulator.isSimulating()"
+                [expanded]="timelineExpanded()"
+                (amountChange)="onTimelineAmountChange($event)"
+                (toggleExpanded)="toggleTimeline()"
+              />
             </section>
+
+            <!-- « Ton suivi » — masqué en simulation (loi de Hick) -->
+            @if (!simulator.isSimulating()) {
+              <section
+                class="mt-4 flex flex-col gap-3"
+                aria-labelledby="goal-contributions-heading"
+                data-testid="savings-goal-contributions"
+              >
+                <h2
+                  id="goal-contributions-heading"
+                  class="text-title-large font-semibold"
+                >
+                  {{ 'savingsGoals.detail.contributionsTitle' | transloco }}
+                </h2>
+                <pulpe-goal-contributions-list
+                  [contributions]="store.contributions()"
+                  [currency]="currency()"
+                />
+              </section>
+            }
           }
         }
+      }
+
+      @if (simulator.isSimulating()) {
+        <!-- mt-auto pushes the bar to the bottom of the (min-h-dvh) root so it
+             pins to the viewport bottom even when the plan is short; sticky
+             keeps it there while a tall plan scrolls under its opaque bg. -->
+        <div
+          class="sticky bottom-0 z-10 mt-auto -mx-4 flex items-center justify-end gap-2 border-t border-outline-variant bg-surface px-4 py-3 shadow-[0_-6px_16px_-12px_rgba(0,0,0,0.4)] sm:mx-0 sm:px-0"
+          data-testid="goal-plan-sticky-bar"
+        >
+          <button
+            matButton
+            (click)="onCancelSimulation()"
+            [disabled]="isApplying()"
+            data-testid="goal-plan-cancel"
+          >
+            {{ 'common.cancel' | transloco }}
+          </button>
+          <button
+            matButton="filled"
+            (click)="onApplyPlan()"
+            [disabled]="!simulator.hasChanges() || isApplying()"
+            data-testid="goal-plan-apply"
+          >
+            <span class="flex items-center justify-center">
+              @if (isApplying()) {
+                <mat-spinner diameter="20" class="mr-2" />
+              }
+              {{
+                'savingsGoals.simulate.applyCta'
+                  | transloco: { count: simulator.dirtyCount() }
+              }}
+            </span>
+          </button>
+        </div>
       }
     </div>
   `,
@@ -494,32 +545,73 @@ type DetailViewState = 'loading' | 'error' | 'notFound' | 'ready';
       display: block;
       height: 100%;
     }
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export default class SavingsGoalDetailPage {
   protected readonly store = inject(SavingsGoalStore);
+  protected readonly simulator = inject(GoalPlanSimulatorStore);
   readonly #settings = inject(UserSettingsStore);
   readonly #dialogs = inject(SavingsGoalsDialogService);
   readonly #router = inject(Router);
   readonly #snackBar = inject(MatSnackBar);
   readonly #transloco = inject(TranslocoService);
+  readonly #errorLocalizer = inject(ApiErrorLocalizer);
+  protected readonly locale = inject(LOCALE_ID);
 
   readonly id = input.required<string>();
 
   protected readonly goal = this.store.selectedGoal;
   protected readonly progress = this.store.progress;
   protected readonly currency = this.#settings.currency;
+  protected readonly payDayOfMonth = this.#settings.payDayOfMonth;
   protected readonly shortDateFormat = computed(
     () => getDateDisplayFormats(this.currency()).shortDate,
   );
-  protected readonly monthYearFormat = computed(
-    () => getDateDisplayFormats(this.currency()).monthYear,
+
+  protected readonly chartMonths = computed(
+    () => this.progress()?.months ?? [],
   );
 
-  protected periodOf(contribution: SavingsGoalContribution): Date {
-    return new Date(contribution.budgetYear, contribution.budgetMonth - 1, 1);
-  }
+  readonly #timelineExpanded = signal(false);
+  protected readonly timelineExpanded = computed(
+    () => this.#timelineExpanded() || this.simulator.isSimulating(),
+  );
+
+  readonly #isApplying = signal(false);
+  protected readonly isApplying = this.#isApplying.asReadonly();
+
+  // Live verdict (updates < 16 ms on every gesture); the aria-live echo is
+  // debounced ~500 ms so a screen reader is not spammed during a drag.
+  protected readonly verdict = computed(() => {
+    const draft = this.simulator.draft();
+    if (!draft) return '';
+    const attained = draft.attainedPeriod;
+    if (!attained) {
+      return this.#transloco.translate(
+        'savingsGoals.simulate.verdictUnreached',
+      );
+    }
+    return this.#transloco.translate('savingsGoals.simulate.verdict', {
+      period: this.#formatMonthYear(attained.month, attained.year),
+    });
+  });
+
+  protected readonly ariaVerdict = toSignal(
+    toObservable(this.verdict).pipe(debounceTime(500)),
+    { initialValue: '' },
+  );
 
   protected readonly viewState = computed<DetailViewState>(() => {
     if (this.store.progressError()) return 'error';
@@ -619,6 +711,84 @@ export default class SavingsGoalDetailPage {
     } catch {
       this.#showStatusError();
     }
+  }
+
+  // ── Simulation (pilier C) ──
+  protected onEnterSimulation(): void {
+    this.simulator.enter();
+  }
+
+  protected onTimelineAmountChange(change: {
+    month: number;
+    year: number;
+    amount: number;
+  }): void {
+    this.simulator.setMonth(change.month, change.year, change.amount);
+  }
+
+  protected toggleTimeline(): void {
+    this.#timelineExpanded.update((expanded) => !expanded);
+  }
+
+  protected async onCancelSimulation(): Promise<void> {
+    if (this.simulator.hasChanges()) {
+      const discard = await this.#dialogs.confirmDiscardChanges();
+      if (!discard) return;
+    }
+    this.simulator.exit();
+    this.#timelineExpanded.set(false);
+  }
+
+  protected async onApplyPlan(): Promise<void> {
+    const draft = this.simulator.draft();
+    if (!draft) return;
+    const changes = draft.months
+      .filter((month) => month.isAdjusted)
+      .map((month) => ({
+        month: month.month,
+        year: month.year,
+        before: month.plannedAmount,
+        after: month.simulatedAmount,
+      }));
+    if (changes.length === 0) return;
+
+    const confirmed = await this.#dialogs.openApplyPlan({
+      changes,
+      currency: this.currency(),
+      locale: this.locale,
+      payDayOfMonth: this.payDayOfMonth(),
+      verdict: this.verdict(),
+    });
+    if (!confirmed) return;
+
+    this.#isApplying.set(true);
+    try {
+      await this.simulator.apply();
+      this.#timelineExpanded.set(false);
+      this.#openSnackBar(
+        this.#transloco.translate('savingsGoals.simulate.applySuccess'),
+      );
+    } catch (error) {
+      this.#showApplyError(error);
+    } finally {
+      this.#isApplying.set(false);
+    }
+  }
+
+  #formatMonthYear(month: number, year: number): string {
+    return new Intl.DateTimeFormat(this.locale, {
+      month: 'long',
+      year: 'numeric',
+    }).format(new Date(year, month - 1, 1));
+  }
+
+  #showApplyError(error: unknown): void {
+    // The plan error codes (409 conflict / 422 invalid / 500 apply-failed) are
+    // localized centrally in ApiErrorLocalizer.
+    const message = isApiError(error)
+      ? this.#errorLocalizer.localizeApiError(error)
+      : this.#transloco.translate('common.error');
+    this.#openSnackBar(message);
   }
 
   #showStatusError(): void {

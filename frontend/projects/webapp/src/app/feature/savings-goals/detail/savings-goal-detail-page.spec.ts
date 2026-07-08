@@ -23,6 +23,10 @@ import { SavingsGoalsDialogService } from '../services/savings-goals-dialog.serv
 import { UserSettingsStore } from '@core/user-settings';
 import { BaseLoading } from '@ui/loading';
 import { StateCard } from '@ui/state-card/state-card';
+import { GoalProjectionChart } from './components/goal-projection-chart';
+import { GoalPlanTimeline } from './components/goal-plan-timeline';
+import { GoalPlanSimulatorToolbar } from './components/goal-plan-simulator-toolbar';
+import { GoalContributionsList } from './components/goal-contributions-list';
 import { setTestInput } from '../../../testing/signal-test-utils';
 import { provideTranslocoForTest } from '../../../testing/transloco-testing';
 
@@ -54,6 +58,58 @@ class StubBaseLoading {
   readonly message = input<string>('');
   readonly size = input<string>('medium');
   readonly testId = input<string>('loading-container');
+}
+
+// The plan sub-components have their own specs; stub them here so the page test
+// stays focused on page logic (view states, D-blocks, simulation plumbing) and
+// avoids the canvas / required-input+computed test friction (Angular #54039).
+@Component({
+  selector: 'pulpe-goal-projection-chart',
+  template: '<div data-testid="stub-chart"></div>',
+  changeDetection: ChangeDetectionStrategy.OnPush,
+})
+class StubGoalProjectionChart {
+  readonly months = input<unknown>();
+  readonly draft = input<unknown>(null);
+  readonly targetAmount = input<number>(0);
+  readonly currency = input<string>('CHF');
+  readonly confirmedPace = input<number>(0);
+}
+
+@Component({
+  selector: 'pulpe-goal-plan-timeline',
+  template: '<div data-testid="stub-timeline"></div>',
+  changeDetection: ChangeDetectionStrategy.OnPush,
+})
+class StubGoalPlanTimeline {
+  readonly months = input<unknown>();
+  readonly simulatedMonths = input<unknown>(null);
+  readonly currency = input<string>('CHF');
+  readonly locale = input<string>('fr-CH');
+  readonly payDayOfMonth = input<number | null>(null);
+  readonly editable = input<boolean>(false);
+  readonly expanded = input<boolean>(false);
+  readonly amountChange = output<unknown>();
+  readonly toggleExpanded = output<void>();
+}
+
+@Component({
+  selector: 'pulpe-goal-plan-simulator-toolbar',
+  template: '<div data-testid="stub-toolbar"></div>',
+  changeDetection: ChangeDetectionStrategy.OnPush,
+})
+class StubGoalPlanSimulatorToolbar {
+  readonly currency = input<string>('CHF');
+}
+
+@Component({
+  selector: 'pulpe-goal-contributions-list',
+  template: '<div data-testid="stub-contributions"></div>',
+  changeDetection: ChangeDetectionStrategy.OnPush,
+})
+class StubGoalContributionsList {
+  readonly contributions = input<unknown>([]);
+  readonly currency = input<string>('CHF');
 }
 
 function makeGoal(overrides: Partial<SavingsGoal> = {}): SavingsGoal {
@@ -91,25 +147,13 @@ function makeProgress(
     paceStatus: 'on_track',
     suggestCompletion: false,
     linkedLineCount: 2,
+    cumulativeGap: 300,
+    estimatedCompletion: { month: 6, year: 2027 },
+    months: [],
     originalTargetAmount: null,
     originalCurrency: null,
     targetCurrency: null,
     exchangeRate: null,
-    ...overrides,
-  };
-}
-
-function makeContribution(
-  overrides: Partial<SavingsGoalContribution> = {},
-): SavingsGoalContribution {
-  return {
-    lineId: 'line-1',
-    name: 'Épargne mensuelle',
-    amount: 500,
-    checkedAt: null,
-    budgetMonth: 7,
-    budgetYear: 2026,
-    transactions: [],
     ...overrides,
   };
 }
@@ -167,13 +211,34 @@ describe('SavingsGoalDetailPage', () => {
         ...provideTranslocoForTest(),
         { provide: SavingsGoalStore, useValue: mockStore },
         { provide: SavingsGoalsDialogService, useValue: mockDialogs },
-        { provide: UserSettingsStore, useValue: { currency: signal('CHF') } },
+        {
+          provide: UserSettingsStore,
+          useValue: { currency: signal('CHF'), payDayOfMonth: signal(25) },
+        },
         { provide: Router, useValue: { navigate } },
       ],
     })
       .overrideComponent(SavingsGoalDetailPage, {
-        remove: { imports: [StateCard, BaseLoading] },
-        add: { imports: [StubStateCard, StubBaseLoading] },
+        remove: {
+          imports: [
+            StateCard,
+            BaseLoading,
+            GoalProjectionChart,
+            GoalPlanTimeline,
+            GoalPlanSimulatorToolbar,
+            GoalContributionsList,
+          ],
+        },
+        add: {
+          imports: [
+            StubStateCard,
+            StubBaseLoading,
+            StubGoalProjectionChart,
+            StubGoalPlanTimeline,
+            StubGoalPlanSimulatorToolbar,
+            StubGoalContributionsList,
+          ],
+        },
       })
       .compileComponents();
 
@@ -305,59 +370,6 @@ describe('SavingsGoalDetailPage', () => {
     ).toBeTruthy();
     expect(query('savings-goal-progress-bar')).toBeFalsy();
     expect(query('edit-savings-goal-button')).toBeFalsy();
-  });
-
-  it('lists one contribution per linked line, checked prévision included even without transaction', () => {
-    contributionsSig.set([
-      makeContribution({ checkedAt: '2026-07-02T18:00:00.000Z' }),
-      makeContribution({ lineId: 'line-2', budgetMonth: 8 }),
-    ]);
-    fixture.detectChanges();
-
-    const rows = fixture.debugElement.queryAll(
-      By.css('[data-testid="savings-goal-contribution-row"]'),
-    );
-    expect(rows).toHaveLength(2);
-    expect(rows[0].nativeElement.textContent).toContain('Épargne mensuelle');
-    expect(rows[0].nativeElement.textContent).toContain('500.00');
-  });
-
-  it('nests the allocated transactions under their contribution', () => {
-    contributionsSig.set([
-      makeContribution({
-        transactions: [
-          {
-            id: 'tx-1',
-            budgetId: 'budget-1',
-            budgetLineId: 'line-1',
-            name: 'macbook1',
-            amount: 150,
-            kind: 'saving',
-            transactionDate: '2026-07-02T10:00:00.000Z',
-            checkedAt: '2026-07-02T10:00:00.000Z',
-            category: null,
-            createdAt: '2026-07-02T10:00:00.000Z',
-            updatedAt: '2026-07-02T10:00:00.000Z',
-            originalAmount: null,
-            originalCurrency: null,
-            targetCurrency: null,
-            exchangeRate: null,
-          },
-        ],
-      }),
-    ]);
-    fixture.detectChanges();
-
-    const nested = fixture.debugElement.queryAll(
-      By.css('[data-testid="savings-goal-contribution-transaction"]'),
-    );
-    expect(nested).toHaveLength(1);
-    expect(nested[0].nativeElement.textContent).toContain('macbook1');
-    expect(nested[0].nativeElement.textContent).toContain('150.00');
-    // The inset block is labeled « Réel » so the envelope/transaction
-    // relationship reads at a glance.
-    const row = query('savings-goal-contribution-row');
-    expect(row.nativeElement.textContent).toContain('Réel');
   });
 
   it('hides the contributions section entirely when no line is linked', () => {

@@ -1,0 +1,198 @@
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+  input,
+  linkedSignal,
+  signal,
+} from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { MatSliderModule } from '@angular/material/slider';
+import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
+import { CURRENCY_METADATA, type SupportedCurrency } from 'pulpe-shared';
+import { CurrencyInput } from '@ui/currency-input';
+import { GoalPlanSimulatorStore } from '../services/goal-plan-simulator-store';
+
+/**
+ * Pilier C — toolbar de simulation (docs/SAVINGS_PLAN.md §2). Slider global
+ * « Chaque mois, je mets » + input jumeau (chemin précision/a11y), « Réajuster
+ * la suite » (répartit l'effort restant), « Repartir du plan actuel » (revert).
+ * Bouger le slider écrase tous les overrides par mois — annoncé en `aria-live`.
+ */
+@Component({
+  selector: 'pulpe-goal-plan-simulator-toolbar',
+  imports: [
+    FormsModule,
+    MatButtonModule,
+    MatIconModule,
+    MatSliderModule,
+    TranslocoPipe,
+    CurrencyInput,
+  ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  template: `
+    <div
+      class="flex flex-col gap-4 rounded-2xl bg-surface-container p-4"
+      data-testid="goal-plan-simulator-toolbar"
+    >
+      <div class="flex flex-col gap-2">
+        <!-- Live value read-out replaces the MDC discrete bubble (too small,
+             clipped the "X'XXX CHF" string). Updates on every drag tick. -->
+        <div class="flex items-baseline justify-between gap-2">
+          <span class="text-title-small font-medium">
+            {{ 'savingsGoals.simulate.everyMonth' | transloco }}
+          </span>
+          <span
+            class="ph-no-capture text-title-medium font-semibold text-financial-savings whitespace-nowrap"
+            data-testid="goal-plan-slider-value"
+          >
+            {{ formattedAmount() }}
+          </span>
+        </div>
+        <div class="flex flex-col gap-3 md:flex-row md:items-center">
+          <mat-slider
+            class="flex-1"
+            [min]="0"
+            [max]="store.sliderMax()"
+            [step]="STEP"
+          >
+            <input
+              matSliderThumb
+              [ngModel]="sliderValue()"
+              (ngModelChange)="onSliderChange($event)"
+              [attr.aria-label]="'savingsGoals.simulate.everyMonth' | transloco"
+              data-testid="goal-plan-slider"
+            />
+          </mat-slider>
+          <div class="md:w-44">
+            <pulpe-currency-input
+              [label]="'savingsGoals.simulate.everyMonth' | transloco"
+              [value]="sliderValue()"
+              (valueChange)="onInputChange($event)"
+              [currency]="currency()"
+              [autoFocus]="false"
+              testId="goal-plan-amount-input"
+            />
+          </div>
+        </div>
+      </div>
+
+      <div class="flex flex-wrap items-center gap-2">
+        <button
+          matButton="tonal"
+          (click)="onRedistribute()"
+          data-testid="goal-plan-redistribute"
+        >
+          <mat-icon>auto_awesome</mat-icon>
+          {{ 'savingsGoals.simulate.redistribute' | transloco }}
+        </button>
+        <button
+          matButton
+          (click)="onRevert()"
+          [disabled]="!store.hasChanges()"
+          data-testid="goal-plan-revert"
+        >
+          {{ 'savingsGoals.simulate.revert' | transloco }}
+        </button>
+      </div>
+
+      <p
+        class="sr-only"
+        aria-live="polite"
+        data-testid="goal-plan-announcement"
+      >
+        {{ announcement() }}
+      </p>
+    </div>
+  `,
+  styles: `
+    :host {
+      display: block;
+    }
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+  `,
+})
+export class GoalPlanSimulatorToolbar {
+  protected readonly store = inject(GoalPlanSimulatorStore);
+  readonly #transloco = inject(TranslocoService);
+
+  readonly currency = input.required<SupportedCurrency>();
+
+  protected readonly STEP = 10;
+
+  // Twin value shared by the slider and the numeric input. Re-seeds from the
+  // store's global amount (e.g. after « Réajuster » clears it back to null).
+  protected readonly sliderValue = linkedSignal(
+    () => this.store.globalAmount() ?? this.store.defaultMonthlyAmount(),
+  );
+
+  protected readonly announcement = signal('');
+
+  readonly #meta = computed(() => CURRENCY_METADATA[this.currency()]);
+
+  // Compact one-line format with the currency's group separator (CHF → « 8'190 CHF »,
+  // EUR → « 8 190 € »). Round amounts, so 0 decimals (slider step is 10 units).
+  protected readonly formattedAmount = computed(() => {
+    const meta = this.#meta();
+    const value = new Intl.NumberFormat(meta.numberLocale, {
+      maximumFractionDigits: 0,
+    }).format(this.sliderValue());
+    return `${value} ${meta.symbol}`;
+  });
+
+  protected onSliderChange(value: number): void {
+    this.sliderValue.set(value);
+    this.store.setGlobalAmount(value);
+    this.announcement.set(
+      this.#transloco.translate('savingsGoals.simulate.sliderOverwrite'),
+    );
+  }
+
+  protected onInputChange(value: number | null): void {
+    const amount = value ?? 0;
+    this.sliderValue.set(amount);
+    this.store.setGlobalAmount(amount);
+    this.announcement.set(
+      this.#transloco.translate('savingsGoals.simulate.sliderOverwrite'),
+    );
+  }
+
+  protected onRedistribute(): void {
+    const result = this.store.redistribute();
+    if (!result.isDistributable) {
+      this.announcement.set(
+        this.#transloco.translate('savingsGoals.simulate.redistributeNoop'),
+      );
+      return;
+    }
+    const meta = this.#meta();
+    const perMonth = new Intl.NumberFormat(meta.numberLocale, {
+      maximumFractionDigits: 0,
+    }).format(result.perRemainingMonth);
+    this.announcement.set(
+      this.#transloco.translate('savingsGoals.simulate.redistributeDone', {
+        perMonth: `${perMonth} ${meta.symbol}`,
+      }),
+    );
+  }
+
+  protected onRevert(): void {
+    this.store.revert();
+    this.announcement.set(
+      this.#transloco.translate('savingsGoals.simulate.reverted'),
+    );
+  }
+}
