@@ -91,9 +91,13 @@ export const HeroDashboard = memo(function HeroDashboard({
                 value={amount}
                 delayMs={300}
                 format={(n) => `${n}`}
+                ariaLabel={`${amount} ${unit}`}
                 className="text-[3rem] font-extrabold tabular-nums tracking-[-0.02em]"
               />
-              <span className="text-lg font-semibold text-white/80 ml-1">
+              <span
+                aria-hidden="true"
+                className="text-lg font-semibold text-white/80 ml-1"
+              >
                 {unit}
               </span>
             </div>

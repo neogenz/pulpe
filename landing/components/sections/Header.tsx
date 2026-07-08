@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, type CSSProperties } from 'react'
 import { Menu, X } from 'lucide-react'
 import { Button } from '@/components/ui'
+import { lockBodyScroll } from '@/lib/bodyScrollLock'
 import { angularUrl } from '@/lib/config'
 import { trackCTAClick } from '@/lib/posthog'
 
@@ -52,7 +53,7 @@ export function Header() {
   useEffect(() => {
     if (mobileMenuOpen) {
       wasOpen.current = true
-      document.body.style.overflow = 'hidden'
+      const unlockScroll = lockBodyScroll()
 
       const focusables = menuPanelRef.current
         ? Array.from(
@@ -89,7 +90,7 @@ export function Header() {
       return () => {
         window.removeEventListener('resize', closeOnDesktop)
         document.removeEventListener('keydown', handleKeyDown)
-        document.body.style.overflow = ''
+        unlockScroll()
       }
     } else if (wasOpen.current) {
       wasOpen.current = false

@@ -11,6 +11,8 @@ interface CountUpProps {
   delayMs?: number
   /** Formats the current (rounded) value into the displayed string. */
   format?: (n: number) => string
+  /** Stable text for assistive tech when the visual number animates. */
+  ariaLabel?: string
   className?: string
 }
 
@@ -24,6 +26,7 @@ export const CountUp = memo(function CountUp({
   durationMs = 1100,
   delayMs = 0,
   format,
+  ariaLabel,
   className,
 }: CountUpProps) {
   const [display, setDisplay] = useState(0)
@@ -64,5 +67,13 @@ export const CountUp = memo(function CountUp({
     }
   }, [value, durationMs, delayMs])
 
-  return <span className={className}>{format ? format(display) : display}</span>
+  const content = format ? format(display) : display
+  if (!ariaLabel) return <span className={className}>{content}</span>
+
+  return (
+    <span className={className}>
+      <span className="sr-only">{ariaLabel}</span>
+      <span aria-hidden="true">{content}</span>
+    </span>
+  )
 })

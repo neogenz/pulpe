@@ -2,6 +2,7 @@
 
 import { memo, useEffect, useRef, useCallback } from 'react'
 import { X } from 'lucide-react'
+import { lockBodyScroll } from '@/lib/bodyScrollLock'
 import { cn } from '@/lib/cn'
 
 interface ImageLightboxProps {
@@ -25,7 +26,7 @@ export const ImageLightbox = memo(function ImageLightbox({
 
     previousActiveElement.current = document.activeElement
     closeButtonRef.current?.focus()
-    document.body.style.overflow = 'hidden'
+    const unlockScroll = lockBodyScroll()
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -42,7 +43,7 @@ export const ImageLightbox = memo(function ImageLightbox({
 
     return () => {
       document.removeEventListener('keydown', handleKeyDown)
-      document.body.style.overflow = ''
+      unlockScroll()
       if (previousActiveElement.current instanceof HTMLElement) {
         previousActiveElement.current.focus()
       }
