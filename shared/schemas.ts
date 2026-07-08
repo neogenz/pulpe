@@ -309,6 +309,48 @@ export const savingsGoalPaceStatusSchema = z.enum([
 ]);
 export type SavingsGoalPaceStatus = z.infer<typeof savingsGoalPaceStatusSchema>;
 
+/** Période budgétaire nue `{ month, year }` (payDay-aware côté serveur). */
+export const budgetPeriodSchema = z.object({
+  month: z.number().int().min(1).max(12),
+  year: z.number().int(),
+});
+export type BudgetPeriodWire = z.infer<typeof budgetPeriodSchema>;
+
+/** État d'un mois de la timeline du plan (docs/SAVINGS_PLAN.md §2 pilier B). */
+export const savingsPlanMonthStateSchema = z.enum([
+  'past',
+  'current',
+  'future',
+  'gap',
+]);
+export type SavingsPlanMonthState = z.infer<
+  typeof savingsPlanMonthStateSchema
+>;
+
+/**
+ * Un mois de la timeline d'un objectif (docs/SAVINGS_PLAN.md §4.2). Alimente le
+ * chart trajectoire (A), le calendrier mensuel (B) et rebase le simulateur (C).
+ */
+export const savingsGoalPlanMonthSchema = z.object({
+  month: z.number().int().min(1).max(12),
+  year: z.number().int(),
+  state: savingsPlanMonthStateSchema,
+  isLocked: z.boolean(),
+  plannedAmount: z.number(),
+  confirmedAmount: z.number(),
+  plannedCumulative: z.number(),
+  confirmedCumulative: z.number(),
+  lines: z.array(
+    z.object({
+      budgetLineId: z.uuid(),
+      amount: z.number(),
+      checkedAt: z.iso.datetime({ offset: true }).nullable(),
+      isManuallyAdjusted: z.boolean(),
+    }),
+  ),
+});
+export type SavingsGoalPlanMonth = z.infer<typeof savingsGoalPlanMonthSchema>;
+
 export const savingsGoalProgressSchema = z.object({
   goalId: z.uuid(),
   status: savingsGoalStatusSchema,
@@ -329,6 +371,12 @@ export const savingsGoalProgressSchema = z.object({
   // D2 — suggestion « marquer terminé ? ». Jamais d'auto-flip côté serveur.
   suggestCompletion: z.boolean(),
   linkedLineCount: z.number().int().min(0),
+  // Formule 10 — écart cumulé (prévu − confirmé), signé, jamais clampé.
+  cumulativeGap: z.number(),
+  // Formule 11 — date d'atteinte estimée au rythme confirmé (docs/SAVINGS_PLAN.md §5.1).
+  estimatedCompletion: budgetPeriodSchema.nullable(),
+  // Timeline ancrage → cible (chart A + calendrier B + rebase simulateur C).
+  months: z.array(savingsGoalPlanMonthSchema),
   // FX door-keepers (CA6) — devise du compte uniquement en v1, toujours null.
   originalTargetAmount: z.number().nullable(),
   originalCurrency: supportedCurrencySchema.nullable(),
@@ -336,6 +384,57 @@ export const savingsGoalProgressSchema = z.object({
   exchangeRate: z.number().nullable(),
 });
 export type SavingsGoalProgress = z.infer<typeof savingsGoalProgressSchema>;
+
+/**
+ * Horizon max d'un plan appliqué (10 ans mensuel) — superset de MAX_SPREAD_TRANCHES.
+ */
+export const MAX_PLAN_ADJUSTMENTS = 120;
+
+/**
+ * Requête d'application d'un plan simulé (`POST /savings-goals/:id/plan`,
+ * docs/SAVINGS_PLAN.md §4.3). `monthAdjustments` = budgets matérialisés ;
+ * `templateAdjustments` = horizon Mois Type (au-delà des budgets générés).
+ * Line-scoped (non ambigu pour mois multi-lignes). Écriture atomique côté RPC.
+ */
+export const savingsGoalPlanApplySchema = z
+  .strictObject({
+    monthAdjustments: z
+      .array(
+        z.strictObject({
+          budgetLineId: z.uuid(),
+          amount: z.number().nonnegative(),
+        }),
+      )
+      .max(MAX_PLAN_ADJUSTMENTS)
+      .default([]),
+    templateAdjustments: z
+      .array(
+        z.strictObject({
+          templateLineId: z.uuid(),
+          amount: z.number().nonnegative(),
+        }),
+      )
+      .max(MAX_PLAN_ADJUSTMENTS)
+      .default([]),
+  })
+  .refine(
+    (value) =>
+      value.monthAdjustments.length + value.templateAdjustments.length > 0,
+    { error: 'Le plan est vide.' },
+  )
+  .refine(
+    (value) =>
+      new Set(value.monthAdjustments.map((item) => item.budgetLineId)).size ===
+      value.monthAdjustments.length,
+    { error: 'Une prévision apparaît deux fois dans le plan.' },
+  )
+  .refine(
+    (value) =>
+      new Set(value.templateAdjustments.map((item) => item.templateLineId))
+        .size === value.templateAdjustments.length,
+    { error: 'Une ligne du Mois Type apparaît deux fois dans le plan.' },
+  );
+export type SavingsGoalPlanApply = z.infer<typeof savingsGoalPlanApplySchema>;
 
 /**
  * BUDGET LINE - Ligne budgétaire planifiée
@@ -1370,6 +1469,21 @@ export const savingsGoalContributionsResponseSchema = createListResponse(
 );
 export type SavingsGoalContributionsResponse = z.infer<
   typeof savingsGoalContributionsResponseSchema
+>;
+
+/**
+ * Réponse d'application d'un plan (`POST /savings-goals/:id/plan`) : les
+ * prévisions mises à jour (déchiffrées) + les ids des lignes du Mois Type
+ * touchées, pour que les clients rafraîchissent la progression.
+ */
+export const savingsGoalPlanApplyResponseSchema = createSuccessResponse(
+  z.object({
+    updatedLines: z.array(budgetLineSchema),
+    updatedTemplateLineIds: z.array(z.uuid()),
+  }),
+);
+export type SavingsGoalPlanApplyResponse = z.infer<
+  typeof savingsGoalPlanApplyResponseSchema
 >;
 
 // Budget Line response schemas

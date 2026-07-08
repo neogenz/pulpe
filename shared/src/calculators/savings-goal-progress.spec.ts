@@ -362,4 +362,93 @@ describe('computeSavingsGoalProgress — statuts (D2, PAUSED)', () => {
       ).suggestCompletion,
     ).toBe(false);
   });
+
+  describe('formule 10 — écart cumulé', () => {
+    it('should be planned minus confirmed, signed and never clamped', () => {
+      const checked = savingLine(
+        1000,
+        { month: 2, year: 2026 },
+        { checkedAt: '2026-02-01T00:00:00Z' },
+      );
+      const planned = savingLine(3000, { month: 4, year: 2026 });
+
+      const result = computeSavingsGoalProgress(
+        baseInput({ lines: [checked, planned] }),
+      );
+
+      expect(result.plannedCumulative).toBe(4000);
+      expect(result.confirmed).toBe(1000);
+      expect(result.cumulativeGap).toBe(3000);
+    });
+
+    it('should be negative on early pointing (ahead of plan)', () => {
+      const earlyChecked = savingLine(
+        2000,
+        { month: 8, year: 2026 },
+        { checkedAt: '2026-08-01T00:00:00Z' },
+      );
+
+      const result = computeSavingsGoalProgress(
+        baseInput({ lines: [earlyChecked] }),
+      );
+
+      expect(result.plannedCumulative).toBe(0);
+      expect(result.cumulativeGap).toBe(-2000);
+    });
+  });
+
+  describe('formule 11 — date d\'atteinte estimée', () => {
+    it('should project the completion period at the confirmed pace', () => {
+      const checked = savingLine(
+        6000,
+        { month: 3, year: 2026 },
+        { checkedAt: '2026-03-01T00:00:00Z' },
+      );
+
+      const result = computeSavingsGoalProgress(
+        baseInput({ lines: [checked] }),
+      );
+
+      expect(result.confirmedPace).toBe(1000);
+      expect(result.estimatedCompletion).toEqual({ month: 12, year: 2026 });
+    });
+
+    it('should be null without any pointing (confirmedPace = 0)', () => {
+      const planned = savingLine(3000, { month: 4, year: 2026 });
+
+      const result = computeSavingsGoalProgress(
+        baseInput({ lines: [planned] }),
+      );
+
+      expect(result.estimatedCompletion).toBeNull();
+    });
+
+    it('should return the current period once the target is reached', () => {
+      const checked = savingLine(
+        12_000,
+        { month: 3, year: 2026 },
+        { checkedAt: '2026-03-01T00:00:00Z' },
+      );
+
+      const result = computeSavingsGoalProgress(
+        baseInput({ lines: [checked] }),
+      );
+
+      expect(result.estimatedCompletion).toEqual({ month: 6, year: 2026 });
+    });
+
+    it('should be null on a PAUSED goal', () => {
+      const checked = savingLine(
+        6000,
+        { month: 3, year: 2026 },
+        { checkedAt: '2026-03-01T00:00:00Z' },
+      );
+
+      const result = computeSavingsGoalProgress(
+        baseInput({ status: 'PAUSED', lines: [checked] }),
+      );
+
+      expect(result.estimatedCompletion).toBeNull();
+    });
+  });
 });

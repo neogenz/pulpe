@@ -15,10 +15,22 @@ import type {
   TransactionKind,
 } from '../../schemas.js';
 import { BudgetFormulas } from './budget-formulas.js';
-import { getBudgetPeriodForDate } from './budget-period.js';
+import {
+  getBudgetPeriodForDate,
+  parseIsoDateLocal,
+  periodFromIndex,
+  periodIndex,
+  type BudgetPeriod,
+} from './budget-period.js';
 
 /** Tolérance ±5 % du statut de rythme (docs/SAVINGS.md §4.2, formule 7). */
 export const PACE_TOLERANCE_PERCENT = 5;
+
+/**
+ * Plafond de l'horizon de la date d'atteinte estimée (formule 11). Au-delà, un
+ * rythme confirmé quasi nul projetterait une date absurde (« an 2200 ») ⇒ null.
+ */
+export const MAX_ESTIMATED_HORIZON_MONTHS = 600;
 
 /**
  * Prévision Épargne liée à l'objectif, avec la période budgétaire (month/year)
@@ -34,6 +46,11 @@ export interface LinkedSavingLine {
   isRollover?: boolean;
   month: number;
   year: number;
+  /**
+   * Ligne ajustée manuellement (protégée de la propagation template, RG-001).
+   * Optionnel — défaut `false` ; alimenté par le select repo pour la timeline.
+   */
+  isManuallyAdjusted?: boolean;
 }
 
 /** Transaction allouée à une des prévisions liées. */
@@ -72,6 +89,34 @@ export interface SavingsGoalProgressResult {
   paceStatus: SavingsGoalPaceStatus | null;
   suggestCompletion: boolean;
   linkedLineCount: number;
+  /** Formule 10 — écart cumulé `plannedCumulative − confirmed` (signé, jamais clampé). */
+  cumulativeGap: number;
+  /** Formule 11 — date d'atteinte au rythme confirmé, `null` si non projetable. */
+  estimatedCompletion: BudgetPeriod | null;
+}
+
+/**
+ * Formule 11 — date d'atteinte estimée au rythme CONFIRMÉ (docs/SAVINGS_PLAN.md §5.1).
+ * `null` si PAUSED / cible non déchiffrée / aucun pointage / horizon dégénéré.
+ * Calculée même en overdue (compagnon factuel de D1).
+ */
+function computeEstimatedCompletion(input: {
+  status: SavingsGoalStatus;
+  targetAmount: number;
+  confirmed: number;
+  confirmedPace: number;
+  indexCurrent: number;
+}): BudgetPeriod | null {
+  if (input.status === 'PAUSED' || input.targetAmount <= 0) return null;
+  if (input.confirmed >= input.targetAmount) {
+    return periodFromIndex(input.indexCurrent);
+  }
+  if (input.confirmedPace <= 0) return null;
+  const monthsNeeded = Math.ceil(
+    (input.targetAmount - input.confirmed) / input.confirmedPace,
+  );
+  if (monthsNeeded > MAX_ESTIMATED_HORIZON_MONTHS) return null;
+  return periodFromIndex(input.indexCurrent + monthsNeeded);
 }
 
 /**
@@ -89,20 +134,6 @@ export function calculatePaceStatus(
   if (ratio < 1 - tolerance) return 'behind';
   if (ratio > 1 + tolerance) return 'ahead';
   return 'on_track';
-}
-
-/**
- * Parse une date ISO nue `YYYY-MM-DD` en Date LOCALE — `new Date('YYYY-MM-DD')`
- * serait minuit UTC et pourrait glisser d'un jour (donc d'un cycle payDay).
- */
-function parseIsoDateLocal(isoDate: string): Date {
-  const [year, month, day] = isoDate.split('-').map(Number);
-  return new Date(year, month - 1, day);
-}
-
-/** Index de période comparable : `year * 12 + month`. */
-function periodIndex(period: { month: number; year: number }): number {
-  return period.year * 12 + period.month;
 }
 
 export function computeSavingsGoalProgress(
@@ -173,6 +204,18 @@ export function computeSavingsGoalProgress(
     input.targetAmount > 0 &&
     confirmed >= input.targetAmount;
 
+  // 10. Écart cumulé — signé, jamais clampé (négatif = pointage anticipé/avance).
+  const cumulativeGap = plannedCumulative - confirmed;
+
+  // 11. Date d'atteinte estimée au rythme confirmé (payDay-aware).
+  const estimatedCompletion = computeEstimatedCompletion({
+    status: input.status,
+    targetAmount: input.targetAmount,
+    confirmed,
+    confirmedPace,
+    indexCurrent,
+  });
+
   return {
     plannedCumulative,
     confirmed,
@@ -187,5 +230,7 @@ export function computeSavingsGoalProgress(
     paceStatus,
     suggestCompletion,
     linkedLineCount: savingLines.length,
+    cumulativeGap,
+    estimatedCompletion,
   };
 }
