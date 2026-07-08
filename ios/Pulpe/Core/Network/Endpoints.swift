@@ -65,6 +65,7 @@ enum Endpoint {
     case savingsGoals
     case savingsGoal(id: String)
     case savingsGoalProgress(id: String)
+    case savingsGoalPlanApply(id: String)
 
     // MARK: - Currency
 
@@ -138,6 +139,7 @@ enum Endpoint {
         case .savingsGoals: return "/savings-goals"
         case .savingsGoal(let id): return "/savings-goals/\(id)"
         case .savingsGoalProgress(let id): return "/savings-goals/\(id)/progress"
+        case .savingsGoalPlanApply(let id): return "/savings-goals/\(id)/plan"
 
         // Currency
         case .currencyRate: return "/currency/rate"
@@ -164,7 +166,8 @@ enum Endpoint {
              .budgetLineToggle, .budgetLinePostpone, .budgetLineResetFromTemplate,
              .transactionToggle, .transactionPostpone,
              .encryptionValidateKey, .encryptionSetupRecovery, .encryptionRegenerateRecovery, .encryptionRecover,
-             .encryptionVerifyRecoveryKey, .encryptionChangePin:
+             .encryptionVerifyRecoveryKey, .encryptionChangePin,
+             .savingsGoalPlanApply:
             return .post
 
         case .validateSession, .userProfile, .budget, .budgetDetails, .budgetsExport,

@@ -15,10 +15,15 @@ struct SavingsGoalDetailView: View {
     @Environment(SavingsGoalStore.self) private var store
     @Environment(UserSettingsStore.self) private var userSettingsStore
     @Environment(ToastManager.self) private var toastManager
+    // Sibling aggregate stores invalidated after a plan apply (PUL-270 seam).
+    @Environment(CurrentMonthStore.self) private var currentMonthStore
+    @Environment(BudgetListStore.self) private var budgetListStore
+    @Environment(DashboardStore.self) private var dashboardStore
     @Environment(\.dismiss) private var dismiss
 
     @State private var viewModel: SavingsGoalDetailViewModel
     @State private var editTarget: SavingsGoal?
+    @State private var isSimulating = false
 
     init(goal: SavingsGoal) {
         self.goal = goal
@@ -73,7 +78,7 @@ struct SavingsGoalDetailView: View {
                 header(progress: progress)
 
                 if progress.linkedLineCount == 0 {
-                    emptyGuidanceCard
+                    GoalEmptyGuidanceCard()
                 } else {
                     progressCard(progress: progress)
                     if let pace = progress.paceStatus {
@@ -81,14 +86,23 @@ struct SavingsGoalDetailView: View {
                     }
                 }
 
-                if progress.isOverdue {
-                    overdueCard
-                }
-                if progress.suggestCompletion {
-                    completionSuggestionCard
-                }
-                if currentGoal.status == .completed {
-                    reopenCard
+                GoalDerivedStateCards(
+                    progress: progress,
+                    status: currentGoal.status,
+                    isMutatingStatus: viewModel.isMutatingStatus,
+                    onEdit: { editTarget = currentGoal },
+                    onComplete: { Task { await setStatus(.completed) } },
+                    onReopen: { Task { await setStatus(.active) } }
+                )
+
+                if progress.linkedLineCount > 0, !progress.months.isEmpty {
+                    GoalTrajectorySection(progress: progress, currency: currency)
+                    GoalPlanTimelineSection(
+                        months: progress.months,
+                        currency: currency,
+                        canAdjust: canAdjust(progress),
+                        onAdjust: { isSimulating = true }
+                    )
                 }
             }
             .padding(.horizontal, DesignTokens.Spacing.lg)
@@ -96,6 +110,21 @@ struct SavingsGoalDetailView: View {
         }
         .scrollContentBackground(.hidden)
         .refreshable { await viewModel.load() }
+        .sheet(isPresented: $isSimulating) {
+            GoalPlanSimulatorSheet(
+                goal: currentGoal,
+                progress: progress,
+                currency: currency,
+                onApplied: { await handlePlanApplied() }
+            )
+        }
+    }
+
+    /// Simulator entry (pilier C): active goal, at least one linked line, at least
+    /// one open month. Hidden for PAUSED/COMPLETED (no rhythm verdict → no editing).
+    private func canAdjust(_ progress: SavingsGoalProgress) -> Bool {
+        guard currentGoal.status == .active, progress.linkedLineCount > 0 else { return false }
+        return progress.months.contains { SavingsPlanCalculator.isOpenPlanMonth($0) }
     }
 
     // MARK: - Header
@@ -234,88 +263,21 @@ struct SavingsGoalDetailView: View {
         }
     }
 
-    // MARK: - Derived-state cards
-
-    private var overdueCard: some View {
-        infoCard(
-            icon: "calendar",
-            title: "Échéance dépassée",
-            message: "Ton échéance est passée. Tu peux la repousser pour continuer à ton rythme."
-        ) {
-            Button("Repousser la date") {
-                editTarget = currentGoal
-            }
-            .secondaryButtonStyle()
-        }
-    }
-
-    private var completionSuggestionCard: some View {
-        infoCard(
-            icon: "checkmark.seal.fill",
-            title: "Objectif atteint",
-            message: "Tu as mis de côté l'équivalent de ta cible. On le marque comme atteint ?"
-        ) {
-            Button("Marquer comme atteint") {
-                Task { await setStatus(.completed) }
-            }
-            .primaryButtonStyle(isEnabled: !viewModel.isMutatingStatus)
-            .disabled(viewModel.isMutatingStatus)
-        }
-    }
-
-    private var reopenCard: some View {
-        infoCard(
-            icon: "flag.checkered",
-            title: "Objectif atteint",
-            message: "Tu peux le ré-ouvrir si tu veux continuer à épargner dessus."
-        ) {
-            Button("Ré-ouvrir") {
-                Task { await setStatus(.active) }
-            }
-            .secondaryButtonStyle()
-            .disabled(viewModel.isMutatingStatus)
-        }
-    }
-
-    private var emptyGuidanceCard: some View {
-        infoCard(
-            icon: "link",
-            title: "Aucune prévision rattachée",
-            message: "Rattache une prévision Épargne depuis ton Mois Type ou un budget pour suivre cet objectif ici.",
-            action: { EmptyView() }
-        )
-    }
-
-    @ViewBuilder
-    private func infoCard(
-        icon: String,
-        title: String,
-        message: String,
-        @ViewBuilder action: () -> some View
-    ) -> some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-            HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
-                Image(systemName: icon)
-                    .font(PulpeTypography.actionIcon)
-                    .foregroundStyle(Color.pulpePrimary)
-
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
-                    Text(title)
-                        .font(PulpeTypography.listRowTitle)
-                        .foregroundStyle(Color.textPrimary)
-                    Text(message)
-                        .font(PulpeTypography.listRowSubtitle)
-                        .foregroundStyle(Color.textSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-            }
-            action()
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .pulpeCard()
-    }
-
     // MARK: - Actions
+
+    /// Post-apply invalidation (PUL-270): a plan apply rewrites budget-line amounts,
+    /// so every store projecting those aggregates goes stale. Invalidate them, drop
+    /// the shared budget-detail cache and the goal list, then refetch this goal's
+    /// progression and confirm.
+    private func handlePlanApplied() async {
+        currentMonthStore.invalidateCache()
+        budgetListStore.invalidateCache()
+        dashboardStore.invalidateCache()
+        BudgetDetailCache.shared.invalidateAll()
+        store.invalidateCache()
+        await viewModel.load()
+        toastManager.show("Ton plan est à jour")
+    }
 
     private func setStatus(_ status: SavingsGoalStatus) async {
         await viewModel.changeStatus(to: status, via: store)

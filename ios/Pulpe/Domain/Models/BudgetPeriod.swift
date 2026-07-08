@@ -1,7 +1,7 @@
 import Foundation
 
 /// Represents a budget period identified by month and year
-struct BudgetPeriod: Equatable, Sendable {
+struct BudgetPeriod: Codable, Equatable, Hashable, Sendable {
     /// Month number (1-12)
     let month: Int
     /// Calendar year

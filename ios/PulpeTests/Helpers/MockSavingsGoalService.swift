@@ -8,17 +8,21 @@ import Foundation
 final class MockSavingsGoalService: SavingsGoalServicing {
     var stubbedGoals: [SavingsGoal] = []
     var stubbedProgress: SavingsGoalProgress?
+    var stubbedApplyResult: SavingsGoalPlanApplyResult?
     /// When set, every call throws this instead of returning.
     var error: Error?
 
     private(set) var getAllCallCount = 0
     private(set) var getProgressCallCount = 0
+    private(set) var applyPlanCallCount = 0
     private(set) var createCallCount = 0
     private(set) var updateCallCount = 0
     private(set) var deleteCallCount = 0
     private(set) var lastCreate: SavingsGoalCreate?
     private(set) var lastUpdateId: String?
     private(set) var lastUpdate: SavingsGoalUpdate?
+    private(set) var lastApplyId: String?
+    private(set) var lastApplyPayload: SavingsGoalPlanApply?
     private(set) var lastDeletedId: String?
 
     func getAll() async throws -> [SavingsGoal] {
@@ -38,6 +42,14 @@ final class MockSavingsGoalService: SavingsGoalServicing {
         if let error { throw error }
         if let stubbedProgress { return stubbedProgress }
         throw URLError(.badServerResponse)
+    }
+
+    func applyPlan(id: String, _ payload: SavingsGoalPlanApply) async throws -> SavingsGoalPlanApplyResult {
+        applyPlanCallCount += 1
+        lastApplyId = id
+        lastApplyPayload = payload
+        if let error { throw error }
+        return stubbedApplyResult ?? SavingsGoalPlanApplyResult(updatedLines: [], updatedTemplateLineIds: [])
     }
 
     func create(_ data: SavingsGoalCreate) async throws -> SavingsGoal {

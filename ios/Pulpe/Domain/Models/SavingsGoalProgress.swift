@@ -56,6 +56,18 @@ struct SavingsGoalProgress: Decodable, Sendable, Equatable {
     let targetCurrency: SupportedCurrency?
     let exchangeRate: Decimal?
 
+    // MARK: - Plan enrichment (PUL-12+, docs/SAVINGS_PLAN.md §4.2 — additive)
+
+    /// Monthly plan timeline, ancrage → cible inclusive. Empty when the goal has
+    /// no linked line (or when the server gates `months` behind `?include=`).
+    let months: [SavingsGoalPlanMonth]
+    /// `plannedCumulative − confirmed` — signed, never clamped. Neutral info
+    /// (RG-002): a positive gap is a pointing lag, not an alert.
+    let cumulativeGap: Decimal
+    /// Attainment period at the confirmed pace, or `nil` (PAUSED / no pace /
+    /// degenerate horizon). PayDay-aware `{month, year}` — format via the period.
+    let estimatedCompletion: BudgetPeriod?
+
     /// `targetDate` parsed for display, or `nil` on a malformed value.
     var targetDateValue: Date? {
         SavingsGoalDateFormatter.parse(targetDate)
@@ -73,5 +85,104 @@ struct SavingsGoalProgress: Decodable, Sendable, Equatable {
         guard targetAmount > 0 else { return 0 }
         let ratio = ((plannedCumulative / targetAmount) as NSDecimalNumber).doubleValue
         return min(max(ratio, 0), 1)
+    }
+
+    // MARK: - Init
+
+    /// Memberwise init kept explicit (a custom `init(from:)` would otherwise
+    /// suppress it). New plan fields default to empty so existing callers and
+    /// previews stay source-compatible.
+    init(
+        goalId: String,
+        status: SavingsGoalStatus,
+        targetAmount: Decimal,
+        targetDate: String,
+        plannedCumulative: Decimal,
+        confirmed: Decimal,
+        achievementPercent: Int,
+        monthsElapsed: Int,
+        monthsRemaining: Int,
+        isOverdue: Bool,
+        pace: Decimal,
+        confirmedPace: Decimal,
+        required: Decimal?,
+        projected: Decimal,
+        paceStatus: SavingsGoalPaceStatus?,
+        suggestCompletion: Bool,
+        linkedLineCount: Int,
+        originalTargetAmount: Decimal?,
+        originalCurrency: SupportedCurrency?,
+        targetCurrency: SupportedCurrency?,
+        exchangeRate: Decimal?,
+        months: [SavingsGoalPlanMonth] = [],
+        cumulativeGap: Decimal = 0,
+        estimatedCompletion: BudgetPeriod? = nil
+    ) {
+        self.goalId = goalId
+        self.status = status
+        self.targetAmount = targetAmount
+        self.targetDate = targetDate
+        self.plannedCumulative = plannedCumulative
+        self.confirmed = confirmed
+        self.achievementPercent = achievementPercent
+        self.monthsElapsed = monthsElapsed
+        self.monthsRemaining = monthsRemaining
+        self.isOverdue = isOverdue
+        self.pace = pace
+        self.confirmedPace = confirmedPace
+        self.required = required
+        self.projected = projected
+        self.paceStatus = paceStatus
+        self.suggestCompletion = suggestCompletion
+        self.linkedLineCount = linkedLineCount
+        self.originalTargetAmount = originalTargetAmount
+        self.originalCurrency = originalCurrency
+        self.targetCurrency = targetCurrency
+        self.exchangeRate = exchangeRate
+        self.months = months
+        self.cumulativeGap = cumulativeGap
+        self.estimatedCompletion = estimatedCompletion
+    }
+
+    // MARK: - Decoding
+
+    /// Custom decode so the PUL-12+ plan fields stay tolerant of absence: an
+    /// older cached payload — or a future `?include=months` gating (§4.2) — decodes
+    /// with an empty timeline and a zero gap instead of failing the whole progress.
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        goalId = try container.decode(String.self, forKey: .goalId)
+        status = try container.decode(SavingsGoalStatus.self, forKey: .status)
+        targetAmount = try container.decode(Decimal.self, forKey: .targetAmount)
+        targetDate = try container.decode(String.self, forKey: .targetDate)
+        plannedCumulative = try container.decode(Decimal.self, forKey: .plannedCumulative)
+        confirmed = try container.decode(Decimal.self, forKey: .confirmed)
+        achievementPercent = try container.decode(Int.self, forKey: .achievementPercent)
+        monthsElapsed = try container.decode(Int.self, forKey: .monthsElapsed)
+        monthsRemaining = try container.decode(Int.self, forKey: .monthsRemaining)
+        isOverdue = try container.decode(Bool.self, forKey: .isOverdue)
+        pace = try container.decode(Decimal.self, forKey: .pace)
+        confirmedPace = try container.decode(Decimal.self, forKey: .confirmedPace)
+        required = try container.decodeIfPresent(Decimal.self, forKey: .required)
+        projected = try container.decode(Decimal.self, forKey: .projected)
+        paceStatus = try container.decodeIfPresent(SavingsGoalPaceStatus.self, forKey: .paceStatus)
+        suggestCompletion = try container.decode(Bool.self, forKey: .suggestCompletion)
+        linkedLineCount = try container.decode(Int.self, forKey: .linkedLineCount)
+        originalTargetAmount = try container.decodeIfPresent(Decimal.self, forKey: .originalTargetAmount)
+        originalCurrency = try container.decodeIfPresent(SupportedCurrency.self, forKey: .originalCurrency)
+        targetCurrency = try container.decodeIfPresent(SupportedCurrency.self, forKey: .targetCurrency)
+        exchangeRate = try container.decodeIfPresent(Decimal.self, forKey: .exchangeRate)
+        months = try container.decodeIfPresent([SavingsGoalPlanMonth].self, forKey: .months) ?? []
+        cumulativeGap = try container.decodeIfPresent(Decimal.self, forKey: .cumulativeGap) ?? 0
+        estimatedCompletion = try container.decodeIfPresent(BudgetPeriod.self, forKey: .estimatedCompletion)
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case goalId, status, targetAmount, targetDate
+        case plannedCumulative, confirmed, achievementPercent
+        case monthsElapsed, monthsRemaining, isOverdue
+        case pace, confirmedPace, required, projected, paceStatus, suggestCompletion, linkedLineCount
+        case originalTargetAmount, originalCurrency, targetCurrency, exchangeRate
+        case months, cumulativeGap, estimatedCompletion
     }
 }
