@@ -3,11 +3,11 @@ import { Section, FadeIn, AccordionItem } from '@/components/ui'
 const FAQ_ITEMS = [
   {
     q: "C'est vraiment gratuit ? Où est le piège ?",
-    a: "Pas de piège. Pas de pub, pas d'abonnement caché, pas de revente de données. C'est un projet perso que j'utilise chaque jour. Si un plan payant arrive un jour, ce que tu as reste gratuit — et tes données restent exportables.",
+    a: "Pas de piège. Pas de pub, pas d'abonnement caché, pas de revente de données. C'est un projet perso que j'utilise chaque jour. Si un plan payant arrive un jour, ce que tu as reste gratuit — et tes budgets restent exportables.",
   },
   {
     q: 'Je récupère mes données si j’arrête ?',
-    a: 'Oui, quand tu veux. Tu peux exporter tes données à tout moment, et le code est open source — rien n’est enfermé.',
+    a: 'Oui. Tes budgets sont exportables depuis l’app, et le code est open source — rien n’est enfermé.',
   },
   {
     q: 'Tu peux voir combien j’ai sur mon compte ?',

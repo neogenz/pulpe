@@ -1,5 +1,6 @@
 'use client'
 
+import Image from 'next/image'
 import { memo, useEffect, useId, useState } from 'react'
 import { Check } from 'lucide-react'
 import { CountUp } from './CountUp'
@@ -31,10 +32,15 @@ export const HeroDashboard = memo(function HeroDashboard({
   unit,
 }: HeroDashboardProps) {
   const gradientId = useId()
+  const [monthLabel, setMonthLabel] = useState('')
   const [live, setLive] = useState(false)
   const [ticked, setTicked] = useState(false)
 
   useEffect(() => {
+    setMonthLabel(
+      new Intl.DateTimeFormat('fr-CH', { month: 'long' }).format(new Date())
+    )
+
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
     if (reduce) {
       setLive(true)
@@ -54,10 +60,10 @@ export const HeroDashboard = memo(function HeroDashboard({
       <div className="rounded-[var(--radius-large)] bg-surface border border-text/5 shadow-[var(--shadow-screenshot)] overflow-hidden">
         {/* Window chrome */}
         <div className="flex items-center gap-2 px-4 py-3 border-b border-text/[0.06]">
-          <img
+          <Image
             src="/icon-64.webp"
             alt=""
-            aria-hidden="true"
+            aria-hidden={true}
             width={20}
             height={20}
             className="h-5 w-auto"
@@ -77,7 +83,7 @@ export const HeroDashboard = memo(function HeroDashboard({
                 className="w-1.5 h-1.5 rounded-full bg-white/80"
                 aria-hidden="true"
               />
-              Mois en cours · Février
+              Mois en cours{monthLabel ? ` · ${monthLabel}` : ''}
             </div>
             <div className="text-xs text-white/70 mb-1">Disponible ce mois</div>
             <div className="mb-4 leading-none">
@@ -96,7 +102,7 @@ export const HeroDashboard = memo(function HeroDashboard({
             </div>
             <div className="h-2 rounded-full bg-white/20 overflow-hidden">
               <div
-                className="h-full rounded-full bg-white/90 transition-[width] duration-[1400ms] ease-[cubic-bezier(0.22,1,0.36,1)]"
+                className="h-full rounded-full bg-white/90 motion-safe:transition-[width] motion-safe:duration-[1400ms] motion-safe:ease-[cubic-bezier(0.22,1,0.36,1)]"
                 style={{ width: live ? '78%' : '0%' }}
               />
             </div>
