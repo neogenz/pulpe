@@ -24,7 +24,7 @@ import {
   formatShortMonth,
   formatCurrency,
   CHART_FONT_FAMILY,
-} from '../utils/chart-utils';
+} from '@core/chart/chart-theme';
 
 @Component({
   selector: 'pulpe-dashboard-history-chart',
