@@ -15,6 +15,7 @@ const navLinks = [
 
 const SCROLL_THRESHOLD = 20
 const THROTTLE_MS = 100
+const DESKTOP_BREAKPOINT_PX = 768
 
 const GLASS_DISTORTION_STYLE: CSSProperties = {
   backdropFilter: 'blur(2px)',
@@ -60,6 +61,12 @@ export function Header() {
         : []
       focusables[0]?.focus()
 
+      const closeOnDesktop = () => {
+        if (window.innerWidth >= DESKTOP_BREAKPOINT_PX) {
+          setMobileMenuOpen(false)
+        }
+      }
+
       const handleKeyDown = (e: KeyboardEvent) => {
         if (e.key === 'Escape') {
           setMobileMenuOpen(false)
@@ -77,8 +84,10 @@ export function Header() {
           }
         }
       }
+      window.addEventListener('resize', closeOnDesktop)
       document.addEventListener('keydown', handleKeyDown)
       return () => {
+        window.removeEventListener('resize', closeOnDesktop)
         document.removeEventListener('keydown', handleKeyDown)
         document.body.style.overflow = ''
       }

@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { ArrowRight, Check, Hammer, PackageCheck, Telescope } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
+import type { CSSProperties } from 'react'
 import { Card, FadeIn, Section } from '@/components/ui'
 
 type RoadmapStatus = 'shipped' | 'inProgress' | 'next'
@@ -75,10 +76,13 @@ const ROADMAP_COLUMNS: RoadmapColumn[] = [
   },
 ]
 
-const COLUMN_CARD_STYLES: Record<RoadmapStatus, string> = {
-  shipped: '',
-  inProgress: 'border-primary/30',
-  next: 'border-text/10',
+const COLUMN_CARD_BORDER_COLORS: Record<
+  RoadmapStatus,
+  CSSProperties['borderColor']
+> = {
+  shipped: undefined,
+  inProgress: 'rgb(0 110 37 / 0.3)',
+  next: 'rgb(26 28 25 / 0.1)',
 }
 
 function ItemMarker({ status }: { status: RoadmapStatus }) {
@@ -127,7 +131,8 @@ export function Roadmap() {
           <FadeIn key={column.status} variant="blur" delay={index * 0.1}>
             <Card
               variant="organic"
-              className={`h-full p-6 lg:p-7 ${COLUMN_CARD_STYLES[column.status]}`}
+              className="h-full p-6 lg:p-7"
+              style={{ borderColor: COLUMN_CARD_BORDER_COLORS[column.status] }}
             >
               <div className="flex items-center gap-3 mb-5">
                 <span

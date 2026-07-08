@@ -7,6 +7,8 @@ interface CountUpProps {
   value: number
   /** Animation duration in ms. */
   durationMs?: number
+  /** Delay before starting the animation in ms. Ignored for reduced motion. */
+  delayMs?: number
   /** Formats the current (rounded) value into the displayed string. */
   format?: (n: number) => string
   className?: string
@@ -20,6 +22,7 @@ interface CountUpProps {
 export const CountUp = memo(function CountUp({
   value,
   durationMs = 1100,
+  delayMs = 0,
   format,
   className,
 }: CountUpProps) {
@@ -36,6 +39,7 @@ export const CountUp = memo(function CountUp({
 
     let raf = 0
     let start = 0
+    let timeout: ReturnType<typeof setTimeout> | undefined
     const step = (timestamp: number) => {
       if (!start) start = timestamp
       const progress = Math.min((timestamp - start) / durationMs, 1)
@@ -43,9 +47,22 @@ export const CountUp = memo(function CountUp({
       setDisplay(Math.round(value * eased))
       if (progress < 1) raf = requestAnimationFrame(step)
     }
-    raf = requestAnimationFrame(step)
-    return () => cancelAnimationFrame(raf)
-  }, [value, durationMs])
+    const startCount = () => {
+      raf = requestAnimationFrame(step)
+    }
+
+    setDisplay(0)
+    if (delayMs > 0) {
+      timeout = setTimeout(startCount, delayMs)
+    } else {
+      startCount()
+    }
+
+    return () => {
+      if (timeout) clearTimeout(timeout)
+      cancelAnimationFrame(raf)
+    }
+  }, [value, durationMs, delayMs])
 
   return <span className={className}>{format ? format(display) : display}</span>
 })
