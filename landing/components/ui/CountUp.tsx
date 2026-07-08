@@ -1,6 +1,6 @@
 'use client'
 
-import { memo, useEffect, useRef, useState } from 'react'
+import { memo, useEffect, useState } from 'react'
 
 interface CountUpProps {
   /** Final value to animate to. */
@@ -24,12 +24,8 @@ export const CountUp = memo(function CountUp({
   className,
 }: CountUpProps) {
   const [display, setDisplay] = useState(0)
-  const startedRef = useRef(false)
 
   useEffect(() => {
-    if (startedRef.current) return
-    startedRef.current = true
-
     const prefersReduced = window.matchMedia(
       '(prefers-reduced-motion: reduce)'
     ).matches

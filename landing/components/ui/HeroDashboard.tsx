@@ -1,6 +1,6 @@
 'use client'
 
-import { memo, useEffect, useState } from 'react'
+import { memo, useEffect, useId, useState } from 'react'
 import { Check } from 'lucide-react'
 import { CountUp } from './CountUp'
 
@@ -30,6 +30,7 @@ export const HeroDashboard = memo(function HeroDashboard({
   amount,
   unit,
 }: HeroDashboardProps) {
+  const gradientId = useId()
   const [live, setLive] = useState(false)
   const [ticked, setTicked] = useState(false)
 
@@ -153,7 +154,7 @@ export const HeroDashboard = memo(function HeroDashboard({
               aria-label="Projection du solde en hausse sur l'année"
             >
               <defs>
-                <linearGradient id="hero-spark-fill" x1="0" y1="0" x2="0" y2="1">
+                <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
                   <stop
                     offset="0%"
                     stopColor="var(--color-primary)"
@@ -168,7 +169,7 @@ export const HeroDashboard = memo(function HeroDashboard({
               </defs>
               <path
                 d={`${CURVE} L100,36 L0,36 Z`}
-                fill="url(#hero-spark-fill)"
+                fill={`url(#${gradientId})`}
                 className="hero-spark-area"
               />
               <path
