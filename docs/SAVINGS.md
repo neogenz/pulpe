@@ -255,7 +255,9 @@ Toute modification de saisie/tagging doit balayer **les surfaces** — un oubli 
 |---|---|---|
 | **Fondation + lien template** | **PUL-12** | `savings_goal` CRUD (dont transitions de statut), `savings_goal_id` sur `template_line` + `budget_line`, FK `ON DELETE SET NULL`, tagging manuel (template-line editor primaire + picker `budget_line`), door-keepers FX (mapper + `fx_metadata_coherent`), priorité retirée. |
 | **Progression** | **PUL-8** | Endpoint `/:id/progress`, les 9 formules (§4), couches prévu/confirmé, `paceStatus`, lecture de l'état + comportements dérivés (D1 échéance dépassée, D2 auto-complétion suggérée). |
-| **Phase 3** | **PUL-285** | Gestion des Prévisions générées : arrêt effectif à `COMPLETED`/`PAUSED`, auto-décomposition (cible / mois → ligne récurrente maintenue), re-projection + redistribution **advisory** (suggère, n'écrit rien sans accord). |
+| **Phase 3** | **PUL-285** | Gestion des Prévisions générées : arrêt effectif à `COMPLETED`/`PAUSED`, auto-décomposition (cible / mois → ligne récurrente maintenue). |
+
+> **Approfondissement (simulateur de plan)** : la « re-projection + redistribution advisory » — initialement rattachée à PUL-285 — est matérialisée en **simulateur interactif** (chart trajectoire, calendrier mensuel, « réajuster la suite », apply-on-confirm). Blueprint dédié : `docs/SAVINGS_PLAN.md`.
 
 ---
 
