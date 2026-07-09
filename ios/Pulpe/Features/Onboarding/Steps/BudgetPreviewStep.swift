@@ -385,7 +385,7 @@ private struct BudgetPreviewEncouragingMessage: View {
         switch emotionState {
         case .comfortable: "Belle marge pour le mois. Tu pourras affiner plus tard."
         case .tight: "C'est équilibré mais serré. Tu pourras affiner plus tard."
-        case .deficit: "On va ajuster ensemble dès que ton budget est validé."
+        case .deficit: "Rien n'est figé — tu pourras ajuster ton budget quand tu veux."
         }
     }
 

@@ -6,26 +6,42 @@ struct CurrentMonthWidgetView: View {
     @Environment(\.widgetFamily) var family
 
     var body: some View {
-        Group {
-            if entry.hasData {
-                contentView
-            } else {
-                emptyView
-            }
-        }
-        .containerBackground(.background, for: .widget)
+        content
+            .containerBackground(.background, for: .widget)
+            .widgetURL(deepLink)
+    }
+
+    /// Tap destination for the whole widget. Accessory (Lock Screen) families are a
+    /// single tap target — `Link` only works in system families — so routing must go
+    /// through `.widgetURL`. Opens the current budget when known, else add-expense.
+    private var deepLink: URL {
+        if let id = entry.budgetId { return DeepLinks.budget(id: id) }
+        return DeepLinks.addExpense
     }
 
     @ViewBuilder
-    private var contentView: some View {
+    private var content: some View {
         switch family {
         case .systemSmall:
-            smallWidgetView
+            dataGated(smallWidgetView)
         case .systemMedium:
-            mediumWidgetView
+            dataGated(mediumWidgetView)
+        case .accessoryRectangular:
+            accessoryRectangularView
+        case .accessoryCircular:
+            accessoryCircularView
+        case .accessoryInline:
+            accessoryInlineView
         default:
-            smallWidgetView
+            dataGated(smallWidgetView)
         }
+    }
+
+    /// System (Home Screen) families share the "no data → open app" empty state.
+    /// Accessory families render their own compact empty copy inline.
+    @ViewBuilder
+    private func dataGated(_ view: some View) -> some View {
+        if entry.hasData { view } else { emptyView }
     }
 
     private var smallWidgetView: some View {
@@ -95,6 +111,85 @@ struct CurrentMonthWidgetView: View {
             .accessibilityLabel("Ajouter une dépense")
         }
         .padding(DesignTokens.Spacing.lg)
+    }
+
+    // MARK: - Lock Screen accessory families
+    //
+    // Accessory widgets render in the Lock Screen's monochrome, vibrant style: the
+    // system flattens custom foreground colors, so these views lean on
+    // `.widgetAccentable()` + semantic system fonts rather than the app's color /
+    // typography tokens (which only read correctly on Home Screen families). The
+    // amount stays `.privacySensitive()` so it redacts when the device is locked —
+    // it must not sit in the clear on a lock screen for a finance app.
+
+    private var accessoryRectangularView: some View {
+        VStack(alignment: .leading, spacing: 1) {
+            Text("Disponible")
+                .font(.caption2)
+                .widgetAccentable()
+            if entry.hasData {
+                Text(entry.available.asCompactCurrency(entry.currency))
+                    .font(.headline)
+                    .minimumScaleFactor(0.7)
+                    .lineLimit(1)
+                    .privacySensitive()
+                Text(entry.monthName)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            } else {
+                Text("Ouvre Pulpe")
+                    .font(.caption)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(
+            entry.hasData
+                ? "Disponible à dépenser \(entry.available.asCurrency(entry.currency)), \(entry.monthName)"
+                : "Pulpe, ouvre l'app"
+        )
+    }
+
+    private var accessoryCircularView: some View {
+        ZStack {
+            AccessoryWidgetBackground()
+            VStack(spacing: 0) {
+                Text("dispo")
+                    .font(.caption2)
+                    .widgetAccentable()
+                if entry.hasData {
+                    Text(entry.available.asCompactAmount(for: entry.currency))
+                        .font(.caption)
+                        .fontWeight(.semibold)
+                        .minimumScaleFactor(0.5)
+                        .lineLimit(1)
+                        .privacySensitive()
+                } else {
+                    Image(systemName: "banknote")
+                        .font(.caption)
+                }
+            }
+            .padding(2)
+        }
+        .accessibilityLabel(
+            entry.hasData
+                ? "Disponible \(entry.available.asCurrency(entry.currency))"
+                : "Pulpe"
+        )
+    }
+
+    private var accessoryInlineView: some View {
+        // Inline renders as one line above the clock; the system styles font + color
+        // and provides the leading icon slot. Content is text + one SF Symbol only.
+        Label {
+            Text(
+                entry.hasData
+                    ? "\(entry.available.asCompactCurrency(entry.currency)) dispo"
+                    : "Ouvre Pulpe"
+            )
+        } icon: {
+            Image(systemName: "banknote")
+        }
     }
 
     private var emptyView: some View {

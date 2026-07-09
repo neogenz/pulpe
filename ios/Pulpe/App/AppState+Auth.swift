@@ -386,6 +386,10 @@ extension AppState {
         }
 
         authDebug("AUTH_PIN_SETUP", "bootstrap done, entering authenticated")
+        // Fresh-onboarding completion — arm the one-time post-onboarding handoff.
+        // This path is reached only when a brand-new user sets up their PIN; returning
+        // users go through `completePinEntry` (context `.pinEntry`) and never set this.
+        justCompletedOnboarding = true
         await enterAuthenticated(context: .pinSetup)
     }
 

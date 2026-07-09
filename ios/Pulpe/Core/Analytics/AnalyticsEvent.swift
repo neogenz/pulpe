@@ -53,6 +53,15 @@ enum AnalyticsEvent: String, CaseIterable {
     // MARK: - Navigation
     case tabSwitched = "tab_switched"
 
+    // MARK: - Notifications
+    /// Fires when the value-framed pre-permission sheet is shown — after the user's
+    /// first real "pointer", never at launch. Precedes the OS prompt.
+    case notificationPrimeShown = "notification_prime_shown"
+    case notificationPermissionGranted = "notification_permission_granted"
+    case notificationPermissionDenied = "notification_permission_denied"
+    /// Fires when the "Rappels" preference toggle changes. Property `enabled` (Bool).
+    case reminderToggled = "reminder_toggled"
+
     // MARK: - Currency
     case currencyChanged = "currency_changed"
     case currencySelectorToggled = "currency_selector_toggled"

@@ -7,6 +7,7 @@ private enum SheetDestination: Identifiable {
     case realizedBalance
     case account
     case createBudget
+    case notificationPrime
 
     var id: Self { self }
 }
@@ -44,6 +45,15 @@ struct CurrentMonthView: View {
         )
     }
 
+    /// One-time post-onboarding handoff (teaches the pointer ritual + Lock Screen
+    /// widget). Stateless UserDefaults wrapper — cheap to hold per render.
+    private let postOnboardingFlags = PostOnboardingFlagsStore()
+
+    /// Local reminder opt-in state. Stateless UserDefaults wrapper.
+    private let reminderPrefs = ReminderPreferences()
+
+    /// Presents the handoff exactly once, only for a user who JUST finished
+    /// onboarding (`appState.justCompletedOnboarding`) and hasn't seen it before.
     var body: some View {
         ZStack {
             switch store.contentState {
@@ -111,6 +121,10 @@ struct CurrentMonthView: View {
                 )
             case .account:
                 AccountView()
+            case .notificationPrime:
+                NotificationPrimeSheet {
+                    Task { await enableReminders() }
+                }
             case .createBudget:
                 if let nextMonth = budgetListStore.nextAvailableMonth {
                     CreateBudgetView(
@@ -124,6 +138,11 @@ struct CurrentMonthView: View {
                         }
                     }
                 }
+            }
+        }
+        .fullScreenCover(isPresented: showPostOnboardingHandoff) {
+            PostOnboardingHandoffView {
+                dismissPostOnboardingHandoff()
             }
         }
         .task {
@@ -303,6 +322,9 @@ struct CurrentMonthView: View {
                             case .budgetLine(let line, _):
                                 await store.toggleBudgetLine(line)
                             }
+                            // The pointer just happened — the one moment worth asking
+                            // for notifications (offered once, behind a value screen).
+                            await maybePrimeReminders()
                         }
                     },
                     onViewAll: { navigateToBudget = true }
@@ -312,6 +334,60 @@ struct CurrentMonthView: View {
         } else if !store.budgetLines.isEmpty || !store.transactions.isEmpty {
             UncheckedForecastsEmptyState()
         }
+    }
+}
+
+// MARK: - Retention hooks (post-onboarding handoff + notification priming)
+//
+// Kept in a same-file extension so the main `CurrentMonthView` body stays within its
+// type-length budget while still reaching the view's `private` state (same-file
+// access), rather than loosening encapsulation to move it to another file.
+extension CurrentMonthView {
+    /// Presents the handoff exactly once, only for a user who JUST finished onboarding
+    /// (`appState.justCompletedOnboarding`) and hasn't seen it before.
+    var showPostOnboardingHandoff: Binding<Bool> {
+        Binding(
+            get: {
+                appState.justCompletedOnboarding
+                    && !postOnboardingFlags.hasSeenPostOnboardingHandoff
+            },
+            set: { newValue in
+                if !newValue { dismissPostOnboardingHandoff() }
+            }
+        )
+    }
+
+    func dismissPostOnboardingHandoff() {
+        postOnboardingFlags.setHasSeenPostOnboardingHandoff()
+        appState.justCompletedOnboarding = false
+    }
+
+    /// After the user's first real "pointer", offer reminders exactly once — behind a
+    /// value-framed sheet, and only while the OS prompt is still undecided so we never
+    /// burn the one-shot iOS permission cold.
+    func maybePrimeReminders() async {
+        guard !reminderPrefs.hasPrimedReminders,
+              await NotificationScheduler.shared.authorizationStatus() == .notDetermined
+        else { return }
+        reminderPrefs.setHasPrimedReminders()
+        AnalyticsService.shared.capture(.notificationPrimeShown)
+        activeSheet = .notificationPrime
+    }
+
+    /// Fires the real OS prompt (from the "Activer" tap) and schedules the monthly
+    /// reminder on grant. On denial we only record it — the toggle in Préférences
+    /// stays the recovery path.
+    func enableReminders() async {
+        let granted = await NotificationScheduler.shared.requestAuthorization()
+        guard granted else {
+            AnalyticsService.shared.capture(.notificationPermissionDenied)
+            return
+        }
+        reminderPrefs.setRemindersEnabled(true)
+        AnalyticsService.shared.capture(.notificationPermissionGranted)
+        await NotificationScheduler.shared.scheduleMonthlyReminder(
+            payDay: userSettingsStore.payDayOfMonth ?? 1
+        )
     }
 }
 
