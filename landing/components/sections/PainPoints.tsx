@@ -1,4 +1,4 @@
-import { CalendarX, TableProperties, Smartphone } from 'lucide-react'
+import { CalendarX, TableProperties, Wallet } from 'lucide-react'
 import { Section, FadeIn, Card } from '@/components/ui'
 
 const LEAD = {
@@ -15,9 +15,9 @@ const SUPPORTING = [
     text: "Nouvelle année ? Tout refaire. Frais fixe qui change ? 4 mois à modifier à la main.",
   },
   {
-    icon: Smartphone,
-    title: 'Tu dépenses. Tu notes pas.',
-    text: "Ouvrir le tableur sur le tel, zoomer, trouver la cellule... Tu laisses tomber.",
+    icon: Wallet,
+    title: 'Le 25, tu retiens ton souffle',
+    text: "Tu regardes ton compte en croisant les doigts, sans savoir si ça passe jusqu'à la paie.",
   },
 ]
 
@@ -46,7 +46,7 @@ export function PainPoints() {
               className="absolute -top-8 -right-8 w-48 h-48 rounded-full bg-primary/5 blur-2xl"
             />
             <div className="relative">
-              <div className="inline-flex items-center gap-2 text-[11px] font-semibold tracking-[0.16em] uppercase text-primary/80 mb-4">
+              <div className="inline-flex items-center gap-2 text-[11px] font-semibold tracking-[0.16em] uppercase text-primary mb-4">
                 <span className="w-6 h-px bg-primary/40" aria-hidden="true" />
                 {LEAD.month}
               </div>

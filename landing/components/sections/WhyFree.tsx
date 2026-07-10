@@ -23,7 +23,7 @@ const TRUST_BADGES = [
 const REASONS = [
   {
     title: "Un projet né d'un vrai besoin",
-    text: "J'ai créé Pulpe parce que j'en avais marre de galérer à suivre mon budget sur mobile. Ça m'aide beaucoup au quotidien, quelques amis aussi — je me dis que ça peut aider d'autres personnes.",
+    text: "J'ai créé Pulpe parce que j'en avais marre de galérer à suivre mon budget sur mobile. Je m'en sers tous les jours, des proches aussi. Je l'ai construit pour moi d'abord — s'il m'aide autant, il peut t'aider.",
   },
   {
     title: "Gratuit et open source",
@@ -31,7 +31,7 @@ const REASONS = [
   },
   {
     title: "Tes données sont protégées",
-    text: "Données hébergées en Europe, tes montants sont protégés par chiffrement et contrôle d'accès. Seul toi peut y avoir accès et lire, même pas moi.",
+    text: "Données hébergées en Europe, tes montants sont protégés par chiffrement et contrôle d'accès. Toi seul peux y accéder et les lire — même pas moi.",
   },
 ] as const;
 
@@ -77,7 +77,7 @@ export function WhyFree() {
         <div className="space-y-8 text-text-secondary">
           {REASONS.map((reason, index) => (
             <FadeIn key={reason.title} variant="blur" delay={0.3 + index * 0.1}>
-              <div className="border-l-2 border-primary/20 pl-6">
+              <div>
                 <h3 className="font-semibold text-text mb-2">{reason.title}</h3>
                 <p className="leading-relaxed">{reason.text}</p>
               </div>
