@@ -366,8 +366,9 @@ extension CurrentMonthView {
     /// value-framed sheet, and only while the OS prompt is still undecided so we never
     /// burn the one-shot iOS permission cold.
     func maybePrimeReminders() async {
-        guard !reminderPrefs.hasPrimedReminders,
-              await NotificationScheduler.shared.authorizationStatus() == .notDetermined
+        guard !reminderPrefs.hasPrimedReminders else { return }
+        guard await NotificationScheduler.shared.authorizationStatus() == .notDetermined,
+              !reminderPrefs.hasPrimedReminders
         else { return }
         reminderPrefs.setHasPrimedReminders()
         AnalyticsService.shared.capture(.notificationPrimeShown)

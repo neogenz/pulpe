@@ -182,11 +182,12 @@ struct CurrentMonthWidgetView: View {
         // Inline renders as one line above the clock; the system styles font + color
         // and provides the leading icon slot. Content is text + one SF Symbol only.
         Label {
-            Text(
-                entry.hasData
-                    ? "\(entry.available.asCompactCurrency(entry.currency)) dispo"
-                    : "Ouvre Pulpe"
-            )
+            if entry.hasData {
+                Text("\(entry.available.asCompactCurrency(entry.currency)) dispo")
+                    .privacySensitive()
+            } else {
+                Text("Ouvre Pulpe")
+            }
         } icon: {
             Image(systemName: "banknote")
         }

@@ -60,7 +60,7 @@ struct PreferencesView: View {
     /// never claims reminders are on when the system won't deliver them.
     private func applyReminderPreference(_ enabled: Bool) async {
         guard enabled else {
-            await NotificationScheduler.shared.cancelAll()
+            await NotificationScheduler.shared.cancelMonthlyReminder()
             return
         }
         let granted = await NotificationScheduler.shared.requestAuthorization()

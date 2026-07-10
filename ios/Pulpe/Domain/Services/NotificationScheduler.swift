@@ -66,8 +66,8 @@ actor NotificationScheduler {
         try? await center.add(request)
     }
 
-    func cancelAll() {
-        center.removeAllPendingNotificationRequests()
+    func cancelMonthlyReminder() {
+        center.removePendingNotificationRequests(withIdentifiers: [Self.monthlyReminderId])
     }
 
     /// Pay-day is stored 1–31, but a `day` of 29/30/31 would silently skip months
