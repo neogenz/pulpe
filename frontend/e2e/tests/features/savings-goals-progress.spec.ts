@@ -1,4 +1,8 @@
 import { test, expect } from '../../fixtures/test-fixtures';
+import type {
+  SavingsGoalContribution,
+  SavingsGoalProgress,
+} from 'pulpe-shared';
 
 /**
  * PUL-8 (CA10-CA12): track a savings goal progression.
@@ -40,11 +44,14 @@ const progress = {
   // D2 — surface the "mark completed" suggestion.
   suggestCompletion: true,
   linkedLineCount: 2,
+  cumulativeGap: 300,
+  estimatedCompletion: { month: 6, year: 2027 },
+  months: [],
   originalTargetAmount: null,
   originalCurrency: null,
   targetCurrency: null,
   exchangeRate: null,
-};
+} satisfies SavingsGoalProgress;
 
 const contributions = [
   {
@@ -65,7 +72,7 @@ const contributions = [
     budgetYear: 2026,
     transactions: [],
   },
-];
+] satisfies SavingsGoalContribution[];
 
 test.describe('Savings goal progression (PUL-8)', () => {
   test('navigates list → detail and shows the progress bar, Pointé label and D2 CTA', async ({
