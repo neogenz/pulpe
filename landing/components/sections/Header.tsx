@@ -56,6 +56,8 @@ export function Header() {
       }
     }
 
+    const closeOnScroll = () => setMobileMenuOpen(false)
+
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         setMobileMenuOpen(false)
@@ -64,9 +66,11 @@ export function Header() {
     }
 
     window.addEventListener('resize', closeOnDesktop)
+    window.addEventListener('scroll', closeOnScroll, { passive: true })
     document.addEventListener('keydown', handleKeyDown)
     return () => {
       window.removeEventListener('resize', closeOnDesktop)
+      window.removeEventListener('scroll', closeOnScroll)
       document.removeEventListener('keydown', handleKeyDown)
     }
   }, [mobileMenuOpen])

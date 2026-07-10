@@ -127,4 +127,16 @@ describe("landing accessibility contracts", () => {
     assert.doesNotMatch(componentSources.header, /focusables\[0\]\?\.focus/);
     assert.doesNotMatch(componentSources.header, /else if \(wasOpen\.current\)/);
   });
+
+  it("dismisses the mobile navigation when the page starts scrolling", () => {
+    assert.match(componentSources.header, /const closeOnScroll/);
+    assert.match(
+      componentSources.header,
+      /addEventListener\(['"]scroll['"], closeOnScroll, \{ passive: true \}\)/,
+    );
+    assert.match(
+      componentSources.header,
+      /removeEventListener\(['"]scroll['"], closeOnScroll\)/,
+    );
+  });
 });
