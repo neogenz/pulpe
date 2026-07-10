@@ -98,7 +98,6 @@ body {
 :focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
-  border-radius: 4px;
 }
 
 :focus:not(:focus-visible) {
@@ -112,7 +111,6 @@ body {
 .focus-on-dark:focus-visible {
   outline: 2px solid #ffffff;
   outline-offset: 3px;
-  border-radius: var(--radius-button);
 }
 
 @media (prefers-reduced-motion: reduce) {
