@@ -1,6 +1,6 @@
 ---
 objective: "Les états de focus de la landing conservent la forme des composants et les réponses FAQ repliées ne sont pas exposées aux technologies d’assistance."
-status: in-progress
+status: implemented
 ---
 
 # Plan: Corriger les détails d’accessibilité de la landing
