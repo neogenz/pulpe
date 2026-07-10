@@ -20,6 +20,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { MAX_TAGS_PER_TRANSACTION } from 'pulpe-shared';
 import { TagStore } from '@core/tag';
+import { safeFieldTreeRead } from '@core/validators';
 
 interface TagSuggestion {
   readonly type: 'existing' | 'create';
@@ -119,22 +120,9 @@ export class TagPicker {
 
   protected readonly query = signal('');
 
-  /**
-   * Deferred required-input read. The `selectedIds` computed below is evaluated
-   * during view init — before the `control` binding propagates — which throws
-   * NG0950 on a direct `this.control()`. Wrapping the read defers it to the next
-   * change-detection tick. Mirrors `pulpe-amount-input`.
-   */
-  readonly #safeControl = computed(() => {
-    try {
-      return this.control();
-    } catch (error) {
-      if (error instanceof Error && error.message.includes('NG0950')) {
-        return null;
-      }
-      throw error;
-    }
-  });
+  readonly #safeControl = computed(() =>
+    safeFieldTreeRead(() => this.control()),
+  );
 
   protected readonly selectedIds = computed(
     () => this.#safeControl()?.().value() ?? [],

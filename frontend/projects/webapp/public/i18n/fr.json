@@ -1262,6 +1262,9 @@
     "createError": "Impossible de créer le tag",
     "removeAriaLabel": "Retirer le tag {{ name }}"
   },
+  "tagIndicator": {
+    "ariaLabel": "{{ count }} tags : {{ names }}"
+  },
   "monthTile": {
     "current": "Actuel",
     "available": "Disponible",

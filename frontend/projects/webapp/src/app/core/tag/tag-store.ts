@@ -37,6 +37,20 @@ export class TagStore {
     return byId;
   });
 
+  /**
+   * Resolves tag ids to display names, dropping ids with no known tag. Reads
+   * the `tagNameById` signal, so callers wrapping this in a `computed` stay
+   * reactive to tag creation/rename. Shared by every tag-display surface
+   * (rows, tiles, detail sheets) so the id->name lookup lives in one place.
+   */
+  resolveNames(tagIds: readonly string[] | undefined): string[] {
+    if (!tagIds?.length) return [];
+    const nameById = this.tagNameById();
+    return tagIds
+      .map((id) => nameById.get(id))
+      .filter((name): name is string => !!name);
+  }
+
   readonly #createTagMutation = cachedMutation<TagCreate, TagResponse, void>({
     cache: this.#tagApi.cache,
     mutationFn: (tag) => this.#tagApi.create$(tag),

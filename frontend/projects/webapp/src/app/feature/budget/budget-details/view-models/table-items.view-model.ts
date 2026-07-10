@@ -108,3 +108,15 @@ export type TableRowItem =
   | BudgetLineTableItem
   | TransactionTableItem
   | GroupHeaderTableItem;
+
+export function isGroupHeaderRow(
+  row: TableRowItem,
+): row is GroupHeaderTableItem {
+  return row.metadata.itemType === 'group_header';
+}
+
+export function isDataRow(
+  row: TableRowItem,
+): row is BudgetLineTableItem | TransactionTableItem {
+  return !isGroupHeaderRow(row);
+}

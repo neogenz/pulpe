@@ -1,7 +1,4 @@
-import type {
-  GroupHeaderTableItem,
-  TableRowItem,
-} from './table-items.view-model';
+import { isGroupHeaderRow, type TableRowItem } from './table-items.view-model';
 
 /**
  * Tag-based filtering for the budget-details table/grid (PUL-18 PR4).
@@ -12,10 +9,6 @@ import type {
  * filtering happens on the already-built rows — consumption is baked into each
  * row before filtering and is therefore preserved.
  */
-
-function isGroupHeader(row: TableRowItem): row is GroupHeaderTableItem {
-  return row.metadata.itemType === 'group_header';
-}
 
 /** Distinct tag ids present across the given items (order-independent). */
 export function collectPresentTagIds(
@@ -41,7 +34,7 @@ export function filterTableRowsByTags(
   if (selectedTagIds.size === 0) return [...rows];
 
   const withMatchingItems = rows.filter((row) => {
-    if (isGroupHeader(row)) return true;
+    if (isGroupHeaderRow(row)) return true;
     return (row.data.tagIds ?? []).some((id) => selectedTagIds.has(id));
   });
 

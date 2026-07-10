@@ -29,11 +29,11 @@ import {
 import { AppCurrencyPipe } from '@core/currency';
 import { UserSettingsStore } from '@core/user-settings';
 import { ActionsCell, BalanceCell, NameCell, RemainingCell } from './cells';
-import type {
-  BudgetLineTableItem,
-  GroupHeaderTableItem,
-  TableRowItem,
-  TransactionTableItem,
+import {
+  isGroupHeaderRow,
+  type BudgetLineTableItem,
+  type TableRowItem,
+  type TransactionTableItem,
 } from '../../view-models/table-items.view-model';
 import { BudgetDetailsDialogService } from '../../budget-details-dialog.service';
 
@@ -332,10 +332,8 @@ export class BudgetTable {
     return (row as BudgetLineTableItem | TransactionTableItem).data.id;
   };
 
-  readonly isGroupHeader = (
-    _index: number,
-    row: TableRowItem,
-  ): row is GroupHeaderTableItem => row.metadata.itemType === 'group_header';
+  readonly isGroupHeader = (_index: number, row: TableRowItem): boolean =>
+    isGroupHeaderRow(row);
 
   // Row tap opens the detail (which surfaces the spread occurrences inline) —
   // only for envelope rows; transaction rows have no detail panel. Replaces the

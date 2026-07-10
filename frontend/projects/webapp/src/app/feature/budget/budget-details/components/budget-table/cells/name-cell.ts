@@ -13,6 +13,7 @@ import { UserSettingsStore } from '@core/user-settings';
 import { TagStore } from '@core/tag';
 import { FinancialKindDirective } from '@ui/financial-kind';
 import { SpreadBadge } from '@ui/spread-badge';
+import { TagIndicator } from '@ui/tag-indicator';
 import { TransactionLabelPipe } from '@ui/transaction-display';
 import { formatMatchAnnotation } from '../../../view-models/budget-item-constants';
 import type {
@@ -28,6 +29,7 @@ import type {
     DatePipe,
     FinancialKindDirective,
     SpreadBadge,
+    TagIndicator,
     TransactionLabelPipe,
   ],
   template: `
@@ -86,19 +88,9 @@ import type {
               {{ matchAnnotation() }}
             </span>
           }
-          @if (tagNames().length > 0) {
-            <span class="flex flex-wrap items-center gap-1 mt-0.5">
-              @for (name of tagNames(); track name) {
-                <span
-                  class="inline-flex items-center text-label-small
-                         bg-secondary-container text-on-secondary-container
-                         rounded-full px-2 py-0.5 ph-no-capture"
-                >
-                  {{ name }}
-                </span>
-              }
-            </span>
-          }
+          <span class="mt-0.5">
+            <pulpe-tag-indicator [tagNames]="tagNames()" />
+          </span>
         </div>
         @if (line().data.checkedAt) {
           <span class="text-body-small text-on-surface-variant ml-2">
@@ -122,12 +114,7 @@ export class NameCell {
     formatMatchAnnotation(this.line().metadata.matchingTransactionNames),
   );
 
-  readonly tagNames = computed(() => {
-    const tagIds = this.line().data.tagIds ?? [];
-    if (tagIds.length === 0) return [];
-    const nameById = this.#tagStore.tagNameById();
-    return tagIds
-      .map((id) => nameById.get(id))
-      .filter((name): name is string => !!name);
-  });
+  readonly tagNames = computed(() =>
+    this.#tagStore.resolveNames(this.line().data.tagIds),
+  );
 }

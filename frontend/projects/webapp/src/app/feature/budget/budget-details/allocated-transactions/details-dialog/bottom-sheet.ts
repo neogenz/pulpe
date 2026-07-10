@@ -25,12 +25,14 @@ import {
   FormatConversionPipe,
 } from '@core/currency';
 import { FeatureFlagsService } from '@core/feature-flags';
+import { TagStore } from '@core/tag';
 import { UserSettingsStore } from '@core/user-settings';
 import { getDateDisplayFormats } from '@core/date/date-display-formats';
 import { TranslocoPipe } from '@jsverse/transloco';
 import { CurrencyConversionBadge } from '@ui/currency-conversion-badge';
 import { OriginalAmountLine } from '@ui/original-amount-line';
 import { SpreadOccurrencesList } from '@ui/spread-occurrences-list';
+import { TagIndicator } from '@ui/tag-indicator';
 import { BudgetDetailsStore } from '../../store/budget-details-store';
 import type {
   AllocatedTransactionsDialogData,
@@ -51,6 +53,7 @@ import type {
     CurrencyConversionBadge,
     OriginalAmountLine,
     SpreadOccurrencesList,
+    TagIndicator,
     TranslocoPipe,
     DatePipe,
     DecimalPipe,
@@ -185,6 +188,10 @@ import type {
                   >
                     {{ tx.name }}
                   </span>
+                  <pulpe-tag-indicator
+                    [tagNames]="tagNamesFor(tx.tagIds)"
+                    class="shrink-0"
+                  />
                   <span
                     class="text-body-medium font-semibold whitespace-nowrap ph-no-capture"
                   >
@@ -293,6 +300,7 @@ import type {
 export class AllocatedTransactionsBottomSheet {
   readonly #userSettings = inject(UserSettingsStore);
   readonly #featureFlags = inject(FeatureFlagsService);
+  readonly #tagStore = inject(TagStore);
   readonly #router = inject(Router);
   protected readonly store = inject(BudgetDetailsStore);
   protected readonly currency = this.#userSettings.currency;
@@ -319,6 +327,10 @@ export class AllocatedTransactionsBottomSheet {
   protected readonly transactions = signal(
     this.data.consumption.allocatedTransactions,
   );
+
+  protected tagNamesFor(tagIds: readonly string[] | undefined): string[] {
+    return this.#tagStore.resolveNames(tagIds);
+  }
 
   protected readonly consumption = computed(() => {
     const consumed = this.transactions().reduce(
