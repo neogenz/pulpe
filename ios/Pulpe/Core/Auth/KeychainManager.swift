@@ -177,6 +177,9 @@ actor KeychainManager {
         clearBiometricClientKey()
         clearBiometricEnabledPreference()
         clearLastUsedEmail()
+        // SDK-owned Supabase session lives in the same keychain service under the
+        // sb-<ref> key; a reinstall must not resurrect the previous user's session.
+        delete(key: PulpeAuthStorage.sessionStorageKey)
     }
 
     func hasBiometricClientKey() -> Bool {

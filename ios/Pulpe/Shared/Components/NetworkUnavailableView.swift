@@ -3,6 +3,9 @@ import SwiftUI
 /// Full-screen view shown when the backend server is unreachable at startup
 struct NetworkUnavailableView: View {
     let onRetry: () async -> Void
+    /// Escape hatch back to the login screen. Without it, a session failure
+    /// misclassified as retryable would trap the user on this screen forever.
+    var onSignOut: (() async -> Void)?
     @State private var isRetrying = false
 
     var body: some View {
@@ -40,6 +43,14 @@ struct NetworkUnavailableView: View {
             }
             .primaryButtonStyle(isEnabled: !isRetrying)
             .disabled(isRetrying)
+
+            if let onSignOut {
+                Button("Se reconnecter avec son mot de passe") {
+                    Task { await onSignOut() }
+                }
+                .textLinkButtonStyle()
+                .disabled(isRetrying)
+            }
 
             Spacer()
         }

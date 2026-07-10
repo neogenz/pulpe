@@ -17,7 +17,16 @@ import Supabase
 /// rotation reuse-detection revokes the whole family. `ThisDeviceOnly` keeps the token off
 /// iCloud Keychain / device migration.
 public struct PulpeAuthStorage: AuthLocalStorage {
-    public static let sessionStorageKey = "supabase.auth.token"
+    /// Canonical key used by `SupabaseClient`: `sb-<project-ref>-auth-token`.
+    /// Passed explicitly during client creation so SDK persistence and manual cleanup
+    /// cannot drift if the SDK default changes.
+    public static var sessionStorageKey: String {
+        guard let host = AppConfiguration.supabaseURL.host,
+              let projectRef = host.split(separator: ".").first else {
+            preconditionFailure("SUPABASE_URL must contain a project host")
+        }
+        return "sb-\(projectRef)-auth-token"
+    }
 
     private let service: String
 

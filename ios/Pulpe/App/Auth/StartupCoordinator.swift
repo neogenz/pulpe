@@ -1,4 +1,5 @@
 import OSLog
+import Supabase
 
 /// Coordinates app startup with single-flight guarantee.
 /// Ensures only one auth resolution runs at a time, with proper cancellation of obsolete runs.
@@ -192,7 +193,7 @@ actor StartupCoordinator {
         }
 
         guard isCurrentRun(runId) && !Task.isCancelled else { return .cancelled }
-        return await performRegularValidation(runId: runId)
+        return await performRegularValidation(runId: runId, context: context)
     }
 
     private func performMaintenanceCheck() async -> StartupResult? {
@@ -253,10 +254,21 @@ actor StartupCoordinator {
         if let keychainError = error as? KeychainError {
             return await handleBiometricKeychainError(keychainError, runId: runId)
         }
-        Logger.auth.warning("[STARTUP] Biometric validation failed: \(error)")
+        if let authServiceError = error as? AuthServiceError,
+           authServiceError == .biometricSessionExpired {
+            guard isCurrentRun(runId) else { return .cancelled }
+            await clearExpiredBiometricState()
+            return .biometricSessionExpired
+        }
+        if let authError = error as? AuthError,
+           case .sessionMissing = authError {
+            guard isCurrentRun(runId) else { return .cancelled }
+            await clearExpiredBiometricState()
+            return .biometricSessionExpired
+        }
+        Logger.auth.warning("[STARTUP] Biometric validation deferred: \(error)")
         guard isCurrentRun(runId) else { return .cancelled }
-        await clearExpiredBiometricState()
-        return .biometricSessionExpired
+        return .networkError(AuthErrorMessages.connectionUnavailable)
     }
 
     private func handleBiometricURLError(_ error: URLError) -> StartupResult {
@@ -278,10 +290,9 @@ actor StartupCoordinator {
             Logger.auth.info("[STARTUP] Biometric auth failed — falling back to regular session")
             return nil
         default:
-            Logger.auth.warning("[STARTUP] Biometric validation failed: \(error)")
+            Logger.auth.warning("[STARTUP] Biometric keychain validation deferred: \(error)")
             guard isCurrentRun(runId) else { return .cancelled }
-            await clearExpiredBiometricState()
-            return .biometricSessionExpired
+            return .networkError(AuthErrorMessages.connectionUnavailable)
         }
     }
 
@@ -296,12 +307,20 @@ actor StartupCoordinator {
         }
     }
 
-    private func performRegularValidation(runId: UUID) async -> StartupResult {
+    private func performRegularValidation(
+        runId: UUID,
+        context: StartupContext
+    ) async -> StartupResult {
         Logger.auth.debug("[STARTUP] Attempting regular session validation")
 
         do {
             guard let user = try await validateRegularSession() else {
                 Logger.auth.info("[STARTUP] No valid session found - unauthenticated")
+                guard isCurrentRun(runId) else { return .cancelled }
+                if context.biometricEnabled && !context.didExplicitLogout {
+                    await clearExpiredBiometricState()
+                    return .biometricSessionExpired
+                }
                 return .unauthenticated
             }
             return await makeAuthenticatedResult(runId: runId, user: user, source: "Regular")
@@ -322,16 +341,17 @@ actor StartupCoordinator {
             // (which would force credential re-entry over a momentary network blip).
             Logger.auth.warning("[STARTUP] Regular session validation network error: \(urlError, privacy: .public)")
             return .networkError(AuthErrorMessages.connectionUnavailable)
+        } catch AuthServiceError.biometricSessionExpired {
+            guard isCurrentRun(runId) else { return .cancelled }
+            await clearExpiredBiometricState()
+            return .biometricSessionExpired
         } catch {
-            Logger.auth.warning("[STARTUP] Regular session validation failed: \(error)")
+            Logger.auth.warning("[STARTUP] Regular session validation deferred: \(error)")
             // AnalyticsService is @MainActor — hop required from actor context
             await MainActor.run {
                 AnalyticsService.shared.captureAuthError(.sessionRestoreFailed, error: error, method: "regular")
             }
-            if error is KeychainError {
-                return .biometricSessionExpired
-            }
-            return .unauthenticated
+            return .networkError(AuthErrorMessages.connectionUnavailable)
         }
     }
 

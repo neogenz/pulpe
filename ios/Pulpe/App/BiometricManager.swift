@@ -19,7 +19,9 @@ final class BiometricManager {
         }
     }
 
-    var credentialsAvailable = true
+    var credentialsAvailable = false {
+        didSet { credentialsRevision &+= 1 }
+    }
 
     // MARK: - Private State
 
@@ -27,6 +29,7 @@ final class BiometricManager {
     private var isHydrating = false
     private var isEnrollmentInFlight = false
     private var saveTask: Task<Void, Never>?
+    private var credentialsRevision = 0
 
     private func enrollmentDebug(
         _ code: String,
@@ -54,6 +57,7 @@ final class BiometricManager {
     private let _syncCredentials: @Sendable () async -> Bool
     private let _resolveKey: @Sendable () async -> String?
     private let _validateKey: @Sendable (String) async -> Bool
+    private let _credentialsAvailability: @Sendable () async -> Bool
 
     // MARK: - Init
 
@@ -65,7 +69,8 @@ final class BiometricManager {
         authenticate: @Sendable @escaping () async throws -> Void,
         syncCredentials: @Sendable @escaping () async -> Bool,
         resolveKey: @Sendable @escaping () async -> String?,
-        validateKey: @Sendable @escaping (String) async -> Bool
+        validateKey: @Sendable @escaping (String) async -> Bool,
+        credentialsAvailability: (@Sendable () async -> Bool)? = nil
     ) {
         self.preferenceStore = preferenceStore
         self.authService = authService
@@ -75,16 +80,32 @@ final class BiometricManager {
         _syncCredentials = syncCredentials
         _resolveKey = resolveKey
         _validateKey = validateKey
+        _credentialsAvailability = credentialsAvailability ?? { [authService, clientKeyManager] in
+            guard await authService.hasBiometricTokens() else { return false }
+            return await clientKeyManager.hasBiometricKey()
+        }
     }
 
     // MARK: - Preference Loading
 
     func loadPreference() async {
         guard !preferenceLoaded else { return }
+        let revision = credentialsRevision
         let storedPreference = await preferenceStore.load()
+        let storedCredentialsAvailable: Bool
+        if storedPreference {
+            storedCredentialsAvailable = await _credentialsAvailability()
+        } else {
+            storedCredentialsAvailable = false
+        }
         isHydrating = true
         isEnabled = storedPreference
         isHydrating = false
+        // A concurrent invalidation (e.g. session expiry) during the keychain probes
+        // only affects credential availability — the stored user preference still
+        // applies, so always hydrate `isEnabled` and let the fresher writer win on
+        // `credentialsAvailable` (a stale `true` must never overwrite it).
+        credentialsAvailable = revision == credentialsRevision && storedCredentialsAvailable
         preferenceLoaded = true
     }
 
@@ -94,6 +115,9 @@ final class BiometricManager {
         isHydrating = true
         isEnabled = value
         isHydrating = false
+        if !value {
+            credentialsAvailable = false
+        }
     }
 
     // MARK: - Enable / Disable
@@ -154,6 +178,7 @@ final class BiometricManager {
         await authService.clearBiometricTokens()
         await clientKeyManager.disableBiometric()
         isEnabled = false
+        credentialsAvailable = false
     }
 
     // MARK: - Biometric Unlock
@@ -206,6 +231,7 @@ final class BiometricManager {
         Logger.auth.warning(
             "biometric silent reactivation incomplete (tokens=\(tokensReady), key=\(keyReady))"
         )
+        credentialsAvailable = false
         return false
     }
 
@@ -222,6 +248,7 @@ final class BiometricManager {
     func handleStaleKey() async {
         await clientKeyManager.clearAll()
         isEnabled = false
+        credentialsAvailable = false
     }
 
     // MARK: - Default Closure Factories

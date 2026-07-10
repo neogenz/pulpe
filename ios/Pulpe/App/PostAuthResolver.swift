@@ -18,7 +18,7 @@ protocol VaultStatusProviding: Sendable {
 }
 
 protocol SessionRefreshing: Sendable {
-    func refreshSessionForVaultCheck() async -> Bool
+    func refreshSessionForVaultCheck() async throws -> Bool
 }
 
 protocol ClientKeyResolving: Sendable {
@@ -29,12 +29,8 @@ extension EncryptionAPI: VaultStatusProviding {}
 extension ClientKeyManager: ClientKeyResolving {}
 
 extension AuthService: SessionRefreshing {
-    func refreshSessionForVaultCheck() async -> Bool {
-        do {
-            return try await validateSession() != nil
-        } catch {
-            return false
-        }
+    func refreshSessionForVaultCheck() async throws -> Bool {
+        try await forceRefreshAccessToken() != nil
     }
 }
 
@@ -126,13 +122,22 @@ struct PostAuthResolver: PostAuthResolving {
         } catch let error as APIError {
             switch error {
             case .unauthorized:
-                let refreshed = await sessionRefresher.refreshSessionForVaultCheck()
+                let refreshed: Bool
+                do {
+                    refreshed = try await sessionRefresher.refreshSessionForVaultCheck()
+                } catch {
+                    // Refresh failed without proving the persisted session is terminal.
+                    // Preserve it and surface the retry path instead of forcing a login.
+                    Logger.auth.warning("PostAuthResolver: session refresh unavailable - \(error)")
+                    return .unavailable
+                }
                 guard refreshed else { return .sessionExpired }
                 do {
                     return .success(try await vaultStatusProvider.getVaultStatus())
                 } catch let retryError as APIError {
                     if case .unauthorized = retryError {
-                        return .sessionExpired
+                        Logger.auth.warning("PostAuthResolver: backend rejected a freshly refreshed session")
+                        return .unavailable
                     }
                     Logger.auth.error("PostAuthResolver: vault-status retry failed - \(retryError)")
                     return .unavailable

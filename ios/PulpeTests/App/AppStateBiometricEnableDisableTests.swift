@@ -115,8 +115,8 @@ struct AppStateBiometricEnableDisableTests {
         #expect(sut.biometricEnabled == false, "Still disabled after disableBiometric")
     }
 
-    @Test("disableBiometric hides UI via biometricEnabled while credentials remain available")
-    func disableBiometric_hidesUIWhileCredentialsRemainAvailable() async {
+    @Test("disableBiometric clears biometric availability with stored credentials")
+    func disableBiometric_clearsCredentialsAvailability() async {
         let sut = AppState(
             biometricPreferenceStore: AppStateTestFactory.biometricEnabledStore(),
             biometricCapability: { true },
@@ -130,12 +130,7 @@ struct AppStateBiometricEnableDisableTests {
         await sut.disableBiometric()
 
         #expect(sut.biometricEnabled == false, "biometricEnabled should be false")
-        #expect(
-            sut.biometricCredentialsAvailable == true,
-            "credentials remain available — UI is hidden by biometricEnabled being false"
-        )
-        // Note: biometricCredentialsAvailable is not explicitly cleared by disableBiometric(),
-        // but biometricEnabled being false prevents its use (Face ID button hidden via &&).
+        #expect(sut.biometricCredentialsAvailable == false, "cleared credentials must not remain available")
     }
 
     @Test("automatic biometric enrollment concurrency triggers only one OS prompt")

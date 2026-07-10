@@ -12,6 +12,7 @@ actor AuthService {
     private let keychain: KeychainManager
     private let storage: PulpeAuthStorage
     private var authStateListenerTask: Task<Void, Never>?
+    private var pendingBiometricResync = false
 
     private init(keychain: KeychainManager = .shared) {
         self.keychain = keychain
@@ -26,13 +27,7 @@ actor AuthService {
         authStateListenerTask?.cancel()
         authStateListenerTask = nil
         supabase = Self.makeSupabaseClient(storage: storage)
-        // NOTE: gap between client assignment and listener subscription —
-        // `.initialSession` / `.tokenRefreshed` events emitted during this window
-        // are missed. Acceptable while the listener is logging-only; revisit if
-        // the listener takes corrective action.
-        Task(name: "AuthService.restartListener") { [weak self] in
-            await self?.startAuthStateListener()
-        }
+        startAuthStateListener()
     }
 
     private static func makeSupabaseClient(storage: PulpeAuthStorage) -> SupabaseClient {
@@ -42,6 +37,7 @@ actor AuthService {
             options: SupabaseClientOptions(
                 auth: .init(
                     storage: storage,
+                    storageKey: PulpeAuthStorage.sessionStorageKey,
                     emitLocalSessionAsInitialSession: true
                 )
             )
@@ -54,8 +50,8 @@ actor AuthService {
         authStateListenerTask = Task(name: "AuthService.authStateListener") { [weak self] in
             for await (event, session) in stream {
                 switch event {
-                case .tokenRefreshed:
-                    Logger.auth.debug("[AUTH] tokenRefreshed — SDK persisted via PulpeAuthStorage")
+                case .initialSession, .tokenRefreshed:
+                    Logger.auth.debug("[AUTH] session synchronized via PulpeAuthStorage")
                     await self?.refreshBiometricSnapshotIfPresent(session)
                 case .signedOut:
                     Logger.auth.debug("[AUTH] signedOut — SDK cleared storage")
@@ -85,136 +81,82 @@ actor AuthService {
         return Self.userInfo(from: session.user, fallbackEmail: email)
     }
 
-    // MARK: - OAuth
-
-    func signInWithApple(idToken: String, nonce: String) async throws -> UserInfo {
-        try await signInWithIdToken(.init(provider: .apple, idToken: idToken, nonce: nonce))
-    }
-
-    func signInWithGoogle(idToken: String, accessToken: String) async throws -> UserInfo {
-        let credentials = OpenIDConnectCredentials(
-            provider: .google,
-            idToken: idToken,
-            accessToken: accessToken
-        )
-        return try await signInWithIdToken(credentials)
-    }
-
-    private func signInWithIdToken(_ credentials: OpenIDConnectCredentials) async throws -> UserInfo {
-        let session = try await supabase.auth.signInWithIdToken(credentials: credentials)
-        return Self.userInfo(from: session.user, fallbackEmail: "")
-    }
-
-    // MARK: - Password Reset & Recovery
-
-    /// Send a password reset email with a mobile deep-link callback.
-    func requestPasswordReset(
-        email: String,
-        redirectTo: URL = AppConfiguration.passwordResetRedirectURL
-    ) async throws {
-        try await supabase.auth.resetPasswordForEmail(email, redirectTo: redirectTo)
-    }
-
-    /// Consume reset callback URL and create a recovery session.
-    /// Returns context required by the reset-password flow.
-    func beginPasswordRecovery(from url: URL) async throws -> PasswordRecoveryContext {
-        let session = try await supabase.auth.session(from: url)
-        let user = session.user
-        let metadata = user.userMetadata
-
-        var firstName: String?
-        if case .string(let name) = metadata["firstName"] {
-            firstName = name
-        }
-
-        let hasVaultCodeConfigured: Bool
-        if case .bool(let configured) = metadata["vaultCodeConfigured"] {
-            hasVaultCodeConfigured = configured
-        } else {
-            hasVaultCodeConfigured = false
-        }
-
-        return PasswordRecoveryContext(
-            userId: user.id.uuidString,
-            email: user.email ?? "",
-            firstName: firstName,
-            hasVaultCodeConfigured: hasVaultCodeConfigured
-        )
-    }
-
-    /// Re-authenticate with current credentials to verify password knowledge.
-    func verifyPassword(email: String, password: String) async throws {
-        _ = try await supabase.auth.signIn(email: email, password: password)
-    }
-
-    /// Persist a first name to Supabase user_metadata.
-    /// Called fire-and-forget after social sign-in provides a name not in the JWT.
-    func updateUserFirstName(_ name: String) async throws {
-        _ = try await supabase.auth.update(
-            user: UserAttributes(data: ["firstName": .string(name)])
-        )
-    }
-
-    /// Update the current user's password in Supabase auth.
-    func updatePassword(_ newPassword: String) async throws {
-        _ = try await supabase.auth.update(user: UserAttributes(password: newPassword))
-        // SDK persists refreshed session via PulpeAuthStorage automatically.
-    }
-
     // MARK: - Session Validation
+
+    static func isTerminalSessionFailure(_ error: any Error) -> Bool {
+        guard let authError = error as? AuthError else { return false }
+        if case .sessionMissing = authError { return true }
+        return false
+    }
+
+    static func isConfirmedTerminalSessionFailure(
+        _ error: any Error,
+        persistedSessionExists: Bool
+    ) -> Bool {
+        isTerminalSessionFailure(error) && !persistedSessionExists
+    }
+
+    /// The SDK removes its persisted blob on sign-out and on confirmed server-side
+    /// revocation (reuse-detection, expired session) BEFORE surfacing `sessionMissing`,
+    /// so "sessionMissing + no blob" is a reliable terminal verdict. NEVER write that
+    /// blob from the app: the SDK persists every rotation itself, and a second writer
+    /// could overwrite a freshly-rotated session with a consumed refresh token.
+    private func isConfirmedTerminalSessionFailure(_ error: any Error) -> Bool {
+        guard Self.isTerminalSessionFailure(error) else { return false }
+        let blob: Data?
+        do {
+            blob = try storage.retrieve(key: PulpeAuthStorage.sessionStorageKey)
+        } catch {
+            // Slot unreadable — cannot confirm a logout on a keychain read failure.
+            Logger.auth.warning("session slot unreadable - \(error, privacy: .public)")
+            return false
+        }
+        guard let blob else { return true }
+        // sessionMissing with a persisted blob: either a benign write race (the SDK
+        // re-reads the slot on the next attempt) or an undecodable blob the SDK can
+        // never restore. Purge the latter so the app converges to the login screen
+        // instead of an endless retry loop against a corrupt slot.
+        if (try? JSONDecoder().decode(Session.self, from: blob)) == nil {
+            Logger.auth.error("session slot undecodable — purging so logout can be confirmed")
+            try? storage.remove(key: PulpeAuthStorage.sessionStorageKey)
+            return true
+        }
+        return false
+    }
+
+    /// Whether the SDK-owned session blob exists — true iff a user is signed in
+    /// (the SDK removes the blob on sign-out and confirmed revocation).
+    func hasPersistedSession() -> Bool {
+        ((try? storage.retrieve(key: PulpeAuthStorage.sessionStorageKey)) ?? nil) != nil
+    }
 
     func validateSession() async throws -> UserInfo? {
         do {
             let session = try await supabase.auth.session
             return Self.userInfo(from: session.user, fallbackEmail: "")
-        } catch AuthError.sessionMissing {
-            // Genuinely logged out — no token to restore. Expected on every cold start of a
-            // signed-out user, so log at `.info` to keep `.error` meaningful (the line below
-            // stays reserved for the real bug we are hunting).
-            Logger.auth.info("validateSession: no active session (logged out)")
-            return nil
         } catch {
-            // Instrumentation: surface WHY cold-start / foreground session restore fails.
-            // Any error reaching here (e.g. refresh-token reuse detection revoking the whole
-            // token family) is the bug we are hunting. `.public` so the exact Supabase cause
-            // is visible on a device repro without leaking tokens (AuthError descriptions
-            // carry no secrets).
+            if isConfirmedTerminalSessionFailure(error) {
+                Logger.auth.info("validateSession: no active session (logged out)")
+                return nil
+            }
             Logger.auth.error("validateSession: SDK session unavailable - \(error, privacy: .public)")
-            return nil
+            throw error
         }
     }
 
-    /// Like `validateSession()` but distinguishes a transient connectivity failure from a
-    /// genuine session loss. Throws on `URLError` (offline / timeout / connection lost on a
-    /// freshly-resumed radio) so callers can treat it as "retry later" instead of forcing a
-    /// destructive logout on a flaky connection. Returns nil only when the SDK confirms there
-    /// is no usable session (e.g. `AuthError.sessionMissing`, or a refresh the server rejected).
-    /// Mirrors `resolveAccessTokenStrict()` — the foreground/cold-start session checks use this
-    /// so a routine post-expiry refresh hiccup can no longer revoke the session (PUL-265 follow-up).
     func validateSessionStrict() async throws -> UserInfo? {
         do {
             let session = try await supabase.auth.session
             return Self.userInfo(from: session.user, fallbackEmail: "")
-        } catch let error as URLError {
-            throw error
-        } catch is CancellationError {
-            // A superseded startup run cancels before/at the session suspension point. Propagate so
-            // the caller maps it to `.cancelled` (a no-op) instead of `.unauthenticated`, which
-            // would let an obsolete run clobber the newer one's state.
-            throw CancellationError()
-        } catch AuthError.sessionMissing {
-            // Normal logged-out state (no stored session) — e.g. a fresh user or after an explicit
-            // logout. Not a warning; keep the real-error channel below clean for actual regressions.
-            Logger.auth.info("validateSessionStrict: no active session (logged out)")
-            return nil
         } catch {
-            // `.public` (full error, not just localizedDescription) so a silent post-expiry
-            // refresh regression shows the exact Supabase cause (e.g. AuthError.api) on a device
-            // repro without leaking tokens.
+            if isConfirmedTerminalSessionFailure(error) {
+                Logger.auth.info("validateSessionStrict: no active session (logged out)")
+                return nil
+            }
             Logger.auth.warning(
                 "validateSessionStrict: auth session unavailable - \(error, privacy: .public)"
             )
-            return nil
+            throw error
         }
     }
 
@@ -268,25 +210,21 @@ actor AuthService {
         }
     }
 
-    /// Returns the current access token, distinguishing transient network failures
-    /// from genuine auth invalidation. Throws on `URLError` so the caller can avoid
-    /// forcing a logout on a temporary network drop. Returns nil only when the SDK
-    /// confirms there is no usable session.
-    func resolveAccessTokenStrict() async throws -> String? {
+    /// Forces Supabase to rotate the refresh token even when the access token has not expired.
+    /// Used after an API 401 so retrying cannot reuse the token that the backend rejected.
+    func forceRefreshAccessToken() async throws -> String? {
         do {
-            let session = try await supabase.auth.session
+            let session = try await supabase.auth.refreshSession()
             return session.accessToken
-        } catch let error as URLError {
-            throw error
-        } catch is CancellationError {
-            // Propagate cancellation (e.g. a superseded request) rather than reporting it as
-            // "no usable session", which would push APIClient into a spurious logout.
-            throw CancellationError()
         } catch {
+            if isConfirmedTerminalSessionFailure(error) {
+                Logger.auth.info("forceRefreshAccessToken: no active session (logged out)")
+                return nil
+            }
             Logger.auth.warning(
-                "resolveAccessTokenStrict: auth session unavailable - \(error.localizedDescription, privacy: .public)"
+                "forceRefreshAccessToken: refresh unavailable - \(error, privacy: .public)"
             )
-            return nil
+            throw error
         }
     }
 
@@ -304,26 +242,34 @@ actor AuthService {
         }
     }
 
-    /// Keeps the biometric snapshot in lock-step with the SDK's rotated refresh token.
-    /// `enable_refresh_token_rotation` is ON in Supabase: every refresh rotates the token,
-    /// and replaying a rotated-away one trips reuse detection — which revokes the WHOLE
-    /// token family. The snapshot was previously only re-written at auth transitions, so it
-    /// drifted stale within ~1h and biometric re-entry replayed a revoked token (login
-    /// screen Face ID dead-end + family revocation killing the next cold-start restore).
-    /// Re-snapshotting on every `.tokenRefreshed` keeps the slot current. Only refreshes an
-    /// EXISTING slot — never creates one — so non-biometric users keep no snapshot. The
-    /// check-and-write is atomic in `KeychainManager.resyncBiometricTokensIfPresent`, so a
-    /// concurrent clear (the single-use clear in `validateBiometricSession`, or a Face ID
-    /// disable) can never be straddled — a cleared slot is never resurrected.
+    /// Keeps an existing biometric snapshot aligned with Supabase refresh-token rotation.
+    /// The atomic keychain update cannot recreate a snapshot cleared concurrently.
     private func refreshBiometricSnapshotIfPresent(_ session: Session?) async {
         guard let session else { return }
+        guard !Task.isCancelled else { return }
         let outcome = await keychain.resyncBiometricTokensIfPresent(
             accessToken: session.accessToken,
             refreshToken: session.refreshToken
         )
-        if case .failed = outcome {
-            Logger.auth.warning("[AUTH] biometric snapshot resync failed after token refresh")
+        switch outcome {
+        case .failed:
+            // The biometric slot is WhenUnlocked-protected: a rotation that lands while
+            // the device is locked (background widget refresh) cannot be snapshotted.
+            // Defer instead of dropping — the next foreground replays it (device unlocked).
+            pendingBiometricResync = true
+            Logger.auth.warning("[AUTH] biometric snapshot resync failed after token refresh — deferred")
+        case .resnapshotted, .noSlot:
+            pendingBiometricResync = false
         }
+    }
+
+    /// Replays a biometric snapshot resync that failed while the device was locked.
+    /// Call on foreground entry — the device is unlocked, so the write can succeed.
+    func retryPendingBiometricResync() async {
+        guard pendingBiometricResync else { return }
+        pendingBiometricResync = false
+        guard let session = try? await supabase.auth.session else { return }
+        await refreshBiometricSnapshotIfPresent(session)
     }
 
     func validateBiometricSession() async throws -> BiometricSessionResult? {
@@ -373,22 +319,7 @@ actor AuthService {
         Logger.auth.debug("[AUTH_BIO_KEYCHAIN_CLIENT_KEY] present=\((clientKeyHex != nil), privacy: .public)")
         #endif
 
-        let session: Session
-        do {
-            session = try await supabase.auth.refreshSession(refreshToken: refreshToken)
-        } catch {
-            // The biometric snapshot is now kept in lock-step with the SDK's rotated token
-            // (see refreshBiometricSnapshotIfPresent), so a failure here means the refresh
-            // token is genuinely dead server-side (reuse detection / revoked / expired).
-            // `.public` + analytics so the exact Supabase cause is visible on a repro.
-            Logger.auth.error("validateBiometricSession: session refresh failed - \(error, privacy: .public)")
-            await MainActor.run {
-                AnalyticsService.shared.captureAuthError(
-                    .sessionRestoreFailed, error: error, method: "biometric_refresh"
-                )
-            }
-            throw AuthServiceError.biometricSessionExpired
-        }
+        let session = try await refreshSessionFromBiometricSnapshot(refreshToken)
 
         // SDK persisted the new session via PulpeAuthStorage. The biometric slot
         // is single-use cold-storage — clear it so the next logout-keep-biometric
@@ -406,9 +337,115 @@ actor AuthService {
     func hasBiometricTokens() async -> Bool {
         await keychain.hasBiometricTokens()
     }
+}
 
-    // MARK: - User Info Extraction
+// MARK: - OAuth
 
+extension AuthService {
+    func signInWithApple(idToken: String, nonce: String) async throws -> UserInfo {
+        try await signInWithIdToken(.init(provider: .apple, idToken: idToken, nonce: nonce))
+    }
+
+    func signInWithGoogle(idToken: String, accessToken: String) async throws -> UserInfo {
+        let credentials = OpenIDConnectCredentials(
+            provider: .google,
+            idToken: idToken,
+            accessToken: accessToken
+        )
+        return try await signInWithIdToken(credentials)
+    }
+
+    private func signInWithIdToken(_ credentials: OpenIDConnectCredentials) async throws -> UserInfo {
+        let session = try await supabase.auth.signInWithIdToken(credentials: credentials)
+        return Self.userInfo(from: session.user, fallbackEmail: "")
+    }
+}
+
+// MARK: - Password Reset & Recovery
+
+extension AuthService {
+    /// Send a password reset email with a mobile deep-link callback.
+    func requestPasswordReset(
+        email: String,
+        redirectTo: URL = AppConfiguration.passwordResetRedirectURL
+    ) async throws {
+        try await supabase.auth.resetPasswordForEmail(email, redirectTo: redirectTo)
+    }
+
+    /// Consume reset callback URL and create a recovery session.
+    /// Returns context required by the reset-password flow.
+    func beginPasswordRecovery(from url: URL) async throws -> PasswordRecoveryContext {
+        let session = try await supabase.auth.session(from: url)
+        let user = session.user
+        let metadata = user.userMetadata
+
+        var firstName: String?
+        if case .string(let name) = metadata["firstName"] {
+            firstName = name
+        }
+
+        let hasVaultCodeConfigured: Bool
+        if case .bool(let configured) = metadata["vaultCodeConfigured"] {
+            hasVaultCodeConfigured = configured
+        } else {
+            hasVaultCodeConfigured = false
+        }
+
+        return PasswordRecoveryContext(
+            userId: user.id.uuidString,
+            email: user.email ?? "",
+            firstName: firstName,
+            hasVaultCodeConfigured: hasVaultCodeConfigured
+        )
+    }
+
+    /// Re-authenticate with current credentials to verify password knowledge.
+    func verifyPassword(email: String, password: String) async throws {
+        _ = try await supabase.auth.signIn(email: email, password: password)
+    }
+
+    /// Persist a first name to Supabase user_metadata.
+    /// Called fire-and-forget after social sign-in provides a name not in the JWT.
+    func updateUserFirstName(_ name: String) async throws {
+        _ = try await supabase.auth.update(
+            user: UserAttributes(data: ["firstName": .string(name)])
+        )
+    }
+
+    /// Update the current user's password in Supabase auth.
+    func updatePassword(_ newPassword: String) async throws {
+        _ = try await supabase.auth.update(user: UserAttributes(password: newPassword))
+        // SDK persists refreshed session via PulpeAuthStorage automatically.
+    }
+}
+
+// MARK: - Biometric Refresh Helper
+
+extension AuthService {
+    /// Redeems the single-use biometric refresh token against Supabase.
+    /// A terminal verdict (SDK already purged the stored session) maps to
+    /// `biometricSessionExpired`; anything else is rethrown as retryable.
+    private func refreshSessionFromBiometricSnapshot(_ refreshToken: String) async throws -> Session {
+        do {
+            return try await supabase.auth.refreshSession(refreshToken: refreshToken)
+        } catch {
+            Logger.auth.error("validateBiometricSession: session refresh failed - \(error, privacy: .public)")
+            await MainActor.run {
+                AnalyticsService.shared.captureAuthError(
+                    .sessionRestoreFailed, error: error, method: "biometric_refresh"
+                )
+            }
+            if Self.isTerminalSessionFailure(error) {
+                throw AuthServiceError.biometricSessionExpired
+            }
+            throw error
+        }
+    }
+}
+
+// MARK: - User Info Extraction
+
+extension AuthService {
     static func userInfo(from user: User, fallbackEmail: String) -> UserInfo {
         let metadata = user.userMetadata
 
@@ -441,89 +478,4 @@ actor AuthService {
             isEarlyAdopter: isEarlyAdopter
         )
     }
-}
-
-// MARK: - Auth Errors
-
-enum AuthServiceError: LocalizedError, Equatable {
-    case signupFailed(String)
-    case loginFailed(String)
-    case biometricSaveFailed
-    case biometricSessionExpired
-    /// Post-auth resolution determined the user is no longer authenticated
-    /// (vault-status returned 401 even after a refresh attempt).
-    case sessionExpired
-
-    var errorDescription: String? {
-        switch self {
-        case .signupFailed(let message):
-            return "L'inscription n'a pas abouti — \(message)"
-        case .loginFailed(let message):
-            return "La connexion n'a pas abouti — \(message)"
-        case .biometricSaveFailed:
-            return "Les identifiants biométriques n'ont pas pu être enregistrés"
-        case .biometricSessionExpired:
-            return "La session biométrique a expiré — reconnecte-toi"
-        case .sessionExpired:
-            return "Ta session a expiré — reconnecte-toi"
-        }
-    }
-}
-
-// MARK: - Response Types
-
-struct BiometricSessionResult: Sendable {
-    let user: UserInfo
-    let clientKeyHex: String?
-}
-
-/// Auth provider that created the Supabase user.
-/// Used to disambiguate email signup from OAuth during post-auth routing.
-enum AuthProvider: String, Codable, Equatable, Sendable {
-    case email
-    case apple
-    case google
-
-    /// Maps a Supabase `app_metadata.provider` value to an `AuthProvider`.
-    /// Supabase uses lowercase strings like "email", "apple", "google", but some
-    /// deployments may return "apple.com" or "google.com" — accept both.
-    static func fromSupabase(_ rawValue: String) -> AuthProvider? {
-        switch rawValue.lowercased() {
-        case "email": return .email
-        case "apple", "apple.com": return .apple
-        case "google", "google.com": return .google
-        default: return nil
-        }
-    }
-}
-
-struct UserInfo: Codable, Equatable, Sendable {
-    let id: String
-    let email: String
-    var firstName: String?
-    let provider: AuthProvider?
-    /// Mirrored from Supabase `auth.users.app_metadata.early_adopter` — PostHog feature flag target.
-    var isEarlyAdopter: Bool = false
-
-    init(id: String, email: String, firstName: String? = nil,
-         provider: AuthProvider? = nil, isEarlyAdopter: Bool = false) {
-        self.id = id
-        self.email = email
-        self.firstName = firstName
-        self.provider = provider
-        self.isEarlyAdopter = isEarlyAdopter
-    }
-}
-
-struct DeleteAccountResponse: Codable, Sendable {
-    let success: Bool
-    let message: String
-    let scheduledDeletionAt: String
-}
-
-struct PasswordRecoveryContext: Equatable, Sendable {
-    let userId: String
-    let email: String
-    let firstName: String?
-    let hasVaultCodeConfigured: Bool
 }

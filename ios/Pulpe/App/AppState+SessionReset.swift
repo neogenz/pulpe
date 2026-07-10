@@ -21,6 +21,13 @@ extension AppState {
         defer { sessionLifecycleCoordinator.clearRestoringSession() }
         authDebug("AUTH_FG", "begin isRestoring=\(sessionLifecycleCoordinator.isRestoringSession)")
 
+        // Replay a biometric snapshot resync that failed while the device was locked
+        // (background token rotation) — the slot is WhenUnlocked-protected, and we are
+        // in the foreground now, so the device is unlocked.
+        Task(name: "AppState.biometricResyncRetry") { [authService] in
+            await authService.retryPendingBiometricResync()
+        }
+
         if sessionLifecycleCoordinator.isRestoringSession {
             lastLockReason = .backgroundTimeout
         }
@@ -32,47 +39,56 @@ extension AppState {
         case .noLockNeeded:
             break
         case .biometricUnlockSuccess:
-            // Refresh Supabase session in background — token may have expired
-            // during long background periods. Non-blocking: user sees the app
-            // immediately, session refresh happens concurrently.
-            backgroundRefreshTask?.cancel()
-            let validate = validateRegularSession
-            backgroundRefreshTask = Task(name: "AppState.backgroundRefresh") { [weak self] in
-                defer { Task { @MainActor [weak self] in self?.backgroundRefreshTask = nil } }
-                do {
-                    let user = try await validate()
-                    if user == nil {
-                        guard !Task.isCancelled else { return }
-                        Logger.auth.warning(
-                            "handleEnterForeground: session refresh returned nil (no active session)"
-                        )
-                        await self?.logout(source: .system)
-                    }
-                } catch let error as URLError {
-                    // Keep the session: this URLError is either a transient connectivity blip on a
-                    // freshly-resumed radio (the session is still valid server-side — logging out
-                    // would server-revoke a live session and wipe Face ID, the PUL-265 root cause)
-                    // or a deliberate cancellation from a concurrent logout. Either way, do NOT log
-                    // out; the next successful network call / SDK auto-refresh refreshes the token.
-                    if error.code == .cancelled {
-                        Logger.auth.debug("handleEnterForeground: background refresh cancelled")
-                    } else {
-                        Logger.auth.warning(
-                            "handleEnterForeground: refresh skipped, keeping session - \(error, privacy: .public)"
-                        )
-                    }
-                } catch {
-                    guard !Task.isCancelled else { return }
-                    Logger.auth.warning(
-                        "handleEnterForeground: session refresh failed - \(error)"
-                    )
-                    await self?.logout(source: .system)
-                }
-            }
+            startBackgroundSessionRefresh()
             authDebug("AUTH_FG", "biometric unlock success, background refresh started")
         case .lockRequired, .staleKeyLockRequired:
             authDebug("AUTH_FG", "lock required, setting needsPinEntry")
             authState = .needsPinEntry
+        }
+    }
+
+    /// Refreshes the Supabase session in background after a successful biometric unlock —
+    /// the token may have expired during long background periods. Non-blocking: the user
+    /// sees the app immediately, session refresh happens concurrently.
+    private func startBackgroundSessionRefresh() {
+        backgroundRefreshTask?.cancel()
+        let validate = validateRegularSession
+        backgroundRefreshTask = Task(name: "AppState.backgroundRefresh") { [weak self] in
+            defer { Task { @MainActor [weak self] in self?.backgroundRefreshTask = nil } }
+            do {
+                let user = try await validate()
+                if user == nil {
+                    guard !Task.isCancelled else { return }
+                    Logger.auth.warning(
+                        "handleEnterForeground: session refresh returned nil (no active session)"
+                    )
+                    await self?.logout(source: .system)
+                }
+            } catch AuthServiceError.sessionExpired {
+                guard !Task.isCancelled else { return }
+                Logger.auth.warning(
+                    "handleEnterForeground: confirmed session expiry"
+                )
+                await self?.logout(source: .system)
+            } catch let error as URLError {
+                // Keep the session: this URLError is either a transient connectivity blip on a
+                // freshly-resumed radio (the session is still valid server-side — logging out
+                // would server-revoke a live session and wipe Face ID, the PUL-265 root cause)
+                // or a deliberate cancellation from a concurrent logout. Either way, do NOT log
+                // out; the next successful network call / SDK auto-refresh refreshes the token.
+                if error.code == .cancelled {
+                    Logger.auth.debug("handleEnterForeground: background refresh cancelled")
+                } else {
+                    Logger.auth.warning(
+                        "handleEnterForeground: refresh skipped, keeping session - \(error, privacy: .public)"
+                    )
+                }
+            } catch {
+                guard !Task.isCancelled else { return }
+                Logger.auth.warning(
+                    "handleEnterForeground: refresh deferred, keeping session - \(error)"
+                )
+            }
         }
     }
 
@@ -96,6 +112,7 @@ extension AppState {
     func handleSessionExpired() async {
         authDebug("AUTH_SESSION_EXPIRED", "triggered isLoggingOut=\(isLoggingOut)")
         guard !isLoggingOut else { return }
+        await biometric.handleSessionExpired()
         await clientKeyManager.clearSession()
         resetSession(.sessionExpiry)
     }
@@ -161,6 +178,19 @@ extension AppState {
         await clientKeyManager.clearSession()
         authDebug("AUTH_LOGOUT", "session cleared, resetting")
         resetSession(source == .userInitiated ? .userLogout : .systemLogout)
+    }
+
+    // MARK: - Startup Retry Escape
+
+    /// Escape hatch from the startup retry screen (`NetworkUnavailableView`): abandon
+    /// the session that keeps failing and return to the login screen. Without it, a
+    /// permanent failure misclassified as retryable traps the user forever.
+    func abandonStartupRetry() async {
+        authDebug("AUTH_STARTUP_ESCAPE", "user abandoned startup retry")
+        await logout(source: .system)
+        // `logout` leaves the transitional route flag untouched; clear it so the
+        // route derivation stops short-circuiting to the network-error screen.
+        isNetworkUnavailable = false
     }
 
     // MARK: - Password Reset

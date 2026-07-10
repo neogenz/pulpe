@@ -3,6 +3,39 @@ import Foundation
 import Testing
 
 struct BiometricPreferencePersistenceTests {
+    @MainActor
+    @Test("keychain credentials make biometric action available after preference hydration")
+    func availableCredentialsAreHydrated() async {
+        let sut = makeBiometricManager(credentialsAvailable: true)
+
+        #expect(sut.credentialsAvailable == false)
+        await sut.loadPreference()
+
+        #expect(sut.isEnabled == true)
+        #expect(sut.credentialsAvailable == true)
+    }
+
+    @MainActor
+    @Test("session expiry during hydration cannot restore stale biometric credentials")
+    func sessionExpiryDuringHydration_keepsCredentialsUnavailable() async {
+        let pending = AtomicProperty<CheckedContinuation<Bool, Never>?>(nil)
+        let sut = makeBiometricManager(credentialsAvailability: {
+            await withCheckedContinuation { pending.set($0) }
+        })
+        let hydration = Task { await sut.loadPreference() }
+        while pending.value == nil { await Task.yield() }
+
+        await sut.handleSessionExpired()
+        pending.value?.resume(returning: true)
+        await hydration.value
+
+        #expect(sut.credentialsAvailable == false)
+        #expect(
+            sut.isEnabled == true,
+            "Session expiry only invalidates credentials — the stored preference must still hydrate"
+        )
+    }
+
     @Test("keychain preference is used first when available")
     func keychainFirst_whenPreferenceExists() async {
         let keychain = StubBiometricPreferenceKeychain(initial: true)
@@ -68,6 +101,31 @@ struct BiometricPreferencePersistenceTests {
         let savedValues = await keychain.savedValues
         #expect(savedValues.count == 10)
         #expect(savedValues.allSatisfy { $0 == true })
+    }
+
+    @MainActor
+    private func makeBiometricManager(credentialsAvailable: Bool) -> BiometricManager {
+        makeBiometricManager(credentialsAvailability: { credentialsAvailable })
+    }
+
+    @MainActor
+    private func makeBiometricManager(
+        credentialsAvailability: @escaping @Sendable () async -> Bool
+    ) -> BiometricManager {
+        BiometricManager(
+            preferenceStore: BiometricPreferenceStore(
+                keychain: StubBiometricPreferenceKeychain(initial: true),
+                defaults: StubBiometricPreferenceDefaults(initial: false)
+            ),
+            authService: .shared,
+            clientKeyManager: .shared,
+            capability: { true },
+            authenticate: {},
+            syncCredentials: { true },
+            resolveKey: { nil },
+            validateKey: { _ in true },
+            credentialsAvailability: credentialsAvailability
+        )
     }
 }
 

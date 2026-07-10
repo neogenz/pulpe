@@ -2,6 +2,7 @@ import Foundation
 @testable import Pulpe
 import Testing
 
+// swiftlint:disable type_body_length
 /// Regression tests for Bug 2 (deleteAccount clears onboarding) and Bug 3 (explicit logout prevents auto Face ID).
 /// Verifies that:
 /// - deleteAccount() clears onboarding state and hasReturningUser
@@ -227,6 +228,28 @@ struct AppStateLogoutBiometricTests {
             UserDefaults.standard.bool(forKey: Self.didExplicitLogoutKey) == false,
             "loginWithBiometric() must clear the didExplicitLogout flag"
         )
+    }
+
+    // MARK: - Face ID Cancel on Login Screen Must Not Destroy Credentials
+
+    @Test("loginWithBiometric cancel keeps biometric credentials and shows no error")
+    func loginWithBiometric_userCancel_keepsCredentials() async {
+        UserDefaults.standard.set(true, forKey: Self.hasLaunchedBeforeKey)
+        defer { UserDefaults.standard.removeObject(forKey: Self.hasLaunchedBeforeKey) }
+
+        let sut = AppState(
+            postAuthResolver: MockPostAuthResolver(destination: .needsPinEntry(needsRecoveryKeyConsent: false)),
+            biometricPreferenceStore: AppStateTestFactory.biometricEnabledStore(),
+            validateBiometricSession: { throw KeychainError.userCanceled }
+        )
+        await sut.bootstrap()
+        sut.biometricCredentialsAvailable = true
+
+        await sut.loginWithBiometric()
+
+        #expect(sut.biometricEnabled == true, "Cancel must not disable the biometric preference")
+        #expect(sut.biometricCredentialsAvailable == true, "Cancel must not wipe the snapshot")
+        #expect(sut.biometricError == nil, "Cancel is not an error state")
     }
 
     // MARK: - Bug 3: Successful login() Clears Flag

@@ -1,6 +1,7 @@
 import Foundation
 import Observation
 @testable import Pulpe
+import Supabase
 import Testing
 
 // swiftlint:disable type_body_length file_length
@@ -399,9 +400,8 @@ struct AppStateBackgroundLockTests {
             validateBiometricKey: { _ in true },
             validateRegularSession: {
                 sessionRefreshAttempted.set()
-                // A GENUINE (non-network) session loss — e.g. the server rejected the refresh
-                // token. This must still log out. Only transient URLErrors are now spared
-                // (see `foregroundBiometricUnlock_transientNetworkError_keepsSessionAndBiometric`).
+                // A confirmed session loss. Unknown server and transport failures keep the
+                // local session so the next refresh can retry.
                 throw AuthServiceError.sessionExpired
             },
             nowProvider: { now.value }
@@ -474,17 +474,20 @@ struct AppStateBackgroundLockTests {
 
     // MARK: - PUL-278: Transient Refresh Failure Must NOT Force Logout
 
-    /// Regression: after the 1h access-token expiry, every reopen forces a network refresh.
-    /// On app-resume the radio is frequently cold, so the refresh hits a transient URLError.
-    /// Today `validateSession()` swallows it -> nil/throw -> `logout(source: .system)`, which
-    /// server-revokes the refresh token, wipes+disables biometric, and forces credential
-    /// re-entry. The session was actually still valid server-side — this is a self-inflicted,
-    /// permanent logout. A transient/offline failure must leave the (already biometric-unlocked)
-    /// session intact and defer the refresh; only a CONFIRMED server-side session loss may log out.
-    @Test func foregroundBiometricUnlock_transientNetworkError_keepsSessionAndBiometric() async {
+    /// An indeterminate refresh failure must preserve the unlocked session and biometric state.
+    @Test func foregroundBiometricUnlock_authServerError_keepsSessionAndBiometric() async {
         let refreshAttempted = AtomicFlag()
         let signOutCalled = AtomicFlag()
         let now = AtomicProperty(Date(timeIntervalSince1970: 0))
+        let serverError = AuthError.api(
+            message: "Service temporarily unavailable",
+            errorCode: .unexpectedFailure,
+            underlyingData: Data(),
+            underlyingResponse: makeHTTPResponse(
+                for: URLRequest(url: AppConfiguration.supabaseURL),
+                statusCode: 503
+            )
+        )
 
         let sut = AppState(
             postAuthResolver: pinResolver,
@@ -494,14 +497,14 @@ struct AppStateBackgroundLockTests {
             validateBiometricKey: { _ in true },
             validateRegularSession: {
                 refreshAttempted.set()
-                // Transient connectivity failure on a freshly-resumed radio.
-                throw URLError(.notConnectedToInternet)
+                throw serverError
             },
             performSignOut: { _ in signOutCalled.set() },
             nowProvider: { now.value }
         )
         sut.biometricEnabled = true
         await authenticateViaPinEntry(sut)
+        sut.biometricCredentialsAvailable = true
 
         sut.handleEnterBackground()
         now.set(Date(timeIntervalSince1970: 7200)) // 2h — access token definitely expired
@@ -527,6 +530,7 @@ struct AppStateBackgroundLockTests {
             sut.biometricEnabled == true,
             "Transient refresh failure must NOT wipe/disable biometric"
         )
+        #expect(sut.biometricCredentialsAvailable == true)
     }
 
     @Test func foregroundAfterGracePeriod_biometricDisabled_requiresPinEntry() async {
