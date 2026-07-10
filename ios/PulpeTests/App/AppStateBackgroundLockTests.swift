@@ -388,49 +388,6 @@ struct AppStateBackgroundLockTests {
         }
     }
 
-    @Test func foregroundBiometricUnlock_genuineSessionLoss_logsOut() async {
-        let sessionRefreshAttempted = AtomicFlag()
-        let now = AtomicProperty(Date(timeIntervalSince1970: 0))
-
-        let sut = AppState(
-            postAuthResolver: pinResolver,
-            biometricPreferenceStore: AppStateTestFactory.biometricEnabledStore(),
-            syncBiometricCredentials: { true },
-            resolveBiometricKey: { "restored-key" },
-            validateBiometricKey: { _ in true },
-            validateRegularSession: {
-                sessionRefreshAttempted.set()
-                // A confirmed session loss. Unknown server and transport failures keep the
-                // local session so the next refresh can retry.
-                throw AuthServiceError.sessionExpired
-            },
-            nowProvider: { now.value }
-        )
-        sut.biometricEnabled = true
-        await authenticateViaPinEntry(sut)
-
-        sut.handleEnterBackground()
-        now.set(Date(timeIntervalSince1970: 7200)) // 2 hours
-        sut.prepareForForeground()
-
-        await sut.handleEnterForeground()
-
-        // Session refresh was attempted
-        await waitForCondition(
-            timeout: .milliseconds(500),
-            "validateRegularSession must be attempted"
-        ) {
-            sessionRefreshAttempted.value
-        }
-        // When the session is genuinely gone, the user should be logged out
-        await waitForCondition(
-            timeout: .milliseconds(500),
-            "authState should be unauthenticated after a genuine session loss"
-        ) {
-            sut.authState == .unauthenticated
-        }
-    }
-
     @Test func foregroundBiometricUnlock_sessionRefreshReturnsNil_logsOut() async {
         let sessionRefreshAttempted = AtomicFlag()
         let now = AtomicProperty(Date(timeIntervalSince1970: 0))

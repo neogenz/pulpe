@@ -20,13 +20,13 @@ public struct PulpeAuthStorage: AuthLocalStorage {
     /// Canonical key used by `SupabaseClient`: `sb-<project-ref>-auth-token`.
     /// Passed explicitly during client creation so SDK persistence and manual cleanup
     /// cannot drift if the SDK default changes.
-    public static var sessionStorageKey: String {
+    public static let sessionStorageKey: String = {
         guard let host = AppConfiguration.supabaseURL.host,
               let projectRef = host.split(separator: ".").first else {
             preconditionFailure("SUPABASE_URL must contain a project host")
         }
         return "sb-\(projectRef)-auth-token"
-    }
+    }()
 
     private let service: String
 

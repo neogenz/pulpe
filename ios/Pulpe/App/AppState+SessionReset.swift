@@ -64,12 +64,6 @@ extension AppState {
                     )
                     await self?.logout(source: .system)
                 }
-            } catch AuthServiceError.sessionExpired {
-                guard !Task.isCancelled else { return }
-                Logger.auth.warning(
-                    "handleEnterForeground: confirmed session expiry"
-                )
-                await self?.logout(source: .system)
             } catch let error as URLError {
                 // Keep the session: this URLError is either a transient connectivity blip on a
                 // freshly-resumed radio (the session is still valid server-side — logging out

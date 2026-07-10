@@ -5,7 +5,7 @@ struct NetworkUnavailableView: View {
     let onRetry: () async -> Void
     /// Escape hatch back to the login screen. Without it, a session failure
     /// misclassified as retryable would trap the user on this screen forever.
-    var onSignOut: (() async -> Void)?
+    let onSignOut: (() async -> Void)?
     @State private var isRetrying = false
 
     var body: some View {
@@ -61,7 +61,8 @@ struct NetworkUnavailableView: View {
 }
 
 #Preview {
-    NetworkUnavailableView {
-        try? await Task.sleep(for: .seconds(1))
-    }
+    NetworkUnavailableView(
+        onRetry: { try? await Task.sleep(for: .seconds(1)) },
+        onSignOut: nil
+    )
 }
