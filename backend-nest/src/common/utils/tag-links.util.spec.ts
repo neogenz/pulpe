@@ -1,0 +1,103 @@
+import { describe, expect, it, jest } from 'bun:test';
+import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
+import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
+import { fetchTagIds, replaceTagLinks } from './tag-links.util';
+
+const replaceParams = {
+  rpcName: 'replace_transaction_tags' as const,
+  rpcIdParam: 'p_transaction_id',
+  entityId: 'transaction-1',
+  tagIds: ['tag-1'],
+  operation: 'updateTransaction',
+  entityType: 'transaction_tag',
+  fallbackErrorDef: ERROR_DEFINITIONS.TRANSACTION_UPDATE_FAILED,
+};
+
+describe('replaceTagLinks', () => {
+  for (const code of ['23503', '42501']) {
+    it(`should map ${code} to TAG_NOT_FOUND`, async () => {
+      const error = { code, message: 'tag rejected' };
+      const supabase = {
+        rpc: jest.fn().mockResolvedValue({ error }),
+      } as unknown as AuthenticatedSupabaseClient;
+
+      await expect(
+        replaceTagLinks(supabase, replaceParams),
+      ).rejects.toMatchObject({
+        code: 'ERR_TAG_NOT_FOUND',
+        cause: error,
+        loggingContext: {
+          operation: 'updateTransaction',
+          entityId: 'transaction-1',
+          entityType: 'transaction_tag',
+        },
+      });
+    });
+  }
+
+  it('should map other errors to the caller fallback definition', async () => {
+    const error = { code: '08006', message: 'connection lost' };
+    const supabase = {
+      rpc: jest.fn().mockResolvedValue({ error }),
+    } as unknown as AuthenticatedSupabaseClient;
+
+    await expect(
+      replaceTagLinks(supabase, replaceParams),
+    ).rejects.toMatchObject({
+      code: 'ERR_TRANSACTION_UPDATE_FAILED',
+      cause: error,
+    });
+  });
+});
+
+describe('fetchTagIds', () => {
+  it('should return tag ids from the junction rows', async () => {
+    const supabase = {
+      from: jest.fn().mockReturnValue({
+        select: () => ({
+          eq: jest.fn().mockResolvedValue({
+            data: [{ tag_id: 'tag-1' }, { tag_id: 'tag-2' }],
+            error: null,
+          }),
+        }),
+      }),
+    } as unknown as AuthenticatedSupabaseClient;
+
+    const result = await fetchTagIds(
+      supabase,
+      'transaction_tag',
+      'transaction_id',
+      'transaction-1',
+      'toggleCheck',
+      ERROR_DEFINITIONS.TRANSACTION_UPDATE_FAILED,
+    );
+
+    expect(result).toEqual(['tag-1', 'tag-2']);
+  });
+
+  it('should wrap a refetch error with the caller fallback definition', async () => {
+    const error = { code: '08006', message: 'connection lost' };
+    const supabase = {
+      from: jest.fn().mockReturnValue({
+        select: () => ({
+          eq: jest.fn().mockResolvedValue({ data: null, error }),
+        }),
+      }),
+    } as unknown as AuthenticatedSupabaseClient;
+
+    await expect(
+      fetchTagIds(
+        supabase,
+        'budget_line_tag',
+        'budget_line_id',
+        'line-1',
+        'toggleCheck',
+        ERROR_DEFINITIONS.BUDGET_LINE_UPDATE_FAILED,
+      ),
+    ).rejects.toMatchObject({
+      code: 'ERR_BUDGET_LINE_UPDATE_FAILED',
+      cause: error,
+      loggingContext: { entityType: 'budget_line_tag' },
+    });
+  });
+});

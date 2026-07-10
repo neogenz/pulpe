@@ -210,7 +210,10 @@ describe('SupabaseBudgetTemplateRepository', () => {
           description: '',
           tagIds: ['missing-tag'],
         }),
-      ).rejects.toMatchObject({ code: 'ERR_TAG_NOT_FOUND' });
+      ).rejects.toMatchObject({
+        code: 'ERR_TAG_NOT_FOUND',
+        loggingContext: { operation: 'insertLine' },
+      });
       expect(compensationDelete).toHaveBeenCalledWith('id', 'line-1');
     });
 
@@ -250,7 +253,10 @@ describe('SupabaseBudgetTemplateRepository', () => {
           description: '',
           tagIds: ['missing-tag'],
         }),
-      ).rejects.toMatchObject({ code: 'ERR_TAG_NOT_FOUND' });
+      ).rejects.toMatchObject({
+        code: 'ERR_TAG_NOT_FOUND',
+        loggingContext: { operation: 'insertLine' },
+      });
       expect(logger.warn).toHaveBeenCalledWith(
         {
           operation: 'insertLine.compensateTagFailure',
@@ -282,7 +288,10 @@ describe('SupabaseBudgetTemplateRepository', () => {
           name: 'Updated',
           tagIds: ['missing-tag'],
         }),
-      ).rejects.toMatchObject({ code: 'ERR_TAG_NOT_FOUND' });
+      ).rejects.toMatchObject({
+        code: 'ERR_TAG_NOT_FOUND',
+        loggingContext: { operation: 'updateLine' },
+      });
       expect(update).not.toHaveBeenCalled();
     });
   });
@@ -606,7 +615,10 @@ describe('SupabaseBudgetTemplateRepository', () => {
             },
           ],
         }),
-      ).rejects.toMatchObject({ code: 'ERR_TAG_NOT_FOUND' });
+      ).rejects.toMatchObject({
+        code: 'ERR_TAG_NOT_FOUND',
+        loggingContext: { operation: 'bulkApplyTemplateLineOperations' },
+      });
 
       expect(rpc).toHaveBeenNthCalledWith(3, 'apply_template_line_operations', {
         template_id: 'template-1',

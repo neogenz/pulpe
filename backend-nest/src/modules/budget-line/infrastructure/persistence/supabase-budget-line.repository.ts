@@ -12,6 +12,7 @@ import {
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import { mapCurrencyNonAmountMetadataToDb } from '@common/utils/currency-metadata.mapper';
 import { isSavingsGoalLinkDenied } from '@common/utils/savings-goal-link';
+import * as tagLinks from '@common/utils/tag-links.util';
 import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 import type { BudgetLineRepositoryPort } from '../../domain/ports/budget-line-repository.port';
 import type {
@@ -468,52 +469,20 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
     };
   }
 
-  /**
-   * Replace-set semantics, mirror of the transaction repository: provided
-   * tagIds become the line's exact tag set. The RPC runs delete + insert in
-   * one DB transaction, so a failed insert rolls back the delete and existing
-   * links survive. Foreign/unknown tag ids surface as TAG_NOT_FOUND via
-   * FK (23503) / RLS WITH CHECK (42501).
-   */
   private async replaceTagLinks(
     budgetLineId: string,
     tagIds: string[],
     operation: string,
   ): Promise<void> {
-    const supabase = this.supabaseProvider.client;
-
-    const { error } = await supabase.rpc('replace_budget_line_tags', {
-      p_budget_line_id: budgetLineId,
-      p_tag_ids: tagIds,
+    await tagLinks.replaceTagLinks(this.supabaseProvider.client, {
+      rpcName: 'replace_budget_line_tags',
+      rpcIdParam: 'p_budget_line_id',
+      entityId: budgetLineId,
+      tagIds,
+      operation,
+      entityType: 'budget_line_tag',
+      fallbackErrorDef: ERROR_DEFINITIONS.BUDGET_LINE_UPDATE_FAILED,
     });
-
-    if (error) {
-      if (error.code === '23503' || error.code === '42501') {
-        throw new BusinessException(
-          ERROR_DEFINITIONS.TAG_NOT_FOUND,
-          undefined,
-          {
-            operation,
-            entityId: budgetLineId,
-            entityType: 'budget_line_tag',
-            supabaseError: error,
-          },
-          { cause: error },
-        );
-      }
-
-      throw new BusinessException(
-        ERROR_DEFINITIONS.BUDGET_LINE_UPDATE_FAILED,
-        { id: budgetLineId },
-        {
-          operation,
-          entityId: budgetLineId,
-          entityType: 'budget_line_tag',
-          supabaseError: error,
-        },
-        { cause: error },
-      );
-    }
   }
 
   async createSpread(
@@ -837,31 +806,19 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
       );
     }
 
-    // toggle_budget_line_check returns the bare row (RETURNING *) without the
-    // budget_line_tag embed; refetch the links so the response keeps tagIds.
-    const { data: tagLinks, error: tagError } = await supabase
-      .from('budget_line_tag')
-      .select('tag_id')
-      .eq('budget_line_id', id);
-
-    if (tagError) {
-      throw new BusinessException(
-        ERROR_DEFINITIONS.BUDGET_LINE_UPDATE_FAILED,
-        undefined,
-        {
-          operation: 'toggleCheck',
-          entityId: id,
-          entityType: 'budget_line_tag',
-          supabaseError: tagError,
-        },
-        { cause: tagError },
-      );
-    }
+    const tagIds = await tagLinks.fetchTagIds(
+      supabase,
+      'budget_line_tag',
+      'budget_line_id',
+      id,
+      'toggleCheck',
+      ERROR_DEFINITIONS.BUDGET_LINE_UPDATE_FAILED,
+    );
 
     const dek = await this.encryption.getDekFor(this.supabaseProvider.user);
     return {
       ...this.toEntity(data, dek),
-      tagIds: (tagLinks ?? []).map((link) => link.tag_id),
+      tagIds,
     };
   }
 

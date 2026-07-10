@@ -11,6 +11,7 @@ import {
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import { mapCurrencyNonAmountMetadataToDb } from '@common/utils/currency-metadata.mapper';
 import { isSavingsGoalLinkDenied } from '@common/utils/savings-goal-link';
+import { replaceTagLinks } from '@common/utils/tag-links.util';
 import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 import type {
   BudgetTemplate,
@@ -283,7 +284,7 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
 
     if (input.tagIds?.length) {
       try {
-        await this.replaceTemplateLineTags(data.id, input.tagIds);
+        await this.replaceTemplateLineTags(data.id, input.tagIds, 'insertLine');
       } catch (linkError) {
         const { error: cleanupError } = await supabase
           .from('template_line')
@@ -374,7 +375,7 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
     const user = this.supabaseProvider.user;
 
     if (patch.tagIds !== undefined) {
-      await this.replaceTemplateLineTags(lineId, patch.tagIds);
+      await this.replaceTemplateLineTags(lineId, patch.tagIds, 'updateLine');
     }
 
     const updateRow = await this.toTemplateLineUpdateRow(patch, user);
@@ -818,39 +819,17 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
   private async replaceTemplateLineTags(
     templateLineId: string,
     tagIds: string[],
+    operation: string,
   ): Promise<void> {
-    const supabase = this.supabaseProvider.client;
-    const { error } = await supabase.rpc('replace_template_line_tags', {
-      p_template_line_id: templateLineId,
-      p_tag_ids: tagIds,
+    await replaceTagLinks(this.supabaseProvider.client, {
+      rpcName: 'replace_template_line_tags',
+      rpcIdParam: 'p_template_line_id',
+      entityId: templateLineId,
+      tagIds,
+      operation,
+      entityType: 'template_line_tag',
+      fallbackErrorDef: ERROR_DEFINITIONS.TEMPLATE_LINE_NOT_FOUND,
     });
-
-    if (error) {
-      if (error.code === '23503' || error.code === '42501') {
-        throw new BusinessException(
-          ERROR_DEFINITIONS.TAG_NOT_FOUND,
-          undefined,
-          {
-            operation: 'replaceTemplateLineTags',
-            entityId: templateLineId,
-            entityType: 'template_line_tag',
-            supabaseError: error,
-          },
-          { cause: error },
-        );
-      }
-      throw new BusinessException(
-        ERROR_DEFINITIONS.TEMPLATE_LINE_NOT_FOUND,
-        { id: templateLineId },
-        {
-          operation: 'replaceTemplateLineTags',
-          entityId: templateLineId,
-          entityType: 'template_line_tag',
-          supabaseError: error,
-        },
-        { cause: error },
-      );
-    }
   }
 
   private async toTemplateLineInsertRow(

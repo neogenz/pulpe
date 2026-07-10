@@ -9,6 +9,10 @@ import {
 } from '@modules/encryption/encryption.tokens';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import { mapCurrencyNonAmountMetadataToDb } from '@common/utils/currency-metadata.mapper';
+import {
+  fetchTagIds,
+  replaceTagLinks as replaceTagLinksWithRpc,
+} from '@common/utils/tag-links.util';
 import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 import type { TransactionRepositoryPort } from '../../domain/ports/transaction-repository.port';
 import type {
@@ -321,41 +325,15 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
     tagIds: string[],
     operation: string,
   ): Promise<void> {
-    const supabase = this.supabaseProvider.client;
-
-    const { error } = await supabase.rpc('replace_transaction_tags', {
-      p_transaction_id: transactionId,
-      p_tag_ids: tagIds,
+    await replaceTagLinksWithRpc(this.supabaseProvider.client, {
+      rpcName: 'replace_transaction_tags',
+      rpcIdParam: 'p_transaction_id',
+      entityId: transactionId,
+      tagIds,
+      operation,
+      entityType: 'transaction_tag',
+      fallbackErrorDef: ERROR_DEFINITIONS.TRANSACTION_UPDATE_FAILED,
     });
-
-    if (error) {
-      // 23503 (FK) / 42501 (RLS WITH CHECK): the tag doesn't exist or isn't ours.
-      if (error.code === '23503' || error.code === '42501') {
-        throw new BusinessException(
-          ERROR_DEFINITIONS.TAG_NOT_FOUND,
-          undefined,
-          {
-            operation,
-            entityId: transactionId,
-            entityType: 'transaction_tag',
-            supabaseError: error,
-          },
-          { cause: error },
-        );
-      }
-
-      throw new BusinessException(
-        ERROR_DEFINITIONS.TRANSACTION_UPDATE_FAILED,
-        { id: transactionId },
-        {
-          operation,
-          entityId: transactionId,
-          entityType: 'transaction_tag',
-          supabaseError: error,
-        },
-        { cause: error },
-      );
-    }
   }
 
   async postpone(
@@ -456,31 +434,19 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
       );
     }
 
-    // toggle_transaction_check returns the bare row (SELECT *) without the
-    // transaction_tag embed; refetch the links so the response keeps tagIds.
-    const { data: tagLinks, error: tagError } = await supabase
-      .from('transaction_tag')
-      .select('tag_id')
-      .eq('transaction_id', id);
-
-    if (tagError) {
-      throw new BusinessException(
-        ERROR_DEFINITIONS.TRANSACTION_UPDATE_FAILED,
-        undefined,
-        {
-          operation: 'toggleCheck',
-          entityId: id,
-          entityType: 'transaction_tag',
-          supabaseError: tagError,
-        },
-        { cause: tagError },
-      );
-    }
+    const tagIds = await fetchTagIds(
+      supabase,
+      'transaction_tag',
+      'transaction_id',
+      id,
+      'toggleCheck',
+      ERROR_DEFINITIONS.TRANSACTION_UPDATE_FAILED,
+    );
 
     const dek = await this.encryption.getDekFor(this.supabaseProvider.user);
     return {
       ...this.toEntity(data, dek),
-      tagIds: (tagLinks ?? []).map((link) => link.tag_id),
+      tagIds,
     };
   }
 
