@@ -41,6 +41,10 @@ const componentSources = {
     new URL("../components/sections/HowItWorks.tsx", import.meta.url),
     "utf8",
   ),
+  fadeIn: readFileSync(
+    new URL("../components/ui/FadeIn.tsx", import.meta.url),
+    "utf8",
+  ),
 };
 
 function getDeclarations(selector: string): string {
@@ -137,6 +141,13 @@ describe("landing accessibility contracts", () => {
     assert.match(
       componentSources.header,
       /removeEventListener\(['"]scroll['"], closeOnScroll\)/,
+    );
+  });
+
+  it("clears the blur reveal hidden state before starting its animation", () => {
+    assert.match(
+      componentSources.fadeIn,
+      /classList\.remove\(['"]js-scroll-hidden['"]\)\s+entry\.target\.classList\.add\(['"]animate-blur-in['"]\)/,
     );
   });
 });

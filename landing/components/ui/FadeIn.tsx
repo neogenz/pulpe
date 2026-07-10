@@ -40,6 +40,7 @@ export const FadeIn = memo(function FadeIn({
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
             if (variant === 'blur') {
+              entry.target.classList.remove('js-scroll-hidden')
               entry.target.classList.add('animate-blur-in')
             } else {
               entry.target.classList.add('is-visible')
