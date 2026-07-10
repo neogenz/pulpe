@@ -341,10 +341,6 @@ actor StartupCoordinator {
             // (which would force credential re-entry over a momentary network blip).
             Logger.auth.warning("[STARTUP] Regular session validation network error: \(urlError, privacy: .public)")
             return .networkError(AuthErrorMessages.connectionUnavailable)
-        } catch AuthServiceError.biometricSessionExpired {
-            guard isCurrentRun(runId) else { return .cancelled }
-            await clearExpiredBiometricState()
-            return .biometricSessionExpired
         } catch {
             Logger.auth.warning("[STARTUP] Regular session validation deferred: \(error)")
             // AnalyticsService is @MainActor — hop required from actor context

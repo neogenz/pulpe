@@ -138,10 +138,6 @@ final class SessionLifecycleCoordinator {
                 authDebug("AUTH_COLD_START_REGULAR_MISSING", "reason=\(reason)")
                 return .unauthenticated
             }
-        } catch AuthServiceError.biometricSessionExpired {
-            await biometric.handleSessionExpired()
-            authDebug("AUTH_COLD_START_REGULAR_EXPIRED", "reason=\(reason)")
-            return .biometricSessionExpired
         } catch let error as URLError {
             // Transient connectivity failure — not a session loss. Surface the retry UI
             // rather than dropping the user to the login screen.
@@ -162,10 +158,6 @@ final class SessionLifecycleCoordinator {
                 authDebug("AUTH_COLD_START_REGULAR_VALID", "source=checkAuthState")
                 return .regularSession(user: user)
             }
-        } catch AuthServiceError.biometricSessionExpired {
-            await biometric.handleSessionExpired()
-            authDebug("AUTH_COLD_START_REGULAR_EXPIRED", "source=checkAuthState")
-            return .biometricSessionExpired
         } catch let error as URLError {
             // Transient connectivity failure — not a session loss. Surface the retry UI.
             Logger.auth.warning("checkAuthState: regular session validation network error - \(error, privacy: .public)")

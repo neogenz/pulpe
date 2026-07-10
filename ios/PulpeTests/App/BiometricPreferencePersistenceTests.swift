@@ -23,7 +23,7 @@ struct BiometricPreferencePersistenceTests {
             await withCheckedContinuation { pending.set($0) }
         })
         let hydration = Task { await sut.loadPreference() }
-        while pending.value == nil { await Task.yield() }
+        await waitForCondition("hydration must reach the credentialsAvailability continuation") { pending.value != nil }
 
         await sut.handleSessionExpired()
         pending.value?.resume(returning: true)
