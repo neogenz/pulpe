@@ -311,7 +311,7 @@ type DetailViewState = 'loading' | 'error' | 'notFound' | 'ready';
               </div>
 
               <!-- D1 — deadline passed (stays ACTIVE, neutral, actionable) -->
-              @if (p.isOverdue) {
+              @if (p.isOverdue && g.status === 'ACTIVE') {
                 <div
                   class="mt-2 flex flex-col gap-2 rounded-2xl bg-surface-container p-4"
                   data-testid="savings-goal-overdue-block"
@@ -340,7 +340,7 @@ type DetailViewState = 'loading' | 'error' | 'notFound' | 'ready';
               }
 
               <!-- D2 — suggest completion (never auto-flipped) -->
-              @if (p.suggestCompletion) {
+              @if (p.suggestCompletion && g.status === 'ACTIVE') {
                 <div
                   class="mt-2 flex flex-col gap-2 rounded-2xl bg-financial-savings/10 p-4"
                   data-testid="savings-goal-suggest-completion"
@@ -617,7 +617,8 @@ export default class SavingsGoalDetailPage {
     if (this.store.progressError()) return 'error';
     if (
       this.store.isProgressLoading() ||
-      this.store.savingsGoals.isInitialLoading()
+      this.store.savingsGoals.isInitialLoading() ||
+      this.store.isContributionsLoading()
     )
       return 'loading';
     if (this.goal() && this.progress()) return 'ready';

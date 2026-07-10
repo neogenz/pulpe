@@ -337,18 +337,18 @@ final class SavingsGoalDetailViewModel {
         error = nil
         do {
             _ = try await store.update(id: goalId, data: SavingsGoalUpdate(status: status))
-            await fetchProgress()
+            await fetchProgress(reportError: false)
         } catch {
             self.error = error
         }
     }
 
-    private func fetchProgress() async {
+    private func fetchProgress(reportError: Bool = true) async {
         error = nil
         do {
             progress = try await service.getProgress(id: goalId)
         } catch {
-            self.error = error
+            if reportError { self.error = error }
         }
     }
 }

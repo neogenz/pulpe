@@ -49,22 +49,28 @@ final class SavingsGoalStore: StoreProtocol {
         let currentGeneration = loadGeneration
 
         let task = Task(name: "SavingsGoals.load") {
+            guard loadGeneration == currentGeneration else { return }
             isLoading = true
             error = nil
-            defer { isLoading = false }
+            defer {
+                if loadGeneration == currentGeneration { isLoading = false }
+            }
 
             do {
                 let fetched = try await service.getAll()
                 try Task.checkCancellation()
+                guard loadGeneration == currentGeneration else { return }
                 goals = fetched.sortedForDisplay()
                 lastLoadTime = Date()
                 hasLoadedOnce = true
-            } catch is CancellationError {
+            } catch where error.isCancellationOrURLCancellation {
                 // Cancelled — keep existing state.
             } catch let apiError as APIError {
-                self.error = apiError
+                if loadGeneration == currentGeneration { self.error = apiError }
             } catch {
-                self.error = .networkError(error)
+                if loadGeneration == currentGeneration {
+                    self.error = .networkError(error)
+                }
             }
         }
 
@@ -107,8 +113,9 @@ final class SavingsGoalStore: StoreProtocol {
     func reset() {
         loadTask?.cancel()
         loadTask = nil
-        loadGeneration = 0
+        loadGeneration += 1
         goals = []
+        isLoading = false
         hasLoadedOnce = false
         lastLoadTime = nil
         error = nil

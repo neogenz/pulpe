@@ -79,22 +79,29 @@ extension TransactionKind {
 // MARK: - ISO date helper
 
 /// Converts between the API's `YYYY-MM-DD` `targetDate` strings and `Date`.
-/// Fixed Gregorian/UTC/POSIX so it never drifts with the device locale.
+/// Fixed Gregorian/POSIX format, using the device time zone so a date selected
+/// at local midnight keeps the same calendar day on the wire.
 enum SavingsGoalDateFormatter {
-    private static let formatter: DateFormatter = {
+    private static func formatter(timeZone: TimeZone) -> DateFormatter {
         let formatter = DateFormatter()
         formatter.calendar = Calendar(identifier: .gregorian)
         formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.timeZone = TimeZone(identifier: "UTC")
+        formatter.timeZone = timeZone
         formatter.dateFormat = "yyyy-MM-dd"
         return formatter
-    }()
-
-    static func parse(_ string: String) -> Date? {
-        formatter.date(from: string)
     }
 
-    static func string(from date: Date) -> String {
-        formatter.string(from: date)
+    static func parse(
+        _ string: String,
+        timeZone: TimeZone = .autoupdatingCurrent
+    ) -> Date? {
+        formatter(timeZone: timeZone).date(from: string)
+    }
+
+    static func string(
+        from date: Date,
+        timeZone: TimeZone = .autoupdatingCurrent
+    ) -> String {
+        formatter(timeZone: timeZone).string(from: date)
     }
 }

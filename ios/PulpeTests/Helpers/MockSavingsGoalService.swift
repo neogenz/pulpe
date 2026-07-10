@@ -11,6 +11,8 @@ final class MockSavingsGoalService: SavingsGoalServicing {
     var stubbedApplyResult: SavingsGoalPlanApplyResult?
     /// When set, every call throws this instead of returning.
     var error: Error?
+    var getProgressError: Error?
+    var updateError: Error?
 
     private(set) var getAllCallCount = 0
     private(set) var getProgressCallCount = 0
@@ -25,8 +27,32 @@ final class MockSavingsGoalService: SavingsGoalServicing {
     private(set) var lastApplyPayload: SavingsGoalPlanApply?
     private(set) var lastDeletedId: String?
 
+    private(set) var didEnterSecondGetAll = false
+    private var secondGetAllContinuation: CheckedContinuation<Void, Never>?
+    private var simulatesRefreshRace = false
+
+    func prepareRefreshRace() {
+        simulatesRefreshRace = true
+    }
+
+    func releaseSecondGetAll() {
+        secondGetAllContinuation?.resume()
+        secondGetAllContinuation = nil
+        simulatesRefreshRace = false
+    }
+
     func getAll() async throws -> [SavingsGoal] {
         getAllCallCount += 1
+        if simulatesRefreshRace {
+            if getAllCallCount == 1 {
+                try await Task.sleep(for: .seconds(60))
+            } else if getAllCallCount == 2 {
+                didEnterSecondGetAll = true
+                await withCheckedContinuation { continuation in
+                    secondGetAllContinuation = continuation
+                }
+            }
+        }
         if let error { throw error }
         return stubbedGoals
     }
@@ -39,6 +65,7 @@ final class MockSavingsGoalService: SavingsGoalServicing {
 
     func getProgress(id: String) async throws -> SavingsGoalProgress {
         getProgressCallCount += 1
+        if let getProgressError { throw getProgressError }
         if let error { throw error }
         if let stubbedProgress { return stubbedProgress }
         throw URLError(.badServerResponse)
@@ -74,6 +101,7 @@ final class MockSavingsGoalService: SavingsGoalServicing {
         updateCallCount += 1
         lastUpdateId = id
         lastUpdate = data
+        if let updateError { throw updateError }
         if let error { throw error }
         guard let existing = stubbedGoals.first(where: { $0.id == id }) else {
             throw URLError(.badServerResponse)

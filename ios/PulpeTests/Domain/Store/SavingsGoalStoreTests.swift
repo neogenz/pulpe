@@ -91,6 +91,30 @@ struct SavingsGoalStoreTests {
         #expect(store.goals.isEmpty)
     }
 
+    @Test("forceRefresh keeps loading while the latest request is pending")
+    func forceRefresh_overlappingRequests_keepsLatestLoadingState() async {
+        let service = MockSavingsGoalService()
+        service.prepareRefreshRace()
+        let store = SavingsGoalStore(service: service)
+
+        let firstRefresh = Task { await store.forceRefresh() }
+        await waitForCondition("first refresh must start") {
+            service.getAllCallCount == 1
+        }
+
+        let secondRefresh = Task { await store.forceRefresh() }
+        await waitForCondition("second refresh must reach the service") {
+            service.didEnterSecondGetAll
+        }
+        await firstRefresh.value
+
+        #expect(store.isLoading, "The cancelled request must not clear the latest request's loading state")
+
+        service.releaseSecondGetAll()
+        await secondRefresh.value
+        #expect(!store.isLoading)
+    }
+
     @Test("reset clears the cache")
     func reset_clears() async {
         let service = MockSavingsGoalService()

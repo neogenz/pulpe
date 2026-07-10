@@ -20,7 +20,7 @@ import {
   type GoalPlanApplyDialogData,
 } from '../detail/components/goal-plan-apply-dialog';
 
-@Injectable({ providedIn: 'root' })
+@Injectable()
 export class SavingsGoalsDialogService {
   readonly #dialog = inject(MatDialog);
   readonly #transloco = inject(TranslocoService);

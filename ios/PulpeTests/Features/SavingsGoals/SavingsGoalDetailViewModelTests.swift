@@ -109,4 +109,20 @@ struct SavingsGoalDetailViewModelTests {
         #expect(viewModel.error != nil)
         #expect(service.getProgressCallCount == 0, "no refetch when the status update fails")
     }
+
+    @Test("changeStatus stays successful when only the progress refetch fails")
+    func changeStatus_refetchFailure_doesNotReportMutationFailure() async {
+        let service = MockSavingsGoalService()
+        service.stubbedGoals = [makeGoal(id: "g1", status: .active)]
+        let store = SavingsGoalStore(service: service)
+        await store.forceRefresh()
+        let viewModel = SavingsGoalDetailViewModel(goalId: "g1", service: service)
+        service.getProgressError = APIError.networkError(URLError(.timedOut))
+
+        await viewModel.changeStatus(to: .completed, via: store)
+
+        #expect(store.goals.first?.status == .completed)
+        #expect(service.getProgressCallCount == 1)
+        #expect(viewModel.error == nil, "a failed refresh must not turn a persisted status change into an error")
+    }
 }

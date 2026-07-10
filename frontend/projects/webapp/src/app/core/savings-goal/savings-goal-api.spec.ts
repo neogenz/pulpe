@@ -161,17 +161,22 @@ describe('SavingsGoalApi', () => {
   // Bug repro: a transaction pointée on a goal-linked line invalidates the
   // budget cache, but the goal progress cache stayed FRESH — the detail page
   // kept serving the pre-mutation confirmed amount for up to staleTime.
-  it('marks savings-goal cache entries stale when the budget cache is invalidated', () => {
+  it('invalidates derived goal data without refetching the goal list after a budget mutation', () => {
     const budgetApi = TestBed.inject(BudgetApi);
-    const key = ['savings-goals', 'progress', GOAL_ID];
-    service.cache.set(key, makeProgress());
-    expect(service.cache.get(key)?.fresh).toBe(true);
+    const listKey = ['savings-goals', 'list'];
+    const progressKey = ['savings-goals', 'progress', GOAL_ID];
+    const contributionsKey = ['savings-goals', 'contributions', GOAL_ID];
+    service.cache.set(listKey, []);
+    service.cache.set(progressKey, makeProgress());
+    service.cache.set(contributionsKey, []);
 
     budgetApi.cache.invalidate(['budget', 'details']);
     TestBed.flushEffects();
 
-    const entry = service.cache.get<SavingsGoalProgress>(key);
-    expect(entry).not.toBeNull();
-    expect(entry?.fresh).toBe(false);
+    expect(service.cache.get(listKey)?.fresh).toBe(true);
+    expect(service.cache.get<SavingsGoalProgress>(progressKey)?.fresh).toBe(
+      false,
+    );
+    expect(service.cache.get(contributionsKey)?.fresh).toBe(false);
   });
 });

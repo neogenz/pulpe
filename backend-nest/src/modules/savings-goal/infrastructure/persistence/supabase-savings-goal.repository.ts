@@ -111,6 +111,7 @@ export class SupabaseSavingsGoalRepository implements SavingsGoalRepositoryPort 
       .from('savings_goal')
       .select('*')
       .eq('id', id)
+      .eq('user_id', this.supabaseProvider.user.id)
       .single();
 
     if (error || !data) {

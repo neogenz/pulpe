@@ -167,6 +167,7 @@ describe('SavingsGoalDetailPage', () => {
   const contributionsSig = signal<SavingsGoalContribution[]>([]);
   const progressErrorSig = signal<unknown>(null);
   const isProgressLoadingSig = signal(false);
+  const isContributionsLoadingSig = signal(false);
   const listInitialLoadingSig = signal(false);
 
   const completeGoal = vi.fn().mockResolvedValue(makeGoal());
@@ -180,7 +181,7 @@ describe('SavingsGoalDetailPage', () => {
     progressError: progressErrorSig,
     isProgressLoading: isProgressLoadingSig,
     contributions: contributionsSig,
-    isContributionsLoading: signal(false),
+    isContributionsLoading: isContributionsLoadingSig,
     savingsGoals: { isInitialLoading: listInitialLoadingSig },
     setSelectedGoalId: vi.fn(),
     reloadProgress,
@@ -201,6 +202,7 @@ describe('SavingsGoalDetailPage', () => {
     contributionsSig.set([]);
     progressErrorSig.set(null);
     isProgressLoadingSig.set(false);
+    isContributionsLoadingSig.set(false);
     listInitialLoadingSig.set(false);
     vi.clearAllMocks();
 
@@ -281,6 +283,21 @@ describe('SavingsGoalDetailPage', () => {
     expect(query('stat-required')).toBeFalsy();
   });
 
+  it('hides the D1 overdue block when the goal is completed', () => {
+    goalSig.set(makeGoal({ status: 'COMPLETED' }));
+    progressSig.set(
+      makeProgress({
+        status: 'COMPLETED',
+        isOverdue: true,
+        monthsRemaining: -1,
+        required: null,
+      }),
+    );
+    fixture.detectChanges();
+
+    expect(query('savings-goal-overdue-block')).toBeFalsy();
+  });
+
   it('shows the D2 suggestion and PATCHes COMPLETED on confirm', async () => {
     progressSig.set(makeProgress({ suggestCompletion: true }));
     fixture.detectChanges();
@@ -359,6 +376,16 @@ describe('SavingsGoalDetailPage', () => {
     expect(
       fixture.debugElement.query(By.directive(StubBaseLoading)),
     ).toBeTruthy();
+  });
+
+  it('shows the loading state while contributions are loading', () => {
+    isContributionsLoadingSig.set(true);
+    fixture.detectChanges();
+
+    expect(
+      fixture.debugElement.query(By.directive(StubBaseLoading)),
+    ).toBeTruthy();
+    expect(query('savings-goal-contributions')).toBeFalsy();
   });
 
   it('shows the error state (no progress body) when progress fails', () => {

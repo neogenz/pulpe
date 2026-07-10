@@ -46,6 +46,19 @@ function createMockProvider(
   } as unknown as AuthenticatedSupabaseProvider;
 }
 
+function createFindByIdProvider(result: unknown) {
+  const eq = jest.fn();
+  const query = {
+    eq,
+    single: jest.fn().mockResolvedValue(result),
+  };
+  eq.mockReturnValue(query);
+  return {
+    provider: createMockProvider(() => ({ select: () => query })),
+    eq,
+  };
+}
+
 function createMockEncryption(): EncryptionPort {
   return {
     getUserDEK: jest.fn().mockResolvedValue(Buffer.from('dek')),
@@ -243,13 +256,10 @@ describe('SupabaseSavingsGoalRepository', () => {
   });
 
   it('findById decrypts target_amount (dedicated field, not generic)', async () => {
-    const provider = createMockProvider(() => ({
-      select: () => ({
-        eq: () => ({
-          single: jest.fn().mockResolvedValue({ data: mockRow, error: null }),
-        }),
-      }),
-    }));
+    const { provider } = createFindByIdProvider({
+      data: mockRow,
+      error: null,
+    });
     const repo = new SupabaseSavingsGoalRepository(
       provider,
       createMockEncryption(),
@@ -262,17 +272,29 @@ describe('SupabaseSavingsGoalRepository', () => {
     expect(result.status).toBe('ACTIVE');
   });
 
+  it('findById scopes the query to the authenticated user (optimizer hint)', async () => {
+    const { provider, eq } = createFindByIdProvider({
+      data: mockRow,
+      error: null,
+    });
+    const repo = new SupabaseSavingsGoalRepository(
+      provider,
+      createMockEncryption(),
+    );
+
+    await repo.findById('goal-1');
+
+    expect(eq.mock.calls).toEqual([
+      ['id', 'goal-1'],
+      ['user_id', 'user-1'],
+    ]);
+  });
+
   it('findById maps a zero-rows PGRST116 to SAVINGS_GOAL_NOT_FOUND (RLS-hidden)', async () => {
-    const provider = createMockProvider(() => ({
-      select: () => ({
-        eq: () => ({
-          single: jest.fn().mockResolvedValue({
-            data: null,
-            error: { code: 'PGRST116', message: 'no rows' },
-          }),
-        }),
-      }),
-    }));
+    const { provider } = createFindByIdProvider({
+      data: null,
+      error: { code: 'PGRST116', message: 'no rows' },
+    });
     const repo = new SupabaseSavingsGoalRepository(
       provider,
       createMockEncryption(),
@@ -293,13 +315,10 @@ describe('SupabaseSavingsGoalRepository', () => {
 
   it('findById maps an infra failure to SAVINGS_GOAL_FETCH_FAILED, never a lying 404', async () => {
     const dbError = { code: '57014', message: 'canceling statement' };
-    const provider = createMockProvider(() => ({
-      select: () => ({
-        eq: () => ({
-          single: jest.fn().mockResolvedValue({ data: null, error: dbError }),
-        }),
-      }),
-    }));
+    const { provider } = createFindByIdProvider({
+      data: null,
+      error: dbError,
+    });
     const repo = new SupabaseSavingsGoalRepository(
       provider,
       createMockEncryption(),

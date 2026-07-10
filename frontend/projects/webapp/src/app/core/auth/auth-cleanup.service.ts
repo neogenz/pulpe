@@ -3,6 +3,7 @@ import { Injectable, inject } from '@angular/core';
 import { BudgetApi } from '@core/budget';
 import { BudgetTemplatesApi } from '@core/budget-template/budget-templates-api';
 import { ClientKeyService } from '@core/encryption';
+import { SavingsGoalApi } from '@core/savings-goal/savings-goal-api';
 
 import { DemoModeService } from '../demo/demo-mode.service';
 import { PreloadService } from '../preload/preload.service';
@@ -18,6 +19,7 @@ export class AuthCleanupService {
   readonly #budgetApi = inject(BudgetApi);
   readonly #budgetTemplatesApi = inject(BudgetTemplatesApi);
   readonly #clientKeyService = inject(ClientKeyService);
+  readonly #savingsGoalApi = inject(SavingsGoalApi);
   readonly #demoModeService = inject(DemoModeService);
   readonly #preloadService = inject(PreloadService);
   readonly #postHogService = inject(PostHogService);
@@ -38,6 +40,10 @@ export class AuthCleanupService {
     this.#safeCleanup(
       () => this.#budgetTemplatesApi.clearCache(),
       'templates data cache',
+    );
+    this.#safeCleanup(
+      () => this.#savingsGoalApi.clearCache(),
+      'savings goals data cache',
     );
     this.#safeCleanup(() => this.#preloadService.reset(), 'preload state');
     this.#safeCleanup(() => this.#userSettingsStore.reset(), 'user settings');

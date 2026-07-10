@@ -117,6 +117,7 @@ private struct SavingsGoalRow: View {
                 .font(PulpeTypography.amountCard)
                 .monospacedDigit()
                 .foregroundStyle(Color.textPrimary)
+                .sensitiveAmount()
         }
         .padding(DesignTokens.Spacing.lg)
         .frame(maxWidth: .infinity, alignment: .leading)

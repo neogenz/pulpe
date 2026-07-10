@@ -43,7 +43,10 @@ export class SavingsGoalApi {
     // confirmed amount for up to staleTime.
     effect(() => {
       if (this.#budgetApi.cache.version() === 0) return;
-      untracked(() => this.cache.invalidate(['savings-goals']));
+      untracked(() => {
+        this.cache.invalidate(['savings-goals', 'progress']);
+        this.cache.invalidate(['savings-goals', 'contributions']);
+      });
     });
   }
 
@@ -53,10 +56,6 @@ export class SavingsGoalApi {
 
   getAll$(): Observable<SavingsGoalListResponse> {
     return this.#api.get$('/savings-goals', savingsGoalListResponseSchema);
-  }
-
-  getById$(id: string): Observable<SavingsGoalResponse> {
-    return this.#api.get$(`/savings-goals/${id}`, savingsGoalResponseSchema);
   }
 
   getProgress$(id: string): Observable<SavingsGoalProgressResponse> {

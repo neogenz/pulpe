@@ -1,11 +1,12 @@
 import { type Routes } from '@angular/router';
 import { PAGE_TITLES } from '@core/routing';
 import { SavingsGoalStore } from './services/savings-goals-store';
+import { SavingsGoalsDialogService } from './services/savings-goals-dialog.service';
 
 export const savingsGoalsRoutes: Routes = [
   {
     path: '',
-    providers: [SavingsGoalStore],
+    providers: [SavingsGoalStore, SavingsGoalsDialogService],
     children: [
       {
         path: '',

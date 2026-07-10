@@ -66,6 +66,18 @@ struct SavingsGoalCodableTests {
         #expect(SavingsGoalDateFormatter.string(from: date) == "2027-12-31")
     }
 
+    @Test("ISO date formatter preserves a Zurich calendar day")
+    func dateFormatter_zurichMidnight_preservesCalendarDay() throws {
+        let zurich = try #require(TimeZone(identifier: "Europe/Zurich"))
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = zurich
+        let date = try #require(
+            calendar.date(from: DateComponents(year: 2027, month: 7, day: 10))
+        )
+
+        #expect(SavingsGoalDateFormatter.string(from: date, timeZone: zurich) == "2027-07-10")
+    }
+
     // MARK: - Create DTO
 
     @Test("SavingsGoalCreate encodes name/targetAmount/targetDate/status")

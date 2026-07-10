@@ -20,6 +20,7 @@ struct SavingsGoalFormSheet: View {
     @State private var isLoading = false
     @State private var error: Error?
     @State private var showDeleteConfirmation = false
+    @State private var submitSuccessTrigger = 0
     @FocusState private var focusedField: AmountDescriptionField?
 
     private let currency: SupportedCurrency
@@ -95,6 +96,7 @@ struct SavingsGoalFormSheet: View {
         } message: {
             Text("Tes prévisions rattachées seront déliées, jamais supprimées.")
         }
+        .sensoryFeedback(.success, trigger: submitSuccessTrigger)
     }
 
     // MARK: - Fields
@@ -118,7 +120,7 @@ struct SavingsGoalFormSheet: View {
             DatePicker(
                 "Échéance",
                 selection: $targetDate,
-                in: Date()...,
+                in: Calendar.current.startOfDay(for: Date())...,
                 displayedComponents: .date
             )
             .labelsHidden()
@@ -148,7 +150,9 @@ struct SavingsGoalFormSheet: View {
                 .foregroundStyle(Color.destructivePrimary)
                 .frame(maxWidth: .infinity)
         }
-        .buttonStyle(.plain)
+        .frame(minHeight: DesignTokens.TapTarget.minimum)
+        .contentShape(Rectangle())
+        .plainPressedButtonStyle()
         .disabled(isLoading)
     }
 
@@ -186,6 +190,7 @@ struct SavingsGoalFormSheet: View {
                 )
                 toastManager.show("Objectif créé")
             }
+            submitSuccessTrigger += 1
             dismiss()
         } catch {
             self.error = error
@@ -200,6 +205,7 @@ struct SavingsGoalFormSheet: View {
         do {
             try await store.delete(id: goal.id)
             toastManager.show("Objectif supprimé")
+            submitSuccessTrigger += 1
             dismiss()
         } catch {
             self.error = error

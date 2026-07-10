@@ -187,8 +187,6 @@ struct EditBudgetLineSheet: View {
 
     /// Builds the update DTO. When the line is mono-currency (or flag-off fallback),
     /// currency metadata is omitted so the backend preserves the existing values.
-    /// Builds the update DTO. When the line is mono-currency (or flag-off fallback),
-    /// currency metadata is omitted so the backend preserves the existing values.
     /// The savings-goal link is applied by the caller (see `updateBudgetLine`).
     static func buildUpdate(
         id: String,
