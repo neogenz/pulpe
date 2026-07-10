@@ -1024,6 +1024,9 @@ export const templateLineSchema = z.object({
   kind: transactionKindSchema,
   recurrence: transactionRecurrenceSchema,
   description: z.string().max(500).trim(),
+  // Tags (PUL-18) — même contrat que budgetLine.tagIds (ids only, noms via GET /tags).
+  // Copiés sur les budget_lines à la génération et lors de la propagation.
+  tagIds: z.array(z.uuid()).optional(),
   createdAt: z.iso.datetime({ offset: true }),
   updatedAt: z.iso.datetime({ offset: true }),
   originalAmount: z.coerce.number().nonnegative().nullable().optional(),
@@ -1041,6 +1044,13 @@ export const templateLineCreateSchema = z.strictObject({
   kind: transactionKindSchema,
   recurrence: transactionRecurrenceSchema,
   description: z.string().max(500).trim(),
+  tagIds: z
+    .array(z.uuid())
+    .max(MAX_TAGS_PER_TRANSACTION)
+    .refine(hasUniqueTagIds, {
+      message: 'Chaque tag ne peut être associé qu’une fois.',
+    })
+    .optional(),
   originalAmount: z.number().positive().optional(),
   originalCurrency: supportedCurrencySchema.optional(),
   targetCurrency: supportedCurrencySchema.optional(),
@@ -1056,6 +1066,13 @@ export const templateLineCreateWithoutTemplateIdSchema = z.strictObject({
   kind: transactionKindSchema,
   recurrence: transactionRecurrenceSchema,
   description: z.string().max(500).trim(),
+  tagIds: z
+    .array(z.uuid())
+    .max(MAX_TAGS_PER_TRANSACTION)
+    .refine(hasUniqueTagIds, {
+      message: 'Chaque tag ne peut être associé qu’une fois.',
+    })
+    .optional(),
   originalAmount: z.number().positive().optional(),
   originalCurrency: supportedCurrencySchema.optional(),
   targetCurrency: supportedCurrencySchema.optional(),
@@ -1100,6 +1117,14 @@ export const templateLineUpdateSchema = z.strictObject({
   kind: transactionKindSchema.optional(),
   recurrence: transactionRecurrenceSchema.optional(),
   description: z.string().max(500).trim().optional(),
+  // Present -> replace the line's exact tag set (and propagate). Absent -> tags untouched.
+  tagIds: z
+    .array(z.uuid())
+    .max(MAX_TAGS_PER_TRANSACTION)
+    .refine(hasUniqueTagIds, {
+      message: 'Chaque tag ne peut être associé qu’une fois.',
+    })
+    .optional(),
   originalAmount: z.number().positive().optional(),
   originalCurrency: supportedCurrencySchema.optional(),
   targetCurrency: supportedCurrencySchema.optional(),

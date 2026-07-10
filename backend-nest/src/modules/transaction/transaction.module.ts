@@ -46,6 +46,7 @@ import { SpreadTransactionFromTxnUseCase } from './application/spread-transactio
     },
     TransactionMapper,
     createInfoLoggerProvider(TransactionController.name),
+    createInfoLoggerProvider(SupabaseTransactionRepository.name),
     createInfoLoggerProvider(FindAllTransactionsUseCase.name),
     createInfoLoggerProvider(FindTransactionUseCase.name),
     createInfoLoggerProvider(FindTransactionsByBudgetUseCase.name),

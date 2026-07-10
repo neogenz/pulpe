@@ -9,6 +9,7 @@ import {
 } from '@modules/encryption/encryption.tokens';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import { mapCurrencyNonAmountMetadataToDb } from '@common/utils/currency-metadata.mapper';
+import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 import type { TransactionRepositoryPort } from '../../domain/ports/transaction-repository.port';
 import type {
   Transaction,
@@ -38,6 +39,8 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
   constructor(
     private readonly supabaseProvider: AuthenticatedSupabaseProvider,
     @Inject(ENCRYPTION_PORT) private readonly encryption: EncryptionPort,
+    @InjectInfoLogger(SupabaseTransactionRepository.name)
+    private readonly logger: InfoLogger,
   ) {}
 
   async findAll(): Promise<Transaction[]> {
@@ -232,7 +235,20 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
       } catch (linkError) {
         // Compensation: keep create atomic from the client's perspective —
         // a transaction without its requested tags must not survive a failed link.
-        await supabase.from('transaction').delete().eq('id', row.id);
+        const { error: cleanupError } = await supabase
+          .from('transaction')
+          .delete()
+          .eq('id', row.id);
+        if (cleanupError) {
+          this.logger.warn(
+            {
+              operation: 'createTransaction.compensateTagFailure',
+              entityId: row.id,
+              err: cleanupError,
+            },
+            'Failed to delete transaction after tag linking failure',
+          );
+        }
         throw linkError;
       }
     }
@@ -251,14 +267,26 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
     const supabase = this.supabaseProvider.client;
     const user = this.supabaseProvider.user;
 
+    if (patch.tagIds !== undefined) {
+      await this.replaceTagLinks(id, patch.tagIds, 'updateTransaction');
+    }
+
     const updateRow = await this.toUpdateRow(patch, user);
 
-    const { data: row, error } = await supabase
-      .from('transaction')
-      .update(updateRow)
-      .eq('id', id)
-      .select(TRANSACTION_WITH_TAGS_SELECT)
-      .single();
+    const query = Object.keys(updateRow).length
+      ? supabase
+          .from('transaction')
+          .update(updateRow)
+          .eq('id', id)
+          .select(TRANSACTION_WITH_TAGS_SELECT)
+          .single()
+      : supabase
+          .from('transaction')
+          .select(TRANSACTION_WITH_TAGS_SELECT)
+          .eq('id', id)
+          .single();
+
+    const { data: row, error } = await query;
 
     if (error || !row) {
       throw new BusinessException(
@@ -272,10 +300,6 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
         },
         { cause: error ?? undefined },
       );
-    }
-
-    if (patch.tagIds !== undefined) {
-      await this.replaceTagLinks(id, patch.tagIds, 'updateTransaction');
     }
 
     const dek = await this.encryption.getDekFor(this.supabaseProvider.user);
@@ -804,7 +828,9 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
       ),
     );
 
-    updateData.updated_at = new Date().toISOString();
+    if (Object.keys(updateData).length) {
+      updateData.updated_at = new Date().toISOString();
+    }
     return updateData;
   }
 

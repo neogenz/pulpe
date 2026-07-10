@@ -16,6 +16,7 @@ import { SupabaseBudgetLineRepository } from './infrastructure/persistence/supab
 import { SpreadGroupAlreadyExistsError } from './domain/spread-group-conflict.error';
 import { SPREAD_GROUP_EXISTS_RPC_MESSAGE } from './infrastructure/persistence/schemas/rpc-payload.schemas';
 import type { BudgetLineCreateInput } from './domain/budget-line.entity';
+import type { InfoLogger } from '@common/logger';
 
 /**
  * PUL-17 — the ERROR-DETECTION SEAM of the spread idempotency guard, end-to-end
@@ -160,6 +161,7 @@ describe('Spread idempotency guard — error-detection seam (local Supabase)', (
     const repository = new SupabaseBudgetLineRepository(
       providerStub,
       encryptionStub,
+      {} as InfoLogger,
     );
 
     const retryInput: BudgetLineCreateInput = {

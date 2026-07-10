@@ -7,6 +7,7 @@ import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.ser
 import type { AuthenticatedSupabaseProvider } from '@modules/supabase/authenticated-supabase.provider';
 import type { EncryptionPort } from '@modules/encryption/encryption.tokens';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
+import type { InfoLogger } from '@common/logger';
 
 const mockUser: AuthenticatedUser = {
   id: 'user-1',
@@ -71,6 +72,15 @@ function createMockProvider(
   } as unknown as AuthenticatedSupabaseProvider;
 }
 
+function createMockLogger(): InfoLogger {
+  return {
+    info: jest.fn(),
+    debug: jest.fn(),
+    warn: jest.fn(),
+    trace: jest.fn(),
+  } as unknown as InfoLogger;
+}
+
 describe('SupabaseTransactionRepository', () => {
   let repo: SupabaseTransactionRepository;
 
@@ -86,6 +96,7 @@ describe('SupabaseTransactionRepository', () => {
       repo = new SupabaseTransactionRepository(
         provider,
         createMockEncryption(),
+        createMockLogger(),
       );
 
       const result = await repo.findById('txn-1');
@@ -109,6 +120,7 @@ describe('SupabaseTransactionRepository', () => {
       repo = new SupabaseTransactionRepository(
         provider,
         createMockEncryption(),
+        createMockLogger(),
       );
 
       await expect(repo.findById('missing')).rejects.toThrow(BusinessException);
@@ -127,6 +139,7 @@ describe('SupabaseTransactionRepository', () => {
       repo = new SupabaseTransactionRepository(
         provider,
         createMockEncryption(),
+        createMockLogger(),
       );
 
       const result = await repo.insert({
@@ -155,6 +168,7 @@ describe('SupabaseTransactionRepository', () => {
       repo = new SupabaseTransactionRepository(
         provider,
         createMockEncryption(),
+        createMockLogger(),
       );
 
       await expect(
@@ -182,6 +196,7 @@ describe('SupabaseTransactionRepository', () => {
       repo = new SupabaseTransactionRepository(
         provider,
         createMockEncryption(),
+        createMockLogger(),
       );
 
       await expect(
@@ -212,6 +227,7 @@ describe('SupabaseTransactionRepository', () => {
       repo = new SupabaseTransactionRepository(
         provider,
         createMockEncryption(),
+        createMockLogger(),
       );
 
       const result = await repo.insert({
@@ -255,6 +271,7 @@ describe('SupabaseTransactionRepository', () => {
       repo = new SupabaseTransactionRepository(
         provider,
         createMockEncryption(),
+        createMockLogger(),
       );
 
       await expect(
@@ -269,6 +286,100 @@ describe('SupabaseTransactionRepository', () => {
       ).rejects.toMatchObject({ code: 'ERR_TAG_NOT_FOUND' });
       expect(compensationDeletes).toEqual(['id=txn-1']);
     });
+
+    it('should warn when tag-link compensation delete fails and rethrow the tag error', async () => {
+      const tagError = { code: '23503', message: 'FK violation' };
+      const cleanupError = { code: '08006', message: 'connection lost' };
+      const logger = createMockLogger();
+      const provider = createMockProvider(
+        () => ({
+          insert: () => ({
+            select: () => ({
+              single: jest
+                .fn()
+                .mockResolvedValue({ data: mockRow, error: null }),
+            }),
+          }),
+          delete: () => ({
+            eq: jest.fn().mockResolvedValue({ error: cleanupError }),
+          }),
+        }),
+        jest.fn().mockResolvedValue({ error: tagError }),
+      );
+      repo = new SupabaseTransactionRepository(
+        provider,
+        createMockEncryption(),
+        logger,
+      );
+
+      await expect(
+        repo.insert({
+          budgetId: 'budget-1',
+          name: 'Restaurant',
+          amount: 50,
+          kind: 'expense',
+          transactionDate: '2024-01-15T12:00:00Z',
+          tagIds: ['missing-tag'],
+        }),
+      ).rejects.toMatchObject({ code: 'ERR_TAG_NOT_FOUND' });
+      expect(logger.warn).toHaveBeenCalledWith(
+        {
+          operation: 'createTransaction.compensateTagFailure',
+          entityId: 'txn-1',
+          err: cleanupError,
+        },
+        'Failed to delete transaction after tag linking failure',
+      );
+    });
+  });
+
+  describe('update', () => {
+    it('should not update scalar fields when tag replacement fails', async () => {
+      const update = jest.fn();
+      const provider = createMockProvider(
+        () => ({ update }),
+        jest.fn().mockResolvedValue({
+          error: { code: '23503', message: 'FK violation' },
+        }),
+      );
+      repo = new SupabaseTransactionRepository(
+        provider,
+        createMockEncryption(),
+        createMockLogger(),
+      );
+
+      await expect(
+        repo.update('txn-1', { name: 'Updated', tagIds: ['missing-tag'] }),
+      ).rejects.toMatchObject({ code: 'ERR_TAG_NOT_FOUND' });
+      expect(update).not.toHaveBeenCalled();
+    });
+
+    it('should skip the scalar update for a tags-only patch', async () => {
+      const update = jest.fn();
+      const provider = createMockProvider(
+        () => ({
+          update,
+          select: () => ({
+            eq: () => ({
+              single: jest
+                .fn()
+                .mockResolvedValue({ data: mockRow, error: null }),
+            }),
+          }),
+        }),
+        jest.fn().mockResolvedValue({ error: null }),
+      );
+      repo = new SupabaseTransactionRepository(
+        provider,
+        createMockEncryption(),
+        createMockLogger(),
+      );
+
+      const result = await repo.update('txn-1', { tagIds: ['tag-1'] });
+
+      expect(update).not.toHaveBeenCalled();
+      expect(result.tagIds).toEqual(['tag-1']);
+    });
   });
 
   describe('delete', () => {
@@ -281,6 +392,7 @@ describe('SupabaseTransactionRepository', () => {
       repo = new SupabaseTransactionRepository(
         provider,
         createMockEncryption(),
+        createMockLogger(),
       );
 
       await expect(repo.delete('txn-1')).resolves.toBeUndefined();
@@ -297,6 +409,7 @@ describe('SupabaseTransactionRepository', () => {
       repo = new SupabaseTransactionRepository(
         provider,
         createMockEncryption(),
+        createMockLogger(),
       );
 
       await expect(repo.delete('missing')).rejects.toThrow(BusinessException);
@@ -322,6 +435,7 @@ describe('SupabaseTransactionRepository', () => {
       repo = new SupabaseTransactionRepository(
         provider,
         createMockEncryption(),
+        createMockLogger(),
       );
 
       const result = await repo.toggleCheck('txn-1');
@@ -347,6 +461,7 @@ describe('SupabaseTransactionRepository', () => {
       repo = new SupabaseTransactionRepository(
         provider,
         createMockEncryption(),
+        createMockLogger(),
       );
 
       try {
@@ -372,6 +487,7 @@ describe('SupabaseTransactionRepository', () => {
       repo = new SupabaseTransactionRepository(
         provider,
         createMockEncryption(),
+        createMockLogger(),
       );
 
       try {
@@ -402,6 +518,7 @@ describe('SupabaseTransactionRepository', () => {
       repo = new SupabaseTransactionRepository(
         provider,
         createMockEncryption(),
+        createMockLogger(),
       );
 
       const result = await repo.fetchBudgetIdForTransaction('txn-1');
@@ -423,6 +540,7 @@ describe('SupabaseTransactionRepository', () => {
       repo = new SupabaseTransactionRepository(
         provider,
         createMockEncryption(),
+        createMockLogger(),
       );
 
       const result = await repo.fetchBudgetIdForTransaction('missing');
@@ -444,6 +562,7 @@ describe('SupabaseTransactionRepository', () => {
       repo = new SupabaseTransactionRepository(
         provider,
         createMockEncryption(),
+        createMockLogger(),
       );
 
       try {

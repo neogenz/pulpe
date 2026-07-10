@@ -66,6 +66,7 @@ import { PostponeBudgetLineUseCase } from './application/postpone-budget-line.us
     },
     BudgetLineMapper,
     createInfoLoggerProvider(BudgetLineController.name),
+    createInfoLoggerProvider(SupabaseBudgetLineRepository.name),
     createInfoLoggerProvider(FindAllBudgetLinesUseCase.name),
     createInfoLoggerProvider(FindBudgetLineUseCase.name),
     createInfoLoggerProvider(FindBudgetLinesByBudgetUseCase.name),

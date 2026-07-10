@@ -57,6 +57,8 @@ export interface TemplateLine {
   kind: TransactionKindEnum;
   recurrence: TransactionRecurrenceEnum;
   description: string | null;
+  /** PUL-18 — tag ids attached to the line (resolved to names client-side). */
+  tagIds: string[];
   createdAt: string;
   updatedAt: string;
 }
@@ -85,6 +87,8 @@ export interface TemplateLineCreateInput {
   kind: TransactionKindEnum;
   recurrence: TransactionRecurrenceEnum;
   description: string;
+  /** PUL-18 — tags to attach to the line. Absent/empty = no tags. */
+  tagIds?: string[];
 }
 
 /**
@@ -103,6 +107,8 @@ export interface TemplateLineUpdatePatch {
   kind?: TransactionKindEnum;
   recurrence?: TransactionRecurrenceEnum;
   description?: string;
+  /** PUL-18 — present replaces the line's exact tag set; absent leaves tags untouched. */
+  tagIds?: string[];
 }
 
 /**
@@ -132,6 +138,8 @@ export interface TemplateLineRpcInput {
   kind: TransactionKindEnum;
   recurrence: TransactionRecurrenceEnum;
   description: string;
+  /** PUL-18 — tags handled out-of-band (never sent to the RPC JSONB payload). */
+  tagIds?: string[];
 }
 
 /**
@@ -158,6 +166,12 @@ export interface TemplateLineRpcUpdate {
   kind?: TransactionKindEnum;
   recurrence?: TransactionRecurrenceEnum;
   description?: string;
+  /**
+   * PUL-18 — tags handled out-of-band (never sent to the RPC JSONB payload).
+   * On updated lines: present replaces the set, absent leaves untouched.
+   * On created lines: the line's initial tag set.
+   */
+  tagIds?: string[];
 }
 
 /**

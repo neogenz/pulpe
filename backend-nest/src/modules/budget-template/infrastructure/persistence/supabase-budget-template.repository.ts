@@ -11,6 +11,7 @@ import {
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import { mapCurrencyNonAmountMetadataToDb } from '@common/utils/currency-metadata.mapper';
 import { isSavingsGoalLinkDenied } from '@common/utils/savings-goal-link';
+import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 import type {
   BudgetTemplate,
   BudgetTemplateUpdatePatch,
@@ -36,11 +37,21 @@ import {
   createTemplateLinesRpcPayloadSchema,
 } from './schemas/rpc-payload.schemas';
 
+/** Template line row with its embedded tag junction (PUL-18). */
+type TemplateLineRowWithTags = TemplateLineRow & {
+  template_line_tag?: { tag_id: string }[];
+};
+
+/** Select list embedding the tag junction so every read maps to tagIds. */
+const TEMPLATE_LINE_WITH_TAGS_SELECT = '*, template_line_tag(tag_id)';
+
 @Injectable()
 export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositoryPort {
   constructor(
     private readonly supabaseProvider: AuthenticatedSupabaseProvider,
     @Inject(ENCRYPTION_PORT) private readonly encryption: EncryptionPort,
+    @InjectInfoLogger(SupabaseBudgetTemplateRepository.name)
+    private readonly logger: InfoLogger,
   ) {}
 
   async findAllForUser(userId: string): Promise<BudgetTemplate[]> {
@@ -221,7 +232,7 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
     const supabase = this.supabaseProvider.client;
     const { data, error } = await supabase
       .from('template_line')
-      .select('*')
+      .select(TEMPLATE_LINE_WITH_TAGS_SELECT)
       .eq('template_id', templateId)
       .order('name', { ascending: true });
 
@@ -269,8 +280,30 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
       );
     }
 
+    if (input.tagIds?.length) {
+      try {
+        await this.replaceTemplateLineTags(data.id, input.tagIds);
+      } catch (linkError) {
+        const { error: cleanupError } = await supabase
+          .from('template_line')
+          .delete()
+          .eq('id', data.id);
+        if (cleanupError) {
+          this.logger.warn(
+            {
+              operation: 'insertLine.compensateTagFailure',
+              entityId: data.id,
+              err: cleanupError,
+            },
+            'Failed to delete template line after tag linking failure',
+          );
+        }
+        throw linkError;
+      }
+    }
+
     const dek = await this.encryption.getDekFor(this.supabaseProvider.user);
-    return this.toTemplateLine(data, dek);
+    return { ...this.toTemplateLine(data, dek), tagIds: input.tagIds ?? [] };
   }
 
   async findLineById(
@@ -279,7 +312,7 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
     const supabase = this.supabaseProvider.client;
     const { data, error } = await supabase
       .from('template_line')
-      .select('*, template!inner(user_id)')
+      .select('*, template!inner(user_id), template_line_tag(tag_id)')
       .eq('id', lineId)
       .single();
 
@@ -289,7 +322,7 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
       });
     }
 
-    const row = data as TemplateLineRow & {
+    const row = data as TemplateLineRowWithTags & {
       template: { user_id: string | null };
     };
 
@@ -307,7 +340,7 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
     const supabase = this.supabaseProvider.client;
     const { data, error } = await supabase
       .from('template_line')
-      .select('*, template!inner(user_id)')
+      .select('*, template!inner(user_id), template_line_tag(tag_id)')
       .eq('id', lineId)
       .single();
 
@@ -317,7 +350,7 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
       });
     }
 
-    const row = data as TemplateLineRow & {
+    const row = data as TemplateLineRowWithTags & {
       template: { user_id: string | null };
     };
 
@@ -339,14 +372,29 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
     const supabase = this.supabaseProvider.client;
     const user = this.supabaseProvider.user;
 
+    if (patch.tagIds !== undefined) {
+      await this.replaceTemplateLineTags(lineId, patch.tagIds);
+    }
+
     const updateRow = await this.toTemplateLineUpdateRow(patch, user);
 
-    const { data, error } = await supabase
-      .from('template_line')
-      .update(updateRow)
-      .eq('id', lineId)
-      .select()
-      .single();
+    // A tags-only patch produces an empty scalar update row; skip the PATCH
+    // (empty update is a no-op/error) and read the row instead, so tags can
+    // still be replaced. Embedded junction gives the pre-replace tag set.
+    const query = Object.keys(updateRow).length
+      ? supabase
+          .from('template_line')
+          .update(updateRow)
+          .eq('id', lineId)
+          .select(TEMPLATE_LINE_WITH_TAGS_SELECT)
+          .single()
+      : supabase
+          .from('template_line')
+          .select(TEMPLATE_LINE_WITH_TAGS_SELECT)
+          .eq('id', lineId)
+          .single();
+
+    const { data, error } = await query;
 
     if (error || !data) {
       // enforce_savings_goal_line_link trigger: deleted/foreign goal tagged.
@@ -367,7 +415,10 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
     }
 
     const dek = await this.encryption.getDekFor(this.supabaseProvider.user);
-    return this.toTemplateLine(data, dek);
+    const entity = this.toTemplateLine(data, dek);
+    return patch.tagIds !== undefined
+      ? { ...entity, tagIds: patch.tagIds }
+      : entity;
   }
 
   async deleteLine(lineId: string): Promise<void> {
@@ -613,9 +664,32 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
       return { affectedBudgetIds, updatedLines: [], createdLines: [] };
     }
 
+    // Tags are handled out-of-band from the security-hardened scalar RPC:
+    // replace each written line's tag set, then mirror those sets onto the
+    // propagated (non-manually-adjusted) budget_lines when propagating.
+    const taggedLines = [...input.updatedLines, ...input.createdLines].filter(
+      (line) => line.tagIds !== undefined,
+    );
+    await Promise.all(
+      taggedLines.map((line) =>
+        this.replaceTemplateLineTags(line.id, line.tagIds ?? []),
+      ),
+    );
+
+    if (input.budgetIds.length > 0 && taggedLines.length > 0) {
+      const { error: syncError } = await supabase.rpc(
+        'sync_template_line_tags_to_budgets',
+        {
+          p_template_line_ids: taggedLines.map((line) => line.id),
+          p_budget_ids: input.budgetIds,
+        },
+      );
+      if (syncError) throw syncError;
+    }
+
     const { data: rows, error: fetchError } = await supabase
       .from('template_line')
-      .select('*')
+      .select(TEMPLATE_LINE_WITH_TAGS_SELECT)
       .in('id', writtenIds);
 
     if (fetchError || !rows) {
@@ -657,7 +731,10 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
     };
   }
 
-  private toTemplateLine(row: TemplateLineRow, dek: Buffer): TemplateLine {
+  private toTemplateLine(
+    row: TemplateLineRowWithTags,
+    dek: Buffer,
+  ): TemplateLine {
     return {
       id: row.id,
       templateId: row.template_id,
@@ -676,9 +753,53 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
       kind: row.kind,
       recurrence: row.recurrence,
       description: row.description,
+      tagIds: (row.template_line_tag ?? []).map((link) => link.tag_id),
       createdAt: row.created_at,
       updatedAt: row.updated_at,
     };
+  }
+
+  /**
+   * Replace-set a template line's exact tag set via the atomic RPC. Foreign
+   * template/tag ids surface as 23503/42501 -> ERR_TAG_NOT_FOUND, matching the
+   * transaction/budget-line tag repositories.
+   */
+  private async replaceTemplateLineTags(
+    templateLineId: string,
+    tagIds: string[],
+  ): Promise<void> {
+    const supabase = this.supabaseProvider.client;
+    const { error } = await supabase.rpc('replace_template_line_tags', {
+      p_template_line_id: templateLineId,
+      p_tag_ids: tagIds,
+    });
+
+    if (error) {
+      if (error.code === '23503' || error.code === '42501') {
+        throw new BusinessException(
+          ERROR_DEFINITIONS.TAG_NOT_FOUND,
+          undefined,
+          {
+            operation: 'replaceTemplateLineTags',
+            entityId: templateLineId,
+            entityType: 'template_line_tag',
+            supabaseError: error,
+          },
+          { cause: error },
+        );
+      }
+      throw new BusinessException(
+        ERROR_DEFINITIONS.TEMPLATE_LINE_NOT_FOUND,
+        { id: templateLineId },
+        {
+          operation: 'replaceTemplateLineTags',
+          entityId: templateLineId,
+          entityType: 'template_line_tag',
+          supabaseError: error,
+        },
+        { cause: error },
+      );
+    }
   }
 
   private async toTemplateLineInsertRow(

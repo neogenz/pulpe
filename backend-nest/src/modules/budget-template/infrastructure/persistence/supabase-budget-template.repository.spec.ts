@@ -2,11 +2,15 @@ import { describe, it, expect, jest } from 'bun:test';
 import { Buffer } from 'node:buffer';
 import { SupabaseBudgetTemplateRepository } from './supabase-budget-template.repository';
 import { BusinessException } from '@common/exceptions/business.exception';
-import type { TemplateRow } from '../../domain/budget-template.entity';
+import type {
+  TemplateLineRow,
+  TemplateRow,
+} from '../../domain/budget-template.entity';
 import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
 import type { AuthenticatedSupabaseProvider } from '@modules/supabase/authenticated-supabase.provider';
 import type { EncryptionPort } from '@modules/encryption/encryption.tokens';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
+import type { InfoLogger } from '@common/logger';
 
 const VALID_CIPHERTEXT =
   'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==';
@@ -24,6 +28,22 @@ const mockTemplateRow: TemplateRow = {
   name: 'Standard',
   description: 'Default',
   is_default: true,
+  created_at: '2026-01-01T00:00:00Z',
+  updated_at: '2026-01-01T00:00:00Z',
+};
+
+const mockTemplateLineRow: TemplateLineRow = {
+  id: 'line-1',
+  template_id: 'template-1',
+  name: 'Loyer',
+  amount: VALID_CIPHERTEXT,
+  original_amount: null,
+  original_currency: null,
+  target_currency: null,
+  exchange_rate: null,
+  kind: 'expense',
+  recurrence: 'fixed',
+  description: null,
   created_at: '2026-01-01T00:00:00Z',
   updated_at: '2026-01-01T00:00:00Z',
 };
@@ -70,6 +90,15 @@ function createMockEncryption(): EncryptionPort {
   } as unknown as EncryptionPort;
 }
 
+function createMockLogger(): InfoLogger {
+  return {
+    info: jest.fn(),
+    debug: jest.fn(),
+    warn: jest.fn(),
+    trace: jest.fn(),
+  } as unknown as InfoLogger;
+}
+
 describe('SupabaseBudgetTemplateRepository', () => {
   describe('findById', () => {
     it('should return entity on success', async () => {
@@ -85,6 +114,7 @@ describe('SupabaseBudgetTemplateRepository', () => {
       const repo = new SupabaseBudgetTemplateRepository(
         provider,
         createMockEncryption(),
+        createMockLogger(),
       );
 
       const result = await repo.findById('template-1', 'user-1');
@@ -108,6 +138,7 @@ describe('SupabaseBudgetTemplateRepository', () => {
       const repo = new SupabaseBudgetTemplateRepository(
         provider,
         createMockEncryption(),
+        createMockLogger(),
       );
 
       await expect(repo.findById('missing', 'user-1')).rejects.toThrow(
@@ -131,11 +162,124 @@ describe('SupabaseBudgetTemplateRepository', () => {
       const repo = new SupabaseBudgetTemplateRepository(
         provider,
         createMockEncryption(),
+        createMockLogger(),
       );
 
       await expect(repo.validateAccess('template-1', 'user-1')).rejects.toThrow(
         BusinessException,
       );
+    });
+  });
+
+  describe('insertLine', () => {
+    it('should delete the inserted line when tag replacement fails', async () => {
+      const compensationDelete = jest.fn().mockResolvedValue({ error: null });
+      const provider = createMockProvider(
+        () => ({
+          insert: () => ({
+            select: () => ({
+              single: jest.fn().mockResolvedValue({
+                data: mockTemplateLineRow,
+                error: null,
+              }),
+            }),
+          }),
+          delete: () => ({ eq: compensationDelete }),
+        }),
+        jest.fn().mockResolvedValue({
+          error: { code: '23503', message: 'FK violation' },
+        }),
+      );
+      const repo = new SupabaseBudgetTemplateRepository(
+        provider,
+        createMockEncryption(),
+        createMockLogger(),
+      );
+
+      await expect(
+        repo.insertLine({
+          templateId: 'template-1',
+          name: 'Loyer',
+          amount: 1200,
+          kind: 'expense',
+          recurrence: 'fixed',
+          description: '',
+          tagIds: ['missing-tag'],
+        }),
+      ).rejects.toMatchObject({ code: 'ERR_TAG_NOT_FOUND' });
+      expect(compensationDelete).toHaveBeenCalledWith('id', 'line-1');
+    });
+
+    it('should warn when tag-link compensation delete fails and rethrow the tag error', async () => {
+      const tagError = { code: '23503', message: 'FK violation' };
+      const cleanupError = { code: '08006', message: 'connection lost' };
+      const logger = createMockLogger();
+      const provider = createMockProvider(
+        () => ({
+          insert: () => ({
+            select: () => ({
+              single: jest.fn().mockResolvedValue({
+                data: mockTemplateLineRow,
+                error: null,
+              }),
+            }),
+          }),
+          delete: () => ({
+            eq: jest.fn().mockResolvedValue({ error: cleanupError }),
+          }),
+        }),
+        jest.fn().mockResolvedValue({ error: tagError }),
+      );
+      const repo = new SupabaseBudgetTemplateRepository(
+        provider,
+        createMockEncryption(),
+        logger,
+      );
+
+      await expect(
+        repo.insertLine({
+          templateId: 'template-1',
+          name: 'Loyer',
+          amount: 1200,
+          kind: 'expense',
+          recurrence: 'fixed',
+          description: '',
+          tagIds: ['missing-tag'],
+        }),
+      ).rejects.toMatchObject({ code: 'ERR_TAG_NOT_FOUND' });
+      expect(logger.warn).toHaveBeenCalledWith(
+        {
+          operation: 'insertLine.compensateTagFailure',
+          entityId: 'line-1',
+          err: cleanupError,
+        },
+        'Failed to delete template line after tag linking failure',
+      );
+    });
+  });
+
+  describe('updateLine', () => {
+    it('should not update scalar fields when tag replacement fails', async () => {
+      const update = jest.fn();
+      const provider = createMockProvider(
+        () => ({ update }),
+        jest.fn().mockResolvedValue({
+          error: { code: '23503', message: 'FK violation' },
+        }),
+      );
+      const repo = new SupabaseBudgetTemplateRepository(
+        provider,
+        createMockEncryption(),
+        createMockLogger(),
+      );
+
+      await expect(
+        repo.updateLine('line-1', {
+          name: 'Updated',
+          tagIds: ['missing-tag'],
+        }),
+      ).rejects.toMatchObject({ code: 'ERR_TAG_NOT_FOUND' });
+      expect(update).not.toHaveBeenCalled();
     });
   });
 
@@ -149,7 +293,11 @@ describe('SupabaseBudgetTemplateRepository', () => {
         rpc as unknown as jest.Mock,
       );
       const encryption = createMockEncryption();
-      const repo = new SupabaseBudgetTemplateRepository(provider, encryption);
+      const repo = new SupabaseBudgetTemplateRepository(
+        provider,
+        encryption,
+        createMockLogger(),
+      );
 
       const result = await repo.createTemplateWithLines({
         userId: 'user-1',
@@ -206,7 +354,11 @@ describe('SupabaseBudgetTemplateRepository', () => {
       (encryption.prepareAmountsData as jest.Mock).mockResolvedValue([
         { amount: '' },
       ]);
-      const repo = new SupabaseBudgetTemplateRepository(provider, encryption);
+      const repo = new SupabaseBudgetTemplateRepository(
+        provider,
+        encryption,
+        createMockLogger(),
+      );
 
       await expect(
         repo.createTemplateWithLines({
@@ -253,6 +405,7 @@ describe('SupabaseBudgetTemplateRepository', () => {
       const repo = new SupabaseBudgetTemplateRepository(
         provider,
         createMockEncryption(),
+        createMockLogger(),
       );
 
       await expect(
@@ -281,6 +434,7 @@ describe('SupabaseBudgetTemplateRepository', () => {
       const repo = new SupabaseBudgetTemplateRepository(
         provider,
         createMockEncryption(),
+        createMockLogger(),
       );
 
       let caught: unknown;
@@ -307,6 +461,7 @@ describe('SupabaseBudgetTemplateRepository', () => {
       const repo = new SupabaseBudgetTemplateRepository(
         provider,
         createMockEncryption(),
+        createMockLogger(),
       );
 
       const result = await repo.bulkApplyTemplateLineOperations({
@@ -363,7 +518,11 @@ describe('SupabaseBudgetTemplateRepository', () => {
         rpc as unknown as jest.Mock,
       );
       const encryption = createMockEncryption();
-      const repo = new SupabaseBudgetTemplateRepository(provider, encryption);
+      const repo = new SupabaseBudgetTemplateRepository(
+        provider,
+        encryption,
+        createMockLogger(),
+      );
 
       const result = await repo.bulkApplyTemplateLineOperations({
         templateId: 'template-1',

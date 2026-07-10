@@ -52,6 +52,7 @@ export class UpdateTemplateLineUseCase {
       kind: validated.kind,
       recurrence: validated.recurrence,
       description: validated.description,
+      tagIds: validated.tagIds,
     });
 
     this.logger.info(

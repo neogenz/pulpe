@@ -12,6 +12,7 @@ import {
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import { mapCurrencyNonAmountMetadataToDb } from '@common/utils/currency-metadata.mapper';
 import { isSavingsGoalLinkDenied } from '@common/utils/savings-goal-link';
+import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 import type { BudgetLineRepositoryPort } from '../../domain/ports/budget-line-repository.port';
 import type {
   BudgetLine,
@@ -48,6 +49,8 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
   constructor(
     private readonly supabaseProvider: AuthenticatedSupabaseProvider,
     @Inject(ENCRYPTION_PORT) private readonly encryption: EncryptionPort,
+    @InjectInfoLogger(SupabaseBudgetLineRepository.name)
+    private readonly logger: InfoLogger,
   ) {}
 
   async findAll(): Promise<BudgetLine[]> {
@@ -440,7 +443,20 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
         await this.replaceTagLinks(row.id, input.tagIds, 'createBudgetLine');
       } catch (linkError) {
         // Compensation: a line without its requested tags must not survive.
-        await supabase.from('budget_line').delete().eq('id', row.id);
+        const { error: cleanupError } = await supabase
+          .from('budget_line')
+          .delete()
+          .eq('id', row.id);
+        if (cleanupError) {
+          this.logger.warn(
+            {
+              operation: 'createBudgetLine.compensateTagFailure',
+              entityId: row.id,
+              err: cleanupError,
+            },
+            'Failed to delete budget line after tag linking failure',
+          );
+        }
         throw linkError;
       }
     }
@@ -623,14 +639,26 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
     const supabase = this.supabaseProvider.client;
     const user = this.supabaseProvider.user;
 
+    if (patch.tagIds !== undefined) {
+      await this.replaceTagLinks(id, patch.tagIds, 'updateBudgetLine');
+    }
+
     const updateRow = await this.toUpdateRow(patch, user);
 
-    const { data: row, error } = await supabase
-      .from('budget_line')
-      .update(updateRow)
-      .eq('id', id)
-      .select(BUDGET_LINE_WITH_TAGS_SELECT)
-      .single();
+    const query = Object.keys(updateRow).length
+      ? supabase
+          .from('budget_line')
+          .update(updateRow)
+          .eq('id', id)
+          .select(BUDGET_LINE_WITH_TAGS_SELECT)
+          .single()
+      : supabase
+          .from('budget_line')
+          .select(BUDGET_LINE_WITH_TAGS_SELECT)
+          .eq('id', id)
+          .single();
+
+    const { data: row, error } = await query;
 
     if (error || !row) {
       const loggingContext = {
@@ -675,10 +703,6 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
         loggingContext,
         { cause: error },
       );
-    }
-
-    if (patch.tagIds !== undefined) {
-      await this.replaceTagLinks(id, patch.tagIds, 'updateBudgetLine');
     }
 
     const dek = await this.encryption.getDekFor(this.supabaseProvider.user);
@@ -1012,7 +1036,9 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
       ),
     );
 
-    updateData.updated_at = new Date().toISOString();
+    if (Object.keys(updateData).length) {
+      updateData.updated_at = new Date().toISOString();
+    }
     return updateData;
   }
 
