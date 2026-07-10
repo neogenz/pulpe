@@ -45,7 +45,7 @@ struct NetworkUnavailableView: View {
             .disabled(isRetrying)
 
             if let onSignOut {
-                Button("Se reconnecter avec son mot de passe") {
+                Button("Retour à la connexion") {
                     Task { await onSignOut() }
                 }
                 .textLinkButtonStyle()
