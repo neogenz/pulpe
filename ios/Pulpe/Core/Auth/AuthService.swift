@@ -10,7 +10,7 @@ actor AuthService {
 
     private var supabase: SupabaseClient
     private let keychain: KeychainManager
-    private let storage: PulpeAuthStorage
+    private let storage: any AuthLocalStorage
     private var authStateListenerTask: Task<Void, Never>?
     private var pendingBiometricResync = false
 
@@ -22,6 +22,15 @@ actor AuthService {
             await self?.startAuthStateListener()
         }
     }
+    #if DEBUG
+    init(testingSupabase: SupabaseClient, storage: any AuthLocalStorage, pendingBiometricResync: Bool) {
+        self.keychain = .shared
+        self.storage = storage
+        self.supabase = testingSupabase
+        self.pendingBiometricResync = pendingBiometricResync
+    }
+    var isBiometricResyncPendingForTesting: Bool { pendingBiometricResync }
+    #endif
 
     private func resetClient() {
         authStateListenerTask?.cancel()
@@ -30,7 +39,7 @@ actor AuthService {
         startAuthStateListener()
     }
 
-    private static func makeSupabaseClient(storage: PulpeAuthStorage) -> SupabaseClient {
+    private static func makeSupabaseClient(storage: any AuthLocalStorage) -> SupabaseClient {
         SupabaseClient(
             supabaseURL: AppConfiguration.supabaseURL,
             supabaseKey: AppConfiguration.supabaseAnonKey,
@@ -266,10 +275,20 @@ actor AuthService {
     /// Replays a biometric snapshot resync that failed while the device was locked.
     /// Call on foreground entry — the device is unlocked, so the write can succeed.
     func retryPendingBiometricResync() async {
-        guard pendingBiometricResync else { return }
-        pendingBiometricResync = false
-        guard let session = try? await supabase.auth.session else { return }
-        await refreshBiometricSnapshotIfPresent(session)
+        guard pendingBiometricResync, !Task.isCancelled else { return }
+        do {
+            let session = try await supabase.auth.session
+            // The auth-state listener can complete the deferred resync while this
+            // session lookup is suspended; do not write a stale duplicate snapshot.
+            guard pendingBiometricResync, !Task.isCancelled else { return }
+            await refreshBiometricSnapshotIfPresent(session)
+        } catch {
+            // Keep retrying after transport and transient SDK failures. A confirmed
+            // terminal logout is the only case where pending work cannot succeed.
+            if isConfirmedTerminalSessionFailure(error) {
+                pendingBiometricResync = false
+            }
+        }
     }
 
     func validateBiometricSession() async throws -> BiometricSessionResult? {
