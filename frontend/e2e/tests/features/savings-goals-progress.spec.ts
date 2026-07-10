@@ -46,6 +46,27 @@ const progress = {
   exchangeRate: null,
 };
 
+const contributions = [
+  {
+    lineId: '00000000-0000-4000-a000-000000000401',
+    name: 'Épargne juillet',
+    amount: 400,
+    checkedAt: '2026-07-01T00:00:00.000Z',
+    budgetMonth: 7,
+    budgetYear: 2026,
+    transactions: [],
+  },
+  {
+    lineId: '00000000-0000-4000-a000-000000000402',
+    name: 'Épargne août',
+    amount: 400,
+    checkedAt: null,
+    budgetMonth: 8,
+    budgetYear: 2026,
+    transactions: [],
+  },
+];
+
 test.describe('Savings goal progression (PUL-8)', () => {
   test('navigates list → detail and shows the progress bar, Pointé label and D2 CTA', async ({
     authenticatedPage: page,
@@ -56,6 +77,13 @@ test.describe('Savings goal progression (PUL-8)', () => {
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify({ success: true, data: progress }),
+      }),
+    );
+    await page.route('**/api/v1/savings-goals/*/contributions', (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, data: contributions }),
       }),
     );
     await page.route('**/api/v1/savings-goals', (route) =>
