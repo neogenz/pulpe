@@ -116,4 +116,15 @@ describe("landing accessibility contracts", () => {
       /outline-white\/10/,
     );
   });
+
+  it("keeps the mobile navigation non-modal and the page scrollable", () => {
+    assert.doesNotMatch(componentSources.header, /lockBodyScroll/);
+    assert.doesNotMatch(componentSources.header, /aria-modal/);
+    assert.doesNotMatch(componentSources.header, /e\.key === ['"]Tab['"]/);
+  });
+
+  it("does not force pointer focus when the mobile navigation toggles", () => {
+    assert.doesNotMatch(componentSources.header, /focusables\[0\]\?\.focus/);
+    assert.doesNotMatch(componentSources.header, /else if \(wasOpen\.current\)/);
+  });
 });

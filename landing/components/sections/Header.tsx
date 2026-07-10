@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef, type CSSProperties } from 'react'
 import { Menu, X } from 'lucide-react'
 import { Button } from '@/components/ui'
-import { lockBodyScroll } from '@/lib/bodyScrollLock'
 import { angularUrl } from '@/lib/config'
 import { trackCTAClick } from '@/lib/posthog'
 
@@ -36,8 +35,6 @@ export function Header() {
   const [scrolled, setScrolled] = useState(false)
   const lastScrollTime = useRef(0)
   const menuButtonRef = useRef<HTMLButtonElement>(null)
-  const menuPanelRef = useRef<HTMLDivElement>(null)
-  const wasOpen = useRef(false)
 
   useEffect(() => {
     const handleScroll = () => {
@@ -51,50 +48,26 @@ export function Header() {
   }, [])
 
   useEffect(() => {
-    if (mobileMenuOpen) {
-      wasOpen.current = true
-      const unlockScroll = lockBodyScroll()
+    if (!mobileMenuOpen) return
 
-      const focusables = menuPanelRef.current
-        ? Array.from(
-            menuPanelRef.current.querySelectorAll<HTMLElement>('a[href], button')
-          )
-        : []
-      focusables[0]?.focus()
+    const closeOnDesktop = () => {
+      if (window.innerWidth >= DESKTOP_BREAKPOINT_PX) {
+        setMobileMenuOpen(false)
+      }
+    }
 
-      const closeOnDesktop = () => {
-        if (window.innerWidth >= DESKTOP_BREAKPOINT_PX) {
-          setMobileMenuOpen(false)
-        }
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setMobileMenuOpen(false)
+        menuButtonRef.current?.focus({ preventScroll: true })
       }
+    }
 
-      const handleKeyDown = (e: KeyboardEvent) => {
-        if (e.key === 'Escape') {
-          setMobileMenuOpen(false)
-          return
-        }
-        if (e.key === 'Tab' && focusables.length > 0) {
-          const first = focusables[0]
-          const last = focusables[focusables.length - 1]
-          if (e.shiftKey && document.activeElement === first) {
-            e.preventDefault()
-            last.focus()
-          } else if (!e.shiftKey && document.activeElement === last) {
-            e.preventDefault()
-            first.focus()
-          }
-        }
-      }
-      window.addEventListener('resize', closeOnDesktop)
-      document.addEventListener('keydown', handleKeyDown)
-      return () => {
-        window.removeEventListener('resize', closeOnDesktop)
-        document.removeEventListener('keydown', handleKeyDown)
-        unlockScroll()
-      }
-    } else if (wasOpen.current) {
-      wasOpen.current = false
-      menuButtonRef.current?.focus({ preventScroll: true })
+    window.addEventListener('resize', closeOnDesktop)
+    document.addEventListener('keydown', handleKeyDown)
+    return () => {
+      window.removeEventListener('resize', closeOnDesktop)
+      document.removeEventListener('keydown', handleKeyDown)
     }
   }, [mobileMenuOpen])
 
@@ -186,14 +159,13 @@ export function Header() {
         </nav>
 
         {/* Mobile Menu - absolute so it doesn't inflate header's bounding box when collapsed */}
-        <div
-          ref={menuPanelRef}
+        <nav
+          aria-label="Navigation mobile"
           className={`md:hidden absolute left-0 right-0 top-full mt-2 rounded-2xl transition-[opacity,translate,scale] duration-250 ease-[cubic-bezier(0.4,0,0.2,1)] motion-reduce:transition-none motion-reduce:translate-y-0 motion-reduce:scale-100 ${
             mobileMenuOpen
               ? 'opacity-100 translate-y-0 scale-100 pointer-events-auto'
               : 'opacity-0 -translate-y-2.5 scale-95 pointer-events-none'
           }`}
-          {...(mobileMenuOpen && { role: 'dialog', 'aria-modal': true, 'aria-label': 'Menu de navigation' })}
           {...(!mobileMenuOpen && { inert: true })}
         >
           {/* Mobile: Tint — no SVG distortion filter (causes clipping artifacts on mobile) */}
@@ -225,7 +197,7 @@ export function Header() {
               </a>
             ))}
           </div>
-        </div>
+        </nav>
       </header>
   )
 }
