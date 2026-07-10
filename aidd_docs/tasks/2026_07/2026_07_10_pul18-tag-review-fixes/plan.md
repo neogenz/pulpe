@@ -1,6 +1,6 @@
 ---
 objective: "All 11 PUL-18 review findings are fixed: tag writes abort-before-commit or compensate, tag-junction plumbing is single-sourced, and redundant frontend guards are gone."
-status: in-progress
+status: implemented
 ---
 
 # Plan: PUL-18 tag review fixes
