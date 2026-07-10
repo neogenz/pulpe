@@ -2,6 +2,7 @@ import { describe, it, expect } from 'bun:test';
 import {
   applyTemplateLineOperationsItemSchema,
   applyTemplateLineOperationsListSchema,
+  bulkReplaceTemplateLineTagsListSchema,
   createTemplateLineRpcPayloadSchema,
   createTemplateLinesRpcPayloadSchema,
 } from './rpc-payload.schemas';
@@ -317,5 +318,34 @@ describe('applyTemplateLineOperationsListSchema', () => {
     ];
 
     expect(() => applyTemplateLineOperationsListSchema.parse(list)).toThrow();
+  });
+});
+
+describe('bulkReplaceTemplateLineTagsListSchema', () => {
+  const validPair = {
+    template_line_id: '8a0f6c80-1234-4e5f-89ab-111111111111',
+    tag_ids: ['8a0f6c80-1234-4e5f-89ab-222222222222'],
+  };
+
+  it('should accept strict UUID tag pairs', () => {
+    expect(bulkReplaceTemplateLineTagsListSchema.parse([validPair])).toEqual([
+      validPair,
+    ]);
+  });
+
+  it('should reject extra keys', () => {
+    expect(() =>
+      bulkReplaceTemplateLineTagsListSchema.parse([
+        { ...validPair, templateLineId: validPair.template_line_id },
+      ]),
+    ).toThrow();
+  });
+
+  it('should reject invalid UUIDs', () => {
+    expect(() =>
+      bulkReplaceTemplateLineTagsListSchema.parse([
+        { ...validPair, tag_ids: ['not-a-uuid'] },
+      ]),
+    ).toThrow();
   });
 });

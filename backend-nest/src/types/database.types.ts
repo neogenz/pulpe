@@ -570,6 +570,10 @@ export type Database = {
         };
         Returns: string[];
       };
+      bulk_replace_template_line_tags_and_sync: {
+        Args: { p_budget_ids: string[]; p_line_tag_pairs: Json };
+        Returns: undefined;
+      };
       bulk_update_template_lines: {
         Args: { line_updates: Json; p_template_id: string };
         Returns: {
@@ -683,10 +687,6 @@ export type Database = {
       };
       replace_transaction_tags: {
         Args: { p_tag_ids: string[]; p_transaction_id: string };
-        Returns: undefined;
-      };
-      sync_template_line_tags_to_budgets: {
-        Args: { p_budget_ids: string[]; p_template_line_ids: string[] };
         Returns: undefined;
       };
       toggle_budget_line_check: {

@@ -7,9 +7,9 @@
 --   1. New budget generation: create_budget_from_template copies each
 --      template_line's tags onto the budget_line it generates.
 --   2. Editing an existing template (the "propagate to all budgets / current"
---      dialog): the repository calls sync_template_line_tags_to_budgets after
---      apply_template_line_operations, mirroring the tag set onto the
---      non-manually-adjusted budget_lines in the chosen budgets.
+--      dialog): the repository calls bulk_replace_template_line_tags_and_sync
+--      after apply_template_line_operations, atomically replacing every tag
+--      set and mirroring it onto the chosen budgets.
 --
 -- The security-hardened apply_template_line_operations RPC (PUL-272) is left
 -- untouched: tag replacement is composed from small atomic RPCs at the repo
@@ -89,40 +89,63 @@ REVOKE EXECUTE ON FUNCTION public.replace_template_line_tags(uuid, uuid[])
 GRANT EXECUTE ON FUNCTION public.replace_template_line_tags(uuid, uuid[])
   TO authenticated, service_role;
 
--- Propagate template-line tag sets onto the budget_lines generated from them,
--- for the given budgets. Only non-manually-adjusted lines are touched — same
--- lock semantics as the amount/name propagation in apply_template_line_operations.
--- SECURITY INVOKER: RLS on budget_line_tag confines writes to the caller's own
--- budgets and tags.
-CREATE OR REPLACE FUNCTION public.sync_template_line_tags_to_budgets(
-  p_template_line_ids uuid[],
+-- Replace N template-line tag sets and mirror them onto generated budget_lines
+-- in one transaction. Only non-manually-adjusted lines are propagated — same
+-- lock semantics as apply_template_line_operations. SECURITY INVOKER keeps RLS
+-- active for both junction tables.
+CREATE OR REPLACE FUNCTION public.bulk_replace_template_line_tags_and_sync(
+  p_line_tag_pairs jsonb,
   p_budget_ids uuid[]
 ) RETURNS void
 LANGUAGE plpgsql
+SECURITY INVOKER
 SET search_path TO 'public'
 AS $$
+DECLARE
+  line_pair record;
+  template_line_ids uuid[] := ARRAY[]::uuid[];
 BEGIN
-  DELETE FROM budget_line_tag blt
-  USING budget_line bl
-  WHERE blt.budget_line_id = bl.id
-    AND bl.template_line_id = ANY(p_template_line_ids)
-    AND bl.budget_id = ANY(p_budget_ids)
-    AND bl.is_manually_adjusted = false;
+  FOR line_pair IN
+    SELECT *
+    FROM jsonb_to_recordset(p_line_tag_pairs)
+      AS x(template_line_id uuid, tag_ids uuid[])
+  LOOP
+    DELETE FROM template_line_tag
+    WHERE template_line_id = line_pair.template_line_id;
 
-  INSERT INTO budget_line_tag (budget_line_id, tag_id)
-  SELECT bl.id, tlt.tag_id
-  FROM budget_line bl
-  JOIN template_line_tag tlt ON tlt.template_line_id = bl.template_line_id
-  WHERE bl.template_line_id = ANY(p_template_line_ids)
-    AND bl.budget_id = ANY(p_budget_ids)
-    AND bl.is_manually_adjusted = false
-  ON CONFLICT DO NOTHING;
+    INSERT INTO template_line_tag (template_line_id, tag_id)
+    SELECT line_pair.template_line_id, tag_id
+    FROM unnest(line_pair.tag_ids) AS tag_id;
+
+    template_line_ids := array_append(
+      template_line_ids,
+      line_pair.template_line_id
+    );
+  END LOOP;
+
+  IF cardinality(template_line_ids) > 0 AND cardinality(p_budget_ids) > 0 THEN
+    DELETE FROM budget_line_tag blt
+    USING budget_line bl
+    WHERE blt.budget_line_id = bl.id
+      AND bl.template_line_id = ANY(template_line_ids)
+      AND bl.budget_id = ANY(p_budget_ids)
+      AND bl.is_manually_adjusted = false;
+
+    INSERT INTO budget_line_tag (budget_line_id, tag_id)
+    SELECT bl.id, tlt.tag_id
+    FROM budget_line bl
+    JOIN template_line_tag tlt ON tlt.template_line_id = bl.template_line_id
+    WHERE bl.template_line_id = ANY(template_line_ids)
+      AND bl.budget_id = ANY(p_budget_ids)
+      AND bl.is_manually_adjusted = false
+    ON CONFLICT DO NOTHING;
+  END IF;
 END;
 $$;
 
-REVOKE EXECUTE ON FUNCTION public.sync_template_line_tags_to_budgets(uuid[], uuid[])
+REVOKE EXECUTE ON FUNCTION public.bulk_replace_template_line_tags_and_sync(jsonb, uuid[])
   FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.sync_template_line_tags_to_budgets(uuid[], uuid[])
+GRANT EXECUTE ON FUNCTION public.bulk_replace_template_line_tags_and_sync(jsonb, uuid[])
   TO authenticated, service_role;
 
 -- Regenerate create_budget_from_template so a freshly generated budget_line
