@@ -397,7 +397,7 @@ describe('computeSavingsGoalProgress — statuts (D2, PAUSED)', () => {
     });
   });
 
-  describe('formule 11 — date d\'atteinte estimée', () => {
+  describe("formule 11 — date d'atteinte estimée", () => {
     it('should project the completion period at the confirmed pace', () => {
       const checked = savingLine(
         6000,

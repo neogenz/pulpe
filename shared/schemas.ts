@@ -323,9 +323,7 @@ export const savingsPlanMonthStateSchema = z.enum([
   'future',
   'gap',
 ]);
-export type SavingsPlanMonthState = z.infer<
-  typeof savingsPlanMonthStateSchema
->;
+export type SavingsPlanMonthState = z.infer<typeof savingsPlanMonthStateSchema>;
 
 /**
  * Un mois de la timeline d'un objectif (docs/SAVINGS_PLAN.md §4.2). Alimente le
