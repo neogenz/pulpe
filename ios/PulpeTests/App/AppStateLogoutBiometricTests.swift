@@ -8,7 +8,7 @@ import Testing
 /// - deleteAccount() clears onboarding state and hasReturningUser
 /// - logout() sets didExplicitLogout flag in UserDefaults
 /// - checkAuthState() skips biometric auto-trigger when didExplicitLogout is true
-/// - login() and loginWithBiometric() clear the didExplicitLogout flag
+/// - login() and successful loginWithBiometric() clear the didExplicitLogout flag
 @MainActor
 @Suite(.serialized)
 struct AppStateLogoutBiometricTests {
@@ -198,9 +198,9 @@ struct AppStateLogoutBiometricTests {
         #expect(sut.authState == .unauthenticated)
     }
 
-    // MARK: - Bug 3: loginWithBiometric Clears Flag
+    // MARK: - Successful Biometric Login Clears Flag
 
-    @Test("loginWithBiometric() clears the didExplicitLogout flag")
+    @Test("successful biometric login clears the didExplicitLogout flag")
     func loginWithBiometric_clearsExplicitLogoutFlag() async {
         // Set the explicit logout flag
         UserDefaults.standard.set(true, forKey: Self.didExplicitLogoutKey)
@@ -209,10 +209,13 @@ struct AppStateLogoutBiometricTests {
             UserDefaults.standard.removeObject(forKey: Self.hasLaunchedBeforeKey)
         }
 
+        let user = UserInfo(id: "biometric-user", email: "bio@pulpe.app", firstName: "Bio")
         let sut = AppState(
             postAuthResolver: MockPostAuthResolver(destination: .needsPinEntry(needsRecoveryKeyConsent: false)),
             biometricPreferenceStore: AppStateTestFactory.biometricEnabledStore(),
-            validateBiometricSession: { nil }
+            validateBiometricSession: { [user] in
+                BiometricSessionResult(user: user, clientKeyHex: nil)
+            }
         )
 
         await sut.bootstrap()
@@ -232,24 +235,48 @@ struct AppStateLogoutBiometricTests {
 
     // MARK: - Face ID Cancel on Login Screen Must Not Destroy Credentials
 
-    @Test("loginWithBiometric cancel keeps biometric credentials and shows no error")
-    func loginWithBiometric_userCancel_keepsCredentials() async {
+    @Test("biometric cancel preserves explicit logout for the next cold start")
+    func loginWithBiometric_userCancel_preservesExplicitLogoutAndCredentials() async {
         UserDefaults.standard.set(true, forKey: Self.hasLaunchedBeforeKey)
-        defer { UserDefaults.standard.removeObject(forKey: Self.hasLaunchedBeforeKey) }
+        UserDefaults.standard.set(true, forKey: Self.didExplicitLogoutKey)
+        defer {
+            UserDefaults.standard.removeObject(forKey: Self.hasLaunchedBeforeKey)
+            UserDefaults.standard.removeObject(forKey: Self.didExplicitLogoutKey)
+        }
+        let biometricCalls = AtomicProperty(0)
 
         let sut = AppState(
             postAuthResolver: MockPostAuthResolver(destination: .needsPinEntry(needsRecoveryKeyConsent: false)),
             biometricPreferenceStore: AppStateTestFactory.biometricEnabledStore(),
-            validateBiometricSession: { throw KeychainError.userCanceled }
+            validateRegularSession: { nil },
+            validateBiometricSession: {
+                biometricCalls.increment()
+                throw KeychainError.userCanceled
+            },
+            maintenanceChecking: { false }
         )
         await sut.bootstrap()
         sut.biometricCredentialsAvailable = true
 
         await sut.loginWithBiometric()
 
+        #expect(
+            UserDefaults.standard.bool(forKey: Self.didExplicitLogoutKey),
+            "Cancelling Face ID must preserve the explicit-logout re-entry path"
+        )
         #expect(sut.biometricEnabled == true, "Cancel must not disable the biometric preference")
         #expect(sut.biometricCredentialsAvailable == true, "Cancel must not wipe the snapshot")
         #expect(sut.biometricError == nil, "Cancel is not an error state")
+
+        await sut.checkAuthState()
+
+        #expect(biometricCalls.value == 2, "Next cold start must retry the biometric re-entry path")
+        #expect(
+            UserDefaults.standard.bool(forKey: Self.didExplicitLogoutKey),
+            "Cold start after cancellation must retain the explicit-logout re-entry path"
+        )
+        #expect(sut.biometricEnabled == true, "Cold start after cancellation must not disable biometric")
+        #expect(sut.biometricCredentialsAvailable == true, "Cold start after cancellation must preserve the snapshot")
     }
 
     // MARK: - Bug 3: Successful login() Clears Flag
