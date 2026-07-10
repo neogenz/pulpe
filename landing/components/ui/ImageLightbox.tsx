@@ -58,7 +58,7 @@ export const ImageLightbox = memo(function ImageLightbox({
   return (
     <div
       className={cn(
-        'fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm transition-opacity duration-200',
+        'fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm transition-opacity duration-200 motion-reduce:transition-none',
         isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
       )}
       onClick={onClose}
@@ -82,7 +82,7 @@ export const ImageLightbox = memo(function ImageLightbox({
           src={imageSrc}
           alt={imageAlt}
           className={cn(
-            'max-w-[95vw] max-h-[95vh] object-contain rounded-lg transition-all duration-200',
+            'max-w-[95vw] max-h-[95vh] object-contain rounded-lg outline outline-1 -outline-offset-1 outline-white/10 transition-[opacity,scale] duration-200 motion-reduce:transition-none motion-reduce:scale-100',
             isOpen ? 'scale-100 opacity-100' : 'scale-90 opacity-0'
           )}
           onClick={handleImageClick}

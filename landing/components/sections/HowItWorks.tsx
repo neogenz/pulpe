@@ -59,7 +59,7 @@ export function HowItWorks() {
             turning the "3 minutes" claim into a small demonstration. */}
         <div
           aria-hidden="true"
-          className="absolute top-7 left-[12.5%] right-[12.5%] h-px origin-left bg-gradient-to-r from-primary/50 to-primary transition-transform duration-[1300ms] ease-[cubic-bezier(0.22,1,0.36,1)]"
+          className="absolute top-7 left-[12.5%] right-[12.5%] h-px origin-left bg-gradient-to-r from-primary/50 to-primary transition-transform duration-[1300ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none"
           style={{ transform: progressed ? 'scaleX(1)' : 'scaleX(0)' }}
         />
         <div className="grid md:grid-cols-4 gap-8 relative">

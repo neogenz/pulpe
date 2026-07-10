@@ -96,7 +96,7 @@ function ItemMarker({ status }: { status: RoadmapStatus }) {
   if (status === 'inProgress') {
     return (
       <span className="flex items-center justify-center w-5 h-5 rounded-full bg-primary/10 shrink-0 mt-0.5">
-        <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+        <span className="w-2 h-2 rounded-full bg-primary motion-safe:animate-pulse" />
       </span>
     )
   }
@@ -176,7 +176,7 @@ export function Roadmap() {
         <div className="text-center mt-12">
           <Link
             href="/changelog"
-            className="inline-flex items-center gap-1.5 text-accent font-medium transition-transform duration-200 [transition-timing-function:var(--ease-spring)] hover:-translate-y-0.5 py-3 px-2"
+            className="inline-flex items-center gap-1.5 text-accent font-medium transition-transform duration-200 [transition-timing-function:var(--ease-spring)] hover:-translate-y-0.5 py-3 px-2 motion-reduce:transition-none motion-reduce:translate-y-0"
           >
             Tout le détail dans les nouveautés
             <ArrowRight className="w-4 h-4" aria-hidden="true" />

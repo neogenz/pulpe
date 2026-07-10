@@ -29,7 +29,7 @@ export const AccordionItem = memo(function AccordionItem({ question, answer }: A
         <span>{question}</span>
         <span
           aria-hidden="true"
-          className={`ml-4 shrink-0 text-text-secondary transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
+          className={`ml-4 shrink-0 text-text-secondary transition-transform duration-200 motion-reduce:transition-none ${open ? 'rotate-180' : ''}`}
         >
           <ChevronDown className="w-5 h-5" />
         </span>
@@ -39,7 +39,7 @@ export const AccordionItem = memo(function AccordionItem({ question, answer }: A
         role="region"
         aria-labelledby={triggerId}
         aria-hidden={!open}
-        className="grid transition-[grid-template-rows] duration-200 ease-out"
+        className="grid transition-[grid-template-rows] duration-200 ease-out motion-reduce:transition-none"
         style={{ gridTemplateRows: open ? '1fr' : '0fr' }}
       >
         <div className="overflow-hidden">

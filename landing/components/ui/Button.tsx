@@ -18,7 +18,7 @@ type ButtonAsAnchor = ButtonBaseProps & Omit<AnchorHTMLAttributes<HTMLAnchorElem
 type ButtonProps = ButtonAsButton | ButtonAsAnchor
 
 const BASE_STYLES =
-  'inline-flex items-center justify-center font-semibold transition-all duration-200 rounded-full cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 disabled:pointer-events-none [transition-timing-function:var(--ease-spring)]'
+  'inline-flex items-center justify-center font-semibold transition-[background-color,color,box-shadow,scale] duration-200 rounded-full cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 disabled:pointer-events-none [transition-timing-function:var(--ease-spring)] motion-reduce:transition-none motion-reduce:scale-100'
 
 const SIZE_STYLES = {
   sm: 'min-h-[44px] px-4 text-sm',
@@ -27,13 +27,13 @@ const SIZE_STYLES = {
 
 const VARIANT_STYLES: Record<ButtonVariant, string> = {
   primary:
-    'bg-primary text-white shadow-[0_4px_14px_rgba(0,110,37,0.4)] active:shadow-[0_2px_8px_rgba(0,110,37,0.3)] active:scale-[0.98] md:shadow-none md:active:shadow-none md:hover:bg-primary-hover md:hover:scale-[1.02]',
+    'bg-primary text-white shadow-[0_4px_14px_rgba(0,110,37,0.4)] active:shadow-[0_2px_8px_rgba(0,110,37,0.3)] active:scale-[0.96] md:shadow-none md:active:shadow-none md:hover:bg-primary-hover md:hover:scale-[1.02]',
   secondary:
-    'bg-surface text-text border border-text/10 hover:bg-surface-alt hover:scale-[1.02] active:scale-[0.98]',
+    'bg-surface text-text border border-text/10 hover:bg-surface-alt hover:scale-[1.02] active:scale-[0.96]',
   ghost:
     'bg-transparent text-primary hover:bg-primary/5 underline-offset-4 hover:underline',
   inverse:
-    'bg-white text-primary shadow-[0_4px_20px_rgba(0,60,20,0.18)] active:scale-[0.98] md:hover:bg-white/90 md:hover:scale-[1.02] md:hover:shadow-[0_0_30px_rgba(255,255,255,0.3)]',
+    'bg-white text-primary shadow-[0_4px_20px_rgba(0,60,20,0.18)] active:scale-[0.96] md:hover:bg-white/90 md:hover:scale-[1.02] md:hover:shadow-[0_0_30px_rgba(255,255,255,0.3)]',
 }
 
 export const Button = memo(function Button({

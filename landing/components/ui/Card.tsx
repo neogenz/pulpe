@@ -13,7 +13,7 @@ const BASE_STYLES = 'bg-surface p-6'
    feature cards rise slightly on the spring easing. Radius is set per variant so
    the join-only cn() never leaves two conflicting `rounded-*` on one element. */
 const HOVER_LIFT =
-  'transition-all duration-300 [transition-timing-function:var(--ease-spring)] hover:-translate-y-0.5 hover:shadow-[var(--shadow-card-hover)]'
+  'transition-[translate,box-shadow] duration-300 [transition-timing-function:var(--ease-spring)] hover:-translate-y-0.5 hover:shadow-[var(--shadow-card-hover)] motion-reduce:transition-none motion-reduce:translate-y-0'
 
 const VARIANT_STYLES = {
   default: 'rounded-[var(--radius-card)] border border-text/5',
