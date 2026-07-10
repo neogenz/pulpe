@@ -15,7 +15,7 @@
     "dev": "next dev --port 3001",
     "build": "next build",
     "start": "next start",
-    "test": "tsx --test app/accessibility.test.tsx scripts/create-release.test.js",
+    "test": "tsx --test app/accessibility.test.tsx lib/bodyScrollLock.test.ts scripts/create-release.test.js",
     "lint": "next lint",
     "type-check": "tsc --noEmit",
     "generate:og": "npx tsx scripts/generate-og-image.ts",

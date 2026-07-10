@@ -1,6 +1,13 @@
 export function lockBodyScroll(): () => void {
   const { style } = document.body
   const scrollY = window.scrollY
+  const scrollbarWidth = Math.max(
+    0,
+    window.innerWidth - document.documentElement.clientWidth
+  )
+  const bodyPaddingRight = Number.parseFloat(
+    window.getComputedStyle(document.body).paddingRight
+  ) || 0
   const previous = {
     position: style.position,
     top: style.top,
@@ -8,6 +15,7 @@ export function lockBodyScroll(): () => void {
     right: style.right,
     width: style.width,
     overflow: style.overflow,
+    paddingRight: style.paddingRight,
   }
   let unlocked = false
 
@@ -17,6 +25,9 @@ export function lockBodyScroll(): () => void {
   style.right = '0'
   style.width = '100%'
   style.overflow = 'hidden'
+  if (scrollbarWidth > 0) {
+    style.paddingRight = `${bodyPaddingRight + scrollbarWidth}px`
+  }
 
   return () => {
     if (unlocked) return
@@ -27,6 +38,7 @@ export function lockBodyScroll(): () => void {
     style.right = previous.right
     style.width = previous.width
     style.overflow = previous.overflow
+    style.paddingRight = previous.paddingRight
     window.scrollTo(0, scrollY)
   }
 }
