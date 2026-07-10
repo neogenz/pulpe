@@ -1,6 +1,6 @@
 ---
 objective: "The regular-session validation path carries no dead biometricSessionExpired catch, and BiometricPreferencePersistenceTests waits via waitForCondition instead of a busy-wait."
-status: in-progress
+status: implemented
 ---
 
 # Plan: Remove dead biometricSessionExpired catches + fix test busy-wait
