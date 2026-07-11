@@ -165,7 +165,12 @@ export class GoalPlanSimulatorStore {
         next.set(periodKeyOf(adjustment), adjustment.amount);
       }
       this.#overrides.set(next);
-      this.#globalAmount.set(null);
+      const openAmounts = this.baseline()
+        .filter((month) => isOpenPlanMonth(month))
+        .map((month) => next.get(periodKeyOf(month)) ?? month.plannedAmount);
+      const uniformAmount = openAmounts[0];
+      const isUniform = openAmounts.every((amount) => amount === uniformAmount);
+      this.#globalAmount.set(isUniform ? uniformAmount : null);
     }
     return result;
   }

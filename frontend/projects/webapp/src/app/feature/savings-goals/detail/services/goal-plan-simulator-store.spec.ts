@@ -155,9 +155,52 @@ describe('GoalPlanSimulatorStore', () => {
     expect(result.isDistributable).toBe(true);
     // target 800, nothing confirmed → 400 per open month across two months.
     expect(result.perRemainingMonth).toBe(400);
+    expect(store.globalAmount()).toBe(400);
     const draft = store.draft()!;
     expect(draft.months.every((m) => m.simulatedAmount === 400)).toBe(true);
     expect(draft.isTargetMet).toBe(true);
+  });
+
+  it('keeps cents-preserving non-uniform adjustments authoritative', () => {
+    progressSig.set(makeProgress({ targetAmount: 800.01 }));
+    store.enter();
+
+    const result = store.redistribute();
+
+    expect(result.adjustments.map((adjustment) => adjustment.amount)).toEqual([
+      400.01, 400,
+    ]);
+    expect(store.globalAmount()).toBeNull();
+    expect(store.draftRows().map((month) => month.simulatedAmount)).toEqual([
+      400.01, 400,
+    ]);
+  });
+
+  it('does not replace the control amount when redistribution fails', () => {
+    progressSig.set(
+      makeProgress({
+        months: [
+          openMonth(6, LINE_CURRENT, 200, {
+            isLocked: true,
+            lines: [
+              {
+                budgetLineId: LINE_CURRENT,
+                amount: 200,
+                checkedAt: '2026-07-01T00:00:00.000Z',
+                isManuallyAdjusted: false,
+              },
+            ],
+          }),
+        ],
+      }),
+    );
+    store.enter();
+    store.setGlobalAmount(300);
+
+    const result = store.redistribute();
+
+    expect(result.isDistributable).toBe(false);
+    expect(store.globalAmount()).toBe(300);
   });
 
   it('builds a line-scoped payload and applies it pessimistically', async () => {
