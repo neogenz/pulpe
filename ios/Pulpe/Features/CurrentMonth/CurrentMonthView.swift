@@ -229,7 +229,10 @@ struct CurrentMonthView: View {
                             SavingsSummaryCard(summary: store.savingsSummary)
                         }
 
-                        NavigationLink(value: SavingsGoalDestination.list) {
+                        Button {
+                            appState.savingsGoalsPath = NavigationPath()
+                            appState.selectedTab = .savingsGoals
+                        } label: {
                             SavingsGoalsEntryRow(hasSavings: store.savingsSummary.hasSavings)
                         }
                         .buttonStyle(.plain)

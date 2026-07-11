@@ -1,7 +1,7 @@
 import SwiftUI
 
-/// Navigation target for the savings goals, pushed onto `CurrentMonthTab`'s
-/// stack: `.list` from the dashboard Épargne section, `.detail` from a list row.
+/// Navigation target for the savings goals. The dedicated tab owns `.detail`;
+/// the Budgets tab also registers it for linked saving forecasts.
 enum SavingsGoalDestination: Hashable {
     case list
     case detail(SavingsGoal)

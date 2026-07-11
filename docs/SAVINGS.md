@@ -16,7 +16,7 @@ Pulpe répond avec une feature volontairement minimale (intention 9 : *progressi
 - Une **contribution** = le **tagging manuel** d'une Prévision Épargne existante à cet objectif. Pas de nouveau geste de saisie, pas de notion de priorité, pas de nudge.
 - Une **progression** dérivée des Prévisions liées et de leur pointage, exprimée en deux couches (prévu / confirmé).
 
-Entrée produit : la **carte Épargne du dashboard** reste un résumé **mensuel** (goal-agnostique — D4) et gagne une **action explicite** « Voir mes objectifs » (jamais un chevron nu — DA §3.4 ; et **pas** « X % vers tes objectifs » : la carte ne calcule pas ce chiffre, c'est un % mensuel, pas un % de vie d'objectif) → liste des objectifs → détail + progression.
+Entrée produit : sur iOS, **Objectifs** est un tab principal permanent, parce que le suivi régulier des projets d'épargne est un pilier produit. La **carte Épargne du dashboard** reste un résumé **mensuel** (goal-agnostique — D4) et conserve l'action explicite « Voir mes objectifs » comme raccourci secondaire vers la racine du tab (jamais un chevron nu — DA §3.4 ; et **pas** « X % vers tes objectifs » : la carte ne calcule pas ce chiffre, c'est un % mensuel, pas un % de vie d'objectif) → liste des objectifs → détail + progression.
 
 ---
 

@@ -47,12 +47,14 @@ struct MainTabView: View {
     static func shouldHideFloatingTabBar(
         selectedTab: Tab,
         budgetPathDepth: Int,
+        savingsGoalsPathDepth: Int,
         templatePathDepth: Int,
         keyboardVisible: Bool
     ) -> Bool {
         if keyboardVisible { return true }
         switch selectedTab {
         case .budgets: return budgetPathDepth > 1
+        case .savingsGoals: return savingsGoalsPathDepth > 0
         case .templates: return templatePathDepth > 1
         case .currentMonth: return false
         }
@@ -63,6 +65,7 @@ struct MainTabView: View {
         let barHidden = Self.shouldHideFloatingTabBar(
             selectedTab: state.selectedTab,
             budgetPathDepth: state.budgetPath.count,
+            savingsGoalsPathDepth: state.savingsGoalsPath.count,
             templatePathDepth: state.templatePath.count,
             keyboardVisible: keyboardVisible
         )
@@ -78,6 +81,11 @@ struct MainTabView: View {
 
             SwiftUI.Tab(value: Tab.budgets) {
                 BudgetsTab()
+                    .toolbarVisibility(.hidden, for: .tabBar)
+            }
+
+            SwiftUI.Tab(value: Tab.savingsGoals) {
+                SavingsGoalsTab()
                     .toolbarVisibility(.hidden, for: .tabBar)
             }
 
@@ -304,6 +312,21 @@ struct CurrentMonthTab: View {
     var body: some View {
         NavigationStack {
             CurrentMonthView()
+        }
+        .clearsFloatingTabBar()
+    }
+}
+
+// MARK: - Savings Goals Tab
+
+struct SavingsGoalsTab: View {
+    @Environment(AppState.self) private var appState
+
+    var body: some View {
+        @Bindable var state = appState
+
+        NavigationStack(path: $state.savingsGoalsPath) {
+            SavingsGoalsListView()
                 .navigationDestination(for: SavingsGoalDestination.self) { destination in
                     switch destination {
                     case .list:

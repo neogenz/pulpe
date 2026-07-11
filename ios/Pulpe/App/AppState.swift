@@ -72,6 +72,7 @@ final class AppState {
 
     var selectedTab: Tab = .currentMonth
     var budgetPath = NavigationPath()
+    var savingsGoalsPath = NavigationPath()
     var templatePath = NavigationPath()
 
     // MARK: - Returning User
@@ -429,6 +430,7 @@ final class AppState {
 enum Tab: String, CaseIterable, Identifiable {
     case currentMonth = "current-month"
     case budgets = "budgets"
+    case savingsGoals = "savings-goals"
     case templates = "templates"
 
     var id: String { rawValue }
@@ -437,6 +439,7 @@ enum Tab: String, CaseIterable, Identifiable {
         switch self {
         case .currentMonth: "Accueil"
         case .budgets: "Budgets"
+        case .savingsGoals: "Objectifs"
         case .templates: "Modèles"
         }
     }
@@ -445,6 +448,7 @@ enum Tab: String, CaseIterable, Identifiable {
         switch self {
         case .currentMonth: "house"
         case .budgets: "calendar"
+        case .savingsGoals: "target"
         case .templates: "doc.text"
         }
     }
