@@ -100,6 +100,8 @@ class StubGoalPlanTimeline {
 })
 class StubGoalPlanSimulatorToolbar {
   readonly currency = input<string>('CHF');
+  readonly verdict = input<string>('');
+  readonly ariaVerdict = input<string>('');
 }
 
 @Component({

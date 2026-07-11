@@ -11,6 +11,7 @@ import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSliderModule } from '@angular/material/slider';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { CURRENCY_METADATA, type SupportedCurrency } from 'pulpe-shared';
 import { CurrencyInput } from '@ui/currency-input';
@@ -18,8 +19,8 @@ import { GoalPlanSimulatorStore } from '../services/goal-plan-simulator-store';
 
 /**
  * Pilier C — toolbar de simulation (docs/SAVINGS_PLAN.md §2). Slider global
- * « Chaque mois, je mets » + input jumeau (chemin précision/a11y), « Réajuster
- * la suite » (répartit l'effort restant), « Repartir du plan actuel » (revert).
+ * « Chaque mois, je mets » + input jumeau (chemin précision/a11y), redistribution
+ * de l'effort restant, reset du brouillon.
  * Bouger le slider écrase tous les overrides par mois — annoncé en `aria-live`.
  */
 @Component({
@@ -29,6 +30,7 @@ import { GoalPlanSimulatorStore } from '../services/goal-plan-simulator-store';
     MatButtonModule,
     MatIconModule,
     MatSliderModule,
+    MatTooltipModule,
     TranslocoPipe,
     CurrencyInput,
   ],
@@ -39,17 +41,9 @@ import { GoalPlanSimulatorStore } from '../services/goal-plan-simulator-store';
       data-testid="goal-plan-simulator-toolbar"
     >
       <div class="flex flex-col gap-2">
-        <!-- Live value read-out replaces the MDC discrete bubble (too small,
-             clipped the "X'XXX CHF" string). Updates on every drag tick. -->
-        <div class="flex items-baseline justify-between gap-2">
+        <div>
           <span class="text-title-small font-medium">
             {{ 'savingsGoals.simulate.everyMonth' | transloco }}
-          </span>
-          <span
-            class="ph-no-capture text-title-medium font-semibold text-financial-savings whitespace-nowrap"
-            data-testid="goal-plan-slider-value"
-          >
-            {{ formattedAmount() }}
           </span>
         </div>
         <div class="flex flex-col gap-3 md:flex-row md:items-center">
@@ -69,7 +63,7 @@ import { GoalPlanSimulatorStore } from '../services/goal-plan-simulator-store';
           </mat-slider>
           <div class="md:w-44">
             <pulpe-currency-input
-              [label]="'savingsGoals.simulate.everyMonth' | transloco"
+              [label]="'savingsGoals.simulate.amountInput' | transloco"
               [value]="sliderValue()"
               (valueChange)="onInputChange($event)"
               [currency]="currency()"
@@ -78,12 +72,22 @@ import { GoalPlanSimulatorStore } from '../services/goal-plan-simulator-store';
             />
           </div>
         </div>
+        <p
+          class="text-body-medium font-medium text-financial-savings"
+          data-testid="goal-plan-verdict"
+          aria-hidden="true"
+        >
+          {{ verdict() }}
+        </p>
+        <p class="sr-only" aria-live="polite">{{ ariaVerdict() }}</p>
       </div>
 
       <div class="flex flex-wrap items-center gap-2">
         <button
           matButton="tonal"
           (click)="onRedistribute()"
+          [matTooltip]="'savingsGoals.simulate.redistributeHint' | transloco"
+          matTooltipPosition="above"
           data-testid="goal-plan-redistribute"
         >
           <mat-icon>auto_awesome</mat-icon>
@@ -130,6 +134,8 @@ export class GoalPlanSimulatorToolbar {
   readonly #transloco = inject(TranslocoService);
 
   readonly currency = input.required<SupportedCurrency>();
+  readonly verdict = input('');
+  readonly ariaVerdict = input('');
 
   protected readonly STEP = 10;
 
@@ -142,16 +148,6 @@ export class GoalPlanSimulatorToolbar {
   protected readonly announcement = signal('');
 
   readonly #meta = computed(() => CURRENCY_METADATA[this.currency()]);
-
-  // Compact one-line format with the currency's group separator (CHF → « 8'190 CHF »,
-  // EUR → « 8 190 € »). Round amounts, so 0 decimals (slider step is 10 units).
-  protected readonly formattedAmount = computed(() => {
-    const meta = this.#meta();
-    const value = new Intl.NumberFormat(meta.numberLocale, {
-      maximumFractionDigits: 0,
-    }).format(this.sliderValue());
-    return `${value} ${meta.symbol}`;
-  });
 
   protected onSliderChange(value: number): void {
     this.sliderValue.set(value);

@@ -64,7 +64,6 @@ type DetailViewState = 'loading' | 'error' | 'notFound' | 'ready';
   template: `
     <div
       class="flex flex-col gap-4 h-full min-w-0"
-      [class.min-h-dvh]="simulator.isSimulating()"
       data-testid="savings-goal-detail-page"
     >
       <header class="flex items-center gap-2 min-w-0">
@@ -416,16 +415,6 @@ type DetailViewState = 'loading' | 'error' | 'notFound' | 'ready';
                   [currency]="currency()"
                   [confirmedPace]="p.confirmedPace"
                 />
-                @if (simulator.isSimulating()) {
-                  <p
-                    class="text-body-medium font-medium text-financial-savings"
-                    data-testid="goal-plan-verdict"
-                    aria-hidden="true"
-                  >
-                    {{ verdict() }}
-                  </p>
-                  <p class="sr-only" aria-live="polite">{{ ariaVerdict() }}</p>
-                }
               </section>
             }
 
@@ -439,7 +428,11 @@ type DetailViewState = 'loading' | 'error' | 'notFound' | 'ready';
                 >
                 {{ 'savingsGoals.simulate.banner' | transloco }}
               </div>
-              <pulpe-goal-plan-simulator-toolbar [currency]="currency()" />
+              <pulpe-goal-plan-simulator-toolbar
+                [currency]="currency()"
+                [verdict]="verdict()"
+                [ariaVerdict]="ariaVerdict()"
+              />
             }
 
             <!-- Pilier B — « Ton plan, mois par mois » -->
@@ -505,11 +498,9 @@ type DetailViewState = 'loading' | 'error' | 'notFound' | 'ready';
       }
 
       @if (simulator.isSimulating()) {
-        <!-- mt-auto pushes the bar to the bottom of the (min-h-dvh) root so it
-             pins to the viewport bottom even when the plan is short; sticky
-             keeps it there while a tall plan scrolls under its opaque bg. -->
+        <div class="h-20" aria-hidden="true"></div>
         <div
-          class="sticky bottom-0 z-10 mt-auto -mx-4 flex items-center justify-end gap-2 border-t border-outline-variant bg-surface px-4 py-3 shadow-[0_-6px_16px_-12px_rgba(0,0,0,0.4)] sm:mx-0 sm:px-0"
+          class="simulation-sticky-bar sticky z-10 -mx-4 flex items-center justify-end gap-2 border-t border-outline-variant bg-surface px-4 py-3 shadow-[0_-6px_16px_-12px_rgba(0,0,0,0.4)] sm:mx-0 sm:px-0"
           data-testid="goal-plan-sticky-bar"
         >
           <button
@@ -555,6 +546,22 @@ type DetailViewState = 'loading' | 'error' | 'notFound' | 'ready';
       clip: rect(0, 0, 0, 0);
       white-space: nowrap;
       border: 0;
+    }
+    .simulation-sticky-bar {
+      bottom: 0;
+      transform: translateY(1rem);
+    }
+    @media (min-width: 600px) {
+      .simulation-sticky-bar {
+        bottom: -1.5rem;
+        transform: translateY(1.5rem);
+      }
+    }
+    @media (min-width: 768px) {
+      .simulation-sticky-bar {
+        bottom: -2rem;
+        transform: translateY(2rem);
+      }
     }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
