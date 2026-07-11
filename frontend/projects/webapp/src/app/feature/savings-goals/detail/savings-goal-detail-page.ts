@@ -432,6 +432,7 @@ type DetailViewState = 'loading' | 'error' | 'notFound' | 'ready';
                 [currency]="currency()"
                 [verdict]="verdict()"
                 [ariaVerdict]="ariaVerdict()"
+                [targetReached]="targetReached()"
               />
             }
 
@@ -547,21 +548,11 @@ type DetailViewState = 'loading' | 'error' | 'notFound' | 'ready';
       white-space: nowrap;
       border: 0;
     }
+    /* Sticky action bar flush to the scroll container's bottom. The previous
+       negative bottom + translateY pushed it ~4rem below the viewport,
+       i.e. off-screen. */
     .simulation-sticky-bar {
       bottom: 0;
-      transform: translateY(1rem);
-    }
-    @media (min-width: 600px) {
-      .simulation-sticky-bar {
-        bottom: -1.5rem;
-        transform: translateY(1.5rem);
-      }
-    }
-    @media (min-width: 768px) {
-      .simulation-sticky-bar {
-        bottom: -2rem;
-        transform: translateY(2rem);
-      }
     }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -614,6 +605,12 @@ export default class SavingsGoalDetailPage {
       period: this.#formatMonthYear(attained.month, attained.year),
     });
   });
+
+  // Drives the verdict icon only (check vs flag); the color stays savings-green
+  // regardless of state (RG-002 — savings is never an alert).
+  protected readonly targetReached = computed(
+    () => !!this.simulator.draft()?.attainedPeriod,
+  );
 
   protected readonly ariaVerdict = toSignal(
     toObservable(this.verdict).pipe(debounceTime(500)),

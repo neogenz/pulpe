@@ -84,17 +84,29 @@ import { GoalPlanSimulatorStore } from '../services/goal-plan-simulator-store';
                   ? ('savingsGoals.simulate.variableAmounts' | transloco)
                   : '0.00'
               "
+              [showSuffix]="!store.hasVariableAmounts()"
               testId="goal-plan-amount-input"
             />
           </div>
         </div>
-        <p
-          class="text-body-medium font-medium text-financial-savings"
+        <!-- Verdict callout. RG-002: savings is never an alert color — attention
+             comes from the tinted container + leading icon + weight, all in the
+             savings-green/neutral family, never amber/red. -->
+        <div
+          class="mt-1 flex items-start gap-2 rounded-xl bg-financial-savings/10 px-3 py-2.5"
           data-testid="goal-plan-verdict"
           aria-hidden="true"
         >
-          {{ verdict() }}
-        </p>
+          <mat-icon
+            class="mt-px shrink-0 text-financial-savings text-xl! size-5!"
+            aria-hidden="true"
+          >
+            {{ targetReached() ? 'check_circle' : 'flag' }}
+          </mat-icon>
+          <p class="text-body-medium font-semibold text-financial-savings">
+            {{ verdict() }}
+          </p>
+        </div>
         <p class="sr-only" aria-live="polite">{{ ariaVerdict() }}</p>
       </div>
 
@@ -152,6 +164,9 @@ export class GoalPlanSimulatorToolbar {
   readonly currency = input.required<SupportedCurrency>();
   readonly verdict = input('');
   readonly ariaVerdict = input('');
+  /** Whether the current draft reaches the target within the shown horizon —
+   *  drives the verdict icon (check vs flag), never a color change (RG-002). */
+  readonly targetReached = input(false);
 
   protected readonly STEP = 10;
 

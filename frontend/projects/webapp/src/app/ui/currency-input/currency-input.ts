@@ -68,7 +68,7 @@ import { TranslocoPipe } from '@jsverse/transloco';
             </mat-option>
           }
         </mat-select>
-      } @else {
+      } @else if (showSuffix()) {
         <span matTextSuffix class="text-on-surface-variant font-medium">{{
           currency()
         }}</span>
@@ -93,6 +93,10 @@ export class CurrencyInput {
   readonly testId = input<string>('currency-input');
   readonly currency = input<string>('CHF');
   readonly showCurrencySelector = input<boolean>(false);
+  /** The trailing currency-code suffix (e.g. "CHF"). Hide it when the field
+   *  carries a non-amount state (e.g. "Montants variables") so long text does
+   *  not collide with the suffix in a narrow field. */
+  readonly showSuffix = input<boolean>(true);
   readonly currencyChange = output<SupportedCurrency>();
   readonly autoFocus = input<boolean>(true);
   protected readonly currencies = SUPPORTED_CURRENCIES;
