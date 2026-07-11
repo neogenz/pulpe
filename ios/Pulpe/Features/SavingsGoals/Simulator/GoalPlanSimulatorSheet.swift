@@ -72,6 +72,7 @@ struct GoalPlanSimulatorSheet: View {
                 .padding(.bottom, DesignTokens.Spacing.xxxl)
             }
             .scrollContentBackground(.hidden)
+            .accessibilityIdentifier("goalPlanSimulatorRoot")
             .background(Color.sheetBackground)
             .navigationTitle("Ajuster mon plan")
             .navigationBarTitleDisplayMode(.inline)

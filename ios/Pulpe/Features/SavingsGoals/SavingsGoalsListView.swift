@@ -83,11 +83,13 @@ struct SavingsGoalsListView: View {
                 .buttonStyle(.plain)
                 .listRowBackground(Color.clear)
                 .listRowSeparator(.hidden)
+                .accessibilityIdentifier("savingsGoalRow-\(goal.id)")
             }
         }
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
         .refreshable { await store.forceRefresh() }
+        .accessibilityIdentifier("savingsGoalsListRoot")
     }
 }
 

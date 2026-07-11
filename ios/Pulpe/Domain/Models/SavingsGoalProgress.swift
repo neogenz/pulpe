@@ -10,6 +10,21 @@ enum SavingsGoalPaceStatus: String, Decodable, Sendable, Equatable {
     case ahead
 }
 
+/// One linked saving forecast and the real transactions allocated to it.
+/// Mirrors `GET /savings-goals/:id/contributions` (PUL-12).
+struct SavingsGoalContribution: Decodable, Sendable, Equatable, Identifiable {
+    let lineId: String
+    let name: String
+    let amount: Decimal
+    let checkedAt: Date?
+    let budgetMonth: Int
+    let budgetYear: Int
+    let transactions: [Transaction]
+
+    var id: String { lineId }
+    var isChecked: Bool { checkedAt != nil }
+}
+
 /// Derived progression of a savings goal (PUL-8, `GET /savings-goals/:id/progress`).
 ///
 /// The backend computes **every** figure — the two layers (`plannedCumulative`

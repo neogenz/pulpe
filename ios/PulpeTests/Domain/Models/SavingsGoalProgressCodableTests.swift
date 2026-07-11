@@ -137,4 +137,43 @@ struct SavingsGoalProgressCodableTests {
         #expect(progress.plannedFraction == 0)
         #expect(progress.confirmedFraction == 0)
     }
+
+    @Test("SavingsGoalContribution decodes its linked transactions")
+    func contribution_decodesTransactions() throws {
+        let json = Data("""
+        {
+            "lineId": "11111111-1111-1111-1111-111111111111",
+            "name": "Épargne maison",
+            "amount": 500,
+            "checkedAt": null,
+            "budgetMonth": 7,
+            "budgetYear": 2026,
+            "transactions": [{
+                "id": "22222222-2222-2222-2222-222222222222",
+                "budgetId": "33333333-3333-3333-3333-333333333333",
+                "budgetLineId": "11111111-1111-1111-1111-111111111111",
+                "name": "Virement épargne",
+                "amount": 500,
+                "kind": "saving",
+                "transactionDate": "2026-07-10T00:00:00Z",
+                "category": null,
+                "checkedAt": "2026-07-10T00:00:00Z",
+                "createdAt": "2026-07-10T00:00:00Z",
+                "updatedAt": "2026-07-10T00:00:00Z",
+                "originalAmount": null,
+                "originalCurrency": null,
+                "targetCurrency": null,
+                "exchangeRate": null
+            }]
+        }
+        """.utf8)
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+
+        let contribution = try decoder.decode(SavingsGoalContribution.self, from: json)
+
+        #expect(contribution.lineId == "11111111-1111-1111-1111-111111111111")
+        #expect(contribution.transactions.first?.kind == .saving)
+        #expect(contribution.transactions.first?.isChecked == true)
+    }
 }

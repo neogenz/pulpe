@@ -51,17 +51,54 @@ struct SavingsGoalDetailViewModelTests {
         )
     }
 
+    @Test("detail starts loading instead of rendering an empty screen")
+    func initialState_isLoading() {
+        let viewModel = SavingsGoalDetailViewModel(goalId: "g1", service: MockSavingsGoalService())
+
+        #expect(viewModel.isLoading)
+        #expect(viewModel.progress == nil)
+        #expect(viewModel.error == nil)
+    }
+
     @Test("load fetches progress from the service")
     func load_fetchesProgress() async {
         let service = MockSavingsGoalService()
         service.stubbedProgress = makeProgress(goalId: "g1")
         let viewModel = SavingsGoalDetailViewModel(goalId: "g1", service: service)
-
         await viewModel.load()
 
         #expect(viewModel.progress?.goalId == "g1")
         #expect(viewModel.error == nil)
         #expect(service.getProgressCallCount == 1)
+        #expect(service.getContributionsCallCount == 1)
+    }
+
+    @Test("load fetches linked forecasts and their real transactions")
+    func load_fetchesContributions() async {
+        let service = MockSavingsGoalService()
+        service.stubbedProgress = makeProgress(goalId: "g1")
+        service.stubbedContributions = [makeContribution()]
+        let viewModel = SavingsGoalDetailViewModel(goalId: "g1", service: service)
+
+        await viewModel.load()
+
+        #expect(viewModel.contributions.map(\.lineId) == ["line-1"])
+        #expect(viewModel.contributions.first?.transactions.map(\.id) == ["tx-1"])
+        #expect(viewModel.contributionsError == nil)
+    }
+
+    @Test("a contributions failure keeps the goal progress usable")
+    func load_contributionsFailureIsInline() async {
+        let service = MockSavingsGoalService()
+        service.stubbedProgress = makeProgress(goalId: "g1")
+        service.getContributionsError = APIError.networkError(URLError(.timedOut))
+        let viewModel = SavingsGoalDetailViewModel(goalId: "g1", service: service)
+
+        await viewModel.load()
+
+        #expect(viewModel.progress != nil)
+        #expect(viewModel.error == nil)
+        #expect(viewModel.contributionsError != nil)
     }
 
     @Test("changeStatus updates via the store then refetches progress (D2 path)")
@@ -124,6 +161,32 @@ struct SavingsGoalDetailViewModelTests {
         #expect(store.goals.first?.status == .completed)
         #expect(service.getProgressCallCount == 1)
         #expect(viewModel.error == nil, "a failed refresh must not turn a persisted status change into an error")
+    }
+
+    private func makeContribution() -> SavingsGoalContribution {
+        SavingsGoalContribution(
+            lineId: "line-1",
+            name: "Épargne maison",
+            amount: 500,
+            checkedAt: nil,
+            budgetMonth: 7,
+            budgetYear: 2026,
+            transactions: [
+                Transaction(
+                    id: "tx-1",
+                    budgetId: "budget-1",
+                    budgetLineId: "line-1",
+                    name: "Virement épargne",
+                    amount: 500,
+                    kind: .saving,
+                    transactionDate: Date(timeIntervalSince1970: 0),
+                    category: nil,
+                    checkedAt: Date(timeIntervalSince1970: 0),
+                    createdAt: Date(timeIntervalSince1970: 0),
+                    updatedAt: Date(timeIntervalSince1970: 0)
+                ),
+            ]
+        )
     }
 }
 
