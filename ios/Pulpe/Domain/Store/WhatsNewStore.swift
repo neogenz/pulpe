@@ -10,8 +10,12 @@ import Foundation
 /// disrupt a working app.
 @Observable @MainActor
 final class WhatsNewStore {
+    /// Last iOS version shipped before PUL-186 started persisting a seen marker.
+    static let migrationBaselineVersion = "1.1.0"
+
     private(set) var entries: [WhatsNewEntry] = []
     private(set) var isPresented = false
+    private(set) var isChecking = false
 
     private let service: WhatsNewServiceProtocol
     private let flagsStore: WhatsNewFlagsStoring
@@ -25,10 +29,21 @@ final class WhatsNewStore {
     }
 
     func check(currentVersion: String = AppConfiguration.appVersion) async {
-        guard let lastSeenVersion = flagsStore.lastSeenVersion else {
+        guard !isChecking, !isPresented else { return }
+        isChecking = true
+        defer { isChecking = false }
+
+        let lastSeenVersion: String
+        if let persistedVersion = flagsStore.lastSeenVersion {
+            lastSeenVersion = persistedVersion
+        } else if flagsStore.wasInstalledBeforeWhatsNew {
+            // Existing installations predate the PUL-186 key. Start from the
+            // last marketing version released before the feature, so the first
+            // PUL-186-capable update is not mistaken for a fresh installation.
+            lastSeenVersion = Self.migrationBaselineVersion
+        } else {
             // First install: no prior version to diff against. Record the current
-            // version so a *future* update — not this install — is what surfaces
-            // the sheet. Never hit the network here (CA6: first install = silence).
+            // version so a future update, not this install, surfaces the sheet.
             flagsStore.setLastSeenVersion(currentVersion)
             return
         }
@@ -52,6 +67,7 @@ final class WhatsNewStore {
                 // versions: advance the marker silently so we don't re-query on
                 // every launch.
                 flagsStore.setLastSeenVersion(currentVersion)
+                self.entries = []
                 return
             }
             self.entries = entries
@@ -66,5 +82,6 @@ final class WhatsNewStore {
     func dismiss(currentVersion: String = AppConfiguration.appVersion) {
         flagsStore.setLastSeenVersion(currentVersion)
         isPresented = false
+        entries = []
     }
 }

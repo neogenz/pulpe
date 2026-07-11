@@ -236,6 +236,7 @@ struct RootView: View {
             scenePhase: scenePhase,
             deepLinkDestination: deepLinkDestination,
             onAppStart: handleAppStart,
+            onAuthenticated: loadAuthenticatedData,
             onClientKeyCheckFailed: handleClientKeyCheckFailed,
             onPendingDeepLink: handlePendingDeepLink
         ))
@@ -278,10 +279,7 @@ struct RootView: View {
                 onRetry: {
                     await appState.retryStartup()
                     if appState.authState == .authenticated {
-                        await userSettingsStore.loadIfNeeded()
-                        await currentMonthStore.loadBudgetSummary(
-                            payDayOfMonth: userSettingsStore.payDayOfMonth
-                        )
+                        await loadAuthenticatedData()
                     }
                 },
                 onSignOut: { await appState.abandonStartupRetry() }
@@ -380,15 +378,15 @@ struct RootView: View {
             "[AUTH_ROOT_TASK] done, auth=\(authDesc, privacy: .public) route=\(routeDesc, privacy: .public)"
         )
         #endif
-        if appState.authState == .authenticated {
-            await userSettingsStore.loadIfNeeded()
-            await currentMonthStore.loadBudgetSummary(
-                payDayOfMonth: userSettingsStore.payDayOfMonth
-            )
-            // Runs post-login because the endpoint is authenticated (unlike the
-            // pre-auth force-update check). Fails open — never blocks startup.
-            await whatsNewStore.check()
-        }
+    }
+
+    private func loadAuthenticatedData() async {
+        await userSettingsStore.loadIfNeeded()
+        await currentMonthStore.loadBudgetSummary(
+            payDayOfMonth: userSettingsStore.payDayOfMonth
+        )
+        // Authenticated unlike the pre-auth force-update check. Fails open.
+        await whatsNewStore.check()
     }
 
     private func handlePendingDeepLink() {

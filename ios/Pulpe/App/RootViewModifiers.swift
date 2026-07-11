@@ -116,6 +116,7 @@ struct RootViewLifecycle: ViewModifier {
     let scenePhase: ScenePhase
     let deepLinkDestination: DeepLinkDestination?
     let onAppStart: () async -> Void
+    let onAuthenticated: () async -> Void
     let onClientKeyCheckFailed: () -> Void
     let onPendingDeepLink: () -> Void
 
@@ -144,11 +145,21 @@ struct RootViewLifecycle: ViewModifier {
             }
             .onChange(of: appState.authState) { oldAuth, newAuth in
                 logAuthTransition(label: "AUTH_STATE_UI", from: oldAuth, to: newAuth)
+                if Self.isEnteringAuthenticated(from: oldAuth, to: newAuth) {
+                    Task { await onAuthenticated() }
+                }
                 onPendingDeepLink()
             }
             .onChange(of: deepLinkDestination) { _, _ in
                 onPendingDeepLink()
             }
+    }
+
+    static func isEnteringAuthenticated(
+        from oldAuth: AppState.AuthStatus,
+        to newAuth: AppState.AuthStatus
+    ) -> Bool {
+        oldAuth != .authenticated && newAuth == .authenticated
     }
 
     private func logAuthTransition<T>(label: String, from old: T, to new: T) {

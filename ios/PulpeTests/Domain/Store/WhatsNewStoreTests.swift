@@ -31,6 +31,21 @@ struct WhatsNewStoreTests {
         #expect(store.entries.first?.version == "1.2.0")
     }
 
+    @Test func check_existingInstallWithoutMarker_usesMigrationBaseline() async {
+        let service = MockWhatsNewService(outcome: .success([.makeFixture(version: "1.2.0")]))
+        let flags = MockWhatsNewFlagsStore(
+            wasInstalledBeforeWhatsNew: true,
+            lastSeenVersion: nil
+        )
+        let store = WhatsNewStore(service: service, flagsStore: flags)
+
+        await store.check(currentVersion: "1.2.0")
+
+        #expect(service.lastRequest?.lastSeenVersion == WhatsNewStore.migrationBaselineVersion)
+        #expect(service.lastRequest?.currentVersion == "1.2.0")
+        #expect(store.isPresented)
+    }
+
     @Test func check_upgradeWithEmptyEntries_persistsSilentlyWithoutPresenting() async {
         let service = MockWhatsNewService(outcome: .success([]))
         let flags = MockWhatsNewFlagsStore(lastSeenVersion: "1.1.0")
@@ -93,6 +108,27 @@ struct WhatsNewStoreTests {
 
         #expect(flags.lastSeenVersion == "1.2.0")
         #expect(store.isPresented == false)
+        #expect(store.entries.isEmpty)
+    }
+
+    @Test func check_whileRequestIsInFlight_fetchesOnlyOnce() async {
+        let service = MockWhatsNewService(
+            outcome: .success([.makeFixture(version: "1.2.0")]),
+            suspendsBeforeReturning: true
+        )
+        let flags = MockWhatsNewFlagsStore(lastSeenVersion: "1.1.0")
+        let store = WhatsNewStore(service: service, flagsStore: flags)
+
+        let firstCheck = Task { await store.check(currentVersion: "1.2.0") }
+        await Task.yield()
+        await store.check(currentVersion: "1.2.0")
+        await firstCheck.value
+
+        #expect(service.fetchCallCount == 1)
+        #expect(store.isPresented)
+
+        await store.check(currentVersion: "1.2.0")
+        #expect(service.fetchCallCount == 1)
     }
 }
 
@@ -105,14 +141,21 @@ private final class MockWhatsNewService: WhatsNewServiceProtocol, @unchecked Sen
     }
 
     private let outcome: Outcome
+    private let suspendsBeforeReturning: Bool
     private(set) var fetchCallCount = 0
+    private(set) var lastRequest: (currentVersion: String, lastSeenVersion: String)?
 
-    init(outcome: Outcome) {
+    init(outcome: Outcome, suspendsBeforeReturning: Bool = false) {
         self.outcome = outcome
+        self.suspendsBeforeReturning = suspendsBeforeReturning
     }
 
     func fetch(currentVersion: String, lastSeenVersion: String) async throws -> WhatsNewResponse {
         fetchCallCount += 1
+        lastRequest = (currentVersion, lastSeenVersion)
+        if suspendsBeforeReturning {
+            await Task.yield()
+        }
         switch outcome {
         case .success(let entries):
             return WhatsNewResponse(success: true, data: .init(entries: entries))
@@ -123,9 +166,14 @@ private final class MockWhatsNewService: WhatsNewServiceProtocol, @unchecked Sen
 }
 
 private final class MockWhatsNewFlagsStore: WhatsNewFlagsStoring, @unchecked Sendable {
+    let wasInstalledBeforeWhatsNew: Bool
     private(set) var lastSeenVersion: String?
 
-    init(lastSeenVersion: String?) {
+    init(
+        wasInstalledBeforeWhatsNew: Bool = false,
+        lastSeenVersion: String?
+    ) {
+        self.wasInstalledBeforeWhatsNew = wasInstalledBeforeWhatsNew
         self.lastSeenVersion = lastSeenVersion
     }
 
