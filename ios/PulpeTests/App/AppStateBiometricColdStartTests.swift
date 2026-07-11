@@ -257,11 +257,10 @@ struct AppStateBiometricColdStartTests {
                 keychain: MockBiometricPreferenceStore(enabled: false),
                 defaults: MockBiometricPreferenceStore(enabled: false)
             ),
+            validateRegularSession: { nil },
             maintenanceChecking: { false }
         )
 
-        // With biometric disabled and no valid session, checkAuthState transitions to .unauthenticated
-        // ensureReturningUserFlagLoaded() must be called before that transition
         await sut.checkAuthState()
 
         #expect(
@@ -302,15 +301,12 @@ struct AppStateBiometricColdStartTests {
 
     @Test("checkAuthState sets biometricError when session expired path is triggered")
     func checkAuthState_biometricEnabled_noTokens_transitionsToUnauthenticated() async {
-        // PUL-132: when biometric is enabled with no tokens AND no explicit logout,
-        // validateBiometricSession is NOT called (gate inverted) — the SDK-restored
-        // session path runs instead. With no real session, validateRegularSession
-        // returns nil → .unauthenticated, biometricError stays nil.
         let sut = AppState(
             biometricPreferenceStore: BiometricPreferenceStore(
                 keychain: MockBiometricPreferenceStore(enabled: true),
                 defaults: MockBiometricPreferenceStore(enabled: false)
             ),
+            validateRegularSession: { nil },
             maintenanceChecking: { false }
         )
 
@@ -322,10 +318,8 @@ struct AppStateBiometricColdStartTests {
         await sut.checkAuthState()
 
         #expect(sut.authState == .unauthenticated)
-        #expect(
-            sut.biometricError == nil,
-            "No-session path should not set biometricError (distinct from expired-session path)"
-        )
+        #expect(sut.biometricError != nil)
+        #expect(sut.biometricCredentialsAvailable == false)
     }
 
     @Test("checkAuthState with biometric enabled + no biometric session + valid regular session routes to PIN")
@@ -368,7 +362,7 @@ struct AppStateBiometricColdStartTests {
         await sut.checkAuthState()
 
         #expect(sut.authState == AppState.AuthStatus.unauthenticated)
-        #expect(sut.biometricError == nil)
+        #expect(sut.biometricError != nil)
     }
 
     // MARK: - Session-Based Cold Start Routing (no biometric)
@@ -446,6 +440,7 @@ struct AppStateBiometricColdStartTests {
         let sut = AppState(
             keychainManager: keychain,
             biometricPreferenceStore: AppStateTestFactory.biometricDisabledStore(),
+            validateRegularSession: { nil },
             maintenanceChecking: { false }
         )
 
@@ -462,6 +457,7 @@ struct AppStateBiometricColdStartTests {
         let sut = AppState(
             keychainManager: keychain,
             biometricPreferenceStore: AppStateTestFactory.biometricDisabledStore(),
+            validateRegularSession: { nil },
             maintenanceChecking: { false }
         )
 
@@ -502,8 +498,8 @@ struct AppStateBiometricColdStartTests {
         #expect(sut.biometricCredentialsAvailable == false)
     }
 
-    @Test("checkAuthState preserves biometricEnabled when unknown error occurs")
-    func checkAuthState_unknownError_preservesBiometricEnabled() async {
+    @Test("checkAuthState keeps biometric credentials and offers retry on unknown error")
+    func checkAuthState_unknownError_preservesSessionAndBiometricCredentials() async {
         struct SimulatedUnknownError: Error {}
 
         UserDefaults.standard.set(true, forKey: "pulpe-has-launched-before")
@@ -522,15 +518,15 @@ struct AppStateBiometricColdStartTests {
         )
 
         await sut.bootstrap()
+        sut.biometricCredentialsAvailable = true
 
         await sut.checkAuthState()
 
-        #expect(sut.authState == .unauthenticated)
+        #expect(sut.authState == .loading)
+        #expect(sut.isNetworkUnavailable == true)
         #expect(sut.biometricError != nil)
-        // biometricEnabled must survive unknown errors so Face ID works after re-login
         #expect(sut.biometricEnabled == true)
-        // biometricCredentialsAvailable must be false so PIN screen hides Face ID button
-        #expect(sut.biometricCredentialsAvailable == false)
+        #expect(sut.biometricCredentialsAvailable == true)
     }
 
     // MARK: - biometricCredentialsAvailable After Session Expiry

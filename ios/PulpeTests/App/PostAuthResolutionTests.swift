@@ -607,6 +607,21 @@ struct PostAuthResolutionRouterTests {
         #expect(destination == .unauthenticatedSessionExpired)
     }
 
+    @Test("transient refresh failure during vault check does not expire the session")
+    func vaultUnauthorized_refreshThrows_returnsVaultCheckFailed() async {
+        let resolver = PostAuthResolver(
+            vaultStatusProvider: StubVaultStatusProvider(results: [
+                .failure(.unauthorized)
+            ]),
+            sessionRefresher: StubSessionRefresher.transientFailure,
+            clientKeyResolver: StubClientKeyResolver(resolvedKey: nil)
+        )
+
+        let destination = await resolver.resolve()
+
+        #expect(destination == .vaultCheckFailed)
+    }
+
     @Test("network error on vault-status returns vaultCheckFailed")
     func vaultNetworkError_returnsVaultCheckFailed() async {
         let resolver = PostAuthResolver(
@@ -637,12 +652,12 @@ struct PostAuthResolutionRouterTests {
         #expect(destination == .vaultCheckFailed)
     }
 
-    @Test("401 retry with server error returns vaultCheckFailed")
-    func vaultRetryNonAuthError_returnsVaultCheckFailed() async {
+    @Test("401 after successful refresh keeps the session and returns vaultCheckFailed")
+    func vaultRetryUnauthorized_returnsVaultCheckFailed() async {
         let resolver = PostAuthResolver(
             vaultStatusProvider: StubVaultStatusProvider(results: [
                 .failure(.unauthorized),
-                .failure(.serverError(message: "Internal Server Error"))
+                .failure(.unauthorized)
             ]),
             sessionRefresher: StubSessionRefresher(result: true),
             clientKeyResolver: StubClientKeyResolver(resolvedKey: nil)
@@ -739,10 +754,23 @@ private actor StubVaultStatusProvider: VaultStatusProviding {
 }
 
 private struct StubSessionRefresher: SessionRefreshing {
-    let result: Bool
+    private let result: Bool?
 
-    func refreshSessionForVaultCheck() async -> Bool {
-        result
+    static let transientFailure = StubSessionRefresher(result: nil)
+
+    init(result: Bool) {
+        self.result = result
+    }
+
+    private init(result: Bool?) {
+        self.result = result
+    }
+
+    func refreshSessionForVaultCheck() async throws -> Bool {
+        guard let result else {
+            throw URLError(.cannotConnectToHost)
+        }
+        return result
     }
 }
 

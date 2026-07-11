@@ -257,15 +257,18 @@ struct RootView: View {
             MaintenanceView()
 
         case .networkError:
-            NetworkUnavailableView {
-                await appState.retryStartup()
-                if appState.authState == .authenticated {
-                    await userSettingsStore.loadIfNeeded()
-                    await currentMonthStore.loadBudgetSummary(
-                        payDayOfMonth: userSettingsStore.payDayOfMonth
-                    )
-                }
-            }
+            NetworkUnavailableView(
+                onRetry: {
+                    await appState.retryStartup()
+                    if appState.authState == .authenticated {
+                        await userSettingsStore.loadIfNeeded()
+                        await currentMonthStore.loadBudgetSummary(
+                            payDayOfMonth: userSettingsStore.payDayOfMonth
+                        )
+                    }
+                },
+                onSignOut: { await appState.abandonStartupRetry() }
+            )
 
         case .login:
             if appState.hasReturningUser {
