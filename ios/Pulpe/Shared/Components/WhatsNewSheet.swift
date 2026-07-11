@@ -8,6 +8,11 @@ import SwiftUI
 /// entry is shown, each block gets a small version/date header so the aggregate
 /// reads as distinct releases rather than one merged wall of text.
 struct WhatsNewSheet: View {
+    private static let publishedAtFormat = Date.ISO8601FormatStyle()
+        .year()
+        .month()
+        .day()
+
     let currentVersion: String
     let entries: [WhatsNewEntry]
     let onDismiss: () -> Void
@@ -24,7 +29,10 @@ struct WhatsNewSheet: View {
                     ForEach(entries) { entry in
                         VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
                             if entries.count > 1 {
-                                Text("Version \(entry.version) · \(entry.publishedAt)")
+                                Text(
+                                    "Version \(entry.version) · "
+                                        + formattedPublishedAt(entry.publishedAt)
+                                )
                                     .font(PulpeTypography.labelLarge)
                                     .foregroundStyle(Color.onSurfaceVariant)
                             }
@@ -58,6 +66,13 @@ struct WhatsNewSheet: View {
                 interpretedSyntax: .inlineOnlyPreservingWhitespace
             )
         )) ?? AttributedString(entry.body)
+    }
+
+    private func formattedPublishedAt(_ publishedAt: String) -> String {
+        guard let date = try? Self.publishedAtFormat.parse(publishedAt) else {
+            return publishedAt
+        }
+        return date.formatted(date: .abbreviated, time: .omitted)
     }
 }
 
