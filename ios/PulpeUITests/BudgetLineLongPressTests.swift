@@ -1,5 +1,6 @@
 import XCTest
 
+@MainActor
 final class BudgetLineLongPressTests: XCTestCase {
     private var app = XCUIApplication()
 

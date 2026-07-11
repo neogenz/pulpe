@@ -1,5 +1,6 @@
 import XCTest
 
+@MainActor
 final class PulpeUITests: XCTestCase {
     private var app = XCUIApplication()
 

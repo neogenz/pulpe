@@ -1,5 +1,6 @@
 import XCTest
 
+@MainActor
 final class LoginFlowTests: XCTestCase {
     private var app = XCUIApplication()
 
