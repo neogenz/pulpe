@@ -1,6 +1,6 @@
 ---
 objective: "Keep the monthly contribution slider, its numeric amount input, and the month-by-month savings plan synchronized after the user redistributes the remaining amount across the open months."
-status: implemented
+status: reviewed
 ---
 
 # Plan: Synchronize redistribution controls
