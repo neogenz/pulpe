@@ -915,9 +915,12 @@
     "simulate": {
       "everyMonth": "Chaque mois, je mets",
       "amountInput": "Montant",
+      "variableAmounts": "Montants variables",
+      "variableAmountsHint": "Les montants varient selon les mois. Saisis un montant pour les uniformiser.",
       "redistribute": "Répartir sur les mois restants",
       "redistributeHint": "Répartit le montant restant sur tes mois ouverts pour atteindre ta cible.",
       "redistributeDone": "Réparti — {{ perMonth }} par mois sur les mois ouverts.",
+      "redistributeVariableDone": "Réparti — les montants varient légèrement selon les mois.",
       "redistributeNoop": "Aucun mois ouvert à réajuster.",
       "revert": "Réinitialiser",
       "reverted": "Plan actuel restauré.",

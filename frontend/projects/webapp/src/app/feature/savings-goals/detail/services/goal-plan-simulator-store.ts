@@ -116,6 +116,16 @@ export class GoalPlanSimulatorStore {
 
   readonly draftRows = computed(() => this.draft()?.months ?? []);
 
+  /** True when open months cannot be represented by one global control value. */
+  readonly hasVariableAmounts = computed(() => {
+    const amounts = this.draftRows()
+      .filter((month) => isOpenPlanMonth(month))
+      .map((month) => month.simulatedAmount);
+    return (
+      amounts.length > 1 && amounts.some((amount) => amount !== amounts[0])
+    );
+  });
+
   /** Nombre de mois ouverts dont le montant simulé diffère du prévu. */
   readonly dirtyCount = computed(
     () => this.draft()?.months.filter((month) => month.isAdjusted).length ?? 0,

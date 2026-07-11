@@ -52,22 +52,38 @@ import { GoalPlanSimulatorStore } from '../services/goal-plan-simulator-store';
             [min]="0"
             [max]="store.sliderMax()"
             [step]="STEP"
+            [disabled]="store.hasVariableAmounts()"
           >
             <input
               matSliderThumb
-              [ngModel]="sliderValue()"
+              [ngModel]="sliderValue() ?? 0"
               (ngModelChange)="onSliderChange($event)"
-              [attr.aria-label]="'savingsGoals.simulate.everyMonth' | transloco"
+              [attr.aria-label]="
+                (store.hasVariableAmounts()
+                  ? 'savingsGoals.simulate.variableAmountsHint'
+                  : 'savingsGoals.simulate.everyMonth'
+                ) | transloco
+              "
               data-testid="goal-plan-slider"
             />
           </mat-slider>
           <div class="md:w-44">
             <pulpe-currency-input
-              [label]="'savingsGoals.simulate.amountInput' | transloco"
+              [label]="
+                (store.hasVariableAmounts()
+                  ? 'savingsGoals.simulate.variableAmounts'
+                  : 'savingsGoals.simulate.amountInput'
+                ) | transloco
+              "
               [value]="sliderValue()"
               (valueChange)="onInputChange($event)"
               [currency]="currency()"
               [autoFocus]="false"
+              [placeholder]="
+                store.hasVariableAmounts()
+                  ? ('savingsGoals.simulate.variableAmounts' | transloco)
+                  : '0.00'
+              "
               testId="goal-plan-amount-input"
             />
           </div>
@@ -141,8 +157,10 @@ export class GoalPlanSimulatorToolbar {
 
   // Twin value shared by the slider and the numeric input. Re-seeds from the
   // store's global amount (e.g. after « Réajuster » clears it back to null).
-  protected readonly sliderValue = linkedSignal(
-    () => this.store.globalAmount() ?? this.store.defaultMonthlyAmount(),
+  protected readonly sliderValue = linkedSignal((): number | null =>
+    this.store.hasVariableAmounts()
+      ? null
+      : (this.store.globalAmount() ?? this.store.defaultMonthlyAmount()),
   );
 
   protected readonly announcement = signal('');
@@ -171,6 +189,14 @@ export class GoalPlanSimulatorToolbar {
     if (!result.isDistributable) {
       this.announcement.set(
         this.#transloco.translate('savingsGoals.simulate.redistributeNoop'),
+      );
+      return;
+    }
+    if (this.store.hasVariableAmounts()) {
+      this.announcement.set(
+        this.#transloco.translate(
+          'savingsGoals.simulate.redistributeVariableDone',
+        ),
       );
       return;
     }

@@ -1,9 +1,17 @@
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
-import { provideZonelessChangeDetection, signal } from '@angular/core';
+import {
+  Component,
+  EventEmitter,
+  Input,
+  Output,
+  provideZonelessChangeDetection,
+  signal,
+} from '@angular/core';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { TestbedHarnessEnvironment } from '@angular/cdk/testing/testbed';
 import { MatButtonHarness } from '@angular/material/button/testing';
 import { MatInputModule } from '@angular/material/input';
+import { MatInputHarness } from '@angular/material/input/testing';
 import { MatSliderHarness } from '@angular/material/slider/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { SavingsGoalPlanMonth, SavingsGoalProgress } from 'pulpe-shared';
@@ -13,6 +21,31 @@ import { CurrencyInput } from '@ui/currency-input';
 import { SavingsGoalStore } from '../../services/savings-goals-store';
 import { GoalPlanSimulatorStore } from '../services/goal-plan-simulator-store';
 import { GoalPlanSimulatorToolbar } from './goal-plan-simulator-toolbar';
+
+@Component({
+  selector: 'pulpe-currency-input',
+  imports: [MatInputModule],
+  template: `
+    <input
+      matInput
+      type="number"
+      [value]="value ?? ''"
+      (input)="valueChange.emit($any($event.target).valueAsNumber)"
+      [placeholder]="placeholder"
+      [attr.aria-label]="label + ' in ' + currency"
+      [attr.data-testid]="testId"
+    />
+  `,
+})
+class StubCurrencyInput {
+  @Input() label = '';
+  @Input() value: number | null = null;
+  @Input() currency = 'CHF';
+  @Input() autoFocus = true;
+  @Input() testId = 'currency-input';
+  @Input() placeholder = '0.00';
+  @Output() readonly valueChange = new EventEmitter<number | null>();
+}
 
 const LINE_CURRENT = '11111111-1111-4111-8111-111111111111';
 const LINE_FUTURE = '22222222-2222-4222-8222-222222222222';
@@ -69,9 +102,10 @@ function makeProgress(): SavingsGoalProgress {
 describe('GoalPlanSimulatorToolbar', () => {
   let fixture: ComponentFixture<GoalPlanSimulatorToolbar>;
   let simulator: GoalPlanSimulatorStore;
+  let progressSig: ReturnType<typeof signal<SavingsGoalProgress | null>>;
 
   beforeEach(async () => {
-    const progress = signal<SavingsGoalProgress | null>(makeProgress());
+    progressSig = signal<SavingsGoalProgress | null>(makeProgress());
 
     await TestBed.configureTestingModule({
       imports: [GoalPlanSimulatorToolbar],
@@ -83,26 +117,16 @@ describe('GoalPlanSimulatorToolbar', () => {
         {
           provide: SavingsGoalStore,
           useValue: {
-            progress,
+            progress: progressSig,
             selectedGoal: signal(null),
             applyPlan: vi.fn(),
           },
         },
       ],
     })
-      .overrideComponent(CurrencyInput, {
-        set: {
-          imports: [MatInputModule],
-          template: `
-            <input
-              matInput
-              type="number"
-              [value]="value() ?? ''"
-              (input)="value.set($any($event.target).valueAsNumber)"
-              [attr.data-testid]="testId()"
-            />
-          `,
-        },
+      .overrideComponent(GoalPlanSimulatorToolbar, {
+        remove: { imports: [CurrencyInput] },
+        add: { imports: [StubCurrencyInput] },
       })
       .compileComponents();
 
@@ -126,21 +150,14 @@ describe('GoalPlanSimulatorToolbar', () => {
     );
     const slider = await loader.getHarness(MatSliderHarness);
     const thumb = await slider.getEndThumb();
-    const controlAmount = () =>
-      (
-        fixture.componentInstance as unknown as {
-          sliderValue: () => number;
-        }
-      ).sliderValue();
-    const editAmount = (value: number) =>
-      (
-        fixture.componentInstance as unknown as {
-          onInputChange: (amount: number) => void;
-        }
-      ).onInputChange(value);
+    const amountInput = await loader.getHarness(
+      MatInputHarness.with({
+        selector: '[data-testid="goal-plan-amount-input"]',
+      }),
+    );
 
     expect(await thumb.getValue()).toBe(200);
-    expect(controlAmount()).toBe(200);
+    expect(await amountInput.getValue()).toBe('200');
 
     await redistribute.click();
     await fixture.whenStable();
@@ -148,8 +165,8 @@ describe('GoalPlanSimulatorToolbar', () => {
     expect(simulator.draftRows().map((month) => month.simulatedAmount)).toEqual(
       [400, 400],
     );
-    expect(controlAmount()).toBe(400);
     expect(await thumb.getValue()).toBe(400);
+    expect(await amountInput.getValue()).toBe('400');
 
     await reset.click();
     await fixture.whenStable();
@@ -157,8 +174,8 @@ describe('GoalPlanSimulatorToolbar', () => {
     expect(simulator.draftRows().map((month) => month.simulatedAmount)).toEqual(
       [200, 200],
     );
-    expect(controlAmount()).toBe(200);
     expect(await thumb.getValue()).toBe(200);
+    expect(await amountInput.getValue()).toBe('200');
 
     await thumb.setValue(300);
     await fixture.whenStable();
@@ -166,15 +183,63 @@ describe('GoalPlanSimulatorToolbar', () => {
     expect(simulator.draftRows().map((month) => month.simulatedAmount)).toEqual(
       [300, 300],
     );
-    expect(controlAmount()).toBe(300);
+    expect(await amountInput.getValue()).toBe('300');
 
-    editAmount(350);
+    await amountInput.setValue('350');
     await fixture.whenStable();
 
     expect(simulator.draftRows().map((month) => month.simulatedAmount)).toEqual(
       [350, 350],
     );
-    expect(controlAmount()).toBe(350);
     expect(await thumb.getValue()).toBe(350);
+    expect(await amountInput.getValue()).toBe('350');
+  });
+
+  it('renders cents-preserving non-uniform redistribution as mixed', async () => {
+    progressSig.set({ ...makeProgress(), targetAmount: 800.01 });
+    await fixture.whenStable();
+
+    const loader = TestbedHarnessEnvironment.loader(fixture);
+    const redistribute = await loader.getHarness(
+      MatButtonHarness.with({
+        selector: '[data-testid="goal-plan-redistribute"]',
+      }),
+    );
+    const slider = await loader.getHarness(MatSliderHarness);
+    const amountInput = await loader.getHarness(
+      MatInputHarness.with({
+        selector: '[data-testid="goal-plan-amount-input"]',
+      }),
+    );
+
+    await redistribute.click();
+    await fixture.whenStable();
+
+    expect(simulator.draftRows().map((month) => month.simulatedAmount)).toEqual(
+      [400.01, 400],
+    );
+    expect(await slider.isDisabled()).toBe(true);
+    expect(await amountInput.getValue()).toBe('');
+    expect(await amountInput.getPlaceholder()).toBe('Montants variables');
+    expect(
+      fixture.nativeElement
+        .querySelector('[data-testid="goal-plan-amount-input"]')
+        ?.getAttribute('aria-label'),
+    ).toBe('Montants variables in CHF');
+    expect(
+      fixture.nativeElement
+        .querySelector('[data-testid="goal-plan-slider"]')
+        ?.getAttribute('aria-label'),
+    ).toBe(
+      'Les montants varient selon les mois. Saisis un montant pour les uniformiser.',
+    );
+
+    await amountInput.setValue('350');
+    await fixture.whenStable();
+
+    expect(await slider.isDisabled()).toBe(false);
+    expect(simulator.draftRows().map((month) => month.simulatedAmount)).toEqual(
+      [350, 350],
+    );
   });
 });

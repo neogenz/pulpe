@@ -156,6 +156,7 @@ describe('GoalPlanSimulatorStore', () => {
     // target 800, nothing confirmed → 400 per open month across two months.
     expect(result.perRemainingMonth).toBe(400);
     expect(store.globalAmount()).toBe(400);
+    expect(store.hasVariableAmounts()).toBe(false);
     const draft = store.draft()!;
     expect(draft.months.every((m) => m.simulatedAmount === 400)).toBe(true);
     expect(draft.isTargetMet).toBe(true);
@@ -171,9 +172,14 @@ describe('GoalPlanSimulatorStore', () => {
       400.01, 400,
     ]);
     expect(store.globalAmount()).toBeNull();
+    expect(store.hasVariableAmounts()).toBe(true);
     expect(store.draftRows().map((month) => month.simulatedAmount)).toEqual([
       400.01, 400,
     ]);
+
+    store.setGlobalAmount(350);
+
+    expect(store.hasVariableAmounts()).toBe(false);
   });
 
   it('does not replace the control amount when redistribution fails', () => {
