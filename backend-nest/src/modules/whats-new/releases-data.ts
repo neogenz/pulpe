@@ -5,6 +5,7 @@ export interface WhatsNewReleaseChangeItem {
 
 export interface WhatsNewReleaseEntry {
   version: string;
+  iosVersion?: string;
   date: string;
   platforms: string[];
   changes: {
@@ -41,6 +42,7 @@ export const RELEASES: WhatsNewReleaseEntry[] = [
   },
   {
     version: '0.37.0',
+    iosVersion: '1.1.0',
     date: '2026-07-01',
     platforms: ['web', 'ios'],
     changes: {
@@ -78,6 +80,7 @@ export const RELEASES: WhatsNewReleaseEntry[] = [
   },
   {
     version: '0.36.0',
+    iosVersion: '1.0.4',
     date: '2026-06-19',
     platforms: ['web', 'ios'],
     changes: {
@@ -135,6 +138,7 @@ export const RELEASES: WhatsNewReleaseEntry[] = [
   },
   {
     version: '0.35.0',
+    iosVersion: '1.0.3',
     date: '2026-05-14',
     platforms: ['web', 'ios'],
     changes: {
@@ -220,6 +224,7 @@ export const RELEASES: WhatsNewReleaseEntry[] = [
   },
   {
     version: '0.34.0',
+    iosVersion: '1.0.0',
     date: '2026-05-05',
     platforms: ['web', 'ios'],
     changes: {
@@ -361,6 +366,7 @@ export const RELEASES: WhatsNewReleaseEntry[] = [
   },
   {
     version: '0.33.0',
+    iosVersion: '1.0.0',
     date: '2026-04-08',
     platforms: ['ios'],
     changes: {

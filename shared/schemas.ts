@@ -1736,7 +1736,7 @@ export type AppVersionResponse = z.infer<typeof appVersionResponseSchema>;
  * Endpoint: `GET /api/v1/whats-new/ios` (authenticated).
  */
 export const whatsNewEntrySchema = z.object({
-  version: z.string(),
+  version: semverString,
   title: z.string(),
   body: z.string(),
   publishedAt: z.iso.date(),

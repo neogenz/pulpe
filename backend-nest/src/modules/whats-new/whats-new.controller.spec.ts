@@ -54,7 +54,7 @@ describe('GET /api/v1/whats-new/ios', () => {
   it('responds 401 when no bearer token is provided', async () => {
     const response = await request(app.getHttpServer())
       .get('/api/v1/whats-new/ios')
-      .query({ currentVersion: '0.37.0', lastSeenVersion: '0.36.0' });
+      .query({ currentVersion: '1.1.0', lastSeenVersion: '1.0.4' });
 
     expect(response.status).toBe(401);
   });
@@ -64,7 +64,7 @@ describe('GET /api/v1/whats-new/ios', () => {
       .get('/api/v1/whats-new/ios')
       .set('Authorization', 'Bearer valid-token')
       .set('x-client-key', VALID_CLIENT_KEY)
-      .query({ currentVersion: '0.37.0', lastSeenVersion: '0.36.0' });
+      .query({ currentVersion: '1.1.0', lastSeenVersion: '1.0.4' });
 
     expect(response.status).toBe(200);
     expect(whatsNewResponseSchema.safeParse(response.body).success).toBe(true);

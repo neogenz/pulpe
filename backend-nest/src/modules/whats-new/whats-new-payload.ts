@@ -24,32 +24,48 @@ export function compareSemver(a: string, b: string): number {
   return 0;
 }
 
-export function isIosUserFacing(entry: WhatsNewReleaseEntry): boolean {
+export function isIosUserFacing(
+  entry: WhatsNewReleaseEntry,
+): entry is WhatsNewReleaseEntry & { iosVersion: string } {
   return (
+    entry.iosVersion !== undefined &&
     entry.platforms.includes('ios') &&
     (entry.changes.features.length > 0 || entry.changes.fixes.length > 0)
   );
 }
 
-function toBody(entry: WhatsNewReleaseEntry): string {
-  return [...entry.changes.features, ...entry.changes.fixes]
+function toBody(entries: WhatsNewReleaseEntry[]): string {
+  return entries
+    .flatMap((entry) => [...entry.changes.features, ...entry.changes.fixes])
     .map((item) => `- **${item.title}** — ${item.description}`)
     .join('\n');
 }
 
 export function buildWhatsNewResponse(query: WhatsNewQuery): WhatsNewResponse {
-  const entries = RELEASES.filter(
-    (entry) =>
-      isIosUserFacing(entry) &&
-      compareSemver(entry.version, query.lastSeenVersion) > 0 &&
-      compareSemver(entry.version, query.currentVersion) <= 0,
-  )
-    .sort((a, b) => compareSemver(a.version, b.version))
-    .map((entry) => ({
-      version: entry.version,
-      title: `Nouveautés de la version ${entry.version}`,
-      body: toBody(entry),
-      publishedAt: entry.date,
+  const releasesByIosVersion = new Map<string, WhatsNewReleaseEntry[]>();
+  for (const entry of RELEASES) {
+    if (
+      !isIosUserFacing(entry) ||
+      compareSemver(entry.iosVersion, query.lastSeenVersion) <= 0 ||
+      compareSemver(entry.iosVersion, query.currentVersion) > 0
+    ) {
+      continue;
+    }
+    const releases = releasesByIosVersion.get(entry.iosVersion) ?? [];
+    releases.push(entry);
+    releasesByIosVersion.set(entry.iosVersion, releases);
+  }
+
+  const entries = [...releasesByIosVersion.entries()]
+    .sort(([a], [b]) => compareSemver(a, b))
+    .map(([iosVersion, releases]) => ({
+      version: iosVersion,
+      title: `Nouveautés de la version ${iosVersion}`,
+      body: toBody(releases),
+      publishedAt: releases
+        .map((release) => release.date)
+        .sort()
+        .at(-1)!,
     }));
 
   return whatsNewResponseSchema.parse({ success: true, data: { entries } });
