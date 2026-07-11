@@ -96,6 +96,37 @@ struct APIClientClientKeyHeaderTests {
         #expect(retryAuthorization == "Bearer \(refreshedToken)")
     }
 
+    @Test func requestVoid_unauthorized_forcesRefreshThenRetriesWithFreshToken() async throws {
+        let recorder = RequestRecorder()
+        let invalidationCalled = AtomicFlag()
+        let expiredToken = "expired-token"
+        let refreshedToken = "refreshed-token"
+
+        InterceptingURLProtocol.requestHandler = { request in
+            recorder.record(request)
+            if request.value(forHTTPHeaderField: "Authorization") == "Bearer \(expiredToken)" {
+                return (makeHTTPResponse(for: request, statusCode: 401), Data())
+            }
+            return (makeHTTPResponse(for: request, statusCode: 204), Data())
+        }
+        defer { InterceptingURLProtocol.requestHandler = nil }
+
+        let sut = makeSUT(
+            token: expiredToken,
+            clientKey: clientKey,
+            authTokenProvider: { expiredToken },
+            forceRefreshAccessToken: { refreshedToken },
+            invalidateSession: { invalidationCalled.set() }
+        )
+
+        try await sut.requestVoid(.validateSession)
+
+        #expect(invalidationCalled.value == false)
+        #expect(recorder.requests.count == 2)
+        let retryAuthorization = recorder.requests.last?.value(forHTTPHeaderField: "Authorization")
+        #expect(retryAuthorization == "Bearer \(refreshedToken)")
+    }
+
     @Test func request_unauthorized_refreshThrows_doesNotInvalidateSession() async {
         let invalidationCalled = AtomicFlag()
 

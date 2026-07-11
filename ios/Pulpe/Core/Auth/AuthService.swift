@@ -7,6 +7,7 @@ import Supabase
 /// Mirrors the frontend Angular approach - talks directly to Supabase, not the backend
 actor AuthService {
     static let shared = AuthService()
+    private static let sessionDecoder = JSONDecoder()
 
     private var supabase: SupabaseClient
     private let keychain: KeychainManager
@@ -110,7 +111,7 @@ actor AuthService {
     /// so "sessionMissing + no blob" is a reliable terminal verdict. NEVER write that
     /// blob from the app: the SDK persists every rotation itself, and a second writer
     /// could overwrite a freshly-rotated session with a consumed refresh token.
-    private func isConfirmedTerminalSessionFailure(_ error: any Error) -> Bool {
+    private func checkAndHandleConfirmedTerminalSessionFailure(_ error: any Error) -> Bool {
         guard Self.isTerminalSessionFailure(error) else { return false }
         let blob: Data?
         do {
@@ -125,7 +126,7 @@ actor AuthService {
         // re-reads the slot on the next attempt) or an undecodable blob the SDK can
         // never restore. Purge the latter so the app converges to the login screen
         // instead of an endless retry loop against a corrupt slot.
-        if (try? JSONDecoder().decode(Session.self, from: blob)) == nil {
+        if (try? Self.sessionDecoder.decode(Session.self, from: blob)) == nil {
             Logger.auth.error("session slot undecodable — purging so logout can be confirmed")
             try? storage.remove(key: PulpeAuthStorage.sessionStorageKey)
             return true
@@ -144,27 +145,11 @@ actor AuthService {
             let session = try await supabase.auth.session
             return Self.userInfo(from: session.user, fallbackEmail: "")
         } catch {
-            if isConfirmedTerminalSessionFailure(error) {
+            if checkAndHandleConfirmedTerminalSessionFailure(error) {
                 Logger.auth.info("validateSession: no active session (logged out)")
                 return nil
             }
             Logger.auth.error("validateSession: SDK session unavailable - \(error, privacy: .public)")
-            throw error
-        }
-    }
-
-    func validateSessionStrict() async throws -> UserInfo? {
-        do {
-            let session = try await supabase.auth.session
-            return Self.userInfo(from: session.user, fallbackEmail: "")
-        } catch {
-            if isConfirmedTerminalSessionFailure(error) {
-                Logger.auth.info("validateSessionStrict: no active session (logged out)")
-                return nil
-            }
-            Logger.auth.warning(
-                "validateSessionStrict: auth session unavailable - \(error, privacy: .public)"
-            )
             throw error
         }
     }
@@ -226,7 +211,7 @@ actor AuthService {
             let session = try await supabase.auth.refreshSession()
             return session.accessToken
         } catch {
-            if isConfirmedTerminalSessionFailure(error) {
+            if checkAndHandleConfirmedTerminalSessionFailure(error) {
                 Logger.auth.info("forceRefreshAccessToken: no active session (logged out)")
                 return nil
             }
@@ -285,7 +270,7 @@ actor AuthService {
         } catch {
             // Keep retrying after transport and transient SDK failures. A confirmed
             // terminal logout is the only case where pending work cannot succeed.
-            if isConfirmedTerminalSessionFailure(error) {
+            if checkAndHandleConfirmedTerminalSessionFailure(error) {
                 pendingBiometricResync = false
             }
         }
