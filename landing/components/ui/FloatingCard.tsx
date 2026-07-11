@@ -71,7 +71,7 @@ export const FloatingCard = memo(function FloatingCard({
 
   return (
     <div
-      className={cn('float-bob shadow-sm', radius, base, colors, className)}
+      className={cn('float-bob shadow-[var(--shadow-floating)]', radius, base, colors, className)}
       style={style}
       aria-hidden="true"
     >

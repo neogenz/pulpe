@@ -1,6 +1,6 @@
 'use client'
 
-import { Button, Container, FadeIn, GrainOverlay } from '@/components/ui'
+import { Button, Container, FadeIn, GrainOverlay, LimeWedge } from '@/components/ui'
 import { angularUrl } from '@/lib/config'
 import { trackCTAClick } from '@/lib/posthog'
 
@@ -18,6 +18,8 @@ export function FinalCTA() {
         className="absolute bottom-[-15%] left-[-8%] w-96 h-96 bg-white/5 organic-blob"
         aria-hidden="true"
       />
+      {/* Signature lime motif — brand texture at the emotional climax */}
+      <LimeWedge className="absolute -bottom-20 -right-16 w-[22rem] h-[22rem] text-white opacity-[0.06] pointer-events-none" />
 
       <Container>
         <div className="max-w-3xl mx-auto text-center relative z-10">
@@ -26,8 +28,8 @@ export function FinalCTA() {
               &laquo;&nbsp;Je sais pas comment je faisais avant Pulpe, c&apos;est
               tellement plus simple. Je suis tellement moins stressée par mes
               sous.&nbsp;&raquo;
-              <footer className="mt-3 text-sm text-white/60 not-italic font-sans tracking-[0.08em] uppercase">
-                — Julie
+              <footer className="mt-3 text-sm text-white/80 not-italic font-sans tracking-[0.08em] uppercase">
+                — Julie, 29 ans · Lausanne
               </footer>
             </blockquote>
             <h2 className="text-3xl md:text-4xl lg:text-[3.25rem] font-bold text-white mb-5 leading-[1.05] tracking-[-0.02em] balance">
@@ -40,7 +42,7 @@ export function FinalCTA() {
               Gratuit, données privées, montants protégés. Essaie — si ça te
               plaît pas, tu retournes à Excel.
             </p>
-            <Button href={angularUrl('/signup', 'final_cta_commencer')} variant="inverse" onClick={() => trackCTAClick('commencer_gratuitement', 'final_cta', '/signup')}>
+            <Button href={angularUrl('/signup', 'final_cta_commencer')} variant="inverse" className="focus-on-dark" onClick={() => trackCTAClick('commencer_gratuitement', 'final_cta', '/signup')}>
               Commencer gratuitement
             </Button>
           </FadeIn>

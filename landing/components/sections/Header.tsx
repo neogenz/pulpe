@@ -9,24 +9,24 @@ import { trackCTAClick } from '@/lib/posthog'
 const navLinks = [
   { href: '/#features', label: 'Fonctionnalités' },
   { href: '/#how-it-works', label: 'Comment ça marche' },
-  { href: '/#platforms', label: 'Télécharger' },
+  { href: '/#platforms', label: 'Applications' },
   { href: '/#why-free', label: 'Pourquoi gratuit' },
 ]
 
 const SCROLL_THRESHOLD = 20
 const THROTTLE_MS = 100
+const DESKTOP_BREAKPOINT_PX = 768
 
 const GLASS_DISTORTION_STYLE: CSSProperties = {
   backdropFilter: 'blur(2px)',
   WebkitBackdropFilter: 'blur(2px)',
-  filter: 'url(#liquid-glass)',
 }
 
 const GLASS_SHINE_STYLE: CSSProperties = {
   boxShadow: `
     inset 0 1px 1px 0 rgba(255, 255, 255, 0.6),
     inset 0 -1px 1px 0 rgba(255, 255, 255, 0.3),
-    0 4px 24px rgba(0, 0, 0, 0.08)
+    0 4px 24px rgba(0, 60, 20, 0.10)
   `,
 }
 
@@ -35,7 +35,6 @@ export function Header() {
   const [scrolled, setScrolled] = useState(false)
   const lastScrollTime = useRef(0)
   const menuButtonRef = useRef<HTMLButtonElement>(null)
-  const wasOpen = useRef(false)
 
   useEffect(() => {
     const handleScroll = () => {
@@ -49,23 +48,37 @@ export function Header() {
   }, [])
 
   useEffect(() => {
-    if (mobileMenuOpen) {
-      wasOpen.current = true
-      const handleEscape = (e: KeyboardEvent) => {
-        if (e.key === 'Escape') setMobileMenuOpen(false)
+    if (!mobileMenuOpen) return
+
+    const closeOnDesktop = () => {
+      if (window.innerWidth >= DESKTOP_BREAKPOINT_PX) {
+        setMobileMenuOpen(false)
       }
-      document.addEventListener('keydown', handleEscape)
-      return () => document.removeEventListener('keydown', handleEscape)
-    } else if (wasOpen.current) {
-      wasOpen.current = false
-      menuButtonRef.current?.focus({ preventScroll: true })
+    }
+
+    const closeOnScroll = () => setMobileMenuOpen(false)
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setMobileMenuOpen(false)
+        menuButtonRef.current?.focus({ preventScroll: true })
+      }
+    }
+
+    window.addEventListener('resize', closeOnDesktop)
+    window.addEventListener('scroll', closeOnScroll, { passive: true })
+    document.addEventListener('keydown', handleKeyDown)
+    return () => {
+      window.removeEventListener('resize', closeOnDesktop)
+      window.removeEventListener('scroll', closeOnScroll)
+      document.removeEventListener('keydown', handleKeyDown)
     }
   }, [mobileMenuOpen])
 
   return (
       <header className="fixed top-4 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-2rem)] max-w-4xl">
         <nav
-          className="liquidGlass-wrapper relative flex items-center justify-between gap-4 px-4 py-3 md:px-6 md:py-4 rounded-full transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
+          className="liquidGlass-wrapper relative flex items-center justify-between gap-4 px-4 py-3 md:px-6 md:py-4 rounded-full transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] motion-reduce:transition-none"
           style={{
             transform: scrolled ? 'scale(0.98) translateY(-2px)' : 'scale(1) translateY(0)',
           }}
@@ -109,7 +122,7 @@ export function Header() {
               <a
                 key={link.href}
                 href={link.href}
-                className="px-4 py-2 text-sm font-medium text-text-secondary hover:text-primary hover:bg-primary/10 active:bg-primary/20 active:scale-95 rounded-full transition-all duration-200"
+                className="inline-flex min-h-10 items-center px-4 py-2 text-sm font-medium text-text-secondary hover:text-primary hover:bg-primary/10 active:bg-primary/20 active:scale-[0.96] rounded-full transition-[color,background-color,scale] duration-200 motion-reduce:transition-none motion-reduce:scale-100"
               >
                 {link.label}
               </a>
@@ -117,31 +130,46 @@ export function Header() {
           </div>
 
           <div className="relative z-10 flex items-center gap-2">
-            <Button href={angularUrl('/welcome', 'header_essayer')} size="sm" className="rounded-full shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-shadow" onClick={() => trackCTAClick('essayer', 'header', '/welcome')}>
-              Essayer
+            <Button href={angularUrl('/signup', 'header_commencer')} size="sm" className="shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-shadow" onClick={() => trackCTAClick('commencer', 'header', '/signup')}>
+              Commencer
             </Button>
 
             <button
               ref={menuButtonRef}
               type="button"
-              className="md:hidden p-2.5 text-text-secondary hover:text-text hover:bg-white/30 rounded-full transition-all duration-200 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+              className="md:hidden p-2.5 text-text-secondary hover:text-text hover:bg-white/30 rounded-full transition-[color,background-color,scale] duration-200 active:scale-[0.96] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 motion-reduce:transition-none motion-reduce:scale-100"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               aria-label={mobileMenuOpen ? 'Fermer le menu' : 'Ouvrir le menu'}
               aria-expanded={mobileMenuOpen}
             >
-              {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+              <span className="relative block h-6 w-6" aria-hidden="true">
+                <Menu
+                  className={`absolute inset-0 transition-[opacity,filter,scale] duration-300 ease-[cubic-bezier(0.2,0,0,1)] motion-reduce:transition-none motion-reduce:blur-none ${
+                    mobileMenuOpen
+                      ? 'scale-[0.25] opacity-0 blur-[4px]'
+                      : 'scale-100 opacity-100 blur-0'
+                  }`}
+                />
+                <X
+                  className={`absolute inset-0 transition-[opacity,filter,scale] duration-300 ease-[cubic-bezier(0.2,0,0,1)] motion-reduce:transition-none motion-reduce:blur-none ${
+                    mobileMenuOpen
+                      ? 'scale-100 opacity-100 blur-0'
+                      : 'scale-[0.25] opacity-0 blur-[4px]'
+                  }`}
+                />
+              </span>
             </button>
           </div>
         </nav>
 
         {/* Mobile Menu - absolute so it doesn't inflate header's bounding box when collapsed */}
-        <div
-          className={`md:hidden absolute left-0 right-0 top-full mt-2 rounded-2xl transition-all duration-250 ease-[cubic-bezier(0.4,0,0.2,1)] ${
+        <nav
+          aria-label="Navigation mobile"
+          className={`md:hidden absolute left-0 right-0 top-full mt-2 rounded-2xl transition-[opacity,translate,scale] duration-250 ease-[cubic-bezier(0.4,0,0.2,1)] motion-reduce:transition-none motion-reduce:translate-y-0 motion-reduce:scale-100 ${
             mobileMenuOpen
               ? 'opacity-100 translate-y-0 scale-100 pointer-events-auto'
               : 'opacity-0 -translate-y-2.5 scale-95 pointer-events-none'
           }`}
-          {...(mobileMenuOpen && { role: 'dialog', 'aria-modal': true, 'aria-label': 'Menu de navigation' })}
           {...(!mobileMenuOpen && { inert: true })}
         >
           {/* Mobile: Tint — no SVG distortion filter (causes clipping artifacts on mobile) */}
@@ -166,14 +194,14 @@ export function Header() {
               <a
                 key={link.href}
                 href={link.href}
-                className="px-4 py-3 text-base font-semibold text-text hover:bg-white/40 active:bg-white/60 rounded-xl transition-all duration-200 active:scale-[0.98]"
+                className="px-4 py-3 text-base font-semibold text-text hover:bg-white/40 active:bg-white/60 rounded-xl transition-[background-color,scale] duration-200 active:scale-[0.96] motion-reduce:transition-none motion-reduce:scale-100"
                 onClick={() => setMobileMenuOpen(false)}
               >
                 {link.label}
               </a>
             ))}
           </div>
-        </div>
+        </nav>
       </header>
   )
 }

@@ -6,14 +6,13 @@ import {
   FloatingCard,
   type FloatingCardVariant,
   GrainOverlay,
-  HeroScreenshot,
-  TypeWriter,
+  HeroDashboard,
 } from "@/components/ui";
 import { angularUrl } from "@/lib/config";
 import { trackCTAClick } from "@/lib/posthog";
-import { CalendarCheck, PiggyBank, Wallet } from "lucide-react";
+import { CalendarCheck, PiggyBank } from "lucide-react";
 import type { ReactNode } from "react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 
 function useVisitorCurrency(): 'CHF' | 'EUR' {
   const [currency, setCurrency] = useState<'CHF' | 'EUR'>('CHF')
@@ -36,29 +35,11 @@ interface FloatingCardConfig {
   content: ReactNode;
 }
 
-function buildDisponibleCard(amountLabel: string): FloatingCardConfig {
-  return {
-    id: "disponible",
-    position: "top-4 -right-2",
-    delay: "delay-200",
-    variant: "highlight",
-    animationDelay: -1,
-    content: (
-      <div className="flex items-center gap-3">
-        <Wallet className="w-5 h-5" />
-        <div>
-          <div className="text-xs">Disponible ce mois</div>
-          <div className="text-xl font-bold tabular-nums">{amountLabel}</div>
-        </div>
-      </div>
-    ),
-  };
-}
 const STATIC_FLOATING_CARDS: FloatingCardConfig[] = [
   {
     id: "impots-budgetes",
-    position: "top-[30%] right-[38%]",
-    delay: "delay-400",
+    position: "-top-5 -left-5",
+    delay: "anim-delay-400",
     variant: "large",
     animationDelay: -2,
     content: (
@@ -75,8 +56,8 @@ const STATIC_FLOATING_CARDS: FloatingCardConfig[] = [
   },
   {
     id: "epargne-maison",
-    position: "bottom-12 right-[-4%]",
-    delay: "delay-600",
+    position: "-bottom-6 -right-5",
+    delay: "anim-delay-600",
     variant: "notification",
     animationDelay: -3,
     content: (
@@ -95,64 +76,37 @@ const STATIC_FLOATING_CARDS: FloatingCardConfig[] = [
 
 export function Hero() {
   const currency = useVisitorCurrency()
-  const suffix = currency === 'CHF' ? '847 CHF' : '847 €'
+  const unit = currency === 'CHF' ? 'CHF' : '€'
+  const amount = 926
 
-  const typewriterStrings = useMemo(() => [
-    `${suffix} disponibles ce mois.`,
-    "Impôts de juillet ? Budgétés.",
-    "Épargne maison : sur les rails.",
-  ], [suffix])
-
-  const floatingCards = useMemo(() => [
-    buildDisponibleCard(suffix),
-    ...STATIC_FLOATING_CARDS,
-  ], [suffix])
+  const floatingCards = STATIC_FLOATING_CARDS
 
   return (
     <section className="hero-mesh relative min-h-[100dvh] flex items-center pt-32 pb-16 md:pt-32 md:pb-24 bg-gradient-to-b from-background via-background to-surface-alt overflow-hidden">
       <GrainOverlay opacity={0.03} />
 
       <div className="relative z-10 w-full max-w-6xl mx-auto px-4 md:px-6 lg:px-8">
-        {/* Floating cards — desktop only */}
-        {floatingCards.map((card) => (
-          <div
-            key={card.id}
-            className={`absolute ${card.position} hidden lg:block z-20 animate-fade-in-float ${card.delay}`}
-          >
-            <FloatingCard
-              variant={card.variant}
-              animationDelay={card.animationDelay}
-            >
-              {card.content}
-            </FloatingCard>
-          </div>
-        ))}
-
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
           {/* Left: text content */}
           <div className="text-center lg:text-left">
-            <p className="text-xs font-medium text-primary mb-4 tracking-[0.14em] uppercase">
-              Ton budget annuel en 3 minutes
+            <p className="text-[13px] font-semibold text-primary mb-4 tracking-[0.08em] uppercase">
+              Ton année financière, planifiée en 3 min
             </p>
-            <h1 className="leading-[1.05] mb-4 balance">
-              <span className="italic block text-2xl md:text-3xl lg:text-4xl font-normal text-text-secondary mb-1 tracking-normal">
-                &laquo;&nbsp;Je peux me le permettre&nbsp;?&nbsp;&raquo;
-              </span>
-              <span className="block text-5xl md:text-6xl lg:text-[4.25rem] font-bold text-primary tracking-[-0.02em]">
-                Tu sais d&apos;avance.
-              </span>
+            <h1 className="text-4xl md:text-5xl lg:text-[3.5rem] font-extrabold text-text tracking-[-0.03em] leading-[1.03] mb-5 balance">
+              Tu sais{' '}
+              <span className="text-primary">des mois à l&apos;avance</span>{' '}
+              ce qu&apos;il te restera.
             </h1>
-            <div className="text-xl md:text-2xl lg:text-3xl font-normal text-text-secondary mb-8 tabular-nums">
-              <span className="md:hidden">{suffix} disponibles ce mois.</span>
-              <span className="hidden md:block min-h-[2.5rem] lg:min-h-[3rem]">
-                <TypeWriter strings={typewriterStrings} />
-              </span>
-            </div>
+            <p className="text-lg md:text-xl text-text-secondary mb-8 max-w-xl mx-auto lg:mx-0 pretty">
+              Pulpe planifie ton année — impôts, vacances, imprévus compris — et
+              projette ton solde mois après mois. Tu vois venir, au lieu de
+              subir. Sans relier ta banque.
+            </p>
             <div className="flex flex-col sm:flex-row gap-4 sm:items-center items-center justify-center lg:justify-start">
               <Button href={angularUrl('/signup', 'hero_commencer')} glow onClick={() => trackCTAClick('commencer', 'hero', '/signup')}>
                 Commencer
               </Button>
-              <Button href="#features" variant="ghost" className="text-text hover:text-text">
+              <Button href="#how-it-works" variant="ghost" className="text-text hover:text-text">
                 Voir comment ça marche
               </Button>
             </div>
@@ -161,13 +115,24 @@ export function Hero() {
             </p>
           </div>
 
-          {/* Right: screenshot with floating cards around it */}
+          {/* Right: live dashboard with floating accent cards anchored to its edges */}
           <FadeIn animateOnMount delay={0.3}>
-            <HeroScreenshot
-              screenshotSrc="/screenshots/responsive/dashboard.webp"
-              screenshotDesktopSrc="/screenshots/webapp/dashboard.webp"
-              screenshotLabel="Dashboard Pulpe - Vue du mois en cours"
-            />
+            <div className="relative">
+              <HeroDashboard amount={amount} unit={unit} />
+              {floatingCards.map((card) => (
+                <div
+                  key={card.id}
+                  className={`absolute ${card.position} hidden lg:block z-20 animate-fade-in-float ${card.delay}`}
+                >
+                  <FloatingCard
+                    variant={card.variant}
+                    animationDelay={card.animationDelay}
+                  >
+                    {card.content}
+                  </FloatingCard>
+                </div>
+              ))}
+            </div>
           </FadeIn>
         </div>
       </div>

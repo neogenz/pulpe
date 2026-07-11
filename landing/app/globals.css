@@ -73,6 +73,19 @@ body {
   text-wrap: pretty;
 }
 
+/* Reserve the screenshot box per breakpoint (portrait mobile asset, landscape
+   desktop asset) so neither causes a decode-time layout shift. Vars are set
+   inline per instance from the real asset dimensions. */
+.screenshot-frame {
+  aspect-ratio: var(--m-ar);
+}
+
+@media (min-width: 768px) {
+  .screenshot-frame {
+    aspect-ratio: var(--d-ar);
+  }
+}
+
 /* Very subtle mesh of radial green glows behind hero — adds depth
    without touching layout. Pure CSS, zero cost. */
 .hero-mesh {
@@ -85,24 +98,24 @@ body {
 :focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
-  border-radius: 4px;
 }
 
 :focus:not(:focus-visible) {
   outline: none;
 }
 
+/* Focus indicator for interactive elements sitting on dark / green surfaces
+   (e.g. the inverse CTA on the FinalCTA gradient), where the default green
+   outline is invisible. White ring, offset so it reads against both the
+   white button and the green surround. Meets WCAG 1.4.11 (>=3:1). */
+.focus-on-dark:focus-visible {
+  outline: 2px solid #ffffff;
+  outline-offset: 3px;
+}
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
-  }
-
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
   }
 }
 
@@ -221,19 +234,19 @@ body {
   animation: fade-in-float 0.5s ease-out both;
 }
 
-/* Staggered delays for floating cards */
-.delay-100 { animation-delay: 0.1s; }
-.delay-200 { animation-delay: 0.2s; }
-.delay-300 { animation-delay: 0.3s; }
-.delay-400 { animation-delay: 0.4s; }
-.delay-500 { animation-delay: 0.5s; }
-.delay-600 { animation-delay: 0.6s; }
-.delay-700 { animation-delay: 0.7s; }
-.delay-800 { animation-delay: 0.8s; }
-.delay-900 { animation-delay: 0.9s; }
-.delay-1000 { animation-delay: 1.0s; }
-.delay-1100 { animation-delay: 1.1s; }
-.delay-1200 { animation-delay: 1.2s; }
+/* Staggered entrance delays for the hero floating cards. Namespaced so they
+   don't collide with Tailwind's transition-delay `delay-*` utilities. */
+.anim-delay-400 { animation-delay: 0.4s; }
+.anim-delay-600 { animation-delay: 0.6s; }
+
+/* FadeIn (scroll variant) hidden state. A dedicated class — not the generic
+   `.opacity-0` utility — so content below the fold stays visible when JS is
+   unavailable (crawler, reader mode, blocked or failed script). */
+.js-scroll-hidden { opacity: 0; }
+
+@media (scripting: none) {
+  .js-scroll-hidden { opacity: 1; }
+}
 
 /* Intersection Observer based fade-in */
 .fade-in-view {
@@ -310,14 +323,40 @@ body {
   filter: blur(60px);
 }
 
-/* TypeWriter cursor blink animation */
-@keyframes blink {
-  0%, 50% { opacity: 1; }
-  51%, 100% { opacity: 0; }
+/* Hero dashboard: the balance-projection curve draws itself in, then the area fades under it */
+.hero-spark-line {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: spark-draw 1.6s 0.35s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
-.animate-blink {
-  animation: blink 1s step-end infinite;
+.hero-spark-area {
+  opacity: 0;
+  animation: spark-fade 0.9s 1.2s ease-out forwards;
+}
+
+@keyframes spark-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes spark-fade {
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-spark-line {
+    stroke-dashoffset: 0;
+    animation: none;
+  }
+
+  .hero-spark-area {
+    opacity: 1;
+    animation: none;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -336,10 +375,6 @@ body {
     opacity: 1;
     transform: none;
     transition: none;
-  }
-
-  .animate-blink {
-    animation: none;
   }
 
   .glow-primary {

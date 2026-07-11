@@ -46,7 +46,7 @@ export function Footer() {
           </nav>
 
           <p className="text-sm text-text-secondary">
-            Fait avec <Heart className="w-4 h-4 text-red-500 inline-block align-text-bottom" aria-hidden="true" /> en Suisse
+            Fait avec <Heart className="w-4 h-4 text-primary inline-block align-text-bottom" aria-hidden="true" /> en Suisse
           </p>
         </div>
       </Container>
