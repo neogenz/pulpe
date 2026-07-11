@@ -1,6 +1,6 @@
 ---
 objective: "La sheet iOS des nouveautés s'affiche une seule fois après une vraie mise à jour, pour tous les parcours authentifiés, avec des données de version cohérentes et validées."
-status: in-progress
+status: implemented
 ---
 
 # Plan: Corriger PUL-186 — nouveautés après mise à jour iOS
