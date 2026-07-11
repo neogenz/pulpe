@@ -11,8 +11,7 @@ struct GoalPlanSimulatorSheet: View {
     let goal: SavingsGoal
     let progress: SavingsGoalProgress
     let currency: SupportedCurrency
-    /// Fired once the plan is written — the detail view invalidates caches, refetches
-    /// progression and toasts « Ton plan est à jour ».
+    /// Invalidates caches and refreshes progression after a successful write.
     let onApplied: () async -> Void
 
     @Environment(UserSettingsStore.self) private var userSettingsStore
@@ -45,6 +44,15 @@ struct GoalPlanSimulatorSheet: View {
         Binding(
             get: { viewModel.sliderValue },
             set: { viewModel.setGlobalAmount(Decimal($0)) }
+        )
+    }
+
+    private var globalAmountBinding: Binding<Decimal?> {
+        Binding(
+            get: { viewModel.globalAmount },
+            set: { amount in
+                if let amount { viewModel.setGlobalAmount(amount) }
+            }
         )
     }
 
@@ -107,8 +115,6 @@ struct GoalPlanSimulatorSheet: View {
         }
     }
 
-    // MARK: - Sections
-
     private var infoBanner: some View {
         HStack(spacing: DesignTokens.Spacing.md) {
             Image(systemName: "info.circle")
@@ -139,7 +145,11 @@ struct GoalPlanSimulatorSheet: View {
                     .font(PulpeTypography.inputLabel)
                     .foregroundStyle(Color.textSecondary)
                 Spacer()
-                TextField("", value: globalBinding, format: .number.precision(.fractionLength(0...2)))
+                TextField(
+                    "Montants variables",
+                    value: globalAmountBinding,
+                    format: .number.precision(.fractionLength(0...2))
+                )
                     .keyboardType(.decimalPad)
                     .multilineTextAlignment(.trailing)
                     .monospacedDigit()
@@ -152,8 +162,13 @@ struct GoalPlanSimulatorSheet: View {
 
             Slider(value: globalBinding, in: 0...viewModel.sliderMax, step: 10)
                 .tint(Color.pulpePrimary)
+                .disabled(viewModel.hasVariableMonthlyAmounts)
                 .accessibilityLabel("Montant mensuel pour chaque mois ouvert")
-                .accessibilityValue(Decimal(viewModel.sliderValue).asCurrency(currency))
+                .accessibilityValue(
+                    viewModel.hasVariableMonthlyAmounts
+                        ? "Montants variables"
+                        : Decimal(viewModel.sliderValue).asCurrency(currency)
+                )
         }
         .padding(DesignTokens.Spacing.lg)
         .pulpeCardBackground()
@@ -248,8 +263,6 @@ struct GoalPlanSimulatorSheet: View {
     }
 }
 
-// MARK: - ViewModel
-
 /// Sandbox for the plan simulator. Holds the immutable `baseline` (server months),
 /// the user's `overrides` / `globalAmount`, and the live `draft` recomputed via
 /// `SavingsPlanCalculator`. All figures are client-side; the server stays
@@ -302,19 +315,9 @@ final class GoalPlanSimulatorViewModel {
         let doubled = NSDecimalNumber(decimal: ceilingBase * 2).doubleValue
         sliderMax = max(100, (doubled / 100).rounded(.up) * 100)
 
-        // Anchor: open pre-filled with `required` (the amount that holds the deadline).
-        let redistribute = SavingsPlanCalculator.redistributeRemainingEffort(
-            timeline: progress.months,
-            targetAmount: progress.targetAmount
-        )
-        let anchor = progress.required ?? redistribute.perRemainingMonth
-        globalAmount = anchor > 0 ? anchor : nil
-        sliderValue = NSDecimalNumber(decimal: anchor).doubleValue
-
         draft = (try? SavingsPlanCalculator.simulate(
             timeline: progress.months,
-            targetAmount: progress.targetAmount,
-            globalMonthlyAmount: anchor > 0 ? anchor : nil
+            targetAmount: progress.targetAmount
         )) ?? SavingsPlanCalculator.SimulationResult(
             months: [],
             simulatedFinal: 0,
@@ -322,9 +325,8 @@ final class GoalPlanSimulatorViewModel {
             isTargetMet: false,
             attainedPeriod: nil
         )
+        syncGlobalControlFromDraft()
     }
-
-    // MARK: - Derived
 
     var chartSeries: GoalProjectionSeries {
         .simulation(from: draft, targetAmount: targetAmount)
@@ -339,10 +341,22 @@ final class GoalPlanSimulatorViewModel {
     /// Mois Type leg is always empty (see the report note).
     var hasTemplateChanges: Bool { false }
 
-    var canApply: Bool { !planChanges.isEmpty && !isApplying }
+    var canApply: Bool { isDirty && !planChanges.isEmpty && !isApplying }
+
+    var hasVariableMonthlyAmounts: Bool {
+        let amounts = draft.months
+            .filter { SavingsPlanCalculator.isOpenPlanMonth($0.month) }
+            .map(\.simulatedAmount)
+        guard let first = amounts.first else { return false }
+        return amounts.dropFirst().contains { $0 != first }
+    }
 
     private var redistributePreview: SavingsPlanCalculator.RedistributeResult {
-        SavingsPlanCalculator.redistributeRemainingEffort(timeline: baseline, targetAmount: targetAmount)
+        SavingsPlanCalculator.redistributeRemainingEffort(
+            timeline: baseline,
+            targetAmount: targetAmount,
+            pinnedAdjustments: pinnedAdjustments
+        )
     }
 
     var canRedistribute: Bool { redistributePreview.isDistributable }
@@ -363,8 +377,6 @@ final class GoalPlanSimulatorViewModel {
         draft.months.first { $0.id == key }?.simulatedAmount ?? 0
     }
 
-    // MARK: - Mutations
-
     func setPayDay(_ payDay: Int?) {
         deadlinePeriod = BudgetPeriodCalculator.periodForDate(deadlineDate, payDayOfMonth: payDay)
     }
@@ -375,14 +387,18 @@ final class GoalPlanSimulatorViewModel {
         globalAmount = clamped
         overrides = [:]
         sliderValue = min(NSDecimalNumber(decimal: clamped).doubleValue, sliderMax)
-        isDirty = true
         recompute()
     }
 
     /// Per-month inline edit — overrides that month, keeps the rest.
     func setMonth(key: Int, amount: Decimal) {
-        overrides[key] = max(0, amount)
-        isDirty = true
+        let clamped = max(0, amount)
+        if baseline.first(where: { $0.id == key })?.plannedAmount == clamped {
+            overrides.removeValue(forKey: key)
+        } else {
+            overrides[key] = clamped
+        }
+        globalAmount = nil
         recompute()
     }
 
@@ -390,12 +406,11 @@ final class GoalPlanSimulatorViewModel {
     func redistribute() {
         let result = redistributePreview
         guard result.isDistributable else { return }
-        overrides = Dictionary(uniqueKeysWithValues: result.adjustments.map { adjustment in
+        let redistributed = Dictionary(uniqueKeysWithValues: result.adjustments.map { adjustment in
             (adjustment.year * 12 + adjustment.month, adjustment.amount)
         })
+        overrides.merge(redistributed) { _, redistributedAmount in redistributedAmount }
         globalAmount = nil
-        sliderValue = min(NSDecimalNumber(decimal: result.perRemainingMonth).doubleValue, sliderMax)
-        isDirty = true
         recompute()
     }
 
@@ -403,7 +418,6 @@ final class GoalPlanSimulatorViewModel {
     func revert() {
         overrides = [:]
         globalAmount = nil
-        isDirty = true
         recompute()
     }
 
@@ -437,8 +451,6 @@ final class GoalPlanSimulatorViewModel {
         }
     }
 
-    // MARK: - Private
-
     private func recompute() {
         let byKey = Dictionary(uniqueKeysWithValues: baseline.map { ($0.id, $0) })
         let adjustments = overrides.compactMap { key, amount -> SavingsPlanCalculator.Adjustment? in
@@ -453,5 +465,32 @@ final class GoalPlanSimulatorViewModel {
         ) {
             draft = next
         }
+        isDirty = !planChanges.isEmpty
+        syncGlobalControlFromDraft()
+    }
+
+    private var pinnedAdjustments: [SavingsPlanCalculator.Adjustment] {
+        let byKey = Dictionary(uniqueKeysWithValues: baseline.map { ($0.id, $0) })
+        return overrides.compactMap { key, amount in
+            guard let month = byKey[key] else { return nil }
+            return .init(month: month.month, year: month.year, amount: amount)
+        }
+    }
+
+    private func syncGlobalControlFromDraft() {
+        let amounts = draft.months
+            .filter { SavingsPlanCalculator.isOpenPlanMonth($0.month) }
+            .map(\.simulatedAmount)
+        guard let first = amounts.first else {
+            globalAmount = nil
+            sliderValue = 0
+            return
+        }
+        if amounts.dropFirst().allSatisfy({ $0 == first }) {
+            globalAmount = first
+        } else {
+            globalAmount = nil
+        }
+        sliderValue = min(NSDecimalNumber(decimal: first).doubleValue, sliderMax)
     }
 }

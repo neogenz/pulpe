@@ -60,7 +60,7 @@ struct GoalDerivedStateCards: View {
     let onReopen: () -> Void
 
     var body: some View {
-        if progress.isOverdue {
+        if status == .active, progress.isOverdue {
             GoalInfoCard(
                 icon: "calendar",
                 title: "Échéance dépassée",
@@ -71,7 +71,7 @@ struct GoalDerivedStateCards: View {
             }
         }
 
-        if progress.suggestCompletion {
+        if status == .active, progress.suggestCompletion {
             GoalInfoCard(
                 icon: "checkmark.seal.fill",
                 title: "Objectif atteint",

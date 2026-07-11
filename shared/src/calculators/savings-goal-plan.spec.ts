@@ -252,7 +252,7 @@ describe('allocateMonthAmountToLines', () => {
     ]);
   });
 
-  it('should skip checked lines and only touch open ones', () => {
+  it('should preserve the requested month total when checked lines are untouched', () => {
     const result = allocateMonthAmountToLines(
       [
         {
@@ -265,7 +265,7 @@ describe('allocateMonthAmountToLines', () => {
       500,
     );
 
-    expect(result).toEqual([{ budgetLineId: 'b', amount: 500 }]);
+    expect(result).toEqual([{ budgetLineId: 'b', amount: 200 }]);
   });
 
   it('should split equally when current amounts sum to zero', () => {

@@ -126,3 +126,125 @@ struct SavingsGoalDetailViewModelTests {
         #expect(viewModel.error == nil, "a failed refresh must not turn a persisted status change into an error")
     }
 }
+
+@MainActor
+struct GoalPlanSimulatorViewModelTests {
+    private func makeGoal() -> SavingsGoal {
+        SavingsGoal(
+            id: "g1",
+            userId: "user-1",
+            name: "Maison",
+            targetAmount: 1_000,
+            targetDate: "2099-03-01",
+            status: .active,
+            createdAt: Date(timeIntervalSince1970: 0),
+            updatedAt: Date(timeIntervalSince1970: 0)
+        )
+    }
+
+    private func makeMonth(month: Int, planned: Decimal) -> SavingsGoalPlanMonth {
+        SavingsGoalPlanMonth(
+            month: month,
+            year: 2099,
+            state: .future,
+            isLocked: false,
+            plannedAmount: planned,
+            confirmedAmount: 0,
+            plannedCumulative: planned,
+            confirmedCumulative: 0,
+            lines: [
+                SavingsGoalPlanLine(
+                    budgetLineId: "line-\(month)",
+                    amount: planned,
+                    checkedAt: nil,
+                    isManuallyAdjusted: false
+                ),
+            ]
+        )
+    }
+
+    private func makeProgress() -> SavingsGoalProgress {
+        SavingsGoalProgress(
+            goalId: "g1",
+            status: .active,
+            targetAmount: 1_000,
+            targetDate: "2099-03-01",
+            plannedCumulative: 600,
+            confirmed: 0,
+            achievementPercent: 0,
+            monthsElapsed: 0,
+            monthsRemaining: 3,
+            isOverdue: false,
+            pace: 200,
+            confirmedPace: 0,
+            required: 333.34,
+            projected: 600,
+            paceStatus: .behind,
+            suggestCompletion: false,
+            linkedLineCount: 3,
+            originalTargetAmount: nil,
+            originalCurrency: nil,
+            targetCurrency: nil,
+            exchangeRate: nil,
+            months: [
+                makeMonth(month: 1, planned: 100),
+                makeMonth(month: 2, planned: 200),
+                makeMonth(month: 3, planned: 300),
+            ]
+        )
+    }
+
+    private func makeViewModel() -> GoalPlanSimulatorViewModel {
+        GoalPlanSimulatorViewModel(
+            goal: makeGoal(),
+            progress: makeProgress(),
+            currency: .chf,
+            payDay: 1,
+            service: MockSavingsGoalService()
+        )
+    }
+
+    @Test("opens on the current plan without pending changes")
+    func init_usesBaseline() {
+        let viewModel = makeViewModel()
+
+        #expect(viewModel.planChanges.isEmpty)
+        #expect(viewModel.isDirty == false)
+        #expect(viewModel.canApply == false)
+    }
+
+    @Test("revert clears changes and the discard-warning state")
+    func revert_restoresCleanBaseline() {
+        let viewModel = makeViewModel()
+        viewModel.setGlobalAmount(250)
+
+        viewModel.revert()
+
+        #expect(viewModel.planChanges.isEmpty)
+        #expect(viewModel.isDirty == false)
+        #expect(viewModel.canApply == false)
+    }
+
+    @Test("redistribution preserves a manually adjusted month")
+    func redistribute_preservesPinnedMonth() {
+        let viewModel = makeViewModel()
+        let pinnedKey = 2099 * 12 + 1
+        viewModel.setMonth(key: pinnedKey, amount: 400)
+
+        viewModel.redistribute()
+
+        #expect(viewModel.simulatedAmount(forKey: pinnedKey) == 400)
+        #expect(viewModel.simulatedAmount(forKey: 2099 * 12 + 2) == 300)
+        #expect(viewModel.simulatedAmount(forKey: 2099 * 12 + 3) == 300)
+    }
+
+    @Test("cents-exact redistribution exposes a variable monthly state")
+    func redistribute_exposesVariableState() {
+        let viewModel = makeViewModel()
+
+        viewModel.redistribute()
+
+        #expect(viewModel.hasVariableMonthlyAmounts)
+        #expect(viewModel.globalAmount == nil)
+    }
+}

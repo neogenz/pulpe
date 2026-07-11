@@ -210,8 +210,9 @@ enum SavingsPlanCalculator {
 
     /// Distributes a monthly total across the UNCHECKED lines of a month,
     /// cents-exact (largest-remainder), proportional to the current amounts.
-    /// Current sum zero → equal split. Amount ≤ 0 → every open line at 0. Checked
-    /// lines are untouched (absent from the result).
+    /// The requested amount is the complete month total, so checked amounts are
+    /// deducted before distributing the remainder. Current open sum zero → equal
+    /// split. No remainder → every open line at 0. Checked lines are untouched.
     static func allocateMonthAmountToLines(
         _ lines: [AllocatableLine],
         newMonthAmount: Decimal
@@ -219,18 +220,23 @@ enum SavingsPlanCalculator {
         let openLines = lines.filter { $0.checkedAt == nil }
         guard !openLines.isEmpty else { return [] }
 
-        if newMonthAmount <= 0 {
+        let checkedSum = lines
+            .filter { $0.checkedAt != nil }
+            .reduce(Decimal(0)) { $0 + $1.amount }
+        let openTarget = max(0, newMonthAmount - checkedSum)
+
+        if openTarget <= 0 {
             return openLines.map { LineAllocation(budgetLineId: $0.budgetLineId, amount: 0) }
         }
 
         let currentSum = openLines.reduce(Decimal(0)) { $0 + $1.amount }
         if currentSum <= 0 {
-            let shares = SpreadSplit.splitTotalPreserving(total: newMonthAmount, partCount: openLines.count)
+            let shares = SpreadSplit.splitTotalPreserving(total: openTarget, partCount: openLines.count)
             return zip(openLines, shares).map { LineAllocation(budgetLineId: $0.budgetLineId, amount: $1) }
         }
 
         let totalCents = NSDecimalNumber(
-            decimal: (newMonthAmount * Decimal(centsPerUnit)).rounded(0, .plain)
+            decimal: (openTarget * Decimal(centsPerUnit)).rounded(0, .plain)
         ).intValue
         let currentSumDouble = NSDecimalNumber(decimal: currentSum).doubleValue
 

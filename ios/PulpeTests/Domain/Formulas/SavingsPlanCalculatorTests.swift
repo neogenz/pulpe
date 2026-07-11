@@ -165,7 +165,7 @@ struct SavingsPlanCalculatorTests {
         ])
     }
 
-    @Test("skips checked lines and only touches open ones")
+    @Test("keeps checked lines while preserving the requested month total")
     func allocate_skipsCheckedLines() {
         let result = SavingsPlanCalculator.allocateMonthAmountToLines(
             [
@@ -175,7 +175,7 @@ struct SavingsPlanCalculatorTests {
             newMonthAmount: 500
         )
 
-        #expect(result == [.init(budgetLineId: "b", amount: 500)])
+        #expect(result == [.init(budgetLineId: "b", amount: 200)])
     }
 
     @Test("splits equally when current amounts sum to zero")

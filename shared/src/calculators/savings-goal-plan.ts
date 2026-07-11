@@ -343,9 +343,9 @@ export interface AllocatableLine {
 
 /**
  * Répartit un montant mensuel total sur les lignes NON pointées d'un mois,
- * cents-exact (plus-grand-reste), proportionnel aux montants actuels. Σ actuelle
- * nulle → split égal. Montant ≤ 0 → toutes les lignes ouvertes à 0.
- * Les lignes pointées sont intouchées (absentes du retour).
+ * cents-exact (plus-grand-reste), proportionnel aux montants actuels. Le montant
+ * demandé est le total du mois : les lignes pointées en sont déduites avant la
+ * répartition. Σ ouverte nulle → split égal. Aucun reste → lignes ouvertes à 0.
  */
 export function allocateMonthAmountToLines(
   lines: AllocatableLine[],
@@ -354,7 +354,12 @@ export function allocateMonthAmountToLines(
   const openLines = lines.filter((line) => line.checkedAt == null);
   if (openLines.length === 0) return [];
 
-  if (newMonthAmount <= 0) {
+  const checkedSum = lines
+    .filter((line) => line.checkedAt != null)
+    .reduce((sum, line) => sum + line.amount, 0);
+  const openTarget = Math.max(0, newMonthAmount - checkedSum);
+
+  if (openTarget <= 0) {
     return openLines.map((line) => ({
       budgetLineId: line.budgetLineId,
       amount: 0,
@@ -363,14 +368,14 @@ export function allocateMonthAmountToLines(
 
   const currentSum = openLines.reduce((sum, line) => sum + line.amount, 0);
   if (currentSum <= 0) {
-    const shares = splitTotalPreserving(newMonthAmount, openLines.length);
+    const shares = splitTotalPreserving(openTarget, openLines.length);
     return openLines.map((line, index) => ({
       budgetLineId: line.budgetLineId,
       amount: shares[index],
     }));
   }
 
-  const totalCents = Math.round(newMonthAmount * CENTS_PER_UNIT);
+  const totalCents = Math.round(openTarget * CENTS_PER_UNIT);
   const raw = openLines.map((line) => (line.amount / currentSum) * totalCents);
   const floors = raw.map((value) => Math.floor(value));
   let remainderCents = totalCents - floors.reduce((sum, v) => sum + v, 0);

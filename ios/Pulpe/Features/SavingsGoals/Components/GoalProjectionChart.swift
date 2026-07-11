@@ -111,6 +111,14 @@ struct GoalProjectionChart: View {
         .sensitiveAmount()
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Trajectoire d'épargne")
+        .accessibilityValue(accessibilitySummary)
+    }
+
+    private var accessibilitySummary: String {
+        let confirmed = Decimal(series.confirmed.last?.value ?? 0).asCompactCurrency(currency)
+        let projection = Decimal(series.projection.last?.value ?? 0).asCompactCurrency(currency)
+        let target = Decimal(series.target).asCompactCurrency(currency)
+        return "Pointé \(confirmed), projection \(projection), cible \(target)"
     }
 
     private var areaGradient: LinearGradient {
