@@ -1,6 +1,6 @@
 ---
 objective: "Au premier accès à l'onglet Objectifs, un écran d'intro immersif (2 pages) explique à quoi sert la feature et comment le plan fonctionne, ne se montre qu'une fois, et débouche sur la création d'un premier objectif."
-status: in-progress
+status: implemented
 ---
 
 # Plan: Intro première-fois « Objectifs d'épargne » (iOS)
