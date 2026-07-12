@@ -58,7 +58,7 @@ struct SavingsGoalsListView: View {
                 isCreatingGoal = true
             }
         }) {
-            SavingsGoalsIntroCover { createGoal in
+            SavingsGoalsIntroCover(currency: userSettingsStore.currency) { createGoal in
                 hasSeenIntro = true
                 pendingCreateAfterIntro = createGoal
                 showIntro = false

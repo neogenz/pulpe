@@ -58,20 +58,20 @@ flowchart TD
 ```
 
 1. « Passer » (pages 1-2 seulement) → marque vu + dismiss.
-2. SF Symbol par page (`target` → `chart.line.uptrend.xyaxis` → `slider.horizontal.3`), `.symbolEffect` à l'entrée.
+2. Aperçu concret par page (carte objectif / lignes de plan réelles), pas une icône ; entrée animée (scale 0.92 + fade).
 3. Titre de page (`PulpeTypography.stepTitle`).
 4. Une ligne why/how, centrée, `Color.textTertiary` (`PulpeTypography.bodyLarge`).
 5. Indicateur 2 points (vocabulaire `OnboardingProgressIndicator`, pas de compteur « x/y »).
 6. Bouton `.primaryButtonStyle()` pleine largeur 54pt : « Suivant » (page 1) → « Créer mon objectif » (page 2).
 
-**Contenu des 2 pages** (copie affinable par l'exécuteur, vocabulaire projet : Objectif · épargne · prévision · rythme) :
+**Contenu des 2 pages** — *montrer, pas raconter* : chaque page = un **aperçu concret** de la vraie feature au-dessus d'un titre + caption court.
 
-| # | Symbole                        | Titre                              | Corps                                                                                                             |
-| - | ------------------------------ | ---------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| 1 | `target`                       | Donne un cap à ton épargne         | Suis tes projets long terme (voyage, apport, matelas) sans recalculer à la main.                                  |
-| 2 | `chart.line.uptrend.xyaxis`    | Pulpe calcule ton rythme           | À partir de ta cible et de ton échéance, Pulpe répartit le montant mois par mois — et tu l'ajustes quand tu veux.  |
+| # | Aperçu (hero)                                                                                          | Titre                      | Caption                                                                  |
+| - | ----------------------------------------------------------------------------------------------------- | -------------------------- | ------------------------------------------------------------------------ |
+| 1 | `IntroGoalCardPreview` — carte objectif réaliste (nom, échéance, barre de progression, montant/cible) | Donne un cap à ton épargne | Fixe un objectif — une somme, une échéance — et suis-le sans calculer.    |
+| 2 | `IntroPlanPreview` — 3 `GoalPlanMonthRow` réels (mock) : pointé → ce mois → à venir, cumul qui monte  | Pulpe calcule ton rythme   | Pulpe répartit le montant mois par mois — et tu l'ajustes quand tu veux.  |
 
-> **Décision UX (2 pages, pas 3)** : l'intro enseigne le *pourquoi* (p1) + le *comment* (p2). Le **simulateur** et le **lien prévision→objectif** sont volontairement **hors intro** — contrôles avancés non utilisables tant qu'aucun objectif n'existe (apple-design « montre le chemin commun d'abord »). Ils se découvrent en contexte dans le détail de l'objectif (territoire d'un tip TipKit ultérieur), pas dans un écran de garde. Moins d'attrition, rien de non-actionnable.
+> **Décision UX** : aperçus concrets plutôt qu'icône + slogan (retour utilisateur : l'icône-slogan « raconte sans montrer », on ne comprend pas). Le hero réutilise les vrais composants (`GoalPlanMonthRow`, `pulpeCard`, `PulpeChip`) avec données mock, montants dans la devise du user. Le **simulateur** et le **lien prévision→objectif** restent hors intro — non actionnables tant qu'aucun objectif n'existe (apple-design « montre le chemin commun d'abord »).
 
 ## Tasks to do
 
@@ -86,7 +86,7 @@ flowchart TD
 
 > Une page = hero + titre + corps, entrée animée, reduce-motion aware.
 
-1. Créer `SavingsGoalsIntroPage.swift` : un `struct IntroPage { let symbol, title, body: String }` + une `View` qui rend hero `Image(systemName:)` avec `.symbolEffect(.bounce, value: hasAppeared)` (idiome hero-symbole existant : `SavingsSummaryCard`, `BudgetPreviewHero`), titre, corps centré.
+1. Créer `SavingsGoalsIntroPage.swift` : un scaffold générique `SavingsGoalsIntroPageView<Preview: View>` (hero = un `@ViewBuilder preview`, titre, caption) + les 2 aperçus concrets `IntroGoalCardPreview` / `IntroPlanPreview` (réutilisent `pulpeCard`, `PulpeChip`, `GoalPlanMonthRow`).
 2. Entrée échelonnée `opacity` + `offset(y:)` via `DesignTokens.Animation.entranceSpring`, délais = `index × DesignTokens.Animation.staggerStep` (0.05 s : hero 0 → titre 0.05 → corps 0.10), exemplar `CreateBudgetView` (`.delay(index*0.05 + base)`). **Scale d'entrée jamais depuis 0** (emil « never scale(0) ») : si scale, plancher ≥ 0.8 + opacité — jamais `scale(0)`.
 3. **Reduce-motion ≠ zéro motion** (apple-design §14 / emil a11y) : `@Environment(\.accessibilityReduceMotion)` → supprimer `offset`/spring mais **garder un fondu d'opacité court** (`.easeOut(DesignTokens.Animation.fast)`), pas d'apparition sèche.
 4. Réutiliser exclusivement `DesignTokens.Spacing/*`, `DesignTokens.Animation/*`, `PulpeTypography.*`, `Color.textPrimary/textTertiary` — aucune valeur brute (cf. règle no-magic-design-values ; si une valeur manque, l'ajouter au token, pas l'inliner).

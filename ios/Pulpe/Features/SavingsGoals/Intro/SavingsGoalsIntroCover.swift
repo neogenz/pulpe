@@ -2,47 +2,44 @@ import SwiftUI
 
 /// First-access intro for the Objectifs tab (PUL-12). A 2-page immersive
 /// `fullScreenCover` — DESIGN.md reserves `.fullScreenCover` for immersive
-/// flows (auth, onboarding). Page 1 = why goals exist, page 2 = how Pulpe
-/// derives the monthly rhythm. Shown once, gated by `SavingsGoalsIntroGate`.
-/// The advanced surfaces (plan simulator, linking a saving forecast) are
-/// deliberately taught in context later, not here — they aren't usable until a
-/// goal exists.
+/// flows (auth, onboarding). It *shows* the feature: page 1 a real-looking goal
+/// card, page 2 the actual month-by-month plan rows (mock data). Shown once,
+/// gated by `SavingsGoalsIntroGate`. The advanced surfaces (plan simulator,
+/// linking a saving forecast) are deliberately taught in context later, not
+/// here — they aren't usable until a goal exists.
 ///
 /// `onComplete(createGoal:)` fires once: `true` when the final CTA is tapped,
 /// `false` on any skip. The page swipe is native `.page` paging, so it stays
 /// interruptible without custom gesture code.
 struct SavingsGoalsIntroCover: View {
+    let currency: SupportedCurrency
     /// `true` → user tapped the final "Créer mon objectif"; `false` → skipped.
     let onComplete: (_ createGoal: Bool) -> Void
 
     @State private var selection = 0
 
-    private let pages: [SavingsGoalsIntroPage] = [
-        SavingsGoalsIntroPage(
-            id: 0,
-            symbol: "target",
-            title: "Donne un cap à ton épargne",
-            message: "Suis tes projets long terme — voyage, apport, matelas — sans recalculer à la main."
-        ),
-        SavingsGoalsIntroPage(
-            id: 1,
-            symbol: "chart.line.uptrend.xyaxis",
-            title: "Pulpe calcule ton rythme",
-            message: "À partir de ta cible et de ton échéance, Pulpe répartit le montant mois par mois — et tu l'ajustes quand tu veux."
-        ),
-    ]
+    private let pageCount = 2
 
-    private var isLastPage: Bool { selection >= pages.count - 1 }
+    private var isLastPage: Bool { selection >= pageCount - 1 }
 
     var body: some View {
         VStack(spacing: DesignTokens.Spacing.lg) {
             skipRow
 
             TabView(selection: $selection) {
-                ForEach(Array(pages.enumerated()), id: \.element.id) { index, page in
-                    SavingsGoalsIntroPageView(page: page, isActive: selection == index)
-                        .tag(index)
-                }
+                SavingsGoalsIntroPageView(
+                    title: "Donne un cap à ton épargne",
+                    caption: "Fixe un objectif — une somme, une échéance — et suis-le sans calculer.",
+                    isActive: selection == 0
+                ) { IntroGoalCardPreview(currency: currency) }
+                    .tag(0)
+
+                SavingsGoalsIntroPageView(
+                    title: "Pulpe calcule ton rythme",
+                    caption: "Pulpe répartit le montant mois par mois — et tu l'ajustes quand tu veux.",
+                    isActive: selection == 1
+                ) { IntroPlanPreview(currency: currency) }
+                    .tag(1)
             }
             .tabViewStyle(.page(indexDisplayMode: .never))
 
@@ -77,7 +74,7 @@ struct SavingsGoalsIntroCover: View {
 
     private var pageIndicator: some View {
         HStack(spacing: DesignTokens.Spacing.xs) {
-            ForEach(pages.indices, id: \.self) { index in
+            ForEach(0..<pageCount, id: \.self) { index in
                 Capsule()
                     .fill(index == selection ? Color.pulpePrimary : Color.secondary.opacity(0.2))
                     .frame(
@@ -88,7 +85,7 @@ struct SavingsGoalsIntroCover: View {
         }
         .animation(DesignTokens.Animation.stepTransition, value: selection)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Page \(selection + 1) sur \(pages.count)")
+        .accessibilityLabel("Page \(selection + 1) sur \(pageCount)")
     }
 
     private var primaryButtons: some View {
@@ -125,6 +122,6 @@ struct SavingsGoalsIntroCover: View {
 
 #Preview {
     Color.clear.fullScreenCover(isPresented: .constant(true)) {
-        SavingsGoalsIntroCover { _ in }
+        SavingsGoalsIntroCover(currency: .chf) { _ in }
     }
 }
