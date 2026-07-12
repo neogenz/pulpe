@@ -499,9 +499,11 @@ type DetailViewState = 'loading' | 'error' | 'notFound' | 'ready';
       }
 
       @if (simulator.isSimulating()) {
-        <div class="h-20" aria-hidden="true"></div>
+        <!-- Reserves scroll clearance below the absolute action bar so the last
+             row is never hidden behind it (bar ~64px; this keeps a ~24px gap). -->
+        <div class="h-8" aria-hidden="true"></div>
         <div
-          class="simulation-sticky-bar sticky z-10 -mx-4 flex items-center justify-end gap-2 border-t border-outline-variant bg-surface px-4 py-3 shadow-[0_-6px_16px_-12px_rgba(0,0,0,0.4)] sm:mx-0 sm:px-0"
+          class="simulation-sticky-bar absolute inset-x-0 bottom-0 z-10 flex items-center justify-end gap-2 bg-surface py-3 pl-6 pr-14 shadow-[0_-3px_3px_-2px_rgba(0,0,0,0.2),0_-3px_4px_0_rgba(0,0,0,0.14),0_-1px_8px_0_rgba(0,0,0,0.12)]"
           data-testid="goal-plan-sticky-bar"
         >
           <button
@@ -548,12 +550,11 @@ type DetailViewState = 'loading' | 'error' | 'notFound' | 'ready';
       white-space: nowrap;
       border: 0;
     }
-    /* Sticky action bar flush to the scroll container's bottom. The previous
-       negative bottom + translateY pushed it ~4rem below the viewport,
-       i.e. off-screen. */
-    .simulation-sticky-bar {
-      bottom: 0;
-    }
+    /* The action bar is positioned (absolute inset-x-0 bottom-0) against the
+       layout's panel wrapper (mat-sidenav-content > .relative), so it sits flush
+       to the panel edges like the header, outside the scroll area's padding. Its
+       containing block is that wrapper because main / container are static; the
+       h-20 spacer above reserves scroll clearance so content is never hidden. */
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

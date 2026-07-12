@@ -98,7 +98,7 @@ import { GoalPlanSimulatorStore } from '../services/goal-plan-simulator-store';
           aria-hidden="true"
         >
           <mat-icon
-            class="mt-px shrink-0 text-financial-savings text-xl! size-5!"
+            class="mt-0.5 shrink-0 text-financial-savings text-lg! w-auto! h-auto! leading-none"
             aria-hidden="true"
           >
             {{ targetReached() ? 'check_circle' : 'flag' }}
