@@ -48,7 +48,7 @@ import { GoalPlanSimulatorStore } from '../services/goal-plan-simulator-store';
         </div>
         <div class="flex flex-col gap-3 md:flex-row md:items-center">
           <mat-slider
-            class="flex-1"
+            class="w-full md:flex-1"
             [min]="0"
             [max]="store.sliderMax()"
             [step]="STEP"
