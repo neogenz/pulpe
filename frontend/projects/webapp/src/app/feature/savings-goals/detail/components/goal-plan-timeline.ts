@@ -125,7 +125,9 @@ const WINDOW_OPEN_ROWS = 3;
               >
                 {{ row.amount | appCurrency: currency() : '1.2-2' }}
               </span>
-              <mat-icon class="text-base! size-4! ml-1">edit</mat-icon>
+              <mat-icon class="text-base! w-auto! h-auto! leading-none ml-1"
+                >edit</mat-icon
+              >
             </button>
           } @else {
             <span

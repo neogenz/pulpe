@@ -243,9 +243,11 @@ type DetailViewState = 'loading' | 'error' | 'notFound' | 'ready';
                   [class]="chip.classes"
                   data-testid="savings-goal-pace-chip"
                 >
-                  <mat-icon class="text-base! size-4!" aria-hidden="true">{{
-                    chip.icon
-                  }}</mat-icon>
+                  <mat-icon
+                    class="text-base! w-auto! h-auto! leading-none"
+                    aria-hidden="true"
+                    >{{ chip.icon }}</mat-icon
+                  >
                   {{ chip.labelKey | transloco }}
                 </div>
               }
@@ -427,7 +429,9 @@ type DetailViewState = 'loading' | 'error' | 'notFound' | 'ready';
                 class="flex items-center gap-2 rounded-xl bg-surface-container-low p-3 text-body-small text-on-surface-variant"
                 data-testid="goal-plan-sim-banner"
               >
-                <mat-icon class="text-base! size-4!" aria-hidden="true"
+                <mat-icon
+                  class="text-base! w-auto! h-auto! leading-none"
+                  aria-hidden="true"
                   >lock_open</mat-icon
                 >
                 {{ 'savingsGoals.simulate.banner' | transloco }}
