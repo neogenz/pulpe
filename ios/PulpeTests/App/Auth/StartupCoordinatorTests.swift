@@ -107,20 +107,24 @@ struct StartupCoordinatorTests {
     /// PUL-132: gating semantics inverted — biometric-keychain validation now runs
     /// ONLY on explicit-logout cold-start (re-entry path). Normal cold-start with
     /// biometric enabled relies on the SDK-restored session via PulpeAuthStorage.
-    @Test func start_noExplicitLogout_skipsbiometricValidation() async {
+    @Test func start_noExplicitLogout_missingSession_clearsStaleBiometricCredentials() async {
         let biometricCalled = AtomicFlag()
+        let expiredHandled = AtomicFlag()
         let sut = makeCoordinator(
             validateBiometricSession: {
                 biometricCalled.set()
                 return nil
             },
-            validateRegularSession: { [testUser] in testUser }
+            validateRegularSession: { nil },
+            clearExpiredBiometricState: { expiredHandled.set() }
         )
 
-        _ = await sut.start(context: makeContext(biometricEnabled: true, didExplicitLogout: false))
+        let result = await sut.start(context: makeContext(biometricEnabled: true, didExplicitLogout: false))
 
         #expect(biometricCalled.value == false,
                 "PUL-132: biometric slot must not be read on non-logout cold-start")
+        #expect(result == .biometricSessionExpired)
+        #expect(expiredHandled.value == true)
     }
 
     @Test func start_explicitLogout_runsBiometricValidation() async {
@@ -206,7 +210,7 @@ struct StartupCoordinatorTests {
         #expect(expiredHandled.value == true)
     }
 
-    @Test func start_unknownBiometricError_returnsExpiredResult() async {
+    @Test func start_unknownBiometricError_returnsNetworkErrorWithoutClearingCredentials() async {
         struct UnknownStartupError: Error {}
 
         let expiredHandled = AtomicFlag()
@@ -219,8 +223,12 @@ struct StartupCoordinatorTests {
 
         let result = await sut.start(context: makeContext(biometricEnabled: true, didExplicitLogout: true))
 
-        #expect(result == .biometricSessionExpired)
-        #expect(expiredHandled.value == true)
+        if case .networkError = result {
+            // Expected retry state.
+        } else {
+            Issue.record("Expected .networkError, got \(result)")
+        }
+        #expect(expiredHandled.value == false)
     }
 
     @Test func start_staleBiometricKey_clearsStaleState_andAuthenticates() async {

@@ -11,6 +11,8 @@ actor APIClient {
     private let encoder: JSONEncoder
     private let authTokenProvider: @Sendable () async -> String?
     private let clientKeyProvider: @Sendable () async -> String?
+    private let forceRefreshAccessToken: @Sendable () async throws -> String?
+    private let invalidateSession: @Sendable () async -> Void
 
     private init() {
         self.session = Self.makeDefaultSession()
@@ -25,13 +27,24 @@ actor APIClient {
         self.clientKeyProvider = {
             await ClientKeyManager.shared.resolveClientKey()
         }
+        self.forceRefreshAccessToken = {
+            try await AuthService.shared.forceRefreshAccessToken()
+        }
+        self.invalidateSession = {
+            try? await AuthService.shared.logout()
+            await MainActor.run {
+                NotificationCenter.default.post(name: .sessionExpired, object: nil)
+            }
+        }
     }
 
     init(
         session: URLSession,
         baseURL: URL,
         authTokenProvider: @escaping @Sendable () async -> String?,
-        clientKeyProvider: @escaping @Sendable () async -> String?
+        clientKeyProvider: @escaping @Sendable () async -> String?,
+        forceRefreshAccessToken: (@Sendable () async throws -> String?)? = nil,
+        invalidateSession: (@Sendable () async -> Void)? = nil
     ) {
         self.session = session
         self.baseURL = baseURL
@@ -39,6 +52,15 @@ actor APIClient {
         self.encoder = Self.makeEncoder()
         self.authTokenProvider = authTokenProvider
         self.clientKeyProvider = clientKeyProvider
+        self.forceRefreshAccessToken = forceRefreshAccessToken ?? {
+            try await AuthService.shared.forceRefreshAccessToken()
+        }
+        self.invalidateSession = invalidateSession ?? {
+            try? await AuthService.shared.logout()
+            await MainActor.run {
+                NotificationCenter.default.post(name: .sessionExpired, object: nil)
+            }
+        }
     }
 
     private static func makeDefaultSession() -> URLSession {
@@ -98,7 +120,7 @@ actor APIClient {
         isRetry: Bool = false
     ) async throws -> T {
         let request = try await buildRequest(endpoint, body: body, method: method)
-        return try await performRequest(request, endpoint: endpoint, body: body, isRetry: isRetry)
+        return try await performRequest(request, endpoint: endpoint, body: body, method: method, isRetry: isRetry)
     }
 
     /// Perform a request without response body
@@ -106,9 +128,10 @@ actor APIClient {
         _ endpoint: Endpoint,
         body: Encodable? = nil,
         method: HTTPMethod? = nil,
-        isRetry: Bool = false
+        isRetry: Bool = false,
+        retryAccessToken: String? = nil
     ) async throws {
-        let request = try await buildRequest(endpoint, body: body, method: method)
+        let request = try await buildRequest(endpoint, body: body, method: method, accessToken: retryAccessToken)
 
         let data: Data
         let response: URLResponse
@@ -132,10 +155,9 @@ actor APIClient {
 
         // Handle 401 - try token refresh (once only to prevent infinite retry loop)
         if httpResponse.statusCode == 401 {
-            if try await handleUnauthorized(isRetry: isRetry) {
-                try await requestVoid(endpoint, body: body, method: method, isRetry: true)
-                return
-            }
+            let token = try await handleUnauthorized(isRetry: isRetry)
+            try await requestVoid(endpoint, body: body, method: method, isRetry: true, retryAccessToken: token)
+            return
         }
 
         guard (200...299).contains(httpResponse.statusCode) else {
@@ -148,7 +170,8 @@ actor APIClient {
     private func buildRequest(
         _ endpoint: Endpoint,
         body: Encodable?,
-        method: HTTPMethod?
+        method: HTTPMethod?,
+        accessToken: String? = nil
     ) async throws -> URLRequest {
         var request = endpoint.urlRequest(baseURL: baseURL)
 
@@ -156,7 +179,9 @@ actor APIClient {
             request.httpMethod = method.rawValue
         }
 
-        if let token = await authTokenProvider(), !token.isEmpty {
+        var token = accessToken
+        if token == nil { token = await authTokenProvider() }
+        if let token, !token.isEmpty {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }
 
@@ -177,6 +202,7 @@ actor APIClient {
         _ request: URLRequest,
         endpoint: Endpoint,
         body: Encodable?,
+        method: HTTPMethod?,
         isRetry: Bool = false
     ) async throws -> T {
         let data: Data
@@ -190,7 +216,7 @@ actor APIClient {
                 Logger.network.warning(
                     "Transient network error, retrying: \(error.localizedDescription, privacy: .public)"
                 )
-                return try await performRequest(request, endpoint: endpoint, body: body, isRetry: true)
+                return try await performRequest(request, endpoint: endpoint, body: body, method: method, isRetry: true)
             }
             throw APIError.networkError(error)
         }
@@ -205,9 +231,12 @@ actor APIClient {
 
         // Handle 401 - try token refresh (once only to prevent infinite retry loop)
         if httpResponse.statusCode == 401 {
-            if try await handleUnauthorized(isRetry: isRetry) {
-                return try await self.request(endpoint, body: body, isRetry: true)
-            }
+            let token = try await handleUnauthorized(isRetry: isRetry)
+            var retryRequest = request
+            retryRequest.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+            return try await performRequest(
+                retryRequest, endpoint: endpoint, body: body, method: method, isRetry: true
+            )
         }
 
         guard (200...299).contains(httpResponse.statusCode) else {
@@ -280,35 +309,27 @@ actor APIClient {
         }
     }
 
-    /// Attempt token refresh on 401. Returns true if refresh succeeded and caller should retry.
-    /// Throws APIError.unauthorized if this is already a retry or if refresh fails.
-    private func handleUnauthorized(isRetry: Bool) async throws -> Bool {
+    private func handleUnauthorized(isRetry: Bool) async throws -> String {
         guard !isRetry else { throw APIError.unauthorized }
-        let refreshed = try await refreshTokenAndRetry()
-        guard refreshed else { throw APIError.unauthorized }
-        return true
+        return try await refreshTokenForRetry()
     }
 
-    private func refreshTokenAndRetry() async throws -> Bool {
-        // Token refresh is handled by Supabase SDK via AuthService.
-        // Use the strict variant so a transient network failure surfaces as a
-        // network error instead of forcing a logout on a flaky connection.
+    private func refreshTokenForRetry() async throws -> String {
+        let token: String?
         do {
-            if let token = try await AuthService.shared.resolveAccessTokenStrict(),
-               !token.isEmpty {
-                return true
-            }
+            token = try await forceRefreshAccessToken()
         } catch {
             throw APIError.networkError(error)
         }
-        // SDK confirms no usable session — clear tokens and force logout.
-        // The session is already broken; a failing signOut here is a no-op for the
-        // user (we're about to post `.sessionExpired` regardless).
-        try? await AuthService.shared.logout()
-        await MainActor.run {
-            NotificationCenter.default.post(name: .sessionExpired, object: nil)
+
+        guard let token else {
+            await invalidateSession()
+            throw APIError.unauthorized
         }
-        return false
+        guard !token.isEmpty else {
+            throw APIError.invalidResponse
+        }
+        return token
     }
 
     /// Transient network errors that are worth retrying once

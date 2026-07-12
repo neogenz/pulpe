@@ -85,6 +85,9 @@ extension AppState {
             biometricError = "Ta session a expir\u{00E9}, connecte-toi avec ton mot de passe"
             await ensureReturningUserFlagLoaded()
             authState = .unauthenticated
+        case .cancelled:
+            // Face ID prompt dismissed/failed — stay on the login screen, keep credentials.
+            break
         }
     }
 

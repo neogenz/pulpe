@@ -70,10 +70,14 @@ extension AppState {
 
     func loginWithBiometric() async {
         authDebug("AUTH_LOGIN_BIO", "begin")
-        clearPreLoginFlags()
-        await applyColdStartResult(
-            sessionLifecycleCoordinator.attemptBiometricSessionValidation()
-        )
+        let result = await sessionLifecycleCoordinator.attemptBiometricSessionValidation()
+        switch result {
+        case .biometricAuthenticated, .regularSession:
+            clearPreLoginFlags()
+        case .unauthenticated, .networkError, .biometricSessionExpired, .cancelled:
+            break
+        }
+        await applyColdStartResult(result)
     }
 
     /// Resolves the post-auth destination, applies it, and returns it for caller inspection.
