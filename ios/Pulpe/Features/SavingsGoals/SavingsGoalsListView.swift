@@ -16,6 +16,11 @@ struct SavingsGoalsListView: View {
 
     @State private var isCreatingGoal = false
 
+    // First-access intro (PUL-12): shown once, gated by `SavingsGoalsIntroGate`.
+    @AppStorage(SavingsGoalsIntroGate.storageKey) private var hasSeenIntro = false
+    @State private var showIntro = false
+    @State private var pendingCreateAfterIntro = false
+
     var body: some View {
         Group {
             if store.isLoading && store.goals.isEmpty {
@@ -44,6 +49,25 @@ struct SavingsGoalsListView: View {
         }
         .sheet(isPresented: $isCreatingGoal) {
             SavingsGoalFormSheet(goal: nil, userCurrency: userSettingsStore.currency)
+        }
+        .fullScreenCover(isPresented: $showIntro, onDismiss: {
+            // Present the create form only after the cover has fully dismissed:
+            // presenting a sheet while the cover animates out drops it on iOS.
+            if pendingCreateAfterIntro {
+                pendingCreateAfterIntro = false
+                isCreatingGoal = true
+            }
+        }) {
+            SavingsGoalsIntroCover { createGoal in
+                hasSeenIntro = true
+                pendingCreateAfterIntro = createGoal
+                showIntro = false
+            }
+        }
+        .onAppear {
+            if SavingsGoalsIntroGate.shouldPresentIntro(hasSeen: hasSeenIntro) {
+                showIntro = true
+            }
         }
         .task { await store.loadIfNeeded() }
         .trackScreen("SavingsGoalsList")
