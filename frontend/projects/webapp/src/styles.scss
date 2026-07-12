@@ -39,20 +39,27 @@ html {
 
 html {
   width: 100%;
-  // Desktop: prevent document scroll (content scrolls inside mat-sidenav-content)
-  @media (min-width: 600px) {
+  // Desktop = NOT CDK Breakpoints.Handset (portrait ≥600, landscape ≥960), so it
+  // matches isHandset() and the layout's mobile CSS. Prevent document scroll
+  // (content scrolls inside mat-sidenav-content). A plain min-width:600px flipped
+  // html to overflow:hidden across 600–960px landscape while the layout was still
+  // in its mobile body-scroll mode → the page could not be scrolled there.
+  @media (min-width: 600px) and (orientation: portrait),
+    (min-width: 960px) and (orientation: landscape) {
     overflow: hidden;
   }
-  // Mobile: no overflow set → body's overflow propagates to viewport (per CSS spec)
+  // Mobile (CDK Handset): no overflow set → body's overflow propagates to viewport
 }
 
 body {
   margin: 0;
   overflow-x: hidden;
   max-width: 100vw;
-  // Mobile: body-level scroll enables iOS Safari toolbar translucency
-  // and Android Chrome/Samsung/Firefox navbar auto-hide
-  @media (min-width: 600px) {
+  // Mobile (CDK Handset) keeps body-level scroll (iOS Safari toolbar translucency,
+  // Android navbar auto-hide). Desktop = NOT Handset (portrait ≥600, landscape ≥960),
+  // aligned with isHandset() so the scroll owner never disagrees with the layout.
+  @media (min-width: 600px) and (orientation: portrait),
+    (min-width: 960px) and (orientation: landscape) {
     height: 100%;
     overflow-y: hidden;
   }

@@ -32,7 +32,7 @@ import { DemoInitializerService } from '../core/demo/demo-initializer.service';
 import { LoadingIndicator } from '../core/loading/loading-indicator';
 import { Logger } from '../core/logging/logger';
 import { ProductTourService } from '../core/product-tour/product-tour.service';
-import { BreadcrumbState } from '../core/routing/breadcrumb-state';
+import { BreadcrumbState } from '../core/shell/breadcrumb-state';
 import { ROUTES } from '../core/routing/routes-constants';
 
 /**

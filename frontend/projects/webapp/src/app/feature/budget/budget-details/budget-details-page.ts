@@ -17,7 +17,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { DatePipe } from '@angular/common';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { LoadingIndicator } from '@core/loading/loading-indicator';
-import { BreadcrumbState } from '@core/routing';
+import { BreadcrumbState } from '@core/shell/breadcrumb-state';
 import {
   ProductTourService,
   TOUR_START_DELAY,

@@ -2,10 +2,13 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  DestroyRef,
   inject,
   input,
   LOCALE_ID,
   signal,
+  type TemplateRef,
+  viewChild,
 } from '@angular/core';
 import {
   takeUntilDestroyed,
@@ -31,6 +34,7 @@ import { ApiErrorLocalizer } from '@core/api/api-error-localizer';
 import { getDateDisplayFormats } from '@core/date/date-display-formats';
 import { ROUTES } from '@core/routing';
 import { UserSettingsStore } from '@core/user-settings';
+import { PageActionBar } from '@core/shell/page-action-bar';
 import { BaseLoading } from '@ui/loading';
 import { StateCard } from '@ui/state-card/state-card';
 import { SavingsGoalStore } from '../services/savings-goals-store';
@@ -498,13 +502,13 @@ type DetailViewState = 'loading' | 'error' | 'notFound' | 'ready';
         }
       }
 
-      @if (simulator.isSimulating()) {
-        <!-- Reserves scroll clearance below the action bar so the last row is
-             never hidden behind it. Mobile bar is fixed (~64px) so needs >=64px;
-             desktop bar is absolute against the panel so ~24px gap suffices. -->
-        <div class="h-20 md:h-8" aria-hidden="true"></div>
+      <!-- Plan action bar. Declared as a template and projected into the app
+           shell's bottom slot (PageActionBar service) while simulating — the
+           shell owns positioning (full-bleed, pinned like the top toolbar), so
+           this page carries only the bar's content: no absolute/fixed/spacer. -->
+      <ng-template #planActionBar>
         <div
-          class="simulation-sticky-bar fixed md:absolute inset-x-0 bottom-0 z-10 flex items-center justify-end gap-2 bg-surface py-3 pl-6 pr-14 shadow-[0_-3px_3px_-2px_rgba(0,0,0,0.2),0_-3px_4px_0_rgba(0,0,0,0.14),0_-1px_8px_0_rgba(0,0,0,0.12)]"
+          class="flex items-center justify-end gap-2 bg-surface py-3 pl-6 pr-14 shadow-[0_-3px_3px_-2px_rgba(0,0,0,0.2),0_-3px_4px_0_rgba(0,0,0,0.14),0_-1px_8px_0_rgba(0,0,0,0.12)]"
           data-testid="goal-plan-sticky-bar"
         >
           <button
@@ -532,7 +536,7 @@ type DetailViewState = 'loading' | 'error' | 'notFound' | 'ready';
             </span>
           </button>
         </div>
-      }
+      </ng-template>
     </div>
   `,
   styles: `
@@ -551,15 +555,6 @@ type DetailViewState = 'loading' | 'error' | 'notFound' | 'ready';
       white-space: nowrap;
       border: 0;
     }
-    /* Action bar positioning is breakpoint-dependent because the scroll owner
-       differs (no backticks here — this is inside a styles template literal).
-       Desktop (md+): main scrolls internally, so absolute inset-x-0 bottom-0
-       pins the bar flush to the panel wrapper (mat-sidenav-content > .relative,
-       the containing block since main/container are static) — always visible at
-       the panel bottom. Mobile (below md): the whole document scrolls, so an
-       absolute bottom-0 would drop the bar to the end of all content; fixed
-       instead keeps it pinned to the viewport bottom during scroll, full-width.
-       The h-20/md:h-8 spacer above reserves clearance so content is never hidden. */
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -573,6 +568,13 @@ export default class SavingsGoalDetailPage {
   readonly #transloco = inject(TranslocoService);
   readonly #errorLocalizer = inject(ApiErrorLocalizer);
   protected readonly locale = inject(LOCALE_ID);
+  readonly #pageActionBar = inject(PageActionBar);
+
+  /** The plan action bar (`<ng-template #planActionBar>`), projected into the
+   *  app-shell's bottom slot while simulating (see constructor). Must be TS
+   *  `private`, not ES `#` — Angular signal queries reject `#` (NG1053). */
+  private readonly planActionBarTemplate =
+    viewChild<TemplateRef<unknown>>('planActionBar');
 
   readonly id = input.required<string>();
 
@@ -663,6 +665,18 @@ export default class SavingsGoalDetailPage {
     toObservable(this.id)
       .pipe(takeUntilDestroyed())
       .subscribe((id) => this.store.setSelectedGoalId(id));
+
+    // Project the plan action bar into the app-shell's bottom slot while
+    // simulating (same imperative-sync pattern, not an effect). Cleared on
+    // teardown so it never lingers on the next page.
+    toObservable(this.simulator.isSimulating)
+      .pipe(takeUntilDestroyed())
+      .subscribe((simulating) =>
+        this.#pageActionBar.template.set(
+          simulating ? (this.planActionBarTemplate() ?? null) : null,
+        ),
+      );
+    inject(DestroyRef).onDestroy(() => this.#pageActionBar.clear());
   }
 
   protected statusLabelKey(status: SavingsGoalStatus): string {

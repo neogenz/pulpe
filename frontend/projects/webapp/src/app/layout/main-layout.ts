@@ -12,6 +12,7 @@ import {
   viewChild,
 } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
+import { NgTemplateOutlet } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
 import { MatDividerModule } from '@angular/material/divider';
@@ -44,7 +45,8 @@ import {
   ProductTourService,
   type TourPageId,
 } from '@core/product-tour/product-tour.service';
-import { BreadcrumbState } from '@core/routing/breadcrumb-state';
+import { BreadcrumbState } from '@core/shell/breadcrumb-state';
+import { PageActionBar } from '@core/shell/page-action-bar';
 import { ROUTES } from '@core/routing/routes-constants';
 import { TranslocoPipe } from '@jsverse/transloco';
 import { ZifluxDevtoolsComponent } from 'ngx-ziflux';
@@ -79,6 +81,7 @@ interface NavigationItem {
     RouterLink,
     RouterLinkActive,
     RouterOutlet,
+    NgTemplateOutlet,
     PulpeBreadcrumb,
     MatProgressBarModule,
     WhatsNewToast,
@@ -461,6 +464,21 @@ interface NavigationItem {
               <router-outlet />
             </div>
           </main>
+
+          <!-- Page action-bar slot. A routed page projects its bottom bar here
+               via the PageActionBar service, so it renders as a sibling of
+               <main> — full-width like the sticky top toolbar and pinned to the
+               bottom: a flex child at the panel base on desktop, sticky to the
+               viewport during body scroll on mobile. No page needs absolute or
+               fixed positioning to escape the scroll container. -->
+          @if (pageActionBar.template(); as actionBar) {
+            <div
+              class="page-action-bar shrink-0 sticky bottom-0 z-30"
+              data-testid="page-action-bar-slot"
+            >
+              <ng-container [ngTemplateOutlet]="actionBar" />
+            </div>
+          }
         </div>
       </mat-sidenav-content>
     </mat-sidenav-container>
@@ -474,7 +492,13 @@ interface NavigationItem {
         height: 100dvh;
       }
 
-      @media (max-width: 599.98px) {
+      /* Mobile range = CDK Breakpoints.Handset (portrait ≤600, landscape ≤960),
+         so the CSS matches the JS isHandset() that drives the mobile classes.
+         A plain max-width:599.98px left a 600–960px landscape gap where neither
+         the desktop h-full nor this mobile fill applied → the shell collapsed to
+         content height and the darker container bg showed below. */
+      @media (max-width: 599.98px) and (orientation: portrait),
+        (max-width: 959.98px) and (orientation: landscape) {
         :host {
           height: auto;
           min-height: 100dvh;
@@ -509,8 +533,9 @@ interface NavigationItem {
         z-index: 10;
       }
 
-      /* Mobile: sticky header enables body-level scroll while keeping toolbar visible */
-      @media (max-width: 599.98px) {
+      /* Mobile (CDK Handset range): sticky header enables body-level scroll while keeping toolbar visible */
+      @media (max-width: 599.98px) and (orientation: portrait),
+        (max-width: 959.98px) and (orientation: landscape) {
         mat-toolbar {
           position: sticky;
           top: 0;
@@ -540,8 +565,27 @@ interface NavigationItem {
         width: auto !important;
       }
 
-      /* Mobile: override Material scroll containment for body-level scrolling */
-      @media (max-width: 599.98px) {
+      /* Full-bleed the projected action bar to the panel edges on desktop,
+         mirroring .toolbar-desktop — cancels the panel p-2 so the bar sits flush
+         left/right/bottom like the top toolbar. Mobile has no panel padding, so
+         the bar is already full-width there. */
+      @media (min-width: 600px) {
+        .page-action-bar {
+          /* Desktop: a flex child at the panel base, NOT sticky. Sticky would
+             clamp the bar to the panel's padding box and leave an ~8px gap below
+             it; relative lets the negative margins bleed it flush to the rounded
+             panel edges. Sticky is only needed on mobile (body-level scroll). */
+          position: relative;
+          margin-left: -0.5rem;
+          margin-right: -0.5rem;
+          margin-bottom: -0.5rem;
+        }
+      }
+
+      /* Mobile (CDK Handset range): override Material scroll containment for
+         body-level scrolling and let the shell fill the viewport. */
+      @media (max-width: 599.98px) and (orientation: portrait),
+        (max-width: 959.98px) and (orientation: landscape) {
         :host mat-sidenav-container {
           overflow: visible !important;
         }
@@ -695,6 +739,7 @@ export default class MainLayout {
   readonly #demoModeService = inject(DemoModeService);
   readonly #demoInitializer = inject(DemoInitializerService);
   protected readonly breadcrumbState = inject(BreadcrumbState);
+  protected readonly pageActionBar = inject(PageActionBar);
   protected readonly hasBreadcrumb = computed(
     () => this.breadcrumbState.breadcrumbs().length > 1,
   );
