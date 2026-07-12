@@ -499,11 +499,12 @@ type DetailViewState = 'loading' | 'error' | 'notFound' | 'ready';
       }
 
       @if (simulator.isSimulating()) {
-        <!-- Reserves scroll clearance below the absolute action bar so the last
-             row is never hidden behind it (bar ~64px; this keeps a ~24px gap). -->
-        <div class="h-8" aria-hidden="true"></div>
+        <!-- Reserves scroll clearance below the action bar so the last row is
+             never hidden behind it. Mobile bar is fixed (~64px) so needs >=64px;
+             desktop bar is absolute against the panel so ~24px gap suffices. -->
+        <div class="h-20 md:h-8" aria-hidden="true"></div>
         <div
-          class="simulation-sticky-bar absolute inset-x-0 bottom-0 z-10 flex items-center justify-end gap-2 bg-surface py-3 pl-6 pr-14 shadow-[0_-3px_3px_-2px_rgba(0,0,0,0.2),0_-3px_4px_0_rgba(0,0,0,0.14),0_-1px_8px_0_rgba(0,0,0,0.12)]"
+          class="simulation-sticky-bar fixed md:absolute inset-x-0 bottom-0 z-10 flex items-center justify-end gap-2 bg-surface py-3 pl-6 pr-14 shadow-[0_-3px_3px_-2px_rgba(0,0,0,0.2),0_-3px_4px_0_rgba(0,0,0,0.14),0_-1px_8px_0_rgba(0,0,0,0.12)]"
           data-testid="goal-plan-sticky-bar"
         >
           <button
@@ -550,11 +551,15 @@ type DetailViewState = 'loading' | 'error' | 'notFound' | 'ready';
       white-space: nowrap;
       border: 0;
     }
-    /* The action bar is positioned (absolute inset-x-0 bottom-0) against the
-       layout's panel wrapper (mat-sidenav-content > .relative), so it sits flush
-       to the panel edges like the header, outside the scroll area's padding. Its
-       containing block is that wrapper because main / container are static; the
-       h-20 spacer above reserves scroll clearance so content is never hidden. */
+    /* Action bar positioning is breakpoint-dependent because the scroll owner
+       differs (no backticks here — this is inside a styles template literal).
+       Desktop (md+): main scrolls internally, so absolute inset-x-0 bottom-0
+       pins the bar flush to the panel wrapper (mat-sidenav-content > .relative,
+       the containing block since main/container are static) — always visible at
+       the panel bottom. Mobile (below md): the whole document scrolls, so an
+       absolute bottom-0 would drop the bar to the end of all content; fixed
+       instead keeps it pinned to the viewport bottom during scroll, full-width.
+       The h-20/md:h-8 spacer above reserves clearance so content is never hidden. */
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
