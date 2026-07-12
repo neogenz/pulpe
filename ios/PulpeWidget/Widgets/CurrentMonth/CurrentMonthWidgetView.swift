@@ -199,7 +199,7 @@ struct CurrentMonthWidgetView: View {
                 .font(PulpeTypography.sectionIcon)
                 .foregroundStyle(Color.textSecondary)
 
-            Text("Ouvrez l'app")
+            Text("Ouvre l'app")
                 .font(PulpeTypography.detailLabel)
                 .foregroundStyle(Color.textSecondary)
         }
