@@ -31,14 +31,14 @@ struct SavingsGoalsIntroCover: View {
                     title: "Donne un cap à ton épargne",
                     caption: "Fixe un objectif — une somme, une échéance — et suis-le sans calculer.",
                     isActive: selection == 0
-                ) { IntroGoalCardPreview(currency: currency) }
+                ) { active in IntroGoalCardPreview(currency: currency, animate: active) }
                     .tag(0)
 
                 SavingsGoalsIntroPageView(
                     title: "Pulpe calcule ton rythme",
                     caption: "Pulpe répartit le montant mois par mois — et tu l'ajustes quand tu veux.",
                     isActive: selection == 1
-                ) { IntroPlanPreview(currency: currency) }
+                ) { active in IntroPlanPreview(currency: currency, animate: active) }
                     .tag(1)
             }
             .tabViewStyle(.page(indexDisplayMode: .never))

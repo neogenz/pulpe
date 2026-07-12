@@ -1,26 +1,29 @@
 import SwiftUI
 
 /// One page of the Objectifs first-run intro (PUL-12). It *shows* the feature
-/// rather than describing it: a concrete preview (a real goal card / the real
-/// plan rows with mock data) sits above a short title + caption. Restrained —
-/// authenticated context, so no brand glow (DESIGN.md Glass Restraint Rule) —
-/// with a staggered entrance (preview → title → caption) that respects Reduce
-/// Motion (keeps a short opacity fade, never a hard cut).
+/// rather than describing it: a concrete, self-animating preview (a real goal
+/// card / the real plan rows with mock data) sits above a short title + caption.
+/// Restrained — authenticated context, so no brand glow (DESIGN.md Glass
+/// Restraint Rule) — with a staggered entrance (preview → title → caption) that
+/// respects Reduce Motion (keeps a short opacity fade, never a hard cut).
+///
+/// The preview builder receives `isActive`: it animates its own content (a
+/// progress bar filling, a cascade of rows) once the page is the selected one —
+/// the "make them want it" beat.
 struct SavingsGoalsIntroPageView<Preview: View>: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     let title: String
     let caption: String
-    /// The parent flips this true when the page becomes the selected one, so the
-    /// entrance plays on first reveal rather than while pre-rendered off-screen.
+    /// The parent flips this true when the page becomes the selected one.
     let isActive: Bool
-    @ViewBuilder var preview: () -> Preview
+    @ViewBuilder var preview: (_ isActive: Bool) -> Preview
 
     @State private var hasAppeared = false
 
     var body: some View {
         VStack(spacing: DesignTokens.Spacing.xxl) {
-            preview()
+            preview(hasAppeared)
                 .opacity(hasAppeared ? 1 : 0)
                 .scaleEffect(hasAppeared ? 1 : 0.92) // never from 0 — the shape stays visible
                 .animation(entrance(delayIndex: 0), value: hasAppeared)
@@ -67,16 +70,26 @@ struct SavingsGoalsIntroPageView<Preview: View>: View {
     }
 }
 
-// MARK: - Preview 1 — a real-looking goal card
+// MARK: - Preview 1 — a real-looking goal card that fills up
 
-/// A realistic Objectif card (mock data) so the user sees what a goal *is*:
-/// name, échéance, and how far along it is. Mirrors the list row's grammar
-/// (`SavingsGoalRow`) plus a progression bar. Savings green/neutral only (RG-002).
+/// A realistic Objectif card (mock data) so the user sees what a goal *is* — and
+/// watches it come alive: the progression bar fills and the saved amount rolls
+/// up (numericText) once the page is active. Savings green/neutral only (RG-002).
 struct IntroGoalCardPreview: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     let currency: SupportedCurrency
+    /// Flips true when the page is shown — starts the fill/count-up.
+    let animate: Bool
 
     private let saved: Decimal = 1200
     private let target: Decimal = 3000
+    private let fraction = 0.4
+
+    @State private var filled = false
+
+    private var shownSaved: Decimal { filled ? saved : 0 }
+    private var shownFraction: Double { filled ? fraction : 0 }
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
@@ -92,13 +105,14 @@ struct IntroGoalCardPreview: View {
                 .font(PulpeTypography.listRowSubtitle)
                 .foregroundStyle(Color.textTertiary)
 
-            ProgressView(value: 0.4)
+            ProgressView(value: shownFraction)
                 .tint(Color.financialSavings)
 
             HStack {
-                Text(saved.asCompactCurrency(currency))
+                Text(shownSaved.asCompactCurrency(currency))
                     .font(PulpeTypography.amountCard)
                     .monospacedDigit()
+                    .contentTransition(.numericText())
                     .foregroundStyle(Color.textPrimary)
                 Spacer()
                 Text("sur \(target.asCompactCurrency(currency))")
@@ -109,18 +123,34 @@ struct IntroGoalCardPreview: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .pulpeCard()
+        .onChange(of: animate, initial: true) { _, active in
+            guard active, !filled else { return }
+            if reduceMotion {
+                filled = true // final state, no fill/roll
+            } else {
+                // A second beat: the card lands, then it fills — "your money grows".
+                withAnimation(DesignTokens.Animation.entranceSpring.delay(0.3)) { filled = true }
+            }
+        }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Objectif Voyage au Japon, échéance juin 2027, \(saved.asCurrency(currency)) sur \(target.asCurrency(currency))")
     }
 }
 
-// MARK: - Preview 2 — the real plan rows, mock months
+// MARK: - Preview 2 — the real plan rows, cascading in
 
 /// The actual month-by-month plan (`GoalPlanMonthRow`) with mock months: one
-/// pointé/verrouillé, the current one, and an upcoming one — so the user sees
-/// the cumulative build up. Reuses the real row, not a parallel mock.
+/// pointé/verrouillé, the current one, and an upcoming one. The rows cascade in
+/// once the page is active, so the user watches the plan *build*. Reuses the
+/// real row, not a parallel mock.
 struct IntroPlanPreview: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     let currency: SupportedCurrency
+    /// Flips true when the page is shown — starts the cascade.
+    let animate: Bool
+
+    @State private var revealed = false
 
     private let months: [IntroPlanRow] = [
         IntroPlanRow(month: 9, year: 2026, state: .past, locked: true, checked: true, planned: 300, cumulative: 900),
@@ -130,17 +160,32 @@ struct IntroPlanPreview: View {
 
     var body: some View {
         VStack(spacing: DesignTokens.Spacing.xs) {
-            ForEach(months) { row in
+            ForEach(Array(months.enumerated()), id: \.element.id) { index, row in
                 GoalPlanMonthRow(
                     month: row.planMonth,
                     amount: row.planned,
                     cumulative: row.cumulative,
                     currency: currency
                 )
+                .opacity(revealed ? 1 : 0)
+                .offset(y: revealed ? 0 : DesignTokens.Spacing.md)
+                .animation(rowAnimation(index: index), value: revealed)
             }
         }
         .frame(maxWidth: .infinity)
         .pulpeCard()
+        .onChange(of: animate, initial: true) { _, active in
+            if active { revealed = true }
+        }
+    }
+
+    private func rowAnimation(index: Int) -> SwiftUI.Animation {
+        if reduceMotion {
+            return .easeOut(duration: DesignTokens.Animation.fast)
+        }
+        // Cascade: each row lands a beat after the previous, after a short lead-in.
+        return DesignTokens.Animation.entranceSpring
+            .delay(0.25 + Double(index) * DesignTokens.Animation.staggerStep)
     }
 }
 
@@ -185,13 +230,13 @@ private struct IntroPlanRow: Identifiable {
             title: "Donne un cap à ton épargne",
             caption: "Fixe un objectif — une somme, une échéance — et suis-le sans calculer.",
             isActive: true
-        ) { IntroGoalCardPreview(currency: .chf) }
+        ) { active in IntroGoalCardPreview(currency: .chf, animate: active) }
 
         SavingsGoalsIntroPageView(
             title: "Pulpe calcule ton rythme",
             caption: "Pulpe répartit le montant mois par mois — et tu l'ajustes quand tu veux.",
             isActive: true
-        ) { IntroPlanPreview(currency: .chf) }
+        ) { active in IntroPlanPreview(currency: .chf, animate: active) }
     }
     .tabViewStyle(.page)
     .pulpeBackground()
