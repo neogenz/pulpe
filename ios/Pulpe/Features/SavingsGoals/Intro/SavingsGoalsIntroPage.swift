@@ -227,14 +227,14 @@ private struct IntroPlanRow: Identifiable {
 #Preview {
     TabView {
         SavingsGoalsIntroPageView(
-            title: "Donne un cap à ton épargne",
-            caption: "Fixe un objectif — une somme, une échéance — et suis-le sans calculer.",
+            title: "Ce projet, tu vas l'atteindre",
+            caption: "Voyage, appart, coussin de sécurité… donne-lui un montant et une date. Pulpe garde le cap avec toi.",
             isActive: true
         ) { active in IntroGoalCardPreview(currency: .chf, animate: active) }
 
         SavingsGoalsIntroPageView(
-            title: "Pulpe calcule ton rythme",
-            caption: "Pulpe répartit le montant mois par mois — et tu l'ajustes quand tu veux.",
+            title: "Et tu sauras toujours où tu en es",
+            caption: "Chaque mois s'ajuste tout seul. Zéro calcul, zéro doute — juste ta progression qui monte.",
             isActive: true
         ) { active in IntroPlanPreview(currency: .chf, animate: active) }
     }

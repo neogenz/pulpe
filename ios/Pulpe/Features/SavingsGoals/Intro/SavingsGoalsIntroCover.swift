@@ -28,15 +28,15 @@ struct SavingsGoalsIntroCover: View {
 
             TabView(selection: $selection) {
                 SavingsGoalsIntroPageView(
-                    title: "Donne un cap à ton épargne",
-                    caption: "Fixe un objectif — une somme, une échéance — et suis-le sans calculer.",
+                    title: "Ce projet, tu vas l'atteindre",
+                    caption: "Voyage, appart, coussin de sécurité… donne-lui un montant et une date. Pulpe garde le cap avec toi.",
                     isActive: selection == 0
                 ) { active in IntroGoalCardPreview(currency: currency, animate: active) }
                     .tag(0)
 
                 SavingsGoalsIntroPageView(
-                    title: "Pulpe calcule ton rythme",
-                    caption: "Pulpe répartit le montant mois par mois — et tu l'ajustes quand tu veux.",
+                    title: "Et tu sauras toujours où tu en es",
+                    caption: "Chaque mois s'ajuste tout seul. Zéro calcul, zéro doute — juste ta progression qui monte.",
                     isActive: selection == 1
                 ) { active in IntroPlanPreview(currency: currency, animate: active) }
                     .tag(1)
