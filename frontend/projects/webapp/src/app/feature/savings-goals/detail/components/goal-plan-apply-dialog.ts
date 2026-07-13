@@ -90,9 +90,7 @@ const MAX_DIFF_ROWS = 5;
               }}</span>
               <span class="ph-no-capture shrink-0 tabular-nums">
                 <span class="text-on-surface-variant"
-                  >{{
-                    row.before | appCurrency: data.currency : '1.2-2'
-                  }}
+                  >{{ row.before | appCurrency: data.currency : '1.2-2' }}
                   &rarr;
                 </span>
                 <span class="font-semibold text-on-surface">{{
