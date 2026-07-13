@@ -89,6 +89,7 @@ export {
   savingsGoalPlanMonthSchema,
   savingsGoalPlanApplySchema,
   savingsGoalPlanApplyResponseSchema,
+  MAX_SAVINGS_GOAL_PLAN_PERIODS,
   MAX_PLAN_ADJUSTMENTS,
 
   // Budget Line schemas
@@ -195,6 +196,7 @@ export {
   simulateSavingsPlan,
   redistributeRemainingEffort,
   allocateMonthAmountToLines,
+  isContributivePlanMonth,
   isOpenPlanMonth,
   type SavingsPlanMonthState,
   type SavingsPlanLine,

@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 ---
 
 # Instruction: Corriger la cohérence, le cache et l'accessibilité web

@@ -467,12 +467,14 @@ export const savingsGoalPlanApplySchema = z
     { error: 'Une période absente apparaît deux fois dans le plan.' },
   );
 type ParsedSavingsGoalPlanApply = z.infer<typeof savingsGoalPlanApplySchema>;
-/** Entrée tolérante pendant la migration; le schéma parse le champ absent en `[]`. */
+/** Entrée tolérante pendant la migration; le schéma complète les champs absents. */
 export type SavingsGoalPlanApply = Omit<
   ParsedSavingsGoalPlanApply,
-  'missingMonthAdjustments'
+  'missingMonthAdjustments' | 'templateAdjustments'
 > & {
   missingMonthAdjustments?: ParsedSavingsGoalPlanApply['missingMonthAdjustments'];
+  /** @deprecated Toléré vide pendant la migration des clients. */
+  templateAdjustments?: ParsedSavingsGoalPlanApply['templateAdjustments'];
 };
 
 /**

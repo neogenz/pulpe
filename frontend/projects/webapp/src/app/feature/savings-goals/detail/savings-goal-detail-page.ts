@@ -126,7 +126,7 @@ type DetailViewState = 'loading' | 'error' | 'notFound' | 'ready';
             [title]="'common.error' | transloco"
             [message]="'savingsGoals.detail.loadError' | transloco"
             [actionLabel]="'common.retry' | transloco"
-            (action)="store.reloadProgress()"
+            (action)="reloadDetail()"
             testId="savings-goal-detail-error"
           />
         }
@@ -636,7 +636,8 @@ export default class SavingsGoalDetailPage {
   );
 
   protected readonly viewState = computed<DetailViewState>(() => {
-    if (this.store.progressError()) return 'error';
+    if (this.store.progressError() || this.store.savingsGoals.error())
+      return 'error';
     if (
       this.store.isProgressLoading() ||
       this.store.savingsGoals.isInitialLoading() ||
@@ -702,6 +703,11 @@ export default class SavingsGoalDetailPage {
 
   goBack(): void {
     this.#router.navigate(['/', ROUTES.SAVINGS_GOALS]);
+  }
+
+  protected reloadDetail(): void {
+    this.store.refresh();
+    this.store.reloadProgress();
   }
 
   protected async onEdit(): Promise<void> {

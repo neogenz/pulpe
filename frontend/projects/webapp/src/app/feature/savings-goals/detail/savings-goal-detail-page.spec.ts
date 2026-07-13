@@ -171,10 +171,12 @@ describe('SavingsGoalDetailPage', () => {
   const isProgressLoadingSig = signal(false);
   const isContributionsLoadingSig = signal(false);
   const listInitialLoadingSig = signal(false);
+  const listErrorSig = signal<unknown>(null);
 
   const completeGoal = vi.fn().mockResolvedValue(makeGoal());
   const reopenGoal = vi.fn().mockResolvedValue(makeGoal());
   const reloadProgress = vi.fn();
+  const refresh = vi.fn();
   const navigate = vi.fn();
 
   const mockStore = {
@@ -184,9 +186,13 @@ describe('SavingsGoalDetailPage', () => {
     isProgressLoading: isProgressLoadingSig,
     contributions: contributionsSig,
     isContributionsLoading: isContributionsLoadingSig,
-    savingsGoals: { isInitialLoading: listInitialLoadingSig },
+    savingsGoals: {
+      isInitialLoading: listInitialLoadingSig,
+      error: listErrorSig,
+    },
     setSelectedGoalId: vi.fn(),
     reloadProgress,
+    refresh,
     completeGoal,
     reopenGoal,
     editGoal: vi.fn().mockResolvedValue(makeGoal()),
@@ -206,6 +212,7 @@ describe('SavingsGoalDetailPage', () => {
     isProgressLoadingSig.set(false);
     isContributionsLoadingSig.set(false);
     listInitialLoadingSig.set(false);
+    listErrorSig.set(null);
     vi.clearAllMocks();
 
     await TestBed.configureTestingModule({
@@ -399,6 +406,28 @@ describe('SavingsGoalDetailPage', () => {
     ).toBeTruthy();
     expect(query('savings-goal-progress-bar')).toBeFalsy();
     expect(query('edit-savings-goal-button')).toBeFalsy();
+  });
+
+  it('shows an error instead of not-found when the goals list fails', () => {
+    listErrorSig.set(new Error('list failed'));
+    goalSig.set(null);
+    progressSig.set(null);
+
+    fixture.detectChanges();
+
+    const stateCard = fixture.debugElement.query(By.directive(StubStateCard));
+    expect(stateCard.componentInstance.variant()).toBe('error');
+  });
+
+  it('reloads both the goals list and progress from the error retry', () => {
+    listErrorSig.set(new Error('list failed'));
+    fixture.detectChanges();
+
+    const errorCard = fixture.debugElement.query(By.directive(StubStateCard));
+    errorCard.triggerEventHandler('action');
+
+    expect(refresh).toHaveBeenCalledOnce();
+    expect(reloadProgress).toHaveBeenCalledOnce();
   });
 
   it('hides the contributions section entirely when no line is linked', () => {

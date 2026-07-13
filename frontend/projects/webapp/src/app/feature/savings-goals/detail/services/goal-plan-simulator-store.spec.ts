@@ -182,6 +182,57 @@ describe('GoalPlanSimulatorStore', () => {
     expect(draft.isTargetMet).toBe(true);
   });
 
+  it('redistributes over 2 materialized budgets and 22 provisionable periods', () => {
+    const startIndex = 2026 * 12 + 6;
+    const periods = Array.from({ length: 24 }, (_, offset) => {
+      const index = startIndex + offset;
+      const year = Math.floor((index - 1) / 12);
+      return { month: index - year * 12, year };
+    });
+    const months = periods.map((period, index): SavingsGoalPlanMonth => {
+      if (index < 2) {
+        return openMonth(
+          period.month,
+          index === 0 ? LINE_CURRENT : LINE_FUTURE,
+          0,
+          { year: period.year },
+        );
+      }
+      return {
+        ...period,
+        state: 'gap',
+        isLocked: false,
+        isProvisionable: true,
+        plannedAmount: 0,
+        confirmedAmount: 0,
+        plannedCumulative: 0,
+        confirmedCumulative: 0,
+        lines: [],
+      };
+    });
+    progressSig.set(
+      makeProgress({
+        targetAmount: 24_000,
+        required: 1000,
+        monthsRemaining: 24,
+        months,
+      }),
+    );
+
+    store.enter();
+    const result = store.redistribute();
+    const payload = store.buildApplyPayload();
+
+    expect(store.openMonthCount()).toBe(24);
+    expect(result.isDistributable).toBe(true);
+    expect(result.perRemainingMonth).toBe(1000);
+    expect(payload.monthAdjustments).toHaveLength(2);
+    expect(payload.missingMonthAdjustments).toEqual(
+      periods.slice(2).map((period) => ({ ...period, amount: 1000 })),
+    );
+    expect('templateAdjustments' in payload).toBe(false);
+  });
+
   it('keeps cents-preserving non-uniform adjustments authoritative', () => {
     progressSig.set(makeProgress({ targetAmount: 800.01 }));
     store.enter();
@@ -234,10 +285,11 @@ describe('GoalPlanSimulatorStore', () => {
     store.setMonth(6, 2026, 500);
 
     const payload = store.buildApplyPayload();
-    expect(payload.templateAdjustments).toEqual([]);
+    expect('templateAdjustments' in payload).toBe(false);
     expect(payload.monthAdjustments).toEqual([
       { budgetLineId: LINE_CURRENT, amount: 500 },
     ]);
+    expect(payload.missingMonthAdjustments).toEqual([]);
 
     await store.apply();
     expect(applyPlan).toHaveBeenCalledWith('goal-1', payload);

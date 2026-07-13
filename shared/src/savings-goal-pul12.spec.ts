@@ -8,6 +8,7 @@ import {
   templateLineCreateWithoutTemplateIdSchema,
   templateLineUpdateSchema,
   templateLineSchema,
+  type SavingsGoalPlanApply,
 } from '../schemas.js';
 
 const UUID = '00000000-0000-0000-0000-000000000000';
@@ -140,6 +141,18 @@ describe('PUL-12 — savingsGoalUpdateSchema keeps PATCH semantics', () => {
 });
 
 describe('PUL-12 — savingsGoalPlanApplySchema migration contract', () => {
+  test('accepts a typed web payload omitting the deprecated template leg', () => {
+    const input: SavingsGoalPlanApply = {
+      monthAdjustments: [{ budgetLineId: UUID, amount: 1000 }],
+      missingMonthAdjustments: [],
+    };
+
+    const result = savingsGoalPlanApplySchema.safeParse(input);
+
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.templateAdjustments).toEqual([]);
+  });
+
   test('accepts materialized lines with the deprecated empty template leg', () => {
     const result = savingsGoalPlanApplySchema.safeParse({
       monthAdjustments: [{ budgetLineId: UUID, amount: 1000 }],

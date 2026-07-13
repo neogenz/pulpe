@@ -179,4 +179,34 @@ describe('SavingsGoalApi', () => {
     );
     expect(service.cache.get(contributionsKey)?.fresh).toBe(false);
   });
+
+  it('invalidates goal and budget caches when plan apply can fail after provisioning', async () => {
+    const budgetApi = TestBed.inject(BudgetApi);
+    const goalKey = ['savings-goals', 'progress', GOAL_ID];
+    const budgetKey = ['budget', 'details', '2026-07'];
+    service.cache.set(goalKey, makeProgress());
+    budgetApi.cache.set(budgetKey, { id: 'budget-1' });
+
+    const responsePromise = firstValueFrom(
+      service.applyPlan$(GOAL_ID, {
+        monthAdjustments: [
+          {
+            budgetLineId: '11111111-1111-4111-8111-111111111111',
+            amount: 1000,
+          },
+        ],
+        missingMonthAdjustments: [],
+      }),
+    );
+    httpTesting
+      .expectOne(`http://localhost:3000/api/v1/savings-goals/${GOAL_ID}/plan`)
+      .flush(
+        { message: 'apply failed after provisioning' },
+        { status: 500, statusText: 'Server Error' },
+      );
+
+    await expect(responsePromise).rejects.toBeDefined();
+    expect(service.cache.get(goalKey)?.fresh).toBe(false);
+    expect(budgetApi.cache.get(budgetKey)?.fresh).toBe(false);
+  });
 });

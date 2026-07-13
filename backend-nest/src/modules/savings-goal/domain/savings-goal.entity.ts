@@ -114,8 +114,9 @@ export interface SavingsGoalContribution {
 export type SavingsGoalPlanMonthAdjustment =
   SavingsGoalPlanApply['monthAdjustments'][number];
 /** One template-line adjustment of an applied plan (Mois Type horizon). */
-export type SavingsGoalPlanTemplateAdjustment =
-  SavingsGoalPlanApply['templateAdjustments'][number];
+export type SavingsGoalPlanTemplateAdjustment = NonNullable<
+  SavingsGoalPlanApply['templateAdjustments']
+>[number];
 
 /**
  * Result of applying a plan (PUL-12). `updatedLines` are the decrypted budget

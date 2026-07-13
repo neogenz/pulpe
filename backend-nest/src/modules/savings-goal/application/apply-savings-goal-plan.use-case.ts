@@ -68,7 +68,7 @@ export class ApplySavingsGoalPlanUseCase {
     user: AuthenticatedUser,
   ): Promise<SavingsGoalPlanApplyResult> {
     const goal = await this.repo.findById(id);
-    if (dto.templateAdjustments.length > 0) this.throwLineInvalid();
+    if (dto.templateAdjustments?.length) this.throwLineInvalid();
     const payDayOfMonth = await this.repo.findPayDayOfMonth();
     // The current cycle stays editable while unchecked; everything strictly
     // before it is locked. Same period helper the client simulates with.

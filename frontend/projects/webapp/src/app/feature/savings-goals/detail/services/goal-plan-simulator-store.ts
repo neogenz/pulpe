@@ -1,6 +1,7 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import {
   allocateMonthAmountToLines,
+  isContributivePlanMonth,
   isOpenPlanMonth,
   redistributeRemainingEffort,
   simulateSavingsPlan,
@@ -54,7 +55,8 @@ export class GoalPlanSimulatorStore {
   );
 
   readonly openMonthCount = computed(
-    () => this.baseline().filter((month) => isOpenPlanMonth(month)).length,
+    () =>
+      this.baseline().filter((month) => isContributivePlanMonth(month)).length,
   );
 
   /** Slider anchor (ancrage DA) — the amount that holds the deadline. */
@@ -80,7 +82,9 @@ export class GoalPlanSimulatorStore {
    *  keeping the slider consistent with the verdict. Falls back to the anchor
    *  when there is no open month to read. */
   readonly currentMonthlyAmount = computed(() => {
-    const firstOpen = this.baseline().find((month) => isOpenPlanMonth(month));
+    const firstOpen = this.baseline().find((month) =>
+      isContributivePlanMonth(month),
+    );
     return firstOpen
       ? Math.round(firstOpen.plannedAmount)
       : this.defaultMonthlyAmount();
@@ -130,7 +134,7 @@ export class GoalPlanSimulatorStore {
   /** True when open months cannot be represented by one global control value. */
   readonly hasVariableAmounts = computed(() => {
     const amounts = this.draftRows()
-      .filter((month) => isOpenPlanMonth(month))
+      .filter((month) => isContributivePlanMonth(month))
       .map((month) => month.simulatedAmount);
     return (
       amounts.length > 1 && amounts.some((amount) => amount !== amounts[0])
@@ -187,7 +191,7 @@ export class GoalPlanSimulatorStore {
       }
       this.#overrides.set(next);
       const openAmounts = this.baseline()
-        .filter((month) => isOpenPlanMonth(month))
+        .filter((month) => isContributivePlanMonth(month))
         .map((month) => next.get(periodKeyOf(month)) ?? month.plannedAmount);
       const uniformAmount = openAmounts[0];
       const isUniform = openAmounts.every((amount) => amount === uniformAmount);
@@ -199,9 +203,20 @@ export class GoalPlanSimulatorStore {
   buildApplyPayload(): SavingsGoalPlanApply {
     const draft = this.draft();
     const monthAdjustments: SavingsGoalPlanApply['monthAdjustments'] = [];
+    const missingMonthAdjustments: NonNullable<
+      SavingsGoalPlanApply['missingMonthAdjustments']
+    > = [];
     if (draft) {
       for (const month of draft.months) {
         if (!month.isAdjusted) continue;
+        if (month.isProvisionable) {
+          missingMonthAdjustments.push({
+            month: month.month,
+            year: month.year,
+            amount: month.simulatedAmount,
+          });
+          continue;
+        }
         const allocated = allocateMonthAmountToLines(
           month.lines.map((line) => ({
             budgetLineId: line.budgetLineId,
@@ -213,7 +228,7 @@ export class GoalPlanSimulatorStore {
         monthAdjustments.push(...allocated);
       }
     }
-    return { monthAdjustments, templateAdjustments: [] };
+    return { monthAdjustments, missingMonthAdjustments };
   }
 
   async apply(): Promise<void> {

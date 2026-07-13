@@ -6,7 +6,15 @@ import {
   type SavingsGoalFormValue,
 } from './savings-goal-form-dialog.schema';
 
-const FUTURE_DATE = '2099-12-31';
+function isoDateOffsetMonths(months: number): string {
+  const now = new Date();
+  return new Date(now.getFullYear(), now.getMonth() + months, 15)
+    .toISOString()
+    .slice(0, 10);
+}
+
+const FUTURE_DATE = isoDateOffsetMonths(1);
+const BEYOND_PLAN_HORIZON = isoDateOffsetMonths(120);
 const PAST_DATE = '2000-01-01';
 
 const baseValue: SavingsGoalFormValue = {
@@ -29,6 +37,15 @@ describe('buildSavingsGoalCreate', () => {
   it('rejects a target date in the past (CA25 / targetDate refine)', () => {
     expect(() =>
       buildSavingsGoalCreate({ ...baseValue, targetDate: PAST_DATE }),
+    ).toThrow();
+  });
+
+  it('rejects a target date beyond the 120th planning period', () => {
+    expect(() =>
+      buildSavingsGoalCreate({
+        ...baseValue,
+        targetDate: BEYOND_PLAN_HORIZON,
+      }),
     ).toThrow();
   });
 
@@ -90,5 +107,23 @@ describe('buildSavingsGoalUpdate', () => {
 
     // only the changed field is sent → no targetDate → past-date refine skipped
     expect(dto).toEqual({ status: 'COMPLETED' });
+  });
+
+  it('rejects a changed target date beyond the 120th planning period', () => {
+    expect(() =>
+      buildSavingsGoalUpdate(
+        { ...baseValue, targetDate: BEYOND_PLAN_HORIZON },
+        {
+          id: '00000000-0000-4000-8000-0000000000a1',
+          userId: '00000000-0000-4000-8000-0000000000b1',
+          name: baseValue.name,
+          targetAmount: baseValue.targetAmount,
+          targetDate: FUTURE_DATE,
+          status: 'ACTIVE',
+          createdAt: '2026-01-01T00:00:00.000Z',
+          updatedAt: '2026-01-01T00:00:00.000Z',
+        } as SavingsGoal,
+      ),
+    ).toThrow();
   });
 });

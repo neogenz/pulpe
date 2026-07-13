@@ -6,10 +6,13 @@ import {
   input,
   output,
 } from '@angular/core';
+import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
+import { MatButtonModule } from '@angular/material/button';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { TranslocoPipe } from '@jsverse/transloco';
-import { map } from 'rxjs';
+import { combineLatest, map } from 'rxjs';
 import { cachedResource } from 'ngx-ziflux';
 
 import { SavingsGoalApi } from '@core/savings-goal/savings-goal-api';
@@ -25,27 +28,68 @@ import { SavingsGoalApi } from '@core/savings-goal/savings-goal-api';
   selector: 'pulpe-savings-goal-picker-field',
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'block' },
-  imports: [MatFormFieldModule, MatSelectModule, TranslocoPipe],
+  imports: [
+    MatFormFieldModule,
+    MatSelectModule,
+    MatButtonModule,
+    MatProgressSpinnerModule,
+    TranslocoPipe,
+  ],
   template: `
-    <mat-form-field
-      appearance="outline"
-      subscriptSizing="dynamic"
-      class="w-full"
-    >
-      <mat-label>{{ 'savingsGoals.pickerLabel' | transloco }}</mat-label>
-      <mat-select
-        [value]="value()"
-        (selectionChange)="valueChanged.emit($event.value)"
-        data-testid="savings-goal-picker-select"
+    @if (isLoading()) {
+      <div
+        class="flex items-center gap-2 py-2 text-body-small text-on-surface-variant"
+        role="status"
+        data-testid="savings-goal-picker-loading"
       >
-        <mat-option [value]="null">{{
-          'savingsGoals.pickerNone' | transloco
-        }}</mat-option>
-        @for (g of goals(); track g.id) {
-          <mat-option [value]="g.id">{{ g.name }}</mat-option>
-        }
-      </mat-select>
-    </mat-form-field>
+        <mat-progress-spinner mode="indeterminate" [diameter]="20" />
+        {{ 'common.loading' | transloco }}
+      </div>
+    } @else if (error()) {
+      <div
+        class="flex items-center justify-between gap-3 py-2 text-body-small text-error"
+        role="alert"
+        data-testid="savings-goal-picker-error"
+      >
+        <span>{{ 'savingsGoals.loadError' | transloco }}</span>
+        <button
+          matButton="text"
+          type="button"
+          (click)="reloadGoals()"
+          data-testid="savings-goal-picker-retry"
+        >
+          {{ 'common.retry' | transloco }}
+        </button>
+      </div>
+    } @else {
+      <mat-form-field
+        appearance="outline"
+        subscriptSizing="dynamic"
+        class="w-full"
+      >
+        <mat-label>{{ 'savingsGoals.pickerLabel' | transloco }}</mat-label>
+        <mat-select
+          [value]="value()"
+          (selectionChange)="valueChanged.emit($event.value)"
+          data-testid="savings-goal-picker-select"
+        >
+          <mat-option [value]="null">{{
+            'savingsGoals.pickerNone' | transloco
+          }}</mat-option>
+          @for (g of goals(); track g.id) {
+            <mat-option [value]="g.id">{{ g.name }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+      @if (goals().length === 0) {
+        <p
+          class="mt-1 text-body-small text-on-surface-variant"
+          data-testid="savings-goal-picker-empty"
+        >
+          {{ 'savingsGoals.pickerEmpty' | transloco }}
+        </p>
+      }
+    }
   `,
 })
 export class SavingsGoalPickerField {
@@ -56,9 +100,7 @@ export class SavingsGoalPickerField {
 
   // Shares the SavingsGoalApi DataCache (key ['savings-goals','list']) with
   // SavingsGoalStore: dedups the fetch across pickers/list and picks up store
-  // invalidations. cachedResource.value() returns undefined (never throws) on
-  // load/error, so a failed fetch degrades to an empty picker instead of
-  // crashing the open dialog.
+  // invalidations.
   readonly #goalsResource = cachedResource({
     cache: this.#api.cache,
     cacheKey: ['savings-goals', 'list'],
@@ -66,4 +108,28 @@ export class SavingsGoalPickerField {
   });
 
   protected readonly goals = computed(() => this.#goalsResource.value() ?? []);
+  protected readonly isLoading = this.#goalsResource.isInitialLoading;
+  protected readonly error = this.#goalsResource.error;
+
+  constructor() {
+    combineLatest([
+      toObservable(this.#goalsResource.value),
+      toObservable(this.#goalsResource.error),
+      toObservable(this.value),
+    ])
+      .pipe(takeUntilDestroyed())
+      .subscribe(([goals, error, selectedId]) => {
+        if (error || goals === undefined) return;
+        if (
+          selectedId !== null &&
+          !goals.some((goal) => goal.id === selectedId)
+        ) {
+          this.valueChanged.emit(null);
+        }
+      });
+  }
+
+  protected reloadGoals(): void {
+    this.#goalsResource.reload();
+  }
 }

@@ -27,9 +27,10 @@ import {
   validate,
 } from '@angular/forms/signals';
 import { TranslocoPipe } from '@jsverse/transloco';
-import { format, parse } from 'date-fns';
+import { addMonths, endOfMonth, format, parse } from 'date-fns';
 import {
   CURRENCY_METADATA,
+  MAX_SAVINGS_GOAL_PLAN_PERIODS,
   savingsGoalStatusSchema,
   type SavingsGoal,
   type SavingsGoalStatus,
@@ -134,6 +135,7 @@ function isoToDate(value: string): Date | null {
             matInput
             [matDatepicker]="picker"
             [min]="minDate"
+            [max]="maxDate"
             [value]="targetDateAsDate()"
             (dateChange)="onTargetDateChange($event)"
             data-testid="savings-goal-target-date"
@@ -148,6 +150,10 @@ function isoToDate(value: string): Date | null {
           } @else if (targetDateErrors().pastDate) {
             <mat-error>{{
               'savingsGoals.targetDatePast' | transloco
+            }}</mat-error>
+          } @else if (targetDateErrors().tooFar) {
+            <mat-error>{{
+              'savingsGoals.targetDateTooFar' | transloco
             }}</mat-error>
           }
         </mat-form-field>
@@ -208,6 +214,10 @@ export class SavingsGoalFormDialog {
   protected readonly isEdit = computed(() => !!this.#data.goal);
   protected readonly statusOptions = savingsGoalStatusSchema.options;
   protected readonly minDate = new Date();
+  protected readonly maxDate = endOfMonth(
+    addMonths(new Date(), MAX_SAVINGS_GOAL_PLAN_PERIODS - 1),
+  );
+  readonly #maxTargetDateIso = format(this.maxDate, ISO_DATE);
   protected readonly currencySymbol = computed(
     () => CURRENCY_METADATA[this.#settings.currency()].symbol,
   );
@@ -234,7 +244,8 @@ export class SavingsGoalFormDialog {
       // ACTIVE) — allow the UNCHANGED original date so status/name/amount edits
       // aren't blocked. Only a new past date (create, or a changed date) fails.
       if (v === this.#data.goal?.targetDate) return null;
-      return v >= todayIso() ? null : { kind: 'pastDate' };
+      if (v < todayIso()) return { kind: 'pastDate' };
+      return v <= this.#maxTargetDateIso ? null : { kind: 'tooFar' };
     });
   });
 
@@ -256,6 +267,7 @@ export class SavingsGoalFormDialog {
     () => this.goalForm.targetDate,
     'required',
     'pastDate',
+    'tooFar',
   );
 
   protected statusLabelKey(status: SavingsGoalStatus): string {

@@ -488,7 +488,7 @@ export class BudgetDetailsStore {
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         templateLineId: null,
-        savingsGoalId: null,
+        savingsGoalId: budgetLine.savingsGoalId ?? null,
         checkedAt: budgetLine.checkedAt ?? null,
       };
       this.#updateDetails((details) => ({

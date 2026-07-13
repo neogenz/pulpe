@@ -564,6 +564,7 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
         kind: 'saving',
         recurrence: 'fixed',
         isManuallyAdjusted: false,
+        savingsGoalId: 'goal-1',
       };
 
       // User clicks save on a new savings goal
@@ -574,6 +575,7 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
       const tempLine = budgetLines.find((l) => l.name === 'Épargne urgence');
       expect(tempLine).toBeDefined();
       expect(tempLine?.amount).toBe(500);
+      expect(tempLine?.savingsGoalId).toBe('goal-1');
     });
 
     it('temporary budget line is replaced when server confirms', async () => {

@@ -7,10 +7,8 @@ import {
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { Router } from '@angular/router';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
-import { type SavingsGoal } from 'pulpe-shared';
-import { ROUTES, TitleDisplay } from '@core/routing';
+import { TitleDisplay } from '@core/routing';
 import {
   ProductTourService,
   TOUR_START_DELAY,
@@ -95,10 +93,7 @@ import { SavingsGoalCard } from '../components/savings-goal-card';
               data-tour="savings-goals-list"
             >
               @for (goal of store.goals(); track goal.id) {
-                <pulpe-savings-goal-card
-                  [goal]="goal"
-                  (openDetail)="onOpen($event)"
-                />
+                <pulpe-savings-goal-card [goal]="goal" />
               }
             </div>
           }
@@ -121,7 +116,6 @@ export default class SavingsGoalsListPage {
   readonly #dialogs = inject(SavingsGoalsDialogService);
   readonly #snackBar = inject(MatSnackBar);
   readonly #transloco = inject(TranslocoService);
-  readonly #router = inject(Router);
   readonly #productTour = inject(ProductTourService);
 
   constructor() {
@@ -145,10 +139,6 @@ export default class SavingsGoalsListPage {
     } catch (error) {
       this.#showError(error);
     }
-  }
-
-  protected onOpen(goal: SavingsGoal): void {
-    this.#router.navigate(['/', ROUTES.SAVINGS_GOALS, goal.id]);
   }
 
   #showError(error: unknown): void {

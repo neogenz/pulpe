@@ -11,10 +11,14 @@ import {
 import { firstValueFrom, map } from 'rxjs';
 import { cachedResource, cachedMutation } from 'ngx-ziflux';
 import { SavingsGoalApi } from '@core/savings-goal/savings-goal-api';
+import { BudgetApi } from '@core/budget/budget-api';
+import { BudgetTemplatesApi } from '@core/budget-template/budget-templates-api';
 
 @Injectable()
 export class SavingsGoalStore {
   readonly #api = inject(SavingsGoalApi);
+  readonly #budgetApi = inject(BudgetApi);
+  readonly #budgetTemplatesApi = inject(BudgetTemplatesApi);
 
   readonly savingsGoals = cachedResource({
     cache: this.#api.cache,
@@ -137,21 +141,35 @@ export class SavingsGoalStore {
     },
   });
 
-  readonly #deleteMutation = cachedMutation<string, void, SavingsGoal[]>({
+  readonly #deleteMutation = cachedMutation<
+    string,
+    void,
+    { goals: SavingsGoal[]; selectedGoalId: string | null }
+  >({
     cache: this.#api.cache,
     // The goal is gone — list, progress AND contributions are all stale, so
     // nuke the whole domain prefix (same shape as create).
     invalidateKeys: () => [['savings-goals']],
     mutationFn: (id) => this.#api.delete$(id).pipe(map(() => void 0 as void)),
     onMutate: (id) => {
-      const previous = this.savingsGoals.value() ?? [];
+      const snapshot = {
+        goals: this.savingsGoals.value() ?? [],
+        selectedGoalId: this.#selectedGoalId(),
+      };
+      this.#selectedGoalId.set(null);
       this.savingsGoals.update((data) =>
         (data ?? []).filter((goal) => goal.id !== id),
       );
-      return previous;
+      return snapshot;
     },
-    onError: (_err, _id, previous) => {
-      if (previous) this.savingsGoals.set(previous);
+    onSuccess: () => {
+      this.#budgetApi.cache.invalidate(['budget']);
+      this.#budgetTemplatesApi.cache.invalidate(['templates']);
+    },
+    onError: (_err, _id, snapshot) => {
+      if (!snapshot) return;
+      this.savingsGoals.set(snapshot.goals);
+      this.#selectedGoalId.set(snapshot.selectedGoalId);
     },
   });
 

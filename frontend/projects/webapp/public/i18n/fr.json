@@ -855,11 +855,13 @@
     "targetDate": "Échéance",
     "pickerLabel": "Objectif",
     "pickerNone": "Aucun objectif",
+    "pickerEmpty": "Aucun objectif disponible",
     "loadError": "Impossible de charger tes objectifs.",
     "nameRequired": "Le nom est requis",
     "targetAmountRequired": "Un montant cible positif est requis",
     "targetDateRequired": "L'échéance est requise",
     "targetDatePast": "L'échéance ne peut pas être dans le passé",
+    "targetDateTooFar": "L'échéance ne peut pas dépasser la 120e période",
     "detail": {
       "back": "Retour aux objectifs",
       "edit": "Modifier",

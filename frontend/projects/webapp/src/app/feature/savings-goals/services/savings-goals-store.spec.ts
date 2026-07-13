@@ -5,6 +5,8 @@ import { provideZonelessChangeDetection, signal } from '@angular/core';
 import type { SavingsGoal, SavingsGoalProgress } from 'pulpe-shared';
 import { SavingsGoalStore } from './savings-goals-store';
 import { SavingsGoalApi } from '@core/savings-goal/savings-goal-api';
+import { BudgetApi } from '@core/budget/budget-api';
+import { BudgetTemplatesApi } from '@core/budget-template/budget-templates-api';
 
 // ngx-ziflux 0.0.13 DataCache mock — MUST carry both `version` and
 // `_dataVersion` signals or cachedResource crashes at first snapshot read.
@@ -20,6 +22,9 @@ const mockCache = {
   version: signal(0),
   _dataVersion: signal(0),
 };
+
+const mockBudgetCache = { invalidate: vi.fn() };
+const mockTemplateCache = { invalidate: vi.fn() };
 
 function makeGoal(overrides: Partial<SavingsGoal> = {}): SavingsGoal {
   return {
@@ -82,6 +87,8 @@ describe('SavingsGoalStore', () => {
     mockCache.get.mockReturnValue(null);
     mockCache.set.mockClear();
     mockCache.invalidate.mockClear();
+    mockBudgetCache.invalidate.mockClear();
+    mockTemplateCache.invalidate.mockClear();
     mockCache.deduplicate.mockImplementation(
       (_key: string[], fn: () => Promise<unknown>) => fn(),
     );
@@ -102,6 +109,11 @@ describe('SavingsGoalStore', () => {
         provideZonelessChangeDetection(),
         SavingsGoalStore,
         { provide: SavingsGoalApi, useValue: mockApi },
+        { provide: BudgetApi, useValue: { cache: mockBudgetCache } },
+        {
+          provide: BudgetTemplatesApi,
+          useValue: { cache: mockTemplateCache },
+        },
       ],
     });
 
@@ -188,15 +200,23 @@ describe('SavingsGoalStore', () => {
       .fn()
       .mockReturnValue(of({ success: true, message: 'deleted' }));
     await settle();
+    store.setSelectedGoalId('goal-2');
+    await settle();
+    expect(store.selectedGoal()?.id).toBe('goal-2');
+    expect(store.progress()).not.toBeNull();
 
     const promise = store.removeGoal('goal-2');
     // optimistic removal is synchronous (onMutate)
     expect(store.goals().some((g) => g.id === 'goal-2')).toBe(false);
+    expect(store.selectedGoal()).toBeNull();
+    expect(store.progress()).toBeNull();
     await promise;
     expect(mockApi.delete$).toHaveBeenCalledWith('goal-2');
     // Progress/contributions of the deleted goal must not survive in cache
     // (back-button on the detail URL would replay them) — whole-prefix nuke.
     expect(mockCache.invalidate).toHaveBeenCalledWith(['savings-goals']);
+    expect(mockBudgetCache.invalidate).toHaveBeenCalledWith(['budget']);
+    expect(mockTemplateCache.invalidate).toHaveBeenCalledWith(['templates']);
   });
 
   it('removeGoal rolls back when the API fails', async () => {
@@ -204,9 +224,13 @@ describe('SavingsGoalStore', () => {
       .fn()
       .mockReturnValue(throwError(() => new Error('delete failed')));
     await settle();
+    store.setSelectedGoalId('goal-2');
 
     await expect(store.removeGoal('goal-2')).rejects.toThrow();
     expect(store.goals().some((g) => g.id === 'goal-2')).toBe(true);
+    expect(store.selectedGoal()?.id).toBe('goal-2');
+    expect(mockBudgetCache.invalidate).not.toHaveBeenCalled();
+    expect(mockTemplateCache.invalidate).not.toHaveBeenCalled();
   });
 
   it('refresh reloads the resource', async () => {
